@@ -12,7 +12,7 @@
 		},
 		"fileHandleId": {
 			"type": "string",
-			"description":"The S3 file handle storing the body of this message"
+			"description":"The S3 file handle storing the body of this message.  Note: The file's mime type should be 'text/plain' or 'text/html'.  If no character encoding is specified, then UTF-8 is assumed."
 		}, 
 		"createdOn": {
 			"type": "string",

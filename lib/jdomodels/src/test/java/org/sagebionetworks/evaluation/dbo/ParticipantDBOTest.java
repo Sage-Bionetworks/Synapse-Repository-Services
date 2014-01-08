@@ -1,16 +1,17 @@
 package org.sagebionetworks.evaluation.dbo;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.evaluation.dbo.EvaluationDBO;
-import org.sagebionetworks.evaluation.dbo.ParticipantDBO;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -24,15 +25,18 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class ParticipantDBOTest {
  
     @Autowired
-    DBOBasicDao dboBasicDao;
+    private DBOBasicDao dboBasicDao;
+    
     @Autowired
-    IdGenerator idGenerator;
+    private IdGenerator idGenerator;
  
-    private long userId = 0;
+    private long userId;
     private long evalId = 2;
     
     @Before
-    public void setUp() {    	
+    public void setUp() {
+    	userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+    	
         // Initialize a new Evaluation
         EvaluationDBO evaluation = new EvaluationDBO();
         evaluation.setId(evalId);

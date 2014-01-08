@@ -55,7 +55,7 @@ public class DBOAccessRequirementDAOImplTest {
 	@Autowired
 	private IdGenerator idGenerator;
 
-	private static final String TEST_USER_NAME = "test-user";
+	private static final String TEST_USER_NAME = "test-user@test.com";
 	
 	private UserGroup individualGroup = null;
 	private Node node = null;

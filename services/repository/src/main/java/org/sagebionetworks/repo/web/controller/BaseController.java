@@ -11,6 +11,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -582,10 +583,11 @@ public abstract class BaseController {
 	 */
 	protected ErrorResponse handleException(Throwable ex,
 			HttpServletRequest request, boolean fullTrace) {
-		if(fullTrace){
+		// Always log the stack trace on develop stacks
+		if (fullTrace || StackConfiguration.isDevelopStack()) {
 			// Print the full stack trace
 			log.error("Handling " + request.toString(), ex);
-		}else{
+		} else {
 			// Only print one line
 			log.error("Handling " + request.toString());
 		}

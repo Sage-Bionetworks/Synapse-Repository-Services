@@ -13,7 +13,7 @@
 
 	<import resource="classpath:search-dao.spb.xml" />
 	<import resource="classpath:managers-spb.xml" />
-	<import resource="classpath:cloudwatch-spb.xml" />
+	<import resource="classpath:main-logging-scheduler-spb.xml" />
 	<import resource="classpath:repo-log-sweep-spb.xml" />
 
 	<!-- Make sure we can watch for deadlock on all methods of the Generic Entity 
@@ -101,9 +101,6 @@
 
 	<!-- The DOI Service -->
 	<bean id="doiService" class="org.sagebionetworks.repo.web.service.DoiServiceImpl" />
-	
-	<!-- The temporary Wiki Migration Service -->
-	<bean id="wikiMigrationService" class="org.sagebionetworks.repo.web.service.WikiMigrationService" />
 
 	<bean id="teamService" class="org.sagebionetworks.repo.web.service.TeamServiceImpl" />
 	<bean id="membershipInvitationService" class="org.sagebionetworks.repo.web.service.MembershipInvitationServiceImpl" />
@@ -212,6 +209,9 @@
 				<bean name="loggingProfiler" class="org.sagebionetworks.profiler.LoggingProfiler" />
 				<bean name="perThreadProfiler" class="org.sagebionetworks.profiler.PerThreadHandler" />
 			</list>
+		</property>
+		<property name="shouldLogPerformance">
+			<ref bean="stackConfiguration.callPerformanceOnOff"/>
 		</property>
 	</bean>
 

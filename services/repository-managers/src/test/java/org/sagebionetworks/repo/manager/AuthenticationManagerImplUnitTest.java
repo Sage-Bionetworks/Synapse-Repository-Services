@@ -28,7 +28,7 @@ public class AuthenticationManagerImplUnitTest {
 	private AuthenticationDAO authDAO;
 	private UserGroupDAO userGroupDAO;
 	
-	final String userId = "12345";
+	final Long userId = 12345L;
 	final String username = "AuthManager@test.org";
 	final String password = "gro.tset@reganaMhtuA";
 	final String sessionToken = "qwertyuiop";
@@ -42,7 +42,7 @@ public class AuthenticationManagerImplUnitTest {
 		
 		userGroupDAO = mock(UserGroupDAO.class);
 		UserGroup ug = new UserGroup();
-		ug.setId(userId);
+		ug.setId(userId.toString());
 		when(userGroupDAO.findGroup(eq(username), eq(true))).thenReturn(ug);
 		
 		authManager = new AuthenticationManagerImpl(authDAO, userGroupDAO);
@@ -79,10 +79,10 @@ public class AuthenticationManagerImplUnitTest {
 	
 	@Test
 	public void testCheckSessionToken() throws Exception {
-		when(authDAO.getPrincipalIfValid(eq(sessionToken))).thenReturn(Long.parseLong(userId));
-		when(authDAO.getPrincipal(eq(sessionToken))).thenReturn(Long.parseLong(userId));
+		when(authDAO.getPrincipalIfValid(eq(sessionToken))).thenReturn(userId);
+		when(authDAO.getPrincipal(eq(sessionToken))).thenReturn(userId);
 		when(authDAO.hasUserAcceptedToU(eq(userId))).thenReturn(true);
-		String principalId = authManager.checkSessionToken(sessionToken, true).toString();
+		Long principalId = authManager.checkSessionToken(sessionToken, true);
 		Assert.assertEquals(userId, principalId);
 		
 		// Token matches, but terms haven't been signed
@@ -104,7 +104,7 @@ public class AuthenticationManagerImplUnitTest {
 		}
 		
 		// Token matches, but has expired
-		when(authDAO.getPrincipal(eq(sessionToken))).thenReturn(Long.parseLong(userId));
+		when(authDAO.getPrincipal(eq(sessionToken))).thenReturn(userId);
 		try {
 			authManager.checkSessionToken(sessionToken, true).toString();
 			fail();

@@ -15,7 +15,7 @@ import org.sagebionetworks.dynamo.dao.nodetree.DboNodeLineage;
 import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeQueryDao;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -44,9 +44,12 @@ public class DynamoQueueWorkerIntegrationTest {
 	private MessageReceiver dynamoQueueMessageRemover;
 
 	private Project project;
+	private UserInfo adminUserInfo;
 
 	@Before
 	public void before() throws Exception {
+		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		
 		StackConfiguration config = new StackConfiguration();
 		// These tests are not run if dynamo is disabled.
 		Assume.assumeTrue(config.getDynamoEnabled());
@@ -61,13 +64,12 @@ public class DynamoQueueWorkerIntegrationTest {
 				DboNodeLineage.HASH_KEY_NAME, DboNodeLineage.RANGE_KEY_NAME);
 
 		// Create a project
-		UserInfo userInfo = userManager.getUserInfo(AuthorizationConstants.TEST_USER_NAME);
 		project = new Project();
 		project.setName("DynamoQueueWorkerIntegrationTest.Project");
 		
 		// This should trigger create message.
-		String id = entityManager.createEntity(userInfo, project, null);
-		project = entityManager.getEntity(userInfo, id, Project.class);
+		String id = entityManager.createEntity(adminUserInfo, project, null);
+		project = entityManager.getEntity(adminUserInfo, id, Project.class);
 		Assert.assertNotNull(project);
 	}
 
@@ -79,9 +81,7 @@ public class DynamoQueueWorkerIntegrationTest {
 		
 		// Remove the project
 		if (project != null) {
-			entityManager.deleteEntity(
-					userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME),
-					project.getId());
+			entityManager.deleteEntity(adminUserInfo, project.getId());
 		}
 		// Try to empty the queue
 		int count = dynamoQueueMessageRemover.triggerFired();
@@ -108,9 +108,7 @@ public class DynamoQueueWorkerIntegrationTest {
 
 		Assert.assertNotNull(results);
 		Assert.assertTrue(results.size() > 0);
-		UserInfo userInfo = userManager.getUserInfo(AuthorizationConstants.TEST_USER_NAME);
-		List<EntityHeader> path = entityManager.getEntityPath(userInfo,
-				project.getId());
+		List<EntityHeader> path = entityManager.getEntityPath(adminUserInfo, project.getId());
 		EntityHeader expectedRoot = path.get(0);
 		Assert.assertEquals(KeyFactory.stringToKey(expectedRoot.getId())
 				.toString(), results.get(0));

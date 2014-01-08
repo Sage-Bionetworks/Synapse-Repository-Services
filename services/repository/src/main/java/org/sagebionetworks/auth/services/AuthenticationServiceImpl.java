@@ -3,15 +3,15 @@ package org.sagebionetworks.auth.services;
 import java.io.IOException;
 
 import org.openid4java.message.ParameterList;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.authutil.OpenIDConsumerUtils;
 import org.sagebionetworks.authutil.OpenIDInfo;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.OriginatingClient;
+import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.ChangePasswordRequest;
 import org.sagebionetworks.repo.model.auth.LoginCredentials;
@@ -57,17 +57,17 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public String revalidate(String sessionToken) throws NotFoundException {
+	public Long revalidate(String sessionToken) throws NotFoundException {
 		return revalidate(sessionToken, true);
 	}
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public String revalidate(String sessionToken, boolean checkToU) throws NotFoundException {
+	public Long revalidate(String sessionToken, boolean checkToU) throws NotFoundException {
 		if (sessionToken == null) {
 			throw new IllegalArgumentException("Session token may not be null");
 		}
-		return authManager.checkSessionToken(sessionToken, checkToU).toString();
+		return authManager.checkSessionToken(sessionToken, checkToU);
 	}
 
 	@Override
@@ -81,7 +81,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void createUser(NewUser user, OriginatingClient originClient) {
+	public void createUser(NewUser user, DomainType originClient) {
 		if (user == null || user.getEmail() == null) {
 			throw new IllegalArgumentException("Email must be specified");
 		}
@@ -92,21 +92,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		} catch (NotFoundException e) {
 			throw new DatastoreException("Could not find user that was just created", e);
 		}
-		
-		// For integration test to confirm that a user can be created
-		if (!StackConfiguration.isProductionStack()) {
-			try {
-				UserInfo userInfo = userManager.getUserInfo(user.getEmail());
-				authManager.changePassword(userInfo.getIndividualGroup().getId(), user.getPassword());
-			} catch (NotFoundException e) {
-				throw new DatastoreException(e);
-			}
-		}
 	}
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void sendPasswordEmail(String username, OriginatingClient originClient) throws NotFoundException {
+	public void sendPasswordEmail(String username, DomainType originClient) throws NotFoundException {
 		if (username == null) {
 			throw new IllegalArgumentException("Username may not be null");
 		}
@@ -114,13 +104,14 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 			throw new IllegalArgumentException("OriginatingClient may not be null");
 		}
 		
-		// Get the user's info and session token (which is refreshed)
-		UserInfo user = userManager.getUserInfo(username);
-		username = user.getIndividualGroup().getName();
+		// Find the user's ID
+		Long userId = getUserId(username);
+		
+		// Get the user's session token (which is refreshed)
 		String sessionToken = authManager.authenticate(username, null).getSessionToken();
 		
 		// Send the email
-		messageManager.sendPasswordResetEmail(user.getIndividualGroup().getId(), originClient, sessionToken);
+		messageManager.sendPasswordResetEmail(userId.toString(), originClient, sessionToken);
 	}
 	
 	@Override
@@ -134,7 +125,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		}
 		
 		Long principalId = authManager.checkSessionToken(request.getSessionToken(), false);
-		authManager.changePassword(principalId.toString(), request.getPassword());
+		authManager.changePassword(principalId, request.getPassword());
 		authManager.invalidateSessionToken(request.getSessionToken());
 	}
 	
@@ -153,21 +144,19 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		
 		// Save the state of acceptance
 		if (session.getAcceptsTermsOfUse() != userInfo.getUser().isAgreesToTermsOfUse()) {
-			authManager.setTermsOfUseAcceptance(userInfo.getIndividualGroup().getId(), session.getAcceptsTermsOfUse());
+			authManager.setTermsOfUseAcceptance(Long.parseLong(userInfo.getIndividualGroup().getId()), session.getAcceptsTermsOfUse());
 		}
 	}
 	
 	@Override
-	public String getSecretKey(String username) throws NotFoundException {
-		UserInfo userInfo = userManager.getUserInfo(username);
-		return authManager.getSecretKey(userInfo.getIndividualGroup().getId());
+	public String getSecretKey(Long principalId) throws NotFoundException {
+		return authManager.getSecretKey(principalId);
 	}
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void deleteSecretKey(String username) throws NotFoundException {
-		UserInfo userInfo = userManager.getUserInfo(username);
-		authManager.changeSecretKey(userInfo.getIndividualGroup().getId());
+	public void deleteSecretKey(Long principalId) throws NotFoundException {
+		authManager.changeSecretKey(principalId);
 	}
 	
 	@Override
@@ -176,9 +165,17 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	}
 	
 	@Override
-	public boolean hasUserAcceptedTermsOfUse(String username) throws NotFoundException {
-		UserInfo userInfo = userManager.getUserInfo(username);
-		return authManager.hasUserAcceptedTermsOfUse(userInfo.getIndividualGroup().getId());
+	public Long getUserId(String username) throws NotFoundException {
+		UserGroup ug = userManager.findGroup(username, true);
+		if (ug == null) {
+			throw new NotFoundException("User " + username + " does not exist");
+		}
+		return Long.parseLong(ug.getId());
+	}
+	
+	@Override
+	public boolean hasUserAcceptedTermsOfUse(Long userId) throws NotFoundException {
+		return authManager.hasUserAcceptedTermsOfUse(userId);
 	}
 	
 	@Override
@@ -201,7 +198,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		Boolean shouldCreateUser = createParam == null ? null : new Boolean(createParam);
 		
 		String originClientParam = parameters.getParameterValue(OpenIDInfo.ORIGINATING_CLIENT_PARAM_NAME);
-		OriginatingClient originClient = OriginatingClient.getClientFromOriginClientParam(originClientParam);
+		DomainType originClient = DomainType.valueOf(originClientParam);
 		
 		return processOpenIDInfo(openIDInfo, shouldCreateUser, originClient);
 	}
@@ -210,7 +207,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	 * Returns the session token of the user described by the OpenID information
 	 */
 	protected Session processOpenIDInfo(OpenIDInfo info, boolean createUserIffNecessary,
-			OriginatingClient originClient) throws NotFoundException {
+			DomainType originClient) throws NotFoundException {
 		// Get some info about the user
 		String email = info.getEmail();
 		String fname = info.getFirstName();
@@ -231,8 +228,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 				user.setFirstName(fname);
 				user.setLastName(lname);
 				user.setDisplayName(fullName);
-				userManager.createUser(user);
-				UserInfo justCreated = userManager.getUserInfo(email);
+				Long userId = userManager.createUser(user);
+				UserInfo justCreated = userManager.getUserInfo(userId);
 				
 				// Send a welcome message
 				messageManager.sendWelcomeEmail(justCreated.getIndividualGroup().getId(), originClient);

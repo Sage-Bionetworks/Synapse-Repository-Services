@@ -1,12 +1,16 @@
 package org.sagebionetworks.evaluation.dbo;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.evaluation.dbo.EvaluationDBO;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -20,14 +24,19 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class EvaluationDBOTest {
  
     @Autowired
-    DBOBasicDao dboBasicDao;
+	private DBOBasicDao dboBasicDao;
  
+    private long ownerId;
     private long id = 1000;
     private String name = "Foo";
     private String eTag = "Bar";
-    private long ownerId = 0;
     private Long contentSource = KeyFactory.ROOT_ID;
  
+    @Before
+    public void before() {
+    	ownerId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+    }
+    
     @After
     public void after() throws DatastoreException {
         if(dboBasicDao != null){
@@ -37,7 +46,7 @@ public class EvaluationDBOTest {
         }
     }
     @Test
-    public void testCRUD() throws Exception{
+    public void testCRUD() throws Exception {
         // Initialize a new competition
         EvaluationDBO eval = new EvaluationDBO();
         eval.setId(id);

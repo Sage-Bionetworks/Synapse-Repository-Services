@@ -14,7 +14,7 @@ import org.sagebionetworks.authutil.OpenIDInfo;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.model.OriginatingClient;
+import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -53,8 +53,9 @@ public class AuthenticationServiceImplTest {
 		userInfo.getIndividualGroup().setId("" + userId);
 		
 		mockUserManager = Mockito.mock(UserManager.class);
-		when(mockUserManager.getUserInfo(eq(username))).thenReturn(userInfo);
+		when(mockUserManager.getUserInfo(eq(userId))).thenReturn(userInfo);
 		when(mockUserManager.getGroupName(anyString())).thenReturn(username);
+		when(mockUserManager.createUser(any(NewUser.class))).thenReturn(userId);
 		
 		mockAuthenticationManager = Mockito.mock(AuthenticationManager.class);
 		when(mockAuthenticationManager.checkSessionToken(eq(sessionToken), eq(true))).thenReturn(userId);
@@ -91,7 +92,7 @@ public class AuthenticationServiceImplTest {
 		info.setEmail(username);
 		info.setFullName(fullName);
 		
-		service.processOpenIDInfo(info, true, OriginatingClient.SYNAPSE);
+		service.processOpenIDInfo(info, true, DomainType.SYNAPSE);
 		
 		// The user should be created
 		verify(mockUserManager).createUser(any(NewUser.class));

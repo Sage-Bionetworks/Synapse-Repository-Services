@@ -14,11 +14,10 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,10 +30,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class DBOFavoriteTest {
 	
 	@Autowired
-	DBOBasicDao dboBasicDao;
-	
-	@Autowired
-	private UserGroupDAO userGroupDAO;
+	private DBOBasicDao dboBasicDao;
 	
 	@Autowired
 	private NodeDAO nodeDAO;
@@ -42,8 +38,8 @@ public class DBOFavoriteTest {
 	@Autowired
 	private IdGenerator idGenerator;
 	
-	List<DBOFavorite> favoritesToDelete = null;
-	List<Long> nodeIdsToDelete = null;
+	private List<DBOFavorite> favoritesToDelete = null;
+	private List<Long> nodeIdsToDelete = null;
 	
 	@After
 	public void after() throws DatastoreException {
@@ -84,7 +80,7 @@ public class DBOFavoriteTest {
 		
 		DBOFavorite favorite = new DBOFavorite();
 		favorite.setNodeId(node.getId());
-		Long createdById = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId());
+		Long createdById = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		favorite.setPrincipalId(createdById);
 		favorite.setCreatedOn(System.currentTimeMillis());
 		favorite.setId(idGenerator.generateNewId(TYPE.FAVORITE_ID));
@@ -119,7 +115,7 @@ public class DBOFavoriteTest {
 		node.setId(idGenerator.generateNewId());
 		node.setName("SomeName");
 		node.setBenefactorId(node.getId());
-		Long createdById = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId());
+		Long createdById = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		node.setCreatedBy(createdById);
 		node.setCreatedOn(System.currentTimeMillis());
 		node.setCurrentRevNumber(null);

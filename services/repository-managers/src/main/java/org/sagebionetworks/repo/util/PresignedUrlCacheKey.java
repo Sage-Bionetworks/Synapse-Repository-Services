@@ -8,7 +8,7 @@ package org.sagebionetworks.repo.util;
  * 
  */
 public class PresignedUrlCacheKey {
-	private final String userId;
+	private final Long userId;
 	private final String s3Key;
 	private final String method;
 
@@ -17,7 +17,7 @@ public class PresignedUrlCacheKey {
 	 * @param s3Key
 	 * @param method
 	 */
-	public PresignedUrlCacheKey(String userId, String s3Key, String method) {
+	public PresignedUrlCacheKey(Long userId, String s3Key, String method) {
 		super();
 		this.userId = userId;
 		this.s3Key = s3Key;
@@ -27,7 +27,7 @@ public class PresignedUrlCacheKey {
 	/**
 	 * @return the userId
 	 */
-	public String getUserId() {
+	public Long getUserId() {
 		return userId;
 	}
 
@@ -45,11 +45,6 @@ public class PresignedUrlCacheKey {
 		return method;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see java.lang.Object#hashCode()
-	 */
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -60,11 +55,6 @@ public class PresignedUrlCacheKey {
 		return result;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see java.lang.Object#equals(java.lang.Object)
-	 */
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj)
@@ -92,15 +82,10 @@ public class PresignedUrlCacheKey {
 		return true;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see java.lang.Object#toString()
-	 */
 	@Override
 	public String toString() {
-		return "PresignedUrlCacheKey [method=" + method + ", s3Key=" + s3Key
-				+ ", userId=" + userId + "]";
+		return "PresignedUrlCacheKey [userId=" + userId + ", s3Key=" + s3Key
+				+ ", method=" + method + "]";
 	}
 
 }

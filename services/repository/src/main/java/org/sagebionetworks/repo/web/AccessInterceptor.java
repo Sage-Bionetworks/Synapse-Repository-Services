@@ -12,9 +12,7 @@ import org.apache.logging.log4j.ThreadContext;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.audit.utils.KeyGeneratorUtil;
 import org.sagebionetworks.audit.utils.VirtualMachineIdProvider;
-import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.audit.AccessRecord;
 import org.sagebionetworks.repo.model.audit.AccessRecorder;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,8 +37,6 @@ public class AccessInterceptor implements HandlerInterceptor, AccessIdListener{
 
 	@Autowired
 	AccessRecorder accessRecorder;
-	@Autowired
-	UserManager userManager;
 	
 	private String instancePrefix = KeyGeneratorUtil.getInstancePrefix( new StackConfiguration().getStackInstanceNumber());
 	private String stack = StackConfiguration.getStack();
@@ -56,13 +52,8 @@ public class AccessInterceptor implements HandlerInterceptor, AccessIdListener{
 		// Extract the UserID when provided
 		String userIdString = request.getParameter(AuthorizationConstants.USER_ID_PARAM);
 		if (userIdString != null) {
-			UserInfo user = userManager.getUserInfo(userIdString);
-			try {
-				data.setUserId(Long
-						.parseLong(user.getIndividualGroup().getId()));
-			} catch (NumberFormatException e) {
-				throw new IllegalArgumentException("UserId must be a number");
-			}
+			Long userId = Long.parseLong(userIdString); 
+			data.setUserId(userId);
 		}
 		data.setTimestamp(System.currentTimeMillis());
 		data.setRequestURL(request.getRequestURI());

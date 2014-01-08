@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
@@ -11,12 +12,14 @@ import java.util.UUID;
 import javax.servlet.ServletException;
 
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.sagebionetworks.client.SynapseAdminClient;
+import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
-import org.sagebionetworks.client.SynapseProfileProxy;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Project;
@@ -37,45 +40,52 @@ import org.sagebionetworks.repo.model.table.TableEntity;
  */
 public class IT100TableControllerTest {
 
-	private static SynapseClient synapse = null;
+	private static SynapseAdminClient adminSynapse;
+	private static SynapseClient synapse;
+	private static Long userToDelete;
+
 	private List<Entity> entitiesToDelete;
+	private List<TableEntity> tablesToDelete;
 	
-	private static SynapseClient createSynapseClient(String user, String pw) throws SynapseException {
-		SynapseClientImpl synapse = new SynapseClientImpl();
-		synapse.setAuthEndpoint(StackConfiguration
-				.getAuthenticationServicePrivateEndpoint());
-		synapse.setRepositoryEndpoint(StackConfiguration
-				.getRepositoryServiceEndpoint());
-		synapse.login(user, pw);
-		// Return a proxy
-		return SynapseProfileProxy.createProfileProxy(synapse);
+	@BeforeClass 
+	public static void beforeClass() throws Exception {
+		// Create a user
+		adminSynapse = new SynapseAdminClientImpl();
+		SynapseClientHelper.setEndpoints(adminSynapse);
+		adminSynapse.setUserName(StackConfiguration.getMigrationAdminUsername());
+		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
+		
+		synapse = new SynapseClientImpl();
+		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
 	}
 	
 	@Before
 	public void before(){
 		entitiesToDelete = new LinkedList<Entity>();
+		tablesToDelete = new ArrayList<TableEntity>();
 	}
 	
 	@After
-	public void after(){
-		if(entitiesToDelete != null && synapse != null){
-			for(Entity entity: entitiesToDelete){
-				try {
-					synapse.deleteEntity(entity);
-				} catch (SynapseException e) {}
-			}
+	public void after() throws Exception {
+		for (Entity entity : entitiesToDelete) {
+			adminSynapse.deleteAndPurgeEntity(entity);
+		}
+		
+		for (TableEntity table : tablesToDelete) {
+			//TODO This function does not exist
+			// adminSynapse.deleteTable(table);
 		}
 	}
-	/**
-	 * @throws Exception
-	 * 
-	 */
-	@BeforeClass
-	public static void beforeClass() throws Exception {
-		synapse = createSynapseClient(StackConfiguration.getIntegrationTestUserOneName(),
-				StackConfiguration.getIntegrationTestUserOnePassword());
-	}
 	
+	@AfterClass
+	public static void afterClass() throws Exception {
+		//TODO This delete should not need to be surrounded by a try-catch
+		// This means proper cleanup was not done by the test 
+		try {
+			adminSynapse.deleteUser(userToDelete);
+		} catch (Exception e) { }
+	}
+
 	@Test
 	public void testCreateGetColumn() throws SynapseException{
 		ColumnModel cm = new ColumnModel();
@@ -117,6 +127,8 @@ public class IT100TableControllerTest {
 		table.setColumnIds(idList);
 		table.setParentId(project.getId());
 		table = synapse.createEntity(table);
+		tablesToDelete.add(table);
+		
 		assertNotNull(table);
 		assertNotNull(table.getId());
 		// Now make sure we can get the columns for this entity.
@@ -141,7 +153,7 @@ public class IT100TableControllerTest {
 		assertEquals(table.getId(), results.getTableId());
 		assertEquals(TableModelUtils.getHeaders(columns), results.getHeaders());
 	}
-	
+
 	@Test
 	public void testListColumnModels() throws ServletException, Exception{
 		ColumnModel one = new ColumnModel();

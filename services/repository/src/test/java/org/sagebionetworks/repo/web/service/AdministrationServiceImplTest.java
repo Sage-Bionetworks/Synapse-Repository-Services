@@ -31,9 +31,9 @@ public class AdministrationServiceImplTest {
 	MessageSyndication mockMessageSyndication;
 	AdministrationServiceImpl adminService;
 	
-	String nonAdminUserId = "nonAdminUser";
+	Long nonAdminUserId = 98345L;
 	UserInfo nonAdmin;
-	String adminUserId = "AdminUser";
+	Long adminUserId = 842059834L;
 	UserInfo admin;
 	
 	@Before

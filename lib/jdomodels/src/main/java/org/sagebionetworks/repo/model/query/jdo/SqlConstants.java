@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model.query.jdo;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_UNIQUE;
+
 import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
@@ -236,6 +238,14 @@ public class SqlConstants {
 	public static final String COL_USER_GROUP_E_TAG         = "ETAG";
 	public static final String COL_USER_GROUP_CREATION_DATE = "CREATION_DATE";
 	public static final String DDL_FILE_USER_GROUP			="schema/UserGroup-ddl.sql";
+	
+	// Principal headers table
+	public static final String TABLE_PRINCIPAL_HEADER              = "PRINCIPAL_HEADER";
+	public static final String COL_PRINCIPAL_HEADER_ID             = "PRINCIPAL_ID";
+	public static final String COL_PRINCIPAL_HEADER_FRAGMENT       = "FRAGMENT";
+	public static final String COL_PRINCIPAL_HEADER_SOUNDEX        = "SOUNDEX";
+	public static final String COL_PRINCIPAL_HEADER_PRINCIPAL_TYPE = "PRINCIPAL_TYPE";
+	public static final String COL_PRINCIPAL_HEADER_DOMAIN_TYPE    = "DOMAIN_TYPE";
     
     // The group members table
     public static final String TABLE_GROUP_MEMBERS         = "GROUP_MEMBERS";
@@ -502,7 +512,18 @@ public class SqlConstants {
 	public static final String COL_TEAM_ETAG			= "ETAG";
 	public static final String COL_TEAM_PROPERTIES		= "PROPERTIES";
 	public static final String DDL_FILE_TEAM = "schema/Team-ddl.sql";
-
+	
+	// This table holds the binding of principal IDs to alias.
+	// These alias can be used to lookup a principal.
+	public static final String TABLE_PRINCIPAL_ALIAS 				= "PRINCIPAL_ALIAS";
+	public static final String COL_PRINCIPAL_ALIAS_ID 				= "ID";
+	public static final String COL_PRINCIPAL_ALIAS_ETAG				= "ETAG";
+	public static final String COL_PRINCIPAL_ALIAS_PRINCIPAL_ID		= "PRINCIPAL_ID";
+	public static final String COL_PRINCIPAL_ALIAS_UNIQUE			= "ALIAS_UNIQUE";
+	public static final String COL_BOUND_ALIAS_DISPLAY				= "ALIAS_DISPLAY";
+	public static final String COL_PRINCIPAL_ALIAS_TYPE				= "TYPE";
+	public static final String COL_PRINCIPAL_ALIAS_IS_VALIDATED		= "IS_VALIDATED";
+	public static final String CONSTRAINT_PRINCIPAL_ALIAS_UNIQUE 	= "UNIQUE KEY `PRINCIPAL_ALIAS_UNIQUE` (`"+COL_PRINCIPAL_ALIAS_UNIQUE+"`)";
 	
 	// MembershipInvitation Table
 	public static final String TABLE_MEMBERSHIP_INVITATION_SUBMISSION	= "MEMBERSHIP_INVITATION_SUBMISSION";
@@ -524,10 +545,40 @@ public class SqlConstants {
 	public static final String COL_MEMBERSHIP_REQUEST_SUBMISSION_PROPERTIES		= "PROPERTIES";
 	public static final String DDL_FILE_MEMBERSHIP_REQUEST_SUBMISSION	= "schema/MembershipRequestSubmission-ddl.sql";
 
-	// The group members table
+	// The community team table
 	public static final String TABLE_COMMUNITY_TEAM = "COMMUNITY_TEAM";
 	public static final String COL_COMMUNITY_TEAM_COMMUNITY_ID = "COMMUNITY_ID";
 	public static final String COL_COMMUNITY_TEAM_TEAM_ID = "TEAM_ID";
+
+	// Participant
+	public static final String TABLE_PARTICIPANT = "PARTICIPANT";
+	public static final String COL_PARTICIPANT_ID = "ID";
+
+	// Participant data sets descriptor
+	public static final String TABLE_PARTICIPANT_DATA_DESCRIPTOR = "PARTICIPANT_DATA_DESCRIPTOR";
+	public static final String COL_PARTICIPANT_DATA_DESCRIPTOR_ID = "ID";
+	public static final String COL_PARTICIPANT_DATA_DESCRIPTOR_NAME = "NAME";
+	public static final String COL_PARTICIPANT_DATA_DESCRIPTOR_DESCRIPTION = "DESCRIPTION";
+	public static final String COL_PARTICIPANT_DATA_DESCRIPTOR_REPEAT_TYPE = "REPEAT_TYPE";
+	public static final String COL_PARTICIPANT_DATA_DESCRIPTOR_FREQUENCY = "FREQUENCY";
+
+	// Participant data sets column descriptor
+	public static final String TABLE_PARTICIPANT_DATA_COLUMN_DESCRIPTOR = "PARTICIPANT_DATA_COLUMN_DESCRIPTOR";
+	public static final String COL_PARTICIPANT_DATA_COLUMN_DESCRIPTOR_ID = "ID";
+	public static final String COL_PARTICIPANT_DATA_COLUMN_DESCRIPTOR_PARTICIPANT_DATA_ID = "PARTICIPANT_DATA_ID";
+	public static final String COL_PARTICIPANT_DATA_COLUMN_DESCRIPTOR_PROPERTIES = "PROPERTIES";
+
+	// Participant data sets
+	public static final String TABLE_PARTICIPANT_DATA = "PARTICIPANT_DATA";
+	public static final String COL_PARTICIPANT_DATA_PARTICIPANT_DATA_DESCRIPTOR_ID = "PARTICIPANT_DATA_DESCRIPTOR_ID";
+	public static final String COL_PARTICIPANT_DATA_PARTICIPANT_ID = "PARTICIPANT_ID";
+	public static final String COL_PARTICIPANT_DATA_BUCKET = "S3_BUCKET";
+	public static final String COL_PARTICIPANT_DATA_KEY = "S3_KEY";
+
+	// Participant data set statuses
+	public static final String TABLE_PARTICIPANT_DATA_STATUS = "PARTICIPANT_DATA_STATUS";
+	public static final String COL_PARTICIPANT_DATA_STATUS_PARTICIPANT_DATA_DESCRIPTOR_ID = "PARTICIPANT_DATA_DESCRIPTOR_ID";
+	public static final String COL_PARTICIPANT_DATA_STATUS_STATUS = "STATUS";
 
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";

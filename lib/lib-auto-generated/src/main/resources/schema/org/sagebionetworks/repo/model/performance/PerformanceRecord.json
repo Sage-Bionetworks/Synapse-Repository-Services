@@ -1,0 +1,17 @@
+{
+	"description": "Data record for call performance.",
+	"properties": {
+		"method": {
+			"type": "string",
+			"description": "The java bean method"
+		},
+		"totalCount": {
+			"type": "integer",
+			"description": "The total number of calls"
+		},
+		"totalTime": {
+			"type": "integer",
+			"description": "The total time taken in ns"
+		}
+	}
+}

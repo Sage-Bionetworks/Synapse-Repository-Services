@@ -1,46 +1,32 @@
-/**
- * 
- */
 package org.sagebionetworks.repo.model;
 
 /**
  * @author deflaux
- * 
  */
 public class AuthorizationConstants {
 
 	/**
-	 * These are default groups that are guaranteed to be there.
+	 * These are default users and groups that are guaranteed to be initialized by the system
+	 * 
+	 * The values reflect that of dao-beans.spb.xml  
 	 */
-	public enum DEFAULT_GROUPS {
-		AUTHENTICATED_USERS,
-		PUBLIC,
-		BOOTSTRAP_USER_GROUP;
+	public enum BOOTSTRAP_PRINCIPAL {
+		THE_ADMIN_USER(1L), 
+		ADMINISTRATORS_GROUP(2L), 
+		AUTHENTICATED_USERS_GROUP(273948L), 
+		PUBLIC_GROUP(273949L), 
+		ANONYMOUS_USER(273950L);
+
+		private final long principalId;
 		
-		/**
-		 * Does the name match a default group?
-		 * @param name
-		 * @return
-		 */
-		public static boolean isDefaultGroup(String name){
-			for(DEFAULT_GROUPS dg: DEFAULT_GROUPS.values()){
-				if(dg.name().equals(name)) return true;
-			}
-			return false;
+		public Long getPrincipalId() {
+			return this.principalId;
+		}
+
+		private BOOTSTRAP_PRINCIPAL(long principalId) {
+			this.principalId = principalId;
 		}
 	}
-	
-	/**
-	 * User Group to have ownership of bootstrapped entities
-	 * 
-	 */
-	public static final String BOOTSTRAP_USER_GROUP_NAME = DEFAULT_GROUPS.BOOTSTRAP_USER_GROUP.name();
-	
-	/**
-	 * BOOTSTRAP group must always have the same ID to allow stack migration
-	 * 
-	 */
-	// public static final String BOOTSTRAP_USER_GROUP_ID = "0";
 	
 	/**
 	 * A scheme that describes how an ACL should be applied to an entity.
@@ -50,30 +36,7 @@ public class AuthorizationConstants {
 		INHERIT_FROM_PARENT,
 	}
 	
-	/**
-	 * The group name for a system defined group which allows access to its
-	 * resources to all (including anonymous users)
-	 */
-	// public static final String PUBLIC_GROUP_NAME = "Identified Users";
-	@Deprecated
-	public static final String PUBLIC_GROUP_NAME = DEFAULT_GROUPS.PUBLIC.name();
-	
-	/**
-	 * The group name for those users that have all kinds of access to all resources.
-	 */
-	public static final String ADMIN_GROUP_NAME = "Administrators";
-
-	public static final String MIGRATION_USER_NAME = "migrationAdmin@sagebase.org";
-	
-	/**
-	 * 
-	 */
 	public static final String ACCESS_AND_COMPLIANCE_TEAM_NAME = "Synpase ACT Team";
-	
-	/**
-	 * The reserved username for an anonymous user.
-	 */
-	public static final String ANONYMOUS_USER_ID = "anonymous@sagebase.org";
 	
 	/**
 	 * Per http://sagebionetworks.jira.com/browse/PLFM-192
@@ -85,7 +48,6 @@ public class AuthorizationConstants {
 	public static final String SIGNATURE = "signature";	
 	
 	public static final String TERMS_OF_USE_URI = "/termsOfUse";
-	public static final String TERMS_OF_USE_AGREEMENT_URI = "/termsOfUseAgreement";
 
 
 	/**
@@ -129,20 +91,5 @@ public class AuthorizationConstants {
 	 */
 	@Deprecated
 	public static final String ETAG_PARAM = "etag";
-
-	/**
-	 * A test user that is bootstrapped for testing on non-production stacks
-	 */
-	public static final String TEST_USER_NAME = "test-user@sagebase.org";
-
-	/**
-	 * The group the test user belongs to (see TEST_USER_NAME)
-	 */
-	public static final String TEST_GROUP_NAME = "test-group";
-
-	/**
-	 * An admin user that is bootstrapped for testing on non-production stacks
-	 */
-	public static final String ADMIN_USER_NAME = "admin@sagebase.org";
 	
 }

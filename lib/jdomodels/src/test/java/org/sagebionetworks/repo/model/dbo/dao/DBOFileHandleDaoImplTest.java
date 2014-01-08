@@ -1,6 +1,10 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.net.MalformedURLException;
 import java.util.ArrayList;
@@ -13,9 +17,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -32,18 +35,15 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class DBOFileHandleDaoImplTest {
 
 	@Autowired
-	FileHandleDao fileHandleDao;
-	
-	@Autowired
-	private UserGroupDAO userGroupDAO;
+	private FileHandleDao fileHandleDao;
 	
 	private List<String> toDelete;
-	String creatorUserGroupId;
+	private String creatorUserGroupId;
 	
 	@Before
 	public void before(){
 		toDelete = new LinkedList<String>();
-		creatorUserGroupId = userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId();
+		creatorUserGroupId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString();
 		assertNotNull(creatorUserGroupId);
 	}
 	
@@ -122,13 +122,13 @@ public class DBOFileHandleDaoImplTest {
 	@Test (expected=NotFoundException.class)
 	public void testGetCreatorNotFound() throws NotFoundException{
 		// Use an invalid file handle id.
-		String lookupCreator = fileHandleDao.getHandleCreator("99999");
+		fileHandleDao.getHandleCreator("99999");
 	}
 	
 	@Test (expected=NotFoundException.class)
 	public void testGetPreviewFileHandleNotFound() throws NotFoundException{
 		// Use an invalid file handle id.
-		String prewviewId = fileHandleDao.getPreviewFileHandleId("9999");
+		fileHandleDao.getPreviewFileHandleId("9999");
 	}
 	
 	@Test
@@ -451,4 +451,11 @@ public class DBOFileHandleDaoImplTest {
 		assertEquals(handle.getId(), list.get(0));
 	}
 
+	@Test
+	public void testCreateFileHandleWithNoPreview() {
+		S3FileHandle handle = TestUtils.createS3FileHandle(creatorUserGroupId);
+		handle = fileHandleDao.createFile(handle, false);
+		toDelete.add(handle.getId());
+		assertEquals(handle.getId(), handle.getPreviewId());
+	}
 }

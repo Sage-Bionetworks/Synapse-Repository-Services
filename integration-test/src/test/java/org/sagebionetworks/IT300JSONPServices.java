@@ -13,10 +13,14 @@ import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.util.EntityUtils;
 import org.json.JSONObject;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.sagebionetworks.client.SynapseAdminClient;
+import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
+import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
@@ -34,6 +38,37 @@ import org.sagebionetworks.utils.DefaultHttpClientSingleton;
  *
  */
 public class IT300JSONPServices {
+
+	private static SynapseAdminClient adminSynapse;
+	private static SynapseClient synapse;
+	private static Long userToDelete;
+	
+	private Team teamToDelete = null;
+	
+	@BeforeClass
+	public static void beforeClass() throws Exception {
+		// Create a user
+		adminSynapse = new SynapseAdminClientImpl();
+		SynapseClientHelper.setEndpoints(adminSynapse);
+		adminSynapse.setUserName(StackConfiguration.getMigrationAdminUsername());
+		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
+		
+		synapse = new SynapseClientImpl();
+		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
+	}
+	
+	@After
+	public void cleanUpTeam() throws Exception {
+		if (teamToDelete != null) {
+			synapse.deleteTeam(teamToDelete.getId());
+			teamToDelete = null;
+		}
+	}
+	
+	@AfterClass
+	public static void afterClass() throws Exception {
+		adminSynapse.deleteUser(userToDelete);
+	}
 	
 	@Test
 	public void testGetChildrenTransitiveJSONP() throws ClientProtocolException, IOException, JSONObjectAdapterException{
@@ -107,33 +142,6 @@ public class IT300JSONPServices {
 		assertNotNull(crp);
 		assertEquals("http://synapse.sagebase.org/ontology#11291", crp.getUri());
 	}
-	
-	private static SynapseClient synapse = null;
-	private Team teamToDelete = null;
-	
-	@BeforeClass
-	public static void login() throws Exception {
-		synapse = SynapseClientHelper.createSynapseClient(StackConfiguration.getIntegrationTestUserOneName(),
-				StackConfiguration.getIntegrationTestUserOnePassword());
-	}
-	
-	private String makeATeam() throws Exception {
-		String name = "IT300-Test-Team-Name";
-		String description = "Test-Team-Description";
-		Team team = new Team();
-		team.setName(name);
-		team.setDescription(description);
-		Team createdTeam = synapse.createTeam(team);
-		teamToDelete = createdTeam;
-		return createdTeam.getId();
-	}
-	
-	@After
-	public void cleanUpTeam() throws Exception {
-		if (teamToDelete==null) return;
-		synapse.deleteTeam(teamToDelete.getId());
-		teamToDelete=null;
-	}
 
 	@Test
 	public void testTeamJSONP() throws Exception {
@@ -159,7 +167,17 @@ public class IT300JSONPServices {
 		results.initializeFromJSONObject(adapter);
 		assertNotNull(results.getTotalNumberOfResults());
 	}
-
+	
+	private String makeATeam() throws Exception {
+		String name = "IT300-Test-Team-Name";
+		String description = "Test-Team-Description";
+		Team team = new Team();
+		team.setName(name);
+		team.setDescription(description);
+		Team createdTeam = synapse.createTeam(team);
+		teamToDelete = createdTeam;
+		return createdTeam.getId();
+	}
 
 	@Test
 	public void testTeamMembershipJSONP() throws Exception {

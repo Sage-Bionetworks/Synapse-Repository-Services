@@ -13,7 +13,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.StackStatusDao;
@@ -41,13 +41,13 @@ public class StackStatusInterceptorTest {
 	private static final String CURRENT_STATUS_1 = "Setting the status to ";
 	
 	@Autowired
-	StackStatusDao stackStatusDao;
+	private StackStatusDao stackStatusDao;
 		
 	private static HttpServlet dispatchServlet;
 	
 	private Project sampleProject = null;
 
-	private String userName = AuthorizationConstants.ADMIN_USER_NAME;
+	private Long adminUserId;
 	
 	
 	@BeforeClass
@@ -62,6 +62,15 @@ public class StackStatusInterceptorTest {
 		dispatchServlet.init(servletConfig);
 	}
 	
+	@Before
+	public void before() throws Exception {
+		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+		
+		assertNotNull(stackStatusDao);
+		sampleProject = new Project();
+		// Create a sample project
+		sampleProject = ServletTestHelper.createEntity(dispatchServlet, sampleProject, 	adminUserId);
+	}
 	
 	@After
 	public void after() throws Exception{
@@ -76,23 +85,15 @@ public class StackStatusInterceptorTest {
 		}
 		// Delete the sample project
 		if(sampleProject != null){
-			ServletTestHelper.deleteEntity(dispatchServlet, Project.class, sampleProject.getId(), userName);
+			ServletTestHelper.deleteEntity(dispatchServlet, Project.class, sampleProject.getId(), adminUserId);
 		}
-	}
-	
-	@Before
-	public void before() throws Exception {
-		assertNotNull(stackStatusDao);
-		sampleProject = new Project();
-		// Create a sample project
-		sampleProject = ServletTestHelper.createEntity(dispatchServlet, sampleProject, 	userName);
 	}
 	
 	@Test
 	public void testGetWithReadWrite() throws Exception {
 		// We should be able to get when the status is read-write
 		assertEquals(StatusEnum.READ_WRITE, stackStatusDao.getCurrentStatus());
-		Project fetched = ServletTestHelper.getEntity(dispatchServlet, Project.class, sampleProject.getId(), userName);
+		Project fetched = ServletTestHelper.getEntity(dispatchServlet, Project.class, sampleProject.getId(), adminUserId);
 		assertNotNull(fetched);
 	}
 	
@@ -102,7 +103,7 @@ public class StackStatusInterceptorTest {
 		setStackStatus(StatusEnum.READ_ONLY);
 		// Make sure the status is what we expect
 		assertEquals(StatusEnum.READ_ONLY, stackStatusDao.getCurrentStatus());
-		Project fetched = ServletTestHelper.getEntity(dispatchServlet, Project.class, sampleProject.getId(), userName);
+		Project fetched = ServletTestHelper.getEntity(dispatchServlet, Project.class, sampleProject.getId(), adminUserId);
 		assertNotNull(fetched);
 	}
 	
@@ -114,7 +115,7 @@ public class StackStatusInterceptorTest {
 		assertEquals(StatusEnum.DOWN, stackStatusDao.getCurrentStatus());
 		try{
 			// This should fail
-			ServletTestHelper.getEntity(dispatchServlet, Project.class, sampleProject.getId(), userName);
+			ServletTestHelper.getEntity(dispatchServlet, Project.class, sampleProject.getId(), adminUserId);
 			fail("Calling a GET while synapse is down should have thrown an 503");
 		} catch (DatastoreException e){
 			// Make sure the message is in the exception
@@ -130,7 +131,7 @@ public class StackStatusInterceptorTest {
 		assertEquals(StatusEnum.READ_WRITE, stackStatusDao.getCurrentStatus());
 		Study child = new Study();
 		child.setParentId(sampleProject.getId());
-		Study fetched = ServletTestHelper.createEntity(dispatchServlet, child, userName);
+		Study fetched = ServletTestHelper.createEntity(dispatchServlet, child, adminUserId);
 		assertNotNull(fetched);
 	}
 	
@@ -144,7 +145,7 @@ public class StackStatusInterceptorTest {
 		child.setParentId(sampleProject.getId());
 		try{
 			// This should fail in read only.
-			ServletTestHelper.createEntity(dispatchServlet, child, userName);
+			ServletTestHelper.createEntity(dispatchServlet, child, adminUserId);
 			fail("Calling a GET while synapse is down should have thrown an 503");
 		} catch (DatastoreException e){
 			// Make sure the message is in the exception
@@ -163,7 +164,7 @@ public class StackStatusInterceptorTest {
 		// This should fail
 		Project child = new Project();
 		child.setParentId(sampleProject.getId());
-		ServletTestHelper.createEntity(dispatchServlet, child, userName);
+		ServletTestHelper.createEntity(dispatchServlet, child, adminUserId);
 		fail();
 	}
 	
@@ -171,7 +172,7 @@ public class StackStatusInterceptorTest {
 	public void testPutWithReadWrite() throws Exception {
 		// We should be able to get when the status is read-write
 		assertEquals(StatusEnum.READ_WRITE, stackStatusDao.getCurrentStatus());
-		Project fetched = ServletTestHelper.updateEntity(dispatchServlet, sampleProject, userName);
+		Project fetched = ServletTestHelper.updateEntity(dispatchServlet, sampleProject, adminUserId);
 		assertNotNull(fetched);
 	}
 	
@@ -182,7 +183,7 @@ public class StackStatusInterceptorTest {
 		// Make sure the status is what we expect
 		assertEquals(StatusEnum.READ_ONLY, stackStatusDao.getCurrentStatus());
 		// This should fail
-		ServletTestHelper.updateEntity(dispatchServlet, sampleProject, userName);
+		ServletTestHelper.updateEntity(dispatchServlet, sampleProject, adminUserId);
 		fail();
 	}
 	
@@ -193,7 +194,7 @@ public class StackStatusInterceptorTest {
 		// Make sure the status is what we expect
 		assertEquals(StatusEnum.DOWN, stackStatusDao.getCurrentStatus());
 		// This should fail
-		ServletTestHelper.updateEntity(dispatchServlet, sampleProject, userName);
+		ServletTestHelper.updateEntity(dispatchServlet, sampleProject, adminUserId);
 		fail();
 	}
 	
@@ -201,7 +202,7 @@ public class StackStatusInterceptorTest {
 	public void testDeleteReadWrite() throws Exception {
 		// We should be able to get when the status is read-write
 		assertEquals(StatusEnum.READ_WRITE, stackStatusDao.getCurrentStatus());
-		ServletTestHelper.deleteEntity(dispatchServlet, Project.class, sampleProject.getId(), userName);
+		ServletTestHelper.deleteEntity(dispatchServlet, Project.class, sampleProject.getId(), adminUserId);
 		sampleProject = null;
 	}
 	
@@ -212,7 +213,7 @@ public class StackStatusInterceptorTest {
 		// Make sure the status is what we expect
 		assertEquals(StatusEnum.READ_ONLY, stackStatusDao.getCurrentStatus());
 		// This should fail
-		ServletTestHelper.deleteEntity(dispatchServlet, Project.class, sampleProject.getId(), userName);
+		ServletTestHelper.deleteEntity(dispatchServlet, Project.class, sampleProject.getId(), adminUserId);
 		sampleProject = null;
 		fail();
 	}
@@ -224,7 +225,7 @@ public class StackStatusInterceptorTest {
 		// Make sure the status is what we expect
 		assertEquals(StatusEnum.DOWN, stackStatusDao.getCurrentStatus());
 		// This should fail
-		ServletTestHelper.deleteEntity(dispatchServlet, Project.class, sampleProject.getId(), userName);
+		ServletTestHelper.deleteEntity(dispatchServlet, Project.class, sampleProject.getId(), adminUserId);
 		sampleProject = null;
 		fail();
 	}

@@ -23,6 +23,7 @@ import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -66,23 +67,25 @@ public class AnnotationsWorkerIntegrationTest {
 	@Autowired
 	private MessageReceiver annotationsQueueMessageReceiver;
 	
-	private String nodeId = null;
-    private String submissionId = null;
-    private String userId = "0";
+	private String nodeId;
+    private String submissionId;
+    private Long userId;
     private String evalId;
     private final String name = "test submission";
     private final Long versionNumber = 1L;
 	
 	@Before
 	public void before() throws Exception {
+		userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+		
 		// Before we start, make sure the queue is empty
 		emptyQueue();
 		
 		// create a node
   		Node node = new Node();
 		node.setName(name);
-		node.setCreatedByPrincipalId(Long.parseLong(userId));
-		node.setModifiedByPrincipalId(Long.parseLong(userId));
+		node.setCreatedByPrincipalId(userId);
+		node.setModifiedByPrincipalId(userId);
 		node.setCreatedOn(new Date(System.currentTimeMillis()));
 		node.setModifiedOn(node.getCreatedOn());
 		node.setNodeType(EntityType.project.name());
@@ -95,16 +98,16 @@ public class AnnotationsWorkerIntegrationTest {
         evaluation.setId("1234");
         evaluation.setEtag("etag");
         evaluation.setName("my eval");
-        evaluation.setOwnerId(userId);
+        evaluation.setOwnerId(userId.toString());
         evaluation.setCreatedOn(new Date());
         evaluation.setContentSource(nodeId);
         evaluation.setStatus(EvaluationStatus.PLANNED);
-        evalId = evaluationDAO.create(evaluation, Long.parseLong(userId));
+        evalId = evaluationDAO.create(evaluation, userId);
         
         // create a participant
         Participant participant = new Participant();
         participant.setCreatedOn(new Date());
-        participant.setUserId(userId);
+        participant.setUserId(userId.toString());
         participant.setEvaluationId(evalId);
         participantDAO.create(participant);
         
@@ -114,7 +117,7 @@ public class AnnotationsWorkerIntegrationTest {
         submission.setName(name);
         submission.setEntityId(nodeId);
         submission.setVersionNumber(versionNumber);
-        submission.setUserId(userId);
+        submission.setUserId(userId.toString());
         submission.setEvaluationId(evalId);
         submission.setCreatedOn(new Date());
         submission.setEntityBundleJSON("some bundle");
@@ -140,7 +143,7 @@ public class AnnotationsWorkerIntegrationTest {
 			submissionDAO.delete(submissionId);
 		} catch (Exception e)  {};
 		try {
-			participantDAO.delete(userId, evalId);
+			participantDAO.delete(userId.toString(), evalId);
 		} catch (Exception e) {};
 		try {
 			evaluationDAO.delete(evalId);

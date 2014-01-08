@@ -22,7 +22,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AsynchronousDAO;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -67,7 +67,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 	private AccessControlListDAO accessControlListDAO;
 	
 	@Autowired
-	AsynchronousDAO asynchronousDAO;
+	private AsynchronousDAO asynchronousDAO;
 	
 	private volatile static JDONodeQueryAuthorizationTest instance = null;
 
@@ -317,7 +317,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		User user = new User();
 		user.setUserId(name);
 		// Create a group for this user
-		String userGroupName = name+"group";
+		String userGroupName = name.replaceAll("@", "")+"@test.com";
 		UserGroup group = userGroupDAO.findGroup(userGroupName, true); //new UserGroup();
 		String id = null;
 		if (group==null) {
@@ -352,7 +352,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		String id = null;
 		if (group==null) { 
 			group = new UserGroup();
-			group.setName(name);
+			group.setName(name.replaceAll("@", ""));
 			group.setIsIndividual(false);
 			id = userGroupDAO.create(group);
 		} else {
@@ -393,7 +393,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 	 */
 	@Override
 	public void afterPropertiesSet() throws Exception {
-		Long creatorUserGroupId = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId());
+		Long creatorUserGroupId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 
 		if(instance != null){
 			return;
@@ -432,7 +432,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		usersInBothGroups = new HashMap<String, UserInfo>();
 		for(int i=0; i<7; i++){
 			// Create all of the users
-			String userId = "userInBothA&B"+i+"@JDONodeQueryAuthorizationTest.org";
+			String userId = "userInBothA-B"+i+"@JDONodeQueryAuthorizationTest.org";
 			UserInfo info = createUser(userId, false);
 			info.getGroups().add(groupB);
 			info.getGroups().add(groupA);

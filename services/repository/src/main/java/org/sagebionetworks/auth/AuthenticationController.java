@@ -7,7 +7,7 @@ import org.apache.commons.logging.LogFactory;
 import org.openid4java.message.ParameterList;
 import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.OriginatingClient;
+import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.auth.ChangePasswordRequest;
 import org.sagebionetworks.repo.model.auth.LoginCredentials;
 import org.sagebionetworks.repo.model.auth.NewUser;
@@ -96,7 +96,7 @@ public class AuthenticationController extends BaseController {
 	@RequestMapping(value = UrlHelpers.AUTH_USER, method = RequestMethod.POST)
 	public void createUser(@RequestBody NewUser user,
 			@RequestParam(value = AuthorizationConstants.ORIGINATING_CLIENT_PARAM, required = false) String client) {
-		OriginatingClient originClient = OriginatingClient.getClientFromOriginClientParam(client);
+		DomainType originClient = DomainType.valueOf(client);
 		authenticationService.createUser(user, originClient);
 	}
 	
@@ -111,7 +111,7 @@ public class AuthenticationController extends BaseController {
 	@RequestMapping(value = UrlHelpers.AUTH_USER_PASSWORD_EMAIL, method = RequestMethod.POST)
 	public void sendPasswordEmail(@RequestBody Username user,
 			@RequestParam(value = AuthorizationConstants.ORIGINATING_CLIENT_PARAM, required = false) String client) throws NotFoundException {
-		OriginatingClient originClient = OriginatingClient.getClientFromOriginClientParam(client);
+		DomainType originClient = DomainType.valueOf(client);
 		authenticationService.sendPasswordEmail(user.getEmail(), originClient);
 	}
 	
@@ -140,10 +140,10 @@ public class AuthenticationController extends BaseController {
 	@RequestMapping(value = UrlHelpers.AUTH_SECRET_KEY, method = RequestMethod.GET)
 	public @ResponseBody
 	SecretKey newSecretKey(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String username)
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId)
 			throws NotFoundException {
 		SecretKey secret = new SecretKey();
-		secret.setSecretKey(authenticationService.getSecretKey(username));
+		secret.setSecretKey(authenticationService.getSecretKey(userId));
 		return secret;
 	}
 	
@@ -154,9 +154,9 @@ public class AuthenticationController extends BaseController {
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.AUTH_SECRET_KEY, method = RequestMethod.DELETE)
 	public void invalidateSecretKey(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String username)
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId)
 			throws NotFoundException {
-		authenticationService.deleteSecretKey(username);
+		authenticationService.deleteSecretKey(userId);
 	}
 	
 	/**

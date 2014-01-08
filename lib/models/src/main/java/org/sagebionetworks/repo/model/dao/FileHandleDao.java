@@ -1,11 +1,11 @@
 package org.sagebionetworks.repo.model.dao;
 
-import java.net.MalformedURLException;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -18,12 +18,16 @@ public interface FileHandleDao {
 	
 	/**
 	 * Create S3 file metadata.
-	 * 
-	 * @param metadata
-	 * @return
-	 * @throws MalformedURLException 
 	 */
 	public <T extends FileHandle> T createFile(T metadata);
+	
+	/**
+	 * Create S3 file metadata
+	 * 
+	 * @param shouldPreviewBeGenerated If true, the previewId is set to null (default).
+	 *     If false, the previewId of the new file handle will be set to the new file handle's ID
+	 */
+	public S3FileHandle createFile(S3FileHandle metadata, boolean shouldPreviewBeGenerated);
 	
 	/**
 	 * Set the preview ID of a file.

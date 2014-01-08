@@ -1,9 +1,6 @@
 package org.sagebionetworks;
 
-import java.io.File;
-
 import org.apache.http.client.CookieStore;
-import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.protocol.ClientContext;
 import org.apache.http.cookie.Cookie;
@@ -11,13 +8,14 @@ import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.cookie.BasicClientCookie;
 import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.HttpContext;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.sagebionetworks.client.SynapseAdminClient;
+import org.sagebionetworks.client.SynapseAdminClientImpl;
+import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
-import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.auth.Session;
-import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 
 /**
  * Test to validate a cookie can be used to authenticate.
@@ -26,38 +24,33 @@ import org.sagebionetworks.utils.DefaultHttpClientSingleton;
  */
 public class IT045CookieAuthentication {
 	
-	private static SynapseClientImpl synapse = null;
-	private static Session session;
+	private static SynapseAdminClient adminSynapse;
+	private static SynapseClient synapse;
+	private static Long userToDelete;
+	
 	private static Cookie cookie;
-	File imageFile;
 	
-	private static SynapseClientImpl createSynapseClient(String user, String pw) throws SynapseException {
-		SynapseClientImpl synapse = new SynapseClientImpl();
-		synapse.setAuthEndpoint(StackConfiguration
-				.getAuthenticationServicePrivateEndpoint());
-		synapse.setRepositoryEndpoint(StackConfiguration
-				.getRepositoryServiceEndpoint());
-		synapse.setFileEndpoint(StackConfiguration.getFileServiceEndpoint());
-		session = synapse.login(user, pw);
-		cookie = new BasicClientCookie(AuthorizationConstants.SESSION_TOKEN_COOKIE_NAME, session.getSessionToken());
-		return synapse;
-	}
-	
-	/**
-	 * @throws Exception
-	 * 
-	 */
 	@BeforeClass
 	public static void beforeClass() throws Exception {
-
-		synapse = createSynapseClient(StackConfiguration.getIntegrationTestUserOneName(),
-				StackConfiguration.getIntegrationTestUserOnePassword());
+		// Create a user
+		adminSynapse = new SynapseAdminClientImpl();
+		SynapseClientHelper.setEndpoints(adminSynapse);
+		adminSynapse.setUserName(StackConfiguration.getMigrationAdminUsername());
+		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
+		
+		synapse = new SynapseClientImpl();
+		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
+		
+		cookie = new BasicClientCookie(AuthorizationConstants.SESSION_TOKEN_COOKIE_NAME, synapse.getCurrentSessionToken());
+	}
+	
+	@AfterClass
+	public static void afterClass() throws Exception {
+		adminSynapse.deleteUser(userToDelete);
 	}
 	
 	@Test
 	public void testFileCookieAutheticate(){
-		// Use the cookie to upload a file
-		HttpClient client = DefaultHttpClientSingleton.getInstance();
 	    // Create a local instance of cookie store
 	    CookieStore cookieStore = new BasicCookieStore();
 	     
@@ -66,14 +59,12 @@ public class IT045CookieAuthentication {
 	    // Bind custom cookie store to the local context
 	    localContext.setAttribute(ClientContext.COOKIE_STORE, cookieStore);
 	    cookieStore.addCookie(cookie);
-	    HttpGet httpget = new HttpGet("http://www.google.com/"); 
+	    new HttpGet("http://www.google.com/"); 
 		
 	}
 
 	@Test
 	public void testRepoCookieAuthenticate(){
-		// Can we make a repository call with a cookie
-		
-		
+		//TODO Can we make a repository call with a cookie
 	}
 }

@@ -14,7 +14,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
@@ -35,21 +35,22 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class TableEntityMetadataProviderTest {
 	
 	@Autowired
-	MetadataProviderFactory metadataProviderFactory;
-	TypeSpecificMetadataProvider<Entity> tableEntityMetadataProvider;
+	private MetadataProviderFactory metadataProviderFactory;
+	private TypeSpecificMetadataProvider<Entity> tableEntityMetadataProvider;
 	
 	@Autowired
-	ColumnModelManager columnModelManager;
+	private ColumnModelManager columnModelManager;
 	
 	@Autowired
-	UserManager userManager;
+	private UserManager userManager;
 	
-	UserInfo user;
-	ColumnModel one;
+	private UserInfo adminUserInfo;
+	private ColumnModel one;
 	
 	@Before
-	public void before() throws DatastoreException, NotFoundException{
-		user = userManager.getUserInfo(AuthorizationConstants.TEST_USER_NAME);
+	public void before() throws Exception {
+		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		
 		List<TypeSpecificMetadataProvider<Entity>> types = metadataProviderFactory.getMetadataProvider(EntityType.getNodeTypeForClass(TableEntity.class));
 		assertNotNull(types);
 		tableEntityMetadataProvider = types.get(0);
@@ -57,7 +58,7 @@ public class TableEntityMetadataProviderTest {
 		one = new ColumnModel();
 		one.setName("TableEntityMetadataProviderTest");
 		one.setColumnType(ColumnType.STRING);
-		one = columnModelManager.createColumnModel(user, one);
+		one = columnModelManager.createColumnModel(adminUserInfo, one);
 	}
 	
 	@After
@@ -119,11 +120,11 @@ public class TableEntityMetadataProviderTest {
 		// Before we start nothing should be bound to the column one
 		Set<String> columnIds = new HashSet<String>();
 		columnIds.add(one.getId());
-		PaginatedIds results = columnModelManager.listObjectsBoundToColumn(user, columnIds, false, 100, 0);
+		PaginatedIds results = columnModelManager.listObjectsBoundToColumn(adminUserInfo, columnIds, false, 100, 0);
 		assertNotNull(results);
 		assertEquals(new Long(0), results.getTotalNumberOfResults());
 		// Create a table entity
-		EntityEvent event = new EntityEvent(EventType.CREATE, null, user);
+		EntityEvent event = new EntityEvent(EventType.CREATE, null, adminUserInfo);
 		TableEntity table = new TableEntity();
 		table.setId("syn123");
 		table.setColumnIds(new LinkedList<String>());
@@ -133,7 +134,7 @@ public class TableEntityMetadataProviderTest {
 		// Now this table should be listed as bound to the column\
 		List<String> expectedIds = new LinkedList<String>();
 		expectedIds.add("syn123");
-		results = columnModelManager.listObjectsBoundToColumn(user, columnIds, false, 100, 0);
+		results = columnModelManager.listObjectsBoundToColumn(adminUserInfo, columnIds, false, 100, 0);
 		assertNotNull(results);
 		assertEquals(new Long(1), results.getTotalNumberOfResults());
 		assertEquals(expectedIds, results.getResults());
@@ -144,11 +145,11 @@ public class TableEntityMetadataProviderTest {
 		// Before we start nothing should be bound to the column one
 		Set<String> columnIds = new HashSet<String>();
 		columnIds.add(one.getId());
-		PaginatedIds results = columnModelManager.listObjectsBoundToColumn(user, columnIds, false, 100, 0);
+		PaginatedIds results = columnModelManager.listObjectsBoundToColumn(adminUserInfo, columnIds, false, 100, 0);
 		assertNotNull(results);
 		assertEquals(new Long(0), results.getTotalNumberOfResults());
 		// Create a table entity
-		EntityEvent event = new EntityEvent(EventType.UPDATE, null, user);
+		EntityEvent event = new EntityEvent(EventType.UPDATE, null, adminUserInfo);
 		TableEntity table = new TableEntity();
 		table.setId("syn123");
 		table.setColumnIds(new LinkedList<String>());
@@ -158,7 +159,7 @@ public class TableEntityMetadataProviderTest {
 		// Now this table should be listed as bound to the column\
 		List<String> expectedIds = new LinkedList<String>();
 		expectedIds.add("syn123");
-		results = columnModelManager.listObjectsBoundToColumn(user, columnIds, false, 100, 0);
+		results = columnModelManager.listObjectsBoundToColumn(adminUserInfo, columnIds, false, 100, 0);
 		assertNotNull(results);
 		assertEquals(new Long(1), results.getTotalNumberOfResults());
 		assertEquals(expectedIds, results.getResults());

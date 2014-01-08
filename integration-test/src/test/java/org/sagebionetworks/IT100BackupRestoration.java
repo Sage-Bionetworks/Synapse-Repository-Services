@@ -15,6 +15,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.Entity;
@@ -31,62 +32,46 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
  */
 public class IT100BackupRestoration {
 
-	public static final long TEST_TIME_OUT = 1000 * 60 * 4; // Currently 4 mins
+	private static SynapseAdminClient adminSynapse;
 
-	
-	private static SynapseAdminClientImpl synapse;
-//	private static String bucket;
+	public static final long TEST_TIME_OUT = 1000 * 60 * 4; // Currently 4 mins
 	
 	private List<Entity> toDelete = null;
 
 	@BeforeClass
 	public static void beforeClass() throws Exception {
-		// Use the synapse client to do some of the work for us.
-		synapse = new SynapseAdminClientImpl();
-		synapse.setAuthEndpoint(StackConfiguration
-				.getAuthenticationServicePrivateEndpoint());
-		synapse.setRepositoryEndpoint(StackConfiguration
-				.getRepositoryServiceEndpoint());
-		synapse.login(StackConfiguration.getIntegrationTestUserAdminName(),
-				StackConfiguration.getIntegrationTestUserAdminPassword());
-
-		String iamId = StackConfiguration.getIAMUserId();
-		String iamKey = StackConfiguration.getIAMUserKey();
-		if (iamId == null)
-			throw new IllegalArgumentException("IAM id cannot be null");
-		if (iamKey == null)
-			throw new IllegalArgumentException("IAM key cannot be null");
-
-	}
-	
-	@After
-	public void after() throws Exception {
-		if(synapse != null && toDelete != null){
-			for(Entity e: toDelete){
-				synapse.deleteAndPurgeEntity(e);
-			}
-		}
+		adminSynapse = new SynapseAdminClientImpl();
+		SynapseClientHelper.setEndpoints(adminSynapse);
+		adminSynapse.setUserName(StackConfiguration.getMigrationAdminUsername());
+		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
 	}
 	
 	@Before
 	public void before()throws Exception {
-		synapse.login(StackConfiguration.getIntegrationTestUserAdminName(),
-				StackConfiguration.getIntegrationTestUserAdminPassword());
 		toDelete = new ArrayList<Entity>();
+	}
+	
+	@After
+	public void after() throws Exception {
+		if(adminSynapse != null && toDelete != null){
+			for(Entity e: toDelete){
+				adminSynapse.deleteAndPurgeEntity(e);
+			}
+		}
 	}
 	
 	
 	@Test
 	public void testGetAndUpdateStatus() throws Exception {
-		StackStatus status = synapse.getCurrentStackStatus();
+		StackStatus status = adminSynapse.getCurrentStackStatus();
 		assertNotNull(status);
 		// Set the status
 		status.setPendingMaintenanceMessage("Testing that we can set the pending message");
-		StackStatus updated = synapse.updateCurrentStackStatus(status);
+		StackStatus updated = adminSynapse.updateCurrentStackStatus(status);
 		assertEquals(status, updated);
 		// Clear out the message
 		status.setPendingMaintenanceMessage(null);
-		updated = synapse.updateCurrentStackStatus(status);
+		updated = adminSynapse.updateCurrentStackStatus(status);
 		assertEquals(status, updated);
 	}
 	
@@ -116,7 +101,7 @@ public class IT100BackupRestoration {
 		while (true) {
 			long now = System.currentTimeMillis();
 			assertTrue("Timed out waiting for the daemon to complete", now	- start < TEST_TIME_OUT);
-			BackupRestoreStatus status = synapse.getDaemonStatus(daemonId);
+			BackupRestoreStatus status = adminSynapse.getDaemonStatus(daemonId);
 			assertNotNull(status);
 			assertNotNull(status.getStatus());
 			// We are done if it failed.

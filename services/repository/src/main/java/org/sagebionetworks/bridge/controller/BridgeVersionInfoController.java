@@ -8,7 +8,6 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.bridge.BridgeUrlHelpers;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
-import org.sagebionetworks.repo.web.UrlHelpers;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;

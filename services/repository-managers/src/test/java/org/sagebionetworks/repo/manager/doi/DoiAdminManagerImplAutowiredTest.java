@@ -1,12 +1,16 @@
 package org.sagebionetworks.repo.manager.doi;
 
+import java.util.UUID;
+
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.NewUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -20,22 +24,33 @@ public class DoiAdminManagerImplAutowiredTest {
 	
 	@Autowired
 	private UserManager userManager;
-	private UserInfo testAdminUserInfo;
-	private UserInfo testUserInfo;
+	
+	private Long adminUserId;
+	private Long testUserId;
+	private UserInfo adminUserInfo;
 
 	@Before
 	public void before() throws Exception {
-		testAdminUserInfo = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
-		testUserInfo = userManager.getUserInfo(AuthorizationConstants.TEST_USER_NAME);
+		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+		adminUserInfo = userManager.getUserInfo(adminUserId);
+		
+		NewUser user = new NewUser();
+		user.setEmail(UUID.randomUUID().toString() + "@test.com");
+		testUserId = userManager.createUser(user);
+	}
+	
+	@After
+	public void after() throws Exception {
+		userManager.deletePrincipal(adminUserInfo, testUserId);
 	}
 
 	@Test
 	public void testAdmin() throws Exception {
-		doiAdminManager.clear(testAdminUserInfo.getIndividualGroup().getName());
+		doiAdminManager.clear(adminUserId);
 	}
 
 	@Test(expected=UnauthorizedException.class)
 	public void testNotAdmin() throws Exception {
-		doiAdminManager.clear(testUserInfo.getIndividualGroup().getName());
+		doiAdminManager.clear(testUserId);
 	}
 }

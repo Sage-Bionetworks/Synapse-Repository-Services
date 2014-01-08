@@ -34,7 +34,7 @@ public class NodeTreeQueryController extends BaseController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_ANCESTORS, method = RequestMethod.GET)
 	public @ResponseBody EntityIdList getAncestors(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(value = UrlHelpers.ID_PATH_VARIABLE) String entityId)
 			throws DatastoreException, UnauthorizedException {
 		return this.serviceProvider.getNodeTreeQueryService().getAncestors(userId, entityId);
@@ -46,7 +46,7 @@ public class NodeTreeQueryController extends BaseController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_PARENT, method = RequestMethod.GET)
 	public @ResponseBody EntityId getParent(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(value = UrlHelpers.ID_PATH_VARIABLE) String entityId)
 			throws DatastoreException, UnauthorizedException {
 		return this.serviceProvider.getNodeTreeQueryService().getParent(userId, entityId);
@@ -63,7 +63,7 @@ public class NodeTreeQueryController extends BaseController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_DESCENDANTS, method = RequestMethod.GET)
 	public @ResponseBody EntityIdList getDescendants(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(value = UrlHelpers.ID_PATH_VARIABLE) String entityId,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false) Integer pageSize,
 			@RequestParam(value = ServiceConstants.PAGINATION_LAST_ENTITY_ID, required = false) String lastDescIdExcl)
@@ -88,7 +88,7 @@ public class NodeTreeQueryController extends BaseController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_DESCENDANTS_GENERATION, method = RequestMethod.GET)
 	public @ResponseBody EntityIdList getDescendants(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(value = UrlHelpers.ID_PATH_VARIABLE) String entityId,
 			@PathVariable(value = UrlHelpers.GENERATION) Integer generation, 
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false) Integer pageSize,
@@ -112,7 +112,7 @@ public class NodeTreeQueryController extends BaseController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_CHILDREN, method = RequestMethod.GET)
 	public @ResponseBody EntityIdList getChildren(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(value = UrlHelpers.ID_PATH_VARIABLE) String entityId,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false) Integer pageSize,
 			@RequestParam(value = ServiceConstants.PAGINATION_LAST_ENTITY_ID, required = false) String lastDescIdExcl)

@@ -25,6 +25,7 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.HasPreviewId;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -101,26 +102,38 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 		}
 	}
 
-	@SuppressWarnings("unchecked")
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public <T extends FileHandle> T createFile(T fileHandle) {
-		if(fileHandle == null) throw new IllegalArgumentException("fileHandle cannot be null");
-		if(fileHandle.getFileName() == null) throw new IllegalArgumentException("fileHandle.getFileName cannot be null");
+		return createFilePrivate(fileHandle, true);
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public S3FileHandle createFile(S3FileHandle metadata, boolean shouldPreviewBeGenerated) {
+		return createFilePrivate(metadata, shouldPreviewBeGenerated);
+	}
+	
+	@SuppressWarnings("unchecked")
+	private <T extends FileHandle> T createFilePrivate(T fileHandle, boolean shouldPreviewBeGenerated) {
+		if (fileHandle == null) {
+			throw new IllegalArgumentException("File handle cannot be null");
+		}
+		if (fileHandle.getFileName() == null) {
+			throw new IllegalArgumentException(
+					"File name cannot be null");
+		}
+		
 		// Convert to a DBO
 		DBOFileHandle dbo = FileMetadataUtils.createDBOFromDTO(fileHandle);
-		if(fileHandle.getId() == null){
-			dbo.setId(idGenerator.generateNewId(TYPE.FILE_IDS));
-		}else{
-			// If an id was provided then it must not exist
-			if(doesExist(fileHandle.getId())) throw new IllegalArgumentException("A file object already exists with ID: "+fileHandle.getId());
-			// Make sure the ID generator has reserved this ID.
-			idGenerator.reserveId(new Long(fileHandle.getId()), TYPE.FILE_IDS);
-		}
-		// When we migrate we keep the original etag.  When it is null we set it.
-		if(dbo.getEtag() == null){
-			dbo.setEtag(UUID.randomUUID().toString());
-		}
+		dbo.setId(idGenerator.generateNewId(TYPE.FILE_IDS));
+		dbo.setEtag(UUID.randomUUID().toString());
+		
+		// To disable preview generation, assign the ID to a non-null, non-preview file handle (itself)
+		if (!shouldPreviewBeGenerated) {
+			dbo.setPreviewId(dbo.getId());
+		} 
+		
 		// Save it to the DB
 		dbo = basicDao.createNew(dbo);
 		
@@ -128,10 +141,9 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 		transactionalMessenger.sendMessageAfterCommit(dbo, ChangeType.CREATE);
 		
 		try {
-			return (T) get(dbo.getId().toString());
+			return (T) get(dbo.getIdString());
 		} catch (NotFoundException e) {
-			// This should not occur.
-			throw new RuntimeException(e);
+			throw new DatastoreException(e);
 		}
 	}
 

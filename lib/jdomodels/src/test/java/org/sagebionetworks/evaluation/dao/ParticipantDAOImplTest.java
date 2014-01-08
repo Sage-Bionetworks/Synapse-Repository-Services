@@ -1,6 +1,9 @@
 package org.sagebionetworks.evaluation.dao;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.Date;
 import java.util.List;
@@ -9,13 +12,11 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.evaluation.dao.EvaluationDAO;
-import org.sagebionetworks.evaluation.dao.ParticipantDAO;
-import org.sagebionetworks.evaluation.dao.ParticipantDAOImpl;
 import org.sagebionetworks.evaluation.dbo.ParticipantDBO;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Participant;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -32,15 +33,18 @@ public class ParticipantDAOImplTest {
     @Autowired
     private EvaluationDAO evaluationDAO;
        
-    private Long principalId = 0L;
-    private String principalId_str = principalId.toString();
+    private Long principalId;
+    private String principalId_str;
     private String evalId1;
     private String evalId2;
     private Participant part1;
     private Participant part2;
     
     @Before
-    public void setUp() {    	
+    public void setUp() {
+    	principalId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+    	principalId_str = principalId.toString(); 
+    	
     	// create and persist Evaluations
         Evaluation evaluation = new Evaluation();
         evaluation.setId("1234");

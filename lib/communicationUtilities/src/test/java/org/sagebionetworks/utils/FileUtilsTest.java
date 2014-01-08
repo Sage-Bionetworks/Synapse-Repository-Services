@@ -2,6 +2,8 @@ package org.sagebionetworks.utils;
 
 import static org.junit.Assert.*;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -198,10 +200,22 @@ public class FileUtilsTest {
 	@Test
 	public void testWriteStringToCompressedFile() throws IOException {
 		String markdown = "This is a test **markdown** that will be compressed.";
-		File zippedFile = FileUtils.writeStringToCompressedFile(markdown);
+		File temp = File.createTempFile("compressed", ".txt.gz");
+		File zippedFile = FileUtils.writeStringToCompressedFile(temp, markdown);
 		
 		String unzippedString = FileUtils.readCompressedFileAsString(zippedFile);
 		assertEquals(markdown, unzippedString);
 		toDelete.add(zippedFile);
+	}
+	
+	@Test
+	public void testWriteStringToCompressed() throws IOException {
+		String markdown = "This is a test **markdown** that will be compressed.";
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		FileUtils.writeCompressedString(markdown, baos);
+		byte[] bytes = baos.toByteArray();
+		ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
+		String unzippedString = FileUtils.readCompressedStreamAsString(bais);
+		assertEquals(markdown, unzippedString);
 	}
 }

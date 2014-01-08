@@ -8,12 +8,13 @@ import java.util.UUID;
 
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserGroupInt;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.HMACUtils;
@@ -136,6 +137,14 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	};
 	
 	@Override
+	public void createNew(long principalId) {
+		DBOCredential cred = new DBOCredential();
+		cred.setPrincipalId(principalId);
+		cred.setSecretKey(HMACUtils.newHMACSHA1Key());
+		basicDAO.createNew(cred);
+	}
+	
+	@Override
 	public Long checkEmailAndPassword(String email, String passHash) {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(EMAIL_PARAM_NAME, email);
@@ -149,7 +158,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	
 	@Override
 	@Transactional(readOnly=false, propagation=Propagation.REQUIRED)
-	public void revalidateSessionToken(String principalId) {
+	public void revalidateSessionToken(long principalId) {
 		userGroupDAO.touch(principalId);
 		
 		MapSqlParameterSource param = new MapSqlParameterSource();
@@ -160,7 +169,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	
 	@Override
 	@Transactional(readOnly=false, propagation=Propagation.REQUIRED)
-	public String changeSessionToken(String principalId, String sessionToken) {
+	public String changeSessionToken(long principalId, String sessionToken) {
 		userGroupDAO.touch(principalId);
 		
 		if (sessionToken == null) {
@@ -199,7 +208,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	public void deleteSessionToken(String sessionToken) {
 		Long principalId = getPrincipal(sessionToken);
 		if (principalId != null) {
-			userGroupDAO.touch(principalId.toString());
+			userGroupDAO.touch(principalId);
 		}
 		
 		MapSqlParameterSource param = new MapSqlParameterSource();
@@ -250,19 +259,19 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	
 	@Override
 	@Transactional(readOnly=false, propagation=Propagation.REQUIRED)
-	public void changePassword(String id, String passHash) {
-		userGroupDAO.touch(id);
+	public void changePassword(long principalId, String passHash) {
+		userGroupDAO.touch(principalId);
 		
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(ID_PARAM_NAME, id);
+		param.addValue(ID_PARAM_NAME, principalId);
 		param.addValue(PASSWORD_PARAM_NAME, passHash);
 		simpleJdbcTemplate.update(UPDATE_PASSWORD, param);
 	}
 	
 	@Override
-	public String getSecretKey(String id) throws NotFoundException {
+	public String getSecretKey(long principalId) throws NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(ID_PARAM_NAME, id);
+		param.addValue(ID_PARAM_NAME, principalId);
 		try {
 			return simpleJdbcTemplate.queryForObject(SELECT_SECRET_KEY, String.class, param);
 		} catch (EmptyResultDataAccessException e) {
@@ -272,25 +281,25 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	
 	@Override
 	@Transactional(readOnly=false, propagation=Propagation.REQUIRED)
-	public void changeSecretKey(String id) {
-		changeSecretKey(id, HMACUtils.newHMACSHA1Key());
+	public void changeSecretKey(long principalId) {
+		changeSecretKey(principalId, HMACUtils.newHMACSHA1Key());
 	}
 	
 	@Override
 	@Transactional(readOnly=false, propagation=Propagation.REQUIRED)
-	public void changeSecretKey(String id, String secretKey) {
-		userGroupDAO.touch(id);
+	public void changeSecretKey(long principalId, String secretKey) {
+		userGroupDAO.touch(principalId);
 		
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(ID_PARAM_NAME, id);
+		param.addValue(ID_PARAM_NAME, principalId);
 		param.addValue(TOKEN_PARAM_NAME, secretKey);
 		simpleJdbcTemplate.update(UPDATE_SECRET_KEY, param);
 	}
 
 	@Override
-	public boolean hasUserAcceptedToU(String id) throws NotFoundException {
+	public boolean hasUserAcceptedToU(long principalId) throws NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(ID_PARAM_NAME, id);
+		param.addValue(ID_PARAM_NAME, principalId);
 		Boolean acceptance;
 		try {
 			acceptance = simpleJdbcTemplate.queryForObject(SELECT_TOU_ACCEPTANCE, Boolean.class, param);
@@ -305,11 +314,11 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	
 	@Override
 	@Transactional(readOnly=false, propagation=Propagation.REQUIRED)
-	public void setTermsOfUseAcceptance(String id, Boolean acceptance) {
-		userGroupDAO.touch(id);
+	public void setTermsOfUseAcceptance(long principalId, Boolean acceptance) {
+		userGroupDAO.touch(principalId);
 		
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(ID_PARAM_NAME, id);
+		param.addValue(ID_PARAM_NAME, principalId);
 		param.addValue(TOU_PARAM_NAME, acceptance);
 		simpleJdbcTemplate.update(UPDATE_TERMS_OF_USE_ACCEPTANCE, param);
 	}
@@ -317,39 +326,26 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	@Override
 	@Transactional(readOnly=false, propagation=Propagation.REQUIRED)
 	public void bootstrapCredentials() throws NotFoundException {
-		if (StackConfiguration.isProductionStack()) {
-			// The migration admin should only be used in specific, non-development stacks
-			String migrationAdminId = userGroupDAO.findGroup(AuthorizationConstants.MIGRATION_USER_NAME, true).getId();
-			changeSecretKey(migrationAdminId, StackConfiguration.getMigrationAdminAPIKey());
-		
-		} else {
-			String testUsers[] = new String[] { 
-					StackConfiguration.getIntegrationTestUserAdminName(), 
-					StackConfiguration.getIntegrationTestRejectTermsOfUseName(), 
-					StackConfiguration.getIntegrationTestUserOneName(), 
-					StackConfiguration.getIntegrationTestUserTwoName(), 
-					StackConfiguration.getIntegrationTestUserThreeName() };
-			String testPasswords[] = new String[] { 
-					StackConfiguration.getIntegrationTestUserAdminPassword(), 
-					StackConfiguration.getIntegrationTestRejectTermsOfUsePassword(), 
-					StackConfiguration.getIntegrationTestUserOnePassword(), 
-					StackConfiguration.getIntegrationTestUserTwoPassword(), 
-					StackConfiguration.getIntegrationTestUserThreePassword() };
-			for (int i = 0; i < testUsers.length; i++) {
-				String passHash = PBKDF2Utils.hashPassword(testPasswords[i], null);
-				String userId = userGroupDAO.findGroup(testUsers[i], true).getId();
-				changePassword(userId, passHash);
-			}
-		}
-		
-		// With the exception of anonymous and one integration test user
-		// bootstrapped users should not need to sign the terms of use
 		List<UserGroupInt> ugs = userGroupDAO.getBootstrapUsers();
 		for (UserGroupInt ug : ugs) {
-			if (ug.getIsIndividual() && !ug.getName().equals(StackConfiguration.getIntegrationTestRejectTermsOfUseName())
-					&& !AuthorizationUtils.isUserAnonymous(ug.getName())) {
-				setTermsOfUseAcceptance(ug.getId(), true);
+			if (!ug.getIsIndividual()) {
+				continue;
+			}
+			
+			// If the user has a secret key, then the user has a row in the credentials table
+			try {
+				getSecretKey(Long.parseLong(ug.getId()));
+			} catch (NotFoundException e) {
+				createNew(Long.parseLong(ug.getId()));
+			}
+			
+			// With the exception of anonymous, bootstrapped users should not need to sign the terms of use
+			if (!AuthorizationUtils.isUserAnonymous(ug.getId())) {
+				setTermsOfUseAcceptance(Long.parseLong(ug.getId()), true);
 			}
 		}
+		// The migration admin should only be used in specific, non-development stacks
+		Long migrationAdminId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+		changeSecretKey(migrationAdminId, StackConfiguration.getMigrationAdminAPIKey());
 	}
 }

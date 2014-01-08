@@ -34,32 +34,16 @@ public class NodeTreeQueryManagerImpl implements NodeTreeQueryManager {
 	private NodeTreeQueryDao nodeTreeQueryDao;
 
 	@Override
-	public boolean isRoot(String currUserName, String nodeId) throws UnauthorizedException,
+	public boolean isRoot(Long userId, String nodeId) throws UnauthorizedException,
 			DatastoreException {
-
-		if (currUserName == null || currUserName.isEmpty()) {
-			throw new IllegalArgumentException("Current user cannot be null or empty.");
-		}
-		if (nodeId == null || nodeId.isEmpty()) {
-			throw new IllegalArgumentException("Node ID cannot be null or empty.");
-		}
-
-		this.checkAuthorization(currUserName, nodeId); // throws UnauthorizedException
+		this.checkAuthorization(userId, nodeId); // throws UnauthorizedException
 		return this.nodeTreeQueryDao.isRoot(this.stringToKey(nodeId));
 	}
 
 	@Override
-	public EntityIdList getAncestors(String currUserName, String nodeId)
+	public EntityIdList getAncestors(Long userId, String nodeId)
 			throws UnauthorizedException, DatastoreException {
-
-		if (currUserName == null || currUserName.isEmpty()) {
-			throw new IllegalArgumentException("Current user cannot be null or empty.");
-		}
-		if (nodeId == null || nodeId.isEmpty()) {
-			throw new IllegalArgumentException("Node ID cannot be null or empty.");
-		}
-
-		this.checkAuthorization(currUserName, nodeId); // throws UnauthorizedException
+		this.checkAuthorization(userId, nodeId); // throws UnauthorizedException
 		try {
 			List<String> keys = this.nodeTreeQueryDao.getAncestors(this.stringToKey(nodeId));
 			return this.toEntityIdList(keys);
@@ -73,17 +57,10 @@ public class NodeTreeQueryManagerImpl implements NodeTreeQueryManager {
 	}
 
 	@Override
-	public EntityId getParent(String currUserName, String nodeId)
+	public EntityId getParent(Long userId, String nodeId)
 			throws UnauthorizedException, DatastoreException {
 
-		if (currUserName == null || currUserName.isEmpty()) {
-			throw new IllegalArgumentException("Current user cannot be null or empty.");
-		}
-		if (nodeId == null || nodeId.isEmpty()) {
-			throw new IllegalArgumentException("Node ID cannot be null or empty.");
-		}
-
-		this.checkAuthorization(currUserName, nodeId); // throws UnauthorizedException
+		this.checkAuthorization(userId, nodeId); // throws UnauthorizedException
 		try {
 			String parent = this.nodeTreeQueryDao.getParent(this.stringToKey(nodeId));
 			return this.toEntityId(parent);
@@ -95,18 +72,10 @@ public class NodeTreeQueryManagerImpl implements NodeTreeQueryManager {
 	}
 
 	@Override
-	public EntityIdList getDescendants(String currUserName, String nodeId,
+	public EntityIdList getDescendants(Long userId, String nodeId,
 			int pageSize, String lastDescIdExcl) throws UnauthorizedException,
 			DatastoreException {
-
-		if (currUserName == null || currUserName.isEmpty()) {
-			throw new IllegalArgumentException("Current user cannot be null or empty.");
-		}
-		if (nodeId == null || nodeId.isEmpty()) {
-			throw new IllegalArgumentException("Node ID cannot be null or empty.");
-		}
-
-		this.checkAuthorization(currUserName, nodeId); // throws UnauthorizedException
+		this.checkAuthorization(userId, nodeId); // throws UnauthorizedException
 		try {
 			List<String> descList = this.nodeTreeQueryDao.getDescendants(
 					this.stringToKey(nodeId), pageSize, this.stringToKey(lastDescIdExcl));
@@ -121,18 +90,10 @@ public class NodeTreeQueryManagerImpl implements NodeTreeQueryManager {
 	}
 
 	@Override
-	public EntityIdList getDescendants(String currUserName, String nodeId,
+	public EntityIdList getDescendants(Long userId, String nodeId,
 			int generation, int pageSize, String lastDescIdExcl)
 			throws UnauthorizedException, DatastoreException {
-
-		if (currUserName == null || currUserName.isEmpty()) {
-			throw new IllegalArgumentException("Current user cannot be null or empty.");
-		}
-		if (nodeId == null || nodeId.isEmpty()) {
-			throw new IllegalArgumentException("Node ID cannot be null or empty.");
-		}
-
-		this.checkAuthorization(currUserName, nodeId); // throws UnauthorizedException
+		this.checkAuthorization(userId, nodeId); // throws UnauthorizedException
 		try {
 			List<String> descList = this.nodeTreeQueryDao.getDescendants(
 					this.stringToKey(nodeId), generation, pageSize, this.stringToKey(lastDescIdExcl));
@@ -147,18 +108,10 @@ public class NodeTreeQueryManagerImpl implements NodeTreeQueryManager {
 	}
 
 	@Override
-	public EntityIdList getChildren(String currUserName, String nodeId,
+	public EntityIdList getChildren(Long userId, String nodeId,
 			int pageSize, String lastDescIdExcl) throws UnauthorizedException,
 			DatastoreException {
-
-		if (currUserName == null || currUserName.isEmpty()) {
-			throw new IllegalArgumentException("Current user cannot be null or empty.");
-		}
-		if (nodeId == null || nodeId.isEmpty()) {
-			throw new IllegalArgumentException("Node ID cannot be null or empty.");
-		}
-
-		this.checkAuthorization(currUserName, nodeId); // throws UnauthorizedException
+		this.checkAuthorization(userId, nodeId); // throws UnauthorizedException
 		try {
 			List<String> children = this.nodeTreeQueryDao.getDescendants(
 					this.stringToKey(nodeId), 1, pageSize, this.stringToKey(lastDescIdExcl));
@@ -202,28 +155,35 @@ public class NodeTreeQueryManagerImpl implements NodeTreeQueryManager {
 	/**
 	 * @throws UnauthorizedException When the current user is not authorized to view the node
 	 */
-	private void checkAuthorization(String currUserName, String nodeId)
+	private void checkAuthorization(Long userId, String nodeId)
 			throws DatastoreException, UnauthorizedException {
+
+		if (userId == null) {
+			throw new IllegalArgumentException("Current user cannot be null or empty.");
+		}
+		if (nodeId == null || nodeId.isEmpty()) {
+			throw new IllegalArgumentException("Node ID cannot be null or empty.");
+		}
 
 		UserInfo currUserInfo = null;
 		try {
-			currUserInfo = this.userManager.getUserInfo(currUserName);
+			currUserInfo = this.userManager.getUserInfo(userId);
 		} catch (NotFoundException e) {
-			throw new UnauthorizedException("User " + currUserName + " does not exist.");
+			throw new UnauthorizedException("User " + userId + " does not exist.");
 		}
 		if (currUserInfo == null) {
-			throw new UnauthorizedException("User " + currUserName + " does not exist.");
+			throw new UnauthorizedException("User " + userId + " does not exist.");
 		}
 
 		if (!currUserInfo.isAdmin()) {
 			try {
 				if (!this.authorizationManager.canAccess(
 						currUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ)) {
-					throw new UnauthorizedException(currUserName
+					throw new UnauthorizedException(userId
 							+ " does not have read access to the requested entity.");
 				}
 			} catch (NotFoundException e) {
-				throw new UnauthorizedException(currUserName
+				throw new UnauthorizedException(userId
 						+ " does not have read access to the requested entity.");
 			}
 		}

@@ -1,7 +1,7 @@
 package org.sagebionetworks.auth.services;
 
 import org.openid4java.message.ParameterList;
-import org.sagebionetworks.repo.model.OriginatingClient;
+import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.auth.ChangePasswordRequest;
@@ -27,14 +27,14 @@ public interface AuthenticationService {
 	 * @throws UnauthorizedException If the token has expired or is otherwise not valid
 	 * @throws TermsOfUseException If the user has not accepted the terms of use
 	 */
-	public String revalidate(String sessionToken) throws NotFoundException;
+	public Long revalidate(String sessionToken) throws NotFoundException;
 	
 	/**
 	 * Revalidates a session token
 	 * See {@link #revalidate(String)}
 	 * @param checkToU Should the check fail if the user has not accepted the terms of use?
 	 */
-	public String revalidate(String sessionToken, boolean checkToU) throws NotFoundException;
+	public Long revalidate(String sessionToken, boolean checkToU) throws NotFoundException;
 	
 	/**
 	 * Invalidates a session token
@@ -45,13 +45,13 @@ public interface AuthenticationService {
 	 * Initializes a new user into the system
 	 * @throws UnauthorizedException If a user with the supplied email already exists 
 	 */
-	public void createUser(NewUser user, OriginatingClient originClient);
+	public void createUser(NewUser user, DomainType originClient);
 	
 	/**
 	 * Sends a password-reset email to the user
 	 * Note: Email is not actually sent in development stacks.  Instead a log appears when email would have been sent
 	 */
-	public void sendPasswordEmail(String username, OriginatingClient originClient)
+	public void sendPasswordEmail(String username, DomainType originClient)
 			 throws NotFoundException;
 	
 	/**
@@ -68,25 +68,28 @@ public interface AuthenticationService {
 	/**
 	 * Gets the current secret key of the user
 	 */
-	public String getSecretKey(String username)
-			throws NotFoundException;
+	public String getSecretKey(Long principalId) throws NotFoundException;
 	
 	/** 
 	 * Invalidates the user's secret key
 	 */
-	public void deleteSecretKey(String username)
-			throws NotFoundException;
+	public void deleteSecretKey(Long principalId) throws NotFoundException;
 	
 	/**
 	 * Returns the username of the user
 	 */
-	public String getUsername(String principalId)
-			throws NotFoundException;
+	public String getUsername(String principalId) throws NotFoundException;
+	
+	/**
+	 * Temporary method used for converting usernames to user IDs
+	 */
+	@Deprecated
+	public Long getUserId(String username) throws NotFoundException;
 	
 	/**
 	 * Has the user accepted the terms of use?
 	 */
-	public boolean hasUserAcceptedTermsOfUse(String username) 
+	public boolean hasUserAcceptedTermsOfUse(Long userId) 
 			throws NotFoundException;
 	
 	/**

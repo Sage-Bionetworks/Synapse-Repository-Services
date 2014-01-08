@@ -409,6 +409,13 @@ public class StackConfiguration {
 	public static int getHttpClientMaxConnsPerRoute() {
 		return configuration.getHttpClientMaxConnsPerRoute();
 	}
+	
+	/**
+	 * @return The username of the migration admin
+	 */
+	public static String getMigrationAdminUsername() {
+		return configuration.getProperty("org.sagebionetworks.migration.admin.username");
+	}
 
 	/**
 	 * @return The API key of the migration admin
@@ -416,94 +423,6 @@ public class StackConfiguration {
 	public static String getMigrationAdminAPIKey() {
 		return configuration
 				.getDecryptedProperty("org.sagebionetworks.migration.admin.apikey");
-	}
-
-	/**
-	 * @return The name of a user for integration tests
-	 */
-	public static String getIntegrationTestUserOneName() {
-		return configuration
-				.getProperty("org.sagebionetworks.integration.test.username.one");
-	}
-	
-	/**
-	 * @return The password of a user for integration tests
-	 */
-	public static String getIntegrationTestUserOnePassword() {
-		return configuration
-				.getProperty("org.sagebionetworks.integration.test.password.one");
-	}
-
-	/**
-	 * @return The name of a second user for integration tests
-	 */
-	public static String getIntegrationTestUserTwoName() {
-		return configuration
-				.getProperty("org.sagebionetworks.integration.test.username.two");
-	}
-
-	/**
-	 * @return The password of a second user for integration tests
-	 */
-	public static String getIntegrationTestUserTwoPassword() {
-		return configuration
-				.getProperty("org.sagebionetworks.integration.test.password.two");
-	}
-
-	/**
-	 * @return The name of a user for integration tests
-	 */
-	public static String getIntegrationTestUserThreeName() {
-		return configuration
-				.getProperty("org.sagebionetworks.integration.test.username.three");
-	}
-
-	/**
-	 * @return The password of a user for integration tests
-	 */
-	public static String getIntegrationTestUserThreePassword() {
-		return configuration
-				.getProperty("org.sagebionetworks.integration.test.password.three");
-	}
-
-	/**
-	 * @return The name of a user for integration tests
-	 */
-	public static String getIntegrationTestUserThreeDisplayName() {
-		return configuration
-				.getProperty("org.sagebionetworks.integration.test.displayname.three");
-	}
-
-	/**
-	 * @return The name of a second user for integration tests
-	 */
-	public static String getIntegrationTestUserAdminName() {
-		return configuration
-				.getProperty("org.sagebionetworks.integration.test.username.admin");
-	}
-
-	/**
-	 * @return The password of a second user for integration tests
-	 */
-	public static String getIntegrationTestUserAdminPassword() {
-		return configuration
-				.getProperty("org.sagebionetworks.integration.test.password.admin");
-	}
-
-	/**
-	 * @return The name of a user for integration tests
-	 */
-	public static String getIntegrationTestRejectTermsOfUseName() {
-		return configuration
-				.getProperty("org.sagebionetworks.integration.test.username.rejecttermsofuse");
-	}
-
-	/**
-	 * @return The password of a user for integration tests
-	 */
-	public static String getIntegrationTestRejectTermsOfUsePassword() {
-		return configuration
-				.getProperty("org.sagebionetworks.integration.test.password.rejecttermsofuse");
 	}
 
 	/**
@@ -569,6 +488,22 @@ public class StackConfiguration {
 	public long getCloudWatchTriggerTime() {
 		return Long.valueOf(configuration
 				.getProperty("org.sagebionetworks.cloud.watch.trigger"));
+	}
+
+	/**
+	 * @return whether the call performance profiler should be on or off boolean. True means on, false means off.
+	 */
+	public boolean getCallPerformanceOnOff() {
+		return Boolean.parseBoolean(configuration.getProperty("org.sagebionetworks.call.performance.report.enabled"));
+	}
+
+	/**
+	 * @return the time in milliseconds for the call performance profiler's trigger. It will trigger and log average
+	 *         call performance ever xxx milliseconds.
+	 */
+	public long getCallPerformanceTriggerTime() {
+		return Long.valueOf(configuration
+				.getProperty("org.sagebionetworks.call.performance.trigger"));
 	}
 
 	/**
@@ -849,6 +784,15 @@ public class StackConfiguration {
 				StackConfiguration.getStack(),
 				StackConfiguration.getStackInstance());
 	}
+	
+	/**
+	 * @return The name of the AWS SQS where user identifier updates are pushed
+	 */
+	public String getPrincipalHeaderQueueName() {
+		return String.format(StackConstants.PRINCIPAL_HEADER_QUEUE_NAME_TEMPLATE,
+				StackConfiguration.getStack(),
+				StackConfiguration.getStackInstance());
+	}
 
 	/**
 	 * This is the size of a single file transfer memory block used as a buffer.
@@ -1096,6 +1040,15 @@ public class StackConfiguration {
 				.parseInt(configuration
 						.getProperty("org.sagebionetworks.semaphore.gated.max.runners.unsent.message.poppers"));
 	}
+	
+	/**
+	 * The maximum number of workers in the cluster that will update the PrincipalHeader table from SQS
+	 */
+	public Integer getSemaphoreGatedMaxRunnersPrincipalHeaderFiller() {
+		return Integer
+				.parseInt(configuration
+						.getProperty("org.sagebionetworks.semaphore.gated.max.runners.principal.header.filler"));
+	}
 	/**
 	 * The maximum number of workers in the cluster that will process
 	 * Annotations
@@ -1225,7 +1178,7 @@ public class StackConfiguration {
 	
 
 	/**
-	 * Get the name of the audit record bucket.
+	 * Get the name of the table row bucket.
 	 * 
 	 * @return
 	 */
@@ -1233,6 +1186,15 @@ public class StackConfiguration {
 		return String.format(StackConstants.TABLE_ROW_CHANGE_BUCKET, StackConfiguration.getStack());
 	}
 	
+	/**
+	 * Get the name of the participant data bucket.
+	 * 
+	 * @return
+	 */
+	public String getParticipantDataBucketName() {
+		return String.format(StackConstants.PARTICIPANT_DATA_BUCKET, StackConfiguration.getStack());
+	}
+
 	/**
 	 * Get the name of the audit record bucket.
 	 * 

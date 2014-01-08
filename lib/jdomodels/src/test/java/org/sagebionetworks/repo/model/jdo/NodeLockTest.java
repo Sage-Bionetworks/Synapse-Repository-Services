@@ -11,12 +11,11 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -39,13 +38,13 @@ public class NodeLockTest {
 	private static long timeout = 2000;
 	
 	@Autowired
-	JDONodeLockChecker nodeLockerA;
+	private JDONodeLockChecker nodeLockerA;
+	
 	@Autowired
-	JDONodeLockChecker nodeLockerB;
+	private JDONodeLockChecker nodeLockerB;
+	
 	@Autowired
-	NodeDAO nodeDao;
-	@Autowired
-	UserGroupDAO userGroupDAO;
+	private NodeDAO nodeDao;
 	
 	private String nodeId;
 	
@@ -56,7 +55,7 @@ public class NodeLockTest {
 		assertNotNull(nodeLockerB);
 		assertNotNull(nodeDao);
 		// Create a node
-		Long creatorUserGroupId = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId());
+		Long creatorUserGroupId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		Node theNode = NodeTestUtils.createNew("NodeLockTest", creatorUserGroupId);
 		nodeId = nodeDao.createNew(theNode);
 		assertNotNull(nodeId);

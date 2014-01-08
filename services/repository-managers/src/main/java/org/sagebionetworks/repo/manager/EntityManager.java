@@ -260,7 +260,7 @@ public interface EntityManager {
 	 * @throws DatastoreException 
 	 * @throws NotFoundException 
 	 */
-	public S3AttachmentToken createS3AttachmentToken(String userId, String entityId, S3AttachmentToken token) throws UnauthorizedException, NotFoundException, DatastoreException, InvalidModelException;
+	public S3AttachmentToken createS3AttachmentToken(Long userId, String entityId, S3AttachmentToken token) throws UnauthorizedException, NotFoundException, DatastoreException, InvalidModelException;
 
 	/**
 	 * Create a new pre-signed URL for an attachment.
@@ -273,7 +273,7 @@ public interface EntityManager {
 	 * @throws UnauthorizedException
 	 * @throws InvalidModelException
 	 */
-	public PresignedUrl getAttachmentUrl(String userId, String entityId,String tokenId) throws NotFoundException,	DatastoreException, UnauthorizedException, InvalidModelException;
+	public PresignedUrl getAttachmentUrl(Long userId, String entityId,String tokenId) throws NotFoundException,	DatastoreException, UnauthorizedException, InvalidModelException;
 
 	/**
 	 * Validate that the user has read access.

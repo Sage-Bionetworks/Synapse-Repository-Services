@@ -80,12 +80,12 @@ public interface V2WikiManager {
 	 * @param objectId
 	 * @param objectType
 	 * @param version
-	 * @param current
+	 * @param wikiId
 	 * @return
 	 * @throws NotFoundException
 	 * @throws UnauthorizedException
 	 */
-	V2WikiPage restoreWikiPage(UserInfo user, String objectId, ObjectType objectType, Long version, V2WikiPage current) throws NotFoundException, UnauthorizedException;
+	V2WikiPage restoreWikiPage(UserInfo user, String objectId, ObjectType objectType, Long version, String wikiId) throws NotFoundException, UnauthorizedException;
 
 	/**
 	 * 
@@ -112,12 +112,13 @@ public interface V2WikiManager {
 	
 	/**
 	 * Get the FileHandle ID for a given WikiPage and file name.
-	 * 
 	 * @param wikiPageKey
 	 * @param fileName
+	 * @param version TODO
+	 * 
 	 * @return
 	 */
-	String getFileHandleIdForFileName(UserInfo user, WikiPageKey wikiPageKey, String fileName) throws NotFoundException, UnauthorizedException;
+	String getFileHandleIdForFileName(UserInfo user, WikiPageKey wikiPageKey, String fileName, Long version) throws NotFoundException, UnauthorizedException;
 
 	/**
 	 * Get the markdown file handle for a wiki page.

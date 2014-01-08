@@ -71,7 +71,7 @@ public class DBOAnnotatedExampleTest {
 		assertNotNull(example);
 	}
 	
-	@Test(expected = InvalidPropertyException.class)
+	@Test(expected = IllegalArgumentException.class)
 	public void testInsertMissingValuesNullPointerException() throws DatastoreException {
 		DBOAnnotatedExample example = new DBOAnnotatedExample();
 		example = dboBasicDao.createNew(example);
@@ -79,7 +79,7 @@ public class DBOAnnotatedExampleTest {
 	}
 
 	@Test
-	public void testInsert() throws DatastoreException, UnsupportedEncodingException{
+	public void testInsert() throws Exception {
 		DBOAnnotatedExample example = new DBOAnnotatedExample();
 		example.setNumber(new Long(45));
 		example.setNumberOrNull(new Long(46));
@@ -90,10 +90,15 @@ public class DBOAnnotatedExampleTest {
 		example.setComment("no comment");
 		example.setName("the name");
 		example.setExampleEnum(ExampleEnum.bbb);
+		example.setSerialized(Lists.newArrayList("aa", "bb"));
 		example = dboBasicDao.createNew(example);
 		assertNotNull(example);
 		// This class is auto-increment so it should have an id now
 		assertNotNull(example.getId());
+
+		DBOAnnotatedExample clone = dboBasicDao.getObjectByPrimaryKey(DBOAnnotatedExample.class, new SinglePrimaryKeySqlParameterSource(
+				example.getId()));
+		assertEquals(example.toString(), clone.toString());
 	}
 
 	@Test

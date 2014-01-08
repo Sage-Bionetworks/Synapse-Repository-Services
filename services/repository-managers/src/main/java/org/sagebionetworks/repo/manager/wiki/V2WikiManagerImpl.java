@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiMarkdownVersion;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -291,35 +292,46 @@ public class V2WikiManagerImpl implements V2WikiManager {
 	}
 
 	@Override
-	public String getFileHandleIdForFileName(UserInfo user, WikiPageKey wikiPageKey, String fileName) throws NotFoundException, UnauthorizedException {
+	public String getFileHandleIdForFileName(UserInfo user, WikiPageKey wikiPageKey, String fileName, Long version) throws NotFoundException, UnauthorizedException {
 		// Validate that the user has read access
 		validateReadAccess(user, wikiPageKey);
 		// Look-up the fileHandle ID
-		return wikiPageDao.getWikiAttachmentFileHandleForFileName(wikiPageKey, fileName);
+		return wikiPageDao.getWikiAttachmentFileHandleForFileName(wikiPageKey, fileName, version);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public V2WikiPage restoreWikiPage(UserInfo user, String objectId,
-			ObjectType objectType, Long version, V2WikiPage current) throws NotFoundException,
+			ObjectType objectType, Long version, String wikiId) throws NotFoundException,
 			UnauthorizedException {
 		if(user == null) throw new IllegalArgumentException("UserInfo cannot be null");
 		if(objectId == null) throw new IllegalArgumentException("ObjectType cannot be null");
 		if(objectType == null) throw new IllegalArgumentException("ObjectType cannot be null");
-		if(current == null) throw new IllegalArgumentException("wikiPage cannot be null");
+		if(wikiId == null) throw new IllegalArgumentException("Wiki id cannot be null");
 		// Check that the user is allowed to perform this action
 		if(!authorizationManager.canAccess(user, objectId, objectType, ACCESS_TYPE.UPDATE)){
 			throw new UnauthorizedException(String.format(USER_IS_NOT_AUTHORIZED_TEMPLATE, ACCESS_TYPE.UPDATE.name(), objectId, objectType.name()));
 		}
 		
-		WikiPageKey key = new WikiPageKey(objectId, objectType, current.getId());
-		String markdownFileHandleId = wikiPageDao.getMarkdownHandleId(key, version);
-		List<String> attachmentFileHandleIds = wikiPageDao.getWikiFileHandleIds(key, version);
+		WikiPageKey key = new WikiPageKey(objectId, objectType, wikiId);
+		// Get the most recent version of the wiki page for its etag
+		V2WikiPage wiki = wikiPageDao.get(key, null);
+		
+		V2WikiMarkdownVersion versionOfContents = wikiPageDao.getVersionOfWikiContent(key, version);
+		
+		// Set up a new V2 WikiPage
+		V2WikiPage newWikiVersion = new V2WikiPage();
+		newWikiVersion.setId(wikiId);
+		newWikiVersion.setEtag(wiki.getEtag());
+		//Preserve creation metadata
+		newWikiVersion.setCreatedBy(wiki.getCreatedBy());
+		newWikiVersion.setCreatedOn(wiki.getCreatedOn());
 		// Assign restored content to the wiki page
-		current.setMarkdownFileHandleId(markdownFileHandleId);
-		current.setAttachmentFileHandleIds(attachmentFileHandleIds);
+		newWikiVersion.setMarkdownFileHandleId(versionOfContents.getMarkdownFileHandleId());
+		newWikiVersion.setAttachmentFileHandleIds(versionOfContents.getAttachmentFileHandleIds());
+		newWikiVersion.setTitle(versionOfContents.getTitle());
 		// Update the page with these changes
-		return updateWikiPage(user, objectId, objectType, current);
+		return updateWikiPage(user, objectId, objectType, newWikiVersion);
 	}
 
 	@Override

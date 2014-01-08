@@ -7,14 +7,21 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.sagebionetworks.client.SynapseAdminClient;
+import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
+import org.sagebionetworks.client.SynapseClientImpl;
+import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
+import org.sagebionetworks.client.exceptions.SynapseServiceException;
 import org.sagebionetworks.client.exceptions.SynapseUserException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
@@ -31,45 +38,47 @@ import org.sagebionetworks.repo.model.message.MessageToUser;
  */
 public class IT501SynapseJavaClientMessagingTest {
 
+	private static SynapseAdminClient adminSynapse;
+	private static SynapseClient synapseOne;
+	private static SynapseClient synapseTwo;
+	private static Long user1ToDelete;
+	private static Long user2ToDelete;
+
 	private static final Long LIMIT = 100L;
 	private static final Long OFFSET = 0L;
 	private static final String MESSAGE_BODY = "Blah blah blah\n";
+	private static final String MESSAGE_BODY_WITH_EXTENDED_CHARS = "G\u00E9rard Depardieum, Camille Saint-Sa\u00EBns and Myl\u00E8ne Demongeot";
 
-	private static SynapseClient synapseOne;
-	private static SynapseClient synapseTwo;
-	private static SynapseClient synapseAdmin;
 
 	private static String oneId;
 	private static String twoId;
 
-	private S3FileHandle oneToRuleThemAll;
+	private static S3FileHandle oneToRuleThemAll;
+	
+	private String fileHandleIdWithExtendedChars;
 
 	private MessageToUser oneToTwo;
 	private MessageToUser twoToOne;
 	
 	private List<String> cleanup;
 	private Project project;
-
+	
 	@BeforeClass
 	public static void beforeClass() throws Exception {
-		synapseOne = SynapseClientHelper.createSynapseClient(
-				StackConfiguration.getIntegrationTestUserOneName(),
-				StackConfiguration.getIntegrationTestUserOnePassword());
-		synapseTwo = SynapseClientHelper.createSynapseClient(
-				StackConfiguration.getIntegrationTestUserTwoName(),
-				StackConfiguration.getIntegrationTestUserTwoPassword());
-		synapseAdmin = SynapseClientHelper.createSynapseClient(
-				StackConfiguration.getIntegrationTestUserAdminName(),
-				StackConfiguration.getIntegrationTestUserAdminPassword());
-
+		// Create 2 users
+		adminSynapse = new SynapseAdminClientImpl();
+		SynapseClientHelper.setEndpoints(adminSynapse);
+		adminSynapse.setUserName(StackConfiguration.getMigrationAdminUsername());
+		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
+		
+		synapseOne = new SynapseClientImpl();
+		user1ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseOne);
+		
+		synapseTwo = new SynapseClientImpl();
+		user2ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseTwo);
+	
 		oneId = synapseOne.getMyProfile().getOwnerId();
 		twoId = synapseTwo.getMyProfile().getOwnerId();
-	}
-	
-	@SuppressWarnings("serial")
-	@Before
-	public void before() throws Exception {
-		cleanup = new ArrayList<String>();
 		
 		// Create a file handle to use with all the messages
 		PrintWriter pw = null;
@@ -85,7 +94,13 @@ public class IT501SynapseJavaClientMessagingTest {
 				pw.close();
 			}
 		}
-		oneToRuleThemAll = synapseOne.createFileHandle(file, "text/plain");
+		oneToRuleThemAll = synapseOne.createFileHandle(file, "text/plain", false);
+	}
+	
+	@SuppressWarnings("serial")
+	@Before
+	public void before() throws Exception {
+		cleanup = new ArrayList<String>();
 
 		oneToTwo = new MessageToUser();
 		oneToTwo.setFileHandleId(oneToRuleThemAll.getId());
@@ -107,23 +122,45 @@ public class IT501SynapseJavaClientMessagingTest {
 		twoToOne.setInReplyTo(oneToTwo.getId());
 		twoToOne = synapseTwo.sendMessage(twoToOne);
 		cleanup.add(twoToOne.getId());
+
+		fileHandleIdWithExtendedChars = null;
 	}
 
 	@After
 	public void after() throws Exception {
 		for (String id : cleanup) {
-			synapseAdmin.deleteMessage(id);
-		}
-		
-		if (project != null) {
-			try {
-				synapseAdmin.deleteAndPurgeEntityById(project.getId());
-			} catch (Exception e) { }
+			adminSynapse.deleteMessage(id);
 		}
 		
 		try {
-			synapseOne.deleteFileHandle(oneToRuleThemAll.getId());
-		} catch (Exception e) { }
+			if (fileHandleIdWithExtendedChars!=null) {
+				adminSynapse.deleteFileHandle(fileHandleIdWithExtendedChars);
+			}
+			fileHandleIdWithExtendedChars = null;
+		} catch (SynapseNotFoundException e) {
+		} catch (SynapseServiceException e) { }
+		
+		if (project != null) {
+			try {
+				adminSynapse.deleteAndPurgeEntityById(project.getId());
+			} catch (SynapseNotFoundException e) { }
+		}
+	}
+	
+	@AfterClass
+	public static void afterClass() throws Exception {
+		// Delete the file handle
+		try {
+			adminSynapse.deleteFileHandle(oneToRuleThemAll.getId());
+		} catch (SynapseNotFoundException e) {
+		} catch (SynapseServiceException e) { }
+		
+		try {
+			adminSynapse.deleteUser(user1ToDelete);
+		} catch (SynapseServiceException e) { }
+		try {
+			adminSynapse.deleteUser(user2ToDelete);
+		} catch (SynapseServiceException e) { }
 	}
 
 	@SuppressWarnings("serial")
@@ -227,6 +264,21 @@ public class IT501SynapseJavaClientMessagingTest {
 		String message = synapseTwo.downloadMessage(oneToTwo.getId());
 		
 		assertTrue("Downloaded: " + message, MESSAGE_BODY.equals(message));
+	}
+	
+	@Test
+	public void testDownloadExtendedCharacterMessage() throws Exception {
+		MessageToUser mtu = new MessageToUser();
+		mtu.setSubject("a test");
+		mtu.setRecipients(new HashSet<String>(Arrays.asList(new String[]{twoId})));
+		mtu = synapseOne.sendStringMessage(mtu, MESSAGE_BODY_WITH_EXTENDED_CHARS);
+		cleanup.add(mtu.getId());
+		this.fileHandleIdWithExtendedChars = mtu.getFileHandleId();
+
+		// this inspects the content-type to determine the character encoding
+		String message = synapseTwo.downloadMessage(mtu.getId());
+		
+		assertTrue("Downloaded: " + message, MESSAGE_BODY_WITH_EXTENDED_CHARS.equals(message));
 	}
 	
 	@Test

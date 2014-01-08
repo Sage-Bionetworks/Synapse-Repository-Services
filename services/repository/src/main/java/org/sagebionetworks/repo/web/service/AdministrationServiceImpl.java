@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.web.service;
 
 import java.io.IOException;
+import java.util.Date;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -12,17 +13,21 @@ import org.sagebionetworks.repo.manager.dynamo.DynamoAdminManager;
 import org.sagebionetworks.repo.manager.message.MessageSyndication;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.PublishResults;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.controller.ObjectTypeSerializer;
+import org.sagebionetworks.securitytools.PBKDF2Utils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 
@@ -35,16 +40,22 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	
 	@Autowired
 	private BackupDaemonLauncher backupDaemonLauncher;	
+	
 	@Autowired
-	ObjectTypeSerializer objectTypeSerializer;	
+	private ObjectTypeSerializer objectTypeSerializer;	
+	
 	@Autowired
-	UserManager userManager;
+	private UserManager userManager;
+	
 	@Autowired
-	StackStatusManager stackStatusManager;	
+	private StackStatusManager stackStatusManager;	
+	
 	@Autowired
-	MessageSyndication messageSyndication;
+	private MessageSyndication messageSyndication;
+	
 	@Autowired
 	private DoiAdminManager doiAdminManager;
+	
 	@Autowired
 	private DynamoAdminManager dynamoAdminManager;
 
@@ -80,7 +91,7 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	 * @see org.sagebionetworks.repo.web.service.AdministrationService#getStatus(java.lang.String, java.lang.String, org.springframework.http.HttpHeaders, javax.servlet.http.HttpServletRequest)
 	 */
 	@Override
-	public BackupRestoreStatus getStatus(String daemonId, String userId,
+	public BackupRestoreStatus getStatus(String daemonId, Long userId,
 			HttpHeaders header,	HttpServletRequest request)
 			throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException {
@@ -95,7 +106,7 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	 * @see org.sagebionetworks.repo.web.service.AdministrationService#terminateDaemon(java.lang.String, java.lang.String, org.springframework.http.HttpHeaders, javax.servlet.http.HttpServletRequest)
 	 */
 	@Override
-	public void terminateDaemon(String daemonId, String userId,
+	public void terminateDaemon(String daemonId, Long userId,
 			HttpHeaders header,	HttpServletRequest request)
 			throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException {
@@ -111,9 +122,7 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	 * @see org.sagebionetworks.repo.web.service.AdministrationService#getStackStatus(java.lang.String, org.springframework.http.HttpHeaders, javax.servlet.http.HttpServletRequest)
 	 */
 	@Override
-	public StackStatus getStackStatus(String userId, HttpHeaders header,
-			HttpServletRequest request) {
-
+	public StackStatus getStackStatus() {
 		// Get the status of this daemon
 		return stackStatusManager.getCurrentStatus();
 	}
@@ -122,7 +131,7 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	 * @see org.sagebionetworks.repo.web.service.AdministrationService#updateStatusStackStatus(java.lang.String, org.springframework.http.HttpHeaders, javax.servlet.http.HttpServletRequest)
 	 */
 	@Override
-	public StackStatus updateStatusStackStatus(String userId,
+	public StackStatus updateStatusStackStatus(Long userId,
 			HttpHeaders header,	HttpServletRequest request) 
 			throws DatastoreException, NotFoundException, UnauthorizedException, IOException {
 
@@ -134,7 +143,7 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	}
 
 	@Override
-	public ChangeMessages listChangeMessages(String userId, Long startChangeNumber, ObjectType type, Long limit) throws DatastoreException, NotFoundException {
+	public ChangeMessages listChangeMessages(Long userId, Long startChangeNumber, ObjectType type, Long limit) throws DatastoreException, NotFoundException {
 		// Get the user
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		if (!userInfo.isAdmin()) throw new UnauthorizedException("Only an administrator may access this service.");
@@ -142,14 +151,14 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	}
 
 	@Override
-	public PublishResults rebroadcastChangeMessagesToQueue(String userId, String queueName, Long startChangeNumber, ObjectType type, Long limit) throws DatastoreException, NotFoundException {
+	public PublishResults rebroadcastChangeMessagesToQueue(Long userId, String queueName, Long startChangeNumber, ObjectType type, Long limit) throws DatastoreException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		if (!userInfo.isAdmin()) throw new UnauthorizedException("Only an administrator may access this service.");
 		return messageSyndication.rebroadcastChangeMessagesToQueue(queueName, type, startChangeNumber, limit);
 	}
 
 	@Override
-	public FireMessagesResult reFireChangeMessages(String userId,  Long startChangeNumber, Long limit) throws DatastoreException, NotFoundException {
+	public FireMessagesResult reFireChangeMessages(Long userId,  Long startChangeNumber, Long limit) throws DatastoreException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		if (!userInfo.isAdmin()) throw new UnauthorizedException("Only an administrator may access this service.");
 		long lastMsgNum = messageSyndication.rebroadcastChangeMessages(startChangeNumber, limit);
@@ -159,12 +168,12 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	}
 
 	@Override
-	public void clearDoi(String userId) throws NotFoundException, UnauthorizedException, DatastoreException {
+	public void clearDoi(Long userId) throws NotFoundException, UnauthorizedException, DatastoreException {
 		doiAdminManager.clear(userId);
 	}
 
 	@Override
-	public FireMessagesResult getCurrentChangeNumber(String userId) throws DatastoreException, NotFoundException {
+	public FireMessagesResult getCurrentChangeNumber(Long userId) throws DatastoreException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		if (!userInfo.isAdmin()) throw new UnauthorizedException("Only an administrator may access this service.");
 		long lastChgNum = messageSyndication.getCurrentChangeNumber();
@@ -174,9 +183,35 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	}
 
 	@Override
-	public void clearDynamoTable(String userId, String tableName,
+	public void clearDynamoTable(Long userId, String tableName,
 			String hashKeyName, String rangeKeyName) throws NotFoundException,
 			UnauthorizedException, DatastoreException {
 		dynamoAdminManager.clear(userId, tableName, hashKeyName, rangeKeyName);
+	}
+	
+	@Override
+	public EntityId createTestUser(Long userId, NewIntegrationTestUser userSpecs) throws NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		
+		DBOCredential cred = new DBOCredential();
+		if (userSpecs.getPassword() != null) {
+			cred.setPassHash(PBKDF2Utils.hashPassword(userSpecs.getPassword(), null));
+		}
+		if (userSpecs.getSession() != null) {
+			cred.setSessionToken(userSpecs.getSession().getSessionToken());
+			cred.setAgreesToTermsOfUse(userSpecs.getSession().getAcceptsTermsOfUse());
+			cred.setValidatedOn(new Date());
+		}
+				
+		UserInfo user = userManager.createUser(userInfo, userSpecs.getUsername(), userSpecs.getProfile(), cred);
+		
+		EntityId id = new EntityId();
+		id.setId(user.getIndividualGroup().getId());
+		return id;
+	}
+	@Override
+	public void deleteUser(Long userId, String id) throws NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		userManager.deletePrincipal(userInfo, Long.parseLong(id));
 	}
 }

@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyLong;
 import static org.mockito.Mockito.when;
 
 import org.junit.Before;
@@ -13,7 +14,6 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
@@ -39,7 +39,7 @@ public class S3TokenManagerUnitTest {
 	private S3TokenManagerImpl manager;
 	private AmazonS3Utility mockS3Utilitiy;
 	private UserInfo mockUser;
-	String userId = "007";
+	private Long userId = 007L;
 	
 	@Before
 	public void before(){
@@ -50,8 +50,6 @@ public class S3TokenManagerUnitTest {
 		mocKLocationHelper = Mockito.mock(LocationHelper.class);
 		mockS3Utilitiy = Mockito.mock(AmazonS3Utility.class);
 		mockUser = new UserInfo(false);
-		mockUser.setUser(new User());
-		mockUser.getUser().setId(userId);
 		manager = new S3TokenManagerImpl(mockPermissionsManager, mockUuserManager, mocIdGenerator, mocKLocationHelper, mockS3Utilitiy);
 	}
 
@@ -87,7 +85,6 @@ public class S3TokenManagerUnitTest {
 	
 	@Test (expected=UnauthorizedException.class)
 	public void testValidateUpdateAccessFail() throws DatastoreException, NotFoundException, UnauthorizedException{
-		String userId = "123456";
 		String entityId = "abc";
 		// return the mock user.
 		when(mockUuserManager.getUserInfo(userId)).thenReturn(mockUser);
@@ -100,7 +97,6 @@ public class S3TokenManagerUnitTest {
 	
 	@Test 
 	public void testValidateUpdateAccessPass() throws DatastoreException, NotFoundException, UnauthorizedException{
-		String userId = "123456";
 		String entityId = "abc";
 		// return the mock user.
 		when(mockUuserManager.getUserInfo(userId)).thenReturn(mockUser);
@@ -118,13 +114,12 @@ public class S3TokenManagerUnitTest {
 		startToken.setMd5(md5);
 		Long tokenId = new Long(456);
 		String entityId = "132";
-		String userId = "007";
 		String expectedPath = S3TokenManagerImpl.createAttachmentPathSlash(entityId, tokenId.toString());
 
 		String expectePreSigneUrl = "I am a presigned url! whooot!";
 		when(mocIdGenerator.generateNewId()).thenReturn(tokenId);
 		Credentials mockCreds = Mockito.mock(Credentials.class);
-		when(mockUuserManager.getUserInfo(any(String.class))).thenReturn(mockUser);
+		when(mockUuserManager.getUserInfo(anyLong())).thenReturn(mockUser);
 		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.UPDATE, mockUser)).thenReturn(true);
 		when(mocKLocationHelper.createFederationTokenForS3(userId,HttpMethod.PUT,expectedPath)).thenReturn(mockCreds);
 		when(mocKLocationHelper.presignS3PUTUrl(any(Credentials.class), any(String.class), any(String.class), any(String.class))).thenReturn(expectePreSigneUrl);
@@ -142,7 +137,6 @@ public class S3TokenManagerUnitTest {
 		startToken.setMd5(almostMd5);
 		Long tokenId = new Long(456);
 		String entityId = "132";
-		String userId = "007";
 		String expectedPath = entityId+"/"+tokenId.toString();
 		String expectePreSigneUrl = "I am a presigned url! whooot!";
 		when(mocIdGenerator.generateNewId()).thenReturn(tokenId);

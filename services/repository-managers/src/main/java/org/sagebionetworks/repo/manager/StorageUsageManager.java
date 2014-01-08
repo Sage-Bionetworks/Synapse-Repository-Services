@@ -11,9 +11,9 @@ public interface StorageUsageManager {
 
 	StorageUsageSummaryList getUsage(List<StorageUsageDimension> dimensionList);
 
-	StorageUsageSummaryList getUsageForUser(String userId, List<StorageUsageDimension> dimensionList);
+	StorageUsageSummaryList getUsageForUser(Long userId, List<StorageUsageDimension> dimensionList);
 
-	QueryResults<StorageUsage> getUsageInRangeForUser(String userId, Integer offset, Integer limit);
+	QueryResults<StorageUsage> getUsageInRangeForUser(Long userId, Integer offset, Integer limit);
 
 	StorageUsageSummaryList getUsageByUserInRange(Integer offset, Integer limit);
 }

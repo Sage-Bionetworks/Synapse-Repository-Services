@@ -6,10 +6,12 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.charset.Charset;
 import java.util.List;
 import java.util.Set;
 
 import org.apache.http.client.ClientProtocolException;
+import org.apache.http.entity.ContentType;
 import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.evaluation.model.Evaluation;
@@ -27,6 +29,7 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.BatchResults;
+import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
@@ -40,7 +43,6 @@ import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.MembershipRequest;
 import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.OriginatingClient;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
@@ -220,9 +222,6 @@ public interface SynapseClient extends BaseClient {
 			Long versionNumber) throws ClientProtocolException,
 			MalformedURLException, IOException;
 
-	public S3FileHandle createFileHandle(File temp, String contentType)
-			throws SynapseException, IOException;
-
 	/**
 	 * Get a WikiPage using its key
 	 */
@@ -379,8 +378,24 @@ public interface SynapseClient extends BaseClient {
 
 	public JSONObject query(String query) throws SynapseException;
 
+	/**
+	 * Upload each file to Synapse creating a file handle for each.
+	 */
 	public FileHandleResults createFileHandles(List<File> files)
 			throws SynapseException;
+
+	/**
+	 * The high-level API for uploading a file to Synapse.
+	 */
+	public S3FileHandle createFileHandle(File temp, String contentType)
+			throws SynapseException, IOException;
+
+	/**
+	 * See {@link #createFileHandle(File, String)}
+	 * @param shouldPreviewBeCreated Default true
+	 */
+	public S3FileHandle createFileHandle(File temp, String contentType, Boolean shouldPreviewBeCreated)
+			throws SynapseException, IOException;
 
 	public ChunkedFileToken createChunkedFileUploadToken(
 			CreateChunkedFileTokenRequest ccftr) throws SynapseException;
@@ -424,12 +439,6 @@ public interface SynapseClient extends BaseClient {
 	public FileHandleResults getWikiAttachmenthHandles(WikiPageKey key)
 			throws JSONObjectAdapterException, SynapseException;
 
-	public File downloadWikiAttachment(WikiPageKey key, String fileName)
-			throws ClientProtocolException, IOException, SynapseException;
-
-	public File downloadWikiAttachmentPreview(WikiPageKey key, String fileName)
-			throws ClientProtocolException, FileNotFoundException, IOException, SynapseException;
-
 	public void deleteWikiPage(WikiPageKey key) throws SynapseException;
 
 	public PaginatedResults<WikiHeader> getWikiHeaderTree(String ownerId,
@@ -458,7 +467,7 @@ public interface SynapseClient extends BaseClient {
 			SynapseException;
 	
 	public V2WikiPage restoreV2WikiPage(String ownerId, ObjectType ownerType,
-			V2WikiPage toUpdate, Long versionToRestore) throws JSONObjectAdapterException,
+			String wikiId, Long versionToRestore) throws JSONObjectAdapterException,
 			SynapseException;
 	
 	public V2WikiPage getV2RootWikiPage(String ownerId, ObjectType ownerType)
@@ -470,21 +479,27 @@ public interface SynapseClient extends BaseClient {
 	public FileHandleResults getVersionOfV2WikiAttachmentHandles(WikiPageKey key, Long version)
 		throws JSONObjectAdapterException, SynapseException;
 	
-	public File downloadV2WikiMarkdown(WikiPageKey key) throws ClientProtocolException, FileNotFoundException, IOException, SynapseException;
+	public String downloadV2WikiMarkdown(WikiPageKey key) throws ClientProtocolException, FileNotFoundException, IOException, SynapseException;
 	
-	public File downloadVersionOfV2WikiMarkdown(WikiPageKey key, Long version) throws ClientProtocolException, FileNotFoundException, IOException, SynapseException;
+	public String downloadVersionOfV2WikiMarkdown(WikiPageKey key, Long version) throws ClientProtocolException, FileNotFoundException, IOException, SynapseException;
 	
-	public File downloadV2WikiAttachment(WikiPageKey key, String fileName)
-		throws ClientProtocolException, IOException, SynapseException;
+//	public String downloadV2WikiAttachment(WikiPageKey key, String fileName)
+//		throws ClientProtocolException, IOException, SynapseException;
 	
-	public File downloadV2WikiAttachmentPreview(WikiPageKey key, String fileName)
-		throws ClientProtocolException, FileNotFoundException, IOException, SynapseException;
+//	public String downloadV2WikiAttachmentPreview(WikiPageKey key, String fileName)
+//		throws ClientProtocolException, FileNotFoundException, IOException, SynapseException;
 	
 	public URL getV2WikiAttachmentPreviewTemporaryUrl(WikiPageKey key,
 			String fileName) throws ClientProtocolException, IOException;
 
 	public URL getV2WikiAttachmentTemporaryUrl(WikiPageKey key,
 			String fileName) throws ClientProtocolException, IOException;
+	
+	public URL getVersionOfV2WikiAttachmentPreviewTemporaryUrl(WikiPageKey key,
+			String fileName, Long version) throws ClientProtocolException, IOException;
+
+	public URL getVersionOfV2WikiAttachmentTemporaryUrl(WikiPageKey key,
+			String fileName, Long version) throws ClientProtocolException, IOException;
 
 	public void deleteV2WikiPage(WikiPageKey key) throws SynapseException;
 	
@@ -645,6 +660,19 @@ public interface SynapseClient extends BaseClient {
 			throws JSONObjectAdapterException, SynapseException;
 	
 	public String getSynapseTermsOfUse() throws SynapseException;
+	
+	/**
+	 * Uploads a String to S3 using the chunked file upload service
+	 * Note:  Strings in memory should not be large, so we limit the length
+	 * of the byte array for the passed in string to be the size of one 'chunk'
+	 * 
+	 * @param content the byte array to upload.
+	 * 
+	 * @param contentType This will become the contentType field of the resulting S3FileHandle
+	 * if not specified, this method uses "text/plain"
+	 * 
+	 */ 
+	public String uploadToFileHandle(byte[] content, ContentType contentType) throws SynapseException;
 
 	/**
 	 * Sends a message to another user
@@ -653,11 +681,34 @@ public interface SynapseClient extends BaseClient {
 			throws SynapseException;
 	
 	/**
+	 * Convenience function to upload message body, then send message using resultant fileHandleId
+	 * For an example of the message content being retrieved for email delivery, see MessageManagerImpl.downloadEmailContent().
+	 * @param message
+	 * @param messageBody
+	 * @return
+	 * @throws SynapseException
+	 */
+	public MessageToUser sendStringMessage(MessageToUser message, String messageBody)
+			throws SynapseException;
+	
+	/**
 	 * Sends a message to another user and the owner of the given entity
 	 */
 	public MessageToUser sendMessage(MessageToUser message, String entityId) 
 			throws SynapseException;
 
+	/**
+	 * Convenience function to upload message body, then send message to entity owner using resultant fileHandleId.
+	 * For an example of the message content being retrieved for email delivery, see MessageManagerImpl.downloadEmailContent().
+	 * @param message
+	 * @param entityId
+	 * @param messageBody
+	 * @return
+	 * @throws SynapseException
+	 */
+	public MessageToUser sendStringMessage(MessageToUser message, String entityId, String messageBody)
+			throws SynapseException;
+	
 	/**
 	 * Gets the current authenticated user's received messages
 	 */
@@ -1137,7 +1188,7 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * Creates a user
 	 */
-	public void createUser(NewUser user, OriginatingClient originClient) throws SynapseException;
+	public void createUser(NewUser user, DomainType originClient) throws SynapseException;
 
 	/**
 	 * Changes the registering user's password
@@ -1157,7 +1208,7 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * Sends a password reset email to the given user
 	 */
-	public void sendPasswordResetEmail(String email, OriginatingClient originClient) throws SynapseException;
+	public void sendPasswordResetEmail(String email, DomainType originClient) throws SynapseException;
 	
 	/**
 	 * Performs OpenID authentication using the set of parameters from an OpenID provider
@@ -1181,6 +1232,6 @@ public interface SynapseClient extends BaseClient {
 	 *            party provider (Synapse or Bridge)?
 	 */
 	public Session passThroughOpenIDParameters(String queryString,
-			Boolean createUserIfNecessary, OriginatingClient originClient)
+			Boolean createUserIfNecessary, DomainType originClient)
 			throws SynapseException;
 }

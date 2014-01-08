@@ -17,7 +17,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -42,14 +42,14 @@ public class PrincipalsControllerAutowiredTest {
 
 	// Used for cleanup
 	@Autowired
-	EntityService entityController;
+	private EntityService entityController;
 	
 	@Autowired
 	public UserManager userManager;
 
 	private static HttpServlet dispatchServlet;
 	
-	private String userName = AuthorizationConstants.ADMIN_USER_NAME;
+	private Long adminUserId;
 	private UserInfo testUser;
 
 	private List<String> toDelete;
@@ -58,9 +58,12 @@ public class PrincipalsControllerAutowiredTest {
 	public void before() throws DatastoreException, NotFoundException {
 		assertNotNull(entityController);
 		toDelete = new ArrayList<String>();
+		
+		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+		
 		// Map test objects to their urls
 		// Make sure we have a valid user.
-		testUser = userManager.getUserInfo(userName);
+		testUser = userManager.getUserInfo(adminUserId);
 		UserInfo.validateUserInfo(testUser);
 	}
 
@@ -69,7 +72,7 @@ public class PrincipalsControllerAutowiredTest {
 		if (entityController != null && toDelete != null) {
 			for (String idToDelete : toDelete) {
 				try {
-					entityController.deleteEntity(userName, idToDelete);
+					entityController.deleteEntity(adminUserId, idToDelete);
 				} catch (NotFoundException e) {
 					// nothing to do here
 				} catch (DatastoreException e) {
@@ -87,7 +90,7 @@ public class PrincipalsControllerAutowiredTest {
 
 	@Test
 	public void testGetUsers() throws Exception {
-		PaginatedResults<UserProfile> userProfiles = ServletTestHelper.getUsers(dispatchServlet, userName);
+		PaginatedResults<UserProfile> userProfiles = ServletTestHelper.getUsers(dispatchServlet, adminUserId);
 		assertNotNull(userProfiles);
 		for (UserProfile userProfile : userProfiles.getResults()) {
 			System.out.println(userProfile);
@@ -107,13 +110,21 @@ public class PrincipalsControllerAutowiredTest {
 	
 	@Test
 	public void testGetGroups() throws Exception {
-		PaginatedResults<UserGroup> ugs = ServletTestHelper.getGroups(dispatchServlet, userName);
+		PaginatedResults<UserGroup> ugs = ServletTestHelper.getGroups(dispatchServlet, adminUserId);
 		assertNotNull(ugs);
 		boolean foundPublic = false;
 		boolean foundAdmin = false;
 		for (UserGroup ug : ugs.getResults()) {
-			if (ug.getName().equals(AuthorizationConstants.PUBLIC_GROUP_NAME)) foundPublic=true;
-			if (ug.getName().equals(AuthorizationConstants.ADMIN_GROUP_NAME)) foundAdmin=true;
+			if (ug.getId().equals(
+					BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId()
+							.toString())) {
+				foundPublic = true;
+			}
+			if (ug.getId().equals(
+					BOOTSTRAP_PRINCIPAL.ADMINISTRATORS_GROUP.getPrincipalId()
+							.toString())) {
+				foundAdmin = true;
+			}
 			assertTrue(ug.toString(), !ug.getIsIndividual());
 		}
 		assertTrue(foundPublic);

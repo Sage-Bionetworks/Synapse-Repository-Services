@@ -24,7 +24,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.UserProfileManagerUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -82,14 +82,14 @@ public class UserProfileServiceImpl implements UserProfileService {
 	private volatile Map<String, UserGroupHeader> userGroupHeadersIdCache;
 
 	@Override
-	public UserProfile getMyOwnUserProfile(String userId) 
+	public UserProfile getMyOwnUserProfile(Long userId) 
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return userProfileManager.getUserProfile(userInfo, userInfo.getIndividualGroup().getId());
 	}
 	
 	@Override
-	public UserProfile getUserProfileByOwnerId(String userId, String profileId) 
+	public UserProfile getUserProfileByOwnerId(Long userId, String profileId) 
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		UserProfile userProfile = userProfileManager.getUserProfile(userInfo, profileId);
@@ -100,7 +100,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 	
 	@Override
 	public PaginatedResults<UserProfile> getUserProfilesPaginated(HttpServletRequest request,
-			String userId, Integer offset, Integer limit, String sort, Boolean ascending)
+			Long userId, Integer offset, Integer limit, String sort, Boolean ascending)
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		long endExcl = offset+limit;
@@ -121,7 +121,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public UserProfile updateUserProfile(String userId, HttpHeaders header, HttpServletRequest request) 
+	public UserProfile updateUserProfile(Long userId, HttpHeaders header, HttpServletRequest request) 
 			throws NotFoundException, ConflictingUpdateException, DatastoreException, InvalidModelException, UnauthorizedException, IOException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		UserProfile entity = (UserProfile) objectTypeSerializer.deserialize(request.getInputStream(), header, UserProfile.class, header.getContentType());
@@ -129,7 +129,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 	}
 
 	@Override
-	public S3AttachmentToken createUserProfileS3AttachmentToken(String userId, String profileId, 
+	public S3AttachmentToken createUserProfileS3AttachmentToken(Long userId, String profileId, 
 			S3AttachmentToken token, HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException, InvalidModelException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
@@ -137,17 +137,15 @@ public class UserProfileServiceImpl implements UserProfileService {
 	}
 
 	@Override
-	public PresignedUrl getUserProfileAttachmentUrl(String userId, String profileId,
+	public PresignedUrl getUserProfileAttachmentUrl(Long userId, String profileId,
 			PresignedUrl url, HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException, InvalidModelException {
 		if(url == null) throw new IllegalArgumentException("A PresignedUrl must be provided");
-		// Pass it along.
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		return userProfileManager.getUserProfileAttachmentUrl(userInfo, profileId, url.getTokenID());
+		return userProfileManager.getUserProfileAttachmentUrl(userId, profileId, url.getTokenID());
 	}
 	
 	@Override
-	public UserGroupHeaderResponsePage getUserGroupHeadersByIds(String userId, List<String> ids) 
+	public UserGroupHeaderResponsePage getUserGroupHeadersByIds(Long userId, List<String> ids) 
 			throws DatastoreException, NotFoundException {		
 		if (userGroupHeadersIdCache == null || userGroupHeadersIdCache.size() == 0)
 			refreshCache();
@@ -156,7 +154,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 			userInfo = userManager.getUserInfo(userId);
 		} else {
 			// request is anonymous			
-			userInfo = userManager.getUserInfo(AuthorizationConstants.ANONYMOUS_USER_ID);
+			userInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		}
 		List<UserGroupHeader> ugHeaders = new ArrayList<UserGroupHeader>();
 		for (String id : ids) {
@@ -164,10 +162,10 @@ public class UserProfileServiceImpl implements UserProfileService {
 			if (header == null) {
 				// Header not found in cache; attempt to fetch one from repo
 				header = fetchNewHeader(userInfo, id);
-				if (header == null)
-					throw new NotFoundException("Could not find a user/group for Synapse ID " + id);
 			}
-			ugHeaders.add(header);
+			if (header != null) {
+				ugHeaders.add(header);
+			}
 		}
 		
 		UserGroupHeaderResponsePage response = new UserGroupHeaderResponsePage();
@@ -277,7 +275,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 
 	
 	@Override
-	public EntityHeader addFavorite(String userId, String entityId)
+	public EntityHeader addFavorite(Long userId, String entityId)
 			throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		if(!entityPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo)) 
@@ -287,14 +285,14 @@ public class UserProfileServiceImpl implements UserProfileService {
 	}
 
 	@Override
-	public void removeFavorite(String userId, String entityId)
+	public void removeFavorite(Long userId, String entityId)
 			throws DatastoreException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);	
 		userProfileManager.removeFavorite(userInfo, entityId);
 	}
 
 	@Override
-	public PaginatedResults<EntityHeader> getFavorites(String userId, int limit,
+	public PaginatedResults<EntityHeader> getFavorites(Long userId, int limit,
 			int offset) throws DatastoreException, InvalidModelException,
 			NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
@@ -310,10 +308,16 @@ public class UserProfileServiceImpl implements UserProfileService {
 	 * Fetches a UserProfile for a specified Synapse ID. Note that this does not
 	 * check for a UserGroup with the specified ID.
 	 */
-	private UserGroupHeader fetchNewHeader(UserInfo userInfo, String id) throws DatastoreException, UnauthorizedException, NotFoundException {
-		UserProfile profile = userProfileManager.getUserProfile(userInfo, id);
-		UserProfileManagerUtils.clearPrivateFields(userInfo, profile);
-		return profile != null ? convertUserProfileToHeader(profile) : null;
+	private UserGroupHeader fetchNewHeader(UserInfo userInfo, String id) {
+		UserProfile profile;
+		try {
+			profile = userProfileManager.getUserProfile(userInfo, id);
+			UserProfileManagerUtils.clearPrivateFields(userInfo, profile);
+		} catch (NotFoundException e) {
+			// Profile not found, so return null
+			return null;
+		}
+		return convertUserProfileToHeader(profile);
 	}
 
 	private void addToPrefixCache(Trie<String, Collection<UserGroupHeader>> prefixCache, String unobfuscatedEmailAddress, UserGroupHeader header) {

@@ -50,23 +50,42 @@ public class MessageController extends BaseController {
 	private static final String defaultSortDescending = "true";
 
 	/**
-	 * Sends a message.  
+	 * <p>
+	 * Sends a message.
+	 * </p>
+	 * <p>
+	 * The "fileHandleId" field should point to a plain text file containing the body of the message.  
+	 * The file should be uploaded prior to this call.
+	 * </p>
+	 * <p>
+	 * The "recipients" field should hold a set of IDs corresponding to the recipients of the message.  
+	 * </p>
+	 * <p>
+	 * All other fields are optional, including the "subject" field.  
 	 * To chain messages together into a conversation, specify the message you are replying to via the "inReplyTo" field.  
-	 * See the <a href="${org.sagebionetworks.repo.model.message.MessageToUser}">message schema</a>.
-	 * </br>
+	 * </p>
+	 * <p>
+	 * See the <a href="${org.sagebionetworks.repo.model.message.MessageToUser}">message schema</a>,  
+	 * <a href="${org.sagebionetworks.repo.model.message.MessageContent}">message content schema</a>, 
+	 * and <a href="${org.sagebionetworks.repo.model.message.MessageRecipientSet}">message recipient schema</a>
+	 * for more information.
+	 * </p>
+	 * <p>
 	 * In most cases, message delivery is asynchronous to message creation.  
 	 * i.e. It may take several seconds for a message to appear in a user's inbox.
-	 * </br>
+	 * </p>
+	 * <p>
 	 * Note: Unauthorized delivery, such as messaging a team you are not affiliated with, 
-	 * may result in a silent failure or a bounce message, depending on your notification settings.
+	 * will result in a bounce message being sent to your email.
+	 * </p>
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.MESSAGE, method = RequestMethod.POST)
 	public @ResponseBody
 	MessageToUser createMessage(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String username,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody MessageToUser toCreate) throws NotFoundException {
-		return serviceProvider.getMessageService().create(username, toCreate);
+		return serviceProvider.getMessageService().create(userId, toCreate);
 	}
 	
 	/**
@@ -84,7 +103,7 @@ public class MessageController extends BaseController {
 	@RequestMapping(value = UrlHelpers.MESSAGE_INBOX, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<MessageBundle> getInbox(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String username,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = UrlHelpers.MESSAGE_INBOX_FILTER_PARAM, defaultValue = defaultInboxFilter) String inboxFilter, 
 			@RequestParam(value = UrlHelpers.MESSAGE_ORDER_BY_PARAM, defaultValue = defaultSortOrder) String orderBy, 
 			@RequestParam(value = UrlHelpers.MESSAGE_DESCENDING_PARAM, defaultValue = defaultSortDescending) boolean descending, 
@@ -101,7 +120,7 @@ public class MessageController extends BaseController {
 		}
 		
 		MessageSortBy sortBy = MessageSortBy.valueOf(orderBy.toUpperCase());
-		return serviceProvider.getMessageService().getInbox(username, filter, sortBy, descending, limit, offset, request.getServletPath() + UrlHelpers.MESSAGE_INBOX);
+		return serviceProvider.getMessageService().getInbox(userId, filter, sortBy, descending, limit, offset, request.getServletPath() + UrlHelpers.MESSAGE_INBOX);
 	}
 	
 	/**
@@ -116,7 +135,7 @@ public class MessageController extends BaseController {
 	@RequestMapping(value = UrlHelpers.MESSAGE_OUTBOX, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<MessageToUser> getOutbox(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String username,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = UrlHelpers.MESSAGE_ORDER_BY_PARAM, defaultValue = defaultSortOrder) String orderBy, 
 			@RequestParam(value = UrlHelpers.MESSAGE_DESCENDING_PARAM, defaultValue = defaultSortDescending) boolean descending, 
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit, 
@@ -124,7 +143,7 @@ public class MessageController extends BaseController {
 			HttpServletRequest request) 
 					throws NotFoundException {
 		MessageSortBy sortBy = MessageSortBy.valueOf(orderBy.toUpperCase());
-		return serviceProvider.getMessageService().getOutbox(username, sortBy, descending, limit, offset, request.getServletPath() + UrlHelpers.MESSAGE_OUTBOX);
+		return serviceProvider.getMessageService().getOutbox(userId, sortBy, descending, limit, offset, request.getServletPath() + UrlHelpers.MESSAGE_OUTBOX);
 	}
 	
 	/**
@@ -135,9 +154,9 @@ public class MessageController extends BaseController {
 	@RequestMapping(value = UrlHelpers.MESSAGE_ID, method = RequestMethod.GET)
 	public @ResponseBody
 	MessageToUser getMessage(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String username,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String messageId) throws NotFoundException {
-		return serviceProvider.getMessageService().getMessage(username, messageId);
+		return serviceProvider.getMessageService().getMessage(userId, messageId);
 	}
 	
 	/**
@@ -148,10 +167,10 @@ public class MessageController extends BaseController {
 	@RequestMapping(value = UrlHelpers.MESSAGE_ID_FORWARD, method = RequestMethod.POST)
 	public @ResponseBody
 	MessageToUser forwardMessage(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String username,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String messageId, 
 			@RequestBody MessageRecipientSet recipients) throws NotFoundException {
-		return serviceProvider.getMessageService().forwardMessage(username, messageId, recipients);
+		return serviceProvider.getMessageService().forwardMessage(userId, messageId, recipients);
 	}
 	
 	/**
@@ -167,7 +186,7 @@ public class MessageController extends BaseController {
 	@RequestMapping(value = UrlHelpers.MESSAGE_ID_CONVERSATION, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<MessageToUser> getConversation(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String username,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String messageId, 
 			@RequestParam(value = UrlHelpers.MESSAGE_ORDER_BY_PARAM, defaultValue = defaultSortOrder) String orderBy, 
 			@RequestParam(value = UrlHelpers.MESSAGE_DESCENDING_PARAM, defaultValue = defaultSortDescending) boolean descending, 
@@ -176,7 +195,7 @@ public class MessageController extends BaseController {
 			HttpServletRequest request) 
 					throws NotFoundException {
 		MessageSortBy sortBy = MessageSortBy.valueOf(orderBy.toUpperCase());
-		return serviceProvider.getMessageService().getConversation(username, messageId, sortBy, descending, limit, offset, request.getServletPath() + UrlHelpers.MESSAGE_ID_CONVERSATION);
+		return serviceProvider.getMessageService().getConversation(userId, messageId, sortBy, descending, limit, offset, request.getServletPath() + UrlHelpers.MESSAGE_ID_CONVERSATION);
 	}
 	
 	/**
@@ -186,9 +205,9 @@ public class MessageController extends BaseController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.MESSAGE_STATUS, method = RequestMethod.PUT)
 	public void updateMessageStatus(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String username,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody MessageStatus status) throws NotFoundException {
-		serviceProvider.getMessageService().updateMessageStatus(username, status);
+		serviceProvider.getMessageService().updateMessageStatus(userId, status);
 	}
 	
 	/**
@@ -197,9 +216,9 @@ public class MessageController extends BaseController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.MESSAGE_ID, method = RequestMethod.DELETE)
 	public void deleteMessage(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String username,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String messageId) throws NotFoundException {
-		serviceProvider.getMessageService().deleteMessage(username, messageId);
+		serviceProvider.getMessageService().deleteMessage(userId, messageId);
 	}
 	
 	/**
@@ -215,12 +234,12 @@ public class MessageController extends BaseController {
 	@RequestMapping(value = UrlHelpers.MESSAGE_ID_FILE, method = RequestMethod.GET)
 	public @ResponseBody
 	void fileRedirectForMessage(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String username,
-			@PathVariable String messageId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable("messageId") String messageId,
 			@RequestParam(required = false) Boolean redirect,
 			HttpServletResponse response) throws NotFoundException, IOException {
 		URL redirectUrl = serviceProvider.getMessageService()
-				.getMessageFileRedirectURL(username, messageId);
+				.getMessageFileRedirectURL(userId, messageId);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
 	
@@ -233,9 +252,9 @@ public class MessageController extends BaseController {
 	@RequestMapping(value = UrlHelpers.ENTITY_ID_MESSAGE, method = RequestMethod.POST)
 	public @ResponseBody
 	MessageToUser sendMessageToEntityOwner(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String username,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id, 
 			@RequestBody MessageToUser toCreate) throws NotFoundException, ACLInheritanceException {
-		return serviceProvider.getMessageService().createMessageToEntityOwner(username, id, toCreate);
+		return serviceProvider.getMessageService().createMessageToEntityOwner(userId, id, toCreate);
 	}
 }

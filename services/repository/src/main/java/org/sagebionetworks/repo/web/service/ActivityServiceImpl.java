@@ -50,7 +50,7 @@ public class ActivityServiceImpl implements ActivityService {
 	}
 
 	@Override
-	public Activity createActivity(String userId, Activity activity)
+	public Activity createActivity(Long userId, Activity activity)
 			throws DatastoreException, InvalidModelException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		verifyUsedEntries(activity);
@@ -59,14 +59,14 @@ public class ActivityServiceImpl implements ActivityService {
 	}
 	
 	@Override
-	public Activity getActivity(String userId, String activityId)
+	public Activity getActivity(Long userId, String activityId)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return activityManager.getActivity(userInfo, activityId);
 	}
 
 	@Override
-	public Activity updateActivity(String userId, Activity activity)
+	public Activity updateActivity(Long userId, Activity activity)
 			throws InvalidModelException, NotFoundException,
 			ConflictingUpdateException, DatastoreException,
 			UnauthorizedException {
@@ -76,14 +76,14 @@ public class ActivityServiceImpl implements ActivityService {
 	}
 	
 	@Override
-	public void deleteActivity(String userId, String activityId)
+	public void deleteActivity(Long userId, String activityId)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		activityManager.deleteActivity(userInfo, activityId);		
 	}
 
 	@Override
-	public PaginatedResults<Reference> getEntitiesGeneratedBy(String userId,
+	public PaginatedResults<Reference> getEntitiesGeneratedBy(Long userId,
 			String activityId, int limit, int offset) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
