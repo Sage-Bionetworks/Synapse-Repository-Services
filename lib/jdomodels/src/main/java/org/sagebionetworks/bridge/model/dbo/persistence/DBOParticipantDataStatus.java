@@ -3,7 +3,6 @@ package org.sagebionetworks.bridge.model.dbo.persistence;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PARTICIPANT_DATA_DESCRIPTOR_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PARTICIPANT_DATA_DESCRIPTOR;
 
-import java.util.Date;
 import java.util.List;
 
 import org.sagebionetworks.bridge.model.data.ParticipantDataStatus;
@@ -41,7 +40,7 @@ public class DBOParticipantDataStatus implements MigratableDatabaseObject<DBOPar
 
 	@Override
 	public MigrationType getMigratableTableType() {
-		return MigrationType.PARTICIPANT_DATA;
+		return MigrationType.PARTICIPANT_DATA_STATUS;
 	}
 
 	public Long getParticipantDataDescriptorId() {

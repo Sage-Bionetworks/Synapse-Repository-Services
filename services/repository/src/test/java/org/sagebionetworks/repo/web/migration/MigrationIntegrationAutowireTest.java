@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -29,9 +30,12 @@ import org.sagebionetworks.bridge.model.Community;
 import org.sagebionetworks.bridge.model.CommunityTeamDAO;
 import org.sagebionetworks.bridge.model.ParticipantDataDAO;
 import org.sagebionetworks.bridge.model.ParticipantDataDescriptorDAO;
+import org.sagebionetworks.bridge.model.ParticipantDataStatusDAO;
 import org.sagebionetworks.bridge.model.data.ParticipantDataColumnDescriptor;
 import org.sagebionetworks.bridge.model.data.ParticipantDataColumnType;
 import org.sagebionetworks.bridge.model.data.ParticipantDataDescriptor;
+import org.sagebionetworks.bridge.model.data.ParticipantDataRepeatType;
+import org.sagebionetworks.bridge.model.data.ParticipantDataStatus;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Submission;
@@ -176,6 +180,9 @@ public class MigrationIntegrationAutowireTest {
 
 	@Autowired
 	private ParticipantDataDescriptorDAO participantDataDescriptorDAO;
+
+	@Autowired
+	private ParticipantDataStatusDAO participantDataStatusDAO;
 
 	@Autowired
 	private AuthenticationDAO authDAO;
@@ -620,6 +627,8 @@ public class MigrationIntegrationAutowireTest {
 		bridgeParticipantDAO.create(participantId);
 		ParticipantDataDescriptor participantDataDescriptor = new ParticipantDataDescriptor();
 		participantDataDescriptor.setName(participantId + "desc");
+		participantDataDescriptor.setRepeatType(ParticipantDataRepeatType.ALWAYS);
+		participantDataDescriptor.setRepeatFrequency("0 0 4 * * ? *");
 		participantDataDescriptor = participantDataDescriptorDAO.createParticipantDataDescriptor(participantDataDescriptor);
 		ParticipantDataColumnDescriptor participantDataColumnDescriptor = new ParticipantDataColumnDescriptor();
 		participantDataColumnDescriptor.setParticipantDataDescriptorId(participantDataDescriptor.getId());
@@ -632,6 +641,12 @@ public class MigrationIntegrationAutowireTest {
 		row.setValues(Lists.newArrayList("1", "2"));
 		data.setRows(Lists.newArrayList(row));
 		participantDataDAO.append(participantId, participantDataDescriptor.getId(), data);
+		ParticipantDataStatus status = new ParticipantDataStatus();
+		status.setParticipantDataDescriptorId(participantDataDescriptor.getId());
+		status.setLastEntryComplete(false);
+		status.setLastPrompted(new Date());
+		status.setLastStarted(new Date());
+		participantDataStatusDAO.update(Collections.<ParticipantDataStatus> singletonList(status));
 	}
 
 	@After

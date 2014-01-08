@@ -13,6 +13,7 @@ import org.sagebionetworks.bridge.model.ParticipantDataDescriptorDAO;
 import org.sagebionetworks.bridge.model.data.ParticipantDataColumnDescriptor;
 import org.sagebionetworks.bridge.model.data.ParticipantDataColumnType;
 import org.sagebionetworks.bridge.model.data.ParticipantDataDescriptor;
+import org.sagebionetworks.bridge.model.data.ParticipantDataRepeatType;
 import org.sagebionetworks.bridge.model.dbo.persistence.DBOParticipantDataColumnDescriptor;
 import org.sagebionetworks.bridge.model.dbo.persistence.DBOParticipantDataDescriptor;
 import org.sagebionetworks.ids.IdGenerator;
@@ -85,6 +86,7 @@ public class DBOParticipantDataDescriptorDAOImplTest {
 		ParticipantDataDescriptor participantDataDescriptor = new ParticipantDataDescriptor();
 		participantDataDescriptor.setDescription("some description");
 		participantDataDescriptor.setName("some name " + idGenerator.generateNewId());
+		participantDataDescriptor.setRepeatType(ParticipantDataRepeatType.ALWAYS);
 		participantDataDescriptor = participantDataDescriptorDAO.createParticipantDataDescriptor(participantDataDescriptor);
 
 		toDelete.add(new Deletable(DBOParticipantDataDescriptor.class, participantDataDescriptor.getId()));

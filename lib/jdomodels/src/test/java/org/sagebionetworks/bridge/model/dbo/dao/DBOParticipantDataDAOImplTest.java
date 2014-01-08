@@ -11,6 +11,7 @@ import org.sagebionetworks.bridge.model.BridgeParticipantDAO;
 import org.sagebionetworks.bridge.model.ParticipantDataDAO;
 import org.sagebionetworks.bridge.model.ParticipantDataDescriptorDAO;
 import org.sagebionetworks.bridge.model.data.ParticipantDataDescriptor;
+import org.sagebionetworks.bridge.model.data.ParticipantDataRepeatType;
 import org.sagebionetworks.bridge.model.dbo.persistence.DBOParticipantDataDescriptor;
 import org.sagebionetworks.bridge.model.dbo.persistence.DBOParticipant;
 import org.sagebionetworks.ids.IdGenerator;
@@ -56,6 +57,7 @@ public class DBOParticipantDataDAOImplTest extends TestBase {
 		DBOParticipantDataDescriptor model = new DBOParticipantDataDescriptor();
 		model.setId(idGenerator.generateNewId());
 		model.setName("test-model" + model.getId().toString());
+		model.setRepeatType(ParticipantDataRepeatType.ALWAYS);
 		model = dboBasicDao.createNew(model);
 		addToDelete(DBOParticipantDataDescriptor.class, model.getId().toString());
 		return model;
