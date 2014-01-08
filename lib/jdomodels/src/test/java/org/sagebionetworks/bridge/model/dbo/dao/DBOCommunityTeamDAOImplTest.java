@@ -47,9 +47,8 @@ public class DBOCommunityTeamDAOImplTest extends TestBase {
 
 	private Team createTeam(String... memberIds) throws Exception {
 		UserGroup newGroup = new UserGroup();
-		newGroup.setName(UUID.randomUUID().toString());
 		newGroup.setIsIndividual(false);
-		String newGroupId = userGroupDAO.create(newGroup);
+		String newGroupId = userGroupDAO.create(newGroup).toString();
 		addToDelete(UserGroup.class, newGroupId);
 
 		groupMembersDAO.addMembers(newGroupId, Arrays.asList(memberIds));
@@ -62,7 +61,7 @@ public class DBOCommunityTeamDAOImplTest extends TestBase {
 	}
 
 	private Node createNode(String creatorId) throws NotFoundException {
-		Long createdById = Long.parseLong(userGroupDAO.get(creatorId).getId());
+		Long createdById = Long.parseLong(creatorId);
 		
 		Node node = new Node();
 		node.setName("SomeCommunity");

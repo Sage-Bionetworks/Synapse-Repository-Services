@@ -62,12 +62,11 @@ public class DBOAccessControlListDAOScaleTest {
 
 		// Create a user
 		userGroup = new UserGroup();
-		userGroup.setName("aTestUser@sagebase.org");
 		userGroup.setCreationDate(new Date());
 		userGroup.setIsIndividual(true);
-		userId = userGroupDAO.create(userGroup);
+		userId = userGroupDAO.create(userGroup).toString();
 		// update the object from the database so it has its ID
-		userGroup = userGroupDAO.get(userId);
+		userGroup = userGroupDAO.get(Long.parseLong(userId));
 		Long createdById = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 
 		// Create 100 projects root project

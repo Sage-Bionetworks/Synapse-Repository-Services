@@ -17,9 +17,10 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
-import org.sagebionetworks.repo.model.UserGroupInt;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
+import org.sagebionetworks.repo.model.principal.BootstrapPrincipal;
+import org.sagebionetworks.repo.model.principal.BootstrapUser;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -35,26 +36,19 @@ public class DBOUserProfileDAOImplTest {
 	@Autowired
 	UserProfileDAO userProfileDAO;
 	
-	private static final String TEST_USER_NAME = "test-user@test.com";
-	
 	private UserGroup individualGroup = null;
 	
 	@Before
 	public void setUp() throws Exception {
-		individualGroup = userGroupDAO.findGroup(TEST_USER_NAME, true);
-		if (individualGroup == null) {
-			individualGroup = new UserGroup();
-			individualGroup.setName(TEST_USER_NAME);
-			individualGroup.setIsIndividual(true);
-			individualGroup.setCreationDate(new Date());
-			individualGroup.setId(userGroupDAO.create(individualGroup));
-		}
+		individualGroup = new UserGroup();
+		individualGroup.setIsIndividual(true);
+		individualGroup.setCreationDate(new Date());
+		individualGroup.setId(userGroupDAO.create(individualGroup).toString());
 	}
 		
 	
 	@After
 	public void tearDown() throws Exception{
-		individualGroup = userGroupDAO.findGroup(TEST_USER_NAME, true);
 		if (individualGroup != null) {
 			// this will delete the user profile too
 			userGroupDAO.delete(individualGroup.getId());
@@ -107,13 +101,13 @@ public class DBOUserProfileDAOImplTest {
 	
 	@Test
 	public void testBootstrapUsers() throws DatastoreException, NotFoundException{
-		List<UserGroupInt> boots = this.userGroupDAO.getBootstrapUsers();
+		List<BootstrapPrincipal> boots = this.userGroupDAO.getBootstrapPrincipals();
 		assertNotNull(boots);
 		assertTrue(boots.size() >0);
 		// Each should exist
-		for(UserGroupInt bootUg: boots){
-			if(bootUg.getIsIndividual()){
-				UserProfile profile = userProfileDAO.get(bootUg.getId());
+		for(BootstrapPrincipal bootUg: boots){
+			if(bootUg instanceof BootstrapUser){
+				UserProfile profile = userProfileDAO.get(bootUg.getId().toString());
 				userGroupDAO.get(bootUg.getId());
 				assertEquals(bootUg.getId(), profile.getOwnerId());
 			}

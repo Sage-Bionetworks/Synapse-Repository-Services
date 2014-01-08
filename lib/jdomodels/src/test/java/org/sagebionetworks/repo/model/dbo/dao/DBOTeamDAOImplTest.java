@@ -85,9 +85,8 @@ public class DBOTeamDAOImplTest {
 	@Test
 	public void testRoundTrip() throws Exception {
 		UserGroup group = new UserGroup();
-		group.setName(UUID.randomUUID().toString());
 		group.setIsIndividual(false);
-		group.setId(userGroupDAO.create(group));
+		group.setId(userGroupDAO.create(group).toString());
 		teamToDelete = group.getId();
 		
 		// create a team
@@ -131,9 +130,8 @@ public class DBOTeamDAOImplTest {
 
 		// need an arbitrary user to add to the group
 		UserGroup user = new UserGroup();
-		user.setName(UUID.randomUUID().toString()+"@test.com");
 		user.setIsIndividual(true);
-		user.setId(userGroupDAO.create(user));
+		user.setId(userGroupDAO.create(user).toString());
 		userToDelete = user.getId();
 		
 		UserProfile profile = new UserProfile();

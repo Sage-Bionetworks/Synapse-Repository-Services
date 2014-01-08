@@ -32,16 +32,16 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public Session authenticate(String email, String password) throws NotFoundException {
+	public Session authenticate(long principalId, String password) throws NotFoundException {
 		// Check the username password combination
 		// This will throw an UnauthorizedException if invalid
 		if (password != null) {
-			byte[] salt = authDAO.getPasswordSalt(email);
+			byte[] salt = authDAO.getPasswordSalt(principalId);
 			String passHash = PBKDF2Utils.hashPassword(password, salt);
-			authDAO.checkEmailAndPassword(email, passHash);
+			authDAO.checkUserCredentials(principalId, passHash);
 		}
 		
-		return getSessionToken(email);
+		return getSessionToken(principalId);
 	}
 	
 	@Override
@@ -101,9 +101,9 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public Session getSessionToken(String username) throws NotFoundException {
+	public Session getSessionToken(long principalId) throws NotFoundException {
 		// Get the session token
-		Session session = authDAO.getSessionTokenIfValid(username);
+		Session session = authDAO.getSessionTokenIfValid(principalId);
 		
 		// Make the session token if none was returned
 		if (session == null) {
@@ -112,11 +112,11 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		
 		// Set a new session token if necessary
 		if (session.getSessionToken() == null) {
-			UserGroup ug = userGroupDAO.findGroup(username, true);
+			UserGroup ug = userGroupDAO.get(principalId);
 			if (ug == null) {
-				throw new NotFoundException("The user (" + username + ") does not exist");
+				throw new NotFoundException("The user (" + principalId + ") does not exist");
 			}
-			Long principalId = Long.parseLong(ug.getId());
+			if(!ug.getIsIndividual()) throw new IllegalArgumentException("Cannot get a session token for a team");
 			String token = authDAO.changeSessionToken(principalId, null);
 			boolean toU = authDAO.hasUserAcceptedToU(principalId);
 			session.setSessionToken(token);

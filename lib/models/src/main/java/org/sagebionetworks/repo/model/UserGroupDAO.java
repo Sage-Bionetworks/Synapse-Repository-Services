@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model;
 import java.util.Collection;
 import java.util.List;
 
+import org.sagebionetworks.repo.model.principal.BootstrapPrincipal;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface UserGroupDAO {
@@ -91,5 +92,18 @@ public interface UserGroupDAO {
 	 * @throws DatastoreException
 	 */
 	long getCount() throws DatastoreException;
+	
+	/**
+	 * Get the bootstrap principals
+	 * @return
+	 */
+	List<BootstrapPrincipal> getBootstrapPrincipals();
+	
+	/**
+	 * Does a principal exist with this id.
+	 * @param id
+	 * @return
+	 */
+	boolean doesIdExist(Long id);
 
 }

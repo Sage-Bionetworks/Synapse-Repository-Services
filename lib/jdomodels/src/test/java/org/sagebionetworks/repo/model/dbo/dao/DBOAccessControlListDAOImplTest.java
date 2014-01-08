@@ -85,17 +85,15 @@ public class DBOAccessControlListDAOImplTest {
 		
 		// create a group to give the permissions to
 		group = new UserGroup();
-		group.setName("bar");
 		group.setIsIndividual(false);
-		group.setId(userGroupDAO.create(group));
+		group.setId(userGroupDAO.create(group).toString());
 		assertNotNull(group.getId());
 		groupList.add(group);
 		
 		// Create a second user
 		group2 = new UserGroup();
-		group2.setName("bar2");
 		group2.setIsIndividual(false);
-		group2.setId(userGroupDAO.create(group2));
+		group2.setId(userGroupDAO.create(group2).toString());
 		assertNotNull(group2.getId());
 		groupList.add(group2);
 		
@@ -191,7 +189,6 @@ public class DBOAccessControlListDAOImplTest {
 		
 		// and no other group has been given access
 		UserGroup sham = new UserGroup();
-		sham.setName("sham");
 		sham.setId("-34876387468764"); // dummy
 		gs.clear();
 		gs.add(sham);

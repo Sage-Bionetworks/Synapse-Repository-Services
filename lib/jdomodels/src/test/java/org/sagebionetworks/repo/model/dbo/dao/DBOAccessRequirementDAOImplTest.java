@@ -54,8 +54,6 @@ public class DBOAccessRequirementDAOImplTest {
 	
 	@Autowired
 	private IdGenerator idGenerator;
-
-	private static final String TEST_USER_NAME = "test-user@test.com";
 	
 	private UserGroup individualGroup = null;
 	private Node node = null;
@@ -71,14 +69,10 @@ public class DBOAccessRequirementDAOImplTest {
 	
 	@Before
 	public void setUp() throws Exception {
-		individualGroup = userGroupDAO.findGroup(TEST_USER_NAME, true);
-		if (individualGroup == null) {
-			individualGroup = new UserGroup();
-			individualGroup.setName(TEST_USER_NAME);
-			individualGroup.setIsIndividual(true);
-			individualGroup.setCreationDate(new Date());
-			individualGroup.setId(userGroupDAO.create(individualGroup));
-		}
+		individualGroup = new UserGroup();
+		individualGroup.setIsIndividual(true);
+		individualGroup.setCreationDate(new Date());
+		individualGroup.setId(userGroupDAO.create(individualGroup).toString());
 		// note:  we set up multiple nodes and multiple evaluations to ensure that filtering works
 		if (node==null) {
 			node = NodeTestUtils.createNew("foo", Long.parseLong(individualGroup.getId()));
@@ -136,7 +130,6 @@ public class DBOAccessRequirementDAOImplTest {
 			evaluationDAO.delete(evaluation.getId());
 			evaluation = null;
 		}
-		individualGroup = userGroupDAO.findGroup(TEST_USER_NAME, true);
 		if (individualGroup != null) {
 			userGroupDAO.delete(individualGroup.getId());
 		}

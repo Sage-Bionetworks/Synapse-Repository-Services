@@ -14,6 +14,9 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.principal.AliasType;
+import org.sagebionetworks.repo.model.principal.BootstrapGroup;
+import org.sagebionetworks.repo.model.principal.BootstrapPrincipal;
+import org.sagebionetworks.repo.model.principal.BootstrapUser;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -168,5 +171,20 @@ public class PrincipalAliasDaoImplTest {
 
 	}
 	
+	@Test
+	public void testBootStrap(){
+		assertNotNull(this.userGroupDao.getBootstrapPrincipals());
+		// Validate each
+		for(BootstrapPrincipal bp: this.userGroupDao.getBootstrapPrincipals()){
+			if(bp instanceof BootstrapUser){
+				BootstrapUser user= (BootstrapUser) bp;
+				assertNotNull("Bootstrap users must have an email",this.principalAliasDao.findPrincipalWithAlias(user.getEmail()));
+				assertNotNull("Bootstrap users must have a username",this.principalAliasDao.findPrincipalWithAlias(user.getUserName()));
+			}else{
+				BootstrapGroup group = (BootstrapGroup) bp;
+				assertNotNull("Bootstrap groups must have team names", this.principalAliasDao.findPrincipalWithAlias(group.getGroupName()));
+			}
+		}
+	}
 	
 }

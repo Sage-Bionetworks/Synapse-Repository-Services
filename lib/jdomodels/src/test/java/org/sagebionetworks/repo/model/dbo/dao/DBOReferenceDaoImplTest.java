@@ -406,9 +406,8 @@ public class DBOReferenceDaoImplTest {
 
 		// check authorization
 		UserGroup group = new UserGroup();
-		group.setName(UUID.randomUUID().toString());
 		group.setIsIndividual(false);
-		String groupId = userGroupDAO.create(group);
+		String groupId = userGroupDAO.create(group).toString();
 		group.setId(groupId);
 		groupsToDelete.add(groupId);
 

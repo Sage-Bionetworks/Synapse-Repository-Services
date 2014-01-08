@@ -80,14 +80,12 @@ public class DBOMessageDAOImplTest {
 		
 		// These two principals will act as mutual spammers
 		maliciousUser = new UserGroup();
-		maliciousUser.setName("MaliciousUser@test.com");
 		maliciousUser.setIsIndividual(true);
-		maliciousUser.setId(userGroupDAO.create(maliciousUser));
+		maliciousUser.setId(userGroupDAO.create(maliciousUser).toString());
 
 		maliciousGroup = new UserGroup();
-		maliciousGroup.setName("MaliciousGroup");
 		maliciousGroup.setIsIndividual(false);
-		maliciousGroup.setId(userGroupDAO.create(maliciousGroup));
+		maliciousGroup.setId(userGroupDAO.create(maliciousGroup).toString());
 		
 		// We need a file handle to satisfy a foreign key constraint
 		// But it doesn't need to point to an actual file

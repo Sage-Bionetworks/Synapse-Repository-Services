@@ -63,14 +63,11 @@ public class DBOAccessRequirementTest {
 	
 	@Before
 	public void setUp() throws Exception {
-		individualGroup = userGroupDAO.findGroup(TEST_USER_NAME, true);
-		if (individualGroup == null) {
-			individualGroup = new UserGroup();
-			individualGroup.setName(TEST_USER_NAME);
-			individualGroup.setIsIndividual(true);
-			individualGroup.setCreationDate(new Date());
-			individualGroup.setId(userGroupDAO.create(individualGroup));
-		}
+		individualGroup = new UserGroup();
+		individualGroup.setIsIndividual(true);
+		individualGroup.setCreationDate(new Date());
+		individualGroup.setId(userGroupDAO.create(individualGroup).toString());
+
 		if (node==null) {
 			node = NodeTestUtils.createNew("foo", Long.parseLong(individualGroup.getId()));
 			node.setId( nodeDAO.createNew(node) );
@@ -95,7 +92,6 @@ public class DBOAccessRequirementTest {
 			nodeDAO.delete(node.getId());
 			node = null;
 		}
-		individualGroup = userGroupDAO.findGroup(TEST_USER_NAME, true);
 		if (individualGroup != null) {
 			// this will delete the user profile too
 			userGroupDAO.delete(individualGroup.getId());

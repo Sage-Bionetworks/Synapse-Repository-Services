@@ -41,8 +41,6 @@ public class DBOGroupMembersDAOImplDeadlockTest {
 
     // For the monkeys (read only)
     private static final Integer ATTENTION_DEFICIT = 100; // Milliseconds
-    private static final String MONKEY_NAME_SUFFIX = "OhWhatFun@Barrel.O.Monkeys.com";
-    private static final String MONKEY_GROUP_PREFIX = "Barrel of Simians ";
     private List<String> barrelIds;
     private volatile boolean keepPlaying = true;
 
@@ -52,29 +50,31 @@ public class DBOGroupMembersDAOImplDeadlockTest {
 		monkeyIds = new ArrayList<String>(NUMBER_O_MONKEYS);
         for (int i = 0; i < NUMBER_O_MONKEYS; i++) {
             UserGroup monkey = new UserGroup();
-            monkey.setName(i + MONKEY_NAME_SUFFIX);
             monkey.setIsIndividual(true);
-            monkeyIds.add(userGroupDAO.create(monkey));
+            monkeyIds.add(userGroupDAO.create(monkey).toString());
         }
         
         // Create all the barrels
         barrelIds = new ArrayList<String>(NUMBER_O_BARRELS);
         for (int i = 0; i < NUMBER_O_BARRELS; i++) {
             UserGroup barrel = new UserGroup();
-            barrel.setName(MONKEY_GROUP_PREFIX + i);
             barrel.setIsIndividual(false);
-            barrelIds.add(userGroupDAO.create(barrel));
+            barrelIds.add(userGroupDAO.create(barrel).toString());
         }
 	}
 
 	@After
 	public void tearDown() throws Exception {
-        for (int i = 0; i < NUMBER_O_MONKEYS; i++) {
-        	userGroupDAO.deletePrincipal(i + MONKEY_NAME_SUFFIX);
-        }
-        for (int i = 0; i < NUMBER_O_BARRELS; i++) {
-            userGroupDAO.deletePrincipal(MONKEY_GROUP_PREFIX + i);
-        }
+		if(monkeyIds != null){
+			for(String id: monkeyIds){
+				userGroupDAO.delete(id);
+			}
+		}
+		if(barrelIds != null){
+			for(String id: barrelIds){
+				userGroupDAO.delete(id);
+			}
+		}
 	}
     
     @Test

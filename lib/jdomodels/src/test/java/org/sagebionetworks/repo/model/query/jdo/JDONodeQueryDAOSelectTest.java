@@ -70,7 +70,7 @@ public class JDONodeQueryDAOSelectTest {
 		// All tests in the suite assume the user is an admin.
 		when(mockUserInfo.isAdmin()).thenReturn(true);
 		User mockUser = Mockito.mock(User.class);
-		when(mockUser.getUserId()).thenReturn("mock@sagebase.org");
+		when(mockUser.getUserName()).thenReturn("mockusername");
 		when(mockUserInfo.getUser()).thenReturn(mockUser);
 		
 	}

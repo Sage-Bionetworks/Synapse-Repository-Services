@@ -15,11 +15,10 @@ public class UserInfoUtils {
 	
 	public static UserInfo createValidUserInfo(boolean isAdmin){
 		User user = new User();
-		user.setId("23");
-		user.setUserId("someTestUser@gmail.com");
+		user.setId(new Long(123));
+		user.setUserName("someUserName");
 		UserGroup group = new UserGroup();
 		group.setId("3");
-		group.setName("foo@bar.com");
 		group.setIsIndividual(true);
 		UserInfo info = new UserInfo(isAdmin);
 		info.setUser(user);

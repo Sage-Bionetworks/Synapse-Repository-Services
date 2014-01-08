@@ -30,12 +30,11 @@ public class UserInfoTest {
 	public void testValidateNullUserUserId(){
 		UserInfo info = new UserInfo(false);
 		User user = new User();
-		user.setId("101");
-		user.setUserId("myId@idstore.org");
+		user.setId(new Long(101));
+		user.setUserName("myUserName");
 		info.setUser(user);
 		UserGroup ind = new UserGroup();
 		ind.setId("9");
-		ind.setName("one");
 		info.setIndividualGroup(ind);
 		List<UserGroup> groups = new ArrayList<UserGroup>();
 		// This will have null values
@@ -48,19 +47,17 @@ public class UserInfoTest {
 	public void testValidateValid(){
 		UserInfo info = new UserInfo(false);
 		User user = new User();
-		user.setId("101");
-		user.setUserId("myId@idstore.org");
+		user.setId(new Long(101));
+		user.setUserName("myUserName");
 		info.setUser(user);
 		UserGroup ind = new UserGroup();
 		ind.setId("9");
-		ind.setName("one");
 		ind.setIsIndividual(false);
 		info.setIndividualGroup(ind);
 		List<UserGroup> groups = new ArrayList<UserGroup>();
 		// This will have null values
 		UserGroup group = new UserGroup();
 		group.setId("0");
-		group.setName("groupies");
 		group.setIsIndividual(false);
 		groups.add(group);
 		info.setGroups(groups);

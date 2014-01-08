@@ -52,24 +52,24 @@
 		
 	<!-- DO NOT CHANGE ANY OF THESE NAMES OR IDS as they represent real objects in production -->
 	<util:list id="bootstrapPrincipals">
-		<bean class="org.sagebionetworks.repo.model.dbo.principal.BootstrapUser">
+		<bean class="org.sagebionetworks.repo.model.principal.BootstrapUser">
 			<property name="id" value="1" />
 			<property name="email" value="migrationAdmin@sagebase.org" />
 			<property name="userName" value="migrationAdmin" />
 		</bean>
-		<bean class="org.sagebionetworks.repo.model.dbo.principal.BootstrapGroup">
+		<bean class="org.sagebionetworks.repo.model.principal.BootstrapGroup">
 			<property name="id" value="2" />
 			<property name="groupName" value="Administrators" />
 		</bean>
-		<bean class="org.sagebionetworks.repo.model.dbo.principal.BootstrapGroup">
+		<bean class="org.sagebionetworks.repo.model.principal.BootstrapGroup">
 			<property name="id" value="273948" />
 			<property name="groupName" value="AUTHENTICATED_USERS" />
 		</bean>
-		<bean class="org.sagebionetworks.repo.model.dbo.principal.BootstrapGroup">
+		<bean class="org.sagebionetworks.repo.model.principal.BootstrapGroup">
 			<property name="id" value="273949" />
 			<property name="groupName" value="PUBLIC" />
 		</bean>
-		<bean class="org.sagebionetworks.repo.model.dbo.principal.BootstrapUser">
+		<bean class="org.sagebionetworks.repo.model.principal.BootstrapUser">
 			<property name="id" value="273950" />
 			<property name="email" value="anonymous@sagebase.org" />
 			<property name="userName" value="anonymous" />
@@ -88,7 +88,6 @@
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOUserProfileDAOImpl"
 		depends-on="userGroupDAO" 
 		init-method="bootstrapProfiles" >
-		<property name="bootstrapPrincipals" ref="bootstrapPrincipals"/>	
 	</bean>
 	
 	<bean id="groupMembersDAO"
@@ -97,7 +96,9 @@
 		init-method="bootstrapGroups" />
 
 	<bean id="principalAliasDao"
-		class="org.sagebionetworks.repo.model.dbo.principal.PrincipalAliasDaoImpl" />
+		class="org.sagebionetworks.repo.model.dbo.principal.PrincipalAliasDaoImpl"
+		depends-on="userGroupDAO" 
+		init-method="bootstrap" />
 
 	<bean id="authDAO"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOAuthenticationDAOImpl"
@@ -109,9 +110,6 @@
 
 	<bean id="accessApprovalDAO"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOAccessApprovalDAOImpl" />
-
-	<bean id="userGroupCache" class="org.sagebionetworks.repo.model.jdo.UserGroupCacheImpl"
-		scope="singleton" />
 
 	<bean id="aclDAO"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOAccessControlListDaoImpl"

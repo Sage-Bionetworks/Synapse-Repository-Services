@@ -51,9 +51,8 @@ public class DBOCommunityTeamTest {
 	public void before() throws Exception {
 		// To satisfy the Team's FK
 		group = new UserGroup();
-		group.setName(UUID.randomUUID().toString());
 		group.setIsIndividual(false);
-		String newGroupId = userGroupDAO.create(group);
+		String newGroupId = userGroupDAO.create(group).toString();
 		group.setId(newGroupId);
 
 		// Create a Team

@@ -82,9 +82,9 @@ public class QueryDAOImpl implements QueryDAO {
 		SizeLimitRowMapper sizeLimitMapper = new SizeLimitRowMapper(MAX_BYTES_PER_QUERY);
 		List<Map<String, Object>> results = simpleJdbcTemplate.query(
 				fullQuery.toString(), sizeLimitMapper, queryParams);
-		String userId = null;
+		Long userId = null;
 		if (userInfo.getUser() != null) {
-			userId = userInfo.getUser().getUserId();
+			userId = userInfo.getUser().getId();
 		}
 		
 		// Log query stats

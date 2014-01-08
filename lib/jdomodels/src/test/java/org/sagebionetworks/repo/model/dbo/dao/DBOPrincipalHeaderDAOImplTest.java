@@ -51,12 +51,9 @@ public class DBOPrincipalHeaderDAOImplTest {
 		// We'll need two FKs for this test
 		// so that queries can exclude or include one or both
 		UserGroup ug = new UserGroup();
-		ug.setName(UUID.randomUUID().toString()+"@test.com");
 		ug.setIsIndividual(true);
-		principalOne = Long.parseLong(userGroupDAO.create(ug));
-		
-		ug.setName(UUID.randomUUID().toString()+"@test.com");
-		principalTwo = Long.parseLong(userGroupDAO.create(ug));
+		principalOne = Long.parseLong(userGroupDAO.create(ug).toString());
+		principalTwo = Long.parseLong(userGroupDAO.create(ug).toString());
 	}
 
 	@After

@@ -1,17 +1,22 @@
 package org.sagebionetworks.repo.model.dbo.principal;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_PRINCIPAL_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_UNIQUE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PRINCIPAL_ALIAS;
 
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.principal.AliasType;
+import org.sagebionetworks.repo.model.principal.BootstrapGroup;
+import org.sagebionetworks.repo.model.principal.BootstrapPrincipal;
+import org.sagebionetworks.repo.model.principal.BootstrapUser;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -40,6 +45,8 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 	private IdGenerator idGenerator;
 	@Autowired
 	private DBOBasicDao basicDao;
+	@Autowired
+	private UserGroupDAO userGroupDAO;
 	
 	private static RowMapper<DBOPrincipalAlias> principalAliasMapper = new DBOPrincipalAlias().getTableMapping();
 
@@ -141,6 +148,57 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 		return AliasUtils.createDTOFromDBO(results);
 	}
 
-
+	/**
+	 * This is called by Spring after all properties are set.
+	 */
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public void bootstrap(){
+		// Boot strap all users and groups
+		if (this.userGroupDAO.getBootstrapPrincipals() == null) {
+			throw new IllegalArgumentException("bootstrapPrincipals users cannot be null");
+		}
+		
+		// For each one determine if it exists, if not create it
+		for (BootstrapPrincipal abs: this.userGroupDAO.getBootstrapPrincipals()) {
+			if (abs.getId() == null) throw new IllegalArgumentException("Bootstrap users must have an id");
+			if (abs instanceof BootstrapUser) {
+				// Add the username and email
+				try {
+					// email
+					BootstrapUser user = (BootstrapUser) abs;
+					PrincipalAlias alias = new PrincipalAlias();
+					alias.setAlias(user.getEmail());
+					alias.setIsValidated(true);
+					alias.setPrincipalId(abs.getId());
+					alias.setType(AliasType.USER_EMAIL);
+					this.bindAliasToPrincipal(alias);
+					// username
+					alias = new PrincipalAlias();
+					alias.setAlias(user.getUserName());
+					alias.setIsValidated(true);
+					alias.setPrincipalId(abs.getId());
+					alias.setType(AliasType.USER_NAME);
+					this.bindAliasToPrincipal(alias);
+				} catch (NotFoundException e) {
+					throw new IllegalStateException(e);
+				}
+			}else{
+				// This is a group
+				// Add the username and email
+				try {
+					// Group name
+					BootstrapGroup group = (BootstrapGroup) abs;
+					PrincipalAlias alias = new PrincipalAlias();
+					alias.setAlias(group.getGroupName());
+					alias.setIsValidated(true);
+					alias.setPrincipalId(abs.getId());
+					alias.setType(AliasType.TEAM_NAME);
+					this.bindAliasToPrincipal(alias);
+				} catch (NotFoundException e) {
+					throw new IllegalStateException(e);
+				}
+			}
+		}
+	}
 
 }

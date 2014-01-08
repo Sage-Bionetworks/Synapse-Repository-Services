@@ -18,15 +18,15 @@ public class UserTest {
 	@Test (expected=UserNotFoundException.class)
 	public void testValidateNullUserId(){
 		User user = new User();
-		user.setId("1010");
+		user.setId(null);
 		User.validateUser(user);
 	}
 
 	@Test
 	public void testValidateNotNull(){
 		User user = new User();
-		user.setId("1010");
-		user.setUserId("myname@gmail.com");
+		user.setId(new Long(123));
+		user.setUserName("someUsername");
 		User.validateUser(user);
 	}
 }

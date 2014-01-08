@@ -20,10 +20,10 @@ import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserProfile;
-import org.sagebionetworks.repo.model.dbo.principal.BootstrapPrincipal;
-import org.sagebionetworks.repo.model.dbo.principal.BootstrapUser;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+import org.sagebionetworks.repo.model.principal.BootstrapPrincipal;
+import org.sagebionetworks.repo.model.principal.BootstrapUser;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,15 +58,6 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 	
 	private static final RowMapper<DBOUserProfile> userProfileRowMapper = (new DBOUserProfile()).getTableMapping();
 	
-	private List<BootstrapPrincipal> bootstrapPrincipals;
-	
-	public List<BootstrapPrincipal> getBootstrapPrincipals() {
-		return bootstrapPrincipals;
-	}
-
-	public void setBootstrapPrincipals(List<BootstrapPrincipal> bootstrapPrincipals) {
-		this.bootstrapPrincipals = bootstrapPrincipals;
-	}
 
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.model.UserProfileDAO#delete(java.lang.String)
@@ -172,12 +163,12 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void bootstrapProfiles(){
 		// Boot strap all users and groups
-		if (this.bootstrapPrincipals == null) {
+		if (this.userGroupDAO.getBootstrapPrincipals() == null) {
 			throw new IllegalArgumentException("bootstrapPrincipals users cannot be null");
 		}
 		
 		// For each one determine if it exists, if not create it
-		for (BootstrapPrincipal abs: this.bootstrapPrincipals) {
+		for (BootstrapPrincipal abs: this.userGroupDAO.getBootstrapPrincipals()) {
 			if (abs.getId() == null) throw new IllegalArgumentException("Bootstrap users must have an id");
 			if (abs instanceof BootstrapUser) {
 				UserProfile userProfile = null;

@@ -315,20 +315,12 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 	 */
 	private UserInfo createUser(String name, boolean isAdmin) throws DatastoreException, InvalidModelException, NotFoundException{
 		User user = new User();
-		user.setUserId(name);
+		user.setUserName(name);
 		// Create a group for this user
-		String userGroupName = name.replaceAll("@", "")+"@test.com";
-		UserGroup group = userGroupDAO.findGroup(userGroupName, true); //new UserGroup();
-		String id = null;
-		if (group==null) {
-			group = new UserGroup();
-			group.setName(userGroupName);
-			group.setIsIndividual(true);
-			id = userGroupDAO.create(group);
-		} else {
-			id = group.getId();
-		}
-		groupsToDelete.add(id);
+		UserGroup group = new UserGroup();
+		group.setIsIndividual(true);
+		Long id = userGroupDAO.create(group);
+		groupsToDelete.add(id.toString());
 		group = userGroupDAO.get(id);
 		UserInfo info = new UserInfo(isAdmin);
 		info.setUser(user);
@@ -348,17 +340,10 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 	 * @throws NotFoundException
 	 */
 	private UserGroup createGroup(String name) throws DatastoreException, InvalidModelException, NotFoundException{
-		UserGroup group = userGroupDAO.findGroup(name, false);
-		String id = null;
-		if (group==null) { 
-			group = new UserGroup();
-			group.setName(name.replaceAll("@", ""));
-			group.setIsIndividual(false);
-			id = userGroupDAO.create(group);
-		} else {
-			id = group.getId();
-		}
-		groupsToDelete.add(id);
+		UserGroup group = new UserGroup();
+		group.setIsIndividual(false);
+		Long id = userGroupDAO.create(group);
+		groupsToDelete.add(id.toString());
 		return userGroupDAO.get(id);
 	}
 

@@ -20,11 +20,10 @@ public class AccessControlListTest {
 		UserInfo info = new UserInfo(false);
 		UserGroup userGroup = new UserGroup();
 		userGroup.setId("123");
-		userGroup.setName("one");
 		userGroup.setIsIndividual(false);
 		User user = new User();
-		user.setId("33");
-		user.setUserId("someUser@somedomain.net");
+		user.setId(new Long(33));
+		user.setUserName("someUser");
 		info.setUser(user);
 		info.setIndividualGroup(userGroup);
 		AccessControlList acl = AccessControlListUtil.createACLToGrantAll(nodeId, info);

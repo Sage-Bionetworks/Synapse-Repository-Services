@@ -47,9 +47,8 @@ public class DBOMembershipInvtnSubmissionDAOImplTest {
 	@Before
 	public void before() throws Exception {
 		UserGroup group = new UserGroup();
-		group.setName(UUID.randomUUID().toString());
 		group.setIsIndividual(false);
-		group.setId(userGroupDAO.create(group));
+		group.setId(userGroupDAO.create(group).toString());
 		Long groupId = Long.parseLong(group.getId());
 		
 		// create a team
@@ -67,9 +66,8 @@ public class DBOMembershipInvtnSubmissionDAOImplTest {
 		
 		// Create another user
 		individUser = new UserGroup();
-		individUser.setName("DBOMembershipInvtnSubmissionDAOImplTest@test.com");
 		individUser.setIsIndividual(true);
-		individUser.setId(userGroupDAO.create(individUser));
+		individUser.setId(userGroupDAO.create(individUser).toString());
 		
 		// Initialize the submission but let the tests create it
 		mis = new MembershipInvtnSubmission();
