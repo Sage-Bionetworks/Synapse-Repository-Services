@@ -38,7 +38,7 @@ public interface UserManager {
 	 * Creates a new user and initializes some fields as specified.
 	 * Must be an admin to use this
 	 */
-	public UserInfo createUser(UserInfo adminUserInfo, String username, UserProfile profile, DBOCredential credential) throws NotFoundException;
+	public UserInfo createUser(UserInfo adminUserInfo, NewUser user, DBOCredential credential) throws NotFoundException;
 	
 	/**
 	 * Does a principal with this name exist?

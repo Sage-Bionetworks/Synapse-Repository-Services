@@ -39,22 +39,16 @@ public class UserProfileManagerImplTest {
 	private UserProfileManager userProfileManager;
 
 	private IdGenerator mockIdGenerator;
-	private static final String TEST_USER_NAME = "test-user@test.com";
 	
 	private UserGroup individualGroup = null;
 	
 	
 	@Before
 	public void setUp() throws Exception {
-		individualGroup = userGroupDAO.findGroup(TEST_USER_NAME, true);
-		if (individualGroup == null) {
-			individualGroup = new UserGroup();
-			individualGroup.setName(TEST_USER_NAME);
-			individualGroup.setIsIndividual(true);
-			individualGroup.setCreationDate(new Date());
-			userGroupDAO.create(individualGroup);
-		}
-		individualGroup = userGroupDAO.findGroup(TEST_USER_NAME, true);
+		individualGroup = new UserGroup();
+		individualGroup.setIsIndividual(true);
+		individualGroup.setCreationDate(new Date());
+		userGroupDAO.create(individualGroup);
 		assertNotNull(individualGroup);
 
 		mockIdGenerator = Mockito.mock(IdGenerator.class);
@@ -62,8 +56,9 @@ public class UserProfileManagerImplTest {
 
 	@After
 	public void tearDown() throws Exception {
-		UserGroup individualGroup = userGroupDAO.findGroup(TEST_USER_NAME, true);
-		userGroupDAO.delete(individualGroup.getId());
+		if(individualGroup != null){
+			userGroupDAO.delete(individualGroup.getId());
+		}
 		individualGroup = null;
 	}
 

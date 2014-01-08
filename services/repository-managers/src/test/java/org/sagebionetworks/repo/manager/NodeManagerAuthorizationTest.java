@@ -72,7 +72,6 @@ public class NodeManagerAuthorizationTest {
 		// UserGroup
 		mockUserGroup = Mockito.mock(UserGroup.class);
 		when(mockUserGroup.getId()).thenReturn("123");
-		when(mockUserGroup.getName()).thenReturn("GroupNameAlpha");
 		mockUserInfo = Mockito.mock(UserInfo.class);
 		when(mockUserInfo.getUser()).thenReturn(mockUser);
 		when(mockUserInfo.getIndividualGroup()).thenReturn(mockUserGroup);

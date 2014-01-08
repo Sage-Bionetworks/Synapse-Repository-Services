@@ -230,14 +230,13 @@ public class SqlConstants {
 	public static final String TABLE_ANNOTATION_TYPE		= "ANNOTATION_TYPE";
 
 	public static final String TABLE_USER					= "JDOUSER";
-	public static final String TABLE_USER_GROUP				= "JDOUSERGROUP";
+	public static final String TABLE_USER_GROUP				= "PRINCIPAL";
 	public static final String TABLE_USER_GROUP_USERS		= "JDOUSERGROUPUSERS";
 	public static final String COL_USER_GROUP_ID			= "ID";
-	public static final String COL_USER_GROUP_NAME 			= "NAME";
 	public static final String COL_USER_GROUP_IS_INDIVIDUAL = "ISINDIVIDUAL";
 	public static final String COL_USER_GROUP_E_TAG         = "ETAG";
 	public static final String COL_USER_GROUP_CREATION_DATE = "CREATION_DATE";
-	public static final String DDL_FILE_USER_GROUP			="schema/UserGroup-ddl.sql";
+	public static final String DDL_FILE_USER_GROUP			="schema/Principal-ddl.sql";
 	
 	// Principal headers table
 	public static final String TABLE_PRINCIPAL_HEADER              = "PRINCIPAL_HEADER";

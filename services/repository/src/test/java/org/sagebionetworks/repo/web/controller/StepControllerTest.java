@@ -213,7 +213,7 @@ public class StepControllerTest {
 			fail("expected exception");
 		}
 		catch (UnauthorizedException e) {
-			Assert.assertTrue(e.getMessage().contains(testUserInfo.getIndividualGroup().getName() + " lacks read access to the requested object."));
+			Assert.assertTrue(e.getMessage().contains(" lacks read access to the requested object."));
 		}
 		
 		// Add a public read ACL to the project object

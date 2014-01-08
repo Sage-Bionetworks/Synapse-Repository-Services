@@ -62,36 +62,4 @@ public class AliasUtilsTest {
 		assertEquals(expected, result);
 	}
 
-	@Test
-	public void testTransformOldUserGroupTeam() {
-		DBOUserGroup dbo = new DBOUserGroup();
-		dbo.setId(123L);
-		dbo.setName("Alzheimer's Challenge #1 Approved Participants");
-		dbo.setIsIndividual(Boolean.FALSE);
-		// Transform it
-		PrincipalAlias alias = AliasUtils.transformOldUserGroup(dbo);
-		assertNotNull(alias);
-		assertEquals(dbo.getId(), alias.getPrincipalId());
-		assertEquals(AliasType.TEAM_NAME, alias.getType());
-		// The name should be transformed
-		String expectedName = "Alzheimers Challenge 1 Approved Participants";
-		assertEquals(expectedName, alias.getAlias());
-	}
-	
-	@Test
-	public void testTransformOldUserGroupUser() {
-		DBOUserGroup dbo = new DBOUserGroup();
-		dbo.setId(123L);
-		dbo.setName("me@you.com");
-		dbo.setIsIndividual(Boolean.TRUE);
-		// Transform it
-		PrincipalAlias alias = AliasUtils.transformOldUserGroup(dbo);
-		assertNotNull(alias);
-		assertEquals(dbo.getId(), alias.getPrincipalId());
-		assertEquals(AliasType.USER_EMAIL, alias.getType());
-		// The name should be transformed
-		String expectedName = "me@you.com";
-		assertEquals(expectedName, alias.getAlias());
-	}
-
 }

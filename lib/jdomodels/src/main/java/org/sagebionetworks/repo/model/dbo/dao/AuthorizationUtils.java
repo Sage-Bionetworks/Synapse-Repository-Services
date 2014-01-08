@@ -11,10 +11,10 @@ public class AuthorizationUtils {
 	}
 	
 	public static boolean isUserAnonymous(UserGroup ug) {
-		return isUserAnonymous(ug.getId());
+		return isUserAnonymous(Long.parseLong(ug.getId()));
 	}
 	
-	public static boolean isUserAnonymous(String id) {
+	public static boolean isUserAnonymous(Long id) {
 		return BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString().equals(id);
 	}
 }

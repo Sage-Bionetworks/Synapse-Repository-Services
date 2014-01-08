@@ -3,12 +3,14 @@ package org.sagebionetworks.repo.model.dbo.principal;
 import static org.junit.Assert.*;
 
 import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.principal.AliasType;
@@ -31,13 +33,13 @@ public class PrincipalAliasDaoImplTest {
 	UserGroup principal;
 	
 	@Before
-	public void before(){
+	public void before() throws DatastoreException, NotFoundException{
 		// Create a test user
 		principal = new UserGroup();
 		principal.setCreationDate(new Date());
 		principal.setIsIndividual(true);
-		principal.setName(UUID.randomUUID().toString()+"@test.com");
-		principal.setId(userGroupDao.create(principal));
+		Long id = userGroupDao.create(principal);
+		principal = userGroupDao.get(id);
 	}
 	
 	@After
@@ -54,7 +56,7 @@ public class PrincipalAliasDaoImplTest {
 		// Test binding an alias to a principal
 		PrincipalAlias alias = new PrincipalAlias();
 		// Use to upper as the alias
-		alias.setAlias(principal.getName().toUpperCase());
+		alias.setAlias(UUID.randomUUID().toString()+"@test.com");
 		alias.setType(AliasType.USER_EMAIL);
 		alias.setIsValidated(true);
 		alias.setPrincipalId(Long.parseLong(principal.getId()));
@@ -115,6 +117,55 @@ public class PrincipalAliasDaoImplTest {
 		assertNotNull(result.getAliasId());
 		assertNotNull(result.getEtag());
 		assertEquals(alias.getAlias(), result.getAlias());
+	}
+	
+	@Test
+	public void testList() throws NotFoundException{
+		
+		PrincipalAlias alias = new PrincipalAlias();
+		// Use to upper as the alias
+		alias.setAlias("james.bond@Spy.org");
+		alias.setType(AliasType.USER_EMAIL);
+		alias.setIsValidated(true);
+		alias.setPrincipalId(Long.parseLong(principal.getId()));
+		
+		// Save the alias and fetch is back.
+		PrincipalAlias emailOne = principalAliasDao.bindAliasToPrincipal(alias);
+		// Create another email
+		alias = new PrincipalAlias();
+		// Use to upper as the alias
+		alias.setAlias("james.bond@gmail.com");
+		alias.setType(AliasType.USER_EMAIL);
+		alias.setIsValidated(true);
+		alias.setPrincipalId(Long.parseLong(principal.getId()));
+		PrincipalAlias emailTwo = principalAliasDao.bindAliasToPrincipal(alias);
+		// Add a username
+		alias = new PrincipalAlias();
+		// Use to upper as the alias
+		alias.setAlias("007");
+		alias.setType(AliasType.USER_NAME);
+		alias.setIsValidated(true);
+		alias.setPrincipalId(Long.parseLong(principal.getId()));
+		PrincipalAlias userName = principalAliasDao.bindAliasToPrincipal(alias);
+		// Now list all of them
+		List<PrincipalAlias> list = principalAliasDao.listPrincipalAliases(Long.parseLong(principal.getId()));
+		assertNotNull(list);
+		assertEquals(3, list.size());
+		assertEquals(emailOne, list.get(0));
+		assertEquals(emailTwo, list.get(1));
+		assertEquals(userName, list.get(2));
+		// Now filter by type
+		list = principalAliasDao.listPrincipalAliases(Long.parseLong(principal.getId()), AliasType.USER_EMAIL);
+		assertNotNull(list);
+		assertEquals(2, list.size());
+		assertEquals(emailOne, list.get(0));
+		assertEquals(emailTwo, list.get(1));
+		// username only
+		list = principalAliasDao.listPrincipalAliases(Long.parseLong(principal.getId()), AliasType.USER_NAME);
+		assertNotNull(list);
+		assertEquals(1, list.size());
+		assertEquals(userName, list.get(0));
+
 	}
 	
 	

@@ -2,10 +2,9 @@ package org.sagebionetworks.repo.model;
 
 import java.util.Date;
 
-public class User implements Base {
-	private String id; // system generated Key for the object
-	private String userId; // log-in ID, perhaps chosen by the user
-	private String uri;
+public class User {
+	private Long id;
+	private String userName;
 	private String etag;
 	private Date creationDate;
 	private boolean agreesToTermsOfUse;
@@ -13,27 +12,22 @@ public class User implements Base {
 	private String lname;
 	private String displayName;
 	
-	public String getId() {
+	public Long getId() {
 		return id;
 	}
-	public void setId(String id) {
+	public void setId(Long id) {
 		this.id = id;
 	}
-	public String getUserId() {
-		return userId;
+	public String getUserName(){
+		return userName;
 	}
 	
-	public String toString() {return getUserId();}
+	public String toString() {return getId().toString();}
 	
-	public void setUserId(String usedId) {
-		this.userId = usedId;
+	public void setUserName(String userName) {
+		this.userName = userName;
 	}
-	public String getUri() {
-		return uri;
-	}
-	public void setUri(String uri) {
-		this.uri = uri;
-	}
+
 	public String getEtag() {
 		return etag;
 	}
@@ -100,26 +94,26 @@ public class User implements Base {
 	 */
 	public static void validateUser(User user) throws UserNotFoundException {
 		if(user == null) throw new IllegalArgumentException("User cannot be null");
-		if(user.getUserId() == null) throw new UserNotFoundException("User.userId cannot be null");
+		if(user.getId() == null) throw new UserNotFoundException("User.id cannot be null");
+		if(user.getUserName() == null) throw new UserNotFoundException("User.username cannot be null");
 	}
-	/* (non-Javadoc)
-	 * @see java.lang.Object#hashCode()
-	 */
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
+		result = prime * result + (agreesToTermsOfUse ? 1231 : 1237);
 		result = prime * result
 				+ ((creationDate == null) ? 0 : creationDate.hashCode());
+		result = prime * result
+				+ ((displayName == null) ? 0 : displayName.hashCode());
 		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
+		result = prime * result + ((fname == null) ? 0 : fname.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
-		result = prime * result + ((uri == null) ? 0 : uri.hashCode());
-		result = prime * result + ((userId == null) ? 0 : userId.hashCode());
+		result = prime * result + ((lname == null) ? 0 : lname.hashCode());
+		result = prime * result
+				+ ((userName == null) ? 0 : userName.hashCode());
 		return result;
 	}
-	/* (non-Javadoc)
-	 * @see java.lang.Object#equals(java.lang.Object)
-	 */
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj)
@@ -129,31 +123,44 @@ public class User implements Base {
 		if (getClass() != obj.getClass())
 			return false;
 		User other = (User) obj;
+		if (agreesToTermsOfUse != other.agreesToTermsOfUse)
+			return false;
 		if (creationDate == null) {
 			if (other.creationDate != null)
 				return false;
 		} else if (!creationDate.equals(other.creationDate))
+			return false;
+		if (displayName == null) {
+			if (other.displayName != null)
+				return false;
+		} else if (!displayName.equals(other.displayName))
 			return false;
 		if (etag == null) {
 			if (other.etag != null)
 				return false;
 		} else if (!etag.equals(other.etag))
 			return false;
+		if (fname == null) {
+			if (other.fname != null)
+				return false;
+		} else if (!fname.equals(other.fname))
+			return false;
 		if (id == null) {
 			if (other.id != null)
 				return false;
 		} else if (!id.equals(other.id))
 			return false;
-		if (uri == null) {
-			if (other.uri != null)
+		if (lname == null) {
+			if (other.lname != null)
 				return false;
-		} else if (!uri.equals(other.uri))
+		} else if (!lname.equals(other.lname))
 			return false;
-		if (userId == null) {
-			if (other.userId != null)
+		if (userName == null) {
+			if (other.userName != null)
 				return false;
-		} else if (!userId.equals(other.userId))
+		} else if (!userName.equals(other.userName))
 			return false;
 		return true;
 	}
+	
 }

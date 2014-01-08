@@ -6,6 +6,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.sagebionetworks.repo.manager.principal.NewUserUtils;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -23,6 +24,9 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.dao.AuthorizationUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
+import org.sagebionetworks.repo.model.principal.AliasType;
+import org.sagebionetworks.repo.model.principal.PrincipalAlias;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.HMACUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,6 +46,9 @@ public class UserManagerImpl implements UserManager {
 	
 	@Autowired
 	private AuthenticationDAO authDAO;
+	
+	@Autowired
+	private PrincipalAliasDAO principalAliasDAO;
 	
 	/**
 	 * Testing purposes only
@@ -68,19 +75,51 @@ public class UserManagerImpl implements UserManager {
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public long createUser(NewUser user) {
-		if (userGroupDAO.doesPrincipalExist(user.getEmail())) {
+		// First validate and trim the new user
+		NewUserUtils.validateAndTrim(user);
+		// Determine if the email already exists
+		PrincipalAlias alias = principalAliasDAO.findPrincipalWithAlias(user.getEmail());
+		if (alias != null) {
 			throw new NameConflictException("User '" + user.getEmail() + "' already exists");
+		}
+		// Check the username
+		alias = principalAliasDAO.findPrincipalWithAlias(user.getUserName());
+		if (alias != null) {
+			throw new NameConflictException("User '" + user.getUserName() + "' already exists");
 		}
 		
 		UserGroup individualGroup = new UserGroup();
-		individualGroup.setName(user.getEmail());
 		individualGroup.setIsIndividual(true);
 		individualGroup.setCreationDate(new Date());
+		Long id;
 		try {
-			String id = userGroupDAO.create(individualGroup);
+			id = userGroupDAO.create(individualGroup);
 			individualGroup = userGroupDAO.get(id);
 		} catch (NotFoundException ime) {
 			throw new DatastoreException(ime);
+		}
+		// Bind the email to this user.
+		alias = new PrincipalAlias();
+		alias.setAlias(user.getEmail());
+		alias.setIsValidated(false);
+		alias.setPrincipalId(id);
+		alias.setType(AliasType.USER_EMAIL);
+		// bind this alias
+		try {
+			principalAliasDAO.bindAliasToPrincipal(alias);
+		} catch (NotFoundException e1) {
+			throw new DatastoreException(e1);
+		}
+		// bind the username to this user
+		alias = new PrincipalAlias();
+		alias.setAlias(user.getUserName());
+		alias.setIsValidated(true);
+		alias.setPrincipalId(id);
+		alias.setType(AliasType.USER_NAME);
+		try {
+			principalAliasDAO.bindAliasToPrincipal(alias);
+		} catch (NotFoundException e1) {
+			throw new DatastoreException(e1);
 		}
 		
 		// Make some credentials for this user
@@ -99,7 +138,7 @@ public class UserManagerImpl implements UserManager {
 			userProfile.setOwnerId(individualGroup.getId());
 			userProfile.setFirstName(user.getFirstName());
 			userProfile.setLastName(user.getLastName());
-			userProfile.setDisplayName(user.getDisplayName());
+			userProfile.setDisplayName(NewUserUtils.createDisplayName(user));
 			try {
 				userProfileDAO.create(userProfile);
 			} catch (InvalidModelException e) {
@@ -112,24 +151,12 @@ public class UserManagerImpl implements UserManager {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public UserInfo createUser(UserInfo adminUserInfo, String username, UserProfile profile, DBOCredential credential) throws NotFoundException {
+	public UserInfo createUser(UserInfo adminUserInfo, NewUser user, DBOCredential credential) throws NotFoundException {
 		if (!adminUserInfo.isAdmin()) {
 			throw new UnauthorizedException("Must be an admin to use this service");
 		}
-		
-		// Setup the tables as done normally
-		NewUser user = new NewUser();
-		user.setEmail(username);
-		
+		// Create the user
 		Long principalId = createUser(user);
-		
-		// Update the profile
-		if (profile == null) {
-			profile = new UserProfile();
-		}
-		profile.setOwnerId(principalId.toString());
-		profile.setEtag(userProfileDAO.get(principalId.toString()).getEtag());
-		userProfileDAO.update(profile);
 		
 		// Update the credentials
 		if (credential == null) {
@@ -145,22 +172,18 @@ public class UserManagerImpl implements UserManager {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public UserInfo getUserInfo(Long principalId) throws NotFoundException {
-		UserGroup individualGroup = userGroupDAO.get(principalId.toString());
-		if (!individualGroup.getIsIndividual()) {
-			throw new IllegalArgumentException(individualGroup.getName()+" is not an individual group.");
-		}
-		
+		UserGroup individualGroup = userGroupDAO.get(principalId);
+		// Lookup the user's name
 		// Check which group(s) of Anonymous, Public, or Authenticated the user belongs to  
 		Set<UserGroup> groups = new HashSet<UserGroup>();
 		if (!AuthorizationUtils.isUserAnonymous(individualGroup)) {
 			// All authenticated users belong to the authenticated user group
-			groups.add(userGroupDAO.get(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId().toString()));
+			groups.add(userGroupDAO.get(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId()));
 		}
 		
 		// Everyone belongs to their own group and to Public
 		groups.add(individualGroup);
-		groups.add(userGroupDAO.get(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().toString()));
-		
+		groups.add(userGroupDAO.get(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId()));
 		// Add all groups the user belongs to
 		groups.addAll(groupMembersDAO.getUsersGroups(individualGroup.getId()));
 
@@ -190,7 +213,7 @@ public class UserManagerImpl implements UserManager {
 		user.setUserId(individualGroup.getName());
 		user.setId(individualGroup.getName()); // i.e. username == user id
 
-		if (AuthorizationUtils.isUserAnonymous(individualGroup.getName())) {
+		if (AuthorizationUtils.isUserAnonymous(individualGroup.getId())) {
 			return user;
 		}
 

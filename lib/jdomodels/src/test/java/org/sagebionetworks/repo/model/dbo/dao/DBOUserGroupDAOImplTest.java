@@ -83,68 +83,8 @@ public class DBOUserGroupDAOImplTest {
 		assertEquals(1+initialCount, userGroupDAO.getCount());
 	}
 	
-	@Test
-	public void testDoesPrincipalExist() throws Exception {
-		UserGroup group = new UserGroup();
-		group.setName(GROUP_NAME);
-		group.setIsIndividual(false);
-		String groupId = userGroupDAO.create(group);
-		assertNotNull(groupId);
-		groupsToDelete.add(groupId);
-		
-		assertTrue(userGroupDAO.doesPrincipalExist(GROUP_NAME));
-		
-		assertFalse(userGroupDAO.doesPrincipalExist(""+(new Random()).nextLong()));
-	}
-	@Test
-	public void testGetGroupsByNamesEmptySet()  throws Exception {
 
-		Collection<String> groupNames = new HashSet<String>();
-		Map<String,UserGroup> map =  userGroupDAO.getGroupsByNames(groupNames);
-		assertTrue(map.isEmpty());
-	}
 
-	@Test
-	public void testGetGroupsByNames() throws Exception {
-		Collection<UserGroup> allGroups = null; 
-		allGroups = userGroupDAO.getAll();
-		int startingCount =  allGroups.size();
-	
-		Collection<String> groupNames = new HashSet<String>();
-		groupNames.add(GROUP_NAME);
-		Map<String,UserGroup> map = null;
-		map = userGroupDAO.getGroupsByNames(groupNames);
-		assertFalse("initial groups: "+allGroups+"  getGroupsByNames("+GROUP_NAME+") returned "+map.keySet(), map.containsKey(GROUP_NAME));
-			
-		UserGroup group = new UserGroup();
-		group.setName(GROUP_NAME);
-		group.setIsIndividual(false);
-		String groupId = userGroupDAO.create(group);
-		assertNotNull(groupId);
-		groupsToDelete.add(groupId);
-		allGroups = userGroupDAO.getAll();
-		assertEquals(allGroups.toString(), (startingCount+1), allGroups.size()); // now the new group should be there
-			
-		groupNames.clear();
-		groupNames.add(GROUP_NAME);	
-		map = userGroupDAO.getGroupsByNames(groupNames);
-		assertTrue(groupNames.toString()+" -> "+map.toString(), map.containsKey(GROUP_NAME));
-		
-		
-		groupNames.clear(); 
-		// Add one of the default groups
-		groupNames.add(AUTHENTICATED_USERS);
-		map = userGroupDAO.getGroupsByNames(groupNames);
-		assertTrue(map.toString(), map.containsKey(AUTHENTICATED_USERS));
-
-		// try the paginated call
-		List<UserGroup> groups = userGroupDAO.getInRange(0, startingCount+100, false);
-		List<String> omit = new ArrayList<String>();
-		omit.add(AUTHENTICATED_USERS);
-		List<UserGroup> groupsButOne = userGroupDAO.getInRangeExcept(0, startingCount+100, false, omit);
-		assertEquals(groups.size(), groupsButOne.size()+1);
-	}
-	
 	@Test
 	public void testBootstrapUsers() throws DatastoreException, NotFoundException{
 		List<UserGroupInt> boots = this.userGroupDAO.getBootstrapUsers();

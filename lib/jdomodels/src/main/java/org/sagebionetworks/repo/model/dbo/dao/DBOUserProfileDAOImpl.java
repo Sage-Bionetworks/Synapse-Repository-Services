@@ -20,6 +20,8 @@ import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserProfile;
+import org.sagebionetworks.repo.model.dbo.principal.BootstrapPrincipal;
+import org.sagebionetworks.repo.model.dbo.principal.BootstrapUser;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
@@ -55,6 +57,16 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 	
 	private static final RowMapper<DBOUserProfile> userProfileRowMapper = (new DBOUserProfile()).getTableMapping();
+	
+	private List<BootstrapPrincipal> bootstrapPrincipals;
+	
+	public List<BootstrapPrincipal> getBootstrapPrincipals() {
+		return bootstrapPrincipals;
+	}
+
+	public void setBootstrapPrincipals(List<BootstrapPrincipal> bootstrapPrincipals) {
+		this.bootstrapPrincipals = bootstrapPrincipals;
+	}
 
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.model.UserProfileDAO#delete(java.lang.String)
@@ -160,21 +172,20 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void bootstrapProfiles(){
 		// Boot strap all users and groups
-		if (userGroupDAO.getBootstrapUsers() == null) {
-			throw new IllegalArgumentException("Bootstrap users cannot be null");
+		if (this.bootstrapPrincipals == null) {
+			throw new IllegalArgumentException("bootstrapPrincipals users cannot be null");
 		}
 		
 		// For each one determine if it exists, if not create it
-		for (UserGroupInt ug: userGroupDAO.getBootstrapUsers()) {
-			if (ug.getId() == null) throw new IllegalArgumentException("Bootstrap users must have an id");
-			if (ug.getIsIndividual()) {
-				Long.parseLong(ug.getId());
+		for (BootstrapPrincipal abs: this.bootstrapPrincipals) {
+			if (abs.getId() == null) throw new IllegalArgumentException("Bootstrap users must have an id");
+			if (abs instanceof BootstrapUser) {
 				UserProfile userProfile = null;
 				try {
-					userProfile = this.get(ug.getId());
+					userProfile = this.get(abs.getId().toString());
 				} catch (NotFoundException nfe) {
 					userProfile = new UserProfile();
-					userProfile.setOwnerId(ug.getId());
+					userProfile.setOwnerId(abs.getId().toString());
 					this.create(userProfile);
 				}
 			}

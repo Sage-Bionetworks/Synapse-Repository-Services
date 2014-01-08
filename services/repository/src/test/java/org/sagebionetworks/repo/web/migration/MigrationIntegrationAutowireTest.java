@@ -15,6 +15,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -503,25 +504,25 @@ public class MigrationIntegrationAutowireTest {
 	
 	// returns a group for use in a team
 	private UserGroup createUserGroups(int index) throws NotFoundException {
-		String groupNamePrefix = "Caravan-" + index;
-		String userNamePrefix = "GoinOnTheOregonTrail" + index + "@";
+//		String groupNamePrefix = "Caravan-" + index;
+//		String userNamePrefix = "GoinOnTheOregonTrail" + index + "@";
 		List<String> adder = new ArrayList<String>();
 		
 		// Make one group
 		UserGroup parentGroup = new UserGroup();
 		parentGroup.setIsIndividual(false);
-		parentGroup.setName(groupNamePrefix+"1");
+//		parentGroup.setName(groupNamePrefix+"1");
 		parentGroup.setId(userGroupDAO.create(parentGroup));
 		
 		// Make two users
 		UserGroup parentUser = new UserGroup();
 		parentUser.setIsIndividual(true);
-		parentUser.setName(userNamePrefix+"gov.org");
+//		parentUser.setName(userNamePrefix+"gov.org");
 		parentUser.setId(userGroupDAO.create(parentUser));
 		
 		UserGroup siblingUser = new UserGroup();
 		siblingUser.setIsIndividual(true);
-		siblingUser.setName(userNamePrefix+"2"+"gov.org");
+//		siblingUser.setName(userNamePrefix+"2"+"gov.org");
 		siblingUser.setId(userGroupDAO.create(siblingUser));
 		
 		// Nest one group and two users within the parent group
@@ -568,7 +569,7 @@ public class MigrationIntegrationAutowireTest {
 		
 		Team team = new Team();
 		team.setId(group.getId());
-		team.setName(group.getName());
+		team.setName(UUID.randomUUID().toString());
 		team.setDescription("test team");
 		teamDAO.create(team);
 		
@@ -601,7 +602,7 @@ public class MigrationIntegrationAutowireTest {
 	private void createCommunity(UserGroup group) throws Exception {
 		Team team = new Team();
 		team.setId(group.getId());
-		team.setName(group.getName());
+		team.setName(UUID.randomUUID().toString());
 		team.setDescription("test team");
 		team = teamDAO.create(team);
 
