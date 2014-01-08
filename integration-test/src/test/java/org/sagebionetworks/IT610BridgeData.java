@@ -15,6 +15,7 @@ import org.junit.Test;
 import org.sagebionetworks.bridge.model.data.ParticipantDataColumnDescriptor;
 import org.sagebionetworks.bridge.model.data.ParticipantDataColumnType;
 import org.sagebionetworks.bridge.model.data.ParticipantDataDescriptor;
+import org.sagebionetworks.bridge.model.data.ParticipantDataRepeatType;
 import org.sagebionetworks.bridge.model.versionInfo.BridgeVersionInfo;
 import org.sagebionetworks.client.BridgeClient;
 import org.sagebionetworks.client.BridgeClientImpl;
@@ -118,6 +119,7 @@ public class IT610BridgeData {
 	public void testCreateAndDeleteParticipantData() throws Exception {
 		ParticipantDataDescriptor participantDataDescriptor = new ParticipantDataDescriptor();
 		participantDataDescriptor.setName("my-first-participantData-" + System.currentTimeMillis());
+		participantDataDescriptor.setRepeatType(ParticipantDataRepeatType.ALWAYS);
 		participantDataDescriptor = bridge.createParticipantDataDescriptor(participantDataDescriptor);
 		
 		ParticipantDataColumnDescriptor participantDataColumnDescriptor1 = new ParticipantDataColumnDescriptor();
@@ -170,6 +172,7 @@ public class IT610BridgeData {
 	public void testPaginatedParticipantData() throws Exception {
 		ParticipantDataDescriptor participantDataDescriptor = new ParticipantDataDescriptor();
 		participantDataDescriptor.setName("my-first-participantData-" + System.currentTimeMillis());
+		participantDataDescriptor.setRepeatType(ParticipantDataRepeatType.ALWAYS);
 		participantDataDescriptor = bridge.createParticipantDataDescriptor(participantDataDescriptor);
 
 		ParticipantDataColumnDescriptor participantDataColumnDescriptor1 = new ParticipantDataColumnDescriptor();
@@ -216,6 +219,7 @@ public class IT610BridgeData {
 	public void testReplaceParticipantData() throws Exception {
 		ParticipantDataDescriptor participantDataDescriptor = new ParticipantDataDescriptor();
 		participantDataDescriptor.setName("my-first-participantData-" + System.currentTimeMillis());
+		participantDataDescriptor.setRepeatType(ParticipantDataRepeatType.ALWAYS);
 		participantDataDescriptor = bridge.createParticipantDataDescriptor(participantDataDescriptor);
 
 		ParticipantDataColumnDescriptor participantDataColumnDescriptor1 = new ParticipantDataColumnDescriptor();
