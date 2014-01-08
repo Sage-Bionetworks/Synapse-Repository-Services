@@ -3,6 +3,7 @@ package org.sagebionetworks.bridge.controller;
 import org.sagebionetworks.bridge.BridgeUrlHelpers;
 import org.sagebionetworks.bridge.model.data.ParticipantDataColumnDescriptor;
 import org.sagebionetworks.bridge.model.data.ParticipantDataDescriptor;
+import org.sagebionetworks.bridge.model.data.ParticipantDataStatusList;
 import org.sagebionetworks.bridge.service.BridgeServiceProvider;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -214,5 +215,24 @@ public class ParticipantDataController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) Long userId, @PathVariable String participantDataId)
 			throws DatastoreException, NotFoundException {
 		return serviceProvider.getParticipantDataService().getParticipantDataColumnDescriptors(userId, participantDataId, limit, offset);
+	}
+
+	/**
+	 * get all participant data column descriptions for a participant data descriptor
+	 * 
+	 * @param limit
+	 * @param offset
+	 * @param userId
+	 * @param participantDataId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = BridgeUrlHelpers.SEND_PARTICIPANT_DATA_DESCRIPTORS_UPDATES, method = RequestMethod.POST)
+	public void updateParticipantDataStatuses(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) Long userId,
+			@RequestBody ParticipantDataStatusList statusList) throws DatastoreException, NotFoundException {
+		serviceProvider.getParticipantDataService().updateParticipantStatuses(userId, statusList.getUpdates());
 	}
 }

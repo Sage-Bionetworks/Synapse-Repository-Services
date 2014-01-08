@@ -1,11 +1,10 @@
 package org.sagebionetworks.client;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
 import org.sagebionetworks.bridge.model.Community;
 import org.sagebionetworks.bridge.model.data.ParticipantDataColumnDescriptor;
 import org.sagebionetworks.bridge.model.data.ParticipantDataDescriptor;
+import org.sagebionetworks.bridge.model.data.ParticipantDataStatusList;
 import org.sagebionetworks.bridge.model.versionInfo.BridgeVersionInfo;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.PaginatedResults;
@@ -42,6 +41,8 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 	private static final String LEAVE = "/leave";
 	private static final String ADD_ADMIN = "/addadmin";
 	private static final String REMOVE_ADMIN = "/removeadmin";
+
+	private static final String SEND_UPDATES = "/sendupdates";
 
 	protected String bridgeEndpoint;
 
@@ -232,6 +233,12 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 		return getList(uri, ParticipantDataColumnDescriptor.class, limit, offset);
 	}
 
+	@Override
+	public void sendParticipantDataDescriptorUpdates(ParticipantDataStatusList statuses) throws SynapseException {
+		String uri = PARTICIPANT_DATA_DESCRIPTOR + SEND_UPDATES;
+		put(uri, statuses);
+	}
+
 	private void get(String uri) throws SynapseException {
 		getSharedClientConnection().getJson(bridgeEndpoint, uri, getUserAgent());
 	}
@@ -297,6 +304,17 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 			jsonObject = getSharedClientConnection().postJson(bridgeEndpoint, uri, jsonObject.toString(), getUserAgent());
 			// Now convert to Object to an entity
 			return (T) EntityFactory.createEntityFromJSONObject(jsonObject, t.getClass());
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+
+	private <T extends JSONEntity> void put(String uri, T t) throws SynapseException {
+		// Get the json for this entity
+		try {
+			JSONObject jsonObject = EntityFactory.createJSONObjectForEntity(t);
+			// Send the entity
+			getSharedClientConnection().postJson(bridgeEndpoint, uri, jsonObject.toString(), getUserAgent());
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}

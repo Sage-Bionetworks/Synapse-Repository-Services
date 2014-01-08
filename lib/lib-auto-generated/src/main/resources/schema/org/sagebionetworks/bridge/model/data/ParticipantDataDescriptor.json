@@ -13,6 +13,28 @@
     	"description": {
 			"type": "string",
 			"description": "The optional description for this participant data descriptor"
+		},
+        "repeatType": {
+			"type": "string",
+			"description": "The repeat type of this data type",
+			"name": "ParticipantDataRepeatType",
+			"id": "org.sagebionetworks.bridge.model.data.ParticipantDataRepeatType",
+			"enum": [
+				"ONCE",
+				"IF_NEW",
+				"IF_CHANGED",
+				"ALWAYS",
+				"REPEATED"
+			]
+		},
+        "repeatFrequency": {
+			"type": "string",
+			"description": "The repeat frequency if repeat type is REPEATED (cron format)",
+			"name": "ParticipantDataRepeatFreequency",
+		},
+		"status": {
+		    "description":"The status of this tracker.",
+			"$ref": "org.sagebionetworks.bridge.model.data.ParticipantDataStatus"
 		}
     }
 }

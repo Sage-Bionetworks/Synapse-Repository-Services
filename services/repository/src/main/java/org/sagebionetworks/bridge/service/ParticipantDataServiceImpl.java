@@ -1,11 +1,14 @@
 package org.sagebionetworks.bridge.service;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.sagebionetworks.bridge.manager.participantdata.ParticipantDataDescriptionManager;
 import org.sagebionetworks.bridge.manager.participantdata.ParticipantDataManager;
 import org.sagebionetworks.bridge.model.data.ParticipantDataColumnDescriptor;
 import org.sagebionetworks.bridge.model.data.ParticipantDataDescriptor;
+import org.sagebionetworks.bridge.model.data.ParticipantDataStatus;
+import org.sagebionetworks.bridge.model.data.ParticipantDataStatusList;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;
@@ -47,6 +50,12 @@ public class ParticipantDataServiceImpl implements ParticipantDataService {
 	public RowSet update(Long userId, String participantDataId, RowSet data) throws DatastoreException, NotFoundException, IOException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return participantDataManager.updateData(userInfo, participantDataId, data);
+	}
+
+	@Override
+	public void updateParticipantStatuses(Long userId, List<ParticipantDataStatus> statuses) throws NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		participantDataDescriptionManager.updateStatuses(userInfo, statuses);
 	}
 
 	@Override

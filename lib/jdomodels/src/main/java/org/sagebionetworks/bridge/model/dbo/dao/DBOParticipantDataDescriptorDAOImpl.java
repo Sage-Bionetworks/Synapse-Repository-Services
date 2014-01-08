@@ -61,6 +61,8 @@ public class DBOParticipantDataDescriptorDAOImpl implements ParticipantDataDescr
 			participantDataDescriptor.setId(Long.toString(dboParticipantDataDescriptor.getId()));
 			participantDataDescriptor.setName(dboParticipantDataDescriptor.getName());
 			participantDataDescriptor.setDescription(dboParticipantDataDescriptor.getDescription());
+			participantDataDescriptor.setRepeatType(dboParticipantDataDescriptor.getRepeatType());
+			participantDataDescriptor.setRepeatFrequency(dboParticipantDataDescriptor.getRepeatFrequency());
 			return participantDataDescriptor;
 		}
 	};
@@ -114,6 +116,8 @@ public class DBOParticipantDataDescriptorDAOImpl implements ParticipantDataDescr
 		dboParticipantDataDescriptor.setId(idGenerator.generateNewId(TYPE.COLUMN_MODEL_ID));
 		dboParticipantDataDescriptor.setName(participantDataDescriptor.getName());
 		dboParticipantDataDescriptor.setDescription(participantDataDescriptor.getDescription());
+		dboParticipantDataDescriptor.setRepeatType(participantDataDescriptor.getRepeatType());
+		dboParticipantDataDescriptor.setRepeatFrequency(participantDataDescriptor.getRepeatFrequency());
 		dboParticipantDataDescriptor = basicDao.createNew(dboParticipantDataDescriptor);
 		return dboToDtoParticipantDataDescriptor.apply(dboParticipantDataDescriptor);
 	}
@@ -125,6 +129,8 @@ public class DBOParticipantDataDescriptorDAOImpl implements ParticipantDataDescr
 		dboParticipantDataDescriptor.setId(Long.parseLong(participantDataDescriptor.getId()));
 		dboParticipantDataDescriptor.setName(participantDataDescriptor.getName());
 		dboParticipantDataDescriptor.setDescription(participantDataDescriptor.getDescription());
+		dboParticipantDataDescriptor.setRepeatType(participantDataDescriptor.getRepeatType());
+		dboParticipantDataDescriptor.setRepeatFrequency(participantDataDescriptor.getRepeatFrequency());
 		if (!basicDao.update(dboParticipantDataDescriptor)) {
 			throw new NotFoundException("Update for ParticipantDataDescriptor " + participantDataDescriptor.getId()
 					+ " found nothing to update");

@@ -1,8 +1,12 @@
 package org.sagebionetworks.client;
 
+import java.util.List;
+
 import org.sagebionetworks.bridge.model.Community;
 import org.sagebionetworks.bridge.model.data.ParticipantDataColumnDescriptor;
 import org.sagebionetworks.bridge.model.data.ParticipantDataDescriptor;
+import org.sagebionetworks.bridge.model.data.ParticipantDataStatus;
+import org.sagebionetworks.bridge.model.data.ParticipantDataStatusList;
 import org.sagebionetworks.bridge.model.versionInfo.BridgeVersionInfo;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.PaginatedResults;
@@ -173,10 +177,26 @@ public interface BridgeClient extends BaseClient {
 
 	public PaginatedResults<ParticipantDataDescriptor> getAllParticipantDatas(long limit, long offset) throws SynapseException;
 
+	/**
+	 * Get participant data descriptors for all data sets for this user
+	 * 
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws SynapseException
+	 */
 	public PaginatedResults<ParticipantDataDescriptor> getParticipantDatas(long limit, long offset) throws SynapseException;
 
 	public ParticipantDataColumnDescriptor createParticipantDataColumnDescriptor(ParticipantDataColumnDescriptor participantDataColumnDescriptor1) throws SynapseException;
 
 	public PaginatedResults<ParticipantDataColumnDescriptor> getParticipantDataColumnDescriptors(String participantDataDescriptorId,
 			long limit, long offset) throws SynapseException;
+
+	/**
+	 * Send updates for participant data descriptor statuses
+	 * 
+	 * @param statuses the updates to send
+	 * @throws SynapseException
+	 */
+	public void sendParticipantDataDescriptorUpdates(ParticipantDataStatusList statuses) throws SynapseException;
 }
