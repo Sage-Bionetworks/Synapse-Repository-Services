@@ -250,7 +250,7 @@ public class MessageManagerImpl implements MessageManager {
 		if (dto.getRecipients().size() == 1) {
 			UserGroup ug;
 			try {
-				ug = userGroupDAO.get(dto.getRecipients().iterator().next());
+				ug = userGroupDAO.get(Long.parseLong(dto.getRecipients().iterator().next()));
 			} catch (NotFoundException e) {
 				throw new DatastoreException("Could not get a user group that satisfied message creation constraints");
 			}
@@ -438,7 +438,7 @@ public class MessageManagerImpl implements MessageManager {
 				
 				// Should emails be sent?
 				if (settings.getSendEmailNotifications() == null || settings.getSendEmailNotifications()) {
-					sendEmail(userGroupDAO.get(user).getName(), 
+					sendEmail(userManager.getUserName(Long.parseLong(user)), 
 							dto.getSubject(),
 							messageBody, 
 							isHtml,
@@ -477,9 +477,10 @@ public class MessageManagerImpl implements MessageManager {
 		// From the list of intended recipients, filter out the un-permitted recipients
 		Set<String> recipients = new HashSet<String>();
 		for (String principalId : intendedRecipients) {
+			Long principalIdLong = Long.parseLong(principalId);
 			UserGroup ug;
 			try {
-				ug = userGroupDAO.get(principalId);
+				ug = userGroupDAO.get(principalIdLong);
 			} catch (NotFoundException e) {
 				errors.add(e.getMessage());
 				continue;
@@ -488,7 +489,7 @@ public class MessageManagerImpl implements MessageManager {
 			// Check permissions to send to non-individuals
 			if (!ug.getIsIndividual()
 					&& !authorizationManager.canAccess(userInfo, principalId, ObjectType.TEAM, ACCESS_TYPE.SEND_MESSAGE)) {
-				errors.add(userInfo.getIndividualGroup().getName()
+				errors.add(userInfo.getUser().getUserName()
 						+ " may not send messages to the group (" + principalId + ")");
 				continue;
 			}

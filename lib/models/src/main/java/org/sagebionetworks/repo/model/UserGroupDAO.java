@@ -106,4 +106,10 @@ public interface UserGroupDAO {
 	 */
 	boolean doesIdExist(Long id);
 
+	/**
+	 * Get all of the principals
+	 * @return
+	 */
+	public List<UserGroup> getAllPrincipals();
+
 }

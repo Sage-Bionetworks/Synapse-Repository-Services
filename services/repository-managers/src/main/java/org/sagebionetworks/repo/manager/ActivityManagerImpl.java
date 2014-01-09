@@ -69,7 +69,7 @@ public class ActivityManagerImpl implements ActivityManager {
 		// only owner can change
 		UserInfo.validateUserInfo(userInfo);
 		String requestorId = userInfo.getIndividualGroup().getId();
-		String requestorName = userInfo.getIndividualGroup().getName();
+		String requestorName = userInfo.getUser().getUserName();
 		Activity currentAct = activityDAO.get(activity.getId());
 		if(!userInfo.isAdmin() && !currentAct.getCreatedBy().equals(requestorId)) {
 			throw new UnauthorizedException(requestorName +" lacks change access to the requested object.");
@@ -98,7 +98,7 @@ public class ActivityManagerImpl implements ActivityManager {
 		}
 		UserInfo.validateUserInfo(userInfo);
 		String requestorId = userInfo.getIndividualGroup().getId();
-		String requestorName = userInfo.getIndividualGroup().getName();
+		String requestorName = userInfo.getUser().getUserName();
 		// only owner can change
 		if(!activity.getCreatedBy().equals(requestorId) && !userInfo.isAdmin()) {
 			throw new UnauthorizedException(requestorName +" lacks change access to the requested object.");
@@ -113,7 +113,7 @@ public class ActivityManagerImpl implements ActivityManager {
 		throws DatastoreException, NotFoundException, UnauthorizedException {		
 		Activity act = activityDAO.get(activityId);
 		if(!authorizationManager.canAccessActivity(userInfo, activityId)) { 			
-			throw new UnauthorizedException(userInfo.getIndividualGroup().getName() +" lacks access to the requested object.");
+			throw new UnauthorizedException(userInfo.getUser().getUserName() +" lacks access to the requested object.");
 		}
 		return act;
 	}
@@ -133,7 +133,7 @@ public class ActivityManagerImpl implements ActivityManager {
 
 		Activity act = activityDAO.get(activityId);
 		if(!authorizationManager.canAccessActivity(userInfo, activityId)) { 			
-			throw new UnauthorizedException(userInfo.getIndividualGroup().getName() +" lacks access to the requested object.");
+			throw new UnauthorizedException(userInfo.getUser().getUserName() +" lacks access to the requested object.");
 		}
 		return activityDAO.getEntitiesGeneratedBy(activityId, limit, offset);
 	}

@@ -74,6 +74,10 @@
 			<property name="email" value="anonymous@sagebase.org" />
 			<property name="userName" value="anonymous" />
 		</bean>
+		<bean class="org.sagebionetworks.repo.model.principal.BootstrapGroup">
+			<property name="id" value="464532" />
+			<property name="groupName" value="Synpase ACT Team" /> <!-- This name is was already misspelled -->
+		</bean>		
 	</util:list>
 
 	<bean id="userGroupDAO"

@@ -209,11 +209,14 @@ public class UserManagerImpl implements UserManager {
 	 */
 	private User getUser(UserGroup individualGroup) throws DatastoreException,
 			NotFoundException {
+		Long userId = Long.parseLong(individualGroup.getId());
 		User user = new User();
-		user.setUserId(individualGroup.getName());
-		user.setId(individualGroup.getName()); // i.e. username == user id
+		// Lookup the user's name
+		String userName = getUserName(userId);
+		user.setUserName(userName);
+		user.setId(userId);
 
-		if (AuthorizationUtils.isUserAnonymous(individualGroup.getId())) {
+		if (AuthorizationUtils.isUserAnonymous(userId)) {
 			return user;
 		}
 
@@ -236,16 +239,6 @@ public class UserManagerImpl implements UserManager {
 		return user;
 	}
 
-	@Override
-	public UserGroup findGroup(String name, boolean b) throws DatastoreException {
-		return userGroupDAO.findGroup(name, b);
-	}
-
-	@Override
-	public boolean doesPrincipalExist(String name) {
-		return userGroupDAO.doesPrincipalExist(name);
-	}
-
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void deletePrincipal(UserInfo adminUserInfo, Long principalId) throws NotFoundException {
@@ -254,41 +247,6 @@ public class UserManagerImpl implements UserManager {
 		}
 		
 		userGroupDAO.delete(principalId.toString());
-	}
-	
-	@Override
-	public String getDisplayName(Long principalId) throws NotFoundException, DatastoreException {
-		UserGroup userGroup = userGroupDAO.get(principalId.toString());
-		if (userGroup.getIsIndividual()) {
-			UserProfile userProfile = userProfileDAO.get(principalId.toString());
-			return userProfile.getDisplayName();
-		} else {
-			return userGroup.getName();
-		}
-	}
-	
-	@Override
-	public String getGroupName(String principalId) throws NotFoundException {
-		UserGroup userGroup = userGroupDAO.get(principalId);
-		return userGroup.getName();
-	}
-	
-	@Override
-	public void updateEmail(UserInfo userInfo, String newEmail) throws DatastoreException, NotFoundException {
-		
-		// The mapping between usernames and user IDs is currently done on a one-to-one basis.
-		// This means that changing the email associated with an ID in the UserGroup table 
-		//   introduces an inconsistency between the UserGroup table and ID Generator table.
-		// Until the Named ID Generator supports a one-to-many mapping, this method is disabled
-		throw new NotFoundException("This service is currently unavailable");
-		
-		/*
-		if (userInfo != null) {
-			UserGroup userGroup = userGroupDAO.get(userInfo.getIndividualGroup().getId());
-			userGroup.setName(newEmail);
-			userGroupDAO.update(userGroup);
-		}
-		*/
 	}
 
 	@Override
@@ -300,5 +258,17 @@ public class UserManagerImpl implements UserManager {
 	public List<UserGroup> getGroupsInRange(UserInfo userInfo, long startIncl, long endExcl, String sort, boolean ascending) 
 			throws DatastoreException, UnauthorizedException {
 		return userGroupDAO.getInRange(startIncl, endExcl, false);
+	}
+
+	@Override
+	public String getUserName(long userId) {
+		List<PrincipalAlias> aliases = this.principalAliasDAO.listPrincipalAliases(userId, AliasType.USER_NAME);
+		if(aliases.size() < 1){
+			// Use a temporary name composed of their ID until this users sets their username I
+			return "TEMPORARY-"+userId;
+		}else{
+			// Use the first name
+			return aliases.get(0).getAlias();
+		}
 	}
 }

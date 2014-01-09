@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_AND_COMPLIANCE_TEAM_NAME;
-
 import java.util.Collection;
 import java.util.Map;
 
@@ -16,6 +14,7 @@ import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ActivityDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -190,8 +189,11 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	
 	public boolean isACTTeamMemberOrAdmin(UserInfo userInfo) throws DatastoreException, UnauthorizedException {
 		if (userInfo.isAdmin()) return true;
-		UserGroup actTeam = userGroupDAO.findGroup(ACCESS_AND_COMPLIANCE_TEAM_NAME, false);
-		return userInfo.getGroups().contains(actTeam);
+		for(UserGroup ug: userInfo.getGroups()){
+			Long groupId = Long.parseLong(ug.getId());
+			if(BOOTSTRAP_PRINCIPAL.ACCESS_AND_COMPLIANCE_GROUP.getPrincipalId().equals(groupId)) return true;
+		}
+		return false;
 	}
 
 	public boolean isACTTeamMemberOrCanCreateOrEdit(UserInfo userInfo, Collection<String> entityIds) throws NotFoundException {

@@ -54,16 +54,16 @@ public class UserManagerImplTest {
 		UserInfo ui = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		assertTrue(AuthorizationUtils.isUserAnonymous(ui));
 		assertTrue(AuthorizationUtils.isUserAnonymous(ui.getIndividualGroup()));
-		assertTrue(AuthorizationUtils.isUserAnonymous(ui.getIndividualGroup().getId()));
+		assertTrue(AuthorizationUtils.isUserAnonymous(Long.parseLong(ui.getIndividualGroup().getId())));
 		assertNotNull(ui.getUser().getId());
 		assertEquals(2, ui.getGroups().size());
 		assertTrue(ui.getGroups().contains(ui.getIndividualGroup()));
 
 		// They belong to the public group but not the authenticated user's group
-		assertTrue(ui.getGroups().contains(userGroupDAO.get(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().toString())));
+		assertTrue(ui.getGroups().contains(userGroupDAO.get(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId())));
 
 		// Anonymous does not belong to the authenticated user's group.
-		assertFalse(ui.getGroups().contains(userGroupDAO.get(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId().toString())));
+		assertFalse(ui.getGroups().contains(userGroupDAO.get(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId())));
 	}
 	
 	@Test
@@ -79,8 +79,8 @@ public class UserManagerImplTest {
 		assertNotNull(ui.getIndividualGroup().getId());
 		
 		// Should include Public and authenticated users' group.
-		assertTrue(ui.getGroups().contains(userGroupDAO.get(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().toString())));
-		assertTrue(ui.getGroups().contains(userGroupDAO.get(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId().toString())));
+		assertTrue(ui.getGroups().contains(userGroupDAO.get(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId())));
+		assertTrue(ui.getGroups().contains(userGroupDAO.get(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId())));
 	}
 		
 	@Test

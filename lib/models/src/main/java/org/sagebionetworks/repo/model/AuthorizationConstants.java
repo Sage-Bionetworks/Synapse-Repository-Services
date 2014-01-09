@@ -15,7 +15,8 @@ public class AuthorizationConstants {
 		ADMINISTRATORS_GROUP(2L), 
 		AUTHENTICATED_USERS_GROUP(273948L), 
 		PUBLIC_GROUP(273949L), 
-		ANONYMOUS_USER(273950L);
+		ANONYMOUS_USER(273950L),
+		ACCESS_AND_COMPLIANCE_GROUP(464532);
 
 		private final long principalId;
 		
@@ -35,8 +36,6 @@ public class AuthorizationConstants {
 		GRANT_CREATOR_ALL,
 		INHERIT_FROM_PARENT,
 	}
-	
-	public static final String ACCESS_AND_COMPLIANCE_TEAM_NAME = "Synpase ACT Team";
 	
 	/**
 	 * Per http://sagebionetworks.jira.com/browse/PLFM-192

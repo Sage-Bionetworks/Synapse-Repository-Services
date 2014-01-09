@@ -20,12 +20,6 @@ public interface UserManager {
 	 * @param principalId the ID of the user of interest
 	 */
 	public UserInfo getUserInfo(Long principalId) throws NotFoundException;
-
-	/**
-	 * Find a group
-	 */
-	@Deprecated
-	public UserGroup findGroup(String name, boolean b) throws DatastoreException;
 	
 	/**
 	 * Creates a new user
@@ -39,34 +33,13 @@ public interface UserManager {
 	 * Must be an admin to use this
 	 */
 	public UserInfo createUser(UserInfo adminUserInfo, NewUser user, DBOCredential credential) throws NotFoundException;
-	
-	/**
-	 * Does a principal with this name exist?
-	 */
-	public boolean doesPrincipalExist(String name);
-	
+		
 	/**
 	 * Delete a principal by ID
 	 * 
 	 * For testing purposes only
 	 */
 	public void deletePrincipal(UserInfo adminUserInfo, Long principalId) throws NotFoundException;
-
-	/**
-	 * @param principalId
-	 * @return for a group, returns the group name, for a user returns the display name in the user's profile
-	 */
-	public String getDisplayName(Long principalId) throws NotFoundException;
-	
-	/**
-	 * Returns the group name
-	 */
-	public String getGroupName(String principalId) throws NotFoundException;
-
-	/**
-	 * Changes the user's email
-	 */
-	public void updateEmail(UserInfo userInfo, String newEmail) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get all non-individual user groups, including Public.
@@ -77,4 +50,11 @@ public interface UserManager {
 	 * Get non-individual user groups (including Public) in range
 	 **/
 	public List<UserGroup> getGroupsInRange(UserInfo userInfo, long startIncl, long endExcl, String sort, boolean ascending) throws DatastoreException, UnauthorizedException;
+	
+	/**
+	 * Get a user's username
+	 * @param userId
+	 * @return
+	 */
+	public String getUserName(long userId);
 }

@@ -129,7 +129,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		// now create the Jira issue
 		JRJCHelper.createRestrictIssue(jiraClient, 
 				userInfo.getIndividualGroup().getId(), 
-				userInfo.getIndividualGroup().getName(), 
+				userInfo.getUser().getUserName(), 
 				entityId);
 
 		return result;

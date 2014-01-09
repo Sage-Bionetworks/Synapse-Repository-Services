@@ -7,7 +7,6 @@ import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_AND_COMPLIANCE_TEAM_NAME;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -28,6 +27,7 @@ import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ActivityDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
@@ -39,7 +39,6 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -93,15 +92,13 @@ public class AuthorizationManagerImplUnitTest {
 		actTeam = new UserGroup();
 		actTeam.setId("101");
 		actTeam.setIsIndividual(false);
-		actTeam.setName(ACCESS_AND_COMPLIANCE_TEAM_NAME);
-		when(mockUserGroupDAO.findGroup(ACCESS_AND_COMPLIANCE_TEAM_NAME, false)).thenReturn(actTeam);
 
 		userInfo = new UserInfo(false);
 		UserGroup userInfoGroup = new UserGroup();
 		userInfoGroup.setId(USER_PRINCIPAL_ID);
 		userInfo.setIndividualGroup(userInfoGroup);
 		User user = new User();
-		user.setId("not_anonymous");
+		user.setUserName("not anonymous");
 		userInfo.setUser(user);
 		userInfo.setGroups(new ArrayList<UserGroup>());
 		adminUser = new UserInfo(true);
@@ -109,7 +106,7 @@ public class AuthorizationManagerImplUnitTest {
 		adminInfoGroup.setId("456");
 		adminUser.setIndividualGroup(adminInfoGroup);
 		User aUser = new User();
-		aUser.setUserId(adminInfoGroup.getId());
+		aUser.setId(Long.parseLong(adminInfoGroup.getId()));
 		adminUser.setUser(aUser);
 
 		evaluation = new Evaluation();
