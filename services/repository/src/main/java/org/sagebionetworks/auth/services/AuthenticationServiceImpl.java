@@ -17,6 +17,8 @@ import org.sagebionetworks.repo.model.auth.ChangePasswordRequest;
 import org.sagebionetworks.repo.model.auth.LoginCredentials;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
+import org.sagebionetworks.repo.model.principal.AliasType;
+import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
@@ -50,9 +52,12 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		if (credential.getPassword() == null) {
 			throw new UnauthorizedException("Password may not be null");
 		}
+		// Lookup the user.
+		PrincipalAlias pa = lookupUserForAuthenication(credential.getEmail());
+		if(pa == null) throw new NotFoundException("Did not find a user with alias: "+credential.getEmail());;
 		
 		// Fetch the user's session token
-		return authManager.authenticate(credential.getEmail(), credential.getPassword());
+		return authManager.authenticate(pa.getPrincipalId(), credential.getPassword());
 	}
 
 	@Override
@@ -86,9 +91,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 			throw new IllegalArgumentException("Email must be specified");
 		}
 		
-		userManager.createUser(user);
+		Long userid = userManager.createUser(user);
 		try {
-			sendPasswordEmail(user.getEmail(), originClient);
+			sendPasswordEmail(userid, originClient);
 		} catch (NotFoundException e) {
 			throw new DatastoreException("Could not find user that was just created", e);
 		}
@@ -96,22 +101,19 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void sendPasswordEmail(String username, DomainType originClient) throws NotFoundException {
-		if (username == null) {
-			throw new IllegalArgumentException("Username may not be null");
+	public void sendPasswordEmail(Long principalId, DomainType originClient) throws NotFoundException {
+		if (principalId == null) {
+			throw new IllegalArgumentException("PrincipalId may not be null");
 		}
 		if (originClient == null) {
 			throw new IllegalArgumentException("OriginatingClient may not be null");
 		}
 		
-		// Find the user's ID
-		Long userId = getUserId(username);
-		
 		// Get the user's session token (which is refreshed)
-		String sessionToken = authManager.authenticate(username, null).getSessionToken();
+		String sessionToken = authManager.authenticate(principalId, null).getSessionToken();
 		
 		// Send the email
-		messageManager.sendPasswordResetEmail(userId.toString(), originClient, sessionToken);
+		messageManager.sendPasswordResetEmail(principalId, originClient, sessionToken);
 	}
 	
 	@Override
@@ -143,8 +145,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		UserInfo userInfo = userManager.getUserInfo(principalId);
 		
 		// Save the state of acceptance
-		if (session.getAcceptsTermsOfUse() != userInfo.getUser().isAgreesToTermsOfUse()) {
-			authManager.setTermsOfUseAcceptance(Long.parseLong(userInfo.getIndividualGroup().getId()), session.getAcceptsTermsOfUse());
+		if (session.getAcceptsTermsOfUse() != userInfo.isAgreesToTermsOfUse()) {
+			authManager.setTermsOfUseAcceptance(userInfo.getId(), session.getAcceptsTermsOfUse());
 		}
 	}
 	
@@ -158,20 +160,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	public void deleteSecretKey(Long principalId) throws NotFoundException {
 		authManager.changeSecretKey(principalId);
 	}
-	
-	@Override
-	public String getUsername(String principalId) throws NotFoundException {
-		return userManager.getGroupName(principalId);
-	}
-	
-	@Override
-	public Long getUserId(String username) throws NotFoundException {
-		UserGroup ug = userManager.findGroup(username, true);
-		if (ug == null) {
-			throw new NotFoundException("User " + username + " does not exist");
-		}
-		return Long.parseLong(ug.getId());
-	}
+
 	
 	@Override
 	public boolean hasUserAcceptedTermsOfUse(Long userId) throws NotFoundException {
@@ -210,9 +199,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 			DomainType originClient) throws NotFoundException {
 		// Get some info about the user
 		String email = info.getEmail();
-		String fname = info.getFirstName();
-		String lname = info.getLastName();
-		String fullName = info.getFullName();
 		if (email == null) {
 			throw new UnauthorizedException("An email must be returned from the OpenID provider");
 		}
@@ -220,25 +206,29 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 			throw new IllegalArgumentException("OriginatingClient may not be null");
 		}
 		
-		if (!userManager.doesPrincipalExist(email)) {
-			if (createUserIffNecessary) {
-				// A new user must be created
-				NewUser user = new NewUser();
-				user.setEmail(email);
-				user.setFirstName(fname);
-				user.setLastName(lname);
-				user.setDisplayName(fullName);
-				Long userId = userManager.createUser(user);
-				UserInfo justCreated = userManager.getUserInfo(userId);
-				
-				// Send a welcome message
-				messageManager.sendWelcomeEmail(justCreated.getIndividualGroup().getId(), originClient);
-			} else {
-				throw new NotFoundException(email);
-			}
+		// First try to lookup the user by their OpenId
+		PrincipalAlias alias = lookupUserForAuthenication(info.getIdentifier());
+		if(alias!= null){
+			// Try to lookup the user by their email if we fail to look them up by OpenId
+			alias = lookupUserForAuthenication(email);
+			throw new NotFoundException("Failed to find a user with OpenId: "+info.getIdentifier());
 		}
 		
 		// Open ID is successful
-		return authManager.authenticate(email, null);
+		Session sesion = authManager.authenticate(alias.getPrincipalId(), null);
+		// Note this is temporary to ensure users that come in with an email get their current OpenId bound to their account
+		// This is idempotent
+		this.userManager.bindOpenIDToPrincipal(alias.getPrincipalId(), info.getIdentifier());
+		
+		return sesion;
+	}
+
+	@Override
+	public PrincipalAlias lookupUserForAuthenication(String alias) {
+		// Lookup the user
+		PrincipalAlias pa = userManager.lookupPrincipalByAlias(alias);
+		if(pa == null) return null;
+		if(AliasType.TEAM_NAME.equals(pa.getType())) throw new UnauthorizedException("Cannot authenticate as team. Only users can authenticate");
+		return pa;
 	}
 }

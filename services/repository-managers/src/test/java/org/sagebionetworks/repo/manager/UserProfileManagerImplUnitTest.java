@@ -19,7 +19,6 @@ import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.FavoriteDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -67,18 +66,10 @@ public class UserProfileManagerImplUnitTest {
 		mockAttachmentManager = Mockito.mock(AttachmentManager.class);
 		userProfileManager = new UserProfileManagerImpl(mockProfileDAO, mockUserGroupDAO, mockS3TokenManager, mockFavoriteDAO, mockAttachmentManager);
 		
-		user = new UserGroup();
-		user.setId("111");
-		user.setName(TEST_USER_NAME);
-		user.setIsIndividual(true);
 		
-		userInfo = new UserInfo(false);
-		userInfo.setIndividualGroup(user);
-		
-		adminUserInfo = new UserInfo(true);
-		adminUserInfo.setIndividualGroup(user);
-		adminUserInfo.setUser(new User());
-		adminUserInfo.getUser().setUserId("This should not appear in the profiles");
+		userInfo = new UserInfo(false, 111L);
+
+		adminUserInfo = new UserInfo(true, 456L);
 		
 		userProfile = new UserProfile();
 		userProfile.setOwnerId(user.getId());
@@ -179,7 +170,7 @@ public class UserProfileManagerImplUnitTest {
 		String entityId = "syn123";
 		userProfileManager.addFavorite(userInfo, entityId);
 		Favorite fav = new Favorite();
-		fav.setPrincipalId(userInfo.getIndividualGroup().getId());
+		fav.setPrincipalId(userInfo.getId().toString());
 		fav.setEntityId(entityId);
 		verify(mockFavoriteDAO).add(fav);
 	}
@@ -189,7 +180,7 @@ public class UserProfileManagerImplUnitTest {
 	
 	@Test
 	public void testGetOwnUserProfle() throws Exception {
-		String ownerId = userInfo.getIndividualGroup().getId();
+		String ownerId = userInfo.getId().toString();
 		UserProfile upClone = userProfileManager.getUserProfile(userInfo, ownerId);
 		assertEquals(userProfile, upClone);
 	}
@@ -197,8 +188,8 @@ public class UserProfileManagerImplUnitTest {
 	@Test
 	@Ignore // Private fields are removed in the service layer
 	public void testgetOthersUserProfle() throws Exception {
-		String ownerId = userInfo.getIndividualGroup().getId();
-		userInfo.getIndividualGroup().setId("-100");
+		String ownerId = userInfo.getId().toString();
+		userInfo.setId(-100L);
 		
 		// There should be missing fields, intentionally blanked-out
 		UserProfile upClone = userProfileManager.getUserProfile(userInfo, ownerId);
@@ -208,7 +199,7 @@ public class UserProfileManagerImplUnitTest {
 	
 	@Test
 	public void testgetOthersUserProfleByAdmin() throws Exception {
-		String ownerId = userInfo.getIndividualGroup().getId();
+		String ownerId = userInfo.getId().toString();
 		UserProfile upClone = userProfileManager.getUserProfile(adminUserInfo, ownerId);
 		assertEquals(userProfile, upClone);
 	}
@@ -216,7 +207,7 @@ public class UserProfileManagerImplUnitTest {
 	@Test
 	public void testUpdateOwnUserProfle() throws Exception {
 		// Get a copy of a UserProfile to update
-		String ownerId = userInfo.getIndividualGroup().getId();
+		String ownerId = userInfo.getId().toString();
 		UserProfile upClone = userProfileManager.getUserProfile(userInfo, ownerId);
 		assertEquals(userProfile, upClone);
 		
@@ -229,8 +220,8 @@ public class UserProfileManagerImplUnitTest {
 	
 	@Test(expected=UnauthorizedException.class)
 	public void testUpdateOthersUserProfle() throws Exception {
-		String ownerId = userInfo.getIndividualGroup().getId();
-		userInfo.getIndividualGroup().setId("-100");
+		String ownerId = userInfo.getId().toString();
+		userInfo.setId(-100L);
 		
 		UserProfile upClone = userProfileManager.getUserProfile(userInfo, ownerId);
 		// so we get back the UserProfile for the specified owner...

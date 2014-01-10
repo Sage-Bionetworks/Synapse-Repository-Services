@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
+import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface UserManager {
@@ -21,7 +22,7 @@ public interface UserManager {
 	 */
 	public UserInfo getUserInfo(Long principalId) throws NotFoundException;
 	
-	/**
+	/**o
 	 * Creates a new user
 	 * 
 	 * @return The ID of the user
@@ -57,5 +58,23 @@ public interface UserManager {
 	 * @return
 	 */
 	public String getUserName(long userId);
+	
+	/**
+	 * Principals can have many aliases including a username, multiple email addresses, and OpenIds.
+	 * This method will look a user by any of the aliases.
+	 * @param alias
+	 * @return
+	 */
+	public PrincipalAlias lookupPrincipalByAlias(String alias);
+	
+	/**
+	 * Bind an OpenId to a principal
+	 * @param principalId
+	 * @param OpenId
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	public PrincipalAlias bindOpenIDToPrincipal(Long principalId, String OpenId) throws DatastoreException, NotFoundException;
 	
 }

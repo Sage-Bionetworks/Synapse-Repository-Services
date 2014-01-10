@@ -38,7 +38,7 @@ public class UserProfileManagerUtils {
 	public static boolean isOwnerOrAdmin(UserInfo userInfo, String ownerId) {
 		if (userInfo == null) return false;
 		if (userInfo.isAdmin()) return true;
-		if (ownerId != null && ownerId.equals(userInfo.getIndividualGroup().getId())) return true;
+		if (ownerId != null && ownerId.equals(userInfo.getId().toString())) return true;
 		return false;
 	}
 

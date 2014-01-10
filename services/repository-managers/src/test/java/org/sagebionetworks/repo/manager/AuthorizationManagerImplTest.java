@@ -33,6 +33,7 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.provenance.Activity;
@@ -101,7 +102,7 @@ public class AuthorizationManagerImplTest {
 	}
 	
 	private Node createNode(String name, UserInfo creator, Long modifiedBy, String parentId, String activityId) throws Exception {
-		Node node = createDTO(name, Long.parseLong(creator.getIndividualGroup().getId()), modifiedBy, parentId, activityId);
+		Node node = createDTO(name, creator.getId(), modifiedBy, parentId, activityId);
 		String nodeId = nodeManager.createNewNode(node, creator);
 		assertNotNull(nodeId);
 		node = nodeManager.get(creator, nodeId);
@@ -116,16 +117,18 @@ public class AuthorizationManagerImplTest {
 		DBOCredential cred = new DBOCredential();
 		cred.setAgreesToTermsOfUse(true);
 		cred.setSecretKey("");
-		userInfo = userManager.createUser(adminUser, UUID.randomUUID().toString() + "@test.com", new UserProfile(), cred);
+		NewUser nu = new NewUser();
+		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
+		nu.setUserName(UUID.randomUUID().toString());
+		userInfo = userManager.createUser(adminUser, nu, cred);
 		
 		// Create a new group
 		testGroup = new UserGroup();
-		testGroup.setName(UUID.randomUUID().toString());
 		testGroup.setIsIndividual(false);
-		testGroup.setId(userGroupDAO.create(testGroup));
+		testGroup.setId(userGroupDAO.create(testGroup).toString());
 		
 		// Add new user to new group (in the user's info)
-		userInfo.getGroups().add(testGroup);
+		userInfo.getGroups().add(Long.parseLong(testGroup.getId()));
 		
 		// Find some existing principals
 		anonInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());

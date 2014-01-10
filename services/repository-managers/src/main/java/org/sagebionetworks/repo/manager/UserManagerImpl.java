@@ -15,7 +15,6 @@ import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -127,24 +126,16 @@ public class UserManagerImpl implements UserManager {
 		Long principalId = Long.parseLong(individualGroup.getId());
 		authDAO.createNew(principalId);
 		
-		// Make a user profile for this individual
-		UserProfile userProfile = null;
+		// Create a new user profile.
+		UserProfile userProfile = new UserProfile();
+		userProfile.setOwnerId(individualGroup.getId());
+		userProfile.setFirstName(user.getFirstName());
+		userProfile.setLastName(user.getLastName());
+		userProfile.setDisplayName(NewUserUtils.createDisplayName(user));
 		try {
-			userProfile = userProfileDAO.get(individualGroup.getId());
-		} catch (NotFoundException nfe) {
-			userProfile = null;
-		}
-		if (userProfile==null) {
-			userProfile = new UserProfile();
-			userProfile.setOwnerId(individualGroup.getId());
-			userProfile.setFirstName(user.getFirstName());
-			userProfile.setLastName(user.getLastName());
-			userProfile.setDisplayName(NewUserUtils.createDisplayName(user));
-			try {
-				userProfileDAO.create(userProfile);
-			} catch (InvalidModelException e) {
-				throw new RuntimeException(e);
-			}
+			userProfileDAO.create(userProfile);
+		} catch (InvalidModelException e) {
+			throw new RuntimeException(e);
 		}
 		
 		return principalId;
@@ -247,5 +238,27 @@ public class UserManagerImpl implements UserManager {
 			return aliases.get(0).getAlias();
 		}
 	}
+
+	@Override
+	public PrincipalAlias lookupPrincipalByAlias(String alias) {
+		return this.principalAliasDAO.findPrincipalWithAlias(alias);
+	}
+
+	@Override
+	public PrincipalAlias bindOpenIDToPrincipal(Long principalId, String OpenId) throws DatastoreException, NotFoundException {
+		// First validate the ID belongs to a user
+		UserGroup ug = this.userGroupDAO.get(principalId);
+		if(!ug.getIsIndividual()) throw new IllegalArgumentException("Cannot bind an OpenId to a team/group");
+		// Bind it
+		// Bind the email to this user.
+		PrincipalAlias alias = new PrincipalAlias();
+		alias.setAlias(OpenId);
+		alias.setIsValidated(true);
+		alias.setPrincipalId(principalId);
+		alias.setType(AliasType.USER_OPEN_ID);
+		// Bind it.
+		return this.principalAliasDAO.bindAliasToPrincipal(alias);
+	}
+	
 
 }
