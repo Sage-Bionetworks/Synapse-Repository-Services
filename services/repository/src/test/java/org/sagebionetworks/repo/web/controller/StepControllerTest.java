@@ -69,7 +69,7 @@ public class StepControllerTest {
 		testUserInfo = userManager.getUserInfo(userManager.createUser(user));
 		
 		testHelper.setUp();
-		testHelper.setTestUser(Long.parseLong(adminUserInfo.getIndividualGroup().getId()));
+		testHelper.setTestUser(adminUserInfo.getId());
 		
 		project = new Project();
 		project = testHelper.createEntity(project, null);
@@ -95,7 +95,7 @@ public class StepControllerTest {
 	public void after() throws Exception {
 		testHelper.tearDown();
 		
-		userManager.deletePrincipal(adminUserInfo, Long.parseLong(testUserInfo.getIndividualGroup().getId()));
+		userManager.deletePrincipal(adminUserInfo, testUserInfo.getId());
 	}
 
 	/**
@@ -207,7 +207,7 @@ public class StepControllerTest {
 		assertEquals(analysis.getId(), step.getParentId());
 		
 		// Confirm that another user cannot read the analysis or the step
-		testHelper.setTestUser(Long.parseLong(testUserInfo.getIndividualGroup().getId()));
+		testHelper.setTestUser(testUserInfo.getId());
 		try {
 			testHelper.getEntity(step, null);
 			fail("expected exception");
@@ -217,7 +217,7 @@ public class StepControllerTest {
 		}
 		
 		// Add a public read ACL to the project object
-		testHelper.setTestUser(Long.parseLong(adminUserInfo.getIndividualGroup().getId()));
+		testHelper.setTestUser(adminUserInfo.getId());
 		AccessControlList projectAcl = testHelper.getEntityACL(project);
 		ResourceAccess ac = new ResourceAccess();
 		ac.setPrincipalId(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId());
@@ -227,7 +227,7 @@ public class StepControllerTest {
 		projectAcl = testHelper.updateEntityAcl(project, projectAcl);
 
 		// Ensure that another user can now read the step
-		testHelper.setTestUser(Long.parseLong(testUserInfo.getIndividualGroup().getId()));
+		testHelper.setTestUser(testUserInfo.getId());
 		step = testHelper.getEntity(step, null);
 
 	}

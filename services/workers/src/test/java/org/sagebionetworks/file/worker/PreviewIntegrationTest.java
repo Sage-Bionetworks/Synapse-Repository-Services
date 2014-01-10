@@ -96,7 +96,7 @@ public class PreviewIntegrationTest {
 		when(mockFiz.getContentType()).thenReturn(contentType);
 		when(mockFiz.getName()).thenReturn(fileName);
 		// Now upload the file.
-		return fileUploadManager.uploadFile(adminUserInfo.getIndividualGroup().getId(), mockFiz);
+		return fileUploadManager.uploadFile(adminUserInfo.getId().toString(), mockFiz);
 	}
 	
 	@After

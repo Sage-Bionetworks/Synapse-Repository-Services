@@ -211,7 +211,7 @@ public class AdministrationServiceImpl implements AdministrationService  {
 		UserInfo user = userManager.createUser(userInfo, nu, cred);
 		
 		EntityId id = new EntityId();
-		id.setId(user.getUser().getId().toString());
+		id.setId(user.getId().toString());
 		return id;
 	}
 	@Override

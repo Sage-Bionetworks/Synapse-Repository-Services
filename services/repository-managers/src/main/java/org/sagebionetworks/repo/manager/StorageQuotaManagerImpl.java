@@ -33,7 +33,7 @@ public class StorageQuotaManagerImpl implements StorageQuotaManager{
 			throw new UnauthorizedException("You must be an administrator to set storage quota.");
 		}
 
-		final String userId = user.getIndividualGroup().getId();
+		final String userId = user.getId().toString();
 		StorageQuota quota = storageQuotaDao.getQuota(userId);
 		if (quota == null) {
 			quota = new StorageQuota();
@@ -54,15 +54,15 @@ public class StorageQuotaManagerImpl implements StorageQuotaManager{
 		}
 
 		if (!currentUser.isAdmin()) {
-			String currUserId = currentUser.getIndividualGroup().getId();
-			String userId = user.getIndividualGroup().getId();
+			String currUserId = currentUser.getId().toString();
+			String userId = user.getId().toString();
 			if (!currUserId.equals(userId)) {
 				throw new UnauthorizedException("User " + currUserId
 						+ " cannot access storage quota of user" + userId + ".");
 			}
 		}
 
-		final String userId = user.getIndividualGroup().getId();
+		final String userId = user.getId().toString();
 		StorageQuota quota = storageQuotaDao.getQuota(userId);
 		if (quota == null) {
 			return DEFAULT_QUOTA;

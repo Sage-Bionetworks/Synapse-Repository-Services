@@ -41,7 +41,7 @@ public class StackStatusManagerImplTest {
 	@After
 	public void after() throws Exception {
 		UserInfo adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
-		userManager.deletePrincipal(adminUserInfo, Long.parseLong(testUserInfo.getIndividualGroup().getId()));
+		userManager.deletePrincipal(adminUserInfo, testUserInfo.getId());
 	}
 	
 	@Test

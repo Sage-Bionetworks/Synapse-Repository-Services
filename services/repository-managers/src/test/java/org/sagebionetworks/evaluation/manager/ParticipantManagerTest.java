@@ -23,7 +23,6 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.util.UserInfoUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -53,10 +52,8 @@ public class ParticipantManagerTest {
     @Before
     public void setUp() throws DatastoreException, NotFoundException, InvalidModelException {
 		// User Info
-    	ownerInfo = UserInfoUtils.createValidUserInfo(false);
-    	ownerInfo.getIndividualGroup().setId(ownerId);
-    	userInfo = UserInfoUtils.createValidUserInfo(false);
-    	userInfo.getIndividualGroup().setId(userId);
+    	ownerInfo = new UserInfo(false, ownerId);
+    	userInfo = new UserInfo(false, userId);
     	
     	// Competition
 		eval = new Evaluation();
@@ -80,7 +77,6 @@ public class ParticipantManagerTest {
     	mockUserManager = mock(UserManager.class);
     	mockEvaluationManager = mock(EvaluationManager.class);
     	when(mockParticipantDAO.get(eq(userId), eq(evalId))).thenReturn(part);
-    	when(mockUserManager.getDisplayName(eq(Long.parseLong(userId)))).thenReturn("foo");
     	when(mockEvaluationManager.getEvaluation(any(UserInfo.class), eq(evalId))).thenReturn(eval);
     	mockEvalPermissionsManager = mock(EvaluationPermissionsManager.class);
     	when(mockEvalPermissionsManager.hasAccess(any(UserInfo.class), eq(evalId), eq(ACCESS_TYPE.DELETE))).thenReturn(true);

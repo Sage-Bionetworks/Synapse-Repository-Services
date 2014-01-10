@@ -77,7 +77,7 @@ public class TrashManagerImpl implements TrashManager {
 
 		// Authorize
 		UserInfo.validateUserInfo(currentUser);
-		String userName = currentUser.getUser().getUserName();
+		String userName = currentUser.getId().toString();
 		if (!authorizationManager.canAccess(currentUser, nodeId, ObjectType.ENTITY, ACCESS_TYPE.DELETE)) {
 			throw new UnauthorizedException(userName + " lacks change access to the requested object.");
 		}
@@ -108,7 +108,7 @@ public class TrashManagerImpl implements TrashManager {
 		nodeManager.updateForTrashCan(currentUser, node, ChangeType.DELETE);
 
 		// Update the trash can table
-		String userGroupId = currentUser.getIndividualGroup().getId();
+		String userGroupId = currentUser.getId().toString();
 		trashCanDao.create(userGroupId, nodeId, oldNodeName, oldParentId);
 
 		// For all the descendants, we need to add them to the trash can table
@@ -139,7 +139,7 @@ public class TrashManagerImpl implements TrashManager {
 
 		// Make sure the node was indeed deleted by the user
 		UserInfo.validateUserInfo(currentUser);
-		String userId = currentUser.getIndividualGroup().getId();
+		String userId = currentUser.getId().toString();
 		boolean exists = trashCanDao.exists(userId, nodeId);
 		if (!exists) {
 			throw new NotFoundException("The node " + nodeId + " is not in the trash can.");
@@ -156,7 +156,7 @@ public class TrashManagerImpl implements TrashManager {
 		}
 
 		// Authorize on the new parent
-		String userName = currentUser.getUser().getUserName();
+		String userName = currentUser.getId().toString();
 		if (!authorizationManager.canAccess(currentUser, newParentId, ObjectType.ENTITY, ACCESS_TYPE.CREATE)) {
 			throw new UnauthorizedException(userName + " lacks change access to the requested object.");
 		}
@@ -168,7 +168,7 @@ public class TrashManagerImpl implements TrashManager {
 		nodeManager.updateForTrashCan(currentUser, node, ChangeType.CREATE);
 
 		// Update the trash can table
-		String userGroupId = currentUser.getIndividualGroup().getId();
+		String userGroupId = currentUser.getId().toString();
 		trashCanDao.delete(userGroupId, nodeId);
 
 		// For all the descendants, we need to remove them from the trash can table
@@ -204,8 +204,8 @@ public class TrashManagerImpl implements TrashManager {
 
 		UserInfo.validateUserInfo(currentUser);
 		UserInfo.validateUserInfo(user);
-		final String currUserId = currentUser.getIndividualGroup().getId();
-		final String userId = user.getIndividualGroup().getId();
+		final String currUserId = currentUser.getId().toString();
+		final String userId = user.getId().toString();
 		if (!currentUser.isAdmin()) {
 			if (currUserId == null || !currUserId.equals(userId)) {
 				throw new UnauthorizedException("Current user " + currUserId
@@ -236,7 +236,7 @@ public class TrashManagerImpl implements TrashManager {
 
 		UserInfo.validateUserInfo(currentUser);
 		if (!currentUser.isAdmin()) {
-			String currUserId = currentUser.getIndividualGroup().getId();
+			String currUserId = currentUser.getId().toString();
 			throw new UnauthorizedException("Current user " + currUserId
 					+ " does not have the permission.");
 		}
@@ -261,7 +261,7 @@ public class TrashManagerImpl implements TrashManager {
 
 		// Make sure the node was indeed deleted by the user
 		UserInfo.validateUserInfo(currentUser);
-		String userGroupId = currentUser.getIndividualGroup().getId();
+		String userGroupId = currentUser.getId().toString();
 		boolean exists = trashCanDao.exists(userGroupId, nodeId);
 		if (!exists) {
 			throw new NotFoundException("The node " + nodeId + " is not in the trash can.");
@@ -287,7 +287,7 @@ public class TrashManagerImpl implements TrashManager {
 		}
 
 		UserInfo.validateUserInfo(currentUser);
-		String userGroupId = currentUser.getIndividualGroup().getId();
+		String userGroupId = currentUser.getId().toString();
 
 		// For subtrees moved entirely into the trash can, we want to find the roots
 		// of these subtrees. Deleting the roots should delete the subtrees. We use
@@ -307,7 +307,7 @@ public class TrashManagerImpl implements TrashManager {
 
 		UserInfo.validateUserInfo(currentUser);
 		if (!currentUser.isAdmin()) {
-			String currUserId = currentUser.getIndividualGroup().getId();
+			String currUserId = currentUser.getId().toString();
 			throw new UnauthorizedException("Current user " + currUserId
 					+ " does not have the permission.");
 		}

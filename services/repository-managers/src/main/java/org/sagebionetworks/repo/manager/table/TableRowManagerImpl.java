@@ -39,7 +39,7 @@ public class TableRowManagerImpl implements TableRowManager {
 			throw new UnauthorizedException("User does not have permission to update TableEntity: "+tableId);
 		}
 		// Let the DAO do the rest of the work.
-		return tableRowTruthDao.appendRowSetToTable(user.getIndividualGroup().getId(), tableId, models, delta);
+		return tableRowTruthDao.appendRowSetToTable(user.getId().toString(), tableId, models, delta);
 	}
 	
 

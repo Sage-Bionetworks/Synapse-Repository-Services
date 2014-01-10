@@ -168,7 +168,7 @@ public class AccessApprovalControllerAutowiredTest {
 	public void testEntityAccessApprovalRoundTrip() throws Exception {
 		// create a new access approval
 		Map<String, String> extraParams = new HashMap<String, String>();
-		AccessApproval accessApproval = newToUAccessApproval(entityAccessRequirement.getId(), testUser.getIndividualGroup().getId());
+		AccessApproval accessApproval = newToUAccessApproval(entityAccessRequirement.getId(), testUser.getId().toString());
 		String entityId = project.getId();
 		AccessApproval clone = ServletTestHelper.createAccessApproval(
 				 dispatchServlet, accessApproval, userId, extraParams);
@@ -193,7 +193,7 @@ public class AccessApprovalControllerAutowiredTest {
 	public void testEvaluationAccessApprovalRoundTrip() throws Exception {
 		// create a new access approval
 		Map<String, String> extraParams = new HashMap<String, String>();
-		AccessApproval accessApproval = newToUAccessApproval(evaluationAccessRequirement.getId(), testUser.getIndividualGroup().getId());
+		AccessApproval accessApproval = newToUAccessApproval(evaluationAccessRequirement.getId(), testUser.getId().toString());
 		AccessApproval clone = ServletTestHelper.createAccessApproval(
 				 dispatchServlet, accessApproval, userId, extraParams);
 		assertNotNull(clone);

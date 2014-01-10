@@ -78,8 +78,7 @@ public class AuthenticationServiceImplTest {
 	@Test
 	public void testOpenIDAuthentication_newUser() throws Exception {
 		// This user does not exist yet
-		when(mockUserManager.doesPrincipalExist(eq(username))).thenReturn(false);
-		userInfo.getUser().setAgreesToTermsOfUse(false);
+		userInfo.setAgreesToTermsOfUse(false);
 		
 		OpenIDInfo info = new OpenIDInfo();
 		info.setEmail(username);
@@ -89,7 +88,7 @@ public class AuthenticationServiceImplTest {
 		
 		// The user should be created
 		verify(mockUserManager).createUser(any(NewUser.class));
-		verify(mockAuthenticationManager).authenticate(eq(username), eq((String) null));
+		verify(mockAuthenticationManager).authenticate(eq(userInfo.getId()), eq((String) null));
 	}
 	
 }

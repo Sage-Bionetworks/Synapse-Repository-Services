@@ -41,9 +41,7 @@ public class TableRowManagerImplTest {
 		mockTruthDao = Mockito.mock(TableRowTruthDAO.class);
 		mockAuthManager = Mockito.mock(AuthorizationManager.class);
 		manager = new TableRowManagerImpl();
-		user = new UserInfo(false);
-		user.setIndividualGroup(new UserGroup());
-		user.getIndividualGroup().setId("007");
+		user = new UserInfo(false, 7L);
 		models = TableModelUtils.createOneOfEachType();
 		tableId = "syn123";
 		List<Row> rows = TableModelUtils.createRows(models, 10);
@@ -70,7 +68,7 @@ public class TableRowManagerImplTest {
 	@Test
 	public void testAppendRowsHappy() throws DatastoreException, NotFoundException, IOException{
 		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(true);
-		when(mockTruthDao.appendRowSetToTable(user.getIndividualGroup().getId(), tableId, models, set)).thenReturn(refSet);
+		when(mockTruthDao.appendRowSetToTable(user.getId().toString(), tableId, models, set)).thenReturn(refSet);
 		RowReferenceSet results = manager.appendRows(user, tableId, models, set);
 		assertEquals(refSet, results);
 	}

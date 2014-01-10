@@ -333,13 +333,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	private String getDisplayNameForPrincipalId(long principalId) {
 		String displayName = "" + principalId;
 		try {
-			displayName = userManager.getDisplayName(principalId);
-		} catch (NotFoundException ex) {
-			// this is a best-effort attempt to fill in the display name and
-			// this will happen for the 'bootstrap' user and users we may delete
-			// from our system but are still the creators/modifiers of entities
-			log.debug("Unable to get display name for principal id: "
-					+ principalId + ",", ex);
+			displayName = userManager.getUserName(principalId);
 		} catch (Exception ex) {
 			log.warn("Unable to get display name for principal id: "
 					+ principalId + ",", ex);

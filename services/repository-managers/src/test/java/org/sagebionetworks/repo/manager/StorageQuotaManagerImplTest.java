@@ -20,15 +20,8 @@ public class StorageQuotaManagerImplTest {
 	@Test
 	public void testGetQuota() {
 
-		UserInfo currUser = mock(UserInfo.class);
-		when(currUser.isAdmin()).thenReturn(false);
-		UserGroup currUserGroup = mock(UserGroup.class);
-		when(currUserGroup.getId()).thenReturn("1");
-		when(currUser.getIndividualGroup()).thenReturn(currUserGroup);
-		UserInfo user = mock(UserInfo.class);
-		UserGroup userGroup = mock(UserGroup.class);
-		when(userGroup.getId()).thenReturn("1");
-		when(user.getIndividualGroup()).thenReturn(userGroup);
+		UserInfo currUser = new UserInfo(false, 1L);
+		UserInfo user = new UserInfo(false, 1L);
 
 		StorageQuotaDao quotaDao = mock(StorageQuotaDao.class);
 		StorageQuota quota = new StorageQuota();
@@ -43,15 +36,8 @@ public class StorageQuotaManagerImplTest {
 	@Test
 	public void testGetDefaultQuota() {
 
-		UserInfo currUser = mock(UserInfo.class);
-		when(currUser.isAdmin()).thenReturn(false);
-		UserGroup currUserGroup = mock(UserGroup.class);
-		when(currUserGroup.getId()).thenReturn("1");
-		when(currUser.getIndividualGroup()).thenReturn(currUserGroup);
-		UserInfo user = mock(UserInfo.class);
-		UserGroup userGroup = mock(UserGroup.class);
-		when(userGroup.getId()).thenReturn("1");
-		when(user.getIndividualGroup()).thenReturn(userGroup);
+		UserInfo currUser = new UserInfo(false, 1L);
+		UserInfo user = new UserInfo(false, 1L);
 
 		StorageQuotaDao quotaDao = mock(StorageQuotaDao.class);
 		when(quotaDao.getQuota("1")).thenReturn((StorageQuota)null);
@@ -64,15 +50,8 @@ public class StorageQuotaManagerImplTest {
 	@Test
 	public void testSetQuota() {
 
-		UserInfo currUser = mock(UserInfo.class);
-		when(currUser.isAdmin()).thenReturn(true);
-		UserGroup currUserGroup = mock(UserGroup.class);
-		when(currUserGroup.getId()).thenReturn("1");
-		when(currUser.getIndividualGroup()).thenReturn(currUserGroup);
-		UserInfo user = mock(UserInfo.class);
-		UserGroup userGroup = mock(UserGroup.class);
-		when(userGroup.getId()).thenReturn("1");
-		when(user.getIndividualGroup()).thenReturn(userGroup);
+		UserInfo currUser = new UserInfo(false, 1L);
+		UserInfo user = new UserInfo(false, 1L);
 
 		StorageQuotaDao quotaDao = mock(StorageQuotaDao.class);
 		StorageQuotaManager manager = new StorageQuotaManagerImpl();
@@ -92,15 +71,8 @@ public class StorageQuotaManagerImplTest {
 
 	@Test(expected=UnauthorizedException.class)
 	public void testGetQuotaUnauthorizedException2() {
-		UserInfo currUser = mock(UserInfo.class);
-		when(currUser.isAdmin()).thenReturn(false);
-		UserGroup currUserGroup = mock(UserGroup.class);
-		when(currUserGroup.getId()).thenReturn("1");
-		when(currUser.getIndividualGroup()).thenReturn(currUserGroup);
-		UserInfo user = mock(UserInfo.class);
-		UserGroup userGroup = mock(UserGroup.class);
-		when(userGroup.getId()).thenReturn("2");
-		when(user.getIndividualGroup()).thenReturn(userGroup);
+		UserInfo currUser = new UserInfo(false, 1L);
+		UserInfo user = new UserInfo(false, 2L);
 		StorageQuotaManager manager = new StorageQuotaManagerImpl();
 		manager.getQuotaForUser(currUser, user);
 	}

@@ -89,7 +89,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		String evalId = submission.getEvaluationId();
 		Evaluation eval = evaluationManager.getEvaluation(userInfo, evalId);
 		UserInfo.validateUserInfo(userInfo);
-		String principalId = userInfo.getIndividualGroup().getId();
+		String principalId = userInfo.getId().toString();
 		
 		submission.setUserId(principalId);
 		
@@ -240,7 +240,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	public QueryResults<Submission> getMyOwnSubmissionsByEvaluation(UserInfo userInfo,
 			String evalId, long limit, long offset)
 			throws DatastoreException, NotFoundException {
-		String principalId = userInfo.getIndividualGroup().getId();
+		String principalId = userInfo.getId().toString();
 		List<Submission> submissions = submissionDAO.getAllByEvaluationAndUser(evalId, principalId, limit, offset);
 		long totalNumberOfResults = submissionDAO.getCountByEvaluationAndUser(evalId, principalId);
 		QueryResults<Submission> res = new QueryResults<Submission>(submissions, totalNumberOfResults);
