@@ -208,7 +208,7 @@ public class MessageManagerImpl implements MessageManager {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public MessageToUser createMessage(UserInfo userInfo, MessageToUser dto) throws NotFoundException {
 		// Make sure the sender is correct
-		dto.setCreatedBy(userInfo.getIndividualGroup().getId());
+		dto.setCreatedBy(userInfo.getId().toString());
 		
 		if (!userInfo.isAdmin()) {
 			// Throttle message creation
@@ -501,7 +501,7 @@ public class MessageManagerImpl implements MessageManager {
 				// Handle the implicit group that contains all users
 				// Note: only admins can pass the authorization check to reach this
 				if (BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId().toString().equals(principalId)) {
-					for (UserGroup member : userGroupDAO.getAll()) {
+					for (UserGroup member : userGroupDAO.getAllPrincipals()) {
 						if (member.getIsIndividual()) {
 							recipients.add(member.getId());
 						}
@@ -633,7 +633,7 @@ public class MessageManagerImpl implements MessageManager {
 		}
 		messageBody = messageBody.replaceAll(TEMPLATE_KEY_DISPLAY_NAME, alias);
 		
-		messageBody = messageBody.replaceAll(TEMPLATE_KEY_USERNAME, recipient.getIndividualGroup().getName());
+		messageBody = messageBody.replaceAll(TEMPLATE_KEY_USERNAME, recipient.getUser().getDisplayName());
 		String webLink;
 		switch (originClient) {
 		case BRIDGE:
@@ -647,7 +647,7 @@ public class MessageManagerImpl implements MessageManager {
 		}
 		messageBody = messageBody.replaceAll(TEMPLATE_KEY_WEB_LINK, webLink);
 		
-		sendEmail(recipient.getIndividualGroup().getName(), subject, messageBody, false, DEFAULT_NOTIFICATION_DISPLAY_NAME);
+		sendEmail(recipient.getUser().getDisplayName(), subject, messageBody, false, DEFAULT_NOTIFICATION_DISPLAY_NAME);
 	}
 	
 	@Override
@@ -667,9 +667,9 @@ public class MessageManagerImpl implements MessageManager {
 		}
 		messageBody = messageBody.replaceAll(TEMPLATE_KEY_DISPLAY_NAME, alias);
 		
-		messageBody = messageBody.replaceAll(TEMPLATE_KEY_USERNAME, recipient.getIndividualGroup().getName());
+		messageBody = messageBody.replaceAll(TEMPLATE_KEY_USERNAME, recipient.getUser().getDisplayName());
 		
-		sendEmail(recipient.getIndividualGroup().getName(), subject, messageBody, false, DEFAULT_NOTIFICATION_DISPLAY_NAME);
+		sendEmail(recipient.getUser().getDisplayName(), subject, messageBody, false, DEFAULT_NOTIFICATION_DISPLAY_NAME);
 	}
 	
 	@Override
@@ -691,7 +691,7 @@ public class MessageManagerImpl implements MessageManager {
 		messageBody = messageBody.replaceAll(TEMPLATE_KEY_MESSAGE_ID, messageId);
 		messageBody = messageBody.replaceAll(TEMPLATE_KEY_DETAILS, "- " + StringUtils.join(errors, "\n- "));
 		
-		sendEmail(sender.getIndividualGroup().getName(), subject, messageBody, false, DEFAULT_NOTIFICATION_DISPLAY_NAME);
+		sendEmail(sender.getUser().getDisplayName(), subject, messageBody, false, DEFAULT_NOTIFICATION_DISPLAY_NAME);
 	}
 	
 	/**

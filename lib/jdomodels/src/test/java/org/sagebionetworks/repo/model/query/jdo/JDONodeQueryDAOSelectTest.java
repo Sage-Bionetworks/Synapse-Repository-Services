@@ -22,7 +22,6 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.NodeQueryResults;
-import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
@@ -69,9 +68,7 @@ public class JDONodeQueryDAOSelectTest {
 		mockUserInfo = Mockito.mock(UserInfo.class);
 		// All tests in the suite assume the user is an admin.
 		when(mockUserInfo.isAdmin()).thenReturn(true);
-		User mockUser = Mockito.mock(User.class);
-		when(mockUser.getUserName()).thenReturn("mockusername");
-		when(mockUserInfo.getUser()).thenReturn(mockUser);
+		when(mockUserInfo.getId()).thenReturn(123L);
 		
 	}
 	

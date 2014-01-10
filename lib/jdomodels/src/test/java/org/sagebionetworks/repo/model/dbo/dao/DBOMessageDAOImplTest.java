@@ -332,27 +332,26 @@ public class DBOMessageDAOImplTest {
 	
 	@Test
 	public void testCanSeeMessagesUsingFileHandle() throws Exception {
-		List<UserGroup> groups = new ArrayList<UserGroup>();
+		Set<Long> groups = new HashSet<Long>();
 		
 		// An empty collection should not see anything
 		assertFalse(messageDAO.canSeeMessagesUsingFileHandle(groups, fileHandleId));
 		
 		// Non existent users should not see anything
-		groups.add(new UserGroup());
-		groups.get(0).setId("-1");
+		groups.add(-1L);
 		assertFalse(messageDAO.canSeeMessagesUsingFileHandle(groups, fileHandleId));
 		
 		// The malicious user has been sent a message with the file handle
-		groups.add(maliciousUser);
+		groups.add(Long.parseLong(maliciousUser.getId()));
 		assertTrue(messageDAO.canSeeMessagesUsingFileHandle(groups, fileHandleId));
 		
 		// So has the malicious group
 		groups.clear();
-		groups.add(maliciousGroup);
+		groups.add(Long.parseLong(maliciousGroup.getId()));
 		assertTrue(messageDAO.canSeeMessagesUsingFileHandle(groups, fileHandleId));
 		
 		// Having both in the list should work too
-		groups.add(maliciousUser);
+		groups.add(Long.parseLong(maliciousUser.getId()));
 		assertTrue(messageDAO.canSeeMessagesUsingFileHandle(groups, fileHandleId));
 
 		// Shouldn't be able to see an unrelated filehandle

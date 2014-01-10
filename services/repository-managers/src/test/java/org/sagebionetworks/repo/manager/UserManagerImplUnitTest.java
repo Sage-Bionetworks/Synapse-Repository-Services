@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
+import static org.junit.Assert.*;
+import static org.mockito.Matchers.*;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -44,11 +44,11 @@ public class UserManagerImplUnitTest {
 		mockAuthDAO = mock(AuthenticationDAO.class);
 		basicDAO = mock(DBOBasicDao.class);
 
-		when(mockUserGroupDAO.create(any(UserGroup.class))).thenReturn(mockId);
+		when(mockUserGroupDAO.create(any(UserGroup.class))).thenReturn(Long.parseLong(mockId));
 		mockUserGroup = new UserGroup();
 		mockUserGroup.setId(mockId);
 		mockUserGroup.setIsIndividual(true);
-		when(mockUserGroupDAO.get(anyString())).thenReturn(mockUserGroup);
+		when(mockUserGroupDAO.get(anyLong())).thenReturn(mockUserGroup);
 		
 		mockUserProfile = new UserProfile();
 		when(mockUserProfileDAO.get(anyString())).thenReturn(mockUserProfile);
@@ -62,12 +62,11 @@ public class UserManagerImplUnitTest {
 	@Test
 	public void testCreateUserAdmin() throws Exception {
 		// Call with an admin
-		userManager.createUser(admin, null, null, null);
-		verify(mockUserGroupDAO).doesPrincipalExist(anyString());
+		userManager.createUser(admin, null, null);
 		
 		// Call with a non admin
 		try {
-			userManager.createUser(notAdmin, null, null, null);
+			userManager.createUser(notAdmin, null, null);
 			fail();
 		} catch (UnauthorizedException e) { }
 	}

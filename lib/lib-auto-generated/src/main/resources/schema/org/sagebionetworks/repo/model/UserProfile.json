@@ -51,7 +51,23 @@
 		"email": {
 			"type": "string",
 			"title": "Email",
-			"description": "This person's email address"
+			"description": "This is deprecated as users can have more than one email. See emails "
+		},
+		"emails": {
+			"type": "array",
+			"title": "Emails",
+			"description": "The list of user email addresses registered to this user.",
+			"items": {
+				"type": "string"
+			}
+		},
+		"openIds": {
+			"type": "array",
+			"title": "OpenIDs",
+			"description": "The list of OpenIds bound to this user's account.",
+			"items": {
+				"type": "string"
+			}
 		},
 		"userName": {
 			"type": "string",

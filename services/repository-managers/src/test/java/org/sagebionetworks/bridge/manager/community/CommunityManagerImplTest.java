@@ -9,6 +9,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.HashSet;
+
 import org.apache.commons.fileupload.FileItemStream;
 import org.junit.Before;
 import org.junit.Test;
@@ -34,7 +36,6 @@ import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMembershipStatus;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -91,25 +92,9 @@ public class CommunityManagerImplTest extends MockitoTestBase {
 	public void doBefore() {
 		initMockito();
 
-		validUser = new UserInfo(false);
-		UserGroup individualGroup = new UserGroup();
-		individualGroup.setId(USER_ID);
-		individualGroup.setIsIndividual(true);
-		User user = new User();
-		user.setUserId(USER_ID);
-		validUser.setUser(user);
-		validUser.setIndividualGroup(individualGroup);
-		validUser.setGroups(Lists.newArrayList(individualGroup));
+		validUser = new UserInfo(false, USER_ID);
 
-		otherUser = new UserInfo(false);
-		UserGroup individualGroup2 = new UserGroup();
-		individualGroup2.setId(USER_ID2);
-		individualGroup2.setIsIndividual(true);
-		User user2 = new User();
-		user2.setUserId(USER_ID2);
-		otherUser.setUser(user2);
-		otherUser.setIndividualGroup(individualGroup2);
-		validUser.setGroups(Lists.newArrayList(individualGroup2));
+		otherUser = new UserInfo(false, USER_ID2);
 
 		testCommunity = new Community();
 		testCommunity.setId(COMMUNITY_ID);
@@ -197,11 +182,7 @@ public class CommunityManagerImplTest extends MockitoTestBase {
 
 	@Test(expected = UnauthorizedException.class)
 	public void testCreateFailAnonymous() throws Exception {
-		UserInfo anonymousUser = new UserInfo(false);
-		UserGroup ug = new UserGroup();
-		ug.setId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString());
-		anonymousUser.setIndividualGroup(ug);
-
+		UserInfo anonymousUser = new UserInfo(false, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		Community community = new Community();
 		communityManager.create(anonymousUser, community);
 	}

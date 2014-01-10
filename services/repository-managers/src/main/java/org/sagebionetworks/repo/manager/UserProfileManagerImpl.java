@@ -1,7 +1,10 @@
 package org.sagebionetworks.repo.manager;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
+import org.sagebionetworks.repo.manager.principal.UserProfileUtillity;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Favorite;
@@ -10,13 +13,14 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
+import org.sagebionetworks.repo.model.principal.PrincipalAlias;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
@@ -24,15 +28,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 public class UserProfileManagerImpl implements UserProfileManager {
 	
-	@Autowired
-	private UserGroupDAO userGroupDAO;
-	
+
 	@Autowired
 	private UserProfileDAO userProfileDAO;
-	
-	@Autowired
-	private UserManager userManager;
-	
+		
 	@Autowired
 	private S3TokenManager s3TokenManager;
 	
@@ -41,6 +40,9 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	
 	@Autowired
 	private FavoriteDAO favoriteDAO;
+	
+	@Autowired
+	private PrincipalAliasDAO principalAliasDAO;
 	
 	public UserProfileManagerImpl() {
 	}
@@ -52,7 +54,6 @@ public class UserProfileManagerImpl implements UserProfileManager {
 			S3TokenManager s3TokenManager, FavoriteDAO favoriteDAO, AttachmentManager attachmentManager) {
 		super();
 		this.userProfileDAO = userProfileDAO;
-		this.userGroupDAO = userGroupDAO;
 		this.s3TokenManager = s3TokenManager;
 		this.favoriteDAO = favoriteDAO;
 		this.attachmentManager = attachmentManager;
@@ -63,13 +64,11 @@ public class UserProfileManagerImpl implements UserProfileManager {
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		if(userInfo == null) throw new IllegalArgumentException("userInfo can not be null");
 		if(ownerId == null) throw new IllegalArgumentException("ownerId can not be null");
-		
 		UserProfile userProfile = userProfileDAO.get(ownerId);
-		UserGroup userGroup = userGroupDAO.get(ownerId);
-		if (userGroup != null) {
-			userProfile.setEmail(userGroup.getName());
-			userProfile.setUserName(userGroup.getName());
-		}
+		// Lookup all of the alias used by this user.
+		List<PrincipalAlias> aliases = this.principalAliasDAO.listPrincipalAliases(Long.parseLong(ownerId));
+		// Merge the aliases with the profile
+		UserProfileUtillity.mergeProfileWithAliases(userProfile, aliases);
 		return userProfile;
 	}
 	
@@ -77,13 +76,14 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	public QueryResults<UserProfile> getInRange(UserInfo userInfo, long startIncl, long endExcl, boolean includeEmail) throws DatastoreException, NotFoundException{
 		List<UserProfile> userProfiles = userProfileDAO.getInRange(startIncl, endExcl);
 		long totalNumberOfResults = userProfileDAO.getCount();
-		for (UserProfile userProfile : userProfiles) {
-			if (includeEmail) {
-				UserGroup userGroup = userGroupDAO.get(userProfile.getOwnerId());
-				if (userGroup != null)
-					userProfile.setEmail(userGroup.getName());
-			}
-		}
+		// Get set of principal IDs for this page
+		Set<Long> principalIds = UserProfileUtillity.getPrincipalIds(userProfiles);
+		// Now fetch all of the aliases for these users
+		List<PrincipalAlias> aliases = this.principalAliasDAO.listPrincipalAliases(principalIds);
+		// group by principalId
+		Map<Long, List<PrincipalAlias>> groupedAliases = UserProfileUtillity.groupAlieaseByPrincipal(aliases);
+		// Put the two parts together.
+		UserProfileUtillity.mergeProfileWithAliases(userProfiles, groupedAliases);
 		QueryResults<UserProfile> result = new QueryResults<UserProfile>(userProfiles, (int)totalNumberOfResults);
 		return result;
 	}
@@ -104,15 +104,8 @@ public class UserProfileManagerImpl implements UserProfileManager {
 		UserProfile userProfile = userProfileDAO.get(updated.getOwnerId());
 		boolean canUpdate = UserProfileManagerUtils.isOwnerOrAdmin(userInfo, userProfile.getOwnerId());
 		if (!canUpdate) throw new UnauthorizedException("Only owner or administrator may update UserProfile.");
-		String oldEmail = userInfo.getIndividualGroup().getName();
 		attachmentManager.checkAttachmentsForPreviews(updated);
-		UserProfile returnProfile = userProfileDAO.update(updated);
-		
-		//and update email if it is also set (and is different)
-		if (updated.getEmail() != null && !updated.getEmail().equals(oldEmail)) {
-			userManager.updateEmail(userInfo, updated.getEmail());
-		}
-		
+		UserProfile returnProfile = userProfileDAO.update(updated);		
 		return returnProfile;
 	}
 

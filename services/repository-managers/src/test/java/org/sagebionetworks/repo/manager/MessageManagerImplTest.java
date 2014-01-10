@@ -42,6 +42,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
+import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -136,11 +137,17 @@ public class MessageManagerImplTest {
 		cred.setSecretKey("");
 		
 		// Need two users for this test
-		testUser = userManager.createUser(adminUserInfo, UUID.randomUUID().toString() + "@test.com", new UserProfile(), cred);
-		otherTestUser = userManager.createUser(adminUserInfo, UUID.randomUUID().toString() + "@test.com", new UserProfile(), cred);
+		NewUser nu = new NewUser();
+		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
+		nu.setUserName(UUID.randomUUID().toString());
+		testUser = userManager.createUser(adminUserInfo, nu, cred);
+		nu = new NewUser();
+		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
+		nu.setUserName(UUID.randomUUID().toString());
+		otherTestUser = userManager.createUser(adminUserInfo,nu, cred);
 
-		final String testUserId = testUser.getIndividualGroup().getId();
-		final String otherTestUserId = otherTestUser.getIndividualGroup().getId();
+		final String testUserId = testUser.getId().toString();
+		final String otherTestUserId = otherTestUser.getId().toString();
 		
 		// Create a team
 		testTeam = new Team();
@@ -149,7 +156,7 @@ public class MessageManagerImplTest {
 		final String testTeamId = testTeam.getId();
 		
 		// This user info needs to be updated to contain the team
-		testUser = userManager.getUserInfo(Long.parseLong(testUser.getIndividualGroup().getId()));
+		testUser = userManager.getUserInfo(testUser.getId());
 		
 		// We need a file handle to satisfy a foreign key constraint
 		// But it doesn't need to point to an actual file
@@ -204,7 +211,7 @@ public class MessageManagerImplTest {
 		dto = messageManager.createMessage(userInfo, dto);
 		assertNotNull(dto.getId());
 		cleanup.add(dto.getId());
-		assertEquals(userInfo.getIndividualGroup().getId(), dto.getCreatedBy());
+		assertEquals(userInfo.getId().toString(), dto.getCreatedBy());
 		assertNotNull(dto.getCreatedOn());
 		assertNotNull(dto.getInReplyToRoot());
 		
@@ -247,15 +254,15 @@ public class MessageManagerImplTest {
 		}
 		
 		// Reset the test user's notification settings to the default
-		UserProfile profile = userProfileDAO.get(testUser.getIndividualGroup().getId());
+		UserProfile profile = userProfileDAO.get(testUser.getId().toString());
 		profile.setNotificationSettings(new Settings());
 		userProfileDAO.update(profile);
 		
 		// Restore the old fileHandleManager
 		messageManager.setFileHandleManager(fileHandleManager);
 		
-		userManager.deletePrincipal(adminUserInfo, Long.parseLong(testUser.getIndividualGroup().getId()));
-		userManager.deletePrincipal(adminUserInfo, Long.parseLong(otherTestUser.getIndividualGroup().getId()));
+		userManager.deletePrincipal(adminUserInfo, testUser.getId());
+		userManager.deletePrincipal(adminUserInfo, otherTestUser.getId());
 	}
 	
 	@SuppressWarnings("serial")
@@ -272,7 +279,7 @@ public class MessageManagerImplTest {
 		assertEquals(otherToGroup, messageManager.getMessage(testUser, otherToGroup.getId()));
 		
 		// User should not be able to see a message that the other user sends to itself
-		MessageToUser invisible = createMessage(otherTestUser, "This is a personal reminder", new HashSet<String>() {{add(otherTestUser.getIndividualGroup().getId());}}, null);
+		MessageToUser invisible = createMessage(otherTestUser, "This is a personal reminder", new HashSet<String>() {{add(otherTestUser.getId().toString());}}, null);
 		try {
 			messageManager.getMessage(testUser, invisible.getId());
 			fail();
@@ -285,7 +292,7 @@ public class MessageManagerImplTest {
 	@Test
 	public void testForwardMessage() throws Exception {
 		// Forward a message
-		final String testUserId = testUser.getIndividualGroup().getId();
+		final String testUserId = testUser.getId().toString();
 		MessageRecipientSet recipients = new MessageRecipientSet();
 		recipients.setRecipients(new HashSet<String>() {{add(testUserId);}});
 		MessageToUser forwarded = messageManager.forwardMessage(testUser, userToOther.getId(), recipients);
@@ -423,7 +430,7 @@ public class MessageManagerImplTest {
 	public void testSendMessage_AfterJoinTeam() throws Exception {
 		// Join the team
 		MembershipRqstSubmission request = new MembershipRqstSubmission();
-		request.setUserId(otherTestUser.getIndividualGroup().getId());
+		request.setUserId(otherTestUser.getId().toString());
 		request.setTeamId(testTeam.getId());
 		membershipRequestManager.create(otherTestUser, request);
 		teamManager.addMember(testUser, testTeam.getId(), otherTestUser);
@@ -498,7 +505,7 @@ public class MessageManagerImplTest {
 	@SuppressWarnings("serial")
 	@Test
 	public void testSendMessageSettings() throws Exception {
-		Set<String> testUserId = new HashSet<String>() {{add(testUser.getIndividualGroup().getId());}};
+		Set<String> testUserId = new HashSet<String>() {{add(testUser.getId().toString());}};
 		
 		// With default settings, the message should appear in the user's inbox
 		MessageToUser message = createMessage(otherTestUser, "message1", testUserId, null);
@@ -507,7 +514,7 @@ public class MessageManagerImplTest {
 		assertEquals(message, inbox.getResults().get(0).getMessage());
 		
 		// Emails are sent by default
-		UserProfile profile = userProfileDAO.get(testUser.getIndividualGroup().getId());
+		UserProfile profile = userProfileDAO.get(testUser.getId().toString());
 		profile.setNotificationSettings(new Settings());
 		profile.getNotificationSettings().setMarkEmailedMessagesAsRead(true);
 		profile = userProfileDAO.update(profile);
@@ -535,13 +542,13 @@ public class MessageManagerImplTest {
 	@Test
 	public void testSendTemplateEmail() throws Exception {
 		// Send an email to the test user
-		messageManager.sendPasswordResetEmail(testUser.getIndividualGroup().getId(), DomainType.BRIDGE, "Blah?");
+		messageManager.sendPasswordResetEmail(testUser.getId().toString(), DomainType.BRIDGE, "Blah?");
 		
 		// Try another variation
-		messageManager.sendPasswordResetEmail(testUser.getIndividualGroup().getId(), DomainType.SYNAPSE, "Blah?");
+		messageManager.sendPasswordResetEmail(testUser.getId().toString(), DomainType.SYNAPSE, "Blah?");
 		
 		// Try the other one
-		messageManager.sendWelcomeEmail(testUser.getIndividualGroup().getId(), DomainType.SYNAPSE);
+		messageManager.sendWelcomeEmail(testUser.getId().toString(), DomainType.SYNAPSE);
 		
 		// Try the delivery failure email
 		List<String> mockErrors = new ArrayList<String>();
@@ -549,7 +556,7 @@ public class MessageManagerImplTest {
 		messageManager.sendDeliveryFailureEmail(userToOther.getId(), mockErrors);
 		
 		// Try another variation
-		messageManager.sendWelcomeEmail(testUser.getIndividualGroup().getId(), DomainType.BRIDGE);
+		messageManager.sendWelcomeEmail(testUser.getId().toString(), DomainType.BRIDGE);
 	}
 	
 	@Test
@@ -576,7 +583,7 @@ public class MessageManagerImplTest {
 		AccessControlList acl = entityPermissionsManager.getACL(nodeId, adminUserInfo);
 		acl.setResourceAccess(new HashSet<ResourceAccess>());
 		ResourceAccess ra = new ResourceAccess();
-		ra.setPrincipalId(Long.parseLong(otherTestUser.getIndividualGroup().getId()));
+		ra.setPrincipalId(otherTestUser.getId());
 		ra.setAccessType(new HashSet<ACCESS_TYPE>());
 		ra.getAccessType().add(ACCESS_TYPE.CHANGE_PERMISSIONS);
 		acl.getResourceAccess().add(ra);
@@ -596,7 +603,7 @@ public class MessageManagerImplTest {
 		// Have the admin give sharing permission back to the creator
 		acl = entityPermissionsManager.getACL(nodeId, adminUserInfo);
 		ra = new ResourceAccess();
-		ra.setPrincipalId(Long.parseLong(testUser.getIndividualGroup().getId()));
+		ra.setPrincipalId(testUser.getId());
 		ra.setAccessType(new HashSet<ACCESS_TYPE>());
 		ra.getAccessType().add(ACCESS_TYPE.CHANGE_PERMISSIONS);
 		acl.getResourceAccess().add(ra);

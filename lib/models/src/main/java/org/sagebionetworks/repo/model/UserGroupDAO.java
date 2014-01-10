@@ -112,4 +112,5 @@ public interface UserGroupDAO {
 	 */
 	public List<UserGroup> getAllPrincipals();
 
+
 }

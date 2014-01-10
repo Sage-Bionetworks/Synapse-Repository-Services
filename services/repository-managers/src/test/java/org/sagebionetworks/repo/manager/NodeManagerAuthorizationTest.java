@@ -19,7 +19,6 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
@@ -39,7 +38,6 @@ public class NodeManagerAuthorizationTest {
 	private Node mockNode;
 	private Annotations mockAnnotations;
 	private NamedAnnotations mockNamed;
-	private User mockUser;
 	private UserGroup mockUserGroup;
 	private UserInfo mockUserInfo;	
 	private EntityBootstrapper mockEntityBootstrapper;
@@ -65,16 +63,11 @@ public class NodeManagerAuthorizationTest {
 		when(mockAnnotations.getEtag()).thenReturn("12");
 		mockNamed = Mockito.mock(NamedAnnotations.class);
 		when(mockNamed.getEtag()).thenReturn("12");
-		// Mock user
-		mockUser = Mockito.mock(User.class);
-		when(mockUser.getId()).thenReturn("12");
-		when(mockUser.getUserId()).thenReturn("Max");
+
 		// UserGroup
 		mockUserGroup = Mockito.mock(UserGroup.class);
 		when(mockUserGroup.getId()).thenReturn("123");
-		mockUserInfo = Mockito.mock(UserInfo.class);
-		when(mockUserInfo.getUser()).thenReturn(mockUser);
-		when(mockUserInfo.getIndividualGroup()).thenReturn(mockUserGroup);
+		mockUserInfo = new UserInfo(false, 123L);
 		
 	}
 	
@@ -132,7 +125,7 @@ public class NodeManagerAuthorizationTest {
 			fail("Should have failed");
 		}catch(UnauthorizedException e){
 			assertTrue("The exception message should contain the file handle id",e.getMessage().indexOf(fileHandleId) > 0);
-			assertTrue("The exception message should contain the user's id",e.getMessage().indexOf(mockUserInfo.getIndividualGroup().getId()) > 0);
+			assertTrue("The exception message should contain the user's id",e.getMessage().indexOf(mockUserInfo.getId().toString()) > 0);
 		}
 	}
 	

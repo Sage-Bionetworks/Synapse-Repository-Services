@@ -39,6 +39,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 public class DBOUserGroupDAOImpl implements UserGroupDAO {
 
+	private static final String SQL_SELECT_ALL = "SELECT * FROM "+TABLE_USER_GROUP;
+
 	@Autowired
 	private DBOBasicDao basicDao;
 	
@@ -104,6 +106,14 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(IS_INDIVIDUAL_PARAM_NAME, isIndividual);		
 		List<DBOUserGroup> dbos = simpleJdbcTemplate.query(SELECT_BY_IS_INDIVID_SQL, userGroupRowMapper, param);
+		List<UserGroup> dtos = new ArrayList<UserGroup>();
+		UserGroupUtils.copyDboToDto(dbos, dtos);
+		return dtos;
+	}
+	
+	@Override
+	public List<UserGroup> getAllPrincipals() {
+		List<DBOUserGroup> dbos = simpleJdbcTemplate.query(SQL_SELECT_ALL, userGroupRowMapper);
 		List<UserGroup> dtos = new ArrayList<UserGroup>();
 		UserGroupUtils.copyDboToDto(dbos, dtos);
 		return dtos;
@@ -292,4 +302,5 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 		param.addValue(ETAG_PARAM_NAME, UUID.randomUUID().toString());
 		simpleJdbcTemplate.update(UPDATE_ETAG_LIST, param);
 	}
+
 }

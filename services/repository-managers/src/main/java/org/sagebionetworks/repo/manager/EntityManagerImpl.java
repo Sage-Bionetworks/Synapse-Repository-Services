@@ -159,9 +159,8 @@ public class EntityManagerImpl implements EntityManager {
 				annos.getPrimaryAnnotations(), node.getReferences());
 		// Populate the entity using the node
 		NodeTranslationUtils.updateObjectFromNode(newEntity, node);
-		newEntity.setCreatedBy(userManager.getDisplayName(node
-				.getCreatedByPrincipalId()));
-		newEntity.setModifiedBy(userManager.getDisplayName(node
+		newEntity.setCreatedBy(userManager.getUserName(node.getCreatedByPrincipalId()));
+		newEntity.setModifiedBy(userManager.getUserName(node
 				.getModifiedByPrincipalId()));
 		EntityWithAnnotations<T> ewa = new EntityWithAnnotations<T>();
 		ewa.setEntity(newEntity);
@@ -449,7 +448,7 @@ public class EntityManagerImpl implements EntityManager {
 		// pass through
 		QueryResults<VersionInfo> versionsOfEntity = nodeManager.getVersionsOfEntity(userInfo, entityId, offset, limit);
 		for (VersionInfo version : versionsOfEntity.getResults()) {
-			version.setModifiedBy(userManager.getDisplayName(Long.parseLong(version.getModifiedByPrincipalId())));
+			version.setModifiedBy(userManager.getUserName(Long.parseLong(version.getModifiedByPrincipalId())));
 		}
 		return versionsOfEntity;
 	}

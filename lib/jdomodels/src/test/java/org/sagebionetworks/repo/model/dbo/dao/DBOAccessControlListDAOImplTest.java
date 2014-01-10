@@ -178,8 +178,8 @@ public class DBOAccessControlListDAOImplTest {
 	 */
 	@Test
 	public void testCanAccess() throws Exception {
-		Collection<UserGroup> gs = new ArrayList<UserGroup>();
-		gs.add(group);
+		Set<Long> gs = new HashSet<Long>();
+		gs.add(Long.parseLong(group.getId()));
 		
 		// as expressed in 'setUp', 'group' has 'READ' access to 'node'
 		assertTrue(aclDAO.canAccess(gs, node.getId(), ACCESS_TYPE.READ));
@@ -191,7 +191,7 @@ public class DBOAccessControlListDAOImplTest {
 		UserGroup sham = new UserGroup();
 		sham.setId("-34876387468764"); // dummy
 		gs.clear();
-		gs.add(sham);
+		gs.add(Long.parseLong(sham.getId()));
 		assertFalse(aclDAO.canAccess(gs, node.getId(), ACCESS_TYPE.READ));
 	}
 
@@ -240,8 +240,8 @@ public class DBOAccessControlListDAOImplTest {
 		String etagBeforeUpdate = acl.getEtag();
 		aclDAO.update(acl);
 		
-		Collection<UserGroup> gs = new ArrayList<UserGroup>();
-		gs.add(group);
+		Set<Long> gs = new HashSet<Long>();
+		gs.add(Long.parseLong(group.getId()));
 		assertFalse(aclDAO.canAccess(gs, node.getId(), ACCESS_TYPE.READ));
 		assertTrue(aclDAO.canAccess(gs, node.getId(), ACCESS_TYPE.UPDATE));
 		assertTrue(aclDAO.canAccess(gs, node.getId(), ACCESS_TYPE.CREATE));
@@ -282,10 +282,10 @@ public class DBOAccessControlListDAOImplTest {
 		acl.getResourceAccess().add(ra2);
 		aclDAO.update(acl);
 		
-		Collection<UserGroup> gs = new ArrayList<UserGroup>();
-		gs.add(group);
-		Collection<UserGroup> gs2 = new ArrayList<UserGroup>();
-		gs2.add(group2);
+		Set<Long> gs = new HashSet<Long>();
+		gs.add(Long.parseLong(group.getId()));
+		Set<Long> gs2 = new HashSet<Long>();
+		gs2.add(Long.parseLong(group2.getId()));
 		assertFalse(aclDAO.canAccess(gs, node.getId(), ACCESS_TYPE.READ));
 		assertTrue(aclDAO.canAccess(gs2, node.getId(), ACCESS_TYPE.READ));
 		

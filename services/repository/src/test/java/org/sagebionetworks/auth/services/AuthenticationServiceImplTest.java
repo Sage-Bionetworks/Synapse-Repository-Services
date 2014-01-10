@@ -16,7 +16,6 @@ import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.TermsOfUseException;
-import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.LoginCredentials;
@@ -45,16 +44,10 @@ public class AuthenticationServiceImplTest {
 		credential.setPassword(password);
 		
 		userInfo = new UserInfo(false);
-		userInfo.setUser(new User());
-		userInfo.getUser().setDisplayName(username);
-		userInfo.getUser().setId("" + userId);
-		userInfo.setIndividualGroup(new UserGroup());
-		userInfo.getIndividualGroup().setName(username);
-		userInfo.getIndividualGroup().setId("" + userId);
+		userInfo.setId(userId);
 		
 		mockUserManager = Mockito.mock(UserManager.class);
 		when(mockUserManager.getUserInfo(eq(userId))).thenReturn(userInfo);
-		when(mockUserManager.getGroupName(anyString())).thenReturn(username);
 		when(mockUserManager.createUser(any(NewUser.class))).thenReturn(userId);
 		
 		mockAuthenticationManager = Mockito.mock(AuthenticationManager.class);
@@ -70,7 +63,7 @@ public class AuthenticationServiceImplTest {
 		when(mockAuthenticationManager.checkSessionToken(eq(sessionToken), eq(true))).thenThrow(new TermsOfUseException());
 		
 		// A boolean flag should let us get past this call
-		userInfo.getUser().setAgreesToTermsOfUse(false);
+		userInfo.setAgreesToTermsOfUse(false);
 		service.revalidate(sessionToken, false);
 
 		// But it should default to true

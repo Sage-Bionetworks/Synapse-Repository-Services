@@ -44,7 +44,6 @@ import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.TeamMember;
 import org.sagebionetworks.repo.model.TeamMembershipStatus;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserGroupHeader;
@@ -99,14 +98,7 @@ public class TeamManagerImplTest {
 	}
 	
 	private static UserInfo createUserInfo(boolean isAdmin, String principalId) {
-		UserInfo userInfo = new UserInfo(isAdmin);
-		UserGroup individualGroup = new UserGroup();
-		individualGroup.setId(principalId);
-		User user = new User();
-		user.setUserId(principalId);
-		userInfo.setUser(user);
-		userInfo.setIndividualGroup(individualGroup);
-		userInfo.setGroups(Arrays.asList(new UserGroup[]{individualGroup}));
+		UserInfo userInfo = new UserInfo(isAdmin, principalId);
 		return userInfo;
 	}
 	
@@ -186,9 +178,9 @@ public class TeamManagerImplTest {
 		Team team = new Team();
 		Date now = new Date();
 		TeamManagerImpl.populateCreationFields(userInfo, team, now);
-		assertEquals(userInfo.getIndividualGroup().getId(), team.getCreatedBy());
+		assertEquals(userInfo.getId().toString(), team.getCreatedBy());
 		assertEquals(now, team.getCreatedOn());
-		assertEquals(userInfo.getIndividualGroup().getId(), team.getModifiedBy());
+		assertEquals(userInfo.getId().toString(), team.getModifiedBy());
 		assertEquals(now, team.getModifiedOn());
 	}
 	
@@ -200,7 +192,7 @@ public class TeamManagerImplTest {
 		TeamManagerImpl.populateUpdateFields(userInfo, team, now);
 		assertEquals(null, team.getCreatedBy());
 		assertEquals(null, team.getCreatedOn());
-		assertEquals(userInfo.getIndividualGroup().getId(), team.getModifiedBy());
+		assertEquals(userInfo.getId().toString(), team.getModifiedBy());
 		assertEquals(now, team.getModifiedOn());
 	}
 	
@@ -247,7 +239,7 @@ public class TeamManagerImplTest {
 		Team team = createTeam(null, "name", "description", null, "101", null, null, null, null);
 		when(mockTeamDAO.create(team)).thenReturn(team);
 		// mock userGroupDAO
-		when(mockUserGroupDAO.create(any(UserGroup.class))).thenReturn(TEAM_ID);
+		when(mockUserGroupDAO.create(any(UserGroup.class))).thenReturn(Long.parseLong(TEAM_ID));
 		Team created = teamManagerImpl.create(userInfo,team);
 		assertEquals(team, created);
 		// verify that group, acl were created
@@ -276,7 +268,6 @@ public class TeamManagerImplTest {
 	public void testCreateExistingTeam() throws Exception {
 		// not allowed to specify ID of team being created
 		Team team = createTeam(null, "name", "description", null, "101", null, null, null, null);
-		when(mockUserManager.doesPrincipalExist("name")).thenReturn(true);
 		when(mockTeamDAO.create(team)).thenReturn(team);
 		teamManagerImpl.create(userInfo,team);
 	}
@@ -359,8 +350,8 @@ public class TeamManagerImplTest {
 		accessTypes.add(ACCESS_TYPE.DOWNLOAD);
 		accessTypes.add(ACCESS_TYPE.PARTICIPATE);
 		Set<Long> principalIds = new HashSet<Long>();
-		for (UserGroup ug : userInfo.getGroups()) {
-			principalIds.add(Long.parseLong(ug.getId()));
+		for (Long id : userInfo.getGroups()) {
+			principalIds.add(id);
 		}
 		when(mockAccessRequirementDAO.unmetAccessRequirements(rod, principalIds, accessTypes)).thenReturn(unmetAccessRequirementIds);		
 	}

@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.principal;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.principal.AliasType;
@@ -46,6 +47,12 @@ public interface PrincipalAliasDAO {
 	 */
 	public List<PrincipalAlias> listPrincipalAliases(Long principalId);
 	
+	/**
+	 * Given a set of principals ID get all aliases.
+	 * @param principalIds
+	 * @return
+	 */
+	public List<PrincipalAlias> listPrincipalAliases(Set<Long> principalIds);
 	
 	/**
 	 * Get all aliases for a principal and type.

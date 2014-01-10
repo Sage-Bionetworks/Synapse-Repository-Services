@@ -689,7 +689,6 @@ public class IT500SynapseJavaClient {
 		assertTrue(groups.getResults().size()>0);
 		for (UserGroup ug : groups.getResults()) {
 			assertNotNull(ug.getId());
-			assertNotNull(ug.getName());
 		}
 	}
 

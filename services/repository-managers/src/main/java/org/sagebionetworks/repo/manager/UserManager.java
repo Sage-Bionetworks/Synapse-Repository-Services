@@ -57,4 +57,5 @@ public interface UserManager {
 	 * @return
 	 */
 	public String getUserName(long userId);
+	
 }

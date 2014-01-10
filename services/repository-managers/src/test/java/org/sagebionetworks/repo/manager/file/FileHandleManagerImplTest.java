@@ -32,7 +32,6 @@ import org.sagebionetworks.repo.manager.file.transfer.FileTransferStrategy;
 import org.sagebionetworks.repo.manager.file.transfer.TransferRequest;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
@@ -78,10 +77,7 @@ public class FileHandleManagerImplTest {
 		mockAuthorizationManager = Mockito.mock(AuthorizationManager.class);
 		
 		// The user is not really a mock
-		mockUser = new UserInfo(false);
-		mockUser.setUser(new User());
-		mockUser.setIndividualGroup(new UserGroup());
-		mockUser.getIndividualGroup().setId("987");
+		mockUser = new UserInfo(false,"987");
 		
 		// Other helper mocks
 		// First mock a file stream
@@ -112,7 +108,7 @@ public class FileHandleManagerImplTest {
 		// setup the primary to succeed
 		validResults = new S3FileHandle();
 		validResults.setId("123");
-		validResults.setCreatedBy(mockUser.getIndividualGroup().getId());
+		validResults.setCreatedBy(mockUser.getId().toString());
 		validResults.setCreatedOn(new Date());
 		validResults.setContentType(contentType);
 		validResults.setContentSize(new Long(contentBytes.length));
@@ -394,7 +390,7 @@ public class FileHandleManagerImplTest {
 		// This should work
 		ExternalFileHandle result = manager.createExternalFileHandle(mockUser, efh);
 		assertNotNull(result);
-		assertEquals(mockUser.getIndividualGroup().getId(), result.getCreatedBy());
+		assertEquals(mockUser.getId().toString(), result.getCreatedBy());
 	}
 	
 	@Test (expected=IllegalArgumentException.class)

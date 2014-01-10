@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.repo.manager.principal.NewUserUtils;
+import org.sagebionetworks.repo.manager.principal.UserProfileUtillity;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -172,71 +173,46 @@ public class UserManagerImpl implements UserManager {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public UserInfo getUserInfo(Long principalId) throws NotFoundException {
-		UserGroup individualGroup = userGroupDAO.get(principalId);
+		UserGroup principal = userGroupDAO.get(principalId);
 		// Lookup the user's name
 		// Check which group(s) of Anonymous, Public, or Authenticated the user belongs to  
-		Set<UserGroup> groups = new HashSet<UserGroup>();
-		if (!AuthorizationUtils.isUserAnonymous(individualGroup)) {
+		Set<Long> groups = new HashSet<Long>();
+		boolean isUserAnonymous = AuthorizationUtils.isUserAnonymous(principalId);
+		// Everyone except the anonymous users belongs to "authenticated users"
+		if (!isUserAnonymous) {
 			// All authenticated users belong to the authenticated user group
-			groups.add(userGroupDAO.get(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId()));
+			groups.add(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId());
 		}
 		
 		// Everyone belongs to their own group and to Public
-		groups.add(individualGroup);
-		groups.add(userGroupDAO.get(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId()));
+		groups.add(principalId);
+		groups.add(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId());
 		// Add all groups the user belongs to
-		groups.addAll(groupMembersDAO.getUsersGroups(individualGroup.getId()));
+		List<UserGroup> groupFromDAO = groupMembersDAO.getUsersGroups(principal.getId());
+		// Add each group
+		for(UserGroup ug: groupFromDAO){
+			groups.add(Long.parseLong(ug.getId()));
+		}
 
 		// Check to see if the user is an Admin
 		boolean isAdmin = false;
-		for (UserGroup group : groups) {
-			if (BOOTSTRAP_PRINCIPAL.ADMINISTRATORS_GROUP.getPrincipalId().toString().equals(group.getId())) {
-				isAdmin = true;
-				break;
-			}
+		// If the user belongs to the admin group they are an admin
+		if(groups.contains(BOOTSTRAP_PRINCIPAL.ADMINISTRATORS_GROUP.getPrincipalId())){
+			isAdmin = true;
 		}
-	
-		// Put all the pieces together
 		UserInfo ui = new UserInfo(isAdmin);
-		ui.setIndividualGroup(individualGroup);
-		ui.setGroups(groups);
-		ui.setUser(getUser(individualGroup));
-		return ui;
-	}
-	
-	/**
-	 * Constructs a User object out of information from the UserGroup and UserProfile
-	 */
-	private User getUser(UserGroup individualGroup) throws DatastoreException,
-			NotFoundException {
-		Long userId = Long.parseLong(individualGroup.getId());
-		User user = new User();
-		// Lookup the user's name
-		String userName = getUserName(userId);
-		user.setUserName(userName);
-		user.setId(userId);
-
-		if (AuthorizationUtils.isUserAnonymous(userId)) {
-			return user;
-		}
-
-		user.setCreationDate(individualGroup.getCreationDate());
 		
-		// Get the terms of use acceptance
-		user.setAgreesToTermsOfUse(authDAO.hasUserAcceptedToU(Long.parseLong(individualGroup.getId())));
-
-		// The migrator may delete its own profile during migration
-		// But those details do not matter for this user
-		if (BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString().equals(individualGroup.getId())) {
-			return user;
+		if (isUserAnonymous) {
+			// Anonymous users have not accepted the ToC.
+			ui.setAgreesToTermsOfUse(false);
+		}else{
+			// Lookup the Toc status.
+			ui.setAgreesToTermsOfUse(authDAO.hasUserAcceptedToU(principalId));
 		}
-
-		UserProfile up = userProfileDAO.get(individualGroup.getId());
-		user.setFname(up.getFirstName());
-		user.setLname(up.getLastName());
-		user.setDisplayName(up.getDisplayName());
-
-		return user;
+		ui.setCreationDate(principal.getCreationDate());
+		// Put all the pieces together
+		ui.setGroups(groups);
+		return ui;
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -265,10 +241,11 @@ public class UserManagerImpl implements UserManager {
 		List<PrincipalAlias> aliases = this.principalAliasDAO.listPrincipalAliases(userId, AliasType.USER_NAME);
 		if(aliases.size() < 1){
 			// Use a temporary name composed of their ID until this users sets their username I
-			return "TEMPORARY-"+userId;
+			return UserProfileUtillity.createTempoaryUserName(userId);
 		}else{
 			// Use the first name
 			return aliases.get(0).getAlias();
 		}
 	}
+
 }

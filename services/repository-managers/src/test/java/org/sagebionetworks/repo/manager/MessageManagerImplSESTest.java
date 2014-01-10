@@ -19,7 +19,6 @@ import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.MessageDAO;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -46,12 +45,6 @@ import com.amazonaws.services.simpleemail.AmazonSimpleEmailServiceClient;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class MessageManagerImplSESTest {
-	
-	private static final String SUCCESS_EMAIL = "success@simulator.amazonses.com";
-	private static final String BOUNCE_EMAIL = "bounce@simulator.amazonses.com";
-	private static final String OOTO_EMAIL = "ooto@simulator.amazonses.com";
-	private static final String COMPLAINT_EMAIL = "complaint@simulator.amazonses.com";
-	private static final String SUPPRESSION_EMAIL = "suppressionlist@simulator.amazonses.com";
 	
 	private static final String MESSAGE_ID_PLAIN_TEXT = "101";
 	private static final String MESSAGE_ID_HTML = "202";
@@ -149,7 +142,7 @@ public class MessageManagerImplSESTest {
 		mockUserGroup = new UserGroup();
 		mockUserGroup.setIsIndividual(true);
 		mockUserGroup.setId(mockRecipientId);
-		when(mockUserGroupDAO.get(eq(mockRecipientId))).thenReturn(mockUserGroup);
+		when(mockUserGroupDAO.get(eq(Long.parseLong(mockRecipientId)))).thenReturn(mockUserGroup);
 		
 		// Mocks the getting of settings
 		mockUserProfile = new UserProfile();
@@ -157,9 +150,7 @@ public class MessageManagerImplSESTest {
 		when(mockUserProfileDAO.get(eq(mockRecipientId))).thenReturn(mockUserProfile);
 		
 		// Mocks the username supplied to SES
-		mockUserInfo = new UserInfo(false);
-		mockUserInfo.setUser(new User());
-		mockUserInfo.getUser().setDisplayName("Foo Bar");
+		mockUserInfo = new UserInfo(false, mockUserId);
 		when(mockUserManager.getUserInfo(eq(mockUserId))).thenReturn(mockUserInfo);
 		
 		S3FileHandle plainTextFileHandle = new S3FileHandle();
@@ -179,7 +170,6 @@ public class MessageManagerImplSESTest {
 	@Ignore
 	@Test
 	public void testPlainTextToDeveloper() throws Exception {
-		mockUserGroup.setName("your.name.here@sagebase.org");
 		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT);
 		assertEquals(errors.toString(), 0, errors.size());
 	}
@@ -190,42 +180,36 @@ public class MessageManagerImplSESTest {
 	@Ignore
 	@Test
 	public void testHTMLToDeveloper() throws Exception {
-		mockUserGroup.setName("your.name.here@sagebase.org");
 		List<String> errors = messageManager.processMessage(MESSAGE_ID_HTML);
 		assertEquals(errors.toString(), 0, errors.size());
 	}
 	
 	@Test
 	public void testSuccess() throws Exception {
-		mockUserGroup.setName(SUCCESS_EMAIL);
 		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT);
 		assertEquals(errors.toString(), 0, errors.size());
 	}
 	
 	@Test
 	public void testBounce() throws Exception {
-		mockUserGroup.setName(BOUNCE_EMAIL);
 		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT);
 		assertEquals(errors.toString(), 0, errors.size());
 	}
 	
 	@Test
 	public void testOutOfOffice() throws Exception {
-		mockUserGroup.setName(OOTO_EMAIL);
 		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT);
 		assertEquals(errors.toString(), 0, errors.size());
 	}
 	
 	@Test
 	public void testComplaint() throws Exception {
-		mockUserGroup.setName(COMPLAINT_EMAIL);
 		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT);
 		assertEquals(errors.toString(), 0, errors.size());
 	}
 	
 	@Test
 	public void testSuppressionList() throws Exception {
-		mockUserGroup.setName(SUPPRESSION_EMAIL);
 		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT);
 		assertEquals(errors.toString(), 0, errors.size());
 	}

@@ -51,7 +51,7 @@ public interface AuthenticationService {
 	 * Sends a password-reset email to the user
 	 * Note: Email is not actually sent in development stacks.  Instead a log appears when email would have been sent
 	 */
-	public void sendPasswordEmail(String username, DomainType originClient)
+	public void sendPasswordEmail(Long userId, DomainType originClient)
 			 throws NotFoundException;
 	
 	/**
