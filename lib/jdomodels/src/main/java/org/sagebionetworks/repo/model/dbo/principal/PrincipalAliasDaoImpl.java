@@ -10,6 +10,7 @@ import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
@@ -54,7 +55,7 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 		PrincipalAlias current = findPrincipalWithAlias(dto.getAlias());
 		if(current != null){
 			// Is this ID already assigned to another user?
-			if(!current.getPrincipalId().equals(dbo.getPrincipalId())) throw new IllegalArgumentException("The alias: "+dto.getAlias()+" is already in use.");
+			if(!current.getPrincipalId().equals(dbo.getPrincipalId())) throw new NameConflictException("The alias: "+dto.getAlias()+" is already in use.");
 			if(!current.getType().equals(dto.getType())) throw new IllegalArgumentException("Cannot change the type of an alias: "+dto.getAlias()+" from "+dto.getAlias()+" to "+dbo.getAliasType());
 			// Use the ID of the type
 			dbo.setId(current.getAliasId());
