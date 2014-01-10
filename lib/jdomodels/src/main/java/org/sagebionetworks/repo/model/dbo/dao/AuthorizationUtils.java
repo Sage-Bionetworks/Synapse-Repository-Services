@@ -7,7 +7,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 public class AuthorizationUtils {
 	
 	public static boolean isUserAnonymous(UserInfo userInfo) {
-		return isUserAnonymous(userInfo.getIndividualGroup());
+		return isUserAnonymous(userInfo.getId());
 	}
 	
 	public static boolean isUserAnonymous(UserGroup ug) {

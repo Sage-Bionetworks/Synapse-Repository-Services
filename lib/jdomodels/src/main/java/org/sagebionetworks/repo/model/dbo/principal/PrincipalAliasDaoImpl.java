@@ -6,7 +6,10 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPA
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_UNIQUE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PRINCIPAL_ALIAS;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
@@ -39,6 +42,8 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 	private static final String SQL_GET_ALIAS = "SELECT * FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_ID+" = ?";
 	private static final String SQL_FIND_PRINCIPAL_WITH_ALIAS = "SELECT * FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_UNIQUE+" = ?";
 	private static final String SQL_IS_ALIAS_AVAILABLE = "SELECT COUNT(*) FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_UNIQUE+" = ?";
+	private static final String SET_BIND_VAR = "principalIdSet";
+	private static final String SQL_LIST_ALIASES_FROM_SET_OF_PRINCIPAL_IDS = "SELECT * FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID+" IS IN (:"+SET_BIND_VAR+") GROUP BY "+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID;
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
 	@Autowired
@@ -148,6 +153,15 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 		return AliasUtils.createDTOFromDBO(results);
 	}
 
+	@Override
+	public List<PrincipalAlias> listPrincipalAliases(Set<Long> principalIds) {
+		if(principalIds == null) throw new IllegalArgumentException("PrincipalIds cannot be null");
+		Map<String,Object> parameters = new HashMap<String,Object>();
+		parameters.put(SET_BIND_VAR, principalIds);
+		List<DBOPrincipalAlias> results = this.simpleJdbcTemplate.query(SQL_LIST_ALIASES_FROM_SET_OF_PRINCIPAL_IDS, principalAliasMapper, parameters);
+		return AliasUtils.createDTOFromDBO(results);
+	}
+	
 	/**
 	 * This is called by Spring after all properties are set.
 	 */
