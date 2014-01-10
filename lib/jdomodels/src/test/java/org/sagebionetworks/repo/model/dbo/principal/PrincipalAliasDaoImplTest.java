@@ -11,6 +11,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.principal.AliasType;
@@ -34,6 +35,7 @@ public class PrincipalAliasDaoImplTest {
 	@Autowired
 	private UserGroupDAO userGroupDao;
 	UserGroup principal;
+	UserGroup principal2;
 	
 	@Before
 	public void before() throws DatastoreException, NotFoundException{
@@ -43,6 +45,12 @@ public class PrincipalAliasDaoImplTest {
 		principal.setIsIndividual(true);
 		Long id = userGroupDao.create(principal);
 		principal = userGroupDao.get(id);
+		
+		principal2 = new UserGroup();
+		principal2.setCreationDate(new Date());
+		principal2.setIsIndividual(true);
+		id = userGroupDao.create(principal2);
+		principal2 = userGroupDao.get(id);
 	}
 	
 	@After
@@ -122,6 +130,27 @@ public class PrincipalAliasDaoImplTest {
 		assertEquals(alias.getAlias(), result.getAlias());
 	}
 	
+	@Test(expected = NameConflictException.class)
+	public void testPLFM_2482() throws NotFoundException {
+		// Test binding an alias to a principal
+		PrincipalAlias alias = new PrincipalAlias();
+		// Use to upper as the alias
+		alias.setAlias("james.bond@Spy.org");
+		alias.setType(AliasType.USER_EMAIL);
+		alias.setIsValidated(true);
+		alias.setPrincipalId(Long.parseLong(principal.getId()));
+		PrincipalAlias result = principalAliasDao.bindAliasToPrincipal(alias);
+		assertNotNull(result);
+		// Now try to bind this to another user
+		alias = new PrincipalAlias();
+		// Use to upper as the alias
+		alias.setAlias("james.bond@Spy.org");
+		alias.setType(AliasType.USER_EMAIL);
+		alias.setIsValidated(true);
+		alias.setPrincipalId(Long.parseLong(principal2.getId()));
+		principalAliasDao.bindAliasToPrincipal(alias);
+	}
+    
 	@Test
 	public void testList() throws NotFoundException{
 		
