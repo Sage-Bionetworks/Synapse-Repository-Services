@@ -115,7 +115,7 @@ public class DefaultControllerAutowiredTest {
 			}
 		}
 		
-		userManager.deletePrincipal(adminUserInfo, Long.parseLong(otherUserInfo.getIndividualGroup().getId()));
+		userManager.deletePrincipal(adminUserInfo, Long.parseLong(otherUserInfo.getId().toString()));
 	}
 
 	@BeforeClass

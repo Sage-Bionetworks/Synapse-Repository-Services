@@ -125,7 +125,7 @@ public class MessageControllerAutowiredTest {
 	@After
 	public void after() throws Exception {
 		for (String id : cleanup) {
-			messageService.deleteMessage(Long.parseLong(adminUserInfo.getIndividualGroup().getId()), id);
+			messageService.deleteMessage(adminUserInfo.getId(), id);
 		}
 		
 		fileHandleManager.deleteFileHandle(adminUserInfo, fileHandleId);

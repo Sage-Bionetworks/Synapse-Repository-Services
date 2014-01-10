@@ -177,7 +177,7 @@ public class EvaluationControllerAutowiredTest {
 			} catch (Exception e) {}
 		}
 		
-		userManager.deletePrincipal(adminUserInfo, Long.parseLong(testUserInfo.getIndividualGroup().getId()));
+		userManager.deletePrincipal(adminUserInfo, Long.parseLong(testUserInfo.getId().toString()));
 	}
 	
 	@Test
@@ -275,7 +275,7 @@ public class EvaluationControllerAutowiredTest {
 			accessSet.add(ACCESS_TYPE.SUBMIT);
 			ResourceAccess ra = new ResourceAccess();
 			ra.setAccessType(accessSet);
-			String userId = userManager.getUserInfo(testUserId).getIndividualGroup().getId();
+			String userId = userManager.getUserInfo(testUserId).getId().toString();
 			assertNotNull(userId);
 			ra.setPrincipalId(Long.parseLong(userId));
 			acl.getResourceAccess().add(ra);
@@ -529,7 +529,7 @@ public class EvaluationControllerAutowiredTest {
 		accessType.add(ACCESS_TYPE.PARTICIPATE);
 		accessType.add(ACCESS_TYPE.READ);
 		ra.setAccessType(accessType);
-		ra.setPrincipalId(Long.parseLong(testUserInfo.getIndividualGroup().getId()));
+		ra.setPrincipalId(Long.parseLong(testUserInfo.getId().toString()));
 		aclReturned.getResourceAccess().add(ra);
 
 		aclReturned = entityServletHelper.updateEvaluationAcl(testUserId, aclReturned);
@@ -549,7 +549,7 @@ public class EvaluationControllerAutowiredTest {
 	private String createNode(String name, UserInfo userInfo) throws Exception {
 		Node toCreate = new Node();
 		toCreate.setName(name);
-		String ownerId = userInfo.getIndividualGroup().getId();
+		String ownerId = userInfo.getId().toString();
 		toCreate.setCreatedByPrincipalId(Long.parseLong(ownerId));
 		toCreate.setModifiedByPrincipalId(Long.parseLong(ownerId));
 		toCreate.setCreatedOn(new Date(System.currentTimeMillis()));

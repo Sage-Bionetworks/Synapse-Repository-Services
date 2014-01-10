@@ -82,7 +82,7 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 
 		// Record the attempt. This is where we draw the transaction boundary.
 		if (doiDto == null) {
-			String userGroupId = currentUser.getIndividualGroup().getId();
+			String userGroupId = currentUser.getId().toString();
 			doiDto = doiDao.createDoi(userGroupId, entityId, ObjectType.ENTITY, versionNumber, DoiStatus.IN_PROCESS);
 		} else {
 			doiDto = doiDao.updateDoiStatus(entityId, ObjectType.ENTITY, versionNumber, DoiStatus.IN_PROCESS, doiDto.getEtag());
@@ -100,7 +100,7 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 		// Create DOI metadata.
 		EzidMetadata metadata = new EzidMetadata();
 		Long principalId = node.getCreatedByPrincipalId();
-		String creatorName = userManager.getDisplayName(principalId);
+		String creatorName = userManager.getUserName(principalId);
 		// Display name is optional
 		if (creatorName == null || creatorName.isEmpty()) {
 			creatorName = EzidConstants.DEFAULT_CREATOR;

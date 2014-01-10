@@ -117,9 +117,9 @@ public class CommunityManagerImpl implements CommunityManager {
 
 	public static void populateCreationFields(UserInfo userInfo, Community community) {
 		Date now = new Date();
-		community.setCreatedBy(userInfo.getIndividualGroup().getId());
+		community.setCreatedBy(userInfo.getId().toString());
 		community.setCreatedOn(now);
-		community.setModifiedBy(userInfo.getIndividualGroup().getId());
+		community.setModifiedBy(userInfo.getId().toString());
 		community.setModifiedOn(now);
 	}
 
@@ -127,7 +127,7 @@ public class CommunityManagerImpl implements CommunityManager {
 		Date now = new Date();
 		community.setCreatedBy(null); // by setting to null we are telling the DAO to use the current values
 		community.setCreatedOn(null);
-		community.setModifiedBy(userInfo.getIndividualGroup().getId());
+		community.setModifiedBy(userInfo.getId().toString());
 		community.setModifiedOn(now);
 	}
 
@@ -212,7 +212,7 @@ public class CommunityManagerImpl implements CommunityManager {
 				createResourceAccess(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId(), ANONYMOUS_PERMISSIONS),
 				createResourceAccess(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId(), SIGNEDIN_PERMISSIONS),
 				createResourceAccess(Long.parseLong(team.getId()), COMMUNITY_MEMBER_PERMISSIONS),
-				createResourceAccess(Long.parseLong(userInfo.getIndividualGroup().getId()), COMMUNITY_ADMIN_PERMISSIONS));
+				createResourceAccess(userInfo.getId(), COMMUNITY_ADMIN_PERMISSIONS));
 		acl.setResourceAccess(raSet);
 		entityPermissionsManager.updateACL(acl, userInfo);
 
@@ -257,7 +257,7 @@ public class CommunityManagerImpl implements CommunityManager {
 				return "application/text";
 			}
 		};
-		S3FileHandle uploadedFile = fileHandleManager.uploadFile(userInfo.getIndividualGroup().getId(), fis);
+		S3FileHandle uploadedFile = fileHandleManager.uploadFile(userInfo.getId().toString(), fis);
 
 		V2WikiPage page = new V2WikiPage();
 		page.setTitle(title);
@@ -275,7 +275,7 @@ public class CommunityManagerImpl implements CommunityManager {
 	@Override
 	public PaginatedResults<Community> getForMember(UserInfo userInfo, int limit, int offset) throws DatastoreException,
 			NotFoundException {
-		List<Long> communityIds = communityTeamDAO.getCommunityIdsByMember(userInfo.getIndividualGroup().getId());
+		List<Long> communityIds = communityTeamDAO.getCommunityIdsByMember(userInfo.getId().toString());
 		return createPaginatedResult(userInfo, limit, offset, communityIds);
 	}
 
@@ -399,7 +399,7 @@ public class CommunityManagerImpl implements CommunityManager {
 
 		AccessControlList acl = aclDAO.get(communityId, ObjectType.ENTITY);
 		// only admins have individual acl entries, so this removes admin access only
-		if (removeFromACL(acl, userInfo.getIndividualGroup().getId())) {
+		if (removeFromACL(acl, userInfo.getId().toString())) {
 			// check for last admin leaving
 			if (countAdmins(acl) == 0) {
 				// special case, if for any reason there were zero admins to begin with, allow user to leave anyway
@@ -409,7 +409,7 @@ public class CommunityManagerImpl implements CommunityManager {
 			}
 			aclDAO.update(acl);
 		}
-		teamManager.removeMember(userInfo, community.getTeamId(), userInfo.getIndividualGroup().getId());
+		teamManager.removeMember(userInfo, community.getTeamId(), userInfo.getId().toString());
 	}
 
 	@Override
@@ -419,9 +419,10 @@ public class CommunityManagerImpl implements CommunityManager {
 		Community community = entityManager.getEntity(userInfo, communityId, Community.class);
 
 		UserInfo memberInfo = userManager.getUserInfo(Long.parseLong(principalId));
-		if (!memberInfo.getIndividualGroup().getIsIndividual()) {
-			throw new UnauthorizedException("Can only add individuals as admin");
-		}
+		// It is no longer possible to get a UserInfo for a team or a group
+//		if (!memberInfo.getId().getIndividualGroup().getIsIndividual()) {
+//			throw new UnauthorizedException("Can only add individuals as admin");
+//		}
 		if (!teamManager.getTeamMembershipStatus(userInfo, community.getTeamId(), memberInfo).getIsMember()) {
 			throw new NotFoundException("Not a community member");
 		}
@@ -432,12 +433,12 @@ public class CommunityManagerImpl implements CommunityManager {
 		}
 		AccessControlList acl = aclDAO.get(communityId, ObjectType.ENTITY);
 		// just in case
-		removeFromACL(acl, memberInfo.getIndividualGroup().getId());
-		addToACL(acl, memberInfo.getIndividualGroup().getId(), COMMUNITY_ADMIN_PERMISSIONS);
+		removeFromACL(acl, memberInfo.getId().toString());
+		addToACL(acl, memberInfo.getId().toString(), COMMUNITY_ADMIN_PERMISSIONS);
 		aclDAO.update(acl);
 
 		// set the team manage permission on the team
-		teamManager.setPermissions(userInfo, community.getTeamId(), memberInfo.getIndividualGroup().getId(), true);
+		teamManager.setPermissions(userInfo, community.getTeamId(), memberInfo.getId().toString(), true);
 	}
 
 	@Override
@@ -447,19 +448,16 @@ public class CommunityManagerImpl implements CommunityManager {
 		Community community = entityManager.getEntity(userInfo, communityId, Community.class);
 
 		UserInfo memberInfo = userManager.getUserInfo(Long.parseLong(principalId));
-		if (!memberInfo.getIndividualGroup().getIsIndividual()) {
-			throw new UnauthorizedException("Can only remove individuals as admin");
-		}
 
 		// user can always remove themselves, regardless of access (will be a no-op if the did not have membership
 		// update access, since they would not be admins)
-		if (!userInfo.isAdmin() && !userInfo.getIndividualGroup().getId().equals(memberInfo.getIndividualGroup().getId())
+		if (!userInfo.isAdmin() && !userInfo.getId().equals(memberInfo.getId())
 				&& !authorizationManager.canAccess(userInfo, communityId, ObjectType.ENTITY, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)) {
 			throw new UnauthorizedException("Cannot remove admin member");
 		}
 		AccessControlList acl = aclDAO.get(communityId, ObjectType.ENTITY);
 		// only admins have individual acl entries, so this removes admin access only
-		if (removeFromACL(acl, memberInfo.getIndividualGroup().getId())) {
+		if (removeFromACL(acl, memberInfo.getId().toString())) {
 			if (countAdmins(acl) == 0) {
 				throw new UnauthorizedException("Need at least one admin. Make someone else an admin before removing yourself as admin");
 			}
@@ -467,7 +465,7 @@ public class CommunityManagerImpl implements CommunityManager {
 		}
 
 		// set the team manage permission on the team
-		teamManager.setPermissions(userInfo, community.getTeamId(), memberInfo.getIndividualGroup().getId(), false);
+		teamManager.setPermissions(userInfo, community.getTeamId(), memberInfo.getId().toString(), false);
 	}
 }
 

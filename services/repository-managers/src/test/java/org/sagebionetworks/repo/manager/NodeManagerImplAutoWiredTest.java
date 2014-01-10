@@ -39,6 +39,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.provenance.Activity;
@@ -98,7 +99,10 @@ public class NodeManagerImplAutoWiredTest {
 		DBOCredential cred = new DBOCredential();
 		cred.setAgreesToTermsOfUse(true);
 		cred.setSecretKey("");
-		userInfo = userManager.createUser(adminUserInfo, UUID.randomUUID().toString() + "@test.com", new UserProfile(), cred);
+		NewUser nu = new NewUser();
+		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
+		nu.setUserName(UUID.randomUUID().toString());
+		userInfo = userManager.createUser(adminUserInfo, nu, cred);
 	}
 	
 	@After
@@ -122,7 +126,7 @@ public class NodeManagerImplAutoWiredTest {
 			}
 		}
 		
-		userManager.deletePrincipal(adminUserInfo, Long.parseLong(userInfo.getIndividualGroup().getId()));
+		userManager.deletePrincipal(adminUserInfo, userInfo.getId());
 	}
 	
 	@Test
@@ -208,8 +212,8 @@ public class NodeManagerImplAutoWiredTest {
 		//Make sure we can get the node
 		Node fetched = nodeManager.get(adminUserInfo, id);
 		assertNotNull(fetched);
-		assertEquals(adminUserInfo.getIndividualGroup().getId(), fetched.getCreatedByPrincipalId().toString());
-		assertEquals(adminUserInfo.getIndividualGroup().getId(), fetched.getModifiedByPrincipalId().toString());
+		assertEquals(adminUserInfo.getId().toString(), fetched.getCreatedByPrincipalId().toString());
+		assertEquals(adminUserInfo.getId().toString(), fetched.getModifiedByPrincipalId().toString());
 		assertNotNull(fetched.getCreatedOn());
 		assertNotNull(fetched.getModifiedOn());
 		assertEquals(id, fetched.getId());

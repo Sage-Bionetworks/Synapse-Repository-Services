@@ -12,7 +12,6 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -29,7 +28,7 @@ public class AccessRequirementUtil {
 			accessTypes.add(ACCESS_TYPE.DOWNLOAD);
 			// if the user is the owner of the object, then she automatically 
 			// has access to the object and therefore has no unmet access requirements
-			Long principalId = Long.parseLong(userInfo.getIndividualGroup().getId());
+			Long principalId = userInfo.getId();
 			Node node = nodeDAO.getNode(subjectId.getId());
 			if (node.getCreatedByPrincipalId().equals(principalId)) {
 				return EMPTY_LIST;
@@ -45,8 +44,8 @@ public class AccessRequirementUtil {
 		}
 
 		Set<Long> principalIds = new HashSet<Long>();
-		for (UserGroup ug : userInfo.getGroups()) {
-			principalIds.add(Long.parseLong(ug.getId()));
+		for (Long ug : userInfo.getGroups()) {
+			principalIds.add(ug);
 		}
 		
 		return accessRequirementDAO.unmetAccessRequirements(subjectId, principalIds, accessTypes);

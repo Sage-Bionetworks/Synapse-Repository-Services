@@ -105,7 +105,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		for (String id : accessRestrictionsToDelete) {
 			accessRequirementDAO.delete(id);
 		}
-		userManager.deletePrincipal(adminUserInfo, Long.parseLong(userInfo.getIndividualGroup().getId()));
+		userManager.deletePrincipal(adminUserInfo, userInfo.getId());
 	}
 
 	@Test
@@ -134,7 +134,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 
 		// Update ACL -- Now give 'user' CHANGE_PERMISSIONS, PARTICIPATE
 		ResourceAccess ra = new ResourceAccess();
-		Long principalId = Long.parseLong(userInfo.getIndividualGroup().getId());
+		Long principalId = Long.parseLong(userInfo.getId().toString());
 		ra.setPrincipalId(principalId);
 		Set<ACCESS_TYPE> accessType = new HashSet<ACCESS_TYPE>();
 		accessType.add(ACCESS_TYPE.CHANGE_PERMISSIONS);
@@ -173,9 +173,9 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		rod.setType(RestrictableObjectType.EVALUATION);
 		List<RestrictableObjectDescriptor> subjectIds = Arrays.asList(new RestrictableObjectDescriptor[]{rod});
 		ar.setSubjectIds(subjectIds);
-		ar.setCreatedBy(userInfo.getIndividualGroup().getId());
+		ar.setCreatedBy(userInfo.getId().toString());
 		ar.setCreatedOn(new Date());
-		ar.setModifiedBy(userInfo.getIndividualGroup().getId());
+		ar.setModifiedBy(userInfo.getId().toString());
 		ar.setModifiedOn(new Date());
 		ar.setEntityType(TermsOfUseAccessRequirement.class.getName());
 		ar.setTermsOfUse("foo");
@@ -337,7 +337,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		assertTrue(permissions.getCanEdit());
 		assertTrue(permissions.getCanParticipate());
 		assertTrue(permissions.getCanView());
-		assertEquals(userInfo.getIndividualGroup().getId(), permissions.getOwnerPrincipalId().toString());
+		assertEquals(userInfo.getId().toString(), permissions.getOwnerPrincipalId().toString());
 		// Unless we explicitly set for the anonymous user
 		assertFalse(permissions.getCanPublicRead());
 
@@ -348,7 +348,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		assertTrue(permissions.getCanEdit());
 		assertTrue(permissions.getCanView());
 		assertTrue(permissions.getCanParticipate());
-		assertEquals(userInfo.getIndividualGroup().getId(), permissions.getOwnerPrincipalId().toString());
+		assertEquals(userInfo.getId().toString(), permissions.getOwnerPrincipalId().toString());
 		// Unless we explicitly set for the anonymous user
 		assertFalse(permissions.getCanPublicRead());
 
@@ -369,7 +369,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		assertTrue(permissions.getCanEdit());
 		assertTrue(permissions.getCanParticipate());
 		assertTrue(permissions.getCanView());
-		assertEquals(adminUserInfo.getIndividualGroup().getId(), permissions.getOwnerPrincipalId().toString());
+		assertEquals(adminUserInfo.getId().toString(), permissions.getOwnerPrincipalId().toString());
 		// Unless we explicitly set for the anonymous user
 		assertFalse(permissions.getCanPublicRead());
 
@@ -380,12 +380,12 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		assertFalse(permissions.getCanEdit());
 		assertFalse(permissions.getCanView());
 		assertFalse(permissions.getCanParticipate());
-		assertEquals(adminUserInfo.getIndividualGroup().getId(), permissions.getOwnerPrincipalId().toString());
+		assertEquals(adminUserInfo.getId().toString(), permissions.getOwnerPrincipalId().toString());
 		// Unless we explicitly set for the anonymous user
 		assertFalse(permissions.getCanPublicRead());
 
 		// Update the ACL to add 'user', PARTICIPATE
-		Long principalId = Long.parseLong(userInfo.getIndividualGroup().getId());
+		Long principalId = Long.parseLong(userInfo.getId().toString());
 		Set<ResourceAccess> raSet = new HashSet<ResourceAccess>();
 		ResourceAccess ra = new ResourceAccess();
 		ra.setPrincipalId(principalId);
@@ -403,14 +403,14 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		assertFalse(permissions.getCanDelete());
 		assertFalse(permissions.getCanEdit());
 		assertFalse(permissions.getCanView());
-		assertEquals(adminUserInfo.getIndividualGroup().getId(), permissions.getOwnerPrincipalId().toString());
+		assertEquals(adminUserInfo.getId().toString(), permissions.getOwnerPrincipalId().toString());
 		assertTrue(permissions.getCanParticipate());
 		// Unless we explicitly set for the anonymous user
 		assertFalse(permissions.getCanPublicRead());
 
 		// Set 'public read' for anonymous user
 		UserInfo anonymous = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
-		principalId = Long.parseLong(anonymous.getIndividualGroup().getId());
+		principalId = anonymous.getId();
 		raSet = new HashSet<ResourceAccess>();
 		ra = new ResourceAccess();
 		ra.setPrincipalId(principalId);
@@ -428,7 +428,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		assertFalse(permissions.getCanDelete());
 		assertFalse(permissions.getCanEdit());
 		assertFalse(permissions.getCanView());
-		assertEquals(adminUserInfo.getIndividualGroup().getId(), permissions.getOwnerPrincipalId().toString());
+		assertEquals(adminUserInfo.getId().toString(), permissions.getOwnerPrincipalId().toString());
 		assertFalse(permissions.getCanParticipate());
 		assertTrue(permissions.getCanPublicRead());
 	}
@@ -448,7 +448,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.PARTICIPATE));
 
 		// Update the ACL to add ('user', PARTICIPATE)
-		Long principalId = Long.parseLong(userInfo.getIndividualGroup().getId());
+		Long principalId = userInfo.getId();
 		Set<ResourceAccess> raSet = new HashSet<ResourceAccess>();
 		ResourceAccess ra = new ResourceAccess();
 		ra.setPrincipalId(principalId);
@@ -476,7 +476,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 	}
 
 	private String createNode(String name, EntityType type, UserInfo userInfo) throws Exception {
-		final long principalId = Long.parseLong(userInfo.getIndividualGroup().getId());
+		final long principalId = Long.parseLong(userInfo.getId().toString());
 		Node node = new Node();
 		node.setName(name);
 		node.setCreatedOn(new Date());
@@ -493,7 +493,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		Evaluation eval = new Evaluation();
 		eval.setCreatedOn(new Date());
 		eval.setName(name);
-		eval.setOwnerId(userInfo.getIndividualGroup().getId());
+		eval.setOwnerId(userInfo.getId().toString());
         eval.setContentSource(contentSource);
         eval.setStatus(EvaluationStatus.PLANNED);
         eval.setEtag(UUID.randomUUID().toString());
@@ -505,7 +505,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 	private AccessControlList createAcl(String evalId, UserInfo userInfo) throws Exception {
 		AccessControlList acl = new AccessControlList();
 		acl.setId(evalId);
-		final String principalId = userInfo.getIndividualGroup().getId();
+		final String principalId = userInfo.getId().toString();
 		acl.setCreatedBy(principalId);
 		final Date now = new Date();
 		acl.setCreationDate(now);

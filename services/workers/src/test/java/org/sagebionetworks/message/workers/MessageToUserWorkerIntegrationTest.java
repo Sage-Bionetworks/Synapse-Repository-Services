@@ -100,14 +100,14 @@ public class MessageToUserWorkerIntegrationTest {
 			}
 			
 		};
-		S3FileHandle handle = fileHandleManager.uploadFile(userInfo.getIndividualGroup().getId(), fis);
+		S3FileHandle handle = fileHandleManager.uploadFile(userInfo.getId().toString(), fis);
 		fileHandleId = handle.getId();
 		
 		message = new MessageToUser();
 		message.setFileHandleId(fileHandleId);
 		message.setRecipients(new HashSet<String>() {
 			{
-				add(adminUserInfo.getIndividualGroup().getId());
+				add(adminUserInfo.getId().toString());
 				
 				// Note: this causes the worker to send a delivery failure notification too
 				// Which can be visually confirmed by the tester (appears in STDOUT)
@@ -141,7 +141,7 @@ public class MessageToUserWorkerIntegrationTest {
 		
 		fileHandleManager.deleteFileHandle(adminUserInfo, fileHandleId);
 		
-		userManager.deletePrincipal(adminUserInfo, Long.parseLong(userInfo.getIndividualGroup().getId()));
+		userManager.deletePrincipal(adminUserInfo, userInfo.getId());
 	}
 	
 	

@@ -170,10 +170,10 @@ public class MessageManagerImpl implements MessageManager {
 		MessageToUser message = messageDAO.getMessage(messageId);
 		
 		// Get the user's ID and the user's groups' IDs
-		String userId = userInfo.getIndividualGroup().getId();
+		String userId = userInfo.getId().toString();
 		Set<String> userGroups = new HashSet<String>();
-		for (UserGroup ug : userInfo.getGroups()) {
-			userGroups.add(ug.getId());
+		for (Long ug : userInfo.getGroups()) {
+			userGroups.add(ug.toString());
 		}
 		userGroups.add(userId);
 		
@@ -327,27 +327,27 @@ public class MessageManagerImpl implements MessageManager {
 		MessageToUser dto = messageDAO.getMessage(associatedMessageId);
 		String rootMessageId = dto.getInReplyToRoot();
 		
-		List<MessageToUser> dtos = messageDAO.getConversation(rootMessageId, userInfo.getIndividualGroup().getId(), 
+		List<MessageToUser> dtos = messageDAO.getConversation(rootMessageId, userInfo.getId().toString(), 
 				sortBy, descending, limit, offset);
-		long totalMessages = messageDAO.getConversationSize(rootMessageId, userInfo.getIndividualGroup().getId());
+		long totalMessages = messageDAO.getConversationSize(rootMessageId, userInfo.getId().toString());
 		return new QueryResults<MessageToUser>(dtos, totalMessages);
 	}
 
 	@Override
 	public QueryResults<MessageBundle> getInbox(UserInfo userInfo, 
 			List<MessageStatusType> included, MessageSortBy sortBy, boolean descending, long limit, long offset) {
-		List<MessageBundle> dtos = messageDAO.getReceivedMessages(userInfo.getIndividualGroup().getId(), 
+		List<MessageBundle> dtos = messageDAO.getReceivedMessages(userInfo.getId().toString(), 
 				included, sortBy, descending, limit, offset);
-		long totalMessages = messageDAO.getNumReceivedMessages(userInfo.getIndividualGroup().getId(), included);
+		long totalMessages = messageDAO.getNumReceivedMessages(userInfo.getId().toString(), included);
 		return new QueryResults<MessageBundle>(dtos, totalMessages);
 	}
 
 	@Override
 	public QueryResults<MessageToUser> getOutbox(UserInfo userInfo, 
 			MessageSortBy sortBy, boolean descending, long limit, long offset) {
-		List<MessageToUser> dtos = messageDAO.getSentMessages(userInfo.getIndividualGroup().getId(), 
+		List<MessageToUser> dtos = messageDAO.getSentMessages(userInfo.getId().toString(), 
 				sortBy, descending, limit, offset);
-		long totalMessages = messageDAO.getNumSentMessages(userInfo.getIndividualGroup().getId());
+		long totalMessages = messageDAO.getNumSentMessages(userInfo.getId().toString());
 		return new QueryResults<MessageToUser>(dtos, totalMessages);
 	}
 
@@ -358,7 +358,7 @@ public class MessageManagerImpl implements MessageManager {
 		getMessage(userInfo, status.getMessageId());
 		
 		// Update the message
-		status.setRecipientId(userInfo.getIndividualGroup().getId());
+		status.setRecipientId(userInfo.getId().toString());
 		boolean succeeded = messageDAO.updateMessageStatus(status);
 		
 		if (!succeeded) {

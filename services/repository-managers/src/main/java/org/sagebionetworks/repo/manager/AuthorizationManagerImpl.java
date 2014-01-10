@@ -95,7 +95,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	}
 
 	private static boolean isEvalOwner(UserInfo userInfo, Evaluation evaluation) {
-		return evaluation.getOwnerId().equals(userInfo.getIndividualGroup().getId());
+		return evaluation.getOwnerId().equals(userInfo.getId().toString());
 	}
 
 	@Override
@@ -119,7 +119,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		Activity act;
 		try {
 			act = activityDAO.get(activityId);
-			if(act.getCreatedBy().equals(userInfo.getIndividualGroup().getId()))
+			if(act.getCreatedBy().equals(userInfo.getId().toString()))
 				return true;
 		} catch (Exception e) {
 			return false;
@@ -153,7 +153,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		// Admins can see anything.
 		if (userInfo.isAdmin()) return true;
 		// Only the creator can see the raw file handle
-		return userInfo.getIndividualGroup().getId().equals(creator);
+		return userInfo.getId().toString().equals(creator);
 	}
 
 	@Override
@@ -189,8 +189,8 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	
 	public boolean isACTTeamMemberOrAdmin(UserInfo userInfo) throws DatastoreException, UnauthorizedException {
 		if (userInfo.isAdmin()) return true;
-		for(UserGroup ug: userInfo.getGroups()){
-			Long groupId = Long.parseLong(ug.getId());
+		for(Long ug: userInfo.getGroups()){
+			Long groupId = ug;
 			if(BOOTSTRAP_PRINCIPAL.ACCESS_AND_COMPLIANCE_GROUP.getPrincipalId().equals(groupId)) return true;
 		}
 		return false;

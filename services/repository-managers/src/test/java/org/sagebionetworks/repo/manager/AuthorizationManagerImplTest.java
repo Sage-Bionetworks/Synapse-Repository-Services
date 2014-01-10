@@ -132,7 +132,7 @@ public class AuthorizationManagerImplTest {
 		
 		// Find some existing principals
 		anonInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
-		publicGroup = userGroupDAO.get(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().toString());
+		publicGroup = userGroupDAO.get(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId());
 		
 		rand = new Random();
 		// create a resource
@@ -141,7 +141,7 @@ public class AuthorizationManagerImplTest {
 				
 		childNode = createNode("foo2_"+rand.nextLong(), adminUser, 4L, node.getId(), null);
 
-		Long testUserPrincipalId = Long.parseLong(userInfo.getIndividualGroup().getId());
+		Long testUserPrincipalId = userInfo.getId();
 		nodeCreatedByTestUser = createNode("bar_"+rand.nextLong(), userInfo, testUserPrincipalId, null, null);
 		
 		activitiesToDelete = new ArrayList<String>();
@@ -160,14 +160,14 @@ public class AuthorizationManagerImplTest {
 			}
 		}
 		
-		userManager.deletePrincipal(adminUser, Long.parseLong(userInfo.getIndividualGroup().getId()));
+		userManager.deletePrincipal(adminUser, userInfo.getId());
 		userGroupDAO.delete(testGroup.getId());
 	}
 	
 	// test that removing a user from the ACL for their own node also removes their access
 	@Test
 	public void testOwnership() throws Exception {
-		String pIdString = userInfo.getIndividualGroup().getId();
+		String pIdString = userInfo.getId().toString();
 		Long pId = Long.parseLong(pIdString);
 		assertTrue(authorizationManager.canAccess(userInfo, nodeCreatedByTestUser.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
 		// remove user from ACL
@@ -199,7 +199,7 @@ public class AuthorizationManagerImplTest {
 		assertFalse(authorizationManager.canAccess(userInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
 		AccessControlList acl = entityPermissionsManager.getACL(node.getId(), userInfo);
 		assertNotNull(acl);
-		acl = AuthorizationTestHelper.addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.READ);
+		acl = AuthorizationTestHelper.addToACL(acl, userInfo.getId(), ACCESS_TYPE.READ);
 		acl = entityPermissionsManager.updateACL(acl, adminUser);
 		// now they should be able to access
 		assertTrue(authorizationManager.canAccess(userInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
@@ -337,7 +337,7 @@ public class AuthorizationManagerImplTest {
 
 		AccessControlList acl = entityPermissionsManager.getACL(node.getId(), userInfo);
 		assertNotNull(acl);
-		acl = AuthorizationTestHelper.addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.READ);
+		acl = AuthorizationTestHelper.addToACL(acl, userInfo.getId(), ACCESS_TYPE.READ);
 		acl = entityPermissionsManager.updateACL(acl, adminUser);
 		// now they should be able to access
 		assertTrue(authorizationManager.canAccess(userInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
@@ -351,7 +351,7 @@ public class AuthorizationManagerImplTest {
 		assertFalse(uep.getCanEnableInheritance());
 		assertEquals(node.getCreatedByPrincipalId(), uep.getOwnerPrincipalId());
 		
-		acl = AuthorizationTestHelper.addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.CHANGE_PERMISSIONS);
+		acl = AuthorizationTestHelper.addToACL(acl, userInfo.getId(), ACCESS_TYPE.CHANGE_PERMISSIONS);
 		acl = entityPermissionsManager.updateACL(acl, adminUser);
 		assertFalse(uep.getCanEnableInheritance());
 		
@@ -380,7 +380,7 @@ public class AuthorizationManagerImplTest {
 		
 		// get a new copy of parent ACL
 		acl = entityPermissionsManager.getACL(node.getId(), userInfo);
-		acl = AuthorizationTestHelper.addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.READ);
+		acl = AuthorizationTestHelper.addToACL(acl, userInfo.getId(), ACCESS_TYPE.READ);
 		acl = entityPermissionsManager.updateACL(acl, adminUser);
 		// should be able to access parent but not child
 		assertTrue(authorizationManager.canAccess(userInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
@@ -397,11 +397,11 @@ public class AuthorizationManagerImplTest {
 		// make an object on which you have READ and WRITE permission
 		AccessControlList acl = entityPermissionsManager.getACL(node.getId(), userInfo);
 		assertNotNull(acl);
-		acl = AuthorizationTestHelper.addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.READ);
+		acl = AuthorizationTestHelper.addToACL(acl, userInfo.getId(), ACCESS_TYPE.READ);
 		acl = entityPermissionsManager.updateACL(acl, adminUser);
 		
 		acl = entityPermissionsManager.getACL(node.getId(), userInfo);
-		acl = AuthorizationTestHelper.addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.UPDATE);
+		acl = AuthorizationTestHelper.addToACL(acl, userInfo.getId(), ACCESS_TYPE.UPDATE);
 		acl = entityPermissionsManager.updateACL(acl, adminUser);
 		// now they should be able to access
 		assertTrue(authorizationManager.canAccess(userInfo, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ));				
@@ -411,7 +411,7 @@ public class AuthorizationManagerImplTest {
 		
 		// but give them create access to the parent
 		acl = entityPermissionsManager.getACL(node.getId(), userInfo);
-		acl = AuthorizationTestHelper.addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.CREATE);
+		acl = AuthorizationTestHelper.addToACL(acl, userInfo.getId(), ACCESS_TYPE.CREATE);
 		acl = entityPermissionsManager.updateACL(acl, adminUser);
 		// now it can
 		assertTrue(authorizationManager.canCreate(userInfo, child));
@@ -427,7 +427,7 @@ public class AuthorizationManagerImplTest {
 		// allow some access
 		AccessControlList acl = entityPermissionsManager.getACL(node.getId(), userInfo);
 		assertNotNull(acl);
-		acl = AuthorizationTestHelper.addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.CREATE);
+		acl = AuthorizationTestHelper.addToACL(acl, userInfo.getId(), ACCESS_TYPE.CREATE);
 		acl = entityPermissionsManager.updateACL(acl, adminUser);
 		// now they should be able to access
 		assertTrue(authorizationManager.canCreate(userInfo, child));
@@ -450,7 +450,7 @@ public class AuthorizationManagerImplTest {
 	@Test
 	public void testGetUserPermissionsForEntity() throws Exception{
 		assertTrue(adminUser.isAdmin());
-		assertTrue(adminUser.getUser().isAgreesToTermsOfUse());
+		assertTrue(adminUser.isAgreesToTermsOfUse());
 		// the admin user can do it all
 		UserEntityPermissions uep = entityPermissionsManager.getUserPermissionsForEntity(adminUser, node.getId());
 		assertNotNull(uep);
@@ -475,7 +475,7 @@ public class AuthorizationManagerImplTest {
 		// Let the user read.
 		AccessControlList acl = entityPermissionsManager.getACL(node.getId(), userInfo);
 		assertNotNull(acl);
-		acl = AuthorizationTestHelper.addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.READ);
+		acl = AuthorizationTestHelper.addToACL(acl, userInfo.getId(), ACCESS_TYPE.READ);
 		acl = entityPermissionsManager.updateACL(acl, adminUser);
 		
 		uep = entityPermissionsManager.getUserPermissionsForEntity(userInfo,  node.getId());
@@ -489,7 +489,7 @@ public class AuthorizationManagerImplTest {
 		// Let the user update.
 		acl = entityPermissionsManager.getACL(node.getId(), userInfo);
 		assertNotNull(acl);
-		acl = AuthorizationTestHelper.addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.UPDATE);
+		acl = AuthorizationTestHelper.addToACL(acl, userInfo.getId(), ACCESS_TYPE.UPDATE);
 		acl = entityPermissionsManager.updateACL(acl, adminUser);
 		
 		uep = entityPermissionsManager.getUserPermissionsForEntity(userInfo,  node.getId());
@@ -503,7 +503,7 @@ public class AuthorizationManagerImplTest {
 		// Let the user delete.
 		acl = entityPermissionsManager.getACL(node.getId(), userInfo);
 		assertNotNull(acl);
-		acl = AuthorizationTestHelper.addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.DELETE);
+		acl = AuthorizationTestHelper.addToACL(acl, userInfo.getId(), ACCESS_TYPE.DELETE);
 		acl = entityPermissionsManager.updateACL(acl, adminUser);
 		
 		uep = entityPermissionsManager.getUserPermissionsForEntity(userInfo,  node.getId());
@@ -517,7 +517,7 @@ public class AuthorizationManagerImplTest {
 		// Let the user change permissions.
 		acl = entityPermissionsManager.getACL(node.getId(), userInfo);
 		assertNotNull(acl);
-		acl = AuthorizationTestHelper.addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.CHANGE_PERMISSIONS);
+		acl = AuthorizationTestHelper.addToACL(acl, userInfo.getId(), ACCESS_TYPE.CHANGE_PERMISSIONS);
 		acl = entityPermissionsManager.updateACL(acl, adminUser);
 		
 		uep = entityPermissionsManager.getUserPermissionsForEntity(userInfo,  node.getId());
@@ -531,7 +531,7 @@ public class AuthorizationManagerImplTest {
 		// Let the user change create.
 		acl = entityPermissionsManager.getACL(node.getId(), userInfo);
 		assertNotNull(acl);
-		acl = AuthorizationTestHelper.addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.CREATE);
+		acl = AuthorizationTestHelper.addToACL(acl, userInfo.getId(), ACCESS_TYPE.CREATE);
 		acl = entityPermissionsManager.updateACL(acl, adminUser);
 		
 		uep = entityPermissionsManager.getUserPermissionsForEntity(userInfo,  node.getId());
@@ -557,7 +557,7 @@ public class AuthorizationManagerImplTest {
 		assertEquals(false, uep.getCanEnableInheritance());
 
 		// now change the ownership so the user is the owner
-		node.setCreatedByPrincipalId(Long.parseLong(userInfo.getIndividualGroup().getId()));
+		node.setCreatedByPrincipalId(userInfo.getId());
 		nodeDao.updateNode(node);
 		
 		// the user still cannot do anything..

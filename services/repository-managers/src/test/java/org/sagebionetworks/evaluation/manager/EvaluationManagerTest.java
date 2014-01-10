@@ -34,7 +34,6 @@ import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.util.UserInfoUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -75,17 +74,15 @@ public class EvaluationManagerTest {
     	mockAuthorizationManager = mock(AuthorizationManager.class);
 
     	// UserInfo
-    	ownerInfo = UserInfoUtils.createValidUserInfo(false);
-    	ownerInfo.getIndividualGroup().setId(OWNER_ID.toString());
-    	userInfo = UserInfoUtils.createValidUserInfo(false);
-    	userInfo.getIndividualGroup().setId(USER_ID.toString());
+    	ownerInfo = new UserInfo(false, OWNER_ID);
+    	userInfo = new UserInfo(false, USER_ID);
     	
 		// Evaluation
     	Date date = new Date();
 		eval = new Evaluation();
 		eval.setCreatedOn(date);
 		eval.setName(EVALUATION_NAME);
-		eval.setOwnerId(ownerInfo.getIndividualGroup().getId());
+		eval.setOwnerId(ownerInfo.getId().toString());
         eval.setContentSource(EVALUATION_CONTENT_SOURCE);
         eval.setStatus(EvaluationStatus.PLANNED);
         eval.setEtag(EVALUATION_ETAG);
@@ -94,7 +91,7 @@ public class EvaluationManagerTest {
 		evalWithId.setCreatedOn(date);
 		evalWithId.setId(EVALUATION_ID);
 		evalWithId.setName(EVALUATION_NAME);
-		evalWithId.setOwnerId(ownerInfo.getIndividualGroup().getId());
+		evalWithId.setOwnerId(ownerInfo.getId().toString());
 		evalWithId.setContentSource(EVALUATION_CONTENT_SOURCE);
 		evalWithId.setStatus(EvaluationStatus.PLANNED);
 		evalWithId.setEtag(EVALUATION_ETAG);

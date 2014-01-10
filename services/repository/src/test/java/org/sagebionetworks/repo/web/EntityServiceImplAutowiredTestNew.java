@@ -73,7 +73,7 @@ public class EntityServiceImplAutowiredTestNew {
 		S3FileHandle handle = new S3FileHandle();
 		handle.setBucketName("bucket");
 		handle.setKey("key");
-		handle.setCreatedBy(adminUserInfo.getIndividualGroup().getId());
+		handle.setCreatedBy(adminUserInfo.getId().toString());
 		handle.setCreatedOn(new Date());
 		handle.setContentSize(123l);
 		handle.setConcreteType("text/plain");

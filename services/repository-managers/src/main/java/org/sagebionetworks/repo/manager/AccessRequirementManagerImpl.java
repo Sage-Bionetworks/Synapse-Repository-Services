@@ -67,9 +67,9 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	
 	public static void populateCreationFields(UserInfo userInfo, AccessRequirement a) {
 		Date now = new Date();
-		a.setCreatedBy(userInfo.getIndividualGroup().getId());
+		a.setCreatedBy(userInfo.getId().toString());
 		a.setCreatedOn(now);
-		a.setModifiedBy(userInfo.getIndividualGroup().getId());
+		a.setModifiedBy(userInfo.getId().toString());
 		a.setModifiedOn(now);
 	}
 
@@ -77,7 +77,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		Date now = new Date();
 		a.setCreatedBy(null); // by setting to null we are telling the DAO to use the current values
 		a.setCreatedOn(null);
-		a.setModifiedBy(userInfo.getIndividualGroup().getId());
+		a.setModifiedBy(userInfo.getId().toString());
 		a.setModifiedOn(now);
 	}
 	
@@ -128,8 +128,8 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		
 		// now create the Jira issue
 		JRJCHelper.createRestrictIssue(jiraClient, 
-				userInfo.getIndividualGroup().getId(), 
-				userInfo.getUser().getUserName(), 
+				userInfo.getId().toString(), 
+				userInfo.getId().toString(), 
 				entityId);
 
 		return result;

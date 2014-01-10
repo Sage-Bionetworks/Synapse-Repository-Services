@@ -134,7 +134,7 @@ public class FileHandleManagerImplAutowireTest {
 		}
 		
 		UserInfo adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
-		userManager.deletePrincipal(adminUserInfo, Long.parseLong(userInfo.getIndividualGroup().getId()));
+		userManager.deletePrincipal(adminUserInfo, Long.parseLong(userInfo.getId().toString()));
 	}
 	
 
@@ -165,10 +165,10 @@ public class FileHandleManagerImplAutowireTest {
 			assertEquals(expected.getContentType(), metaResult.getContentType());
 			assertNotNull("An id should have been assigned to this file", metaResult.getId());
 			assertNotNull("CreatedOn should have been filled in.", metaResult.getCreatedOn());
-			assertEquals("CreatedBy should match the user that created the file.", userInfo.getIndividualGroup().getId(), metaResult.getCreatedBy());
+			assertEquals("CreatedBy should match the user that created the file.", userInfo.getId().toString(), metaResult.getCreatedBy());
 			assertEquals(StackConfiguration.getS3Bucket(), metaResult.getBucketName());
 			assertNotNull(metaResult.getKey());
-			assertTrue("The key should start with the userID", metaResult.getKey().startsWith(userInfo.getIndividualGroup().getId()));			
+			assertTrue("The key should start with the userID", metaResult.getKey().startsWith(userInfo.getId().toString()));			
 			// Validate this is in the database
 			S3FileHandle fromDB = (S3FileHandle) fileHandleDao.get(metaResult.getId());
 			assertEquals(metaResult, fromDB);
@@ -227,7 +227,7 @@ public class FileHandleManagerImplAutowireTest {
 		assertNotNull(token.getUploadId());
 		assertNotNull(md5, token.getContentMD5());
 		// the key must start with the user's id
-		assertTrue(token.getKey().startsWith(userInfo.getIndividualGroup().getId()));
+		assertTrue(token.getKey().startsWith(userInfo.getId().toString()));
 		// Now create a pre-signed URL for the first part
 		ChunkRequest cpr = new ChunkRequest();
 		cpr.setChunkedFileToken(token);
@@ -288,7 +288,7 @@ public class FileHandleManagerImplAutowireTest {
 		assertNotNull(token.getUploadId());
 		assertNotNull(md5, token.getContentMD5());
 		// the key must start with the user's id
-		assertTrue(token.getKey().startsWith(userInfo.getIndividualGroup().getId()));
+		assertTrue(token.getKey().startsWith(userInfo.getId().toString()));
 		// Now create a pre-signed URL for the first part
 		ChunkRequest cpr = new ChunkRequest();
 		cpr.setChunkedFileToken(token);
@@ -315,7 +315,7 @@ public class FileHandleManagerImplAutowireTest {
 		System.out.println(daemonStatus.toString());
 		assertEquals(State.COMPLETED, daemonStatus.getState());
 		assertEquals(100, daemonStatus.getPercentComplete(), 0.0001);
-		assertEquals(userInfo.getIndividualGroup().getId(), daemonStatus.getStartedBy());
+		assertEquals(userInfo.getId().toString(), daemonStatus.getStartedBy());
 		assertEquals(null, daemonStatus.getErrorMessage());
 		assertNotNull(daemonStatus.getFileHandleId());
 		// Get the file handle

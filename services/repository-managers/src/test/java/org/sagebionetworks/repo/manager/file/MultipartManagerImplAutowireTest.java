@@ -83,7 +83,7 @@ public class MultipartManagerImplAutowireTest {
 		String bucket = StackConfiguration.getS3Bucket();
 		// First create a chunked file token
 		CreateChunkedFileTokenRequest ccftr = new CreateChunkedFileTokenRequest();
-		String userId = adminUserInfo.getIndividualGroup().getId();
+		String userId = adminUserInfo.getId().toString();
 		String fileName = "foo.bar";
 		ccftr.setFileName(fileName);
 		ccftr.setContentType("text/plain");

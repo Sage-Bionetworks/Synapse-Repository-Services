@@ -126,8 +126,8 @@ public class DBOAccessControlListDAOScaleTest {
 	@Test
 	public void testTime() throws DatastoreException{
 		// Time the can access methods
-		ArrayList<UserGroup> groups = new ArrayList<UserGroup>();
-		groups.add(userGroup);
+		Set<Long> groups = new HashSet<Long>();
+		groups.add(Long.parseLong(userGroup.getId()));
 		System.out.println("userGroup ID: \t"+userGroup.getId());
 		System.out.println("Number of base projects: \t"+toDelete.size());
 		for(ACCESS_TYPE type: ACCESS_TYPE.values()){
