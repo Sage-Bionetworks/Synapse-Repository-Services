@@ -212,7 +212,7 @@ public class MessageManagerImpl implements MessageManager {
 		
 		if (!userInfo.isAdmin()) {
 			// Throttle message creation
-			if (!messageDAO.canCreateMessage(userInfo.getIndividualGroup().getId(), 
+			if (!messageDAO.canCreateMessage(userInfo.getId().toString(), 
 						MAX_NUMBER_OF_NEW_MESSAGES,
 						MESSAGE_CREATION_INTERVAL_MILLISECONDS)) {
 				throw new TooManyRequestsException(
