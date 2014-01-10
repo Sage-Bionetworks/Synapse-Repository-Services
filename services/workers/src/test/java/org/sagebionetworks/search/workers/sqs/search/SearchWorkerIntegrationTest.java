@@ -12,6 +12,7 @@ import org.apache.http.client.ClientProtocolException;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
@@ -54,6 +55,7 @@ import com.amazonaws.services.s3.AmazonS3Client;
  */
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
+@Ignore
 public class SearchWorkerIntegrationTest {
 	
 	public static final long MAX_WAIT = 60*1000; // one minute
