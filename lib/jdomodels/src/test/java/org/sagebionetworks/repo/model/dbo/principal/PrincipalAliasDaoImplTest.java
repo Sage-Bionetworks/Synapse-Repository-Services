@@ -237,6 +237,67 @@ public class PrincipalAliasDaoImplTest {
 	}
 	
 	@Test
+	public void testRemoveAllAliasFromPrincipal() throws NotFoundException{
+		PrincipalAlias alias = new PrincipalAlias();
+		alias.setAlias("foo@bar.org");
+		alias.setType(AliasType.USER_EMAIL);
+		alias.setIsValidated(true);
+		alias.setPrincipalId(principalId);
+		PrincipalAlias emailOne = principalAliasDao.bindAliasToPrincipal(alias);
+		
+		alias = new PrincipalAlias();
+		alias.setAlias("userName");
+		alias.setType(AliasType.USER_NAME);
+		alias.setIsValidated(true);
+		alias.setPrincipalId(principalId);
+		PrincipalAlias two = principalAliasDao.bindAliasToPrincipal(alias);
+		// There should currently be 2
+		List<PrincipalAlias> list = principalAliasDao.listPrincipalAliases(principalId);
+		assertNotNull(list);
+		assertEquals(2, list.size());
+		// This should delete both
+		principalAliasDao.removeAllAliasFromPrincipal(principalId);
+		// List again
+		list = principalAliasDao.listPrincipalAliases(principalId);
+		assertNotNull(list);
+		assertEquals(0, list.size());
+	}
+	
+	@Test
+	public void testRemoveAliasFromPrincipal() throws NotFoundException{
+		PrincipalAlias alias = new PrincipalAlias();
+		alias.setAlias("foo@bar.org");
+		alias.setType(AliasType.USER_EMAIL);
+		alias.setIsValidated(true);
+		alias.setPrincipalId(principalId);
+		PrincipalAlias emailOne = principalAliasDao.bindAliasToPrincipal(alias);
+		
+		alias = new PrincipalAlias();
+		alias.setAlias("userName");
+		alias.setType(AliasType.USER_NAME);
+		alias.setIsValidated(true);
+		alias.setPrincipalId(principalId);
+		PrincipalAlias two = principalAliasDao.bindAliasToPrincipal(alias);
+		// There should currently be 2
+		List<PrincipalAlias> list = principalAliasDao.listPrincipalAliases(principalId);
+		assertNotNull(list);
+		assertEquals(2, list.size());
+		// Remove the second only
+		principalAliasDao.removeAliasFromPrincipal(principalId, two.getAliasId());
+		// List again
+		list = principalAliasDao.listPrincipalAliases(principalId);
+		assertNotNull(list);
+		assertEquals(1, list.size());
+		assertEquals("This alias should not still exist", emailOne, list.get(0));
+		// Now delete the other
+		principalAliasDao.removeAliasFromPrincipal(principalId, emailOne.getAliasId());
+		// List again
+		list = principalAliasDao.listPrincipalAliases(principalId);
+		assertNotNull(list);
+		assertEquals(0, list.size());
+	}
+	
+	@Test
 	public void testBootStrap(){
 		assertNotNull(this.userGroupDao.getBootstrapPrincipals());
 		// Validate each

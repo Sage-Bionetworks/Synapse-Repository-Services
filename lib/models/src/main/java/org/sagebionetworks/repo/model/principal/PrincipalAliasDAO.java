@@ -90,4 +90,11 @@ public interface PrincipalAliasDAO {
 	 * @return
 	 */
 	public boolean removeAliasFromPrincipal(Long principalId, Long aliasId);
+	
+	/**
+	 * Remove all aliases from the given principal.
+	 * @param principalId
+	 * @return
+	 */
+	public boolean removeAllAliasFromPrincipal(Long principalId);
 }

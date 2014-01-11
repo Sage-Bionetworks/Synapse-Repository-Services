@@ -38,6 +38,8 @@ import org.springframework.transaction.annotation.Transactional;
  */
 public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 	
+	private static final String SQL_DELETE_ALL_ALIASES_FOR_PRINCIPAL = "DELETE FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID+" = ?";
+	private static final String SQL_DELETE_ALIAS_BY_PRINCIPAL_AND_ALIAS_ID = "DELETE FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID+" = ? AND  "+COL_PRINCIPAL_ALIAS_ID+" = ?";
 	private static final String SQL_LIST_ALIASES_BY_ID = "SELECT * FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID+" = ? ORDER BY "+COL_PRINCIPAL_ALIAS_ID;
 	private static final String SQL_LIST_ALIASES_BY_ID_AND_TYPE = "SELECT * FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID+" = ? AND "+COL_PRINCIPAL_ALIAS_TYPE+" = ? ORDER BY "+COL_PRINCIPAL_ALIAS_ID;
 	private static final String SQL_GET_ALIAS = "SELECT * FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_ID+" = ?";
@@ -134,8 +136,16 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 
 	@Override
 	public boolean removeAliasFromPrincipal(Long principalId, Long aliasId) {
-		// TODO Auto-generated method stub
-		return false;
+		if(principalId == null) throw new IllegalArgumentException("PrincipalId cannot be null");
+		if(aliasId == null) throw new IllegalArgumentException("AliasId cannot be null");
+		int count = this.simpleJdbcTemplate.update(SQL_DELETE_ALIAS_BY_PRINCIPAL_AND_ALIAS_ID, principalId, aliasId);
+		return count > 0;
+	}
+	
+	@Override
+	public boolean removeAllAliasFromPrincipal(Long principalId) {
+		int count = this.simpleJdbcTemplate.update(SQL_DELETE_ALL_ALIASES_FOR_PRINCIPAL, principalId);
+		return count > 0;
 	}
 
 	@Override

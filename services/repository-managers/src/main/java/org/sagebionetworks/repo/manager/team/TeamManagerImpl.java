@@ -222,27 +222,11 @@ public class TeamManagerImpl implements TeamManager {
 				throw new UnauthorizedException("Anonymous user cannot create Team.");
 		validateForCreate(team);
 		// create UserGroup (fail if UG with the given name already exists)
-		// Determine if the email already exists
-		PrincipalAlias alias = principalAliasDAO.findPrincipalWithAlias(team.getName());
-		if(alias != null){
-			throw new NameConflictException("Name "+team.getName()+" is already used.");
-		}
 		UserGroup ug = new UserGroup();
 		ug.setIsIndividual(false);
 		Long id = userGroupDAO.create(ug);
-		
-		// Bind the team name
-		alias = new PrincipalAlias();
-		alias.setAlias(team.getName());
-		alias.setIsValidated(true);
-		alias.setPrincipalId(id);
-		alias.setType(AliasType.TEAM_NAME);
-		// bind this alias
-		try {
-			principalAliasDAO.bindAliasToPrincipal(alias);
-		} catch (NotFoundException e1) {
-			throw new DatastoreException(e1);
-		}
+		// bind the team name to this principal
+		bindTeamName(team.getName(), id);
 		
 		team.setId(id.toString());
 		Date now = new Date();
@@ -253,6 +237,29 @@ public class TeamManagerImpl implements TeamManager {
 		AccessControlList acl = createInitialAcl(userInfo, id.toString(), now);
 		aclDAO.create(acl);
 		return created;
+	}
+	
+	private void bindTeamName(String name, Long teamId){
+		// Determine if the email already exists
+		PrincipalAlias alias = principalAliasDAO.findPrincipalWithAlias(name);
+		if(alias != null && !alias.getPrincipalId().equals(teamId)){
+			throw new NameConflictException("Name "+name+" is already used.");
+		}
+		// Remove all aliases currently bound to this team
+		principalAliasDAO.removeAllAliasFromPrincipal(teamId);
+		
+		// Bind the team name
+		alias = new PrincipalAlias();
+		alias.setAlias(name);
+		alias.setIsValidated(true);
+		alias.setPrincipalId(teamId);
+		alias.setType(AliasType.TEAM_NAME);
+		// bind this alias
+		try {
+			principalAliasDAO.bindAliasToPrincipal(alias);
+		} catch (NotFoundException e1) {
+			throw new DatastoreException(e1);
+		}
 	}
 
 	/* (non-Javadoc)
@@ -269,6 +276,7 @@ public class TeamManagerImpl implements TeamManager {
 		return queryResults;
 	}
 
+	
 
 	/**
 	 * 
@@ -322,6 +330,8 @@ public class TeamManagerImpl implements TeamManager {
 		if (!authorizationManager.canAccess(userInfo, team.getId(), ObjectType.TEAM, ACCESS_TYPE.UPDATE)) throw new UnauthorizedException("Cannot update Team.");
 		validateForUpdate(team);
 		populateUpdateFields(userInfo, team, new Date());
+		// bind the team name to this principal
+		bindTeamName(team.getName(), Long.parseLong(team.getId()));
 		return teamDAO.update(team);
 	}
 

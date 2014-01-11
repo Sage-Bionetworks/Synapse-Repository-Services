@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.UserProfileManagerUtils;
+import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -32,6 +33,7 @@ import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupHeader;
@@ -54,6 +56,8 @@ public class UserProfileServiceImpl implements UserProfileService {
 
 	@Autowired
 	private UserProfileManager userProfileManager;
+	@Autowired
+	private TeamManager teamManager;
 	
 	@Autowired
 	private UserManager userManager;
@@ -215,19 +219,22 @@ public class UserProfileServiceImpl implements UserProfileService {
 		this.logger.info("Loaded " + userProfiles.size() + " user profiles.");
 		UserGroupHeader header;
 		for (UserProfile profile : userProfiles) {
-			String email = profile.getEmail();
+			List<String> emails = profile.getEmails();
 			if (profile.getDisplayName() != null) {
 				UserProfileManagerUtils.clearPrivateFields(null, profile);
 				header = convertUserProfileToHeader(profile);
-				addToPrefixCache(tempPrefixCache,email, header);
+				for(String email: emails){
+					addToPrefixCache(tempPrefixCache,email, header);
+				}
 				addToIdCache(tempIdCache, header);
 			}
 		}
-		Collection<UserGroup> userGroups = userManager.getGroups();
-		this.logger.info("Loaded " + userGroups.size() + " user groups.");
-		for (UserGroup group : userGroups) {
-			if (group.getName() != null) {
-				header = convertUserGroupToHeader(group);			
+		List<Team> allTeams = teamManager.get(Long.MAX_VALUE, 0L).getResults();
+		
+		this.logger.info("Loaded " + allTeams.size() + " user teams.");
+		for (Team team: allTeams) {
+			if (team.getName() != null) {
+				header = convertUserGroupToHeader(team);			
 				addToPrefixCache(tempPrefixCache, null, header);
 				addToIdCache(tempIdCache, header);
 			}
@@ -357,11 +364,11 @@ public class UserProfileServiceImpl implements UserProfileService {
 		return header;
 	}
 
-	private UserGroupHeader convertUserGroupToHeader(UserGroup group) {
+	private UserGroupHeader convertUserGroupToHeader(Team group) {
 		UserGroupHeader header = new UserGroupHeader();
-		header.setDisplayName(group.getId().toString());
+		header.setDisplayName(group.getName());
 		header.setOwnerId(group.getId());
-		header.setIsIndividual(group.getIsIndividual());
+		header.setIsIndividual(false);
 		return header;
 	}
 
