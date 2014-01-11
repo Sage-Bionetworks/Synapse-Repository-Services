@@ -87,7 +87,7 @@ public class TrashControllerAutowiredTest {
 			entityService.deleteEntity(testUserId, parent.getId());
 		}
 		
-		userManager.deletePrincipal(adminUserInfo, Long.parseLong(testUserInfo.getIndividualGroup().getId()));
+		userManager.deletePrincipal(adminUserInfo, testUserInfo.getId());
 	}
 
 	@Test

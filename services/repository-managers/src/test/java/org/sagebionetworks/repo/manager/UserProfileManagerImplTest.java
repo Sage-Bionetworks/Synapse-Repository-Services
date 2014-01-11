@@ -65,20 +65,18 @@ public class UserProfileManagerImplTest {
 	@Test
 	public void testGetAttachmentUrl() throws Exception{
 		assertNotNull(individualGroup);
-		UserInfo userInfo = new UserInfo(false); // not an admin
-		userInfo.setIndividualGroup(individualGroup);
+		UserInfo userInfo = new UserInfo(false, individualGroup.getId()); // not an admin
 		
 		Long tokenId = new Long(456);
 		String otherUserProfileId = "12345";
 		
 		// Make the actual call
-		userProfileManager.getUserProfileAttachmentUrl(Long.parseLong(userInfo.getIndividualGroup().getId()), otherUserProfileId, tokenId.toString());
+		userProfileManager.getUserProfileAttachmentUrl(userInfo.getId(), otherUserProfileId, tokenId.toString());
 	}
 	
 	@Test
 	public void testCreateS3AttachmentToken() throws NumberFormatException, DatastoreException, NotFoundException, UnauthorizedException, InvalidModelException{
-		UserInfo userInfo = new UserInfo(false); // not an admin
-		userInfo.setIndividualGroup(individualGroup);
+		UserInfo userInfo = new UserInfo(false, individualGroup.getId()); // not an admin
 		
 		S3AttachmentToken startToken = new S3AttachmentToken();
 		startToken.setFileName("/some.jpg");
@@ -95,8 +93,7 @@ public class UserProfileManagerImplTest {
 	
 	@Test(expected=IllegalArgumentException.class)
 	public void testCreateS3AttachmentTokenFromInvalidFile() throws NumberFormatException, DatastoreException, NotFoundException, UnauthorizedException, InvalidModelException{
-		UserInfo userInfo = new UserInfo(false); // not an admin
-		userInfo.setIndividualGroup(individualGroup);
+		UserInfo userInfo = new UserInfo(false, individualGroup.getId()); // not an admin
 		
 		S3AttachmentToken startToken = new S3AttachmentToken();
 		startToken.setFileName("/not_an_image.txt");

@@ -18,6 +18,7 @@ import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.Project;
@@ -52,7 +53,7 @@ public class IT960TermsOfUse {
 		Collection<UserGroup> groups = adminSynapse.getGroups(0,100).getResults();
 		String publicGroupPrincipalId = null;
 		for (UserGroup group : groups) {
-			if (group.getName().equals("PUBLIC")) 
+			if (group.getId().equals(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId())) 
 				publicGroupPrincipalId = group.getId();
 		}
 		assertNotNull(publicGroupPrincipalId);

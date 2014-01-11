@@ -119,7 +119,6 @@ public class IT990AuthenticationController {
 		user.setEmail(username);
 		user.setFirstName("Foo");
 		user.setLastName("Bar");
-		user.setDisplayName("Baz");
 		
 		try {
 			synapse.createUser(user);

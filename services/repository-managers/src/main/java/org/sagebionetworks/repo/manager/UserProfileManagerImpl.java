@@ -119,7 +119,7 @@ public class UserProfileManagerImpl implements UserProfileManager {
 			throw new UnauthorizedException("Can't assign attachment to another user's profile");
 		if (!AttachmentManagerImpl.isPreviewType(token.getFileName()))
 			throw new IllegalArgumentException("User profile attachment is not a recognized image type, please try a different file.");
-		return s3TokenManager.createS3AttachmentToken(Long.parseLong(userInfo.getIndividualGroup().getId()), profileId, token);
+		return s3TokenManager.createS3AttachmentToken(userInfo.getId(), profileId, token);
 	}
 	
 	@Override
@@ -133,7 +133,7 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	public Favorite addFavorite(UserInfo userInfo, String entityId)
 			throws DatastoreException, InvalidModelException {
 		Favorite favorite = new Favorite();
-		favorite.setPrincipalId(userInfo.getIndividualGroup().getId());
+		favorite.setPrincipalId(userInfo.getId().toString());
 		favorite.setEntityId(entityId);
 		return favoriteDAO.add(favorite);
 	}
@@ -141,13 +141,13 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	@Override
 	public void removeFavorite(UserInfo userInfo, String entityId)
 			throws DatastoreException {
-		favoriteDAO.remove(userInfo.getIndividualGroup().getId(), entityId);
+		favoriteDAO.remove(userInfo.getId().toString(), entityId);
 	}
 
 	@Override
 	public PaginatedResults<EntityHeader> getFavorites(UserInfo userInfo,
 			int limit, int offset) throws DatastoreException,
 			InvalidModelException, NotFoundException {
-		return favoriteDAO.getFavoritesEntityHeader(userInfo.getIndividualGroup().getId(), limit, offset);
+		return favoriteDAO.getFavoritesEntityHeader(userInfo.getId().toString(), limit, offset);
 	}
 }

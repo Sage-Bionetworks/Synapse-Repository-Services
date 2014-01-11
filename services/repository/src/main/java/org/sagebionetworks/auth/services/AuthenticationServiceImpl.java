@@ -231,4 +231,19 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		if(AliasType.TEAM_NAME.equals(pa.getType())) throw new UnauthorizedException("Cannot authenticate as team. Only users can authenticate");
 		return pa;
 	}
+
+	@Override
+	public Long getUserId(String username) throws NotFoundException {
+		PrincipalAlias pa = lookupUserForAuthenication(username);
+		if(pa == null) throw new NotFoundException("Did not find a user with alias: "+username);
+		return pa.getPrincipalId();
+	}
+
+	@Override
+	public void sendPasswordEmail(String email, DomainType originClient) throws NotFoundException {
+		PrincipalAlias pa = lookupUserForAuthenication(email);
+		if(pa == null) throw new NotFoundException("Did not find a user with alias: "+email);
+		sendPasswordEmail(pa.getPrincipalId(), originClient);
+		
+	}
 }

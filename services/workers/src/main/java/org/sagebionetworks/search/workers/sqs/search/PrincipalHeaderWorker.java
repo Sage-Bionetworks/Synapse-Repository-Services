@@ -124,7 +124,7 @@ public class PrincipalHeaderWorker implements Callable<List<Message>> {
 		DomainType domain = DomainType.SYNAPSE;
 		
 		// Is this a user or team?  (or neither, in which case a NotFound will be thrown)
-		boolean isIndividual = userGroupDAO.get("" + principalId).getIsIndividual();
+		boolean isIndividual = userGroupDAO.get(principalId).getIsIndividual();
 		
 		// Gather up the identifier fragments
 		//TODO There are probably more fragments that can be made

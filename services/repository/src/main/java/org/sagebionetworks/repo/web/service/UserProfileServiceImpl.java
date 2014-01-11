@@ -85,7 +85,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 	public UserProfile getMyOwnUserProfile(Long userId) 
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return userProfileManager.getUserProfile(userInfo, userInfo.getIndividualGroup().getId());
+		return userProfileManager.getUserProfile(userInfo, userInfo.getId().toString());
 	}
 	
 	@Override

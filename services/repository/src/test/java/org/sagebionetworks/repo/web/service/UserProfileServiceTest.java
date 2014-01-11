@@ -71,7 +71,7 @@ public class UserProfileServiceTest {
 			UserGroup g = new UserGroup();
 			g.setId("g" + i);
 			g.setIsIndividual(false);
-			g.setName("Group " + i);
+//			g.setName("Group " + i);
 			groups.add(g);
 		}
 		
@@ -93,9 +93,7 @@ public class UserProfileServiceTest {
 		extraProfile = new UserProfile();
 		extraProfile.setOwnerId(EXTRA_USER_ID.toString());
 		extraProfile.setDisplayName("This UserProfile was created after the cache was last refreshed.");
-		userInfo = new UserInfo(false);
-		userInfo.setIndividualGroup(new UserGroup());
-		userInfo.getIndividualGroup().setId(EXTRA_USER_ID.toString());
+		userInfo = new UserInfo(false, EXTRA_USER_ID);
 
 		when(mockUserProfileManager.getInRange(any(UserInfo.class), anyLong(), anyLong())).thenReturn(profiles);
 		when(mockUserProfileManager.getInRange(any(UserInfo.class), anyLong(), anyLong(), eq(true))).thenReturn(profiles);
@@ -337,9 +335,7 @@ public class UserProfileServiceTest {
 		userProfile.setOwnerId(ownerId);
 		userProfile.setEmail(email);
 
-		userInfo = new UserInfo(true);
-		userInfo.setIndividualGroup(new UserGroup());
-		userInfo.getIndividualGroup().setId(EXTRA_USER_ID.toString());
+		userInfo = new UserInfo(true, EXTRA_USER_ID);
 		when(mockUserManager.getUserInfo(EXTRA_USER_ID)).thenReturn(userInfo);
 		when(mockUserProfileManager.getUserProfile(userInfo, profileId)).thenReturn(userProfile);
 		

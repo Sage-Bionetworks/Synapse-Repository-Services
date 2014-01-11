@@ -46,7 +46,6 @@ public class AuthenticationFilterTest {
 	public void setupFilter() throws Exception {
 		mockAuthService = mock(AuthenticationService.class);
 		when(mockAuthService.revalidate(eq(sessionToken), eq(false))).thenReturn(userId);
-		when(mockAuthService.getUsername(eq(userId.toString()))).thenReturn(username);
 		when(mockAuthService.getSecretKey(eq(userId))).thenReturn(secretKey);
 		when(mockAuthService.hasUserAcceptedTermsOfUse(eq(userId))).thenReturn(true);
 		when(mockAuthService.getUserId(eq(username))).thenReturn(userId);

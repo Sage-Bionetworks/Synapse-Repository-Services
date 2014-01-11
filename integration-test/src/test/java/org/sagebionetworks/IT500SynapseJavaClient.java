@@ -48,6 +48,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.BatchResults;
 import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.Entity;
@@ -251,7 +252,7 @@ public class IT500SynapseJavaClient {
 		List<UserGroup> ugs = synapseOne.getGroups(0, 100).getResults();
 		Long publicPrincipalId = null;
 		for (UserGroup ug: ugs) {
-			if (ug.getName().equals("PUBLIC")) {
+			if (ug.getId().equals(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId())) {
 				publicPrincipalId = Long.parseLong(ug.getId());
 				break;
 			}

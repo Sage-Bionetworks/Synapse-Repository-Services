@@ -29,7 +29,7 @@ public class AuthenticationManagerImplUnitTest {
 	private UserGroupDAO userGroupDAO;
 	
 	final Long userId = 12345L;
-	final String username = "AuthManager@test.org";
+//	final String username = "AuthManager@test.org";
 	final String password = "gro.tset@reganaMhtuA";
 	final String sessionToken = "qwertyuiop";
 	final byte[] salt = new byte[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
@@ -37,43 +37,41 @@ public class AuthenticationManagerImplUnitTest {
 	@Before
 	public void setUp() throws Exception {
 		authDAO = mock(AuthenticationDAO.class);
-		when(authDAO.getPasswordSalt(eq(username))).thenReturn(salt);
+		when(authDAO.getPasswordSalt(eq(userId))).thenReturn(salt);
 		when(authDAO.changeSessionToken(eq(userId), eq((String) null))).thenReturn(sessionToken);
 		
 		userGroupDAO = mock(UserGroupDAO.class);
 		UserGroup ug = new UserGroup();
 		ug.setId(userId.toString());
-		when(userGroupDAO.findGroup(eq(username), eq(true))).thenReturn(ug);
 		
 		authManager = new AuthenticationManagerImpl(authDAO, userGroupDAO);
 	}
 
 	@Test
 	public void testAuthenticateWithPassword() throws Exception {
-		Session session = authManager.authenticate(username, password);
+		Session session = authManager.authenticate(userId, password);
 		assertEquals(sessionToken, session.getSessionToken());
 		
 		String passHash = PBKDF2Utils.hashPassword(password, salt);
-		verify(authDAO, times(1)).getPasswordSalt(eq(username));
-		verify(authDAO, times(1)).checkEmailAndPassword(eq(username), eq(passHash));
+		verify(authDAO, times(1)).getPasswordSalt(eq(userId));
+		verify(authDAO, times(1)).checkUserCredentials(eq(userId), eq(passHash));
 	}
 
 	@Test
 	public void testAuthenticateWithoutPassword() throws Exception {
-		Session session = authManager.authenticate(username, null);
+		Session session = authManager.authenticate(userId, null);
 		Assert.assertEquals(sessionToken, session.getSessionToken());
 		
-		verify(authDAO, never()).getPasswordSalt(any(String.class));
-		verify(authDAO, never()).checkEmailAndPassword(any(String.class), any(String.class));
+		verify(authDAO, never()).getPasswordSalt(any(Long.class));
+		verify(authDAO, never()).checkUserCredentials(any(Long.class), any(String.class));
 	}
 
 	@Test
 	public void testGetSessionToken() throws Exception {
-		Session session = authManager.getSessionToken(username);
+		Session session = authManager.getSessionToken(userId);
 		Assert.assertEquals(sessionToken, session.getSessionToken());
 		
-		verify(authDAO, times(1)).getSessionTokenIfValid(eq(username));
-		verify(userGroupDAO, times(1)).findGroup(eq(username), eq(true));
+		verify(authDAO, times(1)).getSessionTokenIfValid(eq(userId));
 		verify(authDAO, times(1)).changeSessionToken(eq(userId), eq((String) null));
 	}
 	

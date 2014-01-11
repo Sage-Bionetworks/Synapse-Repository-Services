@@ -542,13 +542,13 @@ public class MessageManagerImplTest {
 	@Test
 	public void testSendTemplateEmail() throws Exception {
 		// Send an email to the test user
-		messageManager.sendPasswordResetEmail(testUser.getId().toString(), DomainType.BRIDGE, "Blah?");
+		messageManager.sendPasswordResetEmail(testUser.getId(), DomainType.BRIDGE, "Blah?");
 		
 		// Try another variation
-		messageManager.sendPasswordResetEmail(testUser.getId().toString(), DomainType.SYNAPSE, "Blah?");
+		messageManager.sendPasswordResetEmail(testUser.getId(), DomainType.SYNAPSE, "Blah?");
 		
 		// Try the other one
-		messageManager.sendWelcomeEmail(testUser.getId().toString(), DomainType.SYNAPSE);
+		messageManager.sendWelcomeEmail(testUser.getId(), DomainType.SYNAPSE);
 		
 		// Try the delivery failure email
 		List<String> mockErrors = new ArrayList<String>();
@@ -556,7 +556,7 @@ public class MessageManagerImplTest {
 		messageManager.sendDeliveryFailureEmail(userToOther.getId(), mockErrors);
 		
 		// Try another variation
-		messageManager.sendWelcomeEmail(testUser.getId().toString(), DomainType.BRIDGE);
+		messageManager.sendWelcomeEmail(testUser.getId(), DomainType.BRIDGE);
 	}
 	
 	@Test

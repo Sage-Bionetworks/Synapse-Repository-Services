@@ -52,9 +52,7 @@ public class V2WikiManagerTest {
 	
 	@Before
 	public void before() {
-		user = new UserInfo(false);
-		user.setIndividualGroup(new UserGroup());
-		user.getIndividualGroup().setId("987");
+		user = new UserInfo(false, "987");
 		// setup the mocks
 		mockWikiDao = Mockito.mock(V2WikiPageDao.class);
 		mockAuthManager = Mockito.mock(AuthorizationManager.class);
@@ -76,10 +74,10 @@ public class V2WikiManagerTest {
 		V2WikiPage page = new V2WikiPage();
 		S3FileHandle markdown = new S3FileHandle();
 		markdown.setId("1");
-		markdown.setCreatedBy(user.getIndividualGroup().getId());
+		markdown.setCreatedBy(user.getId().toString());
 		when(mockFileDao.get(markdown.getId())).thenReturn(markdown);
 		page.setMarkdownFileHandleId(markdown.getId());
-		when(mockAuthManager.canAccessRawFileHandleByCreator(user, user.getIndividualGroup().getId())).thenReturn(true);
+		when(mockAuthManager.canAccessRawFileHandleByCreator(user, user.getId().toString())).thenReturn(true);
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(true);
 		wikiManager.createWikiPage(user, "123", ObjectType.ENTITY, page);
 		// Was it passed to the DAO?
@@ -96,7 +94,7 @@ public class V2WikiManagerTest {
 		one.setCreatedOn(new Date(1));
 		one.setFileName("one");
 		// Set the user as the creator of one
-		one.setCreatedBy(user.getIndividualGroup().getId());
+		one.setCreatedBy(user.getId().toString());
 		when(mockFileDao.get(one.getId())).thenReturn(one);
 		
 		S3FileHandle markdown = new S3FileHandle();
@@ -115,7 +113,7 @@ public class V2WikiManagerTest {
 		page.setMarkdownFileHandleId(markdown.getId());
 		
 		// Allow one but deny the other.
-		when(mockAuthManager.canAccessRawFileHandleByCreator(user, user.getIndividualGroup().getId())).thenReturn(true);
+		when(mockAuthManager.canAccessRawFileHandleByCreator(user, user.getId().toString())).thenReturn(true);
 		when(mockAuthManager.canAccessRawFileHandleByCreator(user, "007")).thenReturn(false);
 		// Allow access to the owner.
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(true);
@@ -131,15 +129,15 @@ public class V2WikiManagerTest {
 		when(mockWikiDao.create(any(V2WikiPage.class), any(HashMap.class), any(String.class), any(ObjectType.class), any(ArrayList.class))).thenReturn(page);
 		S3FileHandle markdown = new S3FileHandle();
 		markdown.setId("1");
-		markdown.setCreatedBy(user.getIndividualGroup().getId());
+		markdown.setCreatedBy(user.getId().toString());
 		when(mockFileDao.get(markdown.getId())).thenReturn(markdown);
 		page.setMarkdownFileHandleId(markdown.getId());
 
-		when(mockAuthManager.canAccessRawFileHandleByCreator(user, user.getIndividualGroup().getId())).thenReturn(true);
+		when(mockAuthManager.canAccessRawFileHandleByCreator(user, user.getId().toString())).thenReturn(true);
 		V2WikiPage result = wikiManager.createWikiPage(user, "123", ObjectType.ENTITY, page);
 		assertNotNull(result);
-		assertEquals("CreatedBy should have set", user.getIndividualGroup().getId(), result.getCreatedBy());
-		assertEquals("ModifiedBy should have set", user.getIndividualGroup().getId(), result.getModifiedBy());
+		assertEquals("CreatedBy should have set", user.getId().toString(), result.getCreatedBy());
+		assertEquals("ModifiedBy should have set", user.getId().toString(), result.getModifiedBy());
 		// Was it passed to the DAO?
 		List<String> newIds = new ArrayList<String>();
 		newIds.add(markdown.getId());
@@ -161,11 +159,11 @@ public class V2WikiManagerTest {
 		when(mockWikiDao.lockForUpdate("000")).thenReturn("etag");
 		S3FileHandle markdown = new S3FileHandle();
 		markdown.setId("1");
-		markdown.setCreatedBy(user.getIndividualGroup().getId());
+		markdown.setCreatedBy(user.getId().toString());
 		when(mockFileDao.get(markdown.getId())).thenReturn(markdown);
 		page.setMarkdownFileHandleId(markdown.getId());
 		// setup allow
-		when(mockAuthManager.canAccessRawFileHandleByCreator(user, user.getIndividualGroup().getId())).thenReturn(true);
+		when(mockAuthManager.canAccessRawFileHandleByCreator(user, user.getId().toString())).thenReturn(true);
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(true);
 		wikiManager.updateWikiPage(user, "123", ObjectType.ENTITY, page);
 		// Was it passed to the DAO?
@@ -209,7 +207,7 @@ public class V2WikiManagerTest {
 		one.setCreatedOn(new Date(1));
 		one.setFileName("one");
 		// Set the user as the creator of one
-		one.setCreatedBy(user.getIndividualGroup().getId());
+		one.setCreatedBy(user.getId().toString());
 		when(mockFileDao.get(one.getId())).thenReturn(one);
 		
 		V2WikiPage page = new V2WikiPage();
@@ -227,7 +225,7 @@ public class V2WikiManagerTest {
 		allMarkdownFileHandleIds.add(new Long(markdown.getId()));
 		when(mockWikiDao.getMarkdownFileHandleIdsForWiki(key)).thenReturn(allMarkdownFileHandleIds);
 		
-		when(mockAuthManager.canAccessRawFileHandleByCreator(user, user.getIndividualGroup().getId())).thenReturn(true);
+		when(mockAuthManager.canAccessRawFileHandleByCreator(user, user.getId().toString())).thenReturn(true);
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(true);
 		
 	    wikiManager.updateWikiPage(user, ownerId, ownerType, page);
@@ -478,7 +476,7 @@ public class V2WikiManagerTest {
 		one.setCreatedOn(new Date(1));
 		one.setFileName("one");
 		// Set the user as the creator of one
-		one.setCreatedBy(user.getIndividualGroup().getId());
+		one.setCreatedBy(user.getId().toString());
 		when(mockFileDao.get(one.getId())).thenReturn(one);
 		// two
 		S3FileHandle two = new S3FileHandle();
@@ -506,7 +504,7 @@ public class V2WikiManagerTest {
 		page.setMarkdownFileHandleId(markdown.getId());
 		
 		// Allow one but deny the other.
-		when(mockAuthManager.canAccessRawFileHandleByCreator(user, user.getIndividualGroup().getId())).thenReturn(true);
+		when(mockAuthManager.canAccessRawFileHandleByCreator(user, user.getId().toString())).thenReturn(true);
 		when(mockAuthManager.canAccessRawFileHandleByCreator(user, "007")).thenReturn(false);
 		// Allow access to the owner.
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(true);
@@ -528,7 +526,7 @@ public class V2WikiManagerTest {
 		one.setCreatedOn(new Date(1));
 		one.setFileName("one");
 		// Set the user as the creator of one
-		one.setCreatedBy(user.getIndividualGroup().getId());
+		one.setCreatedBy(user.getId().toString());
 		when(mockFileDao.get(one.getId())).thenReturn(one);
 		// two
 		S3FileHandle two = new S3FileHandle();
@@ -536,14 +534,14 @@ public class V2WikiManagerTest {
 		two.setCreatedOn(new Date(2));
 		two.setFileName("two");
 		// Set this one to be created by the owner
-		two.setCreatedBy(user.getIndividualGroup().getId());
+		two.setCreatedBy(user.getId().toString());
 		when(mockFileDao.get(two.getId())).thenReturn(two);
 		S3FileHandle markdown = new S3FileHandle();
 		markdown.setId("1");
 		markdown.setCreatedOn(new Date(1));
 		markdown.setFileName("one");
 		// Set the user as the creator of one
-		markdown.setCreatedBy(user.getIndividualGroup().getId());
+		markdown.setCreatedBy(user.getId().toString());
 		when(mockFileDao.get(markdown.getId())).thenReturn(markdown);
 		
 		V2WikiPage page = new V2WikiPage();
@@ -561,7 +559,7 @@ public class V2WikiManagerTest {
 		newFileHandleIds.add(two.getId());
 		
 		// Allow one but deny the other.
-		when(mockAuthManager.canAccessRawFileHandleByCreator(user, user.getIndividualGroup().getId())).thenReturn(true);
+		when(mockAuthManager.canAccessRawFileHandleByCreator(user, user.getId().toString())).thenReturn(true);
 		when(mockAuthManager.canAccessRawFileHandleByCreator(user, "007")).thenReturn(false);
 		// Allow access to the owner.
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(true);
@@ -581,7 +579,7 @@ public class V2WikiManagerTest {
 		one.setCreatedOn(new Date(1));
 		one.setFileName("one");
 		// Set the user as the creator of one
-		one.setCreatedBy(user.getIndividualGroup().getId());
+		one.setCreatedBy(user.getId().toString());
 		when(mockFileDao.get(one.getId())).thenReturn(one);
 		// two
 		S3FileHandle two = new S3FileHandle();
@@ -597,7 +595,7 @@ public class V2WikiManagerTest {
 		markdown.setCreatedOn(new Date(1));
 		markdown.setFileName("one");
 		// Set the user as the creator of one
-		markdown.setCreatedBy(user.getIndividualGroup().getId());
+		markdown.setCreatedBy(user.getId().toString());
 		when(mockFileDao.get(markdown.getId())).thenReturn(markdown);
 		
 		V2WikiPage page = new V2WikiPage();
@@ -618,7 +616,7 @@ public class V2WikiManagerTest {
 		when(mockWikiDao.getMarkdownFileHandleIdsForWiki(key)).thenReturn(allMarkdownFileHandleIds);
 		
 		// Allow one but deny the other.
-		when(mockAuthManager.canAccessRawFileHandleByCreator(user, user.getIndividualGroup().getId())).thenReturn(true);
+		when(mockAuthManager.canAccessRawFileHandleByCreator(user, user.getId().toString())).thenReturn(true);
 		when(mockAuthManager.canAccessRawFileHandleByCreator(user, "007")).thenReturn(false);
 		// Allow access to the owner.
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(true);
@@ -655,7 +653,7 @@ public class V2WikiManagerTest {
 		two.setCreatedOn(new Date(2));
 		two.setFileName("two");
 		// Set some other creator on two
-		two.setCreatedBy(user.getIndividualGroup().getId());
+		two.setCreatedBy(user.getId().toString());
 		when(mockFileDao.get(two.getId())).thenReturn(two);
 		// markdown
 		S3FileHandle markdown = new S3FileHandle();
@@ -663,7 +661,7 @@ public class V2WikiManagerTest {
 		markdown.setCreatedOn(new Date(1));
 		markdown.setFileName("one");
 		// Set the user as the creator of one
-		markdown.setCreatedBy(user.getIndividualGroup().getId());
+		markdown.setCreatedBy(user.getId().toString());
 		when(mockFileDao.get(markdown.getId())).thenReturn(markdown);
 		
 		V2WikiPage page = new V2WikiPage();
@@ -687,7 +685,7 @@ public class V2WikiManagerTest {
 		
 		when(mockWikiDao.lockForUpdate(wikiId)).thenReturn("etag");
 		// Allow one but deny the other.
-		when(mockAuthManager.canAccessRawFileHandleByCreator(user, user.getIndividualGroup().getId())).thenReturn(true);
+		when(mockAuthManager.canAccessRawFileHandleByCreator(user, user.getId().toString())).thenReturn(true);
 		when(mockAuthManager.canAccessRawFileHandleByCreator(user, "007")).thenReturn(false);
 		// Allow access to the owner.
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(true);
@@ -741,7 +739,7 @@ public class V2WikiManagerTest {
 		
 		S3FileHandle markdown = new S3FileHandle();
 		markdown.setId("1");
-		markdown.setCreatedBy(user.getIndividualGroup().getId());
+		markdown.setCreatedBy(user.getId().toString());
 		when(mockAuthManager.canAccessRawFileHandleByCreator(any(UserInfo.class), any(String.class))).thenReturn(true);
 		when(mockFileDao.get(markdown.getId())).thenReturn(markdown);
 		
@@ -769,7 +767,7 @@ public class V2WikiManagerTest {
 		wiki.setEtag("etag");
 		wiki.setMarkdownFileHandleId(markdown.getId());
 		wiki.setAttachmentFileHandleIds(new ArrayList<String>());
-		wiki.setCreatedBy(user.getIndividualGroup().getId());
+		wiki.setCreatedBy(user.getId().toString());
 		wiki.setCreatedOn(new Date(1));
 		when(mockWikiDao.get(key, null)).thenReturn(wiki);
 
@@ -813,14 +811,14 @@ public class V2WikiManagerTest {
 		
 		S3FileHandle markdown = new S3FileHandle();
 		markdown.setId("4");
-		markdown.setCreatedBy(user.getIndividualGroup().getId());
+		markdown.setCreatedBy(user.getId().toString());
 		markdown.setCreatedOn(new Date(1));
 		markdown.setFileName("markdownContent");
 		when(mockFileDao.get(markdown.getId())).thenReturn(markdown);
 		
 		S3FileHandle markdown2 = new S3FileHandle();
 		markdown2.setId("5");
-		markdown2.setCreatedBy(user.getIndividualGroup().getId());
+		markdown2.setCreatedBy(user.getId().toString());
 		markdown2.setCreatedOn(new Date(1));
 		markdown2.setFileName("markdownContent2");
 		when(mockFileDao.get(markdown2.getId())).thenReturn(markdown2);
@@ -843,7 +841,7 @@ public class V2WikiManagerTest {
 		fileHandleIdsToRestore.add(one.getId());
 		
 		// None of these should be checked since all the attachments already exist in the reservation
-		when(mockAuthManager.canAccessRawFileHandleByCreator(user, user.getIndividualGroup().getId())).thenReturn(true);
+		when(mockAuthManager.canAccessRawFileHandleByCreator(user, user.getId().toString())).thenReturn(true);
 		when(mockAuthManager.canAccessRawFileHandleByCreator(user, "007")).thenReturn(false);
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(true);
 		when(mockWikiDao.lockForUpdate(wikiId)).thenReturn("etag");
@@ -859,7 +857,7 @@ public class V2WikiManagerTest {
 		V2WikiPage wiki = new V2WikiPage();
 		wiki.setId(wikiId);
 		wiki.setEtag("etag");
-		wiki.setCreatedBy(user.getIndividualGroup().getId());
+		wiki.setCreatedBy(user.getId().toString());
 		wiki.setCreatedOn(new Date(1));
 		when(mockWikiDao.get(key, null)).thenReturn(wiki);
 		

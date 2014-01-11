@@ -426,13 +426,8 @@ public class MessageManagerImpl implements MessageManager {
 			try {
 				// Get the user's settings
 				Settings settings = null;
-				try {
-					UserProfile profile = userProfileDAO.get(user);
-					settings = profile.getNotificationSettings();
-				} catch (NotFoundException e) { }
-				if (settings == null) {
-					settings = new Settings();
-				}
+				UserProfile profile = userProfileDAO.get(user);
+				settings = profile.getNotificationSettings();
 				
 				MessageStatusType defaultStatus = null;
 				
@@ -444,7 +439,7 @@ public class MessageManagerImpl implements MessageManager {
 							isHtml,
 							//TODO change this to an alias
 							//TODO bootstrap a better name for the notification user
-							userInfo.getUser().getDisplayName());
+							profile.getDisplayName());
 					
 					// Should the message be marked as READ?
 					if (settings.getMarkEmailedMessagesAsRead() != null && settings.getMarkEmailedMessagesAsRead()) {
@@ -489,7 +484,7 @@ public class MessageManagerImpl implements MessageManager {
 			// Check permissions to send to non-individuals
 			if (!ug.getIsIndividual()
 					&& !authorizationManager.canAccess(userInfo, principalId, ObjectType.TEAM, ACCESS_TYPE.SEND_MESSAGE)) {
-				errors.add(userInfo.getUser().getUserName()
+				errors.add(userInfo.getId()
 						+ " may not send messages to the group (" + principalId + ")");
 				continue;
 			}
@@ -618,22 +613,24 @@ public class MessageManagerImpl implements MessageManager {
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void sendPasswordResetEmail(String recipientId, DomainType originClient, String sessionToken) throws NotFoundException {
+	public void sendPasswordResetEmail(Long recipientId, DomainType originClient, String sessionToken) throws NotFoundException {
 		// Build the subject and body of the message
-		UserInfo recipient = userManager.getUserInfo(Long.parseLong(recipientId));
+		UserInfo recipient = userManager.getUserInfo(recipientId);
 		String domain = WordUtils.capitalizeFully(originClient.name());
 		String subject = "Set " + domain + " Password";
 		String messageBody = readMailTemplate("message/PasswordResetTemplate.txt");
 		messageBody = messageBody.replaceAll(TEMPLATE_KEY_ORIGIN_CLIENT, domain);
 		
+		UserProfile profile = this.userProfileDAO.get(recipientId.toString());
+		
 		//TODO use the Alias here
-		String alias = recipient.getUser().getDisplayName();
+		String alias = profile.getDisplayName();
 		if (alias == null) {
 			alias = "";
 		}
 		messageBody = messageBody.replaceAll(TEMPLATE_KEY_DISPLAY_NAME, alias);
 		
-		messageBody = messageBody.replaceAll(TEMPLATE_KEY_USERNAME, recipient.getUser().getDisplayName());
+		messageBody = messageBody.replaceAll(TEMPLATE_KEY_USERNAME, alias);
 		String webLink;
 		switch (originClient) {
 		case BRIDGE:
@@ -647,29 +644,30 @@ public class MessageManagerImpl implements MessageManager {
 		}
 		messageBody = messageBody.replaceAll(TEMPLATE_KEY_WEB_LINK, webLink);
 		
-		sendEmail(recipient.getUser().getDisplayName(), subject, messageBody, false, DEFAULT_NOTIFICATION_DISPLAY_NAME);
+		sendEmail(alias, subject, messageBody, false, DEFAULT_NOTIFICATION_DISPLAY_NAME);
 	}
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void sendWelcomeEmail(String recipientId, DomainType originClient) throws NotFoundException {
+	public void sendWelcomeEmail(Long recipientId, DomainType originClient) throws NotFoundException {
 		// Build the subject and body of the message
-		UserInfo recipient = userManager.getUserInfo(Long.parseLong(recipientId));
+		UserInfo recipient = userManager.getUserInfo(recipientId);
 		String domain = WordUtils.capitalizeFully(originClient.name());
 		String subject = "Welcome to " + domain + "!";
 		String messageBody = readMailTemplate("message/WelcomeTemplate.txt");
 		messageBody = messageBody.replaceAll(TEMPLATE_KEY_ORIGIN_CLIENT, domain);
 		
 		//TODO use the Alias here
-		String alias = recipient.getUser().getDisplayName();
+		UserProfile profile = this.userProfileDAO.get(recipientId.toString());
+		String alias = profile.getDisplayName();
 		if (alias == null) {
 			alias = "";
 		}
 		messageBody = messageBody.replaceAll(TEMPLATE_KEY_DISPLAY_NAME, alias);
 		
-		messageBody = messageBody.replaceAll(TEMPLATE_KEY_USERNAME, recipient.getUser().getDisplayName());
+		messageBody = messageBody.replaceAll(TEMPLATE_KEY_USERNAME, alias);
 		
-		sendEmail(recipient.getUser().getDisplayName(), subject, messageBody, false, DEFAULT_NOTIFICATION_DISPLAY_NAME);
+		sendEmail(alias, subject, messageBody, false, DEFAULT_NOTIFICATION_DISPLAY_NAME);
 	}
 	
 	@Override
@@ -682,7 +680,8 @@ public class MessageManagerImpl implements MessageManager {
 		String messageBody = readMailTemplate("message/DeliveryFailureTemplate.txt");
 		
 		//TODO use the Alias here
-		String alias = sender.getUser().getDisplayName();
+		UserProfile profile = this.userProfileDAO.get(sender.getId().toString());
+		String alias = profile.getDisplayName();
 		if (alias == null) {
 			alias = "";
 		}
@@ -691,7 +690,7 @@ public class MessageManagerImpl implements MessageManager {
 		messageBody = messageBody.replaceAll(TEMPLATE_KEY_MESSAGE_ID, messageId);
 		messageBody = messageBody.replaceAll(TEMPLATE_KEY_DETAILS, "- " + StringUtils.join(errors, "\n- "));
 		
-		sendEmail(sender.getUser().getDisplayName(), subject, messageBody, false, DEFAULT_NOTIFICATION_DISPLAY_NAME);
+		sendEmail(alias, subject, messageBody, false, DEFAULT_NOTIFICATION_DISPLAY_NAME);
 	}
 	
 	/**

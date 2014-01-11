@@ -35,7 +35,6 @@ public class NodeSerializerUtilTest {
 		UserGroup ug = new UserGroup();
 		ug.setId("101");
 		ug.setIsIndividual(true);
-		ug.setName("foo");
 		ug.setCreationDate(new Date());
 		pb.setUserGroup(ug);
 		UserProfile up = new UserProfile();

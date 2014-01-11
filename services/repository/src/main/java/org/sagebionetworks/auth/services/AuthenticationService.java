@@ -101,4 +101,6 @@ public interface AuthenticationService {
 	 * Will create a user if necessary 
 	 */
 	public Session authenticateViaOpenID(ParameterList parameters) throws NotFoundException;
+
+	public void sendPasswordEmail(String email, DomainType originClient) throws NotFoundException;
 }
