@@ -428,7 +428,9 @@ public class MessageManagerImpl implements MessageManager {
 				Settings settings = null;
 				UserProfile profile = userProfileDAO.get(user);
 				settings = profile.getNotificationSettings();
-				
+				if(settings == null){
+					settings = new Settings();
+				}
 				MessageStatusType defaultStatus = null;
 				
 				// Should emails be sent?

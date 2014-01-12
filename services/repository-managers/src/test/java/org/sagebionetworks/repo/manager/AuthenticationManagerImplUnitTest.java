@@ -43,6 +43,8 @@ public class AuthenticationManagerImplUnitTest {
 		userGroupDAO = mock(UserGroupDAO.class);
 		UserGroup ug = new UserGroup();
 		ug.setId(userId.toString());
+		ug.setIsIndividual(true);
+		when(userGroupDAO.get(userId)).thenReturn(ug);
 		
 		authManager = new AuthenticationManagerImpl(authDAO, userGroupDAO);
 	}
@@ -62,8 +64,8 @@ public class AuthenticationManagerImplUnitTest {
 		Session session = authManager.authenticate(userId, null);
 		Assert.assertEquals(sessionToken, session.getSessionToken());
 		
-		verify(authDAO, never()).getPasswordSalt(any(Long.class));
-		verify(authDAO, never()).checkUserCredentials(any(Long.class), any(String.class));
+		verify(authDAO, never()).getPasswordSalt(userId);
+		verify(authDAO, never()).checkUserCredentials(userId, null);
 	}
 
 	@Test

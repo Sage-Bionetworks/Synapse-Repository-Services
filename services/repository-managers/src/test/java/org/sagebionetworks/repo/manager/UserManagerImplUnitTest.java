@@ -7,6 +7,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.UUID;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
@@ -17,7 +19,9 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
+import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 
 public class UserManagerImplUnitTest {
 	
@@ -28,6 +32,7 @@ public class UserManagerImplUnitTest {
 	private GroupMembersDAO mockGroupMembersDAO;
 	private AuthenticationDAO mockAuthDAO;
 	private DBOBasicDao basicDAO;
+	private PrincipalAliasDAO mockPrincipalAliasDAO;
 	
 	private UserInfo admin;
 	private UserInfo notAdmin;
@@ -43,6 +48,7 @@ public class UserManagerImplUnitTest {
 		mockGroupMembersDAO = mock(GroupMembersDAO.class);
 		mockAuthDAO = mock(AuthenticationDAO.class);
 		basicDAO = mock(DBOBasicDao.class);
+		mockPrincipalAliasDAO = mock(PrincipalAliasDAO.class);
 
 		when(mockUserGroupDAO.create(any(UserGroup.class))).thenReturn(Long.parseLong(mockId));
 		mockUserGroup = new UserGroup();
@@ -53,7 +59,7 @@ public class UserManagerImplUnitTest {
 		mockUserProfile = new UserProfile();
 		when(mockUserProfileDAO.get(anyString())).thenReturn(mockUserProfile);
 		
-		userManager = new UserManagerImpl(mockUserGroupDAO, mockUserProfileDAO, mockGroupMembersDAO, mockAuthDAO, basicDAO);
+		userManager = new UserManagerImpl(mockUserGroupDAO, mockUserProfileDAO, mockGroupMembersDAO, mockAuthDAO, basicDAO, mockPrincipalAliasDAO);
 		
 		admin = new UserInfo(true);
 		notAdmin = new UserInfo(false);
@@ -62,7 +68,10 @@ public class UserManagerImplUnitTest {
 	@Test
 	public void testCreateUserAdmin() throws Exception {
 		// Call with an admin
-		userManager.createUser(admin, null, null);
+		NewUser nu = new NewUser();
+		nu.setEmail(UUID.randomUUID().toString()+"@testing.com");
+		nu.setUserName(UUID.randomUUID().toString());
+		userManager.createUser(admin, nu, null);
 		
 		// Call with a non admin
 		try {

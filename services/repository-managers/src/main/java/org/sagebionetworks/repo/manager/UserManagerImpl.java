@@ -60,12 +60,13 @@ public class UserManagerImpl implements UserManager {
 	
 	public UserManagerImpl() { }
 	
-	public UserManagerImpl(UserGroupDAO userGroupDAO, UserProfileDAO userProfileDAO, GroupMembersDAO groupMembersDAO, AuthenticationDAO authDAO, DBOBasicDao basicDAO) {
+	public UserManagerImpl(UserGroupDAO userGroupDAO, UserProfileDAO userProfileDAO, GroupMembersDAO groupMembersDAO, AuthenticationDAO authDAO, DBOBasicDao basicDAO, PrincipalAliasDAO principalAliasDAO) {
 		this.userGroupDAO = userGroupDAO;
 		this.userProfileDAO = userProfileDAO;
 		this.groupMembersDAO = groupMembersDAO;
 		this.authDAO = authDAO;
 		this.basicDAO = basicDAO;
+		this.principalAliasDAO = principalAliasDAO;
 	}
 	
 	public void setUserGroupDAO(UserGroupDAO userGroupDAO) {
