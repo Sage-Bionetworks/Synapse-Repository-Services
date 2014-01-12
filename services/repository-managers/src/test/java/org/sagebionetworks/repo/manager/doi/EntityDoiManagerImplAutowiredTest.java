@@ -66,6 +66,7 @@ public class EntityDoiManagerImplAutowiredTest {
 	public void before() throws Exception {
 		NewUser user = new NewUser();
 		user.setEmail(UUID.randomUUID().toString() + "@test.com");
+		user.setUserName(UUID.randomUUID().toString());
 		testUserId = userManager.createUser(user);
 		testUserInfo = userManager.getUserInfo(testUserId);
 

@@ -48,7 +48,8 @@ public class UserProfileManagerImplTest {
 		individualGroup = new UserGroup();
 		individualGroup.setIsIndividual(true);
 		individualGroup.setCreationDate(new Date());
-		userGroupDAO.create(individualGroup);
+		Long id = userGroupDAO.create(individualGroup);
+		individualGroup.setId(id.toString());
 		assertNotNull(individualGroup);
 
 		mockIdGenerator = Mockito.mock(IdGenerator.class);

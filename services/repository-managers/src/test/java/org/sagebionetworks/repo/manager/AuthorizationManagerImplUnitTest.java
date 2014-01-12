@@ -11,7 +11,6 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 
 import org.junit.Before;
@@ -27,6 +26,7 @@ import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ActivityDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
@@ -63,7 +63,7 @@ public class AuthorizationManagerImplUnitTest {
 	private UserInfo userInfo;
 	private UserInfo adminUser;
 	private Evaluation evaluation;
-	private UserGroup actTeam;
+//	private UserGroup actTeam;
 
 	@Before
 	public void setUp() throws Exception {
@@ -88,10 +88,6 @@ public class AuthorizationManagerImplUnitTest {
 		ReflectionTestUtils.setField(authorizationManager, "evaluationDAO", mockEvaluationDAO);
 		ReflectionTestUtils.setField(authorizationManager, "userGroupDAO", mockUserGroupDAO);
 		ReflectionTestUtils.setField(authorizationManager, "aclDAO", mockAclDAO);
-
-		actTeam = new UserGroup();
-		actTeam.setId("101");
-		actTeam.setIsIndividual(false);
 
 		userInfo = new UserInfo(false, USER_PRINCIPAL_ID);
 
@@ -219,7 +215,7 @@ public class AuthorizationManagerImplUnitTest {
 
 	@Test
 	public void testVerifyACTTeamMembershipOrIsAdmin_ACT() {
-		userInfo.getGroups().add(Long.parseLong(actTeam.getId()));
+		userInfo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ACCESS_AND_COMPLIANCE_GROUP.getPrincipalId());
 		assertTrue(authorizationManager.isACTTeamMemberOrAdmin(userInfo));
 	}
 
@@ -236,7 +232,7 @@ public class AuthorizationManagerImplUnitTest {
 
 	@Test
 	public void testVerifyACTTeamMembershipOrCanCreateOrEdit_ACT() throws Exception {
-		userInfo.getGroups().add(Long.parseLong(actTeam.getId()));
+		userInfo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ACCESS_AND_COMPLIANCE_GROUP.getPrincipalId());
 		List<String> ids = new ArrayList<String>(Arrays.asList(new String[]{"101"}));
 		assertTrue(authorizationManager.isACTTeamMemberOrCanCreateOrEdit(userInfo, ids));
 	}
@@ -315,7 +311,7 @@ public class AuthorizationManagerImplUnitTest {
 	public void testCanAccessEntityAccessRequirement() throws Exception {
 		AccessRequirement ar = createEntityAccessRequirement();
 		assertFalse(authorizationManager.canAccess(userInfo, ar.getId().toString(), ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE));
-		userInfo.getGroups().add(Long.parseLong(actTeam.getId()));
+		userInfo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ACCESS_AND_COMPLIANCE_GROUP.getPrincipalId());
 		assertTrue(authorizationManager.canAccess(userInfo, "1234", ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE));
 	}
 
@@ -331,7 +327,7 @@ public class AuthorizationManagerImplUnitTest {
 	public void testCanAccessEntityAccessApproval() throws Exception {
 		AccessApproval aa = createEntityAccessApproval();
 		assertFalse(authorizationManager.canAccess(userInfo, aa.getId().toString(), ObjectType.ACCESS_APPROVAL, ACCESS_TYPE.READ));
-		userInfo.getGroups().add(Long.parseLong(actTeam.getId()));
+		userInfo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ACCESS_AND_COMPLIANCE_GROUP.getPrincipalId());
 		assertTrue(authorizationManager.canAccess(userInfo, aa.getId().toString(), ObjectType.ACCESS_APPROVAL, ACCESS_TYPE.READ));
 	}
 
@@ -347,9 +343,9 @@ public class AuthorizationManagerImplUnitTest {
 	public void testCanCreateEntityAccessRequirement() throws Exception {
 		AccessRequirement ar = createEntityAccessRequirement();
 		assertFalse(authorizationManager.canCreateAccessRequirement(userInfo, ar));
-		userInfo.getGroups().add(Long.parseLong(actTeam.getId())); 
+		userInfo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ACCESS_AND_COMPLIANCE_GROUP.getPrincipalId()); 
 		assertTrue(authorizationManager.canCreateAccessRequirement(userInfo, ar));
-		userInfo.getGroups().remove(actTeam);
+		userInfo.getGroups().remove(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ACCESS_AND_COMPLIANCE_GROUP.getPrincipalId());
 		assertFalse(authorizationManager.canCreateAccessRequirement(userInfo, ar));
 		// give user edit ability on entity 101
 		when(mockEntityPermissionsManager.hasAccess(eq("101"), any(ACCESS_TYPE.class), eq(userInfo))).thenReturn(true);
@@ -359,7 +355,7 @@ public class AuthorizationManagerImplUnitTest {
 	@Test
 	public void testCanAccessEntityAccessApprovalsForSubject() throws Exception {
 		assertFalse(authorizationManager.canAccessAccessApprovalsForSubject(userInfo, createEntitySubjectId(), ACCESS_TYPE.READ));
-		userInfo.getGroups().add(Long.parseLong(actTeam.getId()));
+		userInfo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ACCESS_AND_COMPLIANCE_GROUP.getPrincipalId());
 		assertTrue(authorizationManager.canAccessAccessApprovalsForSubject(userInfo, createEntitySubjectId(), ACCESS_TYPE.READ));
 	}
 

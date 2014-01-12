@@ -15,6 +15,6 @@ public class AuthorizationUtils {
 	}
 	
 	public static boolean isUserAnonymous(Long id) {
-		return BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString().equals(id);
+		return BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().equals(id);
 	}
 }

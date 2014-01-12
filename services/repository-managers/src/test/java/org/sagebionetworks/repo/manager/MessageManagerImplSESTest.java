@@ -46,6 +46,12 @@ import com.amazonaws.services.simpleemail.AmazonSimpleEmailServiceClient;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class MessageManagerImplSESTest {
 	
+	private static final String SUCCESS_EMAIL = "success@simulator.amazonses.com";
+	private static final String BOUNCE_EMAIL = "bounce@simulator.amazonses.com";
+	private static final String OOTO_EMAIL = "ooto@simulator.amazonses.com";
+	private static final String COMPLAINT_EMAIL = "complaint@simulator.amazonses.com";
+	private static final String SUPPRESSION_EMAIL = "suppressionlist@simulator.amazonses.com";
+	
 	private static final String MESSAGE_ID_PLAIN_TEXT = "101";
 	private static final String MESSAGE_ID_HTML = "202";
 
@@ -75,11 +81,12 @@ public class MessageManagerImplSESTest {
 	
 	private final long mockUserId = -12345L;
 	private final String mockUserIdString = "-12345";
-	private final String mockRecipientId = "-67890";
+	private final Long mockRecipientId = new Long(-67890);
+	private final String mockRecipientIdString = mockRecipientId.toString();
 	private Set<String> mockRecipients = new HashSet<String>() {
 		private static final long serialVersionUID = 1L;
 		{
-			add(mockRecipientId);
+			add(mockRecipientIdString);
 		}
 	};
 	
@@ -141,17 +148,19 @@ public class MessageManagerImplSESTest {
 		// Mocks expandRecipientSet(...)
 		mockUserGroup = new UserGroup();
 		mockUserGroup.setIsIndividual(true);
-		mockUserGroup.setId(mockRecipientId);
-		when(mockUserGroupDAO.get(eq(Long.parseLong(mockRecipientId)))).thenReturn(mockUserGroup);
+		mockUserGroup.setId(mockRecipientIdString);
+		when(mockUserGroupDAO.get(eq(mockRecipientId))).thenReturn(mockUserGroup);
 		
 		// Mocks the getting of settings
 		mockUserProfile = new UserProfile();
 		mockUserProfile.setNotificationSettings(new Settings());
-		when(mockUserProfileDAO.get(eq(mockRecipientId))).thenReturn(mockUserProfile);
+		when(mockUserProfileDAO.get(eq(mockRecipientIdString))).thenReturn(mockUserProfile);
 		
 		// Mocks the username supplied to SES
 		mockUserInfo = new UserInfo(false, mockUserId);
 		when(mockUserManager.getUserInfo(eq(mockUserId))).thenReturn(mockUserInfo);
+		
+
 		
 		S3FileHandle plainTextFileHandle = new S3FileHandle();
 		plainTextFileHandle.setId(FILE_HANDLE_ID_PLAIN_TEXT);
@@ -186,30 +195,35 @@ public class MessageManagerImplSESTest {
 	
 	@Test
 	public void testSuccess() throws Exception {
+		when(mockUserManager.getPrimaryEmailForUser(eq(mockRecipientId))).thenReturn(SUCCESS_EMAIL);
 		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT);
 		assertEquals(errors.toString(), 0, errors.size());
 	}
 	
 	@Test
 	public void testBounce() throws Exception {
+		when(mockUserManager.getPrimaryEmailForUser(eq(mockRecipientId))).thenReturn(BOUNCE_EMAIL);
 		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT);
 		assertEquals(errors.toString(), 0, errors.size());
 	}
 	
 	@Test
 	public void testOutOfOffice() throws Exception {
+		when(mockUserManager.getPrimaryEmailForUser(eq(mockRecipientId))).thenReturn(OOTO_EMAIL);
 		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT);
 		assertEquals(errors.toString(), 0, errors.size());
 	}
 	
 	@Test
 	public void testComplaint() throws Exception {
+		when(mockUserManager.getPrimaryEmailForUser(eq(mockRecipientId))).thenReturn(COMPLAINT_EMAIL);
 		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT);
 		assertEquals(errors.toString(), 0, errors.size());
 	}
 	
 	@Test
 	public void testSuppressionList() throws Exception {
+		when(mockUserManager.getPrimaryEmailForUser(eq(mockRecipientId))).thenReturn(SUPPRESSION_EMAIL);
 		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT);
 		assertEquals(errors.toString(), 0, errors.size());
 	}

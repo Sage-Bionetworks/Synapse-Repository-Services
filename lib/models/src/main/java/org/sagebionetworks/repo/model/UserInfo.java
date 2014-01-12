@@ -32,6 +32,7 @@ public class UserInfo {
 	 */
 	public UserInfo(boolean isAdmin, Long id){
 		this.isAdmin = isAdmin;
+		this.id = id;
 		this.groups = new HashSet<Long>();
 		this.groups.add(this.id);
 	}

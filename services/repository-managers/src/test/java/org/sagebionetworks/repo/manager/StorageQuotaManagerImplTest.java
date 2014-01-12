@@ -1,16 +1,15 @@
 package org.sagebionetworks.repo.manager;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.Matchers.any;
 
 import org.junit.Test;
 import org.sagebionetworks.repo.model.StorageQuotaDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.storage.StorageQuota;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -50,7 +49,7 @@ public class StorageQuotaManagerImplTest {
 	@Test
 	public void testSetQuota() {
 
-		UserInfo currUser = new UserInfo(false, 1L);
+		UserInfo currUser = new UserInfo(true, 1L);
 		UserInfo user = new UserInfo(false, 1L);
 
 		StorageQuotaDao quotaDao = mock(StorageQuotaDao.class);

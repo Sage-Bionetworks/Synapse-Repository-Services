@@ -60,6 +60,14 @@ public interface UserManager {
 	public String getUserName(long userId);
 	
 	/**
+	 * Get the primary email address for a user.
+	 * Note: The first email on the list is treated as the primary.
+	 * @param userId
+	 * @return
+	 */
+	public String getPrimaryEmailForUser(long userId);
+	
+	/**
 	 * Principals can have many aliases including a username, multiple email addresses, and OpenIds.
 	 * This method will look a user by any of the aliases.
 	 * @param alias

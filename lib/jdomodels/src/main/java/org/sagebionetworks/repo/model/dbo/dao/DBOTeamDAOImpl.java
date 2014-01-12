@@ -6,7 +6,7 @@ package org.sagebionetworks.repo.model.dbo.dao;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_ALIAS_DISPLAY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_GROUP_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_MEMBER_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_PRINCIPAL_ID;
+//import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_GROUP_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_OWNER;
@@ -70,8 +70,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	private static final RowMapper<DBOTeam> teamRowMapper = (new DBOTeam()).getTableMapping();
 	
 	private static final String SELECT_PAGINATED = 
-			"SELECT t.*, g."+COL_BOUND_ALIAS_DISPLAY+" FROM "+TABLE_PRINCIPAL_ALIAS+" g, "+TABLE_TEAM+" t "+
-			" WHERE t."+COL_TEAM_ID+"=g."+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID+" order by "+COL_BOUND_ALIAS_DISPLAY+" asc "+
+			"SELECT * FROM "+TABLE_TEAM+" order by "+COL_TEAM_ID+" asc "+
 			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 	
 	private static final String SELECT_COUNT = 

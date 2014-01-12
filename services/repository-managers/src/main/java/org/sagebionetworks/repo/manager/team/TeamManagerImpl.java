@@ -92,7 +92,8 @@ public class TeamManagerImpl implements TeamManager {
 			MembershipInvtnSubmissionDAO membershipInvtnSubmissionDAO,
 			MembershipRqstSubmissionDAO membershipRqstSubmissionDAO, 
 			UserManager userManager,
-			AccessRequirementDAO accessRequirementDAO
+			AccessRequirementDAO accessRequirementDAO,
+			PrincipalAliasDAO principalAliasDAO
 			) {
 		this.authorizationManager = authorizationManager;
 		this.teamDAO = teamDAO;
@@ -105,6 +106,7 @@ public class TeamManagerImpl implements TeamManager {
 		this.membershipRqstSubmissionDAO = membershipRqstSubmissionDAO;
 		this.userManager = userManager;
 		this.accessRequirementDAO = accessRequirementDAO;
+		this.principalAliasDAO = principalAliasDAO;
 	}
 	
 	public static void validateForCreate(Team team) {
@@ -245,9 +247,6 @@ public class TeamManagerImpl implements TeamManager {
 		if(alias != null && !alias.getPrincipalId().equals(teamId)){
 			throw new NameConflictException("Name "+name+" is already used.");
 		}
-		// Remove all aliases currently bound to this team
-		principalAliasDAO.removeAllAliasFromPrincipal(teamId);
-		
 		// Bind the team name
 		alias = new PrincipalAlias();
 		alias.setAlias(name);

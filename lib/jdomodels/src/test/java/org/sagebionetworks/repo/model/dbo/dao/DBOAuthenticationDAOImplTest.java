@@ -11,7 +11,6 @@ import static org.junit.Assert.fail;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
@@ -23,11 +22,9 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
-import org.sagebionetworks.repo.model.UserGroupInt;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
-import org.sagebionetworks.repo.model.principal.BootstrapGroup;
 import org.sagebionetworks.repo.model.principal.BootstrapPrincipal;
 import org.sagebionetworks.repo.model.principal.BootstrapUser;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -68,13 +65,12 @@ public class DBOAuthenticationDAOImplTest {
 		ug.setIsIndividual(true);
 		userId = userGroupDAO.create(ug);
 	
-		groupsToDelete.add(ug.getId());
-		Long principalId = Long.parseLong(ug.getId());
-		userEtag = userGroupDAO.getEtagForUpdate(principalId.toString());
+		groupsToDelete.add(userId.toString());
+		userEtag = userGroupDAO.getEtagForUpdate(userId.toString());
 
 		// Make a row of Credentials
 		secretRow = new DBOCredential();
-		secretRow.setPrincipalId(principalId);
+		secretRow.setPrincipalId(userId);
 		secretRow.setValidatedOn(new Date());
 		secretRow.setSessionToken("Hsssssss...");
 		secretRow.setPassHash("{PKCS5S2}1234567890abcdefghijklmnopqrstuvwxyz");

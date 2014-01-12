@@ -120,7 +120,7 @@ public class NodeManagerImplUnitTest {
 		NodeManagerImpl.validateNodeCreationData(anonUserInfo.getId(), node);
 		// the values SHOULD  have changed
 		assertTrue(Math.abs(System.currentTimeMillis()-node.getCreatedOn().getTime())<100L);
-		assertEquals(anonUserInfo.getId(), node.getCreatedByPrincipalId().toString());
+		assertEquals(anonUserInfo.getId().toString(), node.getCreatedByPrincipalId().toString());
 	}
 	
 	@Test

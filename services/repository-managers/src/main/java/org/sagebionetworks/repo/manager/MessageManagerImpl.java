@@ -433,7 +433,8 @@ public class MessageManagerImpl implements MessageManager {
 				
 				// Should emails be sent?
 				if (settings.getSendEmailNotifications() == null || settings.getSendEmailNotifications()) {
-					sendEmail(userManager.getUserName(Long.parseLong(user)), 
+					String email = getEmailForUser(user);
+					sendEmail(email, 
 							dto.getSubject(),
 							messageBody, 
 							isHtml,
@@ -550,7 +551,7 @@ public class MessageManagerImpl implements MessageManager {
 	 * 
 	 * @param sender The username of the sender (null tolerant)
 	 */
-	private SendEmailResult sendEmail(String recipient, String subject, String body, boolean isHtml, String sender) {
+	private SendEmailResult sendEmail(String recipientEmail, String subject, String body, boolean isHtml, String sender) {
 		// Construct whom the email is from 
 		String source = StackConfiguration.getNotificationEmailAddress();
 		if (sender != null) {
@@ -558,7 +559,7 @@ public class MessageManagerImpl implements MessageManager {
 		}
 		
 		// Construct an object to contain the recipient address
-        Destination destination = new Destination().withToAddresses(recipient);
+        Destination destination = new Destination().withToAddresses(recipientEmail);
         
         // Create the subject and body of the message
         if (subject == null) {
@@ -643,8 +644,8 @@ public class MessageManagerImpl implements MessageManager {
 			throw new IllegalArgumentException("Unknown origin client type: " + originClient);
 		}
 		messageBody = messageBody.replaceAll(TEMPLATE_KEY_WEB_LINK, webLink);
-		
-		sendEmail(alias, subject, messageBody, false, DEFAULT_NOTIFICATION_DISPLAY_NAME);
+		String email = getEmailForUser(recipientId);
+		sendEmail(email, subject, messageBody, false, DEFAULT_NOTIFICATION_DISPLAY_NAME);
 	}
 	
 	@Override
@@ -666,8 +667,8 @@ public class MessageManagerImpl implements MessageManager {
 		messageBody = messageBody.replaceAll(TEMPLATE_KEY_DISPLAY_NAME, alias);
 		
 		messageBody = messageBody.replaceAll(TEMPLATE_KEY_USERNAME, alias);
-		
-		sendEmail(alias, subject, messageBody, false, DEFAULT_NOTIFICATION_DISPLAY_NAME);
+		String email = getEmailForUser(recipientId);
+		sendEmail(email, subject, messageBody, false, DEFAULT_NOTIFICATION_DISPLAY_NAME);
 	}
 	
 	@Override
@@ -689,10 +690,24 @@ public class MessageManagerImpl implements MessageManager {
 		
 		messageBody = messageBody.replaceAll(TEMPLATE_KEY_MESSAGE_ID, messageId);
 		messageBody = messageBody.replaceAll(TEMPLATE_KEY_DETAILS, "- " + StringUtils.join(errors, "\n- "));
-		
-		sendEmail(alias, subject, messageBody, false, DEFAULT_NOTIFICATION_DISPLAY_NAME);
+		String email = getEmailForUser(sender.getId());
+		sendEmail(email, subject, messageBody, false, DEFAULT_NOTIFICATION_DISPLAY_NAME);
 	}
 	
+	/**
+	 * Lookup and validate an email for a user.
+	 * @param userId
+	 * @return
+	 */
+	private String getEmailForUser(String userId){
+		return getEmailForUser(Long.parseLong(userId));
+	}
+	
+	private String getEmailForUser(Long userId){
+		String email = userManager.getPrimaryEmailForUser(userId);
+		if(email == null) throw new IllegalStateException("Cannot find an email for user: "+userId);
+		return email;
+	}
 	/**
 	 * Helper for sending templated emails
 	 * 

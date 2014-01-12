@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.LinkedList;
 import java.util.Random;
 
 import org.junit.Before;
@@ -28,6 +29,7 @@ import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.dbo.dao.UserProfileUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserProfile;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.util.LocationHelper;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -40,11 +42,12 @@ public class UserProfileManagerImplUnitTest {
 	UserManager mockUserManager;
 	FavoriteDAO mockFavoriteDAO;
 	AttachmentManager mockAttachmentManager;
+	PrincipalAliasDAO mockPrincipalAliasDAO;
+	
 	
 	UserProfileManager userProfileManager;
 	
 	UserInfo userInfo;
-	UserGroup user;
 	UserInfo adminUserInfo;
 	UserProfile userProfile;
 	S3AttachmentToken testToken;
@@ -64,7 +67,8 @@ public class UserProfileManagerImplUnitTest {
 		mockUserManager = Mockito.mock(UserManager.class);
 		mockFavoriteDAO = Mockito.mock(FavoriteDAO.class);
 		mockAttachmentManager = Mockito.mock(AttachmentManager.class);
-		userProfileManager = new UserProfileManagerImpl(mockProfileDAO, mockUserGroupDAO, mockS3TokenManager, mockFavoriteDAO, mockAttachmentManager);
+		mockPrincipalAliasDAO = Mockito.mock(PrincipalAliasDAO.class);
+		userProfileManager = new UserProfileManagerImpl(mockProfileDAO, mockUserGroupDAO, mockS3TokenManager, mockFavoriteDAO, mockAttachmentManager, mockPrincipalAliasDAO);
 		
 		
 		userInfo = new UserInfo(false, 111L);
@@ -72,11 +76,14 @@ public class UserProfileManagerImplUnitTest {
 		adminUserInfo = new UserInfo(true, 456L);
 		
 		userProfile = new UserProfile();
-		userProfile.setOwnerId(user.getId());
+		userProfile.setOwnerId(userInfo.getId().toString());
 		userProfile.setDisplayName("test-user display-name");
 		userProfile.setRStudioUrl("myPrivateRStudioUrl");
-		userProfile.setEmail(TEST_USER_NAME);
+		userProfile.setEmail(null);
+		userProfile.setUserName("TEMPORARY-111");
 		userProfile.setLocation("I'm guessing this is private");
+		userProfile.setEmails(new LinkedList<String>());
+		userProfile.setOpenIds(new LinkedList<String>());
 		
 		// UserProfileDAO should return a copy of the mock UserProfile when getting
 		Mockito.doAnswer(new Answer<UserProfile>() {

@@ -60,17 +60,18 @@ public class UserManagerImplTest {
 		assertTrue(ui.getGroups().contains(ui.getId()));
 
 		// They belong to the public group but not the authenticated user's group
-		assertTrue(ui.getGroups().contains(userGroupDAO.get(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId())));
+		assertTrue(ui.getGroups().contains(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId()));
 
 		// Anonymous does not belong to the authenticated user's group.
-		assertFalse(ui.getGroups().contains(userGroupDAO.get(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId())));
+		assertFalse(ui.getGroups().contains(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId()));
 	}
 	
 	@Test
 	public void testStandardUser() throws Exception {
 		NewUser user = new NewUser();
 		user.setEmail(UUID.randomUUID().toString() + "@test.com");
-		Long principalId = userManager.createUser(user);
+		user.setUserName(UUID.randomUUID().toString());
+		Long principalId = userManager.createUser(user);;
 		groupsToDelete.add(principalId.toString());
 		
 		// Check that the UserInfo is populated
@@ -78,8 +79,8 @@ public class UserManagerImplTest {
 		assertNotNull(ui.getId().toString());
 		
 		// Should include Public and authenticated users' group.
-		assertTrue(ui.getGroups().contains(userGroupDAO.get(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId())));
-		assertTrue(ui.getGroups().contains(userGroupDAO.get(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId())));
+		assertTrue(ui.getGroups().contains(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId()));
+		assertTrue(ui.getGroups().contains(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId()));
 	}
 		
 	@Test

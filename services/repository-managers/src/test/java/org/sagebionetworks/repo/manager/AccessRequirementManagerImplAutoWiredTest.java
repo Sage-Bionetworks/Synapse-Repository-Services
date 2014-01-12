@@ -84,6 +84,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 	public void before() throws Exception {
 		NewUser user = new NewUser();
 		user.setEmail(UUID.randomUUID().toString() + "@test.com");
+		user.setUserName(UUID.randomUUID().toString());
 		testUserInfo = userManager.getUserInfo(userManager.createUser(user));
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		

@@ -23,7 +23,6 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.ActivityDAO;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.provenance.Activity;
@@ -54,8 +53,8 @@ public class ActivityManagerImplTest {
 		mockAuthorizationManager = mock(AuthorizationManager.class);
 		normalUserInfo = new UserInfo(false);
 		adminUserInfo = new UserInfo(true);
-		configureUser(adminUserInfo, "1", "userId1");
-		configureUser(normalUserInfo, "2", "userId2");
+		configureUser(adminUserInfo, "1");
+		configureUser(normalUserInfo, "2");
 		 
 		activityManager = new ActivityManagerImpl(mockIdGenerator, mockActivityDAO, mockAuthorizationManager);
 	}
@@ -316,8 +315,8 @@ public class ActivityManagerImplTest {
 		return act;
 	}
 
-	private void configureUser(UserInfo userInfo, String userGroupId, String userId) {
-		userInfo.setId(Long.parseLong(userId));
+	private void configureUser(UserInfo userInfo, String userGroupId) {
+		userInfo.setId(Long.parseLong(userGroupId));
 		userInfo.setAgreesToTermsOfUse(true);
 		userInfo.setEtag("0");
 		userInfo.setCreationDate(new Date());

@@ -6,11 +6,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Random;
 
 import org.junit.After;
 import org.junit.Before;
@@ -19,8 +15,6 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
-import org.sagebionetworks.repo.model.UserGroupInt;
-import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.principal.BootstrapPrincipal;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,17 +26,9 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class DBOUserGroupDAOImplTest {
 	
-	/**
-	 * Allows existing test to pass while refactoring UserGroup names to Principal names
-	 */
-	@Deprecated
-	private static final String AUTHENTICATED_USERS = "AUTHENTICATED_USERS";
 	
 	@Autowired
 	private UserGroupDAO userGroupDAO;
-		
-	@Autowired
-	private UserProfileDAO userProfileDAO;
 		
 	private List<String> groupsToDelete;
 	
@@ -88,7 +74,7 @@ public class DBOUserGroupDAOImplTest {
 		for(BootstrapPrincipal bootUg: boots){
 			assertTrue(userGroupDAO.doesIdExist(bootUg.getId()));
 			UserGroup ug = userGroupDAO.get(bootUg.getId());
-			assertEquals(bootUg.getId(), ug.getId());
+			assertEquals(bootUg.getId().toString(), ug.getId());
 		}
 	}
 

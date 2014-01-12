@@ -109,7 +109,7 @@ public class DBOUserProfileDAOImplTest {
 			if(bootUg instanceof BootstrapUser){
 				UserProfile profile = userProfileDAO.get(bootUg.getId().toString());
 				userGroupDAO.get(bootUg.getId());
-				assertEquals(bootUg.getId(), profile.getOwnerId());
+				assertEquals(bootUg.getId().toString(), profile.getOwnerId());
 			}
 		}
 	}

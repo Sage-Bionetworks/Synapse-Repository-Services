@@ -51,12 +51,13 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	 * Used by unit tests
 	 */
 	public UserProfileManagerImpl(UserProfileDAO userProfileDAO, UserGroupDAO userGroupDAO,
-			S3TokenManager s3TokenManager, FavoriteDAO favoriteDAO, AttachmentManager attachmentManager) {
+			S3TokenManager s3TokenManager, FavoriteDAO favoriteDAO, AttachmentManager attachmentManager, PrincipalAliasDAO principalAliasDAO) {
 		super();
 		this.userProfileDAO = userProfileDAO;
 		this.s3TokenManager = s3TokenManager;
 		this.favoriteDAO = favoriteDAO;
 		this.attachmentManager = attachmentManager;
+		this.principalAliasDAO = principalAliasDAO;
 	}
 
 	@Override

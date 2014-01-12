@@ -48,8 +48,8 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserInfo;
-
-import com.google.gwt.user.client.rpc.core.java.util.Collections;
+import org.sagebionetworks.repo.model.principal.PrincipalAlias;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 
 public class TeamManagerImplTest {
 	private TeamManagerImpl teamManagerImpl = null;
@@ -63,6 +63,7 @@ public class TeamManagerImplTest {
 	private MembershipRqstSubmissionDAO mockMembershipRqstSubmissionDAO = null;
 	private UserManager mockUserManager = null;
 	private AccessRequirementDAO mockAccessRequirementDAO = null;
+	private PrincipalAliasDAO mockPrincipalAliasDAO;
 	
 	private UserInfo userInfo = null;
 	private UserInfo adminInfo = null;
@@ -82,6 +83,7 @@ public class TeamManagerImplTest {
 		mockMembershipRqstSubmissionDAO = Mockito.mock(MembershipRqstSubmissionDAO.class);
 		mockUserManager = Mockito.mock(UserManager.class);
 		mockAccessRequirementDAO = Mockito.mock(AccessRequirementDAO.class);
+		mockPrincipalAliasDAO = Mockito.mock(PrincipalAliasDAO.class);
 		teamManagerImpl = new TeamManagerImpl(
 				mockAuthorizationManager,
 				mockTeamDAO,
@@ -92,7 +94,8 @@ public class TeamManagerImplTest {
 				mockMembershipInvtnSubmissionDAO,
 				mockMembershipRqstSubmissionDAO, 
 				mockUserManager,
-				mockAccessRequirementDAO);
+				mockAccessRequirementDAO,
+				mockPrincipalAliasDAO);
 		userInfo = createUserInfo(false, MEMBER_PRINCIPAL_ID);
 		adminInfo = createUserInfo(true, "-1");
 	}
@@ -269,6 +272,7 @@ public class TeamManagerImplTest {
 		// not allowed to specify ID of team being created
 		Team team = createTeam(null, "name", "description", null, "101", null, null, null, null);
 		when(mockTeamDAO.create(team)).thenReturn(team);
+		when(mockPrincipalAliasDAO.bindAliasToPrincipal(any(PrincipalAlias.class))).thenThrow(new NameConflictException());
 		teamManagerImpl.create(userInfo,team);
 	}
 	

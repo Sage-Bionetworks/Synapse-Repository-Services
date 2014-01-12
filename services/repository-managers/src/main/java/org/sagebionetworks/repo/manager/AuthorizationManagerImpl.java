@@ -189,10 +189,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	
 	public boolean isACTTeamMemberOrAdmin(UserInfo userInfo) throws DatastoreException, UnauthorizedException {
 		if (userInfo.isAdmin()) return true;
-		for(Long ug: userInfo.getGroups()){
-			Long groupId = ug;
-			if(BOOTSTRAP_PRINCIPAL.ACCESS_AND_COMPLIANCE_GROUP.getPrincipalId().equals(groupId)) return true;
-		}
+		if(userInfo.getGroups().contains(BOOTSTRAP_PRINCIPAL.ACCESS_AND_COMPLIANCE_GROUP.getPrincipalId())) return true;
 		return false;
 	}
 

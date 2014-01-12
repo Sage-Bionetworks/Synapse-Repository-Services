@@ -193,7 +193,7 @@ public class UserManagerImpl implements UserManager {
 			isAdmin = true;
 		}
 		UserInfo ui = new UserInfo(isAdmin);
-		
+		ui.setId(principalId);
 		if (isUserAnonymous) {
 			// Anonymous users have not accepted the ToC.
 			ui.setAgreesToTermsOfUse(false);
@@ -239,6 +239,13 @@ public class UserManagerImpl implements UserManager {
 			return aliases.get(0).getAlias();
 		}
 	}
+	
+	@Override
+	public String getPrimaryEmailForUser(long userId) {
+		List<PrincipalAlias> aliases = this.principalAliasDAO.listPrincipalAliases(userId, AliasType.USER_EMAIL);
+		if(aliases.size() < 1) return null;
+		return aliases.get(0).getAlias();
+	}
 
 	@Override
 	public PrincipalAlias lookupPrincipalByAlias(String alias) {
@@ -259,7 +266,6 @@ public class UserManagerImpl implements UserManager {
 		alias.setType(AliasType.USER_OPEN_ID);
 		// Bind it.
 		return this.principalAliasDAO.bindAliasToPrincipal(alias);
-	}
-	
+	}	
 
 }

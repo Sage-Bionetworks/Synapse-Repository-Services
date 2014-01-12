@@ -93,6 +93,7 @@ public class FileHandleManagerImplAutowireTest {
 	public void before() throws Exception{
 		NewUser user = new NewUser();
 		user.setEmail(UUID.randomUUID().toString() + "@test.com");
+		user.setUserName(UUID.randomUUID().toString());
 		userInfo = userManager.getUserInfo(userManager.createUser(user));
 		
 		toDelete = new LinkedList<S3FileHandle>();

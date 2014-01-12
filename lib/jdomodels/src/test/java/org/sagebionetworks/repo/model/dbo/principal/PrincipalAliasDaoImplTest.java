@@ -97,6 +97,17 @@ public class PrincipalAliasDaoImplTest {
 		assertFalse("Binding the same alias to the same principal twice should have changed the etag.", firstEtag.equals(result.getEtag()));
 	}
 	
+	@Test (expected=NotFoundException.class)
+	public void testPrincipalNotFound() throws NotFoundException{
+		PrincipalAlias alias = new PrincipalAlias();
+		alias.setAlias("Fake principals Id");
+		alias.setType(AliasType.TEAM_NAME);
+		alias.setIsValidated(true);
+		// No principal should exist with this ID.
+		alias.setPrincipalId(-1L);
+		principalAliasDao.bindAliasToPrincipal(alias);
+	}
+	
 	@Test
 	public void testBindEmail() throws NotFoundException{
 		// Test binding an alias to a principal
@@ -295,6 +306,62 @@ public class PrincipalAliasDaoImplTest {
 		list = principalAliasDao.listPrincipalAliases(principalId);
 		assertNotNull(list);
 		assertEquals(0, list.size());
+	}
+	
+	@Test
+	public void testOneUsernamePerPrincipal() throws NotFoundException{
+		// Users are only allowed to have one username.
+		PrincipalAlias alias = new PrincipalAlias();
+		alias.setAlias("userName");
+		alias.setType(AliasType.USER_NAME);
+		alias.setIsValidated(true);
+		alias.setPrincipalId(principalId);
+		PrincipalAlias one = principalAliasDao.bindAliasToPrincipal(alias);
+		assertNotNull(one);
+		// Now try to bind another name
+		alias = new PrincipalAlias();
+		alias.setAlias("newUserName");
+		alias.setType(AliasType.USER_NAME);
+		alias.setIsValidated(true);
+		alias.setPrincipalId(principalId);
+		PrincipalAlias two = principalAliasDao.bindAliasToPrincipal(alias);
+		assertNotNull(two);
+		assertEquals("Binding two different usernames to the same users should have updated the first one and not created a second one.",one.getAliasId(), two.getAliasId());
+		// The etag should have changed.
+		assertFalse("The etag of the changed alias should have changed.",one.getEtag().equals(two.getEtag()));
+		// Listing the aliases
+		List<PrincipalAlias> list = principalAliasDao.listPrincipalAliases(principalId);
+		assertNotNull(list);
+		assertEquals(1, list.size());
+		assertEquals("There should only be one alias and it should match the second.",two, list.get(0));
+	}
+	
+	@Test
+	public void testOneTeamNamePerPrincipal() throws NotFoundException{
+		// Users are only allowed to have one username.
+		PrincipalAlias alias = new PrincipalAlias();
+		alias.setAlias("team name one");
+		alias.setType(AliasType.TEAM_NAME);
+		alias.setIsValidated(true);
+		alias.setPrincipalId(principalId);
+		PrincipalAlias one = principalAliasDao.bindAliasToPrincipal(alias);
+		assertNotNull(one);
+		// Now try to bind another name
+		alias = new PrincipalAlias();
+		alias.setAlias("team name two");
+		alias.setType(AliasType.TEAM_NAME);
+		alias.setIsValidated(true);
+		alias.setPrincipalId(principalId);
+		PrincipalAlias two = principalAliasDao.bindAliasToPrincipal(alias);
+		assertNotNull(two);
+		assertEquals("Binding two different team names to the same team should have updated the first one and not created a second one.",one.getAliasId(), two.getAliasId());
+		// The etag should have changed.
+		assertFalse("The etag of the changed alias should have changed.",one.getEtag().equals(two.getEtag()));
+		// Listing the aliases
+		List<PrincipalAlias> list = principalAliasDao.listPrincipalAliases(principalId);
+		assertNotNull(list);
+		assertEquals(1, list.size());
+		assertEquals("There should only be one alias and it should match the second.",two, list.get(0));
 	}
 	
 	@Test
