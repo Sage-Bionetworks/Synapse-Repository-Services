@@ -206,25 +206,6 @@ public class UserManagerImpl implements UserManager {
 	}
 
 	@Override
-	public String getUserName(long userId) {
-		List<PrincipalAlias> aliases = this.principalAliasDAO.listPrincipalAliases(userId, AliasType.USER_NAME);
-		if(aliases.size() < 1){
-			// Use a temporary name composed of their ID until this users sets their username I
-			return UserProfileUtillity.createTempoaryUserName(userId);
-		}else{
-			// Use the first name
-			return aliases.get(0).getAlias();
-		}
-	}
-	
-	@Override
-	public String getPrimaryEmailForUser(long userId) {
-		List<PrincipalAlias> aliases = this.principalAliasDAO.listPrincipalAliases(userId, AliasType.USER_EMAIL);
-		if(aliases.size() < 1) return null;
-		return aliases.get(0).getAlias();
-	}
-
-	@Override
 	public PrincipalAlias lookupPrincipalByAlias(String alias) {
 		return this.principalAliasDAO.findPrincipalWithAlias(alias);
 	}

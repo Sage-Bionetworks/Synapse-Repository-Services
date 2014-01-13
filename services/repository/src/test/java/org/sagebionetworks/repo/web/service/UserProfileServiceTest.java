@@ -96,7 +96,7 @@ public class UserProfileServiceTest {
 		userInfo = new UserInfo(false, EXTRA_USER_ID);
 
 		when(mockUserProfileManager.getInRange(any(UserInfo.class), anyLong(), anyLong())).thenReturn(profiles);
-		when(mockUserProfileManager.getInRange(any(UserInfo.class), anyLong(), anyLong(), eq(true))).thenReturn(profiles);
+		when(mockUserProfileManager.getInRange(any(UserInfo.class), anyLong(), anyLong())).thenReturn(profiles);
 		when(mockUserProfileManager.getUserProfile(any(UserInfo.class), eq(EXTRA_USER_ID.toString()))).thenReturn(extraProfile);
 		when(mockUserProfileManager.getUserProfile(any(UserInfo.class), eq(NONEXISTENT_USER_ID.toString()))).thenThrow(new NotFoundException());
 		when(mockUserManager.getUserInfo(EXTRA_USER_ID)).thenReturn(userInfo);

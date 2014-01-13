@@ -236,4 +236,16 @@ public class UserProfileManagerImpl implements UserProfileManager {
 		if(profile.getEmails() == null) throw new IllegalArgumentException("Emails cannot be null");
 		if(profile.getEmails().size() < 1) throw new IllegalArgumentException("A user profile must contain at least one email");
 	}
+
+	@Override
+	public String getUserName(Long principalsId) {
+		List<PrincipalAlias> aliases = this.principalAliasDAO.listPrincipalAliases(principalsId, AliasType.USER_NAME);
+		if(aliases.size() < 1){
+			// Use a temporary name composed of their ID until this users sets their username I
+			return UserProfileUtillity.createTempoaryUserName(principalsId);
+		}else{
+			// Use the first name
+			return aliases.get(0).getAlias();
+		}
+	}
 }

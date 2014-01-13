@@ -77,4 +77,11 @@ public interface UserProfileManager {
 	public PaginatedResults<EntityHeader> getFavorites(UserInfo userInfo,
 			int limit, int offset) throws DatastoreException,
 			InvalidModelException, NotFoundException;
+	
+	/**
+	 * Get the username for a principal
+	 * @param principalsId
+	 * @return
+	 */
+	public String getUserName(Long principalsId);
 }

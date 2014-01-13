@@ -52,20 +52,6 @@ public interface UserManager {
 	 **/
 	public List<UserGroup> getGroupsInRange(UserInfo userInfo, long startIncl, long endExcl, String sort, boolean ascending) throws DatastoreException, UnauthorizedException;
 	
-	/**
-	 * Get a user's username
-	 * @param userId
-	 * @return
-	 */
-	public String getUserName(long userId);
-	
-	/**
-	 * Get the primary email address for a user.
-	 * Note: The first email on the list is treated as the primary.
-	 * @param userId
-	 * @return
-	 */
-	public String getPrimaryEmailForUser(long userId);
 	
 	/**
 	 * Principals can have many aliases including a username, multiple email addresses, and OpenIds.

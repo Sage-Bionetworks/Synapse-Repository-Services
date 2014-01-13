@@ -14,6 +14,7 @@ import org.sagebionetworks.doi.EzidDoi;
 import org.sagebionetworks.doi.EzidMetadata;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DoiDao;
@@ -35,6 +36,8 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 	@Autowired private AuthorizationManager authorizationManager;
 	@Autowired private DoiDao doiDao;
 	@Autowired private NodeDAO nodeDao;
+	@Autowired
+	UserProfileManager profileManager;
 	private final DoiAsyncClient ezidAsyncClient;
 	private final DxAsyncClient dxAsyncClient;
 
@@ -100,7 +103,7 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 		// Create DOI metadata.
 		EzidMetadata metadata = new EzidMetadata();
 		Long principalId = node.getCreatedByPrincipalId();
-		String creatorName = userManager.getUserName(principalId);
+		String creatorName = profileManager.getUserName(principalId);
 		// Display name is optional
 		if (creatorName == null || creatorName.isEmpty()) {
 			creatorName = EzidConstants.DEFAULT_CREATOR;

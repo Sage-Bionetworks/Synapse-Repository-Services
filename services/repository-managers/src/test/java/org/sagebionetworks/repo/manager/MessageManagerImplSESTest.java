@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 
 import java.net.URL;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -195,35 +196,40 @@ public class MessageManagerImplSESTest {
 	
 	@Test
 	public void testSuccess() throws Exception {
-		when(mockUserManager.getPrimaryEmailForUser(eq(mockRecipientId))).thenReturn(SUCCESS_EMAIL);
+		mockUserProfile.setEmails(new LinkedList<String>());
+		mockUserProfile.getEmails().add(SUCCESS_EMAIL);
 		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT);
 		assertEquals(errors.toString(), 0, errors.size());
 	}
 	
 	@Test
 	public void testBounce() throws Exception {
-		when(mockUserManager.getPrimaryEmailForUser(eq(mockRecipientId))).thenReturn(BOUNCE_EMAIL);
+		mockUserProfile.setEmails(new LinkedList<String>());
+		mockUserProfile.getEmails().add(BOUNCE_EMAIL);
 		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT);
 		assertEquals(errors.toString(), 0, errors.size());
 	}
 	
 	@Test
 	public void testOutOfOffice() throws Exception {
-		when(mockUserManager.getPrimaryEmailForUser(eq(mockRecipientId))).thenReturn(OOTO_EMAIL);
+		mockUserProfile.setEmails(new LinkedList<String>());
+		mockUserProfile.getEmails().add(OOTO_EMAIL);
 		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT);
 		assertEquals(errors.toString(), 0, errors.size());
 	}
 	
 	@Test
 	public void testComplaint() throws Exception {
-		when(mockUserManager.getPrimaryEmailForUser(eq(mockRecipientId))).thenReturn(COMPLAINT_EMAIL);
+		mockUserProfile.setEmails(new LinkedList<String>());
+		mockUserProfile.getEmails().add(COMPLAINT_EMAIL);
 		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT);
 		assertEquals(errors.toString(), 0, errors.size());
 	}
 	
 	@Test
 	public void testSuppressionList() throws Exception {
-		when(mockUserManager.getPrimaryEmailForUser(eq(mockRecipientId))).thenReturn(SUPPRESSION_EMAIL);
+		mockUserProfile.setEmails(new LinkedList<String>());
+		mockUserProfile.getEmails().add(SUPPRESSION_EMAIL);
 		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT);
 		assertEquals(errors.toString(), 0, errors.size());
 	}

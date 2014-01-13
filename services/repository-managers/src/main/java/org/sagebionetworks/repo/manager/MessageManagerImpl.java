@@ -435,7 +435,7 @@ public class MessageManagerImpl implements MessageManager {
 				
 				// Should emails be sent?
 				if (settings.getSendEmailNotifications() == null || settings.getSendEmailNotifications()) {
-					String email = getEmailForUser(user);
+					String email = getEmailForUser(profile);
 					sendEmail(email, 
 							dto.getSubject(),
 							messageBody, 
@@ -646,7 +646,7 @@ public class MessageManagerImpl implements MessageManager {
 			throw new IllegalArgumentException("Unknown origin client type: " + originClient);
 		}
 		messageBody = messageBody.replaceAll(TEMPLATE_KEY_WEB_LINK, webLink);
-		String email = getEmailForUser(recipientId);
+		String email = getEmailForUser(profile);
 		sendEmail(email, subject, messageBody, false, DEFAULT_NOTIFICATION_DISPLAY_NAME);
 	}
 	
@@ -669,7 +669,7 @@ public class MessageManagerImpl implements MessageManager {
 		messageBody = messageBody.replaceAll(TEMPLATE_KEY_DISPLAY_NAME, alias);
 		
 		messageBody = messageBody.replaceAll(TEMPLATE_KEY_USERNAME, alias);
-		String email = getEmailForUser(recipientId);
+		String email = getEmailForUser(profile);
 		sendEmail(email, subject, messageBody, false, DEFAULT_NOTIFICATION_DISPLAY_NAME);
 	}
 	
@@ -692,23 +692,16 @@ public class MessageManagerImpl implements MessageManager {
 		
 		messageBody = messageBody.replaceAll(TEMPLATE_KEY_MESSAGE_ID, messageId);
 		messageBody = messageBody.replaceAll(TEMPLATE_KEY_DETAILS, "- " + StringUtils.join(errors, "\n- "));
-		String email = getEmailForUser(sender.getId());
+		String email = getEmailForUser(profile);
 		sendEmail(email, subject, messageBody, false, DEFAULT_NOTIFICATION_DISPLAY_NAME);
 	}
 	
-	/**
-	 * Lookup and validate an email for a user.
-	 * @param userId
-	 * @return
-	 */
-	private String getEmailForUser(String userId){
-		return getEmailForUser(Long.parseLong(userId));
-	}
 	
-	private String getEmailForUser(Long userId){
-		String email = userManager.getPrimaryEmailForUser(userId);
-		if(email == null) throw new IllegalStateException("Cannot find an email for user: "+userId);
-		return email;
+	private String getEmailForUser(UserProfile profile){
+		if(profile == null) throw new IllegalArgumentException("Profile cannot be null");
+		if(profile.getEmails() == null) throw new IllegalArgumentException("UserProfile.getEmails() was null");
+		if(profile.getEmails().size() < 1) throw new IllegalArgumentException("UserProfile.getEmails() was empty");
+		return profile.getEmails().get(0);
 	}
 	/**
 	 * Helper for sending templated emails

@@ -17,6 +17,7 @@ import org.apache.commons.logging.LogFactory;
 import org.joda.time.DateTime;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -83,6 +84,8 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 
 	@Autowired
 	UserManager userManager;
+	@Autowired
+	UserProfileManager profileManager;
 
 	@Autowired
 	NodeDAO nodeDao;
@@ -333,7 +336,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	private String getDisplayNameForPrincipalId(long principalId) {
 		String displayName = "" + principalId;
 		try {
-			displayName = userManager.getUserName(principalId);
+			displayName = profileManager.getUserName(principalId);
 		} catch (Exception ex) {
 			log.warn("Unable to get display name for principal id: "
 					+ principalId + ",", ex);
