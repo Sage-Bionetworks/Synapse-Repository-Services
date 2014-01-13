@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.web.controller;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
@@ -172,7 +173,12 @@ public class UserProfileController extends BaseController {
 
 		String[] idsArray = ids.split(",");
 		List<String> idsList = new ArrayList<String>(Arrays.asList(idsArray));
-		return serviceProvider.getUserProfileService().getUserGroupHeadersByIds(userId, idsList);
+		List<Long> longList = new LinkedList<Long>();
+		for(String stringId: idsList){
+			longList.add(Long.parseLong(stringId));
+		}
+		// convert to a list of longs
+		return serviceProvider.getUserProfileService().getUserGroupHeadersByIds(userId, longList);
 	}
 
 	/**

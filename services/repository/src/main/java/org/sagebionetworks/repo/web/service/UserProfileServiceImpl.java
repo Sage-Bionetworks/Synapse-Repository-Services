@@ -86,7 +86,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 	 */
 	private volatile Long cachesLastUpdated = 0L;
 	private volatile Trie<String, Collection<UserGroupHeader>> userGroupHeadersNamePrefixCache;
-	private volatile Map<String, UserGroupHeader> userGroupHeadersIdCache;
+	private volatile Map<Long, UserGroupHeader> userGroupHeadersIdCache;
 
 	@Override
 	public UserProfile getMyOwnUserProfile(Long userId) 
@@ -152,7 +152,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 	}
 	
 	@Override
-	public UserGroupHeaderResponsePage getUserGroupHeadersByIds(Long userId, List<String> ids) 
+	public UserGroupHeaderResponsePage getUserGroupHeadersByIds(Long userId, List<Long> ids) 
 			throws DatastoreException, NotFoundException {		
 		if (userGroupHeadersIdCache == null || userGroupHeadersIdCache.size() == 0)
 			refreshCache();
@@ -164,7 +164,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 			userInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		}
 		List<UserGroupHeader> ugHeaders = new ArrayList<UserGroupHeader>();
-		for (String id : ids) {
+		for (Long id : ids) {
 			UserGroupHeader header = userGroupHeadersIdCache.get(id);
 			if (header == null) {
 				// Header not found in cache; attempt to fetch one from repo
@@ -216,7 +216,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 		// Create and populate local caches. Upon completion, swap them for the
 		// singleton member variable caches.
 		Trie<String, Collection<UserGroupHeader>> tempPrefixCache = new PatriciaTrie<String, Collection<UserGroupHeader>>(StringKeyAnalyzer.CHAR);
-		Map<String, UserGroupHeader> tempIdCache = new HashMap<String, UserGroupHeader>();
+		Map<Long, UserGroupHeader> tempIdCache = new HashMap<Long, UserGroupHeader>();
 
 		List<UserProfile> userProfiles = userProfileManager.getInRange(null, 0, Long.MAX_VALUE).getResults();
 		this.logger.info("Loaded " + userProfiles.size() + " user profiles.");
@@ -313,10 +313,10 @@ public class UserProfileServiceImpl implements UserProfileService {
 	 * Fetches a UserProfile for a specified Synapse ID. Note that this does not
 	 * check for a UserGroup with the specified ID.
 	 */
-	private UserGroupHeader fetchNewHeader(UserInfo userInfo, String id) {
+	private UserGroupHeader fetchNewHeader(UserInfo userInfo, Long id) {
 		UserProfile profile;
 		try {
-			profile = userProfileManager.getUserProfile(userInfo, id);
+			profile = userProfileManager.getUserProfile(userInfo, id.toString());
 			UserProfileManagerUtils.clearPrivateFields(userInfo, profile);
 		} catch (NotFoundException e) {
 			// Profile not found, so return null
@@ -343,8 +343,8 @@ public class UserProfileServiceImpl implements UserProfileService {
 		}
 	}
 
-	private void addToIdCache(Map<String, UserGroupHeader> idCache, UserGroupHeader header) {
-		idCache.put(header.getOwnerId(), header);
+	private void addToIdCache(Map<Long, UserGroupHeader> idCache, UserGroupHeader header) {
+		idCache.put(Long.parseLong(header.getOwnerId()), header);
 	}
 
 	private UserGroupHeader convertUserProfileToHeader(UserProfile profile) {
@@ -366,6 +366,11 @@ public class UserProfileServiceImpl implements UserProfileService {
 		header.setOwnerId(alias.getPrincipalId().toString());
 		header.setIsIndividual(false);
 		return header;
+	}
+
+	@Override
+	public void setPrincipalAlaisDAO(PrincipalAliasDAO mockPrincipalAlaisDAO) {
+		this.principalAliasDAO = mockPrincipalAlaisDAO;
 	}
 
 }

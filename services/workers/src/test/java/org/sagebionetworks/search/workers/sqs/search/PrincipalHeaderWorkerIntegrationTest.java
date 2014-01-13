@@ -64,7 +64,7 @@ public class PrincipalHeaderWorkerIntegrationTest {
 		
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		
-		username = "user name " + PREFIX + UUID.randomUUID().toString();
+		username = "userName" + PREFIX + UUID.randomUUID().toString();
 		teamName = "team name " + PREFIX + UUID.randomUUID().toString();
 		
 		NewUser user = new NewUser();
