@@ -12,6 +12,8 @@ import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 
+import com.amazonaws.services.identitymanagement.model.User;
+
 public class UserProfileUtillityTest {
 
 	
@@ -113,5 +115,66 @@ public class UserProfileUtillityTest {
 		assertEquals(1, profile.getOpenIds().size());
 		assertEquals("http://google.com/123", profile.getOpenIds().get(0));
 		
+	}
+	
+	
+	@Test
+	public void testMergeProfileWithAliasesNoReplace(){
+		// In this case the profile already has data for emails and openIds and it must not be lost.
+		UserProfile profile = new UserProfile();
+		profile.setOwnerId("123");
+		profile.setEmails(new LinkedList<String>());
+		profile.getEmails().add("existingEmail@test.com");
+		profile.setOpenIds(new LinkedList<String>());
+		profile.getOpenIds().add("http://google.com/existing");
+		
+		List<PrincipalAlias> aliases = new LinkedList<PrincipalAlias>();
+		// One email
+		PrincipalAlias p = new PrincipalAlias();
+		p.setAlias("foo@bar.com");
+		p.setType(AliasType.USER_EMAIL);
+		p.setAliasId(1l);
+		aliases.add(p);
+		// second email
+		p = new PrincipalAlias();
+		p.setAlias("foo2@bar.com");
+		p.setType(AliasType.USER_EMAIL);
+		p.setAliasId(2l);
+		aliases.add(p);
+		// Username
+		p = new PrincipalAlias();
+		p.setAlias("jamesBond");
+		p.setType(AliasType.USER_NAME);
+		p.setAliasId(3l);
+		aliases.add(p);
+		// Open ID
+		p = new PrincipalAlias();
+		p.setAlias("http://google.com/123");
+		p.setType(AliasType.USER_OPEN_ID);
+		p.setAliasId(4l);
+		aliases.add(p);
+		// Now merge them
+		UserProfileUtillity.mergeProfileWithAliases(profile, aliases);
+		// username
+		assertEquals("jamesBond", profile.getUserName());
+		// emails
+		assertNotNull(profile.getEmails());
+		assertEquals(1, profile.getEmails().size());
+		assertEquals("The existing email should not have been lost", "existingEmail@test.com", profile.getEmails().get(0));
+
+		// openId
+		assertNotNull(profile.getOpenIds());
+		assertEquals(1, profile.getOpenIds().size());
+		assertEquals("The existing openID should not have been lost","http://google.com/existing", profile.getOpenIds().get(0));
+		
+	}
+	
+	@Test
+	public void testNullOrEmpty(){
+		assertTrue(UserProfileUtillity.isNullOrEmpty(null));
+		List<String> list = new LinkedList<String>();
+		assertTrue(UserProfileUtillity.isNullOrEmpty(list));
+		list.add("not empty any more");
+		assertFalse(UserProfileUtillity.isNullOrEmpty(list));
 	}
 }

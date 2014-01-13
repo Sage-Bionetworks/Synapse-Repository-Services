@@ -42,6 +42,9 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
+import org.sagebionetworks.repo.model.principal.AliasType;
+import org.sagebionetworks.repo.model.principal.PrincipalAlias;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.controller.ObjectTypeSerializer;
@@ -57,7 +60,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 	@Autowired
 	private UserProfileManager userProfileManager;
 	@Autowired
-	private TeamManager teamManager;
+	PrincipalAliasDAO principalAliasDAO;
 	
 	@Autowired
 	private UserManager userManager;
@@ -108,7 +111,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		long endExcl = offset+limit;
-		QueryResults<UserProfile >results = userProfileManager.getInRange(userInfo, offset, endExcl, true);
+		QueryResults<UserProfile >results = userProfileManager.getInRange(userInfo, offset, endExcl);
 		List<UserProfile> profileResults = results.getResults();
 		for (UserProfile profile : profileResults) {
 			UserProfileManagerUtils.clearPrivateFields(userInfo, profile);
@@ -215,29 +218,24 @@ public class UserProfileServiceImpl implements UserProfileService {
 		Trie<String, Collection<UserGroupHeader>> tempPrefixCache = new PatriciaTrie<String, Collection<UserGroupHeader>>(StringKeyAnalyzer.CHAR);
 		Map<String, UserGroupHeader> tempIdCache = new HashMap<String, UserGroupHeader>();
 
-		List<UserProfile> userProfiles = userProfileManager.getInRange(null, 0, Long.MAX_VALUE, true).getResults();
+		List<UserProfile> userProfiles = userProfileManager.getInRange(null, 0, Long.MAX_VALUE).getResults();
 		this.logger.info("Loaded " + userProfiles.size() + " user profiles.");
 		UserGroupHeader header;
 		for (UserProfile profile : userProfiles) {
-			List<String> emails = profile.getEmails();
 			if (profile.getDisplayName() != null) {
 				UserProfileManagerUtils.clearPrivateFields(null, profile);
 				header = convertUserProfileToHeader(profile);
-				for(String email: emails){
-					addToPrefixCache(tempPrefixCache,email, header);
-				}
 				addToIdCache(tempIdCache, header);
 			}
 		}
-		List<Team> allTeams = teamManager.get(Long.MAX_VALUE, 0L).getResults();
+		// List all team names
+		List<PrincipalAlias> teamNames = principalAliasDAO.listPrincipalAliases(AliasType.TEAM_NAME);
 		
-		this.logger.info("Loaded " + allTeams.size() + " user teams.");
-		for (Team team: allTeams) {
-			if (team.getName() != null) {
-				header = convertUserGroupToHeader(team);			
-				addToPrefixCache(tempPrefixCache, null, header);
-				addToIdCache(tempIdCache, header);
-			}
+		this.logger.info("Loaded " + teamNames.size() + " user teams.");
+		for (PrincipalAlias alais: teamNames) {
+			header = convertUserGroupToHeader(alais);			
+			addToPrefixCache(tempPrefixCache, header);
+			addToIdCache(tempIdCache, header);
 		}
 		userGroupHeadersNamePrefixCache = Tries.unmodifiableTrie(tempPrefixCache);
 		userGroupHeadersIdCache = Collections.unmodifiableMap(tempIdCache);
@@ -327,12 +325,9 @@ public class UserProfileServiceImpl implements UserProfileService {
 		return convertUserProfileToHeader(profile);
 	}
 
-	private void addToPrefixCache(Trie<String, Collection<UserGroupHeader>> prefixCache, String unobfuscatedEmailAddress, UserGroupHeader header) {
+	private void addToPrefixCache(Trie<String, Collection<UserGroupHeader>> prefixCache, UserGroupHeader header) {
 		//get the collection of prefixes that we want to associate to this UserGroupHeader
 		List<String> prefixes = PrefixCacheHelper.getPrefixes(header.getDisplayName());
-		
-		if (unobfuscatedEmailAddress != null && unobfuscatedEmailAddress.length() > 0)
-			prefixes.add(unobfuscatedEmailAddress.toLowerCase());
 		
 		for (String prefix : prefixes) {
 			if (!prefixCache.containsKey(prefix)) {
@@ -355,19 +350,20 @@ public class UserProfileServiceImpl implements UserProfileService {
 	private UserGroupHeader convertUserProfileToHeader(UserProfile profile) {
 		UserGroupHeader header = new UserGroupHeader();
 		header.setDisplayName(profile.getDisplayName());
-		header.setEmail(profile.getEmail());
+		header.setEmail(null);
 		header.setFirstName(profile.getFirstName());
 		header.setLastName(profile.getLastName());
 		header.setOwnerId(profile.getOwnerId());
 		header.setPic(profile.getPic());
 		header.setIsIndividual(true);
+		header.setUserName(profile.getUserName());
 		return header;
 	}
 
-	private UserGroupHeader convertUserGroupToHeader(Team group) {
+	private UserGroupHeader convertUserGroupToHeader(PrincipalAlias alias) {
 		UserGroupHeader header = new UserGroupHeader();
-		header.setDisplayName(group.getName());
-		header.setOwnerId(group.getId());
+		header.setDisplayName(alias.getAlias());
+		header.setOwnerId(alias.getPrincipalId().toString());
 		header.setIsIndividual(false);
 		return header;
 	}

@@ -72,7 +72,7 @@
 		"userName": {
 			"type": "string",
 			"title": "User Name",
-			"description": "User Name, unique in the system and typically this person's email address"
+			"description": "A name chosen by the user that uniquely identifies them."
 		},
 		"displayName": {
 			"type": "string",

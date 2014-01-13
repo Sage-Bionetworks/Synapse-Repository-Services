@@ -2,9 +2,7 @@ package org.sagebionetworks.auth.services;
 
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import org.junit.Before;
@@ -16,10 +14,10 @@ import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.TermsOfUseException;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.LoginCredentials;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.web.NotFoundException;
 
 public class AuthenticationServiceImplTest {
 
@@ -75,7 +73,7 @@ public class AuthenticationServiceImplTest {
 		}
 	}
 	
-	@Test
+	@Test (expected=NotFoundException.class)
 	public void testOpenIDAuthentication_newUser() throws Exception {
 		// This user does not exist yet
 		userInfo.setAgreesToTermsOfUse(false);
@@ -86,9 +84,6 @@ public class AuthenticationServiceImplTest {
 		
 		service.processOpenIDInfo(info, true, DomainType.SYNAPSE);
 		
-		// The user should be created
-		verify(mockUserManager).createUser(any(NewUser.class));
-		verify(mockAuthenticationManager).authenticate(eq(userInfo.getId()), eq((String) null));
 	}
 	
 }

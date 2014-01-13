@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -39,7 +40,7 @@ public class UserManagerImpl implements UserManager {
 	private UserGroupDAO userGroupDAO;
 	
 	@Autowired
-	private UserProfileDAO userProfileDAO;
+	private UserProfileManager userProfileManger;
 	
 	@Autowired
 	private GroupMembersDAO groupMembersDAO;
@@ -60,9 +61,9 @@ public class UserManagerImpl implements UserManager {
 	
 	public UserManagerImpl() { }
 	
-	public UserManagerImpl(UserGroupDAO userGroupDAO, UserProfileDAO userProfileDAO, GroupMembersDAO groupMembersDAO, AuthenticationDAO authDAO, DBOBasicDao basicDAO, PrincipalAliasDAO principalAliasDAO) {
+	public UserManagerImpl(UserGroupDAO userGroupDAO, UserProfileManager userProfileManger, GroupMembersDAO groupMembersDAO, AuthenticationDAO authDAO, DBOBasicDao basicDAO, PrincipalAliasDAO principalAliasDAO) {
 		this.userGroupDAO = userGroupDAO;
-		this.userProfileDAO = userProfileDAO;
+		this.userProfileManger = userProfileManger;
 		this.groupMembersDAO = groupMembersDAO;
 		this.authDAO = authDAO;
 		this.basicDAO = basicDAO;
@@ -98,31 +99,7 @@ public class UserManagerImpl implements UserManager {
 			individualGroup = userGroupDAO.get(id);
 		} catch (NotFoundException ime) {
 			throw new DatastoreException(ime);
-		}
-		// Bind the email to this user.
-		alias = new PrincipalAlias();
-		alias.setAlias(user.getEmail());
-		alias.setIsValidated(false);
-		alias.setPrincipalId(id);
-		alias.setType(AliasType.USER_EMAIL);
-		// bind this alias
-		try {
-			principalAliasDAO.bindAliasToPrincipal(alias);
-		} catch (NotFoundException e1) {
-			throw new DatastoreException(e1);
-		}
-		// bind the username to this user
-		alias = new PrincipalAlias();
-		alias.setAlias(user.getUserName());
-		alias.setIsValidated(true);
-		alias.setPrincipalId(id);
-		alias.setType(AliasType.USER_NAME);
-		try {
-			principalAliasDAO.bindAliasToPrincipal(alias);
-		} catch (NotFoundException e1) {
-			throw new DatastoreException(e1);
-		}
-		
+		}		
 		// Make some credentials for this user
 		Long principalId = Long.parseLong(individualGroup.getId());
 		authDAO.createNew(principalId);
@@ -133,11 +110,10 @@ public class UserManagerImpl implements UserManager {
 		userProfile.setFirstName(user.getFirstName());
 		userProfile.setLastName(user.getLastName());
 		userProfile.setDisplayName(NewUserUtils.createDisplayName(user));
-		try {
-			userProfileDAO.create(userProfile);
-		} catch (InvalidModelException e) {
-			throw new RuntimeException(e);
-		}
+		userProfile.setUserName(user.getUserName());
+		userProfile.setEmails(new LinkedList<String>());
+		userProfile.getEmails().add(user.getEmail());
+		userProfileManger.createUserProfile(userProfile);
 		
 		return principalId;
 	}

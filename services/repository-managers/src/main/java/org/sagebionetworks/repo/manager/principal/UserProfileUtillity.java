@@ -20,6 +20,8 @@ import org.sagebionetworks.repo.model.principal.PrincipalAlias;
  */
 public class UserProfileUtillity {
 	
+	private static final String TEMPORARY_USERNAME_PREFIX = "TEMPORARY-";
+
 	/**
 	 * Merge a UserProfile with its aliases.
 	 * @param profile
@@ -29,8 +31,9 @@ public class UserProfileUtillity {
 		if(profile == null) throw new IllegalArgumentException("UserProfile cannot be null");
 		if(profile.getOwnerId() == null) throw new IllegalArgumentException("UserProfile.ownerID cannot be null");
 		if(aliases == null) throw new IllegalArgumentException("Aliases cannot be null");
-		profile.setEmails(new LinkedList<String>());
-		profile.setOpenIds(new LinkedList<String>());
+		// Build up lists of emails and OpenIds found in the bound aliases.
+		List<String> newEmails = new LinkedList<String>();
+		List<String> newOpenIds = new LinkedList<String>();
 		// A single email address is deprecated.
 		profile.setEmail(null);
 		// This will be re-set below.
@@ -38,17 +41,37 @@ public class UserProfileUtillity {
 		// Set each alias
 		for(PrincipalAlias alias: aliases){
 			if(AliasType.USER_NAME.equals(alias.getType())){
+				// Always set the username 
 				profile.setUserName(alias.getAlias());
 			}else if(AliasType.USER_EMAIL.equals(alias.getType())){
-				profile.getEmails().add(alias.getAlias());
+				newEmails.add(alias.getAlias());
 			}else if(AliasType.USER_OPEN_ID.equals(alias.getType())){
-				profile.getOpenIds().add(alias.getAlias());
+				newOpenIds.add(alias.getAlias());
 			}
 		}
 		// If the user name is not set then use a temporary value.
 		if(profile.getUserName() == null){
 			profile.setUserName(createTempoaryUserName(Long.parseLong(profile.getOwnerId())));
 		}
+		// If the user already has an email list or an openId list then we want to keep what they have.
+		if(isNullOrEmpty(profile.getEmails())){
+			// Use the new email list
+			profile.setEmails(newEmails);
+		}
+		if(isNullOrEmpty(profile.getOpenIds())){
+			// Use the new email list
+			profile.setOpenIds(newOpenIds);
+		}
+	}
+	
+	/**
+	 * Is the list null or empty
+	 * @param list
+	 * @return
+	 */
+	public static boolean isNullOrEmpty(List<String> list){
+		if(list == null) return true;
+		return list.size() < 1;
 	}
 	
 	/**
@@ -110,6 +133,11 @@ public class UserProfileUtillity {
 	 * @return
 	 */
 	public static String createTempoaryUserName(long principalId){
-		return "TEMPORARY-"+principalId;
+		return TEMPORARY_USERNAME_PREFIX+principalId;
+	}
+	
+	public static boolean isTempoaryUsername(String username){
+		if(username == null) throw new IllegalArgumentException("UserName cannot be null");
+		return username.startsWith(TEMPORARY_USERNAME_PREFIX);
 	}
 }

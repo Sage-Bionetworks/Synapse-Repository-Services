@@ -65,6 +65,7 @@ public class QueryControllerAutowireTest {
 		// The user can't be an admin, since admins can see trash-canned entities
 		NewUser user = new NewUser();
 		user.setEmail(UUID.randomUUID().toString() + "@test.com");
+		user.setUserName(UUID.randomUUID().toString());
 		testUserId = userManager.createUser(user);
 		testUserInfo = userManager.getUserInfo(testUserId);
 	}

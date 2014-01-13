@@ -1,11 +1,8 @@
 package org.sagebionetworks.repo.model.principal;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
-import org.sagebionetworks.repo.model.principal.AliasType;
-import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -62,6 +59,12 @@ public interface PrincipalAliasDAO {
 	 */
 	public List<PrincipalAlias> listPrincipalAliases(Long principalId, AliasType type);
 	
+	/**
+	 * List all aliases for a given type.
+	 * @param type
+	 * @return
+	 */
+	public List<PrincipalAlias> listPrincipalAliases(AliasType type);
 	/**
 	 * Is an alias available? 
 	 * 

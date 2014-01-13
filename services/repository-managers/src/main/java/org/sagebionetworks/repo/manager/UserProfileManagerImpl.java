@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
+import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -65,6 +66,11 @@ public class UserProfileManagerImpl implements UserProfileManager {
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		if(userInfo == null) throw new IllegalArgumentException("userInfo can not be null");
 		if(ownerId == null) throw new IllegalArgumentException("ownerId can not be null");
+		return getUserProfilePrivate(ownerId);
+	}
+
+	private UserProfile getUserProfilePrivate(String ownerId)
+			throws NotFoundException {
 		UserProfile userProfile = userProfileDAO.get(ownerId);
 		// Lookup all of the alias used by this user.
 		List<PrincipalAlias> aliases = this.principalAliasDAO.listPrincipalAliases(Long.parseLong(ownerId));
@@ -74,7 +80,7 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	}
 	
 	@Override
-	public QueryResults<UserProfile> getInRange(UserInfo userInfo, long startIncl, long endExcl, boolean includeEmail) throws DatastoreException, NotFoundException{
+	public QueryResults<UserProfile> getInRange(UserInfo userInfo, long startIncl, long endExcl) throws DatastoreException, NotFoundException{
 		List<UserProfile> userProfiles = userProfileDAO.getInRange(startIncl, endExcl);
 		long totalNumberOfResults = userProfileDAO.getCount();
 		// Get set of principal IDs for this page
@@ -88,13 +94,6 @@ public class UserProfileManagerImpl implements UserProfileManager {
 		QueryResults<UserProfile> result = new QueryResults<UserProfile>(userProfiles, (int)totalNumberOfResults);
 		return result;
 	}
-	
-	@Override
-	public QueryResults<UserProfile> getInRange(UserInfo userInfo, long startIncl, long endExcl) 
-			throws DatastoreException, NotFoundException {
-		return getInRange(userInfo, startIncl, endExcl, false);
-	}
-	
 
 	/**
 	 * This method is only available to the object owner or an admin
@@ -102,12 +101,21 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public UserProfile updateUserProfile(UserInfo userInfo, UserProfile updated) 
 			throws DatastoreException, UnauthorizedException, InvalidModelException, NotFoundException {
-		UserProfile userProfile = userProfileDAO.get(updated.getOwnerId());
-		boolean canUpdate = UserProfileManagerUtils.isOwnerOrAdmin(userInfo, userProfile.getOwnerId());
+		validateProfile(updated);
+		Long principalId = Long.parseLong(updated.getOwnerId());
+		boolean canUpdate = UserProfileManagerUtils.isOwnerOrAdmin(userInfo, updated.getOwnerId());
 		if (!canUpdate) throw new UnauthorizedException("Only owner or administrator may update UserProfile.");
 		attachmentManager.checkAttachmentsForPreviews(updated);
-		UserProfile returnProfile = userProfileDAO.update(updated);		
-		return returnProfile;
+		// Update the DAO first
+		userProfileDAO.update(updated);
+		if(UserProfileUtillity.isTempoaryUsername(updated.getUserName())){
+			throw new IllegalArgumentException("Must set a valid username.");
+		}
+		// Bind all aliases
+		bindAllAliases(updated, principalId);
+		
+		// Get the updated value
+		return getUserProfilePrivate(updated.getOwnerId());
 	}
 
 	@Override
@@ -150,5 +158,82 @@ public class UserProfileManagerImpl implements UserProfileManager {
 			int limit, int offset) throws DatastoreException,
 			InvalidModelException, NotFoundException {
 		return favoriteDAO.getFavoritesEntityHeader(userInfo.getId().toString(), limit, offset);
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public UserProfile createUserProfile(UserProfile profile) {
+		validateProfile(profile);
+		Long principalId = Long.parseLong(profile.getOwnerId());
+		bindAllAliases(profile, principalId);
+	
+		// Save the profile
+		this.userProfileDAO.create(profile);
+		try {
+			return getUserProfilePrivate(profile.getOwnerId());
+		} catch (NotFoundException e) {
+			throw new DatastoreException(e);
+		}
+	}
+
+	/**
+	 * This method is idempotent.
+	 * @param profile
+	 * @param principalId
+	 */
+	private void bindAllAliases(UserProfile profile, Long principalId) {
+		validateProfile(profile);
+		// Bind all aliases
+		bindUserName(profile.getUserName(), principalId);
+		bindAliases(principalId, profile.getEmails(), AliasType.USER_EMAIL);
+		// A user might not have any open IDs.
+		if(profile.getOpenIds() != null){
+			bindAliases(principalId, profile.getOpenIds(), AliasType.USER_OPEN_ID);
+		}
+	}
+
+	private void bindUserName(String username, Long principalId) {
+		// bind the username to this user
+		PrincipalAlias alias = new PrincipalAlias();
+		alias.setAlias(username);
+		alias.setIsValidated(true);
+		alias.setPrincipalId(principalId);
+		alias.setType(AliasType.USER_NAME);
+		try {
+			principalAliasDAO.bindAliasToPrincipal(alias);
+		} catch (NotFoundException e1) {
+			throw new DatastoreException(e1);
+		}
+	}
+	
+	/**
+	 * 
+	 * @param emails
+	 * @param principalId
+	 */
+	private void bindAliases(Long principalId, List<String> aliases, AliasType type) {
+		// Bind all email
+		for(String email: aliases){
+			// Bind the email to this user.
+			PrincipalAlias alias = new PrincipalAlias();
+			alias.setAlias(email);
+			alias.setIsValidated(false);
+			alias.setPrincipalId(principalId);
+			alias.setType(type);
+			// bind this alias
+			try {
+				principalAliasDAO.bindAliasToPrincipal(alias);
+			} catch (NotFoundException e1) {
+				throw new DatastoreException(e1);
+			}
+		}
+	}
+	
+	private void validateProfile(UserProfile profile) {
+		if(profile == null) throw new IllegalArgumentException("UserProfile cannot be null");
+		if(profile.getOwnerId() == null) throw new IllegalArgumentException("OwnerId cannot be null");
+		if(profile.getUserName() == null) throw new IllegalArgumentException("Username cannot be null");
+		if(profile.getEmails() == null) throw new IllegalArgumentException("Emails cannot be null");
+		if(profile.getEmails().size() < 1) throw new IllegalArgumentException("A user profile must contain at least one email");
 	}
 }

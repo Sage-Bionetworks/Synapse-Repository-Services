@@ -89,14 +89,17 @@ public class MessageControllerAutowiredTest {
 		// Need 3 users
 		NewUser user = new NewUser();
 		user.setEmail(UUID.randomUUID().toString() + "@test.com");
+		user.setUserName(UUID.randomUUID().toString());
 		alice = userManager.createUser(user);
 		aliceId = "" + alice;
 		
 		user.setEmail(UUID.randomUUID().toString() + "@test.com");
+		user.setUserName(UUID.randomUUID().toString());
 		bob = userManager.createUser(user);
 		bobId = "" + bob;
 		
 		user.setEmail(UUID.randomUUID().toString() + "@test.com");
+		user.setUserName(UUID.randomUUID().toString());
 		eve = userManager.createUser(user);
 		eveId = "" + eve;
 		

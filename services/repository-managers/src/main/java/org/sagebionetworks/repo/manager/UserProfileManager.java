@@ -30,18 +30,19 @@ public interface UserProfileManager {
 			NotFoundException;
 
 	/**
-	 * Get the public profiles of the users in the system, paginated.
-	 */
-	public QueryResults<UserProfile> getInRange(UserInfo userInfo,
-			long startIncl, long endExcl, boolean includeEmail)
-			throws DatastoreException, NotFoundException;
-
-	/**
 	 * Update a UserProfile.
 	 */
 	public UserProfile updateUserProfile(UserInfo userInfo, UserProfile updated)
 			throws DatastoreException, UnauthorizedException,
 			InvalidModelException, NotFoundException;
+	
+	/**
+	 * Create a Users profile
+	 * @param userInfo
+	 * @param updated
+	 * @return
+	 */
+	public UserProfile createUserProfile(UserProfile updated);
 
 	/**
 	 * userId may not match the profileId

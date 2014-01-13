@@ -171,7 +171,7 @@ public class PrincipalAliasDaoImplTest {
     
 	@Test
 	public void testList() throws NotFoundException{
-		
+		int stratingCount = principalAliasDao.listPrincipalAliases(AliasType.USER_EMAIL).size();
 		PrincipalAlias alias = new PrincipalAlias();
 		// Use to upper as the alias
 		alias.setAlias("james.bond@Spy.org");
@@ -215,7 +215,10 @@ public class PrincipalAliasDaoImplTest {
 		assertNotNull(list);
 		assertEquals(1, list.size());
 		assertEquals(userName, list.get(0));
-
+		
+		// Test listing all by type
+		list = principalAliasDao.listPrincipalAliases(AliasType.USER_NAME);
+		assertTrue(stratingCount < list.size());
 	}
 	
 	@Test

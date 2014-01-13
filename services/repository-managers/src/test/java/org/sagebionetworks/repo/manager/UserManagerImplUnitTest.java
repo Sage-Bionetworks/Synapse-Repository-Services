@@ -28,7 +28,7 @@ public class UserManagerImplUnitTest {
 	private UserManager userManager;
 	
 	private UserGroupDAO mockUserGroupDAO;
-	private UserProfileDAO mockUserProfileDAO;
+	private UserProfileManager mockUserProfileManger;
 	private GroupMembersDAO mockGroupMembersDAO;
 	private AuthenticationDAO mockAuthDAO;
 	private DBOBasicDao basicDAO;
@@ -44,7 +44,7 @@ public class UserManagerImplUnitTest {
 	@Before
 	public void setUp() throws Exception {
 		mockUserGroupDAO = mock(UserGroupDAO.class);
-		mockUserProfileDAO = mock(UserProfileDAO.class);
+		mockUserProfileManger = mock(UserProfileManager.class);
 		mockGroupMembersDAO = mock(GroupMembersDAO.class);
 		mockAuthDAO = mock(AuthenticationDAO.class);
 		basicDAO = mock(DBOBasicDao.class);
@@ -57,9 +57,9 @@ public class UserManagerImplUnitTest {
 		when(mockUserGroupDAO.get(anyLong())).thenReturn(mockUserGroup);
 		
 		mockUserProfile = new UserProfile();
-		when(mockUserProfileDAO.get(anyString())).thenReturn(mockUserProfile);
+		when(mockUserProfileManger.getUserProfile(any(UserInfo.class), anyString())).thenReturn(mockUserProfile);
 		
-		userManager = new UserManagerImpl(mockUserGroupDAO, mockUserProfileDAO, mockGroupMembersDAO, mockAuthDAO, basicDAO, mockPrincipalAliasDAO);
+		userManager = new UserManagerImpl(mockUserGroupDAO, mockUserProfileManger, mockGroupMembersDAO, mockAuthDAO, basicDAO, mockPrincipalAliasDAO);
 		
 		admin = new UserInfo(true);
 		notAdmin = new UserInfo(false);

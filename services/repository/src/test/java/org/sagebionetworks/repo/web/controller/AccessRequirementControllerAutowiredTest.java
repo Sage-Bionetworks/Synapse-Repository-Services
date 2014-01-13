@@ -80,6 +80,7 @@ public class AccessRequirementControllerAutowiredTest {
 		
 		NewUser user = new NewUser();
 		user.setEmail(UUID.randomUUID().toString() + "@test.com");
+		user.setUserName(UUID.randomUUID().toString());
 		otherUserInfo = userManager.getUserInfo(userManager.createUser(user));
 		
 		// Map test objects to their urls

@@ -211,9 +211,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		if(alias!= null){
 			// Try to lookup the user by their email if we fail to look them up by OpenId
 			alias = lookupUserForAuthenication(email);
+		}
+		if(alias == null){
 			throw new NotFoundException("Failed to find a user with OpenId: "+info.getIdentifier());
 		}
-		
 		// Open ID is successful
 		Session sesion = authManager.authenticate(alias.getPrincipalId(), null);
 		// Note this is temporary to ensure users that come in with an email get their current OpenId bound to their account
