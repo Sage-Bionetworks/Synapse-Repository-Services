@@ -435,18 +435,20 @@ public class MessageManagerImpl implements MessageManager {
 				
 				// Should emails be sent?
 				if (settings.getSendEmailNotifications() == null || settings.getSendEmailNotifications()) {
-					String email = getEmailForUser(profile);
-					sendEmail(email, 
-							dto.getSubject(),
-							messageBody, 
-							isHtml,
-							//TODO change this to an alias
-							//TODO bootstrap a better name for the notification user
-							profile.getDisplayName());
-					
-					// Should the message be marked as READ?
-					if (settings.getMarkEmailedMessagesAsRead() != null && settings.getMarkEmailedMessagesAsRead()) {
-						defaultStatus = MessageStatusType.READ;
+					if(profile.getEmails() != null){
+						String email = getEmailForUser(profile);
+						sendEmail(email, 
+								dto.getSubject(),
+								messageBody, 
+								isHtml,
+								//TODO change this to an alias
+								//TODO bootstrap a better name for the notification user
+								profile.getDisplayName());
+						
+						// Should the message be marked as READ?
+						if (settings.getMarkEmailedMessagesAsRead() != null && settings.getMarkEmailedMessagesAsRead()) {
+							defaultStatus = MessageStatusType.READ;
+						}
 					}
 				}
 				
