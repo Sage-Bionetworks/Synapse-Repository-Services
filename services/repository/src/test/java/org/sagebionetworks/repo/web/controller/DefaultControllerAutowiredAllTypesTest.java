@@ -143,7 +143,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 		}
 		assertNotNull(testTeam);
 		handleOne = new S3FileHandle();
-		handleOne.setCreatedBy(testUser.getIndividualGroup().getId());
+		handleOne.setCreatedBy(testUser.getId().toString());
 		handleOne.setCreatedOn(new Date());
 		handleOne.setBucketName("bucket");
 		handleOne.setKey("EntityControllerTest.mainFileKey");
@@ -197,7 +197,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 		assertNotNull(acl);
 		assertEquals(id, acl.getId());
 		ResourceAccess ac = new ResourceAccess();
-		UserGroup publicUserGroup = userGroupDAO.get(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().toString());
+		UserGroup publicUserGroup = userGroupDAO.get(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId());
 		assertNotNull(publicUserGroup);
 		ac.setPrincipalId(Long.parseLong(publicUserGroup.getId()));
 		ac.setAccessType(new HashSet<ACCESS_TYPE>());

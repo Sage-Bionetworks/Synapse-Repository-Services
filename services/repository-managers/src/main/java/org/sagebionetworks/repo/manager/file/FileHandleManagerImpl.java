@@ -200,7 +200,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	 * @return
 	 */
 	public String getUserId(UserInfo userInfo) {
-		return userInfo.getIndividualGroup().getId();
+		return userInfo.getId().toString();
 	}
 	
 	/**

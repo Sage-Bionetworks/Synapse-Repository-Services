@@ -73,6 +73,7 @@ public class TrashManagerImplAutowiredTest {
 		
 		NewUser user = new NewUser();
 		user.setEmail(UUID.randomUUID().toString() + "@test.com");
+		user.setUserName(UUID.randomUUID().toString());
 		testUserInfo = userManager.getUserInfo(userManager.createUser(user));
 		assertNotNull(testUserInfo);
 		assertFalse(testUserInfo.isAdmin());
@@ -95,7 +96,7 @@ public class TrashManagerImplAutowiredTest {
 	public void after() throws Exception {
 		cleanUp();
 		
-		userManager.deletePrincipal(testAdminUserInfo, Long.parseLong(testUserInfo.getIndividualGroup().getId()));
+		userManager.deletePrincipal(testAdminUserInfo, testUserInfo.getId());
 	}
 
 	@Test
@@ -145,7 +146,7 @@ public class TrashManagerImplAutowiredTest {
 		assertEquals(nodeChildId, trash.getEntityId());
 		assertEquals(nodeChildName, trash.getEntityName());
 		assertEquals(nodeParentId, trash.getOriginalParentId());
-		assertEquals(testUserInfo.getIndividualGroup().getId(), trash.getDeletedByPrincipalId());
+		assertEquals(testUserInfo.getId().toString(), trash.getDeletedByPrincipalId());
 		assertNotNull(trash.getDeletedOn());
 
 		trashManager.restoreFromTrash(testUserInfo, nodeChildId, nodeParentId);
@@ -196,7 +197,7 @@ public class TrashManagerImplAutowiredTest {
 		assertNotNull(trash);
 		assertEquals(nodeId, trash.getEntityId());
 		assertEquals(parentId, trash.getOriginalParentId());
-		assertEquals(testUserInfo.getIndividualGroup().getId(), trash.getDeletedByPrincipalId());
+		assertEquals(testUserInfo.getId().toString(), trash.getDeletedByPrincipalId());
 		assertNotNull(trash.getDeletedOn());
 
 		trashManager.restoreFromTrash(testUserInfo, nodeId, parentId);
@@ -526,7 +527,7 @@ public class TrashManagerImplAutowiredTest {
 				fail();
 			}
 		}
-		String testUserId = testUserInfo.getIndividualGroup().getId();
+		String testUserId = testUserInfo.getId().toString();
 		assertFalse(trashCanDao.exists(testUserId, nodeIdB2));
 
 		// Purge A1 (a root with 2 descendants)

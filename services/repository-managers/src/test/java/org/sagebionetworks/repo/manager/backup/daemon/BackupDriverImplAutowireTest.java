@@ -70,7 +70,7 @@ public class BackupDriverImplAutowireTest {
 	public void before() throws Exception {
 		toDelete = new LinkedList<String>();
 		adminUser = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
-		creatorUserGroupId = adminUser.getIndividualGroup().getId();
+		creatorUserGroupId = adminUser.getId().toString();
 		assertNotNull(creatorUserGroupId);
 		// The one will have a preview
 		withPreview = TestUtils.createS3FileHandle(creatorUserGroupId);
@@ -99,7 +99,7 @@ public class BackupDriverImplAutowireTest {
 		toDelete.add(markdownFileHandle.getId());
 		
 		wiki.setMarkdownFileHandleId(markdownFileHandle.getId());
-		wiki.setCreatedBy(adminUser.getIndividualGroup().getId());
+		wiki.setCreatedBy(adminUser.getId().toString());
 		wiki.setModifiedBy(wiki.getCreatedBy());
 		wiki.setCreatedOn(new Date());
 		wiki.setModifiedOn(wiki.getCreatedOn());

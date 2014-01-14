@@ -43,9 +43,7 @@ public class AccessInterceptorTest {
 		mockRequest = Mockito.mock(HttpServletRequest.class);
 		mockResponse = Mockito.mock(HttpServletResponse.class);
 		mockHandler = Mockito.mock(Object.class);
-		mockUserInfo = new UserInfo(false);
-		mockUserInfo.setIndividualGroup(new UserGroup());
-		mockUserInfo.getIndividualGroup().setId("123");
+		mockUserInfo = new UserInfo(false, 123L);
 		stubRecorder = new StubAccessRecorder();
 		interceptor = new AccessInterceptor();
 		ReflectionTestUtils.setField(interceptor, "accessRecorder", stubRecorder);

@@ -62,12 +62,11 @@ public class DBOAccessControlListDAOScaleTest {
 
 		// Create a user
 		userGroup = new UserGroup();
-		userGroup.setName("aTestUser@sagebase.org");
 		userGroup.setCreationDate(new Date());
 		userGroup.setIsIndividual(true);
-		userId = userGroupDAO.create(userGroup);
+		userId = userGroupDAO.create(userGroup).toString();
 		// update the object from the database so it has its ID
-		userGroup = userGroupDAO.get(userId);
+		userGroup = userGroupDAO.get(Long.parseLong(userId));
 		Long createdById = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 
 		// Create 100 projects root project
@@ -127,8 +126,8 @@ public class DBOAccessControlListDAOScaleTest {
 	@Test
 	public void testTime() throws DatastoreException{
 		// Time the can access methods
-		ArrayList<UserGroup> groups = new ArrayList<UserGroup>();
-		groups.add(userGroup);
+		Set<Long> groups = new HashSet<Long>();
+		groups.add(Long.parseLong(userGroup.getId()));
 		System.out.println("userGroup ID: \t"+userGroup.getId());
 		System.out.println("Number of base projects: \t"+toDelete.size());
 		for(ACCESS_TYPE type: ACCESS_TYPE.values()){

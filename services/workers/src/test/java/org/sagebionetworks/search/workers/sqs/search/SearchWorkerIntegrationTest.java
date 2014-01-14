@@ -130,7 +130,7 @@ public class SearchWorkerIntegrationTest {
 		handle.setFileName("markdown.txt");
 		// Creator of the wiki page may not have been set to the user yet
 		// so do not use wiki's createdBy
-		handle.setCreatedBy(adminUserInfo.getIndividualGroup().getId());
+		handle.setCreatedBy(adminUserInfo.getId().toString());
 		long currentTime = System.currentTimeMillis();
 		handle.setCreatedOn(new Date(currentTime));
 		handle.setKey(token.getKey());
@@ -146,7 +146,7 @@ public class SearchWorkerIntegrationTest {
 		V2WikiPage page = new  V2WikiPage();
 		page.setTitle("rootTile");
 		page.setMarkdownFileHandleId(markdownOne.getId());
-		page.setCreatedBy(info.getIndividualGroup().getId());
+		page.setCreatedBy(info.getId().toString());
 		page.setCreatedOn(new Date());
 		page.setModifiedBy(page.getCreatedBy());
 		page.setModifiedOn(page.getCreatedOn());

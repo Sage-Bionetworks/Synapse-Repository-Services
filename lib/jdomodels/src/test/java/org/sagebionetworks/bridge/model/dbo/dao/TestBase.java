@@ -80,9 +80,8 @@ public abstract class TestBase {
 
 	public String createMember() throws Exception {
 		UserGroup newMember = new UserGroup();
-		newMember.setName(UUID.randomUUID().toString()+"@test.com");
 		newMember.setIsIndividual(true);
-		String newMemberId = userGroupDAO.create(newMember);
+		String newMemberId = userGroupDAO.create(newMember).toString();
 		addToDelete(UserGroup.class, newMemberId);
 		return newMemberId;
 	}

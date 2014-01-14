@@ -73,10 +73,11 @@ public class S3TokenControllerTest {
 		
 		NewUser user = new NewUser();
 		user.setEmail(UUID.randomUUID().toString() + "@test.com");
+		user.setUserName(UUID.randomUUID().toString());
 		testUserInfo = userManager.getUserInfo(userManager.createUser(user));
 		
 		testHelper.setUp();
-		testHelper.setTestUser(Long.parseLong(adminUserInfo.getIndividualGroup().getId()));
+		testHelper.setTestUser(adminUserInfo.getId());
 		
 		project = new Project();
 		project.setName("proj");
@@ -101,7 +102,7 @@ public class S3TokenControllerTest {
 	public void tearDown() throws Exception {
 		testHelper.tearDown();
 		
-		userManager.deletePrincipal(adminUserInfo, Long.parseLong(testUserInfo.getIndividualGroup().getId()));
+		userManager.deletePrincipal(adminUserInfo, testUserInfo.getId());
 	}
 	
 	@Test
@@ -170,7 +171,7 @@ public class S3TokenControllerTest {
 		token = testHelper.createObject(dataset.getUri() + "/"
 				+ UrlHelpers.S3TOKEN, token);
 
-		testHelper.setTestUser(Long.parseLong(testUserInfo.getIndividualGroup().getId()));
+		testHelper.setTestUser(testUserInfo.getId());
 		try {
 			token = testHelper.createObject(dataset.getUri() + "/"
 					+ UrlHelpers.S3TOKEN, token);
@@ -196,21 +197,21 @@ public class S3TokenControllerTest {
 		// Create the token
 		
 		S3AttachmentToken resultToken = ServletTestHelper.createS3AttachmentToken(adminUserId, 
-				ServiceConstants.AttachmentType.USER_PROFILE, adminUserInfo.getIndividualGroup().getId(), startToken);
+				ServiceConstants.AttachmentType.USER_PROFILE, adminUserInfo.getId().toString(), startToken);
 		System.out.println(resultToken);
 		assertNotNull(resultToken);
 		assertNotNull(resultToken.getTokenId());
 		assertNotNull(resultToken.getPresignedUrl());
 		
 		// Upload it
-		String path = S3TokenManagerImpl.createAttachmentPathNoSlash(adminUserInfo.getIndividualGroup().getId(), resultToken.getTokenId());
+		String path = S3TokenManagerImpl.createAttachmentPathNoSlash(adminUserInfo.getId().toString(), resultToken.getTokenId());
 		s3Utility.uploadToS3(toUpload, path);
 
 		// Make sure we can get a signed download URL for this attachment.
 		long now = System.currentTimeMillis();
 		long oneMinuteFromNow = now + (60*1000);
 		PresignedUrl url = testHelper.getUserProfileAttachmentUrl(adminUserId, 
-				adminUserInfo.getIndividualGroup().getId(), resultToken.getTokenId());
+				adminUserInfo.getId().toString(), resultToken.getTokenId());
 		System.out.println(url);
 		assertNotNull(url);
 		assertNotNull(url.getPresignedUrl());

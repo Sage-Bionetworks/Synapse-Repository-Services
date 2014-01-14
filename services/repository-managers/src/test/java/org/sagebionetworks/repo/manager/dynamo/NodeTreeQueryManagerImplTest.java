@@ -46,11 +46,9 @@ public class NodeTreeQueryManagerImplTest {
 
 		UserInfo userInfo = mock(UserInfo.class);
 		when(userInfo.isAdmin()).thenReturn(false);
-		when(userInfo.getIndividualGroup()).thenReturn(userGroup);
 
 		UserInfo adminUserInfo = mock(UserInfo.class);
 		when(adminUserInfo.isAdmin()).thenReturn(true);
-		when(adminUserInfo.getIndividualGroup()).thenReturn(userGroup);
 
 		UserManager userMan = mock(UserManager.class);
 		when(userMan.getUserInfo(userId)).thenReturn(userInfo);

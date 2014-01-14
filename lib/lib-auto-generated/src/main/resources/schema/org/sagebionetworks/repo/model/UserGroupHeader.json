@@ -34,6 +34,17 @@
 				}
 			]
 		},
+		"userName": {
+			"type": "string",
+			"title": "UserName",
+			"description": "A name chosen by the user that uniquely identifies them.",
+			"links": [
+				{
+					"rel": "describedby",
+					"href": "http://synapse.sagebase.org/access/public"
+				}
+			]
+		},
 		"email": {
 			"type": "string",
 			"title": "Email",

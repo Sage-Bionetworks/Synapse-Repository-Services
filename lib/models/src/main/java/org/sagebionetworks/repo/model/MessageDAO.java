@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageSortBy;
@@ -104,5 +105,5 @@ public interface MessageDAO {
 	 * Checks if the given file handle has been sent (or was intended to be sent) to the given UserGroups
 	 * If so, then the user or group should be allowed to download the file associated with the file handle
 	 */
-	public boolean canSeeMessagesUsingFileHandle(Collection<UserGroup> userGroups, String fileHandleId);
+	public boolean canSeeMessagesUsingFileHandle(Set<Long> userGroups, String fileHandleId);
 }

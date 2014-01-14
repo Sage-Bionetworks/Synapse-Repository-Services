@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 
 import java.net.URL;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -19,7 +20,6 @@ import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.MessageDAO;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -82,11 +82,12 @@ public class MessageManagerImplSESTest {
 	
 	private final long mockUserId = -12345L;
 	private final String mockUserIdString = "-12345";
-	private final String mockRecipientId = "-67890";
+	private final Long mockRecipientId = new Long(-67890);
+	private final String mockRecipientIdString = mockRecipientId.toString();
 	private Set<String> mockRecipients = new HashSet<String>() {
 		private static final long serialVersionUID = 1L;
 		{
-			add(mockRecipientId);
+			add(mockRecipientIdString);
 		}
 	};
 	
@@ -148,19 +149,19 @@ public class MessageManagerImplSESTest {
 		// Mocks expandRecipientSet(...)
 		mockUserGroup = new UserGroup();
 		mockUserGroup.setIsIndividual(true);
-		mockUserGroup.setId(mockRecipientId);
+		mockUserGroup.setId(mockRecipientIdString);
 		when(mockUserGroupDAO.get(eq(mockRecipientId))).thenReturn(mockUserGroup);
 		
 		// Mocks the getting of settings
 		mockUserProfile = new UserProfile();
 		mockUserProfile.setNotificationSettings(new Settings());
-		when(mockUserProfileDAO.get(eq(mockRecipientId))).thenReturn(mockUserProfile);
+		when(mockUserProfileDAO.get(eq(mockRecipientIdString))).thenReturn(mockUserProfile);
 		
 		// Mocks the username supplied to SES
-		mockUserInfo = new UserInfo(false);
-		mockUserInfo.setUser(new User());
-		mockUserInfo.getUser().setDisplayName("Foo Bar");
+		mockUserInfo = new UserInfo(false, mockUserId);
 		when(mockUserManager.getUserInfo(eq(mockUserId))).thenReturn(mockUserInfo);
+		
+
 		
 		S3FileHandle plainTextFileHandle = new S3FileHandle();
 		plainTextFileHandle.setId(FILE_HANDLE_ID_PLAIN_TEXT);
@@ -179,7 +180,6 @@ public class MessageManagerImplSESTest {
 	@Ignore
 	@Test
 	public void testPlainTextToDeveloper() throws Exception {
-		mockUserGroup.setName("your.name.here@sagebase.org");
 		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT);
 		assertEquals(errors.toString(), 0, errors.size());
 	}
@@ -190,42 +190,46 @@ public class MessageManagerImplSESTest {
 	@Ignore
 	@Test
 	public void testHTMLToDeveloper() throws Exception {
-		mockUserGroup.setName("your.name.here@sagebase.org");
 		List<String> errors = messageManager.processMessage(MESSAGE_ID_HTML);
 		assertEquals(errors.toString(), 0, errors.size());
 	}
 	
 	@Test
 	public void testSuccess() throws Exception {
-		mockUserGroup.setName(SUCCESS_EMAIL);
+		mockUserProfile.setEmails(new LinkedList<String>());
+		mockUserProfile.getEmails().add(SUCCESS_EMAIL);
 		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT);
 		assertEquals(errors.toString(), 0, errors.size());
 	}
 	
 	@Test
 	public void testBounce() throws Exception {
-		mockUserGroup.setName(BOUNCE_EMAIL);
+		mockUserProfile.setEmails(new LinkedList<String>());
+		mockUserProfile.getEmails().add(BOUNCE_EMAIL);
 		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT);
 		assertEquals(errors.toString(), 0, errors.size());
 	}
 	
 	@Test
 	public void testOutOfOffice() throws Exception {
-		mockUserGroup.setName(OOTO_EMAIL);
+		mockUserProfile.setEmails(new LinkedList<String>());
+		mockUserProfile.getEmails().add(OOTO_EMAIL);
 		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT);
 		assertEquals(errors.toString(), 0, errors.size());
 	}
 	
 	@Test
 	public void testComplaint() throws Exception {
-		mockUserGroup.setName(COMPLAINT_EMAIL);
+		mockUserProfile.setEmails(new LinkedList<String>());
+		mockUserProfile.getEmails().add(COMPLAINT_EMAIL);
 		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT);
 		assertEquals(errors.toString(), 0, errors.size());
 	}
 	
 	@Test
 	public void testSuppressionList() throws Exception {
-		mockUserGroup.setName(SUPPRESSION_EMAIL);
+		mockUserProfile.setEmails(new LinkedList<String>());
+		mockUserProfile.getEmails().add(SUPPRESSION_EMAIL);
 		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT);
 		assertEquals(errors.toString(), 0, errors.size());
 	}

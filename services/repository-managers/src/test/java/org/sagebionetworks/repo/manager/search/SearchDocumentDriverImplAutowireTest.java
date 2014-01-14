@@ -127,7 +127,7 @@ public class SearchDocumentDriverImplAutowireTest {
 		V2WikiPage page = new  V2WikiPage();
 		String markdownHandleId = uploadAndGetFileHandleId(markdown);
 		page.setMarkdownFileHandleId(markdownHandleId);
-		page.setCreatedBy(adminUserInfo.getIndividualGroup().getId());
+		page.setCreatedBy(adminUserInfo.getId().toString());
 		page.setCreatedOn(new Date());
 		page.setModifiedBy(page.getCreatedBy());
 		page.setModifiedOn(page.getCreatedOn());
@@ -161,7 +161,7 @@ public class SearchDocumentDriverImplAutowireTest {
 		handle.setFileName("markdown.txt");
 		// Creator of the wiki page may not have been set to the user yet
 		// so do not use wiki's createdBy
-		handle.setCreatedBy(adminUserInfo.getIndividualGroup().getId());
+		handle.setCreatedBy(adminUserInfo.getId().toString());
 		long currentTime = System.currentTimeMillis();
 		handle.setCreatedOn(new Date(currentTime));
 		handle.setKey(token.getKey());
@@ -303,11 +303,11 @@ public class SearchDocumentDriverImplAutowireTest {
 		assertEquals("study", fields.getNode_type());
 		assertEquals(node.getDescription()+wikiPageText, fields.getDescription());
 		// since the Principal doesn't exist, the 'created by' display name defaults to the principal ID
-		assertEquals(""+nonexistantPrincipalId, fields.getCreated_by());
+		assertEquals("TEMPORARY-"+nonexistantPrincipalId, fields.getCreated_by());
 		assertEquals(new Long(node.getCreatedOn().getTime() / 1000), fields
 				.getCreated_on());
 		// since the Principal doesn't exist, the 'modified by' display name defaults to the principal ID
-		assertEquals(""+nonexistantPrincipalId, fields.getModified_by());
+		assertEquals("TEMPORARY-"+nonexistantPrincipalId, fields.getModified_by());
 		assertEquals(new Long(node.getModifiedOn().getTime() / 1000), fields
 				.getModified_on());
 

@@ -3,8 +3,6 @@ package org.sagebionetworks.repo.model.principal;
 import java.util.List;
 import java.util.Set;
 
-import org.sagebionetworks.repo.model.principal.AliasType;
-import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -40,6 +38,34 @@ public interface PrincipalAliasDAO {
 	public PrincipalAlias findPrincipalWithAlias(String alias);
 	
 	/**
+	 * List all aliases for a given principal.
+	 * @param principalId
+	 * @return
+	 */
+	public List<PrincipalAlias> listPrincipalAliases(Long principalId);
+	
+	/**
+	 * Given a set of principals ID get all aliases.
+	 * @param principalIds
+	 * @return
+	 */
+	public List<PrincipalAlias> listPrincipalAliases(Set<Long> principalIds);
+	
+	/**
+	 * Get all aliases for a principal and type.
+	 * @param principalId
+	 * @param type When provide, will return only aliases of the given type.  When null, all aliases for a principal will be returned.
+	 * @return
+	 */
+	public List<PrincipalAlias> listPrincipalAliases(Long principalId, AliasType type);
+	
+	/**
+	 * List all aliases for a given type.
+	 * @param type
+	 * @return
+	 */
+	public List<PrincipalAlias> listPrincipalAliases(AliasType type);
+	/**
 	 * Is an alias available? 
 	 * 
 	 * @return
@@ -61,18 +87,17 @@ public interface PrincipalAliasDAO {
 	public boolean setAliasDefault(Long aliasId);
 	
 	/**
-	 * List the Aliases bound to a principal of the given type.
-	 * @param principalId
-	 * @param typesToInclude If null then all types will be returned.  When provided only, AliasType in this set will be returned.
-	 * @return
-	 */
-	public List<PrincipalAlias> listPrincipalAliases(Long principalId, Set<AliasType> typesToInclude);
-	
-	/**
 	 * Remove an alias from a principal.
 	 * @param principalId
 	 * @param aliasId
 	 * @return
 	 */
 	public boolean removeAliasFromPrincipal(Long principalId, Long aliasId);
+	
+	/**
+	 * Remove all aliases from the given principal.
+	 * @param principalId
+	 * @return
+	 */
+	public boolean removeAllAliasFromPrincipal(Long principalId);
 }

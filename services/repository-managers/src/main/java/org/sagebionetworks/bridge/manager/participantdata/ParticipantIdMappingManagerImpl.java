@@ -19,12 +19,12 @@ public class ParticipantIdMappingManagerImpl implements ParticipantDataIdManager
 
 	@Override
 	public List<String> mapSynapseUserToParticipantIds(UserInfo userInfo) {
-		return Lists.newArrayList(Long.toString(Long.parseLong(userInfo.getIndividualGroup().getId()) ^ -1L));
+		return Lists.newArrayList(Long.toString(userInfo.getId() ^ -1L));
 	}
 
 	@Override
 	public String createNewParticipantForUser(UserInfo alias) {
-		String id = Long.toString(Long.parseLong(alias.getIndividualGroup().getId()) ^ -1L);
+		String id = Long.toString(alias.getId() ^ -1L);
 		try {
 			participantDAO.create(id);
 		} catch (DatastoreException e) {

@@ -53,10 +53,7 @@ public class AccessRequirementManagerImplUnitTest {
 		authorizationManager = Mockito.mock(AuthorizationManager.class);
 		jiraClient = Mockito.mock(JiraClient.class);
 		arm = new AccessRequirementManagerImpl(accessRequirementDAO, authorizationManager, jiraClient);
-		userInfo = new UserInfo(false);
-		UserGroup individualGroup = new UserGroup();
-		individualGroup.setId(TEST_PRINCIPAL_ID);
-		userInfo.setIndividualGroup(individualGroup);
+		userInfo = new UserInfo(false, TEST_PRINCIPAL_ID);
 		Project sgProject;
 		sgProject = Mockito.mock(Project.class);
 		Iterable<IssueType> issueTypes = Arrays.asList(new IssueType[]{

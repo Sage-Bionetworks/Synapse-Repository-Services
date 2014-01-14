@@ -12,7 +12,7 @@ public interface AuthenticationManager {
 	 * Authenticates a user/password combination, returning a session token if valid
 	 * @param password If null, password checking is skipped
 	 */
-	public Session authenticate(String email, String password) throws NotFoundException;
+	public Session authenticate(long principalId, String password) throws NotFoundException;
 	
 	/**
 	 * Looks for the user holding the given session token
@@ -55,7 +55,7 @@ public interface AuthenticationManager {
 	 * Returns the user's session token
 	 * If the user's token is invalid or expired, a new one is created and returned
 	 */
-	public Session getSessionToken(String username) throws NotFoundException;
+	public Session getSessionToken(long principalId) throws NotFoundException;
 	
 	/**
 	 * Returns whether the user has accepted the terms of use

@@ -31,16 +31,8 @@ public class StorageUsageServiceImplTest {
 	@Before
 	public void before() throws Exception {
 
-		UserGroup userGroup = Mockito.mock(UserGroup.class);
-		Mockito.when(userGroup.getId()).thenReturn("0");
-
-		UserInfo userInfo = Mockito.mock(UserInfo.class);
-		Mockito.when(userInfo.isAdmin()).thenReturn(false);
-		Mockito.when(userInfo.getIndividualGroup()).thenReturn(userGroup);
-
-		UserInfo adminUserInfo = Mockito.mock(UserInfo.class);
-		Mockito.when(adminUserInfo.isAdmin()).thenReturn(true);
-		Mockito.when(adminUserInfo.getIndividualGroup()).thenReturn(userGroup);
+		UserInfo userInfo = new UserInfo(false, 0L);
+		UserInfo adminUserInfo = new UserInfo(true, 1L);
 
 		UserManager userMan = Mockito.mock(UserManager.class);
 		Mockito.when(userMan.getUserInfo(userId)).thenReturn(userInfo);

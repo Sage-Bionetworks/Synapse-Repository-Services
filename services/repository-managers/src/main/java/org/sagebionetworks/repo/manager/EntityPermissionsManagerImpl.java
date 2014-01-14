@@ -26,7 +26,6 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
@@ -282,10 +281,6 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	}
 
 	private static boolean agreesToTermsOfUse(UserInfo userInfo) {
-		User user = userInfo.getUser();
-		if (user==null) return false;
-		// can't agree if you are anonymous
-		if (AuthorizationUtils.isUserAnonymous(userInfo)) return false;
-		return user.isAgreesToTermsOfUse();
+		return userInfo.isAgreesToTermsOfUse();
 	}
 }

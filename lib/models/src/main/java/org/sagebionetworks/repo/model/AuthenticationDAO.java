@@ -17,11 +17,11 @@ public interface AuthenticationDAO {
 	public void createNew(long principalId);
 
 	/**
-	 * Checks to see if the username and password hash combination are valid
+	 * Check to see if this user's credentials match.
 	 * @return The UserID of corresponding to the credentials
 	 * @throws UnauthorizedException If the username or password are incorrect
 	 */
-	public Long checkEmailAndPassword(String email, String passHash);
+	public Long checkUserCredentials(long principalId, String passHash);
 	
 	/**
 	 * Updates the timestamp associated with the user's session token
@@ -42,13 +42,13 @@ public interface AuthenticationDAO {
 	 * If the token has expired, null is returned
 	 * It is the caller's responsibility to make sure the token does not go into unauthorized hands
 	 */
-	public Session getSessionTokenIfValid(String username);
+	public Session getSessionTokenIfValid(long principalId);
 
 	/**
 	 * For testing purposes only
 	 * Allows the current time to be spoofed for testing purposes
 	 */
-	public Session getSessionTokenIfValid(String username, Date now);
+	public Session getSessionTokenIfValid(long userId, Date now);
 	
 	/**
 	 * Nullifies the session token
@@ -70,7 +70,7 @@ public interface AuthenticationDAO {
 	/**
 	 * Returns the salt used to hash the user's password
 	 */
-	public byte[] getPasswordSalt(String username) throws NotFoundException;
+	public byte[] getPasswordSalt(long principalId) throws NotFoundException;
 	
 	/**
 	 * Changes a user's password

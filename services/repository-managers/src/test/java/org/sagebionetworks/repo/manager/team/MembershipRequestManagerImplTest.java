@@ -25,7 +25,6 @@ import org.sagebionetworks.repo.model.MembershipRqstSubmissionDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 
@@ -48,17 +47,10 @@ public class MembershipRequestManagerImplTest {
 				mockMembershipRqstSubmissionDAO
 				);
 		userInfo = new UserInfo(false);
-		UserGroup individualGroup = new UserGroup();
-		individualGroup.setId(MEMBER_PRINCIPAL_ID);
-		User user = new User();
-		user.setUserId(MEMBER_PRINCIPAL_ID);
-		userInfo.setUser(user);
-		userInfo.setIndividualGroup(individualGroup);
+		userInfo.setId(Long.parseLong(MEMBER_PRINCIPAL_ID));
+		// admin
 		adminInfo = new UserInfo(true);
-		adminInfo.setIndividualGroup(individualGroup);
-		User adminUser  = new User();
-		adminUser.setUserId("-1");
-		adminInfo.setUser(adminUser);
+		adminInfo.setId(-1l);
 	}
 	
 	private void validateForCreateExpectFailure(MembershipRqstSubmission mrs, UserInfo userInfo) {
@@ -137,12 +129,7 @@ public class MembershipRequestManagerImplTest {
 	@Test(expected=UnauthorizedException.class)
 	public void testAnonymousCreate() throws Exception {
 		UserInfo anonymousInfo = new UserInfo(false);
-		UserGroup individualGroup = new UserGroup();
-		individualGroup.setId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString());
-		anonymousInfo.setIndividualGroup(individualGroup);
-		User user = new User();
-		user.setId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString());
-		anonymousInfo.setUser(user);
+		anonymousInfo.setId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		MembershipRqstSubmission mrs = new MembershipRqstSubmission();
 		membershipRequestManagerImpl.create(anonymousInfo, mrs);
 	}
@@ -257,7 +244,7 @@ public class MembershipRequestManagerImplTest {
 	public void testGetOpenSubmissionsByRequester() throws Exception {
 		MembershipRqstSubmission mrs = new MembershipRqstSubmission();
 		mrs.setTeamId("111");
-		long userId = Long.parseLong(userInfo.getIndividualGroup().getId());
+		long userId = userInfo.getId();
 		mrs.setUserId(""+userId);
 		List<MembershipRqstSubmission> expected = Arrays.asList(new MembershipRqstSubmission[]{mrs});
 		when(mockMembershipRqstSubmissionDAO.getOpenSubmissionsByRequesterInRange(eq(userId), anyLong(), anyLong(), anyLong())).
@@ -270,7 +257,7 @@ public class MembershipRequestManagerImplTest {
 	
 	@Test(expected=UnauthorizedException.class)
 	public void testGetOpenSubmissionsByRequesterUnauthorized() throws Exception {
-		long userId = Long.parseLong(userInfo.getIndividualGroup().getId());
+		long userId = userInfo.getId();
 		membershipRequestManagerImpl.getOpenSubmissionsByRequesterInRange(userInfo, ""+(userId+999),1,0);
 	}
 	
@@ -279,7 +266,7 @@ public class MembershipRequestManagerImplTest {
 		MembershipRqstSubmission mrs = new MembershipRqstSubmission();
 		long teamId = 111L;
 		mrs.setTeamId(""+teamId);
-		long userId = Long.parseLong(userInfo.getIndividualGroup().getId());
+		long userId = userInfo.getId();
 		mrs.setUserId(""+userId);
 		List<MembershipRqstSubmission> expected = Arrays.asList(new MembershipRqstSubmission[]{mrs});
 		when(mockMembershipRqstSubmissionDAO.getOpenSubmissionsByTeamAndRequesterInRange(eq(teamId), eq(userId), anyLong(), anyLong(), anyLong())).
@@ -293,7 +280,7 @@ public class MembershipRequestManagerImplTest {
 	@Test(expected=UnauthorizedException.class)
 	public void testGetOpenSubmissionsByRequesterAndTeamUnauthorized() throws Exception {
 		long teamId = 111L;
-		long userId = Long.parseLong(userInfo.getIndividualGroup().getId());
+		long userId = userInfo.getId();
 		membershipRequestManagerImpl.getOpenSubmissionsByTeamAndRequesterInRange(userInfo, ""+teamId, ""+(userId+999),1,0);
 
 	}

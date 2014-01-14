@@ -406,9 +406,8 @@ public class DBOReferenceDaoImplTest {
 
 		// check authorization
 		UserGroup group = new UserGroup();
-		group.setName(UUID.randomUUID().toString());
 		group.setIsIndividual(false);
-		String groupId = userGroupDAO.create(group);
+		String groupId = userGroupDAO.create(group).toString();
 		group.setId(groupId);
 		groupsToDelete.add(groupId);
 
@@ -433,8 +432,8 @@ public class DBOReferenceDaoImplTest {
 		
 		// add the group to the userInfo
 		userInfo = new UserInfo(false); // not an administrator!
-		Set<UserGroup> userGroups = new HashSet<UserGroup>();
-		userGroups.add(group);
+		Set<Long> userGroups = new HashSet<Long>();
+		userGroups.add(Long.parseLong(group.getId()));
 		userInfo.setGroups(userGroups);
 		
 		// check that permissions are set up.  'userInfo' should be able to get node0 but not node1

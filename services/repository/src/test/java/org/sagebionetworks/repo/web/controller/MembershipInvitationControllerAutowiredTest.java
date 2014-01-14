@@ -63,8 +63,9 @@ public class MembershipInvitationControllerAutowiredTest {
 		
 		NewUser user = new NewUser();
 		user.setEmail(UUID.randomUUID().toString() + "@test.com");
+		user.setUserName(UUID.randomUUID().toString());
 		testInvitee = userManager.getUserInfo(userManager.createUser(user));
-		assertNotNull(testInvitee.getIndividualGroup().getId());
+		assertNotNull(testInvitee.getId().toString());
 	}
 
 	@After
@@ -72,14 +73,14 @@ public class MembershipInvitationControllerAutowiredTest {
 		 ServletTestHelper.deleteTeam(dispatchServlet, adminUserId, teamToDelete);
 		 teamToDelete = null;
 		 
-		 userManager.deletePrincipal(adminUserInfo, Long.parseLong(testInvitee.getIndividualGroup().getId()));
+		 userManager.deletePrincipal(adminUserInfo, testInvitee.getId());
 	}
 
 	@Test
 	public void testRoundTrip() throws Exception {
 		// create an invitation
 		MembershipInvtnSubmission mis = new MembershipInvtnSubmission();
-		mis.setInviteeId(testInvitee.getIndividualGroup().getId());
+		mis.setInviteeId(testInvitee.getId().toString());
 		mis.setTeamId(teamToDelete.getId());
 		MembershipInvtnSubmission created = ServletTestHelper.createMembershipInvitation(dispatchServlet, adminUserId, mis);
 		

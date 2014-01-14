@@ -177,13 +177,13 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 	}
 
 	@Override
-	public boolean canAccess(Collection<UserGroup> groups, String resourceId,
+	public boolean canAccess(Set<Long> groups, String resourceId,
 			ACCESS_TYPE accessType) throws DatastoreException {
 		// Build up the parameters
 		Map<String,Object> parameters = new HashMap<String,Object>();
 		int i=0;
-		for (UserGroup gId : groups) {
-			parameters.put(AuthorizationSqlUtil.BIND_VAR_PREFIX+(i++), gId.getId());
+		for (Long gId : groups) {
+			parameters.put(AuthorizationSqlUtil.BIND_VAR_PREFIX+(i++), gId);
 		}
 		// Bind the type
 		parameters.put(AuthorizationSqlUtil.ACCESS_TYPE_BIND_VAR, accessType.name());

@@ -170,10 +170,10 @@ public class MessageManagerImpl implements MessageManager {
 		MessageToUser message = messageDAO.getMessage(messageId);
 		
 		// Get the user's ID and the user's groups' IDs
-		String userId = userInfo.getIndividualGroup().getId();
+		String userId = userInfo.getId().toString();
 		Set<String> userGroups = new HashSet<String>();
-		for (UserGroup ug : userInfo.getGroups()) {
-			userGroups.add(ug.getId());
+		for (Long ug : userInfo.getGroups()) {
+			userGroups.add(ug.toString());
 		}
 		userGroups.add(userId);
 		
@@ -208,11 +208,11 @@ public class MessageManagerImpl implements MessageManager {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public MessageToUser createMessage(UserInfo userInfo, MessageToUser dto) throws NotFoundException {
 		// Make sure the sender is correct
-		dto.setCreatedBy(userInfo.getIndividualGroup().getId());
+		dto.setCreatedBy(userInfo.getId().toString());
 		
 		if (!userInfo.isAdmin()) {
 			// Throttle message creation
-			if (!messageDAO.canCreateMessage(userInfo.getIndividualGroup().getId(), 
+			if (!messageDAO.canCreateMessage(userInfo.getId().toString(), 
 						MAX_NUMBER_OF_NEW_MESSAGES,
 						MESSAGE_CREATION_INTERVAL_MILLISECONDS)) {
 				throw new TooManyRequestsException(
@@ -250,7 +250,7 @@ public class MessageManagerImpl implements MessageManager {
 		if (dto.getRecipients().size() == 1) {
 			UserGroup ug;
 			try {
-				ug = userGroupDAO.get(dto.getRecipients().iterator().next());
+				ug = userGroupDAO.get(Long.parseLong(dto.getRecipients().iterator().next()));
 			} catch (NotFoundException e) {
 				throw new DatastoreException("Could not get a user group that satisfied message creation constraints");
 			}
@@ -327,27 +327,27 @@ public class MessageManagerImpl implements MessageManager {
 		MessageToUser dto = messageDAO.getMessage(associatedMessageId);
 		String rootMessageId = dto.getInReplyToRoot();
 		
-		List<MessageToUser> dtos = messageDAO.getConversation(rootMessageId, userInfo.getIndividualGroup().getId(), 
+		List<MessageToUser> dtos = messageDAO.getConversation(rootMessageId, userInfo.getId().toString(), 
 				sortBy, descending, limit, offset);
-		long totalMessages = messageDAO.getConversationSize(rootMessageId, userInfo.getIndividualGroup().getId());
+		long totalMessages = messageDAO.getConversationSize(rootMessageId, userInfo.getId().toString());
 		return new QueryResults<MessageToUser>(dtos, totalMessages);
 	}
 
 	@Override
 	public QueryResults<MessageBundle> getInbox(UserInfo userInfo, 
 			List<MessageStatusType> included, MessageSortBy sortBy, boolean descending, long limit, long offset) {
-		List<MessageBundle> dtos = messageDAO.getReceivedMessages(userInfo.getIndividualGroup().getId(), 
+		List<MessageBundle> dtos = messageDAO.getReceivedMessages(userInfo.getId().toString(), 
 				included, sortBy, descending, limit, offset);
-		long totalMessages = messageDAO.getNumReceivedMessages(userInfo.getIndividualGroup().getId(), included);
+		long totalMessages = messageDAO.getNumReceivedMessages(userInfo.getId().toString(), included);
 		return new QueryResults<MessageBundle>(dtos, totalMessages);
 	}
 
 	@Override
 	public QueryResults<MessageToUser> getOutbox(UserInfo userInfo, 
 			MessageSortBy sortBy, boolean descending, long limit, long offset) {
-		List<MessageToUser> dtos = messageDAO.getSentMessages(userInfo.getIndividualGroup().getId(), 
+		List<MessageToUser> dtos = messageDAO.getSentMessages(userInfo.getId().toString(), 
 				sortBy, descending, limit, offset);
-		long totalMessages = messageDAO.getNumSentMessages(userInfo.getIndividualGroup().getId());
+		long totalMessages = messageDAO.getNumSentMessages(userInfo.getId().toString());
 		return new QueryResults<MessageToUser>(dtos, totalMessages);
 	}
 
@@ -358,7 +358,7 @@ public class MessageManagerImpl implements MessageManager {
 		getMessage(userInfo, status.getMessageId());
 		
 		// Update the message
-		status.setRecipientId(userInfo.getIndividualGroup().getId());
+		status.setRecipientId(userInfo.getId().toString());
 		boolean succeeded = messageDAO.updateMessageStatus(status);
 		
 		if (!succeeded) {
@@ -426,29 +426,27 @@ public class MessageManagerImpl implements MessageManager {
 			try {
 				// Get the user's settings
 				Settings settings = null;
-				try {
-					UserProfile profile = userProfileDAO.get(user);
-					settings = profile.getNotificationSettings();
-				} catch (NotFoundException e) { }
-				if (settings == null) {
+				UserProfile profile = userProfileDAO.get(user);
+				settings = profile.getNotificationSettings();
+				if(settings == null){
 					settings = new Settings();
 				}
-				
 				MessageStatusType defaultStatus = null;
 				
 				// Should emails be sent?
 				if (settings.getSendEmailNotifications() == null || settings.getSendEmailNotifications()) {
-					sendEmail(userGroupDAO.get(user).getName(), 
-							dto.getSubject(),
-							messageBody, 
-							isHtml,
-							//TODO change this to an alias
-							//TODO bootstrap a better name for the notification user
-							userInfo.getUser().getDisplayName());
-					
-					// Should the message be marked as READ?
-					if (settings.getMarkEmailedMessagesAsRead() != null && settings.getMarkEmailedMessagesAsRead()) {
-						defaultStatus = MessageStatusType.READ;
+					if(profile.getEmails() != null){
+						String email = getEmailForUser(profile);
+						sendEmail(email, 
+								dto.getSubject(),
+								messageBody, 
+								isHtml,
+								profile.getUserName());
+						
+						// Should the message be marked as READ?
+						if (settings.getMarkEmailedMessagesAsRead() != null && settings.getMarkEmailedMessagesAsRead()) {
+							defaultStatus = MessageStatusType.READ;
+						}
 					}
 				}
 				
@@ -477,9 +475,10 @@ public class MessageManagerImpl implements MessageManager {
 		// From the list of intended recipients, filter out the un-permitted recipients
 		Set<String> recipients = new HashSet<String>();
 		for (String principalId : intendedRecipients) {
+			Long principalIdLong = Long.parseLong(principalId);
 			UserGroup ug;
 			try {
-				ug = userGroupDAO.get(principalId);
+				ug = userGroupDAO.get(principalIdLong);
 			} catch (NotFoundException e) {
 				errors.add(e.getMessage());
 				continue;
@@ -488,7 +487,7 @@ public class MessageManagerImpl implements MessageManager {
 			// Check permissions to send to non-individuals
 			if (!ug.getIsIndividual()
 					&& !authorizationManager.canAccess(userInfo, principalId, ObjectType.TEAM, ACCESS_TYPE.SEND_MESSAGE)) {
-				errors.add(userInfo.getIndividualGroup().getName()
+				errors.add(userInfo.getId()
 						+ " may not send messages to the group (" + principalId + ")");
 				continue;
 			}
@@ -500,7 +499,7 @@ public class MessageManagerImpl implements MessageManager {
 				// Handle the implicit group that contains all users
 				// Note: only admins can pass the authorization check to reach this
 				if (BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId().toString().equals(principalId)) {
-					for (UserGroup member : userGroupDAO.getAll()) {
+					for (UserGroup member : userGroupDAO.getAllPrincipals()) {
 						if (member.getIsIndividual()) {
 							recipients.add(member.getId());
 						}
@@ -554,7 +553,7 @@ public class MessageManagerImpl implements MessageManager {
 	 * 
 	 * @param sender The username of the sender (null tolerant)
 	 */
-	private SendEmailResult sendEmail(String recipient, String subject, String body, boolean isHtml, String sender) {
+	private SendEmailResult sendEmail(String recipientEmail, String subject, String body, boolean isHtml, String sender) {
 		// Construct whom the email is from 
 		String source = StackConfiguration.getNotificationEmailAddress();
 		if (sender != null) {
@@ -562,7 +561,7 @@ public class MessageManagerImpl implements MessageManager {
 		}
 		
 		// Construct an object to contain the recipient address
-        Destination destination = new Destination().withToAddresses(recipient);
+        Destination destination = new Destination().withToAddresses(recipientEmail);
         
         // Create the subject and body of the message
         if (subject == null) {
@@ -617,22 +616,24 @@ public class MessageManagerImpl implements MessageManager {
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void sendPasswordResetEmail(String recipientId, DomainType originClient, String sessionToken) throws NotFoundException {
+	public void sendPasswordResetEmail(Long recipientId, DomainType originClient, String sessionToken) throws NotFoundException {
 		// Build the subject and body of the message
-		UserInfo recipient = userManager.getUserInfo(Long.parseLong(recipientId));
+		UserInfo recipient = userManager.getUserInfo(recipientId);
 		String domain = WordUtils.capitalizeFully(originClient.name());
 		String subject = "Set " + domain + " Password";
 		String messageBody = readMailTemplate("message/PasswordResetTemplate.txt");
 		messageBody = messageBody.replaceAll(TEMPLATE_KEY_ORIGIN_CLIENT, domain);
 		
+		UserProfile profile = this.userProfileDAO.get(recipientId.toString());
+		
 		//TODO use the Alias here
-		String alias = recipient.getUser().getDisplayName();
+		String alias = profile.getUserName();
 		if (alias == null) {
 			alias = "";
 		}
 		messageBody = messageBody.replaceAll(TEMPLATE_KEY_DISPLAY_NAME, alias);
 		
-		messageBody = messageBody.replaceAll(TEMPLATE_KEY_USERNAME, recipient.getIndividualGroup().getName());
+		messageBody = messageBody.replaceAll(TEMPLATE_KEY_USERNAME, alias);
 		String webLink;
 		switch (originClient) {
 		case BRIDGE:
@@ -645,30 +646,31 @@ public class MessageManagerImpl implements MessageManager {
 			throw new IllegalArgumentException("Unknown origin client type: " + originClient);
 		}
 		messageBody = messageBody.replaceAll(TEMPLATE_KEY_WEB_LINK, webLink);
-		
-		sendEmail(recipient.getIndividualGroup().getName(), subject, messageBody, false, DEFAULT_NOTIFICATION_DISPLAY_NAME);
+		String email = getEmailForUser(profile);
+		sendEmail(email, subject, messageBody, false, DEFAULT_NOTIFICATION_DISPLAY_NAME);
 	}
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void sendWelcomeEmail(String recipientId, DomainType originClient) throws NotFoundException {
+	public void sendWelcomeEmail(Long recipientId, DomainType originClient) throws NotFoundException {
 		// Build the subject and body of the message
-		UserInfo recipient = userManager.getUserInfo(Long.parseLong(recipientId));
+		UserInfo recipient = userManager.getUserInfo(recipientId);
 		String domain = WordUtils.capitalizeFully(originClient.name());
 		String subject = "Welcome to " + domain + "!";
 		String messageBody = readMailTemplate("message/WelcomeTemplate.txt");
 		messageBody = messageBody.replaceAll(TEMPLATE_KEY_ORIGIN_CLIENT, domain);
 		
 		//TODO use the Alias here
-		String alias = recipient.getUser().getDisplayName();
+		UserProfile profile = this.userProfileDAO.get(recipientId.toString());
+		String alias = profile.getUserName();
 		if (alias == null) {
 			alias = "";
 		}
 		messageBody = messageBody.replaceAll(TEMPLATE_KEY_DISPLAY_NAME, alias);
 		
-		messageBody = messageBody.replaceAll(TEMPLATE_KEY_USERNAME, recipient.getIndividualGroup().getName());
-		
-		sendEmail(recipient.getIndividualGroup().getName(), subject, messageBody, false, DEFAULT_NOTIFICATION_DISPLAY_NAME);
+		messageBody = messageBody.replaceAll(TEMPLATE_KEY_USERNAME, alias);
+		String email = getEmailForUser(profile);
+		sendEmail(email, subject, messageBody, false, DEFAULT_NOTIFICATION_DISPLAY_NAME);
 	}
 	
 	@Override
@@ -681,7 +683,8 @@ public class MessageManagerImpl implements MessageManager {
 		String messageBody = readMailTemplate("message/DeliveryFailureTemplate.txt");
 		
 		//TODO use the Alias here
-		String alias = sender.getUser().getDisplayName();
+		UserProfile profile = this.userProfileDAO.get(sender.getId().toString());
+		String alias = profile.getUserName();
 		if (alias == null) {
 			alias = "";
 		}
@@ -689,10 +692,17 @@ public class MessageManagerImpl implements MessageManager {
 		
 		messageBody = messageBody.replaceAll(TEMPLATE_KEY_MESSAGE_ID, messageId);
 		messageBody = messageBody.replaceAll(TEMPLATE_KEY_DETAILS, "- " + StringUtils.join(errors, "\n- "));
-		
-		sendEmail(sender.getIndividualGroup().getName(), subject, messageBody, false, DEFAULT_NOTIFICATION_DISPLAY_NAME);
+		String email = getEmailForUser(profile);
+		sendEmail(email, subject, messageBody, false, DEFAULT_NOTIFICATION_DISPLAY_NAME);
 	}
 	
+	
+	private String getEmailForUser(UserProfile profile){
+		if(profile == null) throw new IllegalArgumentException("Profile cannot be null");
+		if(profile.getEmails() == null) throw new IllegalArgumentException("UserProfile.getEmails() was null");
+		if(profile.getEmails().size() < 1) throw new IllegalArgumentException("UserProfile.getEmails() was empty");
+		return profile.getEmails().get(0);
+	}
 	/**
 	 * Helper for sending templated emails
 	 * 

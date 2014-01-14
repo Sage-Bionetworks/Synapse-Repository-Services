@@ -53,34 +53,34 @@ public class UserManagerImplTest {
 	public void testGetAnonymous() throws Exception {
 		UserInfo ui = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		assertTrue(AuthorizationUtils.isUserAnonymous(ui));
-		assertTrue(AuthorizationUtils.isUserAnonymous(ui.getIndividualGroup()));
-		assertTrue(AuthorizationUtils.isUserAnonymous(ui.getIndividualGroup().getId()));
-		assertNotNull(ui.getUser().getId());
+		assertTrue(AuthorizationUtils.isUserAnonymous(ui.getId()));
+		assertTrue(AuthorizationUtils.isUserAnonymous(Long.parseLong(ui.getId().toString())));
+		assertNotNull(ui.getId());
 		assertEquals(2, ui.getGroups().size());
-		assertTrue(ui.getGroups().contains(ui.getIndividualGroup()));
+		assertTrue(ui.getGroups().contains(ui.getId()));
 
 		// They belong to the public group but not the authenticated user's group
-		assertTrue(ui.getGroups().contains(userGroupDAO.get(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().toString())));
+		assertTrue(ui.getGroups().contains(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId()));
 
 		// Anonymous does not belong to the authenticated user's group.
-		assertFalse(ui.getGroups().contains(userGroupDAO.get(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId().toString())));
+		assertFalse(ui.getGroups().contains(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId()));
 	}
 	
 	@Test
 	public void testStandardUser() throws Exception {
 		NewUser user = new NewUser();
 		user.setEmail(UUID.randomUUID().toString() + "@test.com");
-		Long principalId = userManager.createUser(user);
+		user.setUserName(UUID.randomUUID().toString());
+		Long principalId = userManager.createUser(user);;
 		groupsToDelete.add(principalId.toString());
 		
 		// Check that the UserInfo is populated
 		UserInfo ui = userManager.getUserInfo(principalId);
-		assertNotNull(ui.getIndividualGroup());
-		assertNotNull(ui.getIndividualGroup().getId());
+		assertNotNull(ui.getId().toString());
 		
 		// Should include Public and authenticated users' group.
-		assertTrue(ui.getGroups().contains(userGroupDAO.get(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().toString())));
-		assertTrue(ui.getGroups().contains(userGroupDAO.get(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId().toString())));
+		assertTrue(ui.getGroups().contains(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId()));
+		assertTrue(ui.getGroups().contains(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId()));
 	}
 		
 	@Test

@@ -56,7 +56,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 					" is missing content source (are you sure there is Synapse entity for it?).");
 		}
 		if (!authorizationManager.canAccess(userInfo, nodeId, ObjectType. ENTITY, ACCESS_TYPE.CREATE)) {
-			throw new UnauthorizedException("User " + userInfo.getIndividualGroup().getId() +
+			throw new UnauthorizedException("User " + userInfo.getId().toString() +
 					" must have " + ACCESS_TYPE.CREATE.name() + " right on the entity " +
 					nodeId + " in order to create a evaluation based on it.");
 		}
@@ -65,7 +65,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		eval.setName(EntityNameValidation.valdiateName(eval.getName()));
 		eval.setId(idGenerator.generateNewId(TYPE.DOMAIN_IDS).toString());
 		eval.setCreatedOn(new Date());
-		String principalId = userInfo.getIndividualGroup().getId();
+		String principalId = userInfo.getId().toString();
 		String id = evaluationDAO.create(eval, Long.parseLong(principalId));
 
 		// Create the default ACL
@@ -80,7 +80,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 			throws DatastoreException, NotFoundException, UnauthorizedException {
 		EvaluationUtils.ensureNotNull(id, "Evaluation ID");
 		if (!evaluationPermissionsManager.hasAccess(userInfo, id, ACCESS_TYPE.READ)) {
-			throw new UnauthorizedException("User " + userInfo.getIndividualGroup().getId() +
+			throw new UnauthorizedException("User " + userInfo.getId().toString() +
 					" not allowed to read evaluation " + id);
 		}
 		return evaluationDAO.get(id);
@@ -125,8 +125,8 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	public QueryResults<Evaluation> getAvailableInRange(UserInfo userInfo, long limit, long offset)
 			throws DatastoreException, NotFoundException {
 		List<Long> principalIds = new ArrayList<Long>(userInfo.getGroups().size());
-		for (UserGroup g : userInfo.getGroups()) {
-			principalIds.add(Long.parseLong(g.getId()));
+		for (Long g : userInfo.getGroups()) {
+			principalIds.add(g);
 		}
 		List<Evaluation> evalList = evaluationDAO.getAvailableInRange(principalIds, limit, offset);
 		long totalNumberOfResults = evaluationDAO.getAvailableCount(principalIds);
@@ -169,7 +169,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		
 		// validate permissions
 		if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.UPDATE)) {
-			throw new UnauthorizedException("User " + userInfo.getIndividualGroup().getId() +
+			throw new UnauthorizedException("User " + userInfo.getId().toString() +
 					" is not authorized to update evaluation " + evalId +
 					" (" + eval.getName() + ")");
 		}
@@ -201,7 +201,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		Evaluation eval = evaluationDAO.get(id);
 		if (eval == null) throw new NotFoundException("No Evaluation found with id " + id);
 		if (!evaluationPermissionsManager.hasAccess(userInfo, id, ACCESS_TYPE.DELETE)) {
-			throw new UnauthorizedException("User " + userInfo.getIndividualGroup().getId() +
+			throw new UnauthorizedException("User " + userInfo.getId().toString() +
 					" is not authorized to update evaluation " + id +
 					" (" + eval.getName() + ")");
 		}
@@ -234,7 +234,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 
 		ResourceAccess ra = new ResourceAccess();
 		ra.setAccessType(accessSet);
-		String userId = creator.getIndividualGroup().getId();
+		String userId = creator.getId().toString();
 		ra.setPrincipalId(Long.parseLong(userId));
 
 		Set<ResourceAccess> raSet = new HashSet<ResourceAccess>();

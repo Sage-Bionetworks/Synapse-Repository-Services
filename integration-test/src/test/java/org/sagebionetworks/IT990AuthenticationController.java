@@ -117,9 +117,9 @@ public class IT990AuthenticationController {
 	public void testCreateExistingUser() throws Exception {
 		NewUser user = new NewUser();
 		user.setEmail(username);
+		user.setUserName(UUID.randomUUID().toString());
 		user.setFirstName("Foo");
 		user.setLastName("Bar");
-		user.setDisplayName("Baz");
 		
 		try {
 			synapse.createUser(user);

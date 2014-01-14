@@ -60,7 +60,7 @@ public class WikiModelTranslationHelperTest {
 	public void before() throws Exception{
 		// get user IDs
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
-		ownerId = adminUserInfo.getIndividualGroup().getId();
+		ownerId = adminUserInfo.getId().toString();
 	}
 	
 	@After

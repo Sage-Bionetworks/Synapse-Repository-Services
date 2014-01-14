@@ -56,6 +56,7 @@ public class TrashControllerAutowiredTest {
 		
 		NewUser user = new NewUser();
 		user.setEmail(UUID.randomUUID().toString() + "@test.com");
+		user.setUserName(UUID.randomUUID().toString());
 		testUserId = userManager.createUser(user);
 		testUserInfo = userManager.getUserInfo(testUserId);
 		
@@ -87,7 +88,7 @@ public class TrashControllerAutowiredTest {
 			entityService.deleteEntity(testUserId, parent.getId());
 		}
 		
-		userManager.deletePrincipal(adminUserInfo, Long.parseLong(testUserInfo.getIndividualGroup().getId()));
+		userManager.deletePrincipal(adminUserInfo, testUserInfo.getId());
 	}
 
 	@Test

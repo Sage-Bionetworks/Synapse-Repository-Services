@@ -86,7 +86,7 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 		}
 		
 		// Make sure the UserGroup corresponding to the ID holds a group, not an individual
-		if (userGroupDAO.get(groupId).getIsIndividual()) {
+		if (userGroupDAO.get(Long.parseLong(groupId)).getIsIndividual()) {
 			throw new IllegalArgumentException("Members cannot be added to an individual");
 		}
 		

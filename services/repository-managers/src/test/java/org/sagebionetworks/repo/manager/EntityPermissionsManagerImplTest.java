@@ -30,8 +30,10 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -96,10 +98,16 @@ public class EntityPermissionsManagerImplTest {
 		cred.setSecretKey("");
 		
 		// Need two users for this test
-		userInfo = userManager.createUser(adminUserInfo, UUID.randomUUID().toString() + "@test.com", new UserProfile(), cred);
-		otherUserInfo = userManager.createUser(adminUserInfo, UUID.randomUUID().toString() + "@test.com", new UserProfile(), cred);
+		NewUser nu = new NewUser();
+		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
+		nu.setUserName(UUID.randomUUID().toString());
+		userInfo = userManager.createUser(adminUserInfo, nu, cred);
+		new NewUser();
+		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
+		nu.setUserName(UUID.randomUUID().toString());
+		otherUserInfo = userManager.createUser(adminUserInfo, nu, cred);
 		
-		ownerId = Long.parseLong(userInfo.getIndividualGroup().getId());
+		ownerId = userInfo.getId();
 		
 		// create a resource
 		project = createNode("foo", 1L, 2L, null);
@@ -118,8 +126,8 @@ public class EntityPermissionsManagerImplTest {
 			} catch (NotFoundException e) {}
 		}
 		
-		userManager.deletePrincipal(adminUserInfo, Long.parseLong(userInfo.getIndividualGroup().getId()));
-		userManager.deletePrincipal(adminUserInfo, Long.parseLong(otherUserInfo.getIndividualGroup().getId()));
+		userManager.deletePrincipal(adminUserInfo, userInfo.getId());
+		userManager.deletePrincipal(adminUserInfo, otherUserInfo.getId());
 	}
 	
 	@Test
@@ -146,7 +154,7 @@ public class EntityPermissionsManagerImplTest {
 	@Test
 	public void testValidateACLContent() throws Exception {
 		ResourceAccess userRA = new ResourceAccess();
-		userRA.setPrincipalId(Long.parseLong(userInfo.getIndividualGroup().getId()));
+		userRA.setPrincipalId(userInfo.getId());
 		Set<ACCESS_TYPE> ats = new HashSet<ACCESS_TYPE>();
 		ats.add(ACCESS_TYPE.CHANGE_PERMISSIONS);
 		userRA.setAccessType(ats);
@@ -193,7 +201,7 @@ public class EntityPermissionsManagerImplTest {
 	@Test(expected = InvalidModelException.class)
 	public void testValidateACLContent_UserInsufficientPermissions() throws Exception {
 		ResourceAccess userRA = new ResourceAccess();
-		userRA.setPrincipalId(Long.parseLong(userInfo.getIndividualGroup().getId()));
+		userRA.setPrincipalId(userInfo.getId());
 		Set<ACCESS_TYPE> ats = new HashSet<ACCESS_TYPE>();
 		ats.add(ACCESS_TYPE.READ);
 		userRA.setAccessType(ats);
@@ -217,7 +225,7 @@ public class EntityPermissionsManagerImplTest {
 		// Check the etag before
 		String etagBefore = acl.getEtag();
 		assertNotNull(etagBefore);
-		acl = AuthorizationTestHelper.addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.READ);
+		acl = AuthorizationTestHelper.addToACL(acl, userInfo.getId(), ACCESS_TYPE.READ);
 		acl = entityPermissionsManager.updateACL(acl, adminUserInfo);
 		// The etag should have changed
 		assertNotNull(acl.getEtag());
@@ -231,7 +239,7 @@ public class EntityPermissionsManagerImplTest {
 		boolean foundIt = false;
 		while(it.hasNext()){
 			ResourceAccess ra = it.next();
-			if(ra.getPrincipalId().toString().equals(userInfo.getIndividualGroup().getId())){
+			if(ra.getPrincipalId().toString().equals(userInfo.getId().toString())){
 				assertEquals(new HashSet<ACCESS_TYPE>(Arrays.asList(new ACCESS_TYPE[]{ACCESS_TYPE.READ})),
 						ra.getAccessType());
 				foundIt = true;
@@ -255,7 +263,7 @@ public class EntityPermissionsManagerImplTest {
 	public void testUpdateInvalidACL() throws Exception {
 		AccessControlList acl = entityPermissionsManager.getACL(project.getId(), adminUserInfo);
 		assertEquals(1, acl.getResourceAccess().size());
-		acl = AuthorizationTestHelper.addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.READ);
+		acl = AuthorizationTestHelper.addToACL(acl, userInfo.getId(), ACCESS_TYPE.READ);
 		acl = entityPermissionsManager.updateACL(acl, adminUserInfo);
 		acl.setId(project.getId());
 		// ...group id is null...
@@ -444,9 +452,9 @@ public class EntityPermissionsManagerImplTest {
 		entityPermissionsManager.overrideInheritance(grandchild0Acl, adminUserInfo);
 		
 		// authorize test user to change permissions of parent and child nodes
-		parentAcl = AuthorizationTestHelper.addToACL(parentAcl, userInfo.getIndividualGroup(), ACCESS_TYPE.CHANGE_PERMISSIONS);
+		parentAcl = AuthorizationTestHelper.addToACL(parentAcl, userInfo.getId(), ACCESS_TYPE.CHANGE_PERMISSIONS);
 		parentAcl = entityPermissionsManager.updateACL(parentAcl, adminUserInfo);
-		childAcl = AuthorizationTestHelper.addToACL(childAcl, userInfo.getIndividualGroup(), ACCESS_TYPE.CHANGE_PERMISSIONS);
+		childAcl = AuthorizationTestHelper.addToACL(childAcl, userInfo.getId(), ACCESS_TYPE.CHANGE_PERMISSIONS);
 		childAcl = entityPermissionsManager.updateACL(childAcl, adminUserInfo);
 		
 		// apply inheritance to children as test user
@@ -481,12 +489,12 @@ public class EntityPermissionsManagerImplTest {
 		AccessControlList acl = entityPermissionsManager.getACL(project.getId(), adminUserInfo);
 		ResourceAccess ra = new ResourceAccess();
 		ra.setAccessType(collaboratorAccess);
-		ra.setPrincipalId(new Long(userInfo.getIndividualGroup().getId()));	
+		ra.setPrincipalId(userInfo.getId());	
 		acl.getResourceAccess().add(ra);
 		entityPermissionsManager.updateACL(acl, adminUserInfo);
 		
 		// create folder in project as collaborator
-		Node folder = createDTO("collaborators folder", new Long(userInfo.getIndividualGroup().getId()), new Long(userInfo.getIndividualGroup().getId()), project.getId());
+		Node folder = createDTO("collaborators folder", userInfo.getId(), userInfo.getId(), project.getId());
 		String nodeId = nodeManager.createNewNode(folder, userInfo);
 		assertNotNull(nodeId);
 		folder.setId(nodeId);

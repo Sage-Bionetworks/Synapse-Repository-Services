@@ -7,7 +7,6 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 import org.sagebionetworks.repo.model.SchemaCache;
-import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
@@ -25,21 +24,12 @@ public class UserProfileManagerUtilsTest {
 	
 	@Test
 	public void testIsOwnerOrAdmin() {
-		UserInfo userInfo = new UserInfo(false/*not admin*/);
-		UserGroup individualGroup=new UserGroup();
-		individualGroup.setIsIndividual(true);
-		String individualGroupId = "1001";
-		individualGroup.setId(individualGroupId);
-		userInfo.setIndividualGroup(individualGroup);
-		User user = new User();
-		user.setUserId("user@sagebase.org");
-		userInfo.setUser(user);
-		assertTrue(UserProfileManagerUtils.isOwnerOrAdmin(userInfo, individualGroupId));
+		UserInfo userInfo = new UserInfo(false/*not admin*/, 1001L);
+		assertTrue(UserProfileManagerUtils.isOwnerOrAdmin(userInfo, "1001"));
 		String otherId = "1002";
 		assertFalse(UserProfileManagerUtils.isOwnerOrAdmin(userInfo, otherId));
 		
-		UserInfo adminInfo = new UserInfo(true/*is admin*/);
-		adminInfo.setIndividualGroup(individualGroup);
+		UserInfo adminInfo = new UserInfo(true/*is admin*/, 456L);
 		assertTrue(UserProfileManagerUtils.isOwnerOrAdmin(adminInfo, otherId));
 
 		assertFalse(UserProfileManagerUtils.isOwnerOrAdmin(null, otherId));
@@ -50,16 +40,11 @@ public class UserProfileManagerUtilsTest {
 		String email = "test@example.com";
 		UserInfo userInfo = new UserInfo(false);
 		UserProfile up = new UserProfile();
-		up.setEmail(email);
-		up.setDisplayName("me");
 		AttachmentData pic = new AttachmentData();
 		pic.setPreviewId("a preview ID");
 		up.setPic(pic);
 		up.setRStudioUrl("http://rstudio");
 		UserProfileManagerUtils.clearPrivateFields(userInfo, up);
-		assertFalse(email.equals(up.getEmail()));
-		assertTrue(up.getEmail().contains("..."));
-		assertEquals("me", up.getDisplayName());
 		assertEquals(pic, up.getPic());
 		assertNull(up.getRStudioUrl());
 	}
@@ -69,15 +54,11 @@ public class UserProfileManagerUtilsTest {
 		String email = "test@example.com";
 		UserInfo userInfo = new UserInfo(true);
 		UserProfile up = new UserProfile();
-		up.setEmail(email);
-		up.setDisplayName("me");
 		AttachmentData pic = new AttachmentData();
 		pic.setPreviewId("a preview ID");
 		up.setPic(pic);
 		up.setRStudioUrl("http://rstudio");
 		UserProfileManagerUtils.clearPrivateFields(userInfo, up);
-		assertEquals(email, up.getEmail());
-		assertEquals("me", up.getDisplayName());
 	}
 
 }

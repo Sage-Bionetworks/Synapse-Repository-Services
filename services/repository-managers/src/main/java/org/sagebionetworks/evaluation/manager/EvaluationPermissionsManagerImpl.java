@@ -99,7 +99,7 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 
 		final Evaluation eval = getEvaluation(evalId);
 		if (!canAccess(userInfo, evalId, CHANGE_PERMISSIONS)) {
-			throw new UnauthorizedException("User " + userInfo.getIndividualGroup().getId()
+			throw new UnauthorizedException("User " + userInfo.getId().toString()
 					+ " not authorized to change permissions on evaluation " + evalId);
 		}
 
@@ -121,7 +121,7 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 			throw new IllegalArgumentException("Evaluation Id cannot be null or empty.");
 		}
 		if (!canAccess(userInfo, evalId, CHANGE_PERMISSIONS)) {
-			throw new UnauthorizedException("User " + userInfo.getIndividualGroup().getId()
+			throw new UnauthorizedException("User " + userInfo.getId().toString()
 					+ " not authorized to change permissions on evaluation " + evalId);
 		}
 		aclDAO.delete(evalId);
@@ -219,7 +219,7 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 	}
 
 	private boolean isEvalOwner(final UserInfo userInfo, final Evaluation eval) {
-		String userId = userInfo.getIndividualGroup().getId();
+		String userId = userInfo.getId().toString();
 		String evalOwnerId = eval.getOwnerId();
 		if (userId != null && evalOwnerId != null && userId.equals(evalOwnerId)) {
 			return true;

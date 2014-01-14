@@ -26,6 +26,7 @@ import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
@@ -77,7 +78,6 @@ public class IT510SynapseJavaClientSearchTest {
 		
 		// Update this user's profile to contain a display name
 		UserProfile profile = synapse.getMyProfile();
-		profile.setDisplayName(UUID.randomUUID().toString());
 		synapse.updateMyProfile(profile);
 		
 		// Setup all of the objects for this test.
@@ -395,17 +395,6 @@ public class IT510SynapseJavaClientSearchTest {
 		assertTrue(1 <= results.getFound());
 	}
 	
-	private static String getGroupPrincipalIdFromGroupName(String groupName) throws SynapseException {
-		PaginatedResults<UserGroup> paginated = synapse.getGroups(0,100);
-		int total = (int)paginated.getTotalNumberOfResults();
-		List<UserGroup> groups = paginated.getResults();
-		if (groups.size()<total) throw new RuntimeException("System has "+total+" total users but we've only retrieved "+groups.size());
-		for (UserGroup group : groups) {
-			if (group.getName().equalsIgnoreCase(groupName)) return group.getId();
-		}
-		throw new RuntimeException("Cannot find "+groupName+" among groups.");
-	}
-	
 	/**
 	 * @throws Exception
 	 */
@@ -431,13 +420,13 @@ public class IT510SynapseJavaClientSearchTest {
 		assertTrue(-1 < cloudSearchMatchExpr
 				.indexOf("acl:'" + myPrincipalId + "'"));
 		assertTrue(-1 < cloudSearchMatchExpr
-				.indexOf("acl:'"+getGroupPrincipalIdFromGroupName("AUTHENTICATED_USERS")+"'"));
-		assertTrue(-1 < cloudSearchMatchExpr.indexOf("acl:'"+getGroupPrincipalIdFromGroupName("PUBLIC")+"'"));
+				.indexOf("acl:'"+AuthorizationConstants.BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId().toString()+"'"));
+		assertTrue(-1 < cloudSearchMatchExpr.indexOf("acl:'"+AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().toString()+"'"));
 	}
 
 	@Test
 	public void testAnonymousSearchAuthorizationFilter() throws Exception {
-		String publicPrincipalId = getGroupPrincipalIdFromGroupName("PUBLIC");
+		String publicPrincipalId = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().toString();
 
 		// now 'log out'
 		SynapseClient anonymous = new SynapseClientImpl();

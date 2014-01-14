@@ -14,7 +14,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Test;
@@ -73,9 +72,8 @@ public class DBOTeamDAOImplTest {
 	private static UserGroupHeader createUserGroupHeaderFromUserProfile(UserProfile up) {
 		UserGroupHeader ugh = new UserGroupHeader();
 		ugh.setOwnerId(up.getOwnerId());
-		ugh.setEmail(up.getEmail());
+		ugh.setUserName(up.getUserName());
 		ugh.setIsIndividual(true);
-		ugh.setDisplayName(up.getDisplayName());
 		ugh.setFirstName(up.getFirstName());
 		ugh.setLastName(up.getLastName());
 		return ugh;
@@ -85,9 +83,8 @@ public class DBOTeamDAOImplTest {
 	@Test
 	public void testRoundTrip() throws Exception {
 		UserGroup group = new UserGroup();
-		group.setName(UUID.randomUUID().toString());
 		group.setIsIndividual(false);
-		group.setId(userGroupDAO.create(group));
+		group.setId(userGroupDAO.create(group).toString());
 		teamToDelete = group.getId();
 		
 		// create a team
@@ -131,9 +128,8 @@ public class DBOTeamDAOImplTest {
 
 		// need an arbitrary user to add to the group
 		UserGroup user = new UserGroup();
-		user.setName(UUID.randomUUID().toString()+"@test.com");
 		user.setIsIndividual(true);
-		user.setId(userGroupDAO.create(user));
+		user.setId(userGroupDAO.create(user).toString());
 		userToDelete = user.getId();
 		
 		UserProfile profile = new UserProfile();

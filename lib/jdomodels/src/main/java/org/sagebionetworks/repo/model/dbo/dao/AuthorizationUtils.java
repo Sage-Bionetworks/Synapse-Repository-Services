@@ -7,14 +7,14 @@ import org.sagebionetworks.repo.model.UserInfo;
 public class AuthorizationUtils {
 	
 	public static boolean isUserAnonymous(UserInfo userInfo) {
-		return isUserAnonymous(userInfo.getIndividualGroup());
+		return isUserAnonymous(userInfo.getId());
 	}
 	
 	public static boolean isUserAnonymous(UserGroup ug) {
-		return isUserAnonymous(ug.getId());
+		return isUserAnonymous(Long.parseLong(ug.getId()));
 	}
 	
-	public static boolean isUserAnonymous(String id) {
-		return BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString().equals(id);
+	public static boolean isUserAnonymous(Long id) {
+		return BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().equals(id);
 	}
 }

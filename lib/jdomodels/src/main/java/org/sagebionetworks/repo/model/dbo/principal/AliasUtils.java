@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.principal;
 
+import java.util.LinkedList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -36,6 +38,21 @@ public class AliasUtils {
 		dbo.setValidated(dto.getIsValidated());
 		dbo.setPrincipalId(dto.getPrincipalId());
 		return dbo;
+	}
+	
+	/**
+	 * Convert a list of aliases DBOs to a list of DTOs
+	 * @param dbos
+	 * @return
+	 */
+	public static List<PrincipalAlias> createDTOFromDBO(List<DBOPrincipalAlias> dbos){
+		List<PrincipalAlias> list = new LinkedList<PrincipalAlias>();
+		if(dbos != null){
+			for(DBOPrincipalAlias dbo: dbos){
+				list.add(createDTOFromDBO(dbo));
+			}
+		}
+		return list;
 	}
 	
 	/**
@@ -81,31 +98,6 @@ public class AliasUtils {
 		// Replace all non-letters and numbers with empty strings
 		return m.replaceAll("");
 	}
-	
-	/**
-	 * Transform an old DBOUser group into a new principal.
-	 * 
-	 * @param dbo
-	 * @return
-	 */
-	public static PrincipalAlias transformOldUserGroup(DBOUserGroup dbo){
-		PrincipalAlias result = new PrincipalAlias();
-		if(dbo.getIsIndividual()){
-			// Convert the name to an email
-			result.setAlias(dbo.getName());
-			result.setType(AliasType.USER_EMAIL);
-		}else{
-			// We need to remove any characters that are not allowed in team names.
-			Matcher m = TEAM_NAME_REPLACE_PATTERN.matcher(dbo.getName());
-			// Replace all non-letters and numbers with empty strings
-			String nameName = m.replaceAll("");
-			// Convert the name to an email
-			result.setAlias(nameName);
-			result.setType(AliasType.TEAM_NAME);
-		}
-		result.setIsValidated(true);
-		result.setPrincipalId(dbo.getId());
-		return result;
-	}
+
 
 }

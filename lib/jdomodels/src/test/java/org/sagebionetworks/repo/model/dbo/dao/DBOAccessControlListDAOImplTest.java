@@ -85,17 +85,15 @@ public class DBOAccessControlListDAOImplTest {
 		
 		// create a group to give the permissions to
 		group = new UserGroup();
-		group.setName("bar");
 		group.setIsIndividual(false);
-		group.setId(userGroupDAO.create(group));
+		group.setId(userGroupDAO.create(group).toString());
 		assertNotNull(group.getId());
 		groupList.add(group);
 		
 		// Create a second user
 		group2 = new UserGroup();
-		group2.setName("bar2");
 		group2.setIsIndividual(false);
-		group2.setId(userGroupDAO.create(group2));
+		group2.setId(userGroupDAO.create(group2).toString());
 		assertNotNull(group2.getId());
 		groupList.add(group2);
 		
@@ -180,8 +178,8 @@ public class DBOAccessControlListDAOImplTest {
 	 */
 	@Test
 	public void testCanAccess() throws Exception {
-		Collection<UserGroup> gs = new ArrayList<UserGroup>();
-		gs.add(group);
+		Set<Long> gs = new HashSet<Long>();
+		gs.add(Long.parseLong(group.getId()));
 		
 		// as expressed in 'setUp', 'group' has 'READ' access to 'node'
 		assertTrue(aclDAO.canAccess(gs, node.getId(), ACCESS_TYPE.READ));
@@ -191,10 +189,9 @@ public class DBOAccessControlListDAOImplTest {
 		
 		// and no other group has been given access
 		UserGroup sham = new UserGroup();
-		sham.setName("sham");
 		sham.setId("-34876387468764"); // dummy
 		gs.clear();
-		gs.add(sham);
+		gs.add(Long.parseLong(sham.getId()));
 		assertFalse(aclDAO.canAccess(gs, node.getId(), ACCESS_TYPE.READ));
 	}
 
@@ -243,8 +240,8 @@ public class DBOAccessControlListDAOImplTest {
 		String etagBeforeUpdate = acl.getEtag();
 		aclDAO.update(acl);
 		
-		Collection<UserGroup> gs = new ArrayList<UserGroup>();
-		gs.add(group);
+		Set<Long> gs = new HashSet<Long>();
+		gs.add(Long.parseLong(group.getId()));
 		assertFalse(aclDAO.canAccess(gs, node.getId(), ACCESS_TYPE.READ));
 		assertTrue(aclDAO.canAccess(gs, node.getId(), ACCESS_TYPE.UPDATE));
 		assertTrue(aclDAO.canAccess(gs, node.getId(), ACCESS_TYPE.CREATE));
@@ -285,10 +282,10 @@ public class DBOAccessControlListDAOImplTest {
 		acl.getResourceAccess().add(ra2);
 		aclDAO.update(acl);
 		
-		Collection<UserGroup> gs = new ArrayList<UserGroup>();
-		gs.add(group);
-		Collection<UserGroup> gs2 = new ArrayList<UserGroup>();
-		gs2.add(group2);
+		Set<Long> gs = new HashSet<Long>();
+		gs.add(Long.parseLong(group.getId()));
+		Set<Long> gs2 = new HashSet<Long>();
+		gs2.add(Long.parseLong(group2.getId()));
 		assertFalse(aclDAO.canAccess(gs, node.getId(), ACCESS_TYPE.READ));
 		assertTrue(aclDAO.canAccess(gs2, node.getId(), ACCESS_TYPE.READ));
 		

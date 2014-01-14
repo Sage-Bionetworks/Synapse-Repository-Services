@@ -80,14 +80,12 @@ public class DBOMessageDAOImplTest {
 		
 		// These two principals will act as mutual spammers
 		maliciousUser = new UserGroup();
-		maliciousUser.setName("MaliciousUser@test.com");
 		maliciousUser.setIsIndividual(true);
-		maliciousUser.setId(userGroupDAO.create(maliciousUser));
+		maliciousUser.setId(userGroupDAO.create(maliciousUser).toString());
 
 		maliciousGroup = new UserGroup();
-		maliciousGroup.setName("MaliciousGroup");
 		maliciousGroup.setIsIndividual(false);
-		maliciousGroup.setId(userGroupDAO.create(maliciousGroup));
+		maliciousGroup.setId(userGroupDAO.create(maliciousGroup).toString());
 		
 		// We need a file handle to satisfy a foreign key constraint
 		// But it doesn't need to point to an actual file
@@ -334,27 +332,26 @@ public class DBOMessageDAOImplTest {
 	
 	@Test
 	public void testCanSeeMessagesUsingFileHandle() throws Exception {
-		List<UserGroup> groups = new ArrayList<UserGroup>();
+		Set<Long> groups = new HashSet<Long>();
 		
 		// An empty collection should not see anything
 		assertFalse(messageDAO.canSeeMessagesUsingFileHandle(groups, fileHandleId));
 		
 		// Non existent users should not see anything
-		groups.add(new UserGroup());
-		groups.get(0).setId("-1");
+		groups.add(-1L);
 		assertFalse(messageDAO.canSeeMessagesUsingFileHandle(groups, fileHandleId));
 		
 		// The malicious user has been sent a message with the file handle
-		groups.add(maliciousUser);
+		groups.add(Long.parseLong(maliciousUser.getId()));
 		assertTrue(messageDAO.canSeeMessagesUsingFileHandle(groups, fileHandleId));
 		
 		// So has the malicious group
 		groups.clear();
-		groups.add(maliciousGroup);
+		groups.add(Long.parseLong(maliciousGroup.getId()));
 		assertTrue(messageDAO.canSeeMessagesUsingFileHandle(groups, fileHandleId));
 		
 		// Having both in the list should work too
-		groups.add(maliciousUser);
+		groups.add(Long.parseLong(maliciousUser.getId()));
 		assertTrue(messageDAO.canSeeMessagesUsingFileHandle(groups, fileHandleId));
 
 		// Shouldn't be able to see an unrelated filehandle

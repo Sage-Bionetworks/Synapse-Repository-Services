@@ -16,6 +16,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -70,6 +71,8 @@ import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.DaemonStatus;
@@ -242,6 +245,8 @@ public class MigrationIntegrationAutowireTest {
 	
 	private HttpServletRequest mockRequest;
 	
+	private UserInfo newUser;
+	
 	@Before
 	public void before() throws Exception{
 		mockRequest = Mockito.mock(HttpServletRequest.class);
@@ -253,6 +258,7 @@ public class MigrationIntegrationAutowireTest {
 		adminUserInfo = userManager.getUserInfo(adminUserId);
 		
 		resetDatabase();
+		createNewUser();
 		String sampleFileHandleId = createFileHandles();
 		createActivity();
 		createEntities();
@@ -302,6 +308,13 @@ public class MigrationIntegrationAutowireTest {
 		tableRowTruthDao.appendRowSetToTable(adminUserIdString, tableId, models, set);
 	}
 
+	public void createNewUser() throws NotFoundException{
+		NewUser user = new NewUser();
+		user.setUserName(UUID.randomUUID().toString());
+		user.setEmail(user.getUserName()+"@test.com");
+		Long id = userManager.createUser(user);
+		newUser = userManager.getUserInfo(id);
+	}
 
 	private void resetDatabase() throws Exception {
 		// This gives us a chance to also delete the S3 for table rows
@@ -510,26 +523,21 @@ public class MigrationIntegrationAutowireTest {
 	
 	// returns a group for use in a team
 	private UserGroup createUserGroups(int index) throws NotFoundException {
-		String groupNamePrefix = "Caravan-" + index;
-		String userNamePrefix = "GoinOnTheOregonTrail" + index + "@";
 		List<String> adder = new ArrayList<String>();
 		
 		// Make one group
 		UserGroup parentGroup = new UserGroup();
 		parentGroup.setIsIndividual(false);
-		parentGroup.setName(groupNamePrefix+"1");
-		parentGroup.setId(userGroupDAO.create(parentGroup));
+		parentGroup.setId(userGroupDAO.create(parentGroup).toString());
 		
 		// Make two users
 		UserGroup parentUser = new UserGroup();
 		parentUser.setIsIndividual(true);
-		parentUser.setName(userNamePrefix+"gov.org");
-		parentUser.setId(userGroupDAO.create(parentUser));
+		parentUser.setId(userGroupDAO.create(parentUser).toString());
 		
 		UserGroup siblingUser = new UserGroup();
 		siblingUser.setIsIndividual(true);
-		siblingUser.setName(userNamePrefix+"2"+"gov.org");
-		siblingUser.setId(userGroupDAO.create(siblingUser));
+		siblingUser.setId(userGroupDAO.create(siblingUser).toString());
 		
 		// Nest one group and two users within the parent group
 		adder.add(parentUser.getId());
@@ -575,7 +583,7 @@ public class MigrationIntegrationAutowireTest {
 		
 		Team team = new Team();
 		team.setId(group.getId());
-		team.setName(group.getName());
+		team.setName(UUID.randomUUID().toString());
 		team.setDescription("test team");
 		teamDAO.create(team);
 		
@@ -608,7 +616,7 @@ public class MigrationIntegrationAutowireTest {
 	private void createCommunity(UserGroup group) throws Exception {
 		Team team = new Team();
 		team.setId(group.getId());
-		team.setName(group.getName());
+		team.setName(UUID.randomUUID().toString());
 		team.setDescription("test team");
 		team = teamDAO.create(team);
 
@@ -721,11 +729,7 @@ public class MigrationIntegrationAutowireTest {
 		for (int i = 1; i < finalCounts.getList().size(); i++) {
 			MigrationTypeCount startCount = startCounts.getList().get(i);
 			MigrationTypeCount afterRestore = finalCounts.getList().get(i);
-			if(afterRestore.getType() == MigrationType.PRINCIPAL_ALIAS){
-				assertTrue("There should be more alias than we started because the PrincipalMigrationListenerImpl should add alias for cleared bootstrap users.", afterRestore.getCount() > startCount.getCount());
-			}else{
-				assertEquals("Count for " + startCount.getType().name() + " does not match", startCount.getCount(), afterRestore.getCount());
-			}
+			assertEquals("Count for " + startCount.getType().name() + " does not match", startCount.getCount(), afterRestore.getCount());
 		}
 	}
 	

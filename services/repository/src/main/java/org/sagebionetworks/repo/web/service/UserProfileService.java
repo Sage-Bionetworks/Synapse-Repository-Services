@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.controller.ObjectTypeSerializer;
 import org.springframework.http.HttpHeaders;
@@ -114,7 +115,7 @@ public interface UserProfileService {
 	 * @param ids
 	 * @return
 	 */
-	public UserGroupHeaderResponsePage getUserGroupHeadersByIds(Long userId, List<String> ids)
+	public UserGroupHeaderResponsePage getUserGroupHeadersByIds(Long userId, List<Long> ids)
 			throws DatastoreException, NotFoundException ;
 
 	/**
@@ -191,6 +192,8 @@ public interface UserProfileService {
 	 * @throws NotFoundException
 	 */
 	public PaginatedResults<EntityHeader> getFavorites(Long userId, int limit, int offset) throws DatastoreException, InvalidModelException, NotFoundException;
+
+	public void setPrincipalAlaisDAO(PrincipalAliasDAO mockPrincipalAlaisDAO);
 
 	
 }

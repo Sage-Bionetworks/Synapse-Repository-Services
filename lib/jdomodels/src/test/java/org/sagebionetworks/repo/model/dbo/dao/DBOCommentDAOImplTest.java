@@ -47,9 +47,8 @@ public class DBOCommentDAOImplTest {
 		cleanup = new ArrayList<String>();
 		
 		maliciousUser = new UserGroup();
-		maliciousUser.setName("CommentDAOUser@test.com");
 		maliciousUser.setIsIndividual(true);
-		maliciousUser.setId(userGroupDAO.create(maliciousUser));
+		maliciousUser.setId(userGroupDAO.create(maliciousUser).toString());
 		
 		// We need a file handle to satisfy a foreign key constraint
 		// But it doesn't need to point to an actual file

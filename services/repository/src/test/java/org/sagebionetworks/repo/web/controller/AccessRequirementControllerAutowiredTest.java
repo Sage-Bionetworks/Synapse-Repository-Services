@@ -80,6 +80,7 @@ public class AccessRequirementControllerAutowiredTest {
 		
 		NewUser user = new NewUser();
 		user.setEmail(UUID.randomUUID().toString() + "@test.com");
+		user.setUserName(UUID.randomUUID().toString());
 		otherUserInfo = userManager.getUserInfo(userManager.createUser(user));
 		
 		// Map test objects to their urls
@@ -121,7 +122,7 @@ public class AccessRequirementControllerAutowiredTest {
 		}
 		
 		UserInfo adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
-		userManager.deletePrincipal(adminUserInfo, Long.parseLong(otherUserInfo.getIndividualGroup().getId()));
+		userManager.deletePrincipal(adminUserInfo, otherUserInfo.getId());
 	}
 
 	@BeforeClass
@@ -168,7 +169,7 @@ public class AccessRequirementControllerAutowiredTest {
 		
 		// get the unmet access requirements for the entity
 		results = ServletTestHelper.getUnmetEntityAccessRequirements(
-				dispatchServlet, entityId, Long.parseLong(otherUserInfo.getIndividualGroup().getId()));	
+				dispatchServlet, entityId, otherUserInfo.getId());	
 		ars = results.getResults();
 		assertEquals(1, ars.size());
 		
@@ -210,7 +211,7 @@ public class AccessRequirementControllerAutowiredTest {
 		
 		// get the unmet access requirements for the evaluation
 		results = ServletTestHelper.getUnmetEvaluationAccessRequirements(
-				dispatchServlet, evaluation.getId(), Long.parseLong(otherUserInfo.getIndividualGroup().getId()));	
+				dispatchServlet, evaluation.getId(), Long.parseLong(otherUserInfo.getId().toString()));	
 		ars = results.getResults();
 		assertEquals(1, ars.size());
 		

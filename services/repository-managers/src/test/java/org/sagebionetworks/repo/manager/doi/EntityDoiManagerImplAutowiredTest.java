@@ -66,6 +66,7 @@ public class EntityDoiManagerImplAutowiredTest {
 	public void before() throws Exception {
 		NewUser user = new NewUser();
 		user.setEmail(UUID.randomUUID().toString() + "@test.com");
+		user.setUserName(UUID.randomUUID().toString());
 		testUserId = userManager.createUser(user);
 		testUserInfo = userManager.getUserInfo(testUserId);
 
@@ -112,7 +113,7 @@ public class EntityDoiManagerImplAutowiredTest {
 		assertEquals(ObjectType.ENTITY, doiCreate.getObjectType());
 		assertNull(doiCreate.getObjectVersion());
 		assertNotNull(doiCreate.getCreatedOn());
-		assertEquals(testUserInfo.getIndividualGroup().getId(), doiCreate.getCreatedBy());
+		assertEquals(testUserInfo.getId().toString(), doiCreate.getCreatedBy());
 		assertNotNull(doiCreate.getUpdatedOn());
 		assertEquals(DoiStatus.IN_PROCESS, doiCreate.getDoiStatus());
 
@@ -123,7 +124,7 @@ public class EntityDoiManagerImplAutowiredTest {
 		assertEquals(ObjectType.ENTITY, doiGet.getObjectType());
 		assertNull(doiGet.getObjectVersion());
 		assertNotNull(doiGet.getCreatedOn());
-		assertEquals(testUserInfo.getIndividualGroup().getId(), doiGet.getCreatedBy());
+		assertEquals(testUserInfo.getId().toString(), doiGet.getCreatedBy());
 		assertNotNull(doiGet.getUpdatedOn());
 		assertNotNull(doiGet.getDoiStatus());
 
@@ -165,7 +166,7 @@ public class EntityDoiManagerImplAutowiredTest {
 		assertEquals(ObjectType.ENTITY, doiCreate.getObjectType());
 		assertEquals(Long.valueOf(1), doiCreate.getObjectVersion());
 		assertNotNull(doiCreate.getCreatedOn());
-		assertEquals(testUserInfo.getIndividualGroup().getId(), doiCreate.getCreatedBy());
+		assertEquals(testUserInfo.getId().toString(), doiCreate.getCreatedBy());
 		assertNotNull(doiCreate.getUpdatedOn());
 		assertEquals(DoiStatus.IN_PROCESS, doiCreate.getDoiStatus());
 
@@ -176,7 +177,7 @@ public class EntityDoiManagerImplAutowiredTest {
 		assertEquals(ObjectType.ENTITY, doiGet.getObjectType());
 		assertEquals(Long.valueOf(1), doiCreate.getObjectVersion());
 		assertNotNull(doiGet.getCreatedOn());
-		assertEquals(testUserInfo.getIndividualGroup().getId(), doiGet.getCreatedBy());
+		assertEquals(testUserInfo.getId().toString(), doiGet.getCreatedBy());
 		assertNotNull(doiGet.getUpdatedOn());
 		assertNotNull(doiGet.getDoiStatus());
 
@@ -213,7 +214,7 @@ public class EntityDoiManagerImplAutowiredTest {
 
 		// Set up an error status first
 		// Test that we should be able to recreate the DOI from here
-		final String userId = testUserInfo.getIndividualGroup().getId();
+		final String userId = testUserInfo.getId().toString();
 		doiDao.createDoi(userId, nodeId, ObjectType.ENTITY, null, DoiStatus.ERROR);
 
 		Doi doiCreate = entityDoiManager.createDoi(testUserId, nodeId, null);
@@ -224,7 +225,7 @@ public class EntityDoiManagerImplAutowiredTest {
 		assertEquals(ObjectType.ENTITY, doiCreate.getObjectType());
 		assertNull(doiCreate.getObjectVersion());
 		assertNotNull(doiCreate.getCreatedOn());
-		assertEquals(testUserInfo.getIndividualGroup().getId(), doiCreate.getCreatedBy());
+		assertEquals(testUserInfo.getId().toString(), doiCreate.getCreatedBy());
 		assertNotNull(doiCreate.getUpdatedOn());
 		assertEquals(DoiStatus.IN_PROCESS, doiCreate.getDoiStatus());
 
@@ -235,7 +236,7 @@ public class EntityDoiManagerImplAutowiredTest {
 		assertEquals(ObjectType.ENTITY, doiGet.getObjectType());
 		assertNull(doiCreate.getObjectVersion());
 		assertNotNull(doiGet.getCreatedOn());
-		assertEquals(testUserInfo.getIndividualGroup().getId(), doiGet.getCreatedBy());
+		assertEquals(testUserInfo.getId().toString(), doiGet.getCreatedBy());
 		assertNotNull(doiGet.getUpdatedOn());
 		assertNotNull(doiGet.getDoiStatus());
 

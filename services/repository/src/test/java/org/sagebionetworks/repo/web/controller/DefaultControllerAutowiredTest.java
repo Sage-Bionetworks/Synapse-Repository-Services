@@ -96,6 +96,7 @@ public class DefaultControllerAutowiredTest {
 		
 		NewUser user = new NewUser();
 		user.setEmail(UUID.randomUUID().toString() + "@test.com");
+		user.setUserName(UUID.randomUUID().toString());
 		otherUserId = userManager.createUser(user);
 		otherUserInfo = userManager.getUserInfo(otherUserId);
 	}
@@ -115,7 +116,7 @@ public class DefaultControllerAutowiredTest {
 			}
 		}
 		
-		userManager.deletePrincipal(adminUserInfo, Long.parseLong(otherUserInfo.getIndividualGroup().getId()));
+		userManager.deletePrincipal(adminUserInfo, Long.parseLong(otherUserInfo.getId().toString()));
 	}
 
 	@BeforeClass

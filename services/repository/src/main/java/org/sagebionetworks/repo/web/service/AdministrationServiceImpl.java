@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.web.service;
 
 import java.io.IOException;
 import java.util.Date;
+import java.util.UUID;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -19,6 +20,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
+import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
@@ -202,11 +204,14 @@ public class AdministrationServiceImpl implements AdministrationService  {
 			cred.setAgreesToTermsOfUse(userSpecs.getSession().getAcceptsTermsOfUse());
 			cred.setValidatedOn(new Date());
 		}
-				
-		UserInfo user = userManager.createUser(userInfo, userSpecs.getUsername(), userSpecs.getProfile(), cred);
+		
+		NewUser nu = new NewUser();
+		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
+		nu.setUserName(UUID.randomUUID().toString());
+		UserInfo user = userManager.createUser(userInfo, nu, cred);
 		
 		EntityId id = new EntityId();
-		id.setId(user.getIndividualGroup().getId());
+		id.setId(user.getId().toString());
 		return id;
 	}
 	@Override

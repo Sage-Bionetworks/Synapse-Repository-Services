@@ -90,7 +90,7 @@ public class V2WikiManagerImpl implements V2WikiManager {
 		}
 		
 		// Set created by and modified by
-		wikiPage.setCreatedBy(user.getIndividualGroup().getId());
+		wikiPage.setCreatedBy(user.getId().toString());
 		wikiPage.setModifiedBy(wikiPage.getCreatedBy());
 
 		// First build up the map of names to FileHandles
@@ -228,7 +228,7 @@ public class V2WikiManagerImpl implements V2WikiManager {
 			throw new ConflictingUpdateException("ObjectId: "+objectId+" was updated since you last fetched it, retrieve it again and reapply the update");
 		}
 		// Set modified by
-		wikiPage.setModifiedBy(user.getIndividualGroup().getId());
+		wikiPage.setModifiedBy(user.getId().toString());
 		
 		// First build up the complete map of names to FileHandles of the wiki's attachments
 		Map<String, FileHandle> nameToHandleMap = buildFileNameMap(wikiPage);

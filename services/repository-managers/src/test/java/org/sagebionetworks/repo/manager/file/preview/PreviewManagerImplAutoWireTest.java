@@ -73,7 +73,7 @@ public class PreviewManagerImplAutoWireTest {
 		when(mockFiz.getContentType()).thenReturn(ImagePreviewGenerator.IMAGE_PNG);
 		when(mockFiz.getName()).thenReturn(LITTLE_IMAGE_NAME);
 		// Now upload the file.
-		originalfileMetadata = fileUploadManager.uploadFile(adminUserInfo.getIndividualGroup().getId(), mockFiz);
+		originalfileMetadata = fileUploadManager.uploadFile(adminUserInfo.getId().toString(), mockFiz);
 		toDelete.add(originalfileMetadata);
 		System.out.println("Max preview bytes:"+previewManager.getMaxPreivewMemoryBytes());
 	}

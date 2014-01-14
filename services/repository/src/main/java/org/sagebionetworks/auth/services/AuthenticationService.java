@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.model.auth.ChangePasswordRequest;
 import org.sagebionetworks.repo.model.auth.LoginCredentials;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
+import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -51,7 +52,7 @@ public interface AuthenticationService {
 	 * Sends a password-reset email to the user
 	 * Note: Email is not actually sent in development stacks.  Instead a log appears when email would have been sent
 	 */
-	public void sendPasswordEmail(String username, DomainType originClient)
+	public void sendPasswordEmail(Long userId, DomainType originClient)
 			 throws NotFoundException;
 	
 	/**
@@ -76,16 +77,19 @@ public interface AuthenticationService {
 	public void deleteSecretKey(Long principalId) throws NotFoundException;
 	
 	/**
-	 * Returns the username of the user
-	 */
-	public String getUsername(String principalId) throws NotFoundException;
-	
-	/**
 	 * Temporary method used for converting usernames to user IDs
 	 */
 	@Deprecated
 	public Long getUserId(String username) throws NotFoundException;
 	
+	/**
+	 * Principals can have many aliases including a username, multiple email addresses, and OpenIds.
+	 * This method will look a user by any of the aliases.
+	 * @param alias
+	 * @return Null if the user does not exist.
+	 * @throws {@link UnauthorizedException} If the alias belongs to a team.
+	 */
+	public PrincipalAlias lookupUserForAuthenication(String alias);
 	/**
 	 * Has the user accepted the terms of use?
 	 */
@@ -97,4 +101,6 @@ public interface AuthenticationService {
 	 * Will create a user if necessary 
 	 */
 	public Session authenticateViaOpenID(ParameterList parameters) throws NotFoundException;
+
+	public void sendPasswordEmail(String email, DomainType originClient) throws NotFoundException;
 }

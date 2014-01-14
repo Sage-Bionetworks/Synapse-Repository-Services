@@ -96,7 +96,7 @@ public class WikiModelTranslationHelper implements WikiModelTranslator {
 		handle.setFileName(wiki.getId() + "_markdown.txt");
 		// Creator of the wiki page may not have been set to the user yet
 		// so do not use wiki's createdBy
-		handle.setCreatedBy(userInfo.getIndividualGroup().getId());
+		handle.setCreatedBy(userInfo.getId().toString());
 		long currentTime = System.currentTimeMillis();
 		handle.setCreatedOn(new Date(currentTime));
 		handle.setKey(token.getKey());

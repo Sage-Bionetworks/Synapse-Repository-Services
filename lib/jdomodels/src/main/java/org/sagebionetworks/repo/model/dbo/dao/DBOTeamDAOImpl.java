@@ -3,8 +3,10 @@
  */
 package org.sagebionetworks.repo.model.dbo.dao;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_ALIAS_DISPLAY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_GROUP_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_MEMBER_ID;
+//import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_GROUP_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_OWNER;
@@ -12,17 +14,15 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_TYPE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TEAM_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TEAM_PROPERTIES;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_PROPS_BLOB;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_GROUP_MEMBERS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PRINCIPAL_ALIAS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_RESOURCE_ACCESS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_RESOURCE_ACCESS_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TEAM;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_GROUP;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_PROFILE;
 
 import java.sql.Blob;
@@ -35,7 +35,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -66,16 +65,12 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	private DBOBasicDao basicDao;	
 
 	@Autowired
-	private IdGenerator idGenerator;
-
-	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
 
 	private static final RowMapper<DBOTeam> teamRowMapper = (new DBOTeam()).getTableMapping();
 	
 	private static final String SELECT_PAGINATED = 
-			"SELECT t.*, g."+COL_USER_GROUP_NAME+" FROM "+TABLE_USER_GROUP+" g, "+TABLE_TEAM+" t "+
-			" WHERE t."+COL_TEAM_ID+"=g."+COL_USER_GROUP_ID+" order by "+COL_USER_GROUP_NAME+" asc "+
+			"SELECT * FROM "+TABLE_TEAM+" order by "+COL_TEAM_ID+" asc "+
 			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 	
 	private static final String SELECT_COUNT = 
@@ -325,11 +320,10 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	
 	private static void fillUserGroupHeaderFromUserProfileBlob(Blob upProperties, UserGroupHeader ugh) throws SQLException {
 		UserProfile up = UserProfileUtils.deserialize(upProperties.getBytes(1, (int) upProperties.length()));
-		ugh.setDisplayName(up.getDisplayName());
 		ugh.setFirstName(up.getFirstName());
 		ugh.setLastName(up.getLastName());
 		ugh.setPic(up.getPic());
-		ugh.setEmail(up.getEmail());		
+		ugh.setUserName(up.getUserName());
 	}
 	
 	public static class TeamMemberId {

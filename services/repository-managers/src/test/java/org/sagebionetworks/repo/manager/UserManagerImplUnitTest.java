@@ -1,11 +1,13 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
+import static org.junit.Assert.*;
+import static org.mockito.Matchers.*;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import java.util.UUID;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -17,17 +19,20 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
+import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 
 public class UserManagerImplUnitTest {
 	
 	private UserManager userManager;
 	
 	private UserGroupDAO mockUserGroupDAO;
-	private UserProfileDAO mockUserProfileDAO;
+	private UserProfileManager mockUserProfileManger;
 	private GroupMembersDAO mockGroupMembersDAO;
 	private AuthenticationDAO mockAuthDAO;
 	private DBOBasicDao basicDAO;
+	private PrincipalAliasDAO mockPrincipalAliasDAO;
 	
 	private UserInfo admin;
 	private UserInfo notAdmin;
@@ -39,21 +44,22 @@ public class UserManagerImplUnitTest {
 	@Before
 	public void setUp() throws Exception {
 		mockUserGroupDAO = mock(UserGroupDAO.class);
-		mockUserProfileDAO = mock(UserProfileDAO.class);
+		mockUserProfileManger = mock(UserProfileManager.class);
 		mockGroupMembersDAO = mock(GroupMembersDAO.class);
 		mockAuthDAO = mock(AuthenticationDAO.class);
 		basicDAO = mock(DBOBasicDao.class);
+		mockPrincipalAliasDAO = mock(PrincipalAliasDAO.class);
 
-		when(mockUserGroupDAO.create(any(UserGroup.class))).thenReturn(mockId);
+		when(mockUserGroupDAO.create(any(UserGroup.class))).thenReturn(Long.parseLong(mockId));
 		mockUserGroup = new UserGroup();
 		mockUserGroup.setId(mockId);
 		mockUserGroup.setIsIndividual(true);
-		when(mockUserGroupDAO.get(anyString())).thenReturn(mockUserGroup);
+		when(mockUserGroupDAO.get(anyLong())).thenReturn(mockUserGroup);
 		
 		mockUserProfile = new UserProfile();
-		when(mockUserProfileDAO.get(anyString())).thenReturn(mockUserProfile);
+		when(mockUserProfileManger.getUserProfile(any(UserInfo.class), anyString())).thenReturn(mockUserProfile);
 		
-		userManager = new UserManagerImpl(mockUserGroupDAO, mockUserProfileDAO, mockGroupMembersDAO, mockAuthDAO, basicDAO);
+		userManager = new UserManagerImpl(mockUserGroupDAO, mockUserProfileManger, mockGroupMembersDAO, mockAuthDAO, basicDAO, mockPrincipalAliasDAO);
 		
 		admin = new UserInfo(true);
 		notAdmin = new UserInfo(false);
@@ -62,12 +68,14 @@ public class UserManagerImplUnitTest {
 	@Test
 	public void testCreateUserAdmin() throws Exception {
 		// Call with an admin
-		userManager.createUser(admin, null, null, null);
-		verify(mockUserGroupDAO).doesPrincipalExist(anyString());
+		NewUser nu = new NewUser();
+		nu.setEmail(UUID.randomUUID().toString()+"@testing.com");
+		nu.setUserName(UUID.randomUUID().toString());
+		userManager.createUser(admin, nu, null);
 		
 		// Call with a non admin
 		try {
-			userManager.createUser(notAdmin, null, null, null);
+			userManager.createUser(notAdmin, null, null);
 			fail();
 		} catch (UnauthorizedException e) { }
 	}

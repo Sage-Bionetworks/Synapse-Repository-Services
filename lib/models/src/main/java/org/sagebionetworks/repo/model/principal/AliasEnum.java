@@ -11,20 +11,23 @@ import java.util.regex.Pattern;
  */
 public enum AliasEnum {
 	
-	USER_NAME("^[a-z0-9._-]{3,}", "User names can only contain letters, numbers, dot (.), dash (-) and underscore (_) and must be at least 3 characters long."),
-	TEAM_NAME("^[a-z0-9 ._-]{3,}", "Team names can only contain letters, numbers, spaces, dot (.), dash (-), underscore (_) and must be at least 3 characters long."),
-	USER_EMAIL("[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,4}", "User emails must be a valid email address"),
-	USER_OPEN_ID("^(https?)://[-a-z0-9+&@#/%?=~_|!:,.;]*[-a-z0-9+&@#/%=~_|]","User OpenIDs must be a valid URL.");
+	USER_NAME("^[a-z0-9._-]{3,}", "User names can only contain letters, numbers, dot (.), dash (-) and underscore (_) and must be at least 3 characters long.", true),
+	TEAM_NAME("^[a-z0-9 ._-]{3,}", "Team names can only contain letters, numbers, spaces, dot (.), dash (-), underscore (_) and must be at least 3 characters long.", true),
+	USER_EMAIL("[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,4}", "User emails must be a valid email address", false),
+	USER_OPEN_ID("^(https?)://[-a-z0-9+&@#/%?=~_|!:,.;]*[-a-z0-9+&@#/%=~_|]","User OpenIDs must be a valid URL.", false);
 	
-	private AliasEnum(String regEx, String description){
+	private AliasEnum(String regEx, String description, boolean isOnePerPrincipal){
 		this.description = description;
 		this.regEx = regEx;
 		this.pattern = Pattern.compile(regEx);
+		this.isOnePerPrincpal = isOnePerPrincipal;
 	}
 	
 	private String description;
 	private Pattern pattern;
 	private String regEx;
+	private boolean isOnePerPrincpal;
+	
 	public Pattern getPattern() {
 		return pattern;
 	}
@@ -33,6 +36,14 @@ public enum AliasEnum {
 	}
 	public String getDescription() {
 		return description;
+	}
+	
+	/**
+	 * True if only one alias of this type is allowed per principal
+	 * @return
+	 */
+	public boolean isOnePerPrincpal(){
+		return isOnePerPrincpal;
 	}
 
 	/**
@@ -49,4 +60,6 @@ public enum AliasEnum {
 			throw new IllegalArgumentException(this.description+" Value="+toValidate);
 		}
 	}
+	
+	
 }

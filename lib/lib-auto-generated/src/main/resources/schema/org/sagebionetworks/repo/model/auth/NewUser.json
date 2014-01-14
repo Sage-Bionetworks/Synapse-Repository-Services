@@ -5,11 +5,7 @@
 		"email": {
 			"type": "string",
 			"description": "User's email"
-		}, 
-		"password": {
-			"type": "string",
-			"description": "User's password"
-		}, 
+		},
 		"firstName": {
 			"type": "string",
 			"description": "User's first name"
@@ -18,9 +14,9 @@
 			"type": "string",
 			"description": "User's last name"
 		},
-		"displayName": {
+		"userName": {
 			"type": "string",
-			"description": "User's display name"
+			"description": "A is a unique alias that will identify a user. A userName can only contain letters, numbers, dot (.), dash (-) and underscore (_) and must be at least 3 characters long."
 		}
 	}
 }

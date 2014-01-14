@@ -75,7 +75,7 @@ public class ExtractUserList {
 				out.write(join(new ArrayList<String>(Arrays.asList(new String[] {
 						fullProfile.getOwnerId(),
 						fullProfile.getEmail(),
-						fullProfile.getDisplayName(),
+						fullProfile.getUserName(),
 						fullProfile.getFirstName(),
 						fullProfile.getLastName(),
 						fullProfile.getCompany()						

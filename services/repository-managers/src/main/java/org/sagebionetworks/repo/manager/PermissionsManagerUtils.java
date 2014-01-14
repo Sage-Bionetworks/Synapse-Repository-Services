@@ -27,7 +27,7 @@ public class PermissionsManagerUtils {
 		}
 
 		// Verify that the caller maintains permissions access
-		String callerPrincipalId = userInfo.getIndividualGroup().getId();
+		String callerPrincipalId = userInfo.getId().toString();
 		boolean callerIsOwner = callerPrincipalId.equals(ownerId.toString());
 		boolean foundCallerInAcl = false;
 		for (ResourceAccess ra : acl.getResourceAccess()) {

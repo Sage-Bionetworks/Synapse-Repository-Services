@@ -107,10 +107,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 		// Now execute the non-count query
 		SizeLimitRowMapper sizeLimitMapper = new SizeLimitRowMapper(MAX_BYTES_PER_QUERY);
 		List<Map<String, Object>> results = simpleJdbcTemplate.query(fullQuery.toString(), sizeLimitMapper, parameters);
-		String userId = null;
-		if(userInfo.getUser() != null){
-			userId = userInfo.getUser().getUserId();
-		}
+		Long userId = userInfo.getId();
 		// Build the results based on on the select
 		if(log.isDebugEnabled()){
 			log.debug("user: "+userId+ " Query: "+fullQuery.toString());

@@ -48,6 +48,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.BatchResults;
 import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.Entity;
@@ -130,7 +131,6 @@ public class IT500SynapseJavaClient {
 		
 		// Update this user's profile to contain a display name
 		UserProfile profile = synapseTwo.getMyProfile();
-		profile.setDisplayName(UUID.randomUUID().toString());
 		synapseTwo.updateMyProfile(profile);
 	}
 	
@@ -251,7 +251,7 @@ public class IT500SynapseJavaClient {
 		List<UserGroup> ugs = synapseOne.getGroups(0, 100).getResults();
 		Long publicPrincipalId = null;
 		for (UserGroup ug: ugs) {
-			if (ug.getName().equals("PUBLIC")) {
+			if (ug.getId().equals(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().toString())) {
 				publicPrincipalId = Long.parseLong(ug.getId());
 				break;
 			}
@@ -382,7 +382,7 @@ public class IT500SynapseJavaClient {
 				assertTrue(ats.contains(ACCESS_TYPE.UPDATE));
 			}
 		}
-		assertTrue("didn't find "+profile.getDisplayName()+"("+profile.getOwnerId()+") but found "+foundPrincipals, foundit);
+		assertTrue("didn't find "+profile.getUserName()+"("+profile.getOwnerId()+") but found "+foundPrincipals, foundit);
 		
 		// Get the path
 		EntityPath path = synapseOne.getEntityPath(aNewDataset.getId());
@@ -676,7 +676,7 @@ public class IT500SynapseJavaClient {
 		List<String> allDisplayNames = new ArrayList<String>();
 		for (UserProfile up : users.getResults()) {
 			assertNotNull(up.getOwnerId());
-			String displayName = up.getDisplayName();
+			String displayName = up.getUserName();
 			allDisplayNames.add(displayName);
 			if (up.getOwnerId().equals(myPrincipalId)) foundSelf=true;
 		}
@@ -689,7 +689,6 @@ public class IT500SynapseJavaClient {
 		assertTrue(groups.getResults().size()>0);
 		for (UserGroup ug : groups.getResults()) {
 			assertNotNull(ug.getId());
-			assertNotNull(ug.getName());
 		}
 	}
 
@@ -698,7 +697,7 @@ public class IT500SynapseJavaClient {
 		List<String> ids = new ArrayList<String>();		
 		PaginatedResults<UserProfile> users = synapseOne.getUsers(0,100);
 		for (UserProfile up : users.getResults()) {	
-			if (up.getDisplayName() != null) {
+			if (up.getUserName() != null) {
 				ids.add(up.getOwnerId());
 			}
 		}
@@ -1201,7 +1200,6 @@ public class IT500SynapseJavaClient {
 		assertEquals(1L, members.getTotalNumberOfResults());
 		TeamMember tm = members.getResults().get(0);
 		assertEquals(myPrincipalId, tm.getMember().getOwnerId());
-		assertFalse("expected obfuscated email but got "+tm.getMember().getEmail(), myProfile.getEmail().equals(tm.getMember().getEmail())); // unequal since email is obfuscated
 		assertEquals(updatedTeam.getId(), tm.getTeamId());
 		assertTrue(tm.getIsAdmin());
 		
@@ -1218,7 +1216,7 @@ public class IT500SynapseJavaClient {
 		
 		// add a member to the team
 		UserProfile otherUp = synapseTwo.getMyProfile();
-		String otherDName = otherUp.getDisplayName();
+		String otherDName = otherUp.getUserName();
 		String otherPrincipalId = otherUp.getOwnerId();
 		// the other has to ask to be added
 		MembershipRqstSubmission mrs = new MembershipRqstSubmission();
@@ -1243,7 +1241,7 @@ public class IT500SynapseJavaClient {
 		assertFalse(tms.getCanJoin());
 
 		// query for team members using name fragment.  should get team creator back
-		String myDisplayName = /*"devuser1@sagebase.org"*/myProfile.getDisplayName();
+		String myDisplayName = /*"devuser1@sagebase.org"*/myProfile.getUserName();
 		members = synapseOne.getTeamMembers(updatedTeam.getId(), myDisplayName, 1, 0);
 		assertEquals(1L, members.getTotalNumberOfResults());
 		assertEquals(myPrincipalId, members.getResults().get(0).getMember().getOwnerId());

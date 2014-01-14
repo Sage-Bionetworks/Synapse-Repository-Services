@@ -59,9 +59,9 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 
 	public static void populateCreationFields(UserInfo userInfo, AccessApproval a) {
 		Date now = new Date();
-		a.setCreatedBy(userInfo.getIndividualGroup().getId());
+		a.setCreatedBy(userInfo.getId().toString());
 		a.setCreatedOn(now);
-		a.setModifiedBy(userInfo.getIndividualGroup().getId());
+		a.setModifiedBy(userInfo.getId().toString());
 		a.setModifiedOn(now);
 	}
 
@@ -69,7 +69,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		Date now = new Date();
 		a.setCreatedBy(null); // by setting to null we are telling the DAO to use the current values
 		a.setCreatedOn(null);
-		a.setModifiedBy(userInfo.getIndividualGroup().getId());
+		a.setModifiedBy(userInfo.getId().toString());
 		a.setModifiedOn(now);
 	}
 
@@ -80,7 +80,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		
 		if (accessApproval instanceof TermsOfUseAccessApproval) {
 			// fill in the user's identity
-			accessApproval.setAccessorId(userInfo.getIndividualGroup().getId());
+			accessApproval.setAccessorId(userInfo.getId().toString());
 		}
 		
 		validateAccessApproval(userInfo, accessApproval);
@@ -119,7 +119,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		
 		if (accessApproval instanceof TermsOfUseAccessApproval) {
 			// fill in the user's identity
-			accessApproval.setAccessorId(userInfo.getIndividualGroup().getId());
+			accessApproval.setAccessorId(userInfo.getId().toString());
 		}
 		
 		validateAccessApproval(userInfo, accessApproval);
