@@ -318,7 +318,6 @@ public class ActivityManagerImplTest {
 	private void configureUser(UserInfo userInfo, String userGroupId) {
 		userInfo.setId(Long.parseLong(userGroupId));
 		userInfo.setAgreesToTermsOfUse(true);
-		userInfo.setEtag("0");
 		userInfo.setCreationDate(new Date());
 	}
 		

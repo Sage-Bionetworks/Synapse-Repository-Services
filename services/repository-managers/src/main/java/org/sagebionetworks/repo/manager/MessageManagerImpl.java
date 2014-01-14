@@ -629,7 +629,7 @@ public class MessageManagerImpl implements MessageManager {
 		UserProfile profile = this.userProfileDAO.get(recipientId.toString());
 		
 		//TODO use the Alias here
-		String alias = profile.getDisplayName();
+		String alias = profile.getUserName();
 		if (alias == null) {
 			alias = "";
 		}
@@ -664,7 +664,7 @@ public class MessageManagerImpl implements MessageManager {
 		
 		//TODO use the Alias here
 		UserProfile profile = this.userProfileDAO.get(recipientId.toString());
-		String alias = profile.getDisplayName();
+		String alias = profile.getUserName();
 		if (alias == null) {
 			alias = "";
 		}
@@ -686,7 +686,7 @@ public class MessageManagerImpl implements MessageManager {
 		
 		//TODO use the Alias here
 		UserProfile profile = this.userProfileDAO.get(sender.getId().toString());
-		String alias = profile.getDisplayName();
+		String alias = profile.getUserName();
 		if (alias == null) {
 			alias = "";
 		}
