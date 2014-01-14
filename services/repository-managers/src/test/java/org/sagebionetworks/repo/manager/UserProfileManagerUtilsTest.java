@@ -7,7 +7,6 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 import org.sagebionetworks.repo.model.SchemaCache;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
@@ -19,7 +18,6 @@ public class UserProfileManagerUtilsTest {
 	public void testIsPublic() {
 		ObjectSchema schema = SchemaCache.getSchema(UserProfile.class);
 		assertFalse(UserProfileManagerUtils.isPublic("rStudioUrl", schema));
-		assertTrue(UserProfileManagerUtils.isPublic("displayName", schema));
 	}
 	
 	@Test

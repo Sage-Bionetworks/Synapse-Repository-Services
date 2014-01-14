@@ -177,12 +177,12 @@ public class TeamServiceImpl implements TeamService {
 	private void addToMemberPrefixCache(Trie<String, Collection<TeamMember>> prefixCache, TeamMember member) {
 		// A user with no display name has no prefixes
 		//TODO replace this logic with alias logic
-		if (member.getMember().getDisplayName() == null) {
+		if (member.getMember().getUserName() == null) {
 			return;
 		}
 		
 		//get the collection of prefixes that we want to associate to this UserGroupHeader
-		List<String> prefixes = PrefixCacheHelper.getPrefixes(member.getMember().getDisplayName());
+		List<String> prefixes = PrefixCacheHelper.getPrefixes(member.getMember().getUserName());
 		
 		UserProfileManagerUtils.clearPrivateFields(null, member.getMember());
 		
@@ -207,7 +207,7 @@ public class TeamServiceImpl implements TeamService {
 	private static Comparator<TeamMember> teamMemberComparator = new Comparator<TeamMember>() {
 		@Override
 		public int compare(TeamMember o1, TeamMember o2) {
-			return o1.getMember().getDisplayName().compareTo(o2.getMember().getDisplayName());
+			return o1.getMember().getUserName().compareTo(o2.getMember().getUserName());
 		}
 	};
 	

@@ -40,7 +40,7 @@ public class TeamServiceTest {
 		team.setName("foo bar");
 		member = new TeamMember();
 		UserGroupHeader ugh = new UserGroupHeader();
-		ugh.setDisplayName("John Smith");
+		ugh.setUserName("John Smith");
 		member.setMember(ugh);
 
 		Map<Team, Collection<TeamMember>> universe = new HashMap<Team, Collection<TeamMember>>();
@@ -76,10 +76,6 @@ public class TeamServiceTest {
 		assertEquals(expected, pr.getResults());
 		// test first name match, different case
 		pr = teamService.getMembers("101", "john", 1, 0);
-		assertEquals(expected.size(), pr.getTotalNumberOfResults());
-		assertEquals(expected, pr.getResults());
-		// test first email match, different case
-		pr = teamService.getMembers("101", "rogue.USER", 1, 0);
 		assertEquals(expected.size(), pr.getTotalNumberOfResults());
 		assertEquals(expected, pr.getResults());
 		// no match

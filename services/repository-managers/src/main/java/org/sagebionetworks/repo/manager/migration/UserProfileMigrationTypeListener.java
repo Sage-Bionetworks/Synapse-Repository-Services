@@ -40,7 +40,7 @@ public class UserProfileMigrationTypeListener implements MigrationTypeListener {
 					// Set the emails
 					// We need to convert this profile
 					List<PrincipalAlias> aliases = principalAliasDAO.listPrincipalAliases(dboProfile.getOwnerId(), AliasType.USER_EMAIL);
-					if(aliases == null || aliases.isEmpty()) throw new IllegalArgumentException("An email could not be found for userId: "+dboProfile.getOwnerId()); 
+					if(aliases == null || aliases.isEmpty()) continue;
 					List<String> emails = new LinkedList<String>();
 					for(PrincipalAlias alias: aliases){
 						emails.add(alias.getAlias());

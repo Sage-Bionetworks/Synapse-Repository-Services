@@ -325,7 +325,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 
 	private void addToPrefixCache(Trie<String, Collection<UserGroupHeader>> prefixCache, UserGroupHeader header) {
 		//get the collection of prefixes that we want to associate to this UserGroupHeader
-		List<String> prefixes = PrefixCacheHelper.getPrefixes(header.getDisplayName());
+		List<String> prefixes = PrefixCacheHelper.getPrefixes(header.getUserName());
 		
 		for (String prefix : prefixes) {
 			if (!prefixCache.containsKey(prefix)) {
@@ -358,7 +358,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 
 	private UserGroupHeader convertUserGroupToHeader(PrincipalAlias alias) {
 		UserGroupHeader header = new UserGroupHeader();
-		header.setDisplayName(alias.getAlias());
+		header.setUserName(alias.getAlias());
 		header.setOwnerId(alias.getPrincipalId().toString());
 		header.setIsIndividual(false);
 		return header;
