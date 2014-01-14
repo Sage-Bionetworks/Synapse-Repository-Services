@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.error.ErrorResponse;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -70,6 +71,23 @@ public class BaseController {
 		return handleException(ex, request, false);
 	}
 
+	/**
+	 * This exception is thrown when the service is down, or in read-only mode
+	 * for non-read calls.
+	 * 
+	 * @param ex
+	 * @param request
+	 * @return an ErrorResponse object containing the exception reason or some
+	 *         other human-readable response
+	 */
+	@ExceptionHandler(ServiceUnavailableException.class)
+	@ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+	public @ResponseBody
+	ErrorResponse handleServiceUnavailableException(
+			ServiceUnavailableException ex, HttpServletRequest request) {
+		return handleException(ex, request, true);
+	}
+	
 	/**
 	 * Handle any exceptions not handled by specific handlers. Log an additional
 	 * message with higher severity because we really do want to know what sorts
