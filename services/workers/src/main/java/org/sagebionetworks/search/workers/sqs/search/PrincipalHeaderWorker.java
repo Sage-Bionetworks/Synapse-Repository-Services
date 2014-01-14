@@ -132,7 +132,7 @@ public class PrincipalHeaderWorker implements Callable<List<Message>> {
 			pType = PrincipalType.USER;
 			
 			UserProfile profile = userProfileDAO.get("" + principalId);
-			String displayName = profile.getDisplayName();
+			String displayName = profile.getUserName();
 			if (displayName != null) {
 				fragments.addAll(Lists.newArrayList(StringUtils.split(displayName)));
 			}

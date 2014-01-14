@@ -105,7 +105,6 @@ public class UserProfileManagerImplTest {
 		Long principalId = Long.parseLong(this.individualGroup.getId());
 		UserProfile profile = new UserProfile();
 		profile.setCompany("Spies 'R' Us");
-		profile.setDisplayName("James Bond");
 		profile.setEmails(new LinkedList<String>());
 		profile.getEmails().add("jamesBond@spies.org");
 		profile.getEmails().add("jamesBon2@spies.org");

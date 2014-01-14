@@ -320,7 +320,6 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	
 	private static void fillUserGroupHeaderFromUserProfileBlob(Blob upProperties, UserGroupHeader ugh) throws SQLException {
 		UserProfile up = UserProfileUtils.deserialize(upProperties.getBytes(1, (int) upProperties.length()));
-		ugh.setDisplayName(up.getDisplayName());
 		ugh.setFirstName(up.getFirstName());
 		ugh.setLastName(up.getLastName());
 		ugh.setPic(up.getPic());

@@ -69,7 +69,6 @@ public class FileUploaderTest {
 
 		usd = new UserSessionData();		
 		UserProfile profile = new UserProfile();
-		profile.setDisplayName(displayname);
 		usd.setProfile(profile);
 		
 		parentTarget = new Project();

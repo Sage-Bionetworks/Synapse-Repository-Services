@@ -77,7 +77,6 @@ public class UserProfileManagerImplUnitTest {
 		
 		userProfile = new UserProfile();
 		userProfile.setOwnerId(userInfo.getId().toString());
-		userProfile.setDisplayName("test-user display-name");
 		userProfile.setRStudioUrl("myPrivateRStudioUrl");
 		userProfile.setUserName("TEMPORARY-111");
 		userProfile.setLocation("I'm guessing this is private");
@@ -191,19 +190,7 @@ public class UserProfileManagerImplUnitTest {
 		UserProfile upClone = userProfileManager.getUserProfile(userInfo, ownerId);
 		assertEquals(userProfile, upClone);
 	}
-	
-	@Test
-	@Ignore // Private fields are removed in the service layer
-	public void testgetOthersUserProfle() throws Exception {
-		String ownerId = userInfo.getId().toString();
-		userInfo.setId(-100L);
 		
-		// There should be missing fields, intentionally blanked-out
-		UserProfile upClone = userProfileManager.getUserProfile(userInfo, ownerId);
-		assertFalse(userProfile.equals(upClone));
-		assertEquals(userProfile.getDisplayName(), upClone.getDisplayName());
-	}
-	
 	@Test
 	public void testgetOthersUserProfleByAdmin() throws Exception {
 		String ownerId = userInfo.getId().toString();
@@ -223,8 +210,6 @@ public class UserProfileManagerImplUnitTest {
 		upClone.setRStudioUrl(newURL);
 		upClone.setUserName("jamesBond");
 		upClone = userProfileManager.updateUserProfile(userInfo, upClone);
-		// This was a bogus test as it only worked because class used to return the same objects as was input!!!!
-//		assertEquals(newURL, upClone.getRStudioUrl());
 	}
 	
 	@Test(expected=UnauthorizedException.class)

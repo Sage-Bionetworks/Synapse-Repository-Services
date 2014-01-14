@@ -48,6 +48,7 @@ public class UserProfileMigrationTypeListener implements MigrationTypeListener {
 					dtoProfile.setEmails(emails);
 					// clear the old email
 					dtoProfile.setEmail(null);
+					dtoProfile.setDisplayName(null);
 					// Set the username
 					dtoProfile.setUserName(UserProfileUtillity.createTempoaryUserName(dboProfile.getOwnerId()));
 					// Convert it back

@@ -131,7 +131,6 @@ public class IT500SynapseJavaClient {
 		
 		// Update this user's profile to contain a display name
 		UserProfile profile = synapseTwo.getMyProfile();
-		profile.setDisplayName(UUID.randomUUID().toString());
 		synapseTwo.updateMyProfile(profile);
 	}
 	
@@ -383,7 +382,7 @@ public class IT500SynapseJavaClient {
 				assertTrue(ats.contains(ACCESS_TYPE.UPDATE));
 			}
 		}
-		assertTrue("didn't find "+profile.getDisplayName()+"("+profile.getOwnerId()+") but found "+foundPrincipals, foundit);
+		assertTrue("didn't find "+profile.getUserName()+"("+profile.getOwnerId()+") but found "+foundPrincipals, foundit);
 		
 		// Get the path
 		EntityPath path = synapseOne.getEntityPath(aNewDataset.getId());
@@ -677,7 +676,7 @@ public class IT500SynapseJavaClient {
 		List<String> allDisplayNames = new ArrayList<String>();
 		for (UserProfile up : users.getResults()) {
 			assertNotNull(up.getOwnerId());
-			String displayName = up.getDisplayName();
+			String displayName = up.getUserName();
 			allDisplayNames.add(displayName);
 			if (up.getOwnerId().equals(myPrincipalId)) foundSelf=true;
 		}
@@ -698,7 +697,7 @@ public class IT500SynapseJavaClient {
 		List<String> ids = new ArrayList<String>();		
 		PaginatedResults<UserProfile> users = synapseOne.getUsers(0,100);
 		for (UserProfile up : users.getResults()) {	
-			if (up.getDisplayName() != null) {
+			if (up.getUserName() != null) {
 				ids.add(up.getOwnerId());
 			}
 		}
@@ -1217,7 +1216,7 @@ public class IT500SynapseJavaClient {
 		
 		// add a member to the team
 		UserProfile otherUp = synapseTwo.getMyProfile();
-		String otherDName = otherUp.getDisplayName();
+		String otherDName = otherUp.getUserName();
 		String otherPrincipalId = otherUp.getOwnerId();
 		// the other has to ask to be added
 		MembershipRqstSubmission mrs = new MembershipRqstSubmission();
@@ -1242,7 +1241,7 @@ public class IT500SynapseJavaClient {
 		assertFalse(tms.getCanJoin());
 
 		// query for team members using name fragment.  should get team creator back
-		String myDisplayName = /*"devuser1@sagebase.org"*/myProfile.getDisplayName();
+		String myDisplayName = /*"devuser1@sagebase.org"*/myProfile.getUserName();
 		members = synapseOne.getTeamMembers(updatedTeam.getId(), myDisplayName, 1, 0);
 		assertEquals(1L, members.getTotalNumberOfResults());
 		assertEquals(myPrincipalId, members.getResults().get(0).getMember().getOwnerId());

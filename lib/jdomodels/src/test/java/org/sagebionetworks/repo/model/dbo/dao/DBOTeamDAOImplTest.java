@@ -74,7 +74,6 @@ public class DBOTeamDAOImplTest {
 		ugh.setOwnerId(up.getOwnerId());
 		ugh.setUserName(up.getUserName());
 		ugh.setIsIndividual(true);
-		ugh.setDisplayName(up.getDisplayName());
 		ugh.setFirstName(up.getFirstName());
 		ugh.setLastName(up.getLastName());
 		return ugh;

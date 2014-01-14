@@ -441,9 +441,7 @@ public class MessageManagerImpl implements MessageManager {
 								dto.getSubject(),
 								messageBody, 
 								isHtml,
-								//TODO change this to an alias
-								//TODO bootstrap a better name for the notification user
-								profile.getDisplayName());
+								profile.getUserName());
 						
 						// Should the message be marked as READ?
 						if (settings.getMarkEmailedMessagesAsRead() != null && settings.getMarkEmailedMessagesAsRead()) {

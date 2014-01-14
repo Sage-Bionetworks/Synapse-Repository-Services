@@ -39,7 +39,6 @@ public class NodeSerializerUtilTest {
 		pb.setUserGroup(ug);
 		UserProfile up = new UserProfile();
 		up.setOwnerId(ug.getId());
-		up.setDisplayName("foo bar");
 		pb.setUserProfile(up);
 		pbs.add(pb);
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();

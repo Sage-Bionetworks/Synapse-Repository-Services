@@ -63,7 +63,6 @@ public class DBOUserProfileDAOImplTest {
 		userProfile.setFirstName("foo");
 		userProfile.setLastName("bar");
 		userProfile.setRStudioUrl("http://rstudio.com");
-		userProfile.setDisplayName("foo bar");
 		userProfile.setEtag(NodeConstants.ZERO_E_TAG);
 		
 		long initialCount = userProfileDAO.getCount();
@@ -79,13 +78,11 @@ public class DBOUserProfileDAOImplTest {
 		assertEquals(userProfile, clone);
 
 		// Update it
-		clone.setDisplayName("Mr. Foo Bar");
 		UserProfile updatedProfile = userProfileDAO.update(clone);
-		assertEquals(clone.getDisplayName(), updatedProfile.getDisplayName());
 		assertTrue("etags should be different after an update", !clone.getEtag().equals(updatedProfile.getEtag()));
 
 		try {
-			clone.setDisplayName("This Should Fail");
+			clone.setFirstName("This Should Fail");
 			userProfileDAO.update(clone);
 			fail("conflicting update exception not thrown");
 		}

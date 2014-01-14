@@ -40,13 +40,11 @@ public class UserProfileManagerUtilsTest {
 		String email = "test@example.com";
 		UserInfo userInfo = new UserInfo(false);
 		UserProfile up = new UserProfile();
-		up.setDisplayName("me");
 		AttachmentData pic = new AttachmentData();
 		pic.setPreviewId("a preview ID");
 		up.setPic(pic);
 		up.setRStudioUrl("http://rstudio");
 		UserProfileManagerUtils.clearPrivateFields(userInfo, up);
-		assertEquals("me", up.getDisplayName());
 		assertEquals(pic, up.getPic());
 		assertNull(up.getRStudioUrl());
 	}
@@ -56,13 +54,11 @@ public class UserProfileManagerUtilsTest {
 		String email = "test@example.com";
 		UserInfo userInfo = new UserInfo(true);
 		UserProfile up = new UserProfile();
-		up.setDisplayName("me");
 		AttachmentData pic = new AttachmentData();
 		pic.setPreviewId("a preview ID");
 		up.setPic(pic);
 		up.setRStudioUrl("http://rstudio");
 		UserProfileManagerUtils.clearPrivateFields(userInfo, up);
-		assertEquals("me", up.getDisplayName());
 	}
 
 }

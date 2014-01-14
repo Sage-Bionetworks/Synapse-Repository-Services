@@ -90,19 +90,16 @@ public class UserProfileServiceTest {
 		for (int i = 0; i < 10; i++) {
 			UserProfile p = new UserProfile();
 			p.setOwnerId("" + i);
-			p.setDisplayName("User " + i);
 			list.add(p);
 		}
 		// extra profile with duplicated name
 		UserProfile p = new UserProfile();
 		p.setOwnerId("-100");
-		p.setDisplayName("User 0");
 		list.add(p);
 		QueryResults<UserProfile> profiles = new QueryResults<UserProfile>(list, list.size());
 		
 		extraProfile = new UserProfile();
 		extraProfile.setOwnerId(EXTRA_USER_ID.toString());
-		extraProfile.setDisplayName("This UserProfile was created after the cache was last refreshed.");
 		userInfo = new UserInfo(false, EXTRA_USER_ID);
 
 		when(mockUserProfileManager.getInRange(any(UserInfo.class), anyLong(), anyLong())).thenReturn(profiles);

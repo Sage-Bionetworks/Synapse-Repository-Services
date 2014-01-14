@@ -222,11 +222,9 @@ public class UserProfileServiceImpl implements UserProfileService {
 		this.logger.info("Loaded " + userProfiles.size() + " user profiles.");
 		UserGroupHeader header;
 		for (UserProfile profile : userProfiles) {
-			if (profile.getDisplayName() != null) {
-				UserProfileManagerUtils.clearPrivateFields(null, profile);
-				header = convertUserProfileToHeader(profile);
-				addToIdCache(tempIdCache, header);
-			}
+			UserProfileManagerUtils.clearPrivateFields(null, profile);
+			header = convertUserProfileToHeader(profile);
+			addToIdCache(tempIdCache, header);
 		}
 		// List all team names
 		List<PrincipalAlias> teamNames = principalAliasDAO.listPrincipalAliases(AliasType.TEAM_NAME);
@@ -349,7 +347,6 @@ public class UserProfileServiceImpl implements UserProfileService {
 
 	private UserGroupHeader convertUserProfileToHeader(UserProfile profile) {
 		UserGroupHeader header = new UserGroupHeader();
-		header.setDisplayName(profile.getDisplayName());
 		header.setFirstName(profile.getFirstName());
 		header.setLastName(profile.getLastName());
 		header.setOwnerId(profile.getOwnerId());

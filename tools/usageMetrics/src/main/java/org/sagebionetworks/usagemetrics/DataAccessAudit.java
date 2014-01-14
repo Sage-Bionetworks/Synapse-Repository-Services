@@ -100,7 +100,7 @@ public class DataAccessAudit {
 				try {
 					UserProfile userProfile = synapse.getUserProfile(access
 							.getPrincipalId().toString());
-					profileName = userProfile.getDisplayName();
+					profileName = userProfile.getUserName();
 					email = idToUser.get(userProfile.getOwnerId());
 				} catch (SynapseNotFoundException e) {
 					profileName = access.getPrincipalId().toString();

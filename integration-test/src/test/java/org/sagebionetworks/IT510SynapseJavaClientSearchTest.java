@@ -78,7 +78,6 @@ public class IT510SynapseJavaClientSearchTest {
 		
 		// Update this user's profile to contain a display name
 		UserProfile profile = synapse.getMyProfile();
-		profile.setDisplayName(UUID.randomUUID().toString());
 		synapse.updateMyProfile(profile);
 		
 		// Setup all of the objects for this test.
