@@ -72,7 +72,7 @@ public class DBOTeamDAOImplTest {
 	private static UserGroupHeader createUserGroupHeaderFromUserProfile(UserProfile up) {
 		UserGroupHeader ugh = new UserGroupHeader();
 		ugh.setOwnerId(up.getOwnerId());
-		ugh.setEmail(up.getEmail());
+		ugh.setUserName(up.getUserName());
 		ugh.setIsIndividual(true);
 		ugh.setDisplayName(up.getDisplayName());
 		ugh.setFirstName(up.getFirstName());

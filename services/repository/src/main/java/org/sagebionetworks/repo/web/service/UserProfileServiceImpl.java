@@ -350,7 +350,6 @@ public class UserProfileServiceImpl implements UserProfileService {
 	private UserGroupHeader convertUserProfileToHeader(UserProfile profile) {
 		UserGroupHeader header = new UserGroupHeader();
 		header.setDisplayName(profile.getDisplayName());
-		header.setEmail(null);
 		header.setFirstName(profile.getFirstName());
 		header.setLastName(profile.getLastName());
 		header.setOwnerId(profile.getOwnerId());

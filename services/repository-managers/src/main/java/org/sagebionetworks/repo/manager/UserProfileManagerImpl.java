@@ -72,10 +72,6 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	private UserProfile getUserProfilePrivate(String ownerId)
 			throws NotFoundException {
 		UserProfile userProfile = userProfileDAO.get(ownerId);
-		// Lookup all of the alias used by this user.
-		List<PrincipalAlias> aliases = this.principalAliasDAO.listPrincipalAliases(Long.parseLong(ownerId));
-		// Merge the aliases with the profile
-		UserProfileUtillity.mergeProfileWithAliases(userProfile, aliases);
 		return userProfile;
 	}
 	
@@ -83,14 +79,6 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	public QueryResults<UserProfile> getInRange(UserInfo userInfo, long startIncl, long endExcl) throws DatastoreException, NotFoundException{
 		List<UserProfile> userProfiles = userProfileDAO.getInRange(startIncl, endExcl);
 		long totalNumberOfResults = userProfileDAO.getCount();
-		// Get set of principal IDs for this page
-		Set<Long> principalIds = UserProfileUtillity.getPrincipalIds(userProfiles);
-		// Now fetch all of the aliases for these users
-		List<PrincipalAlias> aliases = this.principalAliasDAO.listPrincipalAliases(principalIds);
-		// group by principalId
-		Map<Long, List<PrincipalAlias>> groupedAliases = UserProfileUtillity.groupAlieaseByPrincipal(aliases);
-		// Put the two parts together.
-		UserProfileUtillity.mergeProfileWithAliases(userProfiles, groupedAliases);
 		QueryResults<UserProfile> result = new QueryResults<UserProfile>(userProfiles, (int)totalNumberOfResults);
 		return result;
 	}

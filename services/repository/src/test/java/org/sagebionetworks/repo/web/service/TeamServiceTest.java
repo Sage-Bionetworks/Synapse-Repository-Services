@@ -40,7 +40,6 @@ public class TeamServiceTest {
 		team.setName("foo bar");
 		member = new TeamMember();
 		UserGroupHeader ugh = new UserGroupHeader();
-		ugh.setEmail("rogue.user@gmail.com");
 		ugh.setDisplayName("John Smith");
 		member.setMember(ugh);
 
@@ -86,9 +85,6 @@ public class TeamServiceTest {
 		// no match
 		pr = teamService.getMembers("101", "bas", 1, 0);
 		assertEquals(0, pr.getTotalNumberOfResults());
-		
-		// in the process of creating the cache the email addresses are obfuscated
-		assertEquals("rog...r@gmail.com", member.getMember().getEmail());
 	}
 	
 	@Test

@@ -329,12 +329,10 @@ public class UserProfileServiceTest {
 		String email = "test@example.com";
 		UserProfile userProfile = new UserProfile();
 		userProfile.setOwnerId(ownerId);
-		userProfile.setEmail(email);
 		when(mockUserManager.getUserInfo(EXTRA_USER_ID)).thenReturn(userInfo);
 		when(mockUserProfileManager.getUserProfile(userInfo, profileId)).thenReturn(userProfile);
 		
 		UserProfile someOtherUserProfile = userProfileService.getUserProfileByOwnerId(EXTRA_USER_ID, profileId);
-		assertFalse(email.equals(someOtherUserProfile.getEmail()));
 		assertNull(someOtherUserProfile.getEtag());
 	}
 
@@ -345,14 +343,12 @@ public class UserProfileServiceTest {
 		String email = "test@example.com";
 		UserProfile userProfile = new UserProfile();
 		userProfile.setOwnerId(ownerId);
-		userProfile.setEmail(email);
 
 		userInfo = new UserInfo(true, EXTRA_USER_ID);
 		when(mockUserManager.getUserInfo(EXTRA_USER_ID)).thenReturn(userInfo);
 		when(mockUserProfileManager.getUserProfile(userInfo, profileId)).thenReturn(userProfile);
 		
 		UserProfile someOtherUserProfile = userProfileService.getUserProfileByOwnerId(EXTRA_USER_ID, profileId);
-		assertEquals(email, someOtherUserProfile.getEmail());
 		assertNull(someOtherUserProfile.getEtag());
 	}
 

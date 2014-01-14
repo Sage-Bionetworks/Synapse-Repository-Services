@@ -117,4 +117,13 @@ public class UserProfileUtils {
 		return dto;
 	}
 
+	public static DBOUserProfile translateFromStack26Form(DBOUserProfile backup) {
+		UserProfile dto = convertDboToDto(backup);
+		if(dto.getEmail() != null){
+			// This is our indication that we have an old profile.
+			// We need to move the email from this field
+		}
+		return null;
+	}
+
 }

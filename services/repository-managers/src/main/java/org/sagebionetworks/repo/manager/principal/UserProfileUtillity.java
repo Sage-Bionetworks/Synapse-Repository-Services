@@ -34,8 +34,6 @@ public class UserProfileUtillity {
 		// Build up lists of emails and OpenIds found in the bound aliases.
 		List<String> newEmails = new LinkedList<String>();
 		List<String> newOpenIds = new LinkedList<String>();
-		// A single email address is deprecated.
-		profile.setEmail(null);
 		// This will be re-set below.
 		profile.setUserName(null);
 		// Set each alias

@@ -252,7 +252,7 @@ public class IT500SynapseJavaClient {
 		List<UserGroup> ugs = synapseOne.getGroups(0, 100).getResults();
 		Long publicPrincipalId = null;
 		for (UserGroup ug: ugs) {
-			if (ug.getId().equals(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId())) {
+			if (ug.getId().equals(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().toString())) {
 				publicPrincipalId = Long.parseLong(ug.getId());
 				break;
 			}
@@ -1201,7 +1201,6 @@ public class IT500SynapseJavaClient {
 		assertEquals(1L, members.getTotalNumberOfResults());
 		TeamMember tm = members.getResults().get(0);
 		assertEquals(myPrincipalId, tm.getMember().getOwnerId());
-		assertFalse("expected obfuscated email but got "+tm.getMember().getEmail(), myProfile.getEmail().equals(tm.getMember().getEmail())); // unequal since email is obfuscated
 		assertEquals(updatedTeam.getId(), tm.getTeamId());
 		assertTrue(tm.getIsAdmin());
 		

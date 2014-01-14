@@ -79,7 +79,6 @@ public class UserProfileManagerImplUnitTest {
 		userProfile.setOwnerId(userInfo.getId().toString());
 		userProfile.setDisplayName("test-user display-name");
 		userProfile.setRStudioUrl("myPrivateRStudioUrl");
-		userProfile.setEmail(null);
 		userProfile.setUserName("TEMPORARY-111");
 		userProfile.setLocation("I'm guessing this is private");
 		userProfile.setEmails(new LinkedList<String>());

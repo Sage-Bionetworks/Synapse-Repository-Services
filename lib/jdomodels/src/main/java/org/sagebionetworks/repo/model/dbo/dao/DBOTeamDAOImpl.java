@@ -324,7 +324,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		ugh.setFirstName(up.getFirstName());
 		ugh.setLastName(up.getLastName());
 		ugh.setPic(up.getPic());
-		ugh.setEmail(up.getEmail());		
+		ugh.setUserName(up.getUserName());
 	}
 	
 	public static class TeamMemberId {
