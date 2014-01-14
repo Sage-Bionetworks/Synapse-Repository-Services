@@ -53,7 +53,7 @@
 		"displayName": {
 			"type": "string",
 			"title": "Display Name",
-			"description": "This is deprecated and will always be null",
+			"description": "This is deprecated and will always be null"
 		},
 		"pic": {
 			"type": "object",
