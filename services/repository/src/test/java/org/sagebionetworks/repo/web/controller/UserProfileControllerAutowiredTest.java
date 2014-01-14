@@ -120,7 +120,7 @@ public class UserProfileControllerAutowiredTest {
 		// Should find AUTHENTICATED_USERS group in results.
 		Set<String> names = new HashSet<String>();		
 		for (UserGroupHeader ugh : children) {
-			names.add(ugh.getDisplayName());
+			names.add(ugh.getUserName());
 		}
 		assertTrue("Expected 'AUTHENTICATED_USERS' group, but was not found.", names.contains("AUTHENTICATED_USERS"));
 	}
@@ -141,8 +141,8 @@ public class UserProfileControllerAutowiredTest {
 		
 		// Verify prefix filtering.
 		for (UserGroupHeader ugh : children) {
-			if (!ugh.getDisplayName().toLowerCase().startsWith(prefix.toLowerCase()))
-				fail("Invalid user/group returned: '" + ugh.getDisplayName() + "' does not match prefix '" + prefix +"'.");
+			if (!ugh.getUserName().toLowerCase().startsWith(prefix.toLowerCase()))
+				fail("Invalid user/group returned: '" + ugh.getUserName() + "' does not match prefix '" + prefix +"'.");
 		}
 		
 	}

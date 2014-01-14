@@ -40,7 +40,7 @@ public class PrefixCacheHelper {
 	private static Comparator<UserGroupHeader> userGroupHeaderComparator = new Comparator<UserGroupHeader>() {
 		@Override
 		public int compare(UserGroupHeader o1, UserGroupHeader o2) {
-			return o1.getDisplayName().compareTo(o2.getDisplayName());
+			return o1.getUserName().compareTo(o2.getUserName());
 		}
 	};
 	

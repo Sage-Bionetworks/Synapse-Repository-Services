@@ -188,7 +188,7 @@ public class UserProfileServiceTest {
 
 		Set<String> names = new HashSet<String>();		
 		for (UserGroupHeader ugh : children) {
-			names.add(ugh.getDisplayName());
+			names.add(ugh.getUserName());
 		}
 		// spot check: should find first 15 alphabetical names
 		assertTrue("Expected 'Group 5', but was not found.", names.contains("Group 5"));
@@ -212,7 +212,7 @@ public class UserProfileServiceTest {
 
 		Set<String> names = new HashSet<String>();		
 		for (UserGroupHeader ugh : children) {
-			names.add(ugh.getDisplayName());
+			names.add(ugh.getUserName());
 		}
 		// check: should find all 10 UserGroups and no UserProfiles
 		for (int i = 0; i < 10; i++) {
@@ -236,7 +236,7 @@ public class UserProfileServiceTest {
 
 		Set<String> names = new HashSet<String>();		
 		for (UserGroupHeader ugh : children) {
-			names.add(ugh.getDisplayName());
+			names.add(ugh.getUserName());
 		}
 		// check: should find all 10 UserGroups and no UserProfiles
 		for (int i = 0; i < 10; i++) {
@@ -261,7 +261,7 @@ public class UserProfileServiceTest {
 
 		Set<String> ids = new HashSet<String>();
 		for (UserGroupHeader ugh : children) {
-			assertEquals("Invalid header returned", "User 0", ugh.getDisplayName());
+			assertEquals("Invalid header returned", "User 0", ugh.getUserName());
 			ids.add(ugh.getOwnerId());
 		}
 		assertTrue("Expected principal was not returned", ids.contains("p0"));

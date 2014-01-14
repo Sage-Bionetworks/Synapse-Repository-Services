@@ -53,13 +53,7 @@
 		"displayName": {
 			"type": "string",
 			"title": "Display Name",
-			"description": "Display Name, typically the first name followed by the last name",
-			"links": [
-				{
-					"rel": "describedby",
-					"href": "http://synapse.sagebase.org/access/public"
-				}
-			]
+			"description": "This is deprecated and will always be null",
 		},
 		"pic": {
 			"type": "object",
