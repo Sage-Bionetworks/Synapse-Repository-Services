@@ -22,6 +22,7 @@ import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.client.exceptions.SynapseUserException;
+import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
 
@@ -34,6 +35,7 @@ public class IT990AuthenticationController {
 	 * Signs in with username + password, has signed the ToU
 	 */
 	private static SynapseClient synapse;
+	private static String email;
 	private static String username;
 	private static final String PASSWORD = "password";
 	
@@ -46,8 +48,13 @@ public class IT990AuthenticationController {
 		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
 		
 		// Don't use the SynapseClientHelper here, since we need something different
-		username = UUID.randomUUID().toString() + "@sagebase.org";
-		userToDelete = adminSynapse.createUser(username, PASSWORD, null, null);
+		email = UUID.randomUUID().toString() + "@sagebase.org";
+		username = UUID.randomUUID().toString();
+		NewIntegrationTestUser nu = new NewIntegrationTestUser();
+		nu.setEmail(email);
+		nu.setUsername(username);
+		nu.setPassword(PASSWORD);
+		userToDelete = adminSynapse.createUser(nu);
 		
 		// Construct the client, but do nothing else
 		synapse = new SynapseClientImpl();
@@ -116,7 +123,7 @@ public class IT990AuthenticationController {
 	@Test
 	public void testCreateExistingUser() throws Exception {
 		NewUser user = new NewUser();
-		user.setEmail(username);
+		user.setEmail(email);
 		user.setUserName(UUID.randomUUID().toString());
 		user.setFirstName("Foo");
 		user.setLastName("Bar");
@@ -188,7 +195,7 @@ public class IT990AuthenticationController {
 	@Test
 	public void testSendResetPasswordEmail() throws Exception {
 		// Note: non-production stacks do not send emails, but instead print a log message
-		synapse.sendPasswordResetEmail(username);
+		synapse.sendPasswordResetEmail(email);
 	}
 	
 	

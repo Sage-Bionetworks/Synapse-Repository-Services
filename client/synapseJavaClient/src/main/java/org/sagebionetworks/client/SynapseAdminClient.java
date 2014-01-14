@@ -134,13 +134,6 @@ public interface SynapseAdminClient extends SynapseClient {
 	 */
 	public long createUser(NewIntegrationTestUser user) throws SynapseException, JSONObjectAdapterException;
 	
-	/**
-	 * Creates a user with the specified state
-	 * All arguments other than username may be null
-	 * 
-	 * @return The ID of the user
-	 */
-	public long createUser(String username, String password, UserProfile profile, Session session) throws SynapseException, JSONObjectAdapterException;
 	
 	/**
 	 * Deletes a user by ID

@@ -206,8 +206,8 @@ public class AdministrationServiceImpl implements AdministrationService  {
 		}
 		
 		NewUser nu = new NewUser();
-		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
-		nu.setUserName(UUID.randomUUID().toString());
+		nu.setEmail(userSpecs.getEmail());
+		nu.setUserName(userSpecs.getUsername());
 		UserInfo user = userManager.createUser(userInfo, nu, cred);
 		
 		EntityId id = new EntityId();

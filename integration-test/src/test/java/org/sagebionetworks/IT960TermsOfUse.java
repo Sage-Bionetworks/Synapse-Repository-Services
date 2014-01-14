@@ -50,13 +50,7 @@ public class IT960TermsOfUse {
 		project.setName("foo");
 		project = adminSynapse.createEntity(project);
 		// make the project public readable
-		Collection<UserGroup> groups = adminSynapse.getGroups(0,100).getResults();
-		String publicGroupPrincipalId = null;
-		for (UserGroup group : groups) {
-			if (group.getId().equals(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId())) 
-				publicGroupPrincipalId = group.getId();
-		}
-		assertNotNull(publicGroupPrincipalId);
+		String publicGroupPrincipalId = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().toString();
 		AccessControlList acl = adminSynapse.getACL(project.getId());
 		
 		// Now add public-readable and push it back
