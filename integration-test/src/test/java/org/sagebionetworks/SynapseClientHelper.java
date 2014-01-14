@@ -6,6 +6,7 @@ import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
@@ -35,7 +36,10 @@ public class SynapseClientHelper {
 		session.setAcceptsTermsOfUse(true);
 		session.setSessionToken(UUID.randomUUID().toString());
 		newUserClient.setSessionToken(session.getSessionToken());
-		
-		return client.createUser(UUID.randomUUID().toString() + "@sagebase.org", null, null, session);
+		NewIntegrationTestUser nu = new NewIntegrationTestUser();
+		nu.setSession(session);
+		nu.setEmail(UUID.randomUUID().toString() + "@sagebase.org");
+		nu.setUsername(UUID.randomUUID().toString());
+		return client.createUser(nu);
 	}
 }

@@ -303,6 +303,8 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 
 	@Override
 	public long createUser(NewIntegrationTestUser user) throws SynapseException, JSONObjectAdapterException {
+		if(user.getEmail() == null) throw new IllegalArgumentException("New users must have an email");
+		if(user.getUsername() == null) throw new IllegalArgumentException("New users must have a username");
 		JSONObject json = getSharedClientConnection().postJson(repoEndpoint, ADMIN_USER,
 				EntityFactory.createJSONStringForEntity(user), getUserAgent());
 		
@@ -310,17 +312,6 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 		return Long.parseLong(id.getId());
 	}
 
-	@Override
-	public long createUser(String username, String password,
-			UserProfile profile, Session session) throws SynapseException, JSONObjectAdapterException {
-		NewIntegrationTestUser user = new NewIntegrationTestUser();
-		user.setUsername(username);
-		user.setPassword(password);
-		user.setProfile(profile);
-		user.setSession(session);
-		
-		return createUser(user);
-	}
 
 	@Override
 	public void deleteUser(Long id) throws SynapseException, JSONObjectAdapterException {

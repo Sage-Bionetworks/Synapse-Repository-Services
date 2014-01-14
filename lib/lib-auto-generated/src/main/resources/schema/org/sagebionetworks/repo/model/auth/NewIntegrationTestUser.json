@@ -4,8 +4,12 @@
 	"properties": {
 		"username": {
 			"type": "string",
+			"description": "User's unique name"
+		},
+		"email": {
+			"type": "string",
 			"description": "User's email"
-		}, 
+		},
 		"password": {
 			"type": "string",
 			"description": "User's password"
