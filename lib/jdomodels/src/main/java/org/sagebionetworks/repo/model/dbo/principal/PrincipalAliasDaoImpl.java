@@ -236,7 +236,7 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 				// This is a group
 				// Group name
 				BootstrapGroup group = (BootstrapGroup) abs;
-				bootstrapAlias(group.getGroupAlias(), AliasType.USER_EMAIL, abs.getId());
+				bootstrapAlias(group.getGroupAlias(), AliasType.TEAM_NAME, abs.getId());
 			}
 		}
 	}
