@@ -217,7 +217,7 @@ public class PrincipalAliasDaoImplTest {
 		assertEquals(userName, list.get(0));
 		
 		// Test listing all by type
-		list = principalAliasDao.listPrincipalAliases(AliasType.USER_NAME);
+		list = principalAliasDao.listPrincipalAliases(AliasType.USER_EMAIL);
 		assertTrue(stratingCount < list.size());
 	}
 	
@@ -374,11 +374,16 @@ public class PrincipalAliasDaoImplTest {
 		for(BootstrapPrincipal bp: this.userGroupDao.getBootstrapPrincipals()){
 			if(bp instanceof BootstrapUser){
 				BootstrapUser user= (BootstrapUser) bp;
-				assertNotNull("Bootstrap users must have an email",this.principalAliasDao.findPrincipalWithAlias(user.getEmail()));
-				assertNotNull("Bootstrap users must have a username",this.principalAliasDao.findPrincipalWithAlias(user.getUserName()));
+				PrincipalAlias alias = this.principalAliasDao.findPrincipalWithAlias(user.getEmail().getAliasName());
+				assertNotNull("Bootstrap users must have an email",alias);
+				assertEquals("We must keep the ID of bootstrapped aliases",user.getEmail().getAliasId(), alias.getAliasId());
+				alias = this.principalAliasDao.findPrincipalWithAlias(user.getUserName().getAliasName());
+				assertEquals("We must keep the ID of bootstrapped aliases",user.getUserName().getAliasId(), alias.getAliasId());
 			}else{
 				BootstrapGroup group = (BootstrapGroup) bp;
-				assertNotNull("Bootstrap groups must have team names", this.principalAliasDao.findPrincipalWithAlias(group.getGroupName()));
+				PrincipalAlias alias = this.principalAliasDao.findPrincipalWithAlias(group.getGroupAlias().getAliasName());
+				assertNotNull("Bootstrap groups must have team names", alias);
+				assertEquals("We must keep the ID of bootstrapped aliases",group.getGroupAlias().getAliasId(), alias.getAliasId());
 			}
 		}
 	}

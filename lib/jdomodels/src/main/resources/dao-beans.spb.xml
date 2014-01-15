@@ -54,29 +54,69 @@
 	<util:list id="bootstrapPrincipals">
 		<bean class="org.sagebionetworks.repo.model.principal.BootstrapUser">
 			<property name="id" value="1" />
-			<property name="email" value="migrationAdmin@sagebase.org" />
-			<property name="userName" value="migrationAdmin" />
+			<property name="email">
+			   	<bean class="org.sagebionetworks.repo.model.principal.BootstrapAlias">
+			   		<property name="aliasName" value="migrationAdmin@sagebase.org" />
+			   		<property name="aliasId" value="1" />
+			   	</bean>
+			</property>
+			<property name="userName">
+			   	<bean class="org.sagebionetworks.repo.model.principal.BootstrapAlias">
+			   		<property name="aliasName" value="migrationAdmin" />
+			   		<property name="aliasId" value="11866" />
+			   	</bean>
+			</property>
 		</bean>
 		<bean class="org.sagebionetworks.repo.model.principal.BootstrapGroup">
 			<property name="id" value="2" />
-			<property name="groupName" value="Administrators" />
+			<property name="groupAlias">
+			   	<bean class="org.sagebionetworks.repo.model.principal.BootstrapAlias">
+			   		<property name="aliasName" value="Administrators" />
+			   		<property name="aliasId" value="2" />
+			   	</bean>
+			</property>
 		</bean>
 		<bean class="org.sagebionetworks.repo.model.principal.BootstrapGroup">
 			<property name="id" value="273948" />
-			<property name="groupName" value="AUTHENTICATED_USERS" />
+			<property name="groupAlias">
+			   	<bean class="org.sagebionetworks.repo.model.principal.BootstrapAlias">
+			   		<property name="aliasName" value="AUTHENTICATED_USERS" />
+			   		<property name="aliasId" value="3" />
+			   	</bean>
+			</property>			
 		</bean>
 		<bean class="org.sagebionetworks.repo.model.principal.BootstrapGroup">
 			<property name="id" value="273949" />
-			<property name="groupName" value="PUBLIC" />
+			<property name="groupAlias">
+			   	<bean class="org.sagebionetworks.repo.model.principal.BootstrapAlias">
+			   		<property name="aliasName" value="PUBLIC" />
+			   		<property name="aliasId" value="4" />
+			   	</bean>
+			</property>				
 		</bean>
 		<bean class="org.sagebionetworks.repo.model.principal.BootstrapUser">
 			<property name="id" value="273950" />
-			<property name="email" value="anonymous@sagebase.org" />
-			<property name="userName" value="anonymous" />
+			<property name="email">
+			   	<bean class="org.sagebionetworks.repo.model.principal.BootstrapAlias">
+			   		<property name="aliasName" value="anonymous@sagebase.org" />
+			   		<property name="aliasId" value="5" />
+			   	</bean>
+			</property>
+			<property name="userName">
+			   	<bean class="org.sagebionetworks.repo.model.principal.BootstrapAlias">
+			   		<property name="aliasName" value="anonymous" />
+			   		<property name="aliasId" value="11867" />
+			   	</bean>
+			</property>			
 		</bean>
 		<bean class="org.sagebionetworks.repo.model.principal.BootstrapGroup">
 			<property name="id" value="464532" />
-			<property name="groupName" value="Synpase ACT Team" /> <!-- This name is was already misspelled -->
+			<property name="groupAlias">
+			   	<bean class="org.sagebionetworks.repo.model.principal.BootstrapAlias">
+			   		<property name="aliasName" value="Synpase ACT Team" /><!-- This name is was already misspelled -->
+			   		<property name="aliasId" value="4572" />
+			   	</bean>
+			</property>				
 		</bean>		
 	</util:list>
 

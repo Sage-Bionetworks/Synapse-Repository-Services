@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.principal.AliasType;
+import org.sagebionetworks.repo.model.principal.BootstrapAlias;
 import org.sagebionetworks.repo.model.principal.BootstrapGroup;
 import org.sagebionetworks.repo.model.principal.BootstrapPrincipal;
 import org.sagebionetworks.repo.model.principal.BootstrapUser;
@@ -226,42 +227,37 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 			if (abs.getId() == null) throw new IllegalArgumentException("Bootstrap users must have an id");
 			if (abs instanceof BootstrapUser) {
 				// Add the username and email
-				try {
-					// email
-					BootstrapUser user = (BootstrapUser) abs;
-					PrincipalAlias alias = new PrincipalAlias();
-					alias.setAlias(user.getEmail());
-					alias.setIsValidated(true);
-					alias.setPrincipalId(abs.getId());
-					alias.setType(AliasType.USER_EMAIL);
-					this.bindAliasToPrincipal(alias);
-					// username
-					alias = new PrincipalAlias();
-					alias.setAlias(user.getUserName());
-					alias.setIsValidated(true);
-					alias.setPrincipalId(abs.getId());
-					alias.setType(AliasType.USER_NAME);
-					this.bindAliasToPrincipal(alias);
-				} catch (NotFoundException e) {
-					throw new IllegalStateException(e);
-				}
+				BootstrapUser user = (BootstrapUser) abs;
+				// email
+				bootstrapAlias(user.getEmail(), AliasType.USER_EMAIL, abs.getId());
+				// username
+				bootstrapAlias(user.getUserName(), AliasType.USER_NAME, abs.getId());
 			}else{
 				// This is a group
-				// Add the username and email
-				try {
-					// Group name
-					BootstrapGroup group = (BootstrapGroup) abs;
-					PrincipalAlias alias = new PrincipalAlias();
-					alias.setAlias(group.getGroupName());
-					alias.setIsValidated(true);
-					alias.setPrincipalId(abs.getId());
-					alias.setType(AliasType.TEAM_NAME);
-					this.bindAliasToPrincipal(alias);
-				} catch (NotFoundException e) {
-					throw new IllegalStateException(e);
-				}
+				// Group name
+				BootstrapGroup group = (BootstrapGroup) abs;
+				bootstrapAlias(group.getGroupAlias(), AliasType.USER_EMAIL, abs.getId());
 			}
 		}
+	}
+	
+	/**
+	 * Private helper to create or update a bootstrap alias.
+	 * @param boot
+	 * @param type
+	 * @param principalId
+	 */
+	private void bootstrapAlias(BootstrapAlias boot, AliasType type, Long principalId){
+		PrincipalAlias alias = new PrincipalAlias();
+		alias.setAlias(boot.getAliasName());
+		alias.setAliasId(boot.getAliasId());
+		alias.setIsValidated(true);
+		alias.setPrincipalId(principalId);
+		alias.setType(type);
+		alias.setEtag(UUID.randomUUID().toString());
+		DBOPrincipalAlias dbo = AliasUtils.createDBOFromDTO(alias);
+		basicDao.createOrUpdate(dbo);
+		idGenerator.reserveId(boot.getAliasId(), TYPE.PRINCIPAL_ALIAS_ID);
 	}
 
 }
