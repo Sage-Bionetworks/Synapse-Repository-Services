@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.model;
 
-import java.util.Collection;
+import java.util.Set;
 
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -10,7 +10,7 @@ public interface AccessControlListDAO  {
 	 * @return true iff some group in 'groups' has explicit permission to access 'resourceId' using access type 'accessType'
 	 * @throws DatastoreException 
 	 */
-	public boolean canAccess(Collection<UserGroup> groups, String resourceId, ACCESS_TYPE accessType) throws DatastoreException;
+	public boolean canAccess(Set<Long> groups, String resourceId, ACCESS_TYPE accessType) throws DatastoreException;
 
 	/**
 	 * Create a new ACL

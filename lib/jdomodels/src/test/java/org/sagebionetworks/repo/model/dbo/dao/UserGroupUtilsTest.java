@@ -15,7 +15,6 @@ public class UserGroupUtilsTest {
 		UserGroup dto = new UserGroup();
 		// TODO set all the fields
 		dto.setId("1001");
-		dto.setName("foo@domain.org");
 		dto.setCreationDate(new Date());
 		dto.setIsIndividual(true);
 		dto.setUri("/userGroup");

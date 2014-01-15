@@ -11,7 +11,6 @@ import static org.junit.Assert.fail;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
@@ -19,13 +18,15 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
-import org.sagebionetworks.repo.model.UserGroupInt;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
+import org.sagebionetworks.repo.model.principal.BootstrapPrincipal;
+import org.sagebionetworks.repo.model.principal.BootstrapUser;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.PBKDF2Utils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,34 +51,32 @@ public class DBOAuthenticationDAOImplTest {
 		
 	private List<String> groupsToDelete;
 	
-	private static final String GROUP_NAME = "auth-test-group";
+	private Long userId;
 	private DBOCredential secretRow;
 	private static String userEtag;
 
+	
 	@Before
 	public void setUp() throws Exception {
 		groupsToDelete = new ArrayList<String>();
 		
 		// Initialize a UserGroup
-		UserGroup ug = userGroupDAO.findGroup(GROUP_NAME, true);
-		if (ug == null) {
-			ug = new UserGroup();
-			ug.setName(GROUP_NAME);
-			ug.setIsIndividual(true);
-			ug.setId(userGroupDAO.create(ug));
-		}
-		groupsToDelete.add(ug.getId());
-		Long principalId = Long.parseLong(ug.getId());
-		userEtag = userGroupDAO.getEtagForUpdate(principalId.toString());
+		UserGroup ug = new UserGroup();
+		ug.setIsIndividual(true);
+		userId = userGroupDAO.create(ug);
+	
+		groupsToDelete.add(userId.toString());
+		userEtag = userGroupDAO.getEtagForUpdate(userId.toString());
 
-		// Make a row of Credentials but apply it yet
+		// Make a row of Credentials
 		secretRow = new DBOCredential();
-		secretRow.setPrincipalId(principalId);
+		secretRow.setPrincipalId(userId);
 		secretRow.setValidatedOn(new Date());
 		secretRow.setSessionToken("Hsssssss...");
 		secretRow.setPassHash("{PKCS5S2}1234567890abcdefghijklmnopqrstuvwxyz");
 		secretRow.setSecretKey("ABCDEFGHIJKLMNOPQRSTUVWXYZ");
 		secretRow.setAgreesToTermsOfUse(true);
+		secretRow = basicDAO.createNew(secretRow);
 	}
 
 	@After
@@ -88,36 +87,32 @@ public class DBOAuthenticationDAOImplTest {
 	}
 	
 	@Test
-	public void testCheckEmailAndPassword() throws Exception {
-		basicDAO.update(secretRow);
-		
+	public void testCheckUserCredentials() throws Exception {
 		// Valid combination
-		Long principalId = authDAO.checkEmailAndPassword(GROUP_NAME, secretRow.getPassHash());
+		Long principalId = authDAO.checkUserCredentials(userId, secretRow.getPassHash());
 		assertEquals(secretRow.getPrincipalId(), principalId);
 		
 		// Invalid combinations
 		try {
-			authDAO.checkEmailAndPassword(GROUP_NAME, "Blargle");
+			authDAO.checkUserCredentials(userId, "Blargle");
 			fail("That combination should not have succeeded");
 		} catch (UnauthorizedException e) { }
 		
 		try {
-			authDAO.checkEmailAndPassword("Blargle", secretRow.getPassHash());
+			authDAO.checkUserCredentials(-99, secretRow.getPassHash());
 			fail("That combination should not have succeeded");
 		} catch (UnauthorizedException e) { }
 		
 		try {
-			authDAO.checkEmailAndPassword("Blargle", "Blargle");
+			authDAO.checkUserCredentials(-100, "Blargle");
 			fail("That combination should not have succeeded");
 		} catch (UnauthorizedException e) { }
 	}
 	
 	@Test
 	public void testSessionTokenCRUD() throws Exception {
-		basicDAO.update(secretRow);
-		
 		// Get by username
-		Session session = authDAO.getSessionTokenIfValid(GROUP_NAME);
+		Session session = authDAO.getSessionTokenIfValid(userId);
 		assertEquals(secretRow.getSessionToken(), session.getSessionToken());
 		assertEquals(secretRow.getAgreesToTermsOfUse(), session.getAcceptsTermsOfUse());
 		
@@ -131,7 +126,7 @@ public class DBOAuthenticationDAOImplTest {
 		
 		// Delete
 		authDAO.deleteSessionToken(secretRow.getSessionToken());
-		session = authDAO.getSessionTokenIfValid(GROUP_NAME);
+		session = authDAO.getSessionTokenIfValid(userId);
 		assertNull(session.getSessionToken());
 		assertEquals(secretRow.getAgreesToTermsOfUse(), session.getAcceptsTermsOfUse());
 		
@@ -141,8 +136,8 @@ public class DBOAuthenticationDAOImplTest {
 		
 		// Change to a string
 		String foobarSessionToken = "foobar";
-		authDAO.changeSessionToken(secretRow.getPrincipalId().toString(), foobarSessionToken);
-		session = authDAO.getSessionTokenIfValid(GROUP_NAME);
+		authDAO.changeSessionToken(secretRow.getPrincipalId(), foobarSessionToken);
+		session = authDAO.getSessionTokenIfValid(userId);
 		assertEquals(foobarSessionToken, session.getSessionToken());
 		
 		// Verify that the parent group's etag has changed
@@ -151,8 +146,8 @@ public class DBOAuthenticationDAOImplTest {
 		assertTrue(!userEtag.equals(changedEtag));
 		
 		// Change to a UUID
-		authDAO.changeSessionToken(secretRow.getPrincipalId().toString(), null);
-		session = authDAO.getSessionTokenIfValid(GROUP_NAME);
+		authDAO.changeSessionToken(secretRow.getPrincipalId(), null);
+		session = authDAO.getSessionTokenIfValid(userId);
 		assertFalse(foobarSessionToken.equals(session.getSessionToken()));
 		assertFalse(secretRow.getSessionToken().equals(session.getSessionToken()));
 		assertEquals(secretRow.getAgreesToTermsOfUse(), session.getAcceptsTermsOfUse());
@@ -168,7 +163,7 @@ public class DBOAuthenticationDAOImplTest {
 		secretRow.setAgreesToTermsOfUse(false);
 		basicDAO.update(secretRow);
 		
-		Session session = authDAO.getSessionTokenIfValid(GROUP_NAME);
+		Session session = authDAO.getSessionTokenIfValid(userId);
 		assertNotNull(session);
 		
 		Long id = authDAO.getPrincipalIfValid(secretRow.getSessionToken());
@@ -183,44 +178,42 @@ public class DBOAuthenticationDAOImplTest {
 		basicDAO.update(secretRow);
 
 		// Still valid
-		Session session = authDAO.getSessionTokenIfValid(GROUP_NAME, now);
+		Session session = authDAO.getSessionTokenIfValid(userId, now);
 		assertNotNull(session);
 		assertEquals(secretRow.getSessionToken(), session.getSessionToken());
 		
 		// Right on the dot!  Too bad, that's invalid :P
 		now.setTime(now.getTime() + 1000);
-		session = authDAO.getSessionTokenIfValid(GROUP_NAME, now);
+		session = authDAO.getSessionTokenIfValid(userId, now);
 		assertNull(session);
 		
 		// Session should no longer be valid
 		now.setTime(now.getTime() + 1000);
-		session = authDAO.getSessionTokenIfValid(GROUP_NAME, now);
+		session = authDAO.getSessionTokenIfValid(userId, now);
 		assertNull(session);
 
 		// Session is valid again
-		authDAO.revalidateSessionToken(secretRow.getPrincipalId().toString());
-		session = authDAO.getSessionTokenIfValid(GROUP_NAME);
+		authDAO.revalidateSessionToken(secretRow.getPrincipalId());
+		session = authDAO.getSessionTokenIfValid(userId);
 		assertEquals(secretRow.getSessionToken(), session.getSessionToken());
 	}
 	
 	@Test(expected=UnauthorizedException.class)
 	public void testChangePassword() throws Exception {
 		// The original credentials should authenticate correctly
-		basicDAO.update(secretRow);
-		Long principalId = authDAO.checkEmailAndPassword(GROUP_NAME, secretRow.getPassHash());
+		Long principalId = authDAO.checkUserCredentials(userId, secretRow.getPassHash());
 		assertEquals(secretRow.getPrincipalId(), principalId);
 		
 		// Change the password and try to authenticate again
-		authDAO.changePassword(secretRow.getPrincipalId().toString(), "Bibbity Boppity BOO!");
+		authDAO.changePassword(secretRow.getPrincipalId(), "Bibbity Boppity BOO!");
 		
 		// This time it should fail
-		authDAO.checkEmailAndPassword(GROUP_NAME, secretRow.getPassHash());
+		authDAO.checkUserCredentials(userId, secretRow.getPassHash());
 	}
 	
 	@Test
 	public void testSecretKey() throws Exception {
-		String userId = secretRow.getPrincipalId().toString();
-		basicDAO.update(secretRow);
+		Long userId = secretRow.getPrincipalId();
 		
 		// Getter should work
 		assertEquals(secretRow.getSecretKey(), authDAO.getSecretKey(userId));
@@ -230,41 +223,39 @@ public class DBOAuthenticationDAOImplTest {
 		assertFalse(secretRow.getSecretKey().equals(authDAO.getSecretKey(userId)));
 		
 		// Verify that the parent group's etag has changed
-		String changedEtag = userGroupDAO.getEtagForUpdate(userId);
+		String changedEtag = userGroupDAO.getEtagForUpdate(userId.toString());
 		assertTrue(!userEtag.equals(changedEtag));
 	}
 	
 	@Test
 	public void testGetPasswordSalt() throws Exception {
-		basicDAO.update(secretRow);
 		String passHash = PBKDF2Utils.hashPassword("password", null);
 		byte[] salt = PBKDF2Utils.extractSalt(passHash);
 		
 		// Change the password to a valid one
-		authDAO.changePassword(secretRow.getPrincipalId().toString(), passHash);
+		authDAO.changePassword(secretRow.getPrincipalId(), passHash);
 		
 		// Compare the salts
-		byte[] passedSalt = authDAO.getPasswordSalt(GROUP_NAME);
+		byte[] passedSalt = authDAO.getPasswordSalt(userId);
 		assertArrayEquals(salt, passedSalt);
 	}
 	
 	@Test(expected=NotFoundException.class)
 	public void testGetPasswordSalt_InvalidUser() throws Exception {
-		authDAO.getPasswordSalt("Blarg" + UUID.randomUUID());
+		authDAO.getPasswordSalt(-99);
 	}
 	
 	@Test
 	public void testSetToU() throws Exception {
-		basicDAO.update(secretRow);
-		String userId = secretRow.getPrincipalId().toString();
+		Long userId = secretRow.getPrincipalId();
 		
 		// Reject the terms
 		authDAO.setTermsOfUseAcceptance(userId, false);
 		assertFalse(authDAO.hasUserAcceptedToU(userId));
-		assertNotNull(authDAO.getSessionTokenIfValid(GROUP_NAME));
+		assertNotNull(authDAO.getSessionTokenIfValid(userId));
 		
 		// Verify that the parent group's etag has changed
-		String changedEtag = userGroupDAO.getEtagForUpdate(userId);
+		String changedEtag = userGroupDAO.getEtagForUpdate("" + userId);
 		assertTrue(!userEtag.equals(changedEtag));
 		
 		// Accept the terms
@@ -273,7 +264,7 @@ public class DBOAuthenticationDAOImplTest {
 		
 		// Verify that the parent group's etag has changed
 		userEtag = changedEtag;
-		changedEtag = userGroupDAO.getEtagForUpdate(userId);
+		changedEtag = userGroupDAO.getEtagForUpdate("" + userId);
 		assertTrue(!userEtag.equals(changedEtag));
 		
 		// Pretend we haven't had a chance to see the terms yet
@@ -282,7 +273,7 @@ public class DBOAuthenticationDAOImplTest {
 		
 		// Verify that the parent group's etag has changed
 		userEtag = changedEtag;
-		changedEtag = userGroupDAO.getEtagForUpdate(userId);
+		changedEtag = userGroupDAO.getEtagForUpdate("" + userId);
 		assertTrue(!userEtag.equals(changedEtag));
 		
 		// Accept the terms again
@@ -291,42 +282,26 @@ public class DBOAuthenticationDAOImplTest {
 		
 		// Verify that the parent group's etag has changed
 		userEtag = changedEtag;
-		changedEtag = userGroupDAO.getEtagForUpdate(userId);
+		changedEtag = userGroupDAO.getEtagForUpdate("" + userId);
 		assertTrue(!userEtag.equals(changedEtag));
 	}
 	
 	@Test
 	public void testBootstrapCredentials() throws Exception {
-		if (!StackConfiguration.isProductionStack()) {
-			String testUsers[] = new String[] { 
-					StackConfiguration.getIntegrationTestUserAdminName(), 
-					StackConfiguration.getIntegrationTestRejectTermsOfUseName(), 
-					StackConfiguration.getIntegrationTestUserOneName(), 
-					StackConfiguration.getIntegrationTestUserTwoName(), 
-					StackConfiguration.getIntegrationTestUserThreeName() };
-			String testPasswords[] = new String[] { 
-					StackConfiguration.getIntegrationTestUserAdminPassword(), 
-					StackConfiguration.getIntegrationTestRejectTermsOfUsePassword(), 
-					StackConfiguration.getIntegrationTestUserOnePassword(), 
-					StackConfiguration.getIntegrationTestUserTwoPassword(), 
-					StackConfiguration.getIntegrationTestUserThreePassword() };
-			for (int i = 0; i < testUsers.length; i++) {
-				String passHash = PBKDF2Utils.hashPassword(testPasswords[i], authDAO.getPasswordSalt(testUsers[i]));
-				authDAO.checkEmailAndPassword(testUsers[i], passHash);
-			}
-		}
-		
 		// Most bootstrapped users should have signed the terms
-		List<UserGroupInt> ugs = userGroupDAO.getBootstrapUsers();
-		for (UserGroupInt ug : ugs) {
-			if (ug.getIsIndividual() 
-					&& !ug.getName().equals(StackConfiguration.getIntegrationTestRejectTermsOfUseName())
-					&& !AuthorizationUtils.isUserAnonymous(ug.getName())) {
+		List<BootstrapPrincipal> ugs = userGroupDAO.getBootstrapPrincipals();
+		for (BootstrapPrincipal agg: ugs) {
+			if (agg instanceof BootstrapUser 
+					&& !AuthorizationUtils.isUserAnonymous(agg.getId())) {
 				MapSqlParameterSource param = new MapSqlParameterSource();
-				param.addValue("principalId", ug.getId());
+				param.addValue("principalId", agg.getId());
 				DBOCredential creds = basicDAO.getObjectByPrimaryKey(DBOCredential.class, param);
 				assertTrue(creds.getAgreesToTermsOfUse());
 			}
 		}
+		
+		// Migration admin should have a specific API key
+		String secretKey = authDAO.getSecretKey(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		assertEquals(StackConfiguration.getMigrationAdminAPIKey(), secretKey);
 	}
 }

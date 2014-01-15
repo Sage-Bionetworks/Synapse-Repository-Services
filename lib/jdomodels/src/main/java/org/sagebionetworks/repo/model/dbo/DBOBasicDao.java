@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
 /**
@@ -60,7 +61,7 @@ public interface DBOBasicDao {
 	 * @throws DatastoreException
 	 */
 	public <T extends DatabaseObject<T>> boolean update(T toUpdate) throws DatastoreException;
-	
+
 	/**
 	 * Get an object using its ID.
 	 * @param <T>
@@ -72,6 +73,18 @@ public interface DBOBasicDao {
 	 */
 	public <T extends DatabaseObject<T>> T getObjectByPrimaryKey(Class<? extends T> clazz, SqlParameterSource namedParameters) throws DatastoreException, NotFoundException;
 	
+	/**
+	 * Get an object by using its ID and lock it for update
+	 * 
+	 * @param clazz
+	 * @param primaryKey
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public <T extends DatabaseObject<T>> T getObjectByPrimaryKeyWithUpdateLock(Class<? extends T> clazz, SqlParameterSource namedParameters)
+			throws DatastoreException, NotFoundException;
+
 	/**
 	 * 
 	 * @param clazz

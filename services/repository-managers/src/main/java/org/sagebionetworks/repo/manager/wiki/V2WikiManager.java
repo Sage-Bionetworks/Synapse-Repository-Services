@@ -34,6 +34,7 @@ public interface V2WikiManager {
 	/**
 	 * Get a wiki page for a given object.
 	 * @param user
+	 * @param version TODO
 	 * @param objectId
 	 * @param objectType
 	 * @param wikiId
@@ -41,7 +42,7 @@ public interface V2WikiManager {
 	 * @throws UnauthorizedException 
 	 * @throws NotFoundException 
 	 */
-	V2WikiPage getWikiPage(UserInfo user, WikiPageKey key) throws NotFoundException, UnauthorizedException;
+	V2WikiPage getWikiPage(UserInfo user, WikiPageKey key, Long version) throws NotFoundException, UnauthorizedException;
 	
 	/**
 	 * Get the root wiki page for an object.
@@ -79,12 +80,12 @@ public interface V2WikiManager {
 	 * @param objectId
 	 * @param objectType
 	 * @param version
-	 * @param current
+	 * @param wikiId
 	 * @return
 	 * @throws NotFoundException
 	 * @throws UnauthorizedException
 	 */
-	V2WikiPage restoreWikiPage(UserInfo user, String objectId, ObjectType objectType, Long version, V2WikiPage current) throws NotFoundException, UnauthorizedException;
+	V2WikiPage restoreWikiPage(UserInfo user, String objectId, ObjectType objectType, Long version, String wikiId) throws NotFoundException, UnauthorizedException;
 
 	/**
 	 * 
@@ -103,20 +104,32 @@ public interface V2WikiManager {
 	 * Get the attachment file handles for a give wiki page.
 	 * @param user
 	 * @param wikiPageKey
+	 * @param version TODO
 	 * @return
 	 * @throws NotFoundException 
 	 */
-	FileHandleResults getAttachmentFileHandles(UserInfo user, WikiPageKey wikiPageKey) throws NotFoundException;
+	FileHandleResults getAttachmentFileHandles(UserInfo user, WikiPageKey wikiPageKey, Long version) throws NotFoundException;
 	
 	/**
 	 * Get the FileHandle ID for a given WikiPage and file name.
-	 * 
 	 * @param wikiPageKey
 	 * @param fileName
+	 * @param version TODO
+	 * 
 	 * @return
 	 */
-	String getFileHandleIdForFileName(UserInfo user, WikiPageKey wikiPageKey, String fileName) throws NotFoundException, UnauthorizedException;
+	String getFileHandleIdForFileName(UserInfo user, WikiPageKey wikiPageKey, String fileName, Long version) throws NotFoundException, UnauthorizedException;
 
+	/**
+	 * Get the markdown file handle for a wiki page.
+	 * @param user
+	 * @param wikiPageKey
+	 * @return
+	 * @throws NotFoundException
+	 * @throws UnauthorizedException
+	 */
+	String getMarkdownFileHandleId(UserInfo user, WikiPageKey wikiPageKey, Long version) throws NotFoundException, UnauthorizedException;
+	
 	/**
 	 * @param user
 	 * @param ownerId

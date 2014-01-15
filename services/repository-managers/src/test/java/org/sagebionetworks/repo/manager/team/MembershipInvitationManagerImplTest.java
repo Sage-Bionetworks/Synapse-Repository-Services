@@ -61,12 +61,8 @@ public class MembershipInvitationManagerImplTest {
 				mockAuthorizationManager,
 				mockMembershipInvtnSubmissionDAO
 				);
-		userInfo = new UserInfo(false);
-		UserGroup individualGroup = new UserGroup();
-		individualGroup.setId(MEMBER_PRINCIPAL_ID);
-		userInfo.setIndividualGroup(individualGroup);
-		adminInfo = new UserInfo(true);
-		adminInfo.setIndividualGroup(individualGroup);
+		userInfo = new UserInfo(false, MEMBER_PRINCIPAL_ID);
+		adminInfo = new UserInfo(true, -1l);
 	}
 
 	

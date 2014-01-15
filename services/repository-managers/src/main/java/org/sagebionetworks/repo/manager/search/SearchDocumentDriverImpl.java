@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager.search;
 
+import java.io.File;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -15,6 +17,7 @@ import org.apache.commons.logging.LogFactory;
 import org.joda.time.DateTime;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -30,14 +33,14 @@ import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
-import org.sagebionetworks.repo.model.dao.WikiPageDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.query.jdo.NodeAliasCache;
 import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.DocumentFields;
 import org.sagebionetworks.repo.model.search.DocumentTypeNames;
-import org.sagebionetworks.repo.model.wiki.WikiHeader;
-import org.sagebionetworks.repo.model.wiki.WikiPage;
+import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
@@ -81,6 +84,8 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 
 	@Autowired
 	UserManager userManager;
+	@Autowired
+	UserProfileManager profileManager;
 
 	@Autowired
 	NodeDAO nodeDao;
@@ -89,7 +94,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	@Autowired
 	NodeInheritanceDAO nodeInheritanceDao;
 	@Autowired
-	WikiPageDao wikiPageDao;
+	V2WikiPageDao wikiPageDao;
 
 	static {
 		// These are both node primary annotations and additional annotation
@@ -127,8 +132,10 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	 * @param backup
 	 * @return
 	 * @throws NotFoundException
+	 * @throws IOException 
+	 * @throws DatastoreException 
 	 */
-	public Document formulateFromBackup(Node node) throws NotFoundException {
+	public Document formulateFromBackup(Node node) throws NotFoundException, DatastoreException, IOException {
 		if (node.getId() == null)
 			throw new IllegalArgumentException("node.id cannot be null");
 		String benefactorId = nodeInheritanceDao.getBenefactor(node.getId());
@@ -329,13 +336,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	private String getDisplayNameForPrincipalId(long principalId) {
 		String displayName = "" + principalId;
 		try {
-			displayName = userManager.getDisplayName(principalId);
-		} catch (NotFoundException ex) {
-			// this is a best-effort attempt to fill in the display name and
-			// this will happen for the 'bootstrap' user and users we may delete
-			// from our system but are still the creators/modifiers of entities
-			log.debug("Unable to get display name for principal id: "
-					+ principalId + ",", ex);
+			displayName = profileManager.getUserName(principalId);
 		} catch (Exception ex) {
 			log.warn("Unable to get display name for principal id: "
 					+ principalId + ",", ex);
@@ -411,7 +412,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 
 	@Override
 	public Document formulateSearchDocument(String nodeId)
-			throws DatastoreException, NotFoundException {
+			throws DatastoreException, NotFoundException, IOException {
 		if (nodeId == null)
 			throw new IllegalArgumentException("NodeId cannot be null");
 		Node node = nodeDao.getNode(nodeId);
@@ -440,28 +441,28 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	 * @param nodeId
 	 * @return
 	 * @throws DatastoreException
+	 * @throws IOException 
 	 */
-	public String getAllWikiPageText(String nodeId) throws DatastoreException {
+	public String getAllWikiPageText(String nodeId) throws DatastoreException, IOException {
 		// Lookup all wiki pages for this node
 		try {
-			List<WikiHeader> wikiHeaders = wikiPageDao.getHeaderTree(nodeId,
+			List<V2WikiHeader> wikiHeaders = wikiPageDao.getHeaderTree(nodeId,
 					ObjectType.ENTITY);
 			if (wikiHeaders == null)
 				return null;
 			// For each header get the wikipage
 			StringBuilder builder = new StringBuilder();
-			for (WikiHeader header : wikiHeaders) {
-				WikiPage page = wikiPageDao.get(new WikiPageKey(nodeId,
-						ObjectType.ENTITY, header.getId()));
+			for (V2WikiHeader header : wikiHeaders) {
+				WikiPageKey key = new WikiPageKey(nodeId, ObjectType.ENTITY, header.getId());
+				V2WikiPage page = wikiPageDao.get(key, null);
 				// Append the title and markdown
 				if (page.getTitle() != null) {
 					builder.append("\n");
 					builder.append(page.getTitle());
 				}
-				if (page.getMarkdown() != null) {
-					builder.append("\n");
-					builder.append(page.getMarkdown());
-				}
+				String markdownString = wikiPageDao.getMarkdown(key, null);
+				builder.append("\n");
+				builder.append(markdownString);
 			}
 			return builder.toString();
 		} catch (NotFoundException e) {

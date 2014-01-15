@@ -37,7 +37,6 @@ public class UserProfileUtilsTest {
 		dto.setFirstName("foo");
 		dto.setLastName("bar");
 		dto.setRStudioUrl("http://rstudio.com");
-		dto.setDisplayName("foo bar");
 		dto.setEtag("0");
 		dto.setCompany("my company");
 		dto.setIndustry("my industry");
@@ -70,7 +69,6 @@ public class UserProfileUtilsTest {
 		dto.setFirstName("foo");
 		dto.setLastName("bar");
 		dto.setRStudioUrl("http://rstudio.com");
-		dto.setDisplayName("foo bar");
 		dto.setEtag("0");
 		dto.setCompany("my company");
 		dto.setIndustry("my industry");
@@ -105,7 +103,6 @@ public class UserProfileUtilsTest {
 		dto.setFirstName("foo");
 		dto.setLastName("bar");
 		dto.setRStudioUrl("http://rstudio.com");
-		dto.setDisplayName("foo bar");
 		dto.setEtag("0");
 
 		String jsonString = (String) UserProfile.class.getField(JSONEntity.EFFECTIVE_SCHEMA).get(null);
@@ -173,7 +170,6 @@ public class UserProfileUtilsTest {
 		dto.setFirstName("foo");
 		dto.setLastName("bar");
 		dto.setRStudioUrl("http://rstudio.com");
-		dto.setDisplayName("foo bar");
 		dto.setEtag("0");
 		DBOUserProfile dbo = new DBOUserProfile();
 		UserProfileUtils.copyDtoToDbo(dto, dbo);

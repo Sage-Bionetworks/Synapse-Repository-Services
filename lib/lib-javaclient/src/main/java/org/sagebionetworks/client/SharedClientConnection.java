@@ -2,9 +2,7 @@ package org.sagebionetworks.client;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -25,6 +23,7 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.util.EntityUtils;
 import org.apache.logging.log4j.LogManager;
@@ -40,8 +39,9 @@ import org.sagebionetworks.client.exceptions.SynapseServiceException;
 import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.client.exceptions.SynapseUserException;
+import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.OriginatingClient;
+import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.auth.LoginCredentials;
 import org.sagebionetworks.repo.model.auth.Session;
@@ -50,6 +50,8 @@ import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.securitytools.HMACUtils;
 import org.sagebionetworks.utils.HttpClientHelperException;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
+
+import com.google.common.collect.Maps;
 
 /**
  * Low-level Java Client API for Synapse REST APIs
@@ -276,6 +278,38 @@ public class SharedClientConnection {
 	}
 	
 	/**
+	 * Put the contents of the passed byte array to the passed URL, associating the given content type
+	 * 
+	 * @param url
+	 * @param content the byte array to upload
+	 * @throws SynapseException
+	 */
+	public String putBytesToURL(URL url, byte[] content, String contentType) throws SynapseException {
+		try {
+			if (url == null)
+				throw new IllegalArgumentException("URL cannot be null");
+			if (content == null)
+				throw new IllegalArgumentException("content cannot be null");
+			HttpPut httppost = new HttpPut(url.toString());
+			ByteArrayEntity se = new ByteArrayEntity(content);
+			httppost.setHeader("content-type", contentType);
+			httppost.setEntity(se);
+			HttpResponse response = clientProvider.execute(httppost);
+			int code = response.getStatusLine().getStatusCode();
+			if (code < 200 || code > 299) {
+				throw new SynapseException("Response code: " + code + " " + response.getStatusLine().getReasonPhrase()
+						+ " for " + url);
+			}
+			return EntityUtils.toString(response.getEntity());
+		} catch (ClientProtocolException e) {
+			throw new SynapseException(e);
+		} catch (IOException e) {
+			throw new SynapseException(e);
+		}
+
+	}
+	
+	/**
 	 * Asymmetrical post where the request and response are not of the same type.
 	 * 
 	 * @param url
@@ -335,33 +369,21 @@ public class SharedClientConnection {
 	 * @throws ClientProtocolException
 	 * @throws IOException
 	 * @throws FileNotFoundException
+	 * @throws SynapseException 
 	 */
-	public File downloadFile(String endpoint, String uri, String userAgent) throws ClientProtocolException, IOException,
-			FileNotFoundException {
+	public String downloadZippedFileString(String endpoint, String uri, String userAgent) throws ClientProtocolException, IOException,
+			FileNotFoundException, SynapseException {
 		HttpGet get = new HttpGet(endpoint+uri);
 		setHeaders(get, defaultGETDELETEHeaders, userAgent);
 		// Add the header that sets the content type and the boundary
 		HttpResponse response = clientProvider.execute(get);
 		HttpEntity entity = response.getEntity();
-		InputStream input = entity.getContent();
-		File temp = File.createTempFile("downloadWikiAttachment", ".tmp");
-		FileOutputStream fos = new FileOutputStream(temp);
-		try{
-			byte[] buffer = new byte[1024]; 
-			int read = -1;
-			while((read = input.read(buffer)) > 0){
-				fos.write(buffer, 0, read);
-			}
-			return temp;
-		}finally{
-			if(fos != null){
-				fos.flush();
-				fos.close();
-			}
-			if(input != null){
-				input.close();
-			}
+		int statusCode = response.getStatusLine().getStatusCode();
+		if(statusCode != 200) {
+			String message = EntityUtils.toString(entity);
+			throw new SynapseException("Status code: " + statusCode + ", " + message);
 		}
+		return FileUtils.readCompressedStreamAsString(entity.getContent());
 	}
 
 	@Deprecated
@@ -539,8 +561,10 @@ public class SharedClientConnection {
 
 	protected JSONObject signAndDispatchSynapseRequest(String endpoint, String uri, String requestMethod,
 			String requestContent, Map<String, String> requestHeaders, String userAgent) throws SynapseException {
+		Map<String, String> parameters = Maps.newHashMap();
+		parameters.put(AuthorizationConstants.ORIGINATING_CLIENT_PARAM, DomainType.SYNAPSE.toString());
 		return signAndDispatchSynapseRequest(endpoint, uri, requestMethod, requestContent, requestHeaders, userAgent,
-				OriginatingClient.SYNAPSE.getParameterMap());
+				parameters);
 	}
 	
 	protected JSONObject signAndDispatchSynapseRequest(String endpoint, String uri, String requestMethod,

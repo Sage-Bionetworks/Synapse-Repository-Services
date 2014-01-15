@@ -25,7 +25,7 @@ public class AccessRequirementUtilTest {
 	
 	RestrictableObjectDescriptor subjectId;
 	UserInfo userInfo;
-	UserGroup userGroup;
+//	UserGroup userGroup;
 	NodeDAO mockNodeDAO;
 	AccessRequirementDAO mockAccessRequirementDAO;
 	Node testEntityNode;
@@ -33,12 +33,9 @@ public class AccessRequirementUtilTest {
 	
 	@Before
 	public void before() throws Exception{
-		userInfo = new UserInfo(false);
-		userGroup = new UserGroup();
-		userInfo.setGroups(new ArrayList<UserGroup>());
 		String currentUserPrincipalId = "1234";
-		userGroup.setId(currentUserPrincipalId);
-		userInfo.setIndividualGroup(userGroup);
+		userInfo = new UserInfo(false, currentUserPrincipalId);
+
 		mockNodeDAO = mock(NodeDAO.class);
 		mockAccessRequirementDAO = mock(AccessRequirementDAO.class);
 		subjectId = new RestrictableObjectDescriptor();

@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_AND_COMPLIANCE_TEAM_NAME;
-
 import java.util.Collection;
 import java.util.Map;
 
@@ -16,6 +14,7 @@ import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ActivityDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -96,7 +95,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	}
 
 	private static boolean isEvalOwner(UserInfo userInfo, Evaluation evaluation) {
-		return evaluation.getOwnerId().equals(userInfo.getIndividualGroup().getId());
+		return evaluation.getOwnerId().equals(userInfo.getId().toString());
 	}
 
 	@Override
@@ -120,7 +119,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		Activity act;
 		try {
 			act = activityDAO.get(activityId);
-			if(act.getCreatedBy().equals(userInfo.getIndividualGroup().getId()))
+			if(act.getCreatedBy().equals(userInfo.getId().toString()))
 				return true;
 		} catch (Exception e) {
 			return false;
@@ -154,7 +153,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		// Admins can see anything.
 		if (userInfo.isAdmin()) return true;
 		// Only the creator can see the raw file handle
-		return userInfo.getIndividualGroup().getId().equals(creator);
+		return userInfo.getId().toString().equals(creator);
 	}
 
 	@Override
@@ -190,8 +189,8 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	
 	public boolean isACTTeamMemberOrAdmin(UserInfo userInfo) throws DatastoreException, UnauthorizedException {
 		if (userInfo.isAdmin()) return true;
-		UserGroup actTeam = userGroupDAO.findGroup(ACCESS_AND_COMPLIANCE_TEAM_NAME, false);
-		return userInfo.getGroups().contains(actTeam);
+		if(userInfo.getGroups().contains(BOOTSTRAP_PRINCIPAL.ACCESS_AND_COMPLIANCE_GROUP.getPrincipalId())) return true;
+		return false;
 	}
 
 	public boolean isACTTeamMemberOrCanCreateOrEdit(UserInfo userInfo, Collection<String> entityIds) throws NotFoundException {

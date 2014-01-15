@@ -43,8 +43,7 @@ public class ColumnModelManagerTest {
 		mockColumnModelDAO = Mockito.mock(ColumnModelDAO.class);
 		mockauthorizationManager = Mockito.mock(AuthorizationManager.class);
 		columnModelManager = new ColumnModelManagerImpl();
-		user = new UserInfo(false);
-		user.setIndividualGroup(new UserGroup());
+		user = new UserInfo(false, 123L);
 		ReflectionTestUtils.setField(columnModelManager, "columnModelDao", mockColumnModelDAO);
 		ReflectionTestUtils.setField(columnModelManager, "authorizationManager", mockauthorizationManager);
 	}

@@ -21,15 +21,15 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -56,23 +56,19 @@ public class DBOAccessControlListDAOImplTest {
 	private Collection<UserGroup> groupList = new ArrayList<UserGroup>();
 	private Collection<AccessControlList> aclList = new ArrayList<AccessControlList>();
 
-	private Node node = null;
-	private UserGroup group = null;
-	private UserGroup group2 = null;
+	private Node node;
+	private UserGroup group;
+	private UserGroup group2;
 	
-	private Long createdById = null;
-	private Long modifiedById = null;
+	private Long createdById;
+	private Long modifiedById;
 	
-	/**
-	 * @throws java.lang.Exception
-	 */
 	@Before
 	public void setUp() throws Exception {
-		createdById = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId());
-		assertNotNull(createdById);
+		createdById = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+		
 		// strictly speaking it's nonsensical for a group to be a 'modifier'.  we're just using it for testing purposes
-		modifiedById = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.DEFAULT_GROUPS.AUTHENTICATED_USERS.name(), false).getId());
-		assertNotNull(modifiedById);
+		modifiedById = BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId();
 
 		// create a resource on which to apply permissions
 		node = new Node();
@@ -89,15 +85,15 @@ public class DBOAccessControlListDAOImplTest {
 		
 		// create a group to give the permissions to
 		group = new UserGroup();
-		group.setName("bar");
-		group.setId(userGroupDAO.create(group));
+		group.setIsIndividual(false);
+		group.setId(userGroupDAO.create(group).toString());
 		assertNotNull(group.getId());
 		groupList.add(group);
 		
 		// Create a second user
 		group2 = new UserGroup();
-		group2.setName("bar2");
-		group2.setId(userGroupDAO.create(group2));
+		group2.setIsIndividual(false);
+		group2.setId(userGroupDAO.create(group2).toString());
 		assertNotNull(group2.getId());
 		groupList.add(group2);
 		
@@ -138,9 +134,7 @@ public class DBOAccessControlListDAOImplTest {
 		aclList.add(acl);
 	}
 
-	/**
-	 * @throws java.lang.Exception
-	 */
+
 	@After
 	public void tearDown() throws Exception {
 		for (Node n : nodeList) {
@@ -153,13 +147,10 @@ public class DBOAccessControlListDAOImplTest {
 			userGroupDAO.delete(g.getId());
 		}
 		groupList.clear();
-		this.node=null;
-		this.group=null;
-		this.group2=null;
 	}
 
 	/**
-	 * Test method for {@link org.sagebionetworks.repo.model.jdo.JDOAccessControlListDAOImpl#getForResource(java.lang.String)}.
+	 * Test method for {@link org.sagebionetworks.repo.model.dbo.dao.DBOAccessControlListDaoImpl#getForResource(java.lang.String)}.
 	 */
 	@Test
 	public void testGetForResource() throws Exception {
@@ -183,12 +174,12 @@ public class DBOAccessControlListDAOImplTest {
 
 	
 	/**
-	 * Test method for {@link org.sagebionetworks.repo.model.jdo.JDOAccessControlListDAOImpl#canAccess(java.util.Collection, java.lang.String, org.sagebionetworks.repo.model.ACCESS_TYPE)}.
+	 * Test method for {@link org.sagebionetworks.repo.model.dbo.dao.DBOAccessControlListDaoImpl#canAccess(java.util.Collection, java.lang.String, org.sagebionetworks.repo.model.ACCESS_TYPE)}.
 	 */
 	@Test
 	public void testCanAccess() throws Exception {
-		Collection<UserGroup> gs = new ArrayList<UserGroup>();
-		gs.add(group);
+		Set<Long> gs = new HashSet<Long>();
+		gs.add(Long.parseLong(group.getId()));
 		
 		// as expressed in 'setUp', 'group' has 'READ' access to 'node'
 		assertTrue(aclDAO.canAccess(gs, node.getId(), ACCESS_TYPE.READ));
@@ -198,15 +189,14 @@ public class DBOAccessControlListDAOImplTest {
 		
 		// and no other group has been given access
 		UserGroup sham = new UserGroup();
-		sham.setName("sham");
 		sham.setId("-34876387468764"); // dummy
 		gs.clear();
-		gs.add(sham);
+		gs.add(Long.parseLong(sham.getId()));
 		assertFalse(aclDAO.canAccess(gs, node.getId(), ACCESS_TYPE.READ));
 	}
 
 	/**
-	 * Test method for {@link org.sagebionetworks.repo.model.jdo.JDOBaseDAOImpl#get(java.lang.String, Long)}.
+	 * Test method for {@link org.sagebionetworks.repo.model.dbo.dao.DBOAccessControlListDaoImpl#get(java.lang.String, Long)}.
 	 */
 	@Test
 	public void testGet() throws Exception {
@@ -233,7 +223,7 @@ public class DBOAccessControlListDAOImplTest {
 
 
 	/**
-	 * Test method for {@link org.sagebionetworks.repo.model.jdo.JDOBaseDAOImpl#update(org.sagebionetworks.repo.model.Base)}.
+	 * Test method for {@link org.sagebionetworks.repo.model.dbo.dao.DBOAccessControlListDaoImpl#update(org.sagebionetworks.repo.model.Base)}.
 	 */
 	@Test
 	public void testUpdate() throws Exception {
@@ -250,8 +240,8 @@ public class DBOAccessControlListDAOImplTest {
 		String etagBeforeUpdate = acl.getEtag();
 		aclDAO.update(acl, ObjectType.ENTITY);
 		
-		Collection<UserGroup> gs = new ArrayList<UserGroup>();
-		gs.add(group);
+		Set<Long> gs = new HashSet<Long>();
+		gs.add(Long.parseLong(group.getId()));
 		assertFalse(aclDAO.canAccess(gs, node.getId(), ACCESS_TYPE.READ));
 		assertTrue(aclDAO.canAccess(gs, node.getId(), ACCESS_TYPE.UPDATE));
 		assertTrue(aclDAO.canAccess(gs, node.getId(), ACCESS_TYPE.CREATE));
@@ -292,10 +282,10 @@ public class DBOAccessControlListDAOImplTest {
 		acl.getResourceAccess().add(ra2);
 		aclDAO.update(acl, ObjectType.ENTITY);
 		
-		Collection<UserGroup> gs = new ArrayList<UserGroup>();
-		gs.add(group);
-		Collection<UserGroup> gs2 = new ArrayList<UserGroup>();
-		gs2.add(group2);
+		Set<Long> gs = new HashSet<Long>();
+		gs.add(Long.parseLong(group.getId()));
+		Set<Long> gs2 = new HashSet<Long>();
+		gs2.add(Long.parseLong(group2.getId()));
 		assertFalse(aclDAO.canAccess(gs, node.getId(), ACCESS_TYPE.READ));
 		assertTrue(aclDAO.canAccess(gs2, node.getId(), ACCESS_TYPE.READ));
 		

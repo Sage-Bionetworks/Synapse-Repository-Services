@@ -2,13 +2,12 @@ package org.sagebionetworks.repo.manager;
 
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertNotNull;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.net.URL;
@@ -24,29 +23,28 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.migration.TestUtils;
 import org.sagebionetworks.repo.manager.team.MembershipRequestManager;
 import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.OriginatingClient;
+import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
+import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageRecipientSet;
@@ -58,6 +56,8 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import com.google.common.collect.Sets;
 
 /**
  * Tests message access requirement checking and the sending of messages
@@ -129,13 +129,25 @@ public class MessageManagerImplTest {
 	@SuppressWarnings("serial")
 	@Before
 	public void setUp() throws Exception {
-		adminUserInfo = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
+		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		cleanup = new ArrayList<String>();
 		
-		testUser = userManager.getUserInfo(AuthorizationConstants.TEST_USER_NAME);
-		otherTestUser = userManager.getUserInfo(StackConfiguration.getIntegrationTestUserOneName());
-		final String testUserId = testUser.getIndividualGroup().getId();
-		final String otherTestUserId = otherTestUser.getIndividualGroup().getId();
+		DBOCredential cred = new DBOCredential();
+		cred.setAgreesToTermsOfUse(true);
+		cred.setSecretKey("");
+		
+		// Need two users for this test
+		NewUser nu = new NewUser();
+		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
+		nu.setUserName(UUID.randomUUID().toString());
+		testUser = userManager.createUser(adminUserInfo, nu, cred);
+		nu = new NewUser();
+		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
+		nu.setUserName(UUID.randomUUID().toString());
+		otherTestUser = userManager.createUser(adminUserInfo,nu, cred);
+
+		final String testUserId = testUser.getId().toString();
+		final String otherTestUserId = otherTestUser.getId().toString();
 		
 		// Create a team
 		testTeam = new Team();
@@ -144,7 +156,7 @@ public class MessageManagerImplTest {
 		final String testTeamId = testTeam.getId();
 		
 		// This user info needs to be updated to contain the team
-		testUser = userManager.getUserInfo(AuthorizationConstants.TEST_USER_NAME);
+		testUser = userManager.getUserInfo(testUser.getId());
 		
 		// We need a file handle to satisfy a foreign key constraint
 		// But it doesn't need to point to an actual file
@@ -199,7 +211,7 @@ public class MessageManagerImplTest {
 		dto = messageManager.createMessage(userInfo, dto);
 		assertNotNull(dto.getId());
 		cleanup.add(dto.getId());
-		assertEquals(userInfo.getIndividualGroup().getId(), dto.getCreatedBy());
+		assertEquals(userInfo.getId().toString(), dto.getCreatedBy());
 		assertNotNull(dto.getCreatedOn());
 		assertNotNull(dto.getInReplyToRoot());
 		
@@ -242,12 +254,15 @@ public class MessageManagerImplTest {
 		}
 		
 		// Reset the test user's notification settings to the default
-		UserProfile profile = userProfileDAO.get(testUser.getIndividualGroup().getId());
+		UserProfile profile = userProfileDAO.get(testUser.getId().toString());
 		profile.setNotificationSettings(new Settings());
 		userProfileDAO.update(profile);
 		
 		// Restore the old fileHandleManager
 		messageManager.setFileHandleManager(fileHandleManager);
+		
+		userManager.deletePrincipal(adminUserInfo, testUser.getId());
+		userManager.deletePrincipal(adminUserInfo, otherTestUser.getId());
 	}
 	
 	@SuppressWarnings("serial")
@@ -264,7 +279,7 @@ public class MessageManagerImplTest {
 		assertEquals(otherToGroup, messageManager.getMessage(testUser, otherToGroup.getId()));
 		
 		// User should not be able to see a message that the other user sends to itself
-		MessageToUser invisible = createMessage(otherTestUser, "This is a personal reminder", new HashSet<String>() {{add(otherTestUser.getIndividualGroup().getId());}}, null);
+		MessageToUser invisible = createMessage(otherTestUser, "This is a personal reminder", new HashSet<String>() {{add(otherTestUser.getId().toString());}}, null);
 		try {
 			messageManager.getMessage(testUser, invisible.getId());
 			fail();
@@ -277,7 +292,7 @@ public class MessageManagerImplTest {
 	@Test
 	public void testForwardMessage() throws Exception {
 		// Forward a message
-		final String testUserId = testUser.getIndividualGroup().getId();
+		final String testUserId = testUser.getId().toString();
 		MessageRecipientSet recipients = new MessageRecipientSet();
 		recipients.setRecipients(new HashSet<String>() {{add(testUserId);}});
 		MessageToUser forwarded = messageManager.forwardMessage(testUser, userToOther.getId(), recipients);
@@ -415,7 +430,7 @@ public class MessageManagerImplTest {
 	public void testSendMessage_AfterJoinTeam() throws Exception {
 		// Join the team
 		MembershipRqstSubmission request = new MembershipRqstSubmission();
-		request.setUserId(otherTestUser.getIndividualGroup().getId());
+		request.setUserId(otherTestUser.getId().toString());
 		request.setTeamId(testTeam.getId());
 		membershipRequestManager.create(otherTestUser, request);
 		teamManager.addMember(testUser, testTeam.getId(), otherTestUser);
@@ -430,27 +445,18 @@ public class MessageManagerImplTest {
 		assertEquals(otherToGroup, messages.getResults().get(0).getMessage());
 	}
 	
-	@SuppressWarnings("serial")
 	@Test
 	public void testSendMessageTo_AUTH_USERS() throws Exception {
-		// Find the ID of the AUTHENTICATED_USERS group
-		String findingAuthUsers = null;
-		for (UserGroup ug : testUser.getGroups()) {
-			if (ug.getName().equals(DEFAULT_GROUPS.AUTHENTICATED_USERS.toString())) {
-				findingAuthUsers = ug.getId();
-			}
-		}
-		assertNotNull(findingAuthUsers);
-		final String authUsersId = findingAuthUsers;
-		
 		// This should fail since no one has permission to send to this public group
-		MessageToUser notAllowedToSend = createMessage(testUser, "I'm not allowed to do this", new HashSet<String>() {{add(authUsersId);}}, null);
+		MessageToUser notAllowedToSend = createMessage(testUser, "I'm not allowed to do this", 
+				Sets.newHashSet(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId().toString()), null);
 		List<String> errors = messageManager.processMessage(notAllowedToSend.getId());
 		String joinedErrors = StringUtils.join(errors, "\n");
 		assertTrue(joinedErrors.contains("may not send"));
 		
 		// But an admin can do it
-		MessageToUser spam = createMessage(adminUserInfo, "I'm a malicious admin spammer!", new HashSet<String>() {{add(authUsersId);}}, null);
+		MessageToUser spam = createMessage(adminUserInfo, "I'm a malicious admin spammer!", 
+				Sets.newHashSet(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId().toString()), null);
 		errors = messageManager.processMessage(spam.getId());
 		assertEquals(StringUtils.join(errors, "\n"), 0, errors.size());
 		
@@ -480,7 +486,7 @@ public class MessageManagerImplTest {
 			createMessage(testUser, null, tooMany, null);
 			fail();
 		} catch (IllegalArgumentException e) {
-			assertTrue(e.getMessage().contains("foreign key"));
+			assertTrue(e.getMessage().contains("not recognized"));
 		}
 		
 		for (long i = MessageManagerImpl.MAX_NUMBER_OF_RECIPIENTS; i < MessageManagerImpl.MAX_NUMBER_OF_RECIPIENTS * 2; i++) {
@@ -499,7 +505,7 @@ public class MessageManagerImplTest {
 	@SuppressWarnings("serial")
 	@Test
 	public void testSendMessageSettings() throws Exception {
-		Set<String> testUserId = new HashSet<String>() {{add(testUser.getIndividualGroup().getId());}};
+		Set<String> testUserId = new HashSet<String>() {{add(testUser.getId().toString());}};
 		
 		// With default settings, the message should appear in the user's inbox
 		MessageToUser message = createMessage(otherTestUser, "message1", testUserId, null);
@@ -508,7 +514,7 @@ public class MessageManagerImplTest {
 		assertEquals(message, inbox.getResults().get(0).getMessage());
 		
 		// Emails are sent by default
-		UserProfile profile = userProfileDAO.get(testUser.getIndividualGroup().getId());
+		UserProfile profile = userProfileDAO.get(testUser.getId().toString());
 		profile.setNotificationSettings(new Settings());
 		profile.getNotificationSettings().setMarkEmailedMessagesAsRead(true);
 		profile = userProfileDAO.update(profile);
@@ -536,39 +542,21 @@ public class MessageManagerImplTest {
 	@Test
 	public void testSendTemplateEmail() throws Exception {
 		// Send an email to the test user
-		messageManager.sendPasswordResetEmail(testUser.getIndividualGroup().getId(), OriginatingClient.BRIDGE, "Blah?");
-		verify(mockFileHandleManager, times(0)).uploadFile(anyString(), any(FileItemStream.class));
+		messageManager.sendPasswordResetEmail(testUser.getId(), DomainType.BRIDGE, "Blah?");
 		
 		// Try another variation
-		messageManager.sendPasswordResetEmail(testUser.getIndividualGroup().getId(), OriginatingClient.SYNAPSE, "Blah?");
-		verify(mockFileHandleManager, times(0)).uploadFile(anyString(), any(FileItemStream.class));
+		messageManager.sendPasswordResetEmail(testUser.getId(), DomainType.SYNAPSE, "Blah?");
 		
 		// Try the other one
-		messageManager.sendWelcomeEmail(testUser.getIndividualGroup().getId(), OriginatingClient.SYNAPSE);
-		verify(mockFileHandleManager, times(1)).uploadFile(anyString(), any(FileItemStream.class));
-		QueryResults<MessageBundle> inbox = messageManager.getInbox(testUser, 
-				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
-		MessageToUser resetEmail = inbox.getResults().get(0).getMessage();
-		cleanup.add(resetEmail.getId());
-		assertEquals("Welcome to Synapse!", resetEmail.getSubject());
+		messageManager.sendWelcomeEmail(testUser.getId(), DomainType.SYNAPSE);
 		
 		// Try the delivery failure email
 		List<String> mockErrors = new ArrayList<String>();
 		mockErrors.add(UUID.randomUUID().toString());
 		messageManager.sendDeliveryFailureEmail(userToOther.getId(), mockErrors);
-		inbox = messageManager.getInbox(testUser, 
-				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
-		MessageToUser failureEmail = inbox.getResults().get(0).getMessage();
-		cleanup.add(failureEmail.getId());
-		assertEquals("Message " + userToOther.getId() + " Delivery Failure(s)", failureEmail.getSubject());
 		
 		// Try another variation
-		messageManager.sendWelcomeEmail(testUser.getIndividualGroup().getId(), OriginatingClient.BRIDGE);
-		inbox = messageManager.getInbox(testUser, 
-				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
-		resetEmail = inbox.getResults().get(0).getMessage();
-		cleanup.add(resetEmail.getId());
-		assertEquals("Welcome to Bridge!", resetEmail.getSubject());
+		messageManager.sendWelcomeEmail(testUser.getId(), DomainType.BRIDGE);
 	}
 	
 	@Test
@@ -595,7 +583,7 @@ public class MessageManagerImplTest {
 		AccessControlList acl = entityPermissionsManager.getACL(nodeId, adminUserInfo);
 		acl.setResourceAccess(new HashSet<ResourceAccess>());
 		ResourceAccess ra = new ResourceAccess();
-		ra.setPrincipalId(Long.parseLong(otherTestUser.getIndividualGroup().getId()));
+		ra.setPrincipalId(otherTestUser.getId());
 		ra.setAccessType(new HashSet<ACCESS_TYPE>());
 		ra.getAccessType().add(ACCESS_TYPE.CHANGE_PERMISSIONS);
 		acl.getResourceAccess().add(ra);
@@ -615,7 +603,7 @@ public class MessageManagerImplTest {
 		// Have the admin give sharing permission back to the creator
 		acl = entityPermissionsManager.getACL(nodeId, adminUserInfo);
 		ra = new ResourceAccess();
-		ra.setPrincipalId(Long.parseLong(testUser.getIndividualGroup().getId()));
+		ra.setPrincipalId(testUser.getId());
 		ra.setAccessType(new HashSet<ACCESS_TYPE>());
 		ra.getAccessType().add(ACCESS_TYPE.CHANGE_PERMISSIONS);
 		acl.getResourceAccess().add(ra);
@@ -639,5 +627,19 @@ public class MessageManagerImplTest {
 		try {
 			message = messageManager.createMessageToEntityOwner(otherTestUser, nodeId, userToOther);
 		} catch (UnauthorizedException e) { }
+	}
+	
+	@Test
+	public void testCreateMessageToInvalidRecipient() throws Exception {
+		// No user has a negative ID (I hope)
+		userToOther.getRecipients().add("-1");
+		
+		try {
+			messageManager.createMessage(testUser, userToOther);
+			fail();
+		} catch (IllegalArgumentException e) {
+			// We shouldn't get a nasty DB error
+			assertFalse(e.getMessage().contains("foreign key"));
+		}
 	}
 }

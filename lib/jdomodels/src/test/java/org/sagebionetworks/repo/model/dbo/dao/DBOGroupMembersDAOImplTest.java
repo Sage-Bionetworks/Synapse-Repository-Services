@@ -14,9 +14,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.NamedIdGenerator;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -56,10 +55,10 @@ public class DBOGroupMembersDAOImplTest {
 	public void setUp() throws Exception {
 		groupsToDelete = new ArrayList<String>();
 		
-		testGroup = createTestGroup("" + UUID.randomUUID(), false);
-		testUserOne = createTestGroup("" + UUID.randomUUID(), true);
-		testUserTwo = createTestGroup("" + UUID.randomUUID(), true);
-		testUserThree = createTestGroup("" + UUID.randomUUID(), true);
+		testGroup = createTestGroup(false);
+		testUserOne = createTestGroup(true);
+		testUserTwo = createTestGroup(true);
+		testUserThree = createTestGroup(true);
 	}
 
 	@After
@@ -73,20 +72,13 @@ public class DBOGroupMembersDAOImplTest {
 		}
 	}
 	
-	private UserGroup createTestGroup(String name, boolean isIndividual) throws Exception {		
+	private UserGroup createTestGroup(boolean isIndividual) throws Exception {		
 		UserGroup group = new UserGroup();
-		group.setName(name);
 		group.setIsIndividual(isIndividual);
-		String id = null;
-		try {
-			id = userGroupDAO.create(group);
-		} catch (DatastoreException e) {
-			// Already exists
-			id = userGroupDAO.findGroup(name, false).getId();
-		}
+		String id = userGroupDAO.create(group).toString();
 		assertNotNull(id);
 		groupsToDelete.add(id);
-		return userGroupDAO.get(id);
+		return userGroupDAO.get(Long.parseLong(id));
 	}
 	
 	@Test
@@ -127,7 +119,7 @@ public class DBOGroupMembersDAOImplTest {
 		assertTrue("User three should be in the retrieved member list", newMembers.contains(testUserThree));
 		
 		// Verify that the parent group's etag has changed
-		UserGroup updatedTestGroup = userGroupDAO.get(testGroup.getId());
+		UserGroup updatedTestGroup = userGroupDAO.get(Long.parseLong(testGroup.getId()));
 		assertTrue("Etag must have changed", !testGroup.getEtag().equals(updatedTestGroup.getEtag()));
 	}
 	
@@ -168,7 +160,7 @@ public class DBOGroupMembersDAOImplTest {
 		assertEquals("Number of users should match", 3, newMembers.size());
 		
 		// Verify that the parent group's etag has changed
-		UserGroup updatedTestGroup = userGroupDAO.get(testGroup.getId());
+		UserGroup updatedTestGroup = userGroupDAO.get(Long.parseLong(testGroup.getId()));
 		assertTrue("Etag must have changed", !testGroup.getEtag().equals(updatedTestGroup.getEtag()));
 		
 		// Remove all but one of the users from the group
@@ -183,7 +175,7 @@ public class DBOGroupMembersDAOImplTest {
 		assertEquals("Last member should match the one removed from the DTO", antisocial, fewerMembers.get(0).getId());
 		
 		// Verify that the parent group's etag has changed
-		updatedTestGroup = userGroupDAO.get(testGroup.getId());
+		updatedTestGroup = userGroupDAO.get(Long.parseLong(testGroup.getId()));
 		assertTrue("Etag must have changed", !testGroup.getEtag().equals(updatedTestGroup.getEtag()));
 		
 		// Remove the last guy from the group
@@ -194,26 +186,19 @@ public class DBOGroupMembersDAOImplTest {
 		assertEquals("Number of users should match", 0, emptyGroup.size());
 		
 		// Verify that the parent group's etag has changed
-		updatedTestGroup = userGroupDAO.get(testGroup.getId());
+		updatedTestGroup = userGroupDAO.get(Long.parseLong(testGroup.getId()));
 		assertTrue("Etag must have changed", !testGroup.getEtag().equals(updatedTestGroup.getEtag()));
 	}
 	
 	@Test
 	public void testBootstrapGroups() throws Exception {
-		String adminGroupId = userGroupDAO.findGroup(AuthorizationConstants.ADMIN_GROUP_NAME, false).getId();
+		String adminGroupId = BOOTSTRAP_PRINCIPAL.ADMINISTRATORS_GROUP.getPrincipalId().toString();
 		List<UserGroup> admins = groupMembersDAO.getMembers(adminGroupId);
-		Set<String> adminNames = new HashSet<String>();
+		Set<String> adminIds = new HashSet<String>();
 		for (UserGroup ug : admins) {
-			adminNames.add(ug.getName());
+			adminIds.add(ug.getId());
 		}
 		
-		assertTrue(adminNames.contains(StackConfiguration.getIntegrationTestUserAdminName()));
-		assertTrue(adminNames.contains(AuthorizationConstants.MIGRATION_USER_NAME));
-		assertTrue(adminNames.contains(AuthorizationConstants.ADMIN_USER_NAME));
-		
-		String testGroupId = userGroupDAO.findGroup(AuthorizationConstants.TEST_GROUP_NAME, false).getId();
-		List<UserGroup> testUsers = groupMembersDAO.getMembers(testGroupId);
-		assertEquals(1, testUsers.size());
-		assertEquals(AuthorizationConstants.TEST_USER_NAME, testUsers.get(0).getName());
+		assertTrue(adminIds.contains(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString()));
 	}
 }

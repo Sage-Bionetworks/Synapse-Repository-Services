@@ -1,28 +1,37 @@
 package org.sagebionetworks.repo.model.dbo;
 
-import java.beans.IntrospectionException;
+import java.io.IOException;
 import java.lang.annotation.Annotation;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Types;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 public class DBOBuilder<T> {
 
-	private static final String RETURN_AS_STRING_METHOD_NAME_POSTFIX = "AsString";
+	public interface RowMapper {
+		public void map(Object result, ResultSet rs) throws SQLException, InvocationTargetException, IllegalAccessException;
+	}
 
-	public static abstract interface RowMapper {
-		public abstract void map(Object result, ResultSet rs) throws ReflectiveOperationException, SQLException;
+	public interface ParamTypeMapper {
+		public Object convert(Object result);
+
+		public int getSqlType();
 	}
 
 	private static abstract class BaseRowMapper implements RowMapper {
@@ -36,7 +45,7 @@ public class DBOBuilder<T> {
 			this.isNullable = isNullable;
 		}
 
-		public final void map(Object result, ResultSet rs) throws ReflectiveOperationException, SQLException {
+		public final void map(Object result, ResultSet rs) throws InvocationTargetException, SQLException, IllegalAccessException {
 			Object value = getValue(rs, columnName);
 			if (isNullable && rs.wasNull()) {
 				value = null;
@@ -44,7 +53,8 @@ public class DBOBuilder<T> {
 			fieldSetter.invoke(result, value);
 		}
 
-		public abstract Object getValue(ResultSet rs, String columnName) throws ReflectiveOperationException, SQLException;
+		public abstract Object getValue(ResultSet rs, String columnName) throws SQLException, IllegalAccessException,
+				InvocationTargetException;
 	}
 
 	private static class AssignmentRowMapper extends BaseRowMapper {
@@ -55,7 +65,7 @@ public class DBOBuilder<T> {
 			this.mapperMethod = mapperMethod;
 		}
 
-		public Object getValue(ResultSet rs, String columnName) throws ReflectiveOperationException, SQLException {
+		public Object getValue(ResultSet rs, String columnName) throws SQLException, IllegalAccessException, InvocationTargetException {
 			return mapperMethod.invoke(rs, columnName);
 		}
 	}
@@ -69,7 +79,7 @@ public class DBOBuilder<T> {
 			this.enumType = enumType;
 		}
 
-		public Object getValue(ResultSet rs, String columnName) throws ReflectiveOperationException, SQLException {
+		public Object getValue(ResultSet rs, String columnName) throws SQLException {
 			String stringValue = rs.getString(columnName);
 			if (stringValue != null) {
 				@SuppressWarnings("unchecked")
@@ -87,7 +97,7 @@ public class DBOBuilder<T> {
 			super(fieldSetter, columnName, nullable);
 		}
 
-		public Object getValue(ResultSet rs, String columnName) throws ReflectiveOperationException, SQLException {
+		public Object getValue(ResultSet rs, String columnName) throws SQLException {
 			Blob blobValue = rs.getBlob(columnName);
 			if (blobValue != null) {
 				return blobValue.getBytes(1, (int) blobValue.length());
@@ -103,10 +113,52 @@ public class DBOBuilder<T> {
 			super(fieldSetter, columnName, nullable);
 		}
 
-		public Object getValue(ResultSet rs, String columnName) throws ReflectiveOperationException, SQLException {
+		public Object getValue(ResultSet rs, String columnName) throws SQLException {
 			Long timestamp = rs.getLong(columnName);
 			if (timestamp != null) {
 				return new Date(timestamp);
+			} else {
+				return null;
+			}
+		}
+	}
+	
+	private static class BooleanRowMapper extends BaseRowMapper{
+
+		public BooleanRowMapper(Method fieldSetter, String columnName,
+				boolean isNullable) {
+			super(fieldSetter, columnName, isNullable);
+		}
+		
+		public Object getValue(ResultSet rs, String columnName) throws SQLException {
+			Boolean bool = rs.getBoolean(columnName);
+			if(rs.wasNull()){
+				return null;
+			}else{
+				return bool;
+			}
+		}
+		
+	}
+
+	private static class SerializedTypeRowMapper extends BaseRowMapper {
+
+		private final Class<?> clazz;
+
+		public SerializedTypeRowMapper(Method fieldSetter, String columnName, boolean nullable, Class<?> clazz) {
+			super(fieldSetter, columnName, nullable);
+			this.clazz = clazz;
+		}
+
+		public Object getValue(ResultSet rs, String columnName) throws SQLException {
+			Blob blobValue = rs.getBlob(columnName);
+			if (blobValue != null) {
+				byte[] bytes = blobValue.getBytes(1, (int) blobValue.length());
+				try {
+					return clazz.cast(JDOSecondaryPropertyUtils.decompressedObject(bytes));
+				} catch (IOException e) {
+					throw new SQLException("Error converting type " + clazz.getName() + ": " + e.getMessage(), e);
+				}
 			} else {
 				return null;
 			}
@@ -118,16 +170,12 @@ public class DBOBuilder<T> {
 		return tableAnnotation.name();
 	}
 
-	public static <T> FieldColumn[] getFields(final Class<T> clazz) {
+	public static <T> FieldColumn[] getFields(final Class<T> clazz, final String[] customColumns) {
 		List<FieldColumn> result = Lists.transform(getAnnotatedFields(clazz, Field.class), new Function<Entry<Field>, FieldColumn>() {
 			@Override
 			public FieldColumn apply(Entry<Field> fieldEntry) {
-				String name = fieldEntry.field.getName();
-				if (fieldEntry.field.getType().isEnum() || fieldEntry.field.getType() == Date.class) {
-					name = handleTypedField(name, fieldEntry.field, clazz);
-				}
-				return new FieldColumn(name, fieldEntry.annotation.name(), fieldEntry.annotation.primary()).withIsBackupId(
-						fieldEntry.annotation.backupId()).withIsEtag(fieldEntry.annotation.etag());
+				return new FieldColumn(fieldEntry.field.getName(), fieldEntry.annotation.name(), fieldEntry.annotation.primary())
+						.withIsBackupId(fieldEntry.annotation.backupId()).withIsEtag(fieldEntry.annotation.etag());
 			}
 		});
 		return result.toArray(new FieldColumn[result.size()]);
@@ -135,20 +183,17 @@ public class DBOBuilder<T> {
 
 	private static final Object[][] TYPE_MAP = { { Long.class, "getLong" }, { long.class, "getLong" }, { String.class, "getString" } };
 
-	public static <T> RowMapper[] getFieldMappers(final Class<? extends T> clazz, final String[] customColumns) {
-		List<Entry<Field>> fields = getAnnotatedFields(clazz, Field.class);
-		// filter out custom columns. They are handled by the caller
-		fields = Lists.newArrayList(Iterables.filter(getAnnotatedFields(clazz, Field.class), new Predicate<Entry<Field>>() {
-			@Override
-			public boolean apply(Entry<Field> fieldEntry) {
-				for (String customColumn : customColumns) {
-					if (customColumn.equals(fieldEntry.annotation.name())) {
-						return false;
-					}
-				}
-				return true;
+	private static String getMethodFromTypeMap(Class<?> type) {
+		for (Object[] entry : TYPE_MAP) {
+			if (type == entry[0]) {
+				return (String) entry[1];
 			}
-		}));
+		}
+		return null;
+	}
+
+	public static <T> RowMapper[] getFieldMappers(final Class<? extends T> clazz, final String[] customColumns) {
+		List<Entry<Field>> fields = getAnnotatedFieldsWithoutCustomColums(clazz, Field.class, customColumns);
 		List<RowMapper> mappers = Lists.transform(fields, new Function<Entry<Field>, RowMapper>() {
 			@Override
 			public RowMapper apply(Entry<Field> fieldEntry) {
@@ -156,20 +201,18 @@ public class DBOBuilder<T> {
 				String setterMethodName = "set" + StringUtils.capitalize(fieldEntry.field.getName());
 				try {
 					setterMethod = clazz.getMethod(setterMethodName, new Class[] { fieldEntry.field.getType() });
-				} catch (ReflectiveOperationException e) {
+				} catch (NoSuchMethodException e) {
 					throw new IllegalArgumentException("Could not find method '" + setterMethodName + "' on " + clazz.getName());
 				}
 
-				for (Object[] entry : TYPE_MAP) {
-					if (fieldEntry.field.getType() == entry[0]) {
-						String getMethod = (String) entry[1];
-						try {
-							Method mapperMethod = ResultSet.class.getMethod((String) getMethod, new Class[] { String.class });
-							return new AssignmentRowMapper(setterMethod, fieldEntry.annotation.name(), fieldEntry.annotation.nullable(),
-									mapperMethod);
-						} catch (ReflectiveOperationException e) {
-							throw new IllegalArgumentException("Could not find method '" + getMethod + "' on ResultSet");
-						}
+				String getMethod = getMethodFromTypeMap(fieldEntry.field.getType());
+				if (getMethod != null) {
+					try {
+						Method mapperMethod = ResultSet.class.getMethod((String) getMethod, new Class[] { String.class });
+						return new AssignmentRowMapper(setterMethod, fieldEntry.annotation.name(), fieldEntry.annotation.nullable(),
+								mapperMethod);
+					} catch (NoSuchMethodException e) {
+						throw new IllegalArgumentException("Could not find method '" + getMethod + "' on ResultSet");
 					}
 				}
 
@@ -180,6 +223,11 @@ public class DBOBuilder<T> {
 					return new EnumRowMapper(setterMethod, fieldEntry.annotation.name(), fieldEntry.annotation.nullable(), enumClass);
 				}
 
+				if (!StringUtils.isEmpty(fieldEntry.annotation.serialized())) {
+					return new SerializedTypeRowMapper(setterMethod, fieldEntry.annotation.name(), fieldEntry.annotation.nullable(),
+							fieldEntry.field.getType());
+				}
+
 				if (fieldEntry.field.getType() == byte[].class) {
 					return new BlobRowMapper(setterMethod, fieldEntry.annotation.name(), fieldEntry.annotation.nullable());
 				}
@@ -187,11 +235,70 @@ public class DBOBuilder<T> {
 				if (fieldEntry.field.getType() == Date.class) {
 					return new DateRowMapper(setterMethod, fieldEntry.annotation.name(), fieldEntry.annotation.nullable());
 				}
+				
+				if (fieldEntry.field.getType() == Boolean.class) {
+					return new BooleanRowMapper(setterMethod, fieldEntry.annotation.name(), fieldEntry.annotation.nullable());
+				}
+
 
 				throw new IllegalArgumentException("No default mapper for type " + fieldEntry.field.getType());
 			}
 		});
 		return mappers.toArray(new RowMapper[mappers.size()]);
+	}
+
+	public static <T> Map<String, DBOBuilder.ParamTypeMapper> getParamTypeMappers(final Class<? extends T> clazz, final String[] customColumns) {
+		List<Entry<Field>> fields = getAnnotatedFieldsWithoutCustomColums(clazz, Field.class, customColumns);
+		ImmutableMap.Builder<String, ParamTypeMapper> mappers = ImmutableMap.builder();
+		for (Entry<Field> fieldEntry : fields) {
+			// enum?
+			if (Enum.class.isAssignableFrom(fieldEntry.field.getType())) {
+				mappers.put(fieldEntry.field.getName(), new ParamTypeMapper() {
+					@Override
+					public Object convert(Object result) {
+						return ((Enum<?>) result).name();
+					}
+
+					@Override
+					public int getSqlType() {
+						return Types.VARCHAR;
+					}
+				});
+			}
+
+			if (!StringUtils.isEmpty(fieldEntry.annotation.serialized())) {
+				mappers.put(fieldEntry.field.getName(), new ParamTypeMapper() {
+					@Override
+					public Object convert(Object result) {
+						try {
+							return JDOSecondaryPropertyUtils.compressObject(result);
+						} catch (IOException e) {
+							throw new IllegalStateException(e.getMessage(), e);
+						}
+					}
+
+					@Override
+					public int getSqlType() {
+						return Types.BLOB;
+					}
+				});
+			}
+
+			if (fieldEntry.field.getType() == Date.class) {
+				mappers.put(fieldEntry.field.getName(), new ParamTypeMapper() {
+					@Override
+					public Object convert(Object result) {
+						return ((Date) result).getTime();
+					}
+
+					@Override
+					public int getSqlType() {
+						return Types.NUMERIC;
+					}
+				});
+			}
+		}
+		return mappers.build();
 	}
 
 	public static <T> String buildDLL(Class<T> clazz, String tableName) {
@@ -257,9 +364,13 @@ public class DBOBuilder<T> {
 							+ fieldAnnotation.name() + " on " + owner.getName());
 				}
 			} else if (Enum.class.isAssignableFrom(fieldClazz)) {
-				type = "CHAR (" + 32 + ")";
+				type = buildEnumType(fieldClazz);
 			} else if (!StringUtils.isEmpty(fieldAnnotation.blob())) {
 				type = fieldAnnotation.blob();
+			} else if (!StringUtils.isEmpty(fieldAnnotation.serialized())) {
+				type = fieldAnnotation.serialized();
+			} else if (fieldClazz == Boolean.class) {
+				type = "bit(1)";
 			} else {
 				throw new IllegalArgumentException("No type defined and " + fieldAnnotation.name() + " on " + owner.getName()
 						+ " cannot be automatically translated");
@@ -282,37 +393,30 @@ public class DBOBuilder<T> {
 		return StringUtils.join(parts, " ");
 	}
 
-	private static String escapeName(String name) {
-		return '`' + name + '`';
+	/**
+	 * Build up an DDL ENUM type from a java enum.
+	 * @param fieldClazz
+	 * @return
+	 */
+	private static String buildEnumType(Class<?> fieldClazz) {
+		String type;
+		Class<? extends Enum> enumClass = (Class<? extends Enum>) fieldClazz;
+		StringBuilder builder = new StringBuilder();
+		builder.append("ENUM( ");
+		Enum[] values =  enumClass.getEnumConstants();
+		for(int i=0; i< values.length; i++){
+			if(i > 0){
+				builder.append(", ");
+			}
+			builder.append("'").append(values[i].name()).append("'");
+		}
+		builder.append(")");
+		type = builder.toString();
+		return type;
 	}
 
-	private static String handleTypedField(String name, java.lang.reflect.Field field, Class<?> clazz) {
-		// working around spring issue, where it needs to have a string and not an enum to be able to store enums. Could
-		// not get property editors to work for this, so using slightly dirty method where it looks for a
-		// get<Enum>AsString method is the get<Enum> method does not return a string (the pattern used in this codebase
-		// sofar)
-		String getterMethodName = "get" + StringUtils.capitalize(field.getName());
-		String getterAsStringMethodName = "get" + StringUtils.capitalize(field.getName()) + RETURN_AS_STRING_METHOD_NAME_POSTFIX;
-		try {
-			Method getterMethod = clazz.getMethod(getterMethodName);
-			if (String.class.isAssignableFrom(getterMethod.getReturnType())) {
-				return name;
-			}
-			// try AsString method
-			getterMethodName = getterAsStringMethodName;
-			try {
-				getterMethod = clazz.getMethod(getterMethodName);
-				if (String.class.isAssignableFrom(getterMethod.getReturnType())) {
-					return name + RETURN_AS_STRING_METHOD_NAME_POSTFIX;
-				}
-			} catch (NoSuchMethodException e) {
-			}
-		} catch (NoSuchMethodException e) {
-			throw new RuntimeException("Cannot find method " + getterMethodName + " in class " + clazz.getName() + ": " + e.getMessage());
-		}
-		throw new RuntimeException("Need to either have a method " + getterMethodName
-				+ " that returns a String, or, if that method returns another type that spring cannot handle, a method named "
-				+ getterAsStringMethodName + " that returns a string instead");
+	private static String escapeName(String name) {
+		return '`' + name + '`';
 	}
 
 	private static class Entry<T extends Annotation> {
@@ -333,5 +437,22 @@ public class DBOBuilder<T> {
 			}
 		}
 		return entries;
+	}
+
+	private static <T extends Annotation> List<Entry<Field>> getAnnotatedFieldsWithoutCustomColums(Class<?> clazz,
+			Class<Field> annotationType, final String[] customColumns) {
+		// filter out custom columns. They are handled by the caller
+		return Lists.newArrayList(Iterables.filter(getAnnotatedFields(clazz, Field.class), new Predicate<Entry<Field>>() {
+			@Override
+			public boolean apply(Entry<Field> fieldEntry) {
+				// Assumption is that custom columns are rare, and thus a linear search is acceptable
+				for (String customColumn : customColumns) {
+					if (customColumn.equals(fieldEntry.annotation.name())) {
+						return false;
+					}
+				}
+				return true;
+			}
+		}));
 	}
 }

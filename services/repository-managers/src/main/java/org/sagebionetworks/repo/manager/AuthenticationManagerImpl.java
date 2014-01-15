@@ -32,16 +32,16 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public Session authenticate(String email, String password) throws NotFoundException {
+	public Session authenticate(long principalId, String password) throws NotFoundException {
 		// Check the username password combination
 		// This will throw an UnauthorizedException if invalid
 		if (password != null) {
-			byte[] salt = authDAO.getPasswordSalt(email);
+			byte[] salt = authDAO.getPasswordSalt(principalId);
 			String passHash = PBKDF2Utils.hashPassword(password, salt);
-			authDAO.checkEmailAndPassword(email, passHash);
+			authDAO.checkUserCredentials(principalId, passHash);
 		}
 		
-		return getSessionToken(email);
+		return getSessionToken(principalId);
 	}
 	
 	@Override
@@ -67,11 +67,11 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		}
 		
 		// Check the terms of use
-		if (checkToU && !authDAO.hasUserAcceptedToU(principalId.toString())) {
+		if (checkToU && !authDAO.hasUserAcceptedToU(principalId)) {
 			throw new TermsOfUseException();
 		}
 		
-		authDAO.revalidateSessionToken(principalId.toString());
+		authDAO.revalidateSessionToken(principalId);
 		return principalId;
 	}
 
@@ -83,27 +83,27 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void changePassword(String id, String password) {
+	public void changePassword(Long principalId, String password) {
 		String passHash = PBKDF2Utils.hashPassword(password, null);
-		authDAO.changePassword(id, passHash);
+		authDAO.changePassword(principalId, passHash);
 	}
 	
 	@Override
-	public String getSecretKey(String id) throws NotFoundException {
-		return authDAO.getSecretKey(id);
+	public String getSecretKey(Long principalId) throws NotFoundException {
+		return authDAO.getSecretKey(principalId);
 	}
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void changeSecretKey(String id) {
-		authDAO.changeSecretKey(id);
+	public void changeSecretKey(Long principalId) {
+		authDAO.changeSecretKey(principalId);
 	}
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public Session getSessionToken(String username) throws NotFoundException {
+	public Session getSessionToken(long principalId) throws NotFoundException {
 		// Get the session token
-		Session session = authDAO.getSessionTokenIfValid(username);
+		Session session = authDAO.getSessionTokenIfValid(principalId);
 		
 		// Make the session token if none was returned
 		if (session == null) {
@@ -112,11 +112,11 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 		
 		// Set a new session token if necessary
 		if (session.getSessionToken() == null) {
-			UserGroup ug = userGroupDAO.findGroup(username, true);
+			UserGroup ug = userGroupDAO.get(principalId);
 			if (ug == null) {
-				throw new NotFoundException("The user (" + username + ") does not exist");
+				throw new NotFoundException("The user (" + principalId + ") does not exist");
 			}
-			String principalId = ug.getId();
+			if(!ug.getIsIndividual()) throw new IllegalArgumentException("Cannot get a session token for a team");
 			String token = authDAO.changeSessionToken(principalId, null);
 			boolean toU = authDAO.hasUserAcceptedToU(principalId);
 			session.setSessionToken(token);
@@ -129,17 +129,17 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	}
 
 	@Override
-	public boolean hasUserAcceptedTermsOfUse(String id) throws NotFoundException {
+	public boolean hasUserAcceptedTermsOfUse(Long id) throws NotFoundException {
 		return authDAO.hasUserAcceptedToU(id);
 	}
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void setTermsOfUseAcceptance(String id, Boolean acceptance) {
+	public void setTermsOfUseAcceptance(Long principalId, Boolean acceptance) {
 		if (acceptance == null) {
 			throw new IllegalArgumentException("Cannot \"unsee\" the terms of use");
 		}
-		authDAO.setTermsOfUseAcceptance(id, acceptance);
+		authDAO.setTermsOfUseAcceptance(principalId, acceptance);
 	}
 	
 }

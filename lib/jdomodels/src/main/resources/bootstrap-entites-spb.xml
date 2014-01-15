@@ -25,7 +25,7 @@
 		<property name="accessList">
 			<list>
 				<bean class="org.sagebionetworks.repo.model.bootstrap.AccessBootstrapData">
-					<property name="group" value="AUTHENTICATED_USERS" />
+					<property name="group" value="AUTHENTICATED_USERS_GROUP" />
 					<property name="accessTypeList">
 						<list>
 							<value>CREATE</value>
@@ -48,7 +48,7 @@
 		<property name="accessList">
 			<list>
 				<bean class="org.sagebionetworks.repo.model.bootstrap.AccessBootstrapData">
-					<property name="group" value="AUTHENTICATED_USERS" />
+					<property name="group" value="AUTHENTICATED_USERS_GROUP" />
 					<property name="accessTypeList">
 						<list>
 							<value>CREATE</value>

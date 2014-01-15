@@ -19,6 +19,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AsynchronousDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -63,8 +64,8 @@ public class EntityServiceImplAutowiredTest {
 	private int layers = 5;
 	private int locations = 2;
 	
-	private String userName;
-	private UserInfo userInfo;
+	private Long adminUserId;
+	private UserInfo adminUserInfo;
 	private String activityId;
 	
 	HttpServletRequest mockRequest;
@@ -73,18 +74,20 @@ public class EntityServiceImplAutowiredTest {
 	public void before() throws Exception {
 		// Map test objects to their urls
 		// Make sure we have a valid user.
-		userInfo = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
-		UserInfo.validateUserInfo(userInfo);
-		userName = userInfo.getUser().getUserId();
+		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+		adminUserInfo = userManager.getUserInfo(adminUserId);
+		UserInfo.validateUserInfo(adminUserInfo);
+		
 		mockRequest = Mockito.mock(HttpServletRequest.class);
 		activityId = null;
 		when(mockRequest.getServletPath()).thenReturn("/repo/v1");
+		when(mockRequest.getParameter(AuthorizationConstants.USER_ID_PARAM)).thenReturn(adminUserId.toString());
 		
 		toDelete = new ArrayList<String>();
 		// Create a project to hold the datasets
 		Project project = new Project();
 		project.setName("projectRoot");
-		project = entityController.createEntity(userName, project, activityId, mockRequest);
+		project = entityController.createEntity(adminUserId, project, activityId, mockRequest);
 		assertNotNull(project);
 
 		
@@ -92,7 +95,7 @@ public class EntityServiceImplAutowiredTest {
 		for(int i=0; i<totalEntities; i++){
 			Study ds = createForTest(i);
 			ds.setParentId(project.getId());
-			ds = entityController.createEntity(userName, ds, activityId, mockRequest);
+			ds = entityController.createEntity(adminUserId, ds, activityId, mockRequest);
 			for(int layer=0; layer<layers; layer++){
 				Data inLayer = createLayerForTest(i*10+layer);
 				inLayer.setParentId(ds.getId());
@@ -103,7 +106,7 @@ public class EntityServiceImplAutowiredTest {
 					LocationData loca = createLayerLocatoinsForTest(i*10+layer*10+loc);
 					locationDatas.add(loca);
 				}
-				inLayer = entityController.createEntity(userName, inLayer, activityId, mockRequest);
+				inLayer = entityController.createEntity(adminUserId, inLayer, activityId, mockRequest);
 			}
 			toDelete.add(ds.getId());
 		}
@@ -141,16 +144,16 @@ public class EntityServiceImplAutowiredTest {
 	public void after() throws Exception {
 		for (String id: toDelete) {
 			try {
-				entityController.deleteEntity(userName, id);
+				entityController.deleteEntity(adminUserId, id);
 			} catch (Exception e) {}
 		}
-		trashService.purgeTrashForUser(userName);
+		trashService.purgeTrashForUser(adminUserId);
 	}
 	
 	@Test
 	public void testQuery() throws DatastoreException, NotFoundException, UnauthorizedException{
 		// Basic query
-		PaginatedResults<Study> paginated = entityController.getEntities(userName, new PaginatedParameters(1,100, null, true), mockRequest, Study.class);
+		PaginatedResults<Study> paginated = entityController.getEntities(adminUserId, new PaginatedParameters(1,100, null, true), mockRequest, Study.class);
 		assertNotNull(paginated);
 		assertNotNull(paginated.getPaging());
 		List<Study> results = paginated.getResults();
@@ -161,7 +164,7 @@ public class EntityServiceImplAutowiredTest {
 			UrlHelpers.validateAllUrls(ds);
 		}
 		// Sorted
-		paginated = entityController.getEntities(userName, new PaginatedParameters(1, 3, "name", true), mockRequest, Study.class);
+		paginated = entityController.getEntities(adminUserId, new PaginatedParameters(1, 3, "name", true), mockRequest, Study.class);
 		results = paginated.getResults();
 		assertNotNull(results);
 		assertEquals(3, results.size());
@@ -172,7 +175,7 @@ public class EntityServiceImplAutowiredTest {
 	@Test 
 	public void testGetChildrenOfType() throws DatastoreException, NotFoundException, UnauthorizedException{
 		String datasetOneId = toDelete.get(0);
-		List<Data> list = entityController.getEntityChildrenOfType(userName, datasetOneId, Data.class, mockRequest);
+		List<Data> list = entityController.getEntityChildrenOfType(adminUserId, datasetOneId, Data.class, mockRequest);
 		assertNotNull(list);
 		assertEquals(layers, list.size());
 		Data lastLayer = list.get(layers -1);
@@ -190,7 +193,7 @@ public class EntityServiceImplAutowiredTest {
 	@Test 
 	public void testGetChildrenOfTypePaginated() throws DatastoreException, NotFoundException, UnauthorizedException{
 		String datasetOneId = toDelete.get(0);
-		PaginatedResults<Data> resutls = entityController.getEntityChildrenOfTypePaginated(userName, datasetOneId, Data.class, new PaginatedParameters(), mockRequest);
+		PaginatedResults<Data> resutls = entityController.getEntityChildrenOfTypePaginated(adminUserId, datasetOneId, Data.class, new PaginatedParameters(), mockRequest);
 		assertNotNull(resutls);
 		assertEquals(layers, resutls.getTotalNumberOfResults());
 		List<Data> list = resutls.getResults();
@@ -208,7 +211,7 @@ public class EntityServiceImplAutowiredTest {
 		// get an entity
 		String id1 = toDelete.get(0);		
 		// verify that nothing refers to it
-		PaginatedResults<EntityHeader> ehs = entityController.getEntityReferences(userName, id1, null, null, null, mockRequest);
+		PaginatedResults<EntityHeader> ehs = entityController.getEntityReferences(adminUserId, id1, null, null, null, mockRequest);
 		assertEquals(0, ehs.getTotalNumberOfResults());
 		// make another entity refer to the first one
 		Step step = new Step();
@@ -217,12 +220,12 @@ public class EntityServiceImplAutowiredTest {
 		Set<Reference> refs = new HashSet<Reference>();
 		refs.add(ref);
 		step.setInput(refs);
-		step = entityController.createEntity(userName, step, null, mockRequest);
+		step = entityController.createEntity(adminUserId, step, null, mockRequest);
 		toDelete.add(step.getId());
 		// Manually update
 		updateAnnotationsAndReferences();
 		// verify that the Step can be retrieved via its reference
-		ehs = entityController.getEntityReferences(userName, id1, null, null, null, mockRequest);
+		ehs = entityController.getEntityReferences(adminUserId, id1, null, null, null, mockRequest);
 		assertEquals(1, ehs.getTotalNumberOfResults());
 		assertEquals(step.getId(), ehs.getResults().iterator().next().getId());
 	}

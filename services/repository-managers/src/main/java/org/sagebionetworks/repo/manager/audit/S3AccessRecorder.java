@@ -1,10 +1,9 @@
 package org.sagebionetworks.repo.manager.audit;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -26,14 +25,9 @@ public class S3AccessRecorder implements AccessRecorder {
 	 * At any given time, there are multiple threads creating new AccessRecords
 	 * as new web services request come in. These AccessRecords are added to
 	 * this batch from the threads where they originated. The batch is then
-	 * processed from a separate timer thread. To ensure no data is lost in this
-	 * multiple thread scenario, we use AtomicReference.getAndSet() method. This
-	 * allows the processing thread to get the current batch for processing and
-	 * replace it with a new empty list as an atomic operation. That way if 
-	 * new records come in during processing no data is lost.
+	 * processed from a separate timer thread.
 	 */
-	private AtomicReference<List<AccessRecord>> recordBatch = new AtomicReference<List<AccessRecord>>(
-			Collections.synchronizedList(new LinkedList<AccessRecord>()));
+	private ConcurrentLinkedQueue<AccessRecord> recordBatch = new ConcurrentLinkedQueue<AccessRecord>();
 	
 	@Autowired
 	AccessRecordManager accessRecordManager;
@@ -57,7 +51,7 @@ public class S3AccessRecorder implements AccessRecorder {
 	@Override
 	public void save(AccessRecord record) {
 		// add the messages to the queue;
-		recordBatch.get().add(record);
+		recordBatch.add(record);
 	}
 
 	/**
@@ -66,8 +60,8 @@ public class S3AccessRecorder implements AccessRecorder {
 	 * 
 	 */
 	public String timerFired() throws IOException {
-		// Get the current batch and replace it with a new empty list as an atomic operation.
-		List<AccessRecord> currentBatch = recordBatch.getAndSet(Collections.synchronizedList(new LinkedList<AccessRecord>()));
+		// Poll all data currently on the queue.
+		List<AccessRecord> currentBatch = pollListFromQueue();
 		// There is nothing to do if the batch is empty.
 		if(currentBatch.isEmpty()) return null;
 		// Check to see if the data should be sent to S3
@@ -85,5 +79,20 @@ public class S3AccessRecorder implements AccessRecorder {
 			return null;
 		}
 	}
+	
+	/**
+	 * Poll all data currently on the queue and add it to a list.
+	 * @return
+	 */
+	private List<AccessRecord> pollListFromQueue(){
+		List<AccessRecord> list = new LinkedList<AccessRecord>();
+		for(AccessRecord ac = this.recordBatch.poll(); ac != null; ac = this.recordBatch.poll()){
+			// Add to the list
+			list.add(ac);
+		}
+		return list;
+	}
+	
+	
 	
 }

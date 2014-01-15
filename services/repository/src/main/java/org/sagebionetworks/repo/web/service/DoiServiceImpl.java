@@ -13,7 +13,7 @@ public class DoiServiceImpl implements DoiService {
 	@Autowired private EntityDoiManager entityDoiManager;
 
 	@Override
-	public Doi createDoi(String userId, String objectId, ObjectType objectType, Long versionNumber)
+	public Doi createDoi(Long userId, String objectId, ObjectType objectType, Long versionNumber)
 			throws NotFoundException, UnauthorizedException, DatastoreException {
 
 		if (objectType == null) {
@@ -28,7 +28,7 @@ public class DoiServiceImpl implements DoiService {
 	}
 
 	@Override
-	public Doi getDoi(String userId, String objectId, ObjectType objectType, Long versionNumber)
+	public Doi getDoi(Long userId, String objectId, ObjectType objectType, Long versionNumber)
 			throws NotFoundException, UnauthorizedException, DatastoreException {
 
 		if (objectType == null) {

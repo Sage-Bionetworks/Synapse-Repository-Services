@@ -12,7 +12,7 @@ public interface AuthenticationManager {
 	 * Authenticates a user/password combination, returning a session token if valid
 	 * @param password If null, password checking is skipped
 	 */
-	public Session authenticate(String email, String password) throws NotFoundException;
+	public Session authenticate(long principalId, String password) throws NotFoundException;
 	
 	/**
 	 * Looks for the user holding the given session token
@@ -39,32 +39,32 @@ public interface AuthenticationManager {
 	/**
 	 * Changes a user's password
 	 */
-	public void changePassword(String id, String password);
+	public void changePassword(Long principalId, String password);
 	
 	/** 
 	 * Gets the user's secret key
 	 */
-	public String getSecretKey(String id) throws NotFoundException;
+	public String getSecretKey(Long principalId) throws NotFoundException;
 	
 	/**
 	 * Replaces the user's secret key with a new one
 	 */
-	public void changeSecretKey(String id);
+	public void changeSecretKey(Long principalId);
 	
 	/**
 	 * Returns the user's session token
 	 * If the user's token is invalid or expired, a new one is created and returned
 	 */
-	public Session getSessionToken(String username) throws NotFoundException;
+	public Session getSessionToken(long principalId) throws NotFoundException;
 	
 	/**
 	 * Returns whether the user has accepted the terms of use
 	 */
-	public boolean hasUserAcceptedTermsOfUse(String id) throws NotFoundException;
+	public boolean hasUserAcceptedTermsOfUse(Long id) throws NotFoundException;
 
 	/**
 	 * Sets whether the user has accepted or rejected the terms of use
 	 */
-	public void setTermsOfUseAcceptance(String id, Boolean acceptance);
+	public void setTermsOfUseAcceptance(Long principalId, Boolean acceptance);
 	
 }

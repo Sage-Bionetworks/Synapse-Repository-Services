@@ -28,7 +28,6 @@ import org.sagebionetworks.evaluation.dao.SubmissionFileHandleDAO;
 import org.sagebionetworks.evaluation.dao.SubmissionStatusDAO;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
-import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
@@ -52,7 +51,6 @@ import org.sagebionetworks.repo.model.annotation.StringAnnotation;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.util.UserInfoUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -101,10 +99,8 @@ public class SubmissionManagerTest {
     @Before
     public void setUp() throws DatastoreException, NotFoundException, InvalidModelException, MalformedURLException {
 		// User Info
-    	ownerInfo = UserInfoUtils.createValidUserInfo(false);
-    	ownerInfo.getIndividualGroup().setId(OWNER_ID);
-    	userInfo = UserInfoUtils.createValidUserInfo(false);
-    	userInfo.getIndividualGroup().setId(USER_ID);
+    	ownerInfo = new UserInfo(false, OWNER_ID);
+    	userInfo = new UserInfo(false, USER_ID);
     	
     	// FileHandles
 		List<FileHandle> handles = new ArrayList<FileHandle>();
@@ -318,15 +314,15 @@ public class SubmissionManagerTest {
 	@Test
 	public void testGetMyOwnSubmissionBundles() throws Exception {
 		submissionManager.getMyOwnSubmissionBundlesByEvaluation(ownerInfo, EVAL_ID, 10, 0);
-		verify(mockSubmissionDAO).getAllByEvaluationAndUser(EVAL_ID, ownerInfo.getIndividualGroup().getId(), 10, 0);
-		verify(mockSubmissionDAO).getCountByEvaluationAndUser(EVAL_ID, ownerInfo.getIndividualGroup().getId());
+		verify(mockSubmissionDAO).getAllByEvaluationAndUser(EVAL_ID, ownerInfo.getId().toString(), 10, 0);
+		verify(mockSubmissionDAO).getCountByEvaluationAndUser(EVAL_ID, ownerInfo.getId().toString());
 	}
 	
 	@Test
 	public void testGetMyOwnSubmissions() throws Exception {
 		submissionManager.getMyOwnSubmissionsByEvaluation(ownerInfo, EVAL_ID, 10, 0);
-		verify(mockSubmissionDAO).getAllByEvaluationAndUser(EVAL_ID, ownerInfo.getIndividualGroup().getId(), 10, 0);
-		verify(mockSubmissionDAO).getCountByEvaluationAndUser(EVAL_ID, ownerInfo.getIndividualGroup().getId());
+		verify(mockSubmissionDAO).getAllByEvaluationAndUser(EVAL_ID, ownerInfo.getId().toString(), 10, 0);
+		verify(mockSubmissionDAO).getCountByEvaluationAndUser(EVAL_ID, ownerInfo.getId().toString());
 	}
 	
 	@Test

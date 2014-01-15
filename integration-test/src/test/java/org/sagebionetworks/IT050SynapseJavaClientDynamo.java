@@ -6,9 +6,10 @@ import org.junit.AfterClass;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.sagebionetworks.client.SynapseClientImpl;
+import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
-import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.SynapseClient;
+import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.dynamo.dao.nodetree.DboNodeLineage;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityIdList;
@@ -17,10 +18,11 @@ import org.sagebionetworks.repo.model.Study;
 
 public class IT050SynapseJavaClientDynamo {
 
-	public static final long MAX_WAIT_TIME_MS = 5 * 60 * 1000; // 5 min
+	private static SynapseAdminClient adminSynapse;
+	private static SynapseClient synapse;
+	private static Long userToDelete;
 
-	private static SynapseAdminClientImpl synapseAdmin = null;
-	private static SynapseClientImpl synapse = null;
+	public static final long MAX_WAIT_TIME_MS = 5 * 60 * 1000; // 5 min
 
 	private static Entity parent;
 	private static Entity child;
@@ -31,26 +33,19 @@ public class IT050SynapseJavaClientDynamo {
 		// These tests are not run if dynamo is disabled.
 		Assume.assumeTrue(config.getDynamoEnabled());
 		
-		synapseAdmin = new SynapseAdminClientImpl();
-		synapseAdmin.setAuthEndpoint(StackConfiguration
-				.getAuthenticationServicePrivateEndpoint());
-		synapseAdmin.setRepositoryEndpoint(StackConfiguration
-				.getRepositoryServiceEndpoint());
-		synapseAdmin.login(StackConfiguration.getIntegrationTestUserAdminName(),
-				StackConfiguration.getIntegrationTestUserAdminPassword());
-
+		// Create a user
+		adminSynapse = new SynapseAdminClientImpl();
+		SynapseClientHelper.setEndpoints(adminSynapse);
+		adminSynapse.setUserName(StackConfiguration.getMigrationAdminUsername());
+		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
+		
 		synapse = new SynapseClientImpl();
-		synapse.setAuthEndpoint(StackConfiguration
-				.getAuthenticationServicePrivateEndpoint());
-		synapse.setRepositoryEndpoint(StackConfiguration
-				.getRepositoryServiceEndpoint());
-		synapse.login(StackConfiguration.getIntegrationTestUserOneName(),
-				StackConfiguration.getIntegrationTestUserOnePassword());
+		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
 
 		String tableName = DboNodeLineage.TABLE_NAME;
 		String hashKeyName = DboNodeLineage.HASH_KEY_NAME;
 		String rangeKeyName = DboNodeLineage.RANGE_KEY_NAME;
-		synapseAdmin.clearDynamoTable(tableName, hashKeyName, rangeKeyName);
+		adminSynapse.clearDynamoTable(tableName, hashKeyName, rangeKeyName);
 
 		// Setup all of the objects for this test.
 		parent = new Project();
@@ -63,7 +58,7 @@ public class IT050SynapseJavaClientDynamo {
 	}
 
 	@AfterClass
-	public static void afterClass() throws SynapseException{
+	public static void afterClass() throws Exception{
 		StackConfiguration config = new StackConfiguration();
 		// There is nothing to do if dynamo is disabled
 		if(!config.getDynamoEnabled()) return;
@@ -76,6 +71,8 @@ public class IT050SynapseJavaClientDynamo {
 				synapse.deleteAndPurgeEntity(parent);
 			}
 		}
+		
+		adminSynapse.deleteUser(userToDelete);
 	}
 
 	@Test

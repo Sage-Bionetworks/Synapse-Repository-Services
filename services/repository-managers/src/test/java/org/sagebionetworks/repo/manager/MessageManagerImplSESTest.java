@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 
 import java.net.URL;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -19,12 +20,13 @@ import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.MessageDAO;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
+import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.Settings;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,6 +52,12 @@ public class MessageManagerImplSESTest {
 	private static final String OOTO_EMAIL = "ooto@simulator.amazonses.com";
 	private static final String COMPLAINT_EMAIL = "complaint@simulator.amazonses.com";
 	private static final String SUPPRESSION_EMAIL = "suppressionlist@simulator.amazonses.com";
+	
+	private static final String MESSAGE_ID_PLAIN_TEXT = "101";
+	private static final String MESSAGE_ID_HTML = "202";
+
+	private static final String FILE_HANDLE_ID_PLAIN_TEXT = "10101";
+	private static final String FILE_HANDLE_ID_HTML = "20202";
 
 	private MessageManager messageManager;
 
@@ -62,6 +70,7 @@ public class MessageManagerImplSESTest {
 	private FileHandleManager mockFileHandleManager;
 	private NodeDAO mockNodeDAO;
 	private EntityPermissionsManager mockEntityPermissionsManager;
+	private FileHandleDao mockFileHandleDao;
 
 	@Autowired
 	private AWSCredentials awsCredentials;
@@ -73,11 +82,12 @@ public class MessageManagerImplSESTest {
 	
 	private final long mockUserId = -12345L;
 	private final String mockUserIdString = "-12345";
-	private final String mockRecipientId = "-67890";
+	private final Long mockRecipientId = new Long(-67890);
+	private final String mockRecipientIdString = mockRecipientId.toString();
 	private Set<String> mockRecipients = new HashSet<String>() {
 		private static final long serialVersionUID = 1L;
 		{
-			add(mockRecipientId);
+			add(mockRecipientIdString);
 		}
 	};
 	
@@ -97,6 +107,7 @@ public class MessageManagerImplSESTest {
 		mockFileHandleManager = mock(FileHandleManager.class);
 		mockNodeDAO = mock(NodeDAO.class);
 		mockEntityPermissionsManager = mock(EntityPermissionsManager.class);
+		mockFileHandleDao = mock(FileHandleDao.class);
 		
 		// Use a working client
 		amazonSESClient = new AmazonSimpleEmailServiceClient(awsCredentials);
@@ -104,7 +115,8 @@ public class MessageManagerImplSESTest {
 		messageManager = new MessageManagerImpl(mockMessageDAO,
 				mockUserGroupDAO, mockGroupMembersDAO, mockUserManager,
 				mockUserProfileDAO, mockAuthorizationManager, amazonSESClient,
-				mockFileHandleManager, mockNodeDAO, mockEntityPermissionsManager);
+				mockFileHandleManager, mockNodeDAO, mockEntityPermissionsManager,
+				mockFileHandleDao);
 		
 		// The end goal of this mocking is to pass a single recipient through the authorization 
 		// and individual-ization checks within the MessageManager's sendMessage method.
@@ -114,12 +126,21 @@ public class MessageManagerImplSESTest {
 		mockMessageToUser = new MessageToUser();
 		mockMessageToUser.setCreatedBy(mockUserIdString);
 		mockMessageToUser.setRecipients(mockRecipients);
-		when(mockMessageDAO.getMessage(anyString())).thenReturn(mockMessageToUser);
+		mockMessageToUser.setFileHandleId(FILE_HANDLE_ID_PLAIN_TEXT);
+		when(mockMessageDAO.getMessage(MESSAGE_ID_PLAIN_TEXT)).thenReturn(mockMessageToUser);
+		
+		MessageToUser mockHtmlMessageToUser = new MessageToUser();
+		mockHtmlMessageToUser.setCreatedBy(mockUserIdString);
+		mockHtmlMessageToUser.setRecipients(mockRecipients);
+		mockHtmlMessageToUser.setFileHandleId(FILE_HANDLE_ID_HTML);
+		when(mockMessageDAO.getMessage(MESSAGE_ID_HTML)).thenReturn(mockHtmlMessageToUser);
 		
 		// Mocks downloadEmailContent(...)
 		mockFileHandleManager = mock(FileHandleManager.class);
-		URL url = MessageManagerImplSESTest.class.getClassLoader().getResource("images/notAnImage.txt");
-		when(mockFileHandleManager.getRedirectURLForFileHandle(anyString())).thenReturn(url);
+		URL urlPT = MessageManagerImplSESTest.class.getClassLoader().getResource("images/notAnImage.txt");
+		when(mockFileHandleManager.getRedirectURLForFileHandle(FILE_HANDLE_ID_PLAIN_TEXT)).thenReturn(urlPT);
+		URL urlHTML = MessageManagerImplSESTest.class.getClassLoader().getResource("images/notAnImage.html");
+		when(mockFileHandleManager.getRedirectURLForFileHandle(FILE_HANDLE_ID_HTML)).thenReturn(urlHTML);
 		messageManager.setFileHandleManager(mockFileHandleManager);
 
 		// Proceed past this check
@@ -128,19 +149,29 @@ public class MessageManagerImplSESTest {
 		// Mocks expandRecipientSet(...)
 		mockUserGroup = new UserGroup();
 		mockUserGroup.setIsIndividual(true);
-		mockUserGroup.setId(mockRecipientId);
+		mockUserGroup.setId(mockRecipientIdString);
 		when(mockUserGroupDAO.get(eq(mockRecipientId))).thenReturn(mockUserGroup);
 		
 		// Mocks the getting of settings
 		mockUserProfile = new UserProfile();
 		mockUserProfile.setNotificationSettings(new Settings());
-		when(mockUserProfileDAO.get(eq(mockRecipientId))).thenReturn(mockUserProfile);
+		when(mockUserProfileDAO.get(eq(mockRecipientIdString))).thenReturn(mockUserProfile);
 		
 		// Mocks the username supplied to SES
-		mockUserInfo = new UserInfo(false);
-		mockUserInfo.setUser(new User());
-		mockUserInfo.getUser().setDisplayName("Foo Bar");
+		mockUserInfo = new UserInfo(false, mockUserId);
 		when(mockUserManager.getUserInfo(eq(mockUserId))).thenReturn(mockUserInfo);
+		
+
+		
+		S3FileHandle plainTextFileHandle = new S3FileHandle();
+		plainTextFileHandle.setId(FILE_HANDLE_ID_PLAIN_TEXT);
+		plainTextFileHandle.setContentType("text/plain; charset=utf-8");
+		when(mockFileHandleDao.get(FILE_HANDLE_ID_PLAIN_TEXT)).thenReturn(plainTextFileHandle);
+		
+		S3FileHandle htmlFileHandle = new S3FileHandle();
+		htmlFileHandle.setId(FILE_HANDLE_ID_HTML);
+		htmlFileHandle.setContentType("text/html; charset=utf-8");
+		when(mockFileHandleDao.get(FILE_HANDLE_ID_HTML)).thenReturn(htmlFileHandle);
 	}
 	
 	/**
@@ -148,44 +179,58 @@ public class MessageManagerImplSESTest {
 	 */
 	@Ignore
 	@Test
-	public void testToDeveloper() throws Exception {
-		mockUserGroup.setName("joseph.wu@sagebase.org");
-		List<String> errors = messageManager.processMessage("Hehe?");
+	public void testPlainTextToDeveloper() throws Exception {
+		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT);
+		assertEquals(errors.toString(), 0, errors.size());
+	}
+	
+	/**
+	 * Use this test to visually check if HTML messages are properly transmitted
+	 */
+	@Ignore
+	@Test
+	public void testHTMLToDeveloper() throws Exception {
+		List<String> errors = messageManager.processMessage(MESSAGE_ID_HTML);
 		assertEquals(errors.toString(), 0, errors.size());
 	}
 	
 	@Test
 	public void testSuccess() throws Exception {
-		mockUserGroup.setName(SUCCESS_EMAIL);
-		List<String> errors = messageManager.processMessage("Blarg!");
+		mockUserProfile.setEmails(new LinkedList<String>());
+		mockUserProfile.getEmails().add(SUCCESS_EMAIL);
+		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT);
 		assertEquals(errors.toString(), 0, errors.size());
 	}
 	
 	@Test
 	public void testBounce() throws Exception {
-		mockUserGroup.setName(BOUNCE_EMAIL);
-		List<String> errors = messageManager.processMessage("Arrrr!");
+		mockUserProfile.setEmails(new LinkedList<String>());
+		mockUserProfile.getEmails().add(BOUNCE_EMAIL);
+		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT);
 		assertEquals(errors.toString(), 0, errors.size());
 	}
 	
 	@Test
 	public void testOutOfOffice() throws Exception {
-		mockUserGroup.setName(OOTO_EMAIL);
-		List<String> errors = messageManager.processMessage("Meh?!?");
+		mockUserProfile.setEmails(new LinkedList<String>());
+		mockUserProfile.getEmails().add(OOTO_EMAIL);
+		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT);
 		assertEquals(errors.toString(), 0, errors.size());
 	}
 	
 	@Test
 	public void testComplaint() throws Exception {
-		mockUserGroup.setName(COMPLAINT_EMAIL);
-		List<String> errors = messageManager.processMessage("Grrrr!");
+		mockUserProfile.setEmails(new LinkedList<String>());
+		mockUserProfile.getEmails().add(COMPLAINT_EMAIL);
+		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT);
 		assertEquals(errors.toString(), 0, errors.size());
 	}
 	
 	@Test
 	public void testSuppressionList() throws Exception {
-		mockUserGroup.setName(SUPPRESSION_EMAIL);
-		List<String> errors = messageManager.processMessage("Oooof!");
+		mockUserProfile.setEmails(new LinkedList<String>());
+		mockUserProfile.getEmails().add(SUPPRESSION_EMAIL);
+		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT);
 		assertEquals(errors.toString(), 0, errors.size());
 	}
 }

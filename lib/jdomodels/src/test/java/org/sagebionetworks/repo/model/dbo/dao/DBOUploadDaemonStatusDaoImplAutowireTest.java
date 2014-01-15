@@ -13,9 +13,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dao.UploadDaemonStatusDao;
 import org.sagebionetworks.repo.model.file.State;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
@@ -29,10 +28,9 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class DBOUploadDaemonStatusDaoImplAutowireTest {
 	
 	private static final double DELTA = 0.0001;
+	
 	@Autowired
-	UploadDaemonStatusDao uploadDaemonStatusDao;
-	@Autowired
-	private UserGroupDAO userGroupDAO;
+	private UploadDaemonStatusDao uploadDaemonStatusDao;
 	
 	private String userId;
 	
@@ -41,8 +39,7 @@ public class DBOUploadDaemonStatusDaoImplAutowireTest {
 	@Before
 	public void before(){
 		toDelete = new LinkedList<String>();
-		userId = userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId();
-		assertNotNull(userId);
+		userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString();
 	}
 	
 	@After

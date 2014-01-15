@@ -89,10 +89,10 @@ public class QueryDAOImplTest {
 		// set up mocks
 		mockUserInfo = mock(UserInfo.class);
 		mockAclDAO = mock(AccessControlListDAO.class);
-		when(mockAclDAO.canAccess(Matchers.<Collection<UserGroup>>any(), eq(EVAL_ID1), eq(ACCESS_TYPE.READ))).thenReturn(true);
-		when(mockAclDAO.canAccess(Matchers.<Collection<UserGroup>>any(), eq(EVAL_ID1), eq(ACCESS_TYPE.READ_PRIVATE_SUBMISSION))).thenReturn(true);
-		when(mockAclDAO.canAccess(Matchers.<Collection<UserGroup>>any(), eq(EVAL_ID2), eq(ACCESS_TYPE.READ))).thenReturn(true);
-		when(mockAclDAO.canAccess(Matchers.<Collection<UserGroup>>any(), eq(EVAL_ID2), eq(ACCESS_TYPE.READ_PRIVATE_SUBMISSION))).thenReturn(false);
+		when(mockAclDAO.canAccess(Matchers.<Set<Long>>any(), eq(EVAL_ID1), eq(ACCESS_TYPE.READ))).thenReturn(true);
+		when(mockAclDAO.canAccess(Matchers.<Set<Long>>any(), eq(EVAL_ID1), eq(ACCESS_TYPE.READ_PRIVATE_SUBMISSION))).thenReturn(true);
+		when(mockAclDAO.canAccess(Matchers.<Set<Long>>any(), eq(EVAL_ID2), eq(ACCESS_TYPE.READ))).thenReturn(true);
+		when(mockAclDAO.canAccess(Matchers.<Set<Long>>any(), eq(EVAL_ID2), eq(ACCESS_TYPE.READ_PRIVATE_SUBMISSION))).thenReturn(false);
 		queryDAO.setAclDAO(mockAclDAO);
 	}
 	

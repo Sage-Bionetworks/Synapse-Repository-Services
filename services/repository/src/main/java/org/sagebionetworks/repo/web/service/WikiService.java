@@ -27,7 +27,7 @@ public interface WikiService {
 	 * @throws NotFoundException 
 	 * @throws IOException TODO
 	 */
-	WikiPage createWikiPage(String userId, String objectId, ObjectType entity,	WikiPage toCreate) throws DatastoreException, NotFoundException, IOException;
+	WikiPage createWikiPage(Long userId, String objectId, ObjectType entity,	WikiPage toCreate) throws DatastoreException, NotFoundException, IOException;
 
 	/**
 	 * Get a wiki page.
@@ -40,7 +40,7 @@ public interface WikiService {
 	 * @throws NotFoundException 
 	 * @throws IOException TODO
 	 */
-	WikiPage getWikiPage(String userId, WikiPageKey key) throws DatastoreException, NotFoundException, IOException;
+	WikiPage getWikiPage(Long userId, WikiPageKey key) throws DatastoreException, NotFoundException, IOException;
 
 	/**
 	 * Update a wiki page.
@@ -53,7 +53,7 @@ public interface WikiService {
 	 * @throws NotFoundException 
 	 * @throws IOException TODO
 	 */
-	WikiPage updateWikiPage(String userId, String objectId, ObjectType objectType,	WikiPage toUpdate) throws DatastoreException, NotFoundException, IOException;
+	WikiPage updateWikiPage(Long userId, String objectId, ObjectType objectType,	WikiPage toUpdate) throws DatastoreException, NotFoundException, IOException;
 
 	/**
 	 * Delete a wiki page.
@@ -63,7 +63,7 @@ public interface WikiService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	void deleteWikiPage(String userId, WikiPageKey wikiPageKey) throws DatastoreException, NotFoundException;
+	void deleteWikiPage(Long userId, WikiPageKey wikiPageKey) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get the WikiHeaderTree for an owner.
@@ -76,7 +76,7 @@ public interface WikiService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	PaginatedResults<WikiHeader> getWikiHeaderTree(String userId,String ownerId, ObjectType type, Long limit , Long offest) throws DatastoreException, NotFoundException;
+	PaginatedResults<WikiHeader> getWikiHeaderTree(Long userId,String ownerId, ObjectType type, Long limit , Long offest) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get all of the file handles of all attachments on the given wiki page.
@@ -87,7 +87,7 @@ public interface WikiService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	FileHandleResults getAttachmentFileHandles(String userId, WikiPageKey wikiPageKey) throws DatastoreException, NotFoundException;
+	FileHandleResults getAttachmentFileHandles(Long userId, WikiPageKey wikiPageKey) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Get the Redirect URL for a given attachment.
@@ -98,7 +98,7 @@ public interface WikiService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	URL getAttachmentRedirectURL(String userId, WikiPageKey wikiPageKey, String fileName) throws DatastoreException, NotFoundException;
+	URL getAttachmentRedirectURL(Long userId, WikiPageKey wikiPageKey, String fileName) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Get the redirect URL for a given Preview.
@@ -109,7 +109,7 @@ public interface WikiService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	URL getAttachmentPreviewRedirectURL(String userId, WikiPageKey wikiPageKey, String fileName) throws DatastoreException, NotFoundException;
+	URL getAttachmentPreviewRedirectURL(Long userId, WikiPageKey wikiPageKey, String fileName) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get the root wiki page.
@@ -121,6 +121,6 @@ public interface WikiService {
 	 * @throws NotFoundException 
 	 * @throws IOException TODO
 	 */
-	WikiPage getRootWikiPage(String userId, String ownerId, ObjectType type) throws UnauthorizedException, NotFoundException, IOException;
+	WikiPage getRootWikiPage(Long userId, String ownerId, ObjectType type) throws UnauthorizedException, NotFoundException, IOException;
 
 }

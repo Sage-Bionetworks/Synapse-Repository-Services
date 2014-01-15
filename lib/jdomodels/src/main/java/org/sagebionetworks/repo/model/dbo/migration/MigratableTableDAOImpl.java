@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.repo.model.dbo.AutoIncrementDatabaseObject;
+import org.sagebionetworks.repo.model.dbo.AutoTableMapping;
 import org.sagebionetworks.repo.model.dbo.DMLUtils;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
@@ -269,7 +270,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		String sql = getInsertOrUpdateSql(type);
 		SqlParameterSource[] namedParameters = new BeanPropertySqlParameterSource[batch.size()];
 		for(int i=0; i<batch.size(); i++){
-			namedParameters[i] = new BeanPropertySqlParameterSource(batch.get(i));
+			namedParameters[i] = getSqlParameterSource(batch.get(i), batch.get(i).getTableMapping());
 			Object obj = namedParameters[i].getValue(backukpIdColumn.getFieldName());
 			if(!(obj instanceof Long)) throw new IllegalArgumentException("Cannot get backup ID for type : "+type);
 			Long id = (Long) obj;
@@ -279,7 +280,14 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		simpleJdbcTemplate.batchUpdate(sql, namedParameters);
 		return createOrUpdateIds;
 	}
-	
+
+	private <T> SqlParameterSource getSqlParameterSource(T toCreate, TableMapping<T> mapping) {
+		if (mapping instanceof AutoTableMapping) {
+			return ((AutoTableMapping) mapping).getSqlParameterSource(toCreate);
+		}
+		return new BeanPropertySqlParameterSource(toCreate);
+	}
+
 	/**
 	 * The the list sql for this type.
 	 * @param type

@@ -20,15 +20,12 @@ import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.search.SearchDocumentDriver;
 import org.sagebionetworks.repo.model.EntityPath;
-import org.sagebionetworks.repo.model.User;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.search.Hit;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.KeyValue;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.service.SearchServiceImpl;
 import org.sagebionetworks.search.SearchDao;
 import org.sagebionetworks.utils.HttpClientHelperException;
 
@@ -52,12 +49,8 @@ public class SearchServiceImplTest {
 		mockUserManager = Mockito.mock(UserManager.class);
 		mockSearchDocumentDriver = Mockito.mock(SearchDocumentDriver.class);
 		service= new SearchServiceImpl(mockSearchDao, mockUserManager, mockSearchDocumentDriver);
-		userInfo = new UserInfo(false);
-		userInfo.setUser(new User());
-		userInfo.setGroups(new LinkedList<UserGroup>());
-		UserGroup ug = new UserGroup();
-		ug.setId("999");
-		userInfo.getGroups().add(ug);
+		userInfo = new UserInfo(false, 990L);
+
 	}
 	
 	@Test

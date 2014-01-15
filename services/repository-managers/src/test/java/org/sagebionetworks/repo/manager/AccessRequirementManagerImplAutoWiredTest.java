@@ -10,6 +10,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
@@ -23,7 +24,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
@@ -34,6 +35,7 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -80,8 +82,12 @@ public class AccessRequirementManagerImplAutoWiredTest {
 
 	@Before
 	public void before() throws Exception {
-		adminUserInfo = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
-		testUserInfo = userManager.getUserInfo(AuthorizationConstants.TEST_USER_NAME);
+		NewUser user = new NewUser();
+		user.setEmail(UUID.randomUUID().toString() + "@test.com");
+		user.setUserName(UUID.randomUUID().toString());
+		testUserInfo = userManager.getUserInfo(userManager.createUser(user));
+		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		
 		assertNotNull(nodeManager);
 		nodesToDelete = new ArrayList<String>();
 		
@@ -99,7 +105,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		AccessControlList acl = entityPermissionsManager.getACL(rootId, adminUserInfo);
 		Set<ResourceAccess> raSet = acl.getResourceAccess();
 		ResourceAccess ra = new ResourceAccess();
-		String testUserId = testUserInfo.getIndividualGroup().getId();
+		String testUserId = testUserInfo.getId().toString();
 		ra.setPrincipalId(Long.parseLong(testUserId));
 		Set<ACCESS_TYPE> atSet = new HashSet<ACCESS_TYPE>();
 		atSet.add(ACCESS_TYPE.CREATE);
@@ -169,6 +175,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 				adminEvaluation=null;
 			} catch (Exception e) {}
 		}
+		userManager.deletePrincipal(adminUserInfo, testUserInfo.getId());
 	}
 	
 	private static TermsOfUseAccessRequirement newEntityAccessRequirement(String entityId) {

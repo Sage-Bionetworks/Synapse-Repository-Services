@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.v2.dao;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -9,6 +10,7 @@ import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiMarkdownVersion;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -43,30 +45,23 @@ public interface V2WikiPageDao {
 	 */
 	public V2WikiPage updateWikiPage(V2WikiPage toUpdate, Map<String, FileHandle> fileNameToFileHandleMap, String ownerId, ObjectType ownerType, List<String> newFileHandleIds) throws NotFoundException;		
 	/**
-	 * Get a wiki page.
+	 * Get a version of a wiki page.
+	 * @param version TODO
 	 * @param id
 	 * @return
 	 * @throws NotFoundException 
 	 */
-	public V2WikiPage get(WikiPageKey key) throws NotFoundException;
+	public V2WikiPage get(WikiPageKey key, Long version) throws NotFoundException;
 	
 	/**
-	 * To look at ANY VERSION of a wiki's markdown: Get the handle id of a version's markdown.
+	 * Get the markdown of a wiki page as a string.
 	 * @param key
-	 * @param version
+	 * @param version TODO
 	 * @return
-	 * @throws NotFoundException 
+	 * @throws IOException
+	 * @throws NotFoundException
 	 */
-	public String getMarkdownHandleIdFromHistory(WikiPageKey key, Long version) throws NotFoundException;
-	
-	/**
-	 * To look at ANY VERSION of a wiki's attachments: Get the handle ids of a version's attachments.
-	 * @param key
-	 * @param version
-	 * @return
-	 * @throws NotFoundException 
-	 */
-	public List<String> getWikiFileHandleIdsFromHistory(WikiPageKey key, Long version) throws NotFoundException;
+	public String getMarkdown(WikiPageKey key, Long version) throws IOException, NotFoundException;
 	
 	/**
 	 * Get ALL the file handle ids used (in the past/currently) for a wiki page.
@@ -108,6 +103,15 @@ public interface V2WikiPageDao {
 	public List<V2WikiHistorySnapshot> getWikiHistory(WikiPageKey key, Long limit, Long offset) throws NotFoundException, DatastoreException;
 
 	/**
+	 * Gets a version of a wiki's title, markdown handle id, and list of attachments' file handle ids.
+	 * @param key
+	 * @param version
+	 * @return
+	 * @throws NotFoundException
+	 */
+	public V2WikiMarkdownVersion getVersionOfWikiContent(WikiPageKey key, Long version) throws NotFoundException;
+	
+	/**
 	 * Get the entire tree of wiki pages for a given owner.
 	 * @param parentId
 	 * @return
@@ -124,23 +128,36 @@ public interface V2WikiPageDao {
 	String lockForUpdate(String wikiId);
 	
 	/**
-	 * Get all of the FileHandleIds for a wiki page.
+	 * To look at ANY VERSION of a wiki's attachments: Get the handle ids of a version's attachments.
+	 * If version is null, the current attachments of the wiki are returned.
 	 * @param key
+	 * @param version
 	 * @return
 	 * @throws NotFoundException 
 	 */
-	List<String> getWikiFileHandleIds(WikiPageKey key) throws NotFoundException;
+	List<String> getWikiFileHandleIds(WikiPageKey key, Long version) throws NotFoundException;
 	
 	/**
-	 * Lookup the FileHandleId for a given WikiPage with the given name.
-	 * 
+	 * Lookup the FileHandleId for an attachment, for a given WikiPage with the given name.
+	 * @param fileName
+	 * @param version TODO
 	 * @param ownerId
 	 * @param type
-	 * @param fileName
+	 * 
 	 * @return
 	 */
-	String getWikiAttachmentFileHandleForFileName(WikiPageKey key, String fileName) throws NotFoundException;
+	String getWikiAttachmentFileHandleForFileName(WikiPageKey key, String fileName, Long version) throws NotFoundException;
 
+	/**
+	 * To look at ANY VERSION of a wiki's markdown: Get the handle id of a version's markdown.
+	 * If version is null, then the current markdown handle id is returned.
+	 * @param key
+	 * @param version
+	 * @return
+	 * @throws NotFoundException 
+	 */
+	String getMarkdownHandleId(WikiPageKey key, Long version) throws NotFoundException;
+	
 	/**
 	 * Given a wiki id, lookup the key
 	 * @param wikiId

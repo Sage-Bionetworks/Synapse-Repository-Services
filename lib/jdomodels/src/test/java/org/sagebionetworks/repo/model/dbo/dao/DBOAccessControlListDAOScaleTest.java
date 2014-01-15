@@ -16,7 +16,7 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -63,13 +63,12 @@ public class DBOAccessControlListDAOScaleTest {
 
 		// Create a user
 		userGroup = new UserGroup();
-		userGroup.setName("aTestUser@sagebase.org");
 		userGroup.setCreationDate(new Date());
 		userGroup.setIsIndividual(true);
-		userId = userGroupDAO.create(userGroup);
+		userId = userGroupDAO.create(userGroup).toString();
 		// update the object from the database so it has its ID
-		userGroup = userGroupDAO.get(userId);
-		Long createdById = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId());
+		userGroup = userGroupDAO.get(Long.parseLong(userId));
+		Long createdById = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 
 		// Create 100 projects root project
 		for (int i = 0; i < 200; i++) {
@@ -128,8 +127,8 @@ public class DBOAccessControlListDAOScaleTest {
 	@Test
 	public void testTime() throws DatastoreException{
 		// Time the can access methods
-		ArrayList<UserGroup> groups = new ArrayList<UserGroup>();
-		groups.add(userGroup);
+		Set<Long> groups = new HashSet<Long>();
+		groups.add(Long.parseLong(userGroup.getId()));
 		System.out.println("userGroup ID: \t"+userGroup.getId());
 		System.out.println("Number of base projects: \t"+toDelete.size());
 		for(ACCESS_TYPE type: ACCESS_TYPE.values()){

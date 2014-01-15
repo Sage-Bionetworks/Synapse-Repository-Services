@@ -1,9 +1,8 @@
 package org.sagebionetworks.repo.manager.message;
 
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -86,8 +85,7 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 	private String topicArn;
 	private String topicName;
 
-	private AtomicReference<List<ChangeMessage>> messageQueue = 
-			new AtomicReference<List<ChangeMessage>>(Collections.synchronizedList(new LinkedList<ChangeMessage>()));
+	private ConcurrentLinkedQueue<ChangeMessage> messageQueue = new ConcurrentLinkedQueue<ChangeMessage>();
 
 	public RepositoryMessagePublisherImpl(final String topicName) {
 		if (topicName == null) {
@@ -129,7 +127,7 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 		if(message.getObjectType()  == null) throw new IllegalArgumentException("ChangeMessage.getObjectType() cannot be null");
 		if(message.getTimestamp()  == null) throw new IllegalArgumentException("ChangeMessage.getTimestamp() cannot be null");
 		// Add the message to a queue
-		messageQueue.get().add(message);
+		messageQueue.add(message);
 	}
 
 	@Override
@@ -147,9 +145,8 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 	 */
 	@Override
 	public void timerFired(){
-		// Swap the current queue as an atomic action. Any messages that arrive while processing will get
-		// processed the next time the timer fires.
-		List<ChangeMessage> currentQueue = messageQueue.getAndSet(Collections.synchronizedList(new LinkedList<ChangeMessage>()));
+		// Poll all data from the queue.
+		List<ChangeMessage> currentQueue = pollListFromQueue();
 		if(!shouldMessagesBePublishedToTopic){
 			// The messages should not be broadcast
 			if(log.isDebugEnabled() && currentQueue.size() > 0){
@@ -161,6 +158,19 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 		for(ChangeMessage message: currentQueue){
 			publishMessage(message);
 		}
+	}
+	
+	/**
+	 * Poll all data currently on the queue and add it to a list.
+	 * @return
+	 */
+	private List<ChangeMessage> pollListFromQueue(){
+		List<ChangeMessage> list = new LinkedList<ChangeMessage>();
+		for(ChangeMessage cm = this.messageQueue.poll(); cm != null; cm = this.messageQueue.poll()){
+			// Add to the list
+			list.add(cm);
+		}
+		return list;
 	}
 
 	/**

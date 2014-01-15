@@ -52,7 +52,7 @@ public class MembershipInvitationManagerImpl implements
 	}
 
 	public static void populateCreationFields(UserInfo userInfo, MembershipInvtnSubmission mis, Date now) {
-		mis.setCreatedBy(userInfo.getIndividualGroup().getId());
+		mis.setCreatedBy(userInfo.getId().toString());
 		mis.setCreatedOn(now);
 	}
 

@@ -1,14 +1,19 @@
 package org.sagebionetworks.client;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.json.JSONObject;
 import org.sagebionetworks.bridge.model.Community;
+import org.sagebionetworks.bridge.model.data.ParticipantDataColumnDescriptor;
+import org.sagebionetworks.bridge.model.data.ParticipantDataDescriptor;
+import org.sagebionetworks.bridge.model.data.ParticipantDataStatusList;
 import org.sagebionetworks.bridge.model.versionInfo.BridgeVersionInfo;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UserGroupHeader;
-import org.sagebionetworks.schema.adapter.*;
+import org.sagebionetworks.repo.model.table.PaginatedRowSet;
+import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.schema.adapter.JSONEntity;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 
@@ -17,10 +22,7 @@ import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
  */
 public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 
-
 	public static final String BRIDGE_JAVA_CLIENT = "Bridge-Java-Client/";
-
-	private static final Logger log = LogManager.getLogger(BridgeClientImpl.class.getName());
 
 	private static final String DEFAULT_BRIDGE_ENDPOINT = "https://bridge-prod.prod.sagebase.org/bridge/v1";
 
@@ -28,13 +30,19 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 
 	private static final String COMMUNITY = "/community";
 	private static final String MEMBER = "/member";
+	private static final String PARTICIPANT_DATA = "/participantData";
+	private static final String PARTICIPANT_DATA_DESCRIPTOR = "/participantDataDescriptor";
+	private static final String PARTICIPANT_DATA_COLUMN_DESCRIPTOR = "/participantDataColumnDescriptor";
+	private static final String PARTICIPANT = "/participant";
 
 	private static final String JOINED = "/joined";
-	
+
 	private static final String JOIN = "/join";
 	private static final String LEAVE = "/leave";
 	private static final String ADD_ADMIN = "/addadmin";
 	private static final String REMOVE_ADMIN = "/removeadmin";
+
+	private static final String SEND_UPDATES = "/sendupdates";
 
 	protected String bridgeEndpoint;
 
@@ -69,6 +77,7 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 		super(BRIDGE_JAVA_CLIENT + ClientVersionInfo.getClientVersionInfo(), sharedClientConnection);
 		this.bridgeEndpoint = DEFAULT_BRIDGE_ENDPOINT;
 	}
+
 	/**
 	 * @param bridgeEndpoint the bridgeEndpoint to set
 	 */
@@ -149,7 +158,7 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 		String uri = COMMUNITY + "/" + communityId + JOIN;
 		get(uri);
 	}
-	
+
 	@Override
 	public void leaveCommunity(String communityId) throws SynapseException {
 		String uri = COMMUNITY + "/" + communityId + LEAVE;
@@ -166,6 +175,68 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 	public void removeCommunityAdmin(String communityId, String principalId) throws SynapseException {
 		String uri = COMMUNITY + "/" + communityId + MEMBER + "/" + principalId + REMOVE_ADMIN;
 		get(uri);
+	}
+
+	@Override
+	public RowSet appendParticipantData(String participantDataDescriptorId, RowSet data) throws SynapseException {
+		String uri = PARTICIPANT_DATA + "/" + participantDataDescriptorId;
+		return create(uri, data);
+	}
+
+	@Override
+	public RowSet appendParticipantData(String participantIdentifier, String participantDataDescriptorId, RowSet data)
+			throws SynapseException {
+		String uri = PARTICIPANT_DATA + "/" + participantDataDescriptorId + "/" + PARTICIPANT + "/" + participantIdentifier;
+		return create(uri, data);
+	}
+
+	@Override
+	public RowSet updateParticipantData(String participantDataDescriptorId, RowSet data) throws SynapseException {
+		String uri = PARTICIPANT_DATA + "/" + participantDataDescriptorId;
+		return update(uri, data);
+	}
+
+	@Override
+	public PaginatedRowSet getParticipantData(String participantDataDescriptorId, long limit, long offset) throws SynapseException {
+		String uri = PARTICIPANT_DATA + "/" + participantDataDescriptorId;
+		return getPaginated(uri, PaginatedRowSet.class, limit, offset);
+	}
+
+	@Override
+	public ParticipantDataDescriptor createParticipantDataDescriptor(ParticipantDataDescriptor participantDataDescriptor) throws SynapseException {
+		String uri = PARTICIPANT_DATA_DESCRIPTOR;
+		return create(uri, participantDataDescriptor);
+	}
+
+	@Override
+	public PaginatedResults<ParticipantDataDescriptor> getAllParticipantDatas(long limit, long offset) throws SynapseException {
+		String uri = PARTICIPANT_DATA_DESCRIPTOR;
+		return getList(uri, ParticipantDataDescriptor.class, limit, offset);
+	}
+
+	@Override
+	public PaginatedResults<ParticipantDataDescriptor> getParticipantDatas(long limit, long offset) throws SynapseException {
+		String uri = PARTICIPANT_DATA;
+		return getList(uri, ParticipantDataDescriptor.class, limit, offset);
+	}
+
+	@Override
+	public ParticipantDataColumnDescriptor createParticipantDataColumnDescriptor(ParticipantDataColumnDescriptor participantDataColumnDescriptor1) throws SynapseException {
+		String uri = PARTICIPANT_DATA_COLUMN_DESCRIPTOR;
+		return create(uri, participantDataColumnDescriptor1);
+	}
+
+	@Override
+	public PaginatedResults<ParticipantDataColumnDescriptor> getParticipantDataColumnDescriptors(String participantDataDescriptorId,
+			long limit, long offset) throws SynapseException {
+		String uri = PARTICIPANT_DATA_COLUMN_DESCRIPTOR + "/" + participantDataDescriptorId;
+		return getList(uri, ParticipantDataColumnDescriptor.class, limit, offset);
+	}
+
+	@Override
+	public void sendParticipantDataDescriptorUpdates(ParticipantDataStatusList statuses) throws SynapseException {
+		String uri = PARTICIPANT_DATA_DESCRIPTOR + SEND_UPDATES;
+		put(uri, statuses);
 	}
 
 	private void get(String uri) throws SynapseException {
@@ -186,14 +257,26 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 	private <T extends JSONEntity> PaginatedResults<T> getList(String uri, Class<T> klass, long limit, long offset) throws SynapseException {
 		// Get the json for this entity
 		try {
+			uri = uri + "?limit=" + limit + "&offset=" + offset;
+
 			JSONObject jsonObj = getSharedClientConnection().getJson(bridgeEndpoint, uri, getUserAgent());
 			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
-
-			uri = uri + "?limit=" + limit + "&offset=" + offset;
 
 			PaginatedResults<T> results = new PaginatedResults<T>(klass);
 			results.initializeFromJSONObject(adapter);
 			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+
+	private <T extends JSONEntity> T getPaginated(String uri, Class<T> klass, long limit, long offset) throws SynapseException {
+		// Get the json for this entity
+		try {
+			uri = uri + "?limit=" + limit + "&offset=" + offset;
+			JSONObject jsonObject = getSharedClientConnection().getJson(bridgeEndpoint, uri, getUserAgent());
+
+			return (T) EntityFactory.createEntityFromJSONObject(jsonObject, klass);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
@@ -221,6 +304,17 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 			jsonObject = getSharedClientConnection().postJson(bridgeEndpoint, uri, jsonObject.toString(), getUserAgent());
 			// Now convert to Object to an entity
 			return (T) EntityFactory.createEntityFromJSONObject(jsonObject, t.getClass());
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+
+	private <T extends JSONEntity> void put(String uri, T t) throws SynapseException {
+		// Get the json for this entity
+		try {
+			JSONObject jsonObject = EntityFactory.createJSONObjectForEntity(t);
+			// Send the entity
+			getSharedClientConnection().postJson(bridgeEndpoint, uri, jsonObject.toString(), getUserAgent());
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}

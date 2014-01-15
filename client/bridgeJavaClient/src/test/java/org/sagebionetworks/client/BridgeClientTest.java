@@ -1,33 +1,29 @@
 package org.sagebionetworks.client;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
-import org.apache.commons.codec.binary.Base64;
-import org.apache.http.*;
+import java.io.IOException;
+
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.StatusLine;
 import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpUriRequest;
-import org.apache.http.util.EntityUtils;
-import org.json.JSONException;
-import org.json.JSONObject;
-import org.junit.*;
-import org.mockito.*;
-import org.sagebionetworks.bridge.model.Community;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 import org.sagebionetworks.bridge.model.versionInfo.BridgeVersionInfo;
-import org.sagebionetworks.client.exceptions.SynapseServiceException;
-import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
-import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
 import com.amazonaws.util.StringInputStream;
-
-import static org.mockito.Mockito.*;
-import static org.junit.Assert.fail;
 
 public class BridgeClientTest {
 
@@ -65,11 +61,11 @@ public class BridgeClientTest {
 		// that takes OriginatingClient (there's no difference in the call between clients). 
 		// The underlying libraries always set this to synapse (and it's ignored).
 		
-		expectRequest(URIBASE + "/version?originClient=synapse", "GET", null, EntityFactory.createJSONStringForEntity(version));
+		expectRequest(URIBASE + "/version?originClient=SYNAPSE", "GET", null, EntityFactory.createJSONStringForEntity(version));
 
 		bridgeClient.getBridgeVersionInfo();
 
-		verifyRequest(URIBASE + "/version?originClient=synapse", "GET", null, EntityFactory.createJSONStringForEntity(version));
+		verifyRequest(URIBASE + "/version?originClient=SYNAPSE", "GET", null, EntityFactory.createJSONStringForEntity(version));
 	}
 
 	@Test

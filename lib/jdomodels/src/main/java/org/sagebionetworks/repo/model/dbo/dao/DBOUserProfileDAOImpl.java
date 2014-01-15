@@ -12,13 +12,17 @@ import java.util.UUID;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserGroupDAO;
-import org.sagebionetworks.repo.model.UserGroupInt;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserProfile;
+import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+import org.sagebionetworks.repo.model.principal.BootstrapPrincipal;
+import org.sagebionetworks.repo.model.principal.BootstrapUser;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,6 +46,9 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 	private UserGroupDAO userGroupDAO;
 	
 	@Autowired
+	private TransactionalMessenger transactionalMessenger;
+	
+	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
 	
 	private static final String SELECT_PAGINATED = 
@@ -49,6 +56,7 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 	
 	private static final RowMapper<DBOUserProfile> userProfileRowMapper = (new DBOUserProfile()).getTableMapping();
+	
 
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.model.UserProfileDAO#delete(java.lang.String)
@@ -131,6 +139,9 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 		UserProfileUtils.copyDtoToDbo(dto, dbo);
 		// Update with a new e-tag
 		dbo.seteTag(UUID.randomUUID().toString());
+		
+		// Send a UPDATE message
+		transactionalMessenger.sendMessageAfterCommit("" + dbo.getOwnerId(), ObjectType.PRINCIPAL, dbo.geteTag(), ChangeType.UPDATE);
 
 		boolean success = basicDao.update(dbo);
 		if (!success) throw new DatastoreException("Unsuccessful updating user profile in database.");
@@ -151,25 +162,20 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void bootstrapProfiles(){
 		// Boot strap all users and groups
-		if (userGroupDAO.getBootstrapUsers() == null) {
-			throw new IllegalArgumentException("Bootstrap users cannot be null");
+		if (this.userGroupDAO.getBootstrapPrincipals() == null) {
+			throw new IllegalArgumentException("bootstrapPrincipals users cannot be null");
 		}
 		
 		// For each one determine if it exists, if not create it
-		for (UserGroupInt ug: userGroupDAO.getBootstrapUsers()) {
-			if (ug.getId() == null) throw new IllegalArgumentException("Bootstrap users must have an id");
-			if (ug.getName() == null) throw new IllegalArgumentException("Bootstrap users must have a name");
-			if (ug.getIsIndividual()) {
-				Long.parseLong(ug.getId());
+		for (BootstrapPrincipal abs: this.userGroupDAO.getBootstrapPrincipals()) {
+			if (abs.getId() == null) throw new IllegalArgumentException("Bootstrap users must have an id");
+			if (abs instanceof BootstrapUser) {
 				UserProfile userProfile = null;
 				try {
-					userProfile = this.get(ug.getId());
+					userProfile = this.get(abs.getId().toString());
 				} catch (NotFoundException nfe) {
 					userProfile = new UserProfile();
-					userProfile.setOwnerId(ug.getId());
-					userProfile.setFirstName("First-" + ug.getName());
-					userProfile.setLastName("Last-" + ug.getName());
-					userProfile.setDisplayName(ug.getName());
+					userProfile.setOwnerId(abs.getId().toString());
 					this.create(userProfile);
 				}
 			}

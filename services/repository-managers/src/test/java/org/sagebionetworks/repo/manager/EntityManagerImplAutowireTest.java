@@ -21,7 +21,7 @@ import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -65,11 +65,11 @@ public class EntityManagerImplAutowireTest {
 	private List<String> activitiesToDelete;
 	private List<String> fileHandlesToDelete;
 	
-	private UserInfo userInfo;
+	private UserInfo adminUserInfo;
 	
 	@Before
 	public void before() throws Exception{
-		userInfo = userManager.getUserInfo(AuthorizationConstants.TEST_USER_NAME);
+		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		
 		toDelete = new ArrayList<String>();
 		activitiesToDelete = new ArrayList<String>();
@@ -85,21 +85,21 @@ public class EntityManagerImplAutowireTest {
 		if(entityManager != null && toDelete != null){
 			for(String id: toDelete){
 				try{
-					entityManager.deleteEntity(userInfo, id);
+					entityManager.deleteEntity(adminUserInfo, id);
 				}catch(Exception e){}
 			}
 		}
 		if(activityManager != null && activitiesToDelete != null){
 			for(String id: activitiesToDelete){
 				try{
-					activityManager.deleteActivity(userInfo, id);
+					activityManager.deleteActivity(adminUserInfo, id);
 				}catch(Exception e){}
 			}
 		}
 		if(fileHandleManager != null && fileHandlesToDelete != null){
 			for(String id: fileHandlesToDelete){
 				try{
-					fileHandleManager.deleteFileHandle(userInfo, id);
+					fileHandleManager.deleteFileHandle(adminUserInfo, id);
 				}catch(Exception e){}
 			}
 		}
@@ -109,36 +109,36 @@ public class EntityManagerImplAutowireTest {
 	public void testAllInOne() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ConflictingUpdateException{
 		// Create a datset		
 		Study ds = createDataset();
-		String id = entityManager.createEntity(userInfo, ds, null);
+		String id = entityManager.createEntity(adminUserInfo, ds, null);
 		assertNotNull(id);
 		toDelete.add(id);
 		// Get another copy
-		EntityWithAnnotations<Study> ewa = entityManager.getEntityWithAnnotations(userInfo, id, Study.class);
+		EntityWithAnnotations<Study> ewa = entityManager.getEntityWithAnnotations(adminUserInfo, id, Study.class);
 		assertNotNull(ewa);
 		assertNotNull(ewa.getAnnotations());
 		assertNotNull(ewa.getEntity());
-		Study fetched = entityManager.getEntity(userInfo, id, Study.class);
+		Study fetched = entityManager.getEntity(adminUserInfo, id, Study.class);
 		assertNotNull(fetched);
 		assertEquals(ewa.getEntity(), fetched);
 		System.out.println("Original: "+ds.toString());
 		System.out.println("Fetched: "+fetched.toString());
 		assertEquals(ds.getName(), fetched.getName());
 		// Now get the Annotations
-		Annotations annos = entityManager.getAnnotations(userInfo, id);
+		Annotations annos = entityManager.getAnnotations(adminUserInfo, id);
 		assertNotNull(annos);
 		assertEquals(ewa.getAnnotations(), annos);
 		annos.addAnnotation("someNewTestAnnotation", "someStringValue");
 		// Update
-		entityManager.updateAnnotations(userInfo,id, annos);
+		entityManager.updateAnnotations(adminUserInfo,id, annos);
 		// Now make sure it changed
-		annos = entityManager.getAnnotations(userInfo, id);
+		annos = entityManager.getAnnotations(adminUserInfo, id);
 		assertNotNull(annos);
 		assertEquals("someStringValue", annos.getSingleValue("someNewTestAnnotation"));
 		// Now update the dataset
-		fetched = entityManager.getEntity(userInfo, id, Study.class);
+		fetched = entityManager.getEntity(adminUserInfo, id, Study.class);
 		fetched.setName("myNewName");
-		entityManager.updateEntity(userInfo, fetched, false, null);
-		fetched = entityManager.getEntity(userInfo, id, Study.class);
+		entityManager.updateEntity(adminUserInfo, fetched, false, null);
+		fetched = entityManager.getEntity(adminUserInfo, id, Study.class);
 		assertNotNull(fetched);
 		assertEquals("myNewName", fetched.getName());
 	}
@@ -146,7 +146,7 @@ public class EntityManagerImplAutowireTest {
 	@Test
 	public void testAggregateUpdate() throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException{
 		Study ds = createDataset();
-		String parentId = entityManager.createEntity(userInfo, ds, null);
+		String parentId = entityManager.createEntity(adminUserInfo, ds, null);
 		assertNotNull(parentId);
 		toDelete.add(parentId);
 		List<Data> layerList = new ArrayList<Data>();
@@ -155,11 +155,11 @@ public class EntityManagerImplAutowireTest {
 			Data layer = createLayerForTest(i);
 			layerList.add(layer);
 		}
-		List<String> childrenIds = entityManager.aggregateEntityUpdate(userInfo, parentId, layerList);
+		List<String> childrenIds = entityManager.aggregateEntityUpdate(adminUserInfo, parentId, layerList);
 		assertNotNull(childrenIds);
 		assertEquals(layers, childrenIds.size());
 		
-		List<Data> children = entityManager.getEntityChildren(userInfo, parentId, Data.class);
+		List<Data> children = entityManager.getEntityChildren(adminUserInfo, parentId, Data.class);
 		assertNotNull(children);
 		assertEquals(layers, children.size());
 		Data toUpdate = children.get(0);
@@ -167,12 +167,12 @@ public class EntityManagerImplAutowireTest {
 		assertNotNull(udpatedId);
 		toUpdate.setName("updatedName");
 		// Do it again
-		entityManager.aggregateEntityUpdate(userInfo, parentId, children);
-		children = entityManager.getEntityChildren(userInfo, parentId, Data.class);
+		entityManager.aggregateEntityUpdate(adminUserInfo, parentId, children);
+		children = entityManager.getEntityChildren(adminUserInfo, parentId, Data.class);
 		assertNotNull(children);
 		assertEquals(layers, children.size());
 		// find the one with the updated name
-		Data updatedLayer = entityManager.getEntity(userInfo, udpatedId, Data.class);
+		Data updatedLayer = entityManager.getEntity(adminUserInfo, udpatedId, Data.class);
 		assertNotNull(updatedLayer);
 		assertEquals("updatedName", updatedLayer.getName());
 	}
@@ -192,36 +192,36 @@ public class EntityManagerImplAutowireTest {
 		Study ds = createDataset();
 		// This primary field is stored as an annotation.
 		ds.setDisease("disease");
-		String id = entityManager.createEntity(userInfo, ds, null);
+		String id = entityManager.createEntity(adminUserInfo, ds, null);
 		assertNotNull(id);
 		toDelete.add(id);
 		// Ge the annotations of the datasets
-		Annotations annos = entityManager.getAnnotations(userInfo, id);
+		Annotations annos = entityManager.getAnnotations(adminUserInfo, id);
 		assertNotNull(annos);
 		// None of the primary field annotations should be in this set, in fact it should be emtpy
 		assertEquals(0, annos.getStringAnnotations().size());
 		assertEquals(0, annos.getDateAnnotations().size());
-		Study clone = entityManager.getEntity(userInfo, id, Study.class);
+		Study clone = entityManager.getEntity(adminUserInfo, id, Study.class);
 		assertNotNull(clone);
 		assertEquals(ds.getDisease(), clone.getDisease());
 		// Now add an annotation
 		annos.addAnnotation("stringKey", "some string value");
-		entityManager.updateAnnotations(userInfo, id, annos);
-		annos = entityManager.getAnnotations(userInfo, id);
+		entityManager.updateAnnotations(adminUserInfo, id, annos);
+		annos = entityManager.getAnnotations(adminUserInfo, id);
 		assertNotNull(annos);
 		assertEquals("some string value", annos.getSingleValue("stringKey"));
 		// Make sure we did not lose any primary annotations.
-		clone = entityManager.getEntity(userInfo, id, Study.class);
+		clone = entityManager.getEntity(adminUserInfo, id, Study.class);
 		assertNotNull(clone);
 		assertEquals(ds.getDisease(), clone.getDisease());
 		// Now change the primary field
 		clone.setDisease("disease2");
-		entityManager.updateEntity(userInfo, clone, false, null);
-		clone = entityManager.getEntity(userInfo, id, Study.class);
+		entityManager.updateEntity(adminUserInfo, clone, false, null);
+		clone = entityManager.getEntity(adminUserInfo, id, Study.class);
 		assertNotNull(clone);
 		assertEquals("disease2", clone.getDisease());
 		// We should not have lost any of the additional annotations
-		annos = entityManager.getAnnotations(userInfo, id);
+		annos = entityManager.getAnnotations(adminUserInfo, id);
 		assertNotNull(annos);
 		assertEquals("some string value", annos.getSingleValue("stringKey"));
 		
@@ -231,11 +231,11 @@ public class EntityManagerImplAutowireTest {
 	public void testPLFM_1283() throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException{
 		Data study = new Data();
 		study.setName("test PLFM-1283");
-		String id = entityManager.createEntity(userInfo, study, null);
+		String id = entityManager.createEntity(adminUserInfo, study, null);
 		assertNotNull(id);
 		toDelete.add(id);
 		try{
-			entityManager.getEntityWithAnnotations(userInfo, id, GenotypeData.class);
+			entityManager.getEntityWithAnnotations(adminUserInfo, id, GenotypeData.class);
 			fail("The requested entity type does not match the actaul entity type so this should fail.");
 		}catch(IllegalArgumentException e){
 			// This is expected.
@@ -251,14 +251,14 @@ public class EntityManagerImplAutowireTest {
 	public void testGetEntityForVersionNoEtag() throws Exception {
 		Data data = new Data();
 		data.setName("testGetEntityForVersion");
-		String id = entityManager.createEntity(userInfo, data, null);
+		String id = entityManager.createEntity(adminUserInfo, data, null);
 		assertNotNull(id);
 		toDelete.add(id);
-		data = entityManager.getEntity(userInfo, id, Data.class);
+		data = entityManager.getEntity(adminUserInfo, id, Data.class);
 		assertNotNull(data);
 		assertNotNull(data.getEtag());
 		assertFalse(data.getEtag().equals(NodeConstants.ZERO_E_TAG));
-		data = entityManager.getEntityForVersion(userInfo, id, data.getVersionNumber(), Data.class);
+		data = entityManager.getEntityForVersion(adminUserInfo, id, data.getVersionNumber(), Data.class);
 		assertNotNull(data.getEtag());
 		assertTrue(data.getEtag().equals(NodeConstants.ZERO_E_TAG)); // PLFM-1420
 	}
@@ -274,7 +274,7 @@ public class EntityManagerImplAutowireTest {
 	@Test
 	public void testCreateNewVersionOfEntityWithoutInheritingProvenance_PLFM_1869() throws Exception {
 		Activity act = new Activity();
-		String actId = activityManager.createActivity(userInfo, act);		
+		String actId = activityManager.createActivity(adminUserInfo, act);		
 		assertNotNull(actId);
 		activitiesToDelete.add(actId);
 		
@@ -282,31 +282,31 @@ public class EntityManagerImplAutowireTest {
 		ExternalFileHandle external1 = new ExternalFileHandle();
 		external1.setExternalURL("http://www.google.com");
 		external1.setFileName("file.txt");
-		external1 = fileHandleManager.createExternalFileHandle(userInfo, external1);
+		external1 = fileHandleManager.createExternalFileHandle(adminUserInfo, external1);
 		fileHandlesToDelete.add(external1.getId());
 		
 		file.setDataFileHandleId(external1.getId());
 		file.setName("testCreateNewVersionOfEntityWithoutProvenance");
-		String id = entityManager.createEntity(userInfo, file, actId);
+		String id = entityManager.createEntity(adminUserInfo, file, actId);
 		assertNotNull(id);
 		toDelete.add(id);
-		file = entityManager.getEntity(userInfo, id, FileEntity.class);
-		Activity v1Act = entityManager.getActivityForEntity(userInfo, file.getId(), file.getVersionNumber());
+		file = entityManager.getEntity(adminUserInfo, id, FileEntity.class);
+		Activity v1Act = entityManager.getActivityForEntity(adminUserInfo, file.getId(), file.getVersionNumber());
 		assertEquals(actId, v1Act.getId());
 				
 		ExternalFileHandle external2 = new ExternalFileHandle();
 		external2.setExternalURL("http://www.yahoo.com");
 		external2.setFileName("file.txt");
-		external2 = fileHandleManager.createExternalFileHandle(userInfo, external2);		
+		external2 = fileHandleManager.createExternalFileHandle(adminUserInfo, external2);		
 		fileHandlesToDelete.add(external2.getId());
 		
 		file.setDataFileHandleId(external2.getId());
 		file.setVersionLabel("2");		
-		entityManager.updateEntity(userInfo, file, false, null); // not necessarily a new version, like how the EntityController works
-		FileEntity updated = entityManager.getEntity(userInfo, file.getId(), FileEntity.class);
+		entityManager.updateEntity(adminUserInfo, file, false, null); // not necessarily a new version, like how the EntityController works
+		FileEntity updated = entityManager.getEntity(adminUserInfo, file.getId(), FileEntity.class);
 		
 		try{			
-			entityManager.getActivityForEntity(userInfo, updated.getId(), updated.getVersionNumber());
+			entityManager.getActivityForEntity(adminUserInfo, updated.getId(), updated.getVersionNumber());
 			fail("activity should not have v1's activity id");
 		} catch (NotFoundException e) {
 			// expected

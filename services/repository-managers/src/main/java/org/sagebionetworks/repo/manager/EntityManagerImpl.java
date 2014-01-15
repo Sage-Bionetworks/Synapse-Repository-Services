@@ -45,6 +45,8 @@ public class EntityManagerImpl implements EntityManager {
 	private EntityPermissionsManager entityPermissionsManager;
 	@Autowired
 	UserManager userManager;
+	@Autowired
+	UserProfileManager profileManager;
 
 	public EntityManagerImpl() {
 	}
@@ -159,9 +161,8 @@ public class EntityManagerImpl implements EntityManager {
 				annos.getPrimaryAnnotations(), node.getReferences());
 		// Populate the entity using the node
 		NodeTranslationUtils.updateObjectFromNode(newEntity, node);
-		newEntity.setCreatedBy(userManager.getDisplayName(node
-				.getCreatedByPrincipalId()));
-		newEntity.setModifiedBy(userManager.getDisplayName(node
+		newEntity.setCreatedBy(profileManager.getUserName(node.getCreatedByPrincipalId()));
+		newEntity.setModifiedBy(profileManager.getUserName(node
 				.getModifiedByPrincipalId()));
 		EntityWithAnnotations<T> ewa = new EntityWithAnnotations<T>();
 		ewa.setEntity(newEntity);
@@ -449,7 +450,7 @@ public class EntityManagerImpl implements EntityManager {
 		// pass through
 		QueryResults<VersionInfo> versionsOfEntity = nodeManager.getVersionsOfEntity(userInfo, entityId, offset, limit);
 		for (VersionInfo version : versionsOfEntity.getResults()) {
-			version.setModifiedBy(userManager.getDisplayName(Long.parseLong(version.getModifiedByPrincipalId())));
+			version.setModifiedBy(profileManager.getUserName(Long.parseLong(version.getModifiedByPrincipalId())));
 		}
 		return versionsOfEntity;
 	}
@@ -526,7 +527,7 @@ public class EntityManagerImpl implements EntityManager {
 	}
 
 	@Override
-	public S3AttachmentToken createS3AttachmentToken(String userId,
+	public S3AttachmentToken createS3AttachmentToken(Long userId,
 			String entityId, S3AttachmentToken token) throws UnauthorizedException, NotFoundException, DatastoreException, InvalidModelException{
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		validateUpdateAccess(userInfo, entityId);
@@ -534,7 +535,7 @@ public class EntityManagerImpl implements EntityManager {
 	}
 	
 	@Override
-	public PresignedUrl getAttachmentUrl(String userId, String entityId,
+	public PresignedUrl getAttachmentUrl(Long userId, String entityId,
 			String tokenId) throws NotFoundException, DatastoreException,
 			UnauthorizedException, InvalidModelException {
 		UserInfo userInfo = userManager.getUserInfo(userId);

@@ -1,20 +1,13 @@
 package org.sagebionetworks.repo.model.dbo.v2.dao;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ATTACHMENT_RESERVATION_FILE_HANDLE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ATTACHMENT_RESERVATION_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_TABLE_WIKI_ATTACHMENT_RESERVATION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ROOT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_TABLE_WIKI_PAGE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ID;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -26,10 +19,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -37,10 +28,10 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiMarkdownVersion;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -52,24 +43,21 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 	private static final String SQL_GET_ROOT_ID = "SELECT "+V2_COL_WIKI_ROOT_ID+" FROM "+V2_TABLE_WIKI_PAGE+" WHERE "+V2_COL_WIKI_ID+" = ?";
 
 	@Autowired
-	FileHandleDao fileMetadataDao;
+	private FileHandleDao fileMetadataDao;
 	
 	@Autowired
-	V2WikiPageDao wikiPageDao;
-	
-	@Autowired
-	private UserGroupDAO userGroupDAO;
+	private V2WikiPageDao wikiPageDao;
 
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
-	
+
 	private List<WikiPageKey> toDelete;
-	String creatorUserGroupId;
+	private String creatorUserGroupId;
 	
-	S3FileHandle attachOne;
-	S3FileHandle attachTwo;
-	S3FileHandle markdownOne;
-	S3FileHandle markdownTwo;
+	private S3FileHandle attachOne;
+	private S3FileHandle attachTwo;
+	private S3FileHandle markdownOne;
+	private S3FileHandle markdownTwo;
 	
 	@After
 	public void after(){
@@ -98,7 +86,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 	@Before
 	public void before(){
 		toDelete = new LinkedList<WikiPageKey>();
-		creatorUserGroupId = userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId();
+		creatorUserGroupId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString();
 		assertNotNull(creatorUserGroupId);
 		// We use a long file name to test the uniqueness constraint
 		String longFileNamePrefix = "loooooooooooooooooooooooooooooooooooooonnnnnnnnnnnnnnnnnnnnnnnnnnnggggggggggggggggggggggggg";
@@ -372,16 +360,23 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		WikiPageKey key = new WikiPageKey(ownerId, ownerType, clone.getId());
 		toDelete.add(key);
 		
-		// Add another attachment to the list and update markdown filehandle id to new markdown
+		// Try to get current wiki's markdown file handle id.
+		String currentMarkdownHandleId = wikiPageDao.getMarkdownHandleId(key, null);
+		assertEquals(markdownOne.getId(), currentMarkdownHandleId);
+		
+		// Add another attachment to the list, change the title, and update markdown filehandle id to new markdown
 		clone.getAttachmentFileHandleIds().add(attachTwo.getId());
 		fileNameMap.put(attachTwo.getFileName(), attachTwo);
 		clone.setMarkdownFileHandleId(markdownTwo.getId());
+		
+		clone.setTitle("Updated title");
 		
 		List<String> newIds2 = new ArrayList<String>();
 		newIds2.add(attachTwo.getId());
 		
 		// Update
-		V2WikiPage clone2 = wikiPageDao.updateWikiPage(clone, fileNameMap, ownerId, ownerType, newIds2);		assertNotNull(clone2);
+		V2WikiPage clone2 = wikiPageDao.updateWikiPage(clone, fileNameMap, ownerId, ownerType, newIds2);		
+		assertNotNull(clone2);
 		assertTrue(clone2.getMarkdownFileHandleId().equals(markdownTwo.getId()));
 
 		// At this point, the markdown database has two versions for this wiki page
@@ -396,31 +391,67 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		assertTrue(currentWikiVersion.getModifiedOn().getTime() > oldWikiVersion.getModifiedOn().getTime());
 		assertTrue(Long.parseLong(currentWikiVersion.getVersion()) > Long.parseLong(oldWikiVersion.getVersion()));
 		
+		// Get the first version with one attatchment and the old markdown file handle
+		V2WikiPage getFirstVersion = wikiPageDao.get(key, new Long(oldWikiVersion.getVersion()));
+		List<String> firstVersionIds = getFirstVersion.getAttachmentFileHandleIds();
+		assertEquals(1, firstVersionIds.size());
+		assertEquals(attachOne.getId(), firstVersionIds.get(0));
+		assertEquals(markdownOne.getId(), getFirstVersion.getMarkdownFileHandleId());
+		// Title of wikipage should be the old title
+		assertEquals("Title", getFirstVersion.getTitle());
+		// Make sure ModifiedOn information is not equal to the most recent version's.
+		assertTrue(!clone2.getModifiedOn().equals(getFirstVersion.getModifiedOn()));
+		
+		// Get the most recent version
+		V2WikiPage getRecentVersion = wikiPageDao.get(key, new Long(currentWikiVersion.getVersion()));
+		List<String> recentVersionIds = getRecentVersion.getAttachmentFileHandleIds();
+		// Should be two attachments
+		assertEquals(2, recentVersionIds.size());
+		// Should have the new markdown handle
+		assertEquals(markdownTwo.getId(), getRecentVersion.getMarkdownFileHandleId());
+		// Wiki title should be the updated title
+		assertEquals("Updated title", getRecentVersion.getTitle());
+		// Wiki modified on should be updated
+		assertTrue(clone2.getModifiedOn().equals(getRecentVersion.getModifiedOn()));
+		
 		// Test that correct versions are being accessed
-		String currentMarkdownFileHandleId = wikiPageDao.getMarkdownHandleIdFromHistory(key, Long.parseLong(currentWikiVersion.getVersion()));
-		List<String> currentAttachmentIds = wikiPageDao.getWikiFileHandleIdsFromHistory(key, Long.parseLong(currentWikiVersion.getVersion()));
+		String currentMarkdownFileHandleId = wikiPageDao.getMarkdownHandleId(key, Long.parseLong(currentWikiVersion.getVersion()));
+		List<String> currentAttachmentIds = wikiPageDao.getWikiFileHandleIds(key, Long.parseLong(currentWikiVersion.getVersion()));
 		assertTrue(currentMarkdownFileHandleId.equals(markdownTwo.getId()));
 		assertTrue(currentAttachmentIds.size() == 2);
 		assertTrue(currentAttachmentIds.contains(attachOne.getId()) && currentAttachmentIds.contains(attachTwo.getId()));
-		
-		// To restore wiki to a the oldWikiVersion, download old version of attachments and markdown, set, and update again
-		String oldMarkdownFileHandleId = wikiPageDao.getMarkdownHandleIdFromHistory(key, Long.parseLong(oldWikiVersion.getVersion()));
-		List<String> oldAttachmentIds = wikiPageDao.getWikiFileHandleIdsFromHistory(key, Long.parseLong(oldWikiVersion.getVersion()));
-		// Test getMarkdownHandleIdFromHistory and getWikiFileHandleIdsFromHistory
-		assertTrue(oldMarkdownFileHandleId.equals(markdownOne.getId()));
-		assertTrue(oldAttachmentIds.size() == 1);
-		assertTrue(oldAttachmentIds.get(0).equals(attachOne.getId()));
-		
-		clone2.setMarkdownFileHandleId(oldMarkdownFileHandleId);
-		clone2.setAttachmentFileHandleIds(oldAttachmentIds);
+
+		// To restore wiki to a the oldWikiVersion, mimick what Manager does.
+		// Download old version of attachments and markdown, set, and update again
+		V2WikiMarkdownVersion oldWikiContents = wikiPageDao.getVersionOfWikiContent(key, Long.parseLong(oldWikiVersion.getVersion()));
+		assertNotNull(oldWikiContents);
+		assertTrue(oldWikiContents.getMarkdownFileHandleId().equals(markdownOne.getId()));
+		assertTrue(oldWikiContents.getAttachmentFileHandleIds().size() == 1);
+		assertTrue(oldWikiContents.getAttachmentFileHandleIds().get(0).equals(attachOne.getId()));
+		// Set up a new V2 WikiPage
+		V2WikiPage newWikiVersion = new V2WikiPage();
+		newWikiVersion.setId(clone.getId());
+		// Sets etag to most recent etag so it will lock
+		newWikiVersion.setEtag(clone2.getEtag());
+		//Preserve creation metadata
+		newWikiVersion.setCreatedBy(clone.getCreatedBy());
+		newWikiVersion.setCreatedOn(clone.getCreatedOn());
+		newWikiVersion.setModifiedBy(clone.getCreatedBy());
+		newWikiVersion.setModifiedOn(new Date(1));
+		// Assign restored content to the wiki page
+		newWikiVersion.setMarkdownFileHandleId(oldWikiContents.getMarkdownFileHandleId());
+		newWikiVersion.setAttachmentFileHandleIds(oldWikiContents.getAttachmentFileHandleIds());
+		newWikiVersion.setTitle(oldWikiContents.getTitle());
+
 		fileNameMap.remove(attachTwo.getFileName());
 		
 		// Update
-		V2WikiPage restored = wikiPageDao.updateWikiPage(clone2, fileNameMap, ownerId, ownerType, new ArrayList<String>());		assertNotNull(restored);
+		V2WikiPage restored = wikiPageDao.updateWikiPage(newWikiVersion, fileNameMap, ownerId, ownerType, new ArrayList<String>());		
+		assertNotNull(restored);
 		
 		assertTrue(restored.getMarkdownFileHandleId().equals(markdownOne.getId()));
 		assertTrue(restored.getAttachmentFileHandleIds().size() == 1);
-		
+		assertTrue(restored.getTitle().equals("Title"));
 		// At this point, the restored wiki is the third version of the markdown/attachments
 		List<V2WikiHistorySnapshot> historyAfterRestoration = wikiPageDao.getWikiHistory(key, new Long(10), new Long(0));
 		assertTrue(historyAfterRestoration.size() == 3);
@@ -455,7 +486,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		toDelete.add(key);
 
 		// Get wiki with key
-		V2WikiPage retrievedWiki = wikiPageDao.get(key);
+		V2WikiPage retrievedWiki = wikiPageDao.get(key, null);
 		// Compare the wiki pages
 		assertEquals(retrievedWiki.getAttachmentFileHandleIds(), clone.getAttachmentFileHandleIds());
 		assertEquals(retrievedWiki.getMarkdownFileHandleId(), clone.getMarkdownFileHandleId());
@@ -532,7 +563,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		wikiPageDao.delete(rootKey);
 		for(V2WikiPage childWiki: children){
 			try{
-				wikiPageDao.get(new WikiPageKey(ownerId, ownerType, childWiki.getId()));
+				wikiPageDao.get(new WikiPageKey(ownerId, ownerType, childWiki.getId()), null);
 				fail("This child should have been deleted when the parent was deleted.");
 			}catch(NotFoundException e){
 				// expected
@@ -626,7 +657,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		toDelete.add(rootKey);
 		
 		// Test the parent for the FileHandleIds
-		List<String> handleList = wikiPageDao.getWikiFileHandleIds(rootKey);
+		List<String> handleList = wikiPageDao.getWikiFileHandleIds(rootKey, null);
 		assertNotNull(handleList);
 		assertEquals(2, handleList.size());
 		assertEquals(attachOne.getId(), handleList.get(0));
@@ -652,7 +683,7 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		WikiPageKey childKey = new WikiPageKey(ownerId, ownerType, child.getId());
 		
 		// Test the child for the FileHandleId
-		List<String> childHandleList = wikiPageDao.getWikiFileHandleIds(childKey);
+		List<String> childHandleList = wikiPageDao.getWikiFileHandleIds(childKey, null);
 		assertNotNull(childHandleList);
 		assertEquals(1, childHandleList.size());
 		assertTrue(childHandleList.contains(attachOne.getId()));
@@ -686,15 +717,32 @@ public class V2DBOWikiPageDaoImplAutowiredTest {
 		toDelete.add(key);
 		
 		// Now lookup each file using its name.
-		String id = wikiPageDao.getWikiAttachmentFileHandleForFileName(key, attachOne.getFileName());
+		String id = wikiPageDao.getWikiAttachmentFileHandleForFileName(key, attachOne.getFileName(), null);
 		assertEquals(attachOne.getId(), id);
 		// The second
-		id = wikiPageDao.getWikiAttachmentFileHandleForFileName(key, attachTwo.getFileName());
+		id = wikiPageDao.getWikiAttachmentFileHandleForFileName(key, attachTwo.getFileName(), null);
 		assertEquals(attachTwo.getId(), id);
+		
+		// Update the page so it has no attachments
+		root.getAttachmentFileHandleIds().clear();
+		fileNameMap = new HashMap<String, FileHandle>();
+		newIds = new ArrayList<String>();
+		root = wikiPageDao.updateWikiPage(root, fileNameMap, ownerId, ownerType, newIds);
+		
+		try{
+			wikiPageDao.getWikiAttachmentFileHandleForFileName(key, attachOne.getFileName(), null);
+			fail("The file name does not exist and should have failed");
+		}catch(NotFoundException e){
+			// expected
+		}
+
+		// Try to get a version of the wiki's attachments, attachOne
+		String versionOfAttachmentId = wikiPageDao.getWikiAttachmentFileHandleForFileName(key, attachOne.getFileName(), new Long(0));
+		assertEquals(attachOne.getId(), versionOfAttachmentId);
 		
 		// Test the not found case
 		try{
-			wikiPageDao.getWikiAttachmentFileHandleForFileName(key, attachTwo.getFileName()+"1");
+			wikiPageDao.getWikiAttachmentFileHandleForFileName(key, attachTwo.getFileName()+"1", null);
 			fail("The file name does not exist and should have failed");
 		}catch(NotFoundException e){
 			// expected

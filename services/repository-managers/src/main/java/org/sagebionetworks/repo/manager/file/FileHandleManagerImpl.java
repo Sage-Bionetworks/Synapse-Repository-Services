@@ -200,7 +200,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	 * @return
 	 */
 	public String getUserId(UserInfo userInfo) {
-		return userInfo.getIndividualGroup().getId();
+		return userInfo.getId().toString();
 	}
 	
 	/**
@@ -286,7 +286,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			// If this file has a preview then we want to delete the preview as well.
 			if(handle instanceof HasPreviewId){
 				HasPreviewId hasPreview = (HasPreviewId) handle;
-				if(hasPreview.getPreviewId() != null){
+				if(hasPreview.getPreviewId() != null && !handle.getId().equals(hasPreview.getPreviewId())){
 					// Delete the preview.
 					deleteFileHandle(userInfo, hasPreview.getPreviewId());
 				}

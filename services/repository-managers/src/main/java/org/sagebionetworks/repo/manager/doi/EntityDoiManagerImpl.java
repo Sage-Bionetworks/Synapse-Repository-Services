@@ -14,15 +14,16 @@ import org.sagebionetworks.doi.EzidDoi;
 import org.sagebionetworks.doi.EzidMetadata;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DoiDao;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.doi.Doi;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.doi.DoiStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,6 +36,8 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 	@Autowired private AuthorizationManager authorizationManager;
 	@Autowired private DoiDao doiDao;
 	@Autowired private NodeDAO nodeDao;
+	@Autowired
+	UserProfileManager profileManager;
 	private final DoiAsyncClient ezidAsyncClient;
 	private final DxAsyncClient dxAsyncClient;
 
@@ -49,10 +52,10 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 	 * avoid race conditions.
 	 */
 	@Override
-	public Doi createDoi(final String currentUserName, final String entityId, final Long versionNumber)
+	public Doi createDoi(final Long userId, final String entityId, final Long versionNumber)
 			throws NotFoundException, UnauthorizedException, DatastoreException {
 
-		if (currentUserName == null || currentUserName.isEmpty()) {
+		if (userId == null) {
 			throw new IllegalArgumentException("User name cannot be null or empty.");
 		}
 		if (entityId == null) {
@@ -60,9 +63,8 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 		}
 
 		// Authorize
-		UserInfo currentUser = userManager.getUserInfo(currentUserName);
+		UserInfo currentUser = userManager.getUserInfo(userId);
 		UserInfo.validateUserInfo(currentUser);
-		String userId = currentUser.getUser().getUserId();
 		if (!authorizationManager.canAccess(currentUser, entityId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)) {
 			throw new UnauthorizedException(userId + " lacks change access to the requested object.");
 		}
@@ -83,7 +85,7 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 
 		// Record the attempt. This is where we draw the transaction boundary.
 		if (doiDto == null) {
-			String userGroupId = currentUser.getIndividualGroup().getId();
+			String userGroupId = currentUser.getId().toString();
 			doiDto = doiDao.createDoi(userGroupId, entityId, ObjectType.ENTITY, versionNumber, DoiStatus.IN_PROCESS);
 		} else {
 			doiDto = doiDao.updateDoiStatus(entityId, ObjectType.ENTITY, versionNumber, DoiStatus.IN_PROCESS, doiDto.getEtag());
@@ -101,7 +103,7 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 		// Create DOI metadata.
 		EzidMetadata metadata = new EzidMetadata();
 		Long principalId = node.getCreatedByPrincipalId();
-		String creatorName = userManager.getDisplayName(principalId);
+		String creatorName = profileManager.getUserName(principalId);
 		// Display name is optional
 		if (creatorName == null || creatorName.isEmpty()) {
 			creatorName = EzidConstants.DEFAULT_CREATOR;
@@ -180,21 +182,20 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 	}
 
 	@Override
-	public Doi getDoi(String currentUserId, String entityId, Long versionNumber)
+	public Doi getDoi(Long userId, String entityId, Long versionNumber)
 			throws NotFoundException, UnauthorizedException, DatastoreException {
 
-		if (currentUserId == null || currentUserId.isEmpty()) {
+		if (userId == null) {
 			throw new IllegalArgumentException("User ID cannot be null or empty.");
 		}
 		if (entityId == null) {
 			throw new IllegalArgumentException("Entity ID cannot be null");
 		}
 
-		UserInfo currentUser = userManager.getUserInfo(currentUserId);
+		UserInfo currentUser = userManager.getUserInfo(userId);
 		UserInfo.validateUserInfo(currentUser);
-		String userName = currentUser.getUser().getUserId();
 		if (!authorizationManager.canAccess(currentUser, entityId, ObjectType.ENTITY, ACCESS_TYPE.READ)) {
-			throw new UnauthorizedException(userName + " lacks change access to the requested object.");
+			throw new UnauthorizedException(userId + " lacks change access to the requested object.");
 		}
 
 		return doiDao.getDoi(entityId, ObjectType.ENTITY, versionNumber);

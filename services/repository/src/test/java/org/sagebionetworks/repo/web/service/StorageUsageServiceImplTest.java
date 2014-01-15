@@ -7,11 +7,8 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.StorageUsageManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -23,39 +20,23 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 public class StorageUsageServiceImplTest {
 
-	private final String username = "foo";
-	private final String userId = "1234";
-	private final String adminUsername = "bar";
-	private final String adminUserId = "5678";
+	private final Long userId = 1234L;
+	private final Long adminUserId = 5678L;
 	private final List<StorageUsageDimension> dList = new ArrayList<StorageUsageDimension>(0);
 	private final StorageUsageSummaryList susList = Mockito.mock(StorageUsageSummaryList.class);
 	private final StorageUsageService suService = new StorageUsageServiceImpl();
 	private final Integer offset = Integer.valueOf(0);
 	private final Integer limit = Integer.valueOf(1);
-	private final String nodeId = "nodeId";
 
 	@Before
 	public void before() throws Exception {
 
-		UserGroup userGroup = Mockito.mock(UserGroup.class);
-		Mockito.when(userGroup.getId()).thenReturn("0");
-
-		UserInfo userInfo = Mockito.mock(UserInfo.class);
-		Mockito.when(userInfo.isAdmin()).thenReturn(false);
-		Mockito.when(userInfo.getIndividualGroup()).thenReturn(userGroup);
-
-		UserInfo adminUserInfo = Mockito.mock(UserInfo.class);
-		Mockito.when(adminUserInfo.isAdmin()).thenReturn(true);
-		Mockito.when(adminUserInfo.getIndividualGroup()).thenReturn(userGroup);
+		UserInfo userInfo = new UserInfo(false, 0L);
+		UserInfo adminUserInfo = new UserInfo(true, 1L);
 
 		UserManager userMan = Mockito.mock(UserManager.class);
-		Mockito.when(userMan.getUserInfo(username)).thenReturn(userInfo);
-		Mockito.when(userMan.getUserInfo(adminUsername)).thenReturn(adminUserInfo);
-		Mockito.when(userMan.getGroupName(userId)).thenReturn(username);
-		Mockito.when(userMan.getGroupName(adminUserId)).thenReturn(adminUsername);
-
-		AuthorizationManager auMan = Mockito.mock(AuthorizationManager.class);
-		Mockito.when(auMan.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(false);
+		Mockito.when(userMan.getUserInfo(userId)).thenReturn(userInfo);
+		Mockito.when(userMan.getUserInfo(adminUserId)).thenReturn(adminUserInfo);
 
 		StorageUsageManager suMan = Mockito.mock(StorageUsageManager.class);
 		Mockito.when(suMan.getUsage(dList)).thenReturn(susList);
@@ -69,42 +50,41 @@ public class StorageUsageServiceImplTest {
 			srv = (StorageUsageService)target;
 		}
 		ReflectionTestUtils.setField(srv, "userManager", userMan);
-		ReflectionTestUtils.setField(srv, "authorizationManager", auMan);
 		ReflectionTestUtils.setField(srv, "storageUsageManager", suMan);
 	}
 
 	@Test
 	public void testGetUsageAdminUser() throws Exception {
-		Assert.assertNotNull(suService.getUsage(adminUsername, dList));
+		Assert.assertNotNull(suService.getUsage(adminUserId, dList));
 	}
 
 	@Test(expected=UnauthorizedException.class)
 	public void testGetUsageNonAdminUser() throws Exception {
-		suService.getUsage(username, dList);
+		suService.getUsage(userId, dList);
 		Assert.fail();
 	}
 
 	@Test
 	public void testGetUsageForUserSameUser() throws Exception {
-		StorageUsageSummaryList results = suService.getUsageForUser(username, userId, dList);
+		StorageUsageSummaryList results = suService.getUsageForUser(userId, userId, dList);
 		Assert.assertNotNull(results);
 	}
 
 	@Test
 	public void testGetUsageForUserAdminUser() throws Exception {
-		StorageUsageSummaryList results = suService.getUsageForUser(adminUsername, userId, dList);
+		StorageUsageSummaryList results = suService.getUsageForUser(adminUserId, userId, dList);
 		Assert.assertNotNull(results);
 	}
 
 	@Test(expected=UnauthorizedException.class)
 	public void testGetUsageForUserNonAdminUser() throws Exception {
-		suService.getUsageForUser(username, adminUserId, dList);
+		suService.getUsageForUser(userId, adminUserId, dList);
 		Assert.fail();
 	}
 
 	@Test(expected=UnauthorizedException.class)
 	public void testGetUsageByUserInRangeNonAdmin() throws Exception {
-		suService.getUsageByUserInRange(username, offset, limit);
+		suService.getUsageByUserInRange(userId, offset, limit);
 		Assert.fail();
 	}
 
@@ -113,11 +93,11 @@ public class StorageUsageServiceImplTest {
 		List<StorageUsageDimension> dList = new ArrayList<StorageUsageDimension>();
 		dList.add(StorageUsageDimension.CONTENT_TYPE);
 		dList.add(StorageUsageDimension.USER_ID); // IllegalArgumentException
-		suService.getUsageForUser(adminUsername, userId, dList);
+		suService.getUsageForUser(adminUserId, userId, dList);
 	}
 
 	@Test(expected=UnauthorizedException.class)
 	public void testGetUsageInRangeForUser() throws Exception {
-		suService.getUsageInRangeForUser(username, adminUsername, 0, 10, "");
+		suService.getUsageInRangeForUser(userId, adminUserId, 0, 10, "");
 	}
 }

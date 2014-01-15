@@ -34,7 +34,7 @@ public class QueryController extends BaseController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.QUERY, method = RequestMethod.GET)
 	public @ResponseBody QueryResults query(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.QUERY_PARAM, required = true) String query,
 			HttpServletRequest request)
 			throws DatastoreException, ParseException, NotFoundException, UnauthorizedException {

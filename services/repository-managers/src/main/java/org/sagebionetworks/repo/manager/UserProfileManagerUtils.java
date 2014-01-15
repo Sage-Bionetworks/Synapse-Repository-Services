@@ -38,7 +38,7 @@ public class UserProfileManagerUtils {
 	public static boolean isOwnerOrAdmin(UserInfo userInfo, String ownerId) {
 		if (userInfo == null) return false;
 		if (userInfo.isAdmin()) return true;
-		if (ownerId != null && ownerId.equals(userInfo.getIndividualGroup().getId())) return true;
+		if (ownerId != null && ownerId.equals(userInfo.getId().toString())) return true;
 		return false;
 	}
 
@@ -51,11 +51,7 @@ public class UserProfileManagerUtils {
 		if (userProfile != null) {
 			boolean canSeePrivate = UserProfileManagerUtils.isOwnerOrAdmin(userInfo, userProfile.getOwnerId());
 			if (!canSeePrivate) {
-				String obfuscatedEmail = "";
-				if (userProfile.getEmail() != null && userProfile.getEmail().length() > 0)
-					obfuscatedEmail = StringUtil.obfuscateEmailAddress(userProfile.getEmail());
-				clearPrivateFields(userInfo, UserProfile.class, userProfile);
-				userProfile.setEmail(obfuscatedEmail);				
+				clearPrivateFields(userInfo, UserProfile.class, userProfile);			
 			}
 		}
 	}
@@ -69,11 +65,7 @@ public class UserProfileManagerUtils {
 		if (userGroupHeader != null) {
 			boolean canSeePrivate = UserProfileManagerUtils.isOwnerOrAdmin(userInfo, userGroupHeader.getOwnerId());
 			if (!canSeePrivate) {
-				String obfuscatedEmail = "";
-				if (userGroupHeader.getEmail() != null && userGroupHeader.getEmail().length() > 0)
-					obfuscatedEmail = StringUtil.obfuscateEmailAddress(userGroupHeader.getEmail());
-				clearPrivateFields(userInfo, UserGroupHeader.class, userGroupHeader);
-				userGroupHeader.setEmail(obfuscatedEmail);				
+				clearPrivateFields(userInfo, UserGroupHeader.class, userGroupHeader);		
 			}
 		}
 	}

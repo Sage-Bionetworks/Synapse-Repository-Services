@@ -58,9 +58,6 @@ public class DBOAccessApprovalDAOImplTest {
 	
 	@Autowired
 	private IdGenerator idGenerator;
-
-	private static final String TEST_USER_NAME = "test-user";
-	private static final String TEST_USER_NAME_2 = "test-user-2";
 	
 	private UserGroup individualGroup = null;
 	private UserGroup individualGroup2 = null;
@@ -77,22 +74,17 @@ public class DBOAccessApprovalDAOImplTest {
 	
 	@Before
 	public void setUp() throws Exception {
-		individualGroup = userGroupDAO.findGroup(TEST_USER_NAME, true);
-		if (individualGroup == null) {
-			individualGroup = new UserGroup();
-			individualGroup.setName(TEST_USER_NAME);
-			individualGroup.setIsIndividual(true);
-			individualGroup.setCreationDate(new Date());
-			individualGroup.setId(userGroupDAO.create(individualGroup));
-		}
-		individualGroup2 = userGroupDAO.findGroup(TEST_USER_NAME, true);
-		if (individualGroup2 == null) {
-			individualGroup2 = new UserGroup();
-			individualGroup2.setName(TEST_USER_NAME_2);
-			individualGroup2.setIsIndividual(true);
-			individualGroup2.setCreationDate(new Date());
-			individualGroup2.setId(userGroupDAO.create(individualGroup2));
-		}
+
+		individualGroup = new UserGroup();
+		individualGroup.setIsIndividual(true);
+		individualGroup.setCreationDate(new Date());
+		individualGroup.setId(userGroupDAO.create(individualGroup).toString());
+
+		individualGroup2 = new UserGroup();
+		individualGroup2.setIsIndividual(true);
+		individualGroup2.setCreationDate(new Date());
+		individualGroup2.setId(userGroupDAO.create(individualGroup2).toString());
+
 		if (node==null) {
 			node = NodeTestUtils.createNew("foo", Long.parseLong(individualGroup.getId()));
 			node.setId( nodeDAO.createNew(node) );
@@ -158,11 +150,9 @@ public class DBOAccessApprovalDAOImplTest {
 			evaluationDAO.delete(evaluation.getId());
 			evaluation = null;
 		}
-		individualGroup = userGroupDAO.findGroup(TEST_USER_NAME, true);
 		if (individualGroup != null) {
 			userGroupDAO.delete(individualGroup.getId());
 		}
-		individualGroup2 = userGroupDAO.findGroup(TEST_USER_NAME_2, true);
 		if (individualGroup2 != null) {
 			userGroupDAO.delete(individualGroup2.getId());
 		}

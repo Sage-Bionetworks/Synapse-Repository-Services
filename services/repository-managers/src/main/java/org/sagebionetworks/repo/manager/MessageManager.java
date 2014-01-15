@@ -5,7 +5,7 @@ import java.util.List;
 
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
-import org.sagebionetworks.repo.model.OriginatingClient;
+import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.MessageBundle;
@@ -114,12 +114,12 @@ public interface MessageManager {
 	/**
 	 * Sends a password reset email based on a template via Amazon SES
 	 */
-	public void sendPasswordResetEmail(String recipientId, OriginatingClient originClient, String sessionToken) throws NotFoundException;
+	public void sendPasswordResetEmail(Long recipientId, DomainType originClient, String sessionToken) throws NotFoundException;
 	
 	/**
 	 * Sends a welcome email based on a template via Amazon SES
 	 */
-	public void sendWelcomeEmail(String recipientId, OriginatingClient originClient) throws NotFoundException;
+	public void sendWelcomeEmail(Long recipientId, DomainType originClient) throws NotFoundException;
 	
 	/**
 	 * Sends a delivery failure notification based on a template

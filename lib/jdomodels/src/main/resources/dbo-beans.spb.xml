@@ -21,8 +21,10 @@
 			<list>
 				<!-- DBOUserGroup must be declared before tables that have a foreign key to it -->
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOPrincipalHeader" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOGroupMembers" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOCredential" />
+				<bean class="org.sagebionetworks.repo.model.dbo.principal.DBOPrincipalAlias" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBONodeType" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBONodeTypeAlias" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOActivity" />
@@ -52,9 +54,6 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOStackStatus" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOChange" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOTrashedEntity" />
-				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOWikiPage" />
-				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOWikiAttachment" />
-				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOWikiOwner" />
 				<bean class="org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiPage" />
 				<bean class="org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiAttachmentReservation" />
 				<bean class="org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiMarkdown" />
@@ -91,6 +90,11 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOUploadDaemonStatus" />
 				<!-- bridge -->
 				<bean class="org.sagebionetworks.bridge.model.dbo.persistence.DBOCommunityTeam" />
+				<bean class="org.sagebionetworks.bridge.model.dbo.persistence.DBOParticipant" />
+				<bean class="org.sagebionetworks.bridge.model.dbo.persistence.DBOParticipantDataDescriptor" />
+				<bean class="org.sagebionetworks.bridge.model.dbo.persistence.DBOParticipantDataColumnDescriptor" />
+				<bean class="org.sagebionetworks.bridge.model.dbo.persistence.DBOParticipantData" />
+				<bean class="org.sagebionetworks.bridge.model.dbo.persistence.DBOParticipantDataStatus" />
 			</list>
 		</property>
 	</bean>
@@ -101,10 +105,9 @@
 			<list>
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOUserProfile" />
+				<bean class="org.sagebionetworks.repo.model.dbo.principal.DBOPrincipalAlias" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle" />
                 <bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMessageContent" />
-				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOWikiPage" />
-				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOWikiOwner" />
 				<bean class="org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiPage" />
 				<bean class="org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiOwner" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOActivity" />
@@ -126,6 +129,12 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipRqstSubmission" />
 
 				<bean class="org.sagebionetworks.bridge.model.dbo.persistence.DBOCommunityTeam" />
+
+				<bean class="org.sagebionetworks.bridge.model.dbo.persistence.DBOParticipant" />
+				<bean class="org.sagebionetworks.bridge.model.dbo.persistence.DBOParticipantDataDescriptor" />
+				<bean class="org.sagebionetworks.bridge.model.dbo.persistence.DBOParticipantDataColumnDescriptor" />
+				<bean class="org.sagebionetworks.bridge.model.dbo.persistence.DBOParticipantData" />
+				<bean class="org.sagebionetworks.bridge.model.dbo.persistence.DBOParticipantDataStatus" />
 				
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.table.DBOColumnModel" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableIdSequence" />

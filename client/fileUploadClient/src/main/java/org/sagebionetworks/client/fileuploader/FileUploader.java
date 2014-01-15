@@ -280,7 +280,7 @@ public class FileUploader implements FileUploaderView.Presenter {
 			} else if(e instanceof SynapseForbiddenException) {
 				String userName = "(undefined)";
 				if(userSessionData != null && userSessionData.getProfile() != null) 
-					userName = userSessionData.getProfile().getDisplayName();
+					userName = userSessionData.getProfile().getUserName();
 				view.alert("Access Denied to " + targetEntityId + "for user " + userName + ". Please gain access and then reload.");
 			} else {
 				view.alert("An Error Occured. Please reload.");

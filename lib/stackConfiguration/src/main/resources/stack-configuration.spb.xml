@@ -38,6 +38,9 @@
 	<bean id="stackConfiguration.cloudWatchOnOff" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.cloudWatchTriggerTime" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	
+	<bean id="stackConfiguration.callPerformanceOnOff" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean id="stackConfiguration.callPerformanceTriggerTime" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	
 	<bean id="stackConfiguration.backupRestoreThreadPoolMaximum" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.AWSDomainName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.workflowExecutionRetentionPeriodInDays" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
@@ -50,6 +53,7 @@
 	<bean id="stackConfiguration.fileUpdateQueueName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.annotationsUpdateQueueName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.unsentMessagesQueueName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+    <bean id="stackConfiguration.principalHeaderQueueName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	
 	<bean id="stackConfiguration.maxFileTransferMemoryPoolBytes" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.maxFilePreviewMemoryPoolBytes" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
@@ -63,6 +67,9 @@
 	<!-- TableEntity -->
 	<bean id="stackConfiguration.tableRowChangeBucketName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />	
 	<bean id="stackConfiguration.tableMaxBytesPerRequest" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />	
+
+	<!-- Bridge participant data -->
+	<bean id="stackConfiguration.participantDataBucketName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />	
 	
 	<!-- Semaphore gated runner configuration -->
 	<bean id="stackConfiguration.semaphoreGatedLockTimeoutMS" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
@@ -75,6 +82,7 @@
 	<bean id="stackConfiguration.semaphoreGatedMaxRunnersAnnotations" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.semaphoreGatedMaxRunnersUnsentMessageQueuer" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />	
 	<bean id="stackConfiguration.semaphoreGatedMaxRunnersUnsentMessagePoppers" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />	
+    <bean id="stackConfiguration.semaphoreGatedMaxRunnersPrincipalHeaderFiller" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />  
 	
 	<bean id="stackConfiguration.searchEnabled" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.dynamoEnabled" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />	

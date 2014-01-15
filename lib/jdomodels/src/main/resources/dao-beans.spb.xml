@@ -16,7 +16,7 @@
 	<import resource="dbo-beans.spb.xml" />
 	<import resource="bootstrap-entites-spb.xml" />
 
-	<!-- Depends on ID-generator. -->
+	<!-- Import the ID-generator -->
 	<import resource="id-generator.spb.xml" />
 
 	<bean id="transactionSynchronizationManager"
@@ -50,61 +50,100 @@
 	<bean id="nodeInheritanceDao"
 		class="org.sagebionetworks.repo.model.jdo.JDONodeInheritanceDAOImpl" />
 		
-	<bean id="notificationEmail" class="org.sagebionetworks.StackConfiguration"
-		factory-method="getNotificationEmailAddress" />
-	<util:list id="bootstrapUsers">
-		<bean class="org.sagebionetworks.repo.model.UserGroup">
-			<property name="id" value="0" />
-			<property name="name" value="BOOTSTRAP_USER_GROUP" />
-			<property name="isIndividual" value="false" />
-		</bean>
-		<bean class="org.sagebionetworks.repo.model.UserGroup">
+	<!-- DO NOT CHANGE ANY OF THESE NAMES OR IDS as they represent real objects in production -->
+	<util:list id="bootstrapPrincipals">
+		<bean class="org.sagebionetworks.repo.model.principal.BootstrapUser">
 			<property name="id" value="1" />
-			<property name="name" value="migrationAdmin@sagebase.org" />
-			<property name="isIndividual" value="true" />
+			<property name="email">
+			   	<bean class="org.sagebionetworks.repo.model.principal.BootstrapAlias">
+			   		<property name="aliasName" value="migrationAdmin@sagebase.org" />
+			   		<property name="aliasId" value="1" />
+			   	</bean>
+			</property>
+			<property name="userName">
+			   	<bean class="org.sagebionetworks.repo.model.principal.BootstrapAlias">
+			   		<property name="aliasName" value="migrationAdmin" />
+			   		<property name="aliasId" value="11866" />
+			   	</bean>
+			</property>
 		</bean>
-		<bean class="org.sagebionetworks.repo.model.UserGroup">
+		<bean class="org.sagebionetworks.repo.model.principal.BootstrapGroup">
 			<property name="id" value="2" />
-			<property name="name" value="Administrators" />
-			<property name="isIndividual" value="false" />
+			<property name="groupAlias">
+			   	<bean class="org.sagebionetworks.repo.model.principal.BootstrapAlias">
+			   		<property name="aliasName" value="Administrators" />
+			   		<property name="aliasId" value="2" />
+			   	</bean>
+			</property>
 		</bean>
-		<bean class="org.sagebionetworks.repo.model.UserGroup">
+		<bean class="org.sagebionetworks.repo.model.principal.BootstrapGroup">
 			<property name="id" value="273948" />
-			<property name="name" value="AUTHENTICATED_USERS" />
-			<property name="isIndividual" value="false" />
+			<property name="groupAlias">
+			   	<bean class="org.sagebionetworks.repo.model.principal.BootstrapAlias">
+			   		<property name="aliasName" value="AUTHENTICATED_USERS" />
+			   		<property name="aliasId" value="3" />
+			   	</bean>
+			</property>			
 		</bean>
-		<bean class="org.sagebionetworks.repo.model.UserGroup">
+		<bean class="org.sagebionetworks.repo.model.principal.BootstrapGroup">
 			<property name="id" value="273949" />
-			<property name="name" value="PUBLIC" />
-			<property name="isIndividual" value="false" />
+			<property name="groupAlias">
+			   	<bean class="org.sagebionetworks.repo.model.principal.BootstrapAlias">
+			   		<property name="aliasName" value="PUBLIC" />
+			   		<property name="aliasId" value="4" />
+			   	</bean>
+			</property>				
 		</bean>
-		<bean class="org.sagebionetworks.repo.model.UserGroup">
+		<bean class="org.sagebionetworks.repo.model.principal.BootstrapUser">
 			<property name="id" value="273950" />
-			<property name="name" value="anonymous@sagebase.org" />
-			<property name="isIndividual" value="true" />
+			<property name="email">
+			   	<bean class="org.sagebionetworks.repo.model.principal.BootstrapAlias">
+			   		<property name="aliasName" value="anonymous@sagebase.org" />
+			   		<property name="aliasId" value="5" />
+			   	</bean>
+			</property>
+			<property name="userName">
+			   	<bean class="org.sagebionetworks.repo.model.principal.BootstrapAlias">
+			   		<property name="aliasName" value="anonymous" />
+			   		<property name="aliasId" value="11867" />
+			   	</bean>
+			</property>			
 		</bean>
-		<bean class="org.sagebionetworks.repo.model.UserGroup">
-			<property name="id" value="273951" />
-			<property name="name" ref="notificationEmail" />
-			<property name="isIndividual" value="true" />
-		</bean>
+		<bean class="org.sagebionetworks.repo.model.principal.BootstrapGroup">
+			<property name="id" value="464532" />
+			<property name="groupAlias">
+			   	<bean class="org.sagebionetworks.repo.model.principal.BootstrapAlias">
+			   		<property name="aliasName" value="Synpase ACT Team" /><!-- This name is was already misspelled -->
+			   		<property name="aliasId" value="4572" />
+			   	</bean>
+			</property>				
+		</bean>		
 	</util:list>
 
 	<bean id="userGroupDAO"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOUserGroupDAOImpl" init-method="bootstrapUsers">
-		<property name="bootstrapUsers" ref="bootstrapUsers"/>
+		<property name="bootstrapPrincipals" ref="bootstrapPrincipals"/>
 	</bean>
+
+	<bean id="principalHeaderDAO"
+		class="org.sagebionetworks.repo.model.dbo.dao.DBOPrincipaHeaderDAOImpl" />
 
 	<bean id="userProfileDAO"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOUserProfileDAOImpl"
 		depends-on="userGroupDAO" 
-		init-method="bootstrapProfiles" />
+		init-method="bootstrapProfiles" >
+	</bean>
 	
 	<bean id="groupMembersDAO"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOGroupMembersDAOImpl"
 		depends-on="userGroupDAO" 
 		init-method="bootstrapGroups" />
-		
+
+	<bean id="principalAliasDao"
+		class="org.sagebionetworks.repo.model.dbo.principal.PrincipalAliasDaoImpl"
+		depends-on="userGroupDAO" 
+		init-method="bootstrap" />
+
 	<bean id="authDAO"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOAuthenticationDAOImpl"
 		depends-on="userGroupDAO"
@@ -115,9 +154,6 @@
 
 	<bean id="accessApprovalDAO"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOAccessApprovalDAOImpl" />
-
-	<bean id="userGroupCache" class="org.sagebionetworks.repo.model.jdo.UserGroupCacheImpl"
-		scope="singleton" />
 
 	<bean id="aclDAO"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOAccessControlListDaoImpl"
@@ -155,11 +191,6 @@
 
 	<bean id="trashCanDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOTrashCanDaoImpl"
-		scope="singleton">
-	</bean>
-
-	<bean id="wikiPageDAO"
-		class="org.sagebionetworks.repo.model.dbo.dao.DBOWikiPageDaoImpl"
 		scope="singleton">
 	</bean>
 	
@@ -202,6 +233,15 @@
 	<bean id="teamDAO" class="org.sagebionetworks.repo.model.dbo.dao.DBOTeamDAOImpl" scope="singleton"/>
 
 	<bean id="communityTeamDAO" class="org.sagebionetworks.bridge.model.dbo.dao.DBOCommunityTeamDAOImpl" scope="singleton"/>
+
+	<bean id="participantDataDAO"
+		class="org.sagebionetworks.bridge.model.dbo.dao.DBOParticipantDataDAOImpl"
+		scope="singleton" init-method="initialize">
+		<property name="s3Bucket" ref="stackConfiguration.participantDataBucketName"/>
+	</bean>
+	<bean id="bridgeParticipantDAO" class="org.sagebionetworks.bridge.model.dbo.dao.DBOBridgeParticipantDAOImpl" scope="singleton"/>
+	<bean id="participantDataDescriptorDAO" class="org.sagebionetworks.bridge.model.dbo.dao.DBOParticipantDataDescriptorDAOImpl" scope="singleton"/>
+	<bean id="participantDataStatusDAO" class="org.sagebionetworks.bridge.model.dbo.dao.DBOParticipantDataStatusDAOImpl" scope="singleton"/>
 
 	<bean id="membershipRqstSubmissionDAO" class="org.sagebionetworks.repo.model.dbo.dao.DBOMembershipRqstSubmissionDAOImpl" scope="singleton"/>
 
@@ -259,11 +299,5 @@
 	<!-- Misc beans -->
 	<bean id="semaphoreDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.semaphore.DBOSemaphoreDaoImpl" />
-		
-	<bean id="wikiMigrationDao"
-		class="org.sagebionetworks.repo.model.dbo.dao.DBOWikiMigrationDAO" />
-		
-	<bean id="v2WikiPageMigrationDao"
-		class="org.sagebionetworks.repo.model.dbo.dao.V2DBOWikiPageMigrationDAOImpl" />
 
 </beans>

@@ -21,7 +21,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AsynchronousDAO;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -31,7 +31,6 @@ import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.NodeQueryResults;
-import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
@@ -85,13 +84,10 @@ public class JDONodeQueryDAOImplTest {
 	private NodeQueryDao nodeQueryDao;
 	
 	@Autowired
-	AsynchronousDAO asynchronousDAO;
+	private AsynchronousDAO asynchronousDAO;
 	
 	@Autowired
 	private NodeDAO nodeDao;
-	
-	@Autowired
-	private UserGroupDAO userGroupDAO;
 	
 	private UserInfo mockUserInfo = null;
 	
@@ -107,11 +103,9 @@ public class JDONodeQueryDAOImplTest {
 		// All tests in the suite assume the user is an admin.
 		when(mockUserInfo.isAdmin()).thenReturn(true);
 
-		createdBy = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId());
+		createdBy = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		
 		populateNodesForTest();
-		
-
 	}
 
 

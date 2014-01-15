@@ -5,28 +5,18 @@ import static org.junit.Assert.assertEquals;
 import java.util.Date;
 
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.DaemonStatus;
 import org.sagebionetworks.repo.model.daemon.DaemonType;
 import org.sagebionetworks.repo.model.dbo.persistence.DBODaemonStatus;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class BackupRestoreStatusUtilTest {
-	
-	@Autowired
-	private UserGroupDAO userGroupDAO;
 
 	@Test
 	public void testRoundTrip() throws DatastoreException{
-		String userGroupId = userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId();
+		String userGroupId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString();
 		// Make a round trip from the DTO->JDO->DTO
 		BackupRestoreStatus dto = new BackupRestoreStatus();
 		dto.setId("12");
@@ -54,7 +44,7 @@ public class BackupRestoreStatusUtilTest {
 
 	@Test
 	public void testRoundTripWithOptionalNulls() throws DatastoreException{
-		String userGroupId = userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId();
+		String userGroupId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString();
 		// Make a round trip from the DTO->JDO->DTO
 		BackupRestoreStatus dto = new BackupRestoreStatus();
 		dto.setId("12");

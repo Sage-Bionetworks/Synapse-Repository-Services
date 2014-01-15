@@ -11,6 +11,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLEncoder;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -26,6 +27,7 @@ import java.util.concurrent.Future;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.entity.ContentType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONException;
@@ -33,6 +35,7 @@ import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
 import org.sagebionetworks.client.exceptions.SynapseUserException;
+import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Participant;
@@ -48,6 +51,7 @@ import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AutoGenFactory;
 import org.sagebionetworks.repo.model.BatchResults;
 import org.sagebionetworks.repo.model.Entity;
@@ -64,7 +68,7 @@ import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.MembershipRequest;
 import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.OriginatingClient;
+import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
@@ -89,6 +93,7 @@ import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.attachment.URLStatus;
 import org.sagebionetworks.repo.model.auth.ChangePasswordRequest;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.auth.SecretKey;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.auth.Username;
@@ -136,6 +141,8 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
+
+import com.google.common.collect.Maps;
 
 /**
  * Low-level Java Client API for Synapse REST APIs
@@ -186,11 +193,14 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String WIKI_HISTORY_V2 = "/wikihistory";
 	private static final String ATTACHMENT_HANDLES = "/attachmenthandles";
 	private static final String ATTACHMENT_FILE = "/attachment";
+	private static final String MARKDOWN_FILE = "/markdown";
 	private static final String ATTACHMENT_FILE_PREVIEW = "/attachmentpreview";
 	private static final String FILE_NAME_PARAMETER = "?fileName=";
 	private static final String REDIRECT_PARAMETER = "redirect=";
 	private static final String OFFSET_PARAMETER = "?offset=";
 	private static final String LIMIT_PARAMETER = "limit=";
+	private static final String VERSION_PARAMETER = "?wikiVersion=";
+	private static final String AND_VERSION_PARAMETER = "&wikiVersion=";
 	private static final String AND_LIMIT_PARAMETER = "&" + LIMIT_PARAMETER;
 	private static final String AND_REDIRECT_PARAMETER = "&"+REDIRECT_PARAMETER;
 	private static final String QUERY_REDIRECT_PARAMETER = "?"+REDIRECT_PARAMETER;
@@ -268,6 +278,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public static final String LIMIT = "limit";
 	public static final String OFFSET = "offset";
 
+    private static final long MAX_BACKOFF_MILLIS = 5*60*1000L; // five minutes
+    
+    /**
+     * The character encoding to use with strings which are the body of email messages
+     */
+    private static final Charset MESSAGE_CHARSET = Charset.forName("UTF-8");
+    
 	private static final String LIMIT_1_OFFSET_1 = "' limit 1 offset 1";
 	private static final String SELECT_ID_FROM_ENTITY_WHERE_PARENT_ID = "select id from entity where parentId == '";
 
@@ -1479,16 +1496,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return querySynapse(query);
 	}
 	
-	/**
-	 * Upload each file to Synapse creating a file handle for each.
-	 * 
-	 * @param files
-	 * @return
-	 * @throws InterruptedException 
-	 * @throws JSONObjectAdapterException 
-	 * @throws IOException 
-	 * @throws ClientProtocolException 
-	 */
 	@Override
 	public FileHandleResults createFileHandles(List<File> files) throws SynapseException{
 		if(files == null) throw new IllegalArgumentException("File list cannot be null");
@@ -1509,38 +1516,41 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		}	
 	}
 	
-	/**
-	 * The high-level API for uploading a file to Synapse.
-	 * 
-	 * @param file
-	 * @param contentType
-	 * @return
-	 * @throws SynapseException
-	 * @throws JSONObjectAdapterException 
-	 * @throws IOException 
-	 * @throws InterruptedException 
-	 */
 	@Override
-	public S3FileHandle createFileHandle(File file, String contentType) throws SynapseException, IOException{
-		if(file == null) throw new IllegalArgumentException("File cannot be null");
-		if(contentType == null) throw new IllegalArgumentException("Content type cannot be null");
+	public S3FileHandle createFileHandle(File temp, String contentType) throws SynapseException, IOException{
+		return createFileHandle(temp, contentType, null);
+	}
+
+	@Override
+	public S3FileHandle createFileHandle(File temp, String contentType, Boolean shouldPreviewBeCreated)
+			throws SynapseException, IOException {
+		if (temp == null) {
+			throw new IllegalArgumentException("File cannot be null");
+		}
+		if (contentType == null) {
+			throw new IllegalArgumentException("Content type cannot be null");
+		}
+		
 		CreateChunkedFileTokenRequest ccftr = new CreateChunkedFileTokenRequest();
 		ccftr.setContentType(contentType);
-		ccftr.setFileName(file.getName());
+		ccftr.setFileName(temp.getName());
 		// Calculate the MD5
-		String md5 = MD5ChecksumHelper.getMD5Checksum(file);
+		String md5 = MD5ChecksumHelper.getMD5Checksum(temp);
 		ccftr.setContentMD5(md5);
 		// Start the upload
 		ChunkedFileToken token = createChunkedFileUploadToken(ccftr);
 		// Now break the file into part as needed
-		List<File> fileChunks = FileUtils.chunkFile(file, MINIMUM_CHUNK_SIZE_BYTES);
+		List<File> fileChunks = FileUtils.chunkFile(temp, MINIMUM_CHUNK_SIZE_BYTES);
 		try{
 			// Upload all of the parts.
 			List<Long> partNumbers = uploadChunks(fileChunks, token);
+			
 			// We can now complete the upload
 			CompleteAllChunksRequest cacr = new CompleteAllChunksRequest();
 			cacr.setChunkedFileToken(token);
 			cacr.setChunkNumbers(partNumbers);
+			cacr.setShouldPreviewBeGenerated(shouldPreviewBeCreated);
+			
 			// Start the daemon
 			UploadDaemonStatus status = startUploadDeamon(cacr);
 			// Wait for it to complete
@@ -1563,7 +1573,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throw new RuntimeException(e);
 		}finally{
 			// Delete any tmep files created by this method.  The original file will not be deleted.
-			FileUtils.deleteAllFilesExcludingException(file, fileChunks);
+			FileUtils.deleteAllFilesExcludingException(temp, fileChunks);
 		}
 	}
 	
@@ -1923,23 +1933,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return getJSONEntity(uri, FileHandleResults.class);
 	}
 	
-
-	/**
-	 * 
-	 * @param key - Identifies a wiki page.
-	 * @param fileName - The name of the attachment file.
-	 * @return
-	 * @throws IOException 
-	 * @throws ClientProtocolException 
-	 */
-	@Override
-	public File downloadWikiAttachment(WikiPageKey key, String fileName) throws ClientProtocolException, IOException{
-		if(key == null) throw new IllegalArgumentException("Key cannot be null");
-		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
-		String encodedName = URLEncoder.encode(fileName, "UTF-8");
-		String uri = createWikiURL(key)+ATTACHMENT_FILE+FILE_NAME_PARAMETER+encodedName;
-		return getSharedClientConnection().downloadFile(repoEndpoint, uri, getUserAgent());
-	}
 	
 	/**
 	 * Get the temporary URL for a WikiPage attachment. This is an alternative to downloading the attachment to a file.
@@ -1959,24 +1952,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return getUrl(uri);
 	}
 	
-
-	/**
-	 * Download the preview of a wiki attachment file.
-	 * @param key - Identifies a wiki page.
-	 * @param fileName - The name of the original attachment file that you want to downlaod a preview for.
-	 * @return
-	 * @throws IOException 
-	 * @throws FileNotFoundException 
-	 * @throws ClientProtocolException 
-	 */
-	@Override
-	public File downloadWikiAttachmentPreview(WikiPageKey key, String fileName) throws ClientProtocolException, FileNotFoundException, IOException{
-		if(key == null) throw new IllegalArgumentException("Key cannot be null");
-		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
-		String encodedName = URLEncoder.encode(fileName, "UTF-8");
-		String uri = createWikiURL(key)+ATTACHMENT_FILE_PREVIEW+FILE_NAME_PARAMETER+encodedName;
-		return getSharedClientConnection().downloadFile(repoEndpoint, uri, getUserAgent());
-	}
 	
 	/**
 	 * Get the temporary URL for a WikiPage attachment preview. This is an alternative to downloading the attachment to a file.
@@ -2221,6 +2196,19 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 	
 	/**
+	 * Get a version of a V2 WikiPage using its key and version number
+	 */
+	@Override
+	public V2WikiPage getVersionOfV2WikiPage(WikiPageKey key, Long version)
+		throws JSONObjectAdapterException, SynapseException {
+		if(key == null) throw new IllegalArgumentException("Key cannot be null");
+		if(version == null) throw new IllegalArgumentException("Version cannot be null");
+		
+		String uri = createV2WikiURL(key) + VERSION_PARAMETER + version;
+		return getJSONEntity(uri, V2WikiPage.class);
+	}
+	
+	/**
 	 * Get a the root V2 WikiPage for a given owner.
 	 * 
 	 * @param ownerId
@@ -2265,7 +2253,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * 
 	 * @param ownerId
 	 * @param ownerType
-	 * @param toUpdate
+	 * @param wikiId
 	 * @param versionToRestore
 	 * @return
 	 * @throws JSONObjectAdapterException
@@ -2273,14 +2261,15 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 */
 	@Override
 	public V2WikiPage restoreV2WikiPage(String ownerId, ObjectType ownerType,
-		V2WikiPage toUpdate, Long versionToRestore) throws JSONObjectAdapterException,
+		String wikiId, Long versionToRestore) throws JSONObjectAdapterException,
 		SynapseException {
 		if(ownerId == null) throw new IllegalArgumentException("ownerId cannot be null");
 		if(ownerType == null) throw new IllegalArgumentException("ownerType cannot be null");
-		if(toUpdate == null) throw new IllegalArgumentException("WikiPage cannot be null");
+		if(wikiId == null) throw new IllegalArgumentException("Wiki id cannot be null");
 		if(versionToRestore == null) throw new IllegalArgumentException("Version cannot be null");
-		String uri = String.format(WIKI_ID_VERSION_URI_TEMPLATE_V2, ownerType.name().toLowerCase(), ownerId, toUpdate.getId(), String.valueOf(versionToRestore));
-		return updateJSONEntity(uri, toUpdate);
+		String uri = String.format(WIKI_ID_VERSION_URI_TEMPLATE_V2, ownerType.name().toLowerCase(), ownerId, wikiId, String.valueOf(versionToRestore));
+		V2WikiPage mockWikiToUpdate = new V2WikiPage();
+		return updateJSONEntity(uri, mockWikiToUpdate);
 	}
 
 	/**
@@ -2298,41 +2287,27 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return getJSONEntity(uri, FileHandleResults.class);
 	}
 
-	/**
-	 * 
-	 * @param key - Identifies a V2 wiki page.
-	 * @param fileName - The name of the attachment file.
-	 * @return
-	 * @throws IOException 
-	 * @throws ClientProtocolException 
-	 */
 	@Override
-	public File downloadV2WikiAttachment(WikiPageKey key, String fileName)
-		throws ClientProtocolException, IOException {
+	public FileHandleResults getVersionOfV2WikiAttachmentHandles(WikiPageKey key, Long version)
+		throws JSONObjectAdapterException, SynapseException {
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
-		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
-		String encodedName = URLEncoder.encode(fileName, "UTF-8");
-		String uri = createV2WikiURL(key)+ATTACHMENT_FILE+FILE_NAME_PARAMETER+encodedName;
-		return getSharedClientConnection().downloadFile(repoEndpoint, uri, getUserAgent());
+		if(version == null) throw new IllegalArgumentException("Version cannot be null");
+		String uri = createV2WikiURL(key)+ATTACHMENT_HANDLES+VERSION_PARAMETER+version;
+		return getJSONEntity(uri, FileHandleResults.class);
+	}
+	@Override
+	public String downloadV2WikiMarkdown(WikiPageKey key) throws ClientProtocolException, FileNotFoundException, IOException, SynapseException {
+		if(key == null) throw new IllegalArgumentException("Key cannot be null");
+		String uri = createV2WikiURL(key)+MARKDOWN_FILE;
+		return getSharedClientConnection().downloadZippedFileString(repoEndpoint, uri, getUserAgent());
 	}
 	
-	/**
-	 * Download the preview of a V2 wiki attachment file.
-	 * @param key - Identifies a V2 wiki page.
-	 * @param fileName - The name of the original attachment file that you want to download a preview for.
-	 * @return
-	 * @throws IOException 
-	 * @throws FileNotFoundException 
-	 * @throws ClientProtocolException 
-	 */
 	@Override
-	public File downloadV2WikiAttachmentPreview(WikiPageKey key, String fileName)
-		throws ClientProtocolException, FileNotFoundException, IOException {
+	public String downloadVersionOfV2WikiMarkdown(WikiPageKey key, Long version) throws ClientProtocolException, FileNotFoundException, IOException, SynapseException {
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
-		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
-		String encodedName = URLEncoder.encode(fileName, "UTF-8");
-		String uri = createV2WikiURL(key)+ATTACHMENT_FILE_PREVIEW+FILE_NAME_PARAMETER+encodedName;
-		return getSharedClientConnection().downloadFile(repoEndpoint, uri, getUserAgent());
+		if(version == null) throw new IllegalArgumentException("Version cannot be null");
+		String uri = createV2WikiURL(key)+MARKDOWN_FILE+VERSION_PARAMETER+version;
+		return getSharedClientConnection().downloadZippedFileString(repoEndpoint, uri, getUserAgent());
 	}
 	
 	/**
@@ -2370,6 +2345,28 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		String encodedName = URLEncoder.encode(fileName, "UTF-8");
 		String uri = createV2WikiURL(key) + ATTACHMENT_FILE_PREVIEW + FILE_NAME_PARAMETER + encodedName
 				+ AND_REDIRECT_PARAMETER + "false";
+		return getUrl(uri);
+	}
+	
+	@Override
+	public URL getVersionOfV2WikiAttachmentPreviewTemporaryUrl(WikiPageKey key,
+			String fileName, Long version) throws ClientProtocolException, IOException {
+		if(key == null) throw new IllegalArgumentException("Key cannot be null");
+		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
+		String encodedName = URLEncoder.encode(fileName, "UTF-8");
+		String uri = createV2WikiURL(key) + ATTACHMENT_FILE_PREVIEW + FILE_NAME_PARAMETER + encodedName
+			+ AND_REDIRECT_PARAMETER + "false" + AND_VERSION_PARAMETER + version;
+		return getUrl(uri);
+	}
+
+	@Override
+	public URL getVersionOfV2WikiAttachmentTemporaryUrl(WikiPageKey key,
+			String fileName, Long version) throws ClientProtocolException, IOException {
+		if(key == null) throw new IllegalArgumentException("Key cannot be null");
+		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
+		String encodedName = URLEncoder.encode(fileName, "UTF-8");
+		String uri = createV2WikiURL(key) + ATTACHMENT_FILE + FILE_NAME_PARAMETER + encodedName + AND_REDIRECT_PARAMETER
+			+ "false" + AND_VERSION_PARAMETER + version;
 		return getUrl(uri);
 	}
 	
@@ -2422,6 +2419,148 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		PaginatedResults<V2WikiHistorySnapshot> paginated = new PaginatedResults<V2WikiHistorySnapshot>(V2WikiHistorySnapshot.class);
 		paginated.initializeFromJSONObject(new JSONObjectAdapterImpl(object));
 		return paginated;
+	}
+	
+	/**
+	 * Creates a V2 WikiPage model from a V1, zipping up markdown content and tracking it with
+	 * a file handle.
+	 * @param from
+	 * @return
+	 * @throws IOException
+	 * @throws SynapseException
+	 */
+	private V2WikiPage createV2WikiPageFromV1(WikiPage from) throws IOException, SynapseException {
+		if(from == null) throw new IllegalArgumentException("WikiPage cannot be null");
+		// Copy over all information
+		V2WikiPage wiki = new V2WikiPage();
+		wiki.setId(from.getId());
+		wiki.setEtag(from.getEtag());
+		wiki.setCreatedOn(from.getCreatedOn());
+		wiki.setCreatedBy(from.getCreatedBy());
+		wiki.setModifiedBy(from.getModifiedBy());
+		wiki.setModifiedOn(from.getModifiedOn());
+		wiki.setParentWikiId(from.getParentWikiId());
+		wiki.setTitle(from.getTitle());
+		wiki.setAttachmentFileHandleIds(from.getAttachmentFileHandleIds());	
+		
+		// Zip up markdown
+		File markdownFile = File.createTempFile("compressed", ".txt.gz");
+		try{
+			String markdown = from.getMarkdown();
+			if(markdown != null) {
+				markdownFile = FileUtils.writeStringToCompressedFile(markdownFile, markdown);
+			} else {
+				markdownFile = FileUtils.writeStringToCompressedFile(markdownFile, "");
+			}
+			String contentType = "application/x-gzip";
+			// Create file handle for markdown
+			S3FileHandle markdownS3Handle = createFileHandle(markdownFile, contentType);
+			wiki.setMarkdownFileHandleId(markdownS3Handle.getId());
+			return wiki;
+		}finally{
+			markdownFile.delete();
+		}
+
+	}
+	
+	/**
+	 * Creates a V1 WikiPage model from a V2, unzipping the markdown file contents into
+	 * the markdown field.
+	 * @param from
+	 * @param ownerId
+	 * @param ownerType
+	 * @return
+	 * @throws ClientProtocolException
+	 * @throws FileNotFoundException
+	 * @throws IOException
+	 */
+	private WikiPage createWikiPageFromV2(V2WikiPage from, String ownerId, ObjectType ownerType, Long version) throws ClientProtocolException, 
+		FileNotFoundException, IOException, SynapseException {
+		if(from == null) throw new IllegalArgumentException("WikiPage cannot be null");
+		if(ownerId == null) throw new IllegalArgumentException("ownerId cannot be null");
+		if(ownerType == null) throw new IllegalArgumentException("ownerType cannot be null");
+		WikiPage wiki = new WikiPage();
+		wiki.setId(from.getId());
+		wiki.setEtag(from.getEtag());
+		wiki.setCreatedOn(from.getCreatedOn());
+		wiki.setCreatedBy(from.getCreatedBy());
+		wiki.setModifiedBy(from.getModifiedBy());
+		wiki.setModifiedOn(from.getModifiedOn());
+		wiki.setParentWikiId(from.getParentWikiId());
+		wiki.setTitle(from.getTitle());
+		wiki.setAttachmentFileHandleIds(from.getAttachmentFileHandleIds());
+		WikiPageKey key = new WikiPageKey(ownerId, ownerType, wiki.getId());
+		
+		// We may be returning the most recent version of the V2 Wiki, or another version
+		// Download the correct markdown file
+		String markdownString = null;
+		if(version == null) {
+			markdownString = downloadV2WikiMarkdown(key);
+		} else {
+			markdownString = downloadVersionOfV2WikiMarkdown(key, version);
+		}
+		// Store the markdown as a string
+		wiki.setMarkdown(markdownString);
+		return wiki;
+	}
+	
+	/**
+	 * Creates a V1 WikiPage model from a V2 and the already unzipped/string markdown.
+	 * @param model
+	 * @param markdown
+	 * @return
+	 */
+	private WikiPage mergeMarkdownAndMetadata(V2WikiPage model, String markdown) {
+		WikiPage wiki = new WikiPage();
+		wiki.setId(model.getId());
+		wiki.setEtag(model.getEtag());
+		wiki.setCreatedOn(model.getCreatedOn());
+		wiki.setCreatedBy(model.getCreatedBy());
+		wiki.setModifiedBy(model.getModifiedBy());
+		wiki.setModifiedOn(model.getModifiedOn());
+		wiki.setParentWikiId(model.getParentWikiId());
+		wiki.setTitle(model.getTitle());
+		wiki.setAttachmentFileHandleIds(model.getAttachmentFileHandleIds());
+		wiki.setMarkdown(markdown);
+		return wiki;
+	}
+	
+	@Override
+	public WikiPage createV2WikiPageWithV1(String ownerId, ObjectType ownerType,
+			WikiPage toCreate) throws IOException, SynapseException, JSONObjectAdapterException{
+		// Zip up markdown and create a V2 WikiPage
+		V2WikiPage converted = createV2WikiPageFromV1(toCreate);
+		// Create the V2 WikiPage
+		V2WikiPage created = createV2WikiPage(ownerId, ownerType, converted);
+		// Return the result in V1 form
+		return createWikiPageFromV2(created, ownerId, ownerType, null);
+	}
+	
+	@Override
+	public WikiPage updateV2WikiPageWithV1(String ownerId, ObjectType ownerType,
+			WikiPage toUpdate) throws IOException, SynapseException, JSONObjectAdapterException {
+		// Zip up markdown and create a V2 WikiPage
+		V2WikiPage converted = createV2WikiPageFromV1(toUpdate);
+		// Update the V2 WikiPage
+		V2WikiPage updated = updateV2WikiPage(ownerId, ownerType, converted);
+		// Return result in V1 form
+		return mergeMarkdownAndMetadata(updated, toUpdate.getMarkdown());
+	}
+	
+	@Override
+	public WikiPage getV2WikiPageAsV1(WikiPageKey key) throws JSONObjectAdapterException, SynapseException, IOException {
+		// Get the V2 Wiki
+		V2WikiPage v2WikiPage = getV2WikiPage(key);
+		// Convert and return as a V1
+		return createWikiPageFromV2(v2WikiPage, key.getOwnerObjectId(), key.getOwnerObjectType(), null);
+	}
+	
+	@Override
+	public WikiPage getVersionOfV2WikiPageAsV1(WikiPageKey key, Long version) throws JSONObjectAdapterException, SynapseException, IOException {
+		// Get a version of the V2 Wiki
+		V2WikiPage v2WikiPage = getVersionOfV2WikiPage(key, version);
+		// Convert and return as a V1
+		return createWikiPageFromV2(v2WikiPage, key.getOwnerObjectId(), key.getOwnerObjectType(), version);
 	}
 	
 	/**
@@ -3166,6 +3305,104 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throw new SynapseException(e);
 		}
 	}
+	
+
+	/**
+	 * uploads a String to S3 using the chunked file upload service
+	 * 
+	 * @param content the content to upload. Strings in memory should not be large, so we limit to the size of one 'chunk'
+	 * @param contentType should include the character encoding, e.g. "text/plain; charset=utf-8"
+	 */
+	@Override
+    public String uploadToFileHandle(byte[] content, ContentType contentType) throws SynapseException {
+    	if (content==null || content.length==0) throw new IllegalArgumentException("Missing content.");
+		
+    	if (content.length>=MINIMUM_CHUNK_SIZE_BYTES) 
+    		throw new IllegalArgumentException("String must be less than "+MINIMUM_CHUNK_SIZE_BYTES+" bytes.");
+		String contentMD5 = null;
+		try {
+			contentMD5 = MD5ChecksumHelper.getMD5ChecksumForByteArray(content);
+		} catch (IOException e) {
+			throw new SynapseException(e);
+		}
+    	 
+		CreateChunkedFileTokenRequest ccftr = new CreateChunkedFileTokenRequest();
+		ccftr.setFileName("content");
+		ccftr.setContentType(contentType.toString());
+		ccftr.setContentMD5(contentMD5);
+		// Start the upload
+		ChunkedFileToken token = createChunkedFileUploadToken(ccftr);
+		
+		// because of the restriction on string length there will be exactly one chunk
+ 	   	List<Long> chunkNumbers = new ArrayList<Long>();
+		long currentChunkNumber = 1;
+		chunkNumbers.add(currentChunkNumber);
+		ChunkRequest request = new ChunkRequest();
+		request.setChunkedFileToken(token);
+		request.setChunkNumber((long) currentChunkNumber);
+		URL presignedURL = createChunkedPresignedUrl(request);
+		getSharedClientConnection().putBytesToURL(presignedURL, content, contentType.toString());
+
+		CompleteAllChunksRequest cacr = new CompleteAllChunksRequest();
+		cacr.setChunkedFileToken(token);
+		cacr.setChunkNumbers(chunkNumbers);
+		UploadDaemonStatus status = startUploadDeamon(cacr);
+		State state = status.getState();
+		if (state.equals(State.FAILED)) throw new IllegalStateException("Message creation failed: "+status.getErrorMessage());
+			
+		long backOffMillis = 100L; // initially just 1/10 sec, but will exponentially increase
+		while (state.equals(State.PROCESSING) && backOffMillis<=MAX_BACKOFF_MILLIS) {
+			try {
+				Thread.sleep(backOffMillis);
+			} catch (InterruptedException e) {
+				// continue
+			}
+			status = getCompleteUploadDaemonStatus(status.getDaemonId());
+			state = status.getState();
+			if (state.equals(State.FAILED)) throw new IllegalStateException("Message creation failed: "+status.getErrorMessage());
+			backOffMillis *= 2; // exponential backoff
+		}
+		
+		if (!state.equals(State.COMPLETED)) throw new IllegalStateException("Message creation failed: "+status.getErrorMessage());
+
+		return status.getFileHandleId();
+    }
+    
+	private static final ContentType STRING_MESSAGE_CONTENT_TYPE = ContentType.create("text/plain", MESSAGE_CHARSET);
+	
+	/**
+	 * Convenience function to upload a simple string message body, then send message using resultant fileHandleId
+	 * @param message
+	 * @param messageBody
+	 * @return the created message
+	 * @throws SynapseException
+	 */
+	@Override
+	public MessageToUser sendStringMessage(MessageToUser message, String messageBody)
+			throws SynapseException {
+		if (message.getFileHandleId()!=null) throw new IllegalArgumentException("Expected null fileHandleId but found "+message.getFileHandleId());
+		String fileHandleId = uploadToFileHandle(messageBody.getBytes(MESSAGE_CHARSET), STRING_MESSAGE_CONTENT_TYPE);
+		message.setFileHandleId(fileHandleId);
+    	return sendMessage(message);		
+	}
+	
+	/**
+	 * Convenience function to upload a simple string message body, then send message to entity owner using resultant fileHandleId
+	 * @param message
+	 * @param entityId
+	 * @param messageBody
+	 * @return the created message
+	 * @throws SynapseException
+	 */
+	@Override
+	public MessageToUser sendStringMessage(MessageToUser message, String entityId, String messageBody)
+			throws SynapseException {
+				if (message.getFileHandleId()!=null) throw new IllegalArgumentException("Expected null fileHandleId but found "+message.getFileHandleId());
+				String fileHandleId = uploadToFileHandle(messageBody.getBytes(MESSAGE_CHARSET), STRING_MESSAGE_CONTENT_TYPE);
+				message.setFileHandleId(fileHandleId);
+		    	return sendMessage(message, entityId);		
+	}
+	
 	
 	@Override
 	public MessageToUser sendMessage(MessageToUser message, String entityId) throws SynapseException {
@@ -4250,15 +4487,10 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public String retrieveApiKey() throws SynapseException {
 		try {
-			final String ATTRIBUTE_NAME = "secretKey";
 			String url = "/secretKey";
 			JSONObject jsonObj = getSharedClientConnection().getJson(authEndpoint, url, getUserAgent());
-			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
-			String apiKey = null;
-			if(adapter != null && adapter.has(ATTRIBUTE_NAME)) {
-				apiKey = adapter.getString(ATTRIBUTE_NAME);
-			}
-			return apiKey;
+			SecretKey key = EntityFactory.createEntityFromJSONObject(jsonObj, SecretKey.class);
+			return key.getSecretKey();
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
@@ -4748,14 +4980,15 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	@Override
 	public void createUser(NewUser user) throws SynapseException {
-		createUser(user, OriginatingClient.SYNAPSE);
+		createUser(user, DomainType.SYNAPSE);
 	}
 	
 	@Override
-	public void createUser(NewUser user, OriginatingClient originClient) throws SynapseException {
+	public void createUser(NewUser user, DomainType originClient) throws SynapseException {
 		try {
 			JSONObject obj = EntityFactory.createJSONObjectForEntity(user);
-			Map<String,String> parameters = originClient.getParameterMap();
+			Map<String, String> parameters = Maps.newHashMap();
+			parameters.put(AuthorizationConstants.ORIGINATING_CLIENT_PARAM, originClient.toString());
 			getSharedClientConnection().postJson(authEndpoint, "/user", obj.toString(), getUserAgent(), parameters);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
@@ -4764,16 +4997,17 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	
 	@Override
 	public void sendPasswordResetEmail(String email) throws SynapseException{
-		sendPasswordResetEmail(email, OriginatingClient.SYNAPSE);
+		sendPasswordResetEmail(email, DomainType.SYNAPSE);
 	}
 	
 	@Override
-	public void sendPasswordResetEmail(String email, OriginatingClient originClient) throws SynapseException{
+	public void sendPasswordResetEmail(String email, DomainType originClient) throws SynapseException{
 		try {
 			Username user = new Username();
 			user.setEmail(email);
 			JSONObject obj = EntityFactory.createJSONObjectForEntity(user);
-			Map<String,String> parameters = originClient.getParameterMap();
+			Map<String, String> parameters = Maps.newHashMap();
+			parameters.put(AuthorizationConstants.ORIGINATING_CLIENT_PARAM, originClient.toString());
 			getSharedClientConnection().postJson(authEndpoint, "/user/password/email", obj.toString(), getUserAgent(),
 					parameters);
 		} catch (JSONObjectAdapterException e) {
@@ -4817,18 +5051,20 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	
 	@Override
 	public Session passThroughOpenIDParameters(String queryString, Boolean createUserIfNecessary) throws SynapseException {
-		return passThroughOpenIDParameters(queryString, createUserIfNecessary, OriginatingClient.SYNAPSE);
+		return passThroughOpenIDParameters(queryString, createUserIfNecessary, DomainType.SYNAPSE);
 	}
 	
 	@Override
-	public Session passThroughOpenIDParameters(String queryString, Boolean createUserIfNecessary, OriginatingClient originClient) throws SynapseException {
+	public Session passThroughOpenIDParameters(String queryString, Boolean createUserIfNecessary, DomainType originClient) throws SynapseException {
+		Map<String, String> parameters = Maps.newHashMap();
+		parameters.put(AuthorizationConstants.ORIGINATING_CLIENT_PARAM, originClient.toString());
 		try {
 			URIBuilder builder = new URIBuilder();
 			builder.setPath("/openIdCallback");
 			builder.setQuery(queryString);
 			builder.setParameter("org.sagebionetworks.createUserIfNecessary", createUserIfNecessary.toString());
 			JSONObject session = getSharedClientConnection().postJson(authEndpoint, builder.toString(), "",
-					getUserAgent(), originClient.getParameterMap());
+					getUserAgent(), parameters);
 			return EntityFactory.createEntityFromJSONObject(session, Session.class);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);

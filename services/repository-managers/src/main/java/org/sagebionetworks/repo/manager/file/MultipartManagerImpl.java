@@ -175,7 +175,13 @@ public class MultipartManagerImpl implements MultipartManager {
 		ObjectMetadata current = s3Client.getObjectMetadata(bucket, token.getKey());
 		// Capture the content length
 		fileHandle.setContentSize(current.getContentLength());
-		S3FileHandle result = fileHandleDao.createFile(fileHandle);
+		
+		// By default, previews are generated
+		if (ccfr.getShouldPreviewBeGenerated() == null) {
+			ccfr.setShouldPreviewBeGenerated(true);
+		}
+		
+		S3FileHandle result = fileHandleDao.createFile(fileHandle, ccfr.getShouldPreviewBeGenerated());
 		// Upon success we need to delete all of the parts.
 		for(ChunkResult cp: chunkParts){
 			String partKey = getChunkPartKey(token, cp.getChunkNumber().intValue());

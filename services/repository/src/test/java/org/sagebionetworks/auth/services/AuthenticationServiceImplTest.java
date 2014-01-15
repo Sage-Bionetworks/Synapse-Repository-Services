@@ -2,9 +2,7 @@ package org.sagebionetworks.auth.services;
 
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import org.junit.Before;
@@ -14,13 +12,12 @@ import org.sagebionetworks.authutil.OpenIDInfo;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.model.OriginatingClient;
+import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.TermsOfUseException;
-import org.sagebionetworks.repo.model.User;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.LoginCredentials;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.web.NotFoundException;
 
 public class AuthenticationServiceImplTest {
 
@@ -45,16 +42,11 @@ public class AuthenticationServiceImplTest {
 		credential.setPassword(password);
 		
 		userInfo = new UserInfo(false);
-		userInfo.setUser(new User());
-		userInfo.getUser().setDisplayName(username);
-		userInfo.getUser().setId("" + userId);
-		userInfo.setIndividualGroup(new UserGroup());
-		userInfo.getIndividualGroup().setName(username);
-		userInfo.getIndividualGroup().setId("" + userId);
+		userInfo.setId(userId);
 		
 		mockUserManager = Mockito.mock(UserManager.class);
-		when(mockUserManager.getUserInfo(eq(username))).thenReturn(userInfo);
-		when(mockUserManager.getGroupName(anyString())).thenReturn(username);
+		when(mockUserManager.getUserInfo(eq(userId))).thenReturn(userInfo);
+		when(mockUserManager.createUser(any(NewUser.class))).thenReturn(userId);
 		
 		mockAuthenticationManager = Mockito.mock(AuthenticationManager.class);
 		when(mockAuthenticationManager.checkSessionToken(eq(sessionToken), eq(true))).thenReturn(userId);
@@ -69,7 +61,7 @@ public class AuthenticationServiceImplTest {
 		when(mockAuthenticationManager.checkSessionToken(eq(sessionToken), eq(true))).thenThrow(new TermsOfUseException());
 		
 		// A boolean flag should let us get past this call
-		userInfo.getUser().setAgreesToTermsOfUse(false);
+		userInfo.setAgreesToTermsOfUse(false);
 		service.revalidate(sessionToken, false);
 
 		// But it should default to true
@@ -81,21 +73,17 @@ public class AuthenticationServiceImplTest {
 		}
 	}
 	
-	@Test
+	@Test (expected=NotFoundException.class)
 	public void testOpenIDAuthentication_newUser() throws Exception {
 		// This user does not exist yet
-		when(mockUserManager.doesPrincipalExist(eq(username))).thenReturn(false);
-		userInfo.getUser().setAgreesToTermsOfUse(false);
+		userInfo.setAgreesToTermsOfUse(false);
 		
 		OpenIDInfo info = new OpenIDInfo();
 		info.setEmail(username);
 		info.setFullName(fullName);
 		
-		service.processOpenIDInfo(info, true, OriginatingClient.SYNAPSE);
+		service.processOpenIDInfo(info, true, DomainType.SYNAPSE);
 		
-		// The user should be created
-		verify(mockUserManager).createUser(any(NewUser.class));
-		verify(mockAuthenticationManager).authenticate(eq(username), eq((String) null));
 	}
 	
 }

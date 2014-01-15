@@ -6,8 +6,14 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -20,7 +26,6 @@ import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACL_SCHEME;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -32,7 +37,6 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.ReferenceDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
@@ -57,8 +61,8 @@ public class NodeManagerImplUnitTest {
 	private ReferenceDao mockReferenceDao = null;
 	private ActivityManager mockActivityManager;
 		
-	private final UserInfo mockUserInfo = new UserInfo(false);
-	private final UserInfo anonUserInfo = new UserInfo(false);
+	private UserInfo mockUserInfo;
+	private UserInfo anonUserInfo;
 
 	@Before
 	public void before() throws Exception {
@@ -73,21 +77,10 @@ public class NodeManagerImplUnitTest {
 		nodeManager = new NodeManagerImpl(mockNodeDao, mockAuthManager, mockAclDao, 
 				mockEntityBootstrapper, mockNodeInheritanceManager, mockReferenceDao, mockActivityManager);
 
-		UserGroup userGroup = new UserGroup();
-		userGroup.setId("2");
-		userGroup.setName("two@foo.bar");
-		userGroup.setIsIndividual(true);
-		User mockUser = new User();
-		mockUser.setId("101");
-		mockUser.setUserId("test-user");
-		mockUserInfo.setUser(mockUser);
-		mockUserInfo.setIndividualGroup(userGroup);
+
+		mockUserInfo = new UserInfo(false, 101L);
 		
-		User anonUser = new User();
-		anonUser.setId("102");
-		anonUser.setUserId(AuthorizationConstants.ANONYMOUS_USER_ID);
-		anonUserInfo.setUser(anonUser);
-		anonUserInfo.setIndividualGroup(userGroup);
+		anonUserInfo = new UserInfo(false, 102L);
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
@@ -124,20 +117,20 @@ public class NodeManagerImplUnitTest {
 		node.setCreatedByPrincipalId(presetCreatedBy);
 		node.setCreatedOn(presetCreatedOn);
 		// Now validate the node
-		NodeManagerImpl.validateNodeCreationData(Long.parseLong(anonUserInfo.getIndividualGroup().getId()), node);
+		NodeManagerImpl.validateNodeCreationData(anonUserInfo.getId(), node);
 		// the values SHOULD  have changed
 		assertTrue(Math.abs(System.currentTimeMillis()-node.getCreatedOn().getTime())<100L);
-		assertEquals(anonUserInfo.getIndividualGroup().getId(), node.getCreatedByPrincipalId().toString());
+		assertEquals(anonUserInfo.getId().toString(), node.getCreatedByPrincipalId().toString());
 	}
 	
 	@Test
 	public void testValidateNodeCreatedDataWithNulls(){
 		Node node = new Node();
 		// Now validate the node
-		NodeManagerImpl.validateNodeCreationData(Long.parseLong(anonUserInfo.getIndividualGroup().getId()), node);
+		NodeManagerImpl.validateNodeCreationData(anonUserInfo.getId(), node);
 		// the values should not have changed
 		assertNotNull(node.getCreatedOn());
-		assertEquals(anonUserInfo.getIndividualGroup().getId(), node.getCreatedByPrincipalId().toString());
+		assertEquals(anonUserInfo.getId(), node.getCreatedByPrincipalId());
 	}
 	
 	@Test
@@ -148,7 +141,7 @@ public class NodeManagerImplUnitTest {
 		node.setModifiedByPrincipalId(presetModifiedBy);
 		node.setModifiedOn(presetModifiedOn);
 		// Now validate the node
-		NodeManagerImpl.validateNodeModifiedData(Long.parseLong(anonUserInfo.getIndividualGroup().getId()), node);
+		NodeManagerImpl.validateNodeModifiedData(anonUserInfo.getId(), node);
 		// the values should have changed
 		assertTrue(!presetModifiedOn.equals( node.getModifiedOn()));
 		assertTrue(!presetModifiedBy.equals( node.getModifiedByPrincipalId().toString()));
@@ -158,10 +151,10 @@ public class NodeManagerImplUnitTest {
 	public void testValidateNodeModifiedDataWithNulls(){
 		Node node = new Node();
 		// Now validate the node
-		NodeManagerImpl.validateNodeModifiedData(Long.parseLong(anonUserInfo.getIndividualGroup().getId()), node);
+		NodeManagerImpl.validateNodeModifiedData(anonUserInfo.getId(), node);
 		// the values should not have changed
 		assertNotNull(node.getModifiedOn());
-		assertEquals(anonUserInfo.getIndividualGroup().getId(), node.getModifiedByPrincipalId().toString());
+		assertEquals(anonUserInfo.getId(), node.getModifiedByPrincipalId());
 	}
 	
 	@Test
@@ -183,8 +176,8 @@ public class NodeManagerImplUnitTest {
 		assertEquals("101", id);
 		Node processedNode = argument.getValue();
 		assertNotNull(processedNode);
-		assertEquals(anonUserInfo.getIndividualGroup().getId(), processedNode.getCreatedByPrincipalId().toString());
-		assertEquals(anonUserInfo.getIndividualGroup().getId(), processedNode.getModifiedByPrincipalId().toString());
+		assertEquals(anonUserInfo.getId(), processedNode.getCreatedByPrincipalId());
+		assertEquals(anonUserInfo.getId(), processedNode.getModifiedByPrincipalId());
 		assertNotNull(processedNode.getModifiedOn());
 		assertNotNull(processedNode.getModifiedByPrincipalId());
 	}

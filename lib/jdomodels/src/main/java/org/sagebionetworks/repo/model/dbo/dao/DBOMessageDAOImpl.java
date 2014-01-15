@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
@@ -439,14 +440,9 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	}
 	
 	@Override
-	public boolean canSeeMessagesUsingFileHandle(Collection<UserGroup> userGroups, String fileHandleId) {
-		if (userGroups.size() <= 0) {
+	public boolean canSeeMessagesUsingFileHandle(Set<Long> groupIds, String fileHandleId) {
+		if (groupIds.size() <= 0) {
 			return false;
-		}
-		
-		List<String> groupIds = new ArrayList<String>();
-		for (UserGroup ug : userGroups) {
-			groupIds.add(ug.getId());
 		}
 		
 		MapSqlParameterSource params = new MapSqlParameterSource();

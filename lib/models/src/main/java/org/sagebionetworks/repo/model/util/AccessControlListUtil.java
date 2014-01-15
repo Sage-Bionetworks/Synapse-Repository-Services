@@ -33,7 +33,7 @@ public class AccessControlListUtil {
 		}
 		access.setAccessType(typeSet);
 		//access.setDisplayName(info.getUser().getDisplayName());
-		access.setPrincipalId(Long.parseLong(info.getIndividualGroup().getId()));
+		access.setPrincipalId(info.getId());
 		set.add(access);
 		return acl;
 	}
