@@ -75,7 +75,7 @@ public class MessageManagerImpl implements MessageManager {
 	/**
 	 * The specified encoding for the generated email message sent to the end user
 	 */
-	private static final String EMAIL_CHARSET = "UTF-16";
+	private static final String EMAIL_CHARSET = "UTF-8";
 	
 	
 	/**
