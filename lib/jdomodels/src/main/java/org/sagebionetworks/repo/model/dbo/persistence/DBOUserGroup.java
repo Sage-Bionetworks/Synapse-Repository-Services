@@ -21,15 +21,19 @@ import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
-import org.sagebionetworks.repo.model.dbo.principal.PrincipalUtils;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
 /**
  * @author brucehoff
  *
  */
-public class DBOUserGroup implements MigratableDatabaseObject<DBOUserGroup, DBOUserGroupBackup> {
+public class DBOUserGroup implements MigratableDatabaseObject<DBOUserGroup, DBOUserGroup> {
 	private Long id;
+	/**
+	 * This field will be remove in stack-28
+	 */
+	@Deprecated
+	private String name;
 	private Date creationDate;
 	private Boolean isIndividual = false;
 	private String etag;
@@ -78,6 +82,16 @@ public class DBOUserGroup implements MigratableDatabaseObject<DBOUserGroup, DBOU
 				return DBOUserGroup.class;
 			}
 		};
+	}
+
+
+	public String getName() {
+		return name;
+	}
+
+
+	public void setName(String name) {
+		this.name = name;
 	}
 
 
@@ -150,8 +164,8 @@ public class DBOUserGroup implements MigratableDatabaseObject<DBOUserGroup, DBOU
 
 
 	@Override
-	public Class<? extends DBOUserGroupBackup> getBackupClass() {
-		return DBOUserGroupBackup.class;
+	public Class<? extends DBOUserGroup> getBackupClass() {
+		return DBOUserGroup.class;
 	}
 
 
@@ -170,19 +184,19 @@ public class DBOUserGroup implements MigratableDatabaseObject<DBOUserGroup, DBOU
 	}
 
 	@Override
-	public MigratableTableTranslation<DBOUserGroup, DBOUserGroupBackup> getTranslator() {
-		return new MigratableTableTranslation<DBOUserGroup, DBOUserGroupBackup>(){
+	public MigratableTableTranslation<DBOUserGroup, DBOUserGroup> getTranslator() {
+		return new MigratableTableTranslation<DBOUserGroup, DBOUserGroup>(){
 
 			@Override
 			public DBOUserGroup createDatabaseObjectFromBackup(
-					DBOUserGroupBackup backup) {
-				return PrincipalUtils.createDBO(backup);
+					DBOUserGroup backup) {
+				return backup;
 			}
 
 			@Override
-			public DBOUserGroupBackup createBackupFromDatabaseObject(
+			public DBOUserGroup createBackupFromDatabaseObject(
 					DBOUserGroup dbo) {
-				return PrincipalUtils.createBackup(dbo);
+				return dbo;
 			}};
 	}
 
