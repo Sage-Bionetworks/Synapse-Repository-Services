@@ -8,14 +8,15 @@ package org.sagebionetworks.repo.model.principal;
  */
 public class BootstrapGroup extends BootstrapPrincipal {
 
-	String groupName;
+	BootstrapAlias groupAlias;
 
-	public String getGroupName() {
-		return groupName;
+	public BootstrapAlias getGroupAlias() {
+		return groupAlias;
 	}
 
-	public void setGroupName(String groupName) {
-		this.groupName = groupName;
+	public void setGroupAlias(BootstrapAlias groupAlias) {
+		this.groupAlias = groupAlias;
 	}
+
 	
 }
