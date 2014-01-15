@@ -7,19 +7,20 @@ package org.sagebionetworks.repo.model.principal;
  */
 public class BootstrapUser extends BootstrapPrincipal {
 	
-	String email;
-	String userName;
-	public String getEmail() {
+	BootstrapAlias email;
+	BootstrapAlias userName;
+	public BootstrapAlias getEmail() {
 		return email;
 	}
-	public void setEmail(String email) {
+	public void setEmail(BootstrapAlias email) {
 		this.email = email;
 	}
-	public String getUserName() {
+	public BootstrapAlias getUserName() {
 		return userName;
 	}
-	public void setUserName(String userName) {
+	public void setUserName(BootstrapAlias userName) {
 		this.userName = userName;
 	}
+	
 
 }
