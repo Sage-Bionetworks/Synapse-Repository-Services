@@ -424,7 +424,7 @@ public class DBOReferenceDaoImplTest {
 		ra.setPrincipalId(Long.parseLong(groupId));
 		ras.add(ra);
 		acl.setResourceAccess(ras);
-		String aclId = aclDAO.create(acl);
+		String aclId = aclDAO.create(acl, ObjectType.ENTITY);
 		acl = aclDAO.get(aclId, ObjectType.ENTITY);
 		// add acl to a list of objects to delete
 		aclIdToDelete = acl.getId();

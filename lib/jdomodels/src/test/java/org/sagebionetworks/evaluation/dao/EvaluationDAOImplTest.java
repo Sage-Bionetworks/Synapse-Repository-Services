@@ -310,20 +310,6 @@ public class EvaluationDAOImplTest {
 		assertEquals(0, evalList.size());
     }
     
-	@Test
-	public void testCreateFromBackup() throws Exception {        
-        // Create it
-		eval.setOwnerId(EVALUATION_OWNER_ID.toString());
-		eval.setEtag("original-etag");
-		String evalId = evaluationDAO.createFromBackup(eval, EVALUATION_OWNER_ID);
-		assertNotNull(evalId);
-		toDelete.add(evalId);
-		
-		// Get it
-		Evaluation created = evaluationDAO.get(evalId);
-		assertEquals(eval, created);
-	}
-    
     @Test
     public void testDtoToDbo() {
     	Evaluation evalDTO = new Evaluation();
