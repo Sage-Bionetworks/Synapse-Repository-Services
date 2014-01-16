@@ -56,6 +56,8 @@ import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.ontology.Concept;
 import org.sagebionetworks.repo.model.ontology.ConceptResponsePage;
+import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
+import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
@@ -1405,6 +1407,22 @@ public class ServletTestHelper {
 		PaginatedColumnModels pcm = ServletTestHelperUtils.readResponse(
 				response, PaginatedColumnModels.class);
 		return pcm;
+	}
+	
+	/**
+	 * Is the passed alias available?
+	 * @param dispatchServlet
+	 * @param check
+	 * @return
+	 * @throws Exception
+	 */
+	public static AliasCheckResponse checkAlias(HttpServlet dispatchServlet, AliasCheckRequest check) throws Exception{
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, UrlHelpers.PRINCIPAL_AVAILABLE, null, check);
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.CREATED);
+		return objectMapper
+				.readValue(response.getContentAsString(), AliasCheckResponse.class);
 	}
 
 	public static Team createTeam(HttpServlet dispatchServlet, Long userId,

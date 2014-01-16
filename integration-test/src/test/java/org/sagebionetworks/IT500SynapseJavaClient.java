@@ -87,6 +87,9 @@ import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
+import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
+import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 import org.sagebionetworks.utils.HttpClientHelper;
@@ -199,6 +202,18 @@ public class IT500SynapseJavaClient {
 		try {
 			adminSynapse.deleteUser(user2ToDelete);
 		} catch (SynapseServiceException e) { }
+	}
+	
+	@Test
+	public void testCheckAliasAvailable() throws SynapseException{
+		AliasCheckRequest request = new AliasCheckRequest();
+		// This is valid but already in use
+		request.setAlias("public");
+		request.setType(AliasType.TEAM_NAME);
+		AliasCheckResponse response = synapseOne.checkAliasAvailable(request);
+		assertNotNull(response);
+		assertTrue(response.getValid());
+		assertFalse("The 'public' group name should already have this alias so it cannot be available!",response.getAvailable());
 	}
 	
 	@Test

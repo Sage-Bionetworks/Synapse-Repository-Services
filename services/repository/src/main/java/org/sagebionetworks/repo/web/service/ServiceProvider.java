@@ -58,4 +58,6 @@ public interface ServiceProvider {
 	
 	public MembershipRequestService getMembershipRequestService();
 	
+	public PrincipalService getPrincipalService();
+	
 }
