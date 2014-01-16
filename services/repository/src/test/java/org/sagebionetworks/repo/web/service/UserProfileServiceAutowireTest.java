@@ -1,23 +1,25 @@
 package org.sagebionetworks.repo.web.service;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
+import java.io.IOException;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+
+import javax.servlet.ServletException;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserGroup;
-import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -44,6 +46,7 @@ public class UserProfileServiceAutowireTest {
 
 	Long principalOne;
 	Long principalTwo;
+	Long principalThree;
 	UserInfo admin;
 
 	@Before
@@ -70,7 +73,18 @@ public class UserProfileServiceAutowireTest {
 		nu.setEmail("super@duper.org");
 		principalTwo = userManger.createUser(nu);
 		principalsToDelete.add(principalTwo);
-
+		
+		// Create another profile
+		nu = new NewUser();
+		nu.setFirstName("Cate");
+		nu.setLastName("Archer");
+		nu.setUserName("cate001");
+		nu.setEmail("cate@Spies.org");
+		principalThree = userManger.createUser(nu);
+		principalsToDelete.add(principalThree);
+		
+		// refresh the cache here
+		userProfileService.refreshCache();
 	}
 	
 	@After
@@ -93,6 +107,7 @@ public class UserProfileServiceAutowireTest {
 		assertEquals("This is deprecated and should always be null",null, profile.getEmail());
 		assertEquals("One user should not be able to see the Emails of another user.",null, profile.getEmails());
 		assertEquals("One user should not be able to see the OpenIds of another user.",null, profile.getOpenIds());
+		assertEquals("One user should be able to see the OpenIds of another user.","random", profile.getUserName());
 		// We should be able see our own data
 		profile =userProfileService.getUserProfileByOwnerId(principalTwo, principalTwo.toString());
 		assertNotNull(profile);
@@ -104,7 +119,6 @@ public class UserProfileServiceAutowireTest {
 	
 	@Test
 	public void testHeaders() throws DatastoreException, NotFoundException{
-		userProfileService.refreshCache();
 		UserGroupHeaderResponsePage ughrp = userProfileService.getUserGroupHeadersByPrefix("j", 0, Integer.MAX_VALUE, null, null);
 		assertNotNull(ughrp);
 		assertNotNull(ughrp.getChildren());
@@ -119,10 +133,61 @@ public class UserProfileServiceAutowireTest {
 			if(principalOne.equals(ownerId)){
 				assertEquals("James", ugh.getFirstName());
 				assertEquals("Bond", ugh.getLastName());
+				assertEquals("007", ugh.getUserName());
 			}
 		}
 		
 		assertTrue("Failed to find the user with a 'j' prefix query",resultSet.contains(principalOne));
 		assertTrue("Failed to find the user with a 'j' prefix query",resultSet.contains(principalTwo));
+	}
+
+	@Test
+	public void testGetUserGroupHeadersNoFilter() throws ServletException, IOException, DatastoreException, NotFoundException {
+		UserGroupHeaderResponsePage ughrp = userProfileService.getUserGroupHeadersByPrefix("", 0, Integer.MAX_VALUE, null, null);
+		assertNotNull(ughrp);
+		List<UserGroupHeader> children = ughrp.getChildren();
+		assertNotNull(children);
+		
+		assertTrue(ughrp.getChildren().size() >= 2);
+
+		Set<Long> resultSet = new HashSet<Long>();	
+		for (UserGroupHeader ugh : children) {
+			Long ownerId = Long.parseLong(ugh.getOwnerId());
+			resultSet.add(ownerId);
+		}
+		// spot check: should find first 15 alphabetical names
+		assertTrue("Failed to find the user with a '' prefix query",resultSet.contains(principalOne));
+		assertTrue("Failed to find the user with a '' prefix query",resultSet.contains(principalTwo));
+		assertTrue("Failed to find the user with a '' prefix query",resultSet.contains(principalThree));
+	}
+	
+
+	@Test
+	public void testGetUserGroupHeadersWithFilterUsername() throws ServletException, IOException, DatastoreException, NotFoundException {
+		UserGroupHeaderResponsePage ughrp = userProfileService.getUserGroupHeadersByPrefix("cate001", 0, Integer.MAX_VALUE, null, null);
+		assertNotNull(ughrp);
+		assertNotNull(ughrp.getChildren());		
+		assertTrue(ughrp.getChildren().size() == 1);
+		assertEquals(principalThree.toString(), ughrp.getChildren().get(0).getOwnerId());
+	}
+
+	
+	@Test
+	public void testGetUserGroupHeadersWithFilterByLastName() throws ServletException, IOException, DatastoreException, NotFoundException {
+		UserGroupHeaderResponsePage ughrp = userProfileService.getUserGroupHeadersByPrefix("B", 0, Integer.MAX_VALUE, null, null);
+		assertNotNull(ughrp);
+		List<UserGroupHeader> children = ughrp.getChildren();
+		assertNotNull(children);
+		
+		assertTrue(ughrp.getChildren().size() >= 2);
+		// Get the ID of all results
+		Set<Long> resultSet = new HashSet<Long>();
+		for(UserGroupHeader ugh: ughrp.getChildren()){
+			Long ownerId = Long.parseLong(ugh.getOwnerId());
+			resultSet.add(ownerId);
+		}
+		
+		assertTrue("Failed to find the user with a 'B' prefix query",resultSet.contains(principalOne));
+		assertTrue("Failed to find the user with a 'B' prefix query",resultSet.contains(principalTwo));
 	}
 }
