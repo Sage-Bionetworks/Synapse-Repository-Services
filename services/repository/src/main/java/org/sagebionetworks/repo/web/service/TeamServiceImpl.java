@@ -182,7 +182,7 @@ public class TeamServiceImpl implements TeamService {
 		}
 		
 		//get the collection of prefixes that we want to associate to this UserGroupHeader
-		List<String> prefixes = PrefixCacheHelper.getPrefixes(member.getMember().getUserName());
+		List<String> prefixes = PrefixCacheHelper.getPrefixes(member.getMember());
 		
 		UserProfileManagerUtils.clearPrivateFields(null, member.getMember());
 		
