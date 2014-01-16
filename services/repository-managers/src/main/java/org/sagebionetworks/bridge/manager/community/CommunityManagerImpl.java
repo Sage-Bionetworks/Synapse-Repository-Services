@@ -407,7 +407,7 @@ public class CommunityManagerImpl implements CommunityManager {
 					throw new UnauthorizedException("Need at least one admin. Make someone else an admin before leaving this community");
 				}
 			}
-			aclDAO.update(acl);
+			aclDAO.update(acl, ObjectType.ENTITY);
 		}
 		teamManager.removeMember(userInfo, community.getTeamId(), userInfo.getId().toString());
 	}
@@ -435,7 +435,7 @@ public class CommunityManagerImpl implements CommunityManager {
 		// just in case
 		removeFromACL(acl, memberInfo.getId().toString());
 		addToACL(acl, memberInfo.getId().toString(), COMMUNITY_ADMIN_PERMISSIONS);
-		aclDAO.update(acl);
+		aclDAO.update(acl, ObjectType.ENTITY);
 
 		// set the team manage permission on the team
 		teamManager.setPermissions(userInfo, community.getTeamId(), memberInfo.getId().toString(), true);
@@ -461,7 +461,7 @@ public class CommunityManagerImpl implements CommunityManager {
 			if (countAdmins(acl) == 0) {
 				throw new UnauthorizedException("Need at least one admin. Make someone else an admin before removing yourself as admin");
 			}
-			aclDAO.update(acl);
+			aclDAO.update(acl, ObjectType.ENTITY);
 		}
 
 		// set the team manage permission on the team

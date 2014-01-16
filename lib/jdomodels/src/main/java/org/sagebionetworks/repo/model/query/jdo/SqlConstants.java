@@ -378,8 +378,15 @@ public class SqlConstants {
 	public static final String TABLE_BOUND_COLUMN			= "BOUND_COLUMN";
 	public static final String COL_BOUND_CM_COLUMN_ID		= "COLUMN_ID";
 	public static final String COL_BOUND_CM_OBJECT_ID		= "OBJECT_ID";
-	public static final String COL_BOUND_CM_IS_CURRENT		= "IS_CURRENT";
+	public static final String COL_BOUND_CM_UPDATED_ON		= "UPDATED_ON";
 	public static final String DDL_BOUND_COLUMN = "schema/BoundColumn-ddl.sql";
+	
+	// The bound column ordinal model table
+	public static final String TABLE_BOUND_COLUMN_ORDINAL		= "BOUND_COLUMN_ORDINAL";
+	public static final String COL_BOUND_CM_ORD_COLUMN_ID		= "COLUMN_ID";
+	public static final String COL_BOUND_CM_ORD_OBJECT_ID		= "OBJECT_ID";
+	public static final String COL_BOUND_CM_ORD_ORDINAL			= "ORDINAL";
+	public static final String DDL_BOUND_COLUMN_ORDINAL = "schema/BoundColumnOrdinal-ddl.sql";
 	
 	// The wiki attachment table
 	public static final String TABLE_WIKI_ATTACHMENT				= "WIKI_ATTACHMENTS";
