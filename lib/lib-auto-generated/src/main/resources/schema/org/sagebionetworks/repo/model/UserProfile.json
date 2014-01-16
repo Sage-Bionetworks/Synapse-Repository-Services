@@ -72,7 +72,13 @@
 		"userName": {
 			"type": "string",
 			"title": "User Name",
-			"description": "A name chosen by the user that uniquely identifies them."
+			"description": "A name chosen by the user that uniquely identifies them.",
+			"links": [
+				{
+					"rel": "describedby",
+					"href": "http://synapse.sagebase.org/access/public"
+				}
+			]
 		},
 		"displayName": {
 			"type": "string",

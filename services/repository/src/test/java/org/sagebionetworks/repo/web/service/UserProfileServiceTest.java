@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.web.service;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -14,19 +13,13 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-
-import javax.servlet.ServletException;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
@@ -171,123 +164,6 @@ public class UserProfileServiceTest {
 		assertTrue(headers.containsKey("g1"));
 		assertTrue(headers.containsKey("g2"));
 		assertFalse(headers.containsKey("g10"));
-	}
-	@Ignore
-	@Test
-	public void testGetUserGroupHeadersNoFilter() throws ServletException, IOException, DatastoreException, NotFoundException {
-		String prefix = "";
-		int limit = 15;
-		int offset = 0;
-		
-		UserGroupHeaderResponsePage response = userProfileService.getUserGroupHeadersByPrefix(prefix, offset, limit, null, null);
-		assertNotNull(response);
-		List<UserGroupHeader> children = response.getChildren();
-		assertNotNull(children);
-		
-		assertEquals("Incorrect number of results", children.size(), limit);
-
-		Set<String> names = new HashSet<String>();		
-		for (UserGroupHeader ugh : children) {
-			names.add(ugh.getUserName());
-		}
-		// spot check: should find first 15 alphabetical names
-		assertTrue("Expected 'Group 5', but was not found.", names.contains("Group 5"));
-		assertFalse("Did not expect 'User 5', but was found.", names.contains("User 5"));
-	}
-	
-	
-	@Ignore
-	@Test
-	public void testGetUserGroupHeadersWithSameCaseFilter() throws ServletException, IOException, DatastoreException, NotFoundException {
-		String prefix = "Gro";
-		int limit = Integer.MAX_VALUE;
-		int offset = 0;
-		
-		UserGroupHeaderResponsePage response = userProfileService.getUserGroupHeadersByPrefix(prefix, offset, limit, null, null);
-		assertNotNull(response);
-		List<UserGroupHeader> children = response.getChildren();
-		assertNotNull(children);
-		
-		assertEquals("Incorrect number of results", 10, children.size());
-
-		Set<String> names = new HashSet<String>();		
-		for (UserGroupHeader ugh : children) {
-			names.add(ugh.getUserName());
-		}
-		// check: should find all 10 UserGroups and no UserProfiles
-		for (int i = 0; i < 10; i++) {
-			assertTrue("Expected 'Group " + i + "', but was not found.", names.contains("Group " + i));
-			assertFalse("Did not expect 'User " + i + "', but was found.", names.contains("User " + i));	
-		}
-	}
-	@Ignore
-	@Test
-	public void testGetUserGroupHeadersWithDifferentCaseFilter() throws ServletException, IOException, DatastoreException, NotFoundException {
-		String prefix = "gRoUp";
-		int limit = Integer.MAX_VALUE;
-		int offset = 0;
-		
-		UserGroupHeaderResponsePage response = userProfileService.getUserGroupHeadersByPrefix(prefix, offset, limit, null, null);
-		assertNotNull(response);
-		List<UserGroupHeader> children = response.getChildren();
-		assertNotNull(children);
-		
-		assertEquals("Incorrect number of results", 10, children.size());
-
-		Set<String> names = new HashSet<String>();		
-		for (UserGroupHeader ugh : children) {
-			names.add(ugh.getUserName());
-		}
-		// check: should find all 10 UserGroups and no UserProfiles
-		for (int i = 0; i < 10; i++) {
-			assertTrue("Expected 'Group " + i + "', but was not found.", names.contains("Group " + i));
-			assertFalse("Did not expect 'User " + i + "', but was found.", names.contains("User " + i));	
-		}
-	}
-	
-	@Ignore
-	@Test
-	public void testGetUserGroupHeadersWithFilterSameName() throws ServletException, IOException, DatastoreException, NotFoundException {
-		String prefix = "user 0";
-		int limit = Integer.MAX_VALUE;
-		int offset = 0;
-		
-		UserGroupHeaderResponsePage response = userProfileService.getUserGroupHeadersByPrefix(prefix, offset, limit, null, null);
-		assertNotNull(response);
-		List<UserGroupHeader> children = response.getChildren();
-		assertNotNull(children);
-		
-		assertEquals("Expected different number of results", 2, children.size());
-
-		Set<String> ids = new HashSet<String>();
-		for (UserGroupHeader ugh : children) {
-			assertEquals("Invalid header returned", "User 0", ugh.getUserName());
-			ids.add(ugh.getOwnerId());
-		}
-		assertTrue("Expected principal was not returned", ids.contains("p0"));
-		assertTrue("Expected principal was not returned", ids.contains("p0_duplicate"));
-	}
-	@Ignore
-	@Test
-	public void testGetUserGroupHeadersWithFilterByLastName() throws ServletException, IOException, DatastoreException, NotFoundException {
-		String prefix = "0";
-		int limit = Integer.MAX_VALUE;
-		int offset = 0;
-		
-		UserGroupHeaderResponsePage response = userProfileService.getUserGroupHeadersByPrefix(prefix, offset, limit, null, null);
-		assertNotNull(response);
-		List<UserGroupHeader> children = response.getChildren();
-		assertNotNull(children);
-		
-		assertEquals("Expected different number of results", 3, children.size());
-
-		Set<String> ids = new HashSet<String>();
-		for (UserGroupHeader ugh : children) {
-			ids.add(ugh.getOwnerId());
-		}
-		assertTrue("Expected profile 0, but was not found", ids.contains("p0"));
-		assertTrue("Expected profile 0 duplicate, but was not found", ids.contains("p0_duplicate"));
-		assertTrue("Expected group 0, but was not found.", ids.contains("g0"));
 	}
 
 
