@@ -104,8 +104,8 @@
 		<property name="databaseObjectRegister">
 			<list>
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup" />
-				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOUserProfile" />
 				<bean class="org.sagebionetworks.repo.model.dbo.principal.DBOPrincipalAlias" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOUserProfile" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle" />
                 <bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMessageContent" />
 				<bean class="org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiPage" />
@@ -116,6 +116,7 @@
 				<bean class="org.sagebionetworks.evaluation.dbo.ParticipantDBO" />
 				<bean class="org.sagebionetworks.evaluation.dbo.SubmissionDBO" />
 				<bean class="org.sagebionetworks.evaluation.dbo.SubmissionStatusDBO" />
+				
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirement" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAccessApproval" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAccessControlList" />

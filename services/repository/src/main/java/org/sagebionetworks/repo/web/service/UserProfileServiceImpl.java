@@ -23,7 +23,6 @@ import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.manager.UserProfileManagerUtils;
-import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -33,9 +32,7 @@ import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
-import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -224,6 +221,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 		for (UserProfile profile : userProfiles) {
 			UserProfileManagerUtils.clearPrivateFields(null, profile);
 			header = convertUserProfileToHeader(profile);
+			addToPrefixCache(tempPrefixCache, header);
 			addToIdCache(tempIdCache, header);
 		}
 		// List all team names
@@ -325,7 +323,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 
 	private void addToPrefixCache(Trie<String, Collection<UserGroupHeader>> prefixCache, UserGroupHeader header) {
 		//get the collection of prefixes that we want to associate to this UserGroupHeader
-		List<String> prefixes = PrefixCacheHelper.getPrefixes(header.getUserName());
+		List<String> prefixes = PrefixCacheHelper.getPrefixes(header);
 		
 		for (String prefix : prefixes) {
 			if (!prefixCache.containsKey(prefix)) {

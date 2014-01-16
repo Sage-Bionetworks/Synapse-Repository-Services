@@ -104,13 +104,36 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		// Make sure we have a table for all registered objects
 		if(databaseObjectRegister == null) throw new IllegalArgumentException("databaseObjectRegister bean cannot be null");
 		// Create the schema for each 
+		// This index is used to validate the order of migration.
+		int lastIndex = 0;
 		for(MigratableDatabaseObject dbo: databaseObjectRegister){
 			// Root objects are registered here.
 			boolean isRoot = true;
 			registerObject(dbo, isRoot);
+			// What is the index of this type
+			int typeIndex= typeIndex(dbo.getMigratableTableType());
+			if(typeIndex < lastIndex) throw new IllegalArgumentException("The order of the primary MigrationType must match the order for the MigrationType enumeration.  Type:  "+dbo.getMigratableTableType().name()+" is out of order");
+			lastIndex = typeIndex;
+		}
+		
+		// Change must always be last
+		if(!MigrationType.CHANGE.equals(MigrationType.values()[lastIndex])){
+			throw new IllegalArgumentException("The migration type: "+MigrationType.CHANGE+" must always be last since it migration triggers asynchronous message processing of the stack");
 		}
 	}
 
+	/**
+	 * What is the index of this type in the enumeration?
+	 * This is used to determine if the order of primary types is different than the enumeration order.
+	 * @param type
+	 * @return
+	 */
+	private int typeIndex(MigrationType type){
+		for(int i=0; i<MigrationType.values().length; i++){
+			if(MigrationType.values()[i].equals(type)) return i;
+		}
+		throw new IllegalArgumentException("Did not find type: "+type);
+	}
 	/**
 	 * Register a MigratableDatabaseObject with this DAO.
 	 * @param dbo
