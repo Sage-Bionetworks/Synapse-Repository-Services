@@ -1,0 +1,13 @@
+{
+	"description": "Request to check if an alias is available.",
+	"properties": {
+		"alias": {
+			"type": "string",
+			"description": "The alias to check"
+		},
+		"type": {
+			"$ref": "org.sagebionetworks.repo.model.principal.AliasType",
+			"description": "The type of the alias being checked."
+		}
+	}
+}

@@ -61,7 +61,9 @@ public class ServiceProviderImpl implements ServiceProvider {
 	private MembershipInvitationService membershipInvitationService;
 	@Autowired
 	private MembershipRequestService membershipRequestService;
-
+	@Autowired
+	private PrincipalService principalService;
+	
 	public AccessApprovalService getAccessApprovalService() {
 		return accessApprovalService;
 	}
@@ -150,6 +152,10 @@ public class ServiceProviderImpl implements ServiceProvider {
 	@Override
 	public MembershipRequestService getMembershipRequestService() {
 		return membershipRequestService;
+	}
+	@Override
+	public PrincipalService getPrincipalService() {
+		return principalService;
 	}
 
 }
