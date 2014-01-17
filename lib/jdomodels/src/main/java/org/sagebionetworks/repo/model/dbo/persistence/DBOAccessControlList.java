@@ -3,7 +3,8 @@ package org.sagebionetworks.repo.model.dbo.persistence;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_OWNER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_OWNER_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_ACL;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_CONTROL_LIST;
 
@@ -19,11 +20,18 @@ import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
 public class DBOAccessControlList implements MigratableDatabaseObject<DBOAccessControlList, DBOAccessControlList> {
+	private Long id;
+	private String etag;
+	private Long creationDate;
+	private Long ownerId;
+	private String ownerType;
+
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
-		new FieldColumn("id", COL_ACL_ID, true).withIsBackupId(true),
+		new FieldColumn("id", COL_ACL_ID, false).withIsBackupId(true),
 		new FieldColumn("etag", COL_ACL_ETAG).withIsEtag(true),
-		new FieldColumn("ownerType", COL_ACL_TYPE, true),
+		new FieldColumn("ownerType", COL_ACL_OWNER_TYPE, true),
+		new FieldColumn("ownerId", COL_ACL_OWNER_ID, true),
 		new FieldColumn("creationDate", COL_ACL_CREATED_ON)
 		};
 
@@ -37,7 +45,8 @@ public class DBOAccessControlList implements MigratableDatabaseObject<DBOAccessC
 				acl.setId(rs.getLong(COL_ACL_ID));
 				acl.setEtag(rs.getString(COL_ACL_ETAG));
 				acl.setCreationDate(rs.getLong(COL_ACL_CREATED_ON));
-				acl.setOwnerType(rs.getString(COL_ACL_TYPE));
+				acl.setOwnerId(rs.getLong(COL_ACL_OWNER_ID));
+				acl.setOwnerType(rs.getString(COL_ACL_OWNER_TYPE));
 				return acl;
 			}
 
@@ -62,17 +71,20 @@ public class DBOAccessControlList implements MigratableDatabaseObject<DBOAccessC
 			}};
 	}
 
+	public Long getOwnerId() {
+		return ownerId;
+	}
+
+	public void setOwnerId(Long ownerId) {
+		this.ownerId = ownerId;
+	}
+
 	public String getOwnerType() {
 		return ownerType;
 	}
 	public void setOwnerType(String ownerType) {
 		this.ownerType = ownerType;
 	}
-
-	private Long id;
-	private String etag;
-	private Long creationDate;
-	private String ownerType;
 
 	public Long getId() {
 		return id;
@@ -103,6 +115,8 @@ public class DBOAccessControlList implements MigratableDatabaseObject<DBOAccessC
 			@Override
 			public DBOAccessControlList createDatabaseObjectFromBackup(
 					DBOAccessControlList backup) {
+				// this supports the migration of legacy ACLs, which don't have values for owner ID
+				if (backup.getOwnerId()==null) backup.setOwnerId(backup.getId());
 				return backup;
 			}
 
@@ -135,6 +149,7 @@ public class DBOAccessControlList implements MigratableDatabaseObject<DBOAccessC
 				+ ((creationDate == null) ? 0 : creationDate.hashCode());
 		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
+		result = prime * result + ((ownerId == null) ? 0 : ownerId.hashCode());
 		result = prime * result
 				+ ((ownerType == null) ? 0 : ownerType.hashCode());
 		return result;
@@ -163,6 +178,11 @@ public class DBOAccessControlList implements MigratableDatabaseObject<DBOAccessC
 				return false;
 		} else if (!id.equals(other.id))
 			return false;
+		if (ownerId == null) {
+			if (other.ownerId != null)
+				return false;
+		} else if (!ownerId.equals(other.ownerId))
+			return false;
 		if (ownerType == null) {
 			if (other.ownerType != null)
 				return false;
@@ -173,7 +193,7 @@ public class DBOAccessControlList implements MigratableDatabaseObject<DBOAccessC
 	@Override
 	public String toString() {
 		return "DBOAccessControlList [id=" + id + ", etag=" + etag
-				+ ", creationDate=" + creationDate + ", ownerType=" + ownerType
-				+ "]";
+				+ ", creationDate=" + creationDate + ", ownerId=" + ownerId
+				+ ", ownerType=" + ownerType + "]";
 	}
 }

@@ -18,7 +18,8 @@ public interface IdGenerator {
 		COLUMN_MODEL_ID, 
 		MESSAGE_ID,
 		PRINCIPAL_ID,
-		PRINCIPAL_ALIAS_ID
+		PRINCIPAL_ALIAS_ID,
+		ACL_ID
 	}
 	
 

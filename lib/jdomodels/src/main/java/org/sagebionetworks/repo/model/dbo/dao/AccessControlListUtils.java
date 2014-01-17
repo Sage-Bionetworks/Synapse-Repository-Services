@@ -23,13 +23,15 @@ public class AccessControlListUtils {
 
 	/**
 	 * Create a DBO from the ACL
+	 * Note:  The 'id' field in the DTO is called 'ownerId' in the DBO
 	 * @param acl
 	 * @return
 	 * @throws DatastoreException
 	 */
-	public static DBOAccessControlList createDBO(AccessControlList acl, ObjectType ownerType) throws DatastoreException {
+	public static DBOAccessControlList createDBO(AccessControlList acl, Long dboId, ObjectType ownerType) throws DatastoreException {
 		DBOAccessControlList dbo = new DBOAccessControlList();
-		dbo.setId(KeyFactory.stringToKey(acl.getId()));
+		dbo.setId(dboId);
+		dbo.setOwnerId(KeyFactory.stringToKey(acl.getId()));
 		dbo.setOwnerType(ownerType.name());
 		dbo.setEtag(acl.getEtag());
 		dbo.setCreationDate(acl.getCreationDate().getTime());
@@ -38,6 +40,7 @@ public class AccessControlListUtils {
 	
 	/**
 	 * Create an ACL from a DBO.
+	 * Note:  The 'id' field in the DTO is called 'ownerId' in the DBO
 	 * @param dbo
 	 * @return
 	 * @throws DatastoreException
@@ -45,9 +48,9 @@ public class AccessControlListUtils {
 	public static AccessControlList createAcl(DBOAccessControlList dbo, ObjectType ownerType) throws DatastoreException {
 		AccessControlList acl = new AccessControlList();
 		if (ObjectType.ENTITY.equals(ownerType)) {
-			acl.setId(KeyFactory.keyToString(dbo.getId()));
+			acl.setId(KeyFactory.keyToString(dbo.getOwnerId()));
 		} else {
-			acl.setId(dbo.getId().toString());
+			acl.setId(dbo.getOwnerId().toString());
 		}
 		acl.setEtag(dbo.getEtag());
 		acl.setCreationDate(new Date(dbo.getCreationDate()));

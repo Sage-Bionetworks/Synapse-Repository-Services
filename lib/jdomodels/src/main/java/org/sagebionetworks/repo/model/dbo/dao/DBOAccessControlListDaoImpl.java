@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_ETAG;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_OWNER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_OWNER_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_OWNER;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_TYPE_ELEMENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_TYPE_ID;
@@ -11,7 +11,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_RESOUR
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -28,7 +27,6 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessControlList;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOResourceAccess;
@@ -52,7 +50,13 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 
 	private static final String SELECT_ALL_RESOURCE_ACCESS = "SELECT * FROM "+TABLE_RESOURCE_ACCESS+" WHERE "+COL_RESOURCE_ACCESS_OWNER+" = ?";
 
-	private static final String SELECT_ETAG_FOR_UPDATE = "SELECT "+COL_ACL_ETAG+" FROM "+TABLE_ACCESS_CONTROL_LIST+" WHERE "+COL_ACL_ID+" = :" + COL_ACL_ID+" FOR UPDATE";
+	// TEMPORARY, until OWNER_ID is filled in for all ACLs
+	private static final String SELECT_FOR_UPDATE_BY_OWNER_ID_ONLY = "SELECT * FROM "+TABLE_ACCESS_CONTROL_LIST+
+			" WHERE "+COL_ACL_OWNER_ID+" = :" + COL_ACL_OWNER_ID+" FOR UPDATE";
+
+	// TODO:  This will replace SELECT_FOR_UPDATE_BY_OWNER_ID_ONLY
+	private static final String SELECT_FOR_UPDATE = "SELECT * FROM "+TABLE_ACCESS_CONTROL_LIST+
+			" WHERE "+COL_ACL_OWNER_ID+" = :" + COL_ACL_OWNER_ID+" AND "+COL_ACL_OWNER_TYPE+" = :" + COL_ACL_OWNER_TYPE+" FOR UPDATE";
 
 	/**
 	 * Keep a copy of the row mapper.
@@ -78,9 +82,9 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 
 		AccessControlListUtils.validateACL(acl);
 
-		DBOAccessControlList dbo = AccessControlListUtils.createDBO(acl, ownerType);
+		DBOAccessControlList dbo = AccessControlListUtils.createDBO(acl, idGenerator.generateNewId(TYPE.ACL_ID), ownerType);
 		dboBasicDao.createNew(dbo);
-		populateResourceAccess(acl);
+		populateResourceAccess(dbo.getId(), acl.getResourceAccess());
 
 		return acl.getId(); // This preserves the "syn" prefix
 	}
@@ -91,16 +95,14 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	private void populateResourceAccess(AccessControlList acl)
+	private void populateResourceAccess(long dboId, Set<ResourceAccess> resourceAccess)
 			throws DatastoreException, NotFoundException {
-		// Now create each Resource Access.
-		Set<ResourceAccess> set = acl.getResourceAccess();
-		Long owner = KeyFactory.stringToKey(acl.getId());
-		for(ResourceAccess ra: set){
+		// Now create each Resource Access
+		for(ResourceAccess ra: resourceAccess) {
 			DBOResourceAccess dboRa = new DBOResourceAccess();
 			// assign an id
 			dboRa.setId(idGenerator.generateNewId(TYPE.ACL_RES_ACC_ID));
-			dboRa.setOwner(owner);
+			dboRa.setOwner(dboId);
 			if (ra.getPrincipalId()==null) {
 				throw new IllegalArgumentException("ResourceAccess cannot have null principalID");
 			} else {
@@ -109,28 +111,28 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 			dboRa = dboBasicDao.createNew(dboRa);
 			// Now add all of the access
 			Set<ACCESS_TYPE> access = ra.getAccessType();
-			List<DBOResourceAccessType> batch = AccessControlListUtils.createResourceAccessTypeBatch(dboRa.getId(), owner, access);
+			List<DBOResourceAccessType> batch = AccessControlListUtils.createResourceAccessTypeBatch(dboRa.getId(), dboId, access);
 			// Add the batch
 			dboBasicDao.createBatch(batch);
 		}
 	}
 
 	@Override
-	public AccessControlList get(final String ownerId, final ObjectType objectType)
+	public AccessControlList get(final String ownerId, final ObjectType ownerType)
 			throws DatastoreException, NotFoundException {
 		final Long ownerKey = KeyFactory.stringToKey(ownerId);
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue("id", ownerKey);
+		param.addValue(COL_ACL_OWNER_ID, ownerKey);
 		DBOAccessControlList dboAcl = null;
 		try {
-			param.addValue("ownerType", objectType.name());
+			param.addValue(COL_ACL_OWNER_TYPE, ownerType.name());
 			dboAcl = dboBasicDao.getObjectByPrimaryKey(DBOAccessControlList.class, param);
 		} catch (NotFoundException nfe) {
 			// TEMPORARY, until ownerType is required nonnull
-			param.addValue("ownerType", null);
+			param.addValue(COL_ACL_OWNER_TYPE, null);
 			dboAcl = dboBasicDao.getObjectByPrimaryKey(DBOAccessControlList.class, param);
 		}
-		AccessControlList acl = AccessControlListUtils.createAcl(dboAcl, objectType);
+		AccessControlList acl = AccessControlListUtils.createAcl(dboAcl, ownerType);
 		// Now fetch the rest of the data for this ACL
 		List<DBOResourceAccess> raList = simpleJdbcTemplate.query(SELECT_ALL_RESOURCE_ACCESS, accessMapper, ownerKey);
 		Set<ResourceAccess> raSet = new HashSet<ResourceAccess>();
@@ -161,18 +163,19 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 
 		// Check e-tags before update
 		final Long ownerKey = KeyFactory.stringToKey(acl.getId());
-		String etag = selectEtagForUpdate(ownerKey);
+		DBOAccessControlList origDbo = selectForUpdate(ownerKey, ownerType);
+		String etag = origDbo.getEtag();
 		if (!acl.getEtag().equals(etag)) {
 			throw new ConflictingUpdateException("E-tags do not match.");
 		}
 		acl.setEtag(UUID.randomUUID().toString());
 
-		DBOAccessControlList dbo = AccessControlListUtils.createDBO(acl, ownerType);
+		DBOAccessControlList dbo = AccessControlListUtils.createDBO(acl, origDbo.getId(), ownerType);
 		dboBasicDao.update(dbo);
 		// Now delete the resource access
-		simpleJdbcTemplate.update(DELETE_RESOURCE_ACCESS_SQL, ownerKey);
+		simpleJdbcTemplate.update(DELETE_RESOURCE_ACCESS_SQL, dbo.getId());
 		// Now recreate it from the passed data.
-		populateResourceAccess(acl);
+		populateResourceAccess(dbo.getId(), acl.getResourceAccess());
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -180,7 +183,7 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 	public void delete(String ownerId) throws DatastoreException {
 		final Long ownerKey = KeyFactory.stringToKey(ownerId);
 		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue("id", ownerKey);
+		params.addValue("ownerId", ownerKey);
 		params.addValue("ownerType", null); // TODO specify owner type
 		dboBasicDao.deleteObjectByPrimaryKey(DBOAccessControlList.class, params);
 		// TEMPORARY: for now just delete for all owner types
@@ -190,6 +193,7 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		}
 	}
 
+	// TODO add ownerType to method signature.  ('resourceId' means ownerId)
 	@Override
 	public boolean canAccess(Set<Long> groups, String resourceId,
 			ACCESS_TYPE accessType) throws DatastoreException {
@@ -211,13 +215,15 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 			throw new DatastoreException(e);
 		}
 	}
+	
+	private static RowMapper<DBOAccessControlList> aclRowMapper = (new DBOAccessControlList()).getTableMapping();
 
 	// To avoid potential race conditions, we do "SELECT ... FOR UPDATE" on etags.
-	private String selectEtagForUpdate(final Long id) {
+	private DBOAccessControlList selectForUpdate(final Long ownerId, ObjectType ownerType) {
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(COL_ACL_ID, id);
-		String etag = simpleJdbcTemplate.queryForObject(
-				SELECT_ETAG_FOR_UPDATE, String.class, param);
-		return etag;
+		param.addValue(COL_ACL_OWNER_ID, ownerId);
+		//param.addValue(COL_ACL_OWNER_TYPE, ownerType.name()); TODO uncomment
+		// TODO:  replace SELECT_FOR_UPDATE_BY_OWNER_ID_ONLY with SELECT_FOR_UPDATE to enforce ownerType
+		return simpleJdbcTemplate.queryForObject(SELECT_FOR_UPDATE_BY_OWNER_ID_ONLY, aclRowMapper, param);
 	}
 }
