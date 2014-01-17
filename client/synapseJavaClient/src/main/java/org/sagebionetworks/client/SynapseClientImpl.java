@@ -551,7 +551,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	@Override
 	public AliasCheckResponse checkAliasAvailable(AliasCheckRequest request) throws SynapseException {
-		return asymmetricalPost(PRINCIPAL_AVAILABLE, request, AliasCheckResponse.class);
+		String url = getRepoEndpoint()+PRINCIPAL_AVAILABLE;
+		return asymmetricalPost(url, request, AliasCheckResponse.class);
 	}
 	
 	/**
