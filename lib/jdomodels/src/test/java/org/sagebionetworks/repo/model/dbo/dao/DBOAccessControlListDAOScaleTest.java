@@ -133,7 +133,7 @@ public class DBOAccessControlListDAOScaleTest {
 		System.out.println("Number of base projects: \t"+toDelete.size());
 		for(ACCESS_TYPE type: ACCESS_TYPE.values()){
 			long start = System.nanoTime();
-			boolean canAccess = aclDAO.canAccess(groups, toDelete.get(0), type);
+			boolean canAccess = aclDAO.canAccess(groups, toDelete.get(0), ObjectType.ENTITY, type);
 			long end = System.nanoTime();
 			long elpaseMs = (end-start)/1000000;
 			assertTrue(canAccess);

@@ -22,6 +22,7 @@ import org.sagebionetworks.evaluation.dbo.DBOConstants;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -44,6 +45,14 @@ public class QueryDAOImpl implements QueryDAO {
 			StackConfiguration.getMaximumBytesPerQueryResult();
 	private static Logger log = LogManager.getLogger(QueryDAOImpl.class);
 	
+	private static ObjectType getObjectTypeFromQueryObjectType(QueryObjectType qot) {
+		if (qot==QueryObjectType.EVALUATION) {
+			return ObjectType.EVALUATION;
+		} else {
+			throw new IllegalArgumentException(qot.name());
+		}
+	}
+	
 	@Override
 	public QueryTableResults executeQuery(BasicQuery userQuery, UserInfo userInfo)
 			throws DatastoreException, NotFoundException, JSONObjectAdapterException, 
@@ -54,7 +63,7 @@ public class QueryDAOImpl implements QueryDAO {
 		// Determine query object type and access rights
 		QueryObjectType objType = QueryTools.getQueryObjectType(userQuery);
 		String objId = QueryTools.getQueryObjectId(userQuery);
-		if (!canAccess(userInfo, objId)) {
+		if (!canAccess(userInfo, objId, objType)) {
 			throw new UnauthorizedException(
 					"Insufficient permissions to read from Synapse object " + objId);
 		}
@@ -277,13 +286,13 @@ public class QueryDAOImpl implements QueryDAO {
 		return builder;
 	}
 
-	private boolean canAccess(UserInfo userInfo, String objectId) {
-		return accessControlListDAO.canAccess(userInfo.getGroups(), objectId, ACCESS_TYPE.READ);
+	private boolean canAccess(UserInfo userInfo, String objectId, QueryObjectType objType) {
+		return accessControlListDAO.canAccess(userInfo.getGroups(), objectId, getObjectTypeFromQueryObjectType(objType), ACCESS_TYPE.READ);
 	}
 
 	private boolean canAccessPrivate(UserInfo userInfo, String objectId, QueryObjectType objType) {
 		return accessControlListDAO.canAccess(
-				userInfo.getGroups(), objectId, objType.getPrivateAccessType());
+				userInfo.getGroups(), objectId, getObjectTypeFromQueryObjectType(objType), objType.getPrivateAccessType());
 	}
 
 	/**

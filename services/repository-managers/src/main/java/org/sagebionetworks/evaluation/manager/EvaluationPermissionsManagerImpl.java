@@ -206,7 +206,7 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 			return true;
 		}
 
-		boolean canAccess = aclDAO.canAccess(userInfo.getGroups(), evalId, accessType);
+		boolean canAccess = aclDAO.canAccess(userInfo.getGroups(), evalId, ObjectType.EVALUATION, accessType);
 		if (canAccess && (PARTICIPATE.equals(accessType) || SUBMIT.equals(accessType))) {
 			RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
 			rod.setId(evalId);

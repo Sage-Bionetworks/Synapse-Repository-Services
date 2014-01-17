@@ -215,7 +215,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		if (userInfo.isAdmin()) {
 			return true;
 		}
-		return aclDAO.canAccess(userInfo.getGroups(), benefactor, accessType);
+		return aclDAO.canAccess(userInfo.getGroups(), benefactor, ObjectType.ENTITY, accessType);
 	}
 
 	/**

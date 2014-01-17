@@ -25,13 +25,16 @@ public class DBOAccessControlList implements MigratableDatabaseObject<DBOAccessC
 	private Long creationDate;
 	private Long ownerId;
 	private String ownerType;
+	
+	public static final String OWNER_ID_FIELD_NAME = "ownerId";
+	public static final String OWNER_TYPE_FIELD_NAME = "ownerType";
 
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("id", COL_ACL_ID, false).withIsBackupId(true),
 		new FieldColumn("etag", COL_ACL_ETAG).withIsEtag(true),
-		new FieldColumn("ownerType", COL_ACL_OWNER_TYPE, true),
-		new FieldColumn("ownerId", COL_ACL_OWNER_ID, true),
+		new FieldColumn(OWNER_TYPE_FIELD_NAME, COL_ACL_OWNER_TYPE, true),
+		new FieldColumn(OWNER_ID_FIELD_NAME, COL_ACL_OWNER_ID, true),
 		new FieldColumn("creationDate", COL_ACL_CREATED_ON)
 		};
 

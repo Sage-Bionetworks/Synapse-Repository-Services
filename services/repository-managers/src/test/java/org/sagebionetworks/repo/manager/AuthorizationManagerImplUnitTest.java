@@ -373,10 +373,10 @@ public class AuthorizationManagerImplUnitTest {
 		// admin can always access
 		assertTrue(authorizationManager.canAccess(adminUser, teamId, ObjectType.TEAM, accessType));
 		// non admin can access if acl says so
-		when(mockAclDAO.canAccess(userInfo.getGroups(), teamId, accessType)).thenReturn(true);
+		when(mockAclDAO.canAccess(userInfo.getGroups(), teamId, ObjectType.TEAM, accessType)).thenReturn(true);
 		assertTrue(authorizationManager.canAccess(userInfo, teamId, ObjectType.TEAM, accessType));
 		// otherwise not
-		when(mockAclDAO.canAccess(userInfo.getGroups(), teamId, accessType)).thenReturn(false);
+		when(mockAclDAO.canAccess(userInfo.getGroups(), teamId, ObjectType.TEAM, accessType)).thenReturn(false);
 		assertFalse(authorizationManager.canAccess(userInfo, teamId, ObjectType.TEAM, accessType));
 	}
 }

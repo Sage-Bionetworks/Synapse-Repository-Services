@@ -120,21 +120,20 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 	@Override
 	public AccessControlList get(final String ownerId, final ObjectType ownerType)
 			throws DatastoreException, NotFoundException {
-		final Long ownerKey = KeyFactory.stringToKey(ownerId);
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(COL_ACL_OWNER_ID, ownerKey);
+		param.addValue(DBOAccessControlList.OWNER_ID_FIELD_NAME, KeyFactory.stringToKey(ownerId));
 		DBOAccessControlList dboAcl = null;
 		try {
-			param.addValue(COL_ACL_OWNER_TYPE, ownerType.name());
+			param.addValue(DBOAccessControlList.OWNER_TYPE_FIELD_NAME, ownerType.name());
 			dboAcl = dboBasicDao.getObjectByPrimaryKey(DBOAccessControlList.class, param);
 		} catch (NotFoundException nfe) {
-			// TEMPORARY, until ownerType is required nonnull
-			param.addValue(COL_ACL_OWNER_TYPE, null);
+			// TEMPORARY, until ownerType is required
+			param.addValue(DBOAccessControlList.OWNER_TYPE_FIELD_NAME, null);
 			dboAcl = dboBasicDao.getObjectByPrimaryKey(DBOAccessControlList.class, param);
 		}
 		AccessControlList acl = AccessControlListUtils.createAcl(dboAcl, ownerType);
 		// Now fetch the rest of the data for this ACL
-		List<DBOResourceAccess> raList = simpleJdbcTemplate.query(SELECT_ALL_RESOURCE_ACCESS, accessMapper, ownerKey);
+		List<DBOResourceAccess> raList = simpleJdbcTemplate.query(SELECT_ALL_RESOURCE_ACCESS, accessMapper, dboAcl.getId());
 		Set<ResourceAccess> raSet = new HashSet<ResourceAccess>();
 		acl.setResourceAccess(raSet);
 		for(DBOResourceAccess raDbo: raList){
@@ -183,19 +182,19 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 	public void delete(String ownerId) throws DatastoreException {
 		final Long ownerKey = KeyFactory.stringToKey(ownerId);
 		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue("ownerId", ownerKey);
-		params.addValue("ownerType", null); // TODO specify owner type
+		params.addValue(DBOAccessControlList.OWNER_ID_FIELD_NAME, ownerKey);
+		params.addValue(DBOAccessControlList.OWNER_TYPE_FIELD_NAME, null); // TODO specify owner type
 		dboBasicDao.deleteObjectByPrimaryKey(DBOAccessControlList.class, params);
 		// TEMPORARY: for now just delete for all owner types
 		for (ObjectType ownerType : new ObjectType[]{ObjectType.ENTITY,ObjectType.EVALUATION,ObjectType.TEAM}) {
-			params.addValue("ownerType", ownerType.name());
+			params.addValue(DBOAccessControlList.OWNER_TYPE_FIELD_NAME, ownerType.name());
 			dboBasicDao.deleteObjectByPrimaryKey(DBOAccessControlList.class, params);			
 		}
 	}
 
 	// TODO add ownerType to method signature.  ('resourceId' means ownerId)
 	@Override
-	public boolean canAccess(Set<Long> groups, String resourceId,
+	public boolean canAccess(Set<Long> groups, String resourceId, ObjectType resourceType,
 			ACCESS_TYPE accessType) throws DatastoreException {
 		// Build up the parameters
 		Map<String,Object> parameters = new HashMap<String,Object>();
@@ -207,6 +206,7 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		parameters.put(AuthorizationSqlUtil.ACCESS_TYPE_BIND_VAR, accessType.name());
 		// Bind the node id
 		parameters.put(AuthorizationSqlUtil.RESOURCE_ID_BIND_VAR, KeyFactory.stringToKey(resourceId));
+		// TODO bind the resourceType
 		String sql = AuthorizationSqlUtil.authorizationCanAccessSQL(groups.size());
 		try{
 			long count = simpleJdbcTemplate.queryForLong(sql, parameters);

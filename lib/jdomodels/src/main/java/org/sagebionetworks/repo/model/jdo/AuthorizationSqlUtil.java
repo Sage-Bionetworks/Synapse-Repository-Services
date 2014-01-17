@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.jdo;
 
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 
 public class AuthorizationSqlUtil {
@@ -9,11 +10,12 @@ public class AuthorizationSqlUtil {
 	 * where
 	 * ra.oid_id=acl.id and ra.groupId in :groups and at.oid_id=ra.id and at.type=:type
 	 */
-	
+
 	private static final String AUTHORIZATION_SQL_SELECT = 
-			"select distinct ra."+SqlConstants.COL_RESOURCE_ACCESS_OWNER+" "+SqlConstants.COL_ACL_ID;
+			"select distinct acl."+SqlConstants.COL_ACL_OWNER_ID+" "+SqlConstants.COL_ACL_ID;
 	
 	public static final String AUTHORIZATION_SQL_FROM = " from "+
+			SqlConstants.TABLE_ACCESS_CONTROL_LIST+" acl, "+
 			SqlConstants.TABLE_RESOURCE_ACCESS+" ra, "+
 			SqlConstants.TABLE_RESOURCE_ACCESS_TYPE+" at ";
 	
@@ -29,6 +31,8 @@ public class AuthorizationSqlUtil {
 	
 	private static final String AUTHORIZATION_SQL_WHERE_2 = 
 		"))"+
+	    " and acl."+SqlConstants.COL_ACL_ID+"=ra."+SqlConstants.COL_RESOURCE_ACCESS_OWNER+
+	    // " and acl."+SqlConstants.COL_ACL_OWNER_TYPE+"=:"+SqlConstants.COL_ACL_OWNER_TYPE+ // TODO enable when object type is enforced
 		" and at."+SqlConstants.COL_RESOURCE_ACCESS_TYPE_ID+"=ra."+SqlConstants.COL_RESOURCE_ACCESS_ID+
 		" and at."+SqlConstants.COL_RESOURCE_ACCESS_TYPE_ELEMENT+"=:"+ACCESS_TYPE_BIND_VAR;
 	
@@ -45,7 +49,9 @@ public class AuthorizationSqlUtil {
 
 	private static final String CAN_ACCESS_SQL_2 = "))" +
 					" AND aat." + SqlConstants.COL_RESOURCE_ACCESS_TYPE_ELEMENT + "=:" + ACCESS_TYPE_BIND_VAR +
-					" AND acl." + SqlConstants.COL_ACL_ID + " =:" + RESOURCE_ID_BIND_VAR;
+					" AND acl." + SqlConstants.COL_ACL_OWNER_ID + " =:" + RESOURCE_ID_BIND_VAR
+					//+ " AND acl."+SqlConstants.COL_ACL_OWNER_TYPE+"=:"+SqlConstants.COL_ACL_OWNER_TYPE // TODO enable when object type is enforced
+					;
 
 	/**
 	 * The bind variable prefix used for group ID for the authorization SQL.
