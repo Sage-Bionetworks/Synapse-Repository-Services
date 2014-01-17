@@ -80,7 +80,7 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 			String getSQL = DMLUtils.createGetByIDStatement(mapping);
 			this.fetchMap.put(mapping.getDBOClass(), getSQL);
 			// The COUNT SQL
-			String countSQL = DMLUtils.createGetCountStatement(mapping);
+			String countSQL = DMLUtils.createGetCountByPrimaryKeyStatement(mapping);
 			this.countMap.put(mapping.getDBOClass(), countSQL);
 			// The delete SQL
 			String deleteSql = DMLUtils.createDeleteStatement(mapping);

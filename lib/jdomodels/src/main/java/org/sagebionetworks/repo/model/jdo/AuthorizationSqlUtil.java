@@ -28,11 +28,12 @@ public class AuthorizationSqlUtil {
 	 */
 	public static final String ACCESS_TYPE_BIND_VAR = "type";
 	public static final String RESOURCE_ID_BIND_VAR = "resourceId";
+	public static final String RESOURCE_TYPE_BIND_VAR = SqlConstants.COL_ACL_OWNER_TYPE;
 	
 	private static final String AUTHORIZATION_SQL_WHERE_2 = 
 		"))"+
 	    " and acl."+SqlConstants.COL_ACL_ID+"=ra."+SqlConstants.COL_RESOURCE_ACCESS_OWNER+
-	    // " and acl."+SqlConstants.COL_ACL_OWNER_TYPE+"=:"+SqlConstants.COL_ACL_OWNER_TYPE+ // TODO enable when object type is enforced
+	    // " and acl."+SqlConstants.COL_ACL_OWNER_TYPE+"=:"+RESOURCE_TYPE_BIND_VAR+ // TODO enable when object type is enforced: PLFM-2397
 		" and at."+SqlConstants.COL_RESOURCE_ACCESS_TYPE_ID+"=ra."+SqlConstants.COL_RESOURCE_ACCESS_ID+
 		" and at."+SqlConstants.COL_RESOURCE_ACCESS_TYPE_ELEMENT+"=:"+ACCESS_TYPE_BIND_VAR;
 	
@@ -50,7 +51,7 @@ public class AuthorizationSqlUtil {
 	private static final String CAN_ACCESS_SQL_2 = "))" +
 					" AND aat." + SqlConstants.COL_RESOURCE_ACCESS_TYPE_ELEMENT + "=:" + ACCESS_TYPE_BIND_VAR +
 					" AND acl." + SqlConstants.COL_ACL_OWNER_ID + " =:" + RESOURCE_ID_BIND_VAR
-					//+ " AND acl."+SqlConstants.COL_ACL_OWNER_TYPE+"=:"+SqlConstants.COL_ACL_OWNER_TYPE // TODO enable when object type is enforced
+					//+ " AND acl."+SqlConstants.COL_ACL_OWNER_TYPE+"=:"+RESOURCE_TYPE_BIND_VAR // TODO enable when object type is enforced: PLFM-2397
 					;
 
 	/**

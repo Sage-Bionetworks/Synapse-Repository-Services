@@ -368,7 +368,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	// parameters here are LIMIT and OFFSET
 	private static final String SELECT_AVAILABLE_EVALUATIONS_PAGINATED_SUFFIX =
 			" and e."+COL_EVALUATION_ID+"=acl."+COL_ACL_OWNER_ID+
-			//" and acl."+COL_ACL_OWNER_TYPE+"="+ObjectType.EVALUATION.name()+ // enable when ACL OWNER TYPE is enforced
+			//" and acl."+COL_ACL_OWNER_TYPE+"="+ObjectType.EVALUATION.name()+ // enable when ACL OWNER TYPE is enforced: PLFM-2397
 			" and acl."+COL_ACL_ID+"=ra."+COL_RESOURCE_ACCESS_OWNER+
 			" ORDER BY e."+COL_EVALUATION_NAME+" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 	
@@ -377,7 +377,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 
 	private static final String SELECT_AVAILABLE_EVALUATIONS_COUNT_SUFFIX =
 			" and e."+COL_EVALUATION_ID+"=acl."+COL_ACL_OWNER_ID+
-			//" and acl."+COL_ACL_OWNER_TYPE+"="+ObjectType.EVALUATION.name()+ // enable when ACL OWNER TYPE is enforced
+			//" and acl."+COL_ACL_OWNER_TYPE+"="+ObjectType.EVALUATION.name()+ // enable when ACL OWNER TYPE is enforced: PLFM-2397
 			" and acl."+COL_ACL_ID+"=ra."+COL_RESOURCE_ACCESS_OWNER;
 
 	/**
