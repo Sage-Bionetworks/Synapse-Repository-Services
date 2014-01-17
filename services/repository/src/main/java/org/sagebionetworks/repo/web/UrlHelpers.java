@@ -154,6 +154,9 @@ public class UrlHelpers {
 	public static final String ACTIVITY    = PrefixConst.ACTIVITY;
 	public static final String FAVORITE    = PrefixConst.FAVORITE;
 	
+	
+	public static final String PRINCIPAL = "/principal";
+	public static final String PRINCIPAL_AVAILABLE = PRINCIPAL+"/available";
 	/**
 	 * All of the base URLs for Synapse object batch requests
 	 */

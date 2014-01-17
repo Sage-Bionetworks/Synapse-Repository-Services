@@ -27,6 +27,9 @@
 	<bean id="searchService"
 		class="org.sagebionetworks.repo.web.service.SearchServiceImpl" />
 
+	<bean id="principalService"
+		class="org.sagebionetworks.repo.web.service.PrincipalServiceImpl" />
+
 	<!-- The AccessApproval Service -->
 	<bean id="accessApprovalService"
 		class="org.sagebionetworks.repo.web.service.AccessApprovalServiceImpl" />

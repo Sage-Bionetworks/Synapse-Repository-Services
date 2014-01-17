@@ -117,6 +117,8 @@ import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
+import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
+import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.query.QueryTableResults;
 import org.sagebionetworks.repo.model.request.ReferenceList;
@@ -182,6 +184,9 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String ACTIVITY_URI_PATH = "/activity";
 	private static final String GENERATED_PATH = "/generated";
 	private static final String FAVORITE_URI_PATH = "/favorite";
+	
+	public static final String PRINCIPAL = "/principal";
+	public static final String PRINCIPAL_AVAILABLE = PRINCIPAL+"/available";
 	
 	private static final String WIKI_URI_TEMPLATE = "/%1$s/%2$s/wiki";
 	private static final String WIKI_ID_URI_TEMPLATE = "/%1$s/%2$s/wiki/%3$s";
@@ -541,8 +546,15 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return getSharedClientConnection().revalidateSession(getUserAgent());
 	}
 	
-	/******************** Mid Level Repository Service APIs ********************/
+	/******************** Mid Level Repository Service APIs 
+	 * @throws SynapseException ********************/
 
+	@Override
+	public AliasCheckResponse checkAliasAvailable(AliasCheckRequest request) throws SynapseException {
+		String url = getRepoEndpoint()+PRINCIPAL_AVAILABLE;
+		return asymmetricalPost(url, request, AliasCheckResponse.class);
+	}
+	
 	/**
 	 * Create a new dataset, layer, etc ...
 	 * 

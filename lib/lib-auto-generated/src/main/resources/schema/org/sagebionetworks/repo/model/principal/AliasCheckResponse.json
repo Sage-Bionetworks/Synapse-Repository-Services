@@ -1,0 +1,13 @@
+{
+	"description": "Response to an alias check request.",
+	"properties": {
+		"available": {
+			"type": "boolean",
+			"description": "True is the alias is available."
+		},
+		"valid": {
+			"type": "boolean",
+			"description": "True if the alias is valid for the passed type."
+		}
+	}
+}

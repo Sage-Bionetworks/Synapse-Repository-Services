@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.charset.Charset;
 import java.util.List;
 import java.util.Set;
 
@@ -82,6 +81,8 @@ import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
+import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
+import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.query.QueryTableResults;
 import org.sagebionetworks.repo.model.search.SearchResults;
@@ -115,6 +116,15 @@ public interface SynapseClient extends BaseClient {
 	 */
 	public StackStatus getCurrentStackStatus() 
 			throws SynapseException, JSONObjectAdapterException;
+	
+	/**
+	 * Is the passed alias available and valid?
+	 * 
+	 * @param request
+	 * @return
+	 * @throws SynapseException 
+	 */
+	public AliasCheckResponse checkAliasAvailable(AliasCheckRequest request) throws SynapseException;
 
 	/**
 	 * Get the endpoint of the repository service
