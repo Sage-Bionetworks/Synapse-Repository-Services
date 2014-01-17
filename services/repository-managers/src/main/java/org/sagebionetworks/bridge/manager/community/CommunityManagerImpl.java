@@ -1,7 +1,12 @@
 package org.sagebionetworks.bridge.manager.community;
 
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStreamWriter;
+import java.io.StringReader;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
@@ -9,8 +14,10 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.fileupload.FileItemStream;
+import org.apache.commons.io.IOUtils;
 import org.sagebionetworks.bridge.model.Community;
 import org.sagebionetworks.bridge.model.CommunityTeamDAO;
+import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.manager.util.Validate;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.EntityManager;
@@ -234,7 +241,9 @@ public class CommunityManagerImpl implements CommunityManager {
 		FileItemStream fis = new FileItemStream() {
 			@Override
 			public InputStream openStream() throws IOException {
-				return new StringInputStream(content);
+				ByteArrayOutputStream baos = new ByteArrayOutputStream(content.getBytes().length);
+				FileUtils.writeCompressedString(content, baos);
+				return new ByteArrayInputStream(baos.toByteArray());
 			}
 
 			@Override
