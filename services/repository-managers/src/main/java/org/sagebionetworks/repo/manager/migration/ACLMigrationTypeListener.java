@@ -106,7 +106,7 @@ public class ACLMigrationTypeListener implements MigrationTypeListener {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_ACL_OWNER_ID, ownerId);
 		DBOAccessControlList dbo = simpleJdbcTemplate.queryForObject(SELECT_FOR_UPDATE_BY_OWNER_ID_ONLY, aclRowMapper, param);
-		dbo.setOwnerType(ownerType);
+		dbo.setOwnerType(ownerType.name());
 		dboBasicDao.update(dbo);
 
 	}

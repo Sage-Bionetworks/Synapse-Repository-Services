@@ -368,8 +368,8 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	// parameters here are LIMIT and OFFSET
 	private static final String SELECT_AVAILABLE_EVALUATIONS_PAGINATED_SUFFIX =
 			" and e."+COL_EVALUATION_ID+"=acl."+COL_ACL_OWNER_ID+
-			" and acl."+COL_ACL_OWNER_TYPE+"="+ObjectType.EVALUATION.name()+
-			" and acl."+COL_ACL_ID+"=ra."+COL_RESOURCE_ACCESS_OWNER+
+			" and acl."+COL_ACL_OWNER_TYPE+"='"+ObjectType.EVALUATION.name()+
+			"' and acl."+COL_ACL_ID+"=ra."+COL_RESOURCE_ACCESS_OWNER+
 			" ORDER BY e."+COL_EVALUATION_NAME+" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 	
 	private static final String SELECT_AVAILABLE_EVALUATIONS_COUNT_PREFIX =
@@ -377,8 +377,8 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 
 	private static final String SELECT_AVAILABLE_EVALUATIONS_COUNT_SUFFIX =
 			" and e."+COL_EVALUATION_ID+"=acl."+COL_ACL_OWNER_ID+
-			" and acl."+COL_ACL_OWNER_TYPE+"="+ObjectType.EVALUATION.name()+
-			" and acl."+COL_ACL_ID+"=ra."+COL_RESOURCE_ACCESS_OWNER;
+			" and acl."+COL_ACL_OWNER_TYPE+"='"+ObjectType.EVALUATION.name()+
+			"' and acl."+COL_ACL_ID+"=ra."+COL_RESOURCE_ACCESS_OWNER;
 
 	/**
 	 * return the evaluations in which the user (given as a list of principal Ids)
@@ -397,6 +397,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		param.addValue(AuthorizationSqlUtil.ACCESS_TYPE_BIND_VAR, ACCESS_TYPE.SUBMIT.name());
 		param.addValue(OFFSET_PARAM_NAME, offset);
 		param.addValue(LIMIT_PARAM_NAME, limit);	
+		param.addValue(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, ObjectType.EVALUATION.name());
 		StringBuilder sql = new StringBuilder(SELECT_AVAILABLE_EVALUATIONS_PAGINATED_PREFIX);
 		sql.append(AuthorizationSqlUtil.authorizationSQLWhere(principalIds.size()));
 		sql.append(SELECT_AVAILABLE_EVALUATIONS_PAGINATED_SUFFIX);
@@ -417,7 +418,8 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		for (int i=0; i<principalIds.size(); i++) {
 			param.addValue(AuthorizationSqlUtil.BIND_VAR_PREFIX+i, principalIds.get(i));	
 		}
-		param.addValue(AuthorizationSqlUtil.ACCESS_TYPE_BIND_VAR, ACCESS_TYPE.SUBMIT.name());	
+		param.addValue(AuthorizationSqlUtil.ACCESS_TYPE_BIND_VAR, ACCESS_TYPE.SUBMIT.name());
+		param.addValue(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, ObjectType.EVALUATION.name());
 		StringBuilder sql = new StringBuilder(SELECT_AVAILABLE_EVALUATIONS_COUNT_PREFIX);
 		sql.append(AuthorizationSqlUtil.authorizationSQLWhere(principalIds.size())); 
 		sql.append(SELECT_AVAILABLE_EVALUATIONS_COUNT_SUFFIX);

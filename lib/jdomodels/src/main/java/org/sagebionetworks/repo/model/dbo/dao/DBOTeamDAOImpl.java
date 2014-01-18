@@ -107,8 +107,8 @@ public class DBOTeamDAOImpl implements TeamDAO {
 				TABLE_GROUP_MEMBERS+" gm "+
 			" WHERE t."+COL_TEAM_ID+"=gm."+COL_GROUP_MEMBERS_GROUP_ID+
 			" and acl."+COL_ACL_OWNER_ID+"=gm."+COL_GROUP_MEMBERS_GROUP_ID+
-			" and acl."+COL_OWNER_TYPE+"="+ObjectType.TEAM.name()+
-			" and ra."+COL_RESOURCE_ACCESS_GROUP_ID+"=gm."+COL_GROUP_MEMBERS_MEMBER_ID+
+			" and acl."+COL_OWNER_TYPE+"='"+ObjectType.TEAM.name()+
+			"' and ra."+COL_RESOURCE_ACCESS_GROUP_ID+"=gm."+COL_GROUP_MEMBERS_MEMBER_ID+
 			" and ra."+COL_RESOURCE_ACCESS_OWNER+"=acl."+COL_ACL_ID+
 			" and at."+COL_RESOURCE_ACCESS_TYPE_ID+"=ra."+COL_RESOURCE_ACCESS_ID+
 			" and at."+COL_RESOURCE_ACCESS_TYPE_ELEMENT+"='"+ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE+"'";

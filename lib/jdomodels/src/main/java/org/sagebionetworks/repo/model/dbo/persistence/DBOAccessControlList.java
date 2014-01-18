@@ -25,7 +25,7 @@ public class DBOAccessControlList implements MigratableDatabaseObject<DBOAccessC
 	private String etag;
 	private Long creationDate;
 	private Long ownerId;
-	private ObjectType ownerType;
+	private String ownerType;
 	
 	public static final String OWNER_ID_FIELD_NAME = "ownerId";
 	public static final String OWNER_TYPE_FIELD_NAME = "ownerType";
@@ -50,7 +50,7 @@ public class DBOAccessControlList implements MigratableDatabaseObject<DBOAccessC
 				acl.setEtag(rs.getString(COL_ACL_ETAG));
 				acl.setCreationDate(rs.getLong(COL_ACL_CREATED_ON));
 				acl.setOwnerId(rs.getLong(COL_ACL_OWNER_ID));
-				acl.setOwnerType(ObjectType.valueOf(rs.getString(COL_ACL_OWNER_TYPE)));
+				acl.setOwnerType(rs.getString(COL_ACL_OWNER_TYPE));
 				return acl;
 			}
 
@@ -83,10 +83,12 @@ public class DBOAccessControlList implements MigratableDatabaseObject<DBOAccessC
 		this.ownerId = ownerId;
 	}
 
-	public ObjectType getOwnerType() {
+
+	public String getOwnerType() {
 		return ownerType;
 	}
-	public void setOwnerType(ObjectType ownerType) {
+
+	public void setOwnerType(String ownerType) {
 		this.ownerType = ownerType;
 	}
 
@@ -187,7 +189,10 @@ public class DBOAccessControlList implements MigratableDatabaseObject<DBOAccessC
 				return false;
 		} else if (!ownerId.equals(other.ownerId))
 			return false;
-		if (ownerType != other.ownerType)
+		if (ownerType == null) {
+			if (other.ownerType != null)
+				return false;
+		} else if (!ownerType.equals(other.ownerType))
 			return false;
 		return true;
 	}
