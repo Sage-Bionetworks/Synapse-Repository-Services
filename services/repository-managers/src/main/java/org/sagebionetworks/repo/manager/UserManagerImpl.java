@@ -209,20 +209,4 @@ public class UserManagerImpl implements UserManager {
 		return this.principalAliasDAO.findPrincipalWithAlias(alias);
 	}
 
-	@Override
-	public PrincipalAlias bindOpenIDToPrincipal(Long principalId, String OpenId) throws DatastoreException, NotFoundException {
-		// First validate the ID belongs to a user
-		UserGroup ug = this.userGroupDAO.get(principalId);
-		if(!ug.getIsIndividual()) throw new IllegalArgumentException("Cannot bind an OpenId to a team/group");
-		// Bind it
-		// Bind the email to this user.
-		PrincipalAlias alias = new PrincipalAlias();
-		alias.setAlias(OpenId);
-		alias.setIsValidated(true);
-		alias.setPrincipalId(principalId);
-		alias.setType(AliasType.USER_OPEN_ID);
-		// Bind it.
-		return this.principalAliasDAO.bindAliasToPrincipal(alias);
-	}	
-
 }
