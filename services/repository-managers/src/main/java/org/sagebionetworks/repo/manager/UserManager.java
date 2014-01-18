@@ -7,7 +7,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
@@ -61,14 +60,5 @@ public interface UserManager {
 	 */
 	public PrincipalAlias lookupPrincipalByAlias(String alias);
 	
-	/**
-	 * Bind an OpenId to a principal
-	 * @param principalId
-	 * @param OpenId
-	 * @return
-	 * @throws NotFoundException 
-	 * @throws DatastoreException 
-	 */
-	public PrincipalAlias bindOpenIDToPrincipal(Long principalId, String OpenId) throws DatastoreException, NotFoundException;
 	
 }

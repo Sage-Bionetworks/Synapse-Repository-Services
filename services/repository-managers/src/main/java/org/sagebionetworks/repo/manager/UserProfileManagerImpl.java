@@ -1,8 +1,9 @@
 package org.sagebionetworks.repo.manager;
 
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.sagebionetworks.repo.manager.principal.UserProfileUtillity;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -100,7 +101,11 @@ public class UserProfileManagerImpl implements UserProfileManager {
 			throw new IllegalArgumentException("Must set a valid username.");
 		}
 		// Bind all aliases
-		bindAllAliases(updated, principalId);
+		List<PrincipalAlias> newEmails = bindAllAliases(updated, principalId);
+		// We have temporarily turned-off the ability to add new email. See PLFM-2405
+		if(newEmails.size() > 0){
+			throw new IllegalArgumentException("Adding new email addresses to a UserProfile is currently disabled.");
+		}
 		
 		// Get the updated value
 		return getUserProfilePrivate(updated.getOwnerId());
@@ -169,15 +174,17 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	 * @param profile
 	 * @param principalId
 	 */
-	private void bindAllAliases(UserProfile profile, Long principalId) {
+	private List<PrincipalAlias> bindAllAliases(UserProfile profile, Long principalId) {
 		validateProfile(profile);
 		// Bind all aliases
 		bindUserName(profile.getUserName(), principalId);
-		bindAliases(principalId, profile.getEmails(), AliasType.USER_EMAIL);
+		List<PrincipalAlias> newEmails = new LinkedList<PrincipalAlias>();
+		newEmails.addAll(bindAliases(principalId, profile.getEmails(), AliasType.USER_EMAIL));
 		// A user might not have any open IDs.
 		if(profile.getOpenIds() != null){
 			bindAliases(principalId, profile.getOpenIds(), AliasType.USER_OPEN_ID);
 		}
+		return newEmails;
 	}
 
 	private void bindUserName(String username, Long principalId) {
@@ -199,22 +206,35 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	 * @param emails
 	 * @param principalId
 	 */
-	private void bindAliases(Long principalId, List<String> aliases, AliasType type) {
-		// Bind all email
-		for(String email: aliases){
-			// Bind the email to this user.
-			PrincipalAlias alias = new PrincipalAlias();
-			alias.setAlias(email);
-			alias.setIsValidated(false);
-			alias.setPrincipalId(principalId);
-			alias.setType(type);
-			// bind this alias
-			try {
-				principalAliasDAO.bindAliasToPrincipal(alias);
-			} catch (NotFoundException e1) {
-				throw new DatastoreException(e1);
+	private List<PrincipalAlias> bindAliases(Long principalId, List<String> aliases, AliasType type) {
+		List<PrincipalAlias> currentAliases = principalAliasDAO.listPrincipalAliases(principalId);;
+		Map<String, PrincipalAlias> map = new HashMap<String, PrincipalAlias>();
+		// Map the current by name
+		for(PrincipalAlias alias: currentAliases){
+			map.put(alias.getAlias(), alias);
+		}
+		List<PrincipalAlias> newAliases = new LinkedList<PrincipalAlias>();
+		// Bind all all new
+		for(String aliasValue: aliases){
+			// First determine if this alias already exists?
+			PrincipalAlias alias = map.get(aliasValue);
+			if(alias == null){
+				// This is a new alias so bind it.
+				alias = new PrincipalAlias();
+				alias.setAlias(aliasValue);
+				alias.setIsValidated(false);
+				alias.setPrincipalId(principalId);
+				alias.setType(type);
+				// bind this alias
+				try {
+					alias = principalAliasDAO.bindAliasToPrincipal(alias);
+					newAliases.add(alias);
+				} catch (NotFoundException e1) {
+					throw new DatastoreException(e1);
+				}
 			}
 		}
+		return newAliases;
 	}
 	
 	private void validateProfile(UserProfile profile) {
