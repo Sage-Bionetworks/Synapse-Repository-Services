@@ -111,7 +111,7 @@ public class DBOAccessControlListDAOScaleTest {
 			for (String id : toDelete) {
 				try {
 					nodeDAO.delete(id);
-					aclDAO.delete(id);
+					aclDAO.delete(id, ObjectType.ENTITY);
 				} catch (NotFoundException e) {
 				}
 			}

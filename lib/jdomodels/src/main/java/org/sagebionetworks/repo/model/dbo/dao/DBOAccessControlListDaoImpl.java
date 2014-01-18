@@ -50,17 +50,14 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 
 	private static final String SELECT_ALL_RESOURCE_ACCESS = "SELECT * FROM "+TABLE_RESOURCE_ACCESS+" WHERE "+COL_RESOURCE_ACCESS_OWNER+" = ?";
 
-	// TEMPORARY, until OWNER_ID is filled in for all ACLs: PLFM-2397
-	private static final String SELECT_FOR_UPDATE_BY_OWNER_ID_ONLY = "SELECT * FROM "+TABLE_ACCESS_CONTROL_LIST+
-			" WHERE "+COL_ACL_OWNER_ID+" = :" + COL_ACL_OWNER_ID+" FOR UPDATE";
-
-	// TODO:  This will replace SELECT_FOR_UPDATE_BY_OWNER_ID_ONLY: PLFM-2397
 	private static final String SELECT_FOR_UPDATE = "SELECT * FROM "+TABLE_ACCESS_CONTROL_LIST+
 			" WHERE "+COL_ACL_OWNER_ID+" = :" + COL_ACL_OWNER_ID+" AND "+COL_ACL_OWNER_TYPE+" = :" + COL_ACL_OWNER_TYPE+" FOR UPDATE";
 
 	/**
 	 * Keep a copy of the row mapper.
 	 */
+	private static RowMapper<DBOAccessControlList> aclRowMapper = (new DBOAccessControlList()).getTableMapping();
+
 	private static final RowMapper<DBOResourceAccess> accessMapper = new DBOResourceAccess().getTableMapping();
 
 	@Autowired
@@ -123,14 +120,8 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(DBOAccessControlList.OWNER_ID_FIELD_NAME, KeyFactory.stringToKey(ownerId));
 		DBOAccessControlList dboAcl = null;
-		try {
-			param.addValue(DBOAccessControlList.OWNER_TYPE_FIELD_NAME, ownerType.name());
-			dboAcl = dboBasicDao.getObjectByPrimaryKey(DBOAccessControlList.class, param);
-		} catch (NotFoundException nfe) {
-			// TEMPORARY, until ownerType is required: PLFM-2397
-			param.addValue(DBOAccessControlList.OWNER_TYPE_FIELD_NAME, null);
-			dboAcl = dboBasicDao.getObjectByPrimaryKey(DBOAccessControlList.class, param);
-		}
+		param.addValue(DBOAccessControlList.OWNER_TYPE_FIELD_NAME, ownerType.name());
+		dboAcl = dboBasicDao.getObjectByPrimaryKey(DBOAccessControlList.class, param);
 		AccessControlList acl = AccessControlListUtils.createAcl(dboAcl, ownerType);
 		// Now fetch the rest of the data for this ACL
 		List<DBOResourceAccess> raList = simpleJdbcTemplate.query(SELECT_ALL_RESOURCE_ACCESS, accessMapper, dboAcl.getId());
@@ -179,17 +170,12 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void delete(String ownerId) throws DatastoreException {
+	public void delete(String ownerId, ObjectType ownerType) throws DatastoreException {
 		final Long ownerKey = KeyFactory.stringToKey(ownerId);
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(DBOAccessControlList.OWNER_ID_FIELD_NAME, ownerKey);
-		params.addValue(DBOAccessControlList.OWNER_TYPE_FIELD_NAME, null); // TODO specify owner type: PLFM-2397
+		params.addValue(DBOAccessControlList.OWNER_TYPE_FIELD_NAME, ownerType.name());
 		dboBasicDao.deleteObjectByPrimaryKey(DBOAccessControlList.class, params);
-		// TEMPORARY: for now just delete for all owner types: PLFM-2397
-		for (ObjectType ownerType : new ObjectType[]{ObjectType.ENTITY,ObjectType.EVALUATION,ObjectType.TEAM}) {
-			params.addValue(DBOAccessControlList.OWNER_TYPE_FIELD_NAME, ownerType.name());
-			dboBasicDao.deleteObjectByPrimaryKey(DBOAccessControlList.class, params);			
-		}
 	}
 
 	@Override
@@ -203,10 +189,10 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		}
 		// Bind the type
 		parameters.put(AuthorizationSqlUtil.ACCESS_TYPE_BIND_VAR, accessType.name());
-		// Bind the node id
+		// Bind the object id
 		parameters.put(AuthorizationSqlUtil.RESOURCE_ID_BIND_VAR, KeyFactory.stringToKey(resourceId));
-		// TODO bind the resourceType by uncommenting the following line: PLFM-2397
-		// parameters.put(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, resourceType.name());
+		// Bind the object type
+		parameters.put(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, resourceType.name());
 		String sql = AuthorizationSqlUtil.authorizationCanAccessSQL(groups.size());
 		try{
 			long count = simpleJdbcTemplate.queryForLong(sql, parameters);
@@ -216,14 +202,11 @@ public class DBOAccessControlListDaoImpl implements AccessControlListDAO {
 		}
 	}
 	
-	private static RowMapper<DBOAccessControlList> aclRowMapper = (new DBOAccessControlList()).getTableMapping();
-
 	// To avoid potential race conditions, we do "SELECT ... FOR UPDATE" on etags.
 	private DBOAccessControlList selectForUpdate(final Long ownerId, ObjectType ownerType) {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_ACL_OWNER_ID, ownerId);
-		//param.addValue(COL_ACL_OWNER_TYPE, ownerType.name()); TODO uncomment: PLFM-2397
-		// TODO:  replace SELECT_FOR_UPDATE_BY_OWNER_ID_ONLY with SELECT_FOR_UPDATE to enforce ownerType: PLFM-2397
-		return simpleJdbcTemplate.queryForObject(SELECT_FOR_UPDATE_BY_OWNER_ID_ONLY, aclRowMapper, param);
+		param.addValue(COL_ACL_OWNER_TYPE, ownerType.name());
+		return simpleJdbcTemplate.queryForObject(SELECT_FOR_UPDATE, aclRowMapper, param);
 	}
 }

@@ -35,6 +35,7 @@ import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
@@ -95,7 +96,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 	@After
 	public void after() throws Exception {
 		for (String id : aclsToDelete) {
-			aclDAO.delete(id);
+			aclDAO.delete(id, ObjectType.EVALUATION);
 		}
 		for (String id: evalsToDelete) {
 			evaluationManager.deleteEvaluation(adminUserInfo, id);

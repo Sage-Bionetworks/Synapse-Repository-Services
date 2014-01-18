@@ -92,7 +92,7 @@ public class EvaluationDAOImplTest {
 			}
 		}
 		if (aclToDelete!=null && aclDAO!=null) {
-			aclDAO.delete(aclToDelete.getId());
+			aclDAO.delete(aclToDelete.getId(), ObjectType.EVALUATION);
 			aclToDelete = null;
 		}
 	}

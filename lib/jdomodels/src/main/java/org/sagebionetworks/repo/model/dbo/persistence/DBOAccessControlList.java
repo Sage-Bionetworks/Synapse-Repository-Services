@@ -13,6 +13,7 @@ import java.sql.SQLException;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
@@ -24,7 +25,7 @@ public class DBOAccessControlList implements MigratableDatabaseObject<DBOAccessC
 	private String etag;
 	private Long creationDate;
 	private Long ownerId;
-	private String ownerType;
+	private ObjectType ownerType;
 	
 	public static final String OWNER_ID_FIELD_NAME = "ownerId";
 	public static final String OWNER_TYPE_FIELD_NAME = "ownerType";
@@ -49,7 +50,7 @@ public class DBOAccessControlList implements MigratableDatabaseObject<DBOAccessC
 				acl.setEtag(rs.getString(COL_ACL_ETAG));
 				acl.setCreationDate(rs.getLong(COL_ACL_CREATED_ON));
 				acl.setOwnerId(rs.getLong(COL_ACL_OWNER_ID));
-				acl.setOwnerType(rs.getString(COL_ACL_OWNER_TYPE));
+				acl.setOwnerType(ObjectType.valueOf(rs.getString(COL_ACL_OWNER_TYPE)));
 				return acl;
 			}
 
@@ -82,10 +83,10 @@ public class DBOAccessControlList implements MigratableDatabaseObject<DBOAccessC
 		this.ownerId = ownerId;
 	}
 
-	public String getOwnerType() {
+	public ObjectType getOwnerType() {
 		return ownerType;
 	}
-	public void setOwnerType(String ownerType) {
+	public void setOwnerType(ObjectType ownerType) {
 		this.ownerType = ownerType;
 	}
 
@@ -186,10 +187,7 @@ public class DBOAccessControlList implements MigratableDatabaseObject<DBOAccessC
 				return false;
 		} else if (!ownerId.equals(other.ownerId))
 			return false;
-		if (ownerType == null) {
-			if (other.ownerType != null)
-				return false;
-		} else if (!ownerType.equals(other.ownerType))
+		if (ownerType != other.ownerType)
 			return false;
 		return true;
 	}

@@ -34,6 +34,7 @@ public interface AccessControlListDAO  {
 	/**
 	 * Update the JDO
 	 * @param dto
+	 * @param ownerType
 	 * @throws DatastoreException
 	 * @throws InvalidModelException
 	 * @throws NotFoundException
@@ -44,9 +45,10 @@ public interface AccessControlListDAO  {
 	/**
 	 * Delete a ACL using the Node's Id.
 	 * @param id
+	 * @param ownerType
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public void delete(String id) throws DatastoreException, NotFoundException;
+	public void delete(String id, ObjectType ownerType) throws DatastoreException, NotFoundException;
 
 }

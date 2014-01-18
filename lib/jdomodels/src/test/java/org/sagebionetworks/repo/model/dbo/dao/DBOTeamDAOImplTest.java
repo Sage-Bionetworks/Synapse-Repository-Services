@@ -63,7 +63,7 @@ public class DBOTeamDAOImplTest {
 	@After
 	public void tearDown() throws Exception {
 		try {
-			aclDAO.delete(aclToDelete);
+			aclDAO.delete(aclToDelete, ObjectType.TEAM);
 			teamDAO.delete(teamToDelete);
 			userGroupDAO.delete(teamToDelete);
 			userGroupDAO.delete(userToDelete);

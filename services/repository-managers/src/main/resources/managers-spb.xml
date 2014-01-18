@@ -172,7 +172,8 @@
         <property name="migrationListeners" >
             <list>
                 <bean class="org.sagebionetworks.repo.manager.migration.UserProfileMigrationTypeListener" />
-            </list>
+                <bean class="org.sagebionetworks.repo.manager.migration.ACLMigrationTypeListener" />
+                </list>
         </property>
     </bean>
 

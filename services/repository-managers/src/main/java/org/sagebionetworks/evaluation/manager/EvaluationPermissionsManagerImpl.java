@@ -124,7 +124,7 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 			throw new UnauthorizedException("User " + userInfo.getId().toString()
 					+ " not authorized to change permissions on evaluation " + evalId);
 		}
-		aclDAO.delete(evalId);
+		aclDAO.delete(evalId, ObjectType.EVALUATION);
 	}
 
 	@Override

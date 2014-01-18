@@ -33,7 +33,7 @@ public class AuthorizationSqlUtil {
 	private static final String AUTHORIZATION_SQL_WHERE_2 = 
 		"))"+
 	    " and acl."+SqlConstants.COL_ACL_ID+"=ra."+SqlConstants.COL_RESOURCE_ACCESS_OWNER+
-	    // " and acl."+SqlConstants.COL_ACL_OWNER_TYPE+"=:"+RESOURCE_TYPE_BIND_VAR+ // TODO enable when object type is enforced: PLFM-2397
+	    " and acl."+SqlConstants.COL_ACL_OWNER_TYPE+"=:"+RESOURCE_TYPE_BIND_VAR+
 		" and at."+SqlConstants.COL_RESOURCE_ACCESS_TYPE_ID+"=ra."+SqlConstants.COL_RESOURCE_ACCESS_ID+
 		" and at."+SqlConstants.COL_RESOURCE_ACCESS_TYPE_ELEMENT+"=:"+ACCESS_TYPE_BIND_VAR;
 	
@@ -51,8 +51,7 @@ public class AuthorizationSqlUtil {
 	private static final String CAN_ACCESS_SQL_2 = "))" +
 					" AND aat." + SqlConstants.COL_RESOURCE_ACCESS_TYPE_ELEMENT + "=:" + ACCESS_TYPE_BIND_VAR +
 					" AND acl." + SqlConstants.COL_ACL_OWNER_ID + " =:" + RESOURCE_ID_BIND_VAR
-					//+ " AND acl."+SqlConstants.COL_ACL_OWNER_TYPE+"=:"+RESOURCE_TYPE_BIND_VAR // TODO enable when object type is enforced: PLFM-2397
-					;
+					+ " AND acl."+SqlConstants.COL_ACL_OWNER_TYPE+"=:"+RESOURCE_TYPE_BIND_VAR;
 
 	/**
 	 * The bind variable prefix used for group ID for the authorization SQL.

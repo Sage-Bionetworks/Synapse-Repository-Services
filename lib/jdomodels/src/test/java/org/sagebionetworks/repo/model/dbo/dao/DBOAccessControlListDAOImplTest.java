@@ -139,7 +139,7 @@ public class DBOAccessControlListDAOImplTest {
 	public void tearDown() throws Exception {
 		for (Node n : nodeList) {
 			nodeDAO.delete(n.getId());
-			aclDAO.delete(n.getId());
+			aclDAO.delete(n.getId(), ObjectType.ENTITY);
 		}
 		nodeList.clear();
 		aclList.clear();
@@ -209,7 +209,7 @@ public class DBOAccessControlListDAOImplTest {
 		assertEquals(acl, acl2);
 		
 		aclList.remove(acl);
-		aclDAO.delete(id);
+		aclDAO.delete(id, ObjectType.ENTITY);
 		
 		try {
 			aclDAO.get(id, ObjectType.ENTITY);

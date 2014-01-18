@@ -330,7 +330,7 @@ public class TeamManagerImplTest {
 		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.DELETE)).thenReturn(true);
 		teamManagerImpl.delete(userInfo, TEAM_ID);
 		verify(mockTeamDAO).delete(TEAM_ID);
-		verify(mockAclDAO).delete(TEAM_ID);
+		verify(mockAclDAO).delete(TEAM_ID, ObjectType.TEAM);
 		verify(mockUserGroupDAO).delete(TEAM_ID);
 	}
 	

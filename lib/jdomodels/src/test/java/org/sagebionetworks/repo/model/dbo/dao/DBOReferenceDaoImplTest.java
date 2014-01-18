@@ -84,7 +84,7 @@ public class DBOReferenceDaoImplTest {
 		}
 
 		if (aclIdToDelete != null) {
-			aclDAO.delete(aclIdToDelete);
+			aclDAO.delete(aclIdToDelete, ObjectType.ENTITY);
 		}
 	}
 	

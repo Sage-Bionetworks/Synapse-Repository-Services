@@ -348,7 +348,7 @@ public class TeamManagerImpl implements TeamManager {
 		}
 		if (!authorizationManager.canAccess(userInfo, id, ObjectType.TEAM, ACCESS_TYPE.DELETE)) throw new UnauthorizedException("Cannot delete Team.");
 		// delete ACL
-		aclDAO.delete(id);
+		aclDAO.delete(id, ObjectType.TEAM);
 		// delete Team
 		teamDAO.delete(id);
 		// delete userGroup

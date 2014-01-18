@@ -127,8 +127,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		nodeInheritanceManager.setNodeToInheritFromNearestParent(rId);
 		
 		// delete access control list
-		AccessControlList acl = aclDAO.get(rId, ObjectType.ENTITY);
-		aclDAO.delete(acl.getId());
+		aclDAO.delete(rId, ObjectType.ENTITY);
 		
 		// now find the newly governing ACL
 		benefactor = nodeInheritanceManager.getBenefactor(rId);
@@ -172,8 +171,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 					nodeDAO.lockNodeAndIncrementEtag(node.getId(), node.getETag());
 					
 					// delete ACL
-					AccessControlList acl = aclDAO.get(idToChange, ObjectType.ENTITY);
-					aclDAO.delete(acl.getId());
+					aclDAO.delete(idToChange, ObjectType.ENTITY);
 				}								
 				// set benefactor ACL
 				nodeInheritanceManager.addBeneficiary(idToChange, benefactorId);

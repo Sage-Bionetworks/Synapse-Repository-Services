@@ -243,7 +243,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		if(log.isDebugEnabled()){
 			log.debug("username "+userName+" deleted node: "+nodeId);
 		}
-		aclDAO.delete(nodeId);
+		aclDAO.delete(nodeId, ObjectType.ENTITY);
 	}
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -766,7 +766,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		}
 		if (nodeId.equals(benefactor)) {
 			try {
-				aclDAO.delete(nodeId);
+				aclDAO.delete(nodeId, ObjectType.ENTITY);
 			} catch (NotFoundException e) {
 				throw new DatastoreException("ACL for benefactor " + nodeId + " is not found");
 			}

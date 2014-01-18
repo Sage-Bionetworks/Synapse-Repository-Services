@@ -7,6 +7,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_OWNER_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_GROUP_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_MEMBER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OWNER_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_GROUP_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_OWNER;
@@ -39,6 +40,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.TeamMember;
@@ -105,7 +107,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 				TABLE_GROUP_MEMBERS+" gm "+
 			" WHERE t."+COL_TEAM_ID+"=gm."+COL_GROUP_MEMBERS_GROUP_ID+
 			" and acl."+COL_ACL_OWNER_ID+"=gm."+COL_GROUP_MEMBERS_GROUP_ID+
-			//" and acl."+COL_OWNER_TYPE+"="+ObjectType.TEAM.name()+ // enable when OWNER TYPE is enforced: PLFM-2397
+			" and acl."+COL_OWNER_TYPE+"="+ObjectType.TEAM.name()+
 			" and ra."+COL_RESOURCE_ACCESS_GROUP_ID+"=gm."+COL_GROUP_MEMBERS_MEMBER_ID+
 			" and ra."+COL_RESOURCE_ACCESS_OWNER+"=acl."+COL_ACL_ID+
 			" and at."+COL_RESOURCE_ACCESS_TYPE_ID+"=ra."+COL_RESOURCE_ACCESS_ID+

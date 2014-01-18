@@ -32,7 +32,7 @@ public class AccessControlListUtils {
 		DBOAccessControlList dbo = new DBOAccessControlList();
 		dbo.setId(dboId);
 		dbo.setOwnerId(KeyFactory.stringToKey(acl.getId()));
-		dbo.setOwnerType(ownerType.name());
+		dbo.setOwnerType(ownerType);
 		dbo.setEtag(acl.getEtag());
 		dbo.setCreationDate(acl.getCreationDate().getTime());
 		return dbo;

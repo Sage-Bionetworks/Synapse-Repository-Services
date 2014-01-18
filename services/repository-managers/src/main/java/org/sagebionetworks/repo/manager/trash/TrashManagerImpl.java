@@ -270,7 +270,7 @@ public class TrashManagerImpl implements TrashManager {
 		Collection<String> descendants = new ArrayList<String>();
 		getDescendants(nodeId, descendants);
 		nodeDao.delete(nodeId);
-		aclDAO.delete(nodeId);
+		aclDAO.delete(nodeId, ObjectType.ENTITY);
 		trashCanDao.delete(userGroupId, nodeId);
 		for (String desc : descendants) {
 			trashCanDao.delete(userGroupId, desc);
@@ -346,7 +346,7 @@ public class TrashManagerImpl implements TrashManager {
 			String nodeId = trash.getEntityId();
 			if (!trashIdSet.contains(trash.getOriginalParentId())) {
 				nodeDao.delete(nodeId);
-				aclDAO.delete(nodeId);
+				aclDAO.delete(nodeId, ObjectType.ENTITY);
 			}
 			trashCanDao.delete(trash.getDeletedByPrincipalId(), nodeId);
 		}
