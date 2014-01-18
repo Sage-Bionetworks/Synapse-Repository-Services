@@ -1,9 +1,10 @@
 package org.sagebionetworks.repo.manager;
 
 
-import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 import java.util.Date;
 import java.util.LinkedList;
@@ -125,10 +126,9 @@ public class UserProfileManagerImplTest {
 		assertEquals(profile, clone);
 		
 		// Make sure we can update it
-		profile.getEmails().clear();
-		profile.getEmails().add("myNewEmail@spies.org");
+		profile.setUserName("newUsername");
 		String startEtag = profile.getEtag();
-		// update
+		// Changing emails is currently disabled See 
 		profile = userProfileManager.updateUserProfile(userInfo, profile);
 		assertFalse("Update failed to update the etag",startEtag.equals(profile.getEtag()));
 		// Get it back
@@ -136,5 +136,39 @@ public class UserProfileManagerImplTest {
 		assertEquals(profile, clone);
 		
 		
+	}
+	
+	@Test
+	public void testPLFM_2504() throws DatastoreException, UnauthorizedException, NotFoundException{
+		// Create a new UserProfile
+		Long principalId = Long.parseLong(this.individualGroup.getId());
+		UserProfile profile = new UserProfile();
+		profile.setCompany("Spies 'R' Us");
+		profile.setEmails(new LinkedList<String>());
+		profile.getEmails().add("jamesBond@spies.org");
+		profile.setUserName("007");
+		profile.setOwnerId(this.individualGroup.getId());
+		// Create the profile
+		profile = this.userProfileManager.createUserProfile(profile);
+		assertNotNull(profile);
+		assertNotNull(profile.getEtag());
+		
+		UserInfo userInfo = new UserInfo(false, principalId);
+		// Get it back
+		UserProfile clone = userProfileManager.getUserProfile(userInfo, principalId.toString());
+		assertEquals(profile, clone);
+		
+		// Make sure we can update it
+		profile.getEmails().clear();
+		profile.getEmails().add("myNewEmail@spies.org");
+		String startEtag = profile.getEtag();
+		// update
+		try{
+			// Changing emails is currently disabled See 
+			profile = userProfileManager.updateUserProfile(userInfo, profile);
+			fail("Should not be able to change my emails. See PLFM-2504");
+		}catch(IllegalArgumentException e){
+			// This is expected until email edit is enabled.
+		}		
 	}
 }

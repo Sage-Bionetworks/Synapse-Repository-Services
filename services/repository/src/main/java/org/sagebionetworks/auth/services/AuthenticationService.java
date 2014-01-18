@@ -1,6 +1,7 @@
 package org.sagebionetworks.auth.services;
 
 import org.openid4java.message.ParameterList;
+import org.sagebionetworks.authutil.OpenIDInfo;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -101,6 +102,15 @@ public interface AuthenticationService {
 	 * Will create a user if necessary 
 	 */
 	public Session authenticateViaOpenID(ParameterList parameters) throws NotFoundException;
+	
+	/**
+	 * This should only be called after the OpendId info havs already been validated.
+	 * @param info
+	 * @param originClient
+	 * @return
+	 * @throws NotFoundException
+	 */
+	public Session processOpenIDInfo(OpenIDInfo info, DomainType originClient) throws NotFoundException;
 
 	public void sendPasswordEmail(String email, DomainType originClient) throws NotFoundException;
 }

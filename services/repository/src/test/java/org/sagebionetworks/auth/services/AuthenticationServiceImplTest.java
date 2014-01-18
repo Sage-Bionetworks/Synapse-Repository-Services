@@ -81,9 +81,9 @@ public class AuthenticationServiceImplTest {
 		OpenIDInfo info = new OpenIDInfo();
 		info.setEmail(username);
 		info.setFullName(fullName);
-		
-		service.processOpenIDInfo(info, true, DomainType.SYNAPSE);
+		service.processOpenIDInfo(info, DomainType.SYNAPSE);
 		
 	}
+	
 	
 }

@@ -1,6 +1,7 @@
 package org.sagebionetworks.auth.services;
 
 import java.io.IOException;
+import java.util.LinkedList;
 
 import org.openid4java.message.ParameterList;
 import org.sagebionetworks.authutil.OpenIDConsumerUtils;
@@ -8,11 +9,12 @@ import org.sagebionetworks.authutil.OpenIDInfo;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.auth.ChangePasswordRequest;
 import org.sagebionetworks.repo.model.auth.LoginCredentials;
 import org.sagebionetworks.repo.model.auth.NewUser;
@@ -31,6 +33,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	
 	@Autowired
 	private AuthenticationManager authManager;
+	
+	@Autowired
+	private UserProfileManager userProfileManager;
 	
 	@Autowired
 	private MessageManager messageManager;
@@ -180,22 +185,18 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		if (openIDInfo == null) {
 			throw new UnauthorizedException("OpenID is not valid");
 		}
-		
-		// Dig out a createUser boolean from the request
-		// Defaults to null (different from false)
-		String createParam = parameters.getParameterValue(OpenIDInfo.CREATE_USER_IF_NECESSARY_PARAM_NAME);
-		Boolean shouldCreateUser = createParam == null ? null : new Boolean(createParam);
-		
+			
 		String originClientParam = parameters.getParameterValue(OpenIDInfo.ORIGINATING_CLIENT_PARAM_NAME);
 		DomainType originClient = DomainType.valueOf(originClientParam);
 		
-		return processOpenIDInfo(openIDInfo, shouldCreateUser, originClient);
+		return processOpenIDInfo(openIDInfo, originClient);
 	}
 	
 	/**
 	 * Returns the session token of the user described by the OpenID information
 	 */
-	protected Session processOpenIDInfo(OpenIDInfo info, boolean createUserIffNecessary,
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public Session processOpenIDInfo(OpenIDInfo info,
 			DomainType originClient) throws NotFoundException {
 		// Get some info about the user
 		String email = info.getEmail();
@@ -207,19 +208,35 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		}
 		
 		// First try to lookup the user by their OpenId
+		boolean isOpenIDBound = false;
 		PrincipalAlias alias = lookupUserForAuthenication(info.getIdentifier());
-		if(alias!= null){
+		if(alias == null){
 			// Try to lookup the user by their email if we fail to look them up by OpenId
 			alias = lookupUserForAuthenication(email);
+		}else{
+			// This open ID is already bound to this user.
+			isOpenIDBound = true;
 		}
 		if(alias == null){
 			throw new NotFoundException("Failed to find a user with OpenId: "+info.getIdentifier());
 		}
 		// Open ID is successful
 		Session sesion = authManager.authenticate(alias.getPrincipalId(), null);
-		// Note this is temporary to ensure users that come in with an email get their current OpenId bound to their account
-		// This is idempotent
-		this.userManager.bindOpenIDToPrincipal(alias.getPrincipalId(), info.getIdentifier());
+		
+		/**
+		 * Binding the OpenID here is temporary and should be removed when PLFM-2437 is resolved.
+		 */
+		if(!isOpenIDBound){
+			// Get the current UserProfile and added it
+			UserInfo userInfo = userManager.getUserInfo(alias.getPrincipalId());
+			UserProfile profile = userProfileManager.getUserProfile(userInfo, alias.getPrincipalId().toString());
+			if(profile.getOpenIds() == null){
+				profile.setOpenIds(new LinkedList<String>());
+			}
+			profile.getOpenIds().add(info.getIdentifier());
+			// Update the user's profile.
+			userProfileManager.updateUserProfile(userInfo, profile);
+		}
 		
 		return sesion;
 	}
