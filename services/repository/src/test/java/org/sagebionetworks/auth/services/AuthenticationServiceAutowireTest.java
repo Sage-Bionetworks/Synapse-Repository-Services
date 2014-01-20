@@ -9,6 +9,7 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.authutil.OpenIDInfo;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
+import org.sagebionetworks.repo.manager.principal.UserProfileUtillity;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DomainType;
@@ -43,6 +44,8 @@ public class AuthenticationServiceAutowireTest {
 	UserProfileManager userProfileManger;
 	
 	Long principalId;
+	Long principalId2;
+	
 	UserInfo amdin;
 	
 	@Before
@@ -60,6 +63,11 @@ public class AuthenticationServiceAutowireTest {
 		if(principalId != null){
 			try {
 				userManger.deletePrincipal(amdin, principalId);
+			} catch (NotFoundException e) {}
+		}
+		if(principalId2 != null){
+			try {
+				userManger.deletePrincipal(amdin, principalId2);
 			} catch (NotFoundException e) {}
 		}
 	}
@@ -100,5 +108,21 @@ public class AuthenticationServiceAutowireTest {
 		assertNotNull(profile.getOpenIds());
 		assertEquals(1, profile.getOpenIds().size());
 		assertEquals(OPEN_ID_TEST_ID, profile.getOpenIds().get(0));
+	}
+	
+	@Test
+	public void testPLFM_2511() throws NotFoundException{
+		NewUser nu = new NewUser();
+		nu.setEmail("user123@test.org");
+		// Create a user with temporary Username
+		nu.setUserName(UserProfileUtillity.createTempoaryUserName(123));
+		principalId2 = userManger.createUser(nu);
+		// Now try to loging with open ID
+		OpenIDInfo openIdInfo = new OpenIDInfo();
+		openIdInfo.setEmail(nu.getEmail());
+		openIdInfo.setIdentifier("https://www.google.com/accounts/o8/id?id=S123");
+		// We should be able to login
+		Session session = authenticationService.processOpenIDInfo(openIdInfo, DomainType.SYNAPSE);
+		assertNotNull(session);
 	}
 }
