@@ -97,9 +97,6 @@ public class UserProfileManagerImpl implements UserProfileManager {
 		attachmentManager.checkAttachmentsForPreviews(updated);
 		// Update the DAO first
 		userProfileDAO.update(updated);
-		if(UserProfileUtillity.isTempoaryUsername(updated.getUserName())){
-			throw new IllegalArgumentException("Must set a valid username.");
-		}
 		// Bind all aliases
 		List<PrincipalAlias> newEmails = bindAllAliases(updated, principalId);
 		// We have temporarily turned-off the ability to add new email. See PLFM-2405
