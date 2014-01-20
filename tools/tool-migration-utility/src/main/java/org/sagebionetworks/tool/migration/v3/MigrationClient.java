@@ -144,8 +144,8 @@ public class MigrationClient {
 		List<MigrationType> destPrimaryTypes = destination.getPrimaryTypes().getList();
 		// Only migrate the src primary types that are at destination
 		List<MigrationType> primaryTypesToMigrate = new LinkedList<MigrationType>();
-		for (MigrationType pt: srcPrimaryTypes) {
-			if (destPrimaryTypes.contains(pt)) {
+		for (MigrationType pt: destPrimaryTypes) {
+			if (srcPrimaryTypes.contains(pt)) {
 				primaryTypesToMigrate.add(pt);
 			}
 		}
