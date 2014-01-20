@@ -130,9 +130,6 @@ public class UserProfileServiceImpl implements UserProfileService {
 			throws NotFoundException, ConflictingUpdateException, DatastoreException, InvalidModelException, UnauthorizedException, IOException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		UserProfile entity = (UserProfile) objectTypeSerializer.deserialize(request.getInputStream(), header, UserProfile.class, header.getContentType());
-		if(UserProfileUtillity.isTempoaryUsername(entity.getUserName())){
-			throw new IllegalArgumentException("Must set a valid username.");
-		}
 		return userProfileManager.updateUserProfile(userInfo, entity);
 	}
 
