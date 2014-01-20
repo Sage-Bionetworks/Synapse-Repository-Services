@@ -79,7 +79,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		// validate content
 		Long ownerId = nodeDAO.getCreatedBy(acl.getId());
 		PermissionsManagerUtils.validateACLContent(acl, userInfo, ownerId);
-		aclDAO.update(acl);
+		aclDAO.update(acl, ObjectType.ENTITY);
 		acl = aclDAO.get(acl.getId(), ObjectType.ENTITY);
 		return acl;
 	}
@@ -103,7 +103,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		// set permissions 'benefactor' for resource and all resource's descendants to resource
 		nodeInheritanceManager.setNodeToInheritFromItself(rId);
 		// persist acl and return
-		aclDAO.create(acl);
+		aclDAO.create(acl, ObjectType.ENTITY);
 		acl = aclDAO.get(acl.getId(), ObjectType.ENTITY);
 		return acl;
 	}
@@ -127,8 +127,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		nodeInheritanceManager.setNodeToInheritFromNearestParent(rId);
 		
 		// delete access control list
-		AccessControlList acl = aclDAO.get(rId, ObjectType.ENTITY);
-		aclDAO.delete(acl.getId());
+		aclDAO.delete(rId, ObjectType.ENTITY);
 		
 		// now find the newly governing ACL
 		benefactor = nodeInheritanceManager.getBenefactor(rId);
@@ -172,8 +171,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 					nodeDAO.lockNodeAndIncrementEtag(node.getId(), node.getETag());
 					
 					// delete ACL
-					AccessControlList acl = aclDAO.get(idToChange, ObjectType.ENTITY);
-					aclDAO.delete(acl.getId());
+					aclDAO.delete(idToChange, ObjectType.ENTITY);
 				}								
 				// set benefactor ACL
 				nodeInheritanceManager.addBeneficiary(idToChange, benefactorId);
@@ -215,7 +213,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		if (userInfo.isAdmin()) {
 			return true;
 		}
-		return aclDAO.canAccess(userInfo.getGroups(), benefactor, accessType);
+		return aclDAO.canAccess(userInfo.getGroups(), benefactor, ObjectType.ENTITY, accessType);
 	}
 
 	/**

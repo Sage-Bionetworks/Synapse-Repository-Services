@@ -237,7 +237,7 @@ public class TeamManagerImpl implements TeamManager {
 		groupMembersDAO.addMembers(id.toString(), Arrays.asList(new String[]{userInfo.getId().toString()}));
 		// create ACL, adding the current user to the team, as an admin
 		AccessControlList acl = createInitialAcl(userInfo, id.toString(), now);
-		aclDAO.create(acl);
+		aclDAO.create(acl, ObjectType.TEAM);
 		return created;
 	}
 	
@@ -348,7 +348,7 @@ public class TeamManagerImpl implements TeamManager {
 		}
 		if (!authorizationManager.canAccess(userInfo, id, ObjectType.TEAM, ACCESS_TYPE.DELETE)) throw new UnauthorizedException("Cannot delete Team.");
 		// delete ACL
-		aclDAO.delete(id);
+		aclDAO.delete(id, ObjectType.TEAM);
 		// delete Team
 		teamDAO.delete(id);
 		// delete userGroup
@@ -457,7 +457,7 @@ public class TeamManagerImpl implements TeamManager {
 			removeFromACL(acl, principalId);
 			if (!userInfo.isAdmin() && !aclHasTeamAdmin(acl)) throw new InvalidModelException("Team must have at least one administrator.");
 			groupMembersDAO.removeMembers(teamId, Arrays.asList(new String[]{principalId}));
-			aclDAO.update(acl);
+			aclDAO.update(acl, ObjectType.TEAM);
 		}
 	}
 
@@ -478,7 +478,7 @@ public class TeamManagerImpl implements TeamManager {
 	public void updateACL(UserInfo userInfo, AccessControlList acl)
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		if (!authorizationManager.canAccess(userInfo, acl.getId(), ObjectType.TEAM, ACCESS_TYPE.UPDATE)) throw new UnauthorizedException("Cannot change Team permissions.");
-		aclDAO.update(acl);
+		aclDAO.update(acl, ObjectType.TEAM);
 	}
 
 	@Override
@@ -511,7 +511,7 @@ public class TeamManagerImpl implements TeamManager {
 		}
 		if (!userInfo.isAdmin() && !aclHasTeamAdmin(acl)) throw new InvalidModelException("Team must have at least one administrator.");
 		// finally, update the ACL
-		aclDAO.update(acl);
+		aclDAO.update(acl, ObjectType.TEAM);
 	}
 	
 	// answers the question about whether membership approval is required to add principal to team

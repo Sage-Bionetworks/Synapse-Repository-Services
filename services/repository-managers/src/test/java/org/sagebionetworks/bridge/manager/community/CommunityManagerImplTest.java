@@ -311,7 +311,7 @@ public class CommunityManagerImplTest extends MockitoTestBase {
 
 		verify(entityManager).getEntity(validUser, COMMUNITY_ID, Community.class);
 		verify(aclDAO).get(COMMUNITY_ID, ObjectType.ENTITY);
-		verify(aclDAO).update(aclAfter);
+		verify(aclDAO).update(aclAfter, ObjectType.ENTITY);
 		verify(teamManager).removeMember(validUser, TEAM_ID, USER_ID);
 	}
 
@@ -351,7 +351,7 @@ public class CommunityManagerImplTest extends MockitoTestBase {
 		verify(teamManager).getTeamMembershipStatus(validUser, TEAM_ID, otherUser);
 		verify(authorizationManager).canAccess(validUser, COMMUNITY_ID, ObjectType.ENTITY, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE);
 		verify(aclDAO).get(COMMUNITY_ID, ObjectType.ENTITY);
-		verify(aclDAO).update(aclAfter);
+		verify(aclDAO).update(aclAfter, ObjectType.ENTITY);
 		verify(teamManager).setPermissions(validUser, TEAM_ID, USER_ID2, true);
 	}
 
@@ -430,7 +430,7 @@ public class CommunityManagerImplTest extends MockitoTestBase {
 		verify(userManager).getUserInfo(Long.parseLong(USER_ID2));
 		verify(authorizationManager).canAccess(validUser, COMMUNITY_ID, ObjectType.ENTITY, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE);
 		verify(aclDAO).get(COMMUNITY_ID, ObjectType.ENTITY);
-		verify(aclDAO).update(aclAfter);
+		verify(aclDAO).update(aclAfter, ObjectType.ENTITY);
 		verify(teamManager).setPermissions(validUser, TEAM_ID, USER_ID2, false);
 	}
 
@@ -464,7 +464,7 @@ public class CommunityManagerImplTest extends MockitoTestBase {
 		verify(entityManager).getEntity(otherUser, COMMUNITY_ID, Community.class);
 		verify(userManager).getUserInfo(Long.parseLong(USER_ID2));
 		verify(aclDAO).get(COMMUNITY_ID, ObjectType.ENTITY);
-		verify(aclDAO).update(aclAfter);
+		verify(aclDAO).update(aclAfter, ObjectType.ENTITY);
 		verify(teamManager).setPermissions(otherUser, TEAM_ID, USER_ID2, false);
 	}
 
@@ -522,7 +522,7 @@ public class CommunityManagerImplTest extends MockitoTestBase {
 
 		verify(entityManager).getEntity(validUser, COMMUNITY_ID, Community.class);
 		verify(aclDAO).get(COMMUNITY_ID, ObjectType.ENTITY);
-		verify(aclDAO).update(aclAfter);
+		verify(aclDAO).update(aclAfter, ObjectType.ENTITY);
 		verify(teamManager).removeMember(validUser, TEAM_ID, USER_ID);
 	}
 }

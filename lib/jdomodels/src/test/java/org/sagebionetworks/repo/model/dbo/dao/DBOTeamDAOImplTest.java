@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
@@ -62,7 +63,7 @@ public class DBOTeamDAOImplTest {
 	@After
 	public void tearDown() throws Exception {
 		try {
-			aclDAO.delete(aclToDelete);
+			aclDAO.delete(aclToDelete, ObjectType.TEAM);
 			teamDAO.delete(teamToDelete);
 			userGroupDAO.delete(teamToDelete);
 			userGroupDAO.delete(userToDelete);
@@ -189,7 +190,7 @@ public class DBOTeamDAOImplTest {
 		assertEquals(user.getId(), ugh.getOwnerId());
 		// now make the member an admin
 		AccessControlList acl = createAdminAcl(user.getId(), updated.getId(), new Date());
-		aclToDelete = aclDAO.create(acl);
+		aclToDelete = aclDAO.create(acl, ObjectType.TEAM);
 		assertEquals(1L, teamDAO.getAdminMemberCount(updated.getId()));
 		member = teamDAO.getMember(updated.getId(), user.getId());
 		assertEquals(updated.getId(), member.getTeamId());

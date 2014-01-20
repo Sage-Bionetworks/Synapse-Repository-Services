@@ -88,7 +88,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 					return true;
 				}
 				// just check the acl
-				return aclDAO.canAccess(userInfo.getGroups(), objectId, accessType);
+				return aclDAO.canAccess(userInfo.getGroups(), objectId, ObjectType.TEAM, accessType);
 			default:
 				throw new IllegalArgumentException("Unknown ObjectType: "+objectType);
 		}

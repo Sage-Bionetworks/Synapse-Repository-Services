@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserProfileDAO;
@@ -112,7 +113,7 @@ public class EntityBootstrapperImpl implements EntityBootstrapper {
 			// Now create the ACL on the node
 			AccessControlList acl = createAcl(nodeId, entityBoot.getAccessList());
 			// Now set the ACL for this node.
-			aclDAO.create(acl);
+			aclDAO.create(acl, ObjectType.ENTITY);
 			nodeInheritanceDao.addBeneficiary(nodeId, nodeId);
 
 			// Verify the bootstrap entity has indeed been created

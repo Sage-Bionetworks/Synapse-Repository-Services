@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -98,7 +99,7 @@ public class DBOAccessControlListDAOScaleTest {
 			}
 			ra.setAccessType(types);
 			acl.getResourceAccess().add(ra);
-			aclDAO.create(acl);
+			aclDAO.create(acl, ObjectType.ENTITY);
 		}
 
 	}
@@ -110,7 +111,7 @@ public class DBOAccessControlListDAOScaleTest {
 			for (String id : toDelete) {
 				try {
 					nodeDAO.delete(id);
-					aclDAO.delete(id);
+					aclDAO.delete(id, ObjectType.ENTITY);
 				} catch (NotFoundException e) {
 				}
 			}
@@ -132,7 +133,7 @@ public class DBOAccessControlListDAOScaleTest {
 		System.out.println("Number of base projects: \t"+toDelete.size());
 		for(ACCESS_TYPE type: ACCESS_TYPE.values()){
 			long start = System.nanoTime();
-			boolean canAccess = aclDAO.canAccess(groups, toDelete.get(0), type);
+			boolean canAccess = aclDAO.canAccess(groups, toDelete.get(0), ObjectType.ENTITY, type);
 			long end = System.nanoTime();
 			long elpaseMs = (end-start)/1000000;
 			assertTrue(canAccess);

@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NameConflictException;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -91,7 +92,7 @@ public class EvaluationDAOImplTest {
 			}
 		}
 		if (aclToDelete!=null && aclDAO!=null) {
-			aclDAO.delete(aclToDelete.getId());
+			aclDAO.delete(aclToDelete.getId(), ObjectType.EVALUATION);
 			aclToDelete = null;
 		}
 	}
@@ -257,7 +258,7 @@ public class EvaluationDAOImplTest {
 		ra.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(new ACCESS_TYPE[]{ACCESS_TYPE.SUBMIT})));
 		ras.add(ra);
 		acl.setResourceAccess(ras);
-		String aclId = aclDAO.create(acl);
+		String aclId = aclDAO.create(acl, ObjectType.EVALUATION);
 		acl.setId(aclId);
 		aclToDelete = acl;
 		
@@ -280,7 +281,7 @@ public class EvaluationDAOImplTest {
 		ra.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(new ACCESS_TYPE[]{ACCESS_TYPE.SUBMIT})));
 		ras = acl.getResourceAccess();
 		ras.add(ra);
-		aclDAO.update(acl);
+		aclDAO.update(acl, ObjectType.EVALUATION);
 		// should still find just one result, even though I'm in the ACL twice
 		pids = Arrays.asList(new Long[] {
 				participantId,

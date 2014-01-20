@@ -102,7 +102,7 @@ public class DBOAccessControlListDAOImplTest {
 		acl.setId(nodeId);
 		acl.setCreationDate(new Date(System.currentTimeMillis()));
 		acl.setResourceAccess(new HashSet<ResourceAccess>());
-		String aclId = aclDAO.create(acl);
+		String aclId = aclDAO.create(acl, ObjectType.ENTITY);
 		assertEquals(nodeId, aclId);
 
 		acl = aclDAO.get(node.getId(), ObjectType.ENTITY);
@@ -121,7 +121,7 @@ public class DBOAccessControlListDAOImplTest {
 		ras.add(ra);
 		acl.setResourceAccess(ras);
 
-		aclDAO.update(acl);
+		aclDAO.update(acl, ObjectType.ENTITY);
 		acl = aclDAO.get(node.getId(), ObjectType.ENTITY);
 		assertNotNull(acl);
 		assertFalse(etagBeforeUpdate.equals(acl.getEtag()));
@@ -139,7 +139,7 @@ public class DBOAccessControlListDAOImplTest {
 	public void tearDown() throws Exception {
 		for (Node n : nodeList) {
 			nodeDAO.delete(n.getId());
-			aclDAO.delete(n.getId());
+			aclDAO.delete(n.getId(), ObjectType.ENTITY);
 		}
 		nodeList.clear();
 		aclList.clear();
@@ -182,17 +182,17 @@ public class DBOAccessControlListDAOImplTest {
 		gs.add(Long.parseLong(group.getId()));
 		
 		// as expressed in 'setUp', 'group' has 'READ' access to 'node'
-		assertTrue(aclDAO.canAccess(gs, node.getId(), ACCESS_TYPE.READ));
+		assertTrue(aclDAO.canAccess(gs, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
 		
 		// but it doesn't have 'UPDATE' access
-		assertFalse(aclDAO.canAccess(gs, node.getId(), ACCESS_TYPE.UPDATE));
+		assertFalse(aclDAO.canAccess(gs, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE));
 		
 		// and no other group has been given access
 		UserGroup sham = new UserGroup();
 		sham.setId("-34876387468764"); // dummy
 		gs.clear();
 		gs.add(Long.parseLong(sham.getId()));
-		assertFalse(aclDAO.canAccess(gs, node.getId(), ACCESS_TYPE.READ));
+		assertFalse(aclDAO.canAccess(gs, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
 	}
 
 	/**
@@ -209,7 +209,7 @@ public class DBOAccessControlListDAOImplTest {
 		assertEquals(acl, acl2);
 		
 		aclList.remove(acl);
-		aclDAO.delete(id);
+		aclDAO.delete(id, ObjectType.ENTITY);
 		
 		try {
 			aclDAO.get(id, ObjectType.ENTITY);
@@ -238,20 +238,20 @@ public class DBOAccessControlListDAOImplTest {
 						ACCESS_TYPE.CREATE
 				})));
 		String etagBeforeUpdate = acl.getEtag();
-		aclDAO.update(acl);
+		aclDAO.update(acl, ObjectType.ENTITY);
 		
 		Set<Long> gs = new HashSet<Long>();
 		gs.add(Long.parseLong(group.getId()));
-		assertFalse(aclDAO.canAccess(gs, node.getId(), ACCESS_TYPE.READ));
-		assertTrue(aclDAO.canAccess(gs, node.getId(), ACCESS_TYPE.UPDATE));
-		assertTrue(aclDAO.canAccess(gs, node.getId(), ACCESS_TYPE.CREATE));
+		assertFalse(aclDAO.canAccess(gs, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
+		assertTrue(aclDAO.canAccess(gs, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE));
+		assertTrue(aclDAO.canAccess(gs, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.CREATE));
 
 		AccessControlList acl2 = aclDAO.get(rid, ObjectType.ENTITY);
 		assertFalse(etagBeforeUpdate.equals(acl2.getEtag()));
 
 		try {
 			acl2.setEtag("someFakeEtag");
-			aclDAO.update(acl2);
+			aclDAO.update(acl2, ObjectType.ENTITY);
 		} catch (ConflictingUpdateException e) {
 			// Expected
 			assertTrue(true);
@@ -280,21 +280,21 @@ public class DBOAccessControlListDAOImplTest {
 						ACCESS_TYPE.READ,
 				})));
 		acl.getResourceAccess().add(ra2);
-		aclDAO.update(acl);
+		aclDAO.update(acl, ObjectType.ENTITY);
 		
 		Set<Long> gs = new HashSet<Long>();
 		gs.add(Long.parseLong(group.getId()));
 		Set<Long> gs2 = new HashSet<Long>();
 		gs2.add(Long.parseLong(group2.getId()));
-		assertFalse(aclDAO.canAccess(gs, node.getId(), ACCESS_TYPE.READ));
-		assertTrue(aclDAO.canAccess(gs2, node.getId(), ACCESS_TYPE.READ));
+		assertFalse(aclDAO.canAccess(gs, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
+		assertTrue(aclDAO.canAccess(gs2, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
 		
 		// Group one can do this but 2 cannot.
-		assertTrue(aclDAO.canAccess(gs, node.getId(), ACCESS_TYPE.UPDATE));
-		assertTrue(aclDAO.canAccess(gs, node.getId(), ACCESS_TYPE.CREATE));
+		assertTrue(aclDAO.canAccess(gs, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE));
+		assertTrue(aclDAO.canAccess(gs, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.CREATE));
 		// Now try 2
-		assertFalse(aclDAO.canAccess(gs2, node.getId(), ACCESS_TYPE.UPDATE));
-		assertFalse(aclDAO.canAccess(gs2, node.getId(), ACCESS_TYPE.CREATE));
+		assertFalse(aclDAO.canAccess(gs2, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE));
+		assertFalse(aclDAO.canAccess(gs2, node.getId(), ObjectType.ENTITY, ACCESS_TYPE.CREATE));
 		
 	}
 

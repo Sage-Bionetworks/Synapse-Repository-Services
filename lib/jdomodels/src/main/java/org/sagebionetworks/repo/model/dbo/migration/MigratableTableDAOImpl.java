@@ -149,9 +149,9 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		// Build up the SQL cache.
 		String delete = DMLUtils.createBatchDelete(mapping);
 		deleteSqlMap.put(type, delete);
-		String count = DMLUtils.createGetCountStatement(mapping);
+		String count = DMLUtils.createGetCountByPrimaryKeyStatement(mapping);
 		countSqlMap.put(type, count);
-		String mx = DMLUtils.createGetMaxStatement(mapping);
+		String mx = DMLUtils.createGetMaxByBackupKeyStatement(mapping);
 		maxSqlMap.put(type, mx);
 		String listRowMetadataSQL = DMLUtils.listRowMetadata(mapping);
 		listSqlMap.put(type, listRowMetadataSQL);

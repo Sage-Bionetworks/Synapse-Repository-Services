@@ -40,6 +40,7 @@ import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.NodeParentRelation;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
@@ -291,7 +292,7 @@ public class NodeDAOImplTest {
 		acl.setResourceAccess(ras);
 		acl.setId(parentId);
 		acl.setCreationDate(new Date());
-		accessControlListDAO.create(acl);
+		accessControlListDAO.create(acl, ObjectType.ENTITY);
 		
 		
 		//Now add an child

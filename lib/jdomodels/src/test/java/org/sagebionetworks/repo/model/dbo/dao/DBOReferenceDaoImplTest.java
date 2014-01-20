@@ -84,7 +84,7 @@ public class DBOReferenceDaoImplTest {
 		}
 
 		if (aclIdToDelete != null) {
-			aclDAO.delete(aclIdToDelete);
+			aclDAO.delete(aclIdToDelete, ObjectType.ENTITY);
 		}
 	}
 	
@@ -424,7 +424,7 @@ public class DBOReferenceDaoImplTest {
 		ra.setPrincipalId(Long.parseLong(groupId));
 		ras.add(ra);
 		acl.setResourceAccess(ras);
-		String aclId = aclDAO.create(acl);
+		String aclId = aclDAO.create(acl, ObjectType.ENTITY);
 		acl = aclDAO.get(aclId, ObjectType.ENTITY);
 		// add acl to a list of objects to delete
 		aclIdToDelete = acl.getId();
@@ -446,11 +446,11 @@ public class DBOReferenceDaoImplTest {
 		assertEquals(1, ras2.size());
 		ResourceAccess ra2 = ras2.iterator().next();
 		assertEquals(groupId, ra2.getPrincipalId().toString());
-		assertTrue(aclDAO.canAccess(userInfo.getGroups(), permissionsBenefactor0, ACCESS_TYPE.READ));
+		assertTrue(aclDAO.canAccess(userInfo.getGroups(), permissionsBenefactor0, ObjectType.ENTITY, ACCESS_TYPE.READ));
 		String permissionsBenefactor1 = nodeInheritanceDao.getBenefactor(""+node1.getId());
 		// node1 is its own permissions supplier
 		assertEquals(""+node1.getId()+"!="+permissionsBenefactor1, KeyFactory.keyToString(node1.getId()), permissionsBenefactor1);
-		assertFalse(aclDAO.canAccess(userInfo.getGroups(), permissionsBenefactor1, ACCESS_TYPE.READ));
+		assertFalse(aclDAO.canAccess(userInfo.getGroups(), permissionsBenefactor1, ObjectType.ENTITY, ACCESS_TYPE.READ));
 		
 		// now should only find referrers which allow the created group
 		ehqr = dboReferenceDao.getReferrers(123L, null, userInfo, null, null);

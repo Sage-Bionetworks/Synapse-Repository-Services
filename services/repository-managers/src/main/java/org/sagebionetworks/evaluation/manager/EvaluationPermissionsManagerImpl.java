@@ -75,7 +75,7 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 		final String evalOwerId = eval.getOwnerId();
 		PermissionsManagerUtils.validateACLContent(acl, userInfo, Long.parseLong(evalOwerId));
 
-		final String aclId = aclDAO.create(acl);
+		final String aclId = aclDAO.create(acl, ObjectType.EVALUATION);
 		acl = aclDAO.get(aclId, ObjectType.EVALUATION);
 		return acl;
 	}
@@ -106,7 +106,7 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 		final Long evalOwnerId = KeyFactory.stringToKey(eval.getOwnerId());
 		PermissionsManagerUtils.validateACLContent(acl, userInfo, evalOwnerId);
 
-		aclDAO.update(acl);
+		aclDAO.update(acl, ObjectType.EVALUATION);
 		return aclDAO.get(evalId, ObjectType.EVALUATION);
 	}
 
@@ -124,7 +124,7 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 			throw new UnauthorizedException("User " + userInfo.getId().toString()
 					+ " not authorized to change permissions on evaluation " + evalId);
 		}
-		aclDAO.delete(evalId);
+		aclDAO.delete(evalId, ObjectType.EVALUATION);
 	}
 
 	@Override
@@ -206,7 +206,7 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 			return true;
 		}
 
-		boolean canAccess = aclDAO.canAccess(userInfo.getGroups(), evalId, accessType);
+		boolean canAccess = aclDAO.canAccess(userInfo.getGroups(), evalId, ObjectType.EVALUATION, accessType);
 		if (canAccess && (PARTICIPATE.equals(accessType) || SUBMIT.equals(accessType))) {
 			RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
 			rod.setId(evalId);

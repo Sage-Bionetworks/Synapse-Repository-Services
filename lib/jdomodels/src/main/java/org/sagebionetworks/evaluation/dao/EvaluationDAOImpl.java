@@ -7,6 +7,9 @@ import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_S
 import static org.sagebionetworks.repo.model.query.SQLConstants.LIMIT_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.SQLConstants.OFFSET_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_EVALUATION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_OWNER_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_OWNER_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_OWNER;
 
 import java.io.UnsupportedEncodingException;
@@ -25,6 +28,7 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NameConflictException;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -363,14 +367,18 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	
 	// parameters here are LIMIT and OFFSET
 	private static final String SELECT_AVAILABLE_EVALUATIONS_PAGINATED_SUFFIX =
-			" and e."+COL_EVALUATION_ID+"=ra."+COL_RESOURCE_ACCESS_OWNER+
+			" and e."+COL_EVALUATION_ID+"=acl."+COL_ACL_OWNER_ID+
+			" and acl."+COL_ACL_OWNER_TYPE+"='"+ObjectType.EVALUATION.name()+
+			"' and acl."+COL_ACL_ID+"=ra."+COL_RESOURCE_ACCESS_OWNER+
 			" ORDER BY e."+COL_EVALUATION_NAME+" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 	
 	private static final String SELECT_AVAILABLE_EVALUATIONS_COUNT_PREFIX =
 		"SELECT count(distinct e."+COL_EVALUATION_ID+") " + AuthorizationSqlUtil.AUTHORIZATION_SQL_FROM+", "+TABLE_EVALUATION+" e ";
 
 	private static final String SELECT_AVAILABLE_EVALUATIONS_COUNT_SUFFIX =
-			" and e."+COL_EVALUATION_ID+"=ra."+COL_RESOURCE_ACCESS_OWNER;
+			" and e."+COL_EVALUATION_ID+"=acl."+COL_ACL_OWNER_ID+
+			" and acl."+COL_ACL_OWNER_TYPE+"='"+ObjectType.EVALUATION.name()+
+			"' and acl."+COL_ACL_ID+"=ra."+COL_RESOURCE_ACCESS_OWNER;
 
 	/**
 	 * return the evaluations in which the user (given as a list of principal Ids)
@@ -389,6 +397,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		param.addValue(AuthorizationSqlUtil.ACCESS_TYPE_BIND_VAR, ACCESS_TYPE.SUBMIT.name());
 		param.addValue(OFFSET_PARAM_NAME, offset);
 		param.addValue(LIMIT_PARAM_NAME, limit);	
+		param.addValue(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, ObjectType.EVALUATION.name());
 		StringBuilder sql = new StringBuilder(SELECT_AVAILABLE_EVALUATIONS_PAGINATED_PREFIX);
 		sql.append(AuthorizationSqlUtil.authorizationSQLWhere(principalIds.size()));
 		sql.append(SELECT_AVAILABLE_EVALUATIONS_PAGINATED_SUFFIX);
@@ -409,9 +418,10 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		for (int i=0; i<principalIds.size(); i++) {
 			param.addValue(AuthorizationSqlUtil.BIND_VAR_PREFIX+i, principalIds.get(i));	
 		}
-		param.addValue(AuthorizationSqlUtil.ACCESS_TYPE_BIND_VAR, ACCESS_TYPE.SUBMIT.name());	
+		param.addValue(AuthorizationSqlUtil.ACCESS_TYPE_BIND_VAR, ACCESS_TYPE.SUBMIT.name());
+		param.addValue(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, ObjectType.EVALUATION.name());
 		StringBuilder sql = new StringBuilder(SELECT_AVAILABLE_EVALUATIONS_COUNT_PREFIX);
-		sql.append(AuthorizationSqlUtil.authorizationSQLWhere(principalIds.size()));
+		sql.append(AuthorizationSqlUtil.authorizationSQLWhere(principalIds.size())); 
 		sql.append(SELECT_AVAILABLE_EVALUATIONS_COUNT_SUFFIX);
 		return simpleJdbcTemplate.queryForLong(sql.toString(), param);
 	}
