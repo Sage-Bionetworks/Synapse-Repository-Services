@@ -17,6 +17,7 @@ import org.apache.logging.log4j.Logger;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil;
@@ -49,6 +50,7 @@ public class JDONodeQueryUnitTest {
 		when(nonAdminUserInfo.getGroups()).thenReturn(null);
 		HashMap<String, Object> params = new HashMap<String, Object>();
 		// should throw an exception
+		params.put(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, ObjectType.ENTITY.name());
 		String sql = QueryUtils.buildAuthorizationFilter(nonAdminUserInfo, params);
 	}
 	
@@ -59,6 +61,7 @@ public class JDONodeQueryUnitTest {
 		when(nonAdminUserInfo.getGroups()).thenReturn(new HashSet<Long>());
 		HashMap<String, Object> params = new HashMap<String, Object>();
 		// Should throw an exception.
+		params.put(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, ObjectType.ENTITY.name());
 		String sql = QueryUtils.buildAuthorizationFilter(nonAdminUserInfo, params);
 	}
 	
@@ -76,6 +79,7 @@ public class JDONodeQueryUnitTest {
 		groups.add(Long.parseLong(group.getId()));
 		when(nonAdminUserInfo.getGroups()).thenReturn(groups);
 		// This should build a query with two groups
+		params.put(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, ObjectType.ENTITY.name());
 		String sql = QueryUtils.buildAuthorizationFilter(nonAdminUserInfo, params);
 		assertNotNull(sql);
 		// It should not be an empty string.

@@ -90,7 +90,6 @@ public class QueryUtils {
 		String sql = AuthorizationSqlUtil.authorizationSQL(groups.size());
 		// Bind the variables
 		parameters.put(AuthorizationSqlUtil.ACCESS_TYPE_BIND_VAR, ACCESS_TYPE.READ.name());
-		parameters.put(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, ObjectType.ENTITY.name());
 		// Bind each group
 		Iterator<Long> it = groups.iterator();
 		int index = 0;
