@@ -23,11 +23,13 @@ import java.util.Set;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOReference;
+import org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.query.jdo.QueryUtils;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
@@ -136,6 +138,7 @@ public class DBOReferenceDaoImpl implements DBOReferenceDao {
 		} else {
 			queryTail = REFERRER_SELECT_SQL_WITH_REVISION_TAIL;
 		}
+		baseParameters.put(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, ObjectType.ENTITY.name());
 		String authorizationFilter = QueryUtils.buildAuthorizationFilter(userInfo, baseParameters);
 		String fullQuery = null;
 		if (authorizationFilter.length()>0) {
