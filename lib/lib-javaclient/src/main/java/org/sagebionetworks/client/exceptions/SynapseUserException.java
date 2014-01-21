@@ -3,6 +3,7 @@
  */
 package org.sagebionetworks.client.exceptions;
 
+
 /**
  * @author deflaux
  *
@@ -17,33 +18,31 @@ public class SynapseUserException extends SynapseException {
 	/**
 	 * 
 	 */
-	public SynapseUserException() {
-		// TODO Auto-generated constructor stub
+	public SynapseUserException(int httpStatus) {
+		super(httpStatus);
 	}
 
 	/**
 	 * @param arg0
 	 */
-	public SynapseUserException(String arg0) {
-		super(arg0);
-		// TODO Auto-generated constructor stub
+	public SynapseUserException(int httpStatus, String arg0) {
+		super(httpStatus, arg0);
 	}
 
 	/**
 	 * @param arg0
 	 */
-	public SynapseUserException(Throwable arg0) {
-		super(arg0);
-		// TODO Auto-generated constructor stub
+	public SynapseUserException(int httpStatus, Throwable arg0) {
+		super(httpStatus, arg0);
 	}
 
 	/**
 	 * @param arg0
 	 * @param arg1
 	 */
-	public SynapseUserException(String arg0, Throwable arg1) {
-		super(arg0, arg1);
-		// TODO Auto-generated constructor stub
+	public SynapseUserException(int httpStatus, String arg0, Throwable arg1) {
+		super(httpStatus, arg0, arg1);
+
 	}
 
 }

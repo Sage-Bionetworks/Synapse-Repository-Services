@@ -131,7 +131,7 @@ public class IT990AuthenticationController {
 		try {
 			synapse.createUser(user);
 		} catch (SynapseUserException e) {
-			assertTrue(e.getMessage().contains("409"));
+			assertTrue(e.getStatusCode()==409);
 		}
 	}
 	

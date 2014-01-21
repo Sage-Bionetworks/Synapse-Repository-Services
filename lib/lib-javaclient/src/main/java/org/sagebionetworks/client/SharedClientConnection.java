@@ -265,7 +265,7 @@ public class SharedClientConnection {
 			HttpResponse response = clientProvider.execute(httppost);
 			int code = response.getStatusLine().getStatusCode();
 			if (code < 200 || code > 299) {
-				throw new SynapseException("Response code: " + code + " " + response.getStatusLine().getReasonPhrase()
+				throw new SynapseException(code, "Response code: " + code + " " + response.getStatusLine().getReasonPhrase()
 						+ " for " + url + " File: " + file.getName());
 			}
 			return EntityUtils.toString(response.getEntity());
@@ -297,7 +297,7 @@ public class SharedClientConnection {
 			HttpResponse response = clientProvider.execute(httppost);
 			int code = response.getStatusLine().getStatusCode();
 			if (code < 200 || code > 299) {
-				throw new SynapseException("Response code: " + code + " " + response.getStatusLine().getReasonPhrase()
+				throw new SynapseException(code, "Response code: " + code + " " + response.getStatusLine().getReasonPhrase()
 						+ " for " + url);
 			}
 			return EntityUtils.toString(response.getEntity());
@@ -327,7 +327,7 @@ public class SharedClientConnection {
 			int code = response.getStatusLine().getStatusCode();
 			String responseBody = (null != response.getEntity()) ? EntityUtils.toString(response.getEntity()) : null;
 			if(code < 200 || code > 299){
-				throw new SynapseException("Response code: "+code+" "+response.getStatusLine().getReasonPhrase()+" for "+url+" body: "+requestBody);
+				throw new SynapseException(code, "Response code: "+code+" "+response.getStatusLine().getReasonPhrase()+" for "+url+" body: "+requestBody);
 			}
 			return responseBody;
 		} catch (UnsupportedEncodingException e) {
@@ -381,7 +381,7 @@ public class SharedClientConnection {
 		int statusCode = response.getStatusLine().getStatusCode();
 		if(statusCode != 200) {
 			String message = EntityUtils.toString(entity);
-			throw new SynapseException("Status code: " + statusCode + ", " + message);
+			throw new SynapseException(statusCode, "Status code: " + statusCode + ", " + message);
 		}
 		return FileUtils.readCompressedStreamAsString(entity.getContent());
 	}
@@ -396,7 +396,7 @@ public class SharedClientConnection {
 				String localMd5 = MD5ChecksumHelper
 						.getMD5Checksum(destinationFile.getAbsolutePath());
 				if (!localMd5.equals(md5)) {
-					throw new SynapseUserException(
+					throw new SynapseException(
 							"md5 of downloaded file does not match the one in Synapse"
 									+ destinationFile);
 				}
@@ -706,15 +706,15 @@ public class SharedClientConnection {
 						+ resultsStr + " " + e.getMessage();
 
 				if (statusCode == 401) {
-					throw new SynapseUnauthorizedException(exceptionContent);
+					throw new SynapseUnauthorizedException(resultsStr);
 				} else if (statusCode == 403) {
-					throw new SynapseForbiddenException(exceptionContent);
+					throw new SynapseForbiddenException(resultsStr);
 				} else if (statusCode == 404) {
-					throw new SynapseNotFoundException(exceptionContent);
+					throw new SynapseNotFoundException(resultsStr);
 				} else if (statusCode == 400) {
-					throw new SynapseBadRequestException(exceptionContent);
+					throw new SynapseBadRequestException(resultsStr);
 				} else if (statusCode >= 400 && statusCode < 500) {
-					throw new SynapseUserException(exceptionContent);
+					throw new SynapseUserException(statusCode, resultsStr);
 				} else {
 					throw new SynapseServiceException("request content: "+requestContent+" exception content: "+exceptionContent+" status code: "+statusCode);
 				}

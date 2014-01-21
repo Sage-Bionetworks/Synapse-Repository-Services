@@ -380,8 +380,7 @@ public class HttpClientHelper {
 			String responseBody = (null != response.getEntity()) ? EntityUtils
 					.toString(response.getEntity()) : null;
 			verboseMessage.append("\nResponse Content: " + responseBody);
-			throw new HttpClientHelperException(verboseMessage.toString(),
-					response);
+			throw new HttpClientHelperException(verboseMessage.toString(), response.getStatusLine().getStatusCode(), responseBody);
 		}
 		return response;
 	}
@@ -411,7 +410,8 @@ public class HttpClientHelper {
 				throw new HttpClientHelperException("Requested content("
 						+ requestUrl + ") is too large("
 						+ entity.getContentLength()
-						+ "), download it to a file instead", response);
+						+ "), download it to a file instead", response.getStatusLine().getStatusCode(), responseContent);
+
 			}
 			responseContent = EntityUtils.toString(entity);
 		}
@@ -477,7 +477,7 @@ public class HttpClientHelper {
 				throw new HttpClientHelperException("Requested content("
 						+ requestUrl + ") is too large("
 						+ entity.getContentLength()
-						+ "), download it to a file instead", response);
+						+ "), download it to a file instead", response.getStatusLine().getStatusCode(), responseContent);
 			}
 			responseContent = EntityUtils.toString(entity);
 		}
@@ -516,7 +516,7 @@ public class HttpClientHelper {
 				throw new HttpClientHelperException("Requested content("
 						+ requestUrl + ") is too large("
 						+ entity.getContentLength()
-						+ "), download it to a file instead", response);
+						+ "), download it to a file instead", response.getStatusLine().getStatusCode(), responseContent);
 			}
 			responseContent = EntityUtils.toString(entity);
 		}
@@ -555,7 +555,7 @@ public class HttpClientHelper {
 				throw new HttpClientHelperException("Requested content("
 						+ requestUrl + ") is too large("
 						+ entity.getContentLength()
-						+ "), download it to a file instead", response);
+						+ "), download it to a file instead", response.getStatusLine().getStatusCode(), responseContent);
 			}
 			responseContent = EntityUtils.toString(entity);
 		}
@@ -625,10 +625,11 @@ public class HttpClientHelper {
 			String errorMessage = "Request(" + requestUrl + ") failed: "
 					+ response.getStatusLine().getReasonPhrase();
 			HttpEntity responseEntity = response.getEntity();
+			String responseContent = EntityUtils.toString(responseEntity);
 			if (null != responseEntity) {
-				errorMessage += EntityUtils.toString(responseEntity);
+				errorMessage += responseContent;
 			}
-			throw new HttpClientHelperException(errorMessage, response);
+			throw new HttpClientHelperException(errorMessage, response.getStatusLine().getStatusCode(), responseContent);
 		}
 	}
 }
