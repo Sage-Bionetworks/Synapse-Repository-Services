@@ -100,8 +100,8 @@
 	</bean>
 
 	<!-- register for primary migration objects.  The order of this list determines migration order.-->
-	<bean id="migratableTableDAO" class="org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAOImpl" init-method="initialize">
-		<property name="databaseObjectRegister">
+	<bean id="migratableTableDAO" class="org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAOImpl" init-method="initialize" depends-on="dboBasicDao">
+		<property name="databaseObjectRegister" >
 			<list>
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup" />
 				<bean class="org.sagebionetworks.repo.model.dbo.principal.DBOPrincipalAlias" />
