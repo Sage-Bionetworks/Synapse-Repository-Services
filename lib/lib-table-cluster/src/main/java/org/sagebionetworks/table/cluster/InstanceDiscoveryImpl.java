@@ -35,7 +35,7 @@ public class InstanceDiscoveryImpl implements  InstanceDiscovery {
 
 	
 	@Autowired
-	AmazonRDSClient client;
+	AmazonRDSClient rdsClient;
 	
 	@Autowired
 	private StackConfiguration stackConfig;
@@ -53,7 +53,8 @@ public class InstanceDiscoveryImpl implements  InstanceDiscovery {
 		DBInstance instance = null;
 		do{
 			// Does this instance exist?
-			instance = getInstanceIfExists(InstanceUtils.createDatabaseInstanceIdentifier(StackConfiguration.getStack(), stackConfig.getStackInstanceNumber(), index));
+			String databaseIdentifier = InstanceUtils.createDatabaseInstanceIdentifier(StackConfiguration.getStack(), stackConfig.getStackInstanceNumber(), index);
+			instance = getInstanceIfExists(databaseIdentifier);
 			if(instance != null){
 				list.add(instance);
 			}
@@ -74,7 +75,8 @@ public class InstanceDiscoveryImpl implements  InstanceDiscovery {
 	DBInstance getInstanceIfExists(String databaseIdentifer){
 		// First query for the instance
 		try{
-			DescribeDBInstancesResult result = client.describeDBInstances(new DescribeDBInstancesRequest().withDBInstanceIdentifier(databaseIdentifer));
+			log.debug("Looking for database instances: "+databaseIdentifer);
+			DescribeDBInstancesResult result = rdsClient.describeDBInstances(new DescribeDBInstancesRequest().withDBInstanceIdentifier(databaseIdentifer));
 			if(result.getDBInstances() == null || result.getDBInstances().size() != 1) throw new IllegalStateException("Did not find exactly one database instances with the identifier: "+databaseIdentifer);
 			return result.getDBInstances().get(0);
 		}catch(DBInstanceNotFoundException e){
