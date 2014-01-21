@@ -24,6 +24,9 @@ public interface AccessRequirementService {
 			Long userId, RestrictableObjectDescriptor subjectId)
 			throws DatastoreException, UnauthorizedException,
 			NotFoundException;
+	
+	public AccessRequirement updateAccessRequirement(
+			Long userId, AccessRequirement accessRequirement) throws Exception;
 
 
 	public void deleteAccessRequirements(Long userId, String requirementId)

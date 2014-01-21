@@ -335,6 +335,9 @@ public interface SynapseClient extends BaseClient {
 	public <T extends AccessRequirement> T createAccessRequirement(T ar)
 			throws SynapseException;
 
+	public <T extends AccessRequirement> T updateAccessRequirement(T ar)
+			throws SynapseException;
+
 	public ACTAccessRequirement createLockAccessRequirement(String entityId)
 			throws SynapseException;
 

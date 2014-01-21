@@ -173,6 +173,13 @@ public class AccessRequirementControllerAutowiredTest {
 		ars = results.getResults();
 		assertEquals(1, ars.size());
 		
+		TermsOfUseAccessRequirement tou = (TermsOfUseAccessRequirement)clone;
+		tou.setTermsOfUse("bar");
+		AccessRequirement updated = ServletTestHelper.updateAccessRequirement(
+				 dispatchServlet, tou, userId, extraParams);
+		tou.setEtag(updated.getEtag());
+		assertEquals(tou, updated);
+		
 		// test deletion
 		ServletTestHelper.deleteAccessRequirements(dispatchServlet, ars.get(0).getId().toString(), userId);
 		
@@ -214,6 +221,13 @@ public class AccessRequirementControllerAutowiredTest {
 				dispatchServlet, evaluation.getId(), Long.parseLong(otherUserInfo.getId().toString()));	
 		ars = results.getResults();
 		assertEquals(1, ars.size());
+		
+		TermsOfUseAccessRequirement tou = (TermsOfUseAccessRequirement)clone;
+		tou.setTermsOfUse("bar");
+		AccessRequirement updated = ServletTestHelper.updateAccessRequirement(
+				 dispatchServlet, tou, userId, extraParams);
+		tou.setEtag(updated.getEtag());
+		assertEquals(tou, updated);
 		
 		// test deletion
 		ServletTestHelper.deleteAccessRequirements(dispatchServlet, ars.get(0).getId().toString(), userId);

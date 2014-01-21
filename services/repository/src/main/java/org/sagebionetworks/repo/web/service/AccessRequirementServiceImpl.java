@@ -34,6 +34,16 @@ public class AccessRequirementServiceImpl implements AccessRequirementService {
 		return accessRequirementManager.createAccessRequirement(userInfo, accessRequirement);
 	}
 	
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public AccessRequirement updateAccessRequirement(Long userId,
+			AccessRequirement accessRequirement) throws Exception {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return accessRequirementManager.updateAccessRequirement(userInfo, accessRequirement);
+	}
+	
+	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public AccessRequirement createLockAccessRequirement(Long userId, 
@@ -91,5 +101,5 @@ public class AccessRequirementServiceImpl implements AccessRequirementService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		accessRequirementManager.deleteAccessRequirement(userInfo, requirementId);
 	}
-	
+
 }

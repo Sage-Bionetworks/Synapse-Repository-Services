@@ -357,7 +357,6 @@ public class IT500SynapseJavaClient {
 		
 		UserProfile otherProfile = synapseOne.getMyProfile();
 		assertNotNull(otherProfile);
-
 		
 		// should not be able to download
 		assertFalse(synapseTwo.canAccess(aNewDataset.getId(), ACCESS_TYPE.DOWNLOAD));
@@ -381,6 +380,10 @@ public class IT500SynapseJavaClient {
 		
 		// should be able to download
 		assertTrue(synapseTwo.canAccess(aNewDataset.getId(), ACCESS_TYPE.DOWNLOAD));
+		
+		ar.setTermsOfUse("play nicer");
+		ar = synapseOne.updateAccessRequirement(ar);
+		assertEquals("play nicer", ar.getTermsOfUse());
 		
 		// ACL should reflect the first User's permission
 		AccessControlList acl = synapseOne.getACL(project.getId());
