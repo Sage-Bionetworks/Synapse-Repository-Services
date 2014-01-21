@@ -706,15 +706,15 @@ public class SharedClientConnection {
 						+ resultsStr + " " + e.getMessage();
 
 				if (statusCode == 401) {
-					throw new SynapseUnauthorizedException(exceptionContent);
+					throw new SynapseUnauthorizedException(resultsStr);
 				} else if (statusCode == 403) {
-					throw new SynapseForbiddenException(exceptionContent);
+					throw new SynapseForbiddenException(resultsStr);
 				} else if (statusCode == 404) {
-					throw new SynapseNotFoundException(exceptionContent);
+					throw new SynapseNotFoundException(resultsStr);
 				} else if (statusCode == 400) {
-					throw new SynapseBadRequestException(exceptionContent);
+					throw new SynapseBadRequestException(resultsStr);
 				} else if (statusCode >= 400 && statusCode < 500) {
-					throw new SynapseUserException(exceptionContent);
+					throw new SynapseUserException(resultsStr);
 				} else {
 					throw new SynapseServiceException("request content: "+requestContent+" exception content: "+exceptionContent+" status code: "+statusCode);
 				}

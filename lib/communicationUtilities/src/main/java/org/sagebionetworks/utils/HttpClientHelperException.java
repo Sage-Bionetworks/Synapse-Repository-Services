@@ -3,6 +3,7 @@
  */
 package org.sagebionetworks.utils;
 
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.util.EntityUtils;
 
@@ -36,16 +37,10 @@ public class HttpClientHelperException extends Exception {
 	 * @param message
 	 * @param response
 	 */
-	public HttpClientHelperException(String message, HttpResponse response) {
+	public HttpClientHelperException(String message, int responseStatusCode, String responseString) {
 		super(message);
-		this.httpStatus = response.getStatusLine().getStatusCode();
-		try {
-			this.response = (null != response.getEntity()) ? EntityUtils
-					.toString(response.getEntity()) : null;
-		} catch (Exception e) {
-			// This is okay to swallow because its just a best effort to
-			// retrieve more info when we are already in an exception situation
-		}
+		this.httpStatus = responseStatusCode;
+		this.response = responseString;
 	}
 
 	/**
