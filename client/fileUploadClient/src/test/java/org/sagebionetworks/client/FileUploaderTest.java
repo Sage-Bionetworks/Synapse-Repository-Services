@@ -186,7 +186,7 @@ public class FileUploaderTest {
 		when(mockFuture1.get()).thenReturn(null);
 		Future<Entity> mockFuture2 = mock(Future.class);
 		when(mockFuture2.isDone()).thenReturn(true);
-		when(mockFuture2.get()).thenThrow(new ExecutionException("(409)", new SynapseUserException("(409)")));
+		when(mockFuture2.get()).thenThrow(new ExecutionException("(409)", new SynapseUserException(409, "(409)")));
 		Future<Entity> mockFuture3 = mock(Future.class);
 		when(mockFuture3.isDone()).thenReturn(true);
 		when(mockFuture3.get()).thenThrow(new ExecutionException("some reason", new SynapseException("Some other exception")));		

@@ -20,6 +20,7 @@ import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
+import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseServiceException;
 import org.sagebionetworks.client.exceptions.SynapseUserException;
@@ -244,8 +245,8 @@ public class IT501SynapseJavaClientMessagingTest {
 			try {
 				oneToTwo = synapseOne.sendMessage(oneToTwo);
 				cleanup.add(oneToTwo.getId());
-			} catch (SynapseUserException e) {
-				if (e.getMessage().contains("429")) {
+			} catch (SynapseException e) {
+				if (e.getStatusCode()==429) {
 					gotNerfed = true;
 					break;
 				}

@@ -2619,7 +2619,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			File destinationFile) throws SynapseException {
 		List<LocationData> locations = locationable.getLocations();
 		if ((null == locations) || (0 == locations.size())) {
-			throw new SynapseUserException(
+			throw new SynapseException(
 					"No locations available for locationable " + locationable);
 		}
 
