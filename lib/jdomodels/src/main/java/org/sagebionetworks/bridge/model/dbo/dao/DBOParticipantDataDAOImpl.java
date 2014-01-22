@@ -14,13 +14,22 @@ import java.util.SortedSet;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
+import org.apache.commons.lang.BooleanUtils;
 import org.sagebionetworks.bridge.model.ParticipantDataDAO;
+import org.sagebionetworks.bridge.model.data.ParticipantDataColumnDescriptor;
+import org.sagebionetworks.bridge.model.data.ParticipantDataRow;
+import org.sagebionetworks.bridge.model.data.value.ParticipantDataBooleanValue;
+import org.sagebionetworks.bridge.model.data.value.ParticipantDataDatetimeValue;
+import org.sagebionetworks.bridge.model.data.value.ParticipantDataDoubleValue;
+import org.sagebionetworks.bridge.model.data.value.ParticipantDataLabValue;
+import org.sagebionetworks.bridge.model.data.value.ParticipantDataLongValue;
+import org.sagebionetworks.bridge.model.data.value.ParticipantDataStringValue;
+import org.sagebionetworks.bridge.model.data.value.ParticipantDataValue;
+import org.sagebionetworks.bridge.model.data.value.ValueTranslator;
 import org.sagebionetworks.bridge.model.dbo.persistence.DBOParticipantData;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
-import org.sagebionetworks.repo.model.table.Row;
-import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
@@ -35,6 +44,7 @@ import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.S3Object;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Maps.EntryTransformer;
 import com.google.common.collect.Sets;
 
 public class DBOParticipantDataDAOImpl implements ParticipantDataDAO {
@@ -42,9 +52,9 @@ public class DBOParticipantDataDAOImpl implements ParticipantDataDAO {
 	private static final String PARTICIPANT_IDS = "participantIds";
 	private static final String PARTICIPANT_DATA_ID = "participantDataId";
 
-	private static final String SELECT_PARTICIPANT_WITH_PARTICIPANT_DATA = "select " + SqlConstants.COL_PARTICIPANT_DATA_PARTICIPANT_ID + " from "
-			+ SqlConstants.TABLE_PARTICIPANT_DATA + " where " + SqlConstants.COL_PARTICIPANT_DATA_PARTICIPANT_DATA_DESCRIPTOR_ID + " = :" + PARTICIPANT_DATA_ID + " and "
-			+ SqlConstants.COL_PARTICIPANT_DATA_PARTICIPANT_ID + " in ( :" + PARTICIPANT_IDS + " )";
+	private static final String SELECT_PARTICIPANT_WITH_PARTICIPANT_DATA = "select " + SqlConstants.COL_PARTICIPANT_DATA_PARTICIPANT_ID
+			+ " from " + SqlConstants.TABLE_PARTICIPANT_DATA + " where " + SqlConstants.COL_PARTICIPANT_DATA_PARTICIPANT_DATA_DESCRIPTOR_ID
+			+ " = :" + PARTICIPANT_DATA_ID + " and " + SqlConstants.COL_PARTICIPANT_DATA_PARTICIPANT_ID + " in ( :" + PARTICIPANT_IDS + " )";
 
 	private static class DataTable {
 		long nextRowNumber = 0;
@@ -86,24 +96,23 @@ public class DBOParticipantDataDAOImpl implements ParticipantDataDAO {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public RowSet append(String participantId, String participantDataDescriptorId, RowSet data) throws DatastoreException, NotFoundException,
-			IOException {
+	public List<ParticipantDataRow> append(String participantId, String participantDataDescriptorId, List<ParticipantDataRow> data,
+			List<ParticipantDataColumnDescriptor> columns) throws DatastoreException, NotFoundException, IOException {
 
-		for (Row row : data.getRows()) {
+		for (ParticipantDataRow row : data) {
 			if (row.getRowId() != null) {
 				throw new IllegalStateException("Append data cannot have row ids");
 			}
 		}
 
 		MapSqlParameterSource param = new MapSqlParameterSource().addValue(DBOParticipantData.PARTICIPANT_DATA_DESCRIPTOR_ID_FIELD,
-				participantDataDescriptorId).addValue(
-				DBOParticipantData.PARTICIPANT_ID_FIELD, participantId);
+				participantDataDescriptorId).addValue(DBOParticipantData.PARTICIPANT_ID_FIELD, participantId);
 
 		try {
 			DBOParticipantData participantData = basicDao.getObjectByPrimaryKeyWithUpdateLock(DBOParticipantData.class, param);
 			DataTable dataTable = getDataFromBucket(participantData.getS3_bucket(), participantData.getS3_key());
 
-			return storeData(data, participantData, dataTable, false);
+			return storeData(data, participantData, dataTable, false, columns);
 		} catch (NotFoundException e) {
 			DBOParticipantData participantData = new DBOParticipantData();
 			participantData.setParticipantDataDescriptorId(Long.parseLong(participantDataDescriptorId));
@@ -112,28 +121,27 @@ public class DBOParticipantDataDAOImpl implements ParticipantDataDAO {
 			participantData.setS3_key(participantData.getParticipantDataDescriptorId() + ":" + participantData.getParticipantId());
 
 			DataTable dataTable = new DataTable();
-			return storeData(data, participantData, dataTable, true);
+			return storeData(data, participantData, dataTable, true, columns);
 		}
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public RowSet update(String participantId, String participantDataDescriptorId, RowSet data) throws DatastoreException, NotFoundException,
-			IOException {
+	public List<ParticipantDataRow> update(String participantId, String participantDataDescriptorId, List<ParticipantDataRow> data,
+			List<ParticipantDataColumnDescriptor> columns) throws DatastoreException, NotFoundException, IOException {
 		MapSqlParameterSource param = new MapSqlParameterSource().addValue(DBOParticipantData.PARTICIPANT_DATA_DESCRIPTOR_ID_FIELD,
-				participantDataDescriptorId).addValue(
-				DBOParticipantData.PARTICIPANT_ID_FIELD, participantId);
+				participantDataDescriptorId).addValue(DBOParticipantData.PARTICIPANT_ID_FIELD, participantId);
 
 		DBOParticipantData participantData = basicDao.getObjectByPrimaryKey(DBOParticipantData.class, param);
 		DataTable dataTable = getDataFromBucket(participantData.getS3_bucket(), participantData.getS3_key());
 
-		return storeData(data, participantData, dataTable, false);
+		return storeData(data, participantData, dataTable, false, columns);
 	}
 
-	private RowSet storeData(RowSet data, DBOParticipantData participantData, DataTable dataTable, boolean isCreate)
-			throws IOException {
+	private List<ParticipantDataRow> storeData(List<ParticipantDataRow> data, DBOParticipantData participantData, DataTable dataTable,
+			boolean isCreate, List<ParticipantDataColumnDescriptor> columns) throws IOException {
 
-		data = mergeData(data, dataTable);
+		data = mergeData(data, dataTable, columns);
 
 		// update before attempting upload. If upload fails, transaction will roll back
 		if (isCreate) {
@@ -148,25 +156,51 @@ public class DBOParticipantDataDAOImpl implements ParticipantDataDAO {
 
 	@Transactional(readOnly = true, propagation = Propagation.REQUIRED)
 	@Override
-	public RowSet get(String participantId, String participantDataDescriptorId) throws DatastoreException, NotFoundException, IOException {
+	public List<ParticipantDataRow> get(String participantId, String participantDataDescriptorId,
+			List<ParticipantDataColumnDescriptor> columns) throws DatastoreException, NotFoundException, IOException {
 		MapSqlParameterSource param = new MapSqlParameterSource().addValue(DBOParticipantData.PARTICIPANT_DATA_DESCRIPTOR_ID_FIELD,
-				participantDataDescriptorId).addValue(
-				DBOParticipantData.PARTICIPANT_ID_FIELD, participantId);
+				participantDataDescriptorId).addValue(DBOParticipantData.PARTICIPANT_ID_FIELD, participantId);
 
 		DBOParticipantData participantData = basicDao.getObjectByPrimaryKey(DBOParticipantData.class, param);
 
 		DataTable dataTable = getDataFromBucket(participantData.getS3_bucket(), participantData.getS3_key());
 
-		// copy dataTable into rowset
-		return convertToRowSet(dataTable);
+		// copy dataTable into List<ParticipantDataRow>
+		return convertToParticipantDataRowList(dataTable, columns);
+	}
+
+	@Transactional(readOnly = true, propagation = Propagation.REQUIRED)
+	@Override
+	public ParticipantDataRow getRow(String participantId, String participantDataDescriptorId, Long rowId,
+			List<ParticipantDataColumnDescriptor> columns) throws DatastoreException, NotFoundException, IOException {
+		MapSqlParameterSource param = new MapSqlParameterSource().addValue(DBOParticipantData.PARTICIPANT_DATA_DESCRIPTOR_ID_FIELD,
+				participantDataDescriptorId).addValue(DBOParticipantData.PARTICIPANT_ID_FIELD, participantId);
+
+		DBOParticipantData participantData = basicDao.getObjectByPrimaryKey(DBOParticipantData.class, param);
+
+		DataTable dataTable = getDataFromBucket(participantData.getS3_bucket(), participantData.getS3_key());
+
+		Map<String, String> rawRow = dataTable.rows.get(rowId);
+		if (rawRow == null) {
+			throw new NotFoundException("Row with id " + rowId + " not found");
+		}
+		ParticipantDataRow row = new ParticipantDataRow();
+		row.setRowId(rowId);
+		row.setData(Maps.<String, ParticipantDataValue> newHashMap());
+		for (ParticipantDataColumnDescriptor column : columns) {
+			ParticipantDataValue value = ValueTranslator.transformToValue(rawRow, column);
+			if (value != null) {
+				row.getData().put(column.getName(), value);
+			}
+		}
+		return row;
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void delete(String participantId, String participantDataDescriptorId) throws DatastoreException, NotFoundException, IOException {
 		MapSqlParameterSource param = new MapSqlParameterSource().addValue(DBOParticipantData.PARTICIPANT_DATA_DESCRIPTOR_ID_FIELD,
-				participantDataDescriptorId).addValue(
-				DBOParticipantData.PARTICIPANT_ID_FIELD, participantId);
+				participantDataDescriptorId).addValue(DBOParticipantData.PARTICIPANT_ID_FIELD, participantId);
 
 		DBOParticipantData participantData = basicDao.getObjectByPrimaryKey(DBOParticipantData.class, param);
 
@@ -178,10 +212,9 @@ public class DBOParticipantDataDAOImpl implements ParticipantDataDAO {
 	@Override
 	public String findParticipantForParticipantData(List<String> participantIds, String participantDataDescriptorId) {
 		MapSqlParameterSource params = new MapSqlParameterSource().addValue(PARTICIPANT_DATA_ID, participantDataDescriptorId).addValue(
-				PARTICIPANT_IDS,
-				participantIds);
-		List<String> result = simpleJdbcTemplate.query(SELECT_PARTICIPANT_WITH_PARTICIPANT_DATA, new SingleColumnRowMapper<String>(String.class),
-				params);
+				PARTICIPANT_IDS, participantIds);
+		List<String> result = simpleJdbcTemplate.query(SELECT_PARTICIPANT_WITH_PARTICIPANT_DATA, new SingleColumnRowMapper<String>(
+				String.class), params);
 		if (result.size() == 0) {
 			return null;
 		} else if (result.size() != 1) {
@@ -191,58 +224,60 @@ public class DBOParticipantDataDAOImpl implements ParticipantDataDAO {
 		}
 	}
 
-	private RowSet convertToRowSet(DataTable dataTable) {
-		RowSet rowSet = new RowSet();
-		rowSet.setHeaders(Lists.newArrayList(dataTable.columns));
-		List<Row> participantDataRows = Lists.newArrayListWithExpectedSize(dataTable.rows.size());
+	private List<ParticipantDataRow> convertToParticipantDataRowList(DataTable dataTable, List<ParticipantDataColumnDescriptor> columns) {
+		List<ParticipantDataRow> participantDataRows = Lists.newArrayListWithExpectedSize(dataTable.rows.size());
 		for (Entry<Long, Map<String, String>> entry : dataTable.rows.entrySet()) {
-			Row row = new Row();
-			row.setRowId(entry.getKey().longValue());
-			List<String> values = Lists.newArrayListWithExpectedSize(dataTable.columns.size());
-			for (String columnName : rowSet.getHeaders()) {
-				values.add(entry.getValue().get(columnName));
-			}
-			row.setValues(values);
+			ParticipantDataRow row = convertToParticipantDataRow(columns, entry.getKey(), entry.getValue());
 			participantDataRows.add(row);
 		}
-		rowSet.setRows(participantDataRows);
-		return rowSet;
+		return participantDataRows;
 	}
 
-	private RowSet mergeData(RowSet data, DataTable dataTable) {
-		// make sure all column names in the headers are represented
-		for (String columnName : data.getHeaders()) {
-			dataTable.columns.add(columnName);
+	private ParticipantDataRow convertToParticipantDataRow(List<ParticipantDataColumnDescriptor> columns, Long rowId,
+			Map<String, String> dataTableRow) {
+		ParticipantDataRow row = new ParticipantDataRow();
+		row.setRowId(rowId);
+		row.setData(Maps.<String, ParticipantDataValue> newHashMap());
+		for (ParticipantDataColumnDescriptor column : columns) {
+			ParticipantDataValue value = ValueTranslator.transformToValue(dataTableRow, column);
+			if (value != null) {
+				row.getData().put(column.getName(), value);
+			}
 		}
+		return row;
+	}
 
-		RowSet newRowSet = new RowSet();
-		newRowSet.setHeaders(data.getHeaders());
-		newRowSet.setRows(Lists.<Row> newArrayListWithCapacity(data.getRows().size()));
+	private List<ParticipantDataRow> mergeData(List<ParticipantDataRow> dataToMergeIn, DataTable storageDataTable,
+			List<ParticipantDataColumnDescriptor> columns) {
+		List<ParticipantDataRow> newRowList = Lists.newArrayListWithCapacity(dataToMergeIn.size());
 
-		for (Row row : data.getRows()) {
-
-			Map<String, String> rowData = Maps.newHashMap();
+		for (ParticipantDataRow rowToMergeIn : dataToMergeIn) {
 
 			Long rowIndex;
-			if (row.getRowId() != null && dataTable.rows.containsKey(row.getRowId())) {
-				// replace
-				rowIndex = row.getRowId();
+			Map<String, String> storageDataRow;
+			if (rowToMergeIn.getRowId() != null && storageDataTable.rows.containsKey(rowToMergeIn.getRowId())) {
+				// merge
+				rowIndex = rowToMergeIn.getRowId();
+				storageDataRow = storageDataTable.rows.get(rowToMergeIn.getRowId());
 			} else {
 				// or append
-				rowIndex = dataTable.nextRowNumber++;
+				rowIndex = storageDataTable.nextRowNumber++;
+				storageDataRow = Maps.newHashMap();
+				storageDataTable.rows.put(rowIndex, storageDataRow);
 			}
 
-			Row newRow = new Row();
-			newRow.setValues(row.getValues());
+			ParticipantDataRow newRow = new ParticipantDataRow();
+			newRow.setData(rowToMergeIn.getData());
 			newRow.setRowId(rowIndex);
-			newRowSet.getRows().add(newRow);
+			newRowList.add(newRow);
 
-			for (int index = 0; index < data.getHeaders().size(); index++) {
-				rowData.put(data.getHeaders().get(index), row.getValues().get(index));
+			// overwrite all values from the incoming dataset into the storage data table
+			for (ParticipantDataColumnDescriptor column : columns) {
+				ParticipantDataValue value = rowToMergeIn.getData().get(column.getName());
+				ValueTranslator.transformToStrings(value, storageDataRow, column, storageDataTable.columns);
 			}
-			dataTable.rows.put(rowIndex, rowData);
 		}
-		return newRowSet;
+		return newRowList;
 	}
 
 	// we close, but java compiler cannot detect properly

@@ -5,6 +5,7 @@ import java.util.List;
 import org.sagebionetworks.bridge.model.ParticipantDataDescriptorDAO;
 import org.sagebionetworks.bridge.model.ParticipantDataStatusDAO;
 import org.sagebionetworks.bridge.model.data.ParticipantDataColumnDescriptor;
+import org.sagebionetworks.bridge.model.data.ParticipantDataCurrentRow;
 import org.sagebionetworks.bridge.model.data.ParticipantDataDescriptor;
 import org.sagebionetworks.bridge.model.data.ParticipantDataStatus;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -33,7 +34,8 @@ public class ParticipantDataDescriptionManagerImpl implements ParticipantDataDes
 	}
 
 	@Override
-	public ParticipantDataDescriptor getParticipantDataDescriptor(UserInfo userInfo, String participantDataId) throws DatastoreException, NotFoundException {
+	public ParticipantDataDescriptor getParticipantDataDescriptor(UserInfo userInfo, String participantDataId) throws DatastoreException,
+			NotFoundException {
 		return participantDataDescriptorDAO.getParticipantDataDescriptor(participantDataId);
 	}
 
@@ -52,19 +54,26 @@ public class ParticipantDataDescriptionManagerImpl implements ParticipantDataDes
 	}
 
 	@Override
-	public ParticipantDataColumnDescriptor createParticipantDataColumnDescriptor(UserInfo userInfo, ParticipantDataColumnDescriptor participantDataColumnDescriptor) {
+	public ParticipantDataColumnDescriptor createParticipantDataColumnDescriptor(UserInfo userInfo,
+			ParticipantDataColumnDescriptor participantDataColumnDescriptor) {
 		return participantDataDescriptorDAO.createParticipantDataColumnDescriptor(participantDataColumnDescriptor);
 	}
 
 	@Override
-	public PaginatedResults<ParticipantDataColumnDescriptor> getParticipantDataColumnDescriptor(UserInfo userInfo, String participantDataId, Integer limit,
-			Integer offset) {
-		List<ParticipantDataColumnDescriptor> participantDataColumns = participantDataDescriptorDAO.getParticipantDataColumns(participantDataId);
+	public PaginatedResults<ParticipantDataColumnDescriptor> getParticipantDataColumnDescriptor(UserInfo userInfo, String participantDataId,
+			Integer limit, Integer offset) {
+		List<ParticipantDataColumnDescriptor> participantDataColumns = participantDataDescriptorDAO
+				.getParticipantDataColumns(participantDataId);
 		return PaginatedResultsUtil.createPaginatedResults(participantDataColumns, limit, offset);
 	}
 
 	@Override
 	public void updateStatuses(UserInfo userInfo, List<ParticipantDataStatus> statuses) {
 		participantDataStatusDAO.update(statuses);
+	}
+
+	@Override
+	public List<ParticipantDataColumnDescriptor> getColumns(String participantDataId) {
+		return participantDataDescriptorDAO.getParticipantDataColumns(participantDataId);
 	}
 }

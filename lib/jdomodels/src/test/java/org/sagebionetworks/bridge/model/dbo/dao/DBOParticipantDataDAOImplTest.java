@@ -3,27 +3,40 @@ package org.sagebionetworks.bridge.model.dbo.dao;
 import static org.junit.Assert.*;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.bridge.model.BridgeParticipantDAO;
 import org.sagebionetworks.bridge.model.ParticipantDataDAO;
 import org.sagebionetworks.bridge.model.ParticipantDataDescriptorDAO;
+import org.sagebionetworks.bridge.model.data.ParticipantDataColumnDescriptor;
+import org.sagebionetworks.bridge.model.data.ParticipantDataColumnType;
 import org.sagebionetworks.bridge.model.data.ParticipantDataDescriptor;
 import org.sagebionetworks.bridge.model.data.ParticipantDataRepeatType;
+import org.sagebionetworks.bridge.model.data.ParticipantDataRow;
+import org.sagebionetworks.bridge.model.data.value.ParticipantDataBooleanValue;
+import org.sagebionetworks.bridge.model.data.value.ParticipantDataDatetimeValue;
+import org.sagebionetworks.bridge.model.data.value.ParticipantDataDoubleValue;
+import org.sagebionetworks.bridge.model.data.value.ParticipantDataLabValue;
+import org.sagebionetworks.bridge.model.data.value.ParticipantDataLongValue;
+import org.sagebionetworks.bridge.model.data.value.ParticipantDataStringValue;
+import org.sagebionetworks.bridge.model.data.value.ParticipantDataValue;
 import org.sagebionetworks.bridge.model.dbo.persistence.DBOParticipantDataDescriptor;
 import org.sagebionetworks.bridge.model.dbo.persistence.DBOParticipant;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.model.table.Row;
-import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -63,17 +76,34 @@ public class DBOParticipantDataDAOImplTest extends TestBase {
 		return model;
 	}
 
-	private RowSet createRowSet(String[] columns, String[]... rows) {
-		RowSet rowSet = new RowSet();
-		rowSet.setHeaders(Arrays.asList(columns));
-		rowSet.setRows(Lists.<Row> newArrayList());
-		for (String[] rowdata : rows) {
-			Row row = new Row();
-			row.setRowId(rowdata[0] == null ? null : Long.parseLong(rowdata[0]));
-			row.setValues(Lists.newArrayList(rowdata).subList(1, rowdata.length));
-			rowSet.getRows().add(row);
+	private static class Rows {
+		List<ParticipantDataRow> rows = Lists.newArrayList();
+		List<ParticipantDataColumnDescriptor> columns = Lists.newArrayList();
+	}
+
+	private Rows createRowList(String[] columns, String[]... rows) {
+		Rows result = new Rows();
+		for (String column : columns) {
+			ParticipantDataColumnDescriptor columnDescriptor = new ParticipantDataColumnDescriptor();
+			columnDescriptor.setColumnType(ParticipantDataColumnType.STRING);
+			columnDescriptor.setName(column);
+			result.columns.add(columnDescriptor);
 		}
-		return rowSet;
+		for (String[] rowdata : rows) {
+			ParticipantDataRow row = new ParticipantDataRow();
+			row.setRowId(rowdata[0] == null ? null : Long.parseLong(rowdata[0]));
+			Map<String, ParticipantDataValue> data = Maps.newHashMap();
+			for (int i = 1; i < rowdata.length; i++) {
+				if (rowdata[i] != null) {
+					ParticipantDataStringValue stringValue = new ParticipantDataStringValue();
+					stringValue.setValue(rowdata[i]);
+					data.put(columns[i - 1], stringValue);
+				}
+			}
+			row.setData(data);
+			result.rows.add(row);
+		}
+		return result;
 	}
 
 	class DataDeletable extends Deletable {
@@ -92,11 +122,11 @@ public class DBOParticipantDataDAOImplTest extends TestBase {
 	protected void doDelete(Deletable item) throws Exception {
 		if (item instanceof DataDeletable) {
 			try {
-				participantDataDAO.get(((DataDeletable) item).participantId.toString(), ((DataDeletable) item).participantDataId.toString());
+				participantDataDAO.delete(((DataDeletable) item).participantId.toString(),
+						((DataDeletable) item).participantDataId.toString());
 			} catch (NotFoundException e) {
 				return;
 			}
-			participantDataDAO.delete(((DataDeletable) item).participantId.toString(), ((DataDeletable) item).participantDataId.toString());
 		} else {
 			super.doDelete(item);
 		}
@@ -107,18 +137,18 @@ public class DBOParticipantDataDAOImplTest extends TestBase {
 		DBOParticipant participant = createParticipant();
 		DBOParticipantDataDescriptor model = createModel();
 
-		RowSet rowSet = createRowSet(new String[] { "a", "b", "c" }, new String[] { null, "1", "2", "3" },
-				new String[] { null, "4", "5", "6" });
+		Rows rows = createRowList(new String[] { "a", "b", "c" }, new String[] { null, "1", "2", "3" }, new String[] { null, "4", "5", "6" });
 
 		addToDelete(new DataDeletable(participant.getParticipantId(), model.getId().toString()));
 
-		participantDataDAO.append(participant.getParticipantId().toString(), model.getId().toString(), rowSet);
+		participantDataDAO.append(participant.getParticipantId().toString(), model.getId().toString(), rows.rows, rows.columns);
 
-		RowSet newRowSet = participantDataDAO.get(participant.getParticipantId().toString(), model.getId().toString());
+		List<ParticipantDataRow> newRowSet = participantDataDAO.get(participant.getParticipantId().toString(), model.getId().toString(),
+				rows.columns);
 
-		RowSet expectedRowSet = createRowSet(new String[] { "a", "b", "c" }, new String[] { "0", "1", "2", "3" }, new String[] { "1", "4",
-				"5", "6" });
-		assertEquals(expectedRowSet, newRowSet);
+		Rows expectedRows = createRowList(new String[] { "a", "b", "c" }, new String[] { "0", "1", "2", "3" }, new String[] { "1", "4", "5",
+				"6" });
+		assertEquals(expectedRows.rows, newRowSet);
 	}
 
 	@Test
@@ -126,21 +156,21 @@ public class DBOParticipantDataDAOImplTest extends TestBase {
 		DBOParticipant participant = createParticipant();
 		DBOParticipantDataDescriptor model = createModel();
 
-		RowSet rowSet1 = createRowSet(new String[] { "a", "b", "c" }, new String[] { null, "1", "2", "3" }, new String[] { null, "4", "5",
-				"6" });
+		Rows rows1 = createRowList(new String[] { "a", "b", "c" }, new String[] { null, "1", "2", "3" }, new String[] { null, "4", "5", "6" });
 
 		addToDelete(new DataDeletable(participant.getParticipantId(), model.getId().toString()));
 
-		participantDataDAO.append(participant.getParticipantId().toString(), model.getId().toString(), rowSet1);
+		participantDataDAO.append(participant.getParticipantId().toString(), model.getId().toString(), rows1.rows, rows1.columns);
 
-		RowSet rowSet2 = createRowSet(new String[] { "a", "b", "c" }, new String[] { null, "7", "8", "9" });
+		Rows rows2 = createRowList(new String[] { "a", "b", "c" }, new String[] { null, "7", "8", "9" });
 
-		participantDataDAO.update(participant.getParticipantId().toString(), model.getId().toString(), rowSet2);
+		participantDataDAO.update(participant.getParticipantId().toString(), model.getId().toString(), rows2.rows, rows2.columns);
 
-		RowSet newRowSet = participantDataDAO.get(participant.getParticipantId().toString(), model.getId().toString());
-		RowSet expectedRowSet = createRowSet(new String[] { "a", "b", "c" }, new String[] { "0", "1", "2", "3" }, new String[] { "1", "4",
-				"5", "6" }, new String[] { "2", "7", "8", "9" });
-		assertEquals(expectedRowSet, newRowSet);
+		List<ParticipantDataRow> newRowSet = participantDataDAO.get(participant.getParticipantId().toString(), model.getId().toString(),
+				rows1.columns);
+		Rows expectedRows = createRowList(new String[] { "a", "b", "c" }, new String[] { "0", "1", "2", "3" }, new String[] { "1", "4", "5",
+				"6" }, new String[] { "2", "7", "8", "9" });
+		assertEquals(expectedRows.rows, newRowSet);
 	}
 
 	@Test
@@ -148,21 +178,22 @@ public class DBOParticipantDataDAOImplTest extends TestBase {
 		DBOParticipant participant = createParticipant();
 		DBOParticipantDataDescriptor model = createModel();
 
-		RowSet rowSet1 = createRowSet(new String[] { "a", "b", "c" }, new String[] { null, "1", "2", "3" }, new String[] { null, "4", "5",
-				"6" }, new String[] { null, "7", "8", "9" });
+		Rows rows1 = createRowList(new String[] { "a", "b", "c" }, new String[] { null, "1", "2", "3" },
+				new String[] { null, "4", "5", "6" }, new String[] { null, "7", "8", "9" });
 
 		addToDelete(new DataDeletable(participant.getParticipantId(), model.getId().toString()));
 
-		participantDataDAO.append(participant.getParticipantId().toString(), model.getId().toString(), rowSet1);
+		participantDataDAO.append(participant.getParticipantId().toString(), model.getId().toString(), rows1.rows, rows1.columns);
 
-		RowSet rowSet2 = createRowSet(new String[] { "a", "b", "c" }, new String[] { "1", "14", "15", "16" });
+		Rows rows2 = createRowList(new String[] { "a", "b", "c" }, new String[] { "1", "14", "15", "16" });
 
-		participantDataDAO.update(participant.getParticipantId().toString(), model.getId().toString(), rowSet2);
+		participantDataDAO.update(participant.getParticipantId().toString(), model.getId().toString(), rows2.rows, rows2.columns);
 
-		RowSet newRowSet = participantDataDAO.get(participant.getParticipantId().toString(), model.getId().toString());
-		RowSet expectedRowSet = createRowSet(new String[] { "a", "b", "c" }, new String[] { "0", "1", "2", "3" }, new String[] { "1", "14",
+		List<ParticipantDataRow> newRowSet = participantDataDAO.get(participant.getParticipantId().toString(), model.getId().toString(),
+				rows1.columns);
+		Rows expectedRows = createRowList(new String[] { "a", "b", "c" }, new String[] { "0", "1", "2", "3" }, new String[] { "1", "14",
 				"15", "16" }, new String[] { "2", "7", "8", "9" });
-		assertEquals(expectedRowSet, newRowSet);
+		assertEquals(expectedRows.rows, newRowSet);
 	}
 
 	@Test
@@ -170,22 +201,23 @@ public class DBOParticipantDataDAOImplTest extends TestBase {
 		DBOParticipant participant = createParticipant();
 		DBOParticipantDataDescriptor model = createModel();
 
-		RowSet rowSet1 = createRowSet(new String[] { "a", "b", "c" }, new String[] { null, "1", "2", "3" }, new String[] { null, "4", "5",
-				"6" }, new String[] { null, "7", "8", "9" });
+		Rows rows1 = createRowList(new String[] { "a", "b", "c" }, new String[] { null, "1", "2", "3" },
+				new String[] { null, "4", "5", "6" }, new String[] { null, "7", "8", "9" });
 
 		addToDelete(new DataDeletable(participant.getParticipantId(), model.getId().toString()));
 
-		participantDataDAO.append(participant.getParticipantId().toString(), model.getId().toString(), rowSet1);
+		participantDataDAO.append(participant.getParticipantId().toString(), model.getId().toString(), rows1.rows, rows1.columns);
 
-		RowSet rowSet2 = createRowSet(new String[] { "a", "b", "c" }, new String[] { "0", "1a", "2b", "3c" }, new String[] { "1", "4a", "5b",
+		Rows rows2 = createRowList(new String[] { "a", "b", "c" }, new String[] { "0", "1a", "2b", "3c" }, new String[] { "1", "4a", "5b",
 				"6c" }, new String[] { "2", "7a", "8b", "9c" });
 
-		participantDataDAO.update(participant.getParticipantId().toString(), model.getId().toString(), rowSet2);
+		participantDataDAO.update(participant.getParticipantId().toString(), model.getId().toString(), rows2.rows, rows2.columns);
 
-		RowSet newRowSet = participantDataDAO.get(participant.getParticipantId().toString(), model.getId().toString());
-		RowSet expectedRowSet = createRowSet(new String[] { "a", "b", "c" }, new String[] { "0", "1a", "2b", "3c" }, new String[] { "1",
-				"4a", "5b", "6c" }, new String[] { "2", "7a", "8b", "9c" });
-		assertEquals(expectedRowSet, newRowSet);
+		List<ParticipantDataRow> newRowSet = participantDataDAO.get(participant.getParticipantId().toString(), model.getId().toString(),
+				rows1.columns);
+		Rows expectedRows = createRowList(new String[] { "a", "b", "c" }, new String[] { "0", "1a", "2b", "3c" }, new String[] { "1", "4a",
+				"5b", "6c" }, new String[] { "2", "7a", "8b", "9c" });
+		assertEquals(expectedRows.rows, newRowSet);
 	}
 
 	@Test
@@ -193,22 +225,25 @@ public class DBOParticipantDataDAOImplTest extends TestBase {
 		DBOParticipant participant = createParticipant();
 		DBOParticipantDataDescriptor model = createModel();
 
-		RowSet rowSet1 = createRowSet(new String[] { "a", "b", "c" }, new String[] { null, "1", "2", "3" }, new String[] { null, "4", "5",
-				"6" });
+		Rows rows1 = createRowList(new String[] { "a", "b", "c" }, new String[] { null, "1", "2", "3" }, new String[] { null, "4", "5", "6" });
 
 		addToDelete(new DataDeletable(participant.getParticipantId(), model.getId().toString()));
 
-		participantDataDAO.append(participant.getParticipantId().toString(), model.getId().toString(), rowSet1);
+		participantDataDAO.append(participant.getParticipantId().toString(), model.getId().toString(), rows1.rows, rows1.columns);
 
-		RowSet rowSet2 = createRowSet(new String[] { "d", "e", "f" }, new String[] { null, "14", "15", "16" });
+		Rows rows2 = createRowList(new String[] { "d", "e", "f" }, new String[] { null, "14", "15", "16" });
 
-		participantDataDAO.update(participant.getParticipantId().toString(), model.getId().toString(), rowSet2);
+		participantDataDAO.update(participant.getParticipantId().toString(), model.getId().toString(), rows2.rows, rows2.columns);
 
-		RowSet newRowSet = participantDataDAO.get(participant.getParticipantId().toString(), model.getId().toString());
+		List<ParticipantDataColumnDescriptor> allColumns = Lists.newArrayList(rows1.columns);
+		allColumns.addAll(rows2.columns);
+		List<ParticipantDataRow> newRowSet = participantDataDAO.get(participant.getParticipantId().toString(), model.getId().toString(),
+				allColumns);
 
-		RowSet expectedRowSet = createRowSet(new String[] { "a", "b", "c", "d", "e", "f" }, new String[] { "0", "1", "2", "3", null, null,
-				null }, new String[] { "1", "4", "5", "6", null, null, null }, new String[] { "2", null, null, null, "14", "15", "16" });
-		assertEquals(expectedRowSet, newRowSet);
+		Rows expectedRows = createRowList(new String[] { "a", "b", "c", "d", "e", "f" },
+				new String[] { "0", "1", "2", "3", null, null, null }, new String[] { "1", "4", "5", "6", null, null, null }, new String[] {
+						"2", null, null, null, "14", "15", "16" });
+		assertEquals(expectedRows.rows, newRowSet);
 	}
 
 	@Test
@@ -216,11 +251,10 @@ public class DBOParticipantDataDAOImplTest extends TestBase {
 		DBOParticipant participant = createParticipant();
 		DBOParticipantDataDescriptor model = createModel();
 
-		RowSet rowSet1 = createRowSet(new String[] { "a", "b", "c" }, new String[] { null, "1", "2", "3" }, new String[] { null, "4", "5",
-				"6" });
+		Rows rows1 = createRowList(new String[] { "a", "b", "c" }, new String[] { null, "1", "2", "3" }, new String[] { null, "4", "5", "6" });
 
 		addToDelete(new DataDeletable(participant.getParticipantId(), model.getId().toString()));
-		participantDataDAO.append(participant.getParticipantId().toString(), model.getId().toString(), rowSet1);
+		participantDataDAO.append(participant.getParticipantId().toString(), model.getId().toString(), rows1.rows, rows1.columns);
 
 		String foundId;
 
@@ -243,17 +277,16 @@ public class DBOParticipantDataDAOImplTest extends TestBase {
 		DBOParticipantDataDescriptor model1 = createModel();
 		DBOParticipantDataDescriptor model2 = createModel();
 
-		RowSet rowSet1 = createRowSet(new String[] { "a", "b", "c" }, new String[] { null, "1", "2", "3" }, new String[] { null, "4", "5",
-				"6" });
+		Rows rows1 = createRowList(new String[] { "a", "b", "c" }, new String[] { null, "1", "2", "3" }, new String[] { null, "4", "5", "6" });
 
 		addToDelete(new DataDeletable(participant1.getParticipantId(), model1.getId().toString()));
-		participantDataDAO.append(participant1.getParticipantId().toString(), model1.getId().toString(), rowSet1);
+		participantDataDAO.append(participant1.getParticipantId().toString(), model1.getId().toString(), rows1.rows, rows1.columns);
 
 		addToDelete(new DataDeletable(participant1.getParticipantId(), model2.getId().toString()));
-		participantDataDAO.append(participant1.getParticipantId().toString(), model2.getId().toString(), rowSet1);
+		participantDataDAO.append(participant1.getParticipantId().toString(), model2.getId().toString(), rows1.rows, rows1.columns);
 
 		addToDelete(new DataDeletable(participant2.getParticipantId(), model2.getId().toString()));
-		participantDataDAO.append(participant2.getParticipantId().toString(), model2.getId().toString(), rowSet1);
+		participantDataDAO.append(participant2.getParticipantId().toString(), model2.getId().toString(), rows1.rows, rows1.columns);
 
 		List<ParticipantDataDescriptor> foundParticipantDatas;
 
@@ -271,5 +304,80 @@ public class DBOParticipantDataDAOImplTest extends TestBase {
 		foundParticipantDatas = participantDataDescriptorDAO.getParticipantDatasForUser(Lists.newArrayList(participant1.getParticipantId()
 				.toString(), participant2.getParticipantId().toString()));
 		assertEquals(3, foundParticipantDatas.size());
+	}
+
+	@Test
+	public void testGetSetTypes() throws Exception {
+		DBOParticipant participant = createParticipant();
+		DBOParticipantDataDescriptor model = createModel();
+
+		List<ParticipantDataColumnDescriptor> columns = Lists.newArrayList();
+		for(ParticipantDataColumnType type : ParticipantDataColumnType.values()){
+			ParticipantDataColumnDescriptor result = new ParticipantDataColumnDescriptor();
+			result.setColumnType(type);
+			result.setName(type.toString());
+			columns.add(result);
+		}
+
+		addToDelete(new DataDeletable(participant.getParticipantId(), model.getId().toString()));
+		
+		Date now = new Date();
+		ImmutableMap.Builder<String, ParticipantDataValue> builder = ImmutableMap.builder();
+		
+		ParticipantDataStringValue stringValue=		new ParticipantDataStringValue();
+		stringValue.setValue("a");
+		builder.put("STRING", stringValue);
+
+		ParticipantDataBooleanValue booleanValue=		new ParticipantDataBooleanValue();
+		booleanValue.setValue(true);
+		builder.put("BOOLEAN", booleanValue);
+
+		ParticipantDataLongValue longValue=		new ParticipantDataLongValue();
+		longValue.setValue(12L);
+		builder.put("LONG", longValue);
+
+		ParticipantDataDoubleValue doubleValue=		new ParticipantDataDoubleValue();
+		doubleValue.setValue(3.6);
+		builder.put("DOUBLE", doubleValue);
+
+		ParticipantDataDatetimeValue datetimeValue=		new ParticipantDataDatetimeValue();
+		datetimeValue.setValue(now.getTime());
+		builder.put("DATETIME", datetimeValue);
+
+		ParticipantDataLabValue labValue=		new ParticipantDataLabValue();
+		labValue.setEnteredValue("100.00");
+		labValue.setUnits("flumps");
+		labValue.setNormalizedMax(11.9);
+		labValue.setNormalizedMin(2.3);
+		labValue.setNormalizedValue(4.8);
+		builder.put("LAB", labValue);
+
+		ParticipantDataRow row = new ParticipantDataRow();
+		row.setData(builder.build());
+		ParticipantDataRow nullRow = new ParticipantDataRow();
+		nullRow.setData(Collections.<String, ParticipantDataValue> emptyMap());
+		List<ParticipantDataRow> rows = Lists.newArrayList(row, nullRow);
+
+		participantDataDAO.append(participant.getParticipantId().toString(), model.getId().toString(), rows, columns);
+
+		List<ParticipantDataRow> newRowSet = participantDataDAO.get(participant.getParticipantId().toString(), model.getId().toString(),
+				columns);
+
+		assertEquals(2, newRowSet.size());
+		assertEquals(columns.size(), newRowSet.get(0).getData().size());
+		assertEquals(stringValue, newRowSet.get(0).getData().get("STRING"));
+		assertEquals(booleanValue, newRowSet.get(0).getData().get("BOOLEAN"));
+		assertEquals(longValue, newRowSet.get(0).getData().get("LONG"));
+		assertEquals(doubleValue, newRowSet.get(0).getData().get("DOUBLE"));
+		assertEquals(datetimeValue, newRowSet.get(0).getData().get("DATETIME"));
+		assertEquals(labValue, newRowSet.get(0).getData().get("LAB"));
+
+		assertNull(newRowSet.get(1).getData().get("STRING"));
+		assertNull(newRowSet.get(1).getData().get("BOOLEAN"));
+		assertNull(newRowSet.get(1).getData().get("LONG"));
+		assertNull(newRowSet.get(1).getData().get("DOUBLE"));
+		assertNull(newRowSet.get(1).getData().get("DATETIME"));
+		assertNull(newRowSet.get(1).getData().get("LAB"));
+
 	}
 }
