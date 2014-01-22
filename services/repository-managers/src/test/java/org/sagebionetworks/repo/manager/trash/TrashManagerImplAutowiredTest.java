@@ -824,6 +824,13 @@ public class TrashManagerImplAutowiredTest {
 			fail("Admin should be able to restore.");
 		}
 
+		// But the test user cannot restore items put by admin
+		try {
+			trashManager.restoreFromTrash(testUserInfo, nodeIdA1, null);
+		} catch (UnauthorizedException e) {
+			assertTrue(true);
+		}
+
 		try {
 			trashManager.purgeTrash(testUserInfo);
 			fail();
@@ -838,7 +845,7 @@ public class TrashManagerImplAutowiredTest {
 		// Node A2 has been restored by admin
 		assertTrue(nodeDAO.doesNodeExist(KeyFactory.stringToKey(nodeIdA2)));
 		assertFalse(nodeDAO.doesNodeExist(KeyFactory.stringToKey(nodeIdB1)));
-		// Node B3 has been restored by admin
+		// Node B2 has been restored by admin
 		assertTrue(nodeDAO.doesNodeExist(KeyFactory.stringToKey(nodeIdB2)));
 		assertFalse(nodeDAO.doesNodeExist(KeyFactory.stringToKey(nodeIdC1)));
 	}
