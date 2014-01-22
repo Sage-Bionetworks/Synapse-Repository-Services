@@ -1,9 +1,8 @@
 package org.sagebionetworks.repo.model;
 
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
-import org.sagebionetworks.bridge.model.Community;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 
 public class PaginatedResultsUtil {
@@ -59,5 +58,9 @@ public class PaginatedResultsUtil {
 	 */
 	public static <T extends JSONEntity> PaginatedResults<T> createPrePaginatedResults(List<T> paginatedList, long totalSize) {
 		return new PaginatedResults<T>(paginatedList, totalSize);
+	}
+
+	public static <T extends JSONEntity> PaginatedResults<T> createEmptyPaginatedResults() {
+		return new PaginatedResults<T>(Collections.<T> emptyList(), 0);
 	}
 }

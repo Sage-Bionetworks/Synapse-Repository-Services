@@ -1,0 +1,14 @@
+{
+    "title":"String value",
+    "implements":[
+        {
+            "$ref":"org.sagebionetworks.bridge.model.data.value.ParticipantDataValue"
+        }
+    ],
+    "properties":{
+        "value":{
+            "type":"integer",
+            "description":"simple integer value"
+        }
+    }
+}

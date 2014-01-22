@@ -35,9 +35,9 @@
 				"STRING",
 				"DOUBLE",
 				"LONG",
-				"BOOLEAN",
-				"FILEHANDLEID",
-				"DATETIME"
+				"LAB",
+				"DATETIME",
+				"BOOLEAN"
 			]
 		}
     }
