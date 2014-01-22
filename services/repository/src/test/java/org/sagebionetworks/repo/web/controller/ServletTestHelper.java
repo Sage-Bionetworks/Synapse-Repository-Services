@@ -1057,6 +1057,22 @@ public class ServletTestHelper {
 				accessRequirement.getClass());
 	}
 
+	@SuppressWarnings("unchecked")
+	public static <T extends AccessRequirement> T updateAccessRequirement(
+			HttpServlet dispatchServlet, T accessRequirement, Long userId,
+			Map<String, String> extraParams) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.PUT, UrlHelpers.ACCESS_REQUIREMENT+"/"+accessRequirement.getId(), userId,
+				accessRequirement);
+		ServletTestHelperUtils.addExtraParams(request, extraParams);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return (T) objectMapper.readValue(response.getContentAsString(),
+				accessRequirement.getClass());
+	}
+
 	public static PaginatedResults<AccessRequirement> getEntityAccessRequirements(
 			HttpServlet dispatchServlet, String id, Long userId)
 			throws Exception {
