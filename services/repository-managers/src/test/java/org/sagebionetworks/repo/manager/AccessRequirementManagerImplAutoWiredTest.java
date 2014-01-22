@@ -281,7 +281,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		Thread.sleep(100L);
 		long arModifiedOn = ar.getModifiedOn().getTime();
 		ar.setSubjectIds(new ArrayList<RestrictableObjectDescriptor>()); // change the entity id list
-		AccessRequirement ar2 = accessRequirementManager.updateAccessRequirement(adminUserInfo, ar);
+		AccessRequirement ar2 = accessRequirementManager.updateAccessRequirement(adminUserInfo, ar.getId().toString(), ar);
 		assertTrue(ar2.getModifiedOn().getTime()-arModifiedOn>0);
 		assertTrue(ar2.getSubjectIds().isEmpty());
 	}

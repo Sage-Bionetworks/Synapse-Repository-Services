@@ -26,7 +26,7 @@ public interface AccessRequirementService {
 			NotFoundException;
 	
 	public AccessRequirement updateAccessRequirement(
-			Long userId, AccessRequirement accessRequirement) throws Exception;
+			Long userId, String requirementId, AccessRequirement accessRequirement) throws Exception;
 
 
 	public void deleteAccessRequirements(Long userId, String requirementId)

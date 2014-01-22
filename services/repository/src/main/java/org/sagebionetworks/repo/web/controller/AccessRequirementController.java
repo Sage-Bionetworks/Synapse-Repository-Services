@@ -46,13 +46,14 @@ public class AccessRequirementController extends BaseController {
 	
 
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WITH_ENTITY_ID, method = RequestMethod.PUT)
+	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID, method = RequestMethod.PUT)
 	public @ResponseBody
 	AccessRequirement updateAccessRequirement(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String requirementId,
 			@RequestBody AccessRequirement accessRequirement
 			) throws Exception {
-		return serviceProvider.getAccessRequirementService().updateAccessRequirement(userId, accessRequirement);
+		return serviceProvider.getAccessRequirementService().updateAccessRequirement(userId, requirementId, accessRequirement);
 	}
 	
 

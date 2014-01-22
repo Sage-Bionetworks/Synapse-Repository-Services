@@ -178,6 +178,7 @@ public class AccessRequirementControllerAutowiredTest {
 		AccessRequirement updated = ServletTestHelper.updateAccessRequirement(
 				 dispatchServlet, tou, userId, extraParams);
 		tou.setEtag(updated.getEtag());
+		tou.setModifiedOn(updated.getModifiedOn());
 		assertEquals(tou, updated);
 		
 		// test deletion
@@ -227,6 +228,7 @@ public class AccessRequirementControllerAutowiredTest {
 		AccessRequirement updated = ServletTestHelper.updateAccessRequirement(
 				 dispatchServlet, tou, userId, extraParams);
 		tou.setEtag(updated.getEtag());
+		tou.setModifiedOn(updated.getModifiedOn());
 		assertEquals(tou, updated);
 		
 		// test deletion

@@ -38,9 +38,9 @@ public class AccessRequirementServiceImpl implements AccessRequirementService {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public AccessRequirement updateAccessRequirement(Long userId,
-			AccessRequirement accessRequirement) throws Exception {
+			String accessRequirementId, AccessRequirement accessRequirement) throws Exception {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return accessRequirementManager.updateAccessRequirement(userInfo, accessRequirement);
+		return accessRequirementManager.updateAccessRequirement(userInfo, accessRequirementId, accessRequirement);
 	}
 	
 	
