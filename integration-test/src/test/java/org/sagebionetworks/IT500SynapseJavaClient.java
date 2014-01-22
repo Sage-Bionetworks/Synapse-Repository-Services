@@ -382,7 +382,7 @@ public class IT500SynapseJavaClient {
 		assertTrue(synapseTwo.canAccess(aNewDataset.getId(), ACCESS_TYPE.DOWNLOAD));
 		
 		ar.setTermsOfUse("play nicer");
-		ar = synapseOne.updateAccessRequirement(ar);
+		ar = adminSynapse.updateAccessRequirement(ar);
 		assertEquals("play nicer", ar.getTermsOfUse());
 		
 		// ACL should reflect the first User's permission
