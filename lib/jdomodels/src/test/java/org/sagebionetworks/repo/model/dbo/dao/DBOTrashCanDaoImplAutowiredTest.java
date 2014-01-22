@@ -116,6 +116,8 @@ public class DBOTrashCanDaoImplAutowiredTest {
 		assertEquals(userId, trash.getDeletedByPrincipalId());
 		assertEquals(parentId1, trash.getOriginalParentId());
 		assertNotNull(trash.getDeletedOn());
+		trash = trashCanDao.getTrashedEntity("syn3829195");
+		assertNull(trash);
 
 		count = trashCanDao.getCount(userId);
 		assertEquals(1, count);

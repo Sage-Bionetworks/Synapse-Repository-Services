@@ -155,6 +155,9 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 		MapSqlParameterSource paramMap = new MapSqlParameterSource();
 		paramMap.addValue(COL_TRASH_CAN_NODE_ID, KeyFactory.stringToKey(nodeId));
 		List<DBOTrashedEntity> trashList = simpleJdbcTemplate.query(SELECT_TRASH_BY_NODE_ID, rowMapper, paramMap);
+		if (trashList == null || trashList.size() == 0) {
+			return null;
+		}
 		if (trashList.size() > 1) {
 			throw new DatastoreException("Node " + nodeId + " has more than 1 trash entry.");
 		}
