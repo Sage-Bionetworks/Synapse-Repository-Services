@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.manager.search;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
@@ -15,15 +14,11 @@ import java.util.Set;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.joda.time.DateTime;
-import org.sagebionetworks.repo.manager.NodeManager;
-import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.NamedAnnotations;
@@ -81,11 +76,6 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 
 	@Autowired
 	NodeAliasCache aliasCache;
-
-	@Autowired
-	UserManager userManager;
-	@Autowired
-	UserProfileManager profileManager;
 
 	@Autowired
 	NodeDAO nodeDao;
