@@ -5,7 +5,6 @@ import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.sagebionetworks.StackConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.rds.AmazonRDSClient;
@@ -35,10 +34,7 @@ public class InstanceDiscoveryImpl implements  InstanceDiscovery {
 
 	
 	@Autowired
-	AmazonRDSClient rdsClient;
-	
-	@Autowired
-	private StackConfiguration stackConfig;
+	AmazonRDSClient awsRDSClient;
 	
 	private volatile int maxNumberFound = 0;
 	
@@ -53,7 +49,7 @@ public class InstanceDiscoveryImpl implements  InstanceDiscovery {
 		DBInstance instance = null;
 		do{
 			// Does this instance exist?
-			String databaseIdentifier = InstanceUtils.createDatabaseInstanceIdentifier(StackConfiguration.getStack(), stackConfig.getStackInstanceNumber(), index);
+			String databaseIdentifier = InstanceUtils.createDatabaseInstanceIdentifier(index);
 			instance = getInstanceIfExists(databaseIdentifier);
 			if(instance != null){
 				list.add(instance);
@@ -75,10 +71,11 @@ public class InstanceDiscoveryImpl implements  InstanceDiscovery {
 	DBInstance getInstanceIfExists(String databaseIdentifer){
 		// First query for the instance
 		try{
-			log.debug("Looking for database instances: "+databaseIdentifer);
-			DescribeDBInstancesResult result = rdsClient.describeDBInstances(new DescribeDBInstancesRequest().withDBInstanceIdentifier(databaseIdentifer));
+			DescribeDBInstancesResult result = awsRDSClient.describeDBInstances(new DescribeDBInstancesRequest().withDBInstanceIdentifier(databaseIdentifer));
 			if(result.getDBInstances() == null || result.getDBInstances().size() != 1) throw new IllegalStateException("Did not find exactly one database instances with the identifier: "+databaseIdentifer);
-			return result.getDBInstances().get(0);
+			DBInstance instance = result.getDBInstances().get(0);
+			log.debug("Found database instances: "+instance.getDBInstanceIdentifier());
+			return instance; 
 		}catch(DBInstanceNotFoundException e){
 			// This database does not exist to create it
 			// Create the database.
