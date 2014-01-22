@@ -137,21 +137,23 @@ public class TrashManagerImpl implements TrashManager {
 			throw new IllegalArgumentException("Node ID cannot be null");
 		}
 
-		// Make sure the node was indeed deleted by the user
-		UserInfo.validateUserInfo(currentUser);
-		String userId = currentUser.getId().toString();
-		boolean exists = trashCanDao.exists(userId, nodeId);
-		if (!exists) {
+		// Make sure the node is in the trash can
+		final TrashedEntity trash = trashCanDao.getTrashedEntity(nodeId);
+		if (trash == null) {
 			throw new NotFoundException("The node " + nodeId + " is not in the trash can.");
 		}
 
+		// Make sure the node was indeed deleted by the user
+		UserInfo.validateUserInfo(currentUser);
+		final String userId = currentUser.getId().toString();
+		final String deletedBy = trash.getDeletedByPrincipalId();
+		if (!currentUser.isAdmin() && !deletedBy.equals(userId)) {
+			throw new UnauthorizedException("User " + userId + " not allowed to restore "
+					+ nodeId + ". The node was deleted by a different user.");
+		}
+
 		// Restore to its original parent if a new parent is not given
-		final TrashedEntity trash = trashCanDao.getTrashedEntity(userId, nodeId);
 		if (newParentId == null) {
-			if (trash == null) {
-				throw new DatastoreException("Cannot find node " + nodeId
-						+ " in the trash can for user " + userId);
-			}
 			newParentId = trash.getOriginalParentId();
 		}
 
@@ -168,8 +170,7 @@ public class TrashManagerImpl implements TrashManager {
 		nodeManager.updateForTrashCan(currentUser, node, ChangeType.CREATE);
 
 		// Update the trash can table
-		String userGroupId = currentUser.getId().toString();
-		trashCanDao.delete(userGroupId, nodeId);
+		trashCanDao.delete(deletedBy, nodeId);
 
 		// For all the descendants, we need to remove them from the trash can table
 		// and send delete messages to 2nd indices
@@ -177,7 +178,7 @@ public class TrashManagerImpl implements TrashManager {
 		getDescendants(nodeId, descendants);
 		for (String descendantId : descendants) {
 			// Remove from the trash can table
-			trashCanDao.delete(userGroupId, descendantId);
+			trashCanDao.delete(deletedBy, descendantId);
 			// Send CREATE message
 			String parentId = nodeDao.getParentId(descendantId);
 			String etag = nodeDao.peekCurrentEtag(descendantId);
