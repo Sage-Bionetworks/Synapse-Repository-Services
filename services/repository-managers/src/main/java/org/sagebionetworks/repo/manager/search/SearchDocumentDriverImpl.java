@@ -237,11 +237,9 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		// Set the description
 		fields.setDescription(descriptionValue.toString());
 
-		fields.setCreated_by(getDisplayNameForPrincipalId(node
-				.getCreatedByPrincipalId()));
+		fields.setCreated_by(node.getCreatedByPrincipalId().toString());
 		fields.setCreated_on(node.getCreatedOn().getTime() / 1000);
-		fields.setModified_by(getDisplayNameForPrincipalId(node
-				.getModifiedByPrincipalId()));
+		fields.setModified_by(node.getModifiedByPrincipalId().toString());
 		fields.setModified_on(node.getModifiedOn().getTime() / 1000);
 
 		// Stuff in this field any extra copies of data that you would like to
@@ -333,16 +331,6 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		return document;
 	}
 
-	private String getDisplayNameForPrincipalId(long principalId) {
-		String displayName = "" + principalId;
-		try {
-			displayName = profileManager.getUserName(principalId);
-		} catch (Exception ex) {
-			log.warn("Unable to get display name for principal id: "
-					+ principalId + ",", ex);
-		}
-		return displayName;
-	}
 
 	static void addAnnotationsToSearchDocument(DocumentFields fields,
 			Annotations annots) {
