@@ -110,6 +110,13 @@ public class DBOTrashCanDaoImplAutowiredTest {
 		assertEquals(parentId1, trash.getOriginalParentId());
 		assertNotNull(trash.getDeletedOn());
 
+		trash = trashCanDao.getTrashedEntity(nodeId1);
+		assertEquals(nodeId1, trash.getEntityId());
+		assertEquals(nodeName, trash.getEntityName());
+		assertEquals(userId, trash.getDeletedByPrincipalId());
+		assertEquals(parentId1, trash.getOriginalParentId());
+		assertNotNull(trash.getDeletedOn());
+
 		count = trashCanDao.getCount(userId);
 		assertEquals(1, count);
 		count = trashCanDao.getCount(KeyFactory.keyToString(837948837783838309L)); //a random, non-existing user
