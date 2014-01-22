@@ -312,6 +312,7 @@ public class SynapseTest {
 		ar.setSubjectIds(new ArrayList<RestrictableObjectDescriptor>());
 		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		ar.setTermsOfUse("foo");
+		ar.setId(101L);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
 		ar.writeToJSONObject(adapter);
 		StringEntity responseEntity = new StringEntity(adapter.toJSONString());
