@@ -101,10 +101,6 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 		// Create DOI metadata.
 		EzidMetadata metadata = new EzidMetadata();
 		String creatorName = EzidConstants.DEFAULT_CREATOR;
-		// Display name is optional
-		if (creatorName == null || creatorName.isEmpty()) {
-			creatorName = EzidConstants.DEFAULT_CREATOR;
-		}
 		metadata.setCreator(creatorName);
 		final int year = Calendar.getInstance().get(Calendar.YEAR);
 		metadata.setPublicationYear(year);
