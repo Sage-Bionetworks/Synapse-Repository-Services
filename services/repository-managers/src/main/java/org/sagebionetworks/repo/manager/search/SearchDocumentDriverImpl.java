@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.manager.search;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
@@ -15,15 +14,11 @@ import java.util.Set;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.joda.time.DateTime;
-import org.sagebionetworks.repo.manager.NodeManager;
-import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.NamedAnnotations;
@@ -81,11 +76,6 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 
 	@Autowired
 	NodeAliasCache aliasCache;
-
-	@Autowired
-	UserManager userManager;
-	@Autowired
-	UserProfileManager profileManager;
 
 	@Autowired
 	NodeDAO nodeDao;
@@ -237,11 +227,9 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		// Set the description
 		fields.setDescription(descriptionValue.toString());
 
-		fields.setCreated_by(getDisplayNameForPrincipalId(node
-				.getCreatedByPrincipalId()));
+		fields.setCreated_by(node.getCreatedByPrincipalId().toString());
 		fields.setCreated_on(node.getCreatedOn().getTime() / 1000);
-		fields.setModified_by(getDisplayNameForPrincipalId(node
-				.getModifiedByPrincipalId()));
+		fields.setModified_by(node.getModifiedByPrincipalId().toString());
 		fields.setModified_on(node.getModifiedOn().getTime() / 1000);
 
 		// Stuff in this field any extra copies of data that you would like to
@@ -333,16 +321,6 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		return document;
 	}
 
-	private String getDisplayNameForPrincipalId(long principalId) {
-		String displayName = "" + principalId;
-		try {
-			displayName = profileManager.getUserName(principalId);
-		} catch (Exception ex) {
-			log.warn("Unable to get display name for principal id: "
-					+ principalId + ",", ex);
-		}
-		return displayName;
-	}
 
 	static void addAnnotationsToSearchDocument(DocumentFields fields,
 			Annotations annots) {

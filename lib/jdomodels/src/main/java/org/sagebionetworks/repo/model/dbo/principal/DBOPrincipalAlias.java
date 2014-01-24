@@ -36,7 +36,7 @@ public class DBOPrincipalAlias implements MigratableDatabaseObject<DBOPrincipalA
 	/**
 	 * The primary key for this table.
 	 */
-	@Field(name = COL_PRINCIPAL_ALIAS_ID, nullable = false, primary=true)
+	@Field(name = COL_PRINCIPAL_ALIAS_ID, nullable = false, primary=true, backupId=true)
 	private Long id;
 	
 	@Field(name = COL_PRINCIPAL_ALIAS_ETAG, varchar = 500, nullable = false)
@@ -45,7 +45,7 @@ public class DBOPrincipalAlias implements MigratableDatabaseObject<DBOPrincipalA
 	/**
 	 * The principal ID.
 	 */
-	@Field(name = COL_PRINCIPAL_ALIAS_PRINCIPAL_ID, nullable = false, backupId=true)
+	@Field(name = COL_PRINCIPAL_ALIAS_PRINCIPAL_ID, nullable = false)
 	@ForeignKey(table=TABLE_USER_GROUP, field=COL_USER_GROUP_ID ,cascadeDelete=true)
 	private Long principalId;
 	

@@ -306,6 +306,21 @@ public class SynapseTest {
 	}
 	
 	@Test
+	public void updateAccessRequirement() throws Exception {
+		TermsOfUseAccessRequirement ar = new TermsOfUseAccessRequirement();
+		ar.setEntityType(ar.getClass().getName());
+		ar.setSubjectIds(new ArrayList<RestrictableObjectDescriptor>());
+		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		ar.setTermsOfUse("foo");
+		ar.setId(101L);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
+		ar.writeToJSONObject(adapter);
+		StringEntity responseEntity = new StringEntity(adapter.toJSONString());
+		when(mockResponse.getEntity()).thenReturn(responseEntity);
+		synapse.updateAccessRequirement(ar);
+	}
+	
+	@Test
 	public void testCreateAccessApproval() throws Exception {
 		TermsOfUseAccessApproval aa = new TermsOfUseAccessApproval();
 		aa.setEntityType(aa.getClass().getName());

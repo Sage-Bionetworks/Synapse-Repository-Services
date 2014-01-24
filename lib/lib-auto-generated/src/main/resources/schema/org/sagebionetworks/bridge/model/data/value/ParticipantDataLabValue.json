@@ -1,0 +1,30 @@
+{
+    "title":"String value",
+    "implements":[
+        {
+            "$ref":"org.sagebionetworks.bridge.model.data.value.ParticipantDataValue"
+        }
+    ],
+    "properties":{
+        "enteredValue":{
+            "type":"string",
+            "description":"the entered value"
+        },
+        "units":{
+            "type":"string",
+            "description":"the units of the entered value"
+        },
+        "normalizedMin":{
+            "type":"number",
+            "description":"the normalized min desirable value"
+        },
+        "normalizedMax":{
+            "type":"number",
+            "description":"the normalized max desirable value"
+        },
+        "normalizedValue":{
+            "type":"number",
+            "description":"the normalized value"
+        }
+    }
+}
