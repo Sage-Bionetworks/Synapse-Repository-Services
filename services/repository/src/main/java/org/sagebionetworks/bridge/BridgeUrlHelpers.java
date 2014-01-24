@@ -41,6 +41,7 @@ public class BridgeUrlHelpers extends UrlHelpers {
 	public static final String PARTICIPANT_DATA_ROW_ID = BridgePrefixConst.PARTICIPANT_DATA + PARTICIPANT_DATA_ID_NAME
 			+ BridgePrefixConst.PARTICIPANT_DATA_ROW + PARTICIPANT_DATA_ROW_ID_NAME;
 	public static final String APPEND_FOR_PARTICIPANT_DATA = PARTICIPANT_DATA_ID + BridgePrefixConst.PARTICIPANT + PARTICIPANT_ID_NAME;
+	public static final String DELETE_FOR_PARTICIPANT_DATA = BridgePrefixConst.PARTICIPANT_DATA + PARTICIPANT_DATA_ID_NAME + "/rows";
 	public static final String SEND_PARTICIPANT_DATA_DESCRIPTORS_UPDATES = BridgePrefixConst.PARTICIPANT_DATA_DESCRIPTOR + "/sendupdates";
 
 	public static final String PARTICIPANT_DATA_DESCRIPTOR = BridgePrefixConst.PARTICIPANT_DATA_DESCRIPTOR;

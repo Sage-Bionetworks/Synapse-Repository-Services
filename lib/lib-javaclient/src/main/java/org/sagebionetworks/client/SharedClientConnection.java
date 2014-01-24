@@ -527,6 +527,26 @@ public class SharedClientConnection {
 	}
 	
 	/**
+	 * Delete any JSONEntity (for IdList)
+	 * @param endpoint
+	 * @param uri
+	 * @param userAgent 
+	 * @param entity
+	 * @return
+	 * @throws SynapseException
+	 */
+	public void deleteJson(String endpoint, String uri, String jsonToDelete, String userAgent) throws SynapseException {
+		if (null == endpoint) {
+			throw new IllegalArgumentException("must provide endpoint");
+		}
+		if (null == uri) {
+			throw new IllegalArgumentException("must provide uri");
+		}
+		// As there is a JSON body to this request, POST/PUT headers are required
+		signAndDispatchSynapseRequest(endpoint, uri, "POST", jsonToDelete, defaultPOSTPUTHeaders, userAgent);
+	}
+	
+	/**
 	 * Get a JSONEntity
 	 * @param userAgent 
 	 */

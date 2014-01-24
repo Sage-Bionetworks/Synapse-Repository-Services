@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.PaginatedResultsUtil;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -59,6 +60,13 @@ public class ParticipantDataManagerImpl implements ParticipantDataManager {
 		List<ParticipantDataColumnDescriptor> columns = participantDataDescriptionManager.getColumns(participantDataId);
 		return participantDataDAO.append(participantId, participantDataId, data, columns);
 	}
+	
+	@Override
+	public void deleteRows(UserInfo userInfo, String participantDataId, IdList rowIds) throws IOException, NotFoundException {
+		List<String> participantIds = participantDataMappingManager.mapSynapseUserToParticipantIds(userInfo);
+		String participantId = participantDataDAO.findParticipantForParticipantData(participantIds, participantDataId);
+		participantDataDAO.deleteRows(participantId, participantDataId, rowIds);
+	};
 
 	@Override
 	public List<ParticipantDataRow> updateData(UserInfo userInfo, String participantDataId, List<ParticipantDataRow> data)

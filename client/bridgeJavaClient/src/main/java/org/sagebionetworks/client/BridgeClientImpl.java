@@ -14,6 +14,7 @@ import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UserGroupHeader;
+import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -24,6 +25,8 @@ import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
  * Low-level Java Client API for Bridge REST APIs
  */
 public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
+
+	private static final String PARTICIPANT_DATA_ROWS = "/rows";
 
 	public static final String BRIDGE_JAVA_CLIENT = "Bridge-Java-Client/";
 
@@ -198,6 +201,18 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 	}
 
 	@Override
+	public void deleteParticipantDataRows(String participantDataDescriptorId, IdList rowIds) throws SynapseException {
+		if (participantDataDescriptorId == null) {
+			throw new IllegalArgumentException("No participantDataDescriptorId provided");
+		}
+		if (rowIds == null || rowIds.getList() == null || rowIds.getList().isEmpty()) {
+			throw new IllegalArgumentException("No row IDs specified for deletion");
+		}
+		String uri = PARTICIPANT_DATA + "/" + participantDataDescriptorId + PARTICIPANT_DATA_ROWS;
+		deleteEntity(uri, rowIds);
+	}
+	
+	@Override
 	public List<ParticipantDataRow> updateParticipantData(String participantDataDescriptorId, List<ParticipantDataRow> data)
 			throws SynapseException {
 		String uri = PARTICIPANT_DATA + "/" + participantDataDescriptorId;
@@ -303,7 +318,7 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 			throw new SynapseException(e);
 		}
 	}
-
+	
 	private <T extends JSONEntity> List<T> updateList(String uri, List<T> t, Class<? extends T> clazz) throws SynapseException {
 		// Get the json for this entity
 		try {
@@ -317,6 +332,16 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 		}
 	}
 
+	private <T extends JSONEntity> void deleteEntity(String uri, T t) throws SynapseException {
+		// Delete the entity (IdList in this case)
+		try {
+			JSONObject jsonObject = EntityFactory.createJSONObjectForEntity(t);
+			getSharedClientConnection().deleteJson(bridgeEndpoint, uri, jsonObject.toString(), getUserAgent());
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+	
 	@SuppressWarnings("unchecked")
 	private <T extends JSONEntity> T create(String uri, T t) throws SynapseException {
 		// Get the json for this entity
