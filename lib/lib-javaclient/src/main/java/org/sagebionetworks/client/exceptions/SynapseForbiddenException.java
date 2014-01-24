@@ -3,7 +3,7 @@ package org.sagebionetworks.client.exceptions;
 import org.apache.http.HttpStatus;
 
 
-public class SynapseForbiddenException extends SynapseUserException {
+public class SynapseForbiddenException extends SynapseServerException {
 	
 	private static final long serialVersionUID = 1L;
 

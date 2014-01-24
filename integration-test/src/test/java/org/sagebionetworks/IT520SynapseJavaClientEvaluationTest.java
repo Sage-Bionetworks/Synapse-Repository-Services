@@ -28,7 +28,7 @@ import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
-import org.sagebionetworks.client.exceptions.SynapseServiceException;
+import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
@@ -193,7 +193,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 			try {
 				adminSynapse.deleteFileHandle(fileHandle.getId());
 			} catch (SynapseNotFoundException e) {
-			} catch (SynapseServiceException e) { }
+			} catch (SynapseClientException e) { }
 		}
 	}
 	
@@ -201,10 +201,10 @@ public class IT520SynapseJavaClientEvaluationTest {
 	public static void afterClass() throws Exception {
 		try {
 			adminSynapse.deleteUser(user1ToDelete);
-		} catch (SynapseServiceException e) { }
+		} catch (SynapseClientException e) { }
 		try {
 			adminSynapse.deleteUser(user2ToDelete);
-		} catch (SynapseServiceException e) { }
+		} catch (SynapseClientException e) { }
 	}
 	
 	@Test

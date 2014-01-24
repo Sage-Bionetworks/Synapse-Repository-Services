@@ -1,58 +1,32 @@
 package org.sagebionetworks.client.exceptions;
 
-import org.apache.http.HttpStatus;
 
+/**
+ * This is the base class for exceptions thrown by the Synapse Client. There are subclasses for
+ * client-side and server-side exceptions.  We make this class abstract so that methods within
+ * the Synapse Client are required to be explicit about the reason for the exception.
+ * 
+ * @author brucehoff
+ *
+ */
+abstract public class SynapseException extends Exception {
 
-public class SynapseException extends Exception {
-	private int statusCode;
-	
-	private static final int DEFAULT_STATUS_CODE = HttpStatus.SC_INTERNAL_SERVER_ERROR;
-
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = 1L;
 
-	public SynapseException(int httpStatus) {
-		super();
-		this.statusCode = httpStatus;
-	}
-
-	public SynapseException(int httpStatus, String arg0, Throwable arg1) {
-		super(arg0, arg1);
-		this.statusCode = httpStatus;
-	}
-
-	public SynapseException(int httpStatus, String arg0) {
-		super(arg0);
-		this.statusCode = httpStatus;
-	}
-
-	public SynapseException(int httpStatus, Throwable arg0) {
-		super(arg0);
-		this.statusCode = httpStatus;
-	}
-	
 	public SynapseException() {
 		super();
-		this.statusCode = DEFAULT_STATUS_CODE;
 	}
 
 	public SynapseException(String arg0, Throwable arg1) {
 		super(arg0, arg1);
-		this.statusCode = DEFAULT_STATUS_CODE;
 	}
 
 	public SynapseException(String arg0) {
 		super(arg0);
-		this.statusCode = DEFAULT_STATUS_CODE;
 	}
 
 	public SynapseException(Throwable arg0) {
 		super(arg0);
-		this.statusCode = DEFAULT_STATUS_CODE;
 	}
 	
-	public int getStatusCode() {return statusCode;}
-
 }

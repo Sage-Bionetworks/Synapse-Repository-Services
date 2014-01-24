@@ -10,6 +10,7 @@ import org.sagebionetworks.bridge.model.data.ParticipantDataDescriptor;
 import org.sagebionetworks.bridge.model.data.ParticipantDataRow;
 import org.sagebionetworks.bridge.model.data.ParticipantDataStatusList;
 import org.sagebionetworks.bridge.model.versionInfo.BridgeVersionInfo;
+import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.PaginatedResults;
@@ -271,7 +272,7 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 			// Now convert to Object to an entity
 			return (T) EntityFactory.createEntityFromJSONObject(jsonObject, klass);
 		} catch (JSONObjectAdapterException e) {
-			throw new SynapseException(e);
+			throw new SynapseClientException(e);
 		}
 	}
 
@@ -287,7 +288,7 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 			results.initializeFromJSONObject(adapter);
 			return results;
 		} catch (JSONObjectAdapterException e) {
-			throw new SynapseException(e);
+			throw new SynapseClientException(e);
 		}
 	}
 
@@ -300,7 +301,7 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 			// Now convert to Object to an entity
 			return (T) EntityFactory.createEntityFromJSONObject(jsonObject, t.getClass());
 		} catch (JSONObjectAdapterException e) {
-			throw new SynapseException(e);
+			throw new SynapseClientException(e);
 		}
 	}
 
@@ -313,7 +314,7 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObject);
 			return ListWrapper.unwrap(adapter, clazz);
 		} catch (JSONObjectAdapterException e) {
-			throw new SynapseException(e);
+			throw new SynapseClientException(e);
 		}
 	}
 
@@ -327,7 +328,7 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 			// Now convert to Object to an entity
 			return (T) EntityFactory.createEntityFromJSONObject(jsonObject, t.getClass());
 		} catch (JSONObjectAdapterException e) {
-			throw new SynapseException(e);
+			throw new SynapseClientException(e);
 		}
 	}
 
@@ -341,7 +342,7 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObject);
 			return ListWrapper.unwrap(adapter, clazz);
 		} catch (JSONObjectAdapterException e) {
-			throw new SynapseException(e);
+			throw new SynapseClientException(e);
 		}
 	}
 
@@ -352,7 +353,7 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 			// Send the entity
 			getSharedClientConnection().postJson(bridgeEndpoint, uri, jsonObject.toString(), getUserAgent());
 		} catch (JSONObjectAdapterException e) {
-			throw new SynapseException(e);
+			throw new SynapseClientException(e);
 		}
 	}
 

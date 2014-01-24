@@ -29,7 +29,7 @@ import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
-import org.sagebionetworks.client.exceptions.SynapseUserException;
+import org.sagebionetworks.client.exceptions.SynapseServerException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
@@ -213,7 +213,7 @@ public class FileUploader implements FileUploaderView.Presenter {
 							setFileStatus(file, UploadStatus.UPLOADED);
 						} catch (Exception e) {
 							log.error(e);
-							if(e != null && e.getCause() != null && e.getCause() instanceof SynapseUserException && e.getMessage().contains("(409)")) {
+							if(e != null && e.getCause() != null && e.getCause() instanceof SynapseServerException && e.getMessage().contains("(409)")) {
 								setFileStatus(file, UploadStatus.ALREADY_EXISTS);
 							} else {
 								setFileStatus(file, UploadStatus.FAILED);

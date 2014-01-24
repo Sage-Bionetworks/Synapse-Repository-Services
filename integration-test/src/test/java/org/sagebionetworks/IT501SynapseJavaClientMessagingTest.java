@@ -22,8 +22,8 @@ import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
-import org.sagebionetworks.client.exceptions.SynapseServiceException;
-import org.sagebionetworks.client.exceptions.SynapseUserException;
+import org.sagebionetworks.client.exceptions.SynapseClientException;
+import org.sagebionetworks.client.exceptions.SynapseServerException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -139,7 +139,7 @@ public class IT501SynapseJavaClientMessagingTest {
 			}
 			fileHandleIdWithExtendedChars = null;
 		} catch (SynapseNotFoundException e) {
-		} catch (SynapseServiceException e) { }
+		} catch (SynapseClientException e) { }
 		
 		if (project != null) {
 			try {
@@ -154,14 +154,14 @@ public class IT501SynapseJavaClientMessagingTest {
 		try {
 			adminSynapse.deleteFileHandle(oneToRuleThemAll.getId());
 		} catch (SynapseNotFoundException e) {
-		} catch (SynapseServiceException e) { }
+		} catch (SynapseClientException e) { }
 		
 		try {
 			adminSynapse.deleteUser(user1ToDelete);
-		} catch (SynapseServiceException e) { }
+		} catch (SynapseClientException e) { }
 		try {
 			adminSynapse.deleteUser(user2ToDelete);
-		} catch (SynapseServiceException e) { }
+		} catch (SynapseClientException e) { }
 	}
 
 	@SuppressWarnings("serial")
@@ -245,7 +245,7 @@ public class IT501SynapseJavaClientMessagingTest {
 			try {
 				oneToTwo = synapseOne.sendMessage(oneToTwo);
 				cleanup.add(oneToTwo.getId());
-			} catch (SynapseException e) {
+			} catch (SynapseServerException e) {
 				if (e.getStatusCode()==429) {
 					gotNerfed = true;
 					break;

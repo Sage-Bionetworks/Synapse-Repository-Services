@@ -32,13 +32,13 @@ import org.joda.time.DateTime;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
+import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
-import org.sagebionetworks.client.exceptions.SynapseServiceException;
+import org.sagebionetworks.client.exceptions.SynapseServerException;
 import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
-import org.sagebionetworks.client.exceptions.SynapseUserException;
 import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DomainType;
@@ -190,7 +190,7 @@ public class SharedClientConnection {
 			JSONObject obj = createAuthEntity("/session", EntityFactory.createJSONObjectForEntity(loginRequest), userAgent);
 			session = EntityFactory.createEntityFromJSONObject(obj, Session.class);
 		} catch (JSONObjectAdapterException e) {
-			throw new SynapseException(e);
+			throw new SynapseClientException(e);
 		}
 		
 		defaultGETDELETEHeaders.put(SESSION_TOKEN_HEADER, session.getSessionToken());
@@ -213,7 +213,7 @@ public class SharedClientConnection {
 		} catch (SynapseForbiddenException e) {
 			throw new SynapseTermsOfUseException(e.getMessage());
 		} catch (JSONObjectAdapterException e) {
-			throw new SynapseException(e);
+			throw new SynapseClientException(e);
 		}
 		return true;
 	}
@@ -265,14 +265,14 @@ public class SharedClientConnection {
 			HttpResponse response = clientProvider.execute(httppost);
 			int code = response.getStatusLine().getStatusCode();
 			if (code < 200 || code > 299) {
-				throw new SynapseException(code, "Response code: " + code + " " + response.getStatusLine().getReasonPhrase()
+				throw new SynapseServerException(code, "Response code: " + code + " " + response.getStatusLine().getReasonPhrase()
 						+ " for " + url + " File: " + file.getName());
 			}
 			return EntityUtils.toString(response.getEntity());
 		} catch (ClientProtocolException e) {
-			throw new SynapseException(e);
+			throw new SynapseClientException(e);
 		} catch (IOException e) {
-			throw new SynapseException(e);
+			throw new SynapseClientException(e);
 		}
 
 	}
@@ -297,14 +297,14 @@ public class SharedClientConnection {
 			HttpResponse response = clientProvider.execute(httppost);
 			int code = response.getStatusLine().getStatusCode();
 			if (code < 200 || code > 299) {
-				throw new SynapseException(code, "Response code: " + code + " " + response.getStatusLine().getReasonPhrase()
+				throw new SynapseServerException(code, "Response code: " + code + " " + response.getStatusLine().getReasonPhrase()
 						+ " for " + url);
 			}
 			return EntityUtils.toString(response.getEntity());
 		} catch (ClientProtocolException e) {
-			throw new SynapseException(e);
+			throw new SynapseClientException(e);
 		} catch (IOException e) {
-			throw new SynapseException(e);
+			throw new SynapseClientException(e);
 		}
 
 	}
@@ -327,15 +327,15 @@ public class SharedClientConnection {
 			int code = response.getStatusLine().getStatusCode();
 			String responseBody = (null != response.getEntity()) ? EntityUtils.toString(response.getEntity()) : null;
 			if(code < 200 || code > 299){
-				throw new SynapseException(code, "Response code: "+code+" "+response.getStatusLine().getReasonPhrase()+" for "+url+" body: "+requestBody);
+				throw new SynapseServerException(code, "Response code: "+code+" "+response.getStatusLine().getReasonPhrase()+" for "+url+" body: "+requestBody);
 			}
 			return responseBody;
 		} catch (UnsupportedEncodingException e) {
-			throw new SynapseException(e);
+			throw new SynapseClientException(e);
 		} catch (ClientProtocolException e) {
-			throw new SynapseException(e);
+			throw new SynapseClientException(e);
 		} catch (IOException e) {
-			throw new SynapseException(e);
+			throw new SynapseClientException(e);
 		}
 	}
 	
@@ -356,7 +356,7 @@ public class SharedClientConnection {
 			post.setEntity(stringEntity);
 			return post;
 		} catch (UnsupportedEncodingException e) {
-			throw new SynapseException(e);
+			throw new SynapseClientException(e);
 		}
 	}
 
@@ -381,7 +381,7 @@ public class SharedClientConnection {
 		int statusCode = response.getStatusLine().getStatusCode();
 		if(statusCode != 200) {
 			String message = EntityUtils.toString(entity);
-			throw new SynapseException(statusCode, "Status code: " + statusCode + ", " + message);
+			throw new SynapseServerException(statusCode, "Status code: " + statusCode + ", " + message);
 		}
 		return FileUtils.readCompressedStreamAsString(entity.getContent());
 	}
@@ -396,7 +396,7 @@ public class SharedClientConnection {
 				String localMd5 = MD5ChecksumHelper
 						.getMD5Checksum(destinationFile.getAbsolutePath());
 				if (!localMd5.equals(md5)) {
-					throw new SynapseException(
+					throw new SynapseClientException(
 							"md5 of downloaded file does not match the one in Synapse"
 									+ destinationFile);
 				}
@@ -404,11 +404,11 @@ public class SharedClientConnection {
 
 			return destinationFile;
 		} catch (ClientProtocolException e) {
-			throw new SynapseException(e);
+			throw new SynapseClientException(e);
 		} catch (IOException e) {
-			throw new SynapseException(e);
+			throw new SynapseClientException(e);
 		} catch (HttpClientHelperException e) {
-			throw new SynapseException(e);
+			throw new SynapseClientException(e);
 		}
 	}
 
@@ -447,9 +447,9 @@ public class SharedClientConnection {
 			HttpResponse response = clientProvider.performRequest(endpoint + uri, "GET", null, null);
 			return EntityUtils.toString(response.getEntity());
 		} catch (IOException e) {
-			throw new SynapseException(e);
+			throw new SynapseClientException(e);
 		} catch (HttpClientHelperException e) {
-			throw new SynapseException(e);
+			throw new SynapseClientException(e);
 		}
 	}
 
@@ -462,7 +462,7 @@ public class SharedClientConnection {
 			HttpResponse response = clientProvider.execute(post);
 			return (null != response.getEntity()) ? EntityUtils.toString(response.getEntity()) : null;
 		} catch (IOException e) {
-			throw new SynapseException(e);
+			throw new SynapseClientException(e);
 		}
 	}
 
@@ -579,7 +579,7 @@ public class SharedClientConnection {
 			try {
 				uriRawPath = (new URI(endpoint+uri)).getRawPath(); // chop off the query, if any
 			} catch (URISyntaxException e) {
-				throw new SynapseException(e);
+				throw new SynapseClientException(e);
 			}
 		    String signature = HMACUtils.generateHMACSHA1Signature(userName, uriRawPath, timeStamp, apiKey);
 		    modHeaders.put(AuthorizationConstants.USER_ID_HEADER, userName);
@@ -590,7 +590,7 @@ public class SharedClientConnection {
 		return dispatchSynapseRequest(endpoint, uri, requestMethod, requestContent, modHeaders, parameters);
 	}
 
-	protected String createRequestUrl(String endpoint, String uri, Map<String,String> parameters) throws SynapseServiceException {
+	protected String createRequestUrl(String endpoint, String uri, Map<String,String> parameters) throws SynapseClientException {
 		// At least one test calls the dispatch method directly, so verify again that the origin client has been set
 		URL requestUrl = null;
 		URIBuilder builder = new URIBuilder();
@@ -606,9 +606,9 @@ public class SharedClientConnection {
 				builder.addParameter(entry.getKey(), entry.getValue());
 			}
 		} catch(MalformedURLException mue) {
-			throw new SynapseServiceException("Invalid URI: <<"+builder.toString()+">>", mue);
+			throw new SynapseClientException("Invalid URI: <<"+builder.toString()+">>", mue);
 		} catch(URISyntaxException use) {
-			throw new SynapseServiceException("Invalid URI: <<"+builder.toString()+">>", use);
+			throw new SynapseClientException("Invalid URI: <<"+builder.toString()+">>", use);
 		}
 		return builder.toString();
 	}
@@ -667,7 +667,7 @@ public class SharedClientConnection {
 				try {
 					results = new JSONObject(responseBody);
 				} catch (JSONException jsone) {
-					throw new SynapseServiceException("responseBody: <<"+responseBody+">>", jsone);
+					throw new SynapseClientException("responseBody: <<"+responseBody+">>", jsone);
 				}
 				if (log.isDebugEnabled()) {
 					if(authEndpoint.equals(endpoint)) {
@@ -693,7 +693,7 @@ public class SharedClientConnection {
 					try {
 						results = new JSONObject(response);
 					} catch (JSONException jsone) {
-						throw new SynapseServiceException("Failed to parse: "+response, jsone);
+						throw new SynapseClientException("Failed to parse: "+response, jsone);
 					}
 					if (log.isDebugEnabled()) {
 						log.debug("Retrieved " + requestUrl + " : "
@@ -714,26 +714,26 @@ public class SharedClientConnection {
 				} else if (statusCode == 400) {
 					throw new SynapseBadRequestException(resultsStr);
 				} else if (statusCode >= 400 && statusCode < 500) {
-					throw new SynapseUserException(statusCode, resultsStr);
+					throw new SynapseServerException(statusCode, resultsStr);
 				} else {
-					throw new SynapseServiceException("request content: "+requestContent+" exception content: "+exceptionContent+" status code: "+statusCode);
+					throw new SynapseClientException("request content: "+requestContent+" exception content: "+exceptionContent+" status code: "+statusCode);
 				}
 			} catch (JSONException jsonEx) {
 				// swallow the JSONException since its not the real problem and
 				// return the response as-is since it is not JSON
-				throw new SynapseServiceException(jsonEx);
+				throw new SynapseClientException(jsonEx);
 			} catch (ParseException parseEx) {
-				throw new SynapseServiceException(parseEx);
+				throw new SynapseClientException(parseEx);
 			}
 		} // end catch
 		catch (MalformedURLException e) {
-			throw new SynapseServiceException(e);
+			throw new SynapseClientException(e);
 		} catch (ClientProtocolException e) {
-			throw new SynapseServiceException(e);
+			throw new SynapseClientException(e);
 		} catch (IOException e) {
-			throw new SynapseServiceException(e);
+			throw new SynapseClientException(e);
 		} catch (JSONException e) {
-			throw new SynapseServiceException(e);
+			throw new SynapseClientException(e);
 		}
 
 		return results;

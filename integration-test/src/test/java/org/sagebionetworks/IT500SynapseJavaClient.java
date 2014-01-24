@@ -43,7 +43,7 @@ import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
-import org.sagebionetworks.client.exceptions.SynapseServiceException;
+import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
@@ -184,7 +184,7 @@ public class IT500SynapseJavaClient {
 			try {
 				adminSynapse.deleteFileHandle(id);
 			} catch (SynapseNotFoundException e) {
-			} catch (SynapseServiceException e) { }
+			} catch (SynapseClientException e) { }
 		}
 		
 		for (String id : teamsToDelete) {
@@ -198,10 +198,10 @@ public class IT500SynapseJavaClient {
 	public static void afterClass() throws Exception {
 		try {
 			adminSynapse.deleteUser(user1ToDelete);
-		} catch (SynapseServiceException e) { }
+		} catch (SynapseClientException e) { }
 		try {
 			adminSynapse.deleteUser(user2ToDelete);
-		} catch (SynapseServiceException e) { }
+		} catch (SynapseClientException e) { }
 	}
 	
 	@Test
@@ -575,46 +575,7 @@ public class IT500SynapseJavaClient {
 
 	}
 
-	@Test
-	public void testJavaClientUploadDownloadLayerFromS3() throws Exception {
-		
-		File dataSourceFile = File.createTempFile("integrationTest", ".txt");
-		dataSourceFile.deleteOnExit();
-		FileWriter writer = new FileWriter(dataSourceFile);
-		writer.write("Hello world!");
-		writer.close();
 
-		Data layer = new Data();
-		layer.setType(LayerTypeNames.E);
-		layer.setParentId(dataset.getId());
-		layer = synapseOne.createEntity(layer);
-
-		layer = (Data) synapseOne.uploadLocationableToSynapse(layer,
-				dataSourceFile);
-		
-		// TODO!!!!!!!!!!!! test upload more than once, do we clutter LocationData?
-
-		assertEquals("text/plain", layer.getContentType());
-		assertNotNull(layer.getMd5());
-
-		List<LocationData> locations = layer.getLocations();
-		assertEquals(1, locations.size());
-		LocationData location = locations.get(0);
-		assertEquals(LocationTypeNames.awss3, location.getType());
-		assertNotNull(location.getPath());
-		assertTrue(location.getPath().startsWith("http"));
-		
-		File dataDestinationFile = File.createTempFile("integrationTest",
-				".download");
-		dataDestinationFile.deleteOnExit();
-		HttpClientHelper.getContent(DefaultHttpClientSingleton.getInstance(), location.getPath(), dataDestinationFile);
-		assertTrue(dataDestinationFile.isFile());
-		assertTrue(dataDestinationFile.canRead());
-		assertTrue(0 < dataDestinationFile.length());
-		
-		// TODO test auto versioning
-		
-	}
 	/**
 	 * Create a Data entity, update it's location data to point to an external url, then download it's data and test
 	 */
@@ -809,125 +770,6 @@ public class IT500SynapseJavaClient {
 		assertTrue(termsOfUse.length()>100);
 	}
 	
-	/**
-	 * Test that we can add an attachment to a project and then get it back.
-	 */
-	@Test
-	public void testAttachmentsImageRoundTrip() throws IOException, JSONObjectAdapterException, SynapseException{
-		// First load an image from the classpath
-		String fileName = "images/IMAG0019.jpg";
-		URL url = IT500SynapseJavaClient.class.getClassLoader().getResource(fileName);
-		assertNotNull("Failed to find: "+fileName+" on the classpath", url);
-		File originalFile = new File(url.getFile());
-		File attachmentDownload = File.createTempFile("AttachmentTestDownload", ".tmp");
-		File previewDownload = File.createTempFile("AttachmentPreviewDownload", ".png");
-		FileOutputStream writer = null;
-		FileInputStream reader = null;
-		try{
-			// We are now ready to add this file as an attachment on the project
-			String finalName = "iamgeFile.jpg";
-			AttachmentData data = synapseOne.uploadAttachmentToSynapse(project.getId(), originalFile, finalName);
-			assertEquals(finalName, data.getName());
-			// Save this this attachment on the entity.
-			project.setAttachments(new ArrayList<AttachmentData>());
-			project.getAttachments().add(data);
-			// Save this attachment to the project
-			project = synapseOne.putEntity(project);
-			assertNotNull(project.getAttachments());
-			assertEquals(1, project.getAttachments().size());
-			AttachmentData clone = project.getAttachments().get(0);
-			assertEquals(data.getName(), clone.getName());
-			assertEquals(data.getMd5(), clone.getMd5());
-			assertEquals(data.getContentType(), clone.getContentType());
-			assertEquals(data.getTokenId(), clone.getTokenId());
-			// the attachment should have preview
-			assertNotNull(clone.getPreviewId());
-			// Now make sure we can download our
-			synapseOne.downloadEntityAttachment(project.getId(), clone, attachmentDownload);
-			assertTrue(attachmentDownload.exists());
-			System.out.println(attachmentDownload.getAbsolutePath());
-			assertEquals(originalFile.length(), attachmentDownload.length());
-			// Now make sure we can get the preview image
-			// Before we download the preview make sure it exists
-			synapseOne.waitForPreviewToBeCreated(project.getId(), clone.getPreviewId(), PREVIEW_TIMOUT);
-			synapseOne.downloadEntityAttachmentPreview(project.getId(), clone.getPreviewId(), previewDownload);
-			assertTrue(previewDownload.exists());
-			System.out.println(previewDownload.getAbsolutePath());
-			assertTrue(previewDownload.length() > 0);
-			assertTrue("A preview size should not exceed 100KB.  This one is "+previewDownload.length(), previewDownload.length() < 100*1000);
-		}finally{
-			if(writer != null){
-				writer.close();
-			}
-			if(reader != null){
-				reader.close();
-			}
-			attachmentDownload.delete();
-			previewDownload.delete();
-		}
-	}
-
-	/**
-	 * Test that we can add an attachment to a project and then get it back.
-	 */
-	@Test
-	public void testProfileImageRoundTrip() throws IOException, JSONObjectAdapterException, SynapseException{
-		// First load an image from the classpath
-		String fileName = "images/profile_pic.png";
-		URL url = IT500SynapseJavaClient.class.getClassLoader().getResource(fileName);
-		assertNotNull("Failed to find: "+fileName+" on the classpath", url);
-		File originalFile = new File(url.getFile());
-		File attachmentDownload = File.createTempFile("AttachmentTestDownload", ".tmp");
-		File previewDownload = File.createTempFile("AttachmentPreviewDownload", ".png");
-		FileOutputStream writer = null;
-		FileInputStream reader = null;
-		try{
-			// We are now ready to add this file as an attachment on the project
-			String finalName = "iamgeFile.jpg";
-			
-			UserProfile profile = synapseOne.getMyProfile();
-			AttachmentData data = synapseOne.uploadUserProfileAttachmentToSynapse(profile.getOwnerId(), originalFile, finalName);
-			//save this as part of the user
-			profile.setPic(data);
-			synapseOne.updateMyProfile(profile);
-			
-			//download, and check that it was updated
-			profile = synapseOne.getMyProfile();
-			AttachmentData clone = profile.getPic();
-			assertEquals(finalName, data.getName());
-			assertEquals(data.getName(), clone.getName());
-			assertEquals(data.getMd5(), clone.getMd5());
-			assertEquals(data.getContentType(), clone.getContentType());
-			assertEquals(data.getTokenId(), clone.getTokenId());
-			// the attachment should have preview
-			assertNotNull(clone.getPreviewId());
-			// Now make sure we can download our
-			
-			synapseOne.downloadUserProfileAttachment(profile.getOwnerId(), clone, attachmentDownload);
-			assertTrue(attachmentDownload.exists());
-			System.out.println(attachmentDownload.getAbsolutePath());
-			assertEquals(originalFile.length(), attachmentDownload.length());
-			// Now make sure we can get the preview image
-			// Before we download the preview make sure it exists
-			synapseOne.waitForUserProfilePreviewToBeCreated(profile.getOwnerId(), clone.getPreviewId(), PREVIEW_TIMOUT);
-			synapseOne.downloadUserProfileAttachmentPreview(profile.getOwnerId(), clone.getPreviewId(), previewDownload);
-			assertTrue(previewDownload.exists());
-			System.out.println(previewDownload.getAbsolutePath());
-			assertTrue(previewDownload.length() > 0);
-			assertTrue("A preview size should not exceed 100KB.  This one is "+previewDownload.length(), previewDownload.length() < 100*1000);
-		}
-		finally{
-			if(writer != null){
-				writer.close();
-			}
-			if(reader != null){
-				reader.close();
-			}
-			attachmentDownload.delete();
-			previewDownload.delete();
-		}
-	}
-
 	@Test	
 	public void testGetChildCount() throws SynapseException{
 		// Start with no children.

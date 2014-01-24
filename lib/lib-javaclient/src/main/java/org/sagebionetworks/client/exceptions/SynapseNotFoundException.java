@@ -2,7 +2,7 @@ package org.sagebionetworks.client.exceptions;
 
 import org.apache.http.HttpStatus;
 
-public class SynapseNotFoundException extends SynapseUserException {
+public class SynapseNotFoundException extends SynapseServerException {
 	
 	private static final long serialVersionUID = 1L;
 

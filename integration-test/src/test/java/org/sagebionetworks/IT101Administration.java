@@ -15,7 +15,7 @@ import org.junit.Test;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.client.exceptions.SynapseServiceException;
+import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
@@ -101,7 +101,7 @@ public class IT101Administration {
 		try{
 			adminSynapse.putEntity(project);
 			fail("Updating an entity in read only mode should have failed");
-		}catch(SynapseServiceException e){
+		}catch(SynapseClientException e){
 			assertTrue(e.getMessage().indexOf("Synapse is in READ_ONLY mode for maintenance") > -1);
 		}
 		// put it back in read-write mode and try again
