@@ -683,12 +683,10 @@ public class SharedClientConnection {
 		} catch (HttpClientHelperException e) {
 			// Well-handled server side exceptions come back as JSON, attempt to
 			// deserialize and convert the error
-			int statusCode = 500; // assume a service exception
-			statusCode = e.getHttpStatus();
-			String response = "";
-			String resultsStr = "";
 			try {
-				response = e.getResponse();
+				int statusCode = e.getHttpStatus();
+				String reasonStr = "";
+				String response = e.getResponse();
 				if (null != response && response.length()>0) {
 					try {
 						results = new JSONObject(response);
@@ -700,23 +698,23 @@ public class SharedClientConnection {
 								+ results.toString(JSON_INDENT));
 					}
 					if (results != null)
-						resultsStr = results.getString("reason");
+						reasonStr = results.getString("reason");
 				}
 				String exceptionContent = "Service Error(" + statusCode + "): "
-						+ resultsStr + " " + e.getMessage();
+						+ reasonStr + " " + e.getMessage();
 
 				if (statusCode == 401) {
-					throw new SynapseUnauthorizedException(resultsStr);
+					throw new SynapseUnauthorizedException(reasonStr);
 				} else if (statusCode == 403) {
-					throw new SynapseForbiddenException(resultsStr);
+					throw new SynapseForbiddenException(reasonStr);
 				} else if (statusCode == 404) {
-					throw new SynapseNotFoundException(resultsStr);
+					throw new SynapseNotFoundException(reasonStr);
 				} else if (statusCode == 400) {
-					throw new SynapseBadRequestException(resultsStr);
+					throw new SynapseBadRequestException(reasonStr);
 				} else if (statusCode >= 400 && statusCode < 500) {
-					throw new SynapseServerException(statusCode, resultsStr);
+					throw new SynapseServerException(statusCode, reasonStr);
 				} else {
-					throw new SynapseClientException("request content: "+requestContent+" exception content: "+exceptionContent+" status code: "+statusCode);
+					throw new SynapseServerException(statusCode, "request content: "+requestContent+" exception content: "+exceptionContent+" status code: "+statusCode);
 				}
 			} catch (JSONException jsonEx) {
 				// swallow the JSONException since its not the real problem and
