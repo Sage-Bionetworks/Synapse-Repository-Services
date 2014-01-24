@@ -139,12 +139,6 @@ public class DBOParticipantDataDAOImpl implements ParticipantDataDAO {
 		DataTable dataTable = getDataFromBucket(participantData.getS3_bucket(), participantData.getS3_key());
 
 		for (Long rowId : rowIds.getList()) {
-			if (!dataTable.rows.containsKey(rowId)) {
-				throw new NotFoundException("Row #" + rowId + " not found");
-			}
-			if (dataTable.rows.get(rowId) == null) {
-				throw new IllegalArgumentException("IdList must not contain a null");
-			};
 			dataTable.rows.remove(rowId);
 		}
 		storeData(participantData, dataTable, false);

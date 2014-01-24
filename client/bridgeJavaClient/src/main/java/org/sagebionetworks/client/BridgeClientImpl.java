@@ -26,8 +26,6 @@ import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
  */
 public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 
-	private static final String PARTICIPANT_DATA_ROWS = "/rows";
-
 	public static final String BRIDGE_JAVA_CLIENT = "Bridge-Java-Client/";
 
 	private static final String DEFAULT_BRIDGE_ENDPOINT = "https://bridge-prod.prod.sagebase.org/bridge/v1";
@@ -41,6 +39,7 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 	private static final String PARTICIPANT_DATA_CURRENT = "/currentParticipantData";
 	private static final String PARTICIPANT_DATA_DESCRIPTOR = "/participantDataDescriptor";
 	private static final String PARTICIPANT_DATA_COLUMN_DESCRIPTOR = "/participantDataColumnDescriptor";
+	private static final String PARTICIPANT_DATA_DELETE_ROWS = "/deleteRows";
 	private static final String PARTICIPANT = "/participant";
 
 	private static final String JOINED = "/joined";
@@ -208,8 +207,8 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 		if (rowIds == null || rowIds.getList() == null || rowIds.getList().isEmpty()) {
 			throw new IllegalArgumentException("No row IDs specified for deletion");
 		}
-		String uri = PARTICIPANT_DATA + "/" + participantDataDescriptorId + PARTICIPANT_DATA_ROWS;
-		deleteEntity(uri, rowIds);
+		String uri = PARTICIPANT_DATA + "/" + participantDataDescriptorId + PARTICIPANT_DATA_DELETE_ROWS;
+		delete(uri, rowIds);
 	}
 	
 	@Override
@@ -331,16 +330,6 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 			throw new SynapseException(e);
 		}
 	}
-
-	private <T extends JSONEntity> void deleteEntity(String uri, T t) throws SynapseException {
-		// Delete the entity (IdList in this case)
-		try {
-			JSONObject jsonObject = EntityFactory.createJSONObjectForEntity(t);
-			getSharedClientConnection().deleteJson(bridgeEndpoint, uri, jsonObject.toString(), getUserAgent());
-		} catch (JSONObjectAdapterException e) {
-			throw new SynapseException(e);
-		}
-	}
 	
 	@SuppressWarnings("unchecked")
 	private <T extends JSONEntity> T create(String uri, T t) throws SynapseException {
@@ -384,5 +373,14 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 	private void delete(String uri) throws SynapseException {
 		// Get the json for this entity
 		getSharedClientConnection().deleteUri(bridgeEndpoint, uri, getUserAgent());
+	}
+
+	private <T extends JSONEntity> void delete(String uri, T t) throws SynapseException {
+		try {
+			JSONObject jsonObject = EntityFactory.createJSONObjectForEntity(t);
+			getSharedClientConnection().postJson(bridgeEndpoint, uri, jsonObject.toString(), getUserAgent());
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
 	}
 }

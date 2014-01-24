@@ -441,12 +441,18 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		V2WikiPage wiki = get(key, version);
 		S3FileHandle markdownHandle = (S3FileHandle) fileMetadataDao.get(wiki.getMarkdownFileHandleId());
 		File markdownTemp = File.createTempFile(wiki.getId()+ "_markdown", ".tmp");
-		// Retrieve uploaded markdown
-		s3Client.getObject(new GetObjectRequest(markdownHandle.getBucketName(), 
-				markdownHandle.getKey()), markdownTemp);
-		// Read the file as a string
-		String markdownString = FileUtils.readCompressedFileAsString(markdownTemp);
-		return markdownString;
+		try {
+			// Retrieve uploaded markdown
+			s3Client.getObject(new GetObjectRequest(markdownHandle.getBucketName(), 
+					markdownHandle.getKey()), markdownTemp);
+			// Read the file as a string
+			String markdownString = FileUtils.readCompressedFileAsString(markdownTemp);
+			return markdownString;
+		} finally {
+			if (markdownTemp != null) {
+				markdownTemp.delete();
+			}
+		}
 	}
 	
 	@Override
