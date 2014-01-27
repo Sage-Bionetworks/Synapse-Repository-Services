@@ -23,7 +23,8 @@ public interface ParticipantDataManager {
 	List<ParticipantDataRow> updateData(UserInfo userInfo, String participantDataId, List<ParticipantDataRow> data)
 			throws DatastoreException, NotFoundException, IOException, GeneralSecurityException;
 
-	void deleteRows(UserInfo userInfo, String participantDataId, IdList rowIds) throws IOException, NotFoundException;
+	void deleteRows(UserInfo userInfo, String participantDataId, IdList rowIds) throws IOException, NotFoundException,
+			GeneralSecurityException;
 	
 	PaginatedResults<ParticipantDataRow> getData(UserInfo userInfo, String participantDataId, Integer limit, Integer offset)
 			throws DatastoreException, NotFoundException, IOException, GeneralSecurityException;
