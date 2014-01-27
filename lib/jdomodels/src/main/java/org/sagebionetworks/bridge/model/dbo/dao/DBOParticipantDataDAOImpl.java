@@ -29,6 +29,7 @@ import org.sagebionetworks.bridge.model.data.value.ValueTranslator;
 import org.sagebionetworks.bridge.model.dbo.persistence.DBOParticipantData;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -112,7 +113,7 @@ public class DBOParticipantDataDAOImpl implements ParticipantDataDAO {
 			DBOParticipantData participantData = basicDao.getObjectByPrimaryKeyWithUpdateLock(DBOParticipantData.class, param);
 			DataTable dataTable = getDataFromBucket(participantData.getS3_bucket(), participantData.getS3_key());
 
-			return storeData(data, participantData, dataTable, false, columns);
+			return storeDataWithMerge(data, participantData, dataTable, false, columns);
 		} catch (NotFoundException e) {
 			DBOParticipantData participantData = new DBOParticipantData();
 			participantData.setParticipantDataDescriptorId(Long.parseLong(participantDataDescriptorId));
@@ -121,10 +122,28 @@ public class DBOParticipantDataDAOImpl implements ParticipantDataDAO {
 			participantData.setS3_key(participantData.getParticipantDataDescriptorId() + ":" + participantData.getParticipantId());
 
 			DataTable dataTable = new DataTable();
-			return storeData(data, participantData, dataTable, true, columns);
+			return storeDataWithMerge(data, participantData, dataTable, true, columns);
 		}
 	}
 
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public void deleteRows(String participantId, String participantDataDescriptorId, IdList rowIds) throws NotFoundException, IOException {
+		MapSqlParameterSource param = new MapSqlParameterSource().addValue(DBOParticipantData.PARTICIPANT_DATA_DESCRIPTOR_ID_FIELD,
+				participantDataDescriptorId).addValue(DBOParticipantData.PARTICIPANT_ID_FIELD, participantId);
+
+		if (rowIds == null || rowIds.getList() == null || rowIds.getList().isEmpty()) {
+			throw new IllegalArgumentException("1-* rows must be selected for deletion");
+		}
+		DBOParticipantData participantData = basicDao.getObjectByPrimaryKeyWithUpdateLock(DBOParticipantData.class, param);
+		DataTable dataTable = getDataFromBucket(participantData.getS3_bucket(), participantData.getS3_key());
+
+		for (Long rowId : rowIds.getList()) {
+			dataTable.rows.remove(rowId);
+		}
+		storeData(participantData, dataTable, false);
+	}
+	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public List<ParticipantDataRow> update(String participantId, String participantDataDescriptorId, List<ParticipantDataRow> data,
@@ -135,14 +154,19 @@ public class DBOParticipantDataDAOImpl implements ParticipantDataDAO {
 		DBOParticipantData participantData = basicDao.getObjectByPrimaryKey(DBOParticipantData.class, param);
 		DataTable dataTable = getDataFromBucket(participantData.getS3_bucket(), participantData.getS3_key());
 
-		return storeData(data, participantData, dataTable, false, columns);
+		return storeDataWithMerge(data, participantData, dataTable, false, columns);
 	}
 
-	private List<ParticipantDataRow> storeData(List<ParticipantDataRow> data, DBOParticipantData participantData, DataTable dataTable,
+	private List<ParticipantDataRow> storeDataWithMerge(List<ParticipantDataRow> data, DBOParticipantData participantData, DataTable dataTable,
 			boolean isCreate, List<ParticipantDataColumnDescriptor> columns) throws IOException {
 
 		data = mergeData(data, dataTable, columns);
-
+		storeData(participantData, dataTable, isCreate);
+		return data;
+	}
+	
+	private void storeData(DBOParticipantData participantData, DataTable dataTable, boolean isCreate)
+			throws IOException {
 		// update before attempting upload. If upload fails, transaction will roll back
 		if (isCreate) {
 			basicDao.createNew(participantData);
@@ -150,8 +174,6 @@ public class DBOParticipantDataDAOImpl implements ParticipantDataDAO {
 			basicDao.update(participantData);
 		}
 		putDataIntoBucket(dataTable, participantData.getS3_bucket(), participantData.getS3_key());
-
-		return data;
 	}
 
 	@Transactional(readOnly = true, propagation = Propagation.REQUIRED)

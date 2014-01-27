@@ -13,6 +13,7 @@ import org.sagebionetworks.bridge.model.versionInfo.BridgeVersionInfo;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UserGroupHeader;
+import org.sagebionetworks.repo.model.IdList;
 
 /**
  * Abstraction for Synapse.
@@ -144,7 +145,7 @@ public interface BridgeClient extends BaseClient {
 	 */
 	public List<ParticipantDataRow> appendParticipantData(String participantDataDescriptorId, List<ParticipantDataRow> data)
 			throws SynapseException;
-
+	
 	/**
 	 * Upload new participant provided data for a participant
 	 * 
@@ -156,6 +157,8 @@ public interface BridgeClient extends BaseClient {
 	public List<ParticipantDataRow> appendParticipantData(String participantIdentifier, String participantDataDescriptorId,
 			List<ParticipantDataRow> data) throws SynapseException;
 
+	public void deleteParticipantDataRows(String participantDataDescriptorId, IdList rowsIds) throws SynapseException;
+	
 	/**
 	 * Upload changed participant provided data
 	 * 
