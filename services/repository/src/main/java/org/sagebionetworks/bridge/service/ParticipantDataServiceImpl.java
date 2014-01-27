@@ -65,7 +65,8 @@ public class ParticipantDataServiceImpl implements ParticipantDataService {
 	}
 
 	@Override
-	public void deleteRows(Long userId, String participantDataId, IdList rowIds) throws IOException, NotFoundException {
+	public void deleteRows(Long userId, String participantDataId, IdList rowIds) throws IOException, NotFoundException,
+			GeneralSecurityException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		participantDataManager.deleteRows(userInfo, participantDataId, rowIds);
 	}

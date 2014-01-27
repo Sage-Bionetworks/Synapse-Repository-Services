@@ -34,7 +34,8 @@ public interface ParticipantDataService {
 	public List<ParticipantDataRow> append(Long userId, String participantId, String participantDataId, List<ParticipantDataRow> data)
 			throws DatastoreException, NotFoundException, IOException;
 
-	public void deleteRows(Long userId, String participantDataId, IdList rowids) throws IOException, NotFoundException;
+	public void deleteRows(Long userId, String participantDataId, IdList rowids) throws IOException, NotFoundException,
+			GeneralSecurityException;
 	
 	public List<ParticipantDataRow> update(Long userId, String participantDataId, List<ParticipantDataRow> data) throws DatastoreException,
 			NotFoundException, IOException, GeneralSecurityException;

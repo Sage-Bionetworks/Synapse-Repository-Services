@@ -61,7 +61,8 @@ public class ParticipantDataManagerImpl implements ParticipantDataManager {
 	}
 	
 	@Override
-	public void deleteRows(UserInfo userInfo, String participantDataId, IdList rowIds) throws IOException, NotFoundException {
+	public void deleteRows(UserInfo userInfo, String participantDataId, IdList rowIds) throws IOException, NotFoundException,
+			GeneralSecurityException {
 		List<String> participantIds = participantDataMappingManager.mapSynapseUserToParticipantIds(userInfo);
 		String participantId = participantDataDAO.findParticipantForParticipantData(participantIds, participantDataId);
 		participantDataDAO.deleteRows(participantId, participantDataId, rowIds);
