@@ -211,6 +211,9 @@ public class DBOParticipantDataDAOImpl implements ParticipantDataDAO {
 
 	@Override
 	public String findParticipantForParticipantData(List<String> participantIds, String participantDataDescriptorId) {
+		if (participantIds.size() == 0) {
+			return null;
+		}
 		MapSqlParameterSource params = new MapSqlParameterSource().addValue(PARTICIPANT_DATA_ID, participantDataDescriptorId).addValue(
 				PARTICIPANT_IDS, participantIds);
 		List<String> result = simpleJdbcTemplate.query(SELECT_PARTICIPANT_WITH_PARTICIPANT_DATA, new SingleColumnRowMapper<String>(

@@ -1112,6 +1112,16 @@ public class StackConfiguration {
 				.getDecryptedProperty("org.sagebionetworks.repo.manager.jira.user.password");
 	}
 
+	public static String getBridgeDataMappingEncryptionKey() {
+		return "::TODO::";
+		// return configuration.getDecryptedProperty("org.sagebionetworks.bridge.data.mapping.encryptionkey");
+	}
+
+	public static String getBridgeDataEncryptionKey() {
+		return "::TODO::";
+		// return configuration.getDecryptedProperty("org.sagebionetworks.bridge.data.encryptionkey");
+	}
+
 	/**
 	 * Entity path for the root folder. This is to be bootstrapped.
 	 */

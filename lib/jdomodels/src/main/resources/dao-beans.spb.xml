@@ -240,6 +240,7 @@
 		<property name="s3Bucket" ref="stackConfiguration.participantDataBucketName"/>
 	</bean>
 	<bean id="bridgeParticipantDAO" class="org.sagebionetworks.bridge.model.dbo.dao.DBOBridgeParticipantDAOImpl" scope="singleton"/>
+	<bean id="bridgeUserParticipantMappingDAO" class="org.sagebionetworks.bridge.model.dbo.dao.DBOBridgeUserParticipantMappingDAOImpl" scope="singleton"/>
 	<bean id="participantDataDescriptorDAO" class="org.sagebionetworks.bridge.model.dbo.dao.DBOParticipantDataDescriptorDAOImpl" scope="singleton"/>
 	<bean id="participantDataStatusDAO" class="org.sagebionetworks.bridge.model.dbo.dao.DBOParticipantDataStatusDAOImpl" scope="singleton"/>
 

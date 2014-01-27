@@ -1,5 +1,7 @@
 package org.sagebionetworks.bridge.manager.participantdata;
 
+import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.util.List;
 
 import org.sagebionetworks.bridge.model.ParticipantDataDescriptorDAO;
@@ -26,7 +28,7 @@ public class ParticipantDataDescriptionManagerImpl implements ParticipantDataDes
 	private ParticipantDataStatusDAO participantDataStatusDAO;
 
 	@Autowired
-	private ParticipantDataIdManager participantDataMappingManager;
+	private ParticipantDataIdMappingManager participantDataMappingManager;
 
 	@Override
 	public ParticipantDataDescriptor createParticipantDataDescriptor(UserInfo userInfo, ParticipantDataDescriptor participantDataDescriptor) {
@@ -46,7 +48,8 @@ public class ParticipantDataDescriptionManagerImpl implements ParticipantDataDes
 	}
 
 	@Override
-	public PaginatedResults<ParticipantDataDescriptor> getUserParticipantDataDescriptors(UserInfo userInfo, Integer limit, Integer offset) {
+	public PaginatedResults<ParticipantDataDescriptor> getUserParticipantDataDescriptors(UserInfo userInfo, Integer limit, Integer offset)
+			throws IOException, GeneralSecurityException {
 		List<String> participantIds = participantDataMappingManager.mapSynapseUserToParticipantIds(userInfo);
 		List<ParticipantDataDescriptor> participantDatas = participantDataDescriptorDAO.getParticipantDatasForUser(participantIds);
 		participantDatas = participantDataStatusDAO.getParticipantStatuses(Lists.newArrayList(participantDatas));

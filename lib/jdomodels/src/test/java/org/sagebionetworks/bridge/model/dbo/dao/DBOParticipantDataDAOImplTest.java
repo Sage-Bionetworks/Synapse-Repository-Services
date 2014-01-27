@@ -59,7 +59,7 @@ public class DBOParticipantDataDAOImplTest extends TestBase {
 
 	private DBOParticipant createParticipant() throws Exception {
 		Long id = idGenerator.generateNewId();
-		participantDAO.create(id.toString());
+		participantDAO.create(id);
 		addToDelete(DBOParticipant.class, id);
 		DBOParticipant participant = new DBOParticipant();
 		participant.setParticipantId(id);

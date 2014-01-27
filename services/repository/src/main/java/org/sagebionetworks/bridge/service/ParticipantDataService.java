@@ -1,6 +1,7 @@
 package org.sagebionetworks.bridge.service;
 
 import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.util.List;
 
 import org.sagebionetworks.bridge.model.data.ParticipantDataCurrentRow;
@@ -14,22 +15,22 @@ import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface ParticipantDataService {
 	public PaginatedResults<ParticipantDataRow> get(Long userId, String participantDataId, Integer limit, Integer offset)
-			throws DatastoreException, NotFoundException, IOException;
+			throws DatastoreException, NotFoundException, IOException, GeneralSecurityException;
 
-	public ParticipantDataRow getRow(Long userId, String participantDataId, Long rowId) throws DatastoreException,
-			NotFoundException, IOException;
+	public ParticipantDataRow getRow(Long userId, String participantDataId, Long rowId) throws DatastoreException, NotFoundException,
+			IOException, GeneralSecurityException;
 
-	public ParticipantDataCurrentRow getCurrent(Long userId, String participantDataId)
-			throws DatastoreException, NotFoundException, IOException;
+	public ParticipantDataCurrentRow getCurrent(Long userId, String participantDataId) throws DatastoreException, NotFoundException,
+			IOException, GeneralSecurityException;
 
 	public List<ParticipantDataRow> append(Long userId, String participantDataId, List<ParticipantDataRow> data) throws DatastoreException,
-			NotFoundException, IOException;
+			NotFoundException, IOException, GeneralSecurityException;
 
 	public List<ParticipantDataRow> append(Long userId, String participantId, String participantDataId, List<ParticipantDataRow> data)
 			throws DatastoreException, NotFoundException, IOException;
 
 	public List<ParticipantDataRow> update(Long userId, String participantDataId, List<ParticipantDataRow> data) throws DatastoreException,
-			NotFoundException, IOException;
+			NotFoundException, IOException, GeneralSecurityException;
 
 	public void updateParticipantStatuses(Long userId, List<ParticipantDataStatus> statuses) throws NotFoundException;
 
@@ -43,7 +44,7 @@ public interface ParticipantDataService {
 			throws DatastoreException, NotFoundException;
 
 	public PaginatedResults<ParticipantDataDescriptor> getUserParticipantDataDescriptors(Long userId, Integer limit, Integer offset)
-			throws DatastoreException, NotFoundException;
+			throws DatastoreException, NotFoundException, IOException, GeneralSecurityException;
 
 	public ParticipantDataColumnDescriptor createParticipantDataColumnDescriptor(Long userId,
 			ParticipantDataColumnDescriptor participantDataColumnDescriptor) throws DatastoreException, NotFoundException;

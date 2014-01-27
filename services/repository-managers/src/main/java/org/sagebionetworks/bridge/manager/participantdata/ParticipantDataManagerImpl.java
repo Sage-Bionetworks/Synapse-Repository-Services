@@ -1,6 +1,7 @@
 package org.sagebionetworks.bridge.manager.participantdata;
 
 import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.util.Collections;
 import java.util.List;
 import java.util.ListIterator;
@@ -33,7 +34,7 @@ public class ParticipantDataManagerImpl implements ParticipantDataManager {
 	@Autowired
 	private ParticipantDataDAO participantDataDAO;
 	@Autowired
-	private ParticipantDataIdManager participantDataMappingManager;
+	private ParticipantDataIdMappingManager participantDataMappingManager;
 	@Autowired
 	private ParticipantDataStatusDAO participantDataStatusDAO;
 	@Autowired
@@ -41,16 +42,14 @@ public class ParticipantDataManagerImpl implements ParticipantDataManager {
 
 	@Override
 	public List<ParticipantDataRow> appendData(UserInfo userInfo, String participantId, String participantDataId,
-			List<ParticipantDataRow> data) throws DatastoreException,
-			NotFoundException, IOException {
+			List<ParticipantDataRow> data) throws DatastoreException, NotFoundException, IOException {
 		List<ParticipantDataColumnDescriptor> columns = participantDataDescriptionManager.getColumns(participantDataId);
 		return participantDataDAO.append(participantId, participantDataId, data, columns);
 	}
 
 	@Override
 	public List<ParticipantDataRow> appendData(UserInfo userInfo, String participantDataId, List<ParticipantDataRow> data)
-			throws DatastoreException, NotFoundException,
-			IOException {
+			throws DatastoreException, NotFoundException, IOException, GeneralSecurityException {
 		List<String> participantIds = participantDataMappingManager.mapSynapseUserToParticipantIds(userInfo);
 		String participantId = participantDataDAO.findParticipantForParticipantData(participantIds, participantDataId);
 		if (participantId == null) {
@@ -62,8 +61,7 @@ public class ParticipantDataManagerImpl implements ParticipantDataManager {
 
 	@Override
 	public List<ParticipantDataRow> updateData(UserInfo userInfo, String participantDataId, List<ParticipantDataRow> data)
-			throws DatastoreException, NotFoundException,
-			IOException {
+			throws DatastoreException, NotFoundException, IOException, GeneralSecurityException {
 		List<String> participantIds = participantDataMappingManager.mapSynapseUserToParticipantIds(userInfo);
 		String participantId = participantDataDAO.findParticipantForParticipantData(participantIds, participantDataId);
 		if (participantId == null) {
@@ -75,8 +73,7 @@ public class ParticipantDataManagerImpl implements ParticipantDataManager {
 
 	@Override
 	public PaginatedResults<ParticipantDataRow> getData(UserInfo userInfo, String participantDataId, Integer limit, Integer offset)
-			throws DatastoreException,
-			NotFoundException, IOException {
+			throws DatastoreException, NotFoundException, IOException, GeneralSecurityException {
 		List<String> participantIds = participantDataMappingManager.mapSynapseUserToParticipantIds(userInfo);
 		String participantId = participantDataDAO.findParticipantForParticipantData(participantIds, participantDataId);
 		if (participantId == null) {
@@ -91,7 +88,7 @@ public class ParticipantDataManagerImpl implements ParticipantDataManager {
 
 	@Override
 	public ParticipantDataRow getDataRow(UserInfo userInfo, String participantDataId, Long rowId) throws DatastoreException,
-			NotFoundException, IOException {
+			NotFoundException, IOException, GeneralSecurityException {
 		List<String> participantIds = participantDataMappingManager.mapSynapseUserToParticipantIds(userInfo);
 		String participantId = participantDataDAO.findParticipantForParticipantData(participantIds, participantDataId);
 		if (participantId == null) {
@@ -104,8 +101,8 @@ public class ParticipantDataManagerImpl implements ParticipantDataManager {
 	}
 
 	@Override
-	public ParticipantDataCurrentRow getCurrentData(UserInfo userInfo, String participantDataId)
-			throws DatastoreException, NotFoundException, IOException {
+	public ParticipantDataCurrentRow getCurrentData(UserInfo userInfo, String participantDataId) throws DatastoreException,
+			NotFoundException, IOException, GeneralSecurityException {
 		ParticipantDataCurrentRow result = new ParticipantDataCurrentRow();
 		result.setDescriptor(participantDataDescriptionManager.getParticipantDataDescriptor(userInfo, participantDataId));
 		result.setColumns(participantDataDescriptionManager.getColumns(participantDataId));

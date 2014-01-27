@@ -161,8 +161,7 @@ public class ParticipantDataController {
 	PaginatedResults<ParticipantDataDescriptor> getUserParticipantDatas(
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) Long userId) throws DatastoreException,
-			NotFoundException {
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) Long userId) throws Exception {
 		return serviceProvider.getParticipantDataService().getUserParticipantDataDescriptors(userId, limit, offset);
 	}
 
