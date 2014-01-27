@@ -3,6 +3,7 @@
  */
 package org.sagebionetworks.bridge.model.dbo.dao;
 
+import java.util.Collections;
 import java.util.List;
 
 import org.sagebionetworks.bridge.model.ParticipantDataDescriptorDAO;
@@ -88,6 +89,9 @@ public class DBOParticipantDataDescriptorDAOImpl implements ParticipantDataDescr
 
 	@Override
 	public List<ParticipantDataDescriptor> getParticipantDatasForUser(List<String> participantIds) {
+		if (participantIds.isEmpty()) {
+			return Collections.<ParticipantDataDescriptor> emptyList();
+		}
 		MapSqlParameterSource params = new MapSqlParameterSource().addValue(PARTICIPANT_IDS, participantIds);
 		List<DBOParticipantDataDescriptor> dboParticipantDataDescriptors = simpleJdbcTemplate.query(SELECT_PARTICIPANT_DATA_FOR_USER,
 				participantDataDescriptorRowMapper, params);

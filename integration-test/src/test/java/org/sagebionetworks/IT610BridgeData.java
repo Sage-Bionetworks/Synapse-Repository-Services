@@ -269,7 +269,7 @@ public class IT610BridgeData {
 		bridge.sendParticipantDataDescriptorUpdates(statuses);
 
 		ParticipantDataCurrentRow currentRow = bridge.getCurrentParticipantData(participantDataDescriptor.getId());
-		assertNull(currentRow.getCurrentData());
+		assertTrue(currentRow.getCurrentData().getData().isEmpty());
 		assertEquals("7", ((ParticipantDataStringValue) currentRow.getPreviousData().getData().get("level")).getValue());
 
 		update.setLastEntryComplete(false);
@@ -297,7 +297,7 @@ public class IT610BridgeData {
 		bridge.sendParticipantDataDescriptorUpdates(statuses);
 
 		currentRow = bridge.getCurrentParticipantData(participantDataDescriptor.getId());
-		assertNull(currentRow.getCurrentData());
+		assertTrue(currentRow.getCurrentData().getData().isEmpty());
 		assertEquals("9", ((ParticipantDataStringValue) currentRow.getPreviousData().getData().get("level")).getValue());
 	}
 	

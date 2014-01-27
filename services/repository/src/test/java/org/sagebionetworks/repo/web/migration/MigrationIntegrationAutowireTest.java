@@ -634,10 +634,10 @@ public class MigrationIntegrationAutowireTest {
 	}
 
 	private void createParticipantData(UserGroup sampleGroup) throws Exception {
-		String participantId = Long.toString(Long.parseLong(sampleGroup.getId()) ^ -1L);
+		Long participantId = Long.parseLong(sampleGroup.getId()) ^ -1L;
 		bridgeParticipantDAO.create(participantId);
 		ParticipantDataDescriptor participantDataDescriptor = new ParticipantDataDescriptor();
-		participantDataDescriptor.setName(participantId + "desc");
+		participantDataDescriptor.setName(participantId.toString() + "desc");
 		participantDataDescriptor.setRepeatType(ParticipantDataRepeatType.ALWAYS);
 		participantDataDescriptor.setRepeatFrequency("0 0 4 * * ? *");
 		participantDataDescriptor = participantDataDescriptorDAO.createParticipantDataDescriptor(participantDataDescriptor);
@@ -658,7 +658,7 @@ public class MigrationIntegrationAutowireTest {
 		stringValue2.setValue("2");
 		dataRow.setData(ImmutableMap.<String, ParticipantDataValue> builder().put("a", stringValue1).put("b", stringValue2).build());
 		List<ParticipantDataRow> data = Lists.newArrayList(dataRow);
-		participantDataDAO.append(participantId, participantDataDescriptor.getId(), data,
+		participantDataDAO.append(participantId.toString(), participantDataDescriptor.getId(), data,
 				Lists.newArrayList(participantDataColumnDescriptor, participantDataColumnDescriptor2));
 		ParticipantDataStatus status = new ParticipantDataStatus();
 		status.setParticipantDataDescriptorId(participantDataDescriptor.getId());

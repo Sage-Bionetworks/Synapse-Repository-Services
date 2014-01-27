@@ -14,9 +14,9 @@ public class DBOBridgeParticipantDAOImpl implements BridgeParticipantDAO {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void create(String participantId) {
+	public void create(long participantId) {
 		DBOParticipant dboParticipant = new DBOParticipant();
-		dboParticipant.setParticipantId(Long.parseLong(participantId));
+		dboParticipant.setParticipantId(participantId);
 		basicDao.createNew(dboParticipant);
 	}
 }

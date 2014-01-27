@@ -91,6 +91,7 @@
 				<!-- bridge -->
 				<bean class="org.sagebionetworks.bridge.model.dbo.persistence.DBOCommunityTeam" />
 				<bean class="org.sagebionetworks.bridge.model.dbo.persistence.DBOParticipant" />
+				<bean class="org.sagebionetworks.bridge.model.dbo.persistence.DBOUserParticipantMap" />
 				<bean class="org.sagebionetworks.bridge.model.dbo.persistence.DBOParticipantDataDescriptor" />
 				<bean class="org.sagebionetworks.bridge.model.dbo.persistence.DBOParticipantDataColumnDescriptor" />
 				<bean class="org.sagebionetworks.bridge.model.dbo.persistence.DBOParticipantData" />
@@ -132,6 +133,7 @@
 				<bean class="org.sagebionetworks.bridge.model.dbo.persistence.DBOCommunityTeam" />
 
 				<bean class="org.sagebionetworks.bridge.model.dbo.persistence.DBOParticipant" />
+				<bean class="org.sagebionetworks.bridge.model.dbo.persistence.DBOUserParticipantMap" />
 				<bean class="org.sagebionetworks.bridge.model.dbo.persistence.DBOParticipantDataDescriptor" />
 				<bean class="org.sagebionetworks.bridge.model.dbo.persistence.DBOParticipantDataColumnDescriptor" />
 				<bean class="org.sagebionetworks.bridge.model.dbo.persistence.DBOParticipantData" />
