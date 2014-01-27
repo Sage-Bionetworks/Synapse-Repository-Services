@@ -376,6 +376,26 @@ public class DMLUtils {
 	}
 	
 	/**
+	 * This query will list all unique indices on the column
+	 * marked as 'BackupId'.  If there is not at least one
+	 * uniqueness constraint (either primary key or unique)
+	 * then the column CANNOT be a backup column.
+	 * See: PLFM-2512.
+	 * @param mapping
+	 * @return
+	 */
+	public static String getBackupUniqueValidation(TableMapping mapping){
+		validateMigratableTableMapping(mapping);
+		StringBuilder builder = new StringBuilder();
+		builder.append("SHOW INDEXES FROM ");
+		builder.append(mapping.getTableName());
+		builder.append(" WHERE Column_name='");
+		builder.append(getBackupIdColumnName(mapping).getColumnName());
+		builder.append("' AND NOT Non_unique");
+		return builder.toString();
+	}
+	
+	/**
 	 * build - "ORDER BY `BACKUP_ID` ASC/DESC"
 	 * @param mapping
 	 * @param builder

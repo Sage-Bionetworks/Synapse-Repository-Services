@@ -1,22 +1,35 @@
 package org.sagebionetworks.bridge.manager.participantdata;
 
 import java.io.IOException;
+import java.util.List;
 
+import org.sagebionetworks.bridge.model.data.ParticipantDataCurrentRow;
+import org.sagebionetworks.bridge.model.data.ParticipantDataRow;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.table.PaginatedRowSet;
-import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface ParticipantDataManager {
 
-	RowSet appendData(UserInfo userInfo, String participantDataId, RowSet data) throws DatastoreException, NotFoundException, IOException;
+	List<ParticipantDataRow> appendData(UserInfo userInfo, String participantDataId, List<ParticipantDataRow> data)
+			throws DatastoreException, NotFoundException, IOException;
 
-	RowSet appendData(UserInfo userInfo, String participantId, String participantDataId, RowSet data) throws DatastoreException,
-			NotFoundException, IOException;
+	List<ParticipantDataRow> appendData(UserInfo userInfo, String participantId, String participantDataId, List<ParticipantDataRow> data)
+			throws DatastoreException, NotFoundException, IOException;
 
-	RowSet updateData(UserInfo userInfo, String participantDataId, RowSet data) throws DatastoreException, NotFoundException, IOException;
+	List<ParticipantDataRow> updateData(UserInfo userInfo, String participantDataId, List<ParticipantDataRow> data)
+			throws DatastoreException, NotFoundException, IOException;
 
-	PaginatedRowSet getData(UserInfo userInfo, String participantDataId, Integer limit, Integer offset) throws DatastoreException,
+	void deleteRows(UserInfo userInfo, String participantDataId, IdList rowIds) throws IOException, NotFoundException;
+	
+	PaginatedResults<ParticipantDataRow> getData(UserInfo userInfo, String participantDataId, Integer limit, Integer offset)
+			throws DatastoreException, NotFoundException, IOException;
+
+	ParticipantDataCurrentRow getCurrentData(UserInfo userInfo, String participantDataId)
+			throws DatastoreException, NotFoundException, IOException;
+
+	ParticipantDataRow getDataRow(UserInfo userInfo, String participantDataId, Long rowId) throws DatastoreException,
 			NotFoundException, IOException;
 }

@@ -4,15 +4,16 @@ import java.util.List;
 
 import org.sagebionetworks.bridge.model.Community;
 import org.sagebionetworks.bridge.model.data.ParticipantDataColumnDescriptor;
+import org.sagebionetworks.bridge.model.data.ParticipantDataCurrentRow;
 import org.sagebionetworks.bridge.model.data.ParticipantDataDescriptor;
+import org.sagebionetworks.bridge.model.data.ParticipantDataRow;
 import org.sagebionetworks.bridge.model.data.ParticipantDataStatus;
 import org.sagebionetworks.bridge.model.data.ParticipantDataStatusList;
 import org.sagebionetworks.bridge.model.versionInfo.BridgeVersionInfo;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UserGroupHeader;
-import org.sagebionetworks.repo.model.table.PaginatedRowSet;
-import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.IdList;
 
 /**
  * Abstraction for Synapse.
@@ -142,8 +143,9 @@ public interface BridgeClient extends BaseClient {
 	 * @param participantDataDescriptorId the id of the participantData to append to
 	 * @throws SynapseException
 	 */
-	public RowSet appendParticipantData(String participantDataDescriptorId, RowSet data) throws SynapseException;
-
+	public List<ParticipantDataRow> appendParticipantData(String participantDataDescriptorId, List<ParticipantDataRow> data)
+			throws SynapseException;
+	
 	/**
 	 * Upload new participant provided data for a participant
 	 * 
@@ -152,9 +154,11 @@ public interface BridgeClient extends BaseClient {
 	 * @param data
 	 * @throws SynapseException
 	 */
-	public RowSet appendParticipantData(String participantIdentifier, String participantDataDescriptorId, RowSet data)
-			throws SynapseException;
+	public List<ParticipantDataRow> appendParticipantData(String participantIdentifier, String participantDataDescriptorId,
+			List<ParticipantDataRow> data) throws SynapseException;
 
+	public void deleteParticipantDataRows(String participantDataDescriptorId, IdList rowsIds) throws SynapseException;
+	
 	/**
 	 * Upload changed participant provided data
 	 * 
@@ -162,18 +166,39 @@ public interface BridgeClient extends BaseClient {
 	 * @param data
 	 * @throws SynapseException
 	 */
-	public RowSet updateParticipantData(String participantDataDescriptorId, RowSet data) throws SynapseException;
+	public List<ParticipantDataRow> updateParticipantData(String participantDataDescriptorId, List<ParticipantDataRow> data)
+			throws SynapseException;
 
 	/**
-	 * retrieve participant data
+	 * retrieve the current participant data
 	 * 
 	 * @param participantDataDescriptorId the id of the participantData to retrieve
 	 * @return
 	 * @throws SynapseException
 	 */
-	public PaginatedRowSet getParticipantData(String participantDataDescriptorId, long limit, long offset) throws SynapseException;
+	public ParticipantDataCurrentRow getCurrentParticipantData(String participantDataDescriptorId) throws SynapseException;
 
-	public ParticipantDataDescriptor createParticipantDataDescriptor(ParticipantDataDescriptor participantDataDescriptor) throws SynapseException;
+	/**
+	 * retrieve the current participant data
+	 * 
+	 * @param participantDataDescriptorId the id of the participantData to retrieve
+	 * @return
+	 * @throws SynapseException
+	 */
+	public ParticipantDataRow getParticipantDataRow(String participantDataDescriptorId, Long rowId) throws SynapseException;
+
+	/**
+	 * retrieve all raw participant data
+	 * 
+	 * @param participantDataDescriptorId the id of the participantData to retrieve
+	 * @return
+	 * @throws SynapseException
+	 */
+	public PaginatedResults<ParticipantDataRow> getRawParticipantData(String participantDataDescriptorId, long limit, long offset)
+			throws SynapseException;
+
+	public ParticipantDataDescriptor createParticipantDataDescriptor(ParticipantDataDescriptor participantDataDescriptor)
+			throws SynapseException;
 
 	public PaginatedResults<ParticipantDataDescriptor> getAllParticipantDatas(long limit, long offset) throws SynapseException;
 
@@ -187,7 +212,8 @@ public interface BridgeClient extends BaseClient {
 	 */
 	public PaginatedResults<ParticipantDataDescriptor> getParticipantDatas(long limit, long offset) throws SynapseException;
 
-	public ParticipantDataColumnDescriptor createParticipantDataColumnDescriptor(ParticipantDataColumnDescriptor participantDataColumnDescriptor1) throws SynapseException;
+	public ParticipantDataColumnDescriptor createParticipantDataColumnDescriptor(
+			ParticipantDataColumnDescriptor participantDataColumnDescriptor1) throws SynapseException;
 
 	public PaginatedResults<ParticipantDataColumnDescriptor> getParticipantDataColumnDescriptors(String participantDataDescriptorId,
 			long limit, long offset) throws SynapseException;

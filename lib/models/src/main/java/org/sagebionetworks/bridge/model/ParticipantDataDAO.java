@@ -3,19 +3,31 @@ package org.sagebionetworks.bridge.model;
 import java.io.IOException;
 import java.util.List;
 
+import org.sagebionetworks.bridge.model.data.ParticipantDataColumnDescriptor;
+import org.sagebionetworks.bridge.model.data.ParticipantDataCurrentRow;
+import org.sagebionetworks.bridge.model.data.ParticipantDataRow;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface ParticipantDataDAO {
 
-	RowSet append(String participantId, String participantDataId, RowSet data) throws DatastoreException, NotFoundException,
-			IOException;
+	List<ParticipantDataRow> append(String participantId, String participantDataId, List<ParticipantDataRow> data,
+			List<ParticipantDataColumnDescriptor> columns) throws DatastoreException,
+			NotFoundException, IOException;
 
-	RowSet update(String participantId, String participantDataId, RowSet data) throws DatastoreException, NotFoundException,
-			IOException;
+	List<ParticipantDataRow> update(String participantId, String participantDataId, List<ParticipantDataRow> data,
+			List<ParticipantDataColumnDescriptor> columns) throws DatastoreException,
+			NotFoundException, IOException;
 
-	RowSet get(String participantId, String participantDataId) throws DatastoreException, NotFoundException, IOException;
+	void deleteRows(String participantId, String participantDataDescriptorId, IdList rowIds) throws IOException, NotFoundException;
+	
+	List<ParticipantDataRow> get(String participantId, String participantDataId, List<ParticipantDataColumnDescriptor> columns)
+			throws DatastoreException, NotFoundException, IOException;
+
+	ParticipantDataRow getRow(String participantId, String participantDataId, Long rowId, List<ParticipantDataColumnDescriptor> columns)
+			throws DatastoreException,
+			NotFoundException, IOException;
 
 	void delete(String participantId, String participantDataId) throws DatastoreException, NotFoundException, IOException;
 

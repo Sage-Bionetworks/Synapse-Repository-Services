@@ -85,5 +85,5 @@ public interface MigratableTableDAO {
 	 * @return
 	 */
 	public List<MigrationType> getPrimaryMigrationTypes();
-	
+
 }

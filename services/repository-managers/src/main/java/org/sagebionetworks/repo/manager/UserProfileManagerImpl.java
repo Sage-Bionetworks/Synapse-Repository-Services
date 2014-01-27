@@ -97,9 +97,6 @@ public class UserProfileManagerImpl implements UserProfileManager {
 		attachmentManager.checkAttachmentsForPreviews(updated);
 		// Update the DAO first
 		userProfileDAO.update(updated);
-		if(UserProfileUtillity.isTempoaryUsername(updated.getUserName())){
-			throw new IllegalArgumentException("Must set a valid username.");
-		}
 		// Bind all aliases
 		List<PrincipalAlias> newEmails = bindAllAliases(updated, principalId);
 		// We have temporarily turned-off the ability to add new email. See PLFM-2405
@@ -245,15 +242,4 @@ public class UserProfileManagerImpl implements UserProfileManager {
 		if(profile.getEmails().size() < 1) throw new IllegalArgumentException("A user profile must contain at least one email");
 	}
 
-	@Override
-	public String getUserName(Long principalsId) {
-		List<PrincipalAlias> aliases = this.principalAliasDAO.listPrincipalAliases(principalsId, AliasType.USER_NAME);
-		if(aliases.size() < 1){
-			// Use a temporary name composed of their ID until this users sets their username I
-			return UserProfileUtillity.createTempoaryUserName(principalsId);
-		}else{
-			// Use the first name
-			return aliases.get(0).getAlias();
-		}
-	}
 }

@@ -6,15 +6,15 @@ import java.util.List;
 import org.sagebionetworks.bridge.manager.participantdata.ParticipantDataDescriptionManager;
 import org.sagebionetworks.bridge.manager.participantdata.ParticipantDataManager;
 import org.sagebionetworks.bridge.model.data.ParticipantDataColumnDescriptor;
+import org.sagebionetworks.bridge.model.data.ParticipantDataCurrentRow;
 import org.sagebionetworks.bridge.model.data.ParticipantDataDescriptor;
+import org.sagebionetworks.bridge.model.data.ParticipantDataRow;
 import org.sagebionetworks.bridge.model.data.ParticipantDataStatus;
-import org.sagebionetworks.bridge.model.data.ParticipantDataStatusList;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.table.PaginatedRowSet;
-import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -27,27 +27,50 @@ public class ParticipantDataServiceImpl implements ParticipantDataService {
 	private ParticipantDataDescriptionManager participantDataDescriptionManager;
 
 	@Override
-	public PaginatedRowSet get(Long userId, String participantDataId, Integer limit, Integer offset) throws DatastoreException,
-			NotFoundException, IOException {
+	public PaginatedResults<ParticipantDataRow> get(Long userId, String participantDataId, Integer limit, Integer offset)
+			throws DatastoreException, NotFoundException, IOException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return participantDataManager.getData(userInfo, participantDataId, limit, offset);
 	}
 
 	@Override
-	public RowSet append(Long userId, String participantDataId, RowSet data) throws DatastoreException, NotFoundException, IOException {
+	public ParticipantDataRow getRow(Long userId, String participantDataId, Long rowId) throws DatastoreException,
+			NotFoundException, IOException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return participantDataManager.getDataRow(userInfo, participantDataId, rowId);
+	}
+
+	@Override
+	public ParticipantDataCurrentRow getCurrent(Long userId, String participantDataId)
+			throws DatastoreException, NotFoundException, IOException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return participantDataManager.getCurrentData(userInfo, participantDataId);
+	}
+
+	@Override
+	public List<ParticipantDataRow> append(Long userId, String participantDataId, List<ParticipantDataRow> data) throws DatastoreException,
+			NotFoundException, IOException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return participantDataManager.appendData(userInfo, participantDataId, data);
 	}
 
 	@Override
-	public RowSet append(Long userId, String participantId, String participantDataId, RowSet data) throws DatastoreException,
-			NotFoundException, IOException {
+	public List<ParticipantDataRow> append(Long userId, String participantId, String participantDataId, List<ParticipantDataRow> data)
+			throws DatastoreException, NotFoundException, IOException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return participantDataManager.appendData(userInfo, participantId, participantDataId, data);
 	}
 
 	@Override
-	public RowSet update(Long userId, String participantDataId, RowSet data) throws DatastoreException, NotFoundException, IOException {
+	public void deleteRows(Long userId, String participantDataId, IdList rowIds) throws IOException, NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		participantDataManager.deleteRows(userInfo, participantDataId, rowIds);
+	}
+	
+	
+	@Override
+	public List<ParticipantDataRow> update(Long userId, String participantDataId, List<ParticipantDataRow> data) throws DatastoreException,
+			NotFoundException, IOException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return participantDataManager.updateData(userInfo, participantDataId, data);
 	}
@@ -59,14 +82,15 @@ public class ParticipantDataServiceImpl implements ParticipantDataService {
 	}
 
 	@Override
-	public ParticipantDataDescriptor createParticipantDataDescriptor(Long userId, ParticipantDataDescriptor participantDataDescriptor) throws DatastoreException,
-			NotFoundException {
+	public ParticipantDataDescriptor createParticipantDataDescriptor(Long userId, ParticipantDataDescriptor participantDataDescriptor)
+			throws DatastoreException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return participantDataDescriptionManager.createParticipantDataDescriptor(userInfo, participantDataDescriptor);
 	}
 
 	@Override
-	public ParticipantDataDescriptor getParticipantDataDescriptor(Long userId, String participantDataId) throws DatastoreException, NotFoundException {
+	public ParticipantDataDescriptor getParticipantDataDescriptor(Long userId, String participantDataId) throws DatastoreException,
+			NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return participantDataDescriptionManager.getParticipantDataDescriptor(userInfo, participantDataId);
 	}
@@ -86,15 +110,15 @@ public class ParticipantDataServiceImpl implements ParticipantDataService {
 	}
 
 	@Override
-	public ParticipantDataColumnDescriptor createParticipantDataColumnDescriptor(Long userId, ParticipantDataColumnDescriptor participantDataColumnDescriptor)
-			throws DatastoreException, NotFoundException {
+	public ParticipantDataColumnDescriptor createParticipantDataColumnDescriptor(Long userId,
+			ParticipantDataColumnDescriptor participantDataColumnDescriptor) throws DatastoreException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return participantDataDescriptionManager.createParticipantDataColumnDescriptor(userInfo, participantDataColumnDescriptor);
 	}
 
 	@Override
-	public PaginatedResults<ParticipantDataColumnDescriptor> getParticipantDataColumnDescriptors(Long userId, String participantDataId, Integer limit,
-			Integer offset) throws DatastoreException, NotFoundException {
+	public PaginatedResults<ParticipantDataColumnDescriptor> getParticipantDataColumnDescriptors(Long userId, String participantDataId,
+			Integer limit, Integer offset) throws DatastoreException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return participantDataDescriptionManager.getParticipantDataColumnDescriptor(userInfo, participantDataId, limit, offset);
 	}

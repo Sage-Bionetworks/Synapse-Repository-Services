@@ -164,8 +164,11 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public <T extends AccessRequirement> T updateAccessRequirement(UserInfo userInfo, T accessRequirement) throws NotFoundException, UnauthorizedException, ConflictingUpdateException, InvalidModelException, DatastoreException {
+	public <T extends AccessRequirement> T updateAccessRequirement(UserInfo userInfo, String accessRequirementId, T accessRequirement) throws NotFoundException, UnauthorizedException, ConflictingUpdateException, InvalidModelException, DatastoreException {
 		validateAccessRequirement(accessRequirement);
+		if (!accessRequirementId.equals(accessRequirement.getId().toString()))
+			throw new InvalidModelException("Update specified ID "+accessRequirementId+" but object contains id: "+
+		accessRequirement.getId());
 		verifyCanAccess(userInfo, accessRequirement.getId().toString(), ACCESS_TYPE.UPDATE);
 		populateModifiedFields(userInfo, accessRequirement);
 		return accessRequirementDAO.update(accessRequirement);

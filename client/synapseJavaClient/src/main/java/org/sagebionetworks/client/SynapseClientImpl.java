@@ -1126,6 +1126,21 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		}
 		
 	}
+	
+	@SuppressWarnings("unchecked")
+	@Override
+	public <T extends AccessRequirement> T updateAccessRequirement(T ar) throws SynapseException {	
+		if (ar==null) throw new IllegalArgumentException("AccessRequirement cannot be null");	
+		String url = createEntityUri(ACCESS_REQUIREMENT+"/", ar.getId().toString());		
+		try {
+			JSONObject toUpdateJsonObject = EntityFactory.createJSONObjectForEntity(ar);
+			JSONObject updatedJsonObject = getSharedClientConnection().putJson(repoEndpoint, url, toUpdateJsonObject.toString(), getUserAgent());
+			return (T)initializeFromJSONObject(updatedJsonObject, getAccessRequirementClassFromType(ar.getEntityType()));
+		} catch (JSONObjectAdapterException e1) {
+			throw new RuntimeException(e1);
+		}		
+	}
+	
 	@Override
 	public ACTAccessRequirement createLockAccessRequirement(String entityId) throws SynapseException {
 		if (entityId == null) throw new IllegalArgumentException("Entity id cannot be null");

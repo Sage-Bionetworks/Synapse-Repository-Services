@@ -1,5 +1,5 @@
 {
-	"description": "List of Migration Type IDs ",
+	"description": "List of IDs",
 	"properties": {
 		"list": {
 			"type": "array",

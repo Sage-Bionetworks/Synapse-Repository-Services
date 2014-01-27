@@ -7,10 +7,14 @@ import org.sagebionetworks.bridge.model.ParticipantDataStatusDAO;
 import org.sagebionetworks.bridge.model.data.ParticipantDataDescriptor;
 import org.sagebionetworks.bridge.model.data.ParticipantDataStatus;
 import org.sagebionetworks.bridge.model.dbo.persistence.DBOParticipantDataStatus;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.SingleColumnRowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 
@@ -56,6 +60,20 @@ public class DBOParticipantDataStatusDAOImpl implements ParticipantDataStatusDAO
 			}
 		}
 		return participantDatas;
+	}
+
+	@Override
+	public ParticipantDataStatus getParticipantStatus(String participantDataId) throws DatastoreException {
+		DBOParticipantDataStatus dboStatus;
+		try {
+			dboStatus = basicDao.getObjectByPrimaryKey(DBOParticipantDataStatus.class, new SinglePrimaryKeySqlParameterSource(
+					participantDataId));
+			return dboStatus.getStatus();
+		} catch (NotFoundException e) {
+			ParticipantDataStatus status = new ParticipantDataStatus();
+			status.setParticipantDataDescriptorId(participantDataId);
+			return status;
+		}
 	}
 
 	@Override

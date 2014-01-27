@@ -36,7 +36,10 @@ import org.sagebionetworks.bridge.model.data.ParticipantDataColumnDescriptor;
 import org.sagebionetworks.bridge.model.data.ParticipantDataColumnType;
 import org.sagebionetworks.bridge.model.data.ParticipantDataDescriptor;
 import org.sagebionetworks.bridge.model.data.ParticipantDataRepeatType;
+import org.sagebionetworks.bridge.model.data.ParticipantDataRow;
 import org.sagebionetworks.bridge.model.data.ParticipantDataStatus;
+import org.sagebionetworks.bridge.model.data.value.ParticipantDataStringValue;
+import org.sagebionetworks.bridge.model.data.value.ParticipantDataValue;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Submission;
@@ -86,7 +89,7 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.Comment;
 import org.sagebionetworks.repo.model.message.MessageToUser;
-import org.sagebionetworks.repo.model.migration.IdList;
+import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.migration.ListBucketProvider;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
@@ -111,6 +114,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
 /**
@@ -642,12 +646,20 @@ public class MigrationIntegrationAutowireTest {
 		participantDataColumnDescriptor.setName("a");
 		participantDataColumnDescriptor.setColumnType(ParticipantDataColumnType.STRING);
 		participantDataDescriptorDAO.createParticipantDataColumnDescriptor(participantDataColumnDescriptor);
-		RowSet data = new RowSet();
-		data.setHeaders(Lists.newArrayList("a", "b"));
-		Row row = new Row();
-		row.setValues(Lists.newArrayList("1", "2"));
-		data.setRows(Lists.newArrayList(row));
-		participantDataDAO.append(participantId, participantDataDescriptor.getId(), data);
+		ParticipantDataColumnDescriptor participantDataColumnDescriptor2 = new ParticipantDataColumnDescriptor();
+		participantDataColumnDescriptor2.setParticipantDataDescriptorId(participantDataDescriptor.getId());
+		participantDataColumnDescriptor2.setName("b");
+		participantDataColumnDescriptor2.setColumnType(ParticipantDataColumnType.STRING);
+		participantDataDescriptorDAO.createParticipantDataColumnDescriptor(participantDataColumnDescriptor);
+		ParticipantDataRow dataRow = new ParticipantDataRow();
+		ParticipantDataStringValue stringValue1 = new ParticipantDataStringValue();
+		stringValue1.setValue("1");
+		ParticipantDataStringValue stringValue2 = new ParticipantDataStringValue();
+		stringValue2.setValue("2");
+		dataRow.setData(ImmutableMap.<String, ParticipantDataValue> builder().put("a", stringValue1).put("b", stringValue2).build());
+		List<ParticipantDataRow> data = Lists.newArrayList(dataRow);
+		participantDataDAO.append(participantId, participantDataDescriptor.getId(), data,
+				Lists.newArrayList(participantDataColumnDescriptor, participantDataColumnDescriptor2));
 		ParticipantDataStatus status = new ParticipantDataStatus();
 		status.setParticipantDataDescriptorId(participantDataDescriptor.getId());
 		status.setLastEntryComplete(false);
