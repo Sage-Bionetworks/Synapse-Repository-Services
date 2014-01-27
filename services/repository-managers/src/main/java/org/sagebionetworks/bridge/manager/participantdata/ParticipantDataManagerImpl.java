@@ -11,6 +11,7 @@ import org.sagebionetworks.bridge.model.data.ParticipantDataColumnDescriptor;
 import org.sagebionetworks.bridge.model.data.ParticipantDataCurrentRow;
 import org.sagebionetworks.bridge.model.data.ParticipantDataRow;
 import org.sagebionetworks.bridge.model.data.ParticipantDataStatus;
+import org.sagebionetworks.bridge.model.data.value.ParticipantDataValue;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.PaginatedResultsUtil;
@@ -23,12 +24,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 public class ParticipantDataManagerImpl implements ParticipantDataManager {
 
-	private final static RowSet EMPTY_ROW_SET;
+	private final static ParticipantDataRow EMPTY_ROW;
 
 	static {
-		EMPTY_ROW_SET = new RowSet();
-		EMPTY_ROW_SET.setHeaders(Collections.<String> emptyList());
-		EMPTY_ROW_SET.setRows(Collections.<Row> emptyList());
+		EMPTY_ROW = new ParticipantDataRow();
+		EMPTY_ROW.setData(Collections.<String, ParticipantDataValue> emptyMap());
 	}
 
 	@Autowired
@@ -126,6 +126,10 @@ public class ParticipantDataManagerImpl implements ParticipantDataManager {
 			// empty result. It will have no headers given the way this works.
 			return result;
 		}
+
+		result.setCurrentData(EMPTY_ROW);
+		result.setPreviousData(EMPTY_ROW);
+
 		List<ParticipantDataRow> rowList = participantDataDAO.get(participantId, participantDataId, result.getColumns());
 		ListIterator<ParticipantDataRow> iter = rowList.listIterator(rowList.size());
 		if (iter.hasPrevious()) {
