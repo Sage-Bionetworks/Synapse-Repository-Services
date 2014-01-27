@@ -1,6 +1,6 @@
 package org.sagebionetworks.table.cluster;
 
-import static  org.sagebionetworks.table.cluster.Constants.*;
+import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -9,11 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 
 import com.amazonaws.services.rds.AmazonRDSClient;
-import com.amazonaws.services.rds.model.CreateDBInstanceRequest;
 import com.amazonaws.services.rds.model.DBInstance;
-import com.amazonaws.services.rds.model.DBInstanceNotFoundException;
-import com.amazonaws.services.rds.model.DescribeDBInstancesRequest;
-import com.amazonaws.services.rds.model.DescribeDBInstancesResult;
 
 /**
  * Note: For the first pass at this feature we are only using one database.
@@ -22,12 +18,14 @@ import com.amazonaws.services.rds.model.DescribeDBInstancesResult;
  * @author jmhill
  *
  */
-public class ConnectionFactoryImpl implements ConnectionFactory{
+public class ConnectionFactoryImpl implements ConnectionFactory {
 	
 	Logger log = LogManager.getLogger(ConnectionFactoryImpl.class);
 	
 	@Autowired
-	AmazonRDSClient client;
+	AmazonRDSClient awsRDSClient;
+	@Autowired
+	InstanceDiscovery instanceDiscovery;
 	
 	@Autowired
 	private StackConfiguration stackConfig;
@@ -39,5 +37,19 @@ public class ConnectionFactoryImpl implements ConnectionFactory{
 		return null;
 	}
 	
+	/**
+	 * This is called when the Spring bean is initialized.
+	 */
+	public void initialize(){
+		// There is nothing to do if the table feature is not enabled.
+		if(stackConfig.getTableEnabled()){
+			// The features is enabled so we must find all database instances that we can use
+			List<DBInstance> instances = instanceDiscovery.discoverAllInstances();
+			if(instances == null || instances.isEmpty()) throw new IllegalArgumentException("Did not find at least one database instances.  Expected at least one instances: "+InstanceUtils.createDatabaseInstanceIdentifier(0));
+			
+		}else{
+			log.debug("The table feature is disabled and cannot be used");
+		}
+	}
 
 }
