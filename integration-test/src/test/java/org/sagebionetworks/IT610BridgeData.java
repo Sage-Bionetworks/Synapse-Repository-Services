@@ -32,6 +32,7 @@ import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.IdList;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -298,6 +299,36 @@ public class IT610BridgeData {
 		currentRow = bridge.getCurrentParticipantData(participantDataDescriptor.getId());
 		assertTrue(currentRow.getCurrentData().getData().isEmpty());
 		assertEquals("9", ((ParticipantDataStringValue) currentRow.getPreviousData().getData().get("level")).getValue());
+	}
+	
+	@Test
+	public void testDeleteParticipantDataRows() throws Exception {
+		ParticipantDataDescriptor participantDataDescriptor = new ParticipantDataDescriptor();
+		participantDataDescriptor.setName("my-first-participantData-" + System.currentTimeMillis());
+		participantDataDescriptor.setRepeatType(ParticipantDataRepeatType.ALWAYS);
+		participantDataDescriptor = bridge.createParticipantDataDescriptor(participantDataDescriptor);
+
+		ParticipantDataColumnDescriptor participantDataColumnDescriptor1 = new ParticipantDataColumnDescriptor();
+		participantDataColumnDescriptor1.setParticipantDataDescriptorId(participantDataDescriptor.getId());
+		participantDataColumnDescriptor1.setColumnType(ParticipantDataColumnType.STRING);
+		participantDataColumnDescriptor1.setName("level");
+		bridge.createParticipantDataColumnDescriptor(participantDataColumnDescriptor1);
+
+		String[] headers = { "level" };
+
+		List<ParticipantDataRow> data1 = createRows(headers, null, "5", null, "200", null, "6");
+		data1 = bridge.appendParticipantData(participantDataDescriptor.getId(), data1);
+
+		List<Long> rowIds = Lists.newArrayListWithCapacity(data1.size());
+		for (ParticipantDataRow row : data1) {
+			rowIds.add(row.getRowId());
+		}
+		IdList idList = new IdList();
+		idList.setList(rowIds);
+		bridge.deleteParticipantDataRows(participantDataDescriptor.getId(), idList);
+		
+		PaginatedResults<ParticipantDataRow> result = bridge.getRawParticipantData(participantDataDescriptor.getId(), 1000, 0);
+		assertEquals(0, result.getResults().size());
 	}
 
 	private List<ParticipantDataRow> createRows(String[] headers, Object... values) {

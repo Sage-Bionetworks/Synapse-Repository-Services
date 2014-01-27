@@ -10,7 +10,7 @@ if [ -z "$buildNumber" ] ;
   then buildNumber="??"
 fi
 echo $buildNumber
-abbreviatedCommitHash="<version>"$(date +%Y-%m-%d)"-"`git log -n 1 --pretty=format:%h`"-$buildNumber</version>"
+abbreviatedCommitHash="<version>"$(date +%Y-%m-%d)"-"$buildNumber"-"`git log -n 1 --pretty=format:%h`"</version>"
 echo "Changing all pom.xml to version=$abbreviatedCommitHash"
 #sed "s|<version>develop-SNAPSHOT</version>|$abbreviatedCommitHash|g" pom.xml > temp-pom.xml
 for f in `find -name "pom.xml"` ; do

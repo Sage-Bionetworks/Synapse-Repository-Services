@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -63,6 +64,13 @@ public class ParticipantDataServiceImpl implements ParticipantDataService {
 		return participantDataManager.appendData(userInfo, participantId, participantDataId, data);
 	}
 
+	@Override
+	public void deleteRows(Long userId, String participantDataId, IdList rowIds) throws IOException, NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		participantDataManager.deleteRows(userInfo, participantDataId, rowIds);
+	}
+	
+	
 	@Override
 	public List<ParticipantDataRow> update(Long userId, String participantDataId, List<ParticipantDataRow> data) throws DatastoreException,
 			NotFoundException, IOException, GeneralSecurityException {

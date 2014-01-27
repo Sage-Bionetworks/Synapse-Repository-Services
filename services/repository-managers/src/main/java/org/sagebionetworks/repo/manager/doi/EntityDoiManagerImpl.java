@@ -35,9 +35,7 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 	@Autowired private UserManager userManager;
 	@Autowired private AuthorizationManager authorizationManager;
 	@Autowired private DoiDao doiDao;
-	@Autowired private NodeDAO nodeDao;
-	@Autowired
-	UserProfileManager profileManager;
+	@Autowired private NodeDAO nodeDao;;
 	private final DoiAsyncClient ezidAsyncClient;
 	private final DxAsyncClient dxAsyncClient;
 
@@ -102,12 +100,7 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 
 		// Create DOI metadata.
 		EzidMetadata metadata = new EzidMetadata();
-		Long principalId = node.getCreatedByPrincipalId();
-		String creatorName = profileManager.getUserName(principalId);
-		// Display name is optional
-		if (creatorName == null || creatorName.isEmpty()) {
-			creatorName = EzidConstants.DEFAULT_CREATOR;
-		}
+		String creatorName = EzidConstants.DEFAULT_CREATOR;
 		metadata.setCreator(creatorName);
 		final int year = Calendar.getInstance().get(Calendar.YEAR);
 		metadata.setPublicationYear(year);

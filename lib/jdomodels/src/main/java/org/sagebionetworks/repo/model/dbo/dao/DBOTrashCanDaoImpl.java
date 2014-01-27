@@ -48,6 +48,10 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 			+ " WHERE " + COL_TRASH_CAN_DELETED_BY + " = :" + COL_TRASH_CAN_DELETED_BY
 			+ " AND " + COL_TRASH_CAN_NODE_ID + " = :" + COL_TRASH_CAN_NODE_ID;
 
+	private static final String SELECT_TRASH_BY_NODE_ID =
+			"SELECT * FROM " + TABLE_TRASH_CAN
+			+ " WHERE " + COL_TRASH_CAN_NODE_ID + " = :" + COL_TRASH_CAN_NODE_ID;
+
 	private static final String SELECT_TRASCH_BEFORE_TIMESTAMP =
 			"SELECT * FROM " + TABLE_TRASH_CAN +
 			" WHERE " + COL_TRASH_CAN_DELETED_ON + " < :" + COL_TRASH_CAN_DELETED_ON;
@@ -139,6 +143,25 @@ public class DBOTrashCanDaoImpl implements TrashCanDao {
 			return null;
 		}
 		return trashList.get(0);
+	}
+
+	@Override
+	public TrashedEntity getTrashedEntity(String nodeId) throws DatastoreException {
+
+		if (nodeId == null) {
+			throw new IllegalArgumentException("nodeId cannot be null.");
+		}
+
+		MapSqlParameterSource paramMap = new MapSqlParameterSource();
+		paramMap.addValue(COL_TRASH_CAN_NODE_ID, KeyFactory.stringToKey(nodeId));
+		List<DBOTrashedEntity> trashList = simpleJdbcTemplate.query(SELECT_TRASH_BY_NODE_ID, rowMapper, paramMap);
+		if (trashList == null || trashList.size() == 0) {
+			return null;
+		}
+		if (trashList.size() > 1) {
+			throw new DatastoreException("Node " + nodeId + " has more than 1 trash entry.");
+		}
+		return TrashedEntityUtils.convertDboToDto(trashList.get(0));
 	}
 
 	@Override

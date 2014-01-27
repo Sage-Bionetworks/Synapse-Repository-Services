@@ -29,6 +29,7 @@ import org.sagebionetworks.bridge.model.dbo.persistence.DBOParticipantDataDescri
 import org.sagebionetworks.bridge.model.dbo.persistence.DBOParticipant;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -380,4 +381,121 @@ public class DBOParticipantDataDAOImplTest extends TestBase {
 		assertNull(newRowSet.get(1).getData().get("LAB"));
 
 	}
+	
+	@Test
+	public void testInvalidDeletes() throws Exception {
+		DBOParticipant participant = createParticipant();
+		DBOParticipantDataDescriptor model = createModel();
+		addToDelete(new DataDeletable(participant.getParticipantId(), model.getId().toString()));
+		
+		try {
+			participantDataDAO.deleteRows(participant.getParticipantId().toString(), model.getId().toString(), null);
+			fail("Did not throw Illegal Argument Exception for null IdList");
+		} catch(IllegalArgumentException e) {}
+		try {
+			IdList idList = new IdList();
+			participantDataDAO.deleteRows(participant.getParticipantId().toString(), model.getId().toString(), idList);
+			fail("Did not throw Illegal Argument Exception for IdList with no IDs");
+		} catch(IllegalArgumentException e) {}
+		try {
+			IdList idList = new IdList();
+			idList.setList(Lists.<Long>newArrayList());
+			participantDataDAO.deleteRows(participant.getParticipantId().toString(), model.getId().toString(), idList);
+			fail("Did not throw Illegal Argument Exception for IdList with empty idList");
+		} catch(IllegalArgumentException e) {}
+	}
+	
+	@Test
+	public void testDeleteAll() throws Exception {
+		DBOParticipant participant = createParticipant();
+		DBOParticipantDataDescriptor model = createModel();
+
+		Rows rows = createRowList(new String[] { "a" }, new String[] { null, "1" }, new String[] { null, "4" },
+				new String[] { null, "7" });
+
+		addToDelete(new DataDeletable(participant.getParticipantId(), model.getId().toString()));
+
+		List<ParticipantDataRow> savedRows = participantDataDAO.append(participant.getParticipantId().toString(), model
+				.getId().toString(), rows.rows, rows.columns);
+
+		IdList idList = new IdList();
+		idList.setList(Lists.<Long>newArrayList());
+		for (ParticipantDataRow row : savedRows) {
+			idList.getList().add(row.getRowId());
+		}
+		
+		// Retain one in the middle
+		participantDataDAO.deleteRows(participant.getParticipantId().toString(), model.getId().toString(), idList);
+
+		List<ParticipantDataRow> newRowSet = participantDataDAO.get(participant.getParticipantId().toString(), model
+				.getId().toString(), rows.columns);
+
+		assertEquals(0, newRowSet.size());
+	}
+	
+	@Test
+	public void testDeleteAllButRowInMiddle() throws Exception {
+		DBOParticipant participant = createParticipant();
+		DBOParticipantDataDescriptor model = createModel();
+
+		Rows rows = createRowList(new String[] { "a" }, new String[] { null, "1" }, new String[] { null, "4" },
+				new String[] { null, "7" });
+
+		addToDelete(new DataDeletable(participant.getParticipantId(), model.getId().toString()));
+
+		List<ParticipantDataRow> savedRows = participantDataDAO.append(participant.getParticipantId().toString(), model
+				.getId().toString(), rows.rows, rows.columns);
+
+		List<Long> rowIds = Lists.newArrayListWithCapacity(savedRows.size());
+		for (ParticipantDataRow row : savedRows) {
+			rowIds.add(row.getRowId());
+		}
+		
+		// Retain one in the middle
+		rowIds.remove(1);
+		IdList idList = new IdList();
+		idList.setList(rowIds);
+		participantDataDAO.deleteRows(participant.getParticipantId().toString(), model.getId().toString(), idList);
+
+		List<ParticipantDataRow> newRowSet = participantDataDAO.get(participant.getParticipantId().toString(), model
+				.getId().toString(), rows.columns);
+
+		assertEquals(1, newRowSet.size());
+		assertEquals("4", ((ParticipantDataStringValue)newRowSet.get(0).getData().get("a")).getValue());
+	}
+	
+	@Test
+	public void testDeleteOneRowInMiddle() throws Exception {
+		DBOParticipant participant = createParticipant();
+		DBOParticipantDataDescriptor model = createModel();
+
+		Rows rows = createRowList(new String[] { "a" }, new String[] { null, "1" }, new String[] { null, "4" },
+				new String[] { null, "7" });
+
+		addToDelete(new DataDeletable(participant.getParticipantId(), model.getId().toString()));
+
+		List<ParticipantDataRow> savedRows = participantDataDAO.append(participant.getParticipantId().toString(), model
+				.getId().toString(), rows.rows, rows.columns);
+
+		List<Long> rowIds = Lists.newArrayListWithCapacity(savedRows.size());
+		for (ParticipantDataRow row : savedRows) {
+			rowIds.add(row.getRowId());
+		}
+		
+		// Retain one in the middle
+		rowIds.remove(2);
+		rowIds.remove(0);
+		IdList idList = new IdList();
+		idList.setList(rowIds);
+		participantDataDAO.deleteRows(participant.getParticipantId().toString(), model.getId().toString(), idList);
+
+		List<ParticipantDataRow> newRowSet = participantDataDAO.get(participant.getParticipantId().toString(), model
+				.getId().toString(), rows.columns);
+
+		assertEquals(2, newRowSet.size());
+		assertEquals("1", ((ParticipantDataStringValue)newRowSet.get(0).getData().get("a")).getValue());
+		assertEquals("7", ((ParticipantDataStringValue)newRowSet.get(1).getData().get("a")).getValue());
+	}
+	
+	
 }
