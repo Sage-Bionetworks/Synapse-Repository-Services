@@ -56,7 +56,7 @@ public class TemplatedConfigurationImpl implements TemplatedConfiguration {
 		// then we need to try and load the maven settings file.
 		if (System.getProperty(StackConstants.STACK_PROPERTY_FILE_URL) == null) {
 			// Try loading the settings file
-			addSettingsPropertiesToSystem();
+			addSettingsPropertiesToSystem(stackPropertyOverrides);
 		}
 		// These three properties are required. If they are null, an exception
 		// will be thrown
@@ -170,7 +170,7 @@ public class TemplatedConfigurationImpl implements TemplatedConfiguration {
 	 * Add the properties from the settings file to the system properties if
 	 * they are there.
 	 */
-	private void addSettingsPropertiesToSystem() {
+	private void addSettingsPropertiesToSystem(Properties properties) {
 		Properties props;
 		try {
 			props = SettingsLoader.loadSettingsFile();
@@ -180,6 +180,7 @@ public class TemplatedConfigurationImpl implements TemplatedConfiguration {
 					String key = (String) it.next();
 					String value = props.getProperty(key);
 					System.setProperty(key, value);
+					properties.setProperty(key, value);
 				}
 			}
 		} catch (Exception e) {

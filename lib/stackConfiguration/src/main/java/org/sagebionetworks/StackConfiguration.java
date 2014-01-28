@@ -324,7 +324,17 @@ public class StackConfiguration {
 	 */
 	public String getRepositoryDatabaseDriver() {
 		return configuration
-				.getProperty("org.sagebionetworks.id.generator.database.driver");
+				.getProperty("org.sagebionetworks.repository.databaes.driver");
+	}
+	
+	/**
+	 * Driver for the repository service.
+	 * 
+	 * @return
+	 */
+	public String getTableDatabaseDriver() {
+		return configuration
+				.getProperty("org.sagebionetworks.table.databaes.driver");
 	}
 
 	/**
@@ -585,6 +595,15 @@ public class StackConfiguration {
 	public boolean getDynamoEnabled(){
 		return Boolean.parseBoolean(configuration
 				.getProperty("org.sagebionetworks.dynamo.enabled"));
+	}
+	
+	/**
+	 * Is the Table feature enabled?
+	 * @return
+	 */
+	public boolean getTableEnabled(){
+		return Boolean.parseBoolean(configuration
+				.getProperty("org.sagebionetworks.table.enabled"));
 	}
 
 	/**
