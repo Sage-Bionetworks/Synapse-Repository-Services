@@ -61,7 +61,7 @@ public class ACLMigrationTypeListener implements MigrationTypeListener {
 		for (D d : delta) {
 			DBOAccessControlList acl = (DBOAccessControlList)d;
 			idGenerator.reserveId(acl.getId(), TYPE.ACL_ID);
-			if (acl.getOwnerType()!=null) continue;
+			if (!acl.getOwnerType().equals(DBOAccessControlList.UNKNOWN_OWNER_TYPE)) continue;
 			// we need to set the owner type.  It's either ENTITY, EVALUATION, or TEAM
 			Long ownerId = acl.getOwnerId();
 			String ownerIdString = ownerId.toString();
