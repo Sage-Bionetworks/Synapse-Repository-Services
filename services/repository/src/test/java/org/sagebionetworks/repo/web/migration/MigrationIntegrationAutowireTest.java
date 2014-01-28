@@ -26,7 +26,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
+import org.sagebionetworks.bridge.manager.participantdata.ParticipantDataIdMappingManagerImpl;
 import org.sagebionetworks.bridge.model.BridgeParticipantDAO;
+import org.sagebionetworks.bridge.model.BridgeUserParticipantMappingDAO;
 import org.sagebionetworks.bridge.model.Community;
 import org.sagebionetworks.bridge.model.CommunityTeamDAO;
 import org.sagebionetworks.bridge.model.ParticipantDataDAO;
@@ -180,6 +182,9 @@ public class MigrationIntegrationAutowireTest {
 
 	@Autowired
 	private BridgeParticipantDAO bridgeParticipantDAO;
+
+	@Autowired
+	private BridgeUserParticipantMappingDAO bridgeUserParticipantMappingDAO;
 
 	@Autowired
 	private ParticipantDataDAO participantDataDAO;
@@ -636,6 +641,8 @@ public class MigrationIntegrationAutowireTest {
 	private void createParticipantData(UserGroup sampleGroup) throws Exception {
 		Long participantId = Long.parseLong(sampleGroup.getId()) ^ -1L;
 		bridgeParticipantDAO.create(participantId);
+		bridgeUserParticipantMappingDAO.setParticipantIdsForUser(Long.parseLong(sampleGroup.getId()),
+				Collections.<String> singletonList(participantId.toString()));
 		ParticipantDataDescriptor participantDataDescriptor = new ParticipantDataDescriptor();
 		participantDataDescriptor.setName(participantId.toString() + "desc");
 		participantDataDescriptor.setRepeatType(ParticipantDataRepeatType.ALWAYS);
