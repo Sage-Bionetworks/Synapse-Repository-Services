@@ -11,6 +11,8 @@ import com.amazonaws.services.rds.model.DBInstance;
  *
  */
 public interface InstanceDiscovery {
+	
+	public static String RDS_STATUS_AVAILABLE = "available";
 
 	/**
 	 * Discover all of the instances that are currently available.

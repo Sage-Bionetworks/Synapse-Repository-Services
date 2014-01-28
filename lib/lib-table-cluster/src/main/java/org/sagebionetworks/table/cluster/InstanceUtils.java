@@ -52,7 +52,7 @@ public class InstanceUtils {
 	 * @return
 	 */
 	public static String createDatabaseInstanceIdentifier(int index){
-		return createDatabaseInstanceIdentifier(StackConfiguration.getStack(), config.getStackInstance(), index);
+		return createDatabaseInstanceIdentifier(StackConfiguration.getStack(), StackConfiguration.getStackInstance(), index);
 	}
 	
 	/**

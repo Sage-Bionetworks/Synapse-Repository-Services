@@ -53,7 +53,7 @@ public class InstanceDiscoveryImpl implements  InstanceDiscovery {
 			instance = getInstanceIfExists(databaseIdentifier);
 			if(instance != null){
 				// We have an instance but is it ready?
-				if("available".equals(instance.getDBInstanceStatus())){
+				if(RDS_STATUS_AVAILABLE.equals(instance.getDBInstanceStatus())){
 					list.add(instance);
 				}else{
 					log.debug("Found a database: "+instance.getDBInstanceIdentifier()+" but could not use it because its status was: "+instance.getDBInstanceStatus());

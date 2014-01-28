@@ -69,6 +69,7 @@ public class InstanceDiscoveryImplTest {
 		instance.setDBInstanceIdentifier(identifer);
 		instances.add(instance);
 		result.setDBInstances(instances);
+		instance.setDBInstanceStatus(InstanceDiscovery.RDS_STATUS_AVAILABLE);
 		when(mockRDSClient.describeDBInstances(request)).thenReturn(result);
 		return instance;
 	}
