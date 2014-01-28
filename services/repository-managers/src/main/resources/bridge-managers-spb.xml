@@ -21,6 +21,6 @@
 	<bean id="communityManager" class="org.sagebionetworks.bridge.manager.community.CommunityManagerImpl" scope="singleton" />
 	<bean id="participantDataManager" class="org.sagebionetworks.bridge.manager.participantdata.ParticipantDataManagerImpl" scope="singleton" />
 	<bean id="participantDataDescriptionManager" class="org.sagebionetworks.bridge.manager.participantdata.ParticipantDataDescriptionManagerImpl" scope="singleton" />
-	<bean id="participantIdMappingManager" class="org.sagebionetworks.bridge.manager.participantdata.ParticipantIdMappingManagerImpl" scope="singleton" />
-			
+	<bean id="participantDataIdMappingManager" class="org.sagebionetworks.bridge.manager.participantdata.ParticipantDataIdMappingManagerImpl" scope="singleton" />
+
 </beans>

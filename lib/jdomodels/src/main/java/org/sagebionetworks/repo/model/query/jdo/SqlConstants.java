@@ -551,6 +551,11 @@ public class SqlConstants {
 	public static final String COL_COMMUNITY_TEAM_COMMUNITY_ID = "COMMUNITY_ID";
 	public static final String COL_COMMUNITY_TEAM_TEAM_ID = "TEAM_ID";
 
+	// User to participant mapping
+	public static final String TABLE_USER_PARTICIPANT_MAP = "USER_PARTICIPANT_MAP";
+	public static final String COL_USER_PARTICIPANT_MAP_USER_ID = "ID";
+	public static final String COL_USER_PARTICIPANT_MAP_MAP = "MAP";
+
 	// Participant
 	public static final String TABLE_PARTICIPANT = "PARTICIPANT";
 	public static final String COL_PARTICIPANT_ID = "ID";

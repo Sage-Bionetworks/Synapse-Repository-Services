@@ -34,7 +34,7 @@ public class DBOBridgeParticipantDAOImplTest extends TestBase {
 	@Test
 	public void testCreateParticipant() throws Exception {
 		String user = createMember();
-		participantDAO.create(user);
+		participantDAO.create(Long.parseLong(user));
 		addToDelete(DBOParticipant.class, user);
 	}
 }
