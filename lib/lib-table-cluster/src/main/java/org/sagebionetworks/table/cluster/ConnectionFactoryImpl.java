@@ -1,7 +1,9 @@
 package org.sagebionetworks.table.cluster;
 
+import java.sql.SQLException;
 import java.util.List;
 
+import org.apache.commons.dbcp.BasicDataSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
@@ -27,14 +29,21 @@ public class ConnectionFactoryImpl implements ConnectionFactory {
 	@Autowired
 	InstanceDiscovery instanceDiscovery;
 	
+	/**
+	 * Note: This field will be remove when we actually have more than one connection.
+	 * It is a simple way to get the functionality up and running without adding full
+	 * support for a load balancing.
+	 */
+	private BasicDataSource singleConnectionPool;
+	
 	@Autowired
 	private StackConfiguration stackConfig;
 	
 	@Override
 	public SimpleJdbcTemplate getConnection(String tableId) {
-		// This method can only be called in 
-		// TODO Auto-generated method stub
-		return null;
+		validateEnable();
+		// For now we use the same connection for all tables
+		return new SimpleJdbcTemplate(singleConnectionPool);
 	}
 	
 	/**
@@ -47,8 +56,33 @@ public class ConnectionFactoryImpl implements ConnectionFactory {
 			List<DBInstance> instances = instanceDiscovery.discoverAllInstances();
 			if(instances == null || instances.isEmpty()) throw new IllegalArgumentException("Did not find at least one database instances.  Expected at least one instances: "+InstanceUtils.createDatabaseInstanceIdentifier(0));
 			
+			// This will be improved in the future.  For now we just use the first database we find
+			DBInstance instance = instances.get(0);
+			// Use the one instance to create a single connection pool
+			singleConnectionPool = InstanceUtils.createNewDatabaseConnectionPool(stackConfig, instance);			
 		}else{
 			log.debug("The table feature is disabled and cannot be used");
+		}
+	}
+	
+	/**
+	 * Validate that the table feature is enabled.
+	 */
+	private void validateEnable(){
+		if(!stackConfig.getTableEnabled()){
+			throw new IllegalArgumentException("The table feature is disabled (org.sagebionetworks.table.enabled=false) so this method is not available.");
+		}
+	}
+	
+	/**
+	 * Spring will calls this method when this bean is destroyed.
+	 * This is our chance to shutdown the database connection pools.
+	 * @throws SQLException 
+	 */
+	public void close() throws SQLException{
+		if(singleConnectionPool != null){
+			log.debug("Closing connection pool to: "+singleConnectionPool.getUrl());
+			singleConnectionPool.close();
 		}
 	}
 

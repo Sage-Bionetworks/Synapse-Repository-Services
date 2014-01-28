@@ -324,7 +324,17 @@ public class StackConfiguration {
 	 */
 	public String getRepositoryDatabaseDriver() {
 		return configuration
-				.getProperty("org.sagebionetworks.id.generator.database.driver");
+				.getProperty("org.sagebionetworks.repository.databaes.driver");
+	}
+	
+	/**
+	 * Driver for the repository service.
+	 * 
+	 * @return
+	 */
+	public String getTableDatabaseDriver() {
+		return configuration
+				.getProperty("org.sagebionetworks.table.databaes.driver");
 	}
 
 	/**

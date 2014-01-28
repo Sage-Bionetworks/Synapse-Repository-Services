@@ -28,6 +28,7 @@
 	
 	<bean id="instanceDiscovery" class="org.sagebionetworks.table.cluster.InstanceDiscoveryImpl" />
 	
-	<bean id="tableConnectionFactory" class="org.sagebionetworks.table.cluster.ConnectionFactoryImpl" init-method="initialize" />
+	<bean id="tableConnectionFactory" class="org.sagebionetworks.table.cluster.ConnectionFactoryImpl" 
+	    init-method="initialize" destroy-method="close" />
 
 </beans>

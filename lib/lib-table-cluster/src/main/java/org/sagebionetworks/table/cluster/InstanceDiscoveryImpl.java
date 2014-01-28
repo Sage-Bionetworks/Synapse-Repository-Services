@@ -52,7 +52,12 @@ public class InstanceDiscoveryImpl implements  InstanceDiscovery {
 			String databaseIdentifier = InstanceUtils.createDatabaseInstanceIdentifier(index);
 			instance = getInstanceIfExists(databaseIdentifier);
 			if(instance != null){
-				list.add(instance);
+				// We have an instance but is it ready?
+				if("available".equals(instance.getDBInstanceStatus())){
+					list.add(instance);
+				}else{
+					log.debug("Found a database: "+instance.getDBInstanceIdentifier()+" but could not use it because its status was: "+instance.getDBInstanceStatus());
+				}
 			}
 			index++;
 		}while(instance != null || index < maxNumberFound);
