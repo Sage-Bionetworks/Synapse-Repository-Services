@@ -644,39 +644,34 @@ public class SharedClientConnection {
 		
 		JSONObject results = null;
 		String requestUrl = null;
+		String responseBody = null;
 		try {
 			requestUrl = createRequestUrl(endpoint, uri, parameters);
 			
+			!!!!! status code shouldn't be returned as exception !!!!!
 			HttpResponse response = clientProvider.performRequest(requestUrl, requestMethod, requestContent,
 					requestHeaders);
-
-			if (requestProfile && !requestMethod.equals("DELETE")) {
-				Header header = response
-						.getFirstHeader(PROFILE_RESPONSE_OBJECT_HEADER);
-				String encoded = header.getValue();
-				String decoded = new String(Base64.decodeBase64(encoded
-						.getBytes("UTF-8")), "UTF-8");
-				profileData = new JSONObject(decoded);
-			} else {
-				profileData = null;
-			}
-
-			String responseBody = (null != response.getEntity()) ? EntityUtils
+			responseBody = (null != response.getEntity()) ? EntityUtils
 					.toString(response.getEntity()) : null;
+		} catch (IOException e) {
+			throw new SynapseClientException(e);
+		}
+		
+		try {
+
 			if (null != responseBody && responseBody.length()>0) {
 				try {
 					results = new JSONObject(responseBody);
+					if (log.isDebugEnabled()) {
+						if(authEndpoint.equals(endpoint)) {
+							log.debug(requestMethod + " " + requestUrl + " : (not logging auth request details)");
+						}
+						else {
+							log.debug(requestMethod + " " + requestUrl + " : " + results.toString(JSON_INDENT));
+						}
+					}
 				} catch (JSONException jsone) {
 					throw new SynapseClientException("responseBody: <<"+responseBody+">>", jsone);
-				}
-				if (log.isDebugEnabled()) {
-					if(authEndpoint.equals(endpoint)) {
-						log.debug(requestMethod + " " + requestUrl + " : (not logging auth request details)");
-					}
-					else {
-						log.debug(requestMethod + " " + requestUrl + " : "
-								+ results.toString(JSON_INDENT));
-					}
 				}
 			}
 
@@ -700,8 +695,6 @@ public class SharedClientConnection {
 					if (results != null)
 						reasonStr = results.getString("reason");
 				}
-				String exceptionContent = "Service Error(" + statusCode + "): "
-						+ reasonStr + " " + e.getMessage();
 
 				if (statusCode == 401) {
 					throw new SynapseUnauthorizedException(reasonStr);
@@ -711,10 +704,8 @@ public class SharedClientConnection {
 					throw new SynapseNotFoundException(reasonStr);
 				} else if (statusCode == 400) {
 					throw new SynapseBadRequestException(reasonStr);
-				} else if (statusCode >= 400 && statusCode < 500) {
-					throw new SynapseServerException(statusCode, reasonStr);
 				} else {
-					throw new SynapseServerException(statusCode, "request content: "+requestContent+" exception content: "+exceptionContent+" status code: "+statusCode);
+					throw new SynapseServerException(statusCode, reasonStr);
 				}
 			} catch (JSONException jsonEx) {
 				// swallow the JSONException since its not the real problem and
@@ -723,16 +714,6 @@ public class SharedClientConnection {
 			} catch (ParseException parseEx) {
 				throw new SynapseClientException(parseEx);
 			}
-		} // end catch
-		catch (MalformedURLException e) {
-			throw new SynapseClientException(e);
-		} catch (ClientProtocolException e) {
-			throw new SynapseClientException(e);
-		} catch (IOException e) {
-			throw new SynapseClientException(e);
-		} catch (JSONException e) {
-			throw new SynapseClientException(e);
-		}
 
 		return results;
 	}
