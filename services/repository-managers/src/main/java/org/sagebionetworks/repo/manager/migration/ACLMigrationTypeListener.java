@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.manager.migration;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_OWNER_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_CONTROL_LIST;
+import static org.sagebionetworks.repo.model.dbo.persistence.DBOAccessControlList.OWNER_ID_FIELD_NAME;
+import static org.sagebionetworks.repo.model.dbo.persistence.DBOAccessControlList.OWNER_TYPE_FIELD_NAME;
 
 import java.util.List;
 
@@ -14,13 +14,11 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamDAO;
-import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessControlList;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
@@ -36,10 +34,6 @@ public class ACLMigrationTypeListener implements MigrationTypeListener {
 	
 	@Autowired
 	private IdGenerator idGenerator;
-
-	
-	@Autowired
-	private DBOBasicDao dboBasicDao;
 
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;	
@@ -97,18 +91,13 @@ public class ACLMigrationTypeListener implements MigrationTypeListener {
 
 	}
 	
-	private static RowMapper<DBOAccessControlList> aclRowMapper = (new DBOAccessControlList()).getTableMapping();
-
-	private static final String SELECT_FOR_UPDATE_BY_OWNER_ID_ONLY = "SELECT * FROM "+TABLE_ACCESS_CONTROL_LIST+
-			" WHERE "+COL_ACL_OWNER_ID+" = :" + COL_ACL_OWNER_ID+" FOR UPDATE";
+	private static final String OWNER_TYPE_UPDATE_SQL = "update ACL set OWNER_TYPE=:"+OWNER_TYPE_FIELD_NAME+" where OWNER_ID=:"+OWNER_ID_FIELD_NAME;
 
 	private void updateOwnerType(final long ownerId, ObjectType ownerType) {
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(COL_ACL_OWNER_ID, ownerId);
-		DBOAccessControlList dbo = simpleJdbcTemplate.queryForObject(SELECT_FOR_UPDATE_BY_OWNER_ID_ONLY, aclRowMapper, param);
-		dbo.setOwnerType(ownerType.name());
-		dboBasicDao.update(dbo);
-
+		MapSqlParameterSource updateParam = new MapSqlParameterSource();
+		updateParam.addValue(OWNER_ID_FIELD_NAME,ownerId);
+		updateParam.addValue(OWNER_TYPE_FIELD_NAME, ownerType.name());
+		simpleJdbcTemplate.update(OWNER_TYPE_UPDATE_SQL, updateParam);
 	}
 
 	@Override
