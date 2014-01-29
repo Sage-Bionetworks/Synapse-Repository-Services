@@ -129,16 +129,13 @@ public class DBOParticipantDataDescriptorDAOImpl implements ParticipantDataDescr
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void updateParticipantDataDescriptor(ParticipantDataDescriptor participantDataDescriptor) throws NotFoundException {
-		DBOParticipantDataDescriptor dboParticipantDataDescriptor = new DBOParticipantDataDescriptor();
-		dboParticipantDataDescriptor.setId(Long.parseLong(participantDataDescriptor.getId()));
+		DBOParticipantDataDescriptor dboParticipantDataDescriptor = basicDao.getObjectByPrimaryKey(DBOParticipantDataDescriptor.class,
+				new SinglePrimaryKeySqlParameterSource(participantDataDescriptor.getId()));
 		dboParticipantDataDescriptor.setName(participantDataDescriptor.getName());
 		dboParticipantDataDescriptor.setDescription(participantDataDescriptor.getDescription());
 		dboParticipantDataDescriptor.setRepeatType(participantDataDescriptor.getRepeatType());
 		dboParticipantDataDescriptor.setRepeatFrequency(participantDataDescriptor.getRepeatFrequency());
-		if (!basicDao.update(dboParticipantDataDescriptor)) {
-			throw new NotFoundException("Update for ParticipantDataDescriptor " + participantDataDescriptor.getId()
-					+ " found nothing to update");
-		}
+		basicDao.update(dboParticipantDataDescriptor);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)

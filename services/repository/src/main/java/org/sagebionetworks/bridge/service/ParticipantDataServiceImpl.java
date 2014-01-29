@@ -36,16 +36,14 @@ public class ParticipantDataServiceImpl implements ParticipantDataService {
 
 	@Override
 	public ParticipantDataRow getRow(Long userId, String participantDataId, Long rowId) throws DatastoreException,
- NotFoundException,
-			IOException, GeneralSecurityException {
+			NotFoundException, IOException, GeneralSecurityException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return participantDataManager.getDataRow(userInfo, participantDataId, rowId);
 	}
 
 	@Override
-	public ParticipantDataCurrentRow getCurrent(Long userId, String participantDataId)
- throws DatastoreException, NotFoundException,
-			IOException, GeneralSecurityException {
+	public ParticipantDataCurrentRow getCurrent(Long userId, String participantDataId) throws DatastoreException,
+			NotFoundException, IOException, GeneralSecurityException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return participantDataManager.getCurrentData(userInfo, participantDataId);
 	}
@@ -92,6 +90,13 @@ public class ParticipantDataServiceImpl implements ParticipantDataService {
 		return participantDataDescriptionManager.createParticipantDataDescriptor(userInfo, participantDataDescriptor);
 	}
 
+	@Override
+	public void updateParticipantDataDescriptor(Long userId, ParticipantDataDescriptor participantDataDescriptor)
+			throws DatastoreException, NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		participantDataDescriptionManager.updateParticipantDataDescriptor(userInfo, participantDataDescriptor);
+	}
+	
 	@Override
 	public ParticipantDataDescriptor getParticipantDataDescriptor(Long userId, String participantDataId) throws DatastoreException,
 			NotFoundException {

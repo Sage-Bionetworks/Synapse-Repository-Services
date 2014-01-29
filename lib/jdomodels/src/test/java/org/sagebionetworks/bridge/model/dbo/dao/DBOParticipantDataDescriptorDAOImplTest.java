@@ -2,6 +2,7 @@ package org.sagebionetworks.bridge.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 import java.util.List;
 
@@ -92,7 +93,7 @@ public class DBOParticipantDataDescriptorDAOImplTest {
 		toDelete.add(new Deletable(DBOParticipantDataDescriptor.class, participantDataDescriptor.getId()));
 		return participantDataDescriptor;
 	}
-
+	
 	private ParticipantDataColumnDescriptor createColumnDescriptor(ParticipantDataDescriptor participantDataDescriptor) {
 		ParticipantDataColumnDescriptor participantDataColumnDescriptor1 = new ParticipantDataColumnDescriptor();
 		participantDataColumnDescriptor1.setName("data1");
@@ -133,6 +134,23 @@ public class DBOParticipantDataDescriptorDAOImplTest {
 			assertEquals(participantDataColumnDescriptor1, participantDataColumns.get(1));
 			assertEquals(participantDataColumnDescriptor2, participantDataColumns.get(0));
 		}
+	}
+	
+	@Test
+	public void testUpdateParticipantDataDescriptor() throws Exception {
+		ParticipantDataDescriptor participantDataDescriptor = createParticipantDataDescriptor();
+		
+		participantDataDescriptor.setName("Altered name");
+		participantDataDescriptor.setDescription(null);
+		participantDataDescriptor.setRepeatFrequency("* 17 * * 1-5");
+		participantDataDescriptor.setRepeatType(ParticipantDataRepeatType.IF_NEW);
+		participantDataDescriptorDAO.updateParticipantDataDescriptor(participantDataDescriptor);
+
+		participantDataDescriptor = participantDataDescriptorDAO.getParticipantDataDescriptor(participantDataDescriptor.getId());
+		assertEquals("Altered name", participantDataDescriptor.getName());
+		assertNull(participantDataDescriptor.getDescription());
+		assertEquals("* 17 * * 1-5", participantDataDescriptor.getRepeatFrequency());
+		assertEquals(ParticipantDataRepeatType.IF_NEW, participantDataDescriptor.getRepeatType());
 	}
 
 	@Test
