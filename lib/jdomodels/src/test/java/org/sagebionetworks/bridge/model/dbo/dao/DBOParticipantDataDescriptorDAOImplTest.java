@@ -21,6 +21,7 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
@@ -94,9 +95,9 @@ public class DBOParticipantDataDescriptorDAOImplTest {
 		return participantDataDescriptor;
 	}
 	
-	private ParticipantDataColumnDescriptor createColumnDescriptor(ParticipantDataDescriptor participantDataDescriptor) {
+	private ParticipantDataColumnDescriptor createColumnDescriptor(ParticipantDataDescriptor participantDataDescriptor, String columnName) {
 		ParticipantDataColumnDescriptor participantDataColumnDescriptor1 = new ParticipantDataColumnDescriptor();
-		participantDataColumnDescriptor1.setName("data1");
+		participantDataColumnDescriptor1.setName(columnName);
 		participantDataColumnDescriptor1.setColumnType(ParticipantDataColumnType.STRING);
 		participantDataColumnDescriptor1.setDescription("something");
 		participantDataColumnDescriptor1.setParticipantDataDescriptorId(participantDataDescriptor.getId());
@@ -111,8 +112,8 @@ public class DBOParticipantDataDescriptorDAOImplTest {
 
 		ParticipantDataDescriptor participantDataDescriptor = createParticipantDataDescriptor();
 
-		ParticipantDataColumnDescriptor participantDataColumnDescriptor1 = createColumnDescriptor(participantDataDescriptor);
-		ParticipantDataColumnDescriptor participantDataColumnDescriptor2 = createColumnDescriptor(participantDataDescriptor);
+		ParticipantDataColumnDescriptor participantDataColumnDescriptor1 = createColumnDescriptor(participantDataDescriptor, "data1");
+		ParticipantDataColumnDescriptor participantDataColumnDescriptor2 = createColumnDescriptor(participantDataDescriptor, "data2");
 
 		List<ParticipantDataDescriptor> participantDataDescriptors = participantDataDescriptorDAO.getParticipantDatas();
 		ParticipantDataDescriptor found = null;
@@ -158,7 +159,7 @@ public class DBOParticipantDataDescriptorDAOImplTest {
 
 		ParticipantDataDescriptor participantDataDescriptor = createParticipantDataDescriptor();
 
-		ParticipantDataColumnDescriptor participantDataColumnDescriptor = createColumnDescriptor(participantDataDescriptor);
+		ParticipantDataColumnDescriptor participantDataColumnDescriptor = createColumnDescriptor(participantDataDescriptor, "data1");
 
 		participantDataColumnDescriptor.setDescription("Some other description");
 		participantDataDescriptorDAO.updateParticipantDataColumnDescriptor(participantDataColumnDescriptor);
@@ -173,8 +174,8 @@ public class DBOParticipantDataDescriptorDAOImplTest {
 
 		ParticipantDataDescriptor participantDataDescriptor = createParticipantDataDescriptor();
 
-		ParticipantDataColumnDescriptor participantDataColumnDescriptor = createColumnDescriptor(participantDataDescriptor);
-		ParticipantDataColumnDescriptor participantDataColumnDescriptor2 = createColumnDescriptor(participantDataDescriptor);
+		ParticipantDataColumnDescriptor participantDataColumnDescriptor = createColumnDescriptor(participantDataDescriptor, "data1");
+		ParticipantDataColumnDescriptor participantDataColumnDescriptor2 = createColumnDescriptor(participantDataDescriptor, "data2");
 
 		List<ParticipantDataColumnDescriptor> participantDataColumns = participantDataDescriptorDAO.getParticipantDataColumns(participantDataDescriptor.getId());
 		assertEquals(2, participantDataColumns.size());
@@ -185,4 +186,25 @@ public class DBOParticipantDataDescriptorDAOImplTest {
 		assertEquals(1, participantDataColumns.size());
 		assertEquals(participantDataColumnDescriptor, participantDataColumns.get(0));
 	}
+	
+	@Test(expected=DuplicateKeyException.class)
+	public void testRejectDuplicateColumnName() throws Throwable {
+		ParticipantDataDescriptor participantDataDescriptor = createParticipantDataDescriptor();
+		try {
+			createColumnDescriptor(participantDataDescriptor, "data1");
+			createColumnDescriptor(participantDataDescriptor, "data1");
+		} catch(IllegalArgumentException iae) {
+			throw iae.getCause();
+		}
+	}
+	
+	@Test
+	public void testDuplicateColumnNameUnderDifferentDescriptorsNotRejected() {
+		ParticipantDataDescriptor participantDataDescriptor = createParticipantDataDescriptor();
+		createColumnDescriptor(participantDataDescriptor, "data1");
+		
+		participantDataDescriptor = createParticipantDataDescriptor();
+		createColumnDescriptor(participantDataDescriptor, "data1");
+	}	
+	
 }
