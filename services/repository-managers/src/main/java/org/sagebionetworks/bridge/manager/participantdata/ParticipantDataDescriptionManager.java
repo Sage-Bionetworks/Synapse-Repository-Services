@@ -1,11 +1,11 @@
 package org.sagebionetworks.bridge.manager.participantdata;
 
 import java.io.IOException;
+
 import java.security.GeneralSecurityException;
 import java.util.List;
 
 import org.sagebionetworks.bridge.model.data.ParticipantDataColumnDescriptor;
-import org.sagebionetworks.bridge.model.data.ParticipantDataCurrentRow;
 import org.sagebionetworks.bridge.model.data.ParticipantDataDescriptor;
 import org.sagebionetworks.bridge.model.data.ParticipantDataStatus;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -16,6 +16,8 @@ import org.sagebionetworks.repo.web.NotFoundException;
 public interface ParticipantDataDescriptionManager {
 	ParticipantDataDescriptor createParticipantDataDescriptor(UserInfo userInfo, ParticipantDataDescriptor participantDataDescriptor);
 
+	void updateParticipantDataDescriptor(UserInfo userInfo, ParticipantDataDescriptor participantDataDescriptor) throws NotFoundException;
+	
 	ParticipantDataDescriptor getParticipantDataDescriptor(UserInfo userInfo, String participantDataId) throws DatastoreException,
 			NotFoundException;
 

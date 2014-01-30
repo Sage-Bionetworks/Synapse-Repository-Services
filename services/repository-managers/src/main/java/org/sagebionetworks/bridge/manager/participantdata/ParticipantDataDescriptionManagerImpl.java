@@ -34,6 +34,12 @@ public class ParticipantDataDescriptionManagerImpl implements ParticipantDataDes
 	public ParticipantDataDescriptor createParticipantDataDescriptor(UserInfo userInfo, ParticipantDataDescriptor participantDataDescriptor) {
 		return participantDataDescriptorDAO.createParticipantDataDescriptor(participantDataDescriptor);
 	}
+	
+	@Override
+	public void updateParticipantDataDescriptor(UserInfo userInfo, ParticipantDataDescriptor participantDataDescriptor) throws NotFoundException {
+		participantDataDescriptorDAO.updateParticipantDataDescriptor(participantDataDescriptor);
+	}
+	
 
 	@Override
 	public ParticipantDataDescriptor getParticipantDataDescriptor(UserInfo userInfo, String participantDataId) throws DatastoreException,

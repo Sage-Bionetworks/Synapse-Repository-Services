@@ -195,6 +195,14 @@ public class ParticipantDataController {
 			@RequestBody ParticipantDataDescriptor participantDataDescriptor) throws Exception {
 		return serviceProvider.getParticipantDataService().createParticipantDataDescriptor(userId, participantDataDescriptor);
 	}
+	
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = BridgeUrlHelpers.PARTICIPANT_DATA_DESCRIPTOR, method = RequestMethod.PUT)
+	public void updateParticipantDataDescriptor(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) Long userId,
+			@RequestBody ParticipantDataDescriptor participantDataDescriptor) throws Exception {
+		serviceProvider.getParticipantDataService().updateParticipantDataDescriptor(userId, participantDataDescriptor);
+	}
 
 	/**
 	 * get a participant data description

@@ -244,6 +244,12 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 	}
 
 	@Override
+	public void updateParticipantDataDescriptor(ParticipantDataDescriptor participantDataDescriptor) throws SynapseException {
+		String uri = PARTICIPANT_DATA_DESCRIPTOR;
+		put(uri, participantDataDescriptor);
+	}
+	
+	@Override
 	public PaginatedResults<ParticipantDataDescriptor> getAllParticipantDatas(long limit, long offset) throws SynapseException {
 		String uri = PARTICIPANT_DATA_DESCRIPTOR;
 		return getList(uri, ParticipantDataDescriptor.class, limit, offset);

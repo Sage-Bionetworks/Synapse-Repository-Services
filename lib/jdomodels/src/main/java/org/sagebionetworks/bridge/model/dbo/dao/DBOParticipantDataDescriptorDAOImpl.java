@@ -74,6 +74,7 @@ public class DBOParticipantDataDescriptorDAOImpl implements ParticipantDataDescr
 			ParticipantDataColumnDescriptor participantDataColumnDescriptor = dboParticipantDataColumnDescriptor
 					.getParticipantDataColumnDescriptor();
 			participantDataColumnDescriptor.setId(dboParticipantDataColumnDescriptor.getId().toString());
+			participantDataColumnDescriptor.setName(dboParticipantDataColumnDescriptor.getName());
 			participantDataColumnDescriptor.setParticipantDataDescriptorId(dboParticipantDataColumnDescriptor
 					.getParticipantDataDescriptorId().toString());
 			return participantDataColumnDescriptor;
@@ -129,16 +130,13 @@ public class DBOParticipantDataDescriptorDAOImpl implements ParticipantDataDescr
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void updateParticipantDataDescriptor(ParticipantDataDescriptor participantDataDescriptor) throws NotFoundException {
-		DBOParticipantDataDescriptor dboParticipantDataDescriptor = new DBOParticipantDataDescriptor();
-		dboParticipantDataDescriptor.setId(Long.parseLong(participantDataDescriptor.getId()));
+		DBOParticipantDataDescriptor dboParticipantDataDescriptor = basicDao.getObjectByPrimaryKey(DBOParticipantDataDescriptor.class,
+				new SinglePrimaryKeySqlParameterSource(participantDataDescriptor.getId()));
 		dboParticipantDataDescriptor.setName(participantDataDescriptor.getName());
 		dboParticipantDataDescriptor.setDescription(participantDataDescriptor.getDescription());
 		dboParticipantDataDescriptor.setRepeatType(participantDataDescriptor.getRepeatType());
 		dboParticipantDataDescriptor.setRepeatFrequency(participantDataDescriptor.getRepeatFrequency());
-		if (!basicDao.update(dboParticipantDataDescriptor)) {
-			throw new NotFoundException("Update for ParticipantDataDescriptor " + participantDataDescriptor.getId()
-					+ " found nothing to update");
-		}
+		basicDao.update(dboParticipantDataDescriptor);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -156,6 +154,7 @@ public class DBOParticipantDataDescriptorDAOImpl implements ParticipantDataDescr
 		dboParticipantDataColumnDescriptor.setId(idGenerator.generateNewId(TYPE.COLUMN_MODEL_ID));
 		dboParticipantDataColumnDescriptor.setParticipantDataDescriptorId(Long.parseLong(participantDataColumnDescriptor
 				.getParticipantDataDescriptorId()));
+		dboParticipantDataColumnDescriptor.setName(participantDataColumnDescriptor.getName());
 		dboParticipantDataColumnDescriptor.setParticipantDataColumnDescriptor(participantDataColumnDescriptor);
 		dboParticipantDataColumnDescriptor = basicDao.createNew(dboParticipantDataColumnDescriptor);
 		return dboToDtoParticipantDataColumnDescriptor.apply(dboParticipantDataColumnDescriptor);
@@ -169,6 +168,7 @@ public class DBOParticipantDataDescriptorDAOImpl implements ParticipantDataDescr
 		dboParticipantDataColumnDescriptor.setParticipantDataDescriptorId(Long.parseLong(participantDataColumnDescriptor
 				.getParticipantDataDescriptorId()));
 		dboParticipantDataColumnDescriptor.setId(Long.parseLong(participantDataColumnDescriptor.getId()));
+		dboParticipantDataColumnDescriptor.setName(participantDataColumnDescriptor.getName());
 		dboParticipantDataColumnDescriptor.setParticipantDataColumnDescriptor(participantDataColumnDescriptor);
 		if (!basicDao.update(dboParticipantDataColumnDescriptor)) {
 			throw new NotFoundException("Update for ParticipantDataColumnDescriptor " + participantDataColumnDescriptor.getId()

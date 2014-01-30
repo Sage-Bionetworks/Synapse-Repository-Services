@@ -45,6 +45,9 @@ public interface ParticipantDataService {
 	public ParticipantDataDescriptor createParticipantDataDescriptor(Long userId, ParticipantDataDescriptor participantDataDescriptor)
 			throws DatastoreException, NotFoundException;
 
+	public void updateParticipantDataDescriptor(Long userId, ParticipantDataDescriptor participantDataDescriptor)
+			throws DatastoreException, NotFoundException;
+	
 	public ParticipantDataDescriptor getParticipantDataDescriptor(Long userId, String participantDataId) throws DatastoreException,
 			NotFoundException;
 

@@ -657,7 +657,7 @@ public class MigrationIntegrationAutowireTest {
 		participantDataColumnDescriptor2.setParticipantDataDescriptorId(participantDataDescriptor.getId());
 		participantDataColumnDescriptor2.setName("b");
 		participantDataColumnDescriptor2.setColumnType(ParticipantDataColumnType.STRING);
-		participantDataDescriptorDAO.createParticipantDataColumnDescriptor(participantDataColumnDescriptor);
+		participantDataDescriptorDAO.createParticipantDataColumnDescriptor(participantDataColumnDescriptor2);
 		ParticipantDataRow dataRow = new ParticipantDataRow();
 		ParticipantDataStringValue stringValue1 = new ParticipantDataStringValue();
 		stringValue1.setValue("1");
