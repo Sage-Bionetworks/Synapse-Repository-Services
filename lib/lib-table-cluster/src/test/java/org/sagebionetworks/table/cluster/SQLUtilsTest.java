@@ -152,6 +152,13 @@ public class SQLUtilsTest {
 	}
 	
 	@Test
+	public void testSQLInjection(){
+		String expected = "DEFAULT ''' DROP TABLE FOO '''";
+		String sql = SQLUtils.getSQLDefaultForColumnType(ColumnType.STRING, "' DROP TABLE FOO '");
+		assertEquals(expected, sql);
+	}
+	
+	@Test
 	public void testCreateAllTypes(){
 		List<ColumnModel> allTypes = TableModelUtils.createOneOfEachType();
 		String sql = SQLUtils.createTableSQL(allTypes, "123");
@@ -249,6 +256,7 @@ public class SQLUtilsTest {
 		String expected = "ALTER TABLE `T999` DROP COLUMN `C1`, DROP COLUMN `C3`, ADD COLUMN `C0` bigint(20) DEFAULT NULL, ADD COLUMN `C4` bigint(20) DEFAULT NULL";
 		assertEquals(expected, sql);
 	}
+	
 	
 	/**
 	 * A helper to create a list of ColumnModels from column model ids.
