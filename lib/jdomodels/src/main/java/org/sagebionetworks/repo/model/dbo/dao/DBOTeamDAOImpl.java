@@ -251,7 +251,6 @@ public class DBOTeamDAOImpl implements TeamDAO {
 			Team deserializedProperties = TeamUtils.copyFromSerializedField(dbo);
 			if (dto.getCreatedBy()==null) dto.setCreatedBy(deserializedProperties.getCreatedBy());
 			if (dto.getCreatedOn()==null) dto.setCreatedOn(deserializedProperties.getCreatedOn());
-			if (!dto.getName().equals(deserializedProperties.getName())) throw new InvalidModelException("Cannot modify team name.");
 		}
 		
 		// Update with a new e-tag
