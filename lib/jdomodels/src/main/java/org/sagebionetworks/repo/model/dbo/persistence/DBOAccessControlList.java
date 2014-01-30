@@ -121,8 +121,6 @@ public class DBOAccessControlList implements MigratableDatabaseObject<DBOAccessC
 			@Override
 			public DBOAccessControlList createDatabaseObjectFromBackup(
 					DBOAccessControlList backup) {
-				// this supports the migration of legacy ACLs, which don't have values for owner ID
-				if (backup.getOwnerId()==null) backup.setOwnerId(backup.getId());
 				return backup;
 			}
 

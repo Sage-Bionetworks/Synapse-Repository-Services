@@ -173,8 +173,7 @@
             ref="stackConfiguration.migrationBackupBatchMax" />
         <property name="migrationListeners" >
             <list>
-                <bean class="org.sagebionetworks.repo.manager.migration.ACLMigrationTypeListener" />
-                </list>
+            </list>
         </property>
     </bean>
 
