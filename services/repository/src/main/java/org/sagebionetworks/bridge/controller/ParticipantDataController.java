@@ -294,7 +294,7 @@ public class ParticipantDataController {
 	 * @throws NotFoundException
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = BridgeUrlHelpers.SEND_PARTICIPANT_DATA_DESCRIPTORS_UPDATES, method = RequestMethod.POST)
+	@RequestMapping(value = BridgeUrlHelpers.SEND_PARTICIPANT_DATA_DESCRIPTORS_UPDATES, method = RequestMethod.PUT)
 	public void updateParticipantDataStatuses(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) Long userId,
 			@RequestBody ParticipantDataStatusList statusList) throws DatastoreException, NotFoundException {
 		serviceProvider.getParticipantDataService().updateParticipantStatuses(userId, statusList.getUpdates());
