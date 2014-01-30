@@ -5,6 +5,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.lang.StringEscapeUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -127,6 +128,8 @@ public class SQLUtils {
 	 */
 	public static String getSQLDefaultForColumnType(ColumnType type, String defaultString){
 		if(defaultString == null) return DEFAULT+" NULL";
+		// Prevent SQL injection attack
+		defaultString = StringEscapeUtils.escapeSql(defaultString);
 		try {
 			if(ColumnType.LONG.equals(type) || ColumnType.FILEHANDLEID.equals(type)){
 				// Convert the default to a long
