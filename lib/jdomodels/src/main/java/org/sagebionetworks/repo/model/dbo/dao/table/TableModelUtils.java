@@ -39,7 +39,7 @@ public class TableModelUtils {
 
 	private static final String INVALID_VALUE_TEMPLATE = "Value at [%1$s,%2$s] was not a valid %3$s. %4$s";
 	/**
-	 * Sets the maxiumn string length for a string value in a table.
+	 * Sets the maximum string length for a string value in a table.
 	 */
 	public static final int MAX_STRING_LENGTH = 2000;
 	
