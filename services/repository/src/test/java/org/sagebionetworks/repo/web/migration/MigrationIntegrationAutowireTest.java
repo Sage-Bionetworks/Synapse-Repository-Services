@@ -26,7 +26,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
+import org.sagebionetworks.bridge.manager.participantdata.ParticipantDataIdMappingManagerImpl;
 import org.sagebionetworks.bridge.model.BridgeParticipantDAO;
+import org.sagebionetworks.bridge.model.BridgeUserParticipantMappingDAO;
 import org.sagebionetworks.bridge.model.Community;
 import org.sagebionetworks.bridge.model.CommunityTeamDAO;
 import org.sagebionetworks.bridge.model.ParticipantDataDAO;
@@ -89,7 +91,7 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.Comment;
 import org.sagebionetworks.repo.model.message.MessageToUser;
-import org.sagebionetworks.repo.model.migration.IdList;
+import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.migration.ListBucketProvider;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
@@ -180,6 +182,9 @@ public class MigrationIntegrationAutowireTest {
 
 	@Autowired
 	private BridgeParticipantDAO bridgeParticipantDAO;
+
+	@Autowired
+	private BridgeUserParticipantMappingDAO bridgeUserParticipantMappingDAO;
 
 	@Autowired
 	private ParticipantDataDAO participantDataDAO;
@@ -634,10 +639,12 @@ public class MigrationIntegrationAutowireTest {
 	}
 
 	private void createParticipantData(UserGroup sampleGroup) throws Exception {
-		String participantId = Long.toString(Long.parseLong(sampleGroup.getId()) ^ -1L);
+		Long participantId = Long.parseLong(sampleGroup.getId()) ^ -1L;
 		bridgeParticipantDAO.create(participantId);
+		bridgeUserParticipantMappingDAO.setParticipantIdsForUser(Long.parseLong(sampleGroup.getId()),
+				Collections.<String> singletonList(participantId.toString()));
 		ParticipantDataDescriptor participantDataDescriptor = new ParticipantDataDescriptor();
-		participantDataDescriptor.setName(participantId + "desc");
+		participantDataDescriptor.setName(participantId.toString() + "desc");
 		participantDataDescriptor.setRepeatType(ParticipantDataRepeatType.ALWAYS);
 		participantDataDescriptor.setRepeatFrequency("0 0 4 * * ? *");
 		participantDataDescriptor = participantDataDescriptorDAO.createParticipantDataDescriptor(participantDataDescriptor);
@@ -650,7 +657,7 @@ public class MigrationIntegrationAutowireTest {
 		participantDataColumnDescriptor2.setParticipantDataDescriptorId(participantDataDescriptor.getId());
 		participantDataColumnDescriptor2.setName("b");
 		participantDataColumnDescriptor2.setColumnType(ParticipantDataColumnType.STRING);
-		participantDataDescriptorDAO.createParticipantDataColumnDescriptor(participantDataColumnDescriptor);
+		participantDataDescriptorDAO.createParticipantDataColumnDescriptor(participantDataColumnDescriptor2);
 		ParticipantDataRow dataRow = new ParticipantDataRow();
 		ParticipantDataStringValue stringValue1 = new ParticipantDataStringValue();
 		stringValue1.setValue("1");
@@ -658,7 +665,7 @@ public class MigrationIntegrationAutowireTest {
 		stringValue2.setValue("2");
 		dataRow.setData(ImmutableMap.<String, ParticipantDataValue> builder().put("a", stringValue1).put("b", stringValue2).build());
 		List<ParticipantDataRow> data = Lists.newArrayList(dataRow);
-		participantDataDAO.append(participantId, participantDataDescriptor.getId(), data,
+		participantDataDAO.append(participantId.toString(), participantDataDescriptor.getId(), data,
 				Lists.newArrayList(participantDataColumnDescriptor, participantDataColumnDescriptor2));
 		ParticipantDataStatus status = new ParticipantDataStatus();
 		status.setParticipantDataDescriptorId(participantDataDescriptor.getId());

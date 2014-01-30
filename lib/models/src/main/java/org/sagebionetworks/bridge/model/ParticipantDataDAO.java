@@ -7,6 +7,7 @@ import org.sagebionetworks.bridge.model.data.ParticipantDataColumnDescriptor;
 import org.sagebionetworks.bridge.model.data.ParticipantDataCurrentRow;
 import org.sagebionetworks.bridge.model.data.ParticipantDataRow;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface ParticipantDataDAO {
@@ -19,6 +20,8 @@ public interface ParticipantDataDAO {
 			List<ParticipantDataColumnDescriptor> columns) throws DatastoreException,
 			NotFoundException, IOException;
 
+	void deleteRows(String participantId, String participantDataDescriptorId, IdList rowIds) throws IOException, NotFoundException;
+	
 	List<ParticipantDataRow> get(String participantId, String participantDataId, List<ParticipantDataColumnDescriptor> columns)
 			throws DatastoreException, NotFoundException, IOException;
 

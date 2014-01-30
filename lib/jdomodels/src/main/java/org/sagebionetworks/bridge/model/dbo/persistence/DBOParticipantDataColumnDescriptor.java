@@ -2,11 +2,11 @@ package org.sagebionetworks.bridge.model.dbo.persistence;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PARTICIPANT_DATA_COLUMN_DESCRIPTOR_PARTICIPANT_DATA_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PARTICIPANT_DATA_COLUMN_DESCRIPTOR_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PARTICIPANT_DATA_COLUMN_DESCRIPTOR_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PARTICIPANT_DATA_COLUMN_DESCRIPTOR_PROPERTIES;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PARTICIPANT_DATA_DESCRIPTOR_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PARTICIPANT_DATA_DESCRIPTOR;
 
-import java.io.IOException;
 import java.util.List;
 
 import org.sagebionetworks.bridge.model.data.ParticipantDataColumnDescriptor;
@@ -17,14 +17,15 @@ import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.Table;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
-import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 
 /**
  * descriptor of what's in a column of a participant data record
  */
-@Table(name = SqlConstants.TABLE_PARTICIPANT_DATA_COLUMN_DESCRIPTOR)
+@Table(name = SqlConstants.TABLE_PARTICIPANT_DATA_COLUMN_DESCRIPTOR, constraints = { "unique key UNIQUE_PDCD_NAME ("
+		+ COL_PARTICIPANT_DATA_COLUMN_DESCRIPTOR_PARTICIPANT_DATA_ID + ", "
+		+ COL_PARTICIPANT_DATA_COLUMN_DESCRIPTOR_NAME + ")" })
 public class DBOParticipantDataColumnDescriptor implements MigratableDatabaseObject<DBOParticipantDataColumnDescriptor, DBOParticipantDataColumnDescriptor> {
 
 	public static final String PARTICIPANT_DATA_COLUMN_DESCRIPTOR_ID_FIELD = "id";
@@ -36,6 +37,9 @@ public class DBOParticipantDataColumnDescriptor implements MigratableDatabaseObj
 	@Field(name = COL_PARTICIPANT_DATA_COLUMN_DESCRIPTOR_PARTICIPANT_DATA_ID, varchar = 64, nullable = false)
 	@ForeignKey(table = TABLE_PARTICIPANT_DATA_DESCRIPTOR, field = COL_PARTICIPANT_DATA_DESCRIPTOR_ID, cascadeDelete = true)
 	private Long participantDataDescriptorId;
+	
+	@Field(name = COL_PARTICIPANT_DATA_COLUMN_DESCRIPTOR_NAME, varchar = 256, nullable = false)
+	private String name;
 
 	@Field(name = COL_PARTICIPANT_DATA_COLUMN_DESCRIPTOR_PROPERTIES, serialized = "mediumblob")
 	private ParticipantDataColumnDescriptor participantDataColumnDescriptor;
@@ -68,6 +72,14 @@ public class DBOParticipantDataColumnDescriptor implements MigratableDatabaseObj
 		this.participantDataDescriptorId = participantDataDescriptorId;
 	}
 
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
 	public ParticipantDataColumnDescriptor getParticipantDataColumnDescriptor() {
 		return participantDataColumnDescriptor;
 	}
@@ -80,8 +92,10 @@ public class DBOParticipantDataColumnDescriptor implements MigratableDatabaseObj
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((participantDataColumnDescriptor == null) ? 0 : participantDataColumnDescriptor.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
+		result = prime * result + ((name == null) ? 0 : name.hashCode());
+		result = prime * result
+				+ ((participantDataColumnDescriptor == null) ? 0 : participantDataColumnDescriptor.hashCode());
 		result = prime * result + ((participantDataDescriptorId == null) ? 0 : participantDataDescriptorId.hashCode());
 		return result;
 	}
@@ -95,15 +109,20 @@ public class DBOParticipantDataColumnDescriptor implements MigratableDatabaseObj
 		if (getClass() != obj.getClass())
 			return false;
 		DBOParticipantDataColumnDescriptor other = (DBOParticipantDataColumnDescriptor) obj;
-		if (participantDataColumnDescriptor == null) {
-			if (other.participantDataColumnDescriptor != null)
-				return false;
-		} else if (!participantDataColumnDescriptor.equals(other.participantDataColumnDescriptor))
-			return false;
 		if (id == null) {
 			if (other.id != null)
 				return false;
 		} else if (!id.equals(other.id))
+			return false;
+		if (name == null) {
+			if (other.name != null)
+				return false;
+		} else if (!name.equals(other.name))
+			return false;
+		if (participantDataColumnDescriptor == null) {
+			if (other.participantDataColumnDescriptor != null)
+				return false;
+		} else if (!participantDataColumnDescriptor.equals(other.participantDataColumnDescriptor))
 			return false;
 		if (participantDataDescriptorId == null) {
 			if (other.participantDataDescriptorId != null)
@@ -115,8 +134,9 @@ public class DBOParticipantDataColumnDescriptor implements MigratableDatabaseObj
 
 	@Override
 	public String toString() {
-		return "DBOParticipantDataColumnDescriptor [participantDataColumnDescriptorId=" + id + ", participantDataDescriptorId="
-				+ participantDataDescriptorId + ", participantDataColumnDescriptor=" + participantDataColumnDescriptor + "]";
+		return "DBOParticipantDataColumnDescriptor [id=" + id + ", participantDataDescriptorId="
+				+ participantDataDescriptorId + ", name=" + name + ", participantDataColumnDescriptor="
+				+ participantDataColumnDescriptor + "]";
 	}
 
 	@Override

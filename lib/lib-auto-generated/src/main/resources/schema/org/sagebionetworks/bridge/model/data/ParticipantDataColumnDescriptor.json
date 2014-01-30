@@ -20,15 +20,27 @@
         },
         "type":{
             "type": "string",
-            "description": "The ui type to use to handle this data item"
+            "description": "The UI type to use to handle this data item"
+        },
+        "required":{
+            "type": "boolean",
+            "description": "Required (may be deferred until record is finished)"
+        },
+        "exportable":{
+            "type": "boolean",
+            "description": "Column is private to this user and may not be exported"
+        },
+        "readonly":{
+            "type": "boolean",
+            "description": "Column cannot be edited by the user or through the UI (may be calculated; is not immutable)"
         },
         "defaultValue":{
             "type": "string",
-            "description": "The optional default value of this column."
+            "description": "The optional default value of this column"
         },
         "columnType": {
 			"type": "string",
-			"description": "The type of the column must be from this enumeration.",
+			"description": "The type of the column must be from this enumeration",
 			"name": "ParticipantDataColumnType",
 			"id": "org.sagebionetworks.bridge.model.data.ParticipantDataColumnType",
 			"enum": [

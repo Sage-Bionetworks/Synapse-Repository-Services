@@ -3,6 +3,7 @@
  */
 package org.sagebionetworks.bridge.model.dbo.dao;
 
+import java.util.Collections;
 import java.util.List;
 
 import org.sagebionetworks.bridge.model.ParticipantDataDescriptorDAO;
@@ -73,6 +74,7 @@ public class DBOParticipantDataDescriptorDAOImpl implements ParticipantDataDescr
 			ParticipantDataColumnDescriptor participantDataColumnDescriptor = dboParticipantDataColumnDescriptor
 					.getParticipantDataColumnDescriptor();
 			participantDataColumnDescriptor.setId(dboParticipantDataColumnDescriptor.getId().toString());
+			participantDataColumnDescriptor.setName(dboParticipantDataColumnDescriptor.getName());
 			participantDataColumnDescriptor.setParticipantDataDescriptorId(dboParticipantDataColumnDescriptor
 					.getParticipantDataDescriptorId().toString());
 			return participantDataColumnDescriptor;
@@ -88,6 +90,9 @@ public class DBOParticipantDataDescriptorDAOImpl implements ParticipantDataDescr
 
 	@Override
 	public List<ParticipantDataDescriptor> getParticipantDatasForUser(List<String> participantIds) {
+		if (participantIds.isEmpty()) {
+			return Collections.<ParticipantDataDescriptor> emptyList();
+		}
 		MapSqlParameterSource params = new MapSqlParameterSource().addValue(PARTICIPANT_IDS, participantIds);
 		List<DBOParticipantDataDescriptor> dboParticipantDataDescriptors = simpleJdbcTemplate.query(SELECT_PARTICIPANT_DATA_FOR_USER,
 				participantDataDescriptorRowMapper, params);
@@ -152,6 +157,7 @@ public class DBOParticipantDataDescriptorDAOImpl implements ParticipantDataDescr
 		dboParticipantDataColumnDescriptor.setId(idGenerator.generateNewId(TYPE.COLUMN_MODEL_ID));
 		dboParticipantDataColumnDescriptor.setParticipantDataDescriptorId(Long.parseLong(participantDataColumnDescriptor
 				.getParticipantDataDescriptorId()));
+		dboParticipantDataColumnDescriptor.setName(participantDataColumnDescriptor.getName());
 		dboParticipantDataColumnDescriptor.setParticipantDataColumnDescriptor(participantDataColumnDescriptor);
 		dboParticipantDataColumnDescriptor = basicDao.createNew(dboParticipantDataColumnDescriptor);
 		return dboToDtoParticipantDataColumnDescriptor.apply(dboParticipantDataColumnDescriptor);
@@ -165,6 +171,7 @@ public class DBOParticipantDataDescriptorDAOImpl implements ParticipantDataDescr
 		dboParticipantDataColumnDescriptor.setParticipantDataDescriptorId(Long.parseLong(participantDataColumnDescriptor
 				.getParticipantDataDescriptorId()));
 		dboParticipantDataColumnDescriptor.setId(Long.parseLong(participantDataColumnDescriptor.getId()));
+		dboParticipantDataColumnDescriptor.setName(participantDataColumnDescriptor.getName());
 		dboParticipantDataColumnDescriptor.setParticipantDataColumnDescriptor(participantDataColumnDescriptor);
 		if (!basicDao.update(dboParticipantDataColumnDescriptor)) {
 			throw new NotFoundException("Update for ParticipantDataColumnDescriptor " + participantDataColumnDescriptor.getId()

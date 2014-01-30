@@ -324,7 +324,17 @@ public class StackConfiguration {
 	 */
 	public String getRepositoryDatabaseDriver() {
 		return configuration
-				.getProperty("org.sagebionetworks.id.generator.database.driver");
+				.getProperty("org.sagebionetworks.repository.databaes.driver");
+	}
+	
+	/**
+	 * Driver for the repository service.
+	 * 
+	 * @return
+	 */
+	public String getTableDatabaseDriver() {
+		return configuration
+				.getProperty("org.sagebionetworks.table.databaes.driver");
 	}
 
 	/**
@@ -585,6 +595,15 @@ public class StackConfiguration {
 	public boolean getDynamoEnabled(){
 		return Boolean.parseBoolean(configuration
 				.getProperty("org.sagebionetworks.dynamo.enabled"));
+	}
+	
+	/**
+	 * Is the Table feature enabled?
+	 * @return
+	 */
+	public boolean getTableEnabled(){
+		return Boolean.parseBoolean(configuration
+				.getProperty("org.sagebionetworks.table.enabled"));
 	}
 
 	/**
@@ -1110,6 +1129,16 @@ public class StackConfiguration {
 	public static String getJiraUserPassword() {
 		return configuration
 				.getDecryptedProperty("org.sagebionetworks.repo.manager.jira.user.password");
+	}
+
+	public static String getBridgeDataMappingEncryptionKey() {
+		return "::TODO::";
+		// return configuration.getDecryptedProperty("org.sagebionetworks.bridge.data.mapping.encryptionkey");
+	}
+
+	public static String getBridgeDataEncryptionKey() {
+		return "::TODO::";
+		// return configuration.getDecryptedProperty("org.sagebionetworks.bridge.data.encryptionkey");
 	}
 
 	/**
