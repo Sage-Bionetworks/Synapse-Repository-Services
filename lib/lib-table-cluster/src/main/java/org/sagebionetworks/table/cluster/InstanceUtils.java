@@ -11,8 +11,7 @@ public class InstanceUtils {
 	public static final String DATABASE_SCHEMA_NAME_TEMPALTE = "%1$s%2$s";
 	public static final String DATABASE_URL_NAME_TEMPALTE = "jdbc:mysql://%1$s/%2$s";
 	
-	private static StackConfiguration config = new StackConfiguration();
-	
+
 	/**
 	 * Create the database instances stack identifier.
 	 * @param stack
