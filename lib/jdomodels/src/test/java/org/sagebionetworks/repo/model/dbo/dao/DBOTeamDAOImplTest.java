@@ -62,12 +62,10 @@ public class DBOTeamDAOImplTest {
 	
 	@After
 	public void tearDown() throws Exception {
-		try {
-			aclDAO.delete(aclToDelete, ObjectType.TEAM);
-			teamDAO.delete(teamToDelete);
-			userGroupDAO.delete(teamToDelete);
-			userGroupDAO.delete(userToDelete);
-		} catch (Exception e) {}
+		if (aclToDelete!=null) aclDAO.delete(aclToDelete, ObjectType.TEAM);
+		if (teamToDelete!=null) teamDAO.delete(teamToDelete);
+		if (teamToDelete!=null) userGroupDAO.delete(teamToDelete);
+		if (userToDelete!=null) userGroupDAO.delete(userToDelete);
 	}
 	
 	private static UserGroupHeader createUserGroupHeaderFromUserProfile(UserProfile up) {
@@ -108,6 +106,7 @@ public class DBOTeamDAOImplTest {
 		team.setEtag(clone.getEtag()); // for comparison
 		assertEquals(team, clone);
 		// update the team
+		clone.setName("Super Duper Team");
 		clone.setDescription("this is the modified description");
 		clone.setIcon("111");
 		Team updated = teamDAO.update(clone);
