@@ -370,7 +370,7 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 		try {
 			JSONObject jsonObject = EntityFactory.createJSONObjectForEntity(t);
 			// Send the entity
-			getSharedClientConnection().postJson(bridgeEndpoint, uri, jsonObject.toString(), getUserAgent());
+			getSharedClientConnection().putJson(bridgeEndpoint, uri, jsonObject.toString(), getUserAgent());
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
