@@ -289,7 +289,7 @@ public class MigrationIntegrationAutowireTest {
 
 
 	private void createColumnModel() throws DatastoreException, NotFoundException, IOException {
-		String tableId = "syn123";
+		Long tableId = 123L;
 		// Create some test column models
 		List<ColumnModel> start = TableModelUtils.createOneOfEachType();
 		// Create each one
@@ -298,7 +298,7 @@ public class MigrationIntegrationAutowireTest {
 			models.add(columnModelDao.createColumnModel(cm));
 		}
 
-		List<String> header = TableModelUtils.getHeaders(models);
+		List<Long> header = TableModelUtils.getHeaders(models);
 		// bind the columns to the entity
 		columnModelDao.bindColumnToObject(header, tableId);
 

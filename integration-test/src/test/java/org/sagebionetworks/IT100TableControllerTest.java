@@ -24,6 +24,7 @@ import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
@@ -121,7 +122,7 @@ public class IT100TableControllerTest {
 		// now create a table entity
 		TableEntity table = new TableEntity();
 		table.setName("Table");
-		List<String> idList = new LinkedList<String>();
+		List<Long> idList = new LinkedList<Long>();
 		idList.add(one.getId());
 		idList.add(two.getId());
 		table.setColumnIds(idList);
@@ -145,7 +146,7 @@ public class IT100TableControllerTest {
 		List<Row> rows = TableModelUtils.createRows(columns, 2);
 		set.setRows(rows);
 		set.setHeaders(TableModelUtils.getHeaders(columns));
-		set.setTableId(table.getId());
+		set.setTableId(KeyFactory.stringToKey(table.getId()));
 		RowReferenceSet results = synapse.appendRowsToTable(set);
 		assertNotNull(results);
 		assertNotNull(results.getRows());

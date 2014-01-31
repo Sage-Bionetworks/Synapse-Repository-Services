@@ -21,7 +21,7 @@ public class ColumnModelUtlisTest {
 	@Before
 	public void before(){
 		original = new ColumnModel();
-		original.setId("123");
+		original.setId(123L);
 		original.setName("Name");
 		original.setDefaultValue("DefaultValue");
 		original.setColumnType(ColumnType.FILEHANDLEID);
@@ -55,7 +55,7 @@ public class ColumnModelUtlisTest {
 	public void testCalculateHash() throws JSONObjectAdapterException{
 		// Create two copies of the original
 		ColumnModel clone = ColumnModelUtlis.createNormalizedClone(original);
-		clone.setId("999");
+		clone.setId(999L);
 		clone.setName(clone.getName().toUpperCase());
 		Collections.shuffle(clone.getEnumValues());
 		// The clone and the original should produce the same hash.
@@ -75,7 +75,7 @@ public class ColumnModelUtlisTest {
 		// first calculate the hash of the original object
 		String originalHash = ColumnModelUtlis.calculateHash(original);
 		ColumnModel normlaized = ColumnModelUtlis.createNormalizedClone(original);
-		normlaized.setId("123");
+		normlaized.setId(123L);
 		// Now write to DTO
 		DBOColumnModel dbo = ColumnModelUtlis.createDBOFromDTO(original);
 		assertEquals(new Long(123), dbo.getId());

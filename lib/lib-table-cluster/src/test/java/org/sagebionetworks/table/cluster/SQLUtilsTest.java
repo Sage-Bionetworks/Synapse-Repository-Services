@@ -22,14 +22,14 @@ public class SQLUtilsTest {
 		ColumnModel col = new ColumnModel();
 		col.setColumnType(ColumnType.LONG);
 		col.setDefaultValue(null);
-		col.setId("456");
+		col.setId(456L);
 		simpleSchema.add(col);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testCreateTableSQLNullSchema(){
 		// cannot be null
-		SQLUtils.createTableSQL(null, "123");
+		SQLUtils.createTableSQL(null, 123L);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -42,13 +42,13 @@ public class SQLUtilsTest {
 	public void testCreateTableSQLEmptySchema(){
 		// cannot be null
 		simpleSchema.clear();
-		SQLUtils.createTableSQL(simpleSchema, "123");
+		SQLUtils.createTableSQL(simpleSchema, 123L);
 	}
 	
 	@Test
 	public void testCreateTableSQL(){
 		// Build the create DDL for this table
-		String sql = SQLUtils.createTableSQL(simpleSchema, "123");
+		String sql = SQLUtils.createTableSQL(simpleSchema, 123L);
 		assertNotNull(sql);
 		// Validate it contains the expected elements
 		String expected = "CREATE TABLE IF NOT EXISTS `T123` ( ROW_ID bigint(20) NOT NULL, ROW_VERSION bigint(20) NOT NULL, `C456` bigint(20) DEFAULT NULL, PRIMARY KEY (ROW_ID) )";
@@ -161,27 +161,27 @@ public class SQLUtilsTest {
 	@Test
 	public void testCreateAllTypes(){
 		List<ColumnModel> allTypes = TableModelUtils.createOneOfEachType();
-		String sql = SQLUtils.createTableSQL(allTypes, "123");
+		String sql = SQLUtils.createTableSQL(allTypes, 123L);
 		assertNotNull(sql);
 		System.out.println(sql);
 	}
 	
 	@Test
 	public void testCalculateColumnsToAddOverlap(){
-		List<ColumnModel> oldSchema = helperCreateColumnsWithIds("1","2","3");
-		List<ColumnModel> newSchema = helperCreateColumnsWithIds("0","2","4");
+		List<ColumnModel> oldSchema = helperCreateColumnsWithIds(1L,2L,3L);
+		List<ColumnModel> newSchema = helperCreateColumnsWithIds(0L,2L,4L);
 		// For this case we expect 0 and 4 to be added.
-		List<ColumnModel> expected = helperCreateColumnsWithIds("0","4");
+		List<ColumnModel> expected = helperCreateColumnsWithIds(0L,4L);
 		List<ColumnModel> toAdd = SQLUtils.calculateColumnsToAdd(oldSchema, newSchema);
 		assertEquals(expected, toAdd);
 	}
 	
 	@Test
 	public void testCalculateColumnsToAddNoOverlap(){
-		List<ColumnModel> oldSchema = helperCreateColumnsWithIds("1","2","3");
-		List<ColumnModel> newSchema = helperCreateColumnsWithIds("4","5","6");
+		List<ColumnModel> oldSchema = helperCreateColumnsWithIds(1L,2L,3L);
+		List<ColumnModel> newSchema = helperCreateColumnsWithIds(4L,5L,6L);
 		// For this case we expect all new columns to be added
-		List<ColumnModel> expected = helperCreateColumnsWithIds("4","5","6");
+		List<ColumnModel> expected = helperCreateColumnsWithIds(4L,5L,6L);
 		List<ColumnModel> toAdd = SQLUtils.calculateColumnsToAdd(oldSchema, newSchema);
 		assertEquals(expected, toAdd);
 	}
@@ -189,16 +189,16 @@ public class SQLUtilsTest {
 	@Test
 	public void testCalculateColumnsToAddOldEmpty(){
 		List<ColumnModel> oldSchema = helperCreateColumnsWithIds();
-		List<ColumnModel> newSchema = helperCreateColumnsWithIds("4","5","6");
+		List<ColumnModel> newSchema = helperCreateColumnsWithIds(4L,5L,6L);
 		// For this case we expect all new columns to be added
-		List<ColumnModel> expected = helperCreateColumnsWithIds("4","5","6");
+		List<ColumnModel> expected = helperCreateColumnsWithIds(4L,5L,6L);
 		List<ColumnModel> toAdd = SQLUtils.calculateColumnsToAdd(oldSchema, newSchema);
 		assertEquals(expected, toAdd);
 	}
 	
 	@Test
 	public void testCalculateColumnsToAddNewEmpty(){
-		List<ColumnModel> oldSchema = helperCreateColumnsWithIds("1","2","3");
+		List<ColumnModel> oldSchema = helperCreateColumnsWithIds(1L,2L,3L);
 		List<ColumnModel> newSchema = helperCreateColumnsWithIds();
 		// For this case we expect no columns to be added
 		List<ColumnModel> expected = helperCreateColumnsWithIds();
@@ -208,20 +208,20 @@ public class SQLUtilsTest {
 	
 	@Test
 	public void testCalculateColumnsToDropOverlap(){
-		List<ColumnModel> oldSchema = helperCreateColumnsWithIds("1","2","3");
-		List<ColumnModel> newSchema = helperCreateColumnsWithIds("0","2","4");
+		List<ColumnModel> oldSchema = helperCreateColumnsWithIds(1L,2L,3L);
+		List<ColumnModel> newSchema = helperCreateColumnsWithIds(0L,2L,4L);
 		// For this case we expect 1 and 3 to be removed.
-		List<ColumnModel> expected = helperCreateColumnsWithIds("1","3");
+		List<ColumnModel> expected = helperCreateColumnsWithIds(1L,3L);
 		List<ColumnModel> toRemove = SQLUtils.calculateColumnsToDrop(oldSchema, newSchema);
 		assertEquals(expected, toRemove);
 	}
 	
 	@Test
 	public void testCalculateColumnsToDropNoOverlap(){
-		List<ColumnModel> oldSchema = helperCreateColumnsWithIds("1","2","3");
-		List<ColumnModel> newSchema = helperCreateColumnsWithIds("4","5","6");
+		List<ColumnModel> oldSchema = helperCreateColumnsWithIds(1L,2L,3L);
+		List<ColumnModel> newSchema = helperCreateColumnsWithIds(4L,5L,6L);
 		// For this case all old columns should be dropped
-		List<ColumnModel> expected = helperCreateColumnsWithIds("1","2","3");
+		List<ColumnModel> expected = helperCreateColumnsWithIds(1L,2L,3L);
 		List<ColumnModel> toRemove = SQLUtils.calculateColumnsToDrop(oldSchema, newSchema);
 		assertEquals(expected, toRemove);
 	}
@@ -229,7 +229,7 @@ public class SQLUtilsTest {
 	@Test
 	public void testCalculateColumnsToDropOldEmpty(){
 		List<ColumnModel> oldSchema = helperCreateColumnsWithIds();
-		List<ColumnModel> newSchema = helperCreateColumnsWithIds("4","5","6");
+		List<ColumnModel> newSchema = helperCreateColumnsWithIds(4L,5L,6L);
 		// For this case nothing needs to be dropped
 		List<ColumnModel> expected = helperCreateColumnsWithIds();
 		List<ColumnModel> toRemove = SQLUtils.calculateColumnsToDrop(oldSchema, newSchema);
@@ -238,20 +238,20 @@ public class SQLUtilsTest {
 	
 	@Test
 	public void testCalculateColumnsToDropNewEmpty(){
-		List<ColumnModel> oldSchema = helperCreateColumnsWithIds("1","2","3");
+		List<ColumnModel> oldSchema = helperCreateColumnsWithIds(1L,2L,3L);
 		List<ColumnModel> newSchema = helperCreateColumnsWithIds();
 		// For this case everything needs to be dropped
-		List<ColumnModel> expected = helperCreateColumnsWithIds("1","2","3");
+		List<ColumnModel> expected = helperCreateColumnsWithIds(1L,2L,3L);
 		List<ColumnModel> toRemove = SQLUtils.calculateColumnsToDrop(oldSchema, newSchema);
 		assertEquals(expected, toRemove);
 	}
 	
 	@Test
 	public void testAlterTable(){
-		List<ColumnModel> oldSchema = helperCreateColumnsWithIds("1","2","3");
-		List<ColumnModel> newSchema = helperCreateColumnsWithIds("0","2","4");
+		List<ColumnModel> oldSchema = helperCreateColumnsWithIds(1L,2L,3L);
+		List<ColumnModel> newSchema = helperCreateColumnsWithIds(0L,2L,4L);
 		// This should drop columns 1 & 3 and then add columns 0 & 4
-		String sql = SQLUtils.alterTableSql(oldSchema, newSchema, "999");
+		String sql = SQLUtils.alterTableSql(oldSchema, newSchema, 999L);
 		assertNotNull(sql);
 		String expected = "ALTER TABLE `T999` DROP COLUMN `C1`, DROP COLUMN `C3`, ADD COLUMN `C0` bigint(20) DEFAULT NULL, ADD COLUMN `C4` bigint(20) DEFAULT NULL";
 		assertEquals(expected, sql);
@@ -264,10 +264,10 @@ public class SQLUtilsTest {
 	 * @param values
 	 * @return
 	 */
-	List<ColumnModel> helperCreateColumnsWithIds(String...values){
+	List<ColumnModel> helperCreateColumnsWithIds(Long...values){
 		List<ColumnModel> list = new LinkedList<ColumnModel>();
 		if(values != null){
-			for(String value: values){
+			for(Long value: values){
 				ColumnModel cm = new ColumnModel();
 				cm.setId(value);
 				cm.setColumnType(ColumnType.LONG);

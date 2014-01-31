@@ -97,7 +97,7 @@ public class ColumnModelManagerTest {
 		in.setName("abb");
 		ColumnModel out = new ColumnModel();
 		out.setName("abb");
-		out.setId("21");
+		out.setId(21L);
 		// Setup the anonymous users
 		when(mockauthorizationManager.isAnonymousUser(user)).thenReturn(false);
 		when(mockColumnModelDAO.createColumnModel(in)).thenReturn(out);
@@ -107,23 +107,23 @@ public class ColumnModelManagerTest {
 	
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetColumnsNullUser() throws DatastoreException, NotFoundException{
-		List<String> ids = new LinkedList<String>();
+		List<Long> ids = new LinkedList<Long>();
 		columnModelManager.getColumnModel(null, ids);
 	}
 	
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetColumnsNullList() throws DatastoreException, NotFoundException{
-		columnModelManager.getColumnModel(user, (List<String>)null);
+		columnModelManager.getColumnModel(user, (List<Long>)null);
 	}
 	
 	@Test
 	public void testGetColumnsHappy() throws DatastoreException, NotFoundException{
-		List<String> ids = new LinkedList<String>();
-		ids.add("123");
+		List<Long> ids = new LinkedList<Long>();
+		ids.add(123L);
 		List<ColumnModel> results = new LinkedList<ColumnModel>();
 		ColumnModel cm = new ColumnModel();
 		cm.setName("abb");
-		cm.setId("123");
+		cm.setId(123L);
 		results.add(cm);
 		when(mockColumnModelDAO.getColumnModel(ids)).thenReturn(results);
 		List<ColumnModel> out  = columnModelManager.getColumnModel(user, ids);
@@ -134,7 +134,7 @@ public class ColumnModelManagerTest {
 	@Test
 	public void testGetColumnsSingleHappy() throws DatastoreException, NotFoundException{
 		ColumnModel cm = new ColumnModel();
-		String id = "123";
+		Long id = 123L;
 		cm.setName("abb");
 		cm.setId(id);
 		when(mockColumnModelDAO.getColumnModel(id)).thenReturn(cm);
@@ -146,17 +146,17 @@ public class ColumnModelManagerTest {
 	
 	@Test
 	public void testBindColumnToObjectHappy() throws DatastoreException, NotFoundException{
-		String objectId = "syn123";
-		when(mockauthorizationManager.canAccess(user, objectId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(true);
-		List<String> ids = new LinkedList<String>();
-		ids.add("123");
+		Long objectId = 123L;
+		when(mockauthorizationManager.canAccess(user, objectId.toString(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(true);
+		List<Long> ids = new LinkedList<Long>();
+		ids.add(123L);
 		when(mockColumnModelDAO.bindColumnToObject(ids, objectId)).thenReturn(1);
 		assertTrue(columnModelManager.bindColumnToObject(user, ids, objectId));
 	}
 	
 	@Test (expected =IllegalArgumentException.class)
 	public void testListObjectsBoundToColumnNullUser(){
-		Set<String> columnId = new HashSet<String>();
+		Set<Long> columnId = new HashSet<Long>();
 		columnModelManager.listObjectsBoundToColumn(null, columnId, true, Long.MAX_VALUE, 0);
 	}
 	
@@ -168,10 +168,10 @@ public class ColumnModelManagerTest {
 	
 	@Test
 	public void testListObjectsBoundToColumnHappy(){
-		Set<String> columnIds = new HashSet<String>();
-		columnIds.add("134");
-		List<String> resultList = new LinkedList<String>();
-		resultList.add("syn987");
+		Set<Long> columnIds = new HashSet<Long>();
+		columnIds.add(134L);
+		List<Long> resultList = new LinkedList<Long>();
+		resultList.add(987L);
 		when(mockColumnModelDAO.listObjectsBoundToColumn(columnIds, false, 10, 0)).thenReturn(resultList);
 		when(mockColumnModelDAO.listObjectsBoundToColumnCount(columnIds, false)).thenReturn(1l);
 		PaginatedIds page = columnModelManager.listObjectsBoundToColumn(user, columnIds, false, 10, 0);
@@ -195,9 +195,9 @@ public class ColumnModelManagerTest {
 	
 	@Test
 	public void testGetColumnModelsForTableAuthorized() throws DatastoreException, NotFoundException{
-		String objectId = "syn123";
+		Long objectId = 123L;
 		List<ColumnModel> expected = TableModelUtils.createOneOfEachType();
-		when(mockauthorizationManager.canAccess(user, objectId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(true);
+		when(mockauthorizationManager.canAccess(user, objectId.toString(), ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(true);
 		when(mockColumnModelDAO.getColumnModelsForObject(objectId)).thenReturn(expected);
 		List<ColumnModel> resutls = columnModelManager.getColumnModelsForTable(user, objectId);
 		assertEquals(expected, resutls);
@@ -205,9 +205,9 @@ public class ColumnModelManagerTest {
 	
 	@Test (expected=UnauthorizedException.class)
 	public void testGetColumnModelsForTableUnauthorized() throws DatastoreException, NotFoundException{
-		String objectId = "syn123";
+		Long objectId = 123L;
 		List<ColumnModel> expected = TableModelUtils.createOneOfEachType();
-		when(mockauthorizationManager.canAccess(user, objectId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(false);
+		when(mockauthorizationManager.canAccess(user, objectId.toString(), ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(false);
 		when(mockColumnModelDAO.getColumnModelsForObject(objectId)).thenReturn(expected);
 		List<ColumnModel> resutls = columnModelManager.getColumnModelsForTable(user, objectId);
 	}

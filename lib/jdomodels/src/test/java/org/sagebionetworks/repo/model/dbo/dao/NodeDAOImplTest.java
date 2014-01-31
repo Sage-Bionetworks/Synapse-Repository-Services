@@ -1853,18 +1853,18 @@ public class NodeDAOImplTest {
 	
 	@Test
 	public void testCreateTableNode() throws DatastoreException, InvalidModelException, NotFoundException{
-		List<String> columnIds = new LinkedList<String>();
-		columnIds.add("123");
-		columnIds.add("456");
+		List<Long> columnIds = new LinkedList<Long>();
+		columnIds.add(123L);
+		columnIds.add(456L);
 		Node n1 = NodeTestUtils.createNew(UUID.randomUUID().toString(), creatorUserGroupId);
 		n1.setColumnModelIds(columnIds);
 		String id1 = this.nodeDao.createNew(n1);
 		toDelete.add(id1);
 		n1 = nodeDao.getNode(id1);
 		assertNotNull("ColumnModel ID were not saved!",n1.getColumnModelIds());
-		List<String> expected = new LinkedList<String>();
-		expected.add("123");
-		expected.add("456");
+		List<Long> expected = new LinkedList<Long>();
+		expected.add(123L);
+		expected.add(456L);
 		assertEquals(expected, n1.getColumnModelIds());
 	}
 

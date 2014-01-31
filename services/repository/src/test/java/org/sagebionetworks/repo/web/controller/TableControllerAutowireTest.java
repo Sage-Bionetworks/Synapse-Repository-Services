@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
@@ -87,7 +88,7 @@ public class TableControllerAutowireTest {
 		TableEntity table = new TableEntity();
 		table.setName("TableEntity");
 		table.setParentId(parent.getId());
-		List<String> idList = new LinkedList<String>();
+		List<Long> idList = new LinkedList<Long>();
 		idList.add(one.getId());
 		idList.add(two.getId());
 		table.setColumnIds(idList);
@@ -111,12 +112,12 @@ public class TableControllerAutowireTest {
 		List<Row> rows = TableModelUtils.createRows(cols, 2);
 		set.setRows(rows);
 		set.setHeaders(TableModelUtils.getHeaders(cols));
-		set.setTableId(table.getId());
+		set.setTableId(KeyFactory.stringToKey(table.getId()));
 		RowReferenceSet results = ServletTestHelper.appendTableRows(DispatchServletSingleton.getInstance(), set, adminUserId);
 		assertNotNull(results);
 		assertNotNull(results.getRows());
 		assertEquals(2, results.getRows().size());
-		assertEquals(table.getId(), results.getTableId());
+		assertEquals(KeyFactory.stringToKey(table.getId()), results.getTableId());
 		assertEquals(TableModelUtils.getHeaders(cols), results.getHeaders());
 	}
 

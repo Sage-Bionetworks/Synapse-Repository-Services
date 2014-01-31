@@ -51,19 +51,19 @@ public class TableModelUtilsTest {
 		validModel = new LinkedList<ColumnModel>();
 		ColumnModel cm = new ColumnModel();
 		cm.setName("one");
-		cm.setId("1");
+		cm.setId(1L);
 		cm.setColumnType(ColumnType.BOOLEAN);
 		validModel.add(cm);
 		cm = new ColumnModel();
 		cm.setName("two");
-		cm.setId("2");
+		cm.setId(2L);
 		cm.setColumnType(ColumnType.LONG);
 		validModel.add(cm);
 		
 		validRowSet = new RowSet();
-		List<String> headers = new LinkedList<String>();
-		headers.add("2");
-		headers.add("1");
+		List<Long> headers = new LinkedList<Long>();
+		headers.add(2L);
+		headers.add(1L);
 		validRowSet.setHeaders(headers);
 		List<Row> rows = new LinkedList<Row>();
 		// row one
@@ -91,10 +91,10 @@ public class TableModelUtilsTest {
 		out = new CSVWriter(outWritter);
 		
 		// Create a second set that has the same order as the schema.
-		String tableId = "456";
-		headers = new LinkedList<String>();
-		headers.add("1");
-		headers.add("2");
+		Long tableId = 456L;
+		headers = new LinkedList<Long>();
+		headers.add(1L);
+		headers.add(2L);
 
 		rows = new LinkedList<Row>();
 		// row one
@@ -208,7 +208,7 @@ public class TableModelUtilsTest {
 	public void testValidateAndWriteToCSVHeaderMissmatch(){
 		try{
 			validRowSet.getHeaders().remove(0);
-			validRowSet.getHeaders().add(0, "3");
+			validRowSet.getHeaders().add(0, 3L);
 			TableModelUtils.validateAndWriteToCSV(validModel, validRowSet, out);
 			fail("Should have failed");
 		}catch (IllegalArgumentException e){
@@ -477,10 +477,10 @@ public class TableModelUtilsTest {
 	
 	@Test
 	public void testGetHeaders(){
-		List<String> expected = new LinkedList<String>();
-		expected.add("1");
-		expected.add("2");
-		List<String> headers = TableModelUtils.getHeaders(validModel);
+		List<Long> expected = new LinkedList<Long>();
+		expected.add(1L);
+		expected.add(2L);
+		List<Long> headers = TableModelUtils.getHeaders(validModel);
 		assertNotNull(headers);
 		assertEquals(expected, headers);
 	}
@@ -488,29 +488,29 @@ public class TableModelUtilsTest {
 	@Test (expected=IllegalArgumentException.class)
 	public void testGetHeadersNullId(){
 		validModel.get(0).setId(null);
-		List<String> headers = TableModelUtils.getHeaders(validModel);
+		List<Long> headers = TableModelUtils.getHeaders(validModel);
 	}
 	
 	@Test
 	public void testDelimitedStringRoundTrip(){
-		List<String> headers = TableModelUtils.getHeaders(validModel);
+		List<Long> headers = TableModelUtils.getHeaders(validModel);
 		String del = TableModelUtils.createDelimitedColumnModelIdString(headers);
 		assertNotNull(del);
 		System.out.println(del);
-		List<String> result = TableModelUtils.readColumnModelIdsFromDelimitedString(del);
+		List<Long> result = TableModelUtils.readColumnModelIdsFromDelimitedString(del);
 		assertEquals(headers, result);
 	}
 	
 	@Test
 	public void testDTOandDBORoundTrip(){
 		TableRowChange dto = new TableRowChange();
-		dto.setTableId("syn123");
+		dto.setTableId(123L);
 		dto.setRowVersion(12l);
 		dto.setCreatedBy("456");
 		dto.setCreatedOn(new Date(101));
-		dto.setHeaders(new LinkedList<String>());
-		dto.getHeaders().add("111");
-		dto.getHeaders().add("222");
+		dto.setHeaders(new LinkedList<Long>());
+		dto.getHeaders().add(111L);
+		dto.getHeaders().add(222L);
 		dto.setBucket("bucket");
 		dto.setKey("key");
 		dto.setEtag("someEtag");
@@ -577,13 +577,13 @@ public class TableModelUtilsTest {
 		// One
 		ColumnModel cm = new ColumnModel();
 		cm.setColumnType(ColumnType.STRING);
-		cm.setId("1");
+		cm.setId(1L);
 		cm.setDefaultValue("defaultOne");
 		models.add(cm);
 		// two
 		cm = new ColumnModel();
 		cm.setColumnType(ColumnType.STRING);
-		cm.setId("2");
+		cm.setId(2L);
 		cm.setDefaultValue(null);
 		models.add(cm);
 		
@@ -603,13 +603,13 @@ public class TableModelUtilsTest {
 		// three
 		cm = new ColumnModel();
 		cm.setColumnType(ColumnType.BOOLEAN);
-		cm.setId("3");
+		cm.setId(3L);
 		cm.setDefaultValue(null);
 		models.add(cm);
 		// four
 		cm = new ColumnModel();
 		cm.setColumnType(ColumnType.STRING);
-		cm.setId("4");
+		cm.setId(4L);
 		cm.setDefaultValue("default4");
 		models.add(cm);
 		
@@ -633,12 +633,12 @@ public class TableModelUtilsTest {
 		all.add(v1Set);
 		all.add(v2Set);
 		// Now get a single result set that contains all data in this new form
-		RowSet converted = TableModelUtils.convertToSchemaAndMerge(all, newOrder, "syn123");
+		RowSet converted = TableModelUtils.convertToSchemaAndMerge(all, newOrder, 123L);
 //		System.out.println(converted.toString());
 		// This is what we expect to come back
 		RowSet expected = new RowSet();
 		expected.setHeaders(TableModelUtils.getHeaders(newOrder));
-		expected.setTableId("syn123");
+		expected.setTableId(123L);
 		List<Row> expectedRows = new LinkedList<Row>();
 		expected.setRows(expectedRows);
 		// one

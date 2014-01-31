@@ -5,6 +5,7 @@ import java.io.IOException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ServiceConstants;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
@@ -85,7 +86,7 @@ public class TableController extends BaseController {
 	public @ResponseBody
 	ColumnModel getColumnModel(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String columnId) throws DatastoreException,
+			@PathVariable Long columnId) throws DatastoreException,
 			NotFoundException {
 		return serviceProvider.getTableServices().getColumnModel(userId,
 				columnId);
@@ -113,7 +114,7 @@ public class TableController extends BaseController {
 			@PathVariable String id) throws DatastoreException,
 			NotFoundException {
 		return serviceProvider.getTableServices()
-				.getColumnModelsForTableEntity(userId, id);
+				.getColumnModelsForTableEntity(userId, KeyFactory.stringToKey(id));
 	}
 
 	/**
@@ -189,7 +190,7 @@ public class TableController extends BaseController {
 			@PathVariable String id, @RequestBody RowSet rows)
 			throws DatastoreException, NotFoundException, IOException {
 		if(id == null) throw new IllegalArgumentException("{id} cannot be null");
-		rows.setTableId(id);
+		rows.setTableId(KeyFactory.stringToKey(id));
 		return serviceProvider.getTableServices().appendRows(userId, rows);
 	}
 

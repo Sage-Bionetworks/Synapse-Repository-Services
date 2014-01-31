@@ -72,11 +72,10 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 	
 	private static RowMapper<DBOColumnModel> ROW_MAPPER = new DBOColumnModel().getTableMapping();
 	private static RowMapper<DBOBoundColumn> BOUND_ROW_MAPPER = new DBOBoundColumn().getTableMapping();
-	private static RowMapper<String> ENTITY_ID_MAPPER = new RowMapper<String>() {
+	private static RowMapper<Long> ENTITY_ID_MAPPER = new RowMapper<Long>() {
 		@Override
-		public String mapRow(ResultSet rs, int rowNum) throws SQLException {
-			long id =  rs.getLong(COL_BOUND_CM_OBJECT_ID);
-			return KeyFactory.keyToString(id);
+		public Long mapRow(ResultSet rs, int rowNum) throws SQLException {
+			return rs.getLong(COL_BOUND_CM_OBJECT_ID);
 		}
 	};
 
@@ -88,11 +87,10 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 		return ColumnModelUtlis.createDTOFromDBO(dbos);
 	}
 	@Override
-	public List<ColumnModel> getColumnModelsForObject(String tableIdString)
+	public List<ColumnModel> getColumnModelsForObject(Long tableId)
 			throws DatastoreException, NotFoundException {
-		long tableId = KeyFactory.stringToKey(tableIdString);
 		List<DBOColumnModel> dbos = simpleJdbcTemplate.query(SQL_GET_COLUMN_MODELS_FOR_OBJECT, ROW_MAPPER, tableId);
-		if(dbos.size() < 1) throw new NotFoundException("No columns were found for "+tableIdString);
+		if(dbos.size() < 1) throw new NotFoundException("No columns were found for "+tableId);
 		// Convert to DTOs
 		return ColumnModelUtlis.createDTOFromDBO(dbos);
 	}
@@ -120,7 +118,7 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 		// Convert to the DBO
 		DBOColumnModel dbo = ColumnModelUtlis.createDBOFromDTO(model);
 		// check to see if a column model already exists with this hash.
-		String existingId = getColumnForHash(dbo.getHash());
+		Long existingId = getColumnForHash(dbo.getHash());
 		if(existingId != null){
 			// a column already exists with this same hash.
 			return getColumnModel(existingId);
@@ -130,11 +128,11 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 		dbo.setId(id);
 		// Save it.
 		basicDao.createNew(dbo);
-		return getColumnModel(Long.toString(id));
+		return getColumnModel(id);
 	}
 
 	@Override
-	public ColumnModel getColumnModel(String id) throws DatastoreException, NotFoundException {
+	public ColumnModel getColumnModel(Long id) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(DBOConstants.PARAM_EVALUATION_ID, id);
 		DBOColumnModel dbo = basicDao.getObjectByPrimaryKey(DBOColumnModel.class, param);
@@ -143,7 +141,7 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void delete(String id) {
+	public void delete(Long id) {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(DBOConstants.PARAM_EVALUATION_ID, id);
 		basicDao.deleteObjectByPrimaryKey(DBOColumnModel.class, param);
@@ -151,13 +149,12 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public int bindColumnToObject(List<String> newCurrentColumnIds, String objectIdString) throws NotFoundException {
+	public int bindColumnToObject(List<Long> newCurrentColumnIds, Long objectId) throws NotFoundException {
 		if(newCurrentColumnIds == null) throw new IllegalArgumentException("columnIds cannot be null");
 		if(newCurrentColumnIds.size() < 1) throw new IllegalArgumentException("Must include at least one column to bind to an object");
-		if(objectIdString == null) throw new IllegalArgumentException("objectId cannot be null");
+		if(objectId == null) throw new IllegalArgumentException("objectId cannot be null");
 		// Get each model to valid they exist.
 		List<ColumnModel> models = getColumnModel(newCurrentColumnIds);
-		Long objectId = KeyFactory.stringToKey(objectIdString);
 		try {
 			// first bind these columns to the object. This binding is permanent and can only grow over time.
 			List<DBOBoundColumn> permanent = ColumnModelUtlis.createDBOBoundColumnList(objectId, newCurrentColumnIds);
@@ -186,17 +183,16 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 	}
 
 	@Override
-	public String getColumnForHash(String hash) {
+	public Long getColumnForHash(String hash) {
 		try {
-			long id = simpleJdbcTemplate.queryForLong(SQL_SELECT_ID_WHERE_HASH_EQUALS, hash);
-			return Long.toString(id);
+			return simpleJdbcTemplate.queryForLong(SQL_SELECT_ID_WHERE_HASH_EQUALS, hash);
 		} catch (EmptyResultDataAccessException e) {
 			return null;
 		}
 	}
 
 	@Override
-	public List<ColumnModel> getColumnModel(List<String> ids) throws DatastoreException, NotFoundException {
+	public List<ColumnModel> getColumnModel(List<Long> ids) throws DatastoreException, NotFoundException {
 		if(ids == null) throw new IllegalArgumentException("Ids cannot be null");
 		MapSqlParameterSource parameters = new MapSqlParameterSource();
 		parameters.addValue("ids", ids);
@@ -220,7 +216,7 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 	}
 
 	@Override
-	public List<String> listObjectsBoundToColumn(Set<String> columnIds,	boolean currentOnly, long limit, long offset) {
+	public List<Long> listObjectsBoundToColumn(Set<Long> columnIds,	boolean currentOnly, long limit, long offset) {
 		MapSqlParameterSource parameters = new MapSqlParameterSource();
 		// With currently only we have one additional condition.
 		String sql = builderListObjectsSql(columnIds, currentOnly, limit, offset, parameters, false);
@@ -229,7 +225,7 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 	}
 	
 	@Override
-	public long listObjectsBoundToColumnCount(Set<String> columnIds, boolean currentOnly) {
+	public long listObjectsBoundToColumnCount(Set<Long> columnIds, boolean currentOnly) {
 		MapSqlParameterSource parameters = new MapSqlParameterSource();
 		// With currently only we have one additional condition.
 		String sql = builderListObjectsSql(columnIds, currentOnly, -1, -1, parameters, true);
@@ -246,7 +242,7 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 	 * @param parameters
 	 * @return
 	 */
-	private static String builderListObjectsSql(Set<String> columnIds, boolean currentOnly, long limit, long offset, MapSqlParameterSource parameters, boolean count){
+	private static String builderListObjectsSql(Set<Long> columnIds, boolean currentOnly, long limit, long offset, MapSqlParameterSource parameters, boolean count){
 		// We build the from, where, and join at the same time with a single loop.
 		String tableName;
 		String idColumnName;
@@ -267,7 +263,7 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 		StringBuilder join = new StringBuilder();
 		StringBuilder where = new StringBuilder();
 		where.append(" WHERE");
-		Iterator<String> it = columnIds.iterator();
+		Iterator<Long> it = columnIds.iterator();
 		for(int i=0; i<columnIds.size(); i++){
 			String tableAlias = "A"+i;
 			if(i > 0){
@@ -277,7 +273,7 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 			}
 			from.append(" "+tableName+" "+tableAlias);
 			where.append(" "+tableAlias+"."+idColumnName+" = :c"+i);
-			long colId = Long.parseLong(it.next());
+			long colId = it.next();
 			parameters.addValue("c"+i, colId);
 		}
 		// put all of the parts together.

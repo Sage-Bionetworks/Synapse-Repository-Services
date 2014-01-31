@@ -8,7 +8,10 @@ import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 public class TableIndexDAOImpl implements TableIndexDAO{
 
 	@Override
-	public boolean createOrUpdateTable(SimpleJdbcTemplate connection,	List<ColumnModel> schema, String tableId) {
+	public boolean createOrUpdateTable(SimpleJdbcTemplate connection, List<ColumnModel> schema, String tableId) {
+		if(connection == null) throw new IllegalArgumentException("Connection cannot be null");
+		if(schema == null) throw new IllegalArgumentException("New schema cannot be null");
+		
 		// TODO Auto-generated method stub
 		return false;
 	}

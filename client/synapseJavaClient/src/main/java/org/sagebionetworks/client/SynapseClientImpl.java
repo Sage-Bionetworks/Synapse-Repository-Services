@@ -4598,7 +4598,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public ColumnModel getColumnModel(String columnId) throws SynapseException {
+	public ColumnModel getColumnModel(Long columnId) throws SynapseException {
 		if(columnId == null) throw new IllegalArgumentException("ColumnId cannot be null");
 		String url = COLUMN+"/"+columnId;
 		try {

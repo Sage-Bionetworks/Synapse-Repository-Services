@@ -2,7 +2,7 @@
     "description":"Metadata about Table row change set.",
     "properties":{
         "tableId":{
-            "type":"string",
+            "type":"integer",
             "description":"The ID of the table that this change is for."
         },
         "rowVersion":{
@@ -17,7 +17,7 @@
 		    "description":"The list of ColumnModels ID that describes the rows of this change.",
 			"type": "array",
 			"items": {
-				"type": "string"
+				"type": "integer"
 			}
 		},
 		"createdOn": {

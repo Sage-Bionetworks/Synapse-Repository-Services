@@ -21,6 +21,8 @@ public class SQLUtils {
 	public static final String ROW_ID = "ROW_ID";
 	public static final String ROW_VERSION = "ROW_VERSION";
 	public static final String DEFAULT = "DEFAULT";
+	public static final String TABLE_PREFIX = "T";
+	public static final String COLUMN_PREFIX = "C";
 	
 	/**
 	 * Generate the SQL need to create or alter a table from one schema to another.
@@ -28,7 +30,7 @@ public class SQLUtils {
 	 * @param newSchema The new schema that the table should have when the resulting SQL is executed.
 	 * @return
 	 */
-	public static String creatOrAlterTableSQL(List<ColumnModel> oldSchema, List<ColumnModel> newSchema, String tableId){
+	public static String creatOrAlterTableSQL(List<ColumnModel> oldSchema, List<ColumnModel> newSchema, Long tableId){
 		if(oldSchema == null || oldSchema.isEmpty()){
 			// This is a create
 			return createTableSQL(newSchema, tableId);
@@ -45,7 +47,7 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String alterTableSql(List<ColumnModel> oldSchema, List<ColumnModel> newSchema, String tableId){
+	public static String alterTableSql(List<ColumnModel> oldSchema, List<ColumnModel> newSchema, Long tableId){
 		// Calculate both the columns to add and remove.
 		List<ColumnModel> toAdd = calculateColumnsToAdd(oldSchema, newSchema);
 		List<ColumnModel> toDrop = calculateColumnsToDrop(oldSchema, newSchema);
@@ -57,7 +59,7 @@ public class SQLUtils {
 	 * @param newSchema
 	 * @return
 	 */
-	public static String createTableSQL(List<ColumnModel> newSchema, String tableId){
+	public static String createTableSQL(List<ColumnModel> newSchema, Long tableId){
 		if(newSchema == null) throw new IllegalArgumentException("Table schema cannot be null");
 		if(newSchema.size() < 1) throw new IllegalArgumentException("Table schema must include at least one column");
 		if(tableId == null) throw new IllegalArgumentException("TableId cannot be null");
@@ -162,7 +164,7 @@ public class SQLUtils {
 	 * @param toRemove
 	 * @return
 	 */
-	public static String alterTableSQLInner(List<ColumnModel> toAdd, List<ColumnModel> toDrop, String tableId){
+	public static String alterTableSQLInner(List<ColumnModel> toAdd, List<ColumnModel> toDrop, Long tableId){
 		StringBuilder builder = new StringBuilder();
 		builder.append("ALTER TABLE ");
 		builder.append("`T").append(tableId).append("`");
@@ -196,7 +198,7 @@ public class SQLUtils {
 	 */
 	public static List<ColumnModel> calculateColumnsToAdd(List<ColumnModel> oldSchema, List<ColumnModel> newSchema){
 		// Add any column that is in the new schema but not in the old.
-		Set<String> set = createColumnIdSet(oldSchema);
+		Set<Long> set = createColumnIdSet(oldSchema);
 		return listNotInSet(set, newSchema);
 	}
 	
@@ -208,7 +210,7 @@ public class SQLUtils {
 	 */
 	public static List<ColumnModel> calculateColumnsToDrop(List<ColumnModel> oldSchema, List<ColumnModel> newSchema){
 		// Add any column in the old schema that is not in the new.
-		Set<String> set = createColumnIdSet(newSchema);
+		Set<Long> set = createColumnIdSet(newSchema);
 		return listNotInSet(set, oldSchema);
 	}
 	
@@ -217,8 +219,8 @@ public class SQLUtils {
 	 * @param schema
 	 * @return
 	 */
-	static Set<String> createColumnIdSet(List<ColumnModel> schema){
-		HashSet<String> set = new HashSet<String>();
+	static Set<Long> createColumnIdSet(List<ColumnModel> schema){
+		HashSet<Long> set = new HashSet<Long>();
 		for(ColumnModel cm: schema){
 			if(cm.getId() == null) throw new IllegalArgumentException("ColumnId cannot be null");
 			set.add(cm.getId());
@@ -232,7 +234,7 @@ public class SQLUtils {
 	 * @param schema
 	 * @return
 	 */
-	static List<ColumnModel> listNotInSet(Set<String> set, List<ColumnModel> schema){
+	static List<ColumnModel> listNotInSet(Set<Long> set, List<ColumnModel> schema){
 		List<ColumnModel> list = new LinkedList<ColumnModel>();
 		for(ColumnModel cm: schema){
 			if(!set.contains(cm.getId())){
@@ -240,6 +242,46 @@ public class SQLUtils {
 			}
 		}
 		return list;
+	}
+	
+	/**
+	 * Get the Table Name for a given table ID.
+	 * @param tableId
+	 * @return
+	 */
+	public static String getTableNameForId(Long tableId){
+		if(tableId == null) throw new IllegalArgumentException("Table ID cannot be null");
+		return TABLE_PREFIX+tableId.toString();
+	}
+	
+	/**
+	 * Get a table ID from a TableName
+	 * @param tableName
+	 * @return
+	 */
+	public static Long getTableIdForTableName(String tableName){
+		if(tableName == null) throw new IllegalArgumentException("TableName cannot be null");
+		return Long.parseLong(tableName.substring(TABLE_PREFIX.length()));
+	}
+	
+	/**
+	 * Get the Column name for a given column ID. 
+	 * @param columnId
+	 * @return
+	 */
+	public static String getColumnNameForId(Long columnId){
+		if(columnId == null) throw new IllegalArgumentException("Column ID cannot be null");
+		return COLUMN_PREFIX+columnId.toString();
+	}
+	
+	/**
+	 * Get the 
+	 * @param columnName
+	 * @return
+	 */
+	public static Long getColumnIdForColumnName(String columnName){
+		if(columnName == null) throw new IllegalArgumentException("Column name cannot be null");
+		return Long.parseLong(columnName.substring(COLUMN_PREFIX.length()));
 	}
 }
 

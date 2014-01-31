@@ -92,16 +92,16 @@ class NodeUtils {
 	 * @param columnModelIds
 	 * @return
 	 */
-	private static byte[] createColumnModelBytesFromList(List<String> columnModelIds) {
+	private static byte[] createColumnModelBytesFromList(List<Long> columnModelIds) {
 		if(columnModelIds == null) throw new IllegalArgumentException("columnModelIds cannot be null");
 		StringBuilder builder = new StringBuilder();
 		int count = 0;
-		for(String id: columnModelIds){
+		for(Long id: columnModelIds){
 			if(count >0){
 				builder.append(COLUMN_ID_DELIMITER);
 			}
 			// the value must be a long
-			long value = Long.parseLong(id);
+			long value = id;
 			builder.append(value);
 			count++;
 		}
@@ -117,16 +117,16 @@ class NodeUtils {
 	 * @param columnModelIds
 	 * @return
 	 */
-	private static List<String> createColumnModelListFromBytes(byte[] columnModelIds) {
+	private static List<Long> createColumnModelListFromBytes(byte[] columnModelIds) {
 		if(columnModelIds == null) throw new IllegalArgumentException("columnModelIds cannot be null");
 		try {
 			String string = new String(columnModelIds, "UTF-8");
 			String[] split = string.split(COLUMN_ID_DELIMITER);
-			List<String> result = new LinkedList<String>();
+			List<Long> result = new LinkedList<Long>();
 			for(String stringId: split){
 				// The value must be a long
 				long value = Long.parseLong(stringId);
-				result.add(Long.toString(value));
+				result.add(value);
 			}
 			return result;
 		} catch (UnsupportedEncodingException e) {

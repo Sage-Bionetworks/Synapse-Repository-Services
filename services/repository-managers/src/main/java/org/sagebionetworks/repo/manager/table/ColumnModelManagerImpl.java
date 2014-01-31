@@ -62,14 +62,14 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 	}
 	
 	@Override
-	public ColumnModel getColumnModel(UserInfo user, String columnId) throws DatastoreException, NotFoundException {
+	public ColumnModel getColumnModel(UserInfo user, Long columnId) throws DatastoreException, NotFoundException {
 		if(user == null) throw new IllegalArgumentException("User cannot be null");
 		if(columnId == null) throw new IllegalArgumentException("ColumnId cannot be null");
 		return columnModelDao.getColumnModel(columnId);
 	}
 
 	@Override
-	public List<ColumnModel> getColumnModel(UserInfo user, List<String> ids)
+	public List<ColumnModel> getColumnModel(UserInfo user, List<Long> ids)
 			throws DatastoreException, NotFoundException {
 		if(user == null) throw new IllegalArgumentException("User cannot be null");
 		if(ids == null) throw new IllegalArgumentException("ColumnModel IDs cannot be null");
@@ -78,7 +78,7 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 	
 
 	@Override
-	public boolean bindColumnToObject(UserInfo user, List<String> columnIds,	String objectId) throws DatastoreException, NotFoundException {
+	public boolean bindColumnToObject(UserInfo user, List<Long> columnIds, Long objectId) throws DatastoreException, NotFoundException {
 		if(user == null) throw new IllegalArgumentException("User cannot be null");
 		if(columnIds == null) throw new IllegalArgumentException("ColumnModel IDs cannot be null");
 		// pass it along to the DAO.
@@ -87,11 +87,11 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 	}
 
 	@Override
-	public PaginatedIds listObjectsBoundToColumn(UserInfo user,	Set<String> columnIds, boolean currentOnly, long limit, long offset) {
+	public PaginatedIds listObjectsBoundToColumn(UserInfo user,	Set<Long> columnIds, boolean currentOnly, long limit, long offset) {
 		if(user == null) throw new IllegalArgumentException("User cannot be null");
 		validateLimitOffset(limit, offset);
 		if(columnIds == null) throw new IllegalArgumentException("ColumnModel IDs cannot be null");
-		List<String> results = columnModelDao.listObjectsBoundToColumn(columnIds, currentOnly, limit, offset);
+		List<Long> results = columnModelDao.listObjectsBoundToColumn(columnIds, currentOnly, limit, offset);
 		long totalCount = columnModelDao.listObjectsBoundToColumnCount(columnIds, currentOnly);
 		PaginatedIds page = new PaginatedIds();
 		page.setResults(results);
@@ -108,9 +108,9 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 
 	@Override
 	public List<ColumnModel> getColumnModelsForTable(UserInfo user,
-			String tableId) throws DatastoreException, NotFoundException {
+			Long tableId) throws DatastoreException, NotFoundException {
 		// The user must be granted read permission on the table to get the columns.
-		if(!authorizationManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)){
+		if(!authorizationManager.canAccess(user, tableId.toString(), ObjectType.ENTITY, ACCESS_TYPE.READ)){
 			throw new UnauthorizedException("You must have "+ACCESS_TYPE.READ+" permission on "+tableId+" to perform that operation.");
 		}
 		return columnModelDao.getColumnModelsForObject(tableId);

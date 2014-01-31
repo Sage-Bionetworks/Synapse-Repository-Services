@@ -100,9 +100,9 @@ public class TableModelUtils {
 							+ " columns and the passed RowSet.headers has: "
 							+ set.getHeaders().size());
 		// Now map the index of each column
-		Map<String, Integer> columnIndexMap = new HashMap<String, Integer>();
+		Map<Long, Integer> columnIndexMap = new HashMap<Long, Integer>();
 		int index = 0;
-		for (String header : set.getHeaders()) {
+		for (Long header : set.getHeaders()) {
 			columnIndexMap.put(header, index);
 			index++;
 		}
@@ -385,9 +385,9 @@ public class TableModelUtils {
 	 * @param models
 	 * @return
 	 */
-	public static List<String> getHeaders(List<ColumnModel> models){
+	public static List<Long> getHeaders(List<ColumnModel> models){
 		if(models == null) throw new IllegalArgumentException("ColumnModels cannot be null");
-		List<String> headers = new LinkedList<String>();
+		List<Long> headers = new LinkedList<Long>();
 		for(ColumnModel model: models){
 			if(model.getId() == null) throw new IllegalArgumentException("ColumnModel ID cannot be null");
 			headers.add(model.getId());
@@ -400,11 +400,11 @@ public class TableModelUtils {
 	 * @param models
 	 * @return
 	 */
-	public static String createDelimitedColumnModelIdString(List<String> headers){
+	public static String createDelimitedColumnModelIdString(List<Long> headers){
 		if(headers == null) throw new IllegalArgumentException("headers cannot be null");
 		StringBuilder builder = new StringBuilder();
 		boolean first = true;
-		for(String id: headers){
+		for(Long id: headers){
 			if(!first){
 				builder.append(COLUMN_MODEL_ID_STRING_DELIMITER);
 			}
@@ -419,12 +419,12 @@ public class TableModelUtils {
 	 * @param in
 	 * @return
 	 */
-	public static List<String> readColumnModelIdsFromDelimitedString(String in){
+	public static List<Long> readColumnModelIdsFromDelimitedString(String in){
 		if(in == null) throw new IllegalArgumentException("String cannot be null");
 		String[] split = in.split(COLUMN_MODEL_ID_STRING_DELIMITER);
-		List<String> result = new LinkedList<String>();
+		List<Long> result = new LinkedList<Long>();
 		for(String id: split){
-			result.add(id);
+			result.add(Long.parseLong(id));
 		}
 		return result;
 	}
@@ -440,7 +440,7 @@ public class TableModelUtils {
 			ColumnModel cm = new ColumnModel();
 			cm.setColumnType(type);
 			cm.setName("i"+i);
-			cm.setId(""+i);
+			cm.setId(new Long(i));
 			results.add(cm);
 		}
 		return results;
@@ -517,7 +517,7 @@ public class TableModelUtils {
 	public static TableRowChange ceateDTOFromDBO(DBOTableRowChange dbo){
 		if(dbo == null) throw new IllegalArgumentException("dbo cannot be null");
 		TableRowChange dto = new TableRowChange();
-		dto.setTableId(KeyFactory.keyToString(dbo.getTableId()));
+		dto.setTableId(dbo.getTableId());
 		dto.setRowVersion(dbo.getRowVersion());
 		dto.setEtag(dbo.getEtag());
 		dto.setHeaders(readColumnModelIdsFromDelimitedString(dbo.getColumnIds()));
@@ -536,7 +536,7 @@ public class TableModelUtils {
 	public static DBOTableRowChange createDBOFromDTO(TableRowChange dto){
 		if(dto == null) throw new IllegalArgumentException("dto cannot be null");
 		DBOTableRowChange dbo = new DBOTableRowChange();
-		dbo.setTableId(KeyFactory.stringToKey(dto.getTableId()));
+		dbo.setTableId(dto.getTableId());
 		dbo.setRowVersion(dto.getRowVersion());
 		dbo.setEtag(dto.getEtag());
 		dbo.setColumnIds(createDelimitedColumnModelIdString(dto.getHeaders()));
@@ -601,7 +601,7 @@ public class TableModelUtils {
 	 * @param resultSchema
 	 * @return
 	 */
-	public static RowSet convertToSchemaAndMerge(List<RowSet> sets, List<ColumnModel> resultSchema, String tableId){
+	public static RowSet convertToSchemaAndMerge(List<RowSet> sets, List<ColumnModel> resultSchema, Long tableId){
 		// Prepare the final set
 		RowSet out = new RowSet();
 		out.setTableId(tableId);
@@ -623,9 +623,9 @@ public class TableModelUtils {
 	 */
 	public static void convertToSchemaAndMerge(RowSet in, List<ColumnModel> resultSchema, RowSet out){
 		// map the index of each column
-		Map<String, Integer> columnIndexMap = new HashMap<String, Integer>();
+		Map<Long, Integer> columnIndexMap = new HashMap<Long, Integer>();
 		int index = 0;
-		for (String header : in.getHeaders()) {
+		for (Long header : in.getHeaders()) {
 			columnIndexMap.put(header, index);
 			index++;
 		}

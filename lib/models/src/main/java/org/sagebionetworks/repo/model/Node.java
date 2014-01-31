@@ -29,7 +29,7 @@ public class Node {
 	private Map<String, Set<Reference>> references;
 	private String activityId;
 	private String fileHandleId;
-	private List<String> columnModelIds;
+	private List<Long> columnModelIds;
 
 	public Long getCreatedByPrincipalId() {
 		return createdByPrincipalId;
@@ -175,10 +175,10 @@ public class Node {
 		this.fileHandleId = fileHandleId;
 	}
 	
-	public List<String> getColumnModelIds() {
+	public List<Long> getColumnModelIds() {
 		return columnModelIds;
 	}
-	public void setColumnModelIds(List<String> columnModelIds) {
+	public void setColumnModelIds(List<Long> columnModelIds) {
 		this.columnModelIds = columnModelIds;
 	}
 	@Override

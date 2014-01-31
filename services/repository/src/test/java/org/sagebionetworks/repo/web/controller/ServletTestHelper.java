@@ -1342,7 +1342,7 @@ public class ServletTestHelper {
 	 * @throws Exception
 	 */
 	public static ColumnModel getColumnModel(DispatcherServlet instance,
-			String columnId, Long userId) throws Exception {
+			Long columnId, Long userId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, UrlHelpers.COLUMN + "/" + columnId, userId, null);
 

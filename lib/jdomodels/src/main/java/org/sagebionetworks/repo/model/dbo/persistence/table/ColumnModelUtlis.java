@@ -50,7 +50,7 @@ public class ColumnModelUtlis {
 			dbo.setName(normal.getName());
 			dbo.setHash(hash);
 			if(dto.getId() != null){
-				dbo.setId(Long.parseLong(dto.getId()));
+				dbo.setId(dto.getId());
 			}
 			return dbo;
 		} catch (IOException e) {
@@ -72,7 +72,7 @@ public class ColumnModelUtlis {
 			ByteArrayInputStream in = new ByteArrayInputStream(dbo.getBytes());
 			GZIPInputStream zip = new GZIPInputStream(in);
 			ColumnModel model = (ColumnModel) xstream.fromXML(zip, new ColumnModel());
-			model.setId(Long.toString(dbo.getId()));
+			model.setId(dbo.getId());
 			return model;
 		} catch (IOException e) {
 			throw new RuntimeException(e);
@@ -179,13 +179,13 @@ public class ColumnModelUtlis {
 	 * @param ids
 	 * @return
 	 */
-	public static List<DBOBoundColumn> createDBOBoundColumnList(Long objectId, List<String> ids){
+	public static List<DBOBoundColumn> createDBOBoundColumnList(Long objectId, List<Long> ids){
 		List<DBOBoundColumn> list = new LinkedList<DBOBoundColumn>();
 		long now = System.currentTimeMillis();
 		// Add each id
-		for(String id: ids){
+		for(Long id: ids){
 			DBOBoundColumn bc = new DBOBoundColumn();
-			bc.setColumnId(Long.parseLong(id));
+			bc.setColumnId(id);
 			bc.setObjectId(objectId);
 			bc.setUpdatedOn(now);
 			list.add(bc);
@@ -199,11 +199,11 @@ public class ColumnModelUtlis {
 	 * @param ids
 	 * @return
 	 */
-	public static List<DBOBoundColumnOrdinal> createDBOBoundColumnOrdinalList(Long objectId, List<String> ids){
+	public static List<DBOBoundColumnOrdinal> createDBOBoundColumnOrdinalList(Long objectId, List<Long> ids){
 		List<DBOBoundColumnOrdinal> list = new LinkedList<DBOBoundColumnOrdinal>();
 		// Keep the order of the columns
 		for(int i=0; i<ids.size(); i++){
-			Long id = Long.parseLong(ids.get(i));
+			Long id = ids.get(i);
 			DBOBoundColumnOrdinal bc = new DBOBoundColumnOrdinal();
 			bc.setColumnId(id);
 			bc.setObjectId(objectId);

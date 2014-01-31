@@ -42,7 +42,7 @@ public interface ColumnModelManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public List<ColumnModel> getColumnModel(UserInfo user, List<String> ids) throws DatastoreException, NotFoundException;
+	public List<ColumnModel> getColumnModel(UserInfo user, List<Long> ids) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Get the columns models bound to a Table.
@@ -52,7 +52,7 @@ public interface ColumnModelManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public List<ColumnModel> getColumnModelsForTable(UserInfo user, String tableId) throws DatastoreException, NotFoundException;
+	public List<ColumnModel> getColumnModelsForTable(UserInfo user, Long tableId) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Get a single ColumnModel
@@ -61,7 +61,7 @@ public interface ColumnModelManager {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public ColumnModel getColumnModel(UserInfo user, String columnId) throws DatastoreException, NotFoundException;
+	public ColumnModel getColumnModel(UserInfo user, Long columnId) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Bind a set of columns to an object.
@@ -72,7 +72,7 @@ public interface ColumnModelManager {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public boolean bindColumnToObject(UserInfo user, List<String> columnIds, String objectId) throws DatastoreException, NotFoundException;
+	public boolean bindColumnToObject(UserInfo user, List<Long> columnIds, Long objectId) throws DatastoreException, NotFoundException;
 	
 	
 	/**
@@ -84,7 +84,7 @@ public interface ColumnModelManager {
 	 * @param offset
 	 * @return
 	 */
-	public PaginatedIds listObjectsBoundToColumn(UserInfo user, Set<String> columnIds, boolean currentOnly, long limit, long offset);
+	public PaginatedIds listObjectsBoundToColumn(UserInfo user, Set<Long> columnIds, boolean currentOnly, long limit, long offset);
 	
 	/**
 	 * Clear all data for tests.

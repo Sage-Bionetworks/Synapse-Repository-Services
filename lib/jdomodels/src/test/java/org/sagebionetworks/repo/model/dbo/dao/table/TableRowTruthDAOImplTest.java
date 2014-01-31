@@ -59,7 +59,7 @@ public class TableRowTruthDAOImplTest {
 
 	@Test
 	public void testReserveIdsInRange(){
-		String tableId = "123";
+		Long tableId = 123L;
 		IdRange range = tableRowTruthDao.reserveIdsInRange(tableId, 3);
 		assertNotNull(range);
 		assertEquals(new Long(0), range.getMinimumId());
@@ -99,7 +99,7 @@ public class TableRowTruthDAOImplTest {
 		List<ColumnModel> models = TableModelUtils.createOneOfEachType();
 		// create some test rows.
 		List<Row> rows = TableModelUtils.createRows(models, 5);
-		String tableId = "syn123";
+		Long tableId = 123L;
 		RowSet set = new RowSet();
 		set.setHeaders(TableModelUtils.getHeaders(models));
 		set.setRows(rows);
@@ -126,7 +126,7 @@ public class TableRowTruthDAOImplTest {
 		List<ColumnModel> models = TableModelUtils.createOneOfEachType();
 		// create some test rows.
 		List<Row> rows = TableModelUtils.createRows(models, 5);
-		String tableId = "syn123";
+		Long tableId = 123L;
 		RowSet set = new RowSet();
 		set.setHeaders(TableModelUtils.getHeaders(models));
 		set.setRows(rows);
@@ -177,7 +177,7 @@ public class TableRowTruthDAOImplTest {
 		List<ColumnModel> models = TableModelUtils.createOneOfEachType();
 		// create some test rows.
 		List<Row> rows = TableModelUtils.createRows(models, 5);
-		String tableId = "syn123";
+		Long tableId = 123L;
 		RowSet set = new RowSet();
 		set.setHeaders(TableModelUtils.getHeaders(models));
 		set.setRows(rows);
@@ -227,8 +227,7 @@ public class TableRowTruthDAOImplTest {
 		List<ColumnModel> models = TableModelUtils.createOneOfEachType();
 		// create some test rows.
 		List<Row> rows = TableModelUtils.createRows(models, 5);
-		
-		String tableId = "syn123";
+		Long tableId = 123L;
 		RowSet set = new RowSet();
 		set.setHeaders(TableModelUtils.getHeaders(models));
 		set.setRows(rows);
@@ -259,7 +258,7 @@ public class TableRowTruthDAOImplTest {
 		List<ColumnModel> models = TableModelUtils.createOneOfEachType();
 		// create some test rows.
 		List<Row> rows = TableModelUtils.createRows(models, 5);
-		String tableId = "syn123";
+		Long tableId = 123L;
 		RowSet set = new RowSet();
 		set.setHeaders(TableModelUtils.getHeaders(models));
 		set.setRows(rows);
@@ -299,7 +298,7 @@ public class TableRowTruthDAOImplTest {
 		List<ColumnModel> models = TableModelUtils.createOneOfEachType();
 		// create some test rows.
 		List<Row> rows = TableModelUtils.createRows(models, 3);
-		String tableId = "syn123";
+		Long tableId = 123L;
 		RowSet set = new RowSet();
 		set.setHeaders(TableModelUtils.getHeaders(models));
 		set.setRows(rows);
@@ -338,7 +337,7 @@ public class TableRowTruthDAOImplTest {
 		List<ColumnModel> models = TableModelUtils.createOneOfEachType();
 		// create some test rows.
 		List<Row> rows = TableModelUtils.createRows(models, 3);
-		String tableId = "syn123";
+		Long tableId = 123L;
 		RowSet set = new RowSet();
 		set.setHeaders(TableModelUtils.getHeaders(models));
 		set.setRows(rows);
@@ -391,7 +390,7 @@ public class TableRowTruthDAOImplTest {
 		
 		// create some test rows.
 		List<Row> rows = TableModelUtils.createRows(models, maxRow+1);
-		String tableId = "syn123";
+		Long tableId = 123L;
 		RowSet set = new RowSet();
 		set.setHeaders(TableModelUtils.getHeaders(models));
 		set.setRows(rows);
@@ -416,7 +415,7 @@ public class TableRowTruthDAOImplTest {
 		
 		// create some test rows.
 		List<Row> rows = TableModelUtils.createRows(models, maxRow);
-		String tableId = "syn123";
+		Long tableId = 123L;
 		RowSet set = new RowSet();
 		set.setHeaders(TableModelUtils.getHeaders(models));
 		set.setRows(rows);
@@ -449,7 +448,7 @@ public class TableRowTruthDAOImplTest {
 		// create some test rows.
 		List<Row> rows = TableModelUtils.createRows(models, 1);
 		// Set the ID of the row to be beyond the valid range
-		String tableId = "syn123";
+		Long tableId = 123L;
 		RowSet set = new RowSet();
 		set.setHeaders(TableModelUtils.getHeaders(models));
 		set.setRows(rows);
@@ -477,8 +476,8 @@ public class TableRowTruthDAOImplTest {
 		List<ColumnModel> models = TableModelUtils.createOneOfEachType();
 		// create some test rows.
 		List<Row> rows = TableModelUtils.createRows(models, 5);
-		String tableId = "syn123";
-		String changeId = KeyFactory.stringToKey(tableId).toString();
+		Long tableId = 123L;
+		String changeId = tableId.toString();
 		RowSet set = new RowSet();
 		set.setHeaders(TableModelUtils.getHeaders(models));
 		set.setRows(rows);
