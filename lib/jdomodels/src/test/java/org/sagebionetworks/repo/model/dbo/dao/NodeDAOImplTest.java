@@ -1862,9 +1862,9 @@ public class NodeDAOImplTest {
 		toDelete.add(id1);
 		n1 = nodeDao.getNode(id1);
 		assertNotNull("ColumnModel ID were not saved!",n1.getColumnModelIds());
-		List<String> expected = new LinkedList<String>();
-		expected.add("123");
-		expected.add("456");
+		List<Long> expected = new LinkedList<Long>();
+		expected.add(123L);
+		expected.add(456L);
 		assertEquals(expected, n1.getColumnModelIds());
 	}
 

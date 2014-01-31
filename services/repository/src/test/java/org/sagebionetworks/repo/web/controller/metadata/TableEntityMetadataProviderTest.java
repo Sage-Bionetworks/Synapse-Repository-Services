@@ -132,8 +132,8 @@ public class TableEntityMetadataProviderTest {
 		// Validate that we could create this table
 		tableEntityMetadataProvider.validateEntity(table, event);
 		// Now this table should be listed as bound to the column\
-		List<String> expectedIds = new LinkedList<String>();
-		expectedIds.add("syn123");
+		List<Long> expectedIds = new LinkedList<Long>();
+		expectedIds.add(123L);
 		results = columnModelManager.listObjectsBoundToColumn(adminUserInfo, columnIds, false, 100, 0);
 		assertNotNull(results);
 		assertEquals(new Long(1), results.getTotalNumberOfResults());
@@ -157,8 +157,8 @@ public class TableEntityMetadataProviderTest {
 		// Validate that we could create this table
 		tableEntityMetadataProvider.validateEntity(table, event);
 		// Now this table should be listed as bound to the column\
-		List<String> expectedIds = new LinkedList<String>();
-		expectedIds.add("syn123");
+		List<Long> expectedIds = new LinkedList<Long>();
+		expectedIds.add(123L);
 		results = columnModelManager.listObjectsBoundToColumn(adminUserInfo, columnIds, false, 100, 0);
 		assertNotNull(results);
 		assertEquals(new Long(1), results.getTotalNumberOfResults());
