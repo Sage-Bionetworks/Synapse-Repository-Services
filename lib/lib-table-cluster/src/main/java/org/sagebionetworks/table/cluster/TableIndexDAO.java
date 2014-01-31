@@ -28,4 +28,11 @@ public interface TableIndexDAO {
 	 * @return
 	 */
 	public boolean deleteTable(SimpleJdbcTemplate connection, String tableId); 
+	
+	/**
+	 * Get the current columns of a table in the passed database connection.
+	 * @param tableId
+	 * @return
+	 */
+	public List<String> getCurrentTableColumns(SimpleJdbcTemplate connection, String tableId);
 }

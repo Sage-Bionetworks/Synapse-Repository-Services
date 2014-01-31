@@ -48,7 +48,7 @@ public class SQLUtilsTest {
 	@Test
 	public void testCreateTableSQL(){
 		// Build the create DDL for this table
-		String sql = SQLUtils.createTableSQL(simpleSchema, "123");
+		String sql = SQLUtils.createTableSQL(simpleSchema, "syn123");
 		assertNotNull(sql);
 		// Validate it contains the expected elements
 		String expected = "CREATE TABLE IF NOT EXISTS `T123` ( ROW_ID bigint(20) NOT NULL, ROW_VERSION bigint(20) NOT NULL, `C456` bigint(20) DEFAULT NULL, PRIMARY KEY (ROW_ID) )";
@@ -161,7 +161,7 @@ public class SQLUtilsTest {
 	@Test
 	public void testCreateAllTypes(){
 		List<ColumnModel> allTypes = TableModelUtils.createOneOfEachType();
-		String sql = SQLUtils.createTableSQL(allTypes, "123");
+		String sql = SQLUtils.createTableSQL(allTypes, "syn123");
 		assertNotNull(sql);
 		System.out.println(sql);
 	}
@@ -251,12 +251,21 @@ public class SQLUtilsTest {
 		List<ColumnModel> oldSchema = helperCreateColumnsWithIds("1","2","3");
 		List<ColumnModel> newSchema = helperCreateColumnsWithIds("0","2","4");
 		// This should drop columns 1 & 3 and then add columns 0 & 4
-		String sql = SQLUtils.alterTableSql(oldSchema, newSchema, "999");
+		String sql = SQLUtils.alterTableSql(oldSchema, newSchema, "syn999");
 		assertNotNull(sql);
 		String expected = "ALTER TABLE `T999` DROP COLUMN `C1`, DROP COLUMN `C3`, ADD COLUMN `C0` bigint(20) DEFAULT NULL, ADD COLUMN `C4` bigint(20) DEFAULT NULL";
 		assertEquals(expected, sql);
 	}
 	
+	@Test
+	public void testGetTableNameForId(){
+		assertEquals("T123", SQLUtils.getTableNameForId("syn123"));
+	}
+	
+	@Test
+	public void testGetColumnNameForId(){
+		assertEquals("C456", SQLUtils.getColumnNameForId("456"));
+	}
 	
 	/**
 	 * A helper to create a list of ColumnModels from column model ids.
@@ -276,4 +285,5 @@ public class SQLUtilsTest {
 		}
 		return list;
 	}
+	
 }
