@@ -37,7 +37,7 @@ public interface TableServices {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public ColumnModel getColumnModel(Long userId, String columnId) throws DatastoreException, NotFoundException;
+	public ColumnModel getColumnModel(Long userId, Long columnId) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Get the ColumnModels for a TableEntity
@@ -47,7 +47,7 @@ public interface TableServices {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public PaginatedColumnModels getColumnModelsForTableEntity(Long userId, String entityId) throws DatastoreException, NotFoundException;
+	public PaginatedColumnModels getColumnModelsForTableEntity(Long userId, Long entityId) throws DatastoreException, NotFoundException;
 
 	/**
 	 * List all of the the ColumnModels.

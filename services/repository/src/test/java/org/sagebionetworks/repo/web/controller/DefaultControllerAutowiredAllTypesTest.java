@@ -257,7 +257,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 				}
 				if(object instanceof TableEntity){
 					TableEntity table = (TableEntity) object;
-					List<String> idList = new LinkedList<String>();
+					List<Long> idList = new LinkedList<Long>();
 					idList.add(columnModelOne.getId());
 					table.setColumnIds(idList);
 				}

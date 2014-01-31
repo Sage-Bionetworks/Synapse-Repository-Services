@@ -959,7 +959,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	ColumnModel getColumnModel(String columnId) throws SynapseException;
+	ColumnModel getColumnModel(Long columnId) throws SynapseException;
 	
 	// Team services
 	

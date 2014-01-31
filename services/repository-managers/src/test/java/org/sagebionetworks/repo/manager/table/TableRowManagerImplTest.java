@@ -32,7 +32,7 @@ public class TableRowManagerImplTest {
 	TableRowManagerImpl manager;
 	List<ColumnModel> models;
 	UserInfo user;
-	String tableId;
+	Long tableId;
 	RowSet set;
 	RowReferenceSet refSet;
 	
@@ -43,7 +43,7 @@ public class TableRowManagerImplTest {
 		manager = new TableRowManagerImpl();
 		user = new UserInfo(false, 7L);
 		models = TableModelUtils.createOneOfEachType();
-		tableId = "syn123";
+		tableId = 123L;
 		List<Row> rows = TableModelUtils.createRows(models, 10);
 		set = new RowSet();
 		set.setTableId(tableId);
@@ -61,13 +61,13 @@ public class TableRowManagerImplTest {
 	
 	@Test (expected=UnauthorizedException.class)
 	public void testAppendRowsUnauthroized() throws DatastoreException, NotFoundException, IOException{
-		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(false);
+		when(mockAuthManager.canAccess(user, tableId.toString(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(false);
 		manager.appendRows(user, tableId, models, set);
 	}
 	
 	@Test
 	public void testAppendRowsHappy() throws DatastoreException, NotFoundException, IOException{
-		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(true);
+		when(mockAuthManager.canAccess(user, tableId.toString(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(true);
 		when(mockTruthDao.appendRowSetToTable(user.getId().toString(), tableId, models, set)).thenReturn(refSet);
 		RowReferenceSet results = manager.appendRows(user, tableId, models, set);
 		assertEquals(refSet, results);

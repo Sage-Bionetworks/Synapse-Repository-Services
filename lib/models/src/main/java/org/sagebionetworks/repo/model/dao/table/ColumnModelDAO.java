@@ -46,7 +46,7 @@ public interface ColumnModelDAO {
 	 * @param hash
 	 * @return
 	 */
-	public String getColumnForHash(String hash);
+	public Long getColumnForHash(String hash);
 	/**
 	 * Get a ColumnModel from its id.
 	 * 
@@ -55,7 +55,7 @@ public interface ColumnModelDAO {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public ColumnModel getColumnModel(String id) throws DatastoreException, NotFoundException;
+	public ColumnModel getColumnModel(Long id) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Get a a list of ColumnModel from a list of columnModel ID strings
@@ -64,7 +64,7 @@ public interface ColumnModelDAO {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public List<ColumnModel> getColumnModel(List<String> ids) throws DatastoreException, NotFoundException;
+	public List<ColumnModel> getColumnModel(List<Long> ids) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Get the columns currently bound to an object in the order they were bound.
@@ -74,14 +74,14 @@ public interface ColumnModelDAO {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public List<ColumnModel> getColumnModelsForObject(String tableId) throws DatastoreException, NotFoundException;
+	public List<ColumnModel> getColumnModelsForObject(Long tableId) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Delete a column model using its ID.  Note: Only a column model that is not currently in use can be deleted.
 	 * 
 	 * @param id
 	 */
-	public void delete(String id);
+	public void delete(Long id);
 	
 	/**
 	 * Bind a list of ColumnModels to an object. This indicates that the passed object now depends on this passed column.
@@ -93,7 +93,7 @@ public interface ColumnModelDAO {
 	 * @return True if the this object was not already bound to this object.
 	 * @throws NotFoundException 
 	 */
-	public int bindColumnToObject(List<String> columnIds, String objectId) throws NotFoundException;
+	public int bindColumnToObject(List<Long> columnIds, Long objectId) throws NotFoundException;
 	
 	/**
 	 * List all objects that are bound to a set of column IDs.
@@ -104,13 +104,13 @@ public interface ColumnModelDAO {
 	 * @param offset - Pagination parameter that is the index of the first column in the page to be returned.
 	 * @return
 	 */
-	public List<String> listObjectsBoundToColumn(Set<String> columnIds, boolean currentOnly, long limit, long offest);
+	public List<Long> listObjectsBoundToColumn(Set<Long> columnIds, boolean currentOnly, long limit, long offest);
 	
 	/**
 	 * Used for pagination to determine the total number of results for this query.
 	 * @return
 	 */
-	public long listObjectsBoundToColumnCount(Set<String> columnIds, boolean currentOnly);
+	public long listObjectsBoundToColumnCount(Set<Long> columnIds, boolean currentOnly);
 	
 	/**
 	 * This should only be called by tests.

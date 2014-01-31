@@ -25,7 +25,7 @@ public interface TableRowTruthDAO {
 	 * @param coutToReserver
 	 * @return
 	 */
-	public IdRange reserveIdsInRange(String tableId, long coutToReserver);
+	public IdRange reserveIdsInRange(Long tableId, long coutToReserver);
 	
 	/**
 	 * Get the version number for a given table ID and etag.
@@ -34,7 +34,7 @@ public interface TableRowTruthDAO {
 	 * @param etag
 	 * @return
 	 */
-	public long getVersionForEtag(String tableIdString, String etag);
+	public long getVersionForEtag(Long tableId, String etag);
 	
 	/**
 	 * Append a RowSet to a table.
@@ -44,7 +44,7 @@ public interface TableRowTruthDAO {
 	 * @return
 	 * @throws IOException 
 	 */
-	public RowReferenceSet appendRowSetToTable(String userId, String tableId, List<ColumnModel> models, RowSet delta) throws IOException;
+	public RowReferenceSet appendRowSetToTable(String userId, Long tableId, List<ColumnModel> models, RowSet delta) throws IOException;
 		
 	/**
 	 * Fetch a change set for a given table and 
@@ -53,7 +53,7 @@ public interface TableRowTruthDAO {
 	 * @throws IOException 
 	 * @throws NotFoundException 
 	 */
-	public RowSet getRowSet(String tableId, long rowVersion) throws IOException, NotFoundException;
+	public RowSet getRowSet(Long tableId, Long rowVersion) throws IOException, NotFoundException;
 	
 	/**
 	 * Use this method to scan over an entire RowSet without loading the set into memory.  For each row found in the 
@@ -64,7 +64,7 @@ public interface TableRowTruthDAO {
 	 * @throws IOException
 	 * @throws NotFoundException 
 	 */
-	public TableRowChange scanRowSet(String tableId, long rowVersion, RowHandler handler) throws IOException, NotFoundException;
+	public TableRowChange scanRowSet(Long tableId, Long rowVersion, RowHandler handler) throws IOException, NotFoundException;
 	
 	/**
 	 * Get a RowSet for all rows referenced in the requested form.
@@ -95,7 +95,7 @@ public interface TableRowTruthDAO {
 	 * @param tableId
 	 * @return
 	 */
-	public List<TableRowChange> listRowSetsKeysForTable(String tableId);
+	public List<TableRowChange> listRowSetsKeysForTable(Long tableId);
 	
 	/**
 	 * List all changes for a table with a version number greater than the given value (exclusive).
@@ -103,7 +103,7 @@ public interface TableRowTruthDAO {
 	 * @param version
 	 * @return
 	 */
-	public List<TableRowChange> listRowSetsKeysForTableGreaterThanVersion(String tableId, long version);
+	public List<TableRowChange> listRowSetsKeysForTableGreaterThanVersion(Long tableId, Long version);
 	
 	/**
 	 * Get the TableRowChange for a given tableId and row version number.
@@ -112,7 +112,7 @@ public interface TableRowTruthDAO {
 	 * @return
 	 * @throws NotFoundException 
 	 */
-	public TableRowChange getTableRowChange(String tableId, long rowVersion) throws NotFoundException;
+	public TableRowChange getTableRowChange(Long tableId, Long rowVersion) throws NotFoundException;
 	
 	/**
 	 * This should never be called in a production setting.

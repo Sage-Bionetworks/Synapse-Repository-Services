@@ -40,13 +40,13 @@ public class TableServicesImpl implements TableServices {
 	}
 
 	@Override
-	public ColumnModel getColumnModel(Long userId, String columnId) throws DatastoreException, NotFoundException {
+	public ColumnModel getColumnModel(Long userId, Long columnId) throws DatastoreException, NotFoundException {
 		UserInfo user = userManager.getUserInfo(userId);
 		return columnModelManager.getColumnModel(user, columnId);
 	}
 
 	@Override
-	public PaginatedColumnModels getColumnModelsForTableEntity(Long userId, String entityId) throws DatastoreException, NotFoundException {
+	public PaginatedColumnModels getColumnModelsForTableEntity(Long userId, Long entityId) throws DatastoreException, NotFoundException {
 		UserInfo user = userManager.getUserInfo(userId);
 		List<ColumnModel> models = getCurrentColumnsForTable(user, entityId);
 		PaginatedColumnModels pcm = new PaginatedColumnModels();
@@ -76,7 +76,7 @@ public class TableServicesImpl implements TableServices {
 	}
 
 	
-	private List<ColumnModel> getCurrentColumnsForTable(UserInfo user, String tableId) throws DatastoreException, NotFoundException{
+	private List<ColumnModel> getCurrentColumnsForTable(UserInfo user, Long tableId) throws DatastoreException, NotFoundException{
 		return columnModelManager.getColumnModelsForTable(user, tableId);
 	}
 	

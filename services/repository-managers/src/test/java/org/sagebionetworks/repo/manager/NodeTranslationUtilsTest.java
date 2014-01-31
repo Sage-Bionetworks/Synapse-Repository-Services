@@ -455,9 +455,9 @@ public class NodeTranslationUtilsTest {
 	public void testTableEntityRoundTrip() throws InstantiationException, IllegalAccessException{
 		TableEntity table = new TableEntity();
 		table.setName("oneTwoThree");
-		List<String> columns = new LinkedList<String>();
-		columns.add("123");
-		columns.add("456");
+		List<Long> columns = new LinkedList<Long>();
+		columns.add(123L);
+		columns.add(456L);
 		table.setColumnIds(columns);
 		
 		TableEntity clone = cloneUsingNodeTranslation(table);
@@ -469,8 +469,8 @@ public class NodeTranslationUtilsTest {
 	public void testTableEntityRoundTripOneColumn() throws InstantiationException, IllegalAccessException{
 		TableEntity table = new TableEntity();
 		table.setName("oneTwoThree");
-		List<String> columns = new LinkedList<String>();
-		columns.add("123");
+		List<Long> columns = new LinkedList<Long>();
+		columns.add(123L);
 		table.setColumnIds(columns);
 		
 		TableEntity clone = cloneUsingNodeTranslation(table);

@@ -55,9 +55,9 @@ public class NodeUtilsTest {
 		node.setReferences(new HashMap<String, Set<Reference>>());
 		node.setActivityId("1234");
 		node.setFileHandleId("9999888777");
-		List<String> columnIds = new LinkedList<String>();
-		columnIds.add("2");
-		columnIds.add("1");
+		List<Long> columnIds = new LinkedList<Long>();
+		columnIds.add(2L);
+		columnIds.add(1L);
 		node.setColumnModelIds(columnIds);
 		// Now create a revision for this node
 		DBONode jdoNode = new DBONode();

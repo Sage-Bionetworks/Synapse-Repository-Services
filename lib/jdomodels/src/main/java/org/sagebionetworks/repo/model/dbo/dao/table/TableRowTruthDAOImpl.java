@@ -27,7 +27,6 @@ import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableIdSequence;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableRowChange;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -108,10 +107,9 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public IdRange reserveIdsInRange(String tableIdString, long countToReserver) {
-		if (tableIdString == null)
+	public IdRange reserveIdsInRange(Long tableId, long countToReserver) {
+		if (tableId == null)
 			throw new IllegalArgumentException("TableId cannot be null");
-		long tableId = KeyFactory.stringToKey(tableIdString);
 
 		// Setup the dbo
 		DBOTableIdSequence dbo = null;
@@ -168,7 +166,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public RowReferenceSet appendRowSetToTable(String userId, String tableId,
+	public RowReferenceSet appendRowSetToTable(String userId, Long tableId,
 			List<ColumnModel> models, RowSet delta) throws IOException {
 		// Now set the row version numbers and ID.
 		int coutToReserver = TableModelUtils.countEmptyOrInvalidRowIds(delta);
@@ -182,10 +180,10 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		TableModelUtils.assignRowIdsAndVersionNumbers(delta, range);
 		// We are ready to convert the file to a CSV and save it to S3.
 		String key = saveCSVToS3(models, delta);
-		List<String> headers = TableModelUtils.getHeaders(models);
+		List<Long> headers = TableModelUtils.getHeaders(models);
 		// record the change
 		DBOTableRowChange changeDBO = new DBOTableRowChange();
-		changeDBO.setTableId(KeyFactory.stringToKey(tableId));
+		changeDBO.setTableId(tableId);
 		changeDBO.setRowVersion(range.getVersionNumber());
 		changeDBO.setEtag(range.getEtag());
 		changeDBO.setColumnIds(TableModelUtils
@@ -232,7 +230,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	 * @throws ConflictingUpdateException
 	 *             when a conflict is found
 	 */
-	private void checkForRowLevelConflict(String tableId, RowSet delta, int coutToReserver)
+	private void checkForRowLevelConflict(Long tableId, RowSet delta, int coutToReserver)
 			throws IOException {
 		// Are any rows being updated?
 		if (coutToReserver < delta.getRows().size()) {
@@ -295,10 +293,9 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	}
 
 	@Override
-	public long getVersionForEtag(String tableIdString, String etag) {
-		if (tableIdString == null)
+	public long getVersionForEtag(Long tableId, String etag) {
+		if (tableId == null)
 			throw new IllegalArgumentException("TableId cannot be null");
-		long tableId = KeyFactory.stringToKey(tableIdString);
 		try {
 			return simpleJdbcTemplate.queryForObject(
 					SQL_SELECT_VERSION_FOR_ETAG, new RowMapper<Long>() {
@@ -349,10 +346,9 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	 * List all changes for this table.
 	 */
 	@Override
-	public List<TableRowChange> listRowSetsKeysForTable(String tableIdString) {
-		if (tableIdString == null)
+	public List<TableRowChange> listRowSetsKeysForTable(Long tableId) {
+		if (tableId == null)
 			throw new IllegalArgumentException("TableId cannot be null");
-		long tableId = KeyFactory.stringToKey(tableIdString);
 		List<DBOTableRowChange> dboList = simpleJdbcTemplate.query(
 				SQL_SELECT_ALL_ROW_CHANGES_FOR_TABLE, rowChangeMapper, tableId);
 		return TableModelUtils.ceateDTOFromDBO(dboList);
@@ -360,10 +356,9 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 
 	@Override
 	public List<TableRowChange> listRowSetsKeysForTableGreaterThanVersion(
-			String tableIdString, long versionNumber) {
-		if (tableIdString == null)
+			Long tableId, Long versionNumber) {
+		if (tableId == null)
 			throw new IllegalArgumentException("TableId cannot be null");
-		long tableId = KeyFactory.stringToKey(tableIdString);
 		List<DBOTableRowChange> dboList = simpleJdbcTemplate.query(
 				SQL_SELECT_ALL_ROW_CHANGES_FOR_TABLE_GREATER_VERSION,
 				rowChangeMapper, tableId, versionNumber);
@@ -371,11 +366,10 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	}
 
 	@Override
-	public TableRowChange getTableRowChange(String tableIdString,
-			long rowVersion) throws NotFoundException {
-		if (tableIdString == null)
+	public TableRowChange getTableRowChange(Long tableId,
+			Long rowVersion) throws NotFoundException {
+		if (tableId == null)
 			throw new IllegalArgumentException("TableID cannot be null");
-		long tableId = KeyFactory.stringToKey(tableIdString);
 		try {
 			DBOTableRowChange dbo = simpleJdbcTemplate.queryForObject(
 					SQL_SELECT_ROW_CHANGE_FOR_TABLE_AND_VERSION,
@@ -394,7 +388,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	 * @throws NotFoundException
 	 */
 	@Override
-	public RowSet getRowSet(String tableId, long rowVersion)
+	public RowSet getRowSet(Long tableId, Long rowVersion)
 			throws IOException, NotFoundException {
 		TableRowChange dto = getTableRowChange(tableId, rowVersion);
 		// Downlaod the file from S3
@@ -415,7 +409,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	}
 
 	@Override
-	public TableRowChange scanRowSet(String tableId, long rowVersion,
+	public TableRowChange scanRowSet(Long tableId, Long rowVersion,
 			RowHandler handler) throws IOException, NotFoundException {
 		TableRowChange dto = getTableRowChange(tableId, rowVersion);
 		// stream the file from S3

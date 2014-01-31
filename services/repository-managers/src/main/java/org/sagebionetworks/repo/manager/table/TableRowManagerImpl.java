@@ -28,14 +28,14 @@ public class TableRowManagerImpl implements TableRowManager {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public RowReferenceSet appendRows(UserInfo user, String tableId, List<ColumnModel> models, RowSet delta) throws DatastoreException, NotFoundException, IOException {
+	public RowReferenceSet appendRows(UserInfo user, Long tableId, List<ColumnModel> models, RowSet delta) throws DatastoreException, NotFoundException, IOException {
 		if(user == null) throw new IllegalArgumentException("User cannot be null");
 		if(tableId == null) throw new IllegalArgumentException("TableId cannot be null");
 		if(models == null) throw new IllegalArgumentException("Models cannot be null");
 		if(delta == null) throw new IllegalArgumentException("RowSet cannot be null");
 
 		// Validate the user has permission to edit the table
-		if(!authorizationManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)){
+		if(!authorizationManager.canAccess(user, tableId.toString(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE)){
 			throw new UnauthorizedException("User does not have permission to update TableEntity: "+tableId);
 		}
 		// Let the DAO do the rest of the work.

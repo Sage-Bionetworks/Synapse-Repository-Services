@@ -95,7 +95,7 @@ public class TableEntityMetadataProviderTest {
 	public void testCreateEmpty() throws Exception {
 		EntityEvent event = new EntityEvent(EventType.CREATE, null, null);
 		TableEntity table = new TableEntity();
-		table.setColumnIds(new LinkedList<String>());
+		table.setColumnIds(new LinkedList<Long>());
 		tableEntityMetadataProvider.validateEntity(table, event);
 	}
 
@@ -103,7 +103,7 @@ public class TableEntityMetadataProviderTest {
 	public void testUpdateEmpty() throws Exception {
 		EntityEvent event = new EntityEvent(EventType.UPDATE, null, null);
 		TableEntity table = new TableEntity();
-		table.setColumnIds(new LinkedList<String>());
+		table.setColumnIds(new LinkedList<Long>());
 		tableEntityMetadataProvider.validateEntity(table, event);
 	}
 	
@@ -111,14 +111,14 @@ public class TableEntityMetadataProviderTest {
 	public void testNewVersionEmpty() throws Exception {
 		EntityEvent event = new EntityEvent(EventType.NEW_VERSION, null, null);
 		TableEntity table = new TableEntity();
-		table.setColumnIds(new LinkedList<String>());
+		table.setColumnIds(new LinkedList<Long>());
 		tableEntityMetadataProvider.validateEntity(table, event);
 	}
 	
 	@Test
 	public void testCreateHappy() throws InvalidModelException, DatastoreException, UnauthorizedException, NotFoundException{
 		// Before we start nothing should be bound to the column one
-		Set<String> columnIds = new HashSet<String>();
+		Set<Long> columnIds = new HashSet<Long>();
 		columnIds.add(one.getId());
 		PaginatedIds results = columnModelManager.listObjectsBoundToColumn(adminUserInfo, columnIds, false, 100, 0);
 		assertNotNull(results);
@@ -127,7 +127,7 @@ public class TableEntityMetadataProviderTest {
 		EntityEvent event = new EntityEvent(EventType.CREATE, null, adminUserInfo);
 		TableEntity table = new TableEntity();
 		table.setId("syn123");
-		table.setColumnIds(new LinkedList<String>());
+		table.setColumnIds(new LinkedList<Long>());
 		table.getColumnIds().add(one.getId());
 		// Validate that we could create this table
 		tableEntityMetadataProvider.validateEntity(table, event);
@@ -143,7 +143,7 @@ public class TableEntityMetadataProviderTest {
 	@Test
 	public void testUpdateHappy() throws InvalidModelException, DatastoreException, UnauthorizedException, NotFoundException{
 		// Before we start nothing should be bound to the column one
-		Set<String> columnIds = new HashSet<String>();
+		Set<Long> columnIds = new HashSet<Long>();
 		columnIds.add(one.getId());
 		PaginatedIds results = columnModelManager.listObjectsBoundToColumn(adminUserInfo, columnIds, false, 100, 0);
 		assertNotNull(results);
@@ -152,7 +152,7 @@ public class TableEntityMetadataProviderTest {
 		EntityEvent event = new EntityEvent(EventType.UPDATE, null, adminUserInfo);
 		TableEntity table = new TableEntity();
 		table.setId("syn123");
-		table.setColumnIds(new LinkedList<String>());
+		table.setColumnIds(new LinkedList<Long>());
 		table.getColumnIds().add(one.getId());
 		// Validate that we could create this table
 		tableEntityMetadataProvider.validateEntity(table, event);

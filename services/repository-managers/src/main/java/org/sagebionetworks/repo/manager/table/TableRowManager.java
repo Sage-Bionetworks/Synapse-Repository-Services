@@ -28,6 +28,6 @@ public interface TableRowManager {
 	 * @throws DatastoreException 
 	 * @throws IOException 
 	 */
-	public RowReferenceSet appendRows(UserInfo user, String tableId, List<ColumnModel> models, RowSet delta) throws DatastoreException, NotFoundException, IOException;
+	public RowReferenceSet appendRows(UserInfo user, Long tableId, List<ColumnModel> models, RowSet delta) throws DatastoreException, NotFoundException, IOException;
 
 }

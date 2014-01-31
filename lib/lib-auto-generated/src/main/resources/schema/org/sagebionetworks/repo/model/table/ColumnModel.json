@@ -3,7 +3,7 @@
     "description":"A column model contains the metadata of a single column of a TableEntity",
     "properties":{
         "id":{
-            "type":"string",
+            "type":"integer",
             "description":"The immutable ID issued to new columns"
         },
         "name":{
