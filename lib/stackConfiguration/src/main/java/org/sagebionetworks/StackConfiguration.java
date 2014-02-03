@@ -607,6 +607,15 @@ public class StackConfiguration {
 	}
 
 	/**
+	 * Is the DOI feature enabled?
+	 * @return
+	 */
+	public boolean getDoiEnabled(){
+		return Boolean.parseBoolean(configuration
+				.getProperty("org.sagebionetworks.doi.enabled"));
+	}
+
+	/**
 	 * The S3 Bucket for backup file. This is shared across stacks to enable
 	 * data migration across a stack.
 	 * 
