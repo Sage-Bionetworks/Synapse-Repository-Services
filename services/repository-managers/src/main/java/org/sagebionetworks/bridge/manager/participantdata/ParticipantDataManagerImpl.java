@@ -109,25 +109,28 @@ public class ParticipantDataManagerImpl implements ParticipantDataManager {
 	}
 
 	@Override
-	public ParticipantDataCurrentRow getCurrentData(UserInfo userInfo, String participantDataId) throws DatastoreException,
+	public ParticipantDataCurrentRow getCurrentData(UserInfo userInfo, String participantDataDescriptorId) throws DatastoreException,
 			NotFoundException, IOException, GeneralSecurityException {
 		ParticipantDataCurrentRow result = new ParticipantDataCurrentRow();
-		result.setDescriptor(participantDataDescriptionManager.getParticipantDataDescriptor(userInfo, participantDataId));
-		result.setColumns(participantDataDescriptionManager.getColumns(participantDataId));
-		ParticipantDataStatus status = participantDataStatusDAO.getParticipantStatus(participantDataId, result.getDescriptor());
-		result.setStatus(status);
+		result.setDescriptor(participantDataDescriptionManager.getParticipantDataDescriptor(userInfo, participantDataDescriptorId));
+		result.setColumns(participantDataDescriptionManager.getColumns(participantDataDescriptorId));
 		List<String> participantIds = participantDataMappingManager.mapSynapseUserToParticipantIds(userInfo);
-		String participantId = participantDataDAO.findParticipantForParticipantData(participantIds, participantDataId);
+		String participantId = participantDataDAO.findParticipantForParticipantData(participantIds, participantDataDescriptorId);
 		if (participantId == null) {
-			// User has never created data for this ParticipantData type, which is not an error, so return
-			// empty result. It will have no headers given the way this works.
+			// User has never created data for this ParticipantData type, which is not an error, so return empty status
+			ParticipantDataStatus status = new ParticipantDataStatus();
+			status.setParticipantDataDescriptorId(participantDataDescriptorId);
+			result.setStatus(status);
 			return result;
 		}
+
+		ParticipantDataStatus status = participantDataStatusDAO.getParticipantStatus(participantId, result.getDescriptor());
+		result.setStatus(status);
 
 		result.setCurrentData(EMPTY_ROW);
 		result.setPreviousData(EMPTY_ROW);
 
-		List<ParticipantDataRow> rowList = participantDataDAO.get(participantId, participantDataId, result.getColumns());
+		List<ParticipantDataRow> rowList = participantDataDAO.get(participantId, participantDataDescriptorId, result.getColumns());
 		ListIterator<ParticipantDataRow> iter = rowList.listIterator(rowList.size());
 		if (iter.hasPrevious()) {
 			ParticipantDataRow lastRow = iter.previous();
