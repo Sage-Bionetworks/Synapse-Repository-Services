@@ -112,7 +112,7 @@ public class SQLUtils {
 	static void appendColumnDefinitionsToBuilder(StringBuilder builder,
 			ColumnModel newSchema) {
 		// Column name
-		builder.append("`").append(COLUMN_PREFIX).append(newSchema.getId()).append("` ");
+		builder.append("`").append(getColumnNameForId(newSchema.getId())).append("` ");
 		// column data type
 		builder.append(getSQLTypeForColumnType(newSchema.getColumnType()));
 		builder.append(" ");
