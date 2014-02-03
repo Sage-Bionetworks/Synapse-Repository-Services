@@ -131,7 +131,7 @@ public class ParticipantDataManagerImpl implements ParticipantDataManager {
 		ListIterator<ParticipantDataRow> iter = rowList.listIterator(rowList.size());
 		if (iter.hasPrevious()) {
 			ParticipantDataRow lastRow = iter.previous();
-			if (!status.getLastEntryComplete()) {
+			if (BooleanUtils.isFalse(status.getLastEntryComplete())) {
 				result.setCurrentData(lastRow);
 				if (iter.hasPrevious()) {
 					result.setPreviousData(iter.previous());
