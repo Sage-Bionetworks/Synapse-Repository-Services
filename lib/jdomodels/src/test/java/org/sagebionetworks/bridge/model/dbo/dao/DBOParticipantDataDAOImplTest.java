@@ -275,6 +275,7 @@ public class DBOParticipantDataDAOImplTest extends TestBase {
 	public void testGetParticipantDatas() throws Exception {
 		DBOParticipant participant1 = createParticipant();
 		DBOParticipant participant2 = createParticipant();
+		DBOParticipant participant3 = createParticipant();
 		DBOParticipantDataDescriptor model1 = createModel();
 		DBOParticipantDataDescriptor model2 = createModel();
 
@@ -283,27 +284,27 @@ public class DBOParticipantDataDAOImplTest extends TestBase {
 		addToDelete(new DataDeletable(participant1.getParticipantId(), model1.getId().toString()));
 		participantDataDAO.append(participant1.getParticipantId().toString(), model1.getId().toString(), rows1.rows, rows1.columns);
 
-		addToDelete(new DataDeletable(participant1.getParticipantId(), model2.getId().toString()));
-		participantDataDAO.append(participant1.getParticipantId().toString(), model2.getId().toString(), rows1.rows, rows1.columns);
-
 		addToDelete(new DataDeletable(participant2.getParticipantId(), model2.getId().toString()));
 		participantDataDAO.append(participant2.getParticipantId().toString(), model2.getId().toString(), rows1.rows, rows1.columns);
 
-		List<ParticipantDataDescriptor> foundParticipantDatas;
+		addToDelete(new DataDeletable(participant3.getParticipantId(), model2.getId().toString()));
+		participantDataDAO.append(participant3.getParticipantId().toString(), model2.getId().toString(), rows1.rows, rows1.columns);
 
-		foundParticipantDatas = participantDataDescriptorDAO.getParticipantDatasForUser(Lists.newArrayList(participant1.getParticipantId()
-				.toString()));
+		Map<String, ParticipantDataDescriptor> foundParticipantDatas;
+
+		foundParticipantDatas = participantDataDescriptorDAO.getParticipantDataDescriptorsForUser(Lists.newArrayList(participant1
+				.getParticipantId().toString(), participant2.getParticipantId().toString()));
 		assertEquals(2, foundParticipantDatas.size());
 
-		foundParticipantDatas = participantDataDescriptorDAO.getParticipantDatasForUser(Lists.newArrayList("aaa", participant1
-				.getParticipantId().toString(), "bbb"));
+		foundParticipantDatas = participantDataDescriptorDAO.getParticipantDataDescriptorsForUser(Lists.newArrayList("aaa", participant1
+				.getParticipantId().toString(), participant2.getParticipantId().toString(), "bbb"));
 		assertEquals(2, foundParticipantDatas.size());
 
-		foundParticipantDatas = participantDataDescriptorDAO.getParticipantDatasForUser(Lists.newArrayList("aaa", "bbb"));
+		foundParticipantDatas = participantDataDescriptorDAO.getParticipantDataDescriptorsForUser(Lists.newArrayList("aaa", "bbb"));
 		assertEquals(0, foundParticipantDatas.size());
 
-		foundParticipantDatas = participantDataDescriptorDAO.getParticipantDatasForUser(Lists.newArrayList(participant1.getParticipantId()
-				.toString(), participant2.getParticipantId().toString()));
+		foundParticipantDatas = participantDataDescriptorDAO.getParticipantDataDescriptorsForUser(Lists.newArrayList(participant1
+				.getParticipantId().toString(), participant2.getParticipantId().toString(), participant3.getParticipantId().toString()));
 		assertEquals(3, foundParticipantDatas.size());
 	}
 
@@ -313,7 +314,7 @@ public class DBOParticipantDataDAOImplTest extends TestBase {
 		DBOParticipantDataDescriptor model = createModel();
 
 		List<ParticipantDataColumnDescriptor> columns = Lists.newArrayList();
-		for(ParticipantDataColumnType type : ParticipantDataColumnType.values()){
+		for (ParticipantDataColumnType type : ParticipantDataColumnType.values()) {
 			ParticipantDataColumnDescriptor result = new ParticipantDataColumnDescriptor();
 			result.setColumnType(type);
 			result.setName(type.toString());
@@ -321,31 +322,31 @@ public class DBOParticipantDataDAOImplTest extends TestBase {
 		}
 
 		addToDelete(new DataDeletable(participant.getParticipantId(), model.getId().toString()));
-		
+
 		Date now = new Date();
 		ImmutableMap.Builder<String, ParticipantDataValue> builder = ImmutableMap.builder();
-		
-		ParticipantDataStringValue stringValue=		new ParticipantDataStringValue();
+
+		ParticipantDataStringValue stringValue = new ParticipantDataStringValue();
 		stringValue.setValue("a");
 		builder.put("STRING", stringValue);
 
-		ParticipantDataBooleanValue booleanValue=		new ParticipantDataBooleanValue();
+		ParticipantDataBooleanValue booleanValue = new ParticipantDataBooleanValue();
 		booleanValue.setValue(true);
 		builder.put("BOOLEAN", booleanValue);
 
-		ParticipantDataLongValue longValue=		new ParticipantDataLongValue();
+		ParticipantDataLongValue longValue = new ParticipantDataLongValue();
 		longValue.setValue(12L);
 		builder.put("LONG", longValue);
 
-		ParticipantDataDoubleValue doubleValue=		new ParticipantDataDoubleValue();
+		ParticipantDataDoubleValue doubleValue = new ParticipantDataDoubleValue();
 		doubleValue.setValue(3.6);
 		builder.put("DOUBLE", doubleValue);
 
-		ParticipantDataDatetimeValue datetimeValue=		new ParticipantDataDatetimeValue();
+		ParticipantDataDatetimeValue datetimeValue = new ParticipantDataDatetimeValue();
 		datetimeValue.setValue(now.getTime());
 		builder.put("DATETIME", datetimeValue);
 
-		ParticipantDataLabValue labValue=		new ParticipantDataLabValue();
+		ParticipantDataLabValue labValue = new ParticipantDataLabValue();
 		labValue.setEnteredValue("100.00");
 		labValue.setUnits("flumps");
 		labValue.setNormalizedMax(11.9);
@@ -381,107 +382,107 @@ public class DBOParticipantDataDAOImplTest extends TestBase {
 		assertNull(newRowSet.get(1).getData().get("LAB"));
 
 	}
-	
+
 	@Test
 	public void testInvalidDeletes() throws Exception {
 		DBOParticipant participant = createParticipant();
 		DBOParticipantDataDescriptor model = createModel();
 		addToDelete(new DataDeletable(participant.getParticipantId(), model.getId().toString()));
-		
+
 		try {
 			participantDataDAO.deleteRows(participant.getParticipantId().toString(), model.getId().toString(), null);
 			fail("Did not throw Illegal Argument Exception for null IdList");
-		} catch(IllegalArgumentException e) {}
+		} catch (IllegalArgumentException e) {
+		}
 		try {
 			IdList idList = new IdList();
 			participantDataDAO.deleteRows(participant.getParticipantId().toString(), model.getId().toString(), idList);
 			fail("Did not throw Illegal Argument Exception for IdList with no IDs");
-		} catch(IllegalArgumentException e) {}
+		} catch (IllegalArgumentException e) {
+		}
 		try {
 			IdList idList = new IdList();
-			idList.setList(Lists.<Long>newArrayList());
+			idList.setList(Lists.<Long> newArrayList());
 			participantDataDAO.deleteRows(participant.getParticipantId().toString(), model.getId().toString(), idList);
 			fail("Did not throw Illegal Argument Exception for IdList with empty idList");
-		} catch(IllegalArgumentException e) {}
+		} catch (IllegalArgumentException e) {
+		}
 	}
-	
+
 	@Test
 	public void testDeleteAll() throws Exception {
 		DBOParticipant participant = createParticipant();
 		DBOParticipantDataDescriptor model = createModel();
 
-		Rows rows = createRowList(new String[] { "a" }, new String[] { null, "1" }, new String[] { null, "4" },
-				new String[] { null, "7" });
+		Rows rows = createRowList(new String[] { "a" }, new String[] { null, "1" }, new String[] { null, "4" }, new String[] { null, "7" });
 
 		addToDelete(new DataDeletable(participant.getParticipantId(), model.getId().toString()));
 
-		List<ParticipantDataRow> savedRows = participantDataDAO.append(participant.getParticipantId().toString(), model
-				.getId().toString(), rows.rows, rows.columns);
+		List<ParticipantDataRow> savedRows = participantDataDAO.append(participant.getParticipantId().toString(), model.getId().toString(),
+				rows.rows, rows.columns);
 
 		IdList idList = new IdList();
-		idList.setList(Lists.<Long>newArrayList());
+		idList.setList(Lists.<Long> newArrayList());
 		for (ParticipantDataRow row : savedRows) {
 			idList.getList().add(row.getRowId());
 		}
-		
+
 		// Retain one in the middle
 		participantDataDAO.deleteRows(participant.getParticipantId().toString(), model.getId().toString(), idList);
 
-		List<ParticipantDataRow> newRowSet = participantDataDAO.get(participant.getParticipantId().toString(), model
-				.getId().toString(), rows.columns);
+		List<ParticipantDataRow> newRowSet = participantDataDAO.get(participant.getParticipantId().toString(), model.getId().toString(),
+				rows.columns);
 
 		assertEquals(0, newRowSet.size());
 	}
-	
+
 	@Test
 	public void testDeleteAllButRowInMiddle() throws Exception {
 		DBOParticipant participant = createParticipant();
 		DBOParticipantDataDescriptor model = createModel();
 
-		Rows rows = createRowList(new String[] { "a" }, new String[] { null, "1" }, new String[] { null, "4" },
-				new String[] { null, "7" });
+		Rows rows = createRowList(new String[] { "a" }, new String[] { null, "1" }, new String[] { null, "4" }, new String[] { null, "7" });
 
 		addToDelete(new DataDeletable(participant.getParticipantId(), model.getId().toString()));
 
-		List<ParticipantDataRow> savedRows = participantDataDAO.append(participant.getParticipantId().toString(), model
-				.getId().toString(), rows.rows, rows.columns);
+		List<ParticipantDataRow> savedRows = participantDataDAO.append(participant.getParticipantId().toString(), model.getId().toString(),
+				rows.rows, rows.columns);
 
 		List<Long> rowIds = Lists.newArrayListWithCapacity(savedRows.size());
 		for (ParticipantDataRow row : savedRows) {
 			rowIds.add(row.getRowId());
 		}
-		
+
 		// Retain one in the middle
 		rowIds.remove(1);
 		IdList idList = new IdList();
 		idList.setList(rowIds);
 		participantDataDAO.deleteRows(participant.getParticipantId().toString(), model.getId().toString(), idList);
 
-		List<ParticipantDataRow> newRowSet = participantDataDAO.get(participant.getParticipantId().toString(), model
-				.getId().toString(), rows.columns);
+		List<ParticipantDataRow> newRowSet = participantDataDAO.get(participant.getParticipantId().toString(), model.getId().toString(),
+				rows.columns);
 
 		assertEquals(1, newRowSet.size());
-		assertEquals("4", ((ParticipantDataStringValue)newRowSet.get(0).getData().get("a")).getValue());
+		assertEquals("4", ((ParticipantDataStringValue) newRowSet.get(0).getData().get("a")).getValue());
 	}
-	
+
 	@Test
 	public void testDeleteOneRowInMiddle() throws Exception {
 		DBOParticipant participant = createParticipant();
 		DBOParticipantDataDescriptor model = createModel();
 
-		Rows rows = createRowList(new String[] { "a" }, new String[] { null, "1" }, new String[] { null, "4" },
-				new String[] { null, "7" });
+		Rows rows = createRowList(new String[] { "a" }, new String[] { null, "1" }, new String[] { null, "4" }, new String[] { null, "7" });
 
 		addToDelete(new DataDeletable(participant.getParticipantId(), model.getId().toString()));
 
-		List<ParticipantDataRow> savedRows = participantDataDAO.append(participant.getParticipantId().toString(), model
-				.getId().toString(), rows.rows, rows.columns);
+		List<ParticipantDataRow> savedRows = participantDataDAO.append(participant.getParticipantId().toString(), model.getId().toString(),
+				rows.rows, rows.columns);
 
 		List<Long> rowIds = Lists.newArrayListWithCapacity(savedRows.size());
 		for (ParticipantDataRow row : savedRows) {
 			rowIds.add(row.getRowId());
 		}
-		
+
 		// Retain one in the middle
 		rowIds.remove(2);
 		rowIds.remove(0);
@@ -489,13 +490,12 @@ public class DBOParticipantDataDAOImplTest extends TestBase {
 		idList.setList(rowIds);
 		participantDataDAO.deleteRows(participant.getParticipantId().toString(), model.getId().toString(), idList);
 
-		List<ParticipantDataRow> newRowSet = participantDataDAO.get(participant.getParticipantId().toString(), model
-				.getId().toString(), rows.columns);
+		List<ParticipantDataRow> newRowSet = participantDataDAO.get(participant.getParticipantId().toString(), model.getId().toString(),
+				rows.columns);
 
 		assertEquals(2, newRowSet.size());
-		assertEquals("1", ((ParticipantDataStringValue)newRowSet.get(0).getData().get("a")).getValue());
-		assertEquals("7", ((ParticipantDataStringValue)newRowSet.get(1).getData().get("a")).getValue());
+		assertEquals("1", ((ParticipantDataStringValue) newRowSet.get(0).getData().get("a")).getValue());
+		assertEquals("7", ((ParticipantDataStringValue) newRowSet.get(1).getData().get("a")).getValue());
 	}
-	
-	
+
 }

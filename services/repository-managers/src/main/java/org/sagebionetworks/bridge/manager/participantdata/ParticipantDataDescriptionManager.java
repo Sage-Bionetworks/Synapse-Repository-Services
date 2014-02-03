@@ -32,7 +32,8 @@ public interface ParticipantDataDescriptionManager {
 	PaginatedResults<ParticipantDataColumnDescriptor> getParticipantDataColumnDescriptor(UserInfo userInfo, String participantDataId,
 			Integer limit, Integer offset);
 
-	void updateStatuses(UserInfo userInfo, List<ParticipantDataStatus> statuses) throws DatastoreException;
+	void updateStatuses(UserInfo userInfo, List<ParticipantDataStatus> statuses) throws DatastoreException, IOException,
+			GeneralSecurityException;
 
 	List<ParticipantDataColumnDescriptor> getColumns(String participantDataId) throws DatastoreException, NotFoundException;
 }

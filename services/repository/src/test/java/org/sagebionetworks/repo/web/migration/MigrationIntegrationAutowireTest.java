@@ -672,7 +672,8 @@ public class MigrationIntegrationAutowireTest {
 		status.setLastEntryComplete(false);
 		status.setLastPrompted(new Date());
 		status.setLastStarted(new Date());
-		participantDataStatusDAO.update(Collections.<ParticipantDataStatus> singletonList(status));
+		participantDataStatusDAO.update(Collections.<ParticipantDataStatus> singletonList(status), ImmutableMap
+				.<String, ParticipantDataDescriptor> builder().put(participantId.toString(), participantDataDescriptor).build());
 	}
 
 	@After

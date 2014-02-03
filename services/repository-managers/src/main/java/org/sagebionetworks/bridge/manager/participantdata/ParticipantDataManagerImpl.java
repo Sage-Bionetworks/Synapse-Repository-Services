@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.ListIterator;
 
+import org.apache.commons.lang.BooleanUtils;
 import org.sagebionetworks.bridge.model.ParticipantDataDAO;
 import org.sagebionetworks.bridge.model.ParticipantDataStatusDAO;
 import org.sagebionetworks.bridge.model.data.ParticipantDataColumnDescriptor;
@@ -14,12 +15,10 @@ import org.sagebionetworks.bridge.model.data.ParticipantDataRow;
 import org.sagebionetworks.bridge.model.data.ParticipantDataStatus;
 import org.sagebionetworks.bridge.model.data.value.ParticipantDataValue;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.PaginatedResultsUtil;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.IdList;
-import org.sagebionetworks.repo.model.table.Row;
-import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -115,7 +114,7 @@ public class ParticipantDataManagerImpl implements ParticipantDataManager {
 		ParticipantDataCurrentRow result = new ParticipantDataCurrentRow();
 		result.setDescriptor(participantDataDescriptionManager.getParticipantDataDescriptor(userInfo, participantDataId));
 		result.setColumns(participantDataDescriptionManager.getColumns(participantDataId));
-		ParticipantDataStatus status = participantDataStatusDAO.getParticipantStatus(participantDataId);
+		ParticipantDataStatus status = participantDataStatusDAO.getParticipantStatus(participantDataId, result.getDescriptor());
 		result.setStatus(status);
 		List<String> participantIds = participantDataMappingManager.mapSynapseUserToParticipantIds(userInfo);
 		String participantId = participantDataDAO.findParticipantForParticipantData(participantIds, participantDataId);
@@ -132,7 +131,7 @@ public class ParticipantDataManagerImpl implements ParticipantDataManager {
 		ListIterator<ParticipantDataRow> iter = rowList.listIterator(rowList.size());
 		if (iter.hasPrevious()) {
 			ParticipantDataRow lastRow = iter.previous();
-			if (!status.getLastEntryComplete()) {
+			if (BooleanUtils.isFalse(status.getLastEntryComplete())) {
 				result.setCurrentData(lastRow);
 				if (iter.hasPrevious()) {
 					result.setPreviousData(iter.previous());

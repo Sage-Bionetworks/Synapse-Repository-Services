@@ -1,17 +1,18 @@
 package org.sagebionetworks.bridge.model;
 
 import java.util.List;
+import java.util.Map;
 
 import org.sagebionetworks.bridge.model.data.ParticipantDataDescriptor;
 import org.sagebionetworks.bridge.model.data.ParticipantDataStatus;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface ParticipantDataStatusDAO {
 
-	void update(List<ParticipantDataStatus> statusUpdates);
+	void update(List<ParticipantDataStatus> statusUpdates, Map<String, ParticipantDataDescriptor> participantDataDescriptors);
 
-	List<ParticipantDataDescriptor> getParticipantStatuses(List<ParticipantDataDescriptor> participantDatas);
+	void getParticipantStatuses(Map<String, ParticipantDataDescriptor> participantDataDescriptors);
 
-	ParticipantDataStatus getParticipantStatus(String participantDataId) throws DatastoreException;
+	ParticipantDataStatus getParticipantStatus(String participantDataId, ParticipantDataDescriptor participantDataDescriptor)
+			throws DatastoreException;
 }

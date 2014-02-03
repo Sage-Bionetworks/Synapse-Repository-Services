@@ -1,6 +1,7 @@
 package org.sagebionetworks.bridge.model;
 
 import java.util.List;
+import java.util.Map;
 
 import org.sagebionetworks.bridge.model.data.ParticipantDataColumnDescriptor;
 import org.sagebionetworks.bridge.model.data.ParticipantDataDescriptor;
@@ -11,7 +12,7 @@ public interface ParticipantDataDescriptorDAO {
 
 	List<ParticipantDataDescriptor> getParticipantDatas();
 
-	List<ParticipantDataDescriptor> getParticipantDatasForUser(List<String> participantIds);
+	Map<String, ParticipantDataDescriptor> getParticipantDataDescriptorsForUser(List<String> participantIds);
 
 	List<ParticipantDataColumnDescriptor> getParticipantDataColumns(String participantDataId);
 

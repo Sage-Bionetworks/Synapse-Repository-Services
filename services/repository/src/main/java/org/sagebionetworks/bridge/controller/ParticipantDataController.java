@@ -1,7 +1,8 @@
 package org.sagebionetworks.bridge.controller;
 
+import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.util.List;
-
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -292,11 +293,14 @@ public class ParticipantDataController {
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
+	 * @throws GeneralSecurityException
+	 * @throws IOException
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = BridgeUrlHelpers.SEND_PARTICIPANT_DATA_DESCRIPTORS_UPDATES, method = RequestMethod.PUT)
 	public void updateParticipantDataStatuses(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) Long userId,
-			@RequestBody ParticipantDataStatusList statusList) throws DatastoreException, NotFoundException {
+			@RequestBody ParticipantDataStatusList statusList) throws Exception,
+			GeneralSecurityException {
 		serviceProvider.getParticipantDataService().updateParticipantStatuses(userId, statusList.getUpdates());
 	}
 }

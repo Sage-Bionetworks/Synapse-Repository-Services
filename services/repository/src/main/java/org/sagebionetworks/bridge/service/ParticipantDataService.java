@@ -40,7 +40,8 @@ public interface ParticipantDataService {
 	public List<ParticipantDataRow> update(Long userId, String participantDataId, List<ParticipantDataRow> data) throws DatastoreException,
 			NotFoundException, IOException, GeneralSecurityException;
 
-	public void updateParticipantStatuses(Long userId, List<ParticipantDataStatus> statuses) throws NotFoundException;
+	public void updateParticipantStatuses(Long userId, List<ParticipantDataStatus> statuses) throws NotFoundException, DatastoreException,
+			IOException, GeneralSecurityException;
 
 	public ParticipantDataDescriptor createParticipantDataDescriptor(Long userId, ParticipantDataDescriptor participantDataDescriptor)
 			throws DatastoreException, NotFoundException;
