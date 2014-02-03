@@ -6,12 +6,10 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-import org.junit.After;
 import org.junit.AfterClass;
-import org.junit.Before;
+import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.Ignore;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
@@ -27,7 +25,6 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.doi.DoiStatus;
 
-@Ignore
 public class IT060SynapseJavaClientDoiTest {
 
 	private static SynapseAdminClient adminSynapse;
@@ -37,11 +34,15 @@ public class IT060SynapseJavaClientDoiTest {
 	/** Max wait time for the DOI status to turn green */
 	private static final long MAX_WAIT = 12000; // 12 seconds
 	private static final long PAUSE = 2000;     // Pause between waits is 2 seconds
-	
-	private Entity entity;
-	
+
+	private static Entity entity;
+
 	@BeforeClass 
 	public static void beforeClass() throws Exception {
+
+		StackConfiguration config = new StackConfiguration();
+		Assume.assumeTrue(config.getDoiEnabled());
+
 		// Create a user
 		adminSynapse = new SynapseAdminClientImpl();
 		SynapseClientHelper.setEndpoints(adminSynapse);
@@ -50,32 +51,28 @@ public class IT060SynapseJavaClientDoiTest {
 		
 		synapse = new SynapseClientImpl();
 		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
-	}
 
-	@Before
-	public void before() throws Exception {
 		entity = new Project();
 		entity.setName("IT060SynapseJavaClientDoiTest");
 		entity = synapse.createEntity(entity);
 		assertNotNull(entity);
 	}
 
-	@After
-	public void after() throws Exception {
-		if (entity != null) {
-			synapse.deleteAndPurgeEntityById(entity.getId());
-		}
-		adminSynapse.clearDoi();
-		try {
-			synapse.getEntityDoi(entity.getId(), null);
-		} catch (SynapseNotFoundException e) {
-			assertTrue(true);
-		}
-	}
-	
 	@AfterClass
 	public static void afterClass() throws Exception {
-		adminSynapse.deleteUser(userToDelete);
+		StackConfiguration config = new StackConfiguration();
+		if (config.getDoiEnabled()) {
+			if (entity != null) {
+				synapse.deleteAndPurgeEntityById(entity.getId());
+			}
+			adminSynapse.clearDoi();
+			try {
+				synapse.getEntityDoi(entity.getId(), null);
+			} catch (SynapseNotFoundException e) {
+				assertTrue(true);
+			}
+			adminSynapse.deleteUser(userToDelete);
+		}
 	}
 
 	@Test
