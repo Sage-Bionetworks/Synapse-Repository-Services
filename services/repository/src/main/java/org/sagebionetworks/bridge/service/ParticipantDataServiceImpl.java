@@ -78,7 +78,8 @@ public class ParticipantDataServiceImpl implements ParticipantDataService {
 	}
 
 	@Override
-	public void updateParticipantStatuses(Long userId, List<ParticipantDataStatus> statuses) throws NotFoundException {
+	public void updateParticipantStatuses(Long userId, List<ParticipantDataStatus> statuses) throws NotFoundException, DatastoreException,
+			IOException, GeneralSecurityException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		participantDataDescriptionManager.updateStatuses(userInfo, statuses);
 	}

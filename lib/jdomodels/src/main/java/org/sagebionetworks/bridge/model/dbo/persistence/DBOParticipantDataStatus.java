@@ -1,8 +1,5 @@
 package org.sagebionetworks.bridge.model.dbo.persistence;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PARTICIPANT_DATA_DESCRIPTOR_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PARTICIPANT_DATA_DESCRIPTOR;
-
 import java.util.List;
 
 import org.sagebionetworks.bridge.model.data.ParticipantDataStatus;
@@ -22,10 +19,14 @@ import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 @Table(name = SqlConstants.TABLE_PARTICIPANT_DATA_STATUS)
 public class DBOParticipantDataStatus implements MigratableDatabaseObject<DBOParticipantDataStatus, DBOParticipantDataStatus> {
 
-	public static final String PARTICIPANT_DATA_DESCRIPTOR_ID_FIELD = "participantDataDescriptorId";
+	public static final String PARTICIPANT_DATA_ID_FIELD = "participantDataId";
 
-	@Field(name = SqlConstants.COL_PARTICIPANT_DATA_PARTICIPANT_DATA_DESCRIPTOR_ID, backupId = true, primary = true)
-	@ForeignKey(table = TABLE_PARTICIPANT_DATA_DESCRIPTOR, field = COL_PARTICIPANT_DATA_DESCRIPTOR_ID)
+	@Field(name = SqlConstants.COL_PARTICIPANT_DATA_STATUS_PARTICIPANT_DATA_ID, backupId = true, primary = true)
+	@ForeignKey(table = SqlConstants.TABLE_PARTICIPANT_DATA, field = SqlConstants.COL_PARTICIPANT_DATA_PARTICIPANT_ID)
+	private Long participantDataId;
+
+	@Field(name = SqlConstants.COL_PARTICIPANT_DATA_STATUS_PARTICIPANT_DATA_DESCRIPTOR_ID)
+	@ForeignKey(table = SqlConstants.TABLE_PARTICIPANT_DATA_DESCRIPTOR, field = SqlConstants.COL_PARTICIPANT_DATA_DESCRIPTOR_ID)
 	private Long participantDataDescriptorId;
 
 	@Field(name = SqlConstants.COL_PARTICIPANT_DATA_STATUS_STATUS, serialized = "mediumblob", nullable = false)
@@ -38,9 +39,12 @@ public class DBOParticipantDataStatus implements MigratableDatabaseObject<DBOPar
 		return tableMapping;
 	}
 
-	@Override
-	public MigrationType getMigratableTableType() {
-		return MigrationType.PARTICIPANT_DATA_STATUS;
+	public Long getParticipantDataId() {
+		return participantDataId;
+	}
+
+	public void setParticipantDataId(Long participantDataId) {
+		this.participantDataId = participantDataId;
 	}
 
 	public Long getParticipantDataDescriptorId() {
@@ -64,6 +68,7 @@ public class DBOParticipantDataStatus implements MigratableDatabaseObject<DBOPar
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + ((participantDataDescriptorId == null) ? 0 : participantDataDescriptorId.hashCode());
+		result = prime * result + ((participantDataId == null) ? 0 : participantDataId.hashCode());
 		result = prime * result + ((status == null) ? 0 : status.hashCode());
 		return result;
 	}
@@ -82,6 +87,11 @@ public class DBOParticipantDataStatus implements MigratableDatabaseObject<DBOPar
 				return false;
 		} else if (!participantDataDescriptorId.equals(other.participantDataDescriptorId))
 			return false;
+		if (participantDataId == null) {
+			if (other.participantDataId != null)
+				return false;
+		} else if (!participantDataId.equals(other.participantDataId))
+			return false;
 		if (status == null) {
 			if (other.status != null)
 				return false;
@@ -92,7 +102,13 @@ public class DBOParticipantDataStatus implements MigratableDatabaseObject<DBOPar
 
 	@Override
 	public String toString() {
-		return "DBOParticipantDataStatus [participantDataDescriptorId=" + participantDataDescriptorId + ", status=" + status + "]";
+		return "DBOParticipantDataStatus [participantDataId=" + participantDataId + ", participantDataDescriptorId="
+				+ participantDataDescriptorId + ", status=" + status + "]";
+	}
+
+	@Override
+	public MigrationType getMigratableTableType() {
+		return MigrationType.PARTICIPANT_DATA_STATUS;
 	}
 
 	@Override

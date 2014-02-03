@@ -3,6 +3,7 @@ package org.sagebionetworks.bridge.manager.participantdata;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.List;
+import java.util.Map;
 
 import org.sagebionetworks.bridge.model.ParticipantDataDescriptorDAO;
 import org.sagebionetworks.bridge.model.ParticipantDataStatusDAO;
@@ -57,9 +58,10 @@ public class ParticipantDataDescriptionManagerImpl implements ParticipantDataDes
 	public PaginatedResults<ParticipantDataDescriptor> getUserParticipantDataDescriptors(UserInfo userInfo, Integer limit, Integer offset)
 			throws IOException, GeneralSecurityException {
 		List<String> participantIds = participantDataMappingManager.mapSynapseUserToParticipantIds(userInfo);
-		List<ParticipantDataDescriptor> participantDatas = participantDataDescriptorDAO.getParticipantDatasForUser(participantIds);
-		participantDatas = participantDataStatusDAO.getParticipantStatuses(Lists.newArrayList(participantDatas));
-		return PaginatedResultsUtil.createPaginatedResults(participantDatas, limit, offset);
+		Map<String, ParticipantDataDescriptor> participantDataDescriptors = participantDataDescriptorDAO
+				.getParticipantDataDescriptorsForUser(participantIds);
+		participantDataStatusDAO.getParticipantStatuses(participantDataDescriptors);
+		return PaginatedResultsUtil.createPaginatedResults(Lists.newArrayList(participantDataDescriptors.values()), limit, offset);
 	}
 
 	@Override
@@ -77,8 +79,11 @@ public class ParticipantDataDescriptionManagerImpl implements ParticipantDataDes
 	}
 
 	@Override
-	public void updateStatuses(UserInfo userInfo, List<ParticipantDataStatus> statuses) {
-		participantDataStatusDAO.update(statuses);
+	public void updateStatuses(UserInfo userInfo, List<ParticipantDataStatus> statuses) throws IOException, GeneralSecurityException {
+		List<String> participantIds = participantDataMappingManager.mapSynapseUserToParticipantIds(userInfo);
+		Map<String, ParticipantDataDescriptor> participantDataDescriptors = participantDataDescriptorDAO
+				.getParticipantDataDescriptorsForUser(participantIds);
+		participantDataStatusDAO.update(statuses, participantDataDescriptors);
 	}
 
 	@Override

@@ -584,6 +584,7 @@ public class SqlConstants {
 
 	// Participant data set statuses
 	public static final String TABLE_PARTICIPANT_DATA_STATUS = "PARTICIPANT_DATA_STATUS";
+	public static final String COL_PARTICIPANT_DATA_STATUS_PARTICIPANT_DATA_ID = "PARTICIPANT_DATA_ID";
 	public static final String COL_PARTICIPANT_DATA_STATUS_PARTICIPANT_DATA_DESCRIPTOR_ID = "PARTICIPANT_DATA_DESCRIPTOR_ID";
 	public static final String COL_PARTICIPANT_DATA_STATUS_STATUS = "STATUS";
 
