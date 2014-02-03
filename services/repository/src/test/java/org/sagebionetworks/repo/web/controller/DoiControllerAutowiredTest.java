@@ -8,10 +8,11 @@ import javax.servlet.http.HttpServlet;
 import junit.framework.Assert;
 
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.Ignore;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.doi.DoiClient;
 import org.sagebionetworks.doi.EzidClient;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -27,7 +28,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-@Ignore
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class DoiControllerAutowiredTest {
@@ -49,6 +49,10 @@ public class DoiControllerAutowiredTest {
 
 	@Before
 	public void before() throws Exception {
+
+		StackConfiguration config = new StackConfiguration();
+		Assume.assumeTrue(config.getDoiEnabled());
+
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		
 		servletTestHelper.setUp();
@@ -62,8 +66,11 @@ public class DoiControllerAutowiredTest {
 
 	@After
 	public void after() throws Exception {
-		entityService.deleteEntity(adminUserId, entity.getId());
-		doiAdminDao.clear();
+		StackConfiguration config = new StackConfiguration();
+		if (config.getDoiEnabled()) {
+			entityService.deleteEntity(adminUserId, entity.getId());
+			doiAdminDao.clear();
+		}
 	}
 
 	@Test
