@@ -29,10 +29,6 @@ public class DBOAccessControlList implements MigratableDatabaseObject<DBOAccessC
 	public static final String OWNER_ID_FIELD_NAME = "ownerId";
 	public static final String OWNER_TYPE_FIELD_NAME = "ownerType";
 
-	// this will be removed after stack-28
-	public static final String UNKNOWN_OWNER_TYPE = "UNKNOWN";
-	
-
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("id", COL_ACL_ID, false).withIsBackupId(true),
 		new FieldColumn("etag", COL_ACL_ETAG).withIsEtag(true),
