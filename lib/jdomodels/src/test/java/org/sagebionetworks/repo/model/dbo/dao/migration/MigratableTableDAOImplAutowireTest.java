@@ -235,15 +235,15 @@ public class MigratableTableDAOImplAutowireTest {
 		expectedPrimaryTypes.add(MigrationType.PARTICIPANT);
 		expectedPrimaryTypes.add(MigrationType.SUBMISSION);
 		expectedPrimaryTypes.add(MigrationType.SUBMISSION_STATUS);
+		expectedPrimaryTypes.add(MigrationType.TEAM);
+		expectedPrimaryTypes.add(MigrationType.MEMBERSHIP_INVITATION_SUBMISSION);
+		expectedPrimaryTypes.add(MigrationType.MEMBERSHIP_REQUEST_SUBMISSION);
 		expectedPrimaryTypes.add(MigrationType.ACCESS_REQUIREMENT);
 		expectedPrimaryTypes.add(MigrationType.ACCESS_APPROVAL);
 		expectedPrimaryTypes.add(MigrationType.ACL);
 		expectedPrimaryTypes.add(MigrationType.FAVORITE);
 		expectedPrimaryTypes.add(MigrationType.TRASH_CAN);
 		expectedPrimaryTypes.add(MigrationType.DOI);
-		expectedPrimaryTypes.add(MigrationType.TEAM);
-		expectedPrimaryTypes.add(MigrationType.MEMBERSHIP_INVITATION_SUBMISSION);
-		expectedPrimaryTypes.add(MigrationType.MEMBERSHIP_REQUEST_SUBMISSION);
 		expectedPrimaryTypes.add(MigrationType.COMMUNITY_TEAM);
 		expectedPrimaryTypes.add(MigrationType.BRIDGE_PARTICIPANT);
 		expectedPrimaryTypes.add(MigrationType.BRIDGE_USER_PARTICIPANT_MAP);

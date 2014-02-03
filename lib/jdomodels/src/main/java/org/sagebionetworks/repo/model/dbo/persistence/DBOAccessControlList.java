@@ -13,7 +13,6 @@ import java.sql.SQLException;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
@@ -30,6 +29,9 @@ public class DBOAccessControlList implements MigratableDatabaseObject<DBOAccessC
 	public static final String OWNER_ID_FIELD_NAME = "ownerId";
 	public static final String OWNER_TYPE_FIELD_NAME = "ownerType";
 
+	// this will be removed after stack-28
+	public static final String UNKNOWN_OWNER_TYPE = "UNKNOWN";
+	
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("id", COL_ACL_ID, false).withIsBackupId(true),
@@ -114,6 +116,7 @@ public class DBOAccessControlList implements MigratableDatabaseObject<DBOAccessC
 	public MigrationType getMigratableTableType() {
 		return MigrationType.ACL;
 	}
+	
 	@Override
 	public MigratableTableTranslation<DBOAccessControlList, DBOAccessControlList> getTranslator() {
 		return new MigratableTableTranslation<DBOAccessControlList, DBOAccessControlList>(){
