@@ -37,7 +37,7 @@ public class SQLUtils {
 	 *            SQL is executed.
 	 * @return
 	 */
-	public static String creatOrAlterTableSQL(List<ColumnModel> oldSchema,
+	public static String creatOrAlterTableSQL(List<String> oldSchema,
 			List<ColumnModel> newSchema, String tableId) {
 		if (oldSchema == null || oldSchema.isEmpty()) {
 			// This is a create
@@ -57,11 +57,13 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String alterTableSql(List<ColumnModel> oldSchema,
+	public static String alterTableSql(List<String> oldSchema,
 			List<ColumnModel> newSchema, String tableId) {
 		// Calculate both the columns to add and remove.
 		List<ColumnModel> toAdd = calculateColumnsToAdd(oldSchema, newSchema);
-		List<ColumnModel> toDrop = calculateColumnsToDrop(oldSchema, newSchema);
+		List<String> toDrop = calculateColumnsToDrop(oldSchema, newSchema);
+		// There is nothing to do if both are empty
+		if(toAdd.isEmpty() && toDrop.isEmpty()) return null;
 		return alterTableSQLInner(toAdd, toDrop, tableId);
 	}
 
@@ -189,17 +191,17 @@ public class SQLUtils {
 	 * @return
 	 */
 	public static String alterTableSQLInner(List<ColumnModel> toAdd,
-			List<ColumnModel> toDrop, String tableId) {
+			List<String> toDrop, String tableId) {
 		StringBuilder builder = new StringBuilder();
 		builder.append("ALTER TABLE ");
 		builder.append("`").append(getTableNameForId(tableId)).append("`");
 		boolean first = true;
 		// Drops first
-		for (ColumnModel drop : toDrop) {
+		for (String drop : toDrop) {
 			if (!first) {
 				builder.append(",");
 			}
-			builder.append(" DROP COLUMN `").append(COLUMN_PREFIX).append(drop.getId()).append("`");
+			builder.append(" DROP COLUMN `").append(getColumnNameForId(drop)).append("`");
 			first = false;
 		}
 		// Now the adds
@@ -222,9 +224,9 @@ public class SQLUtils {
 	 * @return
 	 */
 	public static List<ColumnModel> calculateColumnsToAdd(
-			List<ColumnModel> oldSchema, List<ColumnModel> newSchema) {
+			List<String> oldSchema, List<ColumnModel> newSchema) {
 		// Add any column that is in the new schema but not in the old.
-		Set<String> set = createColumnIdSet(oldSchema);
+		Set<String> set = new HashSet<String>(oldSchema);
 		return listNotInSet(set, newSchema);
 	}
 
@@ -235,11 +237,17 @@ public class SQLUtils {
 	 * @param newSchema
 	 * @return
 	 */
-	public static List<ColumnModel> calculateColumnsToDrop(
-			List<ColumnModel> oldSchema, List<ColumnModel> newSchema) {
+	public static List<String> calculateColumnsToDrop(
+			List<String> oldSchema, List<ColumnModel> newSchema) {
 		// Add any column in the old schema that is not in the new.
 		Set<String> set = createColumnIdSet(newSchema);
-		return listNotInSet(set, oldSchema);
+		List<String> toDrop = new LinkedList<String>();
+		for(String columnId: oldSchema){
+			if(!set.contains(columnId)){
+				toDrop.add(columnId);
+			}
+		}
+		return toDrop;
 	}
 
 	/**
@@ -266,8 +274,7 @@ public class SQLUtils {
 	 * @param schema
 	 * @return
 	 */
-	static List<ColumnModel> listNotInSet(Set<String> set,
-			List<ColumnModel> schema) {
+	static List<ColumnModel> listNotInSet(Set<String> set, List<ColumnModel> schema) {
 		List<ColumnModel> list = new LinkedList<ColumnModel>();
 		for (ColumnModel cm : schema) {
 			if (!set.contains(cm.getId())) {
@@ -276,6 +283,7 @@ public class SQLUtils {
 		}
 		return list;
 	}
+	
 
 	/**
 	 * Get the Table Name for a given table ID.
@@ -334,5 +342,37 @@ public class SQLUtils {
 		if (columnName == null)
 			throw new IllegalArgumentException("Column name cannot be null");
 		return columnName.startsWith(COLUMN_PREFIX);
+	}
+	
+	/**
+	 * Create the DROP table SQL.
+	 * @param tableId
+	 * @return
+	 */
+	public static String dropTableSQL(String tableId){
+		String tableName = getTableNameForId(tableId);
+		StringBuilder builder = new StringBuilder();
+		builder.append("DROP TABLE ").append(tableName);
+		return builder.toString();
+	}
+	
+	/**
+	 * Convert a list of column names to a list of column IDs.
+	 * Note: Any column that is not derived from a ColumnModel will not be
+	 * included in the results.
+	 * 
+	 * @param names
+	 * @return
+	 */
+	public static List<String> convertColumnNamesToColumnId(List<String> names){
+		List<String> results = new LinkedList<String>();
+		if(names == null) return null;
+		for(String name: names){
+			if(hasColumnPrefixe(name)){
+				String columId = getColumnIdForColumnName(name);
+				results.add(columId);
+			}
+		}
+		return results;
 	}
 }

@@ -5,7 +5,6 @@ import java.sql.SQLException;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
@@ -16,16 +15,32 @@ public class TableIndexDAOImpl implements TableIndexDAO{
 	private static final String SQL_SHOW_COLUMNS = "SHOW COLUMNS FROM ";
 
 	@Override
-	public boolean createOrUpdateTable(SimpleJdbcTemplate connection, List<ColumnModel> schema, String tableId) {
+	public boolean createOrUpdateTable(SimpleJdbcTemplate connection, List<ColumnModel> newSchema, String tableId) {
+		if(connection == null) throw new IllegalArgumentException("Connection cannot be null");
 		// First determine if we have any columns for this table yet
 		List<String> columns = getCurrentTableColumns(connection, tableId);
-		return false;
+		// Convert the names to columnIDs
+		List<String> oldSchema = SQLUtils.convertColumnNamesToColumnId(columns);
+		// Build the SQL to create or update the table
+		String dml = SQLUtils.creatOrAlterTableSQL(oldSchema, newSchema, tableId);
+		// If there is nothing to apply then do nothing
+		if(dml == null) return false;
+		// Execute the DML
+		connection.update(dml);
+		return true;
 	}
 
 	@Override
 	public boolean deleteTable(SimpleJdbcTemplate connection, String tableId) {
-		// TODO Auto-generated method stub
-		return false;
+		if(connection == null) throw new IllegalArgumentException("Connection cannot be null");
+		String dropTableDML = SQLUtils.dropTableSQL(tableId);
+		try {
+			connection.update(dropTableDML);
+			return true;
+		} catch (BadSqlGrammarException e) {
+			// This is thrown when the table does not exist
+			return false;
+		}
 	}
 
 	@Override
