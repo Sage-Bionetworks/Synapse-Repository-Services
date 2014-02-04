@@ -361,7 +361,7 @@ public class TeamManagerImpl implements TeamManager {
 		rod.setId(teamId);
 		rod.setType(RestrictableObjectType.TEAM);
 		List<Long> unmetRequirements = AccessRequirementUtil.unmetAccessRequirementIds(
-				memberUserInfo, rod, null, accessRequirementDAO);
+				memberUserInfo, rod, null, null, accessRequirementDAO);
 		return !unmetRequirements.isEmpty();
 
 	}

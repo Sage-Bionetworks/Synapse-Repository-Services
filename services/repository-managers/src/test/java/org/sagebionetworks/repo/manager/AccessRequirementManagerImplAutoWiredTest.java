@@ -16,6 +16,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeQueryDao;
 import org.sagebionetworks.evaluation.manager.EvaluationManager;
 import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
 import org.sagebionetworks.evaluation.model.Evaluation;
@@ -40,6 +41,8 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import static org.mockito.Mockito.*;
 
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -78,7 +81,9 @@ public class AccessRequirementManagerImplAutoWiredTest {
 	private Evaluation evaluation2;
 	private Evaluation adminEvaluation;
 	
-	AccessRequirement ar;
+	private AccessRequirement ar;
+	
+	private NodeTreeQueryDao mockNodeTreeQueryDao;
 
 	@Before
 	public void before() throws Exception {
@@ -128,6 +133,9 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		entityId2 = nodeManager.createNewNode(node, adminUserInfo);
 
 		evaluation2 = newEvaluation("test-name2", adminUserInfo, rootId2);
+		
+		this.mockNodeTreeQueryDao = mock(NodeTreeQueryDao.class);
+		accessRequirementManager.setNodeTreeQueryDao(mockNodeTreeQueryDao);
 	}
 	
 	private Evaluation newEvaluation(String name, UserInfo userInfo, String contentSource) throws NotFoundException {
@@ -306,6 +314,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
 		rod.setId(entityId);
 		rod.setType(RestrictableObjectType.ENTITY);
+		
 		QueryResults<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirements(otherUserInfo, rod);
 		assertEquals(1L, ars.getTotalNumberOfResults());
 		assertEquals(1, ars.getResults().size());

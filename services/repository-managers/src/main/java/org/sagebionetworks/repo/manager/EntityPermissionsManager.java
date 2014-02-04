@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
+import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeQueryDao;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -114,4 +115,12 @@ public interface EntityPermissionsManager {
 	 * @return
 	 */
 	public boolean hasLocalACL(String resourceId);
+	
+	/**
+	 * For testing only
+	 * 
+	 * @param nodeTreeQueryDao
+	 */
+	public void setNodeTreeQueryDao(NodeTreeQueryDao nodeTreeQueryDao);
+
 }

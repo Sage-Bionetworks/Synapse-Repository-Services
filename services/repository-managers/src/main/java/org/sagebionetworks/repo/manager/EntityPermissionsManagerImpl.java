@@ -10,6 +10,7 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
 import java.util.List;
 
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeQueryDao;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
@@ -53,6 +54,18 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	private NodeInheritanceManager nodeInheritanceManager;
 	@Autowired
 	private UserManager userManager;
+	@Autowired
+	private NodeTreeQueryDao nodeTreeQueryDao;
+
+	/**
+	 * For testing only
+	 * 
+	 * @param nodeTreeQueryDao
+	 */
+	@Override
+	public void setNodeTreeQueryDao(NodeTreeQueryDao nodeTreeQueryDao) {
+		this.nodeTreeQueryDao = nodeTreeQueryDao;
+	}
 
 	@Override
 	public AccessControlList getACL(String nodeId, UserInfo userInfo) throws NotFoundException, DatastoreException, ACLInheritanceException {
@@ -274,7 +287,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		rod.setId(nodeId);
 		rod.setType(RestrictableObjectType.ENTITY);
 		List<Long> accessRequirementIds = AccessRequirementUtil.unmetAccessRequirementIds(
-				userInfo, rod, nodeDAO, accessRequirementDAO);
+				userInfo, rod, nodeDAO, nodeTreeQueryDao, accessRequirementDAO);
 		return accessRequirementIds.isEmpty();
 	}
 

@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
+import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeQueryDao;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -56,5 +57,10 @@ public interface AccessRequirementManager {
 			String entityId) throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException;
 
-	
+	/**
+	 * For testing only
+	 * 
+	 * @param nodeTreeQueryDao
+	 */
+	public void setNodeTreeQueryDao(NodeTreeQueryDao nodeTreeQueryDao);
 }

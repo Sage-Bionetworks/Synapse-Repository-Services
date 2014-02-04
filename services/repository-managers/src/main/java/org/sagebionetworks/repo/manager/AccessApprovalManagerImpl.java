@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
@@ -102,7 +103,8 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 			throw new UnauthorizedException("You are not allowed to retrieve access approvals for this subject.");
 		}
 
-		List<AccessRequirement> ars = accessRequirementDAO.getForSubject(subjectId);
+		List<AccessRequirement> ars = accessRequirementDAO.getForSubject(
+				Collections.singletonList(subjectId.getId()), subjectId.getType());
 		List<AccessApproval> aas = new ArrayList<AccessApproval>();
 		for (AccessRequirement ar : ars) {
 			aas.addAll(accessApprovalDAO.getForAccessRequirement(ar.getId().toString()));
