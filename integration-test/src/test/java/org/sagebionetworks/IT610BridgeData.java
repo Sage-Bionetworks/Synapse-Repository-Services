@@ -10,6 +10,7 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.bridge.model.data.ParticipantDataColumnDescriptor;
 import org.sagebionetworks.bridge.model.data.ParticipantDataColumnType;
@@ -236,6 +237,7 @@ public class IT610BridgeData {
 	}
 
 	@Test
+	@Ignore
 	public void testGetCurrentParticipantData() throws Exception {
 		ParticipantDataDescriptor participantDataDescriptor = new ParticipantDataDescriptor();
 		participantDataDescriptor.setName("my-first-participantData-" + System.currentTimeMillis());
