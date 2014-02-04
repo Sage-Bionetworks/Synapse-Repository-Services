@@ -3,6 +3,7 @@ package org.sagebionetworks.table.cluster;
 import static org.junit.Assert.*;
 
 import java.util.List;
+import java.util.Map;
 
 import org.junit.After;
 import org.junit.Assume;
@@ -13,6 +14,9 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.IdRange;
+import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.RowSet;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
@@ -94,4 +98,26 @@ public class TableIndexDAOImplTest {
 		assertEquals(null, names);
 	}
 	
+	@Test
+	public void testCreateOrUpdateRows(){
+		// Create a Simple table with only a few columns
+		List<ColumnModel> allTypes = TableModelUtils.createOneOfEachType();
+		List<Row> rows = TableModelUtils.createRows(allTypes, 5);
+		RowSet set = new RowSet();
+		set.setRows(rows);
+		set.setHeaders(TableModelUtils.getHeaders(allTypes));
+		set.setTableId(tableId);
+		IdRange range = new IdRange();
+		range.setMinimumId(100L);
+		range.setMaximumId(200L);
+		range.setVersionNumber(3L);
+		TableModelUtils.assignRowIdsAndVersionNumbers(set, range);
+		// Create the table
+		tableIndexDAO.createOrUpdateTable(connection, allTypes, tableId);
+		// Now fill the table with data
+		tableIndexDAO.createOrUpdateRows(connection, set, allTypes);
+		List<Map<String, Object>> result = connection.queryForList("SELECT * FROM "+SQLUtils.getTableNameForId("syn123"));
+		assertNotNull(result);
+		assertEquals(3, result.size());
+	}
 }

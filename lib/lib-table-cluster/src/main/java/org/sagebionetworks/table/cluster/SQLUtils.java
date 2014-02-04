@@ -1,8 +1,10 @@
 package org.sagebionetworks.table.cluster;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang.StringEscapeUtils;
@@ -10,6 +12,10 @@ import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.RowSet;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
 /**
  * Utilities for generating Table SQL, DML, and DDL.
@@ -20,7 +26,9 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 public class SQLUtils {
 
 	public static final String ROW_ID = "ROW_ID";
+	public static final String ROW_ID_BIND = "bRI";
 	public static final String ROW_VERSION = "ROW_VERSION";
+	public static final String ROW_VERSION_BIND = "bRV";
 	public static final String DEFAULT = "DEFAULT";
 	public static final String TABLE_PREFIX = "T";
 	public static final String COLUMN_PREFIX = "C";
@@ -372,6 +380,85 @@ public class SQLUtils {
 				String columId = getColumnIdForColumnName(name);
 				results.add(columId);
 			}
+		}
+		return results;
+	}
+	
+	/**
+	 * Build the create or update statement for inserting rows into a table.
+	 * @param schema
+	 * @param tableId
+	 * @return
+	 */
+	public static String buildCreateOrUpdateRowSQL(List<ColumnModel> schema, String tableId){
+		if(schema == null) throw new IllegalArgumentException("Schema cannot be null");
+		if(schema.size() < 1) throw new IllegalArgumentException("Schema must include at least on column");
+		if(tableId == null) throw new IllegalArgumentException("TableID cannot be null");
+ 		StringBuilder builder = new StringBuilder();
+		builder.append("INSERT INTO ");
+		builder.append(getTableNameForId(tableId));
+		builder.append(" (");
+		// Unconditionally set these two columns
+		builder.append(ROW_ID);
+		builder.append(", ").append(ROW_VERSION);
+		for(ColumnModel cm: schema){
+			builder.append(", ");
+			builder.append(getColumnNameForId(cm.getId()));
+		}
+		builder.append(") VALUES ( :").append(ROW_ID_BIND).append(", :").append(ROW_VERSION_BIND);
+		for(ColumnModel cm: schema){
+			builder.append(", :");
+			builder.append(getColumnNameForId(cm.getId()));
+		}
+		builder.append(") ON DUPLICATE KEY UPDATE ROW_VERSION = :").append(ROW_VERSION_BIND);
+		for(ColumnModel cm: schema){
+			builder.append(", ");
+			String name = getColumnNameForId(cm.getId());
+			builder.append(name);
+			builder.append(" = :").append(name);
+		}
+		return builder.toString();
+	}
+	
+	/**
+	 * Build the parameters that will bind the passed RowSet to a SQL statement.
+	 * @param toBind
+	 * @param schema
+	 * @return
+	 */
+	public static SqlParameterSource[] bindParametersForCreateOrUpdate(RowSet toBind, List<ColumnModel> schema){
+		// First we need a mapping from the the schema to the RowSet
+		Map<String, Integer> columnIndexMap = new HashMap<String, Integer>();
+		int index = 0;
+		for (String header : toBind.getHeaders()) {
+			columnIndexMap.put(header, index);
+			index++;
+		}
+		// We will need a binding for every row
+		MapSqlParameterSource[] results = new MapSqlParameterSource[toBind.getRows().size()];
+		int rowIndex = 0;
+		for(Row row: toBind.getRows()){
+			Map<String, Object> rowMap = new HashMap<String, Object>(schema.size()+2);
+			// Always bind the row ID and version
+			if(row.getRowId() == null) throw new IllegalArgumentException("RowID cannot be null");
+			if(row.getVersionNumber() == null) throw new IllegalArgumentException("RowVersionNumber cannot be null");
+			rowMap.put(ROW_ID_BIND, row.getRowId());
+			rowMap.put(ROW_VERSION_BIND, row.getVersionNumber());
+			// Bind each column
+			for(ColumnModel cm: schema){
+				// Lookup the index of this column
+				String columnName = getColumnNameForId(cm.getId());
+				Integer columnIndex = columnIndexMap.get(cm.getId());
+				if(columnIndex == null){
+					// Use the default value for this column
+					rowMap.put(columnName, cm.getDefaultValue());
+				}else{
+					String value = row.getValues().get(columnIndex);
+					rowMap.put(columnName, value);
+				}
+			}
+			results[rowIndex] = new MapSqlParameterSource(rowMap);
+			rowIndex++;
 		}
 		return results;
 	}

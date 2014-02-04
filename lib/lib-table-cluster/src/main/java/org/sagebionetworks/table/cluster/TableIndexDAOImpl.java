@@ -5,8 +5,10 @@ import java.sql.SQLException;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.RowSet;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 
 public class TableIndexDAOImpl implements TableIndexDAO{
@@ -45,6 +47,7 @@ public class TableIndexDAOImpl implements TableIndexDAO{
 
 	@Override
 	public List<String> getCurrentTableColumns(SimpleJdbcTemplate connection, String tableId) {
+		if(connection == null) throw new IllegalArgumentException("Connection cannot be null");
 		String tableName = SQLUtils.getTableNameForId(tableId);
 		// Bind variables do not seem to work here
 		try {
@@ -59,6 +62,19 @@ public class TableIndexDAOImpl implements TableIndexDAO{
 			return null;
 		}
 	}
+
+	@Override
+	public int[] createOrUpdateRows(SimpleJdbcTemplate connection, RowSet rowset, List<ColumnModel> schema) {
+		if(connection == null) throw new IllegalArgumentException("Connection cannot be null");
+		if(rowset == null) throw new IllegalArgumentException("Rowset cannot be null");
+		if(schema == null) throw new IllegalArgumentException("Current schema cannot be null");
+		// Build the SQL
+		String sql = SQLUtils.buildCreateOrUpdateRowSQL(schema, rowset.getTableId());
+		SqlParameterSource[] batchBinding = SQLUtils.bindParametersForCreateOrUpdate(rowset, schema);
+		// Execute
+		return connection.batchUpdate(sql, batchBinding);
+	}
+
 	
 
 }

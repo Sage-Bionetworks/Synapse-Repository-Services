@@ -3,6 +3,7 @@ package org.sagebionetworks.table.cluster;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -11,6 +12,9 @@ import org.junit.Test;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.RowSet;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
 public class SQLUtilsTest {
 	
@@ -168,7 +172,7 @@ public class SQLUtilsTest {
 	
 	@Test
 	public void testCalculateColumnsToAddOverlap(){
-		List<String> oldSchema = helperCreateStringList("1","2","3");
+		List<String> oldSchema = Arrays.asList("1","2","3");
 		List<ColumnModel> newSchema = helperCreateColumnsWithIds("0","2","4");
 		// For this case we expect 0 and 4 to be added.
 		List<ColumnModel> expected = helperCreateColumnsWithIds("0","4");
@@ -178,7 +182,7 @@ public class SQLUtilsTest {
 	
 	@Test
 	public void testCalculateColumnsToAddNoOverlap(){
-		List<String> oldSchema = helperCreateStringList("1","2","3");
+		List<String> oldSchema = Arrays.asList("1","2","3");
 		List<ColumnModel> newSchema = helperCreateColumnsWithIds("4","5","6");
 		// For this case we expect all new columns to be added
 		List<ColumnModel> expected = helperCreateColumnsWithIds("4","5","6");
@@ -188,7 +192,7 @@ public class SQLUtilsTest {
 	
 	@Test
 	public void testCalculateColumnsToAddOldEmpty(){
-		List<String> oldSchema = helperCreateStringList();
+		List<String> oldSchema = Arrays.asList();
 		List<ColumnModel> newSchema = helperCreateColumnsWithIds("4","5","6");
 		// For this case we expect all new columns to be added
 		List<ColumnModel> expected = helperCreateColumnsWithIds("4","5","6");
@@ -198,7 +202,7 @@ public class SQLUtilsTest {
 	
 	@Test
 	public void testCalculateColumnsToAddNewEmpty(){
-		List<String> oldSchema = helperCreateStringList("1","2","3");
+		List<String> oldSchema = Arrays.asList("1","2","3");
 		List<ColumnModel> newSchema = helperCreateColumnsWithIds();
 		// For this case we expect no columns to be added
 		List<ColumnModel> expected = helperCreateColumnsWithIds();
@@ -208,47 +212,47 @@ public class SQLUtilsTest {
 	
 	@Test
 	public void testCalculateColumnsToDropOverlap(){
-		List<String> oldSchema = helperCreateStringList("1","2","3");
+		List<String> oldSchema = Arrays.asList("1","2","3");
 		List<ColumnModel> newSchema = helperCreateColumnsWithIds("0","2","4");
 		// For this case we expect 1 and 3 to be removed.
-		List<String> expected = helperCreateStringList("1","3");
+		List<String> expected = Arrays.asList("1","3");
 		List<String> toRemove = SQLUtils.calculateColumnsToDrop(oldSchema, newSchema);
 		assertEquals(expected, toRemove);
 	}
 	
 	@Test
 	public void testCalculateColumnsToDropNoOverlap(){
-		List<String> oldSchema = helperCreateStringList("1","2","3");
+		List<String> oldSchema = Arrays.asList("1","2","3");
 		List<ColumnModel> newSchema = helperCreateColumnsWithIds("4","5","6");
 		// For this case all old columns should be dropped
-		List<String> expected = helperCreateStringList("1","2","3");
+		List<String> expected = Arrays.asList("1","2","3");
 		List<String> toRemove = SQLUtils.calculateColumnsToDrop(oldSchema, newSchema);
 		assertEquals(expected, toRemove);
 	}
 	
 	@Test
 	public void testCalculateColumnsToDropOldEmpty(){
-		List<String> oldSchema = helperCreateStringList();
+		List<String> oldSchema = Arrays.asList();
 		List<ColumnModel> newSchema = helperCreateColumnsWithIds("4","5","6");
 		// For this case nothing needs to be dropped
-		List<String> expected = helperCreateStringList();
+		List<String> expected = Arrays.asList();
 		List<String> toRemove = SQLUtils.calculateColumnsToDrop(oldSchema, newSchema);
 		assertEquals(expected, toRemove);
 	}
 	
 	@Test
 	public void testCalculateColumnsToDropNewEmpty(){
-		List<String> oldSchema = helperCreateStringList("1","2","3");
+		List<String> oldSchema = Arrays.asList("1","2","3");
 		List<ColumnModel> newSchema = helperCreateColumnsWithIds();
 		// For this case everything needs to be dropped
-		List<String> expected = helperCreateStringList("1","2","3");
+		List<String> expected = Arrays.asList("1","2","3");
 		List<String> toRemove = SQLUtils.calculateColumnsToDrop(oldSchema, newSchema);
 		assertEquals(expected, toRemove);
 	}
 	
 	@Test
 	public void testAlterTable(){
-		List<String> oldSchema = helperCreateStringList("1","2","3");
+		List<String> oldSchema = Arrays.asList("1","2","3");
 		List<ColumnModel> newSchema = helperCreateColumnsWithIds("0","2","4");
 		// This should drop columns 1 & 3 and then add columns 0 & 4
 		String sql = SQLUtils.alterTableSql(oldSchema, newSchema, "syn999");
@@ -259,7 +263,7 @@ public class SQLUtilsTest {
 	
 	@Test
 	public void testAlterTableNoChange(){
-		List<String> oldSchema = helperCreateStringList("1","2","3");
+		List<String> oldSchema = Arrays.asList("1","2","3");
 		List<ColumnModel> newSchema = helperCreateColumnsWithIds("1","2","3");
 		// This should drop columns 1 & 3 and then add columns 0 & 4
 		String sql = SQLUtils.alterTableSql(oldSchema, newSchema, "syn999");
@@ -279,19 +283,63 @@ public class SQLUtilsTest {
 	@Test
 	public void testConvertColumnNamesToColumnId(){
 		// Start with column
-		List<String> columnNames = helperCreateStringList(SQLUtils.ROW_ID, SQLUtils.ROW_VERSION,"C2","C1");
-		List<String> expected = helperCreateStringList("2","1");
+		List<String> columnNames = Arrays.asList(SQLUtils.ROW_ID, SQLUtils.ROW_VERSION,"C2","C1");
+		List<String> expected = Arrays.asList("2","1");
 		List<String> results = SQLUtils.convertColumnNamesToColumnId(columnNames);
 		assertEquals(expected, results);
 	}
 	
 	@Test
 	public void testCreatOrAlterTableSQLNoChange(){
-		List<String> oldSchema = helperCreateStringList("1","2","3");
+		List<String> oldSchema = Arrays.asList("1","2","3");
 		List<ColumnModel> newSchema = helperCreateColumnsWithIds("1","2","3");
 		// When both the old and new are the same there is nothing to do
 		String dml = SQLUtils.creatOrAlterTableSQL(oldSchema, newSchema, "syn123");
 		assertEquals("When no schema change is needed the DML should be null",null, dml);
+	}
+	
+	@Test
+	public void testBuildCreateOrUpdateRowSQL(){
+		List<ColumnModel> newSchema = helperCreateColumnsWithIds("0","2","4");
+		String result = SQLUtils.buildCreateOrUpdateRowSQL(newSchema, "syn123");
+		String expected = "INSERT INTO T123 (ROW_ID, ROW_VERSION, C0, C2, C4) VALUES ( :bRI, :bRV, :C0, :C2, :C4) ON DUPLICATE KEY UPDATE ROW_VERSION = :bRV, C0 = :C0, C2 = :C2, C4 = :C4";
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testBindParametersForCreateOrUpdate(){
+		List<ColumnModel> newSchema = helperCreateColumnsWithIds("1","2","3");
+		// This column will be missing in the RowSet so it should get this default value.
+		newSchema.get(0).setDefaultValue("A default");
+		List<ColumnModel> oldSchema = helperCreateColumnsWithIds("0","2","4");
+		RowSet set = new RowSet();
+		List<Row> rows = new LinkedList<Row>();
+		// Set the row IDs
+		for(int i=0; i<2; i++){
+			Row row = new Row();
+			row.setRowId(new Long(i));
+			row.setVersionNumber(3L);
+			row.setValues(Arrays.asList("one"+i, "two"+i, "three"+i));
+			rows.add(row);
+		}
+		set.setRows(rows);
+		set.setHeaders(TableModelUtils.getHeaders(oldSchema));
+		set.setTableId("syn123");
+		// bind!
+		SqlParameterSource[] results = SQLUtils.bindParametersForCreateOrUpdate(set, newSchema);
+		assertNotNull(results);
+		assertEquals("There should be one mapping for each row in the batch",2, results.length);
+		// First row
+		assertEquals(new Long(0), results[0].getValue(SQLUtils.ROW_ID_BIND));
+		assertEquals(new Long(3), results[0].getValue(SQLUtils.ROW_VERSION_BIND));
+		assertEquals("A default", results[0].getValue("C1"));
+		assertEquals("two0", results[0].getValue("C2"));
+		assertEquals(null, results[0].getValue("C3"));
+		// second
+		assertEquals("A default", results[1].getValue("C1"));
+		assertEquals("two1", results[1].getValue("C2"));
+		assertEquals(null, results[1].getValue("C3"));
+		
 	}
 	
 	/**
@@ -313,18 +361,4 @@ public class SQLUtilsTest {
 		return list;
 	}
 	
-	/**
-	 * Create a string list.
-	 * @param values
-	 * @return
-	 */
-	List<String> helperCreateStringList(String...values){
-		List<String> list = new LinkedList<String>();
-		if(values != null){
-			for(String value: values){
-				list.add(value);
-			}
-		}
-		return list;
-	}
 }
