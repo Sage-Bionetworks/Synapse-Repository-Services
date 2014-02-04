@@ -2,6 +2,7 @@ package org.sagebionetworks.table.cluster;
 
 import static org.junit.Assert.*;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -118,6 +119,35 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.createOrUpdateRows(connection, set, allTypes);
 		List<Map<String, Object>> result = connection.queryForList("SELECT * FROM "+SQLUtils.getTableNameForId("syn123"));
 		assertNotNull(result);
-		assertEquals(3, result.size());
+		assertEquals(5, result.size());
+		// Row zero
+		Map<String, Object> row = result.get(0);
+		assertEquals(100l, row.get(SQLUtils.ROW_ID));
+		assertEquals(0l, row.get("C4"));
+		// row four
+		row = result.get(4);
+		assertEquals(104l, row.get(SQLUtils.ROW_ID));
+		assertEquals(13.64, row.get("C1"));
+		assertEquals(4l, row.get("C4"));
+		
+		// We should be able to update all of the rows
+		rows.get(4).setValues(Arrays.asList("update", "99.99", "3", "false", "123"));
+		rows.get(4).setVersionNumber(2L);
+		// This should not fail
+		tableIndexDAO.createOrUpdateRows(connection, set, allTypes);
+		// Check the update
+		result = connection.queryForList("SELECT * FROM "+SQLUtils.getTableNameForId("syn123"));
+		assertNotNull(result);
+		assertEquals(5, result.size());
+		// row four
+		row = result.get(4);
+		// Check all values on the updated row.
+		assertEquals(104l, row.get(SQLUtils.ROW_ID));
+		assertEquals(2L, row.get(SQLUtils.ROW_VERSION));
+		assertEquals("update", row.get("C0"));
+		assertEquals(99.99, row.get("C1"));
+		assertEquals(3L, row.get("C2"));
+		assertEquals(Boolean.FALSE, row.get("C3"));
+		assertEquals(123L, row.get("C4"));
 	}
 }

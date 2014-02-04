@@ -12,6 +12,7 @@ import org.junit.Test;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
@@ -103,6 +104,42 @@ public class SQLUtilsTest {
 			assertNotNull(sql);
 		}
 	}
+	
+	@Test
+	public void testparseValueForDBLong(){
+		Long expected = new Long(123);
+		Object objectValue = SQLUtils.parseValueForDB(ColumnType.LONG, "123");
+		assertEquals(expected, objectValue);
+	}
+	
+	@Test
+	public void testparseValueForDBFileHandle(){
+		Long expected = new Long(123);
+		Object objectValue = SQLUtils.parseValueForDB(ColumnType.FILEHANDLEID, "123");
+		assertEquals(expected, objectValue);
+	}
+	
+	@Test
+	public void testparseValueForDBDouble(){
+		Double expected = new Double(123.456);
+		Object objectValue = SQLUtils.parseValueForDB(ColumnType.DOUBLE, "123.456");
+		assertEquals(expected, objectValue);
+	}
+	
+	@Test
+	public void testparseValueForDBBooleanTrue(){
+		Integer expected = new Integer(1);
+		Object objectValue = SQLUtils.parseValueForDB(ColumnType.BOOLEAN, "true");
+		assertEquals(expected, objectValue);
+	}
+	
+	@Test
+	public void testparseValueForDBBooleanFalse(){
+		Integer expected = new Integer(0);
+		Object objectValue = SQLUtils.parseValueForDB(ColumnType.BOOLEAN, "false");
+		assertEquals(expected, objectValue);
+	}
+	
 	
 	@Test
 	public void testGetSQLDefaultsForLong(){
@@ -310,7 +347,7 @@ public class SQLUtilsTest {
 	public void testBindParametersForCreateOrUpdate(){
 		List<ColumnModel> newSchema = helperCreateColumnsWithIds("1","2","3");
 		// This column will be missing in the RowSet so it should get this default value.
-		newSchema.get(0).setDefaultValue("A default");
+		newSchema.get(0).setDefaultValue("456");
 		List<ColumnModel> oldSchema = helperCreateColumnsWithIds("0","2","4");
 		RowSet set = new RowSet();
 		List<Row> rows = new LinkedList<Row>();
@@ -319,7 +356,7 @@ public class SQLUtilsTest {
 			Row row = new Row();
 			row.setRowId(new Long(i));
 			row.setVersionNumber(3L);
-			row.setValues(Arrays.asList("one"+i, "two"+i, "three"+i));
+			row.setValues(Arrays.asList("111"+i, "222"+i, "333"+i));
 			rows.add(row);
 		}
 		set.setRows(rows);
@@ -332,14 +369,46 @@ public class SQLUtilsTest {
 		// First row
 		assertEquals(new Long(0), results[0].getValue(SQLUtils.ROW_ID_BIND));
 		assertEquals(new Long(3), results[0].getValue(SQLUtils.ROW_VERSION_BIND));
-		assertEquals("A default", results[0].getValue("C1"));
-		assertEquals("two0", results[0].getValue("C2"));
+		assertEquals(new Long(456), results[0].getValue("C1"));
+		assertEquals(new Long(2220), results[0].getValue("C2"));
 		assertEquals(null, results[0].getValue("C3"));
 		// second
-		assertEquals("A default", results[1].getValue("C1"));
-		assertEquals("two1", results[1].getValue("C2"));
+		assertEquals(new Long(456), results[1].getValue("C1"));
+		assertEquals(new Long(2221), results[1].getValue("C2"));
 		assertEquals(null, results[1].getValue("C3"));
-		
+	}
+	
+	
+	@Test
+	public void testBindParametersForCreateOrUpdateAllTypes(){
+		List<ColumnModel> newSchema = TableModelUtils.createOneOfEachType();
+		RowSet set = new RowSet();
+		set.setRows(TableModelUtils.createRows(newSchema, 3));
+		set.setHeaders(TableModelUtils.getHeaders(newSchema));
+		set.setTableId("syn123");
+		IdRange range = new IdRange();
+		range.setMinimumId(100L);
+		range.setMaximumId(200L);
+		range.setVersionNumber(3L);
+		TableModelUtils.assignRowIdsAndVersionNumbers(set, range);
+		// bind!
+		SqlParameterSource[] results = SQLUtils.bindParametersForCreateOrUpdate(set, newSchema);
+		assertNotNull(results);
+		assertEquals("There should be one mapping for each row in the batch",3, results.length);
+		// First row
+		assertEquals(new Long(100), results[0].getValue(SQLUtils.ROW_ID_BIND));
+		assertEquals(new Long(3), results[0].getValue(SQLUtils.ROW_VERSION_BIND));
+		assertEquals(new Double(0.0), results[0].getValue("C1"));
+		assertEquals(new Long(0), results[0].getValue("C2"));
+		assertEquals(new Integer(0), results[0].getValue("C3"));
+		assertEquals(new Long(0), results[0].getValue("C4"));
+		// second
+		assertEquals(new Long(101), results[1].getValue(SQLUtils.ROW_ID_BIND));
+		assertEquals(new Long(3), results[1].getValue(SQLUtils.ROW_VERSION_BIND));
+		assertEquals(new Double(3.41), results[1].getValue("C1"));
+		assertEquals(new Long(1), results[1].getValue("C2"));
+		assertEquals(new Integer(1), results[1].getValue("C3"));
+		assertEquals(new Long(1), results[1].getValue("C4"));
 	}
 	
 	/**
