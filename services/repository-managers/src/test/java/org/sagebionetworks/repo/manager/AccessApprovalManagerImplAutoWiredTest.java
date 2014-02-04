@@ -113,7 +113,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		ra.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(new ACCESS_TYPE[]{ACCESS_TYPE.READ})));
 		ras.add(ra);
 		entityPermissionsManager.updateACL(acl, adminUserInfo);
-}
+	}
 	
 	@After
 	public void after() throws Exception {

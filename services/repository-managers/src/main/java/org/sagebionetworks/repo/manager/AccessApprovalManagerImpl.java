@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
+import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeQueryDao;
 import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessApproval;
@@ -19,6 +20,7 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -41,6 +43,15 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 	private EvaluationDAO evaluationDAO;
 	@Autowired
 	private AuthorizationManager authorizationManager;
+	@Autowired
+	NodeTreeQueryDao nodeTreeQueryDao;
+
+	// for testing
+	@Override
+	public void setNodeTreeQueryDao(NodeTreeQueryDao nodeTreeQueryDao) {
+		this.nodeTreeQueryDao=nodeTreeQueryDao;
+	}
+	
 	
 	// check an incoming object (i.e. during 'create' and 'update')
 	private void validateAccessApproval(UserInfo userInfo, AccessApproval a) throws 
@@ -103,8 +114,12 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 			throw new UnauthorizedException("You are not allowed to retrieve access approvals for this subject.");
 		}
 
-		List<AccessRequirement> ars = accessRequirementDAO.getForSubject(
-				Collections.singletonList(subjectId.getId()), subjectId.getType());
+		List<String> subjectIds = new ArrayList<String>();
+		subjectIds.add(subjectId.getId());
+		if (RestrictableObjectType.ENTITY==subjectId.getType()) {
+			subjectIds.addAll(nodeTreeQueryDao.getAncestors(subjectId.getId()));
+		}
+		List<AccessRequirement> ars = accessRequirementDAO.getForSubject(subjectIds, subjectId.getType());
 		List<AccessApproval> aas = new ArrayList<AccessApproval>();
 		for (AccessRequirement ar : ars) {
 			aas.addAll(accessApprovalDAO.getForAccessRequirement(ar.getId().toString()));

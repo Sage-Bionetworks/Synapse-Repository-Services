@@ -7,6 +7,7 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.DOWNLOAD;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.READ;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.sagebionetworks.StackConfiguration;
@@ -283,11 +284,8 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		if (!agreesToTermsOfUse(userInfo)) return false;
 		
 		// if there are any unmet access requirements return false
-		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
-		rod.setId(nodeId);
-		rod.setType(RestrictableObjectType.ENTITY);
-		List<Long> accessRequirementIds = AccessRequirementUtil.unmetAccessRequirementIds(
-				userInfo, rod, nodeDAO, nodeTreeQueryDao, accessRequirementDAO);
+		List<Long> accessRequirementIds = AccessRequirementUtil.unmetAccessRequirementIdsForEntity(
+				userInfo, nodeId, nodeTreeQueryDao.getAncestors(nodeId), nodeDAO, accessRequirementDAO);
 		return accessRequirementIds.isEmpty();
 	}
 

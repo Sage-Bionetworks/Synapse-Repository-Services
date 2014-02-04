@@ -92,7 +92,6 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		a.setModifiedOn(now);
 	}
 	
-	// TODO Once the web client switches over to use 'createLockAccessRequirement', restrict access here to ACT
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public <T extends AccessRequirement> T createAccessRequirement(UserInfo userInfo, T accessRequirement) throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException {
@@ -148,7 +147,12 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	
 	@Override
 	public QueryResults<AccessRequirement> getAccessRequirementsForSubject(UserInfo userInfo, RestrictableObjectDescriptor subjectId) throws DatastoreException, NotFoundException {
-		List<AccessRequirement> ars = accessRequirementDAO.getForSubject(Collections.singletonList(subjectId.getId()), subjectId.getType());
+		List<String> subjectIds = new ArrayList<String>();
+		subjectIds.add(subjectId.getId());
+		if (RestrictableObjectType.ENTITY==subjectId.getType()) {
+			subjectIds.addAll(nodeTreeQueryDao.getAncestors(subjectId.getId()));
+		}
+		List<AccessRequirement> ars = accessRequirementDAO.getForSubject(subjectIds, subjectId.getType());
 		QueryResults<AccessRequirement> result = new QueryResults<AccessRequirement>(ars, ars.size());
 		return result;
 	}
@@ -156,13 +160,28 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	@Override
 	public QueryResults<AccessRequirement> getUnmetAccessRequirements(UserInfo userInfo, RestrictableObjectDescriptor subjectId) throws DatastoreException, NotFoundException {
 		// first check if there *are* any unmet requirements.  (If not, no further queries will be executed.)
-		List<Long> unmetIds = AccessRequirementUtil.unmetAccessRequirementIds(
-				userInfo, subjectId, nodeDAO, nodeTreeQueryDao, accessRequirementDAO);
+		List<String> subjectIds = new ArrayList<String>();
+		subjectIds.add(subjectId.getId());
+		List<Long> unmetIds = null;
+		if (RestrictableObjectType.ENTITY==subjectId.getType()) {
+			List<String> nodeAncestorIds = nodeTreeQueryDao.getAncestors(subjectId.getId());
+			unmetIds = AccessRequirementUtil.unmetAccessRequirementIdsForEntity(
+				userInfo, subjectId.getId(), nodeAncestorIds, nodeDAO, accessRequirementDAO);
+			subjectIds.addAll(nodeAncestorIds);
+		} else if (RestrictableObjectType.EVALUATION==subjectId.getType()) {
+			unmetIds = AccessRequirementUtil.unmetAccessRequirementIdsForEvaluation(
+					userInfo, subjectId.getId(), accessRequirementDAO);
+		} else if (RestrictableObjectType.TEAM==subjectId.getType()) {
+			unmetIds = AccessRequirementUtil.unmetAccessRequirementIdsForTeam(
+					userInfo, subjectId.getId(), accessRequirementDAO);
+		} else {
+			throw new InvalidModelException("Unexpected object type "+subjectId.getType());
+		}
 		
 		List<AccessRequirement> unmetRequirements = new ArrayList<AccessRequirement>();
 		// if there are any unmet requirements, retrieve the object(s)
 		if (!unmetIds.isEmpty()) {
-			List<AccessRequirement> allRequirementsForSubject = accessRequirementDAO.getForSubject(Collections.singletonList(subjectId.getId()), subjectId.getType());
+			List<AccessRequirement> allRequirementsForSubject = accessRequirementDAO.getForSubject(subjectIds, subjectId.getType());
 			for (Long unmetId : unmetIds) { // typically there will be just one id here
 				for (AccessRequirement ar : allRequirementsForSubject) { // typically there will be just one id here
 					if (ar.getId().equals(unmetId)) unmetRequirements.add(ar);
