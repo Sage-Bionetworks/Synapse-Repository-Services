@@ -16,6 +16,7 @@ import java.util.zip.GZIPOutputStream;
 
 import org.apache.commons.lang.BooleanUtils;
 import org.sagebionetworks.bridge.model.ParticipantDataDAO;
+import org.sagebionetworks.bridge.model.ParticipantDataId;
 import org.sagebionetworks.bridge.model.data.ParticipantDataColumnDescriptor;
 import org.sagebionetworks.bridge.model.data.ParticipantDataRow;
 import org.sagebionetworks.bridge.model.data.value.ParticipantDataBooleanValue;
@@ -50,12 +51,13 @@ import com.google.common.collect.Sets;
 
 public class DBOParticipantDataDAOImpl implements ParticipantDataDAO {
 
-	private static final String PARTICIPANT_IDS = "participantIds";
-	private static final String PARTICIPANT_DATA_ID = "participantDataId";
+	private static final String PARTICIPANT_DATA_IDS = "participantDataIds";
+	private static final String PARTICIPANT_DATA_DESCRIPTOR_ID = "participantDataDescriptorId";
 
-	private static final String SELECT_PARTICIPANT_WITH_PARTICIPANT_DATA = "select " + SqlConstants.COL_PARTICIPANT_DATA_PARTICIPANT_ID
+	private static final String SELECT_PARTICIPANT_WITH_PARTICIPANT_DATA = "select " + SqlConstants.COL_PARTICIPANT_DATA_PARTICIPANT_DATA_ID
 			+ " from " + SqlConstants.TABLE_PARTICIPANT_DATA + " where " + SqlConstants.COL_PARTICIPANT_DATA_PARTICIPANT_DATA_DESCRIPTOR_ID
-			+ " = :" + PARTICIPANT_DATA_ID + " and " + SqlConstants.COL_PARTICIPANT_DATA_PARTICIPANT_ID + " in ( :" + PARTICIPANT_IDS + " )";
+			+ " = :" + PARTICIPANT_DATA_DESCRIPTOR_ID + " and " + SqlConstants.COL_PARTICIPANT_DATA_PARTICIPANT_DATA_ID + " in ( :"
+			+ PARTICIPANT_DATA_IDS + " )";
 
 	private static class DataTable {
 		long nextRowNumber = 0;
@@ -97,8 +99,9 @@ public class DBOParticipantDataDAOImpl implements ParticipantDataDAO {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public List<ParticipantDataRow> append(String participantId, String participantDataDescriptorId, List<ParticipantDataRow> data,
-			List<ParticipantDataColumnDescriptor> columns) throws DatastoreException, NotFoundException, IOException {
+	public List<ParticipantDataRow> append(ParticipantDataId participantDataId, String participantDataDescriptorId,
+			List<ParticipantDataRow> data, List<ParticipantDataColumnDescriptor> columns) throws DatastoreException, NotFoundException,
+			IOException {
 
 		for (ParticipantDataRow row : data) {
 			if (row.getRowId() != null) {
@@ -106,8 +109,7 @@ public class DBOParticipantDataDAOImpl implements ParticipantDataDAO {
 			}
 		}
 
-		MapSqlParameterSource param = new MapSqlParameterSource().addValue(DBOParticipantData.PARTICIPANT_DATA_DESCRIPTOR_ID_FIELD,
-				participantDataDescriptorId).addValue(DBOParticipantData.PARTICIPANT_ID_FIELD, participantId);
+		MapSqlParameterSource param = getParams(participantDataId, participantDataDescriptorId);
 
 		try {
 			DBOParticipantData participantData = basicDao.getObjectByPrimaryKeyWithUpdateLock(DBOParticipantData.class, param);
@@ -117,9 +119,9 @@ public class DBOParticipantDataDAOImpl implements ParticipantDataDAO {
 		} catch (NotFoundException e) {
 			DBOParticipantData participantData = new DBOParticipantData();
 			participantData.setParticipantDataDescriptorId(Long.parseLong(participantDataDescriptorId));
-			participantData.setParticipantId(Long.parseLong(participantId));
+			participantData.setParticipantDataId(participantDataId.getId());
 			participantData.setS3_bucket(s3bucket);
-			participantData.setS3_key(participantData.getParticipantDataDescriptorId() + ":" + participantData.getParticipantId());
+			participantData.setS3_key(participantData.getParticipantDataDescriptorId() + ":" + participantData.getParticipantDataId());
 
 			DataTable dataTable = new DataTable();
 			return storeDataWithMerge(data, participantData, dataTable, true, columns);
@@ -128,12 +130,12 @@ public class DBOParticipantDataDAOImpl implements ParticipantDataDAO {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void deleteRows(String participantId, String participantDataDescriptorId, IdList rowIds) throws NotFoundException, IOException {
-		MapSqlParameterSource param = new MapSqlParameterSource().addValue(DBOParticipantData.PARTICIPANT_DATA_DESCRIPTOR_ID_FIELD,
-				participantDataDescriptorId).addValue(DBOParticipantData.PARTICIPANT_ID_FIELD, participantId);
+	public void deleteRows(ParticipantDataId participantDataId, String participantDataDescriptorId, IdList rowIds) throws NotFoundException,
+			IOException {
+		MapSqlParameterSource param = getParams(participantDataId, participantDataDescriptorId);
 
 		if (rowIds == null || rowIds.getList() == null || rowIds.getList().isEmpty()) {
-			throw new IllegalArgumentException("1-* rows must be selected for deletion");
+			throw new IllegalArgumentException("one or more rows must be selected for deletion");
 		}
 		DBOParticipantData participantData = basicDao.getObjectByPrimaryKeyWithUpdateLock(DBOParticipantData.class, param);
 		DataTable dataTable = getDataFromBucket(participantData.getS3_bucket(), participantData.getS3_key());
@@ -143,13 +145,13 @@ public class DBOParticipantDataDAOImpl implements ParticipantDataDAO {
 		}
 		storeData(participantData, dataTable, false);
 	}
-	
+
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public List<ParticipantDataRow> update(String participantId, String participantDataDescriptorId, List<ParticipantDataRow> data,
-			List<ParticipantDataColumnDescriptor> columns) throws DatastoreException, NotFoundException, IOException {
-		MapSqlParameterSource param = new MapSqlParameterSource().addValue(DBOParticipantData.PARTICIPANT_DATA_DESCRIPTOR_ID_FIELD,
-				participantDataDescriptorId).addValue(DBOParticipantData.PARTICIPANT_ID_FIELD, participantId);
+	public List<ParticipantDataRow> update(ParticipantDataId participantDataId, String participantDataDescriptorId,
+			List<ParticipantDataRow> data, List<ParticipantDataColumnDescriptor> columns) throws DatastoreException, NotFoundException,
+			IOException {
+		MapSqlParameterSource param = getParams(participantDataId, participantDataDescriptorId);
 
 		DBOParticipantData participantData = basicDao.getObjectByPrimaryKey(DBOParticipantData.class, param);
 		DataTable dataTable = getDataFromBucket(participantData.getS3_bucket(), participantData.getS3_key());
@@ -157,16 +159,15 @@ public class DBOParticipantDataDAOImpl implements ParticipantDataDAO {
 		return storeDataWithMerge(data, participantData, dataTable, false, columns);
 	}
 
-	private List<ParticipantDataRow> storeDataWithMerge(List<ParticipantDataRow> data, DBOParticipantData participantData, DataTable dataTable,
-			boolean isCreate, List<ParticipantDataColumnDescriptor> columns) throws IOException {
+	private List<ParticipantDataRow> storeDataWithMerge(List<ParticipantDataRow> data, DBOParticipantData participantData,
+			DataTable dataTable, boolean isCreate, List<ParticipantDataColumnDescriptor> columns) throws IOException {
 
 		data = mergeData(data, dataTable, columns);
 		storeData(participantData, dataTable, isCreate);
 		return data;
 	}
-	
-	private void storeData(DBOParticipantData participantData, DataTable dataTable, boolean isCreate)
-			throws IOException {
+
+	private void storeData(DBOParticipantData participantData, DataTable dataTable, boolean isCreate) throws IOException {
 		// update before attempting upload. If upload fails, transaction will roll back
 		if (isCreate) {
 			basicDao.createNew(participantData);
@@ -178,10 +179,9 @@ public class DBOParticipantDataDAOImpl implements ParticipantDataDAO {
 
 	@Transactional(readOnly = true, propagation = Propagation.REQUIRED)
 	@Override
-	public List<ParticipantDataRow> get(String participantId, String participantDataDescriptorId,
+	public List<ParticipantDataRow> get(ParticipantDataId participantDataId, String participantDataDescriptorId,
 			List<ParticipantDataColumnDescriptor> columns) throws DatastoreException, NotFoundException, IOException {
-		MapSqlParameterSource param = new MapSqlParameterSource().addValue(DBOParticipantData.PARTICIPANT_DATA_DESCRIPTOR_ID_FIELD,
-				participantDataDescriptorId).addValue(DBOParticipantData.PARTICIPANT_ID_FIELD, participantId);
+		MapSqlParameterSource param = getParams(participantDataId, participantDataDescriptorId);
 
 		DBOParticipantData participantData = basicDao.getObjectByPrimaryKey(DBOParticipantData.class, param);
 
@@ -193,10 +193,9 @@ public class DBOParticipantDataDAOImpl implements ParticipantDataDAO {
 
 	@Transactional(readOnly = true, propagation = Propagation.REQUIRED)
 	@Override
-	public ParticipantDataRow getRow(String participantId, String participantDataDescriptorId, Long rowId,
+	public ParticipantDataRow getRow(ParticipantDataId participantDataId, String participantDataDescriptorId, Long rowId,
 			List<ParticipantDataColumnDescriptor> columns) throws DatastoreException, NotFoundException, IOException {
-		MapSqlParameterSource param = new MapSqlParameterSource().addValue(DBOParticipantData.PARTICIPANT_DATA_DESCRIPTOR_ID_FIELD,
-				participantDataDescriptorId).addValue(DBOParticipantData.PARTICIPANT_ID_FIELD, participantId);
+		MapSqlParameterSource param = getParams(participantDataId, participantDataDescriptorId);
 
 		DBOParticipantData participantData = basicDao.getObjectByPrimaryKey(DBOParticipantData.class, param);
 
@@ -220,9 +219,9 @@ public class DBOParticipantDataDAOImpl implements ParticipantDataDAO {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void delete(String participantId, String participantDataDescriptorId) throws DatastoreException, NotFoundException, IOException {
-		MapSqlParameterSource param = new MapSqlParameterSource().addValue(DBOParticipantData.PARTICIPANT_DATA_DESCRIPTOR_ID_FIELD,
-				participantDataDescriptorId).addValue(DBOParticipantData.PARTICIPANT_ID_FIELD, participantId);
+	public void delete(ParticipantDataId participantDataId, String participantDataDescriptorId) throws DatastoreException, NotFoundException,
+			IOException {
+		MapSqlParameterSource param = getParams(participantDataId, participantDataDescriptorId);
 
 		DBOParticipantData participantData = basicDao.getObjectByPrimaryKey(DBOParticipantData.class, param);
 
@@ -231,21 +230,27 @@ public class DBOParticipantDataDAOImpl implements ParticipantDataDAO {
 		deleteDataFromBucket(participantData.getS3_bucket(), participantData.getS3_key());
 	}
 
+	private MapSqlParameterSource getParams(ParticipantDataId participantDataId, String participantDataDescriptorId) {
+		MapSqlParameterSource param = new MapSqlParameterSource().addValue(DBOParticipantData.PARTICIPANT_DATA_DESCRIPTOR_ID_FIELD,
+				participantDataDescriptorId).addValue(DBOParticipantData.PARTICIPANT_DATA_ID_FIELD, participantDataId.getId());
+		return param;
+	}
+
 	@Override
-	public String findParticipantForParticipantData(List<String> participantIds, String participantDataDescriptorId) {
-		if (participantIds.size() == 0) {
+	public ParticipantDataId findParticipantForParticipantData(List<ParticipantDataId> participantDataIds, String participantDataDescriptorId) {
+		if (participantDataIds.size() == 0) {
 			return null;
 		}
-		MapSqlParameterSource params = new MapSqlParameterSource().addValue(PARTICIPANT_DATA_ID, participantDataDescriptorId).addValue(
-				PARTICIPANT_IDS, participantIds);
-		List<String> result = simpleJdbcTemplate.query(SELECT_PARTICIPANT_WITH_PARTICIPANT_DATA, new SingleColumnRowMapper<String>(
-				String.class), params);
+		MapSqlParameterSource params = new MapSqlParameterSource().addValue(PARTICIPANT_DATA_DESCRIPTOR_ID, participantDataDescriptorId)
+				.addValue(PARTICIPANT_DATA_IDS, ParticipantDataId.convert(participantDataIds));
+		List<Long> result = simpleJdbcTemplate.query(SELECT_PARTICIPANT_WITH_PARTICIPANT_DATA, new SingleColumnRowMapper<Long>(Long.class),
+				params);
 		if (result.size() == 0) {
 			return null;
 		} else if (result.size() != 1) {
 			throw new IllegalStateException("Expected only one participant id, but found " + result.size());
 		} else {
-			return result.get(0);
+			return new ParticipantDataId(result.get(0));
 		}
 	}
 

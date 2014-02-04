@@ -2,13 +2,15 @@ package org.sagebionetworks.bridge.manager.participantdata;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.sagebionetworks.bridge.model.ParticipantDataDescriptorDAO;
+import org.sagebionetworks.bridge.model.ParticipantDataId;
 import org.sagebionetworks.bridge.model.ParticipantDataStatusDAO;
 import org.sagebionetworks.bridge.model.data.ParticipantDataColumnDescriptor;
-import org.sagebionetworks.bridge.model.data.ParticipantDataCurrentRow;
 import org.sagebionetworks.bridge.model.data.ParticipantDataDescriptor;
 import org.sagebionetworks.bridge.model.data.ParticipantDataStatus;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -19,6 +21,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 public class ParticipantDataDescriptionManagerImpl implements ParticipantDataDescriptionManager {
 
@@ -57,11 +60,18 @@ public class ParticipantDataDescriptionManagerImpl implements ParticipantDataDes
 	@Override
 	public PaginatedResults<ParticipantDataDescriptor> getUserParticipantDataDescriptors(UserInfo userInfo, Integer limit, Integer offset)
 			throws IOException, GeneralSecurityException {
-		List<String> participantIds = participantDataMappingManager.mapSynapseUserToParticipantIds(userInfo);
-		Map<String, ParticipantDataDescriptor> participantDataDescriptors = participantDataDescriptorDAO
-				.getParticipantDataDescriptorsForUser(participantIds);
-		participantDataStatusDAO.getParticipantStatuses(participantDataDescriptors);
-		return PaginatedResultsUtil.createPaginatedResults(Lists.newArrayList(participantDataDescriptors.values()), limit, offset);
+		List<ParticipantDataId> participantDataIds = participantDataMappingManager.mapSynapseUserToParticipantIds(userInfo);
+		Map<ParticipantDataId, ParticipantDataDescriptor> participantDataDescriptorMap = participantDataDescriptorDAO
+				.getParticipantDataDescriptorsForUser(participantDataIds);
+
+		Map<String, ParticipantDataId> participantDataDescriptorToDataIdMap = Maps.newHashMap();
+		for (Entry<ParticipantDataId, ParticipantDataDescriptor> entry : participantDataDescriptorMap.entrySet()) {
+			participantDataDescriptorToDataIdMap.put(entry.getValue().getId(), entry.getKey());
+		}
+
+		ArrayList<ParticipantDataDescriptor> participantDataDescriptors = Lists.newArrayList(participantDataDescriptorMap.values());
+		participantDataStatusDAO.getParticipantStatuses(participantDataDescriptors, participantDataDescriptorToDataIdMap);
+		return PaginatedResultsUtil.createPaginatedResults(participantDataDescriptors, limit, offset);
 	}
 
 	@Override
@@ -80,10 +90,16 @@ public class ParticipantDataDescriptionManagerImpl implements ParticipantDataDes
 
 	@Override
 	public void updateStatuses(UserInfo userInfo, List<ParticipantDataStatus> statuses) throws IOException, GeneralSecurityException {
-		List<String> participantIds = participantDataMappingManager.mapSynapseUserToParticipantIds(userInfo);
-		Map<String, ParticipantDataDescriptor> participantDataDescriptors = participantDataDescriptorDAO
+		List<ParticipantDataId> participantIds = participantDataMappingManager.mapSynapseUserToParticipantIds(userInfo);
+		Map<ParticipantDataId, ParticipantDataDescriptor> participantDataDescriptorMap = participantDataDescriptorDAO
 				.getParticipantDataDescriptorsForUser(participantIds);
-		participantDataStatusDAO.update(statuses, participantDataDescriptors);
+
+		Map<String, ParticipantDataId> participantDataDescriptorToDataIdMap = Maps.newHashMap();
+		for (Entry<ParticipantDataId, ParticipantDataDescriptor> entry : participantDataDescriptorMap.entrySet()) {
+			participantDataDescriptorToDataIdMap.put(entry.getValue().getId(), entry.getKey());
+		}
+
+		participantDataStatusDAO.update(statuses, participantDataDescriptorToDataIdMap);
 	}
 
 	@Override

@@ -24,19 +24,19 @@ import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 public class DBOParticipantData implements MigratableDatabaseObject<DBOParticipantData, DBOParticipantData> {
 
 	public static final String PARTICIPANT_DATA_DESCRIPTOR_ID_FIELD = "participantDataDescriptorId";
-	public static final String PARTICIPANT_ID_FIELD = "participantId";
+	public static final String PARTICIPANT_DATA_ID_FIELD = "participantDataId";
 
 	@Field(name = SqlConstants.COL_PARTICIPANT_DATA_PARTICIPANT_DATA_DESCRIPTOR_ID, backupId = true, primary = true)
 	@ForeignKey(table = TABLE_PARTICIPANT_DATA_DESCRIPTOR, field = COL_PARTICIPANT_DATA_DESCRIPTOR_ID)
 	private Long participantDataDescriptorId;
 
-	@Field(name = SqlConstants.COL_PARTICIPANT_DATA_PARTICIPANT_ID, backupId = true, primary = true)
+	@Field(name = SqlConstants.COL_PARTICIPANT_DATA_PARTICIPANT_DATA_ID, backupId = true, primary = true)
 	@ForeignKey(table = TABLE_PARTICIPANT, field = COL_PARTICIPANT_ID, cascadeDelete = true)
-	private Long participantId;
+	private Long participantDataId;
 
 	@Field(name = SqlConstants.COL_PARTICIPANT_DATA_BUCKET, varchar = 256, nullable = false)
 	private String s3_bucket;
-	  
+
 	@Field(name = SqlConstants.COL_PARTICIPANT_DATA_KEY, varchar = 256, nullable = false)
 	private String s3_key;
 
@@ -60,12 +60,12 @@ public class DBOParticipantData implements MigratableDatabaseObject<DBOParticipa
 		this.participantDataDescriptorId = participantDataDescriptorId;
 	}
 
-	public Long getParticipantId() {
-		return participantId;
+	public Long getParticipantDataId() {
+		return participantDataId;
 	}
 
-	public void setParticipantId(Long participantId) {
-		this.participantId = participantId;
+	public void setParticipantDataId(Long participantDataId) {
+		this.participantDataId = participantDataId;
 	}
 
 	public String getS3_bucket() {
@@ -89,7 +89,7 @@ public class DBOParticipantData implements MigratableDatabaseObject<DBOParticipa
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + ((participantDataDescriptorId == null) ? 0 : participantDataDescriptorId.hashCode());
-		result = prime * result + ((participantId == null) ? 0 : participantId.hashCode());
+		result = prime * result + ((participantDataId == null) ? 0 : participantDataId.hashCode());
 		result = prime * result + ((s3_bucket == null) ? 0 : s3_bucket.hashCode());
 		result = prime * result + ((s3_key == null) ? 0 : s3_key.hashCode());
 		return result;
@@ -109,10 +109,10 @@ public class DBOParticipantData implements MigratableDatabaseObject<DBOParticipa
 				return false;
 		} else if (!participantDataDescriptorId.equals(other.participantDataDescriptorId))
 			return false;
-		if (participantId == null) {
-			if (other.participantId != null)
+		if (participantDataId == null) {
+			if (other.participantDataId != null)
 				return false;
-		} else if (!participantId.equals(other.participantId))
+		} else if (!participantDataId.equals(other.participantDataId))
 			return false;
 		if (s3_bucket == null) {
 			if (other.s3_bucket != null)
@@ -129,8 +129,8 @@ public class DBOParticipantData implements MigratableDatabaseObject<DBOParticipa
 
 	@Override
 	public String toString() {
-		return "DBOParticipantData [participantDataDescriptorId=" + participantDataDescriptorId + ", participantId=" + participantId + ", s3_bucket=" + s3_bucket
-				+ ", s3_key=" + s3_key + "]";
+		return "DBOParticipantData [participantDataDescriptorId=" + participantDataDescriptorId + ", participantDataId=" + participantDataId
+				+ ", s3_bucket=" + s3_bucket + ", s3_key=" + s3_key + "]";
 	}
 
 	@Override

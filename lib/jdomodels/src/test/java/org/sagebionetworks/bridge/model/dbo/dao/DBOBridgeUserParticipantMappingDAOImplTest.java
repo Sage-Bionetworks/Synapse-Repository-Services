@@ -10,6 +10,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.bridge.model.BridgeParticipantDAO;
 import org.sagebionetworks.bridge.model.BridgeUserParticipantMappingDAO;
+import org.sagebionetworks.bridge.model.ParticipantDataId;
 import org.sagebionetworks.bridge.model.dbo.persistence.DBOUserParticipantMap;
 import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
@@ -33,9 +34,16 @@ public class DBOBridgeUserParticipantMappingDAOImplTest extends TestBase {
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
 
+	private static ParticipantDataId dataId1 = new ParticipantDataId(1);
+	private static ParticipantDataId dataId2 = new ParticipantDataId(2);
+	private static ParticipantDataId dataId3 = new ParticipantDataId(3);
+	private static ParticipantDataId dataId4 = new ParticipantDataId(4);
+	private static ParticipantDataId dataId5 = new ParticipantDataId(5);
+	private static ParticipantDataId dataId6 = new ParticipantDataId(6);
+
 	@Test
 	public void testEmpty() throws Exception {
-		List<String> ids = userParticipantMappingDAO.getParticipantIdsForUser(-1L);
+		List<ParticipantDataId> ids = userParticipantMappingDAO.getParticipantIdsForUser(-1L);
 		assertEquals(0, ids.size());
 	}
 
@@ -46,26 +54,27 @@ public class DBOBridgeUserParticipantMappingDAOImplTest extends TestBase {
 
 		addToDelete(DBOUserParticipantMap.class, userId);
 
-		List<String> ids = userParticipantMappingDAO.getParticipantIdsForUser(id);
+		List<ParticipantDataId> ids = userParticipantMappingDAO.getParticipantIdsForUser(id);
 		assertEquals(0, ids.size());
 
-		userParticipantMappingDAO.setParticipantIdsForUser(id, Lists.<String> newArrayList());
+		userParticipantMappingDAO.setParticipantIdsForUser(id, Lists.<ParticipantDataId> newArrayList());
 		ids = userParticipantMappingDAO.getParticipantIdsForUser(id);
 		assertEquals(0, ids.size());
 
-		userParticipantMappingDAO.setParticipantIdsForUser(id, Lists.<String> newArrayList("a", "b"));
+		userParticipantMappingDAO.setParticipantIdsForUser(id, Lists.<ParticipantDataId> newArrayList(dataId1, dataId2));
 		ids = userParticipantMappingDAO.getParticipantIdsForUser(id);
-		assertEquals(Lists.<String> newArrayList("a", "b"), ids);
+		assertEquals(Lists.<ParticipantDataId> newArrayList(dataId1, dataId2), ids);
 
-		userParticipantMappingDAO.setParticipantIdsForUser(id, Lists.<String> newArrayList("c", "d"));
+		userParticipantMappingDAO.setParticipantIdsForUser(id, Lists.<ParticipantDataId> newArrayList(dataId3, dataId4));
 		ids = userParticipantMappingDAO.getParticipantIdsForUser(id);
-		assertEquals(Lists.<String> newArrayList("c", "d"), ids);
+		assertEquals(Lists.<ParticipantDataId> newArrayList(dataId3, dataId4), ids);
 
-		userParticipantMappingDAO.setParticipantIdsForUser(id, Lists.<String> newLinkedList(Lists.<String> newArrayList("e", "f")));
+		userParticipantMappingDAO.setParticipantIdsForUser(id,
+				Lists.<ParticipantDataId> newLinkedList(Lists.<ParticipantDataId> newArrayList(dataId5, dataId6)));
 		ids = userParticipantMappingDAO.getParticipantIdsForUser(id);
-		assertEquals(Lists.<String> newArrayList("e", "f"), ids);
+		assertEquals(Lists.<ParticipantDataId> newArrayList(dataId5, dataId6), ids);
 
-		userParticipantMappingDAO.setParticipantIdsForUser(id, Lists.<String> newArrayList());
+		userParticipantMappingDAO.setParticipantIdsForUser(id, Lists.<ParticipantDataId> newArrayList());
 		ids = userParticipantMappingDAO.getParticipantIdsForUser(id);
 		assertEquals(0, ids.size());
 	}
@@ -80,9 +89,9 @@ public class DBOBridgeUserParticipantMappingDAOImplTest extends TestBase {
 		addToDelete(DBOUserParticipantMap.class, userId);
 		addToDelete(DBOUserParticipantMap.class, userId2);
 
-		userParticipantMappingDAO.setParticipantIdsForUser(id, Lists.<String> newArrayList("a", "b"));
-		List<String> ids = userParticipantMappingDAO.getParticipantIdsForUser(id);
-		assertEquals(Lists.<String> newArrayList("a", "b"), ids);
+		userParticipantMappingDAO.setParticipantIdsForUser(id, Lists.<ParticipantDataId> newArrayList(dataId1, dataId2));
+		List<ParticipantDataId> ids = userParticipantMappingDAO.getParticipantIdsForUser(id);
+		assertEquals(Lists.<ParticipantDataId> newArrayList(dataId1, dataId2), ids);
 
 		ids = userParticipantMappingDAO.getParticipantIdsForUser(id2);
 		assertEquals(0, ids.size());

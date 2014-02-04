@@ -237,7 +237,31 @@ public class IT610BridgeData {
 	}
 
 	@Test
-	@Ignore
+	public void testGetCurrentParticipantData1() throws Exception {
+		testGetCurrentParticipantData();
+	}
+
+	@Test
+	public void testGetCurrentParticipantData2() throws Exception {
+		testGetCurrentParticipantData();
+	}
+
+	@Test
+	public void testGetCurrentParticipantData3() throws Exception {
+		testGetCurrentParticipantData();
+	}
+
+	@Test
+	public void testGetCurrentParticipantData4() throws Exception {
+		testGetCurrentParticipantData();
+	}
+
+	@Test
+	public void testGetCurrentParticipantData5() throws Exception {
+		testGetCurrentParticipantData();
+	}
+
+	@Test
 	public void testGetCurrentParticipantData() throws Exception {
 		ParticipantDataDescriptor participantDataDescriptor = new ParticipantDataDescriptor();
 		participantDataDescriptor.setName("my-first-participantData-" + System.currentTimeMillis());

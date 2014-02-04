@@ -578,7 +578,7 @@ public class SqlConstants {
 	// Participant data sets
 	public static final String TABLE_PARTICIPANT_DATA = "PARTICIPANT_DATA";
 	public static final String COL_PARTICIPANT_DATA_PARTICIPANT_DATA_DESCRIPTOR_ID = "PARTICIPANT_DATA_DESCRIPTOR_ID";
-	public static final String COL_PARTICIPANT_DATA_PARTICIPANT_ID = "PARTICIPANT_ID";
+	public static final String COL_PARTICIPANT_DATA_PARTICIPANT_DATA_ID = "PARTICIPANT_DATA_ID";
 	public static final String COL_PARTICIPANT_DATA_BUCKET = "S3_BUCKET";
 	public static final String COL_PARTICIPANT_DATA_KEY = "S3_KEY";
 

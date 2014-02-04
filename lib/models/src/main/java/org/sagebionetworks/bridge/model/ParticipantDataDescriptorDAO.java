@@ -12,7 +12,7 @@ public interface ParticipantDataDescriptorDAO {
 
 	List<ParticipantDataDescriptor> getParticipantDatas();
 
-	Map<String, ParticipantDataDescriptor> getParticipantDataDescriptorsForUser(List<String> participantIds);
+	Map<ParticipantDataId, ParticipantDataDescriptor> getParticipantDataDescriptorsForUser(List<ParticipantDataId> participantDataIds);
 
 	List<ParticipantDataColumnDescriptor> getParticipantDataColumns(String participantDataId);
 
