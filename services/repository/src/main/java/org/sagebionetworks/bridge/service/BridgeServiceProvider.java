@@ -10,4 +10,6 @@ public interface BridgeServiceProvider {
 	public CommunityService getCommunityService();
 
 	public ParticipantDataService getParticipantDataService();
+
+	public TimeSeriesService getTimeSeriesService();
 }

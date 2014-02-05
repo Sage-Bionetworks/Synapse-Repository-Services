@@ -19,7 +19,9 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
+@Component
 public class ParticipantDataServiceImpl implements ParticipantDataService {
 	@Autowired
 	private UserManager userManager;
