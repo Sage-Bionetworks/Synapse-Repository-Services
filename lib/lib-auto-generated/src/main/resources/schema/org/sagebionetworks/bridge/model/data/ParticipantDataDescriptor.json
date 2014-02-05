@@ -38,11 +38,11 @@
 		},
         "datetimeStartColumnName": {
 			"type": "string",
-			"description": "The (optional) name of column that holds the point of time or start of a time range used in time series",
+			"description": "The (optional) name of column that holds the point of time or start of a time range used in time series"
 		},
         "datetimeEndColumnName": {
 			"type": "string",
-			"description": "The (optional) name of column that holds the end of a time range used in time series",
+			"description": "The (optional) name of column that holds the end of a time range used in time series"
 		}
     }
 }
