@@ -1,0 +1,27 @@
+{
+    "title":"Time Series Row",
+    "description":"Time series data for one label",
+    "properties":{
+        "name":{
+            "type": "string",
+            "description": "The label for this time series row"
+        },
+        "series":{
+        	"type": "array",
+        	"description": "The data points for this time series",
+	       	"items":{
+        		"$ref":"org.sagebionetworks.bridge.model.timeseries.TimeSeriesPoint"
+        	}
+        },
+        "anchors":{
+        	"type": "map",
+        	"description": "The different time anchors for this time series, identified by string (eg. birthdate, date of transfusion)",
+        	"key":{
+        		"type": "string"
+        	},
+        	"value":{
+        		"type": "integer"
+        	}
+        }
+    }
+}

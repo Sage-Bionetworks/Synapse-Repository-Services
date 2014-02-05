@@ -30,11 +30,19 @@
         "repeatFrequency": {
 			"type": "string",
 			"description": "The repeat frequency if repeat type is REPEATED (cron format)",
-			"name": "ParticipantDataRepeatFreequency"
+			"name": "ParticipantDataRepeatFrequency"
 		},
 		"status": {
 		    "description":"The status of this tracker.",
 			"$ref": "org.sagebionetworks.bridge.model.data.ParticipantDataStatus"
+		},
+        "datetimeStartColumnName": {
+			"type": "string",
+			"description": "The (optional) name of column that holds the point of time or start of a time range used in time series",
+		},
+        "datetimeEndColumnName": {
+			"type": "string",
+			"description": "The (optional) name of column that holds the end of a time range used in time series",
 		}
     }
 }

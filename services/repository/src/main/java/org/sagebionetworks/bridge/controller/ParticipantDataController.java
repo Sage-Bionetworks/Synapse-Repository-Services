@@ -14,11 +14,11 @@ import org.sagebionetworks.bridge.model.data.ParticipantDataRow;
 import org.sagebionetworks.bridge.model.data.ParticipantDataStatusList;
 import org.sagebionetworks.bridge.service.BridgeServiceProvider;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.IdList;
+import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
-import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -34,7 +34,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 // @ControllerInfo(displayName = "Participant data", path = BridgeUrlHelpers.BASE_V1)
 @Controller
 public class ParticipantDataController {
-	
+
 	private static final Logger logger = LogManager.getLogger(ParticipantDataController.class.getName());
 
 	@Autowired
@@ -44,7 +44,7 @@ public class ParticipantDataController {
 	 * Append new participant data rows
 	 * 
 	 * @param userId
-	 * @param participantDataId
+	 * @param participantDataDescriptorId
 	 * @param data
 	 * @return
 	 * @throws Exception
@@ -54,8 +54,9 @@ public class ParticipantDataController {
 	public @ResponseBody
 	ListWrapper<ParticipantDataRow> appendParticipantData(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) Long userId,
-			@PathVariable String participantDataId, @RequestBody ListWrapper<ParticipantDataRow> data) throws Exception {
-		List<ParticipantDataRow> rows = serviceProvider.getParticipantDataService().append(userId, participantDataId, data.getList());
+			@PathVariable String participantDataDescriptorId, @RequestBody ListWrapper<ParticipantDataRow> data) throws Exception {
+		List<ParticipantDataRow> rows = serviceProvider.getParticipantDataService().append(userId, participantDataDescriptorId,
+				data.getList());
 		return ListWrapper.wrap(rows, ParticipantDataRow.class);
 	}
 
@@ -79,20 +80,19 @@ public class ParticipantDataController {
 				data.getList());
 		return ListWrapper.wrap(rows, ParticipantDataRow.class);
 	}
-	
+
 	@ResponseStatus(HttpStatus.NO_CONTENT)
-	@RequestMapping(value = BridgeUrlHelpers.DELETE_FOR_PARTICIPANT_DATA, method = RequestMethod.POST)
-	public void deleteParticipantData(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) Long userId,
-			@PathVariable("participantDataId") String participantDataId, @RequestBody IdList data) throws Exception {
-		serviceProvider.getParticipantDataService().deleteRows(userId, participantDataId, data);
+	@RequestMapping(value = BridgeUrlHelpers.PARTICIPANT_DATA_DELETE_ROWS, method = RequestMethod.POST)
+	public void deleteParticipantData(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) Long userId,
+			@PathVariable("participantDataDescriptorId") String participantDataDescriptorId, @RequestBody IdList data) throws Exception {
+		serviceProvider.getParticipantDataService().deleteRows(userId, participantDataDescriptorId, data);
 	}
 
 	/**
 	 * update existing participant data rows
 	 * 
 	 * @param userId
-	 * @param participantDataId
+	 * @param participantDataDescriptorId
 	 * @param data
 	 * @return
 	 * @throws Exception
@@ -102,8 +102,9 @@ public class ParticipantDataController {
 	public @ResponseBody
 	ListWrapper<ParticipantDataRow> updateParticipantData(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) Long userId,
-			@PathVariable String participantDataId, @RequestBody ListWrapper<ParticipantDataRow> data) throws Exception {
-		List<ParticipantDataRow> rows = serviceProvider.getParticipantDataService().update(userId, participantDataId, data.getList());
+			@PathVariable String participantDataDescriptorId, @RequestBody ListWrapper<ParticipantDataRow> data) throws Exception {
+		List<ParticipantDataRow> rows = serviceProvider.getParticipantDataService().update(userId, participantDataDescriptorId,
+				data.getList());
 		return ListWrapper.wrap(rows, ParticipantDataRow.class);
 	}
 
@@ -111,7 +112,7 @@ public class ParticipantDataController {
 	 * get partitipant data
 	 * 
 	 * @param userId
-	 * @param participantDataId
+	 * @param participantDataDescriptorId
 	 * @return
 	 * @throws Exception
 	 */
@@ -121,16 +122,16 @@ public class ParticipantDataController {
 	PaginatedResults<ParticipantDataRow> getParticipantData(
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) Long userId, @PathVariable String participantDataId)
-			throws Exception {
-		return serviceProvider.getParticipantDataService().get(userId, participantDataId, limit, offset);
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) Long userId,
+			@PathVariable String participantDataDescriptorId) throws Exception {
+		return serviceProvider.getParticipantDataService().get(userId, participantDataDescriptorId, limit, offset);
 	}
 
 	/**
 	 * get partitipant data row
 	 * 
 	 * @param userId
-	 * @param participantDataId
+	 * @param participantDataDescriptorId
 	 * @param rowId
 	 * @return
 	 * @throws Exception
@@ -139,15 +140,15 @@ public class ParticipantDataController {
 	@RequestMapping(value = BridgeUrlHelpers.PARTICIPANT_DATA_ROW_ID, method = RequestMethod.GET)
 	public @ResponseBody
 	ParticipantDataRow getParticipantDataRow(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) Long userId,
-			@PathVariable String participantDataId, @PathVariable Long rowId) throws Exception {
-		return serviceProvider.getParticipantDataService().getRow(userId, participantDataId, rowId);
+			@PathVariable String participantDataDescriptorId, @PathVariable Long rowId) throws Exception {
+		return serviceProvider.getParticipantDataService().getRow(userId, participantDataDescriptorId, rowId);
 	}
 
 	/**
 	 * get partitipant data
 	 * 
 	 * @param userId
-	 * @param participantDataId
+	 * @param participantDataDescriptorId
 	 * @return
 	 * @throws Exception
 	 */
@@ -155,9 +156,9 @@ public class ParticipantDataController {
 	@RequestMapping(value = BridgeUrlHelpers.PARTICIPANT_CURRENT_DATA_ID, method = RequestMethod.GET)
 	public @ResponseBody
 	ParticipantDataCurrentRow getCurrentParticipantData(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) Long userId, @PathVariable String participantDataId)
-			throws Exception {
-		return serviceProvider.getParticipantDataService().getCurrent(userId, participantDataId);
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) Long userId,
+			@PathVariable String participantDataDescriptorId) throws Exception {
+		return serviceProvider.getParticipantDataService().getCurrent(userId, participantDataDescriptorId);
 	}
 
 	/**
@@ -196,11 +197,10 @@ public class ParticipantDataController {
 			@RequestBody ParticipantDataDescriptor participantDataDescriptor) throws Exception {
 		return serviceProvider.getParticipantDataService().createParticipantDataDescriptor(userId, participantDataDescriptor);
 	}
-	
+
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = BridgeUrlHelpers.PARTICIPANT_DATA_DESCRIPTOR, method = RequestMethod.PUT)
-	public void updateParticipantDataDescriptor(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) Long userId,
+	public void updateParticipantDataDescriptor(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) Long userId,
 			@RequestBody ParticipantDataDescriptor participantDataDescriptor) throws Exception {
 		serviceProvider.getParticipantDataService().updateParticipantDataDescriptor(userId, participantDataDescriptor);
 	}
@@ -209,7 +209,7 @@ public class ParticipantDataController {
 	 * get a participant data description
 	 * 
 	 * @param userId
-	 * @param participantDataId
+	 * @param participantDataDescriptorId
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
@@ -218,9 +218,9 @@ public class ParticipantDataController {
 	@RequestMapping(value = BridgeUrlHelpers.PARTICIPANT_DATA_DESCRIPTOR_ID, method = RequestMethod.GET)
 	public @ResponseBody
 	ParticipantDataDescriptor getParticipantDataDescriptor(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) Long userId, @PathVariable String participantDataId)
-			throws DatastoreException, NotFoundException {
-		return serviceProvider.getParticipantDataService().getParticipantDataDescriptor(userId, participantDataId);
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) Long userId,
+			@PathVariable String participantDataDescriptorId) throws DatastoreException, NotFoundException {
+		return serviceProvider.getParticipantDataService().getParticipantDataDescriptor(userId, participantDataDescriptorId);
 	}
 
 	/**
@@ -267,20 +267,21 @@ public class ParticipantDataController {
 	 * @param limit
 	 * @param offset
 	 * @param userId
-	 * @param participantDataId
+	 * @param participantDataDescriptorId
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = BridgeUrlHelpers.PARTICIPANT_DATA_COLUMN_DESCRIPTORS_FOR_PARTICIPANT_DATA_ID, method = RequestMethod.GET)
+	@RequestMapping(value = BridgeUrlHelpers.PARTICIPANT_DATA_COLUMN_DESCRIPTORS_ID, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<ParticipantDataColumnDescriptor> getParticipantDataColumnDescriptors(
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) Long userId, @PathVariable String participantDataId)
-			throws DatastoreException, NotFoundException {
-		return serviceProvider.getParticipantDataService().getParticipantDataColumnDescriptors(userId, participantDataId, limit, offset);
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) Long userId,
+			@PathVariable String participantDataDescriptorId) throws DatastoreException, NotFoundException {
+		return serviceProvider.getParticipantDataService().getParticipantDataColumnDescriptors(userId, participantDataDescriptorId, limit,
+				offset);
 	}
 
 	/**
@@ -289,7 +290,7 @@ public class ParticipantDataController {
 	 * @param limit
 	 * @param offset
 	 * @param userId
-	 * @param participantDataId
+	 * @param participantDataDescriptorId
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
@@ -297,10 +298,9 @@ public class ParticipantDataController {
 	 * @throws IOException
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = BridgeUrlHelpers.SEND_PARTICIPANT_DATA_DESCRIPTORS_UPDATES, method = RequestMethod.PUT)
+	@RequestMapping(value = BridgeUrlHelpers.SEND_PARTICIPANT_DATA_UPDATES, method = RequestMethod.PUT)
 	public void updateParticipantDataStatuses(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) Long userId,
-			@RequestBody ParticipantDataStatusList statusList) throws Exception,
-			GeneralSecurityException {
+			@RequestBody ParticipantDataStatusList statusList) throws Exception, GeneralSecurityException {
 		serviceProvider.getParticipantDataService().updateParticipantStatuses(userId, statusList.getUpdates());
 	}
 }

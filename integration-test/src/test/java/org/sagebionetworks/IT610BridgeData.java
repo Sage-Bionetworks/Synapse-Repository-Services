@@ -2,6 +2,7 @@ package org.sagebionetworks;
 
 import static org.junit.Assert.*;
 
+import java.sql.Date;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -20,8 +21,14 @@ import org.sagebionetworks.bridge.model.data.ParticipantDataRepeatType;
 import org.sagebionetworks.bridge.model.data.ParticipantDataRow;
 import org.sagebionetworks.bridge.model.data.ParticipantDataStatus;
 import org.sagebionetworks.bridge.model.data.ParticipantDataStatusList;
+import org.sagebionetworks.bridge.model.data.value.ParticipantDataDatetimeValue;
+import org.sagebionetworks.bridge.model.data.value.ParticipantDataDoubleValue;
+import org.sagebionetworks.bridge.model.data.value.ParticipantDataLongValue;
 import org.sagebionetworks.bridge.model.data.value.ParticipantDataStringValue;
 import org.sagebionetworks.bridge.model.data.value.ParticipantDataValue;
+import org.sagebionetworks.bridge.model.data.value.ValueTranslator;
+import org.sagebionetworks.bridge.model.timeseries.TimeSeries;
+import org.sagebionetworks.bridge.model.timeseries.TimeSeriesCollection;
 import org.sagebionetworks.bridge.model.versionInfo.BridgeVersionInfo;
 import org.sagebionetworks.client.BridgeClient;
 import org.sagebionetworks.client.BridgeClientImpl;
@@ -125,22 +132,10 @@ public class IT610BridgeData {
 	 */
 	@Test
 	public void testCreateAndDeleteParticipantData() throws Exception {
-		ParticipantDataDescriptor participantDataDescriptor = new ParticipantDataDescriptor();
-		participantDataDescriptor.setName("my-first-participantData-" + System.currentTimeMillis());
-		participantDataDescriptor.setRepeatType(ParticipantDataRepeatType.ALWAYS);
-		participantDataDescriptor = bridge.createParticipantDataDescriptor(participantDataDescriptor);
+		ParticipantDataDescriptor participantDataDescriptor = createDescriptor();
 
-		ParticipantDataColumnDescriptor participantDataColumnDescriptor1 = new ParticipantDataColumnDescriptor();
-		participantDataColumnDescriptor1.setParticipantDataDescriptorId(participantDataDescriptor.getId());
-		participantDataColumnDescriptor1.setColumnType(ParticipantDataColumnType.STRING);
-		participantDataColumnDescriptor1.setName("level");
-		bridge.createParticipantDataColumnDescriptor(participantDataColumnDescriptor1);
-
-		ParticipantDataColumnDescriptor participantDataColumnDescriptor2 = new ParticipantDataColumnDescriptor();
-		participantDataColumnDescriptor2.setParticipantDataDescriptorId(participantDataDescriptor.getId());
-		participantDataColumnDescriptor2.setColumnType(ParticipantDataColumnType.STRING);
-		participantDataColumnDescriptor2.setName("size");
-		bridge.createParticipantDataColumnDescriptor(participantDataColumnDescriptor2);
+		createColumnDescriptor(participantDataDescriptor, "level", ParticipantDataColumnType.STRING);
+		createColumnDescriptor(participantDataDescriptor, "size", ParticipantDataColumnType.STRING);
 
 		String[] headers = { "level", "size" };
 
@@ -164,22 +159,10 @@ public class IT610BridgeData {
 
 	@Test
 	public void testPaginatedParticipantData() throws Exception {
-		ParticipantDataDescriptor participantDataDescriptor = new ParticipantDataDescriptor();
-		participantDataDescriptor.setName("my-first-participantData-" + System.currentTimeMillis());
-		participantDataDescriptor.setRepeatType(ParticipantDataRepeatType.ALWAYS);
-		participantDataDescriptor = bridge.createParticipantDataDescriptor(participantDataDescriptor);
+		ParticipantDataDescriptor participantDataDescriptor = createDescriptor();
 
-		ParticipantDataColumnDescriptor participantDataColumnDescriptor1 = new ParticipantDataColumnDescriptor();
-		participantDataColumnDescriptor1.setParticipantDataDescriptorId(participantDataDescriptor.getId());
-		participantDataColumnDescriptor1.setColumnType(ParticipantDataColumnType.STRING);
-		participantDataColumnDescriptor1.setName("level");
-		bridge.createParticipantDataColumnDescriptor(participantDataColumnDescriptor1);
-
-		ParticipantDataColumnDescriptor participantDataColumnDescriptor2 = new ParticipantDataColumnDescriptor();
-		participantDataColumnDescriptor2.setParticipantDataDescriptorId(participantDataDescriptor.getId());
-		participantDataColumnDescriptor2.setColumnType(ParticipantDataColumnType.STRING);
-		participantDataColumnDescriptor2.setName("size");
-		bridge.createParticipantDataColumnDescriptor(participantDataColumnDescriptor2);
+		createColumnDescriptor(participantDataDescriptor, "level", ParticipantDataColumnType.STRING);
+		createColumnDescriptor(participantDataDescriptor, "size", ParticipantDataColumnType.STRING);
 
 		String[] headers = { "level", "size" };
 
@@ -203,22 +186,10 @@ public class IT610BridgeData {
 
 	@Test
 	public void testReplaceParticipantData() throws Exception {
-		ParticipantDataDescriptor participantDataDescriptor = new ParticipantDataDescriptor();
-		participantDataDescriptor.setName("my-first-participantData-" + System.currentTimeMillis());
-		participantDataDescriptor.setRepeatType(ParticipantDataRepeatType.ALWAYS);
-		participantDataDescriptor = bridge.createParticipantDataDescriptor(participantDataDescriptor);
+		ParticipantDataDescriptor participantDataDescriptor = createDescriptor();
 
-		ParticipantDataColumnDescriptor participantDataColumnDescriptor1 = new ParticipantDataColumnDescriptor();
-		participantDataColumnDescriptor1.setParticipantDataDescriptorId(participantDataDescriptor.getId());
-		participantDataColumnDescriptor1.setColumnType(ParticipantDataColumnType.STRING);
-		participantDataColumnDescriptor1.setName("level");
-		bridge.createParticipantDataColumnDescriptor(participantDataColumnDescriptor1);
-
-		ParticipantDataColumnDescriptor participantDataColumnDescriptor2 = new ParticipantDataColumnDescriptor();
-		participantDataColumnDescriptor2.setParticipantDataDescriptorId(participantDataDescriptor.getId());
-		participantDataColumnDescriptor2.setColumnType(ParticipantDataColumnType.STRING);
-		participantDataColumnDescriptor2.setName("size");
-		bridge.createParticipantDataColumnDescriptor(participantDataColumnDescriptor2);
+		createColumnDescriptor(participantDataDescriptor, "level", ParticipantDataColumnType.STRING);
+		createColumnDescriptor(participantDataDescriptor, "size", ParticipantDataColumnType.STRING);
 
 		String[] headers = { "level", "size" };
 
@@ -238,22 +209,10 @@ public class IT610BridgeData {
 
 	@Test
 	public void testGetCurrentParticipantData() throws Exception {
-		ParticipantDataDescriptor participantDataDescriptor = new ParticipantDataDescriptor();
-		participantDataDescriptor.setName("my-first-participantData-" + System.currentTimeMillis());
-		participantDataDescriptor.setRepeatType(ParticipantDataRepeatType.ALWAYS);
-		participantDataDescriptor = bridge.createParticipantDataDescriptor(participantDataDescriptor);
+		ParticipantDataDescriptor participantDataDescriptor = createDescriptor();
 
-		ParticipantDataColumnDescriptor participantDataColumnDescriptor1 = new ParticipantDataColumnDescriptor();
-		participantDataColumnDescriptor1.setParticipantDataDescriptorId(participantDataDescriptor.getId());
-		participantDataColumnDescriptor1.setColumnType(ParticipantDataColumnType.STRING);
-		participantDataColumnDescriptor1.setName("level");
-		bridge.createParticipantDataColumnDescriptor(participantDataColumnDescriptor1);
-
-		ParticipantDataColumnDescriptor participantDataColumnDescriptor2 = new ParticipantDataColumnDescriptor();
-		participantDataColumnDescriptor2.setParticipantDataDescriptorId(participantDataDescriptor.getId());
-		participantDataColumnDescriptor2.setColumnType(ParticipantDataColumnType.STRING);
-		participantDataColumnDescriptor2.setName("size");
-		bridge.createParticipantDataColumnDescriptor(participantDataColumnDescriptor2);
+		createColumnDescriptor(participantDataDescriptor, "level", ParticipantDataColumnType.STRING);
+		createColumnDescriptor(participantDataDescriptor, "size", ParticipantDataColumnType.STRING);
 
 		String[] headers = { "level", "size" };
 
@@ -301,19 +260,12 @@ public class IT610BridgeData {
 		assertTrue(currentRow.getCurrentData().getData().isEmpty());
 		assertEquals("9", ((ParticipantDataStringValue) currentRow.getPreviousData().getData().get("level")).getValue());
 	}
-	
+
 	@Test
 	public void testDeleteParticipantDataRows() throws Exception {
-		ParticipantDataDescriptor participantDataDescriptor = new ParticipantDataDescriptor();
-		participantDataDescriptor.setName("my-first-participantData-" + System.currentTimeMillis());
-		participantDataDescriptor.setRepeatType(ParticipantDataRepeatType.ALWAYS);
-		participantDataDescriptor = bridge.createParticipantDataDescriptor(participantDataDescriptor);
+		ParticipantDataDescriptor participantDataDescriptor = createDescriptor();
 
-		ParticipantDataColumnDescriptor participantDataColumnDescriptor1 = new ParticipantDataColumnDescriptor();
-		participantDataColumnDescriptor1.setParticipantDataDescriptorId(participantDataDescriptor.getId());
-		participantDataColumnDescriptor1.setColumnType(ParticipantDataColumnType.STRING);
-		participantDataColumnDescriptor1.setName("level");
-		bridge.createParticipantDataColumnDescriptor(participantDataColumnDescriptor1);
+		createColumnDescriptor(participantDataDescriptor, "level", ParticipantDataColumnType.STRING);
 
 		String[] headers = { "level" };
 
@@ -327,9 +279,83 @@ public class IT610BridgeData {
 		IdList idList = new IdList();
 		idList.setList(rowIds);
 		bridge.deleteParticipantDataRows(participantDataDescriptor.getId(), idList);
-		
+
 		PaginatedResults<ParticipantDataRow> result = bridge.getRawParticipantData(participantDataDescriptor.getId(), 1000, 0);
 		assertEquals(0, result.getResults().size());
+	}
+
+	@Test
+	public void testGetTimeSeries() throws Exception {
+		ParticipantDataDescriptor participantDataDescriptor = createDescriptor();
+
+		createColumnDescriptor(participantDataDescriptor, "date", ParticipantDataColumnType.DATETIME);
+		createColumnDescriptor(participantDataDescriptor, "level", ParticipantDataColumnType.DOUBLE);
+		createColumnDescriptor(participantDataDescriptor, "size", ParticipantDataColumnType.LONG);
+
+		String[] headers = { "date", "level", "size" };
+
+		ParticipantDataStatusList statuses = new ParticipantDataStatusList();
+		ParticipantDataStatus update = new ParticipantDataStatus();
+		update.setParticipantDataDescriptorId(participantDataDescriptor.getId());
+		List<ParticipantDataStatus> updates = Collections.singletonList(update);
+		statuses.setUpdates(updates);
+
+		List<ParticipantDataRow> data1 = createRows(headers, null, new Date(10000), 5.5, 400L, null, new Date(20000), 6.6, null, null,
+				new Date(30000), 7.7, 200L);
+		data1 = bridge.appendParticipantData(participantDataDescriptor.getId(), data1);
+
+		TimeSeriesCollection timeSeries = bridge.getTimeSeries(participantDataDescriptor.getId(), null);
+		assertEquals(2, timeSeries.getSeries().size());
+
+		TimeSeries level = timeSeries.getSeries().get(0);
+		TimeSeries size = timeSeries.getSeries().get(1);
+		if (timeSeries.getSeries().get(0).getName().equals("size")) {
+			level = timeSeries.getSeries().get(1);
+			size = timeSeries.getSeries().get(0);
+		}
+		assertEquals(2, size.getSeries().size());
+		assertEquals(3, level.getSeries().size());
+		assertEquals(new Date(30000).getTime(), size.getSeries().get(1).getDate().longValue());
+		assertEquals(new Date(30000).getTime(), level.getSeries().get(2).getDate().longValue());
+		assertEquals(200.0, size.getSeries().get(1).getValue().doubleValue(), 0.001);
+		assertEquals(7.7, level.getSeries().get(2).getValue().doubleValue(), 0.001);
+
+		TimeSeriesCollection level2 = bridge.getTimeSeries(participantDataDescriptor.getId(), Lists.newArrayList("level"));
+		assertEquals(1, level2.getSeries().size());
+		assertEquals(level, level2.getSeries().get(0));
+
+		TimeSeriesCollection size2 = bridge.getTimeSeries(participantDataDescriptor.getId(), Lists.newArrayList("size"));
+		assertEquals(1, size2.getSeries().size());
+		assertEquals(size, size2.getSeries().get(0));
+
+		TimeSeriesCollection levelSize = bridge.getTimeSeries(participantDataDescriptor.getId(), Lists.newArrayList("level", "size"));
+		assertEquals(2, levelSize.getSeries().size());
+		TimeSeries level2s = levelSize.getSeries().get(0);
+		TimeSeries size2s = levelSize.getSeries().get(1);
+		if (levelSize.getSeries().get(0).getName().equals("size")) {
+			level2s = levelSize.getSeries().get(1);
+			size2s = levelSize.getSeries().get(0);
+		}
+		assertEquals(size, size2s);
+		assertEquals(level, level2s);
+	}
+
+	private void createColumnDescriptor(ParticipantDataDescriptor participantDataDescriptor, String columnName,
+			ParticipantDataColumnType columnType) throws SynapseException {
+		ParticipantDataColumnDescriptor participantDataColumnDescriptor1 = new ParticipantDataColumnDescriptor();
+		participantDataColumnDescriptor1.setParticipantDataDescriptorId(participantDataDescriptor.getId());
+		participantDataColumnDescriptor1.setColumnType(columnType);
+		participantDataColumnDescriptor1.setName(columnName);
+		bridge.createParticipantDataColumnDescriptor(participantDataColumnDescriptor1);
+	}
+
+	private ParticipantDataDescriptor createDescriptor() throws SynapseException {
+		ParticipantDataDescriptor participantDataDescriptor = new ParticipantDataDescriptor();
+		participantDataDescriptor.setName("my-first-participantData-" + System.currentTimeMillis());
+		participantDataDescriptor.setRepeatType(ParticipantDataRepeatType.ALWAYS);
+		participantDataDescriptor.setDatetimeStartColumnName("date");
+		participantDataDescriptor = bridge.createParticipantDataDescriptor(participantDataDescriptor);
+		return participantDataDescriptor;
 	}
 
 	private List<ParticipantDataRow> createRows(String[] headers, Object... values) {
@@ -340,12 +366,35 @@ public class IT610BridgeData {
 			row.setRowId((Long) values[i]);
 			data.add(row);
 			for (int j = 0; j < headers.length; j++) {
-				String value = (String) values[i + j + 1];
-				ParticipantDataStringValue stringValue = new ParticipantDataStringValue();
-				stringValue.setValue(value);
-				row.getData().put(headers[j], stringValue);
+				if (values[i + j + 1] != null) {
+					row.getData().put(headers[j], getValue(values[i + j + 1]));
+				}
 			}
 		}
 		return data;
+	}
+
+	private ParticipantDataValue getValue(Object value) {
+		if (value instanceof Date) {
+			ParticipantDataDatetimeValue result = new ParticipantDataDatetimeValue();
+			result.setValue(((Date) value).getTime());
+			return result;
+		}
+		if (value instanceof Long) {
+			ParticipantDataLongValue result = new ParticipantDataLongValue();
+			result.setValue((Long) value);
+			return result;
+		}
+		if (value instanceof Double) {
+			ParticipantDataDoubleValue result = new ParticipantDataDoubleValue();
+			result.setValue((Double) value);
+			return result;
+		}
+		if (value instanceof String) {
+			ParticipantDataStringValue result = new ParticipantDataStringValue();
+			result.setValue((String) value);
+			return result;
+		}
+		throw new IllegalArgumentException(value.getClass().getName());
 	}
 }

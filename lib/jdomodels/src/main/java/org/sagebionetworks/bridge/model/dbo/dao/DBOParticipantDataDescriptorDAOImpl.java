@@ -71,7 +71,25 @@ public class DBOParticipantDataDescriptorDAOImpl implements ParticipantDataDescr
 			participantDataDescriptor.setDescription(dboParticipantDataDescriptor.getDescription());
 			participantDataDescriptor.setRepeatType(dboParticipantDataDescriptor.getRepeatType());
 			participantDataDescriptor.setRepeatFrequency(dboParticipantDataDescriptor.getRepeatFrequency());
+			participantDataDescriptor.setDatetimeStartColumnName(dboParticipantDataDescriptor.getDatetimeStartColumnName());
+			participantDataDescriptor.setDatetimeEndColumnName(dboParticipantDataDescriptor.getDatetimeEndColumnName());
 			return participantDataDescriptor;
+		}
+	};
+
+	private static final Function<ParticipantDataDescriptor, DBOParticipantDataDescriptor> dtoToDboParticipantDataDescriptor = new Function<ParticipantDataDescriptor, DBOParticipantDataDescriptor>() {
+		@Override
+		public DBOParticipantDataDescriptor apply(ParticipantDataDescriptor participantDataDescriptor) {
+			DBOParticipantDataDescriptor dboParticipantDataDescriptor = new DBOParticipantDataDescriptor();
+			dboParticipantDataDescriptor.setId(participantDataDescriptor.getId() != null ? Long.parseLong(participantDataDescriptor.getId())
+					: null);
+			dboParticipantDataDescriptor.setName(participantDataDescriptor.getName());
+			dboParticipantDataDescriptor.setDescription(participantDataDescriptor.getDescription());
+			dboParticipantDataDescriptor.setRepeatType(participantDataDescriptor.getRepeatType());
+			dboParticipantDataDescriptor.setRepeatFrequency(participantDataDescriptor.getRepeatFrequency());
+			dboParticipantDataDescriptor.setDatetimeStartColumnName(participantDataDescriptor.getDatetimeStartColumnName());
+			dboParticipantDataDescriptor.setDatetimeEndColumnName(participantDataDescriptor.getDatetimeEndColumnName());
+			return dboParticipantDataDescriptor;
 		}
 	};
 
@@ -134,12 +152,8 @@ public class DBOParticipantDataDescriptorDAOImpl implements ParticipantDataDescr
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public ParticipantDataDescriptor createParticipantDataDescriptor(ParticipantDataDescriptor participantDataDescriptor) {
-		DBOParticipantDataDescriptor dboParticipantDataDescriptor = new DBOParticipantDataDescriptor();
+		DBOParticipantDataDescriptor dboParticipantDataDescriptor = dtoToDboParticipantDataDescriptor.apply(participantDataDescriptor);
 		dboParticipantDataDescriptor.setId(idGenerator.generateNewId(TYPE.COLUMN_MODEL_ID));
-		dboParticipantDataDescriptor.setName(participantDataDescriptor.getName());
-		dboParticipantDataDescriptor.setDescription(participantDataDescriptor.getDescription());
-		dboParticipantDataDescriptor.setRepeatType(participantDataDescriptor.getRepeatType());
-		dboParticipantDataDescriptor.setRepeatFrequency(participantDataDescriptor.getRepeatFrequency());
 		dboParticipantDataDescriptor = basicDao.createNew(dboParticipantDataDescriptor);
 		return dboToDtoParticipantDataDescriptor.apply(dboParticipantDataDescriptor);
 	}
@@ -147,12 +161,7 @@ public class DBOParticipantDataDescriptorDAOImpl implements ParticipantDataDescr
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void updateParticipantDataDescriptor(ParticipantDataDescriptor participantDataDescriptor) throws NotFoundException {
-		DBOParticipantDataDescriptor dboParticipantDataDescriptor = new DBOParticipantDataDescriptor();
-		dboParticipantDataDescriptor.setId(Long.parseLong(participantDataDescriptor.getId()));
-		dboParticipantDataDescriptor.setName(participantDataDescriptor.getName());
-		dboParticipantDataDescriptor.setDescription(participantDataDescriptor.getDescription());
-		dboParticipantDataDescriptor.setRepeatType(participantDataDescriptor.getRepeatType());
-		dboParticipantDataDescriptor.setRepeatFrequency(participantDataDescriptor.getRepeatFrequency());
+		DBOParticipantDataDescriptor dboParticipantDataDescriptor = dtoToDboParticipantDataDescriptor.apply(participantDataDescriptor);
 		if (!basicDao.update(dboParticipantDataDescriptor)) {
 			throw new NotFoundException("Update for ParticipantDataDescriptor " + participantDataDescriptor.getId()
 					+ " found nothing to update");

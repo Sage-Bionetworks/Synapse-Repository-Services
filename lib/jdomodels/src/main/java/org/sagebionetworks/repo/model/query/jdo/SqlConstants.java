@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.model.query.jdo;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_UNIQUE;
-
 import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
@@ -567,6 +565,8 @@ public class SqlConstants {
 	public static final String COL_PARTICIPANT_DATA_DESCRIPTOR_DESCRIPTION = "DESCRIPTION";
 	public static final String COL_PARTICIPANT_DATA_DESCRIPTOR_REPEAT_TYPE = "REPEAT_TYPE";
 	public static final String COL_PARTICIPANT_DATA_DESCRIPTOR_FREQUENCY = "FREQUENCY";
+	public static final String COL_PARTICIPANT_DATA_DESCRIPTOR_DATETIME_START_COLUMN_NAME = "DATETIME_START_COLUMN_NAME";
+	public static final String COL_PARTICIPANT_DATA_DESCRIPTOR_DATETIME_END_COLUMN_NAME = "DATETIME_END_COLUMN_NAME";
 
 	// Participant data sets column descriptor
 	public static final String TABLE_PARTICIPANT_DATA_COLUMN_DESCRIPTOR = "PARTICIPANT_DATA_COLUMN_DESCRIPTOR";

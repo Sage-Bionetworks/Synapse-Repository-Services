@@ -34,6 +34,12 @@ public class DBOParticipantDataDescriptor implements MigratableDatabaseObject<DB
 	@Field(name = SqlConstants.COL_PARTICIPANT_DATA_DESCRIPTOR_FREQUENCY, varchar = 64, nullable = true)
 	private String repeatFrequency;
 
+	@Field(name = SqlConstants.COL_PARTICIPANT_DATA_DESCRIPTOR_DATETIME_START_COLUMN_NAME, varchar = 64, nullable = true)
+	private String datetimeStartColumnName;
+
+	@Field(name = SqlConstants.COL_PARTICIPANT_DATA_DESCRIPTOR_DATETIME_END_COLUMN_NAME, varchar = 64, nullable = true)
+	private String datetimeEndColumnName;
+
 	private static TableMapping<DBOParticipantDataDescriptor> tableMapping = AutoTableMapping.create(DBOParticipantDataDescriptor.class);
 
 	@Override
@@ -86,10 +92,28 @@ public class DBOParticipantDataDescriptor implements MigratableDatabaseObject<DB
 		this.repeatFrequency = repeatFrequency;
 	}
 
+	public String getDatetimeStartColumnName() {
+		return datetimeStartColumnName;
+	}
+
+	public void setDatetimeStartColumnName(String datetimeStartColumnName) {
+		this.datetimeStartColumnName = datetimeStartColumnName;
+	}
+
+	public String getDatetimeEndColumnName() {
+		return datetimeEndColumnName;
+	}
+
+	public void setDatetimeEndColumnName(String datetimeEndColumnName) {
+		this.datetimeEndColumnName = datetimeEndColumnName;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
+		result = prime * result + ((datetimeEndColumnName == null) ? 0 : datetimeEndColumnName.hashCode());
+		result = prime * result + ((datetimeStartColumnName == null) ? 0 : datetimeStartColumnName.hashCode());
 		result = prime * result + ((description == null) ? 0 : description.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
@@ -107,6 +131,16 @@ public class DBOParticipantDataDescriptor implements MigratableDatabaseObject<DB
 		if (getClass() != obj.getClass())
 			return false;
 		DBOParticipantDataDescriptor other = (DBOParticipantDataDescriptor) obj;
+		if (datetimeEndColumnName == null) {
+			if (other.datetimeEndColumnName != null)
+				return false;
+		} else if (!datetimeEndColumnName.equals(other.datetimeEndColumnName))
+			return false;
+		if (datetimeStartColumnName == null) {
+			if (other.datetimeStartColumnName != null)
+				return false;
+		} else if (!datetimeStartColumnName.equals(other.datetimeStartColumnName))
+			return false;
 		if (description == null) {
 			if (other.description != null)
 				return false;
@@ -135,7 +169,8 @@ public class DBOParticipantDataDescriptor implements MigratableDatabaseObject<DB
 	@Override
 	public String toString() {
 		return "DBOParticipantDataDescriptor [id=" + id + ", name=" + name + ", description=" + description + ", repeatType=" + repeatType
-				+ ", repeatFrequency=" + repeatFrequency + "]";
+				+ ", repeatFrequency=" + repeatFrequency + ", datetimeStartColumnName=" + datetimeStartColumnName
+				+ ", datetimeEndColumnName=" + datetimeEndColumnName + "]";
 	}
 
 	@Override

@@ -1,5 +1,7 @@
 package org.sagebionetworks.client;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.util.List;
 
 import org.json.JSONObject;
@@ -9,12 +11,14 @@ import org.sagebionetworks.bridge.model.data.ParticipantDataCurrentRow;
 import org.sagebionetworks.bridge.model.data.ParticipantDataDescriptor;
 import org.sagebionetworks.bridge.model.data.ParticipantDataRow;
 import org.sagebionetworks.bridge.model.data.ParticipantDataStatusList;
+import org.sagebionetworks.bridge.model.timeseries.TimeSeries;
+import org.sagebionetworks.bridge.model.timeseries.TimeSeriesCollection;
 import org.sagebionetworks.bridge.model.versionInfo.BridgeVersionInfo;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UserGroupHeader;
-import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -41,6 +45,8 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 	private static final String PARTICIPANT_DATA_COLUMN_DESCRIPTOR = "/participantDataColumnDescriptor";
 	private static final String PARTICIPANT_DATA_DELETE_ROWS = "/deleteRows";
 	private static final String PARTICIPANT = "/participant";
+	private static final String TIME_SERIES = "/timeSeries";
+	private static final String COLUMN_NAME = "/column";
 
 	private static final String JOINED = "/joined";
 
@@ -193,8 +199,7 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 
 	@Override
 	public List<ParticipantDataRow> appendParticipantData(String participantIdentifier, String participantDataDescriptorId,
-			List<ParticipantDataRow> data)
-			throws SynapseException {
+			List<ParticipantDataRow> data) throws SynapseException {
 		String uri = PARTICIPANT_DATA + "/" + participantDataDescriptorId + "/" + PARTICIPANT + "/" + participantIdentifier;
 		return createList(uri, data, ParticipantDataRow.class);
 	}
@@ -210,7 +215,7 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 		String uri = PARTICIPANT_DATA + "/" + participantDataDescriptorId + PARTICIPANT_DATA_DELETE_ROWS;
 		delete(uri, rowIds);
 	}
-	
+
 	@Override
 	public List<ParticipantDataRow> updateParticipantData(String participantDataDescriptorId, List<ParticipantDataRow> data)
 			throws SynapseException {
@@ -238,7 +243,8 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 	}
 
 	@Override
-	public ParticipantDataDescriptor createParticipantDataDescriptor(ParticipantDataDescriptor participantDataDescriptor) throws SynapseException {
+	public ParticipantDataDescriptor createParticipantDataDescriptor(ParticipantDataDescriptor participantDataDescriptor)
+			throws SynapseException {
 		String uri = PARTICIPANT_DATA_DESCRIPTOR;
 		return create(uri, participantDataDescriptor);
 	}
@@ -248,7 +254,7 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 		String uri = PARTICIPANT_DATA_DESCRIPTOR;
 		put(uri, participantDataDescriptor);
 	}
-	
+
 	@Override
 	public PaginatedResults<ParticipantDataDescriptor> getAllParticipantDatas(long limit, long offset) throws SynapseException {
 		String uri = PARTICIPANT_DATA_DESCRIPTOR;
@@ -262,7 +268,8 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 	}
 
 	@Override
-	public ParticipantDataColumnDescriptor createParticipantDataColumnDescriptor(ParticipantDataColumnDescriptor participantDataColumnDescriptor1) throws SynapseException {
+	public ParticipantDataColumnDescriptor createParticipantDataColumnDescriptor(
+			ParticipantDataColumnDescriptor participantDataColumnDescriptor1) throws SynapseException {
 		String uri = PARTICIPANT_DATA_COLUMN_DESCRIPTOR;
 		return create(uri, participantDataColumnDescriptor1);
 	}
@@ -276,8 +283,29 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 
 	@Override
 	public void sendParticipantDataDescriptorUpdates(ParticipantDataStatusList statuses) throws SynapseException {
-		String uri = PARTICIPANT_DATA_DESCRIPTOR + SEND_UPDATES;
+		String uri = PARTICIPANT_DATA + SEND_UPDATES;
 		put(uri, statuses);
+	}
+
+	@Override
+	public TimeSeriesCollection getTimeSeries(String participantDataDescriptorId, List<String> columnNames) throws SynapseException,
+			UnsupportedEncodingException {
+		StringBuilder uri = new StringBuilder();
+		uri.append(TIME_SERIES).append("/").append(participantDataDescriptorId);
+		if (columnNames != null) {
+			boolean first = true;
+			for (String columnName : columnNames) {
+				if (first) {
+					uri.append('?');
+					first = false;
+				} else {
+					uri.append('&');
+				}
+				uri.append("columnName=");
+				uri.append(URLEncoder.encode(columnName, "UTF-8"));
+			}
+		}
+		return get(uri.toString(), TimeSeriesCollection.class);
 	}
 
 	private void get(String uri) throws SynapseException {
@@ -323,7 +351,7 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 			throw new SynapseException(e);
 		}
 	}
-	
+
 	private <T extends JSONEntity> List<T> updateList(String uri, List<T> t, Class<? extends T> clazz) throws SynapseException {
 		// Get the json for this entity
 		try {
@@ -336,7 +364,7 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 			throw new SynapseException(e);
 		}
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	private <T extends JSONEntity> T create(String uri, T t) throws SynapseException {
 		// Get the json for this entity

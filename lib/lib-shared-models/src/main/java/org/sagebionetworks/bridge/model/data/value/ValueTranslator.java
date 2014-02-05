@@ -176,7 +176,20 @@ public class ValueTranslator {
 		if (input instanceof ParticipantDataLabValue) {
 			return ((ParticipantDataLabValue) input).getEnteredValue() + " " + ((ParticipantDataLabValue) input).getUnits();
 		}
-		throw new IllegalArgumentException("Data value type " + input.getClass().getName() + " not handled");
+		throw new IllegalArgumentException("Data value type " + input.getClass().getName() + " not handled in toString");
+	}
+
+	public static Double toDouble(ParticipantDataValue input) {
+		if (input instanceof ParticipantDataDoubleValue) {
+			return ((ParticipantDataDoubleValue) input).getValue();
+		}
+		if (input instanceof ParticipantDataLongValue) {
+			return ((ParticipantDataLongValue) input).getValue().doubleValue();
+		}
+		if (input instanceof ParticipantDataLabValue) {
+			return ((ParticipantDataLabValue) input).getNormalizedValue();
+		}
+		throw new IllegalArgumentException("Data value type " + input.getClass().getName() + " not handled in toDouble");
 	}
 
 	private static String parseString(String value) {
