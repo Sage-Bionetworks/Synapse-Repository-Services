@@ -49,4 +49,20 @@ public interface TableIndexDAO {
 	 * @return
 	 */
 	int[] createOrUpdateRows(SimpleJdbcTemplate connection, RowSet rowset, List<ColumnModel> currentSchema);
+	
+	/**
+	 * Get the row count for this table.
+	 * 
+	 * @param tableId
+	 * @return The row count of the table. If the table does not exist then null.
+	 */
+	public Long getRowCountForTable(SimpleJdbcTemplate connection, String tableId);
+	
+	/**
+	 * Get the max version we currently have for this table.
+	 * 
+	 * @param tableId
+	 * @return The max version of the table. If the table does not exist then null.
+	 */
+	public Long getMaxVersionForTable(SimpleJdbcTemplate connection, String tableId);
 }

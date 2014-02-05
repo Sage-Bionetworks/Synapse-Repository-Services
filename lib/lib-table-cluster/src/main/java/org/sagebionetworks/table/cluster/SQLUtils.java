@@ -484,4 +484,24 @@ public class SQLUtils {
 		}
 		return results;
 	}
+	
+	/**
+	 * Create the SQL used to get the max version number from a table.
+	 * @return
+	 */
+	public static String getCountSQL(String tableId){
+		StringBuilder builder = new StringBuilder();
+		builder.append("SELECT COUNT(").append(ROW_ID).append(") FROM ").append(getTableNameForId(tableId));
+		return builder.toString();
+	}
+	
+	/**
+	 * Create the SQL used to get the max version number from a table.
+	 * @return
+	 */
+	public static String getMaxVersionSQL(String tableId){
+		StringBuilder builder = new StringBuilder();
+		builder.append("SELECT MAX(").append(ROW_VERSION).append(") FROM ").append(getTableNameForId(tableId));
+		return builder.toString();
+	}
 }

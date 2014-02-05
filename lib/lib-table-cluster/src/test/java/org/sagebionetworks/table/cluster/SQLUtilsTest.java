@@ -17,6 +17,8 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
+import com.hp.hpl.jena.sparql.function.library.e;
+
 public class SQLUtilsTest {
 	
 	List<ColumnModel> simpleSchema;
@@ -409,6 +411,20 @@ public class SQLUtilsTest {
 		assertEquals(new Long(1), results[1].getValue("C2"));
 		assertEquals(new Integer(1), results[1].getValue("C3"));
 		assertEquals(new Long(1), results[1].getValue("C4"));
+	}
+	
+	@Test
+	public void testGetRowCountSQL(){
+		String expected = "SELECT COUNT(ROW_ID) FROM T123";
+		String result = SQLUtils.getCountSQL("123");
+		assertEquals(expected, result);
+	}
+	
+	@Test
+	public void testGetMaxVersionSQL(){
+		String expected = "SELECT MAX(ROW_VERSION) FROM T123";
+		String result = SQLUtils.getMaxVersionSQL("123");
+		assertEquals(expected, result);
 	}
 	
 	/**

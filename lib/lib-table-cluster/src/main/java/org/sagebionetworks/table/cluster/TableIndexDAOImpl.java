@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
@@ -74,7 +75,40 @@ public class TableIndexDAOImpl implements TableIndexDAO{
 		// Execute
 		return connection.batchUpdate(sql, batchBinding);
 	}
-
 	
+	@Override
+	public Long getRowCountForTable(SimpleJdbcTemplate connection, String tableId) {
+		if(connection == null) throw new IllegalArgumentException("Connection cannot be null");
+		String sql = SQLUtils.getCountSQL(tableId);
+		try {
+			return connection.queryForLong(sql);
+		} catch (BadSqlGrammarException e) {
+			// Spring throws this when the table does not
+			return null;
+		}
+	}
+
+	@Override
+	public Long getMaxVersionForTable(SimpleJdbcTemplate connection, String tableId) {
+		if(connection == null) throw new IllegalArgumentException("Connection cannot be null");
+		// First we need to know if the table exists and is not empty
+		Long count = getRowCountForTable(connection, tableId);
+		if(count == null){
+			// the table does not exist so we return null for the max
+			return null;
+		}
+		if(count < 1){
+			// the table is empty we return -1 for the max
+			return -1L;
+		}
+		String sql = SQLUtils.getMaxVersionSQL(tableId);
+		try {
+			return connection.queryForLong(sql);
+		}catch (BadSqlGrammarException e) {
+			// Spring throws this when the table does not
+			return null;
+		}
+	}
+
 
 }

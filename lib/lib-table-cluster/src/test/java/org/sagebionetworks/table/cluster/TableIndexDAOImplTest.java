@@ -132,7 +132,7 @@ public class TableIndexDAOImplTest {
 		
 		// We should be able to update all of the rows
 		rows.get(4).setValues(Arrays.asList("update", "99.99", "3", "false", "123"));
-		rows.get(4).setVersionNumber(2L);
+		rows.get(4).setVersionNumber(5L);
 		// This should not fail
 		tableIndexDAO.createOrUpdateRows(connection, set, allTypes);
 		// Check the update
@@ -143,11 +143,70 @@ public class TableIndexDAOImplTest {
 		row = result.get(4);
 		// Check all values on the updated row.
 		assertEquals(104l, row.get(SQLUtils.ROW_ID));
-		assertEquals(2L, row.get(SQLUtils.ROW_VERSION));
+		assertEquals(5L, row.get(SQLUtils.ROW_VERSION));
 		assertEquals("update", row.get("C0"));
 		assertEquals(99.99, row.get("C1"));
 		assertEquals(3L, row.get("C2"));
 		assertEquals(Boolean.FALSE, row.get("C3"));
 		assertEquals(123L, row.get("C4"));
+	}
+	
+	@Test
+	public void testGetRowCountForTable(){
+		// Before the table exists the max version should be null
+		Long count = tableIndexDAO.getRowCountForTable(connection, tableId);
+		assertEquals("The row count should be null when the table does not exist",null, count);
+		// Create the table
+		List<ColumnModel> allTypes = TableModelUtils.createOneOfEachType();
+		tableIndexDAO.createOrUpdateTable(connection, allTypes, tableId);
+		// the table now exists
+		count = tableIndexDAO.getRowCountForTable(connection, tableId);
+		assertEquals("The row count should be 0 when the table is empty", new Long(0), count);
+		// Now add some data
+		List<Row> rows = TableModelUtils.createRows(allTypes, 4);
+		RowSet set = new RowSet();
+		set.setRows(rows);
+		set.setHeaders(TableModelUtils.getHeaders(allTypes));
+		set.setTableId(tableId);
+		IdRange range = new IdRange();
+		range.setMinimumId(100L);
+		range.setMaximumId(200L);
+		range.setVersionNumber(3L);
+		TableModelUtils.assignRowIdsAndVersionNumbers(set, range);
+		// Now fill the table with data
+		tableIndexDAO.createOrUpdateRows(connection, set, allTypes);
+		// Check again
+		count = tableIndexDAO.getRowCountForTable(connection, tableId);
+		assertEquals(new Long(rows.size()), count);
+	}
+	
+	@Test
+	public void testGetMaxVersionForTable(){
+		// Before the table exists the max version should be null
+		Long maxVersion = tableIndexDAO.getMaxVersionForTable(connection, tableId);
+		assertEquals("The max version should be null when the table does not exist",null, maxVersion);
+		// Create the table
+		List<ColumnModel> allTypes = TableModelUtils.createOneOfEachType();
+		tableIndexDAO.createOrUpdateTable(connection, allTypes, tableId);
+		// The max version should now be -1
+		maxVersion = tableIndexDAO.getMaxVersionForTable(connection, tableId);
+		assertEquals("The max version should be -1 when the table is empty", new Long(-1), maxVersion);
+		// Now add some data
+		List<Row> rows = TableModelUtils.createRows(allTypes, 2);
+		RowSet set = new RowSet();
+		set.setRows(rows);
+		set.setHeaders(TableModelUtils.getHeaders(allTypes));
+		set.setTableId(tableId);
+		IdRange range = new IdRange();
+		range.setMinimumId(100L);
+		range.setMaximumId(200L);
+		range.setVersionNumber(3L);
+		TableModelUtils.assignRowIdsAndVersionNumbers(set, range);
+		// Now fill the table with data
+		tableIndexDAO.createOrUpdateRows(connection, set, allTypes);
+		// Check again
+		maxVersion = tableIndexDAO.getMaxVersionForTable(connection, tableId);
+		assertEquals(new Long(3), maxVersion);
+
 	}
 }
