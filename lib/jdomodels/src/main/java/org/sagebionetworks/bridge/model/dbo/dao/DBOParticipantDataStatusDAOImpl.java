@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.sagebionetworks.bridge.model.ParticipantDataId;
 import org.sagebionetworks.bridge.model.ParticipantDataStatusDAO;
 import org.sagebionetworks.bridge.model.data.ParticipantDataDescriptor;
 import org.sagebionetworks.bridge.model.data.ParticipantDataStatus;
@@ -43,31 +44,35 @@ public class DBOParticipantDataStatusDAOImpl implements ParticipantDataStatusDAO
 	}
 
 	@Override
-	public void getParticipantStatuses(Map<String, ParticipantDataDescriptor> participantDataDescriptors) {
+	public void getParticipantStatuses(List<ParticipantDataDescriptor> participantDataDescriptors,
+			Map<String, ParticipantDataId> participantDataDescriptorToDataIdMap) {
 		if (!participantDataDescriptors.isEmpty()) {
-			Map<String, DBOParticipantDataStatus> dataStatusesMap = getDataStatuses(participantDataDescriptors.keySet());
+			Map<ParticipantDataId, DBOParticipantDataStatus> dataStatusesMap = getDataStatuses(participantDataDescriptorToDataIdMap.values());
 
-			for (Entry<String, ParticipantDataDescriptor> entry : participantDataDescriptors.entrySet()) {
-				DBOParticipantDataStatus dboDataStatus = dataStatusesMap.get(entry.getKey());
-				ParticipantDataStatus status;
-				if (dboDataStatus != null) {
+			for (ParticipantDataDescriptor dataDescriptor : participantDataDescriptors) {
+				ParticipantDataStatus status = null;
+
+				ParticipantDataId dataId = participantDataDescriptorToDataIdMap.get(dataDescriptor.getId());
+				if (dataId != null) {
+					DBOParticipantDataStatus dboDataStatus = dataStatusesMap.get(dataId);
 					status = dboDataStatus.getStatus();
-				} else {
-					status = new ParticipantDataStatus();
 				}
-				status.setParticipantDataDescriptorId(entry.getValue().getId());
-				entry.getValue().setStatus(status);
+				if (status == null) {
+					status = new ParticipantDataStatus();
+					status.setParticipantDataDescriptorId(dataDescriptor.getId());
+				}
+				dataDescriptor.setStatus(status);
 			}
 		}
 	}
 
 	@Override
-	public ParticipantDataStatus getParticipantStatus(String participantDataId, ParticipantDataDescriptor participantDataDescriptor)
+	public ParticipantDataStatus getParticipantStatus(ParticipantDataId participantDataId, ParticipantDataDescriptor participantDataDescriptor)
 			throws DatastoreException {
 		DBOParticipantDataStatus dboStatus;
 		try {
 			dboStatus = basicDao.getObjectByPrimaryKey(DBOParticipantDataStatus.class, new SinglePrimaryKeySqlParameterSource(
-					participantDataId));
+					participantDataId.getId()));
 			return dboStatus.getStatus();
 		} catch (NotFoundException e) {
 			ParticipantDataStatus status = new ParticipantDataStatus();
@@ -77,40 +82,39 @@ public class DBOParticipantDataStatusDAOImpl implements ParticipantDataStatusDAO
 	}
 
 	@Override
-	public void update(List<ParticipantDataStatus> statuses, Map<String, ParticipantDataDescriptor> participantDataDescriptors) {
+	public void update(List<ParticipantDataStatus> statuses, Map<String, ParticipantDataId> participantDataDescriptorToDataIdMap) {
+		Map<ParticipantDataId, DBOParticipantDataStatus> dataStatusesMap = getDataStatuses(participantDataDescriptorToDataIdMap.values());
 
-		Map<String, DBOParticipantDataStatus> dataStatusesMap = getDataStatuses(participantDataDescriptors.keySet());
-
-		Map<String, String> descriptorIdToDataId = Maps.newHashMap();
-		for (Entry<String, ParticipantDataDescriptor> entry : participantDataDescriptors.entrySet()) {
-			descriptorIdToDataId.put(entry.getValue().getId(), entry.getKey());
-		}
-
+		List<DBOParticipantDataStatus> statusesToUpdate = Lists.newArrayListWithExpectedSize(statuses.size());
 		for (ParticipantDataStatus status : statuses) {
 			DBOParticipantDataStatus dboDataStatus = dataStatusesMap.get(status.getParticipantDataDescriptorId());
+			if (dboDataStatus == null) {
+				ParticipantDataId dataId = participantDataDescriptorToDataIdMap.get(status.getParticipantDataDescriptorId());
+				if (dataId != null) {
+					dboDataStatus = new DBOParticipantDataStatus();
+					dboDataStatus.setParticipantDataId(dataId.getId());
+					dboDataStatus.setParticipantDataDescriptorId(Long.parseLong(status.getParticipantDataDescriptorId()));
+					dboDataStatus.setStatus(status);
+				}
+			}
 			if (dboDataStatus != null) {
 				dboDataStatus.setStatus(status);
-			} else {
-				String participantDataId = descriptorIdToDataId.get(status.getParticipantDataDescriptorId());
-				dboDataStatus = new DBOParticipantDataStatus();
-				dboDataStatus.setParticipantDataId(Long.parseLong(participantDataId));
-				dboDataStatus.setParticipantDataDescriptorId(Long.parseLong(status.getParticipantDataDescriptorId()));
-				dboDataStatus.setStatus(status);
-				dataStatusesMap.put(status.getParticipantDataDescriptorId(), dboDataStatus);
+				statusesToUpdate.add(dboDataStatus);
 			}
 		}
 
-		basicDao.createOrUpdateBatch(Lists.newArrayList(dataStatusesMap.values()));
+		basicDao.createOrUpdateBatch(statusesToUpdate);
 	}
 
-	private Map<String, DBOParticipantDataStatus> getDataStatuses(Collection<String> ids) {
-		MapSqlParameterSource params = new MapSqlParameterSource().addValue(PARTICIPANT_DATA_IDS, ids);
+	private Map<ParticipantDataId, DBOParticipantDataStatus> getDataStatuses(Collection<ParticipantDataId> participantDataIds) {
+		MapSqlParameterSource params = new MapSqlParameterSource().addValue(PARTICIPANT_DATA_IDS,
+				ParticipantDataId.convert(participantDataIds));
 		List<DBOParticipantDataStatus> dataStatuses = simpleJdbcTemplate.query(SELECT_PARTICIPANT_DATA_STATUSES, participantDataStatusMapper,
 				params);
 
-		Map<String, DBOParticipantDataStatus> dataStatusesMap = Maps.newHashMap();
+		Map<ParticipantDataId, DBOParticipantDataStatus> dataStatusesMap = Maps.newHashMap();
 		for (DBOParticipantDataStatus dataStatus : dataStatuses) {
-			dataStatusesMap.put(dataStatus.getParticipantDataId().toString(), dataStatus);
+			dataStatusesMap.put(new ParticipantDataId(dataStatus.getParticipantDataId()), dataStatus);
 		}
 		return dataStatusesMap;
 	}

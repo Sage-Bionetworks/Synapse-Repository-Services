@@ -8,6 +8,7 @@ import java.util.List;
 
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.bridge.model.BridgeUserParticipantMappingDAO;
+import org.sagebionetworks.bridge.model.ParticipantDataId;
 import org.sagebionetworks.bridge.model.data.ParticipantDataDescriptor;
 import org.sagebionetworks.bridge.model.data.ParticipantDataStatus;
 import org.sagebionetworks.bridge.model.dbo.persistence.DBOUserParticipantMap;
@@ -19,6 +20,8 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 
+import com.google.common.collect.Lists;
+
 public class DBOBridgeUserParticipantMappingDAOImpl implements BridgeUserParticipantMappingDAO {
 
 	@Autowired
@@ -29,30 +32,35 @@ public class DBOBridgeUserParticipantMappingDAOImpl implements BridgeUserPartici
 
 	private Encryptor encryptor = new Encryptor();
 
-	@SuppressWarnings("unchecked")
 	@Override
-	public List<String> getParticipantIdsForUser(Long userId) throws IOException, GeneralSecurityException {
+	public List<ParticipantDataId> getParticipantIdsForUser(Long userId) throws IOException, GeneralSecurityException {
 		DBOUserParticipantMap userParticipantMap;
 		try {
 			userParticipantMap = basicDao.getObjectByPrimaryKey(DBOUserParticipantMap.class, new SinglePrimaryKeySqlParameterSource(userId));
 		} catch (NotFoundException e) {
 			// not an error, just means no mapping yet
-			return Collections.<String> emptyList();
+			return Collections.<ParticipantDataId> emptyList();
 		}
 		byte[] mapBlob = userParticipantMap.getMapBlob();
 		mapBlob = encryptor.decrypt(mapBlob, StackConfiguration.getBridgeDataMappingEncryptionKey(), userId);
+		long[] participantIdList = (long[]) JDOSecondaryPropertyUtils.decompressedObject(mapBlob);
 
-		return (List<String>) JDOSecondaryPropertyUtils.decompressedObject(mapBlob);
-
+		List<ParticipantDataId> participantDataIds = Lists.newArrayListWithCapacity(participantIdList.length);
+		for (int i = 0; i < participantIdList.length; i++) {
+			participantDataIds.add(new ParticipantDataId(participantIdList[i]));
+		}
+		return participantDataIds;
 	}
 
 	@Override
-	public void setParticipantIdsForUser(Long userId, List<String> participantIds) throws IOException, GeneralSecurityException {
-		if (!(participantIds instanceof ArrayList)) {
-			// make sure we don't serialize anything but simple arraylist
-			participantIds = new ArrayList<String>(participantIds);
+	public void setParticipantIdsForUser(Long userId, List<ParticipantDataId> participantDataIds) throws IOException,
+			GeneralSecurityException {
+		long[] participantIdList = new long[participantDataIds.size()];
+		for (int i = 0; i < participantIdList.length; i++) {
+			participantIdList[i] = participantDataIds.get(i).getId();
 		}
-		byte[] mapBlob = JDOSecondaryPropertyUtils.compressObject(participantIds);
+
+		byte[] mapBlob = JDOSecondaryPropertyUtils.compressObject(participantIdList);
 		mapBlob = encryptor.encrypt(mapBlob, StackConfiguration.getBridgeDataMappingEncryptionKey(), userId);
 		DBOUserParticipantMap userParticipantMap = new DBOUserParticipantMap();
 		userParticipantMap.setUserId(userId);

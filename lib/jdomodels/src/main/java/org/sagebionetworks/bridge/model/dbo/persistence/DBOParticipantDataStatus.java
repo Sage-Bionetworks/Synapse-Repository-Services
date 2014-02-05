@@ -22,7 +22,7 @@ public class DBOParticipantDataStatus implements MigratableDatabaseObject<DBOPar
 	public static final String PARTICIPANT_DATA_ID_FIELD = "participantDataId";
 
 	@Field(name = SqlConstants.COL_PARTICIPANT_DATA_STATUS_PARTICIPANT_DATA_ID, backupId = true, primary = true)
-	@ForeignKey(table = SqlConstants.TABLE_PARTICIPANT_DATA, field = SqlConstants.COL_PARTICIPANT_DATA_PARTICIPANT_ID)
+	@ForeignKey(table = SqlConstants.TABLE_PARTICIPANT_DATA, field = SqlConstants.COL_PARTICIPANT_DATA_PARTICIPANT_DATA_ID)
 	private Long participantDataId;
 
 	@Field(name = SqlConstants.COL_PARTICIPANT_DATA_STATUS_PARTICIPANT_DATA_DESCRIPTOR_ID)

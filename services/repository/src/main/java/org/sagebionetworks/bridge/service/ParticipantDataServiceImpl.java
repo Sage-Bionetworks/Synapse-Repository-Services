@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.sagebionetworks.bridge.manager.participantdata.ParticipantDataDescriptionManager;
 import org.sagebionetworks.bridge.manager.participantdata.ParticipantDataManager;
+import org.sagebionetworks.bridge.model.ParticipantDataId;
 import org.sagebionetworks.bridge.model.data.ParticipantDataColumnDescriptor;
 import org.sagebionetworks.bridge.model.data.ParticipantDataCurrentRow;
 import org.sagebionetworks.bridge.model.data.ParticipantDataDescriptor;
@@ -59,7 +60,7 @@ public class ParticipantDataServiceImpl implements ParticipantDataService {
 	public List<ParticipantDataRow> append(Long userId, String participantId, String participantDataId, List<ParticipantDataRow> data)
 			throws DatastoreException, NotFoundException, IOException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return participantDataManager.appendData(userInfo, participantId, participantDataId, data);
+		return participantDataManager.appendData(userInfo, new ParticipantDataId(Long.parseLong(participantId)), participantDataId, data);
 	}
 
 	@Override

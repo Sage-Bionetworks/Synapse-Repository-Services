@@ -12,24 +12,23 @@ import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface ParticipantDataDAO {
 
-	List<ParticipantDataRow> append(String participantId, String participantDataId, List<ParticipantDataRow> data,
-			List<ParticipantDataColumnDescriptor> columns) throws DatastoreException,
-			NotFoundException, IOException;
+	List<ParticipantDataRow> append(ParticipantDataId participantDataId, String participantDataDescriptorId, List<ParticipantDataRow> data,
+			List<ParticipantDataColumnDescriptor> columns) throws DatastoreException, NotFoundException, IOException;
 
-	List<ParticipantDataRow> update(String participantId, String participantDataId, List<ParticipantDataRow> data,
-			List<ParticipantDataColumnDescriptor> columns) throws DatastoreException,
-			NotFoundException, IOException;
+	List<ParticipantDataRow> update(ParticipantDataId participantDataId, String participantDataDescriptorId, List<ParticipantDataRow> data,
+			List<ParticipantDataColumnDescriptor> columns) throws DatastoreException, NotFoundException, IOException;
 
-	void deleteRows(String participantId, String participantDataDescriptorId, IdList rowIds) throws IOException, NotFoundException;
-	
-	List<ParticipantDataRow> get(String participantId, String participantDataId, List<ParticipantDataColumnDescriptor> columns)
-			throws DatastoreException, NotFoundException, IOException;
+	void deleteRows(ParticipantDataId participantDataId, String participantDataDescriptorId, IdList rowIds) throws IOException,
+			NotFoundException;
 
-	ParticipantDataRow getRow(String participantId, String participantDataId, Long rowId, List<ParticipantDataColumnDescriptor> columns)
-			throws DatastoreException,
-			NotFoundException, IOException;
+	List<ParticipantDataRow> get(ParticipantDataId participantDataId, String participantDataDescriptorId,
+			List<ParticipantDataColumnDescriptor> columns) throws DatastoreException, NotFoundException, IOException;
 
-	void delete(String participantId, String participantDataId) throws DatastoreException, NotFoundException, IOException;
+	ParticipantDataRow getRow(ParticipantDataId participantDataId, String participantDataDescriptorId, Long rowId,
+			List<ParticipantDataColumnDescriptor> columns) throws DatastoreException, NotFoundException, IOException;
 
-	String findParticipantForParticipantData(List<String> participantIds, String participantDataId);
+	void delete(ParticipantDataId participantDataId, String participantDataDescriptorId) throws DatastoreException, NotFoundException,
+			IOException;
+
+	ParticipantDataId findParticipantForParticipantData(List<ParticipantDataId> participantIds, String participantDataId);
 }

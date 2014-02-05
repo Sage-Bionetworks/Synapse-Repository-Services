@@ -237,7 +237,6 @@ public class IT610BridgeData {
 	}
 
 	@Test
-	@Ignore
 	public void testGetCurrentParticipantData() throws Exception {
 		ParticipantDataDescriptor participantDataDescriptor = new ParticipantDataDescriptor();
 		participantDataDescriptor.setName("my-first-participantData-" + System.currentTimeMillis());

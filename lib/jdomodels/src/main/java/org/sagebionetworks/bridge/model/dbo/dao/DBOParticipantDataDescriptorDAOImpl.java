@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.bridge.model.ParticipantDataDescriptorDAO;
+import org.sagebionetworks.bridge.model.ParticipantDataId;
 import org.sagebionetworks.bridge.model.data.ParticipantDataColumnDescriptor;
 import org.sagebionetworks.bridge.model.data.ParticipantDataDescriptor;
 import org.sagebionetworks.bridge.model.dbo.persistence.DBOParticipantDataColumnDescriptor;
@@ -34,15 +35,15 @@ import com.google.common.collect.Maps;
 
 public class DBOParticipantDataDescriptorDAOImpl implements ParticipantDataDescriptorDAO {
 
-	private static final String PARTICIPANT_IDS = "participantIds";
-	private static final String PARTICIPANT_DATA_ID = "pdid";
+	private static final String PARTICIPANT_DATA_IDS = "participantDataIds";
+	private static final String PARTICIPANT_DATA_ID = "participantDataId";
 
 	private static final String SELECT_PARTICIPANT_DATA_DESCRIPTORS = "SELECT * FROM " + SqlConstants.TABLE_PARTICIPANT_DATA_DESCRIPTOR;
-	private static final String SELECT_PARTICIPANT_DATA_FOR_USER = "select d." + SqlConstants.COL_PARTICIPANT_DATA_PARTICIPANT_ID + " as "
-			+ PARTICIPANT_DATA_ID + ", dd.* from " + SqlConstants.TABLE_PARTICIPANT_DATA_DESCRIPTOR + " dd join "
+	private static final String SELECT_PARTICIPANT_DATA_FOR_USER = "select d." + SqlConstants.COL_PARTICIPANT_DATA_PARTICIPANT_DATA_ID
+			+ " as " + PARTICIPANT_DATA_ID + ", dd.* from " + SqlConstants.TABLE_PARTICIPANT_DATA_DESCRIPTOR + " dd join "
 			+ SqlConstants.TABLE_PARTICIPANT_DATA + " d on dd." + SqlConstants.COL_PARTICIPANT_DATA_DESCRIPTOR_ID + " = d."
 			+ SqlConstants.COL_PARTICIPANT_DATA_PARTICIPANT_DATA_DESCRIPTOR_ID + " where d."
-			+ SqlConstants.COL_PARTICIPANT_DATA_PARTICIPANT_ID + " IN ( :" + PARTICIPANT_IDS + " )";
+			+ SqlConstants.COL_PARTICIPANT_DATA_PARTICIPANT_DATA_ID + " IN ( :" + PARTICIPANT_DATA_IDS + " )";
 	private static final String SELECT_PARTICIPANT_DATA_COLUMN_DESCRIPTORS = "SELECT * FROM "
 			+ SqlConstants.TABLE_PARTICIPANT_DATA_COLUMN_DESCRIPTOR + " WHERE "
 			+ SqlConstants.COL_PARTICIPANT_DATA_COLUMN_DESCRIPTOR_PARTICIPANT_DATA_ID + " = ?";
@@ -95,19 +96,20 @@ public class DBOParticipantDataDescriptorDAOImpl implements ParticipantDataDescr
 	}
 
 	@Override
-	public Map<String, ParticipantDataDescriptor> getParticipantDataDescriptorsForUser(List<String> participantIds) {
-		if (participantIds.isEmpty()) {
-			return Collections.<String, ParticipantDataDescriptor> emptyMap();
+	public Map<ParticipantDataId, ParticipantDataDescriptor> getParticipantDataDescriptorsForUser(List<ParticipantDataId> participantDataIds) {
+		if (participantDataIds.isEmpty()) {
+			return Collections.<ParticipantDataId, ParticipantDataDescriptor> emptyMap();
 		}
-		MapSqlParameterSource params = new MapSqlParameterSource().addValue(PARTICIPANT_IDS, participantIds);
-		final Map<String, ParticipantDataDescriptor> participantDataDescriptors = Maps.newHashMap();
+		MapSqlParameterSource params = new MapSqlParameterSource().addValue(PARTICIPANT_DATA_IDS,
+				ParticipantDataId.convert(participantDataIds));
+		final Map<ParticipantDataId, ParticipantDataDescriptor> participantDataDescriptors = Maps.newHashMap();
 		simpleJdbcTemplate.query(SELECT_PARTICIPANT_DATA_FOR_USER, new RowMapper<Object>() {
 			@Override
 			public Object mapRow(ResultSet rs, int rowNum) throws SQLException {
 				DBOParticipantDataDescriptor dboParticipantDataDescriptor = participantDataDescriptorRowMapper.mapRow(rs, rowNum);
-				String participantDataId = rs.getString(PARTICIPANT_DATA_ID);
+				long participantDataId = rs.getLong(PARTICIPANT_DATA_ID);
 				ParticipantDataDescriptor participantDataDescriptor = dboToDtoParticipantDataDescriptor.apply(dboParticipantDataDescriptor);
-				participantDataDescriptors.put(participantDataId, participantDataDescriptor);
+				participantDataDescriptors.put(new ParticipantDataId(participantDataId), participantDataDescriptor);
 				return participantDataId;
 			}
 		}, params);

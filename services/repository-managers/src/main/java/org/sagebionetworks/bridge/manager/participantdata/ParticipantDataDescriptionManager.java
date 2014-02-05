@@ -1,10 +1,10 @@
 package org.sagebionetworks.bridge.manager.participantdata;
 
 import java.io.IOException;
-
 import java.security.GeneralSecurityException;
 import java.util.List;
 
+import org.sagebionetworks.bridge.model.ParticipantDataId;
 import org.sagebionetworks.bridge.model.data.ParticipantDataColumnDescriptor;
 import org.sagebionetworks.bridge.model.data.ParticipantDataDescriptor;
 import org.sagebionetworks.bridge.model.data.ParticipantDataStatus;
@@ -35,5 +35,5 @@ public interface ParticipantDataDescriptionManager {
 	void updateStatuses(UserInfo userInfo, List<ParticipantDataStatus> statuses) throws DatastoreException, IOException,
 			GeneralSecurityException;
 
-	List<ParticipantDataColumnDescriptor> getColumns(String participantDataId) throws DatastoreException, NotFoundException;
+	List<ParticipantDataColumnDescriptor> getColumns(String participantDataDescriptorId) throws DatastoreException, NotFoundException;
 }

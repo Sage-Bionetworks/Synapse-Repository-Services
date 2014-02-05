@@ -9,10 +9,11 @@ import org.sagebionetworks.repo.model.DatastoreException;
 
 public interface ParticipantDataStatusDAO {
 
-	void update(List<ParticipantDataStatus> statusUpdates, Map<String, ParticipantDataDescriptor> participantDataDescriptors);
+	void update(List<ParticipantDataStatus> statusUpdates, Map<String, ParticipantDataId> participantDataDescriptorToDataIdMap);
 
-	void getParticipantStatuses(Map<String, ParticipantDataDescriptor> participantDataDescriptors);
+	void getParticipantStatuses(List<ParticipantDataDescriptor> participantDataDescriptors,
+			Map<String, ParticipantDataId> participantDataDescriptorToDataIdMap);
 
-	ParticipantDataStatus getParticipantStatus(String participantDataId, ParticipantDataDescriptor participantDataDescriptor)
+	ParticipantDataStatus getParticipantStatus(ParticipantDataId participantDataId, ParticipantDataDescriptor participantDataDescriptor)
 			throws DatastoreException;
 }

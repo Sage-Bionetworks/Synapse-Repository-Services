@@ -8,6 +8,7 @@ import java.util.ListIterator;
 
 import org.apache.commons.lang.BooleanUtils;
 import org.sagebionetworks.bridge.model.ParticipantDataDAO;
+import org.sagebionetworks.bridge.model.ParticipantDataId;
 import org.sagebionetworks.bridge.model.ParticipantDataStatusDAO;
 import org.sagebionetworks.bridge.model.data.ParticipantDataColumnDescriptor;
 import org.sagebionetworks.bridge.model.data.ParticipantDataCurrentRow;
@@ -41,71 +42,66 @@ public class ParticipantDataManagerImpl implements ParticipantDataManager {
 	private ParticipantDataDescriptionManager participantDataDescriptionManager;
 
 	@Override
-	public List<ParticipantDataRow> appendData(UserInfo userInfo, String participantId, String participantDataId,
+	public List<ParticipantDataRow> appendData(UserInfo userInfo, ParticipantDataId participantDataId, String participantDataDescriptorId,
 			List<ParticipantDataRow> data) throws DatastoreException, NotFoundException, IOException {
-		List<ParticipantDataColumnDescriptor> columns = participantDataDescriptionManager.getColumns(participantDataId);
-		return participantDataDAO.append(participantId, participantDataId, data, columns);
+		List<ParticipantDataColumnDescriptor> columns = participantDataDescriptionManager.getColumns(participantDataDescriptorId);
+		return participantDataDAO.append(participantDataId, participantDataDescriptorId, data, columns);
 	}
 
 	@Override
-	public List<ParticipantDataRow> appendData(UserInfo userInfo, String participantDataId, List<ParticipantDataRow> data)
+	public List<ParticipantDataRow> appendData(UserInfo userInfo, String participantDataDescriptorId, List<ParticipantDataRow> data)
 			throws DatastoreException, NotFoundException, IOException, GeneralSecurityException {
-		List<String> participantIds = participantDataMappingManager.mapSynapseUserToParticipantIds(userInfo);
-		String participantId = participantDataDAO.findParticipantForParticipantData(participantIds, participantDataId);
-		if (participantId == null) {
-			participantId = participantDataMappingManager.createNewParticipantForUser(userInfo);
+		ParticipantDataId participantDataId = getParticipantDataId(userInfo, participantDataDescriptorId);
+		if (participantDataId == null) {
+			participantDataId = participantDataMappingManager.createNewParticipantIdForUser(userInfo);
 		}
-		List<ParticipantDataColumnDescriptor> columns = participantDataDescriptionManager.getColumns(participantDataId);
-		return participantDataDAO.append(participantId, participantDataId, data, columns);
+		List<ParticipantDataColumnDescriptor> columns = participantDataDescriptionManager.getColumns(participantDataDescriptorId);
+		return participantDataDAO.append(participantDataId, participantDataDescriptorId, data, columns);
 	}
-	
-	@Override
-	public void deleteRows(UserInfo userInfo, String participantDataId, IdList rowIds) throws IOException, NotFoundException,
-			GeneralSecurityException {
-		List<String> participantIds = participantDataMappingManager.mapSynapseUserToParticipantIds(userInfo);
-		String participantId = participantDataDAO.findParticipantForParticipantData(participantIds, participantDataId);
-		participantDataDAO.deleteRows(participantId, participantDataId, rowIds);
-	};
 
 	@Override
-	public List<ParticipantDataRow> updateData(UserInfo userInfo, String participantDataId, List<ParticipantDataRow> data)
+	public void deleteRows(UserInfo userInfo, String participantDataDescriptorId, IdList rowIds) throws IOException, NotFoundException,
+			GeneralSecurityException {
+		ParticipantDataId participantDataId = getParticipantDataId(userInfo, participantDataDescriptorId);
+		participantDataDAO.deleteRows(participantDataId, participantDataDescriptorId, rowIds);
+	}
+
+	@Override
+	public List<ParticipantDataRow> updateData(UserInfo userInfo, String participantDataDescriptorId, List<ParticipantDataRow> data)
 			throws DatastoreException, NotFoundException, IOException, GeneralSecurityException {
-		List<String> participantIds = participantDataMappingManager.mapSynapseUserToParticipantIds(userInfo);
-		String participantId = participantDataDAO.findParticipantForParticipantData(participantIds, participantDataId);
-		if (participantId == null) {
+		ParticipantDataId participantDataId = getParticipantDataId(userInfo, participantDataDescriptorId);
+		if (participantDataId == null) {
 			throw new NotFoundException("No data to update found for this user");
 		}
-		List<ParticipantDataColumnDescriptor> columns = participantDataDescriptionManager.getColumns(participantDataId);
-		return participantDataDAO.update(participantId, participantDataId, data, columns);
+		List<ParticipantDataColumnDescriptor> columns = participantDataDescriptionManager.getColumns(participantDataDescriptorId);
+		return participantDataDAO.update(participantDataId, participantDataDescriptorId, data, columns);
 	}
 
 	@Override
-	public PaginatedResults<ParticipantDataRow> getData(UserInfo userInfo, String participantDataId, Integer limit, Integer offset)
+	public PaginatedResults<ParticipantDataRow> getData(UserInfo userInfo, String participantDataDescriptorId, Integer limit, Integer offset)
 			throws DatastoreException, NotFoundException, IOException, GeneralSecurityException {
-		List<String> participantIds = participantDataMappingManager.mapSynapseUserToParticipantIds(userInfo);
-		String participantId = participantDataDAO.findParticipantForParticipantData(participantIds, participantDataId);
-		if (participantId == null) {
+		ParticipantDataId participantDataId = getParticipantDataId(userInfo, participantDataDescriptorId);
+		if (participantDataId == null) {
 			// User has never created data for this ParticipantData type, which is not an error, so return
 			// empty result. It will have no headers given the way this works.
 			return PaginatedResultsUtil.createEmptyPaginatedResults();
 		}
-		List<ParticipantDataColumnDescriptor> columns = participantDataDescriptionManager.getColumns(participantDataId);
-		List<ParticipantDataRow> rowList = participantDataDAO.get(participantId, participantDataId, columns);
+		List<ParticipantDataColumnDescriptor> columns = participantDataDescriptionManager.getColumns(participantDataDescriptorId);
+		List<ParticipantDataRow> rowList = participantDataDAO.get(participantDataId, participantDataDescriptorId, columns);
 		return PaginatedResultsUtil.createPaginatedResults(rowList, limit, offset);
 	}
 
 	@Override
-	public ParticipantDataRow getDataRow(UserInfo userInfo, String participantDataId, Long rowId) throws DatastoreException,
+	public ParticipantDataRow getDataRow(UserInfo userInfo, String participantDataDescriptorId, Long rowId) throws DatastoreException,
 			NotFoundException, IOException, GeneralSecurityException {
-		List<String> participantIds = participantDataMappingManager.mapSynapseUserToParticipantIds(userInfo);
-		String participantId = participantDataDAO.findParticipantForParticipantData(participantIds, participantDataId);
-		if (participantId == null) {
+		ParticipantDataId participantDataId = getParticipantDataId(userInfo, participantDataDescriptorId);
+		if (participantDataId == null) {
 			// User has never created data for this ParticipantData type, which is not an error, so return
 			// empty result. It will have no headers given the way this works.
-			throw new NotFoundException("No participant data with id " + participantDataId);
+			throw new NotFoundException("No participant data with id " + participantDataDescriptorId);
 		}
-		List<ParticipantDataColumnDescriptor> columns = participantDataDescriptionManager.getColumns(participantDataId);
-		return participantDataDAO.getRow(participantId, participantDataId, rowId, columns);
+		List<ParticipantDataColumnDescriptor> columns = participantDataDescriptionManager.getColumns(participantDataDescriptorId);
+		return participantDataDAO.getRow(participantDataId, participantDataDescriptorId, rowId, columns);
 	}
 
 	@Override
@@ -114,9 +110,8 @@ public class ParticipantDataManagerImpl implements ParticipantDataManager {
 		ParticipantDataCurrentRow result = new ParticipantDataCurrentRow();
 		result.setDescriptor(participantDataDescriptionManager.getParticipantDataDescriptor(userInfo, participantDataDescriptorId));
 		result.setColumns(participantDataDescriptionManager.getColumns(participantDataDescriptorId));
-		List<String> participantIds = participantDataMappingManager.mapSynapseUserToParticipantIds(userInfo);
-		String participantId = participantDataDAO.findParticipantForParticipantData(participantIds, participantDataDescriptorId);
-		if (participantId == null) {
+		ParticipantDataId participantDataId = getParticipantDataId(userInfo, participantDataDescriptorId);
+		if (participantDataId == null) {
 			// User has never created data for this ParticipantData type, which is not an error, so return empty status
 			ParticipantDataStatus status = new ParticipantDataStatus();
 			status.setParticipantDataDescriptorId(participantDataDescriptorId);
@@ -124,13 +119,13 @@ public class ParticipantDataManagerImpl implements ParticipantDataManager {
 			return result;
 		}
 
-		ParticipantDataStatus status = participantDataStatusDAO.getParticipantStatus(participantId, result.getDescriptor());
+		ParticipantDataStatus status = participantDataStatusDAO.getParticipantStatus(participantDataId, result.getDescriptor());
 		result.setStatus(status);
 
 		result.setCurrentData(EMPTY_ROW);
 		result.setPreviousData(EMPTY_ROW);
 
-		List<ParticipantDataRow> rowList = participantDataDAO.get(participantId, participantDataDescriptorId, result.getColumns());
+		List<ParticipantDataRow> rowList = participantDataDAO.get(participantDataId, participantDataDescriptorId, result.getColumns());
 		ListIterator<ParticipantDataRow> iter = rowList.listIterator(rowList.size());
 		if (iter.hasPrevious()) {
 			ParticipantDataRow lastRow = iter.previous();
@@ -144,5 +139,13 @@ public class ParticipantDataManagerImpl implements ParticipantDataManager {
 			}
 		}
 		return result;
+	}
+
+	private ParticipantDataId getParticipantDataId(UserInfo userInfo, String participantDataDescriptorId) throws IOException,
+			GeneralSecurityException {
+		List<ParticipantDataId> participantDataIds = participantDataMappingManager.mapSynapseUserToParticipantIds(userInfo);
+		ParticipantDataId participantDataId = participantDataDAO.findParticipantForParticipantData(participantDataIds,
+				participantDataDescriptorId);
+		return participantDataId;
 	}
 }
