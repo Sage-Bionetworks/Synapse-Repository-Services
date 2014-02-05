@@ -14,12 +14,10 @@ import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeQueryDao;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 
@@ -27,7 +25,6 @@ public class AccessRequirementUtilTest {
 	
 	UserInfo userInfo;
 	NodeDAO mockNodeDAO;
-	NodeTreeQueryDao mockNodeTreeQueryDao;
 	AccessRequirementDAO mockAccessRequirementDAO;
 	private static final String NODE_ID = "9876";
 	Node testEntityNode;
@@ -40,7 +37,6 @@ public class AccessRequirementUtilTest {
 
 		mockNodeDAO = mock(NodeDAO.class);
 		
-		mockNodeTreeQueryDao = mock(NodeTreeQueryDao.class);
 		mockAccessRequirementDAO = mock(AccessRequirementDAO.class);
 		
 		testEntityNode = new Node();

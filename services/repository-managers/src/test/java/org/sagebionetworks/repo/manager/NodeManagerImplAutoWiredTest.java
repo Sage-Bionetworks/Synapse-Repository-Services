@@ -7,7 +7,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -22,7 +21,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
-import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeQueryDao;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -86,7 +84,6 @@ public class NodeManagerImplAutoWiredTest {
 	
 	private UserInfo adminUserInfo;
 	private UserInfo userInfo;
-	private NodeTreeQueryDao mockNodeTreeQueryDao;
 	
 	@Before
 	public void before() throws Exception {
@@ -105,9 +102,6 @@ public class NodeManagerImplAutoWiredTest {
 		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
 		nu.setUserName(UUID.randomUUID().toString());
 		userInfo = userManager.createUser(adminUserInfo, nu, cred);
-		
-		mockNodeTreeQueryDao = mock(NodeTreeQueryDao.class);
-		
 	}
 	
 	@After
