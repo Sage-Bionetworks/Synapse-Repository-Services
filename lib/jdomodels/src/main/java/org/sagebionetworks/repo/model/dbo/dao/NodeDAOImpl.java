@@ -973,7 +973,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		}
 	}
 	
-	private static final int PATH_DEPTH = 5;
+	public static final int BATCH_PATH_DEPTH = 5;
 	
 	/**
 	 * A recursive method to build up the full path of of an entity, recursing in batch rather than one 
@@ -985,7 +985,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	 * @throws DatastoreException 
 	 */
 	private void appendPathBatch(LinkedList<EntityHeader> results, Long nodeId) throws NotFoundException, DatastoreException{
-		List<ParentTypeName> ptns = getAncestorsPTN(nodeId, PATH_DEPTH); // ordered from leaf to root, length always >=1
+		List<ParentTypeName> ptns = getAncestorsPTN(nodeId, BATCH_PATH_DEPTH); // ordered from leaf to root, length always >=1
 		for (ParentTypeName ptn : ptns) {
 			EntityHeader header = createHeaderFromParentTypeName(ptn, null, null);
 			// Add at the front

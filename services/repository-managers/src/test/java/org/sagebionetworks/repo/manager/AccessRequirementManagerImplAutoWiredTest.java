@@ -73,6 +73,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 	
 	private String entityId;
 	private String entityId2;
+	private String childId;
 	
 	private Evaluation evaluation;
 	private Evaluation evaluation2;
@@ -101,6 +102,12 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		node.setNodeType(EntityType.layer.name());
 		node.setParentId(rootId);
 		entityId = nodeManager.createNewNode(node, adminUserInfo);
+		
+		Node childNode = new Node();
+		childNode.setName("Child");
+		childNode.setNodeType(EntityType.layer.name());
+		childNode.setParentId(entityId);
+		childId = nodeManager.createNewNode(childNode, adminUserInfo);
 
 		AccessControlList acl = entityPermissionsManager.getACL(rootId, adminUserInfo);
 		Set<ResourceAccess> raSet = acl.getResourceAccess();
@@ -299,12 +306,38 @@ public class AccessRequirementManagerImplAutoWiredTest {
 	}
 	
 	@Test
+	public void testGetInheritedAccessRequirements() throws Exception {
+		ar = newEntityAccessRequirement(entityId);
+		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId(childId);
+		rod.setType(RestrictableObjectType.ENTITY);
+		QueryResults<AccessRequirement> ars = accessRequirementManager.getAccessRequirementsForSubject(adminUserInfo, rod);
+		assertEquals(1L, ars.getTotalNumberOfResults());
+		assertEquals(1, ars.getResults().size());
+	}
+	
+	@Test
 	public void testGetUnmetEntityAccessRequirements() throws Exception {
 		ar = newEntityAccessRequirement(entityId);
 		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
 		UserInfo otherUserInfo = testUserInfo;
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
 		rod.setId(entityId);
+		rod.setType(RestrictableObjectType.ENTITY);
+		
+		QueryResults<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirements(otherUserInfo, rod);
+		assertEquals(1L, ars.getTotalNumberOfResults());
+		assertEquals(1, ars.getResults().size());
+	}
+	
+	@Test
+	public void testGetInheritedUnmetEntityAccessRequirements() throws Exception {
+		ar = newEntityAccessRequirement(entityId);
+		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
+		UserInfo otherUserInfo = testUserInfo;
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId(childId);
 		rod.setType(RestrictableObjectType.ENTITY);
 		
 		QueryResults<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirements(otherUserInfo, rod);
