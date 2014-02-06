@@ -174,17 +174,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	@Override
 	public boolean canCreateAccessRequirement(UserInfo userInfo,
 			AccessRequirement accessRequirement) throws NotFoundException {
-		 Map<RestrictableObjectType, Collection<String>> sortedIds = 
-			 RestricableODUtil.sortByType(accessRequirement.getSubjectIds());
-		Collection<String> entityIds = sortedIds.get(RestrictableObjectType.ENTITY);
-		if (entityIds!=null && entityIds.size()>0) {
-			if (!isACTTeamMemberOrCanCreateOrEdit(userInfo, entityIds)) return false;
-		}
-		Collection<String> evaluationIds = sortedIds.get(RestrictableObjectType.EVALUATION);
-		if (evaluationIds!=null && evaluationIds.size()>0) {
-			if (!canAdministerEvaluation(userInfo, evaluationIds, evaluationDAO)) return false;
-		}
-		return true;
+		return isACTTeamMemberOrAdmin(userInfo);
 	}
 	
 	public boolean isACTTeamMemberOrAdmin(UserInfo userInfo) throws DatastoreException, UnauthorizedException {
@@ -193,65 +183,19 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		return false;
 	}
 
-	public boolean isACTTeamMemberOrCanCreateOrEdit(UserInfo userInfo, Collection<String> entityIds) throws NotFoundException {
-		if (isACTTeamMemberOrAdmin(userInfo)) {
-			return true;
-		}
-		if (entityIds.size()==0) return false;
-		if (entityIds.size()>1) return false;
-		String entityId = entityIds.iterator().next();
-		if (!canAccess(userInfo, entityId, ObjectType. ENTITY, ACCESS_TYPE.CREATE) &&
-				!canAccess(userInfo, entityId, ObjectType. ENTITY, ACCESS_TYPE.UPDATE)) return false;
-		return true;
-	}
-
 	/**
-	 * For Entities, check that user is an administrator or ACT member. 
-	 * For Evaluations, check that user is an administrator or is the creator of the Evaluation
+	 * Check that user is an administrator or ACT member. 
 	 * @param userInfo
 	 * @param accessRequirement
 	 * @throws NotFoundException
 	 */
 	private boolean canAdminAccessRequirement(UserInfo userInfo, AccessRequirement accessRequirement) throws NotFoundException {
-		Map<RestrictableObjectType, Collection<String>> sortedIds = 
-			 RestricableODUtil.sortByType(accessRequirement.getSubjectIds());
-		Collection<String> entityIds = sortedIds.get(RestrictableObjectType.ENTITY);
-		if (entityIds!=null && !entityIds.isEmpty()) {
-			if (!isACTTeamMemberOrAdmin(userInfo)) return false;
-		}
-		Collection<String> evaluationIds = sortedIds.get(RestrictableObjectType.EVALUATION);
-		if (evaluationIds!=null && !evaluationIds.isEmpty()) {
-			if (!canAdministerEvaluation(userInfo, evaluationIds, evaluationDAO)) return false;
-		}	
-		return true;
+		return isACTTeamMemberOrAdmin(userInfo);
 	}
 	
 	private boolean canAdminAccessApproval(UserInfo userInfo, AccessApproval accessApproval) throws NotFoundException {
 		AccessRequirement accessRequirement = accessRequirementDAO.get(accessApproval.getRequirementId().toString());
 		return canAdminAccessRequirement(userInfo, accessRequirement);
-	}
-
-	/**
-	 * check that user is an administrator or is the creator of the Evaluation
-	 * @param userInfo
-	 * @param evaluationIds
-	 * @param evaluationDAO
-	 * @return
-	 * @throws NotFoundException
-	 * @throws UnauthorizedException
-	 */
-	private static boolean canAdministerEvaluation(
-			UserInfo userInfo, 
-			Collection<String> evaluationIds, 
-			EvaluationDAO evaluationDAO) throws NotFoundException, UnauthorizedException {
-		if (userInfo.isAdmin()) return true;
-		for (String id : evaluationIds) {
-			Evaluation evaluation = evaluationDAO.get(id);
-			if (!isEvalOwner(userInfo, evaluation)) {
-				return false;
-			}
-		}
-		return true;
 	}
 
 	@Override
@@ -269,17 +213,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	@Override
 	public boolean canAccessAccessApprovalsForSubject(UserInfo userInfo,
 			RestrictableObjectDescriptor subjectId, ACCESS_TYPE accessType) throws NotFoundException {
-		if (RestrictableObjectType.ENTITY.equals(subjectId.getType())) {
-			if (!(isACTTeamMemberOrAdmin(userInfo))) return false;
-		} else if (RestrictableObjectType.EVALUATION.equals(subjectId.getType())) {
-			Evaluation evaluation = evaluationDAO.get(subjectId.getId());
-			if (!isEvalOwner(userInfo, evaluation)) {
-				return false;
-			}
-		} else {
-			throw new NotFoundException("Unexpected object type: "+subjectId.getType());
-		}
-		return true;
+		return isACTTeamMemberOrAdmin(userInfo);
 	}
 
 	@Override

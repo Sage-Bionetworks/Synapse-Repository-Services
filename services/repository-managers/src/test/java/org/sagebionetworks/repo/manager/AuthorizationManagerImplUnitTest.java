@@ -225,39 +225,6 @@ public class AuthorizationManagerImplUnitTest {
 		assertFalse(authorizationManager.isACTTeamMemberOrAdmin(userInfo));
 	}
 
-	@Test
-	public void testVerifyACTTeamMembershipOrCanCreateOrEdit_isAdmin() throws Exception {
-		List<String> ids = new ArrayList<String>(Arrays.asList(new String[]{"101"}));
-		assertTrue(authorizationManager.isACTTeamMemberOrCanCreateOrEdit(adminUser, ids));
-	}
-
-	@Test
-	public void testVerifyACTTeamMembershipOrCanCreateOrEdit_ACT() throws Exception {
-		userInfo.getGroups().add(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ACCESS_AND_COMPLIANCE_GROUP.getPrincipalId());
-		List<String> ids = new ArrayList<String>(Arrays.asList(new String[]{"101"}));
-		assertTrue(authorizationManager.isACTTeamMemberOrCanCreateOrEdit(userInfo, ids));
-	}
-
-	@Test
-	public void testVerifyACTTeamMembershipOrCanCreateOrEdit_multiple() throws Exception {
-		List<String> ids = new ArrayList<String>(Arrays.asList(new String[]{"101", "102"}));
-		assertFalse(authorizationManager.isACTTeamMemberOrCanCreateOrEdit(userInfo, ids));
-	}
-
-	@Test
-	public void testVerifyACTTeamMembershipOrCanCreateOrEdit_editAccess() throws Exception {
-		List<String> ids = new ArrayList<String>(Arrays.asList(new String[]{"101"}));
-		when(mockEntityPermissionsManager.hasAccess(eq("101"), any(ACCESS_TYPE.class), eq(userInfo))).thenReturn(true);
-		assertTrue(authorizationManager.isACTTeamMemberOrCanCreateOrEdit(userInfo, ids));
-	}
-
-	@Test
-	public void testVerifyACTTeamMembershipOrCanCreateOrEdit_none() throws Exception {
-		List<String> ids = new ArrayList<String>(Arrays.asList(new String[]{"101"}));
-		when(mockEntityPermissionsManager.hasAccess(eq("101"), any(ACCESS_TYPE.class), eq(userInfo))).thenReturn(false);
-		assertFalse(authorizationManager.isACTTeamMemberOrCanCreateOrEdit(userInfo, ids));
-	}
-
 	private static RestrictableObjectDescriptor createEntitySubjectId() {
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
 		subjectId.setType(RestrictableObjectType.ENTITY);
@@ -321,7 +288,8 @@ public class AuthorizationManagerImplUnitTest {
 		AccessRequirement ar = createEvaluationAccessRequirement();
 		assertFalse(authorizationManager.canAccess(userInfo, ar.getId().toString(), ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE));
 		userInfo.setId(Long.parseLong(EVAL_OWNER_PRINCIPAL_ID));
-		assertTrue(authorizationManager.canAccess(userInfo, ar.getId().toString(), ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE));
+		// only ACT may update an access requirement
+		assertFalse(authorizationManager.canAccess(userInfo, ar.getId().toString(), ObjectType.ACCESS_REQUIREMENT, ACCESS_TYPE.UPDATE));
 	}
 
 	@Test
@@ -337,7 +305,8 @@ public class AuthorizationManagerImplUnitTest {
 		AccessApproval aa = createEvaluationAccessApproval();
 		assertFalse(authorizationManager.canAccess(userInfo, aa.getId().toString(), ObjectType.ACCESS_APPROVAL, ACCESS_TYPE.READ));
 		userInfo.setId(Long.parseLong(EVAL_OWNER_PRINCIPAL_ID));
-		assertTrue(authorizationManager.canAccess(userInfo, aa.getId().toString(), ObjectType.ACCESS_APPROVAL, ACCESS_TYPE.READ));
+		// only ACT may review access approvals
+		assertFalse(authorizationManager.canAccess(userInfo, aa.getId().toString(), ObjectType.ACCESS_APPROVAL, ACCESS_TYPE.READ));
 	}
 
 	@Test
@@ -350,7 +319,8 @@ public class AuthorizationManagerImplUnitTest {
 		assertFalse(authorizationManager.canCreateAccessRequirement(userInfo, ar));
 		// give user edit ability on entity 101
 		when(mockEntityPermissionsManager.hasAccess(eq("101"), any(ACCESS_TYPE.class), eq(userInfo))).thenReturn(true);
-		assertTrue(authorizationManager.canCreateAccessRequirement(userInfo, ar));
+		// only ACT may create access requirements
+		assertFalse(authorizationManager.canCreateAccessRequirement(userInfo, ar));
 	}
 
 	@Test
@@ -364,7 +334,8 @@ public class AuthorizationManagerImplUnitTest {
 	public void testCanAccessEvaluationAccessApprovalsForSubject() throws Exception {
 		assertFalse(authorizationManager.canAccessAccessApprovalsForSubject(userInfo, createEvaluationSubjectId(), ACCESS_TYPE.READ));
 		userInfo.setId(Long.parseLong(EVAL_OWNER_PRINCIPAL_ID));
-		assertTrue(authorizationManager.canAccessAccessApprovalsForSubject(userInfo, createEvaluationSubjectId(), ACCESS_TYPE.READ));
+		// only ACT may review access approvals
+		assertFalse(authorizationManager.canAccessAccessApprovalsForSubject(userInfo, createEvaluationSubjectId(), ACCESS_TYPE.READ));
 	}
 	
 	@Test
