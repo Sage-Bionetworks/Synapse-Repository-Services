@@ -6,7 +6,6 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
-import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeQueryDao;
 import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
@@ -14,6 +13,7 @@ import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -38,10 +38,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	private AuthorizationManager authorizationManager;
 	
 	@Autowired
-	NodeDAO nodeDAO;
-	
-	@Autowired
-	NodeTreeQueryDao nodeTreeQueryDao;
+	NodeDAO nodeDao;
 
 	@Autowired
 	EvaluationDAO evaluationDAO;
@@ -60,12 +57,6 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		this.accessRequirementDAO=accessRequirementDAO;
 		this.authorizationManager=authorizationManager;
 		this.jiraClient=jiraClient;
-	}
-	
-	// for testing
-	@Override
-	public void setNodeTreeQueryDao(NodeTreeQueryDao nodeTreeQueryDao) {
-		this.nodeTreeQueryDao=nodeTreeQueryDao;
 	}
 	
 	public static void validateAccessRequirement(AccessRequirement a) throws InvalidModelException {
@@ -148,9 +139,12 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	@Override
 	public QueryResults<AccessRequirement> getAccessRequirementsForSubject(UserInfo userInfo, RestrictableObjectDescriptor subjectId) throws DatastoreException, NotFoundException {
 		List<String> subjectIds = new ArrayList<String>();
-		subjectIds.add(subjectId.getId());
 		if (RestrictableObjectType.ENTITY==subjectId.getType()) {
-			subjectIds.addAll(nodeTreeQueryDao.getAncestors(subjectId.getId()));
+			for (EntityHeader ancestorHeader : nodeDao.getEntityPath(subjectId.getId())) {
+				subjectIds.add(ancestorHeader.getId());
+			}
+		} else {
+			subjectIds.add(subjectId.getId());			
 		}
 		List<AccessRequirement> ars = accessRequirementDAO.getForSubject(subjectIds, subjectId.getType());
 		QueryResults<AccessRequirement> result = new QueryResults<AccessRequirement>(ars, ars.size());
@@ -164,9 +158,14 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		subjectIds.add(subjectId.getId());
 		List<Long> unmetIds = null;
 		if (RestrictableObjectType.ENTITY==subjectId.getType()) {
-			List<String> nodeAncestorIds = nodeTreeQueryDao.getAncestors(subjectId.getId());
+			List<String> nodeAncestorIds = new ArrayList<String>();
+			for (EntityHeader ancestorHeader : nodeDao.getEntityPath(subjectId.getId())) {
+				// we omit 'subjectId' itself from the ancestor list
+				if (!ancestorHeader.getId().equals(subjectId.getId())) 
+					nodeAncestorIds.add(ancestorHeader.getId());
+			}
 			unmetIds = AccessRequirementUtil.unmetAccessRequirementIdsForEntity(
-				userInfo, subjectId.getId(), nodeAncestorIds, nodeDAO, accessRequirementDAO);
+				userInfo, subjectId.getId(), nodeAncestorIds, nodeDao, accessRequirementDAO);
 			subjectIds.addAll(nodeAncestorIds);
 		} else if (RestrictableObjectType.EVALUATION==subjectId.getType()) {
 			unmetIds = AccessRequirementUtil.unmetAccessRequirementIdsForEvaluation(

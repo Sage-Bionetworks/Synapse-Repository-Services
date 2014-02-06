@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.manager;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -17,7 +16,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeQueryDao;
 import org.sagebionetworks.evaluation.manager.EvaluationManager;
 import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
 import org.sagebionetworks.evaluation.model.Evaluation;
@@ -81,8 +79,6 @@ public class AccessRequirementManagerImplAutoWiredTest {
 	private Evaluation adminEvaluation;
 	
 	private AccessRequirement ar;
-	
-	private NodeTreeQueryDao mockNodeTreeQueryDao;
 
 	@Before
 	public void before() throws Exception {
@@ -132,9 +128,6 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		entityId2 = nodeManager.createNewNode(node, adminUserInfo);
 
 		evaluation2 = newEvaluation("test-name2", adminUserInfo, rootId2);
-		
-		this.mockNodeTreeQueryDao = mock(NodeTreeQueryDao.class);
-		accessRequirementManager.setNodeTreeQueryDao(mockNodeTreeQueryDao);
 	}
 	
 	private Evaluation newEvaluation(String name, UserInfo userInfo, String contentSource) throws NotFoundException {

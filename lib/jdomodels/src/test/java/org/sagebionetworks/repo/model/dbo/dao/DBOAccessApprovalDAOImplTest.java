@@ -52,7 +52,7 @@ public class DBOAccessApprovalDAOImplTest {
 	AccessApprovalDAO accessApprovalDAO;
 		
 	@Autowired
-	NodeDAO nodeDAO;
+	NodeDAO nodeDao;
 	
 	@Autowired
 	EvaluationDAO evaluationDAO;
@@ -88,11 +88,11 @@ public class DBOAccessApprovalDAOImplTest {
 
 		if (node==null) {
 			node = NodeTestUtils.createNew("foo", Long.parseLong(individualGroup.getId()));
-			node.setId( nodeDAO.createNew(node) );
+			node.setId( nodeDao.createNew(node) );
 		};
 		if (node2==null) {
 			node2 = NodeTestUtils.createNew("bar", Long.parseLong(individualGroup.getId()));
-			node2.setId( nodeDAO.createNew(node2) );
+			node2.setId( nodeDao.createNew(node2) );
 		};
 		accessRequirement = DBOAccessRequirementDAOImplTest.newEntityAccessRequirement(individualGroup, node, "foo");
 		accessRequirement = accessRequirementDAO.create(accessRequirement);
@@ -139,12 +139,12 @@ public class DBOAccessApprovalDAOImplTest {
 		if (accessRequirement2!=null && accessRequirement2.getId()!=null) {
 			accessRequirementDAO.delete(accessRequirement2.getId().toString());
 		}
-		if (node!=null && nodeDAO!=null) {
-			nodeDAO.delete(node.getId());
+		if (node!=null && nodeDao!=null) {
+			nodeDao.delete(node.getId());
 			node = null;
 		}
-		if (node2!=null && nodeDAO!=null) {
-			nodeDAO.delete(node2.getId());
+		if (node2!=null && nodeDao!=null) {
+			nodeDao.delete(node2.getId());
 			node2 = null;
 		}
 		if (evaluation!=null && evaluationDAO!=null) {

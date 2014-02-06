@@ -87,9 +87,6 @@ public class AuthorizationManagerImplTest {
 	
 	private List<String> activitiesToDelete;
 	
-	
-	private NodeTreeQueryDao mockNodeTreeQueryDao;
-	
 	private Node createDTO(String name, Long createdBy, Long modifiedBy, String parentId, String activityId) {
 		Node node = new Node();
 		node.setName(name);
@@ -149,9 +146,6 @@ public class AuthorizationManagerImplTest {
 		activitiesToDelete = new ArrayList<String>();
 		
 		nodeList.add(nodeCreatedByTestUser);
-		
-		this.mockNodeTreeQueryDao = mock(NodeTreeQueryDao.class);
-		entityPermissionsManager.setNodeTreeQueryDao(this.mockNodeTreeQueryDao);
 	}
 
 	@After

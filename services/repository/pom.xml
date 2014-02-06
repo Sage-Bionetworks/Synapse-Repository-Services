@@ -25,6 +25,7 @@
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>auth-util</artifactId>
 		</dependency>
+		
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-stackConfiguration</artifactId>

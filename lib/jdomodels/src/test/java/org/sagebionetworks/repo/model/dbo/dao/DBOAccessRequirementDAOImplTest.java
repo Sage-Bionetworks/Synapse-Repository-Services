@@ -50,7 +50,7 @@ public class DBOAccessRequirementDAOImplTest {
 	AccessRequirementDAO accessRequirementDAO;
 
 	@Autowired
-	NodeDAO nodeDAO;
+	NodeDAO nodeDao;
 
 	@Autowired
 	EvaluationDAO evaluationDAO;
@@ -79,11 +79,11 @@ public class DBOAccessRequirementDAOImplTest {
 		// note:  we set up multiple nodes and multiple evaluations to ensure that filtering works
 		if (node==null) {
 			node = NodeTestUtils.createNew("foo", Long.parseLong(individualGroup.getId()));
-			node.setId( nodeDAO.createNew(node) );
+			node.setId( nodeDao.createNew(node) );
 		};
 		if (node2==null) {
 			node2 = NodeTestUtils.createNew("bar", Long.parseLong(individualGroup.getId()));
-			node2.setId( nodeDAO.createNew(node2) );
+			node2.setId( nodeDao.createNew(node2) );
 		};
 		if (evaluation==null) {
 			evaluation = createNewEvaluation("foo", individualGroup.getId(), idGenerator, node.getId());
@@ -121,12 +121,12 @@ public class DBOAccessRequirementDAOImplTest {
 			for (AccessRequirement ar : ars) accessRequirementDAO.delete(ar.getId().toString());
 			ars.clear();
 		}
-		if (node!=null && nodeDAO!=null) {
-			nodeDAO.delete(node.getId());
+		if (node!=null && nodeDao!=null) {
+			nodeDao.delete(node.getId());
 			node = null;
 		}
-		if (node2!=null && nodeDAO!=null) {
-			nodeDAO.delete(node2.getId());
+		if (node2!=null && nodeDao!=null) {
+			nodeDao.delete(node2.getId());
 			node2 = null;
 		}
 		if (evaluation!=null && evaluationDAO!=null) {

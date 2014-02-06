@@ -37,7 +37,7 @@ public class DBOAccessRequirementTest {
 	private IdGenerator idGenerator;
 	
 	@Autowired
-	NodeDAO nodeDAO;
+	NodeDAO nodeDao;
 	
 	private static final String TEST_USER_NAME = "test-user@test.com";
 	
@@ -54,7 +54,7 @@ public class DBOAccessRequirementTest {
 
 		if (node==null) {
 			node = NodeTestUtils.createNew("foo", Long.parseLong(individualGroup.getId()));
-			node.setId( nodeDAO.createNew(node) );
+			node.setId( nodeDao.createNew(node) );
 		};
 		deleteAccessRequirement();
 	}
@@ -72,8 +72,8 @@ public class DBOAccessRequirementTest {
 	@After
 	public void tearDown() throws Exception {
 		deleteAccessRequirement();
-		if (node!=null && nodeDAO!=null) {
-			nodeDAO.delete(node.getId());
+		if (node!=null && nodeDao!=null) {
+			nodeDao.delete(node.getId());
 			node = null;
 		}
 		if (individualGroup != null) {

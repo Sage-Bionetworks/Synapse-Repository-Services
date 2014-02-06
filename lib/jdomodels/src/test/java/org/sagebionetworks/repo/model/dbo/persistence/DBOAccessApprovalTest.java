@@ -34,7 +34,8 @@ public class DBOAccessApprovalTest {
 	UserGroupDAO userGroupDAO;
 	
 	@Autowired
-	NodeDAO nodeDAO;
+	NodeDAO nodeDao;
+	
 	@Autowired
 	private IdGenerator idGenerator;
 	
@@ -55,7 +56,7 @@ public class DBOAccessApprovalTest {
 
 		if (node==null) {
 			node = NodeTestUtils.createNew("foo", Long.parseLong(individualGroup.getId()));
-			node.setId( nodeDAO.createNew(node) );
+			node.setId( nodeDao.createNew(node) );
 		};
 		deleteAccessApproval();
 		deleteAccessRequirement();
@@ -86,8 +87,8 @@ public class DBOAccessApprovalTest {
 	public void tearDown() throws Exception {
 		deleteAccessApproval();
 		deleteAccessRequirement();
-		if (node!=null && nodeDAO!=null) {
-			nodeDAO.delete(node.getId());
+		if (node!=null && nodeDao!=null) {
+			nodeDao.delete(node.getId());
 			node = null;
 		}
 		if (individualGroup != null) {

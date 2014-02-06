@@ -44,7 +44,7 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 	@Autowired
 	private EvaluationDAO evaluationDAO;
 	@Autowired
-	private NodeDAO nodeDAO;
+	private NodeDAO nodeDao;
 	@Autowired
 	private AccessRequirementDAO  accessRequirementDAO;
 	@Autowired

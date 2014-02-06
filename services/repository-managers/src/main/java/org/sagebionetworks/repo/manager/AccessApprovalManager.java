@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.manager;
 
-import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeQueryDao;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -32,10 +31,4 @@ public interface AccessApprovalManager {
 	 *  delete an access approval
 	 */
 	public void deleteAccessApproval(UserInfo userInfo, String AccessApprovalId) throws NotFoundException, DatastoreException, UnauthorizedException;
-
-	/**
-	 * For testing only
-	 * @param nodeTreeQueryDao
-	 */
-	void setNodeTreeQueryDao(NodeTreeQueryDao nodeTreeQueryDao);
 }

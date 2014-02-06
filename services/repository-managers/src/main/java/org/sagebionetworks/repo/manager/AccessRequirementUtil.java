@@ -7,12 +7,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeQueryDao;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -25,7 +23,7 @@ public class AccessRequirementUtil {
 			UserInfo userInfo, 
 			String entityId,
 			List<String> entityAncestorIds,
-			NodeDAO nodeDAO, 
+			NodeDAO nodeDao, 
 			AccessRequirementDAO accessRequirementDAO
 			) throws NotFoundException {
 		List<ACCESS_TYPE> accessTypes = Collections.singletonList(ACCESS_TYPE.DOWNLOAD);
@@ -34,7 +32,7 @@ public class AccessRequirementUtil {
 		// if the user is the owner of the object, then she automatically 
 		// has access to the object and therefore has no unmet access requirements
 		Long principalId = userInfo.getId();
-		Node node = nodeDAO.getNode(entityId);
+		Node node = nodeDao.getNode(entityId);
 		if (node.getCreatedByPrincipalId().equals(principalId)) {
 			return EMPTY_LIST;
 		}
