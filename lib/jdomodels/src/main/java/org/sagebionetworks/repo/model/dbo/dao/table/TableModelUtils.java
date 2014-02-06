@@ -38,6 +38,7 @@ import au.com.bytecode.opencsv.CSVWriter;
 public class TableModelUtils {
 
 	private static final String INVALID_VALUE_TEMPLATE = "Value at [%1$s,%2$s] was not a valid %3$s. %4$s";
+	private static final String TABLE_SEMAPHORE_KEY_TEMPLATE = "TALBE-LOCK-%1$d";
 	/**
 	 * Sets the maximum string length for a string value in a table.
 	 */
@@ -712,5 +713,16 @@ public class TableModelUtils {
 		int maxBytesPerRow = calculateMaxRowSize(models);
 		int neededBytes = rowCount*maxBytesPerRow;
 		return neededBytes <= maxBytesPerRequest;
+	}
+	
+	/**
+	 * This is the key used to gate access to a single table.
+	 * This lock is used both to update the table index and also when a query is run.
+	 * @param tableId
+	 * @return
+	 */
+	public static String getTableSemaphoreKey(String tableId){
+		if(tableId == null) throw new IllegalArgumentException("TableId cannot be null");
+		return String.format(TABLE_SEMAPHORE_KEY_TEMPLATE, KeyFactory.stringToKey(tableId));
 	}
 }

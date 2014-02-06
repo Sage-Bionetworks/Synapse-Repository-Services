@@ -229,6 +229,11 @@
 		<property name="s3Bucket" ref="stackConfiguration.tableRowChangeBucketName"/>
 		<property name="maxBytesPerRequest" ref="stackConfiguration.tableMaxBytesPerRequest"/>
 	</bean>
+	
+	<bean id="tableStatusDAO"
+		class="org.sagebionetworks.repo.model.dbo.dao.table.TableStatusDAOImpl"
+		scope="singleton">
+	</bean>
 
 	<bean id="teamDAO" class="org.sagebionetworks.repo.model.dbo.dao.DBOTeamDAOImpl" scope="singleton"/>
 

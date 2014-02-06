@@ -725,4 +725,10 @@ public class TableModelUtilsTest {
 		assertTrue(TableModelUtils.isRequestWithinMaxBytePerRequest(all, 100, maxBytes));
 		assertFalse(TableModelUtils.isRequestWithinMaxBytePerRequest(all, 101, maxBytes));
 	}
+	
+	@Test
+	public void testGetTableSemaphoreKey(){
+		assertEquals("TALBE-LOCK-123", TableModelUtils.getTableSemaphoreKey("syn123"));
+		assertEquals("TALBE-LOCK-456", TableModelUtils.getTableSemaphoreKey("456"));
+	}
 }
