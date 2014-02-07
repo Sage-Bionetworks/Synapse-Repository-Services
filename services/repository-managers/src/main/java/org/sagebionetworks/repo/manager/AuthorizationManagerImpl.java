@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
-import java.util.Collection;
-import java.util.Map;
+import java.util.List;
 
 import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
@@ -17,15 +16,14 @@ import org.sagebionetworks.repo.model.ActivityDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Reference;
-import org.sagebionetworks.repo.model.RestricableODUtil;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
@@ -36,6 +34,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 public class AuthorizationManagerImpl implements AuthorizationManager {
 
+	@Autowired
+	private NodeDAO nodeDao;
 	@Autowired
 	private AccessRequirementDAO  accessRequirementDAO;
 	@Autowired
@@ -174,17 +174,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	@Override
 	public boolean canCreateAccessRequirement(UserInfo userInfo,
 			AccessRequirement accessRequirement) throws NotFoundException {
-		 Map<RestrictableObjectType, Collection<String>> sortedIds = 
-			 RestricableODUtil.sortByType(accessRequirement.getSubjectIds());
-		Collection<String> entityIds = sortedIds.get(RestrictableObjectType.ENTITY);
-		if (entityIds!=null && entityIds.size()>0) {
-			if (!isACTTeamMemberOrCanCreateOrEdit(userInfo, entityIds)) return false;
-		}
-		Collection<String> evaluationIds = sortedIds.get(RestrictableObjectType.EVALUATION);
-		if (evaluationIds!=null && evaluationIds.size()>0) {
-			if (!canAdministerEvaluation(userInfo, evaluationIds, evaluationDAO)) return false;
-		}
-		return true;
+		return isACTTeamMemberOrAdmin(userInfo);
 	}
 	
 	public boolean isACTTeamMemberOrAdmin(UserInfo userInfo) throws DatastoreException, UnauthorizedException {
@@ -193,65 +183,35 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		return false;
 	}
 
-	public boolean isACTTeamMemberOrCanCreateOrEdit(UserInfo userInfo, Collection<String> entityIds) throws NotFoundException {
-		if (isACTTeamMemberOrAdmin(userInfo)) {
-			return true;
-		}
-		if (entityIds.size()==0) return false;
-		if (entityIds.size()>1) return false;
-		String entityId = entityIds.iterator().next();
-		if (!canAccess(userInfo, entityId, ObjectType. ENTITY, ACCESS_TYPE.CREATE) &&
-				!canAccess(userInfo, entityId, ObjectType. ENTITY, ACCESS_TYPE.UPDATE)) return false;
-		return true;
-	}
-
 	/**
-	 * For Entities, check that user is an administrator or ACT member. 
-	 * For Evaluations, check that user is an administrator or is the creator of the Evaluation
+	 * Check that user is an administrator or ACT member. 
 	 * @param userInfo
 	 * @param accessRequirement
 	 * @throws NotFoundException
 	 */
 	private boolean canAdminAccessRequirement(UserInfo userInfo, AccessRequirement accessRequirement) throws NotFoundException {
-		Map<RestrictableObjectType, Collection<String>> sortedIds = 
-			 RestricableODUtil.sortByType(accessRequirement.getSubjectIds());
-		Collection<String> entityIds = sortedIds.get(RestrictableObjectType.ENTITY);
-		if (entityIds!=null && !entityIds.isEmpty()) {
-			if (!isACTTeamMemberOrAdmin(userInfo)) return false;
-		}
-		Collection<String> evaluationIds = sortedIds.get(RestrictableObjectType.EVALUATION);
-		if (evaluationIds!=null && !evaluationIds.isEmpty()) {
-			if (!canAdministerEvaluation(userInfo, evaluationIds, evaluationDAO)) return false;
-		}	
-		return true;
+		return isACTTeamMemberOrAdmin(userInfo);
+	}
+	
+	/**
+	 * Checks whether the parent (or other ancestors) are subject to access restrictions and, if so, whether 
+	 * userInfo is a member of the ACT.
+	 * 
+	 * @param userInfo
+	 * @param parentId
+	 * @return
+	 */
+	@Override
+	public boolean canMoveEntity(UserInfo userInfo, String parentId) throws NotFoundException {
+		if (isACTTeamMemberOrAdmin(userInfo)) return true;
+		List<String> ancestorIds = AccessRequirementUtil.getNodeAncestorIds(nodeDao, parentId, false);
+		List<AccessRequirement> allRequirementsForSubject = accessRequirementDAO.getForSubject(ancestorIds, RestrictableObjectType.ENTITY);
+		return allRequirementsForSubject.size()==0;
 	}
 	
 	private boolean canAdminAccessApproval(UserInfo userInfo, AccessApproval accessApproval) throws NotFoundException {
 		AccessRequirement accessRequirement = accessRequirementDAO.get(accessApproval.getRequirementId().toString());
 		return canAdminAccessRequirement(userInfo, accessRequirement);
-	}
-
-	/**
-	 * check that user is an administrator or is the creator of the Evaluation
-	 * @param userInfo
-	 * @param evaluationIds
-	 * @param evaluationDAO
-	 * @return
-	 * @throws NotFoundException
-	 * @throws UnauthorizedException
-	 */
-	private static boolean canAdministerEvaluation(
-			UserInfo userInfo, 
-			Collection<String> evaluationIds, 
-			EvaluationDAO evaluationDAO) throws NotFoundException, UnauthorizedException {
-		if (userInfo.isAdmin()) return true;
-		for (String id : evaluationIds) {
-			Evaluation evaluation = evaluationDAO.get(id);
-			if (!isEvalOwner(userInfo, evaluation)) {
-				return false;
-			}
-		}
-		return true;
 	}
 
 	@Override
@@ -269,17 +229,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	@Override
 	public boolean canAccessAccessApprovalsForSubject(UserInfo userInfo,
 			RestrictableObjectDescriptor subjectId, ACCESS_TYPE accessType) throws NotFoundException {
-		if (RestrictableObjectType.ENTITY.equals(subjectId.getType())) {
-			if (!(isACTTeamMemberOrAdmin(userInfo))) return false;
-		} else if (RestrictableObjectType.EVALUATION.equals(subjectId.getType())) {
-			Evaluation evaluation = evaluationDAO.get(subjectId.getId());
-			if (!isEvalOwner(userInfo, evaluation)) {
-				return false;
-			}
-		} else {
-			throw new NotFoundException("Unexpected object type: "+subjectId.getType());
-		}
-		return true;
+		return isACTTeamMemberOrAdmin(userInfo);
 	}
 
 	@Override

@@ -109,9 +109,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 
 		List<String> subjectIds = new ArrayList<String>();
 		if (RestrictableObjectType.ENTITY==subjectId.getType()) {
-			for (EntityHeader ancestorHeader : nodeDao.getEntityPath(subjectId.getId())) {
-				subjectIds.add(ancestorHeader.getId());
-			}
+			subjectIds.addAll(AccessRequirementUtil.getNodeAncestorIds(nodeDao, subjectId.getId(), true));
 		} else {
 			subjectIds.add(subjectId.getId());			
 		}

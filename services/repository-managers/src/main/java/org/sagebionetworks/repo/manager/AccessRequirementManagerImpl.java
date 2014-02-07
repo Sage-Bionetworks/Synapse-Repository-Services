@@ -13,7 +13,6 @@ import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -140,9 +139,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	public QueryResults<AccessRequirement> getAccessRequirementsForSubject(UserInfo userInfo, RestrictableObjectDescriptor subjectId) throws DatastoreException, NotFoundException {
 		List<String> subjectIds = new ArrayList<String>();
 		if (RestrictableObjectType.ENTITY==subjectId.getType()) {
-			for (EntityHeader ancestorHeader : nodeDao.getEntityPath(subjectId.getId())) {
-				subjectIds.add(ancestorHeader.getId());
-			}
+			subjectIds.addAll(AccessRequirementUtil.getNodeAncestorIds(nodeDao, subjectId.getId(), true));
 		} else {
 			subjectIds.add(subjectId.getId());			
 		}
@@ -158,12 +155,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		subjectIds.add(subjectId.getId());
 		List<Long> unmetIds = null;
 		if (RestrictableObjectType.ENTITY==subjectId.getType()) {
-			List<String> nodeAncestorIds = new ArrayList<String>();
-			for (EntityHeader ancestorHeader : nodeDao.getEntityPath(subjectId.getId())) {
-				// we omit 'subjectId' itself from the ancestor list
-				if (!ancestorHeader.getId().equals(subjectId.getId())) 
-					nodeAncestorIds.add(ancestorHeader.getId());
-			}
+			List<String> nodeAncestorIds = AccessRequirementUtil.getNodeAncestorIds(nodeDao, subjectId.getId(), false);
 			unmetIds = AccessRequirementUtil.unmetAccessRequirementIdsForEntity(
 				userInfo, subjectId.getId(), nodeAncestorIds, nodeDao, accessRequirementDAO);
 			subjectIds.addAll(nodeAncestorIds);
