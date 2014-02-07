@@ -1,5 +1,6 @@
 package org.sagebionetworks.table.worker;
 
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Date;
@@ -11,6 +12,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreDao;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
@@ -18,8 +20,12 @@ import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
@@ -50,16 +56,45 @@ public class TableWorker implements Callable<List<Message>> {
 	TableIndexDAO tableIndexDAO;
 	SemaphoreDao semaphoreDao;
 	TableStatusDAO tableStatusDAO;
-	StackConfiguration configuration;
+	boolean featureEnabled;
 	long timeoutMS;
 	
-
 	
+	/**
+	 * This worker has many dependencies.
+	 * 
+	 * @param messages
+	 * @param tableConnectionFactory
+	 * @param tableTruthDAO
+	 * @param columnModelDAO
+	 * @param tableIndexDAO
+	 * @param semaphoreDao
+	 * @param tableStatusDAO
+	 * @param configuration
+	 * @param timeoutMS
+	 */
+	public TableWorker(List<Message> messages,
+			ConnectionFactory tableConnectionFactory,
+			TableRowTruthDAO tableTruthDAO, ColumnModelDAO columnModelDAO,
+			TableIndexDAO tableIndexDAO, SemaphoreDao semaphoreDao,
+			TableStatusDAO tableStatusDAO, StackConfiguration configuration) {
+		super();
+		this.messages = messages;
+		this.tableConnectionFactory = tableConnectionFactory;
+		this.tableTruthDAO = tableTruthDAO;
+		this.columnModelDAO = columnModelDAO;
+		this.tableIndexDAO = tableIndexDAO;
+		this.semaphoreDao = semaphoreDao;
+		this.tableStatusDAO = tableStatusDAO;
+		this.featureEnabled = configuration.getTableEnabled();
+		this.timeoutMS = configuration.getTableWorkerTimeoutMS();
+	}
+
 	@Override
 	public List<Message> call() throws Exception {
 		List<Message> processedMessages = new LinkedList<Message>();
 		// If the feature is disabled then we simply swallow all messages
-		if(!configuration.getTableEnabled()){
+		if(!featureEnabled){
 			return messages;
 		}
 		// process each message
@@ -111,6 +146,13 @@ public class TableWorker implements Callable<List<Message>> {
 
 	}
 	
+	/**
+	 * This is where the table status gets stated and error handling is performed.
+	 * 
+	 * @param tableId
+	 * @param token
+	 * @return
+	 */
 	private State createOrUpdateWhileHoldingLock(String tableId, String token){
 		if(token == null) throw new IllegalArgumentException("This method must only be called while holding the semaphore lock on this table.");
 		long startTime = System.currentTimeMillis();
@@ -132,7 +174,7 @@ public class TableWorker implements Callable<List<Message>> {
 			// If we do not have  connection we can try again later
 			if(connection == null) {
 				// Change the state
-				status.setProgresssMessage("Waiting for a connection to the cluster");
+				status.setProgresssMessage("Waiting for a connection to the cluster...");
 				status.setTotalTimeMS(System.currentTimeMillis() - startTime);
 				status.setState(TableState.PROCESSING);
 				// Save the status
@@ -140,7 +182,7 @@ public class TableWorker implements Callable<List<Message>> {
 				return State.RECOVERABLE_FAILURE;
 			}
 			// This method will do the rest of the work.
-			innerProcessTable(connection, tableId, status);
+			synchIndexWithTable(connection, tableId, status);
 			// We are finished
 			status.setProgresssCurrent(100L);
 			status.setErrorDetails(null);
@@ -170,7 +212,38 @@ public class TableWorker implements Callable<List<Message>> {
 		}
 	}
 
-	private void innerProcessTable(SimpleJdbcTemplate connection, String tableId, TableStatus status){
-		
+	/**
+	 * Synchronizes the table index with the table truth data.
+	 * After the successful completion of this method the table index schema will match the schema of the truth
+	 * and all row changes that have not already been applied will be applied.
+	 * Note: This method will do no work if the index and truth are already synchronized.
+	 * @param connection
+	 * @param tableId
+	 * @param status
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	private void synchIndexWithTable(SimpleJdbcTemplate connection, String tableId, TableStatus status) throws DatastoreException, NotFoundException, IOException{
+		// The first task is to get the table schema in-synch.
+		// Get the current schema of the table.
+		List<ColumnModel> currentSchema = columnModelDAO.getColumnModelsForObject(tableId);
+		// Create or update the table with this schema.
+		tableIndexDAO.createOrUpdateTable(connection, currentSchema, tableId);
+		// Now determine which changes need to be applied to the table
+		Long maxVersion = tableIndexDAO.getMaxVersionForTable(connection, tableId);
+		// List all of the changes
+		List<TableRowChange> changes = tableTruthDAO.listRowSetsKeysForTable(tableId);
+		// Apply any change that has a version number greater than the max version already in the index
+		if(changes != null){
+			for(TableRowChange change: changes){
+				if(change.getRowVersion() > maxVersion){
+					// This is a change that we must apply.
+					RowSet rowSet = tableTruthDAO.getRowSet(tableId, change.getRowVersion());
+					// apply the change to the table
+					tableIndexDAO.createOrUpdateRows(connection, rowSet, currentSchema);
+				}
+			}
+		}
 	}
 }
