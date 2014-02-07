@@ -55,7 +55,9 @@ public class DBOParticipantDataStatusDAOImpl implements ParticipantDataStatusDAO
 				ParticipantDataId dataId = participantDataDescriptorToDataIdMap.get(dataDescriptor.getId());
 				if (dataId != null) {
 					DBOParticipantDataStatus dboDataStatus = dataStatusesMap.get(dataId);
-					status = dboDataStatus.getStatus();
+					if (dboDataStatus != null) {
+						status = dboDataStatus.getStatus();
+					}
 				}
 				if (status == null) {
 					status = new ParticipantDataStatus();
