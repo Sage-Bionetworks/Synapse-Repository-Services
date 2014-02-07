@@ -36,6 +36,8 @@ public class BridgeUrlHelpers extends UrlHelpers {
 
 	public static final String PARTICIPANT_DATA_DESCRIPTOR = "/participantDataDescriptor";
 	public static final String PARTICIPANT_DATA_DESCRIPTOR_ID = "/participantDataDescriptor/{participantDataDescriptorId}";
+	public static final String PARTICIPANT_DATA_DESCRIPTOR_WITH_COLUMNS = "/participantDataDescriptorWithColumns";
+	public static final String PARTICIPANT_DATA_DESCRIPTOR_WITH_COLUMNS_ID = "/participantDataDescriptorWithColumns/{participantDataDescriptorId}";
 	public static final String PARTICIPANT_DATA_COLUMN_DESCRIPTORS = "/participantDataColumnDescriptor";
 	public static final String PARTICIPANT_DATA_COLUMN_DESCRIPTORS_ID = "/participantDataColumnDescriptor/{participantDataDescriptorId}";
 

@@ -10,6 +10,7 @@ import org.sagebionetworks.bridge.BridgeUrlHelpers;
 import org.sagebionetworks.bridge.model.data.ParticipantDataColumnDescriptor;
 import org.sagebionetworks.bridge.model.data.ParticipantDataCurrentRow;
 import org.sagebionetworks.bridge.model.data.ParticipantDataDescriptor;
+import org.sagebionetworks.bridge.model.data.ParticipantDataDescriptorWithColumns;
 import org.sagebionetworks.bridge.model.data.ParticipantDataRow;
 import org.sagebionetworks.bridge.model.data.ParticipantDataStatusList;
 import org.sagebionetworks.bridge.service.BridgeServiceProvider;
@@ -109,7 +110,7 @@ public class ParticipantDataController {
 	}
 
 	/**
-	 * get partitipant data
+	 * get participant data
 	 * 
 	 * @param userId
 	 * @param participantDataDescriptorId
@@ -174,7 +175,7 @@ public class ParticipantDataController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = BridgeUrlHelpers.PARTICIPANT_DATA, method = RequestMethod.GET)
 	public @ResponseBody
-	PaginatedResults<ParticipantDataDescriptor> getUserParticipantDatas(
+	PaginatedResults<ParticipantDataDescriptor> getUserParticipantDataDescriptors(
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) Long userId) throws Exception {
@@ -223,6 +224,17 @@ public class ParticipantDataController {
 		return serviceProvider.getParticipantDataService().getParticipantDataDescriptor(userId, participantDataDescriptorId);
 	}
 
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = BridgeUrlHelpers.PARTICIPANT_DATA_DESCRIPTOR_WITH_COLUMNS_ID, method = RequestMethod.GET)
+	public @ResponseBody
+	ParticipantDataDescriptorWithColumns getParticipantDataDescriptorWithColumns(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) Long userId,
+			@PathVariable String participantDataDescriptorId) throws DatastoreException, NotFoundException,
+			GeneralSecurityException, IOException {
+		return serviceProvider.getParticipantDataService().getParticipantDataDescriptorWithColumns(userId,
+				participantDataDescriptorId);
+	}
+
 	/**
 	 * create all participant data descriptions
 	 * 
@@ -236,7 +248,7 @@ public class ParticipantDataController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = BridgeUrlHelpers.PARTICIPANT_DATA_DESCRIPTOR, method = RequestMethod.GET)
 	public @ResponseBody
-	PaginatedResults<ParticipantDataDescriptor> getAllParticipantDatas(
+	PaginatedResults<ParticipantDataDescriptor> getAllParticipantDataDescriptors(
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) Long userId) throws DatastoreException,

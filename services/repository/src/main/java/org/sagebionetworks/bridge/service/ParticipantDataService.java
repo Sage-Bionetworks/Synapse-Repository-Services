@@ -7,6 +7,7 @@ import java.util.List;
 import org.sagebionetworks.bridge.model.data.ParticipantDataCurrentRow;
 import org.sagebionetworks.bridge.model.data.ParticipantDataColumnDescriptor;
 import org.sagebionetworks.bridge.model.data.ParticipantDataDescriptor;
+import org.sagebionetworks.bridge.model.data.ParticipantDataDescriptorWithColumns;
 import org.sagebionetworks.bridge.model.data.ParticipantDataRow;
 import org.sagebionetworks.bridge.model.data.ParticipantDataStatus;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -51,6 +52,9 @@ public interface ParticipantDataService {
 	
 	public ParticipantDataDescriptor getParticipantDataDescriptor(Long userId, String participantDataId) throws DatastoreException,
 			NotFoundException;
+	
+	public ParticipantDataDescriptorWithColumns getParticipantDataDescriptorWithColumns(Long userId,
+			String participantDataDescriptorId) throws DatastoreException, NotFoundException, GeneralSecurityException, IOException;
 
 	public PaginatedResults<ParticipantDataDescriptor> getAllParticipantDataDescriptors(Long userId, Integer limit, Integer offset)
 			throws DatastoreException, NotFoundException;

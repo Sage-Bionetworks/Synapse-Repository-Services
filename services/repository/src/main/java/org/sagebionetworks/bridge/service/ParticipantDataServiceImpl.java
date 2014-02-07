@@ -10,6 +10,7 @@ import org.sagebionetworks.bridge.model.ParticipantDataId;
 import org.sagebionetworks.bridge.model.data.ParticipantDataColumnDescriptor;
 import org.sagebionetworks.bridge.model.data.ParticipantDataCurrentRow;
 import org.sagebionetworks.bridge.model.data.ParticipantDataDescriptor;
+import org.sagebionetworks.bridge.model.data.ParticipantDataDescriptorWithColumns;
 import org.sagebionetworks.bridge.model.data.ParticipantDataRow;
 import org.sagebionetworks.bridge.model.data.ParticipantDataStatus;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -108,6 +109,14 @@ public class ParticipantDataServiceImpl implements ParticipantDataService {
 		return participantDataDescriptionManager.getParticipantDataDescriptor(userInfo, participantDataId);
 	}
 
+	@Override
+	public ParticipantDataDescriptorWithColumns getParticipantDataDescriptorWithColumns(Long userId,
+			String participantDataId) throws DatastoreException, NotFoundException, GeneralSecurityException,
+			IOException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return participantDataDescriptionManager.getParticipantDataDescriptorWithColumns(userInfo, participantDataId);
+	}
+	
 	@Override
 	public PaginatedResults<ParticipantDataDescriptor> getAllParticipantDataDescriptors(Long userId, Integer limit, Integer offset)
 			throws DatastoreException, NotFoundException {

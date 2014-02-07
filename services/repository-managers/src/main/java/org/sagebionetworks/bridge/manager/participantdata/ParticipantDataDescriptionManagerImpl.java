@@ -7,11 +7,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.sagebionetworks.bridge.model.ParticipantDataDAO;
 import org.sagebionetworks.bridge.model.ParticipantDataDescriptorDAO;
 import org.sagebionetworks.bridge.model.ParticipantDataId;
 import org.sagebionetworks.bridge.model.ParticipantDataStatusDAO;
 import org.sagebionetworks.bridge.model.data.ParticipantDataColumnDescriptor;
 import org.sagebionetworks.bridge.model.data.ParticipantDataDescriptor;
+import org.sagebionetworks.bridge.model.data.ParticipantDataDescriptorWithColumns;
 import org.sagebionetworks.bridge.model.data.ParticipantDataStatus;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;
@@ -33,7 +35,10 @@ public class ParticipantDataDescriptionManagerImpl implements ParticipantDataDes
 
 	@Autowired
 	private ParticipantDataIdMappingManager participantDataMappingManager;
-
+	
+	@Autowired
+	private ParticipantDataDAO participantDataDAO;
+	
 	@Override
 	public ParticipantDataDescriptor createParticipantDataDescriptor(UserInfo userInfo, ParticipantDataDescriptor participantDataDescriptor) {
 		return participantDataDescriptorDAO.createParticipantDataDescriptor(participantDataDescriptor);
@@ -49,6 +54,35 @@ public class ParticipantDataDescriptionManagerImpl implements ParticipantDataDes
 	public ParticipantDataDescriptor getParticipantDataDescriptor(UserInfo userInfo, String participantDataId) throws DatastoreException,
 			NotFoundException {
 		return participantDataDescriptorDAO.getParticipantDataDescriptor(participantDataId);
+	}
+	
+	@Override
+	public ParticipantDataDescriptorWithColumns getParticipantDataDescriptorWithColumns(UserInfo userInfo,
+			String participantDataDescriptorId) throws DatastoreException, NotFoundException, GeneralSecurityException,
+			IOException {
+		ParticipantDataDescriptor descriptor = participantDataDescriptorDAO
+				.getParticipantDataDescriptor(participantDataDescriptorId);
+		List<ParticipantDataColumnDescriptor> participantDataColumns = participantDataDescriptorDAO
+				.getParticipantDataColumns(participantDataDescriptorId);
+		
+		List<ParticipantDataId> participantDataIds = participantDataMappingManager
+				.mapSynapseUserToParticipantIds(userInfo);
+		ParticipantDataId participantDataId = participantDataDAO.findParticipantForParticipantData(participantDataIds,
+				participantDataDescriptorId);
+		
+		if (participantDataId == null) {
+			// User has never created data for this ParticipantData type, which is not an error, so return empty status
+			ParticipantDataStatus status = new ParticipantDataStatus();
+			status.setParticipantDataDescriptorId(participantDataDescriptorId);
+			descriptor.setStatus(status);
+		} else {
+			ParticipantDataStatus status = participantDataStatusDAO.getParticipantStatus(participantDataId, descriptor);
+			descriptor.setStatus(status);
+		}
+		ParticipantDataDescriptorWithColumns descriptorWithColumns = new ParticipantDataDescriptorWithColumns();
+		descriptorWithColumns.setDescriptor(descriptor);
+		descriptorWithColumns.setColumns(participantDataColumns);
+		return descriptorWithColumns;
 	}
 
 	@Override

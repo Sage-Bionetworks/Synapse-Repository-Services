@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.commons.lang.builder.ToStringBuilder;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -17,6 +18,7 @@ import org.sagebionetworks.bridge.model.data.ParticipantDataColumnDescriptor;
 import org.sagebionetworks.bridge.model.data.ParticipantDataColumnType;
 import org.sagebionetworks.bridge.model.data.ParticipantDataCurrentRow;
 import org.sagebionetworks.bridge.model.data.ParticipantDataDescriptor;
+import org.sagebionetworks.bridge.model.data.ParticipantDataDescriptorWithColumns;
 import org.sagebionetworks.bridge.model.data.ParticipantDataRepeatType;
 import org.sagebionetworks.bridge.model.data.ParticipantDataRow;
 import org.sagebionetworks.bridge.model.data.ParticipantDataStatus;
@@ -338,6 +340,40 @@ public class IT610BridgeData {
 		}
 		assertEquals(size, size2s);
 		assertEquals(level, level2s);
+	}
+	
+	@Test
+	public void testGetParticipantDataDescriptorWithColumnsAndStatus() throws Exception {
+		java.util.Date lastPrompted = new java.util.Date();
+		
+		ParticipantDataDescriptor descriptor = createDescriptor();
+
+		createColumnDescriptor(descriptor, "date", ParticipantDataColumnType.DATETIME);
+		createColumnDescriptor(descriptor, "level", ParticipantDataColumnType.DOUBLE);
+		createColumnDescriptor(descriptor, "size", ParticipantDataColumnType.LONG);
+		
+		// Create some data so status can be updated
+		String[] headers = { "date", "level", "size" };
+		List<ParticipantDataRow> data1 = createRows(headers, null, new Date(10000), 5.5, 400L, null, new Date(20000),
+				6.6, null, null, new Date(30000), 7.7, 200L);
+		bridge.appendParticipantData(descriptor.getId(), data1);
+		
+		ParticipantDataStatusList statuses = new ParticipantDataStatusList();
+		ParticipantDataStatus status = new ParticipantDataStatus();
+		status.setLastEntryComplete(true);
+		status.setLastPrompted(lastPrompted);
+		status.setParticipantDataDescriptorId(descriptor.getId());
+		statuses.setUpdates(Collections.singletonList(status));
+		bridge.sendParticipantDataDescriptorUpdates(statuses);
+		
+		ParticipantDataDescriptorWithColumns descriptorWithColumns = bridge
+				.getParticipantDataDescriptorWithColumns(descriptor.getId());
+		
+		assertEquals(descriptor.getId(), descriptorWithColumns.getDescriptor().getId());
+		assertEquals(3, descriptorWithColumns.getColumns().size());
+		assertEquals("date", descriptorWithColumns.getColumns().get(0).getName());
+		assertEquals(lastPrompted, descriptorWithColumns.getDescriptor().getStatus().getLastPrompted());
+		assertTrue(descriptorWithColumns.getDescriptor().getStatus().getLastEntryComplete());
 	}
 
 	private void createColumnDescriptor(ParticipantDataDescriptor participantDataDescriptor, String columnName,

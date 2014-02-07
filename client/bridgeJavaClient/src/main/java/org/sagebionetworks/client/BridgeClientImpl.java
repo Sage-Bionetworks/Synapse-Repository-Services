@@ -9,6 +9,7 @@ import org.sagebionetworks.bridge.model.Community;
 import org.sagebionetworks.bridge.model.data.ParticipantDataColumnDescriptor;
 import org.sagebionetworks.bridge.model.data.ParticipantDataCurrentRow;
 import org.sagebionetworks.bridge.model.data.ParticipantDataDescriptor;
+import org.sagebionetworks.bridge.model.data.ParticipantDataDescriptorWithColumns;
 import org.sagebionetworks.bridge.model.data.ParticipantDataRow;
 import org.sagebionetworks.bridge.model.data.ParticipantDataStatusList;
 import org.sagebionetworks.bridge.model.timeseries.TimeSeries;
@@ -42,6 +43,7 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 	private static final String PARTICIPANT_DATA_ROW = "/row";
 	private static final String PARTICIPANT_DATA_CURRENT = "/currentParticipantData";
 	private static final String PARTICIPANT_DATA_DESCRIPTOR = "/participantDataDescriptor";
+	private static final String PARTICIPANT_DATA_DESCRIPTOR_WITH_COLUMNS = "/participantDataDescriptorWithColumns";
 	private static final String PARTICIPANT_DATA_COLUMN_DESCRIPTOR = "/participantDataColumnDescriptor";
 	private static final String PARTICIPANT_DATA_DELETE_ROWS = "/deleteRows";
 	private static final String PARTICIPANT = "/participant";
@@ -256,17 +258,24 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 	}
 
 	@Override
-	public PaginatedResults<ParticipantDataDescriptor> getAllParticipantDatas(long limit, long offset) throws SynapseException {
+	public PaginatedResults<ParticipantDataDescriptor> getAllParticipantDataDescriptors(long limit, long offset) throws SynapseException {
 		String uri = PARTICIPANT_DATA_DESCRIPTOR;
 		return getList(uri, ParticipantDataDescriptor.class, limit, offset);
 	}
 
 	@Override
-	public PaginatedResults<ParticipantDataDescriptor> getParticipantDatas(long limit, long offset) throws SynapseException {
+	public PaginatedResults<ParticipantDataDescriptor> getUserParticipantDataDescriptors(long limit, long offset) throws SynapseException {
 		String uri = PARTICIPANT_DATA;
 		return getList(uri, ParticipantDataDescriptor.class, limit, offset);
 	}
 
+	@Override
+	public ParticipantDataDescriptorWithColumns getParticipantDataDescriptorWithColumns(String participantDataDescriptorId)
+			throws SynapseException {
+		String uri = PARTICIPANT_DATA_DESCRIPTOR_WITH_COLUMNS + "/" + participantDataDescriptorId;
+		return get(uri, ParticipantDataDescriptorWithColumns.class);
+	}
+	
 	@Override
 	public ParticipantDataColumnDescriptor createParticipantDataColumnDescriptor(
 			ParticipantDataColumnDescriptor participantDataColumnDescriptor1) throws SynapseException {
