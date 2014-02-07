@@ -14,10 +14,13 @@ import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -40,6 +43,8 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 	private EvaluationDAO evaluationDAO;
 	@Autowired
 	private AuthorizationManager authorizationManager;
+	@Autowired
+	private NodeDAO nodeDao;
 	
 	// check an incoming object (i.e. during 'create' and 'update')
 	private void validateAccessApproval(UserInfo userInfo, AccessApproval a) throws 
@@ -102,7 +107,15 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 			throw new UnauthorizedException("You are not allowed to retrieve access approvals for this subject.");
 		}
 
-		List<AccessRequirement> ars = accessRequirementDAO.getForSubject(subjectId);
+		List<String> subjectIds = new ArrayList<String>();
+		if (RestrictableObjectType.ENTITY==subjectId.getType()) {
+			for (EntityHeader ancestorHeader : nodeDao.getEntityPath(subjectId.getId())) {
+				subjectIds.add(ancestorHeader.getId());
+			}
+		} else {
+			subjectIds.add(subjectId.getId());			
+		}
+		List<AccessRequirement> ars = accessRequirementDAO.getForSubject(subjectIds, subjectId.getType());
 		List<AccessApproval> aas = new ArrayList<AccessApproval>();
 		for (AccessRequirement ar : ars) {
 			aas.addAll(accessApprovalDAO.getForAccessRequirement(ar.getId().toString()));

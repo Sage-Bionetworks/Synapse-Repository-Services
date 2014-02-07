@@ -55,6 +55,4 @@ public interface AccessRequirementManager {
 	public ACTAccessRequirement createLockAccessRequirement(UserInfo userInfo,
 			String entityId) throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException;
-
-	
 }

@@ -29,6 +29,9 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -58,6 +61,9 @@ public class EntityPermissionsManagerImplTest {
 	
 	@Autowired
 	private EntityPermissionsManager entityPermissionsManager;
+	
+	@Autowired
+	private AccessRequirementManager accessRequirementManager;
 
 	private Collection<Node> nodeList = new ArrayList<Node>();
 	private Node project = null;
@@ -68,6 +74,7 @@ public class EntityPermissionsManagerImplTest {
 	private UserInfo userInfo;
 	private UserInfo otherUserInfo;
 	private static Long ownerId;
+	private String arId;
 	
 	private Node createDTO(String name, Long createdBy, Long modifiedBy, String parentId) {
 		Node node = new Node();
@@ -128,6 +135,10 @@ public class EntityPermissionsManagerImplTest {
 		
 		userManager.deletePrincipal(adminUserInfo, userInfo.getId());
 		userManager.deletePrincipal(adminUserInfo, otherUserInfo.getId());
+		
+		if (arId!=null) {
+			accessRequirementManager.deleteAccessRequirement(adminUserInfo, arId);
+		}
 	}
 	
 	@Test
@@ -528,5 +539,38 @@ public class EntityPermissionsManagerImplTest {
 			// The exception should tell us the benefactor
 			assertEquals(expectedBenefactorId, e.getBenefactorId());
 		}	
+	}
+	
+	@Test
+	public void testCanDownload() throws Exception {
+		// baseline:  there is no restriction against downloading this entity
+		assertTrue(entityPermissionsManager.hasAccess(childNode.getId(), ACCESS_TYPE.DOWNLOAD, otherUserInfo));
+		// now create an access requirement on project and child
+		TermsOfUseAccessRequirement ar = new TermsOfUseAccessRequirement();
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId(project.getId());
+		rod.setType(RestrictableObjectType.ENTITY);
+		ar.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod}));
+		ar.setEntityType(ar.getClass().getName());
+		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		ar.setTermsOfUse("foo");
+		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
+		arId = ""+ar.getId();
+		// now we can't download
+		assertFalse(entityPermissionsManager.hasAccess(childNode.getId(), ACCESS_TYPE.DOWNLOAD, otherUserInfo));
+		accessRequirementManager.deleteAccessRequirement(adminUserInfo, arId);
+		arId=null;
+		// back to the baseline
+		assertTrue(entityPermissionsManager.hasAccess(childNode.getId(), ACCESS_TYPE.DOWNLOAD, otherUserInfo));
+		// now add the AR to the child node itself
+		ar.setId(null);
+		ar.setEtag(null);
+		rod.setId(childNode.getId());
+		rod.setType(RestrictableObjectType.ENTITY);
+		ar.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod}));
+		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
+		arId = ""+ar.getId();
+		// again, we can't download
+		assertFalse(entityPermissionsManager.hasAccess(childNode.getId(), ACCESS_TYPE.DOWNLOAD, otherUserInfo));
 	}
 }

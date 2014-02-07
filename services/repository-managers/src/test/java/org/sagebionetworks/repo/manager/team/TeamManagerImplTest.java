@@ -14,6 +14,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -350,6 +351,7 @@ public class TeamManagerImplTest {
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
 		rod.setType(RestrictableObjectType.TEAM);
 		rod.setId(TEAM_ID);
+		List<String> teamIds = Collections.singletonList(TEAM_ID);
 		List<ACCESS_TYPE> accessTypes = new ArrayList<ACCESS_TYPE>();
 		accessTypes.add(ACCESS_TYPE.DOWNLOAD);
 		accessTypes.add(ACCESS_TYPE.PARTICIPATE);
@@ -357,7 +359,7 @@ public class TeamManagerImplTest {
 		for (Long id : userInfo.getGroups()) {
 			principalIds.add(id);
 		}
-		when(mockAccessRequirementDAO.unmetAccessRequirements(rod, principalIds, accessTypes)).thenReturn(unmetAccessRequirementIds);		
+		when(mockAccessRequirementDAO.unmetAccessRequirements(teamIds, RestrictableObjectType.TEAM, principalIds, accessTypes)).thenReturn(unmetAccessRequirementIds);		
 	}
 	
 	@Test

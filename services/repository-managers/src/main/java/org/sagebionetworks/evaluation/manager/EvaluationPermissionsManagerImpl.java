@@ -44,7 +44,7 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 	@Autowired
 	private EvaluationDAO evaluationDAO;
 	@Autowired
-	private NodeDAO nodeDAO;
+	private NodeDAO nodeDao;
 	@Autowired
 	private AccessRequirementDAO  accessRequirementDAO;
 	@Autowired
@@ -208,11 +208,8 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 
 		boolean canAccess = aclDAO.canAccess(userInfo.getGroups(), evalId, ObjectType.EVALUATION, accessType);
 		if (canAccess && (PARTICIPATE.equals(accessType) || SUBMIT.equals(accessType))) {
-			RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
-			rod.setId(evalId);
-			rod.setType(RestrictableObjectType.EVALUATION);
-			List<Long> unmetRequirements = AccessRequirementUtil.unmetAccessRequirementIds(
-					userInfo, rod, null, accessRequirementDAO);
+			List<Long> unmetRequirements = AccessRequirementUtil.unmetAccessRequirementIdsForEvaluation(
+					userInfo, evalId, accessRequirementDAO);
 			canAccess = canAccess && unmetRequirements.isEmpty();
 		}
 		return canAccess;

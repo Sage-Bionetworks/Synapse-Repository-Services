@@ -287,25 +287,6 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 		return MigrationType.ACCESS_REQUIREMENT;
 	}
 	
-	public static AccessRequirement deserializeToTransAccessRequirement(byte[] zippedBytes) throws IOException {
-		if(zippedBytes != null) {
-			ByteArrayInputStream in = new ByteArrayInputStream(zippedBytes);
-			GZIPInputStream unZipper = null;
-			unZipper = new GZIPInputStream(in);
-			try{
-				XStream xstream = new XStream();
-				xstream.alias(ACTAccessRequirement.class.getName(), TransACTAccessRequirement.class);
-				xstream.alias(TermsOfUseAccessRequirement.class.getName(), TransTermsOfUseAccessRequirement.class);
-				if(zippedBytes != null){
-					return (AccessRequirement)xstream.fromXML(unZipper);
-				}
-			}finally{
-				unZipper.close();
-			}			
-		}
-		return null;
-	}
-	
 	public static void copyEntityIdsToAccessRequirement(List<String> entityIds, AccessRequirement ar) {
 		if (entityIds==null) return;
 		if (ar.getSubjectIds()==null) ar.setSubjectIds(new ArrayList<RestrictableObjectDescriptor>());
@@ -316,38 +297,6 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 			if (!ar.getSubjectIds().contains(subjectId)) ar.getSubjectIds().add(subjectId);
 		}	
 	}
-	
-	public static AccessRequirement copyTransAccessRequirementToAccessRequirement(AccessRequirement tar) {
-		AccessRequirement ans = null;
-		if (tar instanceof TransTermsOfUseAccessRequirement) {
-			ans =  new TermsOfUseAccessRequirement();
-		} else if (tar instanceof TransACTAccessRequirement) {
-			ans = new ACTAccessRequirement();
-		} else {
-			throw new IllegalArgumentException("Unexpected type "+tar.getClass());
-		}
-		ans.setAccessType(tar.getAccessType());
-		ans.setCreatedBy(tar.getCreatedBy());
-		ans.setCreatedOn(tar.getCreatedOn());
-		ans.setEntityType(tar.getEntityType());
-		ans.setEtag(tar.getEtag());
-		ans.setId(tar.getId());
-		ans.setModifiedBy(tar.getModifiedBy());
-		ans.setModifiedOn(tar.getModifiedOn());
-		ans.setSubjectIds(tar.getSubjectIds());
-		ans.setUri(tar.getUri());
-		if (tar instanceof TransTermsOfUseAccessRequirement) {
-			TransTermsOfUseAccessRequirement toutar = (TransTermsOfUseAccessRequirement)tar;
-			((TermsOfUseAccessRequirement)ans).setLocationData((toutar).getLocationData());
-			((TermsOfUseAccessRequirement)ans).setTermsOfUse((toutar).getTermsOfUse());
-			copyEntityIdsToAccessRequirement(toutar.getEntityIds(), ans);
-		} else if (tar instanceof TransACTAccessRequirement) {
-			TransACTAccessRequirement acttar = (TransACTAccessRequirement)tar;
-			((ACTAccessRequirement)ans).setActContactInfo((acttar).getActContactInfo());
-			copyEntityIdsToAccessRequirement(acttar.getEntityIds(), ans);
-		}
-		return ans;
-	}
 
 	@Override
 	public MigratableTableTranslation<DBOAccessRequirement, DBOAccessRequirement> getTranslator() {
@@ -356,24 +305,7 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 			@Override
 			public DBOAccessRequirement createDatabaseObjectFromBackup(
 					DBOAccessRequirement backup) {
-				DBOAccessRequirement dbo = new DBOAccessRequirement();
-				dbo.setAccessType(backup.getAccessType());
-				dbo.setCreatedBy(backup.getCreatedBy());
-				dbo.setCreatedOn(backup.getCreatedOn());
-				dbo.setEntityType(backup.getEntityType());
-				dbo.seteTag(backup.geteTag());
-				dbo.setId(backup.getId());
-				dbo.setModifiedBy(backup.getModifiedBy());
-				dbo.setModifiedOn(backup.getModifiedOn());
-				byte[] ser = backup.getSerializedEntity();
-				try {
-					AccessRequirement transAR = deserializeToTransAccessRequirement(ser);
-					AccessRequirement ar = copyTransAccessRequirementToAccessRequirement(transAR);
-					dbo.setSerializedEntity(JDOSecondaryPropertyUtils.compressObject(ar));
-				} catch (IOException e) {
-					throw new RuntimeException(e);
-				}
-				return dbo;
+				return backup;
 			}
 
 			@Override

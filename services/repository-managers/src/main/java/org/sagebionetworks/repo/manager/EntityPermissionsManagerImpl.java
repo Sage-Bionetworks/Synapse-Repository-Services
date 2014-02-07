@@ -7,9 +7,11 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.DOWNLOAD;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.READ;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeQueryDao;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
@@ -19,6 +21,7 @@ import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -44,7 +47,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	@Autowired
 	private UserGroupDAO userGroupDAO;
 	@Autowired
-	private NodeDAO nodeDAO;
+	private NodeDAO nodeDao;
 	@Autowired
 	private AccessControlListDAO aclDAO;
 	@Autowired
@@ -77,7 +80,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 			throw new UnauthorizedException("Not authorized.");
 		}
 		// validate content
-		Long ownerId = nodeDAO.getCreatedBy(acl.getId());
+		Long ownerId = nodeDao.getCreatedBy(acl.getId());
 		PermissionsManagerUtils.validateACLContent(acl, userInfo, ownerId);
 		aclDAO.update(acl, ObjectType.ENTITY);
 		acl = aclDAO.get(acl.getId(), ObjectType.ENTITY);
@@ -95,11 +98,11 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 			throw new UnauthorizedException("Not authorized.");
 		}
 		// validate content
-		Long ownerId = nodeDAO.getCreatedBy(acl.getId());
+		Long ownerId = nodeDao.getCreatedBy(acl.getId());
 		PermissionsManagerUtils.validateACLContent(acl, userInfo, ownerId);
-		Node node = nodeDAO.getNode(rId);
+		Node node = nodeDao.getNode(rId);
 		// Before we can update the ACL we must grab the lock on the node.
-		nodeDAO.lockNodeAndIncrementEtag(node.getId(), node.getETag());
+		nodeDao.lockNodeAndIncrementEtag(node.getId(), node.getETag());
 		// set permissions 'benefactor' for resource and all resource's descendants to resource
 		nodeInheritanceManager.setNodeToInheritFromItself(rId);
 		// persist acl and return
@@ -119,11 +122,11 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		if (!benefactor.equals(rId)) throw new UnauthorizedException("Resource already inherits its permissions.");	
 
 		// if parent is root, than can't inherit, must have own ACL
-		if (nodeDAO.isNodesParentRoot(rId)) throw new UnauthorizedException("Cannot restore inheritance for resource which has no parent.");
+		if (nodeDao.isNodesParentRoot(rId)) throw new UnauthorizedException("Cannot restore inheritance for resource which has no parent.");
 
 		// Before we can update the ACL we must grab the lock on the node.
-		Node node = nodeDAO.getNode(rId);
-		nodeDAO.lockNodeAndIncrementEtag(node.getId(), node.getETag());
+		Node node = nodeDao.getNode(rId);
+		nodeDao.lockNodeAndIncrementEtag(node.getId(), node.getETag());
 		nodeInheritanceManager.setNodeToInheritFromNearestParent(rId);
 		
 		// delete access control list
@@ -144,8 +147,8 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		}
 		
 		// Before we can update the ACL we must grab the lock on the node.
-		Node node = nodeDAO.getNode(parentId);
-		nodeDAO.lockNodeAndIncrementEtag(node.getId(), node.getETag());
+		Node node = nodeDao.getNode(parentId);
+		nodeDao.lockNodeAndIncrementEtag(node.getId(), node.getETag());
 
 		String benefactorId = nodeInheritanceManager.getBenefactor(parentId);
 		applyInheritanceToChildrenHelper(parentId, benefactorId, userInfo);
@@ -157,7 +160,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	private void applyInheritanceToChildrenHelper(final String parentId, final String benefactorId, UserInfo userInfo)
 			throws NotFoundException, DatastoreException, ConflictingUpdateException {
 		// Get all of the child nodes, sorted by id (to prevent deadlock)
-		List<String> children = nodeDAO.getChildrenIdsAsList(parentId);
+		List<String> children = nodeDao.getChildrenIdsAsList(parentId);
 		// Update each node
 		for(String idToChange: children) {
 			// recursively apply to children
@@ -167,8 +170,8 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 				// delete child ACL, if present
 				if (hasLocalACL(idToChange)) {
 					// Before we can update the ACL we must grab the lock on the node.
-					Node node = nodeDAO.getNode(idToChange);
-					nodeDAO.lockNodeAndIncrementEtag(node.getId(), node.getETag());
+					Node node = nodeDao.getNode(idToChange);
+					nodeDao.lockNodeAndIncrementEtag(node.getId(), node.getETag());
 					
 					// delete ACL
 					aclDAO.delete(idToChange, ObjectType.ENTITY);
@@ -238,13 +241,13 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		permissions.setCanView(hasAccess(benefactor, READ, userInfo));
 		permissions.setCanDownload(canDownload(userInfo, entityId));
 
-		Node node = nodeDAO.getNode(entityId);
+		Node node = nodeDao.getNode(entityId);
 		permissions.setOwnerPrincipalId(node.getCreatedByPrincipalId());
 
 		UserInfo anonymousUser = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		permissions.setCanPublicRead(hasAccess(benefactor, READ, anonymousUser));
 
-		final boolean parentIsRoot = nodeDAO.isNodesParentRoot(entityId);
+		final boolean parentIsRoot = nodeDao.isNodesParentRoot(entityId);
 		if (userInfo.isAdmin()) {
 			permissions.setCanEnableInheritance(!parentIsRoot);
 		} else if (AuthorizationUtils.isUserAnonymous(userInfo)) {
@@ -270,11 +273,14 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		if (!agreesToTermsOfUse(userInfo)) return false;
 		
 		// if there are any unmet access requirements return false
-		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
-		rod.setId(nodeId);
-		rod.setType(RestrictableObjectType.ENTITY);
-		List<Long> accessRequirementIds = AccessRequirementUtil.unmetAccessRequirementIds(
-				userInfo, rod, nodeDAO, accessRequirementDAO);
+		List<String> nodeAncestorIds = new ArrayList<String>();
+		for (EntityHeader ancestorHeader : nodeDao.getEntityPath(nodeId)) {
+			// we omit 'nodeId' itself from the ancestor list
+			if (!ancestorHeader.getId().equals(nodeId)) 
+				nodeAncestorIds.add(ancestorHeader.getId());
+		}
+		List<Long> accessRequirementIds = AccessRequirementUtil.unmetAccessRequirementIdsForEntity(
+				userInfo, nodeId, nodeAncestorIds, nodeDao, accessRequirementDAO);
 		return accessRequirementIds.isEmpty();
 	}
 

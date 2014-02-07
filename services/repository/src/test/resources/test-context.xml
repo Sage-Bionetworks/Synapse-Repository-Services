@@ -30,5 +30,4 @@
 	
 	<!-- We don't want to send emails during testing, so we stub out Amazon SES -->
 	<bean id="amazonSESClient" class="org.sagebionetworks.repo.manager.StubAmazonSimpleEmailServiceClient" />
-    
 </beans>

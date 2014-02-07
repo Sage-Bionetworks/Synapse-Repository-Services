@@ -103,7 +103,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String GET_REV_ACTIVITY_ID_SQL = "SELECT "+COL_REVISION_ACTIVITY_ID+" FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE+" = ? AND "+ COL_REVISION_NUMBER +" = ?";
 	private static final String GET_NODE_CREATED_BY_SQL = "SELECT "+COL_NODE_CREATED_BY+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
 	private static final String UPDATE_ETAG_SQL = "UPDATE "+TABLE_NODE+" SET "+COL_NODE_ETAG+" = ? WHERE "+COL_NODE_ID+" = ?";
-	private static final String SQL_SELECT_PARENT_TYPE_NAME = "SELECT "+COL_NODE_PARENT_ID+", "+COL_NODE_TYPE+", "+COL_NODE_NAME+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
+	private static final String SQL_SELECT_PARENT_TYPE_NAME = "SELECT "+COL_NODE_ID+", "+COL_NODE_PARENT_ID+", "+COL_NODE_TYPE+", "+COL_NODE_NAME+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
 	private static final String SQL_GET_ALL_CHILDREN_IDS = "SELECT "+COL_NODE_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" = ? ORDER BY "+COL_NODE_ID;
 	private static final String SQL_SELECT_VERSION_LABEL = "SELECT "+COL_REVISION_LABEL+" FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE+" = ? AND "+ COL_REVISION_NUMBER +" = ?";
 	private static final String NODE_IDS_LIST_PARAM_NAME = "NODE_IDS";
@@ -776,7 +776,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		if(versionNumber != null) {
 			versionLabel = getVersionLabel(nodeId, versionNumber);			
 		}
-		EntityHeader header = createHeaderFromParentTypeName(nodeId, ptn, versionNumber, versionLabel);
+		EntityHeader header = createHeaderFromParentTypeName(ptn, versionNumber, versionLabel);
 		return header;
 	}
 
@@ -802,8 +802,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			Long versionNumber = (Long)row.get(COL_REVISION_NUMBER);
 			String versionLabel = (String)row.get(COL_REVISION_LABEL);
 			ParentTypeName ptn = getParentTypeName(nodeId);
-			String nodeIdStr = KeyFactory.keyToString(nodeId);
-			EntityHeader header = createHeaderFromParentTypeName(nodeIdStr, ptn, versionNumber, versionLabel);
+			EntityHeader header = createHeaderFromParentTypeName(ptn, versionNumber, versionLabel);
 			entityHeaderList.add(header);
 		}
 
@@ -830,10 +829,9 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	 * @param ptn
 	 * @return the entity header
 	 */
-	public static EntityHeader createHeaderFromParentTypeName(String nodeId,
-			ParentTypeName ptn, Long versionNumber, String versionLabel) {
+	public static EntityHeader createHeaderFromParentTypeName(ParentTypeName ptn, Long versionNumber, String versionLabel) {
 		EntityHeader header = new EntityHeader();
-		header.setId(nodeId);
+		header.setId(KeyFactory.keyToString(ptn.getId()));
 		header.setName(ptn.getName());
 		header.setVersionNumber(versionNumber);
 		header.setVersionLabel(versionLabel);
@@ -852,6 +850,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		try{
 			Map<String, Object> row = simpleJdbcTemplate.queryForMap(SQL_SELECT_PARENT_TYPE_NAME, nodeId);
 			ParentTypeName results = new ParentTypeName();
+			results.setId((Long) row.get(COL_NODE_ID));
 			results.setName((String) row.get(COL_NODE_NAME));
 			results.setParentId((Long) row.get(COL_NODE_PARENT_ID));
 			results.setType(((Integer) row.get(COL_NODE_TYPE)).shortValue());
@@ -863,14 +862,69 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	}
 	
 	/**
+	 * returns up to n ancestors of nodeId, ordered from leaf to root and including the given node Id
+	 * 
+	 * @param nodeId
+	 * @param n
+	 * @return
+	 * @throws NotFoundException
+	 */
+	private List<ParentTypeName> getAncestorsPTN(Long nodeId, int depth) throws NotFoundException {
+		if(nodeId == null) throw new IllegalArgumentException("NodeId cannot be null");
+		Map<String, Object> row = simpleJdbcTemplate.queryForMap(nodeAncestorSQL(depth), nodeId);
+		List<ParentTypeName> result = new ArrayList<ParentTypeName>();
+		for (int i=0; i<depth; i++) {
+			Long id = (Long)row.get(COL_NODE_ID+"_"+i);
+			if (id==null) break;
+			ParentTypeName ptn = new ParentTypeName();
+			ptn.setId(id);
+			ptn.setName((String)row.get(COL_NODE_NAME+"_"+i));
+			ptn.setParentId((Long)row.get(COL_NODE_PARENT_ID+"_"+i));
+			ptn.setType(((Integer)row.get(COL_NODE_TYPE+"_"+i)).shortValue());
+			result.add(ptn);
+		}
+		return result;
+	}
+	
+	public static String nodeAncestorSQL(int depth) {
+		if (depth<2) throw new IllegalArgumentException("Depth must be at least 1");
+		StringBuilder sb = new StringBuilder("SELECT ");
+		for (int i=0; i<depth; i++) {
+			if (i>0) sb.append(", ");
+			sb.append("n"+i+"."+COL_NODE_ID+" as "+COL_NODE_ID+"_"+i+", ");
+			sb.append("n"+i+"."+COL_NODE_NAME+" as "+COL_NODE_NAME+"_"+i+", ");
+			sb.append("n"+i+"."+COL_NODE_PARENT_ID+" as "+COL_NODE_PARENT_ID+"_"+i+", ");
+			sb.append("n"+i+"."+COL_NODE_TYPE+" as "+COL_NODE_TYPE+"_"+i);
+		}
+		sb.append(" \nFROM ");
+		sb.append(outerJoinElement(depth-1));
+		sb.append(" \nWHERE \nn0."+COL_NODE_ID+"=?");
+		return sb.toString();
+	}
+	
+	private static String outerJoinElement(int i) {
+		if (i<0) throw new IllegalArgumentException(""+i);
+		if (i==0) return "JDONODE n0";
+		return "("+outerJoinElement(i-1)+") \nLEFT OUTER JOIN JDONODE n"+(i)+" ON n"+(i-1)+".parent_id=n"+(i)+".id";
+	}
+	
+	/**
 	 * Simple structure for three basic pieces of information about a node.
 	 * @author jmhill
 	 *
 	 */
 	public  static class ParentTypeName {
+		Long id;
 		Long parentId;
 		Short type;
 		String name;
+		
+		public Long getId() {
+			return id;
+		}
+		public void setId(Long id) {
+			this.id = id;
+		}
 		public Long getParentId() {
 			return parentId;
 		}
@@ -895,12 +949,13 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	public List<EntityHeader> getEntityPath(String nodeId) throws DatastoreException, NotFoundException {
 		// Call the recursive method
 		LinkedList<EntityHeader> results = new LinkedList<EntityHeader>();
-		appendPath(results, KeyFactory.stringToKey(nodeId));
+		appendPathBatch(results, KeyFactory.stringToKey(nodeId));
 		return results;
 	}
 	
 	/**
 	 * A recursive method to build up the full path of of an entity.
+	 * The first EntityHeader will be the Root Node, and the last EntityHeader will be the requested Node.
 	 * @param results
 	 * @param nodeId
 	 * @throws NotFoundException 
@@ -909,7 +964,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private void appendPath(LinkedList<EntityHeader> results, Long nodeId) throws NotFoundException, DatastoreException{
 		// First Build the entity header for this node
 		ParentTypeName ptn = getParentTypeName(nodeId);
-		EntityHeader header = createHeaderFromParentTypeName(KeyFactory.keyToString(nodeId), ptn, null, null);
+		EntityHeader header = createHeaderFromParentTypeName(ptn, null, null);
 		// Add at the front
 		results.add(0, header);
 		if(ptn.getParentId() != null){
@@ -917,6 +972,32 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			appendPath(results, ptn.getParentId());
 		}
 	}
+	
+	public static final int BATCH_PATH_DEPTH = 5;
+	
+	/**
+	 * A recursive method to build up the full path of of an entity, recursing in batch rather than one 
+	 * node at a time.
+	 * The first EntityHeader in the results will be the Root Node, and the last EntityHeader will be the requested Node.
+	 * @param results
+	 * @param nodeId
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	private void appendPathBatch(LinkedList<EntityHeader> results, Long nodeId) throws NotFoundException, DatastoreException{
+		List<ParentTypeName> ptns = getAncestorsPTN(nodeId, BATCH_PATH_DEPTH); // ordered from leaf to root, length always >=1
+		for (ParentTypeName ptn : ptns) {
+			EntityHeader header = createHeaderFromParentTypeName(ptn, null, null);
+			// Add at the front
+			results.add(0, header);
+		}
+		Long lastParentId = ptns.get(ptns.size()-1).getParentId();
+		if(lastParentId!= null){
+			// Recurse
+			appendPathBatch(results, lastParentId);
+		}
+	}
+	
 
 	@Override
 	public String getNodeIdForPath(String path) throws DatastoreException {

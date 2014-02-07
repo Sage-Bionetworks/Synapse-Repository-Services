@@ -31,10 +31,13 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import java.util.Collections;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -47,7 +50,7 @@ public class DBOAccessRequirementDAOImplTest {
 	AccessRequirementDAO accessRequirementDAO;
 
 	@Autowired
-	NodeDAO nodeDAO;
+	NodeDAO nodeDao;
 
 	@Autowired
 	EvaluationDAO evaluationDAO;
@@ -76,11 +79,11 @@ public class DBOAccessRequirementDAOImplTest {
 		// note:  we set up multiple nodes and multiple evaluations to ensure that filtering works
 		if (node==null) {
 			node = NodeTestUtils.createNew("foo", Long.parseLong(individualGroup.getId()));
-			node.setId( nodeDAO.createNew(node) );
+			node.setId( nodeDao.createNew(node) );
 		};
 		if (node2==null) {
 			node2 = NodeTestUtils.createNew("bar", Long.parseLong(individualGroup.getId()));
-			node2.setId( nodeDAO.createNew(node2) );
+			node2.setId( nodeDao.createNew(node2) );
 		};
 		if (evaluation==null) {
 			evaluation = createNewEvaluation("foo", individualGroup.getId(), idGenerator, node.getId());
@@ -118,12 +121,12 @@ public class DBOAccessRequirementDAOImplTest {
 			for (AccessRequirement ar : ars) accessRequirementDAO.delete(ar.getId().toString());
 			ars.clear();
 		}
-		if (node!=null && nodeDAO!=null) {
-			nodeDAO.delete(node.getId());
+		if (node!=null && nodeDao!=null) {
+			nodeDao.delete(node.getId());
 			node = null;
 		}
-		if (node2!=null && nodeDAO!=null) {
-			nodeDAO.delete(node2.getId());
+		if (node2!=null && nodeDao!=null) {
+			nodeDao.delete(node2.getId());
 			node2 = null;
 		}
 		if (evaluation!=null && evaluationDAO!=null) {
@@ -174,15 +177,14 @@ public class DBOAccessRequirementDAOImplTest {
 			TermsOfUseAccessRequirement accessRequirement = newEntityAccessRequirement(individualGroup, node, "foo_"+i);			
 			ars.add(accessRequirementDAO.create(accessRequirement));
 		}
-		RestrictableObjectDescriptor rod = AccessRequirementUtilsTest.createRestrictableObjectDescriptor(node.getId());
-		List<AccessRequirement> ars2 = accessRequirementDAO.getForSubject(rod);
+		List<AccessRequirement> ars2 = accessRequirementDAO.getForSubject(Collections.singletonList(node.getId()), RestrictableObjectType.ENTITY);
 		assertEquals(ars, ars2);
 		
 		List<Long> principalIds = new ArrayList<Long>();
 		principalIds.add(Long.parseLong(individualGroup.getId()));
 		List<ACCESS_TYPE> downloadAccessType = new ArrayList<ACCESS_TYPE>();
 		downloadAccessType.add(ACCESS_TYPE.DOWNLOAD);
-		List<Long> arIds = accessRequirementDAO.unmetAccessRequirements(rod, principalIds, downloadAccessType);
+		List<Long> arIds = accessRequirementDAO.unmetAccessRequirements(Collections.singletonList(node.getId()), RestrictableObjectType.ENTITY, principalIds, downloadAccessType);
 		for (int i=0; i<ars.size(); i++) {
 			assertEquals(ars.get(i).getId(), arIds.get(i));
 		}
@@ -214,8 +216,7 @@ public class DBOAccessRequirementDAOImplTest {
 				subjectId
 				);
 	}
-	
-		
+			
 	private void testAccessRequirementCRUDIntern(AccessRequirement accessRequirement, RestrictableObjectDescriptor subjectId) throws Exception {
 		long initialCount = accessRequirementDAO.getCount();
 		
@@ -234,10 +235,31 @@ public class DBOAccessRequirementDAOImplTest {
 		assertEquals(accessRequirement, clone);
 				
 		// Get by Node Id
-		Collection<AccessRequirement> ars = accessRequirementDAO.getForSubject(subjectId);
+		Collection<AccessRequirement> ars = accessRequirementDAO.getForSubject(Collections.singletonList(subjectId.getId()), subjectId.getType());
 		assertEquals(1, ars.size());
 		assertEquals(accessRequirement, ars.iterator().next());
-
+		
+		// including an irrelevant  ID in the ID list doesn't change the result
+		List<String> ids = new ArrayList<String>();
+		ids.add(subjectId.getId());
+		ids.add(KeyFactory.keyToString(KeyFactory.stringToKey(subjectId.getId())-100L));
+		ars = accessRequirementDAO.getForSubject(ids, subjectId.getType());
+		assertEquals(1, ars.size());
+		assertEquals(accessRequirement, ars.iterator().next());
+		
+		// check the 'unmet' access requirements
+		List<Long> principalIds = new ArrayList<Long>();
+		principalIds.add(Long.parseLong(individualGroup.getId()));
+		List<Long> arIds = accessRequirementDAO.unmetAccessRequirements(Collections.singletonList(subjectId.getId()), 
+				subjectId.getType(), principalIds, Collections.singletonList(accessRequirement.getAccessType()));
+		assertEquals(1, arIds.size());
+		assertEquals(accessRequirement.getId(), arIds.get(0));
+		// including an irrelevant node ID in the ID list doesn't change the result
+		arIds = accessRequirementDAO.unmetAccessRequirements(ids, 
+				subjectId.getType(), principalIds, Collections.singletonList(accessRequirement.getAccessType()));
+		assertEquals(1, arIds.size());
+		assertEquals(accessRequirement.getId(), arIds.get(0));
+		
 		// update it
 		clone = ars.iterator().next();
 		clone.setAccessType(ACCESS_TYPE.READ);
@@ -255,10 +277,78 @@ public class DBOAccessRequirementDAOImplTest {
 			// We expected this exception
 		}
 
-		// Delete it
+		// Delete the access requirements
 		accessRequirementDAO.delete(accessRequirement.getId().toString());
 		accessRequirementDAO.delete(accessRequirement2.getId().toString());
 
 		assertEquals(initialCount, accessRequirementDAO.getCount());
 	}
+	
+	@Test
+	public void testMultipleNodes() throws Exception {
+		// Create a new object
+		accessRequirement = newEntityAccessRequirement(individualGroup, node, "foo");
+		
+		long initialCount = accessRequirementDAO.getCount();
+		
+		// Create it
+		accessRequirement = accessRequirementDAO.create(accessRequirement);
+		assertNotNull(accessRequirement.getId());
+		
+		assertEquals(1+initialCount, accessRequirementDAO.getCount());
+		
+		accessRequirement2 = newEntityAccessRequirement(individualGroup, node2, "bar");
+		accessRequirement2 = accessRequirementDAO.create(accessRequirement2);		
+		AccessRequirement clone = accessRequirementDAO.get(accessRequirement.getId().toString());
+		assertNotNull(clone);
+		assertEquals(accessRequirement, clone);
+				
+		// retrieve by multiple node ids
+		List<String> nodeIds = new ArrayList<String>();
+		nodeIds.add(node.getId());
+		nodeIds.add(node2.getId());
+		ars = accessRequirementDAO.getForSubject(nodeIds, RestrictableObjectType.ENTITY);
+		assertEquals(2, ars.size());
+		boolean found1 = false;
+		boolean found2 = false;
+		for (AccessRequirement ar : ars) {
+			if (ar.equals(accessRequirement)) found1=true;
+			if (ar.equals(accessRequirement2)) found2=true;
+		}
+		assertTrue(found1);
+		assertTrue(found2);
+
+		// check the 'unmet' access requirements
+		List<Long> principalIds = new ArrayList<Long>();
+		principalIds.add(Long.parseLong(individualGroup.getId()));
+		List<String> ids = new ArrayList<String>();
+		ids.add(node.getId());
+		List<Long> arIds = accessRequirementDAO.unmetAccessRequirements(ids, 
+				RestrictableObjectType.ENTITY, principalIds, 
+				Collections.singletonList(accessRequirement.getAccessType()));
+		assertEquals(1, arIds.size());
+		assertEquals(accessRequirement.getId(), arIds.get(0));
+		
+		// check that it works to retrieve from multiple nodes
+		ids.add(node2.getId());
+		arIds = accessRequirementDAO.unmetAccessRequirements(ids, 
+				RestrictableObjectType.ENTITY, principalIds, 
+				Collections.singletonList(accessRequirement.getAccessType()));
+		assertEquals(2, arIds.size());
+		found1 = false;
+		found2 = false;
+		for (AccessRequirement ar : ars) {
+			if (ar.equals(accessRequirement)) found1=true;
+			if (ar.equals(accessRequirement2)) found2=true;
+		}
+		assertTrue(found1);
+		assertTrue(found2);
+		
+		// Delete the access requirements
+		accessRequirementDAO.delete(accessRequirement.getId().toString());
+		accessRequirementDAO.delete(accessRequirement2.getId().toString());
+
+		assertEquals(initialCount, accessRequirementDAO.getCount());
+	}
+
 }

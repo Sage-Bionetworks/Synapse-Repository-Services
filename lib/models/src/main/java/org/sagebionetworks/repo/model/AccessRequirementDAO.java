@@ -33,7 +33,7 @@ public interface AccessRequirementDAO {
 	 * @return the AccessRequirement objects related to this node
 	 * @throws DatastoreException 
 	 */
-	public List<AccessRequirement> getForSubject(RestrictableObjectDescriptor subject) throws DatastoreException;
+	public List<AccessRequirement> getForSubject(List<String> subjectIds, RestrictableObjectType type) throws DatastoreException;
 	
 	/**
 	 * Updates the 'shallow' properties of an object.
@@ -68,7 +68,7 @@ public interface AccessRequirementDAO {
 	 * @return the AccessRequirement IDs for the given node and given access type which are unmet for ANY of the given principals
 	 * @throws DatastoreException
 	 */
-	List<Long> unmetAccessRequirements(RestrictableObjectDescriptor subject, Collection<Long> principalIds,
+	List<Long> unmetAccessRequirements(List<String> subjectIds, RestrictableObjectType type, Collection<Long> principalIds,
 			Collection<ACCESS_TYPE> accessTypes) throws DatastoreException;
 
 	long getCount() throws DatastoreException;
