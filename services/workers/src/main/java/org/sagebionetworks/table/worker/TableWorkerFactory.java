@@ -5,10 +5,8 @@ import java.util.concurrent.Callable;
 
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageWorkerFactory;
+import org.sagebionetworks.repo.manager.table.TableRowManager;
 import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreDao;
-import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
-import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
-import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.TableIndexDAOImpl;
@@ -23,13 +21,9 @@ public class TableWorkerFactory implements MessageWorkerFactory {
 	@Autowired
 	StackConfiguration configuration;
 	@Autowired
-	TableRowTruthDAO tableTruthDAO;
-	@Autowired
-	ColumnModelDAO columnModelDAO;
-	@Autowired
 	SemaphoreDao semaphoreDao;
 	@Autowired
-	TableStatusDAO tableStatusDAO;
+	TableRowManager tableRowManager;
 	
 	// This class is not currently a bean since it does not need to be.
 	TableIndexDAO tableIndexDAO = new TableIndexDAOImpl();
@@ -37,7 +31,7 @@ public class TableWorkerFactory implements MessageWorkerFactory {
 	
 	@Override
 	public Callable<List<Message>> createWorker(List<Message> messages) {
-		return new TableWorker(messages, tableConnectionFactory, tableTruthDAO, columnModelDAO, tableIndexDAO, semaphoreDao, tableStatusDAO, configuration);
+		return new TableWorker(messages, tableConnectionFactory, tableRowManager, semaphoreDao, tableIndexDAO, configuration);
 	}
 
 }

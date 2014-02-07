@@ -12,6 +12,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
+import org.sagebionetworks.repo.manager.table.TableRowManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreDao;
@@ -51,11 +52,9 @@ public class TableWorker implements Callable<List<Message>> {
 	static private Logger log = LogManager.getLogger(TableWorker.class);
 	List<Message> messages;
 	ConnectionFactory tableConnectionFactory;
-	TableRowTruthDAO tableTruthDAO;
-	ColumnModelDAO columnModelDAO;
-	TableIndexDAO tableIndexDAO;
+	TableRowManager tableRowManager;
 	SemaphoreDao semaphoreDao;
-	TableStatusDAO tableStatusDAO;
+	TableIndexDAO tableIndexDAO;
 	boolean featureEnabled;
 	long timeoutMS;
 	
@@ -75,17 +74,14 @@ public class TableWorker implements Callable<List<Message>> {
 	 */
 	public TableWorker(List<Message> messages,
 			ConnectionFactory tableConnectionFactory,
-			TableRowTruthDAO tableTruthDAO, ColumnModelDAO columnModelDAO,
-			TableIndexDAO tableIndexDAO, SemaphoreDao semaphoreDao,
-			TableStatusDAO tableStatusDAO, StackConfiguration configuration) {
+			TableRowManager tableRowManager, SemaphoreDao semaphoreDao,
+			TableIndexDAO tableIndexDAO, StackConfiguration configuration) {
 		super();
 		this.messages = messages;
 		this.tableConnectionFactory = tableConnectionFactory;
-		this.tableTruthDAO = tableTruthDAO;
-		this.columnModelDAO = columnModelDAO;
-		this.tableIndexDAO = tableIndexDAO;
+		this.tableRowManager = tableRowManager;
 		this.semaphoreDao = semaphoreDao;
-		this.tableStatusDAO = tableStatusDAO;
+		this.tableIndexDAO = tableIndexDAO;
 		this.featureEnabled = configuration.getTableEnabled();
 		this.timeoutMS = configuration.getTableWorkerTimeoutMS();
 	}
@@ -105,7 +101,7 @@ public class TableWorker implements Callable<List<Message>> {
 			if(ObjectType.TABLE == change.getObjectType()){
 				String tableId = change.getObjectId();
 				// this method does the real work.
-				State state = createOrUpdateTable(tableId);
+				State state = createOrUpdateTable(tableId, change.getObjectEtag());
 				if(!State.RECOVERABLE_FAILURE.equals(state)){
 					// Only recoverable failures should remain in the queue.
 					// All other must be removed.
@@ -125,7 +121,7 @@ public class TableWorker implements Callable<List<Message>> {
 	 * @param tableId
 	 * @return
 	 */
-	public State createOrUpdateTable(String tableId){
+	public State createOrUpdateTable(String tableId, String tableEtag){
 		// Only one worker in the cluster must create or update this table at a time
 		String key = TableModelUtils.getTableSemaphoreKey(tableId);
 		String token = semaphoreDao.attemptToAcquireLock(key, timeoutMS);
@@ -137,7 +133,7 @@ public class TableWorker implements Callable<List<Message>> {
 			// We have the lock so proceed with the update.
 			try{
 				// Make a run
-				return createOrUpdateWhileHoldingLock(tableId, token);
+				return createOrUpdateWhileHoldingLock(tableId, token, tableEtag);
 			}finally{
 				// unconditionally release the lock.
 				semaphoreDao.releaseLock(key, token);
@@ -153,7 +149,7 @@ public class TableWorker implements Callable<List<Message>> {
 	 * @param token
 	 * @return
 	 */
-	private State createOrUpdateWhileHoldingLock(String tableId, String token){
+	private State createOrUpdateWhileHoldingLock(String tableId, String token, String tableEtag){
 		if(token == null) throw new IllegalArgumentException("This method must only be called while holding the semaphore lock on this table.");
 		long startTime = System.currentTimeMillis();
 		// First set the status
@@ -168,7 +164,7 @@ public class TableWorker implements Callable<List<Message>> {
 		// Start the real work
 		try{
 			// Save the status before we start
-			status = tableStatusDAO.createOrUpdateTableStatus(status);
+			status = tableRowManager.updateTableStatus(tableEtag, status);
 			// Try to get a connection.
 			SimpleJdbcTemplate connection = tableConnectionFactory.getConnection(tableId);
 			// If we do not have  connection we can try again later
@@ -178,7 +174,7 @@ public class TableWorker implements Callable<List<Message>> {
 				status.setTotalTimeMS(System.currentTimeMillis() - startTime);
 				status.setState(TableState.PROCESSING);
 				// Save the status
-				status = tableStatusDAO.createOrUpdateTableStatus(status);
+				status = tableRowManager.updateTableStatus(tableEtag, status);
 				return State.RECOVERABLE_FAILURE;
 			}
 			// This method will do the rest of the work.
@@ -191,7 +187,7 @@ public class TableWorker implements Callable<List<Message>> {
 			status.setState(TableState.AVAILABLE_FOR_QUERY);
 			status.setTotalTimeMS(System.currentTimeMillis() - startTime);
 			// save the state
-			tableStatusDAO.createOrUpdateTableStatus(status);
+			status = tableRowManager.updateTableStatus(tableEtag, status);
 			return State.SUCCESS;
 		}catch (Exception e){
 			// Failed.
@@ -203,7 +199,7 @@ public class TableWorker implements Callable<List<Message>> {
 			status.setState(TableState.PROCESSING_FAILED);
 			status.setTotalTimeMS(System.currentTimeMillis() - startTime);
 			try {
-				tableStatusDAO.createOrUpdateTableStatus(status);
+				status = tableRowManager.updateTableStatus(tableEtag, status);
 			} catch (Exception e1) {
 				log.error("Failed to update the table and failed to update the table status.", e);
 			}
@@ -227,19 +223,19 @@ public class TableWorker implements Callable<List<Message>> {
 	private void synchIndexWithTable(SimpleJdbcTemplate connection, String tableId, TableStatus status) throws DatastoreException, NotFoundException, IOException{
 		// The first task is to get the table schema in-synch.
 		// Get the current schema of the table.
-		List<ColumnModel> currentSchema = columnModelDAO.getColumnModelsForObject(tableId);
+		List<ColumnModel> currentSchema = tableRowManager.getColumnModelsForTable(tableId);
 		// Create or update the table with this schema.
 		tableIndexDAO.createOrUpdateTable(connection, currentSchema, tableId);
 		// Now determine which changes need to be applied to the table
 		Long maxVersion = tableIndexDAO.getMaxVersionForTable(connection, tableId);
 		// List all of the changes
-		List<TableRowChange> changes = tableTruthDAO.listRowSetsKeysForTable(tableId);
+		List<TableRowChange> changes = tableRowManager.listRowSetsKeysForTable(tableId);
 		// Apply any change that has a version number greater than the max version already in the index
 		if(changes != null){
 			for(TableRowChange change: changes){
 				if(change.getRowVersion() > maxVersion){
 					// This is a change that we must apply.
-					RowSet rowSet = tableTruthDAO.getRowSet(tableId, change.getRowVersion());
+					RowSet rowSet = tableRowManager.getRowSet(tableId, change.getRowVersion());
 					// apply the change to the table
 					tableIndexDAO.createOrUpdateRows(connection, rowSet, currentSchema);
 				}
