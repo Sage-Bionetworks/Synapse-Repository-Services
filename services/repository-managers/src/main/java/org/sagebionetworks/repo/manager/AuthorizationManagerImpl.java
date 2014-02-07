@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
-import java.util.Collection;
-import java.util.Map;
+import java.util.List;
 
 import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
@@ -17,15 +16,14 @@ import org.sagebionetworks.repo.model.ActivityDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Reference;
-import org.sagebionetworks.repo.model.RestricableODUtil;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
@@ -36,6 +34,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 public class AuthorizationManagerImpl implements AuthorizationManager {
 
+	@Autowired
+	private NodeDAO nodeDao;
 	@Autowired
 	private AccessRequirementDAO  accessRequirementDAO;
 	@Autowired
@@ -191,6 +191,22 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	 */
 	private boolean canAdminAccessRequirement(UserInfo userInfo, AccessRequirement accessRequirement) throws NotFoundException {
 		return isACTTeamMemberOrAdmin(userInfo);
+	}
+	
+	/**
+	 * Checks whether the parent (or other ancestors) are subject to access restrictions and, if so, whether 
+	 * userInfo is a member of the ACT.
+	 * 
+	 * @param userInfo
+	 * @param parentId
+	 * @return
+	 */
+	@Override
+	public boolean canMoveEntity(UserInfo userInfo, String parentId) throws NotFoundException {
+		if (isACTTeamMemberOrAdmin(userInfo)) return true;
+		List<String> ancestorIds = AccessRequirementUtil.getNodeAncestorIds(nodeDao, parentId, false);
+		List<AccessRequirement> allRequirementsForSubject = accessRequirementDAO.getForSubject(ancestorIds, RestrictableObjectType.ENTITY);
+		return allRequirementsForSubject.size()==0;
 	}
 	
 	private boolean canAdminAccessApproval(UserInfo userInfo, AccessApproval accessApproval) throws NotFoundException {

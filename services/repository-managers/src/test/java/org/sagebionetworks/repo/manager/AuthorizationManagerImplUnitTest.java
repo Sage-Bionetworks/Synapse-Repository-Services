@@ -28,6 +28,8 @@ import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ActivityDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Reference;
@@ -35,7 +37,6 @@ import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
@@ -63,7 +64,7 @@ public class AuthorizationManagerImplUnitTest {
 	private UserInfo userInfo;
 	private UserInfo adminUser;
 	private Evaluation evaluation;
-//	private UserGroup actTeam;
+	private NodeDAO mockNodeDao;
 
 	@Before
 	public void setUp() throws Exception {
@@ -77,6 +78,7 @@ public class AuthorizationManagerImplUnitTest {
 		mockEvaluationDAO = mock(EvaluationDAO.class);
 		mockUserGroupDAO = Mockito.mock(UserGroupDAO.class);
 		mockAclDAO = Mockito.mock(AccessControlListDAO.class);
+		mockNodeDao = Mockito.mock(NodeDAO.class);
 
 		authorizationManager = new AuthorizationManagerImpl();
 		ReflectionTestUtils.setField(authorizationManager, "accessRequirementDAO", mockAccessRequirementDAO);
@@ -88,6 +90,7 @@ public class AuthorizationManagerImplUnitTest {
 		ReflectionTestUtils.setField(authorizationManager, "evaluationDAO", mockEvaluationDAO);
 		ReflectionTestUtils.setField(authorizationManager, "userGroupDAO", mockUserGroupDAO);
 		ReflectionTestUtils.setField(authorizationManager, "aclDAO", mockAclDAO);
+		ReflectionTestUtils.setField(authorizationManager, "nodeDao", mockNodeDao);
 
 		userInfo = new UserInfo(false, USER_PRINCIPAL_ID);
 
@@ -350,5 +353,26 @@ public class AuthorizationManagerImplUnitTest {
 		// otherwise not
 		when(mockAclDAO.canAccess(userInfo.getGroups(), teamId, ObjectType.TEAM, accessType)).thenReturn(false);
 		assertFalse(authorizationManager.canAccess(userInfo, teamId, ObjectType.TEAM, accessType));
+	}
+	
+	@Test
+	public void testCanMoveEntity() throws Exception {
+		String parentId = "syn12345";
+		// mock nodeDao
+		List<EntityHeader> parentAncestors = new ArrayList<EntityHeader>();
+		List<String> ancestorIds = new ArrayList<String>(); // excluding self
+		when(mockNodeDao.getEntityPath(parentId)).thenReturn(parentAncestors);
+		// mock accessRequirementDAO
+		List<AccessRequirement> ars = new ArrayList<AccessRequirement>();
+		when(mockAccessRequirementDAO.getForSubject(ancestorIds, RestrictableObjectType.ENTITY)).thenReturn(ars);
+		// since 'ars' is empty, will return true
+		assertTrue(authorizationManager.canMoveEntity(userInfo, parentId));
+		verify(mockNodeDao).getEntityPath(parentId);
+		verify(mockAccessRequirementDAO).getForSubject(ancestorIds, RestrictableObjectType.ENTITY);
+		// if 'ars' is not empty, will return false
+		ars.add(new TermsOfUseAccessRequirement());
+		assertFalse(authorizationManager.canMoveEntity(userInfo, parentId));
+		// but if the user is an admin, will be true
+		assertTrue(authorizationManager.canMoveEntity(adminUser, parentId));
 	}
 }

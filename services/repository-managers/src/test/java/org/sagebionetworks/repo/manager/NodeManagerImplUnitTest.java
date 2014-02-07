@@ -450,6 +450,7 @@ public class NodeManagerImplUnitTest {
 	@Test
 	public void testUpdateNodeNewParent() throws DatastoreException, NotFoundException {
 		String nodeId = "123";
+		String currentParentId = "246";
 		String authorizedParentId = "456";
 		String unauthorizedParentId = "789";
 		Node node = mock(Node.class);
@@ -459,9 +460,11 @@ public class NodeManagerImplUnitTest {
 		when(node.getNodeType()).thenReturn(EntityType.project.toString());
 		when(node.getName()).thenReturn("some name");
 		when(mockNodeDao.getNode(nodeId)).thenReturn(node);
+		when(mockNodeDao.getParentId(nodeId)).thenReturn(currentParentId);
 		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(nodeId), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.READ))).thenReturn(true);
 		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(nodeId), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.UPDATE))).thenReturn(true);
 		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(unauthorizedParentId), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.CREATE))).thenReturn(false);
+		when(mockAuthManager.canMoveEntity(eq(mockUserInfo), eq(currentParentId))).thenReturn(true);
 		
 		// unauthorized
 		try {
@@ -481,7 +484,18 @@ public class NodeManagerImplUnitTest {
 		
 		// authorized	
 		nodeManager.update(mockUserInfo, node);
-		verify(mockNodeDao).updateNode(node);	
+		verify(mockNodeDao).updateNode(node);
+		
+		// governance restriction on move
+		reset(node);
+		when(mockAuthManager.canMoveEntity(eq(mockUserInfo), eq(currentParentId))).thenReturn(false);
+		try {
+			nodeManager.update(mockUserInfo, node);
+			fail("Should not have allowed update");
+		} catch (UnauthorizedException e) {
+			// expected
+		}
+
 	}
 
 	@Test

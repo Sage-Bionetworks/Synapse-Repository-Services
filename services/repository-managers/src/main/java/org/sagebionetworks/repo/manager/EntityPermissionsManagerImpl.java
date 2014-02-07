@@ -273,12 +273,8 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		if (!agreesToTermsOfUse(userInfo)) return false;
 		
 		// if there are any unmet access requirements return false
-		List<String> nodeAncestorIds = new ArrayList<String>();
-		for (EntityHeader ancestorHeader : nodeDao.getEntityPath(nodeId)) {
-			// we omit 'nodeId' itself from the ancestor list
-			if (!ancestorHeader.getId().equals(nodeId)) 
-				nodeAncestorIds.add(ancestorHeader.getId());
-		}
+		List<String> nodeAncestorIds = AccessRequirementUtil.getNodeAncestorIds(nodeDao, nodeId, false);
+
 		List<Long> accessRequirementIds = AccessRequirementUtil.unmetAccessRequirementIdsForEntity(
 				userInfo, nodeId, nodeAncestorIds, nodeDao, accessRequirementDAO);
 		return accessRequirementIds.isEmpty();

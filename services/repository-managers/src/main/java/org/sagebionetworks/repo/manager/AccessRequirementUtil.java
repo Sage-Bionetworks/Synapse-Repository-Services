@@ -9,6 +9,7 @@ import java.util.Set;
 
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
+import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
@@ -77,6 +78,16 @@ public class AccessRequirementUtil {
 			principalIds.add(ug);
 		}	
 		return accessRequirementDAO.unmetAccessRequirements(teamIds, RestrictableObjectType.TEAM, principalIds, accessTypes);
+	}
+	
+	public static List<String> getNodeAncestorIds(NodeDAO nodeDao, String nodeId, boolean includeNode) throws NotFoundException {
+		List<String> nodeAncestorIds = new ArrayList<String>();
+		for (EntityHeader ancestorHeader : nodeDao.getEntityPath(nodeId)) {
+			// we omit 'subjectId' itself from the ancestor list
+			if (includeNode || !ancestorHeader.getId().equals(nodeId)) 
+				nodeAncestorIds.add(ancestorHeader.getId());
+		}
+		return nodeAncestorIds;
 	}
 
 }
