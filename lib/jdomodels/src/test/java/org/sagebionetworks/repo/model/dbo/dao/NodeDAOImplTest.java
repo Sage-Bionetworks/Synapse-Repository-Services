@@ -1019,9 +1019,23 @@ public class NodeDAOImplTest {
 	// the path is bigger than one batch
 	@Test
 	public void testGetDeepEntityPath() throws Exception {
-		int DEPTH = NodeDAOImpl.BATCH_PATH_DEPTH+2;
-		String[] ids = new String[DEPTH];
-		for (int i=0; i<DEPTH; i++) {
+		testGetEntityPath(NodeDAOImpl.BATCH_PATH_DEPTH+3);
+	}
+	
+	@Test
+	public void testGetDeepEntityPathEdgeCase() throws Exception {
+		testGetEntityPath(NodeDAOImpl.BATCH_PATH_DEPTH*2);
+	}
+	
+	@Test 
+	public void testGetShallowEntityPath() throws Exception {
+		testGetEntityPath(1);
+	}
+	
+	
+	private void testGetEntityPath(int depth) throws NotFoundException {
+		String[] ids = new String[depth];
+		for (int i=0; i<depth; i++) {
 			Node node = privateCreateNew("node_"+i);
 			node.setNodeType(EntityType.project.name());
 			if (i>0) node.setParentId(ids[i-1]);
@@ -1029,17 +1043,17 @@ public class NodeDAOImplTest {
 			assertNotNull(ids[i]);
 			toDelete.add(ids[i]);
 		}
-		EntityHeader[] array = new EntityHeader[DEPTH];
-		for (int i=0; i<DEPTH; i++) {
+		EntityHeader[] array = new EntityHeader[depth];
+		for (int i=0; i<depth; i++) {
 			array[i] = nodeDao.getEntityHeader(ids[i], null);
 			// 'getEntityPath' doesn't retreive version info, so we clear these fields for the sake of comparison
 			array[i].setVersionLabel(null);
 			array[i].setVersionNumber(null);
 		}
-		List<EntityHeader> path = nodeDao.getEntityPath(ids[DEPTH-1]);
+		List<EntityHeader> path = nodeDao.getEntityPath(ids[depth-1]);
 		assertNotNull(path);
-		assertEquals(DEPTH, path.size());
-		for (int i=0; i<DEPTH; i++) {
+		assertEquals(depth, path.size());
+		for (int i=0; i<depth; i++) {
 			assertEquals(array[i], path.get(i));
 		}
 	}
