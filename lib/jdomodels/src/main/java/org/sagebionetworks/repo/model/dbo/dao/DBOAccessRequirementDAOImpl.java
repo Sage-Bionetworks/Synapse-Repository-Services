@@ -121,7 +121,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 
 	@Override
 	public List<Long> unmetAccessRequirements(List<String> subjectIds, RestrictableObjectType subjectType, Collection<Long> principalIds, Collection<ACCESS_TYPE> accessTypes) throws DatastoreException {
-
+		if (subjectIds.isEmpty()) return new ArrayList<Long>();
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_ACCESS_APPROVAL_ACCESSOR_ID, principalIds);
 		List<String> accessTypeStrings = new ArrayList<String>();
@@ -253,6 +253,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	@Override
 	public List<AccessRequirement> getForSubject(List<String> subjectIds, RestrictableObjectType type)  throws DatastoreException {
 		List<AccessRequirement>  dtos = new ArrayList<AccessRequirement>();
+		if (subjectIds.isEmpty()) return dtos;
 		List<Long> subjectIdsAsLong = new ArrayList<Long>();
 		for (String id: subjectIds) {
 			subjectIdsAsLong.add(KeyFactory.stringToKey(id));
