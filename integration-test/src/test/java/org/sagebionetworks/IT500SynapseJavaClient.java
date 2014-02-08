@@ -352,7 +352,7 @@ public class IT500SynapseJavaClient {
 		ar.setEntityType(ar.getClass().getName());
 		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		ar.setTermsOfUse("play nice");
-		ar = synapseOne.createAccessRequirement(ar);
+		ar = adminSynapse.createAccessRequirement(ar);
 		accessRequirementsToDelete.add(ar.getId());
 		
 		UserProfile otherProfile = synapseOne.getMyProfile();
@@ -754,7 +754,7 @@ public class IT500SynapseJavaClient {
 
 		r.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		r.setTermsOfUse("I promise to be good.");
-		r = synapseOne.createAccessRequirement(r);
+		r = adminSynapse.createAccessRequirement(r);
 		accessRequirementsToDelete.add(r.getId());
 		
 		// check that owner can download
@@ -1347,13 +1347,13 @@ public class IT500SynapseJavaClient {
 		subjectId.setType(RestrictableObjectType.TEAM);
 		subjectId.setId(createdTeam.getId());
 		tou.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{subjectId}));
-		tou = synapseOne.createAccessRequirement(tou);
+		tou = adminSynapse.createAccessRequirement(tou);
 		assertNotNull(tou.getId());
 		accessRequirementsToDelete.add(tou.getId());
 		
 		// Query AccessRestriction
 		VariableContentPaginatedResults<AccessRequirement> paginatedResults;
-		paginatedResults = synapseOne.getAccessRequirements(subjectId);
+		paginatedResults = adminSynapse.getAccessRequirements(subjectId);
 		AccessRequirementUtil.checkTOUlist(paginatedResults, tou);
 		
 		// Query Unmet AccessRestriction
@@ -1366,7 +1366,7 @@ public class IT500SynapseJavaClient {
 		synapseTwo.createAccessApproval(aa);
 		
 		// Query AccessRestriction
-		paginatedResults = synapseOne.getAccessRequirements(subjectId);
+		paginatedResults = adminSynapse.getAccessRequirements(subjectId);
 		AccessRequirementUtil.checkTOUlist(paginatedResults, tou);
 		
 		// Query Unmet AccessRestriction (since the requirement is now met, the list is empty)
