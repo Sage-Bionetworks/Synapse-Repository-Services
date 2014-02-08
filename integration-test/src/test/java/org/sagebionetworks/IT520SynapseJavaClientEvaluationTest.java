@@ -226,13 +226,13 @@ public class IT520SynapseJavaClientEvaluationTest {
 		subjectId.setType(RestrictableObjectType.EVALUATION);
 		subjectId.setId(eval1.getId());
 		tou.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{subjectId}));
-		tou = synapseOne.createAccessRequirement(tou);
+		tou = adminSynapse.createAccessRequirement(tou);
 		assertNotNull(tou.getId());
 		accessRequirementsToDelete.add(tou.getId());
 		
 		// Query AccessRestriction
 		VariableContentPaginatedResults<AccessRequirement> paginatedResults;
-		paginatedResults = synapseTwo.getAccessRequirements(subjectId);
+		paginatedResults = adminSynapse.getAccessRequirements(subjectId);
 		AccessRequirementUtil.checkTOUlist(paginatedResults, tou);
 		
 		// Query Unmet AccessRestriction
@@ -245,7 +245,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		synapseTwo.createAccessApproval(aa);
 		
 		// Query AccessRestriction
-		paginatedResults = synapseTwo.getAccessRequirements(subjectId);
+		paginatedResults = adminSynapse.getAccessRequirements(subjectId);
 		AccessRequirementUtil.checkTOUlist(paginatedResults, tou);
 		
 		// Query Unmet AccessRestriction (since the requirement is now met, the list is empty)
