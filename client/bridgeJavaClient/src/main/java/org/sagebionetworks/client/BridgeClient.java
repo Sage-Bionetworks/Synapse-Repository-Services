@@ -7,6 +7,7 @@ import org.sagebionetworks.bridge.model.Community;
 import org.sagebionetworks.bridge.model.data.ParticipantDataColumnDescriptor;
 import org.sagebionetworks.bridge.model.data.ParticipantDataCurrentRow;
 import org.sagebionetworks.bridge.model.data.ParticipantDataDescriptor;
+import org.sagebionetworks.bridge.model.data.ParticipantDataDescriptorWithColumns;
 import org.sagebionetworks.bridge.model.data.ParticipantDataRow;
 import org.sagebionetworks.bridge.model.data.ParticipantDataStatusList;
 import org.sagebionetworks.bridge.model.timeseries.TimeSeries;
@@ -205,7 +206,7 @@ public interface BridgeClient extends BaseClient {
 	public void updateParticipantDataDescriptor(ParticipantDataDescriptor participantDataDescriptor)
 			throws SynapseException;
 
-	public PaginatedResults<ParticipantDataDescriptor> getAllParticipantDatas(long limit, long offset) throws SynapseException;
+	public PaginatedResults<ParticipantDataDescriptor> getAllParticipantDataDescriptors(long limit, long offset) throws SynapseException;
 
 	/**
 	 * Get participant data descriptors for all data sets for this user
@@ -215,7 +216,9 @@ public interface BridgeClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	public PaginatedResults<ParticipantDataDescriptor> getParticipantDatas(long limit, long offset) throws SynapseException;
+	public PaginatedResults<ParticipantDataDescriptor> getUserParticipantDataDescriptors(long limit, long offset) throws SynapseException;
+	
+	public ParticipantDataDescriptorWithColumns getParticipantDataDescriptorWithColumns(String participantDataDescriptorId) throws SynapseException;
 
 	public ParticipantDataColumnDescriptor createParticipantDataColumnDescriptor(
 			ParticipantDataColumnDescriptor participantDataColumnDescriptor1) throws SynapseException;
