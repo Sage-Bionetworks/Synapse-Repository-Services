@@ -30,4 +30,16 @@ public class TableStatusUtilsTest {
 		assertEquals(dto, clone);
 	}
 
+	@Test
+	public void testAllTypes(){
+		for(TableState state: TableState.values()){
+			TableStatus dto = new TableStatus();
+			dto.setState(state);
+			// to the DBO 
+			DBOTableStatus dbo = TableStatusUtils.createDBOFromDTO(dto);
+			assertNotNull(dbo);
+			TableStatus clone = TableStatusUtils.createDTOFromDBO(dbo);
+			assertEquals(dto, clone);
+		}
+	}
 }

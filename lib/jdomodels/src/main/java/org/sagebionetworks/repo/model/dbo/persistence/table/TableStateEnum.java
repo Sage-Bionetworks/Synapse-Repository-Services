@@ -7,7 +7,6 @@ package org.sagebionetworks.repo.model.dbo.persistence.table;
  *
  */
 public enum TableStateEnum {
-	UNKNOWN,
     AVAILABLE_FOR_QUERY,
     PROCESSING,
     PROCESSING_FAILED;

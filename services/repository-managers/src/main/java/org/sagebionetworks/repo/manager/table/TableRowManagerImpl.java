@@ -53,8 +53,7 @@ public class TableRowManagerImpl implements TableRowManager {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public TableStatus updateTableStatus(String expectedEtag,
-			TableStatus newStatus) throws ConflictingUpdateException {
+	public TableStatus updateTableStatus(String expectedEtag, TableStatus newStatus) throws ConflictingUpdateException {
 		// TODO Auto-generated method stub
 		return null;
 	}
