@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 
@@ -177,6 +178,14 @@ public class ParticipantDataManagerImpl implements ParticipantDataManager {
 		final String datetimeColumnName = dataDescriptor.getDatetimeStartColumnName();
 		if (StringUtils.isEmpty(datetimeColumnName)) {
 			throw new IllegalArgumentException("Data descriptor does not define a date column for timeseries");
+		}
+
+		// filter out data with null date time
+		for (Iterator<ParticipantDataRow> iterator = data.iterator(); iterator.hasNext();) {
+			ParticipantDataRow row = (ParticipantDataRow) iterator.next();
+			if (row.getData().get(datetimeColumnName) == null) {
+				iterator.remove();
+			}
 		}
 
 		// sort timeseries by date always
