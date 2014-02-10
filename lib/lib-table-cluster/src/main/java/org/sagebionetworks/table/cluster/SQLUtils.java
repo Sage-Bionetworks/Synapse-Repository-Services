@@ -1,8 +1,10 @@
 package org.sagebionetworks.table.cluster;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang.StringEscapeUtils;
@@ -10,6 +12,10 @@ import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.RowSet;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
 /**
  * Utilities for generating Table SQL, DML, and DDL.
@@ -20,11 +26,15 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 public class SQLUtils {
 
 	public static final String ROW_ID = "ROW_ID";
+	public static final String ROW_ID_BIND = "bRI";
 	public static final String ROW_VERSION = "ROW_VERSION";
+	public static final String ROW_VERSION_BIND = "bRV";
 	public static final String DEFAULT = "DEFAULT";
 	public static final String TABLE_PREFIX = "T";
 	public static final String COLUMN_PREFIX = "C";
-
+	public static final Integer TRUE_INT = new Integer(1);
+	public static final Integer FALSE_INT = new Integer(0);
+	
 	/**
 	 * Generate the SQL need to create or alter a table from one schema to
 	 * another.
@@ -144,6 +154,37 @@ public class SQLUtils {
 	}
 
 	/**
+	 * Pares the value for insertion into the database.
+	 * @param value
+	 * @param type
+	 * @return
+	 */
+	public static Object parseValueForDB(ColumnType type, String value){
+		if(value == null) return null;
+		if(type == null) throw new IllegalArgumentException("Type cannot be null");
+		try {
+			if(ColumnType.STRING.equals(type)){
+				return value;
+			}else if(ColumnType.DOUBLE.equals(type)){
+				return Double.parseDouble(value);
+			}else if(ColumnType.LONG.equals(type) || ColumnType.FILEHANDLEID.equals(type)){
+				return Long.parseLong(value);
+			}else if (ColumnType.BOOLEAN.equals(type)) {
+				boolean booleanValue = Boolean.parseBoolean(value);
+				if (booleanValue) {
+					return TRUE_INT;
+				} else {
+					return FALSE_INT;
+				}
+			}else{
+				throw new IllegalArgumentException("Unknown Type: "+type);
+			}
+		} catch (NumberFormatException e) {
+			// Convert all parsing errors to illegal args.
+			throw new IllegalArgumentException(e);
+		}
+	}
+	/**
 	 * Generate the Default part of a column definition.
 	 * 
 	 * @param type
@@ -156,30 +197,17 @@ public class SQLUtils {
 			return DEFAULT + " NULL";
 		// Prevent SQL injection attack
 		defaultString = StringEscapeUtils.escapeSql(defaultString);
-		try {
-			if (ColumnType.LONG.equals(type)
-					|| ColumnType.FILEHANDLEID.equals(type)) {
-				// Convert the default to a long
-				Long defaultValue = Long.parseLong(defaultString);
-				return DEFAULT + " " + defaultValue.toString();
-			} else if (ColumnType.STRING.equals(type)) {
-				return DEFAULT + " '" + defaultString + "'";
-			} else if (ColumnType.DOUBLE.equals(type)) {
-				Double doubleValue = Double.parseDouble(defaultString);
-				return DEFAULT + " " + doubleValue.toString();
-			} else if (ColumnType.BOOLEAN.equals(type)) {
-				boolean booleanValue = Boolean.parseBoolean(defaultString);
-				if (booleanValue) {
-					return DEFAULT + " 1";
-				} else {
-					return DEFAULT + " 0";
-				}
-			} else {
-				throw new IllegalArgumentException("Unknown type" + type.name());
-			}
-		} catch (NumberFormatException e) {
-			throw new IllegalArgumentException(e);
+		Object objectValue = parseValueForDB(type, defaultString);
+		StringBuilder builder = new StringBuilder();
+		builder.append(DEFAULT).append(" ");
+		if(ColumnType.STRING.equals(type)){
+			builder.append("'");
 		}
+		builder.append(objectValue.toString());
+		if(ColumnType.STRING.equals(type)){
+			builder.append("'");
+		}
+		return builder.toString();
 	}
 
 	/**
@@ -374,5 +402,106 @@ public class SQLUtils {
 			}
 		}
 		return results;
+	}
+	
+	/**
+	 * Build the create or update statement for inserting rows into a table.
+	 * @param schema
+	 * @param tableId
+	 * @return
+	 */
+	public static String buildCreateOrUpdateRowSQL(List<ColumnModel> schema, String tableId){
+		if(schema == null) throw new IllegalArgumentException("Schema cannot be null");
+		if(schema.size() < 1) throw new IllegalArgumentException("Schema must include at least on column");
+		if(tableId == null) throw new IllegalArgumentException("TableID cannot be null");
+ 		StringBuilder builder = new StringBuilder();
+		builder.append("INSERT INTO ");
+		builder.append(getTableNameForId(tableId));
+		builder.append(" (");
+		// Unconditionally set these two columns
+		builder.append(ROW_ID);
+		builder.append(", ").append(ROW_VERSION);
+		for(ColumnModel cm: schema){
+			builder.append(", ");
+			builder.append(getColumnNameForId(cm.getId()));
+		}
+		builder.append(") VALUES ( :").append(ROW_ID_BIND).append(", :").append(ROW_VERSION_BIND);
+		for(ColumnModel cm: schema){
+			builder.append(", :");
+			builder.append(getColumnNameForId(cm.getId()));
+		}
+		builder.append(") ON DUPLICATE KEY UPDATE ROW_VERSION = :").append(ROW_VERSION_BIND);
+		for(ColumnModel cm: schema){
+			builder.append(", ");
+			String name = getColumnNameForId(cm.getId());
+			builder.append(name);
+			builder.append(" = :").append(name);
+		}
+		return builder.toString();
+	}
+
+	
+	/**
+	 * Build the parameters that will bind the passed RowSet to a SQL statement.
+	 * @param toBind
+	 * @param schema
+	 * @return
+	 */
+	public static SqlParameterSource[] bindParametersForCreateOrUpdate(RowSet toBind, List<ColumnModel> schema){
+		// First we need a mapping from the the schema to the RowSet
+		Map<String, Integer> columnIndexMap = new HashMap<String, Integer>();
+		int index = 0;
+		for (String header : toBind.getHeaders()) {
+			columnIndexMap.put(header, index);
+			index++;
+		}
+		// We will need a binding for every row
+		MapSqlParameterSource[] results = new MapSqlParameterSource[toBind.getRows().size()];
+		int rowIndex = 0;
+		for(Row row: toBind.getRows()){
+			Map<String, Object> rowMap = new HashMap<String, Object>(schema.size()+2);
+			// Always bind the row ID and version
+			if(row.getRowId() == null) throw new IllegalArgumentException("RowID cannot be null");
+			if(row.getVersionNumber() == null) throw new IllegalArgumentException("RowVersionNumber cannot be null");
+			rowMap.put(ROW_ID_BIND, row.getRowId());
+			rowMap.put(ROW_VERSION_BIND, row.getVersionNumber());
+			// Bind each column
+			for(ColumnModel cm: schema){
+				// Lookup the index of this column
+				String columnName = getColumnNameForId(cm.getId());
+				Integer columnIndex = columnIndexMap.get(cm.getId());
+				Object value = null;
+				if(columnIndex == null){
+					// Use the default value for this column
+					value = parseValueForDB(cm.getColumnType(), cm.getDefaultValue());
+				}else{
+					value = parseValueForDB(cm.getColumnType(), row.getValues().get(columnIndex));
+				}
+				rowMap.put(columnName, value);
+			}
+			results[rowIndex] = new MapSqlParameterSource(rowMap);
+			rowIndex++;
+		}
+		return results;
+	}
+	
+	/**
+	 * Create the SQL used to get the max version number from a table.
+	 * @return
+	 */
+	public static String getCountSQL(String tableId){
+		StringBuilder builder = new StringBuilder();
+		builder.append("SELECT COUNT(").append(ROW_ID).append(") FROM ").append(getTableNameForId(tableId));
+		return builder.toString();
+	}
+	
+	/**
+	 * Create the SQL used to get the max version number from a table.
+	 * @return
+	 */
+	public static String getMaxVersionSQL(String tableId){
+		StringBuilder builder = new StringBuilder();
+		builder.append("SELECT MAX(").append(ROW_VERSION).append(") FROM ").append(getTableNameForId(tableId));
+		return builder.toString();
 	}
 }
