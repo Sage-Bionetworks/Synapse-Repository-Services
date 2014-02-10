@@ -57,6 +57,7 @@ import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.CommentDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
@@ -85,7 +86,10 @@ import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
+import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOSessionToken;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -138,6 +142,9 @@ import com.google.common.collect.Lists;
 public class MigrationIntegrationAutowireTest {
 
 	public static final long MAX_WAIT_MS = 10 * 1000; // 10 sec.
+
+	@Autowired
+	private DBOBasicDao basicDao;
 
 	@Autowired
 	private EntityServletTestHelper entityServletHelper;
@@ -278,6 +285,8 @@ public class MigrationIntegrationAutowireTest {
 		UserGroup sampleGroup = createUserGroups(1);
 		createTeamsRequestsAndInvitations(sampleGroup);
 		createCredentials(sampleGroup);
+		createSessionToken(sampleGroup);
+		createTermsOfUseAgreement(sampleGroup);
 		createMessages(sampleGroup, sampleFileHandleId);
 		createColumnModel();
 		UserGroup sampleGroup2 = createUserGroups(2);
@@ -552,6 +561,23 @@ public class MigrationIntegrationAutowireTest {
 		authDAO.changePassword(principalId, "ThisIsMySuperSecurePassword");
 		authDAO.changeSecretKey(principalId);
 		authDAO.changeSessionToken(principalId, null);
+	}
+	
+	private void createSessionToken(UserGroup group) throws Exception {
+		DBOSessionToken token = new DBOSessionToken();
+		token.setDomain(DomainType.SYNAPSE.name());
+		token.setPrincipalId(Long.parseLong(group.getId()));
+		token.setSessionToken(UUID.randomUUID().toString());
+		token.setValidatedOn(new Date());
+		basicDao.createNew(token);
+	}
+	
+	private void createTermsOfUseAgreement(UserGroup group) throws Exception {
+		DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();
+		tou.setPrincipalId(Long.parseLong(group.getId()));
+		tou.setAgreesToTermsOfUse(Boolean.TRUE);
+		tou.setDomain(DomainType.SYNAPSE.name());
+		basicDao.createNew(tou);
 	}
 
 	@SuppressWarnings("serial")
