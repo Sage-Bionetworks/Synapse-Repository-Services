@@ -3287,7 +3287,15 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	
 	@Override
 	public String getSynapseTermsOfUse() throws SynapseException {
-		return getSharedClientConnection().getDataDirect(authEndpoint, "/termsOfUse.html");
+		return getTermsOfUse(DomainType.SYNAPSE);
+	}
+	
+	@Override
+	public String getTermsOfUse(DomainType domain) throws SynapseException {
+		if (domain == null) {
+			throw new IllegalArgumentException("Domain must be specified");
+		}
+		return getSharedClientConnection().getDataDirect(authEndpoint, "/"+domain.name().toLowerCase()+"TermsOfUse.html");
 	}
 
 	/**

@@ -674,6 +674,8 @@ public interface SynapseClient extends BaseClient {
 	
 	public String getSynapseTermsOfUse() throws SynapseException;
 	
+	public String getTermsOfUse(DomainType domain) throws SynapseException;
+	
 	/**
 	 * Uploads a String to S3 using the chunked file upload service
 	 * Note:  Strings in memory should not be large, so we limit the length
