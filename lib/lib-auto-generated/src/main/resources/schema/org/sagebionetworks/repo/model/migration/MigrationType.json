@@ -5,6 +5,8 @@
     	"PRINCIPAL",
     	"GROUP_MEMBERS", 
     	"CREDENTIAL",
+        "TERMS_OF_USE_AGREEMENT",
+        "SESSION_TOKEN",
     	"PRINCIPAL_ALIAS", 
     	"USER_PROFILE",
         "FILE_HANDLE",
