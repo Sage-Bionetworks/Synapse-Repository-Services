@@ -16,11 +16,10 @@ import org.sagebionetworks.repo.manager.table.TableRowManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreDao;
-import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
-import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
-import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
+import org.sagebionetworks.repo.model.exception.LockUnavilableException;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
@@ -53,7 +52,6 @@ public class TableWorker implements Callable<List<Message>> {
 	List<Message> messages;
 	ConnectionFactory tableConnectionFactory;
 	TableRowManager tableRowManager;
-	SemaphoreDao semaphoreDao;
 	TableIndexDAO tableIndexDAO;
 	boolean featureEnabled;
 	long timeoutMS;
@@ -80,7 +78,6 @@ public class TableWorker implements Callable<List<Message>> {
 		this.messages = messages;
 		this.tableConnectionFactory = tableConnectionFactory;
 		this.tableRowManager = tableRowManager;
-		this.semaphoreDao = semaphoreDao;
 		this.tableIndexDAO = tableIndexDAO;
 		this.featureEnabled = configuration.getTableEnabled();
 		this.timeoutMS = configuration.getTableWorkerTimeoutMS();
@@ -98,14 +95,24 @@ public class TableWorker implements Callable<List<Message>> {
 			// Extract the ChangeMessage
 			ChangeMessage change = MessageUtils.extractMessageBody(message);
 			// We only care about entity messages here
-			if(ObjectType.TABLE == change.getObjectType()){
-				String tableId = change.getObjectId();
-				// this method does the real work.
-				State state = createOrUpdateTable(tableId, change.getObjectEtag());
-				if(!State.RECOVERABLE_FAILURE.equals(state)){
-					// Only recoverable failures should remain in the queue.
-					// All other must be removed.
+			if(ObjectType.TABLE.equals((change.getObjectType()))){
+				if(ChangeType.DELETE.equals(change.getChangeType())){
+					// Delete the table in the index
+					SimpleJdbcTemplate connection = tableConnectionFactory.getConnection(change.getObjectId());
+					if(connection != null){
+						tableIndexDAO.deleteTable(connection, change.getObjectId());
+					}
 					processedMessages.add(message);
+				}else{
+					// Create or update.
+					String tableId = change.getObjectId();
+					// this method does the real work.
+					State state = createOrUpdateTable(tableId, change.getObjectEtag());
+					if(!State.RECOVERABLE_FAILURE.equals(state)){
+						// Only recoverable failures should remain in the queue.
+						// All other must be removed.
+						processedMessages.add(message);
+					}
 				}
 			}else{
 				// Non-table messages must be returned so they can be removed from the queue.
@@ -121,25 +128,22 @@ public class TableWorker implements Callable<List<Message>> {
 	 * @param tableId
 	 * @return
 	 */
-	public State createOrUpdateTable(String tableId, String tableEtag){
-		// Only one worker in the cluster must create or update this table at a time
-		String key = TableModelUtils.getTableSemaphoreKey(tableId);
-		String token = semaphoreDao.attemptToAcquireLock(key, timeoutMS);
-		if(token == null){
+	public State createOrUpdateTable(final String tableId, final String tableEtag){
+		// Attempt to run with 
+		try{
+			// Run with the exclusive lock on the table if we can get it.
+			return tableRowManager.runWithTableExclusiveLock(tableId, new Callable<State>() {
+				@Override
+				public State call() throws Exception {
+					// This method does the real work.
+					return createOrUpdateWhileHoldingLock(tableId, tableEtag);
+				}
+			});
+		}catch(LockUnavilableException e){
 			// We did not get the lock on this table.
 			// This is a recoverable failure as we can try again later.
 			return State.RECOVERABLE_FAILURE;
-		}else{
-			// We have the lock so proceed with the update.
-			try{
-				// Make a run
-				return createOrUpdateWhileHoldingLock(tableId, token, tableEtag);
-			}finally{
-				// unconditionally release the lock.
-				semaphoreDao.releaseLock(key, token);
-			}
 		}
-
 	}
 	
 	/**
@@ -149,8 +153,7 @@ public class TableWorker implements Callable<List<Message>> {
 	 * @param token
 	 * @return
 	 */
-	private State createOrUpdateWhileHoldingLock(String tableId, String token, String tableEtag){
-		if(token == null) throw new IllegalArgumentException("This method must only be called while holding the semaphore lock on this table.");
+	private State createOrUpdateWhileHoldingLock(String tableId, String tableEtag){
 		long startTime = System.currentTimeMillis();
 		// First set the status
 		TableStatus status = new TableStatus();

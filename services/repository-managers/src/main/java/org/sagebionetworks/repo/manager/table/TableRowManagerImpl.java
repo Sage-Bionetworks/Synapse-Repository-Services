@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.table;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.Callable;
 
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -13,6 +14,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
+import org.sagebionetworks.repo.model.exception.LockUnavilableException;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
@@ -72,6 +74,20 @@ public class TableRowManagerImpl implements TableRowManager {
 
 	@Override
 	public RowSet getRowSet(String tableId, Long rowVersion) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public <T> T runWithTableExclusiveLock(String tableId, Callable<T> runner)
+			throws LockUnavilableException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public <T> T runWithTableNonexclusiveLock(String tableId, Callable<T> runner)
+			throws LockUnavilableException {
 		// TODO Auto-generated method stub
 		return null;
 	}
