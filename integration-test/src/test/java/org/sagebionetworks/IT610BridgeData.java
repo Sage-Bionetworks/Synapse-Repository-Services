@@ -333,7 +333,7 @@ public class IT610BridgeData {
 		assertEquals(2, level.getRows().get(0).getValues().size());
 		assertEquals(2, level.getRows().get(1).getValues().size());
 		assertEquals(2, level.getRows().get(2).getValues().size());
-		assertEquals(2, level.getDateIndex().intValue());
+		assertEquals(0, level.getDateIndex().intValue());
 		assertEquals(7.7, Double.parseDouble(level.getRows().get(2).getValues().get(1)), 0.0001);
 
 		TimeSeriesTable size = bridge.getTimeSeries(participantDataDescriptor.getId(), Lists.newArrayList("size"));
@@ -342,7 +342,7 @@ public class IT610BridgeData {
 		assertEquals(2, size.getRows().get(0).getValues().size());
 		assertEquals(2, size.getRows().get(1).getValues().size());
 		assertEquals(2, size.getRows().get(2).getValues().size());
-		assertEquals(2, size.getDateIndex().intValue());
+		assertEquals(0, size.getDateIndex().intValue());
 		assertEquals(200.0, Double.parseDouble(size.getRows().get(2).getValues().get(1)), 0.0001);
 
 		TimeSeriesTable namedColumns = bridge.getTimeSeries(participantDataDescriptor.getId(), Lists.newArrayList("level", "size"));
