@@ -1,5 +1,6 @@
 package org.sagebionetworks.bridge.controller;
 
+import java.util.Arrays;
 import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
@@ -18,6 +19,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
+import com.google.common.collect.Lists;
+
 // @ControllerInfo(displayName = "Participant data", path = BridgeUrlHelpers.BASE_V1)
 @Controller
 public class TimeSeriesController {
@@ -31,8 +34,9 @@ public class TimeSeriesController {
 	@RequestMapping(value = BridgeUrlHelpers.TIME_SERIES, method = RequestMethod.GET)
 	public @ResponseBody
 	TimeSeriesTable getTimeSeries(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) Long userId,
-			@RequestParam(value = BridgeUrlHelpers.COLUMNT_NAME, required = false) List<String> columnNames,
+			@RequestParam(value = BridgeUrlHelpers.COLUMNT_NAME, required = false) String[] columnNames,
 			@PathVariable String participantDataDescriptorId) throws Exception {
-		return serviceProvider.getTimeSeriesService().getTimeSeries(userId, participantDataDescriptorId, columnNames);
+		return serviceProvider.getTimeSeriesService().getTimeSeries(userId, participantDataDescriptorId,
+				columnNames == null ? null : Arrays.asList(columnNames));
 	}
 }
