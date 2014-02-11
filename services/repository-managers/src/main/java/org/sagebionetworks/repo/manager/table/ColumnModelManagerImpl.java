@@ -15,6 +15,8 @@ import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.PaginatedIds;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Basic implementation of the ColumnModelManager.
@@ -49,7 +51,8 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 		if(limit > 100) throw new IllegalArgumentException("Limit cannot be greater than 100");
 		if(offset < 0) throw new IllegalArgumentException("Offset cannot be less than zero");
 	}
-
+	
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public ColumnModel createColumnModel(UserInfo user, ColumnModel columnModel) throws UnauthorizedException, DatastoreException, NotFoundException{
 		if(user == null) throw new IllegalArgumentException("User cannot be null");
@@ -76,9 +79,9 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 		return columnModelDao.getColumnModel(ids);
 	}
 	
-
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public boolean bindColumnToObject(UserInfo user, List<String> columnIds,	String objectId) throws DatastoreException, NotFoundException {
+	public boolean bindColumnToObject(UserInfo user, List<String> columnIds, String objectId) throws DatastoreException, NotFoundException {
 		if(user == null) throw new IllegalArgumentException("User cannot be null");
 		if(columnIds == null) throw new IllegalArgumentException("ColumnModel IDs cannot be null");
 		// pass it along to the DAO.

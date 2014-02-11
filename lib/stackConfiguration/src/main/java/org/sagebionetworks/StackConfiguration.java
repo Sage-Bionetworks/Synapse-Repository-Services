@@ -1242,6 +1242,15 @@ public class StackConfiguration {
 		return Integer.parseInt(configuration
 				.getProperty("org.sagebionetworks.table.max.bytes.per.request"));
 	}
+	/**
+	 * The maximum amount of time in MS that the table worker can hold the semaphore
+	 * lock on the table.
+	 * @return
+	 */
+	public long getTableWorkerTimeoutMS() {
+		return Long.parseLong(configuration
+				.getProperty("org.sagebionetworks.table.worker.timeout.ms"));
+	}
 
 	/**
 	 * Get the name of the audit record bucket.

@@ -7,12 +7,11 @@ import java.util.List;
 import org.sagebionetworks.bridge.model.ParticipantDataId;
 import org.sagebionetworks.bridge.model.data.ParticipantDataCurrentRow;
 import org.sagebionetworks.bridge.model.data.ParticipantDataRow;
-import org.sagebionetworks.bridge.model.timeseries.TimeSeries;
-import org.sagebionetworks.bridge.model.timeseries.TimeSeriesCollection;
+import org.sagebionetworks.bridge.model.timeseries.TimeSeriesTable;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface ParticipantDataManager {
@@ -38,9 +37,6 @@ public interface ParticipantDataManager {
 	ParticipantDataRow getDataRow(UserInfo userInfo, String participantDataId, Long rowId) throws DatastoreException, NotFoundException,
 			IOException, GeneralSecurityException;
 
-	TimeSeriesCollection getTimeSeries(UserInfo userInfo, String participantDataId, List<String> columnNames) throws DatastoreException,
+	TimeSeriesTable getTimeSeries(UserInfo userInfo, String participantDataId, List<String> columnNames) throws DatastoreException,
 			NotFoundException, IOException, GeneralSecurityException;
-
-	TimeSeriesCollection getTimeSeries(UserInfo userInfo, String participantDataId, String columnName, String alignBy)
-			throws DatastoreException, NotFoundException, IOException, GeneralSecurityException;
 }

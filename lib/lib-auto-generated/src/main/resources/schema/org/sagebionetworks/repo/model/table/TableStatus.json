@@ -1,0 +1,49 @@
+{
+	"description": "Object used to track the status of a Table.",
+	"properties": {
+		"state": {
+			"type": "string",
+			"description": "The Table's state can be one of the following enumerations",
+			"name": "TableState",
+			"id": "org.sagebionetworks.repo.model.table.TableState",
+			"enum": [
+				"AVAILABLE_FOR_QUERY",
+				"PROCESSING",
+				"PROCESSING_FAILED"
+			]
+		},
+		"tableId": {
+			"type": "string",
+			"description": "The ID of the table."
+		},
+		"changedOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date-time when the status of this table last changed."
+		},
+		"progresssMessage": {
+			"type": "string",
+			"description": "The current message of the progress tracker."
+		},
+		"progresssCurrent": {
+			"type": "integer",
+			"description": "The progress current value indicates how much progress has been made. For example: If progressTotal = 100; and progressCurrent = 50; then the work is 50% complete."
+		},
+		"progresssTotal": {
+			"type": "integer",
+			"description": "The progress total indicates the total amount of work to complete. For example: If progressTotal = 100; and progressCurrent = 50; then the work is 50% complete."
+		},
+		"errorMessage": {
+			"type": "string",
+			"description": "When processing fails, this is a one line error message."
+		},
+		"errorDetails": {
+			"type": "string",
+			"description": "When processing fails, this is the full stack trace of the error."
+		},
+		"totalTimeMS": {
+			"type": "integer",
+			"description": "The total run time (MS) of the last processing job."
+		}
+	}
+}

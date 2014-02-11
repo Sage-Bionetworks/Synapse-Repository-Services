@@ -3,9 +3,10 @@ package org.sagebionetworks.bridge.manager.participantdata;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
-import java.util.Set;
 
 import org.apache.commons.lang.BooleanUtils;
 import org.apache.commons.lang.StringUtils;
@@ -20,9 +21,8 @@ import org.sagebionetworks.bridge.model.data.ParticipantDataStatus;
 import org.sagebionetworks.bridge.model.data.value.ParticipantDataDatetimeValue;
 import org.sagebionetworks.bridge.model.data.value.ParticipantDataValue;
 import org.sagebionetworks.bridge.model.data.value.ValueTranslator;
-import org.sagebionetworks.bridge.model.timeseries.TimeSeries;
-import org.sagebionetworks.bridge.model.timeseries.TimeSeriesCollection;
-import org.sagebionetworks.bridge.model.timeseries.TimeSeriesPoint;
+import org.sagebionetworks.bridge.model.timeseries.TimeSeriesRow;
+import org.sagebionetworks.bridge.model.timeseries.TimeSeriesTable;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.PaginatedResults;
@@ -32,7 +32,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 
 public class ParticipantDataManagerImpl implements ParticipantDataManager {
 
@@ -161,7 +160,7 @@ public class ParticipantDataManagerImpl implements ParticipantDataManager {
 	}
 
 	@Override
-	public TimeSeriesCollection getTimeSeries(UserInfo userInfo, String participantDataDescriptorId, List<String> columnNames)
+	public TimeSeriesTable getTimeSeries(UserInfo userInfo, String participantDataDescriptorId, List<String> columnNamesRequested)
 			throws DatastoreException, NotFoundException, IOException, GeneralSecurityException {
 		List<ParticipantDataId> participantDataIds = participantDataMappingManager.mapSynapseUserToParticipantIds(userInfo);
 		ParticipantDataId participantDataId = participantDataDAO.findParticipantForParticipantData(participantDataIds,
@@ -176,55 +175,73 @@ public class ParticipantDataManagerImpl implements ParticipantDataManager {
 		List<ParticipantDataColumnDescriptor> columns = participantDataDescriptionManager.getColumns(participantDataDescriptorId);
 		List<ParticipantDataRow> data = participantDataDAO.get(participantDataId, participantDataDescriptorId, columns);
 
-		String datetimeColumnName = dataDescriptor.getDatetimeStartColumnName();
+		final String datetimeColumnName = dataDescriptor.getDatetimeStartColumnName();
 		if (StringUtils.isEmpty(datetimeColumnName)) {
 			throw new IllegalArgumentException("Data descriptor does not define a date column for timeseries");
 		}
 
-		TimeSeriesCollection timeSeriesCollection = new TimeSeriesCollection();
-		timeSeriesCollection.setSeries(Lists.<TimeSeries> newArrayListWithCapacity(columns.size()));
+		// filter out data with null date time
+		for (Iterator<ParticipantDataRow> iterator = data.iterator(); iterator.hasNext();) {
+			ParticipantDataRow row = (ParticipantDataRow) iterator.next();
+			if (row.getData().get(datetimeColumnName) == null) {
+				iterator.remove();
+			}
+		}
 
-		Set<String> columnNameSet = columnNames == null ? null : Sets.newHashSet(columnNames);
-		for (ParticipantDataColumnDescriptor column : columns) {
-			if (columnNameSet == null || columnNameSet.contains(column.getName())) {
-				if (!column.getName().equals(datetimeColumnName)) {
-					TimeSeries timeSeries = createTimeSeries(data, datetimeColumnName, column.getName());
-					if (!timeSeries.getSeries().isEmpty()) {
-						timeSeriesCollection.getSeries().add(timeSeries);
+		// sort timeseries by date always
+		Collections.sort(data, new Comparator<ParticipantDataRow>() {
+			@Override
+			public int compare(ParticipantDataRow o1, ParticipantDataRow o2) {
+				return ((ParticipantDataDatetimeValue) o1.getData().get(datetimeColumnName)).getValue().compareTo(
+						((ParticipantDataDatetimeValue) o2.getData().get(datetimeColumnName)).getValue());
+			}
+
+		});
+
+		TimeSeriesTable timeSeriesCollection = new TimeSeriesTable();
+		timeSeriesCollection.setName(dataDescriptor.getName());
+
+		List<String> columnNames;
+		int datetimeColumnIndex;
+		if (columnNamesRequested != null) {
+			columnNames = Lists.newArrayListWithCapacity(columnNamesRequested.size() + 1);
+			datetimeColumnIndex = 0;
+			columnNames.add(datetimeColumnName);
+			columnNames.addAll(columnNamesRequested);
+		} else {
+			columnNames = Lists.newArrayListWithCapacity(columns.size());
+			datetimeColumnIndex = 0;
+			columnNames.add(datetimeColumnName); // datetime column
+			for (ParticipantDataColumnDescriptor column : columns) {
+				if (!column.getName().equals(datetimeColumnName) && ValueTranslator.canBeDouble(column.getColumnType())) {
+					columnNames.add(column.getName());
+				}
+			}
+		}
+
+		timeSeriesCollection.setColumns(columnNames);
+		timeSeriesCollection.setDateIndex((long) datetimeColumnIndex);
+
+		List<TimeSeriesRow> rows = Lists.newArrayListWithExpectedSize(data.size());
+
+		for (ParticipantDataRow row : data) {
+			TimeSeriesRow timeSeriesRow = new TimeSeriesRow();
+			timeSeriesRow.setValues(Lists.<String> newArrayListWithCapacity(columnNames.size()));
+			for (String columnName : columnNames) {
+				String value = null;
+				ParticipantDataValue dataValue = row.getData().get(columnName);
+				if (dataValue != null) {
+					if (dataValue instanceof ParticipantDataDatetimeValue) {
+						value = ((ParticipantDataDatetimeValue) dataValue).getValue().toString();
+					} else {
+						value = ValueTranslator.toDouble(dataValue).toString();
 					}
 				}
+				timeSeriesRow.getValues().add(value);
 			}
+			rows.add(timeSeriesRow);
 		}
+		timeSeriesCollection.setRows(rows);
 		return timeSeriesCollection;
-	}
-
-	@Override
-	public TimeSeriesCollection getTimeSeries(UserInfo userInfo, String participantDataDescriptorNameOrId, String columnName, String alignBy)
-			throws DatastoreException, NotFoundException, IOException, GeneralSecurityException {
-		return null;
-	}
-
-	private TimeSeries createTimeSeries(List<ParticipantDataRow> data, String datetimeColumnName, String columnName) {
-		TimeSeries timeSeries = new TimeSeries();
-		timeSeries.setName(columnName);
-		timeSeries.setSeries(Lists.<TimeSeriesPoint> newArrayListWithCapacity(data.size()));
-		for (ParticipantDataRow row : data) {
-			ParticipantDataValue value = row.getData().get(columnName);
-			if (value != null) {
-				ParticipantDataValue datetimeRawValue = row.getData().get(datetimeColumnName);
-				if (!(datetimeRawValue instanceof ParticipantDataDatetimeValue)) {
-					throw new IllegalArgumentException("Date column for timeseries does not contain date type: "
-							+ datetimeRawValue.getClass().getName());
-				}
-				ParticipantDataDatetimeValue datetimeValue = (ParticipantDataDatetimeValue) datetimeRawValue;
-				if (datetimeValue != null) {
-					TimeSeriesPoint point = new TimeSeriesPoint();
-					point.setDate(datetimeValue.getValue());
-					point.setValue(ValueTranslator.toDouble(value));
-					timeSeries.getSeries().add(point);
-				}
-			}
-		}
-		return timeSeries;
 	}
 }

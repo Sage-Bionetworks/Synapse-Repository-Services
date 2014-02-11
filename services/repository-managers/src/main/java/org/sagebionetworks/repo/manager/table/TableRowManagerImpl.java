@@ -2,17 +2,24 @@ package org.sagebionetworks.repo.manager.table;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.Callable;
 
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
+import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
+import org.sagebionetworks.repo.model.exception.LockUnavilableException;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.TableRowChange;
+import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
@@ -25,6 +32,10 @@ public class TableRowManagerImpl implements TableRowManager {
 
 	@Autowired
 	TableRowTruthDAO tableRowTruthDao;
+	@Autowired
+	TableStatusDAO tableStatusDAO;
+	@Autowired
+	ColumnModelDAO columnModelDAO;
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
@@ -40,6 +51,45 @@ public class TableRowManagerImpl implements TableRowManager {
 		}
 		// Let the DAO do the rest of the work.
 		return tableRowTruthDao.appendRowSetToTable(user.getId().toString(), tableId, models, delta);
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public TableStatus updateTableStatus(String expectedEtag, TableStatus newStatus) throws ConflictingUpdateException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public List<ColumnModel> getColumnModelsForTable(String tableId) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public List<TableRowChange> listRowSetsKeysForTable(String tableId) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public RowSet getRowSet(String tableId, Long rowVersion) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public <T> T runWithTableExclusiveLock(String tableId, Callable<T> runner)
+			throws LockUnavilableException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public <T> T runWithTableNonexclusiveLock(String tableId, Callable<T> runner)
+			throws LockUnavilableException {
+		// TODO Auto-generated method stub
+		return null;
 	}
 	
 

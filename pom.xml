@@ -344,6 +344,11 @@
 			</dependency>
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
+				<artifactId>lib-table-cluster</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.sagebionetworks</groupId>
 				<artifactId>lib-shared-models</artifactId>
 				<version>${project.version}</version>
 			</dependency>
@@ -793,7 +798,7 @@
 		<org.aspectj.version>1.6.10</org.aspectj.version>
 		<org.apache.commons.commons-dbcp.version>1.4
 		</org.apache.commons.commons-dbcp.version>
-		<schema-to-pojo.version>0.3.3</schema-to-pojo.version>
+		<schema-to-pojo.version>0.3.5</schema-to-pojo.version>
 		<org.json.version>20090211</org.json.version>
 		<com.amazonaws.version>1.3.26</com.amazonaws.version>
 		<!-- Note this is the lastest version of clover that our current Atlassian 
