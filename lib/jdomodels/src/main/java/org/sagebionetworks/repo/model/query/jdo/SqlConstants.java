@@ -488,6 +488,19 @@ public class SqlConstants {
 	public static final String COL_SEMAPHORE_EXPIRES	= "EXPIRATION";
 	public static final String DDL_FILE_SEMAPHORE		= "schema/Semaphore-ddl.sql";
 	
+	// Exclusive semaphore
+	public static final String TABLE_EXCLUSIVE_SEMAPHORE 				= "EXCLUSIVE_SEMAPHORE";
+	public static final String COL_EXCLUSIVE_SEMAPHORE_KEY				= "SEM_KEY";
+	public static final String COL_EXCLUSIVE_SEMAPHORE_REQUEST_TOKEN	= "REQUEST_TOKEN";
+	public static final String COL_EXCLUSIVE_SEMAPHORE_LOCK_TOKEN		= "LOCK_TOKEN";
+	public static final String COL_EXCLUSIVE_SEMAPHORE_EXPIRES			= "EXPIRATION";
+	
+	// Shared semaphore
+	public static final String TABLE_SHARED_SEMAPHORE 				= "SHARED_SEMAPHORE";
+	public static final String COL_SHARED_SEMAPHORE_KEY				= "SEM_KEY";
+	public static final String COL_SHARED_SEMAPHORE_LOCK_TOKEN		= "LOCK_TOKEN";
+	public static final String COL_SHARED_SEMAPHORE_EXPIRES			= "EXPIRATION";
+
 	// Upload status
 	public static final String TABLE_UPLOAD_STATUS					= "UPLOAD_STATUS";
 	public static final String COL_UPLOAD_STATUS_ID					= "ID";

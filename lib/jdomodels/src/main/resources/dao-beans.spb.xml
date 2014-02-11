@@ -306,4 +306,7 @@
 	<bean id="semaphoreDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.semaphore.DBOSemaphoreDaoImpl" />
 
+	
+	<bean id="exclusiveOrSharedSemaphoreDao"
+		class="org.sagebionetworks.repo.model.dbo.dao.semaphore.ExclusiveOrSharedSemaphoreDaoImpl" />
 </beans>
