@@ -10,8 +10,7 @@ import org.sagebionetworks.bridge.model.data.ParticipantDataDescriptor;
 import org.sagebionetworks.bridge.model.data.ParticipantDataDescriptorWithColumns;
 import org.sagebionetworks.bridge.model.data.ParticipantDataRow;
 import org.sagebionetworks.bridge.model.data.ParticipantDataStatusList;
-import org.sagebionetworks.bridge.model.timeseries.TimeSeries;
-import org.sagebionetworks.bridge.model.timeseries.TimeSeriesCollection;
+import org.sagebionetworks.bridge.model.timeseries.TimeSeriesTable;
 import org.sagebionetworks.bridge.model.versionInfo.BridgeVersionInfo;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.PaginatedResults;
@@ -243,6 +242,6 @@ public interface BridgeClient extends BaseClient {
 	 * @throws SynapseException
 	 * @throws UnsupportedEncodingException
 	 */
-	public TimeSeriesCollection getTimeSeries(String participantDataDescriptorId, List<String> columnNames) throws SynapseException,
+	public TimeSeriesTable getTimeSeries(String participantDataDescriptorId, List<String> columnNames) throws SynapseException,
 			UnsupportedEncodingException;
 }

@@ -12,8 +12,7 @@ import org.sagebionetworks.bridge.model.data.ParticipantDataDescriptor;
 import org.sagebionetworks.bridge.model.data.ParticipantDataDescriptorWithColumns;
 import org.sagebionetworks.bridge.model.data.ParticipantDataRow;
 import org.sagebionetworks.bridge.model.data.ParticipantDataStatusList;
-import org.sagebionetworks.bridge.model.timeseries.TimeSeries;
-import org.sagebionetworks.bridge.model.timeseries.TimeSeriesCollection;
+import org.sagebionetworks.bridge.model.timeseries.TimeSeriesTable;
 import org.sagebionetworks.bridge.model.versionInfo.BridgeVersionInfo;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.IdList;
@@ -297,7 +296,7 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 	}
 
 	@Override
-	public TimeSeriesCollection getTimeSeries(String participantDataDescriptorId, List<String> columnNames) throws SynapseException,
+	public TimeSeriesTable getTimeSeries(String participantDataDescriptorId, List<String> columnNames) throws SynapseException,
 			UnsupportedEncodingException {
 		StringBuilder uri = new StringBuilder();
 		uri.append(TIME_SERIES).append("/").append(participantDataDescriptorId);
@@ -314,7 +313,7 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 				uri.append(URLEncoder.encode(columnName, "UTF-8"));
 			}
 		}
-		return get(uri.toString(), TimeSeriesCollection.class);
+		return get(uri.toString(), TimeSeriesTable.class);
 	}
 
 	private void get(String uri) throws SynapseException {

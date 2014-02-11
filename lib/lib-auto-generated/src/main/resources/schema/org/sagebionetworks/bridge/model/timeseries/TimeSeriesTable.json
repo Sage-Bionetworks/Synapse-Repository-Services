@@ -1,0 +1,38 @@
+{
+    "title":"Time Series Table",
+    "description":"Time series table",
+    "properties":{
+        "name":{
+            "type": "string",
+            "description": "The label for this time series"
+        },
+        "dateIndex":{
+            "type": "integer",
+            "description": "The index in the columns where the date for a row is found"
+        },
+        "columns":{
+        	"type": "array",
+        	"description": "The list of columns in the series",
+	       	"items":{
+        		"type":"string"
+        	}
+        },
+        "rows":{
+        	"type": "array",
+        	"description": "The list of rows in the series",
+	       	"items":{
+	        	"$ref": "org.sagebionetworks.bridge.model.timeseries.TimeSeriesRow"
+        	}
+        },
+        "anchors":{
+        	"type": "map",
+        	"description": "The different time anchors for this time series, identified by string (eg. birthdate, date of transfusion)",
+        	"key":{
+        		"type": "string"
+        	},
+        	"value":{
+        		"type": "integer"
+        	}
+        }
+    }
+}

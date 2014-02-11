@@ -192,6 +192,17 @@ public class ValueTranslator {
 		throw new IllegalArgumentException("Data value type " + input.getClass().getName() + " not handled in toDouble");
 	}
 
+	public static boolean canBeDouble(ParticipantDataColumnType columnType) {
+		switch (columnType) {
+		case DOUBLE:
+		case LONG:
+		case LAB:
+			return true;
+		default:
+			return false;
+		}
+	}
+
 	private static String parseString(String value) {
 		if (isEmpty(value)) {
 			return null;

@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.commons.collections.keyvalue.TiedMapEntry;
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -29,8 +30,8 @@ import org.sagebionetworks.bridge.model.data.value.ParticipantDataLongValue;
 import org.sagebionetworks.bridge.model.data.value.ParticipantDataStringValue;
 import org.sagebionetworks.bridge.model.data.value.ParticipantDataValue;
 import org.sagebionetworks.bridge.model.data.value.ValueTranslator;
-import org.sagebionetworks.bridge.model.timeseries.TimeSeries;
-import org.sagebionetworks.bridge.model.timeseries.TimeSeriesCollection;
+import org.sagebionetworks.bridge.model.timeseries.TimeSeriesRow;
+import org.sagebionetworks.bridge.model.timeseries.TimeSeriesTable;
 import org.sagebionetworks.bridge.model.versionInfo.BridgeVersionInfo;
 import org.sagebionetworks.client.BridgeClient;
 import org.sagebionetworks.client.BridgeClientImpl;
@@ -306,40 +307,46 @@ public class IT610BridgeData {
 				new Date(30000), 7.7, 200L);
 		data1 = bridge.appendParticipantData(participantDataDescriptor.getId(), data1);
 
-		TimeSeriesCollection timeSeries = bridge.getTimeSeries(participantDataDescriptor.getId(), null);
-		assertEquals(2, timeSeries.getSeries().size());
-
-		TimeSeries level = timeSeries.getSeries().get(0);
-		TimeSeries size = timeSeries.getSeries().get(1);
-		if (timeSeries.getSeries().get(0).getName().equals("size")) {
-			level = timeSeries.getSeries().get(1);
-			size = timeSeries.getSeries().get(0);
+		TimeSeriesTable timeSeries = bridge.getTimeSeries(participantDataDescriptor.getId(), null);
+		assertEquals(3, timeSeries.getColumns().size());
+		assertEquals(3, timeSeries.getRows().size());
+		assertEquals(3, timeSeries.getRows().get(0).getValues().size());
+		assertEquals(3, timeSeries.getRows().get(1).getValues().size());
+		assertEquals(3, timeSeries.getRows().get(2).getValues().size());
+		assertEquals(0, timeSeries.getDateIndex().intValue());
+		int levelIndex = 1;
+		int sizeIndex = 2;
+		if (timeSeries.getColumns().get(1).equals("size")) {
+			levelIndex = 2;
+			sizeIndex = 1;
 		}
-		assertEquals(2, size.getSeries().size());
-		assertEquals(3, level.getSeries().size());
-		assertEquals(new Date(30000).getTime(), size.getSeries().get(1).getDate().longValue());
-		assertEquals(new Date(30000).getTime(), level.getSeries().get(2).getDate().longValue());
-		assertEquals(200.0, size.getSeries().get(1).getValue().doubleValue(), 0.001);
-		assertEquals(7.7, level.getSeries().get(2).getValue().doubleValue(), 0.001);
 
-		TimeSeriesCollection level2 = bridge.getTimeSeries(participantDataDescriptor.getId(), Lists.newArrayList("level"));
-		assertEquals(1, level2.getSeries().size());
-		assertEquals(level, level2.getSeries().get(0));
+		assertEquals(new Date(30000).getTime(),
+				Long.parseLong(timeSeries.getRows().get(2).getValues().get(timeSeries.getDateIndex().intValue())));
+		assertEquals(7.7, Double.parseDouble(timeSeries.getRows().get(2).getValues().get(levelIndex)), 0.0001);
+		assertEquals(200.0, Double.parseDouble(timeSeries.getRows().get(2).getValues().get(sizeIndex)), 0.0001);
+		assertNull(timeSeries.getRows().get(1).getValues().get(sizeIndex));
 
-		TimeSeriesCollection size2 = bridge.getTimeSeries(participantDataDescriptor.getId(), Lists.newArrayList("size"));
-		assertEquals(1, size2.getSeries().size());
-		assertEquals(size, size2.getSeries().get(0));
+		TimeSeriesTable level = bridge.getTimeSeries(participantDataDescriptor.getId(), Lists.newArrayList("level"));
+		assertEquals(2, level.getColumns().size());
+		assertEquals(3, level.getRows().size());
+		assertEquals(2, level.getRows().get(0).getValues().size());
+		assertEquals(2, level.getRows().get(1).getValues().size());
+		assertEquals(2, level.getRows().get(2).getValues().size());
+		assertEquals(2, level.getDateIndex().intValue());
+		assertEquals(7.7, Double.parseDouble(level.getRows().get(2).getValues().get(1)), 0.0001);
 
-		TimeSeriesCollection levelSize = bridge.getTimeSeries(participantDataDescriptor.getId(), Lists.newArrayList("level", "size"));
-		assertEquals(2, levelSize.getSeries().size());
-		TimeSeries level2s = levelSize.getSeries().get(0);
-		TimeSeries size2s = levelSize.getSeries().get(1);
-		if (levelSize.getSeries().get(0).getName().equals("size")) {
-			level2s = levelSize.getSeries().get(1);
-			size2s = levelSize.getSeries().get(0);
-		}
-		assertEquals(size, size2s);
-		assertEquals(level, level2s);
+		TimeSeriesTable size = bridge.getTimeSeries(participantDataDescriptor.getId(), Lists.newArrayList("size"));
+		assertEquals(2, size.getColumns().size());
+		assertEquals(3, size.getRows().size());
+		assertEquals(2, size.getRows().get(0).getValues().size());
+		assertEquals(2, size.getRows().get(1).getValues().size());
+		assertEquals(2, size.getRows().get(2).getValues().size());
+		assertEquals(2, size.getDateIndex().intValue());
+		assertEquals(200.0, Double.parseDouble(size.getRows().get(2).getValues().get(1)), 0.0001);
+
+		TimeSeriesTable namedColumns = bridge.getTimeSeries(participantDataDescriptor.getId(), Lists.newArrayList("level", "size"));
+		assertEquals(timeSeries, namedColumns);
 	}
 	
 	@Test
