@@ -1,60 +1,37 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+
 import java.util.List;
 
-import org.sagebionetworks.repo.model.dbo.FieldColumn;
+import org.sagebionetworks.repo.model.DomainType;
+import org.sagebionetworks.repo.model.dbo.AutoTableMapping;
+import org.sagebionetworks.repo.model.dbo.Field;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
+import org.sagebionetworks.repo.model.dbo.Table;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
-import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 
+@Table(name = TABLE_TERMS_OF_USE_AGREEMENT, constraints = {
+	"CONSTRAINT `TOU_PRINCIPAL_ID_FK` FOREIGN KEY (`PRINCIPAL_ID`) REFERENCES `JDOUSERGROUP` (`ID`) ON DELETE CASCADE"
+})
 public class DBOTermsOfUseAgreement implements MigratableDatabaseObject<DBOTermsOfUseAgreement, DBOTermsOfUseAgreement> {
+	
+	private static TableMapping<DBOTermsOfUseAgreement> tableMapping = AutoTableMapping.create(DBOTermsOfUseAgreement.class);
+	
+	@Field(name = COL_TERMS_OF_USE_AGREEMENT_PRINCIPAL_ID, primary=true, backupId = true)
 	private Long principalId;
-	private String domain;
+	
+	@Field(name = COL_TERMS_OF_USE_AGREEMENT_DOMAIN, nullable = false, varchar=256, primary=true)
+	private DomainType domain;
+	
+	@Field(name = COL_TERMS_OF_USE_AGREEMENT_AGREEMENT, nullable = false)
 	private Boolean agreesToTermsOfUse;
-
-	private static FieldColumn[] FIELDS = new FieldColumn[] {
-		new FieldColumn("principalId", SqlConstants.COL_TERMS_OF_USE_AGREEMENT_PRINCIPAL_ID, true).withIsBackupId(true),
-		new FieldColumn("domain", SqlConstants.COL_TERMS_OF_USE_AGREEMENT_DOMAIN),
-		new FieldColumn("agreesToTermsOfUse", SqlConstants.COL_TERMS_OF_USE_AGREEMENT_AGREES_TO_TERMS_OF_USE)
-	};
 	
 	@Override
 	public TableMapping<DBOTermsOfUseAgreement> getTableMapping() {
-		return new TableMapping<DBOTermsOfUseAgreement>() {
-			// Map a result set to this object
-			@Override
-			public DBOTermsOfUseAgreement mapRow(ResultSet rs, int rowNum) throws SQLException {
-				DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();
-				tou.setPrincipalId(rs.getLong(SqlConstants.COL_TERMS_OF_USE_AGREEMENT_PRINCIPAL_ID));
-				tou.setDomain(rs.getString(SqlConstants.COL_TERMS_OF_USE_AGREEMENT_DOMAIN));
-				tou.setAgreesToTermsOfUse(rs.getBoolean(SqlConstants.COL_TERMS_OF_USE_AGREEMENT_AGREES_TO_TERMS_OF_USE));
-				return tou;
-			}
-
-			@Override
-			public String getTableName() {
-				return SqlConstants.TABLE_TERMS_OF_USE_AGREEMENT;
-			}
-
-			@Override
-			public String getDDLFileName() {
-				return SqlConstants.DDL_TERMS_OF_USE_AGREEMENT;
-			}
-
-			@Override
-			public FieldColumn[] getFieldColumns() {
-				return FIELDS;
-			}
-
-			@Override
-			public Class<? extends DBOTermsOfUseAgreement> getDBOClass() {
-				return DBOTermsOfUseAgreement.class;
-			}
-		};
+		return tableMapping;
 	}
 	
 	public Long getPrincipalId() {
@@ -63,10 +40,10 @@ public class DBOTermsOfUseAgreement implements MigratableDatabaseObject<DBOTerms
 	public void setPrincipalId(Long principalId) {
 		this.principalId = principalId;
 	}
-	public String getDomain() {
+	public DomainType getDomain() {
 		return domain;
 	}
-	public void setDomain(String domain) {
+	public void setDomain(DomainType domain) {
 		this.domain = domain;
 	}
 	public Boolean getAgreesToTermsOfUse() {
@@ -109,5 +86,45 @@ public class DBOTermsOfUseAgreement implements MigratableDatabaseObject<DBOTerms
 	@Override
 	public List<MigratableDatabaseObject> getSecondaryTypes() {
 		return null;
+	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((agreesToTermsOfUse == null) ? 0 : agreesToTermsOfUse.hashCode());
+		result = prime * result + ((domain == null) ? 0 : domain.hashCode());
+		result = prime * result + ((principalId == null) ? 0 : principalId.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		DBOTermsOfUseAgreement other = (DBOTermsOfUseAgreement) obj;
+		if (agreesToTermsOfUse == null) {
+			if (other.agreesToTermsOfUse != null)
+				return false;
+		} else if (!agreesToTermsOfUse.equals(other.agreesToTermsOfUse))
+			return false;
+		if (domain != other.domain)
+			return false;
+		if (principalId == null) {
+			if (other.principalId != null)
+				return false;
+		} else if (!principalId.equals(other.principalId))
+			return false;
+		return true;
+	}
+
+	@Override
+	public String toString() {
+		return "DBOTermsOfUseAgreement [principalId=" + principalId + ", domain=" + domain + ", agreesToTermsOfUse="
+				+ agreesToTermsOfUse + "]";
 	}
 }

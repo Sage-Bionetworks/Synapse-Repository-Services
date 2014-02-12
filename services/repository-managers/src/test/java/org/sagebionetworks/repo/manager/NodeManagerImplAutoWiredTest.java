@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.ACL_SCHEME;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
@@ -40,7 +41,10 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
+import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOSessionToken;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -79,6 +83,9 @@ public class NodeManagerImplAutoWiredTest {
 	@Autowired
 	private ActivityManager activityManager;
 	
+	@Autowired
+	private DBOBasicDao basicDao;
+	
 	private List<String> nodesToDelete;
 	private List<String> activitiesToDelete;
 	
@@ -102,6 +109,12 @@ public class NodeManagerImplAutoWiredTest {
 		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
 		nu.setUserName(UUID.randomUUID().toString());
 		userInfo = userManager.createUser(adminUserInfo, nu, cred);
+		
+		DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();
+		tou.setPrincipalId(userInfo.getId());
+		tou.setDomain(DomainType.SYNAPSE);
+		tou.setAgreesToTermsOfUse(Boolean.TRUE);
+		basicDao.createOrUpdate(tou);
 	}
 	
 	@After

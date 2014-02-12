@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.manager.dynamo.DynamoAdminManager;
 import org.sagebionetworks.repo.manager.message.MessageSyndication;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -22,7 +23,10 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
+import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOSessionToken;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.message.PublishResults;
@@ -39,6 +43,9 @@ import org.springframework.http.HttpHeaders;
  * @author John
  */
 public class AdministrationServiceImpl implements AdministrationService  {
+
+	@Autowired
+	private DBOBasicDao basicDao;
 	
 	@Autowired
 	private BackupDaemonLauncher backupDaemonLauncher;	
@@ -209,6 +216,21 @@ public class AdministrationServiceImpl implements AdministrationService  {
 		nu.setEmail(userSpecs.getEmail());
 		nu.setUserName(userSpecs.getUsername());
 		UserInfo user = userManager.createUser(userInfo, nu, cred);
+		
+		if (userSpecs.getSession() != null) {
+			DBOTermsOfUseAgreement touAgreement = new DBOTermsOfUseAgreement();
+			touAgreement.setPrincipalId(user.getId());
+			touAgreement.setDomain(DomainType.SYNAPSE);
+			touAgreement.setAgreesToTermsOfUse(Boolean.TRUE);
+			basicDao.createOrUpdate(touAgreement);
+
+			DBOSessionToken sessionToken = new DBOSessionToken();
+			sessionToken.setPrincipalId(user.getId());
+			sessionToken.setSessionToken(userSpecs.getSession().getSessionToken());
+			sessionToken.setValidatedOn(new Date());
+			sessionToken.setDomain(DomainType.SYNAPSE);
+			basicDao.createOrUpdate(sessionToken);
+		}
 		
 		EntityId id = new EntityId();
 		id.setId(user.getId().toString());

@@ -91,11 +91,11 @@ public class SynapseTest {
 	public void testOriginatingClient() throws Exception {
 		SharedClientConnection connection = synapse.getSharedClientConnection();
 		Map<String,String> map = new HashMap<String,String>();
-		map.put(AuthorizationConstants.ORIGINATING_CLIENT_PARAM, DomainType.BRIDGE.name());
+		map.put(AuthorizationConstants.DOMAIN_PARAM, DomainType.BRIDGE.name());
 		String url = connection.createRequestUrl("http://localhost:8888/", "createUser", map);
 		Assert.assertEquals("Origin client value appended as query string", "http://localhost:8888/createUser?originClient=BRIDGE", url);
 
-		map.put(AuthorizationConstants.ORIGINATING_CLIENT_PARAM, DomainType.SYNAPSE.name());
+		map.put(AuthorizationConstants.DOMAIN_PARAM, DomainType.SYNAPSE.name());
 		url = connection.createRequestUrl("http://localhost:8888/", "createUser", map);
 		Assert.assertEquals("Origin client value appended as query string", "http://localhost:8888/createUser?originClient=SYNAPSE", url);
 	}

@@ -19,12 +19,14 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.principal.BootstrapPrincipal;
 import org.sagebionetworks.repo.model.principal.BootstrapUser;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -115,7 +117,7 @@ public class DBOAuthenticationDAOImplTest {
 		Session session = authDAO.getSessionTokenIfValid(userId);
 		assertEquals(secretRow.getSessionToken(), session.getSessionToken());
 		assertEquals(secretRow.getAgreesToTermsOfUse(), session.getAcceptsTermsOfUse());
-		
+
 		// Get by token
 		Long id = authDAO.getPrincipalIfValid(secretRow.getSessionToken());
 		assertEquals(secretRow.getPrincipalId(), id);
@@ -162,6 +164,14 @@ public class DBOAuthenticationDAOImplTest {
 	public void testGetWithoutToUAcceptance() throws Exception {
 		secretRow.setAgreesToTermsOfUse(false);
 		basicDAO.update(secretRow);
+		
+		// Could do two things here: don't create a TOU record, or create it with
+		// the flag set to false. Do the latter because it's closest to what's here.
+		DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();
+		tou.setPrincipalId(secretRow.getPrincipalId());
+		tou.setDomain(DomainType.SYNAPSE);
+		tou.setAgreesToTermsOfUse(Boolean.FALSE);
+		basicDAO.createOrUpdate(tou);
 		
 		Session session = authDAO.getSessionTokenIfValid(userId);
 		assertNotNull(session);
@@ -250,8 +260,8 @@ public class DBOAuthenticationDAOImplTest {
 		Long userId = secretRow.getPrincipalId();
 		
 		// Reject the terms
-		authDAO.setTermsOfUseAcceptance(userId, false);
-		assertFalse(authDAO.hasUserAcceptedToU(userId));
+		authDAO.setTermsOfUseAcceptance(userId, DomainType.SYNAPSE, false);
+		assertFalse(authDAO.hasUserAcceptedToU(userId, DomainType.SYNAPSE));
 		assertNotNull(authDAO.getSessionTokenIfValid(userId));
 		
 		// Verify that the parent group's etag has changed
@@ -259,8 +269,8 @@ public class DBOAuthenticationDAOImplTest {
 		assertTrue(!userEtag.equals(changedEtag));
 		
 		// Accept the terms
-		authDAO.setTermsOfUseAcceptance(userId, true);
-		assertTrue(authDAO.hasUserAcceptedToU(userId));
+		authDAO.setTermsOfUseAcceptance(userId, DomainType.SYNAPSE, true);
+		assertTrue(authDAO.hasUserAcceptedToU(userId, DomainType.SYNAPSE));
 		
 		// Verify that the parent group's etag has changed
 		userEtag = changedEtag;
@@ -268,8 +278,8 @@ public class DBOAuthenticationDAOImplTest {
 		assertTrue(!userEtag.equals(changedEtag));
 		
 		// Pretend we haven't had a chance to see the terms yet
-		authDAO.setTermsOfUseAcceptance(userId, null);
-		assertFalse(authDAO.hasUserAcceptedToU(userId));
+		authDAO.setTermsOfUseAcceptance(userId, DomainType.SYNAPSE, null);
+		assertFalse(authDAO.hasUserAcceptedToU(userId, DomainType.SYNAPSE));
 		
 		// Verify that the parent group's etag has changed
 		userEtag = changedEtag;
@@ -277,8 +287,8 @@ public class DBOAuthenticationDAOImplTest {
 		assertTrue(!userEtag.equals(changedEtag));
 		
 		// Accept the terms again
-		authDAO.setTermsOfUseAcceptance(userId, true);
-		assertTrue(authDAO.hasUserAcceptedToU(userId));
+		authDAO.setTermsOfUseAcceptance(userId, DomainType.SYNAPSE, true);
+		assertTrue(authDAO.hasUserAcceptedToU(userId, DomainType.SYNAPSE));
 		
 		// Verify that the parent group's etag has changed
 		userEtag = changedEtag;

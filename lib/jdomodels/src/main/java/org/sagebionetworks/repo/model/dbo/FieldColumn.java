@@ -22,7 +22,7 @@ public class FieldColumn {
 	 * @param columnName - the name of the column in the database
 	 */
 	public FieldColumn(String fieldName, String columnName) {
-		this(fieldName, columnName, false);;
+		this(fieldName, columnName, false);
 	}
 	
 	/**

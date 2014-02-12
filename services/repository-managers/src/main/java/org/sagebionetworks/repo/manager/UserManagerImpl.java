@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.manager.principal.UserProfileUtillity;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NameConflictException;
@@ -136,10 +137,16 @@ public class UserManagerImpl implements UserManager {
 		
 		return getUserInfo(principalId);
 	}
-		
+
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public UserInfo getUserInfo(Long principalId) throws NotFoundException {
+		return getUserInfo(principalId, DomainType.SYNAPSE);
+	}
+	
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public UserInfo getUserInfo(Long principalId, DomainType domain) throws NotFoundException {
 		UserGroup principal = userGroupDAO.get(principalId);
 		if(!principal.getIsIndividual()) throw new IllegalArgumentException("Principal: "+principalId+" is not a User");
 		// Lookup the user's name
@@ -175,7 +182,7 @@ public class UserManagerImpl implements UserManager {
 			ui.setAgreesToTermsOfUse(false);
 		}else{
 			// Lookup the Toc status.
-			ui.setAgreesToTermsOfUse(authDAO.hasUserAcceptedToU(principalId));
+			ui.setAgreesToTermsOfUse(authDAO.hasUserAcceptedToU(principalId, domain));
 		}
 		ui.setCreationDate(principal.getCreationDate());
 		// Put all the pieces together

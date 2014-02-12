@@ -565,7 +565,7 @@ public class MigrationIntegrationAutowireTest {
 	
 	private void createSessionToken(UserGroup group) throws Exception {
 		DBOSessionToken token = new DBOSessionToken();
-		token.setDomain(DomainType.SYNAPSE.name());
+		token.setDomain(DomainType.SYNAPSE);
 		token.setPrincipalId(Long.parseLong(group.getId()));
 		token.setSessionToken(UUID.randomUUID().toString());
 		token.setValidatedOn(new Date());
@@ -576,7 +576,7 @@ public class MigrationIntegrationAutowireTest {
 		DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();
 		tou.setPrincipalId(Long.parseLong(group.getId()));
 		tou.setAgreesToTermsOfUse(Boolean.TRUE);
-		tou.setDomain(DomainType.SYNAPSE.name());
+		tou.setDomain(DomainType.SYNAPSE);
 		basicDao.createNew(tou);
 	}
 

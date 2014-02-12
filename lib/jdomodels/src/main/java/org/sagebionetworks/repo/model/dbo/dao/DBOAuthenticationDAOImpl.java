@@ -1,5 +1,9 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SENT_MESSAGES_CHANGE_NUM;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SENT_MESSAGES_TIME_STAMP;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_SENT_MESSAGES;
+
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Date;
@@ -9,6 +13,7 @@ import java.util.UUID;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserGroupInt;
@@ -52,6 +57,8 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	private static final String TOKEN_PARAM_NAME = "token";
 	private static final String TIME_PARAM_NAME = "time";
 	private static final String TOU_PARAM_NAME = "tou";
+	private static final String SESSION_TOKEN_PARAM_NAME = "sessionToken";
+	private static final String DOMAIN_PARAM_NAME = "domain";
 	
 	private static final String SELECT_ID_BY_EMAIL_AND_PASSWORD = 
 			"SELECT "+SqlConstants.COL_CREDENTIAL_PRINCIPAL_ID+
@@ -123,7 +130,19 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 			"UPDATE "+SqlConstants.TABLE_CREDENTIAL+" SET "+
 			SqlConstants.COL_CREDENTIAL_TOU+"=:"+TOU_PARAM_NAME+
 			" WHERE "+SqlConstants.COL_CREDENTIAL_PRINCIPAL_ID+"=:"+ID_PARAM_NAME;
-				
+	
+	// Transitional. Next release this becomes the main table and the above is removed.
+	private static final String UPDATE_TERMS_OF_USE_ACCEPTANCE_V2 = 
+			"INSERT INTO "+SqlConstants.TABLE_TERMS_OF_USE_AGREEMENT+" ( "+SqlConstants.COL_TERMS_OF_USE_AGREEMENT_PRINCIPAL_ID+
+			", "+SqlConstants.COL_TERMS_OF_USE_AGREEMENT_DOMAIN +", " + SqlConstants.COL_TERMS_OF_USE_AGREEMENT_AGREEMENT+")"+
+			" VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE "+SqlConstants.COL_TERMS_OF_USE_AGREEMENT_AGREEMENT+" = ?";	
+
+	private static final String SELECT_SESSION_TOKEN = 
+			"SELECT "+SqlConstants.COL_SESSION_TOKEN_DOMAIN + 
+			" FROM " +SqlConstants.TABLE_SESSION_TOKEN + 
+			"WHERE " +SqlConstants.COL_SESSION_TOKEN_PRINCIPAL_ID +"=:"+PARAM_PRINCIPAL_ID+
+			" AND " +SqlConstants.COL_SESSION_TOKEN_SESSION_TOKEN +"=:"+SESSION_TOKEN_PARAM_NAME;
+	
 	private RowMapper<Session> sessionRowMapper = new RowMapper<Session>() {
 
 		@Override
@@ -298,7 +317,9 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	}
 
 	@Override
-	public boolean hasUserAcceptedToU(long principalId) throws NotFoundException {
+	public boolean hasUserAcceptedToU(long principalId, DomainType domain) throws NotFoundException {
+		// TODO: This will be changed to look at the TERMS_OF_USE_ACCEPTANCE table. Domain must match
+		// or this returns false.
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(ID_PARAM_NAME, principalId);
 		Boolean acceptance;
@@ -315,13 +336,19 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	
 	@Override
 	@Transactional(readOnly=false, propagation=Propagation.REQUIRED)
-	public void setTermsOfUseAcceptance(long principalId, Boolean acceptance) {
+	public void setTermsOfUseAcceptance(long principalId, DomainType domain, Boolean acceptance) {
+		if (acceptance == null) {
+			acceptance = Boolean.FALSE;
+		}
 		userGroupDAO.touch(principalId);
 		
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(ID_PARAM_NAME, principalId);
 		param.addValue(TOU_PARAM_NAME, acceptance);
 		simpleJdbcTemplate.update(UPDATE_TERMS_OF_USE_ACCEPTANCE, param);
+		
+		// TOU record for a given domain may not exist. Need to create or update as needed
+		simpleJdbcTemplate.update(UPDATE_TERMS_OF_USE_ACCEPTANCE_V2, principalId, domain.name(), acceptance, acceptance);
 	}
 	
 	@Override
@@ -342,11 +369,13 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 			
 			// With the exception of anonymous, bootstrapped users should not need to sign the terms of use
 			if (!AuthorizationUtils.isUserAnonymous(abs.getId())) {
-				setTermsOfUseAcceptance(abs.getId(), true);
+				setTermsOfUseAcceptance(abs.getId(), DomainType.SYNAPSE, true);
+				setTermsOfUseAcceptance(abs.getId(), DomainType.BRIDGE, true);
 			}
 		}
 		// The migration admin should only be used in specific, non-development stacks
 		Long migrationAdminId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		changeSecretKey(migrationAdminId, StackConfiguration.getMigrationAdminAPIKey());
 	}
+
 }

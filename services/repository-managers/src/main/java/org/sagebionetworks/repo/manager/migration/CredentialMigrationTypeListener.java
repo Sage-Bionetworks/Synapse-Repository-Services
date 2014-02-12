@@ -26,7 +26,7 @@ public class CredentialMigrationTypeListener implements MigrationTypeListener {
 					DBOSessionToken sessionToken = new DBOSessionToken();
 					sessionToken.setPrincipalId(credential.getPrincipalId());
 					
-					sessionToken.setDomain(DomainType.SYNAPSE.name());
+					sessionToken.setDomain(DomainType.SYNAPSE);
 					sessionToken.setSessionToken(credential.getSessionToken());
 					sessionToken.setValidatedOn(credential.getValidatedOn());
 					basicDao.createOrUpdate(sessionToken);
@@ -34,7 +34,7 @@ public class CredentialMigrationTypeListener implements MigrationTypeListener {
 					DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();
 					tou.setPrincipalId(credential.getPrincipalId());
 					tou.setAgreesToTermsOfUse(credential.getAgreesToTermsOfUse());
-					tou.setDomain(DomainType.SYNAPSE.name());
+					tou.setDomain(DomainType.SYNAPSE);
 					basicDao.createOrUpdate(tou);
 				}
 			}

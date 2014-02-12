@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.ACTApprovalStatus;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
@@ -36,7 +37,9 @@ import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -64,6 +67,9 @@ public class AccessApprovalManagerImplAutoWiredTest {
 	@Autowired
 	private EntityPermissionsManager entityPermissionsManager;
 	
+	@Autowired
+	private DBOBasicDao basicDao;
+	
 	private UserInfo adminUserInfo;
 	private UserInfo testUserInfo;
 	
@@ -89,6 +95,12 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
 		nu.setUserName(UUID.randomUUID().toString());
 		testUserInfo = userManager.createUser(adminUserInfo, nu, cred);
+		
+		DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();
+		tou.setPrincipalId(testUserInfo.getId());
+		tou.setDomain(DomainType.SYNAPSE);
+		tou.setAgreesToTermsOfUse(Boolean.TRUE);
+		basicDao.createOrUpdate(tou);
 		
 		assertNotNull(nodeManager);
 		nodesToDelete = new ArrayList<String>();

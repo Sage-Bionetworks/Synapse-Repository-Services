@@ -21,22 +21,23 @@ public interface AuthenticationService {
 	 * Authenticates a user/password combination, returning a session token if valid
 	 * @throws UnauthorizedException If the credentials are incorrect
 	 */
-	public Session authenticate(LoginCredentials credential) throws NotFoundException;
+	public Session authenticate(LoginCredentials credential, DomainType domain) throws NotFoundException;
 	
 	/**
-	 * Revalidates a session token and checks if the user has accepted the terms of use
+	 * Revalidates a session token and checks if the user has accepted the terms of use for the 
+	 * given domain.
 	 * @return The principalId of the user holding the token
-	 * @throws UnauthorizedException If the token has expired or is otherwise not valid
-	 * @throws TermsOfUseException If the user has not accepted the terms of use
+	 * @throws UnauthorizedException If the token has expired or is otherwise not valid for this domain.
+	 * @throws TermsOfUseException If the user has not accepted the terms of use for this domain.
 	 */
-	public Long revalidate(String sessionToken) throws NotFoundException;
+	public Long revalidate(String sessionToken, DomainType domain) throws NotFoundException;
 	
 	/**
 	 * Revalidates a session token
 	 * See {@link #revalidate(String)}
 	 * @param checkToU Should the check fail if the user has not accepted the terms of use?
 	 */
-	public Long revalidate(String sessionToken, boolean checkToU) throws NotFoundException;
+	public Long revalidate(String sessionToken, DomainType domain, boolean checkToU) throws NotFoundException;
 	
 	/**
 	 * Invalidates a session token
@@ -53,19 +54,19 @@ public interface AuthenticationService {
 	 * Sends a password-reset email to the user
 	 * Note: Email is not actually sent in development stacks.  Instead a log appears when email would have been sent
 	 */
-	public void sendPasswordEmail(Long userId, DomainType originClient)
+	public void sendPasswordEmail(Long userId, DomainType domain)
 			 throws NotFoundException;
 	
 	/**
 	 * Changes the password of the user
 	 * Also invalidates the user's session token
 	 */
-	public void changePassword(ChangePasswordRequest request) throws NotFoundException;
+	public void changePassword(ChangePasswordRequest request, DomainType domain) throws NotFoundException;
 	
 	/**
 	 * Identifies a user via session token and signs that user's terms of use
 	 */
-	public void signTermsOfUse(Session session) throws NotFoundException;
+	public void signTermsOfUse(Session session, DomainType domain) throws NotFoundException;
 	
 	/**
 	 * Gets the current secret key of the user
@@ -94,8 +95,7 @@ public interface AuthenticationService {
 	/**
 	 * Has the user accepted the terms of use?
 	 */
-	public boolean hasUserAcceptedTermsOfUse(Long userId) 
-			throws NotFoundException;
+	public boolean hasUserAcceptedTermsOfUse(Long userId, DomainType domain) throws NotFoundException;
 	
 	/**
 	 * Uses the pre-validated OpenID information to fetch a session token

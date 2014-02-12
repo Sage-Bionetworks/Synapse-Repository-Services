@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -34,7 +35,9 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -71,7 +74,10 @@ public class AuthorizationManagerImplTest {
 	
 	@Autowired
 	private EvaluationManager evaluationManager;
-
+	
+	@Autowired
+	private DBOBasicDao basicDao;
+	
 	private Collection<Node> nodeList = new ArrayList<Node>();
 	private Node node = null;
 	private Node nodeCreatedByTestUser = null;
@@ -120,6 +126,12 @@ public class AuthorizationManagerImplTest {
 		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
 		nu.setUserName(UUID.randomUUID().toString());
 		userInfo = userManager.createUser(adminUser, nu, cred);
+		
+		DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();
+		tou.setPrincipalId(userInfo.getId());
+		tou.setDomain(DomainType.SYNAPSE);
+		tou.setAgreesToTermsOfUse(Boolean.TRUE);
+		basicDao.createOrUpdate(tou);
 		
 		// Create a new group
 		testGroup = new UserGroup();

@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -15,11 +16,25 @@ import org.sagebionetworks.repo.web.NotFoundException;
 public interface UserManager {
 	
 	/**
-	 * Get the User and UserGroup information for the given user ID.
+	 * Get the User and UserGroup information for the given user ID. Assumes a Synapse 
+	 * user (terms of use for example). Right now, it doesn't look like checking the UserInfo
+	 * object for TOU status is very common (three places), it might be removed, as there's 
+	 * nothing forcing domain to be provided to this method other than that. 
 	 * 
 	 * @param principalId the ID of the user of interest
 	 */
 	public UserInfo getUserInfo(Long principalId) throws NotFoundException;
+	
+	/**
+	 * Get the User and UserGroup information for the given user ID, including information 
+	 * about the TOU status of this user for the given domain.
+	 * 
+	 * @param principalId
+	 * @param domain
+	 * @return
+	 * @throws NotFoundException
+	 */
+	public UserInfo getUserInfo(Long principalId, DomainType domain) throws NotFoundException;
 	
 	/**o
 	 * Creates a new user

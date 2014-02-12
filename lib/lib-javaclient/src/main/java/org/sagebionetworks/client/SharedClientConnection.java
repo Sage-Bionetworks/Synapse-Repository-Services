@@ -181,13 +181,20 @@ public class SharedClientConnection {
 	 */
 	public Session login(String username, String password, String userAgent) 
 			throws SynapseException {
+		return login(username, password, userAgent, DomainType.SYNAPSE);
+	}
+	
+	public Session login(String username, String password, String userAgent, DomainType domain) throws SynapseException {
 		LoginCredentials loginRequest = new LoginCredentials();
 		loginRequest.setEmail(username);
 		loginRequest.setPassword(password);
 
+		Map<String, String> parameters = Maps.newHashMap();
+		parameters.put(AuthorizationConstants.DOMAIN_PARAM, domain.name());
+		
 		Session session;
 		try {
-			JSONObject obj = createAuthEntity("/session", EntityFactory.createJSONObjectForEntity(loginRequest), userAgent);
+			JSONObject obj = createAuthEntity("/session", EntityFactory.createJSONObjectForEntity(loginRequest), userAgent, parameters);
 			session = EntityFactory.createEntityFromJSONObject(obj, Session.class);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
@@ -196,7 +203,7 @@ public class SharedClientConnection {
 		defaultGETDELETEHeaders.put(SESSION_TOKEN_HEADER, session.getSessionToken());
 		defaultPOSTPUTHeaders.put(SESSION_TOKEN_HEADER, session.getSessionToken());
 		
-		return session;
+		return session;		
 	}
 
 	public void logout(String userAgent) throws SynapseException {
@@ -420,8 +427,8 @@ public class SharedClientConnection {
 	 * 
 	 * @return the newly created entity
 	 */
-	private JSONObject createAuthEntity(String uri, JSONObject entity, String userAgent) throws SynapseException {
-		return postJson(authEndpoint, uri, entity.toString(), userAgent);
+	private JSONObject createAuthEntity(String uri, JSONObject entity, String userAgent, Map<String,String> parameters) throws SynapseException {
+		return postJson(authEndpoint, uri, entity.toString(), userAgent, parameters);
 	}
 
 	private JSONObject putAuthEntity(String uri, JSONObject entity, String userAgent)
@@ -562,7 +569,7 @@ public class SharedClientConnection {
 	protected JSONObject signAndDispatchSynapseRequest(String endpoint, String uri, String requestMethod,
 			String requestContent, Map<String, String> requestHeaders, String userAgent) throws SynapseException {
 		Map<String, String> parameters = Maps.newHashMap();
-		parameters.put(AuthorizationConstants.ORIGINATING_CLIENT_PARAM, DomainType.SYNAPSE.toString());
+		parameters.put(AuthorizationConstants.DOMAIN_PARAM, DomainType.SYNAPSE.toString());
 		return signAndDispatchSynapseRequest(endpoint, uri, requestMethod, requestContent, requestHeaders, userAgent,
 				parameters);
 	}

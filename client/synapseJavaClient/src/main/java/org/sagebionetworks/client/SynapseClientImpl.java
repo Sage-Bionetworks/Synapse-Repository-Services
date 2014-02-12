@@ -515,6 +515,11 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public Session login(String username, String password) throws SynapseException {
 		return getSharedClientConnection().login(username, password, getUserAgent());
 	}
+	
+	@Override
+	public Session login(String username, String password, DomainType domain) throws SynapseException {
+		return getSharedClientConnection().login(username, password, getUserAgent(), domain);
+	}
 
 	@Override
 	public void logout() throws SynapseException {
@@ -5019,12 +5024,11 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 	
 	@Override
-	public void createUser(NewUser user, DomainType originClient) throws SynapseException {
+	public void createUser(NewUser user, DomainType domain) throws SynapseException {
 		try {
 			JSONObject obj = EntityFactory.createJSONObjectForEntity(user);
-			Map<String, String> parameters = Maps.newHashMap();
-			parameters.put(AuthorizationConstants.ORIGINATING_CLIENT_PARAM, originClient.toString());
-			getSharedClientConnection().postJson(authEndpoint, "/user", obj.toString(), getUserAgent(), parameters);
+			getSharedClientConnection().postJson(authEndpoint, "/user", obj.toString(), getUserAgent(),
+					getParameterMapForDomain(domain));
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
@@ -5036,15 +5040,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 	
 	@Override
-	public void sendPasswordResetEmail(String email, DomainType originClient) throws SynapseException{
+	public void sendPasswordResetEmail(String email, DomainType domain) throws SynapseException{
 		try {
 			Username user = new Username();
 			user.setEmail(email);
 			JSONObject obj = EntityFactory.createJSONObjectForEntity(user);
-			Map<String, String> parameters = Maps.newHashMap();
-			parameters.put(AuthorizationConstants.ORIGINATING_CLIENT_PARAM, originClient.toString());
 			getSharedClientConnection().postJson(authEndpoint, "/user/password/email", obj.toString(), getUserAgent(),
-					parameters);
+					getParameterMapForDomain(domain));
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
@@ -5065,15 +5067,20 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public void signTermsOfUse(String sessionToken, boolean acceptTerms)
-			throws SynapseException {
+	public void signTermsOfUse(String sessionToken, boolean acceptTerms) throws SynapseException {
+		signTermsOfUse(sessionToken, DomainType.SYNAPSE, acceptTerms);
+	}
+	
+	@Override
+	public void signTermsOfUse(String sessionToken, DomainType domain, boolean acceptTerms) throws SynapseException {
 		try {
 			Session session = new Session();
 			session.setSessionToken(sessionToken);
 			session.setAcceptsTermsOfUse(acceptTerms);
-			
+
 			JSONObject obj = EntityFactory.createJSONObjectForEntity(session);
-			getSharedClientConnection().postJson(authEndpoint, "/termsOfUse", obj.toString(), getUserAgent());
+			getSharedClientConnection().postJson(authEndpoint, "/termsOfUse", obj.toString(), getUserAgent(),
+					getParameterMapForDomain(domain));
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
@@ -5090,20 +5097,24 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 	
 	@Override
-	public Session passThroughOpenIDParameters(String queryString, Boolean createUserIfNecessary, DomainType originClient) throws SynapseException {
-		Map<String, String> parameters = Maps.newHashMap();
-		parameters.put(AuthorizationConstants.ORIGINATING_CLIENT_PARAM, originClient.toString());
+	public Session passThroughOpenIDParameters(String queryString, Boolean createUserIfNecessary, DomainType domain) throws SynapseException {
 		try {
 			URIBuilder builder = new URIBuilder();
 			builder.setPath("/openIdCallback");
 			builder.setQuery(queryString);
 			builder.setParameter("org.sagebionetworks.createUserIfNecessary", createUserIfNecessary.toString());
 			JSONObject session = getSharedClientConnection().postJson(authEndpoint, builder.toString(), "",
-					getUserAgent(), parameters);
+					getUserAgent(), getParameterMapForDomain(domain));
 			return EntityFactory.createEntityFromJSONObject(session, Session.class);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
+	}
+	
+	private Map<String,String> getParameterMapForDomain(DomainType domain) {
+		Map<String, String> parameters = Maps.newHashMap();
+		parameters.put(AuthorizationConstants.DOMAIN_PARAM, domain.name());
+		return parameters;
 	}
 }
 

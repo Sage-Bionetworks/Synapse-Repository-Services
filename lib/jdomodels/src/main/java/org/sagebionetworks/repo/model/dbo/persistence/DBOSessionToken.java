@@ -1,65 +1,41 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Timestamp;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+
 import java.util.Date;
 import java.util.List;
 
-import org.sagebionetworks.repo.model.dbo.FieldColumn;
+import org.sagebionetworks.repo.model.DomainType;
+import org.sagebionetworks.repo.model.dbo.AutoTableMapping;
+import org.sagebionetworks.repo.model.dbo.Field;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
+import org.sagebionetworks.repo.model.dbo.Table;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
-import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 
+@Table(name = TABLE_SESSION_TOKEN, constraints = {
+	"CONSTRAINT `SESSION_TOKEN_PRINCIPAL_ID_FK` FOREIGN KEY (`PRINCIPAL_ID`) REFERENCES `JDOUSERGROUP` (`ID`) ON DELETE CASCADE"
+})
 public class DBOSessionToken implements MigratableDatabaseObject<DBOSessionToken, DBOSessionToken> {
+	
+	private static TableMapping<DBOSessionToken> tableMapping = AutoTableMapping.create(DBOSessionToken.class);
+	
+	@Field(name = COL_SESSION_TOKEN_PRINCIPAL_ID, primary = true, backupId = true)
 	private Long principalId;
+	
+	@Field(name = COL_SESSION_TOKEN_VALIDATED_ON)
 	private Date validatedOn;
-	private String domain;
+	
+	@Field(name = COL_SESSION_TOKEN_DOMAIN, nullable = false, varchar=256, primary=true)
+	private DomainType domain;
+	
+	@Field(name = COL_SESSION_TOKEN_SESSION_TOKEN, varchar = 100)
 	private String sessionToken;
 
-	private static FieldColumn[] FIELDS = new FieldColumn[] {
-		new FieldColumn("principalId", SqlConstants.COL_SESSION_TOKEN_PRINCIPAL_ID, true).withIsBackupId(true),
-		new FieldColumn("validatedOn", SqlConstants.COL_SESSION_TOKEN_VALIDATED_ON),
-		new FieldColumn("domain", SqlConstants.COL_SESSION_TOKEN_DOMAIN),
-		new FieldColumn("sessionToken", SqlConstants.COL_SESSION_TOKEN_SESSION_TOKEN)
-	};
-	
 	@Override
 	public TableMapping<DBOSessionToken> getTableMapping() {
-		return new TableMapping<DBOSessionToken>() {
-			@Override
-			public DBOSessionToken mapRow(ResultSet rs, int rowNum) throws SQLException {
-				DBOSessionToken row = new DBOSessionToken();
-				row.setPrincipalId(rs.getLong(SqlConstants.COL_SESSION_TOKEN_PRINCIPAL_ID));
-				Timestamp ts = rs.getTimestamp(SqlConstants.COL_SESSION_TOKEN_VALIDATED_ON);
-				row.setValidatedOn(ts==null ? null : new Date(ts.getTime()));
-				row.setDomain(rs.getString(SqlConstants.COL_SESSION_TOKEN_DOMAIN));
-				row.setSessionToken(rs.getString(SqlConstants.COL_SESSION_TOKEN_SESSION_TOKEN));
-				return row;
-			}
-
-			@Override
-			public String getTableName() {
-				return SqlConstants.TABLE_SESSION_TOKEN;
-			}
-
-			@Override
-			public String getDDLFileName() {
-				return SqlConstants.DDL_SESSION_TOKEN;
-			}
-
-			@Override
-			public FieldColumn[] getFieldColumns() {
-				return FIELDS;
-			}
-
-			@Override
-			public Class<? extends DBOSessionToken> getDBOClass() {
-				return DBOSessionToken.class;
-			}
-		};
+		return tableMapping;
 	}
 	
 	public Long getPrincipalId() {
@@ -74,10 +50,10 @@ public class DBOSessionToken implements MigratableDatabaseObject<DBOSessionToken
 	public void setValidatedOn(Date validatedOn) {
 		this.validatedOn = validatedOn;
 	}
-	public String getDomain() {
+	public DomainType getDomain() {
 		return domain;
 	}
-	public void setDomain(String domain) {
+	public void setDomain(DomainType domain) {
 		this.domain = domain;
 	}
 	public String getSessionToken() {
@@ -122,6 +98,52 @@ public class DBOSessionToken implements MigratableDatabaseObject<DBOSessionToken
 	@Override
 	public List<MigratableDatabaseObject> getSecondaryTypes() {
 		return null;
+	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((domain == null) ? 0 : domain.hashCode());
+		result = prime * result + ((principalId == null) ? 0 : principalId.hashCode());
+		result = prime * result + ((sessionToken == null) ? 0 : sessionToken.hashCode());
+		result = prime * result + ((validatedOn == null) ? 0 : validatedOn.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		DBOSessionToken other = (DBOSessionToken) obj;
+		if (domain != other.domain)
+			return false;
+		if (principalId == null) {
+			if (other.principalId != null)
+				return false;
+		} else if (!principalId.equals(other.principalId))
+			return false;
+		if (sessionToken == null) {
+			if (other.sessionToken != null)
+				return false;
+		} else if (!sessionToken.equals(other.sessionToken))
+			return false;
+		if (validatedOn == null) {
+			if (other.validatedOn != null)
+				return false;
+		} else if (!validatedOn.equals(other.validatedOn))
+			return false;
+		return true;
+	}
+
+	@Override
+	public String toString() {
+		return "DBOSessionToken [principalId=" + principalId + ", validatedOn=" + validatedOn + ", domain=" + domain
+				+ ", sessionToken=" + sessionToken + "]";
 	}
 
 }
