@@ -67,7 +67,7 @@ public interface ExclusiveOrSharedSemaphoreDao {
 	 *             occurs, the timeout set when the lock was acquired might be
 	 *             too low.
 	 */
-	public boolean releaseSharedLock(String lockKey, String token)
+	public void releaseSharedLock(String lockKey, String token)
 			throws LockReleaseFailedException;
 
 	/**
@@ -92,7 +92,9 @@ public interface ExclusiveOrSharedSemaphoreDao {
 	 * <p>
 	 * The write-lock-precursor token returned by this method is a required
 	 * parameter to attempt to acquire the actual write-lock using
-	 * {@link #acquireExclusiveLock(String, String, long)} .
+	 * {@link #acquireExclusiveLock(String, String, long)}. The
+	 * write-lock-precursor will be released when the write-lock is released or
+	 * if the timeout expires.
 	 * </p>
 	 * 
 	 * @param lockKey
@@ -108,8 +110,8 @@ public interface ExclusiveOrSharedSemaphoreDao {
 
 	/**
 	 * <p>
-	 * Attempt to acquire the actual write-lock (exclusive) for a given resources using the
-	 * write-lock-precursor acquired with
+	 * Attempt to acquire the actual write-lock (exclusive) for a given
+	 * resources using the write-lock-precursor acquired with
 	 * {@link #acquireExclusiveLockPrecursor(String)}.
 	 * </p>
 	 * Each time this is is called, outstanding read-locks will be checked and
@@ -135,7 +137,7 @@ public interface ExclusiveOrSharedSemaphoreDao {
 	 *         responsibility of this token holder to release the write-lock
 	 *         when finished by calling
 	 *         {@link #releaseExclusiveLock(String, String)} before the given
-	 *         timeout expires.
+	 *         timeout expires.  Will return null if there are outstanding read-locks.
 	 */
 	public String acquireExclusiveLock(String lockKey,
 			String exclusiveLockPrecursorToken, long timeoutMS);
@@ -154,11 +156,12 @@ public interface ExclusiveOrSharedSemaphoreDao {
 	 *             occurs, the timeout set when the lock was acquired might be
 	 *             too low.
 	 */
-	public boolean releaseExclusiveLock(String lockKey, String token)
+	public void releaseExclusiveLock(String lockKey, String token)
 			throws LockReleaseFailedException;
-	
+
 	/**
-	 * Force the release of all locks.  This should not be used under normal circumstances. 
+	 * Force the release of all locks. This should not be used under normal
+	 * circumstances.
 	 */
 	public void releaseAllLocks();
 

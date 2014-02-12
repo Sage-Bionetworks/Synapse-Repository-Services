@@ -44,7 +44,7 @@ public interface ExclusiveOrSharedSemaphoreRunner {
 	 * @throws InterruptedException Thrown if the waiting gets interrupted.
 	 * @throws Exception 
 	 */
-	public <T> T runWithExclusiveLock(String lockKey, long lockTimeoutMS,
+	public <T> T tryRunWithExclusiveLock(String lockKey, long lockTimeoutMS,
 			Callable<T> runner) throws LockUnavilableException, InterruptedException, Exception;
 
 	/**
@@ -69,7 +69,7 @@ public interface ExclusiveOrSharedSemaphoreRunner {
 	 *             reason.
 	 * @throws Exception 
 	 */
-	public <T> T runWithSharedLock(String lockKey, long lockTimeoutMS,
+	public <T> T tryRunWithSharedLock(String lockKey, long lockTimeoutMS,
 			Callable<T> runner) throws LockUnavilableException, Exception;
 
 }

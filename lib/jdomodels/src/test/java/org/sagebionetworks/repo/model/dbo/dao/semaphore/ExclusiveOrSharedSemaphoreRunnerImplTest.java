@@ -34,9 +34,8 @@ public class ExclusiveOrSharedSemaphoreRunnerImplTest {
 		long timeout = 1000;
 		String readToken = UUID.randomUUID().toString();
 		when(mockExclusiveOrSharedSemaphoreDao.acquireSharedLock(lockKey, timeout)).thenReturn(readToken);
-		when(mockExclusiveOrSharedSemaphoreDao.releaseSharedLock(lockKey, readToken)).thenReturn(true);
 		
-		String result = runner.runWithSharedLock(lockKey, timeout, new Callable<String>() {
+		String result = runner.tryRunWithSharedLock(lockKey, timeout, new Callable<String>() {
 			@Override
 			public String call() throws Exception {
 				return "okay";
@@ -54,10 +53,9 @@ public class ExclusiveOrSharedSemaphoreRunnerImplTest {
 		long timeout = 1000;
 		String readToken = UUID.randomUUID().toString();
 		when(mockExclusiveOrSharedSemaphoreDao.acquireSharedLock(lockKey, timeout)).thenReturn(readToken);
-		when(mockExclusiveOrSharedSemaphoreDao.releaseSharedLock(lockKey, readToken)).thenReturn(true);
 		
 		try {
-			runner.runWithSharedLock(lockKey, timeout, new Callable<String>() {
+			runner.tryRunWithSharedLock(lockKey, timeout, new Callable<String>() {
 				@Override
 				public String call() throws Exception {
 					throw new IllegalArgumentException("something went wrong");
@@ -83,7 +81,7 @@ public class ExclusiveOrSharedSemaphoreRunnerImplTest {
 		// This is setup to not return the token the first two times to simulate a wait for a read lock.
 		when(mockExclusiveOrSharedSemaphoreDao.acquireExclusiveLock(lockKey, precursorToken, timeout)).thenReturn(null, null,writeToken);
 		
-		String result = runner.runWithExclusiveLock(lockKey, timeout, new Callable<String>() {
+		String result = runner.tryRunWithExclusiveLock(lockKey, timeout, new Callable<String>() {
 			@Override
 			public String call() throws Exception {
 				return "success";
@@ -109,7 +107,7 @@ public class ExclusiveOrSharedSemaphoreRunnerImplTest {
 		// This should timeout because the timeout is set to 1000 and it will fail each time.  There is
 		// a one second wait after each failure so a timeout should be triggered.  If the wait is changed
 		// this test might need to be updated.
-		String result = runner.runWithExclusiveLock(lockKey, timeout, new Callable<String>() {
+		String result = runner.tryRunWithExclusiveLock(lockKey, timeout, new Callable<String>() {
 			@Override
 			public String call() throws Exception {
 				return "success";
@@ -128,7 +126,7 @@ public class ExclusiveOrSharedSemaphoreRunnerImplTest {
 		when(mockExclusiveOrSharedSemaphoreDao.acquireExclusiveLock(lockKey, precursorToken, timeout)).thenReturn(null, null,writeToken);
 		
 		try {
-			runner.runWithExclusiveLock(lockKey, timeout, new Callable<String>() {
+			runner.tryRunWithExclusiveLock(lockKey, timeout, new Callable<String>() {
 				@Override
 				public String call() throws Exception {
 					throw new IllegalArgumentException("Something went wrong!");

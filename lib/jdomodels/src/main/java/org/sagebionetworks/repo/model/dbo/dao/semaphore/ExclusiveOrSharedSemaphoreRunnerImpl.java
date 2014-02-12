@@ -17,13 +17,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class ExclusiveOrSharedSemaphoreRunnerImpl implements
 		ExclusiveOrSharedSemaphoreRunner {
 
-	public static long WAIT_FOR_READ_RELEASE_MS = 1000;
+	public static long WAIT_FOR_READ_RELEASE_MS = 500;
 	
 	@Autowired
 	ExclusiveOrSharedSemaphoreDao exclusiveOrSharedSemaphoreDao;
 
 	@Override
-	public <T> T runWithExclusiveLock(String lockKey, long lockTimeoutMS,
+	public <T> T tryRunWithExclusiveLock(String lockKey, long lockTimeoutMS,
 			Callable<T> runner) throws Exception {
 		// First we need to acquire the write-lock-precursor to block all new read-locks
 		String writeLockPrecursor = exclusiveOrSharedSemaphoreDao.acquireExclusiveLockPrecursor(lockKey);
@@ -53,7 +53,7 @@ public class ExclusiveOrSharedSemaphoreRunnerImpl implements
 	}
 
 	@Override
-	public <T> T runWithSharedLock(String lockKey, long lockTimeoutMS,
+	public <T> T tryRunWithSharedLock(String lockKey, long lockTimeoutMS,
 			Callable<T> runner) throws Exception {
 		// Acquire a read-lock on this resource
 		String readLockToken = exclusiveOrSharedSemaphoreDao.acquireSharedLock(lockKey, lockTimeoutMS);

@@ -37,7 +37,7 @@ public class ExclusiveOrSharedSemaphoreDaoImpl implements
 	private static final String SQL_DELETE_ALL_LOCKS = "DELETE FROM "+TABLE_EXCLUSIVE_SEMAPHORE+" WHERE "+COL_EXCLUSIVE_SEMAPHORE_KEY+" IS NOT NULL";
 	private static final String SQL_SELECT_EXCLUSIVE_FOR_UPDATE = "SELECT * FROM "+TABLE_EXCLUSIVE_SEMAPHORE+" WHERE "+COL_EXCLUSIVE_SEMAPHORE_KEY+" = ? FOR UPDATE";
 	private static final String SQL_RELEASE_SHARED_LOCK = "DELETE FROM "+TABLE_SHARED_SEMAPHORE+" WHERE "+COL_SHARED_SEMAPHORE_KEY+" = ? AND "+COL_SHARED_SEMAPHORE_LOCK_TOKEN+" = ?";
-	private static final String SQL_RELEASE_EXCLUSIVE_LOCK = "DELETE FROM "+TABLE_EXCLUSIVE_SEMAPHORE+" WHERE "+COL_EXCLUSIVE_SEMAPHORE_KEY+" = ? AND "+COL_EXCLUSIVE_SEMAPHORE_LOCK_TOKEN+" = ?";
+	private static final String SQL_RELEASE_EXCLUSIVE_LOCK = "UPDATE "+TABLE_EXCLUSIVE_SEMAPHORE+" SET "+COL_EXCLUSIVE_SEMAPHORE_LOCK_TOKEN+" = NULL,"+COL_EXCLUSIVE_SEMAPHORE_PRECURSOR_TOKEN+" = NULL, "+COL_EXCLUSIVE_SEMAPHORE_EXPIRES+" = NULL WHERE "+COL_EXCLUSIVE_SEMAPHORE_KEY+" = ? AND "+COL_EXCLUSIVE_SEMAPHORE_LOCK_TOKEN+" = ?";
 
 	static private Logger log = LogManager.getLogger(DBOSemaphoreDaoImpl.class);
 	
@@ -146,13 +146,12 @@ public class ExclusiveOrSharedSemaphoreDaoImpl implements
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
 	@Override
-	public boolean releaseSharedLock(String lockKey, String token) throws LockReleaseFailedException {
+	public void releaseSharedLock(String lockKey, String token) throws LockReleaseFailedException {
 		// try to release the lock
 		int update = simpleJdbcTemplate.update(SQL_RELEASE_SHARED_LOCK, lockKey, token);
 		if(update < 1){
 			throw new LockReleaseFailedException("Failed to release the lock for key: "+lockKey+" and token: "+token+".  Expired locks can be forcibly removed.");
 		}
-		return true;
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
@@ -219,7 +218,7 @@ public class ExclusiveOrSharedSemaphoreDaoImpl implements
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
 	@Override
-	public boolean releaseExclusiveLock(String lockKey, String token)
+	public void releaseExclusiveLock(String lockKey, String token)
 			throws LockReleaseFailedException {
 		if(lockKey == null) throw new IllegalArgumentException("Key cannot be null");
 		if(token == null) throw new IllegalArgumentException("Token cannot be null");
@@ -228,7 +227,6 @@ public class ExclusiveOrSharedSemaphoreDaoImpl implements
 		if(update < 1){
 			throw new LockReleaseFailedException("Failed to release the lock for key: "+lockKey+" and token: "+token+".  Expired locks can be forcibly removed.");
 		}
-		return true;
 	}
 	
 	@Override
