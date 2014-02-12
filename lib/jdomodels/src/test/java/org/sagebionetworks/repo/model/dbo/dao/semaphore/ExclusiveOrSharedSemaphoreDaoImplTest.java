@@ -56,6 +56,15 @@ public class ExclusiveOrSharedSemaphoreDaoImplTest {
 		// We should be able to release the lock
 		exclusiveOrSharedSemaphoreDao.releaseExclusiveLock(key, lockToken);
 		System.out.println("Exclusive lock timing: "+(System.currentTimeMillis()-start));
+		
+		// We should now be able to get the lock again
+		// First get the lock-precursor token
+		precursorToken = exclusiveOrSharedSemaphoreDao.acquireExclusiveLockPrecursor(key);
+		assertNotNull(precursorToken);
+		// Use it to get the actual token
+		lockToken = exclusiveOrSharedSemaphoreDao.acquireExclusiveLock(key, precursorToken, 1000);
+		// We should be able to release the lock
+		exclusiveOrSharedSemaphoreDao.releaseExclusiveLock(key, lockToken);
 	}
 	
 	@Test
