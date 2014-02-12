@@ -5,19 +5,18 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 import org.sagebionetworks.repo.model.dbo.AutoTableMapping;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.Field;
+import org.sagebionetworks.repo.model.dbo.ForeignKey;
 import org.sagebionetworks.repo.model.dbo.Table;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 
 @Table(name = TABLE_SHARED_SEMAPHORE, constraints = {
-		"FOREIGN KEY (" + COL_SHARED_SEMAPHORE_KEY + ") REFERENCES "
-				+ TABLE_EXCLUSIVE_SEMAPHORE + " ("
-				+ COL_EXCLUSIVE_SEMAPHORE_KEY + ") ON DELETE CASCADE",
 		"UNIQUE KEY (" + COL_SHARED_SEMAPHORE_LOCK_TOKEN + ")" })
 public class DBOSharedLock implements DatabaseObject<DBOSharedLock> {
 
 	private static TableMapping<DBOSharedLock> tableMapping = AutoTableMapping
 			.create(DBOSharedLock.class);
 
+	@ForeignKey(table = TABLE_EXCLUSIVE_SEMAPHORE, field = COL_EXCLUSIVE_SEMAPHORE_KEY, cascadeDelete = true)
 	@Field(name = COL_SHARED_SEMAPHORE_KEY, nullable = false, primary = true, fixedchar=100)
 	private String key;
 
