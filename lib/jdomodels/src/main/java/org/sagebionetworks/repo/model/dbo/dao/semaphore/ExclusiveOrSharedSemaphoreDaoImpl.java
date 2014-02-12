@@ -146,12 +146,13 @@ public class ExclusiveOrSharedSemaphoreDaoImpl implements
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
 	@Override
-	public void releaseSharedLock(String lockKey, String token) throws LockReleaseFailedException {
+	public boolean releaseSharedLock(String lockKey, String token) throws LockReleaseFailedException {
 		// try to release the lock
 		int update = simpleJdbcTemplate.update(SQL_RELEASE_SHARED_LOCK, lockKey, token);
 		if(update < 1){
 			throw new LockReleaseFailedException("Failed to release the lock for key: "+lockKey+" and token: "+token+".  Expired locks can be forcibly removed.");
 		}
+		return true;
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
@@ -218,7 +219,7 @@ public class ExclusiveOrSharedSemaphoreDaoImpl implements
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
 	@Override
-	public void releaseExclusiveLock(String lockKey, String token)
+	public boolean releaseExclusiveLock(String lockKey, String token)
 			throws LockReleaseFailedException {
 		if(lockKey == null) throw new IllegalArgumentException("Key cannot be null");
 		if(token == null) throw new IllegalArgumentException("Token cannot be null");
@@ -227,6 +228,7 @@ public class ExclusiveOrSharedSemaphoreDaoImpl implements
 		if(update < 1){
 			throw new LockReleaseFailedException("Failed to release the lock for key: "+lockKey+" and token: "+token+".  Expired locks can be forcibly removed.");
 		}
+		return true;
 	}
 	
 	@Override

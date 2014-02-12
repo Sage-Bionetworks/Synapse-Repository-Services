@@ -67,7 +67,7 @@ public interface ExclusiveOrSharedSemaphoreDao {
 	 *             occurs, the timeout set when the lock was acquired might be
 	 *             too low.
 	 */
-	public void releaseSharedLock(String lockKey, String token)
+	public boolean releaseSharedLock(String lockKey, String token)
 			throws LockReleaseFailedException;
 
 	/**
@@ -154,7 +154,7 @@ public interface ExclusiveOrSharedSemaphoreDao {
 	 *             occurs, the timeout set when the lock was acquired might be
 	 *             too low.
 	 */
-	public void releaseExclusiveLock(String lockKey, String token)
+	public boolean releaseExclusiveLock(String lockKey, String token)
 			throws LockReleaseFailedException;
 	
 	/**
