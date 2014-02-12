@@ -3,7 +3,7 @@ package org.sagebionetworks.repo.model.dbo.persistence;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_EXCLUSIVE_SEMAPHORE_EXPIRES;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_EXCLUSIVE_SEMAPHORE_KEY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_EXCLUSIVE_SEMAPHORE_LOCK_TOKEN;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_EXCLUSIVE_SEMAPHORE_REQUEST_TOKEN;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_EXCLUSIVE_SEMAPHORE_PRECURSOR_TOKEN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_EXCLUSIVE_SEMAPHORE;
 
 import org.sagebionetworks.repo.model.dbo.AutoTableMapping;
@@ -14,7 +14,7 @@ import org.sagebionetworks.repo.model.dbo.TableMapping;
 
 @Table(name = TABLE_EXCLUSIVE_SEMAPHORE, constraints = {
 		"UNIQUE KEY (" + COL_EXCLUSIVE_SEMAPHORE_LOCK_TOKEN + ")",
-		"UNIQUE KEY (" + COL_EXCLUSIVE_SEMAPHORE_REQUEST_TOKEN + ")" })
+		"UNIQUE KEY (" + COL_EXCLUSIVE_SEMAPHORE_PRECURSOR_TOKEN + ")" })
 public class DBOExclusiveLock implements  DatabaseObject<DBOExclusiveLock> {
 	
 	private static TableMapping<DBOExclusiveLock> tableMapping = AutoTableMapping.create(DBOExclusiveLock.class);
@@ -22,8 +22,8 @@ public class DBOExclusiveLock implements  DatabaseObject<DBOExclusiveLock> {
 	@Field(name = COL_EXCLUSIVE_SEMAPHORE_KEY, nullable = false, primary=true, fixedchar=100)
 	private String key;
 	
-	@Field(name = COL_EXCLUSIVE_SEMAPHORE_REQUEST_TOKEN, nullable = true, fixedchar=200)
-	private String exclusiveRequestToken;
+	@Field(name = COL_EXCLUSIVE_SEMAPHORE_PRECURSOR_TOKEN, nullable = true, fixedchar=200)
+	private String exclusivePrecursorToken;
 	
 	@Field(name = COL_EXCLUSIVE_SEMAPHORE_LOCK_TOKEN, nullable = true, fixedchar=200)
 	private String exclusiveLockToken;
@@ -44,12 +44,13 @@ public class DBOExclusiveLock implements  DatabaseObject<DBOExclusiveLock> {
 		this.key = key;
 	}
 
-	public String getExclusiveRequestToken() {
-		return exclusiveRequestToken;
+
+	public String getExclusivePrecursorToken() {
+		return exclusivePrecursorToken;
 	}
 
-	public void setExclusiveRequestToken(String exclusiveRequestToken) {
-		this.exclusiveRequestToken = exclusiveRequestToken;
+	public void setExclusivePrecursorToken(String exclusivePrecursorToken) {
+		this.exclusivePrecursorToken = exclusivePrecursorToken;
 	}
 
 	public String getExclusiveLockToken() {
@@ -82,7 +83,7 @@ public class DBOExclusiveLock implements  DatabaseObject<DBOExclusiveLock> {
 						.hashCode());
 		result = prime
 				* result
-				+ ((exclusiveRequestToken == null) ? 0 : exclusiveRequestToken
+				+ ((exclusivePrecursorToken == null) ? 0 : exclusivePrecursorToken
 						.hashCode());
 		result = prime * result
 				+ ((expiration == null) ? 0 : expiration.hashCode());
@@ -104,10 +105,10 @@ public class DBOExclusiveLock implements  DatabaseObject<DBOExclusiveLock> {
 				return false;
 		} else if (!exclusiveLockToken.equals(other.exclusiveLockToken))
 			return false;
-		if (exclusiveRequestToken == null) {
-			if (other.exclusiveRequestToken != null)
+		if (exclusivePrecursorToken == null) {
+			if (other.exclusivePrecursorToken != null)
 				return false;
-		} else if (!exclusiveRequestToken.equals(other.exclusiveRequestToken))
+		} else if (!exclusivePrecursorToken.equals(other.exclusivePrecursorToken))
 			return false;
 		if (expiration == null) {
 			if (other.expiration != null)
@@ -125,7 +126,7 @@ public class DBOExclusiveLock implements  DatabaseObject<DBOExclusiveLock> {
 	@Override
 	public String toString() {
 		return "DBOExclusiveLock [key=" + key + ", exclusiveRequestToken="
-				+ exclusiveRequestToken + ", exclusiveLockToken="
+				+ exclusivePrecursorToken + ", exclusiveLockToken="
 				+ exclusiveLockToken + ", expiration=" + expiration + "]";
 	}
 	

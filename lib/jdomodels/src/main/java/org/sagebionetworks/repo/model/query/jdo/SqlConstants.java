@@ -491,7 +491,7 @@ public class SqlConstants {
 	// Exclusive semaphore
 	public static final String TABLE_EXCLUSIVE_SEMAPHORE 				= "EXCLUSIVE_SEMAPHORE";
 	public static final String COL_EXCLUSIVE_SEMAPHORE_KEY				= "SEM_KEY";
-	public static final String COL_EXCLUSIVE_SEMAPHORE_REQUEST_TOKEN	= "REQUEST_TOKEN";
+	public static final String COL_EXCLUSIVE_SEMAPHORE_PRECURSOR_TOKEN	= "PRECURSOR_TOKEN";
 	public static final String COL_EXCLUSIVE_SEMAPHORE_LOCK_TOKEN		= "LOCK_TOKEN";
 	public static final String COL_EXCLUSIVE_SEMAPHORE_EXPIRES			= "EXPIRATION";
 	

@@ -5,9 +5,8 @@ import org.sagebionetworks.repo.model.exception.LockUnavilableException;
 
 /**
  * An abstraction for a Semaphore that issues either exclusive or shared locks.
- * This type of semaphore is useful for scenarios where there can be only a
- * single writer (exclusive) or many readers (shared), but never both at the
- * same time.
+ * This type of semaphore is useful for scenarios where there can be either a
+ * single writer (exclusive) or many readers (shared).
  * 
  * Implementations of this DAO will have the following characteristics:
  * <ul>
@@ -18,12 +17,12 @@ import org.sagebionetworks.repo.model.exception.LockUnavilableException;
  * read-locks but no outstanding write-locks.</li>
  * <li>Acquiring a write-lock is a two phase operation:
  * <ul>
- * <li>First, a write-lock request token must be acquired. Once the
- * write-request token has been issued, all new read-lock requests will be
- * rejected.</li>
- * <li>The write-lock request token must be used to acquire the write-lock. As
- * soon as all outstanding read-locks are release, the write-lock can be issued
- * to the request token holder.</li>
+ * <li>First, a write-lock-precursor token must be acquired. Once the
+ * write-lock-precursor token has been issued, all new read-lock requests will
+ * be rejected.</li>
+ * <li>The write-lock-precursor token must be used to acquire the actual
+ * write-lock. As soon as all outstanding read-locks are release, the write-lock
+ * can be issued to the holder of the write-lock-precursor.</li>
  * </ul>
  * </li>
  * </ul>
@@ -51,7 +50,7 @@ public interface ExclusiveOrSharedSemaphoreDao {
 	 *             will occur when another caller either requested a write-lock
 	 *             (exclusive) or is holding a write-lock.
 	 */
-	public String aquireSharedLock(String lockKey, long timeoutMS)
+	public String acquireSharedLock(String lockKey, long timeoutMS)
 			throws LockUnavilableException;
 
 	/**
@@ -72,49 +71,74 @@ public interface ExclusiveOrSharedSemaphoreDao {
 			throws LockReleaseFailedException;
 
 	/**
-	 * The first phase of acquiring a write-lock (exclusive) on a resource. It
-	 * indicates the desire to acquire a write-lock. When successful, a request
-	 * token will be issued. This token must be provide to complete the
-	 * write-lock acquisition(see:
-	 * {@link #aquireExclusiveLock(String, String, long)}. Once a write-lock
-	 * request token has been issued, all new read-lock requests with the same
-	 * lock key will be rejected.
 	 * <p>
-	 * Note: The write-lock request token has a short automatic timeout. It must
-	 * be used to attempt to get the write-lock within 5 seconds. However, each
-	 * attempt to acquire the final write-lock will reset this timer. The
-	 * request token can be held indefinitely as long as subsequent write-lock
-	 * Acquisition attempts continue to be made.
+	 * Attempt to acquire the write-lock-precursor on a resource identified by
+	 * the passed lock key.
+	 * </p>
+	 * <p>
+	 * In order to acquire an actual write-lock a caller must first acquire the
+	 * write-lock-precursor token. Holding the write-lock-precursor token
+	 * indicates an intention to acquire the actual write-lock. Once the
+	 * write-lock-precursor has been issued, all new read-lock attempts will be
+	 * rejected.
+	 * </p>
+	 * <p>
+	 * The holder of the write-lock-precursor must wait for all outstanding
+	 * read-locks to either be released normally or forcibly (in the case of
+	 * expired locks). The write-lock-precursor has a short timeout (5 seconds).
+	 * However, each attempt to acquire the actual write-lock will refresh the
+	 * expiration timer of the write-lock-precursor.
+	 * </p>
+	 * <p>
+	 * The write-lock-precursor token returned by this method is a required
+	 * parameter to attempt to acquire the actual write-lock using
+	 * {@link #acquireExclusiveLock(String, String, long)} .
 	 * </p>
 	 * 
 	 * @param lockKey
 	 *            Identifies the resource to lock.
-	 * @return
+	 * @return The write-lock-precursor token.
 	 * @throws LockUnavilableException
-	 *             Throw when the lock cannot be acquired at this time. This
-	 *             will occur when another caller either requested a write-lock
-	 *             (exclusive) or is holding a write-lock.
+	 *             Throw when the lock cannot be acquired at this time because
+	 *             someone is already holding either the write-lock-precursor or
+	 *             actual write-lock on this given resource.
 	 */
-	public String requestExclusiveLockToken(String lockKey)
+	public String acquireExclusiveLockPrecursor(String lockKey)
 			throws LockUnavilableException;
 
 	/**
-	 * The second phase of acquiring a write-lock (exclusive) on a resource.
-	 * Once a write-lock request token has been issued with
-	 * {@link #requestExclusiveLockToken(String)} the caller must wait for
-	 * all outstanding read-locks (shared) to be released before the actual
-	 * write-lock can be issued.  Each time this method is called with a valid request token
-	 * a check for outstanding read-locks will be made.  When there are no longer any outstanding
-	 * read-locks a write-lock will be issued to the caller identified by the returned token.
-	 * Each time this method is called, the timeout on the write-lock request token will be reset.
+	 * <p>
+	 * Attempt to acquire the actual write-lock (exclusive) for a given resources using the
+	 * write-lock-precursor acquired with
+	 * {@link #acquireExclusiveLockPrecursor(String)}.
+	 * </p>
+	 * Each time this is is called, outstanding read-locks will be checked and
+	 * the timeout of the write-lock-precursor will get reset. Once all
+	 * read-locks have been released, this call will create the actual-write
+	 * lock identified by the returned token.
+	 * <p>
+	 * It is assumed that this method will be called in a loop and will simply
+	 * return null if the actual write-lock cannot be acquire yet.
+	 * </p>
+	 * 
 	 * 
 	 * @param lockKey
-	 * @param requestToken
+	 * @param exclusiveLockPrecursorToken
+	 *            This token is issued by
+	 *            {@link #acquireExclusiveLockPrecursor(String)}
 	 * @param timeoutMS
-	 * @return
+	 *            The number of milliseconds that the caller expects to hold the
+	 *            write-lock on this resource. If the write-lock is not release
+	 *            before this amount of time has elapsed, the lock could be
+	 *            forcibly released and issued to another caller.
+	 * @return The token identifying the actual write-lock. It is the
+	 *         responsibility of this token holder to release the write-lock
+	 *         when finished by calling
+	 *         {@link #releaseExclusiveLock(String, String)} before the given
+	 *         timeout expires.
 	 */
-	public String aquireExclusiveLock(String lockKey, String requestToken,
-			long timeoutMS);
+	public String acquireExclusiveLock(String lockKey,
+			String exclusiveLockPrecursorToken, long timeoutMS);
 
 	/**
 	 * When a write-lock (exclusive) is acquired, it is the responsibly of the
@@ -132,5 +156,10 @@ public interface ExclusiveOrSharedSemaphoreDao {
 	 */
 	public void releaseExclusiveLock(String lockKey, String token)
 			throws LockReleaseFailedException;
+	
+	/**
+	 * Force the release of all locks.  This should not be used under normal circumstances. 
+	 */
+	public void releaseAllLocks();
 
 }
