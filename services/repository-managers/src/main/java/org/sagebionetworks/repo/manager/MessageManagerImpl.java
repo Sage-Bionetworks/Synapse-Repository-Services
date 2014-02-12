@@ -406,6 +406,9 @@ public class MessageManagerImpl implements MessageManager {
 		List<String> errors = new ArrayList<String>();
 		UserInfo userInfo = userManager.getUserInfo(Long.parseLong(dto.getCreatedBy()));
 		
+		UserProfile senderProfile = userProfileDAO.get(""+userInfo.getId());
+		String senderUserName = senderProfile.getUserName();
+		
 		// Check to see if the message has already been sent
 		// If so, nothing else needs to be done
 		if (messageDAO.hasMessageBeenSent(dto.getId())) {
@@ -441,7 +444,7 @@ public class MessageManagerImpl implements MessageManager {
 								dto.getSubject(),
 								messageBody, 
 								isHtml,
-								profile.getUserName());
+								senderUserName);
 						
 						// Should the message be marked as READ?
 						if (settings.getMarkEmailedMessagesAsRead() != null && settings.getMarkEmailedMessagesAsRead()) {
