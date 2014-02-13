@@ -306,4 +306,9 @@
 	<bean id="semaphoreDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.semaphore.DBOSemaphoreDaoImpl" />
 
+	<bean id="exclusiveOrSharedSemaphoreDao"
+		class="org.sagebionetworks.repo.model.dbo.dao.semaphore.ExclusiveOrSharedSemaphoreDaoImpl">
+		<property name="maxSharedLockTimeoutMS" ref="stackConfiguration.semaphoreSharedMaxTimeoutMS"/>
+		<property name="maxExclusiveLockTimeoutMS" ref="stackConfiguration.semaphoreExclusiveMaxTimeoutMS"/>
+	</bean>
 </beans>

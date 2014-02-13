@@ -1088,6 +1088,28 @@ public class StackConfiguration {
 				.parseInt(configuration
 						.getProperty("org.sagebionetworks.semaphore.gated.max.runners.annotations"));
 	}
+	
+	/**
+	 * The maximum timeout for an exclusive lock in milliseconds.
+	 * 
+	 * @return
+	 */
+	public Integer getSemaphoreExclusiveMaxTimeoutMS() {
+		return Integer
+				.parseInt(configuration
+						.getProperty("org.sagebionetworks.semaphore.exclusive.max.timeout.ms"));
+	}
+	
+	/**
+	 * The maximum timeout for a shared lock in milliseconds.
+	 * 
+	 * @return
+	 */
+	public Integer getSemaphoreSharedMaxTimeoutMS() {
+		return Integer
+				.parseInt(configuration
+						.getProperty("org.sagebionetworks.semaphore.shared.max.timeout.ms"));
+	}
 
 	/**
 	 * This is the maximum amount of time the upload workers are allowed to take
