@@ -23,6 +23,8 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.dao.AuthorizationUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOSessionToken;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -116,7 +118,15 @@ public class UserManagerImpl implements UserManager {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public UserInfo createUser(UserInfo adminUserInfo, NewUser user, DBOCredential credential) throws NotFoundException {
+	public UserInfo createUser(UserInfo adminUserInfo, NewUser user, DBOCredential credential,
+			DBOTermsOfUseAgreement touAgreement) throws NotFoundException {
+		return createUser(adminUserInfo, user, credential, touAgreement, null);
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public UserInfo createUser(UserInfo adminUserInfo, NewUser user, DBOCredential credential,
+			DBOTermsOfUseAgreement touAgreement, DBOSessionToken token) throws NotFoundException {
 		if (!adminUserInfo.isAdmin()) {
 			throw new UnauthorizedException("Must be an admin to use this service");
 		}
@@ -131,6 +141,14 @@ public class UserManagerImpl implements UserManager {
 		credential.setSecretKey(HMACUtils.newHMACSHA1Key());
 		basicDAO.update(credential);
 		
+		if (touAgreement != null) {
+			touAgreement.setPrincipalId(principalId);
+			basicDAO.createOrUpdate(touAgreement);
+		}
+		if (token != null) {
+			token.setPrincipalId(principalId);
+			basicDAO.createOrUpdate(token);
+		}
 		return getUserInfo(principalId);
 	}
 

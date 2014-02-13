@@ -137,6 +137,10 @@ public class MessageManagerImplTest {
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		cleanup = new ArrayList<String>();
 		
+		DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();
+		tou.setDomain(DomainType.SYNAPSE);
+		tou.setAgreesToTermsOfUse(Boolean.TRUE);
+		
 		DBOCredential cred = new DBOCredential();
 		cred.setAgreesToTermsOfUse(true);
 		cred.setSecretKey("");
@@ -145,18 +149,12 @@ public class MessageManagerImplTest {
 		NewUser nu = new NewUser();
 		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
 		nu.setUserName(UUID.randomUUID().toString());
-		testUser = userManager.createUser(adminUserInfo, nu, cred);
-		
-		DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();
-		tou.setDomain(DomainType.SYNAPSE);
-		tou.setAgreesToTermsOfUse(Boolean.TRUE);
-		tou.setPrincipalId(testUser.getId());
-		basicDao.createOrUpdate(tou);
+		testUser = userManager.createUser(adminUserInfo, nu, cred, tou);
 		
 		nu = new NewUser();
 		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
 		nu.setUserName(UUID.randomUUID().toString());
-		otherTestUser = userManager.createUser(adminUserInfo,nu, cred);
+		otherTestUser = userManager.createUser(adminUserInfo,nu, cred, tou);
 		
 		tou.setPrincipalId(otherTestUser.getId());
 		basicDao.createOrUpdate(tou);

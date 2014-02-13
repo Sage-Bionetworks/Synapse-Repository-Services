@@ -104,6 +104,10 @@ public class EntityPermissionsManagerImplTest {
 	public void setUp() throws Exception {
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		
+		DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();
+		tou.setDomain(DomainType.SYNAPSE);
+		tou.setAgreesToTermsOfUse(Boolean.TRUE);
+		
 		DBOCredential cred = new DBOCredential();
 		cred.setAgreesToTermsOfUse(true);
 		cred.setSecretKey("");
@@ -112,17 +116,11 @@ public class EntityPermissionsManagerImplTest {
 		NewUser nu = new NewUser();
 		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
 		nu.setUserName(UUID.randomUUID().toString());
-		userInfo = userManager.createUser(adminUserInfo, nu, cred);
-		
-		DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();
-		tou.setDomain(DomainType.SYNAPSE);
-		tou.setAgreesToTermsOfUse(Boolean.TRUE);
-		tou.setPrincipalId(userInfo.getId());
-		basicDao.createOrUpdate(tou);
+		userInfo = userManager.createUser(adminUserInfo, nu, cred, tou);
 		
 		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
 		nu.setUserName(UUID.randomUUID().toString());
-		otherUserInfo = userManager.createUser(adminUserInfo, nu, cred);
+		otherUserInfo = userManager.createUser(adminUserInfo, nu, cred, tou);
 		
 		tou.setPrincipalId(otherUserInfo.getId());
 		basicDao.createOrUpdate(tou);

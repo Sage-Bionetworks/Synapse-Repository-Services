@@ -71,11 +71,11 @@ public class UserManagerImplUnitTest {
 		NewUser nu = new NewUser();
 		nu.setEmail(UUID.randomUUID().toString()+"@testing.com");
 		nu.setUserName(UUID.randomUUID().toString());
-		userManager.createUser(admin, nu, null);
+		userManager.createUser(admin, nu, null, null);
 		
 		// Call with a non admin
 		try {
-			userManager.createUser(notAdmin, null, null);
+			userManager.createUser(notAdmin, null, null, null);
 			fail();
 		} catch (UnauthorizedException e) { }
 	}

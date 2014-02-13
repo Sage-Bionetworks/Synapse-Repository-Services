@@ -97,6 +97,10 @@ public class NodeManagerImplAutoWiredTest {
 		nodesToDelete = new ArrayList<String>();
 		activitiesToDelete = new ArrayList<String>();
 		
+		DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();
+		tou.setDomain(DomainType.SYNAPSE);
+		tou.setAgreesToTermsOfUse(Boolean.TRUE);
+		
 		// Make sure we have a valid user.
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		UserInfo.validateUserInfo(adminUserInfo);
@@ -107,13 +111,7 @@ public class NodeManagerImplAutoWiredTest {
 		NewUser nu = new NewUser();
 		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
 		nu.setUserName(UUID.randomUUID().toString());
-		userInfo = userManager.createUser(adminUserInfo, nu, cred);
-		
-		DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();
-		tou.setPrincipalId(userInfo.getId());
-		tou.setDomain(DomainType.SYNAPSE);
-		tou.setAgreesToTermsOfUse(Boolean.TRUE);
-		basicDao.createOrUpdate(tou);
+		userInfo = userManager.createUser(adminUserInfo, nu, cred, tou);
 	}
 	
 	@After

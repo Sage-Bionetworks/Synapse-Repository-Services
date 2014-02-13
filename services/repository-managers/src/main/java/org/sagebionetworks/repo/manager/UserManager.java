@@ -10,6 +10,8 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOSessionToken;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -47,8 +49,12 @@ public interface UserManager {
 	 * Creates a new user and initializes some fields as specified.
 	 * Must be an admin to use this
 	 */
-	public UserInfo createUser(UserInfo adminUserInfo, NewUser user, DBOCredential credential) throws NotFoundException;
-		
+	public UserInfo createUser(UserInfo adminUserInfo, NewUser user, DBOCredential credential,
+			DBOTermsOfUseAgreement touAgreement, DBOSessionToken token) throws NotFoundException;
+
+	public UserInfo createUser(UserInfo adminUserInfo, NewUser user, DBOCredential credential,
+			DBOTermsOfUseAgreement touAgreement) throws NotFoundException;
+	
 	/**
 	 * Delete a principal by ID
 	 * 

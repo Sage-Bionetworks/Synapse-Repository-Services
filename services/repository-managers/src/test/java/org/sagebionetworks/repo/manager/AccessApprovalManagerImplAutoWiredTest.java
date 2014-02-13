@@ -94,13 +94,11 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		NewUser nu = new NewUser();
 		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
 		nu.setUserName(UUID.randomUUID().toString());
-		testUserInfo = userManager.createUser(adminUserInfo, nu, cred);
 		
 		DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();
-		tou.setPrincipalId(testUserInfo.getId());
 		tou.setDomain(DomainType.SYNAPSE);
 		tou.setAgreesToTermsOfUse(Boolean.TRUE);
-		basicDao.createOrUpdate(tou);
+		testUserInfo = userManager.createUser(adminUserInfo, nu, cred, tou);
 		
 		assertNotNull(nodeManager);
 		nodesToDelete = new ArrayList<String>();

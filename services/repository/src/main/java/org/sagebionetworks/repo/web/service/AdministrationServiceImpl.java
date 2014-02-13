@@ -202,6 +202,8 @@ public class AdministrationServiceImpl implements AdministrationService  {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		
 		DBOCredential cred = new DBOCredential();
+		DBOTermsOfUseAgreement touAgreement = new DBOTermsOfUseAgreement();
+		DBOSessionToken sessionToken = new DBOSessionToken();
 		if (userSpecs.getPassword() != null) {
 			cred.setPassHash(PBKDF2Utils.hashPassword(userSpecs.getPassword(), null));
 		}
@@ -209,27 +211,19 @@ public class AdministrationServiceImpl implements AdministrationService  {
 			cred.setSessionToken(userSpecs.getSession().getSessionToken());
 			cred.setAgreesToTermsOfUse(userSpecs.getSession().getAcceptsTermsOfUse());
 			cred.setValidatedOn(new Date());
+
+			touAgreement.setDomain(DomainType.SYNAPSE);
+			touAgreement.setAgreesToTermsOfUse(userSpecs.getSession().getAcceptsTermsOfUse());
+
+			sessionToken.setSessionToken(userSpecs.getSession().getSessionToken());
+			sessionToken.setValidatedOn(new Date());
+			sessionToken.setDomain(DomainType.SYNAPSE);
 		}
 		
 		NewUser nu = new NewUser();
 		nu.setEmail(userSpecs.getEmail());
 		nu.setUserName(userSpecs.getUsername());
-		UserInfo user = userManager.createUser(userInfo, nu, cred);
-		
-		if (userSpecs.getSession() != null) {
-			DBOTermsOfUseAgreement touAgreement = new DBOTermsOfUseAgreement();
-			touAgreement.setPrincipalId(user.getId());
-			touAgreement.setDomain(DomainType.SYNAPSE);
-			touAgreement.setAgreesToTermsOfUse(Boolean.TRUE);
-			basicDao.createOrUpdate(touAgreement);
-
-			DBOSessionToken sessionToken = new DBOSessionToken();
-			sessionToken.setPrincipalId(user.getId());
-			sessionToken.setSessionToken(userSpecs.getSession().getSessionToken());
-			sessionToken.setValidatedOn(new Date());
-			sessionToken.setDomain(DomainType.SYNAPSE);
-			basicDao.createOrUpdate(sessionToken);
-		}
+		UserInfo user = userManager.createUser(userInfo, nu, cred, touAgreement, sessionToken);
 		
 		EntityId id = new EntityId();
 		id.setId(user.getId().toString());

@@ -116,6 +116,10 @@ public class AuthorizationManagerImplTest {
 	public void setUp() throws Exception {
 		adminUser = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 
+		DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();
+		tou.setDomain(DomainType.SYNAPSE);
+		tou.setAgreesToTermsOfUse(Boolean.TRUE);
+		
 		// Create a new user
 		DBOCredential cred = new DBOCredential();
 		cred.setAgreesToTermsOfUse(true);
@@ -123,13 +127,7 @@ public class AuthorizationManagerImplTest {
 		NewUser nu = new NewUser();
 		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
 		nu.setUserName(UUID.randomUUID().toString());
-		userInfo = userManager.createUser(adminUser, nu, cred);
-		
-		DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();
-		tou.setPrincipalId(userInfo.getId());
-		tou.setDomain(DomainType.SYNAPSE);
-		tou.setAgreesToTermsOfUse(Boolean.TRUE);
-		basicDao.createOrUpdate(tou);
+		userInfo = userManager.createUser(adminUser, nu, cred, tou);
 		
 		// Create a new group
 		testGroup = new UserGroup();
