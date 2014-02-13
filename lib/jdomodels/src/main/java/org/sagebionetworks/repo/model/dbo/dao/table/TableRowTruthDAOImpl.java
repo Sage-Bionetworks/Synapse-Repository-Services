@@ -194,6 +194,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		changeDBO.setCreatedOn(System.currentTimeMillis());
 		changeDBO.setKey(key);
 		changeDBO.setBucket(s3Bucket);
+		changeDBO.setRowCount(new Long(delta.getRows().size()));
 		basicDao.createNew(changeDBO);
 
 		// Prepare the results

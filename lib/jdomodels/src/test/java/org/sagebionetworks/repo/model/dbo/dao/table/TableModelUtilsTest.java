@@ -514,6 +514,7 @@ public class TableModelUtilsTest {
 		dto.setBucket("bucket");
 		dto.setKey("key");
 		dto.setEtag("someEtag");
+		dto.setRowCount(999L);
 		// To DBO
 		DBOTableRowChange dbo = TableModelUtils.createDBOFromDTO(dto);
 		assertNotNull(dbo);

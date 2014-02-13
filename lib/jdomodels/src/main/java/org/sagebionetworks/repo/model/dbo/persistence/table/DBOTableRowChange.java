@@ -28,6 +28,7 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 		new FieldColumn("createdOn", COL_TABLE_ROW_CREATED_ON),
 		new FieldColumn("bucket", COL_TABLE_ROW_BUCKET),
 		new FieldColumn("key", COL_TABLE_ROW_KEY),
+		new FieldColumn("rowCount", COL_TABLE_ROW_COUNT),
 	};
 	
 	private Long tableId;
@@ -38,6 +39,7 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 	private Long createdOn;
 	private String bucket;
 	private String key;
+	private Long rowCount;
 	
 	@Override
 	public TableMapping<DBOTableRowChange> getTableMapping() {
@@ -55,6 +57,7 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 				change.setCreatedOn(rs.getLong(COL_TABLE_ROW_CREATED_ON));
 				change.setBucket(rs.getString(COL_TABLE_ROW_BUCKET));
 				change.setKey(rs.getString(COL_TABLE_ROW_KEY));
+				change.setRowCount(rs.getLong(COL_TABLE_ROW_COUNT));
 				return change;
 			}
 
@@ -78,6 +81,14 @@ public class DBOTableRowChange implements MigratableDatabaseObject<DBOTableRowCh
 				return DBOTableRowChange.class;
 			}
 		};
+	}
+
+	public Long getRowCount() {
+		return rowCount;
+	}
+
+	public void setRowCount(Long rowCount) {
+		this.rowCount = rowCount;
 	}
 
 	public String getEtag() {

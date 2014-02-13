@@ -153,6 +153,7 @@ public class TableRowTruthDAOImplTest {
 		assertNotNull(zero.getBucket());
 		assertNotNull(zero.getKey());
 		assertNotNull(zero.getEtag());
+		assertEquals(new Long(5), zero.getRowCount());
 		// Next is should be version one.
 		// The first change should be version zero
 		TableRowChange one = results.get(1);

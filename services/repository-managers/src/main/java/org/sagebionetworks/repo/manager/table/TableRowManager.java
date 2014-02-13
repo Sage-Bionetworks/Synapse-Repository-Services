@@ -55,8 +55,10 @@ public interface TableRowManager {
 	 * 
 	 * @param tableId
 	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
 	 */
-	public List<ColumnModel> getColumnModelsForTable(String tableId);
+	public List<ColumnModel> getColumnModelsForTable(String tableId) throws DatastoreException, NotFoundException;
 
 	/**
 	 * List the changes that have been applied to a table.
@@ -72,8 +74,10 @@ public interface TableRowManager {
 	 * @param tableId
 	 * @param rowVersion
 	 * @return
+	 * @throws NotFoundException 
+	 * @throws IOException 
 	 */
-	public RowSet getRowSet(String tableId, Long rowVersion);
+	public RowSet getRowSet(String tableId, Long rowVersion) throws IOException, NotFoundException;
 
 	/**
 	 * <p>
@@ -104,9 +108,11 @@ public interface TableRowManager {
 	 *             Thrown when an exclusive lock cannot be acquired.
 	 * 
 	 * @return
+	 * @throws Exception 
+	 * @throws InterruptedException 
 	 */
-	public <T> T runWithTableExclusiveLock(String tableId, Callable<T> runner)
-			throws LockUnavilableException;
+	public <T> T tryRunWithTableExclusiveLock(String tableId, long timeoutMS, Callable<T> runner)
+			throws LockUnavilableException, InterruptedException, Exception;
 
 	/**
 	 * <p>
@@ -132,8 +138,9 @@ public interface TableRowManager {
 	 * @param runner
 	 * @return
 	 * @throws LockUnavilableException
+	 * @throws Exception 
 	 */
-	public <T> T runWithTableNonexclusiveLock(String tableId, Callable<T> runner)
-			throws LockUnavilableException;
+	public <T> T tryRunWithTableNonexclusiveLock(String tableId, long timeoutMS, Callable<T> runner)
+			throws LockUnavilableException, Exception;
 
 }

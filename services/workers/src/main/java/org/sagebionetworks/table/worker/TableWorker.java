@@ -16,7 +16,6 @@ import org.sagebionetworks.repo.manager.table.TableRowManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreDao;
-import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.exception.LockUnavilableException;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -132,7 +131,7 @@ public class TableWorker implements Callable<List<Message>> {
 		// Attempt to run with 
 		try{
 			// Run with the exclusive lock on the table if we can get it.
-			return tableRowManager.runWithTableExclusiveLock(tableId, new Callable<State>() {
+			return tableRowManager.tryRunWithTableExclusiveLock(tableId, timeoutMS, new Callable<State>() {
 				@Override
 				public State call() throws Exception {
 					// This method does the real work.
@@ -143,6 +142,13 @@ public class TableWorker implements Callable<List<Message>> {
 			// We did not get the lock on this table.
 			// This is a recoverable failure as we can try again later.
 			return State.RECOVERABLE_FAILURE;
+		} catch (InterruptedException e) {
+			// This is a recoverable failure as we can try again later.
+			return State.RECOVERABLE_FAILURE;
+		} catch (Exception e) {
+			log.error("Failed with unknown error", e);
+			// Cannot recover from this.
+			return State.UNRECOVERABLE_FAILURE;
 		}
 	}
 	

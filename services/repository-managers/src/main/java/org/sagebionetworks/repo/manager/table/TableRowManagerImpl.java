@@ -11,10 +11,11 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dao.semaphore.ExclusiveOrSharedSemaphoreRunner;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
-import org.sagebionetworks.repo.model.exception.LockUnavilableException;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
@@ -36,6 +37,9 @@ public class TableRowManagerImpl implements TableRowManager {
 	TableStatusDAO tableStatusDAO;
 	@Autowired
 	ColumnModelDAO columnModelDAO;
+	@Autowired
+	ExclusiveOrSharedSemaphoreRunner exclusiveOrSharedSemaphoreRunner;
+	
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
@@ -61,35 +65,33 @@ public class TableRowManagerImpl implements TableRowManager {
 	}
 
 	@Override
-	public List<ColumnModel> getColumnModelsForTable(String tableId) {
-		// TODO Auto-generated method stub
-		return null;
+	public List<ColumnModel> getColumnModelsForTable(String tableId) throws DatastoreException, NotFoundException {
+		return columnModelDAO.getColumnModelsForObject(tableId);
 	}
 
 	@Override
 	public List<TableRowChange> listRowSetsKeysForTable(String tableId) {
-		// TODO Auto-generated method stub
-		return null;
+		return tableRowTruthDao.listRowSetsKeysForTable(tableId);
 	}
 
 	@Override
-	public RowSet getRowSet(String tableId, Long rowVersion) {
-		// TODO Auto-generated method stub
-		return null;
+	public RowSet getRowSet(String tableId, Long rowVersion) throws IOException, NotFoundException {
+		return tableRowTruthDao.getRowSet(tableId, rowVersion);
+	}
+	@Override
+	public <T> T tryRunWithTableExclusiveLock(String tableId, long lockTimeoutMS, Callable<T> runner)
+			throws InterruptedException, Exception {
+		String key = TableModelUtils.getTableSemaphoreKey(tableId);
+		// The semaphore runner does all of the lock work.
+		return exclusiveOrSharedSemaphoreRunner.tryRunWithExclusiveLock(key, lockTimeoutMS, runner);
 	}
 
 	@Override
-	public <T> T runWithTableExclusiveLock(String tableId, Callable<T> runner)
-			throws LockUnavilableException {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public <T> T runWithTableNonexclusiveLock(String tableId, Callable<T> runner)
-			throws LockUnavilableException {
-		// TODO Auto-generated method stub
-		return null;
+	public <T> T tryRunWithTableNonexclusiveLock(String tableId, long lockTimeoutMS, Callable<T> runner)
+			throws Exception {
+		String key = TableModelUtils.getTableSemaphoreKey(tableId);
+		// The semaphore runner does all of the lock work.
+		return exclusiveOrSharedSemaphoreRunner.tryRunWithSharedLock(key, lockTimeoutMS, runner);
 	}
 	
 
