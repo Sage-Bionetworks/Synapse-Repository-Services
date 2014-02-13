@@ -7,11 +7,9 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.DOWNLOAD;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.READ;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeQueryDao;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
@@ -21,13 +19,11 @@ import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
-import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -56,6 +52,8 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	private NodeInheritanceManager nodeInheritanceManager;
 	@Autowired
 	private UserManager userManager;
+	@Autowired
+	private AuthenticationManager authenticationManager;
 
 	@Override
 	public AccessControlList getACL(String nodeId, UserInfo userInfo) throws NotFoundException, DatastoreException, ACLInheritanceException {
@@ -280,7 +278,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		return accessRequirementIds.isEmpty();
 	}
 
-	private static boolean agreesToTermsOfUse(UserInfo userInfo) {
-		return userInfo.isAgreesToTermsOfUse();
+	private boolean agreesToTermsOfUse(UserInfo userInfo) throws NotFoundException {
+		return authenticationManager.hasUserAcceptedTermsOfUse(userInfo.getId(), DomainType.SYNAPSE);
 	}
 }

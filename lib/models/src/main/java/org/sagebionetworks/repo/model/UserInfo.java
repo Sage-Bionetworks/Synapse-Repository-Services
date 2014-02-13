@@ -43,7 +43,6 @@ public class UserInfo {
 	
 	private Long id;
 	private Date creationDate;
-	private boolean agreesToTermsOfUse;
 
 	public void setGroups(Set<Long> groups) {
 		this.groups = groups;
@@ -71,14 +70,6 @@ public class UserInfo {
 
 	public void setCreationDate(Date creationDate) {
 		this.creationDate = creationDate;
-	}
-
-	public boolean isAgreesToTermsOfUse() {
-		return agreesToTermsOfUse;
-	}
-
-	public void setAgreesToTermsOfUse(boolean agreesToTermsOfUse) {
-		this.agreesToTermsOfUse = agreesToTermsOfUse;
 	}
 
 	public boolean isAdmin() {

@@ -188,6 +188,11 @@ public interface SynapseClient extends BaseClient {
 			throws SynapseException;
 	
 	/**
+	 * Log in to a Sage application (currently Synapse or Bridge).
+	 */
+	public Session login(String username, String password, DomainType domain) throws SynapseException;
+	
+	/**
 	 * Log out of Synapse
 	 */
 	public void logout() throws SynapseException;
@@ -203,6 +208,8 @@ public interface SynapseClient extends BaseClient {
 	 * Refreshes the cached session token so that it can be used for another 24 hours
 	 */
 	public boolean revalidateSession() throws SynapseException;
+	
+	public boolean revalidateSession(DomainType domain) throws SynapseException;
 
 	/**
 	 * Create a new Entity.
@@ -673,6 +680,8 @@ public interface SynapseClient extends BaseClient {
 			throws JSONObjectAdapterException, SynapseException;
 	
 	public String getSynapseTermsOfUse() throws SynapseException;
+	
+	public String getTermsOfUse(DomainType domain) throws SynapseException;
 	
 	/**
 	 * Uploads a String to S3 using the chunked file upload service
@@ -1209,9 +1218,15 @@ public interface SynapseClient extends BaseClient {
 	public void changePassword(String sessionToken, String newPassword) throws SynapseException;
 	
 	/**
-	 * Signs the terms of use of a user, as identified by a session token
+	 * Signs the terms of use for utilization of Synapse, as identified by a session token
 	 */
 	public void signTermsOfUse(String sessionToken, boolean acceptTerms) throws SynapseException;
+	
+	/**
+	 * 
+	 * Signs the terms of use for utilization of specific Dage application, as identified by a session token
+	 */
+	public void signTermsOfUse(String sessionToken, DomainType domain, boolean acceptTerms) throws SynapseException;
 	
 	/**
 	 * Sends a password reset email to the given user as if request came from Synapse.

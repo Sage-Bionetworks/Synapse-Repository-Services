@@ -3,8 +3,8 @@ package org.sagebionetworks.repo.model.dbo.dao;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.ProcessedMessageDAO;
+import org.sagebionetworks.repo.model.message.ChangeMessage;
 
 /**
  * Abstraction for DBOChage CRUD.

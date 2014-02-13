@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model.dbo;
 
+import java.io.UnsupportedEncodingException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -7,16 +9,11 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
-import org.sagebionetworks.repo.model.dao.WikiPageKey;
-import org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiPage;
-import org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiMarkdown;
 import org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiAttachmentReservation;
+import org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiMarkdown;
+import org.sagebionetworks.repo.model.dbo.v2.persistence.V2DBOWikiPage;
 import org.sagebionetworks.repo.model.file.FileHandle;
-
-import java.io.UnsupportedEncodingException;
-import java.sql.Timestamp;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 /**
  * Utility for translating to/from V2 DTO/DBO
  * (Derived from org.sagebionetworks.repo.model.dbo.WikiTranslationUtils)

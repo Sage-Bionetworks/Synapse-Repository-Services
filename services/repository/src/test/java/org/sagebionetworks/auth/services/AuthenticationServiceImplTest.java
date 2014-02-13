@@ -49,7 +49,8 @@ public class AuthenticationServiceImplTest {
 		when(mockUserManager.createUser(any(NewUser.class))).thenReturn(userId);
 		
 		mockAuthenticationManager = Mockito.mock(AuthenticationManager.class);
-		when(mockAuthenticationManager.checkSessionToken(eq(sessionToken), eq(true))).thenReturn(userId);
+		when(mockAuthenticationManager.checkSessionToken(eq(sessionToken), eq(DomainType.SYNAPSE), eq(true)))
+				.thenReturn(userId);
 		
 		mockMessageManager = Mockito.mock(MessageManager.class);
 		
@@ -58,15 +59,15 @@ public class AuthenticationServiceImplTest {
 	
 	@Test
 	public void testRevalidateToU() throws Exception {
-		when(mockAuthenticationManager.checkSessionToken(eq(sessionToken), eq(true))).thenThrow(new TermsOfUseException());
+		when(mockAuthenticationManager.checkSessionToken(eq(sessionToken), eq(DomainType.SYNAPSE), eq(true)))
+				.thenThrow(new TermsOfUseException());
 		
 		// A boolean flag should let us get past this call
-		userInfo.setAgreesToTermsOfUse(false);
-		service.revalidate(sessionToken, false);
+		service.revalidate(sessionToken, DomainType.SYNAPSE, false);
 
 		// But it should default to true
 		try {
-			service.revalidate(sessionToken);
+			service.revalidate(sessionToken, DomainType.SYNAPSE);
 			fail();
 		} catch (TermsOfUseException e) {
 			// Expected
@@ -76,13 +77,10 @@ public class AuthenticationServiceImplTest {
 	@Test (expected=NotFoundException.class)
 	public void testOpenIDAuthentication_newUser() throws Exception {
 		// This user does not exist yet
-		userInfo.setAgreesToTermsOfUse(false);
-		
 		OpenIDInfo info = new OpenIDInfo();
 		info.setEmail(username);
 		info.setFullName(fullName);
 		service.processOpenIDInfo(info, DomainType.SYNAPSE);
-		
 	}
 	
 	

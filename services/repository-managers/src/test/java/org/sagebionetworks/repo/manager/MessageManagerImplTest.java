@@ -30,10 +30,10 @@ import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.ResourceAccess;
@@ -44,7 +44,9 @@ import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageRecipientSet;
@@ -97,6 +99,9 @@ public class MessageManagerImplTest {
 	@Autowired
 	private EntityPermissionsManager entityPermissionsManager;
 	
+	@Autowired
+	private DBOBasicDao basicDao;
+	
 	private static final MessageSortBy SORT_ORDER = MessageSortBy.SEND_DATE;
 	private static final boolean DESCENDING = true;
 	private static final long LIMIT = 100;
@@ -132,6 +137,10 @@ public class MessageManagerImplTest {
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		cleanup = new ArrayList<String>();
 		
+		DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();
+		tou.setDomain(DomainType.SYNAPSE);
+		tou.setAgreesToTermsOfUse(Boolean.TRUE);
+		
 		DBOCredential cred = new DBOCredential();
 		cred.setAgreesToTermsOfUse(true);
 		cred.setSecretKey("");
@@ -140,15 +149,19 @@ public class MessageManagerImplTest {
 		NewUser nu = new NewUser();
 		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
 		nu.setUserName(UUID.randomUUID().toString());
-		testUser = userManager.createUser(adminUserInfo, nu, cred);
+		testUser = userManager.createUser(adminUserInfo, nu, cred, tou);
+		
 		nu = new NewUser();
 		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
 		nu.setUserName(UUID.randomUUID().toString());
-		otherTestUser = userManager.createUser(adminUserInfo,nu, cred);
+		otherTestUser = userManager.createUser(adminUserInfo,nu, cred, tou);
+		
+		tou.setPrincipalId(otherTestUser.getId());
+		basicDao.createOrUpdate(tou);
 
 		final String testUserId = testUser.getId().toString();
 		final String otherTestUserId = otherTestUser.getId().toString();
-		
+
 		// Create a team
 		testTeam = new Team();
 		testTeam.setName("MessageManagerImplTest");

@@ -51,6 +51,7 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.BatchResults;
 import org.sagebionetworks.repo.model.Data;
+import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
@@ -807,6 +808,18 @@ public class IT500SynapseJavaClient {
 		String termsOfUse = synapseOne.getSynapseTermsOfUse();
 		assertNotNull(termsOfUse);
 		assertTrue(termsOfUse.length()>100);
+	}
+	
+	@Test
+	public void testRetrieveBridgeTOU() throws Exception {
+		String synapseTermsOfUse = synapseOne.getTermsOfUse(DomainType.BRIDGE);
+		assertNotNull(synapseTermsOfUse);
+		assertTrue(synapseTermsOfUse.length()>100);
+
+		String bridgeTermsOfUse = synapseOne.getTermsOfUse(DomainType.SYNAPSE);
+		assertNotNull(bridgeTermsOfUse);
+		assertTrue(bridgeTermsOfUse.length()>100);
+		assertFalse(bridgeTermsOfUse.equals(synapseTermsOfUse));
 	}
 	
 	/**

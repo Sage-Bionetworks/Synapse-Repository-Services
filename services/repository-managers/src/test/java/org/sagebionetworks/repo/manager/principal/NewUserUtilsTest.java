@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.principal;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import org.junit.Test;
 import org.sagebionetworks.repo.model.auth.NewUser;
