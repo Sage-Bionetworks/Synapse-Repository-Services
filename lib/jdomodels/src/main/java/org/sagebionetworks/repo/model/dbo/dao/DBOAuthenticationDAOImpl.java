@@ -107,14 +107,6 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 					" AND "+SqlConstants.COL_USER_GROUP_ID+"=:"+PARAM_PRINCIPAL_ID+
 					IF_VALID_SUFFIX;
 	
-	/*
-		SELECT SESSION_TOKEN, AGREES_TO_TERMS_OF_USE
-		FROM SESSION_TOKEN st, TERMS_OF_USE_AGREEMENT tou
-		WHERE tou.PRINCIPAL_ID = st.PRINCIPAL_ID
-		AND st.PRINCIPAL_ID = 3319509
-		AND tou.DOMAIN = 'SYNAPSE'
-		AND st.validated_on > 0;
-	 */
 	private static final String SELECT_SESSION_TOKEN_BY_USERNAME_IF_VALID_V2 = 
 		String.format("SELECT %s, %s FROM %s st, %s tou WHERE tou.%s=st.%s AND st.%s=:%s AND tou.%s=:%s AND st.%s>:%s;",
 			COL_SESSION_TOKEN_SESSION_TOKEN,
