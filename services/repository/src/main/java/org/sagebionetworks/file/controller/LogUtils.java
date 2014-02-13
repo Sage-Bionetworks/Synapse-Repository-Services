@@ -3,9 +3,10 @@ package org.sagebionetworks.file.controller;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.Enumeration;
-import org.apache.commons.logging.Log;
 
 import javax.servlet.http.HttpServletRequest;
+
+import org.apache.commons.logging.Log;
 
 public class LogUtils {
 

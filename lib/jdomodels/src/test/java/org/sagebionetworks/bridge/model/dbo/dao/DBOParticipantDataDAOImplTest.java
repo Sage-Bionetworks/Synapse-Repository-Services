@@ -1,8 +1,9 @@
 package org.sagebionetworks.bridge.model.dbo.dao;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -26,11 +27,11 @@ import org.sagebionetworks.bridge.model.data.value.ParticipantDataLabValue;
 import org.sagebionetworks.bridge.model.data.value.ParticipantDataLongValue;
 import org.sagebionetworks.bridge.model.data.value.ParticipantDataStringValue;
 import org.sagebionetworks.bridge.model.data.value.ParticipantDataValue;
-import org.sagebionetworks.bridge.model.dbo.persistence.DBOParticipantDataDescriptor;
 import org.sagebionetworks.bridge.model.dbo.persistence.DBOParticipant;
+import org.sagebionetworks.bridge.model.dbo.persistence.DBOParticipantDataDescriptor;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.IdList;
+import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;

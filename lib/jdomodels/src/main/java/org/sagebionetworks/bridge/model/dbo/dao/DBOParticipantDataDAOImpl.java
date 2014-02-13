@@ -14,23 +14,16 @@ import java.util.SortedSet;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
-import org.apache.commons.lang.BooleanUtils;
 import org.sagebionetworks.bridge.model.ParticipantDataDAO;
 import org.sagebionetworks.bridge.model.ParticipantDataId;
 import org.sagebionetworks.bridge.model.data.ParticipantDataColumnDescriptor;
 import org.sagebionetworks.bridge.model.data.ParticipantDataRow;
-import org.sagebionetworks.bridge.model.data.value.ParticipantDataBooleanValue;
-import org.sagebionetworks.bridge.model.data.value.ParticipantDataDatetimeValue;
-import org.sagebionetworks.bridge.model.data.value.ParticipantDataDoubleValue;
-import org.sagebionetworks.bridge.model.data.value.ParticipantDataLabValue;
-import org.sagebionetworks.bridge.model.data.value.ParticipantDataLongValue;
-import org.sagebionetworks.bridge.model.data.value.ParticipantDataStringValue;
 import org.sagebionetworks.bridge.model.data.value.ParticipantDataValue;
 import org.sagebionetworks.bridge.model.data.value.ValueTranslator;
 import org.sagebionetworks.bridge.model.dbo.persistence.DBOParticipantData;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.IdList;
+import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,7 +39,6 @@ import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.S3Object;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Maps.EntryTransformer;
 import com.google.common.collect.Sets;
 
 public class DBOParticipantDataDAOImpl implements ParticipantDataDAO {

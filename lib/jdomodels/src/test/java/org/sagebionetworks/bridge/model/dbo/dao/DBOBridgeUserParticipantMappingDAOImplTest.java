@@ -3,7 +3,6 @@ package org.sagebionetworks.bridge.model.dbo.dao;
 import static org.junit.Assert.assertEquals;
 
 import java.security.GeneralSecurityException;
-import java.util.Date;
 import java.util.List;
 
 import org.junit.Test;
@@ -12,7 +11,6 @@ import org.sagebionetworks.bridge.model.BridgeParticipantDAO;
 import org.sagebionetworks.bridge.model.BridgeUserParticipantMappingDAO;
 import org.sagebionetworks.bridge.model.ParticipantDataId;
 import org.sagebionetworks.bridge.model.dbo.persistence.DBOUserParticipantMap;
-import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;

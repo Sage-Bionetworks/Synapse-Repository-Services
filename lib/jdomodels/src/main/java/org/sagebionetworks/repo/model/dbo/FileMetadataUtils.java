@@ -10,8 +10,8 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle.MetadataType
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
-import org.sagebionetworks.repo.model.file.S3FileHandleInterface;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.file.S3FileHandleInterface;
 
 /**
  * Translates between DBOs and DTOs.

@@ -114,7 +114,7 @@ public class DBOAuthenticationDAOImplTest {
 	@Test
 	public void testSessionTokenCRUD() throws Exception {
 		// Get by username
-		Session session = authDAO.getSessionTokenIfValid(userId);
+		Session session = authDAO.getSessionTokenIfValid(userId, DomainType.SYNAPSE);
 		assertEquals(secretRow.getSessionToken(), session.getSessionToken());
 		assertEquals(secretRow.getAgreesToTermsOfUse(), session.getAcceptsTermsOfUse());
 
@@ -128,7 +128,7 @@ public class DBOAuthenticationDAOImplTest {
 		
 		// Delete
 		authDAO.deleteSessionToken(secretRow.getSessionToken());
-		session = authDAO.getSessionTokenIfValid(userId);
+		session = authDAO.getSessionTokenIfValid(userId, DomainType.SYNAPSE);
 		assertNull(session.getSessionToken());
 		assertEquals(secretRow.getAgreesToTermsOfUse(), session.getAcceptsTermsOfUse());
 		
@@ -138,8 +138,8 @@ public class DBOAuthenticationDAOImplTest {
 		
 		// Change to a string
 		String foobarSessionToken = "foobar";
-		authDAO.changeSessionToken(secretRow.getPrincipalId(), foobarSessionToken);
-		session = authDAO.getSessionTokenIfValid(userId);
+		authDAO.changeSessionToken(secretRow.getPrincipalId(), foobarSessionToken, DomainType.SYNAPSE);
+		session = authDAO.getSessionTokenIfValid(userId, DomainType.SYNAPSE);
 		assertEquals(foobarSessionToken, session.getSessionToken());
 		
 		// Verify that the parent group's etag has changed
@@ -148,8 +148,8 @@ public class DBOAuthenticationDAOImplTest {
 		assertTrue(!userEtag.equals(changedEtag));
 		
 		// Change to a UUID
-		authDAO.changeSessionToken(secretRow.getPrincipalId(), null);
-		session = authDAO.getSessionTokenIfValid(userId);
+		authDAO.changeSessionToken(secretRow.getPrincipalId(), null, DomainType.SYNAPSE);
+		session = authDAO.getSessionTokenIfValid(userId, DomainType.SYNAPSE);
 		assertFalse(foobarSessionToken.equals(session.getSessionToken()));
 		assertFalse(secretRow.getSessionToken().equals(session.getSessionToken()));
 		assertEquals(secretRow.getAgreesToTermsOfUse(), session.getAcceptsTermsOfUse());
@@ -173,7 +173,7 @@ public class DBOAuthenticationDAOImplTest {
 		tou.setAgreesToTermsOfUse(Boolean.FALSE);
 		basicDAO.createOrUpdate(tou);
 		
-		Session session = authDAO.getSessionTokenIfValid(userId);
+		Session session = authDAO.getSessionTokenIfValid(userId, DomainType.SYNAPSE);
 		assertNotNull(session);
 		
 		Long id = authDAO.getPrincipalIfValid(secretRow.getSessionToken());
@@ -188,23 +188,23 @@ public class DBOAuthenticationDAOImplTest {
 		basicDAO.update(secretRow);
 
 		// Still valid
-		Session session = authDAO.getSessionTokenIfValid(userId, now);
+		Session session = authDAO.getSessionTokenIfValid(userId, now, DomainType.SYNAPSE);
 		assertNotNull(session);
 		assertEquals(secretRow.getSessionToken(), session.getSessionToken());
 		
 		// Right on the dot!  Too bad, that's invalid :P
 		now.setTime(now.getTime() + 1000);
-		session = authDAO.getSessionTokenIfValid(userId, now);
+		session = authDAO.getSessionTokenIfValid(userId, now, DomainType.SYNAPSE);
 		assertNull(session);
 		
 		// Session should no longer be valid
 		now.setTime(now.getTime() + 1000);
-		session = authDAO.getSessionTokenIfValid(userId, now);
+		session = authDAO.getSessionTokenIfValid(userId, now, DomainType.SYNAPSE);
 		assertNull(session);
 
 		// Session is valid again
-		authDAO.revalidateSessionToken(secretRow.getPrincipalId());
-		session = authDAO.getSessionTokenIfValid(userId);
+		authDAO.revalidateSessionToken(secretRow.getPrincipalId(), DomainType.SYNAPSE);
+		session = authDAO.getSessionTokenIfValid(userId, DomainType.SYNAPSE);
 		assertEquals(secretRow.getSessionToken(), session.getSessionToken());
 	}
 	
@@ -262,7 +262,7 @@ public class DBOAuthenticationDAOImplTest {
 		// Reject the terms
 		authDAO.setTermsOfUseAcceptance(userId, DomainType.SYNAPSE, false);
 		assertFalse(authDAO.hasUserAcceptedToU(userId, DomainType.SYNAPSE));
-		assertNotNull(authDAO.getSessionTokenIfValid(userId));
+		assertNotNull(authDAO.getSessionTokenIfValid(userId, DomainType.SYNAPSE));
 		
 		// Verify that the parent group's etag has changed
 		String changedEtag = userGroupDAO.getEtagForUpdate("" + userId);

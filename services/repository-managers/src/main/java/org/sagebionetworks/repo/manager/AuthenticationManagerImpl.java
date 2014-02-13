@@ -71,7 +71,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 			throw new TermsOfUseException();
 		}
 		
-		authDAO.revalidateSessionToken(principalId);
+		authDAO.revalidateSessionToken(principalId, domain);
 		return principalId;
 	}
 
@@ -103,7 +103,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public Session getSessionToken(long principalId, DomainType domain) throws NotFoundException {
 		// Get the session token
-		Session session = authDAO.getSessionTokenIfValid(principalId);
+		Session session = authDAO.getSessionTokenIfValid(principalId, domain);
 		
 		// Make the session token if none was returned
 		if (session == null) {
@@ -117,7 +117,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 				throw new NotFoundException("The user (" + principalId + ") does not exist");
 			}
 			if(!ug.getIsIndividual()) throw new IllegalArgumentException("Cannot get a session token for a team");
-			String token = authDAO.changeSessionToken(principalId, null);
+			String token = authDAO.changeSessionToken(principalId, null, domain);
 			boolean toU = authDAO.hasUserAcceptedToU(principalId, domain);
 			session.setSessionToken(token);
 			

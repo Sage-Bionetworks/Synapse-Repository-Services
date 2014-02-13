@@ -1,13 +1,17 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SENT_MESSAGES_CHANGE_NUM;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SENT_MESSAGES_TIME_STAMP;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_SENT_MESSAGES;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SESSION_TOKEN_PRINCIPAL_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SESSION_TOKEN_SESSION_TOKEN;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SESSION_TOKEN_VALIDATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TERMS_OF_USE_AGREEMENT_AGREEMENT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TERMS_OF_USE_AGREEMENT_DOMAIN;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TERMS_OF_USE_AGREEMENT_PRINCIPAL_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_SESSION_TOKEN;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TERMS_OF_USE_AGREEMENT;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Date;
-import java.util.List;
 import java.util.UUID;
 
 import org.sagebionetworks.StackConfiguration;
@@ -16,10 +20,10 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroupDAO;
-import org.sagebionetworks.repo.model.UserGroupInt;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOSessionToken;
 import org.sagebionetworks.repo.model.principal.BootstrapGroup;
 import org.sagebionetworks.repo.model.principal.BootstrapPrincipal;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
@@ -72,11 +76,26 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 					SqlConstants.COL_CREDENTIAL_VALIDATED_ON+"=:"+TIME_PARAM_NAME+
 			" WHERE "+SqlConstants.COL_CREDENTIAL_PRINCIPAL_ID+"=:"+ID_PARAM_NAME;
 	
+	private static final String UPDATE_VALIDATION_TIME_V2 = 
+			"UPDATE "+SqlConstants.TABLE_SESSION_TOKEN+" SET "+
+					SqlConstants.COL_SESSION_TOKEN_VALIDATED_ON+"=:"+TIME_PARAM_NAME+
+			" WHERE "+SqlConstants.COL_SESSION_TOKEN_PRINCIPAL_ID+"=:"+ID_PARAM_NAME + 
+			" AND " + SqlConstants.COL_SESSION_TOKEN_DOMAIN + "=:"+DOMAIN_PARAM_NAME;
+	
 	private static final String UPDATE_SESSION_TOKEN = 
 			"UPDATE "+SqlConstants.TABLE_CREDENTIAL+" SET "+
 					SqlConstants.COL_CREDENTIAL_VALIDATED_ON+"=:"+TIME_PARAM_NAME+","+
 					SqlConstants.COL_CREDENTIAL_SESSION_TOKEN+"=:"+TOKEN_PARAM_NAME+
 			" WHERE "+SqlConstants.COL_CREDENTIAL_PRINCIPAL_ID+"=:"+ID_PARAM_NAME;
+	
+	/* probably going to use the DBO for this
+	private static final String UPDATE_SESSION_TOKEN_V2 = 
+			"UPDATE "+SqlConstants.TABLE_SESSION_TOKEN+" SET "+
+					SqlConstants.COL_SESSION_TOKEN_VALIDATED_ON+"=:"+TIME_PARAM_NAME+","+
+					SqlConstants.COL_SESSION_TOKEN_SESSION_TOKEN+"=:"+TOKEN_PARAM_NAME+
+			" WHERE "+SqlConstants.COL_SESSION_TOKEN_PRINCIPAL_ID+"=:"+ID_PARAM_NAME+
+			" AND "+SqlConstants.COL_SESSION_TOKEN_DOMAIN+"=:"+DOMAIN_PARAM_NAME;
+	*/
 	
 	private static final String IF_VALID_SUFFIX = 
 			" AND "+SqlConstants.COL_CREDENTIAL_VALIDATED_ON+">:"+TIME_PARAM_NAME;
@@ -88,14 +107,47 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 					" AND "+SqlConstants.COL_USER_GROUP_ID+"=:"+PARAM_PRINCIPAL_ID+
 					IF_VALID_SUFFIX;
 	
+	/*
+		SELECT SESSION_TOKEN, AGREES_TO_TERMS_OF_USE
+		FROM SESSION_TOKEN st, TERMS_OF_USE_AGREEMENT tou
+		WHERE tou.PRINCIPAL_ID = st.PRINCIPAL_ID
+		AND st.PRINCIPAL_ID = 3319509
+		AND tou.DOMAIN = 'SYNAPSE'
+		AND st.validated_on > 0;
+	 */
+	private static final String SELECT_SESSION_TOKEN_BY_USERNAME_IF_VALID_V2 = 
+		String.format("SELECT %s, %s FROM %s st, %s tou WHERE tou.%s=st.%s AND st.%s=:%s AND tou.%s=:%s AND st.%s>:%s;",
+			COL_SESSION_TOKEN_SESSION_TOKEN,
+			COL_TERMS_OF_USE_AGREEMENT_AGREEMENT,
+			TABLE_SESSION_TOKEN,
+			TABLE_TERMS_OF_USE_AGREEMENT,
+			COL_TERMS_OF_USE_AGREEMENT_PRINCIPAL_ID,
+			COL_SESSION_TOKEN_PRINCIPAL_ID,
+			COL_SESSION_TOKEN_PRINCIPAL_ID,
+			PARAM_PRINCIPAL_ID,
+			COL_TERMS_OF_USE_AGREEMENT_DOMAIN,
+			DOMAIN_PARAM_NAME,
+			COL_SESSION_TOKEN_VALIDATED_ON,
+			TIME_PARAM_NAME
+		);
+	
 	private static final String NULLIFY_SESSION_TOKEN = 
 			"UPDATE "+SqlConstants.TABLE_CREDENTIAL+" SET "+
 					SqlConstants.COL_CREDENTIAL_SESSION_TOKEN+"=NULL"+
 			" WHERE "+SqlConstants.COL_CREDENTIAL_SESSION_TOKEN+"=:"+TOKEN_PARAM_NAME;
 	
+	private static final String NULLIFY_SESSION_TOKEN_V2 = 
+			"UPDATE "+SqlConstants.TABLE_SESSION_TOKEN+" SET "+
+					SqlConstants.COL_SESSION_TOKEN_SESSION_TOKEN+"=NULL"+
+			" WHERE "+SqlConstants.COL_SESSION_TOKEN_SESSION_TOKEN+"=:"+TOKEN_PARAM_NAME;
+	
 	private static final String SELECT_PRINCIPAL_BY_TOKEN = 
 			"SELECT "+SqlConstants.COL_CREDENTIAL_PRINCIPAL_ID+" FROM "+SqlConstants.TABLE_CREDENTIAL+
 			" WHERE "+SqlConstants.COL_CREDENTIAL_SESSION_TOKEN+"=:"+TOKEN_PARAM_NAME;
+	
+	private static final String SELECT_PRINCIPAL_BY_TOKEN_V2 = 
+			"SELECT "+SqlConstants.COL_SESSION_TOKEN_PRINCIPAL_ID+" FROM "+SqlConstants.TABLE_SESSION_TOKEN+
+			" WHERE "+SqlConstants.COL_SESSION_TOKEN_SESSION_TOKEN+"=:"+TOKEN_PARAM_NAME;
 	
 	private static final String SELECT_PRINCIPAL_BY_TOKEN_IF_VALID = 
 			SELECT_PRINCIPAL_BY_TOKEN+IF_VALID_SUFFIX;
@@ -140,7 +192,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	private static final String SELECT_SESSION_TOKEN = 
 			"SELECT "+SqlConstants.COL_SESSION_TOKEN_DOMAIN + 
 			" FROM " +SqlConstants.TABLE_SESSION_TOKEN + 
-			"WHERE " +SqlConstants.COL_SESSION_TOKEN_PRINCIPAL_ID +"=:"+PARAM_PRINCIPAL_ID+
+			" WHERE " +SqlConstants.COL_SESSION_TOKEN_PRINCIPAL_ID +"=:"+PARAM_PRINCIPAL_ID+
 			" AND " +SqlConstants.COL_SESSION_TOKEN_SESSION_TOKEN +"=:"+SESSION_TOKEN_PARAM_NAME;
 	
 	private RowMapper<Session> sessionRowMapper = new RowMapper<Session>() {
@@ -178,18 +230,26 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	
 	@Override
 	@Transactional(readOnly=false, propagation=Propagation.REQUIRED)
-	public void revalidateSessionToken(long principalId) {
+	public void revalidateSessionToken(long principalId, DomainType domain) {
+		if (domain == null) {
+			throw new UnauthorizedException("Domain must be declared to revalidate session token");
+		}
 		userGroupDAO.touch(principalId);
 		
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(ID_PARAM_NAME, principalId);
 		param.addValue(TIME_PARAM_NAME, new Date());
 		simpleJdbcTemplate.update(UPDATE_VALIDATION_TIME, param);
+		
+		// You must convert for the annotation-based date fields.
+		param.addValue(TIME_PARAM_NAME, new Date().getTime()); 
+		param.addValue(DOMAIN_PARAM_NAME, domain.name());
+		simpleJdbcTemplate.update(UPDATE_VALIDATION_TIME_V2, param);
 	}
 	
 	@Override
 	@Transactional(readOnly=false, propagation=Propagation.REQUIRED)
-	public String changeSessionToken(long principalId, String sessionToken) {
+	public String changeSessionToken(long principalId, String sessionToken, DomainType domain) {
 		userGroupDAO.touch(principalId);
 		
 		if (sessionToken == null) {
@@ -201,17 +261,39 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 		param.addValue(TIME_PARAM_NAME, new Date());
 		param.addValue(TOKEN_PARAM_NAME, sessionToken);
 		simpleJdbcTemplate.update(UPDATE_SESSION_TOKEN, param);
+
+		// I think this is the place where session token is created. So use the DBO for 
+		// this.
+		DBOSessionToken dboSession = new DBOSessionToken();
+		dboSession.setPrincipalId(principalId);
+		dboSession.setDomain(domain);
+		dboSession.setSessionToken(sessionToken);
+		dboSession.setValidatedOn(new Date());
+		basicDAO.createOrUpdate(dboSession);
 		
 		return sessionToken;
 	}
 
 	@Override
-	public Session getSessionTokenIfValid(long principalsId) {
-		return getSessionTokenIfValid(principalsId, new Date());
+	public Session getSessionTokenIfValid(long principalsId, DomainType domain) {
+		return getSessionTokenIfValid(principalsId, new Date(), domain);
 	}
 	
 	@Override
-	public Session getSessionTokenIfValid(long principalId, Date now) {
+	public Session getSessionTokenIfValid(long principalId, Date now, DomainType domain) {
+		/* Next week.
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(PARAM_PRINCIPAL_ID, principalId);
+		param.addValue(DOMAIN_PARAM_NAME, domain.name());
+		param.addValue(TIME_PARAM_NAME, new Date(now.getTime() - SESSION_EXPIRATION_TIME));
+		try {
+			simpleJdbcTemplate.queryForObject(SELECT_SESSION_TOKEN_BY_USERNAME_IF_VALID_V2, 
+					sessionRowMapper, param);
+		} catch(EmptyResultDataAccessException e) {
+			return null;
+		}
+		*/
+		
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(PARAM_PRINCIPAL_ID, principalId);
 		param.addValue(TIME_PARAM_NAME, new Date(now.getTime() - SESSION_EXPIRATION_TIME));
@@ -234,6 +316,8 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(TOKEN_PARAM_NAME, sessionToken);
 		simpleJdbcTemplate.update(NULLIFY_SESSION_TOKEN, param);
+		
+		simpleJdbcTemplate.update(NULLIFY_SESSION_TOKEN_V2, param);
 	}
 
 	@Override

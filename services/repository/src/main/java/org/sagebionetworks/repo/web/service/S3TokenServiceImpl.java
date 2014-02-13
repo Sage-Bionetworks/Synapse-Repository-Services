@@ -1,11 +1,16 @@
 package org.sagebionetworks.repo.web.service;
 
 import javax.servlet.http.HttpServletRequest;
-import org.sagebionetworks.repo.manager.EntityManager;
 
+import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.S3TokenManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.model.*;
+import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.S3Token;
+import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 

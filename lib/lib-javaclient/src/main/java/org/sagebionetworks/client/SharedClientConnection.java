@@ -181,16 +181,13 @@ public class SharedClientConnection {
 	 */
 	public Session login(String username, String password, String userAgent) 
 			throws SynapseException {
-		return login(username, password, userAgent, DomainType.SYNAPSE);
+		return login(username, password, userAgent, null);
 	}
 	
-	public Session login(String username, String password, String userAgent, DomainType domain) throws SynapseException {
+	public Session login(String username, String password, String userAgent, Map<String,String> parameters) throws SynapseException {
 		LoginCredentials loginRequest = new LoginCredentials();
 		loginRequest.setEmail(username);
 		loginRequest.setPassword(password);
-
-		Map<String, String> parameters = Maps.newHashMap();
-		parameters.put(AuthorizationConstants.DOMAIN_PARAM, domain.name());
 		
 		Session session;
 		try {
@@ -212,7 +209,7 @@ public class SharedClientConnection {
 		defaultPOSTPUTHeaders.remove(SESSION_TOKEN_HEADER);
 	}
 	
-	public boolean revalidateSession(String userAgent) throws SynapseException {
+	public boolean revalidateSession(String userAgent, Map<String,String> parameters) throws SynapseException {
 		Session session = new Session();
 		session.setSessionToken(getCurrentSessionToken());
 		try {

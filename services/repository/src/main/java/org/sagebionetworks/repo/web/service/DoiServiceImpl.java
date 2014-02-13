@@ -2,9 +2,9 @@ package org.sagebionetworks.repo.web.service;
 
 import org.sagebionetworks.repo.manager.doi.EntityDoiManager;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.doi.Doi;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 

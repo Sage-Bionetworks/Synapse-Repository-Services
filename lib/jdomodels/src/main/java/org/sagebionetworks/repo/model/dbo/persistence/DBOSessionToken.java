@@ -2,26 +2,27 @@ package org.sagebionetworks.repo.model.dbo.persistence;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
+import java.sql.Timestamp;
 import java.util.Date;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.dbo.AutoTableMapping;
 import org.sagebionetworks.repo.model.dbo.Field;
+import org.sagebionetworks.repo.model.dbo.ForeignKey;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.Table;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
-@Table(name = TABLE_SESSION_TOKEN, constraints = {
-	"CONSTRAINT `SESSION_TOKEN_PRINCIPAL_ID_FK` FOREIGN KEY (`PRINCIPAL_ID`) REFERENCES `JDOUSERGROUP` (`ID`) ON DELETE CASCADE"
-})
+@Table(name = TABLE_SESSION_TOKEN)
 public class DBOSessionToken implements MigratableDatabaseObject<DBOSessionToken, DBOSessionToken> {
 	
 	private static TableMapping<DBOSessionToken> tableMapping = AutoTableMapping.create(DBOSessionToken.class);
 	
 	@Field(name = COL_SESSION_TOKEN_PRINCIPAL_ID, primary = true, backupId = true)
+	@ForeignKey(table = TABLE_USER_GROUP, field = COL_USER_GROUP_ID, cascadeDelete = true)
 	private Long principalId;
 	
 	@Field(name = COL_SESSION_TOKEN_VALIDATED_ON)
@@ -29,7 +30,7 @@ public class DBOSessionToken implements MigratableDatabaseObject<DBOSessionToken
 	
 	@Field(name = COL_SESSION_TOKEN_DOMAIN, nullable = false, varchar=256, primary=true)
 	private DomainType domain;
-	
+
 	@Field(name = COL_SESSION_TOKEN_SESSION_TOKEN, varchar = 100)
 	private String sessionToken;
 

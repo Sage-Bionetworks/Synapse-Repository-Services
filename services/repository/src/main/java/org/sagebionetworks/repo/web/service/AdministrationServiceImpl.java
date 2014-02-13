@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.web.service;
 
 import java.io.IOException;
 import java.util.Date;
-import java.util.UUID;
 
 import javax.servlet.http.HttpServletRequest;
 

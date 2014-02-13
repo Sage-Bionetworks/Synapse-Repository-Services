@@ -513,12 +513,12 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	
 	@Override
 	public Session login(String username, String password) throws SynapseException {
-		return getSharedClientConnection().login(username, password, getUserAgent());
+		return login(username, password, DomainType.SYNAPSE);
 	}
 	
 	@Override
 	public Session login(String username, String password, DomainType domain) throws SynapseException {
-		return getSharedClientConnection().login(username, password, getUserAgent(), domain);
+		return getSharedClientConnection().login(username, password, getUserAgent(), getParameterMapForDomain(domain));
 	}
 
 	@Override
@@ -548,7 +548,12 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	
 	@Override
 	public boolean revalidateSession() throws SynapseException {
-		return getSharedClientConnection().revalidateSession(getUserAgent());
+		return revalidateSession(DomainType.SYNAPSE);
+	}
+	
+	@Override
+	public boolean revalidateSession(DomainType domain) throws SynapseException {
+		return getSharedClientConnection().revalidateSession(getUserAgent(), getParameterMapForDomain(domain));
 	}
 	
 	/******************** Mid Level Repository Service APIs 

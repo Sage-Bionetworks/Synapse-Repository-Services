@@ -1,6 +1,7 @@
 package org.sagebionetworks.bridge.model.dbo.dao;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertNull;
 
 import java.io.StringReader;
 

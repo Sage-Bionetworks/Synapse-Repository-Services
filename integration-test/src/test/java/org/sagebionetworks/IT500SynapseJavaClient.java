@@ -812,13 +812,14 @@ public class IT500SynapseJavaClient {
 	
 	@Test
 	public void testRetrieveBridgeTOU() throws Exception {
-		String termsOfUse = synapseOne.getTermsOfUse(DomainType.BRIDGE);
-		assertNotNull(termsOfUse);
-		assertTrue(termsOfUse.length()>100);
-		
-		termsOfUse = synapseOne.getTermsOfUse(DomainType.SYNAPSE);
-		assertNotNull(termsOfUse);
-		assertTrue(termsOfUse.length()>100);
+		String synapseTermsOfUse = synapseOne.getTermsOfUse(DomainType.BRIDGE);
+		assertNotNull(synapseTermsOfUse);
+		assertTrue(synapseTermsOfUse.length()>100);
+
+		String bridgeTermsOfUse = synapseOne.getTermsOfUse(DomainType.SYNAPSE);
+		assertNotNull(bridgeTermsOfUse);
+		assertTrue(bridgeTermsOfUse.length()>100);
+		assertFalse(bridgeTermsOfUse.equals(synapseTermsOfUse));
 	}
 	
 	/**

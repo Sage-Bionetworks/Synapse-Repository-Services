@@ -7,7 +7,7 @@ public class DomainTypeUtils {
 
 	public static DomainType valueOf(String valueOf) {
 		if (StringUtils.isBlank(valueOf)) {
-			return null;
+			return DomainType.SYNAPSE;
 		} 
 		try {
 			return DomainType.valueOf(valueOf);	

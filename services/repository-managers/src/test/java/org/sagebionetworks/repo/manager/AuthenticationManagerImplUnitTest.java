@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.manager;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -39,7 +38,7 @@ public class AuthenticationManagerImplUnitTest {
 	public void setUp() throws Exception {
 		authDAO = mock(AuthenticationDAO.class);
 		when(authDAO.getPasswordSalt(eq(userId))).thenReturn(salt);
-		when(authDAO.changeSessionToken(eq(userId), eq((String) null))).thenReturn(sessionToken);
+		when(authDAO.changeSessionToken(eq(userId), eq((String) null), eq(DomainType.SYNAPSE))).thenReturn(sessionToken);
 		
 		userGroupDAO = mock(UserGroupDAO.class);
 		UserGroup ug = new UserGroup();
@@ -74,8 +73,8 @@ public class AuthenticationManagerImplUnitTest {
 		Session session = authManager.getSessionToken(userId, DomainType.SYNAPSE);
 		Assert.assertEquals(sessionToken, session.getSessionToken());
 		
-		verify(authDAO, times(1)).getSessionTokenIfValid(eq(userId));
-		verify(authDAO, times(1)).changeSessionToken(eq(userId), eq((String) null));
+		verify(authDAO, times(1)).getSessionTokenIfValid(eq(userId), eq(DomainType.SYNAPSE));
+		verify(authDAO, times(1)).changeSessionToken(eq(userId), eq((String) null), eq(DomainType.SYNAPSE));
 	}
 	
 	@Test

@@ -26,7 +26,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
-import org.sagebionetworks.bridge.manager.participantdata.ParticipantDataIdMappingManagerImpl;
 import org.sagebionetworks.bridge.model.BridgeParticipantDAO;
 import org.sagebionetworks.bridge.model.BridgeUserParticipantMappingDAO;
 import org.sagebionetworks.bridge.model.Community;
@@ -61,6 +60,7 @@ import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
+import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmissionDAO;
 import org.sagebionetworks.repo.model.MembershipRqstSubmission;
@@ -96,7 +96,6 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.Comment;
 import org.sagebionetworks.repo.model.message.MessageToUser;
-import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.migration.ListBucketProvider;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
@@ -560,7 +559,7 @@ public class MigrationIntegrationAutowireTest {
 		Long principalId = Long.parseLong(group.getId());
 		authDAO.changePassword(principalId, "ThisIsMySuperSecurePassword");
 		authDAO.changeSecretKey(principalId);
-		authDAO.changeSessionToken(principalId, null);
+		authDAO.changeSessionToken(principalId, null, DomainType.SYNAPSE);
 	}
 	
 	private void createSessionToken(UserGroup group) throws Exception {
@@ -569,7 +568,7 @@ public class MigrationIntegrationAutowireTest {
 		token.setPrincipalId(Long.parseLong(group.getId()));
 		token.setSessionToken(UUID.randomUUID().toString());
 		token.setValidatedOn(new Date());
-		basicDao.createNew(token);
+		basicDao.createOrUpdate(token);
 	}
 	
 	private void createTermsOfUseAgreement(UserGroup group) throws Exception {

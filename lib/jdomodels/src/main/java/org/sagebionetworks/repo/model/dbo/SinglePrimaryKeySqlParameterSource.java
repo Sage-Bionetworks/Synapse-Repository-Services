@@ -1,8 +1,6 @@
 package org.sagebionetworks.repo.model.dbo;
 
 import org.springframework.jdbc.core.namedparam.AbstractSqlParameterSource;
-import org.springframework.jdbc.core.namedparam.BeanPropertySqlParameterSource;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 public class SinglePrimaryKeySqlParameterSource extends AbstractSqlParameterSource {
 	private final Object value;

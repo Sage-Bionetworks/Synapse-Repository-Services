@@ -1,7 +1,6 @@
 package org.sagebionetworks.bridge.controller;
 
 import java.util.Arrays;
-import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -18,8 +17,6 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
-
-import com.google.common.collect.Lists;
 
 // @ControllerInfo(displayName = "Participant data", path = BridgeUrlHelpers.BASE_V1)
 @Controller

@@ -208,6 +208,8 @@ public interface SynapseClient extends BaseClient {
 	 * Refreshes the cached session token so that it can be used for another 24 hours
 	 */
 	public boolean revalidateSession() throws SynapseException;
+	
+	public boolean revalidateSession(DomainType domain) throws SynapseException;
 
 	/**
 	 * Create a new Entity.

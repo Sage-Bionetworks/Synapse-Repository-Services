@@ -1,8 +1,8 @@
 package org.sagebionetworks.bridge.model.dbo.persistence;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PARTICIPANT_DATA_COLUMN_DESCRIPTOR_PARTICIPANT_DATA_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PARTICIPANT_DATA_COLUMN_DESCRIPTOR_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PARTICIPANT_DATA_COLUMN_DESCRIPTOR_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PARTICIPANT_DATA_COLUMN_DESCRIPTOR_PARTICIPANT_DATA_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PARTICIPANT_DATA_COLUMN_DESCRIPTOR_PROPERTIES;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PARTICIPANT_DATA_DESCRIPTOR_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PARTICIPANT_DATA_DESCRIPTOR;
