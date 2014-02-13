@@ -202,8 +202,8 @@ public class AdministrationServiceImpl implements AdministrationService  {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		
 		DBOCredential cred = new DBOCredential();
-		DBOTermsOfUseAgreement touAgreement = new DBOTermsOfUseAgreement();
-		DBOSessionToken sessionToken = new DBOSessionToken();
+		DBOTermsOfUseAgreement touAgreement = null;
+		DBOSessionToken token = null;
 		if (userSpecs.getPassword() != null) {
 			cred.setPassHash(PBKDF2Utils.hashPassword(userSpecs.getPassword(), null));
 		}
@@ -212,18 +212,20 @@ public class AdministrationServiceImpl implements AdministrationService  {
 			cred.setAgreesToTermsOfUse(userSpecs.getSession().getAcceptsTermsOfUse());
 			cred.setValidatedOn(new Date());
 
+			touAgreement = new DBOTermsOfUseAgreement();
 			touAgreement.setDomain(DomainType.SYNAPSE);
 			touAgreement.setAgreesToTermsOfUse(userSpecs.getSession().getAcceptsTermsOfUse());
 
-			sessionToken.setSessionToken(userSpecs.getSession().getSessionToken());
-			sessionToken.setValidatedOn(new Date());
-			sessionToken.setDomain(DomainType.SYNAPSE);
+			token = new DBOSessionToken();
+			token.setSessionToken(userSpecs.getSession().getSessionToken());
+			token.setValidatedOn(new Date());
+			token.setDomain(DomainType.SYNAPSE);
 		}
 		
 		NewUser nu = new NewUser();
 		nu.setEmail(userSpecs.getEmail());
 		nu.setUserName(userSpecs.getUsername());
-		UserInfo user = userManager.createUser(userInfo, nu, cred, touAgreement, sessionToken);
+		UserInfo user = userManager.createUser(userInfo, nu, cred, touAgreement, token);
 		
 		EntityId id = new EntityId();
 		id.setId(user.getId().toString());

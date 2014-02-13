@@ -28,17 +28,6 @@ public interface UserManager {
 	public UserInfo getUserInfo(Long principalId) throws NotFoundException;
 	
 	/**
-	 * Get the User and UserGroup information for the given user ID, including information 
-	 * about the TOU status of this user for the given domain.
-	 * 
-	 * @param principalId
-	 * @param domain
-	 * @return
-	 * @throws NotFoundException
-	 */
-	public UserInfo getUserInfo(Long principalId, DomainType domain) throws NotFoundException;
-	
-	/**o
 	 * Creates a new user
 	 * 
 	 * @return The ID of the user

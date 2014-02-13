@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -51,6 +52,8 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	private NodeInheritanceManager nodeInheritanceManager;
 	@Autowired
 	private UserManager userManager;
+	@Autowired
+	private AuthenticationManager authenticationManager;
 
 	@Override
 	public AccessControlList getACL(String nodeId, UserInfo userInfo) throws NotFoundException, DatastoreException, ACLInheritanceException {
@@ -275,7 +278,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		return accessRequirementIds.isEmpty();
 	}
 
-	private static boolean agreesToTermsOfUse(UserInfo userInfo) {
-		return userInfo.isAgreesToTermsOfUse();
+	private boolean agreesToTermsOfUse(UserInfo userInfo) throws NotFoundException {
+		return authenticationManager.hasUserAcceptedTermsOfUse(userInfo.getId(), DomainType.SYNAPSE);
 	}
 }

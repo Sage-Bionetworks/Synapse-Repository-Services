@@ -63,7 +63,6 @@ public class AuthenticationServiceImplTest {
 				.thenThrow(new TermsOfUseException());
 		
 		// A boolean flag should let us get past this call
-		userInfo.setAgreesToTermsOfUse(false);
 		service.revalidate(sessionToken, DomainType.SYNAPSE, false);
 
 		// But it should default to true
@@ -78,13 +77,10 @@ public class AuthenticationServiceImplTest {
 	@Test (expected=NotFoundException.class)
 	public void testOpenIDAuthentication_newUser() throws Exception {
 		// This user does not exist yet
-		userInfo.setAgreesToTermsOfUse(false);
-		
 		OpenIDInfo info = new OpenIDInfo();
 		info.setEmail(username);
 		info.setFullName(fullName);
 		service.processOpenIDInfo(info, DomainType.SYNAPSE);
-		
 	}
 	
 	

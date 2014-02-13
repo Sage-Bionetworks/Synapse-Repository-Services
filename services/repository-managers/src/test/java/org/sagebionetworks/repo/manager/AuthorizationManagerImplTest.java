@@ -50,6 +50,9 @@ public class AuthorizationManagerImplTest {
 	private AuthorizationManager authorizationManager;
 	
 	@Autowired
+	private AuthenticationManager authenticationManager;
+	
+	@Autowired
 	private NodeManager nodeManager;
 	
 	@Autowired
@@ -457,7 +460,7 @@ public class AuthorizationManagerImplTest {
 	@Test
 	public void testGetUserPermissionsForEntity() throws Exception{
 		assertTrue(adminUser.isAdmin());
-		assertTrue(adminUser.isAgreesToTermsOfUse());
+		assertTrue(authenticationManager.hasUserAcceptedTermsOfUse(adminUser.getId(), DomainType.SYNAPSE));
 		// the admin user can do it all
 		UserEntityPermissions uep = entityPermissionsManager.getUserPermissionsForEntity(adminUser, node.getId());
 		assertNotNull(uep);

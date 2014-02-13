@@ -153,7 +153,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		UserInfo userInfo = userManager.getUserInfo(principalId);
 		
 		// Save the state of acceptance
-		if (session.getAcceptsTermsOfUse() != userInfo.isAgreesToTermsOfUse()) {
+		if (!session.getAcceptsTermsOfUse().equals(authManager.hasUserAcceptedTermsOfUse(principalId, domain))) {
 			authManager.setTermsOfUseAcceptance(userInfo.getId(), domain, session.getAcceptsTermsOfUse());
 		}
 	}
