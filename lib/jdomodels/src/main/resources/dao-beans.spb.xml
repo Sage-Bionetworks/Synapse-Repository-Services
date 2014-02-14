@@ -311,4 +311,8 @@
 		<property name="maxSharedLockTimeoutMS" ref="stackConfiguration.semaphoreSharedMaxTimeoutMS"/>
 		<property name="maxExclusiveLockTimeoutMS" ref="stackConfiguration.semaphoreExclusiveMaxTimeoutMS"/>
 	</bean>
+	
+	<bean id="exclusiveOrSharedSemaphoreRunner"
+		class="org.sagebionetworks.repo.model.dbo.dao.semaphore.ExclusiveOrSharedSemaphoreRunnerImpl"/>
+
 </beans>
