@@ -73,7 +73,7 @@ public class EntityPermissionsManagerImplTest {
 	
 	@Autowired
 	private DBOBasicDao basicDao;
-	
+
 	private Collection<Node> nodeList = new ArrayList<Node>();
 	private Node project = null;
 	private Node childNode = null;
