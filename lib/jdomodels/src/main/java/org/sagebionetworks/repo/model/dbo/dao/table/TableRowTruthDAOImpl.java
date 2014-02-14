@@ -21,15 +21,12 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableIdSequence;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableRowChange;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.Row;
@@ -95,8 +92,6 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	private SimpleJdbcTemplate simpleJdbcTemplate;
 	@Autowired
 	private AmazonS3Client s3Client;
-	@Autowired
-	TransactionalMessenger transactionalMessanger;
 
 	private String s3Bucket;
 	private int maxBytesPerRequest;
@@ -194,6 +189,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		changeDBO.setCreatedOn(System.currentTimeMillis());
 		changeDBO.setKey(key);
 		changeDBO.setBucket(s3Bucket);
+		changeDBO.setRowCount(new Long(delta.getRows().size()));
 		basicDao.createNew(changeDBO);
 
 		// Prepare the results
@@ -210,8 +206,6 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			refs.add(ref);
 		}
 		results.setRows(refs);
-		// Fire a change event
-		transactionalMessanger.sendMessageAfterCommit(changeDBO.getTableId().toString(), ObjectType.TABLE, changeDBO.getEtag(), ChangeType.UPDATE);
 		return results;
 	}
 

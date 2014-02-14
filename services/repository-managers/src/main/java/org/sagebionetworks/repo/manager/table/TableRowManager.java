@@ -38,25 +38,14 @@ public interface TableRowManager {
 			NotFoundException, IOException;
 
 	/**
-	 * Update the status of a table if the etag matches the expected value.
-	 * 
-	 * @param expectedEtag
-	 * @param newStatus
-	 * @return
-	 * @throws ConflictingUpdateException
-	 *             Thrown when the current etag of the table does not match the
-	 *             passed etag.
-	 */
-	public TableStatus updateTableStatus(String expectedEtag,
-			TableStatus newStatus) throws ConflictingUpdateException;
-
-	/**
 	 * Get the current ColumnModel list for a table.
 	 * 
 	 * @param tableId
 	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
 	 */
-	public List<ColumnModel> getColumnModelsForTable(String tableId);
+	public List<ColumnModel> getColumnModelsForTable(String tableId) throws DatastoreException, NotFoundException;
 
 	/**
 	 * List the changes that have been applied to a table.
@@ -72,8 +61,10 @@ public interface TableRowManager {
 	 * @param tableId
 	 * @param rowVersion
 	 * @return
+	 * @throws NotFoundException 
+	 * @throws IOException 
 	 */
-	public RowSet getRowSet(String tableId, Long rowVersion);
+	public RowSet getRowSet(String tableId, Long rowVersion) throws IOException, NotFoundException;
 
 	/**
 	 * <p>
@@ -104,9 +95,11 @@ public interface TableRowManager {
 	 *             Thrown when an exclusive lock cannot be acquired.
 	 * 
 	 * @return
+	 * @throws Exception 
+	 * @throws InterruptedException 
 	 */
-	public <T> T runWithTableExclusiveLock(String tableId, Callable<T> runner)
-			throws LockUnavilableException;
+	public <T> T tryRunWithTableExclusiveLock(String tableId, long timeoutMS, Callable<T> runner)
+			throws LockUnavilableException, InterruptedException, Exception;
 
 	/**
 	 * <p>
@@ -132,8 +125,74 @@ public interface TableRowManager {
 	 * @param runner
 	 * @return
 	 * @throws LockUnavilableException
+	 * @throws Exception 
 	 */
-	public <T> T runWithTableNonexclusiveLock(String tableId, Callable<T> runner)
-			throws LockUnavilableException;
+	public <T> T tryRunWithTableNonexclusiveLock(String tableId, long timeoutMS, Callable<T> runner)
+			throws LockUnavilableException, Exception;
+
+	/**
+	 * Get the table status
+	 * @param tableId
+	 * @return
+	 */
+	public TableStatus getTableStatus(String tableId) throws NotFoundException;
+	
+	/**
+	 * Attempt to set the table status to AVIALABLE. The state will be changed
+	 * will be applied as long as the passed resetToken matches the current
+	 * restToken indicating all changes have been accounted for.
+	 * 
+	 * @param tableId
+	 * @param resetToken
+	 * @return
+	 * @throws ConflictingUpdateException
+	 *             Thrown when the passed restToken does not match the current
+	 *             resetToken. This indicates that the table was updated before
+	 *             processing finished so we cannot change the status to
+	 *             available until the new changes are accounted for.
+	 * @throws NotFoundException
+	 */
+	public void attemptToSetTableStatusToAvailable(String tableId,
+			String resetToken) throws ConflictingUpdateException,
+			NotFoundException;
+
+	/**
+	 * Attempt to set the table status to FAILED. The state will be changed will
+	 * be applied as long as the passed resetToken matches the current restToken
+	 * indicating all changes have been accounted for.
+	 * 
+	 * @param tableId
+	 * @param resetToken
+	 * @return
+	 * @throws ConflictingUpdateException
+	 *             Thrown when the passed restToken does not match the current
+	 *             resetToken. This indicates that the table was updated before
+	 *             processing finished so we cannot change the status to
+	 *             available until the new changes are accounted for.
+	 * @throws NotFoundException
+	 */
+	public void attemptToSetTableStatusToFailed(String tableId,
+			String resetToken, String errorMessage, String errorDetails)
+			throws ConflictingUpdateException, NotFoundException;
+
+	/**
+	 * Attempt to update the progress of a table.
+	 * Will fail if the passed rest-token does not match the current reset-token indicating
+	 * the table change while it was being processed.
+	 * 
+	 * @param tableId
+	 * @param resetToken
+	 * @param progressMessage
+	 * @param currentProgress
+	 * @param totalProgress
+	 * @throws ConflictingUpdateException
+	 *             Thrown when the passed restToken does not match the current
+	 *             resetToken. This indicates that the table was updated before
+	 *             processing finished.
+	 * @throws NotFoundException
+	 */
+	public void attemptToUpdateTableProgress(String tableId, String resetToken,
+			String progressMessage, Long currentProgress, Long totalProgress)
+			throws ConflictingUpdateException, NotFoundException;
 
 }
