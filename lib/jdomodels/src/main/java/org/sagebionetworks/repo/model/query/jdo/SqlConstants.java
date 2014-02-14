@@ -392,6 +392,8 @@ public class SqlConstants {
 	public static final String TABLE_STATUS							= "TABLE_STATUS";
 	public static final String COL_TABLE_STATUS_ID					= "TABLE_ID";
 	public static final String COL_TABLE_STATUS_STATE				= "STATE";
+	public static final String COL_TABLE_STATUS_RESET_TOKEN			= "RESET_TOKEN";
+	public static final String COL_TABLE_STATUS_STARTED_ON			= "STARTED_ON";
 	public static final String COL_TABLE_STATUS_CHANGE_ON			= "CHANGED_ON";
 	public static final String COL_TABLE_STATUS_PROGRESS_MESSAGE	= "PROGRESS_MESSAGE";
 	public static final String COL_TABLE_STATUS_PROGRESS_CURRENT	= "PROGRESS_CURRENT";

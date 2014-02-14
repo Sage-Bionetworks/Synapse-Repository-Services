@@ -86,6 +86,9 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 		if(columnIds == null) throw new IllegalArgumentException("ColumnModel IDs cannot be null");
 		// pass it along to the DAO.
 		long count = columnModelDao.bindColumnToObject(columnIds, objectId);
+		// If there was an actual change we need change the status of the table.
+		if(count > 0){
+		}
 		return count > 0;
 	}
 

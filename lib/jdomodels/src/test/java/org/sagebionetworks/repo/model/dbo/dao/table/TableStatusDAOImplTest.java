@@ -1,9 +1,10 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
 import static org.junit.Assert.*;
+import static org.junit.Assert.fail;
 
-import java.util.Date;
-
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
@@ -21,32 +22,66 @@ public class TableStatusDAOImplTest {
 	@Autowired
 	TableStatusDAO tableStatusDAO;
 	
+	@Before
+	public void before(){
+		tableStatusDAO.clearAllTableState();
+	}
+	
+	@After
+	public void after(){
+		tableStatusDAO.clearAllTableState();
+	}
+	
 	@Test
-	public void testCreateAndGet() throws NotFoundException{
-		TableStatus dto = new TableStatus();
-		dto.setChangedOn(new Date(1));
-		dto.setErrorDetails("This is the longer error details");
-		dto.setErrorMessage("This is the short message");
-		dto.setTableId("123");
-		dto.setProgresssCurrent(50L);
-		dto.setProgresssMessage("Making progress");
-		dto.setProgresssTotal(100L);
-		dto.setState(TableState.PROCESSING_FAILED);
-		dto.setTotalTimeMS(10L);
-		
-		// create it
-		TableStatus clone = tableStatusDAO.createOrUpdateTableStatus(dto);
-		assertNotNull(clone);
-		assertEquals(dto, clone);
-		// Update it
-		dto.setState(TableState.AVAILABLE_FOR_QUERY);
-		clone = tableStatusDAO.createOrUpdateTableStatus(dto);
-		assertNotNull(clone);
-		assertEquals(dto, clone);
-		// Get it
-		clone = tableStatusDAO.getTableStatus("123");
-		assertNotNull(clone);
-		assertEquals(dto, clone);
+	public void testResetTableStatusToPending() throws NotFoundException{
+		String tableId = "syn123";
+		// Before we start the status should not exist
+		try{
+			tableStatusDAO.getTableStatus(tableId);
+			fail("The status for this table should not exist yet");
+		}catch(NotFoundException e){
+			// expected
+		}
+		// This should insert a row for this table.
+		String resetToken = tableStatusDAO.resetTableStatusToProcessing("syn123");
+		assertNotNull(resetToken);
+		// We should now have a status for this table
+		TableStatus status = tableStatusDAO.getTableStatus(tableId);
+		assertNotNull(status);
+		assertEquals("123", status.getTableId());
+		assertEquals(TableState.PROCESSING, status.getState());
+		assertNotNull(status.getChangedOn());
+		assertNotNull(status.getStartedOn());
+		// The rest should be null
+		assertEquals(null, status.getErrorDetails());
+		assertEquals(null, status.getErrorMessage());
+		assertEquals(null, status.getProgresssCurrent());
+		assertEquals(null, status.getProgresssTotal());
+		assertEquals(null, status.getTotalTimeMS());
+		// Now if we call it again we should get a new rest-token
+		String newResetToken = tableStatusDAO.resetTableStatusToProcessing("123");
+		assertNotNull(newResetToken);
+		assertFalse(newResetToken.equals(resetToken));
+	}
+	
+	@Test
+	public void testAttemptToSetTableStatusToAvailableHappy() throws NotFoundException{
+		String tableId = "syn123";
+		// This should insert a row for this table.
+		String resetToken = tableStatusDAO.resetTableStatusToProcessing("syn123");
+		// Status should start as processing
+		TableStatus status = tableStatusDAO.getTableStatus(tableId);
+		assertNotNull(status);
+		assertEquals("123", status.getTableId());
+		assertEquals(TableState.PROCESSING, status.getState());
+		assertNotNull(status.getChangedOn());
+		// Not make available
+		tableStatusDAO.attemptToSetTableStatusToAvailable(tableId, resetToken);
+		// the state should have changed
+		status = tableStatusDAO.getTableStatus(tableId);
+		assertNotNull(status);
+		assertEquals("123", status.getTableId());
+		assertEquals(TableState.AVAILABLE, status.getState());
 	}
 	
 	@Test (expected=NotFoundException.class)
