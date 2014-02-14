@@ -21,6 +21,8 @@ import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.util.jrjc.JRJCHelper;
 import org.sagebionetworks.repo.util.jrjc.JiraClient;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -45,17 +47,22 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	@Autowired
 	private JiraClient jiraClient;
 	
+	@Autowired
+	private UserProfileDAO userProfileDAO;
+	
 	public AccessRequirementManagerImpl() {}
 	
 	// for testing 
 	public AccessRequirementManagerImpl(
 			AccessRequirementDAO accessRequirementDAO,
 			AuthorizationManager authorizationManager,
-			JiraClient jiraClient
+			JiraClient jiraClient,
+			UserProfileDAO userProfileDAO
 	) {
 		this.accessRequirementDAO=accessRequirementDAO;
 		this.authorizationManager=authorizationManager;
 		this.jiraClient=jiraClient;
+		this.userProfileDAO=userProfileDAO;
 	}
 	
 	public static void validateAccessRequirement(AccessRequirement a) throws InvalidModelException {
@@ -126,10 +133,15 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		ACTAccessRequirement accessRequirement = newLockAccessRequirement(userInfo, entityId);
 		ACTAccessRequirement result  = accessRequirementDAO.create(accessRequirement);
 		
+		UserProfile creatorUserProfile = userProfileDAO.get(userInfo.getId().toString());
+		String emailString = "";
+		List<String> emails = creatorUserProfile.getEmails();
+		if (emails.size()>0) emailString = emails.get(0);
+		
 		// now create the Jira issue
 		JRJCHelper.createRestrictIssue(jiraClient, 
 				userInfo.getId().toString(), 
-				userInfo.getId().toString(), 
+				emailString, 
 				entityId);
 
 		return result;
