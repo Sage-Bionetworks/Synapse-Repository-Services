@@ -12,11 +12,10 @@ import org.sagebionetworks.repo.web.NotFoundException;
  */
 public interface TableStatusDAO {
 
-
 	/**
 	 * When the truth data of a table changes either due to row changes or
 	 * column changes the table status must be rest to PROCESSING. This is the
-	 * only method that will change the reset-token.  The resulting reset-token
+	 * only method that will change the reset-token. The resulting reset-token
 	 * will be needed to change the status to available or failed.
 	 * 
 	 * @param tableId
@@ -37,10 +36,11 @@ public interface TableStatusDAO {
 	 *             resetToken. This indicates that the table was updated before
 	 *             processing finished so we cannot change the status to
 	 *             available until the new changes are accounted for.
-	 * @throws NotFoundException 
+	 * @throws NotFoundException
 	 */
 	public void attemptToSetTableStatusToAvailable(String tableId,
-			String resetToken) throws ConflictingUpdateException, NotFoundException;
+			String resetToken) throws ConflictingUpdateException,
+			NotFoundException;
 
 	/**
 	 * Attempt to set the table status to FAILED. The state will be changed will
@@ -55,10 +55,30 @@ public interface TableStatusDAO {
 	 *             resetToken. This indicates that the table was updated before
 	 *             processing finished so we cannot change the status to
 	 *             available until the new changes are accounted for.
-	 * @throws NotFoundException 
+	 * @throws NotFoundException
 	 */
 	public void attemptToSetTableStatusToFailed(String tableId,
 			String resetToken, String errorMessage, String errorDetails)
+			throws ConflictingUpdateException, NotFoundException;
+
+	/**
+	 * Attempt to update the progress of a table.
+	 * Will fail if the passed rest-token does not match the current reset-token indicating
+	 * the table change while it was being processed.
+	 * 
+	 * @param tableId
+	 * @param resetToken
+	 * @param progressMessage
+	 * @param currentProgress
+	 * @param totalProgress
+	 * @throws ConflictingUpdateException
+	 *             Thrown when the passed restToken does not match the current
+	 *             resetToken. This indicates that the table was updated before
+	 *             processing finished.
+	 * @throws NotFoundException
+	 */
+	public void attemptToUpdateTableProgress(String tableId, String resetToken,
+			String progressMessage, Long currentProgress, Long totalProgress)
 			throws ConflictingUpdateException, NotFoundException;
 
 	/**
@@ -71,9 +91,10 @@ public interface TableStatusDAO {
 	 *             table.
 	 */
 	public TableStatus getTableStatus(String tableId) throws NotFoundException;
-	
+
 	/**
-	 * Remove all table state.  This should not be called during normal opperations.
+	 * Remove all table state. This should not be called during normal
+	 * operations.
 	 * 
 	 */
 	public void clearAllTableState();

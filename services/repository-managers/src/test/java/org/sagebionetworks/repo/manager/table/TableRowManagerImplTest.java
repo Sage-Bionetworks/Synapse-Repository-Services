@@ -1,22 +1,24 @@
 package org.sagebionetworks.repo.manager.table;
 
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import java.io.IOException;
 import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
+import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.Row;
@@ -29,6 +31,7 @@ public class TableRowManagerImplTest {
 	
 	TableRowTruthDAO mockTruthDao;
 	AuthorizationManager mockAuthManager;
+	TableStatusDAO mockTableStatusDAO;
 	TableRowManagerImpl manager;
 	List<ColumnModel> models;
 	UserInfo user;
@@ -40,6 +43,7 @@ public class TableRowManagerImplTest {
 	public void before(){
 		mockTruthDao = Mockito.mock(TableRowTruthDAO.class);
 		mockAuthManager = Mockito.mock(AuthorizationManager.class);
+		mockTableStatusDAO = Mockito.mock(TableStatusDAO.class);
 		manager = new TableRowManagerImpl();
 		user = new UserInfo(false, 7L);
 		models = TableModelUtils.createOneOfEachType();
@@ -56,7 +60,7 @@ public class TableRowManagerImplTest {
 		
 		ReflectionTestUtils.setField(manager, "tableRowTruthDao", mockTruthDao);
 		ReflectionTestUtils.setField(manager, "authorizationManager", mockAuthManager);
-		
+		ReflectionTestUtils.setField(manager, "tableStatusDAO", mockTableStatusDAO);
 	}
 	
 	@Test (expected=UnauthorizedException.class)
@@ -71,6 +75,8 @@ public class TableRowManagerImplTest {
 		when(mockTruthDao.appendRowSetToTable(user.getId().toString(), tableId, models, set)).thenReturn(refSet);
 		RowReferenceSet results = manager.appendRows(user, tableId, models, set);
 		assertEquals(refSet, results);
+		// verify the table status was set
+		verify(mockTableStatusDAO, times(1)).resetTableStatusToProcessing(tableId);
 	}
 
 }

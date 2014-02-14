@@ -54,14 +54,10 @@ public class TableRowManagerImpl implements TableRowManager {
 			throw new UnauthorizedException("User does not have permission to update TableEntity: "+tableId);
 		}
 		// Let the DAO do the rest of the work.
-		return tableRowTruthDao.appendRowSetToTable(user.getId().toString(), tableId, models, delta);
-	}
-
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	@Override
-	public TableStatus updateTableStatus(String expectedEtag, TableStatus newStatus) throws ConflictingUpdateException {
-		// TODO Auto-generated method stub
-		return null;
+		RowReferenceSet rrs = tableRowTruthDao.appendRowSetToTable(user.getId().toString(), tableId, models, delta);
+		// The table has change so we must reset the state.
+		tableStatusDAO.resetTableStatusToProcessing(tableId);
+		return rrs;
 	}
 
 	@Override
@@ -92,6 +88,32 @@ public class TableRowManagerImpl implements TableRowManager {
 		String key = TableModelUtils.getTableSemaphoreKey(tableId);
 		// The semaphore runner does all of the lock work.
 		return exclusiveOrSharedSemaphoreRunner.tryRunWithSharedLock(key, lockTimeoutMS, runner);
+	}
+
+	@Override
+	public TableStatus getTableStatus(String tableId) throws NotFoundException {
+		return tableStatusDAO.getTableStatus(tableId);
+	}
+
+	@Override
+	public void attemptToSetTableStatusToAvailable(String tableId,
+			String resetToken) throws ConflictingUpdateException,
+			NotFoundException {
+		tableStatusDAO.attemptToSetTableStatusToAvailable(tableId, resetToken);
+	}
+
+	@Override
+	public void attemptToSetTableStatusToFailed(String tableId,
+			String resetToken, String errorMessage, String errorDetails)
+			throws ConflictingUpdateException, NotFoundException {
+		tableStatusDAO.attemptToSetTableStatusToFailed(tableId, resetToken, errorMessage, errorDetails);
+	}
+
+	@Override
+	public void attemptToUpdateTableProgress(String tableId, String resetToken,
+			String progressMessage, Long currentProgress, Long totalProgress)
+			throws ConflictingUpdateException, NotFoundException {
+		tableStatusDAO.attemptToUpdateTableProgress(tableId, resetToken, progressMessage, currentProgress, totalProgress);
 	}
 	
 

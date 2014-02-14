@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
+import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.PaginatedIds;
@@ -28,6 +29,8 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 
 	@Autowired
 	ColumnModelDAO columnModelDao;
+	@Autowired
+	TableStatusDAO tableStatusDAO;
 	
 	@Autowired
 	AuthorizationManager authorizationManager;
@@ -88,6 +91,8 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 		long count = columnModelDao.bindColumnToObject(columnIds, objectId);
 		// If there was an actual change we need change the status of the table.
 		if(count > 0){
+			// The table has change so we must rest the state to processing.
+			tableStatusDAO.resetTableStatusToProcessing(objectId);
 		}
 		return count > 0;
 	}

@@ -13,15 +13,16 @@ import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import static org.mockito.Mockito.*;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManagerImpl;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
+import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -36,16 +37,19 @@ public class ColumnModelManagerTest {
 	ColumnModelDAO mockColumnModelDAO;
 	AuthorizationManager mockauthorizationManager;
 	ColumnModelManagerImpl columnModelManager;
+	TableStatusDAO mockTableStatusDao;
 	UserInfo user;
 	
 	@Before
 	public void before(){
 		mockColumnModelDAO = Mockito.mock(ColumnModelDAO.class);
 		mockauthorizationManager = Mockito.mock(AuthorizationManager.class);
+		mockTableStatusDao = Mockito.mock(TableStatusDAO.class);
 		columnModelManager = new ColumnModelManagerImpl();
 		user = new UserInfo(false, 123L);
 		ReflectionTestUtils.setField(columnModelManager, "columnModelDao", mockColumnModelDAO);
 		ReflectionTestUtils.setField(columnModelManager, "authorizationManager", mockauthorizationManager);
+		ReflectionTestUtils.setField(columnModelManager, "tableStatusDAO", mockTableStatusDao);
 	}
 	
 	@Test
@@ -152,6 +156,8 @@ public class ColumnModelManagerTest {
 		ids.add("123");
 		when(mockColumnModelDAO.bindColumnToObject(ids, objectId)).thenReturn(1);
 		assertTrue(columnModelManager.bindColumnToObject(user, ids, objectId));
+		// Validate that the table status gets changed
+		verify(mockTableStatusDao, times(1)).resetTableStatusToProcessing(objectId);
 	}
 	
 	@Test (expected =IllegalArgumentException.class)
