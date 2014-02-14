@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.manager.message;
 
-import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.PublishResults;
 
 /**

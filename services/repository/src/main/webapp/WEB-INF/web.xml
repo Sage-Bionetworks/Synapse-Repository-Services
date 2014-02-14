@@ -168,9 +168,9 @@
 
 	<servlet-mapping>
 		<servlet-name>tomcatDefaultServlet</servlet-name>
-		<url-pattern>/auth/v1/termsOfUse.html</url-pattern>
+		<url-pattern>/auth/v1/synapseTermsOfUse.html</url-pattern>
+        <url-pattern>/auth/v1/bridgeTermsOfUse.html</url-pattern>
 	</servlet-mapping>
-
 
 	<servlet-mapping>
 		<servlet-name>authentication</servlet-name>

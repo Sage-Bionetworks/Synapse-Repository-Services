@@ -16,7 +16,6 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.audit.utils.KeyGeneratorUtil;
 import org.sagebionetworks.audit.utils.VirtualMachineIdProvider;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.audit.AccessRecord;
 import org.springframework.test.util.ReflectionTestUtils;

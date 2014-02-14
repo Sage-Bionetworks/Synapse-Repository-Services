@@ -16,8 +16,6 @@ import org.junit.Test;
 import org.sagebionetworks.dynamo.dao.nodetree.IncompletePathException;
 import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeUpdateDao;
 import org.sagebionetworks.dynamo.dao.nodetree.ObsoleteChangeException;
-import org.sagebionetworks.repo.manager.dynamo.NodeTreeUpdateManager;
-import org.sagebionetworks.repo.manager.dynamo.NodeTreeUpdateManagerImpl;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.NodeDAO;

@@ -50,34 +50,37 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public Session authenticate(LoginCredentials credential) throws NotFoundException {
+	public Session authenticate(LoginCredentials credential, DomainType domain) throws NotFoundException {
 		if (credential.getEmail() == null) {
 			throw new UnauthorizedException("Username may not be null");
 		}
 		if (credential.getPassword() == null) {
 			throw new UnauthorizedException("Password may not be null");
 		}
+		if (domain == null) {
+			throw new UnauthorizedException("Domain must be declared");
+		}
 		// Lookup the user.
 		PrincipalAlias pa = lookupUserForAuthenication(credential.getEmail());
 		if(pa == null) throw new NotFoundException("Did not find a user with alias: "+credential.getEmail());;
 		
 		// Fetch the user's session token
-		return authManager.authenticate(pa.getPrincipalId(), credential.getPassword());
+		return authManager.authenticate(pa.getPrincipalId(), credential.getPassword(), domain);
 	}
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public Long revalidate(String sessionToken) throws NotFoundException {
-		return revalidate(sessionToken, true);
+	public Long revalidate(String sessionToken, DomainType domain) throws NotFoundException {
+		return revalidate(sessionToken, domain, true);
 	}
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public Long revalidate(String sessionToken, boolean checkToU) throws NotFoundException {
+	public Long revalidate(String sessionToken, DomainType domain, boolean checkToU) throws NotFoundException {
 		if (sessionToken == null) {
 			throw new IllegalArgumentException("Session token may not be null");
 		}
-		return authManager.checkSessionToken(sessionToken, checkToU);
+		return authManager.checkSessionToken(sessionToken, domain, checkToU);
 	}
 
 	@Override
@@ -106,24 +109,24 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void sendPasswordEmail(Long principalId, DomainType originClient) throws NotFoundException {
+	public void sendPasswordEmail(Long principalId, DomainType domain) throws NotFoundException {
 		if (principalId == null) {
 			throw new IllegalArgumentException("PrincipalId may not be null");
 		}
-		if (originClient == null) {
+		if (domain == null) {
 			throw new IllegalArgumentException("OriginatingClient may not be null");
 		}
 		
 		// Get the user's session token (which is refreshed)
-		String sessionToken = authManager.authenticate(principalId, null).getSessionToken();
+		String sessionToken = authManager.authenticate(principalId, null, domain).getSessionToken();
 		
 		// Send the email
-		messageManager.sendPasswordResetEmail(principalId, originClient, sessionToken);
+		messageManager.sendPasswordResetEmail(principalId, domain, sessionToken);
 	}
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void changePassword(ChangePasswordRequest request) throws NotFoundException {
+	public void changePassword(ChangePasswordRequest request, DomainType domain) throws NotFoundException {
 		if (request.getSessionToken() == null) {
 			throw new IllegalArgumentException("Session token may not be null");
 		}
@@ -131,14 +134,14 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 			throw new IllegalArgumentException("Password may not be null");
 		}
 		
-		Long principalId = authManager.checkSessionToken(request.getSessionToken(), false);
+		Long principalId = authManager.checkSessionToken(request.getSessionToken(), domain, false);
 		authManager.changePassword(principalId, request.getPassword());
 		authManager.invalidateSessionToken(request.getSessionToken());
 	}
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void signTermsOfUse(Session session) throws NotFoundException {
+	public void signTermsOfUse(Session session, DomainType domain) throws NotFoundException {
 		if (session.getSessionToken() == null) {
 			throw new IllegalArgumentException("Session token may not be null");
 		}
@@ -146,12 +149,12 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 			throw new IllegalArgumentException("Terms of use acceptance may not be null");
 		}
 		
-		Long principalId = authManager.checkSessionToken(session.getSessionToken(), false);
+		Long principalId = authManager.checkSessionToken(session.getSessionToken(), domain, false);
 		UserInfo userInfo = userManager.getUserInfo(principalId);
 		
 		// Save the state of acceptance
-		if (session.getAcceptsTermsOfUse() != userInfo.isAgreesToTermsOfUse()) {
-			authManager.setTermsOfUseAcceptance(userInfo.getId(), session.getAcceptsTermsOfUse());
+		if (!session.getAcceptsTermsOfUse().equals(authManager.hasUserAcceptedTermsOfUse(principalId, domain))) {
+			authManager.setTermsOfUseAcceptance(userInfo.getId(), domain, session.getAcceptsTermsOfUse());
 		}
 	}
 	
@@ -168,8 +171,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
 	
 	@Override
-	public boolean hasUserAcceptedTermsOfUse(Long userId) throws NotFoundException {
-		return authManager.hasUserAcceptedTermsOfUse(userId);
+	public boolean hasUserAcceptedTermsOfUse(Long userId, DomainType domain) throws NotFoundException {
+		return authManager.hasUserAcceptedTermsOfUse(userId, domain);
 	}
 	
 	@Override
@@ -196,15 +199,14 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	 * Returns the session token of the user described by the OpenID information
 	 */
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public Session processOpenIDInfo(OpenIDInfo info,
-			DomainType originClient) throws NotFoundException {
+	public Session processOpenIDInfo(OpenIDInfo info, DomainType domain) throws NotFoundException {
 		// Get some info about the user
 		String email = info.getEmail();
 		if (email == null) {
 			throw new UnauthorizedException("An email must be returned from the OpenID provider");
 		}
-		if (originClient == null) {
-			throw new IllegalArgumentException("OriginatingClient may not be null");
+		if (domain == null) {
+			throw new IllegalArgumentException("DomainType may not be null");
 		}
 		
 		// First try to lookup the user by their OpenId
@@ -221,7 +223,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 			throw new NotFoundException("Failed to find a user with OpenId: "+info.getIdentifier());
 		}
 		// Open ID is successful
-		Session sesion = authManager.authenticate(alias.getPrincipalId(), null);
+		Session sesion = authManager.authenticate(alias.getPrincipalId(), null, domain);
 		
 		/**
 		 * Binding the OpenID here is temporary and should be removed when PLFM-2437 is resolved.

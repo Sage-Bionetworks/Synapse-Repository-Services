@@ -26,7 +26,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
-import org.sagebionetworks.bridge.manager.participantdata.ParticipantDataIdMappingManagerImpl;
 import org.sagebionetworks.bridge.model.BridgeParticipantDAO;
 import org.sagebionetworks.bridge.model.BridgeUserParticipantMappingDAO;
 import org.sagebionetworks.bridge.model.Community;
@@ -57,9 +56,11 @@ import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.CommentDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
+import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmissionDAO;
 import org.sagebionetworks.repo.model.MembershipRqstSubmission;
@@ -85,14 +86,16 @@ import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
+import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOSessionToken;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.Comment;
 import org.sagebionetworks.repo.model.message.MessageToUser;
-import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.migration.ListBucketProvider;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
@@ -138,6 +141,9 @@ import com.google.common.collect.Lists;
 public class MigrationIntegrationAutowireTest {
 
 	public static final long MAX_WAIT_MS = 10 * 1000; // 10 sec.
+
+	@Autowired
+	private DBOBasicDao basicDao;
 
 	@Autowired
 	private EntityServletTestHelper entityServletHelper;
@@ -278,6 +284,8 @@ public class MigrationIntegrationAutowireTest {
 		UserGroup sampleGroup = createUserGroups(1);
 		createTeamsRequestsAndInvitations(sampleGroup);
 		createCredentials(sampleGroup);
+		createSessionToken(sampleGroup);
+		createTermsOfUseAgreement(sampleGroup);
 		createMessages(sampleGroup, sampleFileHandleId);
 		createColumnModel();
 		UserGroup sampleGroup2 = createUserGroups(2);
@@ -551,7 +559,24 @@ public class MigrationIntegrationAutowireTest {
 		Long principalId = Long.parseLong(group.getId());
 		authDAO.changePassword(principalId, "ThisIsMySuperSecurePassword");
 		authDAO.changeSecretKey(principalId);
-		authDAO.changeSessionToken(principalId, null);
+		authDAO.changeSessionToken(principalId, null, DomainType.SYNAPSE);
+	}
+	
+	private void createSessionToken(UserGroup group) throws Exception {
+		DBOSessionToken token = new DBOSessionToken();
+		token.setDomain(DomainType.SYNAPSE);
+		token.setPrincipalId(Long.parseLong(group.getId()));
+		token.setSessionToken(UUID.randomUUID().toString());
+		token.setValidatedOn(new Date());
+		basicDao.createOrUpdate(token);
+	}
+	
+	private void createTermsOfUseAgreement(UserGroup group) throws Exception {
+		DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();
+		tou.setPrincipalId(Long.parseLong(group.getId()));
+		tou.setAgreesToTermsOfUse(Boolean.TRUE);
+		tou.setDomain(DomainType.SYNAPSE);
+		basicDao.createNew(tou);
 	}
 
 	@SuppressWarnings("serial")

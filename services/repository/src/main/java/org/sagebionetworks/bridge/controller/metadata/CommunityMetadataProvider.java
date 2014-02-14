@@ -4,9 +4,14 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.bridge.model.Community;
 import org.sagebionetworks.repo.manager.team.TeamManager;
-import org.sagebionetworks.repo.model.*;
+import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.controller.metadata.*;
+import org.sagebionetworks.repo.web.controller.metadata.EntityEvent;
+import org.sagebionetworks.repo.web.controller.metadata.EventType;
+import org.sagebionetworks.repo.web.controller.metadata.TypeSpecificMetadataProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**

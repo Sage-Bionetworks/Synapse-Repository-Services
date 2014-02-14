@@ -3,6 +3,15 @@
  */
 package org.sagebionetworks.bridge.model.dbo.dao;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_COMMUNITY_TEAM_COMMUNITY_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_COMMUNITY_TEAM_TEAM_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_GROUP_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_MEMBER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TEAM_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_COMMUNITY_TEAM;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_GROUP_MEMBERS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TEAM;
+
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
@@ -18,8 +27,6 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
 public class DBOCommunityTeamDAOImpl implements CommunityTeamDAO {
 

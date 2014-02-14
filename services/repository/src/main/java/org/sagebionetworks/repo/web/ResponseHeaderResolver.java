@@ -8,6 +8,9 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.codec.binary.Base64;
 import org.json.JSONException;
+import org.sagebionetworks.profiler.Frame;
+import org.sagebionetworks.profiler.ProfileFilter;
+import org.sagebionetworks.profiler.ProfileSingleton;
 import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.ServiceConstants;
@@ -15,10 +18,6 @@ import org.springframework.ui.ExtendedModelMap;
 import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.annotation.ModelAndViewResolver;
-
-import org.sagebionetworks.profiler.Frame;
-import org.sagebionetworks.profiler.ProfileFilter;
-import org.sagebionetworks.profiler.ProfileSingleton;
 
 /**
  * This interceptor adds HTTP response headers as appropriate. Specifically it

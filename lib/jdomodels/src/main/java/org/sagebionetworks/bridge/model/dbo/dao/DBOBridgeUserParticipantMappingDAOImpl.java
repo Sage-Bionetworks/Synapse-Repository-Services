@@ -2,17 +2,13 @@ package org.sagebionetworks.bridge.model.dbo.dao;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.bridge.model.BridgeUserParticipantMappingDAO;
 import org.sagebionetworks.bridge.model.ParticipantDataId;
-import org.sagebionetworks.bridge.model.data.ParticipantDataDescriptor;
-import org.sagebionetworks.bridge.model.data.ParticipantDataStatus;
 import org.sagebionetworks.bridge.model.dbo.persistence.DBOUserParticipantMap;
-import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;

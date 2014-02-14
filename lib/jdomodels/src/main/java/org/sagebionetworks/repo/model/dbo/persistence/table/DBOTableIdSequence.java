@@ -1,9 +1,11 @@
 package org.sagebionetworks.repo.model.dbo.persistence.table;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ID_SEQUENCE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ID_SEQUENCE_TABLE_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ID_SEQUENCE_TABLE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ID_SEQUENCE_VERSION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_TABLE_ID_SEQUENCE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TABLE_ID_SEQUENCE;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;

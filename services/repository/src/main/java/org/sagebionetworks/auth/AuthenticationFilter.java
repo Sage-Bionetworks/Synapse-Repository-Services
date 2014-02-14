@@ -22,6 +22,7 @@ import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.authutil.ModParamHttpServletRequest;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.HMACUtils;
@@ -89,7 +90,8 @@ public class AuthenticationFilter implements Filter {
 		if (!isSessionTokenEmptyOrNull(sessionToken)) {
 			String failureReason = "Invalid session token";
 			try {
-				userId = authenticationService.revalidate(sessionToken, false);
+				// This filter isn't used in Bridge, so the domain is always Synapse
+				userId = authenticationService.revalidate(sessionToken, DomainType.SYNAPSE, false);
 			} catch (UnauthorizedException e) {
 				reject(req, (HttpServletResponse) servletResponse, failureReason);
 				log.warn(failureReason, e);
@@ -130,7 +132,8 @@ public class AuthenticationFilter implements Filter {
 		if (userId != null) {
 			boolean toUCheck = false;
 			try {
-				toUCheck = authenticationService.hasUserAcceptedTermsOfUse(userId);
+				// This filter isn't used in Bridge, so the domain is always Synapse
+				toUCheck = authenticationService.hasUserAcceptedTermsOfUse(userId, DomainType.SYNAPSE);
 			} catch (NotFoundException e) {
 				String reason = "User " + userId + " does not exist";
 				reject(req, (HttpServletResponse) servletResponse, reason, HttpStatus.NOT_FOUND);

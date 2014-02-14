@@ -1,9 +1,12 @@
 package org.sagebionetworks.evaluation.dbo;
 
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_ANNO_EVALID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_ANNO_SUBID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.DDL_FILE_SUBSTATUS_ANNO_OWNER;
+import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_SUBSTATUS_ANNO_OWNER;
+
 import java.sql.ResultSet;
 import java.sql.SQLException;
-
-import static org.sagebionetworks.repo.model.query.SQLConstants.*;
 
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;

@@ -7,7 +7,6 @@ import org.sagebionetworks.repo.model.SchemaCache;
 import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.util.StringUtil;
 import org.sagebionetworks.schema.LinkDescription;
 import org.sagebionetworks.schema.LinkDescription.LinkRel;
 import org.sagebionetworks.schema.ObjectSchema;

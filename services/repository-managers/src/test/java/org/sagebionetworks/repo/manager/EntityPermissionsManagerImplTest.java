@@ -22,9 +22,11 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
@@ -33,11 +35,11 @@ import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -64,6 +66,9 @@ public class EntityPermissionsManagerImplTest {
 	
 	@Autowired
 	private AccessRequirementManager accessRequirementManager;
+	
+	@Autowired
+	private DBOBasicDao basicDao;
 
 	private Collection<Node> nodeList = new ArrayList<Node>();
 	private Node project = null;
@@ -100,6 +105,10 @@ public class EntityPermissionsManagerImplTest {
 	public void setUp() throws Exception {
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		
+		DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();
+		tou.setDomain(DomainType.SYNAPSE);
+		tou.setAgreesToTermsOfUse(Boolean.TRUE);
+		
 		DBOCredential cred = new DBOCredential();
 		cred.setAgreesToTermsOfUse(true);
 		cred.setSecretKey("");
@@ -108,11 +117,14 @@ public class EntityPermissionsManagerImplTest {
 		NewUser nu = new NewUser();
 		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
 		nu.setUserName(UUID.randomUUID().toString());
-		userInfo = userManager.createUser(adminUserInfo, nu, cred);
-		new NewUser();
+		userInfo = userManager.createUser(adminUserInfo, nu, cred, tou);
+		
 		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
 		nu.setUserName(UUID.randomUUID().toString());
-		otherUserInfo = userManager.createUser(adminUserInfo, nu, cred);
+		otherUserInfo = userManager.createUser(adminUserInfo, nu, cred, tou);
+		
+		tou.setPrincipalId(otherUserInfo.getId());
+		basicDao.createOrUpdate(tou);
 		
 		ownerId = userInfo.getId();
 		
@@ -226,6 +238,30 @@ public class EntityPermissionsManagerImplTest {
 		
 		// Should fail since user does not have permission editing rights in ACL
 		PermissionsManagerUtils.validateACLContent(acl, otherUserInfo, ownerId);
+	}
+	
+	@Test
+	public void testValidateACLContent_indirectMembership() throws Exception {
+		ResourceAccess userRA = new ResourceAccess();
+		// 'other user' should be a member of 'authenticated users'
+		Long groupId = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId();
+		assertTrue(otherUserInfo.getGroups().contains(groupId));
+		// giving 'authenticated users' change_permissions access should fulfill the requirement
+		// that the editor of the ACL does not remove their own access
+		userRA.setPrincipalId(groupId);
+		Set<ACCESS_TYPE> ats = new HashSet<ACCESS_TYPE>();
+		ats.add(ACCESS_TYPE.CHANGE_PERMISSIONS);
+		userRA.setAccessType(ats);
+		
+		Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
+		ras.add(userRA);
+		
+		AccessControlList acl = new AccessControlList();
+		acl.setId("resource id");
+		acl.setResourceAccess(ras);	
+		
+		PermissionsManagerUtils.validateACLContent(acl, otherUserInfo, ownerId);
+		
 	}
 
 

@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.web.service;
 
 import java.io.IOException;
 import java.util.Date;
-import java.util.UUID;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -14,6 +13,7 @@ import org.sagebionetworks.repo.manager.dynamo.DynamoAdminManager;
 import org.sagebionetworks.repo.manager.message.MessageSyndication;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -22,7 +22,10 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
+import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOSessionToken;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.message.PublishResults;
@@ -39,6 +42,9 @@ import org.springframework.http.HttpHeaders;
  * @author John
  */
 public class AdministrationServiceImpl implements AdministrationService  {
+
+	@Autowired
+	private DBOBasicDao basicDao;
 	
 	@Autowired
 	private BackupDaemonLauncher backupDaemonLauncher;	
@@ -196,6 +202,8 @@ public class AdministrationServiceImpl implements AdministrationService  {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		
 		DBOCredential cred = new DBOCredential();
+		DBOTermsOfUseAgreement touAgreement = null;
+		DBOSessionToken token = null;
 		if (userSpecs.getPassword() != null) {
 			cred.setPassHash(PBKDF2Utils.hashPassword(userSpecs.getPassword(), null));
 		}
@@ -203,12 +211,21 @@ public class AdministrationServiceImpl implements AdministrationService  {
 			cred.setSessionToken(userSpecs.getSession().getSessionToken());
 			cred.setAgreesToTermsOfUse(userSpecs.getSession().getAcceptsTermsOfUse());
 			cred.setValidatedOn(new Date());
+
+			touAgreement = new DBOTermsOfUseAgreement();
+			touAgreement.setDomain(DomainType.SYNAPSE);
+			touAgreement.setAgreesToTermsOfUse(userSpecs.getSession().getAcceptsTermsOfUse());
+
+			token = new DBOSessionToken();
+			token.setSessionToken(userSpecs.getSession().getSessionToken());
+			token.setValidatedOn(new Date());
+			token.setDomain(DomainType.SYNAPSE);
 		}
 		
 		NewUser nu = new NewUser();
 		nu.setEmail(userSpecs.getEmail());
 		nu.setUserName(userSpecs.getUsername());
-		UserInfo user = userManager.createUser(userInfo, nu, cred);
+		UserInfo user = userManager.createUser(userInfo, nu, cred, touAgreement, token);
 		
 		EntityId id = new EntityId();
 		id.setId(user.getId().toString());

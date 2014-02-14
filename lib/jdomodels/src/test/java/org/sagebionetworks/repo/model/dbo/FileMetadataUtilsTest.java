@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import java.net.MalformedURLException;
 import java.sql.Timestamp;

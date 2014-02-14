@@ -1026,7 +1026,7 @@ public class EvaluationController extends BaseController {
 	public @ResponseBody BooleanResult hasAccess(
 			@PathVariable String evalId,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestParam(value = UrlHelpers.ACCESS_TYPE_PARAM, required = false) String accessType,
+			@RequestParam(value = UrlHelpers.ACCESS_TYPE_PARAM, required = true) String accessType,
 			HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException {
 		// pass it along.
 		return new BooleanResult(serviceProvider.getEvaluationService().hasAccess(evalId, userId, request, accessType));

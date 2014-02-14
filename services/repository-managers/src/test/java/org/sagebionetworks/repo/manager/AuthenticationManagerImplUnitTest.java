@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.manager;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -15,6 +14,7 @@ import junit.framework.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
+import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -38,7 +38,7 @@ public class AuthenticationManagerImplUnitTest {
 	public void setUp() throws Exception {
 		authDAO = mock(AuthenticationDAO.class);
 		when(authDAO.getPasswordSalt(eq(userId))).thenReturn(salt);
-		when(authDAO.changeSessionToken(eq(userId), eq((String) null))).thenReturn(sessionToken);
+		when(authDAO.changeSessionToken(eq(userId), eq((String) null), eq(DomainType.SYNAPSE))).thenReturn(sessionToken);
 		
 		userGroupDAO = mock(UserGroupDAO.class);
 		UserGroup ug = new UserGroup();
@@ -51,7 +51,7 @@ public class AuthenticationManagerImplUnitTest {
 
 	@Test
 	public void testAuthenticateWithPassword() throws Exception {
-		Session session = authManager.authenticate(userId, password);
+		Session session = authManager.authenticate(userId, password, DomainType.SYNAPSE);
 		assertEquals(sessionToken, session.getSessionToken());
 		
 		String passHash = PBKDF2Utils.hashPassword(password, salt);
@@ -61,7 +61,7 @@ public class AuthenticationManagerImplUnitTest {
 
 	@Test
 	public void testAuthenticateWithoutPassword() throws Exception {
-		Session session = authManager.authenticate(userId, null);
+		Session session = authManager.authenticate(userId, null, DomainType.SYNAPSE);
 		Assert.assertEquals(sessionToken, session.getSessionToken());
 		
 		verify(authDAO, never()).getPasswordSalt(userId);
@@ -70,34 +70,35 @@ public class AuthenticationManagerImplUnitTest {
 
 	@Test
 	public void testGetSessionToken() throws Exception {
-		Session session = authManager.getSessionToken(userId);
+		Session session = authManager.getSessionToken(userId, DomainType.SYNAPSE);
 		Assert.assertEquals(sessionToken, session.getSessionToken());
 		
-		verify(authDAO, times(1)).getSessionTokenIfValid(eq(userId));
-		verify(authDAO, times(1)).changeSessionToken(eq(userId), eq((String) null));
+		verify(authDAO, times(1)).getSessionTokenIfValid(eq(userId), eq(DomainType.SYNAPSE));
+		verify(authDAO, times(1)).changeSessionToken(eq(userId), eq((String) null), eq(DomainType.SYNAPSE));
 	}
 	
 	@Test
 	public void testCheckSessionToken() throws Exception {
 		when(authDAO.getPrincipalIfValid(eq(sessionToken))).thenReturn(userId);
 		when(authDAO.getPrincipal(eq(sessionToken))).thenReturn(userId);
-		when(authDAO.hasUserAcceptedToU(eq(userId))).thenReturn(true);
-		Long principalId = authManager.checkSessionToken(sessionToken, true);
+		when(authDAO.hasUserAcceptedToU(eq(userId), eq(DomainType.SYNAPSE))).thenReturn(true);
+		//when(authDAO.deriveDomainFromSessionToken(eq(sessionToken))).thenReturn(DomainType.SYNAPSE);
+		Long principalId = authManager.checkSessionToken(sessionToken, DomainType.SYNAPSE, true);
 		Assert.assertEquals(userId, principalId);
 		
 		// Token matches, but terms haven't been signed
-		when(authDAO.hasUserAcceptedToU(eq(userId))).thenReturn(false);
+		when(authDAO.hasUserAcceptedToU(eq(userId), eq(DomainType.SYNAPSE))).thenReturn(false);
 		try {
-			authManager.checkSessionToken(sessionToken, true).toString();
+			authManager.checkSessionToken(sessionToken, DomainType.SYNAPSE, true).toString();
 			fail();
 		} catch (TermsOfUseException e) { }
 
 		// Nothing matches the token
 		when(authDAO.getPrincipalIfValid(eq(sessionToken))).thenReturn(null);
 		when(authDAO.getPrincipal(eq(sessionToken))).thenReturn(null);
-		when(authDAO.hasUserAcceptedToU(eq(userId))).thenReturn(true);
+		when(authDAO.hasUserAcceptedToU(eq(userId), eq(DomainType.SYNAPSE))).thenReturn(true);
 		try {
-			authManager.checkSessionToken(sessionToken, true).toString();
+			authManager.checkSessionToken(sessionToken, DomainType.SYNAPSE, true).toString();
 			fail();
 		} catch (UnauthorizedException e) {
 			assertTrue(e.getMessage().contains("invalid"));
@@ -106,7 +107,7 @@ public class AuthenticationManagerImplUnitTest {
 		// Token matches, but has expired
 		when(authDAO.getPrincipal(eq(sessionToken))).thenReturn(userId);
 		try {
-			authManager.checkSessionToken(sessionToken, true).toString();
+			authManager.checkSessionToken(sessionToken, DomainType.SYNAPSE, true).toString();
 			fail();
 		} catch (UnauthorizedException e) {
 			assertTrue(e.getMessage().contains("expired"));
@@ -115,6 +116,6 @@ public class AuthenticationManagerImplUnitTest {
 	
 	@Test(expected=IllegalArgumentException.class) 
 	public void testUnseeTermsOfUse() throws Exception {
-		authManager.setTermsOfUseAcceptance(userId, null);
+		authManager.setTermsOfUseAcceptance(userId, DomainType.SYNAPSE, null);
 	}
 }

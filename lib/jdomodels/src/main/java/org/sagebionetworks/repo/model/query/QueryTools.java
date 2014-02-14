@@ -1,6 +1,9 @@
 package org.sagebionetworks.repo.model.query;
 
-import static org.sagebionetworks.repo.model.query.SQLConstants.*;
+import static org.sagebionetworks.repo.model.query.SQLConstants.ANNO_DOUBLE;
+import static org.sagebionetworks.repo.model.query.SQLConstants.ANNO_LONG;
+import static org.sagebionetworks.repo.model.query.SQLConstants.ANNO_STRING;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_ANNO_BLOB;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -15,8 +18,6 @@ import org.sagebionetworks.repo.model.annotation.Annotations;
 import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
 import org.sagebionetworks.repo.model.annotation.LongAnnotation;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
-import org.sagebionetworks.repo.model.query.BasicQuery;
-import org.sagebionetworks.repo.model.query.FieldType;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
