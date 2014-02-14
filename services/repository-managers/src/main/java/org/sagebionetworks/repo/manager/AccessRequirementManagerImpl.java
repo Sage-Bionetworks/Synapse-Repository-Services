@@ -136,7 +136,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		UserProfile creatorUserProfile = userProfileDAO.get(userInfo.getId().toString());
 		String emailString = "";
 		List<String> emails = creatorUserProfile.getEmails();
-		if (emails.size()>0) emailString = emails.get(0);
+		if (emails!=null && emails.size()>0) emailString = emails.get(0);
 		
 		// now create the Jira issue
 		JRJCHelper.createRestrictIssue(jiraClient, 
