@@ -193,7 +193,7 @@ public class TableWorker implements Callable<List<Message>> {
 			status.setErrorDetails(null);
 			status.setErrorMessage(null);
 			status.setProgresssMessage("Finished processing table index.");
-			status.setState(TableState.AVAILABLE_FOR_QUERY);
+			status.setState(TableState.AVAILABLE);
 			status.setTotalTimeMS(System.currentTimeMillis() - startTime);
 			// save the state
 			status = tableRowManager.updateTableStatus(tableEtag, status);

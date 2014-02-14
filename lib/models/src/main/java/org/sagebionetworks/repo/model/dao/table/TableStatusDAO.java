@@ -55,10 +55,11 @@ public interface TableStatusDAO {
 	 *             resetToken. This indicates that the table was updated before
 	 *             processing finished so we cannot change the status to
 	 *             available until the new changes are accounted for.
+	 * @throws NotFoundException 
 	 */
 	public void attemptToSetTableStatusToFailed(String tableId,
-			String resetToken, String errorMessage, Throwable errorDetails)
-			throws ConflictingUpdateException;
+			String resetToken, String errorMessage, String errorDetails)
+			throws ConflictingUpdateException, NotFoundException;
 
 	/**
 	 * Get the current status of a table.
