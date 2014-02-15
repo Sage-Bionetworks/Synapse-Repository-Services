@@ -249,9 +249,9 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 		if ((PARTICIPATE.equals(accessType) || SUBMIT.equals(accessType))) {
 			List<Long> unmetRequirements = AccessRequirementUtil.unmetAccessRequirementIdsForEvaluation(
 					userInfo, evalId, accessRequirementDAO);
-			if (!unmetRequirements.isEmpty()) return false;
+			if (!unmetRequirements.isEmpty()) return true;
 		}
-		return true;
+		return false;
 		
 	}
 

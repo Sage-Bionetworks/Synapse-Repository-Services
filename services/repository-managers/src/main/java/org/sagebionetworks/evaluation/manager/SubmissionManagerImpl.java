@@ -87,7 +87,6 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		EvaluationUtils.ensureNotNull(submission, "Submission");
 		EvaluationUtils.ensureNotNull(bundle, "EntityBundle");
 		String evalId = submission.getEvaluationId();
-		Evaluation eval = evaluationManager.getEvaluation(userInfo, evalId);
 		UserInfo.validateUserInfo(userInfo);
 		String principalId = userInfo.getId().toString();
 		
