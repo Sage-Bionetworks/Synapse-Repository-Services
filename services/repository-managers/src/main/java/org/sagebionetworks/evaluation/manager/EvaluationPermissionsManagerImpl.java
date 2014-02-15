@@ -154,6 +154,24 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 		return canAccess(userInfo, evalId, accessType);
 	}
 
+	/**
+	 * Whether the user has the access to the specified evaluation.
+	 * Has the same logic as 'hasAccess' but throws informative exception if the answer is false.
+	 */
+	public void validateHasAccess(UserInfo userInfo, String evalId, ACCESS_TYPE accessType)
+			throws NotFoundException, DatastoreException, UnauthorizedException {
+		if (userInfo == null) {
+			throw new IllegalArgumentException("User info cannot be null.");
+		}
+		if (evalId == null || evalId.isEmpty()) {
+			throw new IllegalArgumentException("Evaluation ID cannot be null or empty.");
+		}
+		if (accessType == null) {
+			throw new IllegalArgumentException("Access type cannot be null.");
+		}
+		validateCanAccess(userInfo, evalId, accessType);
+	}
+
 	@Override
 	public UserEvaluationPermissions getUserPermissionsForEvaluation(UserInfo userInfo, String evalId)
 			throws NotFoundException, DatastoreException {
@@ -189,28 +207,52 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 	}
 
 	/**
-	 * Whether the user can access the specified evaluation.
+	 * Whether the user can access the specified evaluation, returned as boolean.
 	 */
 	private boolean canAccess(final UserInfo userInfo, final String evalId,
 			final ACCESS_TYPE accessType) throws NotFoundException {
 
-		if (AuthorizationUtils.isUserAnonymous(
-				userInfo)) {
-			if (!READ.equals(accessType)) {
-				return false;
-			}
-		}
-		if (userInfo.isAdmin()) {
-			return true;
-		}
+		if (userInfo.isAdmin()) return true;
 
-		boolean canAccess = aclDAO.canAccess(userInfo.getGroups(), evalId, ObjectType.EVALUATION, accessType);
-		if (canAccess && (PARTICIPATE.equals(accessType) || SUBMIT.equals(accessType))) {
+		if (isAnonymousWithNonReadAccess(userInfo, accessType)) return false;
+		
+		if (!aclDAO.canAccess(userInfo.getGroups(), evalId, ObjectType.EVALUATION, accessType)) return false;
+		
+		if (hasUnmetAccessRequirements(userInfo, evalId, accessType)) return false;
+		
+		return true;
+	}
+	
+	/**
+	 * Whether the user can access the specified evaluation, returned as exception (if false)
+	 */
+	private void validateCanAccess(final UserInfo userInfo, final String evalId,
+			final ACCESS_TYPE accessType) throws NotFoundException, UnauthorizedException {
+
+		if (userInfo.isAdmin()) return;
+
+		if (isAnonymousWithNonReadAccess(userInfo, accessType))
+			throw new UnauthorizedException("Anonymous user is not allowed to access Evaluation.");
+		
+		if (!aclDAO.canAccess(userInfo.getGroups(), evalId, ObjectType.EVALUATION, accessType))
+			throw new UnauthorizedException("User lacks "+accessType+" access to Evaluation "+evalId);
+		
+		if (hasUnmetAccessRequirements(userInfo, evalId, accessType))
+			throw new UnauthorizedException("User has unmet access restrictions for Evaluation "+evalId);
+	}
+
+	private static boolean isAnonymousWithNonReadAccess(UserInfo userInfo, ACCESS_TYPE accessType) {
+		return AuthorizationUtils.isUserAnonymous(userInfo) && !READ.equals(accessType);
+	}
+	
+	private boolean hasUnmetAccessRequirements(UserInfo userInfo, String evalId, ACCESS_TYPE accessType) throws NotFoundException {
+		if ((PARTICIPATE.equals(accessType) || SUBMIT.equals(accessType))) {
 			List<Long> unmetRequirements = AccessRequirementUtil.unmetAccessRequirementIdsForEvaluation(
 					userInfo, evalId, accessRequirementDAO);
-			canAccess = canAccess && unmetRequirements.isEmpty();
+			if (!unmetRequirements.isEmpty()) return false;
 		}
-		return canAccess;
+		return true;
+		
 	}
 
 	private boolean isEvalOwner(final UserInfo userInfo, final Evaluation eval) {

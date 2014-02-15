@@ -10,6 +10,7 @@ import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -241,6 +242,8 @@ public class SubmissionManagerTest {
 		assertNotNull(subWithId.getId());
 		when(mockEvalPermissionsManager.hasAccess(
 				eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.SUBMIT))).thenReturn(false);
+		doThrow(new UnauthorizedException()).when(mockEvalPermissionsManager).validateHasAccess(
+				eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.SUBMIT));
 		submissionManager.createSubmission(userInfo, sub, ETAG, bundle);		
 	}
 	
