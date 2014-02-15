@@ -6,7 +6,6 @@ import java.util.concurrent.Callable;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageWorkerFactory;
 import org.sagebionetworks.repo.manager.table.TableRowManager;
-import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreDao;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.TableIndexDAOImpl;
@@ -21,8 +20,6 @@ public class TableWorkerFactory implements MessageWorkerFactory {
 	@Autowired
 	StackConfiguration configuration;
 	@Autowired
-	SemaphoreDao semaphoreDao;
-	@Autowired
 	TableRowManager tableRowManager;
 	
 	// This class is not currently a bean since it does not need to be.
@@ -31,7 +28,7 @@ public class TableWorkerFactory implements MessageWorkerFactory {
 	
 	@Override
 	public Callable<List<Message>> createWorker(List<Message> messages) {
-		return new TableWorker(messages, tableConnectionFactory, tableRowManager, semaphoreDao, tableIndexDAO, configuration);
+		return new TableWorker(messages, tableConnectionFactory, tableRowManager, tableIndexDAO, configuration);
 	}
 
 }

@@ -15,14 +15,12 @@ import org.sagebionetworks.repo.manager.table.TableRowManager;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreDao;
 import org.sagebionetworks.repo.model.exception.LockUnavilableException;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
-import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
@@ -41,7 +39,7 @@ import com.amazonaws.services.sqs.model.Message;
  */
 public class TableWorker implements Callable<List<Message>> {
 
-	private enum State {
+	enum State {
 		SUCCESS, UNRECOVERABLE_FAILURE, RECOVERABLE_FAILURE,
 	}
 
@@ -68,7 +66,7 @@ public class TableWorker implements Callable<List<Message>> {
 	 */
 	public TableWorker(List<Message> messages,
 			ConnectionFactory tableConnectionFactory,
-			TableRowManager tableRowManager, SemaphoreDao semaphoreDao,
+			TableRowManager tableRowManager,
 			TableIndexDAO tableIndexDAO, StackConfiguration configuration) {
 		super();
 		this.messages = messages;
@@ -227,7 +225,7 @@ public class TableWorker implements Callable<List<Message>> {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
-	private void synchIndexWithTable(SimpleJdbcTemplate connection,
+	void synchIndexWithTable(SimpleJdbcTemplate connection,
 			String tableId) throws DatastoreException, NotFoundException,
 			IOException {
 		// The first task is to get the table schema in-synch.
