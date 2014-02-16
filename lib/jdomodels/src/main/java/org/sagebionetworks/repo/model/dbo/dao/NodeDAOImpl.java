@@ -871,7 +871,12 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	 */
 	private List<ParentTypeName> getAncestorsPTN(Long nodeId, int depth) throws NotFoundException {
 		if(nodeId == null) throw new IllegalArgumentException("NodeId cannot be null");
-		Map<String, Object> row = simpleJdbcTemplate.queryForMap(nodeAncestorSQL(depth), nodeId);
+		Map<String, Object> row = null;
+		try {
+			row = simpleJdbcTemplate.queryForMap(nodeAncestorSQL(depth), nodeId);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException("Entity "+nodeId+" is not found.", e);
+		}
 		List<ParentTypeName> result = new ArrayList<ParentTypeName>();
 		for (int i=0; i<depth; i++) {
 			Long id = (Long)row.get(COL_NODE_ID+"_"+i);

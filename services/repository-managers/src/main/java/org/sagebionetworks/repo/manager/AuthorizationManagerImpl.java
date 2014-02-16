@@ -204,7 +204,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	@Override
 	public boolean canMoveEntity(UserInfo userInfo, String parentId) throws NotFoundException {
 		if (isACTTeamMemberOrAdmin(userInfo)) return true;
-		List<String> ancestorIds = AccessRequirementUtil.getNodeAncestorIds(nodeDao, parentId, false);
+		List<String> ancestorIds = AccessRequirementUtil.getNodeAncestorIds(nodeDao, parentId, true);
 		List<AccessRequirement> allRequirementsForSubject = accessRequirementDAO.getForSubject(ancestorIds, RestrictableObjectType.ENTITY);
 		return allRequirementsForSubject.size()==0;
 	}
