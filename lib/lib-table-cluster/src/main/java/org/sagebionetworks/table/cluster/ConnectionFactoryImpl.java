@@ -33,8 +33,8 @@ public class ConnectionFactoryImpl implements ConnectionFactory {
 	/**
 	 * This is the repository datasource.
 	 */
-	@Autowired
-	BasicDataSource dataSourcePool;
+//	@Autowired
+//	BasicDataSource dataSourcePool;
 	/**
 	 * Note: This field will be remove when we actually have more than one connection.
 	 * It is a simple way to get the functionality up and running without adding full
@@ -52,7 +52,7 @@ public class ConnectionFactoryImpl implements ConnectionFactory {
 		// This proxy is the 'glue' that  allows the SimpleJDBCTempate to participate in transactions
 		TransactionAwareDataSourceProxy dataSourceProxy = new TransactionAwareDataSourceProxy(singleConnectionPool);
 		// Give the proxy to both the template and transaction manager.
-		SimpleJdbcTemplate template = new SimpleJdbcTemplate(singleConnectionPool);
+		SimpleJdbcTemplate template = new SimpleJdbcTemplate(dataSourceProxy);
 		DataSourceTransactionManager transactionManager = new DataSourceTransactionManager(dataSourceProxy);
 		// Create a new DAO for this call.
 		return new TableIndexDAOImpl(template, transactionManager);	
