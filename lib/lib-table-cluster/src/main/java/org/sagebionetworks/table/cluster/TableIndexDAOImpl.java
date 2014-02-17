@@ -90,8 +90,6 @@ public class TableIndexDAOImpl implements TableIndexDAO{
 		SqlParameterSource[] batchBinding = SQLUtils.bindParametersForCreateOrUpdate(rowset, schema);
 		// Execute this within a transaction
 		DefaultTransactionDefinition def = new DefaultTransactionDefinition();
-		// explicitly setting the transaction name is something that can only be
-		// done programmatically
 		def.setName("createOrUpdateRows");
 		def.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRED);
 		TransactionStatus status = transactionManager.getTransaction(def);
