@@ -25,7 +25,6 @@ import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 
 import com.amazonaws.services.sqs.model.Message;
 

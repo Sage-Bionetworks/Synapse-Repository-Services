@@ -33,6 +33,8 @@ import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.table.cluster.ConnectionFactory;
+import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -44,7 +46,7 @@ public class TableWorkerIntegrationTest {
 	/**
 	 * 
 	 */
-	public static final int MAX_WAIT_MS = 1000*60*10;
+	public static final int MAX_WAIT_MS = 1000*60;
 	
 	@Autowired
 	StackConfiguration config;
@@ -58,7 +60,9 @@ public class TableWorkerIntegrationTest {
 	@Autowired
 	UserManager userManager;
 	@Autowired
-	private MessageReceiver tableQueueMessageReveiver;
+	MessageReceiver tableQueueMessageReveiver;
+	@Autowired
+	ConnectionFactory tableConnectionFactory;
 	
 	private UserInfo adminUserInfo;
 	RowReferenceSet referenceSet;
@@ -92,7 +96,7 @@ public class TableWorkerIntegrationTest {
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
 		columnManager.bindColumnToObject(adminUserInfo, headers, tableId);
 		// Now add some data
-		List<Row> rows = TableModelUtils.createRows(schema, 2000);
+		List<Row> rows = TableModelUtils.createRows(schema, 2);
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(rows);
 		rowSet.setHeaders(headers);
@@ -110,6 +114,13 @@ public class TableWorkerIntegrationTest {
 				try {
 					entityManager.deleteEntity(adminUserInfo, tableId);
 				} catch (Exception e) {	} 
+				
+				TableIndexDAO dao = tableConnectionFactory.getConnection(tableId);
+				if(dao != null){
+					try {
+						dao.deleteTable(tableId);
+					} catch (Exception e) {	}
+				}
 			}
 		}
 	}
