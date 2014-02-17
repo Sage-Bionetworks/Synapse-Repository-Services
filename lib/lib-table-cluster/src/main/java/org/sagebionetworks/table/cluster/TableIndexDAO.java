@@ -20,7 +20,7 @@ public interface TableIndexDAO {
 	 * @param schema
 	 * @param tableId
 	 */
-	public boolean createOrUpdateTable(SimpleJdbcTemplate connection, List<ColumnModel> schema, String tableId);
+	public boolean createOrUpdateTable(List<ColumnModel> schema, String tableId);
 	
 	/**
 	 * 
@@ -28,14 +28,14 @@ public interface TableIndexDAO {
 	 * @param tableId
 	 * @return
 	 */
-	public boolean deleteTable(SimpleJdbcTemplate connection, String tableId); 
+	public boolean deleteTable(String tableId); 
 	
 	/**
 	 * Get the current columns of a table in the passed database connection.
 	 * @param tableId
 	 * @return
 	 */
-	public List<String> getCurrentTableColumns(SimpleJdbcTemplate connection, String tableId);
+	public List<String> getCurrentTableColumns(String tableId);
 	
 	/**
 	 * Create or update the rows passed in the given RowSet.
@@ -48,7 +48,7 @@ public interface TableIndexDAO {
 	 * @param rowset
 	 * @return
 	 */
-	int[] createOrUpdateRows(SimpleJdbcTemplate connection, RowSet rowset, List<ColumnModel> currentSchema);
+	int[] createOrUpdateRows(RowSet rowset, List<ColumnModel> currentSchema);
 	
 	/**
 	 * Get the row count for this table.
@@ -56,7 +56,7 @@ public interface TableIndexDAO {
 	 * @param tableId
 	 * @return The row count of the table. If the table does not exist then null.
 	 */
-	public Long getRowCountForTable(SimpleJdbcTemplate connection, String tableId);
+	public Long getRowCountForTable(String tableId);
 	
 	/**
 	 * Get the max version we currently have for this table.
@@ -64,5 +64,11 @@ public interface TableIndexDAO {
 	 * @param tableId
 	 * @return The max version of the table. If the table does not exist then null.
 	 */
-	public Long getMaxVersionForTable(SimpleJdbcTemplate connection, String tableId);
+	public Long getMaxVersionForTable(String tableId);
+	
+	/**
+	 * Get the connection
+	 * @return
+	 */
+	public SimpleJdbcTemplate getConnection();
 }

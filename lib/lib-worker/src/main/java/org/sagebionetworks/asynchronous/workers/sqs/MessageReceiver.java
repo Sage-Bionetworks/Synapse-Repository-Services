@@ -14,5 +14,12 @@ public interface MessageReceiver extends Runnable {
 	 * @throws InterruptedException 
 	 */
 	public int triggerFired() throws InterruptedException;
+	
+	/**
+	 * Clear all messages currently on this queue.
+	 * 
+	 * @throws InterruptedException
+	 */
+	public void emptyQueue() throws InterruptedException;
 
 }

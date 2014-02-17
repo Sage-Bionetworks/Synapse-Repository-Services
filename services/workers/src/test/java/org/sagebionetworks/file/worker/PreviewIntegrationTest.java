@@ -70,7 +70,7 @@ public class PreviewIntegrationTest {
 	@Before
 	public void before() throws Exception {
 		// Before we start, make sure the queue is empty
-		emptyQueue();
+		fileQueueMessageReveiver.emptyQueue();
 		// Create a file
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		toDelete = new LinkedList<S3FileHandleInterface>();
@@ -110,25 +110,7 @@ public class PreviewIntegrationTest {
 				fileMetadataDao.delete(meta.getId());
 			}
 		}
-	}
-
-	/**
-	 * Empty the queue by processing all messages on the queue.
-	 * @throws InterruptedException
-	 */
-	public void emptyQueue() throws InterruptedException {
-		long start = System.currentTimeMillis();
-		int count = 0;
-		do{
-			count = fileQueueMessageReveiver.triggerFired();
-			System.out.println("Emptying the file message queue, there were at least: "+count+" messages on the queue");
-			Thread.yield();
-			long elapse = System.currentTimeMillis()-start;
-			if(elapse > MAX_WAIT*2) throw new RuntimeException("Timed-out waiting process all messages that were on the queue before the tests started.");
-		}while(count > 0);
-	}
-
-	
+	}	
 	
 	public void testRoundTripHelper(S3FileHandle imageFileHandle) throws Exception {
 		// If the preview system is setup correctly, then a preview should

@@ -9,6 +9,8 @@ import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.jdbc.datasource.TransactionAwareDataSourceProxy;
 
 import com.amazonaws.services.rds.AmazonRDSClient;
 import com.amazonaws.services.rds.model.DBInstance;
@@ -28,22 +30,32 @@ public class ConnectionFactoryImpl implements ConnectionFactory {
 	AmazonRDSClient awsRDSClient;
 	@Autowired
 	InstanceDiscovery instanceDiscovery;
-	
+	/**
+	 * This is the repository datasource.
+	 */
+//	@Autowired
+//	BasicDataSource dataSourcePool;
 	/**
 	 * Note: This field will be remove when we actually have more than one connection.
 	 * It is a simple way to get the functionality up and running without adding full
 	 * support for a load balancing.
 	 */
 	private BasicDataSource singleConnectionPool;
-	
+
 	@Autowired
 	private StackConfiguration stackConfig;
 	
 	@Override
-	public SimpleJdbcTemplate getConnection(String tableId) {
+	public TableIndexDAO getConnection(String tableId) {
 		validateEnable();
-		// For now we use the same connection for all tables
-		return new SimpleJdbcTemplate(singleConnectionPool);
+		// Setup a dynamic dao that can still use transactions
+		// This proxy is the 'glue' that  allows the SimpleJDBCTempate to participate in transactions
+		TransactionAwareDataSourceProxy dataSourceProxy = new TransactionAwareDataSourceProxy(singleConnectionPool);
+		// Give the proxy to both the template and transaction manager.
+		SimpleJdbcTemplate template = new SimpleJdbcTemplate(dataSourceProxy);
+		DataSourceTransactionManager transactionManager = new DataSourceTransactionManager(dataSourceProxy);
+		// Create a new DAO for this call.
+		return new TableIndexDAOImpl(template, transactionManager);	
 	}
 	
 	/**
