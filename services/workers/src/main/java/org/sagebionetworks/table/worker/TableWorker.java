@@ -47,7 +47,6 @@ public class TableWorker implements Callable<List<Message>> {
 	List<Message> messages;
 	ConnectionFactory tableConnectionFactory;
 	TableRowManager tableRowManager;
-	TableIndexDAO tableIndexDAO;
 	boolean featureEnabled;
 	long timeoutMS;
 
@@ -66,13 +65,11 @@ public class TableWorker implements Callable<List<Message>> {
 	 */
 	public TableWorker(List<Message> messages,
 			ConnectionFactory tableConnectionFactory,
-			TableRowManager tableRowManager,
-			TableIndexDAO tableIndexDAO, StackConfiguration configuration) {
+			TableRowManager tableRowManager, StackConfiguration configuration) {
 		super();
 		this.messages = messages;
 		this.tableConnectionFactory = tableConnectionFactory;
 		this.tableRowManager = tableRowManager;
-		this.tableIndexDAO = tableIndexDAO;
 		this.featureEnabled = configuration.getTableEnabled();
 		this.timeoutMS = configuration.getTableWorkerTimeoutMS();
 	}
@@ -92,11 +89,10 @@ public class TableWorker implements Callable<List<Message>> {
 			if (ObjectType.TABLE.equals((change.getObjectType()))) {
 				if (ChangeType.DELETE.equals(change.getChangeType())) {
 					// Delete the table in the index
-					SimpleJdbcTemplate connection = tableConnectionFactory
+					TableIndexDAO indexDao = tableConnectionFactory
 							.getConnection(change.getObjectId());
-					if (connection != null) {
-						tableIndexDAO.deleteTable(connection,
-								change.getObjectId());
+					if (indexDao != null) {
+						indexDao.deleteTable(change.getObjectId());
 					}
 					processedMessages.add(message);
 				} else {
@@ -188,14 +184,14 @@ public class TableWorker implements Callable<List<Message>> {
 		try {
 			// Save the status before we start
 			// Try to get a connection.
-			SimpleJdbcTemplate connection = tableConnectionFactory
+			TableIndexDAO indexDAO = tableConnectionFactory
 					.getConnection(tableId);
 			// If we do not have connection we can try again later
-			if (connection == null) {
+			if (indexDAO == null) {
 				return State.RECOVERABLE_FAILURE;
 			}
 			// This method will do the rest of the work.
-			synchIndexWithTable(connection, tableId);
+			synchIndexWithTable(indexDAO, tableId, tableResetToken);
 			// We are finished set the status
 			tableRowManager.attemptToSetTableStatusToAvailable(tableId,	tableResetToken);
 			return State.SUCCESS;
@@ -225,19 +221,21 @@ public class TableWorker implements Callable<List<Message>> {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
-	void synchIndexWithTable(SimpleJdbcTemplate connection,
-			String tableId) throws DatastoreException, NotFoundException,
+	void synchIndexWithTable(TableIndexDAO indexDao,
+			String tableId, String resetToken) throws DatastoreException, NotFoundException,
 			IOException {
+		tableRowManager.attemptToUpdateTableProgress(tableId, resetToken, "Starting ", 0L, 100L);
 		// The first task is to get the table schema in-synch.
 		// Get the current schema of the table.
 		List<ColumnModel> currentSchema = tableRowManager
 				.getColumnModelsForTable(tableId);
 		// Create or update the table with this schema.
-		tableIndexDAO.createOrUpdateTable(connection, currentSchema, tableId);
+		tableRowManager.attemptToUpdateTableProgress(tableId, resetToken, "Creating table ", 0L, 100L);
+		indexDao.createOrUpdateTable(currentSchema, tableId);
 		// Now determine which changes need to be applied to the table
-		Long maxVersion = tableIndexDAO.getMaxVersionForTable(connection,
-				tableId);
+		Long maxVersion = indexDao.getMaxVersionForTable(tableId);
 		// List all of the changes
+		tableRowManager.attemptToUpdateTableProgress(tableId, resetToken, "Listing table changes ", 0L, 100L);
 		List<TableRowChange> changes = tableRowManager
 				.listRowSetsKeysForTable(tableId);
 		// Apply any change that has a version number greater than the max
@@ -248,9 +246,10 @@ public class TableWorker implements Callable<List<Message>> {
 					// This is a change that we must apply.
 					RowSet rowSet = tableRowManager.getRowSet(tableId,
 							change.getRowVersion());
+					
+					tableRowManager.attemptToUpdateTableProgress(tableId, resetToken, "Applying rows "+rowSet.getRows().size()+" to version: "+change.getRowVersion(), 0L, 100L);
 					// apply the change to the table
-					tableIndexDAO.createOrUpdateRows(connection, rowSet,
-							currentSchema);
+					indexDao.createOrUpdateRows(rowSet,	currentSchema);
 				}
 			}
 		}

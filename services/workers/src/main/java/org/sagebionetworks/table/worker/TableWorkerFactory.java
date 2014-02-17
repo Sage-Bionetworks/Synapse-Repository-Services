@@ -20,15 +20,11 @@ public class TableWorkerFactory implements MessageWorkerFactory {
 	@Autowired
 	StackConfiguration configuration;
 	@Autowired
-	TableRowManager tableRowManager;
-	
-	// This class is not currently a bean since it does not need to be.
-	TableIndexDAO tableIndexDAO = new TableIndexDAOImpl();
-	
+	TableRowManager tableRowManager;	
 	
 	@Override
 	public Callable<List<Message>> createWorker(List<Message> messages) {
-		return new TableWorker(messages, tableConnectionFactory, tableRowManager, tableIndexDAO, configuration);
+		return new TableWorker(messages, tableConnectionFactory, tableRowManager,  configuration);
 	}
 
 }

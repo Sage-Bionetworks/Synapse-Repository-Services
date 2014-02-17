@@ -55,7 +55,7 @@ public class TableWorkerTest {
 		// Turn on the feature by default
 		when(mockConfiguration.getTableEnabled()).thenReturn(true);
 		// return a connection by default
-		when(mockTableConnectionFactory.getConnection(anyString())).thenReturn(mockConnection);
+		when(mockTableConnectionFactory.getConnection(anyString())).thenReturn(mockTableIndexDAO);
 		
 		// By default we want to the manager to just call the passed callable.
 		stub(mockTableRowManager.tryRunWithTableExclusiveLock(anyString(), anyLong(), any(Callable.class))).toAnswer(new Answer<TableWorker.State>() {
@@ -77,7 +77,7 @@ public class TableWorkerTest {
 	 * @return
 	 */
 	public TableWorker createNewWorker(List<Message> messages){
-		return new TableWorker(messages, mockTableConnectionFactory, mockTableRowManager, mockTableIndexDAO, mockConfiguration);
+		return new TableWorker(messages, mockTableConnectionFactory, mockTableRowManager, mockConfiguration);
 	}
 	
 	/**
@@ -140,7 +140,7 @@ public class TableWorkerTest {
 		// The connection factory should be called
 		verify(mockTableConnectionFactory, times(1)).getConnection(anyString());
 		// delete should be called
-		verify(mockTableIndexDAO, times(1)).deleteTable(mockConnection, "456");
+		verify(mockTableIndexDAO, times(1)).deleteTable("456");
 	}
 	
 	/**
