@@ -2,6 +2,7 @@ package org.sagebionetworks.asynchronous.workers.sqs;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -141,6 +142,23 @@ public class MessageUtils {
 		message.setParentId(parentId);
 		message.setObjectType(ObjectType.ENTITY);
 		return MessageUtils.createMessage(message, messageId, messageHandle);
+	}
+	
+	/**
+	 * Build a generic message.
+	 * @param changeType
+	 * @param objectId
+	 * @param objectType
+	 * @param etag
+	 * @return
+	 */
+	public static Message buildMessage(ChangeType changeType, String objectId, ObjectType objectType, String etag){
+		ChangeMessage message = new ChangeMessage();
+		message.setChangeType(changeType);
+		message.setObjectEtag(etag);
+		message.setObjectId(objectId);
+		message.setObjectType(objectType);
+		return MessageUtils.createMessage(message, UUID.randomUUID().toString(), UUID.randomUUID().toString());
 	}
 	
 	/**
