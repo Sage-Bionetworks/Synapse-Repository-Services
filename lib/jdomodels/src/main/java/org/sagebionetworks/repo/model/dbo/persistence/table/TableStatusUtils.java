@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.persistence.table;
 
+import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.util.Date;
 
@@ -24,16 +25,13 @@ public class TableStatusUtils {
 		if(dto.getTableId() != null){
 			dbo.setTableId(Long.parseLong(dto.getTableId()));
 		}
+		if(dto.getStartedOn() != null){
+			dbo.setStartedOn(dto.getStartedOn().getTime());
+		}
 		if(dto.getChangedOn() != null){
 			dbo.setChangedOn(dto.getChangedOn().getTime());
 		}
-		if(dto.getErrorDetails() != null){
-			try {
-				dbo.setErrorDetails(dto.getErrorDetails().getBytes("UTF-8"));
-			} catch (UnsupportedEncodingException e) {
-				throw new RuntimeException(e);
-			}
-		}
+		dbo.setErrorDetails(createErrorDetails(dto.getErrorDetails()));
 		dbo.setErrorMessage(dto.getErrorMessage());
 		if(dto.getState() != null){
 			dbo.setState(TableStateEnum.valueOf(dto.getState().name()));
@@ -41,6 +39,7 @@ public class TableStatusUtils {
 		dbo.setProgresssCurrent(dto.getProgresssCurrent());
 		dbo.setProgresssTotal(dto.getProgresssTotal());
 		dbo.setProgresssMessage(dto.getProgresssMessage());
+		dbo.setResetToken(dto.getResetToken());
 		dbo.setTotalRunTimeMS(dto.getTotalTimeMS());
 		return dbo;
 	}
@@ -55,24 +54,50 @@ public class TableStatusUtils {
 		if(dbo.getTableId() != null){
 			dto.setTableId(dbo.getTableId().toString());
 		}
+		if(dbo.getStartedOn() != null){
+			dto.setStartedOn(new Date(dbo.getStartedOn()));
+		}
 		if(dbo.getChangedOn() != null){
 			dto.setChangedOn(new Date(dbo.getChangedOn()));
 		}
-		if(dbo.getErrorDetails() != null){
-			try {
-				dto.setErrorDetails(new String(dbo.getErrorDetails(), "UTF-8"));
-			} catch (UnsupportedEncodingException e) {
-				throw new RuntimeException(e);
-			}
-		}
+		dto.setErrorDetails(createErrorDetails(dbo.getErrorDetails()));
 		dto.setErrorMessage(dbo.getErrorMessage());
 		if(dbo.getState() != null){
 			dto.setState(TableState.valueOf(dbo.getState().name()));
 		}
 		dto.setProgresssCurrent(dbo.getProgresssCurrent());
 		dto.setProgresssMessage(dbo.getProgresssMessage());
+		dto.setResetToken(dbo.getResetToken());
 		dto.setProgresssTotal(dbo.getProgresssTotal());
 		dto.setTotalTimeMS(dbo.getTotalRunTimeMS());
 		return dto;
+	}
+	
+	/**
+	 * Helper to convert from UTF-8 bytes to String
+	 * @param bytes
+	 * @return
+	 */
+	public static String createErrorDetails(byte[] bytes){
+		if(bytes == null) return null;
+		try {
+			return new String(bytes, "UTF-8");
+		} catch (UnsupportedEncodingException e) {
+			throw new RuntimeException(e);
+		}
+	}
+	
+	/**
+	 * Helper to convert from String to UTF-8 bytes.
+	 * @param error
+	 * @return
+	 */
+	public static byte[] createErrorDetails(String error){
+		if(error == null) return null;
+		try {
+			return error.getBytes("UTF-8");
+		} catch (UnsupportedEncodingException e) {
+			throw new RuntimeException(e);
+		}
 	}
 }

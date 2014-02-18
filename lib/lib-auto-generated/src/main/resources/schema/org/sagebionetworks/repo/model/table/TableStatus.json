@@ -7,7 +7,7 @@
 			"name": "TableState",
 			"id": "org.sagebionetworks.repo.model.table.TableState",
 			"enum": [
-				"AVAILABLE_FOR_QUERY",
+				"AVAILABLE",
 				"PROCESSING",
 				"PROCESSING_FAILED"
 			]
@@ -16,10 +16,19 @@
 			"type": "string",
 			"description": "The ID of the table."
 		},
+		"startedOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date-time when the status of this table last changed to PROCESSING."
+		},
 		"changedOn": {
 			"type": "string",
 			"format": "date-time",
 			"description": "The date-time when the status of this table last changed."
+		},
+		"resetToken": {
+			"type": "string",
+			"description": "Whenever the status of a table is rest to PROCESSING, a new reset-token will be issued.  The table status can only be set to AVAILABLE_FOR_QUERY by providing the current reset-token."
 		},
 		"progresssMessage": {
 			"type": "string",

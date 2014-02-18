@@ -7,7 +7,9 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ST
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_STATUS_PROGRESS_CURRENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_STATUS_PROGRESS_MESSAGE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_STATUS_PROGRESS_TOTAL;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_STATUS_RESET_TOKEN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_STATUS_RUNTIME_MS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_STATUS_STARTED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_STATUS_STATE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_STATUS;
 
@@ -37,6 +39,12 @@ public class DBOTableStatus implements DatabaseObject<DBOTableStatus>{
 	@Field(name = COL_TABLE_STATUS_STATE, nullable = false)
 	private TableStateEnum state;
 	
+	@Field(name = COL_TABLE_STATUS_RESET_TOKEN, nullable = false, fixedchar=200)
+	private String resetToken;
+	
+	@Field(name = COL_TABLE_STATUS_STARTED_ON, nullable = false)
+	private Long startedOn;
+	
 	@Field(name = COL_TABLE_STATUS_CHANGE_ON, nullable = false)
 	private Long changedOn;
 	
@@ -63,10 +71,27 @@ public class DBOTableStatus implements DatabaseObject<DBOTableStatus>{
 		return tableMapping;
 	}
 
+	public Long getStartedOn() {
+		return startedOn;
+	}
+
+	public void setStartedOn(Long startedOn) {
+		this.startedOn = startedOn;
+	}
 
 	public TableStateEnum getState() {
 		return state;
 	}
+
+	public String getResetToken() {
+		return resetToken;
+	}
+
+
+	public void setResetToken(String resetToken) {
+		this.resetToken = resetToken;
+	}
+
 
 	public void setState(TableStateEnum state) {
 		this.state = state;
@@ -132,16 +157,13 @@ public class DBOTableStatus implements DatabaseObject<DBOTableStatus>{
 		DBOTableStatus.tableMapping = tableMapping;
 	}
 
-
 	public Long getTableId() {
 		return tableId;
 	}
 
-
 	public void setTableId(Long tableId) {
 		this.tableId = tableId;
 	}
-
 
 	@Override
 	public int hashCode() {
@@ -160,13 +182,16 @@ public class DBOTableStatus implements DatabaseObject<DBOTableStatus>{
 				+ ((progresssMessage == null) ? 0 : progresssMessage.hashCode());
 		result = prime * result
 				+ ((progresssTotal == null) ? 0 : progresssTotal.hashCode());
+		result = prime * result
+				+ ((resetToken == null) ? 0 : resetToken.hashCode());
+		result = prime * result
+				+ ((startedOn == null) ? 0 : startedOn.hashCode());
 		result = prime * result + ((state == null) ? 0 : state.hashCode());
 		result = prime * result + ((tableId == null) ? 0 : tableId.hashCode());
 		result = prime * result
 				+ ((totalRunTimeMS == null) ? 0 : totalRunTimeMS.hashCode());
 		return result;
 	}
-
 
 	@Override
 	public boolean equals(Object obj) {
@@ -204,6 +229,16 @@ public class DBOTableStatus implements DatabaseObject<DBOTableStatus>{
 				return false;
 		} else if (!progresssTotal.equals(other.progresssTotal))
 			return false;
+		if (resetToken == null) {
+			if (other.resetToken != null)
+				return false;
+		} else if (!resetToken.equals(other.resetToken))
+			return false;
+		if (startedOn == null) {
+			if (other.startedOn != null)
+				return false;
+		} else if (!startedOn.equals(other.startedOn))
+			return false;
 		if (state != other.state)
 			return false;
 		if (tableId == null) {
@@ -219,14 +254,16 @@ public class DBOTableStatus implements DatabaseObject<DBOTableStatus>{
 		return true;
 	}
 
-
 	@Override
 	public String toString() {
 		return "DBOTableStatus [tableId=" + tableId + ", state=" + state
+				+ ", resetToken=" + resetToken + ", startedOn=" + startedOn
 				+ ", changedOn=" + changedOn + ", progresssMessage="
 				+ progresssMessage + ", progresssCurrent=" + progresssCurrent
 				+ ", progresssTotal=" + progresssTotal + ", errorMessage="
-				+ errorMessage + ", totalRunTimeMS=" + totalRunTimeMS + "]";
+				+ errorMessage + ", errorDetails="
+				+ Arrays.toString(errorDetails) + ", totalRunTimeMS="
+				+ totalRunTimeMS + "]";
 	}
-
+	
 }

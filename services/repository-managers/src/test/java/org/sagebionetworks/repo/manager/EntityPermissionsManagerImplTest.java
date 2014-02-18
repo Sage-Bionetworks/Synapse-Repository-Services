@@ -22,6 +22,7 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -237,6 +238,30 @@ public class EntityPermissionsManagerImplTest {
 		
 		// Should fail since user does not have permission editing rights in ACL
 		PermissionsManagerUtils.validateACLContent(acl, otherUserInfo, ownerId);
+	}
+	
+	@Test
+	public void testValidateACLContent_indirectMembership() throws Exception {
+		ResourceAccess userRA = new ResourceAccess();
+		// 'other user' should be a member of 'authenticated users'
+		Long groupId = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId();
+		assertTrue(otherUserInfo.getGroups().contains(groupId));
+		// giving 'authenticated users' change_permissions access should fulfill the requirement
+		// that the editor of the ACL does not remove their own access
+		userRA.setPrincipalId(groupId);
+		Set<ACCESS_TYPE> ats = new HashSet<ACCESS_TYPE>();
+		ats.add(ACCESS_TYPE.CHANGE_PERMISSIONS);
+		userRA.setAccessType(ats);
+		
+		Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
+		ras.add(userRA);
+		
+		AccessControlList acl = new AccessControlList();
+		acl.setId("resource id");
+		acl.setResourceAccess(ras);	
+		
+		PermissionsManagerUtils.validateACLContent(acl, otherUserInfo, ownerId);
+		
 	}
 
 
