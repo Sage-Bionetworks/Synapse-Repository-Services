@@ -125,6 +125,26 @@ public class DBOAuthenticationDAOImplTest {
 	}
 	
 	@Test
+	public void testCheckSessionNotSharedBetweenDomains() {
+		Session session = authDAO.getSessionTokenIfValid(userId, DomainType.SYNAPSE);
+		assertNotNull(session);
+		session = authDAO.getSessionTokenIfValid(userId, DomainType.BRIDGE);
+		assertNull(session);
+	}
+	
+	@Test
+	public void testSigningOffOnlySignsOffOneDomain() {
+		// Log in to bridge, log out
+		authDAO.checkUserCredentials(userId, credential.getPassHash());
+		Session session = authDAO.getSessionTokenIfValid(userId, DomainType.BRIDGE);
+		authDAO.deleteSessionToken(sessionToken.getSessionToken());
+		
+		// You are still logged in to synapse
+		session = authDAO.getSessionTokenIfValid(userId, DomainType.SYNAPSE);
+		assertNotNull(session);
+	}
+	
+	@Test
 	public void testSessionTokenCRUD() throws Exception {
 		// Get by username
 		Session session = authDAO.getSessionTokenIfValid(userId, DomainType.SYNAPSE);
@@ -326,5 +346,25 @@ public class DBOAuthenticationDAOImplTest {
 		// Migration admin should have a specific API key
 		String secretKey = authDAO.getSecretKey(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		assertEquals(StackConfiguration.getMigrationAdminAPIKey(), secretKey);
+	}
+	
+	@Test
+	public void testToUIsNotSharedBetweenDomains() throws Exception {
+		// Accept Synapse TOU
+		Long userId = credential.getPrincipalId();
+		authDAO.setTermsOfUseAcceptance(userId, DomainType.SYNAPSE, true);
+		
+		// Bridge is still false, there is no bridge record
+		Boolean result = authDAO.hasUserAcceptedToU(userId, DomainType.BRIDGE);
+		assertFalse(result);
+		
+		// Now there is a bride record, still should return false
+		authDAO.setTermsOfUseAcceptance(userId, DomainType.BRIDGE, false);
+		result = authDAO.hasUserAcceptedToU(userId, DomainType.BRIDGE);
+		assertFalse(result);
+		
+		authDAO.setTermsOfUseAcceptance(userId, DomainType.BRIDGE, true);
+		result = authDAO.hasUserAcceptedToU(userId, DomainType.BRIDGE);
+		assertTrue(result);
 	}
 }
