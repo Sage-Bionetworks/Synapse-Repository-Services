@@ -228,13 +228,15 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 		}
 		userGroupDAO.touch(principalId);
 		
+		Date date = new Date();  // Needs to be the exact same
+		
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(ID_PARAM_NAME, principalId);
-		param.addValue(TIME_PARAM_NAME, new Date());
+		param.addValue(TIME_PARAM_NAME, date);
 		simpleJdbcTemplate.update(UPDATE_VALIDATION_TIME, param);
 		
 		// You must convert for the annotation-based date fields.
-		param.addValue(TIME_PARAM_NAME, new Date().getTime()); 
+		param.addValue(TIME_PARAM_NAME, date.getTime()); 
 		param.addValue(DOMAIN_PARAM_NAME, domain.name());
 		simpleJdbcTemplate.update(UPDATE_VALIDATION_TIME_V2, param);
 	}
@@ -248,9 +250,11 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 			sessionToken = UUID.randomUUID().toString();
 		}
 		
+		Date date = new Date(); // dates must be exactly the same
+		
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(ID_PARAM_NAME, principalId);
-		param.addValue(TIME_PARAM_NAME, new Date());
+		param.addValue(TIME_PARAM_NAME, date);
 		param.addValue(TOKEN_PARAM_NAME, sessionToken);
 		simpleJdbcTemplate.update(UPDATE_SESSION_TOKEN, param);
 
@@ -260,7 +264,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 		dboSession.setPrincipalId(principalId);
 		dboSession.setDomain(domain);
 		dboSession.setSessionToken(sessionToken);
-		dboSession.setValidatedOn(new Date());
+		dboSession.setValidatedOn(date);
 		basicDAO.createOrUpdate(dboSession);
 		
 		return sessionToken;

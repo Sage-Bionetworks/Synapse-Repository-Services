@@ -30,7 +30,7 @@ public class CredentialMigrationTypeListener implements MigrationTypeListener {
 					sessionToken.setSessionToken(credential.getSessionToken());
 					sessionToken.setValidatedOn(credential.getValidatedOn());
 					basicDao.createOrUpdate(sessionToken);
-					
+
 					DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();
 					tou.setPrincipalId(credential.getPrincipalId());
 					tou.setAgreesToTermsOfUse(credential.getAgreesToTermsOfUse());
