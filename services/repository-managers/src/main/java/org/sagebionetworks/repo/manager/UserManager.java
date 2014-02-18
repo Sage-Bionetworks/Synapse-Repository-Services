@@ -18,10 +18,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 public interface UserManager {
 	
 	/**
-	 * Get the User and UserGroup information for the given user ID. Assumes a Synapse 
-	 * user (terms of use for example). Right now, it doesn't look like checking the UserInfo
-	 * object for TOU status is very common (three places), it might be removed, as there's 
-	 * nothing forcing domain to be provided to this method other than that. 
+	 * Get the User and UserGroup information for the given user ID.  
 	 * 
 	 * @param principalId the ID of the user of interest
 	 */

@@ -198,8 +198,6 @@ public class DBOAuthenticationDAOImplTest {
 		touAgreement.setAgreesToTermsOfUse(false);
 		basicDAO.update(touAgreement);
 		
-		// Could do two things here: don't create a TOU record, or create it with
-		// the flag set to false. Do the latter because it's closest to what's here.
 		DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();
 		tou.setPrincipalId(credential.getPrincipalId());
 		tou.setDomain(DomainType.SYNAPSE);
