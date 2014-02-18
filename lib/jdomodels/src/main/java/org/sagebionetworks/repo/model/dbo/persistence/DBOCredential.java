@@ -15,21 +15,14 @@ import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 
 public class DBOCredential implements MigratableDatabaseObject<DBOCredential, DBOCredential> {
 	private Long principalId;
-	private Date validatedOn;
-	private String sessionToken;
 	private String passHash;
 	private String secretKey;
-	private Boolean agreesToTermsOfUse;
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("principalId", SqlConstants.COL_CREDENTIAL_PRINCIPAL_ID, true).withIsBackupId(true),
-		new FieldColumn("validatedOn", SqlConstants.COL_CREDENTIAL_VALIDATED_ON),
-		new FieldColumn("sessionToken", SqlConstants.COL_CREDENTIAL_SESSION_TOKEN),
 		new FieldColumn("passHash", SqlConstants.COL_CREDENTIAL_PASS_HASH), 
 		new FieldColumn("secretKey", SqlConstants.COL_CREDENTIAL_SECRET_KEY), 
-		new FieldColumn("agreesToTermsOfUse", SqlConstants.COL_CREDENTIAL_TOU)
-		};
-
+	};
 
 	@Override
 	public TableMapping<DBOCredential> getTableMapping() {
@@ -39,12 +32,8 @@ public class DBOCredential implements MigratableDatabaseObject<DBOCredential, DB
 			public DBOCredential mapRow(ResultSet rs, int rowNum) throws SQLException {
 				DBOCredential cred = new DBOCredential();
 				cred.setPrincipalId(rs.getLong(SqlConstants.COL_CREDENTIAL_PRINCIPAL_ID));
-				Timestamp ts = rs.getTimestamp(SqlConstants.COL_CREDENTIAL_VALIDATED_ON);
-				cred.setValidatedOn(ts==null ? null : new Date(ts.getTime()));
-				cred.setSessionToken(rs.getString(SqlConstants.COL_CREDENTIAL_SESSION_TOKEN));
 				cred.setPassHash(rs.getString(SqlConstants.COL_CREDENTIAL_PASS_HASH));
 				cred.setSecretKey(rs.getString(SqlConstants.COL_CREDENTIAL_SECRET_KEY));
-				cred.setAgreesToTermsOfUse(rs.getBoolean(SqlConstants.COL_CREDENTIAL_TOU));
 				return cred;
 			}
 
@@ -76,18 +65,6 @@ public class DBOCredential implements MigratableDatabaseObject<DBOCredential, DB
 	public Long getPrincipalId() {
 		return principalId;
 	}
-	public void setValidatedOn(Date validatedOn) {
-		this.validatedOn = validatedOn;
-	}
-	public Date getValidatedOn() {
-		return validatedOn;
-	}
-	public void setSessionToken(String sessionToken) {
-		this.sessionToken = sessionToken;
-	}
-	public String getSessionToken() {
-		return sessionToken;
-	}
 	public void setPassHash(String passHash) {
 		this.passHash = passHash;
 	}
@@ -99,12 +76,6 @@ public class DBOCredential implements MigratableDatabaseObject<DBOCredential, DB
 	}
 	public String getSecretKey() {
 		return secretKey;
-	}
-	public void setAgreesToTermsOfUse(Boolean acceptance) {
-		this.agreesToTermsOfUse = acceptance;
-	}
-	public Boolean getAgreesToTermsOfUse() {
-		return agreesToTermsOfUse;
 	}
 	
 	@Override
