@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertArrayEquals;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -143,7 +144,7 @@ public class DBOAuthenticationDAOImplTest {
 		session = authDAO.getSessionTokenIfValid(userId, DomainType.SYNAPSE);
 		assertNotNull(session);
 	}
-	
+
 	@Test
 	public void testSessionTokenCRUD() throws Exception {
 		// Get by username
