@@ -357,7 +357,7 @@ public class DBOAuthenticationDAOImplTest {
 		Boolean result = authDAO.hasUserAcceptedToU(userId, DomainType.BRIDGE);
 		assertFalse(result);
 		
-		// Now there is a bride record, still should return false
+		// Now there is a Bridge record, still should return false
 		authDAO.setTermsOfUseAcceptance(userId, DomainType.BRIDGE, false);
 		result = authDAO.hasUserAcceptedToU(userId, DomainType.BRIDGE);
 		assertFalse(result);
