@@ -1,0 +1,236 @@
+/* The BNF for this parser was derived from: http://savage.net.au/SQL/sql-92.bnf (SQL-92) */
+options{
+STATIC = false;
+}
+/* *** Specification of the parser class *** */
+PARSER_BEGIN(TableQueryParser)
+package org.sagebionetworks.table.query;
+import java.io.StringReader;
+import org.sagebionetworks.repo.model.table.query.*;
+
+public class TableQueryParser {
+
+	private TableQueryModel model;
+
+	public TableQueryModel getModel() {
+		return model;
+	}
+	/**
+	 * Parse the passed query string into a TableQueryModel
+	 * 
+	 * @param query
+	 * @return
+	 * @throws ParseException
+	 */
+	public static TableQueryModel parserQuery(String query)
+			throws ParseException {
+		TableQueryParser parser = new TableQueryParser(new StringReader(query));
+		parser.Start();
+		return parser.getModel();
+	}
+}
+
+PARSER_END(TableQueryParser)
+
+/** SKIP **/
+SKIP :{"\n" | "\r" | "\r\n"}
+
+/** TOKENS **/
+
+/* Reserved words */
+TOKEN [IGNORE_CASE]: {
+  < all: "ALL">
+| < as: "AS">
+| < asterisk: "*">
+| < comma: ",">
+| < digit: ["0"-"9"]>
+| < distinct: "DISTINCT">  
+| < from: "FROM">
+| < left_pern: "(">
+| < minus_sign: "-">
+| < period: "." >
+| < plus_sign: "+">
+| < quote: "'" >
+| < right_peren: ")">
+| < select: "SELECT">
+| < solidus: "/">
+| < space: " ">
+}
+TOKEN: { <non_quote: ~["'"]> }
+
+/** Literal Numbers, Strings, Dates and Times */
+void unsignedNumericLiteral():
+{}
+{
+	exactNumericLiteral()
+	| approximateNumericLiteral()
+}
+void exactNumericLiteral():
+{}
+{
+	unsignedInteger() [ <period> [ unsignedInteger() ] ]
+	| <period> unsignedInteger()
+}
+void unsignedInteger():
+{}
+{
+	<digit>(<digit>)* 
+}
+void approximateNumericLiteral():
+{}
+{
+	mantissa() ("e"|"E") exponent()
+}
+void mantissa():
+{}
+{
+	exactNumericLiteral()
+}
+void exponent():
+{}
+{
+	signedInteger()
+}
+void signedInteger():
+{}
+{
+	[ sign() ] unsignedInteger()
+}
+void sign():
+{}
+{
+	<plus_sign> | <minus_sign>
+}
+void nationalCharacterStringLiteral():
+{}
+{
+	"N" <quote> [ (characterRepresentation())* ] <quote> [ ( (separator())* <quote> [ (characterRepresentation())* ] <quote> )* ]
+}
+void characterRepresentation():
+{}
+{
+	<non_quote> | quoteSymbol()
+}
+
+void quoteSymbol():
+{}
+{
+	<quote> <quote>
+}
+void separator():
+{}
+{
+	(<space>)*
+}
+void bitStringLiteral():
+{}
+{
+	"B" <quote> (bit())* <quote> [ ( (separator())* <quote> [ (bit())* ] <quote> )* ]
+}
+void bit():
+{}
+{
+	("1"|"0")
+}
+void hexStringLiteral():
+{}
+{
+	"X" <quote> [ (hexit())* ] <quote> [ ( (separator())* <quote> [ (hexit())* ] <quote> )* ]
+}
+void hexit():
+{}
+{
+	<digit> | "A" | "B" | "C" | "D" | "E" | "F" | "a" | "b" | "c" | "d" | "e" | "f"
+}
+void Start():
+{ model = new TableQueryModel(); }
+{
+	querySpecification()
+}
+void valueExpression():
+{}
+{
+	numericValueExpression()
+	| stringValueExpression()
+	| datetimeValueExpression()
+	| intervalValueExpression()
+}
+void numericValueExpression():
+{}
+{
+	term()
+	| numericValueExpression() <plus_sign> term()
+	| numericValueExpression() <minus_sign> term()
+}
+void term():
+{}
+{
+	factor()
+	| term() <asterisk> factor()
+	| term() <solidus> factor()
+}
+void factor():
+{}
+{
+	[sign()] numericPrimary()
+}
+void numericPrimary():
+{}
+{
+	valueExpressionPrimary() | numericValueFunction()
+}
+void valueExpressionPrimary():
+{}
+{
+	unsignedValueSpecification()
+	| columnReference()
+	| setFunctionSpecification()
+	| <left_pern> valueExpression() <right_peren>
+}
+void unsignedValueSpecification():
+{}
+{
+	unsignedLiteral()
+}
+void unsignedLiteral():
+{}
+{
+	unsignedNumericLiteral()
+	| generalLiteral()
+}
+void querySpecification():
+{}
+{
+	<select> [setQuantifier()] selectList()
+}
+
+void selectList():
+{}
+{
+	<asterisk>
+	| selectSubList() (<comma> selectSubList())*
+}
+void selectSublist():
+{}
+{
+	derivedColumn()
+	| qualifier() <period><asterisk>
+}
+void derivedColumn():
+{}
+{
+	valueExpression() [ asClause()]
+}
+void asClause():
+{}
+{
+	[<as>] columnName()
+}
+void setQuantifier():
+{}
+{
+	<distinct>|<all>
+}
+
+
+

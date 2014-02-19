@@ -8,6 +8,7 @@
   </parent>
   <artifactId>lib-table-query</artifactId>
   <name>lib-table-query</name>
+
   	<build>
 		<resources>
 			<resource>
@@ -24,7 +25,6 @@
 				<version>2.6</version>
 				<executions>
 					<execution>
-						<id>javacc-javacc</id>
 						<goals>
 							<goal>javacc</goal>
 						</goals>
@@ -38,4 +38,19 @@
 			</plugin>
 		</plugins>
 	</build>
+  	<dependencies>
+  		<dependency>
+  			<groupId>org.sagebionetworks</groupId>
+  			<artifactId>lib-models</artifactId>
+  		</dependency>
+  		<dependency>
+			<groupId>org.mockito</groupId>
+			<artifactId>mockito-all</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+		</dependency>
+  	</dependencies>
 </project>
