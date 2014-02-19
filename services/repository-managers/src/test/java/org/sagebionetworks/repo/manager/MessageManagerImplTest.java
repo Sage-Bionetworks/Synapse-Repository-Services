@@ -142,7 +142,6 @@ public class MessageManagerImplTest {
 		tou.setAgreesToTermsOfUse(Boolean.TRUE);
 		
 		DBOCredential cred = new DBOCredential();
-		cred.setAgreesToTermsOfUse(true);
 		cred.setSecretKey("");
 		
 		// Need two users for this test

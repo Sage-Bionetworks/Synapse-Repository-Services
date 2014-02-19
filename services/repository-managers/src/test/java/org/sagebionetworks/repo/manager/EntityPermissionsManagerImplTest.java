@@ -110,7 +110,6 @@ public class EntityPermissionsManagerImplTest {
 		tou.setAgreesToTermsOfUse(Boolean.TRUE);
 		
 		DBOCredential cred = new DBOCredential();
-		cred.setAgreesToTermsOfUse(true);
 		cred.setSecretKey("");
 		
 		// Need two users for this test

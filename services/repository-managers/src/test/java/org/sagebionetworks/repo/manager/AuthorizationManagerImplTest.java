@@ -125,7 +125,6 @@ public class AuthorizationManagerImplTest {
 		
 		// Create a new user
 		DBOCredential cred = new DBOCredential();
-		cred.setAgreesToTermsOfUse(true);
 		cred.setSecretKey("");
 		NewUser nu = new NewUser();
 		nu.setEmail(UUID.randomUUID().toString() + "@test.com");

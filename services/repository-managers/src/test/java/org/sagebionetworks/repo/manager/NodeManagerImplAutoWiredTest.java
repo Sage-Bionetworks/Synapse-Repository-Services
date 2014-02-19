@@ -106,7 +106,6 @@ public class NodeManagerImplAutoWiredTest {
 		UserInfo.validateUserInfo(adminUserInfo);
 		
 		DBOCredential cred = new DBOCredential();
-		cred.setAgreesToTermsOfUse(true);
 		cred.setSecretKey("");
 		NewUser nu = new NewUser();
 		nu.setEmail(UUID.randomUUID().toString() + "@test.com");

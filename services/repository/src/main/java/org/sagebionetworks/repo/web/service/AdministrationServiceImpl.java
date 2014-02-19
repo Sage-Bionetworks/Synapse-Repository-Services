@@ -209,9 +209,6 @@ public class AdministrationServiceImpl implements AdministrationService  {
 		}
 		if (userSpecs.getSession() != null) {
 			Date date = new Date();
-			cred.setSessionToken(userSpecs.getSession().getSessionToken());
-			cred.setAgreesToTermsOfUse(userSpecs.getSession().getAcceptsTermsOfUse());
-			cred.setValidatedOn(date);
 
 			touAgreement = new DBOTermsOfUseAgreement();
 			touAgreement.setDomain(DomainType.SYNAPSE);
