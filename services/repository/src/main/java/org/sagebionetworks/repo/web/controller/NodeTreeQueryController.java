@@ -55,10 +55,10 @@ public class NodeTreeQueryController extends BaseController {
 	/**
 	 * Gets the paginated list of descendants for the specified node.
 	 *
-	 * @param pageSize
+	 * @param limit
 	 *            Paging parameter. The max number of descendants to fetch per page.
-	 * @param lastDescIdExcl
-	 *            Paging parameter. The last descendant ID (exclusive).
+	 * @param lastEntityId
+	 *            Paging parameter. The last descendant ID after which the next page will start. 
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_DESCENDANTS, method = RequestMethod.GET)
