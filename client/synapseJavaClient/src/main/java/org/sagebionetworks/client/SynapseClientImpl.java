@@ -527,11 +527,11 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 	
 	@Override
-	public UserSessionData getUserSessionData() throws SynapseException {
+	public UserSessionData getUserSessionData(DomainType domain) throws SynapseException {
 		Session session = new Session();
 		session.setSessionToken(getCurrentSessionToken());
 		try {
-			revalidateSession();
+			revalidateSession(domain);
 			session.setAcceptsTermsOfUse(true);
 		} catch (SynapseTermsOfUseException e) {
 			session.setAcceptsTermsOfUse(false);
@@ -544,6 +544,11 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			userData.setProfile(getMyProfile());
 		}
 		return userData;
+	}	
+	
+	@Override
+	public UserSessionData getUserSessionData() throws SynapseException {
+		return getUserSessionData(DomainType.SYNAPSE);
 	}
 	
 	@Override
