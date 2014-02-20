@@ -1331,67 +1331,72 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throw new SynapseException(e);
 		}
 	}
-	
+
 	/**
 	 * Deletes a dataset, layer, etc.. This only moves the entity
 	 * to the trash can.  To permanently delete the entity, use
 	 * deleteAndPurgeEntity().
-	 * 
-	 * @param <T>
-	 * @param entity
-	 * @throws SynapseException
 	 */
 	@Override
-	public <T extends Entity> void deleteEntity(T entity)
-			throws SynapseException {
-		if (entity == null)
-			throw new IllegalArgumentException("Entity cannot be null");
-		String uri = createEntityUri(ENTITY_URI_PATH, entity.getId());
-		getSharedClientConnection().deleteUri(repoEndpoint, uri, getUserAgent());
+	public <T extends Entity> void deleteEntity(T entity) throws SynapseException {
+		deleteEntity(entity, null);
 	}
 
 	/**
-	 * Delete a dataset, layer, etc..
-	 * 
-	 * @param <T>
-	 * @param entity
-	 * @throws SynapseException
+	 * Deletes a dataset, layer, etc..  By default, it moves the entity to
+	 * the trash can.  There is the option to skip the trash and delete the entity
+	 * permanently.
 	 */
 	@Override
-	public <T extends Entity> void deleteAndPurgeEntity(T entity)
-			throws SynapseException {
+	public <T extends Entity> void deleteEntity(T entity, Boolean skipTrashCan) throws SynapseException {
+		if (entity == null) {
+			throw new IllegalArgumentException("Entity cannot be null");
+		}
+		deleteEntityById(entity.getId(), skipTrashCan);
+	}
+
+	/**
+	 * Deletes a dataset, layer, etc..
+	 */
+	@Override
+	public <T extends Entity> void deleteAndPurgeEntity(T entity) throws SynapseException {
 		deleteEntity(entity);
 		purgeTrashForUser(entity.getId());
 	}
 
 	/**
-	 * Delete a dataset, layer, etc.. This only moves the entity
+	 * Deletes a dataset, layer, etc.. This only moves the entity
 	 * to the trash can.  To permanently delete the entity, use
 	 * deleteAndPurgeEntity().
-	 * 
-	 * @param <T>
-	 * @param entity
-	 * @throws SynapseException
 	 */
 	@Override
-	public void deleteEntityById(String entityId)
+	public void deleteEntityById(String entityId) throws SynapseException {
+		deleteEntityById(entityId, null);
+	}
+
+	/**
+	 * Deletes a dataset, layer, etc..  By default, it moves the entity to
+	 * the trash can.  There is the option to skip the trash and delete the entity
+	 * permanently.
+	 */
+	@Override
+	public void deleteEntityById(String entityId, Boolean skipTrashCan)
 			throws SynapseException {
-		if (entityId == null)
+		if (entityId == null) {
 			throw new IllegalArgumentException("entityId cannot be null");
+		}
 		String uri = createEntityUri(ENTITY_URI_PATH, entityId);
+		if (skipTrashCan != null && skipTrashCan) {
+			uri = uri + "?" + ServiceConstants.SKIP_TRASH_CAN_PARAM + "=true";
+		}
 		getSharedClientConnection().deleteUri(repoEndpoint, uri, getUserAgent());
 	}
 
 	/**
-	 * Delete a dataset, layer, etc..
-	 * 
-	 * @param <T>
-	 * @param entity
-	 * @throws SynapseException
+	 * Deletes a dataset, layer, etc..
 	 */
 	@Override
-	public void deleteAndPurgeEntityById(String entityId)
-			throws SynapseException {
+	public void deleteAndPurgeEntityById(String entityId) throws SynapseException {
 		deleteEntityById(entityId);
 		purgeTrashForUser(entityId);
 	}
