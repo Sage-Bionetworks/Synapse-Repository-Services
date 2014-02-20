@@ -378,9 +378,14 @@ public class EntityController extends BaseController {
 	public void deleteEntity(
 			@PathVariable String id,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(value = ServiceConstants.SKIP_TRASH_CAN_PARAM, required = false) Boolean skipTrashCan,
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
-		serviceProvider.getTrashService().moveToTrash(userId, id);
+		if (skipTrashCan != null && skipTrashCan) {
+			serviceProvider.getEntityService().deleteEntity(userId, id);
+		} else {
+			serviceProvider.getTrashService().moveToTrash(userId, id);
+		}
 	}
 
 	/**

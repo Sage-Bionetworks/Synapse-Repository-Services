@@ -58,7 +58,7 @@ public class IT101Administration {
 	public void after() throws Exception {
 		if(adminSynapse != null && toDelete != null){
 			for(Entity e: toDelete){
-				adminSynapse.deleteAndPurgeEntity(e);
+				adminSynapse.deleteEntity(e, true);
 			}
 		}
 		// always restore the status

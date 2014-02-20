@@ -79,7 +79,7 @@ public class IT054FileEntityTest {
 	@After
 	public void after() throws Exception {
 		if(project != null){
-			synapse.deleteAndPurgeEntity(project);
+			synapse.deleteEntity(project, true);
 		}
 		if(fileHandle != null){
 			try {
