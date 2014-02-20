@@ -41,24 +41,83 @@ SKIP :{"\n" | "\r" | "\r\n"}
 TOKEN [IGNORE_CASE]: {
   < all: "ALL">
 | < as: "AS">
-| < asterisk: "*">
-| < comma: ",">
-| < digit: ["0"-"9"]>
-| < distinct: "DISTINCT">  
+| < avg: "AVG">
+| < date: "DATE" >
+| < count: "COUNT">
+| < current_date: "CURRENT_DATE">
+| < current_time: "CURRENT_TIME">
+| < distinct: "DISTINCT"> 
 | < from: "FROM">
-| < left_pern: "(">
+| < interval: "INTERVAL">
+| < max: "MAX" >
+| < min: "MIN" >
+| < select: "SELECT" >
+| < sum: "SUM" >
+| < syn: "SYN" >
+| < time: "TIME" >
+| < timestamp: "TIMESTAMP">
+}
+/* Symbols and punctuation */
+TOKEN:{
+  < asterisk: "*">
+| < comma: ",">
+| < double_quote: "\"" >
+| < left_paren: "(">
 | < minus_sign: "-">
 | < period: "." >
 | < plus_sign: "+">
 | < quote: "'" >
-| < right_peren: ")">
-| < select: "SELECT">
+| < right_paren: ")">
 | < solidus: "/">
 | < space: " ">
+| <underscore: "_">
 }
-TOKEN: { <non_quote: ~["'"]> }
 
+TOKEN: { 
+  < digit: ["0"-"9"]>
+| < letter: ["a"-"z","A"-"Z"]>
+}
+
+TOKEN: { 
+<non_quote: ~["'"]>
+| <nondoublequote_character: ~["\""] >
+ }
+void regularIdentifier():
+{}
+{
+	identifierBody()
+}
+void identifierBody():
+{}
+{
+	identifierStart() ( <underscore> | identifierpart() )* 
+}
+void identifierStart():
+{}
+{
+	<letter>
+}
+void identifierpart():
+{}
+{
+	<letter> | <digit>
+}
 /** Literal Numbers, Strings, Dates and Times */
+void literal():
+{}
+{
+	signedNumericLiteral() | generalLiteral()
+}
+void signedNumericLiteral():
+{}
+{
+	[ sign() ] unsignedNumericLiteral()
+}
+void generalLiteral():
+{}
+{
+	characterStringLiteral()
+}
 void unsignedNumericLiteral():
 {}
 {
@@ -101,11 +160,6 @@ void sign():
 {
 	<plus_sign> | <minus_sign>
 }
-void nationalCharacterStringLiteral():
-{}
-{
-	"N" <quote> [ (characterRepresentation())* ] <quote> [ ( (separator())* <quote> [ (characterRepresentation())* ] <quote> )* ]
-}
 void characterRepresentation():
 {}
 {
@@ -120,36 +174,14 @@ void quoteSymbol():
 void separator():
 {}
 {
-	(<space>)*
+	<space>(<space>)*
 }
-void bitStringLiteral():
+void characterStringLiteral():
 {}
 {
-	"B" <quote> (bit())* <quote> [ ( (separator())* <quote> [ (bit())* ] <quote> )* ]
+	<quote> (characterRepresentation())* <quote>  ( (separator())* <quote>  (characterRepresentation())* <quote> )* 
 }
-void bit():
-{}
-{
-	("1"|"0")
-}
-void hexStringLiteral():
-{}
-{
-	"X" <quote> [ (hexit())* ] <quote> [ ( (separator())* <quote> [ (hexit())* ] <quote> )* ]
-}
-void hexit():
-{}
-{
-	<digit> | "A" | "B" | "C" | "D" | "E" | "F" | "a" | "b" | "c" | "d" | "e" | "f"
-}
-void delimiterToken():
-{}
-{
-	characterStringLiteral()
-	| dateString()
-	| timeString()
-	| delimitedIdentifier()
-}
+
 void Start():
 { model = new TableQueryModel(); }
 {
@@ -160,8 +192,6 @@ void valueExpression():
 {
 	numericValueExpression()
 	| stringValueExpression()
-	| datetimeValueExpression()
-	| intervalValueExpression()
 }
 void numericValueExpression():
 {}
@@ -185,7 +215,7 @@ void factor():
 void numericPrimary():
 {}
 {
-	valueExpressionPrimary() | numericValueFunction()
+	valueExpressionPrimary()
 }
 void valueExpressionPrimary():
 {}
@@ -193,7 +223,7 @@ void valueExpressionPrimary():
 	unsignedValueSpecification()
 	| columnReference()
 	| setFunctionSpecification()
-	| <left_pern> valueExpression() <right_peren>
+	| <left_paren> valueExpression() <right_paren>
 }
 void unsignedValueSpecification():
 {}
@@ -206,19 +236,73 @@ void unsignedLiteral():
 	unsignedNumericLiteral()
 	| generalLiteral()
 }
+void stringValueExpression():
+{}
+{
+	characterValueExpression()
+}
+void characterValueExpression():
+{}
+{
+	characterFactor()
+}
+void characterFactor():
+{}
+{
+	characterPrimary()
+}
+void characterPrimary():
+{}
+{
+	valueExpressionPrimary()
+}
+void identifier():
+{}
+{
+	actualIdentifier()
+}
+void actualIdentifier():
+{}
+{
+	regularIdentifier() | delimitedIdentifier()
+}
+void delimitedIdentifier():
+{}
+{
+	<double_quote> delimitedIdentifierBody() <double_quote>
+}
+void delimitedIdentifierBody():
+{}
+{
+	(delimitedIdentifierPart())*
+}
+void delimitedIdentifierPart():
+{}
+{
+	<nondoublequote_character> | doublequoteSymbol()
+}
+void doublequoteSymbol():
+{}
+{
+	<double_quote><double_quote>
+}
+void columnReference():
+{}
+{
+	[ qualifier() <period> ] columnName()
+}
 void querySpecification():
 {}
 {
 	<select> [setQuantifier()] selectList()
 }
-
 void selectList():
 {}
 {
 	<asterisk>
 	| selectSubList() (<comma> selectSubList())*
 }
-void selectSublist():
+void selectSubList():
 {}
 {
 	derivedColumn()
@@ -234,11 +318,44 @@ void asClause():
 {
 	[<as>] columnName()
 }
+void columnName():
+{}
+{
+	identifier()
+}
 void setQuantifier():
 {}
 {
 	<distinct>|<all>
 }
-
-
-
+void qualifier():
+{}
+{
+	tableName() | correlationName()
+}
+void tableName():
+{}
+{
+	[<syn>] unsignedInteger()
+}
+void correlationName():
+{}
+{
+	identifier()
+}
+void setFunctionSpecification():
+{}
+{
+	<count><left_paren> <asterisk> <right_paren>
+	| generalSetFunction()
+}
+void generalSetFunction():
+{}
+{
+	setFunctionType() <left_paren> [ setQuantifier() ] valueExpression() <right_paren>
+}
+void setFunctionType():
+{}
+{
+	<avg> | <max> | <min> | <sum> | <count>
+}
