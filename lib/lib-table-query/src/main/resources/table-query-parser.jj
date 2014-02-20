@@ -197,15 +197,11 @@ void numericValueExpression():
 {}
 {
 	term()
-	| numericValueExpression() <plus_sign> term()
-	| numericValueExpression() <minus_sign> term()
 }
 void term():
 {}
 {
 	factor()
-	| term() <asterisk> factor()
-	| term() <solidus> factor()
 }
 void factor():
 {}
