@@ -1154,6 +1154,9 @@ public class EvaluationController extends BaseController {
 	 * Note:  If an user defined annotation name and type of value matches/collides with those of a submission or submission status field name 
 	 * (like 'evaluationId' of type long), the query will be on the field name, not the user defined annotation.
 	 * TODO:  How is offset defined? (See the adjustment in QueryTranslator.createBasicQuery)
+	 * TODO: need to understand and document how private annotations affect queries. 
+	 * Can you specify them as selection fields?  Can you filter on them if you 
+	 * don't have private read permission?
 	 * 
 	 * @throws JSONObjectAdapterException
 	 * @throws ParseException 
