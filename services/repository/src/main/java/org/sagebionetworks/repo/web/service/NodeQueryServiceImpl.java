@@ -59,7 +59,7 @@ public class NodeQueryServiceImpl implements NodeQueryService {
 		// Parse and validate the query
 		QueryStatement stmt = new QueryStatement(query, true/*offset=1 means 'no offset'*/);
 		// Convert from a query statement to a basic query
-		BasicQuery basic = QueryTranslator.createBasicQuery(stmt);
+		BasicQuery basic = QueryTranslator.createBasicQueryDecrementingOffset(stmt);
 		QueryResults results = executeQueryWithAnnotations(userId, basic, request);
 		results.setResults(formulateResult(stmt, results.getResults()));
 		return results;

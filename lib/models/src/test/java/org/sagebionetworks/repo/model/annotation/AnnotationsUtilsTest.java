@@ -1,10 +1,12 @@
 package org.sagebionetworks.repo.model.annotation;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+
 import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.Test;
-import static org.junit.Assert.*;
 import org.sagebionetworks.repo.model.InvalidModelException;
 
 public class AnnotationsUtilsTest {

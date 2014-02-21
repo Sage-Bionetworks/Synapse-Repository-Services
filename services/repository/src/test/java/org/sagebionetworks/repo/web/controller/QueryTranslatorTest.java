@@ -61,9 +61,17 @@ public class QueryTranslatorTest {
 	
 	@Test
 	public void testOffset() throws Exception{
-		QueryStatement stmt = new QueryStatement("select * from dataset offset 11");
+		QueryStatement stmt = new QueryStatement("select * from dataset offset 12");
 		assertNotNull(stmt);
 		BasicQuery results = QueryTranslator.createBasicQuery(stmt);
+		assertEquals(12, results.getOffset());
+	}
+	
+	@Test
+	public void testAltOffset() throws Exception{
+		QueryStatement stmt = new QueryStatement("select * from dataset offset 12");
+		assertNotNull(stmt);
+		BasicQuery results = QueryTranslator.createBasicQueryDecrementingOffset(stmt);
 		assertEquals(11, results.getOffset());
 	}
 	
@@ -127,7 +135,7 @@ public class QueryTranslatorTest {
 	
 	@Test
 	public void testForPLFM_901_B() throws ParseException, UnsupportedEncodingException{
-		String urlEncoded = "select+*+from+dataset+where+dataset.Species+==+%22Human%22+and+dataset.Number_of_Samples+%3E+100+limit+3+offset+0";
+		String urlEncoded = "select+*+from+dataset+where+dataset.Species+==+%22Human%22+and+dataset.Number_of_Samples+%3E+100+limit+3+offset+1";
 		String decoded = URLDecoder.decode(urlEncoded, "UTF-8");
 		System.out.println(decoded);
 		QueryStatement stmt = new QueryStatement(decoded);
