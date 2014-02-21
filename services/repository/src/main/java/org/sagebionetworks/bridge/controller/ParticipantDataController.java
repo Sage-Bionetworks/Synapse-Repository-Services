@@ -2,6 +2,7 @@ package org.sagebionetworks.bridge.controller;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.util.Date;
 import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
@@ -126,6 +127,48 @@ public class ParticipantDataController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) Long userId,
 			@PathVariable String participantDataDescriptorId) throws Exception {
 		return serviceProvider.getParticipantDataService().get(userId, participantDataDescriptorId, limit, offset);
+	}
+
+	/**
+	 * get current participant data (requires descriptor with start and end dates specified)
+	 * 
+	 * @param userId
+	 * @param participantDataDescriptorId
+	 * @return
+	 * @throws Exception
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = BridgeUrlHelpers.PARTICIPANT_DATA_CURRENT_ROWS, method = RequestMethod.GET)
+	public @ResponseBody
+	ListWrapper<ParticipantDataRow> getParticipantDataCurrentRows(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) Long userId,
+			@PathVariable String participantDataDescriptorId) throws Exception {
+		List<ParticipantDataRow> rows = serviceProvider.getParticipantDataService().getCurrentRows(userId, participantDataDescriptorId);
+		return ListWrapper.wrap(rows, ParticipantDataRow.class);
+	}
+
+	/**
+	 * get history of participant data (requires descriptor with start and end dates specified)
+	 * 
+	 * @param after
+	 * @param before
+	 * @param userId
+	 * @param participantDataDescriptorId
+	 * @return
+	 * @throws Exception
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = BridgeUrlHelpers.PARTICIPANT_DATA_HISTORY_ROWS, method = RequestMethod.GET)
+	public @ResponseBody
+	ListWrapper<ParticipantDataRow> getParticipantDataHistoryRows(@RequestParam(value = "after", required = false) Long after,
+			@RequestParam(value = "before", required = false) Long before,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) Long userId,
+			@PathVariable String participantDataDescriptorId) throws Exception {
+		Date afterDate = after == null ? null : new Date(after);
+		Date beforeDate = before == null ? null : new Date(before);
+		List<ParticipantDataRow> rows = serviceProvider.getParticipantDataService().getHistoryRows(userId, participantDataDescriptorId,
+				afterDate, beforeDate);
+		return ListWrapper.wrap(rows, ParticipantDataRow.class);
 	}
 
 	/**

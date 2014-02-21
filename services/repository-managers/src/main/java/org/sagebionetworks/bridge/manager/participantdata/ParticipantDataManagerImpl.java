@@ -4,9 +4,11 @@ import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Map;
 
 import org.apache.commons.lang.BooleanUtils;
 import org.apache.commons.lang.StringUtils;
@@ -20,6 +22,7 @@ import org.sagebionetworks.bridge.model.data.ParticipantDataRow;
 import org.sagebionetworks.bridge.model.data.ParticipantDataStatus;
 import org.sagebionetworks.bridge.model.data.value.ParticipantDataDatetimeValue;
 import org.sagebionetworks.bridge.model.data.value.ParticipantDataValue;
+import org.sagebionetworks.bridge.model.data.value.ValueFactory;
 import org.sagebionetworks.bridge.model.data.value.ValueTranslator;
 import org.sagebionetworks.bridge.model.timeseries.TimeSeriesRow;
 import org.sagebionetworks.bridge.model.timeseries.TimeSeriesTable;
@@ -31,7 +34,10 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 public class ParticipantDataManagerImpl implements ParticipantDataManager {
 
@@ -50,6 +56,18 @@ public class ParticipantDataManagerImpl implements ParticipantDataManager {
 	private ParticipantDataStatusDAO participantDataStatusDAO;
 	@Autowired
 	private ParticipantDataDescriptionManager participantDataDescriptionManager;
+
+	public ParticipantDataManagerImpl() {
+	}
+
+	// for unit testing only
+	ParticipantDataManagerImpl(ParticipantDataDAO participantDataDAO, ParticipantDataIdMappingManager participantDataMappingManager,
+			ParticipantDataStatusDAO participantDataStatusDAO, ParticipantDataDescriptionManager participantDataDescriptionManager) {
+		this.participantDataDAO = participantDataDAO;
+		this.participantDataMappingManager = participantDataMappingManager;
+		this.participantDataStatusDAO = participantDataStatusDAO;
+		this.participantDataDescriptionManager = participantDataDescriptionManager;
+	}
 
 	@Override
 	public List<ParticipantDataRow> appendData(UserInfo userInfo, ParticipantDataId participantDataId, String participantDataDescriptorId,
@@ -102,12 +120,77 @@ public class ParticipantDataManagerImpl implements ParticipantDataManager {
 	}
 
 	@Override
+	public List<ParticipantDataRow> getHistoryData(UserInfo userInfo, String participantDataDescriptorId, boolean filterOutNotEnded,
+			Date after, Date before) throws DatastoreException, NotFoundException, IOException, GeneralSecurityException {
+		ParticipantDataId participantDataId = getParticipantDataId(userInfo, participantDataDescriptorId);
+		if (participantDataId == null) {
+			// User has never created data for this ParticipantData type, which is not an error, so return
+			// empty result.
+			return Collections.<ParticipantDataRow> emptyList();
+		}
+		final ParticipantDataDescriptor participantDataDescriptor = participantDataDescriptionManager.getParticipantDataDescriptor(userInfo,
+				participantDataDescriptorId);
+		if (participantDataDescriptor.getDatetimeEndColumnName() == null || participantDataDescriptor.getDatetimeStartColumnName() == null) {
+			throw new NotFoundException("Data descriptor does not define start and end columns");
+		}
+		List<ParticipantDataColumnDescriptor> columns = participantDataDescriptionManager.getColumns(participantDataDescriptorId);
+		List<ParticipantDataRow> rowList = participantDataDAO.get(participantDataId, participantDataDescriptorId, columns);
+
+		if (filterOutNotEnded) {
+			rowList = Lists.newArrayList(Iterables.filter(rowList, new Predicate<ParticipantDataRow>() {
+				@Override
+				public boolean apply(ParticipantDataRow row) {
+					return row.getData().get(participantDataDescriptor.getDatetimeEndColumnName()) != null;
+				}
+			}));
+		}
+
+		// first sort by start date
+		Comparator<ParticipantDataRow> startComparator = new Comparator<ParticipantDataRow>() {
+			@Override
+			public int compare(ParticipantDataRow o1, ParticipantDataRow o2) {
+				ParticipantDataDatetimeValue start1 = (ParticipantDataDatetimeValue) o1.getData().get(
+						participantDataDescriptor.getDatetimeStartColumnName());
+				ParticipantDataDatetimeValue start2 = (ParticipantDataDatetimeValue) o2.getData().get(
+						participantDataDescriptor.getDatetimeStartColumnName());
+				return start1.getValue().compareTo(start2.getValue());
+			}
+		};
+
+		Collections.sort(rowList, startComparator);
+		if (after != null) {
+			ParticipantDataRow afterRow = new ParticipantDataRow();
+			afterRow.setData(Collections.<String, ParticipantDataValue> singletonMap(participantDataDescriptor.getDatetimeStartColumnName(),
+					ValueFactory.createDatetimeValue(after)));
+			int result = Collections.binarySearch(rowList, afterRow, startComparator);
+			if (result > 0 && result != rowList.size()) {
+				rowList = rowList.subList(result, rowList.size());
+			} else if (result < -1) {
+				rowList = rowList.subList(-result - 1, rowList.size());
+			}
+		}
+		if (before != null) {
+			ParticipantDataRow beforeRow = new ParticipantDataRow();
+			beforeRow.setData(Collections.<String, ParticipantDataValue> singletonMap(participantDataDescriptor.getDatetimeStartColumnName(),
+					ValueFactory.createDatetimeValue(before)));
+			int result = Collections.binarySearch(rowList, beforeRow, startComparator);
+			if (result == rowList.size()) {
+				rowList = Collections.<ParticipantDataRow> emptyList();
+			} else if (result >= 0) {
+				rowList = rowList.subList(0, result + 1);
+			} else if (result <= -1) {
+				rowList = rowList.subList(0, -result - 1);
+			}
+		}
+		return rowList;
+	}
+
+	@Override
 	public ParticipantDataRow getDataRow(UserInfo userInfo, String participantDataDescriptorId, Long rowId) throws DatastoreException,
 			NotFoundException, IOException, GeneralSecurityException {
 		ParticipantDataId participantDataId = getParticipantDataId(userInfo, participantDataDescriptorId);
 		if (participantDataId == null) {
-			// User has never created data for this ParticipantData type, which is not an error, so return
-			// empty result. It will have no headers given the way this works.
+			// User has never created data for this ParticipantData type
 			throw new NotFoundException("No participant data with id " + participantDataDescriptorId);
 		}
 		List<ParticipantDataColumnDescriptor> columns = participantDataDescriptionManager.getColumns(participantDataDescriptorId);

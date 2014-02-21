@@ -13,12 +13,18 @@ import com.google.common.collect.Lists;
 
 public class MockitoTestBase {
 	private List<Object> createdMocks = null;
+	private boolean checkNoMoreInteractions = true;
 
 	/**
 	 * if necessary, this can be called in the subclass @Before to initialize the mocks earlier than in the @Before of
 	 * the superclass, which happens later
 	 */
 	protected void initMockito() {
+		initMockito(true);
+	}
+
+	protected void initMockito(boolean checkNoMoreInteractions) {
+		this.checkNoMoreInteractions = checkNoMoreInteractions;
 		if (createdMocks == null) {
 			createdMocks = Lists.newArrayList();
 			new ThreadSafeMockingProgress().setListener(new CollectCreatedMocks(createdMocks));
@@ -34,6 +40,8 @@ public class MockitoTestBase {
 	@After
 	public void verifyMockito() {
 		Mockito.validateMockitoUsage();
-		Mockito.verifyNoMoreInteractions(createdMocks.toArray());
+		if (checkNoMoreInteractions) {
+			Mockito.verifyNoMoreInteractions(createdMocks.toArray());
+		}
 	}
 }

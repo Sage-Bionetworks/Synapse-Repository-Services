@@ -2,6 +2,7 @@ package org.sagebionetworks.client;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.util.Date;
 import java.util.List;
 
 import org.json.JSONObject;
@@ -47,7 +48,6 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 	private static final String PARTICIPANT_DATA_DELETE_ROWS = "/deleteRows";
 	private static final String PARTICIPANT = "/participant";
 	private static final String TIME_SERIES = "/timeSeries";
-	private static final String COLUMN_NAME = "/column";
 
 	private static final String JOINED = "/joined";
 
@@ -237,6 +237,19 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 	}
 
 	@Override
+	public List<ParticipantDataRow> getCurrentRows(String participantDataDescriptorId) throws SynapseException {
+		String uri = PARTICIPANT_DATA + "/" + participantDataDescriptorId + "/current";
+		return getList(uri, ParticipantDataRow.class);
+	}
+
+	@Override
+	public List<ParticipantDataRow> getHistoryRows(String participantDataDescriptorId, Date after, Date before) throws SynapseException {
+		String uri = PARTICIPANT_DATA + "/" + participantDataDescriptorId + "/history";
+		uri = appendParams(uri, "after", after == null ? null : after.getTime(), "before", before == null ? null : before.getTime());
+		return getList(uri, ParticipantDataRow.class);
+	}
+
+	@Override
 	public PaginatedResults<ParticipantDataRow> getRawParticipantData(String participantDataDescriptorId, long limit, long offset)
 			throws SynapseException {
 		String uri = PARTICIPANT_DATA + "/" + participantDataDescriptorId;
@@ -274,7 +287,7 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 		String uri = PARTICIPANT_DATA_DESCRIPTOR_WITH_COLUMNS + "/" + participantDataDescriptorId;
 		return get(uri, ParticipantDataDescriptorWithColumns.class);
 	}
-	
+
 	@Override
 	public ParticipantDataColumnDescriptor createParticipantDataColumnDescriptor(
 			ParticipantDataColumnDescriptor participantDataColumnDescriptor1) throws SynapseException {
@@ -333,15 +346,28 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 
 	private <T extends JSONEntity> PaginatedResults<T> getList(String uri, Class<T> klass, long limit, long offset) throws SynapseException {
 		// Get the json for this entity
+		uri = uri + "?limit=" + limit + "&offset=" + offset;
 		try {
-			uri = uri + "?limit=" + limit + "&offset=" + offset;
-
 			JSONObject jsonObj = getSharedClientConnection().getJson(bridgeEndpoint, uri, getUserAgent());
 			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
 
 			PaginatedResults<T> results = new PaginatedResults<T>(klass);
 			results.initializeFromJSONObject(adapter);
 			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+
+	private <T extends JSONEntity> List<T> getList(String uri, Class<T> klass) throws SynapseException {
+		// Get the json for this entity as a list wrapper
+		try {
+			JSONObject jsonObj = getSharedClientConnection().getJson(bridgeEndpoint, uri, getUserAgent());
+			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+
+			ListWrapper<T> results = new ListWrapper<T>(klass);
+			results.initializeFromJSONObject(adapter);
+			return results.getList();
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
@@ -412,6 +438,10 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 		}
 	}
 
+	private void put(String uri) throws SynapseException {
+		getSharedClientConnection().putJson(bridgeEndpoint, uri, "", getUserAgent());
+	}
+
 	private void delete(String uri) throws SynapseException {
 		// Get the json for this entity
 		getSharedClientConnection().deleteUri(bridgeEndpoint, uri, getUserAgent());
@@ -424,5 +454,27 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
+	}
+
+	/**
+	 * only appends non-null values to the url (values are not encoded!)
+	 * 
+	 * @param uri
+	 * @param keyValues keys and values
+	 * @return
+	 */
+	private String appendParams(String uri, Object... keyValues) {
+		StringBuilder newUri = new StringBuilder(uri);
+		boolean first = true;
+		for (int i = 0; i < keyValues.length; i += 2) {
+			Object key = keyValues[i];
+			Object value = keyValues[i + 1];
+			if (value != null) {
+				newUri.append(first ? '?' : '&');
+				first = false;
+				newUri.append(key.toString()).append('=').append(value.toString());
+			}
+		}
+		return newUri.toString();
 	}
 }
