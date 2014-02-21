@@ -58,6 +58,9 @@ public class AnnotationsUtilsTest {
 	@Test
 	public void testFillInMissingIsPrivateField() {
 		Annotations expected = createDummyAnnotations();
+		expected.getStringAnnos().get(0).setIsPrivate(true);
+		expected.getLongAnnos().get(0).setIsPrivate(true);
+		expected.getDoubleAnnos().get(0).setIsPrivate(true);
 		Annotations actual = createDummyAnnotations();
 		actual.getStringAnnos().get(0).setIsPrivate(null);
 		actual.getLongAnnos().get(0).setIsPrivate(null);
