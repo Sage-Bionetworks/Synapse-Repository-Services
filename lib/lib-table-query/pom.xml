@@ -1,15 +1,16 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <modelVersion>4.0.0</modelVersion>
-  <parent>
-    <artifactId>lib</artifactId>
-    <groupId>org.sagebionetworks</groupId>
-    <version>develop-SNAPSHOT</version>
-    <relativePath>..</relativePath>
-  </parent>
-  <artifactId>lib-table-query</artifactId>
-  <name>lib-table-query</name>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<artifactId>lib</artifactId>
+		<groupId>org.sagebionetworks</groupId>
+		<version>develop-SNAPSHOT</version>
+		<relativePath>..</relativePath>
+	</parent>
+	<artifactId>lib-table-query</artifactId>
+	<name>lib-table-query</name>
 
-  	<build>
+	<build>
 		<resources>
 			<resource>
 				<directory>src/main/resources</directory>
@@ -38,12 +39,16 @@
 			</plugin>
 		</plugins>
 	</build>
-  	<dependencies>
-  		<dependency>
-  			<groupId>org.sagebionetworks</groupId>
-  			<artifactId>lib-models</artifactId>
-  		</dependency>
-  		<dependency>
+	<dependencies>
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>lib-models</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>net.sf.opencsv</groupId>
+			<artifactId>opencsv</artifactId>
+		</dependency>
+		<dependency>
 			<groupId>org.mockito</groupId>
 			<artifactId>mockito-all</artifactId>
 			<scope>test</scope>
@@ -52,5 +57,5 @@
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 		</dependency>
-  	</dependencies>
+	</dependencies>
 </project>

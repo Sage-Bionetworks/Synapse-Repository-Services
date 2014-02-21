@@ -100,8 +100,7 @@ void regularIdentifier():
 void identifierBody():
 {}
 {	
-	
-	identifierStart() ( <alph_numeric> )* 
+	<letter> ( <digit> | <underscore> | <letter> )* 
 }
 void identifierStart():
 {}
@@ -222,11 +221,8 @@ void numericPrimary():
 void valueExpressionPrimary():
 {}
 {
-	LOOKAHEAD(3)
-	unsignedValueSpecification()
+	setFunctionSpecification()
 	| columnReference()
-	| setFunctionSpecification()
-	| <left_paren> valueExpression() <right_paren>
 }
 void unsignedValueSpecification():
 {}
@@ -292,7 +288,6 @@ void doublequoteSymbol():
 void columnReference():
 {}
 {
-	
 	[ LOOKAHEAD(2) qualifier() <period> ] columnName()
 }
 void querySpecification():
@@ -309,9 +304,7 @@ void selectList():
 void selectSubList():
 {}
 {
-	LOOKAHEAD(2)
 	derivedColumn()
-	| qualifier() <period><asterisk>
 }
 void derivedColumn():
 {}
