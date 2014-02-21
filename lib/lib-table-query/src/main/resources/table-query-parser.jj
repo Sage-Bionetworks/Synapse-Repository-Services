@@ -1,4 +1,6 @@
-/* The BNF for this parser was derived from: http://savage.net.au/SQL/sql-92.bnf (SQL-92) */
+/* The BNF for this parser was derived from: http://savage.net.au/SQL/sql-92.bnf (SQL-92) 
+* https://javacc.java.net/doc/docindex.html
+*/
 options{
 STATIC = false;
 }
@@ -32,8 +34,14 @@ public class TableQueryParser {
 
 PARSER_END(TableQueryParser)
 
-/** SKIP **/
-SKIP :{"\n" | "\r" | "\r\n"}
+/* Skip whitespace */
+SKIP : /* WHITE SPACE */
+{ 
+        " " | "\t" | "\r" | "\f"
+        | "\n" 
+        | < NONPRINTABLE: (["\u0000"-"\u0020", "\u0080"-"\u00ff"])+ >
+}
+
 
 /** TOKENS **/
 
@@ -62,25 +70,27 @@ TOKEN:{
   < asterisk: "*">
 | < comma: ",">
 | < double_quote: "\"" >
+| < escaped_double_quote: "\"\"">
 | < left_paren: "(">
 | < minus_sign: "-">
 | < period: "." >
 | < plus_sign: "+">
 | < quote: "'" >
+| < escaped_quote: "''" >
 | < right_paren: ")">
 | < solidus: "/">
-| < space: " ">
 | <underscore: "_">
 }
 
 TOKEN: { 
   < digit: ["0"-"9"]>
 | < letter: ["a"-"z","A"-"Z"]>
+| < alph_numeric: ["a"-"z","A"-"Z","0"-"9","_"]>
 }
 
 TOKEN: { 
-<non_quote: ~["'"]>
-| <nondoublequote_character: ~["\""] >
+  < non_quote: ~["'"]>
+| < nondoublequote_character: ~["\""] >
  }
 void regularIdentifier():
 {}
@@ -89,18 +99,14 @@ void regularIdentifier():
 }
 void identifierBody():
 {}
-{
-	identifierStart() ( <underscore> | identifierpart() )* 
+{	
+	
+	identifierStart() ( <alph_numeric> )* 
 }
 void identifierStart():
 {}
 {
 	<letter>
-}
-void identifierpart():
-{}
-{
-	<letter> | <digit>
 }
 /** Literal Numbers, Strings, Dates and Times */
 void literal():
@@ -120,7 +126,8 @@ void generalLiteral():
 }
 void unsignedNumericLiteral():
 {}
-{
+{	
+	LOOKAHEAD(2)
 	exactNumericLiteral()
 	| approximateNumericLiteral()
 }
@@ -133,7 +140,7 @@ void exactNumericLiteral():
 void unsignedInteger():
 {}
 {
-	<digit>(<digit>)* 
+	(<digit>)+
 }
 void approximateNumericLiteral():
 {}
@@ -169,17 +176,15 @@ void characterRepresentation():
 void quoteSymbol():
 {}
 {
-	<quote> <quote>
-}
-void separator():
-{}
-{
-	<space>(<space>)*
+	<escaped_quote>
 }
 void characterStringLiteral():
 {}
 {
-	<quote> (characterRepresentation())* <quote>  ( (separator())* <quote>  (characterRepresentation())* <quote> )* 
+	LOOKAHEAD(3)
+	<quote><quote>
+	
+	| <quote> (characterRepresentation())* <quote>
 }
 
 void Start():
@@ -189,7 +194,8 @@ void Start():
 }
 void valueExpression():
 {}
-{
+{	
+	LOOKAHEAD(2)
 	numericValueExpression()
 	| stringValueExpression()
 }
@@ -216,6 +222,7 @@ void numericPrimary():
 void valueExpressionPrimary():
 {}
 {
+	LOOKAHEAD(3)
 	unsignedValueSpecification()
 	| columnReference()
 	| setFunctionSpecification()
@@ -280,12 +287,13 @@ void delimitedIdentifierPart():
 void doublequoteSymbol():
 {}
 {
-	<double_quote><double_quote>
+	<escaped_double_quote>
 }
 void columnReference():
 {}
 {
-	[ qualifier() <period> ] columnName()
+	
+	[ LOOKAHEAD(2) qualifier() <period> ] columnName()
 }
 void querySpecification():
 {}
@@ -301,6 +309,7 @@ void selectList():
 void selectSubList():
 {}
 {
+	LOOKAHEAD(2)
 	derivedColumn()
 	| qualifier() <period><asterisk>
 }
@@ -342,6 +351,7 @@ void correlationName():
 void setFunctionSpecification():
 {}
 {
+	LOOKAHEAD(3)
 	<count><left_paren> <asterisk> <right_paren>
 	| generalSetFunction()
 }
