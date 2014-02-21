@@ -173,8 +173,8 @@ public class ParticipantDataManagerImplTest extends MockitoTestBase {
 
 		currentData = participantDataManagerImpl.getHistoryData(userInfo, "20", true, null, null);
 		assertEquals(2, currentData.size());
-		assertEquals(3L, getStart(currentData, 0).longValue());
-		assertEquals(5L, getStart(currentData, 1).longValue());
+		assertEquals(1L, getStart(currentData, 0).longValue());
+		assertEquals(7L, getStart(currentData, 1).longValue());
 	}
 
 	private Map<String, ParticipantDataValue> createMap(Object... keyValues) {

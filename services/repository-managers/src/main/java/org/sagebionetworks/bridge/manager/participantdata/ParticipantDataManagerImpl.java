@@ -140,7 +140,7 @@ public class ParticipantDataManagerImpl implements ParticipantDataManager {
 			rowList = Lists.newArrayList(Iterables.filter(rowList, new Predicate<ParticipantDataRow>() {
 				@Override
 				public boolean apply(ParticipantDataRow row) {
-					return row.getData().get(participantDataDescriptor.getDatetimeEndColumnName()) != null;
+					return row.getData().get(participantDataDescriptor.getDatetimeEndColumnName()) == null;
 				}
 			}));
 		}
