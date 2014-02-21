@@ -188,6 +188,28 @@ public class ServiceConstants {
 
 	
 	/**
+	 * Utility method to sanity check pagination parameters, using incorrect legacy definition
+	 * of '1' for no offset
+	 * <p>
+	 * 
+	 * @param offset
+	 * @param limit
+	 * @throws IllegalArgumentException
+	 */
+	public static void validatePaginationParamsNoOffsetEqualsOne(Long offset, Long limit)
+			throws IllegalArgumentException {
+		if (1 > offset) {
+			throw new IllegalArgumentException(
+					"pagination offset must be 1 or greater");
+		}
+		if (1 > limit) {
+			throw new IllegalArgumentException(
+					"pagination limit must be 1 or greater");
+		}
+		return;
+	}
+
+	/**
 	 * Utility method to sanity check pagination parameters
 	 * <p>
 	 * 
@@ -197,9 +219,9 @@ public class ServiceConstants {
 	 */
 	public static void validatePaginationParams(Long offset, Long limit)
 			throws IllegalArgumentException {
-		if (1 > offset) {
+		if (0 > offset) {
 			throw new IllegalArgumentException(
-					"pagination offset must be 1 or greater");
+					"pagination offset must be 0 or greater");
 		}
 		if (1 > limit) {
 			throw new IllegalArgumentException(

@@ -1165,10 +1165,6 @@ public class EvaluationController extends BaseController {
 	 * be omitted from the resulting column headers.  However, if the selected annotations are specified explicitly then private
 	 * annotation names <i>will</i> be included in the column headers, but their values will be returned as null.
 	 * 
-	 * TODO:  If you use != do the results include records missing the given annotation?
-	 * TODO: need to understand and document how private annotations affect queries. 
-	 * Can you filter on them if you don't have private read permission?
-	 * 
 	 * @throws JSONObjectAdapterException
 	 * @throws ParseException 
 	 * @throws  

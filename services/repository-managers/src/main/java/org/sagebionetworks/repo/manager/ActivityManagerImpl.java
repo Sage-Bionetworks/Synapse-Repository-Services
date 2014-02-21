@@ -128,7 +128,6 @@ public class ActivityManagerImpl implements ActivityManager {
 			Integer limit, Integer offset) throws DatastoreException, NotFoundException, UnauthorizedException {
 		if (offset==null) offset = 0;
 		if (limit==null) limit = Integer.MAX_VALUE;
-		// hack the validation for a zero based offset
 		ServiceConstants.validatePaginationParams((long)offset, (long)limit);
 
 		Activity act = activityDAO.get(activityId);

@@ -57,7 +57,7 @@ public class NodeQueryServiceImpl implements NodeQueryService {
 			throws DatastoreException, ParseException, NotFoundException, UnauthorizedException {
 
 		// Parse and validate the query
-		QueryStatement stmt = new QueryStatement(query);
+		QueryStatement stmt = new QueryStatement(query, true/*offset=1 means 'no offset'*/);
 		// Convert from a query statement to a basic query
 		BasicQuery basic = QueryTranslator.createBasicQuery(stmt);
 		QueryResults results = executeQueryWithAnnotations(userId, basic, request);
