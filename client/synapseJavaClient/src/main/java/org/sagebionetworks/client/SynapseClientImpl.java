@@ -290,7 +290,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
      */
     private static final Charset MESSAGE_CHARSET = Charset.forName("UTF-8");
     
-	private static final String LIMIT_1_OFFSET_1 = "' limit 1 offset 1";
+	private static final String LIMIT_1_OFFSET_0 = "' limit 1 offset 0";
 	private static final String SELECT_ID_FROM_ENTITY_WHERE_PARENT_ID = "select id from entity where parentId == '";
 
 	// Team
@@ -3561,7 +3561,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 */
 	@Override
 	public Long getChildCount(String entityId) throws SynapseException {
-		String queryString = SELECT_ID_FROM_ENTITY_WHERE_PARENT_ID+entityId+LIMIT_1_OFFSET_1;
+		String queryString = SELECT_ID_FROM_ENTITY_WHERE_PARENT_ID+entityId+LIMIT_1_OFFSET_0;
 		JSONObject query = query(queryString);
 		if(!query.has(TOTAL_NUM_RESULTS)){
 			throw new SynapseException("Query results did not have "+TOTAL_NUM_RESULTS);

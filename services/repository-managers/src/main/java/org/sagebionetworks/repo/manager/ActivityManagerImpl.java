@@ -129,7 +129,7 @@ public class ActivityManagerImpl implements ActivityManager {
 		if (offset==null) offset = 0;
 		if (limit==null) limit = Integer.MAX_VALUE;
 		// hack the validation for a zero based offset
-		ServiceConstants.validatePaginationParams(offset == 0 ? 1L : (long)offset, (long)limit);
+		ServiceConstants.validatePaginationParams((long)offset, (long)limit);
 
 		Activity act = activityDAO.get(activityId);
 		if(!authorizationManager.canAccessActivity(userInfo, activityId)) { 			

@@ -1141,22 +1141,33 @@ public class EvaluationController extends BaseController {
 	 * the following form:
 	 * 
 	 * <p>
-	 * SELECT * FROM evaluation_123 WHERE myAnnotation == "foo"
-	 * SELECT field1, field2, ..., annot1, annot2, ... FROM evaluation_123 WHERE annot1 == "foo" and annot2 == "bar" ... 
-	 * SELECT field1, field2, ..., annot1, annot2, ... FROM evaluation_123 WHERE annot1 == "foo" and annot2 == "bar" ... limit 20 offset 10 order by annot1 asc
-	 * </p>
-	 * order by direction can be "asc" (ascending) or "desc" (descending)
-	 * comparator can be ==, !=, >, <, >=, <=
-	 * Note:  Annotations may be string, integer, or decimal
-	 * TODO:  what fields are there besides the annotations?  Do we use the names in the JSON schemas or in the database tables?
-	 * TODO:  If you use != do the results include records missing the given annotation?
-	 * TODO:  does the order of 'limit' 'offset', 'order by' matter?
+	 * SELECT &lt;fields&gt; FROM evaluation_&lt;id&gt; [WHERE &lt;filter&gt; (AND &lt;filter&gt;)*] [ORDER BY &lt;name&gt; asc|desc] [LIMIT &lt;L&gt; OFFSET &lt;O&gt;]
+	 * 
+	 * where
+	 * &lt;fields&gt; is either "*" or a comma delimited list of names
+	 * "name" is the name of a field in Submission or SubmissionStatus or a user defined annotation and the allowed field names are:
+	 * objectId, scopeId, userId, submitterAlias, entityId, versionNumber, name, createdOn, modifiedOn, status
 	 * Note:  If an user defined annotation name and type of value matches/collides with those of a submission or submission status field name 
 	 * (like 'evaluationId' of type long), the query will be on the field name, not the user defined annotation.
-	 * TODO:  How is offset defined? (See the adjustment in QueryTranslator.createBasicQuery)
+	 * &lt;id&gt; is the Evaluation's ID
+	 * &lt;filter&gt; = &lt;name&gt; &lt;comparator&gt; &lt;value&gt;
+	 * "comparator" is one of ==, !=, >, <, >=, <=
+	 * "value" is an annotation value, a string, integer, or decimal
+	 * "L" and "O" are optional limit and offset pagination parameters, limit>=1 and offset>=0.
+	 * Note:  If pagination is used, LIMIT must precede OFFSET and the pair of parameters must follow ORDER BY (if used)
+	 * <br/>
+	 * Examples:
+	 * SELECT * FROM evaluation_123 WHERE myAnnotation == "foo"
+	 * SELECT entityId, status, myAnnotation FROM evaluation_123 WHERE myAnnotation == "foo" AND status="RECEIVED"
+	 * SELECT * FROM evaluation_123  limit 20 offset 10 order by status asc
+	 * </p>
+	 * Note:  IF "SELECT *" is used and if the user lacks READ_PRIVATE access to the Evaluation, then any private annotations will
+	 * be omitted from the resulting column headers.  However, if the selected annotations are specified explicitly then private
+	 * annotation names <i>will</i> be included in the column headers, but their values will be returned as null.
+	 * 
+	 * TODO:  If you use != do the results include records missing the given annotation?
 	 * TODO: need to understand and document how private annotations affect queries. 
-	 * Can you specify them as selection fields?  Can you filter on them if you 
-	 * don't have private read permission?
+	 * Can you filter on them if you don't have private read permission?
 	 * 
 	 * @throws JSONObjectAdapterException
 	 * @throws ParseException 

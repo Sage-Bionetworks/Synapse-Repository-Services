@@ -23,7 +23,7 @@ public class QueryTranslator {
 		basic.setSort(stmt.getSortField());
 		basic.setAscending(stmt.getSortAcending());
 		basic.setLimit(stmt.getLimit());
-		basic.setOffset(stmt.getOffset()-1);
+		basic.setOffset(stmt.getOffset());
 		basic.setFilters(stmt.getSearchCondition());
 		basic.setSelect(stmt.getSelect());
 		return basic;

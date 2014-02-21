@@ -131,6 +131,8 @@ public class TestUtils {
 	public static Annotations createDummyAnnotations() {
 		return createDummyAnnotations(1);
 	}
+	
+	public static final String PRIVATE_LONG_ANNOTATION_NAME = "long anno";
 
 	public static Annotations createDummyAnnotations(int i) {
 		List<StringAnnotation> stringAnnos = new ArrayList<StringAnnotation>();
@@ -153,7 +155,7 @@ public class TestUtils {
 		List<LongAnnotation> longAnnos = new ArrayList<LongAnnotation>();
 		LongAnnotation la = new LongAnnotation();
 		la.setIsPrivate(true);
-		la.setKey("long anno");
+		la.setKey(PRIVATE_LONG_ANNOTATION_NAME);
 		la.setValue(new Long(i*10));
 		longAnnos.add(la);
 		

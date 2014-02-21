@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.query;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -9,6 +10,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -200,6 +202,31 @@ public class QueryDAOImplTest {
 	}
 	
 	@Test
+	public void testNoPrivateAnnosInResults() throws Exception {
+		BasicQuery query = new BasicQuery();
+		query.setFrom("evaluation" + QueryTools.FROM_TYPE_ID_DELIMTER + EVAL_ID2);
+		query.setLimit(NUM_SUBMISSIONS);
+		query.setOffset(0);
+		
+		// perform the query
+		QueryTableResults results = queryDAO.executeQuery(query, mockUserInfo);
+		
+		// since we don't have private read access to Eval2, this annotation will be omitted from the results
+		assertFalse(results.getHeaders().contains(TestUtils.PRIVATE_LONG_ANNOTATION_NAME));
+		
+		// let's specify the private annotation explicitly in the SELECT clause
+		query.setSelect(Arrays.asList(new String[]{"objectId", TestUtils.PRIVATE_LONG_ANNOTATION_NAME}));
+		results = queryDAO.executeQuery(query, mockUserInfo);
+		// it DOES appear in the headers
+		assertEquals(query.getSelect(), results.getHeaders());
+		List<Row> rows = results.getRows();
+		Row row = rows.get(0);
+		List<String> values = row.getValues();
+		String privateValue = values.get(1); // the 'long' annotation is the second in the list
+		assertNull(privateValue); // but the value is omitted
+	}
+	
+	@Test
 	public void testBasicQueryNoPrivate() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
 		// SELECT * FROM evaluation_2
 		// we do not have READ_PRIVATE_ANNOTATIONS permission on evaluation_2
@@ -217,6 +244,8 @@ public class QueryDAOImplTest {
 		// examine the results
 		List<Row> rows = results.getRows();
 		List<String> headers = new ArrayList<String>(results.getHeaders());
+		// since we don't have private read access to Eval2, this annotation will be omitted from the results
+		assertFalse(headers.contains(TestUtils.PRIVATE_LONG_ANNOTATION_NAME));
 		for (int i = 0; i < rows.size(); i++) {
 			Row row = rows.get(i);
 			List<String> values = row.getValues();
@@ -224,7 +253,8 @@ public class QueryDAOImplTest {
 			String id = "" + (NUM_SUBMISSIONS + i);
 			assertEquals(id, values.get(headers.indexOf(DBOConstants.PARAM_ANNOTATION_OBJECT_ID)));
 			for (int j = 1; j < headers.size(); j++) {
-				Object expected = annoMap.get(id + headers.get(j));
+				String header = headers.get(j);
+				Object expected = annoMap.get(id + header);
 				if (expected == null) {
 					// this is a system-defined Annotation; ignore it
 					continue;
@@ -676,5 +706,10 @@ public class QueryDAOImplTest {
 			annoMap.put(annos.getObjectId() + da.getKey(), da.getValue());
 		}
 	}
+	
+	// test SELECT * with a private name in the filter
+	// test SELECT * ... WHERE privateAnnot != value
+	// test SELECT <private name> with no filter
+	
 
 }
