@@ -7,10 +7,12 @@ import java.net.URL;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import org.sagebionetworks.manager.util.Validate;
 import org.sagebionetworks.repo.manager.AccessRequirementUtil;
@@ -38,8 +40,11 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.dao.AuthorizationUtils;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
 import org.sagebionetworks.repo.model.principal.AliasType;
+import org.sagebionetworks.repo.model.principal.BootstrapTeam;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -76,6 +81,14 @@ public class TeamManagerImpl implements TeamManager {
 	private AccessRequirementDAO accessRequirementDAO;
 	@Autowired
 	private PrincipalAliasDAO principalAliasDAO;
+	@Autowired
+	private DBOBasicDao basicDao;
+
+	private List<BootstrapTeam> teamsToBootstrap;
+	
+	public void setTeamsToBootstrap(List<BootstrapTeam> teamsToBootstrap) {
+		this.teamsToBootstrap = teamsToBootstrap;
+	}
 	
 	public TeamManagerImpl() {}
 	
@@ -83,6 +96,7 @@ public class TeamManagerImpl implements TeamManager {
 	public TeamManagerImpl(
 			AuthorizationManager authorizationManager,
 			TeamDAO teamDAO,
+			DBOBasicDao basicDao,
 			GroupMembersDAO groupMembersDAO,
 			UserGroupDAO userGroupDAO,
 			AccessControlListDAO aclDAO,
@@ -95,6 +109,7 @@ public class TeamManagerImpl implements TeamManager {
 			) {
 		this.authorizationManager = authorizationManager;
 		this.teamDAO = teamDAO;
+		this.basicDao = basicDao;
 		this.groupMembersDAO = groupMembersDAO;
 	
 		this.userGroupDAO = userGroupDAO;
@@ -237,6 +252,36 @@ public class TeamManagerImpl implements TeamManager {
 		AccessControlList acl = createInitialAcl(userInfo, id.toString(), now);
 		aclDAO.create(acl, ObjectType.TEAM);
 		return created;
+	}
+	
+	/**
+	 * This turns out to be very different from the normal create, bypassing checks for both 
+	 * principal and team creation. Also, it's not transactional.
+	 * @param team
+	 * @param now
+	 * @param teamIdTakesPriority
+	 * @return
+	 */
+	private void bootstrapCreate(Team team) {
+		Long teamId = Long.parseLong(team.getId());
+		Date now = new Date();
+		
+		team.setCreatedOn(now);
+		team.setModifiedOn(now);
+		
+		// create UserGroup with the same ID as specified for the team.
+		// Both share the keyspace of a PRINCIPAL, this should be okay
+		DBOUserGroup dbo = new DBOUserGroup();
+		dbo.setId(teamId);
+		dbo.setEtag(UUID.randomUUID().toString());
+		dbo.setIsIndividual(false);
+		dbo.setCreationDate(now);
+		basicDao.createNew(dbo);
+		
+		// bind the team name to this principal. 
+		bindTeamName(team.getName(), teamId);
+		
+		teamDAO.create(team);
 	}
 	
 	private void bindTeamName(String name, Long teamId){
@@ -540,6 +585,28 @@ public class TeamManagerImpl implements TeamManager {
 		tms.setMembershipApprovalRequired(isMembershipApprovalRequired(principalUserInfo, teamId));
 		return tms;
 	}
-	
 
+	@SuppressWarnings("unused")
+	public void bootstrapTeams() {
+		// Boot strap all users and groups
+		if (this.teamsToBootstrap == null) {
+			throw new IllegalArgumentException("bootstrapTeams cannot be null");
+		}
+		for (BootstrapTeam team: this.teamsToBootstrap) {
+			if (team.getId() == null) {
+				throw new IllegalArgumentException("Bootstrapped team must have an id");
+			}
+			try {
+				get(team.getId());
+			} catch(NotFoundException e) {
+				Team newTeam = new Team();
+				newTeam.setId(team.getId());
+				newTeam.setName(team.getName());
+				newTeam.setCanPublicJoin(team.getCanPublicJoin());
+				newTeam.setDescription(team.getDescription());
+				newTeam.setIcon(team.getIcon());
+				bootstrapCreate(newTeam);	
+			}
+		}
+	}
 }

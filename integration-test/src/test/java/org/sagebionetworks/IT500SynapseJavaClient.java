@@ -162,7 +162,8 @@ public class IT500SynapseJavaClient {
 			PaginatedResults<Team> teams = synapseOne.getTeams(null, 10, 0);
 			numTeams = teams.getTotalNumberOfResults();
 			for (Team team : teams.getResults()) {
-				synapseOne.deleteTeam(team.getId());
+				// Use admin client because synapseOne/synapseTwo can't delete bootstrapped teams 
+				adminSynapse.deleteTeam(team.getId());
 			}
 		} while (numTeams>0);
 	}
