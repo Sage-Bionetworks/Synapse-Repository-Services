@@ -80,14 +80,17 @@ TOKEN:{
 | < right_paren: ")">
 | < solidus: "/">
 | <underscore: "_">
-}
 
+}/* Complex Tokens */
 TOKEN: { 
   < digit: ["0"-"9"]>
 | < letter: ["a"-"z","A"-"Z"]>
-| < alph_numeric: ["a"-"z","A"-"Z","0"-"9","_"]>
+| < identifier: (<letter>(<letter>|<digit>|<underscore>)*)>
+| < unsigned_integer: (<digit>)+ >
+| < sign: (<plus_sign> | <minus_sign>)>
 }
 
+/* Non-tokens */
 TOKEN: { 
   < non_quote: ~["'"]>
 | < nondoublequote_character: ~["\""] >
@@ -95,17 +98,7 @@ TOKEN: {
 void regularIdentifier():
 {}
 {
-	identifierBody()
-}
-void identifierBody():
-{}
-{	
-	<letter> ( <digit> | <underscore> | <letter> )* 
-}
-void identifierStart():
-{}
-{
-	<letter>
+	<identifier>
 }
 /** Literal Numbers, Strings, Dates and Times */
 void literal():
@@ -116,7 +109,7 @@ void literal():
 void signedNumericLiteral():
 {}
 {
-	[ sign() ] unsignedNumericLiteral()
+	[ <sign> ] unsignedNumericLiteral()
 }
 void generalLiteral():
 {}
@@ -133,13 +126,8 @@ void unsignedNumericLiteral():
 void exactNumericLiteral():
 {}
 {
-	unsignedInteger() [ <period> [ unsignedInteger() ] ]
-	| <period> unsignedInteger()
-}
-void unsignedInteger():
-{}
-{
-	(<digit>)+
+	<unsigned_integer> [ <period> [ <unsigned_integer> ] ]
+	| <period> <unsigned_integer>
 }
 void approximateNumericLiteral():
 {}
@@ -159,30 +147,18 @@ void exponent():
 void signedInteger():
 {}
 {
-	[ sign() ] unsignedInteger()
-}
-void sign():
-{}
-{
-	<plus_sign> | <minus_sign>
+	[ <sign> ] <unsigned_integer>
 }
 void characterRepresentation():
 {}
 {
-	<non_quote> | quoteSymbol()
-}
-
-void quoteSymbol():
-{}
-{
-	<escaped_quote>
+	<non_quote> | <escaped_quote>
 }
 void characterStringLiteral():
 {}
 {
 	LOOKAHEAD(3)
 	<quote><quote>
-	
 	| <quote> (characterRepresentation())* <quote>
 }
 
@@ -211,7 +187,7 @@ void term():
 void factor():
 {}
 {
-	[sign()] numericPrimary()
+	[<sign>] numericPrimary()
 }
 void numericPrimary():
 {}
@@ -334,7 +310,7 @@ void qualifier():
 void tableName():
 {}
 {
-	[<syn>] unsignedInteger()
+	[<syn>] <unsigned_integer>
 }
 void correlationName():
 {}
