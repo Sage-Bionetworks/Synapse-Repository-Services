@@ -5,9 +5,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import org.sagebionetworks.evaluation.dao.SubmissionDAO;
-import org.sagebionetworks.evaluation.dao.SubmissionFileHandleDAO;
-import org.sagebionetworks.evaluation.dao.SubmissionStatusDAO;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
@@ -30,6 +27,9 @@ import org.sagebionetworks.repo.model.annotation.AnnotationsUtils;
 import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
 import org.sagebionetworks.repo.model.annotation.LongAnnotation;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
+import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
+import org.sagebionetworks.repo.model.evaluation.SubmissionFileHandleDAO;
+import org.sagebionetworks.repo.model.evaluation.SubmissionStatusDAO;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
@@ -168,6 +168,8 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		Annotations annos = submissionStatus.getAnnotations();
 		if (annos != null) {
 			AnnotationsUtils.validateAnnotations(annos);
+			// populate missing fields, specifically make sure 'isPrivate' is filled in
+			AnnotationsUtils.populateMissingFields(annos);
 			annos.setObjectId(submissionStatus.getId());
 			annos.setScopeId(evalId);
 		}

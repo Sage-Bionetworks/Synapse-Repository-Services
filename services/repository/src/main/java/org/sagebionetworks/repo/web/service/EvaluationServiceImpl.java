@@ -407,17 +407,6 @@ public class EvaluationServiceImpl implements EvaluationService {
 		return evaluationPermissionsManager.getUserPermissionsForEvaluation(userInfo, evalId);
 	}
 	
-	public static void main(String[] args) throws Exception {
-		QueryStatement stmt = new QueryStatement("select * from Evaluation_12345");
-		System.out.println("from "+stmt.getTableName());
-		System.out.println("sort "+stmt.getSortField());
-		System.out.println("ascending "+stmt.getSortAcending());
-		System.out.println("limit "+stmt.getLimit());
-		System.out.println("offset "+(stmt.getOffset()-1));
-		System.out.println("filters "+stmt.getSearchCondition());
-		System.out.println("select "+stmt.getSelect());
-	}
-	
 	@Override
 	public QueryTableResults query(String userQuery, Long userId) 
 			throws DatastoreException, NotFoundException, JSONObjectAdapterException,
