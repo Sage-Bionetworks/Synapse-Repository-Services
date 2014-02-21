@@ -46,7 +46,13 @@ public class ValueTranslator {
 				return null;
 			}
 			ParticipantDataDatetimeValue dtresult = new ParticipantDataDatetimeValue();
-			dtresult.setValue(parseLong(dtvalue));
+			// could be a long or an ISO date
+			try {
+				dtresult.setValue(parseLong(dtvalue));
+			} catch (NumberFormatException e) {
+				// not a long, try date
+				dtresult.setValue(javax.xml.bind.DatatypeConverter.parseDateTime(dtvalue).getTimeInMillis());
+			}
 			return dtresult;
 		case DOUBLE:
 			String dvalue = row.get(columnName);

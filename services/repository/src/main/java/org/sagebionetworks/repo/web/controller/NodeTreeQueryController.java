@@ -19,6 +19,13 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
+/**
+ * Provides fast queries for retrieving entity ancestors and descendants.
+ * <p>
+ * Note that these indices are built outside the transactions. Updates are
+ * ingested into the indices near real-time. However, there could still
+ * be seconds or even minutes of delay behind the truth store.
+ */
 @ControllerInfo(displayName="Entity Ancestors Services", path="repo/v1")
 @Controller
 public class NodeTreeQueryController extends BaseController {

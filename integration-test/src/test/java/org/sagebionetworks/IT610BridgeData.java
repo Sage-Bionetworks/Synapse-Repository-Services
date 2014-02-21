@@ -288,6 +288,65 @@ public class IT610BridgeData {
 	}
 
 	@Test
+	public void testGetCurrentRows() throws Exception {
+		ParticipantDataDescriptor participantDataDescriptor = createDescriptor();
+
+		createColumnDescriptor(participantDataDescriptor, "date", ParticipantDataColumnType.DATETIME);
+		createColumnDescriptor(participantDataDescriptor, "end_date", ParticipantDataColumnType.DATETIME);
+		createColumnDescriptor(participantDataDescriptor, "level", ParticipantDataColumnType.DOUBLE);
+
+		String[] headers = { "date", "end_date", "level" };
+
+		List<ParticipantDataRow> data1 = createRows(headers, null, new Date(40000), null, 1.0, null, new Date(30000), new Date(40000), 2.0,
+				null, new Date(20000), new Date(30000), 3.0);
+		data1 = bridge.appendParticipantData(participantDataDescriptor.getId(), data1);
+
+		List<ParticipantDataRow> currentRows = bridge.getCurrentRows(participantDataDescriptor.getId());
+		assertEquals(2, currentRows.size());
+		assertEquals(20000L, getDate(currentRows, 0, "date").longValue());
+		assertEquals(30000L, getDate(currentRows, 1, "date").longValue());
+	}
+
+	@Test
+	public void testGetHistoryRows() throws Exception {
+		ParticipantDataDescriptor participantDataDescriptor = createDescriptor();
+
+		createColumnDescriptor(participantDataDescriptor, "date", ParticipantDataColumnType.DATETIME);
+		createColumnDescriptor(participantDataDescriptor, "end_date", ParticipantDataColumnType.DATETIME);
+		createColumnDescriptor(participantDataDescriptor, "level", ParticipantDataColumnType.DOUBLE);
+
+		String[] headers = { "date", "end_date", "level" };
+
+		List<ParticipantDataRow> data1 = createRows(headers, null, new Date(40000), null, 1.0, null, new Date(30000), new Date(40000), 2.0,
+				null, new Date(20000), new Date(30000), 3.0);
+		data1 = bridge.appendParticipantData(participantDataDescriptor.getId(), data1);
+
+		List<ParticipantDataRow> currentRows = bridge.getHistoryRows(participantDataDescriptor.getId(), null, null);
+		assertEquals(3,  currentRows.size());
+		assertEquals(20000L, getDate(currentRows, 0, "date").longValue());
+		assertEquals(30000L, getDate(currentRows, 1, "date").longValue());
+		assertEquals(40000L, getDate(currentRows, 2, "date").longValue());
+
+		currentRows = bridge.getHistoryRows(participantDataDescriptor.getId(), new Date(30000L), null);
+		assertEquals(2, currentRows.size());
+		assertEquals(30000L, getDate(currentRows, 0, "date").longValue());
+		assertEquals(40000L, getDate(currentRows, 1, "date").longValue());
+
+		currentRows = bridge.getHistoryRows(participantDataDescriptor.getId(), null, new Date(35000L));
+		assertEquals(2, currentRows.size());
+		assertEquals(20000L, getDate(currentRows, 0, "date").longValue());
+		assertEquals(30000L, getDate(currentRows, 1, "date").longValue());
+
+		currentRows = bridge.getHistoryRows(participantDataDescriptor.getId(), new Date(25000L), new Date(35000L));
+		assertEquals(1, currentRows.size());
+		assertEquals(30000L, getDate(currentRows, 0, "date").longValue());
+	}
+
+	private Long getDate(List<ParticipantDataRow> rows, int index, String column) {
+		return ((ParticipantDataDatetimeValue) rows.get(index).getData().get(column)).getValue();
+	}
+
+	@Test
 	public void testGetTimeSeries() throws Exception {
 		ParticipantDataDescriptor participantDataDescriptor = createDescriptor();
 
@@ -397,6 +456,7 @@ public class IT610BridgeData {
 		participantDataDescriptor.setName("my-first-participantData-" + System.currentTimeMillis());
 		participantDataDescriptor.setRepeatType(ParticipantDataRepeatType.ALWAYS);
 		participantDataDescriptor.setDatetimeStartColumnName("date");
+		participantDataDescriptor.setDatetimeEndColumnName("end_date");
 		participantDataDescriptor = bridge.createParticipantDataDescriptor(participantDataDescriptor);
 		return participantDataDescriptor;
 	}
