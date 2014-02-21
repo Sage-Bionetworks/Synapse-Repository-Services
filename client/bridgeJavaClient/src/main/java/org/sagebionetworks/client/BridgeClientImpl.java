@@ -5,6 +5,7 @@ import java.net.URLEncoder;
 import java.util.Date;
 import java.util.List;
 
+import org.apache.http.client.utils.URIBuilder;
 import org.json.JSONObject;
 import org.sagebionetworks.bridge.model.Community;
 import org.sagebionetworks.bridge.model.data.ParticipantDataColumnDescriptor;
@@ -244,9 +245,15 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 
 	@Override
 	public List<ParticipantDataRow> getHistoryRows(String participantDataDescriptorId, Date after, Date before) throws SynapseException {
-		String uri = PARTICIPANT_DATA + "/" + participantDataDescriptorId + "/history";
-		uri = appendParams(uri, "after", after == null ? null : after.getTime(), "before", before == null ? null : before.getTime());
-		return getList(uri, ParticipantDataRow.class);
+		URIBuilder uri = new URIBuilder();
+		uri.setPath(PARTICIPANT_DATA + "/" + participantDataDescriptorId + "/history");
+		if (after != null) {
+			uri.addParameter("after", Long.toString(after.getTime()));
+		}
+		if (before != null) {
+			uri.addParameter("before", Long.toString(before.getTime()));
+		}
+		return getList(uri.toString(), ParticipantDataRow.class);
 	}
 
 	@Override
@@ -454,27 +461,5 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
-	}
-
-	/**
-	 * only appends non-null values to the url (values are not encoded!)
-	 * 
-	 * @param uri
-	 * @param keyValues keys and values
-	 * @return
-	 */
-	private String appendParams(String uri, Object... keyValues) {
-		StringBuilder newUri = new StringBuilder(uri);
-		boolean first = true;
-		for (int i = 0; i < keyValues.length; i += 2) {
-			Object key = keyValues[i];
-			Object value = keyValues[i + 1];
-			if (value != null) {
-				newUri.append(first ? '?' : '&');
-				first = false;
-				newUri.append(key.toString()).append('=').append(value.toString());
-			}
-		}
-		return newUri.toString();
 	}
 }
