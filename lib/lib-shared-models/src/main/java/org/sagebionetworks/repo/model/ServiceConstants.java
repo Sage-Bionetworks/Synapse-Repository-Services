@@ -220,4 +220,9 @@ public class ServiceConstants {
 
 	public static final String DYNAMO_HASH_KEY_NAME_PARAM = "hashKeyName";
 	public static final String DYNAMO_RANGE_KEY_NAME_PARAM = "rangeKeyName";
+
+	/**
+	 * A query string parameter indicating whether to skip the trash can when deleting entities.
+	 */
+	public static final String SKIP_TRASH_CAN_PARAM = "skipTrashCan";
 }

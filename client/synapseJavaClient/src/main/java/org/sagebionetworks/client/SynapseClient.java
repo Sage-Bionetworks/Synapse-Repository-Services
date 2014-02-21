@@ -371,13 +371,15 @@ public interface SynapseClient extends BaseClient {
 	public <T extends Entity> T putEntity(T entity, String activityId)
 			throws SynapseException;
 
-	public <T extends Entity> void deleteEntity(T entity)
-			throws SynapseException;
+	public <T extends Entity> void deleteEntity(T entity) throws SynapseException;
 
-	public <T extends Entity> void deleteAndPurgeEntity(T entity)
-			throws SynapseException;
+	public <T extends Entity> void deleteEntity(T entity, Boolean skipTrashCan) throws SynapseException;
 
 	public void deleteEntityById(String entityId) throws SynapseException;
+
+	public void deleteEntityById(String entityId, Boolean skipTrashCan) throws SynapseException;
+
+	public <T extends Entity> void deleteAndPurgeEntity(T entity) throws SynapseException;
 
 	public void deleteAndPurgeEntityById(String entityId) throws SynapseException;
 
