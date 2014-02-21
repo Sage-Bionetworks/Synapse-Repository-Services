@@ -84,7 +84,7 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 		
 	/**
 	 * This is a short-circuit method to replace Annotations directly from the provided objects.
-	 * It is not defined in the header class, and should only be used for testing purposes.
+	 * It is not defined in the interface, and should only be used for testing purposes.
 	 * 
 	 * @param submission
 	 * @param subStatus

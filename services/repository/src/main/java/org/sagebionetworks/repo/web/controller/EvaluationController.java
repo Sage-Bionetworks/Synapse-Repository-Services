@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.query.QueryTableResults;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.util.ControllerUtil;
+import org.sagebionetworks.repo.util.QueryTranslator;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
@@ -1140,19 +1141,24 @@ public class EvaluationController extends BaseController {
 	 * the following form:
 	 * 
 	 * <p>
-	 * SELECT * FROM evaluation_123 WHERE myAnnotation == "bar";
+	 * SELECT * FROM evaluation_123 WHERE myAnnotation == "foo"
+	 * SELECT field1, field2, ..., annot1, annot2, ... FROM evaluation_123 WHERE annot1 == "foo" and annot2 == "bar" ... 
+	 * SELECT field1, field2, ..., annot1, annot2, ... FROM evaluation_123 WHERE annot1 == "foo" and annot2 == "bar" ... limit 20 offset 10 order by annot1 asc
 	 * </p>
-	 * 
-	 * <p>
-	 * <b>Note:</b> This service is still under construction. Query syntax and behavior are subject 
-	 * to change.
-	 * </p>
+	 * order by direction can be "asc" (ascending) or "desc" (descending)
+	 * comparator can be ==, !=, >, <, >=, <=
+	 * Note:  Annotations may be string, integer, or decimal
+	 * TODO:  what fields are there besides the annotations?  Do we use the names in the JSON schemas or in the database tables?
+	 * TODO:  If you use != do the results include records missing the given annotation?
+	 * TODO:  does the order of 'limit' 'offset', 'order by' matter?
+	 * Note:  If an user defined annotation name and type of value matches/collides with those of a submission or submission status field name 
+	 * (like 'evaluationId' of type long), the query will be on the field name, not the user defined annotation.
+	 * TODO:  How is offset defined? (See the adjustment in QueryTranslator.createBasicQuery)
 	 * 
 	 * @throws JSONObjectAdapterException
 	 * @throws ParseException 
 	 * @throws  
 	 */
-	@Deprecated
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_QUERY, method = RequestMethod.GET)
 	public @ResponseBody 

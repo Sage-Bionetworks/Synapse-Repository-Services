@@ -62,6 +62,7 @@ public class QueryDAOImplTest {
 	
 	private static final String EVAL_ID1 = "42";
 	private static final String EVAL_ID2 = "99";
+	private static final String EVAL_ID3 = "66";
     private Set<String> submissionIds;
     private AccessControlListDAO mockAclDAO;
     private UserInfo mockUserInfo;
@@ -88,6 +89,12 @@ public class QueryDAOImplTest {
 	    	submissionIds.add(annos.getObjectId());
 	    	dumpAnnosToMap(annoMap, annos);
 	    	persistAnnos(annos);
+	    	
+	    	annos = TestUtils.createPrivateOnlyAnnotations(i+2*NUM_SUBMISSIONS);
+	    	annos.setScopeId(EVAL_ID3);
+	    	submissionIds.add(annos.getObjectId());
+	    	dumpAnnosToMap(annoMap, annos);
+	    	persistAnnos(annos);
 		}
 		
 		// set up mocks
@@ -97,6 +104,8 @@ public class QueryDAOImplTest {
 		when(mockAclDAO.canAccess(Matchers.<Set<Long>>any(), eq(EVAL_ID1), eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.READ_PRIVATE_SUBMISSION))).thenReturn(true);
 		when(mockAclDAO.canAccess(Matchers.<Set<Long>>any(), eq(EVAL_ID2), eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.READ))).thenReturn(true);
 		when(mockAclDAO.canAccess(Matchers.<Set<Long>>any(), eq(EVAL_ID2), eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.READ_PRIVATE_SUBMISSION))).thenReturn(false);
+		when(mockAclDAO.canAccess(Matchers.<Set<Long>>any(), eq(EVAL_ID3), eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.READ))).thenReturn(true);
+		when(mockAclDAO.canAccess(Matchers.<Set<Long>>any(), eq(EVAL_ID3), eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.READ_PRIVATE_SUBMISSION))).thenReturn(false);
 		queryDAO.setAclDAO(mockAclDAO);
 	}
 	
@@ -141,6 +150,46 @@ public class QueryDAOImplTest {
 			List<String> values = row.getValues();
 			// validate expected values
 			String id = "" + i;
+			assertEquals(id, values.get(headers.indexOf(DBOConstants.PARAM_ANNOTATION_OBJECT_ID)));
+			for (int j = 1; j < headers.size(); j++) {
+				Object expected = annoMap.get(id + headers.get(j));
+				if (expected == null) {
+					// this is a system-defined Annotation; ignore it
+					continue;
+				}
+				String actual = values.get(j);
+				assertEquals(expected.toString(), actual);
+			}
+		}
+	}
+	
+	// PLFM-2575
+	@Test
+	public void testBasicQueryNoPrivateRead() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
+		// SELECT * FROM evaluation_66
+		BasicQuery query = new BasicQuery();
+		query.setFrom("evaluation" + QueryTools.FROM_TYPE_ID_DELIMTER + EVAL_ID3);
+		query.setSort(null);
+		query.setAscending(true);
+		query.setLimit(500000);
+		query.setOffset(0);
+		query.setFilters(null);
+		query.setSelect(null);
+		
+		// perform the query
+		QueryTableResults results = queryDAO.executeQuery(query, mockUserInfo);
+		assertNotNull(results);
+		assertEquals(NUM_SUBMISSIONS, results.getTotalNumberOfResults().longValue());
+		assertEquals(NUM_SUBMISSIONS, results.getRows().size());
+		
+		// examine the results
+		List<Row> rows = results.getRows();
+		List<String> headers = new ArrayList<String>(results.getHeaders());
+		for (int i = 0; i < rows.size(); i++) {
+			Row row = rows.get(i);
+			List<String> values = row.getValues();
+			// validate expected values
+			String id = "" + ( i + 2*NUM_SUBMISSIONS );
 			assertEquals(id, values.get(headers.indexOf(DBOConstants.PARAM_ANNOTATION_OBJECT_ID)));
 			for (int j = 1; j < headers.size(); j++) {
 				Object expected = annoMap.get(id + headers.get(j));
