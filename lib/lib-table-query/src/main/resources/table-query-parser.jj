@@ -9,6 +9,7 @@ PARSER_BEGIN(TableQueryParser)
 package org.sagebionetworks.table.query;
 import java.io.StringReader;
 import org.sagebionetworks.repo.model.table.query.*;
+import org.sagebionetworks.table.query.model.*;
 
 public class TableQueryParser {
 
@@ -37,9 +38,12 @@ PARSER_END(TableQueryParser)
 /* Skip whitespace */
 SKIP : /* WHITE SPACE */
 { 
-        " " | "\t" | "\r" | "\f"
-        | "\n" 
-        | < NONPRINTABLE: (["\u0000"-"\u0020", "\u0080"-"\u00ff"])+ >
+  " "
+| "\t"
+| "\r"
+| "\f"
+| "\n"
+| < NONPRINTABLE: (["\u0000"-"\u0020", "\u0080"-"\u00ff"])+ >
 }
 
 
@@ -70,13 +74,13 @@ TOKEN:{
   < asterisk: "*">
 | < comma: ",">
 | < double_quote: "\"" >
-| < escaped_double_quote: "\"\"">
+| < doublequote_symbol: "\"\"">
 | < left_paren: "(">
 | < minus_sign: "-">
 | < period: "." >
 | < plus_sign: "+">
 | < quote: "'" >
-| < escaped_quote: "''" >
+| < quote_symbol: "''" >
 | < right_paren: ")">
 | < solidus: "/">
 | <underscore: "_">
@@ -88,6 +92,11 @@ TOKEN: {
 | < identifier: (<letter>(<letter>|<digit>|<underscore>)*)>
 | < unsigned_integer: (<digit>)+ >
 | < sign: (<plus_sign> | <minus_sign>)>
+| < signed_integer: ((<sign>)? <unsigned_integer>)>
+| < exact_numeric_literal: (<unsigned_integer><period><unsigned_integer>) | (<period><unsigned_integer>)>
+| < approximate_numeric_literal: (<exact_numeric_literal>("e"|"E"))<signed_integer>>
+| < unsigned_numeric_literal: (<exact_numeric_literal>|<approximate_numeric_literal>) >
+| < signed_numeric_literal: ((<sign>)? <unsigned_numeric_literal>) >
 }
 
 /* Non-tokens */
@@ -95,6 +104,13 @@ TOKEN: {
   < non_quote: ~["'"]>
 | < nondoublequote_character: ~["\""] >
  }
+
+/* Strings */
+TOKEN: {
+  < character_string_literal: ( <quote_symbol> | (<quote> (<non_quote> | <quote_symbol>)* <quote>)) >
+| < delimited_identifier: (<double_quote> (<nondoublequote_character> | <doublequote_symbol>)* <double_quote>)>
+} 
+
 void regularIdentifier():
 {}
 {
@@ -104,101 +120,32 @@ void regularIdentifier():
 void literal():
 {}
 {
-	signedNumericLiteral() | generalLiteral()
-}
-void signedNumericLiteral():
-{}
-{
-	[ <sign> ] unsignedNumericLiteral()
+	<signed_numeric_literal> | generalLiteral()
 }
 void generalLiteral():
 {}
 {
-	characterStringLiteral()
+	<character_string_literal>
 }
-void unsignedNumericLiteral():
-{}
-{	
-	LOOKAHEAD(2)
-	exactNumericLiteral()
-	| approximateNumericLiteral()
-}
-void exactNumericLiteral():
-{}
-{
-	<unsigned_integer> [ <period> [ <unsigned_integer> ] ]
-	| <period> <unsigned_integer>
-}
-void approximateNumericLiteral():
-{}
-{
-	mantissa() ("e"|"E") exponent()
-}
-void mantissa():
-{}
-{
-	exactNumericLiteral()
-}
-void exponent():
-{}
-{
-	signedInteger()
-}
-void signedInteger():
-{}
-{
-	[ <sign> ] <unsigned_integer>
-}
-void characterRepresentation():
-{}
-{
-	<non_quote> | <escaped_quote>
-}
-void characterStringLiteral():
-{}
-{
-	LOOKAHEAD(3)
-	<quote><quote>
-	| <quote> (characterRepresentation())* <quote>
-}
-
+/* This is the entry point of the parser*/
 void Start():
 { model = new TableQueryModel(); }
 {
 	querySpecification()
 }
-void valueExpression():
-{}
+ValueExpression valueExpression():
+{ ValueExpression valueExpression;}
 {	
-	LOOKAHEAD(2)
-	numericValueExpression()
-	| stringValueExpression()
+	valueExpression = valueExpressionPrimary() { return valueExpression;}
 }
-void numericValueExpression():
-{}
+ValueExpression valueExpressionPrimary():
 {
-	term()
+	SetFunction setFunction = null;
+	ColumnReference columnReference = null;
 }
-void term():
-{}
 {
-	factor()
-}
-void factor():
-{}
-{
-	[<sign>] numericPrimary()
-}
-void numericPrimary():
-{}
-{
-	valueExpressionPrimary()
-}
-void valueExpressionPrimary():
-{}
-{
-	setFunctionSpecification()
-	| columnReference()
+	setFunction = setFunctionSpecification() { return new ValueExpression(setFunction, null);}
+	| columnReference = columnReference() { return new ValueExpression(null, columnReference);}
 }
 void unsignedValueSpecification():
 {}
@@ -208,63 +155,33 @@ void unsignedValueSpecification():
 void unsignedLiteral():
 {}
 {
-	unsignedNumericLiteral()
+	<unsigned_numeric_literal>
 	| generalLiteral()
 }
-void stringValueExpression():
-{}
+String identifier():
 {
-	characterValueExpression()
+	String identifier = null;
 }
-void characterValueExpression():
-{}
 {
-	characterFactor()
+	identifier = actualIdentifier()
+	{ return identifier;}
 }
-void characterFactor():
-{}
+String actualIdentifier():
 {
-	characterPrimary()
+	Token token = null;
 }
-void characterPrimary():
-{}
 {
-	valueExpressionPrimary()
+	token = <identifier> { return token.image;}
+	| token = <delimited_identifier> { return token.image;}
 }
-void identifier():
-{}
+ColumnReference columnReference():
 {
-	actualIdentifier()
+	Qualifier qualifier = null;
+	String columnName = null;
 }
-void actualIdentifier():
-{}
 {
-	regularIdentifier() | delimitedIdentifier()
-}
-void delimitedIdentifier():
-{}
-{
-	<double_quote> delimitedIdentifierBody() <double_quote>
-}
-void delimitedIdentifierBody():
-{}
-{
-	(delimitedIdentifierPart())*
-}
-void delimitedIdentifierPart():
-{}
-{
-	<nondoublequote_character> | doublequoteSymbol()
-}
-void doublequoteSymbol():
-{}
-{
-	<escaped_double_quote>
-}
-void columnReference():
-{}
-{
-	[ LOOKAHEAD(2) qualifier() <period> ] columnName()
+	[ LOOKAHEAD(2) qualifier = qualifier() <period> ] columnName = columnName()
+	{ return new ColumnReference(qualifier, columnName); }
 }
 void querySpecification():
 {}
@@ -290,47 +207,71 @@ void derivedColumn():
 void asClause():
 {}
 {
-	[<as>] columnName()
+	<as> columnName()
 }
-void columnName():
+String columnName():
+{
+	String columnName = null;
+}
+{
+	columnName = identifier() {return columnName; }
+}
+SetQuantifier setQuantifier():
 {}
 {
-	identifier()
+	<distinct> { return SetQuantifier.DISTINCT;}
+	|<all> { return SetQuantifier.ALL;}
 }
-void setQuantifier():
-{}
+Qualifier qualifier():
 {
-	<distinct>|<all>
+	TableName tableName = null;
+	String correlationName = null;
 }
-void qualifier():
-{}
 {
-	tableName() | correlationName()
+	tableName = tableName() { return new Qualifier(tableName, null); }
+	| correlationName = correlationName() { return new Qualifier(null, correlationName); }
 }
-void tableName():
-{}
+TableName tableName():
+{ 
+	boolean hasSyn = false;
+	Token token = null;
+}
 {
-	[<syn>] <unsigned_integer>
+	[<syn>{ hasSyn = true; }] token = <unsigned_integer>
+	{ return new TableName(hasSyn, Long.parseLong(token.image));}
 }
-void correlationName():
-{}
+String correlationName():
 {
-	identifier()
+ 	String correlationName = null;
 }
-void setFunctionSpecification():
-{}
+{
+	correlationName = identifier()
+	{ return correlationName; }
+}
+SetFunction setFunctionSpecification():
+{ SetFunction setFunction = null; }
 {
 	LOOKAHEAD(3)
 	<count><left_paren> <asterisk> <right_paren>
-	| generalSetFunction()
+	{ return new SetFunction(SetFunctionType.COUNT, null, new ValueExpression(null, new ColumnReference(null, "*"))); }
+	| setFunction = generalSetFunction() { return setFunction;}
 }
-void generalSetFunction():
+SetFunction generalSetFunction():
+{ 
+	SetFunctionType setFunctionType = null;
+	SetQuantifier setQuantifier = null;
+	ValueExpression valueExpression = null;
+}
+{
+	setFunctionType = setFunctionType() <left_paren> [ setQuantifier = setQuantifier() ] valueExpression = valueExpression() <right_paren>
+	{ return new SetFunction(setFunctionType, setQuantifier, valueExpression);}
+}
+SetFunctionType setFunctionType():
 {}
 {
-	setFunctionType() <left_paren> [ setQuantifier() ] valueExpression() <right_paren>
-}
-void setFunctionType():
-{}
-{
-	<avg> | <max> | <min> | <sum> | <count>
+	<avg> { return SetFunctionType.AVG; }
+	| <max> { return SetFunctionType.MAX; }
+	| <min> { return SetFunctionType.MIN; }
+	| <sum> { return SetFunctionType.SUM; }
+	| <count> { return SetFunctionType.COUNT; }
 }
