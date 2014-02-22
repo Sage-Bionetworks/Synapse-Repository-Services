@@ -436,48 +436,7 @@ public class QueryDAOImplTest {
 			}
 		}
 	}
-	
-	@Test
-	public void testQueryFilterByPrivateLong() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
-		// SELECT * FROM evaluation_1 WHERE "long anno"="40"
-		String attName = TestUtils.PRIVATE_LONG_ANNOTATION_NAME;
-		BasicQuery query = new BasicQuery();
-		query.setFrom("evaluation" + QueryTools.FROM_TYPE_ID_DELIMTER + EVAL_ID1);
-		query.setLimit(NUM_SUBMISSIONS);
-		query.setOffset(0);		
-		Expression exp = new Expression(new CompoundId(null, attName), Comparator.EQUALS, 40);
-		List<Expression> filters = new ArrayList<Expression>();
-		filters.add(exp);
-		query.setFilters(filters);		
 		
-		// perform the query
-		QueryTableResults results = queryDAO.executeQuery(query, mockUserInfo);
-		assertNotNull(results);
-		assertEquals(1, results.getTotalNumberOfResults().longValue());
-		assertEquals(1, results.getRows().size());
-		
-		// examine the results
-		List<Row> rows = results.getRows();
-		List<String> headers = new ArrayList<String>(results.getHeaders());
-		for (int i = 0; i < rows.size(); i++) {
-			Row row = rows.get(i);
-			List<String> values = row.getValues();
-			assertTrue(headers.contains(attName));
-			// validate all values
-			String id = "4";
-			assertEquals(id, values.get(headers.indexOf(DBOConstants.PARAM_ANNOTATION_OBJECT_ID)));
-			for (int j = 1; j < headers.size(); j++) {
-				Object expected = annoMap.get(id + headers.get(j));
-				if (expected == null) {
-					// this is a system-defined Annotation; ignore it
-					continue;
-				}
-				String actual = values.get(j);
-				assertEquals(expected.toString(), actual);
-			}
-		}
-	}
-	
 	@Test
 	public void testQueryFilterByDouble() throws DatastoreException, NotFoundException, JSONObjectAdapterException {		
 		// SELECT * FROM evaluation_1 WHERE "double anno"="5.5"
