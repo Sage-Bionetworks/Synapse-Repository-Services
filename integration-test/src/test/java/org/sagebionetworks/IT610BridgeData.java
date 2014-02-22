@@ -297,8 +297,8 @@ public class IT610BridgeData {
 
 		String[] headers = { "date", "end_date", "level" };
 
-		List<ParticipantDataRow> data1 = createRows(headers, null, new Date(40000), null, 1.0, null, new Date(30000), new Date(40000), 2.0,
-				null, new Date(20000), new Date(30000), 3.0);
+		List<ParticipantDataRow> data1 = createRows(headers, null, new Date(30000), null, 1.0, null, new Date(40000), new Date(50000), 2.0,
+				null, new Date(20000), null, 3.0);
 		data1 = bridge.appendParticipantData(participantDataDescriptor.getId(), data1);
 
 		List<ParticipantDataRow> currentRows = bridge.getCurrentRows(participantDataDescriptor.getId());
