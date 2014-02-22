@@ -3,7 +3,11 @@ package org.sagebionetworks.repo.model;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
-
+/**
+ * This is the manager that "sync's up" the submission status records with the Annotations query table
+ * 
+ *
+ */
 public interface SubmissionStatusAnnotationsAsyncManager {
 	
 
