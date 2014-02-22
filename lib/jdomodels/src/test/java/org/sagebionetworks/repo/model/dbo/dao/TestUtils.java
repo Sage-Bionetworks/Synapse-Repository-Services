@@ -132,13 +132,14 @@ public class TestUtils {
 		return createDummyAnnotations(1);
 	}
 	
-	public static final String PRIVATE_LONG_ANNOTATION_NAME = "long anno";
+	public static final String PUBLIC_STRING_ANNOTATION_NAME = "string_anno";
+	public static final String PRIVATE_LONG_ANNOTATION_NAME = "long_anno";
 
 	public static Annotations createDummyAnnotations(int i) {
 		List<StringAnnotation> stringAnnos = new ArrayList<StringAnnotation>();
 		StringAnnotation sa = new StringAnnotation();
 		sa.setIsPrivate(false);
-		sa.setKey("string anno");
+		sa.setKey(PUBLIC_STRING_ANNOTATION_NAME);
 		sa.setValue("foo " + i);
 		stringAnnos.add(sa);
 		
