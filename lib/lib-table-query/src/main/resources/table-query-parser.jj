@@ -43,7 +43,7 @@ SKIP : /* WHITE SPACE */
 | "\r"
 | "\f"
 | "\n"
-| < NONPRINTABLE: (["\u0000"-"\u0020", "\u0080"-"\u00ff"])+ >
+| < NONPRINTABLE: (["\u0000"-"\u0020", "\u007F"-"\u00ff"])+ >
 }
 
 
