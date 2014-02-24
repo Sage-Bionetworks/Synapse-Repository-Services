@@ -33,7 +33,7 @@ public class ServiceConstants {
 	 */
 	@Deprecated
 	// SEE: PLFM-972
-	public static final String DEFAULT_PAGINATION_OFFSET_PARAM = "1";
+	public static final String DEFAULT_PAGINATION_OFFSET_PARAM_NO_OFFSET_EQUALS_ONE = "1";
 
 	/**
 	 * As PLFM-972 points out offsets should start at zero not one.
@@ -42,8 +42,10 @@ public class ServiceConstants {
 	/**
 	 * Default value for offset parameter
 	 */
-	public static final Long DEFAULT_PAGINATION_OFFSET = new Long(
-			DEFAULT_PAGINATION_OFFSET_PARAM);
+	public static final Long DEFAULT_PAGINATION_OFFSET_NO_OFFSET_EQUALS_ONE = new Long(
+			DEFAULT_PAGINATION_OFFSET_PARAM_NO_OFFSET_EQUALS_ONE);
+	
+	public static final Long DEFAULT_PAGINATION_OFFSET = new Long(0);
 
 	/**
 	 * Request parameter used to indicate the maximum number of results to be

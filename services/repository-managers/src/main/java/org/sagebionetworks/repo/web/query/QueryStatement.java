@@ -42,7 +42,7 @@ public class QueryStatement {
 	 * with no limit specified defaults to all.
 	 */
 	private Long limit = 50000000l; // MySQL upper limit
-	private Long offset = ServiceConstants.DEFAULT_PAGINATION_OFFSET;
+	private Long offset;
 
 	private QueryNode parseTree = null;
 	
@@ -59,6 +59,11 @@ public class QueryStatement {
 	 * @throws ParseException
 	 */
 	public QueryStatement(String query, boolean noOffsetEqualsOne) throws ParseException {
+		if (noOffsetEqualsOne) {
+			offset = ServiceConstants.DEFAULT_PAGINATION_OFFSET_NO_OFFSET_EQUALS_ONE;
+		} else {
+			offset = ServiceConstants.DEFAULT_PAGINATION_OFFSET;			
+		}
 
 		// TODO stash this in ThreadLocal because its expensive to create and
 		// not threadsafe
