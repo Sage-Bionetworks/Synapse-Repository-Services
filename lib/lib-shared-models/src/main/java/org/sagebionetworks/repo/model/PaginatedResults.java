@@ -106,13 +106,9 @@ public class PaginatedResults<T extends JSONEntity> implements JSONEntity {
 				: "&" + ServiceConstants.SORT_BY_PARAM + "=" + sort + "&"
 						+ ServiceConstants.ASCENDING_PARAM + "=" + ascending;
 
-		long previousOffset = ((offset - limit) > 0) ? offset - limit
-				: ServiceConstants.DEFAULT_PAGINATION_OFFSET_NO_OFFSET_EQUALS_ONE;
-		// This test should not be needed since parameter validation is
-		// happening at the controller layer, but it
-		// doesn't hurt to double check
-		long nextOffset = ((offset + limit) > 0) ? offset + limit
-				: ServiceConstants.DEFAULT_PAGINATION_OFFSET_NO_OFFSET_EQUALS_ONE;
+		long previousOffset = ((offset - limit) > 0) ? offset - limit : 0;
+
+		long nextOffset = offset + limit;
 
 		paging = new HashMap<String, String>();
 		// Include a previous page if we are not on the first page
