@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.model.dbo.persistence;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.util.Date;
 import java.util.List;
 
@@ -13,7 +12,7 @@ import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 
-public class DBOCredential implements MigratableDatabaseObject<DBOCredential, DBOCredential> {
+public class DBOCredential implements MigratableDatabaseObject<DBOCredential, DBOCredential.DBOCredentialBackup> {
 	private Long principalId;
 	private String passHash;
 	private String secretKey;
@@ -83,43 +82,87 @@ public class DBOCredential implements MigratableDatabaseObject<DBOCredential, DB
 		return MigrationType.CREDENTIAL;
 	}
 
-
+	public class DBOCredentialBackup {
+		private Long principalId;
+	 	private Date validatedOn;
+	 	private String sessionToken;
+	 	private String passHash;
+	 	private String secretKey;
+	 	private Boolean agreesToTermsOfUse;		
+	 	public Long getPrincipalId() {
+			return principalId;
+		}
+		public void setPrincipalId(Long principalId) {
+			this.principalId = principalId;
+		}
+		public Date getValidatedOn() {
+			return validatedOn;
+		}
+		public void setValidatedOn(Date validatedOn) {
+			this.validatedOn = validatedOn;
+		}
+		public String getSessionToken() {
+			return sessionToken;
+		}
+		public void setSessionToken(String sessionToken) {
+			this.sessionToken = sessionToken;
+		}
+		public String getPassHash() {
+			return passHash;
+		}
+		public void setPassHash(String passHash) {
+			this.passHash = passHash;
+		}
+		public String getSecretKey() {
+			return secretKey;
+		}
+		public void setSecretKey(String secretKey) {
+			this.secretKey = secretKey;
+		}
+		public Boolean getAgreesToTermsOfUse() {
+			return agreesToTermsOfUse;
+		}
+		public void setAgreesToTermsOfUse(Boolean agreesToTermsOfUse) {
+			this.agreesToTermsOfUse = agreesToTermsOfUse;
+		}
+	}
+	
 	@Override
-	public MigratableTableTranslation<DBOCredential, DBOCredential> getTranslator() {
-		// We do not currently have a backup for this object.
-		return new MigratableTableTranslation<DBOCredential, DBOCredential>(){
-
+	public MigratableTableTranslation<DBOCredential, DBOCredentialBackup> getTranslator() {
+		return new MigratableTableTranslation<DBOCredential, DBOCredentialBackup>(){
 			@Override
-			public DBOCredential createDatabaseObjectFromBackup(
-					DBOCredential backup) {
+			public DBOCredential createDatabaseObjectFromBackup(DBOCredentialBackup backup) {
+				DBOCredential credential = new DBOCredential();
+				credential.setPassHash(backup.getPassHash());
+				credential.setPrincipalId(backup.getPrincipalId());
+				credential.setSecretKey(backup.getSecretKey());
+				return credential;
+			}
+			@Override
+			public DBOCredentialBackup createBackupFromDatabaseObject(DBOCredential dbo) {
+				DBOCredentialBackup backup = new DBOCredentialBackup();
+				backup.setPassHash(dbo.getPassHash());
+				backup.setPrincipalId(dbo.getPrincipalId());
+				backup.setSecretKey(dbo.getSecretKey());
 				return backup;
 			}
-
-			@Override
-			public DBOCredential createBackupFromDatabaseObject(DBOCredential dbo) {
-				return dbo;
-			}};
+		};
 	}
-
 
 	@Override
-	public Class<? extends DBOCredential> getBackupClass() {
-		return DBOCredential.class;
+	public Class<? extends DBOCredentialBackup> getBackupClass() {
+		return DBOCredential.DBOCredentialBackup.class;
 	}
-
 
 	@Override
 	public Class<? extends DBOCredential> getDatabaseObjectClass() {
 		return DBOCredential.class;
 	}
 
-
 	@SuppressWarnings("rawtypes")
 	@Override
 	public List<MigratableDatabaseObject> getSecondaryTypes() {
 		return null;
 	}
-
-
 
 }
