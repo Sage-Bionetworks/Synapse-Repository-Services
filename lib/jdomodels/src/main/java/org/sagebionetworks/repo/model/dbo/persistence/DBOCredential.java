@@ -12,7 +12,7 @@ import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 
-public class DBOCredential implements MigratableDatabaseObject<DBOCredential, DBOCredential.DBOCredentialBackup> {
+public class DBOCredential implements MigratableDatabaseObject<DBOCredential, DBOCredentialBackup> {
 	private Long principalId;
 	private String passHash;
 	private String secretKey;
@@ -81,51 +81,6 @@ public class DBOCredential implements MigratableDatabaseObject<DBOCredential, DB
 	public MigrationType getMigratableTableType() {
 		return MigrationType.CREDENTIAL;
 	}
-
-	public class DBOCredentialBackup {
-		private Long principalId;
-	 	private Date validatedOn;
-	 	private String sessionToken;
-	 	private String passHash;
-	 	private String secretKey;
-	 	private Boolean agreesToTermsOfUse;		
-	 	public Long getPrincipalId() {
-			return principalId;
-		}
-		public void setPrincipalId(Long principalId) {
-			this.principalId = principalId;
-		}
-		public Date getValidatedOn() {
-			return validatedOn;
-		}
-		public void setValidatedOn(Date validatedOn) {
-			this.validatedOn = validatedOn;
-		}
-		public String getSessionToken() {
-			return sessionToken;
-		}
-		public void setSessionToken(String sessionToken) {
-			this.sessionToken = sessionToken;
-		}
-		public String getPassHash() {
-			return passHash;
-		}
-		public void setPassHash(String passHash) {
-			this.passHash = passHash;
-		}
-		public String getSecretKey() {
-			return secretKey;
-		}
-		public void setSecretKey(String secretKey) {
-			this.secretKey = secretKey;
-		}
-		public Boolean getAgreesToTermsOfUse() {
-			return agreesToTermsOfUse;
-		}
-		public void setAgreesToTermsOfUse(Boolean agreesToTermsOfUse) {
-			this.agreesToTermsOfUse = agreesToTermsOfUse;
-		}
-	}
 	
 	@Override
 	public MigratableTableTranslation<DBOCredential, DBOCredentialBackup> getTranslator() {
@@ -151,7 +106,7 @@ public class DBOCredential implements MigratableDatabaseObject<DBOCredential, DB
 
 	@Override
 	public Class<? extends DBOCredentialBackup> getBackupClass() {
-		return DBOCredential.DBOCredentialBackup.class;
+		return DBOCredentialBackup.class;
 	}
 
 	@Override
