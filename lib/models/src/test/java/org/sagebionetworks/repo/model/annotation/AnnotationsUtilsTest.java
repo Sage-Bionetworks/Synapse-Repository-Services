@@ -1,5 +1,8 @@
 package org.sagebionetworks.repo.model.annotation;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -52,6 +55,21 @@ public class AnnotationsUtilsTest {
 		annos.getDoubleAnnos().add(da);		
 		
 		AnnotationsUtils.validateAnnotations(annos);
+	}
+	
+	@Test
+	public void testFillInMissingIsPrivateField() {
+		Annotations expected = createDummyAnnotations();
+		expected.getStringAnnos().get(0).setIsPrivate(true);
+		expected.getLongAnnos().get(0).setIsPrivate(true);
+		expected.getDoubleAnnos().get(0).setIsPrivate(true);
+		Annotations actual = createDummyAnnotations();
+		actual.getStringAnnos().get(0).setIsPrivate(null);
+		actual.getLongAnnos().get(0).setIsPrivate(null);
+		actual.getDoubleAnnos().get(0).setIsPrivate(null);
+		assertFalse(expected.equals(actual));
+		AnnotationsUtils.populateMissingFields(actual);
+		assertEquals(expected, actual);
 	}
 	
 	/**

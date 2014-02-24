@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.query;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -9,6 +10,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -20,9 +22,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Matchers;
-import org.sagebionetworks.evaluation.dao.AnnotationsDAO;
-import org.sagebionetworks.evaluation.dao.SubmissionDAO;
-import org.sagebionetworks.evaluation.dao.SubmissionStatusDAO;
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
@@ -37,6 +36,9 @@ import org.sagebionetworks.repo.model.annotation.LongAnnotation;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
 import org.sagebionetworks.repo.model.dbo.dao.SubmissionStatusAnnotationsAsyncManagerImpl;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
+import org.sagebionetworks.repo.model.evaluation.AnnotationsDAO;
+import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
+import org.sagebionetworks.repo.model.evaluation.SubmissionStatusDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -200,6 +202,31 @@ public class QueryDAOImplTest {
 	}
 	
 	@Test
+	public void testNoPrivateAnnosInResults() throws Exception {
+		BasicQuery query = new BasicQuery();
+		query.setFrom("evaluation" + QueryTools.FROM_TYPE_ID_DELIMTER + EVAL_ID2);
+		query.setLimit(NUM_SUBMISSIONS);
+		query.setOffset(0);
+		
+		// perform the query
+		QueryTableResults results = queryDAO.executeQuery(query, mockUserInfo);
+		
+		// since we don't have private read access to Eval2, this annotation will be omitted from the results
+		assertFalse(results.getHeaders().contains(TestUtils.PRIVATE_LONG_ANNOTATION_NAME));
+		
+		// let's specify the private annotation explicitly in the SELECT clause
+		query.setSelect(Arrays.asList(new String[]{"objectId", TestUtils.PRIVATE_LONG_ANNOTATION_NAME}));
+		results = queryDAO.executeQuery(query, mockUserInfo);
+		// it DOES appear in the headers
+		assertEquals(query.getSelect(), results.getHeaders());
+		List<Row> rows = results.getRows();
+		Row row = rows.get(0);
+		List<String> values = row.getValues();
+		String privateValue = values.get(1); // the 'long' annotation is the second in the list
+		assertNull(privateValue); // but the value is omitted
+	}
+	
+	@Test
 	public void testBasicQueryNoPrivate() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
 		// SELECT * FROM evaluation_2
 		// we do not have READ_PRIVATE_ANNOTATIONS permission on evaluation_2
@@ -217,6 +244,8 @@ public class QueryDAOImplTest {
 		// examine the results
 		List<Row> rows = results.getRows();
 		List<String> headers = new ArrayList<String>(results.getHeaders());
+		// since we don't have private read access to Eval2, this annotation will be omitted from the results
+		assertFalse(headers.contains(TestUtils.PRIVATE_LONG_ANNOTATION_NAME));
 		for (int i = 0; i < rows.size(); i++) {
 			Row row = rows.get(i);
 			List<String> values = row.getValues();
@@ -235,10 +264,101 @@ public class QueryDAOImplTest {
 		}
 	}
 	
+	// filtering on a private annotation (when we lack private read access) omits the matches from the result set
+	@Test
+	public void testQueryNoPrivateRead_FilterOnPrivate() throws DatastoreException, NotFoundException, JSONObjectAdapterException {		
+		// SELECT * FROM evaluation_2 where long_anno=300
+		// we do not have READ_PRIVATE_ANNOTATIONS permission on evaluation_2
+		BasicQuery query = new BasicQuery();
+		query.setFrom("evaluation" + QueryTools.FROM_TYPE_ID_DELIMTER + EVAL_ID2);
+		Expression expression = new Expression(new CompoundId(null, TestUtils.PRIVATE_LONG_ANNOTATION_NAME), Comparator.EQUALS, NUM_SUBMISSIONS*10L);
+		List<Expression> filters = new ArrayList<Expression>();
+		filters.add(expression);
+		query.setFilters(filters);		
+		query.setLimit(NUM_SUBMISSIONS);
+		query.setOffset(0);
+		
+		// perform the query
+		QueryTableResults results = queryDAO.executeQuery(query, mockUserInfo);
+		assertNotNull(results);
+		assertEquals(0, results.getTotalNumberOfResults().longValue());
+		assertEquals(0, results.getRows().size());
+		
+		// if we have private read access we CAN see the results
+		when(mockAclDAO.canAccess(Matchers.<Set<Long>>any(), eq(EVAL_ID2), 
+				eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.READ_PRIVATE_SUBMISSION))).thenReturn(true);
+		results = queryDAO.executeQuery(query, mockUserInfo);
+		assertNotNull(results);
+		assertEquals(1, results.getTotalNumberOfResults().longValue());
+		assertEquals(1, results.getRows().size());
+	}
+	
+	@Test
+	public void testQueryNoPrivateRead_InequalityFilterOnPrivate() throws DatastoreException, NotFoundException, JSONObjectAdapterException {		
+		// SELECT * FROM evaluation_2 where long_anno=300
+		// we do not have READ_PRIVATE_ANNOTATIONS permission on evaluation_2
+		BasicQuery query = new BasicQuery();
+		query.setFrom("evaluation" + QueryTools.FROM_TYPE_ID_DELIMTER + EVAL_ID2);
+		Expression expression = new Expression(new CompoundId(null, TestUtils.PRIVATE_LONG_ANNOTATION_NAME), Comparator.NOT_EQUALS, NUM_SUBMISSIONS*10L);
+		List<Expression> filters = new ArrayList<Expression>();
+		filters.add(expression);
+		query.setFilters(filters);		
+		query.setLimit(NUM_SUBMISSIONS);
+		query.setOffset(0);
+		
+		// perform the query
+		QueryTableResults results = queryDAO.executeQuery(query, mockUserInfo);
+		assertNotNull(results);
+		assertEquals(0, results.getTotalNumberOfResults().longValue());
+		assertEquals(0, results.getRows().size());
+		
+		// if we have private read access we CAN see the results
+		when(mockAclDAO.canAccess(Matchers.<Set<Long>>any(), eq(EVAL_ID2), 
+				eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.READ_PRIVATE_SUBMISSION))).thenReturn(true);
+		results = queryDAO.executeQuery(query, mockUserInfo);
+		assertNotNull(results);
+		assertEquals(NUM_SUBMISSIONS-1, results.getTotalNumberOfResults().longValue());
+		assertEquals(NUM_SUBMISSIONS-1, results.getRows().size());
+	}
+	
+	@Test
+	public void testQueryNoPrivateFilterOnPrivateAndPublic() throws DatastoreException, NotFoundException, JSONObjectAdapterException {		
+		// SELECT * FROM evaluation_2 where long_anno=300 and string_anno="foo 30"
+		// we do not have READ_PRIVATE_ANNOTATIONS permission on evaluation_2
+		BasicQuery query = new BasicQuery();
+		query.setFrom("evaluation" + QueryTools.FROM_TYPE_ID_DELIMTER + EVAL_ID2);
+		List<Expression> filters = new ArrayList<Expression>();
+		{
+			Expression expression = new Expression(new CompoundId(null, TestUtils.PRIVATE_LONG_ANNOTATION_NAME), Comparator.EQUALS, NUM_SUBMISSIONS*10L);
+			filters.add(expression);
+		}
+		{
+			Expression expression = new Expression(new CompoundId(null, TestUtils.PUBLIC_STRING_ANNOTATION_NAME), Comparator.EQUALS, "foo "+NUM_SUBMISSIONS);
+			filters.add(expression);
+		}
+		query.setFilters(filters);		
+		query.setLimit(NUM_SUBMISSIONS);
+		query.setOffset(0);
+		
+		// perform the query
+		QueryTableResults results = queryDAO.executeQuery(query, mockUserInfo);
+		assertNotNull(results);
+		assertEquals(0, results.getTotalNumberOfResults().longValue());
+		assertEquals(0, results.getRows().size());
+		
+		// if we have private read access we CAN see the results
+		when(mockAclDAO.canAccess(Matchers.<Set<Long>>any(), eq(EVAL_ID2), 
+				eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.READ_PRIVATE_SUBMISSION))).thenReturn(true);
+		results = queryDAO.executeQuery(query, mockUserInfo);
+		assertNotNull(results);
+		assertEquals(1, results.getTotalNumberOfResults().longValue());
+		assertEquals(1, results.getRows().size());
+	}
+	
 	@Test
 	public void testQueryFilterByString() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
-		// SELECT * FROM evaluation_1 WHERE "string anno"="foo 3"
-		String attName = "string anno";
+		// SELECT * FROM evaluation_1 WHERE "string_anno"="foo 3"
+		String attName = TestUtils.PUBLIC_STRING_ANNOTATION_NAME;
 		BasicQuery query = new BasicQuery();
 		query.setFrom("evaluation" + QueryTools.FROM_TYPE_ID_DELIMTER + EVAL_ID1);
 		query.setLimit(NUM_SUBMISSIONS);
@@ -279,7 +399,7 @@ public class QueryDAOImplTest {
 	@Test
 	public void testQueryFilterByLong() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
 		// SELECT * FROM evaluation_1 WHERE "long anno"="40"
-		String attName = "long anno";
+		String attName = TestUtils.PRIVATE_LONG_ANNOTATION_NAME;
 		BasicQuery query = new BasicQuery();
 		query.setFrom("evaluation" + QueryTools.FROM_TYPE_ID_DELIMTER + EVAL_ID1);
 		query.setLimit(NUM_SUBMISSIONS);
@@ -316,7 +436,7 @@ public class QueryDAOImplTest {
 			}
 		}
 	}
-	
+		
 	@Test
 	public void testQueryFilterByDouble() throws DatastoreException, NotFoundException, JSONObjectAdapterException {		
 		// SELECT * FROM evaluation_1 WHERE "double anno"="5.5"
@@ -361,7 +481,7 @@ public class QueryDAOImplTest {
 	@Test
 	public void testQueryGreaterThanEqualToLong() throws DatastoreException, NotFoundException, JSONObjectAdapterException {		
 		// SELECT * FROM evaluation_1 WHERE "long anno">"150"
-		String attName = "long anno";
+		String attName = TestUtils.PRIVATE_LONG_ANNOTATION_NAME;
 		BasicQuery query = new BasicQuery();
 		query.setFrom("evaluation" + QueryTools.FROM_TYPE_ID_DELIMTER + EVAL_ID1);
 		query.setLimit(NUM_SUBMISSIONS);
@@ -519,12 +639,12 @@ public class QueryDAOImplTest {
 	
 	@Test(expected=IllegalArgumentException.class)
 	public void testQueryBadComparator() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
-		// SELECT * FROM evaluation_1 WHERE "string anno"<"foo 3"
+		// SELECT * FROM evaluation_1 WHERE "string_anno"<"foo 3"
 		BasicQuery query = new BasicQuery();
 		query.setFrom("evaluation" + QueryTools.FROM_TYPE_ID_DELIMTER + EVAL_ID1);
 		query.setLimit(NUM_SUBMISSIONS);
 		query.setOffset(0);	
-		Expression exp = new Expression(new CompoundId(null, "string anno"), Comparator.LESS_THAN, "foo 3");
+		Expression exp = new Expression(new CompoundId(null, TestUtils.PUBLIC_STRING_ANNOTATION_NAME), Comparator.LESS_THAN, "foo 3");
 		List<Expression> filters = new ArrayList<Expression>();
 		filters.add(exp);
 		query.setFilters(filters);		
@@ -553,14 +673,14 @@ public class QueryDAOImplTest {
 	
 	@Test
 	public void testQueryWithProjection() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
-		// SELECT "objectId", "string anno" FROM evaluation_1
+		// SELECT "objectId", "string_anno" FROM evaluation_1
 		BasicQuery query = new BasicQuery();
 		query.setFrom("evaluation" + QueryTools.FROM_TYPE_ID_DELIMTER + EVAL_ID1);
 		query.setLimit(NUM_SUBMISSIONS);
 		query.setOffset(0);
 		List<String> select = new ArrayList<String>();
 		select.add(DBOConstants.PARAM_ANNOTATION_OBJECT_ID);
-		select.add("string anno");
+		select.add(TestUtils.PUBLIC_STRING_ANNOTATION_NAME);
 		query.setSelect(select);
 		
 		// perform the query
@@ -592,15 +712,15 @@ public class QueryDAOImplTest {
 	
 	@Test
 	public void testQuerySortAscending() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
-		// SELECT * FROM evaluation_1 ORDER BY "string anno" ASC
+		// SELECT * FROM evaluation_1 ORDER BY "string_anno" ASC
 		BasicQuery query = new BasicQuery();
 		query.setFrom("evaluation" + QueryTools.FROM_TYPE_ID_DELIMTER + EVAL_ID1);
 		query.setLimit(NUM_SUBMISSIONS);
 		query.setOffset(0);
-		query.setSort("string anno");
+		query.setSort(TestUtils.PUBLIC_STRING_ANNOTATION_NAME);
 		query.setAscending(true);
 		List<String> select = new ArrayList<String>();
-		select.add("string anno");
+		select.add(TestUtils.PUBLIC_STRING_ANNOTATION_NAME);
 		query.setSelect(select);
 		
 		// perform the query
@@ -611,7 +731,7 @@ public class QueryDAOImplTest {
 		
 		// examine the results
 		List<Row> rows = results.getRows();
-		int index = results.getHeaders().indexOf("string anno");
+		int index = results.getHeaders().indexOf(TestUtils.PUBLIC_STRING_ANNOTATION_NAME);
 		String previous = null;
 		for (int i = 0; i < rows.size(); i++) {
 			Row row = rows.get(i);
@@ -627,15 +747,15 @@ public class QueryDAOImplTest {
 	
 	@Test
 	public void testQuerySortDescending() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
-		// SELECT * FROM evaluation_1 ORDER BY "string anno" DESC
+		// SELECT * FROM evaluation_1 ORDER BY "string_anno" DESC
 		BasicQuery query = new BasicQuery();
 		query.setFrom("evaluation" + QueryTools.FROM_TYPE_ID_DELIMTER + EVAL_ID1);
 		query.setLimit(NUM_SUBMISSIONS);
 		query.setOffset(0);
-		query.setSort("string anno");
+		query.setSort(TestUtils.PUBLIC_STRING_ANNOTATION_NAME);
 		query.setAscending(false);
 		List<String> select = new ArrayList<String>();
-		select.add("string anno");
+		select.add(TestUtils.PUBLIC_STRING_ANNOTATION_NAME);
 		query.setSelect(select);
 		
 		// perform the query
@@ -646,7 +766,7 @@ public class QueryDAOImplTest {
 		
 		// examine the results
 		List<Row> rows = results.getRows();
-		int index = results.getHeaders().indexOf("string anno");
+		int index = results.getHeaders().indexOf(TestUtils.PUBLIC_STRING_ANNOTATION_NAME);
 		String previous = null;
 		for (int i = 0; i < rows.size(); i++) {
 			Row row = rows.get(i);
@@ -675,6 +795,5 @@ public class QueryDAOImplTest {
 		for (DoubleAnnotation da : doubleAnnos) {
 			annoMap.put(annos.getObjectId() + da.getKey(), da.getValue());
 		}
-	}
-
+	}	
 }

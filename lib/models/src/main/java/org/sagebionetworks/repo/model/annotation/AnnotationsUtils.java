@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.evaluation.AnnotationsDAO;
 
 public class AnnotationsUtils {
 	
@@ -34,6 +35,32 @@ public class AnnotationsUtils {
 			if (!keys.add(ba.getKey())) {
 				throw new InvalidModelException("Duplicate annotations found for key: " + ba.getKey());
 			}
+		}
+	}
+	
+	
+	
+	/**
+	 * populate missing fields, specifically make sure 'isPrivate' is filled in
+	 * 
+	 * @param annos
+	 */
+	public static void populateMissingFields(Annotations annos) {
+		if (annos == null) return;
+		if (annos.getDoubleAnnos() != null) {
+			populateMissingFields(annos.getDoubleAnnos());
+		}
+		if (annos.getLongAnnos() != null) {
+			populateMissingFields(annos.getLongAnnos());
+		}
+		if (annos.getStringAnnos() != null) {
+			populateMissingFields(annos.getStringAnnos());
+		}
+	}
+	
+	private static void populateMissingFields(Collection<? extends AnnotationBase> annoCollection) {
+		for (AnnotationBase ba : annoCollection) {
+			if (ba.getIsPrivate()==null) ba.setIsPrivate(AnnotationsDAO.DEFAULT_ANNOTATION_PRIVACY);
 		}
 	}
 }

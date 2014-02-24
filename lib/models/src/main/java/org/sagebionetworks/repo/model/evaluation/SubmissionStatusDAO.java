@@ -1,4 +1,4 @@
-package org.sagebionetworks.evaluation.dao;
+package org.sagebionetworks.repo.model.evaluation;
 
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;

@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.query.QueryTableResults;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.util.ControllerUtil;
+import org.sagebionetworks.repo.util.QueryTranslator;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
@@ -1136,23 +1137,44 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Executes a user-defined query over the Submissions of a specific Evaluation. Queries may be of
-	 * the following form:
+	 * Executes a user-defined query over the Submissions of a specific Evaluation. Queries have the following form:
 	 * 
-	 * <p>
-	 * SELECT * FROM evaluation_123 WHERE myAnnotation == "bar";
-	 * </p>
-	 * 
-	 * <p>
-	 * <b>Note:</b> This service is still under construction. Query syntax and behavior are subject 
-	 * to change.
-	 * </p>
+	 * <p/>
+	 * SELECT &lt;fields&gt; FROM evaluation_&lt;id&gt; [WHERE &lt;filter&gt; (AND &lt;filter&gt;)*] [ORDER BY &lt;name&gt; asc|desc] [LIMIT &lt;L&gt; OFFSET &lt;O&gt;]
+	 * <p/>
+	 * where
+	 * <p/>
+	 * &lt;fields&gt; is either "*" or a comma delimited list of names
+	 * <br/>
+	 * <ul>
+	 * <li>"name" is the name either of a system-defined field in a Submission or of a user defined annotation.  The system-defined field names are:
+	 * objectId, scopeId, userId, submitterAlias, entityId, versionNumber, name, createdOn, modifiedOn, and status.
+	 * Note:  If a user defined annotation name and type of value matches/collides with those of a system-defined field, 
+	 * the query will be against the field name, not the user defined annotation.</li>
+	 * <li>&lt;id&gt; is the Evaluation's ID</li>
+	 * <li>&lt;filter&gt; = &lt;name&gt; &lt;comparator&gt; &lt;value&gt;</li>
+	 * <li>"comparator" is one of ==, !=, >, <, >=, or <=</li>
+	 * <li>"value" is an annotation value, of type string, integer, or decimal</li>
+	 * <li>"L" and "O" are optional limit and offset pagination parameters, limit>=1 and offset>=0.
+	 * Note:  If pagination is used, LIMIT must precede OFFSET and the pair of parameters must follow ORDER BY (if used).</li>
+	 * </ul>
+	 * <br/>
+	 * <p/>
+	 * Examples:<br/>
+	 * SELECT * FROM evaluation_123 WHERE myAnnotation == "foo"<br/>
+	 * SELECT entityId, status, myAnnotation FROM evaluation_123 WHERE myAnnotation == "foo" AND status="RECEIVED"<br/>
+	 * SELECT * FROM evaluation_123  limit 20 offset 10 order by status asc<br/>
+	 * <p/>
+	 * <p/>
+	 * Note:  IF "SELECT *" is used and if the user lacks READ_PRIVATE access to the Evaluation, then any private annotations will
+	 * be omitted from the resulting column headers.  However, if the selected annotations are specified explicitly then private
+	 * annotation names <i>will</i> be included in the column headers, but their values will be returned as null.  
+	 * Further, if the private annotation is included in a filter then no results are returned.
 	 * 
 	 * @throws JSONObjectAdapterException
 	 * @throws ParseException 
 	 * @throws  
 	 */
-	@Deprecated
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_QUERY, method = RequestMethod.GET)
 	public @ResponseBody 

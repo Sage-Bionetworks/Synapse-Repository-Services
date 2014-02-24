@@ -4,9 +4,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.sagebionetworks.evaluation.dao.AnnotationsDAO;
-import org.sagebionetworks.evaluation.dao.SubmissionDAO;
-import org.sagebionetworks.evaluation.dao.SubmissionStatusDAO;
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
@@ -17,6 +14,9 @@ import org.sagebionetworks.repo.model.annotation.Annotations;
 import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
 import org.sagebionetworks.repo.model.annotation.LongAnnotation;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
+import org.sagebionetworks.repo.model.evaluation.AnnotationsDAO;
+import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
+import org.sagebionetworks.repo.model.evaluation.SubmissionStatusDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -84,7 +84,7 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 		
 	/**
 	 * This is a short-circuit method to replace Annotations directly from the provided objects.
-	 * It is not defined in the header class, and should only be used for testing purposes.
+	 * It is not defined in the interface, and should only be used for testing purposes.
 	 * 
 	 * @param submission
 	 * @param subStatus
@@ -144,7 +144,7 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 		annotationsDAO.replaceAnnotations(annos);
 	}
 
-	private void insertSystemAnnotations(Submission submission, SubmissionStatus subStatus,
+	private static void insertSystemAnnotations(Submission submission, SubmissionStatus subStatus,
 			Map<String, LongAnnotation> longAnnoMap,
 			Map<String, DoubleAnnotation> doubleAnnoMap,
 			Map<String, StringAnnotation> stringAnnoMap) {
@@ -233,7 +233,7 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 		insertAnnotation(statusAnno, longAnnoMap, doubleAnnoMap, stringAnnoMap);
 	}
 	
-	private void insertAnnotation(AnnotationBase anno, Map<String, LongAnnotation> longAnnoMap, 
+	private static void insertAnnotation(AnnotationBase anno, Map<String, LongAnnotation> longAnnoMap, 
 			Map<String, DoubleAnnotation> doubleAnnoMap, Map<String, StringAnnotation> stringAnnoMap) {
 		String key = anno.getKey();
 		if (anno instanceof LongAnnotation) {

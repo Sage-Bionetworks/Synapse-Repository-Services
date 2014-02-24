@@ -287,10 +287,12 @@ public class QueryDAOImpl implements QueryDAO {
 	}
 
 	private boolean canAccess(UserInfo userInfo, String objectId, QueryObjectType objType) {
+		if (userInfo.isAdmin()) return true;
 		return accessControlListDAO.canAccess(userInfo.getGroups(), objectId, getObjectTypeFromQueryObjectType(objType), ACCESS_TYPE.READ);
 	}
 
 	private boolean canAccessPrivate(UserInfo userInfo, String objectId, QueryObjectType objType) {
+		if (userInfo.isAdmin()) return true;
 		return accessControlListDAO.canAccess(
 				userInfo.getGroups(), objectId, getObjectTypeFromQueryObjectType(objType), objType.getPrivateAccessType());
 	}
