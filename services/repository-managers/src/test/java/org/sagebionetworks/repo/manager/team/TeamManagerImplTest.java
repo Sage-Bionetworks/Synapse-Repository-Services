@@ -26,6 +26,7 @@ import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.manager.principal.PrincipalManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -73,6 +74,7 @@ public class TeamManagerImplTest {
 	private UserManager mockUserManager;
 	private AccessRequirementDAO mockAccessRequirementDAO;
 	private PrincipalAliasDAO mockPrincipalAliasDAO;
+	private PrincipalManager mockPrincipalManager;
 	
 	private UserInfo userInfo;
 	private UserInfo adminInfo;
@@ -94,6 +96,7 @@ public class TeamManagerImplTest {
 		mockUserManager = Mockito.mock(UserManager.class);
 		mockAccessRequirementDAO = Mockito.mock(AccessRequirementDAO.class);
 		mockPrincipalAliasDAO = Mockito.mock(PrincipalAliasDAO.class);
+		mockPrincipalManager = Mockito.mock(PrincipalManager.class);
 		teamManagerImpl = new TeamManagerImpl(
 				mockAuthorizationManager,
 				mockTeamDAO,
@@ -106,7 +109,8 @@ public class TeamManagerImplTest {
 				mockMembershipRqstSubmissionDAO, 
 				mockUserManager,
 				mockAccessRequirementDAO,
-				mockPrincipalAliasDAO);
+				mockPrincipalAliasDAO,
+				mockPrincipalManager);
 		userInfo = createUserInfo(false, MEMBER_PRINCIPAL_ID);
 		adminInfo = createUserInfo(true, "-1");
 	}
@@ -281,6 +285,7 @@ public class TeamManagerImplTest {
 		when(mockBasicDAO.createNew(any(DBOUserGroup.class))).thenReturn(null); // we specified the ID to start with.
 		when(mockPrincipalAliasDAO.findPrincipalWithAlias(any(String.class))).thenReturn(null);
 		when(mockPrincipalAliasDAO.bindAliasToPrincipal(any(PrincipalAlias.class))).thenReturn(new PrincipalAlias());
+		when(mockPrincipalManager.isAliasValid(any(String.class), eq(AliasType.TEAM_NAME))).thenReturn(true);
 		when(mockTeamDAO.create(any(Team.class))).thenReturn(null); // again we don't care
 		
 		List<BootstrapTeam> toBootstrap = Lists.newArrayList();
@@ -293,6 +298,7 @@ public class TeamManagerImplTest {
 		verify(mockBasicDAO, times(2)).createNew(any(DBOUserGroup.class));
 		verify(mockPrincipalAliasDAO, times(2)).findPrincipalWithAlias(any(String.class));
 		verify(mockPrincipalAliasDAO, times(2)).bindAliasToPrincipal(any(PrincipalAlias.class));
+		verify(mockPrincipalManager, times(2)).isAliasValid(any(String.class), eq(AliasType.TEAM_NAME));
 		verify(mockTeamDAO, times(2)).create(any(Team.class));
 	}
 	
@@ -306,6 +312,7 @@ public class TeamManagerImplTest {
 		
 		when(mockTeamDAO.get(team1.getId())).thenReturn(new Team());
 		when(mockTeamDAO.get(team2.getId())).thenReturn(new Team());
+		when(mockPrincipalManager.isAliasValid(any(String.class), eq(AliasType.TEAM_NAME))).thenReturn(true);
 		Mockito.verifyZeroInteractions(mockTeamDAO);
 		Mockito.verifyZeroInteractions(mockBasicDAO);
 		Mockito.verifyZeroInteractions(mockPrincipalAliasDAO);

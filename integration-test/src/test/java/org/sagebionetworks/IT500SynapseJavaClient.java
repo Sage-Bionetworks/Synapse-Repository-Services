@@ -49,6 +49,7 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_TEAM;
 import org.sagebionetworks.repo.model.BatchResults;
 import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.DomainType;
@@ -95,6 +96,8 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 import org.sagebionetworks.utils.HttpClientHelper;
 
+import com.google.common.collect.Sets;
+
 /**
  * Run this integration test as a sanity check to ensure our Synapse Java Client
  * is working
@@ -118,6 +121,17 @@ public class IT500SynapseJavaClient {
 	private List<String> teamsToDelete;
 	private Project project;
 	private Study dataset;
+	
+	private static Set<String> bootstrappedTeams = Sets.newHashSet();
+	static {
+		for (int i=0; i < BOOTSTRAP_TEAM.values().length; i++) {
+			bootstrappedTeams.add(BOOTSTRAP_TEAM.values()[i].getId());
+		}
+	}
+	
+	private long getBootstrapCountPlus(long number) {
+		return bootstrappedTeams.size() + number;
+	}
 	
 	@BeforeClass
 	public static void beforeClass() throws Exception {
@@ -157,6 +171,7 @@ public class IT500SynapseJavaClient {
 		// there shouldn't be any Teams floating around in the system
 		// the Team tests assume there are no Teams to start.  So before
 		// running the tests, we clean up all the teams
+		/*
 		long numTeams = 0L;
 		do {
 			PaginatedResults<Team> teams = synapseOne.getTeams(null, 10, 0);
@@ -166,6 +181,19 @@ public class IT500SynapseJavaClient {
 				adminSynapse.deleteTeam(team.getId());
 			}
 		} while (numTeams>0);
+		*/
+		// The only teams we leave in the system are the bootstrap teams. The method
+		// getBootstrapTeamsPlus(num) returns the right count for assertions.
+		long numTeams = 0L;
+		do {
+			PaginatedResults<Team> teams = synapseOne.getTeams(null, 10, 0);
+			numTeams = teams.getTotalNumberOfResults();
+			for (Team team : teams.getResults()) {
+				if (!bootstrappedTeams.contains(team.getId())) {
+					synapseOne.deleteTeam(team.getId());
+				}
+			}
+		} while (numTeams > getBootstrapCountPlus(0));		
 	}
 	
 	@After
@@ -1210,11 +1238,11 @@ public class IT500SynapseJavaClient {
 		assertNotNull(url);
 		// query for all teams
 		PaginatedResults<Team> teams = synapseOne.getTeams(null, 1, 0);
-		assertEquals(1L, teams.getTotalNumberOfResults());
+		assertEquals(getBootstrapCountPlus(1L), teams.getTotalNumberOfResults());
 		assertEquals(updatedTeam, teams.getResults().get(0));
 		// make sure pagination works
 		teams = synapseOne.getTeams(null, 10, 1);
-		assertEquals(0L, teams.getResults().size());
+		assertEquals(getBootstrapCountPlus(0L), teams.getResults().size());
 		
 		// query for all teams, based on name fragment
 		// need to update cache.  the service to trigger an update

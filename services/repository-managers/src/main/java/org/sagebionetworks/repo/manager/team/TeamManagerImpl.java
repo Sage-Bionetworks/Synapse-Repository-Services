@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.manager.AccessRequirementUtil;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.manager.principal.PrincipalManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -82,6 +83,8 @@ public class TeamManagerImpl implements TeamManager {
 	@Autowired
 	private PrincipalAliasDAO principalAliasDAO;
 	@Autowired
+	private PrincipalManager principalManager;
+	@Autowired
 	private DBOBasicDao basicDao;
 
 	private List<BootstrapTeam> teamsToBootstrap;
@@ -105,7 +108,8 @@ public class TeamManagerImpl implements TeamManager {
 			MembershipRqstSubmissionDAO membershipRqstSubmissionDAO, 
 			UserManager userManager,
 			AccessRequirementDAO accessRequirementDAO,
-			PrincipalAliasDAO principalAliasDAO
+			PrincipalAliasDAO principalAliasDAO,
+			PrincipalManager principalManager
 			) {
 		this.authorizationManager = authorizationManager;
 		this.teamDAO = teamDAO;
@@ -120,6 +124,7 @@ public class TeamManagerImpl implements TeamManager {
 		this.userManager = userManager;
 		this.accessRequirementDAO = accessRequirementDAO;
 		this.principalAliasDAO = principalAliasDAO;
+		this.principalManager = principalManager;
 	}
 	
 	public static void validateForCreate(Team team) {
@@ -586,15 +591,16 @@ public class TeamManagerImpl implements TeamManager {
 		return tms;
 	}
 
-	@SuppressWarnings("unused")
 	public void bootstrapTeams() {
-		// Boot strap all users and groups
 		if (this.teamsToBootstrap == null) {
 			throw new IllegalArgumentException("bootstrapTeams cannot be null");
 		}
 		for (BootstrapTeam team: this.teamsToBootstrap) {
 			if (team.getId() == null) {
 				throw new IllegalArgumentException("Bootstrapped team must have an id");
+			}
+			if (!principalManager.isAliasValid(team.getName(), AliasType.TEAM_NAME)) {
+				throw new IllegalArgumentException("Bootstrapped team name is either syntactially wrong, or not unique");
 			}
 			try {
 				get(team.getId());
