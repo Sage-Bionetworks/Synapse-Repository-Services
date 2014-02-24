@@ -166,22 +166,7 @@ public class IT500SynapseJavaClient {
 		
 		toDelete.add(project.getId());
 		toDelete.add(dataset.getId());
-		
-		
-		// there shouldn't be any Teams floating around in the system
-		// the Team tests assume there are no Teams to start.  So before
-		// running the tests, we clean up all the teams
-		/*
-		long numTeams = 0L;
-		do {
-			PaginatedResults<Team> teams = synapseOne.getTeams(null, 10, 0);
-			numTeams = teams.getTotalNumberOfResults();
-			for (Team team : teams.getResults()) {
-				// Use admin client because synapseOne/synapseTwo can't delete bootstrapped teams 
-				adminSynapse.deleteTeam(team.getId());
-			}
-		} while (numTeams>0);
-		*/
+
 		// The only teams we leave in the system are the bootstrap teams. The method
 		// getBootstrapTeamsPlus(num) returns the right count for assertions.
 		long numTeams = 0L;
