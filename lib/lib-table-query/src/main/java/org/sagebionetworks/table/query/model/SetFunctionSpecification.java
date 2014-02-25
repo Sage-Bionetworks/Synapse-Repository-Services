@@ -1,12 +1,15 @@
 package org.sagebionetworks.table.query.model;
 
-public class SetFunction {
+/**
+ * This matches &ltset function specification&gt   in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
+ */
+public class SetFunctionSpecification {
 	
 	SetFunctionType setFunctionType;
 	SetQuantifier setQuantifier;
 	ValueExpression valueExpressionPrimary;
 	
-	public SetFunction(SetFunctionType setFunctionType,
+	public SetFunctionSpecification(SetFunctionType setFunctionType,
 			SetQuantifier setQuantifier,
 			ValueExpression valueExpressionPrimary) {
 		super();

@@ -1,4 +1,4 @@
-package org.sagebionetworks.table.query.model;
+package org.sagebionetworks.table.query.util;
 
 /**
  * An immutable sample of SQL with a description.  This is used for query documentation and testing.

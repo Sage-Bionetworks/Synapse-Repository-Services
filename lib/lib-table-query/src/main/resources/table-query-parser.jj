@@ -1,5 +1,7 @@
 /* The BNF for this parser was derived from: http://savage.net.au/SQL/sql-92.bnf (SQL-92) 
 * https://javacc.java.net/doc/docindex.html
+* To debug changes to this file run:
+* mvn clean generate-sources
 */
 options{
 STATIC = false;
@@ -8,16 +10,14 @@ STATIC = false;
 PARSER_BEGIN(TableQueryParser)
 package org.sagebionetworks.table.query;
 import java.io.StringReader;
+import java.util.LinkedList;
+import java.util.List;
+
 import org.sagebionetworks.repo.model.table.query.*;
 import org.sagebionetworks.table.query.model.*;
 
 public class TableQueryParser {
 
-	private TableQueryModel model;
-
-	public TableQueryModel getModel() {
-		return model;
-	}
 	/**
 	 * Parse the passed query string into a TableQueryModel
 	 * 
@@ -25,11 +25,10 @@ public class TableQueryParser {
 	 * @return
 	 * @throws ParseException
 	 */
-	public static TableQueryModel parserQuery(String query)
+	public static QuerySpecification parserQuery(String query)
 			throws ParseException {
 		TableQueryParser parser = new TableQueryParser(new StringReader(query));
-		parser.Start();
-		return parser.getModel();
+		return parser.Start();
 	}
 }
 
@@ -89,14 +88,6 @@ TOKEN:{
 TOKEN: { 
   < digit: ["0"-"9"]>
 | < letter: ["a"-"z","A"-"Z"]>
-| < identifier: (<letter>(<letter>|<digit>|<underscore>)*)>
-| < unsigned_integer: (<digit>)+ >
-| < sign: (<plus_sign> | <minus_sign>)>
-| < signed_integer: ((<sign>)? <unsigned_integer>)>
-| < exact_numeric_literal: (<unsigned_integer><period><unsigned_integer>) | (<period><unsigned_integer>)>
-| < approximate_numeric_literal: (<exact_numeric_literal>("e"|"E"))<signed_integer>>
-| < unsigned_numeric_literal: (<exact_numeric_literal>|<approximate_numeric_literal>) >
-| < signed_numeric_literal: ((<sign>)? <unsigned_numeric_literal>) >
 }
 
 /* Non-tokens */
@@ -104,34 +95,109 @@ TOKEN: {
   < non_quote: ~["'"]>
 | < nondoublequote_character: ~["\""] >
  }
-
-/* Strings */
-TOKEN: {
-  < character_string_literal: ( <quote_symbol> | (<quote> (<non_quote> | <quote_symbol>)* <quote>)) >
-| < delimited_identifier: (<double_quote> (<nondoublequote_character> | <doublequote_symbol>)* <double_quote>)>
-} 
-
-void regularIdentifier():
-{}
+String regularIdentifier():
 {
-	<identifier>
+	StringBuilder builder = new StringBuilder();
+	Token token = null;
+}
+{
+	token = <letter> { builder.append(token.image); }
+	( token = <letter> { builder.append(token.image); }
+	 | token = <digit> { builder.append(token.image); }
+	 | token = <underscore> { builder.append(token.image); }
+	)* 
+	 { return builder.toString(); }
 }
 /** Literal Numbers, Strings, Dates and Times */
+
+String unsignedInteger():
+{
+	StringBuilder builder = new StringBuilder();
+	Token token = null;
+}
+{
+	token = <digit> { builder.append(token.image); }
+		( token = <digit> { builder.append(token.image); } )*
+	{ return builder.toString(); }
+}
+String sign():
+{}
+{
+	<plus_sign> { return "+"; }
+	| <minus_sign> { return "-"; }
+}
+String signedInteger():
+{
+	StringBuilder builder = new StringBuilder();
+	String value = null;
+}
+{
+	[ value = sign() { builder.append(value); } ] value = unsignedInteger() { builder.append(value); }
+	{ return builder.toString(); }
+}
+String exactNumericLiteral():
+{
+	StringBuilder builder = new StringBuilder();
+	String value = null;
+}
+{
+	(value = unsignedInteger() { builder.append(value); } <period> { builder.append("."); } value = unsignedInteger() { builder.append(value); } ) { return builder.toString(); }
+	| (<period> { builder.append("."); } unsignedInteger() { builder.append(value); }) { return builder.toString(); }
+}
+String approximateNumericLiteral():
+{
+	StringBuilder builder = new StringBuilder();
+	String value = null;
+}
+{
+	value = exactNumericLiteral() { builder.append(value); } ("e"|"E") { builder.append("e"); } value = signedInteger() { builder.append(value); return builder.toString(); } 
+}
+String unsignedNumericLiteral():
+{
+	StringBuilder builder = new StringBuilder();
+	String value = null;
+}
+{
+	value = exactNumericLiteral() { builder.append(value); }
+	[ ("e"|"E") { builder.append("e"); } value = signedInteger() { builder.append(value); }] 
+	{ return builder.toString(); } 
+}
+String signedNumericLiteral():
+{
+	StringBuilder builder = new StringBuilder();
+	String value = null;
+}
+{
+	[ value = sign() { builder.append(value); }] value = unsignedNumericLiteral() { builder.append(value); return builder.toString(); }
+}
 void literal():
 {}
 {
-	<signed_numeric_literal> | generalLiteral()
+	signedNumericLiteral() | generalLiteral()
 }
 void generalLiteral():
 {}
 {
-	<character_string_literal>
+	characterStringLiteral()
+}
+String characterStringLiteral():
+{
+	StringBuilder builder = new StringBuilder();
+	Token token;
+}
+{
+	<quote_symbol> { return ""; }
+	| <quote> ( token = <non_quote> {builder.append(token.image); } | <quote_symbol> { builder.append("'"); })* <quote>
+	{ return builder.toString(); }
 }
 /* This is the entry point of the parser*/
-void Start():
-{ model = new TableQueryModel(); }
+QuerySpecification Start():
+{ 
+	QuerySpecification querySpecification = null;
+}
 {
-	querySpecification()
+	querySpecification = querySpecification()
+	{ return querySpecification; }
 }
 ValueExpression valueExpression():
 { ValueExpression valueExpression;}
@@ -140,7 +206,7 @@ ValueExpression valueExpression():
 }
 ValueExpression valueExpressionPrimary():
 {
-	SetFunction setFunction = null;
+	SetFunctionSpecification setFunction = null;
 	ColumnReference columnReference = null;
 }
 {
@@ -155,7 +221,7 @@ void unsignedValueSpecification():
 void unsignedLiteral():
 {}
 {
-	<unsigned_numeric_literal>
+	unsignedNumericLiteral()
 	| generalLiteral()
 }
 String identifier():
@@ -168,11 +234,20 @@ String identifier():
 }
 String actualIdentifier():
 {
+	String identifier = null;
+}
+{
+	identifier = regularIdentifier() { return identifier; }
+	| identifier = delimitedIentifier() { return identifier; }
+}
+String delimitedIentifier():
+{ 
+	StringBuilder builder = new StringBuilder();
 	Token token = null;
 }
 {
-	token = <identifier> { return token.image;}
-	| token = <delimited_identifier> { return token.image;}
+	<double_quote> (token = <nondoublequote_character> {builder.append(token.image);} | <doublequote_symbol> { builder.append("'");})* <double_quote>
+	{ return builder.toString(); }
 }
 ColumnReference columnReference():
 {
@@ -183,31 +258,75 @@ ColumnReference columnReference():
 	[ LOOKAHEAD(2) qualifier = qualifier() <period> ] columnName = columnName()
 	{ return new ColumnReference(qualifier, columnName); }
 }
-void querySpecification():
-{}
+QuerySpecification querySpecification():
 {
-	<select> [setQuantifier()] selectList()
+	SetQuantifier setQuantifier = null;
+	SelectList selectList = null;
+	TableExpression tableExpression = null;
 }
-void selectList():
-{}
 {
-	<asterisk>
-	| selectSubList() (<comma> selectSubList())*
+	<select> [ setQuantifier = setQuantifier()] selectList = selectList() tableExpression = tableExpression()
+	{ return new QuerySpecification(setQuantifier, selectList, tableExpression); }
 }
-void selectSubList():
-{}
+SelectList selectList():
 {
-	derivedColumn()
+	List<DerivedColumn> derivedColumns = new LinkedList<DerivedColumn>();
+	DerivedColumn derivedColumn = null;
 }
-void derivedColumn():
-{}
 {
-	valueExpression() [ asClause()]
+	<asterisk> { return new SelectList("*", null); }
+	| derivedColumn = selectSubList()  { derivedColumns.add(derivedColumn); }
+	 (<comma> derivedColumn = selectSubList()  { derivedColumns.add(derivedColumn); })*
+	 { return new SelectList(null, derivedColumns); }
 }
-void asClause():
-{}
+DerivedColumn selectSubList():
 {
-	<as> columnName()
+	DerivedColumn derivedColumn = null;
+}
+{
+	derivedColumn = derivedColumn()
+	{ return derivedColumn; }
+}
+DerivedColumn derivedColumn():
+{
+	String asClause = null;
+	ValueExpression valueExpression = null;
+}
+{
+	valueExpression = valueExpression() [ asClause = asClause()]
+	{ return new DerivedColumn(valueExpression, asClause);}
+}
+String asClause():
+{
+	String columnName = null;
+}
+{
+	<as> columnName = columnName()
+	{ return columnName; }
+}
+TableExpression tableExpression():
+{
+	FromClause fromClause = null;
+}
+{
+	fromClause = fromClause()
+	{ return new TableExpression(fromClause); }
+}
+FromClause fromClause():
+{
+	TableReference tableReference = null;
+}
+{
+	<from> tableReference = tableReference()
+	{ return new FromClause(tableReference); }
+}
+TableReference tableReference():
+{
+	String tableName = null;
+}
+{
+	tableName = tableName()
+	{ return new TableReference(tableName); }
 }
 String columnName():
 {
@@ -224,39 +343,29 @@ SetQuantifier setQuantifier():
 }
 Qualifier qualifier():
 {
-	TableName tableName = null;
+	String tableName = null;
 	String correlationName = null;
 }
 {
 	tableName = tableName() { return new Qualifier(tableName, null); }
-	| correlationName = correlationName() { return new Qualifier(null, correlationName); }
 }
-TableName tableName():
+String tableName():
 { 
-	boolean hasSyn = false;
-	Token token = null;
+	String identifier;
 }
-{
-	[<syn>{ hasSyn = true; }] token = <unsigned_integer>
-	{ return new TableName(hasSyn, Long.parseLong(token.image));}
+{	
+	identifier = regularIdentifier()	{ return identifier;}
+	| identifier = unsignedInteger() { return identifier;}
 }
-String correlationName():
-{
- 	String correlationName = null;
-}
-{
-	correlationName = identifier()
-	{ return correlationName; }
-}
-SetFunction setFunctionSpecification():
-{ SetFunction setFunction = null; }
+SetFunctionSpecification setFunctionSpecification():
+{ SetFunctionSpecification setFunction = null; }
 {
 	LOOKAHEAD(3)
 	<count><left_paren> <asterisk> <right_paren>
-	{ return new SetFunction(SetFunctionType.COUNT, null, new ValueExpression(null, new ColumnReference(null, "*"))); }
+	{ return new SetFunctionSpecification(SetFunctionType.COUNT, null, new ValueExpression(null, new ColumnReference(null, "*"))); }
 	| setFunction = generalSetFunction() { return setFunction;}
 }
-SetFunction generalSetFunction():
+SetFunctionSpecification generalSetFunction():
 { 
 	SetFunctionType setFunctionType = null;
 	SetQuantifier setQuantifier = null;
@@ -264,7 +373,7 @@ SetFunction generalSetFunction():
 }
 {
 	setFunctionType = setFunctionType() <left_paren> [ setQuantifier = setQuantifier() ] valueExpression = valueExpression() <right_paren>
-	{ return new SetFunction(setFunctionType, setQuantifier, valueExpression);}
+	{ return new SetFunctionSpecification(setFunctionType, setQuantifier, valueExpression);}
 }
 SetFunctionType setFunctionType():
 {}
