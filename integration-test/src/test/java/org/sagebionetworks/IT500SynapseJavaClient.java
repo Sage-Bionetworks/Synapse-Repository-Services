@@ -133,6 +133,15 @@ public class IT500SynapseJavaClient {
 		return bootstrappedTeams.size() + number;
 	}
 	
+	private Team getTestTeamFromResults(PaginatedResults<Team> results) {
+		for (Team team : results.getResults()) {
+			if (!bootstrappedTeams.contains(team.getId())) {
+				return team;
+			}
+		}
+		return null;
+	}
+	
 	@BeforeClass
 	public static void beforeClass() throws Exception {
 		// Create 2 users
@@ -1224,7 +1233,7 @@ public class IT500SynapseJavaClient {
 		// query for all teams
 		PaginatedResults<Team> teams = synapseOne.getTeams(null, 1, 0);
 		assertEquals(getBootstrapCountPlus(1L), teams.getTotalNumberOfResults());
-		assertEquals(updatedTeam, teams.getResults().get(0));
+		assertEquals(updatedTeam, getTestTeamFromResults(teams));
 		// make sure pagination works
 		teams = synapseOne.getTeams(null, 10, 1);
 		assertEquals(getBootstrapCountPlus(0L), teams.getResults().size());
@@ -1235,7 +1244,7 @@ public class IT500SynapseJavaClient {
 		adminSynapse.updateTeamSearchCache();
 		teams = synapseOne.getTeams(name.substring(0, 3),1, 0);
 		assertEquals(1L, teams.getTotalNumberOfResults());
-		assertEquals(updatedTeam, teams.getResults().get(0));
+		assertEquals(updatedTeam, getTestTeamFromResults(teams));
 		// again, make sure pagination works
 		teams = synapseOne.getTeams(name.substring(0, 3), 10, 1);
 		assertEquals(0L, teams.getResults().size());
