@@ -21,6 +21,7 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
@@ -822,10 +823,10 @@ public class IT520SynapseJavaClientEvaluationTest {
 		assertNotNull(results);
 		long start = System.currentTimeMillis();
 		while (results.getTotalNumberOfResults() < 1) {
-			long elapse = System.currentTimeMillis() - start;
+			long elapsed = System.currentTimeMillis() - start;
 			assertTrue("Timed out waiting for annotations to be published for query: " + queryString,
-					elapse < RDS_WORKER_TIMEOUT);
-			System.out.println("Waiting for annotations to be published... " + elapse + "ms");
+					elapsed < RDS_WORKER_TIMEOUT);
+			System.out.println("Waiting for annotations to be published... " + elapsed + "ms");
 			Thread.sleep(1000);
 			results = synapseOne.queryEvaluation(queryString);
 		}
@@ -837,5 +838,25 @@ public class IT520SynapseJavaClientEvaluationTest {
 		assertTrue(headers.contains("foo"));
 		int index = headers.indexOf(DBOConstants.PARAM_ANNOTATION_OBJECT_ID);
 		assertEquals(sub1.getId(), rows.get(0).getValues().get(index));
+		
+		
+		// now check that if you delete the submission it stops appearing in the query
+		adminSynapse.deleteSubmission(sub1.getId());
+		submissionsToDelete.remove(sub1.getId());
+		// rerun the query.  We should get no results
+		// we must wait for the annotations to be populated by a worker
+		results = synapseOne.queryEvaluation(queryString);
+		assertNotNull(results);
+		start = System.currentTimeMillis();
+		while (results.getTotalNumberOfResults() > 0) {
+			long elapsed = System.currentTimeMillis() - start;
+			assertTrue("Timed out waiting for annotations to be deleted for query: " + queryString,
+					elapsed < RDS_WORKER_TIMEOUT);
+			System.out.println("Waiting for annotations to be deleted... " + elapsed + "ms");
+			Thread.sleep(1000);
+			results = synapseOne.queryEvaluation(queryString);
+		}
+		assertEquals(0, results.getRows().size());
+		
 	}
 }

@@ -189,6 +189,8 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		validateEvaluationAccess(userInfo, evalId, ACCESS_TYPE.DELETE_SUBMISSION);
 		
 		// the associated SubmissionStatus object will be deleted via cascade
+		// ... but that's not enough to generate a delete message, so we delete it ourselves:
+		submissionStatusDAO.delete(submissionId);
 		submissionDAO.delete(submissionId);
 	}
 
