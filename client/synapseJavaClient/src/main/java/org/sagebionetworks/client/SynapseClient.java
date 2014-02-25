@@ -205,6 +205,13 @@ public interface SynapseClient extends BaseClient {
 	public UserSessionData getUserSessionData() throws SynapseException;
 
 	/**
+	 * Returns a Session and UserProfile object
+	 * 
+	 * Note: if the user has not accepted the terms of use, the profile will not (cannot) be retrieved
+	 */
+	public UserSessionData getUserSessionData(DomainType domain) throws SynapseException;
+	
+	/**
 	 * Refreshes the cached session token so that it can be used for another 24 hours
 	 */
 	public boolean revalidateSession() throws SynapseException;
