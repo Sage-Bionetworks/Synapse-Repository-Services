@@ -41,7 +41,7 @@ PARSER_END(TableQueryParser)
 * When in the DEFAULT state, double quotes are the start of
 * string containing non-double quotes. This involves a state
 * change to: within_double_quote.  The state change is necessary
-* to limit the scope of the <not_double_quote> double which is too broad
+* to limit the scope of the <not_double_quote> token which is too broad
 * for other cases.
 */
 <DEFAULT> SKIP: 
