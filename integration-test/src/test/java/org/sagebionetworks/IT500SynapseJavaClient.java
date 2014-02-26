@@ -1231,7 +1231,7 @@ public class IT500SynapseJavaClient {
 		URL url = synapseOne.getTeamIcon(updatedTeam.getId(), false);
 		assertNotNull(url);
 		// query for all teams
-		PaginatedResults<Team> teams = synapseOne.getTeams(null, 1, 0);
+		PaginatedResults<Team> teams = synapseOne.getTeams(null, getBootstrapCountPlus(1L), 0);
 		assertEquals(getBootstrapCountPlus(1L), teams.getTotalNumberOfResults());
 		assertEquals(updatedTeam, getTestTeamFromResults(teams));
 		// make sure pagination works
