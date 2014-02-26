@@ -1,0 +1,10 @@
+Category,Description,SQL
+Basics,Select all columns from the table identified by 'syn123'.,select * from syn123
+Basics,Select only two columns identified by 'foo' and 'bar' from the table identified by 'syn'123'.,"select foo, bar from syn123"
+Basics,"To refer to a column name that contains spaces or punctuation, the name must be with double quotes.","select ""has space"" from syn123"
+Basics,Any double quotes within a column name must be escaped with another double quote.,"select ""The """"Cool"""" name"" from syn123"
+Aggregation Functions,Count the number of rows in table 'syn123'.,select count(*) from syn123
+Aggregation Functions,Get the maximum of all values for the column 'foo' in table 'syn123'.,select max( foo ) from syn123
+Aggregation Functions,Get the minimum of all values for the column 'foo' in table 'syn123'.,select min(foo) from syn123
+Aggregation Functions,Get the average of all values for the column 'foo' in table 'syn123'.,select avg(foo) from syn123
+Aggregation Functions,Get the sum of all values for the column 'foo' in table 'syn123'.,select sum(foo) from syn123

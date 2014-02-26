@@ -560,6 +560,7 @@
 										<versionRange>[0,)</versionRange>
 										<goals>
 											<goal>jjtree-javacc</goal>
+											<goal>javacc</goal>
 										</goals>
 									</pluginExecutionFilter>
 									<action>
