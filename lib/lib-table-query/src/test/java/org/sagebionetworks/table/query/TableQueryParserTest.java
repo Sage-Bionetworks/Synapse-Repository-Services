@@ -150,11 +150,27 @@ public class TableQueryParserTest {
 	}
 	
 	@Test
+	public void testUnsignedNumericLiteralIntegerStartNoExponent() throws ParseException{
+		StringBuilder builder = new StringBuilder();
+		TableQueryParser parser = new TableQueryParser("123.1");
+		parser.unsignedNumericLiteral(builder);
+		assertEquals("123.1", builder.toString());
+	}
+	
+	@Test
 	public void testUnsignedNumericLiteralWithExponent() throws ParseException{
 		StringBuilder builder = new StringBuilder();
 		TableQueryParser parser = new TableQueryParser("9.12E+123");
 		parser.unsignedNumericLiteral(builder);
 		assertEquals("9.12E+123", builder.toString());
+	}
+	
+	@Test
+	public void testUnsignedNumericLiteralNoIntegerStartWithExponent() throws ParseException{
+		StringBuilder builder = new StringBuilder();
+		TableQueryParser parser = new TableQueryParser(".12E+123");
+		parser.unsignedNumericLiteral(builder);
+		assertEquals(".12E+123", builder.toString());
 	}
 	
 	@Test
