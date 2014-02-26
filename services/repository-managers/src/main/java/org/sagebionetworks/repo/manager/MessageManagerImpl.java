@@ -640,7 +640,7 @@ public class MessageManagerImpl implements MessageManager {
 		String webLink;
 		switch (originClient) {
 		case BRIDGE:
-			webLink = "https://bridge.synapse.org/webapp/resetPassword.html?token=" + sessionToken;
+			webLink = "https://bridge.synapse.org/resetPassword.html?token=" + sessionToken;
 			break;
 		case SYNAPSE:
 			webLink = "https://www.synapse.org/Portal.html#!PasswordReset:" + sessionToken;
