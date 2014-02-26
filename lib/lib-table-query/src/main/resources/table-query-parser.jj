@@ -13,10 +13,13 @@ import java.io.StringReader;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.sagebionetworks.repo.model.table.query.*;
 import org.sagebionetworks.table.query.model.*;
 
 public class TableQueryParser {
+
+	public TableQueryParser(String input){
+		this(new StringReader(input));
+	}
 
 	/**
 	 * Parse the passed query string into a TableQueryModel
@@ -34,6 +37,69 @@ public class TableQueryParser {
 
 PARSER_END(TableQueryParser)
 
+/**
+* When in the DEFAULT state, double quotes are the start of
+* string containing non-double quotes. This involves a state
+* change to: within_double_quote.  The state change is necessary
+* to limit the scope of the <not_double_quote> double which is too broad
+* for other cases.
+*/
+<DEFAULT> SKIP: 
+{
+	< "\""> : within_double_quote
+}
+// This token only has meaning within a double quote.
+<within_double_quote> TOKEN :
+{
+	< not_double_quote: ~["\""]> : within_double_quote
+}
+// This token only has meaning within a double quote.
+<within_double_quote> TOKEN :
+{
+	< escape_double_quote: "\"\"" > : within_double_quote
+}
+/**
+* While within a double quote string, another double
+* quote will terminate the string and restore the state
+* to DEFAULT.
+*/
+<within_double_quote> SKIP :
+{
+	"\"": DEFAULT
+}
+
+
+/**
+* When in the DEFAULT state, single quotes are the start of
+* string containing non-quotes. This involves a state
+* change to: within_single_quotes.  The state change is necessary
+* to limit the scope of the <not_quote> token which is too broad
+* for other cases.
+*/
+<DEFAULT> SKIP: 
+{
+	< "'"> : within_single_quotes
+}
+// This token only has meaning within single quotes.
+<within_single_quotes> TOKEN :
+{
+	< not_single_quote: ~["'"]> : within_single_quotes
+}
+// This token only has meaning within single quotes.
+<within_single_quotes> TOKEN :
+{
+	< escape_single_quote: "''" > : within_single_quotes
+}
+/**
+* While within single quote string, another single
+* quote will terminate the string and restore the state
+* to DEFAULT.
+*/
+<within_single_quotes> SKIP :
+{
+	"'": DEFAULT
+}
+
 /* Skip whitespace */
 SKIP : /* WHITE SPACE */
 { 
@@ -42,11 +108,13 @@ SKIP : /* WHITE SPACE */
 | "\r"
 | "\f"
 | "\n"
-| < NONPRINTABLE: (["\u0000"-"\u0020", "\u007F"-"\u00ff"])+ >
+| < LOW_SPECIAL_ASCII: (["\u0000"-"\u001f"]) >
+| < HIGH_SPECIAL_ASCII: (["\u007f"-"\u00ff"]) >
 }
 
-
-/** TOKENS **/
+TOKEN:{
+ <exponent: (["0"-"9"])+["e","E"]("+"|"-")?(["0"-"9"])+>
+}
 
 /* Reserved words */
 TOKEN [IGNORE_CASE]: {
@@ -72,32 +140,23 @@ TOKEN [IGNORE_CASE]: {
 TOKEN:{
   < asterisk: "*">
 | < comma: ",">
-| < double_quote: "\"" >
-| < doublequote_symbol: "\"\"">
 | < left_paren: "(">
 | < minus_sign: "-">
 | < period: "." >
 | < plus_sign: "+">
-| < quote: "'" >
-| < quote_symbol: "''" >
 | < right_paren: ")">
 | < solidus: "/">
 | <underscore: "_">
-
-}/* Complex Tokens */
+}
+/* Complex Tokens */
 TOKEN: { 
   < digit: ["0"-"9"]>
 | < letter: ["a"-"z","A"-"Z"]>
 }
 
-/* Non-tokens */
-TOKEN: { 
-  < non_quote: ~["'"]>
-| < nondoublequote_character: ~["\""] >
- }
-String regularIdentifier():
+
+void regularIdentifier(StringBuilder builder):
 {
-	StringBuilder builder = new StringBuilder();
 	Token token = null;
 }
 {
@@ -106,89 +165,86 @@ String regularIdentifier():
 	 | token = <digit> { builder.append(token.image); }
 	 | token = <underscore> { builder.append(token.image); }
 	)* 
-	 { return builder.toString(); }
 }
 /** Literal Numbers, Strings, Dates and Times */
 
-String unsignedInteger():
+void unsignedInteger(StringBuilder builder):
 {
-	StringBuilder builder = new StringBuilder();
 	Token token = null;
 }
 {
 	token = <digit> { builder.append(token.image); }
 		( token = <digit> { builder.append(token.image); } )*
-	{ return builder.toString(); }
 }
-String sign():
+void sign(StringBuilder builder):
 {}
 {
-	<plus_sign> { return "+"; }
-	| <minus_sign> { return "-"; }
+	<plus_sign> { builder.append("+"); }
+	| <minus_sign> { builder.append("-"); }
 }
-String signedInteger():
-{
-	StringBuilder builder = new StringBuilder();
-	String value = null;
-}
-{
-	[ value = sign() { builder.append(value); } ] value = unsignedInteger() { builder.append(value); }
-	{ return builder.toString(); }
-}
-String exactNumericLiteral():
-{
-	StringBuilder builder = new StringBuilder();
-	String value = null;
-}
-{
-	(value = unsignedInteger() { builder.append(value); } <period> { builder.append("."); } value = unsignedInteger() { builder.append(value); } ) { return builder.toString(); }
-	| (<period> { builder.append("."); } unsignedInteger() { builder.append(value); }) { return builder.toString(); }
-}
-String approximateNumericLiteral():
-{
-	StringBuilder builder = new StringBuilder();
-	String value = null;
-}
-{
-	value = exactNumericLiteral() { builder.append(value); } ("e"|"E") { builder.append("e"); } value = signedInteger() { builder.append(value); return builder.toString(); } 
-}
-String unsignedNumericLiteral():
-{
-	StringBuilder builder = new StringBuilder();
-	String value = null;
-}
-{
-	value = exactNumericLiteral() { builder.append(value); }
-	[ ("e"|"E") { builder.append("e"); } value = signedInteger() { builder.append(value); }] 
-	{ return builder.toString(); } 
-}
-String signedNumericLiteral():
-{
-	StringBuilder builder = new StringBuilder();
-	String value = null;
-}
-{
-	[ value = sign() { builder.append(value); }] value = unsignedNumericLiteral() { builder.append(value); return builder.toString(); }
-}
-void literal():
+void signedInteger(StringBuilder builder):
 {}
 {
-	signedNumericLiteral() | generalLiteral()
+	[ sign(builder) ] unsignedInteger(builder) 
 }
-void generalLiteral():
+void period(StringBuilder builder):
 {}
 {
-	characterStringLiteral()
+	<period> { builder.append("."); }
 }
-String characterStringLiteral():
+void exactNumericLiteral(StringBuilder builder):
+{}
+{
+	( unsignedInteger(builder) period(builder) unsignedInteger(builder) )
+	| (  period(builder) unsignedInteger(builder) )
+}
+void exponent(StringBuilder builder):
+{
+	Token token = null;
+}
+{
+	token = <exponent> { builder.append(token.image); }
+}
+void approximateNumericLiteral(StringBuilder builder):
+{}
+{
+	(  period(builder) exponent(builder) )
+	| ( unsignedInteger(builder) period(builder) exponent(builder) )
+}
+void unsignedNumericLiteral(StringBuilder builder):
+{}
+{
+	( unsignedInteger(builder) period(builder) ( unsignedInteger(builder) | exponent(builder) ) )
+	| ( period(builder) ( unsignedInteger(builder) | exponent(builder) ) )
+}
+void signedNumericLiteral(StringBuilder builder):
+{
+}
+{
+	[ sign(builder) ] unsignedNumericLiteral(builder)
+}
+String literal():
 {
 	StringBuilder builder = new StringBuilder();
+}
+{
+	signedNumericLiteral(builder) { return builder.toString(); }
+	| generalLiteral(builder) { return builder.toString(); }
+}
+void generalLiteral(StringBuilder builder):
+{}
+{
+	characterStringLiteral(builder)
+}
+void characterStringLiteral(StringBuilder builder):
+{
 	Token token;
 }
 {
-	<quote_symbol> { return ""; }
-	| <quote> ( token = <non_quote> {builder.append(token.image); } | <quote_symbol> { builder.append("'"); })* <quote>
-	{ return builder.toString(); }
+	(
+		token = <not_single_quote> { builder.append(token.image); }
+		| <escape_single_quote>  { builder.append("'"); }
+	)*
 }
 /* This is the entry point of the parser*/
 QuerySpecification Start():
@@ -218,11 +274,11 @@ void unsignedValueSpecification():
 {
 	unsignedLiteral()
 }
-void unsignedLiteral():
-{}
+String unsignedLiteral():
+{ StringBuilder builder = new StringBuilder(); }
 {
-	unsignedNumericLiteral()
-	| generalLiteral()
+	unsignedNumericLiteral(builder) { return builder.toString(); }
+	| generalLiteral(builder) { return builder.toString(); }
 }
 String identifier():
 {
@@ -234,20 +290,21 @@ String identifier():
 }
 String actualIdentifier():
 {
-	String identifier = null;
+	StringBuilder builder = new StringBuilder();
 }
 {
-	identifier = regularIdentifier() { return identifier; }
-	| identifier = delimitedIentifier() { return identifier; }
+	regularIdentifier(builder) { return builder.toString(); }
+	| delimitedIentifier(builder) { return builder.toString(); }
 }
-String delimitedIentifier():
+void delimitedIentifier(StringBuilder builder):
 { 
-	StringBuilder builder = new StringBuilder();
 	Token token = null;
 }
 {
-	<double_quote> (token = <nondoublequote_character> {builder.append(token.image);} | <doublequote_symbol> { builder.append("'");})* <double_quote>
-	{ return builder.toString(); }
+	(
+		token = <not_double_quote> { builder.append(token.image); }
+		| <escape_double_quote>  { builder.append("\""); }
+	)*
 }
 ColumnReference columnReference():
 {
@@ -351,11 +408,10 @@ Qualifier qualifier():
 }
 String tableName():
 { 
-	String identifier;
+	StringBuilder builder = new StringBuilder();
 }
 {	
-	identifier = regularIdentifier()	{ return identifier;}
-	| identifier = unsignedInteger() { return identifier;}
+	[<syn>] unsignedInteger(builder) { return builder.toString(); }
 }
 SetFunctionSpecification setFunctionSpecification():
 { SetFunctionSpecification setFunction = null; }
