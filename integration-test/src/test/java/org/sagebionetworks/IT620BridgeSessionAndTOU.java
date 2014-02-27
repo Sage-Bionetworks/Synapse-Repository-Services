@@ -44,10 +44,12 @@ public class IT620BridgeSessionAndTOU {
 	
 	@Test
 	public void loginsAreSeparate() throws Exception {
-		synapseClient.login("test_user", "password", DomainType.BRIDGE);
+		synapseClient.getSharedClientConnection().setDomain(DomainType.BRIDGE);
+		synapseClient.login("test_user", "password");
 		String token1 = synapseClient.getCurrentSessionToken();
 
-		synapseClient.login("test_user", "password", DomainType.SYNAPSE);
+		synapseClient.getSharedClientConnection().setDomain(DomainType.SYNAPSE);
+		synapseClient.login("test_user", "password");
 		String token2 = synapseClient.getCurrentSessionToken();
 		
 		Assert.assertFalse(token1.equals(token2));
