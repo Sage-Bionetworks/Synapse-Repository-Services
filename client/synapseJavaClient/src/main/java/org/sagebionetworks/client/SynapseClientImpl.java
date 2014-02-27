@@ -390,7 +390,26 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 		this.dataUploader = dataUploader;
 	}
-	
+
+	/**
+	 * Default constructor uses the default repository and auth services
+	 * endpoints.
+	 */
+	public SynapseClientImpl(DomainType domain) {
+		// Use the default implementations
+		this(new HttpClientProviderImpl(), new DataUploaderMultipartImpl(), domain);
+	}
+
+	/**
+	 * Will use the provided client provider and data uploader.
+	 * 
+	 * @param clientProvider 
+	 * @param dataUploader 
+	 */
+	public SynapseClientImpl(HttpClientProvider clientProvider, DataUploader dataUploader, DomainType domain) {
+		this(new SharedClientConnection(clientProvider, domain), dataUploader);
+	}
+
 	/**
 	 * Use this method to override the default implementation of {@link HttpClientProvider}
 	 * @param clientProvider
@@ -513,25 +532,20 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	
 	@Override
 	public Session login(String username, String password) throws SynapseException {
-		return login(username, password, DomainType.SYNAPSE);
+		return getSharedClientConnection().login(username, password, getUserAgent());
 	}
 	
-	@Override
-	public Session login(String username, String password, DomainType domain) throws SynapseException {
-		return getSharedClientConnection().login(username, password, getUserAgent(), getParameterMapForDomain(domain));
-	}
-
 	@Override
 	public void logout() throws SynapseException {
 		getSharedClientConnection().logout(getUserAgent());
 	}
 	
 	@Override
-	public UserSessionData getUserSessionData(DomainType domain) throws SynapseException {
+	public UserSessionData getUserSessionData() throws SynapseException {
 		Session session = new Session();
 		session.setSessionToken(getCurrentSessionToken());
 		try {
-			revalidateSession(domain);
+			revalidateSession();
 			session.setAcceptsTermsOfUse(true);
 		} catch (SynapseTermsOfUseException e) {
 			session.setAcceptsTermsOfUse(false);
@@ -544,21 +558,11 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			userData.setProfile(getMyProfile());
 		}
 		return userData;
-	}	
-	
-	@Override
-	public UserSessionData getUserSessionData() throws SynapseException {
-		return getUserSessionData(DomainType.SYNAPSE);
 	}
 	
 	@Override
 	public boolean revalidateSession() throws SynapseException {
-		return revalidateSession(DomainType.SYNAPSE);
-	}
-	
-	@Override
-	public boolean revalidateSession(DomainType domain) throws SynapseException {
-		return getSharedClientConnection().revalidateSession(getUserAgent(), getParameterMapForDomain(domain));
+		return getSharedClientConnection().revalidateSession(getUserAgent());
 	}
 	
 	/******************** Mid Level Repository Service APIs 
@@ -581,7 +585,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public JSONObject createJSONObject(String uri, JSONObject entity)
 			throws SynapseException {
-		return getSharedClientConnection().postJson(repoEndpoint, uri, entity.toString(), getUserAgent());
+		return getSharedClientConnection().postJson(repoEndpoint, uri, entity.toString(), getUserAgent(), null);
 	}
 
 	/**
@@ -3127,7 +3131,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throw new IllegalArgumentException("must provide entity");
 		}
 		String postJSON = EntityFactory.createJSONStringForEntity(entity);
-		JSONObject jsonObject = getSharedClientConnection().postJson(repoEndpoint, uri, postJSON, getUserAgent());
+		JSONObject jsonObject = getSharedClientConnection().postJson(repoEndpoint, uri, postJSON, getUserAgent(), null);
 		return (T) EntityFactory.createEntityFromJSONObject(jsonObject, entity.getClass());
 	}
 
@@ -3151,7 +3155,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throw new IllegalArgumentException("must provide entity");
 		}
 		String postJSON = EntityFactory.createJSONStringForEntity(entity);
-		JSONObject jsonObject = getSharedClientConnection().postJson(endpoint, uri, postJSON, getUserAgent());
+		JSONObject jsonObject = getSharedClientConnection().postJson(endpoint, uri, postJSON, getUserAgent(), null);
 		return (T) EntityFactory.createEntityFromJSONObject(jsonObject, entity.getClass());
 	}
 	
@@ -3251,7 +3255,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 					storedEntity.put(key, entity.get(key));
 				}
 			}
-			return getSharedClientConnection().putJson(repoEndpoint, uri, storedEntity.toString(), getUserAgent());
+			return getSharedClientConnection()
+					.putJson(repoEndpoint, uri, storedEntity.toString(), getUserAgent());
 		} catch (JSONException e) {
 			throw new SynapseException(e);
 		}
@@ -3297,7 +3302,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		SearchResults searchResults = null;		
 		String uri = "/search";
 		String jsonBody = EntityFactory.createJSONStringForEntity(searchQuery);
-		JSONObject obj = getSharedClientConnection().postJson(repoEndpoint, uri, jsonBody, getUserAgent());
+		JSONObject obj = getSharedClientConnection().postJson(repoEndpoint, uri, jsonBody, getUserAgent(), null);
 		if(obj != null) {
 			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(obj);
 			searchResults = new SearchResults(adapter);
@@ -3354,7 +3359,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		String uri = MESSAGE;
 		try {
 			String jsonBody = EntityFactory.createJSONStringForEntity(message);
-			JSONObject obj = getSharedClientConnection().postJson(repoEndpoint, uri, jsonBody, getUserAgent());
+			JSONObject obj = getSharedClientConnection().postJson(repoEndpoint, uri, jsonBody, getUserAgent(), null);
 			return EntityFactory.createEntityFromJSONObject(obj, MessageToUser.class);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
@@ -3464,7 +3469,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		String uri = ENTITY + "/" + entityId + "/" + MESSAGE;
 		try {
 			String jsonBody = EntityFactory.createJSONStringForEntity(message);
-			JSONObject obj = getSharedClientConnection().postJson(repoEndpoint, uri, jsonBody, getUserAgent());
+			JSONObject obj = getSharedClientConnection().postJson(repoEndpoint, uri, jsonBody, getUserAgent(), null);
 			return EntityFactory.createEntityFromJSONObject(obj, MessageToUser.class);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
@@ -3517,7 +3522,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		String uri = MESSAGE + "/" + messageId + FORWARD;
 		try {
 			String jsonBody = EntityFactory.createJSONStringForEntity(recipients);
-			JSONObject obj = getSharedClientConnection().postJson(repoEndpoint, uri, jsonBody, getUserAgent());
+			JSONObject obj = getSharedClientConnection().postJson(repoEndpoint, uri, jsonBody, getUserAgent(), null);
 			return EntityFactory.createEntityFromJSONObject(obj, MessageToUser.class);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
@@ -4796,8 +4801,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public void addTeamMember(String teamId, String memberId)
 			throws SynapseException {
-		getSharedClientConnection().putJson(repoEndpoint, TEAM + "/" + teamId + MEMBER + "/" + memberId, new JSONObject().toString(),
-				getUserAgent());
+		getSharedClientConnection().putJson(repoEndpoint, TEAM + "/" + teamId + MEMBER + "/" + memberId,
+				new JSONObject().toString(), getUserAgent());
 	}
 	
 	private static String urlEncode(String s) {
@@ -5035,15 +5040,9 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	@Override
 	public void createUser(NewUser user) throws SynapseException {
-		createUser(user, DomainType.SYNAPSE);
-	}
-	
-	@Override
-	public void createUser(NewUser user, DomainType domain) throws SynapseException {
 		try {
 			JSONObject obj = EntityFactory.createJSONObjectForEntity(user);
-			getSharedClientConnection().postJson(authEndpoint, "/user", obj.toString(), getUserAgent(),
-					getParameterMapForDomain(domain));
+			getSharedClientConnection().postJson(authEndpoint, "/user", obj.toString(), getUserAgent(), null);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
@@ -5051,17 +5050,11 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	
 	@Override
 	public void sendPasswordResetEmail(String email) throws SynapseException{
-		sendPasswordResetEmail(email, DomainType.SYNAPSE);
-	}
-	
-	@Override
-	public void sendPasswordResetEmail(String email, DomainType domain) throws SynapseException{
 		try {
 			Username user = new Username();
 			user.setEmail(email);
 			JSONObject obj = EntityFactory.createJSONObjectForEntity(user);
-			getSharedClientConnection().postJson(authEndpoint, "/user/password/email", obj.toString(), getUserAgent(),
-					getParameterMapForDomain(domain));
+			getSharedClientConnection().postJson(authEndpoint, "/user/password/email", obj.toString(), getUserAgent(), null);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
@@ -5075,7 +5068,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			change.setPassword(newPassword);
 			
 			JSONObject obj = EntityFactory.createJSONObjectForEntity(change);
-			getSharedClientConnection().postJson(authEndpoint, "/user/password", obj.toString(), getUserAgent());
+			getSharedClientConnection().postJson(authEndpoint, "/user/password", obj.toString(), getUserAgent(), null);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
@@ -5093,9 +5086,10 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			session.setSessionToken(sessionToken);
 			session.setAcceptsTermsOfUse(acceptTerms);
 
+			Map<String, String> parameters = domainToParameterMap(domain);
+			
 			JSONObject obj = EntityFactory.createJSONObjectForEntity(session);
-			getSharedClientConnection().postJson(authEndpoint, "/termsOfUse", obj.toString(), getUserAgent(),
-					getParameterMapForDomain(domain));
+			getSharedClientConnection().postJson(authEndpoint, "/termsOfUse", obj.toString(), getUserAgent(), parameters);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
@@ -5118,18 +5112,22 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			builder.setPath("/openIdCallback");
 			builder.setQuery(queryString);
 			builder.setParameter("org.sagebionetworks.createUserIfNecessary", createUserIfNecessary.toString());
+			
+			Map<String, String> parameters = domainToParameterMap(domain);
+			
 			JSONObject session = getSharedClientConnection().postJson(authEndpoint, builder.toString(), "",
-					getUserAgent(), getParameterMapForDomain(domain));
+					getUserAgent(), parameters);
 			return EntityFactory.createEntityFromJSONObject(session, Session.class);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
 	}
-	
-	private Map<String,String> getParameterMapForDomain(DomainType domain) {
-		Map<String, String> parameters = Maps.newHashMap();
+
+	private Map<String, String> domainToParameterMap(DomainType domain) {
+		Map<String,String> parameters = Maps.newHashMap();
 		parameters.put(AuthorizationConstants.DOMAIN_PARAM, domain.name());
 		return parameters;
 	}
+	
 }
 

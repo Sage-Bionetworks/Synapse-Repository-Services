@@ -85,13 +85,14 @@ public class AuthenticationFilter implements Filter {
 		
 		// Determine the caller's identity
 		Long userId = null;
+		DomainType domain = DomainTypeUtils.valueOf(req.getParameter(AuthorizationConstants.DOMAIN_PARAM));
 		
 		// A session token maps to a specific user
 		if (!isSessionTokenEmptyOrNull(sessionToken)) {
 			String failureReason = "Invalid session token";
 			try {
 				// This filter isn't used in Bridge, so the domain is always Synapse
-				userId = authenticationService.revalidate(sessionToken, DomainType.SYNAPSE, false);
+				userId = authenticationService.revalidate(sessionToken, domain, false);
 			} catch (UnauthorizedException e) {
 				reject(req, (HttpServletResponse) servletResponse, failureReason);
 				log.warn(failureReason, e);
@@ -133,7 +134,7 @@ public class AuthenticationFilter implements Filter {
 			boolean toUCheck = false;
 			try {
 				// This filter isn't used in Bridge, so the domain is always Synapse
-				toUCheck = authenticationService.hasUserAcceptedTermsOfUse(userId, DomainType.SYNAPSE);
+				toUCheck = authenticationService.hasUserAcceptedTermsOfUse(userId, domain);
 			} catch (NotFoundException e) {
 				String reason = "User " + userId + " does not exist";
 				reject(req, (HttpServletResponse) servletResponse, reason, HttpStatus.NOT_FOUND);

@@ -188,11 +188,6 @@ public interface SynapseClient extends BaseClient {
 			throws SynapseException;
 	
 	/**
-	 * Log in to a Sage application (currently Synapse or Bridge).
-	 */
-	public Session login(String username, String password, DomainType domain) throws SynapseException;
-	
-	/**
 	 * Log out of Synapse
 	 */
 	public void logout() throws SynapseException;
@@ -205,19 +200,10 @@ public interface SynapseClient extends BaseClient {
 	public UserSessionData getUserSessionData() throws SynapseException;
 
 	/**
-	 * Returns a Session and UserProfile object
-	 * 
-	 * Note: if the user has not accepted the terms of use, the profile will not (cannot) be retrieved
-	 */
-	public UserSessionData getUserSessionData(DomainType domain) throws SynapseException;
-	
-	/**
 	 * Refreshes the cached session token so that it can be used for another 24 hours
 	 */
 	public boolean revalidateSession() throws SynapseException;
 	
-	public boolean revalidateSession(DomainType domain) throws SynapseException;
-
 	/**
 	 * Create a new Entity.
 	 * 
@@ -1217,11 +1203,6 @@ public interface SynapseClient extends BaseClient {
 	public void createUser(NewUser user) throws SynapseException;
 	
 	/**
-	 * Creates a user
-	 */
-	public void createUser(NewUser user, DomainType originClient) throws SynapseException;
-
-	/**
 	 * Changes the registering user's password
 	 */
 	public void changePassword(String sessionToken, String newPassword) throws SynapseException;
@@ -1241,11 +1222,6 @@ public interface SynapseClient extends BaseClient {
 	 * Sends a password reset email to the given user as if request came from Synapse.
 	 */
 	public void sendPasswordResetEmail(String email) throws SynapseException;
-	
-	/**
-	 * Sends a password reset email to the given user
-	 */
-	public void sendPasswordResetEmail(String email, DomainType originClient) throws SynapseException;
 	
 	/**
 	 * Performs OpenID authentication using the set of parameters from an OpenID provider
