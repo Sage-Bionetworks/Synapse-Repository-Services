@@ -31,7 +31,7 @@ public class DBOTermsOfUseAgreement implements MigratableDatabaseObject<DBOTerms
 	@Field(name = COL_TERMS_OF_USE_AGREEMENT_DOMAIN, nullable = false, varchar=256, primary=true)
 	private DomainType domain;
 	
-	@Field(name = COL_TERMS_OF_USE_AGREEMENT_AGREEMENT, nullable = false)
+	@Field(name = COL_TERMS_OF_USE_AGREEMENT_AGREEMENT)
 	private Boolean agreesToTermsOfUse;
 	
 	@Override
