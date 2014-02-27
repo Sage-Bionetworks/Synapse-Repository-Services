@@ -114,27 +114,38 @@ SKIP : /* WHITE SPACE */
 
 TOKEN:{
  <exponent: (["0"-"9"])+["e","E"]("+"|"-")?(["0"-"9"])+>
+| < count_asterisk: ("count"|"COUNT")"(*)" >
 }
 
 /* Reserved words */
 TOKEN [IGNORE_CASE]: {
   < all: "ALL">
+| < and: "AND">
 | < as: "AS">
 | < avg: "AVG">
 | < date: "DATE" >
 | < count: "COUNT">
 | < current_date: "CURRENT_DATE">
 | < current_time: "CURRENT_TIME">
-| < distinct: "DISTINCT"> 
+| < distinct: "DISTINCT">
+| < default_specification: "DEFAULT" > 
+| < _false: "FALSE">
 | < from: "FROM">
 | < interval: "INTERVAL">
+| < is: "IS">
 | < max: "MAX" >
 | < min: "MIN" >
+| < not: "NOT" >
+| < null_specification: "NULL" >
+| < or: "OR" >
 | < select: "SELECT" >
 | < sum: "SUM" >
 | < syn: "SYN" >
 | < time: "TIME" >
 | < timestamp: "TIMESTAMP">
+| < _true: "TRUE">
+| < where: "WHERE">
+| < unknown: "UNKNOWN">
 }
 /* Symbols and punctuation */
 TOKEN:{
@@ -142,6 +153,12 @@ TOKEN:{
 | < comma: ",">
 | < left_paren: "(">
 | < minus_sign: "-">
+| < not_equals_operator: "<>">
+| < less_than_or_equals_operator: "<=">
+| < greater_than_or_equals_operator: ">=">
+| < less_than_operator: "<">
+| < greater_than_operator: ">">
+| < equals_operator: "=">
 | < period: "." >
 | < plus_sign: "+">
 | < right_paren: ")">
@@ -255,11 +272,6 @@ QuerySpecification Start():
 	querySpecification = querySpecification()
 	{ return querySpecification; }
 }
-ValueExpression valueExpression():
-{ ValueExpression valueExpression;}
-{	
-	valueExpression = valueExpressionPrimary() { return valueExpression;}
-}
 ValueExpression valueExpressionPrimary():
 {
 	SetFunctionSpecification setFunction = null;
@@ -364,10 +376,11 @@ String asClause():
 TableExpression tableExpression():
 {
 	FromClause fromClause = null;
+	WhereClause whereClause = null;
 }
 {
-	fromClause = fromClause()
-	{ return new TableExpression(fromClause); }
+	fromClause = fromClause() [ whereClause = whereClause() ]
+	{ return new TableExpression(fromClause, whereClause); }
 }
 FromClause fromClause():
 {
@@ -416,8 +429,7 @@ String tableName():
 SetFunctionSpecification setFunctionSpecification():
 { SetFunctionSpecification setFunction = null; }
 {
-	LOOKAHEAD(3)
-	<count><left_paren> <asterisk> <right_paren>
+	<count_asterisk>
 	{ return new SetFunctionSpecification(SetFunctionType.COUNT, null, new ValueExpression(null, new ColumnReference(null, "*"))); }
 	| setFunction = generalSetFunction() { return setFunction;}
 }
@@ -439,4 +451,136 @@ SetFunctionType setFunctionType():
 	| <min> { return SetFunctionType.MIN; }
 	| <sum> { return SetFunctionType.SUM; }
 	| <count> { return SetFunctionType.COUNT; }
+}
+void whereClause():
+{}
+{
+	<where> searchCondition()
+}
+/**
+* The reference BNF definition for searchCondition() is "left recursive"
+* which is not possible with javacc, so it was re-written.
+*/
+void searchCondition():
+{}
+{
+	booleanTerm() ( <or> booleanTerm() )*
+}
+/**
+* The reference BNF definition for booleanTerm() is "left recursive"
+* which is not possible with javacc, so it was re-written. 
+*/
+void booleanTerm():
+{}
+{
+	booleanFactor() ( <and> booleanFactor() )*
+}
+void booleanFactor():
+{}
+{
+	[ <not> ] booleanTest()
+}
+void booleanTest():
+{}
+{
+	booleanPrimary() [ <is> [ <not> ] truthValue() ]
+}
+void booleanPrimary():
+{}
+{
+	LOOKAHEAD(2)
+	predicate()
+	|  <left_paren> searchCondition() <right_paren>
+}
+void predicate():
+{}
+{
+	comparisonPredicate()
+}
+void comparisonPredicate():
+{}
+{
+	rowValueConstructor() compOp() rowValueConstructor()
+}
+void rowValueConstructor():
+{}
+{
+	<left_paren> rowValueConstructorList() <right_paren>
+	| rowValueConstructorElement()
+}
+void rowValueConstructorList():
+{}
+{
+	rowValueConstructorElement() (<comma> rowValueConstructorElement() )*
+}
+void rowValueConstructorElement():
+{}
+{
+		<null_specification>
+	|	<default_specification>
+	|	valueExpression()
+}
+void valueExpression():
+{}
+{
+	LOOKAHEAD(3)
+	numericValueExpression()
+	| stringValueExpression()
+}
+void numericValueExpression():
+{}
+{
+	term()
+}
+void term():
+{}
+{
+	factor()
+}
+void factor():
+{}
+{
+	[ sign() ] numericPrimary()
+}
+void numericPrimary():
+{}
+{
+	valueExpressionPrimary()
+}
+void stringValueExpression():
+{}
+{
+	characterValueExpression()
+}
+void characterValueExpression():
+{}
+{
+	characterFactor()
+}
+void characterFactor():
+{}
+{
+	characterPrimary()
+}
+void characterPrimary():
+{}
+{
+	valueExpressionPrimary()
+}
+void truthValue():
+{}
+{
+	<_true>
+	| <_false>
+	| <unknown>
+}
+void compOp():
+{}
+{
+		<equals_operator>
+	|	<not_equals_operator>
+	|   <less_than_operator>
+	|   <greater_than_operator>
+	|   <less_than_or_equals_operator>
+	|   <greater_than_or_equals_operator>
 }
