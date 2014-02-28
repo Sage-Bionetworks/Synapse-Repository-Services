@@ -118,7 +118,6 @@ public class SharedClientConnection {
 	
 	public SharedClientConnection(DomainType domain) {
 		this(new HttpClientProviderImpl(), domain);
-		this.domain = domain;
 	}
 
 	/**
