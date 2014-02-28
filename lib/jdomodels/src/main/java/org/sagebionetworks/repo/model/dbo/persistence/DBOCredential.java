@@ -11,7 +11,7 @@ import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 
-public class DBOCredential implements MigratableDatabaseObject<DBOCredential, DBOCredential> {
+public class DBOCredential implements MigratableDatabaseObject<DBOCredential, DBOCredentialBackup> {
 	private Long principalId;
 	private String passHash;
 	private String secretKey;
@@ -80,44 +80,43 @@ public class DBOCredential implements MigratableDatabaseObject<DBOCredential, DB
 	public MigrationType getMigratableTableType() {
 		return MigrationType.CREDENTIAL;
 	}
-
-
+	
 	@Override
-	public MigratableTableTranslation<DBOCredential, DBOCredential> getTranslator() {
-		// We do not currently have a backup for this object.
-		return new MigratableTableTranslation<DBOCredential, DBOCredential>(){
-
+	public MigratableTableTranslation<DBOCredential, DBOCredentialBackup> getTranslator() {
+		return new MigratableTableTranslation<DBOCredential, DBOCredentialBackup>(){
 			@Override
-			public DBOCredential createDatabaseObjectFromBackup(
-					DBOCredential backup) {
+			public DBOCredential createDatabaseObjectFromBackup(DBOCredentialBackup backup) {
+				DBOCredential credential = new DBOCredential();
+				credential.setPassHash(backup.getPassHash());
+				credential.setPrincipalId(backup.getPrincipalId());
+				credential.setSecretKey(backup.getSecretKey());
+				return credential;
+			}
+			@Override
+			public DBOCredentialBackup createBackupFromDatabaseObject(DBOCredential dbo) {
+				DBOCredentialBackup backup = new DBOCredentialBackup();
+				backup.setPassHash(dbo.getPassHash());
+				backup.setPrincipalId(dbo.getPrincipalId());
+				backup.setSecretKey(dbo.getSecretKey());
 				return backup;
 			}
-
-			@Override
-			public DBOCredential createBackupFromDatabaseObject(DBOCredential dbo) {
-				return dbo;
-			}};
+		};
 	}
-
 
 	@Override
-	public Class<? extends DBOCredential> getBackupClass() {
-		return DBOCredential.class;
+	public Class<? extends DBOCredentialBackup> getBackupClass() {
+		return DBOCredentialBackup.class;
 	}
-
 
 	@Override
 	public Class<? extends DBOCredential> getDatabaseObjectClass() {
 		return DBOCredential.class;
 	}
 
-
 	@SuppressWarnings("rawtypes")
 	@Override
 	public List<MigratableDatabaseObject> getSecondaryTypes() {
 		return null;
 	}
-
-
 
 }
