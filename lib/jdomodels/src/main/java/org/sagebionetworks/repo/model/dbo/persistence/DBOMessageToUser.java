@@ -16,19 +16,21 @@ import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
  */
 public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUser, DBOMessageToUser> {
 	
+	public static final String MESSAGE_ID_FIELD_NAME = "messageId";
+	
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
-		new FieldColumn("messageId", SqlConstants.COL_MESSAGE_TO_USER_MESSAGE_ID, true).withIsBackupId(true),
+		new FieldColumn(MESSAGE_ID_FIELD_NAME, SqlConstants.COL_MESSAGE_TO_USER_MESSAGE_ID, true).withIsBackupId(true),
 		new FieldColumn("rootMessageId", SqlConstants.COL_MESSAGE_TO_USER_ROOT_ID), 
 		new FieldColumn("inReplyTo", SqlConstants.COL_MESSAGE_TO_USER_REPLY_TO_ID), 
 		new FieldColumn("subject", SqlConstants.COL_MESSAGE_TO_USER_SUBJECT),
-		new FieldColumn("status", SqlConstants.COL_MESSAGE_TO_USER_STATUS)
+		new FieldColumn("sent", SqlConstants.COL_MESSAGE_TO_USER_SENT)
 	};
 	
 	private Long messageId;
 	private Long rootMessageId;
 	private Long inReplyTo;
 	private String subject;
-	private DBOMessageTransmissionStatus status;
+	private Boolean sent;
 
 	@Override
 	public TableMapping<DBOMessageToUser> getTableMapping() {
@@ -44,7 +46,7 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 					result.setInReplyTo(Long.parseLong(replyTo));
 				};
 				result.setSubject(rs.getString(SqlConstants.COL_MESSAGE_TO_USER_SUBJECT));
-				result.setStatus(DBOMessageTransmissionStatus.valueOf(rs.getString(SqlConstants.COL_MESSAGE_TO_USER_STATUS)));
+				result.setSent(rs.getBoolean(SqlConstants.COL_MESSAGE_TO_USER_SENT));
 				return result;
 			}
 			
@@ -102,12 +104,12 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 		this.subject = subject;
 	}
 
-	public DBOMessageTransmissionStatus getStatus() {
-		return status;
+	public Boolean getSent() {
+		return sent;
 	}
 
-	public void setStatus(DBOMessageTransmissionStatus status) {
-		this.status = status;
+	public void setSent(Boolean sent) {
+		this.sent = sent;
 	}
 
 	@Override
@@ -120,7 +122,7 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 		return new MigratableTableTranslation<DBOMessageToUser, DBOMessageToUser>() {
 			@Override
 			public DBOMessageToUser createDatabaseObjectFromBackup(DBOMessageToUser backup) {
-				if (backup.getStatus()==null) backup.setStatus(DBOMessageTransmissionStatus.COMPLETE);
+				if (backup.getSent()==null) backup.setSent(true); // for legacy objects
 				return backup;
 			}
 			
@@ -157,7 +159,7 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 				+ ((messageId == null) ? 0 : messageId.hashCode());
 		result = prime * result
 				+ ((rootMessageId == null) ? 0 : rootMessageId.hashCode());
-		result = prime * result + ((status == null) ? 0 : status.hashCode());
+		result = prime * result + ((sent == null) ? 0 : sent.hashCode());
 		result = prime * result + ((subject == null) ? 0 : subject.hashCode());
 		return result;
 	}
@@ -187,7 +189,10 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 				return false;
 		} else if (!rootMessageId.equals(other.rootMessageId))
 			return false;
-		if (status != other.status)
+		if (sent == null) {
+			if (other.sent != null)
+				return false;
+		} else if (!sent.equals(other.sent))
 			return false;
 		if (subject == null) {
 			if (other.subject != null)
@@ -202,7 +207,7 @@ public class DBOMessageToUser implements MigratableDatabaseObject<DBOMessageToUs
 	public String toString() {
 		return "DBOMessageToUser [messageId=" + messageId + ", rootMessageId="
 				+ rootMessageId + ", inReplyTo=" + inReplyTo + ", subject="
-				+ subject + ", status=" + status + "]";
+				+ subject + ", sent=" + sent + "]";
 	}
 
 }

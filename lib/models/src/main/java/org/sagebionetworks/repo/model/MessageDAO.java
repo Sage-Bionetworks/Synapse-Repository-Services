@@ -102,7 +102,7 @@ public interface MessageDAO {
 	 * Returns true if there is at least one recipient of the message
 	 * @throws NotFoundException 
 	 */
-	public boolean hasMessageBeenSent(String messageId) throws NotFoundException;
+	public boolean getMessageSent(String messageId) throws NotFoundException;
 
 	/**
 	 * Checks how many messages a user has created over a given interval (from present time)

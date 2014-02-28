@@ -286,7 +286,7 @@ public class MessageUtils {
 		if (dbo.getRootMessageId() == null) {
 			throw new IllegalArgumentException("Message info must point to a root message.");
 		}
-		if (dbo.getStatus() == null) {
+		if (dbo.getSent() == null) {
 			throw new IllegalArgumentException("Message info must have a status value.");
 		}
 	}

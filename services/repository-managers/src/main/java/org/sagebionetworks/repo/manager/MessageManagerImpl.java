@@ -40,7 +40,6 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageTransmissionStatus;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageRecipientSet;
@@ -408,7 +407,7 @@ public class MessageManagerImpl implements MessageManager {
 		
 		// Check to see if the message has already been sent
 		// If so, nothing else needs to be done
-		if (messageDAO.hasMessageBeenSent(dto.getId())) {
+		if (messageDAO.getMessageSent(dto.getId())) {
 			return errors;
 		}
 

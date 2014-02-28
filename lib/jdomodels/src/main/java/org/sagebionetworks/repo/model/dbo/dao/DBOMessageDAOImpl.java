@@ -17,7 +17,6 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageContent;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageRecipient;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageStatus;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageToUser;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageTransmissionStatus;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.MessageBundle;
@@ -52,6 +51,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	private IdGenerator idGenerator;
 	
 	private static final String MESSAGE_ID_PARAM_NAME = "messageId";
+	private static final String MESSAGE_SENT_PARAM_NAME = "sent";
 	private static final String USER_ID_PARAM_NAME = "userId";
 	private static final String ETAG_PARAM_NAME = "etag";
 	private static final String ROOT_MESSAGE_ID_PARAM_NAME = "rootMessageId";
@@ -77,9 +77,9 @@ public class DBOMessageDAOImpl implements MessageDAO {
 			" SET " + SqlConstants.COL_MESSAGE_CONTENT_ETAG + "=:" + ETAG_PARAM_NAME + 
 			" WHERE " + SqlConstants.COL_MESSAGE_CONTENT_ID + "=:" + MESSAGE_ID_PARAM_NAME;
 	
-	private static final String UPDATE_MESSAGE_TRANSMISSION_STATUS_TO_COMPLETE =
+	private static final String UPDATE_MESSAGE_SENT =
 			"UPDATE " + SqlConstants.TABLE_MESSAGE_TO_USER+
-			" SET " + SqlConstants.COL_MESSAGE_TO_USER_STATUS+ "='COMPLETE' WHERE "+ 
+			" SET " + SqlConstants.COL_MESSAGE_TO_USER_SENT+ "=:"+MESSAGE_SENT_PARAM_NAME+" WHERE "+ 
 			SqlConstants.COL_MESSAGE_TO_USER_MESSAGE_ID + "=:" + MESSAGE_ID_PARAM_NAME;
 	
 	private static final String FROM_MESSAGES_IN_CONVERSATION_CORE = 
@@ -250,7 +250,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 				throw new IllegalArgumentException("Cannot reply to a message (" + info.getInReplyTo() + ") that does not exist");
 			}
 		}
-		info.setStatus(DBOMessageTransmissionStatus.PENDING);
+		info.setSent(false);
 		MessageUtils.validateDBO(info);
 		basicDAO.createNew(info);
 		
@@ -280,7 +280,8 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	public void updateMessageTransmissionAsComplete(String messageId) {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(MESSAGE_ID_PARAM_NAME, messageId);
-		simpleJdbcTemplate.update(UPDATE_MESSAGE_TRANSMISSION_STATUS_TO_COMPLETE, params);
+		params.addValue(MESSAGE_SENT_PARAM_NAME, true);
+		simpleJdbcTemplate.update(UPDATE_MESSAGE_SENT, params);
 	}
 	
 	/**
@@ -426,16 +427,16 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	@Override
 	public void deleteMessage(String messageId) {
 		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue(MESSAGE_ID_PARAM_NAME, messageId);
+		params.addValue(DBOMessageToUser.MESSAGE_ID_FIELD_NAME, messageId);
 		basicDAO.deleteObjectByPrimaryKey(DBOMessageContent.class, params);
 	}
 
 	@Override
-	public boolean hasMessageBeenSent(String messageId) throws NotFoundException {
+	public boolean getMessageSent(String messageId) throws NotFoundException {
 		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue(SqlConstants.COL_MESSAGE_TO_USER_MESSAGE_ID, messageId);
+		params.addValue(DBOMessageToUser.MESSAGE_ID_FIELD_NAME, messageId);
 		DBOMessageToUser dbo = basicDAO.getObjectByPrimaryKey(DBOMessageToUser.class, params);
-		return dbo.getStatus()==DBOMessageTransmissionStatus.COMPLETE;
+		return dbo.getSent();
 	}
 
 	@Override
