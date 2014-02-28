@@ -272,25 +272,29 @@ QuerySpecification Start():
 	querySpecification = querySpecification()
 	{ return querySpecification; }
 }
-ValueExpression valueExpressionPrimary():
+ValueExpressionPrimary valueExpressionPrimary():
 {
-	SetFunctionSpecification setFunction = null;
+	UnsignedValueSpecification unsignedValueSpecification = null;
 	ColumnReference columnReference = null;
+	SetFunctionSpecification setFunctionSpecification = null;
 }
 {
-	setFunction = setFunctionSpecification() { return new ValueExpression(setFunction, null);}
-	| columnReference = columnReference() { return new ValueExpression(null, columnReference);}
+	setFunctionSpecification = setFunctionSpecification() { return new ValueExpressionPrimary(setFunctionSpecification);}
+	| unsignedValueSpecification = unsignedValueSpecification() { return new ValueExpressionPrimary(unsignedValueSpecification); }
+	| columnReference = columnReference() { return new ValueExpressionPrimary(columnReference);}
 }
-void unsignedValueSpecification():
-{}
+UnsignedValueSpecification unsignedValueSpecification():
 {
-	unsignedLiteral()
+	UnsignedLiteral unsignedLiteral;
 }
-String unsignedLiteral():
+{
+	unsignedLiteral = unsignedLiteral() { return new UnsignedValueSpecification(unsignedLiteral); }
+}
+UnsignedLiteral unsignedLiteral():
 { StringBuilder builder = new StringBuilder(); }
 {
-	unsignedNumericLiteral(builder) { return builder.toString(); }
-	| generalLiteral(builder) { return builder.toString(); }
+	unsignedNumericLiteral(builder) { return new UnsignedLiteral(builder.toString(), null); }
+	| generalLiteral(builder) { return new UnsignedLiteral(null, builder.toString()); }
 }
 String identifier():
 {
@@ -430,7 +434,7 @@ SetFunctionSpecification setFunctionSpecification():
 { SetFunctionSpecification setFunction = null; }
 {
 	<count_asterisk>
-	{ return new SetFunctionSpecification(SetFunctionType.COUNT, null, new ValueExpression(null, new ColumnReference(null, "*"))); }
+	{ return new SetFunctionSpecification(Boolean.TRUE); }
 	| setFunction = generalSetFunction() { return setFunction;}
 }
 SetFunctionSpecification generalSetFunction():
@@ -452,19 +456,25 @@ SetFunctionType setFunctionType():
 	| <sum> { return SetFunctionType.SUM; }
 	| <count> { return SetFunctionType.COUNT; }
 }
-void whereClause():
-{}
+WhereClause whereClause():
 {
-	<where> searchCondition()
+	SearchCondition searchCondition;
+}
+{
+	<where> searchCondition = searchCondition() { return new WhereClause(searchCondition);}
 }
 /**
 * The reference BNF definition for searchCondition() is "left recursive"
 * which is not possible with javacc, so it was re-written.
 */
-void searchCondition():
-{}
+SearchCondition searchCondition():
 {
-	booleanTerm() ( <or> booleanTerm() )*
+	SearchCondition searchCondition = new SearchCondition();
+	BooleanTerm lastBooleanTerm = null;
+}
+{
+	lastBooleanTerm = booleanTerm() { searchCondition.addOrBooleanTerm(lastBooleanTerm); }
+	( <or> lastBooleanTerm = booleanTerm() { searchCondition.addOrBooleanTerm(lastBooleanTerm); } )*
 }
 /**
 * The reference BNF definition for booleanTerm() is "left recursive"
@@ -520,52 +530,40 @@ void rowValueConstructorElement():
 	|	<default_specification>
 	|	valueExpression()
 }
-void valueExpression():
-{}
+ValueExpression valueExpression():
 {
-	LOOKAHEAD(3)
-	numericValueExpression()
-	| stringValueExpression()
+	StringValueExpression stringValueExpression = null;
 }
-void numericValueExpression():
-{}
 {
-	term()
+	stringValueExpression = stringValueExpression() { return new ValueExpression(stringValueExpression); }
 }
-void term():
-{}
+StringValueExpression stringValueExpression():
 {
-	factor()
+	CharacterValueExpression characterValueExpression;
 }
-void factor():
-{}
 {
-	[ sign() ] numericPrimary()
+	characterValueExpression = characterValueExpression() { return new StringValueExpression(characterValueExpression); }
 }
-void numericPrimary():
-{}
+CharacterValueExpression characterValueExpression():
 {
-	valueExpressionPrimary()
+	CharacterFactor characterFactor = null;
 }
-void stringValueExpression():
-{}
 {
-	characterValueExpression()
+	characterFactor = characterFactor() { return new CharacterValueExpression(characterFactor); }
 }
-void characterValueExpression():
-{}
+CharacterFactor characterFactor():
 {
-	characterFactor()
+	CharacterPrimary characterPrimary;
 }
-void characterFactor():
-{}
 {
-	characterPrimary()
+	characterPrimary = characterPrimary() { return new CharacterFactor(characterPrimary); }
 }
-void characterPrimary():
-{}
+CharacterPrimary characterPrimary():
 {
-	valueExpressionPrimary()
+	ValueExpressionPrimary valueExpressionPrimary = null;
+}
+{
+	valueExpressionPrimary = valueExpressionPrimary() { return new CharacterPrimary(valueExpressionPrimary); }
 }
 void truthValue():
 {}

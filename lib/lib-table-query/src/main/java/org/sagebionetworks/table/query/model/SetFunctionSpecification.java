@@ -5,10 +5,15 @@ package org.sagebionetworks.table.query.model;
  */
 public class SetFunctionSpecification {
 	
+	Boolean countAsterisk;
 	SetFunctionType setFunctionType;
 	SetQuantifier setQuantifier;
 	ValueExpression valueExpressionPrimary;
 	
+	public SetFunctionSpecification(Boolean countAsterisk) {
+		super();
+		this.countAsterisk = countAsterisk;
+	}
 	public SetFunctionSpecification(SetFunctionType setFunctionType,
 			SetQuantifier setQuantifier,
 			ValueExpression valueExpressionPrimary) {
@@ -16,7 +21,24 @@ public class SetFunctionSpecification {
 		this.setFunctionType = setFunctionType;
 		this.setQuantifier = setQuantifier;
 		this.valueExpressionPrimary = valueExpressionPrimary;
+	}	
+	public Boolean getCountAsterisk() {
+		return countAsterisk;
 	}
+
+	public SetFunctionType getSetFunctionType() {
+		return setFunctionType;
+	}
+
+	public SetQuantifier getSetQuantifier() {
+		return setQuantifier;
+	}
+
+	public ValueExpression getValueExpressionPrimary() {
+		return valueExpressionPrimary;
+	}
+
+
 	
 	
 }

@@ -5,19 +5,14 @@ package org.sagebionetworks.table.query.model;
  */
 public class ValueExpression {
 
-	SetFunctionSpecification setFunction;
-	ColumnReference columnReference;
-	public ValueExpression(SetFunctionSpecification setFunction,
-			ColumnReference columnReference) {
+	StringValueExpression stringValueExpression;
+	
+	public ValueExpression(StringValueExpression stringValueExpression) {
 		super();
-		this.setFunction = setFunction;
-		this.columnReference = columnReference;
+		this.stringValueExpression = stringValueExpression;
 	}
-	public SetFunctionSpecification getSetFunction() {
-		return setFunction;
+	public StringValueExpression getStringValueExpression() {
+		return stringValueExpression;
 	}
-	public ColumnReference getColumnReference() {
-		return columnReference;
-	}	
 	
 }
