@@ -83,7 +83,7 @@ public class TabCsvPreviewGenerator implements PreviewGenerator {
 		}
 		in.close(); 
 		
-		if (isEndOfFile) {
+		if (isEndOfFile && buffer.length() > 0) {
 			buffer.deleteCharAt(buffer.length()-1);
 		}
 			
