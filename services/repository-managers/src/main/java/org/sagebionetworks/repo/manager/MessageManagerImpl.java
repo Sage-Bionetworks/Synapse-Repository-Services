@@ -40,6 +40,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageTransmissionStatus;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageRecipientSet;
@@ -404,16 +405,17 @@ public class MessageManagerImpl implements MessageManager {
 	 */
 	private List<String> processMessage(MessageToUser dto, boolean singleTransaction, String messageBody, boolean isHtml) throws NotFoundException {
 		List<String> errors = new ArrayList<String>();
-		UserInfo userInfo = userManager.getUserInfo(Long.parseLong(dto.getCreatedBy()));
-		
-		UserProfile senderProfile = userProfileDAO.get(""+userInfo.getId());
-		String senderUserName = senderProfile.getUserName();
 		
 		// Check to see if the message has already been sent
 		// If so, nothing else needs to be done
 		if (messageDAO.hasMessageBeenSent(dto.getId())) {
 			return errors;
 		}
+
+		UserInfo userInfo = userManager.getUserInfo(Long.parseLong(dto.getCreatedBy()));
+		
+		UserProfile senderProfile = userProfileDAO.get(""+userInfo.getId());
+		String senderUserName = senderProfile.getUserName();
 		
 		// Get the individual recipients
 		Set<String> recipients = expandRecipientSet(userInfo, dto.getRecipients(), errors);
@@ -465,6 +467,8 @@ public class MessageManagerImpl implements MessageManager {
 				errors.add("Failed while processing message for recipient (" + user + "): " + e.getMessage());
 			}
 		}
+		
+		messageDAO.updateMessageTransmissionAsComplete(dto.getId());
 		
 		return errors;
 	}

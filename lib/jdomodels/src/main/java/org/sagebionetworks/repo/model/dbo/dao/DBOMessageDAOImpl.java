@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageContent;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageRecipient;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageStatus;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageToUser;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageTransmissionStatus;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.MessageBundle;
@@ -76,6 +77,11 @@ public class DBOMessageDAOImpl implements MessageDAO {
 			" SET " + SqlConstants.COL_MESSAGE_CONTENT_ETAG + "=:" + ETAG_PARAM_NAME + 
 			" WHERE " + SqlConstants.COL_MESSAGE_CONTENT_ID + "=:" + MESSAGE_ID_PARAM_NAME;
 	
+	private static final String UPDATE_MESSAGE_TRANSMISSION_STATUS_TO_COMPLETE =
+			"UPDATE " + SqlConstants.TABLE_MESSAGE_TO_USER+
+			" SET " + SqlConstants.COL_MESSAGE_TO_USER_STATUS+ "='COMPLETE' WHERE "+ 
+			SqlConstants.COL_MESSAGE_TO_USER_MESSAGE_ID + "=:" + MESSAGE_ID_PARAM_NAME;
+	
 	private static final String FROM_MESSAGES_IN_CONVERSATION_CORE = 
 			" FROM " + SqlConstants.TABLE_MESSAGE_CONTENT + 
 				" LEFT OUTER JOIN "+SqlConstants.TABLE_MESSAGE_STATUS + " status" + 
@@ -121,10 +127,6 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	
 	private static final String COUNT_MESSAGES_SENT = 
 			"SELECT COUNT(*)" + FROM_MESSAGES_SENT_CORE;
-	
-	private static final String COUNT_ACTUAL_RECIPIENTS_OF_MESSAGE =
-			"SELECT COUNT(*) FROM " + SqlConstants.TABLE_MESSAGE_STATUS + 
-			" WHERE " + SqlConstants.COL_MESSAGE_STATUS_MESSAGE_ID + "=:" + MESSAGE_ID_PARAM_NAME;
 	
 	private static final String COUNT_RECENTLY_CREATED_MESSAGES = 
 			"SELECT COUNT(*) FROM " + SqlConstants.TABLE_MESSAGE_CONTENT + 
@@ -248,6 +250,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 				throw new IllegalArgumentException("Cannot reply to a message (" + info.getInReplyTo() + ") that does not exist");
 			}
 		}
+		info.setStatus(DBOMessageTransmissionStatus.PENDING);
 		MessageUtils.validateDBO(info);
 		basicDAO.createNew(info);
 		
@@ -270,6 +273,14 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		params.addValue(ETAG_PARAM_NAME, UUID.randomUUID().toString());
 		params.addValue(MESSAGE_ID_PARAM_NAME, messageId);
 		simpleJdbcTemplate.update(UPDATE_ETAG_OF_MESSAGE, params);
+	}
+	
+	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public void updateMessageTransmissionAsComplete(String messageId) {
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(MESSAGE_ID_PARAM_NAME, messageId);
+		simpleJdbcTemplate.update(UPDATE_MESSAGE_TRANSMISSION_STATUS_TO_COMPLETE, params);
 	}
 	
 	/**
@@ -420,11 +431,11 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	}
 
 	@Override
-	public boolean hasMessageBeenSent(String messageId) {
+	public boolean hasMessageBeenSent(String messageId) throws NotFoundException {
 		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue(MESSAGE_ID_PARAM_NAME, messageId);
-		long recipients = simpleJdbcTemplate.queryForLong(COUNT_ACTUAL_RECIPIENTS_OF_MESSAGE, params);
-		return recipients > 0;
+		params.addValue(SqlConstants.COL_MESSAGE_TO_USER_MESSAGE_ID, messageId);
+		DBOMessageToUser dbo = basicDAO.getObjectByPrimaryKey(DBOMessageToUser.class, params);
+		return dbo.getStatus()==DBOMessageTransmissionStatus.COMPLETE;
 	}
 
 	@Override
@@ -449,4 +460,6 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		long messages = simpleJdbcTemplate.queryForLong(COUNT_VISIBLE_MESSAGES_BY_FILE_HANDLE, params);
 		return messages > 0;
 	}
+
+
 }

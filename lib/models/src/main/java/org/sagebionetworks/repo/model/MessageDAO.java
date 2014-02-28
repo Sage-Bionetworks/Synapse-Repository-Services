@@ -28,6 +28,13 @@ public interface MessageDAO {
 	public void touch(String messageId);
 	
 	/**
+	 * Mark the transmission status of the message as complete
+	 * 
+	 * @param messageId
+	 */
+	public void updateMessageTransmissionAsComplete(String messageId);
+	
+	/**
 	 * Retrieves all messages (subject to limit and offset) within a given thread, visible to the user
 	 * @param sortBy What value to sort the results by
 	 */
@@ -64,6 +71,7 @@ public interface MessageDAO {
 	 * Marks a user as a recipient of a message
 	 * The status of the message defaults to UNREAD
 	 * 
+	 * Note: This 'recipient status' is disctinct from the message's 'transmission status'.
 	 * Note: This operation occurs in a separate transaction (REQUIRES_NEW)
 	 */
 	public void createMessageStatus_NewTransaction(String messageId, String userId, MessageStatusType status);
@@ -72,12 +80,14 @@ public interface MessageDAO {
 	 * Marks a user as a recipient of a message
 	 * The status of the message defaults to UNREAD
 	 * 
+	 * Note: this 'recipient status' is disctinct from the message's 'transmission status'.
 	 * Note: This operation occurs in the same transaction (REQUIRED)
 	 */
 	public void createMessageStatus_SameTransaction(String messageId, String userId, MessageStatusType status);
 	
 	/**
-	 * Marks a message within the user's inbox with the given status
+	 * Marks a message within the recipient's inbox with the given status
+	 * Note: this 'recipient status' is disctinct from the message's 'transmission status'.
 	 * 
 	 * @return Did the update succeed?
 	 */
@@ -90,8 +100,9 @@ public interface MessageDAO {
 
 	/**
 	 * Returns true if there is at least one recipient of the message
+	 * @throws NotFoundException 
 	 */
-	public boolean hasMessageBeenSent(String messageId);
+	public boolean hasMessageBeenSent(String messageId) throws NotFoundException;
 
 	/**
 	 * Checks how many messages a user has created over a given interval (from present time)

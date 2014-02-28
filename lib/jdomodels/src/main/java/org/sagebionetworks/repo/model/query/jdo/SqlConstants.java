@@ -156,6 +156,7 @@ public class SqlConstants {
  	public static final String COL_MESSAGE_TO_USER_ROOT_ID          = "ROOT_MESSAGE_ID";
  	public static final String COL_MESSAGE_TO_USER_REPLY_TO_ID      = "IN_REPLY_TO";
  	public static final String COL_MESSAGE_TO_USER_SUBJECT          = "SUBJECT";
+ 	public static final String COL_MESSAGE_TO_USER_STATUS          = "STATUS";
  	public static final String DDL_MESSAGE_TO_USER                  = "schema/MessageToUser-ddl.sql";
  	
  	// Message recipient

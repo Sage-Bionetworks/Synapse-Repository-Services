@@ -281,10 +281,13 @@ public class MessageUtils {
 	 */
 	public static void validateDBO(DBOMessageToUser dbo) {
 		if (dbo.getMessageId() == null) {
-			throw new IllegalArgumentException("Message info must have an ID");
+			throw new IllegalArgumentException("Message info must have an ID.");
 		}
 		if (dbo.getRootMessageId() == null) {
-			throw new IllegalArgumentException("Message info must point to a root message");
+			throw new IllegalArgumentException("Message info must point to a root message.");
+		}
+		if (dbo.getStatus() == null) {
+			throw new IllegalArgumentException("Message info must have a status value.");
 		}
 	}
 	
