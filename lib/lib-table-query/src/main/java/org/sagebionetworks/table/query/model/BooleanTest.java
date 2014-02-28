@@ -8,10 +8,10 @@ public class BooleanTest {
 	BooleanPrimary booleanPrimary;
 	Boolean is;
 	Boolean not;
-	Boolean truthValue;
+	TruthValue truthValue;
 	
 	public BooleanTest(BooleanPrimary booleanPrimary, Boolean is, Boolean not,
-			Boolean truthValue) {
+			TruthValue truthValue) {
 		super();
 		this.booleanPrimary = booleanPrimary;
 		this.is = is;
@@ -31,7 +31,7 @@ public class BooleanTest {
 		return not;
 	}
 
-	public Boolean getTruthValue() {
+	public TruthValue getTruthValue() {
 		return truthValue;
 	}
 	

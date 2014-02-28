@@ -123,21 +123,26 @@ TOKEN [IGNORE_CASE]: {
 | < and: "AND">
 | < as: "AS">
 | < avg: "AVG">
+| < between: "BETWEEN" >
 | < date: "DATE" >
 | < count: "COUNT">
 | < current_date: "CURRENT_DATE">
 | < current_time: "CURRENT_TIME">
 | < distinct: "DISTINCT">
 | < default_specification: "DEFAULT" > 
+| < escape: "ESCAPE">
 | < _false: "FALSE">
 | < from: "FROM">
 | < interval: "INTERVAL">
+| < in: "IN">
 | < is: "IS">
+| < like: "LIKE" >
 | < max: "MAX" >
 | < min: "MIN" >
 | < not: "NOT" >
 | < null_specification: "NULL" >
 | < or: "OR" >
+| < overlaps: "OVERLAPS" >
 | < select: "SELECT" >
 | < sum: "SUM" >
 | < syn: "SYN" >
@@ -475,60 +480,206 @@ SearchCondition searchCondition():
 {
 	lastBooleanTerm = booleanTerm() { searchCondition.addOrBooleanTerm(lastBooleanTerm); }
 	( <or> lastBooleanTerm = booleanTerm() { searchCondition.addOrBooleanTerm(lastBooleanTerm); } )*
+	{ return searchCondition; }
 }
 /**
 * The reference BNF definition for booleanTerm() is "left recursive"
 * which is not possible with javacc, so it was re-written. 
 */
-void booleanTerm():
-{}
+BooleanTerm booleanTerm():
 {
-	booleanFactor() ( <and> booleanFactor() )*
+	BooleanTerm booleanTerm = new BooleanTerm();
+	BooleanFactor booleanFactor = null;
 }
-void booleanFactor():
-{}
 {
-	[ <not> ] booleanTest()
+	booleanFactor = booleanFactor() { booleanTerm.addAndBooleanFactor(booleanFactor); }
+	( <and>  booleanFactor = booleanFactor() { booleanTerm.addAndBooleanFactor(booleanFactor); } )*
+	{ return booleanTerm; }
 }
-void booleanTest():
-{}
+BooleanFactor booleanFactor():
 {
-	booleanPrimary() [ <is> [ <not> ] truthValue() ]
+	Boolean notB = null;
+	BooleanTest booleanTest = null;
 }
-void booleanPrimary():
-{}
+{
+	[ <not> { notB = Boolean.TRUE; } ] booleanTest = booleanTest() { return new BooleanFactor(notB, booleanTest); }
+}
+BooleanTest booleanTest():
+{
+	BooleanPrimary booleanPrimary = null;
+	Boolean isB = null;
+	Boolean notB = null;
+	TruthValue truthValue = null;
+}
+{
+	booleanPrimary = booleanPrimary() [ <is> { isB = Boolean.TRUE; } [ <not> {notB = Boolean.TRUE; }] truthValue = truthValue() ]
+	{ return new BooleanTest(booleanPrimary, isB, notB, truthValue); }
+}
+BooleanPrimary booleanPrimary():
+{
+	Predicate predicate = null;
+	SearchCondition searchCondition = null;
+}
 {
 	LOOKAHEAD(2)
-	predicate()
-	|  <left_paren> searchCondition() <right_paren>
+	predicate = predicate() { return new BooleanPrimary(predicate);}
+	|  <left_paren> searchCondition = searchCondition() <right_paren> { return new BooleanPrimary(searchCondition); }
 }
-void predicate():
+Predicate predicate():
+{
+	ComparisonPredicate comparisonPredicate = null;
+	BetweenPredicate betweenPredicate = null;
+	InPredicate inPredicate = null;
+	LikePredicate likePredicate = null;
+	NullPredicate nullPredicate = null;
+	OverlapsPredicate overlapsPredicate = null;
+}
+{
+	comparisonPredicate = comparisonPredicate() { return new Predicate(comparisonPredicate);}
+	| betweenPredicate = betweenPredicate() { return new Predicate(betweenPredicate); }
+	| inPredicate = inPredicate() { return new Predicate(inPredicate); }
+	| likePredicate = likePredicate() { return new Predicate(likePredicate); }
+	| nullPredicate = nullPredicate() { return new Predicate(nullPredicate); }
+	| overlapsPredicate = overlapsPredicate() { return new Predicate(overlapsPredicate); }
+}
+ComparisonPredicate comparisonPredicate():
+{
+	RowValueConstructor rowValueConstructorLHS = null;
+	CompOp compOp = null;
+	RowValueConstructor rowValueConstructorRHS = null;
+}
+{
+	rowValueConstructorLHS = rowValueConstructor() compOp = compOp() rowValueConstructorRHS = rowValueConstructor()
+	{ return new ComparisonPredicate(rowValueConstructorLHS,compOp,rowValueConstructorRHS);}
+}
+RowValueConstructor rowValueConstructor():
+{
+	RowValueConstructorElement rowValueConstructorElement = null;
+	RowValueConstructorList rowValueConstructorList = null;
+}
+{
+	<left_paren> rowValueConstructorList = rowValueConstructorList() <right_paren> { return new RowValueConstructor(rowValueConstructorList); }
+	| rowValueConstructorElement = rowValueConstructorElement() { return new RowValueConstructor(rowValueConstructorElement); }
+}
+RowValueConstructorList rowValueConstructorList():
+{
+	RowValueConstructorList rowValueConstructorList = new RowValueConstructorList();
+	RowValueConstructorElement rowValueConstructorElement;
+}
+{
+	rowValueConstructorElement = rowValueConstructorElement() { rowValueConstructorList.addRowValueConstructorElement(rowValueConstructorElement); }
+	(<comma> rowValueConstructorElement = rowValueConstructorElement() { rowValueConstructorList.addRowValueConstructorElement(rowValueConstructorElement); } )*
+	{ return rowValueConstructorList; } 
+}
+RowValueConstructorElement rowValueConstructorElement():
+{
+	ValueExpression valueExpression;
+}
+{
+		<null_specification> { return new RowValueConstructorElement(Boolean.TRUE, null); }
+	|	<default_specification> { return new RowValueConstructorElement(null, Boolean.TRUE); }
+	|	valueExpression = valueExpression() { return new RowValueConstructorElement(valueExpression); }
+}
+CompOp compOp():
 {}
 {
-	comparisonPredicate()
+		<equals_operator> { return CompOp.EQUALS_OPERATOR;}
+	|   <not_equals_operator> { return CompOp.NOT_EQUALS_OPERATOR;}
+	|   <less_than_operator> { return CompOp.LESS_THAN_OPERATOR;}
+	|   <greater_than_operator> { return CompOp.GREATER_THAN_OPERATOR;}
+	|   <less_than_or_equals_operator> { return CompOp.LESS_THAN_OR_EQUALS_OPERATOR;}
+	|   <greater_than_or_equals_operator> {return CompOp.GREATER_THAN_OR_EQUALS_OPERATOR;} 
 }
-void comparisonPredicate():
-{}
+BetweenPredicate betweenPredicate():
 {
-	rowValueConstructor() compOp() rowValueConstructor()
+	RowValueConstructor rowValueConstructorLHS = null;
+	Boolean notB = null;
+	RowValueConstructor betweenRowValueConstructor = null;
+	RowValueConstructor andRowValueConstructorRHS = null;
 }
-void rowValueConstructor():
-{}
 {
-	<left_paren> rowValueConstructorList() <right_paren>
-	| rowValueConstructorElement()
+	rowValueConstructorLHS = rowValueConstructor() [ <not> { notB = Boolean.TRUE; }] <between> betweenRowValueConstructor = rowValueConstructor() <and>  andRowValueConstructorRHS = rowValueConstructor()
+	{ return new BetweenPredicate(rowValueConstructorLHS, notB, betweenRowValueConstructor, andRowValueConstructorRHS);}
 }
-void rowValueConstructorList():
-{}
+InPredicate inPredicate():
 {
-	rowValueConstructorElement() (<comma> rowValueConstructorElement() )*
+	RowValueConstructor rowValueConstructorLHS = null;
+	Boolean notB = null;
+	InPredicateValue inPredicateValue = null;
 }
-void rowValueConstructorElement():
-{}
 {
-		<null_specification>
-	|	<default_specification>
-	|	valueExpression()
+	rowValueConstructorLHS = rowValueConstructor() [ <not> {notB = Boolean.TRUE;} ] <in> inPredicateValue = inPredicateValue()
+	{ return new InPredicate(rowValueConstructorLHS, notB, inPredicateValue);}
+}
+InPredicateValue inPredicateValue():
+{
+	InValueList inValueList = null;
+}
+{
+	<left_paren> inValueList = inValueList() <right_paren>
+	{ return new InPredicateValue(inValueList); }
+}
+InValueList inValueList():
+{
+	InValueList inValueList = new InValueList();
+	ValueExpression valueExpression = null;
+}
+{
+	valueExpression = valueExpression() { inValueList.addValueExpression(valueExpression); }
+	( <comma> valueExpression = valueExpression() { inValueList.addValueExpression(valueExpression); } )*
+	{ return inValueList; }
+}
+LikePredicate likePredicate():
+{
+	MatchValue matchValue = null;
+	Boolean notB = null;
+	Pattern pattern = null;
+	EscapeCharacter escapeCharacter = null;
+}
+{
+	matchValue = matchValue() [ <not> { notB = Boolean.TRUE; }] <like> pattern = pattern() [ <escape> escapeCharacter = escapeCharacter() ]
+	{ return new LikePredicate(matchValue,notB,pattern,escapeCharacter);}
+}
+MatchValue matchValue():
+{
+	CharacterValueExpression characterValueExpression = null;
+}
+{
+	characterValueExpression = characterValueExpression()
+	{return new MatchValue(characterValueExpression);}
+}
+Pattern pattern():
+{
+	CharacterValueExpression characterValueExpression = null;
+}
+{
+	characterValueExpression = characterValueExpression()
+	{return new Pattern(characterValueExpression);}
+}
+EscapeCharacter escapeCharacter():
+{
+	CharacterValueExpression characterValueExpression = null;
+}
+{
+	characterValueExpression = characterValueExpression()
+	{return new EscapeCharacter(characterValueExpression);}
+}
+NullPredicate nullPredicate():
+{
+	Boolean notB = null;
+}
+{
+	<is> [ <not> {notB=Boolean.TRUE;}] <null_specification>
+	{ return new NullPredicate(notB); }
+}
+OverlapsPredicate overlapsPredicate():
+{
+	RowValueConstructor rowValueConstructorLHS = null;
+	RowValueConstructor rowValueConstructorRHS = null;
+}
+{
+	rowValueConstructorLHS = rowValueConstructor() <overlaps> rowValueConstructorRHS =rowValueConstructor()
+	{ return new OverlapsPredicate(rowValueConstructorLHS,rowValueConstructorRHS);}
 }
 ValueExpression valueExpression():
 {
@@ -565,20 +716,10 @@ CharacterPrimary characterPrimary():
 {
 	valueExpressionPrimary = valueExpressionPrimary() { return new CharacterPrimary(valueExpressionPrimary); }
 }
-void truthValue():
+TruthValue truthValue():
 {}
 {
-	<_true>
-	| <_false>
-	| <unknown>
-}
-void compOp():
-{}
-{
-		<equals_operator>
-	|	<not_equals_operator>
-	|   <less_than_operator>
-	|   <greater_than_operator>
-	|   <less_than_or_equals_operator>
-	|   <greater_than_or_equals_operator>
+	<_true> { return TruthValue.TRUE; }
+	| <_false> { return TruthValue.FALSE; }
+	| <unknown> { return TruthValue.UNKNOWN; }
 }

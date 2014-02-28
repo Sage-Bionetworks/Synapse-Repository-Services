@@ -10,9 +10,6 @@ public class Predicate {
 	InPredicate inPredicate;
 	LikePredicate likePredicate;
 	NullPredicate nullPredicate;
-	QuantifiedComparisonPredicate quantifiedComparisonPredicate;
-	ExistsPredicate existsPredicate;
-	MatchPredicate matchPredicate;
 	OverlapsPredicate overlapsPredicate;
 	public Predicate(ComparisonPredicate comparisonPredicate) {
 		super();
@@ -34,18 +31,6 @@ public class Predicate {
 		super();
 		this.nullPredicate = nullPredicate;
 	}
-	public Predicate(QuantifiedComparisonPredicate quantifiedComparisonPredicate) {
-		super();
-		this.quantifiedComparisonPredicate = quantifiedComparisonPredicate;
-	}
-	public Predicate(ExistsPredicate existsPredicate) {
-		super();
-		this.existsPredicate = existsPredicate;
-	}
-	public Predicate(MatchPredicate matchPredicate) {
-		super();
-		this.matchPredicate = matchPredicate;
-	}
 	public Predicate(OverlapsPredicate overlapsPredicate) {
 		super();
 		this.overlapsPredicate = overlapsPredicate;
@@ -64,15 +49,6 @@ public class Predicate {
 	}
 	public NullPredicate getNullPredicate() {
 		return nullPredicate;
-	}
-	public QuantifiedComparisonPredicate getQuantifiedComparisonPredicate() {
-		return quantifiedComparisonPredicate;
-	}
-	public ExistsPredicate getExistsPredicate() {
-		return existsPredicate;
-	}
-	public MatchPredicate getMatchPredicate() {
-		return matchPredicate;
 	}
 	public OverlapsPredicate getOverlapsPredicate() {
 		return overlapsPredicate;

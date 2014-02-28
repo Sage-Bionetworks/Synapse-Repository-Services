@@ -7,6 +7,12 @@ public class InPredicateValue {
 
 	InValueList inValueList;
 
+	
+	public InPredicateValue(InValueList inValueList) {
+		super();
+		this.inValueList = inValueList;
+	}
+
 	public InValueList getInValueList() {
 		return inValueList;
 	}

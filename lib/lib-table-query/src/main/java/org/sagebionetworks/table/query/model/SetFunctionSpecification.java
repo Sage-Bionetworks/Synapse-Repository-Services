@@ -8,20 +8,21 @@ public class SetFunctionSpecification {
 	Boolean countAsterisk;
 	SetFunctionType setFunctionType;
 	SetQuantifier setQuantifier;
-	ValueExpression valueExpressionPrimary;
+	ValueExpression valueExpression;
 	
 	public SetFunctionSpecification(Boolean countAsterisk) {
 		super();
 		this.countAsterisk = countAsterisk;
 	}
+	
 	public SetFunctionSpecification(SetFunctionType setFunctionType,
-			SetQuantifier setQuantifier,
-			ValueExpression valueExpressionPrimary) {
+			SetQuantifier setQuantifier, ValueExpression valueExpression) {
 		super();
 		this.setFunctionType = setFunctionType;
 		this.setQuantifier = setQuantifier;
-		this.valueExpressionPrimary = valueExpressionPrimary;
-	}	
+		this.valueExpression = valueExpression;
+	}
+
 	public Boolean getCountAsterisk() {
 		return countAsterisk;
 	}
@@ -34,11 +35,8 @@ public class SetFunctionSpecification {
 		return setQuantifier;
 	}
 
-	public ValueExpression getValueExpressionPrimary() {
-		return valueExpressionPrimary;
+	public ValueExpression getValueExpression() {
+		return valueExpression;
 	}
 
-
-	
-	
 }
