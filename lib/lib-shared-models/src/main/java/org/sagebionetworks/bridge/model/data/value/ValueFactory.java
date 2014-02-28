@@ -22,6 +22,9 @@ public class ValueFactory {
 	}
 
 	public static ParticipantDataDatetimeValue createDatetimeValue(Date value) {
+		if (value == null) {
+			return null;
+		}
 		return createDatetimeValue(value.getTime());
 	}
 
@@ -50,5 +53,18 @@ public class ValueFactory {
 		ParticipantDataLongValue lresult = new ParticipantDataLongValue();
 		lresult.setValue(value);
 		return lresult;
+	}
+
+	public static ParticipantDataEventValue createEventValue(Date start, Date end, String name, String grouping) {
+		return createEventValue(start.getTime(), end == null ? null : end.getTime(), name, grouping);
+	}
+
+	public static ParticipantDataEventValue createEventValue(Long start, Long end, String name, String grouping) {
+		ParticipantDataEventValue eresult = new ParticipantDataEventValue();
+		eresult.setStart(start);
+		eresult.setEnd(end);
+		eresult.setName(name);
+		eresult.setGrouping(grouping);
+		return eresult;
 	}
 }
