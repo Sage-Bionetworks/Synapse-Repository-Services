@@ -43,14 +43,16 @@ public class ParticipantDataServiceImpl implements ParticipantDataService {
 	public List<ParticipantDataRow> getCurrentRows(Long userId, String participantDataDescriptorId) throws DatastoreException,
 			NotFoundException, IOException, GeneralSecurityException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return participantDataManager.getHistoryData(userInfo, participantDataDescriptorId, true, null, null);
+		return participantDataManager.getHistoryData(userInfo, participantDataDescriptorId, true, null, null,
+				ParticipantDataManager.SortType.SORT_BY_DATE);
 	}
 
 	@Override
 	public List<ParticipantDataRow> getHistoryRows(Long userId, String participantDataDescriptorId, Date after, Date before)
 			throws DatastoreException, NotFoundException, IOException, GeneralSecurityException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return participantDataManager.getHistoryData(userInfo, participantDataDescriptorId, false, after, before);
+		return participantDataManager.getHistoryData(userInfo, participantDataDescriptorId, false, after, before,
+				ParticipantDataManager.SortType.SORT_BY_GROUP_AND_DATE);
 	}
 
 	@Override

@@ -316,21 +316,12 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 	}
 
 	@Override
-	public TimeSeriesTable getTimeSeries(String participantDataDescriptorId, List<String> columnNames) throws SynapseException,
-			UnsupportedEncodingException {
-		StringBuilder uri = new StringBuilder();
-		uri.append(TIME_SERIES).append("/").append(participantDataDescriptorId);
+	public TimeSeriesTable getTimeSeries(String participantDataDescriptorId, List<String> columnNames) throws SynapseException {
+		URIBuilder uri = new URIBuilder();
+		uri.setPath(TIME_SERIES + "/" + participantDataDescriptorId);
 		if (columnNames != null) {
-			boolean first = true;
 			for (String columnName : columnNames) {
-				if (first) {
-					uri.append('?');
-					first = false;
-				} else {
-					uri.append('&');
-				}
-				uri.append("columnName=");
-				uri.append(URLEncoder.encode(columnName, "UTF-8"));
+				uri.addParameter("columnName", columnName);
 			}
 		}
 		return get(uri.toString(), TimeSeriesTable.class);

@@ -69,10 +69,11 @@ public class DBOParticipantDataDescriptorDAOImpl implements ParticipantDataDescr
 			participantDataDescriptor.setId(Long.toString(dboParticipantDataDescriptor.getId()));
 			participantDataDescriptor.setName(dboParticipantDataDescriptor.getName());
 			participantDataDescriptor.setDescription(dboParticipantDataDescriptor.getDescription());
+			participantDataDescriptor.setType(dboParticipantDataDescriptor.getType());
 			participantDataDescriptor.setRepeatType(dboParticipantDataDescriptor.getRepeatType());
 			participantDataDescriptor.setRepeatFrequency(dboParticipantDataDescriptor.getRepeatFrequency());
 			participantDataDescriptor.setDatetimeStartColumnName(dboParticipantDataDescriptor.getDatetimeStartColumnName());
-			participantDataDescriptor.setDatetimeEndColumnName(dboParticipantDataDescriptor.getDatetimeEndColumnName());
+			participantDataDescriptor.setEventColumnName(dboParticipantDataDescriptor.getEventColumnName());
 			return participantDataDescriptor;
 		}
 	};
@@ -85,10 +86,11 @@ public class DBOParticipantDataDescriptorDAOImpl implements ParticipantDataDescr
 					: null);
 			dboParticipantDataDescriptor.setName(participantDataDescriptor.getName());
 			dboParticipantDataDescriptor.setDescription(participantDataDescriptor.getDescription());
+			dboParticipantDataDescriptor.setType(participantDataDescriptor.getType());
 			dboParticipantDataDescriptor.setRepeatType(participantDataDescriptor.getRepeatType());
 			dboParticipantDataDescriptor.setRepeatFrequency(participantDataDescriptor.getRepeatFrequency());
 			dboParticipantDataDescriptor.setDatetimeStartColumnName(participantDataDescriptor.getDatetimeStartColumnName());
-			dboParticipantDataDescriptor.setDatetimeEndColumnName(participantDataDescriptor.getDatetimeEndColumnName());
+			dboParticipantDataDescriptor.setEventColumnName(participantDataDescriptor.getEventColumnName());
 			return dboParticipantDataDescriptor;
 		}
 	};
