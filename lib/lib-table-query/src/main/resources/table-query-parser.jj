@@ -31,7 +31,7 @@ public class TableQueryParser {
 	public static QuerySpecification parserQuery(String query)
 			throws ParseException {
 		TableQueryParser parser = new TableQueryParser(new StringReader(query));
-		return parser.Start();
+		return parser.querySpecification();
 	}
 }
 
@@ -272,15 +272,6 @@ void characterStringLiteral(StringBuilder builder):
 	)*
 	<end_single_quote>
 }
-/* This is the entry point of the parser*/
-QuerySpecification Start():
-{ 
-	QuerySpecification querySpecification = null;
-}
-{
-	querySpecification = querySpecification()
-	{ return querySpecification; }
-}
 ValueExpressionPrimary valueExpressionPrimary():
 {
 	UnsignedValueSpecification unsignedValueSpecification = null;
@@ -335,12 +326,12 @@ void delimitedIentifier(StringBuilder builder):
 }
 ColumnReference columnReference():
 {
-	Qualifier qualifier = null;
-	String columnName = null;
+	String nameLHS = null;
+	String nameRHS = null;
 }
 {
-	[ LOOKAHEAD(2) qualifier = qualifier() <period> ] columnName = columnName()
-	{ return new ColumnReference(qualifier, columnName); }
+	nameLHS = columnName() [ <period> nameRHS = columnName() ]
+	{ return new ColumnReference(nameLHS, nameRHS); }
 }
 QuerySpecification querySpecification():
 {
@@ -431,7 +422,7 @@ Qualifier qualifier():
 	String colunName = null;
 }
 {
-	tableName = columnName() { return new Qualifier(tableName, null); }
+	colunName = columnName() { return new Qualifier(colunName, null); }
 }
 String tableName():
 { 
@@ -540,10 +531,10 @@ Predicate predicate():
 	OverlapsPredicate overlapsPredicate = null;
 }
 {
-	comparisonPredicate = comparisonPredicate() { return new Predicate(comparisonPredicate);}
-	| betweenPredicate = betweenPredicate() { return new Predicate(betweenPredicate); }
-	| inPredicate = inPredicate() { return new Predicate(inPredicate); }
-	| likePredicate = likePredicate() { return new Predicate(likePredicate); }
+	LOOKAHEAD(3) comparisonPredicate = comparisonPredicate() { return new Predicate(comparisonPredicate);}
+	| LOOKAHEAD(3) betweenPredicate = betweenPredicate() { return new Predicate(betweenPredicate); }
+	| LOOKAHEAD(3) inPredicate = inPredicate() { return new Predicate(inPredicate); }
+	| LOOKAHEAD(3) likePredicate = likePredicate() { return new Predicate(likePredicate); }
 	| nullPredicate = nullPredicate() { return new Predicate(nullPredicate); }
 	| overlapsPredicate = overlapsPredicate() { return new Predicate(overlapsPredicate); }
 }

@@ -6,18 +6,18 @@ package org.sagebionetworks.table.query.model;
  */
 public class ColumnReference {
 	
-	Qualifier qualifier;
-	String columnName;
-	public ColumnReference(Qualifier qualifier, String columnName) {
+	String nameLHS;
+	String nameRHS;
+	public ColumnReference(String nameLHS, String nameRHS) {
 		super();
-		this.qualifier = qualifier;
-		this.columnName = columnName;
+		this.nameLHS = nameLHS;
+		this.nameRHS = nameRHS;
 	}
-	public Qualifier getQualifier() {
-		return qualifier;
+	public String getNameLHS() {
+		return nameLHS;
 	}
-	public String getColumnName() {
-		return columnName;
-	}	
+	public String getNameRHS() {
+		return nameRHS;
+	}
 	
 }
