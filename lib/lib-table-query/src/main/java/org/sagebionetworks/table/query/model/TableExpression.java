@@ -6,10 +6,16 @@ package org.sagebionetworks.table.query.model;
 public class TableExpression {
 
 	FromClause fromClause;
-	
-	public TableExpression(FromClause fromClause) {
+	WhereClause whereClause;
+
+	public TableExpression(FromClause fromClause, WhereClause whereClause) {
 		super();
 		this.fromClause = fromClause;
+		this.whereClause = whereClause;
+	}
+
+	public WhereClause getWhereClause() {
+		return whereClause;
 	}
 
 	public FromClause getFromClause() {

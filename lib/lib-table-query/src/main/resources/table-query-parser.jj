@@ -44,9 +44,9 @@ PARSER_END(TableQueryParser)
 * to limit the scope of the <not_double_quote> token which is too broad
 * for other cases.
 */
-<DEFAULT> SKIP: 
+<DEFAULT> TOKEN: 
 {
-	< "\""> : within_double_quote
+	< start_double_quote: "\""> : within_double_quote
 }
 // This token only has meaning within a double quote.
 <within_double_quote> TOKEN :
@@ -63,9 +63,9 @@ PARSER_END(TableQueryParser)
 * quote will terminate the string and restore the state
 * to DEFAULT.
 */
-<within_double_quote> SKIP :
+<within_double_quote> TOKEN :
 {
-	"\"": DEFAULT
+	< end_double_quote: "\"">: DEFAULT
 }
 
 
@@ -76,9 +76,9 @@ PARSER_END(TableQueryParser)
 * to limit the scope of the <not_quote> token which is too broad
 * for other cases.
 */
-<DEFAULT> SKIP: 
+<DEFAULT> TOKEN: 
 {
-	< "'"> : within_single_quotes
+	< start_single_quote: "'"> : within_single_quotes
 }
 // This token only has meaning within single quotes.
 <within_single_quotes> TOKEN :
@@ -95,9 +95,9 @@ PARSER_END(TableQueryParser)
 * quote will terminate the string and restore the state
 * to DEFAULT.
 */
-<within_single_quotes> SKIP :
+<within_single_quotes> TOKEN :
 {
-	"'": DEFAULT
+	< end_single_quote: "'" > : DEFAULT
 }
 
 /* Skip whitespace */
@@ -114,27 +114,43 @@ SKIP : /* WHITE SPACE */
 
 TOKEN:{
  <exponent: (["0"-"9"])+["e","E"]("+"|"-")?(["0"-"9"])+>
+| < count_asterisk: ("count"|"COUNT")"(*)" >
 }
 
 /* Reserved words */
 TOKEN [IGNORE_CASE]: {
   < all: "ALL">
+| < and: "AND">
 | < as: "AS">
 | < avg: "AVG">
+| < between: "BETWEEN" >
 | < date: "DATE" >
 | < count: "COUNT">
 | < current_date: "CURRENT_DATE">
 | < current_time: "CURRENT_TIME">
-| < distinct: "DISTINCT"> 
+| < distinct: "DISTINCT">
+| < default_specification: "DEFAULT" > 
+| < escape: "ESCAPE">
+| < _false: "FALSE">
 | < from: "FROM">
 | < interval: "INTERVAL">
+| < in: "IN">
+| < is: "IS">
+| < like: "LIKE" >
 | < max: "MAX" >
 | < min: "MIN" >
+| < not: "NOT" >
+| < null_specification: "NULL" >
+| < or: "OR" >
+| < overlaps: "OVERLAPS" >
 | < select: "SELECT" >
 | < sum: "SUM" >
 | < syn: "SYN" >
 | < time: "TIME" >
 | < timestamp: "TIMESTAMP">
+| < _true: "TRUE">
+| < where: "WHERE">
+| < unknown: "UNKNOWN">
 }
 /* Symbols and punctuation */
 TOKEN:{
@@ -142,18 +158,23 @@ TOKEN:{
 | < comma: ",">
 | < left_paren: "(">
 | < minus_sign: "-">
+| < not_equals_operator: "<>">
+| < less_than_or_equals_operator: "<=">
+| < greater_than_or_equals_operator: ">=">
+| < less_than_operator: "<">
+| < greater_than_operator: ">">
+| < equals_operator: "=">
 | < period: "." >
 | < plus_sign: "+">
 | < right_paren: ")">
 | < solidus: "/">
 | <underscore: "_">
 }
-/* Complex Tokens */
-TOKEN: { 
+
+TOKEN: {
   < digit: ["0"-"9"]>
 | < letter: ["a"-"z","A"-"Z"]>
 }
-
 
 void regularIdentifier(StringBuilder builder):
 {
@@ -161,9 +182,10 @@ void regularIdentifier(StringBuilder builder):
 }
 {
 	token = <letter> { builder.append(token.image); }
-	( token = <letter> { builder.append(token.image); }
-	 | token = <digit> { builder.append(token.image); }
-	 | token = <underscore> { builder.append(token.image); }
+	(
+		 token = <letter> { builder.append(token.image); }
+		 | token = <digit> { builder.append(token.image); }
+		 | token = <underscore> { builder.append(token.image); }
 	)* 
 }
 /** Literal Numbers, Strings, Dates and Times */
@@ -174,7 +196,9 @@ void unsignedInteger(StringBuilder builder):
 }
 {
 	token = <digit> { builder.append(token.image); }
-		( token = <digit> { builder.append(token.image); } )*
+	(
+		token = <digit> { builder.append(token.image); } 
+	)*
 }
 void sign(StringBuilder builder):
 {}
@@ -241,10 +265,12 @@ void characterStringLiteral(StringBuilder builder):
 	Token token;
 }
 {
+	<start_single_quote>
 	(
 		token = <not_single_quote> { builder.append(token.image); }
 		| <escape_single_quote>  { builder.append("'"); }
 	)*
+	<end_single_quote>
 }
 /* This is the entry point of the parser*/
 QuerySpecification Start():
@@ -255,30 +281,29 @@ QuerySpecification Start():
 	querySpecification = querySpecification()
 	{ return querySpecification; }
 }
-ValueExpression valueExpression():
-{ ValueExpression valueExpression;}
-{	
-	valueExpression = valueExpressionPrimary() { return valueExpression;}
-}
-ValueExpression valueExpressionPrimary():
+ValueExpressionPrimary valueExpressionPrimary():
 {
-	SetFunctionSpecification setFunction = null;
+	UnsignedValueSpecification unsignedValueSpecification = null;
 	ColumnReference columnReference = null;
+	SetFunctionSpecification setFunctionSpecification = null;
 }
 {
-	setFunction = setFunctionSpecification() { return new ValueExpression(setFunction, null);}
-	| columnReference = columnReference() { return new ValueExpression(null, columnReference);}
+	setFunctionSpecification = setFunctionSpecification() { return new ValueExpressionPrimary(setFunctionSpecification);}
+	| columnReference = columnReference() { return new ValueExpressionPrimary(columnReference);}
+	| unsignedValueSpecification = unsignedValueSpecification() { return new ValueExpressionPrimary(unsignedValueSpecification); }
 }
-void unsignedValueSpecification():
-{}
+UnsignedValueSpecification unsignedValueSpecification():
 {
-	unsignedLiteral()
+	UnsignedLiteral unsignedLiteral;
 }
-String unsignedLiteral():
+{
+	unsignedLiteral = unsignedLiteral() { return new UnsignedValueSpecification(unsignedLiteral); }
+}
+UnsignedLiteral unsignedLiteral():
 { StringBuilder builder = new StringBuilder(); }
 {
-	unsignedNumericLiteral(builder) { return builder.toString(); }
-	| generalLiteral(builder) { return builder.toString(); }
+	unsignedNumericLiteral(builder) { return new UnsignedLiteral(builder.toString(), null); }
+	| generalLiteral(builder) { return new UnsignedLiteral(null, builder.toString()); }
 }
 String identifier():
 {
@@ -301,10 +326,12 @@ void delimitedIentifier(StringBuilder builder):
 	Token token = null;
 }
 {
-	(
+	<start_double_quote>
+	( 
 		token = <not_double_quote> { builder.append(token.image); }
-		| <escape_double_quote>  { builder.append("\""); }
+		| <escape_double_quote> { builder.append("\""); }
 	)*
+	<end_double_quote>
 }
 ColumnReference columnReference():
 {
@@ -364,10 +391,11 @@ String asClause():
 TableExpression tableExpression():
 {
 	FromClause fromClause = null;
+	WhereClause whereClause = null;
 }
 {
-	fromClause = fromClause()
-	{ return new TableExpression(fromClause); }
+	fromClause = fromClause() [ whereClause = whereClause() ]
+	{ return new TableExpression(fromClause, whereClause); }
 }
 FromClause fromClause():
 {
@@ -400,11 +428,10 @@ SetQuantifier setQuantifier():
 }
 Qualifier qualifier():
 {
-	String tableName = null;
-	String correlationName = null;
+	String colunName = null;
 }
 {
-	tableName = tableName() { return new Qualifier(tableName, null); }
+	tableName = columnName() { return new Qualifier(tableName, null); }
 }
 String tableName():
 { 
@@ -416,9 +443,8 @@ String tableName():
 SetFunctionSpecification setFunctionSpecification():
 { SetFunctionSpecification setFunction = null; }
 {
-	LOOKAHEAD(3)
-	<count><left_paren> <asterisk> <right_paren>
-	{ return new SetFunctionSpecification(SetFunctionType.COUNT, null, new ValueExpression(null, new ColumnReference(null, "*"))); }
+	<count_asterisk>
+	{ return new SetFunctionSpecification(Boolean.TRUE); }
 	| setFunction = generalSetFunction() { return setFunction;}
 }
 SetFunctionSpecification generalSetFunction():
@@ -439,4 +465,266 @@ SetFunctionType setFunctionType():
 	| <min> { return SetFunctionType.MIN; }
 	| <sum> { return SetFunctionType.SUM; }
 	| <count> { return SetFunctionType.COUNT; }
+}
+WhereClause whereClause():
+{
+	SearchCondition searchCondition;
+}
+{
+	<where> searchCondition = searchCondition() { return new WhereClause(searchCondition);}
+}
+/**
+* The reference BNF definition for searchCondition() is "left recursive"
+* which is not possible with javacc, so it was re-written.
+*/
+SearchCondition searchCondition():
+{
+	SearchCondition searchCondition = new SearchCondition();
+	BooleanTerm lastBooleanTerm = null;
+}
+{
+	lastBooleanTerm = booleanTerm() { searchCondition.addOrBooleanTerm(lastBooleanTerm); }
+	( <or> lastBooleanTerm = booleanTerm() { searchCondition.addOrBooleanTerm(lastBooleanTerm); } )*
+	{ return searchCondition; }
+}
+/**
+* The reference BNF definition for booleanTerm() is "left recursive"
+* which is not possible with javacc, so it was re-written. 
+*/
+BooleanTerm booleanTerm():
+{
+	BooleanTerm booleanTerm = new BooleanTerm();
+	BooleanFactor booleanFactor = null;
+}
+{
+	booleanFactor = booleanFactor() { booleanTerm.addAndBooleanFactor(booleanFactor); }
+	( <and>  booleanFactor = booleanFactor() { booleanTerm.addAndBooleanFactor(booleanFactor); } )*
+	{ return booleanTerm; }
+}
+BooleanFactor booleanFactor():
+{
+	Boolean notB = null;
+	BooleanTest booleanTest = null;
+}
+{
+	[ <not> { notB = Boolean.TRUE; } ] booleanTest = booleanTest() { return new BooleanFactor(notB, booleanTest); }
+}
+BooleanTest booleanTest():
+{
+	BooleanPrimary booleanPrimary = null;
+	Boolean isB = null;
+	Boolean notB = null;
+	TruthValue truthValue = null;
+}
+{
+	booleanPrimary = booleanPrimary() [ <is> { isB = Boolean.TRUE; } [ <not> {notB = Boolean.TRUE; }] truthValue = truthValue() ]
+	{ return new BooleanTest(booleanPrimary, isB, notB, truthValue); }
+}
+BooleanPrimary booleanPrimary():
+{
+	Predicate predicate = null;
+	SearchCondition searchCondition = null;
+}
+{
+	LOOKAHEAD(2)
+	predicate = predicate() { return new BooleanPrimary(predicate);}
+	|  <left_paren> searchCondition = searchCondition() <right_paren> { return new BooleanPrimary(searchCondition); }
+}
+Predicate predicate():
+{
+	ComparisonPredicate comparisonPredicate = null;
+	BetweenPredicate betweenPredicate = null;
+	InPredicate inPredicate = null;
+	LikePredicate likePredicate = null;
+	NullPredicate nullPredicate = null;
+	OverlapsPredicate overlapsPredicate = null;
+}
+{
+	comparisonPredicate = comparisonPredicate() { return new Predicate(comparisonPredicate);}
+	| betweenPredicate = betweenPredicate() { return new Predicate(betweenPredicate); }
+	| inPredicate = inPredicate() { return new Predicate(inPredicate); }
+	| likePredicate = likePredicate() { return new Predicate(likePredicate); }
+	| nullPredicate = nullPredicate() { return new Predicate(nullPredicate); }
+	| overlapsPredicate = overlapsPredicate() { return new Predicate(overlapsPredicate); }
+}
+ComparisonPredicate comparisonPredicate():
+{
+	RowValueConstructor rowValueConstructorLHS = null;
+	CompOp compOp = null;
+	RowValueConstructor rowValueConstructorRHS = null;
+}
+{
+	rowValueConstructorLHS = rowValueConstructor() compOp = compOp() rowValueConstructorRHS = rowValueConstructor()
+	{ return new ComparisonPredicate(rowValueConstructorLHS,compOp,rowValueConstructorRHS);}
+}
+RowValueConstructor rowValueConstructor():
+{
+	RowValueConstructorElement rowValueConstructorElement = null;
+	RowValueConstructorList rowValueConstructorList = null;
+}
+{
+	<left_paren> rowValueConstructorList = rowValueConstructorList() <right_paren> { return new RowValueConstructor(rowValueConstructorList); }
+	| rowValueConstructorElement = rowValueConstructorElement() { return new RowValueConstructor(rowValueConstructorElement); }
+}
+RowValueConstructorList rowValueConstructorList():
+{
+	RowValueConstructorList rowValueConstructorList = new RowValueConstructorList();
+	RowValueConstructorElement rowValueConstructorElement;
+}
+{
+	rowValueConstructorElement = rowValueConstructorElement() { rowValueConstructorList.addRowValueConstructorElement(rowValueConstructorElement); }
+	(<comma> rowValueConstructorElement = rowValueConstructorElement() { rowValueConstructorList.addRowValueConstructorElement(rowValueConstructorElement); } )*
+	{ return rowValueConstructorList; } 
+}
+RowValueConstructorElement rowValueConstructorElement():
+{
+	ValueExpression valueExpression;
+}
+{
+		<null_specification> { return new RowValueConstructorElement(Boolean.TRUE, null); }
+	|	<default_specification> { return new RowValueConstructorElement(null, Boolean.TRUE); }
+	|	valueExpression = valueExpression() { return new RowValueConstructorElement(valueExpression); }
+}
+CompOp compOp():
+{}
+{
+		<equals_operator> { return CompOp.EQUALS_OPERATOR;}
+	|   <not_equals_operator> { return CompOp.NOT_EQUALS_OPERATOR;}
+	|   <less_than_operator> { return CompOp.LESS_THAN_OPERATOR;}
+	|   <greater_than_operator> { return CompOp.GREATER_THAN_OPERATOR;}
+	|   <less_than_or_equals_operator> { return CompOp.LESS_THAN_OR_EQUALS_OPERATOR;}
+	|   <greater_than_or_equals_operator> {return CompOp.GREATER_THAN_OR_EQUALS_OPERATOR;} 
+}
+BetweenPredicate betweenPredicate():
+{
+	RowValueConstructor rowValueConstructorLHS = null;
+	Boolean notB = null;
+	RowValueConstructor betweenRowValueConstructor = null;
+	RowValueConstructor andRowValueConstructorRHS = null;
+}
+{
+	rowValueConstructorLHS = rowValueConstructor() [ <not> { notB = Boolean.TRUE; }] <between> betweenRowValueConstructor = rowValueConstructor() <and>  andRowValueConstructorRHS = rowValueConstructor()
+	{ return new BetweenPredicate(rowValueConstructorLHS, notB, betweenRowValueConstructor, andRowValueConstructorRHS);}
+}
+InPredicate inPredicate():
+{
+	RowValueConstructor rowValueConstructorLHS = null;
+	Boolean notB = null;
+	InPredicateValue inPredicateValue = null;
+}
+{
+	rowValueConstructorLHS = rowValueConstructor() [ <not> {notB = Boolean.TRUE;} ] <in> inPredicateValue = inPredicateValue()
+	{ return new InPredicate(rowValueConstructorLHS, notB, inPredicateValue);}
+}
+InPredicateValue inPredicateValue():
+{
+	InValueList inValueList = null;
+}
+{
+	<left_paren> inValueList = inValueList() <right_paren>
+	{ return new InPredicateValue(inValueList); }
+}
+InValueList inValueList():
+{
+	InValueList inValueList = new InValueList();
+	ValueExpression valueExpression = null;
+}
+{
+	valueExpression = valueExpression() { inValueList.addValueExpression(valueExpression); }
+	( <comma> valueExpression = valueExpression() { inValueList.addValueExpression(valueExpression); } )*
+	{ return inValueList; }
+}
+LikePredicate likePredicate():
+{
+	MatchValue matchValue = null;
+	Boolean notB = null;
+	Pattern pattern = null;
+	EscapeCharacter escapeCharacter = null;
+}
+{
+	matchValue = matchValue() [ <not> { notB = Boolean.TRUE; }] <like> pattern = pattern() [ <escape> escapeCharacter = escapeCharacter() ]
+	{ return new LikePredicate(matchValue,notB,pattern,escapeCharacter);}
+}
+MatchValue matchValue():
+{
+	CharacterValueExpression characterValueExpression = null;
+}
+{
+	characterValueExpression = characterValueExpression()
+	{return new MatchValue(characterValueExpression);}
+}
+Pattern pattern():
+{
+	CharacterValueExpression characterValueExpression = null;
+}
+{
+	characterValueExpression = characterValueExpression()
+	{return new Pattern(characterValueExpression);}
+}
+EscapeCharacter escapeCharacter():
+{
+	CharacterValueExpression characterValueExpression = null;
+}
+{
+	characterValueExpression = characterValueExpression()
+	{return new EscapeCharacter(characterValueExpression);}
+}
+NullPredicate nullPredicate():
+{
+	Boolean notB = null;
+}
+{
+	<is> [ <not> {notB=Boolean.TRUE;}] <null_specification>
+	{ return new NullPredicate(notB); }
+}
+OverlapsPredicate overlapsPredicate():
+{
+	RowValueConstructor rowValueConstructorLHS = null;
+	RowValueConstructor rowValueConstructorRHS = null;
+}
+{
+	rowValueConstructorLHS = rowValueConstructor() <overlaps> rowValueConstructorRHS =rowValueConstructor()
+	{ return new OverlapsPredicate(rowValueConstructorLHS,rowValueConstructorRHS);}
+}
+ValueExpression valueExpression():
+{
+	StringValueExpression stringValueExpression = null;
+}
+{
+	stringValueExpression = stringValueExpression() { return new ValueExpression(stringValueExpression); }
+}
+StringValueExpression stringValueExpression():
+{
+	CharacterValueExpression characterValueExpression;
+}
+{
+	characterValueExpression = characterValueExpression() { return new StringValueExpression(characterValueExpression); }
+}
+CharacterValueExpression characterValueExpression():
+{
+	CharacterFactor characterFactor = null;
+}
+{
+	characterFactor = characterFactor() { return new CharacterValueExpression(characterFactor); }
+}
+CharacterFactor characterFactor():
+{
+	CharacterPrimary characterPrimary;
+}
+{
+	characterPrimary = characterPrimary() { return new CharacterFactor(characterPrimary); }
+}
+CharacterPrimary characterPrimary():
+{
+	ValueExpressionPrimary valueExpressionPrimary = null;
+}
+{
+	valueExpressionPrimary = valueExpressionPrimary() { return new CharacterPrimary(valueExpressionPrimary); }
+}
+TruthValue truthValue():
+{}
+{
+	<_true> { return TruthValue.TRUE; }
+	| <_false> { return TruthValue.FALSE; }
+	| <unknown> { return TruthValue.UNKNOWN; }
 }

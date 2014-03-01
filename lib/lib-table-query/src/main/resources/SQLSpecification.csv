@@ -8,3 +8,6 @@ Aggregation Functions,Get the maximum of all values for the column 'foo' in tabl
 Aggregation Functions,Get the minimum of all values for the column 'foo' in table 'syn123'.,select min(foo) from syn123
 Aggregation Functions,Get the average of all values for the column 'foo' in table 'syn123'.,select avg(foo) from syn123
 Aggregation Functions,Get the sum of all values for the column 'foo' in table 'syn123'.,select sum(foo) from syn123
+Set Selection,The DISTINCT keyword can be used to select all distinct value (the value set) from a column. ,select distinct foo from syn123
+Set Selection,"The DISTINCT keyword applies to all selected columns, so if more than one column is listed, then the results will be a list of the distict combinations of all selected columns.","select distinct foo, bar from syn123"
+Set Selection,"The DISTINCT keyword can be used with set functions.  In this example, we will get the count of the distinct values from the foo column.",select count(distinct foo) from syn123
