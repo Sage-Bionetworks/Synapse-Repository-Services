@@ -44,9 +44,9 @@ PARSER_END(TableQueryParser)
 * to limit the scope of the <not_double_quote> token which is too broad
 * for other cases.
 */
-<DEFAULT> SKIP: 
+<DEFAULT> TOKEN: 
 {
-	< "\""> : within_double_quote
+	< start_double_quote: "\""> : within_double_quote
 }
 // This token only has meaning within a double quote.
 <within_double_quote> TOKEN :
@@ -63,9 +63,9 @@ PARSER_END(TableQueryParser)
 * quote will terminate the string and restore the state
 * to DEFAULT.
 */
-<within_double_quote> SKIP :
+<within_double_quote> TOKEN :
 {
-	"\"": DEFAULT
+	< end_double_quote: "\"">: DEFAULT
 }
 
 
@@ -76,9 +76,9 @@ PARSER_END(TableQueryParser)
 * to limit the scope of the <not_quote> token which is too broad
 * for other cases.
 */
-<DEFAULT> SKIP: 
+<DEFAULT> TOKEN: 
 {
-	< "'"> : within_single_quotes
+	< start_single_quote: "'"> : within_single_quotes
 }
 // This token only has meaning within single quotes.
 <within_single_quotes> TOKEN :
@@ -95,9 +95,9 @@ PARSER_END(TableQueryParser)
 * quote will terminate the string and restore the state
 * to DEFAULT.
 */
-<within_single_quotes> SKIP :
+<within_single_quotes> TOKEN :
 {
-	"'": DEFAULT
+	< end_single_quote: "'" > : DEFAULT
 }
 
 /* Skip whitespace */
@@ -170,12 +170,11 @@ TOKEN:{
 | < solidus: "/">
 | <underscore: "_">
 }
-/* Complex Tokens */
-TOKEN: { 
+
+TOKEN: {
   < digit: ["0"-"9"]>
 | < letter: ["a"-"z","A"-"Z"]>
 }
-
 
 void regularIdentifier(StringBuilder builder):
 {
@@ -183,9 +182,10 @@ void regularIdentifier(StringBuilder builder):
 }
 {
 	token = <letter> { builder.append(token.image); }
-	( token = <letter> { builder.append(token.image); }
-	 | token = <digit> { builder.append(token.image); }
-	 | token = <underscore> { builder.append(token.image); }
+	(
+		 token = <letter> { builder.append(token.image); }
+		 | token = <digit> { builder.append(token.image); }
+		 | token = <underscore> { builder.append(token.image); }
 	)* 
 }
 /** Literal Numbers, Strings, Dates and Times */
@@ -196,7 +196,9 @@ void unsignedInteger(StringBuilder builder):
 }
 {
 	token = <digit> { builder.append(token.image); }
-		( token = <digit> { builder.append(token.image); } )*
+	(
+		token = <digit> { builder.append(token.image); } 
+	)*
 }
 void sign(StringBuilder builder):
 {}
@@ -263,10 +265,12 @@ void characterStringLiteral(StringBuilder builder):
 	Token token;
 }
 {
+	<start_single_quote>
 	(
 		token = <not_single_quote> { builder.append(token.image); }
 		| <escape_single_quote>  { builder.append("'"); }
 	)*
+	<end_single_quote>
 }
 /* This is the entry point of the parser*/
 QuerySpecification Start():
@@ -285,8 +289,8 @@ ValueExpressionPrimary valueExpressionPrimary():
 }
 {
 	setFunctionSpecification = setFunctionSpecification() { return new ValueExpressionPrimary(setFunctionSpecification);}
-	| unsignedValueSpecification = unsignedValueSpecification() { return new ValueExpressionPrimary(unsignedValueSpecification); }
 	| columnReference = columnReference() { return new ValueExpressionPrimary(columnReference);}
+	| unsignedValueSpecification = unsignedValueSpecification() { return new ValueExpressionPrimary(unsignedValueSpecification); }
 }
 UnsignedValueSpecification unsignedValueSpecification():
 {
@@ -322,10 +326,12 @@ void delimitedIentifier(StringBuilder builder):
 	Token token = null;
 }
 {
-	(
+	<start_double_quote>
+	( 
 		token = <not_double_quote> { builder.append(token.image); }
-		| <escape_double_quote>  { builder.append("\""); }
+		| <escape_double_quote> { builder.append("\""); }
 	)*
+	<end_double_quote>
 }
 ColumnReference columnReference():
 {
@@ -422,11 +428,10 @@ SetQuantifier setQuantifier():
 }
 Qualifier qualifier():
 {
-	String tableName = null;
-	String correlationName = null;
+	String colunName = null;
 }
 {
-	tableName = tableName() { return new Qualifier(tableName, null); }
+	tableName = columnName() { return new Qualifier(tableName, null); }
 }
 String tableName():
 { 
