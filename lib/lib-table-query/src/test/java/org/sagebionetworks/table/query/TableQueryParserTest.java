@@ -13,6 +13,11 @@ import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SQLElement;
 import org.sagebionetworks.table.query.model.SelectList;
+import org.sagebionetworks.table.query.model.SetFunctionSpecification;
+import org.sagebionetworks.table.query.model.UnsignedLiteral;
+import org.sagebionetworks.table.query.model.UnsignedValueSpecification;
+import org.sagebionetworks.table.query.model.ValueExpression;
+import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
 import org.sagebionetworks.table.query.util.SQLExample;
 import org.sagebionetworks.table.query.util.SQLExampleProvider;
 
@@ -263,6 +268,84 @@ public class TableQueryParserTest {
 		ColumnReference columnReference = parser.columnReference();
 		assertNotNull(columnReference);
 		String sql = toSQL(columnReference);
+		assertEquals("\"with space\".\"cat's\"", sql);
+	}
+	
+	@Test
+	public void testUnsignedLiteralUnsignedNumericLiteral() throws ParseException{
+		TableQueryParser parser = new TableQueryParser("123.456e-1");
+		UnsignedLiteral model = parser.unsignedLiteral();
+		assertNotNull(model);
+		String sql = toSQL(model);
+		assertEquals("123.456e-1", sql);
+	}
+	
+	@Test
+	public void testUnsignedLiteralGeneralLiteral() throws ParseException{
+		TableQueryParser parser = new TableQueryParser("'Batman''s car'");
+		UnsignedLiteral model = parser.unsignedLiteral();
+		assertNotNull(model);
+		String sql = toSQL(model);
+		assertEquals("'Batman''s car'", sql);
+	}
+	
+	@Test
+	public void testUnsignedNumericLiteralInteger() throws ParseException{
+		TableQueryParser parser = new TableQueryParser("123");
+		StringBuilder builder = new StringBuilder();
+		parser.unsignedNumericLiteral(builder);
+		assertEquals("123", builder.toString());
+	}
+	
+	@Test
+	public void testUnsignedNumericLiteralDouble() throws ParseException{
+		TableQueryParser parser = new TableQueryParser("123.456");
+		StringBuilder builder = new StringBuilder();
+		parser.unsignedNumericLiteral(builder);
+		assertEquals("123.456", builder.toString());
+	}
+	
+	@Test
+	public void testUnsignedNumericLiteralExponent() throws ParseException{
+		TableQueryParser parser = new TableQueryParser("123.456e2");
+		StringBuilder builder = new StringBuilder();
+		parser.unsignedNumericLiteral(builder);
+		assertEquals("123.456e2", builder.toString());
+	}
+	
+	@Test
+	public void testUnsignedValueSpecificationInteger() throws ParseException{
+		TableQueryParser parser = new TableQueryParser("123456");
+		UnsignedValueSpecification unsignedValueSpec = parser.unsignedValueSpecification();
+		assertNotNull(unsignedValueSpec);
+		String sql = toSQL(unsignedValueSpec);
+		assertEquals("123456", sql);
+	}
+	
+	@Test
+	public void testUnsignedValueSpecificationCharacterString() throws ParseException{
+		TableQueryParser parser = new TableQueryParser("'a string'");
+		UnsignedValueSpecification unsignedValueSpec = parser.unsignedValueSpecification();
+		assertNotNull(unsignedValueSpec);
+		String sql = toSQL(unsignedValueSpec);
+		assertEquals("'a string'", sql);
+	}
+	
+	@Test
+	public void testSetFunctionSpecification() throws ParseException{
+		TableQueryParser parser = new TableQueryParser("count( distinct \"name\")");
+		SetFunctionSpecification setFunction = parser.setFunctionSpecification();
+		assertNotNull(setFunction);
+		String sql = toSQL(setFunction);
+		assertEquals("COUNT(DISTINCT \"name\")", sql);
+	}
+	
+	@Test
+	public void testValueExpressionPrimaryColumnReference() throws ParseException{
+		TableQueryParser parser = new TableQueryParser("\"with space\".\"cat's\"");
+		ValueExpressionPrimary valueExpressionPrimary = parser.valueExpressionPrimary();
+		assertNotNull(valueExpressionPrimary);
+		String sql = toSQL(valueExpressionPrimary);
 		assertEquals("\"with space\".\"cat's\"", sql);
 	}
 	

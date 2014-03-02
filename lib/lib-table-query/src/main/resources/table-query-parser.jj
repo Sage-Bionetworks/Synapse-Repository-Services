@@ -238,7 +238,7 @@ void approximateNumericLiteral(StringBuilder builder):
 void unsignedNumericLiteral(StringBuilder builder):
 {}
 {
-	( unsignedInteger(builder) period(builder) ( unsignedInteger(builder) | exponent(builder) ) )
+	( unsignedInteger(builder) [ period(builder) ( unsignedInteger(builder) | exponent(builder) ) ] )
 	| ( period(builder) ( unsignedInteger(builder) | exponent(builder) ) )
 }
 void signedNumericLiteral(StringBuilder builder):
