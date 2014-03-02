@@ -296,21 +296,21 @@ UnsignedLiteral unsignedLiteral():
 	unsignedNumericLiteral(builder) { return new UnsignedLiteral(builder.toString(), null); }
 	| generalLiteral(builder) { return new UnsignedLiteral(null, builder.toString()); }
 }
-String identifier():
+Identifier identifier():
 {
-	String identifier = null;
+	ActualIdentifier actualIdentifier = null;
 }
 {
-	identifier = actualIdentifier()
-	{ return identifier;}
+	actualIdentifier = actualIdentifier()
+	{ return new Identifier(actualIdentifier);}
 }
-String actualIdentifier():
+ActualIdentifier actualIdentifier():
 {
 	StringBuilder builder = new StringBuilder();
 }
 {
-	regularIdentifier(builder) { return builder.toString(); }
-	| delimitedIentifier(builder) { return builder.toString(); }
+	regularIdentifier(builder) { builder.toString(); return new ActualIdentifier(builder.toString(), null); }
+	| delimitedIentifier(builder) { builder.toString(); return new ActualIdentifier(null, builder.toString());}
 }
 void delimitedIentifier(StringBuilder builder):
 { 
@@ -326,8 +326,8 @@ void delimitedIentifier(StringBuilder builder):
 }
 ColumnReference columnReference():
 {
-	String nameLHS = null;
-	String nameRHS = null;
+	ColumnName nameLHS = null;
+	ColumnName nameRHS = null;
 }
 {
 	nameLHS = columnName() [ <period> nameRHS = columnName() ]
@@ -364,20 +364,20 @@ DerivedColumn selectSubList():
 }
 DerivedColumn derivedColumn():
 {
-	String asClause = null;
+	AsClause asClause = null;
 	ValueExpression valueExpression = null;
 }
 {
 	valueExpression = valueExpression() [ asClause = asClause()]
 	{ return new DerivedColumn(valueExpression, asClause);}
 }
-String asClause():
+AsClause asClause():
 {
-	String columnName = null;
+	ColumnName columnName = null;
 }
 {
 	<as> columnName = columnName()
-	{ return columnName; }
+	{ return new AsClause(columnName); }
 }
 TableExpression tableExpression():
 {
@@ -404,25 +404,18 @@ TableReference tableReference():
 	tableName = tableName()
 	{ return new TableReference(tableName); }
 }
-String columnName():
+ColumnName columnName():
 {
-	String columnName = null;
+	Identifier identifier = null;
 }
 {
-	columnName = identifier() {return columnName; }
+	identifier = identifier() {return new ColumnName(identifier); }
 }
 SetQuantifier setQuantifier():
 {}
 {
 	<distinct> { return SetQuantifier.DISTINCT;}
 	|<all> { return SetQuantifier.ALL;}
-}
-Qualifier qualifier():
-{
-	String colunName = null;
-}
-{
-	colunName = columnName() { return new Qualifier(colunName, null); }
 }
 String tableName():
 { 

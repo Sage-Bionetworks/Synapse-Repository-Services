@@ -11,6 +11,7 @@ import org.junit.Test;
 import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.QuerySpecification;
+import org.sagebionetworks.table.query.model.SQLElement;
 import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.util.SQLExample;
 import org.sagebionetworks.table.query.util.SQLExampleProvider;
@@ -234,7 +235,8 @@ public class TableQueryParserTest {
 		TableQueryParser parser = new TableQueryParser("foo");
 		ColumnReference columnReference = parser.columnReference();
 		assertNotNull(columnReference);
-		assertEquals("foo", columnReference.getNameLHS());
+		String sql = toSQL(columnReference);
+		assertEquals("foo", sql);
 	}
 	
 	@Test
@@ -242,8 +244,8 @@ public class TableQueryParserTest {
 		TableQueryParser parser = new TableQueryParser("foo.bar");
 		ColumnReference columnReference = parser.columnReference();
 		assertNotNull(columnReference);
-		assertEquals("foo", columnReference.getNameLHS());
-		assertEquals("bar", columnReference.getNameRHS());
+		String sql = toSQL(columnReference);
+		assertEquals("foo.bar", sql);
 	}
 	
 	@Test
@@ -251,7 +253,8 @@ public class TableQueryParserTest {
 		TableQueryParser parser = new TableQueryParser("\"with space\"");
 		ColumnReference columnReference = parser.columnReference();
 		assertNotNull(columnReference);
-		assertEquals("with space", columnReference.getNameLHS());
+		String sql = toSQL(columnReference);
+		assertEquals("\"with space\"", sql);
 	}
 	
 	@Test
@@ -259,8 +262,8 @@ public class TableQueryParserTest {
 		TableQueryParser parser = new TableQueryParser("\"with space\".\"cat's\"");
 		ColumnReference columnReference = parser.columnReference();
 		assertNotNull(columnReference);
-		assertEquals("with space", columnReference.getNameLHS());
-		assertEquals("cat's", columnReference.getNameRHS());
+		String sql = toSQL(columnReference);
+		assertEquals("\"with space\".\"cat's\"", sql);
 	}
 	
 	@Test
@@ -329,6 +332,18 @@ public class TableQueryParserTest {
 		assertEquals("123", sq.getTableExpression().getFromClause().getTableReference().getTableName());
 	}
 	
+	
+	/**
+	 * Helper to convert a SQLElement to its SQL string.
+	 * @param element
+	 * @return
+	 */
+	public static String toSQL(SQLElement element){
+		StringBuilder builder = new StringBuilder();
+		element.toSQL(builder);
+		return builder.toString();
+	}
+	
 //	@Test
 //	public void testSelectMultipleColumns() throws ParseException{
 //		QuerySpecification sq = TableQueryParser.parserQuery("select foo, bar, foobar from syn123");
@@ -343,7 +358,7 @@ public class TableQueryParserTest {
 //		assertEquals(null, dc.getAsClause());
 //		assertNotNull(dc.getValueExpression());
 //		assertNotNull(dc.getValueExpression());
-//		assertEquals(null, dc.getValueExpression().getSetFunction());
+//		assertEquals(null, dc.getValueExpression()..getSetFunction());
 //		ColumnReference cr = dc.getValueExpression().getColumnReference();
 //		assertNotNull(cr);
 //		assertEquals(null, cr.getQualifier());

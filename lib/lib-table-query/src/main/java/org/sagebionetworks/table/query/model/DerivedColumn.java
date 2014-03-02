@@ -6,9 +6,9 @@ package org.sagebionetworks.table.query.model;
 public class DerivedColumn {
 
 	ValueExpression valueExpression;
-	String asClause;
+	AsClause asClause;
 	
-	public DerivedColumn(ValueExpression valueExpression, String asClause) {
+	public DerivedColumn(ValueExpression valueExpression, AsClause asClause) {
 		super();
 		this.valueExpression = valueExpression;
 		this.asClause = asClause;
@@ -18,7 +18,7 @@ public class DerivedColumn {
 		return valueExpression;
 	}
 
-	public String getAsClause() {
+	public AsClause getAsClause() {
 		return asClause;
 	}
 	
