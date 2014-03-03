@@ -3,21 +3,20 @@ package org.sagebionetworks.table.query.model;
 /**
  * This matches &ltvalue expression&gt   in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
-public class ValueExpression {
+public class ValueExpression implements SQLElement{
 
-	SetFunctionSpecification setFunction;
-	ColumnReference columnReference;
-	public ValueExpression(SetFunctionSpecification setFunction,
-			ColumnReference columnReference) {
+	StringValueExpression stringValueExpression;
+	
+	public ValueExpression(StringValueExpression stringValueExpression) {
 		super();
-		this.setFunction = setFunction;
-		this.columnReference = columnReference;
+		this.stringValueExpression = stringValueExpression;
 	}
-	public SetFunctionSpecification getSetFunction() {
-		return setFunction;
+	public StringValueExpression getStringValueExpression() {
+		return stringValueExpression;
 	}
-	public ColumnReference getColumnReference() {
-		return columnReference;
-	}	
+	@Override
+	public void toSQL(StringBuilder builder) {
+		this.stringValueExpression.toSQL(builder);
+	}
 	
 }

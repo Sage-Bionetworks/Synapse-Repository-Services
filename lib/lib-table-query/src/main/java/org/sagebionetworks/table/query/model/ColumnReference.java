@@ -1,23 +1,30 @@
 package org.sagebionetworks.table.query.model;
 
-
 /**
  * This matches &ltcolumn reference&gt   in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
-public class ColumnReference {
+public class ColumnReference implements SQLElement{
 	
-	Qualifier qualifier;
-	String columnName;
-	public ColumnReference(Qualifier qualifier, String columnName) {
+	ColumnName nameLHS;
+	ColumnName nameRHS;
+	public ColumnReference(ColumnName nameLHS, ColumnName nameRHS) {
 		super();
-		this.qualifier = qualifier;
-		this.columnName = columnName;
+		this.nameLHS = nameLHS;
+		this.nameRHS = nameRHS;
 	}
-	public Qualifier getQualifier() {
-		return qualifier;
+	public ColumnName getNameLHS() {
+		return nameLHS;
 	}
-	public String getColumnName() {
-		return columnName;
-	}	
+	public ColumnName getNameRHS() {
+		return nameRHS;
+	}
+	@Override
+	public void toSQL(StringBuilder builder) {
+		this.nameLHS.toSQL(builder);
+		if(nameRHS != null){
+			builder.append(".");
+			this.nameRHS.toSQL(builder);
+		}
+	}
 	
 }
