@@ -228,7 +228,7 @@ public class MessageManagerImplTest {
 		assertNotNull(dto.getInReplyToRoot());
 		
 		// Make sure the timestamps on the messages are different 
-		Thread.sleep(5);
+		Thread.sleep(5L); // just 5 milliseconds
 		
 		return dto;
 	}
@@ -246,6 +246,34 @@ public class MessageManagerImplTest {
 			return messageManager.processMessage(otherToGroup.getId());
 		}
 		return new ArrayList<String>();
+	}
+	
+	
+	@Test
+	public void testNoResend() throws Exception {
+		//two recipients but neither receives the message. 
+		// Need to test that if called a second time the message is NOT resent, since sent=true.
+		
+		// the message subject tells the stubbed client to create a failure
+		final String testUserId = testUser.getId().toString();
+		final String otherTestUserId = otherTestUser.getId().toString();
+		MessageToUser aMessage = createMessage(testUser, StubAmazonSimpleEmailServiceClient.MESSAGE_SUBJECT_FOR_FAILURE, 
+				new HashSet<String>() {{add(testUserId); add(otherTestUserId);}}, null);
+		
+		// now send the message
+		List<String> errors = messageManager.processMessage(aMessage.getId());
+		
+		// check that the stubbed client -- 2 failures for the two recipients
+		assertEquals(2, errors.size());
+		for (String message : errors) {
+			assertTrue(message.indexOf(StubAmazonSimpleEmailServiceClient.TRANSMISSION_FAILURE)>=0);
+		}
+		
+		// now send a second time
+		errors = messageManager.processMessage(aMessage.getId());
+		
+		// check that the stubbed client was NOT called
+		assertEquals(0, errors.size());
 	}
 	
 	@After
