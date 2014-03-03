@@ -87,16 +87,13 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		EvaluationUtils.ensureNotNull(submission, "Submission");
 		EvaluationUtils.ensureNotNull(bundle, "EntityBundle");
 		String evalId = submission.getEvaluationId();
-		Evaluation eval = evaluationManager.getEvaluation(userInfo, evalId);
 		UserInfo.validateUserInfo(userInfo);
 		String principalId = userInfo.getId().toString();
 		
 		submission.setUserId(principalId);
 		
 		// validate permissions
-		if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.SUBMIT)) {
-			throw new UnauthorizedException("Not allowed to submit to " + eval.getName());
-		}
+		evaluationPermissionsManager.validateHasAccess(userInfo, evalId, ACCESS_TYPE.SUBMIT);
 		
 		// validate eTag
 		String entityId = submission.getEntityId();
