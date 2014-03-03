@@ -1,6 +1,6 @@
 {
 	"title": "MessageStatus",
-	"description": "JSON schema for a user message status",
+	"description": "JSON schema for message status from the RECIPIENT'S standpoint",
 	"properties": {
 		"messageId": {
 			"type": "string",
@@ -12,7 +12,7 @@
 		},
 		"status": {
 			"type": "string",
-			"description": "The status of the message",
+			"description": "The status of the message, from the RECIPIENT'S standpoint",
 			"name": "MessageStatusType",
 			"id": "org.sagebionetworks.repo.model.message.MessageStatusType",
 			"enum": [

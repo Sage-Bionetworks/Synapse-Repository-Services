@@ -146,7 +146,7 @@ public class MessageManagerImplSESTest {
 		messageManager.setFileHandleManager(mockFileHandleManager);
 
 		// Proceed past this check
-		when(mockMessageDAO.hasMessageBeenSent(anyString())).thenReturn(false);
+		when(mockMessageDAO.getMessageSent(anyString())).thenReturn(false);
 		
 		// Mocks expandRecipientSet(...)
 		mockUserGroup = new UserGroup();
