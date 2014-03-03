@@ -247,6 +247,5 @@ public interface BridgeClient extends BaseClient {
 	 * @throws SynapseException
 	 * @throws UnsupportedEncodingException
 	 */
-	public TimeSeriesTable getTimeSeries(String participantDataDescriptorId, List<String> columnNames) throws SynapseException,
-			UnsupportedEncodingException;
+	public TimeSeriesTable getTimeSeries(String participantDataDescriptorId, List<String> columnNames) throws SynapseException;
 }

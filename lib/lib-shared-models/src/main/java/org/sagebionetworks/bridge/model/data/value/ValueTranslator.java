@@ -7,11 +7,16 @@ import org.sagebionetworks.bridge.model.data.ParticipantDataColumnDescriptor;
 import org.sagebionetworks.bridge.model.data.ParticipantDataColumnType;
 
 public class ValueTranslator {
-	private static final String LABRESULT_NORMALIZED_VALUE = "-normalizedValue";
-	private static final String LABRESULT_NORMALIZED_MIN = "-normalizedMin";
-	private static final String LABRESULT_NORMALIZED_MAX = "-normalizedMax";
-	private static final String LABRESULT_UNITS = "-units";
-	private static final String LABRESULT_ENTERED = "-entered";
+	public static final String LABRESULT_NORMALIZED_VALUE = "-normalizedValue";
+	public static final String LABRESULT_NORMALIZED_MIN = "-normalizedMin";
+	public static final String LABRESULT_NORMALIZED_MAX = "-normalizedMax";
+	public static final String LABRESULT_UNITS = "-units";
+	public static final String LABRESULT_ENTERED = "-entered";
+
+	public static final String EVENT_NAME = "-name";
+	public static final String EVENT_GROUPING = "-grouping";
+	public static final String EVENT_START = "-start";
+	public static final String EVENT_END = "-end";
 
 	public static ParticipantDataValue transformToValue(Map<String, String> row, ParticipantDataColumnDescriptor descriptor) {
 		String columnName = descriptor.getName();
@@ -46,13 +51,7 @@ public class ValueTranslator {
 				return null;
 			}
 			ParticipantDataDatetimeValue dtresult = new ParticipantDataDatetimeValue();
-			// could be a long or an ISO date
-			try {
-				dtresult.setValue(parseLong(dtvalue));
-			} catch (NumberFormatException e) {
-				// not a long, try date
-				dtresult.setValue(javax.xml.bind.DatatypeConverter.parseDateTime(dtvalue).getTimeInMillis());
-			}
+			dtresult.setValue(parseDate(dtvalue));
 			return dtresult;
 		case DOUBLE:
 			String dvalue = row.get(columnName);
@@ -82,6 +81,17 @@ public class ValueTranslator {
 			labresult.setNormalizedMin(parseDouble(row.get(columnName + LABRESULT_NORMALIZED_MIN)));
 			labresult.setNormalizedValue(parseDouble(row.get(columnName + LABRESULT_NORMALIZED_VALUE)));
 			return labresult;
+		case EVENT:
+			String nameValue = row.get(columnName + EVENT_NAME);
+			if (isEmpty(nameValue)) {
+				return null;
+			}
+			ParticipantDataEventValue eventresult = new ParticipantDataEventValue();
+			eventresult.setName(nameValue);
+			eventresult.setStart(parseDate(row.get(columnName + EVENT_START)));
+			eventresult.setEnd(parseDate(row.get(columnName + EVENT_END)));
+			eventresult.setGrouping(parseString(row.get(columnName + EVENT_GROUPING)));
+			return eventresult;
 		}
 		throw new IllegalArgumentException("Column type " + columnType + " not handled");
 	}
@@ -102,35 +112,35 @@ public class ValueTranslator {
 			ParticipantDataStringValue sresult = (ParticipantDataStringValue) input;
 			row.put(columnName, sresult.getValue());
 			columns.add(columnName);
-			break;
+			return;
 		case BOOLEAN:
 			ParticipantDataBooleanValue bresult = (ParticipantDataBooleanValue) input;
 			if (bresult.getValue() != null) {
 				row.put(columnName, bresult.getValue().toString());
 				columns.add(columnName);
 			}
-			break;
+			return;
 		case DATETIME:
 			ParticipantDataDatetimeValue dtresult = (ParticipantDataDatetimeValue) input;
 			if (dtresult.getValue() != null) {
 				row.put(columnName, dtresult.getValue().toString());
 				columns.add(columnName);
 			}
-			break;
+			return;
 		case DOUBLE:
 			ParticipantDataDoubleValue dresult = (ParticipantDataDoubleValue) input;
 			if (dresult.getValue() != null) {
 				row.put(columnName, dresult.getValue().toString());
 				columns.add(columnName);
 			}
-			break;
+			return;
 		case LONG:
 			ParticipantDataLongValue lresult = (ParticipantDataLongValue) input;
 			if (lresult.getValue() != null) {
 				row.put(columnName, lresult.getValue().toString());
 				columns.add(columnName);
 			}
-			break;
+			return;
 		case LAB:
 			ParticipantDataLabValue labresult = (ParticipantDataLabValue) input;
 			if (labresult.getEnteredValue() != null) {
@@ -153,10 +163,58 @@ public class ValueTranslator {
 					columns.add(columnName + LABRESULT_NORMALIZED_VALUE);
 				}
 			}
-			break;
-		default:
-			throw new IllegalArgumentException("Column type " + columnType + " not handled");
+			return;
+		case EVENT:
+			ParticipantDataEventValue eventresult = (ParticipantDataEventValue) input;
+			if (eventresult.getName() != null) {
+				row.put(columnName + EVENT_NAME, eventresult.getName());
+				columns.add(columnName + EVENT_NAME);
+				if (eventresult.getStart() != null) {
+					row.put(columnName + EVENT_START, eventresult.getStart().toString());
+					columns.add(columnName + EVENT_START);
+				}
+				if (eventresult.getEnd() != null) {
+					row.put(columnName + EVENT_END, eventresult.getEnd().toString());
+					columns.add(columnName + EVENT_END);
+				}
+				if (eventresult.getGrouping() != null) {
+					row.put(columnName + EVENT_GROUPING, eventresult.getGrouping());
+					columns.add(columnName + EVENT_GROUPING);
+				}
+			}
+			return;
 		}
+		throw new IllegalArgumentException("Column type " + columnType + " not handled");
+	}
+
+	@SuppressWarnings("rawtypes")
+	public static Comparable getComparable(ParticipantDataValue input) {
+		if (input == null) {
+			return null;
+		}
+
+		if (input instanceof ParticipantDataStringValue) {
+			return ((ParticipantDataStringValue) input).getValue();
+		}
+		if (input instanceof ParticipantDataBooleanValue) {
+			return ((ParticipantDataBooleanValue) input).getValue();
+		}
+		if (input instanceof ParticipantDataDatetimeValue) {
+			return ((ParticipantDataDatetimeValue) input).getValue();
+		}
+		if (input instanceof ParticipantDataDoubleValue) {
+			return ((ParticipantDataDoubleValue) input).getValue();
+		}
+		if (input instanceof ParticipantDataLongValue) {
+			return ((ParticipantDataLongValue) input).getValue();
+		}
+		if (input instanceof ParticipantDataLabValue) {
+			return ((ParticipantDataLabValue) input).getNormalizedValue();
+		}
+		if (input instanceof ParticipantDataEventValue) {
+			return ((ParticipantDataEventValue) input).getStart();
+		}
+		throw new IllegalArgumentException("Data value type " + input.getClass().getName() + " not handled in getValue");
 	}
 
 	public static String toString(ParticipantDataValue input) {
@@ -182,10 +240,31 @@ public class ValueTranslator {
 		if (input instanceof ParticipantDataLabValue) {
 			return ((ParticipantDataLabValue) input).getEnteredValue() + " " + ((ParticipantDataLabValue) input).getUnits();
 		}
+		if (input instanceof ParticipantDataEventValue) {
+			return ((ParticipantDataEventValue) input).getName();
+		}
 		throw new IllegalArgumentException("Data value type " + input.getClass().getName() + " not handled in toString");
 	}
 
+	public static Long toLong(ParticipantDataValue input) {
+		if (input == null) {
+			return null;
+		}
+
+		if (input instanceof ParticipantDataLongValue) {
+			return ((ParticipantDataLongValue) input).getValue();
+		}
+		if (input instanceof ParticipantDataDatetimeValue) {
+			return ((ParticipantDataDatetimeValue) input).getValue();
+		}
+		throw new IllegalArgumentException("Data value type " + input.getClass().getName() + " not handled in toDouble");
+	}
+
 	public static Double toDouble(ParticipantDataValue input) {
+		if (input == null) {
+			return null;
+		}
+
 		if (input instanceof ParticipantDataDoubleValue) {
 			return ((ParticipantDataDoubleValue) input).getValue();
 		}
@@ -238,6 +317,20 @@ public class ValueTranslator {
 			return null;
 		} else {
 			return Boolean.parseBoolean(value);
+		}
+	}
+
+	private static Long parseDate(String value) {
+		if (isEmpty(value)) {
+			return null;
+		} else {
+		// could be a long or an ISO date
+			try {
+				return parseLong(value);
+			} catch (NumberFormatException e) {
+				// not a long, try date
+				return javax.xml.bind.DatatypeConverter.parseDateTime(value).getTimeInMillis();
+			}
 		}
 	}
 
