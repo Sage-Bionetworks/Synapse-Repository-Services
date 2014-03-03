@@ -544,56 +544,18 @@ public class TableQueryParserTest {
 		return builder.toString();
 	}
 	
-//	@Test
-//	public void testSelectMultipleColumns() throws ParseException{
-//		QuerySpecification sq = TableQueryParser.parserQuery("select foo, bar, foobar from syn123");
-//		assertNotNull(sq);
-//		assertNotNull(sq.getSelectList());
-//		assertEquals("Asterisk should be null when we have columns", null, sq.getSelectList().getAsterisk());
-//		List<DerivedColumn> columns = sq.getSelectList().getColumns();
-//		assertNotNull(columns);
-//		assertEquals(3, columns.size());
-//		// foo
-//		DerivedColumn dc = columns.get(0);
-//		assertEquals(null, dc.getAsClause());
-//		assertNotNull(dc.getValueExpression());
-//		assertNotNull(dc.getValueExpression());
-//		assertEquals(null, dc.getValueExpression()..getSetFunction());
-//		ColumnReference cr = dc.getValueExpression().getColumnReference();
-//		assertNotNull(cr);
-//		assertEquals(null, cr.getQualifier());
-//		assertEquals("foo", cr.getColumnName());
-//		// bar
-//		dc = columns.get(1);
-//		assertEquals(null, dc.getAsClause());
-//		assertNotNull(dc.getValueExpression());
-//		assertNotNull(dc.getValueExpression());
-//		assertEquals(null, dc.getValueExpression().getSetFunction());
-//		cr = dc.getValueExpression().getColumnReference();
-//		assertNotNull(cr);
-//		assertEquals(null, cr.getQualifier());
-//		assertEquals("bar", cr.getColumnName());
-//	}
-//	
-//	@Test
-//	public void testSelectDoubleQuotedColumnName() throws ParseException{
-//		QuerySpecification sq = TableQueryParser.parserQuery("select \"foo \"\"&\"\" Bar\" from syn123");
-//		assertNotNull(sq);
-//		assertNotNull(sq.getSelectList());
-//		assertEquals("Asterisk should be null when we have columns", null, sq.getSelectList().getAsterisk());
-//		List<DerivedColumn> columns = sq.getSelectList().getColumns();
-//		assertNotNull(columns);
-//		assertEquals(1, columns.size());
-//		// foo
-//		DerivedColumn dc = columns.get(0);
-//		assertEquals(null, dc.getAsClause());
-//		assertNotNull(dc.getValueExpression());
-//		assertNotNull(dc.getValueExpression());
-//		assertEquals(null, dc.getValueExpression().getSetFunction());
-//		ColumnReference cr = dc.getValueExpression().getColumnReference();
-//		assertNotNull(cr);
-//		assertEquals(null, cr.getQualifier());
-//		assertEquals("foo \"&\" Bar", cr.getColumnName());
-//	}	
+	@Test
+	public void testSelectMultipleColumns() throws ParseException{
+		QuerySpecification element = TableQueryParser.parserQuery("select foo, bar, foobar from syn123");
+		String sql = toSQL(element);
+		assertEquals("SELECT foo, bar, foobar FROM syn123", sql);
+	}
+	
+	@Test
+	public void testSelectDoubleQuotedColumnName() throws ParseException{
+		QuerySpecification element = TableQueryParser.parserQuery("select \"foo \"\"&\"\" Bar\" from syn123");
+		String sql = toSQL(element);
+		assertEquals("SELECT \"foo \"\"&\"\" Bar\" FROM syn123", sql);
+	}	
 
 }

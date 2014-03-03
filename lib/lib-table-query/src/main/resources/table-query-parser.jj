@@ -142,7 +142,6 @@ TOKEN [IGNORE_CASE]: {
 | < not: "NOT" >
 | < null_specification: "NULL" >
 | < or: "OR" >
-| < overlaps: "OVERLAPS" >
 | < select: "SELECT" >
 | < sum: "SUM" >
 | < syn: "SYN" >

@@ -25,6 +25,7 @@ import org.sagebionetworks.table.query.model.RowValueConstructor;
 import org.sagebionetworks.table.query.model.RowValueConstructorElement;
 import org.sagebionetworks.table.query.model.RowValueConstructorList;
 import org.sagebionetworks.table.query.model.SearchCondition;
+import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.TableExpression;
 import org.sagebionetworks.table.query.model.ValueExpression;
 
@@ -328,6 +329,16 @@ public class SqlElementUntils {
 	 */
 	public static ColumnReference createColumnReference(String sql) throws ParseException {
 		return new TableQueryParser(sql).columnReference();
+	}
+
+	/**
+	 * Create a select list from the passed SQL.
+	 * @param sql
+	 * @return
+	 * @throws ParseException
+	 */
+	public static SelectList createSelectList(String sql) throws ParseException {
+		return new TableQueryParser(sql).selectList();
 	}
 
 
