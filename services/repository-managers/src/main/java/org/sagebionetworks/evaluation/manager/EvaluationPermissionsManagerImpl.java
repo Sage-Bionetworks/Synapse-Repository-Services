@@ -96,7 +96,7 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 		}
 
 		final Evaluation eval = getEvaluation(evalId);
-		if (!canAccess(userInfo, evalId, CHANGE_PERMISSIONS)) {
+		if (!hasAccess(userInfo, evalId, CHANGE_PERMISSIONS)) {
 			throw new UnauthorizedException("User " + userInfo.getId().toString()
 					+ " not authorized to change permissions on evaluation " + evalId);
 		}
@@ -118,7 +118,7 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 		if (evalId == null || evalId.isEmpty()) {
 			throw new IllegalArgumentException("Evaluation Id cannot be null or empty.");
 		}
-		if (!canAccess(userInfo, evalId, CHANGE_PERMISSIONS)) {
+		if (!hasAccess(userInfo, evalId, CHANGE_PERMISSIONS)) {
 			throw new UnauthorizedException("User " + userInfo.getId().toString()
 					+ " not authorized to change permissions on evaluation " + evalId);
 		}
@@ -142,22 +142,19 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 	@Override
 	public boolean hasAccess(UserInfo userInfo, String evalId, ACCESS_TYPE accessType)
 			throws NotFoundException, DatastoreException {
-		if (userInfo == null) {
-			throw new IllegalArgumentException("User info cannot be null.");
+		try {
+			validateHasAccess(userInfo, evalId, accessType);
+		} catch (UnauthorizedException e) {
+			return false;
 		}
-		if (evalId == null || evalId.isEmpty()) {
-			throw new IllegalArgumentException("Evaluation ID cannot be null or empty.");
-		}
-		if (accessType == null) {
-			throw new IllegalArgumentException("Access type cannot be null.");
-		}
-		return canAccess(userInfo, evalId, accessType);
+		return true;
 	}
 
 	/**
 	 * Whether the user has the access to the specified evaluation.
 	 * Has the same logic as 'hasAccess' but throws informative exception if the answer is false.
 	 */
+	@Override
 	public void validateHasAccess(UserInfo userInfo, String evalId, ACCESS_TYPE accessType)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		if (userInfo == null) {
@@ -169,7 +166,16 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 		if (accessType == null) {
 			throw new IllegalArgumentException("Access type cannot be null.");
 		}
-		validateCanAccess(userInfo, evalId, accessType);
+		if (userInfo.isAdmin()) return;
+
+		if (isAnonymousWithNonReadAccess(userInfo, accessType))
+			throw new UnauthorizedException("Anonymous user is not allowed to access Evaluation.");
+		
+		if (!aclDAO.canAccess(userInfo.getGroups(), evalId, ObjectType.EVALUATION, accessType))
+			throw new UnauthorizedException("User lacks "+accessType+" access to Evaluation "+evalId);
+		
+		if (hasUnmetAccessRequirements(userInfo, evalId, accessType))
+			throw new UnauthorizedException("User has unmet access restrictions for Evaluation "+evalId);
 	}
 
 	@Override
@@ -190,57 +196,22 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 
 		// Public read
 		UserInfo anonymousUser = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
-		permission.setCanPublicRead(canAccess(anonymousUser, evalId, READ));
+		permission.setCanPublicRead(hasAccess(anonymousUser, evalId, READ));
 
 		// Other permissions
-		permission.setCanView(canAccess(userInfo, evalId, READ));
-		permission.setCanEdit(canAccess(userInfo, evalId, UPDATE));
-		permission.setCanDelete(canAccess(userInfo, evalId, DELETE));
-		permission.setCanChangePermissions(canAccess(userInfo, evalId, CHANGE_PERMISSIONS));
-		permission.setCanParticipate(canAccess(userInfo, evalId, PARTICIPATE));
-		permission.setCanSubmit(canAccess(userInfo, evalId, SUBMIT));
-		permission.setCanViewPrivateSubmissionStatusAnnotations(canAccess(userInfo, evalId, READ_PRIVATE_SUBMISSION));
-		permission.setCanEditSubmissionStatuses(canAccess(userInfo, evalId, UPDATE_SUBMISSION));
-		permission.setCanDeleteSubmissions(canAccess(userInfo, evalId, DELETE_SUBMISSION));
+		permission.setCanView(hasAccess(userInfo, evalId, READ));
+		permission.setCanEdit(hasAccess(userInfo, evalId, UPDATE));
+		permission.setCanDelete(hasAccess(userInfo, evalId, DELETE));
+		permission.setCanChangePermissions(hasAccess(userInfo, evalId, CHANGE_PERMISSIONS));
+		permission.setCanParticipate(hasAccess(userInfo, evalId, PARTICIPATE));
+		permission.setCanSubmit(hasAccess(userInfo, evalId, SUBMIT));
+		permission.setCanViewPrivateSubmissionStatusAnnotations(hasAccess(userInfo, evalId, READ_PRIVATE_SUBMISSION));
+		permission.setCanEditSubmissionStatuses(hasAccess(userInfo, evalId, UPDATE_SUBMISSION));
+		permission.setCanDeleteSubmissions(hasAccess(userInfo, evalId, DELETE_SUBMISSION));
 
 		return permission;
 	}
-
-	/**
-	 * Whether the user can access the specified evaluation, returned as boolean.
-	 */
-	private boolean canAccess(final UserInfo userInfo, final String evalId,
-			final ACCESS_TYPE accessType) throws NotFoundException {
-
-		if (userInfo.isAdmin()) return true;
-
-		if (isAnonymousWithNonReadAccess(userInfo, accessType)) return false;
-		
-		if (!aclDAO.canAccess(userInfo.getGroups(), evalId, ObjectType.EVALUATION, accessType)) return false;
-		
-		if (hasUnmetAccessRequirements(userInfo, evalId, accessType)) return false;
-		
-		return true;
-	}
 	
-	/**
-	 * Whether the user can access the specified evaluation, returned as exception (if false)
-	 */
-	private void validateCanAccess(final UserInfo userInfo, final String evalId,
-			final ACCESS_TYPE accessType) throws NotFoundException, UnauthorizedException {
-
-		if (userInfo.isAdmin()) return;
-
-		if (isAnonymousWithNonReadAccess(userInfo, accessType))
-			throw new UnauthorizedException("Anonymous user is not allowed to access Evaluation.");
-		
-		if (!aclDAO.canAccess(userInfo.getGroups(), evalId, ObjectType.EVALUATION, accessType))
-			throw new UnauthorizedException("User lacks "+accessType+" access to Evaluation "+evalId);
-		
-		if (hasUnmetAccessRequirements(userInfo, evalId, accessType))
-			throw new UnauthorizedException("User has unmet access restrictions for Evaluation "+evalId);
-	}
-
 	private static boolean isAnonymousWithNonReadAccess(UserInfo userInfo, ACCESS_TYPE accessType) {
 		return AuthorizationUtils.isUserAnonymous(userInfo) && !READ.equals(accessType);
 	}
