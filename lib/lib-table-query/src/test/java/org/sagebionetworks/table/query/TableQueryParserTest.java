@@ -9,8 +9,10 @@ import java.util.List;
 
 import org.junit.Test;
 import org.sagebionetworks.table.query.model.ColumnReference;
+import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SQLElement;
+import org.sagebionetworks.table.query.model.SearchCondition;
 import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.SetFunctionSpecification;
 import org.sagebionetworks.table.query.model.TableExpression;
@@ -367,12 +369,117 @@ public class TableQueryParserTest {
 	}
 	
 	@Test
+	public void testPredicateComparison() throws ParseException{
+		TableQueryParser parser = new TableQueryParser("foo.bar >= 10.1e-10");
+		Predicate element = parser.predicate();
+		String sql = toSQL(element);
+		assertEquals("foo.bar >= 10.1e-10", sql);
+	}
+	
+	@Test
+	public void testPredicateNull() throws ParseException{
+		TableQueryParser parser = new TableQueryParser("foo is not null");
+		Predicate element = parser.predicate();
+		String sql = toSQL(element);
+		assertEquals("foo IS NOT NULL", sql);
+	}
+	
+	@Test
+	public void testPredicateNotBetween() throws ParseException{
+		TableQueryParser parser = new TableQueryParser("foo not between a and b");
+		Predicate element = parser.predicate();
+		String sql = toSQL(element);
+		assertEquals("foo NOT BETWEEN a AND b", sql);
+	}
+	
+	@Test
+	public void testPredicateBetween() throws ParseException{
+		TableQueryParser parser = new TableQueryParser("foo between a and b");
+		Predicate element = parser.predicate();
+		String sql = toSQL(element);
+		assertEquals("foo BETWEEN a AND b", sql);
+	}
+	
+	@Test
+	public void testPredicateNotLike() throws ParseException{
+		TableQueryParser parser = new TableQueryParser("bar not like '%a'");
+		Predicate element = parser.predicate();
+		String sql = toSQL(element);
+		assertEquals("bar NOT LIKE '%a'", sql);
+	}
+	
+	@Test
+	public void testPredicateLike() throws ParseException{
+		TableQueryParser parser = new TableQueryParser("bar like '%a'");
+		Predicate element = parser.predicate();
+		String sql = toSQL(element);
+		assertEquals("bar LIKE '%a'", sql);
+	}
+	
+	@Test
+	public void testPredicateNotIn() throws ParseException{
+		TableQueryParser parser = new TableQueryParser("bar not in(a, b,c)");
+		Predicate element = parser.predicate();
+		String sql = toSQL(element);
+		assertEquals("bar NOT IN ( a, b, c )", sql);
+	}
+	
+	@Test
+	public void testPredicateIn() throws ParseException{
+		TableQueryParser parser = new TableQueryParser("bar in(a, b,c)");
+		Predicate element = parser.predicate();
+		String sql = toSQL(element);
+		assertEquals("bar IN ( a, b, c )", sql);
+	}
+	
+	@Test
+	public void testSearchConditionOr() throws ParseException{
+		TableQueryParser parser = new TableQueryParser("bar <> a or foo > 3");
+		SearchCondition element = parser.searchCondition();
+		String sql = toSQL(element);
+		assertEquals("bar <> a OR foo > 3", sql);
+	}
+	
+	@Test
+	public void testSearchConditionAnd() throws ParseException{
+		TableQueryParser parser = new TableQueryParser("bar =1 and foo = 2");
+		SearchCondition element = parser.searchCondition();
+		String sql = toSQL(element);
+		assertEquals("bar = 1 AND foo = 2", sql);
+	}
+	
+	@Test
+	public void testSearchConditionNestedOr() throws ParseException{
+		TableQueryParser parser = new TableQueryParser("(bar =1 and foo = 2) or www is not null");
+		SearchCondition element = parser.searchCondition();
+		String sql = toSQL(element);
+		assertEquals("( bar = 1 AND foo = 2 ) OR www IS NOT NULL", sql);
+	}
+	
+	@Test
+	public void testSearchConditionNestedAnd() throws ParseException{
+		TableQueryParser parser = new TableQueryParser("(bar =1 and foo = 2) and www is not null");
+		SearchCondition element = parser.searchCondition();
+		String sql = toSQL(element);
+		assertEquals("( bar = 1 AND foo = 2 ) AND www IS NOT NULL", sql);
+	}
+	
+	@Test
 	public void testTableExpression() throws ParseException{
 		TableQueryParser parser = new TableQueryParser("from syn123");
 		TableExpression element = parser.tableExpression();
 		assertNotNull(element);
 		String sql = toSQL(element);
 		assertEquals("FROM syn123", sql);
+	}
+	
+	@Test
+	public void testTableExpressionWithWhere() throws ParseException{
+		TableQueryParser parser = new TableQueryParser("from syn123 where a > 'b'");
+		TableExpression element = parser.tableExpression();
+		assertNotNull(element);
+		String sql = toSQL(element);
+		assertEquals("FROM syn123 WHERE a > 'b'", sql);
 	}
 	
 	/**

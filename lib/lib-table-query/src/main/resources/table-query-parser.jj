@@ -531,9 +531,11 @@ Predicate predicate():
 		| nullPredicate = nullPredicate(leftHandSide) { return new Predicate(nullPredicate); }
 		|(
 			[ <not> {notB = Boolean.TRUE; }]
-				betweenPredicate = betweenPredicate(leftHandSide, notB) { return new Predicate(betweenPredicate); }
-			|	inPredicate = inPredicate(leftHandSide, notB) { return new Predicate(inPredicate); }
-			|	likePredicate = likePredicate(leftHandSide, notB) { return new Predicate(likePredicate); }
+			(
+					betweenPredicate = betweenPredicate(leftHandSide, notB) { return new Predicate(betweenPredicate); }
+				|	inPredicate = inPredicate(leftHandSide, notB) { return new Predicate(inPredicate); }
+				|	likePredicate = likePredicate(leftHandSide, notB) { return new Predicate(likePredicate); }
+			)
 		)
 	)
 
