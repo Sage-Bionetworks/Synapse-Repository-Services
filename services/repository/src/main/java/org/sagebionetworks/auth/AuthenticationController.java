@@ -58,8 +58,11 @@ public class AuthenticationController extends BaseController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.AUTH_SESSION, method = RequestMethod.POST)
 	public @ResponseBody
-	Session authenticate(@RequestBody LoginCredentials credentials) throws NotFoundException {
-		return authenticationService.authenticate(credentials);
+	Session authenticate(@RequestBody LoginCredentials credentials,
+			@RequestParam(value = AuthorizationConstants.DOMAIN_PARAM, required = false) String client)
+			throws NotFoundException {
+		DomainType domain = DomainTypeUtils.valueOf(client);
+		return authenticationService.authenticate(credentials, domain);
 	}
 
 	/**
@@ -67,8 +70,11 @@ public class AuthenticationController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.AUTH_SESSION, method = RequestMethod.PUT)
-	public void revalidate(@RequestBody Session session) throws NotFoundException {
-		authenticationService.revalidate(session.getSessionToken());
+	public void revalidate(@RequestBody Session session,
+			@RequestParam(value = AuthorizationConstants.DOMAIN_PARAM, required = false) String client)
+			throws NotFoundException {
+		DomainType domain = DomainTypeUtils.valueOf(client);
+		authenticationService.revalidate(session.getSessionToken(), domain);
 	}
 
 	/**
@@ -95,9 +101,9 @@ public class AuthenticationController extends BaseController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.AUTH_USER, method = RequestMethod.POST)
 	public void createUser(@RequestBody NewUser user,
-			@RequestParam(value = AuthorizationConstants.ORIGINATING_CLIENT_PARAM, required = false) String client) {
-		DomainType originClient = DomainType.valueOf(client);
-		authenticationService.createUser(user, originClient);
+			@RequestParam(value = AuthorizationConstants.DOMAIN_PARAM, required = false) String client) {
+		DomainType domain = DomainTypeUtils.valueOf(client);
+		authenticationService.createUser(user, domain);
 	}
 	
 	/**
@@ -110,9 +116,9 @@ public class AuthenticationController extends BaseController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.AUTH_USER_PASSWORD_EMAIL, method = RequestMethod.POST)
 	public void sendPasswordEmail(@RequestBody Username user,
-			@RequestParam(value = AuthorizationConstants.ORIGINATING_CLIENT_PARAM, required = false) String client) throws NotFoundException {
-		DomainType originClient = DomainType.valueOf(client);
-		authenticationService.sendPasswordEmail(user.getEmail(), originClient);
+			@RequestParam(value = AuthorizationConstants.DOMAIN_PARAM, required = false) String client) throws NotFoundException {
+		DomainType domain = DomainTypeUtils.valueOf(client);
+		authenticationService.sendPasswordEmail(user.getEmail(), domain);
 	}
 	
 	/**
@@ -120,8 +126,11 @@ public class AuthenticationController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.AUTH_USER_PASSWORD, method = RequestMethod.POST)
-	public void changePassword(@RequestBody ChangePasswordRequest request) throws NotFoundException {
-		authenticationService.changePassword(request);
+	public void changePassword(@RequestBody ChangePasswordRequest request,
+			@RequestParam(value = AuthorizationConstants.DOMAIN_PARAM, required = false) String client)
+			throws NotFoundException {
+		DomainType domain = DomainTypeUtils.valueOf(client);
+		authenticationService.changePassword(request, domain);
 	}
 	
 	/**
@@ -129,8 +138,11 @@ public class AuthenticationController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.AUTH_TERMS_OF_USE, method = RequestMethod.POST)
-	public void signTermsOfUse(@RequestBody Session session) throws NotFoundException {
-		authenticationService.signTermsOfUse(session);
+	public void signTermsOfUse(@RequestBody Session session,
+			@RequestParam(value = AuthorizationConstants.DOMAIN_PARAM, required = false) String client)
+			throws NotFoundException {
+		DomainType domain = DomainTypeUtils.valueOf(client);
+		authenticationService.signTermsOfUse(session, domain);
 	}
 		
 	/**

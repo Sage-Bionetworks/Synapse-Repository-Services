@@ -173,8 +173,7 @@
             ref="stackConfiguration.migrationBackupBatchMax" />
         <property name="migrationListeners" >
             <list>
-                <bean class="org.sagebionetworks.repo.manager.migration.ACLMigrationTypeListener" />
-                </list>
+            </list>
         </property>
     </bean>
 
@@ -290,8 +289,21 @@
 		class="org.sagebionetworks.repo.util.jrjc.JiraClientImpl"
 		scope="singleton" />
 
-	<bean id="teamManager" class="org.sagebionetworks.repo.manager.team.TeamManagerImpl" scope="singleton" />
+	<bean id="teamManager" class="org.sagebionetworks.repo.manager.team.TeamManagerImpl" init-method="bootstrapTeams" scope="singleton">
+	    <property name="teamsToBootstrap" ref="teamsToBootstrap"/>
+    </bean>
+    
 	<bean id="membershipInvitationManager" class="org.sagebionetworks.repo.manager.team.MembershipInvitationManagerImpl" scope="singleton" />
 	<bean id="membershipRequestManager" class="org.sagebionetworks.repo.manager.team.MembershipRequestManagerImpl" scope="singleton" />
 			
+    <!-- DO NOT CHANGE ANY OF THESE NAMES OR IDS as they represent real objects in production.
+        Mirror the ID for reference in code in the AuthorizationConstants.BOOTSTRAP_TEAM enum. 
+     -->
+    <util:list id="teamsToBootstrap">
+        <bean class="org.sagebionetworks.repo.model.principal.BootstrapTeam">
+            <property name="id" value="3320020" />
+            <property name="name" value="BridgeAdministrators" />
+        </bean>
+    </util:list>
+		
 </beans>

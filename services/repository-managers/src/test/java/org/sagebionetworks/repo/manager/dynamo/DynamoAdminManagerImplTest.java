@@ -9,7 +9,6 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.sagebionetworks.dynamo.dao.DynamoAdminDao;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.dynamo.DynamoAdminManagerImpl;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.springframework.test.util.ReflectionTestUtils;

@@ -469,7 +469,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		participateAndDownload.add(ACCESS_TYPE.PARTICIPATE);
 		AccessRequirementDAO mockAccessRequirementDao = mock(AccessRequirementDAO.class);
 		when(mockAccessRequirementDao.unmetAccessRequirements(
-				any(RestrictableObjectDescriptor.class), any(Collection.class), eq(participateAndDownload))).
+				any(List.class), any(RestrictableObjectType.class), any(Collection.class), eq(participateAndDownload))).
 				thenReturn(Arrays.asList(new Long[]{101L}));
 		AccessRequirementDAO original = (AccessRequirementDAO) ReflectionTestUtils.getField(evaluationPermissionsManager, "accessRequirementDAO");
 		ReflectionTestUtils.setField(evaluationPermissionsManager, "accessRequirementDAO", mockAccessRequirementDao);

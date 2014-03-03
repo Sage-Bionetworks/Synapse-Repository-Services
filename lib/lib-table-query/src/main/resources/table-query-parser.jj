@@ -1,0 +1,442 @@
+/* The BNF for this parser was derived from: http://savage.net.au/SQL/sql-92.bnf (SQL-92) 
+* https://javacc.java.net/doc/docindex.html
+* To debug changes to this file run:
+* mvn clean generate-sources
+*/
+options{
+STATIC = false;
+}
+/* *** Specification of the parser class *** */
+PARSER_BEGIN(TableQueryParser)
+package org.sagebionetworks.table.query;
+import java.io.StringReader;
+import java.util.LinkedList;
+import java.util.List;
+
+import org.sagebionetworks.table.query.model.*;
+
+public class TableQueryParser {
+
+	public TableQueryParser(String input){
+		this(new StringReader(input));
+	}
+
+	/**
+	 * Parse the passed query string into a TableQueryModel
+	 * 
+	 * @param query
+	 * @return
+	 * @throws ParseException
+	 */
+	public static QuerySpecification parserQuery(String query)
+			throws ParseException {
+		TableQueryParser parser = new TableQueryParser(new StringReader(query));
+		return parser.Start();
+	}
+}
+
+PARSER_END(TableQueryParser)
+
+/**
+* When in the DEFAULT state, double quotes are the start of
+* string containing non-double quotes. This involves a state
+* change to: within_double_quote.  The state change is necessary
+* to limit the scope of the <not_double_quote> token which is too broad
+* for other cases.
+*/
+<DEFAULT> SKIP: 
+{
+	< "\""> : within_double_quote
+}
+// This token only has meaning within a double quote.
+<within_double_quote> TOKEN :
+{
+	< not_double_quote: ~["\""]> : within_double_quote
+}
+// This token only has meaning within a double quote.
+<within_double_quote> TOKEN :
+{
+	< escape_double_quote: "\"\"" > : within_double_quote
+}
+/**
+* While within a double quote string, another double
+* quote will terminate the string and restore the state
+* to DEFAULT.
+*/
+<within_double_quote> SKIP :
+{
+	"\"": DEFAULT
+}
+
+
+/**
+* When in the DEFAULT state, single quotes are the start of
+* string containing non-quotes. This involves a state
+* change to: within_single_quotes.  The state change is necessary
+* to limit the scope of the <not_quote> token which is too broad
+* for other cases.
+*/
+<DEFAULT> SKIP: 
+{
+	< "'"> : within_single_quotes
+}
+// This token only has meaning within single quotes.
+<within_single_quotes> TOKEN :
+{
+	< not_single_quote: ~["'"]> : within_single_quotes
+}
+// This token only has meaning within single quotes.
+<within_single_quotes> TOKEN :
+{
+	< escape_single_quote: "''" > : within_single_quotes
+}
+/**
+* While within single quote string, another single
+* quote will terminate the string and restore the state
+* to DEFAULT.
+*/
+<within_single_quotes> SKIP :
+{
+	"'": DEFAULT
+}
+
+/* Skip whitespace */
+SKIP : /* WHITE SPACE */
+{ 
+  " "
+| "\t"
+| "\r"
+| "\f"
+| "\n"
+| < LOW_SPECIAL_ASCII: (["\u0000"-"\u001f"]) >
+| < HIGH_SPECIAL_ASCII: (["\u007f"-"\u00ff"]) >
+}
+
+TOKEN:{
+ <exponent: (["0"-"9"])+["e","E"]("+"|"-")?(["0"-"9"])+>
+}
+
+/* Reserved words */
+TOKEN [IGNORE_CASE]: {
+  < all: "ALL">
+| < as: "AS">
+| < avg: "AVG">
+| < date: "DATE" >
+| < count: "COUNT">
+| < current_date: "CURRENT_DATE">
+| < current_time: "CURRENT_TIME">
+| < distinct: "DISTINCT"> 
+| < from: "FROM">
+| < interval: "INTERVAL">
+| < max: "MAX" >
+| < min: "MIN" >
+| < select: "SELECT" >
+| < sum: "SUM" >
+| < syn: "SYN" >
+| < time: "TIME" >
+| < timestamp: "TIMESTAMP">
+}
+/* Symbols and punctuation */
+TOKEN:{
+  < asterisk: "*">
+| < comma: ",">
+| < left_paren: "(">
+| < minus_sign: "-">
+| < period: "." >
+| < plus_sign: "+">
+| < right_paren: ")">
+| < solidus: "/">
+| <underscore: "_">
+}
+/* Complex Tokens */
+TOKEN: { 
+  < digit: ["0"-"9"]>
+| < letter: ["a"-"z","A"-"Z"]>
+}
+
+
+void regularIdentifier(StringBuilder builder):
+{
+	Token token = null;
+}
+{
+	token = <letter> { builder.append(token.image); }
+	( token = <letter> { builder.append(token.image); }
+	 | token = <digit> { builder.append(token.image); }
+	 | token = <underscore> { builder.append(token.image); }
+	)* 
+}
+/** Literal Numbers, Strings, Dates and Times */
+
+void unsignedInteger(StringBuilder builder):
+{
+	Token token = null;
+}
+{
+	token = <digit> { builder.append(token.image); }
+		( token = <digit> { builder.append(token.image); } )*
+}
+void sign(StringBuilder builder):
+{}
+{
+	<plus_sign> { builder.append("+"); }
+	| <minus_sign> { builder.append("-"); }
+}
+void signedInteger(StringBuilder builder):
+{}
+{
+	[ sign(builder) ] unsignedInteger(builder) 
+}
+void period(StringBuilder builder):
+{}
+{
+	<period> { builder.append("."); }
+}
+void exactNumericLiteral(StringBuilder builder):
+{}
+{
+	( unsignedInteger(builder) period(builder) unsignedInteger(builder) )
+	| (  period(builder) unsignedInteger(builder) )
+}
+void exponent(StringBuilder builder):
+{
+	Token token = null;
+}
+{
+	token = <exponent> { builder.append(token.image); }
+}
+void approximateNumericLiteral(StringBuilder builder):
+{}
+{
+	(  period(builder) exponent(builder) )
+	| ( unsignedInteger(builder) period(builder) exponent(builder) )
+}
+void unsignedNumericLiteral(StringBuilder builder):
+{}
+{
+	( unsignedInteger(builder) period(builder) ( unsignedInteger(builder) | exponent(builder) ) )
+	| ( period(builder) ( unsignedInteger(builder) | exponent(builder) ) )
+}
+void signedNumericLiteral(StringBuilder builder):
+{
+}
+{
+	[ sign(builder) ] unsignedNumericLiteral(builder)
+}
+String literal():
+{
+	StringBuilder builder = new StringBuilder();
+}
+{
+	signedNumericLiteral(builder) { return builder.toString(); }
+	| generalLiteral(builder) { return builder.toString(); }
+}
+void generalLiteral(StringBuilder builder):
+{}
+{
+	characterStringLiteral(builder)
+}
+void characterStringLiteral(StringBuilder builder):
+{
+	Token token;
+}
+{
+	(
+		token = <not_single_quote> { builder.append(token.image); }
+		| <escape_single_quote>  { builder.append("'"); }
+	)*
+}
+/* This is the entry point of the parser*/
+QuerySpecification Start():
+{ 
+	QuerySpecification querySpecification = null;
+}
+{
+	querySpecification = querySpecification()
+	{ return querySpecification; }
+}
+ValueExpression valueExpression():
+{ ValueExpression valueExpression;}
+{	
+	valueExpression = valueExpressionPrimary() { return valueExpression;}
+}
+ValueExpression valueExpressionPrimary():
+{
+	SetFunctionSpecification setFunction = null;
+	ColumnReference columnReference = null;
+}
+{
+	setFunction = setFunctionSpecification() { return new ValueExpression(setFunction, null);}
+	| columnReference = columnReference() { return new ValueExpression(null, columnReference);}
+}
+void unsignedValueSpecification():
+{}
+{
+	unsignedLiteral()
+}
+String unsignedLiteral():
+{ StringBuilder builder = new StringBuilder(); }
+{
+	unsignedNumericLiteral(builder) { return builder.toString(); }
+	| generalLiteral(builder) { return builder.toString(); }
+}
+String identifier():
+{
+	String identifier = null;
+}
+{
+	identifier = actualIdentifier()
+	{ return identifier;}
+}
+String actualIdentifier():
+{
+	StringBuilder builder = new StringBuilder();
+}
+{
+	regularIdentifier(builder) { return builder.toString(); }
+	| delimitedIentifier(builder) { return builder.toString(); }
+}
+void delimitedIentifier(StringBuilder builder):
+{ 
+	Token token = null;
+}
+{
+	(
+		token = <not_double_quote> { builder.append(token.image); }
+		| <escape_double_quote>  { builder.append("\""); }
+	)*
+}
+ColumnReference columnReference():
+{
+	Qualifier qualifier = null;
+	String columnName = null;
+}
+{
+	[ LOOKAHEAD(2) qualifier = qualifier() <period> ] columnName = columnName()
+	{ return new ColumnReference(qualifier, columnName); }
+}
+QuerySpecification querySpecification():
+{
+	SetQuantifier setQuantifier = null;
+	SelectList selectList = null;
+	TableExpression tableExpression = null;
+}
+{
+	<select> [ setQuantifier = setQuantifier()] selectList = selectList() tableExpression = tableExpression()
+	{ return new QuerySpecification(setQuantifier, selectList, tableExpression); }
+}
+SelectList selectList():
+{
+	List<DerivedColumn> derivedColumns = new LinkedList<DerivedColumn>();
+	DerivedColumn derivedColumn = null;
+}
+{
+	<asterisk> { return new SelectList("*", null); }
+	| derivedColumn = selectSubList()  { derivedColumns.add(derivedColumn); }
+	 (<comma> derivedColumn = selectSubList()  { derivedColumns.add(derivedColumn); })*
+	 { return new SelectList(null, derivedColumns); }
+}
+DerivedColumn selectSubList():
+{
+	DerivedColumn derivedColumn = null;
+}
+{
+	derivedColumn = derivedColumn()
+	{ return derivedColumn; }
+}
+DerivedColumn derivedColumn():
+{
+	String asClause = null;
+	ValueExpression valueExpression = null;
+}
+{
+	valueExpression = valueExpression() [ asClause = asClause()]
+	{ return new DerivedColumn(valueExpression, asClause);}
+}
+String asClause():
+{
+	String columnName = null;
+}
+{
+	<as> columnName = columnName()
+	{ return columnName; }
+}
+TableExpression tableExpression():
+{
+	FromClause fromClause = null;
+}
+{
+	fromClause = fromClause()
+	{ return new TableExpression(fromClause); }
+}
+FromClause fromClause():
+{
+	TableReference tableReference = null;
+}
+{
+	<from> tableReference = tableReference()
+	{ return new FromClause(tableReference); }
+}
+TableReference tableReference():
+{
+	String tableName = null;
+}
+{
+	tableName = tableName()
+	{ return new TableReference(tableName); }
+}
+String columnName():
+{
+	String columnName = null;
+}
+{
+	columnName = identifier() {return columnName; }
+}
+SetQuantifier setQuantifier():
+{}
+{
+	<distinct> { return SetQuantifier.DISTINCT;}
+	|<all> { return SetQuantifier.ALL;}
+}
+Qualifier qualifier():
+{
+	String tableName = null;
+	String correlationName = null;
+}
+{
+	tableName = tableName() { return new Qualifier(tableName, null); }
+}
+String tableName():
+{ 
+	StringBuilder builder = new StringBuilder();
+}
+{	
+	[<syn>] unsignedInteger(builder) { return builder.toString(); }
+}
+SetFunctionSpecification setFunctionSpecification():
+{ SetFunctionSpecification setFunction = null; }
+{
+	LOOKAHEAD(3)
+	<count><left_paren> <asterisk> <right_paren>
+	{ return new SetFunctionSpecification(SetFunctionType.COUNT, null, new ValueExpression(null, new ColumnReference(null, "*"))); }
+	| setFunction = generalSetFunction() { return setFunction;}
+}
+SetFunctionSpecification generalSetFunction():
+{ 
+	SetFunctionType setFunctionType = null;
+	SetQuantifier setQuantifier = null;
+	ValueExpression valueExpression = null;
+}
+{
+	setFunctionType = setFunctionType() <left_paren> [ setQuantifier = setQuantifier() ] valueExpression = valueExpression() <right_paren>
+	{ return new SetFunctionSpecification(setFunctionType, setQuantifier, valueExpression);}
+}
+SetFunctionType setFunctionType():
+{}
+{
+	<avg> { return SetFunctionType.AVG; }
+	| <max> { return SetFunctionType.MAX; }
+	| <min> { return SetFunctionType.MIN; }
+	| <sum> { return SetFunctionType.SUM; }
+	| <count> { return SetFunctionType.COUNT; }
+}

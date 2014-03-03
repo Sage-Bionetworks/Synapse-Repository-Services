@@ -6,7 +6,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
@@ -23,8 +22,8 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -32,10 +31,11 @@ import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,6 +48,9 @@ public class AuthorizationManagerImplTest {
 
 	@Autowired
 	private AuthorizationManager authorizationManager;
+	
+	@Autowired
+	private AuthenticationManager authenticationManager;
 	
 	@Autowired
 	private NodeManager nodeManager;
@@ -72,7 +75,10 @@ public class AuthorizationManagerImplTest {
 	
 	@Autowired
 	private EvaluationManager evaluationManager;
-
+	
+	@Autowired
+	private DBOBasicDao basicDao;
+	
 	private Collection<Node> nodeList = new ArrayList<Node>();
 	private Node node = null;
 	private Node nodeCreatedByTestUser = null;
@@ -113,14 +119,17 @@ public class AuthorizationManagerImplTest {
 	public void setUp() throws Exception {
 		adminUser = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 
+		DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();
+		tou.setDomain(DomainType.SYNAPSE);
+		tou.setAgreesToTermsOfUse(Boolean.TRUE);
+		
 		// Create a new user
 		DBOCredential cred = new DBOCredential();
-		cred.setAgreesToTermsOfUse(true);
 		cred.setSecretKey("");
 		NewUser nu = new NewUser();
 		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
 		nu.setUserName(UUID.randomUUID().toString());
-		userInfo = userManager.createUser(adminUser, nu, cred);
+		userInfo = userManager.createUser(adminUser, nu, cred, tou);
 		
 		// Create a new group
 		testGroup = new UserGroup();
@@ -450,7 +459,7 @@ public class AuthorizationManagerImplTest {
 	@Test
 	public void testGetUserPermissionsForEntity() throws Exception{
 		assertTrue(adminUser.isAdmin());
-		assertTrue(adminUser.isAgreesToTermsOfUse());
+		assertTrue(authenticationManager.hasUserAcceptedTermsOfUse(adminUser.getId(), DomainType.SYNAPSE));
 		// the admin user can do it all
 		UserEntityPermissions uep = entityPermissionsManager.getUserPermissionsForEntity(adminUser, node.getId());
 		assertNotNull(uep);

@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.model.dbo.dao;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
@@ -13,7 +12,6 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.MessageDAO;
 import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageContent;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOMessageRecipient;
@@ -53,6 +51,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	private IdGenerator idGenerator;
 	
 	private static final String MESSAGE_ID_PARAM_NAME = "messageId";
+	private static final String MESSAGE_SENT_PARAM_NAME = "sent";
 	private static final String USER_ID_PARAM_NAME = "userId";
 	private static final String ETAG_PARAM_NAME = "etag";
 	private static final String ROOT_MESSAGE_ID_PARAM_NAME = "rootMessageId";
@@ -77,6 +76,11 @@ public class DBOMessageDAOImpl implements MessageDAO {
 			"UPDATE " + SqlConstants.TABLE_MESSAGE_CONTENT+
 			" SET " + SqlConstants.COL_MESSAGE_CONTENT_ETAG + "=:" + ETAG_PARAM_NAME + 
 			" WHERE " + SqlConstants.COL_MESSAGE_CONTENT_ID + "=:" + MESSAGE_ID_PARAM_NAME;
+	
+	private static final String UPDATE_MESSAGE_SENT =
+			"UPDATE " + SqlConstants.TABLE_MESSAGE_TO_USER+
+			" SET " + SqlConstants.COL_MESSAGE_TO_USER_SENT+ "=:"+MESSAGE_SENT_PARAM_NAME+" WHERE "+ 
+			SqlConstants.COL_MESSAGE_TO_USER_MESSAGE_ID + "=:" + MESSAGE_ID_PARAM_NAME;
 	
 	private static final String FROM_MESSAGES_IN_CONVERSATION_CORE = 
 			" FROM " + SqlConstants.TABLE_MESSAGE_CONTENT + 
@@ -123,10 +127,6 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	
 	private static final String COUNT_MESSAGES_SENT = 
 			"SELECT COUNT(*)" + FROM_MESSAGES_SENT_CORE;
-	
-	private static final String COUNT_ACTUAL_RECIPIENTS_OF_MESSAGE =
-			"SELECT COUNT(*) FROM " + SqlConstants.TABLE_MESSAGE_STATUS + 
-			" WHERE " + SqlConstants.COL_MESSAGE_STATUS_MESSAGE_ID + "=:" + MESSAGE_ID_PARAM_NAME;
 	
 	private static final String COUNT_RECENTLY_CREATED_MESSAGES = 
 			"SELECT COUNT(*) FROM " + SqlConstants.TABLE_MESSAGE_CONTENT + 
@@ -250,6 +250,7 @@ public class DBOMessageDAOImpl implements MessageDAO {
 				throw new IllegalArgumentException("Cannot reply to a message (" + info.getInReplyTo() + ") that does not exist");
 			}
 		}
+		info.setSent(false);
 		MessageUtils.validateDBO(info);
 		basicDAO.createNew(info);
 		
@@ -272,6 +273,15 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		params.addValue(ETAG_PARAM_NAME, UUID.randomUUID().toString());
 		params.addValue(MESSAGE_ID_PARAM_NAME, messageId);
 		simpleJdbcTemplate.update(UPDATE_ETAG_OF_MESSAGE, params);
+	}
+	
+	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public void updateMessageTransmissionAsComplete(String messageId) {
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(MESSAGE_ID_PARAM_NAME, messageId);
+		params.addValue(MESSAGE_SENT_PARAM_NAME, true);
+		simpleJdbcTemplate.update(UPDATE_MESSAGE_SENT, params);
 	}
 	
 	/**
@@ -402,31 +412,42 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	}
 
 	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
+	public boolean updateMessageStatus_NewTransaction(MessageStatus status) {
+		return updateMessageStatus(status);
+	}
+	
+	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public boolean updateMessageStatus(MessageStatus status) {
+	public boolean updateMessageStatus_SameTransaction(MessageStatus status) {
+		return updateMessageStatus(status);
+	}
+	
+	private boolean updateMessageStatus(MessageStatus status) {
 		DBOMessageStatus toUpdate = MessageUtils.convertDTO(status);
 		MessageUtils.validateDBO(toUpdate);
 		boolean success = basicDAO.update(toUpdate);
 		
 		if (success) {
-		touch(status.getMessageId());
-	}
+			touch(status.getMessageId());
+		}
 		return success;
+		
 	}
 
 	@Override
 	public void deleteMessage(String messageId) {
 		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue(MESSAGE_ID_PARAM_NAME, messageId);
+		params.addValue(DBOMessageToUser.MESSAGE_ID_FIELD_NAME, messageId);
 		basicDAO.deleteObjectByPrimaryKey(DBOMessageContent.class, params);
 	}
 
 	@Override
-	public boolean hasMessageBeenSent(String messageId) {
+	public boolean getMessageSent(String messageId) throws NotFoundException {
 		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue(MESSAGE_ID_PARAM_NAME, messageId);
-		long recipients = simpleJdbcTemplate.queryForLong(COUNT_ACTUAL_RECIPIENTS_OF_MESSAGE, params);
-		return recipients > 0;
+		params.addValue(DBOMessageToUser.MESSAGE_ID_FIELD_NAME, messageId);
+		DBOMessageToUser dbo = basicDAO.getObjectByPrimaryKey(DBOMessageToUser.class, params);
+		return dbo.getSent();
 	}
 
 	@Override
@@ -451,4 +472,6 @@ public class DBOMessageDAOImpl implements MessageDAO {
 		long messages = simpleJdbcTemplate.queryForLong(COUNT_VISIBLE_MESSAGES_BY_FILE_HANDLE, params);
 		return messages > 0;
 	}
+
+
 }

@@ -3,10 +3,14 @@
  */
 package org.sagebionetworks.bridge.model.dbo.dao;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import org.sagebionetworks.bridge.model.ParticipantDataDescriptorDAO;
+import org.sagebionetworks.bridge.model.ParticipantDataId;
 import org.sagebionetworks.bridge.model.data.ParticipantDataColumnDescriptor;
 import org.sagebionetworks.bridge.model.data.ParticipantDataDescriptor;
 import org.sagebionetworks.bridge.model.dbo.persistence.DBOParticipantDataColumnDescriptor;
@@ -27,16 +31,19 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 public class DBOParticipantDataDescriptorDAOImpl implements ParticipantDataDescriptorDAO {
 
-	private static final String PARTICIPANT_IDS = "participantIds";
+	private static final String PARTICIPANT_DATA_IDS = "participantDataIds";
+	private static final String PARTICIPANT_DATA_ID = "participantDataId";
 
 	private static final String SELECT_PARTICIPANT_DATA_DESCRIPTORS = "SELECT * FROM " + SqlConstants.TABLE_PARTICIPANT_DATA_DESCRIPTOR;
-	private static final String SELECT_PARTICIPANT_DATA_FOR_USER = "select dd.* from " + SqlConstants.TABLE_PARTICIPANT_DATA_DESCRIPTOR
-			+ " dd join " + SqlConstants.TABLE_PARTICIPANT_DATA + " d on dd." + SqlConstants.COL_PARTICIPANT_DATA_DESCRIPTOR_ID + " = d."
+	private static final String SELECT_PARTICIPANT_DATA_FOR_USER = "select d." + SqlConstants.COL_PARTICIPANT_DATA_PARTICIPANT_DATA_ID
+			+ " as " + PARTICIPANT_DATA_ID + ", dd.* from " + SqlConstants.TABLE_PARTICIPANT_DATA_DESCRIPTOR + " dd join "
+			+ SqlConstants.TABLE_PARTICIPANT_DATA + " d on dd." + SqlConstants.COL_PARTICIPANT_DATA_DESCRIPTOR_ID + " = d."
 			+ SqlConstants.COL_PARTICIPANT_DATA_PARTICIPANT_DATA_DESCRIPTOR_ID + " where d."
-			+ SqlConstants.COL_PARTICIPANT_DATA_PARTICIPANT_ID + " IN ( :" + PARTICIPANT_IDS + " )";
+			+ SqlConstants.COL_PARTICIPANT_DATA_PARTICIPANT_DATA_ID + " IN ( :" + PARTICIPANT_DATA_IDS + " )";
 	private static final String SELECT_PARTICIPANT_DATA_COLUMN_DESCRIPTORS = "SELECT * FROM "
 			+ SqlConstants.TABLE_PARTICIPANT_DATA_COLUMN_DESCRIPTOR + " WHERE "
 			+ SqlConstants.COL_PARTICIPANT_DATA_COLUMN_DESCRIPTOR_PARTICIPANT_DATA_ID + " = ?";
@@ -62,9 +69,29 @@ public class DBOParticipantDataDescriptorDAOImpl implements ParticipantDataDescr
 			participantDataDescriptor.setId(Long.toString(dboParticipantDataDescriptor.getId()));
 			participantDataDescriptor.setName(dboParticipantDataDescriptor.getName());
 			participantDataDescriptor.setDescription(dboParticipantDataDescriptor.getDescription());
+			participantDataDescriptor.setType(dboParticipantDataDescriptor.getType());
 			participantDataDescriptor.setRepeatType(dboParticipantDataDescriptor.getRepeatType());
 			participantDataDescriptor.setRepeatFrequency(dboParticipantDataDescriptor.getRepeatFrequency());
+			participantDataDescriptor.setDatetimeStartColumnName(dboParticipantDataDescriptor.getDatetimeStartColumnName());
+			participantDataDescriptor.setEventColumnName(dboParticipantDataDescriptor.getEventColumnName());
 			return participantDataDescriptor;
+		}
+	};
+
+	private static final Function<ParticipantDataDescriptor, DBOParticipantDataDescriptor> dtoToDboParticipantDataDescriptor = new Function<ParticipantDataDescriptor, DBOParticipantDataDescriptor>() {
+		@Override
+		public DBOParticipantDataDescriptor apply(ParticipantDataDescriptor participantDataDescriptor) {
+			DBOParticipantDataDescriptor dboParticipantDataDescriptor = new DBOParticipantDataDescriptor();
+			dboParticipantDataDescriptor.setId(participantDataDescriptor.getId() != null ? Long.parseLong(participantDataDescriptor.getId())
+					: null);
+			dboParticipantDataDescriptor.setName(participantDataDescriptor.getName());
+			dboParticipantDataDescriptor.setDescription(participantDataDescriptor.getDescription());
+			dboParticipantDataDescriptor.setType(participantDataDescriptor.getType());
+			dboParticipantDataDescriptor.setRepeatType(participantDataDescriptor.getRepeatType());
+			dboParticipantDataDescriptor.setRepeatFrequency(participantDataDescriptor.getRepeatFrequency());
+			dboParticipantDataDescriptor.setDatetimeStartColumnName(participantDataDescriptor.getDatetimeStartColumnName());
+			dboParticipantDataDescriptor.setEventColumnName(participantDataDescriptor.getEventColumnName());
+			return dboParticipantDataDescriptor;
 		}
 	};
 
@@ -89,14 +116,24 @@ public class DBOParticipantDataDescriptorDAOImpl implements ParticipantDataDescr
 	}
 
 	@Override
-	public List<ParticipantDataDescriptor> getParticipantDatasForUser(List<String> participantIds) {
-		if (participantIds.isEmpty()) {
-			return Collections.<ParticipantDataDescriptor> emptyList();
+	public Map<ParticipantDataId, ParticipantDataDescriptor> getParticipantDataDescriptorsForUser(List<ParticipantDataId> participantDataIds) {
+		if (participantDataIds.isEmpty()) {
+			return Collections.<ParticipantDataId, ParticipantDataDescriptor> emptyMap();
 		}
-		MapSqlParameterSource params = new MapSqlParameterSource().addValue(PARTICIPANT_IDS, participantIds);
-		List<DBOParticipantDataDescriptor> dboParticipantDataDescriptors = simpleJdbcTemplate.query(SELECT_PARTICIPANT_DATA_FOR_USER,
-				participantDataDescriptorRowMapper, params);
-		return Lists.transform(dboParticipantDataDescriptors, dboToDtoParticipantDataDescriptor);
+		MapSqlParameterSource params = new MapSqlParameterSource().addValue(PARTICIPANT_DATA_IDS,
+				ParticipantDataId.convert(participantDataIds));
+		final Map<ParticipantDataId, ParticipantDataDescriptor> participantDataDescriptors = Maps.newHashMap();
+		simpleJdbcTemplate.query(SELECT_PARTICIPANT_DATA_FOR_USER, new RowMapper<Object>() {
+			@Override
+			public Object mapRow(ResultSet rs, int rowNum) throws SQLException {
+				DBOParticipantDataDescriptor dboParticipantDataDescriptor = participantDataDescriptorRowMapper.mapRow(rs, rowNum);
+				long participantDataId = rs.getLong(PARTICIPANT_DATA_ID);
+				ParticipantDataDescriptor participantDataDescriptor = dboToDtoParticipantDataDescriptor.apply(dboParticipantDataDescriptor);
+				participantDataDescriptors.put(new ParticipantDataId(participantDataId), participantDataDescriptor);
+				return participantDataId;
+			}
+		}, params);
+		return participantDataDescriptors;
 	}
 
 	@Override
@@ -117,12 +154,8 @@ public class DBOParticipantDataDescriptorDAOImpl implements ParticipantDataDescr
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public ParticipantDataDescriptor createParticipantDataDescriptor(ParticipantDataDescriptor participantDataDescriptor) {
-		DBOParticipantDataDescriptor dboParticipantDataDescriptor = new DBOParticipantDataDescriptor();
+		DBOParticipantDataDescriptor dboParticipantDataDescriptor = dtoToDboParticipantDataDescriptor.apply(participantDataDescriptor);
 		dboParticipantDataDescriptor.setId(idGenerator.generateNewId(TYPE.COLUMN_MODEL_ID));
-		dboParticipantDataDescriptor.setName(participantDataDescriptor.getName());
-		dboParticipantDataDescriptor.setDescription(participantDataDescriptor.getDescription());
-		dboParticipantDataDescriptor.setRepeatType(participantDataDescriptor.getRepeatType());
-		dboParticipantDataDescriptor.setRepeatFrequency(participantDataDescriptor.getRepeatFrequency());
 		dboParticipantDataDescriptor = basicDao.createNew(dboParticipantDataDescriptor);
 		return dboToDtoParticipantDataDescriptor.apply(dboParticipantDataDescriptor);
 	}
@@ -130,12 +163,7 @@ public class DBOParticipantDataDescriptorDAOImpl implements ParticipantDataDescr
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void updateParticipantDataDescriptor(ParticipantDataDescriptor participantDataDescriptor) throws NotFoundException {
-		DBOParticipantDataDescriptor dboParticipantDataDescriptor = new DBOParticipantDataDescriptor();
-		dboParticipantDataDescriptor.setId(Long.parseLong(participantDataDescriptor.getId()));
-		dboParticipantDataDescriptor.setName(participantDataDescriptor.getName());
-		dboParticipantDataDescriptor.setDescription(participantDataDescriptor.getDescription());
-		dboParticipantDataDescriptor.setRepeatType(participantDataDescriptor.getRepeatType());
-		dboParticipantDataDescriptor.setRepeatFrequency(participantDataDescriptor.getRepeatFrequency());
+		DBOParticipantDataDescriptor dboParticipantDataDescriptor = dtoToDboParticipantDataDescriptor.apply(participantDataDescriptor);
 		if (!basicDao.update(dboParticipantDataDescriptor)) {
 			throw new NotFoundException("Update for ParticipantDataDescriptor " + participantDataDescriptor.getId()
 					+ " found nothing to update");

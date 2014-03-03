@@ -10,6 +10,7 @@ import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -23,9 +24,6 @@ import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.sagebionetworks.evaluation.dao.SubmissionDAO;
-import org.sagebionetworks.evaluation.dao.SubmissionFileHandleDAO;
-import org.sagebionetworks.evaluation.dao.SubmissionStatusDAO;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Submission;
@@ -48,6 +46,9 @@ import org.sagebionetworks.repo.model.annotation.Annotations;
 import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
 import org.sagebionetworks.repo.model.annotation.LongAnnotation;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
+import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
+import org.sagebionetworks.repo.model.evaluation.SubmissionFileHandleDAO;
+import org.sagebionetworks.repo.model.evaluation.SubmissionStatusDAO;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -232,7 +233,8 @@ public class SubmissionManagerTest {
 		verify(mockSubmissionStatusDAO).create(any(SubmissionStatus.class));
 		verify(mockSubmissionStatusDAO).update(any(SubmissionStatus.class));
 		verify(mockSubmissionFileHandleDAO).create(eq(SUB_ID), eq(fileHandle1.getId()));
-		verify(mockSubmissionFileHandleDAO).create(eq(SUB_ID), eq(fileHandle2.getId()));		
+		verify(mockSubmissionFileHandleDAO).create(eq(SUB_ID), eq(fileHandle2.getId()));
+		verify(mockSubmissionStatusDAO).delete(SUB_ID);
 	}
 	
 	@Test(expected=UnauthorizedException.class)
@@ -241,6 +243,8 @@ public class SubmissionManagerTest {
 		assertNotNull(subWithId.getId());
 		when(mockEvalPermissionsManager.hasAccess(
 				eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.SUBMIT))).thenReturn(false);
+		doThrow(new UnauthorizedException()).when(mockEvalPermissionsManager).validateHasAccess(
+				eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.SUBMIT));
 		submissionManager.createSubmission(userInfo, sub, ETAG, bundle);		
 	}
 	

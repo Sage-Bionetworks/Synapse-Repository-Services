@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.ACL_SCHEME;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
@@ -38,10 +39,11 @@ import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
+import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -80,6 +82,9 @@ public class NodeManagerImplAutoWiredTest {
 	@Autowired
 	private ActivityManager activityManager;
 	
+	@Autowired
+	private DBOBasicDao basicDao;
+	
 	private List<String> nodesToDelete;
 	private List<String> activitiesToDelete;
 	
@@ -92,17 +97,20 @@ public class NodeManagerImplAutoWiredTest {
 		nodesToDelete = new ArrayList<String>();
 		activitiesToDelete = new ArrayList<String>();
 		
+		DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();
+		tou.setDomain(DomainType.SYNAPSE);
+		tou.setAgreesToTermsOfUse(Boolean.TRUE);
+		
 		// Make sure we have a valid user.
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		UserInfo.validateUserInfo(adminUserInfo);
 		
 		DBOCredential cred = new DBOCredential();
-		cred.setAgreesToTermsOfUse(true);
 		cred.setSecretKey("");
 		NewUser nu = new NewUser();
 		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
 		nu.setUserName(UUID.randomUUID().toString());
-		userInfo = userManager.createUser(adminUserInfo, nu, cred);
+		userInfo = userManager.createUser(adminUserInfo, nu, cred, tou);
 	}
 	
 	@After

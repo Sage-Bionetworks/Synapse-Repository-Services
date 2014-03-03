@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.web.controller.metadata;
 
-import java.util.HashSet;
 import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;

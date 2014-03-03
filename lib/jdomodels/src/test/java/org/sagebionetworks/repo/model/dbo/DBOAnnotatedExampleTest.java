@@ -17,7 +17,6 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dbo.DBOAnnotatedExample.ExampleEnum;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.beans.InvalidPropertyException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;

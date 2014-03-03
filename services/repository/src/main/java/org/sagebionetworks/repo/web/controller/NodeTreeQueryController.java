@@ -19,6 +19,13 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
+/**
+ * Provides fast queries for retrieving entity ancestors and descendants.
+ * <p>
+ * Note that these indices are built outside the transactions. Updates are
+ * ingested into the indices near real-time. However, there could still
+ * be seconds or even minutes of delay behind the truth store.
+ */
 @ControllerInfo(displayName="Entity Ancestors Services", path="repo/v1")
 @Controller
 public class NodeTreeQueryController extends BaseController {
@@ -27,100 +34,112 @@ public class NodeTreeQueryController extends BaseController {
 	private ServiceProvider serviceProvider;
 
 	/**
-	 * Gets all the ancestors for the specified node. The returned ancestors are
-	 * ordered in that the first the ancestor is the root and the last
-	 * ancestor is the parent. The root will get an empty list of ancestors.
+	 * Gets all the ancestors for the specified entity. The returned ancestors are
+	 * ordered in that the first ancestor is the root and the last
+	 * ancestor is the parent. The root itself will retrieve an empty list of ancestors.
+	 *
+	 * @param id The ID of the entity whose ancestors will be retrieved.
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_ANCESTORS, method = RequestMethod.GET)
 	public @ResponseBody EntityIdList getAncestors(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable(value = UrlHelpers.ID_PATH_VARIABLE) String entityId)
+			@PathVariable(value = UrlHelpers.ID_PATH_VARIABLE) String id)
 			throws DatastoreException, UnauthorizedException {
-		return this.serviceProvider.getNodeTreeQueryService().getAncestors(userId, entityId);
+		return this.serviceProvider.getNodeTreeQueryService().getAncestors(userId, id);
 	}
 
 	/**
-	 * Gets the parent of the specified node. Root will get the dummy ROOT as its parent.
+	 * Gets the parent of the specified entity. Root will get the dummy ROOT as its parent.
+	 *
+	 * @param id The ID of the entity whose parent will be retrieved.
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_PARENT, method = RequestMethod.GET)
 	public @ResponseBody EntityId getParent(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable(value = UrlHelpers.ID_PATH_VARIABLE) String entityId)
+			@PathVariable(value = UrlHelpers.ID_PATH_VARIABLE) String id)
 			throws DatastoreException, UnauthorizedException {
-		return this.serviceProvider.getNodeTreeQueryService().getParent(userId, entityId);
+		return this.serviceProvider.getNodeTreeQueryService().getParent(userId, id);
 	}
 
 	/**
-	 * Gets the paginated list of descendants for the specified node.
+	 * Gets the paginated list of descendants for the specified entity.
 	 *
-	 * @param pageSize
+	 * @param id
+	 *            The ID of the entity whose descendants will be retrieved.
+	 * @param limit
 	 *            Paging parameter. The max number of descendants to fetch per page.
-	 * @param lastDescIdExcl
-	 *            Paging parameter. The last descendant ID (exclusive).
+	 * @param lastEntityId
+	 *            Paging parameter. The ID of the last descendant on the current page. The next page will start after this last descendant.
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_DESCENDANTS, method = RequestMethod.GET)
 	public @ResponseBody EntityIdList getDescendants(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable(value = UrlHelpers.ID_PATH_VARIABLE) String entityId,
-			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false) Integer pageSize,
-			@RequestParam(value = ServiceConstants.PAGINATION_LAST_ENTITY_ID, required = false) String lastDescIdExcl)
+			@PathVariable(value = UrlHelpers.ID_PATH_VARIABLE) String id,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false) Integer limit,
+			@RequestParam(value = ServiceConstants.PAGINATION_LAST_ENTITY_ID, required = false) String lastEntityId)
 			throws DatastoreException, UnauthorizedException {
-		if (pageSize == null) {
-			pageSize = Integer.valueOf(20);
+		if (limit == null) {
+			limit = Integer.valueOf(20);
 		}
 		return this.serviceProvider.getNodeTreeQueryService().getDescendants(
-				userId, entityId, pageSize, lastDescIdExcl);
+				userId, id, limit, lastEntityId);
 	}
 
 	/**
-	 * Gets the paginated list of descendants of a particular generation for the specified node.
+	 * Gets the paginated list of descendants of a particular generation for the specified entity.
 	 *
+	 * @param id
+	 *            The ID of the entity whose descendants will be retrieved.
 	 * @param generation
-	 *            How many generations away from the node. Children are exactly 1 generation away.
-	 * @param pageSize
+	 *            How many generations away from the node. Example, children are exactly 1 generation away.
+	 * @param limit
 	 *            Paging parameter. The max number of descendants to fetch per page.
-	 * @param lastDescIdExcl
-	 *            Paging parameter. The last descendant ID (exclusive).
+	 * @param lastEntityId
+	 *            Paging parameter. The ID of the last descendant on the current page. The next page will start after this last descendant.
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_DESCENDANTS_GENERATION, method = RequestMethod.GET)
 	public @ResponseBody EntityIdList getDescendants(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable(value = UrlHelpers.ID_PATH_VARIABLE) String entityId,
+			@PathVariable(value = UrlHelpers.ID_PATH_VARIABLE) String id,
 			@PathVariable(value = UrlHelpers.GENERATION) Integer generation, 
-			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false) Integer pageSize,
-			@RequestParam(value = ServiceConstants.PAGINATION_LAST_ENTITY_ID, required = false) String lastDescIdExcl)
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false) Integer limit,
+			@RequestParam(value = ServiceConstants.PAGINATION_LAST_ENTITY_ID, required = false) String lastEntityId)
 			throws DatastoreException, UnauthorizedException {
-		if (pageSize == null) {
-			pageSize = Integer.valueOf(20);
+		if (limit == null) {
+			limit = Integer.valueOf(20);
 		}
 		return this.serviceProvider.getNodeTreeQueryService().getDescendants(
-				userId, entityId, generation, pageSize, lastDescIdExcl);
+				userId, id, generation, limit, lastEntityId);
 	}
 
 	/**
 	 * Gets the children of the specified node.
 	 *
-	 * @param pageSize
+	 * @param id
+	 *            The ID of the entity whose descendants will be retrieved.
+	 * @param generation
+	 *            How many generations away from the node. Example, children are exactly 1 generation away.
+	 * @param limit
 	 *            Paging parameter. The max number of descendants to fetch per page.
-	 * @param lastDescIdExcl
-	 *            Paging parameter. The last descendant ID (exclusive).
+	 * @param lastEntityId
+	 *            Paging parameter. The ID of the last descendant on the current page. The next page will start after this last descendant.
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_CHILDREN, method = RequestMethod.GET)
 	public @ResponseBody EntityIdList getChildren(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable(value = UrlHelpers.ID_PATH_VARIABLE) String entityId,
-			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false) Integer pageSize,
-			@RequestParam(value = ServiceConstants.PAGINATION_LAST_ENTITY_ID, required = false) String lastDescIdExcl)
+			@PathVariable(value = UrlHelpers.ID_PATH_VARIABLE) String id,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false) Integer limit,
+			@RequestParam(value = ServiceConstants.PAGINATION_LAST_ENTITY_ID, required = false) String lastEntityId)
 			throws DatastoreException, UnauthorizedException {
-		if (pageSize == null) {
-			pageSize = Integer.valueOf(20);
+		if (limit == null) {
+			limit = Integer.valueOf(20);
 		}
 		return this.serviceProvider.getNodeTreeQueryService().getChildren(
-				userId, entityId, pageSize, lastDescIdExcl);
+				userId, id, limit, lastEntityId);
 	}
 }

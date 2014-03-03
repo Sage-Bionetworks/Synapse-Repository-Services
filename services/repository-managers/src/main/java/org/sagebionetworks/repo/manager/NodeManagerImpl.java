@@ -374,6 +374,9 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 			if (!authorizationManager.canAccess(userInfo, parentInUpdate, ObjectType.ENTITY, ACCESS_TYPE.CREATE)) {
 				throw new UnauthorizedException(userInfo.getId()+ " is not authorized to create an entity here.");
 			}
+			if (!authorizationManager.canMoveEntity(userInfo, parentInDatabase)) {
+				throw new UnauthorizedException(userInfo.getId()+ " is not authorized to move the entity due to existing access restrictions.");
+			}
 			nodeDao.changeNodeParent(nodeInUpdate, parentInUpdate);
 			// Update the ACL accordingly
 			if (skipBenefactor) {

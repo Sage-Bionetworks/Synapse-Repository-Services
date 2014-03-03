@@ -14,6 +14,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -25,6 +26,7 @@ import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.manager.principal.PrincipalManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -48,25 +50,34 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
+import org.sagebionetworks.repo.model.principal.AliasType;
+import org.sagebionetworks.repo.model.principal.BootstrapTeam;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.web.NotFoundException;
+
+import com.google.common.collect.Lists;
 
 public class TeamManagerImplTest {
-	private TeamManagerImpl teamManagerImpl = null;
-	private AuthorizationManager mockAuthorizationManager = null;
-	private TeamDAO mockTeamDAO = null;
-	private GroupMembersDAO mockGroupMembersDAO = null;
-	private UserGroupDAO mockUserGroupDAO = null;
-	private AccessControlListDAO mockAclDAO = null;
-	private FileHandleManager mockFileHandleManager = null;
-	private MembershipInvtnSubmissionDAO mockMembershipInvtnSubmissionDAO = null;
-	private MembershipRqstSubmissionDAO mockMembershipRqstSubmissionDAO = null;
-	private UserManager mockUserManager = null;
-	private AccessRequirementDAO mockAccessRequirementDAO = null;
+	private TeamManagerImpl teamManagerImpl;
+	private AuthorizationManager mockAuthorizationManager;
+	private DBOBasicDao mockBasicDAO;
+	private TeamDAO mockTeamDAO;
+	private GroupMembersDAO mockGroupMembersDAO;
+	private UserGroupDAO mockUserGroupDAO;
+	private AccessControlListDAO mockAclDAO;
+	private FileHandleManager mockFileHandleManager;
+	private MembershipInvtnSubmissionDAO mockMembershipInvtnSubmissionDAO;
+	private MembershipRqstSubmissionDAO mockMembershipRqstSubmissionDAO;
+	private UserManager mockUserManager;
+	private AccessRequirementDAO mockAccessRequirementDAO;
 	private PrincipalAliasDAO mockPrincipalAliasDAO;
+	private PrincipalManager mockPrincipalManager;
 	
-	private UserInfo userInfo = null;
-	private UserInfo adminInfo = null;
+	private UserInfo userInfo;
+	private UserInfo adminInfo;
 	private static final String MEMBER_PRINCIPAL_ID = "999";
 
 	private static final String TEAM_ID = "123";
@@ -78,15 +89,18 @@ public class TeamManagerImplTest {
 		mockGroupMembersDAO = Mockito.mock(GroupMembersDAO.class);
 		mockUserGroupDAO = Mockito.mock(UserGroupDAO.class);
 		mockFileHandleManager = Mockito.mock(FileHandleManager.class);
+		mockBasicDAO = Mockito.mock(DBOBasicDao.class);
 		mockAclDAO = Mockito.mock(AccessControlListDAO.class);
 		mockMembershipInvtnSubmissionDAO = Mockito.mock(MembershipInvtnSubmissionDAO.class);
 		mockMembershipRqstSubmissionDAO = Mockito.mock(MembershipRqstSubmissionDAO.class);
 		mockUserManager = Mockito.mock(UserManager.class);
 		mockAccessRequirementDAO = Mockito.mock(AccessRequirementDAO.class);
 		mockPrincipalAliasDAO = Mockito.mock(PrincipalAliasDAO.class);
+		mockPrincipalManager = Mockito.mock(PrincipalManager.class);
 		teamManagerImpl = new TeamManagerImpl(
 				mockAuthorizationManager,
 				mockTeamDAO,
+				mockBasicDAO,
 				mockGroupMembersDAO,
 				mockUserGroupDAO,
 				mockAclDAO,
@@ -95,7 +109,8 @@ public class TeamManagerImplTest {
 				mockMembershipRqstSubmissionDAO, 
 				mockUserManager,
 				mockAccessRequirementDAO,
-				mockPrincipalAliasDAO);
+				mockPrincipalAliasDAO,
+				mockPrincipalManager);
 		userInfo = createUserInfo(false, MEMBER_PRINCIPAL_ID);
 		adminInfo = createUserInfo(true, "-1");
 	}
@@ -257,6 +272,57 @@ public class TeamManagerImplTest {
 		assertEquals(MEMBER_PRINCIPAL_ID, created.getModifiedBy());
 	}
 	
+	private BootstrapTeam createBootstrapTeam(String id, String name) {
+		BootstrapTeam team = new BootstrapTeam();
+		team.setId(id);
+		team.setName(name);
+		return team;
+	}
+	
+	@Test
+	public void testBootstrapTeamsThatDontExist() throws Exception {
+		when(mockTeamDAO.get(any(String.class))).thenThrow(new NotFoundException());
+		when(mockBasicDAO.createNew(any(DBOUserGroup.class))).thenReturn(null); // we specified the ID to start with.
+		when(mockPrincipalAliasDAO.findPrincipalWithAlias(any(String.class))).thenReturn(null);
+		when(mockPrincipalAliasDAO.bindAliasToPrincipal(any(PrincipalAlias.class))).thenReturn(new PrincipalAlias());
+		when(mockPrincipalManager.isAliasValid(any(String.class), eq(AliasType.TEAM_NAME))).thenReturn(true);
+		when(mockTeamDAO.create(any(Team.class))).thenReturn(null); // again we don't care
+		
+		List<BootstrapTeam> toBootstrap = Lists.newArrayList();
+		toBootstrap.add(createBootstrapTeam("32","Bootstrap Team 1"));
+		toBootstrap.add(createBootstrapTeam("42","Bootstrap Team 2"));
+		teamManagerImpl.setTeamsToBootstrap(toBootstrap);
+		teamManagerImpl.bootstrapTeams();
+		
+		verify(mockTeamDAO, times(2)).get(any(String.class));
+		verify(mockBasicDAO, times(2)).createNew(any(DBOUserGroup.class));
+		verify(mockPrincipalAliasDAO, times(2)).findPrincipalWithAlias(any(String.class));
+		verify(mockPrincipalAliasDAO, times(2)).bindAliasToPrincipal(any(PrincipalAlias.class));
+		verify(mockPrincipalManager, times(2)).isAliasValid(any(String.class), eq(AliasType.TEAM_NAME));
+		verify(mockTeamDAO, times(2)).create(any(Team.class));
+	}
+	
+	@Test
+	public void testRerunBootstrapTeamsIdempotent() throws Exception {
+		BootstrapTeam team1 = createBootstrapTeam("32","Bootstrap Team 1");
+		BootstrapTeam team2 = createBootstrapTeam("42","Bootstrap Team 2");
+		List<BootstrapTeam> toBootstrap = Lists.newArrayList();
+		toBootstrap.add(team1);
+		toBootstrap.add(team2);
+		
+		when(mockTeamDAO.get(team1.getId())).thenReturn(new Team());
+		when(mockTeamDAO.get(team2.getId())).thenReturn(new Team());
+		when(mockPrincipalManager.isAliasValid(any(String.class), eq(AliasType.TEAM_NAME))).thenReturn(true);
+		Mockito.verifyZeroInteractions(mockTeamDAO);
+		Mockito.verifyZeroInteractions(mockBasicDAO);
+		Mockito.verifyZeroInteractions(mockPrincipalAliasDAO);
+
+		teamManagerImpl.setTeamsToBootstrap(toBootstrap);
+		teamManagerImpl.bootstrapTeams();
+		
+		verify(mockTeamDAO, times(2)).get(any(String.class));
+	}
+	
 	// verify that an invalid team creates an exception
 	@Test(expected=InvalidModelException.class)
 	public void testCreateInvalidTeam() throws Exception {
@@ -350,6 +416,7 @@ public class TeamManagerImplTest {
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
 		rod.setType(RestrictableObjectType.TEAM);
 		rod.setId(TEAM_ID);
+		List<String> teamIds = Collections.singletonList(TEAM_ID);
 		List<ACCESS_TYPE> accessTypes = new ArrayList<ACCESS_TYPE>();
 		accessTypes.add(ACCESS_TYPE.DOWNLOAD);
 		accessTypes.add(ACCESS_TYPE.PARTICIPATE);
@@ -357,7 +424,7 @@ public class TeamManagerImplTest {
 		for (Long id : userInfo.getGroups()) {
 			principalIds.add(id);
 		}
-		when(mockAccessRequirementDAO.unmetAccessRequirements(rod, principalIds, accessTypes)).thenReturn(unmetAccessRequirementIds);		
+		when(mockAccessRequirementDAO.unmetAccessRequirements(teamIds, RestrictableObjectType.TEAM, principalIds, accessTypes)).thenReturn(unmetAccessRequirementIds);		
 	}
 	
 	@Test

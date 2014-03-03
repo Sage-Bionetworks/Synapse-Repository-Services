@@ -15,6 +15,7 @@ import org.mockito.Mock;
 import org.sagebionetworks.bridge.manager.community.MockitoTestBase;
 import org.sagebionetworks.bridge.model.BridgeParticipantDAO;
 import org.sagebionetworks.bridge.model.BridgeUserParticipantMappingDAO;
+import org.sagebionetworks.bridge.model.ParticipantDataId;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 
@@ -42,15 +43,16 @@ public class ParticipantDataIdMappingManagerImplTest extends MockitoTestBase {
 		when(random.nextLong()).thenReturn(12L).thenReturn(13L);
 		doThrow(new DatastoreException()).when(participantDAO).create(12L);
 
-		when(userParticipantMappingDAO.getParticipantIdsForUser(1009L)).thenReturn(Lists.newArrayList("2"));
+		when(userParticipantMappingDAO.getParticipantIdsForUser(1009L)).thenReturn(Lists.newArrayList(new ParticipantDataId(2)));
 
 		UserInfo user = new UserInfo(false, 1009L);
-		mappingManager.createNewParticipantForUser(user);
+		mappingManager.createNewParticipantIdForUser(user);
 
 		verify(random, times(2)).nextLong();
 		verify(participantDAO, times(2)).create(anyLong());
 		verify(userParticipantMappingDAO).getParticipantIdsForUser(1009L);
-		verify(userParticipantMappingDAO).setParticipantIdsForUser(1009L, Lists.newArrayList("2", "13"));
+		verify(userParticipantMappingDAO).setParticipantIdsForUser(1009L,
+				Lists.newArrayList(new ParticipantDataId(2), new ParticipantDataId(13)));
 	}
 
 	@Test(expected = DatastoreException.class)
@@ -61,11 +63,11 @@ public class ParticipantDataIdMappingManagerImplTest extends MockitoTestBase {
 		when(random.nextLong()).thenReturn(12L);
 		doThrow(new DatastoreException()).when(participantDAO).create(12L);
 
-		when(userParticipantMappingDAO.getParticipantIdsForUser(1009L)).thenReturn(Lists.newArrayList("2"));
+		when(userParticipantMappingDAO.getParticipantIdsForUser(1009L)).thenReturn(Lists.newArrayList(new ParticipantDataId(2)));
 
 		UserInfo user = new UserInfo(false, 1009L);
 		try {
-			mappingManager.createNewParticipantForUser(user);
+			mappingManager.createNewParticipantIdForUser(user);
 		} finally {
 			verify(random, times(10)).nextLong();
 			verify(participantDAO, times(10)).create(anyLong());

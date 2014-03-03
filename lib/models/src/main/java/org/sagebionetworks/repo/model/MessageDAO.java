@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.model;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
@@ -27,6 +26,13 @@ public interface MessageDAO {
 	 * Changes the etag of a message
 	 */
 	public void touch(String messageId);
+	
+	/**
+	 * Mark the transmission status of the message as complete
+	 * 
+	 * @param messageId
+	 */
+	public void updateMessageTransmissionAsComplete(String messageId);
 	
 	/**
 	 * Retrieves all messages (subject to limit and offset) within a given thread, visible to the user
@@ -65,6 +71,7 @@ public interface MessageDAO {
 	 * Marks a user as a recipient of a message
 	 * The status of the message defaults to UNREAD
 	 * 
+	 * Note: This 'recipient status' is disctinct from the message's 'transmission status'.
 	 * Note: This operation occurs in a separate transaction (REQUIRES_NEW)
 	 */
 	public void createMessageStatus_NewTransaction(String messageId, String userId, MessageStatusType status);
@@ -73,16 +80,27 @@ public interface MessageDAO {
 	 * Marks a user as a recipient of a message
 	 * The status of the message defaults to UNREAD
 	 * 
+	 * Note: this 'recipient status' is disctinct from the message's 'transmission status'.
 	 * Note: This operation occurs in the same transaction (REQUIRED)
 	 */
 	public void createMessageStatus_SameTransaction(String messageId, String userId, MessageStatusType status);
 	
+
 	/**
-	 * Marks a message within the user's inbox with the given status
+	 * Marks a message within the recipient's inbox with the given status, doing so in a new, isolated transaction
+	 * Note: this 'recipient status' is disctinct from the message's 'transmission status'.
 	 * 
 	 * @return Did the update succeed?
 	 */
-	public boolean updateMessageStatus(MessageStatus status);
+	boolean updateMessageStatus_NewTransaction(MessageStatus status);
+	
+	/**
+	 * Marks a message within the recipient's inbox with the given status
+	 * Note: this 'recipient status' is disctinct from the message's 'transmission status'.
+	 * 
+	 * @return Did the update succeed?
+	 */
+	public boolean updateMessageStatus_SameTransaction(MessageStatus status);
 	
 	/**
 	 * Deletes a message.  Only used for test cleanup.
@@ -91,8 +109,9 @@ public interface MessageDAO {
 
 	/**
 	 * Returns true if there is at least one recipient of the message
+	 * @throws NotFoundException 
 	 */
-	public boolean hasMessageBeenSent(String messageId);
+	public boolean getMessageSent(String messageId) throws NotFoundException;
 
 	/**
 	 * Checks how many messages a user has created over a given interval (from present time)
@@ -106,4 +125,5 @@ public interface MessageDAO {
 	 * If so, then the user or group should be allowed to download the file associated with the file handle
 	 */
 	public boolean canSeeMessagesUsingFileHandle(Set<Long> userGroups, String fileHandleId);
+
 }

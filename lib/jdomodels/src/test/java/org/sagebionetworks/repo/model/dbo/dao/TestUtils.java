@@ -131,12 +131,15 @@ public class TestUtils {
 	public static Annotations createDummyAnnotations() {
 		return createDummyAnnotations(1);
 	}
+	
+	public static final String PUBLIC_STRING_ANNOTATION_NAME = "string_anno";
+	public static final String PRIVATE_LONG_ANNOTATION_NAME = "long_anno";
 
 	public static Annotations createDummyAnnotations(int i) {
 		List<StringAnnotation> stringAnnos = new ArrayList<StringAnnotation>();
 		StringAnnotation sa = new StringAnnotation();
 		sa.setIsPrivate(false);
-		sa.setKey("string anno");
+		sa.setKey(PUBLIC_STRING_ANNOTATION_NAME);
 		sa.setValue("foo " + i);
 		stringAnnos.add(sa);
 		
@@ -153,7 +156,7 @@ public class TestUtils {
 		List<LongAnnotation> longAnnos = new ArrayList<LongAnnotation>();
 		LongAnnotation la = new LongAnnotation();
 		la.setIsPrivate(true);
-		la.setKey("long anno");
+		la.setKey(PRIVATE_LONG_ANNOTATION_NAME);
 		la.setValue(new Long(i*10));
 		longAnnos.add(la);
 		
@@ -172,6 +175,4 @@ public class TestUtils {
 		annos.setScopeId("" + 2*i);
 		return annos;
 	}
-
-	
 }

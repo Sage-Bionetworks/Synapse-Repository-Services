@@ -16,7 +16,7 @@ public class AuthorizationConstants {
 		AUTHENTICATED_USERS_GROUP(273948L), 
 		PUBLIC_GROUP(273949L), 
 		ANONYMOUS_USER(273950L),
-		ACCESS_AND_COMPLIANCE_GROUP(464532);
+		ACCESS_AND_COMPLIANCE_GROUP(464532L);
 
 		private final long principalId;
 		
@@ -27,6 +27,20 @@ public class AuthorizationConstants {
 		private BOOTSTRAP_PRINCIPAL(long principalId) {
 			this.principalId = principalId;
 		}
+	}
+	
+	public enum BOOTSTRAP_TEAM {
+		BRIDGE_ADMINISTRATORS("3320020");
+
+		private final String id;
+		
+		public String getId() {
+			return this.id;
+		}
+
+		private BOOTSTRAP_TEAM(String id) {
+			this.id = id;
+		}		
 	}
 	
 	/**
@@ -67,7 +81,7 @@ public class AuthorizationConstants {
 	 * change depending on whether this is Bridge or a Synapse client (at the least, 
 	 * email contents change).
 	 */
-	public static final String ORIGINATING_CLIENT_PARAM = "originClient";
+	public static final String DOMAIN_PARAM = "originClient";
 	
 	/**
 	 * A reserved parameter name for passing in a user id (not necessarily the name of the requestor,

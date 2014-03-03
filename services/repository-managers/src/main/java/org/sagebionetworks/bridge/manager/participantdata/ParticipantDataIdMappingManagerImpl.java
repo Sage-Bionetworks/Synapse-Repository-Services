@@ -7,6 +7,7 @@ import java.util.Random;
 
 import org.sagebionetworks.bridge.model.BridgeParticipantDAO;
 import org.sagebionetworks.bridge.model.BridgeUserParticipantMappingDAO;
+import org.sagebionetworks.bridge.model.ParticipantDataId;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,14 +38,14 @@ public class ParticipantDataIdMappingManagerImpl implements ParticipantDataIdMap
 	}
 
 	@Override
-	public List<String> mapSynapseUserToParticipantIds(UserInfo userInfo) throws IOException, GeneralSecurityException {
-		List<String> participantIdsForUser = userParticipantMappingDAO.getParticipantIdsForUser(userInfo.getId());
+	public List<ParticipantDataId> mapSynapseUserToParticipantIds(UserInfo userInfo) throws IOException, GeneralSecurityException {
+		List<ParticipantDataId> participantIdsForUser = userParticipantMappingDAO.getParticipantIdsForUser(userInfo.getId());
 		return participantIdsForUser;
 	}
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public String createNewParticipantForUser(UserInfo alias) throws IOException, GeneralSecurityException {
+	public ParticipantDataId createNewParticipantIdForUser(UserInfo alias) throws IOException, GeneralSecurityException {
 		// we need to find a unique id
 		long id;
 		int retry = 0;
@@ -60,11 +61,11 @@ public class ParticipantDataIdMappingManagerImpl implements ParticipantDataIdMap
 				continue;
 			}
 		}
-		String idStr = Long.toString(id);
-		List<String> participantIdsForUser = userParticipantMappingDAO.getParticipantIdsForUser(alias.getId());
+		ParticipantDataId participantDataId = new ParticipantDataId(id);
+		List<ParticipantDataId> participantIdsForUser = userParticipantMappingDAO.getParticipantIdsForUser(alias.getId());
 		participantIdsForUser = Lists.newArrayList(participantIdsForUser);
-		participantIdsForUser.add(idStr);
+		participantIdsForUser.add(participantDataId);
 		userParticipantMappingDAO.setParticipantIdsForUser(alias.getId(), participantIdsForUser);
-		return idStr;
+		return participantDataId;
 	}
 }

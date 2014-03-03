@@ -79,6 +79,7 @@ public class SharedClientConnection {
 
 	private String userName;
 	private String apiKey;
+	private DomainType domain = DomainType.SYNAPSE;
 
 	/**
 	 * Default constructor uses the default repository and auth services
@@ -114,6 +115,22 @@ public class SharedClientConnection {
 		
 		requestProfile = false;
 	}
+	
+	public SharedClientConnection(DomainType domain) {
+		this(new HttpClientProviderImpl(), domain);
+	}
+
+	/**
+	 * Will use the provided client provider and data uploader.
+	 * 
+	 * @param clientProvider 
+	 * @param dataUploader 
+	 */
+	public SharedClientConnection(HttpClientProvider clientProvider, DomainType domain) {
+		this(clientProvider);
+		this.domain = domain;
+	}
+	
 	
 	/**
 	 * Use this method to override the default implementation of {@link HttpClientProvider}
@@ -173,18 +190,25 @@ public class SharedClientConnection {
 	public void setApiKey(String apiKey) {
 		this.apiKey = apiKey;
 	}
+	
+	/**
+	 * 
+	 * @param domain set the domain under which this client's users are operating
+	 */
+	public void setDomain(DomainType domain) {
+		this.domain = domain;
+	}
 
 	/**
 	 * Log into Synapse
 	 * 
 	 * @return A session token
 	 */
-	public Session login(String username, String password, String userAgent) 
-			throws SynapseException {
+	public Session login(String username, String password, String userAgent) throws SynapseException {
 		LoginCredentials loginRequest = new LoginCredentials();
 		loginRequest.setEmail(username);
 		loginRequest.setPassword(password);
-
+		
 		Session session;
 		try {
 			JSONObject obj = createAuthEntity("/session", EntityFactory.createJSONObjectForEntity(loginRequest), userAgent);
@@ -196,7 +220,7 @@ public class SharedClientConnection {
 		defaultGETDELETEHeaders.put(SESSION_TOKEN_HEADER, session.getSessionToken());
 		defaultPOSTPUTHeaders.put(SESSION_TOKEN_HEADER, session.getSessionToken());
 		
-		return session;
+		return session;		
 	}
 
 	public void logout(String userAgent) throws SynapseException {
@@ -322,7 +346,10 @@ public class SharedClientConnection {
 			throws SynapseException {
 		HttpPost post;
 		try {
-			post = createPost(url, requestBody, userAgent);
+			URIBuilder builder = new URIBuilder(url);
+			builder.addParameter(AuthorizationConstants.DOMAIN_PARAM, domain.name());
+			post = createPost(builder.toString(), requestBody, userAgent);
+			
 			HttpResponse response = clientProvider.execute(post);
 			int code = response.getStatusLine().getStatusCode();
 			String responseBody = (null != response.getEntity()) ? EntityUtils.toString(response.getEntity()) : null;
@@ -335,6 +362,8 @@ public class SharedClientConnection {
 		} catch (ClientProtocolException e) {
 			throw new SynapseClientException(e);
 		} catch (IOException e) {
+			throw new SynapseClientException(e);
+		} catch (URISyntaxException e) {
 			throw new SynapseClientException(e);
 		}
 	}
@@ -421,7 +450,7 @@ public class SharedClientConnection {
 	 * @return the newly created entity
 	 */
 	private JSONObject createAuthEntity(String uri, JSONObject entity, String userAgent) throws SynapseException {
-		return postJson(authEndpoint, uri, entity.toString(), userAgent);
+		return postJson(authEndpoint, uri, entity.toString(), userAgent, null);
 	}
 
 	private JSONObject putAuthEntity(String uri, JSONObject entity, String userAgent)
@@ -455,13 +484,18 @@ public class SharedClientConnection {
 
 	public String postStringDirect(String endpoint, String uri, String data, String userAgent) throws SynapseException {
 		try {
-			HttpPost post = new HttpPost(endpoint + uri);
+			URIBuilder builder = new URIBuilder(endpoint + uri);
+			builder.addParameter(AuthorizationConstants.DOMAIN_PARAM, domain.name());
+			
+			HttpPost post = new HttpPost(builder.toString());
 			setHeaders(post, defaultPOSTPUTHeaders, userAgent);
 			StringEntity stringEntity = new StringEntity(data);
 			post.setEntity(stringEntity);
 			HttpResponse response = clientProvider.execute(post);
 			return (null != response.getEntity()) ? EntityUtils.toString(response.getEntity()) : null;
 		} catch (IOException e) {
+			throw new SynapseClientException(e);
+		} catch (URISyntaxException e) {
 			throw new SynapseClientException(e);
 		}
 	}
@@ -474,32 +508,16 @@ public class SharedClientConnection {
 	 * @param uri
 	 * @param userAgent 
 	 * @param entity
-	 * @return
-	 * @throws SynapseException 
-	 */
-	public JSONObject postJson(String endpoint, String uri, String jsonString, String userAgent) throws SynapseException {
-		return postJson(endpoint, uri, jsonString, userAgent, null);
-	}
-	
-	/**
-	 * Create any JSONEntity
-	 * @param endpoint
-	 * @param uri
-	 * @param userAgent 
-	 * @param entity
 	 * @param originClient
 	 * @return
 	 * @throws SynapseException 
 	 */
-	public JSONObject postJson(String endpoint, String uri, String jsonString, String userAgent, Map<String,String> parameters) throws SynapseException {
+	public JSONObject postJson(String endpoint, String uri, String jsonString, String userAgent, Map<String, String> parameters) throws SynapseException {
 		if (null == endpoint) {
 			throw new IllegalArgumentException("must provide endpoint");
 		}
 		if (null == uri) {
 			throw new IllegalArgumentException("must provide uri");
-		}
-		if (null == parameters) {
-			parameters = Collections.emptyMap();
 		}
 		JSONObject jsonObject = signAndDispatchSynapseRequest(endpoint, uri, "POST", jsonString, defaultPOSTPUTHeaders,
 				userAgent, parameters);
@@ -522,7 +540,8 @@ public class SharedClientConnection {
 		if (null == uri) {
 			throw new IllegalArgumentException("must provide uri");
 		}
-		JSONObject jsonObject = signAndDispatchSynapseRequest(endpoint, uri, "PUT", jsonToPut, defaultPOSTPUTHeaders, userAgent);
+		JSONObject jsonObject = signAndDispatchSynapseRequest(endpoint, uri, "PUT", jsonToPut, defaultPOSTPUTHeaders,
+				userAgent, null);
 		return jsonObject;
 	}
 	
@@ -537,7 +556,7 @@ public class SharedClientConnection {
 		if (null == uri) {
 			throw new IllegalArgumentException("must provide uri");
 		}
-		JSONObject jsonObject = signAndDispatchSynapseRequest(endpoint, uri, "GET", null, defaultGETDELETEHeaders, userAgent);
+		JSONObject jsonObject = signAndDispatchSynapseRequest(endpoint, uri, "GET", null, defaultGETDELETEHeaders, userAgent, null);
 		return jsonObject;
 	}
 
@@ -547,7 +566,7 @@ public class SharedClientConnection {
 	 */
 	public JSONObject postUri(String endpoint, String uri, String userAgent) throws SynapseException {
 		if (null == uri) throw new IllegalArgumentException("must provide uri");		
-		return signAndDispatchSynapseRequest(endpoint, uri, "POST", null, defaultPOSTPUTHeaders, userAgent);
+		return signAndDispatchSynapseRequest(endpoint, uri, "POST", null, defaultPOSTPUTHeaders, userAgent, null);
 	}
 
 	/**
@@ -556,17 +575,9 @@ public class SharedClientConnection {
 	 */
 	public void deleteUri(String endpoint, String uri, String userAgent) throws SynapseException {
 		if (null == uri) throw new IllegalArgumentException("must provide uri");		
-		signAndDispatchSynapseRequest(endpoint, uri, "DELETE", null, defaultGETDELETEHeaders, userAgent);
+		signAndDispatchSynapseRequest(endpoint, uri, "DELETE", null, defaultGETDELETEHeaders, userAgent, null);
 	}
 
-	protected JSONObject signAndDispatchSynapseRequest(String endpoint, String uri, String requestMethod,
-			String requestContent, Map<String, String> requestHeaders, String userAgent) throws SynapseException {
-		Map<String, String> parameters = Maps.newHashMap();
-		parameters.put(AuthorizationConstants.ORIGINATING_CLIENT_PARAM, DomainType.SYNAPSE.toString());
-		return signAndDispatchSynapseRequest(endpoint, uri, requestMethod, requestContent, requestHeaders, userAgent,
-				parameters);
-	}
-	
 	protected JSONObject signAndDispatchSynapseRequest(String endpoint, String uri, String requestMethod,
 			String requestContent, Map<String, String> requestHeaders, String userAgent, Map<String,String> parameters)
 			throws SynapseException {
@@ -602,9 +613,14 @@ public class SharedClientConnection {
 			requestUrl = (uri.startsWith(endpointPrefix)) ? new URL(endpointLocation + uri) : new URL(endpoint + uri);
 			
 			builder = new URIBuilder(requestUrl.toURI());
-			for (Map.Entry<String,String> entry : parameters.entrySet()) {
-				builder.addParameter(entry.getKey(), entry.getValue());
+			if (parameters != null) {
+				for (Map.Entry<String,String> entry : parameters.entrySet()) {
+					builder.addParameter(entry.getKey(), entry.getValue());
+				}
+			} else {
+				builder.addParameter(AuthorizationConstants.DOMAIN_PARAM, domain.name());
 			}
+			
 		} catch(MalformedURLException mue) {
 			throw new SynapseClientException("Invalid URI: <<"+builder.toString()+">>", mue);
 		} catch(URISyntaxException use) {
@@ -625,11 +641,8 @@ public class SharedClientConnection {
 	 * @return
 	 */
 	protected JSONObject dispatchSynapseRequest(String endpoint, String uri, String requestMethod,
-			String requestContent, Map<String, String> requestHeaders, Map<String,String> parameters)
+			String requestContent, Map<String, String> requestHeaders, Map<String, String> parameters)
 			throws SynapseException {
-		if (parameters == null) {
-			parameters = Collections.emptyMap();
-		}
 		if (requestProfile && !requestMethod.equals("DELETE")) {
 			requestHeaders.put(REQUEST_PROFILE_DATA, "true");
 		} else {

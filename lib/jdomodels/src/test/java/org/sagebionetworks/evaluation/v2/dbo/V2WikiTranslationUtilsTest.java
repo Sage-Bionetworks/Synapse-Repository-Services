@@ -1,6 +1,9 @@
 package org.sagebionetworks.evaluation.v2.dbo;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.UnsupportedEncodingException;
 import java.sql.Timestamp;

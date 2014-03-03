@@ -27,7 +27,7 @@ public interface AuthenticationDAO {
 	 * Updates the timestamp associated with the user's session token
 	 * It is the caller's responsibility to determine if the session token is still valid
 	 */
-	public void revalidateSessionToken(long principalId);
+	public void revalidateSessionToken(long principalId, DomainType domain);
 	
 	/**
 	 * Changes the user's session token to the specified string
@@ -35,20 +35,20 @@ public interface AuthenticationDAO {
 	 *   To set the token to null, use deleteSessionToken()
 	 * @return The session token that was set
 	 */
-	public String changeSessionToken(long principalId, String sessionToken);
+	public String changeSessionToken(long principalId, String sessionToken, DomainType domain);
 	
 	/** 
 	 * Fetches a session token by username (email)
 	 * If the token has expired, null is returned
 	 * It is the caller's responsibility to make sure the token does not go into unauthorized hands
 	 */
-	public Session getSessionTokenIfValid(long principalId);
+	public Session getSessionTokenIfValid(long principalId, DomainType domain);
 
 	/**
 	 * For testing purposes only
 	 * Allows the current time to be spoofed for testing purposes
 	 */
-	public Session getSessionTokenIfValid(long userId, Date now);
+	public Session getSessionTokenIfValid(long userId, Date now, DomainType domain);
 	
 	/**
 	 * Nullifies the session token
@@ -95,12 +95,12 @@ public interface AuthenticationDAO {
 	/**
 	 * Returns whether the user has accepted the terms of use
 	 */
-	public boolean hasUserAcceptedToU(long principalId) throws NotFoundException;
+	public boolean hasUserAcceptedToU(long principalId, DomainType domain) throws NotFoundException;
 	
 	/**
 	 * Sets whether the user has accepted, rejected, or not seen the terms of use
 	 */
-	public void setTermsOfUseAcceptance(long principalId, Boolean acceptance);
+	public void setTermsOfUseAcceptance(long principalId, DomainType domain, Boolean acceptance);
 
 	/**
 	 * Ensure the bootstrap users have sufficient credentials to authenticate

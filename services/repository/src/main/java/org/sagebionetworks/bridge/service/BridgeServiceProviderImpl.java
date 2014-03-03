@@ -1,6 +1,7 @@
 package org.sagebionetworks.bridge.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 /**
  * ServiceProvider is a single class which can be autowired to provide access
@@ -8,12 +9,15 @@ import org.springframework.beans.factory.annotation.Autowired;
  * 
  * @author bkng
  */
+@Component
 public class BridgeServiceProviderImpl implements BridgeServiceProvider {
 	
 	@Autowired
 	private CommunityService communityService;
 	@Autowired
 	private ParticipantDataService participantDataService;
+	@Autowired
+	private TimeSeriesService timeSeriesService;
 
 	public CommunityService getCommunityService() {
 		return communityService;
@@ -22,5 +26,10 @@ public class BridgeServiceProviderImpl implements BridgeServiceProvider {
 	@Override
 	public ParticipantDataService getParticipantDataService() {
 		return participantDataService;
+	}
+
+	@Override
+	public TimeSeriesService getTimeSeriesService() {
+		return timeSeriesService;
 	}
 }

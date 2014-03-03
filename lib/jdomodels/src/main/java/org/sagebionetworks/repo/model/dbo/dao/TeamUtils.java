@@ -1,10 +1,8 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import java.io.IOException;
-import java.util.List;
 
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTeam;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;

@@ -4,24 +4,27 @@ import java.util.Collection;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOSessionToken;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface UserManager {
 	
 	/**
-	 * Get the User and UserGroup information for the given user ID.
+	 * Get the User and UserGroup information for the given user ID.  
 	 * 
 	 * @param principalId the ID of the user of interest
 	 */
 	public UserInfo getUserInfo(Long principalId) throws NotFoundException;
 	
-	/**o
+	/**
 	 * Creates a new user
 	 * 
 	 * @return The ID of the user
@@ -32,8 +35,12 @@ public interface UserManager {
 	 * Creates a new user and initializes some fields as specified.
 	 * Must be an admin to use this
 	 */
-	public UserInfo createUser(UserInfo adminUserInfo, NewUser user, DBOCredential credential) throws NotFoundException;
-		
+	public UserInfo createUser(UserInfo adminUserInfo, NewUser user, DBOCredential credential,
+			DBOTermsOfUseAgreement touAgreement, DBOSessionToken token) throws NotFoundException;
+
+	public UserInfo createUser(UserInfo adminUserInfo, NewUser user, DBOCredential credential,
+			DBOTermsOfUseAgreement touAgreement) throws NotFoundException;
+	
 	/**
 	 * Delete a principal by ID
 	 * 

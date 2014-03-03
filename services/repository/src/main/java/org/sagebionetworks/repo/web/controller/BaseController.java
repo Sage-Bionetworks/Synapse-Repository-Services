@@ -33,6 +33,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.HttpMediaTypeNotAcceptableException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -96,6 +97,14 @@ public abstract class BaseController {
 
 	static final String SERVICE_TEMPORARILY_UNAVAIABLE_PLEASE_TRY_AGAIN_LATER = "Service temporarily unavailable, please try again later.";
 	private static Logger log = LogManager.getLogger(BaseController.class);
+	
+	@ExceptionHandler(MissingServletRequestParameterException.class)
+	@ResponseStatus(HttpStatus.BAD_REQUEST)
+	public @ResponseBody
+	ErrorResponse handleMissingServletRequestParameterException(MissingServletRequestParameterException ex, 
+			HttpServletRequest request) {
+		return handleException(ex, request, false);
+	}
 
 	/**
 	 * This is an application exception thrown when the request references an

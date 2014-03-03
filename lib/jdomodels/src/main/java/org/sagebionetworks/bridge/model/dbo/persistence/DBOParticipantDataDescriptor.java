@@ -28,11 +28,20 @@ public class DBOParticipantDataDescriptor implements MigratableDatabaseObject<DB
 	@Field(name = SqlConstants.COL_PARTICIPANT_DATA_DESCRIPTOR_DESCRIPTION, type = "text")
 	private String description;
 
+	@Field(name = SqlConstants.COL_PARTICIPANT_DATA_DESCRIPTOR_TYPE, varchar = 64)
+	private String type;
+
 	@Field(name = SqlConstants.COL_PARTICIPANT_DATA_DESCRIPTOR_REPEAT_TYPE, nullable = false)
 	private ParticipantDataRepeatType repeatType;
 
 	@Field(name = SqlConstants.COL_PARTICIPANT_DATA_DESCRIPTOR_FREQUENCY, varchar = 64, nullable = true)
 	private String repeatFrequency;
+
+	@Field(name = SqlConstants.COL_PARTICIPANT_DATA_DESCRIPTOR_DATETIME_START_COLUMN_NAME, varchar = 64, nullable = true)
+	private String datetimeStartColumnName;
+
+	@Field(name = SqlConstants.COL_PARTICIPANT_DATA_DESCRIPTOR_EVENT_COLUMN_NAME, varchar = 64, nullable = true)
+	private String eventColumnName;
 
 	private static TableMapping<DBOParticipantDataDescriptor> tableMapping = AutoTableMapping.create(DBOParticipantDataDescriptor.class);
 
@@ -70,6 +79,14 @@ public class DBOParticipantDataDescriptor implements MigratableDatabaseObject<DB
 		this.description = description;
 	}
 
+	public String getType() {
+		return type;
+	}
+
+	public void setType(String type) {
+		this.type = type;
+	}
+
 	public ParticipantDataRepeatType getRepeatType() {
 		return repeatType;
 	}
@@ -86,15 +103,34 @@ public class DBOParticipantDataDescriptor implements MigratableDatabaseObject<DB
 		this.repeatFrequency = repeatFrequency;
 	}
 
+	public String getDatetimeStartColumnName() {
+		return datetimeStartColumnName;
+	}
+
+	public void setDatetimeStartColumnName(String datetimeStartColumnName) {
+		this.datetimeStartColumnName = datetimeStartColumnName;
+	}
+
+	public String getEventColumnName() {
+		return eventColumnName;
+	}
+
+	public void setEventColumnName(String eventColumnName) {
+		this.eventColumnName = eventColumnName;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
+		result = prime * result + ((datetimeStartColumnName == null) ? 0 : datetimeStartColumnName.hashCode());
 		result = prime * result + ((description == null) ? 0 : description.hashCode());
+		result = prime * result + ((eventColumnName == null) ? 0 : eventColumnName.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		result = prime * result + ((repeatFrequency == null) ? 0 : repeatFrequency.hashCode());
 		result = prime * result + ((repeatType == null) ? 0 : repeatType.hashCode());
+		result = prime * result + ((type == null) ? 0 : type.hashCode());
 		return result;
 	}
 
@@ -107,10 +143,20 @@ public class DBOParticipantDataDescriptor implements MigratableDatabaseObject<DB
 		if (getClass() != obj.getClass())
 			return false;
 		DBOParticipantDataDescriptor other = (DBOParticipantDataDescriptor) obj;
+		if (datetimeStartColumnName == null) {
+			if (other.datetimeStartColumnName != null)
+				return false;
+		} else if (!datetimeStartColumnName.equals(other.datetimeStartColumnName))
+			return false;
 		if (description == null) {
 			if (other.description != null)
 				return false;
 		} else if (!description.equals(other.description))
+			return false;
+		if (eventColumnName == null) {
+			if (other.eventColumnName != null)
+				return false;
+		} else if (!eventColumnName.equals(other.eventColumnName))
 			return false;
 		if (id == null) {
 			if (other.id != null)
@@ -129,13 +175,19 @@ public class DBOParticipantDataDescriptor implements MigratableDatabaseObject<DB
 			return false;
 		if (repeatType != other.repeatType)
 			return false;
+		if (type == null) {
+			if (other.type != null)
+				return false;
+		} else if (!type.equals(other.type))
+			return false;
 		return true;
 	}
 
 	@Override
 	public String toString() {
-		return "DBOParticipantDataDescriptor [id=" + id + ", name=" + name + ", description=" + description + ", repeatType=" + repeatType
-				+ ", repeatFrequency=" + repeatFrequency + "]";
+		return "DBOParticipantDataDescriptor [id=" + id + ", name=" + name + ", description=" + description + ", type=" + type
+				+ ", repeatType=" + repeatType + ", repeatFrequency=" + repeatFrequency + ", datetimeStartColumnName="
+				+ datetimeStartColumnName + ", eventColumnName=" + eventColumnName + "]";
 	}
 
 	@Override

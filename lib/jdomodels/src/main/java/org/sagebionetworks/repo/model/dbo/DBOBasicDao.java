@@ -4,7 +4,6 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
 /**

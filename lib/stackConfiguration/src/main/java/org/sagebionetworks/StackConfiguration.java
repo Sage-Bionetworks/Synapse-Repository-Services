@@ -607,6 +607,15 @@ public class StackConfiguration {
 	}
 
 	/**
+	 * Is the DOI feature enabled?
+	 * @return
+	 */
+	public boolean getDoiEnabled(){
+		return Boolean.parseBoolean(configuration
+				.getProperty("org.sagebionetworks.doi.enabled"));
+	}
+
+	/**
 	 * The S3 Bucket for backup file. This is shared across stacks to enable
 	 * data migration across a stack.
 	 * 
@@ -813,6 +822,14 @@ public class StackConfiguration {
 				StackConfiguration.getStackInstance());
 	}
 
+	public String getTableUpdateQueueName() {
+		return String.format(StackConstants.TABLE_CLUSTER_QUEUE_NAME_TEMPLATE,
+				StackConfiguration.getStack(),
+				StackConfiguration.getStackInstance());
+	}
+
+	
+	
 	/**
 	 * This is the size of a single file transfer memory block used as a buffer.
 	 * Note: Due to S3 limitations on the minimum size of a single part of a
@@ -1068,6 +1085,12 @@ public class StackConfiguration {
 				.parseInt(configuration
 						.getProperty("org.sagebionetworks.semaphore.gated.max.runners.principal.header.filler"));
 	}
+	
+	public Integer getSemaphoreGatedMaxRunnersTableCluster() {
+		return Integer
+				.parseInt(configuration
+						.getProperty("org.sagebionetworks.semaphore.gated.max.runners.table.cluster"));
+	}
 	/**
 	 * The maximum number of workers in the cluster that will process
 	 * Annotations
@@ -1078,6 +1101,28 @@ public class StackConfiguration {
 		return Integer
 				.parseInt(configuration
 						.getProperty("org.sagebionetworks.semaphore.gated.max.runners.annotations"));
+	}
+	
+	/**
+	 * The maximum timeout for an exclusive lock in milliseconds.
+	 * 
+	 * @return
+	 */
+	public Integer getSemaphoreExclusiveMaxTimeoutMS() {
+		return Integer
+				.parseInt(configuration
+						.getProperty("org.sagebionetworks.semaphore.exclusive.max.timeout.ms"));
+	}
+	
+	/**
+	 * The maximum timeout for a shared lock in milliseconds.
+	 * 
+	 * @return
+	 */
+	public Integer getSemaphoreSharedMaxTimeoutMS() {
+		return Integer
+				.parseInt(configuration
+						.getProperty("org.sagebionetworks.semaphore.shared.max.timeout.ms"));
 	}
 
 	/**
@@ -1232,6 +1277,15 @@ public class StackConfiguration {
 	public int getTableMaxBytesPerRequest() {
 		return Integer.parseInt(configuration
 				.getProperty("org.sagebionetworks.table.max.bytes.per.request"));
+	}
+	/**
+	 * The maximum amount of time in MS that the table worker can hold the semaphore
+	 * lock on the table.
+	 * @return
+	 */
+	public long getTableWorkerTimeoutMS() {
+		return Long.parseLong(configuration
+				.getProperty("org.sagebionetworks.table.worker.timeout.ms"));
 	}
 
 	/**

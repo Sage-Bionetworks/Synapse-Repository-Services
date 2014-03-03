@@ -16,12 +16,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
-import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.message.ChangeMessage;
-import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -35,9 +30,6 @@ public class DBOColumnModelImplTest {
 	
 	@Autowired
 	ColumnModelDAO columnModelDao;
-	
-	@Autowired
-	DBOChangeDAO changeDAO;
 	
 	ColumnModel one;
 	ColumnModel two;
@@ -307,29 +299,6 @@ public class DBOColumnModelImplTest {
 		assertEquals(models, fetched);
 	}
 	
-	/**
-	 * Test that we send a change message when new columns are bound to a table.
-	 * @throws NotFoundException 
-	 */
-	@Test
-	public void testBindMessageSent() throws NotFoundException{
-		// What is the current change number
-		long startNumber = changeDAO.getCurrentChangeNumber();
-		List<String> toBind = new LinkedList<String>();
-		toBind.add(two.getId());
-		toBind.add(one.getId());
-		String tableId = "syn123";
-		String changeId = KeyFactory.stringToKey(tableId).toString();
-		columnModelDao.bindColumnToObject(toBind, tableId);
-		// Did a message get sent?
-		List<ChangeMessage> changes = changeDAO.listChanges(startNumber+1, ObjectType.TABLE, Long.MAX_VALUE);
-		assertNotNull(changes);
-		assertEquals("Changing the column binding of a table did not fire a change message",1, changes.size());
-		ChangeMessage message = changes.get(0);
-		assertNotNull(message);
-		assertEquals(changeId, message.getObjectId());
-		assertEquals(ChangeType.CREATE, message.getChangeType());
-	}
 	
 	/**
 	 * Helper to create columns by name

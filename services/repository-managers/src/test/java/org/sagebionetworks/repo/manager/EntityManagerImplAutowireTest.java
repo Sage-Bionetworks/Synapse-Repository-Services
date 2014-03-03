@@ -20,6 +20,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -27,14 +28,17 @@ import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityWithAnnotations;
 import org.sagebionetworks.repo.model.FileEntity;
+import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.GenotypeData;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -58,6 +62,9 @@ public class EntityManagerImplAutowireTest {
 	@Autowired
 	private FileHandleManager fileHandleManager;
 	
+	@Autowired
+	private AccessRequirementManager accessRequirementManager;
+	
 	// We use a mock auth DAO for this test.
 	private AuthorizationManager mockAuth;
 
@@ -66,10 +73,19 @@ public class EntityManagerImplAutowireTest {
 	private List<String> fileHandlesToDelete;
 	
 	private UserInfo adminUserInfo;
+	private UserInfo userInfo;
+	private Long userId;
+	
+	private AccessRequirement arToDelete;
 	
 	@Before
 	public void before() throws Exception{
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		NewUser nu = new NewUser();
+		nu.setUserName("test");
+		nu.setEmail("just.a.test@sagebase.org");
+		userId = userManager.createUser(nu);
+		userInfo = userManager.getUserInfo(userId);
 		
 		toDelete = new ArrayList<String>();
 		activitiesToDelete = new ArrayList<String>();
@@ -81,7 +97,7 @@ public class EntityManagerImplAutowireTest {
 	}
 	
 	@After
-	public void after(){
+	public void after() throws Exception {
 		if(entityManager != null && toDelete != null){
 			for(String id: toDelete){
 				try{
@@ -102,6 +118,43 @@ public class EntityManagerImplAutowireTest {
 					fileHandleManager.deleteFileHandle(adminUserInfo, id);
 				}catch(Exception e){}
 			}
+		}
+		
+		if (accessRequirementManager!=null && arToDelete!=null) {
+			accessRequirementManager.deleteAccessRequirement(adminUserInfo, ""+arToDelete.getId());
+		}
+		
+		if (userId!=null) {
+			userManager.deletePrincipal(adminUserInfo, userId);
+		}
+	}
+	
+	@Test
+	public void testMoveRestrictedEntity() throws Exception {
+		// create a project with a child
+		Project project = new Project();
+		project.setName("orig parent");
+		String pid = entityManager.createEntity(userInfo, project, null);
+		toDelete.add(pid);
+		// add a restriction to the project
+		arToDelete = accessRequirementManager.createLockAccessRequirement(userInfo, pid);
+		Folder child = new Folder();
+		child.setName("child");
+		child.setParentId(pid);
+		String childId = entityManager.createEntity(userInfo, child, null);
+		toDelete.add(childId);
+		project = new Project();
+		project.setName("new parent");
+		pid = entityManager.createEntity(userInfo, project, null);
+		toDelete.add(pid);
+		child = entityManager.getEntity(userInfo, childId, Folder.class);
+		// try to move the child (should fail)		
+		child.setParentId(pid);
+		try {
+			entityManager.updateEntity(userInfo, child, false, null);
+			fail("Expected UnauthorizedException");
+		} catch (UnauthorizedException ue) {
+			// as expected
 		}
 	}
 	

@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.model.jdo;
 
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 
 public class AuthorizationSqlUtil {

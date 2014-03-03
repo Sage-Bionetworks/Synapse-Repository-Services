@@ -95,7 +95,7 @@ public class IT055WikiPageTest {
 			} catch (SynapseClientException e) { }
 		}
 		
-		adminSynapse.deleteAndPurgeEntity(project);
+		adminSynapse.deleteEntity(project, true);
 		for (WikiPageKey key : toDelete) {
 			adminSynapse.deleteWikiPage(key);
 		}

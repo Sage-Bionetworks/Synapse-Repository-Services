@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
 import org.sagebionetworks.repo.model.AuthenticationDAO;
+import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -32,7 +33,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public Session authenticate(long principalId, String password) throws NotFoundException {
+	public Session authenticate(long principalId, String password, DomainType domain) throws NotFoundException {
 		// Check the username password combination
 		// This will throw an UnauthorizedException if invalid
 		if (password != null) {
@@ -41,7 +42,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 			authDAO.checkUserCredentials(principalId, passHash);
 		}
 		
-		return getSessionToken(principalId);
+		return getSessionToken(principalId, domain);
 	}
 	
 	@Override
@@ -55,7 +56,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public Long checkSessionToken(String sessionToken, boolean checkToU) throws NotFoundException {
+	public Long checkSessionToken(String sessionToken, DomainType domain, boolean checkToU) throws NotFoundException {
 		Long principalId = authDAO.getPrincipalIfValid(sessionToken);
 		if (principalId == null) {
 			// Check to see why the token is invalid
@@ -65,13 +66,12 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 			}
 			throw new UnauthorizedException("The session token (" + sessionToken + ") has expired");
 		}
-		
 		// Check the terms of use
-		if (checkToU && !authDAO.hasUserAcceptedToU(principalId)) {
+		if (checkToU && !authDAO.hasUserAcceptedToU(principalId, domain)) {
 			throw new TermsOfUseException();
 		}
 		
-		authDAO.revalidateSessionToken(principalId);
+		authDAO.revalidateSessionToken(principalId, domain);
 		return principalId;
 	}
 
@@ -101,9 +101,9 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public Session getSessionToken(long principalId) throws NotFoundException {
+	public Session getSessionToken(long principalId, DomainType domain) throws NotFoundException {
 		// Get the session token
-		Session session = authDAO.getSessionTokenIfValid(principalId);
+		Session session = authDAO.getSessionTokenIfValid(principalId, domain);
 		
 		// Make the session token if none was returned
 		if (session == null) {
@@ -117,8 +117,8 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 				throw new NotFoundException("The user (" + principalId + ") does not exist");
 			}
 			if(!ug.getIsIndividual()) throw new IllegalArgumentException("Cannot get a session token for a team");
-			String token = authDAO.changeSessionToken(principalId, null);
-			boolean toU = authDAO.hasUserAcceptedToU(principalId);
+			String token = authDAO.changeSessionToken(principalId, null, domain);
+			boolean toU = authDAO.hasUserAcceptedToU(principalId, domain);
 			session.setSessionToken(token);
 			
 			// Make sure to fetch the ToU state
@@ -129,17 +129,22 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	}
 
 	@Override
-	public boolean hasUserAcceptedTermsOfUse(Long id) throws NotFoundException {
-		return authDAO.hasUserAcceptedToU(id);
+	public boolean hasUserAcceptedTermsOfUse(Long id, DomainType domain) throws NotFoundException {
+		if (domain == null) {
+			throw new IllegalArgumentException("Must provide a domain");
+		}
+		return authDAO.hasUserAcceptedToU(id, domain);
 	}
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void setTermsOfUseAcceptance(Long principalId, Boolean acceptance) {
+	public void setTermsOfUseAcceptance(Long principalId, DomainType domain, Boolean acceptance) {
+		if (domain == null) {
+			throw new IllegalArgumentException("Must provide a domain");
+		}
 		if (acceptance == null) {
 			throw new IllegalArgumentException("Cannot \"unsee\" the terms of use");
 		}
-		authDAO.setTermsOfUseAcceptance(principalId, acceptance);
+		authDAO.setTermsOfUseAcceptance(principalId, domain, acceptance);
 	}
-	
 }

@@ -14,6 +14,10 @@
 			"type": "string",
 			"description": "The optional description for this participant data descriptor"
 		},
+    	"type": {
+			"type": "string",
+			"description": "The optional type (hint for UI) of this participant data descriptor"
+		},
         "repeatType": {
 			"type": "string",
 			"description": "The repeat type of this data type",
@@ -30,11 +34,19 @@
         "repeatFrequency": {
 			"type": "string",
 			"description": "The repeat frequency if repeat type is REPEATED (cron format)",
-			"name": "ParticipantDataRepeatFreequency"
+			"name": "ParticipantDataRepeatFrequency"
 		},
 		"status": {
 		    "description":"The status of this tracker.",
 			"$ref": "org.sagebionetworks.bridge.model.data.ParticipantDataStatus"
+		},
+        "datetimeStartColumnName": {
+			"type": "string",
+			"description": "The (optional) name of column that holds the point of time or start of a time range used in time series"
+		},
+        "eventColumnName": {
+			"type": "string",
+			"description": "The (optional) name of column that holds an event type value"
 		}
     }
 }

@@ -71,8 +71,9 @@ public class AnnotationsWorker implements Callable<List<Message>> {
 					// If a Submission does not exist anymore then we want the message to be deleted from the queue
 					processedMessages.add(message);
 				} catch (Throwable e) {
-					// Something went wrong and we did not process the message.
+					// Something went wrong and we did not process the message.  By default we remove the message from the queue.
 					log.error("Failed to process message", e);
+					processedMessages.add(message);
 				}
 			} else {
 				// Non-Submission messages must be returned so they can be removed from the queue.

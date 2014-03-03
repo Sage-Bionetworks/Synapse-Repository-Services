@@ -20,6 +20,7 @@ import org.sagebionetworks.evaluation.manager.EvaluationManager;
 import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
+import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -32,6 +33,7 @@ import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -59,6 +61,9 @@ public class AccessRequirementManagerImplAutoWiredTest {
 	private EvaluationManager evaluationManager;
 	
 	@Autowired
+	private TeamManager teamManager;
+	
+	@Autowired
 	private EntityPermissionsManager entityPermissionsManager;
 	
 	@Autowired
@@ -73,12 +78,16 @@ public class AccessRequirementManagerImplAutoWiredTest {
 	
 	private String entityId;
 	private String entityId2;
+	private String childId;
 	
 	private Evaluation evaluation;
 	private Evaluation evaluation2;
 	private Evaluation adminEvaluation;
 	
-	AccessRequirement ar;
+	
+	private Team team;
+	
+	private AccessRequirement ar;
 
 	@Before
 	public void before() throws Exception {
@@ -101,6 +110,12 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		node.setNodeType(EntityType.layer.name());
 		node.setParentId(rootId);
 		entityId = nodeManager.createNewNode(node, adminUserInfo);
+		
+		Node childNode = new Node();
+		childNode.setName("Child");
+		childNode.setNodeType(EntityType.layer.name());
+		childNode.setParentId(entityId);
+		childId = nodeManager.createNewNode(childNode, adminUserInfo);
 
 		AccessControlList acl = entityPermissionsManager.getACL(rootId, adminUserInfo);
 		Set<ResourceAccess> raSet = acl.getResourceAccess();
@@ -128,6 +143,10 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		entityId2 = nodeManager.createNewNode(node, adminUserInfo);
 
 		evaluation2 = newEvaluation("test-name2", adminUserInfo, rootId2);
+		
+		team = new Team();
+		team.setName("AccessRequirementManagerImplAutoWiredTest");
+		team = teamManager.create(adminUserInfo, team);
 	}
 	
 	private Evaluation newEvaluation(String name, UserInfo userInfo, String contentSource) throws NotFoundException {
@@ -176,6 +195,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 			} catch (Exception e) {}
 		}
 		userManager.deletePrincipal(adminUserInfo, testUserInfo.getId());
+		if (team!=null) teamManager.delete(adminUserInfo, team.getId());
 	}
 	
 	private static TermsOfUseAccessRequirement newEntityAccessRequirement(String entityId) {
@@ -195,6 +215,18 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
 		rod.setId(evaluationId);
 		rod.setType(RestrictableObjectType.EVALUATION);
+		ar.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod}));
+		ar.setEntityType(ar.getClass().getName());
+		ar.setAccessType(ACCESS_TYPE.PARTICIPATE);
+		ar.setTermsOfUse(TERMS_OF_USE);
+		return ar;
+	}
+	
+	private static TermsOfUseAccessRequirement newTeamAccessRequirement(String teamId) {
+		TermsOfUseAccessRequirement ar = new TermsOfUseAccessRequirement();
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId(teamId);
+		rod.setType(RestrictableObjectType.TEAM);
 		ar.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod}));
 		ar.setEntityType(ar.getClass().getName());
 		ar.setAccessType(ACCESS_TYPE.PARTICIPATE);
@@ -272,6 +304,13 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		ar = accessRequirementManager.createAccessRequirement(testUserInfo, ar);
 	}
 	
+	@Test(expected=UnauthorizedException.class)
+	public void testTeamCreateAccessRequirementForbidden() throws Exception {
+		ar = newTeamAccessRequirement(team.getId());
+		// this user will not have permission to add a restriction to the evaluation
+		ar = accessRequirementManager.createAccessRequirement(testUserInfo, ar);
+	}
+	
 	@Test
 	public void testUpdateAccessRequirement() throws Exception {
 		ar = newEntityAccessRequirement(entityId);
@@ -299,6 +338,18 @@ public class AccessRequirementManagerImplAutoWiredTest {
 	}
 	
 	@Test
+	public void testGetInheritedAccessRequirements() throws Exception {
+		ar = newEntityAccessRequirement(entityId);
+		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId(childId);
+		rod.setType(RestrictableObjectType.ENTITY);
+		QueryResults<AccessRequirement> ars = accessRequirementManager.getAccessRequirementsForSubject(adminUserInfo, rod);
+		assertEquals(1L, ars.getTotalNumberOfResults());
+		assertEquals(1, ars.getResults().size());
+	}
+	
+	@Test
 	public void testGetUnmetEntityAccessRequirements() throws Exception {
 		ar = newEntityAccessRequirement(entityId);
 		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
@@ -306,6 +357,21 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
 		rod.setId(entityId);
 		rod.setType(RestrictableObjectType.ENTITY);
+		
+		QueryResults<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirements(otherUserInfo, rod);
+		assertEquals(1L, ars.getTotalNumberOfResults());
+		assertEquals(1, ars.getResults().size());
+	}
+	
+	@Test
+	public void testGetInheritedUnmetEntityAccessRequirements() throws Exception {
+		ar = newEntityAccessRequirement(entityId);
+		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
+		UserInfo otherUserInfo = testUserInfo;
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId(childId);
+		rod.setType(RestrictableObjectType.ENTITY);
+		
 		QueryResults<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirements(otherUserInfo, rod);
 		assertEquals(1L, ars.getTotalNumberOfResults());
 		assertEquals(1, ars.getResults().size());
@@ -341,7 +407,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 	@Test
 	public void testGetUnmetEvaluationAccessRequirementsOwner() throws Exception {
 		ar = newEvaluationAccessRequirement(evaluation.getId());
-		ar = accessRequirementManager.createAccessRequirement(testUserInfo, ar);
+		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
 		rod.setId(evaluation.getId());
 		rod.setType(RestrictableObjectType.EVALUATION);

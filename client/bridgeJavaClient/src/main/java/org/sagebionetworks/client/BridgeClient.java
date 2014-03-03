@@ -1,18 +1,22 @@
 package org.sagebionetworks.client;
 
+import java.io.UnsupportedEncodingException;
+import java.util.Date;
 import java.util.List;
 
 import org.sagebionetworks.bridge.model.Community;
 import org.sagebionetworks.bridge.model.data.ParticipantDataColumnDescriptor;
 import org.sagebionetworks.bridge.model.data.ParticipantDataCurrentRow;
 import org.sagebionetworks.bridge.model.data.ParticipantDataDescriptor;
+import org.sagebionetworks.bridge.model.data.ParticipantDataDescriptorWithColumns;
 import org.sagebionetworks.bridge.model.data.ParticipantDataRow;
 import org.sagebionetworks.bridge.model.data.ParticipantDataStatusList;
+import org.sagebionetworks.bridge.model.timeseries.TimeSeriesTable;
 import org.sagebionetworks.bridge.model.versionInfo.BridgeVersionInfo;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UserGroupHeader;
-import org.sagebionetworks.repo.model.IdList;
 
 /**
  * Abstraction for Synapse.
@@ -186,6 +190,10 @@ public interface BridgeClient extends BaseClient {
 	 */
 	public ParticipantDataRow getParticipantDataRow(String participantDataDescriptorId, Long rowId) throws SynapseException;
 
+	public List<ParticipantDataRow> getCurrentRows(String participantDataDescriptorId) throws SynapseException;
+
+	public List<ParticipantDataRow> getHistoryRows(String participantDataDescriptorId, Date before, Date after) throws SynapseException;
+
 	/**
 	 * retrieve all raw participant data
 	 * 
@@ -202,7 +210,7 @@ public interface BridgeClient extends BaseClient {
 	public void updateParticipantDataDescriptor(ParticipantDataDescriptor participantDataDescriptor)
 			throws SynapseException;
 
-	public PaginatedResults<ParticipantDataDescriptor> getAllParticipantDatas(long limit, long offset) throws SynapseException;
+	public PaginatedResults<ParticipantDataDescriptor> getAllParticipantDataDescriptors(long limit, long offset) throws SynapseException;
 
 	/**
 	 * Get participant data descriptors for all data sets for this user
@@ -212,7 +220,9 @@ public interface BridgeClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	public PaginatedResults<ParticipantDataDescriptor> getParticipantDatas(long limit, long offset) throws SynapseException;
+	public PaginatedResults<ParticipantDataDescriptor> getUserParticipantDataDescriptors(long limit, long offset) throws SynapseException;
+	
+	public ParticipantDataDescriptorWithColumns getParticipantDataDescriptorWithColumns(String participantDataDescriptorId) throws SynapseException;
 
 	public ParticipantDataColumnDescriptor createParticipantDataColumnDescriptor(
 			ParticipantDataColumnDescriptor participantDataColumnDescriptor1) throws SynapseException;
@@ -227,4 +237,15 @@ public interface BridgeClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	public void sendParticipantDataDescriptorUpdates(ParticipantDataStatusList statuses) throws SynapseException;
+
+	/**
+	 * Get a time series for a column
+	 * 
+	 * @param participantDataDescriptorId
+	 * @param columnNames
+	 * @return
+	 * @throws SynapseException
+	 * @throws UnsupportedEncodingException
+	 */
+	public TimeSeriesTable getTimeSeries(String participantDataDescriptorId, List<String> columnNames) throws SynapseException;
 }

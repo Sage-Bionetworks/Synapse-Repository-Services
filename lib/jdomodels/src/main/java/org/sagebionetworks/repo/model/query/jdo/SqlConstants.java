@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.model.query.jdo;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_UNIQUE;
-
 import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
@@ -158,6 +156,7 @@ public class SqlConstants {
  	public static final String COL_MESSAGE_TO_USER_ROOT_ID          = "ROOT_MESSAGE_ID";
  	public static final String COL_MESSAGE_TO_USER_REPLY_TO_ID      = "IN_REPLY_TO";
  	public static final String COL_MESSAGE_TO_USER_SUBJECT          = "SUBJECT";
+ 	public static final String COL_MESSAGE_TO_USER_SENT       		= "SENT";
  	public static final String DDL_MESSAGE_TO_USER                  = "schema/MessageToUser-ddl.sql";
  	
  	// Message recipient
@@ -373,6 +372,7 @@ public class SqlConstants {
 	public static final String COL_TABLE_ROW_CREATED_ON		= "CREATED_ON";
 	public static final String COL_TABLE_ROW_BUCKET			= "S3_BUCKET";
 	public static final String COL_TABLE_ROW_KEY			= "S3_KEY";
+	public static final String COL_TABLE_ROW_COUNT			= "ROW_COUNT";
 	public static final String DDL_TABLE_ROW_CHANGE = "schema/TableRowChange-ddl.sql";
 	
 	// The bound column model table
@@ -388,6 +388,20 @@ public class SqlConstants {
 	public static final String COL_BOUND_CM_ORD_OBJECT_ID		= "OBJECT_ID";
 	public static final String COL_BOUND_CM_ORD_ORDINAL			= "ORDINAL";
 	public static final String DDL_BOUND_COLUMN_ORDINAL = "schema/BoundColumnOrdinal-ddl.sql";
+	
+	// The bound column ordinal model table
+	public static final String TABLE_STATUS							= "TABLE_STATUS";
+	public static final String COL_TABLE_STATUS_ID					= "TABLE_ID";
+	public static final String COL_TABLE_STATUS_STATE				= "STATE";
+	public static final String COL_TABLE_STATUS_RESET_TOKEN			= "RESET_TOKEN";
+	public static final String COL_TABLE_STATUS_STARTED_ON			= "STARTED_ON";
+	public static final String COL_TABLE_STATUS_CHANGE_ON			= "CHANGED_ON";
+	public static final String COL_TABLE_STATUS_PROGRESS_MESSAGE	= "PROGRESS_MESSAGE";
+	public static final String COL_TABLE_STATUS_PROGRESS_CURRENT	= "PROGRESS_CURRENT";
+	public static final String COL_TABLE_STATUS_PROGRESS_TOTAL		= "PROGRESS_TOTAL";
+	public static final String COL_TABLE_STATUS_ERROR_MESSAGE		= "ERROR_MESSAGE";
+	public static final String COL_TABLE_STATUS_ERROR_DETAILS		= "ERROR_DETAILS";
+	public static final String COL_TABLE_STATUS_RUNTIME_MS			= "RUNTIME_MS";
 	
 	// The wiki attachment table
 	public static final String TABLE_WIKI_ATTACHMENT				= "WIKI_ATTACHMENTS";
@@ -478,6 +492,19 @@ public class SqlConstants {
 	public static final String COL_SEMAPHORE_EXPIRES	= "EXPIRATION";
 	public static final String DDL_FILE_SEMAPHORE		= "schema/Semaphore-ddl.sql";
 	
+	// Exclusive semaphore
+	public static final String TABLE_EXCLUSIVE_SEMAPHORE 				= "EXCLUSIVE_SEMAPHORE";
+	public static final String COL_EXCLUSIVE_SEMAPHORE_KEY				= "SEMAPHORE_KEY";
+	public static final String COL_EXCLUSIVE_SEMAPHORE_PRECURSOR_TOKEN	= "PRECURSOR_TOKEN";
+	public static final String COL_EXCLUSIVE_SEMAPHORE_LOCK_TOKEN		= "LOCK_TOKEN";
+	public static final String COL_EXCLUSIVE_SEMAPHORE_EXPIRES			= "EXPIRATION";
+	
+	// Shared semaphore
+	public static final String TABLE_SHARED_SEMAPHORE 				= "SHARED_SEMAPHORE";
+	public static final String COL_SHARED_SEMAPHORE_KEY				= "SEMAPHORE_KEY";
+	public static final String COL_SHARED_SEMAPHORE_LOCK_TOKEN		= "LOCK_TOKEN";
+	public static final String COL_SHARED_SEMAPHORE_EXPIRES			= "EXPIRATION";
+
 	// Upload status
 	public static final String TABLE_UPLOAD_STATUS					= "UPLOAD_STATUS";
 	public static final String COL_UPLOAD_STATUS_ID					= "ID";
@@ -500,13 +527,23 @@ public class SqlConstants {
 	// Credential
 	public static final String TABLE_CREDENTIAL             = "CREDENTIAL";
 	public static final String COL_CREDENTIAL_PRINCIPAL_ID  = "PRINCIPAL_ID";
-	public static final String COL_CREDENTIAL_VALIDATED_ON  = "VALIDATED_ON";
-	public static final String COL_CREDENTIAL_SESSION_TOKEN = "SESSION_TOKEN";
 	public static final String COL_CREDENTIAL_PASS_HASH     = "PASS_HASH";
 	public static final String COL_CREDENTIAL_SECRET_KEY    = "SECRET_KEY";
-	public static final String COL_CREDENTIAL_TOU           = "AGREES_TO_TERMS_OF_USE";
 	public static final String DDL_CREDENTIAL               = "schema/Credential-ddl.sql";
-
+	
+	// Session token
+	public static final String TABLE_SESSION_TOKEN             = "SESSION_TOKEN";
+	public static final String COL_SESSION_TOKEN_PRINCIPAL_ID  = "PRINCIPAL_ID";
+	public static final String COL_SESSION_TOKEN_VALIDATED_ON  = "VALIDATED_ON";
+	public static final String COL_SESSION_TOKEN_DOMAIN  	   = "DOMAIN";
+	public static final String COL_SESSION_TOKEN_SESSION_TOKEN = "SESSION_TOKEN";
+	
+	// Terms of use agreement
+	public static final String TABLE_TERMS_OF_USE_AGREEMENT             = "TERMS_OF_USE_AGREEMENT";
+	public static final String COL_TERMS_OF_USE_AGREEMENT_PRINCIPAL_ID  = "PRINCIPAL_ID";
+	public static final String COL_TERMS_OF_USE_AGREEMENT_DOMAIN  		= "DOMAIN";
+	public static final String COL_TERMS_OF_USE_AGREEMENT_AGREEMENT     = "AGREES_TO_TERMS_OF_USE";
+	
 	// The Team table
 	public static final String TABLE_TEAM				= "TEAM";
 	public static final String COL_TEAM_ID				= "ID";
@@ -565,8 +602,11 @@ public class SqlConstants {
 	public static final String COL_PARTICIPANT_DATA_DESCRIPTOR_ID = "ID";
 	public static final String COL_PARTICIPANT_DATA_DESCRIPTOR_NAME = "NAME";
 	public static final String COL_PARTICIPANT_DATA_DESCRIPTOR_DESCRIPTION = "DESCRIPTION";
+	public static final String COL_PARTICIPANT_DATA_DESCRIPTOR_TYPE = "TYPE";
 	public static final String COL_PARTICIPANT_DATA_DESCRIPTOR_REPEAT_TYPE = "REPEAT_TYPE";
 	public static final String COL_PARTICIPANT_DATA_DESCRIPTOR_FREQUENCY = "FREQUENCY";
+	public static final String COL_PARTICIPANT_DATA_DESCRIPTOR_DATETIME_START_COLUMN_NAME = "DATETIME_START_COLUMN_NAME";
+	public static final String COL_PARTICIPANT_DATA_DESCRIPTOR_EVENT_COLUMN_NAME = "EVENT_COLUMN_NAME";
 
 	// Participant data sets column descriptor
 	public static final String TABLE_PARTICIPANT_DATA_COLUMN_DESCRIPTOR = "PARTICIPANT_DATA_COLUMN_DESCRIPTOR";
@@ -578,12 +618,13 @@ public class SqlConstants {
 	// Participant data sets
 	public static final String TABLE_PARTICIPANT_DATA = "PARTICIPANT_DATA";
 	public static final String COL_PARTICIPANT_DATA_PARTICIPANT_DATA_DESCRIPTOR_ID = "PARTICIPANT_DATA_DESCRIPTOR_ID";
-	public static final String COL_PARTICIPANT_DATA_PARTICIPANT_ID = "PARTICIPANT_ID";
+	public static final String COL_PARTICIPANT_DATA_PARTICIPANT_DATA_ID = "PARTICIPANT_DATA_ID";
 	public static final String COL_PARTICIPANT_DATA_BUCKET = "S3_BUCKET";
 	public static final String COL_PARTICIPANT_DATA_KEY = "S3_KEY";
 
 	// Participant data set statuses
 	public static final String TABLE_PARTICIPANT_DATA_STATUS = "PARTICIPANT_DATA_STATUS";
+	public static final String COL_PARTICIPANT_DATA_STATUS_PARTICIPANT_DATA_ID = "PARTICIPANT_DATA_ID";
 	public static final String COL_PARTICIPANT_DATA_STATUS_PARTICIPANT_DATA_DESCRIPTOR_ID = "PARTICIPANT_DATA_DESCRIPTOR_ID";
 	public static final String COL_PARTICIPANT_DATA_STATUS_STATUS = "STATUS";
 

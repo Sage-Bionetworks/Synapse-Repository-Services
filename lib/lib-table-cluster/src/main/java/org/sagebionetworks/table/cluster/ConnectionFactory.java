@@ -1,6 +1,5 @@
 package org.sagebionetworks.table.cluster;
 
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 
 /**
  * The connection factory provides database connections to the cluster of database used to support the Table feature.
@@ -15,5 +14,5 @@ public interface ConnectionFactory {
 	 * @param tableId
 	 * @return
 	 */
-	SimpleJdbcTemplate getConnection(String tableId);
+	TableIndexDAO getConnection(String tableId);
 }

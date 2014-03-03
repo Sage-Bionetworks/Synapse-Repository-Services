@@ -113,6 +113,13 @@ public class DBOMessageDAOImplTest {
 		messageDAO.createMessageStatus_NewTransaction(userToGroup.getId(), maliciousGroup.getId(), null);
 		messageDAO.createMessageStatus_SameTransaction(groupReplyToUser.getId(), maliciousUser.getId(), null);
 		messageDAO.createMessageStatus_NewTransaction(userReplyToGroup.getId(), maliciousGroup.getId(), null);
+		
+		// to simulate sending we also have to set the 'sent' flag to 'true'
+		messageDAO.updateMessageTransmissionAsComplete(userToUser.getId());
+		messageDAO.updateMessageTransmissionAsComplete(userToUserAndGroup.getId());
+		messageDAO.updateMessageTransmissionAsComplete(userToGroup.getId());
+		messageDAO.updateMessageTransmissionAsComplete(groupReplyToUser.getId());
+		messageDAO.updateMessageTransmissionAsComplete(userReplyToGroup.getId());
 	}
 	
 	/**
@@ -281,7 +288,7 @@ public class DBOMessageDAOImplTest {
 		status.setMessageId(userToUser.getId());
 		status.setRecipientId(maliciousUser.getId());
 		status.setStatus(MessageStatusType.READ);
-		messageDAO.updateMessageStatus(status);
+		messageDAO.updateMessageStatus_SameTransaction(status);
 		
 		// Etag should have changed
 		content = basicDAO.getObjectByPrimaryKey(DBOMessageContent.class, params);
@@ -300,11 +307,11 @@ public class DBOMessageDAOImplTest {
 	
 	@Test
 	public void testHasMessageBeenSent() throws Exception {
-		assertTrue(messageDAO.hasMessageBeenSent(userToUser.getId()));
-		assertTrue(messageDAO.hasMessageBeenSent(userToUserAndGroup.getId()));
-		assertTrue(messageDAO.hasMessageBeenSent(userToGroup.getId()));
-		assertTrue(messageDAO.hasMessageBeenSent(groupReplyToUser.getId()));
-		assertTrue(messageDAO.hasMessageBeenSent(userReplyToGroup.getId()));
+		assertTrue(messageDAO.getMessageSent(userToUser.getId()));
+		assertTrue(messageDAO.getMessageSent(userToUserAndGroup.getId()));
+		assertTrue(messageDAO.getMessageSent(userToGroup.getId()));
+		assertTrue(messageDAO.getMessageSent(groupReplyToUser.getId()));
+		assertTrue(messageDAO.getMessageSent(userReplyToGroup.getId()));
 	}
 	
 	@Test

@@ -8,24 +8,23 @@ import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.repo.manager.principal.NewUserUtils;
-import org.sagebionetworks.repo.manager.principal.UserProfileUtillity;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
-import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.dao.AuthorizationUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
-import org.sagebionetworks.repo.model.principal.AliasType;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOSessionToken;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -119,7 +118,15 @@ public class UserManagerImpl implements UserManager {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public UserInfo createUser(UserInfo adminUserInfo, NewUser user, DBOCredential credential) throws NotFoundException {
+	public UserInfo createUser(UserInfo adminUserInfo, NewUser user, DBOCredential credential,
+			DBOTermsOfUseAgreement touAgreement) throws NotFoundException {
+		return createUser(adminUserInfo, user, credential, touAgreement, null);
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public UserInfo createUser(UserInfo adminUserInfo, NewUser user, DBOCredential credential,
+			DBOTermsOfUseAgreement touAgreement, DBOSessionToken token) throws NotFoundException {
 		if (!adminUserInfo.isAdmin()) {
 			throw new UnauthorizedException("Must be an admin to use this service");
 		}
@@ -134,9 +141,23 @@ public class UserManagerImpl implements UserManager {
 		credential.setSecretKey(HMACUtils.newHMACSHA1Key());
 		basicDAO.update(credential);
 		
+		if (touAgreement != null) {
+			if (touAgreement.getDomain() == null) {
+				throw new IllegalArgumentException("Terms of use cannot be set without a domain specified");
+			}
+			touAgreement.setPrincipalId(principalId);
+			basicDAO.createOrUpdate(touAgreement);
+		}
+		if (token != null) {
+			if (token.getDomain() == null) {
+				throw new IllegalArgumentException("Session token cannot be set without a domain specified");
+			}
+			token.setPrincipalId(principalId);
+			basicDAO.createOrUpdate(token);
+		}
 		return getUserInfo(principalId);
 	}
-		
+
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public UserInfo getUserInfo(Long principalId) throws NotFoundException {
@@ -170,13 +191,6 @@ public class UserManagerImpl implements UserManager {
 		}
 		UserInfo ui = new UserInfo(isAdmin);
 		ui.setId(principalId);
-		if (isUserAnonymous) {
-			// Anonymous users have not accepted the ToC.
-			ui.setAgreesToTermsOfUse(false);
-		}else{
-			// Lookup the Toc status.
-			ui.setAgreesToTermsOfUse(authDAO.hasUserAcceptedToU(principalId));
-		}
 		ui.setCreationDate(principal.getCreationDate());
 		// Put all the pieces together
 		ui.setGroups(groups);

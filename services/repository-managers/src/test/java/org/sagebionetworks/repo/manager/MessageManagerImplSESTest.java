@@ -95,6 +95,8 @@ public class MessageManagerImplSESTest {
 	 * This is the one object that the tests will modify
 	 */
 	private UserProfile mockUserProfile;
+	
+	private UserProfile mockSenderUserProfile;
 
 	@Before
 	public void setUp() throws Exception {
@@ -144,7 +146,7 @@ public class MessageManagerImplSESTest {
 		messageManager.setFileHandleManager(mockFileHandleManager);
 
 		// Proceed past this check
-		when(mockMessageDAO.hasMessageBeenSent(anyString())).thenReturn(false);
+		when(mockMessageDAO.getMessageSent(anyString())).thenReturn(false);
 		
 		// Mocks expandRecipientSet(...)
 		mockUserGroup = new UserGroup();
@@ -157,6 +159,10 @@ public class MessageManagerImplSESTest {
 		mockUserProfile.setNotificationSettings(new Settings());
 		when(mockUserProfileDAO.get(eq(mockRecipientIdString))).thenReturn(mockUserProfile);
 		
+		mockSenderUserProfile = new UserProfile();
+		mockSenderUserProfile.setUserName("foo");
+		when(mockUserProfileDAO.get(eq(mockUserIdString))).thenReturn(mockSenderUserProfile);
+
 		// Mocks the username supplied to SES
 		mockUserInfo = new UserInfo(false, mockUserId);
 		when(mockUserManager.getUserInfo(eq(mockUserId))).thenReturn(mockUserInfo);

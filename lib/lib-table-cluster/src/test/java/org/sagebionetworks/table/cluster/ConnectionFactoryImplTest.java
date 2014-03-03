@@ -9,12 +9,11 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:table-spb.xml" })
+@ContextConfiguration(locations = { "classpath:table-cluster-spb.xml" })
 public class ConnectionFactoryImplTest {
 
 	@Autowired
@@ -32,10 +31,10 @@ public class ConnectionFactoryImplTest {
 	public void testGetConnection(){
 		assertNotNull(tableConnectionFactory);
 		// Validate that we can get a connection.
-		SimpleJdbcTemplate template = tableConnectionFactory.getConnection("123");
-		assertNotNull(template);
+		TableIndexDAO indexDao = tableConnectionFactory.getConnection("123");
+		assertNotNull(indexDao);
 		// Validate that we can use the connection to run a basic query.
-		long one = template.queryForLong("SELECT 1");
+		long one = indexDao.getConnection().queryForLong("SELECT 1");
 		assertEquals(1L, one);
 	}
 }

@@ -66,8 +66,11 @@
 	
 	<!-- TableEntity -->
 	<bean id="stackConfiguration.tableRowChangeBucketName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />	
-	<bean id="stackConfiguration.tableMaxBytesPerRequest" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />	
+	<bean id="stackConfiguration.tableMaxBytesPerRequest" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean id="stackConfiguration.tableEnabled" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean id="stackConfiguration.tableUpdateQueueName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />		
 
+	
 	<!-- Bridge participant data -->
 	<bean id="stackConfiguration.participantDataBucketName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />	
 	
@@ -82,7 +85,10 @@
 	<bean id="stackConfiguration.semaphoreGatedMaxRunnersAnnotations" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.semaphoreGatedMaxRunnersUnsentMessageQueuer" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />	
 	<bean id="stackConfiguration.semaphoreGatedMaxRunnersUnsentMessagePoppers" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />	
-    <bean id="stackConfiguration.semaphoreGatedMaxRunnersPrincipalHeaderFiller" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />  
+    <bean id="stackConfiguration.semaphoreGatedMaxRunnersPrincipalHeaderFiller" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" /> 
+    <bean id="stackConfiguration.semaphoreGatedMaxRunnersTableCluster" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+    <bean id="stackConfiguration.semaphoreExclusiveMaxTimeoutMS" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />  
+    <bean id="stackConfiguration.semaphoreSharedMaxTimeoutMS" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />  
 	
 	<bean id="stackConfiguration.searchEnabled" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.dynamoEnabled" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />	

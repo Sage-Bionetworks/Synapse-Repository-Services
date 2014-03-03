@@ -987,7 +987,7 @@ public class NodeDAOImplTest {
 		assertNotNull(grandId);
 		
 		// Get the individual headers
-		EntityHeader[] array = new EntityHeader[3];;
+		EntityHeader[] array = new EntityHeader[3];
 		array[0] = nodeDao.getEntityHeader(parentId, null);
 		array[1] = nodeDao.getEntityHeader(childId, null);
 		array[2] = nodeDao.getEntityHeader(grandId, null);
@@ -1013,6 +1013,54 @@ public class NodeDAOImplTest {
 		assertNotNull(path);
 		assertEquals(1, path.size());
 		assertEquals(array[0].getId(), path.get(0).getId());
+	}
+	
+	@Test(expected=NotFoundException.class)
+	public void testGetEntityPathInvalidNode() throws Exception {
+		nodeDao.getEntityPath("syn9999999");
+	}
+	
+	// we introduced batch entity path search so we test the case that 
+	// the path is bigger than one batch
+	@Test
+	public void testGetDeepEntityPath() throws Exception {
+		testGetEntityPath(NodeDAOImpl.BATCH_PATH_DEPTH+3);
+	}
+	
+	@Test
+	public void testGetDeepEntityPathEdgeCase() throws Exception {
+		testGetEntityPath(NodeDAOImpl.BATCH_PATH_DEPTH*2);
+	}
+	
+	@Test 
+	public void testGetShallowEntityPath() throws Exception {
+		testGetEntityPath(1);
+	}
+	
+	
+	private void testGetEntityPath(int depth) throws NotFoundException {
+		String[] ids = new String[depth];
+		for (int i=0; i<depth; i++) {
+			Node node = privateCreateNew("node_"+i);
+			node.setNodeType(EntityType.project.name());
+			if (i>0) node.setParentId(ids[i-1]);
+			ids[i] = nodeDao.createNew(node);
+			assertNotNull(ids[i]);
+			toDelete.add(ids[i]);
+		}
+		EntityHeader[] array = new EntityHeader[depth];
+		for (int i=0; i<depth; i++) {
+			array[i] = nodeDao.getEntityHeader(ids[i], null);
+			// 'getEntityPath' doesn't retreive version info, so we clear these fields for the sake of comparison
+			array[i].setVersionLabel(null);
+			array[i].setVersionNumber(null);
+		}
+		List<EntityHeader> path = nodeDao.getEntityPath(ids[depth-1]);
+		assertNotNull(path);
+		assertEquals(depth, path.size());
+		for (int i=0; i<depth; i++) {
+			assertEquals(array[i], path.get(i));
+		}
 	}
 	
 	@Test

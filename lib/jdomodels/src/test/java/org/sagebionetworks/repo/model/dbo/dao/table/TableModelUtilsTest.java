@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
-import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -514,6 +514,7 @@ public class TableModelUtilsTest {
 		dto.setBucket("bucket");
 		dto.setKey("key");
 		dto.setEtag("someEtag");
+		dto.setRowCount(999L);
 		// To DBO
 		DBOTableRowChange dbo = TableModelUtils.createDBOFromDTO(dto);
 		assertNotNull(dbo);
@@ -724,5 +725,11 @@ public class TableModelUtilsTest {
 		// So 100 rows should be within limit but not 101;
 		assertTrue(TableModelUtils.isRequestWithinMaxBytePerRequest(all, 100, maxBytes));
 		assertFalse(TableModelUtils.isRequestWithinMaxBytePerRequest(all, 101, maxBytes));
+	}
+	
+	@Test
+	public void testGetTableSemaphoreKey(){
+		assertEquals("TALBE-LOCK-123", TableModelUtils.getTableSemaphoreKey("syn123"));
+		assertEquals("TALBE-LOCK-456", TableModelUtils.getTableSemaphoreKey("456"));
 	}
 }

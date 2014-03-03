@@ -8,8 +8,8 @@ import static org.sagebionetworks.repo.model.query.SQLConstants.LIMIT_PARAM_NAME
 import static org.sagebionetworks.repo.model.query.SQLConstants.OFFSET_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_EVALUATION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_OWNER_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_OWNER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_OWNER_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_OWNER;
 
 import java.io.UnsupportedEncodingException;
@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;

@@ -72,7 +72,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		"SELECT * FROM "+SqlConstants.TABLE_ACCESS_REQUIREMENT+" ar, "+ 
 		SqlConstants.TABLE_SUBJECT_ACCESS_REQUIREMENT +" nar WHERE ar."+
 		SqlConstants.COL_ACCESS_REQUIREMENT_ID+" = nar."+SqlConstants.COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID+
-		" AND nar."+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+"=:"+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+
+		" AND nar."+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+" in (:"+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+") "+
 		" AND nar."+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE+"=:"+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE+
 		" order by "+SqlConstants.COL_ACCESS_REQUIREMENT_ID;
 
@@ -106,32 +106,36 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	
 	// select ar.id as ar_id, aa.id as aa_id
 	// from ACCESS_REQUIREMENT ar 
-	// join NODE_ACCESS_REQUIREMENT nar on nar.requirement_id=ar.id and nar.and nar.node_id=1072
-	// left join ACCESS_APPROVAL aa on ar.id=aa.requirement_id and aa.accessor_id=682
-	// where ar.access_type='DOWNLOAD'
+	// join NODE_ACCESS_REQUIREMENT nar on nar.requirement_id=ar.id and 
+	// nar.subject_type=:subject_type and nar.subject_id in (:subject_id)
+	// left join ACCESS_APPROVAL aa on ar.id=aa.requirement_id and aa.accessor_id in (:accessor_id)
+	// where ar.access_type=:access_type
 	private static final String SELECT_UNMET_REQUIREMENTS_SQL = UNMET_REQUIREMENTS_SQL_PREFIX +
 		" join "+TABLE_SUBJECT_ACCESS_REQUIREMENT+" nar on nar."+COL_SUBJECT_ACCESS_REQUIREMENT_REQUIREMENT_ID+"=ar."+COL_ACCESS_REQUIREMENT_ID+
 				" and nar."+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE+"=:"+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE+
-				" and nar."+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+"=:"+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+
+				" and nar."+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+" in (:"+COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID+") "+
 				UNMET_REQUIREMENTS_SQL_SUFFIX;
 
 	private static final RowMapper<DBOAccessRequirement> accessRequirementRowMapper = (new DBOAccessRequirement()).getTableMapping();
 	private static final RowMapper<DBOSubjectAccessRequirement> subjectAccessRequirementRowMapper = (new DBOSubjectAccessRequirement()).getTableMapping();
 
 	@Override
-	public List<Long> unmetAccessRequirements(RestrictableObjectDescriptor subject, Collection<Long> principalIds, Collection<ACCESS_TYPE> accessTypes) throws DatastoreException {
-
+	public List<Long> unmetAccessRequirements(List<String> subjectIds, RestrictableObjectType subjectType, Collection<Long> principalIds, Collection<ACCESS_TYPE> accessTypes) throws DatastoreException {
+		if (subjectIds.isEmpty()) return new ArrayList<Long>();
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_ACCESS_APPROVAL_ACCESSOR_ID, principalIds);
 		List<String> accessTypeStrings = new ArrayList<String>();
 		for (ACCESS_TYPE type : accessTypes) {
 			accessTypeStrings.add(type.toString());
 		}
+		List<Long> subjectIdsAsLong = new ArrayList<Long>();
+		for (String id: subjectIds) {
+			subjectIdsAsLong.add(KeyFactory.stringToKey(id));
+		}
 		param.addValue(COL_ACCESS_REQUIREMENT_ACCESS_TYPE, accessTypeStrings);
-		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID, KeyFactory.stringToKey(subject.getId()));
-		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE, subject.getType().toString());
-		String unmetRequirementsSQL = SELECT_UNMET_REQUIREMENTS_SQL;
-		List<Long> arIds = simpleJdbcTemplate.query(unmetRequirementsSQL, new RowMapper<Long>(){
+		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID, subjectIdsAsLong);
+		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE, subjectType.name());
+		List<Long> arIds = simpleJdbcTemplate.query(SELECT_UNMET_REQUIREMENTS_SQL, new RowMapper<Long>(){
 			@Override
 			public Long mapRow(ResultSet rs, int rowNum) throws SQLException {
 				rs.getLong(UNMET_REQUIREMENTS_AA_COL_ID);
@@ -247,11 +251,16 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 
 	@Transactional(readOnly = true)
 	@Override
-	public List<AccessRequirement> getForSubject(RestrictableObjectDescriptor subject)  throws DatastoreException {
+	public List<AccessRequirement> getForSubject(List<String> subjectIds, RestrictableObjectType type)  throws DatastoreException {
 		List<AccessRequirement>  dtos = new ArrayList<AccessRequirement>();
+		if (subjectIds.isEmpty()) return dtos;
+		List<Long> subjectIdsAsLong = new ArrayList<Long>();
+		for (String id: subjectIds) {
+			subjectIdsAsLong.add(KeyFactory.stringToKey(id));
+		}
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID, KeyFactory.stringToKey(subject.getId()));
-		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE, subject.getType().toString());
+		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_ID, subjectIdsAsLong);
+		param.addValue(COL_SUBJECT_ACCESS_REQUIREMENT_SUBJECT_TYPE, type.name());
 		List<DBOAccessRequirement> dbos = simpleJdbcTemplate.query(SELECT_FOR_SUBJECT_SQL, accessRequirementRowMapper, param);
 		for (DBOAccessRequirement dbo : dbos) {
 			AccessRequirement dto = AccessRequirementUtils.copyDboToDto(dbo, getSubjects(dbo.getId()));

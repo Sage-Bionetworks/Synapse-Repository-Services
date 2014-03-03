@@ -13,8 +13,6 @@ import org.sagebionetworks.dynamo.dao.nodetree.IncompletePathException;
 import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeQueryDao;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.dynamo.NodeTreeQueryManager;
-import org.sagebionetworks.repo.manager.dynamo.NodeTreeQueryManagerImpl;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityIdList;

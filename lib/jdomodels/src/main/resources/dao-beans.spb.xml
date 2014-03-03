@@ -113,7 +113,7 @@
 			<property name="id" value="464532" />
 			<property name="groupAlias">
 			   	<bean class="org.sagebionetworks.repo.model.principal.BootstrapAlias">
-			   		<property name="aliasName" value="Synpase ACT Team" /><!-- This name is was already misspelled -->
+			   		<property name="aliasName" value="Synapse ACT Team" /><!-- This name is was already misspelled -->
 			   		<property name="aliasId" value="4572" />
 			   	</bean>
 			</property>				
@@ -229,6 +229,11 @@
 		<property name="s3Bucket" ref="stackConfiguration.tableRowChangeBucketName"/>
 		<property name="maxBytesPerRequest" ref="stackConfiguration.tableMaxBytesPerRequest"/>
 	</bean>
+	
+	<bean id="tableStatusDAO"
+		class="org.sagebionetworks.repo.model.dbo.dao.table.TableStatusDAOImpl"
+		scope="singleton">
+	</bean>
 
 	<bean id="teamDAO" class="org.sagebionetworks.repo.model.dbo.dao.DBOTeamDAOImpl" scope="singleton"/>
 
@@ -300,5 +305,14 @@
 	<!-- Misc beans -->
 	<bean id="semaphoreDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.semaphore.DBOSemaphoreDaoImpl" />
+
+	<bean id="exclusiveOrSharedSemaphoreDao"
+		class="org.sagebionetworks.repo.model.dbo.dao.semaphore.ExclusiveOrSharedSemaphoreDaoImpl">
+		<property name="maxSharedLockTimeoutMS" ref="stackConfiguration.semaphoreSharedMaxTimeoutMS"/>
+		<property name="maxExclusiveLockTimeoutMS" ref="stackConfiguration.semaphoreExclusiveMaxTimeoutMS"/>
+	</bean>
+	
+	<bean id="exclusiveOrSharedSemaphoreRunner"
+		class="org.sagebionetworks.repo.model.dbo.dao.semaphore.ExclusiveOrSharedSemaphoreRunnerImpl"/>
 
 </beans>

@@ -24,6 +24,8 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOPrincipalHeader" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOGroupMembers" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOCredential" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOSessionToken" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement" />
 				<bean class="org.sagebionetworks.repo.model.dbo.principal.DBOPrincipalAlias" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBONodeType" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBONodeTypeAlias" />
@@ -83,10 +85,14 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.table.DBOBoundColumnOrdinal" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableIdSequence" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableRowChange" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableStatus" />
 				<!-- misc -->
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOSentMessage" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOProcessedMessage" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOSemaphore" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOExclusiveLock" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOSharedLock" />
+								
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOUploadDaemonStatus" />
 				<!-- bridge -->
 				<bean class="org.sagebionetworks.bridge.model.dbo.persistence.DBOCommunityTeam" />
@@ -118,17 +124,19 @@
 				<bean class="org.sagebionetworks.evaluation.dbo.SubmissionDBO" />
 				<bean class="org.sagebionetworks.evaluation.dbo.SubmissionStatusDBO" />
 				
+				<!-- Team-related beans -->
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOTeam" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipInvtnSubmission" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipRqstSubmission" />
+				
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirement" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAccessApproval" />
+				<!--  in stack-28, nodes, evaluations and teams must migrate before ACLs -->
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAccessControlList" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOFavorite" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOTrashedEntity" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBODoi" />
 				
-				<!-- Team-related beans -->
-				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOTeam" />
-				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipInvtnSubmission" />
-				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMembershipRqstSubmission" />
 
 				<bean class="org.sagebionetworks.bridge.model.dbo.persistence.DBOCommunityTeam" />
 

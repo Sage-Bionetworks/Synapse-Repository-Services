@@ -49,8 +49,10 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_TEAM;
 import org.sagebionetworks.repo.model.BatchResults;
 import org.sagebionetworks.repo.model.Data;
+import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
@@ -94,6 +96,8 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 import org.sagebionetworks.utils.HttpClientHelper;
 
+import com.google.common.collect.Sets;
+
 /**
  * Run this integration test as a sanity check to ensure our Synapse Java Client
  * is working
@@ -117,6 +121,26 @@ public class IT500SynapseJavaClient {
 	private List<String> teamsToDelete;
 	private Project project;
 	private Study dataset;
+	
+	private static Set<String> bootstrappedTeams = Sets.newHashSet();
+	static {
+		for (int i=0; i < BOOTSTRAP_TEAM.values().length; i++) {
+			bootstrappedTeams.add(BOOTSTRAP_TEAM.values()[i].getId());
+		}
+	}
+	
+	private long getBootstrapCountPlus(long number) {
+		return bootstrappedTeams.size() + number;
+	}
+	
+	private Team getTestTeamFromResults(PaginatedResults<Team> results) {
+		for (Team team : results.getResults()) {
+			if (!bootstrappedTeams.contains(team.getId())) {
+				return team;
+			}
+		}
+		return null;
+	}
 	
 	@BeforeClass
 	public static void beforeClass() throws Exception {
@@ -151,19 +175,19 @@ public class IT500SynapseJavaClient {
 		
 		toDelete.add(project.getId());
 		toDelete.add(dataset.getId());
-		
-		
-		// there shouldn't be any Teams floating around in the system
-		// the Team tests assume there are no Teams to start.  So before
-		// running the tests, we clean up all the teams
+
+		// The only teams we leave in the system are the bootstrap teams. The method
+		// getBootstrapTeamsPlus(num) returns the right count for assertions.
 		long numTeams = 0L;
 		do {
 			PaginatedResults<Team> teams = synapseOne.getTeams(null, 10, 0);
 			numTeams = teams.getTotalNumberOfResults();
 			for (Team team : teams.getResults()) {
-				synapseOne.deleteTeam(team.getId());
+				if (!bootstrappedTeams.contains(team.getId())) {
+					synapseOne.deleteTeam(team.getId());
+				}
 			}
-		} while (numTeams>0);
+		} while (numTeams > getBootstrapCountPlus(0));		
 	}
 	
 	@After
@@ -352,7 +376,7 @@ public class IT500SynapseJavaClient {
 		ar.setEntityType(ar.getClass().getName());
 		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		ar.setTermsOfUse("play nice");
-		ar = synapseOne.createAccessRequirement(ar);
+		ar = adminSynapse.createAccessRequirement(ar);
 		accessRequirementsToDelete.add(ar.getId());
 		
 		UserProfile otherProfile = synapseOne.getMyProfile();
@@ -715,7 +739,7 @@ public class IT500SynapseJavaClient {
 
 		r.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		r.setTermsOfUse("I promise to be good.");
-		r = synapseOne.createAccessRequirement(r);
+		r = adminSynapse.createAccessRequirement(r);
 		accessRequirementsToDelete.add(r.getId());
 		
 		// check that owner can download
@@ -770,6 +794,137 @@ public class IT500SynapseJavaClient {
 		assertTrue(termsOfUse.length()>100);
 	}
 	
+	@Test
+	public void testRetrieveBridgeTOU() throws Exception {
+		String synapseTermsOfUse = synapseOne.getTermsOfUse(DomainType.BRIDGE);
+		assertNotNull(synapseTermsOfUse);
+		assertTrue(synapseTermsOfUse.length()>100);
+
+		String bridgeTermsOfUse = synapseOne.getTermsOfUse(DomainType.SYNAPSE);
+		assertNotNull(bridgeTermsOfUse);
+		assertTrue(bridgeTermsOfUse.length()>100);
+		assertFalse(bridgeTermsOfUse.equals(synapseTermsOfUse));
+	}
+	
+	/**
+	 * Test that we can add an attachment to a project and then get it back.
+	 */
+	@Test
+	public void testAttachmentsImageRoundTrip() throws IOException, JSONObjectAdapterException, SynapseException{
+		// First load an image from the classpath
+		String fileName = "images/IMAG0019.jpg";
+		URL url = IT500SynapseJavaClient.class.getClassLoader().getResource(fileName);
+		assertNotNull("Failed to find: "+fileName+" on the classpath", url);
+		File originalFile = new File(url.getFile());
+		File attachmentDownload = File.createTempFile("AttachmentTestDownload", ".tmp");
+		File previewDownload = File.createTempFile("AttachmentPreviewDownload", ".png");
+		FileOutputStream writer = null;
+		FileInputStream reader = null;
+		try{
+			// We are now ready to add this file as an attachment on the project
+			String finalName = "iamgeFile.jpg";
+			AttachmentData data = synapseOne.uploadAttachmentToSynapse(project.getId(), originalFile, finalName);
+			assertEquals(finalName, data.getName());
+			// Save this this attachment on the entity.
+			project.setAttachments(new ArrayList<AttachmentData>());
+			project.getAttachments().add(data);
+			// Save this attachment to the project
+			project = synapseOne.putEntity(project);
+			assertNotNull(project.getAttachments());
+			assertEquals(1, project.getAttachments().size());
+			AttachmentData clone = project.getAttachments().get(0);
+			assertEquals(data.getName(), clone.getName());
+			assertEquals(data.getMd5(), clone.getMd5());
+			assertEquals(data.getContentType(), clone.getContentType());
+			assertEquals(data.getTokenId(), clone.getTokenId());
+			// the attachment should have preview
+			assertNotNull(clone.getPreviewId());
+			// Now make sure we can download our
+			synapseOne.downloadEntityAttachment(project.getId(), clone, attachmentDownload);
+			assertTrue(attachmentDownload.exists());
+			System.out.println(attachmentDownload.getAbsolutePath());
+			assertEquals(originalFile.length(), attachmentDownload.length());
+			// Now make sure we can get the preview image
+			// Before we download the preview make sure it exists
+			synapseOne.waitForPreviewToBeCreated(project.getId(), clone.getPreviewId(), PREVIEW_TIMOUT);
+			synapseOne.downloadEntityAttachmentPreview(project.getId(), clone.getPreviewId(), previewDownload);
+			assertTrue(previewDownload.exists());
+			System.out.println(previewDownload.getAbsolutePath());
+			assertTrue(previewDownload.length() > 0);
+			assertTrue("A preview size should not exceed 100KB.  This one is "+previewDownload.length(), previewDownload.length() < 100*1000);
+		}finally{
+			if(writer != null){
+				writer.close();
+			}
+			if(reader != null){
+				reader.close();
+			}
+			attachmentDownload.delete();
+			previewDownload.delete();
+		}
+	}
+
+	/**
+	 * Test that we can add an attachment to a project and then get it back.
+	 */
+	@Test
+	public void testProfileImageRoundTrip() throws IOException, JSONObjectAdapterException, SynapseException{
+		// First load an image from the classpath
+		String fileName = "images/profile_pic.png";
+		URL url = IT500SynapseJavaClient.class.getClassLoader().getResource(fileName);
+		assertNotNull("Failed to find: "+fileName+" on the classpath", url);
+		File originalFile = new File(url.getFile());
+		File attachmentDownload = File.createTempFile("AttachmentTestDownload", ".tmp");
+		File previewDownload = File.createTempFile("AttachmentPreviewDownload", ".png");
+		FileOutputStream writer = null;
+		FileInputStream reader = null;
+		try{
+			// We are now ready to add this file as an attachment on the project
+			String finalName = "iamgeFile.jpg";
+			
+			UserProfile profile = synapseOne.getMyProfile();
+			AttachmentData data = synapseOne.uploadUserProfileAttachmentToSynapse(profile.getOwnerId(), originalFile, finalName);
+			//save this as part of the user
+			profile.setPic(data);
+			synapseOne.updateMyProfile(profile);
+			
+			//download, and check that it was updated
+			profile = synapseOne.getMyProfile();
+			AttachmentData clone = profile.getPic();
+			assertEquals(finalName, data.getName());
+			assertEquals(data.getName(), clone.getName());
+			assertEquals(data.getMd5(), clone.getMd5());
+			assertEquals(data.getContentType(), clone.getContentType());
+			assertEquals(data.getTokenId(), clone.getTokenId());
+			// the attachment should have preview
+			assertNotNull(clone.getPreviewId());
+			// Now make sure we can download our
+			
+			synapseOne.downloadUserProfileAttachment(profile.getOwnerId(), clone, attachmentDownload);
+			assertTrue(attachmentDownload.exists());
+			System.out.println(attachmentDownload.getAbsolutePath());
+			assertEquals(originalFile.length(), attachmentDownload.length());
+			// Now make sure we can get the preview image
+			// Before we download the preview make sure it exists
+			synapseOne.waitForUserProfilePreviewToBeCreated(profile.getOwnerId(), clone.getPreviewId(), PREVIEW_TIMOUT);
+			synapseOne.downloadUserProfileAttachmentPreview(profile.getOwnerId(), clone.getPreviewId(), previewDownload);
+			assertTrue(previewDownload.exists());
+			System.out.println(previewDownload.getAbsolutePath());
+			assertTrue(previewDownload.length() > 0);
+			assertTrue("A preview size should not exceed 100KB.  This one is "+previewDownload.length(), previewDownload.length() < 100*1000);
+		}
+		finally{
+			if(writer != null){
+				writer.close();
+			}
+			if(reader != null){
+				reader.close();
+			}
+			attachmentDownload.delete();
+			previewDownload.delete();
+		}
+	}
+
 	@Test	
 	public void testGetChildCount() throws SynapseException{
 		// Start with no children.
@@ -1037,12 +1192,12 @@ public class IT500SynapseJavaClient {
 		URL url = synapseOne.getTeamIcon(updatedTeam.getId(), false);
 		assertNotNull(url);
 		// query for all teams
-		PaginatedResults<Team> teams = synapseOne.getTeams(null, 1, 0);
-		assertEquals(1L, teams.getTotalNumberOfResults());
-		assertEquals(updatedTeam, teams.getResults().get(0));
+		PaginatedResults<Team> teams = synapseOne.getTeams(null, getBootstrapCountPlus(1L), 0);
+		assertEquals(getBootstrapCountPlus(1L), teams.getTotalNumberOfResults());
+		assertEquals(updatedTeam, getTestTeamFromResults(teams));
 		// make sure pagination works
 		teams = synapseOne.getTeams(null, 10, 1);
-		assertEquals(0L, teams.getResults().size());
+		assertEquals(getBootstrapCountPlus(0L), teams.getResults().size());
 		
 		// query for all teams, based on name fragment
 		// need to update cache.  the service to trigger an update
@@ -1050,7 +1205,7 @@ public class IT500SynapseJavaClient {
 		adminSynapse.updateTeamSearchCache();
 		teams = synapseOne.getTeams(name.substring(0, 3),1, 0);
 		assertEquals(1L, teams.getTotalNumberOfResults());
-		assertEquals(updatedTeam, teams.getResults().get(0));
+		assertEquals(updatedTeam, getTestTeamFromResults(teams));
 		// again, make sure pagination works
 		teams = synapseOne.getTeams(name.substring(0, 3), 10, 1);
 		assertEquals(0L, teams.getResults().size());
@@ -1189,13 +1344,13 @@ public class IT500SynapseJavaClient {
 		subjectId.setType(RestrictableObjectType.TEAM);
 		subjectId.setId(createdTeam.getId());
 		tou.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{subjectId}));
-		tou = synapseOne.createAccessRequirement(tou);
+		tou = adminSynapse.createAccessRequirement(tou);
 		assertNotNull(tou.getId());
 		accessRequirementsToDelete.add(tou.getId());
 		
 		// Query AccessRestriction
 		VariableContentPaginatedResults<AccessRequirement> paginatedResults;
-		paginatedResults = synapseOne.getAccessRequirements(subjectId);
+		paginatedResults = adminSynapse.getAccessRequirements(subjectId);
 		AccessRequirementUtil.checkTOUlist(paginatedResults, tou);
 		
 		// Query Unmet AccessRestriction
@@ -1208,7 +1363,7 @@ public class IT500SynapseJavaClient {
 		synapseTwo.createAccessApproval(aa);
 		
 		// Query AccessRestriction
-		paginatedResults = synapseOne.getAccessRequirements(subjectId);
+		paginatedResults = adminSynapse.getAccessRequirements(subjectId);
 		AccessRequirementUtil.checkTOUlist(paginatedResults, tou);
 		
 		// Query Unmet AccessRestriction (since the requirement is now met, the list is empty)
