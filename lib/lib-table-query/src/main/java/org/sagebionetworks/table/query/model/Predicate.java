@@ -3,14 +3,13 @@ package org.sagebionetworks.table.query.model;
 /**
  * This matches &ltpredicate&gt   in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
-public class Predicate {
+public class Predicate implements SQLElement {
 	
 	ComparisonPredicate comparisonPredicate;
 	BetweenPredicate betweenPredicate;
 	InPredicate inPredicate;
 	LikePredicate likePredicate;
 	NullPredicate nullPredicate;
-	OverlapsPredicate overlapsPredicate;
 	public Predicate(ComparisonPredicate comparisonPredicate) {
 		super();
 		this.comparisonPredicate = comparisonPredicate;
@@ -31,10 +30,6 @@ public class Predicate {
 		super();
 		this.nullPredicate = nullPredicate;
 	}
-	public Predicate(OverlapsPredicate overlapsPredicate) {
-		super();
-		this.overlapsPredicate = overlapsPredicate;
-	}
 	public ComparisonPredicate getComparisonPredicate() {
 		return comparisonPredicate;
 	}
@@ -50,8 +45,19 @@ public class Predicate {
 	public NullPredicate getNullPredicate() {
 		return nullPredicate;
 	}
-	public OverlapsPredicate getOverlapsPredicate() {
-		return overlapsPredicate;
+	@Override
+	public void toSQL(StringBuilder builder) {
+		if(comparisonPredicate != null){
+			comparisonPredicate.toSQL(builder);
+		}else if(betweenPredicate != null){
+			betweenPredicate.toSQL(builder);
+		}else if(inPredicate != null){
+			inPredicate.toSQL(builder);
+		}else if(likePredicate != null){
+			likePredicate.toSQL(builder);
+		}else {
+			nullPredicate.toSQL(builder);
+		}
 	}
 	
 }

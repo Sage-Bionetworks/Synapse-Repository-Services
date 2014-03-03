@@ -3,7 +3,7 @@ package org.sagebionetworks.table.query.model;
 /**
  * This matches &ltderived column&gt   in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
-public class DerivedColumn {
+public class DerivedColumn implements SQLElement {
 
 	ValueExpression valueExpression;
 	AsClause asClause;
@@ -20,6 +20,15 @@ public class DerivedColumn {
 
 	public AsClause getAsClause() {
 		return asClause;
+	}
+
+	@Override
+	public void toSQL(StringBuilder builder) {
+		valueExpression.toSQL(builder);
+		if(asClause!= null){
+			builder.append(" ");
+			asClause.toSQL(builder);
+		}
 	}
 	
 }

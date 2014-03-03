@@ -3,10 +3,8 @@ package org.sagebionetworks.table.query;
 import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
-import org.sagebionetworks.table.query.model.ActualIdentifier;
-import org.sagebionetworks.table.query.model.ColumnName;
 import org.sagebionetworks.table.query.model.ColumnReference;
-import org.sagebionetworks.table.query.model.Identifier;
+import org.sagebionetworks.table.query.util.SqlElementUntils;
 
 /**
  * 
@@ -16,24 +14,24 @@ import org.sagebionetworks.table.query.model.Identifier;
 public class ColumnReferenceTest {
 
 	@Test
-	public void testToSQL(){
-		ColumnReference ref = new ColumnReference(new ColumnName(new Identifier(new ActualIdentifier("lhs", null))), new ColumnName(new Identifier(new ActualIdentifier("rhs", null))));
+	public void testToSQL() throws ParseException{
+		ColumnReference ref = SqlElementUntils.createColumnReference("lhs.rhs");
 		StringBuilder builder = new StringBuilder();
 		ref.toSQL(builder);
 		assertEquals("lhs.rhs", builder.toString());
 	}
 	
 	@Test
-	public void testToSQLNoRHS(){
-		ColumnReference ref = new ColumnReference(new ColumnName(new Identifier(new ActualIdentifier("lhs", null))), null);
+	public void testToSQLNoRHS() throws ParseException{
+		ColumnReference ref = SqlElementUntils.createColumnReference("lhs");
 		StringBuilder builder = new StringBuilder();
 		ref.toSQL(builder);
 		assertEquals("lhs", builder.toString());
 	}
 	
 	@Test
-	public void testToSQLDelimited(){
-		ColumnReference ref = new ColumnReference(new ColumnName(new Identifier(new ActualIdentifier(null, "has space"))), new ColumnName(new Identifier(new ActualIdentifier(null, "has\"quote"))));
+	public void testToSQLDelimited() throws ParseException{
+		ColumnReference ref = SqlElementUntils.createColumnReference("\"has space\".\"has\"\"quote\"");
 		StringBuilder builder = new StringBuilder();
 		ref.toSQL(builder);
 		assertEquals("\"has space\".\"has\"\"quote\"", builder.toString());

@@ -2,26 +2,24 @@ package org.sagebionetworks.table.query.model;
 
 /**
  * This matches &ltbetween predicate&gt  in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
- */
-public class BetweenPredicate {
+ */ 
+public class BetweenPredicate implements SQLElement {
 	
-	RowValueConstructor rowValueConstructorLHS;
+	ColumnReference columnReferenceLHS;
 	Boolean not;
 	RowValueConstructor betweenRowValueConstructor;
 	RowValueConstructor andRowValueConstructorRHS;
 	
-	public BetweenPredicate(RowValueConstructor rowValueConstructorLHS,
+	public BetweenPredicate(ColumnReference columnReferenceLHS,
 			Boolean not, RowValueConstructor betweenRowValueConstructor,
 			RowValueConstructor andRowValueConstructorRHS) {
 		super();
-		this.rowValueConstructorLHS = rowValueConstructorLHS;
+		this.columnReferenceLHS = columnReferenceLHS;
 		this.not = not;
 		this.betweenRowValueConstructor = betweenRowValueConstructor;
 		this.andRowValueConstructorRHS = andRowValueConstructorRHS;
 	}
-	public RowValueConstructor getRowValueConstructorLHS() {
-		return rowValueConstructorLHS;
-	}
+
 	public Boolean getNot() {
 		return not;
 	}
@@ -30,6 +28,17 @@ public class BetweenPredicate {
 	}
 	public RowValueConstructor getAndRowValueConstructorRHS() {
 		return andRowValueConstructorRHS;
+	}
+	@Override
+	public void toSQL(StringBuilder builder) {
+		columnReferenceLHS.toSQL(builder);
+		if(not != null){
+			builder.append(" NOT");
+		}
+		builder.append(" BETWEEN ");
+		betweenRowValueConstructor.toSQL(builder);
+		builder.append(" AND ");
+		andRowValueConstructorRHS.toSQL(builder);
 	}
 	
 }

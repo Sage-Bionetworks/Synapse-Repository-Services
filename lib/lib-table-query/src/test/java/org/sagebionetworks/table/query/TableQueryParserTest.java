@@ -9,14 +9,13 @@ import java.util.List;
 
 import org.junit.Test;
 import org.sagebionetworks.table.query.model.ColumnReference;
-import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.SQLElement;
 import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.SetFunctionSpecification;
+import org.sagebionetworks.table.query.model.TableExpression;
 import org.sagebionetworks.table.query.model.UnsignedLiteral;
 import org.sagebionetworks.table.query.model.UnsignedValueSpecification;
-import org.sagebionetworks.table.query.model.ValueExpression;
 import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
 import org.sagebionetworks.table.query.util.SQLExample;
 import org.sagebionetworks.table.query.util.SQLExampleProvider;
@@ -352,17 +351,28 @@ public class TableQueryParserTest {
 	@Test
 	public void testSelectListStart() throws ParseException{
 		TableQueryParser parser = new TableQueryParser("*");
-		SelectList selectList = parser.selectList();
-		assertNotNull(selectList);
+		SelectList element = parser.selectList();
+		assertNotNull(element);
+		String sql = toSQL(element);
+		assertEquals("*", sql);
 	}
 	
 	@Test
 	public void testSelectListSingleLiteral() throws ParseException{
-		TableQueryParser parser = new TableQueryParser("foo");
-		SelectList selectList = parser.selectList();
-		assertNotNull(selectList);
-		assertEquals(null, selectList.getAsterisk());
-		assertNotNull(selectList.getColumns());
+		TableQueryParser parser = new TableQueryParser("foo, \"bar\", max(cats)");
+		SelectList element = parser.selectList();
+		assertNotNull(element);
+		String sql = toSQL(element);
+		assertEquals("foo, \"bar\", MAX(cats)", sql);
+	}
+	
+	@Test
+	public void testTableExpression() throws ParseException{
+		TableQueryParser parser = new TableQueryParser("from syn123");
+		TableExpression element = parser.tableExpression();
+		assertNotNull(element);
+		String sql = toSQL(element);
+		assertEquals("FROM syn123", sql);
 	}
 	
 	/**
@@ -394,7 +404,7 @@ public class TableQueryParserTest {
 		assertNotNull(sq);
 		assertEquals(null,  sq.getSetQuantifier());
 		assertNotNull(sq.getSelectList());
-		assertEquals("Simple select * was missing the asterisk", "*",  sq.getSelectList().getAsterisk());
+		assertEquals("Simple select * was missing the asterisk", Boolean.TRUE,  sq.getSelectList().getAsterisk());
 		assertEquals("Select * should not have any columns", null,  sq.getSelectList().getColumns());
 		assertNotNull(sq.getTableExpression());
 		assertNotNull(sq.getTableExpression().getFromClause());

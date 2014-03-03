@@ -3,7 +3,7 @@ package org.sagebionetworks.table.query.model;
 /**
  * This matches &ltboolean test&gt   in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
-public class BooleanTest {
+public class BooleanTest implements SQLElement {
 
 	BooleanPrimary booleanPrimary;
 	Boolean is;
@@ -33,6 +33,18 @@ public class BooleanTest {
 
 	public TruthValue getTruthValue() {
 		return truthValue;
+	}
+
+	@Override
+	public void toSQL(StringBuilder builder) {
+		this.booleanPrimary.toSQL(builder);
+		if(is != null){
+			builder.append(" IS ");
+			if(not != null){
+				builder.append("NOT ");
+			}
+			builder.append(this.truthValue.name());
+		}
 	}
 	
 }

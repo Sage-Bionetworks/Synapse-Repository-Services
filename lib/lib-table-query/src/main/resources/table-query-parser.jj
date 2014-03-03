@@ -349,10 +349,10 @@ SelectList selectList():
 	DerivedColumn derivedColumn = null;
 }
 {
-	<asterisk> { return new SelectList("*", null); }
+	<asterisk> { return new SelectList(Boolean.TRUE); }
 	| derivedColumn = selectSubList()  { derivedColumns.add(derivedColumn); }
 	 (<comma> derivedColumn = selectSubList()  { derivedColumns.add(derivedColumn); })*
-	 { return new SelectList(null, derivedColumns); }
+	 { return new SelectList(derivedColumns); }
 }
 DerivedColumn selectSubList():
 {
@@ -516,30 +516,36 @@ BooleanPrimary booleanPrimary():
 }
 Predicate predicate():
 {
+	ColumnReference leftHandSide = null;
 	ComparisonPredicate comparisonPredicate = null;
 	BetweenPredicate betweenPredicate = null;
 	InPredicate inPredicate = null;
 	LikePredicate likePredicate = null;
 	NullPredicate nullPredicate = null;
-	OverlapsPredicate overlapsPredicate = null;
+	Boolean notB = null;
 }
 {
-	LOOKAHEAD(3) comparisonPredicate = comparisonPredicate() { return new Predicate(comparisonPredicate);}
-	| LOOKAHEAD(3) betweenPredicate = betweenPredicate() { return new Predicate(betweenPredicate); }
-	| LOOKAHEAD(3) inPredicate = inPredicate() { return new Predicate(inPredicate); }
-	| LOOKAHEAD(3) likePredicate = likePredicate() { return new Predicate(likePredicate); }
-	| nullPredicate = nullPredicate() { return new Predicate(nullPredicate); }
-	| overlapsPredicate = overlapsPredicate() { return new Predicate(overlapsPredicate); }
+	leftHandSide = columnReference()
+	(
+		comparisonPredicate = comparisonPredicate(leftHandSide) { return new Predicate(comparisonPredicate);}
+		| nullPredicate = nullPredicate(leftHandSide) { return new Predicate(nullPredicate); }
+		|(
+			[ <not> {notB = Boolean.TRUE; }]
+				betweenPredicate = betweenPredicate(leftHandSide, notB) { return new Predicate(betweenPredicate); }
+			|	inPredicate = inPredicate(leftHandSide, notB) { return new Predicate(inPredicate); }
+			|	likePredicate = likePredicate(leftHandSide, notB) { return new Predicate(likePredicate); }
+		)
+	)
+
 }
-ComparisonPredicate comparisonPredicate():
+ComparisonPredicate comparisonPredicate(ColumnReference leftHandSide):
 {
-	RowValueConstructor rowValueConstructorLHS = null;
 	CompOp compOp = null;
 	RowValueConstructor rowValueConstructorRHS = null;
 }
 {
-	rowValueConstructorLHS = rowValueConstructor() compOp = compOp() rowValueConstructorRHS = rowValueConstructor()
-	{ return new ComparisonPredicate(rowValueConstructorLHS,compOp,rowValueConstructorRHS);}
+	compOp = compOp() rowValueConstructorRHS = rowValueConstructor()
+	{ return new ComparisonPredicate(leftHandSide,compOp,rowValueConstructorRHS);}
 }
 RowValueConstructor rowValueConstructor():
 {
@@ -579,26 +585,22 @@ CompOp compOp():
 	|   <less_than_or_equals_operator> { return CompOp.LESS_THAN_OR_EQUALS_OPERATOR;}
 	|   <greater_than_or_equals_operator> {return CompOp.GREATER_THAN_OR_EQUALS_OPERATOR;} 
 }
-BetweenPredicate betweenPredicate():
+BetweenPredicate betweenPredicate(ColumnReference leftHandSide, Boolean notB):
 {
-	RowValueConstructor rowValueConstructorLHS = null;
-	Boolean notB = null;
 	RowValueConstructor betweenRowValueConstructor = null;
 	RowValueConstructor andRowValueConstructorRHS = null;
 }
 {
-	rowValueConstructorLHS = rowValueConstructor() [ <not> { notB = Boolean.TRUE; }] <between> betweenRowValueConstructor = rowValueConstructor() <and>  andRowValueConstructorRHS = rowValueConstructor()
-	{ return new BetweenPredicate(rowValueConstructorLHS, notB, betweenRowValueConstructor, andRowValueConstructorRHS);}
+	<between> betweenRowValueConstructor = rowValueConstructor() <and>  andRowValueConstructorRHS = rowValueConstructor()
+	{ return new BetweenPredicate(leftHandSide, notB, betweenRowValueConstructor, andRowValueConstructorRHS);}
 }
-InPredicate inPredicate():
+InPredicate inPredicate(ColumnReference leftHandSide, Boolean notB):
 {
-	RowValueConstructor rowValueConstructorLHS = null;
-	Boolean notB = null;
 	InPredicateValue inPredicateValue = null;
 }
 {
-	rowValueConstructorLHS = rowValueConstructor() [ <not> {notB = Boolean.TRUE;} ] <in> inPredicateValue = inPredicateValue()
-	{ return new InPredicate(rowValueConstructorLHS, notB, inPredicateValue);}
+	<in> inPredicateValue = inPredicateValue()
+	{ return new InPredicate(leftHandSide, notB, inPredicateValue);}
 }
 InPredicateValue inPredicateValue():
 {
@@ -618,16 +620,14 @@ InValueList inValueList():
 	( <comma> valueExpression = valueExpression() { inValueList.addValueExpression(valueExpression); } )*
 	{ return inValueList; }
 }
-LikePredicate likePredicate():
+LikePredicate likePredicate(ColumnReference leftHandSide, Boolean notB):
 {
-	MatchValue matchValue = null;
-	Boolean notB = null;
 	Pattern pattern = null;
 	EscapeCharacter escapeCharacter = null;
 }
 {
-	matchValue = matchValue() [ <not> { notB = Boolean.TRUE; }] <like> pattern = pattern() [ <escape> escapeCharacter = escapeCharacter() ]
-	{ return new LikePredicate(matchValue,notB,pattern,escapeCharacter);}
+	<like> pattern = pattern() [ <escape> escapeCharacter = escapeCharacter() ]
+	{ return new LikePredicate(leftHandSide,notB,pattern,escapeCharacter);}
 }
 MatchValue matchValue():
 {
@@ -653,22 +653,13 @@ EscapeCharacter escapeCharacter():
 	characterValueExpression = characterValueExpression()
 	{return new EscapeCharacter(characterValueExpression);}
 }
-NullPredicate nullPredicate():
+NullPredicate nullPredicate(ColumnReference leftHandSide):
 {
 	Boolean notB = null;
 }
 {
 	<is> [ <not> {notB=Boolean.TRUE;}] <null_specification>
-	{ return new NullPredicate(notB); }
-}
-OverlapsPredicate overlapsPredicate():
-{
-	RowValueConstructor rowValueConstructorLHS = null;
-	RowValueConstructor rowValueConstructorRHS = null;
-}
-{
-	rowValueConstructorLHS = rowValueConstructor() <overlaps> rowValueConstructorRHS =rowValueConstructor()
-	{ return new OverlapsPredicate(rowValueConstructorLHS,rowValueConstructorRHS);}
+	{ return new NullPredicate(leftHandSide, notB); }
 }
 ValueExpression valueExpression():
 {
