@@ -412,16 +412,27 @@ public class DBOMessageDAOImpl implements MessageDAO {
 	}
 
 	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
+	public boolean updateMessageStatus_NewTransaction(MessageStatus status) {
+		return updateMessageStatus(status);
+	}
+	
+	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public boolean updateMessageStatus(MessageStatus status) {
+	public boolean updateMessageStatus_SameTransaction(MessageStatus status) {
+		return updateMessageStatus(status);
+	}
+	
+	private boolean updateMessageStatus(MessageStatus status) {
 		DBOMessageStatus toUpdate = MessageUtils.convertDTO(status);
 		MessageUtils.validateDBO(toUpdate);
 		boolean success = basicDAO.update(toUpdate);
 		
 		if (success) {
-		touch(status.getMessageId());
-	}
+			touch(status.getMessageId());
+		}
 		return success;
+		
 	}
 
 	@Override

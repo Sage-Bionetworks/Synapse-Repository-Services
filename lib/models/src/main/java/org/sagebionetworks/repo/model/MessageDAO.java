@@ -85,13 +85,22 @@ public interface MessageDAO {
 	 */
 	public void createMessageStatus_SameTransaction(String messageId, String userId, MessageStatusType status);
 	
+
+	/**
+	 * Marks a message within the recipient's inbox with the given status, doing so in a new, isolated transaction
+	 * Note: this 'recipient status' is disctinct from the message's 'transmission status'.
+	 * 
+	 * @return Did the update succeed?
+	 */
+	boolean updateMessageStatus_NewTransaction(MessageStatus status);
+	
 	/**
 	 * Marks a message within the recipient's inbox with the given status
 	 * Note: this 'recipient status' is disctinct from the message's 'transmission status'.
 	 * 
 	 * @return Did the update succeed?
 	 */
-	public boolean updateMessageStatus(MessageStatus status);
+	public boolean updateMessageStatus_SameTransaction(MessageStatus status);
 	
 	/**
 	 * Deletes a message.  Only used for test cleanup.
@@ -116,4 +125,5 @@ public interface MessageDAO {
 	 * If so, then the user or group should be allowed to download the file associated with the file handle
 	 */
 	public boolean canSeeMessagesUsingFileHandle(Set<Long> userGroups, String fileHandleId);
+
 }

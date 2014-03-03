@@ -288,7 +288,7 @@ public class DBOMessageDAOImplTest {
 		status.setMessageId(userToUser.getId());
 		status.setRecipientId(maliciousUser.getId());
 		status.setStatus(MessageStatusType.READ);
-		messageDAO.updateMessageStatus(status);
+		messageDAO.updateMessageStatus_SameTransaction(status);
 		
 		// Etag should have changed
 		content = basicDAO.getObjectByPrimaryKey(DBOMessageContent.class, params);

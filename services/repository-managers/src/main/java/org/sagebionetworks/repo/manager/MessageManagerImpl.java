@@ -359,7 +359,7 @@ public class MessageManagerImpl implements MessageManager {
 		
 		// Update the message
 		status.setRecipientId(userInfo.getId().toString());
-		boolean succeeded = messageDAO.updateMessageStatus(status);
+		boolean succeeded = messageDAO.updateMessageStatus_SameTransaction(status);
 		
 		if (!succeeded) {
 			throw new UnauthorizedException("Cannot change status of message (" + status.getMessageId() + ")");
@@ -435,7 +435,13 @@ public class MessageManagerImpl implements MessageManager {
 				if(settings == null){
 					settings = new Settings();
 				}
-				MessageStatusType defaultStatus = null;
+				MessageStatusType userMessageStatus = null; // setting to null tells the DAO to use the default value
+				// This marks a user as a recipient of the message
+				if (singleTransaction) {
+					messageDAO.createMessageStatus_SameTransaction(dto.getId(), user, userMessageStatus);
+				} else {
+					messageDAO.createMessageStatus_NewTransaction(dto.getId(), user, userMessageStatus);
+				}
 				
 				// Should emails be sent?
 				if (settings.getSendEmailNotifications() == null || settings.getSendEmailNotifications()) {
@@ -449,17 +455,22 @@ public class MessageManagerImpl implements MessageManager {
 						
 						// Should the message be marked as READ?
 						if (settings.getMarkEmailedMessagesAsRead() != null && settings.getMarkEmailedMessagesAsRead()) {
-							defaultStatus = MessageStatusType.READ;
+							userMessageStatus = MessageStatusType.READ;
 						}
 					}
 				}
 				
-				// This marks a user as a recipient of the message
-				// which is equivalent to marking the message as sent
-				if (singleTransaction) {
-					messageDAO.createMessageStatus_SameTransaction(dto.getId(), user, defaultStatus);
-				} else {
-					messageDAO.createMessageStatus_NewTransaction(dto.getId(), user, defaultStatus);
+				if (userMessageStatus!=null) {
+					// the status has been changed, so we have to update it again
+					MessageStatus messageStatus = new MessageStatus();
+					messageStatus.setMessageId(dto.getId());
+					messageStatus.setRecipientId(user);
+					messageStatus.setStatus(userMessageStatus);
+					if (singleTransaction) {
+						messageDAO.updateMessageStatus_SameTransaction(messageStatus);
+					} else {
+						messageDAO.updateMessageStatus_NewTransaction(messageStatus);
+					}
 				}
 			} catch (Exception e) {
 				log.info("Error caught while processing message", e);
