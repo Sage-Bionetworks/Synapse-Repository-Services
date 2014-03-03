@@ -2,6 +2,7 @@ package org.sagebionetworks.bridge.manager.participantdata;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.util.Date;
 import java.util.List;
 
 import org.sagebionetworks.bridge.model.ParticipantDataId;
@@ -15,6 +16,10 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface ParticipantDataManager {
+
+	public enum SortType {
+		SORT_BY_DATE, SORT_BY_GROUP_AND_DATE
+	};
 
 	List<ParticipantDataRow> appendData(UserInfo userInfo, String participantDataId, List<ParticipantDataRow> data)
 			throws DatastoreException, NotFoundException, IOException, GeneralSecurityException;
@@ -30,6 +35,9 @@ public interface ParticipantDataManager {
 
 	PaginatedResults<ParticipantDataRow> getData(UserInfo userInfo, String participantDataId, Integer limit, Integer offset)
 			throws DatastoreException, NotFoundException, IOException, GeneralSecurityException;
+
+	List<ParticipantDataRow> getHistoryData(UserInfo userInfo, String participantDataId, boolean filterOutNotEnded, Date after, Date before,
+			SortType sortType) throws DatastoreException, NotFoundException, IOException, GeneralSecurityException;
 
 	ParticipantDataCurrentRow getCurrentData(UserInfo userInfo, String participantDataId) throws DatastoreException, NotFoundException,
 			IOException, GeneralSecurityException;

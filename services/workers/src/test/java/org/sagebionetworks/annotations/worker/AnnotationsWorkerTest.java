@@ -150,12 +150,6 @@ public class AnnotationsWorkerTest {
 		doThrow(new RuntimeException()).when(mockDAO).updateSubmissionStatus(eq(failId));
 		AnnotationsWorker worker = new AnnotationsWorker(list, mockDAO);
 		List<Message> resultLIst = worker.call();
-		// The result list should only contain the success message.
-		// The error message must stay on the queue.
-		assertEquals(1, resultLIst.size());
-		Message resultMessage = resultLIst.get(0);
-		ChangeMessage change = MessageUtils.extractMessageBody(resultMessage);
-		assertNotNull(change);
-		assertEquals(successId, change.getObjectId());
+		assertEquals(list, resultLIst);
 	}
 }

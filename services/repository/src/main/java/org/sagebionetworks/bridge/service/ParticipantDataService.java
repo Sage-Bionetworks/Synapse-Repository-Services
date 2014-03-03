@@ -2,6 +2,7 @@ package org.sagebionetworks.bridge.service;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.util.Date;
 import java.util.List;
 
 import org.sagebionetworks.bridge.model.data.ParticipantDataColumnDescriptor;
@@ -24,6 +25,12 @@ public interface ParticipantDataService {
 
 	public ParticipantDataCurrentRow getCurrent(Long userId, String participantDataId) throws DatastoreException, NotFoundException,
 			IOException, GeneralSecurityException;
+
+	public List<ParticipantDataRow> getHistoryRows(Long userId, String participantDataDescriptorId, Date after, Date before)
+			throws DatastoreException, NotFoundException, IOException, GeneralSecurityException;
+
+	public List<ParticipantDataRow> getCurrentRows(Long userId, String participantDataDescriptorId) throws DatastoreException,
+			NotFoundException, IOException, GeneralSecurityException;
 
 	public List<ParticipantDataRow> append(Long userId, String participantDataId, List<ParticipantDataRow> data) throws DatastoreException,
 			NotFoundException, IOException, GeneralSecurityException;

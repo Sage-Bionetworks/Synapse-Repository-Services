@@ -1015,6 +1015,11 @@ public class NodeDAOImplTest {
 		assertEquals(array[0].getId(), path.get(0).getId());
 	}
 	
+	@Test(expected=NotFoundException.class)
+	public void testGetEntityPathInvalidNode() throws Exception {
+		nodeDao.getEntityPath("syn9999999");
+	}
+	
 	// we introduced batch entity path search so we test the case that 
 	// the path is bigger than one batch
 	@Test

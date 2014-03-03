@@ -100,7 +100,7 @@ public class EntityServiceImpl implements EntityService {
 	@Override
 	public <T extends Entity> PaginatedResults<T> getEntities(Long userId, PaginatedParameters paging,
 			HttpServletRequest request, Class<? extends T> clazz) throws DatastoreException, NotFoundException, UnauthorizedException {
-		ServiceConstants.validatePaginationParams(paging.getOffset(), paging.getLimit());
+		ServiceConstants.validatePaginationParamsNoOffsetEqualsOne(paging.getOffset(), paging.getLimit());
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		EntityType type =  EntityType.getNodeTypeForClass(clazz);
 		// First build the query that will be used
@@ -121,7 +121,7 @@ public class EntityServiceImpl implements EntityService {
 		if(limit == null){
 			limit = 10;
 		}
-		ServiceConstants.validatePaginationParams((long)offset, (long)limit);
+		ServiceConstants.validatePaginationParamsNoOffsetEqualsOne((long)offset, (long)limit);
 		UserInfo userInfo = userManager.getUserInfo(userId);
 
 		QueryResults<VersionInfo> versions = entityManager.getVersionsOfEntity(userInfo, entityId, (long)offset-1, (long)limit);
@@ -535,7 +535,7 @@ public class EntityServiceImpl implements EntityService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		if (offset==null) offset = 1;
 		if (limit==null) limit = Integer.MAX_VALUE;
-		ServiceConstants.validatePaginationParams((long)offset, (long)limit);
+		ServiceConstants.validatePaginationParamsNoOffsetEqualsOne((long)offset, (long)limit);
 		QueryResults<EntityHeader> results = entityManager.getEntityReferences(userInfo, entityId, versionNumber, offset-1, limit);
 		String urlPath = request.getRequestURL()==null ? "" : request.getRequestURL().toString();
 		return new PaginatedResults(urlPath,  results.getResults(), results.getTotalNumberOfResults(), offset, limit, /*sort*/null, /*ascending*/true);

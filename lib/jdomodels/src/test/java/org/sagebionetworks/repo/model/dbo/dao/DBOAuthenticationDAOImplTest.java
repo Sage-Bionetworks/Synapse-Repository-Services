@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertArrayEquals;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -26,6 +27,7 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOSessionToken;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.principal.BootstrapPrincipal;
 import org.sagebionetworks.repo.model.principal.BootstrapUser;
@@ -54,7 +56,9 @@ public class DBOAuthenticationDAOImplTest {
 	private List<String> groupsToDelete;
 	
 	private Long userId;
-	private DBOCredential secretRow;
+	private DBOCredential credential;
+	private DBOSessionToken sessionToken;
+	private DBOTermsOfUseAgreement touAgreement;
 	private static String userEtag;
 
 	
@@ -71,14 +75,24 @@ public class DBOAuthenticationDAOImplTest {
 		userEtag = userGroupDAO.getEtagForUpdate(userId.toString());
 
 		// Make a row of Credentials
-		secretRow = new DBOCredential();
-		secretRow.setPrincipalId(userId);
-		secretRow.setValidatedOn(new Date());
-		secretRow.setSessionToken("Hsssssss...");
-		secretRow.setPassHash("{PKCS5S2}1234567890abcdefghijklmnopqrstuvwxyz");
-		secretRow.setSecretKey("ABCDEFGHIJKLMNOPQRSTUVWXYZ");
-		secretRow.setAgreesToTermsOfUse(true);
-		secretRow = basicDAO.createNew(secretRow);
+		credential = new DBOCredential();
+		credential.setPrincipalId(userId);
+		credential.setPassHash("{PKCS5S2}1234567890abcdefghijklmnopqrstuvwxyz");
+		credential.setSecretKey("ABCDEFGHIJKLMNOPQRSTUVWXYZ");
+		credential = basicDAO.createNew(credential);
+		
+		sessionToken = new DBOSessionToken();
+		sessionToken.setPrincipalId(userId);
+		sessionToken.setDomain(DomainType.SYNAPSE);
+		sessionToken.setValidatedOn(new Date());
+		sessionToken.setSessionToken("Hsssssss...");
+		sessionToken = basicDAO.createNew(sessionToken);
+		
+		touAgreement = new DBOTermsOfUseAgreement();
+		touAgreement.setPrincipalId(userId);
+		touAgreement.setDomain(DomainType.SYNAPSE);
+		touAgreement.setAgreesToTermsOfUse(true);
+		touAgreement = basicDAO.createNew(touAgreement);
 	}
 
 	@After
@@ -91,8 +105,8 @@ public class DBOAuthenticationDAOImplTest {
 	@Test
 	public void testCheckUserCredentials() throws Exception {
 		// Valid combination
-		Long principalId = authDAO.checkUserCredentials(userId, secretRow.getPassHash());
-		assertEquals(secretRow.getPrincipalId(), principalId);
+		Long principalId = authDAO.checkUserCredentials(userId, credential.getPassHash());
+		assertEquals(credential.getPrincipalId(), principalId);
 		
 		// Invalid combinations
 		try {
@@ -101,7 +115,7 @@ public class DBOAuthenticationDAOImplTest {
 		} catch (UnauthorizedException e) { }
 		
 		try {
-			authDAO.checkUserCredentials(-99, secretRow.getPassHash());
+			authDAO.checkUserCredentials(-99, credential.getPassHash());
 			fail("That combination should not have succeeded");
 		} catch (UnauthorizedException e) { }
 		
@@ -112,25 +126,45 @@ public class DBOAuthenticationDAOImplTest {
 	}
 	
 	@Test
+	public void testCheckSessionNotSharedBetweenDomains() {
+		Session session = authDAO.getSessionTokenIfValid(userId, DomainType.SYNAPSE);
+		assertNotNull(session);
+		session = authDAO.getSessionTokenIfValid(userId, DomainType.BRIDGE);
+		assertNull(session);
+	}
+	
+	@Test
+	public void testSigningOffOnlySignsOffOneDomain() {
+		// Log in to bridge, log out
+		authDAO.checkUserCredentials(userId, credential.getPassHash());
+		Session session = authDAO.getSessionTokenIfValid(userId, DomainType.BRIDGE);
+		authDAO.deleteSessionToken(sessionToken.getSessionToken());
+		
+		// You are still logged in to synapse
+		session = authDAO.getSessionTokenIfValid(userId, DomainType.SYNAPSE);
+		assertNotNull(session);
+	}
+
+	@Test
 	public void testSessionTokenCRUD() throws Exception {
 		// Get by username
 		Session session = authDAO.getSessionTokenIfValid(userId, DomainType.SYNAPSE);
-		assertEquals(secretRow.getSessionToken(), session.getSessionToken());
-		assertEquals(secretRow.getAgreesToTermsOfUse(), session.getAcceptsTermsOfUse());
+		assertEquals(sessionToken.getSessionToken(), session.getSessionToken());
+		assertEquals(touAgreement.getAgreesToTermsOfUse(), session.getAcceptsTermsOfUse());
 
 		// Get by token
-		Long id = authDAO.getPrincipalIfValid(secretRow.getSessionToken());
-		assertEquals(secretRow.getPrincipalId(), id);
+		Long id = authDAO.getPrincipalIfValid(sessionToken.getSessionToken());
+		assertEquals(credential.getPrincipalId(), id);
 		
 		// Get by token, without restrictions
-		Long principalId = authDAO.getPrincipal(secretRow.getSessionToken());
-		assertEquals(secretRow.getPrincipalId(), principalId);
+		Long principalId = authDAO.getPrincipal(sessionToken.getSessionToken());
+		assertEquals(credential.getPrincipalId(), principalId);
 		
 		// Delete
-		authDAO.deleteSessionToken(secretRow.getSessionToken());
+		authDAO.deleteSessionToken(sessionToken.getSessionToken());
 		session = authDAO.getSessionTokenIfValid(userId, DomainType.SYNAPSE);
 		assertNull(session.getSessionToken());
-		assertEquals(secretRow.getAgreesToTermsOfUse(), session.getAcceptsTermsOfUse());
+		assertEquals(touAgreement.getAgreesToTermsOfUse(), session.getAcceptsTermsOfUse());
 		
 		// Verify that the parent group's etag has changed
 		String changedEtag = userGroupDAO.getEtagForUpdate(principalId.toString());
@@ -138,7 +172,7 @@ public class DBOAuthenticationDAOImplTest {
 		
 		// Change to a string
 		String foobarSessionToken = "foobar";
-		authDAO.changeSessionToken(secretRow.getPrincipalId(), foobarSessionToken, DomainType.SYNAPSE);
+		authDAO.changeSessionToken(credential.getPrincipalId(), foobarSessionToken, DomainType.SYNAPSE);
 		session = authDAO.getSessionTokenIfValid(userId, DomainType.SYNAPSE);
 		assertEquals(foobarSessionToken, session.getSessionToken());
 		
@@ -148,11 +182,11 @@ public class DBOAuthenticationDAOImplTest {
 		assertTrue(!userEtag.equals(changedEtag));
 		
 		// Change to a UUID
-		authDAO.changeSessionToken(secretRow.getPrincipalId(), null, DomainType.SYNAPSE);
+		authDAO.changeSessionToken(credential.getPrincipalId(), null, DomainType.SYNAPSE);
 		session = authDAO.getSessionTokenIfValid(userId, DomainType.SYNAPSE);
 		assertFalse(foobarSessionToken.equals(session.getSessionToken()));
-		assertFalse(secretRow.getSessionToken().equals(session.getSessionToken()));
-		assertEquals(secretRow.getAgreesToTermsOfUse(), session.getAcceptsTermsOfUse());
+		assertFalse(sessionToken.getSessionToken().equals(session.getSessionToken()));
+		assertEquals(touAgreement.getAgreesToTermsOfUse(), session.getAcceptsTermsOfUse());
 		
 		// Verify that the parent group's etag has changed
 		userEtag = changedEtag;
@@ -162,13 +196,11 @@ public class DBOAuthenticationDAOImplTest {
 	
 	@Test
 	public void testGetWithoutToUAcceptance() throws Exception {
-		secretRow.setAgreesToTermsOfUse(false);
-		basicDAO.update(secretRow);
+		touAgreement.setAgreesToTermsOfUse(false);
+		basicDAO.update(touAgreement);
 		
-		// Could do two things here: don't create a TOU record, or create it with
-		// the flag set to false. Do the latter because it's closest to what's here.
 		DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();
-		tou.setPrincipalId(secretRow.getPrincipalId());
+		tou.setPrincipalId(credential.getPrincipalId());
 		tou.setDomain(DomainType.SYNAPSE);
 		tou.setAgreesToTermsOfUse(Boolean.FALSE);
 		basicDAO.createOrUpdate(tou);
@@ -176,22 +208,22 @@ public class DBOAuthenticationDAOImplTest {
 		Session session = authDAO.getSessionTokenIfValid(userId, DomainType.SYNAPSE);
 		assertNotNull(session);
 		
-		Long id = authDAO.getPrincipalIfValid(secretRow.getSessionToken());
+		Long id = authDAO.getPrincipalIfValid(sessionToken.getSessionToken());
 		assertNotNull(id);
 	}
 	
 	@Test
 	public void testSessionTokenRevalidation() throws Exception {
 		// Test fast!  Only one second before expiration!
-		Date now = secretRow.getValidatedOn();
-		secretRow.setValidatedOn(new Date(now.getTime() - DBOAuthenticationDAOImpl.SESSION_EXPIRATION_TIME + 1000));
-		basicDAO.update(secretRow);
+		Date now = sessionToken.getValidatedOn();
+		sessionToken.setValidatedOn(new Date(now.getTime() - DBOAuthenticationDAOImpl.SESSION_EXPIRATION_TIME + 1000));
+		basicDAO.update(sessionToken);
 
 		// Still valid
 		Session session = authDAO.getSessionTokenIfValid(userId, now, DomainType.SYNAPSE);
 		assertNotNull(session);
-		assertEquals(secretRow.getSessionToken(), session.getSessionToken());
-		
+		assertEquals(sessionToken.getSessionToken(), session.getSessionToken());
+
 		// Right on the dot!  Too bad, that's invalid :P
 		now.setTime(now.getTime() + 1000);
 		session = authDAO.getSessionTokenIfValid(userId, now, DomainType.SYNAPSE);
@@ -203,34 +235,34 @@ public class DBOAuthenticationDAOImplTest {
 		assertNull(session);
 
 		// Session is valid again
-		authDAO.revalidateSessionToken(secretRow.getPrincipalId(), DomainType.SYNAPSE);
+		authDAO.revalidateSessionToken(credential.getPrincipalId(), DomainType.SYNAPSE);
 		session = authDAO.getSessionTokenIfValid(userId, DomainType.SYNAPSE);
-		assertEquals(secretRow.getSessionToken(), session.getSessionToken());
+		assertEquals(sessionToken.getSessionToken(), session.getSessionToken());
 	}
 	
 	@Test(expected=UnauthorizedException.class)
 	public void testChangePassword() throws Exception {
 		// The original credentials should authenticate correctly
-		Long principalId = authDAO.checkUserCredentials(userId, secretRow.getPassHash());
-		assertEquals(secretRow.getPrincipalId(), principalId);
+		Long principalId = authDAO.checkUserCredentials(userId, credential.getPassHash());
+		assertEquals(credential.getPrincipalId(), principalId);
 		
 		// Change the password and try to authenticate again
-		authDAO.changePassword(secretRow.getPrincipalId(), "Bibbity Boppity BOO!");
+		authDAO.changePassword(credential.getPrincipalId(), "Bibbity Boppity BOO!");
 		
 		// This time it should fail
-		authDAO.checkUserCredentials(userId, secretRow.getPassHash());
+		authDAO.checkUserCredentials(userId, credential.getPassHash());
 	}
 	
 	@Test
 	public void testSecretKey() throws Exception {
-		Long userId = secretRow.getPrincipalId();
+		Long userId = credential.getPrincipalId();
 		
 		// Getter should work
-		assertEquals(secretRow.getSecretKey(), authDAO.getSecretKey(userId));
+		assertEquals(credential.getSecretKey(), authDAO.getSecretKey(userId));
 		
 		// Setter should work
 		authDAO.changeSecretKey(userId);
-		assertFalse(secretRow.getSecretKey().equals(authDAO.getSecretKey(userId)));
+		assertFalse(credential.getSecretKey().equals(authDAO.getSecretKey(userId)));
 		
 		// Verify that the parent group's etag has changed
 		String changedEtag = userGroupDAO.getEtagForUpdate(userId.toString());
@@ -243,7 +275,7 @@ public class DBOAuthenticationDAOImplTest {
 		byte[] salt = PBKDF2Utils.extractSalt(passHash);
 		
 		// Change the password to a valid one
-		authDAO.changePassword(secretRow.getPrincipalId(), passHash);
+		authDAO.changePassword(credential.getPrincipalId(), passHash);
 		
 		// Compare the salts
 		byte[] passedSalt = authDAO.getPasswordSalt(userId);
@@ -257,7 +289,7 @@ public class DBOAuthenticationDAOImplTest {
 	
 	@Test
 	public void testSetToU() throws Exception {
-		Long userId = secretRow.getPrincipalId();
+		Long userId = credential.getPrincipalId();
 		
 		// Reject the terms
 		authDAO.setTermsOfUseAcceptance(userId, DomainType.SYNAPSE, false);
@@ -306,12 +338,32 @@ public class DBOAuthenticationDAOImplTest {
 				MapSqlParameterSource param = new MapSqlParameterSource();
 				param.addValue("principalId", agg.getId());
 				DBOCredential creds = basicDAO.getObjectByPrimaryKey(DBOCredential.class, param);
-				assertTrue(creds.getAgreesToTermsOfUse());
+				assertTrue(touAgreement.getAgreesToTermsOfUse());
 			}
 		}
 		
 		// Migration admin should have a specific API key
 		String secretKey = authDAO.getSecretKey(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		assertEquals(StackConfiguration.getMigrationAdminAPIKey(), secretKey);
+	}
+	
+	@Test
+	public void testToUIsNotSharedBetweenDomains() throws Exception {
+		// Accept Synapse TOU
+		Long userId = credential.getPrincipalId();
+		authDAO.setTermsOfUseAcceptance(userId, DomainType.SYNAPSE, true);
+		
+		// Bridge is still false, there is no bridge record
+		Boolean result = authDAO.hasUserAcceptedToU(userId, DomainType.BRIDGE);
+		assertFalse(result);
+		
+		// Now there is a Bridge record, still should return false
+		authDAO.setTermsOfUseAcceptance(userId, DomainType.BRIDGE, false);
+		result = authDAO.hasUserAcceptedToU(userId, DomainType.BRIDGE);
+		assertFalse(result);
+		
+		authDAO.setTermsOfUseAcceptance(userId, DomainType.BRIDGE, true);
+		result = authDAO.hasUserAcceptedToU(userId, DomainType.BRIDGE);
+		assertTrue(result);
 	}
 }

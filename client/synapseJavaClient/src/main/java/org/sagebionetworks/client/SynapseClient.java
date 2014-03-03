@@ -188,11 +188,6 @@ public interface SynapseClient extends BaseClient {
 			throws SynapseException;
 	
 	/**
-	 * Log in to a Sage application (currently Synapse or Bridge).
-	 */
-	public Session login(String username, String password, DomainType domain) throws SynapseException;
-	
-	/**
 	 * Log out of Synapse
 	 */
 	public void logout() throws SynapseException;
@@ -209,8 +204,6 @@ public interface SynapseClient extends BaseClient {
 	 */
 	public boolean revalidateSession() throws SynapseException;
 	
-	public boolean revalidateSession(DomainType domain) throws SynapseException;
-
 	/**
 	 * Create a new Entity.
 	 * 
@@ -364,13 +357,15 @@ public interface SynapseClient extends BaseClient {
 	public <T extends Entity> T putEntity(T entity, String activityId)
 			throws SynapseException;
 
-	public <T extends Entity> void deleteEntity(T entity)
-			throws SynapseException;
+	public <T extends Entity> void deleteEntity(T entity) throws SynapseException;
 
-	public <T extends Entity> void deleteAndPurgeEntity(T entity)
-			throws SynapseException;
+	public <T extends Entity> void deleteEntity(T entity, Boolean skipTrashCan) throws SynapseException;
 
 	public void deleteEntityById(String entityId) throws SynapseException;
+
+	public void deleteEntityById(String entityId, Boolean skipTrashCan) throws SynapseException;
+
+	public <T extends Entity> void deleteAndPurgeEntity(T entity) throws SynapseException;
 
 	public void deleteAndPurgeEntityById(String entityId) throws SynapseException;
 
@@ -1208,11 +1203,6 @@ public interface SynapseClient extends BaseClient {
 	public void createUser(NewUser user) throws SynapseException;
 	
 	/**
-	 * Creates a user
-	 */
-	public void createUser(NewUser user, DomainType originClient) throws SynapseException;
-
-	/**
 	 * Changes the registering user's password
 	 */
 	public void changePassword(String sessionToken, String newPassword) throws SynapseException;
@@ -1232,11 +1222,6 @@ public interface SynapseClient extends BaseClient {
 	 * Sends a password reset email to the given user as if request came from Synapse.
 	 */
 	public void sendPasswordResetEmail(String email) throws SynapseException;
-	
-	/**
-	 * Sends a password reset email to the given user
-	 */
-	public void sendPasswordResetEmail(String email, DomainType originClient) throws SynapseException;
 	
 	/**
 	 * Performs OpenID authentication using the set of parameters from an OpenID provider

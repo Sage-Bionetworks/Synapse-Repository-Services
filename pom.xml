@@ -560,6 +560,7 @@
 										<versionRange>[0,)</versionRange>
 										<goals>
 											<goal>jjtree-javacc</goal>
+											<goal>javacc</goal>
 										</goals>
 									</pluginExecutionFilter>
 									<action>
@@ -778,7 +779,7 @@
 		<!-- This is just for "eclipse:eclipse" goal to always attempt downloading 
 			sources -->
 		<downloadSources>true</downloadSources>
-		<gwtVersion>2.4.0</gwtVersion>
+		<gwtVersion>2.5.1</gwtVersion>
 		<guiceVersion>3.0-rc2</guiceVersion>
 		<guavaVersion>10.0.1</guavaVersion>
 		<org.springframework.version>3.0.5.RELEASE

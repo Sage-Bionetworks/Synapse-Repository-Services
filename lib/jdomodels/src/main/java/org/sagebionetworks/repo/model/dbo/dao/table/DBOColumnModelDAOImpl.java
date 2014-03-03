@@ -17,13 +17,11 @@ import java.sql.SQLException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-import java.util.UUID;
 
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.table.ColumnModelUtlis;
@@ -31,8 +29,6 @@ import org.sagebionetworks.repo.model.dbo.persistence.table.DBOBoundColumn;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOBoundColumnOrdinal;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOColumnModel;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -67,11 +63,8 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 	private SimpleJdbcTemplate simpleJdbcTemplate;
 	@Autowired
 	private IdGenerator idGenerator;
-	@Autowired
-	TransactionalMessenger transactionalMessanger;
 	
 	private static RowMapper<DBOColumnModel> ROW_MAPPER = new DBOColumnModel().getTableMapping();
-	private static RowMapper<DBOBoundColumn> BOUND_ROW_MAPPER = new DBOBoundColumn().getTableMapping();
 	private static RowMapper<String> ENTITY_ID_MAPPER = new RowMapper<String>() {
 		@Override
 		public String mapRow(ResultSet rs, int rowNum) throws SQLException {
@@ -156,7 +149,7 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 		if(newCurrentColumnIds.size() < 1) throw new IllegalArgumentException("Must include at least one column to bind to an object");
 		if(objectIdString == null) throw new IllegalArgumentException("objectId cannot be null");
 		// Get each model to valid they exist.
-		List<ColumnModel> models = getColumnModel(newCurrentColumnIds);
+		getColumnModel(newCurrentColumnIds);
 		Long objectId = KeyFactory.stringToKey(objectIdString);
 		try {
 			// first bind these columns to the object. This binding is permanent and can only grow over time.
@@ -171,9 +164,6 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 			List<DBOBoundColumnOrdinal> ordinal = ColumnModelUtlis.createDBOBoundColumnOrdinalList(objectId, newCurrentColumnIds);
 			// this is just an insert
 			basicDao.createBatch(ordinal);
-			
-			// Fire a change event
-			transactionalMessanger.sendMessageAfterCommit(objectId.toString(), ObjectType.TABLE, UUID.randomUUID().toString(), ChangeType.CREATE);
 			return newCurrentColumnIds.size();
 		} catch (IllegalArgumentException e) {
 			// Check to see if the COL_MODEL_FK constraint was triggered.

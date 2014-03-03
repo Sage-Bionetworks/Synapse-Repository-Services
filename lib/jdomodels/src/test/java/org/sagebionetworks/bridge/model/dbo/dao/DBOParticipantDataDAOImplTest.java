@@ -23,6 +23,7 @@ import org.sagebionetworks.bridge.model.data.ParticipantDataRow;
 import org.sagebionetworks.bridge.model.data.value.ParticipantDataBooleanValue;
 import org.sagebionetworks.bridge.model.data.value.ParticipantDataDatetimeValue;
 import org.sagebionetworks.bridge.model.data.value.ParticipantDataDoubleValue;
+import org.sagebionetworks.bridge.model.data.value.ParticipantDataEventValue;
 import org.sagebionetworks.bridge.model.data.value.ParticipantDataLabValue;
 import org.sagebionetworks.bridge.model.data.value.ParticipantDataLongValue;
 import org.sagebionetworks.bridge.model.data.value.ParticipantDataStringValue;
@@ -363,6 +364,13 @@ public class DBOParticipantDataDAOImplTest extends TestBase {
 		labValue.setNormalizedValue(4.8);
 		builder.put("LAB", labValue);
 
+		ParticipantDataEventValue eventValue = new ParticipantDataEventValue();
+		eventValue.setName("name");
+		eventValue.setGrouping("grouping");
+		eventValue.setStart(100L);
+		eventValue.setEnd(200L);
+		builder.put("EVENT", eventValue);
+
 		ParticipantDataRow row = new ParticipantDataRow();
 		row.setData(builder.build());
 		ParticipantDataRow nullRow = new ParticipantDataRow();
@@ -382,6 +390,7 @@ public class DBOParticipantDataDAOImplTest extends TestBase {
 		assertEquals(doubleValue, newRowSet.get(0).getData().get("DOUBLE"));
 		assertEquals(datetimeValue, newRowSet.get(0).getData().get("DATETIME"));
 		assertEquals(labValue, newRowSet.get(0).getData().get("LAB"));
+		assertEquals(eventValue, newRowSet.get(0).getData().get("EVENT"));
 
 		assertNull(newRowSet.get(1).getData().get("STRING"));
 		assertNull(newRowSet.get(1).getData().get("BOOLEAN"));
@@ -389,6 +398,7 @@ public class DBOParticipantDataDAOImplTest extends TestBase {
 		assertNull(newRowSet.get(1).getData().get("DOUBLE"));
 		assertNull(newRowSet.get(1).getData().get("DATETIME"));
 		assertNull(newRowSet.get(1).getData().get("LAB"));
+		assertNull(newRowSet.get(1).getData().get("EVENT"));
 
 	}
 

@@ -6,6 +6,14 @@
             "type": "string",
             "description": "The label for this time series"
         },
+        "firstDate":{
+            "type": "integer",
+            "description": "The earliest time in this time series"
+        },
+        "lastDate":{
+            "type": "integer",
+            "description": "The latest time in this time series or null for today"
+        },
         "dateIndex":{
             "type": "integer",
             "description": "The index in the columns where the date for a row is found"
@@ -22,6 +30,13 @@
         	"description": "The list of rows in the series",
 	       	"items":{
 	        	"$ref": "org.sagebionetworks.bridge.model.timeseries.TimeSeriesRow"
+        	}
+        },
+        "events":{
+        	"type": "array",
+        	"description": "The list of events in the series",
+	       	"items":{
+	        	"$ref": "org.sagebionetworks.bridge.model.data.value.ParticipantDataEventValue"
         	}
         },
         "anchors":{

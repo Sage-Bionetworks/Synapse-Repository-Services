@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBODateAnnotation;
 import org.sagebionetworks.repo.model.dbo.persistence.DBODoubleAnnotation;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOLongAnnotation;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOStringAnnotation;
+import org.sagebionetworks.repo.model.evaluation.AnnotationsDAO;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 
 public class AnnotationDBOUtils {
@@ -146,7 +147,7 @@ public class AnnotationDBOUtils {
 		dbo.setAttribute(anno.getKey());
 		dbo.setValue(anno.getValue());
 		dbo.setOwnerId(ownerId);
-		dbo.setIsPrivate(anno.getIsPrivate());
+		dbo.setIsPrivate(anno.getIsPrivate()==null? AnnotationsDAO.DEFAULT_ANNOTATION_PRIVACY: anno.getIsPrivate());
 		return dbo;
 	}
 
@@ -157,7 +158,7 @@ public class AnnotationDBOUtils {
 		StringAnnotationDBO dbo = new StringAnnotationDBO();
 		dbo.setAttribute(anno.getKey());
 		dbo.setOwnerId(ownerId);
-		dbo.setIsPrivate(anno.getIsPrivate());
+		dbo.setIsPrivate(anno.getIsPrivate()==null? AnnotationsDAO.DEFAULT_ANNOTATION_PRIVACY: anno.getIsPrivate());
 		
 		// we must manually handle different typed Annos, since the AnnotationBase interface
 		// does not specify the getValue() method
@@ -190,7 +191,7 @@ public class AnnotationDBOUtils {
 		dbo.setAttribute(anno.getKey());
 		dbo.setValue(anno.getValue());
 		dbo.setOwnerId(ownerId);
-		dbo.setIsPrivate(anno.getIsPrivate());
+		dbo.setIsPrivate(anno.getIsPrivate()==null? AnnotationsDAO.DEFAULT_ANNOTATION_PRIVACY: anno.getIsPrivate());
 		return dbo;
 	}
 	

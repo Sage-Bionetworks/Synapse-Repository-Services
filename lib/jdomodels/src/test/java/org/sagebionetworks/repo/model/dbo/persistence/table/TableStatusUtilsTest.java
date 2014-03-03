@@ -14,7 +14,8 @@ public class TableStatusUtilsTest {
 	@Test
 	public void testRoundTrip(){
 		TableStatus dto = new TableStatus();
-		dto.setChangedOn(new Date(1));
+		dto.setStartedOn(new Date(1));
+		dto.setChangedOn(new Date(2));
 		dto.setErrorDetails("This is the longer error details");
 		dto.setErrorMessage("This is the short message");
 		dto.setTableId("123");
@@ -23,6 +24,7 @@ public class TableStatusUtilsTest {
 		dto.setProgresssTotal(100L);
 		dto.setState(TableState.PROCESSING_FAILED);
 		dto.setTotalTimeMS(10L);
+		dto.setResetToken("reset token");
 		
 		// to the DBO 
 		DBOTableStatus dbo = TableStatusUtils.createDBOFromDTO(dto);

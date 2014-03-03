@@ -822,6 +822,14 @@ public class StackConfiguration {
 				StackConfiguration.getStackInstance());
 	}
 
+	public String getTableUpdateQueueName() {
+		return String.format(StackConstants.TABLE_CLUSTER_QUEUE_NAME_TEMPLATE,
+				StackConfiguration.getStack(),
+				StackConfiguration.getStackInstance());
+	}
+
+	
+	
 	/**
 	 * This is the size of a single file transfer memory block used as a buffer.
 	 * Note: Due to S3 limitations on the minimum size of a single part of a
@@ -1076,6 +1084,12 @@ public class StackConfiguration {
 		return Integer
 				.parseInt(configuration
 						.getProperty("org.sagebionetworks.semaphore.gated.max.runners.principal.header.filler"));
+	}
+	
+	public Integer getSemaphoreGatedMaxRunnersTableCluster() {
+		return Integer
+				.parseInt(configuration
+						.getProperty("org.sagebionetworks.semaphore.gated.max.runners.table.cluster"));
 	}
 	/**
 	 * The maximum number of workers in the cluster that will process

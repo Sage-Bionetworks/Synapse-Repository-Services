@@ -12,11 +12,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageReceiver;
-import org.sagebionetworks.evaluation.dao.AnnotationsDAO;
-import org.sagebionetworks.evaluation.dao.EvaluationDAO;
-import org.sagebionetworks.evaluation.dao.ParticipantDAO;
-import org.sagebionetworks.evaluation.dao.SubmissionDAO;
-import org.sagebionetworks.evaluation.dao.SubmissionStatusDAO;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Participant;
@@ -31,6 +26,11 @@ import org.sagebionetworks.repo.model.annotation.Annotations;
 import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
 import org.sagebionetworks.repo.model.annotation.LongAnnotation;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
+import org.sagebionetworks.repo.model.evaluation.AnnotationsDAO;
+import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
+import org.sagebionetworks.repo.model.evaluation.ParticipantDAO;
+import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
+import org.sagebionetworks.repo.model.evaluation.SubmissionStatusDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -79,7 +79,7 @@ public class AnnotationsWorkerIntegrationTest {
 		userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		
 		// Before we start, make sure the queue is empty
-		emptyQueue();
+		annotationsQueueMessageReceiver.emptyQueue();
 		
 		// create a node
   		Node node = new Node();
@@ -148,25 +148,6 @@ public class AnnotationsWorkerIntegrationTest {
 		try {
 			evaluationDAO.delete(evalId);
 		} catch (Exception e) {};
-	}
-
-	/**
-	 * Empty the queue by processing all messages on the queue.
-	 * @throws InterruptedException
-	 */
-	public void emptyQueue() throws InterruptedException {
-		long start = System.currentTimeMillis();
-		int count = 0;
-		do {
-			count = annotationsQueueMessageReceiver.triggerFired();
-			System.out.println("Emptying the annotations message queue, there were at least: " + 
-					count + " messages on the queue");
-			Thread.yield();
-			long elapse = System.currentTimeMillis() - start;
-			if (elapse > MAX_WAIT * 5) {
-				throw new RuntimeException("Timed-out waiting process all messages that were on the queue before the tests started.");
-			}
-		} while(count > 0);
 	}
 	
 	

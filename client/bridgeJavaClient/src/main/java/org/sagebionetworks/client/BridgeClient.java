@@ -1,6 +1,7 @@
 package org.sagebionetworks.client;
 
 import java.io.UnsupportedEncodingException;
+import java.util.Date;
 import java.util.List;
 
 import org.sagebionetworks.bridge.model.Community;
@@ -13,9 +14,9 @@ import org.sagebionetworks.bridge.model.data.ParticipantDataStatusList;
 import org.sagebionetworks.bridge.model.timeseries.TimeSeriesTable;
 import org.sagebionetworks.bridge.model.versionInfo.BridgeVersionInfo;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UserGroupHeader;
-import org.sagebionetworks.repo.model.IdList;
 
 /**
  * Abstraction for Synapse.
@@ -189,6 +190,10 @@ public interface BridgeClient extends BaseClient {
 	 */
 	public ParticipantDataRow getParticipantDataRow(String participantDataDescriptorId, Long rowId) throws SynapseException;
 
+	public List<ParticipantDataRow> getCurrentRows(String participantDataDescriptorId) throws SynapseException;
+
+	public List<ParticipantDataRow> getHistoryRows(String participantDataDescriptorId, Date before, Date after) throws SynapseException;
+
 	/**
 	 * retrieve all raw participant data
 	 * 
@@ -242,6 +247,5 @@ public interface BridgeClient extends BaseClient {
 	 * @throws SynapseException
 	 * @throws UnsupportedEncodingException
 	 */
-	public TimeSeriesTable getTimeSeries(String participantDataDescriptorId, List<String> columnNames) throws SynapseException,
-			UnsupportedEncodingException;
+	public TimeSeriesTable getTimeSeries(String participantDataDescriptorId, List<String> columnNames) throws SynapseException;
 }

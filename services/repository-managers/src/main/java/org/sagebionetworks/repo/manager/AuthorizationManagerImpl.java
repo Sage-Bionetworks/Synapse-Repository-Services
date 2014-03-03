@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.manager;
 
 import java.util.List;
 
-import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -28,6 +27,7 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.dao.AuthorizationUtils;
+import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -204,7 +204,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	@Override
 	public boolean canMoveEntity(UserInfo userInfo, String parentId) throws NotFoundException {
 		if (isACTTeamMemberOrAdmin(userInfo)) return true;
-		List<String> ancestorIds = AccessRequirementUtil.getNodeAncestorIds(nodeDao, parentId, false);
+		List<String> ancestorIds = AccessRequirementUtil.getNodeAncestorIds(nodeDao, parentId, true);
 		List<AccessRequirement> allRequirementsForSubject = accessRequirementDAO.getForSubject(ancestorIds, RestrictableObjectType.ENTITY);
 		return allRequirementsForSubject.size()==0;
 	}

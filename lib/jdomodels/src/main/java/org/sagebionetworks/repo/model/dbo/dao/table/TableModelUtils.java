@@ -526,6 +526,7 @@ public class TableModelUtils {
 		dto.setCreatedOn(new Date(dbo.getCreatedOn()));
 		dto.setBucket(dbo.getBucket());
 		dto.setKey(dbo.getKey());
+		dto.setRowCount(dbo.getRowCount());
 		return dto;
 	}
 	
@@ -545,6 +546,7 @@ public class TableModelUtils {
 		dbo.setCreatedOn(dto.getCreatedOn().getTime());
 		dbo.setBucket(dto.getBucket());
 		dbo.setKey(dto.getKey());
+		dbo.setRowCount(dto.getRowCount());
 		return dbo;
 	}
 	

@@ -109,7 +109,7 @@ public class QueryDAOImpl implements QueryDAO {
 	/**
 	 * Build the two query strings and prepare the query parameters.
 	 */
-	private void buildQueryStrings(BasicQuery userQuery, QueryObjectType objType, String objId,
+	public static void buildQueryStrings(BasicQuery userQuery, QueryObjectType objType, String objId,
 			UserInfo userInfo, boolean includePrivate, StringBuilder countQuery, 
 			StringBuilder fullQuery, Map<String, Object> queryParams) throws DatastoreException {		
 		List<String> aliases = new ArrayList<String>();
@@ -152,7 +152,7 @@ public class QueryDAOImpl implements QueryDAO {
 	/**
 	 * Build the SELECT clause
 	 */
-	private String buildSelect(boolean isCount) {
+	private static String buildSelect(boolean isCount) {
 		StringBuilder builder = new StringBuilder();
 		builder.append("SELECT ");
 		if (isCount) {
@@ -170,7 +170,7 @@ public class QueryDAOImpl implements QueryDAO {
 	/**
 	 * Build the FROM clause
 	 */
-	private StringBuilder buildFrom(QueryObjectType queryObjType, String objId, 
+	private static StringBuilder buildFrom(QueryObjectType queryObjType, String objId, 
 			List<String> aliases, BasicQuery query) {
 		StringBuilder builder = new StringBuilder();
 		builder.append("FROM");
@@ -214,7 +214,7 @@ public class QueryDAOImpl implements QueryDAO {
 	/**
 	 * Build the WHERE clause
 	 */
-	private StringBuilder buildWhere(QueryObjectType queryObjType, List<String> aliases, 
+	private static StringBuilder buildWhere(QueryObjectType queryObjType, List<String> aliases, 
 			BasicQuery query, Map<String, Object> queryParams, boolean includePrivate) 
 			throws DatastoreException {
 		StringBuilder builder = new StringBuilder();
@@ -272,7 +272,7 @@ public class QueryDAOImpl implements QueryDAO {
 	/**
 	 * Build the ORDER BY clause
 	 */
-	private StringBuilder buildSort(BasicQuery query) throws DatastoreException {		
+	private static StringBuilder buildSort(BasicQuery query) throws DatastoreException {		
 		StringBuilder builder = new StringBuilder();
 		if (query.getSort() != null) {	
 			String direction = query.isAscending() ? "asc" : "desc";
@@ -287,10 +287,12 @@ public class QueryDAOImpl implements QueryDAO {
 	}
 
 	private boolean canAccess(UserInfo userInfo, String objectId, QueryObjectType objType) {
+		if (userInfo.isAdmin()) return true;
 		return accessControlListDAO.canAccess(userInfo.getGroups(), objectId, getObjectTypeFromQueryObjectType(objType), ACCESS_TYPE.READ);
 	}
 
 	private boolean canAccessPrivate(UserInfo userInfo, String objectId, QueryObjectType objType) {
+		if (userInfo.isAdmin()) return true;
 		return accessControlListDAO.canAccess(
 				userInfo.getGroups(), objectId, getObjectTypeFromQueryObjectType(objType), objType.getPrivateAccessType());
 	}

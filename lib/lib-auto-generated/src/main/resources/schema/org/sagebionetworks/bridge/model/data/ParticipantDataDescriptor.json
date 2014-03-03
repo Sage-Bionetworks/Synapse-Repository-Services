@@ -14,6 +14,10 @@
 			"type": "string",
 			"description": "The optional description for this participant data descriptor"
 		},
+    	"type": {
+			"type": "string",
+			"description": "The optional type (hint for UI) of this participant data descriptor"
+		},
         "repeatType": {
 			"type": "string",
 			"description": "The repeat type of this data type",
@@ -40,9 +44,9 @@
 			"type": "string",
 			"description": "The (optional) name of column that holds the point of time or start of a time range used in time series"
 		},
-        "datetimeEndColumnName": {
+        "eventColumnName": {
 			"type": "string",
-			"description": "The (optional) name of column that holds the end of a time range used in time series"
+			"description": "The (optional) name of column that holds an event type value"
 		}
     }
 }

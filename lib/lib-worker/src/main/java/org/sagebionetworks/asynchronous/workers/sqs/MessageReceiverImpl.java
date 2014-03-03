@@ -252,7 +252,7 @@ public class MessageReceiverImpl implements MessageReceiver {
 		while(currentWorkers.size() > 0){
 			long elapase = System.currentTimeMillis()-startTime;
 			if(elapase > visibilityMs){
-				log.error("Failed to process all messages within the visibilty window.");
+				log.error("Failed to process all messages within the visibility window.");
 				break;
 			}
 			// Once a worker is done we remove it.
@@ -308,6 +308,20 @@ public class MessageReceiverImpl implements MessageReceiver {
 			// Create the thread pool
 			executors = Executors.newFixedThreadPool(maxNumberOfWorkerThreads);
 		}
+	}
+
+	@Override
+	public void emptyQueue() throws InterruptedException {
+		long start = System.currentTimeMillis();
+		int count = 0;
+		do{
+			count = triggerFired();
+			log.debug("Emptying the file message queue, there were at least: "+count+" messages on the queue");
+			Thread.yield();
+			long elapse = System.currentTimeMillis()-start;
+			long timeoutMS = visibilityTimeoutSec*1000*10;
+			if(elapse > timeoutMS) throw new RuntimeException("Timed-out waiting process all messages that were on the queue.");
+		}while(count > 0);
 	}
 
 }

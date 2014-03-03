@@ -16,12 +16,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
-import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.message.ChangeMessage;
-import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.Row;
@@ -40,10 +35,7 @@ public class TableRowTruthDAOImplTest {
 	
 	@Autowired
 	private TableRowTruthDAO tableRowTruthDao;
-	
-	@Autowired
-	private DBOChangeDAO changeDAO;
-	
+		
 	private String creatorUserGroupId;
 
 	@Before
@@ -153,6 +145,7 @@ public class TableRowTruthDAOImplTest {
 		assertNotNull(zero.getBucket());
 		assertNotNull(zero.getKey());
 		assertNotNull(zero.getEtag());
+		assertEquals(new Long(5), zero.getRowCount());
 		// Next is should be version one.
 		// The first change should be version zero
 		TableRowChange one = results.get(1);
@@ -469,32 +462,4 @@ public class TableRowTruthDAOImplTest {
 		}
 	}
 	
-	
-	@Test
-	public void testAppendMessageSent() throws IOException, NotFoundException{
-		long startNumber = changeDAO.getCurrentChangeNumber();
-		// Create some test column models
-		List<ColumnModel> models = TableModelUtils.createOneOfEachType();
-		// create some test rows.
-		List<Row> rows = TableModelUtils.createRows(models, 5);
-		String tableId = "syn123";
-		String changeId = KeyFactory.stringToKey(tableId).toString();
-		RowSet set = new RowSet();
-		set.setHeaders(TableModelUtils.getHeaders(models));
-		set.setRows(rows);
-		set.setTableId(tableId);
-		// Append this change set
-		RowReferenceSet refSet = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, models, set);
-		assertNotNull(refSet);
-		assertNotNull(refSet.getEtag());
-		// check for a change number
-		List<ChangeMessage> changes = changeDAO.listChanges(startNumber+1, ObjectType.TABLE, Long.MAX_VALUE);
-		assertNotNull(changes);
-		assertEquals("Appending rows to a table did not fire a change message.",1, changes.size());
-		ChangeMessage message = changes.get(0);
-		assertNotNull(message);
-		assertEquals("The change message etag does not match the etag returned from the change.",refSet.getEtag(), message.getObjectEtag());
-		assertEquals(changeId, message.getObjectId());
-		assertEquals(ChangeType.UPDATE, message.getChangeType());
-	}
 }

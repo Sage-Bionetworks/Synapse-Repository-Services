@@ -208,9 +208,7 @@ public class AdministrationServiceImpl implements AdministrationService  {
 			cred.setPassHash(PBKDF2Utils.hashPassword(userSpecs.getPassword(), null));
 		}
 		if (userSpecs.getSession() != null) {
-			cred.setSessionToken(userSpecs.getSession().getSessionToken());
-			cred.setAgreesToTermsOfUse(userSpecs.getSession().getAcceptsTermsOfUse());
-			cred.setValidatedOn(new Date());
+			Date date = new Date();
 
 			touAgreement = new DBOTermsOfUseAgreement();
 			touAgreement.setDomain(DomainType.SYNAPSE);
@@ -218,7 +216,7 @@ public class AdministrationServiceImpl implements AdministrationService  {
 
 			token = new DBOSessionToken();
 			token.setSessionToken(userSpecs.getSession().getSessionToken());
-			token.setValidatedOn(new Date());
+			token.setValidatedOn(date);
 			token.setDomain(DomainType.SYNAPSE);
 		}
 		

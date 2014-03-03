@@ -89,7 +89,6 @@ public class AccessApprovalManagerImplAutoWiredTest {
 	public void before() throws Exception {
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		DBOCredential cred = new DBOCredential();
-		cred.setAgreesToTermsOfUse(true);
 		cred.setSecretKey("");
 		NewUser nu = new NewUser();
 		nu.setEmail(UUID.randomUUID().toString() + "@test.com");

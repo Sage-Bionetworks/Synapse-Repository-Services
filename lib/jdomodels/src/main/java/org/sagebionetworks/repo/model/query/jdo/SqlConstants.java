@@ -371,6 +371,7 @@ public class SqlConstants {
 	public static final String COL_TABLE_ROW_CREATED_ON		= "CREATED_ON";
 	public static final String COL_TABLE_ROW_BUCKET			= "S3_BUCKET";
 	public static final String COL_TABLE_ROW_KEY			= "S3_KEY";
+	public static final String COL_TABLE_ROW_COUNT			= "ROW_COUNT";
 	public static final String DDL_TABLE_ROW_CHANGE = "schema/TableRowChange-ddl.sql";
 	
 	// The bound column model table
@@ -391,6 +392,8 @@ public class SqlConstants {
 	public static final String TABLE_STATUS							= "TABLE_STATUS";
 	public static final String COL_TABLE_STATUS_ID					= "TABLE_ID";
 	public static final String COL_TABLE_STATUS_STATE				= "STATE";
+	public static final String COL_TABLE_STATUS_RESET_TOKEN			= "RESET_TOKEN";
+	public static final String COL_TABLE_STATUS_STARTED_ON			= "STARTED_ON";
 	public static final String COL_TABLE_STATUS_CHANGE_ON			= "CHANGED_ON";
 	public static final String COL_TABLE_STATUS_PROGRESS_MESSAGE	= "PROGRESS_MESSAGE";
 	public static final String COL_TABLE_STATUS_PROGRESS_CURRENT	= "PROGRESS_CURRENT";
@@ -523,11 +526,8 @@ public class SqlConstants {
 	// Credential
 	public static final String TABLE_CREDENTIAL             = "CREDENTIAL";
 	public static final String COL_CREDENTIAL_PRINCIPAL_ID  = "PRINCIPAL_ID";
-	public static final String COL_CREDENTIAL_VALIDATED_ON  = "VALIDATED_ON";
-	public static final String COL_CREDENTIAL_SESSION_TOKEN = "SESSION_TOKEN";
 	public static final String COL_CREDENTIAL_PASS_HASH     = "PASS_HASH";
 	public static final String COL_CREDENTIAL_SECRET_KEY    = "SECRET_KEY";
-	public static final String COL_CREDENTIAL_TOU           = "AGREES_TO_TERMS_OF_USE";
 	public static final String DDL_CREDENTIAL               = "schema/Credential-ddl.sql";
 	
 	// Session token
@@ -601,10 +601,11 @@ public class SqlConstants {
 	public static final String COL_PARTICIPANT_DATA_DESCRIPTOR_ID = "ID";
 	public static final String COL_PARTICIPANT_DATA_DESCRIPTOR_NAME = "NAME";
 	public static final String COL_PARTICIPANT_DATA_DESCRIPTOR_DESCRIPTION = "DESCRIPTION";
+	public static final String COL_PARTICIPANT_DATA_DESCRIPTOR_TYPE = "TYPE";
 	public static final String COL_PARTICIPANT_DATA_DESCRIPTOR_REPEAT_TYPE = "REPEAT_TYPE";
 	public static final String COL_PARTICIPANT_DATA_DESCRIPTOR_FREQUENCY = "FREQUENCY";
 	public static final String COL_PARTICIPANT_DATA_DESCRIPTOR_DATETIME_START_COLUMN_NAME = "DATETIME_START_COLUMN_NAME";
-	public static final String COL_PARTICIPANT_DATA_DESCRIPTOR_DATETIME_END_COLUMN_NAME = "DATETIME_END_COLUMN_NAME";
+	public static final String COL_PARTICIPANT_DATA_DESCRIPTOR_EVENT_COLUMN_NAME = "EVENT_COLUMN_NAME";
 
 	// Participant data sets column descriptor
 	public static final String TABLE_PARTICIPANT_DATA_COLUMN_DESCRIPTOR = "PARTICIPANT_DATA_COLUMN_DESCRIPTOR";
