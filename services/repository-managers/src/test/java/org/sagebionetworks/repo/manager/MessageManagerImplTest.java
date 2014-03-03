@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -260,6 +261,14 @@ public class MessageManagerImplTest {
 		MessageToUser aMessage = createMessage(testUser, StubAmazonSimpleEmailServiceClient.MESSAGE_SUBJECT_FOR_FAILURE, 
 				new HashSet<String>() {{add(testUserId); add(otherTestUserId);}}, null);
 		
+		QueryResults<MessageBundle> inbox = null;
+		inbox = messageManager.getInbox(testUser, Collections.singletonList(MessageStatusType.UNREAD), MessageSortBy.SEND_DATE, true, 100, 0);
+		int initialTestUserInboxSize = 1;
+		assertEquals(initialTestUserInboxSize, inbox.getTotalNumberOfResults());
+		int initialOtherTestUserInboxSize = 1;
+		inbox = messageManager.getInbox(otherTestUser, Collections.singletonList(MessageStatusType.UNREAD), MessageSortBy.SEND_DATE, true, 100, 0);
+		assertEquals(initialOtherTestUserInboxSize, inbox.getTotalNumberOfResults());
+		
 		// now send the message
 		List<String> errors = messageManager.processMessage(aMessage.getId());
 		
@@ -269,6 +278,12 @@ public class MessageManagerImplTest {
 			assertTrue(message.indexOf(StubAmazonSimpleEmailServiceClient.TRANSMISSION_FAILURE)>=0);
 		}
 		
+		// even though the message is not sent by email, it does appear in the in-box
+		inbox = messageManager.getInbox(testUser, Collections.singletonList(MessageStatusType.UNREAD), MessageSortBy.SEND_DATE, true, 100, 0);
+		assertEquals(initialTestUserInboxSize+1, inbox.getTotalNumberOfResults());
+		inbox = messageManager.getInbox(otherTestUser, Collections.singletonList(MessageStatusType.UNREAD), MessageSortBy.SEND_DATE, true, 100, 0);
+		assertEquals(initialOtherTestUserInboxSize+1, inbox.getTotalNumberOfResults());
+
 		// now send a second time
 		errors = messageManager.processMessage(aMessage.getId());
 		
