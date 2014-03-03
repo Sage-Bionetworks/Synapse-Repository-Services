@@ -13,7 +13,7 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 
 /**
- * The DBO object for messages.
+ * The DBO object for the status of the received message, with respect to each recipient.
  */
 public class DBOMessageStatus implements MigratableDatabaseObject<DBOMessageStatus, DBOMessageStatus> {
 	

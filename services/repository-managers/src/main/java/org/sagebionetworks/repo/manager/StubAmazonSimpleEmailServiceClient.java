@@ -153,11 +153,16 @@ public class StubAmazonSimpleEmailServiceClient implements AmazonSimpleEmailServ
 			throws AmazonServiceException, AmazonClientException {
 		return null;
 	}
+	
+	public static final String MESSAGE_SUBJECT_FOR_FAILURE = "generatefailure";
+	public static final String TRANSMISSION_FAILURE = "transmission failure";
 
 	@Override
 	public SendEmailResult sendEmail(SendEmailRequest sendEmailRequest)
 			throws AmazonServiceException, AmazonClientException {
-		System.out.println("Intercepted email: " + sendEmailRequest);
+		if (sendEmailRequest.getMessage().getSubject().getData().toLowerCase().indexOf(MESSAGE_SUBJECT_FOR_FAILURE)>=0) {
+			throw new RuntimeException(TRANSMISSION_FAILURE);
+		}
 		return null;
 	}
 
