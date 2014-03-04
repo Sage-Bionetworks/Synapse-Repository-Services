@@ -133,6 +133,7 @@ TOKEN [IGNORE_CASE]: {
 | < escape: "ESCAPE">
 | < _false: "FALSE">
 | < from: "FROM">
+| < group_by : "GROUP BY">
 | < interval: "INTERVAL">
 | < in: "IN">
 | < is: "IS">
@@ -142,7 +143,6 @@ TOKEN [IGNORE_CASE]: {
 | < not: "NOT" >
 | < null_specification: "NULL" >
 | < or: "OR" >
-| < overlaps: "OVERLAPS" >
 | < select: "SELECT" >
 | < sum: "SUM" >
 | < syn: "SYN" >
@@ -383,10 +383,13 @@ TableExpression tableExpression():
 {
 	FromClause fromClause = null;
 	WhereClause whereClause = null;
+	GroupByClause groupByClause = null;
 }
 {
-	fromClause = fromClause() [ whereClause = whereClause() ]
-	{ return new TableExpression(fromClause, whereClause); }
+	fromClause = fromClause() 
+	[ whereClause = whereClause() ]
+	[ groupByClause = groupByClause() ]
+	{ return new TableExpression(fromClause, whereClause, groupByClause); }
 }
 FromClause fromClause():
 {
@@ -704,4 +707,31 @@ TruthValue truthValue():
 	<_true> { return TruthValue.TRUE; }
 	| <_false> { return TruthValue.FALSE; }
 	| <unknown> { return TruthValue.UNKNOWN; }
+}
+GroupByClause groupByClause():
+{
+	GroupingColumnReferenceList groupingColumnReferenceList = null;
+}
+{
+	<group_by> groupingColumnReferenceList = groupingColumnReferenceList()
+	{ return new GroupByClause(groupingColumnReferenceList);}
+}
+GroupingColumnReferenceList groupingColumnReferenceList():
+{
+	GroupingColumnReferenceList groupingColumnReferenceList = new GroupingColumnReferenceList();
+	GroupingColumnReference groupingColumnReference;
+}
+{
+	groupingColumnReference = groupingColumnReference() { groupingColumnReferenceList.addGroupingColumnReference(groupingColumnReference); }
+	 (
+	 	<comma> groupingColumnReference = groupingColumnReference() { groupingColumnReferenceList.addGroupingColumnReference(groupingColumnReference); }
+	 )*
+	 { return groupingColumnReferenceList; } 
+}
+GroupingColumnReference groupingColumnReference():
+{
+	ColumnReference columnReference = null;
+}
+{
+	columnReference = columnReference() { return new GroupingColumnReference(columnReference); }
 }

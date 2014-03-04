@@ -7,11 +7,13 @@ public class TableExpression implements SQLElement {
 
 	FromClause fromClause;
 	WhereClause whereClause;
+	GroupByClause groupByClause;
 
-	public TableExpression(FromClause fromClause, WhereClause whereClause) {
+	public TableExpression(FromClause fromClause, WhereClause whereClause, GroupByClause groupByClause) {
 		super();
 		this.fromClause = fromClause;
 		this.whereClause = whereClause;
+		this.groupByClause = groupByClause;
 	}
 
 	public WhereClause getWhereClause() {
@@ -22,12 +24,20 @@ public class TableExpression implements SQLElement {
 		return fromClause;
 	}
 
+	public GroupByClause getGroupByClause() {
+		return groupByClause;
+	}
+
 	@Override
 	public void toSQL(StringBuilder builder) {
 		fromClause.toSQL(builder);
 		if(whereClause != null){
 			builder.append(" ");
 			whereClause.toSQL(builder);
+		}
+		if(groupByClause != null){
+			builder.append(" ");
+			groupByClause.toSQL(builder);
 		}
 	}
 
