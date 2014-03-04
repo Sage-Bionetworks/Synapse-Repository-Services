@@ -8,12 +8,16 @@ public class TableExpression implements SQLElement {
 	FromClause fromClause;
 	WhereClause whereClause;
 	GroupByClause groupByClause;
+	OrderByClause orderByClause;
+	Pagination pagination;
 
-	public TableExpression(FromClause fromClause, WhereClause whereClause, GroupByClause groupByClause) {
+	public TableExpression(FromClause fromClause, WhereClause whereClause, GroupByClause groupByClause, OrderByClause orderByClause, Pagination pagination) {
 		super();
 		this.fromClause = fromClause;
 		this.whereClause = whereClause;
 		this.groupByClause = groupByClause;
+		this.orderByClause = orderByClause;
+		this.pagination = pagination;
 	}
 
 	public WhereClause getWhereClause() {
@@ -28,6 +32,10 @@ public class TableExpression implements SQLElement {
 		return groupByClause;
 	}
 
+	public Pagination getPagination() {
+		return pagination;
+	}
+
 	@Override
 	public void toSQL(StringBuilder builder) {
 		fromClause.toSQL(builder);
@@ -38,6 +46,14 @@ public class TableExpression implements SQLElement {
 		if(groupByClause != null){
 			builder.append(" ");
 			groupByClause.toSQL(builder);
+		}
+		if(orderByClause != null){
+			builder.append(" ");
+			orderByClause.toSQL(builder);
+		}
+		if(pagination != null){
+			builder.append(" ");
+			pagination.toSQL(builder);
 		}
 	}
 

@@ -565,4 +565,10 @@ public class TableQueryParserTest {
 		assertEquals("SELECT foo, COUNT(bar) FROM syn456 GROUP BY foo", sql);
 	}
 
+	@Test
+	public void testQueryAllParts() throws ParseException{
+		QuerySpecification element = TableQueryParser.parserQuery("select foo, count(bar) from syn456 where bar = 'cat''s' group by foo order by bar limit 1 offset 2");
+		String sql = toSQL(element);
+		assertEquals("SELECT foo, COUNT(bar) FROM syn456 WHERE bar = 'cat''s' GROUP BY foo ORDER BY bar LIMIT 1 OFFSET 2", sql);
+	}
 }

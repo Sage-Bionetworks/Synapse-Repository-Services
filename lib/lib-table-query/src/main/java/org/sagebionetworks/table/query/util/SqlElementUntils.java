@@ -28,6 +28,9 @@ import org.sagebionetworks.table.query.model.RowValueConstructorElement;
 import org.sagebionetworks.table.query.model.RowValueConstructorList;
 import org.sagebionetworks.table.query.model.SearchCondition;
 import org.sagebionetworks.table.query.model.SelectList;
+import org.sagebionetworks.table.query.model.SortKey;
+import org.sagebionetworks.table.query.model.SortSpecification;
+import org.sagebionetworks.table.query.model.SortSpecificationList;
 import org.sagebionetworks.table.query.model.TableExpression;
 import org.sagebionetworks.table.query.model.ValueExpression;
 
@@ -375,6 +378,50 @@ public class SqlElementUntils {
 	 */
 	public static GroupingColumnReferenceList createGroupingColumnReferenceList(String sql) throws ParseException {
 		return new TableQueryParser(sql).groupingColumnReferenceList();
+	}
+
+	/**
+	 * Create a SortKey from the passed SQL.
+	 * @param sql
+	 * @return
+	 * @throws ParseException 
+	 */
+	public static SortKey createSortKey(String sql) throws ParseException {
+		return new TableQueryParser(sql).sortKey();
+	}
+	
+	/**
+	 * Create a SortSpecification from the passed SQL. 
+	 * @param sql
+	 * @return
+	 * @throws ParseException
+	 */
+	public static SortSpecification createSortSpecification(String sql) throws ParseException{
+		return new TableQueryParser(sql).sortSpecification();
+	}
+	
+	/**
+	 * Create a list of SortSpecification one for each string passed.
+	 * @param sqls
+	 * @return
+	 * @throws ParseException
+	 */
+	public static List<SortSpecification> createSortSpecifications(String...sqls) throws ParseException{
+		List<SortSpecification> list = new LinkedList<SortSpecification>();
+		for(String sql: sqls){
+			list.add(createSortSpecification(sql));
+		}
+		return list;
+	}
+
+	/**
+	 * Create a SortSpecificationList from the passed SQL.
+	 * @param sql
+	 * @return
+	 * @throws ParseException 
+	 */
+	public static SortSpecificationList createSortSpecificationList(String sql) throws ParseException {
+		return new TableQueryParser(sql).sortSpecificationList();
 	}
 
 }

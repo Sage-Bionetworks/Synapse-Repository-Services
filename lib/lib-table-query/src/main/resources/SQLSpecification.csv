@@ -32,3 +32,6 @@ Filtering,Select all rows where column foo has a value equal to one and column b
 Filtering,Predicates can be surrounded by the '(' and ')' to enforce precedence and nesting.,select * from syn123 where (foo=1 and bar =2) or foobar = 3
 Grouping,"Select all rows grouping first by foo, then by bar.","select * from syn123 group by foo, bar"
 Grouping,"Grouping can be used in conjunction with aggregation function.  In this example, values from the foo column are first grouped, then the average of each group is calculated. For this example, one row will be returned for each group.","select foo, avg(foo) from syn123 group by foo"
+Pagination,"Pagination is used to limit the number of results returned in a single request.  In this example, we want the first ten rows that match our query.",select * from syn123 limit 10 offset 0
+Pagination,"If the above query fetches the first page of ten results with indices from zero to nine, the second page of ten rows can be fetched using this query.",select * from syn123 limit 10 offset 10
+Pagination,Pagination parameters should always be at the end of the query,select * from syn123 where foo =1 group by bar limit 100 offset 0
