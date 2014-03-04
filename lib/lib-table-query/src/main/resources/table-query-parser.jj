@@ -121,11 +121,13 @@ TOKEN:{
 TOKEN [IGNORE_CASE]: {
   < all: "ALL">
 | < and: "AND">
+| < asc: "ASC">
 | < as: "AS">
 | < avg: "AVG">
 | < between: "BETWEEN" >
 | < date: "DATE" >
 | < count: "COUNT">
+| < desc: "DESC" >
 | < current_date: "CURRENT_DATE">
 | < current_time: "CURRENT_TIME">
 | < distinct: "DISTINCT">
@@ -138,11 +140,14 @@ TOKEN [IGNORE_CASE]: {
 | < in: "IN">
 | < is: "IS">
 | < like: "LIKE" >
+| < limit: "LIMIT" >
 | < max: "MAX" >
 | < min: "MIN" >
 | < not: "NOT" >
 | < null_specification: "NULL" >
+| < offset: "OFFSET" >
 | < or: "OR" >
+| < order_by: "ORDER BY" >
 | < select: "SELECT" >
 | < sum: "SUM" >
 | < syn: "SYN" >
@@ -199,6 +204,14 @@ void unsignedInteger(StringBuilder builder):
 	(
 		token = <digit> { builder.append(token.image); } 
 	)*
+}
+String unsignedInteger2():
+{
+	StringBuilder builder = new StringBuilder();
+}
+{
+	unsignedInteger(builder)
+	{ return builder.toString(); }
 }
 void sign(StringBuilder builder):
 {}
@@ -340,7 +353,7 @@ QuerySpecification querySpecification():
 	TableExpression tableExpression = null;
 }
 {
-	<select> [ setQuantifier = setQuantifier()] selectList = selectList() tableExpression = tableExpression()
+	<select> [ setQuantifier = setQuantifier()] selectList = selectList() tableExpression = tableExpression() <EOF>
 	{ return new QuerySpecification(setQuantifier, selectList, tableExpression); }
 }
 SelectList selectList():
@@ -384,12 +397,16 @@ TableExpression tableExpression():
 	FromClause fromClause = null;
 	WhereClause whereClause = null;
 	GroupByClause groupByClause = null;
+	OrderByClause orderByClause = null; 
+	Pagination pagination = null;
 }
 {
 	fromClause = fromClause() 
 	[ whereClause = whereClause() ]
 	[ groupByClause = groupByClause() ]
-	{ return new TableExpression(fromClause, whereClause, groupByClause); }
+	[ orderByClause = orderByClause() ]
+	[ pagination = pagination() ]
+	{ return new TableExpression(fromClause, whereClause, groupByClause, orderByClause, pagination); }
 }
 FromClause fromClause():
 {
@@ -734,4 +751,56 @@ GroupingColumnReference groupingColumnReference():
 }
 {
 	columnReference = columnReference() { return new GroupingColumnReference(columnReference); }
+}
+OrderByClause orderByClause():
+{
+	SortSpecificationList sortSpecificationList = null;
+}
+{
+	<order_by> sortSpecificationList = sortSpecificationList()
+	{ return new OrderByClause(sortSpecificationList); }
+}
+SortSpecificationList sortSpecificationList():
+{
+	SortSpecificationList sortSpecificationList = new SortSpecificationList();
+	SortSpecification sortSpecification = null;
+}
+{
+	sortSpecification = sortSpecification() { sortSpecificationList.addSortSpecification(sortSpecification); }
+	(
+		<comma> sortSpecification = sortSpecification() { sortSpecificationList.addSortSpecification(sortSpecification); }
+	)*
+	{ return sortSpecificationList; }
+}
+SortSpecification sortSpecification():
+{
+	SortKey sortKey = null;
+	OrderingSpecification orderingSpecification = null;
+}
+{
+	sortKey = sortKey() [ orderingSpecification = orderingSpecification() ]
+	{ return new SortSpecification(sortKey, orderingSpecification); }
+}
+SortKey sortKey():
+{
+	ColumnReference columnReference = null;
+}
+{
+	columnReference = columnReference()
+	{ return new SortKey(columnReference); }
+}
+OrderingSpecification orderingSpecification():
+{}
+{
+	<asc> { return OrderingSpecification.ASC; }
+	| <desc>  { return OrderingSpecification.DESC; }
+}
+Pagination pagination():
+{
+	String _limit = null;
+	String _offset = null;
+}
+{
+	<limit> _limit = unsignedInteger2() [ <offset> _offset = unsignedInteger2() ]
+	{ return new Pagination(_limit, _offset); }
 }
