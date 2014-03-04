@@ -147,11 +147,9 @@ public class SynapseTest {
 		when(mockResponse.getEntity()).thenReturn(entity);
 	}
 	
-	@SuppressWarnings("unchecked")
 	@Test (expected=SynapseTermsOfUseException.class)
 	public void testTermsOfUseNotAccepted() throws Exception{
 		configureMockHttpResponse(403, "{\"reason\":\"foo\"}");
-		//when(mockProvider.performRequest(any(String.class),any(String.class),any(String.class),(Map<String,String>)anyObject())).thenReturn(response);
 		synapse.revalidateSession();
 	}
 	

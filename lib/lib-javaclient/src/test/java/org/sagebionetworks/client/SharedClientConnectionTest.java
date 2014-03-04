@@ -1,6 +1,7 @@
 package org.sagebionetworks.client;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Mockito.when;
@@ -15,6 +16,7 @@ import org.apache.http.Header;
 import org.apache.http.HeaderElement;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
 import org.apache.http.StatusLine;
 import org.json.JSONObject;
 import org.junit.Before;
@@ -31,7 +33,10 @@ public class SharedClientConnectionTest {
 	private SharedClientConnection sharedClientConnection;
 	private HttpClientProvider mockClientProvider;
 	HttpResponse mockResponse;
-	private String endpoint;
+	private String 	endpoint="http://reposvcs.org";
+	private static final String uri = "/some/uri";
+	private static final String jsonString = "jsonString";
+	private static final String userAgent = "user/agent";
 	
 	private static Header mockHeader(final String name, final String value) {
 		Header header = Mockito.mock(Header.class);
@@ -77,65 +82,71 @@ public class SharedClientConnectionTest {
 	public void before() throws Exception {
 		mockClientProvider = Mockito.mock(HttpClientProvider.class);
 		sharedClientConnection = new SharedClientConnection(mockClientProvider);
-		endpoint="http://reposvcs.org";
 		mockResponse = Mockito.mock(HttpResponse.class);
 		when(mockClientProvider.performRequest(any(String.class),any(String.class),any(String.class),(Map<String,String>)anyObject())).thenReturn(mockResponse);
 	}
 
 	@Test
 	public void testHappyPath() throws Exception {
-		String uri = "/some/uri";
-		String jsonString = "jsonString";
-		String userAgent = "user/agent";
 		String expectedResponse = "{\"foo\":\"bar\"}";
 		configureMockHttpResponse(201, expectedResponse);
 		JSONObject result = sharedClientConnection.postJson(endpoint, uri,jsonString, userAgent, null);
 		assertEquals(expectedResponse, result.toString());
 	}
 
-	@Test(expected=SynapseBadRequestException.class)
+	@Test
 	public void testBadRequest() throws Exception {
-		String uri = "/some/uri";
-		String jsonString = "jsonString";
-		String userAgent = "user/agent";
-		configureMockHttpResponse(400, "{\"foo\":\"bar\"}");
-		sharedClientConnection.postJson(endpoint, uri,jsonString, userAgent, null);
+		configureMockHttpResponse(HttpStatus.SC_BAD_REQUEST, "{\"reason\":\"user message\"}");
+		try {
+			sharedClientConnection.postJson(endpoint, uri,jsonString, userAgent, null);
+			fail("expected exception");
+		} catch (SynapseBadRequestException e) {
+			assertEquals("user message", e.getMessage());
+		}
 	}
 
-	@Test(expected=SynapseUnauthorizedException.class)
+	@Test
 	public void testUnauthorized() throws Exception {
-		String uri = "/some/uri";
-		String jsonString = "jsonString";
-		String userAgent = "user/agent";
-		configureMockHttpResponse(403, "{\"foo\":\"bar\"}");
-		sharedClientConnection.postJson(endpoint, uri,jsonString, userAgent, null);
+		configureMockHttpResponse(HttpStatus.SC_UNAUTHORIZED, "{\"reason\":\"user message\"}");
+		try {
+			sharedClientConnection.postJson(endpoint, uri,jsonString, userAgent, null);
+			fail("expected exception");
+		} catch (SynapseUnauthorizedException e) {
+			assertEquals("user message", e.getMessage());
+		}
 	}
 
-	@Test(expected=SynapseNotFoundException.class)
+	@Test
 	public void testNotFoundRequest() throws Exception {
-		String uri = "/some/uri";
-		String jsonString = "jsonString";
-		String userAgent = "user/agent";
-		configureMockHttpResponse(404, "{\"foo\":\"bar\"}");
-		sharedClientConnection.postJson(endpoint, uri,jsonString, userAgent, null);
+		configureMockHttpResponse(HttpStatus.SC_NOT_FOUND, "{\"reason\":\"user message\"}");
+		try {
+			sharedClientConnection.postJson(endpoint, uri,jsonString, userAgent, null);
+			fail("expected exception");
+		} catch (SynapseNotFoundException e) {
+			assertEquals("user message", e.getMessage());
+		}
 	}
 
-	@Test(expected=SynapseForbiddenException.class)
+	@Test
 	public void testForbiddenRequest() throws Exception {
-		String uri = "/some/uri";
-		String jsonString = "jsonString";
-		String userAgent = "user/agent";
-		configureMockHttpResponse(403, "{\"foo\":\"bar\"}");
-		sharedClientConnection.postJson(endpoint, uri,jsonString, userAgent, null);
+		configureMockHttpResponse(HttpStatus.SC_FORBIDDEN, "{\"reason\":\"user message\"}");
+		try {
+			sharedClientConnection.postJson(endpoint, uri,jsonString, userAgent, null);
+			fail("expected exception");
+		} catch (SynapseForbiddenException e) {
+			assertEquals("user message", e.getMessage());
+		}
 	}
 
-	@Test(expected=SynapseServerException.class)
+	@Test
 	public void testSynapseServerRequest() throws Exception {
-		String uri = "/some/uri";
-		String jsonString = "jsonString";
-		String userAgent = "user/agent";
-		configureMockHttpResponse(500, "{\"foo\":\"bar\"}");
-		sharedClientConnection.postJson(endpoint, uri,jsonString, userAgent, null);
+		configureMockHttpResponse(HttpStatus.SC_INTERNAL_SERVER_ERROR, "{\"reason\":\"user message\"}");
+		try {
+			sharedClientConnection.postJson(endpoint, uri,jsonString, userAgent, null);
+			fail("expected exception");
+		} catch (SynapseServerException e) {
+			assertEquals("user message", e.getMessage());
+		}
 	}
 
 }
