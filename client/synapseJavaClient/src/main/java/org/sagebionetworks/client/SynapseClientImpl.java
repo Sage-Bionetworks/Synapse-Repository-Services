@@ -2620,7 +2620,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @param locationable
 	 * @return destination file
 	 * @throws SynapseException
-	 * @throws SynapseUserException
+	 * @throws SynapseClientException
 	 */
 	@Deprecated
 	@Override
@@ -2980,8 +2980,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			try {
 				Thread.sleep(1000);
 				long now = System.currentTimeMillis();
-				long eplase = now-start;
-				if(eplase > timeout) throw new SynapseClientException("Timed-out wiating for a preview to be created.");
+				long elapsed = now-start;
+				if(elapsed > timeout) throw new SynapseClientException("Timed-out waiting for a preview to be created.");
 				url = createAttachmentPresignedUrl(id, type, tokenOrPreviewId);
 				if(URLStatus.READ_FOR_DOWNLOAD == url.getStatus()) return url;
 			} catch (InterruptedException e) {

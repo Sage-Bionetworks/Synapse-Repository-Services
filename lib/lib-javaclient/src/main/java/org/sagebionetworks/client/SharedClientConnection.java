@@ -16,6 +16,7 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
 import org.apache.http.ParseException;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.HttpGet;
@@ -474,10 +475,10 @@ public class SharedClientConnection {
 		}
 		try {
 			HttpResponse response = clientProvider.performRequest(endpoint + uri, "GET", null, null);
+			int statusCode = response.getStatusLine().getStatusCode();
+			if (statusCode!=HttpStatus.SC_OK) throw new SynapseServerException(statusCode);
 			return EntityUtils.toString(response.getEntity());
 		} catch (IOException e) {
-			throw new SynapseClientException(e);
-		} catch (HttpClientHelperException e) {
 			throw new SynapseClientException(e);
 		}
 	}
@@ -655,78 +656,62 @@ public class SharedClientConnection {
 			requestHeaders.remove(SESSION_TOKEN_HEADER);
 		}
 		
-		JSONObject results = null;
 		String requestUrl = null;
 		String responseBody = null;
+		JSONObject results = null;
+		int statusCode = 0;
 		try {
 			requestUrl = createRequestUrl(endpoint, uri, parameters);
 			
-			!!!!! status code shouldn't be returned as exception !!!!!
 			HttpResponse response = clientProvider.performRequest(requestUrl, requestMethod, requestContent,
 					requestHeaders);
+			statusCode = response.getStatusLine().getStatusCode();
 			responseBody = (null != response.getEntity()) ? EntityUtils
 					.toString(response.getEntity()) : null;
 		} catch (IOException e) {
 			throw new SynapseClientException(e);
 		}
 		
-		try {
-
-			if (null != responseBody && responseBody.length()>0) {
-				try {
-					results = new JSONObject(responseBody);
-					if (log.isDebugEnabled()) {
-						if(authEndpoint.equals(endpoint)) {
-							log.debug(requestMethod + " " + requestUrl + " : (not logging auth request details)");
-						}
-						else {
-							log.debug(requestMethod + " " + requestUrl + " : " + results.toString(JSON_INDENT));
-						}
-					}
-				} catch (JSONException jsone) {
-					throw new SynapseClientException("responseBody: <<"+responseBody+">>", jsone);
+		if (null != responseBody && responseBody.length()>0) {
+			String resultsStringForLogging = null;
+			try {
+				results = new JSONObject(responseBody);
+				resultsStringForLogging = results.toString(JSON_INDENT);
+			} catch (JSONException jsone) {
+				throw new SynapseClientException("responseBody: <<"+responseBody+">>", jsone);
+			}
+			if (log.isDebugEnabled()) {
+				if(authEndpoint.equals(endpoint)) {
+					log.debug(requestMethod + " " + requestUrl + " : (not logging auth request details)");
+				} else {
+					log.debug(requestMethod + " " + requestUrl + " : " + resultsStringForLogging);
 				}
 			}
+		}
 
-		} catch (HttpClientHelperException e) {
+		if (statusCode>=300) {
 			// Well-handled server side exceptions come back as JSON, attempt to
 			// deserialize and convert the error
+			String reasonStr = null;
 			try {
-				int statusCode = e.getHttpStatus();
-				String reasonStr = "";
-				String response = e.getResponse();
-				if (null != response && response.length()>0) {
-					try {
-						results = new JSONObject(response);
-					} catch (JSONException jsone) {
-						throw new SynapseClientException("Failed to parse: "+response, jsone);
-					}
-					if (log.isDebugEnabled()) {
-						log.debug("Retrieved " + requestUrl + " : "
-								+ results.toString(JSON_INDENT));
-					}
-					if (results != null)
-						reasonStr = results.getString("reason");
-				}
-
-				if (statusCode == 401) {
-					throw new SynapseUnauthorizedException(reasonStr);
-				} else if (statusCode == 403) {
-					throw new SynapseForbiddenException(reasonStr);
-				} else if (statusCode == 404) {
-					throw new SynapseNotFoundException(reasonStr);
-				} else if (statusCode == 400) {
-					throw new SynapseBadRequestException(reasonStr);
-				} else {
-					throw new SynapseServerException(statusCode, reasonStr);
-				}
-			} catch (JSONException jsonEx) {
-				// swallow the JSONException since its not the real problem and
-				// return the response as-is since it is not JSON
-				throw new SynapseClientException(jsonEx);
-			} catch (ParseException parseEx) {
-				throw new SynapseClientException(parseEx);
+				reasonStr = results.getString("reason");
+			} catch (JSONException e) {
+				// if we can't parse we just return the whole response body
+				reasonStr = responseBody;
 			}
+	
+			if (statusCode == HttpStatus.SC_UNAUTHORIZED) {
+				throw new SynapseUnauthorizedException(reasonStr);
+			} else if (statusCode == HttpStatus.SC_FORBIDDEN) {
+				throw new SynapseForbiddenException(reasonStr);
+			} else if (statusCode == HttpStatus.SC_NOT_FOUND) {
+				throw new SynapseNotFoundException(reasonStr);
+			} else if (statusCode == HttpStatus.SC_BAD_REQUEST) {
+				throw new SynapseBadRequestException(reasonStr);
+			} else {
+				throw new SynapseServerException(statusCode, reasonStr);
+			}
+		}
 
 		return results;
 	}

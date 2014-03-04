@@ -298,12 +298,11 @@ public class HttpClientHelper {
 	 * @return the response object
 	 * @throws ClientProtocolException
 	 * @throws IOException
-	 * @throws HttpClientHelperException
 	 */
 	public static HttpResponse performRequest(HttpClient client,
 			String requestUrl, String requestMethod, String requestContent,
 			Map<String, String> requestHeaders) throws ClientProtocolException,
-			IOException, HttpClientHelperException {
+			IOException {
 
 		HttpEntity requestEntity = null;
 		if (null != requestContent) {
@@ -330,7 +329,7 @@ public class HttpClientHelper {
 	public static HttpResponse performEntityRequest(HttpClient client,
 			String requestUrl, String requestMethod, HttpEntity requestEntity,
 			Map<String, String> requestHeaders) throws ClientProtocolException,
-			IOException, HttpClientHelperException {
+			IOException {
 
 		HttpRequestBase request = null;
 		if (requestMethod.equals("GET")) {
@@ -359,29 +358,6 @@ public class HttpClientHelper {
 
 		HttpResponse response = client.execute(request);
 
-		if (300 <= response.getStatusLine().getStatusCode()) {
-			StringBuilder verboseMessage = new StringBuilder(
-					"FAILURE: Got HTTP status "
-							+ response.getStatusLine().getStatusCode()
-							+ " for " + requestUrl);
-
-			// TODO this potentially prints out headers such as sessionToken to
-			// our logs, consider whether this is a good idea
-			if ((null != requestHeaders) && (0 < requestHeaders.size())) {
-				verboseMessage.append("\nHeaders: ");
-				for (Entry<String, String> entry : requestHeaders.entrySet()) {
-					verboseMessage.append("\n\t" + entry.getKey() + ": "
-							+ entry.getValue());
-				}
-			}
-			if (null != requestEntity) {
-				verboseMessage.append("\nRequest Content: " + requestEntity);
-			}
-			String responseBody = (null != response.getEntity()) ? EntityUtils
-					.toString(response.getEntity()) : null;
-			verboseMessage.append("\nResponse Content: " + responseBody);
-			throw new HttpClientHelperException(verboseMessage.toString(), response.getStatusLine().getStatusCode(), responseBody);
-		}
 		return response;
 	}
 
