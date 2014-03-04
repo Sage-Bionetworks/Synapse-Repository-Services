@@ -14,6 +14,8 @@ import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.ComparisonPredicate;
 import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.EscapeCharacter;
+import org.sagebionetworks.table.query.model.GroupingColumnReference;
+import org.sagebionetworks.table.query.model.GroupingColumnReferenceList;
 import org.sagebionetworks.table.query.model.InPredicate;
 import org.sagebionetworks.table.query.model.InPredicateValue;
 import org.sagebionetworks.table.query.model.LikePredicate;
@@ -341,5 +343,38 @@ public class SqlElementUntils {
 		return new TableQueryParser(sql).selectList();
 	}
 
+	/**
+	 * Create a grouping column reference from the passed SQL
+	 * @param sql
+	 * @return
+	 * @throws ParseException
+	 */
+	public static GroupingColumnReference createGroupingColumnReference(String sql) throws ParseException {
+		return new TableQueryParser(sql).groupingColumnReference();
+	}
+
+	/**
+	 * Create a list of GroupingColumnReference, one for each passed SQL string.
+	 * @param sqls
+	 * @return
+	 * @throws ParseException
+	 */
+	public static List<GroupingColumnReference> createGroupingColumnReferences(String...sqls) throws ParseException{
+		List<GroupingColumnReference> list = new LinkedList<GroupingColumnReference>();
+		for(String sql: sqls){
+			list.add(createGroupingColumnReference(sql));
+		}
+		return list;
+	}
+
+	/**
+	 * Create a GroupingColumnReferenceList from the passed SQL.
+	 * @param sql
+	 * @return
+	 * @throws ParseException
+	 */
+	public static GroupingColumnReferenceList createGroupingColumnReferenceList(String sql) throws ParseException {
+		return new TableQueryParser(sql).groupingColumnReferenceList();
+	}
 
 }

@@ -23,5 +23,21 @@ public class TableExpressionTest {
 		element.toSQL(builder);
 		assertEquals("FROM syn123 WHERE bar = 123", builder.toString());
 	}
+	
+	@Test
+	public void testTableExpressionToSQLWithGroupBy() throws ParseException{
+		TableExpression element = SqlElementUntils.createTableExpression("from syn123 group by foo");
+		StringBuilder builder = new StringBuilder();
+		element.toSQL(builder);
+		assertEquals("FROM syn123 GROUP BY foo", builder.toString());
+	}
+	
+	@Test
+	public void testTableExpressionToSQLWithWhereAndGroupBy() throws ParseException{
+		TableExpression element = SqlElementUntils.createTableExpression("from syn123 where a=b group by foo");
+		StringBuilder builder = new StringBuilder();
+		element.toSQL(builder);
+		assertEquals("FROM syn123 WHERE a = b GROUP BY foo", builder.toString());
+	}
 
 }

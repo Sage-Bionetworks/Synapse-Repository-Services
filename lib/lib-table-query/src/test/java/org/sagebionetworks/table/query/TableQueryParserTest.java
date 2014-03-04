@@ -556,6 +556,13 @@ public class TableQueryParserTest {
 		QuerySpecification element = TableQueryParser.parserQuery("select \"foo \"\"&\"\" Bar\" from syn123");
 		String sql = toSQL(element);
 		assertEquals("SELECT \"foo \"\"&\"\" Bar\" FROM syn123", sql);
-	}	
+	}
+	
+	@Test
+	public void testSelectGroupBy() throws ParseException{
+		QuerySpecification element = TableQueryParser.parserQuery("select foo, count(bar) from syn456 group by foo");
+		String sql = toSQL(element);
+		assertEquals("SELECT foo, COUNT(bar) FROM syn456 GROUP BY foo", sql);
+	}
 
 }
