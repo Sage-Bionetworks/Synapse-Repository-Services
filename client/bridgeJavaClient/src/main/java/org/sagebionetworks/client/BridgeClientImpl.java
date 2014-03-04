@@ -89,7 +89,7 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 		this(otherClient.getSharedClientConnection());
 	}
 
-	private BridgeClientImpl(SharedClientConnection sharedClientConnection) {
+	public BridgeClientImpl(SharedClientConnection sharedClientConnection) {
 		super(BRIDGE_JAVA_CLIENT + ClientVersionInfo.getClientVersionInfo(), sharedClientConnection);
 		this.bridgeEndpoint = DEFAULT_BRIDGE_ENDPOINT;
 	}
