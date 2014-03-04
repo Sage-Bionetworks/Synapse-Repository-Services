@@ -1,4 +1,14 @@
 Category,Description,SQL
+Syntax,"The SQL syntax used is a sub-set of &ltquery specification&gt from <a href=""http://savage.net.au/SQL/sql-92.bnf"">SQL-92</a> with the addition of LIMIT and OFFSET.
+The following is a simplified version of the syntax:
+SELECT
+    [ALL | DISTINCT]
+    select_expr [, select_expr ...]
+    FROM table_references
+    [WHERE where_condition]
+    [GROUP BY {col_name [, [col_name ...] }
+    [ORDER BY {col_name [ [ASC | DESC] [, col_name [ [ASC | DESC]]}
+    [LIMIT row_count [ OFFSET offset] ]",select * from syn123 where bar = 1 group by foobar order by foo limit 10 offset 0
 Basics,Select all columns from the table identified by 'syn123'.,select * from syn123
 Basics,Select only two columns identified by 'foo' and 'bar' from the table identified by 'syn'123'.,"select foo, bar from syn123"
 Basics,"To refer to a column name that contains spaces or punctuation, the name must be with double quotes.","select ""has space"" from syn123"
@@ -32,6 +42,10 @@ Filtering,Select all rows where column foo has a value equal to one and column b
 Filtering,Predicates can be surrounded by the '(' and ')' to enforce precedence and nesting.,select * from syn123 where (foo=1 and bar =2) or foobar = 3
 Grouping,"Select all rows grouping first by foo, then by bar.","select * from syn123 group by foo, bar"
 Grouping,"Grouping can be used in conjunction with aggregation function.  In this example, values from the foo column are first grouped, then the average of each group is calculated. For this example, one row will be returned for each group.","select foo, avg(foo) from syn123 group by foo"
+Sorting,Select all columns from the table with the returned row order sorted by the values of the foo column in ascending order.,select * from syn123 order by foo asc
+Sorting,Select all columns from the table with the returned row order sorted by the values of the foo column in descending order.,select * from syn123 order by foo desc
+Sorting,"Multiple columns can be include in the order by clause.  In this example, the returned row order will be sorted first by foo in ascending order followed by bar in descending order.","select * from syn123 order by foo asc, bar desc"
 Pagination,"Pagination is used to limit the number of results returned in a single request.  In this example, we want the first ten rows that match our query.",select * from syn123 limit 10 offset 0
 Pagination,"If the above query fetches the first page of ten results with indices from zero to nine, the second page of ten rows can be fetched using this query.",select * from syn123 limit 10 offset 10
+Pagination,"The OFFSET element is optional.  In this example, LIMIT is used to limit the results to the first 5 rows.",select * from syn123 limit 5
 Pagination,Pagination parameters should always be at the end of the query,select * from syn123 where foo =1 group by bar limit 100 offset 0

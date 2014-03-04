@@ -14,5 +14,13 @@ public class PaginationTest {
 		element.toSQL(builder);
 		assertEquals("LIMIT 123 OFFSET 456", builder.toString());
 	}
+	
+	@Test
+	public void testToSQLNoOffset(){
+		Pagination element = new Pagination("123", null);
+		StringBuilder builder = new StringBuilder();
+		element.toSQL(builder);
+		assertEquals("LIMIT 123", builder.toString());
+	}
 
 }

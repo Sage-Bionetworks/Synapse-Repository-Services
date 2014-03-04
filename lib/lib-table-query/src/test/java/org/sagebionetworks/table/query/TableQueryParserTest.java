@@ -571,4 +571,10 @@ public class TableQueryParserTest {
 		String sql = toSQL(element);
 		assertEquals("SELECT foo, COUNT(bar) FROM syn456 WHERE bar = 'cat''s' GROUP BY foo ORDER BY bar LIMIT 1 OFFSET 2", sql);
 	}
+	
+	@Test (expected=ParseException.class)
+	public void testQueryEndOfFile() throws ParseException{
+		// There must not be anything at the end of the query.
+		TableQueryParser.parserQuery("select foo from syn456 limit 1 offset 2 select foo");
+	}
 }

@@ -353,7 +353,7 @@ QuerySpecification querySpecification():
 	TableExpression tableExpression = null;
 }
 {
-	<select> [ setQuantifier = setQuantifier()] selectList = selectList() tableExpression = tableExpression()
+	<select> [ setQuantifier = setQuantifier()] selectList = selectList() tableExpression = tableExpression() <EOF>
 	{ return new QuerySpecification(setQuantifier, selectList, tableExpression); }
 }
 SelectList selectList():
@@ -801,6 +801,6 @@ Pagination pagination():
 	String _offset = null;
 }
 {
-	<limit> _limit = unsignedInteger2() <offset> _offset = unsignedInteger2()
+	<limit> _limit = unsignedInteger2() [ <offset> _offset = unsignedInteger2() ]
 	{ return new Pagination(_limit, _offset); }
 }

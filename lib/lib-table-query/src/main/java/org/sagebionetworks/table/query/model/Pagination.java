@@ -9,7 +9,9 @@ public class Pagination implements SQLElement{
 	public Pagination(String limit, String offset) {
 		super();
 		this.limit = Long.parseLong(limit);
-		this.offset = Long.parseLong(offset);
+		if(offset != null){
+			this.offset = Long.parseLong(offset);
+		}
 	}
 	public Long getLimit() {
 		return limit;
@@ -21,8 +23,9 @@ public class Pagination implements SQLElement{
 	public void toSQL(StringBuilder builder) {
 		builder.append("LIMIT ");
 		builder.append(limit);
-		builder.append(" OFFSET ");
-		builder.append(offset);
+		if(offset != null){
+			builder.append(" OFFSET ");
+			builder.append(offset);			
+		}
 	}
-	
 }
