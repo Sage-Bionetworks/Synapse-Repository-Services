@@ -34,7 +34,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.client.exceptions.SynapseServerException;
 import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
 import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.evaluation.model.Evaluation;
@@ -74,6 +73,7 @@ import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.S3Token;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
 import org.sagebionetworks.repo.model.Team;
@@ -321,6 +321,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	protected String authEndpoint;
 	protected String fileEndpoint;
 
+	private DataUploader dataUploader;
+
 	private AutoGenFactory autoGenFactory = new AutoGenFactory();
 	
 	/**
@@ -345,7 +347,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 */
 	public SynapseClientImpl() {
 		// Use the default implementations
-		this(new HttpClientProviderImpl());
+		this(new HttpClientProviderImpl(), new DataUploaderMultipartImpl());
 	}
 
 	/**
@@ -354,8 +356,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @param clientProvider 
 	 * @param dataUploader 
 	 */
-	public SynapseClientImpl(HttpClientProvider clientProvider) {
-		this(new SharedClientConnection(clientProvider));
+	public SynapseClientImpl(HttpClientProvider clientProvider, DataUploader dataUploader) {
+		this(new SharedClientConnection(clientProvider), dataUploader);
 	}
 
 	/**
@@ -365,7 +367,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @param dataUploader
 	 */
 	public SynapseClientImpl(BaseClient other) {
-		this(other.getSharedClientConnection());
+		this(other.getSharedClientConnection(), new DataUploaderMultipartImpl());
 	}
 
 	/**
@@ -374,14 +376,19 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @param clientProvider
 	 * @param dataUploader
 	 */
-	private SynapseClientImpl(SharedClientConnection sharedClientConnection) {
+	private SynapseClientImpl(SharedClientConnection sharedClientConnection, DataUploader dataUploader) {
 		super(SYNPASE_JAVA_CLIENT + ClientVersionInfo.getClientVersionInfo(), sharedClientConnection);
 		if (sharedClientConnection == null)
 			throw new IllegalArgumentException("SharedClientConnection cannot be null");
 
+		if (dataUploader == null)
+			throw new IllegalArgumentException("DataUploader cannot be null");
+
 		setRepositoryEndpoint(DEFAULT_REPO_ENDPOINT);
 		setAuthEndpoint(DEFAULT_AUTH_ENDPOINT);
 		setFileEndpoint(DEFAULT_FILE_ENDPOINT);
+
+		this.dataUploader = dataUploader;
 	}
 
 	/**
@@ -411,6 +418,15 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		getSharedClientConnection().setHttpClientProvider(clientProvider);
 	}
 	
+	/**
+	 * Use this method to override the default implementation of {@link DataUploader}
+	 * 
+	 * @param dataUploader
+	 */
+	public void setDataUploader(DataUploader dataUploader) {
+		this.dataUploader = dataUploader;
+	}
+
 	/**
 	 * @param repoEndpoint
 	 *            the repoEndpoint to set
@@ -2604,7 +2620,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @param locationable
 	 * @return destination file
 	 * @throws SynapseException
-	 * @throws SynapseServerException
+	 * @throws SynapseUserException
 	 */
 	@Deprecated
 	@Override
@@ -2681,6 +2697,71 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	/**
+	 * @param locationable
+	 * @param dataFile
+	 * 
+	 * @return the updated locationable
+	 * @throws SynapseException
+	 */
+	@Deprecated
+	@Override
+	public Locationable uploadLocationableToSynapse(Locationable locationable,
+			File dataFile) throws SynapseException {
+
+		try {
+			String md5 = MD5ChecksumHelper.getMD5Checksum(dataFile
+					.getAbsolutePath());
+			return uploadLocationableToSynapse(locationable, dataFile, md5);
+		} catch (IOException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+
+	/**
+	 * Dev Note: this implementation allows only one location per Locationable,
+	 * ultimately we plan to support multiple locations (e.g., a copy in
+	 * GoogleStorage, S3, and on a local server), but we'll save that work for
+	 * later
+	 * 
+	 * @param locationable
+	 * @param dataFile
+	 * @param md5
+	 * @return the updated locationable
+	 * @throws SynapseException
+	 */
+	@Deprecated
+	@Override
+	public Locationable uploadLocationableToSynapse(Locationable locationable,
+			File dataFile, String md5) throws SynapseException {
+
+		// Step 1: get the token
+		S3Token s3Token = new S3Token();
+		s3Token.setPath(dataFile.getName());
+		s3Token.setMd5(md5);
+		s3Token = createJSONEntity(locationable.getS3Token(), s3Token);
+
+		// Step 2: perform the upload
+		dataUploader.uploadDataMultiPart(s3Token, dataFile);
+
+		// Step 3: set the upload location in the locationable so that Synapse
+		// is aware of the new data
+		LocationData location = new LocationData();
+		location.setPath(s3Token.getPath());
+		location.setType(LocationTypeNames.awss3);
+
+		List<LocationData> locations = new ArrayList<LocationData>();
+		locations.add(location);
+
+		locationable.setContentType(s3Token.getContentType());
+		locationable.setMd5(s3Token.getMd5());
+		locationable.setLocations(locations);
+		
+		return putEntity(locationable);
+	}
+	
+	
+
+	/**
 	 * Update the locationable to point to the given external url
 	 * @param locationable
 	 * @param externalUrl
@@ -2717,7 +2798,88 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		locationable.setLocations(locations);
 		return putEntity(locationable);
 	}
-		
+	
+	/**
+	 * This version will use the file name for the file name.
+	 * @param entityId
+	 * @param dataFile
+	 * @return
+	 * @throws JSONObjectAdapterException
+	 * @throws SynapseException
+	 * @throws IOException
+	 */
+	@Deprecated
+	@Override
+	public AttachmentData uploadAttachmentToSynapse(String entityId, File dataFile) throws JSONObjectAdapterException, SynapseException, IOException{
+		return uploadAttachmentToSynapse(entityId, dataFile, dataFile.getName());
+	}
+
+	
+	/**
+	 * Upload an attachment to Synapse.
+	 * @param entityId
+	 * @param dataFile
+	 * @param md5
+	 * @return
+	 * @throws JSONObjectAdapterException
+	 * @throws SynapseException
+	 * @throws IOException 
+	 */
+	@Deprecated
+	@Override
+	public AttachmentData uploadAttachmentToSynapse(String entityId, File dataFile, String fileName) throws JSONObjectAdapterException, SynapseException, IOException{
+		return uploadAttachmentToSynapse(entityId, AttachmentType.ENTITY, dataFile, fileName);
+	}
+	
+	/**
+	 * Upload a user profile attachment to Synapse.
+	 * @param userId
+	 * @param dataFile
+	 * @param md5
+	 * @return
+	 * @throws JSONObjectAdapterException
+	 * @throws SynapseException
+	 * @throws IOException 
+	 */	
+	@Deprecated
+	@Override
+	public AttachmentData uploadUserProfileAttachmentToSynapse(String userId, File dataFile, String fileName) throws JSONObjectAdapterException, SynapseException, IOException{
+		return uploadAttachmentToSynapse(userId, AttachmentType.USER_PROFILE, dataFile, fileName);
+	}
+	
+	/**
+	 * Upload an attachment to Synapse.
+	 * @param attachmentType
+	 * @param userId
+	 * @param dataFile
+	 * @param md5
+	 * @return
+	 * @throws JSONObjectAdapterException
+	 * @throws SynapseException
+	 * @throws IOException 
+	 */	
+	@Deprecated
+	@Override
+	public AttachmentData uploadAttachmentToSynapse(String id, AttachmentType attachmentType, File dataFile, String fileName) throws JSONObjectAdapterException, SynapseException, IOException{
+		// First we need to get an S3 token
+		S3AttachmentToken token = new S3AttachmentToken();
+		token.setFileName(fileName);
+		String md5 = MD5ChecksumHelper.getMD5Checksum(dataFile
+				.getAbsolutePath());
+		token.setMd5(md5);
+		// Create the token
+		token = createAttachmentS3Token(id, attachmentType, token);
+		// Upload the file
+		dataUploader.uploadDataSingle(token, dataFile);
+		// We are now done
+		AttachmentData newData = new AttachmentData();
+		newData.setContentType(token.getContentType());
+		newData.setName(fileName);
+		newData.setTokenId(token.getTokenId());
+		newData.setMd5(token.getMd5());
+		return newData;
+	}
+	
 	/**
 	 * Get the presigned URL for an entity attachment.
 	 * @param entityId
@@ -2819,7 +2981,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 				Thread.sleep(1000);
 				long now = System.currentTimeMillis();
 				long eplase = now-start;
-				if(eplase > timeout) throw new SynapseClientException("Timed-out waiting for a preview to be created.");
+				if(eplase > timeout) throw new SynapseClientException("Timed-out wiating for a preview to be created.");
 				url = createAttachmentPresignedUrl(id, type, tokenOrPreviewId);
 				if(URLStatus.READ_FOR_DOWNLOAD == url.getStatus()) return url;
 			} catch (InterruptedException e) {

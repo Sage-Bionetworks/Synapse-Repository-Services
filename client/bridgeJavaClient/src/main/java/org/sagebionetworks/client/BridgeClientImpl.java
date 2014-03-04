@@ -368,7 +368,7 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 			results.initializeFromJSONObject(adapter);
 			return results.getList();
 		} catch (JSONObjectAdapterException e) {
-			throw new SynapseException(e);
+			throw new SynapseClientException(e);
 		}
 	}
 
@@ -451,7 +451,7 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 			JSONObject jsonObject = EntityFactory.createJSONObjectForEntity(t);
 			getSharedClientConnection().postJson(bridgeEndpoint, uri, jsonObject.toString(), getUserAgent(), null);
 		} catch (JSONObjectAdapterException e) {
-			throw new SynapseException(e);
+			throw new SynapseClientException(e);
 		}
 	}
 }

@@ -71,6 +71,7 @@ import org.sagebionetworks.utils.HttpClientHelperException;
 public class SynapseTest {
 	
 	HttpClientProvider mockProvider = null;
+	DataUploader mockUploader = null;
 	HttpResponse mockResponse;
 	
 	SynapseClientImpl synapse;
@@ -80,9 +81,10 @@ public class SynapseTest {
 	public void before() throws Exception{
 		// The mock provider
 		mockProvider = Mockito.mock(HttpClientProvider.class);
+		mockUploader = Mockito.mock(DataUploaderMultipartImpl.class);
 		mockResponse = Mockito.mock(HttpResponse.class);
 		when(mockProvider.performRequest(any(String.class),any(String.class),any(String.class),(Map<String,String>)anyObject())).thenReturn(mockResponse);
-		synapse = new SynapseClientImpl(mockProvider);
+		synapse = new SynapseClientImpl(mockProvider, mockUploader);
 	}
 	
 	@Test
@@ -494,7 +496,7 @@ public class SynapseTest {
 		info.setVersion("someversion");
 		when(mockResponse.getEntity()).thenReturn(new StringEntity(EntityFactory.createJSONStringForEntity(info)));
 		StubHttpClientProvider stubProvider = new StubHttpClientProvider(mockResponse);
-		synapse = new SynapseClientImpl(stubProvider);
+		synapse = new SynapseClientImpl(stubProvider, mockUploader);
 		// Make a call and ensure 
 		synapse.getVersionInfo();
 		// Validate that the User-Agent was sent
@@ -511,7 +513,7 @@ public class SynapseTest {
 		info.setVersion("someversion");
 		when(mockResponse.getEntity()).thenReturn(new StringEntity(EntityFactory.createJSONStringForEntity(info)));
 		StubHttpClientProvider stubProvider = new StubHttpClientProvider(mockResponse);
-		synapse = new SynapseClientImpl(stubProvider);
+		synapse = new SynapseClientImpl(stubProvider, mockUploader);
 		// Append some user agent data
 		String appended = "Appended to the User-Agent";
 		synapse.appendUserAgent(appended);

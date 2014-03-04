@@ -159,6 +159,9 @@ public interface SynapseClient extends BaseClient {
 	 */
 	public String getFileEndpoint();
 
+	public AttachmentData uploadAttachmentToSynapse(String entityId, File temp, String fileName) 
+			throws JSONObjectAdapterException, SynapseException, IOException;
+
 	public Entity getEntityById(String entityId) throws SynapseException;
 
 	public <T extends Entity> T putEntity(T entity) throws SynapseException;
@@ -589,12 +592,34 @@ public interface SynapseClient extends BaseClient {
 			throws SynapseException;
 
 	@Deprecated
+	public Locationable uploadLocationableToSynapse(Locationable locationable,
+			File dataFile) throws SynapseException;
+
+	@Deprecated
+	public Locationable uploadLocationableToSynapse(Locationable locationable,
+			File dataFile, String md5) throws SynapseException;
+
+	@Deprecated
 	public Locationable updateExternalLocationableToSynapse(Locationable locationable,
 			String externalUrl) throws SynapseException;
 
 	@Deprecated
 	public Locationable updateExternalLocationableToSynapse(Locationable locationable,
 			String externalUrl, String md5) throws SynapseException;
+
+	@Deprecated
+	public AttachmentData uploadAttachmentToSynapse(String entityId, File dataFile)
+			throws JSONObjectAdapterException, SynapseException, IOException;
+
+	@Deprecated
+	public AttachmentData uploadUserProfileAttachmentToSynapse(String userId,
+			File dataFile, String fileName) throws JSONObjectAdapterException,
+			SynapseException, IOException;
+
+	@Deprecated
+	public AttachmentData uploadAttachmentToSynapse(String id,
+			AttachmentType attachmentType, File dataFile, String fileName)
+			throws JSONObjectAdapterException, SynapseException, IOException;
 
 	@Deprecated
 	public PresignedUrl createUserProfileAttachmentPresignedUrl(String id,

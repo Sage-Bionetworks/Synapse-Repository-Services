@@ -21,6 +21,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.regex.Pattern;
 
+import org.apache.http.HttpStatus;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.pivot.wtk.Window;
@@ -213,7 +214,8 @@ public class FileUploader implements FileUploaderView.Presenter {
 							setFileStatus(file, UploadStatus.UPLOADED);
 						} catch (Exception e) {
 							log.error(e);
-							if(e != null && e.getCause() != null && e.getCause() instanceof SynapseServerException && e.getMessage().contains("(409)")) {
+							if(e != null && e.getCause() != null && e.getCause() instanceof SynapseServerException && 
+									((SynapseServerException)e.getCause()).getStatusCode()==HttpStatus.SC_CONFLICT) {
 								setFileStatus(file, UploadStatus.ALREADY_EXISTS);
 							} else {
 								setFileStatus(file, UploadStatus.FAILED);

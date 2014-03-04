@@ -20,6 +20,7 @@ import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
 public class SynapseAdministrationTest {
 	HttpClientProvider mockProvider = null;
+	DataUploader mockUploader = null;
 	HttpResponse mockResponse;
 	
 	SynapseAdminClientImpl synapse;
@@ -28,9 +29,10 @@ public class SynapseAdministrationTest {
 	public void before() throws Exception{
 		// The mock provider
 		mockProvider = Mockito.mock(HttpClientProvider.class);
+		mockUploader = Mockito.mock(DataUploaderMultipartImpl.class);
 		mockResponse = Mockito.mock(HttpResponse.class);
 		when(mockProvider.performRequest(any(String.class),any(String.class),any(String.class),(Map<String,String>)anyObject())).thenReturn(mockResponse);
-		synapse = new SynapseAdminClientImpl(mockProvider);
+		synapse = new SynapseAdminClientImpl(mockProvider, mockUploader);
 	}
 	
 	@Test

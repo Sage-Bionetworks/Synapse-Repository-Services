@@ -599,7 +599,46 @@ public class IT500SynapseJavaClient {
 
 	}
 
+	@Test
+	public void testJavaClientUploadDownloadLayerFromS3() throws Exception {
+		
+		File dataSourceFile = File.createTempFile("integrationTest", ".txt");
+		dataSourceFile.deleteOnExit();
+		FileWriter writer = new FileWriter(dataSourceFile);
+		writer.write("Hello world!");
+		writer.close();
 
+		Data layer = new Data();
+		layer.setType(LayerTypeNames.E);
+		layer.setParentId(dataset.getId());
+		layer = synapseOne.createEntity(layer);
+
+		layer = (Data) synapseOne.uploadLocationableToSynapse(layer,
+				dataSourceFile);
+		
+		// TODO!!!!!!!!!!!! test upload more than once, do we clutter LocationData?
+
+		assertEquals("text/plain", layer.getContentType());
+		assertNotNull(layer.getMd5());
+
+		List<LocationData> locations = layer.getLocations();
+		assertEquals(1, locations.size());
+		LocationData location = locations.get(0);
+		assertEquals(LocationTypeNames.awss3, location.getType());
+		assertNotNull(location.getPath());
+		assertTrue(location.getPath().startsWith("http"));
+		
+		File dataDestinationFile = File.createTempFile("integrationTest",
+				".download");
+		dataDestinationFile.deleteOnExit();
+		HttpClientHelper.getContent(DefaultHttpClientSingleton.getInstance(), location.getPath(), dataDestinationFile);
+		assertTrue(dataDestinationFile.isFile());
+		assertTrue(dataDestinationFile.canRead());
+		assertTrue(0 < dataDestinationFile.length());
+		
+		// TODO test auto versioning
+		
+	}
 	/**
 	 * Create a Data entity, update it's location data to point to an external url, then download it's data and test
 	 */
