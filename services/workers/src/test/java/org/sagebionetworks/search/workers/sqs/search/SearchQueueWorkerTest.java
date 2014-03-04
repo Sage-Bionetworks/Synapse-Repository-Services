@@ -14,8 +14,8 @@ import static org.mockito.Mockito.*;
 import org.mockito.Mockito;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.repo.manager.search.SearchDocumentDriver;
-import org.sagebionetworks.repo.model.dao.WikiPageDao;
 import org.sagebionetworks.repo.model.search.Document;
+import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.search.SearchDao;
 
 import com.amazonaws.services.sqs.model.Message;
@@ -24,14 +24,14 @@ public class SearchQueueWorkerTest {
 	
 	private SearchDao mockSeachDao;
 	private SearchDocumentDriver mockDocumentProvider;
-	private WikiPageDao mockWikiPageDao;
+	private V2WikiPageDao mockWikiPageDao;
 	private List<Message> messageList;
 	
 	@Before
 	public void before(){
 		mockSeachDao = Mockito.mock(SearchDao.class);
 		mockDocumentProvider = Mockito.mock(SearchDocumentDriver.class);
-		mockWikiPageDao = Mockito.mock(WikiPageDao.class);
+		mockWikiPageDao = Mockito.mock(V2WikiPageDao.class);
 		messageList = new LinkedList<Message>();
 	}
 	

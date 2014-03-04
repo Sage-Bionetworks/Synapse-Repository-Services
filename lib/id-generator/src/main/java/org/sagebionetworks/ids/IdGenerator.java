@@ -14,7 +14,12 @@ public interface IdGenerator {
 		CHANGE_ID,
 		PARTICIPANT_ID,
 		FAVORITE_ID,
-		ACL_RES_ACC_ID
+		ACL_RES_ACC_ID,
+		COLUMN_MODEL_ID, 
+		MESSAGE_ID,
+		PRINCIPAL_ID,
+		PRINCIPAL_ALIAS_ID,
+		ACL_ID
 	}
 	
 
@@ -36,4 +41,5 @@ public interface IdGenerator {
 	 * @param idToLock
 	 */
 	public void reserveId(Long idToLock, TYPE type);
+	
 }

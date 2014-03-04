@@ -20,6 +20,7 @@
 		<org.sagebionetworks.authenticationservice.publicendpoint>http://localhost:8080/services-authentication-${project.version}/auth/v1</org.sagebionetworks.authenticationservice.publicendpoint>
 		<org.sagebionetworks.repositoryservice.endpoint>http://localhost:8080/services-repository-${project.version}/repo/v1</org.sagebionetworks.repositoryservice.endpoint>
 		<org.sagebionetworks.fileservice.endpoint>http://localhost:8080/services-file-${project.version}/file/v1</org.sagebionetworks.fileservice.endpoint>
+		<org.sagebionetworks.bridgeservice.endpoint>http://localhost:8080/services-bridge-${project.version}/bridge/v1</org.sagebionetworks.bridgeservice.endpoint>
 		<org.sagebionetworks.searchservice.endpoint>http://localhost:8080/repository-search-${project.version}/search/v1</org.sagebionetworks.searchservice.endpoint>
 		<org.sagebionetworks.portal.endpoint>http://localhost:8080/portal-${project.version}/Portal</org.sagebionetworks.portal.endpoint>
 		<!-- This is where the repository war will be deployed -->
@@ -137,18 +138,16 @@
 					</container>
 					<configuration>
 						<properties>
-						    <cargo.jvmargs>
+							<cargo.jvmargs>
+<!--
+ 								-Xdebug
+ 								-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=8989
+ 								-Xnoagent
+-->
 								-Xmx2g
 								-Xms128m
 								-XX:MaxPermSize=850m
 							</cargo.jvmargs>
-	
-<!-- 							<cargo.jvmargs> -->
-<!-- 								-Xdebug -->
-<!-- 								-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=8989 -->
-<!-- 								-Xnoagent -->
-<!-- 								-Djava.compiler=NONE -->
-<!-- 							</cargo.jvmargs> -->
 							
 						</properties>
 					</configuration>
@@ -191,6 +190,11 @@
 		</plugins>
 	</build>
 	<dependencies>
+		<!-- Logging -->
+		<dependency>
+			<groupId>org.apache.logging.log4j</groupId>
+			<artifactId>log4j-core</artifactId>
+		</dependency>
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
@@ -256,6 +260,11 @@
 
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
+			<artifactId>bridgeJavaClient</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
 			<artifactId>bccSetup</artifactId>
 			<version>${project.version}</version>
 		</dependency>
@@ -282,13 +291,8 @@
 		</dependency>
 
 		<dependency>
-			<groupId>org.apache.commons</groupId>
+			<groupId>commons-io</groupId>
 			<artifactId>commons-io</artifactId>
-		</dependency>
-
-		<dependency>
-			<groupId>commons-logging</groupId>
-			<artifactId>commons-logging</artifactId>
 		</dependency>
 
 		<dependency>

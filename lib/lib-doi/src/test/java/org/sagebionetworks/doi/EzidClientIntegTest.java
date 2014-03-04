@@ -8,11 +8,19 @@ import static org.junit.Assert.assertTrue;
 import java.util.Calendar;
 import java.util.Random;
 
-import org.junit.Ignore;
+import org.junit.Assume;
+import org.junit.Before;
 import org.junit.Test;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.doi.Doi;
 
 public class EzidClientIntegTest {
+
+	@Before
+	public void before() {
+		StackConfiguration config = new StackConfiguration();
+		Assume.assumeTrue(config.getDoiEnabled());
+	}
 
 	@Test
 	public void testCreateGet() throws Exception {

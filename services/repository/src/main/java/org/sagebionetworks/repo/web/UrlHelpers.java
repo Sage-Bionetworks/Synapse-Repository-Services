@@ -8,17 +8,16 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.sagebionetworks.repo.model.ServiceConstants;
-import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.repo.model.PrefixConst;
+import org.sagebionetworks.repo.model.ServiceConstants;
+import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
 import org.sagebionetworks.repo.model.Versionable;
 
 /**
@@ -155,6 +154,9 @@ public class UrlHelpers {
 	public static final String ACTIVITY    = PrefixConst.ACTIVITY;
 	public static final String FAVORITE    = PrefixConst.FAVORITE;
 	
+	
+	public static final String PRINCIPAL = "/principal";
+	public static final String PRINCIPAL_AVAILABLE = PRINCIPAL+"/available";
 	/**
 	 * All of the base URLs for Synapse object batch requests
 	 */
@@ -498,9 +500,27 @@ public class UrlHelpers {
 	public static final String REFIRE_MESSAGES				= CHANGE_MESSAGES+"/refire";
 	public static final String CURRENT_NUMBER				= CHANGE_MESSAGES+"/currentnumber"; 
 	
+	// Messaging URLs
+	public static final String MESSAGE                    = "/message";
+	public static final String FORWARD                    = "/forward";
+	public static final String CONVERSATION               = "/conversation";
+	public static final String MESSAGE_STATUS             = MESSAGE + "/status";
+	public static final String MESSAGE_INBOX              = MESSAGE + "/inbox";
+	public static final String MESSAGE_OUTBOX             = MESSAGE + "/outbox";
+	public static final String MESSAGE_INBOX_FILTER_PARAM = "inboxFilter";
+	public static final String MESSAGE_ORDER_BY_PARAM     = "orderBy";
+	public static final String MESSAGE_DESCENDING_PARAM   = "descending";
+	public static final String MESSAGE_ID_PATH_VAR        = "messageId";
+	public static final String MESSAGE_ID                 = MESSAGE + "/{" + MESSAGE_ID_PATH_VAR + "}";
+	public static final String MESSAGE_ID_FORWARD         = MESSAGE_ID + FORWARD;
+	public static final String MESSAGE_ID_CONVERSATION    = MESSAGE_ID + CONVERSATION;
+	public static final String MESSAGE_ID_FILE            = MESSAGE_ID + FILE;
+	public static final String ENTITY_ID_MESSAGE          = ENTITY_ID + MESSAGE;
+	
 	/**
 	 * Mapping of dependent property classes to their URL suffixes
 	 */
+	@SuppressWarnings("rawtypes")
 	private static final Map<Class, String> PROPERTY2URLSUFFIX;
 
 	/**
@@ -526,10 +546,12 @@ public class UrlHelpers {
 	public static final String INCLUDE_DEPENDENCIES_PARAM = "includeDependencies";
 	
 	// Evaluation URLs
+	public static final String STATUS = "status";
 	public static final String EVALUATION = "/evaluation";
 	public static final String EVALUATION_ID_PATH_VAR_WITHOUT_BRACKETS = "evalId";
 	public static final String EVALUATION_ID_PATH_VAR = "{"+EVALUATION_ID_PATH_VAR_WITHOUT_BRACKETS+"}";
 	public static final String EVALUATION_WITH_ID = EVALUATION + "/" + EVALUATION_ID_PATH_VAR;
+	public static final String EVALUATION_WITH_CONTENT_SOURCE = ENTITY_ID + EVALUATION;
 	public static final String EVALUATION_WITH_NAME = EVALUATION + "/name/{name}";
 	public static final String EVALUATION_COUNT = EVALUATION + "/count";
 	public static final String EVALUATION_AVAILABLE = EVALUATION+"/available";
@@ -538,7 +560,6 @@ public class UrlHelpers {
 	public static final String PARTICIPANT_WITH_ID = PARTICIPANT + "/{partId}";
 	public static final String PARTICIPANT_COUNT = PARTICIPANT + "/count";
 	
-	public static final String STATUS = "status";
 	public static final String SUBMISSION = EVALUATION + "/submission";
 	public static final String SUBMISSION_WITH_ID = SUBMISSION + "/{subId}";
 	public static final String SUBMISSION_STATUS = SUBMISSION_WITH_ID + "/status";
@@ -557,6 +578,8 @@ public class UrlHelpers {
 	public static final String EVALUATION_ACL = EVALUATION + ACL;
 	public static final String EVALUATION_ID_ACL = EVALUATION + "/" + EVALUATION_ID_PATH_VAR + ACL;
 	public static final String EVALUATION_ID_PERMISSIONS = EVALUATION + "/" + EVALUATION_ID_PATH_VAR + PERMISSIONS;
+	
+	public static final String EVALUATION_QUERY = SUBMISSION + QUERY;
 
 	// Wiki URL
 	public static final String WIKI = "/wiki";
@@ -580,8 +603,85 @@ public class UrlHelpers {
 	public static final String EVALUATION_WIKI_ID =EVALUATION_OWNER_ID + WIKI_WITH_ID;
 	public static final String EVALUATION_WIKI_ID_ATTCHMENT_HANDLE =EVALUATION_OWNER_ID + WIKI_WITH_ID+ATTACHMENT_HANDLES;
 	public static final String EVALUATION_WIKI_ID_ATTCHMENT_FILE =EVALUATION_OWNER_ID + WIKI_WITH_ID+ATTACHMENT;
-	public static final String EVALUATION_WIKI_ID_ATTCHMENT_FILE_PREVIEW =EVALUATION_OWNER_ID + WIKI_WITH_ID+ATTACHMENT_PREVIEW;
+	public static final String EVALUATION_WIKI_ID_ATTCHMENT_FILE_PREVIEW =EVALUATION_OWNER_ID + WIKI_WITH_ID+ATTACHMENT_PREVIEW;	
 
+	// V2 Wiki URL
+	public static final String WIKI_V2 = "/wiki2";
+	public static final String WIKI_HEADER_TREE_V2 = "/wikiheadertree2";
+	public static final String WIKI_HISTORY_V2 = "/wikihistory";
+	public static final String ATTACHMENT_V2 = "/attachment";
+	public static final String ATTACHMENT_PREVIEW_V2 = "/attachmentpreview";
+	public static final String ATTACHMENT_HANDLES_V2 = "/attachmenthandles";
+	public static final String WIKI_WITH_ID_V2 = WIKI_V2 + "/{wikiId}";
+	public static final String WIKI_VERSION_V2 = "/{wikiVersion}";
+	public static final String MARKDOWN_V2 = "/markdown";
+	// Entity
+	public static final String ENTITY_OWNER_ID_V2 = ENTITY+"/{ownerId}";
+	public static final String ENTITY_WIKI_V2 = ENTITY_OWNER_ID_V2 + WIKI_V2;
+	public static final String ENTITY_WIKI_TREE_V2 = ENTITY_OWNER_ID_V2 + WIKI_HEADER_TREE_V2;
+	public static final String ENTITY_WIKI_ID_V2 = ENTITY_OWNER_ID_V2 + WIKI_WITH_ID_V2;
+	public static final String ENTITY_WIKI_ID_ATTCHMENT_HANDLE_V2 = ENTITY_OWNER_ID_V2 + WIKI_WITH_ID_V2+ATTACHMENT_HANDLES_V2;
+	public static final String ENTITY_WIKI_ID_ATTCHMENT_FILE_V2 = ENTITY_OWNER_ID_V2 + WIKI_WITH_ID_V2+ATTACHMENT_V2;
+	public static final String ENTITY_WIKI_ID_ATTCHMENT_FILE_PREVIEW_V2 = ENTITY_OWNER_ID_V2 + WIKI_WITH_ID_V2+ATTACHMENT_PREVIEW_V2;
+	public static final String ENTITY_WIKI_HISTORY_V2 = ENTITY_WIKI_ID_V2 + WIKI_HISTORY_V2;
+	public static final String ENTITY_WIKI_ID_AND_VERSION_V2 = ENTITY_OWNER_ID_V2+WIKI_WITH_ID_V2+WIKI_VERSION_V2;
+	public static final String ENTITY_WIKI_ID_MARKDOWN_FILE_V2 = ENTITY_OWNER_ID_V2 + WIKI_WITH_ID_V2 + MARKDOWN_V2;
+	// Evaluation
+	public static final String EVALUATION_OWNER_ID_V2 = EVALUATION+"/{ownerId}";
+	public static final String EVALUATION_WIKI_V2 = EVALUATION_OWNER_ID_V2+ WIKI_V2;
+	public static final String EVALUATION_WIKI_TREE_V2 = EVALUATION_OWNER_ID_V2 + WIKI_HEADER_TREE_V2;
+	public static final String EVALUATION_WIKI_ID_V2 =EVALUATION_OWNER_ID_V2 + WIKI_WITH_ID_V2;
+	public static final String EVALUATION_WIKI_ID_ATTCHMENT_HANDLE_V2 =EVALUATION_OWNER_ID_V2 + WIKI_WITH_ID_V2+ATTACHMENT_HANDLES_V2;
+	public static final String EVALUATION_WIKI_ID_ATTCHMENT_FILE_V2 =EVALUATION_OWNER_ID_V2 + WIKI_WITH_ID_V2+ATTACHMENT_V2;
+	public static final String EVALUATION_WIKI_ID_ATTCHMENT_FILE_PREVIEW_V2 =EVALUATION_OWNER_ID_V2 + WIKI_WITH_ID_V2+ATTACHMENT_PREVIEW_V2;
+	public static final String EVALUATION_WIKI_HISTORY_V2 = EVALUATION_WIKI_ID_V2 + WIKI_HISTORY_V2;
+	public static final String EVALUATION_WIKI_ID_AND_VERSION_V2 = EVALUATION_OWNER_ID_V2+WIKI_WITH_ID_V2+WIKI_VERSION_V2;
+	public static final String EVALUATION_WIKI_ID_MARKDOWN_FILE_V2 = EVALUATION_OWNER_ID_V2 + WIKI_WITH_ID_V2 + MARKDOWN_V2;
+	
+	// Tables
+	public static final String COLUMN = "/column";
+	public static final String TABLE = "/table";
+	public static final String COLUMN_ID = COLUMN+"/{columnId}";
+	public static final String ENTITY_COLUMNS = ENTITY_ID+COLUMN;
+	public static final String ENTITY_TABLE = ENTITY_ID+TABLE;
+	
+	// Team
+	public static final String TEAM = "/team";
+	public static final String TEAM_ID = TEAM+ID;
+	public static final String USER_TEAM = USER+ID+TEAM;
+	public static final String NAME_FRAGMENT_FILTER = "fragment";
+	public static final String TEAM_ID_ICON = TEAM_ID+"/icon";
+	private static final String MEMBER = "/member";
+	public static final String PRINCIPAL_ID_PATH_VARIABLE = "principalId";
+	public static final String PRINCIPAL_ID = "/{"+PRINCIPAL_ID_PATH_VARIABLE+"}";
+	public static final String TEAM_ID_MEMBER = TEAM_ID+MEMBER;
+	public static final String TEAM_ID_MEMBER_ID = TEAM_ID_MEMBER+PRINCIPAL_ID;
+	public static final String TEAM_ID_MEMBER_ID_PERMISSION = TEAM_ID_MEMBER+PRINCIPAL_ID+"/permission";
+	public static final String TEAM_PERMISSION_REQUEST_PARAMETER = "isAdmin";
+	public static final String TEAM_ID_MEMBER_ID_MEMBERSHIP_STATUS = TEAM_ID_MEMBER+PRINCIPAL_ID+"/membershipStatus";
+	public static final String TEAM_UPDATE_SEARCH_CACHE = "/updateTeamSearchCache";
+	// 	Team URIs for JSONP
+	public static final String TEAMS = "/teams";
+	public static final String TEAM_MEMBERS_ID = "/teamMembers"+ID;
+	
+	public static final String ACCESS_REQUIREMENT_WITH_TEAM_ID = TEAM_ID+ACCESS_REQUIREMENT;
+	public static final String TEAM_ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID = TEAM_ID+"/accessRequirementUnfulfilled";
+	public static final String ACCESS_APPROVAL_WITH_TEAM_ID = TEAM_ID+ACCESS_APPROVAL;
+
+	// membership invitation
+	public static final String MEMBERSHIP_INVITATION = "/membershipInvitation";
+	public static final String MEMBERSHIP_INVITATION_ID = MEMBERSHIP_INVITATION+ID;
+	public static final String OPEN_MEMBERSHIP_INVITATION_BY_USER = USER+ID+"/openInvitation";
+	public static final String OPEN_MEMBERSHIP_INVITATION_BY_TEAM = TEAM+ID+"/openInvitation";
+	public static final String TEAM_ID_REQUEST_PARAMETER = "teamId";
+	public static final String INVITEE_ID_REQUEST_PARAMETER = "inviteeId";
+	// membership request
+	public static final String MEMBERSHIP_REQUEST = "/membershipRequest";
+	public static final String MEMBERSHIP_REQUEST_ID = MEMBERSHIP_REQUEST+ID;
+	public static final String OPEN_MEMBERSHIP_REQUEST_FOR_TEAM = TEAM_ID+"/openRequest";
+	public static final String OPEN_MEMBERSHIP_REQUEST_FOR_USER = USER+ID+"/openRequest";
+	public static final String REQUESTOR_ID_REQUEST_PARAMETER = "requestorId";
+	
 	/**
 	 * APIs for DynamoDB related operations.
 	 */
@@ -591,14 +691,31 @@ public class UrlHelpers {
 	 * API for clearing the specified dynamo table.
 	 */
 	public static final String ADMIN_DYNAMO_CLEAR_TABLE = ADMIN + DYNAMO + "/clear" + "/{tableName}";
-
+	
 	/**
-	 * This is a memoized cache for our URL regular expressions
+	 * Temporary API to migrate wiki pages from V1 to V2
 	 */
-	private static Map<Class, Pattern> MODEL2REGEX = new HashMap<Class, Pattern>();
+	public static final String ADMIN_MIGRATE_WIKI = ADMIN + "/migrateWiki";
+	
+	// Authentication
+	public static final String AUTH_SESSION = "/session";
+	public static final String AUTH_USER = "/user";
+	public static final String AUTH_USER_PASSWORD = AUTH_USER + "/password";
+	public static final String AUTH_USER_PASSWORD_EMAIL = AUTH_USER_PASSWORD + "/email";
+	public static final String AUTH_TERMS_OF_USE = "/termsOfUse";
+	public static final String AUTH_SECRET_KEY = "/secretKey";
+	public static final String AUTH_OPEN_ID_CALLBACK = "/openIdCallback";
+	
+	/**
+	 * API for creating integration test users
+	 */
+	public static final String ADMIN_USER = ADMIN + AUTH_USER;
+	
+	public static final String ADMIN_USER_ID = ADMIN_USER + ID;
 
+	
 	static {
-
+		@SuppressWarnings("rawtypes")
 		Map<Class, String> property2urlsuffix = new HashMap<Class, String>();
 		property2urlsuffix.put(Annotations.class, ANNOTATIONS);
 		PROPERTY2URLSUFFIX = Collections.unmodifiableMap(property2urlsuffix);
@@ -672,7 +789,6 @@ public class UrlHelpers {
 	 * @param request
 	 * @return the uri for this entity's annotations
 	 */
-	@SuppressWarnings("unchecked")
 	public static String makeEntityPropertyUri(Entity entity,
 			Class propertyClass, HttpServletRequest request) {
 

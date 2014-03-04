@@ -8,6 +8,7 @@ import static org.junit.Assert.fail;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
@@ -15,7 +16,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -27,11 +27,11 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -51,16 +51,13 @@ public class DBOAccessApprovalDAOImplTest {
 	AccessApprovalDAO accessApprovalDAO;
 		
 	@Autowired
-	NodeDAO nodeDAO;
+	NodeDAO nodeDao;
 	
 	@Autowired
 	EvaluationDAO evaluationDAO;
 	
 	@Autowired
 	private IdGenerator idGenerator;
-
-	private static final String TEST_USER_NAME = "test-user";
-	private static final String TEST_USER_NAME_2 = "test-user-2";
 	
 	private UserGroup individualGroup = null;
 	private UserGroup individualGroup2 = null;
@@ -77,29 +74,24 @@ public class DBOAccessApprovalDAOImplTest {
 	
 	@Before
 	public void setUp() throws Exception {
-		individualGroup = userGroupDAO.findGroup(TEST_USER_NAME, true);
-		if (individualGroup == null) {
-			individualGroup = new UserGroup();
-			individualGroup.setName(TEST_USER_NAME);
-			individualGroup.setIsIndividual(true);
-			individualGroup.setCreationDate(new Date());
-			individualGroup.setId(userGroupDAO.create(individualGroup));
-		}
-		individualGroup2 = userGroupDAO.findGroup(TEST_USER_NAME, true);
-		if (individualGroup2 == null) {
-			individualGroup2 = new UserGroup();
-			individualGroup2.setName(TEST_USER_NAME_2);
-			individualGroup2.setIsIndividual(true);
-			individualGroup2.setCreationDate(new Date());
-			individualGroup2.setId(userGroupDAO.create(individualGroup2));
-		}
+
+		individualGroup = new UserGroup();
+		individualGroup.setIsIndividual(true);
+		individualGroup.setCreationDate(new Date());
+		individualGroup.setId(userGroupDAO.create(individualGroup).toString());
+
+		individualGroup2 = new UserGroup();
+		individualGroup2.setIsIndividual(true);
+		individualGroup2.setCreationDate(new Date());
+		individualGroup2.setId(userGroupDAO.create(individualGroup2).toString());
+
 		if (node==null) {
 			node = NodeTestUtils.createNew("foo", Long.parseLong(individualGroup.getId()));
-			node.setId( nodeDAO.createNew(node) );
+			node.setId( nodeDao.createNew(node) );
 		};
 		if (node2==null) {
 			node2 = NodeTestUtils.createNew("bar", Long.parseLong(individualGroup.getId()));
-			node2.setId( nodeDAO.createNew(node2) );
+			node2.setId( nodeDao.createNew(node2) );
 		};
 		accessRequirement = DBOAccessRequirementDAOImplTest.newEntityAccessRequirement(individualGroup, node, "foo");
 		accessRequirement = accessRequirementDAO.create(accessRequirement);
@@ -146,23 +138,21 @@ public class DBOAccessApprovalDAOImplTest {
 		if (accessRequirement2!=null && accessRequirement2.getId()!=null) {
 			accessRequirementDAO.delete(accessRequirement2.getId().toString());
 		}
-		if (node!=null && nodeDAO!=null) {
-			nodeDAO.delete(node.getId());
+		if (node!=null && nodeDao!=null) {
+			nodeDao.delete(node.getId());
 			node = null;
 		}
-		if (node2!=null && nodeDAO!=null) {
-			nodeDAO.delete(node2.getId());
+		if (node2!=null && nodeDao!=null) {
+			nodeDao.delete(node2.getId());
 			node2 = null;
 		}
 		if (evaluation!=null && evaluationDAO!=null) {
 			evaluationDAO.delete(evaluation.getId());
 			evaluation = null;
 		}
-		individualGroup = userGroupDAO.findGroup(TEST_USER_NAME, true);
 		if (individualGroup != null) {
 			userGroupDAO.delete(individualGroup.getId());
 		}
-		individualGroup2 = userGroupDAO.findGroup(TEST_USER_NAME_2, true);
 		if (individualGroup2 != null) {
 			userGroupDAO.delete(individualGroup2.getId());
 		}
@@ -183,14 +173,15 @@ public class DBOAccessApprovalDAOImplTest {
 	
 	@Test
 	public void testUnmetARsForEvaluation() throws Exception {
-		RestrictableObjectDescriptor rod = AccessRequirementUtilsTest.createRestrictableObjectDescriptor(evaluation.getId(), RestrictableObjectType.EVALUATION);
 		// Logic for unmet requirements doesn't reflect ownership at the DAO level.  It's factored in at the manager level.
 		// Therefore, the owner see unmet ARs for herself..
-		List<Long> unmetARIds = accessRequirementDAO.unmetAccessRequirements(rod, Arrays.asList(new Long[]{Long.parseLong(individualGroup.getId())}), participateAndDownload);
+		List<Long> unmetARIds = accessRequirementDAO.unmetAccessRequirements(Collections.singletonList(evaluation.getId()), RestrictableObjectType.EVALUATION,
+				Arrays.asList(new Long[]{Long.parseLong(individualGroup.getId())}), participateAndDownload);
 		assertEquals(1, unmetARIds.size());
 		assertEquals(accessRequirement2.getId(), unmetARIds.iterator().next());
 		// ... just as someone else does, if they haven't signed the ToU
-		unmetARIds = accessRequirementDAO.unmetAccessRequirements(rod, Arrays.asList(new Long[]{Long.parseLong(individualGroup2.getId())}), participateAndDownload);
+		unmetARIds = accessRequirementDAO.unmetAccessRequirements(Collections.singletonList(evaluation.getId()), RestrictableObjectType.EVALUATION,
+				Arrays.asList(new Long[]{Long.parseLong(individualGroup2.getId())}), participateAndDownload);
 		assertEquals(1, unmetARIds.size());
 		assertEquals(accessRequirement2.getId(), unmetARIds.iterator().next());
 		
@@ -206,7 +197,7 @@ public class DBOAccessApprovalDAOImplTest {
 		// no unmet requirement anymore ...
 		assertTrue(
 				accessRequirementDAO.unmetAccessRequirements(
-						rod, 
+						Collections.singletonList(evaluation.getId()), RestrictableObjectType.EVALUATION, 
 						Arrays.asList(new Long[]{Long.parseLong(individualGroup2.getId())}), 
 						participateAndDownload).isEmpty()
 				);
@@ -222,26 +213,27 @@ public class DBOAccessApprovalDAOImplTest {
 	@Test
 	public void testCRUD() throws Exception {
 		// first of all, we should see the unmet requirement
-		RestrictableObjectDescriptor rod = AccessRequirementUtilsTest.createRestrictableObjectDescriptor(node.getId());
-		List<Long> unmetARIds = accessRequirementDAO.unmetAccessRequirements(rod, Arrays.asList(new Long[]{Long.parseLong(individualGroup.getId())}), downloadAccessType);
+		List<Long> unmetARIds = accessRequirementDAO.unmetAccessRequirements(Collections.singletonList(node.getId()), RestrictableObjectType.ENTITY, 
+				Arrays.asList(new Long[]{Long.parseLong(individualGroup.getId())}), downloadAccessType);
 		assertEquals(1, unmetARIds.size());
 		assertEquals(accessRequirement.getId(), unmetARIds.iterator().next());
 		// while we're at it, check the edge cases:
 		// same result for ficticious principal ID
-		unmetARIds = accessRequirementDAO.unmetAccessRequirements(rod, Arrays.asList(new Long[]{8888L}), downloadAccessType);
+		unmetARIds = accessRequirementDAO.unmetAccessRequirements(Collections.singletonList(node.getId()), RestrictableObjectType.ENTITY, 
+				Arrays.asList(new Long[]{8888L}), downloadAccessType);
 		assertEquals(1, unmetARIds.size());
 		assertEquals(accessRequirement.getId(), unmetARIds.iterator().next());
 		// no unmet requirements for ficticious node ID
 		assertTrue(
 				accessRequirementDAO.unmetAccessRequirements(
-						AccessRequirementUtilsTest.createRestrictableObjectDescriptor("syn7890"), 
+						Collections.singletonList("syn7890"), RestrictableObjectType.ENTITY, 
 						Arrays.asList(new Long[]{Long.parseLong(individualGroup.getId())}), 
 						downloadAccessType).isEmpty()
 				);
 		// no unmet requirement for other type of access
 		assertTrue(
 				accessRequirementDAO.unmetAccessRequirements(
-						rod, 
+						Collections.singletonList(node.getId()), RestrictableObjectType.ENTITY,
 						Arrays.asList(new Long[]{Long.parseLong(individualGroup.getId())}), 
 						updateAccessType).isEmpty()
 				);
@@ -258,17 +250,18 @@ public class DBOAccessApprovalDAOImplTest {
 		// no unmet requirement anymore ...
 		assertTrue(
 				accessRequirementDAO.unmetAccessRequirements(
-						rod, 
+						Collections.singletonList(node.getId()), RestrictableObjectType.ENTITY, 
 						Arrays.asList(new Long[]{Long.parseLong(individualGroup.getId())}), 
 						downloadAccessType).isEmpty()
 				);
 		// ... but for a different (ficticious) user, the requirement isn't met...
-		unmetARIds = accessRequirementDAO.unmetAccessRequirements(rod, Arrays.asList(new Long[]{8888L}), downloadAccessType);
+		unmetARIds = accessRequirementDAO.unmetAccessRequirements(Collections.singletonList(node.getId()), RestrictableObjectType.ENTITY, 
+				Arrays.asList(new Long[]{8888L}), downloadAccessType);
 		assertEquals(1, unmetARIds.size());
 		assertEquals(accessRequirement.getId(), unmetARIds.iterator().next());
 		// ... and it's still unmet for the second node
-		RestrictableObjectDescriptor rod2 = AccessRequirementUtilsTest.createRestrictableObjectDescriptor(node2.getId());
-		unmetARIds = accessRequirementDAO.unmetAccessRequirements(rod2, Arrays.asList(new Long[]{Long.parseLong(individualGroup.getId())}), participateAndDownload);
+		unmetARIds = accessRequirementDAO.unmetAccessRequirements(Collections.singletonList(node2.getId()), RestrictableObjectType.ENTITY,
+				Arrays.asList(new Long[]{Long.parseLong(individualGroup.getId())}), participateAndDownload);
 		assertEquals(1, unmetARIds.size());
 		assertEquals(accessRequirement2.getId(), unmetARIds.iterator().next());
 		
@@ -296,15 +289,6 @@ public class DBOAccessApprovalDAOImplTest {
 		}
 		catch(ConflictingUpdateException e){
 			// We expected this exception
-		}
-
-		try {
-			// Update from a backup.
-			updatedAA = accessApprovalDAO.updateFromBackup(clone);
-			assertEquals(clone.getEtag(), updatedAA.getEtag());
-		}
-		catch(ConflictingUpdateException e) {
-			fail("Update from backup should not generate exception even if the e-tag is different.");
 		}
 
 		// Delete it

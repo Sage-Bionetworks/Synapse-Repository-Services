@@ -2,67 +2,83 @@ package org.sagebionetworks.repo.web.controller;
 
 import static org.junit.Assert.assertNotNull;
 
-import java.io.IOException;
 import java.io.StringWriter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.codehaus.jackson.JsonParseException;
-import org.codehaus.jackson.map.JsonMappingException;
-import org.json.JSONException;
+import org.apache.commons.lang.StringUtils;
 import org.json.JSONObject;
-import org.sagebionetworks.repo.manager.TestUserDAO;
+import org.junit.Assert;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.BooleanResult;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityId;
+import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
+import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
+import org.sagebionetworks.repo.model.doi.Doi;
+import org.sagebionetworks.repo.model.file.ExternalFileHandle;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.message.MessageBundle;
+import org.sagebionetworks.repo.model.message.MessageRecipientSet;
+import org.sagebionetworks.repo.model.message.MessageSortBy;
+import org.sagebionetworks.repo.model.message.MessageStatus;
+import org.sagebionetworks.repo.model.message.MessageStatusType;
+import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.ontology.Concept;
 import org.sagebionetworks.repo.model.ontology.ConceptResponsePage;
+import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
+import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.search.SearchResults;
+import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
+import org.sagebionetworks.repo.model.storage.StorageUsage;
+import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
+import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
+import org.sagebionetworks.repo.model.table.RowReferenceSet;
+import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
+import org.sagebionetworks.repo.web.controller.ServletTestHelperUtils.HTTPMODE;
 import org.sagebionetworks.repo.web.service.EntityService;
-import org.sagebionetworks.schema.adapter.JSONEntity;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
-import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.web.servlet.DispatcherServlet;
 
 /**
  * Helper class to make HttpServlet request.
@@ -78,20 +94,19 @@ import org.springframework.mock.web.MockHttpServletResponse;
  */
 public class ServletTestHelper {
 
-	private static final Log log = LogFactory.getLog(ServletTestHelper.class);
 	private static final EntityObjectMapper objectMapper = new EntityObjectMapper();
-	private static final String DEFAULT_USERNAME = TestUserDAO.TEST_USER_NAME;
 
-	@Autowired
 	// Used for cleanup
+	@Autowired
 	private EntityService entityController;
+
 	@Autowired
 	private UserManager userManager;
 
 	private static HttpServlet dispatchServlet = null;
 	private UserInfo testUser = null;
 	private List<String> toDelete = null;
-	private String username = null;
+	private Long userId = null;
 
 	/**
 	 * Setup the servlet, default test user, and entity list for test cleanup.
@@ -106,36 +121,33 @@ public class ServletTestHelper {
 		assertNotNull(entityController);
 		toDelete = new ArrayList<String>();
 
-		this.setTestUser(DEFAULT_USERNAME);
+		this.setTestUser(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 	}
 
 	/**
 	 * Change the test user
-	 * 
-	 * @param username
-	 * @throws Exception
 	 */
-	public void setTestUser(String username) throws Exception {
+	public void setTestUser(Long userId) throws Exception {
 		// Make sure we have a valid user.
-		this.username = username;
-		testUser = userManager.getUserInfo(this.username);
+		testUser = userManager.getUserInfo(userId);
 		UserInfo.validateUserInfo(testUser);
+		this.userId = userId;
 	}
-	
-	public UserInfo getTestUser() throws Exception{
+
+	public UserInfo getTestUser() throws Exception {
 		return testUser;
 	}
 
 	/**
 	 * Cleanup the created entities and destroy the servlet
-	 * 
-	 * @throws Exception
 	 */
 	public void tearDown() throws Exception {
 		if (entityController != null && toDelete != null) {
 			for (String idToDelete : toDelete) {
 				try {
-					entityController.deleteEntity(TestUserDAO.ADMIN_USER_NAME, idToDelete);
+					entityController
+							.deleteEntity(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER
+									.getPrincipalId(), idToDelete);
 				} catch (NotFoundException e) {
 					// nothing to do here
 				} catch (DatastoreException e) {
@@ -145,613 +157,279 @@ public class ServletTestHelper {
 		}
 	}
 
-	/**
-	 * @param <T>
-	 * @param entity
-	 * @param extraParams
-	 * @return the entity
-	 * @throws Exception
-	 */
 	public <T extends Entity> T createEntity(T entity,
 			Map<String, String> extraParams) throws Exception {
 		T returnedEntity = ServletTestHelper.createEntity(dispatchServlet,
-				entity, username, extraParams);
+				entity, userId, extraParams);
 		toDelete.add(returnedEntity.getId());
 		return returnedEntity;
 	}
-	
-	public <T extends Object> T createObject(String uri, T object) throws Exception {
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("POST");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(uri);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, username);
-		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+
+	@SuppressWarnings("unchecked")
+	public <T extends Object> T createObject(String uri, T object)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, uri, userId, null);
+
 		StringWriter out = new StringWriter();
 		objectMapper.writeValue(out, object);
 		String body = out.toString();
-		
 		// TODO why is this adding the jsonschema property?
 		JSONObject obj = new JSONObject(body);
 		obj.remove("jsonschema");
 		body = obj.toString();
-		
 		request.setContent(body.getBytes("UTF-8"));
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
-		if (response.getStatus() != HttpStatus.CREATED.value()) {
-			throw new ServletTestHelperException(response);
-		}
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.CREATED);
+
 		return (T) objectMapper.readValue(response.getContentAsString(),
 				object.getClass());
 	}
 
-	/**
-	 * @param <T>
-	 * @param entity
-	 * @param extraParams
-	 * @return the entity
-	 * @throws Exception
-	 */
+	@SuppressWarnings("unchecked")
 	public <T extends Entity> T getEntity(T entity,
 			Map<String, String> extraParams) throws Exception {
-		return (T) getEntityById(entity.getClass(), entity.getId(),	extraParams);
+		return (T) getEntityById(entity.getClass(), entity.getId(), extraParams);
 	}
 
-	/**
-	 * @param <T>
-	 * @param clazz
-	 * @param id
-	 * @param extraParams
-	 * @return the entity
-	 * @throws Exception
-	 */
-	public <T extends Entity> T getEntityById(Class<? extends T> clazz, String id,
-			Map<String, String> extraParams) throws Exception {
-		return ServletTestHelper.getEntity(dispatchServlet, clazz, id,
-				username, extraParams);
-	}
-
-	/**
-	 * @param <T>
-	 * @param entity
-	 * @param extraParams
-	 * @return
-	 * @throws Exception
-	 */
-	public <T extends Entity> T updateEntity(T entity,
-			Map<String, String> extraParams) throws Exception {
-		return ServletTestHelper.updateEntity(dispatchServlet, entity,
-				username, extraParams);
-	}
-
-	/**
-	 * @param <T>
-	 * @param clazz
-	 * @param id
-	 * @param extraParams
-	 * @throws Exception
-	 */
-	public <T extends Entity> void deleteEntity(Class<? extends T> clazz,
+	public <T extends Entity> T getEntityById(Class<? extends T> clazz,
 			String id, Map<String, String> extraParams) throws Exception {
-		ServletTestHelper.deleteEntity(dispatchServlet, clazz, id, username,
+		return ServletTestHelper.getEntity(dispatchServlet, clazz, id, userId,
 				extraParams);
 	}
-	
-	/**
-	 * @param query 
-	 * @return the query results
-	 * @throws Exception
-	 */
-	public QueryResults query(String query) throws Exception {
-		return ServletTestHelper.query(dispatchServlet, query, username);
+
+	public <T extends Entity> T updateEntity(T entity,
+			Map<String, String> extraParams) throws Exception {
+		return ServletTestHelper.updateEntity(dispatchServlet, entity, userId,
+				extraParams);
 	}
 
-	/**
-	 * @param <T>
-	 * @param entity 
-	 * @return
-	 * @throws ServletException
-	 * @throws IOException
-	 * @throws ACLInheritanceException
-	 */
-	public <T extends Entity> AccessControlList getEntityACL(T entity) throws ServletException,
-			IOException, ACLInheritanceException {
+	public <T extends Entity> void deleteEntity(Class<? extends T> clazz,
+			String id, Map<String, String> extraParams) throws Exception {
+		ServletTestHelper.deleteEntity(dispatchServlet, clazz, id, userId,
+				extraParams);
+	}
+
+	public QueryResults<Map<String, Object>> query(String query)
+			throws Exception {
+		return ServletTestHelper.query(dispatchServlet, query, userId);
+	}
+
+	public <T extends Entity> AccessControlList getEntityACL(T entity)
+			throws Exception {
 		return ServletTestHelper.getEntityACL(dispatchServlet, entity.getId(),
-				username);
+				userId);
+	}
+
+	public <T extends Entity> AccessControlList updateEntityAcl(T entity,
+			AccessControlList entityACL) throws Exception {
+		return ServletTestHelper.updateEntityAcl(dispatchServlet,
+				entity.getId(), entityACL, userId);
+	}
+
+	public SearchResults getSearchResults(Map<String, String> params)
+			throws Exception {
+		return ServletTestHelper.getSearchResults(dispatchServlet, userId,
+				params);
 	}
 
 	/**
-	 * @param <T>
-	 * @param entity 
-	 * @param entityACL
-	 * @return
-	 * @throws ServletException
-	 * @throws IOException
-	 */
-	public <T extends Entity> AccessControlList updateEntityAcl(
-			T entity, AccessControlList entityACL)
-			throws ServletException, IOException {
-		return ServletTestHelper.updateEntityAcl(dispatchServlet, entity.getId(),
-				entityACL, username);
-	}
-	
-	public SearchResults getSearchResults(Map<String, String> params) throws Exception {
-		return ServletTestHelper.getSearchResults(dispatchServlet, username, params);
-	}
-
-	/**
-	 * Create the passed entity by making a request to the passed servlet.
-	 * 
-	 * @param dispatchServlet
-	 * @param entity
-	 * @param userId
-	 * @param <T>
-	 * @return
-	 * @throws ServletException
-	 * @throws IOException
-	 * 
+	 * Create the passed entity by making a request to the passed servlet
 	 */
 	public static <T extends Entity> T createEntity(
-			HttpServlet dispatchServlet, T entity, String userId)
-			throws ServletException, IOException {
+			HttpServlet dispatchServlet, T entity, Long userId)
+			throws Exception {
 		return ServletTestHelper.createEntity(dispatchServlet, entity, userId,
 				null);
 	}
 
 	/**
-	 * Create the passed entity by making a request to the passed servlet.
-	 * 
-	 * @param dispatchServlet
-	 * @param entity
-	 * @param userId
-	 * @param extraParams
-	 * @param <T>
-	 * @return
-	 * @throws ServletException
-	 * @throws IOException
-	 * 
+	 * Create the passed entity by making a request to the passed servlet
 	 */
+	@SuppressWarnings("unchecked")
 	public static <T extends Entity> T createEntity(
-			HttpServlet dispatchServlet, T entity, String userId,
-			Map<String, String> extraParams) throws ServletException,
-			IOException {
-		if (dispatchServlet == null)
-			throw new IllegalArgumentException("Servlet cannot be null");
+			HttpServlet dispatchServlet, T entity, Long userId,
+			Map<String, String> extraParams) throws Exception {
 		entity.setEntityType(entity.getClass().getName());
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("POST");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ENTITY);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		if (null != extraParams) {
-			for (Map.Entry<String, String> param : extraParams.entrySet()) {
-				request.setParameter(param.getKey(), param.getValue());
-			}
-		}
-		request.addHeader("Content-Type", "application/json; charset=UTF-8");
-		StringWriter out = new StringWriter();
-		objectMapper.writeValue(out, entity);
-		String body = out.toString();
-		request.setContent(body.getBytes("UTF-8"));
-		log.debug("About to send: " + body);
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
-		if (response.getStatus() != HttpStatus.CREATED.value()) {
-			throw new ServletTestHelperException(response);
-		}
-		@SuppressWarnings("unchecked")
-		T returnedEntity = (T) objectMapper.readValue(
-				response.getContentAsString(), entity.getClass());
-		return returnedEntity;
+
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, UrlHelpers.ENTITY, userId, entity);
+		ServletTestHelperUtils.addExtraParams(request, extraParams);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.CREATED);
+
+		return (T) objectMapper.readValue(response.getContentAsString(),
+				entity.getClass());
 	}
 
 	/**
-	 * Get an entity using an id.
-	 * 
-	 * @param dispatchServlet
-	 * @param clazz
-	 * @param id
-	 * @param userId
-	 * @param <T>
-	 * @return
-	 * @throws ServletException
-	 * @throws IOException
-	 * 
+	 * Get an entity using an id
 	 */
 	public static <T extends Entity> T getEntity(HttpServlet dispatchServlet,
-			Class<? extends T> clazz, String id, String userId)
-			throws ServletException, IOException {
+			Class<? extends T> clazz, String id, Long userId) throws Exception {
 		return ServletTestHelper.getEntity(dispatchServlet, clazz, id, userId,
 				null);
 	}
 
 	/**
-	 * Get an entity using an id.
-	 * 
-	 * @param dispatchServlet
-	 * @param clazz
-	 * @param id
-	 * @param userId
-	 * @param extraParams
-	 * @param <T>
-	 * @return
-	 * @throws ServletException
-	 * @throws IOException
-	 * 
+	 * Get an entity using an id
 	 */
 	public static <T extends Entity> T getEntity(HttpServlet dispatchServlet,
-			Class<? extends T> clazz, String id, String userId,
-			Map<String, String> extraParams) throws ServletException,
-			IOException {
-		if (dispatchServlet == null)
-			throw new IllegalArgumentException("Servlet cannot be null");
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ENTITY + "/" + id);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		if (null != extraParams) {
-			for (Map.Entry<String, String> param : extraParams.entrySet()) {
-				request.setParameter(param.getKey(), param.getValue());
-			}
-		}
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
-		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new ServletTestHelperException(response);
-		}
+			Class<? extends T> clazz, String id, Long userId,
+			Map<String, String> extraParams) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id, userId, null);
+		ServletTestHelperUtils.addExtraParams(request, extraParams);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
 		return (T) objectMapper.readValue(response.getContentAsString(), clazz);
 	}
 
 	/**
-	 * Get an entity using an id.
-	 * 
-	 * @param <T>
-	 * @param requestUrl
-	 * @param clazz
-	 * @param id
-	 * @return
-	 * @throws IOException
-	 * @throws ServletException
-	 * @throws Exception
+	 * Get an entity using an id
 	 */
 	public static <T extends Versionable> T getEntityForVersion(
 			HttpServlet dispatchServlet, Class<? extends T> clazz, String id,
-			Long versionNumber, String userId) throws ServletException,
-			IOException {
-		if (dispatchServlet == null)
-			throw new IllegalArgumentException("Servlet cannot be null");
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ENTITY + "/" + id
-				+ UrlHelpers.VERSION + "/" + versionNumber);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
-		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new ServletTestHelperException(response);
-		}
+			Long versionNumber, Long userId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id + UrlHelpers.VERSION
+						+ "/" + versionNumber, userId, null);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
 		return (T) objectMapper.readValue(response.getContentAsString(), clazz);
 	}
 
 	/**
 	 * Get the annotations for an entity
-	 * 
-	 * @param <T>
-	 * @param dispatchServlet
-	 * @param clazz
-	 * @param id
-	 * @param userId
-	 * @return
-	 * @throws ServletException
-	 * @throws IOException
 	 */
 	public static <T extends Entity> Annotations getEntityAnnotations(
 			HttpServlet dispatchServlet, Class<? extends T> clazz, String id,
-			String userId) throws ServletException, IOException {
-		if (dispatchServlet == null)
-			throw new IllegalArgumentException("Servlet cannot be null");
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ENTITY + "/" + id
-				+ UrlHelpers.ANNOTATIONS);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
-		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new ServletTestHelperException(response);
-		}
+			Long userId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id
+						+ UrlHelpers.ANNOTATIONS, userId, null);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
 		return objectMapper.readValue(response.getContentAsString(),
 				Annotations.class);
 	}
 
 	/**
 	 * Get the annotations for an entity
-	 * 
-	 * @param <T>
-	 * @param dispatchServlet
-	 * @param clazz
-	 * @param id
-	 * @param userId
-	 * @return
-	 * @throws ServletException
-	 * @throws IOException
-	 * @throws JSONException
 	 */
 	public static <T extends Entity> EntityPath getEntityPath(
 			HttpServlet dispatchServlet, Class<? extends T> clazz, String id,
-			String userId) throws ServletException, IOException, JSONException {
-		if (dispatchServlet == null)
-			throw new IllegalArgumentException("Servlet cannot be null");
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ENTITY + "/" + id + UrlHelpers.PATH);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
-		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new ServletTestHelperException(response);
-		}
-		
-		return (EntityPath) objectMapper.readValue(response.getContentAsString(), clazz);
+			Long userId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id + UrlHelpers.PATH,
+				userId, null);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return (EntityPath) objectMapper.readValue(
+				response.getContentAsString(), clazz);
 	}
 
 	/**
-	 * Get the annotations for a given version.
-	 * 
-	 * @param <T>
-	 * @param dispatchServlet
-	 * @param clazz
-	 * @param id
-	 * @param versionNumber
-	 * @param userId
-	 * @return
-	 * @throws ServletException
-	 * @throws IOException
+	 * Get the annotations for a given version
 	 */
 	public static <T extends Entity> Annotations getEntityAnnotationsForVersion(
 			HttpServlet dispatchServlet, Class<? extends T> clazz, String id,
-			Long versionNumber, String userId) throws ServletException,
-			IOException {
-		if (dispatchServlet == null)
-			throw new IllegalArgumentException("Servlet cannot be null");
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ENTITY + "/" + id
-				+ UrlHelpers.VERSION + "/" + versionNumber
-				+ UrlHelpers.ANNOTATIONS);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
-		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new ServletTestHelperException(response);
-		}
+			Long versionNumber, Long userId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id + UrlHelpers.VERSION
+						+ "/" + versionNumber + UrlHelpers.ANNOTATIONS, userId,
+				null);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
 		return objectMapper.readValue(response.getContentAsString(),
 				Annotations.class);
 	}
 
 	/**
-	 * Update the annotations for an entity.
-	 * 
-	 * @param <T>
-	 * @param dispatchServlet
-	 * @param clazz
-	 * @param updatedAnnos
-	 * @param userId
-	 * @return
-	 * @throws ServletException
-	 * @throws IOException
+	 * Update the annotations for an entity
 	 */
 	public static <T extends Entity> Annotations updateEntityAnnotations(
 			HttpServlet dispatchServlet, Class<? extends T> clazz,
-			Annotations updatedAnnos, String userId) throws ServletException,
-			IOException {
-		if (dispatchServlet == null)
-			throw new IllegalArgumentException("Servlet cannot be null");
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("PUT");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ENTITY + "/" + updatedAnnos.getId()
-				+ UrlHelpers.ANNOTATIONS);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		request.addHeader("Content-Type", "application/json; charset=UTF-8");
-		StringWriter out = new StringWriter();
-		objectMapper.writeValue(out, updatedAnnos);
-		String body = out.toString();
-		request.setContent(body.getBytes("UTF-8"));
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
-		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new ServletTestHelperException(response);
-		}
+			Annotations updatedAnnos, Long userId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.PUT, UrlHelpers.ENTITY + "/" + updatedAnnos.getId()
+						+ UrlHelpers.ANNOTATIONS, userId, updatedAnnos);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
 		return objectMapper.readValue(response.getContentAsString(),
 				Annotations.class);
 	}
 
 	/**
-	 * Update an entity.
-	 * 
-	 * @param dispatchServlet
-	 * @param entity
-	 * @param userId
-	 * @param <T>
-	 * @return
-	 * @throws ServletException
-	 * @throws IOException
+	 * Update an entity
 	 */
 	public static <T extends Entity> T updateEntity(
-			HttpServlet dispatchServlet, T entity, String userId)
-			throws ServletException, IOException {
+			HttpServlet dispatchServlet, T entity, Long userId)
+			throws Exception {
 		return ServletTestHelper.updateEntity(dispatchServlet, entity, userId,
 				null);
 	}
 
 	/**
-	 * Update an entity.
-	 * 
-	 * @param dispatchServlet
-	 * @param entity
-	 * @param userId
-	 * @param extraParams
-	 * @param <T>
-	 * @return
-	 * @throws ServletException
-	 * @throws IOException
+	 * Update an entity
 	 */
 	@SuppressWarnings("unchecked")
 	public static <T extends Entity> T updateEntity(
-			HttpServlet dispatchServlet, T entity, String userId,
-			Map<String, String> extraParams) throws ServletException,
-			IOException {
-		if (dispatchServlet == null)
-			throw new IllegalArgumentException("Servlet cannot be null");
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("PUT");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ENTITY + "/" + entity.getId());
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		if (null != extraParams) {
-			for (Map.Entry<String, String> param : extraParams.entrySet()) {
-				request.setParameter(param.getKey(), param.getValue());
-			}
-		}
-		request.addHeader("Content-Type", "application/json; charset=UTF-8");
-		StringWriter out = new StringWriter();
-		objectMapper.writeValue(out, entity);
-		String body = out.toString();
-		request.setContent(body.getBytes("UTF-8"));
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
-		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new ServletTestHelperException(response);
-		}
+			HttpServlet dispatchServlet, T entity, Long userId,
+			Map<String, String> extraParams) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.PUT, UrlHelpers.ENTITY + "/" + entity.getId(), userId,
+				entity);
+		ServletTestHelperUtils.addExtraParams(request, extraParams);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
 		return (T) objectMapper.readValue(response.getContentAsString(),
 				entity.getClass());
 	}
 
 	/**
-	 * Update an entity.
-	 * 
-	 * @param <T>
-	 * @param dispatchServlet
-	 * @param entity
-	 * @param userId
-	 * @return
-	 * @throws ServletException
-	 * @throws IOException
+	 * Update an entity
 	 */
 	@SuppressWarnings("unchecked")
 	public static <T extends Versionable> T createNewVersion(
-			HttpServlet dispatchServlet, T entity, String userId)
-			throws ServletException, IOException {
-		if (dispatchServlet == null)
-			throw new IllegalArgumentException("Servlet cannot be null");
-		entity.setEntityType(entity.getClass().getName());
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("PUT");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ENTITY + "/" + entity.getId()
-				+ UrlHelpers.VERSION);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		request.addHeader("Content-Type", "application/json; charset=UTF-8");
-		StringWriter out = new StringWriter();
-		objectMapper.writeValue(out, entity);
-		String body = out.toString();
-		request.setContent(body.getBytes("UTF-8"));
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
-		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new ServletTestHelperException(response);
-		}
+			HttpServlet dispatchServlet, T entity, Long userId)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.PUT, UrlHelpers.ENTITY + "/" + entity.getId()
+						+ UrlHelpers.VERSION, userId, entity);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
 		return (T) objectMapper.readValue(response.getContentAsString(),
 				entity.getClass());
 	}
 
 	/**
-	 * Get all objects of type.
-	 * 
-	 * @param <T>
-	 * @param requestUrl
-	 * @param clazz
-	 * @return
-	 * @throws IOException
-	 * @throws ServletException
-	 * @throws JSONException
-	 * @throws Exception
-	 */
-	@Deprecated
-	public static <T extends Entity> PaginatedResults<T> getAllEntites(
-			HttpServlet dispatchServlet, Class<? extends T> clazz,
-			Integer offset, Integer limit, String sort, Boolean ascending,
-			String userId) throws ServletException, IOException, JSONException {
-		if (dispatchServlet == null)
-			throw new IllegalArgumentException("Servlet cannot be null");
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		if (offset != null) {
-			request.setParameter(ServiceConstants.PAGINATION_OFFSET_PARAM,
-					offset.toString());
-		}
-		if (limit != null) {
-			request.setParameter(ServiceConstants.PAGINATION_LIMIT_PARAM,
-					limit.toString());
-		}
-		if (sort != null) {
-			request.setParameter(ServiceConstants.SORT_BY_PARAM, sort);
-		}
-		if (ascending != null) {
-			request.setParameter(ServiceConstants.ASCENDING_PARAM,
-					ascending.toString());
-		}
-		request.setRequestURI(UrlHelpers.ENTITY);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
-		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new ServletTestHelperException(response);
-		}
-		return createPaginatedResultsFromJSON(response.getContentAsString(),
-				clazz);
-	}
-
-	/**
-	 * Get all objects of type.
-	 * 
-	 * @param requestUrl
-	 * @param clazz
-	 * @return
-	 * @throws IOException
-	 * @throws ServletException
-	 * @throws JSONException
-	 * @throws Exception
+	 * Get all objects of type
 	 */
 	public static PaginatedResults<VersionInfo> getAllVersionsOfEntity(
 			HttpServlet dispatchServlet, String entityId, Integer offset,
-			Integer limit, String userId) throws ServletException, IOException,
-			JSONException {
-		if (dispatchServlet == null)
-			throw new IllegalArgumentException("Servlet cannot be null");
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
+			Integer limit, Long userId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + entityId
+						+ UrlHelpers.VERSION, userId, null);
 		if (offset != null) {
 			request.setParameter(ServiceConstants.PAGINATION_OFFSET_PARAM,
 					offset.toString());
@@ -760,584 +438,296 @@ public class ServletTestHelper {
 			request.setParameter(ServiceConstants.PAGINATION_LIMIT_PARAM,
 					limit.toString());
 		}
-		request.setRequestURI(UrlHelpers.ENTITY + "/" + entityId
-				+ UrlHelpers.VERSION);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
-		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new ServletTestHelperException(response);
-		}
-		return createPaginatedResultsFromJSON(response.getContentAsString(),
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return ServletTestHelperUtils.readResponsePaginatedResults(response,
 				VersionInfo.class);
 	}
 
 	/**
-	 * We need extra help to convert from JSON to a PaginatedResults
-	 * 
-	 * @param <T>
-	 * @param json
-	 * @param clazz
-	 * @return
-	 * @throws JSONException
-	 * @throws IOException
-	 * @throws JsonMappingException
-	 * @throws JsonParseException
-	 */
-	public static <T extends JSONEntity> PaginatedResults<T> createPaginatedResultsFromJSON(
-			String jsonString, Class<? extends T> clazz) throws JSONException,
-			JsonParseException, JsonMappingException, IOException {
-		PaginatedResults<T> pr = new PaginatedResults<T>(clazz);
-		try {
-			pr.initializeFromJSONObject(new JSONObjectAdapterImpl(jsonString));
-			return pr;
-		} catch (JSONObjectAdapterException e) {
-			throw new RuntimeException(e);
-		}
-
-	}
-
-
-	/**
 	 * Delete an entity
-	 * 
-	 * @param dispatchServlet
-	 * @param clazz
-	 * @param id
-	 * @param userId
-	 * @param <T>
-	 * @throws ServletException
-	 * @throws IOException
 	 */
 	public static <T extends Entity> void deleteEntity(
 			HttpServlet dispatchServlet, Class<? extends T> clazz, String id,
-			String userId) throws ServletException, IOException {
+			Long userId) throws Exception {
 		ServletTestHelper
 				.deleteEntity(dispatchServlet, clazz, id, userId, null);
 	}
 
 	/**
 	 * Delete an entity
-	 * 
-	 * @param dispatchServlet
-	 * @param clazz
-	 * @param id
-	 * @param userId
-	 * @param extraParams
-	 * @param <T>
-	 * @throws ServletException
-	 * @throws IOException
 	 */
 	public static <T extends Entity> void deleteEntity(
 			HttpServlet dispatchServlet, Class<? extends T> clazz, String id,
-			String userId, Map<String, String> extraParams)
-			throws ServletException, IOException {
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("DELETE");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ENTITY + "/" + id);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		if (null != extraParams) {
-			for (Map.Entry<String, String> param : extraParams.entrySet()) {
-				request.setParameter(param.getKey(), param.getValue());
-			}
-		}
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
-		if (response.getStatus() != HttpStatus.NO_CONTENT.value()) {
-			throw new ServletTestHelperException(response);
-		}
+			Long userId, Map<String, String> extraParams) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.DELETE, UrlHelpers.ENTITY + "/" + id, userId, null);
+		ServletTestHelperUtils.addExtraParams(request, extraParams);
+
+		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
+				HttpStatus.NO_CONTENT);
 	}
 
 	/**
-	 * Delete a specfic version of an entity
-	 * 
-	 * @param <T>
-	 * @param requestUrl
-	 * @param clazz
-	 * @param id
-	 * @return
-	 * @throws IOException
-	 * @throws ServletException
-	 * @throws Exception
+	 * Delete a specific version of an entity
 	 */
 	public static <T extends Entity> void deleteEntityVersion(
 			HttpServlet dispatchServlet, Class<? extends T> clazz, String id,
-			Long versionNumber, String userId) throws ServletException,
-			IOException {
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("DELETE");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ENTITY + "/" + id
-				+ UrlHelpers.VERSION + "/" + versionNumber);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
-		if (response.getStatus() != HttpStatus.NO_CONTENT.value()) {
-			throw new ServletTestHelperException(response);
-		}
+			Long versionNumber, Long userId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.DELETE, UrlHelpers.ENTITY + "/" + id
+						+ UrlHelpers.VERSION + "/" + versionNumber, userId,
+				null);
+
+		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
+				HttpStatus.NO_CONTENT);
 	}
 
-	/**
-	 * @param <T>
-	 * @param dispatchServlet
-	 * @param query
-	 * @param userId
-	 * @return the query results
-	 * @throws ServletException
-	 * @throws IOException
-	 */
-	public static <T extends Entity> QueryResults<Map<String,Object>> query(
-			HttpServlet dispatchServlet, String query,
-			 String userId) throws ServletException,
-			IOException {
-		if (dispatchServlet == null)
-			throw new IllegalArgumentException("Servlet cannot be null");
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.QUERY);
+	@SuppressWarnings("unchecked")
+	public static <T extends Entity> QueryResults<Map<String, Object>> query(
+			HttpServlet dispatchServlet, String query, Long userId)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.QUERY, userId, null);
 		request.setParameter(ServiceConstants.QUERY_PARAM, query);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
-		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new ServletTestHelperException(response);
-		}
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
 		return objectMapper.readValue(response.getContentAsString(),
 				QueryResults.class);
 	}
-	
+
 	/**
-	 * create the Access Control List (ACL) for an entity.
-	 * 
-	 * @param <T>
-	 * @param dispatchServlet
-	 * @param clazz
-	 * @param id
-	 * @param userId
-	 * @return
-	 * @throws ServletException
-	 * @throws IOException
+	 * Create the Access Control List (ACL) for an entity
 	 */
 	public static <T extends Entity> AccessControlList createEntityACL(
 			HttpServlet dispatchServlet, String id,
-			AccessControlList entityACL, String userId)
-			throws ServletException, IOException {
-		if (dispatchServlet == null)
-			throw new IllegalArgumentException("Servlet cannot be null");
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("POST");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ENTITY + "/" + id + UrlHelpers.ACL);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		request.addHeader("Content-Type", "application/json; charset=UTF-8");
-		StringWriter out = new StringWriter();
-		objectMapper.writeValue(out, entityACL);
-		String body = out.toString();
-		request.setContent(body.getBytes("UTF-8"));
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
-		if (response.getStatus() != HttpStatus.CREATED.value()) {
-			throw new IllegalArgumentException(response.getErrorMessage() + " "
-					+ response.getStatus() + " for\n" + body);
-		}
+			AccessControlList entityACL, Long userId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, UrlHelpers.ENTITY + "/" + id + UrlHelpers.ACL,
+				userId, entityACL);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.CREATED);
+
 		return objectMapper.readValue(response.getContentAsString(),
 				AccessControlList.class);
 	}
 
 	/**
-	 * Get the Access Control List (ACL) for an entity.
-	 * 
-	 * @param <T>
-	 * @param dispatchServlet
-	 * @param clazz
-	 * @param id
-	 * @param userId
-	 * @return
-	 * @throws ServletException
-	 * @throws IOException
-	 * @throws ACLInheritanceException
+	 * Get the Access Control List (ACL) for an entity
 	 */
 	public static <T extends Entity> AccessControlList getEntityACL(
-			HttpServlet dispatchServlet, String id,
-			String userId) throws ServletException, IOException,
-			ACLInheritanceException {
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ENTITY + "/" + id + UrlHelpers.ACL);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
-		if (response.getStatus() == HttpStatus.NOT_FOUND.value()) {
-			// This occurs when we try to access an ACL from an entity that
-			// inherits its permission.
-			throw new ACLInheritanceException(response.getErrorMessage());
+			HttpServlet dispatchServlet, String id, Long userId)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id + UrlHelpers.ACL,
+				userId, null);
+
+		MockHttpServletResponse response;
+		try {
+			response = ServletTestHelperUtils.dispatchRequest(dispatchServlet,
+					request, HttpStatus.OK);
+		} catch (NotFoundException e) {
+			throw new ACLInheritanceException(e.getMessage());
 		}
-		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new ServletTestHelperException(response);
-		}
+
 		return objectMapper.readValue(response.getContentAsString(),
 				AccessControlList.class);
 	}
 
 	/**
 	 * Update an entity ACL
-	 * 
-	 * @param <T>
-	 * @param dispatchServlet
-	 * @param clazz
-	 * @param entityACL
-	 * @param userId
-	 * @return
-	 * @throws ServletException
-	 * @throws IOException
 	 */
 	public static <T extends Entity> AccessControlList updateEntityAcl(
 			HttpServlet dispatchServlet, String id,
-			AccessControlList entityACL, String userId)
-			throws ServletException, IOException {
-		if (dispatchServlet == null)
-			throw new IllegalArgumentException("Servlet cannot be null");
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("PUT");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ENTITY + "/" + id + UrlHelpers.ACL);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		request.addHeader("Content-Type", "application/json; charset=UTF-8");
-		StringWriter out = new StringWriter();
-		objectMapper.writeValue(out, entityACL);
-		String body = out.toString();
-		request.setContent(body.getBytes("UTF-8"));
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
-		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new ServletTestHelperException(response);
-		}
+			AccessControlList entityACL, Long userId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.PUT, UrlHelpers.ENTITY + "/" + id + UrlHelpers.ACL,
+				userId, entityACL);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
 		return objectMapper.readValue(response.getContentAsString(),
 				AccessControlList.class);
 	}
 
 	/**
 	 * Delete an entity ACL
-	 * 
-	 * @param <T>
-	 * @param dispatchServlet
-	 * @param clazz
-	 * @param entityACL
-	 * @param userId
-	 * @return
-	 * @throws ServletException
-	 * @throws IOException
 	 */
 	public static <T extends Entity> void deleteEntityACL(
-			HttpServlet dispatchServlet,
-			String resourceId, String userId) throws ServletException,
-			IOException {
-		if (dispatchServlet == null)
-			throw new IllegalArgumentException("Servlet cannot be null");
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("DELETE");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ENTITY + "/" + resourceId
-				+ UrlHelpers.ACL);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
-		if (response.getStatus() != HttpStatus.NO_CONTENT.value()) {
-			throw new ServletTestHelperException(response);
-		}
+			HttpServlet dispatchServlet, String resourceId, Long userId)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.DELETE, UrlHelpers.ENTITY + "/" + resourceId
+						+ UrlHelpers.ACL, userId, null);
+
+		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
+				HttpStatus.NO_CONTENT);
 	}
 
 	/**
 	 * Get the principals
-	 * 
-	 * @param dispatchServlet
-	 * @param userId
-	 * @return the principals
-	 * @throws ServletException
-	 * @throws IOException
 	 */
 	public static PaginatedResults<UserProfile> getUsers(
-			HttpServlet dispatchServlet, String userId)
-			throws ServletException, IOException {
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.USER);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
-		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new ServletTestHelperException(response);
-		}
-		PaginatedResults<UserProfile> us = deserializePaginatedResults(
-				response.getContentAsString(), UserProfile.class);
-		return us;
-	}
-	
-	
-	public static <T extends JSONEntity> PaginatedResults<T> deserializePaginatedResults(String json, Class<T> clazz) {
-		try {
-			PaginatedResults<T> prs = new PaginatedResults<T>(clazz);
-				prs.initializeFromJSONObject(new JSONObjectAdapterImpl(json));
-				return prs;
-		} catch (JSONObjectAdapterException e) {
-			throw new RuntimeException(e);
-		}
-	}
+			HttpServlet dispatchServlet, Long userId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.USER, userId, null);
 
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return ServletTestHelperUtils.readResponsePaginatedResults(response,
+				UserProfile.class);
+	}
 
 	/**
 	 * Get the principals
-	 * 
-	 * @param dispatchServlet
-	 * @param userId
-	 * @return the principals
-	 * @throws ServletException
-	 * @throws IOException
 	 */
 	public static PaginatedResults<UserGroup> getGroups(
-			HttpServlet dispatchServlet, String userId)
-			throws ServletException, IOException {
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.USERGROUP);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
-		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new ServletTestHelperException(response);
-		}
-		PaginatedResults<UserGroup> us = deserializePaginatedResults(
-				response.getContentAsString(), UserGroup.class);
-		return us;
+			HttpServlet dispatchServlet, Long userId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.USERGROUP, userId, null);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return ServletTestHelperUtils.readResponsePaginatedResults(response,
+				UserGroup.class);
 	}
 
 	/**
-	 * calls 'hasAccess'
-	 * 
-	 * @param <T>
-	 * @param dispatchServlet
-	 * @param clazz
-	 * @param id
-	 * @param userId
-	 * @return
-	 * @throws ServletException
-	 * @throws IOException
+	 * Calls 'hasAccess'
 	 */
 	public static <T extends Entity> BooleanResult hasAccess(
 			HttpServlet dispatchServlet, Class<? extends T> clazz, String id,
-			String userId, String accessType) throws ServletException,
-			IOException {
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ENTITY + "/" + id
-				+ UrlHelpers.ACCESS);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+			Long userId, String accessType) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id + UrlHelpers.ACCESS,
+				userId, null);
 		request.setParameter(UrlHelpers.ACCESS_TYPE_PARAM, accessType);
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
-		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new ServletTestHelperException(response);
-		}
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
 		return (BooleanResult) objectMapper.readValue(
 				response.getContentAsString(), BooleanResult.class);
 	}
 
 	/**
 	 * Get the status of a backup/restore daemon
-	 * 
-	 * @param dispatchServlet
-	 * @param userId
-	 * @param id
-	 * @return
-	 * @throws ServletException
-	 * @throws IOException
 	 */
 	public static BackupRestoreStatus getDaemonStatus(
-			HttpServlet dispatchServlet, String userId, String id)
-			throws ServletException, IOException {
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.DAEMON + "/" + id);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
-		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new ServletTestHelperException(response);
-		}
+			HttpServlet dispatchServlet, Long userId, String id)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.DAEMON + "/" + id, userId, null);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
 		return (BackupRestoreStatus) objectMapper.readValue(
 				response.getContentAsString(), BackupRestoreStatus.class);
 	}
-	
+
 	/**
 	 * Get the status of a backup/restore daemon
-	 * 
-	 * @param dispatchServlet
-	 * @param userId
-	 * @param id
-	 * @return
-	 * @throws ServletException
-	 * @throws IOException
 	 */
-	public static StackStatus getStackStatus(
-			HttpServlet dispatchServlet)
-			throws ServletException, IOException {
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.STACK_STATUS);
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
-		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new ServletTestHelperException(response);
-		}
-		return (StackStatus) objectMapper.readValue(response.getContentAsString(), StackStatus.class);
+	public static StackStatus getStackStatus(HttpServlet dispatchServlet)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.STACK_STATUS, null, null);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return (StackStatus) objectMapper.readValue(
+				response.getContentAsString(), StackStatus.class);
 	}
-	
+
 	/**
 	 * Get the status of a backup/restore daemon
-	 * 
-	 * @param dispatchServlet
-	 * @param userId
-	 * @param id
-	 * @return
-	 * @throws ServletException
-	 * @throws IOException
 	 */
-	public static StackStatus updateStackStatus(
-			HttpServlet dispatchServlet, String userId, StackStatus toUpdate)
-			throws ServletException, IOException {
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("PUT");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.STACK_STATUS);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		if (toUpdate != null) {
-			request.addHeader("Content-Type", "application/json; charset=UTF-8");
-			StringWriter out = new StringWriter();
-			objectMapper.writeValue(out, toUpdate);
-			String body = out.toString();
-			request.setContent(body.getBytes("UTF-8"));
-		}
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
-		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new ServletTestHelperException(response);
-		}
-		return (StackStatus) objectMapper.readValue(response.getContentAsString(), StackStatus.class);
+	public static StackStatus updateStackStatus(HttpServlet dispatchServlet,
+			Long userId, StackStatus toUpdate) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.PUT, UrlHelpers.STACK_STATUS, userId, toUpdate);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return (StackStatus) objectMapper.readValue(
+				response.getContentAsString(), StackStatus.class);
 	}
 
 	public static void terminateDaemon(HttpServlet dispatchServlet,
-			String userId, String id) throws ServletException, IOException {
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("DELETE");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.DAEMON + "/" + id);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
-		if (response.getStatus() != HttpStatus.NO_CONTENT.value()) {
-			throw new ServletTestHelperException(response);
-		}
+			Long userId, String id) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.DELETE, UrlHelpers.DAEMON + "/" + id, userId, null);
+
+		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
+				HttpStatus.NO_CONTENT);
 	}
 
 	public static EntityHeader getEntityType(HttpServlet dispatchServlet,
-			String id, String userId) throws ServletException, IOException {
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ENTITY + "/" + id + UrlHelpers.TYPE);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
-		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new ServletTestHelperException(response);
-		}
+			String id, Long userId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id + UrlHelpers.TYPE,
+				userId, null);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
 		return (EntityHeader) objectMapper.readValue(
 				response.getContentAsString(), EntityHeader.class);
 	}
 
-	public static PaginatedResults<EntityHeader> getEntityReferences(HttpServlet dispatchServlet,
-			String id, String userId) throws ServletException, IOException, JSONException {
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ENTITY + "/" + id + UrlHelpers.REFERENCED_BY);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
-		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new ServletTestHelperException(response);
-		}
-		return createPaginatedResultsFromJSON(response.getContentAsString(),
+	public static PaginatedResults<EntityHeader> getEntityReferences(
+			HttpServlet dispatchServlet, String id, Long userId)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id
+						+ UrlHelpers.REFERENCED_BY, userId, null);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return ServletTestHelperUtils.readResponsePaginatedResults(response,
 				EntityHeader.class);
 	}
 
-	public static PaginatedResults<EntityHeader> getEntityReferences(HttpServlet dispatchServlet,
-			String id, Long versionNumber, String userId) throws ServletException, IOException, JSONException {
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ENTITY + "/" + id + UrlHelpers.VERSION + "/" + versionNumber + UrlHelpers.REFERENCED_BY);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
-		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new ServletTestHelperException(response);
-		}
-		return createPaginatedResultsFromJSON(response.getContentAsString(),
+	public static PaginatedResults<EntityHeader> getEntityReferences(
+			HttpServlet dispatchServlet, String id, Long versionNumber,
+			Long userId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id + UrlHelpers.VERSION
+						+ "/" + versionNumber + UrlHelpers.REFERENCED_BY,
+				userId, null);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return ServletTestHelperUtils.readResponsePaginatedResults(response,
 				EntityHeader.class);
 	}
 
 	/**
-	 * Get the PermissionInfo for a given entity.
-	 * 
-	 * @param dispatchServlet
-	 * @param id
-	 * @param type
-	 * @param userId
-	 * @return
-	 * @throws ServletException
-	 * @throws IOException
+	 * Get the PermissionInfo for a given entity
 	 */
 	public static <T extends Entity> EntityHeader getEntityBenefactor(
 			HttpServlet dispatchServlet, String id, Class<? extends T> clazz,
-			String userId) throws ServletException, IOException {
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ENTITY + "/" + id
-				+ UrlHelpers.BENEFACTOR);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
-		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new ServletTestHelperException(response);
-		}
+			Long userId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id
+						+ UrlHelpers.BENEFACTOR, userId, null);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
 		return (EntityHeader) objectMapper.readValue(
 				response.getContentAsString(), EntityHeader.class);
 	}
@@ -1346,794 +736,1026 @@ public class ServletTestHelper {
 	 * Get search results
 	 */
 	public static SearchResults getSearchResults(HttpServlet dispatchServlet,
-			String userId, Map<String, String> extraParams) throws ServletException,
-			IOException, JSONException {
-		if (dispatchServlet == null)
-			throw new IllegalArgumentException("Servlet cannot be null");
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI("/search");
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		if (null != extraParams) {
-			for (Map.Entry<String, String> param : extraParams.entrySet()) {
-				request.setParameter(param.getKey(), param.getValue());
-			}
-		}
-		dispatchServlet.service(request, response);
-		log.info("Results: " + response.getContentAsString());
-		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new ServletTestHelperException(response);
-		}
+			Long userId, Map<String, String> extraParams) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, "/search", userId, null);
+		ServletTestHelperUtils.addExtraParams(request, extraParams);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
 		return objectMapper.readValue(response.getContentAsString(),
-				SearchResults.class);	}
-	
-	/**
-	 * 
-	 * @param dispatchServlet
-	 * @param param
-	 * @return
-	 * @throws ServletException
-	 * @throws IOException
-	 */
-	public static ConceptResponsePage getConceptsForParent(String parentId, String pefix, int limit, int offest)
-			throws ServletException, IOException {
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.CONCEPT_ID_CHILDERN_TRANSITIVE);
-		StringBuilder urlBuilder = new StringBuilder();
-		urlBuilder.append(UrlHelpers.CONCEPT);
-		urlBuilder.append("/");
-		urlBuilder.append(parentId);
-		urlBuilder.append(UrlHelpers.CHILDERN_TRANSITIVE);
-		if(pefix != null){
+				SearchResults.class);
+	}
+
+	public static MessageToUser sendMessage(Long userId, MessageToUser message)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, UrlHelpers.MESSAGE, userId, message);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.CREATED);
+
+		return ServletTestHelperUtils.readResponse(response,
+				MessageToUser.class);
+	}
+
+	private static Map<String, String> fillInMessagingParams(
+			List<MessageStatusType> inboxFilter, MessageSortBy orderBy,
+			Boolean descending, long limit, long offset) {
+		HashMap<String, String> params = new HashMap<String, String>();
+		if (inboxFilter != null) {
+			params.put(UrlHelpers.MESSAGE_INBOX_FILTER_PARAM,
+					StringUtils.join(inboxFilter.toArray(), ','));
+		}
+		if (orderBy != null) {
+			params.put(UrlHelpers.MESSAGE_ORDER_BY_PARAM, orderBy.name());
+		}
+		if (descending != null) {
+			params.put(UrlHelpers.MESSAGE_DESCENDING_PARAM, "" + descending);
+		}
+		params.put(ServiceConstants.PAGINATION_LIMIT_PARAM, "" + limit);
+		params.put(ServiceConstants.PAGINATION_OFFSET_PARAM, "" + offset);
+		return params;
+	}
+
+	public static PaginatedResults<MessageBundle> getInbox(Long userId,
+			List<MessageStatusType> inboxFilter, MessageSortBy orderBy,
+			Boolean descending, long limit, long offset) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.MESSAGE_INBOX, userId, null);
+		ServletTestHelperUtils.addExtraParams(
+				request,
+				fillInMessagingParams(inboxFilter, orderBy, descending, limit,
+						offset));
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return ServletTestHelperUtils.readResponsePaginatedResults(response,
+				MessageBundle.class);
+	}
+
+	public static PaginatedResults<MessageToUser> getOutbox(Long userId,
+			MessageSortBy orderBy, Boolean descending, long limit, long offset)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.MESSAGE_OUTBOX, userId, null);
+		ServletTestHelperUtils
+				.addExtraParams(
+						request,
+						fillInMessagingParams(null, orderBy, descending, limit,
+								offset));
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return ServletTestHelperUtils.readResponsePaginatedResults(response,
+				MessageToUser.class);
+	}
+
+	public static MessageToUser getMessage(Long userId, String messageId)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.MESSAGE + "/" + messageId, userId,
+				null);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return ServletTestHelperUtils.readResponse(response,
+				MessageToUser.class);
+	}
+
+	public static MessageToUser forwardMessage(Long userId, String messageId,
+			MessageRecipientSet recipients) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, UrlHelpers.MESSAGE + "/" + messageId
+						+ UrlHelpers.FORWARD, userId, recipients);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.CREATED);
+
+		return ServletTestHelperUtils.readResponse(response,
+				MessageToUser.class);
+	}
+
+	public static PaginatedResults<MessageToUser> getConversation(Long userId,
+			String associatedMessageId, MessageSortBy orderBy,
+			Boolean descending, long limit, long offset) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.MESSAGE + "/" + associatedMessageId
+						+ UrlHelpers.CONVERSATION, userId, null);
+		ServletTestHelperUtils
+				.addExtraParams(
+						request,
+						fillInMessagingParams(null, orderBy, descending, limit,
+								offset));
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return ServletTestHelperUtils.readResponsePaginatedResults(response,
+				MessageToUser.class);
+	}
+
+	public static void updateMessageStatus(Long userId, MessageStatus status)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.PUT, UrlHelpers.MESSAGE_STATUS, userId, status);
+
+		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
+				HttpStatus.OK);
+	}
+
+	public static ConceptResponsePage getConceptsForParent(String parentId,
+			String pefix, int limit, int offset) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.CONCEPT + "/" + parentId
+						+ UrlHelpers.CHILDERN_TRANSITIVE, null, null);
+		if (pefix != null) {
 			request.setParameter(UrlHelpers.PREFIX_FILTER, pefix);
 		}
-		request.setParameter(ServiceConstants.PAGINATION_LIMIT_PARAM, ""+limit);
-		request.setParameter(ServiceConstants.PAGINATION_OFFSET_PARAM, ""+offest);
-		request.setRequestURI(urlBuilder.toString());
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
-		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new ServletTestHelperException(response);
-		}
-//		System.out.println(response.getContentAsString());
-		return (ConceptResponsePage) objectMapper.readValue(response.getContentAsString(), ConceptResponsePage.class);
+		request.setParameter(ServiceConstants.PAGINATION_LIMIT_PARAM, ""
+				+ limit);
+		request.setParameter(ServiceConstants.PAGINATION_OFFSET_PARAM, ""
+				+ offset);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return objectMapper.readValue(response.getContentAsString(),
+				ConceptResponsePage.class);
 	}
 
 	/**
-	 * Get a single concept from its id.
-	 * @param dispatchServlet
-	 * @param param
-	 * @return
-	 * @throws ServletException
-	 * @throws IOException
+	 * Get a single concept from its id
 	 */
-	public static Concept getConcept(String id)
-			throws ServletException, IOException {
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.CONCEPT_ID_CHILDERN_TRANSITIVE);
-		StringBuilder urlBuilder = new StringBuilder();
-		urlBuilder.append(UrlHelpers.CONCEPT);
-		urlBuilder.append("/");
-		urlBuilder.append(id);
-		request.setRequestURI(urlBuilder.toString());
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
-		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new ServletTestHelperException(response);
-		}
-//		System.out.println(response.getContentAsString());
-		return (Concept) objectMapper.readValue(response.getContentAsString(), Concept.class);
+	public static Concept getConcept(String id) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.CONCEPT + "/" + id, null, null);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return objectMapper.readValue(response.getContentAsString(),
+				Concept.class);
 	}
-	
+
 	/**
-	 * Get a single concept from its id.
-	 * @param dispatchServlet
-	 * @param param
-	 * @return
-	 * @throws ServletException
-	 * @throws IOException
+	 * Get a single concept from its id
 	 */
 	public static String getConceptAsJSONP(String id, String callbackName)
-			throws ServletException, IOException {
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.CONCEPT_ID_CHILDERN_TRANSITIVE);
-		StringBuilder urlBuilder = new StringBuilder();
-		urlBuilder.append(UrlHelpers.CONCEPT);
-		urlBuilder.append("/");
-		urlBuilder.append(id);
-		request.setRequestURI(urlBuilder.toString());
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.CONCEPT + "/" + id, null, null);
 		// Add the header that indicates we want JSONP
 		request.addParameter(UrlHelpers.REQUEST_CALLBACK_JSONP, callbackName);
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
-		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new ServletTestHelperException(response);
-		}
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
 		return response.getContentAsString();
 	}
 
-	/**
-	 * 
-	 * @param dispatchServlet
-	 * @param param
-	 * @return
-	 * @throws ServletException
-	 * @throws IOException
-	 */
-	public static UserGroupHeaderResponsePage getUserGroupHeadersByPrefix(String pefix, int limit, int offest)
-			throws ServletException, IOException {
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.USER_GROUP_HEADERS);
-		if(pefix != null){
+	public static UserGroupHeaderResponsePage getUserGroupHeadersByPrefix(
+			String pefix, int limit, int offest) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.USER_GROUP_HEADERS, null, null);
+		if (pefix != null) {
 			request.setParameter(UrlHelpers.PREFIX_FILTER, pefix);
 		}
-		request.setParameter(ServiceConstants.PAGINATION_LIMIT_PARAM, "" + limit);
-		request.setParameter(ServiceConstants.PAGINATION_OFFSET_PARAM, "" + offest);
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
-		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new ServletTestHelperException(response);
-		}
-		return (UserGroupHeaderResponsePage) objectMapper.readValue(response.getContentAsString(), UserGroupHeaderResponsePage.class);
+		request.setParameter(ServiceConstants.PAGINATION_LIMIT_PARAM, ""
+				+ limit);
+		request.setParameter(ServiceConstants.PAGINATION_OFFSET_PARAM, ""
+				+ offest);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return objectMapper.readValue(response.getContentAsString(),
+				UserGroupHeaderResponsePage.class);
 	}
 
-	/**
-	 * @param dispatchServlet
-	 * @param param
-	 * @return
-	 * @throws ServletException
-	 * @throws IOException
-	 */
-	public static String getUserGroupHeadersAsJSONP(String pefix, int limit, int offest, String callbackName)
-			throws ServletException, IOException {
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.USER_GROUP_HEADERS);
-		StringBuilder urlBuilder = new StringBuilder();
-		urlBuilder.append(UrlHelpers.CONCEPT);
-		urlBuilder.append("/");
-		if(pefix != null){
-			request.setParameter(UrlHelpers.PREFIX_FILTER, pefix);
-		}
-		request.setParameter(ServiceConstants.PAGINATION_LIMIT_PARAM, "" + limit);
-		request.setParameter(ServiceConstants.PAGINATION_OFFSET_PARAM, "" + offest);
-		request.setRequestURI(urlBuilder.toString());
-		
+	public static String getUserGroupHeadersAsJSONP(String pefix, int limit,
+			int offest, String callbackName) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.CONCEPT + "/", null, null);
 		// Add the header that indicates we want JSONP
 		request.addParameter(UrlHelpers.REQUEST_CALLBACK_JSONP, callbackName);
-		
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
-		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new ServletTestHelperException(response);
+		if (pefix != null) {
+			request.setParameter(UrlHelpers.PREFIX_FILTER, pefix);
 		}
+		request.setParameter(ServiceConstants.PAGINATION_LIMIT_PARAM, ""
+				+ limit);
+		request.setParameter(ServiceConstants.PAGINATION_OFFSET_PARAM, ""
+				+ offest);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
 		return response.getContentAsString();
 	}
 
-	public static UserEntityPermissions getUserEntityPermissions(HttpServlet dispatchServlet, String id, String userId) throws ServletException, IOException {
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ENTITY + "/" + id + UrlHelpers.PERMISSIONS);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
-		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new ServletTestHelperException(response);
-		}
-		return (UserEntityPermissions) objectMapper.readValue(
-				response.getContentAsString(), UserEntityPermissions.class);
+	public static UserEntityPermissions getUserEntityPermissions(
+			HttpServlet dispatchServlet, String id, Long userId)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id
+						+ UrlHelpers.PERMISSIONS, userId, null);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return objectMapper.readValue(response.getContentAsString(),
+				UserEntityPermissions.class);
 	}
-	
-	/**
-	 * Create an attachment token.
-	 * @param token
-	 * @return
-	 * @throws JSONObjectAdapterException 
-	 * @throws IOException 
-	 * @throws ServletException 
-	 */
-	public static S3AttachmentToken createS3AttachmentToken(String userId, ServiceConstants.AttachmentType attachentType, String id, S3AttachmentToken token) throws JSONObjectAdapterException, ServletException, IOException{
-		if (dispatchServlet == null)
-			throw new IllegalArgumentException("Servlet cannot be null");
-		if(id == null) throw new IllegalArgumentException("Entity ID cannot be null");
-		if(token == null) throw new IllegalArgumentException("Token cannot be null");
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("POST");
-		request.addHeader("Accept", "application/json");
-		String uri = UrlHelpers.getAttachmentTypeURL(attachentType)+"/"+id+UrlHelpers.ATTACHMENT_S3_TOKEN;
-		request.setRequestURI(uri);
-		System.out.println(request.getRequestURL());
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		request.addHeader("Content-Type", "application/json; charset=UTF-8");
-		StringWriter out = new StringWriter();
-		objectMapper.writeValue(out, token);
-		String body = out.toString();
-		request.setContent(body.getBytes("UTF-8"));
-//		log.debug("About to send: " + body);
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
-		if (response.getStatus() != HttpStatus.CREATED.value()) {
-			throw new ServletTestHelperException(response);
-		}
-		// Done!
-		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), S3AttachmentToken.class);
-	}
-	
-	/**
-	 * Get a pre-signed URL for a an attachment.
-	 * @param userId
-	 * @param entityId
-	 * @param tokenId
-	 * @return
-	 * @throws JSONObjectAdapterException
-	 * @throws ServletException
-	 * @throws IOException
-	 */
-	public PresignedUrl getAttachmentUrl(String userId, String entityId, String tokenId) throws JSONObjectAdapterException, ServletException, IOException{
-		return getAttachmentUrl(userId, AttachmentType.ENTITY, entityId, tokenId);
-	}
-	
-	/**
-	 * Get a pre-signed URL for a user profile attachment.
-	 * @param userId
-	 * @param profileId
-	 * @param tokenId
-	 * @return
-	 * @throws JSONObjectAdapterException
-	 * @throws ServletException
-	 * @throws IOException
-	 */
-	public PresignedUrl getUserProfileAttachmentUrl(String userId, String targetProfileId, String tokenId) throws JSONObjectAdapterException, ServletException, IOException{
-		return getAttachmentUrl(userId, AttachmentType.USER_PROFILE, targetProfileId, tokenId);
-	}
-	
 
 	/**
-	 * Get a pre-signed URL for a an attachment.
-	 * @param userId
-	 * @param attachmentType
-	 * @param entityId
-	 * @param tokenId
-	 * @return
-	 * @throws JSONObjectAdapterException
-	 * @throws ServletException
-	 * @throws IOException
+	 * Create an attachment token
 	 */
-	public PresignedUrl getAttachmentUrl(String userId, AttachmentType type, String id, String tokenId) throws JSONObjectAdapterException, ServletException, IOException{
-		if(id == null) throw new IllegalArgumentException("ID cannot be null");
-		if(tokenId == null) throw new IllegalArgumentException("TokenId cannot be null");
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("POST");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI( UrlHelpers.getAttachmentTypeURL(type)+"/"+id+UrlHelpers.ATTACHMENT_URL);
-		System.out.println(request.getRequestURL());
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+	public static S3AttachmentToken createS3AttachmentToken(Long userId,
+			ServiceConstants.AttachmentType attachentType, String id,
+			S3AttachmentToken token) throws Exception {
+		Assert.assertNotNull(id);
+		Assert.assertNotNull(token);
+
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, UrlHelpers.getAttachmentTypeURL(attachentType)
+						+ "/" + id + UrlHelpers.ATTACHMENT_S3_TOKEN, userId,
+				token);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.CREATED);
+
+		return EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), S3AttachmentToken.class);
+	}
+
+	/**
+	 * Get a pre-signed URL for a an attachment
+	 */
+	public PresignedUrl getAttachmentUrl(Long userIdId, String entityId,
+			String tokenId) throws Exception {
+		return getAttachmentUrl(userId, AttachmentType.ENTITY, entityId,
+				tokenId);
+	}
+
+	/**
+	 * Get a pre-signed URL for a user profile attachment
+	 */
+	public PresignedUrl getUserProfileAttachmentUrl(Long userIdId,
+			String targetProfileId, String tokenId) throws Exception {
+		return getAttachmentUrl(userId, AttachmentType.USER_PROFILE,
+				targetProfileId, tokenId);
+	}
+
+	/**
+	 * Get a pre-signed URL for a an attachment
+	 */
+	public PresignedUrl getAttachmentUrl(Long userId, AttachmentType type,
+			String id, String tokenId) throws Exception {
+		Assert.assertNotNull(id);
+		Assert.assertNotNull(tokenId);
+
 		PresignedUrl url = new PresignedUrl();
 		url.setTokenID(tokenId);
-		StringWriter out = new StringWriter();
-		objectMapper.writeValue(out, url);
-		String body = out.toString();
-		request.setContent(body.getBytes("UTF-8"));
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
-		if (response.getStatus() != HttpStatus.CREATED.value()) {
-			throw new ServletTestHelperException(response);
-		}
-		// Done!
-		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), PresignedUrl.class);
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, UrlHelpers.getAttachmentTypeURL(type) + "/" + id
+						+ UrlHelpers.ATTACHMENT_URL, userId, url);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.CREATED);
+
+		return EntityFactory.createEntityFromJSONString(
+				response.getContentAsString(), PresignedUrl.class);
 	}
-	
-	public String checkAmznHealth() throws ServletException, IOException {
-		String s = "";
-		
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("HEAD");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.HEALTHCHECK);
-		System.out.println(request.getRequestURL());
-		dispatchServlet.service(request, response);
-		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new ServletTestHelperException(response);
-		}
-		s = response.getContentAsString();
-		return s;
+
+	public String checkAmznHealth() throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.HEAD, UrlHelpers.HEALTHCHECK, userId, null);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return response.getContentAsString();
 	}
-	
+
+	@SuppressWarnings("unchecked")
 	public static <T extends AccessRequirement> T createAccessRequirement(
-			HttpServlet dispatchServlet, T accessRequirement, String userId,
-			Map<String, String> extraParams) throws ServletException,
-			IOException {
-		if (dispatchServlet == null)
-			throw new IllegalArgumentException("Servlet cannot be null");
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("POST");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ACCESS_REQUIREMENT);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		if (null != extraParams) {
-			for (Map.Entry<String, String> param : extraParams.entrySet()) {
-				request.setParameter(param.getKey(), param.getValue());
-			}
-		}
-		request.addHeader("Content-Type", "application/json; charset=UTF-8");
-		StringWriter out = new StringWriter();
-		objectMapper.writeValue(out, accessRequirement);
-		String body = out.toString();
-		request.setContent(body.getBytes("UTF-8"));
-		log.debug("About to send: " + body);
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
-		if (response.getStatus() != HttpStatus.CREATED.value()) {
-			throw new ServletTestHelperException(response);
-		}
-		@SuppressWarnings("unchecked")
-		T returnedEntity = (T) objectMapper.readValue(
-				response.getContentAsString(), accessRequirement.getClass());
-		return returnedEntity;
-	}
-	
-    public static VariableContentPaginatedResults<AccessRequirement> createAccessRequirementPaginatedResultsFromJSON(
-			String jsonString) throws JSONException,
-			JsonParseException, JsonMappingException, IOException {
-		VariableContentPaginatedResults<AccessRequirement> pr = 
-			new VariableContentPaginatedResults<AccessRequirement>();
-		try {
-			pr.initializeFromJSONObject(new JSONObjectAdapterImpl(jsonString));
-			return pr;
-		} catch (JSONObjectAdapterException e) {
-			throw new RuntimeException(e);
-		}
+			HttpServlet dispatchServlet, T accessRequirement, Long userId,
+			Map<String, String> extraParams) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, UrlHelpers.ACCESS_REQUIREMENT, userId,
+				accessRequirement);
+		ServletTestHelperUtils.addExtraParams(request, extraParams);
 
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.CREATED);
+
+		return (T) objectMapper.readValue(response.getContentAsString(),
+				accessRequirement.getClass());
 	}
 
+	@SuppressWarnings("unchecked")
+	public static <T extends AccessRequirement> T updateAccessRequirement(
+			HttpServlet dispatchServlet, T accessRequirement, Long userId,
+			Map<String, String> extraParams) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.PUT, UrlHelpers.ACCESS_REQUIREMENT+"/"+accessRequirement.getId(), userId,
+				accessRequirement);
+		ServletTestHelperUtils.addExtraParams(request, extraParams);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return (T) objectMapper.readValue(response.getContentAsString(),
+				accessRequirement.getClass());
+	}
 
 	public static PaginatedResults<AccessRequirement> getEntityAccessRequirements(
-			HttpServlet dispatchServlet, String id,
-			String userId) throws Exception {
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI("/entity/"+id+UrlHelpers.ACCESS_REQUIREMENT);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
+			HttpServlet dispatchServlet, String id, Long userId)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, "/entity/" + id + UrlHelpers.ACCESS_REQUIREMENT,
+				userId, null);
 
-		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new ServletTestHelperException(response);
-		}
-		return createAccessRequirementPaginatedResultsFromJSON(response.getContentAsString());
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return ServletTestHelperUtils.readResponseVariablePaginatedResults(
+				response, AccessRequirement.class);
 	}
 
 	public static PaginatedResults<AccessRequirement> getEvaluationAccessRequirements(
-			HttpServlet dispatchServlet, String id,
-			String userId) throws Exception {
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI("/evaluation/"+id+UrlHelpers.ACCESS_REQUIREMENT);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
+			HttpServlet dispatchServlet, String id, Long userId)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, "/evaluation/" + id
+						+ UrlHelpers.ACCESS_REQUIREMENT, userId, null);
 
-		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new ServletTestHelperException(response);
-		}
-		return createAccessRequirementPaginatedResultsFromJSON(response.getContentAsString());
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return ServletTestHelperUtils.readResponseVariablePaginatedResults(
+				response, AccessRequirement.class);
 	}
 
 	public static PaginatedResults<AccessRequirement> getUnmetEntityAccessRequirements(
-			HttpServlet dispatchServlet, String id,
-			String userId) throws Exception {
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI("/entity/"+id+"/accessRequirementUnfulfilled");
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
+			HttpServlet dispatchServlet, String id, Long userId)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils
+				.initRequest(HTTPMODE.GET, "/entity/" + id
+						+ "/accessRequirementUnfulfilled", userId, null);
 
-		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new ServletTestHelperException(response);
-		}
-		return createAccessRequirementPaginatedResultsFromJSON(response.getContentAsString());
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return ServletTestHelperUtils.readResponseVariablePaginatedResults(
+				response, AccessRequirement.class);
 	}
 
 	public static PaginatedResults<AccessRequirement> getUnmetEvaluationAccessRequirements(
-			HttpServlet dispatchServlet, String id,
-			String userId) throws Exception {
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI("/evaluation/"+id+"/accessRequirementUnfulfilled");
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
+			HttpServlet dispatchServlet, String id, Long userId)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, "/evaluation/" + id
+						+ "/accessRequirementUnfulfilled", userId, null);
 
-		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new ServletTestHelperException(response);
-		}
-		return createAccessRequirementPaginatedResultsFromJSON(response.getContentAsString());
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return ServletTestHelperUtils.readResponseVariablePaginatedResults(
+				response, AccessRequirement.class);
 	}
 
-	public static void deleteAccessRequirements(
-			HttpServlet dispatchServlet, String id,
-			String userId) throws Exception {
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("DELETE");
-		request.setRequestURI(UrlHelpers.ACCESS_REQUIREMENT + "/" + id);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
+	public static void deleteAccessRequirements(HttpServlet dispatchServlet,
+			String id, Long userId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.DELETE, UrlHelpers.ACCESS_REQUIREMENT + "/" + id,
+				userId, null);
 
-		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new ServletTestHelperException(response);
-		}
+		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
+				HttpStatus.OK);
 	}
 
+	@SuppressWarnings("unchecked")
 	public static <T extends AccessApproval> T createAccessApproval(
-			HttpServlet dispatchServlet, T accessApproval, String userId,
-			Map<String, String> extraParams) throws ServletException,
-			IOException {
-		if (dispatchServlet == null)
-			throw new IllegalArgumentException("Servlet cannot be null");
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("POST");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ACCESS_APPROVAL);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		if (null != extraParams) {
-			for (Map.Entry<String, String> param : extraParams.entrySet()) {
-				request.setParameter(param.getKey(), param.getValue());
-			}
-		}
-		request.addHeader("Content-Type", "application/json; charset=UTF-8");
-		StringWriter out = new StringWriter();
-		objectMapper.writeValue(out, accessApproval);
-		String body = out.toString();
-		request.setContent(body.getBytes("UTF-8"));
-		log.debug("About to send: " + body);
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
-		if (response.getStatus() != HttpStatus.CREATED.value()) {
-			throw new ServletTestHelperException(response);
-		}
-		@SuppressWarnings("unchecked")
-		T returnedEntity = (T) objectMapper.readValue(
-				response.getContentAsString(), accessApproval.getClass());
-		return returnedEntity;
-	}
-	
-	public static PaginatedResults<AccessApproval> getEntityAccessApprovals(
-			HttpServlet dispatchServlet, String id,
-			String userId) throws Exception {
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI("/entity/"+id+UrlHelpers.ACCESS_APPROVAL);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
+			HttpServlet dispatchServlet, T accessApproval, Long userId,
+			Map<String, String> extraParams) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, UrlHelpers.ACCESS_APPROVAL, userId,
+				accessApproval);
+		ServletTestHelperUtils.addExtraParams(request, extraParams);
 
-		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new ServletTestHelperException(response);
-		}
-		return createAccessApprovalPaginatedResultsFromJSON(response.getContentAsString());
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.CREATED);
+
+		return (T) objectMapper.readValue(response.getContentAsString(),
+				accessApproval.getClass());
+	}
+
+	public static PaginatedResults<AccessApproval> getEntityAccessApprovals(
+			HttpServlet dispatchServlet, String id, Long userId)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, "/entity/" + id + UrlHelpers.ACCESS_APPROVAL,
+				userId, null);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return ServletTestHelperUtils.readResponseVariablePaginatedResults(
+				response, AccessApproval.class);
 	}
 
 	public static PaginatedResults<AccessApproval> getEvaluationAccessApprovals(
-			HttpServlet dispatchServlet, String id,
-			String userId) throws Exception {
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI("/evaluation/"+id+UrlHelpers.ACCESS_APPROVAL);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
+			HttpServlet dispatchServlet, String id, Long userId)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, "/evaluation/" + id + UrlHelpers.ACCESS_APPROVAL,
+				userId, null);
 
-		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new ServletTestHelperException(response);
-		}
-		return createAccessApprovalPaginatedResultsFromJSON(response.getContentAsString());
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return ServletTestHelperUtils.readResponseVariablePaginatedResults(
+				response, AccessApproval.class);
 	}
 
-    public static VariableContentPaginatedResults<AccessApproval> createAccessApprovalPaginatedResultsFromJSON(
-			String jsonString) throws JSONException,
-			JsonParseException, JsonMappingException, IOException {
-		VariableContentPaginatedResults<AccessApproval> pr = 
-			new VariableContentPaginatedResults<AccessApproval>();
-		try {
-			pr.initializeFromJSONObject(new JSONObjectAdapterImpl(jsonString));
-			return pr;
-		} catch (JSONObjectAdapterException e) {
-			throw new RuntimeException(e);
-		}
+	public static void deleteAccessApprovals(HttpServlet dispatchServlet,
+			String id, Long userId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.DELETE, UrlHelpers.ACCESS_APPROVAL + "/" + id, userId,
+				null);
 
+		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
+				HttpStatus.OK);
 	}
 
-	public static void deleteAccessApprovals(
-			HttpServlet dispatchServlet, String id,
-			String userId) throws Exception {
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("DELETE");
-		request.setRequestURI(UrlHelpers.ACCESS_APPROVAL + "/" + id);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
+	public SynapseVersionInfo getVersionInfo() throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.VERSIONINFO, null, null);
 
-		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new ServletTestHelperException(response);
-		}
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return objectMapper.readValue(response.getContentAsString(),
+				SynapseVersionInfo.class);
 	}
 
-	public SynapseVersionInfo getVersionInfo() throws ServletException, IOException {
-		SynapseVersionInfo vi;
-		
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		
-		request.setRequestURI(UrlHelpers.VERSIONINFO);
-		System.out.println(request.getRequestURL());
-		dispatchServlet.service(request, response);
-		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new ServletTestHelperException(response);
-		}
-		vi = (SynapseVersionInfo) objectMapper.readValue(
-				response.getContentAsString(), SynapseVersionInfo.class);
-		return vi;
-	}
-	
-	public static Activity createActivity(
-			HttpServlet dispatchServlet, Activity activity, String userId,
-			Map<String, String> extraParams) throws ServletException,
-			IOException {
-		if (dispatchServlet == null)
-			throw new IllegalArgumentException("Servlet cannot be null");
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("POST");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ACTIVITY);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		if (null != extraParams) {
-			for (Map.Entry<String, String> param : extraParams.entrySet()) {
-				request.setParameter(param.getKey(), param.getValue());
-			}
-		}
-		request.addHeader("Content-Type", "application/json; charset=UTF-8");
-		StringWriter out = new StringWriter();
-		objectMapper.writeValue(out, activity);
-		String body = out.toString();
-		request.setContent(body.getBytes("UTF-8"));
-		log.debug("About to send: " + body);
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
-		if (response.getStatus() != HttpStatus.CREATED.value()) {
-			throw new ServletTestHelperException(response);
-		}
-		@SuppressWarnings("unchecked")
-		Activity returnedActivity = (Activity) objectMapper.readValue(
-				response.getContentAsString(), activity.getClass());
-		return returnedActivity;
-	}
-	
-	public static Activity getActivity(
-			HttpServlet dispatchServlet, String activityId, String userId) throws ServletException,
-			IOException, JSONObjectAdapterException {
-		if (dispatchServlet == null)
-			throw new IllegalArgumentException("Servlet cannot be null");
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ACTIVITY + "/" + activityId);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
-	
-		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new ServletTestHelperException(response);
-		} 
-		return new Activity(new JSONObjectAdapterImpl(response.getContentAsString()));
-		
+	public static Activity createActivity(HttpServlet dispatchServlet,
+			Activity activity, Long userId, Map<String, String> extraParams)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, UrlHelpers.ACTIVITY, userId, activity);
+		ServletTestHelperUtils.addExtraParams(request, extraParams);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.CREATED);
+
+		return objectMapper.readValue(response.getContentAsString(),
+				Activity.class);
 	}
 
-	@SuppressWarnings("unchecked")
-	public static Activity updateActivity(
-			HttpServlet dispatchServlet, Activity activity, String userId,
-			Map<String, String> extraParams) throws ServletException,
-			IOException {
-		if (dispatchServlet == null)
-			throw new IllegalArgumentException("Servlet cannot be null");
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("PUT");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ACTIVITY + "/" + activity.getId());
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		if (null != extraParams) {
-			for (Map.Entry<String, String> param : extraParams.entrySet()) {
-				request.setParameter(param.getKey(), param.getValue());
-			}
-		}
-		request.addHeader("Content-Type", "application/json; charset=UTF-8");
-		StringWriter out = new StringWriter();
-		objectMapper.writeValue(out, activity);
-		String body = out.toString();
-		request.setContent(body.getBytes("UTF-8"));
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
-		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new ServletTestHelperException(response);
-		}
-		return (Activity) objectMapper.readValue(response.getContentAsString(),
-				activity.getClass());
+	public static Activity getActivity(HttpServlet dispatchServlet,
+			String activityId, Long userId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.ACTIVITY + "/" + activityId, userId,
+				null);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return new Activity(ServletTestHelperUtils.readResponseJSON(response));
 	}
 
-	public static void deleteActivity(
-			HttpServlet dispatchServlet, String activityId,
-			String userId, Map<String, String> extraParams)
-			throws ServletException, IOException {
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("DELETE");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ACTIVITY + "/" + activityId);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		if (null != extraParams) {
-			for (Map.Entry<String, String> param : extraParams.entrySet()) {
-				request.setParameter(param.getKey(), param.getValue());
-			}
-		}
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
-		if (response.getStatus() != HttpStatus.NO_CONTENT.value()) {
-			throw new ServletTestHelperException(response);
-		}
+	public static Activity updateActivity(HttpServlet dispatchServlet,
+			Activity activity, Long userId, Map<String, String> extraParams)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.PUT, UrlHelpers.ACTIVITY + "/" + activity.getId(),
+				userId, activity);
+		ServletTestHelperUtils.addExtraParams(request, extraParams);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return objectMapper.readValue(response.getContentAsString(),
+				Activity.class);
 	}
 
+	public static void deleteActivity(HttpServlet dispatchServlet,
+			String activityId, Long userId, Map<String, String> extraParams)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.DELETE, UrlHelpers.ACTIVITY + "/" + activityId,
+				userId, null);
+		ServletTestHelperUtils.addExtraParams(request, extraParams);
 
-	@SuppressWarnings("unchecked")
+		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
+				HttpStatus.NO_CONTENT);
+	}
+
 	public static PaginatedResults<Reference> getEntitiesGeneratedBy(
-			HttpServlet dispatchServlet, Activity activity, String userId,
-			Map<String, String> extraParams) throws ServletException,
-			IOException, JSONException {
-		if (dispatchServlet == null)
-			throw new IllegalArgumentException("Servlet cannot be null");
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ACTIVITY + "/" + activity.getId() + UrlHelpers.GENERATED);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		if (null != extraParams) {
-			for (Map.Entry<String, String> param : extraParams.entrySet()) {
-				request.setParameter(param.getKey(), param.getValue());
-			}
-		}
-		request.addHeader("Content-Type", "application/json; charset=UTF-8");
-		StringWriter out = new StringWriter();
-		objectMapper.writeValue(out, activity);
-		String body = out.toString();
-		request.setContent(body.getBytes("UTF-8"));
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
-		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new ServletTestHelperException(response);
-		}
-		return createPaginatedResultsFromJSON(response.getContentAsString(),
+			HttpServlet dispatchServlet, Activity activity, Long userId,
+			Map<String, String> extraParams) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.ACTIVITY + "/" + activity.getId()
+						+ UrlHelpers.GENERATED, userId, activity);
+		ServletTestHelperUtils.addExtraParams(request, extraParams);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return ServletTestHelperUtils.readResponsePaginatedResults(response,
 				Reference.class);
 	}
 
-	public static EntityHeader addFavorite(
-			HttpServlet dispatchServlet, String entityId, String userId,
-			Map<String, String> extraParams) throws ServletException,
-			IOException {
-		if (dispatchServlet == null)
-			throw new IllegalArgumentException("Servlet cannot be null");
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("POST");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.FAVORITE + "/" + entityId);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		if (null != extraParams) {
-			for (Map.Entry<String, String> param : extraParams.entrySet()) {
-				request.setParameter(param.getKey(), param.getValue());
-			}
-		}
-		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+	public static EntityHeader addFavorite(HttpServlet dispatchServlet,
+			String entityId, Long userId, Map<String, String> extraParams)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, UrlHelpers.FAVORITE + "/" + entityId, userId,
+				null);
+		ServletTestHelperUtils.addExtraParams(request, extraParams);
 
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
-		if (response.getStatus() != HttpStatus.CREATED.value()) {
-			throw new ServletTestHelperException(response);
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.CREATED);
+
+		return objectMapper.readValue(response.getContentAsString(),
+				EntityHeader.class);
+	}
+
+	public static void removeFavorite(HttpServlet dispatchServlet,
+			String entityId, Long userId, Map<String, String> extraParams)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.DELETE, UrlHelpers.FAVORITE + "/" + entityId, userId,
+				null);
+		ServletTestHelperUtils.addExtraParams(request, extraParams);
+
+		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
+				HttpStatus.NO_CONTENT);
+	}
+
+	public static PaginatedResults<EntityHeader> getFavorites(
+			HttpServlet dispatchServlet, Long userId,
+			Map<String, String> extraParams) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.FAVORITE, userId, null);
+		ServletTestHelperUtils.addExtraParams(request, extraParams);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return ServletTestHelperUtils.readResponsePaginatedResults(response,
+				EntityHeader.class);
+	}
+
+	/**
+	 * Create a ColumnModel
+	 * 
+	 * @param instance
+	 * @param cm
+	 * @param user
+	 * @return
+	 * @throws Exception
+	 */
+	public static ColumnModel createColumnModel(DispatcherServlet instance,
+			ColumnModel cm, Long userId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, UrlHelpers.COLUMN, userId, cm);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(instance, request, HttpStatus.CREATED);
+		return ServletTestHelperUtils.readResponse(response, ColumnModel.class);
+	}
+
+	/**
+	 * Get a ColumnModel from its ID
+	 * 
+	 * @param instance
+	 * @param cm
+	 * @param user
+	 * @return
+	 * @throws Exception
+	 */
+	public static ColumnModel getColumnModel(DispatcherServlet instance,
+			String columnId, Long userId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.COLUMN + "/" + columnId, userId, null);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(instance, request, HttpStatus.OK);
+		return ServletTestHelperUtils.readResponse(response, ColumnModel.class);
+	}
+
+	/**
+	 * Get the list of ColumnModles for a given TableEntity ID.
+	 * 
+	 * @param instance
+	 * @param entityId
+	 * @param user
+	 * @return
+	 * @throws Exception
+	 */
+	public static List<ColumnModel> getColumnModelsForTableEntity(
+			DispatcherServlet instance, String entityId, Long userId)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + entityId
+						+ UrlHelpers.COLUMN, userId, null);
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(instance, request, HttpStatus.OK);
+		PaginatedColumnModels pcm = ServletTestHelperUtils.readResponse(
+				response, PaginatedColumnModels.class);
+		return pcm.getResults();
+	}
+
+	/**
+	 * Append some rows to a table.
+	 * 
+	 * @param instance
+	 * @param rows
+	 * @param user
+	 * @return
+	 * @throws Exception
+	 */
+	public static RowReferenceSet appendTableRows(DispatcherServlet instance,
+			RowSet rows, Long userId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, UrlHelpers.ENTITY + "/" + rows.getTableId()
+						+ UrlHelpers.TABLE, userId, rows);
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(instance, request, HttpStatus.CREATED);
+		return ServletTestHelperUtils.readResponse(response,
+				RowReferenceSet.class);
+	}
+
+	/**
+	 * List all of the ColumnModels in Synapse.
+	 * 
+	 * @param instance
+	 * @param user
+	 * @param prefix
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws Exception
+	 */
+	public static PaginatedColumnModels listColumnModels(
+			DispatcherServlet instance, Long userId, String prefix, Long limit,
+			Long offset) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.COLUMN, userId, null);
+		if (prefix != null) {
+			request.addParameter("prefix", prefix);
 		}
-		return (EntityHeader) objectMapper.readValue(response.getContentAsString(), EntityHeader.class);
+		if (limit != null) {
+			request.addParameter("limit", limit.toString());
+		}
+		if (offset != null) {
+			request.addParameter("offset", offset.toString());
+		}
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(instance, request, HttpStatus.OK);
+		PaginatedColumnModels pcm = ServletTestHelperUtils.readResponse(
+				response, PaginatedColumnModels.class);
+		return pcm;
 	}
 	
-	public static void removeFavorite(
-			HttpServlet dispatchServlet, String entityId,
-			String userId, Map<String, String> extraParams)
-			throws ServletException, IOException {
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("DELETE");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.FAVORITE + "/" + entityId);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		if (null != extraParams) {
-			for (Map.Entry<String, String> param : extraParams.entrySet()) {
-				request.setParameter(param.getKey(), param.getValue());
-			}
-		}
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
-		if (response.getStatus() != HttpStatus.NO_CONTENT.value()) {
-			throw new ServletTestHelperException(response);
-		}
+	/**
+	 * Is the passed alias available?
+	 * @param dispatchServlet
+	 * @param check
+	 * @return
+	 * @throws Exception
+	 */
+	public static AliasCheckResponse checkAlias(HttpServlet dispatchServlet, AliasCheckRequest check) throws Exception{
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, UrlHelpers.PRINCIPAL_AVAILABLE, null, check);
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.CREATED);
+		return objectMapper
+				.readValue(response.getContentAsString(), AliasCheckResponse.class);
 	}
 
+	public static Team createTeam(HttpServlet dispatchServlet, Long userId,
+			Team team) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, UrlHelpers.TEAM, userId, team);
 
-	@SuppressWarnings("unchecked")
-	public static PaginatedResults<EntityHeader> getFavorites(
-			HttpServlet dispatchServlet, String userId,
-			Map<String, String> extraParams) throws ServletException,
-			IOException, JSONException {
-		if (dispatchServlet == null)
-			throw new IllegalArgumentException("Servlet cannot be null");
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.FAVORITE);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		if (null != extraParams) {
-			for (Map.Entry<String, String> param : extraParams.entrySet()) {
-				request.setParameter(param.getKey(), param.getValue());
-			}
-		}
-		request.addHeader("Content-Type", "application/json; charset=UTF-8");
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
-		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new ServletTestHelperException(response);
-		}
-		return createPaginatedResultsFromJSON(response.getContentAsString(),
-				EntityHeader.class);
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.CREATED);
+
+		return objectMapper
+				.readValue(response.getContentAsString(), Team.class);
+	}
+
+	public static void deleteTeam(HttpServlet dispatchServlet, Long userId,
+			Team team) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.DELETE, UrlHelpers.TEAM + "/" + team.getId(), userId,
+				null);
+		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
+				HttpStatus.NO_CONTENT);
+	}
+
+	public static MembershipInvtnSubmission createMembershipInvitation(
+			HttpServlet dispatchServlet, Long userId,
+			MembershipInvtnSubmission mis) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, UrlHelpers.MEMBERSHIP_INVITATION, userId, mis);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.CREATED);
+
+		return objectMapper.readValue(response.getContentAsString(),
+				MembershipInvtnSubmission.class);
+	}
+
+	public static MembershipInvtnSubmission getMembershipInvitation(
+			HttpServlet dispatchServlet, Long userId, String misId)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.MEMBERSHIP_INVITATION + "/" + misId,
+				userId, null);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return new MembershipInvtnSubmission(
+				ServletTestHelperUtils.readResponseJSON(response));
+	}
+
+	public static PaginatedResults<MembershipInvtnSubmission> getMembershipInvitationSubmissions(
+			HttpServlet dispatchServlet, Long userId, String teamId)
+			throws Exception {
+
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.TEAM + "/" + teamId
+						+ "/openInvitation", userId, null);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return ServletTestHelperUtils.readResponsePaginatedResults(response,
+				MembershipInvtnSubmission.class);
+	}
+
+	public static void deleteMembershipInvitation(HttpServlet dispatchServlet,
+			Long userId, MembershipInvtnSubmission mis) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.DELETE,
+				UrlHelpers.MEMBERSHIP_INVITATION + "/" + mis.getId(), userId,
+				null);
+		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
+				HttpStatus.NO_CONTENT);
+	}
+
+	public static Doi putDoiWithoutVersion(Long userId, String entityId)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.PUT, UrlHelpers.ENTITY + "/" + entityId
+						+ UrlHelpers.DOI, userId, null);
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.ACCEPTED);
+
+		return ServletTestHelperUtils.readResponse(response, Doi.class);
+	}
+
+	public static Doi putDoiWithVersion(Long userId, String entityId,
+			int versionNumber) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.PUT, UrlHelpers.ENTITY + "/" + entityId
+						+ UrlHelpers.VERSION + "/" + versionNumber
+						+ UrlHelpers.DOI, userId, null);
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.ACCEPTED);
+
+		return ServletTestHelperUtils.readResponse(response, Doi.class);
+	}
+
+	public static Doi getDoiWithoutVersion(Long userId, String entityId)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + entityId
+						+ UrlHelpers.DOI, userId, null);
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return ServletTestHelperUtils.readResponse(response, Doi.class);
+	}
+
+	public static Doi getDoiWithVersion(Long userId, String entityId,
+			int versionNumber) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + entityId
+						+ UrlHelpers.VERSION + "/" + versionNumber
+						+ UrlHelpers.DOI, userId, null);
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return ServletTestHelperUtils.readResponse(response, Doi.class);
+	}
+
+	/**
+	 * Get search results
+	 */
+	public static SearchResults getSearchResults(Long userId, SearchQuery query)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, "/search", userId, query);
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.CREATED);
+
+		return ServletTestHelperUtils.readResponse(response,
+				SearchResults.class);
+	}
+
+	public static EntityIdList getAncestors(Long userId, String entityId)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils
+				.initRequest(HTTPMODE.GET, UrlHelpers.ENTITY + "/" + entityId
+						+ "/ancestors", userId, null);
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return ServletTestHelperUtils
+				.readResponse(response, EntityIdList.class);
+	}
+
+	public static EntityId getParent(Long userId, String entityId)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + entityId + "/parent",
+				userId, null);
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return ServletTestHelperUtils.readResponse(response, EntityId.class);
+	}
+
+	public static EntityIdList getDescendants(Long userId, String entityId)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + entityId
+						+ "/descendants", userId, null);
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return ServletTestHelperUtils
+				.readResponse(response, EntityIdList.class);
+	}
+
+	public static EntityIdList getDescendantsWithGeneration(Long userId,
+			String entityId, int generation) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + entityId
+						+ "/descendants/" + generation, userId, null);
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return ServletTestHelperUtils
+				.readResponse(response, EntityIdList.class);
+	}
+
+	public static EntityIdList getChildren(Long userId, String entityId)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + entityId + "/children",
+				userId, null);
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return ServletTestHelperUtils
+				.readResponse(response, EntityIdList.class);
+	}
+
+	public static StorageUsageSummaryList getStorageUsageGrandTotal(Long userId)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.STORAGE_SUMMARY, userId, null);
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return ServletTestHelperUtils.readResponse(response,
+				StorageUsageSummaryList.class);
+	}
+
+	public static StorageUsageSummaryList getStorageUsageAggregatedTotal(
+			Long userId, String aggregation) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.STORAGE_SUMMARY + "/" + userId,
+				userId, null);
+		request.setParameter(ServiceConstants.AGGREGATION_DIMENSION,
+				aggregation);
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return ServletTestHelperUtils.readResponse(response,
+				StorageUsageSummaryList.class);
+	}
+
+	public static PaginatedResults<StorageUsage> getStorageUsageItemized(
+			Long userId, String aggregation) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.STORAGE_DETAILS, userId, null);
+		request.setParameter(ServiceConstants.AGGREGATION_DIMENSION,
+				aggregation);
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return ServletTestHelperUtils.readResponsePaginatedResults(response,
+				StorageUsage.class);
+	}
+
+	public static PaginatedResults<TrashedEntity> getTrashCan(Long userId)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.TRASHCAN_VIEW, userId, null);
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return ServletTestHelperUtils.readResponsePaginatedResults(response,
+				TrashedEntity.class);
+	}
+
+	public static void trashEntity(Long userId, String entityId)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.PUT, UrlHelpers.TRASHCAN + "/trash/" + entityId,
+				userId, null);
+		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
+				HttpStatus.OK);
+	}
+
+	public static void purgeEntityInTrash(Long userId, String entityId)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.PUT, UrlHelpers.TRASHCAN_PURGE + "/" + entityId,
+				userId, null);
+		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
+				HttpStatus.OK);
+	}
+
+	public static void purgeTrash(Long userId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.PUT, UrlHelpers.TRASHCAN_PURGE, userId, null);
+		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
+				HttpStatus.OK);
+	}
+
+	public static void restoreEntity(Long userId, String entityId)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.PUT, UrlHelpers.TRASHCAN + "/restore/" + entityId,
+				userId, null);
+		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
+				HttpStatus.OK);
+	}
+
+	public static void adminPurgeTrash(Long userId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.PUT, UrlHelpers.ADMIN_TRASHCAN_PURGE, userId, null);
+		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
+				HttpStatus.OK);
+	}
+
+	public static PaginatedResults<TrashedEntity> adminGetTrashCan(Long userId)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.ADMIN_TRASHCAN_VIEW, userId, null);
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return ServletTestHelperUtils.readResponsePaginatedResults(response,
+				TrashedEntity.class);
+	}
+	
+	public static S3FileHandle getFileHandle(Long userId, String fileHandleId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, "/fileHandle/" + fileHandleId, userId, null);
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return ServletTestHelperUtils.readResponse(response, S3FileHandle.class);
+	}
+	
+	public static void deleteFilePreview(Long userId, String fileHandleId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.DELETE, "/fileHandle/" + fileHandleId + "/filepreview", userId, null);
+		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
+				HttpStatus.OK);
+	}
+	
+	public static ExternalFileHandle createExternalFileHandle(Long userId, ExternalFileHandle handle) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, "/externalFileHandle", userId, handle);
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return ServletTestHelperUtils.readResponse(response, ExternalFileHandle.class);
 	}
 }

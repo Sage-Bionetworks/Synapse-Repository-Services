@@ -1,35 +1,66 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
+import java.io.IOException;
 import java.util.Date;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Favorite;
+import org.sagebionetworks.repo.model.NamedAnnotations;
+import org.sagebionetworks.repo.model.SchemaCache;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFavorite;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserProfile;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.schema.ObjectSchema;
 
 public class UserProfileUtils {
 	
-	public static void copyDtoToDbo(UserProfile dto, DBOUserProfile dbo, ObjectSchema schema) throws DatastoreException{
+	public static void copyDtoToDbo(UserProfile dto, DBOUserProfile dbo) throws DatastoreException{
 		if (dto.getOwnerId()==null) {
 			dbo.setOwnerId(null);
 		} else {
 			dbo.setOwnerId(Long.parseLong(dto.getOwnerId()));
 		}
 		dbo.seteTag(dto.getEtag());
-		dbo.setProperties(SchemaSerializationUtils.mapDtoFieldsToAnnotations(dto, schema));
+		try {
+			dbo.setProperties(JDOSecondaryPropertyUtils.compressObject(dto));
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 	}
 	
-	public static void copyDboToDto(DBOUserProfile dbo, UserProfile dto, ObjectSchema schema) throws DatastoreException {		
-		SchemaSerializationUtils.mapAnnotationsToDtoFields(dbo.getProperties(), dto, schema);
+	public static UserProfile deserialize(byte[] b) {
+		Object decompressed = null;
+		try {
+			decompressed = JDOSecondaryPropertyUtils.decompressedObject(b);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+		
+		UserProfile dto = null;
+		if (decompressed instanceof UserProfile) {
+			dto = (UserProfile) decompressed;
+		} else if (decompressed instanceof NamedAnnotations) {
+			// Support the old way of serializing the UserProfile
+			ObjectSchema schema = SchemaCache.getSchema(UserProfile.class);
+			dto = new UserProfile();
+			SchemaSerializationUtils.mapAnnotationsToDtoFields(b, dto, schema);
+		} else {
+			throw new RuntimeException("Unsupported object type " + decompressed.getClass());
+		}
+		return dto;
+	}
+	
+	public static UserProfile convertDboToDto(DBOUserProfile dbo) throws DatastoreException {
+		UserProfile dto = deserialize(dbo.getProperties());
 		if (dbo.getOwnerId()==null) {
 			dto.setOwnerId(null);
 		} else {
 			dto.setOwnerId(dbo.getOwnerId().toString());
 		}
 		dto.setEtag(dbo.geteTag());
+		return dto;
 	}
 	
 	

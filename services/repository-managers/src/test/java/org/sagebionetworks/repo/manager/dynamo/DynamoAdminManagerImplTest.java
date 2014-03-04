@@ -9,13 +9,15 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.sagebionetworks.dynamo.dao.DynamoAdminDao;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.dynamo.DynamoAdminManagerImpl;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class DynamoAdminManagerImplTest {
 
+	private Long adminUserId = 2938475L;
+	private Long nonAdminUserId = 87435L; 
+	
 	@Test
 	public void testClear() throws Exception {
 
@@ -28,10 +30,8 @@ public class DynamoAdminManagerImplTest {
 		UserInfo nonAdminUserInfo = mock(UserInfo.class);
 		when(nonAdminUserInfo.isAdmin()).thenReturn(false);
 		UserManager userManager = mock(UserManager.class);
-		final String adminUserName = "admin";
-		when(userManager.getUserInfo(adminUserName)).thenReturn(adminUserInfo);
-		final String nonAdminUserName = "nonAdmin";
-		when(userManager.getUserInfo(nonAdminUserName)).thenReturn(nonAdminUserInfo);
+		when(userManager.getUserInfo(adminUserId)).thenReturn(adminUserInfo);
+		when(userManager.getUserInfo(nonAdminUserId)).thenReturn(nonAdminUserInfo);
 
 		// Inject the mocks
 		DynamoAdminManagerImpl dynamoAdminManager = new DynamoAdminManagerImpl();
@@ -42,10 +42,10 @@ public class DynamoAdminManagerImplTest {
 		final String tableName = "table name";
 		final String hashKeyName = "hash key name";
 		final String rangeKeyName = "range key name";
-		dynamoAdminManager.clear(adminUserName, tableName, hashKeyName, rangeKeyName);
+		dynamoAdminManager.clear(adminUserId, tableName, hashKeyName, rangeKeyName);
 		verify(dynamoAdminDao, times(1)).clear(tableName, hashKeyName, rangeKeyName);
 		try {
-			dynamoAdminManager.clear(nonAdminUserName, tableName, hashKeyName, rangeKeyName);
+			dynamoAdminManager.clear(nonAdminUserId, tableName, hashKeyName, rangeKeyName);
 		} catch (UnauthorizedException e) {
 			Assert.assertTrue(true);
 		}

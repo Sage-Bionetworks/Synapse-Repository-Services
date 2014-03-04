@@ -1,0 +1,13 @@
+{
+    "title":"Time Series Row",
+    "description":"Time series row",
+    "properties":{
+       	"values":{
+        	"type": "array",
+        	"description": "The values in a row in the series",
+	       	"items":{
+        		"type":"string"
+        	}
+    	}
+    }
+}

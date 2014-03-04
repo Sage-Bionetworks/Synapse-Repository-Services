@@ -15,12 +15,12 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ObservableEntity;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
-import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
 /**
@@ -96,14 +96,6 @@ public class DBOActivity implements MigratableDatabaseObject<DBOActivity, DBOAct
 		this.id = id;
 	}
 
-	public String geteTag() {
-		return eTag;
-	}
-
-	public void seteTag(String eTag) {
-		this.eTag = eTag;
-	}
-
 	public Long getCreatedBy() {
 		return createdBy;
 	}
@@ -151,6 +143,19 @@ public class DBOActivity implements MigratableDatabaseObject<DBOActivity, DBOAct
 	@Override
 	public String getIdString() {
 		return id.toString();
+	}
+
+	@Override
+	public String getEtag() {
+		return eTag;
+	}
+
+	public String geteTag() {
+		return eTag;
+	}
+
+	public void seteTag(String eTag) {
+		this.eTag = eTag;
 	}
 
 	@Override

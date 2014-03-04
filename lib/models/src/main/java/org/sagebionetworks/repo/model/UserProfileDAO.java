@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.model;
 import java.util.List;
 
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.schema.ObjectSchema;
 
 public interface UserProfileDAO {
 
@@ -14,7 +13,7 @@ public interface UserProfileDAO {
 	 * @throws DatastoreException
 	 * @throws InvalidModelException
 	 */
-	public String create(UserProfile dto, ObjectSchema schema) throws DatastoreException,
+	public String create(UserProfile dto) throws DatastoreException,
 			InvalidModelException;
 
 	/**
@@ -25,7 +24,7 @@ public interface UserProfileDAO {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public UserProfile get(String id, ObjectSchema schema) throws DatastoreException, NotFoundException;
+	public UserProfile get(String id) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * 
@@ -40,7 +39,7 @@ public interface UserProfileDAO {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public List<UserProfile> getInRange(long startIncl, long endExcl, ObjectSchema schema) throws DatastoreException, NotFoundException;
+	public List<UserProfile> getInRange(long startIncl, long endExcl) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get the total count of UserProfiles in the system
@@ -60,19 +59,7 @@ public interface UserProfileDAO {
 	 * @throws InvalidModelException
 	 * @throws NotFoundException
 	 */
-	public UserProfile update(UserProfile dto, ObjectSchema schema) throws DatastoreException, InvalidModelException,
-			NotFoundException, ConflictingUpdateException;
-
-	/**
-	 * Updates the 'shallow' properties of an object from backup.
-	 *
-	 * @param dto
-	 *            non-null id is required
-	 * @throws DatastoreException
-	 * @throws InvalidModelException
-	 * @throws NotFoundException
-	 */
-	public UserProfile updateFromBackup(UserProfile dto, ObjectSchema schema) throws DatastoreException, InvalidModelException,
+	public UserProfile update(UserProfile dto) throws DatastoreException, InvalidModelException,
 			NotFoundException, ConflictingUpdateException;
 
 	/**
@@ -84,12 +71,6 @@ public interface UserProfileDAO {
 	 * @throws NotFoundException
 	 */
 	public void delete(String id) throws DatastoreException, NotFoundException;
-	
-	/**
-	 * Get the bootstrap users.
-	 * @return
-	 */
-	public List<UserGroupInt> getBootstrapUsers();
 	
 	/**
 	 * Ensure the bootstrap user's profiles exist

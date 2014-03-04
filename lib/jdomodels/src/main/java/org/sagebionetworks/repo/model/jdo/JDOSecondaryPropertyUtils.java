@@ -189,6 +189,24 @@ public class JDOSecondaryPropertyUtils {
 		}
 	}
 	
+	public static byte[] compressObject(Object dto, String classAlias) throws IOException{
+		if(dto == null) return null;
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		BufferedOutputStream buff = new BufferedOutputStream(out);
+		GZIPOutputStream zipper = new GZIPOutputStream(buff);
+		try{
+			XStream xstream = createXStream();
+			xstream.alias(classAlias, dto.getClass());
+			xstream.toXML(dto, zipper);
+			zipper.flush();
+			zipper.close();
+			return out.toByteArray();
+		}finally{
+			zipper.flush();
+			zipper.close();
+		}
+	}
+	
 	/**
 	 * Convert the passed references to a compressed (zip) byte array
 	 * @param dto
@@ -223,7 +241,6 @@ public class JDOSecondaryPropertyUtils {
 		}
 	}
 	
-	@SuppressWarnings("unchecked")
 	public static NamedAnnotations fromXml(String xml) throws IOException{
 		StringReader reader = new StringReader(xml);
 		try{
@@ -247,7 +264,6 @@ public class JDOSecondaryPropertyUtils {
 	 * @return the resurrected Annotations
 	 * @throws IOException 
 	 */
-	@SuppressWarnings("unchecked")
 	public static NamedAnnotations decompressedAnnotations(byte[] zippedByes) throws IOException{
 		Object o = decompressedObject(zippedByes);
 		if (o==null) return new NamedAnnotations();
@@ -260,6 +276,23 @@ public class JDOSecondaryPropertyUtils {
 			GZIPInputStream unZipper = new GZIPInputStream(in);
 			try{
 				XStream xstream = createXStream();
+				if(zippedByes != null){
+					return xstream.fromXML(unZipper);
+				}
+			}finally{
+				unZipper.close();
+			}			
+		}
+		return null;
+	}
+
+	public static Object decompressedObject(byte[] zippedByes, String classAlias, Class aliasedClass) throws IOException{
+		if(zippedByes != null){
+			ByteArrayInputStream in = new ByteArrayInputStream(zippedByes);
+			GZIPInputStream unZipper = new GZIPInputStream(in);
+			try{
+				XStream xstream = createXStream();
+				xstream.alias(classAlias, aliasedClass);
 				if(zippedByes != null){
 					return xstream.fromXML(unZipper);
 				}

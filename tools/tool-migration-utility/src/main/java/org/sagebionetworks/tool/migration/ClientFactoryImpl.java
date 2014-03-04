@@ -1,6 +1,6 @@
 package org.sagebionetworks.tool.migration;
 
-import org.sagebionetworks.client.SynapseAdministration;
+import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 
 /**
@@ -16,25 +16,25 @@ public class ClientFactoryImpl implements ClientFactory {
 	 * @return
 	 * @throws SynapseException 
 	 */
-	public SynapseAdministration createNewConnection(SynapseConnectionInfo info) throws SynapseException{
+	public SynapseAdminClientImpl createNewConnection(SynapseConnectionInfo info) throws SynapseException{
 		// We need to accept all SSL certificates for this client.
 //		AcceptAllCertificateHttpClientProvider clientProvider = new AcceptAllCertificateHttpClientProvider();
 //		Synapse synapse = new Synapse(clientProvider);
-		SynapseAdministration synapse = new SynapseAdministration();
+		SynapseAdminClientImpl synapse = new SynapseAdminClientImpl();
 		synapse.setAuthEndpoint(info.getAuthenticationEndPoint());
 		synapse.setRepositoryEndpoint(info.getRepositoryEndPoint());
-		synapse.login(info.getAdminUsername(), info.getAdminPassword());
+		synapse.setApiKey(info.getApiKey());
 		return synapse;
 	}
 
 	@Override
-	public SynapseAdministration createNewSourceClient(Configuration configuration) throws SynapseException {
+	public SynapseAdminClientImpl createNewSourceClient(Configuration configuration) throws SynapseException {
 		// Create a factory using the source info.
 		return createNewConnection(configuration.getSourceConnectionInfo());
 	}
 
 	@Override
-	public SynapseAdministration createNewDestinationClient(Configuration configuration) throws SynapseException {
+	public SynapseAdminClientImpl createNewDestinationClient(Configuration configuration) throws SynapseException {
 		// Create a factory using the destination info
 		return createNewConnection(configuration.getDestinationConnectionInfo());
 	}

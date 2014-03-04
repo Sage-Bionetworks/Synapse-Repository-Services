@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.manager;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.lang.reflect.ParameterizedType;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -14,7 +13,6 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.json.JSONException;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
@@ -23,7 +21,6 @@ import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.SchemaCache;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.TYPE;
-import org.sagebionetworks.schema.adapter.JSONAdapter;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -38,7 +35,6 @@ import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
  * 
  */
 
-@SuppressWarnings("rawtypes")
 public class NodeTranslationUtils {
 
 	private static final Logger log = Logger
@@ -86,6 +82,7 @@ public class NodeTranslationUtils {
 		nameConvertion.put("creationDate", "createdOn");
 		nameConvertion.put("etag", "eTag");
 		nameConvertion.put("dataFileHandleId", "fileHandleId");
+		nameConvertion.put("columnIds", "columnModelIds");
 		// build the primary field cache
 		buildPrimaryFieldCache();
 	}
@@ -502,6 +499,21 @@ public class NodeTranslationUtils {
 					Object value = annos.getSingleValue(name);
 					// First handle references
 					if (TYPE.ARRAY == propSchema.getType()) {
+						
+//						if(TYPE.STRING.equals(propSchema.getItems().getType())){
+//							List<String> list = (List<String>) field.get(base);
+//							if(list == null){
+//								list = new LinkedList<String>();
+//								field.set(base, list);
+//							}
+//							if(value instanceof Collection){
+//								list.addAll((Collection) value);
+//							}else{
+//								list.add((String) value);
+//							}
+//							continue;
+//						}
+						
 						// Is this a reference
 						if (Reference.class.getName().equals(
 								propSchema.getItems().getId())) {
@@ -570,7 +582,7 @@ public class NodeTranslationUtils {
 							continue;
 						}
 
-						if (field.getType().isAssignableFrom(Collection.class)) {
+						if (field.getType().isAssignableFrom(Collection.class) ) {
 							List<Object> list = new ArrayList<Object>();
 							list.add(value);
 							field.set(base, list);

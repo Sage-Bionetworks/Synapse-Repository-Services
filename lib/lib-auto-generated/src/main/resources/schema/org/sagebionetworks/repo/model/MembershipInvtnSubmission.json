@@ -1,0 +1,40 @@
+{
+	"title": "MembershipInvtnSubmission",
+	"description": "JSON schema for MembershipInvtnSubmission POJO",
+
+	"properties": {
+		"id": {
+			"type": "string",
+			"description": "The id of the MembershipInvtnSubmission."
+		},
+		"teamId": {
+			"type": "string",
+			"description": "The id of the Team which the user is invited to join."
+		},
+		"inviteeId": {
+			"description": "The principal IDs of the ones being invited to join the Team.",
+      		"type":"string"
+		},
+		"message": {
+			"type": "string",
+			"description": "The invitation message (optional)."
+		},
+		"expiresOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date this invitation expires (optional).",
+			"title": "Expires On"
+		},
+		"createdOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date this MembershipInvtnSubmission was created.",
+			"title": "Created On"
+		},
+		"createdBy": {
+			"type": "string",
+			"description": "The ID of the user that created this MembershipInvtnSubmission.",
+			"title": "Created By"
+		}
+	}
+}

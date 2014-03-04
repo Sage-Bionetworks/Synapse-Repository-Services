@@ -1,0 +1,40 @@
+{
+	"title": "MembershipRqstSubmission",
+	"description": "JSON schema for MembershipRqstSubmission POJO",
+
+	"properties": {
+		"id": {
+			"type": "string",
+			"description": "The id of the MembershipRqstSubmission."
+		},
+		"teamId": {
+			"type": "string",
+			"description": "The id of the Team to which the request is sent."
+		},
+		"userId": {
+			"type": "string",
+			"description": "The id of the user for whom membership is requested."
+		},
+		"message": {
+			"type": "string",
+			"description": "The request message (optional)."
+		},
+		"expiresOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date this MembershipRqstSubmission expires (optional).",
+			"title": "Expires On"
+		},
+		"createdOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date this MembershipRqstSubmission was created.",
+			"title": "Created On"
+		},
+		"createdBy": {
+			"type": "string",
+			"description": "The ID of the user that created this MembershipRqstSubmission.",
+			"title": "Created By"
+		}
+	}
+}

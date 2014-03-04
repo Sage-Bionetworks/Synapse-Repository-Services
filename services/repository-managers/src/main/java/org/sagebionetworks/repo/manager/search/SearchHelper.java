@@ -3,12 +3,12 @@ package org.sagebionetworks.repo.manager.search;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
-import java.util.Collection;
+import java.util.Set;
 import java.util.regex.Pattern;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 
 /**
@@ -19,7 +19,7 @@ import org.sagebionetworks.repo.model.UserInfo;
  */
 public class SearchHelper {
 
-	private static final Logger log = Logger.getLogger(SearchHelper.class
+	private static final Logger log = LogManager.getLogger(SearchHelper.class
 			.getName());
 	private static final Pattern facetFieldConstraintPattern = Pattern.compile("facet-\\w-constraints");
 
@@ -33,7 +33,7 @@ public class SearchHelper {
 	 */
 	public static String formulateAuthorizationFilter(UserInfo userInfo)
 			throws DatastoreException {
-		Collection<UserGroup> groups = userInfo.getGroups();
+		Set<Long> groups = userInfo.getGroups();
 		if (0 == groups.size()) {
 			// being extra paranoid here, this is unlikely
 			throw new DatastoreException("no groups for user " + userInfo);
@@ -41,12 +41,12 @@ public class SearchHelper {
 
 		// Make our boolean query
 		String authorizationFilter = "";
-		for (UserGroup group : groups) {
+		for (Long group : groups) {
 			if (0 < authorizationFilter.length()) {
 				authorizationFilter += " ";
 			}
 			authorizationFilter += SearchDocumentDriverImpl.ACL_INDEX_FIELD
-					+ ":'" + group.getId() + "'";
+					+ ":'" + group + "'";
 		}
 		if (1 == groups.size()) {
 			authorizationFilter = "bq=" + authorizationFilter;

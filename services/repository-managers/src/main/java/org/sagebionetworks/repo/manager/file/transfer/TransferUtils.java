@@ -3,8 +3,8 @@ package org.sagebionetworks.repo.manager.file.transfer;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
-import org.sagebionetworks.repo.model.file.S3FileHandleInterface;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.file.S3FileHandleInterface;
 
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.util.BinaryUtils;

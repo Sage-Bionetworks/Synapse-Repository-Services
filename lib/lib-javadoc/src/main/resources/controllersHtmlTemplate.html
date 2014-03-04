@@ -10,13 +10,21 @@
 					<div id="rootPanel" class="ym-grid linearize-level-1">
 						<div class="ym-grid">
 							<div class="ym-gbox">
+								<h2>Table of Contents</h2>
+								<ul>
+									#foreach( $controller in $controllers.controllers )
+									<li><a href="#${controller.fullClassName}">${controller.displayName}</a></li>
+									#end
+								</ul>
+							</div>
+						</div>
+						<div class="ym-grid">
+							<div class="ym-gbox">
 								#foreach( $controller in $controllers.controllers )
-								<h2>${controller.displayName}</h2>
+								<h2 id="${controller.fullClassName}">${controller.displayName}</h2>
 								#if(${controller.classDescription})
 								<p>${controller.classDescription}</p>
-								#end 
-								## List the methods 
-								#if($controller.methods)
+								#end #if($controller.methods)
 								<h5>Web Services</h5>
 								<table>
 									<thead>
@@ -36,15 +44,14 @@
 										#end
 									</tbody>
 								</table>
-								#end
-								#end
+								#end #end
 							</div>
 						</div>
 					</div>
 				</div>
 			</div>
 		</div>
-	#parse( "footerTemplate.html" )
+		#parse( "footerTemplate.html" )
 	</div>
 </body>
 </html>

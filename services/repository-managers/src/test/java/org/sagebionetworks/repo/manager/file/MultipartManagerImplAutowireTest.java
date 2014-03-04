@@ -16,12 +16,13 @@ import org.apache.http.client.methods.HttpPut;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.util.EntityUtils;
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
@@ -30,7 +31,6 @@ import org.sagebionetworks.repo.model.file.ChunkedFileToken;
 import org.sagebionetworks.repo.model.file.CompleteChunkedFileRequest;
 import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.web.util.UserProvider;
 import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -43,21 +43,25 @@ import com.amazonaws.services.s3.AmazonS3Client;
 public class MultipartManagerImplAutowireTest {
 
 	@Autowired
-	MultipartManager multipartManager;
-	@Autowired
-	FileHandleDao fileHandleDao;
-	@Autowired
-	AmazonS3Client s3Client;
-	@Autowired
-	public UserProvider testUserProvider;
+	private MultipartManager multipartManager;
 	
-	private UserInfo userInfo;
-	List<String> fileHandlesToDelete;
+	@Autowired
+	private FileHandleDao fileHandleDao;
+	
+	@Autowired
+	private AmazonS3Client s3Client;
+	
+	@Autowired
+	public UserManager userManager;
+	
+	// Only used to satisfy FKs
+	private UserInfo adminUserInfo;
+	private List<String> fileHandlesToDelete;
 	
 	@Before
-	public void before(){
+	public void before() throws Exception {
 		fileHandlesToDelete = new LinkedList<String>();
-		userInfo = testUserProvider.getTestUserInfo();
+		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 	}
 	
 	@After
@@ -79,7 +83,7 @@ public class MultipartManagerImplAutowireTest {
 		String bucket = StackConfiguration.getS3Bucket();
 		// First create a chunked file token
 		CreateChunkedFileTokenRequest ccftr = new CreateChunkedFileTokenRequest();
-		String userId = userInfo.getIndividualGroup().getId();
+		String userId = adminUserInfo.getId().toString();
 		String fileName = "foo.bar";
 		ccftr.setFileName(fileName);
 		ccftr.setContentType("text/plain");
@@ -123,7 +127,7 @@ public class MultipartManagerImplAutowireTest {
 		// Next add the part
 		ChunkResult part = multipartManager.copyPart(token, 1, bucket);
 		
-		// We need a lsit of parts
+		// We need a list of parts
 		List<ChunkResult> partList = new LinkedList<ChunkResult>();
 		partList.add(part);
 		CompleteChunkedFileRequest ccfr = new CompleteChunkedFileRequest();

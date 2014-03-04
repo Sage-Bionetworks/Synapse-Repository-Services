@@ -1,11 +1,13 @@
 package org.sagebionetworks.repo.model.message;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.Test;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOChange;
 
 /**

@@ -15,10 +15,10 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.message.TransactionalMessengerObserver;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -37,10 +37,8 @@ import com.amazonaws.services.sns.model.PublishRequest;
  *
  */
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:aws-topic-publisher.spb.xml" })
+@ContextConfiguration(locations = { "classpath:shared-scheduler-spb.xml" })
 public class RepositoryMessagePublisherImplAutowireTest {
-
-	public static long MAX_WAIT = 1000*15; // 15 seconds
 	
 	@Autowired
 	TransactionalMessenger transactionalMessanger;
@@ -106,7 +104,7 @@ public class RepositoryMessagePublisherImplAutowireTest {
 		assertEquals(1, unsent.size());
 		messagePublisher.fireChangeMessage(message);
 		// The message will be published on a timer, so we wait for that to occur.
-		Thread.sleep(200);
+		Thread.sleep(2000);
 		// Validate that our message was fired.
 		String json = EntityFactory.createJSONStringForEntity(message);
 		// The message should be published once and only once.
@@ -139,7 +137,7 @@ public class RepositoryMessagePublisherImplAutowireTest {
 		}
 
 		// The message will be published on a timer, so we wait for that to occur.
-		Thread.sleep(200);
+		Thread.sleep(2000);
 		// Validate that all of the messages were fired.
 		for(String messageBody: messageBodyList){
 			System.out.println("Checking for message body: "+messageBody);
@@ -147,32 +145,5 @@ public class RepositoryMessagePublisherImplAutowireTest {
 			verify(mockSNSClient, times(1)).publish(new PublishRequest(messagePublisher.getTopicArn(), messageBody));
 		}
 
-	}
-	
-	@Test
-	public void testUnsentMessages() throws InterruptedException{
-		// Create a change message.
-		ChangeMessage message = new ChangeMessage();
-		message.setChangeType(ChangeType.CREATE);
-		message.setObjectType(ObjectType.ENTITY);
-		message.setObjectId("1");
-		message.setObjectEtag("ABCDEFG");
-		message.setChangeNumber(1l);
-		message.setTimestamp(new Date());
-		// This will added the message to the change table, but will not sent it.
-		message = changeDao.replaceChange(message);
-		// List the unsent messages.
-		List<ChangeMessage> unsent = changeDao.listUnsentMessages(Long.MAX_VALUE);
-		assertEquals(1, unsent.size());
-		// Wait for message to be fired
-		long start = System.currentTimeMillis();
-		do{
-			System.out.println("Waiting for quartz timer to fire for RepositoryMessagePublisherImplAutowireTest.testUnsentMessages()...");
-			Thread.sleep(2000);
-			long elpase = System.currentTimeMillis()-start;
-			assertTrue("Timed out waiting for quartz timer to fire.",elpase < MAX_WAIT);
-			// Get the messages
-			unsent = changeDao.listUnsentMessages(Long.MAX_VALUE);
-		}while(unsent.size() > 0);
 	}
 }

@@ -1,8 +1,9 @@
 package org.sagebionetworks.repo.manager.file.preview;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.mockito.Mockito.when;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.LinkedList;
 import java.util.List;
@@ -12,19 +13,18 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import static org.mockito.Mockito.*;
 import org.mockito.Mockito;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
-import org.sagebionetworks.repo.model.file.S3FileHandleInterface;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.file.S3FileHandleInterface;
 import org.sagebionetworks.repo.util.ResourceTracker.ExceedsMaximumResources;
-import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
-import org.sagebionetworks.repo.web.util.UserProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -39,30 +39,31 @@ public class PreviewManagerImplAutoWireTest {
 	private static String LITTLE_IMAGE_NAME = "LittleImage.png";
 	
 	@Autowired
-	FileHandleManager fileUploadManager;
+	private FileHandleManager fileUploadManager;
 	
 	@Autowired
-	PreviewManager previewManager;
+	private PreviewManager previewManager;
 	
 	@Autowired
-	public UserProvider testUserProvider;
+	public UserManager userManager;
 	
 	@Autowired
-	AmazonS3Client s3Client;
+	private AmazonS3Client s3Client;
 	
 	@Autowired
-	FileHandleDao fileMetadataDao;
+	private FileHandleDao fileMetadataDao;
 	
-	private UserInfo userInfo;
-	List<S3FileHandleInterface> toDelete = new LinkedList<S3FileHandleInterface>();
+	// Only used to satisfy FKs
+	private UserInfo adminUserInfo;
+	private List<S3FileHandleInterface> toDelete = new LinkedList<S3FileHandleInterface>();
 	
 	private S3FileHandle originalfileMetadata;
 	
 	
 	@Before
-	public void before() throws IOException, ServiceUnavailableException{
-		assertNotNull(testUserProvider);
-		userInfo = testUserProvider.getTestUserInfo();
+	public void before() throws Exception {
+		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		
 		toDelete = new LinkedList<S3FileHandleInterface>();
 		// First upload a file that we want to generate a preview for.
 		FileItemStream mockFiz = Mockito.mock(FileItemStream.class);
@@ -72,7 +73,7 @@ public class PreviewManagerImplAutoWireTest {
 		when(mockFiz.getContentType()).thenReturn(ImagePreviewGenerator.IMAGE_PNG);
 		when(mockFiz.getName()).thenReturn(LITTLE_IMAGE_NAME);
 		// Now upload the file.
-		originalfileMetadata = fileUploadManager.uploadFile(userInfo.getIndividualGroup().getId(), mockFiz);
+		originalfileMetadata = fileUploadManager.uploadFile(adminUserInfo.getId().toString(), mockFiz);
 		toDelete.add(originalfileMetadata);
 		System.out.println("Max preview bytes:"+previewManager.getMaxPreivewMemoryBytes());
 	}

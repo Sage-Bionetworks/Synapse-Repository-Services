@@ -8,10 +8,10 @@ import java.util.Set;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessControlList;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOResourceAccessType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.message.ObjectType;
 
 /**
  * AccessControlList utils.
@@ -23,13 +23,16 @@ public class AccessControlListUtils {
 
 	/**
 	 * Create a DBO from the ACL
+	 * Note:  The 'id' field in the DTO is called 'ownerId' in the DBO
 	 * @param acl
 	 * @return
 	 * @throws DatastoreException
 	 */
-	public static DBOAccessControlList createDBO(AccessControlList acl) throws DatastoreException {
+	public static DBOAccessControlList createDBO(AccessControlList acl, Long dboId, ObjectType ownerType) throws DatastoreException {
 		DBOAccessControlList dbo = new DBOAccessControlList();
-		dbo.setId(KeyFactory.stringToKey(acl.getId()));
+		dbo.setId(dboId);
+		dbo.setOwnerId(KeyFactory.stringToKey(acl.getId()));
+		dbo.setOwnerType(ownerType.name());
 		dbo.setEtag(acl.getEtag());
 		dbo.setCreationDate(acl.getCreationDate().getTime());
 		return dbo;
@@ -37,16 +40,17 @@ public class AccessControlListUtils {
 	
 	/**
 	 * Create an ACL from a DBO.
+	 * Note:  The 'id' field in the DTO is called 'ownerId' in the DBO
 	 * @param dbo
 	 * @return
 	 * @throws DatastoreException
 	 */
-	public static AccessControlList createAcl(DBOAccessControlList dbo, ObjectType objectType) throws DatastoreException {
+	public static AccessControlList createAcl(DBOAccessControlList dbo, ObjectType ownerType) throws DatastoreException {
 		AccessControlList acl = new AccessControlList();
-		if (ObjectType.ENTITY.equals(objectType)) {
-			acl.setId(KeyFactory.keyToString(dbo.getId()));
+		if (ObjectType.ENTITY.equals(ownerType)) {
+			acl.setId(KeyFactory.keyToString(dbo.getOwnerId()));
 		} else {
-			acl.setId(dbo.getId().toString());
+			acl.setId(dbo.getOwnerId().toString());
 		}
 		acl.setEtag(dbo.getEtag());
 		acl.setCreationDate(new Date(dbo.getCreationDate()));

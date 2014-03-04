@@ -1,5 +1,5 @@
 {
-	"description": "JSON schema for WikiPage",
+	"description": "A WikiHeader contains basic metadata about a WikiPage.",
 	"properties": {
 		"id": {
 			"type": "string",

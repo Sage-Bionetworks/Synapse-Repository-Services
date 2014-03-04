@@ -8,7 +8,8 @@ import java.util.Iterator;
 import java.util.Properties;
 import java.util.Set;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * @author deflaux
@@ -16,8 +17,7 @@ import org.apache.log4j.Logger;
  */
 public class TemplatedConfigurationImpl implements TemplatedConfiguration {
 
-	private static final Logger log = Logger
-			.getLogger(TemplatedConfigurationImpl.class.getName());
+	private static final Logger log = LogManager.getLogger(TemplatedConfigurationImpl.class.getName());
 
 	private String defaultPropertiesFilename;
 	private String templatePropertiesFilename;
@@ -56,7 +56,7 @@ public class TemplatedConfigurationImpl implements TemplatedConfiguration {
 		// then we need to try and load the maven settings file.
 		if (System.getProperty(StackConstants.STACK_PROPERTY_FILE_URL) == null) {
 			// Try loading the settings file
-			addSettingsPropertiesToSystem();
+			addSettingsPropertiesToSystem(stackPropertyOverrides);
 		}
 		// These three properties are required. If they are null, an exception
 		// will be thrown
@@ -98,11 +98,11 @@ public class TemplatedConfigurationImpl implements TemplatedConfiguration {
 		String propertyValue = null;
 		if (stackPropertyOverrides.containsKey(propertyName)) {
 			propertyValue = stackPropertyOverrides.getProperty(propertyName);
-			log.info(propertyName + "=" + propertyValue
+			log.debug(propertyName + "=" + propertyValue
 					+ " from stack property overrides " + propertyFileUrl);
 		} else {
 			propertyValue = defaultStackProperties.getProperty(propertyName);
-			log.info(propertyName + "=" + propertyValue
+			log.debug(propertyName + "=" + propertyValue
 					+ " from default stack properties "
 					+ defaultPropertiesFilename);
 		}
@@ -170,8 +170,7 @@ public class TemplatedConfigurationImpl implements TemplatedConfiguration {
 	 * Add the properties from the settings file to the system properties if
 	 * they are there.
 	 */
-	@SuppressWarnings("unchecked")
-	private void addSettingsPropertiesToSystem() {
+	private void addSettingsPropertiesToSystem(Properties properties) {
 		Properties props;
 		try {
 			props = SettingsLoader.loadSettingsFile();
@@ -181,6 +180,7 @@ public class TemplatedConfigurationImpl implements TemplatedConfiguration {
 					String key = (String) it.next();
 					String value = props.getProperty(key);
 					System.setProperty(key, value);
+					properties.setProperty(key, value);
 				}
 			}
 		} catch (Exception e) {
@@ -318,6 +318,9 @@ public class TemplatedConfigurationImpl implements TemplatedConfiguration {
 		return getProperty("org.sagebionetworks.fileservice.endpoint");
 	}
 	
+	public String getBridgeServiceEndpoint() {
+		return getProperty("org.sagebionetworks.bridgeservice.endpoint");
+	}
 	
 	@Override
 	public String getSearchServiceEndpoint() {
@@ -328,7 +331,7 @@ public class TemplatedConfigurationImpl implements TemplatedConfiguration {
 	public String getPortalEndpoint() {
 		return getProperty("org.sagebionetworks.portal.endpoint");
 	}
-
+	
 	@Override
 	public int getHttpClientMaxConnsPerRoute() {
 		// We get connection timeouts from HttpClient if max conns is zero,

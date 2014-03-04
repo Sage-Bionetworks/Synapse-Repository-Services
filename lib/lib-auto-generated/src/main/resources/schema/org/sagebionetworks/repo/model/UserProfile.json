@@ -51,23 +51,39 @@
 		"email": {
 			"type": "string",
 			"title": "Email",
-			"description": "This person's email address"
+			"description": "This is deprecated as users can have more than one email. See emails "
+		},
+		"emails": {
+			"type": "array",
+			"title": "Emails",
+			"description": "The list of user email addresses registered to this user.",
+			"items": {
+				"type": "string"
+			}
+		},
+		"openIds": {
+			"type": "array",
+			"title": "OpenIDs",
+			"description": "The list of OpenIds bound to this user's account.",
+			"items": {
+				"type": "string"
+			}
 		},
 		"userName": {
 			"type": "string",
 			"title": "User Name",
-			"description": "User Name, unique in the system and typically this person's email address"
-		},
-		"displayName": {
-			"type": "string",
-			"title": "Display Name",
-			"description": "This person's display name, typically the first name followed by the last name",
+			"description": "A name chosen by the user that uniquely identifies them.",
 			"links": [
 				{
 					"rel": "describedby",
 					"href": "http://synapse.sagebase.org/access/public"
 				}
 			]
+		},
+		"displayName": {
+			"type": "string",
+			"title": "Display Name",
+			"description": "This field is deprecated and will always be null."
 		},
 		"rStudioUrl": {
 			"type": "string",
@@ -161,6 +177,12 @@
 					"href": "http://synapse.sagebase.org/access/public"
 				}
 			]
-		}
+		}, 
+        "notificationSettings": {
+            "type": "object", 
+            "title": "Notification Settings", 
+            "descriptions": "The user's preferences regarding when email notifications should be sent", 
+            "$ref": "org.sagebionetworks.repo.model.message.Settings"
+        }
 	}
 }

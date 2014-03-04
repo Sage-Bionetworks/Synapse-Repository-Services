@@ -15,40 +15,36 @@ public class SynapseConnectionInfo {
 	 * @param adminPassword
 	 */
 	public SynapseConnectionInfo(String authenticationEndPoint,
-			String repositoryEndPoint, String adminUsername,
-			String adminPassword,
+			String repositoryEndPoint,
+			String userName,
+			String APIKey,
 			// remove after 0.12->0.13 migration
 			String stackIamId,
 			String stackIamKey,
-			String sharedS3BackupBucket,
-			String crowdEndpoint,
-			String crowdApplicationKey
+			String sharedS3BackupBucket
 			) {
 		super();
 		this.authenticationEndPoint = authenticationEndPoint;
 		this.repositoryEndPoint = repositoryEndPoint;
-		this.adminUsername = adminUsername;
-		this.adminPassword = adminPassword;
+		this.APIKey = APIKey;
+		this.userName = userName;
 		
 		// remove after 0.12->0.13 migration
 		this.stackIamId = stackIamId;
 		this.stackIamKey = stackIamKey;
 		this.sharedS3BackupBucket = sharedS3BackupBucket;
-		this.crowdEndpoint = crowdEndpoint;
-		this.crowdApplicationKey = crowdApplicationKey;
 	}
 	
 	private String authenticationEndPoint;
 	private String repositoryEndPoint;
-	private String adminUsername;
-	private String adminPassword;
+	
+	private String APIKey;
+	private String userName;
 	
 	// remove after 0.12->0.13 migration
 	private String stackIamId;
 	private String stackIamKey;
 	private String sharedS3BackupBucket;
-	private String crowdEndpoint;
-	private String crowdApplicationKey;
 	
 	
 	public String getAuthenticationEndPoint() {
@@ -56,12 +52,6 @@ public class SynapseConnectionInfo {
 	}
 	public String getRepositoryEndPoint() {
 		return repositoryEndPoint;
-	}
-	public String getAdminUsername() {
-		return adminUsername;
-	}
-	public String getAdminPassword() {
-		return adminPassword;
 	}
 	public String getStackIamId() {
 		return stackIamId;
@@ -72,22 +62,21 @@ public class SynapseConnectionInfo {
 	public String getSharedS3BackupBucket() {
 		return sharedS3BackupBucket;
 	}
-	public String getCrowdEndpoint() {
-		return crowdEndpoint;
+	public String getApiKey() {
+		return APIKey;
 	}
-	public String getCrowdApplicationKey() {
-		return crowdApplicationKey;
+	
+	public String getUserName() {
+		return userName;
 	}
+	
 	@Override
 	public String toString() {
 		return "SynapseConnectionInfo [authenticationEndPoint="
 				+ authenticationEndPoint + ", repositoryEndPoint="
-				+ repositoryEndPoint + ", adminUsername=" + adminUsername
-				+ ", adminPassword=" + adminPassword + ", stackIamId="
+				+ repositoryEndPoint + ", userName=" + userName + ", stackIamId="
 				+ stackIamId + ", stackIamKey=" + stackIamKey
-				+ ", sharedS3BackupBucket=" + sharedS3BackupBucket
-				+ ", crowdEndpoint=" + crowdEndpoint + ", crowdApplicationKey="
-				+ crowdApplicationKey + "]";
+				+ ", sharedS3BackupBucket=" + sharedS3BackupBucket + "]";
 	}
 
 }

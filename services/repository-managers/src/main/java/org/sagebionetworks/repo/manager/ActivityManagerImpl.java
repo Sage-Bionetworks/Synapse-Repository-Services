@@ -68,8 +68,8 @@ public class ActivityManagerImpl implements ActivityManager {
 		
 		// only owner can change
 		UserInfo.validateUserInfo(userInfo);
-		String requestorId = userInfo.getIndividualGroup().getId();
-		String requestorName = userInfo.getIndividualGroup().getName();
+		String requestorId = userInfo.getId().toString();
+		String requestorName = userInfo.getId().toString();
 		Activity currentAct = activityDAO.get(activity.getId());
 		if(!userInfo.isAdmin() && !currentAct.getCreatedBy().equals(requestorId)) {
 			throw new UnauthorizedException(requestorName +" lacks change access to the requested object.");
@@ -97,8 +97,8 @@ public class ActivityManagerImpl implements ActivityManager {
 			return; // don't bug people with 404s on delete
 		}
 		UserInfo.validateUserInfo(userInfo);
-		String requestorId = userInfo.getIndividualGroup().getId();
-		String requestorName = userInfo.getIndividualGroup().getName();
+		String requestorId = userInfo.getId().toString();
+		String requestorName = userInfo.getId().toString();
 		// only owner can change
 		if(!activity.getCreatedBy().equals(requestorId) && !userInfo.isAdmin()) {
 			throw new UnauthorizedException(requestorName +" lacks change access to the requested object.");
@@ -113,7 +113,7 @@ public class ActivityManagerImpl implements ActivityManager {
 		throws DatastoreException, NotFoundException, UnauthorizedException {		
 		Activity act = activityDAO.get(activityId);
 		if(!authorizationManager.canAccessActivity(userInfo, activityId)) { 			
-			throw new UnauthorizedException(userInfo.getIndividualGroup().getName() +" lacks access to the requested object.");
+			throw new UnauthorizedException(userInfo.getId().toString() +" lacks access to the requested object.");
 		}
 		return act;
 	}
@@ -128,12 +128,11 @@ public class ActivityManagerImpl implements ActivityManager {
 			Integer limit, Integer offset) throws DatastoreException, NotFoundException, UnauthorizedException {
 		if (offset==null) offset = 0;
 		if (limit==null) limit = Integer.MAX_VALUE;
-		// hack the validation for a zero based offset
-		ServiceConstants.validatePaginationParams(offset == 0 ? 1L : (long)offset, (long)limit);
+		ServiceConstants.validatePaginationParams((long)offset, (long)limit);
 
 		Activity act = activityDAO.get(activityId);
 		if(!authorizationManager.canAccessActivity(userInfo, activityId)) { 			
-			throw new UnauthorizedException(userInfo.getIndividualGroup().getName() +" lacks access to the requested object.");
+			throw new UnauthorizedException(userInfo.getId().toString() +" lacks access to the requested object.");
 		}
 		return activityDAO.getEntitiesGeneratedBy(activityId, limit, offset);
 	}
@@ -144,9 +143,9 @@ public class ActivityManagerImpl implements ActivityManager {
 	 */
 	static void populateCreationFields(UserInfo userInfo, Activity a) {
 		Date now = new Date();
-		a.setCreatedBy(userInfo.getIndividualGroup().getId());
+		a.setCreatedBy(userInfo.getId().toString());
 		a.setCreatedOn(now);
-		a.setModifiedBy(userInfo.getIndividualGroup().getId());
+		a.setModifiedBy(userInfo.getId().toString());
 		a.setModifiedOn(now);
 	}
 
@@ -154,7 +153,7 @@ public class ActivityManagerImpl implements ActivityManager {
 		Date now = new Date();
 		a.setCreatedBy(null); // by setting to null we are telling the DAO to use the current values
 		a.setCreatedOn(null);
-		a.setModifiedBy(userInfo.getIndividualGroup().getId());
+		a.setModifiedBy(userInfo.getId().toString());
 		a.setModifiedOn(now);
 	}
 

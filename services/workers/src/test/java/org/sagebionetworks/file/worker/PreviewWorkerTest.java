@@ -16,7 +16,7 @@ import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.message.ObjectType;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 
@@ -115,6 +115,25 @@ public class PreviewWorkerTest {
 	}
 	
 	@Test
+	public void testUpdateMessage() throws Exception{
+		change.setChangeType(ChangeType.DELETE);
+		message = MessageUtils.createMessage(change, "outerId0000", "handler");
+		inputList.add(message);
+		S3FileHandle meta = new S3FileHandle();
+		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenReturn(meta);
+		
+		// create the worker.
+		PreviewWorker worker = new PreviewWorker(mockPreveiwManager, inputList);
+		// fire!
+		List<Message> processedList = worker.call();
+		assertNotNull(processedList);
+		// This message should have been processed and returned.
+		assertTrue("The message should be returned as processed so it can be deleted from the queue",isMessageOnList(processedList, message));
+		// We should generate 
+		verify(mockPreveiwManager).generatePreview(any(S3FileHandle.class));
+	}
+	
+	@Test
 	public void testTemporarilyUnavailable() throws Exception{
 		// When the preview manager throws a TemporarilyUnavailableException
 		// that means it could not process this message right now.  Therefore,
@@ -201,13 +220,15 @@ public class PreviewWorkerTest {
 	}
 	
 	@Test
-	public void testIgnoreUpdateMessage() throws Exception{
+	public void testIgnoreDeleteMessage() throws Exception{
 		// Update messages should be ignored.
 		inputList = new LinkedList<Message>();
-		change.setChangeType(ChangeType.UPDATE);
+		change.setChangeType(ChangeType.DELETE);
 		message = MessageUtils.createMessage(change, "outerId0000", "handler");
 		inputList.add(message);
 		S3FileHandle meta = new S3FileHandle();
+		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenReturn(meta);
+		
 		// create the worker.
 		PreviewWorker worker = new PreviewWorker(mockPreveiwManager, inputList);
 		// fire!

@@ -1,12 +1,9 @@
 package org.sagebionetworks.tool.migration.v3;
 
-import java.io.DataOutputStream;
-import java.io.IOException;
 import java.util.Iterator;
 import java.util.concurrent.Callable;
 
 import org.sagebionetworks.repo.model.migration.RowMetadata;
-import org.sagebionetworks.tool.migration.v3.stream.BufferedRowMetadataWriter;
 import org.sagebionetworks.tool.migration.v3.stream.RowWriter;
 
 /**

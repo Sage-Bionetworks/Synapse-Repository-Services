@@ -12,7 +12,12 @@ package org.sagebionetworks.repo.model;
  * @author deflaux
  */
 public class ServiceConstants {
-
+	
+	/**
+	 * 
+	 */
+	public static final String WIKI_VERSION = "version";
+	
 	/**
 	 * Request parameter used to indicate the 1-based index of the first result
 	 * to be returned in a set of paginated results
@@ -28,7 +33,7 @@ public class ServiceConstants {
 	 */
 	@Deprecated
 	// SEE: PLFM-972
-	public static final String DEFAULT_PAGINATION_OFFSET_PARAM = "1";
+	public static final String DEFAULT_PAGINATION_OFFSET_PARAM_NO_OFFSET_EQUALS_ONE = "1";
 
 	/**
 	 * As PLFM-972 points out offsets should start at zero not one.
@@ -37,8 +42,10 @@ public class ServiceConstants {
 	/**
 	 * Default value for offset parameter
 	 */
-	public static final Long DEFAULT_PAGINATION_OFFSET = new Long(
-			DEFAULT_PAGINATION_OFFSET_PARAM);
+	public static final Long DEFAULT_PAGINATION_OFFSET_NO_OFFSET_EQUALS_ONE = new Long(
+			DEFAULT_PAGINATION_OFFSET_PARAM_NO_OFFSET_EQUALS_ONE);
+	
+	public static final Long DEFAULT_PAGINATION_OFFSET = new Long(0);
 
 	/**
 	 * Request parameter used to indicate the maximum number of results to be
@@ -177,25 +184,33 @@ public class ServiceConstants {
 	public static final String LOCATION_HEADER = "Location";
 	
 	/**
-	 * name of a web request parameter indicating that the user accepts the terms of use.
-	 * Passed at the initiation of OpenID authentication.
-	 * 
-	 */
-	public static final String ACCEPTS_TERMS_OF_USE_PARAM = "acceptsTermsOfUse";
-
-	/**
-	 * A token built into the redirect URL by the authentication controller at the end of OpenID
-	 * authentication to indicate the the Synapse Terms of Use have not been signed.
-	 * 
-	 */
-	public static final String ACCEPTS_TERMS_OF_USE_REQUIRED_TOKEN = "TermsOfUseAcceptanceRequired";
-
-	/**
 	 * The generatedBy provenance parameter
 	 */
 	public static final String GENERATED_BY_PARAM = "generatedBy";
 
 	
+	/**
+	 * Utility method to sanity check pagination parameters, using incorrect legacy definition
+	 * of '1' for no offset
+	 * <p>
+	 * 
+	 * @param offset
+	 * @param limit
+	 * @throws IllegalArgumentException
+	 */
+	public static void validatePaginationParamsNoOffsetEqualsOne(Long offset, Long limit)
+			throws IllegalArgumentException {
+		if (1 > offset) {
+			throw new IllegalArgumentException(
+					"pagination offset must be 1 or greater");
+		}
+		if (1 > limit) {
+			throw new IllegalArgumentException(
+					"pagination limit must be 1 or greater");
+		}
+		return;
+	}
+
 	/**
 	 * Utility method to sanity check pagination parameters
 	 * <p>
@@ -206,9 +221,9 @@ public class ServiceConstants {
 	 */
 	public static void validatePaginationParams(Long offset, Long limit)
 			throws IllegalArgumentException {
-		if (1 > offset) {
+		if (0 > offset) {
 			throw new IllegalArgumentException(
-					"pagination offset must be 1 or greater");
+					"pagination offset must be 0 or greater");
 		}
 		if (1 > limit) {
 			throw new IllegalArgumentException(
@@ -229,4 +244,9 @@ public class ServiceConstants {
 
 	public static final String DYNAMO_HASH_KEY_NAME_PARAM = "hashKeyName";
 	public static final String DYNAMO_RANGE_KEY_NAME_PARAM = "rangeKeyName";
+
+	/**
+	 * A query string parameter indicating whether to skip the trash can when deleting entities.
+	 */
+	public static final String SKIP_TRASH_CAN_PARAM = "skipTrashCan";
 }

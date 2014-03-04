@@ -5,7 +5,9 @@ import java.util.Map;
 
 import javax.annotation.PostConstruct;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.sns.AmazonSNSClient;
@@ -30,7 +32,7 @@ import com.amazonaws.services.sqs.model.SetQueueAttributesRequest;
  */
 public class MessageQueueImpl implements MessageQueue {
 
-	private Logger logger = Logger.getLogger(MessageQueueImpl.class);
+	private Logger logger = LogManager.getLogger(MessageQueueImpl.class);
 
 	// The first argument is the ARN of the queue, and the second is the ARN of the topic.
 	private static final String GRAN_SET_MESSAGE_TEMPLATE = "{ \"Id\":\"GrantRepoTopicSendMessage\", \"Statement\": [{ \"Sid\":\"1\",  \"Resource\": \"%1$s\", \"Effect\": \"Allow\", \"Action\": \"SQS:SendMessage\", \"Condition\": {\"ArnEquals\": {\"aws:SourceArn\": \"%2$s\"}}, \"Principal\": {\"AWS\": \"*\"}}]}";
@@ -44,8 +46,9 @@ public class MessageQueueImpl implements MessageQueue {
 	private final String queueName;
 	private final String topicName;
 	private String queueUrl;
+	private boolean isEnabled;
 
-	public MessageQueueImpl(final String queueName, final String topicName) {
+	public MessageQueueImpl(final String queueName, final String topicName, boolean isEnabled) {
 
 		if (queueName == null) {
 			throw new NullPointerException();
@@ -53,14 +56,18 @@ public class MessageQueueImpl implements MessageQueue {
 		if (topicName == null) {
 			throw new NullPointerException();
 		}
-
+		this.isEnabled = isEnabled;
 		this.queueName = queueName;
 		this.topicName = topicName;
 	}
 
 	@PostConstruct
 	private void init() {
-
+		// Do nothing if it is not enabled
+		if(!isEnabled){
+			logger.info("Queue: "+queueName+" will not be configured because it is not enabled");
+			return;
+		}
 		// Create the queue if it does not already exist
 		CreateQueueRequest cqRequest = new CreateQueueRequest(queueName);
 		CreateQueueResult cqResult = this.awsSQSClient.createQueue(cqRequest);
@@ -166,5 +173,10 @@ public class MessageQueueImpl implements MessageQueue {
 		} else {
 			this.logger.info("Topic already has sendMessage permssion on this queue");
 		}
+	}
+
+	@Override
+	public boolean isEnabled() {
+		return isEnabled;
 	}
 }

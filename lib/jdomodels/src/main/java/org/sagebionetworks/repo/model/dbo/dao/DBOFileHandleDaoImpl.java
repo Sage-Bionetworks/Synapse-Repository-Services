@@ -17,8 +17,7 @@ import java.util.UUID;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.TagMessenger;
-import org.sagebionetworks.repo.model.backup.FileHandleBackup;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.FileMetadataUtils;
@@ -26,8 +25,9 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.HasPreviewId;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.message.ObjectType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -46,8 +46,8 @@ import org.springframework.transaction.annotation.Transactional;
  */
 public class DBOFileHandleDaoImpl implements FileHandleDao {
 	
-	private static final String SQL_GET_MIGRATION_OBJECT_DATA_PAGE = "SELECT "+COL_FILES_ID+", "+COL_FILES_ETAG+", "+COL_FILES_PREVIEW_ID+" FROM "+TABLE_FILES+" ORDER BY "+COL_FILES_ID+" DESC LIMIT ? OFFSET ?";
 	private static final String SQL_COUNT_ALL_FILES = "SELECT COUNT(*) FROM "+TABLE_FILES;
+	private static final String SQL_MAX_FILE_ID = "SELECT MAX(ID) FROM " + TABLE_FILES;
 	private static final String SQL_SELECT_CREATOR = "SELECT "+COL_FILES_CREATED_BY+" FROM "+TABLE_FILES+" WHERE "+COL_FILES_ID+" = ?";
 	private static final String SQL_SELECT_PREVIEW_ID = "SELECT "+COL_FILES_PREVIEW_ID+" FROM "+TABLE_FILES+" WHERE "+COL_FILES_ID+" = ?";
 	private static final String UPDATE_PREVIEW_AND_ETAG = "UPDATE "+TABLE_FILES+" SET "+COL_FILES_PREVIEW_ID+" = ? ,"+COL_FILES_ETAG+" = ? WHERE "+COL_FILES_ID+" = ?";
@@ -59,8 +59,9 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 
 	@Autowired
 	private IdGenerator idGenerator;
+	
 	@Autowired
-	private TagMessenger tagMessenger;
+	private TransactionalMessenger transactionalMessenger;
 		
 	@Autowired
 	private DBOBasicDao basicDao;
@@ -88,8 +89,10 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 		if(id == null) throw new IllegalArgumentException("Id cannot be null");
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_FILES_ID.toLowerCase(), id);
+		
 		// Send the delete message
-		tagMessenger.sendDeleteMessage(id, ObjectType.FILE);
+		transactionalMessenger.sendMessageAfterCommit(id, ObjectType.FILE, ChangeType.DELETE);
+		
 		// Delete this object
 		try{
 			basicDao.deleteObjectByPrimaryKey(DBOFileHandle.class, param);
@@ -99,35 +102,48 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 		}
 	}
 
-	@SuppressWarnings("unchecked")
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public <T extends FileHandle> T createFile(T fileHandle) {
-		if(fileHandle == null) throw new IllegalArgumentException("fileHandle cannot be null");
-		if(fileHandle.getFileName() == null) throw new IllegalArgumentException("fileHandle.getFileName cannot be null");
+		return createFilePrivate(fileHandle, true);
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public S3FileHandle createFile(S3FileHandle metadata, boolean shouldPreviewBeGenerated) {
+		return createFilePrivate(metadata, shouldPreviewBeGenerated);
+	}
+	
+	@SuppressWarnings("unchecked")
+	private <T extends FileHandle> T createFilePrivate(T fileHandle, boolean shouldPreviewBeGenerated) {
+		if (fileHandle == null) {
+			throw new IllegalArgumentException("File handle cannot be null");
+		}
+		if (fileHandle.getFileName() == null) {
+			throw new IllegalArgumentException(
+					"File name cannot be null");
+		}
+		
 		// Convert to a DBO
 		DBOFileHandle dbo = FileMetadataUtils.createDBOFromDTO(fileHandle);
-		if(fileHandle.getId() == null){
-			dbo.setId(idGenerator.generateNewId(TYPE.FILE_IDS));
-		}else{
-			// If an id was provided then it must not exist
-			if(doesExist(fileHandle.getId())) throw new IllegalArgumentException("A file object already exists with ID: "+fileHandle.getId());
-			// Make sure the ID generator has reserved this ID.
-			idGenerator.reserveId(new Long(fileHandle.getId()), TYPE.FILE_IDS);
-		}
-		// When we migrate we keep the original etag.  When it is null we set it.
-		if(dbo.getEtag() == null){
-			dbo.setEtag(UUID.randomUUID().toString());
-		}
+		dbo.setId(idGenerator.generateNewId(TYPE.FILE_IDS));
+		dbo.setEtag(UUID.randomUUID().toString());
+		
+		// To disable preview generation, assign the ID to a non-null, non-preview file handle (itself)
+		if (!shouldPreviewBeGenerated) {
+			dbo.setPreviewId(dbo.getId());
+		} 
+		
 		// Save it to the DB
 		dbo = basicDao.createNew(dbo);
+		
 		// Send the create message
-		tagMessenger.sendMessage(dbo.getId().toString(), dbo.getEtag(), ObjectType.FILE, ChangeType.CREATE);
+		transactionalMessenger.sendMessageAfterCommit(dbo, ChangeType.CREATE);
+		
 		try {
-			return (T) get(dbo.getId().toString());
+			return (T) get(dbo.getIdString());
 		} catch (NotFoundException e) {
-			// This should not occur.
-			throw new RuntimeException(e);
+			throw new DatastoreException(e);
 		}
 	}
 
@@ -135,19 +151,21 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	@Override
 	public void setPreviewId(String fileId, String previewId) throws NotFoundException {
 		if(fileId == null) throw new IllegalArgumentException("FileId cannot be null");
-		if(previewId == null) throw new IllegalArgumentException("PreviewId cannot be null");
 		if(!doesExist(fileId)){
 			throw new NotFoundException("The fileId: "+fileId+" does not exist");
 		}
-		if(!doesExist(previewId)){
+		//if preview ID is set, then it must exist to continue update
+		if(previewId != null && !doesExist(previewId)){
 			throw new NotFoundException("The previewId: "+previewId+" does not exist");
 		}
 		try{
 			// Change the etag
 			String newEtag = UUID.randomUUID().toString();
 			simpleJdbcTemplate.update(UPDATE_PREVIEW_AND_ETAG, previewId, newEtag, fileId);
+			
 			// Send the update message
-			tagMessenger.sendMessage(fileId, newEtag, ObjectType.FILE, ChangeType.UPDATE);
+			transactionalMessenger.sendMessageAfterCommit(fileId, ObjectType.FILE, newEtag, ChangeType.UPDATE);
+			
 		} catch (DataIntegrityViolationException e){
 			throw new NotFoundException(e.getMessage());
 		}
@@ -227,31 +245,10 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 	public long getCount() throws DatastoreException {
 		return simpleJdbcTemplate.queryForLong(SQL_COUNT_ALL_FILES);
 	}
-
+	
 	@Override
-	public FileHandleBackup getFileHandleBackup(String id) throws NotFoundException {
-		DBOFileHandle dbo = getDBO(id);
-		return FileMetadataUtils.createBackupFromDBO(dbo);
-	}
-
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	@Override
-	public boolean createOrUpdateFromBackup(FileHandleBackup backup) {
-		if(backup == null) throw new IllegalArgumentException("Backup cannot be null");
-		// Convert to a DBO
-		DBOFileHandle dbo = FileMetadataUtils.createDBOFromBackup(backup);
-		ChangeType changeType = null;
-		// Does this already exist?
-		if(doesExist(dbo.getId().toString())){
-			basicDao.update(dbo);
-			changeType = ChangeType.UPDATE;
-		}else{
-			basicDao.createNew(dbo);
-			changeType = ChangeType.CREATE;
-		}
-		// Send a message
-		tagMessenger.sendMessage(dbo.getId().toString(), dbo.getEtag(), ObjectType.FILE, changeType);
-		return changeType == ChangeType.CREATE;
+	public long getMaxId() throws DatastoreException {
+		return simpleJdbcTemplate.queryForLong(SQL_MAX_FILE_ID);
 	}
 
 	@Override

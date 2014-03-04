@@ -6,13 +6,13 @@
 			"type": "string",
 			"description": "The id of either the user or group."
 		},
-		"name": {
-			"type": "string",
-			"description": "The name of either the user or group."
-		},
 		"isIndividual": {
 			"type": "boolean",
 			"description": "True if this is a user, false if it is a group"
+		}, 
+		"etag": {
+			"type": "string", 
+			"description": "Used to detect when a client's current representation of a user or group is out-of-date."
 		}
 	}
 }

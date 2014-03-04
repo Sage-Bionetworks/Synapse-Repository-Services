@@ -43,7 +43,7 @@ public class AccessApprovalController extends BaseController {
 	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL, method = RequestMethod.POST)
 	public @ResponseBody
 	AccessApproval createAccessApproval(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody AccessApproval accessApproval,
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request
@@ -55,7 +55,7 @@ public class AccessApprovalController extends BaseController {
 	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL_WITH_ENTITY_ID, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<AccessApproval> getEntityAccessApprovals(
-				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(value= ID_PATH_VARIABLE) String entityId,
 			HttpServletRequest request
 			) throws DatastoreException, UnauthorizedException, NotFoundException {
@@ -69,7 +69,7 @@ public class AccessApprovalController extends BaseController {
 	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL_WITH_EVALUATION_ID, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<AccessApproval> getEvaluationAccessApprovals(
-				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(value= EVALUATION_ID_PATH_VAR_WITHOUT_BRACKETS) String evaluationId,
 			HttpServletRequest request
 			) throws DatastoreException, UnauthorizedException, NotFoundException {
@@ -80,9 +80,23 @@ public class AccessApprovalController extends BaseController {
 	}
 
 	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL_WITH_TEAM_ID, method = RequestMethod.GET)
+	public @ResponseBody
+	PaginatedResults<AccessApproval> getTeamAccessApprovals(
+				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String id,
+			HttpServletRequest request
+			) throws DatastoreException, UnauthorizedException, NotFoundException {
+		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
+		subjectId.setId(id);
+		subjectId.setType(RestrictableObjectType.TEAM);
+		return serviceProvider.getAccessApprovalService().getAccessApprovals(userId, subjectId, request);
+	}
+
+	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL_WITH_APPROVAL_ID, method = RequestMethod.DELETE)
 	public void deleteAccessApprovals(
-				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String approvalId,
 			HttpServletRequest request) throws DatastoreException, UnauthorizedException, NotFoundException {
 		serviceProvider.getAccessApprovalService().deleteAccessApprovals(userId, approvalId);

@@ -20,7 +20,6 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.StorageUsageQueryDao;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
-import org.sagebionetworks.repo.model.dao.WikiPageDao;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -31,16 +30,15 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
  *
  */
 public class AsynchronousDAOImplTest {
-	
+
 	Long nodeId = new Long(123);
 	String nodeIdString = KeyFactory.keyToString(nodeId);
-	
+
 	NodeDAO mockNodeDao;
 	DBOReferenceDao mockReferenceDao;
 	DBOAnnotationsDao mockAnnotationsDao;
 	StorageUsageQueryDao mockStorageLocationDao;
 	FileHandleDao mockFileMetadataDao;
-	WikiPageDao mockWikiPageDao;
 	AsynchronousDAOImpl testDao;
 	NamedAnnotations annos;
 	Annotations forDb;
@@ -54,8 +52,7 @@ public class AsynchronousDAOImplTest {
 		mockAnnotationsDao = Mockito.mock(DBOAnnotationsDao.class);
 		mockStorageLocationDao = Mockito.mock(StorageUsageQueryDao.class);
 		mockFileMetadataDao = Mockito.mock(FileHandleDao.class);
-		mockWikiPageDao = Mockito.mock(WikiPageDao.class);
-		
+
 		// Setup the references
 		references = new HashMap<String, Set<Reference>>();
 		Set<Reference> set = new HashSet<Reference>();
@@ -76,16 +73,16 @@ public class AsynchronousDAOImplTest {
 		// Mock the node dao.
 		when(mockNodeDao.getNodeReferences(nodeIdString)).thenReturn(references);
 		when(mockNodeDao.getAnnotations(nodeIdString)).thenReturn(annos);
-		
-		testDao = new AsynchronousDAOImpl(mockNodeDao, mockReferenceDao, mockAnnotationsDao, mockStorageLocationDao,mockFileMetadataDao, mockWikiPageDao );
+
+		testDao = new AsynchronousDAOImpl(mockNodeDao, mockReferenceDao, mockAnnotationsDao, mockStorageLocationDao,mockFileMetadataDao);
 	}
-	
+
 	@Test (expected=IllegalArgumentException.class)
 	public void testReplaceAllNull() throws NotFoundException{
 		// Test replace add
 		testDao.replaceAll(null);
 	}
-	
+
 	@Test
 	public void testReplaceAll() throws NotFoundException{
 		// Make the call

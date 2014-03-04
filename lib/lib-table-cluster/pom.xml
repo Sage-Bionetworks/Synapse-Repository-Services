@@ -1,0 +1,75 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <artifactId>lib</artifactId>
+    <groupId>org.sagebionetworks</groupId>
+    <version>develop-SNAPSHOT</version>
+    <relativePath>..</relativePath>
+  </parent>
+  <artifactId>lib-table-cluster</artifactId>
+ 
+  	<dependencies>
+
+		<!-- Sage Bionetworks Dependencies -->
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>lib-models</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>lib-jdomodels</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>lib-concepts</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>lib-stackConfiguration</artifactId>
+		</dependency>
+
+		<!-- Spring Framework dependencies -->
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>org.springframework.spring-library</artifactId>
+			<type>libd</type>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-test</artifactId>
+		</dependency>
+
+		<!-- Logging -->
+		<dependency>
+			<groupId>org.apache.logging.log4j</groupId>
+			<artifactId>log4j-core</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.mockito</groupId>
+			<artifactId>mockito-all</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.amazonaws</groupId>
+			<artifactId>aws-java-sdk</artifactId>
+			<scope>compile</scope>
+		</dependency>
+		<dependency>
+			<groupId>commons-collections</groupId>
+			<artifactId>commons-collections</artifactId>
+			<version>20040616</version>
+			<type>jar</type>
+			<scope>compile</scope>
+		</dependency>
+
+	</dependencies>
+</project>

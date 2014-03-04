@@ -8,19 +8,17 @@
                            http://www.springframework.org/schema/context
                            http://www.springframework.org/schema/context/spring-context-3.0.xsd">
 
-  <context:annotation-config />
+	<context:annotation-config />
 
-  <import resource="classpath:managers-spb.xml" />
-                    
-    <bean id="userDAO" class="org.sagebionetworks.repo.manager.TestUserDAO" scope="singleton"/>
+	<import resource="classpath:managers-spb.xml" />
 
-<!-- 	<bean id="amazonClientFactory" class="org.sagebionetworks.repo.util.MockAmazonClientFactory"  scope="singleton"/> -->
-        
-    <!-- Provides users for testing. -->
-    <bean id="testUserProvider" class="org.sagebionetworks.repo.web.util.UserProviderImpl" scope="singleton"/>
-    
-    <!--  We do not want to publish to the repository change topic while running test so we turn it off -->
+	<!-- We do not want to publish to the repository change topic while running tests so we turn it off -->
 	<bean id="stackConfiguration.shouldMessagesBePublishedToTopic" class="java.lang.Boolean">
-	    <constructor-arg value="false" />
+		<constructor-arg value="false" />
 	</bean>
+	
+	<!-- We don't want to send emails during testing, so we stub out Amazon SES -->
+	<bean id="amazonSESClient" class="org.sagebionetworks.repo.manager.StubAmazonSimpleEmailServiceClient" />	
+	
+	<bean id="jiraClient" class="org.sagebionetworks.repo.manager.TestJiraClient" />
 </beans>

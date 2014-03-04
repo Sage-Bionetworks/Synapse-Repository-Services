@@ -1,0 +1,29 @@
+{
+	"description": "Alias binding of a principal",
+	"properties": {
+		"aliasId": {
+			"type": "integer",
+			"description": "Each alias is assigned a unique id."
+		},
+		"etag": {
+			"type": "string",
+			"description": "The etag of this alias."
+		},
+		"principalId": {
+			"type": "integer",
+			"description": "The ID of the principal to bind the alias too."
+		},
+		"alias": {
+			"type": "string",
+			"description": "The alias to bind to the principal"
+		},
+		"type": {
+			"$ref": "org.sagebionetworks.repo.model.principal.AliasType",
+			"description": "The type of alias being bound"
+		},
+		"isValidated": {
+			"type": "boolean",
+			"description": "Has this alias been validated?"
+		}
+	}
+}

@@ -2,10 +2,10 @@ package org.sagebionetworks.repo.manager;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
-import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirement;
@@ -14,12 +14,15 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.message.ObjectType;
+import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.UserProfileDAO;
+import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.util.jrjc.JRJCHelper;
 import org.sagebionetworks.repo.util.jrjc.JiraClient;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -36,7 +39,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	private AuthorizationManager authorizationManager;
 	
 	@Autowired
-	NodeDAO nodeDAO;
+	NodeDAO nodeDao;
 
 	@Autowired
 	EvaluationDAO evaluationDAO;
@@ -44,17 +47,22 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	@Autowired
 	private JiraClient jiraClient;
 	
+	@Autowired
+	private UserProfileDAO userProfileDAO;
+	
 	public AccessRequirementManagerImpl() {}
 	
 	// for testing 
 	public AccessRequirementManagerImpl(
 			AccessRequirementDAO accessRequirementDAO,
 			AuthorizationManager authorizationManager,
-			JiraClient jiraClient
+			JiraClient jiraClient,
+			UserProfileDAO userProfileDAO
 	) {
 		this.accessRequirementDAO=accessRequirementDAO;
 		this.authorizationManager=authorizationManager;
 		this.jiraClient=jiraClient;
+		this.userProfileDAO=userProfileDAO;
 	}
 	
 	public static void validateAccessRequirement(AccessRequirement a) throws InvalidModelException {
@@ -67,9 +75,9 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	
 	public static void populateCreationFields(UserInfo userInfo, AccessRequirement a) {
 		Date now = new Date();
-		a.setCreatedBy(userInfo.getIndividualGroup().getId());
+		a.setCreatedBy(userInfo.getId().toString());
 		a.setCreatedOn(now);
-		a.setModifiedBy(userInfo.getIndividualGroup().getId());
+		a.setModifiedBy(userInfo.getId().toString());
 		a.setModifiedOn(now);
 	}
 
@@ -77,11 +85,10 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		Date now = new Date();
 		a.setCreatedBy(null); // by setting to null we are telling the DAO to use the current values
 		a.setCreatedOn(null);
-		a.setModifiedBy(userInfo.getIndividualGroup().getId());
+		a.setModifiedBy(userInfo.getId().toString());
 		a.setModifiedOn(now);
 	}
 	
-	// TODO Once the web client switches over to use 'createLockAccessRequirement', restrict access here to ACT
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public <T extends AccessRequirement> T createAccessRequirement(UserInfo userInfo, T accessRequirement) throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException {
@@ -111,8 +118,8 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	@Override
 	public ACTAccessRequirement createLockAccessRequirement(UserInfo userInfo, String entityId) throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException {
 		// check authority
-		if (!(authorizationManager.canAccess(userInfo, entityId, ACCESS_TYPE.CREATE) &&
-				authorizationManager.canAccess(userInfo, entityId, ACCESS_TYPE.UPDATE))) 
+		if (!(authorizationManager.canAccess(userInfo, entityId, ObjectType. ENTITY, ACCESS_TYPE.CREATE) &&
+				authorizationManager.canAccess(userInfo, entityId, ObjectType. ENTITY, ACCESS_TYPE.UPDATE))) 
 			throw new UnauthorizedException();
 		
 		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
@@ -120,16 +127,21 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		subjectId.setType(RestrictableObjectType.ENTITY);
 
 		// check whether there is already an access requirement in place
-		List<AccessRequirement> ars = accessRequirementDAO.getForSubject(subjectId);
+		List<AccessRequirement> ars = accessRequirementDAO.getForSubject(Collections.singletonList(subjectId.getId()), subjectId.getType());
 		if (!ars.isEmpty()) throw new IllegalArgumentException("Entity "+entityId+" is already restricted.");
 		
 		ACTAccessRequirement accessRequirement = newLockAccessRequirement(userInfo, entityId);
 		ACTAccessRequirement result  = accessRequirementDAO.create(accessRequirement);
 		
+		UserProfile creatorUserProfile = userProfileDAO.get(userInfo.getId().toString());
+		String emailString = "";
+		List<String> emails = creatorUserProfile.getEmails();
+		if (emails!=null && emails.size()>0) emailString = emails.get(0);
+		
 		// now create the Jira issue
 		JRJCHelper.createRestrictIssue(jiraClient, 
-				userInfo.getIndividualGroup().getId(), 
-				userInfo.getIndividualGroup().getName(), 
+				userInfo.getId().toString(), 
+				emailString, 
 				entityId);
 
 		return result;
@@ -137,7 +149,13 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	
 	@Override
 	public QueryResults<AccessRequirement> getAccessRequirementsForSubject(UserInfo userInfo, RestrictableObjectDescriptor subjectId) throws DatastoreException, NotFoundException {
-		List<AccessRequirement> ars = accessRequirementDAO.getForSubject(subjectId);
+		List<String> subjectIds = new ArrayList<String>();
+		if (RestrictableObjectType.ENTITY==subjectId.getType()) {
+			subjectIds.addAll(AccessRequirementUtil.getNodeAncestorIds(nodeDao, subjectId.getId(), true));
+		} else {
+			subjectIds.add(subjectId.getId());			
+		}
+		List<AccessRequirement> ars = accessRequirementDAO.getForSubject(subjectIds, subjectId.getType());
 		QueryResults<AccessRequirement> result = new QueryResults<AccessRequirement>(ars, ars.size());
 		return result;
 	}
@@ -145,13 +163,28 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	@Override
 	public QueryResults<AccessRequirement> getUnmetAccessRequirements(UserInfo userInfo, RestrictableObjectDescriptor subjectId) throws DatastoreException, NotFoundException {
 		// first check if there *are* any unmet requirements.  (If not, no further queries will be executed.)
-		List<Long> unmetIds = AccessRequirementUtil.unmetAccessRequirementIds(
-				userInfo, subjectId, nodeDAO, accessRequirementDAO);
+		List<String> subjectIds = new ArrayList<String>();
+		subjectIds.add(subjectId.getId());
+		List<Long> unmetIds = null;
+		if (RestrictableObjectType.ENTITY==subjectId.getType()) {
+			List<String> nodeAncestorIds = AccessRequirementUtil.getNodeAncestorIds(nodeDao, subjectId.getId(), false);
+			unmetIds = AccessRequirementUtil.unmetAccessRequirementIdsForEntity(
+				userInfo, subjectId.getId(), nodeAncestorIds, nodeDao, accessRequirementDAO);
+			subjectIds.addAll(nodeAncestorIds);
+		} else if (RestrictableObjectType.EVALUATION==subjectId.getType()) {
+			unmetIds = AccessRequirementUtil.unmetAccessRequirementIdsForEvaluation(
+					userInfo, subjectId.getId(), accessRequirementDAO);
+		} else if (RestrictableObjectType.TEAM==subjectId.getType()) {
+			unmetIds = AccessRequirementUtil.unmetAccessRequirementIdsForTeam(
+					userInfo, subjectId.getId(), accessRequirementDAO);
+		} else {
+			throw new InvalidModelException("Unexpected object type "+subjectId.getType());
+		}
 		
 		List<AccessRequirement> unmetRequirements = new ArrayList<AccessRequirement>();
 		// if there are any unmet requirements, retrieve the object(s)
 		if (!unmetIds.isEmpty()) {
-			List<AccessRequirement> allRequirementsForSubject = accessRequirementDAO.getForSubject(subjectId);
+			List<AccessRequirement> allRequirementsForSubject = accessRequirementDAO.getForSubject(subjectIds, subjectId.getType());
 			for (Long unmetId : unmetIds) { // typically there will be just one id here
 				for (AccessRequirement ar : allRequirementsForSubject) { // typically there will be just one id here
 					if (ar.getId().equals(unmetId)) unmetRequirements.add(ar);
@@ -164,8 +197,11 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public <T extends AccessRequirement> T updateAccessRequirement(UserInfo userInfo, T accessRequirement) throws NotFoundException, UnauthorizedException, ConflictingUpdateException, InvalidModelException, DatastoreException {
+	public <T extends AccessRequirement> T updateAccessRequirement(UserInfo userInfo, String accessRequirementId, T accessRequirement) throws NotFoundException, UnauthorizedException, ConflictingUpdateException, InvalidModelException, DatastoreException {
 		validateAccessRequirement(accessRequirement);
+		if (!accessRequirementId.equals(accessRequirement.getId().toString()))
+			throw new InvalidModelException("Update specified ID "+accessRequirementId+" but object contains id: "+
+		accessRequirement.getId());
 		verifyCanAccess(userInfo, accessRequirement.getId().toString(), ACCESS_TYPE.UPDATE);
 		populateModifiedFields(userInfo, accessRequirement);
 		return accessRequirementDAO.update(accessRequirement);

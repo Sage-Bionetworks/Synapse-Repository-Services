@@ -8,26 +8,23 @@ import javax.servlet.http.HttpServlet;
 import junit.framework.Assert;
 
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.doi.DoiClient;
 import org.sagebionetworks.doi.EzidClient;
-import org.sagebionetworks.repo.manager.TestUserDAO;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DoiAdminDao;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.doi.DoiStatus;
-import org.sagebionetworks.repo.web.UrlHelpers;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.service.EntityService;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
-import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -35,24 +32,45 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class DoiControllerAutowiredTest {
 
-	@Autowired private EntityService entityService;
-	@Autowired private DoiAdminDao doiAdminDao;
-	private final String testUser = TestUserDAO.TEST_USER_NAME;
+	@Autowired
+	private EntityService entityService;
+	
+	@Autowired
+	private DoiAdminDao doiAdminDao;
+	
+	@Autowired
+	private UserManager userManager;
+	
+	@Autowired
+	private ServletTestHelper servletTestHelper;
+	
+	private Long adminUserId;
 	private Entity entity;
 
 	@Before
 	public void before() throws Exception {
+
+		StackConfiguration config = new StackConfiguration();
+		Assume.assumeTrue(config.getDoiEnabled());
+
+		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+		
+		servletTestHelper.setUp();
+		
 		entity = new Project();
 		entity.setName("DoiControllerAutowiredTest");
 		HttpServlet dispatchServlet = DispatchServletSingleton.getInstance();
-		entity = ServletTestHelper.createEntity(dispatchServlet, entity, testUser);
+		entity = ServletTestHelper.createEntity(dispatchServlet, entity, adminUserId);
 		Assert.assertNotNull(entity);
 	}
 
 	@After
 	public void after() throws Exception {
-		entityService.deleteEntity(testUser, entity.getId());
-		doiAdminDao.clear();
+		StackConfiguration config = new StackConfiguration();
+		if (config.getDoiEnabled()) {
+			entityService.deleteEntity(adminUserId, entity.getId());
+			doiAdminDao.clear();
+		}
 	}
 
 	@Test
@@ -65,40 +83,15 @@ public class DoiControllerAutowiredTest {
 		}
 
 		// Put without version
-		String uri = UrlHelpers.ENTITY + "/" + entity.getId() + UrlHelpers.DOI;
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		request.setMethod("PUT");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(uri);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, testUser);
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		HttpServlet servlet = DispatchServletSingleton.getInstance();
-		servlet.service(request, response);
-		Assert.assertEquals(HttpStatus.ACCEPTED.value(), response.getStatus());
-		String jsonStr = response.getContentAsString();
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonStr);
-		Doi doiPut = new Doi();
-		doiPut.initializeFromJSONObject(adapter);
+		Doi doiPut = ServletTestHelper.putDoiWithoutVersion(adminUserId, entity.getId());
 		assertNotNull(doiPut);
 
 		// Get without version
-		request = new MockHttpServletRequest();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(uri);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, testUser);
-		response = new MockHttpServletResponse();
-		servlet = DispatchServletSingleton.getInstance();
-		servlet.service(request, response);
-		Assert.assertEquals(HttpStatus.OK.value(), response.getStatus());
-		jsonStr = response.getContentAsString();
-		adapter = new JSONObjectAdapterImpl(jsonStr);
-		Doi doiGet = new Doi();
-		doiGet.initializeFromJSONObject(adapter);
+		Doi doiGet = ServletTestHelper.getDoiWithoutVersion(adminUserId, entity.getId());
 		assertNotNull(doiGet);
 		assertEquals(doiPut.getCreatedBy(), doiGet.getCreatedBy());
 		assertEquals(doiPut.getCreatedOn(), doiGet.getCreatedOn());
-		assertEquals(doiPut.getDoiObjectType(), doiGet.getDoiObjectType());
+		assertEquals(doiPut.getObjectType(), doiGet.getObjectType());
 		assertEquals(DoiStatus.IN_PROCESS, doiPut.getDoiStatus());
 		assertNotNull(doiGet.getDoiStatus());
 		assertEquals(doiPut.getEtag(), doiGet.getEtag());
@@ -108,40 +101,15 @@ public class DoiControllerAutowiredTest {
 		assertEquals(doiPut.getUpdatedOn(), doiGet.getUpdatedOn());
 
 		// Put with version
-		uri = UrlHelpers.ENTITY + "/" + entity.getId() + UrlHelpers.VERSION + "/" + 1 + UrlHelpers.DOI;
-		request = new MockHttpServletRequest();
-		request.setMethod("PUT");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(uri);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, testUser);
-		response = new MockHttpServletResponse();
-		servlet = DispatchServletSingleton.getInstance();
-		servlet.service(request, response);
-		Assert.assertEquals(HttpStatus.ACCEPTED.value(), response.getStatus());
-		jsonStr = response.getContentAsString();
-		adapter = new JSONObjectAdapterImpl(jsonStr);
-		doiPut = new Doi();
-		doiPut.initializeFromJSONObject(adapter);
+		doiPut = ServletTestHelper.putDoiWithVersion(adminUserId, entity.getId(), 1);
 		assertNotNull(doiPut);
 
 		// Get with version
-		request = new MockHttpServletRequest();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(uri);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, testUser);
-		response = new MockHttpServletResponse();
-		servlet = DispatchServletSingleton.getInstance();
-		servlet.service(request, response);
-		Assert.assertEquals(HttpStatus.OK.value(), response.getStatus());
-		jsonStr = response.getContentAsString();
-		adapter = new JSONObjectAdapterImpl(jsonStr);
-		doiGet = new Doi();
-		doiGet.initializeFromJSONObject(adapter);
+		doiGet = ServletTestHelper.getDoiWithVersion(adminUserId, entity.getId(), 1);
 		assertNotNull(doiGet);
 		assertEquals(doiPut.getCreatedBy(), doiGet.getCreatedBy());
 		assertEquals(doiPut.getCreatedOn(), doiGet.getCreatedOn());
-		assertEquals(doiPut.getDoiObjectType(), doiGet.getDoiObjectType());
+		assertEquals(doiPut.getObjectType(), doiGet.getObjectType());
 		assertEquals(DoiStatus.IN_PROCESS, doiPut.getDoiStatus());
 		assertNotNull(doiGet.getDoiStatus());
 		assertEquals(doiPut.getEtag(), doiGet.getEtag());
@@ -159,45 +127,25 @@ public class DoiControllerAutowiredTest {
 		if (!doiClient.isStatusOk()) {
 			return;
 		}
+		
+		String entityId = "syn324829389481";
 
-		String uri = UrlHelpers.ENTITY + "/" + "syn324829389481" + UrlHelpers.DOI;
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		request.setMethod("PUT");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(uri);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, testUser);
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		HttpServlet servlet = DispatchServletSingleton.getInstance();
-		servlet.service(request, response);
-		Assert.assertEquals(HttpStatus.NOT_FOUND.value(), response.getStatus());
-		request = new MockHttpServletRequest();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(uri);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, testUser);
-		response = new MockHttpServletResponse();
-		servlet = DispatchServletSingleton.getInstance();
-		servlet.service(request, response);
-		Assert.assertEquals(HttpStatus.NOT_FOUND.value(), response.getStatus());
+		// Without version
+		try {
+			ServletTestHelper.putDoiWithoutVersion(adminUserId, entityId);
+		} catch (NotFoundException e) { }
 
-		uri = UrlHelpers.ENTITY + "/" + "syn324829389481" + UrlHelpers.VERSION + "/" + 1 + UrlHelpers.DOI;
-		request = new MockHttpServletRequest();
-		request.setMethod("PUT");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(uri);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, testUser);
-		response = new MockHttpServletResponse();
-		servlet = DispatchServletSingleton.getInstance();
-		servlet.service(request, response);
-		Assert.assertEquals(HttpStatus.NOT_FOUND.value(), response.getStatus());
-		request = new MockHttpServletRequest();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(uri);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, testUser);
-		response = new MockHttpServletResponse();
-		servlet = DispatchServletSingleton.getInstance();
-		servlet.service(request, response);
-		Assert.assertEquals(HttpStatus.NOT_FOUND.value(), response.getStatus());
+		try {
+			ServletTestHelper.getDoiWithoutVersion(adminUserId, entityId);
+		} catch (NotFoundException e) { }
+
+		// With version
+		try {
+			ServletTestHelper.putDoiWithVersion(adminUserId, entityId, 1);
+		} catch (NotFoundException e) { }
+
+		try {
+			ServletTestHelper.getDoiWithVersion(adminUserId, entityId, 1);
+		} catch (NotFoundException e) { }
 	}
 }

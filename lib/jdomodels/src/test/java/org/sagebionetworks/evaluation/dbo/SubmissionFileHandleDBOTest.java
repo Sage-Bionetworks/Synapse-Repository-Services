@@ -1,6 +1,8 @@
 package org.sagebionetworks.evaluation.dbo;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 
@@ -8,12 +10,10 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.evaluation.dbo.EvaluationDBO;
-import org.sagebionetworks.evaluation.dbo.ParticipantDBO;
-import org.sagebionetworks.evaluation.dbo.SubmissionDBO;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
@@ -35,23 +35,29 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class SubmissionFileHandleDBOTest {
  
     @Autowired
-    DBOBasicDao dboBasicDao;
-	@Autowired
-	NodeDAO nodeDAO;
-	@Autowired
-	FileHandleDao fileHandleDAO;
-    @Autowired
-    IdGenerator idGenerator;
+    private DBOBasicDao dboBasicDao;
     
-    private String nodeId = null;
+	@Autowired
+	private NodeDAO nodeDAO;
+	
+	@Autowired
+	private FileHandleDao fileHandleDAO;
+    
+	@Autowired
+    private IdGenerator idGenerator;
+    
+    private String nodeId;
+    private long userId;
+    
     private long submissionId;
-    private long userId = 0;
     private long evalId;
     private String fileHandleId;
     private String name = "test submission";
     
     @Before
-    public void setUp() throws DatastoreException, InvalidModelException, NotFoundException, IOException {   
+    public void setUp() throws DatastoreException, InvalidModelException, NotFoundException, IOException {
+    	userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+    	
     	// create a file handle
 		PreviewFileHandle meta = new PreviewFileHandle();
 		meta.setBucketName("bucketName");

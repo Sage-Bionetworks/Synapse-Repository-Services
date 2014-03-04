@@ -9,6 +9,7 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -34,6 +35,7 @@ import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.SchemaCache;
 import org.sagebionetworks.repo.model.Step;
 import org.sagebionetworks.repo.model.Study;
+import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.sample.Example;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.TYPE;
@@ -449,5 +451,31 @@ public class NodeTranslationUtilsTest {
 		assertEquals(file, clone);
 	}
 	
+	@Test
+	public void testTableEntityRoundTrip() throws InstantiationException, IllegalAccessException{
+		TableEntity table = new TableEntity();
+		table.setName("oneTwoThree");
+		List<String> columns = new LinkedList<String>();
+		columns.add("123");
+		columns.add("456");
+		table.setColumnIds(columns);
+		
+		TableEntity clone = cloneUsingNodeTranslation(table);
+		assertNotNull(clone);
+		assertEquals(table, clone);
+	}
+	
+	@Test
+	public void testTableEntityRoundTripOneColumn() throws InstantiationException, IllegalAccessException{
+		TableEntity table = new TableEntity();
+		table.setName("oneTwoThree");
+		List<String> columns = new LinkedList<String>();
+		columns.add("123");
+		table.setColumnIds(columns);
+		
+		TableEntity clone = cloneUsingNodeTranslation(table);
+		assertNotNull(clone);
+		assertEquals(table, clone);
+	}
 	
 }

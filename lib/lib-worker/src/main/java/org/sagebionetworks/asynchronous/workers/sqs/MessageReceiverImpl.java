@@ -1,5 +1,6 @@
 package org.sagebionetworks.asynchronous.workers.sqs;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -8,8 +9,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.sqs.AmazonSQSClient;
@@ -27,7 +28,7 @@ import com.amazonaws.services.sqs.model.ReceiveMessageResult;
 public class MessageReceiverImpl implements MessageReceiver {
 	
 
-	static private Log log = LogFactory.getLog(MessageReceiverImpl.class);
+	static private Logger log = LogManager.getLogger(MessageReceiverImpl.class);
 	
 	@Autowired
 	AmazonSQSClient awsSQSClient;
@@ -170,15 +171,9 @@ public class MessageReceiverImpl implements MessageReceiver {
 	@Override
 	public int triggerFired() throws InterruptedException{
 		try{
-			if(log.isTraceEnabled()){
-				log.trace("Starting trigger...");
-			}
 			long start = System.currentTimeMillis();
 			int count =triggerFiredImpl();
 			long elapse = System.currentTimeMillis()-start;
-			if(log.isTraceEnabled()){
-				log.trace("Finished trigger in "+elapse+" ms");
-			}
 			return count;
 		}catch (Throwable e){
 			log.error("Trigger fired failed", e);
@@ -196,15 +191,39 @@ public class MessageReceiverImpl implements MessageReceiver {
 	private int triggerFiredImpl() throws InterruptedException {
 		// Validate all config.
 		verifyConfig();
+		// Do nothing if this queue is not enabled
+		if(!messageQueue.isEnabled()){
+			if(log.isDebugEnabled()){
+				log.debug("Nothing to do since the queue is disabled: "+messageQueue.getQueueName());
+			}
+			return 0;
+		}
 		// When the timer is fired we receive messages from AWS SQS.
 		// Note: The max number of messages is the maxNumberOfWorkerThreads*maxMessagePerWorker as each worker is expected to handle a batch of messages.
+		// Note: Messages must be requested in batches of 10 or less (otherwise SQS will complain)
 		int maxMessages = maxNumberOfWorkerThreads*maxMessagePerWorker;
-		ReceiveMessageResult result = awsSQSClient.receiveMessage(new ReceiveMessageRequest(messageQueue.getQueueUrl()).withMaxNumberOfMessages(maxMessages).withVisibilityTimeout(visibilityTimeoutSec));
-		if(result.getMessages().size() < 1) return 0;
+		List<Message> toBeProcessed = new ArrayList<Message>();
+		for (int i = 0; i < maxMessages; i += MessageUtils.SQS_MAX_REQUEST_SIZE) {
+			ReceiveMessageRequest rmRequest = new ReceiveMessageRequest(messageQueue.getQueueUrl()).withVisibilityTimeout(visibilityTimeoutSec);
+			if (maxMessages - i > 10) {
+				rmRequest.setMaxNumberOfMessages(MessageUtils.SQS_MAX_REQUEST_SIZE);
+			} else {
+				rmRequest.setMaxNumberOfMessages(maxMessages % (MessageUtils.SQS_MAX_REQUEST_SIZE + 1));
+			}
+			ReceiveMessageResult result = awsSQSClient.receiveMessage(rmRequest);
+			if (result.getMessages().size() <= 0) {
+				break;
+			}
+			toBeProcessed.addAll(result.getMessages());
+		}
+		if (toBeProcessed.size() < 1) {
+			return 0;
+		}
+		
 		// Process all of the messages.
 		List<Future<List<Message>>> currentWorkers = new LinkedList<Future<List<Message>>>();
 		List<Message> messageBatch = new LinkedList<Message>();
-		for(Message message: result.getMessages()){
+		for (Message message: toBeProcessed) {
 			// Add this message to a batch
 			messageBatch.add(message);
 			if(messageBatch.size() >= maxMessagePerWorker){
@@ -233,7 +252,7 @@ public class MessageReceiverImpl implements MessageReceiver {
 		while(currentWorkers.size() > 0){
 			long elapase = System.currentTimeMillis()-startTime;
 			if(elapase > visibilityMs){
-				log.error("Failed to process all messages within the visibilty window.");
+				log.error("Failed to process all messages within the visibility window.");
 				break;
 			}
 			// Once a worker is done we remove it.
@@ -260,8 +279,12 @@ public class MessageReceiverImpl implements MessageReceiver {
 				}
 			}
 			// Batch delete all of the completed message.
-			if(messagesToDelete.size() > 0){
-				awsSQSClient.deleteMessageBatch(new DeleteMessageBatchRequest(messageQueue.getQueueUrl(), messagesToDelete));
+			if (messagesToDelete.size() > 0) {
+				List<List<DeleteMessageBatchRequestEntry>> miniBatches = MessageUtils.splitListIntoTens(messagesToDelete);
+				for (int i = 0; i < miniBatches.size(); i++) {
+					DeleteMessageBatchRequest dmbRequest = new DeleteMessageBatchRequest(messageQueue.getQueueUrl(), miniBatches.get(i));
+					awsSQSClient.deleteMessageBatch(dmbRequest);
+				}
 			}
 			// remove all that we can
 			currentWorkers.removeAll(toRemove);
@@ -269,7 +292,7 @@ public class MessageReceiverImpl implements MessageReceiver {
 			Thread.yield();
 		}
 		// Return the number of messages that were on the queue.
-		return result.getMessages().size();
+		return toBeProcessed.size();
 	}
 
 
@@ -281,10 +304,24 @@ public class MessageReceiverImpl implements MessageReceiver {
 		if(maxNumberOfWorkerThreads == null) throw new IllegalStateException("maxNumberOfWorkerThreads cannot be null");
 		if(visibilityTimeoutSec == null) throw new IllegalStateException("visibilityTimeout cannot be null");
 		if(messageQueue == null) throw new IllegalStateException("messageQueue cannot be null");
-		if(executors == null){
+		if(executors == null && messageQueue.isEnabled()){
 			// Create the thread pool
 			executors = Executors.newFixedThreadPool(maxNumberOfWorkerThreads);
 		}
+	}
+
+	@Override
+	public void emptyQueue() throws InterruptedException {
+		long start = System.currentTimeMillis();
+		int count = 0;
+		do{
+			count = triggerFired();
+			log.debug("Emptying the file message queue, there were at least: "+count+" messages on the queue");
+			Thread.yield();
+			long elapse = System.currentTimeMillis()-start;
+			long timeoutMS = visibilityTimeoutSec*1000*10;
+			if(elapse > timeoutMS) throw new RuntimeException("Timed-out waiting process all messages that were on the queue.");
+		}while(count > 0);
 	}
 
 }

@@ -1,17 +1,13 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
-import java.io.UnsupportedEncodingException;
-import java.sql.BatchUpdateException;
 import java.util.Collection;
 import java.util.Date;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -22,18 +18,15 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.ids.ETagGenerator;
-import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.UserGroupDAO;
-import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -42,53 +35,27 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class DBOAnnotationsDaoImplTest {
 
 	@Autowired
-	DBOAnnotationsDao dboAnnotationsDao;
+	private DBOAnnotationsDao dboAnnotationsDao;
 	
 	@Autowired
-	DBOBasicDao dboBasicDao;
+	private NodeDAO nodeDao;
 	
-	@Autowired
-	UserGroupDAO userGroupDAO;
-	
-	@Autowired
-	private IdGenerator idGenerator;
-	@Autowired
-	private ETagGenerator eTagGenerator;
-	
-	List<Long> toDelete = null;
-	
-	DBONode node;
+	private DBONode node;
 	
 	@After
-	public void after() throws DatastoreException {
-		if(dboBasicDao != null && toDelete != null){
-			for(Long id: toDelete){
-				MapSqlParameterSource params = new MapSqlParameterSource();
-				params.addValue("id", id);
-				dboBasicDao.deleteObjectByPrimaryKey(DBONode.class, params);
-				dboAnnotationsDao.deleteAnnotationsByOwnerId(id);
-			}
-		}
+	public void after() throws Exception {
+		nodeDao.delete(node.getId().toString());
 	}
 	
 	@Before
-	public void before() throws DatastoreException, UnsupportedEncodingException{
-		String createdBy = userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId();
-		toDelete = new LinkedList<Long>();
+	public void before() throws Exception {
+		Long createdBy = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+		
 		// Create a node to create revisions of.
+		Node dto = NodeTestUtils.createNew("DBOAnnotationsDaoImplTest.baseNode", createdBy, createdBy);
+		String nodeId = nodeDao.createNew(dto);
 		node = new DBONode();
-		node.setId(idGenerator.generateNewId());
-		toDelete.add(node.getId());
-		node.setBenefactorId(node.getId());
-		node.setCreatedBy(Long.parseLong(createdBy));
-		node.setCreatedOn(System.currentTimeMillis());
-		node.setCurrentRevNumber(null);
-		node.setDescription("A basic description".getBytes("UTF-8"));
-		node.seteTag(eTagGenerator.generateETag());
-		node.setName("DBOAnnotationsDaoImplTest.baseNode");
-		node.setParentId(null);
-		node.setNodeType(EntityType.project.getId());
-		dboBasicDao.createNew(node);
+		node.setId(KeyFactory.stringToKey(nodeId));
 	}
 	
 	@Test

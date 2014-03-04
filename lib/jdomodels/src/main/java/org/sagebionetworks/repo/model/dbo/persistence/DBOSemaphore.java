@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SEMAPHORE_EXPIRES;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SEMAPHORE_KEY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SEMAPHORE_TOKEN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_SEMAPHORE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_SEMAPHORE;

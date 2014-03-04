@@ -6,8 +6,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.ObservableEntity;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,7 +30,7 @@ import org.springframework.transaction.support.TransactionSynchronizationAdapter
  */
 public class TransactionalMessengerImpl implements TransactionalMessenger {
 	
-	static private Log log = LogFactory.getLog(TransactionalMessengerImpl.class);
+	static private Logger log = LogManager.getLogger(TransactionalMessengerImpl.class);
 	
 	private static final String TRANSACTIONAL_MESSANGER_IMPL_MESSAGES = "TransactionalMessangerImpl.Messages";
 	@Autowired
@@ -64,6 +66,40 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 	 * The list of observers that are notified of messages after a commit.
 	 */
 	private List<TransactionalMessengerObserver> observers = new LinkedList<TransactionalMessengerObserver>();
+	
+	@Override
+	public void sendMessageAfterCommit(String objectId, ObjectType objectType, ChangeType changeType) {
+		sendMessageAfterCommit(objectId, objectType, null, changeType);
+	}
+	
+	@Override
+	public void sendMessageAfterCommit(String objectId, ObjectType objectType, String etag, ChangeType changeType) {
+		sendMessageAfterCommit(objectId, objectType, etag, null, changeType);
+	}
+	
+	@Override
+	public void sendMessageAfterCommit(String objectId, ObjectType objectType, String etag, String parentId, ChangeType changeType) {
+		ChangeMessage message = new ChangeMessage();
+		message.setChangeType(changeType);
+		message.setObjectType(objectType);
+		message.setObjectId(objectId);
+		message.setParentId(parentId);
+		message.setObjectEtag(etag);
+		
+		sendMessageAfterCommit(message);
+	}
+	
+	@Override
+	public void sendMessageAfterCommit(ObservableEntity entity, ChangeType changeType) {
+		ChangeMessage message = new ChangeMessage();
+		message.setChangeType(changeType);
+		message.setObjectType(entity.getObjectType());
+		message.setObjectId(entity.getIdString());
+		message.setParentId(entity.getParentIdString());
+		message.setObjectEtag(entity.getEtag());
+		
+		sendMessageAfterCommit(message);
+	}
 	
 	@Override
 	public void sendMessageAfterCommit(ChangeMessage message) {

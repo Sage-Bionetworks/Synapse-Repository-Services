@@ -1,9 +1,10 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
@@ -15,23 +16,20 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
-import org.sagebionetworks.repo.manager.TestUserDAO;
-import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.service.ActivityService;
@@ -56,16 +54,10 @@ public class ActivityControllerAutowiredTest {
 	
 	@Autowired 
 	private EntityService entityService;
-	
-	@Autowired
-	private UserManager userManager;
-
-	static private Log log = LogFactory.getLog(ActivityControllerAutowiredTest.class);
 
 	private static HttpServlet dispatchServlet;
 	
-	private String userId = TestUserDAO.ADMIN_USER_NAME;
-	private UserInfo testUser;
+	private Long userId;
 
 	private List<String> activityIdstoDelete;
 	
@@ -78,13 +70,12 @@ public class ActivityControllerAutowiredTest {
 		assertNotNull(activityService);
 		activityIdstoDelete = new ArrayList<String>();
 		entityIdsToDelete = new ArrayList<String>();
-		// Map test objects to their urls
-		// Make sure we have a valid user.
-		testUser = userManager.getUserInfo(userId);
-		UserInfo.validateUserInfo(testUser);
+		
+		userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		
 		mockRequest = Mockito.mock(HttpServletRequest.class);
 		when(mockRequest.getServletPath()).thenReturn("/repo/v1");
+		when(mockRequest.getParameter(eq(AuthorizationConstants.USER_ID_PARAM))).thenReturn(userId.toString());
 	}
 
 	@After
@@ -147,7 +138,7 @@ public class ActivityControllerAutowiredTest {
 		try {
 			ServletTestHelper.getActivity(dispatchServlet, act.getId(), userId);
 			fail("Activity should have been deleted");
-		} catch (ServletTestHelperException e) {
+		} catch (NotFoundException e) {
 			// good.
 		}
 	}

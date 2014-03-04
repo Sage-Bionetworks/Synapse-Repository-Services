@@ -1,5 +1,12 @@
 package org.sagebionetworks.repo.manager.message;
 
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -7,18 +14,10 @@ import java.util.List;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-
-import static org.junit.Assert.*;
-import static org.junit.Assert.assertEquals;
-
 import org.mockito.Mockito;
-import static org.mockito.Mockito.*;
-
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
-import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.message.ObjectType;
 
 import com.amazonaws.services.sqs.AmazonSQSClient;
 

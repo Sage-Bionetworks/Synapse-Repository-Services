@@ -9,7 +9,6 @@ import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface AccessRequirementManager {
@@ -36,7 +35,7 @@ public interface AccessRequirementManager {
 	 *  update an access requirement
 	 *
 	 */
-	public <T extends AccessRequirement> T  updateAccessRequirement(UserInfo userInfo, T accessRequirement) throws NotFoundException, UnauthorizedException, ConflictingUpdateException, InvalidModelException, DatastoreException;
+	public <T extends AccessRequirement> T  updateAccessRequirement(UserInfo userInfo, String acccessRequirementId, T accessRequirement) throws NotFoundException, UnauthorizedException, ConflictingUpdateException, InvalidModelException, DatastoreException;
 	
 	/*
 	 *  delete an access requirement
@@ -56,6 +55,4 @@ public interface AccessRequirementManager {
 	public ACTAccessRequirement createLockAccessRequirement(UserInfo userInfo,
 			String entityId) throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException;
-
-	
 }

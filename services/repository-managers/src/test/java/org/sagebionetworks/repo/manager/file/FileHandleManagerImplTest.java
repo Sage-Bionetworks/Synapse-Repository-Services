@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -31,8 +32,6 @@ import org.sagebionetworks.repo.manager.file.transfer.FileTransferStrategy;
 import org.sagebionetworks.repo.manager.file.transfer.TransferRequest;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.User;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
@@ -41,7 +40,6 @@ import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
-import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
 import com.amazonaws.HttpMethod;
 import com.amazonaws.services.s3.AmazonS3Client;
@@ -78,10 +76,7 @@ public class FileHandleManagerImplTest {
 		mockAuthorizationManager = Mockito.mock(AuthorizationManager.class);
 		
 		// The user is not really a mock
-		mockUser = new UserInfo(false);
-		mockUser.setUser(new User());
-		mockUser.setIndividualGroup(new UserGroup());
-		mockUser.getIndividualGroup().setId("987");
+		mockUser = new UserInfo(false,"987");
 		
 		// Other helper mocks
 		// First mock a file stream
@@ -112,7 +107,7 @@ public class FileHandleManagerImplTest {
 		// setup the primary to succeed
 		validResults = new S3FileHandle();
 		validResults.setId("123");
-		validResults.setCreatedBy(mockUser.getIndividualGroup().getId());
+		validResults.setCreatedBy(mockUser.getId().toString());
 		validResults.setCreatedOn(new Date());
 		validResults.setContentType(contentType);
 		validResults.setContentSize(new Long(contentBytes.length));
@@ -302,6 +297,38 @@ public class FileHandleManagerImplTest {
 	}
 	
 	@Test
+	public void testDeleteFileHandleDisablePreview() throws Exception {
+		// Deleting a file handle that has previews disabled should not StackOverflow :)
+		validResults.setPreviewId(validResults.getId());
+		when(mockfileMetadataDao.get(validResults.getId())).thenReturn(validResults);
+		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, validResults.getCreatedBy())).thenReturn(true);
+		manager.deleteFileHandle(mockUser, validResults.getId());
+	}
+	
+	@Test (expected=UnauthorizedException.class)
+	public void testClearPreviewUnauthroized() throws DatastoreException, NotFoundException{
+		// Deleting a handle that no longer exists should not throw an exception.
+		String handleId = "123";
+		when(mockfileMetadataDao.get(handleId)).thenReturn(validResults);
+		// denied!
+		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, validResults.getCreatedBy())).thenReturn(false);
+		manager.clearPreview(mockUser, handleId);
+	}
+	
+	@Test
+	public void testClearPreviewAuthorzied() throws DatastoreException, NotFoundException{
+		// Deleting a handle that no longer exists should not throw an exception.
+		String handleId = "123";
+		when(mockfileMetadataDao.get(handleId)).thenReturn(validResults);
+		// allow!
+		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, validResults.getCreatedBy())).thenReturn(true);
+		manager.clearPreview(mockUser, handleId);
+		// The database reference to the preview handle should be cleared
+		verify(mockfileMetadataDao, times(1)).setPreviewId(eq(handleId), eq((String)null));
+	}
+	
+	
+	@Test
 	public void testDeleteWithPreview() throws DatastoreException, NotFoundException{
 		// Test deleting a file with a preview
 		PreviewFileHandle preview = new PreviewFileHandle();
@@ -362,7 +389,7 @@ public class FileHandleManagerImplTest {
 		// This should work
 		ExternalFileHandle result = manager.createExternalFileHandle(mockUser, efh);
 		assertNotNull(result);
-		assertEquals(mockUser.getIndividualGroup().getId(), result.getCreatedBy());
+		assertEquals(mockUser.getId().toString(), result.getCreatedBy());
 	}
 	
 	@Test (expected=IllegalArgumentException.class)

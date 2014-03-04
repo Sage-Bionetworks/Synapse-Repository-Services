@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.web.service;
 
 import java.util.List;
 
-import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.StorageUsageManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -22,20 +21,17 @@ public class StorageUsageServiceImpl implements StorageUsageService {
 	private UserManager userManager;
 
 	@Autowired
-	private AuthorizationManager authorizationManager;
-
-	@Autowired
 	private StorageUsageManager storageUsageManager;
 
 	@Override
-	public StorageUsageSummaryList getUsage(String currUserName,
+	public StorageUsageSummaryList getUsage(Long currentUserId,
 			List<StorageUsageDimension> dimensionList) throws UnauthorizedException, DatastoreException {
 
-		if (currUserName == null || currUserName.isEmpty()) {
+		if (currentUserId == null) {
 			throw new IllegalArgumentException("Current user name cannot be null or empty.");
 		}
 
-		boolean isAdmin = isAdmin(currUserName);
+		boolean isAdmin = isAdmin(currentUserId);
 		if (!isAdmin) {
 			throw new UnauthorizedException("Only administrators are allowed.");
 		}
@@ -47,35 +43,34 @@ public class StorageUsageServiceImpl implements StorageUsageService {
 	}
 
 	@Override
-	public StorageUsageSummaryList getUsageForUser(String currUserName, String userName,
+	public StorageUsageSummaryList getUsageForUser(Long currentUserId, Long userId,
 			List<StorageUsageDimension> dimensionList)
 			throws UnauthorizedException, NotFoundException, DatastoreException {
 
-		if (currUserName == null || currUserName.isEmpty()) {
+		if (currentUserId == null) {
 			throw new IllegalArgumentException("Current user name cannot be null or empty.");
 		}
-		if (userName == null || userName.isEmpty()) {
-			throw new IllegalArgumentException("User name cannot be null or empty.");
+		if (userId == null) {
+			throw new IllegalArgumentException("User ID cannot be null or empty.");
 		}
 
-		boolean isAdmin = isAdmin(currUserName);
-		checkAuthorization(isAdmin, currUserName, userName);
+		boolean isAdmin = isAdmin(currentUserId);
+		checkAuthorization(isAdmin, currentUserId, userId);
 		validateDimensionList(dimensionList);
 
-		String userId = getUserId(userName);
 		StorageUsageSummaryList results = storageUsageManager.getUsageForUser(userId, dimensionList);
 		return results;
 	}
 
 	@Override
-	public StorageUsageSummaryList getUsageByUserInRange(String currUserName,
+	public StorageUsageSummaryList getUsageByUserInRange(Long currentUserId,
 			Integer offset, Integer limit) throws UnauthorizedException, DatastoreException {
 
-		if (currUserName == null || currUserName.isEmpty()) {
+		if (currentUserId == null) {
 			throw new IllegalArgumentException("Current user name cannot be null or empty.");
 		}
 
-		boolean isAdmin = isAdmin(currUserName);
+		boolean isAdmin = isAdmin(currentUserId);
 		if (!isAdmin) {
 			throw new UnauthorizedException("Only administrators are allowed.");
 		}
@@ -85,21 +80,20 @@ public class StorageUsageServiceImpl implements StorageUsageService {
 	}
 
 	@Override
-	public PaginatedResults<StorageUsage> getUsageInRangeForUser(String currUserName, String userName,
+	public PaginatedResults<StorageUsage> getUsageInRangeForUser(Long currentUserId, Long userId,
 			Integer offset, Integer limit, String urlPath)
 			throws UnauthorizedException, NotFoundException, DatastoreException {
 
-		if (currUserName == null || currUserName.isEmpty()) {
+		if (currentUserId == null) {
 			throw new IllegalArgumentException("Current user name cannot be null or empty.");
 		}
-		if (userName == null || userName.isEmpty()) {
+		if (userId == null) {
 			throw new IllegalArgumentException("User name cannot be null or empty.");
 		}
 
-		boolean isAdmin = isAdmin(currUserName);
-		checkAuthorization(isAdmin, currUserName, userName);
+		boolean isAdmin = isAdmin(currentUserId);
+		checkAuthorization(isAdmin, currentUserId, userId);
 
-		String userId = getUserId(userName);
 		QueryResults<StorageUsage> queryResults = storageUsageManager.getUsageInRangeForUser(userId, offset, limit);
 		PaginatedResults<StorageUsage> results = new PaginatedResults<StorageUsage>(urlPath, 
 				queryResults.getResults(), queryResults.getTotalNumberOfResults(), 
@@ -110,10 +104,10 @@ public class StorageUsageServiceImpl implements StorageUsageService {
 	/**
 	 * Whether the current user is an administrator.
 	 */
-	private boolean isAdmin(String currUserName) {
+	private boolean isAdmin(Long userId) {
 		UserInfo currUserInfo = null;
 		try {
-			currUserInfo = userManager.getUserInfo(currUserName);
+			currUserInfo = userManager.getUserInfo(userId);
 		} catch (NotFoundException e) {
 			return false;
 		}
@@ -128,9 +122,9 @@ public class StorageUsageServiceImpl implements StorageUsageService {
 	 *
 	 * @throws UnauthorizedException When current user is not authorized to view another user
 	 */
-	private void checkAuthorization(boolean isAdmin, String currUserName, String userName)
+	private void checkAuthorization(boolean isAdmin, Long currentUserId, Long userId)
 			throws DatastoreException, UnauthorizedException {
-		if (!currUserName.equals(userName)) {
+		if (!currentUserId.equals(userId)) {
 			if (!isAdmin) {
 				throw new UnauthorizedException(
 						"Only administrator is allowed to view other user's storage usage.");
@@ -149,13 +143,5 @@ public class StorageUsageServiceImpl implements StorageUsageService {
 				throw new IllegalArgumentException(StorageUsageDimension.USER_ID + " is for paginated views only.");
 			}
 		}
-	}
-
-	private String getUserId(String userName) throws NotFoundException {
-		UserInfo userInfo = userManager.getUserInfo(userName);
-		if (userInfo == null) {
-			throw new NotFoundException(userName);
-		}
-		return userInfo.getIndividualGroup().getId();
 	}
 }

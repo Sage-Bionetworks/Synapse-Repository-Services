@@ -4,26 +4,23 @@ import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 
 public class EvaluationUtils {
-	
+
 	/**
-	 * Ensure that an argument is not null
-	 * 
-	 * @param o
-	 * @param objectName
+	 * Ensure that an argument is not null.
 	 */
 	public static void ensureNotNull(Object o, String name) {
-		if (o == null)
-			throw new IllegalArgumentException(name + " cannot be null");		
-	}
-	
-	/**
-	 * Ensure that a given Evaluation is in the OPEN state.
-	 * 
-	 * @param comp
-	 */
-	public static void ensureEvaluationIsOpen(Evaluation comp) {
-		if (comp.getStatus() != EvaluationStatus.OPEN)
-			throw new IllegalStateException("Evaluation ID: " + comp.getId() + " is not currently open");
+		if (o == null) {
+			throw new IllegalArgumentException(name + " cannot be null");
+		}
 	}
 
+	/**
+	 * Ensure that a given Evaluation is in the OPEN state.
+	 */
+	public static void ensureEvaluationIsOpen(Evaluation comp) {
+		if (!EvaluationStatus.OPEN.equals(comp.getStatus())) {
+				throw new IllegalStateException("Evaluation ID: " +
+						comp.getId() + " is not currently open");
+		}
+	}
 }

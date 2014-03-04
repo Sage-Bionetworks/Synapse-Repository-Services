@@ -6,8 +6,8 @@ import java.io.StringWriter;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.BadSqlGrammarException;
@@ -20,13 +20,13 @@ import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
  */
 public class DDLUtilsImpl implements DDLUtils{
 	
-	static private Log log = LogFactory.getLog(DDLUtilsImpl.class);
+	static private Logger log = LogManager.getLogger(DDLUtilsImpl.class);
 	
 	// Determine if the table exists
 	public static final String TABLE_EXISTS_SQL_FORMAT = "SELECT TABLE_NAME FROM Information_schema.tables WHERE TABLE_NAME = '%1$s' AND table_schema = '%2$s'";
 	
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTempalte;
+	private SimpleJdbcTemplate simpleJdbcTemplate;
 	@Autowired
 	StackConfiguration stackConfiguration;
 	
@@ -42,19 +42,19 @@ public class DDLUtilsImpl implements DDLUtils{
 		log.debug("Schema: "+schema);
 		String sql = String.format(TABLE_EXISTS_SQL_FORMAT, mapping.getTableName(), schema);
 		log.debug("About to execute: "+sql);
-		List<Map<String, Object>> list = simpleJdbcTempalte.queryForList(sql);
+		List<Map<String, Object>> list = simpleJdbcTemplate.queryForList(sql);
 		// If the table does not exist then create it.
 		if(list.size() > 1) throw new RuntimeException("Found more than one table named: "+mapping.getTableName());
 		if(list.size() == 0){
 			log.info("Creating table: "+mapping.getTableName());
 			// Create the table 
-			String tableDDL = loadSchemaSql(mapping.getDDLFileName());
+			String tableDDL = loadSchemaSql(mapping);
 			if(log.isDebugEnabled()){
 				log.debug(tableDDL);
 			}
-			simpleJdbcTempalte.update(tableDDL);
+			simpleJdbcTemplate.update(tableDDL);
 			// Make sure it exists
-			List<Map<String, Object>> second = simpleJdbcTempalte.queryForList(sql);
+			List<Map<String, Object>> second = simpleJdbcTemplate.queryForList(sql);
 			if(second.size() != 1){
 				throw new RuntimeException("Failed to create the table: "+mapping.getTableName()+" using connection: "+url);
 			}
@@ -79,9 +79,25 @@ public class DDLUtilsImpl implements DDLUtils{
 	}
 	
 	/**
-	 * Load the schema file from the classpath.
+	 * Load the schema file from the mapper.
+	 * 
 	 * @return
-	 * @throws IOException 
+	 * @throws IOException
+	 */
+	@SuppressWarnings("rawtypes")
+	public static String loadSchemaSql(TableMapping mapping) throws IOException {
+		if (mapping instanceof AutoTableMapping) {
+			return ((AutoTableMapping) mapping).getDDL();
+		} else {
+			return loadSchemaSql(mapping.getDDLFileName());
+		}
+	}
+
+	/**
+	 * Load the schema file from the classpath.
+	 * 
+	 * @return
+	 * @throws IOException
 	 */
 	public static String loadSchemaSql(String fileName) throws IOException{
 		InputStream in = DDLUtilsImpl.class.getClassLoader().getResourceAsStream(fileName);
@@ -104,7 +120,7 @@ public class DDLUtilsImpl implements DDLUtils{
 	@Override
 	public int dropTable(String tableName) {
 		try{
-			return simpleJdbcTempalte.update("DROP TABLE "+tableName);
+			return simpleJdbcTemplate.update("DROP TABLE "+tableName);
 		}catch (BadSqlGrammarException e){
 			// This means the table does not exist
 			return 0;			

@@ -13,11 +13,10 @@ import org.sagebionetworks.dynamo.dao.nodetree.IncompletePathException;
 import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeQueryDao;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.dynamo.NodeTreeQueryManager;
-import org.sagebionetworks.repo.manager.dynamo.NodeTreeQueryManagerImpl;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityIdList;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -28,8 +27,8 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 public class NodeTreeQueryManagerImplTest {
 
-	private final String userId = "0";
-	private final String adminUserId = "1";
+	private final Long userId = 43560L;
+	private final Long adminUserId = 24571L;
 	private final String nodeRoot = "syn4489";
 	private final String nodeCanAccessX = "syn11028";
 	private final String nodeCanAccessY = "syn11029";
@@ -45,21 +44,19 @@ public class NodeTreeQueryManagerImplTest {
 
 		UserInfo userInfo = mock(UserInfo.class);
 		when(userInfo.isAdmin()).thenReturn(false);
-		when(userInfo.getIndividualGroup()).thenReturn(userGroup);
 
 		UserInfo adminUserInfo = mock(UserInfo.class);
 		when(adminUserInfo.isAdmin()).thenReturn(true);
-		when(adminUserInfo.getIndividualGroup()).thenReturn(userGroup);
 
 		UserManager userMan = mock(UserManager.class);
 		when(userMan.getUserInfo(userId)).thenReturn(userInfo);
 		when(userMan.getUserInfo(adminUserId)).thenReturn(adminUserInfo);
 
 		AuthorizationManager auMan = mock(AuthorizationManager.class);
-		when(auMan.canAccess(userInfo, nodeRoot, ACCESS_TYPE.READ)).thenReturn(false);
-		when(auMan.canAccess(userInfo, nodeCanAccessX, ACCESS_TYPE.READ)).thenReturn(true);
-		when(auMan.canAccess(userInfo, nodeCanAccessY, ACCESS_TYPE.READ)).thenReturn(true);
-		when(auMan.canAccess(userInfo, nodeCannotAccess, ACCESS_TYPE.READ)).thenReturn(false);
+		when(auMan.canAccess(userInfo, nodeRoot, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(false);
+		when(auMan.canAccess(userInfo, nodeCanAccessX, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(true);
+		when(auMan.canAccess(userInfo, nodeCanAccessY, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(true);
+		when(auMan.canAccess(userInfo, nodeCannotAccess, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(false);
 
 		NodeTreeQueryDao ntDao = mock(NodeTreeQueryDao.class);
 		when(ntDao.isRoot(KeyFactory.stringToKey(nodeRoot).toString())).thenReturn(true);

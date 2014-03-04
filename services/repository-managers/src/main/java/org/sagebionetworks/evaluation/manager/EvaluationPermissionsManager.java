@@ -2,7 +2,6 @@ package org.sagebionetworks.evaluation.manager;
 
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -41,13 +40,20 @@ public interface EvaluationPermissionsManager {
 	 * Gets the access control list (ACL) governing the given evaluation.
 	 */
 	public AccessControlList getAcl(UserInfo userInfo, String evalId)
-			throws NotFoundException, DatastoreException, ACLInheritanceException;
+			throws NotFoundException, DatastoreException;
 
 	/**
 	 * Whether the user has the access to the specified evaluation.
 	 */
 	public boolean hasAccess(UserInfo userInfo, String evalId, ACCESS_TYPE accessType)
 			throws NotFoundException, DatastoreException;
+
+	/**
+	 * Whether the user has the access to the specified evaluation.
+	 * Has the same logic as 'hasAccess' but throws informative exception if the answer is false.
+	 */
+	public void validateHasAccess(UserInfo userInfo, String evalId, ACCESS_TYPE accessType)
+			throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
 	 * Gets the user permissions for an evaluation.

@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.manager.search;
 
-import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
@@ -22,39 +22,47 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.search.SearchDocumentDriver;
-import org.sagebionetworks.repo.manager.search.SearchDocumentDriverImpl;
+import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.NodeRevisionBackup;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dao.WikiPageDao;
+import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.file.ChunkedFileToken;
+import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.FileHandle;
-import org.sagebionetworks.repo.model.message.ObjectType;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.DocumentFields;
 import org.sagebionetworks.repo.model.search.DocumentTypeNames;
-import org.sagebionetworks.repo.model.wiki.WikiPage;
+import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
+import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.org.json.AdapterFactoryImpl;
+import org.sagebionetworks.utils.MD5ChecksumHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import com.amazonaws.services.s3.AmazonS3Client;
 
 /**
  * @author deflaux
@@ -64,67 +72,112 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class SearchDocumentDriverImplAutowireTest {
 
-	private static final String TEST_USER = "foo@bar.com";
-	UserInfo userInfo;
-	
 	@Autowired
-	SearchDocumentDriver searchDocumentDriver;
+	private SearchDocumentDriver searchDocumentDriver;
 
 	@Autowired
-	UserManager userManager;
+	private UserManager userManager;
 	
 	@Autowired
-	EntityManager entityManager;
+	private EntityManager entityManager;
+	
 	@Autowired
-	WikiPageDao wikiPageDao;
+	private V2WikiPageDao wikiPageDao;
 	
-	Project project;
-	WikiPage rootPage;
-	WikiPageKey rootKey;
-	WikiPage subPage;
-	WikiPageKey subPageKey;
+	@Autowired
+	FileHandleManager fileHandleManager;
+	@Autowired
+	FileHandleDao fileMetadataDao;	
+	@Autowired
+	AmazonS3Client s3Client;
 	
-	/**
-	 * @throws Exception
-	 */
+	private UserInfo adminUserInfo;
+	private Project project;
+	private V2WikiPage rootPage;
+	private WikiPageKey rootKey;
+	private V2WikiPage subPage;
+	private WikiPageKey subPageKey;
+	
 	@Before
 	public void before() throws Exception {
-		// This will create the user if they do not exist
-		userInfo = userManager.getUserInfo(TEST_USER);
+		// To satisfy some FKs
+		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		
 		// Create a project
 		project = new Project();
 		project.setName("SearchDocumentDriverImplAutowireTest");
 		project.setDescription("projectDescription");
 		
-		String projectId = entityManager.createEntity(userInfo, project, null);
-		project = entityManager.getEntity(userInfo, projectId, Project.class);
+		String projectId = entityManager.createEntity(adminUserInfo, project, null);
+		project = entityManager.getEntity(adminUserInfo, projectId, Project.class);
 		// Add two wikiPages to the entity
-		rootPage = createWikiPage();
+		rootPage = createWikiPageWithMarkdown("rootMarkdown");
 		rootPage.setTitle("rootTile");
-		rootPage.setMarkdown("rootMarkdown");
-		rootPage = wikiPageDao.create(rootPage, new HashMap<String, FileHandle>(), project.getId(), ObjectType.ENTITY);
+		rootPage = wikiPageDao.create(rootPage, new HashMap<String, FileHandle>(), project.getId(), ObjectType.ENTITY, new ArrayList<String>());
 		rootKey = new WikiPageKey(project.getId(), ObjectType.ENTITY, rootPage.getId());
 		// Add a sub-page;
-		subPage = createWikiPage();
+		subPage = createWikiPageWithMarkdown("subMarkdown");
 		subPage.setTitle("subTitle");
-		subPage.setMarkdown("subMarkdown");
 		subPage.setParentWikiId(rootPage.getId());
-		subPage = wikiPageDao.create(subPage, new HashMap<String, FileHandle>(), project.getId(), ObjectType.ENTITY);
+		subPage = wikiPageDao.create(subPage, new HashMap<String, FileHandle>(), project.getId(), ObjectType.ENTITY, new ArrayList<String>());
 		subPageKey = new WikiPageKey(project.getId(), ObjectType.ENTITY, subPage.getId());
 	}
 	
-	private WikiPage createWikiPage(){
-		WikiPage page = new  WikiPage();
-		page.setTitle("rootTile");
-		page.setMarkdown("rootMarkdown");
-		page.setCreatedBy(userInfo.getIndividualGroup().getId());
+	private V2WikiPage createWikiPageWithMarkdown(String markdown) throws IOException{
+		V2WikiPage page = new  V2WikiPage();
+		String markdownHandleId = uploadAndGetFileHandleId(markdown);
+		page.setMarkdownFileHandleId(markdownHandleId);
+		page.setCreatedBy(adminUserInfo.getId().toString());
 		page.setCreatedOn(new Date());
 		page.setModifiedBy(page.getCreatedBy());
 		page.setModifiedOn(page.getCreatedOn());
 		page.setEtag("Etag");
 		return page;
 	}
+	
+	private String uploadAndGetFileHandleId(String markdownContent) throws IOException {
+		// Zip up the markdown into a file
+		// The upload file will hold the newly created markdown file.
+		File markdownTemp = File.createTempFile("compressed", ".txt.gz");
+        if(markdownContent != null) {
+        	markdownTemp = FileUtils.writeStringToCompressedFile(markdownTemp, markdownContent);
+        } else {
+        	markdownTemp = FileUtils.writeStringToCompressedFile(markdownTemp, "");
+        }
+		String contentType = "application/x-gzip";
+		CreateChunkedFileTokenRequest ccftr = new CreateChunkedFileTokenRequest();
+		ccftr.setContentType(contentType);
+		ccftr.setFileName(markdownTemp.getName());
+		// Calculate the MD5
+		String md5 = MD5ChecksumHelper.getMD5Checksum(markdownTemp);
+		ccftr.setContentMD5(md5);
+		// Start the upload
+		ChunkedFileToken token = fileHandleManager.createChunkedFileUploadToken(adminUserInfo, ccftr);
 
+		S3FileHandle handle = new S3FileHandle();
+		handle.setContentType(token.getContentType());
+		handle.setContentMd5(token.getContentMD5());
+		handle.setContentSize(markdownTemp.length());
+		handle.setFileName("markdown.txt");
+		// Creator of the wiki page may not have been set to the user yet
+		// so do not use wiki's createdBy
+		handle.setCreatedBy(adminUserInfo.getId().toString());
+		long currentTime = System.currentTimeMillis();
+		handle.setCreatedOn(new Date(currentTime));
+		handle.setKey(token.getKey());
+		handle.setBucketName(StackConfiguration.getS3Bucket());
+		// Upload this to S3
+		s3Client.putObject(StackConfiguration.getS3Bucket(), token.getKey(), markdownTemp);
+		// Save the metadata
+		handle = fileMetadataDao.createFile(handle);
+		
+		if(markdownTemp != null){
+			markdownTemp.delete();
+		}
+		
+		return handle.getId();
+	}
+	
 	/**
 	 * @throws NotFoundException 
 	 * @throws UnauthorizedException 
@@ -133,6 +186,20 @@ public class SearchDocumentDriverImplAutowireTest {
 	 */
 	@After
 	public void after() throws DatastoreException, UnauthorizedException, NotFoundException {
+		//Before we delete the two wiki pages, clean up file handles
+		if(subPage != null) {
+			String markdownHandleId = subPage.getMarkdownFileHandleId();
+			S3FileHandle markdownHandle = (S3FileHandle) fileMetadataDao.get(markdownHandleId);
+			s3Client.deleteObject(markdownHandle.getBucketName(), markdownHandle.getKey());
+			fileMetadataDao.delete(markdownHandleId);
+		}
+		if(rootPage != null) {
+			String markdownHandleId = rootPage.getMarkdownFileHandleId();
+			S3FileHandle markdownHandle = (S3FileHandle) fileMetadataDao.get(markdownHandleId);
+			s3Client.deleteObject(markdownHandle.getBucketName(), markdownHandle.getKey());
+			fileMetadataDao.delete(markdownHandleId);
+		}
+		
 		if(subPageKey != null){
 			wikiPageDao.delete(subPageKey);
 		}
@@ -140,7 +207,7 @@ public class SearchDocumentDriverImplAutowireTest {
 			wikiPageDao.delete(rootKey);
 		}
 		if(project != null){
-			entityManager.deleteEntity(userInfo, project.getId());
+			entityManager.deleteEntity(adminUserInfo, project.getId());
 		}
 	}
 
@@ -165,7 +232,6 @@ public class SearchDocumentDriverImplAutowireTest {
 		node.setModifiedByPrincipalId(nonexistantPrincipalId);
 		node.setModifiedOn(new Date());
 		node.setVersionLabel("versionLabel");
-		NodeRevisionBackup rev = new NodeRevisionBackup();
 		NamedAnnotations named = new NamedAnnotations();
 		Annotations primaryAnnos = named.getAdditionalAnnotations();
 		primaryAnnos.addAnnotation("species", "Dragon");
@@ -183,7 +249,6 @@ public class SearchDocumentDriverImplAutowireTest {
 		additionalAnnos.addAnnotation("dateKey", dateValue);
 		additionalAnnos
 				.addAnnotation("blobKey", new String("bytes").getBytes());
-		rev.setNamedAnnotations(named);
 		Set<Reference> references = new HashSet<Reference>();
 		Map<String, Set<Reference>> referenceMap = new HashMap<String, Set<Reference>>();
 		referenceMap.put("tooMany", references);
@@ -221,7 +286,7 @@ public class SearchDocumentDriverImplAutowireTest {
 		fakeEntityPath.writeToJSONObject(adapter);		
 		String fakeEntityPathJSONString = adapter.toJSONString();
 		Document document = searchDocumentDriver.formulateSearchDocument(node,
-				rev, acl, fakeEntityPath, wikiPageText);
+				named, acl, fakeEntityPath, wikiPageText);
 		assertEquals(DocumentTypeNames.add, document.getType());
 		assertEquals("en", document.getLang());
 		assertEquals(node.getId(), document.getId());
@@ -238,11 +303,11 @@ public class SearchDocumentDriverImplAutowireTest {
 		assertEquals("study", fields.getNode_type());
 		assertEquals(node.getDescription()+wikiPageText, fields.getDescription());
 		// since the Principal doesn't exist, the 'created by' display name defaults to the principal ID
-		assertEquals(""+nonexistantPrincipalId, fields.getCreated_by());
+		assertEquals(nonexistantPrincipalId.toString(), fields.getCreated_by());
 		assertEquals(new Long(node.getCreatedOn().getTime() / 1000), fields
 				.getCreated_on());
 		// since the Principal doesn't exist, the 'modified by' display name defaults to the principal ID
-		assertEquals(""+nonexistantPrincipalId, fields.getModified_by());
+		assertEquals(nonexistantPrincipalId.toString(), fields.getModified_by());
 		assertEquals(new Long(node.getModifiedOn().getTime() / 1000), fields
 				.getModified_on());
 
@@ -306,7 +371,6 @@ public class SearchDocumentDriverImplAutowireTest {
 		node.setCreatedOn(new Date());
 		node.setModifiedByPrincipalId(nonexistantPrincipalId);
 		node.setModifiedOn(new Date());
-		NodeRevisionBackup rev = new NodeRevisionBackup();
 		NamedAnnotations named = new NamedAnnotations();
 		Annotations primaryAnnos = named.getAdditionalAnnotations();
 		primaryAnnos.addAnnotation("stringKey", "a");
@@ -314,29 +378,28 @@ public class SearchDocumentDriverImplAutowireTest {
 		Annotations additionalAnnos = named.getAdditionalAnnotations();
 		additionalAnnos.addAnnotation("stringKey", "a");
 		additionalAnnos.addAnnotation("longKey", Long.MAX_VALUE);
-		rev.setNamedAnnotations(named);
 		AccessControlList acl = new AccessControlList();
 		Set<ResourceAccess> resourceAccess = new HashSet<ResourceAccess>();
 		acl.setResourceAccess(resourceAccess);
 		Document document = searchDocumentDriver.formulateSearchDocument(node,
-				rev, acl, new EntityPath(), null);
+				named, acl, new EntityPath(), null);
 		byte[] cloudSearchDocument = SearchDocumentDriverImpl
 				.cleanSearchDocument(document);
 		assertEquals(-1, new String(cloudSearchDocument).indexOf("\\u0019"));
 	}
 	
 	@Test
-	public void testGetAllWikiPageText(){
+	public void testGetAllWikiPageText() throws DatastoreException, IOException, NotFoundException{
 		// The expected text fo
 		StringBuilder expected = new StringBuilder();
 		expected.append("\n");
 		expected.append(rootPage.getTitle());
 		expected.append("\n");
-		expected.append(rootPage.getMarkdown());
+		expected.append(wikiPageDao.getMarkdown(rootKey, null));
 		expected.append("\n");
 		expected.append(subPage.getTitle());
 		expected.append("\n");
-		expected.append(subPage.getMarkdown());
+		expected.append(wikiPageDao.getMarkdown(subPageKey, null));
 		// Now get the text from the d
 		String resultText = searchDocumentDriver.getAllWikiPageText(project.getId());
 		assertNotNull(resultText);

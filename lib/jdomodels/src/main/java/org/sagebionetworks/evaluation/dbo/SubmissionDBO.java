@@ -9,17 +9,17 @@ import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBMISSION_I
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBMISSION_NAME;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBMISSION_SUBMITTER_ALIAS;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBMISSION_USER_ID;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_SUBMISSION_CREATED_ON;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_SUBMISSION_ENTITY_BUNDLE;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_SUBMISSION_ENTITY_ID;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_SUBMISSION_ENTITY_VERSION;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_SUBMISSION_EVAL_ID;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_SUBMISSION_ID;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_SUBMISSION_NAME;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_SUBMISSION_SUBMITTER_ALIAS;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_SUBMISSION_USER_ID;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.DDL_FILE_SUBMISSION;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.TABLE_SUBMISSION;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_ENTITY_BUNDLE;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_ENTITY_ID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_ENTITY_VERSION;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_EVAL_ID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_ID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_NAME;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_SUBMITTER_ALIAS;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_USER_ID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.DDL_FILE_SUBMISSION;
+import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_SUBMISSION;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -27,7 +27,6 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.sagebionetworks.repo.model.TaggableEntity;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
@@ -39,7 +38,7 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
  * 
  * @author bkng
  */
-public class SubmissionDBO implements MigratableDatabaseObject<SubmissionDBO, SubmissionDBO>, TaggableEntity {
+public class SubmissionDBO implements MigratableDatabaseObject<SubmissionDBO, SubmissionDBO> {
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 			new FieldColumn(PARAM_SUBMISSION_ID, COL_SUBMISSION_ID, true).withIsBackupId(true),

@@ -1,9 +1,5 @@
 package org.sagebionetworks.utils;
 
-import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.util.HashSet;
 
 //import com.gdevelop.gwt.syncrpc.CookieManager;
 //import com.gdevelop.gwt.syncrpc.CredentialsManager;

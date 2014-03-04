@@ -1,0 +1,17 @@
+{
+	"description": "A WikiHeader contains basic metadata about a WikiPage.",
+	"properties": {
+		"id": {
+			"type": "string",
+			"description": "The ID of this wiki page."
+		},
+		"title": {
+			"type": "string",
+			"description": "The title to of this page."
+		},
+		"parentId": {
+			"type": "string",
+			"description": "The parentID to of this page."
+		}
+	}
+}

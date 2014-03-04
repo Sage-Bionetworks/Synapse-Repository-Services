@@ -5,10 +5,9 @@ import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
-import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface AuthorizationManager {
@@ -26,20 +25,6 @@ public interface AuthorizationManager {
 	 */
 	public boolean canAccess(UserInfo userInfo, String objectId, ObjectType objectType, ACCESS_TYPE accessType) throws DatastoreException, NotFoundException;
 
-	/**
-	 * Check user access to a Node (default type)
-	 * 
-	 * @param userInfo
-	 * @param nodeId
-	 * @param accessType
-	 * 
-	 * @return true iff the given user has the given access to the given node
-	 * 
-	 * @exception NotFoundException if the group or node is invalid
-	 * 
-	 */
-	public boolean canAccess(UserInfo userInfo, String nodeId, ACCESS_TYPE accessType) 	throws NotFoundException, DatastoreException;
-	
 	/**
      * Checks whether the given user can create the given node.
      *
@@ -74,24 +59,6 @@ public interface AuthorizationManager {
 	public boolean canCreateAccessApproval(UserInfo userInfo, AccessApproval accessApproval);
 
 	/**
-	 * @param n the number of items in the group-id list
-	 * 
-	 * @return the SQL to find the root-accessible nodes that a specified user-group list can access
-	 * using a specified access type
-	 */
-	public String authorizationSQL(int n);
-
-	/**
-	 * Get the user's permissions for an entity.
-	 * @param userInfo
-	 * @param entityId
-	 * @return 
-	 * @throws DatastoreException 
-	 * @throws NotFoundException 
-	 */
-	public UserEntityPermissions getUserPermissionsForEntity(UserInfo userInfo, String entityId) throws NotFoundException, DatastoreException;
-
-	/**
 	 * 
 	 * @param userInfo UserInfo of the user in question
 	 * @param activityId activity that generated the entities
@@ -124,7 +91,31 @@ public interface AuthorizationManager {
 	 */
 	public boolean canAccessRawFileHandleById(UserInfo userInfo, String fileHandleId) throws NotFoundException;
 
+	/**
+	 * 
+	 * @param userInfo
+	 * @param subjectId
+	 * @param accessType
+	 * @return
+	 * @throws NotFoundException
+	 */
 	public boolean canAccessAccessApprovalsForSubject(UserInfo userInfo, RestrictableObjectDescriptor subjectId, ACCESS_TYPE accessType) throws NotFoundException;
 	
+	/**
+	 * Is this the AnonymousUser?
+	 * @param userInfo
+	 * @return
+	 */
+	public boolean isAnonymousUser(UserInfo userInfo);
 	
+	/**
+	 * Checks whether the parent (or other ancestors) are subject to access restrictions and whether 
+	 * userInfo is a member of the ACT.
+	 * 
+	 * @param userInfo
+	 * @param parentId
+	 * @return
+	 * @throws NotFoundException 
+	 */
+	public boolean canMoveEntity(UserInfo userInfo, String parentId) throws NotFoundException;
 }

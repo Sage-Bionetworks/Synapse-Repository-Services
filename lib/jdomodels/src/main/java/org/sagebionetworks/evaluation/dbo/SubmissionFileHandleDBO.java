@@ -2,16 +2,15 @@ package org.sagebionetworks.evaluation.dbo;
 
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBFILE_FILE_HANDLE_ID;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBFILE_SUBMISSION_ID;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_SUBFILE_FILE_HANDLE_ID;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_SUBFILE_SUBMISSION_ID;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.DDL_FILE_SUBFILE;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.TABLE_SUBFILE;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBFILE_FILE_HANDLE_ID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBFILE_SUBMISSION_ID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.DDL_FILE_SUBFILE;
+import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_SUBFILE;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
 
-import org.sagebionetworks.repo.model.TaggableEntity;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
@@ -23,7 +22,7 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
  * 
  * @author bkng
  */
-public class SubmissionFileHandleDBO implements MigratableDatabaseObject<SubmissionFileHandleDBO, SubmissionFileHandleDBO>, TaggableEntity {
+public class SubmissionFileHandleDBO implements MigratableDatabaseObject<SubmissionFileHandleDBO, SubmissionFileHandleDBO> {
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 			new FieldColumn(PARAM_SUBFILE_SUBMISSION_ID, COL_SUBFILE_SUBMISSION_ID, true).withIsBackupId(true),

@@ -6,15 +6,15 @@ import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBSTATUS_MO
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBSTATUS_SCORE;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBSTATUS_SERIALIZED_ENTITY;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBSTATUS_STATUS;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_SUBMISSION_ID;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_SUBSTATUS_ETAG;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_SUBSTATUS_MODIFIED_ON;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_SUBSTATUS_SCORE;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_SUBSTATUS_SERIALIZED_ENTITY;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_SUBSTATUS_STATUS;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_SUBSTATUS_SUBMISSION_ID;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.DDL_FILE_SUBSTATUS;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.TABLE_SUBSTATUS;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_ID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_ETAG;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_MODIFIED_ON;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_SCORE;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_SERIALIZED_ENTITY;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_STATUS;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_SUBMISSION_ID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.DDL_FILE_SUBSTATUS;
+import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_SUBSTATUS;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -22,13 +22,12 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ObservableEntity;
-import org.sagebionetworks.repo.model.TaggableEntity;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
-import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
 /**
@@ -36,7 +35,7 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
  * 
  * @author bkng
  */
-public class SubmissionStatusDBO implements MigratableDatabaseObject<SubmissionStatusDBO, SubmissionStatusDBO>, TaggableEntity, ObservableEntity {
+public class SubmissionStatusDBO implements MigratableDatabaseObject<SubmissionStatusDBO, SubmissionStatusDBO>, ObservableEntity {
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 			new FieldColumn(PARAM_SUBMISSION_ID, COL_SUBSTATUS_SUBMISSION_ID, true).withIsBackupId(true),
@@ -95,13 +94,6 @@ public class SubmissionStatusDBO implements MigratableDatabaseObject<SubmissionS
 	public void setId(Long id) {
 		this.id = id;
 	}
-	
-	public String geteTag() {
-		return eTag;
-	}
-	public void seteTag(String eTag) {
-		this.eTag = eTag;
-	}
 	public Long getModifiedOn() {
 		return modifiedOn;
 	}
@@ -130,6 +122,13 @@ public class SubmissionStatusDBO implements MigratableDatabaseObject<SubmissionS
 	public void setScore(Double score) {
 		this.score = score;
 	}
+	
+	public String geteTag() {
+		return eTag;
+	}
+	public void seteTag(String eTag) {
+		this.eTag = eTag;
+	}
 	@Override
 	public String getIdString() {
 		return id.toString();
@@ -142,6 +141,12 @@ public class SubmissionStatusDBO implements MigratableDatabaseObject<SubmissionS
 	public ObjectType getObjectType() {
 		return ObjectType.SUBMISSION;
 	}
+
+	@Override
+	public String getEtag() {
+		return eTag;
+	}
+	
 	public byte[] getSerializedEntity() {
 		return serializedEntity;
 	}

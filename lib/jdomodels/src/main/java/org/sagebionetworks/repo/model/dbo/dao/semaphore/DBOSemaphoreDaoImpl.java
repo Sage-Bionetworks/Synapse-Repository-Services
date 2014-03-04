@@ -1,13 +1,14 @@
 package org.sagebionetworks.repo.model.dbo.dao.semaphore;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SEMAPHORE_EXPIRES;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SEMAPHORE_KEY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SEMAPHORE_TOKEN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_SEMAPHORE;
 
 import java.util.UUID;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSemaphore;
@@ -24,7 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
  */
 public class DBOSemaphoreDaoImpl implements SemaphoreDao {
 	
-	static private Log log = LogFactory.getLog(DBOSemaphoreDaoImpl.class);
+	static private Logger log = LogManager.getLogger(DBOSemaphoreDaoImpl.class);
 
 	private static final String SQL_RELEASE_LOCK = "DELETE FROM "+TABLE_SEMAPHORE+" WHERE "+COL_SEMAPHORE_KEY+" = ? AND "+COL_SEMAPHORE_TOKEN+" = ?";
 
@@ -84,7 +85,7 @@ public class DBOSemaphoreDaoImpl implements SemaphoreDao {
 			return token;
 		}catch(Exception e){
 			// if we fail to get the lock return null
-			log.warn("Failed to acquire lock: "+e.getMessage());
+			log.warn("Failed to acquire lock: " + key + " " + e.getMessage());
 			return null;
 		}
 	}

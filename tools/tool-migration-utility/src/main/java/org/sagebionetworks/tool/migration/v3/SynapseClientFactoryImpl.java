@@ -1,6 +1,6 @@
 package org.sagebionetworks.tool.migration.v3;
 
-import org.sagebionetworks.client.SynapseAdministration;
+import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.tool.migration.Configuration;
 import org.sagebionetworks.tool.migration.SynapseConnectionInfo;
@@ -26,12 +26,12 @@ public class SynapseClientFactoryImpl implements SynapseClientFactory {
 	}
 
 	@Override
-	public SynapseAdministration createNewSourceClient()throws SynapseException {
+	public SynapseAdminClientImpl createNewSourceClient()throws SynapseException {
 		return createNewConnection(this.config.getSourceConnectionInfo());
 	}
 
 	@Override
-	public SynapseAdministration createNewDestinationClient() throws SynapseException {
+	public SynapseAdminClientImpl createNewDestinationClient() throws SynapseException {
 		return createNewConnection(this.config.getDestinationConnectionInfo());
 	}
 	
@@ -41,11 +41,12 @@ public class SynapseClientFactoryImpl implements SynapseClientFactory {
 	 * @return
 	 * @throws SynapseException 
 	 */
-	private static SynapseAdministration createNewConnection(SynapseConnectionInfo info) throws SynapseException{
-		SynapseAdministration synapse = new SynapseAdministration();
+	private static SynapseAdminClientImpl createNewConnection(SynapseConnectionInfo info) throws SynapseException{
+		SynapseAdminClientImpl synapse = new SynapseAdminClientImpl();
 		synapse.setAuthEndpoint(info.getAuthenticationEndPoint());
 		synapse.setRepositoryEndpoint(info.getRepositoryEndPoint());
-		synapse.login(info.getAdminUsername(), info.getAdminPassword());
+		synapse.setUserName(info.getUserName());
+		synapse.setApiKey(info.getApiKey());
 		return synapse;
 	}
 

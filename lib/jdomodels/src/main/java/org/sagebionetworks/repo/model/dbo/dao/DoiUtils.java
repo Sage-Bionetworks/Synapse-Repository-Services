@@ -2,15 +2,15 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import java.sql.Timestamp;
 
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.persistence.DBODoi;
 import org.sagebionetworks.repo.model.doi.Doi;
-import org.sagebionetworks.repo.model.doi.DoiObjectType;
 import org.sagebionetworks.repo.model.doi.DoiStatus;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 
-class DoiUtils {
+public class DoiUtils {
 
-	static Doi convertToDto(DBODoi dbo) {
+	public static Doi convertToDto(DBODoi dbo) {
 		if (dbo == null) {
 			throw new IllegalArgumentException("DBO cannot be null.");
 		}
@@ -18,13 +18,13 @@ class DoiUtils {
 		dto.setId(dbo.getId().toString());
 		dto.setEtag(dbo.getETag());
 		dto.setDoiStatus(DoiStatus.valueOf(dbo.getDoiStatus()));
-		final DoiObjectType objectType = DoiObjectType.valueOf(dbo.getDoiObjectType());
-		if (DoiObjectType.ENTITY.equals(objectType)) {
+		final ObjectType objectType = ObjectType.valueOf(dbo.getObjectType());
+		if (ObjectType.ENTITY.equals(objectType)) {
 			dto.setObjectId(KeyFactory.keyToString(dbo.getObjectId()));
 		} else {
 			dto.setObjectId(dbo.getObjectId().toString());
 		}
-		dto.setDoiObjectType(objectType);
+		dto.setObjectType(objectType);
 		dto.setObjectVersion(dbo.getObjectVersion());
 		dto.setCreatedBy(dbo.getCreatedBy().toString());
 		dto.setCreatedOn(dbo.getCreatedOn());
@@ -32,7 +32,7 @@ class DoiUtils {
 		return dto;
 	}
 
-	static DBODoi convertToDbo(Doi dto) {
+	public static DBODoi convertToDbo(Doi dto) {
 		if (dto == null) {
 			throw new IllegalArgumentException("DTO cannot be null.");
 		}
@@ -41,7 +41,7 @@ class DoiUtils {
 		dbo.setETag(dto.getEtag());
 		dbo.setDoiStatus(dto.getDoiStatus());
 		dbo.setObjectId(KeyFactory.stringToKey(dto.getObjectId()));
-		dbo.setDoiObjectType(dto.getDoiObjectType());
+		dbo.setObjectType(dto.getObjectType());
 		dbo.setObjectVersion(dto.getObjectVersion());
 		dbo.setCreatedBy(Long.valueOf(dto.getCreatedBy()));
 		dbo.setCreatedOn(new Timestamp(dto.getCreatedOn().getTime()));

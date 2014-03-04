@@ -11,29 +11,7 @@
   <!-- Discover all our controllers -->
   <context:component-scan base-package="org.sagebionetworks.auth" />
   
+  <import resource="classpath:shared-servlet.xml" />
   <import resource="classpath:authentication-services-spb.xml" />
-  
- 	<!-- Used to Serialize object types -->
-	<bean id="jsonEntityConverter" class="org.sagebionetworks.repo.web.controller.JSONEntityHttpMessageConverter" >
-		<!-- Force all responses to JSON -->
-		<property name="convertAnyRequestToJson" value="true"/>
-	</bean>
-
-	<!-- Setup our own JSON processing. -->
-	<bean class="org.springframework.web.servlet.mvc.annotation.AnnotationMethodHandlerAdapter">
-		<property name="messageConverters">
-			<list>
-			    <ref bean="jsonEntityConverter" />
-			</list>
-		</property>
-	</bean>
-	<!-- Setup our own JSON processing. -->
-	<bean class="org.springframework.web.servlet.mvc.annotation.AnnotationMethodHandlerExceptionResolver">
-		<property name="messageConverters">
-			<list>
-			    <ref bean="jsonEntityConverter" />
-			</list>
-		</property>
-	</bean>
-  
+    
 </beans>

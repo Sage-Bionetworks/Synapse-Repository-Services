@@ -1,0 +1,16 @@
+{
+    "description":"A participant data descriptor with its associated columns",
+    "properties":{
+        "descriptor": {
+            "description":"The data descriptor.",
+            "$ref": "org.sagebionetworks.bridge.model.data.ParticipantDataDescriptor"
+        },
+        "columns": {
+            "description":"The column descriptors",
+            "type": "array",
+            "items": {
+                "$ref": "org.sagebionetworks.bridge.model.data.ParticipantDataColumnDescriptor"
+            }
+        }
+    }
+}

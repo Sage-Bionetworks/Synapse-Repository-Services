@@ -1,7 +1,27 @@
 package org.sagebionetworks.evaluation.dbo;
 
-import static org.sagebionetworks.evaluation.dbo.DBOConstants.*;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.*;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_CONTENT_SOURCE;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_CREATED_ON;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_DESCRIPTION;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_ETAG;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_ID;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_NAME;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_OWNER_ID;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_STATUS;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_SUB_INSTRUCT_MSG;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_SUB_RECEPIT_MSG;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_CONTENT_SOURCE;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_DESCRIPTION;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_ETAG;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_ID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_NAME;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_OWNER_ID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_STATUS;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_SUB_INSTRUCT_MSG;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_SUB_RECEIPT_MSG;
+import static org.sagebionetworks.repo.model.query.SQLConstants.DDL_FILE_EVALUATION;
+import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_EVALUATION;
 
 import java.sql.Blob;
 import java.sql.ResultSet;
@@ -10,13 +30,12 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ObservableEntity;
-import org.sagebionetworks.repo.model.TaggableEntity;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
-import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
 /**
@@ -24,7 +43,7 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
  * 
  * @author bkng
  */
-public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, EvaluationBackup>, TaggableEntity, ObservableEntity {
+public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, EvaluationBackup>, ObservableEntity {
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 			new FieldColumn(PARAM_EVALUATION_ID, COL_EVALUATION_ID, true).withIsBackupId(true),
@@ -101,13 +120,6 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 	public void setId(Long id) {
 		this.id = id;
 	}
-
-	public String geteTag() {
-		return eTag;
-	}
-	public void seteTag(String eTag) {
-		this.eTag = eTag;
-	}
 	
 	public String getName() {
 		return name;
@@ -159,6 +171,12 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 		setStatus(es.ordinal());
 	}
 
+	public String geteTag() {
+		return eTag;
+	}
+	public void seteTag(String eTag) {
+		this.eTag = eTag;
+	}
 	public byte[] getSubmissionInstructionsMessage() {
 		return submissionInstructionsMessage;
 	}
@@ -183,6 +201,12 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 	public ObjectType getObjectType() {
 		return ObjectType.EVALUATION;
 	}
+	
+	@Override
+	public String getEtag() {
+		return eTag;
+	}
+	
 	@Override
 	public MigrationType getMigratableTableType() {
 		return MigrationType.EVALUATION;
@@ -206,7 +230,7 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 				+ ", description=" + Arrays.toString(description)
 				+ ", ownerId=" + ownerId + ", createdOn=" + createdOn
 				+ ", contentSource=" + contentSource + ", status=" + status
-				+ ", submissionInstructions="
+				+ ", submissionInstructionsMessage="
 				+ Arrays.toString(submissionInstructionsMessage)
 				+ ", submissionReceiptMessage="
 				+ Arrays.toString(submissionReceiptMessage) + "]";
@@ -225,7 +249,8 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		result = prime * result + ((ownerId == null) ? 0 : ownerId.hashCode());
 		result = prime * result + status;
-		result = prime * result + Arrays.hashCode(submissionInstructionsMessage);
+		result = prime * result
+				+ Arrays.hashCode(submissionInstructionsMessage);
 		result = prime * result + Arrays.hashCode(submissionReceiptMessage);
 		return result;
 	}
@@ -272,8 +297,8 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 			return false;
 		if (status != other.status)
 			return false;
-		if (!Arrays
-				.equals(submissionInstructionsMessage, other.submissionInstructionsMessage))
+		if (!Arrays.equals(submissionInstructionsMessage,
+				other.submissionInstructionsMessage))
 			return false;
 		if (!Arrays.equals(submissionReceiptMessage,
 				other.submissionReceiptMessage))
@@ -282,7 +307,6 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 	}
 	@Override
 	public MigratableTableTranslation<EvaluationDBO, EvaluationBackup> getTranslator() {
-		// TODO Auto-generated method stub
 		return new MigratableTableTranslation<EvaluationDBO, EvaluationBackup>(){
 
 			@Override

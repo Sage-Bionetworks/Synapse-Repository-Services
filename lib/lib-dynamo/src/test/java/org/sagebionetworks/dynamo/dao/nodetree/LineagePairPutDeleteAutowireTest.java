@@ -5,9 +5,11 @@ import java.util.Date;
 import junit.framework.Assert;
 
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.dynamo.DynamoTestUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -34,6 +36,10 @@ public class LineagePairPutDeleteAutowireTest {
 
 	@Before
 	public void before() {
+
+		// Run tests only if DynamoDB is enabled
+		StackConfiguration config = new StackConfiguration();
+		Assume.assumeTrue(config.getDynamoEnabled());
 
 		this.dynamoMapper = new DynamoDBMapper(this.dynamoClient,
 				NodeLineageMapperConfig.getMapperConfigWithConsistentReads());

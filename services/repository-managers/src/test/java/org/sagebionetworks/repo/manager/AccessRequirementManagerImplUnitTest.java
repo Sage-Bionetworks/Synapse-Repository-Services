@@ -4,10 +4,12 @@ import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import org.junit.Before;
@@ -18,11 +20,13 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.util.jrjc.JiraClient;
 
 import com.atlassian.jira.rest.client.api.OptionalIterable;
@@ -43,6 +47,7 @@ public class AccessRequirementManagerImplUnitTest {
 	private AuthorizationManager authorizationManager;
 	private AccessRequirementManagerImpl arm;
 	private UserInfo userInfo;
+	private UserProfileDAO userProfileDAO;
 
 	
 	@Before
@@ -50,12 +55,13 @@ public class AccessRequirementManagerImplUnitTest {
 		accessRequirementDAO = Mockito.mock(AccessRequirementDAO.class);
 		when(accessRequirementDAO.create((AccessRequirement)any())).thenReturn(null);
 		authorizationManager = Mockito.mock(AuthorizationManager.class);
+		userProfileDAO = Mockito.mock(UserProfileDAO.class);
+		UserProfile up = new UserProfile();
+		up.setEmails(Collections.singletonList("foo@bar.com"));
+		when(userProfileDAO.get(anyString())).thenReturn(up);
 		jiraClient = Mockito.mock(JiraClient.class);
-		arm = new AccessRequirementManagerImpl(accessRequirementDAO, authorizationManager, jiraClient);
-		userInfo = new UserInfo(false);
-		UserGroup individualGroup = new UserGroup();
-		individualGroup.setId(TEST_PRINCIPAL_ID);
-		userInfo.setIndividualGroup(individualGroup);
+		arm = new AccessRequirementManagerImpl(accessRequirementDAO, authorizationManager, jiraClient, userProfileDAO);
+		userInfo = new UserInfo(false, TEST_PRINCIPAL_ID);
 		Project sgProject;
 		sgProject = Mockito.mock(Project.class);
 		Iterable<IssueType> issueTypes = Arrays.asList(new IssueType[]{
@@ -73,8 +79,8 @@ public class AccessRequirementManagerImplUnitTest {
 		when(jiraClient.createIssue((IssueInput)anyObject())).thenReturn(new BasicIssue(null, "SG-101", 101L));
 		
 		// by default the user is authorized to create, edit.  individual tests may override these settings
-		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ACCESS_TYPE.CREATE)).thenReturn(true);
-		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ACCESS_TYPE.UPDATE)).thenReturn(true);
+		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(true);
+		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(true);
 	}
 	
 	private AccessRequirement createExpectedAR() {
@@ -112,8 +118,8 @@ public class AccessRequirementManagerImplUnitTest {
 	
 	@Test(expected=UnauthorizedException.class)
 	public void testCreateLockAccessRequirementNoAuthority() throws Exception {
-		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ACCESS_TYPE.CREATE)).thenReturn(false);
-		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ACCESS_TYPE.UPDATE)).thenReturn(false);
+		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(false);
+		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(false);
 		// this should throw the unauthorized exception
 		arm.createLockAccessRequirement(userInfo, TEST_ENTITY_ID);
 	}
@@ -124,7 +130,7 @@ public class AccessRequirementManagerImplUnitTest {
 		subjectId.setId(TEST_ENTITY_ID);
 		subjectId.setType(RestrictableObjectType.ENTITY);
 		List<AccessRequirement> ars = Arrays.asList(new AccessRequirement[]{createExpectedAR()});
-		when(accessRequirementDAO.getForSubject(subjectId)).thenReturn(ars);
+		when(accessRequirementDAO.getForSubject(any(List.class), eq(RestrictableObjectType.ENTITY))).thenReturn(ars);
 		// this should throw the illegal argument exception
 		arm.createLockAccessRequirement(userInfo, TEST_ENTITY_ID);
 		

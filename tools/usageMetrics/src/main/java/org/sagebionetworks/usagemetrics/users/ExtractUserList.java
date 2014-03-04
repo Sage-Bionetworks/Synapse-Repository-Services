@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import org.sagebionetworks.client.Synapse;
+import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UserProfile;
@@ -27,7 +27,7 @@ import org.sagebionetworks.repo.model.UserProfile;
 public class ExtractUserList {
 
 		
-	static final Synapse synapse = new Synapse();
+	static final SynapseClientImpl synapse = new SynapseClientImpl();
 	
 	public static void main(String[] args) throws Exception {
 		if(args.length != 3) throw new IllegalArgumentException("Invalid input parameters");
@@ -75,7 +75,7 @@ public class ExtractUserList {
 				out.write(join(new ArrayList<String>(Arrays.asList(new String[] {
 						fullProfile.getOwnerId(),
 						fullProfile.getEmail(),
-						fullProfile.getDisplayName(),
+						fullProfile.getUserName(),
 						fullProfile.getFirstName(),
 						fullProfile.getLastName(),
 						fullProfile.getCompany()						

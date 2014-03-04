@@ -2,7 +2,6 @@ package org.sagebionetworks.javadoc;
 
 import static org.mockito.Mockito.when;
 
-import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 

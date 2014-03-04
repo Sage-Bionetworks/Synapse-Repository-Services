@@ -14,17 +14,14 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.SchemaCache;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
-import org.sagebionetworks.schema.ObjectSchema;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.util.SerializationUtils;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -37,11 +34,12 @@ public class DBOAccessApprovalTest {
 	UserGroupDAO userGroupDAO;
 	
 	@Autowired
-	NodeDAO nodeDAO;
+	NodeDAO nodeDao;
+	
 	@Autowired
 	private IdGenerator idGenerator;
 	
-	private static final String TEST_USER_NAME = "test-user";
+	private static final String TEST_USER_NAME = "test-user@test.com";
 	
 	private Node node = null;
 	private UserGroup individualGroup = null;
@@ -51,17 +49,14 @@ public class DBOAccessApprovalTest {
 	
 	@Before
 	public void setUp() throws Exception {
-		individualGroup = userGroupDAO.findGroup(TEST_USER_NAME, true);
-		if (individualGroup == null) {
-			individualGroup = new UserGroup();
-			individualGroup.setName(TEST_USER_NAME);
-			individualGroup.setIsIndividual(true);
-			individualGroup.setCreationDate(new Date());
-			individualGroup.setId(userGroupDAO.create(individualGroup));
-		}
+		individualGroup = new UserGroup();
+		individualGroup.setIsIndividual(true);
+		individualGroup.setCreationDate(new Date());
+		individualGroup.setId(userGroupDAO.create(individualGroup).toString());
+
 		if (node==null) {
 			node = NodeTestUtils.createNew("foo", Long.parseLong(individualGroup.getId()));
-			node.setId( nodeDAO.createNew(node) );
+			node.setId( nodeDao.createNew(node) );
 		};
 		deleteAccessApproval();
 		deleteAccessRequirement();
@@ -92,11 +87,10 @@ public class DBOAccessApprovalTest {
 	public void tearDown() throws Exception {
 		deleteAccessApproval();
 		deleteAccessRequirement();
-		if (node!=null && nodeDAO!=null) {
-			nodeDAO.delete(node.getId());
+		if (node!=null && nodeDao!=null) {
+			nodeDao.delete(node.getId());
 			node = null;
 		}
-		individualGroup = userGroupDAO.findGroup(TEST_USER_NAME, true);
 		if (individualGroup != null) {
 			// this will delete the user profile too
 			userGroupDAO.delete(individualGroup.getId());

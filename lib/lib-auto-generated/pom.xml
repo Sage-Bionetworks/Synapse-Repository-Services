@@ -65,7 +65,7 @@
 
 		<!-- Used to collect JSON files from directories -->
 		<dependency>
-			<groupId>org.apache.commons</groupId>
+			<groupId>commons-io</groupId>
 			<artifactId>commons-io</artifactId>
 		</dependency>
 

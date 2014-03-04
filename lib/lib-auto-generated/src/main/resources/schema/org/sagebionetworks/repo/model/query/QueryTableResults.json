@@ -1,0 +1,27 @@
+{
+	"description": "An object to store the results of a Synapse Query. Results are stored in row-major tabular format.",
+	"name": "QueryTableResults",
+	"properties": {
+		"headers": {
+			"type": "array",
+			"description": "The ordered list of column headers (attribute names).",
+			"uniqueItems": false,
+			"items": {
+				"type": "string"
+			}
+		},
+		"rows": {
+			"type": "array",
+			"description": "The ordered list of row data. Each row corresponds to one object.",
+			"uniqueItems": false,
+			"items": {
+				"type": "object",
+				"$ref": "org.sagebionetworks.repo.model.query.Row"
+			}
+		},
+		"totalNumberOfResults": {
+			"description": "The total number of objects in the system which match the submitted query.",
+			"type": "integer"
+		}
+	}
+}

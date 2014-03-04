@@ -5,8 +5,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -38,7 +38,7 @@ public class SearchDomainSetupImpl implements SearchDomainSetup {
 
 	private static final String SEARCH_DOMAIN_NAME = String.format(SEARCH_DOMAIN_NAME_TEMPLATE, StackConfiguration.getStack(),	StackConfiguration.getStackInstance());
 
-	static private Log log = LogFactory.getLog(SearchDaoImpl.class);
+	static private Logger log = LogManager.getLogger(SearchDaoImpl.class);
 	
 	/**
 	 * Used to ensure we only setup the search index once.
@@ -47,6 +47,21 @@ public class SearchDomainSetupImpl implements SearchDomainSetup {
 
 	@Autowired
 	AmazonCloudSearchClient awsSearchClient;
+	
+	boolean isSearchEnabled;
+	
+	@Override
+	public boolean isSearchEnabled() {
+		return isSearchEnabled;
+	}
+
+	/**
+	 * Injected via Spring
+	 * @param isSearchEnabled
+	 */
+	public void setSearchEnabled(boolean isSearchEnabled) {
+		this.isSearchEnabled = isSearchEnabled;
+	}
 
 	/**
 	 * Spring will call this method when the bean is first initialize.
@@ -55,6 +70,10 @@ public class SearchDomainSetupImpl implements SearchDomainSetup {
 	 * @throws UnknownHostException
 	 */
 	public void initialize() throws InterruptedException, UnknownHostException {
+		if(!isSearchEnabled()){
+			log.info("Search is disabled");
+			return;
+		}
 		log.info("initialize...");
 		long start = System.currentTimeMillis();
 		// Do we have a search index?

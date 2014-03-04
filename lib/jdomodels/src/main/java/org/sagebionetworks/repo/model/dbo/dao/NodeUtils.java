@@ -3,13 +3,13 @@ package org.sagebionetworks.repo.model.dbo.dao;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.Date;
+import java.util.LinkedList;
+import java.util.List;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.NodeBackup;
-import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
@@ -23,13 +23,10 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
  */
 class NodeUtils {
 	
-	// take backupnode and backuprevision, map to dbonode and dborevision
 
-	public static void updateFromDto(NodeBackup nbDto, NodeRevisionBackup revDto, DBONode jdo, DBORevision rev) throws DatastoreException, InvalidModelException {
-		throw new RuntimeException("Not yet implemented");
-	}
-	
 		
+	private static final String COLUMN_ID_DELIMITER = ",";
+
 	/**
 	 * Used to update an existing object
 	 * @param dto
@@ -79,7 +76,10 @@ class NodeUtils {
 			rev.setActivityId(Long.parseLong(dto.getActivityId()));
 		}
 		
-
+		if(dto.getColumnModelIds() != null){
+			rev.setColumnModelIds(createColumnModelBytesFromList(dto.getColumnModelIds()));
+		}
+		
 		try {
 			rev.setReferences(JDOSecondaryPropertyUtils.compressReferences(dto.getReferences()));
 		} catch (IOException e) {
@@ -87,6 +87,53 @@ class NodeUtils {
 		}
 	}
 	
+	/**
+	 * Create the bytes for a given list of ColumnModel IDs
+	 * @param columnModelIds
+	 * @return
+	 */
+	private static byte[] createColumnModelBytesFromList(List<String> columnModelIds) {
+		if(columnModelIds == null) throw new IllegalArgumentException("columnModelIds cannot be null");
+		StringBuilder builder = new StringBuilder();
+		int count = 0;
+		for(String id: columnModelIds){
+			if(count >0){
+				builder.append(COLUMN_ID_DELIMITER);
+			}
+			// the value must be a long
+			long value = Long.parseLong(id);
+			builder.append(value);
+			count++;
+		}
+		try {
+			return builder.toString().getBytes("UTF-8");
+		} catch (UnsupportedEncodingException e) {
+			throw new RuntimeException(e);
+		}
+	}
+	
+	/**
+	 * Create a the list of column model ID from bytes.
+	 * @param columnModelIds
+	 * @return
+	 */
+	private static List<String> createColumnModelListFromBytes(byte[] columnModelIds) {
+		if(columnModelIds == null) throw new IllegalArgumentException("columnModelIds cannot be null");
+		try {
+			String string = new String(columnModelIds, "UTF-8");
+			String[] split = string.split(COLUMN_ID_DELIMITER);
+			List<String> result = new LinkedList<String>();
+			for(String stringId: split){
+				// The value must be a long
+				long value = Long.parseLong(stringId);
+				result.add(Long.toString(value));
+			}
+			return result;
+		} catch (UnsupportedEncodingException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
 	/**
 	 * Replace all fields from the dto.
 	 * @param dto
@@ -146,8 +193,8 @@ class NodeUtils {
 		if(jdo.getParentId() != null){
 			dto.setParentId(KeyFactory.keyToString(jdo.getParentId()));
 		}
-		if(jdo.geteTag() != null){
-			dto.setETag(jdo.geteTag());
+		if(jdo.getEtag() != null){
+			dto.setETag(jdo.getEtag());
 		}
 		if(jdo.getNodeType() != null){
 			dto.setNodeType(EntityType.getTypeForId(jdo.getNodeType()).name());
@@ -172,6 +219,9 @@ class NodeUtils {
 			dto.setReferences(JDOSecondaryPropertyUtils.decompressedReferences(rev.getReferences()));
 		} catch (IOException e) {
 			throw new IllegalArgumentException(e);
+		}
+		if(rev.getColumnModelIds() != null){
+			dto.setColumnModelIds(createColumnModelListFromBytes(rev.getColumnModelIds()));
 		}
 		return dto;
 	}

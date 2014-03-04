@@ -12,8 +12,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
@@ -31,30 +31,32 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class MigrationManagerImplAutowireTest {
 	
 	@Autowired
-	FileHandleDao fileHandleDao;
+	private FileHandleDao fileHandleDao;
 	
 	@Autowired
 	private UserManager userManager;	
 	
 	@Autowired
-	MigrationManager migrationManager;
+	private MigrationManager migrationManager;
+	
 	@Autowired
-	EntityBootstrapper entityBootstrapper;
+	private EntityBootstrapper entityBootstrapper;
 	
 	private List<String> toDelete;
-	UserInfo adminUser;
-	String creatorUserGroupId;
-	S3FileHandle withPreview;
-	PreviewFileHandle preview;
-	long startCount;
+	private UserInfo adminUser;
+	private String creatorUserGroupId;
+	private S3FileHandle withPreview;
+	private PreviewFileHandle preview;
+	private long startCount;
 	
 	@Before
 	public void before() throws Exception {
 		toDelete = new LinkedList<String>();
-		adminUser = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
-		creatorUserGroupId = adminUser.getIndividualGroup().getId();
+		adminUser = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		creatorUserGroupId = adminUser.getId().toString();
 		assertNotNull(creatorUserGroupId);
 		startCount = fileHandleDao.getCount();
+		
 		// The one will have a preview
 		withPreview = TestUtils.createS3FileHandle(creatorUserGroupId);
 		withPreview.setFileName("withPreview.txt");
@@ -77,7 +79,6 @@ public class MigrationManagerImplAutowireTest {
 	public void after() throws Exception{
 		// Since this test can delete all data make sure bootstrap data gets put back.
 		entityBootstrapper.bootstrapAll();
-		userManager.clearCache();
 		// If we have deleted all data make sure the bootstrap process puts it back
 		if(fileHandleDao != null && toDelete != null){
 			for(String id: toDelete){
@@ -90,6 +91,12 @@ public class MigrationManagerImplAutowireTest {
 	public void testGetCount(){
 		long count = migrationManager.getCount(adminUser, MigrationType.FILE_HANDLE);
 		assertEquals(startCount+2, count);
+	}
+	
+	@Test
+	public void testGetMaxId() {
+		long mx = migrationManager.getMaxId(adminUser, MigrationType.FILE_HANDLE);
+		assertEquals(Long.parseLong(preview.getId()), mx);
 	}
 	
 	@Test
@@ -167,10 +174,23 @@ public class MigrationManagerImplAutowireTest {
 	public void testDeleteAll() throws Exception{
 		// Delete all data
 		migrationManager.deleteAllData(adminUser);
-		// The counts for all tables should be zero
-		for(MigrationType type: MigrationType.values()){
-			assertEquals("All data should have been deleted",0l, migrationManager.getCount(adminUser, type));
+		
+		// The counts for all tables should be zero 
+		// Except for 3 special cases, which are the minimal required rows to successfully
+		//   call userManager.getUserInfo(AuthorizationConstants.MIGRATION_USER_NAME);
+		for (MigrationType type : MigrationType.values()) {
+			if (type == MigrationType.PRINCIPAL) {
+				assertEquals("All non-essential " + type + " should have been deleted", 
+						4L, migrationManager.getCount(adminUser, type));
+			} else if (type == MigrationType.CREDENTIAL
+					|| type == MigrationType.GROUP_MEMBERS) {
+				assertEquals("All non-essential " + type + " should have been deleted", 
+						1L, migrationManager.getCount(adminUser, type));
+			} else if (migrationManager.isMigrationTypeUsed(adminUser, type)) {
+				assertEquals("All data of type " + type + " should have been deleted", 
+						0L, migrationManager.getCount(adminUser, type));
+			}
 		}
 	}
-
+	
 }

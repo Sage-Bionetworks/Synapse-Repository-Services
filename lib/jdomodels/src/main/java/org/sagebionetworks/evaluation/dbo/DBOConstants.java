@@ -42,4 +42,8 @@ public class DBOConstants {
 	// SubmissionFile
 	public static final String PARAM_SUBFILE_SUBMISSION_ID 			= "submissionId";
 	public static final String PARAM_SUBFILE_FILE_HANDLE_ID			= "fileHandleId";
+	
+	// Annotation
+	public static final String PARAM_ANNOTATION_OBJECT_ID			= "objectId";
+	public static final String PARAM_ANNOTATION_SCOPE_ID			= "scopeId";
 }

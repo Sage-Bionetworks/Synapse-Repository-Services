@@ -6,7 +6,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.file.CompleteAllChunksRequest;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
-import org.sagebionetworks.repo.model.migration.IdList;
+import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -222,6 +222,7 @@ public class ExampleController {
 
 	/**
 	 * Get getting an object that is an interface
+	 * Link to this controller <a href="${org.sagebionetworks.samples.ExampleController}">Example Controller</a>
 	 * @return
 	 */
 	@ResponseStatus(HttpStatus.OK)

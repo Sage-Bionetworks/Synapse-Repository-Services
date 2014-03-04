@@ -1,18 +1,12 @@
 package org.sagebionetworks.repo.manager;
 
-import java.util.Collection;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 
 import org.codehaus.jackson.map.ObjectMapper;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityWithAnnotations;
-import org.sagebionetworks.repo.model.query.jdo.NodeField;
-import org.sagebionetworks.schema.ObjectSchema;
-import org.sagebionetworks.schema.TYPE;
 
 /**
  * Converts an entity with annotations to a map

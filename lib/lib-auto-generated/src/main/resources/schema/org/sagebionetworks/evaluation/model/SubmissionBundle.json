@@ -1,5 +1,5 @@
 {
-    "description":"JSON schema for SubmissionBundle POJO",
+    "description":"A bundle object to contain a Submission and its accompanying SubmissionStatus.",
     "name":"SubmissionBundle",
     "properties":{
         "submission":{

@@ -6,7 +6,6 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.file.FileHandle;
-import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.schema.adapter.JSONArrayAdapter;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
@@ -15,9 +14,6 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 /**
  * Low-level bundle to transport an Entity and related data objects between the 
  * Synapse platform and external clients.
- * 
- * @author bkng
- *
  */
 public class EntityBundle implements JSONEntity {
 	

@@ -3,21 +3,18 @@ package org.sagebionetworks.tool.migration.v3;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.when;
 
-import java.util.Arrays;
-import java.util.LinkedHashMap;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Stack;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 /**
  * Migration client test.
@@ -26,17 +23,27 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
  *
  */
 public class MigrationClientTest {
+
+	private SynapseAdminClientMockState mockDestination;
+	private SynapseAdminClient destSynapse;
 	
-	StubSynapseAdministration destSynapse;
-	StubSynapseAdministration sourceSynapse;
-	SynapseClientFactory mockFactory;
-	MigrationClient migrationClient;
+	private SynapseAdminClientMockState mockSource;
+	private SynapseAdminClient sourceSynapse;
+	
+	private SynapseClientFactory mockFactory;
+	private MigrationClient migrationClient;
 	
 	@Before
-	public void before() throws SynapseException{
+	public void before() throws Exception {
 		// Create the two stubs
-		destSynapse = new StubSynapseAdministration("destination");
-		sourceSynapse = new StubSynapseAdministration("source");
+		mockDestination = new SynapseAdminClientMockState();
+		mockDestination.endpoint = "destination";
+		destSynapse = SynapseAdminClientMocker.createMock(mockDestination);
+		
+		mockSource = new SynapseAdminClientMockState();
+		mockSource.endpoint = "source";
+		sourceSynapse = SynapseAdminClientMocker.createMock(mockSource);
+		
 		mockFactory = Mockito.mock(SynapseClientFactory.class);
 		when(mockFactory.createNewDestinationClient()).thenReturn(destSynapse);
 		when(mockFactory.createNewSourceClient()).thenReturn(sourceSynapse);
@@ -44,7 +51,7 @@ public class MigrationClientTest {
 	}
 	
 	@Test
-	public void testSetDestinationStatus() throws SynapseException, JSONObjectAdapterException{
+	public void testSetDestinationStatus() throws Exception {
 		// Set the status to down
 		migrationClient.setDestinationStatus(StatusEnum.READ_ONLY, "Test message");
 		// Only the destination should be changed
@@ -63,59 +70,56 @@ public class MigrationClientTest {
 	
 	/**
 	 * Test the full migration of data from the source to destination.
-	 * @throws Exception 
-	 * 
 	 */
 	@Test
 	public void testMigrateAllTypes() throws Exception{
 		// Setup the destination
-		LinkedHashMap<MigrationType, List<RowMetadata>> metadata = new LinkedHashMap<MigrationType, List<RowMetadata>>();
 		// The first element should get deleted and second should get updated.
 		List<RowMetadata> list = createList(new Long[]{0L, 1L}, new String[]{"e0","e1"}, new Long[]{null, null});
-		metadata.put(MigrationType.values()[0], list);
-		// Setup a second type with no valuse
+		mockDestination.metadata.put(MigrationType.values()[0], list);
+		
+		// Setup a second type with no values
 		list = createList(new Long[]{}, new String[]{}, new Long[]{});
-		metadata.put(MigrationType.values()[1], list);
-		destSynapse.setMetadata(metadata);
-		Stack<Long> changeNumberStack = new Stack<Long>();
-		changeNumberStack.push(11l);
-		changeNumberStack.push(0l);
-		destSynapse.setCurrentChangeNumberStack(changeNumberStack);
-		destSynapse.setMaxChangeNumber(11l);
+		mockDestination.metadata.put(MigrationType.values()[1], list);
+		
+		mockDestination.currentChangeNumberStack.push(11L);
+		mockDestination.currentChangeNumberStack.push(0L);
+		mockDestination.maxChangeNumber = 11L;
 		
 		// setup the source
-		metadata = new LinkedHashMap<MigrationType, List<RowMetadata>>();
 		// The first element should get trigger an update and the second should trigger an add
 		list = createList(new Long[]{1L, 2L}, new String[]{"e1changed","e2"}, new Long[]{null, 1l});
-		metadata.put(MigrationType.values()[0], list);
+		mockSource.metadata.put(MigrationType.values()[0], list);
+		
 		// both values should get added
 		list = createList(new Long[]{4L, 5L}, new String[]{"e4","e5"}, new Long[]{null, 4L});
-		metadata.put(MigrationType.values()[1], list);
-		sourceSynapse.setMetadata(metadata);
+		mockSource.metadata.put(MigrationType.values()[1], list);
 		
 		// Migrate the data
 		migrationClient.migrateAllTypes(1l, 1000*60, 2, false);
+		
 		// Now validate the results
 		List<RowMetadata> expected0 = createList(new Long[]{1L, 2L}, new String[]{"e1changed","e2"}, new Long[]{null, 1l});
 		List<RowMetadata> expected1 = createList(new Long[]{4L, 5L}, new String[]{"e4","e5"}, new Long[]{null, 4L});
+		
 		// check the state of the destination.
-		assertEquals(expected0, destSynapse.getMetadata().get(MigrationType.values()[0]));
-		assertEquals(expected1, destSynapse.getMetadata().get(MigrationType.values()[1]));
+		assertEquals(expected0, mockDestination.metadata.get(MigrationType.values()[0]));
+		assertEquals(expected1, mockDestination.metadata.get(MigrationType.values()[1]));
+		
 		// Check the state of the source
-		assertEquals(expected0, sourceSynapse.getMetadata().get(MigrationType.values()[0]));
-		assertEquals(expected1, sourceSynapse.getMetadata().get(MigrationType.values()[1]));
+		assertEquals(expected0, mockSource.metadata.get(MigrationType.values()[0]));
+		assertEquals(expected1, mockSource.metadata.get(MigrationType.values()[1]));
+		
 		// no messages should have been played on the destination.
-		assertEquals(0, destSynapse.getReplayChangeNumbersHistory().size());
+		assertEquals(0, mockDestination.replayChangeNumbersHistory.size());
+		
 		// No messages should have been played on the source
-		assertEquals(0, sourceSynapse.getReplayChangeNumbersHistory().size());
+		assertEquals(0, mockSource.replayChangeNumbersHistory.size());
 	}
 	
 	
 	/**
-	 * Helper to build up lists of metdata.
-	 * @param ids
-	 * @param etags
-	 * @param mock
+	 * Helper to build up lists of metadata
 	 */
 	public static List<RowMetadata> createList(Long[] ids, String[] etags, Long[] parentId){
 		List<RowMetadata> list = new LinkedList<RowMetadata>();

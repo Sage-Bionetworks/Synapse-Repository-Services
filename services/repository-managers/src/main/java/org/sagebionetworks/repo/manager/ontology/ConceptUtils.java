@@ -10,8 +10,6 @@ import java.util.Set;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ontology.Concept;
 import org.sagebionetworks.repo.model.ontology.ConceptComparator;
-import org.sagebionetworks.repo.model.ontology.ConceptSummary;
-import org.sagebionetworks.repo.model.ontology.ConceptSummaryComparator;
 
 /**
  * Functional methods for working with concepts.

@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -17,8 +18,9 @@ import java.util.concurrent.Future;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.sagebionetworks.client.SynapseAdministrationInt;
+import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
@@ -115,21 +117,11 @@ public class MigrationClient {
 	 * @throws SynapseException 
 	 * @throws JSONObjectAdapterException 
 	 */
-	private static void setStatus(SynapseAdministrationInt client, StatusEnum status, String message) throws JSONObjectAdapterException, SynapseException{
+	private static void setStatus(SynapseAdminClient client, StatusEnum status, String message) throws JSONObjectAdapterException, SynapseException{
 		StackStatus destStatus = client.getCurrentStackStatus();
 		destStatus.setStatus(status);
 		destStatus.setCurrentMessage(message);
 		destStatus = client.updateCurrentStackStatus(destStatus);
-	}
-	
-	/**
-	 * Get the current change number of the destination.
-	 * @return
-	 * @throws SynapseException
-	 * @throws JSONObjectAdapterException
-	 */
-	private long getDestinationCurrentChangeNumber() throws SynapseException, JSONObjectAdapterException{
-		return this.factory.createNewDestinationClient().getCurrentChangeNumber().getNextChangeNumber();
 	}
 	
 	/**
@@ -140,23 +132,31 @@ public class MigrationClient {
 	 * @throws Exception
 	 */
 	public void migrateAllTypes(long batchSize, long timeoutMS, int retryDenominator, boolean deferExceptions) throws Exception {
-		SynapseAdministrationInt source = factory.createNewSourceClient();
-		SynapseAdministrationInt destination = factory.createNewDestinationClient();
+		SynapseAdminClient source = factory.createNewSourceClient();
+		SynapseAdminClient destination = factory.createNewDestinationClient();
 		// Get the counts for all type from both the source and destination
 		MigrationTypeCounts startSourceCounts = source.getTypeCounts();
 		MigrationTypeCounts startDestCounts = destination.getTypeCounts();
 		log.info("Start counts:");
 		printCounts(startSourceCounts.getList(), startDestCounts.getList());
-		// Get the primary types
-		List<MigrationType> primaryTypes = source.getPrimaryTypes().getList();
+		// Get the primary types for src and dest
+		List<MigrationType> srcPrimaryTypes = source.getPrimaryTypes().getList();
+		List<MigrationType> destPrimaryTypes = destination.getPrimaryTypes().getList();
+		// Only migrate the src primary types that are at destination
+		List<MigrationType> primaryTypesToMigrate = new LinkedList<MigrationType>();
+		for (MigrationType pt: destPrimaryTypes) {
+			if (srcPrimaryTypes.contains(pt)) {
+				primaryTypesToMigrate.add(pt);
+			}
+		}
 		// Do the actual migration.
-		migrateAll(batchSize, timeoutMS, retryDenominator, primaryTypes, deferExceptions);
+		migrateAll(batchSize, timeoutMS, retryDenominator, primaryTypesToMigrate, deferExceptions);
 		// Print the final counts
 		MigrationTypeCounts endSourceCounts = source.getTypeCounts();
 		MigrationTypeCounts endDestCounts = destination.getTypeCounts();
 		log.info("End counts:");
 		printCounts(endSourceCounts.getList(), endDestCounts.getList());
-
+		
 		if ((deferExceptions) && (this.deferredExceptions.size() > 0)) {
 			log.error("Encountered " + this.deferredExceptions.size() + " execution exceptions in the worker threads");
 			this.dumpDeferredExceptions();
@@ -179,29 +179,70 @@ public class MigrationClient {
 			DeltaData dd = calculateDeltaForType(type, batchSize);
 			deltaList.add(dd);
 		}
-		// Now do all adds in the original order
-		for(int i=0; i<deltaList.size(); i++){
-			DeltaData dd = deltaList.get(i);
-			long count = dd.getCounts().getCreate();
-			if(count > 0){
-				createUpdateInDestination(dd.getType(), dd.getCreateTemp(), count, batchSize, timeoutMS, retryDenominator, deferExceptions);
+		
+		// First attempt to delete, catching any exception (for case like fileHandles)
+		Exception firstDeleteException = null;
+		try {
+			// Delete any data in reverse order
+			for(int i=deltaList.size()-1; i >= 0; i--){
+				DeltaData dd = deltaList.get(i);
+				long count =  dd.getCounts().getDelete();
+				if(count > 0){
+					deleteFromDestination(dd.getType(), dd.getDeleteTemp(), count, batchSize, deferExceptions);
+				}
+			}
+		} catch (Exception e) {
+			firstDeleteException = e;
+			log.info("Exception thrown during first delete phase.", e);
+		}
+		
+		// If exception in insert/update phase, then rethrow at end so main is aware of problem
+		Exception insException = null;
+		try {
+			// Now do all adds in the original order
+			for(int i=0; i<deltaList.size(); i++){
+				DeltaData dd = deltaList.get(i);
+				long count = dd.getCounts().getCreate();
+				if(count > 0){
+					createUpdateInDestination(dd.getType(), dd.getCreateTemp(), count, batchSize, timeoutMS, retryDenominator, deferExceptions);
+				}
+			}
+		} catch (Exception e) {
+			insException = e;
+			log.info("Exception thrown during insert phase", e);
+		}
+		Exception updException = null;
+		try {
+			// Now do all updates in the original order
+			for(int i=0; i<deltaList.size(); i++){
+				DeltaData dd = deltaList.get(i);
+				long count = dd.getCounts().getUpdate();
+				if(count > 0){
+					createUpdateInDestination(dd.getType(), dd.getUpdateTemp(), count, batchSize, timeoutMS, retryDenominator, deferExceptions);
+				}
+			}
+		} catch (Exception e) {
+			updException = e;
+			log.info("Exception thrown during update phases", e);
+		}
+
+		// Only do the post-deletes if the initial ones raised an exception
+		if (firstDeleteException != null) {
+			// Now we need to delete any data in reverse order
+			for(int i=deltaList.size()-1; i >= 0; i--){
+				DeltaData dd = deltaList.get(i);
+				long count =  dd.getCounts().getDelete();
+				if(count > 0){
+					deleteFromDestination(dd.getType(), dd.getDeleteTemp(), count, batchSize, deferExceptions);
+				}
 			}
 		}
-		// Now do all updates in the original order
-		for(int i=0; i<deltaList.size(); i++){
-			DeltaData dd = deltaList.get(i);
-			long count = dd.getCounts().getUpdate();
-			if(count > 0){
-				createUpdateInDestination(dd.getType(), dd.getUpdateTemp(), count, batchSize, timeoutMS, retryDenominator, deferExceptions);
-			}
+		
+		if (insException != null) {
+			throw insException;
 		}
-		// Now we need to delete any data in reverse order
-		for(int i=deltaList.size()-1; i >= 0; i--){
-			DeltaData dd = deltaList.get(i);
-			long count =  dd.getCounts().getDelete();
-			if(count > 0){
-				deleteFromDestination(dd.getType(), dd.getDeleteTemp(), count, batchSize, deferExceptions);
-			}
+		if (updException != null) {
+			throw updException;
 		}
 	}
 	
@@ -249,6 +290,7 @@ public class MigrationClient {
 			mapSrcCounts.put(sMtc.getType(), sMtc.getCount());
 		}
 		// All migration types of source should be at destination
+		// Note: unused src migration types are covered, they're not in destination results
 		for (MigrationTypeCount mtc: destCounts) {
 			log.info("\t" + mtc.getType().name() + ":\t" + (mapSrcCounts.containsKey(mtc.getType()) ? mapSrcCounts.get(mtc.getType()).toString() : "NA") + "\t" + mtc.getCount());
 		}

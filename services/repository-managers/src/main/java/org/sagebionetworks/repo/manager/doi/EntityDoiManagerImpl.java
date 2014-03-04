@@ -2,7 +2,8 @@ package org.sagebionetworks.repo.manager.doi;
 
 import java.util.Calendar;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.doi.DoiAsyncClient;
 import org.sagebionetworks.doi.DxAsyncCallback;
 import org.sagebionetworks.doi.DxAsyncClient;
@@ -18,22 +19,22 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DoiDao;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.doi.Doi;
-import org.sagebionetworks.repo.model.doi.DoiObjectType;
 import org.sagebionetworks.repo.model.doi.DoiStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class EntityDoiManagerImpl implements EntityDoiManager {
 
-	private final Logger logger = Logger.getLogger(EntityDoiManagerImpl.class);
+	private final Logger logger = LogManager.getLogger(EntityDoiManagerImpl.class);
 
 	@Autowired private UserManager userManager;
 	@Autowired private AuthorizationManager authorizationManager;
 	@Autowired private DoiDao doiDao;
-	@Autowired private NodeDAO nodeDao;
+	@Autowired private NodeDAO nodeDao;;
 	private final DoiAsyncClient ezidAsyncClient;
 	private final DxAsyncClient dxAsyncClient;
 
@@ -48,10 +49,10 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 	 * avoid race conditions.
 	 */
 	@Override
-	public Doi createDoi(final String currentUserName, final String entityId, final Long versionNumber)
+	public Doi createDoi(final Long userId, final String entityId, final Long versionNumber)
 			throws NotFoundException, UnauthorizedException, DatastoreException {
 
-		if (currentUserName == null || currentUserName.isEmpty()) {
+		if (userId == null) {
 			throw new IllegalArgumentException("User name cannot be null or empty.");
 		}
 		if (entityId == null) {
@@ -59,17 +60,16 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 		}
 
 		// Authorize
-		UserInfo currentUser = userManager.getUserInfo(currentUserName);
+		UserInfo currentUser = userManager.getUserInfo(userId);
 		UserInfo.validateUserInfo(currentUser);
-		String userId = currentUser.getUser().getUserId();
-		if (!authorizationManager.canAccess(currentUser, entityId, ACCESS_TYPE.UPDATE)) {
+		if (!authorizationManager.canAccess(currentUser, entityId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)) {
 			throw new UnauthorizedException(userId + " lacks change access to the requested object.");
 		}
 
 		// If it already exists with no error, no need to create again.
 		Doi doiDto = null;
 		try {
-			doiDto = doiDao.getDoi(entityId, DoiObjectType.ENTITY, versionNumber);
+			doiDto = doiDao.getDoi(entityId, ObjectType.ENTITY, versionNumber);
 		} catch (NotFoundException e) {
 			doiDto = null;
 		}
@@ -82,10 +82,10 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 
 		// Record the attempt. This is where we draw the transaction boundary.
 		if (doiDto == null) {
-			String userGroupId = currentUser.getIndividualGroup().getId();
-			doiDto = doiDao.createDoi(userGroupId, entityId, DoiObjectType.ENTITY, versionNumber, DoiStatus.IN_PROCESS);
+			String userGroupId = currentUser.getId().toString();
+			doiDto = doiDao.createDoi(userGroupId, entityId, ObjectType.ENTITY, versionNumber, DoiStatus.IN_PROCESS);
 		} else {
-			doiDto = doiDao.updateDoiStatus(entityId, DoiObjectType.ENTITY, versionNumber, DoiStatus.IN_PROCESS, doiDto.getEtag());
+			doiDto = doiDao.updateDoiStatus(entityId, ObjectType.ENTITY, versionNumber, DoiStatus.IN_PROCESS, doiDto.getEtag());
 		}
 
 		// Create DOI string
@@ -99,12 +99,7 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 
 		// Create DOI metadata.
 		EzidMetadata metadata = new EzidMetadata();
-		Long principalId = node.getCreatedByPrincipalId();
-		String creatorName = userManager.getDisplayName(principalId);
-		// Display name is optional
-		if (creatorName == null || creatorName.isEmpty()) {
-			creatorName = EzidConstants.DEFAULT_CREATOR;
-		}
+		String creatorName = EzidConstants.DEFAULT_CREATOR;
 		metadata.setCreator(creatorName);
 		final int year = Calendar.getInstance().get(Calendar.YEAR);
 		metadata.setPublicationYear(year);
@@ -125,7 +120,7 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 				assert doi != null;
 				try {
 					Doi dto = doi.getDto();
-					doiDao.updateDoiStatus(dto.getObjectId(), dto.getDoiObjectType(),
+					doiDao.updateDoiStatus(dto.getObjectId(), dto.getObjectType(),
 							dto.getObjectVersion(), DoiStatus.CREATED, dto.getEtag());
 				} catch (DatastoreException e) {
 					logger.error(e.getMessage(), e);
@@ -140,7 +135,7 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 				try {
 					logger.error(e.getMessage(), e);
 					Doi dto = doi.getDto();
-					doiDao.updateDoiStatus(dto.getObjectId(), dto.getDoiObjectType(),
+					doiDao.updateDoiStatus(dto.getObjectId(), dto.getObjectType(),
 							dto.getObjectVersion(), DoiStatus.ERROR, dto.getEtag());
 				} catch (DatastoreException x) {
 					logger.error(x.getMessage(), x);
@@ -157,10 +152,10 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 			public void onSuccess(EzidDoi ezidDoi) {
 				try {
 					Doi doiDto = ezidDoi.getDto();
-					doiDto = doiDao.getDoi(doiDto.getObjectId(), doiDto.getDoiObjectType(),
+					doiDto = doiDao.getDoi(doiDto.getObjectId(), doiDto.getObjectType(),
 							doiDto.getObjectVersion());
 					doiDao.updateDoiStatus(doiDto.getObjectId(),
-							doiDto.getDoiObjectType(), doiDto.getObjectVersion(),
+							doiDto.getObjectType(), doiDto.getObjectVersion(),
 							DoiStatus.READY, doiDto.getEtag());
 				} catch (DatastoreException e) {
 					logger.error(e.getMessage(), e);
@@ -179,24 +174,23 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 	}
 
 	@Override
-	public Doi getDoi(String currentUserId, String entityId, Long versionNumber)
+	public Doi getDoi(Long userId, String entityId, Long versionNumber)
 			throws NotFoundException, UnauthorizedException, DatastoreException {
 
-		if (currentUserId == null || currentUserId.isEmpty()) {
+		if (userId == null) {
 			throw new IllegalArgumentException("User ID cannot be null or empty.");
 		}
 		if (entityId == null) {
 			throw new IllegalArgumentException("Entity ID cannot be null");
 		}
 
-		UserInfo currentUser = userManager.getUserInfo(currentUserId);
+		UserInfo currentUser = userManager.getUserInfo(userId);
 		UserInfo.validateUserInfo(currentUser);
-		String userName = currentUser.getUser().getUserId();
-		if (!authorizationManager.canAccess(currentUser, entityId, ACCESS_TYPE.READ)) {
-			throw new UnauthorizedException(userName + " lacks change access to the requested object.");
+		if (!authorizationManager.canAccess(currentUser, entityId, ObjectType.ENTITY, ACCESS_TYPE.READ)) {
+			throw new UnauthorizedException(userId + " lacks change access to the requested object.");
 		}
 
-		return doiDao.getDoi(entityId, DoiObjectType.ENTITY, versionNumber);
+		return doiDao.getDoi(entityId, ObjectType.ENTITY, versionNumber);
 	}
 
 	/** Gets the node whose information will be used in DOI metadata. */

@@ -1,76 +1,68 @@
 package org.sagebionetworks;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
-import org.apache.http.HttpResponse;
-import org.apache.http.util.EntityUtils;
-import org.json.JSONArray;
-import org.json.JSONObject;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.sagebionetworks.client.HttpClientProvider;
-import org.sagebionetworks.client.HttpClientProviderImpl;
-import org.sagebionetworks.client.Synapse;
+import org.sagebionetworks.client.SynapseAdminClient;
+import org.sagebionetworks.client.SynapseAdminClientImpl;
+import org.sagebionetworks.client.SynapseClient;
+import org.sagebionetworks.client.SynapseClientImpl;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.UserGroup;
 
 public class IT960TermsOfUse {
-	private static Synapse synapse = null;
-	private static Synapse adminSynapse = null;
-	private static String authEndpoint = null;
-	private static String repoEndpoint = null;
+
+	private static SynapseAdminClient adminSynapse;
+	private static SynapseClient synapse;
+	private static Long userToDelete;
 	
 	private static Project project;
 	private static Study dataset;
-
-	@BeforeClass
+	
+	@BeforeClass 
 	public static void beforeClass() throws Exception {
-
-		authEndpoint = StackConfiguration.getAuthenticationServicePrivateEndpoint();
-		repoEndpoint = StackConfiguration.getRepositoryServiceEndpoint();
-		synapse = new Synapse();
-		synapse.setAuthEndpoint(authEndpoint);
-		synapse.setRepositoryEndpoint(repoEndpoint);
-		synapse.login(StackConfiguration.getIntegrationTestUserThreeName(),
-				StackConfiguration.getIntegrationTestUserThreePassword());
+		// Create a user
+		adminSynapse = new SynapseAdminClientImpl();
+		SynapseClientHelper.setEndpoints(adminSynapse);
+		adminSynapse.setUserName(StackConfiguration.getMigrationAdminUsername());
+		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
 		
-		adminSynapse = new Synapse();
-		adminSynapse.setAuthEndpoint(authEndpoint);
-		adminSynapse.setRepositoryEndpoint(repoEndpoint);
-		adminSynapse.login(StackConfiguration.getIntegrationTestUserAdminName(),
-				StackConfiguration.getIntegrationTestUserAdminPassword());
+		synapse = new SynapseClientImpl();
+		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
 		
 		project = new Project();
 		project.setName("foo");
 		project = adminSynapse.createEntity(project);
 		// make the project public readable
-		Collection<UserGroup> groups = adminSynapse.getGroups(0,100).getResults();
-		String publicGroupPrincipalId = null;
-		for (UserGroup group : groups) {
-			if (group.getName().equals("PUBLIC")) 
-				publicGroupPrincipalId = group.getId();
-		}
-		assertNotNull(publicGroupPrincipalId);
-		String aclUri = project.getAccessControlList();
-		JSONObject acl = adminSynapse.getEntity(aclUri);
-		// now add public-readable and push it back
-		JSONArray resourceAccessSet = acl.getJSONArray("resourceAccess");
-		JSONArray accessTypes = new JSONArray();
-		accessTypes.put("READ");
-		JSONObject resourceAccess = new JSONObject();
-		resourceAccess.put("principalId", publicGroupPrincipalId); // add PUBLIC, READ access
-		resourceAccess.put("accessType", accessTypes); // add PUBLIC, READ access
-		resourceAccessSet.put(resourceAccess); // add it to the list
-		adminSynapse.updateEntity(aclUri, acl); // push back to Synapse
+		String publicGroupPrincipalId = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().toString();
+		AccessControlList acl = adminSynapse.getACL(project.getId());
+		
+		// Now add public-readable and push it back
+		Set<ResourceAccess> resourceAccessSet = acl.getResourceAccess();
+		Set<ACCESS_TYPE> accessTypes = new HashSet<ACCESS_TYPE>();
+		accessTypes.add(ACCESS_TYPE.READ);
+		
+		ResourceAccess resourceAccess = new ResourceAccess();
+		resourceAccess.setPrincipalId(Long.parseLong(publicGroupPrincipalId)); // add PUBLIC, READ access
+		resourceAccess.setAccessType(accessTypes); // add PUBLIC, READ access
+		resourceAccessSet.add(resourceAccess); // add it to the list
+		adminSynapse.updateACL(acl); // push back to Synapse
 		
 		// a dataset added to the project will inherit its parent's permissions, i.e. will be public-readable
 		dataset = new Study();
@@ -86,20 +78,15 @@ public class IT960TermsOfUse {
 		dataset = adminSynapse.createEntity(dataset);
 	}
 	
-	// make sure that after the test suite is done running the user has signed the Terms of Use
 	@AfterClass
 	public static void afterClass() throws Exception {
-		if (adminSynapse!=null && project!=null) adminSynapse.deleteEntity(project);
+		adminSynapse.deleteAndPurgeEntity(project);
+		adminSynapse.deleteUser(userToDelete);
 	}
 
 	@Test
 	public void testGetTermsOfUse() throws Exception {
-		HttpClientProvider clientProvider = new HttpClientProviderImpl();
-		String requestUrl = authEndpoint+"/termsOfUse.html";
-		String requestMethod = "GET";
-		HttpResponse response = clientProvider.performRequest(requestUrl, requestMethod, null, null);
-		String responseBody = (null != response.getEntity()) ? EntityUtils
-				.toString(response.getEntity()) : null;
+		String responseBody = synapse.getSynapseTermsOfUse();
 		assertTrue(responseBody.length()>100);
 	}
 	
@@ -113,9 +100,8 @@ public class IT960TermsOfUse {
 
 	@Test
 	public void testRepoSvcNoTermsOfUse() throws Exception {
-		Synapse anonymous = new Synapse();
-		anonymous.setAuthEndpoint(authEndpoint);
-		anonymous.setRepositoryEndpoint(repoEndpoint);
+		SynapseClientImpl anonymous = new SynapseClientImpl();
+		SynapseClientHelper.setEndpoints(anonymous);
 		
 		Study ds = synapse.getEntity(dataset.getId(), Study.class);
 		List<LocationData> locations = ds.getLocations();

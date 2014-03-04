@@ -129,10 +129,18 @@ public class DMLUtilsTest {
 	@Test
 	public void testCreateGetCountStatment(){
 		// Here is our simple mapping.
-		String dml = DMLUtils.createGetCountStatement(mapping);
+		String dml = DMLUtils.createGetCountByPrimaryKeyStatement(mapping);
 		assertNotNull(dml);
 		System.out.println(dml);
 		assertEquals("SELECT COUNT(ID) FROM SOME_TABLE", dml);
+	}
+	
+	@Test
+	public void testCreateGetMaxStatement() {
+		String dml = DMLUtils.createGetMaxByBackupKeyStatement(mapping);
+		assertNotNull(dml);
+		System.out.println(dml);
+		assertEquals("SELECT MAX(ID) FROM SOME_TABLE", dml);
 	}
 	
 	@Test
@@ -217,11 +225,11 @@ public class DMLUtilsTest {
 	}
 	
 	@Test
-	public void testGetBatchInsertOrUdpateKeyOnly(){
+	public void testGetBatchInsertOrUdpatePrimaryKeyOnly(){
 		String sql = DMLUtils.getBatchInsertOrUdpate(migrateableMappingNoEtagNotSelfForeignKey);
 		assertNotNull(sql);
 		System.out.println(sql);
-		assertEquals("INSERT INTO SOME_TABLE(`ID`) VALUES (:id)", sql);
+		assertEquals("INSERT IGNORE INTO SOME_TABLE(`ID`) VALUES (:id)", sql);
 	}
 	
 }

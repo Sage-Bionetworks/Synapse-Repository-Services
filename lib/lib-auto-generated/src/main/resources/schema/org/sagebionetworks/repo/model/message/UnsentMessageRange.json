@@ -1,0 +1,14 @@
+{
+	"title": "UnsentMessageRange",
+	"description": "JSON schema for a range of change message numbers to recheck",
+	"properties": {
+		"lowerBound": {
+			"type": "integer",
+			"description":"The lower bound (inclusive) of the range of application change numbers to check."
+		},
+		"upperBound": {
+			"type": "integer",
+			"description":"The upper bound (inclusive) of the range of application change numbers to check."
+		}
+	}
+}

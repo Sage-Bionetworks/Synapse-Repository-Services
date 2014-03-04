@@ -5,20 +5,21 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.Callable;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.repo.manager.dynamo.NodeTreeUpdateManager;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.message.ObjectType;
+import org.sagebionetworks.repo.model.ObjectType;
 
 import com.amazonaws.services.sqs.model.Message;
 
 public class DynamoQueueWorker implements Callable<List<Message>> {
 
-	private final Logger logger = Logger.getLogger(DynamoQueueWorker.class);
+	private final Logger logger = LogManager.getLogger(DynamoQueueWorker.class);
 
 	private final Consumer consumer;
 

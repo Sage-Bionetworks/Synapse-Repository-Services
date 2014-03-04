@@ -13,7 +13,6 @@ import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.file.services.FileUploadService;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
 import org.sagebionetworks.repo.model.file.ChunkResult;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
@@ -139,16 +138,15 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * href="${org.sagebionetworks.repo.model.wiki.WikiPage}">WikiPage</a>. For more
  * information see the following:
  * <ul>
- * <li><a href="${org.sagebionetworks.repo.model.FileEntity}">FileEntity</a> -
- * <a href="${GET.entity.id.file}">GET /entity/{id}/file</a>, <a
- * href="${GET.entity.id.version.versionNumber.file}">GET
- * /entity/{id}/version/{versionNumber}/file</a>, <a
- * href="${GET.entity.id.filepreview}">GET /entity/{id}/filepreview</a>, <a
- * href="${GET.entity.id.version.versionNumber.filepreview}">GET
- * /entity/{id}/version/{versionNumber}/filepreview</a>, <a
- * href="${GET.entity.id.filehandles}">GET /entity/{id}/filehandles</a>, <a
- * href="${GET.entity.id.version.versionNumber.filehandles}">GET
- * /entity/{id}/version/{versionNumber}/filehandles</a>,</li>
+ * <li><a href="${org.sagebionetworks.repo.model.FileEntity}">FileEntity</a>
+ * <li><a href="${POST.entity}">POST /entity</a>
+ * <li><a href="${PUT.entity.id}">PUT /entity/{id}</a>
+ * <li><a href="${GET.entity.id.file}">GET /entity/{id}/file</a>
+ * <li><a href="${GET.entity.id.version.versionNumber.file}">GET /entity/{id}/version/{versionNumber}/file</a>
+ * <li><a href="${GET.entity.id.filepreview}">GET /entity/{id}/filepreview</a>
+ * <li><a href="${GET.entity.id.version.versionNumber.filepreview}">GET /entity/{id}/version/{versionNumber}/filepreview</a>
+ * <li><a href="${GET.entity.id.filehandles}">GET /entity/{id}/filehandles</a>
+ * <li><a href="${GET.entity.id.version.versionNumber.filehandles}">GET /entity/{id}/version/{versionNumber}/filehandles</a>
  * </ul>
  */
 @ControllerInfo(displayName = "File Services", path = "file/v1")
@@ -177,15 +175,12 @@ public class UploadController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = "/fileHandle", method = RequestMethod.POST)
-	void uploadFiles(HttpServletRequest request, HttpServletResponse response,
+	void uploadFiles(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			HttpServletRequest request, HttpServletResponse response,
 			@RequestHeader HttpHeaders headers) throws FileUploadException,
 			IOException, DatastoreException, NotFoundException,
 			ServiceUnavailableException, JSONObjectAdapterException {
-		// Get the user ID
-		String userId = request
-				.getParameter(AuthorizationConstants.USER_ID_PARAM);
-		if (userId == null)
-			throw new UnauthorizedException("The user must be authenticated");
 		LogUtils.logRequest(log, request);
 		// Maker sure this is a multipart
 		if (!ServletFileUpload.isMultipartContent(request)) {
@@ -227,7 +222,7 @@ public class UploadController extends BaseController {
 	public @ResponseBody
 	FileHandle getFileHandle(
 			@PathVariable String handleId,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			HttpServletRequest request) throws FileUploadException,
 			IOException, DatastoreException, NotFoundException,
 			ServiceUnavailableException, JSONObjectAdapterException {
@@ -259,13 +254,41 @@ public class UploadController extends BaseController {
 	public @ResponseBody
 	void deleteFileHandle(
 			@PathVariable String handleId,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			HttpServletRequest request) throws FileUploadException,
 			IOException, DatastoreException, NotFoundException,
 			ServiceUnavailableException, JSONObjectAdapterException {
 		// Get the user ID
 		fileService.deleteFileHandle(handleId, userId);
 	}
+	
+	/**
+	 * Delete the preview associated with the given FileHandle.  
+	 * This will cause Synapse to automatically generate a new <a href="${org.sagebionetworks.repo.model.file.PreviewFileHandle}">PreviewFileHandle</a>.
+	 * @param handleId
+	 *     The ID of the FileHandle whose preview should be cleared.
+	 * @param userId
+	 * @param request
+	 * @throws FileUploadException
+	 * @throws IOException
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws ServiceUnavailableException
+	 * @throws JSONObjectAdapterException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = "/fileHandle/{handleId}/filepreview", method = RequestMethod.DELETE)
+	public @ResponseBody
+	void clearPreview(
+			@PathVariable String handleId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			HttpServletRequest request) throws FileUploadException,
+			IOException, DatastoreException, NotFoundException,
+			ServiceUnavailableException, JSONObjectAdapterException {
+		// clear the preview
+		fileService.clearPreview(handleId, userId);
+	}
+
 
 	/**
 	 * Create an ExternalFileHandle to represent an external URL. Synapse will
@@ -285,7 +308,7 @@ public class UploadController extends BaseController {
 	@RequestMapping(value = "/externalFileHandle", method = RequestMethod.POST)
 	public @ResponseBody
 	ExternalFileHandle createExternalFileHandle(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody ExternalFileHandle fileHandle)
 			throws DatastoreException, NotFoundException {
 		// Pass it along
@@ -312,7 +335,7 @@ public class UploadController extends BaseController {
 	@RequestMapping(value = "/createChunkedFileUploadToken", method = RequestMethod.POST)
 	public @ResponseBody
 	ChunkedFileToken createChunkedFileUploadToken(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody CreateChunkedFileTokenRequest ccftr)
 			throws DatastoreException, NotFoundException {
 		return fileService.createChunkedFileUploadToken(userId, ccftr);
@@ -338,7 +361,7 @@ public class UploadController extends BaseController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = "/createChunkedFileUploadChunkURL", method = RequestMethod.POST)
 	public void createChunkedPresignedUrl(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody ChunkRequest cpr, HttpServletResponse response)
 			throws DatastoreException, NotFoundException, IOException {
 		URL url = fileService.createChunkedFileUploadPartURL(userId, cpr);
@@ -371,7 +394,7 @@ public class UploadController extends BaseController {
 	@RequestMapping(value = "/addChunkToFile", method = RequestMethod.POST)
 	public @ResponseBody
 	ChunkResult addChunkToFile(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody ChunkRequest cpr) throws DatastoreException,
 			NotFoundException {
 		return fileService.addChunkToFile(userId, cpr);
@@ -395,7 +418,7 @@ public class UploadController extends BaseController {
 	@RequestMapping(value = "/completeChunkFileUpload", method = RequestMethod.POST)
 	public @ResponseBody
 	S3FileHandle completeChunkFileUpload(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody CompleteChunkedFileRequest ccfr)
 			throws DatastoreException, NotFoundException {
 		return fileService.completeChunkFileUpload(userId, ccfr);
@@ -416,7 +439,7 @@ public class UploadController extends BaseController {
 	@RequestMapping(value = "/startCompleteUploadDaemon", method = RequestMethod.POST)
 	public @ResponseBody
 	UploadDaemonStatus startCompleteUploadDaemon(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody CompleteAllChunksRequest cacf)
 			throws DatastoreException, NotFoundException {
 		return fileService.startUploadDeamon(userId, cacf);
@@ -436,7 +459,7 @@ public class UploadController extends BaseController {
 	@RequestMapping(value = "/completeUploadDaemonStatus/{daemonId}", method = RequestMethod.GET)
 	public @ResponseBody
 	UploadDaemonStatus completeUploadDaemonStatus(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String daemonId) throws DatastoreException,
 			NotFoundException {
 		return fileService.getUploadDaemonStatus(userId, daemonId);

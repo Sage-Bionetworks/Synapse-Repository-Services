@@ -9,44 +9,41 @@ import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.ids.ETagGenerator;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.UuidETagGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.ActivityDAO;
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.NodeBackupDAO;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.NodeParentRelation;
-import org.sagebionetworks.repo.model.NodeRevisionBackup;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
-import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -67,26 +64,19 @@ import org.springframework.transaction.UnexpectedRollbackException;
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class NodeDAOImplTest {
 
-	@Autowired
-	NodeDAO nodeDao;
+	public static final long TEST_FILE_SIZE = 1234567l;
 
 	@Autowired
-	NodeBackupDAO nodeBackupDao;
+	private NodeDAO nodeDao;
 
 	@Autowired
-	NodeInheritanceDAO nodeInheritanceDAO;
+	private NodeInheritanceDAO nodeInheritanceDAO;
 	
 	@Autowired
-	AccessControlListDAO accessControlListDAO;
+	private AccessControlListDAO accessControlListDAO;
 	
 	@Autowired
 	private IdGenerator idGenerator;
-	
-	@Autowired
-	private ETagGenerator eTagGenerator;
-	
-	@Autowired
-	private UserGroupDAO userGroupDAO;
 	
 	@Autowired
 	private ActivityDAO activityDAO;
@@ -99,8 +89,8 @@ public class NodeDAOImplTest {
 	List<String> activitiesToDelete = new ArrayList<String>();
 	List<String> fileHandlesToDelete = new ArrayList<String>();
 	
-	private Long creatorUserGroupId = null;	
-	private Long altUserGroupId = null;
+	private Long creatorUserGroupId;	
+	private Long altUserGroupId;
 	private Activity testActivity = null;
 	private Activity testActivity2 = null;
 	
@@ -109,11 +99,8 @@ public class NodeDAOImplTest {
 	
 	@Before
 	public void before() throws Exception {
-		creatorUserGroupId = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId());
-		assertNotNull(creatorUserGroupId);
-		
-		altUserGroupId = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.DEFAULT_GROUPS.AUTHENTICATED_USERS.name(), false).getId());
-		assertNotNull(altUserGroupId);
+		creatorUserGroupId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+		altUserGroupId = BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId();
 		
 		assertNotNull(nodeDao);
 		assertNotNull(nodeInheritanceDAO);
@@ -180,6 +167,7 @@ public class NodeDAOImplTest {
 			Node current = nodeDao.getNode(id);
 			current.setVersionComment("Comment "+i);
 			current.setVersionLabel("0.0."+i);
+			current.setFileHandleId(fileHandle.getId());
 			nodeDao.createNewVersion(current);
 		}
 		return id;
@@ -304,7 +292,7 @@ public class NodeDAOImplTest {
 		acl.setResourceAccess(ras);
 		acl.setId(parentId);
 		acl.setCreationDate(new Date());
-		accessControlListDAO.create(acl);
+		accessControlListDAO.create(acl, ObjectType.ENTITY);
 		
 		
 		//Now add an child
@@ -559,7 +547,7 @@ public class NodeDAOImplTest {
 		annos.addAnnotation("bigBlob", bigBlob);
 		annos.addAnnotation("dateKey", new Date(System.currentTimeMillis()));
 		// update the eTag
-		String newETagString = eTagGenerator.generateETag();
+		String newETagString = UUID.randomUUID().toString();
 		annos.setEtag(newETagString);
 		// Update them
 		nodeDao.updateAnnotations(id, named);
@@ -735,14 +723,14 @@ public class NodeDAOImplTest {
 		// same annotations.
 		NamedAnnotations namedCopyV1 = nodeDao.getAnnotationsForVersion(id, 1L);
 		assertNotNull(namedCopyV1.getEtag());
-		assertEquals(UuidETagGenerator.ZERO_E_TAG, namedCopyV1.getEtag());
+		assertEquals(NodeConstants.ZERO_E_TAG, namedCopyV1.getEtag());
 		Annotations v1Annos = namedCopyV1.getAdditionalAnnotations();
 		assertNotNull(v1Annos);
-		assertEquals(UuidETagGenerator.ZERO_E_TAG, v1Annos.getEtag());
+		assertEquals(NodeConstants.ZERO_E_TAG, v1Annos.getEtag());
 		NamedAnnotations namedCopyV2 = nodeDao.getAnnotationsForVersion(id, 2L);
 		Annotations v2Annos = namedCopyV2.getAdditionalAnnotations();
 		assertNotNull(v2Annos);
-		assertEquals(UuidETagGenerator.ZERO_E_TAG, v2Annos.getEtag());
+		assertEquals(NodeConstants.ZERO_E_TAG, v2Annos.getEtag());
 		assertEquals(v1Annos, v2Annos);
 		NamedAnnotations namedCopy = nodeDao.getAnnotations(id);
 		Annotations currentAnnos = namedCopy.getAdditionalAnnotations();
@@ -761,14 +749,14 @@ public class NodeDAOImplTest {
 		// Now the old and new should no longer match.
 		namedCopyV1 = nodeDao.getAnnotationsForVersion(id, 1L);
 		assertNotNull(namedCopyV1.getEtag());
-		assertEquals(UuidETagGenerator.ZERO_E_TAG, namedCopyV1.getEtag());
+		assertEquals(NodeConstants.ZERO_E_TAG, namedCopyV1.getEtag());
 		v1Annos = namedCopyV1.getAdditionalAnnotations();
 		assertNotNull(v1Annos);
 		assertEquals(2.3, v1Annos.getSingleValue("double"));
 		namedCopyV2 = nodeDao.getAnnotationsForVersion(id, 2L);
 		v2Annos = namedCopyV2.getAdditionalAnnotations();
 		assertNotNull(v2Annos);
-		assertEquals(UuidETagGenerator.ZERO_E_TAG, v2Annos.getEtag());
+		assertEquals(NodeConstants.ZERO_E_TAG, v2Annos.getEtag());
 		assertEquals(8989898.2, v2Annos.getSingleValue("double"));
 		// The two version should now be out of synch with each other.
 		assertFalse(v1Annos.equals(v2Annos));
@@ -808,7 +796,7 @@ public class NodeDAOImplTest {
 		for(Long versionNumber: versionNumbers){
 			Node nodeVersion = nodeDao.getNodeForVersion(id, versionNumber);
 			assertNotNull(nodeVersion.getETag());
-			assertEquals(UuidETagGenerator.ZERO_E_TAG, nodeVersion.getETag());
+			assertEquals(NodeConstants.ZERO_E_TAG, nodeVersion.getETag());
 			assertNotNull(nodeVersion);
 			assertEquals(versionNumber, nodeVersion.getVersionNumber());
 		}
@@ -823,12 +811,18 @@ public class NodeDAOImplTest {
 		QueryResults<VersionInfo> versionsOfEntity = nodeDao.getVersionsOfEntity(id, 0, 10);
 		assertNotNull(versionsOfEntity);
 		assertEquals(numberVersions,versionsOfEntity.getResults().size());
-		assertEquals(new Long(numberVersions), versionsOfEntity.getResults().get(0).getVersionNumber());
+		VersionInfo firstResult = versionsOfEntity.getResults().get(0);
+		assertEquals(new Long(numberVersions), firstResult.getVersionNumber());
+		//verify content size
+		assertEquals(Long.toString(TEST_FILE_SIZE), firstResult.getContentSize());
+		//verify md5 (is set to filename in our test filehandle)
+		assertEquals(fileHandle.getFileName(), firstResult.getContentMd5());
+
 		assertEquals(new Long(1), versionsOfEntity.getResults().get(versionsOfEntity.getResults().size()-1).getVersionNumber());
 		for (VersionInfo vi : versionsOfEntity.getResults()) {
 			Node node = nodeDao.getNodeForVersion(id, vi.getVersionNumber());
 			assertNotNull(node.getETag());
-			assertEquals(UuidETagGenerator.ZERO_E_TAG, node.getETag());
+			assertEquals(NodeConstants.ZERO_E_TAG, node.getETag());
 			Date modDate = node.getModifiedOn();
 			assertEquals(modDate, vi.getModifiedOn());
 		}
@@ -993,7 +987,7 @@ public class NodeDAOImplTest {
 		assertNotNull(grandId);
 		
 		// Get the individual headers
-		EntityHeader[] array = new EntityHeader[3];;
+		EntityHeader[] array = new EntityHeader[3];
 		array[0] = nodeDao.getEntityHeader(parentId, null);
 		array[1] = nodeDao.getEntityHeader(childId, null);
 		array[2] = nodeDao.getEntityHeader(grandId, null);
@@ -1021,6 +1015,54 @@ public class NodeDAOImplTest {
 		assertEquals(array[0].getId(), path.get(0).getId());
 	}
 	
+	@Test(expected=NotFoundException.class)
+	public void testGetEntityPathInvalidNode() throws Exception {
+		nodeDao.getEntityPath("syn9999999");
+	}
+	
+	// we introduced batch entity path search so we test the case that 
+	// the path is bigger than one batch
+	@Test
+	public void testGetDeepEntityPath() throws Exception {
+		testGetEntityPath(NodeDAOImpl.BATCH_PATH_DEPTH+3);
+	}
+	
+	@Test
+	public void testGetDeepEntityPathEdgeCase() throws Exception {
+		testGetEntityPath(NodeDAOImpl.BATCH_PATH_DEPTH*2);
+	}
+	
+	@Test 
+	public void testGetShallowEntityPath() throws Exception {
+		testGetEntityPath(1);
+	}
+	
+	
+	private void testGetEntityPath(int depth) throws NotFoundException {
+		String[] ids = new String[depth];
+		for (int i=0; i<depth; i++) {
+			Node node = privateCreateNew("node_"+i);
+			node.setNodeType(EntityType.project.name());
+			if (i>0) node.setParentId(ids[i-1]);
+			ids[i] = nodeDao.createNew(node);
+			assertNotNull(ids[i]);
+			toDelete.add(ids[i]);
+		}
+		EntityHeader[] array = new EntityHeader[depth];
+		for (int i=0; i<depth; i++) {
+			array[i] = nodeDao.getEntityHeader(ids[i], null);
+			// 'getEntityPath' doesn't retreive version info, so we clear these fields for the sake of comparison
+			array[i].setVersionLabel(null);
+			array[i].setVersionNumber(null);
+		}
+		List<EntityHeader> path = nodeDao.getEntityPath(ids[depth-1]);
+		assertNotNull(path);
+		assertEquals(depth, path.size());
+		for (int i=0; i<depth; i++) {
+			assertEquals(array[i], path.get(i));
+		}
+	}
+	
 	@Test
 	public void testGetChildrenList() throws NotFoundException, DatastoreException, InvalidModelException {
 		Node node = privateCreateNew("parent");
@@ -1042,96 +1084,6 @@ public class NodeDAOImplTest {
 		List<String> fromDao =  nodeDao.getChildrenIdsAsList(parentId);
 		// Check that the ids returned have the syn prefix
 		assertEquals(childIds, fromDao);
-	}
-	
-	
-	@Test
-	public void testUpdateRevision() throws NotFoundException, DatastoreException, InvalidModelException {
-		Node node = privateCreateNew("parent");
-		node.setNodeType(EntityType.project.name());
-		String id = nodeDao.createNew(node);
-		toDelete.add(id);
-		assertNotNull(id);
-		node = nodeDao.getNode(id);
-		Long v1Number = node.getVersionNumber();
-		// Get the current rev
-		NodeRevisionBackup currentRev = nodeBackupDao.getNodeRevision(id, node.getVersionNumber());
-		assertNotNull(currentRev);
-		// Add some annotations
-		String keyOnFirstVersion = "NodeDAOImplTest.testUpdateRevision.OnFirstVersion";
-		currentRev.getNamedAnnotations().getAdditionalAnnotations().addAnnotation(keyOnFirstVersion, "newValue");
-		currentRev.setLabel("2.0");
-		nodeBackupDao.updateRevisionFromBackup(currentRev);
-		
-		// Get it back
-		NodeRevisionBackup clone = nodeBackupDao.getNodeRevision(id, node.getVersionNumber());
-		assertNotNull(clone);
-		assertEquals("newValue", clone.getNamedAnnotations().getAdditionalAnnotations().getSingleValue(keyOnFirstVersion));
-		assertEquals("2.0", clone.getLabel());
-		
-		// now create a new version
-		node = nodeDao.getNode(id);
-		node.setVersionLabel("3.0");
-		nodeDao.createNewVersion(node);
-		node = nodeDao.getNode(id);
-		// Get the latest
-		clone = nodeBackupDao.getNodeRevision(id, node.getVersionNumber());
-		// Clear the string annotations.
-		clone.getNamedAnnotations().getAdditionalAnnotations().setStringAnnotations(new HashMap<String, List<String>>());
-		nodeBackupDao.updateRevisionFromBackup(clone);
-	
-		// Finally, update the first version again, adding back the string property
-		// but this time since this is not the current version it should not be query-able
-		clone = nodeBackupDao.getNodeRevision(id, v1Number);
-		clone.getNamedAnnotations().getAdditionalAnnotations().addAnnotation(keyOnFirstVersion, "updatedValue");
-		nodeBackupDao.updateRevisionFromBackup(clone);
-	}
-	
-	@Test
-	public void testCreateRevision() throws Exception {
-		Long currentVersionNumver = new Long(8);
-		Node node = privateCreateNew("parent");
-		// Start with a node already on an advanced version
-		node.setVersionNumber(currentVersionNumver);
-		node.setVersionComment("Current comment");
-		node.setVersionLabel("8.0");
-		node.setNodeType(EntityType.project.name());
-		String id = nodeDao.createNew(node);
-		toDelete.add(id);
-		assertNotNull(id);
-		node = nodeDao.getNode(id);
-		assertEquals("8.0", node.getVersionLabel());
-		assertEquals(currentVersionNumver, node.getVersionNumber());
-		
-		// now create a new version number
-		NodeRevisionBackup newRev = new NodeRevisionBackup();
-		Annotations annos = new Annotations();
-		annos.addAnnotation("stringKey", "StringValue");
-		annos.addAnnotation("dateKey", new Date(1000));
-		annos.addAnnotation("longKey", new Long(123));
-		annos.addAnnotation("doubleKey", new Double(4.5));
-		NamedAnnotations nammed = new NamedAnnotations();
-		nammed.put("newNamed", annos);
-		String keyOnNewVersion = "NodeDAOImplTest.testCreateRevision.OnNew";
-		annos.addAnnotation(keyOnNewVersion, "value on new");
-		newRev.setNamedAnnotations(nammed);
-		Long newVersionNumber = new Long(1);
-		newRev.setRevisionNumber(newVersionNumber);
-		newRev.setNodeId(id);
-		newRev.setLabel("1.0");
-		newRev.setModifiedByPrincipalId(creatorUserGroupId);
-		newRev.setModifiedOn(new Date());
-		newRev.setReferences(new HashMap<String, Set<Reference>>());
-
-		// Now create the version
-		nodeBackupDao.createNewRevisionFromBackup(newRev);
-		
-		// Get the older version
-		NodeRevisionBackup clone = nodeBackupDao.getNodeRevision(id, newVersionNumber);
-		assertNotNull(clone);
-		assertEquals("value on new", clone.getNamedAnnotations().getAnnotationsForName("newNamed").getSingleValue(keyOnNewVersion));
-		assertEquals("1.0", clone.getLabel());
-		assertEquals(newRev, clone);
 	}
 	
 	@Test (expected=NotFoundException.class)
@@ -1589,78 +1541,6 @@ public class NodeDAOImplTest {
 	}
 	
 	@Test
-	public void testCreateNodeFromBackup() throws NotFoundException, DatastoreException, InvalidModelException {
-		// This will be our backup node.
-		Node backup = privateCreateNew("backMeUp");
-		backup.setNodeType(EntityType.project.name());
-		backup.setActivityId(testActivity.getId()); 
-		String id = nodeDao.createNew(backup);
-		toDelete.add(id);
-		assertNotNull(id);
-		// We will use this to do the backup.
-		backup = nodeDao.getNode(id);
-		// Delete the original node
-		nodeDao.delete(id);
-		// Change the etag (see: PLFM-845)
-		String newEtag = "45";
-		backup.setETag(newEtag);
-		// Now create the node from the backup
-		nodeDao.createNewNodeFromBackup(backup);
-		// Get a fresh copy
-		Node restored = nodeDao.getNode(id);
-		assertNotNull(restored);
-		assertEquals(id, restored.getId());
-		assertEquals("Failed to set the eTag. See: PLFM-845", newEtag, restored.getETag());
-		assertEquals(testActivity.getId(), restored.getActivityId());
-	}
-	
-	@Test
-	public void testUpdateNodeFromBackup() throws NotFoundException, DatastoreException, InvalidModelException {
-		// This will be our backup node.
-		Node backup = privateCreateNew("backMeUp2");
-		backup.setNodeType(EntityType.project.name());		
-		String id = nodeDao.createNew(backup);
-		toDelete.add(id);
-		assertNotNull(id);
-		// We will use this to do the backup.
-		backup = nodeDao.getNode(id);
-		// Change the etag (see: PLFM-845)
-		String newEtag = "199";
-		backup.setETag(newEtag);
-		String newDescription = "New description";
-		
-		backup.setDescription(newDescription);		
-		// Now create the node from the backup
-		nodeDao.updateNodeFromBackup(backup);
-		// The revision should have been deleted.
-		assertFalse(nodeDao.doesNodeRevisionExist(id, backup.getVersionNumber()));
-		// Get a fresh copy
-		try{
-			Node restored = nodeDao.getNode(id);
-			fail("All revision for this node should have been deleted so this should have failed.");
-		}catch (NotFoundException e){
-			// This is expected since updating from a backup replaces all revisions.
-		}
-		// Now create a new revision from backup
-		NodeRevisionBackup revBackup  = new NodeRevisionBackup();
-		revBackup.setNodeId(id);
-		revBackup.setModifiedByPrincipalId(creatorUserGroupId);
-		revBackup.setModifiedOn(new Date(System.currentTimeMillis()));
-		revBackup.setRevisionNumber(1l);
-		revBackup.setLabel("v1");
-		revBackup.setComment("No Comment");
-		revBackup.setActivityId(testActivity.getId()); 
-		((NodeBackupDAO)nodeDao).createNewRevisionFromBackup(revBackup);
-
-		Node restored = nodeDao.getNode(id);
-		assertNotNull(restored);
-		assertEquals(id, restored.getId());
-		assertEquals("Failed to set the eTag. See: PLFM-845", newEtag, restored.getETag());
-		assertEquals(newDescription, restored.getDescription());
-		assertEquals(testActivity.getId(), restored.getActivityId());
-	}
-	
-	@Test
 	public void testGetCurrentRevNumber() throws NotFoundException, DatastoreException, InvalidModelException {
 		Node backup = privateCreateNew("withReveNumber");
 		backup.setNodeType(EntityType.project.name());
@@ -2018,6 +1898,23 @@ public class NodeDAOImplTest {
 		assertTrue(refs.contains(refN1));
 		assertTrue(refs.contains(refN2));
 	}
+	
+	@Test
+	public void testCreateTableNode() throws DatastoreException, InvalidModelException, NotFoundException{
+		List<String> columnIds = new LinkedList<String>();
+		columnIds.add("123");
+		columnIds.add("456");
+		Node n1 = NodeTestUtils.createNew(UUID.randomUUID().toString(), creatorUserGroupId);
+		n1.setColumnModelIds(columnIds);
+		String id1 = this.nodeDao.createNew(n1);
+		toDelete.add(id1);
+		n1 = nodeDao.getNode(id1);
+		assertNotNull("ColumnModel ID were not saved!",n1.getColumnModelIds());
+		List<String> expected = new LinkedList<String>();
+		expected.add("123");
+		expected.add("456");
+		assertEquals(expected, n1.getColumnModelIds());
+	}
 
 	@Test
 	public void testGetEntityHeaderByMd5() throws Exception {
@@ -2117,6 +2014,7 @@ public class NodeDAOImplTest {
 		fileHandle.setCreatedBy(createdById);
 		fileHandle.setFileName(fileName);
 		fileHandle.setContentMd5(fileName);
+		fileHandle.setContentSize(TEST_FILE_SIZE);
 		fileHandle = fileHandleDao.createFile(fileHandle);
 		fileHandlesToDelete.add(fileHandle.getId());
 		return fileHandle;

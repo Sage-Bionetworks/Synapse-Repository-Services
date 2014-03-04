@@ -14,6 +14,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.UUID;
 
 import org.apache.commons.fileupload.FileItemIterator;
 import org.apache.commons.fileupload.FileItemStream;
@@ -29,9 +30,12 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
 import org.sagebionetworks.repo.model.file.ChunkResult;
@@ -44,7 +48,6 @@ import org.sagebionetworks.repo.model.file.State;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
-import org.sagebionetworks.repo.web.util.UserProvider;
 import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -63,19 +66,19 @@ public class FileHandleManagerImplAutowireTest {
 	
 	public static final long MAX_UPLOAD_WORKER_TIME_MS = 20*1000;
 	
-	List<S3FileHandle> toDelete;
+	private List<S3FileHandle> toDelete;
 	
 	@Autowired
-	FileHandleManager fileUploadManager;
+	private FileHandleManager fileUploadManager;
 	
 	@Autowired
-	AmazonS3Client s3Client;
+	private AmazonS3Client s3Client;
 	
 	@Autowired
-	FileHandleDao fileHandleDao;
+	private FileHandleDao fileHandleDao;
 	
 	@Autowired
-	public UserProvider testUserProvider;
+	public UserManager userManager;
 	
 	private UserInfo userInfo;
 	
@@ -88,8 +91,11 @@ public class FileHandleManagerImplAutowireTest {
 	
 	@Before
 	public void before() throws Exception{
-		assertNotNull(testUserProvider);
-		userInfo = testUserProvider.getTestUserInfo();
+		NewUser user = new NewUser();
+		user.setEmail(UUID.randomUUID().toString() + "@test.com");
+		user.setUserName(UUID.randomUUID().toString());
+		userInfo = userManager.getUserInfo(userManager.createUser(user));
+		
 		toDelete = new LinkedList<S3FileHandle>();
 		// Setup the mock file to upload.
 		int numberFiles = 2;
@@ -117,7 +123,7 @@ public class FileHandleManagerImplAutowireTest {
 	}
 	
 	@After
-	public void after(){
+	public void after() throws Exception {
 		if(toDelete != null && s3Client != null){
 			// Delete any files created
 			for(S3FileHandle meta: toDelete){
@@ -127,6 +133,9 @@ public class FileHandleManagerImplAutowireTest {
 				fileHandleDao.delete(meta.getId());
 			}
 		}
+		
+		UserInfo adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		userManager.deletePrincipal(adminUserInfo, Long.parseLong(userInfo.getId().toString()));
 	}
 	
 
@@ -157,10 +166,10 @@ public class FileHandleManagerImplAutowireTest {
 			assertEquals(expected.getContentType(), metaResult.getContentType());
 			assertNotNull("An id should have been assigned to this file", metaResult.getId());
 			assertNotNull("CreatedOn should have been filled in.", metaResult.getCreatedOn());
-			assertEquals("CreatedBy should match the user that created the file.", userInfo.getIndividualGroup().getId(), metaResult.getCreatedBy());
+			assertEquals("CreatedBy should match the user that created the file.", userInfo.getId().toString(), metaResult.getCreatedBy());
 			assertEquals(StackConfiguration.getS3Bucket(), metaResult.getBucketName());
 			assertNotNull(metaResult.getKey());
-			assertTrue("The key should start with the userID", metaResult.getKey().startsWith(userInfo.getIndividualGroup().getId()));			
+			assertTrue("The key should start with the userID", metaResult.getKey().startsWith(userInfo.getId().toString()));			
 			// Validate this is in the database
 			S3FileHandle fromDB = (S3FileHandle) fileHandleDao.get(metaResult.getId());
 			assertEquals(metaResult, fromDB);
@@ -219,7 +228,7 @@ public class FileHandleManagerImplAutowireTest {
 		assertNotNull(token.getUploadId());
 		assertNotNull(md5, token.getContentMD5());
 		// the key must start with the user's id
-		assertTrue(token.getKey().startsWith(userInfo.getIndividualGroup().getId()));
+		assertTrue(token.getKey().startsWith(userInfo.getId().toString()));
 		// Now create a pre-signed URL for the first part
 		ChunkRequest cpr = new ChunkRequest();
 		cpr.setChunkedFileToken(token);
@@ -280,7 +289,7 @@ public class FileHandleManagerImplAutowireTest {
 		assertNotNull(token.getUploadId());
 		assertNotNull(md5, token.getContentMD5());
 		// the key must start with the user's id
-		assertTrue(token.getKey().startsWith(userInfo.getIndividualGroup().getId()));
+		assertTrue(token.getKey().startsWith(userInfo.getId().toString()));
 		// Now create a pre-signed URL for the first part
 		ChunkRequest cpr = new ChunkRequest();
 		cpr.setChunkedFileToken(token);
@@ -307,7 +316,7 @@ public class FileHandleManagerImplAutowireTest {
 		System.out.println(daemonStatus.toString());
 		assertEquals(State.COMPLETED, daemonStatus.getState());
 		assertEquals(100, daemonStatus.getPercentComplete(), 0.0001);
-		assertEquals(userInfo.getIndividualGroup().getId(), daemonStatus.getStartedBy());
+		assertEquals(userInfo.getId().toString(), daemonStatus.getStartedBy());
 		assertEquals(null, daemonStatus.getErrorMessage());
 		assertNotNull(daemonStatus.getFileHandleId());
 		// Get the file handle

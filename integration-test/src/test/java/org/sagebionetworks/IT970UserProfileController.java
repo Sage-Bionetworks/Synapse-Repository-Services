@@ -4,50 +4,40 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.logging.Logger;
 
-import org.json.JSONObject;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.sagebionetworks.client.Synapse;
-import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.SynapseAdminClient;
+import org.sagebionetworks.client.SynapseAdminClientImpl;
+import org.sagebionetworks.client.SynapseClient;
+import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.UserProfile;
 
 public class IT970UserProfileController {
-	private static final Logger log = Logger.getLogger(IT970UserProfileController.class.getName());
-	
-	private static Synapse synapse = null;
 
-	List<String> entitiesToDelete;
+	private static SynapseAdminClient adminSynapse;
+	private static SynapseClient synapse;
+	private static Long userToDelete;
+
+	private List<String> entitiesToDelete;
 	
-	private static Synapse createSynapseClient(String user, String pw) throws SynapseException {
-		Synapse synapse = new Synapse();
-		synapse.setAuthEndpoint(StackConfiguration
-				.getAuthenticationServicePrivateEndpoint());
-		synapse.setRepositoryEndpoint(StackConfiguration
-				.getRepositoryServiceEndpoint());
-		synapse.setFileEndpoint(StackConfiguration.getFileServiceEndpoint());
-		synapse.login(user, pw);
-		
-		return synapse;
-	}
-	
-	/**
-	 * @throws Exception
-	 * 
-	 */
-	@BeforeClass
+	@BeforeClass 
 	public static void beforeClass() throws Exception {
-		synapse = createSynapseClient(StackConfiguration.getIntegrationTestUserOneName(),
-				StackConfiguration.getIntegrationTestUserOnePassword());
+		// Create a user
+		adminSynapse = new SynapseAdminClientImpl();
+		SynapseClientHelper.setEndpoints(adminSynapse);
+		adminSynapse.setUserName(StackConfiguration.getMigrationAdminUsername());
+		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
+		
+		synapse = new SynapseClientImpl();
+		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
 	}
 	
 	@Before
@@ -58,19 +48,24 @@ public class IT970UserProfileController {
 	@After
 	public void after() throws Exception {
 		for(String id : entitiesToDelete) {
-			synapse.deleteEntityById(id);
+			synapse.deleteAndPurgeEntityById(id);
 		}
+	}
+	
+	@AfterClass
+	public static void afterClass() throws Exception {
+		adminSynapse.deleteUser(userToDelete);
 	}
 	
 	@Test
 	public void testGetAndUpdateOwnUserProfile() throws Exception {
-		JSONObject userProfile = synapse.getSynapseEntity(synapse.getRepoEndpoint(), "/userProfile");
+		UserProfile userProfile = synapse.getMyProfile();
 		System.out.println(userProfile);
 		// now update the fields
-		userProfile.put("firstName", "foo");
-		userProfile.put("lastName", "bar");
-		Map<String,String> headers = new HashMap<String, String>();
-		synapse.putJSONObject("/userProfile", userProfile, headers);
+		userProfile.setFirstName("foo");
+		userProfile.setLastName("bar");
+		
+		synapse.updateMyProfile(userProfile);
 	}
 	
 	@Test 

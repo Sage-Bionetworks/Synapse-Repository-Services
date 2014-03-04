@@ -1,10 +1,8 @@
 package org.sagebionetworks;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -14,79 +12,53 @@ import java.util.Map;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
-import org.sagebionetworks.client.SynapseAdministration;
+import org.sagebionetworks.client.SynapseAdminClient;
+import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.DaemonStatus;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
-import org.sagebionetworks.repo.model.migration.IdList;
+import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
-import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-
-import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.services.s3.AmazonS3Client;
 
 
 public class IT102MigrationTest {
-	
-	private static SynapseAdministration conn;
-	private static AmazonS3Client s3Client;
-	private static String bucket;
+
+	private static SynapseAdminClient adminSynapse;
 	private Project project;
 	
 	private List<Entity> toDelete;
 
 	@BeforeClass
 	public static void beforeClass() throws Exception {
-		// Use the synapse client to do some of the work for us.
-		conn = new SynapseAdministration();
-		conn.setAuthEndpoint(StackConfiguration
-				.getAuthenticationServicePrivateEndpoint());
-		conn.setRepositoryEndpoint(StackConfiguration
-				.getRepositoryServiceEndpoint());
-		conn.login(StackConfiguration.getIntegrationTestUserAdminName(),
-				StackConfiguration.getIntegrationTestUserAdminPassword());
-
-		String iamId = StackConfiguration.getIAMUserId();
-		String iamKey = StackConfiguration.getIAMUserKey();
-		if (iamId == null)
-			throw new IllegalArgumentException("IAM id cannot be null");
-		if (iamKey == null)
-			throw new IllegalArgumentException("IAM key cannot be null");
-		bucket = StackConfiguration.getSharedS3BackupBucket();
-		if (bucket == null)
-			throw new IllegalArgumentException("Bucket cannot be null null");
-		AWSCredentials creds = new BasicAWSCredentials(iamId, iamKey);
-		s3Client = new AmazonS3Client(creds);
+		adminSynapse = new SynapseAdminClientImpl();
+		SynapseClientHelper.setEndpoints(adminSynapse);
+		adminSynapse.setUserName(StackConfiguration.getMigrationAdminUsername());
+		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
 	}
 	
 	@Before
 	public void before() throws Exception {
-		conn.login(StackConfiguration.getIntegrationTestUserAdminName(),
-				StackConfiguration.getIntegrationTestUserAdminPassword());
 		toDelete = new ArrayList<Entity>();
 		project = new Project();
 		project.setName("projectIT102");
-		project = conn.createEntity(project);
+		project = adminSynapse.createEntity(project);
 		toDelete.add(project);
 	}
 
 	@After
 	public void after() throws Exception {
-		if(conn != null && toDelete != null){
+		if(adminSynapse != null && toDelete != null){
 			for(Entity e: toDelete){
-				conn.deleteEntity(e);
+				adminSynapse.deleteAndPurgeEntity(e);
 			}
 		}
 	}
@@ -97,7 +69,7 @@ public class IT102MigrationTest {
 			System.out.println("\t" + brStatus.getProgresssMessage());
 			System.out.println("\tProgress:\t" + brStatus.getProgresssCurrent());
 			Thread.sleep(1000L);
-			brStatus = conn.getStatus(brStatus.getId());
+			brStatus = adminSynapse.getStatus(brStatus.getId());
 			loopCount++;
 			if (loopCount > 10) {
 				throw new RuntimeException("Backup/Restore should have completed by now...");
@@ -123,7 +95,7 @@ public class IT102MigrationTest {
 	public void testRoundTrip() throws Exception {
 		// Primary types
 		System.out.println("Migration types");
-		MigrationTypeList mtList = conn.getPrimaryTypes();
+		MigrationTypeList mtList = adminSynapse.getPrimaryTypes();
 		List<MigrationType> migrationTypes = mtList.getList();
 		Map<MigrationType, Long> countByMigrationType = new HashMap<MigrationType, Long>();
 		for (MigrationType mt: migrationTypes) {
@@ -132,7 +104,7 @@ public class IT102MigrationTest {
 		}
 		// Counts per type
 		System.out.println("Counts by type");
-		MigrationTypeCounts mtCounts = conn.getTypeCounts();
+		MigrationTypeCounts mtCounts = adminSynapse.getTypeCounts();
 		List<MigrationTypeCount> mtcs = mtCounts.getList();
 		for (MigrationTypeCount mtc: mtcs) {
 			System.out.println(mtc.getType().name() + ":" + mtc.getCount());
@@ -145,22 +117,22 @@ public class IT102MigrationTest {
 		ids.add(Long.parseLong(project.getId().substring(3)));
 		idList.setList(ids);
 		System.out.println("Backing up...");
-		BackupRestoreStatus brStatus = conn.startBackup(MigrationType.NODE, idList);
+		BackupRestoreStatus brStatus = adminSynapse.startBackup(MigrationType.NODE, idList);
 		brStatus = waitForDaemonCompletion(brStatus);
-		conn.deleteEntity(project);
+		adminSynapse.deleteAndPurgeEntity(project);
 		System.out.println("Restoring " + brStatus.getBackupUrl() + "...");
 		String fName = getFileNameFromUrl(brStatus.getBackupUrl());
 		RestoreSubmission rReq = new RestoreSubmission();
 		rReq.setFileName(fName);
-		brStatus = conn.startRestore(MigrationType.NODE, rReq);
+		brStatus = adminSynapse.startRestore(MigrationType.NODE, rReq);
 		brStatus = waitForDaemonCompletion(brStatus);
-		Project rp = conn.getEntity(project.getId(), Project.class);
+		Project rp = adminSynapse.getEntity(project.getId(), Project.class);
 		assertNotNull(rp);
 		assertEquals(project.getId(), rp.getId());
 		assertEquals(project.getName(), rp.getName());
 		
 		// Fire change messages
-		FireMessagesResult fmRes = conn.fireChangeMessages(0L, 10L);
+		FireMessagesResult fmRes = adminSynapse.fireChangeMessages(0L, 10L);
 		assertTrue(fmRes.getNextChangeNumber() > 0);
 	}
 	

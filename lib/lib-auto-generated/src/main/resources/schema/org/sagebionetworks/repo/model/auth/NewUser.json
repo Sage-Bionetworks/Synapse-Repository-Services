@@ -1,0 +1,22 @@
+{
+	"title": "NewUser", 
+	"description": "Fields required to create a new user account",
+	"properties": {
+		"email": {
+			"type": "string",
+			"description": "User's email"
+		},
+		"firstName": {
+			"type": "string",
+			"description": "User's first name"
+		},
+		"lastName": {
+			"type": "string",
+			"description": "User's last name"
+		},
+		"userName": {
+			"type": "string",
+			"description": "A is a unique alias that will identify a user. A userName can only contain letters, numbers, dot (.), dash (-) and underscore (_) and must be at least 3 characters long."
+		}
+	}
+}

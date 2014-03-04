@@ -7,17 +7,17 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DOI;
 
 import java.sql.Timestamp;
 import java.util.List;
+import java.util.UUID;
 
 import org.joda.time.DateTime;
-import org.sagebionetworks.ids.ETagGenerator;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DoiDao;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBODoi;
 import org.sagebionetworks.repo.model.doi.Doi;
-import org.sagebionetworks.repo.model.doi.DoiObjectType;
 import org.sagebionetworks.repo.model.doi.DoiStatus;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -44,10 +44,14 @@ public class DBODoiDaoImpl implements DoiDao {
 
 	private static final RowMapper<DBODoi> rowMapper = (new DBODoi()).getTableMapping();
 
-	@Autowired private IdGenerator idGenerator;
-	@Autowired private ETagGenerator eTagGenerator;
-	@Autowired private DBOBasicDao basicDao;
-	@Autowired private SimpleJdbcTemplate simpleJdbcTemplate;
+	@Autowired
+	private IdGenerator idGenerator;
+
+	@Autowired
+	private DBOBasicDao basicDao;
+	
+	@Autowired
+	private SimpleJdbcTemplate simpleJdbcTemplate;
 
 	/**
 	 * Limits the transaction boundary to within the DOI DAO and runs with a new transaction.
@@ -57,7 +61,7 @@ public class DBODoiDaoImpl implements DoiDao {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
 	@Override
 	public Doi createDoi(final String userGroupId, final String objectId,
-			final DoiObjectType objectType, final Long versionNumber, final DoiStatus doiStatus)
+			final ObjectType objectType, final Long versionNumber, final DoiStatus doiStatus)
 			throws DatastoreException {
 
 		if (userGroupId == null || userGroupId.isEmpty()) {
@@ -75,9 +79,9 @@ public class DBODoiDaoImpl implements DoiDao {
 
 		DBODoi dbo = new DBODoi();
 		dbo.setId(idGenerator.generateNewId());
-		dbo.setETag(eTagGenerator.generateETag());
+		dbo.setETag(UUID.randomUUID().toString());
 		dbo.setObjectId(KeyFactory.stringToKey(objectId));
-		dbo.setDoiObjectType(objectType);
+		dbo.setObjectType(objectType);
 		dbo.setObjectVersion(versionNumber);
 		dbo.setDoiStatus(doiStatus);
 		dbo.setCreatedBy(KeyFactory.stringToKey(userGroupId));
@@ -99,7 +103,7 @@ public class DBODoiDaoImpl implements DoiDao {
 	 */
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
 	@Override
-	public Doi updateDoiStatus(final String objectId, final DoiObjectType objectType,
+	public Doi updateDoiStatus(final String objectId, final ObjectType objectType,
 			final Long versionNumber, final DoiStatus doiStatus, String etag)
 			throws NotFoundException, DatastoreException, ConflictingUpdateException {
 
@@ -126,7 +130,7 @@ public class DBODoiDaoImpl implements DoiDao {
 	}
 
 	@Override
-	public Doi getDoi(final String objectId, final DoiObjectType objectType,
+	public Doi getDoi(final String objectId, final ObjectType objectType,
 			final Long versionNumber) throws NotFoundException, DatastoreException {
 
 		if (objectId == null || objectId.isEmpty()) {
@@ -139,7 +143,7 @@ public class DBODoiDaoImpl implements DoiDao {
 		return DoiUtils.convertToDto(dbo);
 	}
 
-	private DBODoi getDbo (String objectId, DoiObjectType objectType, Long versionNumber)
+	private DBODoi getDbo (String objectId, ObjectType objectType, Long versionNumber)
 			throws NotFoundException, DatastoreException {
 
 		String sql = (versionNumber == null ? SELECT_DOI_NULL_OBJECT_VERSION : SELECT_DOI);

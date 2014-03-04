@@ -1,8 +1,7 @@
 package org.sagebionetworks.repo.model;
 
-import java.util.Collection;
+import java.util.Set;
 
-import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface AccessControlListDAO  {
@@ -11,7 +10,7 @@ public interface AccessControlListDAO  {
 	 * @return true iff some group in 'groups' has explicit permission to access 'resourceId' using access type 'accessType'
 	 * @throws DatastoreException 
 	 */
-	public boolean canAccess(Collection<UserGroup> groups, String resourceId, ACCESS_TYPE accessType) throws DatastoreException;
+	public boolean canAccess(Set<Long> groups, String resourceId, ObjectType resourceType, ACCESS_TYPE accessType) throws DatastoreException;
 
 	/**
 	 * Create a new ACL
@@ -21,7 +20,7 @@ public interface AccessControlListDAO  {
 	 * @throws InvalidModelException
 	 * @throws NotFoundException 
 	 */
-	public String create(AccessControlList dto) throws DatastoreException,	InvalidModelException, NotFoundException;
+	public String create(AccessControlList dto, ObjectType ownerType) throws DatastoreException,	InvalidModelException, NotFoundException;
 
 	/**
 	 * Get an ACL using the Node's ID
@@ -35,19 +34,21 @@ public interface AccessControlListDAO  {
 	/**
 	 * Update the JDO
 	 * @param dto
+	 * @param ownerType
 	 * @throws DatastoreException
 	 * @throws InvalidModelException
 	 * @throws NotFoundException
 	 * @throws ConflictingUpdateException
 	 */
-	public void update(AccessControlList dto) throws DatastoreException, InvalidModelException, NotFoundException,ConflictingUpdateException;
+	public void update(AccessControlList dto, ObjectType ownerType) throws DatastoreException, InvalidModelException, NotFoundException,ConflictingUpdateException;
 
 	/**
 	 * Delete a ACL using the Node's Id.
 	 * @param id
+	 * @param ownerType
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public void delete(String id) throws DatastoreException, NotFoundException;
+	public void delete(String id, ObjectType ownerType) throws DatastoreException, NotFoundException;
 
 }

@@ -9,13 +9,14 @@ import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
-import org.sagebionetworks.repo.model.TagMessenger;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
@@ -31,11 +32,13 @@ public class JDONodeInheritanceDAOImpl implements NodeInheritanceDAO {
 	private static final String SELECT_BENEFACTOR = "SELECT "+COL_NODE_BENEFACTOR_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
 	
 	@Autowired
-	DBOBasicDao dboBasicDao;
+	private DBOBasicDao dboBasicDao;
+	
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
+	
 	@Autowired
-	private TagMessenger tagMessenger;
+	private TransactionalMessenger transactionalMessenger;
 	
 	/**
 	 * Try to get a node, and throw a NotFoundException if it fails.
@@ -87,13 +90,11 @@ public class JDONodeInheritanceDAOImpl implements NodeInheritanceDAO {
 		DBONode beneficiary = getNodeById(KeyFactory.stringToKey(beneficiaryId));
 		beneficiary.setBenefactorId(benefactor.getId());
 		// Make sure the etag changes. See PLFM-1467 and PLFM-1517.
-		if(!keepOldEtag){
-			// Update the etag and send the message.
-			tagMessenger.generateEtagAndSendMessage(beneficiary, ChangeType.UPDATE);
-		}else{
-			// Just send the message
-			tagMessenger.sendMessage(beneficiary, ChangeType.UPDATE);
+		if (!keepOldEtag) {
+			// Update the etag
+			beneficiary.seteTag(UUID.randomUUID().toString());
 		}
+		transactionalMessenger.sendMessageAfterCommit(beneficiary, ChangeType.UPDATE);
 		dboBasicDao.update(beneficiary);
 	}
 

@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.Locationable;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -154,7 +155,7 @@ public class LocationableMetadataProvider implements
 
 		Locationable locationable = (Locationable) entity;
 
-		if (!authorizationManager.canAccess(user, entity.getId(), ACCESS_TYPE.DOWNLOAD)) {
+		if (!authorizationManager.canAccess(user, entity.getId(), ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)) {
 			// We used to throw an exception, now we just change a field in
 			// the Locationable and null out the locations
 			locationable.setLocations(null);
@@ -163,6 +164,7 @@ public class LocationableMetadataProvider implements
 
 		// If any of the locations are awss3 locations, provide presigned urls
 		String method = request.getParameter(ServiceConstants.METHOD_PARAM);
+		Long userId = Long.parseLong(request.getParameter(AuthorizationConstants.USER_ID_PARAM));
 
 		List<LocationData> locations = locationable.getLocations();
 		if (null != locations) {
@@ -171,17 +173,11 @@ public class LocationableMetadataProvider implements
 					String signedPath = null;
 					if ((null != method)
 							&& (method.equals(RequestMethod.HEAD.name()))) {
-						signedPath = locationHelper
-								.presignS3HEADUrl(
-										request
-												.getParameter(AuthorizationConstants.USER_ID_PARAM),
-										location.getPath());
+						signedPath = locationHelper.presignS3HEADUrl(userId,
+								location.getPath());
 					} else {
-						signedPath = locationHelper
-								.presignS3GETUrl(
-										request
-												.getParameter(AuthorizationConstants.USER_ID_PARAM),
-										location.getPath());
+						signedPath = locationHelper.presignS3GETUrl(userId,
+								location.getPath());
 					}
 
 					// Overwrite the path with a presigned S3 URL to use to

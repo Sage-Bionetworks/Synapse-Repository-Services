@@ -1,16 +1,15 @@
 package org.sagebionetworks.repo.manager;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.Matchers.any;
 
 import org.junit.Test;
 import org.sagebionetworks.repo.model.StorageQuotaDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.storage.StorageQuota;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -20,15 +19,8 @@ public class StorageQuotaManagerImplTest {
 	@Test
 	public void testGetQuota() {
 
-		UserInfo currUser = mock(UserInfo.class);
-		when(currUser.isAdmin()).thenReturn(false);
-		UserGroup currUserGroup = mock(UserGroup.class);
-		when(currUserGroup.getId()).thenReturn("1");
-		when(currUser.getIndividualGroup()).thenReturn(currUserGroup);
-		UserInfo user = mock(UserInfo.class);
-		UserGroup userGroup = mock(UserGroup.class);
-		when(userGroup.getId()).thenReturn("1");
-		when(user.getIndividualGroup()).thenReturn(userGroup);
+		UserInfo currUser = new UserInfo(false, 1L);
+		UserInfo user = new UserInfo(false, 1L);
 
 		StorageQuotaDao quotaDao = mock(StorageQuotaDao.class);
 		StorageQuota quota = new StorageQuota();
@@ -43,15 +35,8 @@ public class StorageQuotaManagerImplTest {
 	@Test
 	public void testGetDefaultQuota() {
 
-		UserInfo currUser = mock(UserInfo.class);
-		when(currUser.isAdmin()).thenReturn(false);
-		UserGroup currUserGroup = mock(UserGroup.class);
-		when(currUserGroup.getId()).thenReturn("1");
-		when(currUser.getIndividualGroup()).thenReturn(currUserGroup);
-		UserInfo user = mock(UserInfo.class);
-		UserGroup userGroup = mock(UserGroup.class);
-		when(userGroup.getId()).thenReturn("1");
-		when(user.getIndividualGroup()).thenReturn(userGroup);
+		UserInfo currUser = new UserInfo(false, 1L);
+		UserInfo user = new UserInfo(false, 1L);
 
 		StorageQuotaDao quotaDao = mock(StorageQuotaDao.class);
 		when(quotaDao.getQuota("1")).thenReturn((StorageQuota)null);
@@ -64,15 +49,8 @@ public class StorageQuotaManagerImplTest {
 	@Test
 	public void testSetQuota() {
 
-		UserInfo currUser = mock(UserInfo.class);
-		when(currUser.isAdmin()).thenReturn(true);
-		UserGroup currUserGroup = mock(UserGroup.class);
-		when(currUserGroup.getId()).thenReturn("1");
-		when(currUser.getIndividualGroup()).thenReturn(currUserGroup);
-		UserInfo user = mock(UserInfo.class);
-		UserGroup userGroup = mock(UserGroup.class);
-		when(userGroup.getId()).thenReturn("1");
-		when(user.getIndividualGroup()).thenReturn(userGroup);
+		UserInfo currUser = new UserInfo(true, 1L);
+		UserInfo user = new UserInfo(false, 1L);
 
 		StorageQuotaDao quotaDao = mock(StorageQuotaDao.class);
 		StorageQuotaManager manager = new StorageQuotaManagerImpl();
@@ -92,15 +70,8 @@ public class StorageQuotaManagerImplTest {
 
 	@Test(expected=UnauthorizedException.class)
 	public void testGetQuotaUnauthorizedException2() {
-		UserInfo currUser = mock(UserInfo.class);
-		when(currUser.isAdmin()).thenReturn(false);
-		UserGroup currUserGroup = mock(UserGroup.class);
-		when(currUserGroup.getId()).thenReturn("1");
-		when(currUser.getIndividualGroup()).thenReturn(currUserGroup);
-		UserInfo user = mock(UserInfo.class);
-		UserGroup userGroup = mock(UserGroup.class);
-		when(userGroup.getId()).thenReturn("2");
-		when(user.getIndividualGroup()).thenReturn(userGroup);
+		UserInfo currUser = new UserInfo(false, 1L);
+		UserInfo user = new UserInfo(false, 2L);
 		StorageQuotaManager manager = new StorageQuotaManagerImpl();
 		manager.getQuotaForUser(currUser, user);
 	}

@@ -23,8 +23,6 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.ActivityDAO;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.User;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.provenance.Activity;
@@ -55,8 +53,8 @@ public class ActivityManagerImplTest {
 		mockAuthorizationManager = mock(AuthorizationManager.class);
 		normalUserInfo = new UserInfo(false);
 		adminUserInfo = new UserInfo(true);
-		configureUser(adminUserInfo, "1", "userId1");
-		configureUser(normalUserInfo, "2", "userId2");
+		configureUser(adminUserInfo, "1");
+		configureUser(normalUserInfo, "2");
 		 
 		activityManager = new ActivityManagerImpl(mockIdGenerator, mockActivityDAO, mockAuthorizationManager);
 	}
@@ -113,8 +111,8 @@ public class ActivityManagerImplTest {
 		String firstDesc = "firstDesc";
 		String secondDesc = "secondDesc";
 		Activity act = newTestActivity(id);
-		act.setCreatedBy(createWith.getIndividualGroup().getId());
-		act.setModifiedBy(createWith.getIndividualGroup().getId());
+		act.setCreatedBy(createWith.getId().toString());
+		act.setModifiedBy(createWith.getId().toString());
 		act.setDescription(firstDesc);
 		when(mockActivityDAO.get(anyString())).thenReturn(act);
 		String originalEtag = act.getEtag();
@@ -158,8 +156,8 @@ public class ActivityManagerImplTest {
 		
 		// from database Activity
 		Activity act = newTestActivity(id);
-		act.setCreatedBy(normalUserInfo.getIndividualGroup().getId());
-		act.setModifiedBy(normalUserInfo.getIndividualGroup().getId());
+		act.setCreatedBy(normalUserInfo.getId().toString());
+		act.setModifiedBy(normalUserInfo.getId().toString());
 		String originalEtag = act.getEtag();
 		
 		// Activity to update with changed creator user id
@@ -181,8 +179,8 @@ public class ActivityManagerImplTest {
 	public void testDeleteActivity() throws Exception { 
 		String id = "123";
 		Activity act = newTestActivity(id);
-		act.setCreatedBy(normalUserInfo.getIndividualGroup().getId());
-		act.setModifiedBy(normalUserInfo.getIndividualGroup().getId());
+		act.setCreatedBy(normalUserInfo.getId().toString());
+		act.setModifiedBy(normalUserInfo.getId().toString());
 		when(mockActivityDAO.get(anyString())).thenReturn(act);
 
 		activityManager.deleteActivity(normalUserInfo, id.toString());
@@ -194,8 +192,8 @@ public class ActivityManagerImplTest {
 	public void testDeleteActivityAdmin() throws Exception { 
 		String id = "123";
 		Activity act = newTestActivity(id);
-		act.setCreatedBy(normalUserInfo.getIndividualGroup().getId());
-		act.setModifiedBy(normalUserInfo.getIndividualGroup().getId());
+		act.setCreatedBy(normalUserInfo.getId().toString());
+		act.setModifiedBy(normalUserInfo.getId().toString());
 		when(mockActivityDAO.get(anyString())).thenReturn(act);
 
 		activityManager.deleteActivity(adminUserInfo, id.toString());
@@ -233,8 +231,8 @@ public class ActivityManagerImplTest {
 		Thread.sleep(100L); // ensure that the 'modifiedOn' date is later
 		Activity act = newTestActivity("123");
 		ActivityManagerImpl.populateCreationFields(normalUserInfo, act);
-		assertEquals(normalUserInfo.getIndividualGroup().getId(), act.getCreatedBy());
-		assertEquals(normalUserInfo.getIndividualGroup().getId(), act.getModifiedBy());
+		assertEquals(normalUserInfo.getId().toString(), act.getCreatedBy());
+		assertEquals(normalUserInfo.getId().toString(), act.getModifiedBy());
 		assertTrue(beforePopulateDate.before(act.getCreatedOn()));
 		assertTrue(beforePopulateDate.before(act.getModifiedOn()));
 	}
@@ -246,7 +244,7 @@ public class ActivityManagerImplTest {
 		Activity act = newTestActivity("123");
 		ActivityManagerImpl.populateModifiedFields(normalUserInfo, act);
 		assertEquals(null, act.getCreatedBy());
-		assertEquals(normalUserInfo.getIndividualGroup().getId(), act.getModifiedBy());
+		assertEquals(normalUserInfo.getId().toString(), act.getModifiedBy());
 		assertNull(act.getCreatedOn());
 		assertTrue(beforePopulateDate.before(act.getModifiedOn()));
 	}
@@ -256,8 +254,8 @@ public class ActivityManagerImplTest {
 		String id = "123";
 		String firstDesc = "firstDesc";
 		Activity act = newTestActivity(id);
-		act.setCreatedBy(normalUserInfo.getIndividualGroup().getId());
-		act.setModifiedBy(normalUserInfo.getIndividualGroup().getId());
+		act.setCreatedBy(normalUserInfo.getId().toString());
+		act.setModifiedBy(normalUserInfo.getId().toString());
 		act.setDescription(firstDesc);
 		when(mockActivityDAO.get(anyString())).thenReturn(act);
 		when(mockAuthorizationManager.canAccessActivity(normalUserInfo, id)).thenReturn(true);
@@ -280,8 +278,8 @@ public class ActivityManagerImplTest {
 		String id = "123";
 		String firstDesc = "firstDesc";
 		Activity act = newTestActivity(id);
-		act.setCreatedBy(normalUserInfo.getIndividualGroup().getId());
-		act.setModifiedBy(normalUserInfo.getIndividualGroup().getId());
+		act.setCreatedBy(normalUserInfo.getId().toString());
+		act.setModifiedBy(normalUserInfo.getId().toString());
 		act.setDescription(firstDesc);
 		when(mockActivityDAO.get(anyString())).thenReturn(act);
 		when(mockAuthorizationManager.canAccessActivity(normalUserInfo, id)).thenReturn(false);
@@ -317,23 +315,9 @@ public class ActivityManagerImplTest {
 		return act;
 	}
 
-	private void configureUser(UserInfo userInfo, String userGroupId, String userId) {
-		UserGroup userGroup = new UserGroup();
-		userGroup.setId(userGroupId);
-		userGroup.setIsIndividual(true);
-		userGroup.setName("Admin@sagebase.org");
-		userGroup.setCreationDate(new Date());
-		userInfo.setIndividualGroup(userGroup);
-		User user = new User();
-		user.setId(userId);
-		user.setUserId("userId");
-		user.setAgreesToTermsOfUse(true);
-		user.setEtag("0");
-		user.setDisplayName("Admin User");
-		user.setFname("Admin");
-		user.setLname("User");
-		user.setCreationDate(new Date());
-		userInfo.setUser(user);
+	private void configureUser(UserInfo userInfo, String userGroupId) {
+		userInfo.setId(Long.parseLong(userGroupId));
+		userInfo.setCreationDate(new Date());
 	}
 		
 

@@ -35,16 +35,13 @@
 											#foreach( $param in $method.pathVariables)
 											<tr>
 												<td>{$param.name}</td>
-												<td>#if($param.description)
-												$param.description
-												#end</td>
+												<td>#if($param.description) $param.description #end</td>
 											</tr>
 											#end
 										</tbody>
 									</table>
 								</div>
-								#end
-								#if(${method.parameters})
+								#end #if(${method.parameters})
 								<div class="ym-gbox">
 									<h6>Parameters</h6>
 								</div>
@@ -53,15 +50,10 @@
 										<tbody>
 											#foreach( $param in $method.parameters)
 											<tr>
-												<td>
-												$param.name
-												#if($param.isOptional)
-												<p class="dimmed">optional</p>
-												#end
+												<td>$param.name #if($param.isOptional)
+													<p class="dimmed">optional</p> #end
 												</td>
-												<td>#if($param.description)
-												$param.description
-												#end</td>
+												<td>#if($param.description) $param.description #end</td>
 											</tr>
 											#end
 										</tbody>
@@ -80,12 +72,8 @@
 										<tbody>
 											<tr>
 												<td>Authentication</td>
-												<td>#if($method.isAuthenticationRequired)
-														Required
-													#else
-														false
-													#end	
-												</td>
+												<td>#if($method.isAuthenticationRequired) <a href="${authControllerName}">Required</a>
+													#else false #end</td>
 											</tr>
 											<tr>
 												<td>HTTP Methods</td>
@@ -93,15 +81,17 @@
 											</tr>
 											<tr>
 												<td>Request Object</td>
-												<td>#if($method.requestBody)
-												<a href="$method.requestBody.href">$method.requestBody.display</a><br>(application/json)</br>
-												#end</td>
+												<td>#if($method.requestBody) <a
+													href="$method.requestBody.href">$method.requestBody.display</a><br>(application/json)</br>
+													#else None #end
+												</td>
 											</tr>
 											<tr>
 												<td>Response Object</td>
-												<td>#if($method.responseBody)
-												<a href="$method.responseBody.href">$method.responseBody.display</a><br>(application/json)</br>
-												#end</td>
+												<td>#if($method.responseBody) <a
+													href="$method.responseBody.href">$method.responseBody.display</a><br>(application/json)</br>
+													#else None #end
+												</td>
 											</tr>
 										</tbody>
 									</table>

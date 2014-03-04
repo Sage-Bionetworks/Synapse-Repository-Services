@@ -7,6 +7,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 
+import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -21,6 +22,10 @@ public class ConfigurationTest {
 		configuration.loadConfigurationFile(file);
 	}
 
+	@After
+	public void doAfter() {
+		System.clearProperty("org.sagebionetworks.defer.exceptions");
+	}
 	
 	@Test
 	public void testConfiguration() throws IOException{
@@ -30,16 +35,14 @@ public class ConfigurationTest {
 		assertNotNull(info);
 		assertEquals("sourceAuth", info.getAuthenticationEndPoint());
 		assertEquals("sourceRepo", info.getRepositoryEndPoint());
-		assertEquals("sourceUser", info.getAdminUsername());
-		assertEquals("sourcePassword", info.getAdminPassword());
+		assertEquals("abcde12345fghij", info.getApiKey());
 		
 		// Test the destination
 		info = configuration.getDestinationConnectionInfo();
 		assertNotNull(info);
 		assertEquals("destAuth", info.getAuthenticationEndPoint());
 		assertEquals("destRepo", info.getRepositoryEndPoint());
-		assertEquals("destUser", info.getAdminUsername());
-		assertEquals("destPassword", info.getAdminPassword());
+		assertEquals("abcde12345fghij", info.getApiKey());
 	}
 	
 	@Test

@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.web.controller;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
 
 import javax.servlet.http.HttpServlet;
 
@@ -11,21 +12,19 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.manager.TestUserDAO;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.TrashedEntity;
-import org.sagebionetworks.repo.web.UrlHelpers;
+import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.service.EntityService;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
-import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -35,119 +34,88 @@ public class TrashControllerAutowiredTest {
 
 	@Autowired
 	private EntityService entityService;
+	
+	@Autowired
+	private UserManager userManager;
+	
+	@Autowired
+	private ServletTestHelper servletTestHelper;
 
-	private final String adminUser = TestUserDAO.ADMIN_USER_NAME;
-	private final String testUser = TestUserDAO.TEST_USER_NAME;
+	private Long adminUserId;
+	private UserInfo adminUserInfo;
+	private Long testUserId;
+	private UserInfo testUserInfo;
+	
 	private Entity parent;
 	private Entity child;
 
 	@Before
 	public void before() throws Exception {
+		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+		adminUserInfo = userManager.getUserInfo(adminUserId);
+		
+		NewUser user = new NewUser();
+		user.setEmail(UUID.randomUUID().toString() + "@test.com");
+		user.setUserName(UUID.randomUUID().toString());
+		testUserId = userManager.createUser(user);
+		testUserInfo = userManager.getUserInfo(testUserId);
+		
+		servletTestHelper.setUp();
+		
 		Assert.assertNotNull(this.entityService);
 		parent = new Project();
 		parent.setName("TrashControllerAutowiredTest.parent");
 		HttpServlet dispatchServlet = DispatchServletSingleton.getInstance();
-		parent = ServletTestHelper.createEntity(dispatchServlet, parent, testUser);
+		parent = ServletTestHelper.createEntity(dispatchServlet, parent, testUserId);
 		Assert.assertNotNull(parent);
 		child = new Study();
 		child.setName("TrashControllerAutowiredTest.child");
 		child.setParentId(parent.getId());
 		child.setEntityType(Study.class.getName());
-		child = ServletTestHelper.createEntity(dispatchServlet, child, testUser);
+		child = ServletTestHelper.createEntity(dispatchServlet, child, testUserId);
 		Assert.assertNotNull(child);
 		Assert.assertEquals(parent.getId(), child.getParentId());
-		EntityHeader benefactor = entityService.getEntityBenefactor(child.getId(), testUser, null);
+		EntityHeader benefactor = entityService.getEntityBenefactor(child.getId(), testUserId, null);
 		Assert.assertEquals(parent.getId(), benefactor.getId());
 	}
 
 	@After
 	public void after() throws Exception {
 		if (child != null) {
-			entityService.deleteEntity(testUser, child.getId());
+			entityService.deleteEntity(testUserId, child.getId());
 		}
 		if (parent != null) {
-			entityService.deleteEntity(testUser, parent.getId());
+			entityService.deleteEntity(testUserId, parent.getId());
 		}
+		
+		userManager.deletePrincipal(adminUserInfo, testUserInfo.getId());
 	}
 
 	@Test
 	public void testPurge() throws Exception {
-
 		// The trash can may not be empty before we put anything there
 		// So we get base numbers first
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.TRASHCAN_VIEW);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, testUser);
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		HttpServlet servlet = DispatchServletSingleton.getInstance();
-		servlet.service(request, response);
-		Assert.assertEquals(200, response.getStatus());
-		String jsonStr = response.getContentAsString();
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonStr);
-		PaginatedResults<TrashedEntity> results = new PaginatedResults<TrashedEntity>(TrashedEntity.class);
-		results.initializeFromJSONObject(adapter);
+		PaginatedResults<TrashedEntity> results = ServletTestHelper.getTrashCan(testUserId);
 		long baseTotal = results.getTotalNumberOfResults();
 		long baseCount = results.getResults().size();
 
 		// Move the parent to the trash can
-		request = new MockHttpServletRequest();
-		request.setMethod("PUT");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.TRASHCAN + "/trash/" + parent.getId());
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, testUser);
-		response = new MockHttpServletResponse();
-		servlet = DispatchServletSingleton.getInstance();
-		servlet.service(request, response);
-		Assert.assertEquals(200, response.getStatus());
+		ServletTestHelper.trashEntity(testUserId, parent.getId());
 
 		// Purge the parent
-		request = new MockHttpServletRequest();
-		request.setMethod("PUT");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.TRASHCAN_PURGE + "/" + parent.getId());
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, testUser);
-		response = new MockHttpServletResponse();
-		servlet = DispatchServletSingleton.getInstance();
-		servlet.service(request, response);
-		Assert.assertEquals(200, response.getStatus());
+		ServletTestHelper.purgeEntityInTrash(testUserId, parent.getId());
 
 		// Both the parent and the child should be gone
-		request = new MockHttpServletRequest();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ENTITY + "/" + parent.getId());
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, testUser);
-		response = new MockHttpServletResponse();
-		servlet = DispatchServletSingleton.getInstance();
-		servlet.service(request, response);
-		Assert.assertEquals(404, response.getStatus());
-
-		request = new MockHttpServletRequest();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ENTITY + "/" + child.getId());
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, testUser);
-		response = new MockHttpServletResponse();
-		servlet = DispatchServletSingleton.getInstance();
-		servlet.service(request, response);
-		Assert.assertEquals(404, response.getStatus());
+		try {
+			ServletTestHelper.getEntity(DispatchServletSingleton.getInstance(), Project.class, parent.getId(), testUserId);
+		} catch (NotFoundException e) { }
+		
+		try {
+			ServletTestHelper.getEntity(DispatchServletSingleton.getInstance(), Study.class, child.getId(), testUserId);
+		} catch (NotFoundException e) { }
 
 		// The trash can should be empty
-		request = new MockHttpServletRequest();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.TRASHCAN_VIEW);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, testUser);
-		response = new MockHttpServletResponse();
-		servlet = DispatchServletSingleton.getInstance();
-		servlet.service(request, response);
-		Assert.assertEquals(200, response.getStatus());
-		jsonStr = response.getContentAsString();
-		adapter = new JSONObjectAdapterImpl(jsonStr);
-		results = new PaginatedResults<TrashedEntity>(TrashedEntity.class);
-		results.initializeFromJSONObject(adapter);
+		results = ServletTestHelper.getTrashCan(testUserId);
 		Assert.assertEquals(baseTotal, results.getTotalNumberOfResults());
 		Assert.assertEquals(baseCount, results.getResults().size());
 		for (TrashedEntity trash : results.getResults()) {
@@ -164,84 +132,25 @@ public class TrashControllerAutowiredTest {
 
 	@Test
 	public void testPurgeAll() throws Exception {
-
-		// The trash can may not be empty before we put anything there
-		// So we get base numbers first
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.TRASHCAN_VIEW);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, testUser);
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		HttpServlet servlet = DispatchServletSingleton.getInstance();
-		servlet.service(request, response);
-		Assert.assertEquals(200, response.getStatus());
-		String jsonStr = response.getContentAsString();
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonStr);
-		PaginatedResults<TrashedEntity> results = new PaginatedResults<TrashedEntity>(TrashedEntity.class);
-		results.initializeFromJSONObject(adapter);
-		long baseTotal = results.getTotalNumberOfResults();
-		long baseCount = results.getResults().size();
-
 		// Move the parent to the trash can
-		request = new MockHttpServletRequest();
-		request.setMethod("PUT");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.TRASHCAN + "/trash/" + parent.getId());
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, testUser);
-		response = new MockHttpServletResponse();
-		servlet = DispatchServletSingleton.getInstance();
-		servlet.service(request, response);
-		Assert.assertEquals(200, response.getStatus());
+		ServletTestHelper.trashEntity(testUserId, parent.getId());
 		
 		// Purge the trash can
-		request = new MockHttpServletRequest();
-		request.setMethod("PUT");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.TRASHCAN_PURGE);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, testUser);
-		response = new MockHttpServletResponse();
-		servlet = DispatchServletSingleton.getInstance();
-		servlet.service(request, response);
-		Assert.assertEquals(200, response.getStatus());
+		ServletTestHelper.purgeTrash(testUserId);
 
 		// Both the parent and the child should be gone
-		request = new MockHttpServletRequest();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ENTITY + "/" + parent.getId());
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, testUser);
-		response = new MockHttpServletResponse();
-		servlet = DispatchServletSingleton.getInstance();
-		servlet.service(request, response);
-		Assert.assertEquals(404, response.getStatus());
-
-		request = new MockHttpServletRequest();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ENTITY + "/" + child.getId());
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, testUser);
-		response = new MockHttpServletResponse();
-		servlet = DispatchServletSingleton.getInstance();
-		servlet.service(request, response);
-		Assert.assertEquals(404, response.getStatus());
+		try {
+			ServletTestHelper.getEntity(DispatchServletSingleton.getInstance(), Project.class, parent.getId(), testUserId);
+		} catch (NotFoundException e) { }
+		
+		try {
+			ServletTestHelper.getEntity(DispatchServletSingleton.getInstance(), Study.class, child.getId(), testUserId);
+		} catch (NotFoundException e) { }
 
 		// The trash can should be empty
-		request = new MockHttpServletRequest();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.TRASHCAN_VIEW);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, testUser);
-		response = new MockHttpServletResponse();
-		servlet = DispatchServletSingleton.getInstance();
-		servlet.service(request, response);
-		Assert.assertEquals(200, response.getStatus());
-		jsonStr = response.getContentAsString();
-		adapter = new JSONObjectAdapterImpl(jsonStr);
-		results = new PaginatedResults<TrashedEntity>(TrashedEntity.class);
-		results.initializeFromJSONObject(adapter);
-		Assert.assertEquals(baseTotal, results.getTotalNumberOfResults());
-		Assert.assertEquals(baseCount, results.getResults().size());
+		PaginatedResults<TrashedEntity> results = ServletTestHelper.getTrashCan(testUserId);
+		Assert.assertEquals(0, results.getTotalNumberOfResults());
+		Assert.assertEquals(0, results.getResults().size());
 		for (TrashedEntity trash : results.getResults()) {
 			if (parent.getId().equals(trash.getEntityId())
 					|| child.getId().equals(trash.getEntityId())) {
@@ -256,62 +165,26 @@ public class TrashControllerAutowiredTest {
 
 	@Test
 	public void testRoundTrip() throws Exception {
-
 		// The trash can may not be empty before we put anything there
 		// So we get base numbers first
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.TRASHCAN_VIEW);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, testUser);
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		HttpServlet servlet = DispatchServletSingleton.getInstance();
-		servlet.service(request, response);
-		Assert.assertEquals(200, response.getStatus());
-		String jsonStr = response.getContentAsString();
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonStr);
-		PaginatedResults<TrashedEntity> results = new PaginatedResults<TrashedEntity>(TrashedEntity.class);
-		results.initializeFromJSONObject(adapter);
+		PaginatedResults<TrashedEntity> results = ServletTestHelper.getTrashCan(testUserId);
 		long baseTotal = results.getTotalNumberOfResults();
 		long baseCount = results.getResults().size();
 
 		// Move the parent to the trash can
-		request = new MockHttpServletRequest();
-		request.setMethod("PUT");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.TRASHCAN + "/trash/" + parent.getId());
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, testUser);
-		response = new MockHttpServletResponse();
-		servlet = DispatchServletSingleton.getInstance();
-		servlet.service(request, response);
-		Assert.assertEquals(200, response.getStatus());
+		ServletTestHelper.trashEntity(testUserId, parent.getId());
 
 		// Now the parent and the child should not be visible
-		request = new MockHttpServletRequest();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ENTITY + "/" + parent.getId());
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, testUser);
-		response = new MockHttpServletResponse();
-		servlet = DispatchServletSingleton.getInstance();
-		servlet.service(request, response);
-		Assert.assertEquals(403, response.getStatus()); // TOD: PLFM-1725
+		try {
+			ServletTestHelper.getEntity(DispatchServletSingleton.getInstance(), Project.class, parent.getId(), testUserId);
+		} catch (NotFoundException e) { }
+		
+		try {
+			ServletTestHelper.getEntity(DispatchServletSingleton.getInstance(), Study.class, child.getId(), testUserId);
+		} catch (NotFoundException e) { }
 
 		// The parent and the child should be in the trash can
-		request = new MockHttpServletRequest();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.TRASHCAN_VIEW);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, testUser);
-		response = new MockHttpServletResponse();
-		servlet = DispatchServletSingleton.getInstance();
-		servlet.service(request, response);
-
-		Assert.assertEquals(200, response.getStatus());
-		jsonStr = response.getContentAsString();
-		adapter = new JSONObjectAdapterImpl(jsonStr);
-		results = new PaginatedResults<TrashedEntity>(TrashedEntity.class);
-		results.initializeFromJSONObject(adapter);
+		results = ServletTestHelper.getTrashCan(testUserId);
 		Assert.assertEquals(baseTotal + 2L, results.getTotalNumberOfResults());
 		Assert.assertEquals(baseCount + 2L, results.getResults().size());
 		Set<String> idSet = new HashSet<String>();
@@ -322,51 +195,14 @@ public class TrashControllerAutowiredTest {
 		Assert.assertTrue(idSet.contains(child.getId()));
 
 		// Restore the parent
-		request = new MockHttpServletRequest();
-		request.setMethod("PUT");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.TRASHCAN + "/restore/" + parent.getId());
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, testUser);
-		response = new MockHttpServletResponse();
-		servlet = DispatchServletSingleton.getInstance();
-		servlet.service(request, response);
-		Assert.assertEquals(200, response.getStatus());
+		ServletTestHelper.restoreEntity(testUserId, parent.getId());
 
 		// Now the parent and the child should be visible again
-		request = new MockHttpServletRequest();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ENTITY + "/" + parent.getId());
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, testUser);
-		response = new MockHttpServletResponse();
-		servlet = DispatchServletSingleton.getInstance();
-		servlet.service(request, response);
-		Assert.assertEquals(200, response.getStatus());
-		request = new MockHttpServletRequest();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ENTITY + "/" + child.getId());
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, testUser);
-		response = new MockHttpServletResponse();
-		servlet = DispatchServletSingleton.getInstance();
-		servlet.service(request, response);
-		Assert.assertEquals(200, response.getStatus());
+		ServletTestHelper.getEntity(DispatchServletSingleton.getInstance(), Project.class, parent.getId(), testUserId);
+		ServletTestHelper.getEntity(DispatchServletSingleton.getInstance(), Study.class, child.getId(), testUserId);
 
 		// The parent and the child should not be in the trash can any more
-		request = new MockHttpServletRequest();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.TRASHCAN_VIEW);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, testUser);
-		response = new MockHttpServletResponse();
-		servlet = DispatchServletSingleton.getInstance();
-		servlet.service(request, response);
-
-		Assert.assertEquals(200, response.getStatus());
-		jsonStr = response.getContentAsString();
-		adapter = new JSONObjectAdapterImpl(jsonStr);
-		results = new PaginatedResults<TrashedEntity>(TrashedEntity.class);
-		results.initializeFromJSONObject(adapter);
+		results = ServletTestHelper.getTrashCan(testUserId);
 		Assert.assertEquals(baseTotal, results.getTotalNumberOfResults());
 		Assert.assertEquals(baseCount, results.getResults().size());
 		idSet = new HashSet<String>();
@@ -379,106 +215,33 @@ public class TrashControllerAutowiredTest {
 
 	@Test
 	public void testAdmin() throws Exception {
+		ServletTestHelper.adminPurgeTrash(adminUserId);
 
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		request.setMethod("PUT");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ADMIN_TRASHCAN_PURGE);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, adminUser);
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		HttpServlet servlet = DispatchServletSingleton.getInstance();
-		servlet.service(request, response);
-		Assert.assertEquals(200, response.getStatus());
-
-		request = new MockHttpServletRequest();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ADMIN_TRASHCAN_VIEW);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, adminUser);
-		response = new MockHttpServletResponse();
-		servlet = DispatchServletSingleton.getInstance();
-		servlet.service(request, response);
-		Assert.assertEquals(200, response.getStatus());
-		String jsonStr = response.getContentAsString();
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonStr);
-		PaginatedResults<TrashedEntity> results = new PaginatedResults<TrashedEntity>(TrashedEntity.class);
-		results.initializeFromJSONObject(adapter);
+		PaginatedResults<TrashedEntity> results = ServletTestHelper.adminGetTrashCan(adminUserId);
 		Assert.assertEquals(0, results.getTotalNumberOfResults());
 		Assert.assertEquals(0, results.getResults().size());
 
 		// Move the parent to the trash can
-		request = new MockHttpServletRequest();
-		request.setMethod("PUT");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.TRASHCAN + "/trash/" + parent.getId());
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, testUser);
-		response = new MockHttpServletResponse();
-		servlet = DispatchServletSingleton.getInstance();
-		servlet.service(request, response);
-		Assert.assertEquals(200, response.getStatus());
+		ServletTestHelper.trashEntity(testUserId, parent.getId());
 
-		request = new MockHttpServletRequest();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ADMIN_TRASHCAN_VIEW);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, adminUser);
-		response = new MockHttpServletResponse();
-		servlet = DispatchServletSingleton.getInstance();
-		servlet.service(request, response);
-		Assert.assertEquals(200, response.getStatus());
-		jsonStr = response.getContentAsString();
-		adapter = new JSONObjectAdapterImpl(jsonStr);
-		results = new PaginatedResults<TrashedEntity>(TrashedEntity.class);
-		results.initializeFromJSONObject(adapter);
+		results = ServletTestHelper.adminGetTrashCan(adminUserId);
 		Assert.assertEquals(2, results.getTotalNumberOfResults());
 		Assert.assertEquals(2, results.getResults().size());
 
 		// Purge everything
-		request = new MockHttpServletRequest();
-		request.setMethod("PUT");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ADMIN_TRASHCAN_PURGE);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, adminUser);
-		response = new MockHttpServletResponse();
-		servlet = DispatchServletSingleton.getInstance();
-		servlet.service(request, response);
-		Assert.assertEquals(200, response.getStatus());
+		ServletTestHelper.adminPurgeTrash(adminUserId);
 
 		// Both the parent and the child should be gone
-		request = new MockHttpServletRequest();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ENTITY + "/" + parent.getId());
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, adminUser);
-		response = new MockHttpServletResponse();
-		servlet = DispatchServletSingleton.getInstance();
-		servlet.service(request, response);
-		Assert.assertEquals(404, response.getStatus());
-
-		request = new MockHttpServletRequest();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ENTITY + "/" + child.getId());
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, adminUser);
-		response = new MockHttpServletResponse();
-		servlet = DispatchServletSingleton.getInstance();
-		servlet.service(request, response);
-		Assert.assertEquals(404, response.getStatus());
+		try {
+			ServletTestHelper.getEntity(DispatchServletSingleton.getInstance(), Project.class, parent.getId(), adminUserId);
+		} catch (NotFoundException e) { }
+		
+		try {
+			ServletTestHelper.getEntity(DispatchServletSingleton.getInstance(), Study.class, child.getId(), adminUserId);
+		} catch (NotFoundException e) { }
 
 		// The trash can should be empty
-		request = new MockHttpServletRequest();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ADMIN_TRASHCAN_VIEW);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, adminUser);
-		response = new MockHttpServletResponse();
-		servlet = DispatchServletSingleton.getInstance();
-		servlet.service(request, response);
-		Assert.assertEquals(200, response.getStatus());
-		jsonStr = response.getContentAsString();
-		adapter = new JSONObjectAdapterImpl(jsonStr);
-		results = new PaginatedResults<TrashedEntity>(TrashedEntity.class);
-		results.initializeFromJSONObject(adapter);
+		results = ServletTestHelper.adminGetTrashCan(adminUserId);
 		Assert.assertEquals(0, results.getTotalNumberOfResults());
 		Assert.assertEquals(0, results.getResults().size());
 

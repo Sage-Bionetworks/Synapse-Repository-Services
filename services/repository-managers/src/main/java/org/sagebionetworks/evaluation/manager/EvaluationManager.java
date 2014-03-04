@@ -1,7 +1,6 @@
 package org.sagebionetworks.evaluation.manager;
 
 import org.sagebionetworks.evaluation.model.Evaluation;
-import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -21,30 +20,38 @@ public interface EvaluationManager {
 	/**
 	 * Get a Synapse Evaluation by its id
 	 */
-	public Evaluation getEvaluation(String id)
+	public Evaluation getEvaluation(UserInfo userInfo, String id)
 			throws DatastoreException, NotFoundException, UnauthorizedException;
+	
+	/**
+	 * Gets all Synapse Evaluations tied to the given project
+	 */
+	public QueryResults<Evaluation> getEvaluationByContentSource(UserInfo userInfo, String id, long limit, long offset)
+			throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get a collection of Evaluations, within a given range
 	 */
-	public QueryResults<Evaluation> getInRange(long limit, long offset) 
+	@Deprecated
+	public QueryResults<Evaluation> getInRange(UserInfo userInfo, long limit, long offset) 
 			throws DatastoreException, NotFoundException;
 
 	/**
-	 * Get a collection of Evaluations which the user may participate in, within a given range
+	 * Get a collection of Evaluations to the user may SUBMIT, within a given range
 	 */
-	public QueryResults<Evaluation> getAvailableInRange(UserInfo userInfo, EvaluationStatus status, long limit, long offset) 
-			throws DatastoreException;
+	public QueryResults<Evaluation> getAvailableInRange(UserInfo userInfo, long limit, long offset) 
+			throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get the total number of Evaluations in the system
 	 */
-	public long getCount() throws DatastoreException, NotFoundException;
+	@Deprecated
+	public long getCount(UserInfo userInfo) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Find a Evaluation, by name
 	 */
-	public Evaluation findEvaluation(String name)
+	public Evaluation findEvaluation(UserInfo userInfo, String name)
 			throws DatastoreException, NotFoundException, UnauthorizedException;
 
 	/**
@@ -71,5 +78,4 @@ public interface EvaluationManager {
 	 * @throws NotFoundException
 	 */
 	void updateEvaluationEtag(String evalId) throws NotFoundException;
-	
 }

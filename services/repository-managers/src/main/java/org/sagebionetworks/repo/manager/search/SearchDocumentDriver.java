@@ -1,15 +1,13 @@
 package org.sagebionetworks.repo.manager.search;
 
-import java.util.List;
+import java.io.IOException;
 
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.search.Document;
-import org.sagebionetworks.repo.model.search.Hit;
-import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -32,8 +30,9 @@ public interface SearchDocumentDriver {
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
+	 * @throws IOException TODO
 	 */
-	public Document formulateSearchDocument(String nodeId) throws DatastoreException, NotFoundException;
+	public Document formulateSearchDocument(String nodeId) throws DatastoreException, NotFoundException, IOException;
 	/**
 	 * Create a search document and return it.
 	 * 
@@ -44,7 +43,7 @@ public interface SearchDocumentDriver {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public Document formulateSearchDocument(Node node, NodeRevisionBackup rev,
+	public Document formulateSearchDocument(Node node, NamedAnnotations annos,
 			AccessControlList acl, EntityPath entityPath, String wikiPagesText) throws DatastoreException, NotFoundException;
 	
 	/**
@@ -56,7 +55,7 @@ public interface SearchDocumentDriver {
 	public EntityPath getEntityPath(String nodeId) throws NotFoundException;
 	
 	
-	public String getAllWikiPageText(String nodeId) throws DatastoreException;
+	public String getAllWikiPageText(String nodeId) throws DatastoreException, IOException;
 	
 
 }

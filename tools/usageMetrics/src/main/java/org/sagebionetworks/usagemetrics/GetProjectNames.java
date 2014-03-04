@@ -1,11 +1,8 @@
 package org.sagebionetworks.usagemetrics;
 
-import javax.swing.text.html.parser.Entity;
-
-import org.json.JSONException;
-import org.json.JSONObject;
-import org.sagebionetworks.client.Synapse;
+import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.repo.model.Project;
 
 public class GetProjectNames {
 
@@ -16,7 +13,7 @@ public class GetProjectNames {
 			"syn365501", "syn371716", "syn392319", "syn443970", "syn447981" };
 
 	public static void main(String[] args) throws Exception {
-		Synapse synapse = new Synapse();
+		SynapseClientImpl synapse = new SynapseClientImpl();
 		String username = args[0];
 		String password = args[1];
 		synapse.login(username, password);
@@ -24,27 +21,16 @@ public class GetProjectNames {
 		printProjectNames(synapse);
 	}
 
-	private static void printProjectNames(Synapse synapse) {
+	private static void printProjectNames(SynapseClientImpl synapse) {
 		for (String id : projectIds) {
-			JSONObject entity;
+			Project entity;
 			try {
-				entity = synapse.getEntity("/entity/" + id);
+				entity = synapse.getEntity(id, Project.class);
 			} catch (SynapseException e) {
 				continue;
 			}
-			String name;
-			try {
-				name = entity.getString("name");
-			} catch (JSONException e) {
-				continue;
-			}
-			
-			String userName;
-			try {
-				userName = entity.getString("createdBy");
-			} catch (JSONException e) {
-				continue;
-			}
+			String name = entity.getName();
+			String userName = entity.getCreatedBy();
 			
 			System.out.format("Project Id:%s - created by %s - %s%n", id, userName, name);
 		}

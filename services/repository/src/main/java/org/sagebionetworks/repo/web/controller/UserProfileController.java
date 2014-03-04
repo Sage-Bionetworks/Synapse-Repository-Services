@@ -3,13 +3,11 @@ package org.sagebionetworks.repo.web.controller;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
-import javax.xml.xpath.XPathExpressionException;
 
-import org.json.JSONException;
-import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -42,8 +40,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
  * Every Synapse user has an associated <a href="${org.sagebionetworks.repo.model.UserProfile}">UserProfile</a>.
- * 
- *
  */
 @ControllerInfo(displayName="User Profile Services", path="repo/v1")
 @Controller
@@ -57,17 +53,12 @@ public class UserProfileController extends BaseController {
 	 * <p><b>Note:</b> Private user profile fields will be returned.</p>
 	 * @param userId
 	 *             The user that is making the request.
-	 * @param request
-	 * @return
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.USER_PROFILE, method = RequestMethod.GET)
 	public @ResponseBody
 	UserProfile getMyOwnUserProfile(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			HttpServletRequest request) throws DatastoreException, UnauthorizedException, NotFoundException {
 		return serviceProvider.getUserProfileService().getMyOwnUserProfile(userId);
 	}
@@ -79,17 +70,12 @@ public class UserProfileController extends BaseController {
 	 *            The user that is making the request.
 	 * @param profileId 
 	 *            The target profile owner ID (the "id" field returned in the "/user" request).
-	 * @param request
-	 * @return
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.USER_PROFILE_ID, method = RequestMethod.GET)
 	public @ResponseBody
 	UserProfile getUserProfileByOwnerId(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String profileId,
 			HttpServletRequest request) throws DatastoreException, UnauthorizedException, NotFoundException {
 		return serviceProvider.getUserProfileService().getUserProfileByOwnerId(userId, profileId);
@@ -97,8 +83,6 @@ public class UserProfileController extends BaseController {
 
 	/**
 	 * Get all publicly available <a href="${org.sagebionetworks.repo.model.UserProfile}">UserProfile</a> data in the system
-	 * @param request
-	 * @param userId
 	 * @param offset
 	 *        The offset index determines where this page will start from. An index of 0 is the first item. <p><i>Default is 0</i></p>
 	 * @param limit
@@ -107,16 +91,12 @@ public class UserProfileController extends BaseController {
 	 *        Used to indicate upon which field(s) to sort. <p><i>Default is NONE</i></p>
 	 * @param ascending
 	 *        Used to indicate whether the sort direction is ascending or not.  <p><i>Default is true</i></p>
-	 * @return
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.USER, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<UserProfile> getUserProfilesPaginated(HttpServletRequest request,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false)  String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PRINCIPALS_PAGINATION_LIMIT_PARAM) Integer limit,
 			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_SORT_BY_PARAM) String sort,
@@ -131,51 +111,30 @@ public class UserProfileController extends BaseController {
 	 * otherwise an Unauthorized response will occur.</p>
 	 * @param userId
 	 * 		The user that is making the request.
-	 * @param header
-	 * @param request
 	 * @return The updated <a href="${org.sagebionetworks.repo.model.UserProfile}">UserProfile</a>
-	 * @throws NotFoundException
-	 * @throws ConflictingUpdateException
-	 * @throws DatastoreException Thrown when there is a server-side problem.
-	 * @throws InvalidModelException
-	 * @throws UnauthorizedException
-	 * @throws IOException
-	 * @throws AuthenticationException
-	 * @throws XPathExpressionException
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.USER_PROFILE, method = RequestMethod.PUT)
 	public @ResponseBody
 	UserProfile updateUserProfile(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request)
 			throws NotFoundException, ConflictingUpdateException,
-			DatastoreException, InvalidModelException, UnauthorizedException, IOException, AuthenticationException, XPathExpressionException {
+			DatastoreException, InvalidModelException, UnauthorizedException, IOException {
 		return serviceProvider.getUserProfileService().updateUserProfile(userId, header, request);
 	}
 
 	/**
 	 * Create a filled-in <a href="${org.sagebionetworks.repo.model.attachment.S3AttachmentToken}">S3AttachmentToken</a> for use with a particular
 	 * locationable user profile picture to be stored in AWS S3.
-	 * 
-	 * @param userId
-	 * @param id
-	 * @param etag
-	 * @param s3Token
-	 * @param request
-	 * @return
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 * @throws InvalidModelException
 	 */
 	@Deprecated
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = { UrlHelpers.USER_PROFILE_S3_ATTACHMENT_TOKEN }, method = RequestMethod.POST)
 	public @ResponseBody
 	S3AttachmentToken createUserProfileS3AttachmentToken(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String profileId, @RequestBody S3AttachmentToken token,
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException, InvalidModelException {
@@ -183,23 +142,13 @@ public class UserProfileController extends BaseController {
 	}
 	/**
 	 * Create a new PresignedUrl for a profile picture attachment.
-	 * 
-	 * @param userId
-	 * @param id
-	 * @param token
-	 * @param request
-	 * @return
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 * @throws InvalidModelException
 	 */
 	@Deprecated
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = { UrlHelpers.USER_PROFILE_ATTACHMENT_URL }, method = RequestMethod.POST)
 	public @ResponseBody
 	PresignedUrl getUserProfileAttachmentUrl(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String profileId,
 			@RequestBody PresignedUrl url,
 			HttpServletRequest request) throws NotFoundException,
@@ -211,14 +160,7 @@ public class UserProfileController extends BaseController {
 	 * Batch get UserGroupHeaders.
 	 * This fetches information about a collection of users or groups, specified by Synapse IDs.
 	 * 
-	 * @param header
 	 * @param ids IDs are specified as request parameters at the end of the URL, separated by commas.  <p>For example: <pre class="prettyprint">ids=1001,819</pre></p>
-	 * @param request
-	 * @return
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 * @throws IOException
-	 * @throws JSONException 
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.USER_GROUP_HEADERS_BATCH, method = RequestMethod.GET)
@@ -226,12 +168,17 @@ public class UserProfileController extends BaseController {
 	UserGroupHeaderResponsePage getUserGroupHeadersByIds(
 			@RequestHeader HttpHeaders header,
 			@RequestParam(value = UrlHelpers.IDS_PATH_VARIABLE, required = true) String ids,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			HttpServletRequest request) throws DatastoreException, NotFoundException {
 
 		String[] idsArray = ids.split(",");
 		List<String> idsList = new ArrayList<String>(Arrays.asList(idsArray));
-		return serviceProvider.getUserProfileService().getUserGroupHeadersByIds(userId, idsList);
+		List<Long> longList = new LinkedList<Long>();
+		for(String stringId: idsList){
+			longList.add(Long.parseLong(stringId));
+		}
+		// convert to a list of longs
+		return serviceProvider.getUserProfileService().getUserGroupHeadersByIds(userId, longList);
 	}
 
 	/**
@@ -242,12 +189,6 @@ public class UserProfileController extends BaseController {
 	 *         The offset index determines where this page will start from. An index of 0 is the first item. <p><i>Default is 0</i></p> 
 	 * @param limit
 	 * 			Limits the number of items that will be fetched for this page. <p><i>Default is 10</i></p>
-	 * @param header
-	 * @param request
-	 * @return
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 * @throws IOException
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.USER_GROUP_HEADERS, method = RequestMethod.GET)
@@ -265,15 +206,6 @@ public class UserProfileController extends BaseController {
 	 * Add an <a href="${org.sagebionetworks.repo.model.Entity}">Entity</a> as a <a href="${org.sagebionetworks.repo.model.Favorite}">Favorite</a> of the caller.
 	 * @param id
 	 *        Entity ID of the favorite <a href="${org.sagebionetworks.repo.model.Entity}">Entity</a>
-	 * @param userId
-	 * @param request
-	 * @return
-	 * @throws DatastoreException
-	 * @throws InvalidModelException
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
-	 * @throws IOException
-	 * @throws JSONObjectAdapterException
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = { 
@@ -282,7 +214,7 @@ public class UserProfileController extends BaseController {
 	public @ResponseBody
 	EntityHeader addFavorite(
 			@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			HttpServletRequest request)
 			throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException, IOException, JSONObjectAdapterException {
@@ -293,14 +225,6 @@ public class UserProfileController extends BaseController {
 	 * Remove an <a href="${org.sagebionetworks.repo.model.Entity}">Entity</a> as a <a href="${org.sagebionetworks.repo.model.Favorite}">Favorite</a> of the caller.
 	 * @param id
 	 *       Entity ID of the <a href="${org.sagebionetworks.repo.model.Entity}">Entity</a> that should be removed as a favorite
-	 * @param userId
-	 * @param request
-	 * @throws DatastoreException
-	 * @throws InvalidModelException
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
-	 * @throws IOException
-	 * @throws JSONObjectAdapterException
 	 */
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = { 
@@ -309,7 +233,7 @@ public class UserProfileController extends BaseController {
 	public @ResponseBody
 	void removeFavorite(
 			@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			HttpServletRequest request)
 			throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException, IOException, JSONObjectAdapterException {
@@ -319,15 +243,10 @@ public class UserProfileController extends BaseController {
 	/**
 	 * Get a paginated result that contains the 
 	 * caller's <a href="${org.sagebionetworks.repo.model.Favorite}">Favorites</a> 
-	 * @param userId
 	 * @param offset
 	 * 			The offset index determines where this page will start from. An index of 0 is the first item. <p><i>Default is 0</i></p>
 	 * @param limit
 	 *          Limits the number of items that will be fetched for this page. <p><i>Default is 10</i></p>
-	 * @return
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = {
@@ -335,7 +254,7 @@ public class UserProfileController extends BaseController {
 	}, method = RequestMethod.GET) 
 	public @ResponseBody
 	PaginatedResults<EntityHeader> getFavorites(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required=false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit) 
 			throws NotFoundException, DatastoreException, UnauthorizedException {

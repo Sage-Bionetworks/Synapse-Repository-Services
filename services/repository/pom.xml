@@ -25,6 +25,7 @@
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>auth-util</artifactId>
 		</dependency>
+		
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-stackConfiguration</artifactId>
@@ -53,13 +54,6 @@
 			<scope>provided</scope>
 		</dependency>
 
-		<!-- In a tomcat container, such as Elastic Beanstalk, you have to include 
-			jstl.jar manually, hence this entry. -->
-		<dependency>
-			<groupId>javax.servlet</groupId>
-			<artifactId>jstl</artifactId>
-		</dependency>
-
 		<!-- Spring Framework dependencies -->
 		<dependency>
 			<groupId>org.springframework</groupId>
@@ -86,22 +80,6 @@
 		<dependency>
 			<groupId>org.codehaus.jackson</groupId>
 			<artifactId>jackson-mapper-asl</artifactId>
-		</dependency>
-
-		<!-- Logging dependencies -->
-		<dependency>
-			<groupId>commons-logging</groupId>
-			<artifactId>commons-logging</artifactId>
-		</dependency>
-
-		<dependency>
-			<groupId>log4j</groupId>
-			<artifactId>log4j</artifactId>
-		</dependency>
-
-		<dependency>
-			<groupId>log4j</groupId>
-			<artifactId>apache-log4j-extras</artifactId>
 		</dependency>
 
 		<dependency>
@@ -228,6 +206,8 @@
 					<additionalparam>-verbose</additionalparam>
 					<useStandardDocletOptions>false</useStandardDocletOptions>
 					<destDir>${project.build.directory}/javadoc/restdocs</destDir>
+					<!-- This name is used to link to the authentication controller -->
+					<additionalJOption>-authControllerName org.sagebionetworks.auth.AuthenticationController</additionalJOption>
 				</configuration>
 			</plugin>
 			<plugin>

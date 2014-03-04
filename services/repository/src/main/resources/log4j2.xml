@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration status="WARN">
+	<properties>
+		<property name="org.sagebionetworks.local.logging.dir">${sys:java.io.tmpdir}/synapse/logs</property>
+	</properties>
+	<appenders>
+		<Console name="Console" target="SYSTEM_OUT">
+			<PatternLayout
+				pattern="%d{ISO8601}{GMT+0} %X{sessionId} [%t] %-5level %logger{36} - %msg%n" />
+		</Console>
+		<RollingFile name="traceProfiling"
+			fileName="${org.sagebionetworks.local.logging.dir}/repo-trace-profile.log"
+			filePattern="${org.sagebionetworks.local.logging.dir}/repo-trace-profile.%d{yyyy-MM-dd-hh-mm}.log.gz">
+			<PatternLayout>
+				<pattern>%d{ISO8601}{GMT+0} %X{sessionId} %-5p [%15.15t] [%c] - %m%n</pattern>
+			</PatternLayout>
+			<Policies>
+				<TimeBasedTriggeringPolicy interval="1" />
+				<SizeBasedTriggeringPolicy size="250 MB" />
+			</Policies>
+		</RollingFile>
+		<RollingFile name="performanceProfiling"
+			fileName="${org.sagebionetworks.local.logging.dir}/repo-performance-profile.log"
+			filePattern="${org.sagebionetworks.local.logging.dir}/repo-performance-profile.%d{yyyy-MM-dd-hh-mm}.log.gz">
+			<PatternLayout>
+				<pattern>%d{ISO8601}{GMT+0} %m%n</pattern>
+			</PatternLayout>
+			<Policies>
+				<TimeBasedTriggeringPolicy interval="1" />
+				<SizeBasedTriggeringPolicy size="250 MB" />
+			</Policies>
+		</RollingFile>
+		<RollingFile name="repository"
+			fileName="${org.sagebionetworks.local.logging.dir}/repo-services.log"
+			filePattern="${org.sagebionetworks.local.logging.dir}/repo-services.%d{yyyy-MM-dd-hh-mm}.log.gz">
+			<PatternLayout>
+				<pattern>%d{ISO8601}{GMT+0} %X{sessionId} %-5p [%15.15t] [%c] - %m%n</pattern>
+			</PatternLayout>
+			<Policies>
+				<TimeBasedTriggeringPolicy interval="1" />
+				<SizeBasedTriggeringPolicy size="250 MB" />
+			</Policies>
+		</RollingFile>
+	</appenders>
+	<loggers>
+		<logger name="org.sagebionetworks.profiler.LoggingProfiler"
+			level="debug" additivity="false">
+			<appender-ref ref="traceProfiling" />
+		</logger>
+		<logger name="org.sagebionetworks.profiler.call.performance"
+			level="debug" additivity="false">
+			<appender-ref ref="performanceProfiling" />
+		</logger>
+		<logger name="org.sagebionetworks" level="all" additivity="true">
+			<appender-ref ref="repository" />
+		</logger>
+		<root level="error">
+			<appender-ref ref="Console" />
+		</root>
+	</loggers>
+</configuration>

@@ -85,6 +85,15 @@ public interface FileHandleManager {
 	String getPreviewFileHandleId(String handleId) throws DatastoreException, NotFoundException;
 	
 	/**
+	 * Clear the preview associated with a file handle
+	 * @param userInfo
+	 * @param handleId
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public void clearPreview(UserInfo userInfo, String handleId) throws DatastoreException, NotFoundException;
+	
+	/**
 	 * Delete a file handle
 	 * @param userInfo
 	 * @param handleId

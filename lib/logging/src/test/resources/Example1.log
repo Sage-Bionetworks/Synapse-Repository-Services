@@ -1,0 +1,38 @@
+2013-09-02 18:50:20,824 38804033-6410-440b-a23c-c26b4000e3dd [main] ERROR org.sagebionetworks.logging.LoggingTest - An Error!!!
+java.lang.RuntimeException: java.lang.IllegalArgumentException: Bad mojo!
+	at org.sagebionetworks.logging.LoggingTest.testException(LoggingTest.java:54) [test-classes/:?]
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method) ~[?:1.7.0_10]
+	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:57) ~[?:1.7.0_10]
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) ~[?:1.7.0_10]
+	at java.lang.reflect.Method.invoke(Method.java:601) ~[?:1.7.0_10]
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:44) [junit-4.7.jar:?]
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:15) [junit-4.7.jar:?]
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:41) [junit-4.7.jar:?]
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:20) [junit-4.7.jar:?]
+	at org.junit.internal.runners.statements.RunBefores.evaluate(RunBefores.java:28) [junit-4.7.jar:?]
+	at org.junit.internal.runners.statements.RunAfters.evaluate(RunAfters.java:31) [junit-4.7.jar:?]
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:76) [junit-4.7.jar:?]
+	at org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:50) [junit-4.7.jar:?]
+	at org.junit.runners.ParentRunner$3.run(ParentRunner.java:193) [junit-4.7.jar:?]
+	at org.junit.runners.ParentRunner$1.schedule(ParentRunner.java:52) [junit-4.7.jar:?]
+	at org.junit.runners.ParentRunner.runChildren(ParentRunner.java:191) [junit-4.7.jar:?]
+	at org.junit.runners.ParentRunner.access$000(ParentRunner.java:42) [junit-4.7.jar:?]
+	at org.junit.runners.ParentRunner$2.evaluate(ParentRunner.java:184) [junit-4.7.jar:?]
+	at org.junit.runners.ParentRunner.run(ParentRunner.java:236) [junit-4.7.jar:?]
+	at org.eclipse.jdt.internal.junit4.runner.JUnit4TestReference.run(JUnit4TestReference.java:50) [.cp/:?]
+	at org.eclipse.jdt.internal.junit.runner.TestExecution.run(TestExecution.java:38) [.cp/:?]
+	at org.eclipse.jdt.internal.junit.runner.RemoteTestRunner.runTests(RemoteTestRunner.java:467) [.cp/:?]
+	at org.eclipse.jdt.internal.junit.runner.RemoteTestRunner.runTests(RemoteTestRunner.java:683) [.cp/:?]
+	at org.eclipse.jdt.internal.junit.runner.RemoteTestRunner.run(RemoteTestRunner.java:390) [.cp/:?]
+	at org.eclipse.jdt.internal.junit.runner.RemoteTestRunner.main(RemoteTestRunner.java:197) [.cp/:?]
+Caused by: java.lang.IllegalArgumentException: Bad mojo!
+	... 25 more
+2013-09-02 18:50:20,853 7931fe99-d376-4937-8366-ebeaab73a170 [main] DEBUG org.sagebionetworks.logging.LoggingTest - This is a debug message
+2013-09-02 18:50:20,853 777e15eb-14b3-4ef6-a432-3c4b344085d2 [main] DEBUG org.sagebionetworks.logging.LoggingTest - This is a trace message
+2013-09-02 18:50:20,854 764035c9-1a59-4deb-93ed-38a1c24d2948 [main] INFO  org.sagebionetworks.logging.LoggingTest - This is an info message
+2013-09-02 18:50:20,854 5ddacc86-f10e-4769-a618-dd21a0244f49 [main] INFO  org.sagebionetworks.logging.LoggingTest - Log dir: C:\Users\John\AppData\Local\Temp\
+2013-09-02 18:50:20,854 5ddacc86-f10e-4769-a618-dd21a0244f49 [main] DEBUG org.sagebionetworks.logging.LoggingTest - Test rollover 0
+2013-09-02 18:50:20,841 d64fdc3e-6ec1-4ad4-9a68-968de370e5b3 TRACE [           main] [org.sagebionetworks.profiler.LoggingProfiler] - 
+[1] ELAPSE: 00:01:010 METHOD: this is a trace frame
+2013-09-02 18:50:20,853 faaea3e9-e802-470c-b408-a01440ad4bfa DEBUG [           main] [org.sagebionetworks.profiler.LoggingProfiler] - 
+[1] ELAPSE: 00:05:001 METHOD: this is a debug frame

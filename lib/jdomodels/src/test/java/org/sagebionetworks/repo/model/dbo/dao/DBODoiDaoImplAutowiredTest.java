@@ -9,13 +9,12 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.ids.UuidETagGenerator;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DoiAdminDao;
 import org.sagebionetworks.repo.model.DoiDao;
-import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.NodeConstants;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.doi.Doi;
-import org.sagebionetworks.repo.model.doi.DoiObjectType;
 import org.sagebionetworks.repo.model.doi.DoiStatus;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -27,18 +26,19 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class DBODoiDaoImplAutowiredTest {
 
-	@Autowired private DoiDao doiDao;
-	@Autowired private DoiAdminDao doiAdminDao;
-	@Autowired private UserGroupDAO userGroupDAO;
+	@Autowired
+	private DoiDao doiDao;
+	
+	@Autowired
+	private DoiAdminDao doiAdminDao;
+	
 	private String userId;
 
 	@Before
 	public void before() throws Exception {
 		assertNotNull(doiDao);
 		assertNotNull(doiAdminDao);
-		assertNotNull(userGroupDAO);
-		userId = userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId();
-		assertNotNull(userId);
+		userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString();
 	}
 
 	@After
@@ -50,7 +50,7 @@ public class DBODoiDaoImplAutowiredTest {
 	public void test() throws Exception {
 		// Create a DOI
 		final String objectId = KeyFactory.keyToString(112233L);
-		final DoiObjectType objectType = DoiObjectType.ENTITY;
+		final ObjectType objectType = ObjectType.ENTITY;
 		final Long versionNumber = 1L;
 		final DoiStatus doiStatus = DoiStatus.IN_PROCESS;
 		Doi doi = doiDao.createDoi(userId, objectId, objectType, versionNumber, doiStatus);
@@ -58,11 +58,11 @@ public class DBODoiDaoImplAutowiredTest {
 		assertNotNull(doi.getId());
 		final String id1 = doi.getId();
 		assertNotNull(doi.getEtag());
-		assertFalse(UuidETagGenerator.ZERO_E_TAG.equals(doi.getEtag()));
+		assertFalse(NodeConstants.ZERO_E_TAG.equals(doi.getEtag()));
 		final String etag1 = doi.getEtag();
 		assertEquals(objectId, doi.getObjectId());
 		assertEquals(versionNumber, doi.getObjectVersion());
-		assertEquals(objectType, doi.getDoiObjectType());
+		assertEquals(objectType, doi.getObjectType());
 		assertEquals(doiStatus, doi.getDoiStatus());
 		assertEquals(userId, doi.getCreatedBy());
 		assertNotNull(doi.getCreatedOn());
@@ -74,11 +74,11 @@ public class DBODoiDaoImplAutowiredTest {
 		assertNotNull(doi.getId());
 		final String id2 = doi.getId();
 		assertNotNull(doi.getEtag());
-		assertFalse(UuidETagGenerator.ZERO_E_TAG.equals(doi.getEtag()));
+		assertFalse(NodeConstants.ZERO_E_TAG.equals(doi.getEtag()));
 		final String etag2 = doi.getEtag();
 		assertEquals(objectId, doi.getObjectId());
 		assertNull(doi.getObjectVersion());
-		assertEquals(objectType, doi.getDoiObjectType());
+		assertEquals(objectType, doi.getObjectType());
 		assertEquals(doiStatus, doi.getDoiStatus());
 		assertEquals(userId, doi.getCreatedBy());
 		assertNotNull(doi.getCreatedOn());
@@ -92,7 +92,7 @@ public class DBODoiDaoImplAutowiredTest {
 		assertEquals(etag1, doi.getEtag());
 		assertEquals(objectId, doi.getObjectId());
 		assertEquals(versionNumber, doi.getObjectVersion());
-		assertEquals(objectType, doi.getDoiObjectType());
+		assertEquals(objectType, doi.getObjectType());
 		assertEquals(doiStatus, doi.getDoiStatus());
 		assertEquals(userId, doi.getCreatedBy());
 		assertNotNull(doi.getCreatedOn());
@@ -105,7 +105,7 @@ public class DBODoiDaoImplAutowiredTest {
 		assertEquals(etag2, doi.getEtag());
 		assertEquals(objectId, doi.getObjectId());
 		assertNull(doi.getObjectVersion());
-		assertEquals(objectType, doi.getDoiObjectType());
+		assertEquals(objectType, doi.getObjectType());
 		assertEquals(doiStatus, doi.getDoiStatus());
 		assertEquals(userId, doi.getCreatedBy());
 		assertNotNull(doi.getCreatedOn());
@@ -120,7 +120,7 @@ public class DBODoiDaoImplAutowiredTest {
 		assertEquals(etag1, doi.getEtag());
 		assertEquals(objectId, doi.getObjectId());
 		assertEquals(versionNumber, doi.getObjectVersion());
-		assertEquals(objectType, doi.getDoiObjectType());
+		assertEquals(objectType, doi.getObjectType());
 		assertEquals(DoiStatus.CREATED, doi.getDoiStatus());
 		assertEquals(userId, doi.getCreatedBy());
 		assertNotNull(doi.getCreatedOn());
@@ -134,7 +134,7 @@ public class DBODoiDaoImplAutowiredTest {
 		assertEquals(etag2, doi.getEtag());
 		assertEquals(objectId, doi.getObjectId());
 		assertNull(doi.getObjectVersion());
-		assertEquals(objectType, doi.getDoiObjectType());
+		assertEquals(objectType, doi.getObjectType());
 		assertEquals(DoiStatus.ERROR, doi.getDoiStatus());
 		assertEquals(userId, doi.getCreatedBy());
 		assertNotNull(doi.getCreatedOn());
@@ -143,6 +143,6 @@ public class DBODoiDaoImplAutowiredTest {
 
 	@Test(expected=NotFoundException.class)
 	public void testGetNotFoundException() throws Exception {
-		doiDao.getDoi("syn372861388593", DoiObjectType.ENTITY, null);
+		doiDao.getDoi("syn372861388593", ObjectType.ENTITY, null);
 	}
 }

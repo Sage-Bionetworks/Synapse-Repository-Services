@@ -6,7 +6,6 @@ import java.sql.BatchUpdateException;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.apache.http.conn.ConnectTimeoutException;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.ErrorResponse;
 import org.sagebionetworks.utils.HttpClientHelperException;
@@ -42,7 +41,7 @@ public class BaseControllerTest {
 		// org.apache.http.conn.ConnectTimeoutException: Connect to
 		// search-prod-20120206-vigj35bjslyimyxftqh4mludxm.us-east-1.cloudsearch.amazonaws.com:80
 		// timed out
-		ErrorResponse response = controller.handleException(ex, request);
+		ErrorResponse response = controller.handleException(ex, request, true);
 		assertEquals("search failed, try again", response.getReason());
 	}
 

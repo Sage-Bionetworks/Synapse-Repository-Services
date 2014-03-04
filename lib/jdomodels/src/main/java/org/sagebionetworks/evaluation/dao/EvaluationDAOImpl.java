@@ -1,34 +1,41 @@
 package org.sagebionetworks.evaluation.dao;
 
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_EVALUATION_ETAG;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_EVALUATION_ID;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_EVALUATION_NAME;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_EVALUATION_STATUS;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_PARTICIPANT_EVAL_ID;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_PARTICIPANT_USER_ID;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.LIMIT_PARAM_NAME;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.OFFSET_PARAM_NAME;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.TABLE_EVALUATION;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.TABLE_PARTICIPANT;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_ETAG;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_ID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_NAME;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_STATUS;
+import static org.sagebionetworks.repo.model.query.SQLConstants.LIMIT_PARAM_NAME;
+import static org.sagebionetworks.repo.model.query.SQLConstants.OFFSET_PARAM_NAME;
+import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_EVALUATION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_OWNER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_OWNER_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_OWNER;
 
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
 import org.sagebionetworks.evaluation.dbo.EvaluationDBO;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.util.EvaluationUtils;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NameConflictException;
-import org.sagebionetworks.repo.model.TagMessenger;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
+import org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
+import org.sagebionetworks.repo.model.query.SQLConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
@@ -45,7 +52,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	private DBOBasicDao basicDao;
 	
 	@Autowired
-	private TagMessenger tagMessenger;
+	private TransactionalMessenger transactionalMessenger;
 	
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
@@ -53,6 +60,20 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	private static final String ID = DBOConstants.PARAM_EVALUATION_ID;
 	private static final String NAME = DBOConstants.PARAM_EVALUATION_NAME;
 	private static final String STATUS = DBOConstants.PARAM_EVALUATION_STATUS;
+	private static final String CONTENT_SOURCE = DBOConstants.PARAM_EVALUATION_CONTENT_SOURCE;
+	
+	private static final String OFFSET_AND_LIMIT = 
+			" LIMIT :"+ LIMIT_PARAM_NAME +
+			" OFFSET :" + OFFSET_PARAM_NAME;
+	
+	private static final String SELECT_BY_CONTENT_SOURCE = 
+			"SELECT * FROM "+SQLConstants.TABLE_EVALUATION+
+			" WHERE "+SQLConstants.COL_EVALUATION_CONTENT_SOURCE+"=:"+CONTENT_SOURCE+
+			OFFSET_AND_LIMIT;
+	
+	private static final String COUNT_BY_CONTENT_SOURCE = 
+			"SELECT COUNT(*) FROM "+SQLConstants.TABLE_EVALUATION+
+			" WHERE "+SQLConstants.COL_EVALUATION_CONTENT_SOURCE+"=:"+CONTENT_SOURCE;
 	
 	private static final String SELECT_BY_NAME_SQL = 
 			"SELECT ID FROM "+ TABLE_EVALUATION +
@@ -60,14 +81,12 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	
 	private static final String SELECT_ALL_SQL_PAGINATED = 
 			"SELECT * FROM "+ TABLE_EVALUATION +
-			" LIMIT :"+ LIMIT_PARAM_NAME +
-			" OFFSET :" + OFFSET_PARAM_NAME;
+			OFFSET_AND_LIMIT;
 	
 	private static final String SELECT_BY_STATUS_SQL_PAGINATED = 
 			"SELECT * FROM "+ TABLE_EVALUATION +
 			" WHERE " + COL_EVALUATION_STATUS + "=:" + STATUS +
-			" LIMIT :"+ LIMIT_PARAM_NAME +
-			" OFFSET :" + OFFSET_PARAM_NAME;
+			OFFSET_AND_LIMIT;
 	
 	private static final String SQL_ETAG_WITHOUT_LOCK = "SELECT " + COL_EVALUATION_ETAG + " FROM " +
 														TABLE_EVALUATION +" WHERE ID = ?";
@@ -81,16 +100,6 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public String create(Evaluation dto, Long ownerId) throws DatastoreException {
-		return create(dto, ownerId, false);
-	}
-	
-	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public String createFromBackup(Evaluation dto, Long ownerId) throws DatastoreException {
-		return create(dto, ownerId, true);
-	}
-		
-	private String create(Evaluation dto, Long ownerId, boolean fromBackup) {
 		EvaluationUtils.ensureNotNull(dto, "Evaluation object");
 		EvaluationUtils.ensureNotNull(ownerId, "Owner ID");
 		EvaluationUtils.ensureNotNull(dto.getId(), "Evaluation ID");
@@ -104,10 +113,9 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		// serialize
 		copyDtoToDbo(dto, dbo);
 		
-		// generate a new eTag, unless restoring from backup
-		if (!fromBackup) {			
-			tagMessenger.generateEtagAndSendMessage(dbo, ChangeType.CREATE);
-		}
+		// Generate a new eTag and CREATE message
+		dbo.seteTag(UUID.randomUUID().toString());
+		transactionalMessenger.sendMessageAfterCommit(dbo, ChangeType.CREATE);
 				
 		// ensure DBO has required information
 		verifyEvaluationDBO(dbo);
@@ -141,6 +149,19 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		copyDboToDto(dbo, dto);
 		return dto;
 	}
+	
+	@Override
+	public List<Evaluation> getByContentSource(String id, long limit, long offset) 
+			throws DatastoreException, NotFoundException {
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(CONTENT_SOURCE, KeyFactory.stringToKey(id));
+		params.addValue(OFFSET_PARAM_NAME, offset);
+		params.addValue(LIMIT_PARAM_NAME, limit);	
+		List<EvaluationDBO> dbos = simpleJdbcTemplate.query(SELECT_BY_CONTENT_SOURCE, rowMapper, params);
+		List<Evaluation> dtos = new ArrayList<Evaluation>();
+		copyDbosToDtos(dbos, dtos);
+		return dtos;
+	}
 
 	@Override
 	public List<Evaluation> getInRange(long limit, long offset) throws DatastoreException, NotFoundException {
@@ -149,11 +170,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		param.addValue(LIMIT_PARAM_NAME, limit);	
 		List<EvaluationDBO> dbos = simpleJdbcTemplate.query(SELECT_ALL_SQL_PAGINATED, rowMapper, param);
 		List<Evaluation> dtos = new ArrayList<Evaluation>();
-		for (EvaluationDBO dbo : dbos) {
-			Evaluation dto = new Evaluation();
-			copyDboToDto(dbo, dto);
-			dtos.add(dto);
-		}
+		copyDbosToDtos(dbos, dtos);
 		return dtos;
 	}
 
@@ -167,11 +184,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		param.addValue(STATUS, status.ordinal());
 		List<EvaluationDBO> dbos = simpleJdbcTemplate.query(SELECT_BY_STATUS_SQL_PAGINATED, rowMapper, param);
 		List<Evaluation> dtos = new ArrayList<Evaluation>();
-		for (EvaluationDBO dbo : dbos) {
-			Evaluation dto = new Evaluation();
-			copyDboToDto(dbo, dto);
-			dtos.add(dto);
-		}
+		copyDbosToDtos(dbos, dtos);
 		return dtos;
 	}
 
@@ -179,36 +192,25 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	public long getCount() throws DatastoreException {
 		return basicDao.getCount(EvaluationDBO.class);
 	}
+	
+	@Override
+	public long getCountByContentSource(String id) throws DatastoreException {
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(CONTENT_SOURCE, KeyFactory.stringToKey(id));
+		return simpleJdbcTemplate.queryForLong(COUNT_BY_CONTENT_SOURCE, params);
+	}
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void update(Evaluation dto)
 			throws DatastoreException, InvalidModelException,
 			NotFoundException, ConflictingUpdateException {
-		update(dto, false);		
-	}
-	
-	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void updateFromBackup(Evaluation dto)
-			throws DatastoreException, InvalidModelException,
-			NotFoundException, ConflictingUpdateException {
-		update(dto, true);
-	}
-
-	private void update(Evaluation dto, boolean fromBackup) throws ConflictingUpdateException, DatastoreException, NotFoundException {
 		EvaluationDBO dbo = new EvaluationDBO();
 		copyDtoToDbo(dto, dbo);
 		verifyEvaluationDBO(dbo);
 		
-		if (fromBackup) {
-			// keep same eTag
-			lockAndSendTagMessage(dbo, ChangeType.UPDATE); 
-		} else {
-			// update eTag
-			String newEtag = lockAndGenerateEtag(dbo.getIdString(), dbo.geteTag(), ChangeType.UPDATE);	
-			dbo.seteTag(newEtag);
-		}
+		String newEtag = lockAndGenerateEtag(dbo.getIdString(), dbo.getEtag(), ChangeType.UPDATE);	
+		dbo.seteTag(newEtag);
 		
 		// TODO: detect and log NO-OP update
 		basicDao.update(dbo);
@@ -275,7 +277,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	 */
 	protected static void copyDboToDto(EvaluationDBO dbo, Evaluation dto) throws DatastoreException {	
 		dto.setId(dbo.getId() == null ? null : dbo.getId().toString());
-		dto.setEtag(dbo.geteTag());
+		dto.setEtag(dbo.getEtag());
 		dto.setName(dbo.getName());
 		if (dbo.getDescription() != null) {
 			try {
@@ -305,6 +307,14 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 			}
 		}
 	}
+	
+	protected static void copyDbosToDtos(List<EvaluationDBO> dbos, List<Evaluation> dtos) throws DatastoreException {
+		for (EvaluationDBO dbo : dbos) {
+			Evaluation dto = new Evaluation();
+			copyDboToDto(dbo, dto);
+			dtos.add(dto);
+		}
+	}
 
 	/**
 	 * Ensure that a EvaluationDBO object has all required components
@@ -313,7 +323,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	 */
 	private void verifyEvaluationDBO(EvaluationDBO dbo) {
 		EvaluationUtils.ensureNotNull(dbo.getId(), "ID");
-		EvaluationUtils.ensureNotNull(dbo.geteTag(), "eTag");
+		EvaluationUtils.ensureNotNull(dbo.getEtag(), "etag");
 		EvaluationUtils.ensureNotNull(dbo.getName(), "name");
 		EvaluationUtils.ensureNotNull(dbo.getOwnerId(), "ownerID");
 		EvaluationUtils.ensureNotNull(dbo.getCreatedOn(), "creation date");
@@ -331,8 +341,9 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		}
 		// Get a new e-tag
 		EvaluationDBO dbo = getDBO(id);
-		tagMessenger.generateEtagAndSendMessage(dbo, changeType);
-		return dbo.geteTag();
+		dbo.seteTag(UUID.randomUUID().toString());
+		transactionalMessenger.sendMessageAfterCommit(dbo, changeType);
+		return dbo.getEtag();
 	}
 	
 	private EvaluationDBO getDBO(String id) throws NotFoundException {
@@ -352,79 +363,68 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		return simpleJdbcTemplate.queryForObject(SQL_ETAG_FOR_UPDATE, String.class, id);
 	}
 	
-	private void lockAndSendTagMessage(EvaluationDBO dbo, ChangeType changeType) {
-		lockForUpdate(dbo.getIdString());
-		tagMessenger.sendMessage(dbo, changeType);		
-	}
+	private static final String SELECT_AVAILABLE_EVALUATIONS_PAGINATED_PREFIX =
+		"SELECT DISTINCT e.* " + AuthorizationSqlUtil.AUTHORIZATION_SQL_FROM+", "+TABLE_EVALUATION+" e ";
 	
-	private static final String SELECT_BY_USER_CORE = 
-		TABLE_EVALUATION +" e, "+TABLE_PARTICIPANT + " p WHERE "+
-		" e."+ COL_EVALUATION_ID + "=p."+ COL_PARTICIPANT_EVAL_ID + " AND " +
-		"p."+COL_PARTICIPANT_USER_ID + " IN (:"+ COL_PARTICIPANT_USER_ID+" ) ";
+	// parameters here are LIMIT and OFFSET
+	private static final String SELECT_AVAILABLE_EVALUATIONS_PAGINATED_SUFFIX =
+			" and e."+COL_EVALUATION_ID+"=acl."+COL_ACL_OWNER_ID+
+			" and acl."+COL_ACL_OWNER_TYPE+"='"+ObjectType.EVALUATION.name()+
+			"' and acl."+COL_ACL_ID+"=ra."+COL_RESOURCE_ACCESS_OWNER+
+			" ORDER BY e."+COL_EVALUATION_NAME+" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 	
-	private static final String SELECT_BY_USER_SQL =
-		"SELECT e.* FROM "+ SELECT_BY_USER_CORE + 
-		" LIMIT :"+ LIMIT_PARAM_NAME +
-		" OFFSET :" + OFFSET_PARAM_NAME;
+	private static final String SELECT_AVAILABLE_EVALUATIONS_COUNT_PREFIX =
+		"SELECT count(distinct e."+COL_EVALUATION_ID+") " + AuthorizationSqlUtil.AUTHORIZATION_SQL_FROM+", "+TABLE_EVALUATION+" e ";
 
-	private static final String SELECT_BY_USER_SQL_COUNT = 
-		"SELECT count(*) FROM "+ SELECT_BY_USER_CORE;
-		
-	private static final String SELECT_BY_USER_AND_STATUS_CORE = 
-		TABLE_EVALUATION +" e, "+TABLE_PARTICIPANT + " p WHERE "+
-		" e." + COL_EVALUATION_STATUS + "=:"+STATUS + " AND " +
-		" e."+ COL_EVALUATION_ID + "=p."+ COL_PARTICIPANT_EVAL_ID + " AND " +
-		"p."+COL_PARTICIPANT_USER_ID + " IN (:"+ COL_PARTICIPANT_USER_ID+" ) ";
-
-	private static final String SELECT_BY_USER_AND_STATUS_SQL =
-		"SELECT e.* FROM "+ SELECT_BY_USER_AND_STATUS_CORE + 
-		 " LIMIT :"+ LIMIT_PARAM_NAME +
-		 " OFFSET :" + OFFSET_PARAM_NAME;
-		
-	private static final String SELECT_BY_USER_AND_STATUS_SQL_COUNT =
-		"SELECT count(*) FROM "+ SELECT_BY_USER_AND_STATUS_CORE;
+	private static final String SELECT_AVAILABLE_EVALUATIONS_COUNT_SUFFIX =
+			" and e."+COL_EVALUATION_ID+"=acl."+COL_ACL_OWNER_ID+
+			" and acl."+COL_ACL_OWNER_TYPE+"='"+ObjectType.EVALUATION.name()+
+			"' and acl."+COL_ACL_ID+"=ra."+COL_RESOURCE_ACCESS_OWNER;
 
 	/**
 	 * return the evaluations in which the user (given as a list of principal Ids)
 	 * is either the owner or is a participant
 	 */
 	@Override
-	public List<Evaluation> getAvailableInRange(List<Long> principalIds, EvaluationStatus status, long limit, long offset) throws DatastoreException {
+	public List<Evaluation> getAvailableInRange(List<Long> principalIds, long limit, long offset) throws DatastoreException {
 		if (principalIds.isEmpty()) return new ArrayList<Evaluation>(); // SQL breaks down if list is empty
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(COL_PARTICIPANT_USER_ID, principalIds);	
+		// parameters here are 
+		//	BIND_VAR_PREFIX, appended with 0,1,2,... (to bind group id)
+		//	AuthorizationSqlUtil.ACCESS_TYPE_BIND_VAR (to bind ACCESS_TYPE, e.g. 'SUBMIT')
+		for (int i=0; i<principalIds.size(); i++) {
+			param.addValue(AuthorizationSqlUtil.BIND_VAR_PREFIX+i, principalIds.get(i));	
+		}
+		param.addValue(AuthorizationSqlUtil.ACCESS_TYPE_BIND_VAR, ACCESS_TYPE.SUBMIT.name());
 		param.addValue(OFFSET_PARAM_NAME, offset);
 		param.addValue(LIMIT_PARAM_NAME, limit);	
-		String sql = null;
-		if (null==status) {
-			sql = SELECT_BY_USER_SQL;
-		} else {
-			param.addValue(STATUS, status.ordinal());
-			sql = SELECT_BY_USER_AND_STATUS_SQL;
-		}
-		List<EvaluationDBO> dbos = simpleJdbcTemplate.query(sql, rowMapper, param);
+		param.addValue(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, ObjectType.EVALUATION.name());
+		StringBuilder sql = new StringBuilder(SELECT_AVAILABLE_EVALUATIONS_PAGINATED_PREFIX);
+		sql.append(AuthorizationSqlUtil.authorizationSQLWhere(principalIds.size()));
+		sql.append(SELECT_AVAILABLE_EVALUATIONS_PAGINATED_SUFFIX);
+
+		List<EvaluationDBO> dbos = simpleJdbcTemplate.query(sql.toString(), rowMapper, param);
 		List<Evaluation> dtos = new ArrayList<Evaluation>();
-		for (EvaluationDBO dbo : dbos) {
-			Evaluation dto = new Evaluation();
-			copyDboToDto(dbo, dto);
-			dtos.add(dto);
-		}
+		copyDbosToDtos(dbos, dtos);
 		return dtos;
 	}
 
 	@Override
-	public long getAvailableCount(List<Long> principalIds, EvaluationStatus status) throws DatastoreException {
+	public long getAvailableCount(List<Long> principalIds) throws DatastoreException {
 		if (principalIds.isEmpty()) return 0L; // SQL breaks down if list is empty
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(COL_PARTICIPANT_USER_ID, principalIds);		
-		String sql = null;
-		if (null==status) {
-			sql = SELECT_BY_USER_SQL_COUNT;
-		} else {
-			param.addValue(STATUS, status.ordinal());
-			sql = SELECT_BY_USER_AND_STATUS_SQL_COUNT;
+		// parameters here are 
+		//	BIND_VAR_PREFIX, appended with 0,1,2,... (to bind group id)
+		//	AuthorizationSqlUtil.ACCESS_TYPE_BIND_VAR (to bind ACCESS_TYPE, e.g. 'SUBMIT')
+		for (int i=0; i<principalIds.size(); i++) {
+			param.addValue(AuthorizationSqlUtil.BIND_VAR_PREFIX+i, principalIds.get(i));	
 		}
-		return simpleJdbcTemplate.queryForLong(sql, param);
+		param.addValue(AuthorizationSqlUtil.ACCESS_TYPE_BIND_VAR, ACCESS_TYPE.SUBMIT.name());
+		param.addValue(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, ObjectType.EVALUATION.name());
+		StringBuilder sql = new StringBuilder(SELECT_AVAILABLE_EVALUATIONS_COUNT_PREFIX);
+		sql.append(AuthorizationSqlUtil.authorizationSQLWhere(principalIds.size())); 
+		sql.append(SELECT_AVAILABLE_EVALUATIONS_COUNT_SUFFIX);
+		return simpleJdbcTemplate.queryForLong(sql.toString(), param);
 	}
 
 	

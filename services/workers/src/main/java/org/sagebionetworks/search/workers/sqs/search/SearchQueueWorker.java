@@ -6,19 +6,18 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.http.client.ClientProtocolException;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.repo.manager.search.SearchDocumentDriver;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.dao.WikiPageDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.message.ObjectType;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.search.Document;
+import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.search.SearchDao;
 import org.sagebionetworks.utils.HttpClientHelperException;
@@ -33,12 +32,12 @@ import com.amazonaws.services.sqs.model.Message;
  */
 public class SearchQueueWorker implements Callable<List<Message>> {
 	
-	static private Log log = LogFactory.getLog(SearchQueueWorker.class);
+	static private Logger log = LogManager.getLogger(SearchQueueWorker.class);
 	
 	private SearchDao searchDao;
 	private SearchDocumentDriver documentProvider;
 	private List<Message> messagesToProcess;
-	private WikiPageDao wikiPageDao;
+	private V2WikiPageDao wikiPageDao;
 	
 	private List<ChangeMessage> createOrUpdateMessages;
 	private List<ChangeMessage> deleteMessages;
@@ -50,7 +49,7 @@ public class SearchQueueWorker implements Callable<List<Message>> {
 	 * @param nodeWorkerManager
 	 * @param messagesToProcess
 	 */
-	public SearchQueueWorker(SearchDao searchDao, SearchDocumentDriver documentProvider, List<Message> messagesToProcess, WikiPageDao wikiPageDao) {
+	public SearchQueueWorker(SearchDao searchDao, SearchDocumentDriver documentProvider, List<Message> messagesToProcess, V2WikiPageDao wikiPageDao) {
 		if(searchDao == null) throw new IllegalArgumentException("SearchDao canot be null");
 		if(documentProvider == null) throw new IllegalArgumentException("SearchDocumentDriver cannot be null");
 		if(messagesToProcess == null) throw new IllegalArgumentException("messagesToProcess cannot be null");
@@ -94,7 +93,7 @@ public class SearchQueueWorker implements Callable<List<Message>> {
 					}
 				}catch(NotFoundException e){
 					// Nothing to do if the wiki does not exist
-					log.debug(e);
+					log.debug("Wiki not found for id: "+change.getObjectId()+" Message:"+e.getMessage());
 				}
 			}
 		}
@@ -144,7 +143,7 @@ public class SearchQueueWorker implements Callable<List<Message>> {
 	 * @throws IOException
 	 * @throws HttpClientHelperException
 	 */
-	private void processCreateUpdateBatch() throws DatastoreException, NotFoundException, ClientProtocolException, IOException, HttpClientHelperException {
+	private void processCreateUpdateBatch() throws DatastoreException, ClientProtocolException, IOException, HttpClientHelperException {
 		if(createOrUpdateMessages != null){
 			log.debug("Processing "+createOrUpdateMessages.size()+" create/update messages");
 			// Prepare a batch of documents
@@ -155,8 +154,14 @@ public class SearchQueueWorker implements Callable<List<Message>> {
 					// We want to ignore this message if a document with this ID and Etag are not in the repository as it is an old message.
 					if(message.getObjectEtag() == null || documentProvider.doesDocumentExist(message.getObjectId(), message.getObjectEtag())){
 						// Create a document for this
-						Document newDoc = documentProvider.formulateSearchDocument(message.getObjectId());
-						batch.add(newDoc);
+						Document newDoc;
+						try {
+							newDoc = documentProvider.formulateSearchDocument(message.getObjectId());
+							batch.add(newDoc);
+						} catch (NotFoundException e) {
+							// There is nothing to do if it does not exist
+							log.debug("Node not found for id: "+message.getObjectId()+" Message:"+e.getMessage());
+						}
 					}
 				}
 			}

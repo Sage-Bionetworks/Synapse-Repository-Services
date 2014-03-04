@@ -20,6 +20,9 @@ import org.apache.commons.lang.StringUtils;
 public class TextPreviewGenerator implements PreviewGenerator {
 	
 	public static final String TEXT_PLAIN 	= "text/plain";
+	public static final String APPLICATION_SH 	= "application/x-sh";
+	public static final String APPLICATION_JS 	= "application/x-javascript";
+	
 	public static final String TEXT_SLASH 	= "text/";
 	public static final int MAX_CHARACTER_COUNT = 1500;
 	@Override
@@ -49,7 +52,10 @@ public class TextPreviewGenerator implements PreviewGenerator {
 
 	@Override
 	public boolean supportsContentType(String contentType) {
-		return contentType.toLowerCase().startsWith(TEXT_SLASH);
+		//supported if it's text or js or sh (and not csv or tab)
+		return !contentType.equals(TabCsvPreviewGenerator.TEXT_TAB_SEPARATED_VALUES) && 
+		!contentType.equals(TabCsvPreviewGenerator.TEXT_CSV_SEPARATED_VALUES) &&
+		(contentType.startsWith(TEXT_SLASH) || contentType.equals(APPLICATION_JS) || contentType.equals(APPLICATION_SH));
 	}
 
 	@Override

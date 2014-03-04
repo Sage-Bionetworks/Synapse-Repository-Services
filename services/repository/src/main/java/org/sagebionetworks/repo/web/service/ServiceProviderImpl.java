@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.web.service;
 
+import org.sagebionetworks.repo.web.service.table.TableServices;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -37,18 +38,32 @@ public class ServiceProviderImpl implements ServiceProvider {
 	@Autowired
 	private ActivityService activityService;
 	@Autowired
+	private MessageService messageService;
+	@Autowired
 	private NodeTreeQueryService nodeLineageQueryService;
 	@Autowired
 	private EvaluationService competitionService;
 	@Autowired
 	private WikiService wikiService;
 	@Autowired
+	private V2WikiService v2WikiService;
+	@Autowired
 	private TrashService trashService;
 	@Autowired
 	private DoiService doiService;
 	@Autowired
 	private MigrationService migrationService;
-
+	@Autowired
+	private TableServices tableServices;
+	@Autowired
+	private TeamService teamService;
+	@Autowired
+	private MembershipInvitationService membershipInvitationService;
+	@Autowired
+	private MembershipRequestService membershipRequestService;
+	@Autowired
+	private PrincipalService principalService;
+	
 	public AccessApprovalService getAccessApprovalService() {
 		return accessApprovalService;
 	}
@@ -91,6 +106,10 @@ public class ServiceProviderImpl implements ServiceProvider {
 		return activityService;
 	}
 	@Override
+	public MessageService getMessageService() {
+		return messageService;
+	}
+	@Override
 	public NodeTreeQueryService getNodeTreeQueryService() {
 		return nodeLineageQueryService;
 	}
@@ -101,6 +120,10 @@ public class ServiceProviderImpl implements ServiceProvider {
 	@Override
 	public WikiService getWikiService() {
 		return wikiService;
+	}
+	@Override
+	public V2WikiService getV2WikiService() {
+		return v2WikiService;
 	}
 	@Override
 	public TrashService getTrashService() {
@@ -114,4 +137,25 @@ public class ServiceProviderImpl implements ServiceProvider {
 	public MigrationService getMigrationService() {
 		return migrationService;
 	}
+	@Override
+	public TableServices getTableServices() {
+		return tableServices;
+	}
+	@Override
+	public TeamService getTeamService() {
+		return teamService;
+	}
+	@Override
+	public MembershipInvitationService getMembershipInvitationService() {
+		return membershipInvitationService;
+	}
+	@Override
+	public MembershipRequestService getMembershipRequestService() {
+		return membershipRequestService;
+	}
+	@Override
+	public PrincipalService getPrincipalService() {
+		return principalService;
+	}
+
 }

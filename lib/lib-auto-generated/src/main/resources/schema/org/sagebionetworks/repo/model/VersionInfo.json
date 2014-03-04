@@ -21,6 +21,15 @@
             "type":"string",
             "description":"The display name of the user that last modified this entity."
         },
+        "contentSize": {
+            "type":"string",
+            "description":"The size of the associated file (when applicable and available)."
+        },
+        "contentMd5": {
+            "type":"string",
+            "description":"Calculated md5 of the associated file (when applicable and available)."
+        },
+        
         "modifiedByPrincipalId": {
 						"type": "string",
 						"description": "The user that last modified this entity."

@@ -19,15 +19,15 @@
 		class="org.sagebionetworks.repo.web.controller.EntityServletTestHelper"
 		scope="prototype" />
 
-	<bean id="userDAO" class="org.sagebionetworks.repo.manager.TestUserDAO"
-		scope="singleton" />
-
-	<!-- Provides users for testing. -->
-	<bean id="testUserProvider" class="org.sagebionetworks.repo.web.util.UserProviderImpl"
-		scope="singleton" />
-
     <!--  We do not want to publish to the repository change topic while running test so we turn it off -->
 	<bean id="stackConfiguration.shouldMessagesBePublishedToTopic" class="java.lang.Boolean">
 	    <constructor-arg value="false" />
 	</bean>
+	
+		<!-- Used to Serialize object types -->
+	<bean id="objectTypeSerializer"
+		class="org.sagebionetworks.repo.web.controller.ObjectTypeSerializerImpl" />
+	
+	<!-- We don't want to send emails during testing, so we stub out Amazon SES -->
+	<bean id="amazonSESClient" class="org.sagebionetworks.repo.manager.StubAmazonSimpleEmailServiceClient" />
 </beans>

@@ -4,13 +4,16 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
 import org.junit.Test;
+
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
+
 /**
- *
+ * Crowd is no longer in use
  */
+@Deprecated
 public class CrowdAuthParserTest  {
 	
 	@Test

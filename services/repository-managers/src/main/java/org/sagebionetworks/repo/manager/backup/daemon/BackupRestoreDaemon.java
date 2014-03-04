@@ -287,7 +287,7 @@ public class BackupRestoreDaemon implements Runnable{
 	private BackupRestoreStatus start() throws DatastoreException {
 		// Now create the backup status
 		status = new BackupRestoreStatus();
-		status.setStartedBy(user.getIndividualGroup().getId());
+		status.setStartedBy(user.getId().toString());
 		status.setStartedOn(new Date());
 		status.setStatus(DaemonStatus.IN_QUEUE);
 		status.setType(this.type);

@@ -1,0 +1,26 @@
+{
+    "title":"ID Ragne",
+    "description":"Represents a range of IDs",
+    "properties":{
+        "minimumId":{
+            "type":"integer",
+            "description":"The first ID of the range (inclusive)."
+        },
+        "maximumId":{
+            "type":"integer",
+            "description":"The last ID of the range (inclusive)."
+        },
+        "versionNumber":{
+            "type":"integer",
+            "description":"The versionNumber for this range"
+        },
+        "maximumUpdateId":{
+            "type":"integer",
+            "description":"This the the current maximum ID issued to this table. All row updates must have IDs less than or equal to this number."
+        },
+        "etag":{
+            "type":"string",
+            "description":"The etag for this range"
+        }
+    }
+}

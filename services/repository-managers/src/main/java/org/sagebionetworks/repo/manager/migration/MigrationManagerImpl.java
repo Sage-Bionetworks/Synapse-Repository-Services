@@ -10,7 +10,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
-import org.sagebionetworks.repo.model.dbo.migration.MigatableTableDAO;
+import org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.ListBucketProvider;
 import org.sagebionetworks.repo.model.migration.MigrationType;
@@ -30,7 +30,12 @@ import org.springframework.transaction.annotation.Transactional;
 public class MigrationManagerImpl implements MigrationManager {
 	
 	@Autowired
-	MigatableTableDAO migratableTableDao;
+	MigratableTableDAO migratableTableDao;
+	
+	/**
+	 * The list of migration listeners
+	 */
+	List<MigrationTypeListener> migrationListeners;
 
 	/**
 	 * The maximum size of a backup batch.
@@ -42,7 +47,7 @@ public class MigrationManagerImpl implements MigrationManager {
 	 * @param migratableTableDao
 	 * @param backupBatchMax
 	 */
-	public MigrationManagerImpl(MigatableTableDAO migratableTableDao, int backupBatchMax) {
+	public MigrationManagerImpl(MigratableTableDAO migratableTableDao, int backupBatchMax) {
 		super();
 		this.migratableTableDao = migratableTableDao;
 		this.backupBatchMax = backupBatchMax;
@@ -66,6 +71,12 @@ public class MigrationManagerImpl implements MigrationManager {
 		validateUser(user);
 		// pass this to the dao.
 		return migratableTableDao.getCount(type);
+	}
+	
+	@Override
+	public long getMaxId(UserInfo user, MigrationType type) {
+		validateUser(user);
+		return migratableTableDao.getMaxId(type);
 	}
 
 	@Override
@@ -113,6 +124,17 @@ public class MigrationManagerImpl implements MigrationManager {
 	@Override
 	public int deleteObjectsById(UserInfo user, MigrationType type, List<Long> idList) {
 		validateUser(user);
+		// If this type has secondary types then delete them first
+		List<MigratableDatabaseObject> secondary = this.migratableTableDao.getObjectForType(type).getSecondaryTypes();
+		if(secondary != null){
+			for(int i=secondary.size()-1; i >= 0; i--){
+				MigrationType secondaryType = secondary.get(i).getMigratableTableType();
+				// Fire the event before deleting the objects
+				fireDeleteBatchEvent(secondaryType, idList);
+				deleteObjectsById(user, secondaryType, idList);
+			}
+		}
+		
 		if(type == null) throw new IllegalArgumentException("Type cannot be null");
 		// Delete must be done in reverse dependency order, so we must get the row metadata for 
 		// the input list
@@ -128,6 +150,8 @@ public class MigrationManagerImpl implements MigrationManager {
 			if(buckets.size() > 0){
 				for(int i=buckets.size()-1; i>=0; i--){
 					List<Long> bucket = buckets.get(i);
+					// Fire the event before deleting the objects
+					fireDeleteBatchEvent(type, bucket);
 					count += migratableTableDao.deleteObjectsById(type, bucket);
 				}
 			}
@@ -214,11 +238,42 @@ public class MigrationManagerImpl implements MigrationManager {
 				databaseList.add(translator.createDatabaseObjectFromBackup(backup));
 			}
 			// Now write the batch to the database
-			return migratableTableDao.createOrUpdateBatch(databaseList);
+			List<Long> results = migratableTableDao.createOrUpdateBatch(databaseList);
+			// Let listeners know about the change
+			fireCreateOrUpdateBatchEvent(type, databaseList);
+			return results;
 		}else{
 			return new LinkedList<Long>();
 		}
 
+	}
+
+	/**
+	 * Fire a create or update event for a given migration type.
+	 * @param type
+	 * @param databaseList - The Database objects that were created or updated.
+	 */
+	private <D extends DatabaseObject<D>> void fireCreateOrUpdateBatchEvent(MigrationType type, List<D> databaseList){
+		if(this.migrationListeners != null){
+			// Let each listener handle the event
+			for(MigrationTypeListener listener: this.migrationListeners){
+				listener.afterCreateOrUpdate(type, databaseList);
+			}
+		}
+	}
+	
+	/**
+	 * Fire a create or update event for a given migration type.
+	 * @param type
+	 * @param databaseList - The Database objects that were created or updated.
+	 */
+	private void fireDeleteBatchEvent(MigrationType type, List<Long> toDelete){
+		if(this.migrationListeners != null){
+			// Let each listener handle the event
+			for(MigrationTypeListener listener: this.migrationListeners){
+				listener.beforeDeleteBatch(type, toDelete);
+			}
+		}
 	}
 
 	@Override
@@ -248,7 +303,9 @@ public class MigrationManagerImpl implements MigrationManager {
 		validateUser(user);
 		// Delete all types in their reverse order
 		for(int i=MigrationType.values().length-1; i>=0; i--){
-			deleteAllForType(user, MigrationType.values()[i]);
+			if (this.isMigrationTypeUsed(user, MigrationType.values()[i])) {
+				deleteAllForType(user, MigrationType.values()[i]);
+			}
 		}
 	}
 
@@ -266,5 +323,36 @@ public class MigrationManagerImpl implements MigrationManager {
 		}
 	}
 	
+	/**
+	 * 
+	 * @param user
+	 * @param mt
+	 * @return true if mt is a primary or secondary type, false otherwise
+	 */
+	public boolean isMigrationTypeUsed(UserInfo user, MigrationType mt) {
+		for (MigrationType t: this.getPrimaryMigrationTypes(user)) {
+			if (mt.equals(t)) {
+				return true;
+			}
+			// Check secondary types
+			List<MigrationType> stList = this.getSecondaryTypes(t);
+			if (stList != null) {
+				for (MigrationType st: stList) {
+					if (mt.equals(st)) {
+						return true;
+					}
+				}
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Injected via Spring
+	 * @param migrationListeners
+	 */
+	public void setMigrationListeners(List<MigrationTypeListener> migrationListeners) {
+		this.migrationListeners = migrationListeners;
+	}
 
 }

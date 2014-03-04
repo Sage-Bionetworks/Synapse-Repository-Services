@@ -31,6 +31,7 @@
 			depends-on="stackConfiguration">
 		<constructor-arg index="0" ref="stackConfiguration.fileUpdateQueueName" />
 		<constructor-arg index="1" ref="stackConfiguration.repositoryChangeTopicName" />
+		<constructor-arg index="2" value="true" />
 	</bean>
 
 	<!-- provides search message queue workers -->
@@ -67,6 +68,7 @@
 				class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
 				<property name="targetObject" ref="fileSemaphoreGatedRunner" />
 				<property name="targetMethod" value="attemptToRun" />
+				<property name="concurrent" value="false" />
 			</bean>
 		</property>
 		<!-- We stager the start delay of each trigger to spread out the timing -->

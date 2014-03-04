@@ -1,15 +1,14 @@
 package org.sagebionetworks.cloudwatch;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.cloudwatch.AmazonCloudWatchClient;
@@ -24,13 +23,12 @@ import com.amazonaws.services.cloudwatch.model.PutMetricDataRequest;
  * @author ntiedema
  */
 public class Consumer {
-	static private Log log = LogFactory.getLog(Consumer.class);
+	static private Logger log = LogManager.getLogger(Consumer.class);
 	
 	public static final int MAX_BATCH_SIZE = 20;
 
 	// We us an atomic reference to the list instead of using synchronization.
-	private AtomicReference<List<ProfileData>> listProfileData = 
-			new AtomicReference<List<ProfileData>>(Collections.synchronizedList(new LinkedList<ProfileData>()));
+	private ConcurrentLinkedQueue<ProfileData> listProfileData = new ConcurrentLinkedQueue<ProfileData>();
 
 	// need a cloudWatch client
 	@Autowired
@@ -60,7 +58,7 @@ public class Consumer {
 	 *             if the given object is null
 	 */
 	public void addProfileData(ProfileData addToList) {
-		listProfileData.get().add(addToList);
+		listProfileData.add(addToList);
 	}
 
 	/**
@@ -71,7 +69,7 @@ public class Consumer {
 	public List<String> executeCloudWatchPut() {
 		try {
 			// collect the ProfileData from synchronized list
-			List<ProfileData> nextBunch = listProfileData.getAndSet(new LinkedList<ProfileData>());
+			List<ProfileData> nextBunch = pollListFromQueue();
 
 			//here I have a list of potentially different namespaces
 			//convert to a map (key is namespace, value is list of metricDatums)
@@ -108,6 +106,18 @@ public class Consumer {
 		} catch (Exception e1) {
 			throw new RuntimeException(e1);
 		}
+	}
+	/**
+	 * Poll all data currently on the queue and add it to a list.
+	 * @return
+	 */
+	private List<ProfileData> pollListFromQueue(){
+		List<ProfileData> list = new LinkedList<ProfileData>();
+		for(ProfileData pd = this.listProfileData.poll(); pd != null; pd = this.listProfileData.poll()){
+			// Add to the list
+			list.add(pd);
+		}
+		return list;
 	}
 
 	/**
@@ -174,19 +184,6 @@ public class Consumer {
 			throw new RuntimeException(e1);
 		}
 	}
-
-
-
-	/**
-	 * Getter that returns copy of synchronized list of ProfileData.
-	 * 
-	 * @return List<ProfileData>
-	 */
-	protected List<ProfileData> getListProfileData() {
-		List<ProfileData> toReturn = new ArrayList<ProfileData>(listProfileData.get());
-		return toReturn;
-	}
-
 
 
 	/**

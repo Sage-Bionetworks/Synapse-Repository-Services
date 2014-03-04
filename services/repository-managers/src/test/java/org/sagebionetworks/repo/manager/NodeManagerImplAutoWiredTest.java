@@ -14,6 +14,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
@@ -25,21 +26,26 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACL_SCHEME;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
-import org.sagebionetworks.repo.model.message.ObjectType;
+import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.util.UserProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -59,7 +65,7 @@ public class NodeManagerImplAutoWiredTest {
 	public NodeManager nodeManager;
 	
 	@Autowired
-	public UserProvider testUserProvider;
+	public UserManager userManager;
 	
 	@Autowired
 	private NodeInheritanceDAO inheritanceDAO;
@@ -71,25 +77,40 @@ public class NodeManagerImplAutoWiredTest {
 	private AccessControlListDAO aclDAO;
 	
 	@Autowired
-	AuthorizationManager authorizationManager;
+	private AuthorizationManager authorizationManager;
 	
 	@Autowired
-	ActivityManager activityManager;
+	private ActivityManager activityManager;
 	
-	List<String> nodesToDelete;
-	List<String> activitiesToDelete;
+	@Autowired
+	private DBOBasicDao basicDao;
 	
-	private UserInfo testUser;
+	private List<String> nodesToDelete;
+	private List<String> activitiesToDelete;
+	
+	private UserInfo adminUserInfo;
+	private UserInfo userInfo;
 	
 	@Before
-	public void before() throws Exception{
+	public void before() throws Exception {
 		assertNotNull(nodeManager);
 		nodesToDelete = new ArrayList<String>();
 		activitiesToDelete = new ArrayList<String>();
+		
+		DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();
+		tou.setDomain(DomainType.SYNAPSE);
+		tou.setAgreesToTermsOfUse(Boolean.TRUE);
+		
 		// Make sure we have a valid user.
-		testUser = testUserProvider.getTestAdminUserInfo();
-		UserInfo.validateUserInfo(testUser);
-
+		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		UserInfo.validateUserInfo(adminUserInfo);
+		
+		DBOCredential cred = new DBOCredential();
+		cred.setSecretKey("");
+		NewUser nu = new NewUser();
+		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
+		nu.setUserName(UUID.randomUUID().toString());
+		userInfo = userManager.createUser(adminUserInfo, nu, cred, tou);
 	}
 	
 	@After
@@ -97,7 +118,7 @@ public class NodeManagerImplAutoWiredTest {
 		if(nodeManager != null && nodesToDelete != null){
 			for(String id: nodesToDelete){
 				try {
-					nodeManager.delete(testUserProvider.getTestAdminUserInfo(), id);
+					nodeManager.delete(adminUserInfo, id);
 				} catch (Exception e) {
 					e.printStackTrace();
 				} 				
@@ -106,28 +127,30 @@ public class NodeManagerImplAutoWiredTest {
 		if(activityManager != null && activitiesToDelete != null){
 			for(String id: activitiesToDelete){
 				try {
-					activityManager.deleteActivity(testUserProvider.getTestAdminUserInfo(), id);
+					activityManager.deleteActivity(adminUserInfo, id);
 				} catch (Exception e) {
 					e.printStackTrace();
 				} 				
 			}
 		}
+		
+		userManager.deletePrincipal(adminUserInfo, userInfo.getId());
 	}
 	
 	@Test
-	public void testCreateEachType() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException{
+	public void testCreateEachType() throws Exception {
 		// We do not want an admin for this test
-		testUser = testUserProvider.getTestUserInfo();
+
 		// Create a node of each type.
 		EntityType[] array = EntityType.values();
 		for(EntityType type: array){
 			Node newNode = new Node();
 			newNode.setName("NodeManagerImplAutoWiredTest."+type.name());
 			newNode.setNodeType(type.name());
-			String id = nodeManager.createNewNode(newNode, testUser);
+			String id = nodeManager.createNewNode(newNode, userInfo);
 			assertNotNull(id);
 			nodesToDelete.add(id);
-			newNode = nodeManager.get(testUser, id);
+			newNode = nodeManager.get(userInfo, id);
 			// A parent node should have been assigned to this node.
 			assertNotNull(newNode.getParentId());
 			// What is the parent path?
@@ -149,7 +172,7 @@ public class NodeManagerImplAutoWiredTest {
 				// Make sure the user can do everything
 				ACCESS_TYPE[] acessTypes = ACCESS_TYPE.values();
 				for(ACCESS_TYPE accessType : acessTypes){
-					assertTrue(authorizationManager.canAccess(testUser, id, accessType));
+					assertTrue(authorizationManager.canAccess(userInfo, id, ObjectType.ENTITY, accessType));
 				}
 			}else{
 				throw new IllegalStateException("Unknown ACL_SCHEME type: "+expectedSchem);
@@ -158,7 +181,9 @@ public class NodeManagerImplAutoWiredTest {
 	}
 	
 	@Test
-	public void testCreateWithAnnotations() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException{
+	public void testCreateWithAnnotations() throws Exception {
+		// We do not want an admin for this test
+		
 		// Create a node
 		Node newNode = new Node();
 		newNode.setName("NodeManagerImplAutoWiredTest.testCreateWithAnnotations");
@@ -169,11 +194,11 @@ public class NodeManagerImplAutoWiredTest {
 		annos.addAnnotation("stringKey", "stringValue");
 		annos.addAnnotation("longKey", new Long(120));
 		// We are not using the admin to create this node.
-		String id = nodeManager.createNewNode(newNode, named, testUserProvider.getTestUserInfo());
+		String id = nodeManager.createNewNode(newNode, named, userInfo);
 		assertNotNull(id);
 		nodesToDelete.add(id);
 		// Validate the node's annotations
-		named = nodeManager.getAnnotations(testUserProvider.getTestUserInfo(), id);
+		named = nodeManager.getAnnotations(userInfo, id);
 		assertNotNull(named);
 		annos = named.getAdditionalAnnotations();
 		assertNotNull(annos);
@@ -189,14 +214,14 @@ public class NodeManagerImplAutoWiredTest {
 		
 		// need to enable Public to have 'create' access to 'someType'
 		newNode.setNodeType(EntityType.project.name());
-		String id = nodeManager.createNewNode(newNode, testUser);
+		String id = nodeManager.createNewNode(newNode, adminUserInfo);
 		assertNotNull(id);
 		nodesToDelete.add(id);
 		//Make sure we can get the node
-		Node fetched = nodeManager.get(testUser, id);
+		Node fetched = nodeManager.get(adminUserInfo, id);
 		assertNotNull(fetched);
-		assertEquals(testUser.getIndividualGroup().getId(), fetched.getCreatedByPrincipalId().toString());
-		assertEquals(testUser.getIndividualGroup().getId(), fetched.getModifiedByPrincipalId().toString());
+		assertEquals(adminUserInfo.getId().toString(), fetched.getCreatedByPrincipalId().toString());
+		assertEquals(adminUserInfo.getId().toString(), fetched.getModifiedByPrincipalId().toString());
 		assertNotNull(fetched.getCreatedOn());
 		assertNotNull(fetched.getModifiedOn());
 		assertEquals(id, fetched.getId());
@@ -207,12 +232,12 @@ public class NodeManagerImplAutoWiredTest {
 		// Now try to update the node
 		String startingETag = fetched.getETag();
 		fetched.setName("mySecondName");
-		Node updated = nodeManager.update(testUser, fetched);
+		Node updated = nodeManager.update(adminUserInfo, fetched);
 		assertNotNull(updated);
 		// Make sure the result has a new eTag
 		assertFalse(startingETag.equals(updated.getETag()));
 		// Now get it again
-		Node fetchedAgain = nodeManager.get(testUser, id);
+		Node fetchedAgain = nodeManager.get(adminUserInfo, id);
 		assertNotNull(fetchedAgain);
 		assertEquals("mySecondName", fetchedAgain.getName());
 		assertEquals(updated.getETag(), fetchedAgain.getETag());
@@ -225,16 +250,16 @@ public class NodeManagerImplAutoWiredTest {
 		newNode.setName("NodeManagerImplAutoWiredTest.testCreateNode");
 		// need to enable Public to have 'create' access to 'someType'
 		newNode.setNodeType(EntityType.project.name());
-		String id = nodeManager.createNewNode(newNode, testUser);
+		String id = nodeManager.createNewNode(newNode, adminUserInfo);
 		assertNotNull(id);
 		nodesToDelete.add(id);
-		Node node = nodeManager.get(testUser, id);
+		Node node = nodeManager.get(adminUserInfo, id);
 		// Now update
 		node.setName("newName");
-		nodeManager.update(testUser, node);
+		nodeManager.update(adminUserInfo, node);
 		// Now update again without a new eTag
 		node.setName("Not going to take");
-		nodeManager.update(testUser, node);
+		nodeManager.update(adminUserInfo, node);
 	}
 	
 	@Test
@@ -243,7 +268,7 @@ public class NodeManagerImplAutoWiredTest {
 		Node newNode = new Node();
 		newNode.setName("NodeManagerImplAutoWiredTest.testUpdateAnnotations");
 		newNode.setNodeType(EntityType.project.name());
-		UserInfo userInfo = testUser;
+		UserInfo userInfo = adminUserInfo;
 		String id = nodeManager.createNewNode(newNode, userInfo);
 		assertNotNull(id);
 		nodesToDelete.add(id);
@@ -276,7 +301,7 @@ public class NodeManagerImplAutoWiredTest {
 		Node newNode = new Node();
 		newNode.setName("NodeManagerImplAutoWiredTest.testUpdateAnnotations");
 		newNode.setNodeType(EntityType.project.name());
-		UserInfo userInfo = testUser;
+		UserInfo userInfo = adminUserInfo;
 		String id = nodeManager.createNewNode(newNode, userInfo);
 		assertNotNull(id);
 		nodesToDelete.add(id);
@@ -300,7 +325,7 @@ public class NodeManagerImplAutoWiredTest {
 		newNode.setNodeType(EntityType.code.name());
 		newNode.setVersionLabel("0.0.1");
 		newNode.setVersionComment("This is the comment on the first version.");
-		UserInfo userInfo = testUser;
+		UserInfo userInfo = adminUserInfo;
 		String id = nodeManager.createNewNode(newNode, userInfo);
 		assertNotNull(id);
 		nodesToDelete.add(id);
@@ -414,7 +439,7 @@ public class NodeManagerImplAutoWiredTest {
 		newNode.setNodeType(EntityType.code.name());
 		newNode.setVersionLabel("0.0.0");
 		newNode.setVersionComment("This is the comment on the first version.");
-		UserInfo userInfo = testUser;
+		UserInfo userInfo = adminUserInfo;
 		String id = nodeManager.createNewNode(newNode, userInfo);
 		assertNotNull(id);
 		nodesToDelete.add(id);
@@ -455,7 +480,7 @@ public class NodeManagerImplAutoWiredTest {
 		Node node = new Node();
 		node.setName("root");
 		node.setNodeType(EntityType.project.name());
-		String rootId = nodeManager.createNewNode(node, testUser);
+		String rootId = nodeManager.createNewNode(node, adminUserInfo);
 		assertNotNull(rootId);
 		nodesToDelete.add(rootId);
 		
@@ -464,7 +489,7 @@ public class NodeManagerImplAutoWiredTest {
 		node.setName("child");
 		node.setNodeType(EntityType.dataset.name());
 		node.setParentId(rootId);
-		String childId = nodeManager.createNewNode(node, testUser);
+		String childId = nodeManager.createNewNode(node, adminUserInfo);
 		assertNotNull(childId);
 		nodesToDelete.add(childId);
 		
@@ -472,25 +497,25 @@ public class NodeManagerImplAutoWiredTest {
 		node = new Node();
 		node.setName("newProject");
 		node.setNodeType(EntityType.project.name());
-		String newProjectId = nodeManager.createNewNode(node, testUser);
+		String newProjectId = nodeManager.createNewNode(node, adminUserInfo);
 		assertNotNull(newProjectId);
 		nodesToDelete.add(newProjectId);
 		
 		//get the child node and verify the state of it's parentId
-		Node fetchedChild = nodeManager.get(testUser, childId);
+		Node fetchedChild = nodeManager.get(adminUserInfo, childId);
 		assertNotNull(fetchedChild);
 		assertEquals(childId, fetchedChild.getId());
 		assertEquals(rootId, fetchedChild.getParentId());
 		
 		//set child's parentId to the newProject
 		fetchedChild.setParentId(newProjectId);
-		Node updatedChild = nodeManager.update(testUser, fetchedChild);
+		Node updatedChild = nodeManager.update(adminUserInfo, fetchedChild);
 		assertNotNull(updatedChild);
 		assertEquals(childId, updatedChild.getId());
 		assertEquals(newProjectId, updatedChild.getParentId());
 		
 		//check and make sure update is in database
-		Node childFromDB = nodeManager.get(testUser, childId);
+		Node childFromDB = nodeManager.get(adminUserInfo, childId);
 		assertNotNull(childFromDB);
 		assertEquals(childId, childFromDB.getId());
 		assertEquals(newProjectId, childFromDB.getParentId());
@@ -507,7 +532,7 @@ public class NodeManagerImplAutoWiredTest {
 		Node node = new Node();
 		node.setName("root");
 		node.setNodeType(EntityType.project.name());
-		String rootId = nodeManager.createNewNode(node, testUser);
+		String rootId = nodeManager.createNewNode(node, adminUserInfo);
 		assertNotNull(rootId);
 		nodesToDelete.add(rootId);
 		
@@ -516,7 +541,7 @@ public class NodeManagerImplAutoWiredTest {
 		node.setName("child");
 		node.setNodeType(EntityType.dataset.name());
 		node.setParentId(rootId);
-		String childId = nodeManager.createNewNode(node, testUser);
+		String childId = nodeManager.createNewNode(node, adminUserInfo);
 		assertNotNull(childId);
 		nodesToDelete.add(childId);
 		
@@ -524,12 +549,12 @@ public class NodeManagerImplAutoWiredTest {
 		node = new Node();
 		node.setName("newProject");
 		node.setNodeType(EntityType.project.name());
-		String newProjectId = nodeManager.createNewNode(node, testUser);
+		String newProjectId = nodeManager.createNewNode(node, adminUserInfo);
 		assertNotNull(newProjectId);
 		nodesToDelete.add(newProjectId);
 		
 		//get the child node and verify the state of it's parentId
-		Node fetchedChild = nodeManager.get(testUser, childId);
+		Node fetchedChild = nodeManager.get(adminUserInfo, childId);
 		assertNotNull(fetchedChild);
 		assertEquals(childId, fetchedChild.getId());
 		assertEquals(rootId, fetchedChild.getParentId());
@@ -546,7 +571,7 @@ public class NodeManagerImplAutoWiredTest {
 		
 		//set child's parentId to the newProject
 		fetchedChild.setParentId(newProjectId);
-		nodeManagerWMocks.update(testUser, fetchedChild);
+		nodeManagerWMocks.update(adminUserInfo, fetchedChild);
 		verify(mockNodeDao, times(1)).changeNodeParent(childId, newProjectId);
 		verify(mockNodeInheritanceManager, times(1)).nodeParentChanged(childId, newProjectId);
 	}
@@ -562,7 +587,7 @@ public class NodeManagerImplAutoWiredTest {
 		Node node = new Node();
 		node.setName("root");
 		node.setNodeType(EntityType.project.name());
-		String rootId = nodeManager.createNewNode(node, testUser);
+		String rootId = nodeManager.createNewNode(node, adminUserInfo);
 		assertNotNull(rootId);
 		nodesToDelete.add(rootId);
 		
@@ -571,7 +596,7 @@ public class NodeManagerImplAutoWiredTest {
 		node.setName("child");
 		node.setNodeType(EntityType.dataset.name());
 		node.setParentId(rootId);
-		String childId = nodeManager.createNewNode(node, testUser);
+		String childId = nodeManager.createNewNode(node, adminUserInfo);
 		assertNotNull(childId);
 		nodesToDelete.add(childId);
 		
@@ -584,10 +609,10 @@ public class NodeManagerImplAutoWiredTest {
 				aclDAO, entityBootstrapper, mockNodeInheritanceManager, null, activityManager);	
 		
 		//make a non parentId change to the child
-		Node fetchedNode = nodeManager.get(testUser, childId);
+		Node fetchedNode = nodeManager.get(adminUserInfo, childId);
 		fetchedNode.setName("notTheChildName");
 		when(mockNodeDao.getParentId(anyString())).thenReturn(new String(fetchedNode.getParentId()));
-		nodeManagerWMocks.update(testUser, fetchedNode);
+		nodeManagerWMocks.update(adminUserInfo, fetchedNode);
 		verify(mockNodeDao, never()).changeNodeParent(anyString(), anyString());
 		verify(mockNodeInheritanceManager, never()).nodeParentChanged(anyString(), anyString(), anyBoolean());
 	}
@@ -599,7 +624,7 @@ public class NodeManagerImplAutoWiredTest {
 		Node node = new Node();
 		node.setName("root");
 		node.setNodeType(EntityType.project.name());
-		String rootId = nodeManager.createNewNode(node, testUser);
+		String rootId = nodeManager.createNewNode(node, adminUserInfo);
 		assertNotNull(rootId);
 		nodesToDelete.add(rootId);
 		
@@ -608,7 +633,7 @@ public class NodeManagerImplAutoWiredTest {
 		node.setName("folder");
 		node.setNodeType(EntityType.folder.name());
 		node.setParentId(rootId);
-		String folderId = nodeManager.createNewNode(node, testUser);
+		String folderId = nodeManager.createNewNode(node, adminUserInfo);
 		assertNotNull(folderId);
 		nodesToDelete.add(folderId);
 		
@@ -617,24 +642,24 @@ public class NodeManagerImplAutoWiredTest {
 		node.setName("child");
 		node.setNodeType(EntityType.dataset.name());
 		node.setParentId(folderId);
-		String childId = nodeManager.createNewNode(node, testUser);
+		String childId = nodeManager.createNewNode(node, adminUserInfo);
 		assertNotNull(childId);
 		nodesToDelete.add(childId);
 		
 		// Get the folder
-		Node folder = nodeManager.get(testUser, folderId);
+		Node folder = nodeManager.get(adminUserInfo, folderId);
 		assertNotNull(folder);
 		assertNotNull(folder.getETag());
 		// Get the child
-		Node child = nodeManager.get(testUser, childId);
+		Node child = nodeManager.get(adminUserInfo, childId);
 		assertNotNull(child);
 		assertNotNull(child.getETag());
 		String childStartEtag = child.getETag();
 		// Now change the parent
 		folder.setName("MyNewName");
-		folder = nodeManager.update(testUser, folder);
+		folder = nodeManager.update(adminUserInfo, folder);
 		// Validate that the child etag did not change
-		child = nodeManager.get(testUser, childId);
+		child = nodeManager.get(adminUserInfo, childId);
 		assertNotNull(child);
 		assertEquals("Updating a parent object should not have changed the child's etag",childStartEtag, child.getETag());
 	}
@@ -643,12 +668,12 @@ public class NodeManagerImplAutoWiredTest {
 	public void testActivityForNodeCrud() throws Exception {
 		Activity activity = new Activity();
 		activity.setName("NodeManagerImplAutoWiredTest.testSetActivityForNode activity");
-		String actId = activityManager.createActivity(testUser, activity);
+		String actId = activityManager.createActivity(adminUserInfo, activity);
 		activitiesToDelete.add(actId);
 
 		activity = new Activity();
 		activity.setName("NodeManagerImplAutoWiredTest.testSetActivityForNode activity 2");
-		String act2Id = activityManager.createActivity(testUser, activity);
+		String act2Id = activityManager.createActivity(adminUserInfo, activity);
 		activitiesToDelete.add(act2Id);
 		
 		Node newNode = new Node();
@@ -658,20 +683,20 @@ public class NodeManagerImplAutoWiredTest {
 		
 		
 		// create with activity id
-		String nodeId = nodeManager.createNewNode(newNode, testUser);
+		String nodeId = nodeManager.createNewNode(newNode, adminUserInfo);
 		assertNotNull(nodeId);
 		nodesToDelete.add(nodeId);
-		Node createdNode = nodeManager.get(testUser, nodeId);
+		Node createdNode = nodeManager.get(adminUserInfo, nodeId);
 		assertEquals(actId, createdNode.getActivityId());
 
 		// update activity id
-		nodeManager.setActivityForNode(testUser, nodeId, act2Id);		
-		Node updatedNode = nodeManager.get(testUser, nodeId);
+		nodeManager.setActivityForNode(adminUserInfo, nodeId, act2Id);		
+		Node updatedNode = nodeManager.get(adminUserInfo, nodeId);
 		assertEquals(act2Id, updatedNode.getActivityId());
 		
 		// delete
-		nodeManager.deleteActivityLinkToNode(testUser, nodeId);
-		updatedNode = nodeManager.get(testUser, nodeId);
+		nodeManager.deleteActivityLinkToNode(adminUserInfo, nodeId);
+		updatedNode = nodeManager.get(adminUserInfo, nodeId);
 		assertEquals(null, updatedNode.getActivityId());
 	}
 

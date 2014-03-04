@@ -28,9 +28,33 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
- * Provides bundled access to Entities and related data components.
+ * <p>
+ * The Entity Bundle Services provide bundled access to Entities and their related data components.
+ * An EntityBundle can be used to create, fetch, or update an Entity and associated objects with a
+ * single web service request.
+ * </p>
  * 
- * @author bkng
+ * <p>
+ * One of the request parameters for an EntityBundle is an integer "mask" or "partsMask". This
+ * integer is used as a bit-string of flags to specify which parts to include in the EntityBundle.
+ * As of this writing, the mask is defined as follows:
+ * <ul>
+ * <li>	Entity <i>(Entity)</i> = 0x1 </li>
+ * <li> Annotations <i>(Annotations)</i> = 0x2 </li>
+ * <li> Permissions <i>(UserEntityPermissions)</i> = 0x4 </li>
+ * <li> Entity Path <i>(EntityPath)</i> = 0x8 </li>
+ * <li> Entity References <i>(List&lt;EntityHeader&gt;)</i> = 0x10 </li>
+ * <li> HasChildren <i>(Boolean)</i> = 0x20 </li>
+ * <li> ACL <i>(AccessControlList)</i> = 0x40 </li>
+ * <li> Access Requirements <i>(List&lt;AccessRequirement&gt;)</i> = 0x200 </li>
+ * <li> Unmet Access Requirements <i>(List&lt;AccessRequirement&gt;)</i> = 0x400 </li>
+ * <li> File Handles <i>(List&lt;FileHandle&gt;)</i> = 0x800 </li>
+ * </ul>
+ * </p>
+ * <p>
+ * For example, if the Entity and its Annotations are desired, the request mask value should be
+ * 0x1 + 0x2 = 0x3.
+ * </p>
  */
 @ControllerInfo(displayName="Entity Bundle Services", path="repo/v1")
 @Controller
@@ -45,6 +69,7 @@ public class EntityBundleController extends BaseController {
 	 * 
 	 * @param userId -The user that is doing the get.
 	 * @param id - The ID of the entity to fetch.
+	 * @param mask - integer flag defining which components to include in the EntityBundle.
 	 * @param request
 	 * @return The requested Entity if it exists.
 	 * @throws NotFoundException - Thrown if the requested entity does not exist.
@@ -57,7 +82,7 @@ public class EntityBundleController extends BaseController {
 	@RequestMapping(value = UrlHelpers.ENTITY_ID_BUNDLE, method = RequestMethod.GET)
 	public @ResponseBody
 	EntityBundle getEntityBundle(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id, 
 			@RequestParam int mask, HttpServletRequest request
 			)
@@ -71,6 +96,7 @@ public class EntityBundleController extends BaseController {
 	 * 
 	 * @param userId -The user that is doing the get.
 	 * @param id - The ID of the entity to fetch.
+	 * @param mask - integer flag defining which components to include in the EntityBundle.
 	 * @param versionNumber - The version of the entity to fetch
 	 * @param request
 	 * @return The requested Entity if it exists.
@@ -84,7 +110,7 @@ public class EntityBundleController extends BaseController {
 	@RequestMapping(value = UrlHelpers.ENTITY_VERSION_NUMBER_BUNDLE, method = RequestMethod.GET)
 	public @ResponseBody
 	EntityBundle getEntityBundle(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id,
 			@PathVariable Long versionNumber,
 			@RequestParam int mask, HttpServletRequest request
@@ -99,10 +125,10 @@ public class EntityBundleController extends BaseController {
 	 * Annotations, and its ACL.
 	 * 
 	 * Upon successful creation, an EntityBundle is returned containing the
-	 * requested components, as defined by the partsMask.
+	 * requested components, as defined by the partsMask in the request object.
 	 * 
 	 * @param userId
-	 * @param ebc
+	 * @param ebc - the EntityBundleCreate object containing the Entity and Annotations to create.
 	 * @param request
 	 * @return
 	 * @throws ConflictingUpdateException
@@ -117,14 +143,14 @@ public class EntityBundleController extends BaseController {
 	@RequestMapping(value = UrlHelpers.ENTITY_BUNDLE, method = RequestMethod.POST)
 	public @ResponseBody
 	EntityBundle createEntityBundle(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
-			@RequestParam(value = ServiceConstants.GENERATED_BY_PARAM, required = false) String activityId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(value = ServiceConstants.GENERATED_BY_PARAM, required = false) String generatedBy,
 			@RequestBody EntityBundleCreate ebc,
 			HttpServletRequest request
 			)
 			throws ConflictingUpdateException, DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException {
-		return serviceProvider.getEntityBundleService().createEntityBundle(userId, ebc, activityId, request);
+		return serviceProvider.getEntityBundleService().createEntityBundle(userId, ebc, generatedBy, request);
 	}
 	
 	/**
@@ -133,10 +159,10 @@ public class EntityBundleController extends BaseController {
 	 * Annotations, and its ACL.
 	 * 
 	 * Upon successful creation, an EntityBundle is returned containing the
-	 * requested components, as defined by the partsMask.
+	 * requested components, as defined by the partsMask in the request object.
 	 * 
 	 * @param userId
-	 * @param ebc
+	 * @param ebc - the EntityBundleCreate object containing the Entity and Annotations to update.
 	 * @param request
 	 * @return
 	 * @throws ConflictingUpdateException
@@ -151,15 +177,15 @@ public class EntityBundleController extends BaseController {
 	@RequestMapping(value = UrlHelpers.ENTITY_ID_BUNDLE, method = RequestMethod.PUT)
 	public @ResponseBody
 	EntityBundle updateEntityBundle(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
-			@RequestParam(value = ServiceConstants.GENERATED_BY_PARAM, required = false) String activityId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(value = ServiceConstants.GENERATED_BY_PARAM, required = false) String generatedBy,
 			@PathVariable String id,
 			@RequestBody EntityBundleCreate ebc,
 			HttpServletRequest request
 			)
 			throws ConflictingUpdateException, DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException {
-		return serviceProvider.getEntityBundleService().updateEntityBundle(userId, id, ebc, activityId, request);
+		return serviceProvider.getEntityBundleService().updateEntityBundle(userId, id, ebc, generatedBy, request);
 	}
 
 }

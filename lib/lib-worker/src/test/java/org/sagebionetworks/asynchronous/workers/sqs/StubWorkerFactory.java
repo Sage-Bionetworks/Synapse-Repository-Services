@@ -24,5 +24,4 @@ public class StubWorkerFactory implements MessageWorkerFactory{
 	public Callable<List<Message>> createWorker(List<Message> messages) {
 		return workerStack.pop().withMessage(messages);
 	}
-	
 }

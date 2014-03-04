@@ -4,19 +4,22 @@ import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ErrorResponse;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NameConflictException;
+import org.sagebionetworks.repo.model.TooManyRequestsException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -30,6 +33,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.HttpMediaTypeNotAcceptableException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -92,10 +96,14 @@ import org.springframework.web.util.NestedServletException;
 public abstract class BaseController {
 
 	static final String SERVICE_TEMPORARILY_UNAVAIABLE_PLEASE_TRY_AGAIN_LATER = "Service temporarily unavailable, please try again later.";
-	private static final Logger log;
-
-	static {
-		log = Logger.getLogger(BaseController.class.getName());
+	private static Logger log = LogManager.getLogger(BaseController.class);
+	
+	@ExceptionHandler(MissingServletRequestParameterException.class)
+	@ResponseStatus(HttpStatus.BAD_REQUEST)
+	public @ResponseBody
+	ErrorResponse handleMissingServletRequestParameterException(MissingServletRequestParameterException ex, 
+			HttpServletRequest request) {
+		return handleException(ex, request, false);
 	}
 
 	/**
@@ -119,7 +127,7 @@ public abstract class BaseController {
 	public @ResponseBody
 	ErrorResponse handleNotFoundException(NotFoundException ex,
 			HttpServletRequest request) {
-		return handleException(ex, request);
+		return handleException(ex, request, false);
 	}
 
 	/**
@@ -136,7 +144,7 @@ public abstract class BaseController {
 	public @ResponseBody
 	ErrorResponse handleServiceUnavailableException(
 			ServiceUnavailableException ex, HttpServletRequest request) {
-		return handleException(ex, request);
+		return handleException(ex, request, true);
 	}
 
 	/**
@@ -156,7 +164,7 @@ public abstract class BaseController {
 	public @ResponseBody
 	ErrorResponse handleConflictingUpdateException(
 			ConflictingUpdateException ex, HttpServletRequest request) {
-		return handleException(ex, request);
+		return handleException(ex, request, false);
 	}
 
 	/**
@@ -181,7 +189,7 @@ public abstract class BaseController {
 	public @ResponseBody
 	ErrorResponse handleUnauthorizedException(UnauthorizedException ex,
 			HttpServletRequest request) {
-		return handleException(ex, request);
+		return handleException(ex, request, false);
 	}
 	
 	/**
@@ -195,7 +203,7 @@ public abstract class BaseController {
 	public @ResponseBody
 	ErrorResponse handleNameConflictException(NameConflictException ex,
 			HttpServletRequest request) {
-		return handleException(ex, request);
+		return handleException(ex, request, false);
 	}
 
 	/**
@@ -214,7 +222,7 @@ public abstract class BaseController {
 	public @ResponseBody
 	ErrorResponse handleIllegalArgumentException(IllegalArgumentException ex,
 			HttpServletRequest request) {
-		return handleException(ex, request);
+		return handleException(ex, request, false);
 	}
 
 	/**
@@ -233,7 +241,7 @@ public abstract class BaseController {
 	public @ResponseBody
 	ErrorResponse handleInvalidModelException(InvalidModelException ex,
 			HttpServletRequest request) {
-		return handleException(ex, request);
+		return handleException(ex, request, false);
 	}
 
 	/**
@@ -252,7 +260,7 @@ public abstract class BaseController {
 	public @ResponseBody
 	ErrorResponse handleTypeMismatchException(TypeMismatchException ex,
 			HttpServletRequest request) {
-		return handleException(ex, request);
+		return handleException(ex, request, false);
 	}
 
 	/**
@@ -271,7 +279,7 @@ public abstract class BaseController {
 	public @ResponseBody
 	ErrorResponse handleJSONObjectAdapterException(JSONObjectAdapterException ex,
 			HttpServletRequest request) {
-		return handleException(ex, request);
+		return handleException(ex, request, false);
 	}
 
 	/**
@@ -288,7 +296,7 @@ public abstract class BaseController {
 	@ResponseStatus(HttpStatus.BAD_REQUEST)
 	public @ResponseBody
 	ErrorResponse handleEofException(EOFException ex, HttpServletRequest request) {
-		return handleException(ex, request);
+		return handleException(ex, request, true);
 	}
 
 	/**
@@ -307,7 +315,7 @@ public abstract class BaseController {
 	public @ResponseBody
 	ErrorResponse handleMethodInvocationException(
 			HandlerMethodInvocationException ex, HttpServletRequest request) {
-		return handleException(ex, request);
+		return handleException(ex, request, false);
 	}
 
 	/**
@@ -325,7 +333,7 @@ public abstract class BaseController {
 	public @ResponseBody
 	ErrorResponse handleNotReadableException(
 			HttpMessageNotReadableException ex, HttpServletRequest request) {
-		return handleException(ex, request);
+		return handleException(ex, request, false);
 	}
 
 	/**
@@ -344,7 +352,7 @@ public abstract class BaseController {
 	public @ResponseBody
 	ErrorResponse handleParseException(ParseException ex,
 			HttpServletRequest request) {
-		return handleException(ex, request);
+		return handleException(ex, request, false);
 	}
 
 	/**
@@ -363,7 +371,7 @@ public abstract class BaseController {
 	public @ResponseBody
 	ErrorResponse handleNotAcceptableException(
 			HttpMediaTypeNotAcceptableException ex, HttpServletRequest request) {
-		return handleException(ex, request);
+		return handleException(ex, request, false);
 	}
 
 	/**
@@ -381,7 +389,7 @@ public abstract class BaseController {
 	public @ResponseBody
 	ErrorResponse handleNotSupportedException(
 			HttpMediaTypeNotSupportedException ex, HttpServletRequest request) {
-		return handleException(ex, request);
+		return handleException(ex, request, false);
 	}
 
 	/**
@@ -399,7 +407,7 @@ public abstract class BaseController {
 	public @ResponseBody
 	ErrorResponse handleNoSuchRequestException(
 			NoSuchRequestHandlingMethodException ex, HttpServletRequest request) {
-		return handleException(ex, request);
+		return handleException(ex, request, false);
 	}
 
 	/**
@@ -418,7 +426,7 @@ public abstract class BaseController {
 	public @ResponseBody
 	ErrorResponse handleDatastoreException(DatastoreException ex,
 			HttpServletRequest request) {
-		return handleException(ex, request);
+		return handleException(ex, request, true);
 	}
 
 	/**
@@ -437,7 +445,7 @@ public abstract class BaseController {
 	public @ResponseBody
 	ErrorResponse handleServletException(ServletException ex,
 			HttpServletRequest request) {
-		return handleException(ex, request);
+		return handleException(ex, request, true);
 	}
 
 	/**
@@ -455,7 +463,7 @@ public abstract class BaseController {
 	public @ResponseBody
 	ErrorResponse handleNestedServletException(NestedServletException ex,
 			HttpServletRequest request) {
-		return handleException(ex, request);
+		return handleException(ex, request, true);
 	}
 
 	/**
@@ -473,7 +481,7 @@ public abstract class BaseController {
 	public @ResponseBody
 	ErrorResponse handleIllegalStateException(IllegalStateException ex,
 			HttpServletRequest request) {
-		return handleException(ex, request);
+		return handleException(ex, request, true);
 	}
 
 	/**
@@ -517,7 +525,7 @@ public abstract class BaseController {
 	public @ResponseBody
 	ErrorResponse handleNullPointerException(NullPointerException ex,
 			HttpServletRequest request, HttpServletResponse response) {
-		log.log(Level.SEVERE, "Handling " + request.toString(), ex);
+		log.error("Handling " + request.toString(), ex);
 		final int MAX_STACK_TRACE_LENGTH = 256;
 		String trace = stackTraceToString(ex);
 		int endIndex = (MAX_STACK_TRACE_LENGTH < trace.length()) ? MAX_STACK_TRACE_LENGTH
@@ -546,10 +554,9 @@ public abstract class BaseController {
 	public @ResponseBody
 	ErrorResponse handleAllOtherExceptions(Exception ex,
 			HttpServletRequest request) {
-		log.log(Level.SEVERE,
-				"Consider specifically handling exceptions of type "
+		log.error("Consider specifically handling exceptions of type "
 						+ ex.getClass().getName());
-		return handleException(ex, request);
+		return handleException(ex, request, true);
 	}
 	
 	/**
@@ -564,7 +571,7 @@ public abstract class BaseController {
 	public @ResponseBody
 	ErrorResponse handleDeadlockExceptions(DeadlockLoserDataAccessException ex,
 			HttpServletRequest request) {
-		log.log(Level.SEVERE, "Handling " + request.toString(), ex);
+		log.error("Handling " + request.toString(), ex);
 		ErrorResponse er = new ErrorResponse();
 		er.setReason(SERVICE_TEMPORARILY_UNAVAIABLE_PLEASE_TRY_AGAIN_LATER);
 		return er;
@@ -579,12 +586,21 @@ public abstract class BaseController {
 	 *            the exception to be handled
 	 * @param request
 	 *            the client request
+	 * @param fullTrace Should the full stack trace of the exception be written to the log.
 	 * @return an ErrorResponse object containing the exception reason or some
 	 *         other human-readable response
 	 */
 	protected ErrorResponse handleException(Throwable ex,
-			HttpServletRequest request) {
-		log.log(Level.WARNING, "Handling " + request.toString(), ex);
+			HttpServletRequest request, boolean fullTrace) {
+		// Always log the stack trace on develop stacks
+		if (fullTrace || StackConfiguration.isDevelopStack()) {
+			// Print the full stack trace
+			log.error("Handling " + request.toString(), ex);
+		} else {
+			// Only print one line
+			log.error("Handling " + request.toString());
+		}
+
 		// Some HTTPClient exceptions include the host to which it was trying to
 		// connect, just unilaterally find and replace any references to
 		// cloudsearch in error messages PLFM-977
@@ -624,8 +640,38 @@ public abstract class BaseController {
 			message = ex.getMessage().substring(index, ex.getMessage().length());
 		}
 		IllegalArgumentException ds = new IllegalArgumentException("Invalid request: "+message);
-		return handleException(ds, request);
+		return handleException(ds, request, true);
 	}
-	
 
+	/**
+	 * When the entity is in the trash can.
+	 *
+	 * @param ex
+	 *            the exception to be handled
+	 * @param request
+	 *            the client request
+	 * @return an ErrorResponse object containing the exception reason or some
+	 *         other human-readable response
+	 */
+	@ExceptionHandler(EntityInTrashCanException.class)
+	@ResponseStatus(HttpStatus.NOT_FOUND)
+	public @ResponseBody
+	ErrorResponse handleEntityInTrashCanException(EntityInTrashCanException ex,
+			HttpServletRequest request) {
+		return handleException(ex, request, true);
+	}
+
+	/**
+	 * When the number of requests made to a particular service exceeds a threshold rate
+	 */
+	@ExceptionHandler(TooManyRequestsException.class)
+	public @ResponseBody
+	ErrorResponse handleTooManyRequestsException(TooManyRequestsException ex,
+			HttpServletRequest request, HttpServletResponse response) {
+		// Note: This older version of Spring lacks HttpStatus.TOO_MANY_REQUESTS
+		// Therefore, the status must be set manually
+		//TODO Change this method to match the other exception handlers when Spring is updated 
+		response.setStatus(429);
+		return handleException(ex, request, false);
+	}
 }

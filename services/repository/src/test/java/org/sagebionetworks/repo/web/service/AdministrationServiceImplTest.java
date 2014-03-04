@@ -1,17 +1,18 @@
 package org.sagebionetworks.repo.web.service;
 
+import static org.mockito.Mockito.when;
+
 import org.junit.Before;
 import org.junit.Test;
-import static org.mockito.Mockito.*;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.StackStatusManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.backup.daemon.BackupDaemonLauncher;
 import org.sagebionetworks.repo.manager.message.MessageSyndication;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.controller.ObjectTypeSerializer;
 
@@ -31,9 +32,9 @@ public class AdministrationServiceImplTest {
 	MessageSyndication mockMessageSyndication;
 	AdministrationServiceImpl adminService;
 	
-	String nonAdminUserId = "nonAdminUser";
+	Long nonAdminUserId = 98345L;
 	UserInfo nonAdmin;
-	String adminUserId = "AdminUser";
+	Long adminUserId = 842059834L;
 	UserInfo admin;
 	
 	@Before

@@ -1,0 +1,6 @@
+Hello #displayname#,
+
+The following errors were experienced while delivering message #messageid#: 
+#details#
+
+Synapse Administrator

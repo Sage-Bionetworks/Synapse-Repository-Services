@@ -34,6 +34,19 @@ public class StubFileMetadataDao implements FileHandleDao {
 		map.put(id, metadata);
 		return metadata;
 	}
+	
+	@Override
+	public S3FileHandle createFile(S3FileHandle metadata, boolean shouldPreviewBeGenerated) {
+		// Create the metadata
+		String id = ""+map.size()+1;
+		metadata.setId(id);
+		if (shouldPreviewBeGenerated) {
+			metadata.setPreviewId(id);
+		}
+		metadata.setCreatedOn(new Date());
+		map.put(id, metadata);
+		return metadata;
+	}
 
 	@Override
 	public void setPreviewId(String fileId, String previewId)
@@ -85,17 +98,10 @@ public class StubFileMetadataDao implements FileHandleDao {
 		// TODO Auto-generated method stub
 		return 0;
 	}
-
+	
 	@Override
-	public FileHandleBackup getFileHandleBackup(String idToBackup)
-			throws NotFoundException {
-		return backupMap.get(idToBackup);
-	}
-
-	@Override
-	public boolean createOrUpdateFromBackup(FileHandleBackup backup) {
-		FileHandleBackup old = backupMap.put(backup.getId().toString(), backup);
-		return old != null;
+	public long getMaxId() throws DatastoreException {
+		return map.size();
 	}
 
 	@Override

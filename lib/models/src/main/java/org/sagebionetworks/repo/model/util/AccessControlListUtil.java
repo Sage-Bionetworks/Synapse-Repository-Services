@@ -6,7 +6,6 @@ import java.util.Set;
 
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserInfo;
 
@@ -34,7 +33,7 @@ public class AccessControlListUtil {
 		}
 		access.setAccessType(typeSet);
 		//access.setDisplayName(info.getUser().getDisplayName());
-		access.setPrincipalId(Long.parseLong(info.getIndividualGroup().getId()));
+		access.setPrincipalId(info.getId());
 		set.add(access);
 		return acl;
 	}

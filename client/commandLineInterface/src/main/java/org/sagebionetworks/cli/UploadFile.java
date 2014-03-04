@@ -7,7 +7,7 @@ import java.io.IOException;
 import org.sagebionetworks.client.DataUploader;
 import org.sagebionetworks.client.DataUploaderMultipartImpl;
 import org.sagebionetworks.client.ProgressListener;
-import org.sagebionetworks.client.Synapse;
+import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.TextProgressListener;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.Locationable;
@@ -37,7 +37,7 @@ public class UploadFile {
 	}
 
 	Locationable doUpload() throws SynapseException {
-		Synapse synapse = commandLineInterface.getSynapseClient();
+		SynapseClientImpl synapse = commandLineInterface.getSynapseClient();
 		File file = new File(filePath);
 		Locationable locationable = (Locationable) synapse
 				.getEntityById(entityId);

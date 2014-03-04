@@ -30,7 +30,7 @@ public class ActivityUtils {
 		if(dbo.getId() == null) throw new IllegalArgumentException("id can not be null");
 		Activity dto = copyFromSerializedField(dbo);
 		dto.setId(dbo.getId().toString());
-		dto.setEtag(dbo.geteTag());
+		dto.setEtag(dbo.getEtag());
 		dto.setCreatedBy(dbo.getCreatedBy().toString());
 		dto.setCreatedOn(new Date(dbo.getCreatedOn()));
 		dto.setModifiedBy(dbo.getModifiedBy().toString());
@@ -46,7 +46,6 @@ public class ActivityUtils {
 		}
 	}
 	
-	@SuppressWarnings("unchecked")
 	private static Activity copyFromSerializedField(DBOActivity dbo) throws DatastoreException {
 		try {
 			return (Activity)JDOSecondaryPropertyUtils.decompressedObject(dbo.getSerializedObject());

@@ -35,6 +35,13 @@ public class ExpectedStackBeansTest {
 			// Migration
 			"stackConfiguration.migrationBackupBatchMax",
 			"stackConfiguration.migrationMaxAllowedPacketBytes",
+
+			"stackConfiguration.tableRowChangeBucketName",
+			"stackConfiguration.tableMaxBytesPerRequest",
+			"stackConfiguration.tableEnabled",
+			"stackConfiguration.tableUpdateQueueName",
+			"stackConfiguration.semaphoreGatedMaxRunnersTableCluster",
+			
 			// Semaphore gated runner configuration.
 			"stackConfiguration.semaphoreGatedLockTimeoutMS",
 			"stackConfiguration.semaphoreGatedMaxRunnersRds",
@@ -42,10 +49,21 @@ public class ExpectedStackBeansTest {
 			"stackConfiguration.semaphoreGatedMaxRunnersFilePreview",
 			"stackConfiguration.semaphoreGatedMaxRunnersDynamoIndex",
 			"stackConfiguration.semaphoreGatedMaxRunnersDynamoSynchronize",
+			"stackConfiguration.semaphoreExclusiveMaxTimeoutMS",
+			"stackConfiguration.semaphoreSharedMaxTimeoutMS",
+			
+			"stackConfiguration.searchEnabled",
+			"stackConfiguration.dynamoEnabled",
 			
 			"stackConfiguration.fileMultipartUploadDaemonTimeoutMS",
 			"stackConfiguration.fileMultipartUploadDaemonMainMaxThreads",
 			"stackConfiguration.fileMultipartUploadDaemonCopyPartMaxThreads",
+			
+			"stackConfiguration.auditRecordBucketName",
+			"stackConfiguration.stackInstanceNumber",
+			
+			"stackConfiguration.logBucketName",
+			"stackConfiguration.participantDataBucketName",
 	};
 	
 	@Before

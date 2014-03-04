@@ -42,15 +42,28 @@ public class QueryStatement {
 	 * with no limit specified defaults to all.
 	 */
 	private Long limit = 50000000l; // MySQL upper limit
-	private Long offset = ServiceConstants.DEFAULT_PAGINATION_OFFSET;
+	private Long offset;
 
 	private QueryNode parseTree = null;
+	
+	/**
+	 * Create a query using the proper definition of the 'offset' pagination param (no offset is zero)
+	 * @param query
+	 */
+	public QueryStatement(String query)  throws ParseException {
+		this(query, false);
+	}
 
 	/**
 	 * @param query
 	 * @throws ParseException
 	 */
-	public QueryStatement(String query) throws ParseException {
+	public QueryStatement(String query, boolean noOffsetEqualsOne) throws ParseException {
+		if (noOffsetEqualsOne) {
+			offset = ServiceConstants.DEFAULT_PAGINATION_OFFSET_NO_OFFSET_EQUALS_ONE;
+		} else {
+			offset = ServiceConstants.DEFAULT_PAGINATION_OFFSET;			
+		}
 
 		// TODO stash this in ThreadLocal because its expensive to create and
 		// not threadsafe
@@ -152,7 +165,11 @@ public class QueryStatement {
 				break;
 			}
 		}
-		ServiceConstants.validatePaginationParams(offset, limit);
+		if (noOffsetEqualsOne) {
+			ServiceConstants.validatePaginationParamsNoOffsetEqualsOne(offset, limit);
+		} else {
+			ServiceConstants.validatePaginationParams(offset, limit);
+		}
 	}
 	
 	/**

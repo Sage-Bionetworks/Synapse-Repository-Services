@@ -30,7 +30,12 @@ public class DMLUtils {
 		if(mapping == null) throw new IllegalArgumentException("Mapping cannot be null");
 		if(mapping.getFieldColumns() == null) throw new IllegalArgumentException("DBOMapping.getFieldColumns() cannot be null");
 		StringBuilder main = new StringBuilder();
-		main.append("INSERT INTO ");
+		main.append("INSERT ");
+		// If a table consists only of primary keys, inserting a duplicate should not result in failure 
+		if (!hasNonPrimaryKeyColumns(mapping)) {
+			main.append("IGNORE ");
+		}
+		main.append("INTO ");
 		main.append(mapping.getTableName());
 
 		// Build up the columns and values.
@@ -63,7 +68,7 @@ public class DMLUtils {
 	public static String getBatchInsertOrUdpate(TableMapping mapping){
 		StringBuilder builder = new StringBuilder();
 		builder.append(createInsertStatement(mapping));
-		if(hasNonPrimaryKeyColumns(mapping)){
+		if (hasNonPrimaryKeyColumns(mapping)) {
 			builder.append(" ON DUPLICATE KEY UPDATE ");
 			buildUpdateBody(mapping, builder);
 		}
@@ -105,10 +110,23 @@ public class DMLUtils {
 	 * @param mapping
 	 * @return the COUNT statement
 	 */
-	public static String createGetCountStatement(TableMapping mapping) {
+	public static String createGetCountByPrimaryKeyStatement(TableMapping mapping) {
 		if(mapping == null) throw new IllegalArgumentException("Mapping cannot be null");
 		StringBuilder main = new StringBuilder();
 		main.append("SELECT COUNT("+getPrimaryFieldColumnName(mapping)+") FROM ");
+		main.append(mapping.getTableName());
+		return main.toString();		
+	}
+	
+	/**
+	 * Create a MAX statement for a given mapping
+	 * @param mapping
+	 * @return the MAX statement
+	 */
+	public static String createGetMaxByBackupKeyStatement(TableMapping mapping) {
+		if(mapping == null) throw new IllegalArgumentException("Mapping cannot be null");
+		StringBuilder main = new StringBuilder();
+		main.append("SELECT MAX("+getBackupFieldColumnName(mapping)+") FROM ");
 		main.append(mapping.getTableName());
 		return main.toString();		
 	}
@@ -119,6 +137,14 @@ public class DMLUtils {
 			if(fc.isPrimaryKey()) return fc.getColumnName();
 		}
 		throw new IllegalArgumentException("Table "+mapping.getTableName()+" has no primary key.");
+	}
+
+	public static String getBackupFieldColumnName(TableMapping mapping) {
+		for(int i=0; i<mapping.getFieldColumns().length; i++){
+			FieldColumn fc = mapping.getFieldColumns()[i];
+			if(fc.isBackupId()) return fc.getColumnName();
+		}
+		throw new IllegalArgumentException("Table "+mapping.getTableName()+" has no backup key.");
 	}
 
 	/**
@@ -346,6 +372,26 @@ public class DMLUtils {
 		builder.append(" WHERE ");
 		addBackupIdInList(builder, mapping);
 		buildBackupOrderBy(mapping, builder, true);
+		return builder.toString();
+	}
+	
+	/**
+	 * This query will list all unique indices on the column
+	 * marked as 'BackupId'.  If there is not at least one
+	 * uniqueness constraint (either primary key or unique)
+	 * then the column CANNOT be a backup column.
+	 * See: PLFM-2512.
+	 * @param mapping
+	 * @return
+	 */
+	public static String getBackupUniqueValidation(TableMapping mapping){
+		validateMigratableTableMapping(mapping);
+		StringBuilder builder = new StringBuilder();
+		builder.append("SHOW INDEXES FROM ");
+		builder.append(mapping.getTableName());
+		builder.append(" WHERE Column_name='");
+		builder.append(getBackupIdColumnName(mapping).getColumnName());
+		builder.append("' AND NOT Non_unique");
 		return builder.toString();
 	}
 	

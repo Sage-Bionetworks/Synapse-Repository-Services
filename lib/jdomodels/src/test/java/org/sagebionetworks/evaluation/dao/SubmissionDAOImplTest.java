@@ -1,6 +1,9 @@
 package org.sagebionetworks.evaluation.dao;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
 
 import java.util.Date;
 import java.util.List;
@@ -9,11 +12,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.evaluation.dao.EvaluationDAO;
-import org.sagebionetworks.evaluation.dao.ParticipantDAO;
-import org.sagebionetworks.evaluation.dao.SubmissionDAO;
-import org.sagebionetworks.evaluation.dao.SubmissionDAOImpl;
-import org.sagebionetworks.evaluation.dao.SubmissionStatusDAO;
 import org.sagebionetworks.evaluation.dbo.SubmissionDBO;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
@@ -21,11 +19,16 @@ import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
+import org.sagebionetworks.repo.model.evaluation.ParticipantDAO;
+import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
+import org.sagebionetworks.repo.model.evaluation.SubmissionStatusDAO;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -39,21 +42,27 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class SubmissionDAOImplTest {
  
     @Autowired
-    SubmissionDAO submissionDAO;
+    private SubmissionDAO submissionDAO;
+    
     @Autowired
-    SubmissionStatusDAO submissionStatusDAO;
+    private SubmissionStatusDAO submissionStatusDAO;
+    
     @Autowired
-    ParticipantDAO participantDAO;
+    private ParticipantDAO participantDAO;
+    
     @Autowired
-    EvaluationDAO evaluationDAO;
-	@Autowired
-	NodeDAO nodeDAO;
-	@Autowired
-	FileHandleDao fileHandleDAO;
+    private EvaluationDAO evaluationDAO;
+	
+    @Autowired
+	private NodeDAO nodeDAO;
+	
+    @Autowired
+	private FileHandleDao fileHandleDAO;
  
-	private String nodeId = null;
+	private String nodeId;
+	private String userId;
+	
     private String submissionId = "206";
-    private String userId = "0";
     private String userId_does_not_exist = "2";
     private String evalId;
     private String evalId_does_not_exist = "456";
@@ -64,6 +73,8 @@ public class SubmissionDAOImplTest {
     
     @Before
     public void setUp() throws DatastoreException, InvalidModelException, NotFoundException {
+    	userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString();
+    	
     	// create a file handle
 		PreviewFileHandle meta = new PreviewFileHandle();
 		meta.setBucketName("bucketName");
@@ -200,27 +211,27 @@ public class SubmissionDAOImplTest {
     	// create a SubmissionStatus object
     	SubmissionStatus subStatus = new SubmissionStatus();
     	subStatus.setId(submissionId);
-    	subStatus.setStatus(SubmissionStatusEnum.OPEN);
+    	subStatus.setStatus(SubmissionStatusEnum.RECEIVED);
     	subStatus.setModifiedOn(new Date());
     	submissionStatusDAO.create(subStatus);
     	
     	// hit evalId and hit status => should find 1 submission
-    	List<Submission> subs = submissionDAO.getAllByEvaluationAndStatus(evalId, SubmissionStatusEnum.OPEN, 10, 0);
+    	List<Submission> subs = submissionDAO.getAllByEvaluationAndStatus(evalId, SubmissionStatusEnum.RECEIVED, 10, 0);
     	assertEquals(1, subs.size());
-    	assertEquals(subs.size(), submissionDAO.getCountByEvaluationAndStatus(evalId, SubmissionStatusEnum.OPEN));
+    	assertEquals(subs.size(), submissionDAO.getCountByEvaluationAndStatus(evalId, SubmissionStatusEnum.RECEIVED));
     	submission.setCreatedOn(subs.get(0).getCreatedOn());
     	submission.setId(subs.get(0).getId());
     	assertEquals(subs.get(0), submission);
     	
     	// miss evalId and hit status => should find 0 submissions
-    	subs = submissionDAO.getAllByEvaluationAndStatus(evalId_does_not_exist, SubmissionStatusEnum.OPEN, 10, 0);
+    	subs = submissionDAO.getAllByEvaluationAndStatus(evalId_does_not_exist, SubmissionStatusEnum.RECEIVED, 10, 0);
     	assertEquals(0, subs.size());
-    	assertEquals(subs.size(), submissionDAO.getCountByEvaluationAndStatus(evalId_does_not_exist, SubmissionStatusEnum.OPEN));
+    	assertEquals(subs.size(), submissionDAO.getCountByEvaluationAndStatus(evalId_does_not_exist, SubmissionStatusEnum.RECEIVED));
     	
     	// hit evalId and miss status => should find 0 submissions
-    	subs = submissionDAO.getAllByEvaluationAndStatus(evalId, SubmissionStatusEnum.CLOSED, 10, 0);
+    	subs = submissionDAO.getAllByEvaluationAndStatus(evalId, SubmissionStatusEnum.SCORED, 10, 0);
     	assertEquals(0, subs.size());
-    	assertEquals(subs.size(), submissionDAO.getCountByEvaluationAndStatus(evalId, SubmissionStatusEnum.CLOSED));
+    	assertEquals(subs.size(), submissionDAO.getCountByEvaluationAndStatus(evalId, SubmissionStatusEnum.SCORED));
     }
     
     @Test

@@ -4,7 +4,9 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import org.sagebionetworks.dynamo.DynamoWriteExecution;
 import org.sagebionetworks.dynamo.DynamoWriteExecutor;
 import org.sagebionetworks.dynamo.DynamoWriteOperation;
@@ -18,12 +20,23 @@ import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMapperConfig;
  */
 public class NodeTreeUpdateDaoImpl implements NodeTreeUpdateDao {
 
-	private final Logger logger = Logger.getLogger(NodeTreeUpdateDaoImpl.class);
+	private final Logger logger = LogManager.getLogger(NodeTreeUpdateDaoImpl.class);
 
 	private final AmazonDynamoDB dynamoClient;
 	private final DynamoDBMapper writeMapper;
 	private final DynamoWriteExecutor writeExecutor;
 
+	private boolean isDynamoEnabled;
+
+	@Override
+	public boolean isDynamoEnabled() {
+		return isDynamoEnabled;
+	}
+ 
+	public void setDynamoEnabled(boolean isDynamoEnabled) {
+		this.isDynamoEnabled = isDynamoEnabled;
+	}
+	
 	public NodeTreeUpdateDaoImpl(AmazonDynamoDB dynamoClient) {
 
 		if (dynamoClient == null) {
@@ -38,19 +51,21 @@ public class NodeTreeUpdateDaoImpl implements NodeTreeUpdateDao {
 
 	@Override
 	public boolean create(String child, String parent, Date timestamp) throws IncompletePathException {
+		validateDynamoEnabled();
 		return createOrUpdate(child, parent, timestamp);
 	}
 
 	@Override
 	public boolean update(String child, String parent, Date timestamp)
 			throws IncompletePathException, ObsoleteChangeException {
+		validateDynamoEnabled();
 		return createOrUpdate(child, parent, timestamp);
 	}
 
 	@Override
 	public boolean delete(String nodeId, Date timestamp)
 			throws ObsoleteChangeException {
-
+		validateDynamoEnabled();
 		if (nodeId == null || nodeId.isEmpty()) {
 			throw new IllegalArgumentException("Node ID cannot be null or empty.");
 		}
@@ -169,10 +184,9 @@ public class NodeTreeUpdateDaoImpl implements NodeTreeUpdateDao {
 		final int curPathLength = curPath.size();
 		final int newPathLength = newPath.size();
 		while (i < curPathLength && i < newPathLength) {
-			NodeLineage nodeOnCurPath = curPath.get(i);
-			NodeLineage nodeOnNewPath = newPath.get(i);
-			if (!nodeOnCurPath.getAncestorOrDescendantId().equals(
-					nodeOnNewPath.getAncestorOrDescendantId())) {
+			String nodeOnCurPath = curPath.get(i).getNodeId();
+			String nodeOnNewPath = newPath.get(i).getNodeId();
+			if (!nodeOnCurPath.equals(nodeOnNewPath)) {
 				break;
 			}
 			i++;
@@ -342,5 +356,12 @@ public class NodeTreeUpdateDaoImpl implements NodeTreeUpdateDao {
 			final Date timestamp, final String op) {
 		return "Execution [child=" + child + ", parent=" + parent +
 				", timestamp=" + timestamp + ", operation=" + op + "]";
+	}
+	
+	/**
+	 * @throws UnsupportedOperationException when Dynamo is disabled
+	 */
+	public void validateDynamoEnabled(){
+		if(!isDynamoEnabled) throw new UnsupportedOperationException("All Dynamo related features are disabled");
 	}
 }

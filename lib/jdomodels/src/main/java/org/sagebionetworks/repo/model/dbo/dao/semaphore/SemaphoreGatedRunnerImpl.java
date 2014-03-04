@@ -1,11 +1,13 @@
 package org.sagebionetworks.repo.model.dbo.dao.semaphore;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Random;
 import java.util.Set;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreDao;
 import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreGatedRunner;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,7 +31,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 public class SemaphoreGatedRunnerImpl implements SemaphoreGatedRunner {
 	
-	static private Log log = LogFactory.getLog(SemaphoreGatedRunnerImpl.class);
+	static private Logger log = LogManager.getLogger(SemaphoreGatedRunnerImpl.class);
 	
 	/**
 	 * This set ensures that the same key is not used by two separate runners
@@ -117,7 +119,7 @@ public class SemaphoreGatedRunnerImpl implements SemaphoreGatedRunner {
 		}
 		// randomly generate a lock number to attempt
 		int lockNumber = randomGen.nextInt(maxNumberRunners);
-		String key = semaphoreKey+KEY_NUM_DELIMITER+lockNumber;
+		String key = generateKeyForLockNumber(lockNumber);
 		String token = semaphoreDao.attemptToAcquireLock(key, timeoutMS);
 		if(token != null){
 			try{
@@ -136,5 +138,18 @@ public class SemaphoreGatedRunnerImpl implements SemaphoreGatedRunner {
 	 */
 	void clearKeys(){
 		USED_KEY_SET.clear();
+	}
+	
+	private String generateKeyForLockNumber(int lockNumber) {
+		return semaphoreKey + KEY_NUM_DELIMITER + lockNumber;
+	}
+	
+	@Override
+	public List<String> getAllLockKeys() {
+		List<String> keys = new ArrayList<String>();
+		for (int i = 0; i < maxNumberRunners; i++) {
+			keys.add(generateKeyForLockNumber(i));
+		}
+		return keys;
 	}
 }

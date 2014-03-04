@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model;
 
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -10,56 +11,26 @@ import java.util.Set;
  *
  */
 public class Node {
-	
-	String id;
-	String name;
-	String description;
-	String parentId;
-	Long createdByPrincipalId;
-	Date createdOn;
-	Long modifiedByPrincipalId;
-	Date modifiedOn;
-	String nodeType;
-	String eTag;
-	Long versionNumber;
-	String versionComment;
-	String versionLabel;
-	String benefactorId;
-	Map<String, Set<Reference>> references;
-	String activityId;
-	String fileHandleId;
-	
-	// these are the string names of the users 
-	// we will transition to using 'createdByPrincipalId, modifiedByPrincipalId,
-	// but these are maintained for now, for compatibility with exported XML files
-	String createdBy;
-	String modifiedBy;
-			
-	/**
-	 * @return the createdBy
-	 */
-	public String getCreatedBy() {
-		return createdBy;
-	}
-	/**
-	 * @param createdBy the createdBy to set
-	 */
-	public void setCreatedBy(String createdBy) {
-		this.createdBy = createdBy;
-	}
-	/**
-	 * @return the modifiedBy
-	 */
-	public String getModifiedBy() {
-		return modifiedBy;
-	}
-	/**
-	 * @param modifiedBy the modifiedBy to set
-	 */
-	public void setModifiedBy(String modifiedBy) {
-		this.modifiedBy = modifiedBy;
-	}
-	
+
+	private String id;
+	private String name;
+	private String description;
+	private String parentId;
+	private Long createdByPrincipalId;
+	private Date createdOn;
+	private Long modifiedByPrincipalId;
+	private Date modifiedOn;
+	private String nodeType;
+	private String eTag;
+	private Long versionNumber;
+	private String versionComment;
+	private String versionLabel;
+	private String benefactorId;
+	private Map<String, Set<Reference>> references;
+	private String activityId;
+	private String fileHandleId;
+	private List<String> columnModelIds;
+
 	public Long getCreatedByPrincipalId() {
 		return createdByPrincipalId;
 	}
@@ -203,6 +174,13 @@ public class Node {
 	public void setFileHandleId(String fileHandleId) {
 		this.fileHandleId = fileHandleId;
 	}
+	
+	public List<String> getColumnModelIds() {
+		return columnModelIds;
+	}
+	public void setColumnModelIds(List<String> columnModelIds) {
+		this.columnModelIds = columnModelIds;
+	}
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -212,7 +190,7 @@ public class Node {
 		result = prime * result
 				+ ((benefactorId == null) ? 0 : benefactorId.hashCode());
 		result = prime * result
-				+ ((createdBy == null) ? 0 : createdBy.hashCode());
+				+ ((columnModelIds == null) ? 0 : columnModelIds.hashCode());
 		result = prime
 				* result
 				+ ((createdByPrincipalId == null) ? 0 : createdByPrincipalId
@@ -225,8 +203,6 @@ public class Node {
 		result = prime * result
 				+ ((fileHandleId == null) ? 0 : fileHandleId.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
-		result = prime * result
-				+ ((modifiedBy == null) ? 0 : modifiedBy.hashCode());
 		result = prime
 				* result
 				+ ((modifiedByPrincipalId == null) ? 0 : modifiedByPrincipalId
@@ -267,10 +243,10 @@ public class Node {
 				return false;
 		} else if (!benefactorId.equals(other.benefactorId))
 			return false;
-		if (createdBy == null) {
-			if (other.createdBy != null)
+		if (columnModelIds == null) {
+			if (other.columnModelIds != null)
 				return false;
-		} else if (!createdBy.equals(other.createdBy))
+		} else if (!columnModelIds.equals(other.columnModelIds))
 			return false;
 		if (createdByPrincipalId == null) {
 			if (other.createdByPrincipalId != null)
@@ -301,11 +277,6 @@ public class Node {
 			if (other.id != null)
 				return false;
 		} else if (!id.equals(other.id))
-			return false;
-		if (modifiedBy == null) {
-			if (other.modifiedBy != null)
-				return false;
-		} else if (!modifiedBy.equals(other.modifiedBy))
 			return false;
 		if (modifiedByPrincipalId == null) {
 			if (other.modifiedByPrincipalId != null)
@@ -354,6 +325,7 @@ public class Node {
 			return false;
 		return true;
 	}
+	
 	@Override
 	public String toString() {
 		return "Node [id=" + id + ", name=" + name + ", description="
@@ -366,8 +338,6 @@ public class Node {
 				+ versionComment + ", versionLabel=" + versionLabel
 				+ ", benefactorId=" + benefactorId + ", references="
 				+ references + ", activityId=" + activityId + ", fileHandleId="
-				+ fileHandleId + ", createdBy=" + createdBy + ", modifiedBy="
-				+ modifiedBy + "]";
+				+ fileHandleId + "]";
 	}
-	
 }

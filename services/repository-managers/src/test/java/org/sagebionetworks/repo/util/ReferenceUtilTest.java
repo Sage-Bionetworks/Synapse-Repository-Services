@@ -16,14 +16,13 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.Reference;
-import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -34,25 +33,24 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class ReferenceUtilTest {
 	
 	@Autowired
-	ReferenceUtil referenceUtil;
+	private ReferenceUtil referenceUtil;
 	
 	@Autowired
-	NodeDAO nodeDao;
+	private NodeDAO nodeDao;
 	
-	@Autowired 
-	private UserGroupDAO userGroupDAO;
+	private List<String> toDelete;
 	
-	List<String> toDelete;
+	private Node one = null;
+	private Node two = null;
 	
-	Node one = null;
-	Node two = null;
-	
+	// For FKs only
 	private Long userGroupId;
 	
 	@Before
 	public void before() throws NotFoundException, DatastoreException, InvalidModelException {
-		userGroupId = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId());
+		userGroupId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		toDelete = new ArrayList<String>();
+		
 		// Create two nodes to reference
 		one = createNew("one");
 		String id = this.nodeDao.createNew(one);

@@ -6,20 +6,21 @@ import static org.mockito.Mockito.verify;
 
 import org.junit.Test;
 import org.sagebionetworks.repo.manager.doi.EntityDoiManager;
-import org.sagebionetworks.repo.model.doi.DoiObjectType;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class DoiServiceImplTest {
+	
+	private Long userId = 89734L;
 
 	@Test
 	public void testCreateEntityDoi() throws Exception {
 		DoiServiceImpl srv = new DoiServiceImpl();
 		EntityDoiManager mockManager = mock(EntityDoiManager.class);
 		ReflectionTestUtils.setField(srv, "entityDoiManager", mockManager);
-		final String userId = Long.toString(1L);
 		final String objectId = KeyFactory.keyToString(2L);
-		final DoiObjectType objectType = DoiObjectType.ENTITY;
+		final ObjectType objectType = ObjectType.ENTITY;
 		final Long versionNumber = 3L;
 		srv.createDoi(userId, objectId, objectType, versionNumber);
 		verify(mockManager, times(1)).createDoi(userId, objectId, versionNumber);
@@ -30,7 +31,6 @@ public class DoiServiceImplTest {
 		DoiServiceImpl srv = new DoiServiceImpl();
 		EntityDoiManager mockManager = mock(EntityDoiManager.class);
 		ReflectionTestUtils.setField(srv, "entityDoiManager", mockManager);
-		final String userId = Long.toString(1L);
 		final String objectId = KeyFactory.keyToString(2L);
 		final Long versionNumber = 3L;
 		srv.createDoi(userId, objectId, null, versionNumber);
@@ -41,10 +41,9 @@ public class DoiServiceImplTest {
 		DoiServiceImpl srv = new DoiServiceImpl();
 		EntityDoiManager mockManager = mock(EntityDoiManager.class);
 		ReflectionTestUtils.setField(srv, "entityDoiManager", mockManager);
-		final String userId = Long.toString(1L);
 		final String objectId = KeyFactory.keyToString(2L);
 		final Long versionNumber = 3L;
-		srv.createDoi(userId, objectId, DoiObjectType.EVALUATION, versionNumber);
+		srv.createDoi(userId, objectId, ObjectType.EVALUATION, versionNumber);
 	}
 
 	@Test
@@ -52,9 +51,8 @@ public class DoiServiceImplTest {
 		DoiServiceImpl srv = new DoiServiceImpl();
 		EntityDoiManager mockManager = mock(EntityDoiManager.class);
 		ReflectionTestUtils.setField(srv, "entityDoiManager", mockManager);
-		final String userId = Long.toString(1L);
 		final String objectId = KeyFactory.keyToString(2L);
-		final DoiObjectType objectType = DoiObjectType.ENTITY;
+		final ObjectType objectType = ObjectType.ENTITY;
 		final Long versionNumber = 3L;
 		srv.getDoi(userId, objectId, objectType, versionNumber);
 		verify(mockManager, times(1)).getDoi(userId, objectId, versionNumber);
@@ -65,7 +63,6 @@ public class DoiServiceImplTest {
 		DoiServiceImpl srv = new DoiServiceImpl();
 		EntityDoiManager mockManager = mock(EntityDoiManager.class);
 		ReflectionTestUtils.setField(srv, "entityDoiManager", mockManager);
-		final String userId = Long.toString(1L);
 		final String objectId = KeyFactory.keyToString(2L);
 		final Long versionNumber = 3L;
 		srv.getDoi(userId, objectId, null, versionNumber);
@@ -76,9 +73,8 @@ public class DoiServiceImplTest {
 		DoiServiceImpl srv = new DoiServiceImpl();
 		EntityDoiManager mockManager = mock(EntityDoiManager.class);
 		ReflectionTestUtils.setField(srv, "entityDoiManager", mockManager);
-		final String userId = Long.toString(1L);
 		final String objectId = KeyFactory.keyToString(2L);
 		final Long versionNumber = 3L;
-		srv.getDoi(userId, objectId, DoiObjectType.EVALUATION, versionNumber);
+		srv.getDoi(userId, objectId, ObjectType.EVALUATION, versionNumber);
 	}
 }

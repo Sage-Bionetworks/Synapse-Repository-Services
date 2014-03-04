@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.web.filter;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.Enumeration;
 import java.util.Map;
 
 import javax.servlet.Filter;
@@ -48,7 +47,7 @@ public class JsonpCallbackFilter implements Filter {
 			OutputStream out = httpResponse.getOutputStream();
 
 			GenericResponseWrapper wrapper = new GenericResponseWrapper(httpResponse);
-			// Pass it allong.
+			// Pass it along.
 			chain.doFilter(request, wrapper);
 
 			out.write(new String(parms.get(UrlHelpers.REQUEST_CALLBACK_JSONP)[0] + "(").getBytes("UTF-8"));

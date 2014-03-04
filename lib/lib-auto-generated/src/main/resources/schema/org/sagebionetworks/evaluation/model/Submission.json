@@ -1,5 +1,5 @@
 {
-	"description": "Schema defining a Submission to a Synapse Evaluation",
+	"description": "A Submission to a Synapse Evaluation is a pointer to a versioned Entity. Submissions are immutable, so we archive a copy of the EntityBundle at the time of submission.",
 	"name": "Submission",
 	"properties": {
 		"id": {
@@ -9,7 +9,7 @@
 		},
 		"userId": {
 			"type": "string",
-			"description": "The Synapse ID of the creator of this Submission.",
+			"description": "The Synapse ID of the user who created this Submission.",
 			"transient": true
 		},
 		"submitterAlias":{
@@ -28,12 +28,12 @@
 		},
 		"entityBundleJSON": {
 			"type": "string",
-			"description": "Bundled Entity and Annotations JSON.",
+			"description": "The Bundled Entity and Annotations JSON at the time of submission.",
 			"transient": true
 		},
 		"versionNumber":{
             "type":"integer",
-            "description":"The version number of the Entity."            
+            "description":"The submitted version number of the Entity."
         },
         "name": {
 			"type": "string",

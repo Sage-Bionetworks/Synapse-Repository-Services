@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -16,9 +17,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -35,18 +35,15 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class DBOFileHandleDaoImplTest {
 
 	@Autowired
-	FileHandleDao fileHandleDao;
-	
-	@Autowired
-	private UserGroupDAO userGroupDAO;
+	private FileHandleDao fileHandleDao;
 	
 	private List<String> toDelete;
-	String creatorUserGroupId;
+	private String creatorUserGroupId;
 	
 	@Before
 	public void before(){
 		toDelete = new LinkedList<String>();
-		creatorUserGroupId = userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId();
+		creatorUserGroupId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString();
 		assertNotNull(creatorUserGroupId);
 	}
 	
@@ -91,11 +88,6 @@ public class DBOFileHandleDaoImplTest {
 		fileHandleDao.setPreviewId(null, "1");
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
-	public void testSetPreviewIdNullSecond() throws DatastoreException, NotFoundException{
-		fileHandleDao.setPreviewId("1", null);
-	}
-	
 	@Test
 	public void testS3FileCURD() throws DatastoreException, NotFoundException{
 		S3FileHandle meta = TestUtils.createS3FileHandle(creatorUserGroupId);
@@ -130,13 +122,13 @@ public class DBOFileHandleDaoImplTest {
 	@Test (expected=NotFoundException.class)
 	public void testGetCreatorNotFound() throws NotFoundException{
 		// Use an invalid file handle id.
-		String lookupCreator = fileHandleDao.getHandleCreator("99999");
+		fileHandleDao.getHandleCreator("99999");
 	}
 	
 	@Test (expected=NotFoundException.class)
 	public void testGetPreviewFileHandleNotFound() throws NotFoundException{
 		// Use an invalid file handle id.
-		String prewviewId = fileHandleDao.getPreviewFileHandleId("9999");
+		fileHandleDao.getPreviewFileHandleId("9999");
 	}
 	
 	@Test
@@ -177,8 +169,8 @@ public class DBOFileHandleDaoImplTest {
 		ExternalFileHandle meta = new ExternalFileHandle();
 		meta.setCreatedBy(creatorUserGroupId);
 		meta.setFileName("fileName");
-		// Create a URL that is is 2K chars long
-		char[] chars = new char[2000-9];
+		// Create a URL that is is 700 chars long
+		char[] chars = new char[700-9];
 		Arrays.fill(chars, 'a');
 		meta.setExternalURL("http://"+new String(chars));
 		// Save it
@@ -242,6 +234,17 @@ public class DBOFileHandleDaoImplTest {
 		// Lookup the preview id
 		String previewIdLookup = fileHandleDao.getPreviewFileHandleId(fileId);
 		assertEquals(previewId, previewIdLookup);
+		
+		//now try clearing the preview
+		// Now set the preview for this file
+		fileHandleDao.setPreviewId(fileId, null);
+		clone = fileHandleDao.get(fileId);
+		assertNotNull(clone);
+		assertTrue(clone instanceof S3FileHandle);
+		s3Clone = (S3FileHandle) clone;
+		// The preview ID should not be set
+		assertNull(s3Clone.getPreviewId());
+		
 	}
 	
 	@Test
@@ -448,4 +451,11 @@ public class DBOFileHandleDaoImplTest {
 		assertEquals(handle.getId(), list.get(0));
 	}
 
+	@Test
+	public void testCreateFileHandleWithNoPreview() {
+		S3FileHandle handle = TestUtils.createS3FileHandle(creatorUserGroupId);
+		handle = fileHandleDao.createFile(handle, false);
+		toDelete.add(handle.getId());
+		assertEquals(handle.getId(), handle.getPreviewId());
+	}
 }

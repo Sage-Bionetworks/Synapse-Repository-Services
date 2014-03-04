@@ -14,6 +14,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ExpressionData;
 import org.sagebionetworks.repo.model.LocationData;
@@ -24,7 +25,6 @@ import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -55,6 +55,7 @@ public class LocationableControllerTest {
 	@Before
 	public void setUp() throws Exception {
 		helper.setUp();
+		helper.setTestUser(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 
 		project = new Project();
 		project = helper.createEntity(project, null);
@@ -256,9 +257,6 @@ public class LocationableControllerTest {
 	 * Bad parameters tests
 	 */
 
-	/**
-	 * @throws Exception
-	 */
 	@Test
 	public void testS3LocationWithNoEntityIdPrefix() throws Exception {
 		Study dataset = new Study();
@@ -278,12 +276,11 @@ public class LocationableControllerTest {
 		try {
 			dataset = helper.updateEntity(dataset, null);
 			fail("expected exception not thrown");
-		} catch (ServletTestHelperException ex) {
+		} catch (IllegalArgumentException ex) {
 			assertTrue(ex
 					.getMessage()
-					.startsWith(
+					.contains(
 							"path is malformed, it must match pattern"));
-			assertEquals(HttpStatus.BAD_REQUEST.value(), ex.getHttpStatus());
 		}
 	}
 
