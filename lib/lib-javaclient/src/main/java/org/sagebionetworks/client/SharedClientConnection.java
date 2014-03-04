@@ -355,7 +355,7 @@ public class SharedClientConnection {
 			int code = response.getStatusLine().getStatusCode();
 			String responseBody = (null != response.getEntity()) ? EntityUtils.toString(response.getEntity()) : null;
 			if(code < 200 || code > 299){
-				throw new SynapseServerException(code, "Response code: "+code+" "+response.getStatusLine().getReasonPhrase()+" for "+url+" body: "+requestBody);
+				throw new SynapseServerException(code, "Response code: "+code+" "+response.getStatusLine().getReasonPhrase()+" for "+url);
 			}
 			return responseBody;
 		} catch (UnsupportedEncodingException e) {
@@ -666,8 +666,9 @@ public class SharedClientConnection {
 			HttpResponse response = clientProvider.performRequest(requestUrl, requestMethod, requestContent,
 					requestHeaders);
 			statusCode = response.getStatusLine().getStatusCode();
-			responseBody = (null != response.getEntity()) ? EntityUtils
-					.toString(response.getEntity()) : null;
+			HttpEntity responseEntity = response.getEntity();
+			responseBody = (null != responseEntity) ? EntityUtils
+					.toString(responseEntity) : null;
 		} catch (IOException e) {
 			throw new SynapseClientException(e);
 		}
@@ -689,7 +690,7 @@ public class SharedClientConnection {
 			}
 		}
 
-		if (statusCode>=300) {
+		if (statusCode<200 || statusCode>299) {
 			// Well-handled server side exceptions come back as JSON, attempt to
 			// deserialize and convert the error
 			String reasonStr = null;

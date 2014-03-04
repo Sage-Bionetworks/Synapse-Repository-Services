@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 import java.util.Map;
 
 import org.apache.http.HttpResponse;
+import org.apache.http.StatusLine;
 import org.apache.http.entity.StringEntity;
 import org.junit.Before;
 import org.junit.Test;
@@ -42,6 +43,9 @@ public class SynapseAdministrationTest {
 		String expectedJSONResult = EntityFactory.createJSONStringForEntity(expectedRes);
 		StringEntity responseEntity = new StringEntity(expectedJSONResult);
 		when(mockResponse.getEntity()).thenReturn(responseEntity);
+		StatusLine statusLine = Mockito.mock(StatusLine.class);
+		when(statusLine.getStatusCode()).thenReturn(200);
+		when(mockResponse.getStatusLine()).thenReturn(statusLine);
 		FireMessagesResult res = synapse.getCurrentChangeNumber();
 		assertNotNull(res);
 		assertEquals(expectedRes, res);

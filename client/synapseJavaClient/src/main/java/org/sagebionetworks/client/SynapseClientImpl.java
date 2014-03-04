@@ -347,17 +347,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 */
 	public SynapseClientImpl() {
 		// Use the default implementations
-		this(new HttpClientProviderImpl(), new DataUploaderMultipartImpl());
-	}
-
-	/**
-	 * Will use the provided client provider and data uploader.
-	 * 
-	 * @param clientProvider 
-	 * @param dataUploader 
-	 */
-	public SynapseClientImpl(HttpClientProvider clientProvider, DataUploader dataUploader) {
-		this(new SharedClientConnection(clientProvider), dataUploader);
+		this(new SharedClientConnection(new HttpClientProviderImpl()), new DataUploaderMultipartImpl());
 	}
 
 	/**
@@ -376,7 +366,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @param clientProvider
 	 * @param dataUploader
 	 */
-	private SynapseClientImpl(SharedClientConnection sharedClientConnection, DataUploader dataUploader) {
+	public SynapseClientImpl(SharedClientConnection sharedClientConnection, DataUploader dataUploader) {
 		super(SYNPASE_JAVA_CLIENT + ClientVersionInfo.getClientVersionInfo(), sharedClientConnection);
 		if (sharedClientConnection == null)
 			throw new IllegalArgumentException("SharedClientConnection cannot be null");
