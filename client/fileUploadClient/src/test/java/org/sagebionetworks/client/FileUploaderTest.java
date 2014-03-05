@@ -4,9 +4,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.matches;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.*;
 
 import java.io.File;
@@ -24,11 +21,12 @@ import java.util.concurrent.Future;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
-import org.sagebionetworks.client.exceptions.SynapseUserException;
+import org.sagebionetworks.client.exceptions.SynapseServerException;
 import org.sagebionetworks.client.fileuploader.FileUploader;
 import org.sagebionetworks.client.fileuploader.FileUploaderView;
 import org.sagebionetworks.client.fileuploader.StatusCallback;
@@ -124,7 +122,7 @@ public class FileUploaderTest {
 
 	@Test
 	public void testConfigureSessionOther() throws Exception {
-		when(mockSynapseClient.getUserSessionData()).thenThrow(new SynapseException());
+		when(mockSynapseClient.getUserSessionData()).thenThrow(new SynapseClientException());
 		fileUploader.configure(mockSynapseClient, targetId);
 		verify(mockSynapseClient).getUserSessionData();
 		verify(mockView).alert(matches(".*Error.*"));
@@ -186,10 +184,10 @@ public class FileUploaderTest {
 		when(mockFuture1.get()).thenReturn(null);
 		Future<Entity> mockFuture2 = mock(Future.class);
 		when(mockFuture2.isDone()).thenReturn(true);
-		when(mockFuture2.get()).thenThrow(new ExecutionException("(409)", new SynapseUserException("(409)")));
+		when(mockFuture2.get()).thenThrow(new ExecutionException("(409)", new SynapseServerException(409, "(409)")));
 		Future<Entity> mockFuture3 = mock(Future.class);
 		when(mockFuture3.isDone()).thenReturn(true);
-		when(mockFuture3.get()).thenThrow(new ExecutionException("some reason", new SynapseException("Some other exception")));		
+		when(mockFuture3.get()).thenThrow(new ExecutionException("some reason", new SynapseClientException("Some other exception")));		
 		when(mockUploadFuturesFactory.createChildFileEntityFuture(eq(tmpFile1), anyString(),
 				  any(ExecutorService.class), any(SynapseClient.class),
 				  anyString(), any(StatusCallback.class)))

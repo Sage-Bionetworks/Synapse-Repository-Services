@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.QueryResults;
@@ -79,6 +80,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 	private String entityId;
 	private String entityId2;
 	private String childId;
+	private String fileId;
 	
 	private Evaluation evaluation;
 	private Evaluation evaluation2;
@@ -111,6 +113,12 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		node.setParentId(rootId);
 		entityId = nodeManager.createNewNode(node, adminUserInfo);
 		
+		Node fileNode = new Node();
+		fileNode.setName("File");
+		fileNode.setNodeType(EntityType.getNodeTypeForClass(FileEntity.class).name());
+		fileNode.setParentId(rootId);
+		fileId = nodeManager.createNewNode(fileNode, adminUserInfo);
+
 		Node childNode = new Node();
 		childNode.setName("Child");
 		childNode.setNodeType(EntityType.layer.name());
@@ -390,13 +398,26 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		assertEquals(1, ars.getResults().size());
 	}
 	
-	// entity owner never has unmet access requirements
+	// entity owner does have unmet access requirements, for non-file
 	@Test
-	public void testGetUnmetEntityAccessRequirementsOwner() throws Exception {
+	public void testGetUnmetEntityAccessRequirementsOwnerNonFile() throws Exception {
 		ar = newEntityAccessRequirement(entityId);
 		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
 		rod.setId(entityId);
+		rod.setType(RestrictableObjectType.ENTITY);
+		QueryResults<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirements(adminUserInfo, rod);
+		assertEquals(1L, ars.getTotalNumberOfResults());
+		assertEquals(1, ars.getResults().size());
+	}
+	
+	// File owner never has unmet access requirements
+	@Test
+	public void testGetUnmetEntityAccessRequirementsOwnerFile() throws Exception {
+		ar = newEntityAccessRequirement(fileId);
+		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId(fileId);
 		rod.setType(RestrictableObjectType.ENTITY);
 		QueryResults<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirements(adminUserInfo, rod);
 		assertEquals(0L, ars.getTotalNumberOfResults());
