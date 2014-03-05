@@ -781,8 +781,8 @@ public class IT500SynapseJavaClient {
 		r = adminSynapse.createAccessRequirement(r);
 		accessRequirementsToDelete.add(r.getId());
 		
-		// check that owner can download
-		assertTrue(synapseOne.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
+		// check that owner can't download (since it's not a FileEntity)
+		assertFalse(synapseOne.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
 
 		UserProfile otherProfile = synapseOne.getMyProfile();
 		assertNotNull(otherProfile);
