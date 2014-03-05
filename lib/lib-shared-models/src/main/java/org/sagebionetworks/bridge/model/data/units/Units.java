@@ -5,12 +5,10 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * <p>A unit of measurement. Each unit of measure can specify a standard or normalized unit of 
+ * A unit of measurement. Each unit of measure can specify a normalized unit of 
  * measure that it can convert to and from, using a specific conversion <em>factor</em>. 
  * (If this value is left null, it converts to itself because it is already normalized).
  * 
- * <p>Conversions are done on either a <code>Measure</code> or <code>Units</code> instance 
- * depending on the direction of conversion.
  */
 public enum Units {
 	
@@ -65,15 +63,14 @@ public enum Units {
 	PERCENTAGE(1.0, "percentage", "%"),
 	GRAMS_PER_LITER(1.0, "grams per liter", "g/L"),
 	
-	// We don't currently use this, but it verifies that we can do mole conversions
+	// We don't currently use this, but it verifies that we can do mole conversions. This is ugly because
+	// phosphorus is combined with the unit of measure itself. Looking at this further.
 	MILLIMOLES_PER_LITER(1.0, "millimoles per liter", "mmol/L"),
 	PHOSPHORUS_MG_DL(MILLIMOLES_PER_LITER, 0.3229, "phosphorus (mg/dL)", "phosphorus (mg/dL)"),
 	
 	// Finally, this unit is interesting because the number can mean two different things
-	// depending on the notation, CV or SD. So it's not technically a unit, but would be 
-	// a pain to represent as two different numbers (often it's not specified in the lab 
-	// report whether cv or sd is being used). We should export the units with the value, 
-	// for this reason.
+	// depending on the notation, CV or SD. Is this really a unit? In any event, the unit 
+	// must be exported with a data set, or the number will lack meaning.
 	PERCENTAGE_CV_OR_SD(1.0, "standard or coefficient variation", "% CV", "% SD");
 
 	private final Units normalizedUnit;

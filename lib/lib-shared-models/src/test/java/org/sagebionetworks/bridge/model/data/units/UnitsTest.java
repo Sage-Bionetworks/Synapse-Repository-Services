@@ -96,7 +96,8 @@ public class UnitsTest {
 	@Test
 	public void conversionFromNormalizedUsingMoles() {
 		// Phosphate	2.5-4.5	mg/dL	0.32	mmol/L
-		// NOTE: This is messed up. Somehow the conversion factor is mixed up with the ratio
+		// NOTE: This is messed up. Somehow the conversion factor is mixed up with the ratio.
+		// Can mg/dL be varied and how would this work?
 		Measure phosphorus = new Measure(1000, Units.PHOSPHORUS_MG_DL);
 		Measure normPhosphorus = phosphorus.convertToNormalized();
 
