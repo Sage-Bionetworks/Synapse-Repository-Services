@@ -113,9 +113,10 @@ public interface AuthorizationManager {
 	 * userInfo is a member of the ACT.
 	 * 
 	 * @param userInfo
-	 * @param parentId
+	 * @param sourceParentId
+	 * @param destParentId
 	 * @return
 	 * @throws NotFoundException 
 	 */
-	public boolean canMoveEntity(UserInfo userInfo, String parentId) throws NotFoundException;
+	public boolean canUserMoveRestrictedEntity(UserInfo userInfo, String sourceParentId, String destParentId) throws NotFoundException;
 }

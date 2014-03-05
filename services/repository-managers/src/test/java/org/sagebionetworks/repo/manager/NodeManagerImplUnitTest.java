@@ -333,12 +333,12 @@ public class NodeManagerImplUnitTest {
 	@Test
 	public void testIsParentIDChange(){
 		// test the various flavors of parent id change
-		assertTrue(NodeManagerImpl.isParenIdChange(null, "notNull"));
-		assertTrue(NodeManagerImpl.isParenIdChange("notNull", null));
-		assertTrue(NodeManagerImpl.isParenIdChange("one", "two"));
-		assertTrue(NodeManagerImpl.isParenIdChange("two", "one"));
-		assertFalse(NodeManagerImpl.isParenIdChange(null, null));
-		assertFalse(NodeManagerImpl.isParenIdChange("one", "one"));
+		assertTrue(NodeManagerImpl.isParentIdChange(null, "notNull"));
+		assertTrue(NodeManagerImpl.isParentIdChange("notNull", null));
+		assertTrue(NodeManagerImpl.isParentIdChange("one", "two"));
+		assertTrue(NodeManagerImpl.isParentIdChange("two", "one"));
+		assertFalse(NodeManagerImpl.isParentIdChange(null, null));
+		assertFalse(NodeManagerImpl.isParentIdChange("one", "one"));
 	}
 	
 	@Test
@@ -463,7 +463,7 @@ public class NodeManagerImplUnitTest {
 		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(nodeId), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.READ))).thenReturn(true);
 		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(nodeId), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.UPDATE))).thenReturn(true);
 		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(unauthorizedParentId), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.CREATE))).thenReturn(false);
-		when(mockAuthManager.canMoveEntity(eq(mockUserInfo), eq(currentParentId))).thenReturn(true);
+		when(mockAuthManager.canUserMoveRestrictedEntity(eq(mockUserInfo), eq(currentParentId))).thenReturn(true);
 		
 		// unauthorized
 		try {
@@ -487,7 +487,7 @@ public class NodeManagerImplUnitTest {
 		
 		// governance restriction on move
 		reset(node);
-		when(mockAuthManager.canMoveEntity(eq(mockUserInfo), eq(currentParentId))).thenReturn(false);
+		when(mockAuthManager.canUserMoveRestrictedEntity(eq(mockUserInfo), eq(currentParentId))).thenReturn(false);
 		try {
 			nodeManager.update(mockUserInfo, node);
 			fail("Should not have allowed update");

@@ -366,13 +366,13 @@ public class AuthorizationManagerImplUnitTest {
 		List<AccessRequirement> ars = new ArrayList<AccessRequirement>();
 		when(mockAccessRequirementDAO.getForSubject(ancestorIds, RestrictableObjectType.ENTITY)).thenReturn(ars);
 		// since 'ars' is empty, will return true
-		assertTrue(authorizationManager.canMoveEntity(userInfo, parentId));
+		assertTrue(authorizationManager.canUserMoveRestrictedEntity(userInfo, parentId));
 		verify(mockNodeDao).getEntityPath(parentId);
 		verify(mockAccessRequirementDAO).getForSubject(ancestorIds, RestrictableObjectType.ENTITY);
 		// if 'ars' is not empty, will return false
 		ars.add(new TermsOfUseAccessRequirement());
-		assertFalse(authorizationManager.canMoveEntity(userInfo, parentId));
+		assertFalse(authorizationManager.canUserMoveRestrictedEntity(userInfo, parentId));
 		// but if the user is an admin, will be true
-		assertTrue(authorizationManager.canMoveEntity(adminUser, parentId));
+		assertTrue(authorizationManager.canUserMoveRestrictedEntity(adminUser, parentId));
 	}
 }
