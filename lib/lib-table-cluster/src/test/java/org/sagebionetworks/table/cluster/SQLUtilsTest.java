@@ -17,7 +17,6 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
-import com.hp.hpl.jena.sparql.function.library.e;
 
 public class SQLUtilsTest {
 	

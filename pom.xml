@@ -349,6 +349,11 @@
 			</dependency>
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
+				<artifactId>lib-table-query</artifactId>
+				<version>${project.version}</version>
+			</dependency>			
+			<dependency>
+				<groupId>org.sagebionetworks</groupId>
 				<artifactId>lib-shared-models</artifactId>
 				<version>${project.version}</version>
 			</dependency>
