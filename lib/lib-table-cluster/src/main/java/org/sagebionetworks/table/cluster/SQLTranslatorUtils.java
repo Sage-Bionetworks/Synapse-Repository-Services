@@ -8,7 +8,7 @@ public class SQLTranslatorUtils {
 
 	/**
 	 * Translate the passed query model into output SQL.
-	 * @param model
+	 * @param model The model representing a query.
 	 * @param outputBuilder
 	 * @param parameters
 	 */
