@@ -66,7 +66,16 @@ public enum Units {
 	// We don't currently use this, but it verifies that we can do mole conversions. This is ugly because
 	// phosphorus is combined with the unit of measure itself. Looking at this further.
 	MILLIMOLES_PER_LITER(1.0, "millimoles per liter", "mmol/L"),
+	
+	// First of all, this conversion appears to be wrong, phosphorus' molecular weight is 30.9737622, 
+	// the number of grams in one mole. 
+	
+	// 30.974 grams per mole or 0.030974 mg per millimole? But then you have to multiply by 10, because
+	// you're going from deciliters to a liter. 0.30974mg/L? That's close to the conversion number here.
+	// I wonder if this is different for a reason.
+	
 	PHOSPHORUS_MG_DL(MILLIMOLES_PER_LITER, 0.3229, "phosphorus (mg/dL)", "phosphorus (mg/dL)"),
+	// PHOSPHORUS_MG_DL(MILLIMOLES_PER_LITER, 0.30974, "phosphorus (mg/dL)", "phosphorus (mg/dL)"),
 	
 	// Finally, this unit is interesting because the number can mean two different things
 	// depending on the notation, CV or SD. Is this really a unit? In any event, the unit 
