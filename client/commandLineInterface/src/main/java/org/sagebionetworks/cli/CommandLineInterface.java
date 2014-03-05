@@ -14,6 +14,7 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
 import org.sagebionetworks.client.SynapseClientImpl;
+import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 
 /**
@@ -121,7 +122,7 @@ public class CommandLineInterface {
 
 			File credentialsFile = new File(propertyFilename);
 			if (!credentialsFile.canRead()) {
-				throw new SynapseException(
+				throw new SynapseClientException(
 						"Unable to open Synapse credentials file: "
 								+ credentialsFile.getAbsolutePath());
 			}
@@ -139,14 +140,14 @@ public class CommandLineInterface {
 
 			if (!properties.containsKey("password")
 					&& !properties.containsKey("hmac")) {
-				throw new SynapseException("Credentials file "
+				throw new SynapseClientException("Credentials file "
 						+ credentialsFile
 						+ " must contain either 'password' or 'hmac'");
 			}
 
 			for (String requiredOption : requiredOptions) {
 				if (!properties.containsKey(requiredOption)) {
-					throw new SynapseException("Argument '" + requiredOption
+					throw new SynapseClientException("Argument '" + requiredOption
 							+ "' is required.");
 				}
 			}
@@ -156,7 +157,7 @@ public class CommandLineInterface {
 			throw e;
 		} catch (Exception e) {
 			printUsage(e.getMessage());
-			throw new SynapseException(e);
+			throw new SynapseClientException(e);
 		}
 	}
 

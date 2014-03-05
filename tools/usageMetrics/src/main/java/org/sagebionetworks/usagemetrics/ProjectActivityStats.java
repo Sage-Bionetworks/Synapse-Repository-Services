@@ -24,6 +24,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.client.SynapseClientImpl;
+import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.repo.model.Entity;
@@ -258,7 +259,7 @@ public class ProjectActivityStats {
 			addUserToListWithinDateRange(start, end, contributors, entityHit.getLong("entity.createdOn"), entityHit.getString("entity.createdByPrincipalId"));
 			addUserToListWithinDateRange(start, end, contributors, entityHit.getLong("entity.modifiedOn"), entityHit.getString("entity.modifiedByPrincipalId"));
 		} catch (JSONException e) {
-			throw new SynapseException(e);
+			throw new SynapseClientException(e);
 		}
 
 		return contributors;
@@ -280,7 +281,7 @@ public class ProjectActivityStats {
 				}
 			}
 		} catch (JSONObjectAdapterException e) {
-			throw new SynapseException(e);
+			throw new SynapseClientException(e);
 		} catch (SynapseException e) {
 			if(!(e instanceof SynapseNotFoundException)) throw e;
 		}

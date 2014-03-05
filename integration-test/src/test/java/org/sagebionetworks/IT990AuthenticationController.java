@@ -21,7 +21,7 @@ import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
-import org.sagebionetworks.client.exceptions.SynapseUserException;
+import org.sagebionetworks.client.exceptions.SynapseServerException;
 import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
@@ -130,8 +130,8 @@ public class IT990AuthenticationController {
 		
 		try {
 			synapse.createUser(user);
-		} catch (SynapseUserException e) {
-			assertTrue(e.getMessage().contains("409"));
+		} catch (SynapseServerException e) {
+			assertTrue(e.getStatusCode()==409);
 		}
 	}
 	
