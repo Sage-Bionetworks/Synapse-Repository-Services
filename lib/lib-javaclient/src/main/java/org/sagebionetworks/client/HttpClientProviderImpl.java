@@ -31,12 +31,6 @@ public class HttpClientProviderImpl implements HttpClientProvider {
 	}
 
 	@Override
-	public void uploadFile(String requestUrl, String filepath, String contentType,
-			Map<String, String> requestHeaders) throws ClientProtocolException, IOException, HttpClientHelperException {
-		HttpClientHelper.uploadFile(DefaultHttpClientSingleton.getInstance(), requestUrl, filepath, contentType, requestHeaders);
-	}
-
-	@Override
 	public HttpResponse performRequest(String requestUrl, String requestMethod,
 			String requestContent, Map<String, String> requestHeaders) throws ClientProtocolException, IOException {
 		return HttpClientHelper.performRequest(DefaultHttpClientSingleton.getInstance(), requestUrl, requestMethod, requestContent, requestHeaders);

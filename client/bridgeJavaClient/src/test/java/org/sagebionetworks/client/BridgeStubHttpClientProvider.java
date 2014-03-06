@@ -42,15 +42,6 @@ public class BridgeStubHttpClientProvider implements HttpClientProvider {
 	}
 
 	@Override
-	public void uploadFile(String requestUrl, String filepath,
-			String contentType, Map<String, String> requestHeaders)
-			throws ClientProtocolException, IOException,
-			HttpClientHelperException {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
 	public void putFile(String requestUrl, File toPut,
 			Map<String, String> requestHeaders) throws ClientProtocolException,
 			IOException, HttpClientHelperException {
