@@ -3,6 +3,7 @@ package org.sagebionetworks.table.cluster;
 import java.util.Map;
 
 import org.sagebionetworks.table.query.model.ActualIdentifier;
+import org.sagebionetworks.table.query.model.BetweenPredicate;
 import org.sagebionetworks.table.query.model.BooleanFactor;
 import org.sagebionetworks.table.query.model.BooleanPrimary;
 import org.sagebionetworks.table.query.model.BooleanTerm;
@@ -14,10 +15,14 @@ import org.sagebionetworks.table.query.model.ColumnName;
 import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.ComparisonPredicate;
 import org.sagebionetworks.table.query.model.DerivedColumn;
+import org.sagebionetworks.table.query.model.EscapeCharacter;
 import org.sagebionetworks.table.query.model.Identifier;
 import org.sagebionetworks.table.query.model.InPredicate;
 import org.sagebionetworks.table.query.model.InPredicateValue;
 import org.sagebionetworks.table.query.model.InValueList;
+import org.sagebionetworks.table.query.model.LikePredicate;
+import org.sagebionetworks.table.query.model.NullPredicate;
+import org.sagebionetworks.table.query.model.Pattern;
 import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.RowValueConstructor;
@@ -278,6 +283,26 @@ public class SQLTranslatorUtils {
 		if(characterPrimary == null) throw new IllegalArgumentException("CharacterPrimary cannot be null");
 		return characterPrimary.getValueExpressionPrimary();
 	}
+	
+	/**
+	 * Get a ValueExpressionPrimary from a Pattern.
+	 * @param pattern
+	 * @return
+	 */
+	public static ValueExpressionPrimary getValueExpressionPrimary(Pattern pattern) {
+		if(pattern == null) throw new IllegalArgumentException("Pattern cannot be null");
+		return getValueExpressionPrimary(pattern.getCharacterValueExpression());
+	}
+	
+	/**
+	 * Get a ValueExpressionPrimary from an EscapeCharacter.
+	 * @param pattern
+	 * @return
+	 */
+	public static ValueExpressionPrimary getValueExpressionPrimary(EscapeCharacter escape) {
+		if(escape == null) throw new IllegalArgumentException("EscapeCharacter cannot be null");
+		return getValueExpressionPrimary(escape.getCharacterValueExpression());
+	}
 
 	/**
 	 * 
@@ -332,7 +357,7 @@ public class SQLTranslatorUtils {
 		boolean first = true;
 		for(BooleanTerm booleanTerm: searchCondition.getOrBooleanTerms()){
 			if(!first){
-				builder.append("OR");
+				builder.append(" OR ");
 			}
 			translate(booleanTerm, builder, parameters, columnNameToIdMap);
 			first = false;
@@ -356,7 +381,7 @@ public class SQLTranslatorUtils {
 		boolean first = true;
 		for(BooleanFactor booleanFactor: booleanTerm.getAndBooleanFactors()){
 			if(!first){
-				builder.append("AND");
+				builder.append(" AND ");
 			}
 			translate(booleanFactor, builder, parameters, columnNameToIdMap);
 			first = false;
@@ -436,10 +461,85 @@ public class SQLTranslatorUtils {
 			translate(predicate.getComparisonPredicate(), builder, parameters, columnNameToIdMap);
 		}else if(predicate.getInPredicate() != null){
 			translate(predicate.getInPredicate(), builder, parameters, columnNameToIdMap);
+		}else if(predicate.getBetweenPredicate() != null){
+			translate(predicate.getBetweenPredicate(), builder, parameters, columnNameToIdMap);
+		}else if(predicate.getLikePredicate() != null){
+			translate(predicate.getLikePredicate(), builder, parameters, columnNameToIdMap);
+		}else if(predicate.getNullPredicate() != null){
+			translate(predicate.getNullPredicate(), builder, parameters, columnNameToIdMap);
 		}else{
 			throw new IllegalArgumentException("Unknown Predicate type");
 		}
 	}
+	
+	/**
+	 * 
+	 * @param nullPredicate
+	 * @param builder
+	 * @param parameters
+	 * @param columnNameToIdMap
+	 */
+	static void translate(NullPredicate nullPredicate,
+			StringBuilder builder, Map<String, Object> parameters,
+			Map<String, Long> columnNameToIdMap) {
+		if(nullPredicate == null) throw new IllegalArgumentException("NullPredicate cannot be null");
+		// RHS
+		translate(nullPredicate.getColumnReferenceLHS(), builder, columnNameToIdMap);
+		builder.append(" IS");
+		if(nullPredicate.getNot() != null){
+			builder.append(" NOT");
+		}
+		builder.append(" NULL");
+	}
+
+	/**
+	 * Translate a LikePredicate
+	 * @param likePredicate
+	 * @param builder
+	 * @param parameters
+	 * @param columnNameToIdMap
+	 */
+	static void translate(LikePredicate likePredicate,
+			StringBuilder builder, Map<String, Object> parameters,
+			Map<String, Long> columnNameToIdMap) {
+		if(likePredicate == null) throw new IllegalArgumentException("LikePredicate cannot be null");
+		// RHS
+		translate(likePredicate.getColumnReferenceLHS(), builder, columnNameToIdMap);
+		if(likePredicate.getNot() != null){
+			builder.append(" NOT");
+		}
+		builder.append(" LIKE ");
+		ValueExpressionPrimary patternPrimary = getValueExpressionPrimary(likePredicate.getPattern());
+		translateRHS(patternPrimary, builder, parameters);
+		if(likePredicate.getEscapeCharacter() != null){
+			builder.append(" ESCAPE ");
+			ValueExpressionPrimary escapePrimary = getValueExpressionPrimary(likePredicate.getEscapeCharacter());
+			translateRHS(escapePrimary, builder, parameters);
+		}
+	}
+
+	/**
+	 * Translate BetweenPredicate.
+	 * @param betweenPredicate
+	 * @param builder
+	 * @param parameters
+	 * @param columnNameToIdMap
+	 */
+	static void translate(BetweenPredicate betweenPredicate,
+			StringBuilder builder, Map<String, Object> parameters,
+			Map<String, Long> columnNameToIdMap) {
+		if(betweenPredicate == null) throw new IllegalArgumentException("BetweenPredicate cannot be null");
+		// RHS
+		translate(betweenPredicate.getColumnReferenceLHS(), builder, columnNameToIdMap);
+		if(betweenPredicate.getNot() != null){
+			builder.append(" NOT");
+		}
+		builder.append(" BETWEEN ");
+		translate(betweenPredicate.getBetweenRowValueConstructor(), builder, parameters);
+		builder.append(" AND ");
+		translate(betweenPredicate.getAndRowValueConstructorRHS(), builder, parameters);
+	}
+
 
 
 	/**
@@ -555,11 +655,22 @@ public class SQLTranslatorUtils {
 	 */
 	static void translateRHS(ValueExpression valueExpression, StringBuilder builder, Map<String, Object> parameters){
 		if(valueExpression == null) throw new IllegalArgumentException("ValueExpression cannot be null");
+		// To primary
+		ValueExpressionPrimary primary = getValueExpressionPrimary(valueExpression);
+		translateRHS(primary, builder, parameters);
+	}
+	
+	/**
+	 * Translate a ValueExpression that appears on the right-hand-side of a predicate.
+	 * @param valueExpression
+	 * @param builder
+	 * @param parameters
+	 */
+	static void translateRHS(ValueExpressionPrimary primary, StringBuilder builder, Map<String, Object> parameters){
+		if(primary == null) throw new IllegalArgumentException("ValueExpression cannot be null");
 		// The bind key is used in the SQL and parameter map.
 		String bindKey = "b"+parameters.size();
 		builder.append(":").append(bindKey);
-		// Add the value to the map.
-		ValueExpressionPrimary primary = getValueExpressionPrimary(valueExpression);
 		String value = getStringValueOf(primary.getUnsignedValueSpecification());
 		parameters.put(bindKey, value);
 	}

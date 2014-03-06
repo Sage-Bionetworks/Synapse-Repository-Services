@@ -29,6 +29,11 @@ public class BetweenPredicate implements SQLElement {
 	public RowValueConstructor getAndRowValueConstructorRHS() {
 		return andRowValueConstructorRHS;
 	}
+	
+	public ColumnReference getColumnReferenceLHS() {
+		return columnReferenceLHS;
+	}
+
 	@Override
 	public void toSQL(StringBuilder builder) {
 		columnReferenceLHS.toSQL(builder);

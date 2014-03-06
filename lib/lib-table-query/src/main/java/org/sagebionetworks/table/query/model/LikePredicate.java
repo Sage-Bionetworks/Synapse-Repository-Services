@@ -29,6 +29,10 @@ public class LikePredicate implements SQLElement {
 		return escapeCharacter;
 	}
 
+	public ColumnReference getColumnReferenceLHS() {
+		return columnReferenceLHS;
+	}
+
 	@Override
 	public void toSQL(StringBuilder builder) {
 		columnReferenceLHS.toSQL(builder);

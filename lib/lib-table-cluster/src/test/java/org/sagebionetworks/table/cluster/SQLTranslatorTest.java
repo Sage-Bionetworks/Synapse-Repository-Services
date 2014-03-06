@@ -1,6 +1,8 @@
 package org.sagebionetworks.table.cluster;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -8,7 +10,6 @@ import java.util.Map;
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.table.query.ParseException;
-import org.sagebionetworks.table.query.model.BetweenPredicate;
 import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
@@ -141,6 +142,76 @@ public class SQLTranslatorTest {
 		assertEquals("3",parameters.get("b2"));
 	}
 	
+	@Test
+	public void testBetweenPredicate() throws ParseException{
+		Predicate predicate = SqlElementUntils.createPredicate("foo between 1 and 2");
+		StringBuilder builder = new StringBuilder();
+		HashMap<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translate(predicate, builder, parameters, columnNameToIdMap);
+		assertEquals("C111 BETWEEN :b0 AND :b1", builder.toString());
+		assertEquals("1",parameters.get("b0"));
+		assertEquals("2",parameters.get("b1"));
+	}
+	
+	@Test
+	public void testBetweenPredicateNot() throws ParseException{
+		Predicate predicate = SqlElementUntils.createPredicate("foo not between 1 and 2");
+		StringBuilder builder = new StringBuilder();
+		HashMap<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translate(predicate, builder, parameters, columnNameToIdMap);
+		assertEquals("C111 NOT BETWEEN :b0 AND :b1", builder.toString());
+		assertEquals("1",parameters.get("b0"));
+		assertEquals("2",parameters.get("b1"));
+	}
+	
+	@Test
+	public void testLikePredicate() throws ParseException{
+		Predicate predicate = SqlElementUntils.createPredicate("foo like 'bar%'");
+		StringBuilder builder = new StringBuilder();
+		HashMap<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translate(predicate, builder, parameters, columnNameToIdMap);
+		assertEquals("C111 LIKE :b0", builder.toString());
+		assertEquals("bar%",parameters.get("b0"));
+	}
+	
+	@Test
+	public void testLikePredicateEscape() throws ParseException{
+		Predicate predicate = SqlElementUntils.createPredicate("foo like 'bar|_' escape '|'");
+		StringBuilder builder = new StringBuilder();
+		HashMap<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translate(predicate, builder, parameters, columnNameToIdMap);
+		assertEquals("C111 LIKE :b0 ESCAPE :b1", builder.toString());
+		assertEquals("bar|_",parameters.get("b0"));
+		assertEquals("|",parameters.get("b1"));
+	}
+	
+	@Test
+	public void testLikePredicateNot() throws ParseException{
+		Predicate predicate = SqlElementUntils.createPredicate("foo not like 'bar%'");
+		StringBuilder builder = new StringBuilder();
+		HashMap<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translate(predicate, builder, parameters, columnNameToIdMap);
+		assertEquals("C111 NOT LIKE :b0", builder.toString());
+		assertEquals("bar%",parameters.get("b0"));
+	}
+	
+	@Test
+	public void testNullPredicate() throws ParseException{
+		Predicate predicate = SqlElementUntils.createPredicate("foo is null");
+		StringBuilder builder = new StringBuilder();
+		HashMap<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translate(predicate, builder, parameters, columnNameToIdMap);
+		assertEquals("C111 IS NULL", builder.toString());
+	}
+	
+	@Test
+	public void testNullPredicateNot() throws ParseException{
+		Predicate predicate = SqlElementUntils.createPredicate("foo is not null");
+		StringBuilder builder = new StringBuilder();
+		HashMap<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translate(predicate, builder, parameters, columnNameToIdMap);
+		assertEquals("C111 IS NOT NULL", builder.toString());
+	}
 	
 	@Test
 	public void testWhereSimple() throws ParseException{
@@ -149,6 +220,27 @@ public class SQLTranslatorTest {
 		assertEquals("SELECT * FROM T123 WHERE C111 = :b0", translator.getOutputSQL());
 		// The value should be in the paremeters map.
 		assertEquals("1",translator.getParameters().get("b0"));
+	}
+	
+	@Test
+	public void testWhereOr() throws ParseException{
+		SqlTranslator translator = new SqlTranslator("select * from syn123 where foo = 1 or bar = 2", columnNameToIdMap);
+		// The value should be bound in the SQL
+		assertEquals("SELECT * FROM T123 WHERE C111 = :b0 OR C333 = :b1", translator.getOutputSQL());
+		// The value should be in the paremeters map.
+		assertEquals("1",translator.getParameters().get("b0"));
+		assertEquals("2",translator.getParameters().get("b1"));
+	}
+	
+	
+	@Test
+	public void testWhereAnd() throws ParseException{
+		SqlTranslator translator = new SqlTranslator("select * from syn123 where foo = 1 and bar = 2", columnNameToIdMap);
+		// The value should be bound in the SQL
+		assertEquals("SELECT * FROM T123 WHERE C111 = :b0 AND C333 = :b1", translator.getOutputSQL());
+		// The value should be in the paremeters map.
+		assertEquals("1",translator.getParameters().get("b0"));
+		assertEquals("2",translator.getParameters().get("b1"));
 	}
 	
 }
