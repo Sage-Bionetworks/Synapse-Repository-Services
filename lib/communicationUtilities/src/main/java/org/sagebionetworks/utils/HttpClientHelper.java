@@ -364,6 +364,9 @@ public class HttpClientHelper {
 	/**
 	 * Get content as a string using the provided HttpClient.
 	 * 
+	 * Note: This is used only by the SearchController, which maps any
+	 * HttpClientHelperException into a 400 (Bad Request) status
+	 * 
 	 * @param client
 	 * @param requestUrl
 	 * @return the content returned in a string
@@ -379,6 +382,7 @@ public class HttpClientHelper {
 
 		HttpResponse response = HttpClientHelper.performRequest(client,
 				requestUrl, "GET", null, null);
+		convertHttpStatusToException(response);
 		HttpEntity entity = response.getEntity();
 		if (null != entity) {
 			if (MAX_ALLOWED_DOWNLOAD_TO_STRING_LENGTH < entity
@@ -393,9 +397,20 @@ public class HttpClientHelper {
 		}
 		return responseContent;
 	}
+	
+	private static void convertHttpStatusToException(HttpResponse response) throws HttpClientHelperException, IOException {
+		int statusCode = response.getStatusLine().getStatusCode();
+		if (statusCode>=200 && statusCode<300) return;
+		String statusMessage = response.getStatusLine().getReasonPhrase();
+		HttpEntity responseEntity = response.getEntity();
+		String responseBody = (null == responseEntity) ? "" : EntityUtils.toString(responseEntity);
+		throw new HttpClientHelperException(responseBody, statusCode, statusMessage);
+	}
 
 	/**
 	 * Get content as a file using the provided HttpClient
+	 * 
+	 * Note:  This is used only for an integration test on Locationable objects.
 	 * 
 	 * @param client
 	 * @param requestUrl
@@ -406,6 +421,7 @@ public class HttpClientHelper {
 	 * @throws IOException
 	 * @throws HttpClientHelperException
 	 */
+	@Deprecated
 	public static File getContent(final HttpClient client,
 			final String requestUrl, File file) throws ClientProtocolException,
 			IOException, HttpClientHelperException {
@@ -416,6 +432,7 @@ public class HttpClientHelper {
 
 		HttpResponse response = HttpClientHelper.performRequest(client,
 				requestUrl, "GET", null, null);
+		convertHttpStatusToException(response);
 		HttpEntity fileEntity = response.getEntity();
 		if (null != fileEntity) {
 			FileOutputStream fileOutputStream = new FileOutputStream(file);
@@ -427,6 +444,8 @@ public class HttpClientHelper {
 
 	/**
 	 * Post content provided as a string using the provided HttpClient.
+	 * 
+	 * Note:  This is used only by the CloudSearchClient
 	 * 
 	 * @param client
 	 * @param requestUrl
@@ -446,6 +465,7 @@ public class HttpClientHelper {
 
 		HttpResponse response = HttpClientHelper.performRequest(client,
 				requestUrl, "POST", requestContent, requestHeaders);
+		convertHttpStatusToException(response);
 		HttpEntity entity = response.getEntity();
 		if (null != entity) {
 			if (MAX_ALLOWED_DOWNLOAD_TO_STRING_LENGTH < entity
@@ -462,6 +482,8 @@ public class HttpClientHelper {
 
 	/**
 	 * Post content provided as an InputStream using the provided HttpClient.
+	 * 
+	 * Note:  This is used only by the CloudSearchClient
 	 * 
 	 * @param client
 	 * @param requestUrl
@@ -485,6 +507,7 @@ public class HttpClientHelper {
 
 		HttpResponse response = HttpClientHelper.performEntityRequest(client,
 				requestUrl, "POST", requestEntity, requestHeaders);
+		convertHttpStatusToException(response);
 		HttpEntity entity = response.getEntity();
 		if (null != entity) {
 			if (MAX_ALLOWED_DOWNLOAD_TO_STRING_LENGTH < entity
@@ -524,6 +547,7 @@ public class HttpClientHelper {
 
 		HttpResponse response = HttpClientHelper.performEntityRequest(client,
 				requestUrl, "PUT", requestEntity, requestHeaders);
+		convertHttpStatusToException(response);
 		HttpEntity entity = response.getEntity();
 		if (null != entity) {
 			if (MAX_ALLOWED_DOWNLOAD_TO_STRING_LENGTH < entity
@@ -557,6 +581,7 @@ public class HttpClientHelper {
 
 		HttpResponse response = HttpClientHelper.performRequest(client,
 				requestUrl, "GET", null, null);
+		convertHttpStatusToException(response);
 		HttpEntity fileEntity = response.getEntity();
 		if (null != fileEntity) {
 			FileOutputStream fileOutputStream = new FileOutputStream(filepath);

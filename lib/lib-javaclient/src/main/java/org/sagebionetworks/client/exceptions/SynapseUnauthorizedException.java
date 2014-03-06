@@ -6,22 +6,22 @@ public class SynapseUnauthorizedException extends SynapseServerException {
 	
 	private static final long serialVersionUID = 1L;
 
-	private static final int STATUS_CODE = HttpStatus.SC_UNAUTHORIZED;
+	private static final int UNAUTHORIZED_STATUS_CODE = HttpStatus.SC_UNAUTHORIZED;
 
 	public SynapseUnauthorizedException() {
-		super(STATUS_CODE);
+		super(UNAUTHORIZED_STATUS_CODE);
 	}
 
 	public SynapseUnauthorizedException(String message, Throwable cause) {
-		super(STATUS_CODE, message, cause);
+		super(UNAUTHORIZED_STATUS_CODE, message, cause);
 	}
 
 	public SynapseUnauthorizedException(String message) {
-		super(STATUS_CODE, message);
+		super(UNAUTHORIZED_STATUS_CODE, message);
 	}
 
 	public SynapseUnauthorizedException(Throwable cause) {
-		super(STATUS_CODE, cause);
+		super(UNAUTHORIZED_STATUS_CODE, cause);
 	}
 
 }

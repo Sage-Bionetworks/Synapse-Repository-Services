@@ -629,6 +629,7 @@ public abstract class BaseController {
 		return baos.toString();
 	}
 	
+	// TODO:  The status code in 'ex' should dictate the response status, it should not be assumed to be BAD_REQUEST
 	@ExceptionHandler(HttpClientHelperException.class)
 	@ResponseStatus(HttpStatus.BAD_REQUEST)
 	public @ResponseBody
