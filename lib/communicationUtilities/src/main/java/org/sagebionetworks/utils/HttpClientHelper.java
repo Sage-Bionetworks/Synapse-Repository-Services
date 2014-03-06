@@ -364,6 +364,9 @@ public class HttpClientHelper {
 	/**
 	 * Get content as a string using the provided HttpClient.
 	 * 
+	 * Note: This is used only by the SearchController, which maps any
+	 * HttpClientHelperException into a 400 (Bad Request) status
+	 * 
 	 * @param client
 	 * @param requestUrl
 	 * @return the content returned in a string
@@ -407,6 +410,8 @@ public class HttpClientHelper {
 	/**
 	 * Get content as a file using the provided HttpClient
 	 * 
+	 * Note:  This is used only for an integration test on Locationable objects.
+	 * 
 	 * @param client
 	 * @param requestUrl
 	 * @param file
@@ -416,6 +421,7 @@ public class HttpClientHelper {
 	 * @throws IOException
 	 * @throws HttpClientHelperException
 	 */
+	@Deprecated
 	public static File getContent(final HttpClient client,
 			final String requestUrl, File file) throws ClientProtocolException,
 			IOException, HttpClientHelperException {
@@ -438,6 +444,8 @@ public class HttpClientHelper {
 
 	/**
 	 * Post content provided as a string using the provided HttpClient.
+	 * 
+	 * Note:  This is used only by the CloudSearchClient
 	 * 
 	 * @param client
 	 * @param requestUrl
@@ -474,6 +482,8 @@ public class HttpClientHelper {
 
 	/**
 	 * Post content provided as an InputStream using the provided HttpClient.
+	 * 
+	 * Note:  This is used only by the CloudSearchClient
 	 * 
 	 * @param client
 	 * @param requestUrl

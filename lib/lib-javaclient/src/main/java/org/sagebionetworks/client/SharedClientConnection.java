@@ -438,7 +438,7 @@ public class SharedClientConnection {
 		} catch (IOException e) {
 			throw new SynapseClientException(e);
 		} catch (HttpClientHelperException e) {
-			throw new SynapseClientException(e);
+			throw new SynapseServerException(e.getHttpStatus(), e);
 		}
 	}
 

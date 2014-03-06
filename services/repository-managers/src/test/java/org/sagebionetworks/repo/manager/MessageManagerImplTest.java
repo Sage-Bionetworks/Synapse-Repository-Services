@@ -334,7 +334,9 @@ public class MessageManagerImplTest {
 		assertEquals(otherToGroup, messageManager.getMessage(testUser, otherToGroup.getId()));
 		
 		// User should not be able to see a message that the other user sends to itself
-		MessageToUser invisible = createMessage(otherTestUser, "This is a personal reminder", new HashSet<String>() {{add(otherTestUser.getId().toString());}}, null);
+		final String otherId = otherTestUser.getId().toString();
+		Set<String> otherIdSet = new HashSet<String>() {{add(otherId);}};
+		MessageToUser invisible = createMessage(otherTestUser, "This is a personal reminder", otherIdSet, null);
 		try {
 			messageManager.getMessage(testUser, invisible.getId());
 			fail();
@@ -560,10 +562,11 @@ public class MessageManagerImplTest {
 	@SuppressWarnings("serial")
 	@Test
 	public void testSendMessageSettings() throws Exception {
-		Set<String> testUserId = new HashSet<String>() {{add(testUser.getId().toString());}};
+		final String testUserId = testUser.getId().toString();
+		Set<String> testUserIdSet = new HashSet<String>() {{add(testUserId);}};
 		
 		// With default settings, the message should appear in the user's inbox
-		MessageToUser message = createMessage(otherTestUser, "message1", testUserId, null);
+		MessageToUser message = createMessage(otherTestUser, "message1", testUserIdSet, null);
 		QueryResults<MessageBundle> inbox = messageManager.getInbox(testUser, 
 				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		assertEquals(message, inbox.getResults().get(0).getMessage());
@@ -575,7 +578,7 @@ public class MessageManagerImplTest {
 		profile = userProfileDAO.update(profile);
 		
 		// Now this second message will be marked as READ
-		MessageToUser message2 = createMessage(otherTestUser, "message2", testUserId, null);
+		MessageToUser message2 = createMessage(otherTestUser, "message2", testUserIdSet, null);
 		inbox = messageManager.getInbox(testUser, 
 				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		assertEquals(message, inbox.getResults().get(0).getMessage());
@@ -588,7 +591,7 @@ public class MessageManagerImplTest {
 		profile = userProfileDAO.update(profile);
 		
 		// Now the third message appears UNREAD
-		MessageToUser message3 = createMessage(otherTestUser, "message3", testUserId, null);
+		MessageToUser message3 = createMessage(otherTestUser, "message3", testUserIdSet, null);
 		inbox = messageManager.getInbox(testUser, 
 				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		assertEquals(message3, inbox.getResults().get(0).getMessage());
