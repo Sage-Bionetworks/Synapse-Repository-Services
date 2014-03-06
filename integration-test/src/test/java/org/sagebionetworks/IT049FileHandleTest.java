@@ -79,7 +79,7 @@ public class IT049FileHandleTest {
 	public static void afterClass() throws Exception {
 		try {
 			adminSynapse.deleteUser(userToDelete);
-		} catch (SynapseClientException e) { }
+		} catch (SynapseException e) { }
 	}
 	
 	@Test
