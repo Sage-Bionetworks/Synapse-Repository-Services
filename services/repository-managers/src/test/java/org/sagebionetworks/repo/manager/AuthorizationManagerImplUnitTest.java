@@ -358,6 +358,7 @@ public class AuthorizationManagerImplUnitTest {
 	@Test
 	public void testCanMoveEntity() throws Exception {
 		String parentId = "syn12345";
+		String newParentId = "syn6789";
 		// mock nodeDao
 		List<EntityHeader> parentAncestors = new ArrayList<EntityHeader>();
 		List<String> ancestorIds = new ArrayList<String>(); // excluding self

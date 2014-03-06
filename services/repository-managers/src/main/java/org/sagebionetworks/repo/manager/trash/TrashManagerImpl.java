@@ -162,14 +162,12 @@ public class TrashManagerImpl implements TrashManager {
 		if (!authorizationManager.canAccess(currentUser, newParentId, ObjectType.ENTITY, ACCESS_TYPE.CREATE)) {
 			throw new UnauthorizedException(userName + " lacks change access to the requested object.");
 		}
-		final String parentInDatabase = nodeDao.getParentId(updatedNode.getId());
-		final String parentInUpdate = updatedNode.getParentId();
-		if (!authorizationManager.canUserMoveRestrictedEntity(userInfo, parentInDatabase, parentInUpdate)) {
-			throw new UnauthorizedException(userInfo.getId()+ " is not authorized to restore the entity due to access restrictions.");
+		Node node = nodeDao.getNode(nodeId);
+		if (!authorizationManager.canUserMoveRestrictedEntity(currentUser, node.getParentId(), newParentId)) {
+			throw new UnauthorizedException(currentUser.getId()+ " is not authorized to restore the entity due to access restrictions.");
 		}
 
 		// Now restore
-		Node node = nodeDao.getNode(nodeId);
 		node.setName(trash.getEntityName());
 		node.setParentId(newParentId);
 		nodeManager.updateForTrashCan(currentUser, node, ChangeType.CREATE);

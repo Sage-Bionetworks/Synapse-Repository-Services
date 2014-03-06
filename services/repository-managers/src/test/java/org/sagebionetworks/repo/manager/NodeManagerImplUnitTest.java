@@ -463,7 +463,7 @@ public class NodeManagerImplUnitTest {
 		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(nodeId), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.READ))).thenReturn(true);
 		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(nodeId), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.UPDATE))).thenReturn(true);
 		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(unauthorizedParentId), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.CREATE))).thenReturn(false);
-		when(mockAuthManager.canUserMoveRestrictedEntity(eq(mockUserInfo), eq(currentParentId))).thenReturn(true);
+		when(mockAuthManager.canUserMoveRestrictedEntity(eq(mockUserInfo), eq(currentParentId), eq(authorizedParentId))).thenReturn(true);
 		
 		// unauthorized
 		try {
@@ -487,7 +487,7 @@ public class NodeManagerImplUnitTest {
 		
 		// governance restriction on move
 		reset(node);
-		when(mockAuthManager.canUserMoveRestrictedEntity(eq(mockUserInfo), eq(currentParentId))).thenReturn(false);
+		when(mockAuthManager.canUserMoveRestrictedEntity(eq(mockUserInfo), eq(currentParentId), eq(authorizedParentId))).thenReturn(false);
 		try {
 			nodeManager.update(mockUserInfo, node);
 			fail("Should not have allowed update");
