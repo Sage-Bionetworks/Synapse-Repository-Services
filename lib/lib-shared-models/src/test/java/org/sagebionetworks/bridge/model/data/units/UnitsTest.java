@@ -64,22 +64,37 @@ public class UnitsTest {
 	@Test
 	public void convertToNormalizedFromMeasure() {
 		Measure millis = new Measure(1000, Units.MILLILITER);
-		Measure normMillis = millis.convertToNormalized();
+		Measure millisAsLiter = millis.convertToNormalized();
 
 		Measure oneLiter = new Measure(1, Units.LITER);
 		
-		assertFalse(millis.equals(normMillis));
-		assertFalse(millis.equals(oneLiter));
-		
-		assertEquals(oneLiter, normMillis);
+		assertEquals(millis, millisAsLiter);
+		assertEquals(millis, oneLiter);
 		assertEquals(millis, Units.MILLILITER.convertFromNormalized(1));
 		
-		// Liters are the normative value, this should still make sense.
+		// Liters are the normalized value, this should still make sense.
 		Measure liters = new Measure(3, Units.LITER);
 		Measure normLiters = liters.convertToNormalized();
 		
 		assertEquals(liters, normLiters);
 		assertEquals(liters, Units.LITER.convertFromNormalized(3));
+	}
+	
+	@Test
+	public void equalQuantitiesInDifferentUnitsAreEqual() {
+		Measure deciliters = new Measure(7, Units.DECILITER);
+		Measure liters = new Measure(.7, Units.LITER);
+		
+		// If you use doubles, BTW, this test fails, because the converted value has a rounding 
+		// error and is 0.7000000000000001, not 0.7.
+		assertEquals(deciliters, liters);
+		
+		Measure milligrams = new Measure(200, Units.MILLIGRAM);
+		Measure grams = new Measure(.2, Units.GRAM);
+		assertEquals(milligrams, grams);
+		
+		// And this will fail
+		assertFalse(deciliters.equals(grams));
 	}
 	
 	@Test
@@ -101,9 +116,17 @@ public class UnitsTest {
 		Measure phosphorus = new Measure(1000, Units.PHOSPHORUS_MG_DL);
 		Measure normPhosphorus = phosphorus.convertToNormalized();
 
-		Measure mmolPhosphorus = new Measure(322.90000000000003, Units.MILLIMOLES_PER_LITER);
+		Measure mmolPhosphorus = new Measure(322.9, Units.MILLIMOLES_PER_LITER);
 		
 		assertEquals(normPhosphorus, mmolPhosphorus);
-		assertEquals(phosphorus, Units.PHOSPHORUS_MG_DL.convertFromNormalized(322.90000000000003));
+		assertEquals(phosphorus, Units.PHOSPHORUS_MG_DL.convertFromNormalized(322.9));
+	}
+	
+	@Test
+	public void roundTripConversionHasNoRoundingErrors() {
+		Measure phosphorus = new Measure(1042, Units.PHOSPHORUS_MG_DL);
+		Measure roundtripped = Units.PHOSPHORUS_MG_DL.convertFromNormalized(phosphorus.convertToNormalized().getAmount());
+		assertEquals(phosphorus, roundtripped);
+		// and it doesn't, so doubles seem to be fine for this purpose.
 	}
 }

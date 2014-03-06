@@ -1,8 +1,10 @@
 package org.sagebionetworks.bridge.model.data.units;
 
+import java.math.BigDecimal;
+
 public final class Measure {
 	
-	private final double amount;
+	private final BigDecimal amount;
 	private final Units unit;
 
 	public static Measure measureFromStrings(String amount, String unit) {
@@ -21,7 +23,7 @@ public final class Measure {
 		}
 	};
 	
-	public Measure(double amount, Units unit) {
+	public Measure(BigDecimal amount, Units unit) {
 		if (unit == null) {
 			throw new IllegalArgumentException("Measure must be constructed with units");
 		}
@@ -29,8 +31,16 @@ public final class Measure {
 		this.unit = unit;
 	}
 	
+	public Measure(double amount, Units unit) {
+		if (unit == null) {
+			throw new IllegalArgumentException("Measure must be constructed with units");
+		}
+		this.amount = BigDecimal.valueOf(amount);
+		this.unit = unit;
+	}
+	
 	public double getAmount() {
-		return amount;
+		return amount.doubleValue();
 	}
 	
 	public Units getUnit() {
@@ -41,7 +51,7 @@ public final class Measure {
 		if (unit.getNormalizedUnit() == null) {
 			return this;
 		}
-		return new Measure(amount * unit.getFactor(), unit.getNormalizedUnit());
+		return new Measure(amount.multiply(unit.getBigDecimalFactor()), unit.getNormalizedUnit());
 	}
 
 	@Override
@@ -51,10 +61,12 @@ public final class Measure {
 
 	@Override
 	public int hashCode() {
+		double converted = convertToNormalized().getAmount();
+		
 		final int prime = 31;
 		int result = 1;
 		long temp;
-		temp = Double.doubleToLongBits(amount);
+		temp = Double.doubleToLongBits(converted);
 		result = prime * result + (int) (temp ^ (temp >>> 32));
 		result = prime * result + ((unit == null) ? 0 : unit.hashCode());
 		return result;
@@ -69,9 +81,12 @@ public final class Measure {
 		if (getClass() != obj.getClass())
 			return false;
 		Measure other = (Measure) obj;
-		if (Double.doubleToLongBits(amount) != Double.doubleToLongBits(other.amount))
+		Measure thisOne = this.convertToNormalized();
+		Measure converted = other.convertToNormalized();
+		
+		if (thisOne.amount.compareTo(converted.amount) != 0)
 			return false;
-		if (unit != other.unit)
+		if (thisOne.unit != converted.unit)
 			return false;
 		return true;
 	}

@@ -1,5 +1,6 @@
 package org.sagebionetworks.bridge.model.data.units;
 
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -31,13 +32,13 @@ public enum Units {
 	FEMTOGRAM(GRAM, 0.0000001, "femtogram", "fg"), // 10^-15 g
 	
 	MOLE(1.0, "mole", "mol"),
-	DECIMOLE(MOLE,  0.1, "decimole", "dmol"), // 10^-1 mol
-	CENTIMOLE(MOLE, 0.01, "centimole", "cmol"), // 10^-2 mol
-	MILLIMOLE(MOLE, 0.001, "millimole", "mmol"), // 10^-3 mol
-	MICROMOLE(MOLE, 0.0001, "micromole", "µmol", "mcmol", "umol"), // 10^-6 mol
-	NANOMOLE(MOLE,  0.00001, "nanomole", "nmol"), // 10^-9 mol
-	PICOMOLE(MOLE,  0.000001,"picomole", "pmol"), // 10^-12 mol
-	FEMTOMOLE(MOLE, 0.0000001, "femtomole", "fmol"), // 10^-15 mol
+	DECIMOLE(MOLE,  0.1, "decimole", "dmol"), // 10^-1 mole
+	CENTIMOLE(MOLE, 0.01, "centimole", "cmol"), // 10^-2 mole
+	MILLIMOLE(MOLE, 0.001, "millimole", "mmol"), // 10^-3 mole
+	MICROMOLE(MOLE, 0.0001, "micromole", "µmol", "mcmol", "umol"), // 10^-6 mole
+	NANOMOLE(MOLE,  0.00001, "nanomole", "nmol"), // 10^-9 mole
+	PICOMOLE(MOLE,  0.000001,"picomole", "pmol"), // 10^-12 mole
+	FEMTOMOLE(MOLE, 0.0000001, "femtomole", "fmol"), // 10^-15 mole
 	
 	CUBIC_METER(1.0, "cubic meter", "cu m"),
 	CUBIC_DECIMETER(CUBIC_METER,  0.1, "cubic decimeter", "cu dm"), // 10^-1 m
@@ -50,7 +51,6 @@ public enum Units {
 
 	// Ratios that are equivalent, but expressed for different volumes. In conversion 
 	// the number will not change, only unit of measurement.
-	
 	THOUSANDS_PER_MICROLITER(1.0, "thousands per microliter", "K/µL", "K/mcL", "K/uL"),
 	BILLIONS_PER_LITER(THOUSANDS_PER_MICROLITER, 1.0, "billions per liter", "10^9/L", "10e9/L", "9/L"),
 
@@ -58,34 +58,28 @@ public enum Units {
 	MILLIONS_PER_CUBIC_MILLIMETER(MILLIONS_PER_MICROLITER, 1.0, "millions per cubic millimeter", "M/cu mm"),
 	TRILLIONS_PER_LITER(MILLIONS_PER_MICROLITER, 1.0, "trillions per liter", "10^12/L", "10e12/L", "12/L"), 
 	
-	// These units are not converted to any other units. 
-	
 	PERCENTAGE(1.0, "percentage", "%"),
 	GRAMS_PER_LITER(1.0, "grams per liter", "g/L"),
 	
-	// We don't currently use this, but it verifies that we can do mole conversions. This is ugly because
-	// phosphorus is combined with the unit of measure itself. Looking at this further.
 	MILLIMOLES_PER_LITER(1.0, "millimoles per liter", "mmol/L"),
 	
-	// First of all, this conversion appears to be wrong, phosphorus' molecular weight is 30.9737622, 
+	MILLIGRAMS_PER_LITER(1.0, "milligrams per liter", "mg/L"),
+	MILLIGRAMS_PER_DECILITER(10, "milligrams per deciliter", "mg/dL"),
+	
+	// This conversion appears to be wrong, phosphorus' molecular weight is 30.9737622, 
 	// the number of grams in one mole. 
-	
-	// 30.974 grams per mole or 0.030974 mg per millimole? But then you have to multiply by 10, because
-	// you're going from deciliters to a liter. 0.30974mg/L? That's close to the conversion number here.
-	// I wonder if this is different for a reason.
-	
 	PHOSPHORUS_MG_DL(MILLIMOLES_PER_LITER, 0.3229, "phosphorus (mg/dL)", "phosphorus (mg/dL)"),
+	// what I think this should be:
 	// PHOSPHORUS_MG_DL(MILLIMOLES_PER_LITER, 0.30974, "phosphorus (mg/dL)", "phosphorus (mg/dL)"),
 	
-	// Finally, this unit is interesting because the number can mean two different things
-	// depending on the notation, CV or SD. Is this really a unit? In any event, the unit 
+	// This % can mean two different things depending on the notation, CV or SD. The unit 
 	// must be exported with a data set, or the number will lack meaning.
 	PERCENTAGE_CV_OR_SD(1.0, "standard or coefficient variation", "% CV", "% SD");
-
+	
 	private final Units normalizedUnit;
 	private final String name;
 	private final List<String> labels;
-	private final double factor;
+	private final BigDecimal factor;
 	
 	public static Units unitFromString(String string) {
 		if (string != null) {
@@ -114,7 +108,7 @@ public enum Units {
 		if (normalizedUnit == null) {
 			return new Measure(amount, this);
 		}
-		return new Measure(amount / factor, this);
+		return new Measure(BigDecimal.valueOf(amount).divide(factor), this);
 	}
 
 	/**
@@ -125,13 +119,13 @@ public enum Units {
 		if (normalizedUnit == null) {
 			return new Measure(amount, this);
 		}
-		return new Measure(amount * factor, normalizedUnit);
+		return new Measure(BigDecimal.valueOf(amount).multiply(factor), normalizedUnit);
 	}
 	
 	private Units(Units normalizedUnit, double factor, String name, String... labels) {
 		this.normalizedUnit = normalizedUnit;
 		this.name = name;
-		this.factor = factor;
+		this.factor = BigDecimal.valueOf(factor);
 		this.labels = Collections.unmodifiableList(Arrays.asList(labels));
 	}
 
@@ -148,11 +142,14 @@ public enum Units {
 	}
 
 	public double getFactor() {
-		return factor;
+		return factor.doubleValue();
 	}
 	
 	public Units getNormalizedUnit() {
 		return normalizedUnit;
 	}
 
+	BigDecimal getBigDecimalFactor() {
+		return factor;
+	}
 }
