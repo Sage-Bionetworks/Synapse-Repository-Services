@@ -7,22 +7,22 @@ public class SynapseTermsOfUseException extends SynapseServerException {
 	
 	private static final long serialVersionUID = 1L;
 	
-	private static final int STATUS_CODE = HttpStatus.SC_FORBIDDEN;
+	private static final int FORBIDDEN_STATUS_CODE = HttpStatus.SC_FORBIDDEN;
 
 	public SynapseTermsOfUseException() {
-		super(STATUS_CODE);
+		super(FORBIDDEN_STATUS_CODE);
 	}
 
 	public SynapseTermsOfUseException(String message, Throwable cause) {
-		super(STATUS_CODE, message, cause);
+		super(FORBIDDEN_STATUS_CODE, message, cause);
 	}
 
 	public SynapseTermsOfUseException(String message) {
-		super(STATUS_CODE, message);
+		super(FORBIDDEN_STATUS_CODE, message);
 	}
 
 	public SynapseTermsOfUseException(Throwable cause) {
-		super(STATUS_CODE, cause);
+		super(FORBIDDEN_STATUS_CODE, cause);
 	}
 
 }

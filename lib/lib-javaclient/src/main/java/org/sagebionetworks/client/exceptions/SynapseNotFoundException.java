@@ -6,22 +6,22 @@ public class SynapseNotFoundException extends SynapseServerException {
 	
 	private static final long serialVersionUID = 1L;
 
-	private static final int STATUS_CODE = HttpStatus.SC_NOT_FOUND;
+	private static final int NOT_FOUND_STATUS_CODE = HttpStatus.SC_NOT_FOUND;
 
 	public SynapseNotFoundException() {
-		super(STATUS_CODE);
+		super(NOT_FOUND_STATUS_CODE);
 	}
 
 	public SynapseNotFoundException(String message, Throwable cause) {
-		super(STATUS_CODE, message, cause);
+		super(NOT_FOUND_STATUS_CODE, message, cause);
 	}
 
 	public SynapseNotFoundException(String message) {
-		super(STATUS_CODE, message);
+		super(NOT_FOUND_STATUS_CODE, message);
 	}
 
 	public SynapseNotFoundException(Throwable cause) {
-		super(STATUS_CODE, cause);
+		super(NOT_FOUND_STATUS_CODE, cause);
 	}
 
 }
