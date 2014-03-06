@@ -23,6 +23,11 @@ public class InPredicate implements SQLElement{
 	public InPredicateValue getInPredicateValue() {
 		return inPredicateValue;
 	}
+	
+	public ColumnReference getColumnReferenceLHS() {
+		return columnReferenceLHS;
+	}
+
 	@Override
 	public void toSQL(StringBuilder builder) {
 		columnReferenceLHS.toSQL(builder);
