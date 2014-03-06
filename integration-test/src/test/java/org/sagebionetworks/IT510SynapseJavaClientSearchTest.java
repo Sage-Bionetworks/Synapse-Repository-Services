@@ -501,7 +501,6 @@ public class IT510SynapseJavaClientSearchTest {
 		}
 	}
 	
-	@Ignore
 	@Test
 	public void testBadSearch() throws ServletException, IOException, JSONException, JSONObjectAdapterException, InterruptedException {
 		// First run query

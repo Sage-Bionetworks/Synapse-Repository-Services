@@ -379,6 +379,7 @@ public class HttpClientHelper {
 
 		HttpResponse response = HttpClientHelper.performRequest(client,
 				requestUrl, "GET", null, null);
+		convertHttpStatusToException(response);
 		HttpEntity entity = response.getEntity();
 		if (null != entity) {
 			if (MAX_ALLOWED_DOWNLOAD_TO_STRING_LENGTH < entity
@@ -392,6 +393,14 @@ public class HttpClientHelper {
 			responseContent = EntityUtils.toString(entity);
 		}
 		return responseContent;
+	}
+	
+	private static void convertHttpStatusToException(HttpResponse response) throws HttpClientHelperException, IOException {
+		int statusCode = response.getStatusLine().getStatusCode();
+		if (statusCode>=200 && statusCode<300) return;
+		HttpEntity responseEntity = response.getEntity();
+		String responseBody = (null != responseEntity) ? EntityUtils.toString(responseEntity) : null;
+		throw new HttpClientHelperException("", statusCode, responseBody);
 	}
 
 	/**
@@ -416,6 +425,7 @@ public class HttpClientHelper {
 
 		HttpResponse response = HttpClientHelper.performRequest(client,
 				requestUrl, "GET", null, null);
+		convertHttpStatusToException(response);
 		HttpEntity fileEntity = response.getEntity();
 		if (null != fileEntity) {
 			FileOutputStream fileOutputStream = new FileOutputStream(file);
@@ -446,6 +456,7 @@ public class HttpClientHelper {
 
 		HttpResponse response = HttpClientHelper.performRequest(client,
 				requestUrl, "POST", requestContent, requestHeaders);
+		convertHttpStatusToException(response);
 		HttpEntity entity = response.getEntity();
 		if (null != entity) {
 			if (MAX_ALLOWED_DOWNLOAD_TO_STRING_LENGTH < entity
@@ -485,6 +496,7 @@ public class HttpClientHelper {
 
 		HttpResponse response = HttpClientHelper.performEntityRequest(client,
 				requestUrl, "POST", requestEntity, requestHeaders);
+		convertHttpStatusToException(response);
 		HttpEntity entity = response.getEntity();
 		if (null != entity) {
 			if (MAX_ALLOWED_DOWNLOAD_TO_STRING_LENGTH < entity
@@ -524,6 +536,7 @@ public class HttpClientHelper {
 
 		HttpResponse response = HttpClientHelper.performEntityRequest(client,
 				requestUrl, "PUT", requestEntity, requestHeaders);
+		convertHttpStatusToException(response);
 		HttpEntity entity = response.getEntity();
 		if (null != entity) {
 			if (MAX_ALLOWED_DOWNLOAD_TO_STRING_LENGTH < entity
@@ -557,6 +570,7 @@ public class HttpClientHelper {
 
 		HttpResponse response = HttpClientHelper.performRequest(client,
 				requestUrl, "GET", null, null);
+		convertHttpStatusToException(response);
 		HttpEntity fileEntity = response.getEntity();
 		if (null != fileEntity) {
 			FileOutputStream fileOutputStream = new FileOutputStream(filepath);
