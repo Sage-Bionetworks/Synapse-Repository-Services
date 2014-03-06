@@ -398,9 +398,10 @@ public class HttpClientHelper {
 	private static void convertHttpStatusToException(HttpResponse response) throws HttpClientHelperException, IOException {
 		int statusCode = response.getStatusLine().getStatusCode();
 		if (statusCode>=200 && statusCode<300) return;
+		String statusMessage = response.getStatusLine().getReasonPhrase();
 		HttpEntity responseEntity = response.getEntity();
-		String responseBody = (null != responseEntity) ? EntityUtils.toString(responseEntity) : null;
-		throw new HttpClientHelperException("", statusCode, responseBody);
+		String responseBody = (null == responseEntity) ? "" : EntityUtils.toString(responseEntity);
+		throw new HttpClientHelperException(responseBody, statusCode, statusMessage);
 	}
 
 	/**
