@@ -16,6 +16,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
+import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
@@ -41,6 +43,7 @@ public class AccessRequirementUtilTest {
 		
 		testEntityNode = new Node();
 		testEntityNode.setId(NODE_ID);
+		testEntityNode.setNodeType(EntityType.getNodeTypeForClass(FileEntity.class).name());
 		//by default, set node created by to current user
 		testEntityNode.setCreatedByPrincipalId(Long.parseLong(currentUserPrincipalId));
 		when(mockNodeDAO.getNode(anyString())).thenReturn(testEntityNode);

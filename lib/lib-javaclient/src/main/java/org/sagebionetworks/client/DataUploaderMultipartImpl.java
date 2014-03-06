@@ -6,6 +6,7 @@ import java.io.UnsupportedEncodingException;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.Hex;
+import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.S3Token;
 
@@ -47,9 +48,9 @@ public class DataUploaderMultipartImpl extends  DataUploaderImpl {
 					.toCharArray()));
 			base64Md5 = new String(encoded, "ASCII");
 		} catch (DecoderException ex) {
-			throw new SynapseException(ex);
+			throw new SynapseClientException(ex);
 		} catch (UnsupportedEncodingException ex) {
-			throw new SynapseException(ex);
+			throw new SynapseClientException(ex);
 		}
 
 		ObjectMetadata s3Metadata = new ObjectMetadata();
@@ -83,7 +84,7 @@ public class DataUploaderMultipartImpl extends  DataUploaderImpl {
 		try {
 			upload.waitForUploadResult();
 		} catch (Exception e) {
-			throw new SynapseException("AWS S3 multipart upload of " + dataFile
+			throw new SynapseClientException("AWS S3 multipart upload of " + dataFile
 					+ " failed", e);
 		}
 		tx.shutdownNow();

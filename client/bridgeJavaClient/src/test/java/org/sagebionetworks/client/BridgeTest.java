@@ -1,16 +1,14 @@
 package org.sagebionetworks.client;
 
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyObject;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Matchers.startsWith;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.UnsupportedEncodingException;
-import java.util.Map;
 
-import org.apache.http.HttpResponse;
-import org.apache.http.entity.StringEntity;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -27,19 +25,14 @@ import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
  */
 public class BridgeTest {
 	
-	HttpClientProvider mockProvider = null;
-	HttpResponse mockResponse;
+	private SharedClientConnection mockSharedClientConnection;
 	
     BridgeClientImpl bridge;
 	
-	@SuppressWarnings("unchecked")
 	@Before
 	public void before() throws Exception{
-		// The mock provider
-		mockProvider = Mockito.mock(HttpClientProvider.class);
-		mockResponse = Mockito.mock(HttpResponse.class);
-		when(mockProvider.performRequest(any(String.class),any(String.class),any(String.class),(Map<String,String>)anyObject())).thenReturn(mockResponse);
-		bridge = new BridgeClientImpl(mockProvider);
+		mockSharedClientConnection = Mockito.mock(SharedClientConnection.class);
+		bridge = new BridgeClientImpl(mockSharedClientConnection);
 	}
 	
 	@Test
@@ -47,16 +40,13 @@ public class BridgeTest {
 		// The user agent 
 		BridgeVersionInfo info = new BridgeVersionInfo();
 		info.setVersion("someversion");
-		when(mockResponse.getEntity()).thenReturn(new StringEntity(EntityFactory.createJSONStringForEntity(info)));
-		BridgeStubHttpClientProvider stubProvider = new BridgeStubHttpClientProvider(mockResponse);
-        bridge = new BridgeClientImpl(stubProvider);
+		// the three param' in the following are endpoint, uri, user agent
+		when(mockSharedClientConnection.getJson(anyString(), anyString(), startsWith(BridgeClientImpl.BRIDGE_JAVA_CLIENT))).
+			thenReturn(EntityFactory.createJSONObjectForEntity(info));
+        bridge = new BridgeClientImpl(mockSharedClientConnection);
 		// Make a call and ensure 
         bridge.getBridgeVersionInfo();
-		// Validate that the User-Agent was sent
-		Map<String, String> sentHeaders = stubProvider.getSentRequestHeaders();
-		String value = sentHeaders.get("User-Agent");
-		assertNotNull(value);
-        assertTrue(value.startsWith(BridgeClientImpl.BRIDGE_JAVA_CLIENT));
+        verify(mockSharedClientConnection).getJson(anyString(), anyString(), startsWith(BridgeClientImpl.BRIDGE_JAVA_CLIENT));
  	}
 	
 	@Test
@@ -64,20 +54,19 @@ public class BridgeTest {
 		// The user agent 
 		BridgeVersionInfo info = new BridgeVersionInfo();
 		info.setVersion("someversion");
-		when(mockResponse.getEntity()).thenReturn(new StringEntity(EntityFactory.createJSONStringForEntity(info)));
-		BridgeStubHttpClientProvider stubProvider = new BridgeStubHttpClientProvider(mockResponse);
-        bridge = new BridgeClientImpl(stubProvider);
 		// Append some user agent data
 		String appended = "Appended to the User-Agent";
         bridge.appendUserAgent(appended);
+        String expectedUserAgent = bridge.getUserAgent();
+        assertTrue(expectedUserAgent.startsWith(BridgeClientImpl.BRIDGE_JAVA_CLIENT));
+        assertTrue(expectedUserAgent.endsWith(appended));
+		// the three param' in the following are endpoint, uri, user agent
+		when(mockSharedClientConnection.getJson(anyString(), anyString(), eq(expectedUserAgent))).
+			thenReturn(EntityFactory.createJSONObjectForEntity(info));
 		// Make a call and ensure 
         bridge.getBridgeVersionInfo();
 		// Validate that the User-Agent was sent
-		Map<String, String> sentHeaders = stubProvider.getSentRequestHeaders();
-		String value = sentHeaders.get("User-Agent");
-		System.out.println(value);
-		assertNotNull(value);
-        assertTrue(value.startsWith(BridgeClientImpl.BRIDGE_JAVA_CLIENT));
-		assertTrue("Failed to append data to the user agent",value.indexOf(appended) > 0);
+        verify(mockSharedClientConnection).getJson(anyString(), anyString(), eq(expectedUserAgent));
+
  	}
 }

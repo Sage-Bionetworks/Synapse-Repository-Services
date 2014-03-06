@@ -69,7 +69,7 @@ public class AuthenticationFilter implements Filter {
 		//      http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.47
 		//      http://www.ietf.org/rfc/rfc2617.txt
 		resp.setHeader("WWW-Authenticate", "\"Digest\" your email");
-		resp.getWriter().println("{\"reason\", \""+reason+"\"}");
+		resp.getWriter().println("{\"reason\": \""+reason+"\"}");
 	}
 
 	@Override
