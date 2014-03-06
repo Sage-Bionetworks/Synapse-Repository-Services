@@ -69,8 +69,7 @@ public class StubHttpClientProvider implements HttpClientProvider {
 	@Override
 	public HttpResponse performRequest(String string, String requestMethod,
 			String requestContent, Map<String, String> requestHeaders)
-			throws ClientProtocolException, IOException,
-			HttpClientHelperException {
+			throws ClientProtocolException, IOException {
 		// Capture the headers
 		this.requestHeaders = requestHeaders;
 		return response;

@@ -4,6 +4,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 
 import org.json.JSONObject;
+import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -63,7 +64,7 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	}
 	
 	public SynapseAdminClientImpl(HttpClientProvider clientProvider, DataUploader dataUploader) {
-		super(clientProvider, dataUploader);
+		super(new SharedClientConnection(clientProvider), dataUploader);
 	}
 	
 	/**
@@ -97,7 +98,7 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 			results.initializeFromJSONObject(adapter);
 			return results;
 		} catch (JSONObjectAdapterException e) {
-			throw new SynapseException(e);
+			throw new SynapseClientException(e);
 		}
 	}
 
@@ -297,7 +298,7 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 			uri += "&rangeKeyName=" + URLEncoder.encode(rangeKeyName, "UTF-8");
 			getSharedClientConnection().deleteUri(repoEndpoint, uri, getUserAgent());
 		} catch (UnsupportedEncodingException e) {
-			throw new SynapseException(e);
+			throw new SynapseClientException(e);
 		}
 	}
 

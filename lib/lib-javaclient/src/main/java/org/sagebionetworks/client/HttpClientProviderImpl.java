@@ -38,7 +38,7 @@ public class HttpClientProviderImpl implements HttpClientProvider {
 
 	@Override
 	public HttpResponse performRequest(String requestUrl, String requestMethod,
-			String requestContent, Map<String, String> requestHeaders) throws ClientProtocolException, IOException, HttpClientHelperException {
+			String requestContent, Map<String, String> requestHeaders) throws ClientProtocolException, IOException {
 		return HttpClientHelper.performRequest(DefaultHttpClientSingleton.getInstance(), requestUrl, requestMethod, requestContent, requestHeaders);
 	}
 

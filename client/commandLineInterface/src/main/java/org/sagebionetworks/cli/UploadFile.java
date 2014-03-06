@@ -1,16 +1,9 @@
 package org.sagebionetworks.cli;
 
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 
-import org.sagebionetworks.client.DataUploader;
-import org.sagebionetworks.client.DataUploaderMultipartImpl;
-import org.sagebionetworks.client.ProgressListener;
-import org.sagebionetworks.client.SynapseClientImpl;
-import org.sagebionetworks.client.TextProgressListener;
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.repo.model.Locationable;
 
 /**
  * @author deflaux
@@ -36,29 +29,13 @@ public class UploadFile {
 		entityId = commandLineInterface.getArgument("entityId");
 	}
 
-	Locationable doUpload() throws SynapseException {
-		SynapseClientImpl synapse = commandLineInterface.getSynapseClient();
-		File file = new File(filePath);
-		Locationable locationable = (Locationable) synapse
-				.getEntityById(entityId);
-
-		ProgressListener progressListener = new TextProgressListener();
-		DataUploader uploader = new DataUploaderMultipartImpl();
-		uploader.setProgressListener(progressListener);
-		synapse.setDataUploader(uploader);
-
-		return synapse.uploadLocationableToSynapse(locationable, file);
-	}
-
 	/**
 	 * @param args
 	 * @throws SynapseException
 	 * @throws IOException 
 	 * @throws FileNotFoundException 
 	 */
-	public static void main(String args[]) throws SynapseException, FileNotFoundException, IOException {
-		UploadFile uploadTool = new UploadFile(args);
-		Locationable locationable = uploadTool.doUpload();
-		System.out.println("Successfully updated: " + locationable.toString());
+	public static void main(String args[]) throws Exception {
+		throw new Exception("No longer supported.");
 	}
 }

@@ -12,7 +12,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -26,8 +25,7 @@ import java.util.Stack;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.client.SynapseAdminClient;
-import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.DaemonStatus;
 import org.sagebionetworks.repo.model.daemon.DaemonType;
@@ -92,7 +90,7 @@ public class SynapseAdminClientMocker {
 					} else {
 						// Row should be deleted, should it raise an exception?
 						if (state.exceptionNodes.contains(row.getId())) {
-							throw new SynapseException("SynapseException on node " + row.getId());
+							throw new SynapseClientException("SynapseException on node " + row.getId());
 						}
 						count++;
 					}
