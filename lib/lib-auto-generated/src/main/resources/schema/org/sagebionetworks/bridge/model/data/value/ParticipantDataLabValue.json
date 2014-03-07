@@ -6,25 +6,21 @@
         }
     ],
     "properties":{
-        "enteredValue":{
-            "type":"string",
+        "value":{
+            "type":"number",
             "description":"the entered value"
         },
         "units":{
             "type":"string",
             "description":"the units of the entered value"
         },
-        "normalizedMin":{
+        "minNormal":{
             "type":"number",
-            "description":"the normalized min desirable value"
+            "description":"the minimum value considered normal by the lab"
         },
-        "normalizedMax":{
+        "maxNormal":{
             "type":"number",
-            "description":"the normalized max desirable value"
-        },
-        "normalizedValue":{
-            "type":"number",
-            "description":"the normalized value"
+            "description":"the maximum value considered normal by the lab"
         }
     }
 }

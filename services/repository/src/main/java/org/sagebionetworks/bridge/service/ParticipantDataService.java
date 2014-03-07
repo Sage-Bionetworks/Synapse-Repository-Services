@@ -17,20 +17,22 @@ import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface ParticipantDataService {
-	public PaginatedResults<ParticipantDataRow> get(Long userId, String participantDataId, Integer limit, Integer offset)
+	public PaginatedResults<ParticipantDataRow> get(Long userId, String participantDataId, Integer limit,
+			Integer offset, boolean normalizeData) throws DatastoreException, NotFoundException, IOException,
+			GeneralSecurityException;
+
+	public ParticipantDataRow getRow(Long userId, String participantDataId, Long rowId, boolean normalizeData)
 			throws DatastoreException, NotFoundException, IOException, GeneralSecurityException;
 
-	public ParticipantDataRow getRow(Long userId, String participantDataId, Long rowId) throws DatastoreException, NotFoundException,
-			IOException, GeneralSecurityException;
-
-	public ParticipantDataCurrentRow getCurrent(Long userId, String participantDataId) throws DatastoreException, NotFoundException,
-			IOException, GeneralSecurityException;
-
-	public List<ParticipantDataRow> getHistoryRows(Long userId, String participantDataDescriptorId, Date after, Date before)
+	public ParticipantDataCurrentRow getCurrent(Long userId, String participantDataId, boolean normalizeData)
 			throws DatastoreException, NotFoundException, IOException, GeneralSecurityException;
 
-	public List<ParticipantDataRow> getCurrentRows(Long userId, String participantDataDescriptorId) throws DatastoreException,
-			NotFoundException, IOException, GeneralSecurityException;
+	public List<ParticipantDataRow> getHistoryRows(Long userId, String participantDataDescriptorId, Date after,
+			Date before, boolean normalizeData) throws DatastoreException, NotFoundException, IOException,
+			GeneralSecurityException;
+
+	public List<ParticipantDataRow> getCurrentRows(Long userId, String participantDataDescriptorId,
+			boolean normalizeData) throws DatastoreException, NotFoundException, IOException, GeneralSecurityException;
 
 	public List<ParticipantDataRow> append(Long userId, String participantDataId, List<ParticipantDataRow> data) throws DatastoreException,
 			NotFoundException, IOException, GeneralSecurityException;

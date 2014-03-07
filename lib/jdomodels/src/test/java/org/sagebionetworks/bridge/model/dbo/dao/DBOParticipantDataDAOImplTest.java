@@ -357,11 +357,10 @@ public class DBOParticipantDataDAOImplTest extends TestBase {
 		builder.put("DATETIME", datetimeValue);
 
 		ParticipantDataLabValue labValue = new ParticipantDataLabValue();
-		labValue.setEnteredValue("100.00");
+		labValue.setValue(4.8);
 		labValue.setUnits("flumps");
-		labValue.setNormalizedMax(11.9);
-		labValue.setNormalizedMin(2.3);
-		labValue.setNormalizedValue(4.8);
+		labValue.setMaxNormal(11.9);
+		labValue.setMinNormal(2.3);
 		builder.put("LAB", labValue);
 
 		ParticipantDataEventValue eventValue = new ParticipantDataEventValue();

@@ -179,7 +179,7 @@ public interface BridgeClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	public ParticipantDataCurrentRow getCurrentParticipantData(String participantDataDescriptorId) throws SynapseException;
+	public ParticipantDataCurrentRow getCurrentParticipantData(String participantDataDescriptorId, boolean normalizeData) throws SynapseException;
 
 	/**
 	 * retrieve the current participant data
@@ -188,11 +188,11 @@ public interface BridgeClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	public ParticipantDataRow getParticipantDataRow(String participantDataDescriptorId, Long rowId) throws SynapseException;
+	public ParticipantDataRow getParticipantDataRow(String participantDataDescriptorId, Long rowId, boolean normalizeData) throws SynapseException;
 
-	public List<ParticipantDataRow> getCurrentRows(String participantDataDescriptorId) throws SynapseException;
+	public List<ParticipantDataRow> getCurrentRows(String participantDataDescriptorId, boolean normalizeData) throws SynapseException;
 
-	public List<ParticipantDataRow> getHistoryRows(String participantDataDescriptorId, Date before, Date after) throws SynapseException;
+	public List<ParticipantDataRow> getHistoryRows(String participantDataDescriptorId, Date before, Date after, boolean normalizeData) throws SynapseException;
 
 	/**
 	 * retrieve all raw participant data
@@ -201,8 +201,8 @@ public interface BridgeClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException
 	 */
-	public PaginatedResults<ParticipantDataRow> getRawParticipantData(String participantDataDescriptorId, long limit, long offset)
-			throws SynapseException;
+	public PaginatedResults<ParticipantDataRow> getRawParticipantData(String participantDataDescriptorId, long limit,
+			long offset, boolean normalizeData) throws SynapseException;
 
 	public ParticipantDataDescriptor createParticipantDataDescriptor(ParticipantDataDescriptor participantDataDescriptor)
 			throws SynapseException;
@@ -210,7 +210,8 @@ public interface BridgeClient extends BaseClient {
 	public void updateParticipantDataDescriptor(ParticipantDataDescriptor participantDataDescriptor)
 			throws SynapseException;
 
-	public PaginatedResults<ParticipantDataDescriptor> getAllParticipantDataDescriptors(long limit, long offset) throws SynapseException;
+	public PaginatedResults<ParticipantDataDescriptor> getAllParticipantDataDescriptors(long limit, long offset)
+			throws SynapseException;
 
 	/**
 	 * Get participant data descriptors for all data sets for this user
@@ -243,9 +244,11 @@ public interface BridgeClient extends BaseClient {
 	 * 
 	 * @param participantDataDescriptorId
 	 * @param columnNames
+	 * @param normalizeData
 	 * @return
 	 * @throws SynapseException
 	 * @throws UnsupportedEncodingException
 	 */
-	public TimeSeriesTable getTimeSeries(String participantDataDescriptorId, List<String> columnNames) throws SynapseException;
+	public TimeSeriesTable getTimeSeries(String participantDataDescriptorId, List<String> columnNames,
+			boolean normalizeData) throws SynapseException;
 }

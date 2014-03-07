@@ -1,7 +1,5 @@
 package org.sagebionetworks.client;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
 import java.util.Date;
 import java.util.List;
 
@@ -32,6 +30,8 @@ import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
  * Low-level Java Client API for Bridge REST APIs
  */
 public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
+
+	private static final String NORMALIZE_DATA_PARAM = "normalizeData";
 
 	public static final String BRIDGE_JAVA_CLIENT = "Bridge-Java-Client/";
 
@@ -135,17 +135,23 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 
 	@Override
 	public PaginatedResults<Community> getCommunities(long limit, long offset) throws SynapseException {
-		return getList(COMMUNITY + JOINED, Community.class, limit, offset);
+		URIBuilder builder = new URIBuilder();
+		builder.setPath(COMMUNITY + JOINED);
+		return getList(builder, Community.class, limit, offset);
 	}
 
 	@Override
 	public PaginatedResults<Community> getAllCommunities(long limit, long offset) throws SynapseException {
-		return getList(COMMUNITY, Community.class, limit, offset);
+		URIBuilder builder = new URIBuilder();
+		builder.setPath(COMMUNITY);
+		return getList(builder, Community.class, limit, offset);
 	}
 
 	@Override
 	public PaginatedResults<UserGroupHeader> getCommunityMembers(String communityId, long limit, long offset) throws SynapseException {
-		return getList(COMMUNITY + "/" + communityId + MEMBER, UserGroupHeader.class, limit, offset);
+		URIBuilder builder = new URIBuilder();
+		builder.setPath(COMMUNITY + "/" + communityId + MEMBER);
+		return getList(builder, UserGroupHeader.class, limit, offset);
 	}
 
 	@Override
@@ -227,41 +233,52 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 	}
 
 	@Override
-	public ParticipantDataCurrentRow getCurrentParticipantData(String participantDataDescriptorId) throws SynapseException {
-		String uri = PARTICIPANT_DATA_CURRENT + "/" + participantDataDescriptorId;
-		return get(uri, ParticipantDataCurrentRow.class);
+	public ParticipantDataCurrentRow getCurrentParticipantData(String participantDataDescriptorId, boolean normalizeData) throws SynapseException {
+		URIBuilder builder = new URIBuilder();
+		builder.setPath(PARTICIPANT_DATA_CURRENT + "/" + participantDataDescriptorId);
+		builder.addParameter(NORMALIZE_DATA_PARAM, Boolean.toString(normalizeData));
+		return get(builder.toString(), ParticipantDataCurrentRow.class);
 	}
 
 	@Override
-	public ParticipantDataRow getParticipantDataRow(String participantDataDescriptorId, Long rowId) throws SynapseException {
-		String uri = PARTICIPANT_DATA + "/" + participantDataDescriptorId + PARTICIPANT_DATA_ROW + "/" + rowId;
-		return get(uri, ParticipantDataRow.class);
+	public ParticipantDataRow getParticipantDataRow(String participantDataDescriptorId, Long rowId,
+			boolean normalizeData) throws SynapseException {
+		URIBuilder builder = new URIBuilder();
+		builder.setPath(PARTICIPANT_DATA + "/" + participantDataDescriptorId + PARTICIPANT_DATA_ROW + "/" + rowId);
+		builder.setParameter(NORMALIZE_DATA_PARAM, Boolean.toString(normalizeData));
+		return get(builder.toString(), ParticipantDataRow.class);
 	}
 
 	@Override
-	public List<ParticipantDataRow> getCurrentRows(String participantDataDescriptorId) throws SynapseException {
-		String uri = PARTICIPANT_DATA + "/" + participantDataDescriptorId + "/current";
-		return getList(uri, ParticipantDataRow.class);
+	public List<ParticipantDataRow> getCurrentRows(String participantDataDescriptorId, boolean normalizeData) throws SynapseException {
+		URIBuilder builder = new URIBuilder();
+		builder.setPath(PARTICIPANT_DATA + "/" + participantDataDescriptorId + "/current");
+		builder.setParameter(NORMALIZE_DATA_PARAM, Boolean.toString(normalizeData));
+		return getList(builder.toString(), ParticipantDataRow.class);
 	}
 
 	@Override
-	public List<ParticipantDataRow> getHistoryRows(String participantDataDescriptorId, Date after, Date before) throws SynapseException {
-		URIBuilder uri = new URIBuilder();
-		uri.setPath(PARTICIPANT_DATA + "/" + participantDataDescriptorId + "/history");
+	public List<ParticipantDataRow> getHistoryRows(String participantDataDescriptorId, Date after, Date before,
+			boolean normalizeData) throws SynapseException {
+		URIBuilder builder = new URIBuilder();
+		builder.setPath(PARTICIPANT_DATA + "/" + participantDataDescriptorId + "/history");
+		builder.setParameter(NORMALIZE_DATA_PARAM, Boolean.toString(normalizeData));
 		if (after != null) {
-			uri.addParameter("after", Long.toString(after.getTime()));
+			builder.addParameter("after", Long.toString(after.getTime()));
 		}
 		if (before != null) {
-			uri.addParameter("before", Long.toString(before.getTime()));
+			builder.addParameter("before", Long.toString(before.getTime()));
 		}
-		return getList(uri.toString(), ParticipantDataRow.class);
+		return getList(builder.toString(), ParticipantDataRow.class);
 	}
 
 	@Override
-	public PaginatedResults<ParticipantDataRow> getRawParticipantData(String participantDataDescriptorId, long limit, long offset)
-			throws SynapseException {
-		String uri = PARTICIPANT_DATA + "/" + participantDataDescriptorId;
-		return getList(uri, ParticipantDataRow.class, limit, offset);
+	public PaginatedResults<ParticipantDataRow> getRawParticipantData(String participantDataDescriptorId, long limit,
+			long offset, boolean normalizeData) throws SynapseException {
+		URIBuilder builder = new URIBuilder();
+		builder.setPath(PARTICIPANT_DATA + "/" + participantDataDescriptorId);
+		builder.setParameter(NORMALIZE_DATA_PARAM, Boolean.toString(normalizeData));
+		return getList(builder, ParticipantDataRow.class, limit, offset);
 	}
 
 	@Override
@@ -279,14 +296,16 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 
 	@Override
 	public PaginatedResults<ParticipantDataDescriptor> getAllParticipantDataDescriptors(long limit, long offset) throws SynapseException {
-		String uri = PARTICIPANT_DATA_DESCRIPTOR;
-		return getList(uri, ParticipantDataDescriptor.class, limit, offset);
+		URIBuilder builder = new URIBuilder();
+		builder.setPath(PARTICIPANT_DATA_DESCRIPTOR);
+		return getList(builder, ParticipantDataDescriptor.class, limit, offset);
 	}
 
 	@Override
 	public PaginatedResults<ParticipantDataDescriptor> getUserParticipantDataDescriptors(long limit, long offset) throws SynapseException {
-		String uri = PARTICIPANT_DATA;
-		return getList(uri, ParticipantDataDescriptor.class, limit, offset);
+		URIBuilder builder = new URIBuilder();
+		builder.setPath(PARTICIPANT_DATA);
+		return getList(builder, ParticipantDataDescriptor.class, limit, offset);
 	}
 
 	@Override
@@ -306,8 +325,9 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 	@Override
 	public PaginatedResults<ParticipantDataColumnDescriptor> getParticipantDataColumnDescriptors(String participantDataDescriptorId,
 			long limit, long offset) throws SynapseException {
-		String uri = PARTICIPANT_DATA_COLUMN_DESCRIPTOR + "/" + participantDataDescriptorId;
-		return getList(uri, ParticipantDataColumnDescriptor.class, limit, offset);
+		URIBuilder builder = new URIBuilder();
+		builder.setPath(PARTICIPANT_DATA_COLUMN_DESCRIPTOR + "/" + participantDataDescriptorId);
+		return getList(builder, ParticipantDataColumnDescriptor.class, limit, offset);
 	}
 
 	@Override
@@ -317,15 +337,18 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 	}
 
 	@Override
-	public TimeSeriesTable getTimeSeries(String participantDataDescriptorId, List<String> columnNames) throws SynapseException {
-		URIBuilder uri = new URIBuilder();
-		uri.setPath(TIME_SERIES + "/" + participantDataDescriptorId);
+	public TimeSeriesTable getTimeSeries(String participantDataDescriptorId, List<String> columnNames,
+			boolean normalizeData) throws SynapseException {
+		URIBuilder builder = new URIBuilder();
+		builder.setPath(TIME_SERIES + "/" + participantDataDescriptorId);
+		builder.addParameter(NORMALIZE_DATA_PARAM, Boolean.toString(normalizeData));
+		
 		if (columnNames != null) {
 			for (String columnName : columnNames) {
-				uri.addParameter("columnName", columnName);
+				builder.addParameter("columnName", columnName);
 			}
 		}
-		return get(uri.toString(), TimeSeriesTable.class);
+		return get(builder.toString(), TimeSeriesTable.class);
 	}
 
 	private void get(String uri) throws SynapseException {
@@ -343,11 +366,12 @@ public class BridgeClientImpl extends BaseClientImpl implements BridgeClient {
 		}
 	}
 
-	private <T extends JSONEntity> PaginatedResults<T> getList(String uri, Class<T> klass, long limit, long offset) throws SynapseException {
+	private <T extends JSONEntity> PaginatedResults<T> getList(URIBuilder builder, Class<T> klass, long limit, long offset) throws SynapseException {
 		// Get the json for this entity
-		uri = uri + "?limit=" + limit + "&offset=" + offset;
+		builder.addParameter("limit", Long.toString(limit));
+		builder.addParameter("offset", Long.toString(offset));
 		try {
-			JSONObject jsonObj = getSharedClientConnection().getJson(bridgeEndpoint, uri, getUserAgent());
+			JSONObject jsonObj = getSharedClientConnection().getJson(bridgeEndpoint, builder.toString(), getUserAgent());
 			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
 
 			PaginatedResults<T> results = new PaginatedResults<T>(klass);

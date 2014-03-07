@@ -8,6 +8,7 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Map;
 
 import org.apache.commons.lang.BooleanUtils;
 import org.sagebionetworks.bridge.model.ParticipantDataDAO;
@@ -18,6 +19,7 @@ import org.sagebionetworks.bridge.model.data.ParticipantDataCurrentRow;
 import org.sagebionetworks.bridge.model.data.ParticipantDataDescriptor;
 import org.sagebionetworks.bridge.model.data.ParticipantDataRow;
 import org.sagebionetworks.bridge.model.data.ParticipantDataStatus;
+import org.sagebionetworks.bridge.model.data.units.UnitConversionUtils;
 import org.sagebionetworks.bridge.model.data.value.ParticipantDataDatetimeValue;
 import org.sagebionetworks.bridge.model.data.value.ParticipantDataEventValue;
 import org.sagebionetworks.bridge.model.data.value.ParticipantDataValue;
@@ -136,8 +138,9 @@ public class ParticipantDataManagerImpl implements ParticipantDataManager {
 	}
 
 	@Override
-	public PaginatedResults<ParticipantDataRow> getData(UserInfo userInfo, String participantDataDescriptorId, Integer limit, Integer offset)
-			throws DatastoreException, NotFoundException, IOException, GeneralSecurityException {
+	public PaginatedResults<ParticipantDataRow> getData(UserInfo userInfo, String participantDataDescriptorId,
+			Integer limit, Integer offset, boolean normalizeData) throws DatastoreException, NotFoundException,
+			IOException, GeneralSecurityException {
 		ParticipantDataId participantDataId = getParticipantDataId(userInfo, participantDataDescriptorId);
 		if (participantDataId == null) {
 			// User has never created data for this ParticipantData type, which is not an error, so return
@@ -146,13 +149,15 @@ public class ParticipantDataManagerImpl implements ParticipantDataManager {
 		}
 		List<ParticipantDataColumnDescriptor> columns = participantDataDescriptionManager.getColumns(participantDataDescriptorId);
 		List<ParticipantDataRow> rowList = participantDataDAO.get(participantDataId, participantDataDescriptorId, columns);
-		return PaginatedResultsUtil.createPaginatedResults(rowList, limit, offset);
+
+		return UnitConversionUtils.maybeNormalizePagedData(normalizeData,
+				PaginatedResultsUtil.createPaginatedResults(rowList, limit, offset));
 	}
 
 	@Override
-	public List<ParticipantDataRow> getHistoryData(UserInfo userInfo, String participantDataDescriptorId, final boolean onlyNotEnded,
-			final Date after, final Date before, SortType sortType) throws DatastoreException, NotFoundException, IOException,
-			GeneralSecurityException {
+	public List<ParticipantDataRow> getHistoryData(UserInfo userInfo, String participantDataDescriptorId,
+			final boolean onlyNotEnded, final Date after, final Date before, SortType sortType, boolean normalizeData)
+			throws DatastoreException, NotFoundException, IOException, GeneralSecurityException {
 		ParticipantDataId participantDataId = getParticipantDataId(userInfo, participantDataDescriptorId);
 		if (participantDataId == null) {
 			// User has never created data for this ParticipantData type, which is not an error, so return
@@ -194,24 +199,26 @@ public class ParticipantDataManagerImpl implements ParticipantDataManager {
 			rowList = sortRowsGroupAndDate(rowList, participantDataDescriptor.getEventColumnName());
 			break;
 		}
-		return rowList;
+		return UnitConversionUtils.maybeNormalizeDataSet(normalizeData, rowList);
 	}
 
 	@Override
-	public ParticipantDataRow getDataRow(UserInfo userInfo, String participantDataDescriptorId, Long rowId) throws DatastoreException,
-			NotFoundException, IOException, GeneralSecurityException {
+	public ParticipantDataRow getDataRow(UserInfo userInfo, String participantDataDescriptorId, Long rowId,
+			boolean normalizeData) throws DatastoreException, NotFoundException, IOException, GeneralSecurityException {
 		ParticipantDataId participantDataId = getParticipantDataId(userInfo, participantDataDescriptorId);
 		if (participantDataId == null) {
 			// User has never created data for this ParticipantData type
 			throw new NotFoundException("No participant data with id " + participantDataDescriptorId);
 		}
 		List<ParticipantDataColumnDescriptor> columns = participantDataDescriptionManager.getColumns(participantDataDescriptorId);
-		return participantDataDAO.getRow(participantDataId, participantDataDescriptorId, rowId, columns);
+		
+		ParticipantDataRow row = participantDataDAO.getRow(participantDataId, participantDataDescriptorId, rowId, columns);
+		return UnitConversionUtils.maybeNormalizeRow(normalizeData, row);
 	}
 
 	@Override
-	public ParticipantDataCurrentRow getCurrentData(UserInfo userInfo, String participantDataDescriptorId) throws DatastoreException,
-			NotFoundException, IOException, GeneralSecurityException {
+	public ParticipantDataCurrentRow getCurrentData(UserInfo userInfo, String participantDataDescriptorId,
+			boolean normalizeData) throws DatastoreException, NotFoundException, IOException, GeneralSecurityException {
 		ParticipantDataCurrentRow result = new ParticipantDataCurrentRow();
 		result.setDescriptor(participantDataDescriptionManager.getParticipantDataDescriptor(userInfo, participantDataDescriptorId));
 		result.setColumns(participantDataDescriptionManager.getColumns(participantDataDescriptorId));
@@ -243,7 +250,7 @@ public class ParticipantDataManagerImpl implements ParticipantDataManager {
 				result.setPreviousData(lastRow);
 			}
 		}
-		return result;
+		return UnitConversionUtils.maybeNormalizeCurrentRow(normalizeData, result);
 	}
 
 	private ParticipantDataId getParticipantDataId(UserInfo userInfo, String participantDataDescriptorId) throws IOException,
@@ -255,8 +262,9 @@ public class ParticipantDataManagerImpl implements ParticipantDataManager {
 	}
 
 	@Override
-	public TimeSeriesTable getTimeSeries(UserInfo userInfo, String participantDataDescriptorId, List<String> columnNamesRequested)
-			throws DatastoreException, NotFoundException, IOException, GeneralSecurityException {
+	public TimeSeriesTable getTimeSeries(UserInfo userInfo, String participantDataDescriptorId,
+			List<String> columnNamesRequested, boolean normalizeData) throws DatastoreException, NotFoundException,
+			IOException, GeneralSecurityException {
 		List<ParticipantDataId> participantDataIds = participantDataMappingManager.mapSynapseUserToParticipantIds(userInfo);
 		ParticipantDataId participantDataId = participantDataDAO.findParticipantForParticipantData(participantDataIds,
 				participantDataDescriptorId);
@@ -269,6 +277,8 @@ public class ParticipantDataManagerImpl implements ParticipantDataManager {
 				participantDataDescriptorId);
 		List<ParticipantDataColumnDescriptor> columns = participantDataDescriptionManager.getColumns(participantDataDescriptorId);
 		List<ParticipantDataRow> data = participantDataDAO.get(participantDataId, participantDataDescriptorId, columns);
+		
+		UnitConversionUtils.maybeNormalizeDataSet(normalizeData, data);
 
 		TimeSeriesTable timeSeriesCollection = new TimeSeriesTable();
 		timeSeriesCollection.setName(dataDescriptor.getName());

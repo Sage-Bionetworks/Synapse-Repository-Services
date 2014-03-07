@@ -9,6 +9,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface TimeSeriesService {
-	public TimeSeriesTable getTimeSeries(Long userId, String participantDataId, List<String> columnNames) throws DatastoreException,
-			NotFoundException, IOException, GeneralSecurityException;
+	public TimeSeriesTable getTimeSeries(Long userId, String participantDataId, List<String> columnNames,
+			boolean normalizeData) throws DatastoreException, NotFoundException, IOException, GeneralSecurityException;
 }
