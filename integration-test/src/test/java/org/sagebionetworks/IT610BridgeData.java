@@ -8,6 +8,7 @@ import static org.junit.Assert.assertTrue;
 import java.sql.Date;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 
 import org.junit.After;
@@ -24,9 +25,11 @@ import org.sagebionetworks.bridge.model.data.ParticipantDataRepeatType;
 import org.sagebionetworks.bridge.model.data.ParticipantDataRow;
 import org.sagebionetworks.bridge.model.data.ParticipantDataStatus;
 import org.sagebionetworks.bridge.model.data.ParticipantDataStatusList;
+import org.sagebionetworks.bridge.model.data.units.Units;
 import org.sagebionetworks.bridge.model.data.value.ParticipantDataDatetimeValue;
 import org.sagebionetworks.bridge.model.data.value.ParticipantDataDoubleValue;
 import org.sagebionetworks.bridge.model.data.value.ParticipantDataEventValue;
+import org.sagebionetworks.bridge.model.data.value.ParticipantDataLabValue;
 import org.sagebionetworks.bridge.model.data.value.ParticipantDataLongValue;
 import org.sagebionetworks.bridge.model.data.value.ParticipantDataStringValue;
 import org.sagebionetworks.bridge.model.data.value.ParticipantDataValue;
@@ -118,6 +121,34 @@ public class IT610BridgeData {
 		}
 	}
 
+	@Test
+	public void saveDataAndRetrieveNormalized() throws Exception {
+		List<ParticipantDataRow> rows = Lists.newArrayList();
+		ParticipantDataRow row = new ParticipantDataRow();
+		row.setData(Maps.<String,ParticipantDataValue>newHashMap()); 
+		ParticipantDataLabValue lab = new ParticipantDataLabValue();
+		lab.setValue(1000d);
+		lab.setUnits(Units.MILLILITER.getLabels().get(0));
+		lab.setMinNormal(500d);
+		lab.setMaxNormal(1500d);
+		row.getData().put("lab", lab);
+		rows.add(row);
+		
+		ParticipantDataDescriptor descriptor = createDescriptor(false);
+		createColumnDescriptor(descriptor, "lab", ParticipantDataColumnType.LAB);
+		
+		List<ParticipantDataRow> saved = bridge.appendParticipantData(descriptor.getId(), rows);
+		Long rowId = saved.get(0).getRowId();
+		
+		// Milliliters should be converted to liters.
+		ParticipantDataRow convertedRow = bridge.getParticipantDataRow(descriptor.getId(), rowId, true); 
+		ParticipantDataLabValue savedLab = (ParticipantDataLabValue)convertedRow.getData().get("lab");
+		assertEquals(1d, savedLab.getValue(), 0.0);
+		assertEquals("L", savedLab.getUnits());
+		assertEquals(0.5d, savedLab.getMinNormal(), 0.0);
+		assertEquals(1.5d, savedLab.getMaxNormal(), 0.0);
+	}
+	
 	@Test
 	public void testGetVersion() throws Exception {
 		BridgeVersionInfo versionInfo = bridge.getBridgeVersionInfo();
