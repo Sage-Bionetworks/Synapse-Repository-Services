@@ -201,11 +201,13 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	 * 
 	 * @param userInfo
 	 * @param sourceParentId
+	 * @param destParentId
 	 * @return
 	 */
 	@Override
 	public boolean canUserMoveRestrictedEntity(UserInfo userInfo, String sourceParentId, String destParentId) throws NotFoundException {
 		if (isACTTeamMemberOrAdmin(userInfo)) return true;
+		if (sourceParentId.equals(destParentId)) return true;
 		List<String> sourceParentAncestorIds = AccessRequirementUtil.getNodeAncestorIds(nodeDao, sourceParentId, true);
 		List<AccessRequirement> allRequirementsForSourceParent = accessRequirementDAO.getForSubject(sourceParentAncestorIds, RestrictableObjectType.ENTITY);
 		List<String> destParentAncestorIds = AccessRequirementUtil.getNodeAncestorIds(nodeDao, destParentId, true);

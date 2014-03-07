@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -116,13 +117,19 @@ public class NodeManagerAuthorizationTest {
 	public void testUnauthorizedUpdateNodeFileHandle() throws DatastoreException, NotFoundException{
 		String fileHandleId = "123456";
 		String oldFileHandleId = "9876";
+		String parentId = "123";
+		String nodeId = "456";
+		when(mockNode.getId()).thenReturn(nodeId);
 		// The user can update the node.
-		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(true);
+		when(mockAuthDao.canAccess(mockUserInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(true);
 		// The old file handle does not match the new file handle.
 		when(mockNodeDao.getFileHandleIdForCurrentVersion(mockNode.getId())).thenReturn(oldFileHandleId);
 		// The user did not create the file handle.
 		when(mockAuthDao.canAccessRawFileHandleById(mockUserInfo, fileHandleId)).thenReturn(false);
 		when(mockNode.getFileHandleId()).thenReturn(fileHandleId);
+		when(mockNode.getParentId()).thenReturn(parentId);
+		when(mockNodeDao.getParentId(nodeId)).thenReturn(parentId);
+		when(mockAuthDao.canUserMoveRestrictedEntity(eq(mockUserInfo), eq(parentId), eq(parentId))).thenReturn(true);
 		// Should fail
 		try{
 			nodeManager.update(mockUserInfo, mockNode);
@@ -142,6 +149,9 @@ public class NodeManagerAuthorizationTest {
 	 */
 	@Test
 	public void testAuthorizedUpdateNodeFileHandleNotChanged() throws DatastoreException, NotFoundException{
+		String parentId = "123";
+		String nodeId = "456";
+		when(mockNode.getId()).thenReturn(nodeId);
 		String fileHandleId = "123456";
 		// The user can update the node.
 		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(true);
@@ -151,6 +161,9 @@ public class NodeManagerAuthorizationTest {
 		// If the user were to set this file handle it would fail as they are not the creator of the file handle.
 		when(mockAuthDao.canAccessRawFileHandleById(mockUserInfo, fileHandleId)).thenReturn(false);
 		when(mockNode.getFileHandleId()).thenReturn(fileHandleId);
+		when(mockNode.getParentId()).thenReturn(parentId);
+		when(mockNodeDao.getParentId(nodeId)).thenReturn(parentId);
+		when(mockAuthDao.canUserMoveRestrictedEntity(eq(mockUserInfo), eq(parentId), eq(parentId))).thenReturn(true);
 		// Should fail
 		nodeManager.update(mockUserInfo, mockNode);
 		// The change should make it to the dao
@@ -167,6 +180,9 @@ public class NodeManagerAuthorizationTest {
 	public void testAuthorizedUpdateNodeFileHandleChanged() throws DatastoreException, NotFoundException{
 		String fileHandleId = "123456";
 		String oldFileHandleId = "9876";
+		String parentId = "123";
+		String nodeId = "456";
+		when(mockNode.getId()).thenReturn(nodeId);
 		// The user can update the node.
 		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(true);
 		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(true);
@@ -175,6 +191,9 @@ public class NodeManagerAuthorizationTest {
 		// The user can access the new file handle.
 		when(mockAuthDao.canAccessRawFileHandleById(mockUserInfo, fileHandleId)).thenReturn(true);
 		when(mockNode.getFileHandleId()).thenReturn(fileHandleId);
+		when(mockNode.getParentId()).thenReturn(parentId);
+		when(mockNodeDao.getParentId(nodeId)).thenReturn(parentId);
+		when(mockAuthDao.canUserMoveRestrictedEntity(eq(mockUserInfo), eq(parentId), eq(parentId))).thenReturn(true);
 		// Should fail
 		nodeManager.update(mockUserInfo, mockNode);
 		// The change should make it to the dao
