@@ -196,6 +196,34 @@ public class TrashManagerImplAutowiredTest {
 	}
 
 	@Test
+	public void testRestrictedNodeDeleteOriginalParent() throws Exception {
+		inspectUsersTrashCan(testUserInfo, 0);
+		Node nodeParent = createNode("TrashManagerImplAutowiredTest.testSingleNodeRoundTrip() Parent",EntityType.project, null);
+		final String nodeParentId = nodeParent.getId();
+		String nodeChildName = "TrashManagerImplAutowiredTest.testSingleNodeRoundTrip() Child";
+		Node nodeChild = createNode(nodeChildName, EntityType.dataset, nodeParentId);
+		final String nodeChildId = nodeChild.getId();
+
+		// delete and try to restore to some other (unrestricted) parent
+		trashManager.moveToTrash(testUserInfo, nodeChildId);
+		
+		// now delete the original parent
+		nodeManager.delete(testUserInfo, nodeParentId);
+		toClearList.remove(nodeParentId);
+		
+		Node adoptiveParent = createNode("TrashManagerImplAutowiredTest.testSingleNodeRoundTrip() Adoptive Parent",EntityType.project, null);
+		final String adoptiveParentId = adoptiveParent.getId();
+		try {
+			trashManager.restoreFromTrash(testUserInfo, nodeChildId, adoptiveParentId);
+			fail("NotFoundException expected");
+		} catch (NotFoundException e) {
+			// as expected
+		}
+		// ACT member or Synapse administrator CAN do the operation though
+		trashManager.restoreFromTrash(testAdminUserInfo, nodeChildId, adoptiveParentId);
+	}
+
+	@Test
 	public void testSingleNodeRoundTripRestoreToRoot() throws Exception {
 
 		QueryResults<TrashedEntity> results = trashManager.viewTrashForUser(testUserInfo, testUserInfo, 0L, 1000L);
