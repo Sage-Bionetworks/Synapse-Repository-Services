@@ -18,6 +18,10 @@ public class NullPredicate implements SQLElement {
 		return not;
 	}
 
+	public ColumnReference getColumnReferenceLHS() {
+		return columnReferenceLHS;
+	}
+
 	@Override
 	public void toSQL(StringBuilder builder) {
 		columnReferenceLHS.toSQL(builder);

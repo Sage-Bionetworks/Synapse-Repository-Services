@@ -1,5 +1,9 @@
 package org.sagebionetworks.table.cluster;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.mockito.Mockito.when;
+
 import java.util.LinkedList;
 import java.util.List;
 
@@ -8,8 +12,6 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
 import com.amazonaws.services.rds.AmazonRDSClient;
 import com.amazonaws.services.rds.model.DBInstance;
 import com.amazonaws.services.rds.model.DBInstanceNotFoundException;

@@ -727,4 +727,17 @@ public class TableModelUtils {
 		if(tableId == null) throw new IllegalArgumentException("TableId cannot be null");
 		return String.format(TABLE_SEMAPHORE_KEY_TEMPLATE, KeyFactory.stringToKey(tableId));
 	}
+	
+	/**
+	 * Map the column names to the column IDs.
+	 * @param columns
+	 * @return
+	 */
+	public static Map<String, Long> createColumnNameToIdMap(List<ColumnModel> columns){
+		HashMap<String, Long> map = new HashMap<String, Long>();
+		for(ColumnModel cm: columns){
+			map.put(cm.getName(), Long.parseLong(cm.getId()));
+		}
+		return map;
+	}
 }

@@ -51,6 +51,13 @@ public interface TableIndexDAO {
 	int[] createOrUpdateRows(RowSet rowset, List<ColumnModel> currentSchema);
 	
 	/**
+	 * Query a RowSet from the table.
+	 * @param query
+	 * @return
+	 */
+	public RowSet query(SqlQuery query);
+	
+	/**
 	 * Get the row count for this table.
 	 * 
 	 * @param tableId
