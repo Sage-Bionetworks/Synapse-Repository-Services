@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.manager;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
 import org.sagebionetworks.evaluation.model.Evaluation;
@@ -198,15 +200,21 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	 * userInfo is a member of the ACT.
 	 * 
 	 * @param userInfo
-	 * @param parentId
+	 * @param sourceParentId
+	 * @param destParentId
 	 * @return
 	 */
 	@Override
-	public boolean canMoveEntity(UserInfo userInfo, String parentId) throws NotFoundException {
+	public boolean canUserMoveRestrictedEntity(UserInfo userInfo, String sourceParentId, String destParentId) throws NotFoundException {
 		if (isACTTeamMemberOrAdmin(userInfo)) return true;
-		List<String> ancestorIds = AccessRequirementUtil.getNodeAncestorIds(nodeDao, parentId, true);
-		List<AccessRequirement> allRequirementsForSubject = accessRequirementDAO.getForSubject(ancestorIds, RestrictableObjectType.ENTITY);
-		return allRequirementsForSubject.size()==0;
+		if (sourceParentId.equals(destParentId)) return true;
+		List<String> sourceParentAncestorIds = AccessRequirementUtil.getNodeAncestorIds(nodeDao, sourceParentId, true);
+		List<AccessRequirement> allRequirementsForSourceParent = accessRequirementDAO.getForSubject(sourceParentAncestorIds, RestrictableObjectType.ENTITY);
+		List<String> destParentAncestorIds = AccessRequirementUtil.getNodeAncestorIds(nodeDao, destParentId, true);
+		List<AccessRequirement> allRequirementsForDestParent = accessRequirementDAO.getForSubject(destParentAncestorIds, RestrictableObjectType.ENTITY);
+		Set<AccessRequirement> diff = new HashSet<AccessRequirement>(allRequirementsForSourceParent);
+		diff.removeAll(allRequirementsForDestParent);
+		return diff.isEmpty(); // only OK if destParent has all the requirements that source parent has
 	}
 	
 	private boolean canAdminAccessApproval(UserInfo userInfo, AccessApproval accessApproval) throws NotFoundException {

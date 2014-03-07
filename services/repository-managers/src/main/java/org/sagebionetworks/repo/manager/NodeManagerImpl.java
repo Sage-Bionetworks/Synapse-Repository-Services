@@ -314,6 +314,12 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		if (!authorizationManager.canAccess(userInfo, updatedNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE)) {
 			throw new UnauthorizedException(userInfo.getId().toString() + " lacks change access to the requested object.");
 		}
+		// note, this is duplicated in 'updateNode', below
+		final String parentInDatabase = nodeDao.getParentId(updatedNode.getId());
+		final String parentInUpdate = updatedNode.getParentId();
+		if (!authorizationManager.canUserMoveRestrictedEntity(userInfo, parentInDatabase, parentInUpdate)) {
+			throw new UnauthorizedException(userInfo.getId()+ " is not authorized to move the entity due to existing access restrictions.");
+		}
 		
 		// Validate that the user can assign the file handle if they have it.
 		if(updatedNode.getFileHandleId() != null){
@@ -370,12 +376,9 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		final String parentInDatabase = nodeDao.getParentId(updatedNode.getId());
 		final String parentInUpdate = updatedNode.getParentId();
 		final String nodeInUpdate = updatedNode.getId();
-		if (isParenIdChange(parentInDatabase, parentInUpdate)) {
+		if (isParentIdChange(parentInDatabase, parentInUpdate)) {
 			if (!authorizationManager.canAccess(userInfo, parentInUpdate, ObjectType.ENTITY, ACCESS_TYPE.CREATE)) {
 				throw new UnauthorizedException(userInfo.getId()+ " is not authorized to create an entity here.");
-			}
-			if (!authorizationManager.canMoveEntity(userInfo, parentInDatabase)) {
-				throw new UnauthorizedException(userInfo.getId()+ " is not authorized to move the entity due to existing access restrictions.");
 			}
 			nodeDao.changeNodeParent(nodeInUpdate, parentInUpdate);
 			// Update the ACL accordingly
@@ -424,7 +427,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	 * @param two
 	 * @return
 	 */
-	public static boolean isParenIdChange(String one, String two){
+	public static boolean isParentIdChange(String one, String two){
 		if(one == null){
 			if(two != null){
 				return true;

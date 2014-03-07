@@ -35,6 +35,8 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -156,6 +158,14 @@ public class EntityManagerImplAutowireTest {
 		} catch (UnauthorizedException ue) {
 			// as expected
 		}
+		// however it *should* work if the new parent is under the same restriction
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId(pid);
+		rod.setType(RestrictableObjectType.ENTITY);
+		arToDelete.getSubjectIds().add(rod);
+		accessRequirementManager.updateAccessRequirement(adminUserInfo, arToDelete.getId().toString(), arToDelete);
+		// now this should work!
+		entityManager.updateEntity(userInfo, child, false, null);		
 	}
 	
 	@Test
