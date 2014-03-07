@@ -125,7 +125,7 @@ public class TrashManagerImplAutowiredTest {
 		toClearList.add(nodeId);
 		Node nodeRetrieved = nodeManager.get(testUserInfo, nodeId);
 		assertNotNull(nodeRetrieved);
-		assertEquals(parentId, nodeRetrieved.getParentId());
+		if (parentId!=null) assertEquals(parentId, nodeRetrieved.getParentId());
 		return nodeRetrieved;
 	}
 
