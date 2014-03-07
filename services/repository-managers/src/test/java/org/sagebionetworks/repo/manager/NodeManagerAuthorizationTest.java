@@ -294,6 +294,30 @@ public class NodeManagerAuthorizationTest {
 		nodeManager.update(mockUserInfo, mockNode, mockNamed, true);
 	}
 	
+	@Test
+	public void testUnauthorizedUpdateDueToAccessRequirements() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ConflictingUpdateException{
+		String id = "22";
+		String parentId = "123";
+		when(mockNode.getId()).thenReturn(id);
+		when(mockAuthDao.canAccess(mockUserInfo, id, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(true);
+		when(mockAuthDao.canAccess(mockUserInfo, id, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(true);
+		when(mockNode.getParentId()).thenReturn(parentId);
+		when(mockNodeDao.getParentId(id)).thenReturn(parentId);
+		// can't move due to access restrictions
+		when(mockAuthDao.canUserMoveRestrictedEntity(eq(mockUserInfo), eq(parentId), eq(parentId))).thenReturn(true);
+		// OK!
+		nodeManager.update(mockUserInfo, mockNode, null, true);
+		// can't move due to access restrictions
+		when(mockAuthDao.canUserMoveRestrictedEntity(eq(mockUserInfo), eq(parentId), eq(parentId))).thenReturn(false);
+		try {
+			// Should fail
+			nodeManager.update(mockUserInfo, mockNode, null, true);
+			fail("Excpected unauthorized exception");
+		} catch (UnauthorizedException e) {
+			// as expected
+		}
+	}
+	
 	@Test (expected=UnauthorizedException.class)
 	public void testUnauthorizedGetAnnotations() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ConflictingUpdateException{
 		String id = "22";
