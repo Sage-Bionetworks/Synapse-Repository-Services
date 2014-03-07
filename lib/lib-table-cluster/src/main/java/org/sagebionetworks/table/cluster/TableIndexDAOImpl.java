@@ -1,13 +1,17 @@
 package org.sagebionetworks.table.cluster;
 
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.util.LinkedList;
 import java.util.List;
 
+import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
@@ -140,5 +144,65 @@ public class TableIndexDAOImpl implements TableIndexDAO{
 		return template;
 	}
 
+	@Override
+	public RowSet query(final SqlQuery query) {
+		if(query == null) throw new IllegalArgumentException("SqlQuery cannot be null");
+		final List<String> headers = new LinkedList<String>();
+		final List<Integer> nonMetadataColumnIndicies = new LinkedList<Integer>();
+		// Get the rows for this query from the database.
+		List<Row> rows = this.template.query(query.getOutputSQL(), new RowMapper<Row>() {
+			@Override
+			public Row mapRow(ResultSet rs, int rowNum) throws SQLException {
+				ResultSetMetaData metadata =  rs.getMetaData();
+				if(headers.isEmpty()){
+					// Read the headers from the result set
+					populateHeadersFromResultsSet(headers, nonMetadataColumnIndicies, metadata);
+				}
+				// Read the results into a new list
+				List<String> values = new LinkedList<String>();
+				Row row = new Row();
+				row.setValues(values);
+				if(!query.isAggregatedResult()){
+					// Non-aggregate queries include two extra columns, row id and row version.
+					row.setRowId(rs.getLong(SQLUtils.ROW_ID));
+					row.setVersionNumber(rs.getLong(SQLUtils.ROW_VERSION));
+				}
+				// fill the value list
+				for(Integer index: nonMetadataColumnIndicies){
+					values.add(rs.getString(index));
+				}
+				return row;
+			}
+		}, new MapSqlParameterSource(query.getParameters()));
+		RowSet rowSet = new RowSet();
+		rowSet.setHeaders(headers);
+		rowSet.setRows(rows);
+		// Set the tableId
+		rowSet.setTableId("syn"+query.getModel().getTableExpression().getFromClause().getTableReference().getTableName());
+		
+		return rowSet;
+	}
+	
+	static void populateHeadersFromResultsSet(List<String> headers, List<Integer> nonMetadataColumnIndicies, ResultSetMetaData resultSetMetaData) throws SQLException{
+		// There are three possibilities, column ID, aggregate function, or row metadata.
+		int columnCount = resultSetMetaData.getColumnCount();
+		for(int i=1; i<columnCount+1; i++){
+			String name = resultSetMetaData.getColumnName(i);
+			// If this is a real column then we can extract the ColumnId.
+			if(SQLUtils.ROW_ID.equals(name) || SQLUtils.ROW_VERSION.equals(name)){
+				// We do not include row id or row version in the headers.
+				continue;
+			}
+			if(SQLUtils.hasColumnPrefixe(name) && !name.startsWith("COUNT")){
+				// Extract the column ID
+				headers.add(SQLUtils.getColumnIdForColumnName(name));
+			}else{
+				// Return what was provided unchanged
+				headers.add(name);
+			}
+			// This is not a row_id or row_version column.
+			nonMetadataColumnIndicies.add(new Integer(i));
+		}
+	}
 
 }

@@ -8,11 +8,12 @@ import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 
 /**
- * Translates from the user input SQL into a form that can be run against the database cluster.
+ * Represents a SQL query for a table.
+ * 
  * @author John
  *
  */
-public class SqlTranslator {
+public class SqlQuery {
 	
 	/**
 	 * The input SQL is parsed into this object model.
@@ -30,16 +31,32 @@ public class SqlTranslator {
 	 */
 	Map<String, Long> columnNameToIdMap;
 	
+	/**
+	 * The original input SQL.
+	 */
 	String inputSQL;
+	/**
+	 * The translated SQL.
+	 */
 	String outputSQL;
 	
+	/**
+	 * Aggregated results are queries that included one or more aggregation functions in the select clause.
+	 * These query results will not match columns in the table. In addition rowIDs and rowVersionNumbers
+	 * will be null when isAggregatedResults = true.
+	 */
+	boolean isAggregatedResult;
+	
+
 	
 	/**
-	 * Translate the input SQL.
+	 * Create a new SQLQuery from an input SQL string and mapping of the column names to column IDs.
+	 * 
 	 * @param sql
-	 * @throws ParseException 
+	 * @param columnNameToIdMap
+	 * @throws ParseException
 	 */
-	public SqlTranslator(String sql, Map<String, Long> columnNameToIdMap) throws ParseException{
+	public SqlQuery(String sql, Map<String, Long> columnNameToIdMap) throws ParseException{
 		if(sql == null) throw new IllegalArgumentException("The input SQL cannot be null");
 		if(columnNameToIdMap == null) throw new IllegalArgumentException("columnNameToIdMap cannot be null");
 		this.inputSQL = sql;
@@ -50,7 +67,7 @@ public class SqlTranslator {
 		// This map will contain all of the 
 		this.parameters = new HashMap<String, Object>();	
 		this.columnNameToIdMap = columnNameToIdMap;
-		SQLTranslatorUtils.translate(this.model, outputBuilder, this.parameters, this.columnNameToIdMap);
+		isAggregatedResult = SQLTranslatorUtils.translate(this.model, outputBuilder, this.parameters, this.columnNameToIdMap);
 		this.outputSQL = outputBuilder.toString();
 	}
 
@@ -75,7 +92,7 @@ public class SqlTranslator {
 
 
 	/**
-	 * 
+	 * The column name to column ID mapping.
 	 * @return
 	 */
 	public Map<String, Long> getColumnNameToIdMap() {
@@ -84,7 +101,7 @@ public class SqlTranslator {
 
 
 	/**
-	 * The input SQL that was translated to the output SQL.
+	 * The original input SQL
 	 * 
 	 * @return
 	 */
@@ -93,11 +110,21 @@ public class SqlTranslator {
 	}
 
 	/**
-	 * The translated oupt SQL.
+	 * The translated output SQL.
 	 * @return
 	 */
 	public String getOutputSQL() {
 		return outputSQL;
+	}
+
+	/**
+	 * Aggregated results are queries that included one or more aggregation functions in the select clause.
+	 * These query results will not match columns in the table. In addition rowIDs and rowVersionNumbers
+	 * will be null when isAggregatedResults = true.
+	 * @return
+	 */
+	public boolean isAggregatedResult() {
+		return isAggregatedResult;
 	}
 	
 	

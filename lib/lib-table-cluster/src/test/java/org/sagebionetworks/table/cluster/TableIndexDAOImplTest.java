@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -21,6 +22,7 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.table.query.ParseException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -207,5 +209,141 @@ public class TableIndexDAOImplTest {
 		maxVersion = tableIndexDAO.getMaxVersionForTable(tableId);
 		assertEquals(new Long(3), maxVersion);
 
+	}
+	
+	@Test
+	public void testSimpleQuery() throws ParseException{
+		// Create the table
+		List<ColumnModel> allTypes = TableModelUtils.createOneOfEachType();
+		tableIndexDAO.createOrUpdateTable(allTypes, tableId);
+		// Now add some data
+		List<Row> rows = TableModelUtils.createRows(allTypes, 2);
+		RowSet set = new RowSet();
+		set.setRows(rows);
+		List<String> headers = TableModelUtils.getHeaders(allTypes);
+		set.setHeaders(headers);
+		set.setTableId(tableId);
+		IdRange range = new IdRange();
+		range.setMinimumId(100L);
+		range.setMaximumId(200L);
+		range.setVersionNumber(3L);
+		TableModelUtils.assignRowIdsAndVersionNumbers(set, range);
+		// Now fill the table with data
+		tableIndexDAO.createOrUpdateRows(set, allTypes);
+		Map<String, Long> columnNameToIdMap = TableModelUtils.createColumnNameToIdMap(allTypes);
+		// This is our query
+		SqlQuery query = new SqlQuery("select * from "+tableId, columnNameToIdMap);
+		// Now query for the results
+		RowSet results = tableIndexDAO.query(query);
+		assertNotNull(results);
+		System.out.println(results);
+		assertEquals(headers, results.getHeaders());
+		assertNotNull(results.getRows());
+		assertEquals(tableId, results.getTableId());
+		assertEquals(2, results.getRows().size());
+		// the first row
+		Row row = results.getRows().get(0);
+		assertNotNull(row);
+		assertEquals(new Long(100), row.getRowId());
+		assertEquals(new Long(3), row.getVersionNumber());
+		List<String> expectedValues = Arrays.asList("string0", "0", "0", "0", "0");
+		assertEquals(expectedValues, row.getValues());
+		// Second row
+		row = results.getRows().get(1);
+		assertNotNull(row);
+		assertEquals(new Long(101), row.getRowId());
+		assertEquals(new Long(3), row.getVersionNumber());
+		expectedValues = Arrays.asList("string1", "3.41", "1", "1", "1");
+		assertEquals(expectedValues, row.getValues());
+		
+
+	}
+	
+	@Test
+	public void testQueryAggregate() throws ParseException{
+		// Create the table
+		List<ColumnModel> allTypes = TableModelUtils.createOneOfEachType();
+		tableIndexDAO.createOrUpdateTable(allTypes, tableId);
+		// Now add some data
+		List<Row> rows = TableModelUtils.createRows(allTypes, 2);
+		RowSet set = new RowSet();
+		set.setRows(rows);
+		List<String> headers = TableModelUtils.getHeaders(allTypes);
+		set.setHeaders(headers);
+		set.setTableId(tableId);
+		IdRange range = new IdRange();
+		range.setMinimumId(100L);
+		range.setMaximumId(200L);
+		range.setVersionNumber(3L);
+		TableModelUtils.assignRowIdsAndVersionNumbers(set, range);
+		// Now fill the table with data
+		tableIndexDAO.createOrUpdateRows(set, allTypes);
+		Map<String, Long> columnNameToIdMap = TableModelUtils.createColumnNameToIdMap(allTypes);
+		// Now a count query
+		SqlQuery query = new SqlQuery("select count(*) from "+tableId, columnNameToIdMap);
+		// Now query for the results
+		RowSet results = tableIndexDAO.query(query);
+		assertNotNull(results);
+		List<String> expectedHeaders = Arrays.asList("COUNT(*)");
+		assertEquals(expectedHeaders, results.getHeaders());
+		assertNotNull(results.getRows());
+		assertEquals(tableId, results.getTableId());
+		assertEquals(1, results.getRows().size());
+		// first and only row.
+		Row row = results.getRows().get(0);
+		assertNotNull(row);
+		assertEquals("RowId should be null for an aggregate function.",null, row.getRowId());
+		assertEquals("RowVersion should be null for an aggregate function", null, row.getVersionNumber());
+		List<String> expectedValues = Arrays.asList("2");
+		assertEquals(expectedValues, row.getValues());
+	}
+	
+	@Test
+	public void testQueryAllParts() throws ParseException{
+		ColumnModel foo = new ColumnModel();
+		foo.setColumnType(ColumnType.STRING);
+		foo.setName("foo");
+		foo.setId("111");
+		ColumnModel bar = new ColumnModel();
+		bar.setColumnType(ColumnType.LONG);
+		bar.setId("222");
+		bar.setName("bar");
+		List<ColumnModel> schema = new LinkedList<ColumnModel>();
+		schema.add(foo);
+		schema.add(bar);
+		// Create the table.
+		tableIndexDAO.createOrUpdateTable(schema, tableId);
+		// Create some data
+		// Now add some data
+		List<Row> rows = TableModelUtils.createRows(schema, 100);
+		RowSet set = new RowSet();
+		set.setRows(rows);
+		List<String> headers = TableModelUtils.getHeaders(schema);
+		set.setHeaders(headers);
+		set.setTableId(tableId);
+		IdRange range = new IdRange();
+		range.setMinimumId(100L);
+		range.setMaximumId(200L);
+		range.setVersionNumber(4L);
+		TableModelUtils.assignRowIdsAndVersionNumbers(set, range);
+		// Now fill the table with data
+		tableIndexDAO.createOrUpdateRows(set, schema);
+		Map<String, Long> columnNameToIdMap = TableModelUtils.createColumnNameToIdMap(schema);
+		// Now create the query
+		SqlQuery query = new SqlQuery("select foo, bar from "+tableId+" where foo is not null group by foo order by bar desc limit 1 offset 0", columnNameToIdMap);
+		// Now query for the results
+		RowSet results = tableIndexDAO.query(query);
+		assertNotNull(results);
+		assertEquals(headers, results.getHeaders());
+		assertNotNull(results.getRows());
+		assertEquals(tableId, results.getTableId());
+		assertEquals(1, results.getRows().size());
+		// first and only row.
+		Row row = results.getRows().get(0);
+		assertNotNull(row);
+		assertEquals(new Long(199), row.getRowId());
+		assertEquals(new Long(4), row.getVersionNumber());
+		List<String> expectedValues = Arrays.asList("string99", "99");
+		assertEquals(expectedValues, row.getValues());
 	}
 }

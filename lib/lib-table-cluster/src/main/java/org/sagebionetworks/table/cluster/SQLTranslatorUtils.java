@@ -16,12 +16,17 @@ import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.ComparisonPredicate;
 import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.EscapeCharacter;
+import org.sagebionetworks.table.query.model.GroupByClause;
+import org.sagebionetworks.table.query.model.GroupingColumnReference;
+import org.sagebionetworks.table.query.model.GroupingColumnReferenceList;
 import org.sagebionetworks.table.query.model.Identifier;
 import org.sagebionetworks.table.query.model.InPredicate;
 import org.sagebionetworks.table.query.model.InPredicateValue;
 import org.sagebionetworks.table.query.model.InValueList;
 import org.sagebionetworks.table.query.model.LikePredicate;
 import org.sagebionetworks.table.query.model.NullPredicate;
+import org.sagebionetworks.table.query.model.OrderByClause;
+import org.sagebionetworks.table.query.model.Pagination;
 import org.sagebionetworks.table.query.model.Pattern;
 import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.model.QuerySpecification;
@@ -30,6 +35,9 @@ import org.sagebionetworks.table.query.model.RowValueConstructorElement;
 import org.sagebionetworks.table.query.model.SearchCondition;
 import org.sagebionetworks.table.query.model.SelectList;
 import org.sagebionetworks.table.query.model.SetFunctionSpecification;
+import org.sagebionetworks.table.query.model.SortKey;
+import org.sagebionetworks.table.query.model.SortSpecification;
+import org.sagebionetworks.table.query.model.SortSpecificationList;
 import org.sagebionetworks.table.query.model.StringValueExpression;
 import org.sagebionetworks.table.query.model.TableExpression;
 import org.sagebionetworks.table.query.model.UnsignedLiteral;
@@ -52,7 +60,7 @@ public class SQLTranslatorUtils {
 	 * @param outputBuilder
 	 * @param parameters
 	 */
-	public static void translate(QuerySpecification model,
+	public static boolean translate(QuerySpecification model,
 			StringBuilder builder, Map<String, Object> parameters, Map<String, Long> columnNameToIdMap) {
 		builder.append("SELECT");
 		if(model.getSetQuantifier() != null){
@@ -60,24 +68,26 @@ public class SQLTranslatorUtils {
 			builder.append(model.getSetQuantifier().name());
 		}
 		builder.append(" ");
-		translate(model.getSelectList(), builder, parameters,columnNameToIdMap);
+		boolean isAggregated = translate(model.getSelectList(), builder, parameters,columnNameToIdMap);
 		builder.append(" ");
 		translate(model.getTableExpression(), builder, parameters, columnNameToIdMap);
+		return isAggregated;
 	}
 
 
 
 	/**
-	 * 
+	 * Translate SelectList
 	 * @param selectList
 	 * @param builder
 	 * @param parameters
 	 * @param columnNameToIdMap
 	 */
-	static void translate(SelectList selectList, StringBuilder builder, Map<String, Object> parameters,Map<String, Long> columnNameToIdMap) {
+	static boolean translate(SelectList selectList, StringBuilder builder, Map<String, Object> parameters,Map<String, Long> columnNameToIdMap) {
 		if(selectList == null) throw new IllegalArgumentException("SelectList cannot be null");
 		if(selectList.getAsterisk() != null){
 			builder.append("*");
+			return false;
 		}else if(selectList.getColumns() != null){
 			if(selectList.getColumns().size() < 1) throw new IllegalArgumentException("Select list must have at least one element");
 			
@@ -96,7 +106,8 @@ public class SQLTranslatorUtils {
 			// If this is not an aggregate query then we must also fetch the row id and row version
 			if(!isAggregate){
 				builder.append(", ").append(SQLUtils.ROW_ID).append(", ").append(SQLUtils.ROW_VERSION);
-			}			
+			}
+			return isAggregate;
 		}else{
 			throw new IllegalArgumentException("Select list must have either an Asterisk or columns");
 		}
@@ -324,7 +335,156 @@ public class SQLTranslatorUtils {
 			builder.append(" ");
 			translate(tableExpression.getWhereClause(), builder, parameters, columnNameToIdMap);
 		}
+		if(tableExpression.getGroupByClause() != null){
+			builder.append(" ");
+			translate(tableExpression.getGroupByClause(), builder, columnNameToIdMap);
+		}
+		if(tableExpression.getOrderByClause() != null){
+			builder.append(" ");
+			translate(tableExpression.getOrderByClause(), builder, columnNameToIdMap);
+		}
+		if(tableExpression.getPagination() != null){
+			builder.append(" ");
+			translate(tableExpression.getPagination(), builder, parameters);
+		}
 	}
+
+	/**
+	 * Translate Pagination
+	 * @param pagination
+	 * @param builder
+	 * @param parameters
+	 * @param columnNameToIdMap
+	 */
+	static void translate(Pagination pagination, StringBuilder builder,
+			Map<String, Object> parameters) {
+		if(pagination == null) throw new IllegalArgumentException("Pagination cannot be null");
+		if(pagination.getLimit() == null) throw new IllegalArgumentException("Limit cannot be null");
+		builder.append("LIMIT ");
+		// The bind key is used in the SQL and parameter map.
+		String bindKey = "b"+parameters.size();
+		builder.append(":").append(bindKey);
+		parameters.put(bindKey, pagination.getLimit());
+		if(pagination.getOffset() != null){
+			builder.append(" OFFSET ");
+			bindKey = "b"+parameters.size();
+			builder.append(":").append(bindKey);
+			parameters.put(bindKey, pagination.getOffset());
+		}
+	}
+
+
+
+	/**
+	 * Translate OrderByClause
+	 * @param orderByClause
+	 * @param builder
+	 * @param columnNameToIdMap
+	 */
+	static void translate(OrderByClause orderByClause,
+			StringBuilder builder, Map<String, Long> columnNameToIdMap) {
+		if(orderByClause == null) throw new IllegalArgumentException("OrderByClause cannot be null");
+		builder.append("ORDER BY ");
+		translate(orderByClause.getSortSpecificationList(), builder, columnNameToIdMap);
+	}
+	
+	/**
+	 * Translate SortSpecificationList
+	 * @param sortSpecificationList
+	 * @param builder
+	 * @param columnNameToIdMap
+	 */
+	static void translate(SortSpecificationList sortSpecificationList,
+			StringBuilder builder, Map<String, Long> columnNameToIdMap) {
+		if(sortSpecificationList == null) throw new IllegalArgumentException("SortSpecificationList cannot be null");
+		if(sortSpecificationList.getSortSpecifications() == null) throw new IllegalArgumentException("SortSpecifications cannot be null");
+		if(sortSpecificationList.getSortSpecifications().size() < 1) throw new IllegalArgumentException("Must have at least one SortSpecification");
+		boolean first = true;
+		for(SortSpecification sortSpecfication: sortSpecificationList.getSortSpecifications()){
+			if(!first){
+				builder.append(", ");
+			}
+			translate(sortSpecfication, builder, columnNameToIdMap);
+			first = false;
+		}
+	}
+	
+	/**
+	 * Translate SortSpecification
+	 * @param sortSpecfication
+	 * @param builder
+	 * @param columnNameToIdMap
+	 */
+	static void translate(SortSpecification sortSpecfication,
+			StringBuilder builder, Map<String, Long> columnNameToIdMap) {
+		if(sortSpecfication == null) throw new IllegalArgumentException("SortSpecification cannot be null");
+		translate(sortSpecfication.getSortKey(), builder, columnNameToIdMap);
+		if(sortSpecfication.getOrderingSpecification() != null){
+			builder.append(" ").append(sortSpecfication.getOrderingSpecification().name());
+		}
+	}
+
+	/**
+	 * Translate SortKey
+	 * @param sortKey
+	 * @param builder
+	 * @param columnNameToIdMap
+	 */
+	static void translate(SortKey sortKey, StringBuilder builder,
+			Map<String, Long> columnNameToIdMap) {
+		if(sortKey == null) throw new IllegalArgumentException("SortKey cannot be null");
+		translate(sortKey.getColumnReference(), builder, columnNameToIdMap);
+	}
+
+	/**
+	 * Translate a GroupByClause.
+	 * @param groupByClause
+	 * @param builder
+	 * @param columnNameToIdMap
+	 */
+	static void translate(GroupByClause groupByClause,
+			StringBuilder builder, Map<String, Long> columnNameToIdMap) {
+		if(groupByClause == null) throw new IllegalArgumentException("GroupByClause cannot be null");
+		builder.append("GROUP BY ");
+		translate(groupByClause.getGroupingColumnReferenceList(), builder, columnNameToIdMap);
+	}
+
+	/**
+	 * Translate GroupingColumnReferenceList
+	 * @param groupingColumnReferenceList
+	 * @param builder
+	 * @param columnNameToIdMap
+	 */
+	static void translate(
+			GroupingColumnReferenceList groupingColumnReferenceList,
+			StringBuilder builder, Map<String, Long> columnNameToIdMap) {
+		if(groupingColumnReferenceList == null) throw new IllegalArgumentException("GroupingColumnReferenceList cannot be null");
+		if(groupingColumnReferenceList.getGroupingColumnReferences() == null) throw new IllegalArgumentException("GroupingColumnReferences cannot be null");
+		if(groupingColumnReferenceList.getGroupingColumnReferences().size() <1 ) throw new IllegalArgumentException("Must have at least one GroupingColumnReference");
+		boolean first = true;
+		for(GroupingColumnReference groupingColumnReference: groupingColumnReferenceList.getGroupingColumnReferences()){
+			if(!first){
+				builder.append(", ");
+			}
+			translate(groupingColumnReference, builder, columnNameToIdMap);
+			first = false;
+		}
+	}
+
+	/**
+	 * Translate GroupingColumnReference
+	 * @param groupingColumnReference
+	 * @param builder
+	 * @param columnNameToIdMap
+	 */
+	static void translate(
+			GroupingColumnReference groupingColumnReference,
+			StringBuilder builder, Map<String, Long> columnNameToIdMap) {
+		if(groupingColumnReference == null) throw new IllegalArgumentException("GroupingColumnReference cannot be null");
+		translate(groupingColumnReference.getColumnReference(), builder, columnNameToIdMap);
+	}
+
+
 
 	/**
 	 * Translate WhereClause.
@@ -473,7 +633,7 @@ public class SQLTranslatorUtils {
 	}
 	
 	/**
-	 * 
+	 * Translate NullPredicate
 	 * @param nullPredicate
 	 * @param builder
 	 * @param parameters
@@ -539,8 +699,6 @@ public class SQLTranslatorUtils {
 		builder.append(" AND ");
 		translate(betweenPredicate.getAndRowValueConstructorRHS(), builder, parameters);
 	}
-
-
 
 	/**
 	 * Translate ComparisonPredicate
@@ -610,8 +768,6 @@ public class SQLTranslatorUtils {
 		}
 	}
 
-
-
 	/**
 	 * Translate RowValueConstructor
 	 * @param rowValueConstructor
@@ -634,7 +790,7 @@ public class SQLTranslatorUtils {
 	 * @param builder
 	 * @param parameters
 	 */
-	private static void translate(
+	static void translate(
 			RowValueConstructorElement rowValueConstructorElement,
 			StringBuilder builder, Map<String, Object> parameters) {
 		if(rowValueConstructorElement == null) throw new IllegalArgumentException("RowValueConstructorElement cannot be null");
@@ -675,11 +831,21 @@ public class SQLTranslatorUtils {
 		parameters.put(bindKey, value);
 	}
 
+	/**
+	 * Get the string value from UnsignedValueSpecification
+	 * @param unsignedValueSpecification
+	 * @return
+	 */
 	public static String getStringValueOf(UnsignedValueSpecification unsignedValueSpecification) {
 		if(unsignedValueSpecification == null) throw new IllegalArgumentException("UnsignedValueSpecification cannot be null");
 		return getStringValueOf(unsignedValueSpecification.getUnsignedLiteral());
 	}
 
+	/**
+	 * Get the string value from UnsignedLiteral
+	 * @param unsignedLiteral
+	 * @return
+	 */
 	public static String getStringValueOf(UnsignedLiteral unsignedLiteral) {
 		if(unsignedLiteral.getGeneralLiteral() != null) return unsignedLiteral.getGeneralLiteral();
 		if(unsignedLiteral.getUnsignedNumericLiteral() != null) return unsignedLiteral.getUnsignedNumericLiteral();

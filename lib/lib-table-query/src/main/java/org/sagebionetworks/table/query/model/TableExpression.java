@@ -36,6 +36,10 @@ public class TableExpression implements SQLElement {
 		return pagination;
 	}
 
+	public OrderByClause getOrderByClause() {
+		return orderByClause;
+	}
+
 	@Override
 	public void toSQL(StringBuilder builder) {
 		fromClause.toSQL(builder);
