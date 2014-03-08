@@ -178,7 +178,7 @@ public class TableIndexDAOImpl implements TableIndexDAO{
 		rowSet.setHeaders(headers);
 		rowSet.setRows(rows);
 		// Set the tableId
-		rowSet.setTableId("syn"+query.getModel().getTableExpression().getFromClause().getTableReference().getTableName());
+		rowSet.setTableId(query.getTableId());
 		
 		return rowSet;
 	}

@@ -6,6 +6,7 @@ import java.util.Map;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.QuerySpecification;
+import org.sagebionetworks.table.query.util.SqlElementUntils;
 
 /**
  * Represents a SQL query for a table.
@@ -32,13 +33,14 @@ public class SqlQuery {
 	Map<String, Long> columnNameToIdMap;
 	
 	/**
-	 * The original input SQL.
-	 */
-	String inputSQL;
-	/**
 	 * The translated SQL.
 	 */
 	String outputSQL;
+	
+	/**
+	 * The Id of the table.
+	 */
+	String tableId;
 	
 	/**
 	 * Aggregated results are queries that included one or more aggregation functions in the select clause.
@@ -58,10 +60,29 @@ public class SqlQuery {
 	 */
 	public SqlQuery(String sql, Map<String, Long> columnNameToIdMap) throws ParseException{
 		if(sql == null) throw new IllegalArgumentException("The input SQL cannot be null");
+		init(TableQueryParser.parserQuery(sql), columnNameToIdMap);
+	}
+	
+	/**
+	 * Create a query with a parsed model.
+	 * @param model
+	 * @param columnNameToIdMap
+	 * @throws ParseException
+	 */
+	public SqlQuery(QuerySpecification model, Map<String, Long> columnNameToIdMap) {
+		if(model == null) throw new IllegalArgumentException("The input model cannot be null");
+		init(model, columnNameToIdMap);
+	}
+
+	/**
+	 * @param sql
+	 * @param columnNameToIdMap
+	 * @throws ParseException
+	 */
+	public void init(QuerySpecification model, Map<String, Long> columnNameToIdMap) {
 		if(columnNameToIdMap == null) throw new IllegalArgumentException("columnNameToIdMap cannot be null");
-		this.inputSQL = sql;
-		// Parse the SQL
-		this.model = TableQueryParser.parserQuery(sql);
+		this.model = model;
+		this.tableId = SqlElementUntils.getTableId(model);
 		// This string builder is used to build up the output SQL.
 		StringBuilder outputBuilder = new StringBuilder();
 		// This map will contain all of the 
@@ -101,15 +122,6 @@ public class SqlQuery {
 
 
 	/**
-	 * The original input SQL
-	 * 
-	 * @return
-	 */
-	public String getInputSQL() {
-		return inputSQL;
-	}
-
-	/**
 	 * The translated output SQL.
 	 * @return
 	 */
@@ -125,6 +137,14 @@ public class SqlQuery {
 	 */
 	public boolean isAggregatedResult() {
 		return isAggregatedResult;
+	}
+
+	/**
+	 * The ID of the table.
+	 * @return
+	 */
+	public String getTableId() {
+		return tableId;
 	}
 	
 	

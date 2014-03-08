@@ -7,6 +7,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
+import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -188,9 +189,42 @@ public class TableController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id, @RequestBody RowSet rows)
 			throws DatastoreException, NotFoundException, IOException {
-		if(id == null) throw new IllegalArgumentException("{id} cannot be null");
+		if (id == null)
+			throw new IllegalArgumentException("{id} cannot be null");
 		rows.setTableId(id);
 		return serviceProvider.getTableServices().appendRows(userId, rows);
+	}
+
+	/**
+	 * 
+	 * @param userId
+	 * @param query
+	 * @param isConsistant
+	 *            Defaults to true. When true, a query will be run only if the
+	 *            index is up-to-date with all changes to the table and a
+	 *            read-lock is successfully acquired on the index. When set to
+	 *            false, the query will be run against the index regardless of
+	 *            the state of the index and without attempting to acquire a read-lock.
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.TABLE_QUERY, method = RequestMethod.POST)
+	public @ResponseBody
+	RowSet query(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody Query query,
+			@RequestParam(value = "isConsistent", required = false) Boolean isConsistent)
+			throws DatastoreException, NotFoundException, IOException {
+		// By default isConsistent is true.
+		boolean isConsistentValue = true;
+		if (isConsistent != null) {
+			isConsistentValue = isConsistent;
+		}
+		return serviceProvider.getTableServices().query(userId, query,
+				isConsistentValue);
 	}
 
 }
