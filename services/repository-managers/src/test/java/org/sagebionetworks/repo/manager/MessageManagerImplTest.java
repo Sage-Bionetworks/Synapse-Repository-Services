@@ -249,6 +249,14 @@ public class MessageManagerImplTest {
 		return new ArrayList<String>();
 	}
 	
+	@Test(expected=UnauthorizedException.class)
+	public void testSendMessageFromAnonymous() throws Exception {
+		UserInfo anonymousUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		Set<String> recipients = new HashSet<String>();
+		recipients.add(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId().toString());
+		createMessage(anonymousUserInfo, "anonymous message", recipients, null);
+	}
+	
 	
 	@Test
 	public void testNoResend() throws Exception {
