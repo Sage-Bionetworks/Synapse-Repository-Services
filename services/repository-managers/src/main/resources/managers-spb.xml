@@ -22,6 +22,7 @@
 	<import resource="classpath:shared-scheduler-spb.xml" />
 	<import resource="classpath:dynamo-dao-spb.xml" />
 	<import resource="classpath:audit-managers.spb.xml" />
+	<import resource="classpath:table-cluster-spb.xml" />
 
 	<!-- The real Node DAO -->
 	<bean id="nodeManager" class="org.sagebionetworks.repo.manager.NodeManagerImpl" />
