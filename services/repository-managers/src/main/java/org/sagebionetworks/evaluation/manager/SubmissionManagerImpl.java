@@ -371,32 +371,38 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	protected Annotations removePrivateAnnos(Annotations annos) {
 		EvaluationUtils.ensureNotNull(annos, "Annotations");
 
-		List<StringAnnotation> newStringAnnos = new ArrayList<StringAnnotation>();
 		List<StringAnnotation> oldStringAnnos = annos.getStringAnnos();
-		for (StringAnnotation sa : oldStringAnnos) {
-			if (!sa.getIsPrivate()) {
-				newStringAnnos.add(sa);
+		if (oldStringAnnos!=null) {
+			List<StringAnnotation> newStringAnnos = new ArrayList<StringAnnotation>();
+			for (StringAnnotation sa : oldStringAnnos) {
+				if (!sa.getIsPrivate()) {
+					newStringAnnos.add(sa);
+				}
 			}
+			annos.setStringAnnos(newStringAnnos);
 		}
-		annos.setStringAnnos(newStringAnnos);
 		
-		List<DoubleAnnotation> newDoubleAnnos = new ArrayList<DoubleAnnotation>();
 		List<DoubleAnnotation> oldDoubleAnnos = annos.getDoubleAnnos();
-		for (DoubleAnnotation da : oldDoubleAnnos) {
-			if (!da.getIsPrivate()) {
-				newDoubleAnnos.add(da);
+		if (oldDoubleAnnos!=null) {
+			List<DoubleAnnotation> newDoubleAnnos = new ArrayList<DoubleAnnotation>();
+			for (DoubleAnnotation da : oldDoubleAnnos) {
+				if (!da.getIsPrivate()) {
+					newDoubleAnnos.add(da);
+				}
 			}
+			annos.setDoubleAnnos(newDoubleAnnos);
 		}
-		annos.setDoubleAnnos(newDoubleAnnos);
 		
-		List<LongAnnotation> newLongAnnos = new ArrayList<LongAnnotation>();
 		List<LongAnnotation> longAnnos = annos.getLongAnnos();
-		for (LongAnnotation la : longAnnos) {
-			if (!la.getIsPrivate()) {
-				newLongAnnos.add(la);
+		if (longAnnos!=null) {
+			List<LongAnnotation> newLongAnnos = new ArrayList<LongAnnotation>();
+			for (LongAnnotation la : longAnnos) {
+				if (!la.getIsPrivate()) {
+					newLongAnnos.add(la);
+				}
 			}
+			annos.setLongAnnos(newLongAnnos);
 		}
-		annos.setLongAnnos(newLongAnnos);
 		
 		return annos;
 	}
