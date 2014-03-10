@@ -235,8 +235,8 @@
 		scope="singleton" />
 		
 	<bean id="tableRowManager" class="org.sagebionetworks.repo.manager.table.TableRowManagerImpl" scope="singleton" >
-        <property name="tableReadTimeoutMS"
-			ref="stackConfiguration.tableReadTimeoutMS" />
+        <property name="tableReadTimeoutMS"	ref="stackConfiguration.tableReadTimeoutMS" />
+       	<property name="maxBytesPerRequest" ref="stackConfiguration.tableMaxBytesPerRequest"/>
     </bean>	
 
 	<bean id="nodeTreeUpdateManager" class="org.sagebionetworks.repo.manager.dynamo.NodeTreeUpdateManagerImpl">

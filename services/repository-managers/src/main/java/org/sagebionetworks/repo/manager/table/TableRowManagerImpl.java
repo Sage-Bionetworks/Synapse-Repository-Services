@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.table;
 
 import java.io.IOException;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -51,12 +52,15 @@ public class TableRowManagerImpl implements TableRowManager {
 	ExclusiveOrSharedSemaphoreRunner exclusiveOrSharedSemaphoreRunner;
 	@Autowired
 	ConnectionFactory tableConnectionFactory;
-	
 	/**
 	 * Injected via Spring.
 	 */
 	long tableReadTimeoutMS;
 	
+	/**
+	 * Injected via spring
+	 */
+	int maxBytesPerRequest;
 	/**
 	 * Injected via spring
 	 * @param tableReadTimeoutMS
@@ -77,6 +81,8 @@ public class TableRowManagerImpl implements TableRowManager {
 		if(!authorizationManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)){
 			throw new UnauthorizedException("User does not have permission to update TableEntity: "+tableId);
 		}
+		// Validate the request is under the max bytes per requested
+		validateRequestSize(models, delta.getRows().size());
 		// Let the DAO do the rest of the work.
 		RowReferenceSet rrs = tableRowTruthDao.appendRowSetToTable(user.getId().toString(), tableId, models, delta);
 		// The table has change so we must reset the state.
@@ -152,18 +158,53 @@ public class TableRowManagerImpl implements TableRowManager {
 			throw new UnauthorizedException("User does not have READ permission on: "+tableId);
 		}
 		// Lookup the column models for this table
-		List<ColumnModel> columnModels = columnModelDAO.getColumnModelsForObject(tableId);
+		List<ColumnModel> columnModels = columnModelDAO.getColumnModelsForObject(tableId);		
 		Map<String, Long> columnNameToIdMap = TableModelUtils.createColumnNameToIdMap(columnModels);
+
 		final SqlQuery query = new SqlQuery(model, columnNameToIdMap);
+		// validate the size
+		validateQuerySize(query, columnModels, this.maxBytesPerRequest);
 		// If this is a consistent read then we need a read lock
 		if(isConsistent){
 			// A consistent query is only run if the table index is available and up-to-date
 			// with the table state.  A read-lock on the index will be held while the query is run.
-			return runConistentQuery(tableId, query);
+			return runConsistentQuery(tableId, query);
 		}else{
 			// This path queries the table index regardless of the state of the index and without a
 			// read-lock.
 			return query(query);
+		}
+	}
+	
+	/**
+	 * Validate that a query result will be under the max size.
+	 * 
+	 * @param query
+	 * @param columnModels
+	 * @param maxBytePerRequest
+	 */
+	public static void validateQuerySize(SqlQuery query, List<ColumnModel> columnModels, int maxBytePerRequest){
+		Long limit = null;
+		if(query.getModel().getTableExpression().getPagination() != null){
+			limit = query.getModel().getTableExpression().getPagination().getLimit();
+		}
+		// First make sure we have a limit
+		if(limit == null){
+			throw new IllegalArgumentException("Request exceed the maximum number of bytes per request because a LIMIT was not included in the query.");
+		}
+		Map<Long, ColumnModel> columIdToModelMap = TableModelUtils.createIDtoColumnModelMap(columnModels);
+		// What are the select columns?
+		List<Long> selectColumns = query.getSelectColumnIds();
+		if(!selectColumns.isEmpty()){
+			List<ColumnModel> seletModels = new LinkedList<ColumnModel>();
+			for(Long id: selectColumns){
+				ColumnModel cm = columIdToModelMap.get(id);
+				seletModels.add(cm);
+			}
+			// Validate the request is under the max bytes per requested
+			if(!TableModelUtils.isRequestWithinMaxBytePerRequest(seletModels, limit.intValue(), maxBytePerRequest)){
+				throw new IllegalArgumentException("Request exceed the maximum number of bytes per request.  Maximum : "+maxBytePerRequest+" bytes");
+			}
 		}
 	}
 	
@@ -174,7 +215,7 @@ public class TableRowManagerImpl implements TableRowManager {
 	 * @return
 	 * @throws TableUnavilableException
 	 */
-	private RowSet runConistentQuery(final String tableId, final SqlQuery query) throws TableUnavilableException{
+	private RowSet runConsistentQuery(final String tableId, final SqlQuery query) throws TableUnavilableException{
 		try {
 			// Run with a read lock.
 			return tryRunWithTableNonexclusiveLock(tableId, tableReadTimeoutMS, new Callable<RowSet>() {
@@ -182,7 +223,7 @@ public class TableRowManagerImpl implements TableRowManager {
 				public RowSet call() throws Exception {
 					// We can only run this query if the table  is available.
 					TableStatus status = getTableStatus(tableId);
-					if(TableState.AVAILABLE.equals(status)){
+					if(!TableState.AVAILABLE.equals(status.getState())){
 						// When the table is not available, we communicate the current status of the 
 						// table in this exception.
 						throw new TableUnavilableException(status);
@@ -235,6 +276,17 @@ public class TableRowManagerImpl implements TableRowManager {
 		} catch (ParseException e) {
 			throw new IllegalArgumentException(e);
 		}
+	}
+	
+	private void validateRequestSize(List<ColumnModel> models, int rowCount){
+		// Validate the request is under the max bytes per requested
+		if(!TableModelUtils.isRequestWithinMaxBytePerRequest(models, rowCount, this.maxBytesPerRequest)){
+			throw new IllegalArgumentException("Request exceed the maximum number of bytes per request.  Maximum : "+this.maxBytesPerRequest+" bytes");
+		}
+	}
+
+	public void setMaxBytesPerRequest(int maxBytesPerRequest) {
+		this.maxBytesPerRequest = maxBytesPerRequest;
 	}
 
 }

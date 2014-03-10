@@ -1,6 +1,7 @@
 package org.sagebionetworks.table.cluster;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.table.query.ParseException;
@@ -49,7 +50,11 @@ public class SqlQuery {
 	 */
 	boolean isAggregatedResult;
 	
-
+	/**
+	 * The list of all column ID referenced in the select column.
+	 */
+	List<Long> selectColumnIds;
+	
 	
 	/**
 	 * Create a new SQLQuery from an input SQL string and mapping of the column names to column IDs.
@@ -90,6 +95,7 @@ public class SqlQuery {
 		this.columnNameToIdMap = columnNameToIdMap;
 		isAggregatedResult = SQLTranslatorUtils.translate(this.model, outputBuilder, this.parameters, this.columnNameToIdMap);
 		this.outputSQL = outputBuilder.toString();
+		this.selectColumnIds = SQLTranslatorUtils.getSelectColumns(this.model.getSelectList(), columnNameToIdMap);
 	}
 
 
@@ -145,6 +151,14 @@ public class SqlQuery {
 	 */
 	public String getTableId() {
 		return tableId;
+	}
+
+	/**
+	 * The list of column IDs from the select clause.
+	 * @return
+	 */
+	public List<Long> getSelectColumnIds() {
+		return selectColumnIds;
 	}
 	
 	

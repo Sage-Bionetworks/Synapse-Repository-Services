@@ -5,8 +5,12 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -69,12 +73,16 @@ public class SQLQueryTest {
 		SqlQuery translator = new SqlQuery("select * from syn123", columnNameToIdMap);
 		assertEquals("SELECT * FROM T123", translator.getOutputSQL());
 		assertFalse(translator.isAggregatedResult());
+		assertNotNull(translator.getSelectColumnIds());
+		assertTrue(translator.getSelectColumnIds().containsAll(columnNameToIdMap.values()));
 	}
 	@Test
 	public void testSelectSingColumns() throws ParseException{
 		SqlQuery translator = new SqlQuery("select foo from syn123", columnNameToIdMap);
 		assertEquals("SELECT C111, ROW_ID, ROW_VERSION FROM T123", translator.getOutputSQL());
 		assertFalse(translator.isAggregatedResult());
+		List<Long> expectedSelect = Arrays.asList(111L);
+		assertEquals(expectedSelect, translator.getSelectColumnIds());
 	}
 	
 	@Test
@@ -82,6 +90,8 @@ public class SQLQueryTest {
 		SqlQuery translator = new SqlQuery("select foo, bar from syn123", columnNameToIdMap);
 		assertEquals("SELECT C111, C333, ROW_ID, ROW_VERSION FROM T123", translator.getOutputSQL());
 		assertFalse(translator.isAggregatedResult());
+		List<Long> expectedSelect = Arrays.asList(111L, 333L);
+		assertEquals(expectedSelect, translator.getSelectColumnIds());
 	}
 	
 	@Test
@@ -89,6 +99,8 @@ public class SQLQueryTest {
 		SqlQuery translator = new SqlQuery("select distinct foo, bar from syn123", columnNameToIdMap);
 		assertEquals("SELECT DISTINCT C111, C333, ROW_ID, ROW_VERSION FROM T123", translator.getOutputSQL());
 		assertFalse(translator.isAggregatedResult());
+		List<Long> expectedSelect = Arrays.asList(111L, 333L);
+		assertEquals(expectedSelect, translator.getSelectColumnIds());
 	}
 	
 	@Test
@@ -96,6 +108,7 @@ public class SQLQueryTest {
 		SqlQuery translator = new SqlQuery("select count(*) from syn123", columnNameToIdMap);
 		assertEquals("SELECT COUNT(*) FROM T123", translator.getOutputSQL());
 		assertTrue(translator.isAggregatedResult());
+		assertTrue(translator.getSelectColumnIds().isEmpty());
 	}
 	
 	@Test
@@ -103,6 +116,7 @@ public class SQLQueryTest {
 		SqlQuery translator = new SqlQuery("select avg(foo) from syn123", columnNameToIdMap);
 		assertEquals("SELECT AVG(C111) FROM T123", translator.getOutputSQL());
 		assertTrue(translator.isAggregatedResult());
+		assertTrue(translator.getSelectColumnIds().isEmpty());
 	}
 	
 	@Test
@@ -110,6 +124,7 @@ public class SQLQueryTest {
 		SqlQuery translator = new SqlQuery("select avg(foo), max(bar) from syn123", columnNameToIdMap);
 		assertEquals("SELECT AVG(C111), MAX(C333) FROM T123", translator.getOutputSQL());
 		assertTrue(translator.isAggregatedResult());
+		assertTrue(translator.getSelectColumnIds().isEmpty());
 	}
 	
 	@Test
@@ -117,6 +132,7 @@ public class SQLQueryTest {
 		SqlQuery translator = new SqlQuery("select count(distinct foo) from syn123", columnNameToIdMap);
 		assertEquals("SELECT COUNT(DISTINCT C111) FROM T123", translator.getOutputSQL());
 		assertTrue(translator.isAggregatedResult());
+		assertTrue(translator.getSelectColumnIds().isEmpty());
 	}
 	
 	@Test

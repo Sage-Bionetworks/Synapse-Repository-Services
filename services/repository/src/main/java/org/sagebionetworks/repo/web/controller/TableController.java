@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
@@ -209,6 +210,7 @@ public class TableController extends BaseController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 * @throws IOException
+	 * @throws TableUnavilableException 
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.TABLE_QUERY, method = RequestMethod.POST)
@@ -217,7 +219,7 @@ public class TableController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody Query query,
 			@RequestParam(value = "isConsistent", required = false) Boolean isConsistent)
-			throws DatastoreException, NotFoundException, IOException {
+			throws DatastoreException, NotFoundException, IOException, TableUnavilableException {
 		// By default isConsistent is true.
 		boolean isConsistentValue = true;
 		if (isConsistent != null) {

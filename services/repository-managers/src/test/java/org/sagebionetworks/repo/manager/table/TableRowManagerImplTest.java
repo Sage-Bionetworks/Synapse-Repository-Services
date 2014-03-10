@@ -1,9 +1,11 @@
 package org.sagebionetworks.repo.manager.table;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.stub;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -29,10 +31,14 @@ import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
+import org.sagebionetworks.repo.model.exception.LockUnavilableException;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.TableState;
+import org.sagebionetworks.repo.model.table.TableStatus;
+import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.SqlQuery;
@@ -81,6 +87,7 @@ public class TableRowManagerImplTest {
 		});
 		
 		manager = new TableRowManagerImpl();
+		manager.setMaxBytesPerRequest(10000000);
 		user = new UserInfo(false, 7L);
 		models = TableModelUtils.createOneOfEachType();
 		tableId = "syn123";
@@ -96,7 +103,6 @@ public class TableRowManagerImplTest {
 		
 		when(mockColumnModelDAO.getColumnModelsForObject(tableId)).thenReturn(models);
 		when(mockTableConnectionFactory.getConnection(tableId)).thenReturn(mockTableIndexDAO);
-		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(true);
 		when(mockTableIndexDAO.query(any(SqlQuery.class))).thenReturn(set);
 	
 		
@@ -132,17 +138,71 @@ public class TableRowManagerImplTest {
 	}
 	
 	@Test 
-	public void testHappyCaseIsConsistentFalse() throws Exception {
+	public void testQueryHappyCaseIsConsistentFalse() throws Exception {
+		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(true);
 		RowSet expected = new RowSet();
 		expected.setTableId(tableId);
 		when(mockTableIndexDAO.query(any(SqlQuery.class))).thenReturn(expected);
-		RowSet results = manager.query(user, "select * from "+tableId, false);
+		RowSet results = manager.query(user, "select * from "+tableId+" limit 1", false);
 		assertEquals(expected, results);
+		// The table status should not be checked for this case
+		verify(mockTableStatusDAO, never()).getTableStatus(tableId);
 	}
 	
 	@Test 
-	public void testHappyCaseIsConsistentTrueNotAvailable() throws Exception {
-		RowSet results = manager.query(user, "select * from "+tableId, true);
+	public void testQueryHappyCaseIsConsistentTrue() throws Exception {
+		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(true);
+		TableStatus status = new TableStatus();
+		status.setTableId(tableId);
+		status.setState(TableState.AVAILABLE);
+		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
+		RowSet results = manager.query(user, "select * from "+tableId+" limit 1", true);
 		assertEquals(set, results);
 	}
+	
+	/**
+	 * Test for a consistent query when the table index is not available.
+	 * @throws Exception
+	 */
+	@Test
+	public void testQueryIsConsistentTrueNotAvailable() throws Exception {
+		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(true);
+		TableStatus status = new TableStatus();
+		status.setTableId(tableId);
+		status.setState(TableState.PROCESSING);
+		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
+		try{
+			manager.query(user, "select * from "+tableId+" limit 1", true);
+			fail("should have failed");
+		}catch(TableUnavilableException e){
+			// expected
+			assertEquals(status, e.getStatus());
+		}
+	}
+	
+	/**
+	 * Test for a consistent query when the table index worker is holding a write-lock-precursor
+	 * on the index.  For this case the tryRunWithSharedLock() will throw a LockUnavilableException(),
+	 * which should then be translated into a TableUnavilableException that contains the Table's status.
+	 * @throws Exception
+	 */
+	@Test
+	public void testQueryIsConsistentTrueLockUnavilableException() throws Exception {
+		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(true);
+		// First the status is checked show available.
+		TableStatus status = new TableStatus();
+		status.setTableId(tableId);
+		status.setState(TableState.AVAILABLE);
+		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
+		// Throw a lock LockUnavilableException
+		when(mockExclusiveOrSharedSemaphoreRunner.tryRunWithSharedLock(anyString(), anyLong(), any(Callable.class))).thenThrow(new LockUnavilableException());
+		try{
+			manager.query(user, "select * from "+tableId+" limit 1", true);
+			fail("should have failed");
+		}catch(TableUnavilableException e){
+			// expected
+			assertEquals(status, e.getStatus());
+		}
+	}
+
 }

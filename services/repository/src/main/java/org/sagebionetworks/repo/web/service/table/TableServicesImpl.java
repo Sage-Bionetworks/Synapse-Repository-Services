@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -82,7 +83,7 @@ public class TableServicesImpl implements TableServices {
 	}
 
 	@Override
-	public RowSet query(Long userId, Query query, boolean isConsisitent) throws NotFoundException {
+	public RowSet query(Long userId, Query query, boolean isConsisitent) throws NotFoundException, DatastoreException, TableUnavilableException {
 		UserInfo user = userManager.getUserInfo(userId);
 		return tableRowManager.query(user, query.getSql(), isConsisitent);
 	}
