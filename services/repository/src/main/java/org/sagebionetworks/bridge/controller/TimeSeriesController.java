@@ -8,6 +8,7 @@ import org.sagebionetworks.bridge.BridgeUrlHelpers;
 import org.sagebionetworks.bridge.model.timeseries.TimeSeriesTable;
 import org.sagebionetworks.bridge.service.BridgeServiceProvider;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.ServiceConstants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -32,8 +33,9 @@ public class TimeSeriesController {
 	public @ResponseBody
 	TimeSeriesTable getTimeSeries(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) Long userId,
 			@RequestParam(value = BridgeUrlHelpers.COLUMNT_NAME, required = false) String[] columnNames,
+			@RequestParam(value = ServiceConstants.NORMALIZE_DATA, defaultValue = "false") boolean normalizeData,
 			@PathVariable String participantDataDescriptorId) throws Exception {
 		return serviceProvider.getTimeSeriesService().getTimeSeries(userId, participantDataDescriptorId,
-				columnNames == null ? null : Arrays.asList(columnNames));
+				columnNames == null ? null : Arrays.asList(columnNames), normalizeData);
 	}
 }

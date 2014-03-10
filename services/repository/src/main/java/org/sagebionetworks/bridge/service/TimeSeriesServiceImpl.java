@@ -24,9 +24,9 @@ public class TimeSeriesServiceImpl implements TimeSeriesService {
 	private ParticipantDataDescriptionManager participantDataDescriptionManager;
 
 	@Override
-	public TimeSeriesTable getTimeSeries(Long userId, String participantDataId, List<String> columnNames) throws DatastoreException,
-			NotFoundException, IOException, GeneralSecurityException {
+	public TimeSeriesTable getTimeSeries(Long userId, String participantDataId, List<String> columnNames,
+			boolean normalizeData) throws DatastoreException, NotFoundException, IOException, GeneralSecurityException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return participantDataManager.getTimeSeries(userInfo, participantDataId, columnNames);
+		return participantDataManager.getTimeSeries(userInfo, participantDataId, columnNames, normalizeData);
 	}
 }

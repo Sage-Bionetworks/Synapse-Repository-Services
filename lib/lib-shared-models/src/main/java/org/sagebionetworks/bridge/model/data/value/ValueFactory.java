@@ -67,4 +67,13 @@ public class ValueFactory {
 		eresult.setGrouping(grouping);
 		return eresult;
 	}
+	
+	public static ParticipantDataLabValue createLabValue(double value, String unit, double minNormal, double maxNormal) {
+		ParticipantDataLabValue lresult = new ParticipantDataLabValue();
+		lresult.setValue(value);
+		lresult.setUnits(unit);
+		lresult.setMinNormal(minNormal);
+		lresult.setMaxNormal(maxNormal);
+		return lresult;
+	}
 }

@@ -7,11 +7,10 @@ import org.sagebionetworks.bridge.model.data.ParticipantDataColumnDescriptor;
 import org.sagebionetworks.bridge.model.data.ParticipantDataColumnType;
 
 public class ValueTranslator {
-	public static final String LABRESULT_NORMALIZED_VALUE = "-normalizedValue";
-	public static final String LABRESULT_NORMALIZED_MIN = "-normalizedMin";
-	public static final String LABRESULT_NORMALIZED_MAX = "-normalizedMax";
+	public static final String LABRESULT_VALUE = "-value";
+	public static final String LABRESULT_MIN_NORMAL_VALUE = "-minNormal";
+	public static final String LABRESULT_MAX_NORMAL_VALUE = "-maxNormal";
 	public static final String LABRESULT_UNITS = "-units";
-	public static final String LABRESULT_ENTERED = "-entered";
 
 	public static final String EVENT_NAME = "-name";
 	public static final String EVENT_GROUPING = "-grouping";
@@ -70,16 +69,15 @@ public class ValueTranslator {
 			lresult.setValue(parseLong(lvalue));
 			return lresult;
 		case LAB:
-			String enteredValue = row.get(columnName + LABRESULT_ENTERED);
+			String enteredValue = row.get(columnName + LABRESULT_VALUE);
 			if (isEmpty(enteredValue)) {
 				return null;
 			}
 			ParticipantDataLabValue labresult = new ParticipantDataLabValue();
-			labresult.setEnteredValue(enteredValue);
+			labresult.setValue(parseDouble(enteredValue));
 			labresult.setUnits(parseString(row.get(columnName + LABRESULT_UNITS)));
-			labresult.setNormalizedMax(parseDouble(row.get(columnName + LABRESULT_NORMALIZED_MAX)));
-			labresult.setNormalizedMin(parseDouble(row.get(columnName + LABRESULT_NORMALIZED_MIN)));
-			labresult.setNormalizedValue(parseDouble(row.get(columnName + LABRESULT_NORMALIZED_VALUE)));
+			labresult.setMinNormal(parseDouble(row.get(columnName + LABRESULT_MIN_NORMAL_VALUE)));
+			labresult.setMaxNormal(parseDouble(row.get(columnName + LABRESULT_MAX_NORMAL_VALUE)));
 			return labresult;
 		case EVENT:
 			String nameValue = row.get(columnName + EVENT_NAME);
@@ -143,24 +141,20 @@ public class ValueTranslator {
 			return;
 		case LAB:
 			ParticipantDataLabValue labresult = (ParticipantDataLabValue) input;
-			if (labresult.getEnteredValue() != null) {
-				row.put(columnName + LABRESULT_ENTERED, labresult.getEnteredValue().toString());
-				columns.add(columnName + LABRESULT_ENTERED);
+			if (labresult.getValue() != null) {
+				row.put(columnName + LABRESULT_VALUE, labresult.getValue().toString());
+				columns.add(columnName + LABRESULT_VALUE);
 				if (labresult.getUnits() != null) {
 					row.put(columnName + LABRESULT_UNITS, labresult.getUnits().toString());
 					columns.add(columnName + LABRESULT_UNITS);
 				}
-				if (labresult.getNormalizedMax() != null) {
-					row.put(columnName + LABRESULT_NORMALIZED_MAX, labresult.getNormalizedMax().toString());
-					columns.add(columnName + LABRESULT_NORMALIZED_MAX);
+				if (labresult.getMaxNormal() != null) {
+					row.put(columnName + LABRESULT_MAX_NORMAL_VALUE, labresult.getMaxNormal().toString());
+					columns.add(columnName + LABRESULT_MAX_NORMAL_VALUE);
 				}
-				if (labresult.getNormalizedMin() != null) {
-					row.put(columnName + LABRESULT_NORMALIZED_MIN, labresult.getNormalizedMin().toString());
-					columns.add(columnName + LABRESULT_NORMALIZED_MIN);
-				}
-				if (labresult.getNormalizedValue() != null) {
-					row.put(columnName + LABRESULT_NORMALIZED_VALUE, labresult.getNormalizedValue().toString());
-					columns.add(columnName + LABRESULT_NORMALIZED_VALUE);
+				if (labresult.getMinNormal() != null) {
+					row.put(columnName + LABRESULT_MIN_NORMAL_VALUE, labresult.getMinNormal().toString());
+					columns.add(columnName + LABRESULT_MIN_NORMAL_VALUE);
 				}
 			}
 			return;
@@ -209,7 +203,7 @@ public class ValueTranslator {
 			return ((ParticipantDataLongValue) input).getValue();
 		}
 		if (input instanceof ParticipantDataLabValue) {
-			return ((ParticipantDataLabValue) input).getNormalizedValue();
+			return ((ParticipantDataLabValue) input).getValue();
 		}
 		if (input instanceof ParticipantDataEventValue) {
 			return ((ParticipantDataEventValue) input).getStart();
@@ -238,7 +232,7 @@ public class ValueTranslator {
 			return ((ParticipantDataLongValue) input).getValue().toString();
 		}
 		if (input instanceof ParticipantDataLabValue) {
-			return ((ParticipantDataLabValue) input).getEnteredValue() + " " + ((ParticipantDataLabValue) input).getUnits();
+			return ((ParticipantDataLabValue) input).getValue() + " " + ((ParticipantDataLabValue) input).getUnits();
 		}
 		if (input instanceof ParticipantDataEventValue) {
 			return ((ParticipantDataEventValue) input).getName();
@@ -272,7 +266,7 @@ public class ValueTranslator {
 			return ((ParticipantDataLongValue) input).getValue().doubleValue();
 		}
 		if (input instanceof ParticipantDataLabValue) {
-			return ((ParticipantDataLabValue) input).getNormalizedValue();
+			return ((ParticipantDataLabValue) input).getValue();
 		}
 		throw new IllegalArgumentException("Data value type " + input.getClass().getName() + " not handled in toDouble");
 	}
