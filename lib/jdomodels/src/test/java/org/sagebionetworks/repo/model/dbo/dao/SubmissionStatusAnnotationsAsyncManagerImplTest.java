@@ -122,11 +122,11 @@ public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 		annos.getStringAnnos().add(submitterAnno);
 		
 		// entityId
-		LongAnnotation entityIdAnno = new LongAnnotation();
+		StringAnnotation entityIdAnno = new StringAnnotation();
 		entityIdAnno.setIsPrivate(false);
 		entityIdAnno.setKey(DBOConstants.PARAM_SUBMISSION_ENTITY_ID);
-		entityIdAnno.setValue(KeyFactory.stringToKey(submission.getEntityId()));
-		annos.getLongAnnos().add(entityIdAnno);
+		entityIdAnno.setValue(submission.getEntityId());
+		annos.getStringAnnos().add(entityIdAnno);
 		
 		// entity version
 		LongAnnotation versionAnno = new LongAnnotation();
