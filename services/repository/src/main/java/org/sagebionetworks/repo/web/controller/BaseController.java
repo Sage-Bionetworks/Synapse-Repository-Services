@@ -101,13 +101,14 @@ public abstract class BaseController {
 	private static Logger log = LogManager.getLogger(BaseController.class);
 	
 	/**
-	 * When a TableUnavilableException occurs we need to communicate the table status to the caller with a 412.
+	 * When a TableUnavilableException occurs we need to communicate the table status to the caller with a 202 ACCEPTED,
+	 * indicating we accepted they call but the resource is not ready yet.
 	 * @param ex
 	 * @param request
 	 * @return
 	 */
 	@ExceptionHandler(TableUnavilableException.class)
-	@ResponseStatus(HttpStatus.PRECONDITION_FAILED)
+	@ResponseStatus(HttpStatus.ACCEPTED)
 	public @ResponseBody
 	TableStatus handleTableUnavilableException(TableUnavilableException ex, 
 			HttpServletRequest request) {

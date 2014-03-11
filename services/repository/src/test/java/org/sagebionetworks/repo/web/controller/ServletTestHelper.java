@@ -1387,7 +1387,7 @@ public class ServletTestHelper {
 		String reponseString = response.getContentAsString();
 		if(response.getStatus() == 201){
 			return EntityFactory.createEntityFromJSONString(reponseString, RowSet.class);
-		}else if(response.getStatus() == 412){
+		}else if(response.getStatus() == 202){
 			TableStatus status = EntityFactory.createEntityFromJSONString(reponseString, TableStatus.class);
 			throw new TableUnavilableException(status);
 		}else{
