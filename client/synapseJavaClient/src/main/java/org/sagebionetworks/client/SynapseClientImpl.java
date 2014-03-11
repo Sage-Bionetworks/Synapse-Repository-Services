@@ -225,6 +225,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String STATUS_SUFFIX = "?status=";
 	private static final String EVALUATION_ACL_URI_PATH = "/evaluation/acl";
 	private static final String EVALUATION_QUERY_URI_PATH = EVALUATION_URI_PATH + "/" + SUBMISSION + QUERY_URI;
+	private static final String EVALUATION_IDS_FILTER_PARAM = "evaluationIds";
 	
 	private static final String MESSAGE                    = "/message";
 	private static final String FORWARD                    = "/forward";
@@ -3923,6 +3924,36 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public PaginatedResults<Evaluation> getAvailableEvaluationsPaginated(int offset, int limit) throws SynapseException {
 		String url = AVAILABLE_EVALUATION_URI_PATH + "?" + OFFSET + "=" + offset + "&limit=" + limit;
+		JSONObject jsonObj = getEntity(url);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedResults<Evaluation> results = new PaginatedResults<Evaluation>(Evaluation.class);
+
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+	
+	private String idsToString(List<String> ids) {
+		StringBuilder sb = new StringBuilder();
+		boolean firsttime = true;
+		for (String s : ids) {
+			if (firsttime) {
+				firsttime=false;
+			} else {
+				sb.append(",");
+			}
+			sb.append(s);
+		}
+		return sb.toString();
+	}
+	
+	@Override
+	public PaginatedResults<Evaluation> getAvailableEvaluationsPaginated(int offset, int limit, List<String> evaluationIds) throws SynapseException {
+		String url = AVAILABLE_EVALUATION_URI_PATH + "?" + OFFSET + "=" + offset + "&limit=" + limit
+				+ "&"+EVALUATION_IDS_FILTER_PARAM+"="+idsToString(evaluationIds);
 		JSONObject jsonObj = getEntity(url);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
 		PaginatedResults<Evaluation> results = new PaginatedResults<Evaluation>(Evaluation.class);

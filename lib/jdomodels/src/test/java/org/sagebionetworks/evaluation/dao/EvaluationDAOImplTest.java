@@ -239,14 +239,18 @@ public class EvaluationDAOImplTest {
 		// those who have not joined do not get this result
 		long participantId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
 		pids = Arrays.asList(new Long[]{participantId,104L});
-		evalList = evaluationDAO.getAvailableInRange(pids, 10, 0);
+		evalList = evaluationDAO.getAvailableInRange(pids, 10, 0, null);
 		assertTrue(evalList.isEmpty());
-		assertEquals(0L, evaluationDAO.getAvailableCount(pids));
+		assertEquals(0L, evaluationDAO.getAvailableCount(pids, null));
 		// check that an empty principal list works too
 		pids = Arrays.asList(new Long[]{});
-		evalList = evaluationDAO.getAvailableInRange(pids, 10, 0);
+		evalList = evaluationDAO.getAvailableInRange(pids, 10, 0, null);
 		assertTrue(evalList.isEmpty());
-		assertEquals(0L, evaluationDAO.getAvailableCount(pids));
+		assertEquals(0L, evaluationDAO.getAvailableCount(pids, null));
+		// check that the filter works
+		evalList = evaluationDAO.getAvailableInRange(pids, 10, 0, Arrays.asList(new String[]{evalId}));
+		assertTrue(evalList.isEmpty());
+		assertEquals(0L, evaluationDAO.getAvailableCount(pids, Arrays.asList(new String[]{evalId})));		
 
 		// Now join the Evaluation by
 		// adding 'participantId' into the ACL with SUBMIT permission
@@ -265,15 +269,24 @@ public class EvaluationDAOImplTest {
 		
 		// As a participant, I can find:
 		pids = Arrays.asList(new Long[]{participantId,104L});
-		evalList = evaluationDAO.getAvailableInRange(pids, 10, 0);
+		evalList = evaluationDAO.getAvailableInRange(pids, 10, 0, null);
 		assertEquals(1, evalList.size());
 		assertEquals(eval, evalList.get(0));
-		assertEquals(1L, evaluationDAO.getAvailableCount(pids));
+		assertEquals(1L, evaluationDAO.getAvailableCount(pids, null));
+		// make sure filter works
+		evalList = evaluationDAO.getAvailableInRange(pids, 10, 0, Arrays.asList(new String[]{evalId}));
+		assertEquals(1, evalList.size());
+		assertEquals(eval, evalList.get(0));
+		assertEquals(1L, evaluationDAO.getAvailableCount(pids, Arrays.asList(new String[]{evalId})));
+		// filtering with 'eval 2' causes no results to come back
+		evalList = evaluationDAO.getAvailableInRange(pids, 10, 0, Arrays.asList(new String[]{evalId2}));
+		assertEquals(0, evalList.size());
+		assertEquals(0L, evaluationDAO.getAvailableCount(pids, Arrays.asList(new String[]{evalId2})));
 		// non-participants  cannot find
 		pids = Arrays.asList(new Long[]{110L,111L});
-		evalList = evaluationDAO.getAvailableInRange(pids, 10, 0);
+		evalList = evaluationDAO.getAvailableInRange(pids, 10, 0, null);
 		assertTrue(evalList.isEmpty());
-		assertEquals(0L, evaluationDAO.getAvailableCount(pids));
+		assertEquals(0L, evaluationDAO.getAvailableCount(pids, null));
 		
 		
 		// PLFM-2312 problem with repeated entries
@@ -287,10 +300,10 @@ public class EvaluationDAOImplTest {
 		pids = Arrays.asList(new Long[] {
 				participantId,
 				BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId() });
-		evalList = evaluationDAO.getAvailableInRange(pids, 10, 0);
+		evalList = evaluationDAO.getAvailableInRange(pids, 10, 0, null);
 		assertEquals(1, evalList.size());
 		assertEquals(eval, evalList.get(0));
-		assertEquals(1L, evaluationDAO.getAvailableCount(pids));
+		assertEquals(1L, evaluationDAO.getAvailableCount(pids, null));
    }
     
     @Test

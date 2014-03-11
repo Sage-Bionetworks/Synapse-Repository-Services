@@ -373,6 +373,14 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 			"' and acl."+COL_ACL_ID+"=ra."+COL_RESOURCE_ACCESS_OWNER+
 			" ORDER BY e."+COL_EVALUATION_NAME+" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 	
+	// parameters here are LIMIT, OFFSET and EVALUATION_IDS
+	private static final String SELECT_AVAILABLE_EVALUATIONS_FILTERED_PAGINATED_SUFFIX =
+			" and e."+COL_EVALUATION_ID+" in (:"+COL_EVALUATION_ID+
+			") and e."+COL_EVALUATION_ID+"=acl."+COL_ACL_OWNER_ID+
+			" and acl."+COL_ACL_OWNER_TYPE+"='"+ObjectType.EVALUATION.name()+
+			"' and acl."+COL_ACL_ID+"=ra."+COL_RESOURCE_ACCESS_OWNER+
+			" ORDER BY e."+COL_EVALUATION_NAME+" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
+	
 	private static final String SELECT_AVAILABLE_EVALUATIONS_COUNT_PREFIX =
 		"SELECT count(distinct e."+COL_EVALUATION_ID+") " + AuthorizationSqlUtil.AUTHORIZATION_SQL_FROM+", "+TABLE_EVALUATION+" e ";
 
@@ -381,12 +389,18 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 			" and acl."+COL_ACL_OWNER_TYPE+"='"+ObjectType.EVALUATION.name()+
 			"' and acl."+COL_ACL_ID+"=ra."+COL_RESOURCE_ACCESS_OWNER;
 
+	private static final String SELECT_AVAILABLE_EVALUATIONS_FILTERED_COUNT_SUFFIX =
+			" and e."+COL_EVALUATION_ID+" in (:"+COL_EVALUATION_ID+
+			") and e."+COL_EVALUATION_ID+"=acl."+COL_ACL_OWNER_ID+
+			" and acl."+COL_ACL_OWNER_TYPE+"='"+ObjectType.EVALUATION.name()+
+			"' and acl."+COL_ACL_ID+"=ra."+COL_RESOURCE_ACCESS_OWNER;
+
 	/**
 	 * return the evaluations in which the user (given as a list of principal Ids)
 	 * is either the owner or is a participant
 	 */
 	@Override
-	public List<Evaluation> getAvailableInRange(List<Long> principalIds, long limit, long offset) throws DatastoreException {
+	public List<Evaluation> getAvailableInRange(List<Long> principalIds, long limit, long offset, List<String> evaluationIds) throws DatastoreException {
 		if (principalIds.isEmpty()) return new ArrayList<Evaluation>(); // SQL breaks down if list is empty
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		// parameters here are 
@@ -401,7 +415,12 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		param.addValue(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, ObjectType.EVALUATION.name());
 		StringBuilder sql = new StringBuilder(SELECT_AVAILABLE_EVALUATIONS_PAGINATED_PREFIX);
 		sql.append(AuthorizationSqlUtil.authorizationSQLWhere(principalIds.size()));
-		sql.append(SELECT_AVAILABLE_EVALUATIONS_PAGINATED_SUFFIX);
+		if (evaluationIds==null || evaluationIds.isEmpty()) {
+			sql.append(SELECT_AVAILABLE_EVALUATIONS_PAGINATED_SUFFIX);
+		} else {
+			param.addValue(COL_EVALUATION_ID, evaluationIds);
+			sql.append(SELECT_AVAILABLE_EVALUATIONS_FILTERED_PAGINATED_SUFFIX);
+		}
 
 		List<EvaluationDBO> dbos = simpleJdbcTemplate.query(sql.toString(), rowMapper, param);
 		List<Evaluation> dtos = new ArrayList<Evaluation>();
@@ -410,7 +429,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	}
 
 	@Override
-	public long getAvailableCount(List<Long> principalIds) throws DatastoreException {
+	public long getAvailableCount(List<Long> principalIds, List<String> evaluationIds) throws DatastoreException {
 		if (principalIds.isEmpty()) return 0L; // SQL breaks down if list is empty
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		// parameters here are 
@@ -423,7 +442,12 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		param.addValue(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, ObjectType.EVALUATION.name());
 		StringBuilder sql = new StringBuilder(SELECT_AVAILABLE_EVALUATIONS_COUNT_PREFIX);
 		sql.append(AuthorizationSqlUtil.authorizationSQLWhere(principalIds.size())); 
-		sql.append(SELECT_AVAILABLE_EVALUATIONS_COUNT_SUFFIX);
+		if (evaluationIds==null || evaluationIds.isEmpty()) {
+			sql.append(SELECT_AVAILABLE_EVALUATIONS_COUNT_SUFFIX);
+		} else {
+			param.addValue(COL_EVALUATION_ID, evaluationIds);
+			sql.append(SELECT_AVAILABLE_EVALUATIONS_FILTERED_COUNT_SUFFIX);
+		}
 		return simpleJdbcTemplate.queryForLong(sql.toString(), param);
 	}
 

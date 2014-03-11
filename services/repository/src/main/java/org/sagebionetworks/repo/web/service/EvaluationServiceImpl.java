@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.web.service;
 
 import java.net.URL;
+import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -113,16 +114,17 @@ public class EvaluationServiceImpl implements EvaluationService {
 	 * @param userId the userId (email address) of the user making the request
 	 * @param limit
 	 * @param offset
+	 * @param evaluationIds
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
 	@Override
 	public PaginatedResults<Evaluation> getAvailableEvaluationsInRange(
-			Long userId, long limit, long offset, HttpServletRequest request) 
+			Long userId, long limit, long offset, List<String> evaluationIds, HttpServletRequest request) 
 			throws DatastoreException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		QueryResults<Evaluation> res = evaluationManager.getAvailableInRange(userInfo, limit, offset);
+		QueryResults<Evaluation> res = evaluationManager.getAvailableInRange(userInfo, limit, offset, evaluationIds);
 		return new PaginatedResults<Evaluation>(
 				request.getServletPath() + UrlHelpers.EVALUATION_AVAILABLE,
 				res.getResults(),

@@ -1,5 +1,7 @@
 package org.sagebionetworks.evaluation.manager;
 
+import java.util.List;
+
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -39,7 +41,7 @@ public interface EvaluationManager {
 	/**
 	 * Get a collection of Evaluations to the user may SUBMIT, within a given range
 	 */
-	public QueryResults<Evaluation> getAvailableInRange(UserInfo userInfo, long limit, long offset) 
+	public QueryResults<Evaluation> getAvailableInRange(UserInfo userInfo, long limit, long offset, List<String> evaluationIds) 
 			throws DatastoreException, NotFoundException;
 
 	/**

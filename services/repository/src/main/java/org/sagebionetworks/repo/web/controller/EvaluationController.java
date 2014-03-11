@@ -4,6 +4,9 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.net.URLDecoder;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -28,7 +31,6 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.query.QueryTableResults;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.util.ControllerUtil;
-import org.sagebionetworks.repo.util.QueryTranslator;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
@@ -243,6 +245,7 @@ public class EvaluationController extends BaseController {
 	 *            page. When null it will default to 10.
 	 * @param userId
 	 * @param request
+	 * @param evaluationIds an optional, comma-delimited list of evaluation IDs to which the response is limited
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
@@ -251,13 +254,20 @@ public class EvaluationController extends BaseController {
 	@RequestMapping(value = UrlHelpers.EVALUATION_AVAILABLE, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<Evaluation> getAvailableEvaluationsPaginated(
+			@RequestParam(value = ServiceConstants.EVALUATION_IDS_PARAM, required = false) String evaluationIds,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			HttpServletRequest request
 			) throws DatastoreException, NotFoundException
 	{
-		return serviceProvider.getEvaluationService().getAvailableEvaluationsInRange(userId, limit, offset, request);
+		List<String> evalIds =null;
+		if (evaluationIds==null) {
+			evalIds = new ArrayList<String>();
+		} else {
+			evalIds = Arrays.asList(evaluationIds.split(ServiceConstants.BATCH_PARAM_VALUE_SEPARATOR));
+		}
+		return serviceProvider.getEvaluationService().getAvailableEvaluationsInRange(userId, limit, offset, evalIds, request);
 	}	
 	
 	/**
