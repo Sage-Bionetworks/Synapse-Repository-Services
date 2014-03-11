@@ -31,9 +31,11 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ResourceAccess;
@@ -77,6 +79,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 	private List<String> evalsToDelete;
 	private List<String> nodesToDelete;
 	private List<String> accessRestrictionsToDelete;
+	private AccessRequirement accessRequirementToDelete;
 
 	@Before
 	public void before() throws Exception {
@@ -87,10 +90,14 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		evalsToDelete = new ArrayList<String>();
 		nodesToDelete = new ArrayList<String>();
 		accessRestrictionsToDelete = new ArrayList<String>();
+		accessRequirementToDelete = null;
 	}
 
 	@After
 	public void after() throws Exception {
+		if (accessRequirementToDelete!=null) {
+			accessRequirementDAO.delete(accessRequirementToDelete.getId().toString());
+		}
 		for (String id : aclsToDelete) {
 			aclDAO.delete(id);
 		}
@@ -431,6 +438,64 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 	}
 
 	@Test
+	public void testCanSubmit() throws Exception {
+
+		String nodeName = "EvaluationPermissionsManagerImplAutowiredTest.testCanSubmit";
+		String nodeId = createNode(nodeName, EntityType.project, adminUserInfo);
+		String evalName = nodeName;
+		String evalId = createEval(evalName, nodeId, adminUserInfo);
+		AccessControlList acl = evaluationPermissionsManager.getAcl(adminUserInfo, evalId);
+		assertNotNull(acl);
+
+		// Admin can SUBMIT but user cannot
+		assertTrue(evaluationPermissionsManager.hasAccess(adminUserInfo, evalId, ACCESS_TYPE.SUBMIT));
+		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.SUBMIT));
+
+		// Update the ACL to add ('user', SUBMIT)
+		Long principalId = Long.parseLong(userInfo.getIndividualGroup().getId());
+		Set<ResourceAccess> raSet = new HashSet<ResourceAccess>();
+		ResourceAccess ra = new ResourceAccess();
+		ra.setPrincipalId(principalId);
+		Set<ACCESS_TYPE> accessType = new HashSet<ACCESS_TYPE>();
+		accessType.add(ACCESS_TYPE.SUBMIT);
+		ra.setAccessType(accessType);
+		raSet.add(ra);
+		acl.setResourceAccess(raSet);
+		acl = evaluationPermissionsManager.updateAcl(adminUserInfo, acl);
+		assertNotNull(acl);
+		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.SUBMIT));
+
+		// Now if we have unmet requirements, adding just the ACL is not enough
+		accessRequirementToDelete = newSubmitAccessRequirement(userInfo.getIndividualGroup().getId(), evalId);
+		accessRequirementToDelete = accessRequirementDAO.create(accessRequirementToDelete);
+
+		assertFalse(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.SUBMIT));
+	}
+	
+	public static TermsOfUseAccessRequirement newSubmitAccessRequirement(String creatorPrincipalId, String evaluationId) throws DatastoreException {
+		TermsOfUseAccessRequirement accessRequirement = new TermsOfUseAccessRequirement();
+		accessRequirement.setCreatedBy(creatorPrincipalId);
+		accessRequirement.setCreatedOn(new Date());
+		accessRequirement.setModifiedBy(creatorPrincipalId);
+		accessRequirement.setModifiedOn(new Date());
+		accessRequirement.setAccessType(ACCESS_TYPE.SUBMIT);
+		RestrictableObjectDescriptor erod = createRestrictableObjectDescriptor(evaluationId, RestrictableObjectType.EVALUATION);
+		accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{erod}));
+		accessRequirement.setEntityType("com.sagebionetworks.repo.model.TermsOfUseAccessRequirement");
+		accessRequirement.setTermsOfUse("foo");
+		return accessRequirement;
+	}
+	
+	public static RestrictableObjectDescriptor createRestrictableObjectDescriptor(String id, RestrictableObjectType type) {
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId(id);
+		rod.setType(type);
+		return rod;
+	}
+
+
+
+	@Test
 	public void testCanParticipate() throws Exception {
 
 		String nodeName = "EvaluationPermissionsManagerImplAutowiredTest.testCanParticipate";
@@ -459,12 +524,9 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		assertTrue(evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.PARTICIPATE));
 
 		// Now if we have unmet requirements, adding just the ACL is not enough
-		List<ACCESS_TYPE> participateAndDownload = new ArrayList<ACCESS_TYPE>();
-		participateAndDownload.add(ACCESS_TYPE.DOWNLOAD);
-		participateAndDownload.add(ACCESS_TYPE.PARTICIPATE);
 		AccessRequirementDAO mockAccessRequirementDao = mock(AccessRequirementDAO.class);
 		when(mockAccessRequirementDao.unmetAccessRequirements(
-				any(RestrictableObjectDescriptor.class), any(Collection.class), eq(participateAndDownload))).
+				any(RestrictableObjectDescriptor.class), any(Collection.class), any(List.class))).
 				thenReturn(Arrays.asList(new Long[]{101L}));
 		AccessRequirementDAO original = (AccessRequirementDAO) ReflectionTestUtils.getField(evaluationPermissionsManager, "accessRequirementDAO");
 		ReflectionTestUtils.setField(evaluationPermissionsManager, "accessRequirementDAO", mockAccessRequirementDao);
