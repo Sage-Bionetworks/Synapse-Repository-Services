@@ -740,4 +740,17 @@ public class TableModelUtils {
 		}
 		return map;
 	}
+	
+	/**
+	 * Map column Id to column Models.
+	 * @param columns
+	 * @return
+	 */
+	public static Map<Long, ColumnModel> createIDtoColumnModelMap(List<ColumnModel> columns){
+		HashMap<Long, ColumnModel>  map = new HashMap<Long, ColumnModel> ();
+		for(ColumnModel cm: columns){
+			map.put(Long.parseLong(cm.getId()), cm);
+		}
+		return map;
+	}
 }
