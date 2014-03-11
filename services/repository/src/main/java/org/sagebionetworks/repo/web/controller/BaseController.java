@@ -21,6 +21,8 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.TooManyRequestsException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.table.TableStatus;
+import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
@@ -97,6 +99,20 @@ public abstract class BaseController {
 
 	static final String SERVICE_TEMPORARILY_UNAVAIABLE_PLEASE_TRY_AGAIN_LATER = "Service temporarily unavailable, please try again later.";
 	private static Logger log = LogManager.getLogger(BaseController.class);
+	
+	/**
+	 * When a TableUnavilableException occurs we need to communicate the table status to the caller with a 412.
+	 * @param ex
+	 * @param request
+	 * @return
+	 */
+	@ExceptionHandler(TableUnavilableException.class)
+	@ResponseStatus(HttpStatus.PRECONDITION_FAILED)
+	public @ResponseBody
+	TableStatus handleTableUnavilableException(TableUnavilableException ex, 
+			HttpServletRequest request) {
+		return ex.getStatus();
+	}
 	
 	@ExceptionHandler(MissingServletRequestParameterException.class)
 	@ResponseStatus(HttpStatus.BAD_REQUEST)

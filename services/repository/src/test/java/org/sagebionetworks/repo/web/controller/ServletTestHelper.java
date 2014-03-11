@@ -66,8 +66,11 @@ import org.sagebionetworks.repo.model.storage.StorageUsage;
 import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
+import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.TableStatus;
+import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -1371,6 +1374,26 @@ public class ServletTestHelper {
 		PaginatedColumnModels pcm = ServletTestHelperUtils.readResponse(
 				response, PaginatedColumnModels.class);
 		return pcm.getResults();
+	}
+	
+	public static RowSet tableQuery(
+			DispatcherServlet instance, Long userId, Query query)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, UrlHelpers.TABLE_QUERY, userId, query);
+		
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		instance.service(request, response);
+		String reponseString = response.getContentAsString();
+		if(response.getStatus() == 201){
+			return EntityFactory.createEntityFromJSONString(reponseString, RowSet.class);
+		}else if(response.getStatus() == 412){
+			TableStatus status = EntityFactory.createEntityFromJSONString(reponseString, TableStatus.class);
+			throw new TableUnavilableException(status);
+		}else{
+			ServletTestHelperUtils.handleException(response.getStatus(), response.getContentAsString());
+			return null;
+		}
 	}
 
 	/**
