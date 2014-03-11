@@ -1287,6 +1287,15 @@ public class StackConfiguration {
 		return Long.parseLong(configuration
 				.getProperty("org.sagebionetworks.table.worker.timeout.ms"));
 	}
+	
+	/**
+	 * The maxiumn amount of time in MS that a table reader can hold a read lock on a table.
+	 * @return
+	 */
+	public long getTableReadTimeoutMS() {
+		return Long.parseLong(configuration
+				.getProperty("org.sagebionetworks.table.read.timeout.ms"));
+	}
 
 	/**
 	 * Get the name of the audit record bucket.

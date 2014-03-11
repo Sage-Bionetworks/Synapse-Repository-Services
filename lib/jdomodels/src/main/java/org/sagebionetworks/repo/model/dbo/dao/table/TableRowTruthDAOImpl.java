@@ -94,7 +94,6 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	private AmazonS3Client s3Client;
 
 	private String s3Bucket;
-	private int maxBytesPerRequest;
 
 	RowMapper<DBOTableIdSequence> sequenceRowMapper = new DBOTableIdSequence()
 			.getTableMapping();
@@ -167,8 +166,6 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			List<ColumnModel> models, RowSet delta) throws IOException {
 		// Now set the row version numbers and ID.
 		int coutToReserver = TableModelUtils.countEmptyOrInvalidRowIds(delta);
-		// Validate the request is under the max bytes per requested
-		validateRequestSize(models, delta.getRows().size());
 		// Reserver IDs for the missing
 		IdRange range = reserveIdsInRange(tableId, coutToReserver);
 		// Validate that this update does not contain any row level conflicts.
@@ -209,12 +206,6 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		return results;
 	}
 
-	private void validateRequestSize(List<ColumnModel> models, int rowCount){
-		// Validate the request is under the max bytes per requested
-		if(!TableModelUtils.isRequestWithinMaxBytePerRequest(models, rowCount, this.maxBytesPerRequest)){
-			throw new IllegalArgumentException("Request exceed the maximum number of bytes per request.  Maximum : "+this.maxBytesPerRequest+" bytes");
-		}
-	}
 	/**
 	 * Check for a row level conflicts in the passed change sets, by scanning
 	 * each row of each change set and looking for the intersection with the
@@ -517,8 +508,6 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	@Override
 	public RowSet getRowSet(RowReferenceSet ref, List<ColumnModel> restultForm)
 			throws IOException, NotFoundException {
-		// Validate the request is under the max bytes per requested
-		validateRequestSize(restultForm, ref.getRows().size());
 		// Get all of the data in the raw form.
 		List<RowSet> allSets = getRowSetOriginals(ref);
 		// Convert and merge all data into the requested form
@@ -537,24 +526,6 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	 */
 	public void setS3Bucket(String s3Bucket) {
 		this.s3Bucket = s3Bucket;
-	}
-
-	/**
-	 * Get the maximum number of bytes per request.
-	 * @return
-	 */
-	@Override
-	public int getMaxBytesPerRequest() {
-		return maxBytesPerRequest;
-	}
-
-	/**
-	 * IoC.
-	 * 
-	 * @param maxBytesPerRequest
-	 */
-	public void setMaxBytesPerRequest(int maxBytesPerRequest) {
-		this.maxBytesPerRequest = maxBytesPerRequest;
 	}
 
 }

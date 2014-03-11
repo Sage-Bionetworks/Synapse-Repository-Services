@@ -1,7 +1,10 @@
 package org.sagebionetworks.table.cluster;
 
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 
+import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.table.query.model.ActualIdentifier;
 import org.sagebionetworks.table.query.model.BetweenPredicate;
 import org.sagebionetworks.table.query.model.BooleanFactor;
@@ -45,6 +48,8 @@ import org.sagebionetworks.table.query.model.UnsignedValueSpecification;
 import org.sagebionetworks.table.query.model.ValueExpression;
 import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
 import org.sagebionetworks.table.query.model.WhereClause;
+
+import com.google.inject.internal.LinkedBindingImpl;
 
 /**
  * Helper methods to translate table SQL queries.
@@ -850,5 +855,35 @@ public class SQLTranslatorUtils {
 		if(unsignedLiteral.getGeneralLiteral() != null) return unsignedLiteral.getGeneralLiteral();
 		if(unsignedLiteral.getUnsignedNumericLiteral() != null) return unsignedLiteral.getUnsignedNumericLiteral();
 		throw new IllegalArgumentException("UnsignedLiteral must have either a GeneralLiteral or UnsignedNumericLiteral");
+	}
+	
+	/**
+	 * Get the list of column IDs that are referenced in the select calsue.
+	 * 
+	 * @param allColumns
+	 * @param selectList
+	 * @return
+	 */
+	public static List<Long> getSelectColumns(SelectList selectList, Map<String, Long> columnNameToIdMap){
+		if(columnNameToIdMap == null) throw new IllegalArgumentException("All columns cannot be null");
+		if(selectList == null) throw new IllegalArgumentException();
+		List<Long> selectIds = new LinkedList<Long>();
+		if(selectList.getAsterisk() != null){
+			// All of the columns will be returned.
+			selectIds.addAll(columnNameToIdMap.values());
+			return selectIds;
+		}else{
+			for(DerivedColumn dc: selectList.getColumns()){
+				ValueExpressionPrimary primary = getValueExpressionPrimary(dc.getValueExpression());
+				if(primary.getColumnReference() != null){
+					String key = getStringValueOf(primary.getColumnReference().getNameLHS());
+					Long id = columnNameToIdMap.get(key);
+					if(id != null){
+						selectIds.add(id);
+					}
+				}
+			}
+			return selectIds;
+		}
 	}
 }

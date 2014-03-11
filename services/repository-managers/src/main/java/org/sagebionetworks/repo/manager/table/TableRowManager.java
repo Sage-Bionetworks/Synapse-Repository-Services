@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableStatus;
+import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -194,5 +195,17 @@ public interface TableRowManager {
 	public void attemptToUpdateTableProgress(String tableId, String resetToken,
 			String progressMessage, Long currentProgress, Long totalProgress)
 			throws ConflictingUpdateException, NotFoundException;
+
+	/**
+	 * 
+	 * @param user
+	 * @param sql
+	 * @param isConsistant
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 * @throws TableUnavilableException 
+	 */
+	public RowSet query(UserInfo user, String sql, boolean isConsistant) throws DatastoreException, NotFoundException, TableUnavilableException;
 
 }

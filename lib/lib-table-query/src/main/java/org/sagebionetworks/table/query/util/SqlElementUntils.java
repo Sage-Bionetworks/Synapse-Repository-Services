@@ -14,6 +14,7 @@ import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.ComparisonPredicate;
 import org.sagebionetworks.table.query.model.DerivedColumn;
 import org.sagebionetworks.table.query.model.EscapeCharacter;
+import org.sagebionetworks.table.query.model.FromClause;
 import org.sagebionetworks.table.query.model.GroupingColumnReference;
 import org.sagebionetworks.table.query.model.GroupingColumnReferenceList;
 import org.sagebionetworks.table.query.model.InPredicate;
@@ -23,6 +24,7 @@ import org.sagebionetworks.table.query.model.MatchValue;
 import org.sagebionetworks.table.query.model.NullPredicate;
 import org.sagebionetworks.table.query.model.Pattern;
 import org.sagebionetworks.table.query.model.Predicate;
+import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.model.RowValueConstructor;
 import org.sagebionetworks.table.query.model.RowValueConstructorElement;
 import org.sagebionetworks.table.query.model.RowValueConstructorList;
@@ -32,6 +34,7 @@ import org.sagebionetworks.table.query.model.SortKey;
 import org.sagebionetworks.table.query.model.SortSpecification;
 import org.sagebionetworks.table.query.model.SortSpecificationList;
 import org.sagebionetworks.table.query.model.TableExpression;
+import org.sagebionetworks.table.query.model.TableReference;
 import org.sagebionetworks.table.query.model.ValueExpression;
 
 /**
@@ -423,5 +426,45 @@ public class SqlElementUntils {
 	public static SortSpecificationList createSortSpecificationList(String sql) throws ParseException {
 		return new TableQueryParser(sql).sortSpecificationList();
 	}
+	
+	/**
+	 * Get the tableId from a QuerySpecification 
+	 * @param model
+	 * @return
+	 */
+	public static String getTableId(QuerySpecification querySpecification){
+		if(querySpecification == null) throw new IllegalArgumentException("QuerySpecification cannot be null");
+		return getTableId(querySpecification.getTableExpression());
+	}
 
+	/**
+	 * Get the tableId from a TableExpression
+	 * @param tableExpression
+	 * @return
+	 */
+	public static String getTableId(TableExpression tableExpression) {
+		if(tableExpression == null) throw new IllegalArgumentException("TableExpression cannot be null");
+		return getTableId(tableExpression.getFromClause());
+	}
+
+	/**
+	 * Get the tableId from a FromClause
+	 * @param fromClause
+	 * @return
+	 */
+	public static String getTableId(FromClause fromClause) {
+		if(fromClause == null) throw new IllegalArgumentException("FromClause cannot be null");
+		return getTableId(fromClause.getTableReference());
+	}
+
+	/**
+	  * Get the tableId from a TableReference
+	 * @param tableReference
+	 * @return
+	 */
+	public static String getTableId(TableReference tableReference) {
+		if(tableReference == null) throw new IllegalArgumentException("TableReference cannot be null");
+		return "syn"+tableReference.getTableName();
+	}
+	
 }

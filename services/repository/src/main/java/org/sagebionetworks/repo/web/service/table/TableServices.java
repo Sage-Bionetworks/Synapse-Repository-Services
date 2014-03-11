@@ -5,8 +5,10 @@ import java.io.IOException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
+import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -72,5 +74,16 @@ public interface TableServices {
 	 * @throws IOException 
 	 */
 	public RowReferenceSet appendRows(Long userId, RowSet rows) throws DatastoreException, NotFoundException, IOException;
+
+	/**
+	 * Run a query for a user.
+	 * @param userId
+	 * @param query
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws TableUnavilableException 
+	 * @throws DatastoreException 
+	 */
+	public RowSet query(Long userId, Query query, boolean isConsistent) throws NotFoundException, DatastoreException, TableUnavilableException;
 	
 }
