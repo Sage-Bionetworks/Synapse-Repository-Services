@@ -190,9 +190,9 @@ public class TableWorker implements Callable<List<Message>> {
 				return State.RECOVERABLE_FAILURE;
 			}
 			// This method will do the rest of the work.
-			synchIndexWithTable(indexDAO, tableId, tableResetToken);
+			String lastEtag = synchIndexWithTable(indexDAO, tableId, tableResetToken);
 			// We are finished set the status
-			tableRowManager.attemptToSetTableStatusToAvailable(tableId,	tableResetToken);
+			tableRowManager.attemptToSetTableStatusToAvailable(tableId,	tableResetToken, lastEtag);
 			return State.SUCCESS;
 		} catch (Exception e) {
 			// Failed.
@@ -220,7 +220,7 @@ public class TableWorker implements Callable<List<Message>> {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
-	void synchIndexWithTable(TableIndexDAO indexDao,
+	String synchIndexWithTable(TableIndexDAO indexDao,
 			String tableId, String resetToken) throws DatastoreException, NotFoundException,
 			IOException {
 		tableRowManager.attemptToUpdateTableProgress(tableId, resetToken, "Starting ", 0L, 100L);
@@ -239,6 +239,7 @@ public class TableWorker implements Callable<List<Message>> {
 				.listRowSetsKeysForTable(tableId);
 		// Apply any change that has a version number greater than the max
 		// version already in the index
+		String lastEtag = null;
 		if (changes != null) {
 			for (TableRowChange change : changes) {
 				if (change.getRowVersion() > maxVersion) {
@@ -249,8 +250,10 @@ public class TableWorker implements Callable<List<Message>> {
 					tableRowManager.attemptToUpdateTableProgress(tableId, resetToken, "Applying rows "+rowSet.getRows().size()+" to version: "+change.getRowVersion(), 0L, 100L);
 					// apply the change to the table
 					indexDao.createOrUpdateRows(rowSet,	currentSchema);
+					lastEtag = change.getEtag();
 				}
 			}
 		}
+		return lastEtag;
 	}
 }

@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.table;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
@@ -12,7 +13,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 
 import org.junit.Before;
@@ -33,6 +37,7 @@ import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.exception.LockUnavilableException;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
@@ -43,6 +48,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
+import org.sagebionetworks.table.query.ParseException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class TableRowManagerImplTest {
@@ -134,7 +140,7 @@ public class TableRowManagerImplTest {
 	@Test (expected = UnauthorizedException.class)
 	public void testQueryUnauthroized() throws Exception {
 		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(false);
-		manager.query(user, "select * from "+tableId, true);
+		manager.query(user, "select * from "+tableId, true, false);
 	}
 	
 	@Test 
@@ -143,7 +149,9 @@ public class TableRowManagerImplTest {
 		RowSet expected = new RowSet();
 		expected.setTableId(tableId);
 		when(mockTableIndexDAO.query(any(SqlQuery.class))).thenReturn(expected);
-		RowSet results = manager.query(user, "select * from "+tableId+" limit 1", false);
+		RowSet results = manager.query(user, "select * from "+tableId+" limit 1", false, false);
+		// The etag should be null for this case
+		assertEquals("The etag must be null for non-consistent query results.  These results cannot be used for a table update.", null, results.getEtag());
 		assertEquals(expected, results);
 		// The table status should not be checked for this case
 		verify(mockTableStatusDAO, never()).getTableStatus(tableId);
@@ -155,8 +163,11 @@ public class TableRowManagerImplTest {
 		TableStatus status = new TableStatus();
 		status.setTableId(tableId);
 		status.setState(TableState.AVAILABLE);
+		status.setLastTableChangeEtag(UUID.randomUUID().toString());
 		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
-		RowSet results = manager.query(user, "select * from "+tableId+" limit 1", true);
+		RowSet results = manager.query(user, "select * from "+tableId+" limit 1", true, false);
+		// The etag should be set
+		assertEquals(status.getLastTableChangeEtag(), results.getEtag());
 		assertEquals(set, results);
 	}
 	
@@ -172,7 +183,7 @@ public class TableRowManagerImplTest {
 		status.setState(TableState.PROCESSING);
 		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
 		try{
-			manager.query(user, "select * from "+tableId+" limit 1", true);
+			manager.query(user, "select * from "+tableId+" limit 1", true, false);
 			fail("should have failed");
 		}catch(TableUnavilableException e){
 			// expected
@@ -197,11 +208,99 @@ public class TableRowManagerImplTest {
 		// Throw a lock LockUnavilableException
 		when(mockExclusiveOrSharedSemaphoreRunner.tryRunWithSharedLock(anyString(), anyLong(), any(Callable.class))).thenThrow(new LockUnavilableException());
 		try{
-			manager.query(user, "select * from "+tableId+" limit 1", true);
+			manager.query(user, "select * from "+tableId+" limit 1", true, false);
 			fail("should have failed");
 		}catch(TableUnavilableException e){
 			// expected
 			assertEquals(status, e.getStatus());
+		}
+	}
+	
+	@Test
+	public void testValidateQuerySizeAggregation() throws ParseException{
+		ColumnModel foo = new ColumnModel();
+		foo.setColumnType(ColumnType.LONG);
+		foo.setId("111");
+		foo.setName("foo");
+		ColumnModel bar = new ColumnModel();
+		bar.setColumnType(ColumnType.STRING);
+		bar.setId("222");
+		bar.setName("bar");
+		List<ColumnModel> models = Arrays.asList(foo, bar);
+		Map<String, Long> nameToIdMap = TableModelUtils.createColumnNameToIdMap(models);
+		SqlQuery query = new SqlQuery("select count(foo) from syn123", nameToIdMap);
+		
+		// Aggregate queries are always small enough to run. 
+		TableRowManagerImpl.validateQuerySize(query, models, 1);
+	}
+	
+	@Test
+	public void testValidateQuerySizeMissingLimit() throws ParseException{
+		ColumnModel foo = new ColumnModel();
+		foo.setColumnType(ColumnType.LONG);
+		foo.setId("111");
+		foo.setName("foo");
+		ColumnModel bar = new ColumnModel();
+		bar.setColumnType(ColumnType.STRING);
+		bar.setId("222");
+		bar.setName("bar");
+		List<ColumnModel> models = Arrays.asList(foo, bar);
+		Map<String, Long> nameToIdMap = TableModelUtils.createColumnNameToIdMap(models);
+		SqlQuery query = new SqlQuery("select foo, bar from syn123", nameToIdMap);
+		
+		int maxBytesPerRow = TableModelUtils.calculateMaxRowSize(models);
+		try{
+			TableRowManagerImpl.validateQuerySize(query, models, maxBytesPerRow*1000);
+			fail("There is no limit on this query so it should have failed.");
+		}catch (IllegalArgumentException e){
+			// expected
+			assertTrue(e.getMessage().contains("LIMIT"));
+		}
+	}
+	
+	@Test
+	public void testValidateQuerySizeUnderLimit() throws ParseException{
+		ColumnModel foo = new ColumnModel();
+		foo.setColumnType(ColumnType.LONG);
+		foo.setId("111");
+		foo.setName("foo");
+		ColumnModel bar = new ColumnModel();
+		bar.setColumnType(ColumnType.STRING);
+		bar.setId("222");
+		bar.setName("bar");
+		List<ColumnModel> models = Arrays.asList(foo, bar);
+		Map<String, Long> nameToIdMap = TableModelUtils.createColumnNameToIdMap(models);
+		SqlQuery query = new SqlQuery("select foo, bar from syn123 limit 2", nameToIdMap);
+		
+		int maxBytesPerRow = TableModelUtils.calculateMaxRowSize(models);
+		// this is under the limit
+		TableRowManagerImpl.validateQuerySize(query, models, maxBytesPerRow*2+1);
+	}
+	
+	@Test 
+	public void testValidateQuerySizeOverLimit() throws ParseException{
+		ColumnModel foo = new ColumnModel();
+		foo.setColumnType(ColumnType.LONG);
+		foo.setId("111");
+		foo.setName("foo");
+		ColumnModel bar = new ColumnModel();
+		bar.setColumnType(ColumnType.STRING);
+		bar.setId("222");
+		bar.setName("bar");
+		List<ColumnModel> models = Arrays.asList(foo, bar);
+		Map<String, Long> nameToIdMap = TableModelUtils.createColumnNameToIdMap(models);
+		SqlQuery query = new SqlQuery("select foo, bar from syn123 limit 2", nameToIdMap);
+		
+		int maxBytesPerRow = TableModelUtils.calculateMaxRowSize(models);
+		// Set too small for this query
+		int testMaxBytesPerRow = maxBytesPerRow*2-1;
+		// this is under the limit
+		try{
+			TableRowManagerImpl.validateQuerySize(query, models, testMaxBytesPerRow);
+			fail("There is no limit on this query so it should have failed.");
+		}catch (IllegalArgumentException e){
+			// expected
+			assertTrue(e.getMessage().contains(""+testMaxBytesPerRow));
 		}
 	}
 

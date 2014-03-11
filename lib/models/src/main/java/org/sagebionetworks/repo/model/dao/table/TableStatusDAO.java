@@ -30,6 +30,7 @@ public interface TableStatusDAO {
 	 * 
 	 * @param tableId
 	 * @param resetToken
+	 * @param tableChangeEtag The etag of the last table change processed.
 	 * @return
 	 * @throws ConflictingUpdateException
 	 *             Thrown when the passed restToken does not match the current
@@ -39,7 +40,7 @@ public interface TableStatusDAO {
 	 * @throws NotFoundException
 	 */
 	public void attemptToSetTableStatusToAvailable(String tableId,
-			String resetToken) throws ConflictingUpdateException,
+			String resetToken, String tableChangeEtag) throws ConflictingUpdateException,
 			NotFoundException;
 
 	/**
