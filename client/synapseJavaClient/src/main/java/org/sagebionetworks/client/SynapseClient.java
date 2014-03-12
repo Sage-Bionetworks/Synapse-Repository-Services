@@ -823,6 +823,17 @@ public interface SynapseClient extends BaseClient {
 	public PaginatedResults<Evaluation> getAvailableEvaluationsPaginated(int offset, int limit)
 			throws SynapseException;
 
+	/**
+	 * 
+	 * @param offset
+	 * @param limit
+	 * @param evaluationIds list of evaluation IDs within which to filter the results
+	 * @return
+	 * @throws SynapseException
+	 */
+	public PaginatedResults<Evaluation> getAvailableEvaluationsPaginated(int offset, int limit, List<String> evaluationIds)
+			throws SynapseException;
+
 	public Long getEvaluationCount() throws SynapseException;
 
 	public Evaluation findEvaluation(String name) throws SynapseException,

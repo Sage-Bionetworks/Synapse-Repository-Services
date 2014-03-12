@@ -42,9 +42,10 @@ public interface EvaluationDAO {
 	public List<Evaluation> getInRange(long limit, long offset) throws DatastoreException, NotFoundException;
 
 	/**
-	 * @return the Evaluations that any of the given principalIds may participate in
+	 * @return the Evaluations that any of the given principalIds may participate in, optionally filtered by a 
+	 * given list of Evaluations
 	 */
-	public List<Evaluation> getAvailableInRange(List<Long> principalIds, long limit, long offset) throws DatastoreException;
+	public List<Evaluation> getAvailableInRange(List<Long> principalIds, long limit, long offset, List<Long> evaluationIds) throws DatastoreException;
 
 	/**
 	 * Get all Evaluations, in a given range, filtered by EvaluationStatus.
@@ -61,7 +62,7 @@ public interface EvaluationDAO {
 	 */
 	public long getCountByContentSource(String id) throws DatastoreException;
 	
-	public long getAvailableCount(List<Long> principalIds) throws DatastoreException;
+	public long getAvailableCount(List<Long> principalIds, List<Long> evaluationIds) throws DatastoreException;
 
 	/**
 	 * Updates a Evaluation. Note that this operation requires a current eTag,
