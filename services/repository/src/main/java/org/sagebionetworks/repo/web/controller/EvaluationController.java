@@ -261,7 +261,7 @@ public class EvaluationController extends BaseController {
 			HttpServletRequest request
 			) throws DatastoreException, NotFoundException
 	{
-		List<Long> evalIds = new ArrayList<Long>();;
+		List<Long> evalIds = new ArrayList<Long>();
 		if (evaluationIds!=null) {
 			String[] evalIdStrings = evaluationIds.split(ServiceConstants.BATCH_PARAM_VALUE_SEPARATOR);
 			for (String s : evalIdStrings) {
