@@ -397,6 +397,15 @@ public class SubmissionManagerTest {
 		assertEquals(1, annos.getDoubleAnnos().size());
 	}
 	
+	@Test
+	public void testGetSubmissionStatusNoPrivateNoAnnot() throws DatastoreException, NotFoundException {
+		Annotations annots = subStatus.getAnnotations();
+		annots.setStringAnnos(null); // this is the case in PLFM-2586
+		annots.setLongAnnos(null);
+		annots.setDoubleAnnos(null);
+		submissionManager.getSubmissionStatus(userInfo, SUB_ID);
+	}
+	
 	private static Annotations createDummyAnnotations() {		
 		List<StringAnnotation> stringAnnos = new ArrayList<StringAnnotation>();
 		StringAnnotation sa = new StringAnnotation();
