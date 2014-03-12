@@ -61,6 +61,7 @@ public class AccessRequirementUtil {
 		List<ACCESS_TYPE> accessTypes = new ArrayList<ACCESS_TYPE>();
 		accessTypes.add(ACCESS_TYPE.DOWNLOAD);
 		accessTypes.add(ACCESS_TYPE.PARTICIPATE);
+		accessTypes.add(ACCESS_TYPE.SUBMIT);
 		Set<Long> principalIds = new HashSet<Long>();
 		for (Long ug : userInfo.getGroups()) {
 			principalIds.add(ug);
