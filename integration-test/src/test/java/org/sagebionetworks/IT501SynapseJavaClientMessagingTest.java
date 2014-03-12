@@ -138,13 +138,12 @@ public class IT501SynapseJavaClientMessagingTest {
 				adminSynapse.deleteFileHandle(fileHandleIdWithExtendedChars);
 			}
 			fileHandleIdWithExtendedChars = null;
-		} catch (SynapseNotFoundException e) {
-		} catch (SynapseClientException e) { }
+		} catch (SynapseException e) { }
 		
 		if (project != null) {
 			try {
 				adminSynapse.deleteAndPurgeEntityById(project.getId());
-			} catch (SynapseNotFoundException e) { }
+			} catch (SynapseException e) { }
 		}
 	}
 	
@@ -153,15 +152,14 @@ public class IT501SynapseJavaClientMessagingTest {
 		// Delete the file handle
 		try {
 			adminSynapse.deleteFileHandle(oneToRuleThemAll.getId());
-		} catch (SynapseNotFoundException e) {
-		} catch (SynapseClientException e) { }
+		} catch (SynapseException e) { }
 		
 		try {
 			adminSynapse.deleteUser(user1ToDelete);
-		} catch (SynapseClientException e) { }
+		} catch (SynapseException e) { }
 		try {
 			adminSynapse.deleteUser(user2ToDelete);
-		} catch (SynapseClientException e) { }
+		} catch (SynapseException e) { }
 	}
 
 	@SuppressWarnings("serial")
