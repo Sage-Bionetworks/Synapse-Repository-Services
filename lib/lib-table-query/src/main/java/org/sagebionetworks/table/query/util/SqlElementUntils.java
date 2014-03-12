@@ -467,4 +467,20 @@ public class SqlElementUntils {
 		return "syn"+tableReference.getTableName();
 	}
 	
+	/**
+	 * Convert the passed query into a count query.
+	 * @param model
+	 * @return
+	 * @throws ParseException 
+	 */
+	public static QuerySpecification convertToCountQuery(QuerySpecification model) throws ParseException{
+		if(model == null) throw new IllegalArgumentException("QuerySpecification cannot be null");
+		TableExpression currentTableExpression = model.getTableExpression();
+		if(currentTableExpression == null) throw new IllegalArgumentException("TableExpression cannot be null");
+		// Clear the select list
+		SelectList count = new SelectList(createDerivedColumns("count(*)"));
+		TableExpression tableExpression = new TableExpression(currentTableExpression.getFromClause(), currentTableExpression.getWhereClause(), null, null, null);
+		return new QuerySpecification(null, count, tableExpression);
+	}
+	
 }

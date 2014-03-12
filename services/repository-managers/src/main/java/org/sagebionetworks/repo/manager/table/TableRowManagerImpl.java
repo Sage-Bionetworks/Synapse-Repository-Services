@@ -127,9 +127,9 @@ public class TableRowManagerImpl implements TableRowManager {
 
 	@Override
 	public void attemptToSetTableStatusToAvailable(String tableId,
-			String resetToken) throws ConflictingUpdateException,
+			String resetToken, String tableChangeEtag) throws ConflictingUpdateException,
 			NotFoundException {
-		tableStatusDAO.attemptToSetTableStatusToAvailable(tableId, resetToken);
+		tableStatusDAO.attemptToSetTableStatusToAvailable(tableId, resetToken, tableChangeEtag);
 	}
 
 	@Override
@@ -147,11 +147,15 @@ public class TableRowManagerImpl implements TableRowManager {
 	}
 
 	@Override
-	public RowSet query(UserInfo user, String sql, boolean isConsistent) throws DatastoreException, NotFoundException, TableUnavilableException {
+	public RowSet query(UserInfo user, String sql, boolean isConsistent, boolean countOnly) throws DatastoreException, NotFoundException, TableUnavilableException {
 		if(user == null) throw new IllegalArgumentException("UserInfo cannot be null");
 		if(sql == null) throw new IllegalArgumentException("Query SQL string cannot be null");
 		// First parse the SQL
 		QuerySpecification model = parserQuery(sql);
+		// Do they want use to convert it to a count query?
+		if(countOnly){
+			model = convertToCountQuery(model);
+		}
 		String tableId = SqlElementUntils.getTableId(model);
 		// Validate the user has read access on this object
 		if(!authorizationManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)){
@@ -176,6 +180,7 @@ public class TableRowManagerImpl implements TableRowManager {
 		}
 	}
 	
+
 	/**
 	 * Validate that a query result will be under the max size.
 	 * 
@@ -188,10 +193,6 @@ public class TableRowManagerImpl implements TableRowManager {
 		if(query.getModel().getTableExpression().getPagination() != null){
 			limit = query.getModel().getTableExpression().getPagination().getLimit();
 		}
-		// First make sure we have a limit
-		if(limit == null){
-			throw new IllegalArgumentException("Request exceed the maximum number of bytes per request because a LIMIT was not included in the query.");
-		}
 		Map<Long, ColumnModel> columIdToModelMap = TableModelUtils.createIDtoColumnModelMap(columnModels);
 		// What are the select columns?
 		List<Long> selectColumns = query.getSelectColumnIds();
@@ -200,6 +201,10 @@ public class TableRowManagerImpl implements TableRowManager {
 			for(Long id: selectColumns){
 				ColumnModel cm = columIdToModelMap.get(id);
 				seletModels.add(cm);
+			}
+			// First make sure we have a limit
+			if(limit == null){
+				throw new IllegalArgumentException("Request exceed the maximum number of bytes per request because a LIMIT was not included in the query.");
 			}
 			// Validate the request is under the max bytes per requested
 			if(!TableModelUtils.isRequestWithinMaxBytePerRequest(seletModels, limit.intValue(), maxBytePerRequest)){
@@ -229,7 +234,9 @@ public class TableRowManagerImpl implements TableRowManager {
 						throw new TableUnavilableException(status);
 					}
 					// We can only run this 
-					return query(query);
+					RowSet results =  query(query);
+					results.setEtag(status.getLastTableChangeEtag());
+					return results;
 				}
 			});
 		} catch (LockUnavilableException e) {
@@ -277,6 +284,20 @@ public class TableRowManagerImpl implements TableRowManager {
 			throw new IllegalArgumentException(e);
 		}
 	}
+	
+	/**
+	 * Convert a query to a count query.
+	 * @param model
+	 * @return
+	 */
+	private QuerySpecification convertToCountQuery(QuerySpecification model){
+		try {
+			return SqlElementUntils.convertToCountQuery(model);
+		} catch (ParseException e) {
+			throw new IllegalArgumentException(e);
+		}
+	}
+	
 	
 	private void validateRequestSize(List<ColumnModel> models, int rowCount){
 		// Validate the request is under the max bytes per requested

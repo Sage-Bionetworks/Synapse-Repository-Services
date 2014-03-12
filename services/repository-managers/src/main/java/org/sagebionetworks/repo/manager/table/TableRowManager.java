@@ -154,7 +154,7 @@ public interface TableRowManager {
 	 * @throws NotFoundException
 	 */
 	public void attemptToSetTableStatusToAvailable(String tableId,
-			String resetToken) throws ConflictingUpdateException,
+			String resetToken, String tableChangeEtag) throws ConflictingUpdateException,
 			NotFoundException;
 
 	/**
@@ -200,12 +200,13 @@ public interface TableRowManager {
 	 * 
 	 * @param user
 	 * @param sql
-	 * @param isConsistant
+	 * @param isConsistent
+	 * @param countOnly 
 	 * @return
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 * @throws TableUnavilableException 
 	 */
-	public RowSet query(UserInfo user, String sql, boolean isConsistant) throws DatastoreException, NotFoundException, TableUnavilableException;
+	public RowSet query(UserInfo user, String sql, boolean isConsistent, boolean countOnly) throws DatastoreException, NotFoundException, TableUnavilableException;
 
 }

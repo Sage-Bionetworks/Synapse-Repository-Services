@@ -166,7 +166,7 @@ public class TableWorkerTest {
 		// The connection factory should be called
 		verify(mockTableConnectionFactory, times(1)).getConnection(anyString());
 		// The status should get set to available
-		verify(mockTableRowManager, times(1)).attemptToSetTableStatusToAvailable(tableId, resetToken);;
+		verify(mockTableRowManager, times(1)).attemptToSetTableStatusToAvailable(tableId, resetToken, null);
 	}
 	
 	/**
@@ -246,7 +246,7 @@ public class TableWorkerTest {
 		assertEquals("An old message should get returned so it can be removed from the queue",messages, results);
 		// The connection factory should never be called
 		verify(mockTableConnectionFactory, never()).getConnection(anyString());
-		verify(mockTableRowManager, never()).attemptToSetTableStatusToAvailable(anyString(), anyString());
+		verify(mockTableRowManager, never()).attemptToSetTableStatusToAvailable(anyString(), anyString(), anyString());
 	}
 	
 	/**
@@ -335,7 +335,7 @@ public class TableWorkerTest {
 		TableStatus status = new TableStatus();
 		status.setResetToken(resetToken);
 		// simulate the ConflictingUpdateException
-		doThrow(new ConflictingUpdateException("Cannot get a lock at this time")).when(mockTableRowManager).attemptToSetTableStatusToAvailable(anyString(), anyString());
+		doThrow(new ConflictingUpdateException("Cannot get a lock at this time")).when(mockTableRowManager).attemptToSetTableStatusToAvailable(anyString(), anyString(), anyString());
 		
 		Message two = MessageUtils.buildMessage(ChangeType.UPDATE, tableId, ObjectType.TABLE, resetToken);
 		List<Message> messages = Arrays.asList(two);
