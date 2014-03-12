@@ -7,7 +7,6 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
-import java.util.LinkedList;
 import java.util.List;
 
 import org.junit.After;
@@ -119,6 +118,10 @@ public class TableRowTruthDAOImplTest {
 		// create some test rows.
 		List<Row> rows = TableModelUtils.createRows(models, 5);
 		String tableId = "syn123";
+		// Before we start there should be no changes
+		List<TableRowChange> results = tableRowTruthDao.listRowSetsKeysForTable(tableId);
+		assertNotNull(results);
+		assertEquals(0, results.size());
 		RowSet set = new RowSet();
 		set.setHeaders(TableModelUtils.getHeaders(models));
 		set.setRows(rows);
@@ -130,7 +133,7 @@ public class TableRowTruthDAOImplTest {
 		set.setRows(TableModelUtils.createRows(models, 2));
 		refSet = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, models, set);
 		// There should now be two version of the data
-		List<TableRowChange> results = tableRowTruthDao.listRowSetsKeysForTable(tableId);
+		results = tableRowTruthDao.listRowSetsKeysForTable(tableId);
 		assertNotNull(results);
 		assertEquals(2, results.size());
 		// Validate the results

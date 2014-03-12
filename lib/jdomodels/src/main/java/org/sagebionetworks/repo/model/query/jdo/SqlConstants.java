@@ -402,6 +402,7 @@ public class SqlConstants {
 	public static final String COL_TABLE_STATUS_ERROR_MESSAGE		= "ERROR_MESSAGE";
 	public static final String COL_TABLE_STATUS_ERROR_DETAILS		= "ERROR_DETAILS";
 	public static final String COL_TABLE_STATUS_RUNTIME_MS			= "RUNTIME_MS";
+	public static final String COL_TABLE_LAST_TABLE_CHANGE_ETAG		= "LAST_TABLE_CHANGE_ETAG";
 	
 	// The wiki attachment table
 	public static final String TABLE_WIKI_ATTACHMENT				= "WIKI_ATTACHMENTS";

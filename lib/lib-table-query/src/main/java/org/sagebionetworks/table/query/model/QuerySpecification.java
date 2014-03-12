@@ -25,6 +25,7 @@ public class QuerySpecification implements SQLElement {
 	public TableExpression getTableExpression() {
 		return tableExpression;
 	}
+	
 	@Override
 	public void toSQL(StringBuilder builder) {
 		builder.append("SELECT");

@@ -83,9 +83,9 @@ public class TableServicesImpl implements TableServices {
 	}
 
 	@Override
-	public RowSet query(Long userId, Query query, boolean isConsisitent) throws NotFoundException, DatastoreException, TableUnavilableException {
+	public RowSet query(Long userId, Query query, boolean isConsisitent, boolean countOnly) throws NotFoundException, DatastoreException, TableUnavilableException {
 		UserInfo user = userManager.getUserInfo(userId);
-		return tableRowManager.query(user, query.getSql(), isConsisitent);
+		return tableRowManager.query(user, query.getSql(), isConsisitent, countOnly);
 	}
 	
 }

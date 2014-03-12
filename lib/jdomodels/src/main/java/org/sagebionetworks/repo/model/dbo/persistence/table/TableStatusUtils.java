@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.model.dbo.persistence.table;
 
-import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.util.Date;
 
@@ -41,6 +40,7 @@ public class TableStatusUtils {
 		dbo.setProgresssMessage(dto.getProgresssMessage());
 		dbo.setResetToken(dto.getResetToken());
 		dbo.setTotalRunTimeMS(dto.getTotalTimeMS());
+		dbo.setLastTableChangeEtag(dto.getLastTableChangeEtag());
 		return dbo;
 	}
 	
@@ -70,6 +70,7 @@ public class TableStatusUtils {
 		dto.setResetToken(dbo.getResetToken());
 		dto.setProgresssTotal(dbo.getProgresssTotal());
 		dto.setTotalTimeMS(dbo.getTotalRunTimeMS());
+		dto.setLastTableChangeEtag(dbo.getLastTableChangeEtag());
 		return dto;
 	}
 	

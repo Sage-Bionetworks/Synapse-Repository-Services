@@ -13,6 +13,7 @@ import org.apache.http.client.ClientProtocolException;
 import org.apache.http.entity.ContentType;
 import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseTableUnavilableException;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
@@ -954,10 +955,31 @@ public interface SynapseClient extends BaseClient {
 	 * Append rows to table entity.
 	 * @param toAppend
 	 * @return
-	 * @throws SynapseException 
+	 * @throws SynapseException
+	 * @throws SynapseTableUnavilableException
 	 */
-	public RowReferenceSet appendRowsToTable(RowSet toAppend) throws SynapseException;
-
+	public RowReferenceSet appendRowsToTable(RowSet toAppend) throws SynapseException, SynapseTableUnavilableException;
+	
+	/**
+	 * Query for data in a table entity.
+	 * @param sql
+	 * @return
+	 * @throws SynapseException
+	 * @throws SynapseTableUnavilableException Thrown when the table index is not ready for query.  The exception will contain the status of the table.
+	 */
+	public RowSet queryTableEntity(String sql) throws SynapseException, SynapseTableUnavilableException;
+	
+	/**
+	 * Query for data in a table entity.
+	 * 
+	 * @param sql
+	 * @param isConsistent 
+	 * @param countOnly
+	 * @return
+	 * @throws SynapseException 
+	 * @throws SynapseTableUnavilableException Thrown when the table index is not ready for query.  The exception will contain the status of the table.
+	 */
+	public RowSet queryTableEntity(String sql, boolean isConsistent, boolean countOnly) throws SynapseException;
 	/**
 	 * Create a new ColumnModel. If a column already exists with the same parameters,
 	 * that column will be returned.
