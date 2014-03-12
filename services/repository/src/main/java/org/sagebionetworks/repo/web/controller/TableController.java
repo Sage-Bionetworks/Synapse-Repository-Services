@@ -200,17 +200,24 @@ public class TableController extends BaseController {
 	 * 
 	 * @param userId
 	 * @param query
-	 * @param isConsistant
+	 * @param isConsistent
 	 *            Defaults to true. When true, a query will be run only if the
 	 *            index is up-to-date with all changes to the table and a
 	 *            read-lock is successfully acquired on the index. When set to
 	 *            false, the query will be run against the index regardless of
-	 *            the state of the index and without attempting to acquire a read-lock.
+	 *            the state of the index and without attempting to acquire a
+	 *            read-lock.
+	 * @param countOnly
+	 *            When this parameter is included and set to 'true', the passed
+	 *            query will be converted into a count query. This means the
+	 *            passed select clause will be replaced with 'count(*)' and
+	 *            pagination, order by, and group by will all be ignored.
+	 * 
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 * @throws IOException
-	 * @throws TableUnavilableException 
+	 * @throws TableUnavilableException
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.TABLE_QUERY, method = RequestMethod.POST)
@@ -218,15 +225,22 @@ public class TableController extends BaseController {
 	RowSet query(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody Query query,
-			@RequestParam(value = "isConsistent", required = false) Boolean isConsistent)
-			throws DatastoreException, NotFoundException, IOException, TableUnavilableException {
+			@RequestParam(value = ServiceConstants.IS_CONSISTENT, required = false) Boolean isConsistent,
+			@RequestParam(value = ServiceConstants.COUNT_ONLY, required = false) Boolean countOnly)
+			throws DatastoreException, NotFoundException, IOException,
+			TableUnavilableException {
 		// By default isConsistent is true.
 		boolean isConsistentValue = true;
 		if (isConsistent != null) {
 			isConsistentValue = isConsistent;
 		}
+		// Count only is false by default
+		boolean countOnlyValue = false;
+		if (countOnly != null) {
+			countOnlyValue = countOnly;
+		}
 		return serviceProvider.getTableServices().query(userId, query,
-				isConsistentValue);
+				isConsistentValue, countOnlyValue);
 	}
 
 }

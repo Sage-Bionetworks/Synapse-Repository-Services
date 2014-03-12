@@ -84,6 +84,6 @@ public interface TableServices {
 	 * @throws TableUnavilableException 
 	 * @throws DatastoreException 
 	 */
-	public RowSet query(Long userId, Query query, boolean isConsistent) throws NotFoundException, DatastoreException, TableUnavilableException;
+	public RowSet query(Long userId, Query query, boolean isConsistent, boolean countOnly) throws NotFoundException, DatastoreException, TableUnavilableException;
 	
 }

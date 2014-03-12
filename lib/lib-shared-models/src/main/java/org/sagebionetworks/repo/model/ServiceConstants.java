@@ -259,4 +259,7 @@ public class ServiceConstants {
 	 * A query string parameter indicating whether to skip the trash can when deleting entities.
 	 */
 	public static final String SKIP_TRASH_CAN_PARAM = "skipTrashCan";
+	
+	public static final String COUNT_ONLY = "countOnly";
+	public static final String IS_CONSISTENT = "isConsistent";
 }

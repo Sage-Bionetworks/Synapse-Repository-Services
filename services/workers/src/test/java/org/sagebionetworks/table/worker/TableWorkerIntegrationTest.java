@@ -1,5 +1,6 @@
 package org.sagebionetworks.table.worker;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -32,6 +33,7 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
+import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
@@ -126,7 +128,7 @@ public class TableWorkerIntegrationTest {
 	}
 	
 	@Test
-	public void testRoundTrip() throws NotFoundException, InterruptedException{
+	public void testRoundTrip() throws NotFoundException, InterruptedException, DatastoreException, TableUnavilableException{
 		// Wait for the table to become available
 		TableStatus status = tableRowManager.getTableStatus(tableId);
 		assertNotNull(status);
@@ -139,6 +141,19 @@ public class TableWorkerIntegrationTest {
 			Thread.sleep(1000);
 			status = tableRowManager.getTableStatus(tableId);
 		}
+		// Validate that we can query the table
+		boolean isConsistent = true;
+		boolean countOnly = false;
+		RowSet rowSet = tableRowManager.query(adminUserInfo, "select * from "+tableId+" limit 2", isConsistent, countOnly);
+		assertNotNull(rowSet);
+		assertEquals(tableId, rowSet.getTableId());
+		assertNotNull(rowSet.getHeaders());
+		assertEquals(schema.size(), rowSet.getHeaders().size());
+		assertNotNull(rowSet.getRows());
+		assertEquals(2, rowSet.getRows().size());
+		assertNotNull(rowSet.getEtag());
+		assertEquals("The etag for the last applied change set should be set for the status and the results",status.getLastTableChangeEtag(), rowSet.getEtag());
+		assertEquals("The etag should also match the rereferenceSet.etag",referenceSet.getEtag(), rowSet.getEtag());
 	}
 	
 	

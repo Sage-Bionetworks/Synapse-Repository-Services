@@ -190,9 +190,9 @@ public class TableWorker implements Callable<List<Message>> {
 				return State.RECOVERABLE_FAILURE;
 			}
 			// This method will do the rest of the work.
-			synchIndexWithTable(indexDAO, tableId, tableResetToken);
+			String lastEtag = synchIndexWithTable(indexDAO, tableId, tableResetToken);
 			// We are finished set the status
-			tableRowManager.attemptToSetTableStatusToAvailable(tableId,	tableResetToken);
+			tableRowManager.attemptToSetTableStatusToAvailable(tableId,	tableResetToken, lastEtag);
 			return State.SUCCESS;
 		} catch (Exception e) {
 			// Failed.
@@ -220,7 +220,7 @@ public class TableWorker implements Callable<List<Message>> {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
-	void synchIndexWithTable(TableIndexDAO indexDao,
+	String synchIndexWithTable(TableIndexDAO indexDao,
 			String tableId, String resetToken) throws DatastoreException, NotFoundException,
 			IOException {
 		tableRowManager.attemptToUpdateTableProgress(tableId, resetToken, "Starting ", 0L, 100L);
@@ -237,20 +237,25 @@ public class TableWorker implements Callable<List<Message>> {
 		tableRowManager.attemptToUpdateTableProgress(tableId, resetToken, "Listing table changes ", 0L, 100L);
 		List<TableRowChange> changes = tableRowManager
 				.listRowSetsKeysForTable(tableId);
+		if(changes == null || changes.isEmpty()){
+			// If there are no changes for this table then the last etag will be null
+			// and there is nothing else to do.
+			return null;
+		}
 		// Apply any change that has a version number greater than the max
 		// version already in the index
-		if (changes != null) {
-			for (TableRowChange change : changes) {
-				if (change.getRowVersion() > maxVersion) {
-					// This is a change that we must apply.
-					RowSet rowSet = tableRowManager.getRowSet(tableId,
-							change.getRowVersion());
-					
-					tableRowManager.attemptToUpdateTableProgress(tableId, resetToken, "Applying rows "+rowSet.getRows().size()+" to version: "+change.getRowVersion(), 0L, 100L);
-					// apply the change to the table
-					indexDao.createOrUpdateRows(rowSet,	currentSchema);
-				}
+		String lastEtag = null;
+		for (TableRowChange change : changes) {
+			lastEtag = change.getEtag();
+			if (change.getRowVersion() > maxVersion) {
+				// This is a change that we must apply.
+				RowSet rowSet = tableRowManager.getRowSet(tableId,	change.getRowVersion());
+
+				tableRowManager.attemptToUpdateTableProgress(tableId,	resetToken, "Applying rows " + rowSet.getRows().size()	+ " to version: " + change.getRowVersion(), 0L,	100L);
+				// apply the change to the table
+				indexDao.createOrUpdateRows(rowSet, currentSchema);
 			}
 		}
+		return lastEtag;
 	}
 }
