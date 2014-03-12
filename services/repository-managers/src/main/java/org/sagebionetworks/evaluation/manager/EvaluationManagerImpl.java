@@ -120,7 +120,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	}
 
 	@Override
-	public QueryResults<Evaluation> getAvailableInRange(UserInfo userInfo, long limit, long offset, List<String> evaluationIds)
+	public QueryResults<Evaluation> getAvailableInRange(UserInfo userInfo, long limit, long offset, List<Long> evaluationIds)
 			throws DatastoreException, NotFoundException {
 		List<Long> principalIds = new ArrayList<Long>(userInfo.getGroups().size());
 		for (Long g : userInfo.getGroups()) {

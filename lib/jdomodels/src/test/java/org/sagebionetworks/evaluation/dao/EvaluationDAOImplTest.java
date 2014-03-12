@@ -248,9 +248,9 @@ public class EvaluationDAOImplTest {
 		assertTrue(evalList.isEmpty());
 		assertEquals(0L, evaluationDAO.getAvailableCount(pids, null));
 		// check that the filter works
-		evalList = evaluationDAO.getAvailableInRange(pids, 10, 0, Arrays.asList(new String[]{evalId}));
+		evalList = evaluationDAO.getAvailableInRange(pids, 10, 0, Arrays.asList(new Long[]{Long.parseLong(evalId)}));
 		assertTrue(evalList.isEmpty());
-		assertEquals(0L, evaluationDAO.getAvailableCount(pids, Arrays.asList(new String[]{evalId})));		
+		assertEquals(0L, evaluationDAO.getAvailableCount(pids, Arrays.asList(new Long[]{Long.parseLong(evalId)})));		
 
 		// Now join the Evaluation by
 		// adding 'participantId' into the ACL with SUBMIT permission
@@ -274,14 +274,14 @@ public class EvaluationDAOImplTest {
 		assertEquals(eval, evalList.get(0));
 		assertEquals(1L, evaluationDAO.getAvailableCount(pids, null));
 		// make sure filter works
-		evalList = evaluationDAO.getAvailableInRange(pids, 10, 0, Arrays.asList(new String[]{evalId}));
+		evalList = evaluationDAO.getAvailableInRange(pids, 10, 0, Arrays.asList(new Long[]{Long.parseLong(evalId)}));
 		assertEquals(1, evalList.size());
 		assertEquals(eval, evalList.get(0));
-		assertEquals(1L, evaluationDAO.getAvailableCount(pids, Arrays.asList(new String[]{evalId})));
+		assertEquals(1L, evaluationDAO.getAvailableCount(pids, Arrays.asList(new Long[]{Long.parseLong(evalId)})));
 		// filtering with 'eval 2' causes no results to come back
-		evalList = evaluationDAO.getAvailableInRange(pids, 10, 0, Arrays.asList(new String[]{evalId2}));
+		evalList = evaluationDAO.getAvailableInRange(pids, 10, 0, Arrays.asList(new Long[]{Long.parseLong(evalId2)}));
 		assertEquals(0, evalList.size());
-		assertEquals(0L, evaluationDAO.getAvailableCount(pids, Arrays.asList(new String[]{evalId2})));
+		assertEquals(0L, evaluationDAO.getAvailableCount(pids, Arrays.asList(new Long[]{Long.parseLong(evalId2)})));
 		// non-participants  cannot find
 		pids = Arrays.asList(new Long[]{110L,111L});
 		evalList = evaluationDAO.getAvailableInRange(pids, 10, 0, null);

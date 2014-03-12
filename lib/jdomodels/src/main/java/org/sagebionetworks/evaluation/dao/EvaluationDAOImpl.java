@@ -400,7 +400,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	 * is either the owner or is a participant
 	 */
 	@Override
-	public List<Evaluation> getAvailableInRange(List<Long> principalIds, long limit, long offset, List<String> evaluationIds) throws DatastoreException {
+	public List<Evaluation> getAvailableInRange(List<Long> principalIds, long limit, long offset, List<Long> evaluationIds) throws DatastoreException {
 		if (principalIds.isEmpty()) return new ArrayList<Evaluation>(); // SQL breaks down if list is empty
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		// parameters here are 
@@ -429,7 +429,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	}
 
 	@Override
-	public long getAvailableCount(List<Long> principalIds, List<String> evaluationIds) throws DatastoreException {
+	public long getAvailableCount(List<Long> principalIds, List<Long> evaluationIds) throws DatastoreException {
 		if (principalIds.isEmpty()) return 0L; // SQL breaks down if list is empty
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		// parameters here are 

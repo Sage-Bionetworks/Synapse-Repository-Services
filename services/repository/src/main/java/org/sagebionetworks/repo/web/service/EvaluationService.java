@@ -76,7 +76,7 @@ public interface EvaluationService {
 	 * @throws NotFoundException
 	 */
 	public PaginatedResults<Evaluation> getAvailableEvaluationsInRange(
-			Long userId, long limit, long offset, List<String> evaluationIds, HttpServletRequest request) throws DatastoreException, NotFoundException;
+			Long userId, long limit, long offset, List<Long> evaluationIds, HttpServletRequest request) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get the total number of Evaluations in the system
@@ -309,7 +309,6 @@ public interface EvaluationService {
 	 * Get bundled Submissions and SubmissionStatuses by Evaluation and user.
 	 * 
 	 * @param evalId
-	 * @param userName
 	 * @param limit
 	 * @param offset
 	 * @param request

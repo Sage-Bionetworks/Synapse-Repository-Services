@@ -41,7 +41,7 @@ public interface EvaluationManager {
 	/**
 	 * Get a collection of Evaluations to the user may SUBMIT, within a given range
 	 */
-	public QueryResults<Evaluation> getAvailableInRange(UserInfo userInfo, long limit, long offset, List<String> evaluationIds) 
+	public QueryResults<Evaluation> getAvailableInRange(UserInfo userInfo, long limit, long offset, List<Long> evaluationIds) 
 			throws DatastoreException, NotFoundException;
 
 	/**

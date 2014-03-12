@@ -261,11 +261,18 @@ public class EvaluationController extends BaseController {
 			HttpServletRequest request
 			) throws DatastoreException, NotFoundException
 	{
-		List<String> evalIds =null;
-		if (evaluationIds==null) {
-			evalIds = new ArrayList<String>();
-		} else {
-			evalIds = Arrays.asList(evaluationIds.split(ServiceConstants.BATCH_PARAM_VALUE_SEPARATOR));
+		List<Long> evalIds = new ArrayList<Long>();;
+		if (evaluationIds!=null) {
+			String[] evalIdStrings = evaluationIds.split(ServiceConstants.BATCH_PARAM_VALUE_SEPARATOR);
+			for (String s : evalIdStrings) {
+				Long l;
+				try {
+					l = Long.parseLong(s);
+				} catch (NumberFormatException e) {
+					throw new InvalidModelException("Expected an evaluation ID but found "+s);
+				}
+				evalIds.add(l);
+			}
 		}
 		return serviceProvider.getEvaluationService().getAvailableEvaluationsInRange(userId, limit, offset, evalIds, request);
 	}	
