@@ -10,10 +10,10 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.http.client.ClientProtocolException;
+import org.apache.http.entity.ContentType;
 import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.evaluation.model.Evaluation;
-import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.BatchResults;
+import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
@@ -74,13 +75,25 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
+import org.sagebionetworks.repo.model.message.MessageBundle;
+import org.sagebionetworks.repo.model.message.MessageRecipientSet;
+import org.sagebionetworks.repo.model.message.MessageSortBy;
+import org.sagebionetworks.repo.model.message.MessageStatus;
+import org.sagebionetworks.repo.model.message.MessageStatusType;
+import org.sagebionetworks.repo.model.message.MessageToUser;
+import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
+import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.query.QueryTableResults;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
+import org.sagebionetworks.repo.model.storage.StorageUsageDimension;
+import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
+import org.sagebionetworks.repo.model.table.RowReferenceSet;
+import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
@@ -96,28 +109,27 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
  * @author jmhill
  * 
  */
-public interface SynapseClient {
+public interface SynapseClient extends BaseClient {
 
 	/**
 	 * Get the current status of the stack
 	 */
 	public StackStatus getCurrentStackStatus() 
 			throws SynapseException, JSONObjectAdapterException;
+	
+	/**
+	 * Is the passed alias available and valid?
+	 * 
+	 * @param request
+	 * @return
+	 * @throws SynapseException 
+	 */
+	public AliasCheckResponse checkAliasAvailable(AliasCheckRequest request) throws SynapseException;
 
 	/**
 	 * Get the endpoint of the repository service
 	 */
 	public String getRepoEndpoint();
-
-	/**
-	 * Each request includes the 'User-Agent' header. This is set to:
-	 * 'User-Agent':'Synpase-Java-Client/<version_number>'
-	 * 
-	 * @param toAppend
-	 *            Addition User-Agent information can be appended to this string
-	 *            via this parameter
-	 */
-	public void appendUserAgent(String toAppend);
 
 	/**
 	 * The repository endpoint includes the host and version. For example:
@@ -147,11 +159,6 @@ public interface SynapseClient {
 	 */
 	public String getFileEndpoint();
 
-	/**
-	 * Authenticate the Synapse client with an existing session token
-	 */
-	public void setSessionToken(String sessionToken);
-
 	public AttachmentData uploadAttachmentToSynapse(String entityId, File temp, String fileName) 
 			throws JSONObjectAdapterException, SynapseException, IOException;
 
@@ -177,22 +184,7 @@ public interface SynapseClient {
 	/**
 	 * Log into Synapse
 	 */
-	public UserSessionData login(String username, String password)
-			throws SynapseException;
-
-	/**
-	 * Log into Synapse and specify whether you agree to the terms of use
-	 */
-	public UserSessionData login(String username, String password, boolean explicitlyAcceptsTermsOfUse) 
-			throws SynapseException;
-
-	/**
-	 * Log into Synapse, 
-	 *   do not return UserSessionData, 
-	 *   do not request a user profile, 
-	 *   and do not explicitly accept the terms of use
-	 */
-	public void loginWithNoProfile(String userName, String password)
+	public Session login(String username, String password)
 			throws SynapseException;
 	
 	/**
@@ -200,20 +192,18 @@ public interface SynapseClient {
 	 */
 	public void logout() throws SynapseException;
 
+	/**
+	 * Returns a Session and UserProfile object
+	 * 
+	 * Note: if the user has not accepted the terms of use, the profile will not (cannot) be retrieved
+	 */
 	public UserSessionData getUserSessionData() throws SynapseException;
 
 	/**
 	 * Refreshes the cached session token so that it can be used for another 24 hours
 	 */
 	public boolean revalidateSession() throws SynapseException;
-
-	/**
-	 * Get the current session token used by this client.
-	 * 
-	 * @return the session token
-	 */
-	public String getCurrentSessionToken();
-
+	
 	/**
 	 * Create a new Entity.
 	 * 
@@ -241,9 +231,6 @@ public interface SynapseClient {
 	public URL getFileEntityTemporaryUrlForVersion(String entityId,
 			Long versionNumber) throws ClientProtocolException,
 			MalformedURLException, IOException;
-
-	public S3FileHandle createFileHandle(File temp, String contentType)
-			throws SynapseException, IOException;
 
 	/**
 	 * Get a WikiPage using its key
@@ -348,6 +335,9 @@ public interface SynapseClient {
 	public <T extends AccessRequirement> T createAccessRequirement(T ar)
 			throws SynapseException;
 
+	public <T extends AccessRequirement> T updateAccessRequirement(T ar)
+			throws SynapseException;
+
 	public ACTAccessRequirement createLockAccessRequirement(String entityId)
 			throws SynapseException;
 
@@ -367,13 +357,15 @@ public interface SynapseClient {
 	public <T extends Entity> T putEntity(T entity, String activityId)
 			throws SynapseException;
 
-	public <T extends Entity> void deleteEntity(T entity)
-			throws SynapseException;
+	public <T extends Entity> void deleteEntity(T entity) throws SynapseException;
 
-	public <T extends Entity> void deleteAndPurgeEntity(T entity)
-			throws SynapseException;
+	public <T extends Entity> void deleteEntity(T entity, Boolean skipTrashCan) throws SynapseException;
 
 	public void deleteEntityById(String entityId) throws SynapseException;
+
+	public void deleteEntityById(String entityId, Boolean skipTrashCan) throws SynapseException;
+
+	public <T extends Entity> void deleteAndPurgeEntity(T entity) throws SynapseException;
 
 	public void deleteAndPurgeEntityById(String entityId) throws SynapseException;
 
@@ -401,8 +393,24 @@ public interface SynapseClient {
 
 	public JSONObject query(String query) throws SynapseException;
 
+	/**
+	 * Upload each file to Synapse creating a file handle for each.
+	 */
 	public FileHandleResults createFileHandles(List<File> files)
 			throws SynapseException;
+
+	/**
+	 * The high-level API for uploading a file to Synapse.
+	 */
+	public S3FileHandle createFileHandle(File temp, String contentType)
+			throws SynapseException, IOException;
+
+	/**
+	 * See {@link #createFileHandle(File, String)}
+	 * @param shouldPreviewBeCreated Default true
+	 */
+	public S3FileHandle createFileHandle(File temp, String contentType, Boolean shouldPreviewBeCreated)
+			throws SynapseException, IOException;
 
 	public ChunkedFileToken createChunkedFileUploadToken(
 			CreateChunkedFileTokenRequest ccftr) throws SynapseException;
@@ -446,12 +454,6 @@ public interface SynapseClient {
 	public FileHandleResults getWikiAttachmenthHandles(WikiPageKey key)
 			throws JSONObjectAdapterException, SynapseException;
 
-	public File downloadWikiAttachment(WikiPageKey key, String fileName)
-			throws ClientProtocolException, IOException;
-
-	public File downloadWikiAttachmentPreview(WikiPageKey key, String fileName)
-			throws ClientProtocolException, FileNotFoundException, IOException;
-
 	public void deleteWikiPage(WikiPageKey key) throws SynapseException;
 
 	public PaginatedResults<WikiHeader> getWikiHeaderTree(String ownerId,
@@ -472,12 +474,15 @@ public interface SynapseClient {
 	public V2WikiPage getV2WikiPage(WikiPageKey key)
 			throws JSONObjectAdapterException, SynapseException;
 
+	public V2WikiPage getVersionOfV2WikiPage(WikiPageKey key, Long version)
+			throws JSONObjectAdapterException, SynapseException;
+	
 	public V2WikiPage updateV2WikiPage(String ownerId, ObjectType ownerType,
 			V2WikiPage toUpdate) throws JSONObjectAdapterException,
 			SynapseException;
 	
 	public V2WikiPage restoreV2WikiPage(String ownerId, ObjectType ownerType,
-			V2WikiPage toUpdate, Long versionToRestore) throws JSONObjectAdapterException,
+			String wikiId, Long versionToRestore) throws JSONObjectAdapterException,
 			SynapseException;
 	
 	public V2WikiPage getV2RootWikiPage(String ownerId, ObjectType ownerType)
@@ -486,17 +491,30 @@ public interface SynapseClient {
 	public FileHandleResults getV2WikiAttachmentHandles(WikiPageKey key)
 		throws JSONObjectAdapterException, SynapseException;
 
-	public File downloadV2WikiAttachment(WikiPageKey key, String fileName)
-		throws ClientProtocolException, IOException;
+	public FileHandleResults getVersionOfV2WikiAttachmentHandles(WikiPageKey key, Long version)
+		throws JSONObjectAdapterException, SynapseException;
 	
-	public File downloadV2WikiAttachmentPreview(WikiPageKey key, String fileName)
-		throws ClientProtocolException, FileNotFoundException, IOException;
+	public String downloadV2WikiMarkdown(WikiPageKey key) throws ClientProtocolException, FileNotFoundException, IOException, SynapseException;
+	
+	public String downloadVersionOfV2WikiMarkdown(WikiPageKey key, Long version) throws ClientProtocolException, FileNotFoundException, IOException, SynapseException;
+	
+//	public String downloadV2WikiAttachment(WikiPageKey key, String fileName)
+//		throws ClientProtocolException, IOException, SynapseException;
+	
+//	public String downloadV2WikiAttachmentPreview(WikiPageKey key, String fileName)
+//		throws ClientProtocolException, FileNotFoundException, IOException, SynapseException;
 	
 	public URL getV2WikiAttachmentPreviewTemporaryUrl(WikiPageKey key,
 			String fileName) throws ClientProtocolException, IOException;
 
 	public URL getV2WikiAttachmentTemporaryUrl(WikiPageKey key,
 			String fileName) throws ClientProtocolException, IOException;
+	
+	public URL getVersionOfV2WikiAttachmentPreviewTemporaryUrl(WikiPageKey key,
+			String fileName, Long version) throws ClientProtocolException, IOException;
+
+	public URL getVersionOfV2WikiAttachmentTemporaryUrl(WikiPageKey key,
+			String fileName, Long version) throws ClientProtocolException, IOException;
 
 	public void deleteV2WikiPage(WikiPageKey key) throws SynapseException;
 	
@@ -506,6 +524,56 @@ public interface SynapseClient {
 	
 	public PaginatedResults<V2WikiHistorySnapshot> getV2WikiHistory(WikiPageKey key, Long limit, Long offset)
 		throws JSONObjectAdapterException, SynapseException;
+	
+	/**
+	 * Creates a V2 WikiPage from a V1 model. This will zip up markdown
+	 * content and track it with a file handle.
+	 * @param ownerId
+	 * @param ownerType
+	 * @param toCreate
+	 * @return
+	 * @throws IOException
+	 * @throws SynapseException
+	 * @throws JSONObjectAdapterException
+	 */
+	public WikiPage createV2WikiPageWithV1(String ownerId, ObjectType ownerType,
+			WikiPage toCreate) throws IOException, SynapseException, JSONObjectAdapterException;
+	
+	/**
+	 * Updates a V2 WikiPage from a V1 model.
+	 * @param ownerId
+	 * @param ownerType
+	 * @param toUpdate
+	 * @return
+	 * @throws IOException
+	 * @throws SynapseException
+	 * @throws JSONObjectAdapterException
+	 */
+	public WikiPage updateV2WikiPageWithV1(String ownerId, ObjectType ownerType,
+			WikiPage toUpdate) throws IOException, SynapseException, JSONObjectAdapterException;
+	
+	/**
+	 * Gets a V2 WikiPage and returns as a V1 WikiPage.
+	 * @param key
+	 * @return
+	 * @throws JSONObjectAdapterException
+	 * @throws SynapseException
+	 * @throws IOException
+	 */
+	public WikiPage getV2WikiPageAsV1(WikiPageKey key) 
+		throws JSONObjectAdapterException, SynapseException, IOException;
+	
+	/**
+	 * Gets a version of a V2 WikiPage and returns it as a V1 WikiPage.
+	 * @param key
+	 * @param version
+	 * @return
+	 * @throws JSONObjectAdapterException
+	 * @throws SynapseException
+	 * @throws IOException
+	 */
+	public WikiPage getVersionOfV2WikiPageAsV1(WikiPageKey key, Long version) 
+		throws JSONObjectAdapterException, SynapseException, IOException;
 	
 	@Deprecated
 	public File downloadLocationableFromSynapse(Locationable locationable)
@@ -607,6 +675,106 @@ public interface SynapseClient {
 			throws JSONObjectAdapterException, SynapseException;
 	
 	public String getSynapseTermsOfUse() throws SynapseException;
+	
+	public String getTermsOfUse(DomainType domain) throws SynapseException;
+	
+	/**
+	 * Uploads a String to S3 using the chunked file upload service
+	 * Note:  Strings in memory should not be large, so we limit the length
+	 * of the byte array for the passed in string to be the size of one 'chunk'
+	 * 
+	 * @param content the byte array to upload.
+	 * 
+	 * @param contentType This will become the contentType field of the resulting S3FileHandle
+	 * if not specified, this method uses "text/plain"
+	 * 
+	 */ 
+	public String uploadToFileHandle(byte[] content, ContentType contentType) throws SynapseException;
+
+	/**
+	 * Sends a message to another user
+	 */
+	public MessageToUser sendMessage(MessageToUser message)
+			throws SynapseException;
+	
+	/**
+	 * Convenience function to upload message body, then send message using resultant fileHandleId
+	 * For an example of the message content being retrieved for email delivery, see MessageManagerImpl.downloadEmailContent().
+	 * @param message
+	 * @param messageBody
+	 * @return
+	 * @throws SynapseException
+	 */
+	public MessageToUser sendStringMessage(MessageToUser message, String messageBody)
+			throws SynapseException;
+	
+	/**
+	 * Sends a message to another user and the owner of the given entity
+	 */
+	public MessageToUser sendMessage(MessageToUser message, String entityId) 
+			throws SynapseException;
+
+	/**
+	 * Convenience function to upload message body, then send message to entity owner using resultant fileHandleId.
+	 * For an example of the message content being retrieved for email delivery, see MessageManagerImpl.downloadEmailContent().
+	 * @param message
+	 * @param entityId
+	 * @param messageBody
+	 * @return
+	 * @throws SynapseException
+	 */
+	public MessageToUser sendStringMessage(MessageToUser message, String entityId, String messageBody)
+			throws SynapseException;
+	
+	/**
+	 * Gets the current authenticated user's received messages
+	 */
+	public PaginatedResults<MessageBundle> getInbox(
+			List<MessageStatusType> inboxFilter, MessageSortBy orderBy,
+			Boolean descending, long limit, long offset)
+			throws SynapseException;
+
+	/**
+	 * Gets the current authenticated user's outbound messages
+	 */
+	public PaginatedResults<MessageToUser> getOutbox(MessageSortBy orderBy,
+			Boolean descending, long limit, long offset)
+			throws SynapseException;
+
+	/**
+	 * Gets a specific message
+	 */
+	public MessageToUser getMessage(String messageId) throws SynapseException;
+
+	/**
+	 * Sends an existing message to another set of users
+	 */
+	public MessageToUser forwardMessage(String messageId,
+			MessageRecipientSet recipients) throws SynapseException;
+
+	/**
+	 * Gets messages associated with the specified message
+	 */
+	public PaginatedResults<MessageToUser> getConversation(
+			String associatedMessageId, MessageSortBy orderBy,
+			Boolean descending, long limit, long offset)
+			throws SynapseException;
+
+	/**
+	 * Changes the status of a message in a user's inbox
+	 */
+	public void updateMessageStatus(MessageStatus status)
+			throws SynapseException;
+	
+	/**
+	 * Deletes a message.  Used for test cleanup only.  Admin only.
+	 */
+	public void deleteMessage(String messageId) throws SynapseException;
+	
+	/**
+	 * Returns a temporary URL that can be used to download the body of a message
+	 */
+	public String downloadMessage(String messageId) throws SynapseException, MalformedURLException, IOException;
 
 	public Long getChildCount(String entityId) throws SynapseException;
 
@@ -726,6 +894,8 @@ public interface SynapseClient {
 			throws SynapseException;
 
 	public QueryTableResults queryEvaluation(String query) throws SynapseException;
+	
+	public StorageUsageSummaryList getStorageUsageSummary(List<StorageUsageDimension> aggregation) throws SynapseException;
 
 	public void moveToTrash(String entityId) throws SynapseException;
 
@@ -768,6 +938,14 @@ public interface SynapseClient {
 
 	public UserEvaluationPermissions getUserEvaluationPermissions(String evalId)
 			throws SynapseException;
+	
+	/**
+	 * Append rows to table entity.
+	 * @param toAppend
+	 * @return
+	 * @throws SynapseException 
+	 */
+	public RowReferenceSet appendRowsToTable(RowSet toAppend) throws SynapseException;
 
 	/**
 	 * Create a new ColumnModel. If a column already exists with the same parameters,
@@ -868,6 +1046,15 @@ public interface SynapseClient {
 	 * @throws SynapseException
 	 */
 	PaginatedResults<TeamMember> getTeamMembers(String teamId, String fragment, long limit, long offset) throws SynapseException;
+	
+	/**
+	 * Return the TeamMember object for the given team and member
+	 * @param teamId
+	 * @param memberId
+	 * @return
+	 * @throws SynapseException
+	 */
+	TeamMember getTeamMember(String teamId, String memberId) throws SynapseException;
 
 	/**
 	 * 
@@ -924,6 +1111,17 @@ public interface SynapseClient {
 
 	/**
 	 * 
+	 * @param teamId
+	 * @param inviteeId
+	 * @param limit
+	 * @param offset
+	 * @return a list of open invitations issued by a team, optionally filtered by invitee
+	 * @throws SynapseException
+	 */
+	PaginatedResults<MembershipInvtnSubmission> getOpenMembershipInvitationSubmissions(String teamId, String inviteeId, long limit, long offset) throws SynapseException;
+
+	/**
+	 * 
 	 * @param invitationId
 	 * @throws SynapseException
 	 */
@@ -950,10 +1148,21 @@ public interface SynapseClient {
 	 * @param requestorId the id of the user requesting membership (optional)
 	 * @param limit
 	 * @param offset
-	 * @return a list of membership requests sent to the given team, optionally filtered by the requestor
+	 * @return a list of membership requests sent to the given team, optionally filtered by the requester
 	 * @throws SynapseException
 	 */
-	PaginatedResults<MembershipRequest> getOpenMembershipRequests(String teamId, String requestorId, long limit, long offset) throws SynapseException;
+	PaginatedResults<MembershipRequest> getOpenMembershipRequests(String teamId, String requesterId, long limit, long offset) throws SynapseException;
+
+	/**
+	 * 
+	 * @param requesterId
+	 * @param teamId
+	 * @param limit
+	 * @param offset
+	 * @return a list of membership requests from a requester, optionally filtered by the team to which the request was sent
+	 * @throws SynapseException
+	 */
+	PaginatedResults<MembershipRqstSubmission> getOpenMembershipRequestSubmissions(String requesterId, String teamId, long limit, long offset) throws SynapseException;
 
 	/**
 	 * 
@@ -992,35 +1201,25 @@ public interface SynapseClient {
 	 * Creates a user
 	 */
 	public void createUser(NewUser user) throws SynapseException;
-
-	/**
-	 * Retrieves the bare-minimum amount of information about the current user
-	 * i.e. email and name
-	 */
-	public NewUser getAuthUserInfo() throws SynapseException;
 	
-	/**
-	 * Changes the current user's password
-	 */
-	public void changePassword(String newPassword) throws SynapseException;
-
 	/**
 	 * Changes the registering user's password
 	 */
 	public void changePassword(String sessionToken, String newPassword) throws SynapseException;
 	
 	/**
-	 * Changes the current user's email to the email corresponding to the supplied session token
+	 * Signs the terms of use for utilization of Synapse, as identified by a session token
 	 */
-	public void changeEmail(String sessionToken, String newPassword) throws SynapseException;
+	public void signTermsOfUse(String sessionToken, boolean acceptTerms) throws SynapseException;
 	
 	/**
-	 * Sends a password reset email to the current user 
+	 * 
+	 * Signs the terms of use for utilization of specific Dage application, as identified by a session token
 	 */
-	public void sendPasswordResetEmail() throws SynapseException;
+	public void signTermsOfUse(String sessionToken, DomainType domain, boolean acceptTerms) throws SynapseException;
 	
 	/**
-	 * Sends a password reset email to the given user
+	 * Sends a password reset email to the given user as if request came from Synapse.
 	 */
 	public void sendPasswordResetEmail(String email) throws SynapseException;
 	
@@ -1028,5 +1227,24 @@ public interface SynapseClient {
 	 * Performs OpenID authentication using the set of parameters from an OpenID provider
 	 * @return A session token if the authentication passes
 	 */
-	public Session passThroughOpenIDParameters(String queryString, Boolean acceptsTermsOfUse) throws SynapseException;
+	public Session passThroughOpenIDParameters(String queryString) throws SynapseException;
+	
+	/**
+	 * See {@link #passThroughOpenIDParameters(String)}
+	 * 
+	 * @param createUserIfNecessary
+	 *            Whether a user should be created if the user does not already
+	 *            exist
+	 */
+	public Session passThroughOpenIDParameters(String queryString,
+			Boolean createUserIfNecessary) throws SynapseException;
+
+	/**
+	 * @param originClient
+	 *            Which client did the user access to authenticate via a third
+	 *            party provider (Synapse or Bridge)?
+	 */
+	public Session passThroughOpenIDParameters(String queryString,
+			Boolean createUserIfNecessary, DomainType originClient)
+			throws SynapseException;
 }

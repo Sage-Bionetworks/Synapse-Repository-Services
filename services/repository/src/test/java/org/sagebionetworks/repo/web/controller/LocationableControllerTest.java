@@ -14,6 +14,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ExpressionData;
 import org.sagebionetworks.repo.model.LocationData;
@@ -54,6 +55,7 @@ public class LocationableControllerTest {
 	@Before
 	public void setUp() throws Exception {
 		helper.setUp();
+		helper.setTestUser(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 
 		project = new Project();
 		project = helper.createEntity(project, null);

@@ -1,0 +1,8 @@
+{
+    "description":"JSON enum for the type of Principal within Synapse",
+    "type":"string",
+    "enum":[
+    	"USER",
+    	"TEAM"
+    ]
+}

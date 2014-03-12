@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.SortedMap;
@@ -40,7 +41,7 @@ public class PrefixCacheHelper {
 	private static Comparator<UserGroupHeader> userGroupHeaderComparator = new Comparator<UserGroupHeader>() {
 		@Override
 		public int compare(UserGroupHeader o1, UserGroupHeader o2) {
-			return o1.getDisplayName().compareTo(o2.getDisplayName());
+			return o1.getOwnerId().compareTo(o2.getOwnerId());
 		}
 	};
 	
@@ -48,6 +49,26 @@ public class PrefixCacheHelper {
 		return PrefixCacheHelper.flatten(prefixMap, userGroupHeaderComparator);
 	}
 
+	/**
+	 * Extract all of the prefixes out of the UserGroupHeader.
+	 * 
+	 * @param header
+	 * @return
+	 */
+	public static List<String> getPrefixes(UserGroupHeader header){
+		List<String> prefixes = new LinkedList<String>();
+		if(header.getUserName() != null){
+			prefixes.addAll(getPrefixes(header.getUserName()));
+		}
+		if(header.getFirstName() != null){
+			prefixes.addAll(getPrefixes(header.getFirstName()));
+		}
+		if(header.getLastName() != null){
+			prefixes.addAll(getPrefixes(header.getLastName()));
+		}
+		return prefixes;
+	}
+	
 	public static List<String> getPrefixes(String s) {
 		List<String> prefixes = new ArrayList<String>();
 		String lowerCaseName = s.toLowerCase();

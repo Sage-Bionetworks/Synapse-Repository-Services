@@ -9,6 +9,12 @@ import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroup;
 
 public class AuthorizationTestHelper {
+	
+	public static AccessControlList addToACL(AccessControlList acl, Long userId, ACCESS_TYPE at) throws Exception {
+		UserGroup ug = new UserGroup();
+		ug.setId(userId.toString());
+		return addToACL(acl, ug, at);
+	}
 	/**
 	 * Helper to add an access type for a given UserGroup to an existing ACL.
 	 * @param acl

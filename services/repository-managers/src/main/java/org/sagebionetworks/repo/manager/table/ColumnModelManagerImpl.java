@@ -4,15 +4,20 @@ import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
+import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.PaginatedIds;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Basic implementation of the ColumnModelManager.
@@ -24,6 +29,8 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 
 	@Autowired
 	ColumnModelDAO columnModelDao;
+	@Autowired
+	TableStatusDAO tableStatusDAO;
 	
 	@Autowired
 	AuthorizationManager authorizationManager;
@@ -47,7 +54,8 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 		if(limit > 100) throw new IllegalArgumentException("Limit cannot be greater than 100");
 		if(offset < 0) throw new IllegalArgumentException("Offset cannot be less than zero");
 	}
-
+	
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public ColumnModel createColumnModel(UserInfo user, ColumnModel columnModel) throws UnauthorizedException, DatastoreException, NotFoundException{
 		if(user == null) throw new IllegalArgumentException("User cannot be null");
@@ -74,13 +82,18 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 		return columnModelDao.getColumnModel(ids);
 	}
 	
-
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public boolean bindColumnToObject(UserInfo user, Set<String> columnIds,	String objectId) throws DatastoreException, NotFoundException {
+	public boolean bindColumnToObject(UserInfo user, List<String> columnIds, String objectId) throws DatastoreException, NotFoundException {
 		if(user == null) throw new IllegalArgumentException("User cannot be null");
 		if(columnIds == null) throw new IllegalArgumentException("ColumnModel IDs cannot be null");
 		// pass it along to the DAO.
 		long count = columnModelDao.bindColumnToObject(columnIds, objectId);
+		// If there was an actual change we need change the status of the table.
+		if(count > 0){
+			// The table has change so we must rest the state to processing.
+			tableStatusDAO.resetTableStatusToProcessing(objectId);
+		}
 		return count > 0;
 	}
 
@@ -102,6 +115,16 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 		if(user == null) throw new IllegalArgumentException("User cannot be null");
 		if(!user.isAdmin()) throw new UnauthorizedException("Only an Administrator can call this method");
 		return this.columnModelDao.truncateAllColumnData();
+	}
+
+	@Override
+	public List<ColumnModel> getColumnModelsForTable(UserInfo user,
+			String tableId) throws DatastoreException, NotFoundException {
+		// The user must be granted read permission on the table to get the columns.
+		if(!authorizationManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)){
+			throw new UnauthorizedException("You must have "+ACCESS_TYPE.READ+" permission on "+tableId+" to perform that operation.");
+		}
+		return columnModelDao.getColumnModelsForObject(tableId);
 	}
 	
 	

@@ -27,14 +27,14 @@ public class PermissionsManagerUtils {
 		}
 
 		// Verify that the caller maintains permissions access
-		String callerPrincipalId = userInfo.getIndividualGroup().getId();
+		String callerPrincipalId = userInfo.getId().toString();
 		boolean callerIsOwner = callerPrincipalId.equals(ownerId.toString());
 		boolean foundCallerInAcl = false;
 		for (ResourceAccess ra : acl.getResourceAccess()) {
 			if (ra==null) throw new InvalidModelException("ACL row is null.");
 			if (ra.getPrincipalId()==null) throw new InvalidModelException("Group ID is null");
 			if (ra.getAccessType().isEmpty()) throw new InvalidModelException("No access types specified.");
-			if (ra.getPrincipalId().toString().equals(callerPrincipalId)) { 
+			if (userInfo.getGroups().contains(ra.getPrincipalId())) { 
 				if (ra.getAccessType().contains(ACCESS_TYPE.CHANGE_PERMISSIONS)) {
 					// Found caller in the ACL, with access to change permissions
 					foundCallerInAcl = true;

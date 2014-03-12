@@ -36,7 +36,7 @@
 			depends-on="stackConfiguration">
 		<constructor-arg index="0" ref="stackConfiguration.dynamoUpdateQueueName" />
 		<constructor-arg index="1" ref="stackConfiguration.repositoryChangeTopicName" />
-		<constructor-arg index="2" value="true" />
+		<constructor-arg index="2" ref="stackConfiguration.dynamoEnabled" />
 	</bean>
 
 	<bean id="dynamoQueueWorkerFactory"

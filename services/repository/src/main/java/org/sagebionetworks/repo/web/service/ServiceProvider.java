@@ -33,6 +33,8 @@ public interface ServiceProvider {
 	public SearchService getSearchService();
 
 	public ActivityService getActivityService();
+	
+	public MessageService getMessageService();
 
 	public NodeTreeQueryService getNodeTreeQueryService();
 
@@ -55,5 +57,7 @@ public interface ServiceProvider {
 	public MembershipInvitationService getMembershipInvitationService();
 	
 	public MembershipRequestService getMembershipRequestService();
+	
+	public PrincipalService getPrincipalService();
 	
 }

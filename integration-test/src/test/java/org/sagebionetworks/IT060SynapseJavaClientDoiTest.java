@@ -6,62 +6,51 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-import org.junit.After;
-import org.junit.Before;
+import org.junit.AfterClass;
+import org.junit.Assume;
+import org.junit.BeforeClass;
 import org.junit.Test;
-import org.sagebionetworks.client.SynapseClientImpl;
+import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
+import org.sagebionetworks.client.SynapseClient;
+import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.doi.DoiClient;
 import org.sagebionetworks.doi.EzidClient;
-import org.sagebionetworks.ids.UuidETagGenerator;
 import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.repo.model.UserSessionData;
-import org.sagebionetworks.repo.model.doi.Doi;
+import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.doi.DoiStatus;
 
 public class IT060SynapseJavaClientDoiTest {
 
+	private static SynapseAdminClient adminSynapse;
+	private static SynapseClient synapse;
+	private static Long userToDelete;
+
 	/** Max wait time for the DOI status to turn green */
-	private static long MAX_WAIT = 12000; // 12 seconds
-	private static long PAUSE = 2000;     // Pause between waits is 2 seconds
-	private static SynapseAdminClientImpl synapseAdmin;
-	private SynapseClientImpl synapse;
-	private Entity entity;
+	private static final long MAX_WAIT = 12000; // 12 seconds
+	private static final long PAUSE = 2000;     // Pause between waits is 2 seconds
 
-	@Before
-	public void before() throws SynapseException {
+	private static Entity entity;
 
+	@BeforeClass 
+	public static void beforeClass() throws Exception {
+
+		StackConfiguration config = new StackConfiguration();
+		Assume.assumeTrue(config.getDoiEnabled());
+
+		// Create a user
+		adminSynapse = new SynapseAdminClientImpl();
+		SynapseClientHelper.setEndpoints(adminSynapse);
+		adminSynapse.setUserName(StackConfiguration.getMigrationAdminUsername());
+		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
+		
 		synapse = new SynapseClientImpl();
-		synapse.setAuthEndpoint(
-				StackConfiguration.getAuthenticationServicePrivateEndpoint());
-		synapse.setRepositoryEndpoint(
-				StackConfiguration.getRepositoryServiceEndpoint());
-
-		String user = StackConfiguration.getIntegrationTestUserOneName();
-		String pw = StackConfiguration.getIntegrationTestUserOnePassword();
-
-		UserSessionData session = synapse.login(user, pw);
-		assertNotNull(session);
-		assertNotNull(session.getProfile().getUserName());
-		assertNotNull(session.getSessionToken());
-
-		synapseAdmin = new SynapseAdminClientImpl();
-		synapseAdmin.setAuthEndpoint(
-				StackConfiguration.getAuthenticationServicePrivateEndpoint());
-		synapseAdmin.setRepositoryEndpoint(
-				StackConfiguration.getRepositoryServiceEndpoint());
-
-		String adminUsr = StackConfiguration.getIntegrationTestUserAdminName();
-		String adminPwd = StackConfiguration.getIntegrationTestUserAdminPassword();
-
-		UserSessionData adminSession = synapseAdmin.login(adminUsr, adminPwd);
-		assertNotNull(adminSession);
-		assertNotNull(adminSession.getProfile().getUserName());
-		assertNotNull(adminSession.getSessionToken());
+		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
 
 		entity = new Project();
 		entity.setName("IT060SynapseJavaClientDoiTest");
@@ -69,16 +58,20 @@ public class IT060SynapseJavaClientDoiTest {
 		assertNotNull(entity);
 	}
 
-	@After
-	public void after() throws SynapseException {
-		if (entity != null) {
-			synapse.deleteAndPurgeEntityById(entity.getId());
-		}
-		synapseAdmin.clearDoi();
-		try {
-			synapse.getEntityDoi(entity.getId(), null);
-		} catch (SynapseNotFoundException e) {
-			assertTrue(true);
+	@AfterClass
+	public static void afterClass() throws Exception {
+		StackConfiguration config = new StackConfiguration();
+		if (config.getDoiEnabled()) {
+			if (entity != null) {
+				synapse.deleteAndPurgeEntityById(entity.getId());
+			}
+			adminSynapse.clearDoi();
+			try {
+				synapse.getEntityDoi(entity.getId(), null);
+			} catch (SynapseNotFoundException e) {
+				assertTrue(true);
+			}
+			adminSynapse.deleteUser(userToDelete);
 		}
 	}
 
@@ -110,7 +103,7 @@ public class IT060SynapseJavaClientDoiTest {
 		}
 		assertEquals(DoiStatus.CREATED, doi.getDoiStatus());
 		assertTrue(Long.parseLong(doi.getId()) > 0L);
-		assertFalse(UuidETagGenerator.ZERO_E_TAG.equals(doi.getEtag()));
+		assertFalse(NodeConstants.ZERO_E_TAG.equals(doi.getEtag()));
 		assertEquals(entity.getId(), doi.getObjectId());
 		assertNull(doi.getObjectVersion());
 		assertEquals(ObjectType.ENTITY, doi.getObjectType());
@@ -147,7 +140,7 @@ public class IT060SynapseJavaClientDoiTest {
 		}
 		assertEquals(DoiStatus.CREATED, doi.getDoiStatus());
 		assertTrue(Long.parseLong(doi.getId()) > 0L);
-		assertFalse(UuidETagGenerator.ZERO_E_TAG.equals(doi.getEtag()));
+		assertFalse(NodeConstants.ZERO_E_TAG.equals(doi.getEtag()));
 		assertEquals(entity.getId(), doi.getObjectId());
 		assertEquals(Long.valueOf(1L), doi.getObjectVersion());
 		assertEquals(ObjectType.ENTITY, doi.getObjectType());

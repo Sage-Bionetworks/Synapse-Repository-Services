@@ -11,6 +11,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -18,6 +19,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ErrorResponse;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NameConflictException;
+import org.sagebionetworks.repo.model.TooManyRequestsException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -31,6 +33,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.HttpMediaTypeNotAcceptableException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -94,6 +97,14 @@ public abstract class BaseController {
 
 	static final String SERVICE_TEMPORARILY_UNAVAIABLE_PLEASE_TRY_AGAIN_LATER = "Service temporarily unavailable, please try again later.";
 	private static Logger log = LogManager.getLogger(BaseController.class);
+	
+	@ExceptionHandler(MissingServletRequestParameterException.class)
+	@ResponseStatus(HttpStatus.BAD_REQUEST)
+	public @ResponseBody
+	ErrorResponse handleMissingServletRequestParameterException(MissingServletRequestParameterException ex, 
+			HttpServletRequest request) {
+		return handleException(ex, request, false);
+	}
 
 	/**
 	 * This is an application exception thrown when the request references an
@@ -581,10 +592,11 @@ public abstract class BaseController {
 	 */
 	protected ErrorResponse handleException(Throwable ex,
 			HttpServletRequest request, boolean fullTrace) {
-		if(fullTrace){
+		// Always log the stack trace on develop stacks
+		if (fullTrace || StackConfiguration.isDevelopStack()) {
 			// Print the full stack trace
 			log.error("Handling " + request.toString(), ex);
-		}else{
+		} else {
 			// Only print one line
 			log.error("Handling " + request.toString());
 		}
@@ -617,6 +629,7 @@ public abstract class BaseController {
 		return baos.toString();
 	}
 	
+	// TODO:  The status code in 'ex' should dictate the response status, it should not be assumed to be BAD_REQUEST
 	@ExceptionHandler(HttpClientHelperException.class)
 	@ResponseStatus(HttpStatus.BAD_REQUEST)
 	public @ResponseBody
@@ -647,5 +660,19 @@ public abstract class BaseController {
 	ErrorResponse handleEntityInTrashCanException(EntityInTrashCanException ex,
 			HttpServletRequest request) {
 		return handleException(ex, request, true);
+	}
+
+	/**
+	 * When the number of requests made to a particular service exceeds a threshold rate
+	 */
+	@ExceptionHandler(TooManyRequestsException.class)
+	public @ResponseBody
+	ErrorResponse handleTooManyRequestsException(TooManyRequestsException ex,
+			HttpServletRequest request, HttpServletResponse response) {
+		// Note: This older version of Spring lacks HttpStatus.TOO_MANY_REQUESTS
+		// Therefore, the status must be set manually
+		//TODO Change this method to match the other exception handlers when Spring is updated 
+		response.setStatus(429);
+		return handleException(ex, request, false);
 	}
 }

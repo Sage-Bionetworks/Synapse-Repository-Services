@@ -51,7 +51,7 @@ public class MembershipInvitationController extends BaseController {
 	@RequestMapping(value = UrlHelpers.MEMBERSHIP_INVITATION, method = RequestMethod.POST)
 	public @ResponseBody
 	MembershipInvtnSubmission createInvitation(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody MembershipInvtnSubmission invitation
 			) throws NotFoundException {
 		return serviceProvider.getMembershipInvitationService().create(userId, invitation);
@@ -68,15 +68,39 @@ public class MembershipInvitationController extends BaseController {
 	 * @throws NotFoundException
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.OPEN_MEMBERSHIP_INVITATION, method = RequestMethod.GET)
+	@RequestMapping(value = UrlHelpers.OPEN_MEMBERSHIP_INVITATION_BY_USER, method = RequestMethod.GET)
 	public @ResponseBody
-	PaginatedResults<MembershipInvitation> getOpenInvitations(
+	PaginatedResults<MembershipInvitation> getOpenInvitationsByUser(
 			@PathVariable String id,
 			@RequestParam(value = UrlHelpers.TEAM_ID_REQUEST_PARAMETER, required = false) String teamId,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset
 			) throws NotFoundException {
-		return serviceProvider.getMembershipInvitationService().getOpenInvitations(id, teamId, limit, offset);
+		return serviceProvider.getMembershipInvitationService().getOpenInvitations(null, id, teamId, limit, offset);
+	}
+
+	/**
+	 * Retrieve the open invitations from a Team, optionally filtering by the invitee.
+	 * An invitation is only open if it has not expired and if the user has not joined the Team.
+	 * @param userId the ID of the user making the request
+	 * @param id the ID of the Team extending the invitations  
+	 * @param inviteeId the ID of the Synapse user to which invitations have been extended (optional)
+	 * @param limit the maximum number of invitations to return (default 10)
+	 * @param offset the starting index of the returned results (default 0)
+	 * @return
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.OPEN_MEMBERSHIP_INVITATION_BY_TEAM, method = RequestMethod.GET)
+	public @ResponseBody
+	PaginatedResults<MembershipInvtnSubmission> getOpenInvitationsByTeam(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String id,
+			@RequestParam(value = UrlHelpers.INVITEE_ID_REQUEST_PARAMETER, required = false) String inviteeId,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset
+			) throws NotFoundException {
+		return serviceProvider.getMembershipInvitationService().getOpenInvitationSubmissions(userId, inviteeId, id, limit, offset);
 	}
 
 	/**
@@ -92,7 +116,7 @@ public class MembershipInvitationController extends BaseController {
 	public @ResponseBody
 	MembershipInvtnSubmission getInvitation(
 			@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId
 			) throws NotFoundException {
 		return serviceProvider.getMembershipInvitationService().get(userId, id);
 	}
@@ -108,7 +132,7 @@ public class MembershipInvitationController extends BaseController {
 	@RequestMapping(value = UrlHelpers.MEMBERSHIP_INVITATION_ID, method = RequestMethod.DELETE)
 	public void deleteInvitation(
 			@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId
 			) throws NotFoundException {
 		serviceProvider.getMembershipInvitationService().delete(userId, id);
 	}

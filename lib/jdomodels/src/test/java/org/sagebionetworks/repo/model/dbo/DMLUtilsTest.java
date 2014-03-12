@@ -129,7 +129,7 @@ public class DMLUtilsTest {
 	@Test
 	public void testCreateGetCountStatment(){
 		// Here is our simple mapping.
-		String dml = DMLUtils.createGetCountStatement(mapping);
+		String dml = DMLUtils.createGetCountByPrimaryKeyStatement(mapping);
 		assertNotNull(dml);
 		System.out.println(dml);
 		assertEquals("SELECT COUNT(ID) FROM SOME_TABLE", dml);
@@ -137,7 +137,7 @@ public class DMLUtilsTest {
 	
 	@Test
 	public void testCreateGetMaxStatement() {
-		String dml = DMLUtils.createGetMaxStatement(mapping);
+		String dml = DMLUtils.createGetMaxByBackupKeyStatement(mapping);
 		assertNotNull(dml);
 		System.out.println(dml);
 		assertEquals("SELECT MAX(ID) FROM SOME_TABLE", dml);

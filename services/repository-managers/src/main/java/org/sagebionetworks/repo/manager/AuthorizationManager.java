@@ -107,4 +107,16 @@ public interface AuthorizationManager {
 	 * @return
 	 */
 	public boolean isAnonymousUser(UserInfo userInfo);
+	
+	/**
+	 * Checks whether the parent (or other ancestors) are subject to access restrictions and whether 
+	 * userInfo is a member of the ACT.
+	 * 
+	 * @param userInfo
+	 * @param sourceParentId
+	 * @param destParentId
+	 * @return
+	 * @throws NotFoundException 
+	 */
+	public boolean canUserMoveRestrictedEntity(UserInfo userInfo, String sourceParentId, String destParentId) throws NotFoundException;
 }

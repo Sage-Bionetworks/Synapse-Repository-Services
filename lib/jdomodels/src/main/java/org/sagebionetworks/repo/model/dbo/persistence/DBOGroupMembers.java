@@ -1,6 +1,9 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_GROUP_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_MEMBER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_GROUP_MEMBERS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_GROUP_MEMBERS;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -79,8 +82,8 @@ public class DBOGroupMembers implements MigratableDatabaseObject<DBOGroupMembers
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + groupId.hashCode();
-		result = prime * result + memberId.hashCode();
+		result = prime * result + ((groupId == null) ? 0 : groupId.hashCode());
+		result = prime * result + ((memberId == null) ? 0 : memberId.hashCode());
 		return result;
 	}
 
@@ -93,11 +96,16 @@ public class DBOGroupMembers implements MigratableDatabaseObject<DBOGroupMembers
 		if (getClass() != obj.getClass())
 			return false;
 		DBOGroupMembers other = (DBOGroupMembers) obj;
-		if (groupId != other.groupId) {
+		if (groupId == null) {
+			if (other.groupId != null)
+				return false;
+		} else if (!groupId.equals(other.groupId))
 			return false;
-		} else if (memberId != other.memberId){
+		if (memberId == null) {
+			if (other.memberId != null)
+				return false;
+		} else if (!memberId.equals(other.memberId))
 			return false;
-		}
 		return true;
 	}
 
@@ -137,6 +145,7 @@ public class DBOGroupMembers implements MigratableDatabaseObject<DBOGroupMembers
 	}
 
 
+	@SuppressWarnings("rawtypes")
 	@Override
 	public List<MigratableDatabaseObject> getSecondaryTypes() {
 		return null;

@@ -1,7 +1,12 @@
 package org.sagebionetworks.repo.web.controller;
 
 import javax.servlet.http.HttpServletRequest;
-import org.sagebionetworks.repo.model.*;
+
+import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.S3Token;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
@@ -52,7 +57,7 @@ public class S3TokenController extends BaseController {
 			method = RequestMethod.POST)
 	public @ResponseBody
 	S3Token createEntityS3Token(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id, @RequestBody S3Token s3Token,
 			HttpServletRequest request) throws DatastoreException,
 			NotFoundException, UnauthorizedException, InvalidModelException {

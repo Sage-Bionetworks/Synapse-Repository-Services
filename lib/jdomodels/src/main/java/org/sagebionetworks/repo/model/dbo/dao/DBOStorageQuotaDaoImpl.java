@@ -4,8 +4,8 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_STORAGE_
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_STORAGE_QUOTA;
 
 import java.util.List;
+import java.util.UUID;
 
-import org.sagebionetworks.ids.ETagGenerator;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.StorageQuotaDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -26,9 +26,6 @@ public class DBOStorageQuotaDaoImpl implements StorageQuotaDao {
 			" WHERE " + COL_STORAGE_QUOTA_OWNER_ID + " = :" + COL_STORAGE_QUOTA_OWNER_ID;
 
 	private static final RowMapper<DBOStorageQuota> rowMapper = (new DBOStorageQuota()).getTableMapping();
-
-	@Autowired
-	private ETagGenerator eTagGenerator;
 
 	@Autowired
 	private DBOBasicDao basicDao;
@@ -58,7 +55,7 @@ public class DBOStorageQuotaDaoImpl implements StorageQuotaDao {
 		final DBOStorageQuota dboInUpdate = new DBOStorageQuota();
 		final Long userIdLong = KeyFactory.stringToKey(userId);
 		dboInUpdate.setOwnerId(userIdLong);
-		dboInUpdate.seteTag(eTagGenerator.generateETag());
+		dboInUpdate.seteTag(UUID.randomUUID().toString());
 		dboInUpdate.setQuotaInMb(quotaInMb.intValue());
 
 		DBOStorageQuota dbo = getQuotaForUser(userIdLong);

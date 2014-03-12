@@ -82,13 +82,10 @@
 
 	<filter-mapping>
 		<filter-name>authFilter</filter-name>
-		<url-pattern>/auth/v1/user</url-pattern>
-		<url-pattern>/auth/v1/userPassword</url-pattern>
-		<url-pattern>/auth/v1/changeEmail</url-pattern>
-		<url-pattern>/auth/v1/apiPasswordEmail</url-pattern>
 		<url-pattern>/auth/v1/secretKey</url-pattern>
 		<url-pattern>/repo/v1/*</url-pattern>
 		<url-pattern>/file/v1/*</url-pattern>
+		<url-pattern>/bridge/v1/*</url-pattern>
 	</filter-mapping>
 
 
@@ -171,9 +168,9 @@
 
 	<servlet-mapping>
 		<servlet-name>tomcatDefaultServlet</servlet-name>
-		<url-pattern>/auth/v1/termsOfUse.html</url-pattern>
+		<url-pattern>/auth/v1/synapseTermsOfUse.html</url-pattern>
+        <url-pattern>/auth/v1/bridgeTermsOfUse.html</url-pattern>
 	</servlet-mapping>
-
 
 	<servlet-mapping>
 		<servlet-name>authentication</servlet-name>
@@ -208,6 +205,24 @@
 	<servlet-mapping>
 		<servlet-name>file</servlet-name>
 		<url-pattern>/file/v1/*</url-pattern>
+	</servlet-mapping>
+
+	<servlet>
+		<servlet-name>bridge</servlet-name>
+		<servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
+		<!-- These two parameters are required to register an interceptor with 
+			the org.springframework.web.servlet.mvc.annotation.AnnotationMethodHandlerAdapter. 
+			Without them the handler simply will not be used. jmhill 12/10/11 -->
+		<init-param>
+			<param-name>detectAllHandlerMappings</param-name>
+			<param-value>true</param-value>
+		</init-param>
+		<load-on-startup>1</load-on-startup>
+	</servlet>
+
+	<servlet-mapping>
+		<servlet-name>bridge</servlet-name>
+		<url-pattern>/bridge/v1/*</url-pattern>
 	</servlet-mapping>
 
 </web-app>

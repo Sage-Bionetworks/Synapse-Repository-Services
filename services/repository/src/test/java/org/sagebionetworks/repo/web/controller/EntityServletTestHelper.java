@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.RestResourceList;
@@ -32,18 +33,17 @@ import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
-import org.sagebionetworks.repo.model.migration.IdList;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.registry.EntityRegistry;
-import org.sagebionetworks.repo.model.wiki.WikiHeader;
-import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
+import org.sagebionetworks.repo.model.wiki.WikiHeader;
+import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.controller.ServletTestHelperUtils.HTTPMODE;
 import org.sagebionetworks.schema.ObjectSchema;
@@ -81,10 +81,10 @@ public class EntityServletTestHelper {
 	/**
 	 * Create an entity without an entity type
 	 */
-	public Entity createEntity(Entity entity, String username, String activityId)
+	public Entity createEntity(Entity entity, Long userId, String activityId)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, UrlHelpers.ENTITY, username, entity);
+				HTTPMODE.POST, UrlHelpers.ENTITY, userId, entity);
 		request.setParameter(ServiceConstants.GENERATED_BY_PARAM, activityId);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
@@ -96,9 +96,9 @@ public class EntityServletTestHelper {
 	/**
 	 * Delete an entity without knowing the type
 	 */
-	public void deleteEntity(String id, String username) throws Exception {
+	public void deleteEntity(String id, Long userId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.DELETE, UrlHelpers.ENTITY + "/" + id, username, null);
+				HTTPMODE.DELETE, UrlHelpers.ENTITY + "/" + id, userId, null);
 
 		ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request,
 				HttpStatus.NO_CONTENT);
@@ -107,9 +107,9 @@ public class EntityServletTestHelper {
 	/**
 	 * Get an entity using only the ID
 	 */
-	public Entity getEntity(String id, String username) throws Exception {
+	public Entity getEntity(String id, Long userId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id, username, null);
+				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id, userId, null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
@@ -120,11 +120,11 @@ public class EntityServletTestHelper {
 	/**
 	 * Get an entity bundle using only the ID
 	 */
-	public EntityBundle getEntityBundle(String id, int mask, String username)
+	public EntityBundle getEntityBundle(String id, int mask, Long userId)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id + UrlHelpers.BUNDLE,
-				username, null);
+				userId, null);
 		request.setParameter("mask", "" + mask);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
@@ -139,10 +139,10 @@ public class EntityServletTestHelper {
 	 * versionNumber.
 	 */
 	public EntityBundle getEntityBundleForVersion(String id,
-			Long versionNumber, int mask, String username) throws Exception {
+			Long versionNumber, int mask, Long userId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id + UrlHelpers.VERSION
-						+ "/" + versionNumber + UrlHelpers.BUNDLE, username,
+						+ "/" + versionNumber + UrlHelpers.BUNDLE, userId,
 				null);
 		request.setParameter("mask", "" + mask);
 
@@ -156,11 +156,11 @@ public class EntityServletTestHelper {
 	/**
 	 * Update an entity.
 	 */
-	public Entity updateEntity(Entity toUpdate, String username)
+	public Entity updateEntity(Entity toUpdate, Long userId)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.PUT, UrlHelpers.ENTITY + "/" + toUpdate.getId(),
-				username, toUpdate);
+				userId, toUpdate);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
@@ -171,11 +171,11 @@ public class EntityServletTestHelper {
 	/**
 	 * Get the annotations for an entity.
 	 */
-	public Annotations getEntityAnnotations(String id, String username)
+	public Annotations getEntityAnnotations(String id, Long userId)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id
-						+ UrlHelpers.ANNOTATIONS, username, null);
+						+ UrlHelpers.ANNOTATIONS, userId, null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
@@ -187,11 +187,11 @@ public class EntityServletTestHelper {
 	/**
 	 * Update the annotations of an entity
 	 */
-	public Annotations updateAnnotations(Annotations annos, String username)
+	public Annotations updateAnnotations(Annotations annos, Long userId)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.PUT, UrlHelpers.ENTITY + "/" + annos.getId()
-						+ UrlHelpers.ANNOTATIONS, username, annos);
+						+ UrlHelpers.ANNOTATIONS, userId, annos);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
@@ -204,10 +204,10 @@ public class EntityServletTestHelper {
 	 * Get the user's permissions for an entity
 	 */
 	public UserEntityPermissions getUserEntityPermissions(String id,
-			String username) throws Exception {
+			Long userId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id
-						+ UrlHelpers.PERMISSIONS, username, null);
+						+ UrlHelpers.PERMISSIONS, userId, null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
@@ -219,11 +219,11 @@ public class EntityServletTestHelper {
 	/**
 	 * Get the user's permissions for an entity.
 	 */
-	public EntityPath getEntityPath(String id, String username)
+	public EntityPath getEntityPath(String id, Long userId)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id + UrlHelpers.PATH,
-				username, null);
+				userId, null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
@@ -236,9 +236,9 @@ public class EntityServletTestHelper {
 	 * Get the types of entities
 	 */
 	public BatchResults<EntityHeader> getEntityTypeBatch(List<String> ids,
-			String username) throws Exception {
+			Long userId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.ENTITY_TYPE, username, null);
+				HTTPMODE.GET, UrlHelpers.ENTITY_TYPE, userId, null);
 		request.setParameter(ServiceConstants.BATCH_PARAM, StringUtils.join(
 				ids, ServiceConstants.BATCH_PARAM_VALUE_SEPARATOR));
 
@@ -317,11 +317,11 @@ public class EntityServletTestHelper {
 	/**
 	 * Creates a new version of an entity
 	 */
-	public Versionable createNewVersion(String username, Versionable entity)
+	public Versionable createNewVersion(Long userId, Versionable entity)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.PUT, UrlHelpers.ENTITY + "/" + entity.getId()
-						+ "/version", username, entity);
+						+ "/version", userId, entity);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
@@ -337,10 +337,10 @@ public class EntityServletTestHelper {
 	/**
 	 * Creates an evaluation
 	 */
-	public Evaluation createEvaluation(Evaluation eval, String username)
+	public Evaluation createEvaluation(Evaluation eval, Long userId)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, UrlHelpers.EVALUATION, username, eval);
+				HTTPMODE.POST, UrlHelpers.EVALUATION, userId, eval);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.CREATED);
@@ -351,10 +351,10 @@ public class EntityServletTestHelper {
 	/**
 	 * Gets an evaluation
 	 */
-	public Evaluation getEvaluation(String username, String evalId)
+	public Evaluation getEvaluation(Long userId, String evalId)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.EVALUATION + "/" + evalId, username,
+				HTTPMODE.GET, UrlHelpers.EVALUATION + "/" + evalId, userId,
 				null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
@@ -366,11 +366,11 @@ public class EntityServletTestHelper {
 	/**
 	 * Returns whether the user has access rights to the evaluation
 	 */
-	public Boolean canAccess(String username, String evalId,
+	public Boolean canAccess(Long userId, String evalId,
 			ACCESS_TYPE accessType) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, UrlHelpers.EVALUATION + "/" + evalId + "/access",
-				username, null);
+				userId, null);
 		request.addParameter("accessType", accessType.toString());
 
 		MockHttpServletResponse response = ServletTestHelperUtils
@@ -384,11 +384,11 @@ public class EntityServletTestHelper {
 	/**
 	 * Looks for an evaluation by name
 	 */
-	public Evaluation findEvaluation(String username, String name)
+	public Evaluation findEvaluation(Long userId, String name)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, UrlHelpers.EVALUATION + "/name/" + name,
-				username, null);
+				userId, null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
@@ -400,9 +400,9 @@ public class EntityServletTestHelper {
 	 * Gets a paginated list of available evaluations
 	 */
 	public PaginatedResults<Evaluation> getAvailableEvaluations(
-			String username) throws Exception {
+			Long userId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.EVALUATION_AVAILABLE, username, null);
+				HTTPMODE.GET, UrlHelpers.EVALUATION_AVAILABLE, userId, null);
 		request.setParameter("limit", "100");
 		request.setParameter("offset", "0");
 
@@ -413,11 +413,11 @@ public class EntityServletTestHelper {
 				Evaluation.class);
 	}
 
-	public Evaluation updateEvaluation(Evaluation eval, String username)
+	public Evaluation updateEvaluation(Evaluation eval, Long userId)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.PUT, UrlHelpers.EVALUATION + "/" + eval.getId(),
-				username, eval);
+				userId, eval);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
@@ -425,22 +425,22 @@ public class EntityServletTestHelper {
 		return new Evaluation(ServletTestHelperUtils.readResponseJSON(response));
 	}
 
-	public void deleteEvaluation(String evalId, String username)
+	public void deleteEvaluation(String evalId, Long userId)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.DELETE, UrlHelpers.EVALUATION + "/" + evalId,
-				username, null);
+				userId, null);
 
 		ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request,
 				HttpStatus.NO_CONTENT);
 	}
 
 	public PaginatedResults<Evaluation> getEvaluationsByContentSourcePaginated(
-			String username, String id, long limit, long offset)
+			Long userId, String id, long limit, long offset)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, UrlHelpers.ENTITY + "/" + id + UrlHelpers.EVALUATION,
-				username, null);
+				userId, null);
 		request.setParameter(ServiceConstants.PAGINATION_OFFSET_PARAM, ""
 				+ offset);
 		request.setParameter(ServiceConstants.PAGINATION_LIMIT_PARAM, ""
@@ -454,9 +454,9 @@ public class EntityServletTestHelper {
 	}
 
 	public PaginatedResults<Evaluation> getEvaluationsPaginated(
-			String username, long limit, long offset) throws Exception {
+			Long userId, long limit, long offset) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.EVALUATION, username, null);
+				HTTPMODE.GET, UrlHelpers.EVALUATION, userId, null);
 		request.setParameter(ServiceConstants.PAGINATION_OFFSET_PARAM, ""
 				+ offset);
 		request.setParameter(ServiceConstants.PAGINATION_LIMIT_PARAM, ""
@@ -469,9 +469,9 @@ public class EntityServletTestHelper {
 				Evaluation.class);
 	}
 
-	public long getEvaluationCount(String username) throws Exception {
+	public long getEvaluationCount(Long userId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.EVALUATION_COUNT, username, null);
+				HTTPMODE.GET, UrlHelpers.EVALUATION_COUNT, userId, null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
@@ -479,11 +479,11 @@ public class EntityServletTestHelper {
 		return Long.parseLong(response.getContentAsString());
 	}
 
-	public Participant createParticipant(String username, String evalId)
+	public Participant createParticipant(Long userId, String evalId)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.POST, UrlHelpers.EVALUATION + "/" + evalId
-						+ "/participant", username, null);
+						+ "/participant", userId, null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.CREATED);
@@ -492,14 +492,11 @@ public class EntityServletTestHelper {
 				ServletTestHelperUtils.readResponseJSON(response));
 	}
 
-	public Participant getParticipant(String username, String partId,
+	public Participant getParticipant(Long userId, Long partId,
 			String evalId) throws Exception {
-		// Make sure we are passing in the ID, not the user name
-		Long.parseLong(partId);
-
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, UrlHelpers.EVALUATION + "/" + evalId
-						+ "/participant/" + partId, username, null);
+						+ "/participant/" + partId, userId, null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
@@ -508,24 +505,21 @@ public class EntityServletTestHelper {
 				ServletTestHelperUtils.readResponseJSON(response));
 	}
 
-	public void deleteParticipant(String username, String partId, String evalId)
+	public void deleteParticipant(Long userId, Long partId, String evalId)
 			throws Exception {
-		// Make sure we are passing in the ID, not the user name
-		Long.parseLong(partId);
-
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.DELETE, UrlHelpers.EVALUATION + "/" + evalId
-						+ "/participant/" + partId, username, null);
+						+ "/participant/" + partId, userId, null);
 
 		ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request,
 				HttpStatus.NO_CONTENT);
 	}
 
-	public PaginatedResults<Participant> getAllParticipants(String username,
+	public PaginatedResults<Participant> getAllParticipants(Long userId,
 			String evalId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, UrlHelpers.EVALUATION + "/" + evalId
-						+ "/participant", username, null);
+						+ "/participant", userId, null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
@@ -534,11 +528,11 @@ public class EntityServletTestHelper {
 				Participant.class);
 	}
 
-	public long getParticipantCount(String username, String evalId)
+	public long getParticipantCount(Long userId, String evalId)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, UrlHelpers.EVALUATION + "/" + evalId
-						+ "/participant/count", username, null);
+						+ "/participant/count", userId, null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
@@ -546,10 +540,10 @@ public class EntityServletTestHelper {
 		return Long.parseLong(response.getContentAsString());
 	}
 
-	public Submission createSubmission(Submission sub, String username,
+	public Submission createSubmission(Submission sub, Long userId,
 			String entityEtag) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, UrlHelpers.SUBMISSION, username, sub);
+				HTTPMODE.POST, UrlHelpers.SUBMISSION, userId, sub);
 		request.setParameter(AuthorizationConstants.ETAG_PARAM, entityEtag);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
@@ -558,10 +552,10 @@ public class EntityServletTestHelper {
 		return new Submission(ServletTestHelperUtils.readResponseJSON(response));
 	}
 
-	public Submission getSubmission(String username, String subId)
+	public Submission getSubmission(Long userId, String subId)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, UrlHelpers.SUBMISSION + "/" + subId, username,
+				HTTPMODE.GET, UrlHelpers.SUBMISSION + "/" + subId, userId,
 				null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
@@ -570,11 +564,11 @@ public class EntityServletTestHelper {
 		return new Submission(ServletTestHelperUtils.readResponseJSON(response));
 	}
 
-	public SubmissionStatus getSubmissionStatus(String username, String subId)
+	public SubmissionStatus getSubmissionStatus(Long userId, String subId)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, UrlHelpers.SUBMISSION + "/" + subId + "/status",
-				username, null);
+				userId, null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
@@ -584,10 +578,10 @@ public class EntityServletTestHelper {
 	}
 
 	public SubmissionStatus updateSubmissionStatus(SubmissionStatus subStatus,
-			String username) throws Exception {
+			Long userId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.PUT, UrlHelpers.SUBMISSION + "/" + subStatus.getId()
-						+ "/status", username, subStatus);
+						+ "/status", userId, subStatus);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
@@ -596,21 +590,21 @@ public class EntityServletTestHelper {
 				ServletTestHelperUtils.readResponseJSON(response));
 	}
 
-	public void deleteSubmission(String subId, String username)
+	public void deleteSubmission(String subId, Long userId)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.DELETE, UrlHelpers.SUBMISSION + "/" + subId, username,
+				HTTPMODE.DELETE, UrlHelpers.SUBMISSION + "/" + subId, userId,
 				null);
 
 		ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request,
 				HttpStatus.NO_CONTENT);
 	}
 
-	public PaginatedResults<Submission> getAllSubmissions(String username,
+	public PaginatedResults<Submission> getAllSubmissions(Long userId,
 			String evalId, SubmissionStatusEnum status) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, UrlHelpers.EVALUATION + "/" + evalId
-						+ "/submission/all", username, null);
+						+ "/submission/all", userId, null);
 		if (status != null) {
 			request.setParameter(UrlHelpers.STATUS, status.toString());
 		}
@@ -622,11 +616,11 @@ public class EntityServletTestHelper {
 				Submission.class);
 	}
 
-	public long getSubmissionCount(String username, String evalId)
+	public long getSubmissionCount(Long userId, String evalId)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, UrlHelpers.EVALUATION + "/" + evalId
-						+ "/submission/count", username, null);
+						+ "/submission/count", userId, null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
@@ -634,11 +628,11 @@ public class EntityServletTestHelper {
 		return Long.parseLong(response.getContentAsString());
 	}
 
-	public AccessControlList getEvaluationAcl(String username, String evalId)
+	public AccessControlList getEvaluationAcl(Long userId, String evalId)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, UrlHelpers.EVALUATION + "/" + evalId
-						+ UrlHelpers.ACL, username, null);
+						+ UrlHelpers.ACL, userId, null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
@@ -647,10 +641,10 @@ public class EntityServletTestHelper {
 				response.getContentAsString(), AccessControlList.class);
 	}
 
-	public AccessControlList updateEvaluationAcl(String username,
+	public AccessControlList updateEvaluationAcl(Long userId,
 			AccessControlList acl) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.PUT, UrlHelpers.EVALUATION_ACL, username, acl);
+				HTTPMODE.PUT, UrlHelpers.EVALUATION_ACL, userId, acl);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
@@ -659,11 +653,11 @@ public class EntityServletTestHelper {
 				response.getContentAsString(), AccessControlList.class);
 	}
 
-	public UserEvaluationPermissions getEvaluationPermissions(String username,
+	public UserEvaluationPermissions getEvaluationPermissions(Long userId,
 			String evalId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, UrlHelpers.EVALUATION + "/" + evalId
-						+ UrlHelpers.PERMISSIONS, username, null);
+						+ UrlHelpers.PERMISSIONS, userId, null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
@@ -672,10 +666,10 @@ public class EntityServletTestHelper {
 				response.getContentAsString(), UserEvaluationPermissions.class);
 	}
 
-	public BatchResults<EntityHeader> getEntityHeaderByMd5(String username,
+	public BatchResults<EntityHeader> getEntityHeaderByMd5(Long userId,
 			String md5) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/entity/md5/" + md5, username, null);
+				HTTPMODE.GET, "/entity/md5/" + md5, userId, null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
@@ -691,10 +685,10 @@ public class EntityServletTestHelper {
 	/**
 	 * Get the migration counts
 	 */
-	public MigrationTypeCounts getMigrationTypeCounts(String username)
+	public MigrationTypeCounts getMigrationTypeCounts(Long userId)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/migration/counts", username, null);
+				HTTPMODE.GET, "/migration/counts", userId, null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
@@ -707,10 +701,10 @@ public class EntityServletTestHelper {
 	 * Get the RowMetadata for a given Migration type. This is used to get all
 	 * metadata from a source stack during migation.
 	 */
-	public RowMetadataResult getRowMetadata(String username,
+	public RowMetadataResult getRowMetadata(Long userId,
 			MigrationType type, long limit, long offset) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/migration/rows", username, null);
+				HTTPMODE.GET, "/migration/rows", userId, null);
 		request.setParameter("type", type.name());
 		request.setParameter("limit", "" + limit);
 		request.setParameter("offset", "" + offset);
@@ -726,10 +720,10 @@ public class EntityServletTestHelper {
 	 * Get the RowMetadata for a given Migration type. This is used to get all
 	 * metadata from a source stack during migation.
 	 */
-	public RowMetadataResult getRowMetadataDelta(String username,
+	public RowMetadataResult getRowMetadataDelta(Long userId,
 			MigrationType type, IdList list) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/migration/delta", username, list);
+				HTTPMODE.GET, "/migration/delta", userId, list);
 		request.setParameter("type", type.name());
 
 		MockHttpServletResponse response = ServletTestHelperUtils
@@ -743,10 +737,10 @@ public class EntityServletTestHelper {
 	 * Get the RowMetadata for a given Migration type. This is used to get all
 	 * metadata from a source stack during migation.
 	 */
-	public MigrationTypeList getPrimaryMigrationTypes(String username)
+	public MigrationTypeList getPrimaryMigrationTypes(Long userId)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/migration/primarytypes", username, null);
+				HTTPMODE.GET, "/migration/primarytypes", userId, null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
@@ -758,10 +752,10 @@ public class EntityServletTestHelper {
 	/**
 	 * Start the backup of a list of objects
 	 */
-	public BackupRestoreStatus startBackup(String username, MigrationType type,
+	public BackupRestoreStatus startBackup(Long userId, MigrationType type,
 			IdList list) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, "/migration/backup", username, list);
+				HTTPMODE.POST, "/migration/backup", userId, list);
 		request.setParameter("type", type.name());
 
 		MockHttpServletResponse response = ServletTestHelperUtils
@@ -774,10 +768,10 @@ public class EntityServletTestHelper {
 	/**
 	 * Start the restore of a list of objects
 	 */
-	public BackupRestoreStatus startRestore(String username,
+	public BackupRestoreStatus startRestore(Long userId,
 			MigrationType type, RestoreSubmission sub) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, "/migration/restore", username, sub);
+				HTTPMODE.POST, "/migration/restore", userId, sub);
 		request.setParameter("type", type.name());
 
 		MockHttpServletResponse response = ServletTestHelperUtils
@@ -790,10 +784,10 @@ public class EntityServletTestHelper {
 	/**
 	 * Get the status of a migration operation
 	 */
-	public BackupRestoreStatus getBackupRestoreStatus(String username,
+	public BackupRestoreStatus getBackupRestoreStatus(Long userId,
 			String daemonId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/migration/status", username, null);
+				HTTPMODE.GET, "/migration/status", userId, null);
 		request.setParameter("daemonId", daemonId);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
@@ -806,10 +800,10 @@ public class EntityServletTestHelper {
 	/**
 	 * Deletes all objects of a given type
 	 */
-	public MigrationTypeCount deleteMigrationType(String username,
+	public MigrationTypeCount deleteMigrationType(Long userId,
 			MigrationType type, IdList list) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.PUT, "/migration/delete", username, list);
+				HTTPMODE.PUT, "/migration/delete", userId, list);
 		request.setParameter("type", type.name());
 
 		MockHttpServletResponse response = ServletTestHelperUtils
@@ -819,11 +813,11 @@ public class EntityServletTestHelper {
 				response.getContentAsString(), MigrationTypeCount.class);
 	}
 
-	public WikiPage createWikiPage(String username, String ownerId,
+	public WikiPage createWikiPage(Long userId, String ownerId,
 			ObjectType ownerType, WikiPage toCreate) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.POST, "/" + ownerType.name().toLowerCase() + "/"
-						+ ownerId + "/wiki", username, toCreate);
+						+ ownerId + "/wiki", userId, toCreate);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.CREATED);
@@ -835,11 +829,11 @@ public class EntityServletTestHelper {
 	/**
 	 * Delete a wikipage
 	 */
-	public void deleteWikiPage(WikiPageKey key, String username)
+	public void deleteWikiPage(WikiPageKey key, Long userId)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.DELETE, ServletTestHelperUtils.createWikiURI(key),
-				username, null);
+				userId, null);
 
 		ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request,
 				HttpStatus.OK);
@@ -848,11 +842,11 @@ public class EntityServletTestHelper {
 	/**
 	 * Get a wiki page.
 	 */
-	public WikiPage getWikiPage(WikiPageKey key, String username)
+	public WikiPage getWikiPage(WikiPageKey key, Long userId)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, ServletTestHelperUtils.createWikiURI(key),
-				username, null);
+				userId, null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
@@ -865,10 +859,10 @@ public class EntityServletTestHelper {
 	 * Get the root wiki page
 	 */
 	public WikiPage getRootWikiPage(String ownerId, ObjectType ownerType,
-			String username) throws Exception {
+			Long userId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, "/" + ownerType.name().toLowerCase() + "/"
-						+ ownerId + "/wiki", username, null);
+						+ ownerId + "/wiki", userId, null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
@@ -880,11 +874,11 @@ public class EntityServletTestHelper {
 	/**
 	 * Update a wiki page
 	 */
-	public WikiPage updateWikiPage(String username, String ownerId,
+	public WikiPage updateWikiPage(Long userId, String ownerId,
 			ObjectType ownerType, WikiPage wiki) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.PUT, "/" + ownerType.name().toLowerCase() + "/"
-						+ ownerId + "/wiki/" + wiki.getId(), username, wiki);
+						+ ownerId + "/wiki/" + wiki.getId(), userId, wiki);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
@@ -896,11 +890,11 @@ public class EntityServletTestHelper {
 	/**
 	 * Get the paginated results of a wiki header
 	 */
-	public PaginatedResults<WikiHeader> getWikiHeaderTree(String username,
+	public PaginatedResults<WikiHeader> getWikiHeaderTree(Long userId,
 			String ownerId, ObjectType ownerType) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, "/" + ownerType.name().toLowerCase() + "/"
-						+ ownerId + "/wikiheadertree", username, null);
+						+ ownerId + "/wikiheadertree", userId, null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
@@ -912,11 +906,11 @@ public class EntityServletTestHelper {
 	/**
 	 * Get the paginated results of a wiki header
 	 */
-	public FileHandleResults getWikiFileHandles(String username, WikiPageKey key)
+	public FileHandleResults getWikiFileHandles(Long userId, WikiPageKey key)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, ServletTestHelperUtils.createWikiURI(key)
-						+ "/attachmenthandles", username, null);
+						+ "/attachmenthandles", userId, null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
@@ -929,9 +923,9 @@ public class EntityServletTestHelper {
 	 * Get the file handles for the current version
 	 */
 	public FileHandleResults geEntityFileHandlesForCurrentVersion(
-			String username, String entityId) throws Exception {
+			Long userId, String entityId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/entity/" + entityId + "/filehandles", username,
+				HTTPMODE.GET, "/entity/" + entityId + "/filehandles", userId,
 				null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
@@ -944,11 +938,11 @@ public class EntityServletTestHelper {
 	/**
 	 * Get the file handles for a given version
 	 */
-	public FileHandleResults geEntityFileHandlesForVersion(String username,
+	public FileHandleResults geEntityFileHandlesForVersion(Long userId,
 			String entityId, Long versionNumber) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, "/entity/" + entityId + "/version/"
-						+ versionNumber + "/filehandles", username, null);
+						+ versionNumber + "/filehandles", userId, null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
@@ -960,11 +954,11 @@ public class EntityServletTestHelper {
 	/**
 	 * Get the temporary Redirect URL for a Wiki File
 	 */
-	public URL getWikiAttachmentFileURL(String username, WikiPageKey key,
+	public URL getWikiAttachmentFileURL(Long userId, WikiPageKey key,
 			String fileName, Boolean redirect) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, ServletTestHelperUtils.createWikiURI(key)
-						+ "/attachment", username, null);
+						+ "/attachment", userId, null);
 		request.setParameter("fileName", fileName);
 		if (redirect != null) {
 			request.setParameter("redirect", redirect.toString());
@@ -979,12 +973,12 @@ public class EntityServletTestHelper {
 	/**
 	 * Get the temporary Redirect URL for a Wiki File
 	 */
-	public URL getWikiAttachmentPreviewFileURL(String username,
+	public URL getWikiAttachmentPreviewFileURL(Long userId,
 			WikiPageKey key, String fileName, Boolean redirect)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, ServletTestHelperUtils.createWikiURI(key)
-						+ "/attachmentpreview", username, null);
+						+ "/attachmentpreview", userId, null);
 		request.setParameter("fileName", fileName);
 		if (redirect != null) {
 			request.setParameter("redirect", redirect.toString());
@@ -1011,7 +1005,7 @@ public class EntityServletTestHelper {
 	 *            version. When set to a version number, the file (or preview)
 	 *            associated with that version number will be returned.
 	 */
-	private URL getEntityFileURL(String username, String entityId,
+	private URL getEntityFileURL(Long userId, String entityId,
 			Boolean redirect, Boolean preview, Long versionNumber)
 			throws Exception {
 		String suffix = "/file";
@@ -1025,7 +1019,7 @@ public class EntityServletTestHelper {
 		}
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, "/entity/" + entityId + version + suffix,
-				username, null);
+				userId, null);
 		if (redirect != null) {
 			request.setParameter("redirect", redirect.toString());
 		}
@@ -1039,37 +1033,37 @@ public class EntityServletTestHelper {
 	/**
 	 * Get the file URL for the current version
 	 */
-	public URL getEntityFileURLForCurrentVersion(String userName,
+	public URL getEntityFileURLForCurrentVersion(Long userId,
 			String entityId, Boolean redirect) throws Exception {
 		Boolean preview = null;
 		Long versionNumber = null;
-		return getEntityFileURL(userName, entityId, redirect, preview,
+		return getEntityFileURL(userId, entityId, redirect, preview,
 				versionNumber);
 	}
 
 	/**
 	 * Get the file preview URL for the current version
 	 */
-	public URL getEntityFilePreviewURLForCurrentVersion(String userName,
+	public URL getEntityFilePreviewURLForCurrentVersion(Long userId,
 			String entityId, Boolean redirect) throws Exception {
 		Boolean preview = Boolean.TRUE;
 		Long versionNumber = null;
-		return getEntityFileURL(userName, entityId, redirect, preview,
+		return getEntityFileURL(userId, entityId, redirect, preview,
 				versionNumber);
 	}
 
-	public URL getEntityFileURLForVersion(String userName, String entityId,
+	public URL getEntityFileURLForVersion(Long userId, String entityId,
 			Long versionNumber, Boolean redirect) throws Exception {
 		Boolean preview = null;
-		return getEntityFileURL(userName, entityId, redirect, preview,
+		return getEntityFileURL(userId, entityId, redirect, preview,
 				versionNumber);
 	}
 
-	public URL getEntityFilePreviewURLForVersion(String userName,
+	public URL getEntityFilePreviewURLForVersion(Long userId,
 			String entityId, Long versionNumber, Boolean redirect)
 			throws Exception {
 		Boolean preview = Boolean.TRUE;
-		return getEntityFileURL(userName, entityId, redirect, preview,
+		return getEntityFileURL(userId, entityId, redirect, preview,
 				versionNumber);
 	}
 	
@@ -1077,11 +1071,11 @@ public class EntityServletTestHelper {
 	/**
 	 * Create V2 wiki page
 	 */
-	public V2WikiPage createV2WikiPage(String username, String ownerId,
+	public V2WikiPage createV2WikiPage(Long userId, String ownerId,
 			ObjectType ownerType, V2WikiPage toCreate) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.POST, "/" + ownerType.name().toLowerCase() + "/"
-						+ ownerId + "/wiki2", username, toCreate);
+						+ ownerId + "/wiki2", userId, toCreate);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.CREATED);
@@ -1093,11 +1087,14 @@ public class EntityServletTestHelper {
 	/**
 	 * Get V2 wiki page
 	 */
-	public V2WikiPage getV2WikiPage(WikiPageKey key, String username) throws Exception {
+	public V2WikiPage getV2WikiPage(WikiPageKey key, Long userId, Long wikiVersion) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 			HTTPMODE.GET, ServletTestHelperUtils.createV2WikiURI(key),
-			username, null);
+			userId, null);
 
+		if(wikiVersion != null) {
+			request.setParameter("wikiVersion", String.valueOf(wikiVersion));
+		}
 		MockHttpServletResponse response = ServletTestHelperUtils
 			.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
 
@@ -1108,10 +1105,10 @@ public class EntityServletTestHelper {
 	 * Get the root V2 wiki page
 	 */
 	public V2WikiPage getRootV2WikiPage(String ownerId, ObjectType ownerType,
-			String username) throws Exception {
+			Long userId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, "/" + ownerType.name().toLowerCase() + "/"
-						+ ownerId + "/wiki2", username, null);
+						+ ownerId + "/wiki2", userId, null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
@@ -1123,11 +1120,11 @@ public class EntityServletTestHelper {
 	/**
 	 * Update a V2 wiki page
 	 */
-	public V2WikiPage updateWikiPage(String username, String ownerId,
+	public V2WikiPage updateWikiPage(Long userId, String ownerId,
 			ObjectType ownerType, V2WikiPage wiki) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.PUT, "/" + ownerType.name().toLowerCase() + "/"
-						+ ownerId + "/wiki2/" + wiki.getId(), username, wiki);
+						+ ownerId + "/wiki2/" + wiki.getId(), userId, wiki);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
@@ -1139,11 +1136,11 @@ public class EntityServletTestHelper {
 	/**
 	 * Get the paginated results of a wiki header
 	 */
-	public PaginatedResults<V2WikiHeader> getV2WikiHeaderTree(String username,
+	public PaginatedResults<V2WikiHeader> getV2WikiHeaderTree(Long userId,
 			String ownerId, ObjectType ownerType) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, "/" + ownerType.name().toLowerCase() + "/"
-						+ ownerId + "/wikiheadertree2", username, null);
+						+ ownerId + "/wikiheadertree2", userId, null);
 
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
@@ -1155,12 +1152,16 @@ public class EntityServletTestHelper {
 	/**
 	 * Get the paginated results of a wiki header
 	 */
-	public FileHandleResults getV2WikiFileHandles(String username, WikiPageKey key)
+	public FileHandleResults getV2WikiFileHandles(Long userId, WikiPageKey key,
+			Long wikiVersion)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, ServletTestHelperUtils.createV2WikiURI(key)
-						+ "/attachmenthandles", username, null);
+						+ "/attachmenthandles", userId, null);
 
+		if(wikiVersion != null) {
+			request.setParameter("wikiVersion", String.valueOf(wikiVersion));
+		}
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
 
@@ -1170,15 +1171,19 @@ public class EntityServletTestHelper {
 	
 	/**
 	 * Get the temporary Redirect URL for a Wiki File
+	 * @param wikiVersion TODO
 	 */
-	public URL getV2WikiAttachmentFileURL(String username, WikiPageKey key,
-			String fileName, Boolean redirect) throws Exception {
+	public URL getV2WikiAttachmentFileURL(Long userId, WikiPageKey key,
+			String fileName, Boolean redirect, Long wikiVersion) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, ServletTestHelperUtils.createV2WikiURI(key)
-						+ "/attachment", username, null);
+						+ "/attachment", userId, null);
 		request.setParameter("fileName", fileName);
 		if (redirect != null) {
 			request.setParameter("redirect", redirect.toString());
+		}
+		if(wikiVersion != null) {
+			request.setParameter("wikiVersion", String.valueOf(wikiVersion));
 		}
 
 		MockHttpServletResponse response = ServletTestHelperUtils
@@ -1189,14 +1194,39 @@ public class EntityServletTestHelper {
 
 	/**
 	 * Get the temporary Redirect URL for a Wiki File
+	 * @param wikiVersion TODO
 	 */
-	public URL getV2WikiAttachmentPreviewFileURL(String username,
-			WikiPageKey key, String fileName, Boolean redirect)
+	public URL getV2WikiAttachmentPreviewFileURL(Long userId,
+			WikiPageKey key, String fileName, Boolean redirect, Long wikiVersion)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, ServletTestHelperUtils.createV2WikiURI(key)
-						+ "/attachmentpreview", username, null);
+						+ "/attachmentpreview", userId, null);
 		request.setParameter("fileName", fileName);
+		if (redirect != null) {
+			request.setParameter("redirect", redirect.toString());
+		}
+		if(wikiVersion != null) {
+			request.setParameter("wikiVersion", String.valueOf(wikiVersion));
+		}
+		
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatcherServlet, request, null);
+
+		return ServletTestHelperUtils.handleRedirectReponse(redirect, response);
+	}
+	
+	/**
+	 * Get the temporary Redirect URL for a Wiki's markdown
+	 */
+	public URL getV2WikiMarkdownFileURL(Long userId, WikiPageKey key,
+			Long wikiVersion, Boolean redirect) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, ServletTestHelperUtils.createV2WikiURI(key)
+						+ "/markdown", userId, null);
+		if(wikiVersion != null) {
+			request.setParameter("wikiVersion", String.valueOf(wikiVersion));
+		}
 		if (redirect != null) {
 			request.setParameter("redirect", redirect.toString());
 		}
@@ -1206,15 +1236,16 @@ public class EntityServletTestHelper {
 
 		return ServletTestHelperUtils.handleRedirectReponse(redirect, response);
 	}
+
 	
 	/**
 	 * Delete a wikipage
 	 */
-	public void deleteV2WikiPage(WikiPageKey key, String username)
+	public void deleteV2WikiPage(WikiPageKey key, Long userId)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.DELETE, ServletTestHelperUtils.createV2WikiURI(key),
-				username, null);
+				userId, null);
 
 		ServletTestHelperUtils.dispatchRequest(dispatcherServlet, request,
 				HttpStatus.OK);
@@ -1223,11 +1254,11 @@ public class EntityServletTestHelper {
 	/**
 	 * Restore a V2 wiki page to other content
 	 */
-	public V2WikiPage restoreWikiPage(String username, String ownerId,
+	public V2WikiPage restoreWikiPage(Long userId, String ownerId,
 			ObjectType ownerType, V2WikiPage wiki, Long version) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.PUT, "/" + ownerType.name().toLowerCase() + "/"
-						+ ownerId + "/wiki2/" + wiki.getId() + "/" + version, username, wiki);
+						+ ownerId + "/wiki2/" + wiki.getId() + "/" + version, userId, null);
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatcherServlet, request, HttpStatus.OK);
 
@@ -1238,10 +1269,10 @@ public class EntityServletTestHelper {
 	/**
 	 * Get wiki history
 	 */
-	public PaginatedResults<V2WikiHistorySnapshot> getV2WikiHistory(WikiPageKey key, String username, Long offset, Long limit) throws Exception {
+	public PaginatedResults<V2WikiHistorySnapshot> getV2WikiHistory(WikiPageKey key, Long userId, Long offset, Long limit) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
 				HTTPMODE.GET, ServletTestHelperUtils.createV2WikiURI(key) + "/wikihistory",
-				username, null);
+				userId, null);
 		request.setParameter("offset", offset.toString());
 		request.setParameter("limit", limit.toString());
 		MockHttpServletResponse response = ServletTestHelperUtils
@@ -1250,5 +1281,4 @@ public class EntityServletTestHelper {
 		return ServletTestHelperUtils.readResponsePaginatedResults(response,
 				V2WikiHistorySnapshot.class);
 	}
-
 }

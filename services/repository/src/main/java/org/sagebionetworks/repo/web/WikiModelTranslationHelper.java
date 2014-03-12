@@ -1,16 +1,12 @@
 package org.sagebionetworks.repo.web;
 
-import java.io.BufferedInputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
-import java.net.URLConnection;
+import java.util.Date;
 
-import org.apache.commons.io.FileUtils;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
@@ -60,6 +56,8 @@ public class WikiModelTranslationHelper implements WikiModelTranslator {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public V2WikiPage convertToV2WikiPage(WikiPage from, UserInfo userInfo) throws IOException {
+		if(from == null) throw new IllegalArgumentException("WikiPage cannot be null");
+		if(userInfo == null) throw new IllegalArgumentException("User cannot be null");
 		V2WikiPage wiki = new V2WikiPage();
 		wiki.setId(from.getId());
 		wiki.setEtag(from.getEtag());
@@ -73,9 +71,15 @@ public class WikiModelTranslationHelper implements WikiModelTranslator {
 		
 		// Zip up the markdown into a file
 		// The upload file will hold the newly created markdown file.
-		File markdownTemp = tempFileProvider.createTempFile(wiki.getId()+ "_markdown", ".tmp");
-		FileUtils.writeByteArrayToFile(markdownTemp, from.getMarkdown().getBytes());
-		String contentType = guessContentTypeFromStream(markdownTemp);
+		String markdown = from.getMarkdown();
+		File markdownTemp = File.createTempFile("compressed", ".txt.gz");
+		try{
+        if(markdown != null) {
+        	markdownTemp = FileUtils.writeStringToCompressedFile(markdownTemp, markdown);
+        } else {
+        	markdownTemp = FileUtils.writeStringToCompressedFile(markdownTemp, "");
+        }
+		String contentType = "application/x-gzip";
 		CreateChunkedFileTokenRequest ccftr = new CreateChunkedFileTokenRequest();
 		ccftr.setContentType(contentType);
 		ccftr.setFileName(markdownTemp.getName());
@@ -90,8 +94,11 @@ public class WikiModelTranslationHelper implements WikiModelTranslator {
 		handle.setContentMd5(token.getContentMD5());
 		handle.setContentSize(markdownTemp.length());
 		handle.setFileName(wiki.getId() + "_markdown.txt");
-		handle.setCreatedBy(wiki.getCreatedBy());
-		handle.setCreatedOn(wiki.getCreatedOn());
+		// Creator of the wiki page may not have been set to the user yet
+		// so do not use wiki's createdBy
+		handle.setCreatedBy(userInfo.getId().toString());
+		long currentTime = System.currentTimeMillis();
+		handle.setCreatedOn(new Date(currentTime));
 		handle.setKey(token.getKey());
 		handle.setBucketName(StackConfiguration.getS3Bucket());
 		// Upload this to S3
@@ -101,26 +108,18 @@ public class WikiModelTranslationHelper implements WikiModelTranslator {
 		
 		// Set the file handle id
 		wiki.setMarkdownFileHandleId(handle.getId());
+		}
+		finally{
+			if(markdownTemp != null){
+				markdownTemp.delete();
+			}
+		}
 		return wiki;
 	}
-	
-	public static String guessContentTypeFromStream(File file)	throws FileNotFoundException, IOException {
-		InputStream is = new BufferedInputStream(new FileInputStream(file));
-		try{
-			// Let java guess from the stream.
-			String contentType = URLConnection.guessContentTypeFromStream(is);
-			// If Java fails then set the content type to be octet-stream
-			if(contentType == null){
-				contentType = APPLICATION_OCTET_STREAM;
-			}
-			return contentType;
-		}finally{
-			is.close();
-		}
-	}
-	
+
 	@Override
 	public WikiPage convertToWikiPage(V2WikiPage from) throws NotFoundException, FileNotFoundException, IOException {
+		if(from == null) throw new IllegalArgumentException("WikiPage cannot be null");
 		WikiPage wiki = new WikiPage();
 		wiki.setId(from.getId());
 		wiki.setEtag(from.getEtag());
@@ -138,8 +137,11 @@ public class WikiModelTranslationHelper implements WikiModelTranslator {
 		ObjectMetadata markdownMeta = s3Client.getObject(new GetObjectRequest(markdownHandle.getBucketName(), 
 				markdownHandle.getKey()), markdownTemp);
 		// Read the file as a string
-		String markdownString = FileUtils.readFileToString(markdownTemp, "UTF-8");
+		String markdownString = FileUtils.readCompressedFileAsString(markdownTemp);
 		wiki.setMarkdown(markdownString);
+		if(markdownTemp != null){
+			markdownTemp.delete();
+		}
 		return wiki;
 	}
 

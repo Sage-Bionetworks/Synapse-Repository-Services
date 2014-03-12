@@ -47,6 +47,16 @@ public interface TeamManager {
 	 * @throws DatastoreException
 	 */
 	public PaginatedResults<TeamMember> getMembers(String teamId, long limit, long offset) throws DatastoreException;
+	
+	/**
+	 * 
+	 * @param teamId
+	 * @param principalId
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	public TeamMember getMember(String teamId, String principalId) throws NotFoundException, DatastoreException;
 
 	/**
 	 * 
@@ -98,15 +108,15 @@ public interface TeamManager {
 	public void delete(UserInfo userInfo, String id) throws DatastoreException, UnauthorizedException, NotFoundException; 
 
 	/**
-	 * Add a member to a Team
+	 * Add a member to a Team, removing applicable membership requests and invitations.
 	 * @param userInfo
 	 * @param teamId
-	 * @param principalId
+	 * @param principalUserInfo
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public void addMember(UserInfo userInfo, String teamId, String principalId) throws DatastoreException, UnauthorizedException, NotFoundException;
+	public void addMember(UserInfo userInfo, String teamId, UserInfo principalUserInfo) throws DatastoreException, UnauthorizedException, NotFoundException;
 	
 	/**
 	 * Remove a member from a Team
@@ -156,14 +166,14 @@ public interface TeamManager {
 	
 	/**
 	 * 
-	 * @param userInfo
+	 * @param userInfo the user info of the requestor
 	 * @param teamId
-	 * @param principalId
+	 * @param principalUserInfo the user info of the one whose status we're asking about
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public TeamMembershipStatus getTeamMembershipStatus(UserInfo userInfo, String teamId, String principalId) throws DatastoreException, NotFoundException;
+	public TeamMembershipStatus getTeamMembershipStatus(UserInfo userInfo, String teamId, UserInfo principalUserInfo) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * return the URL for the icon of the given Team

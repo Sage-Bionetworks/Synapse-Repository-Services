@@ -53,20 +53,20 @@ public class NodeQueryServiceImpl implements NodeQueryService {
 	private UserManager userManager;
 
 	@Override
-	public QueryResults query(String userId, String query, HttpServletRequest request)
+	public QueryResults query(Long userId, String query, HttpServletRequest request)
 			throws DatastoreException, ParseException, NotFoundException, UnauthorizedException {
 
 		// Parse and validate the query
-		QueryStatement stmt = new QueryStatement(query);
+		QueryStatement stmt = new QueryStatement(query, true/*offset=1 means 'no offset'*/);
 		// Convert from a query statement to a basic query
-		BasicQuery basic = QueryTranslator.createBasicQuery(stmt);
+		BasicQuery basic = QueryTranslator.createBasicQueryDecrementingOffset(stmt);
 		QueryResults results = executeQueryWithAnnotations(userId, basic, request);
 		results.setResults(formulateResult(stmt, results.getResults()));
 		return results;
 	}
 
 	@Override
-	public QueryResults executeQueryWithAnnotations(String userId, BasicQuery query, HttpServletRequest request)
+	public QueryResults executeQueryWithAnnotations(Long userId, BasicQuery query, HttpServletRequest request)
 			throws DatastoreException, NotFoundException, UnauthorizedException, ParseException {
 		if (query == null) {
 			throw new IllegalArgumentException("Query cannot be null");

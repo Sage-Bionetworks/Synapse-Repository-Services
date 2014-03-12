@@ -224,7 +224,7 @@ public class EntityController extends BaseController {
 	@RequestMapping(value = { UrlHelpers.ENTITY }, method = RequestMethod.POST)
 	public @ResponseBody
 	Entity createEntity(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.GENERATED_BY_PARAM, required = false) String generatedBy,
 			@RequestBody Entity entity, @RequestHeader HttpHeaders header,
 			HttpServletRequest request) throws DatastoreException,
@@ -262,7 +262,7 @@ public class EntityController extends BaseController {
 	public @ResponseBody
 	Entity getEntity(
 			@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
 		// Get the entity.
@@ -334,7 +334,7 @@ public class EntityController extends BaseController {
 	public @ResponseBody
 	Entity updateEntity(
 			@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.GENERATED_BY_PARAM, required = false) String generatedBy,
 			@RequestParam(value = "newVersion", required = false) String newVersion,
 			@RequestBody Entity entity, @RequestHeader HttpHeaders header,
@@ -377,10 +377,15 @@ public class EntityController extends BaseController {
 	@RequestMapping(value = { UrlHelpers.ENTITY_ID }, method = RequestMethod.DELETE)
 	public void deleteEntity(
 			@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(value = ServiceConstants.SKIP_TRASH_CAN_PARAM, required = false) Boolean skipTrashCan,
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
-		serviceProvider.getTrashService().moveToTrash(userId, id);
+		if (skipTrashCan != null && skipTrashCan) {
+			serviceProvider.getEntityService().deleteEntity(userId, id);
+		} else {
+			serviceProvider.getTrashService().moveToTrash(userId, id);
+		}
 	}
 
 	/**
@@ -409,7 +414,7 @@ public class EntityController extends BaseController {
 	public @ResponseBody
 	Annotations getEntityAnnotations(
 			@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
 		// Pass it along
@@ -453,7 +458,7 @@ public class EntityController extends BaseController {
 	public @ResponseBody
 	Annotations updateEntityAnnotations(
 			@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody Annotations updatedAnnotations,
 			HttpServletRequest request) throws ConflictingUpdateException,
 			NotFoundException, DatastoreException, UnauthorizedException,
@@ -484,7 +489,7 @@ public class EntityController extends BaseController {
 	@RequestMapping(value = { UrlHelpers.ENTITY_VERSION }, method = RequestMethod.PUT)
 	public @ResponseBody
 	Versionable createNewVersion(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.GENERATED_BY_PARAM, required = false) String generatedBy,
 			@RequestHeader HttpHeaders header, HttpServletRequest request)
 			throws DatastoreException, InvalidModelException,
@@ -514,7 +519,7 @@ public class EntityController extends BaseController {
 	 * @throws UnauthorizedException
 	 */
 	@Deprecated
-	private Entity updateEntityImpl(String userId, HttpHeaders header,
+	private Entity updateEntityImpl(Long userId, HttpHeaders header,
 			boolean newVersion, String activityId, HttpServletRequest request)
 			throws IOException, NotFoundException, ConflictingUpdateException,
 			DatastoreException, InvalidModelException, UnauthorizedException,
@@ -549,7 +554,7 @@ public class EntityController extends BaseController {
 	@RequestMapping(value = { UrlHelpers.ENTITY_VERSION_NUMBER }, method = RequestMethod.DELETE)
 	public void deleteEntityVersion(
 			@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable Long versionNumber, HttpServletRequest request)
 			throws NotFoundException, DatastoreException,
 			UnauthorizedException, ConflictingUpdateException {
@@ -577,7 +582,7 @@ public class EntityController extends BaseController {
 	public @ResponseBody
 	Entity getEntityForVersion(
 			@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable Long versionNumber, HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		// Get the entity.
@@ -605,7 +610,7 @@ public class EntityController extends BaseController {
 	@RequestMapping(value = { UrlHelpers.ENTITY_ID_TYPE }, method = RequestMethod.GET)
 	public @ResponseBody
 	EntityHeader getEntityType(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id, HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		// Get the type of an entity by ID.
@@ -631,7 +636,7 @@ public class EntityController extends BaseController {
 	@RequestMapping(value = { UrlHelpers.ENTITY_TYPE }, method = RequestMethod.GET)
 	public @ResponseBody
 	BatchResults<EntityHeader> getEntityTypeBatch(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.BATCH_PARAM, required = true) String batch,
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
@@ -673,7 +678,7 @@ public class EntityController extends BaseController {
 	@RequestMapping(value = { UrlHelpers.ENTITY_TYPE_HEADER }, method = RequestMethod.POST)
 	public @ResponseBody
 	BatchResults<EntityHeader> getEntityVersionedTypeBatch(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody ReferenceList referenceList, HttpServletRequest request)
 			throws DatastoreException, UnauthorizedException {
 		List<EntityHeader> entityHeaders = new ArrayList<EntityHeader>();
@@ -727,7 +732,7 @@ public class EntityController extends BaseController {
 	public @ResponseBody
 	UserEntityPermissions getUserEntityPermissions(
 			@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			HttpServletRequest request) throws DatastoreException,
 			NotFoundException, UnauthorizedException {
 		// pass it along.
@@ -764,7 +769,7 @@ public class EntityController extends BaseController {
 	public @ResponseBody
 	BooleanResult hasAccess(
 			@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = UrlHelpers.ACCESS_TYPE_PARAM, required = false) String accessType,
 			HttpServletRequest request) throws DatastoreException,
 			NotFoundException, UnauthorizedException {
@@ -793,8 +798,8 @@ public class EntityController extends BaseController {
 	public @ResponseBody
 	PaginatedResults<EntityHeader> getEntityReferences(
 			@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NO_OFFSET_EQUALS_ONE) Integer offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException {
@@ -824,8 +829,8 @@ public class EntityController extends BaseController {
 	public @ResponseBody
 	PaginatedResults<EntityHeader> getEntityReferences(
 			@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NO_OFFSET_EQUALS_ONE) Integer offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
 			@PathVariable int versionNumber, HttpServletRequest request)
 			throws NotFoundException, DatastoreException {
@@ -853,7 +858,7 @@ public class EntityController extends BaseController {
 	public @ResponseBody
 	EntityPath getEntityPath(
 			@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
 		// Wrap it up and pass it along
@@ -909,7 +914,7 @@ public class EntityController extends BaseController {
 	public @ResponseBody
 	AccessControlList createEntityAcl(
 			@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody AccessControlList newAcl, HttpServletRequest request)
 			throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException, IOException,
@@ -952,7 +957,7 @@ public class EntityController extends BaseController {
 	public @ResponseBody
 	AccessControlList getEntityAcl(
 			@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			HttpServletRequest request) throws DatastoreException,
 			NotFoundException, UnauthorizedException, ACLInheritanceException {
 		// pass it along.
@@ -985,7 +990,7 @@ public class EntityController extends BaseController {
 	public @ResponseBody
 	AccessControlList updateEntityAcl(
 			@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody AccessControlList updatedACL,
 			HttpServletRequest request) throws DatastoreException,
 			NotFoundException, InvalidModelException, UnauthorizedException,
@@ -1038,7 +1043,7 @@ public class EntityController extends BaseController {
 	@RequestMapping(value = { UrlHelpers.ENTITY_ID_ACL }, method = RequestMethod.DELETE)
 	public void deleteEntityACL(
 			@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException,
 			ConflictingUpdateException {
@@ -1075,7 +1080,7 @@ public class EntityController extends BaseController {
 	public @ResponseBody
 	EntityHeader getEntityBenefactor(
 			@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			HttpServletRequest request) throws DatastoreException,
 			NotFoundException, UnauthorizedException, ACLInheritanceException {
 		if (id == null)
@@ -1109,8 +1114,8 @@ public class EntityController extends BaseController {
 	public @ResponseBody
 	PaginatedResults<VersionInfo> getAllVersionsOfEntity(
 			@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NO_OFFSET_EQUALS_ONE) Integer offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
 			HttpServletRequest request) throws DatastoreException,
 			UnauthorizedException, NotFoundException {
@@ -1145,7 +1150,7 @@ public class EntityController extends BaseController {
 	public @ResponseBody
 	Annotations getEntityAnnotationsForVersion(
 			@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable Long versionNumber, HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		// Pass it along
@@ -1273,7 +1278,7 @@ public class EntityController extends BaseController {
 	public @ResponseBody
 	S3AttachmentToken createS3AttachmentToken(
 			@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody S3AttachmentToken token, HttpServletRequest request)
 			throws NotFoundException, DatastoreException,
 			UnauthorizedException, InvalidModelException {
@@ -1301,7 +1306,7 @@ public class EntityController extends BaseController {
 	public @ResponseBody
 	PresignedUrl getAttachmentUrl(
 			@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody PresignedUrl url, HttpServletRequest request)
 			throws NotFoundException, DatastoreException,
 			UnauthorizedException, InvalidModelException {
@@ -1335,7 +1340,7 @@ public class EntityController extends BaseController {
 	public @ResponseBody
 	Activity getActivityForEntity(
 			@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
 		return serviceProvider.getEntityService().getActivityForEntity(userId,
@@ -1367,7 +1372,7 @@ public class EntityController extends BaseController {
 	Activity getActivityForEntityVersion(
 			@PathVariable String id,
 			@PathVariable Long versionNumber,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
 		return serviceProvider.getEntityService().getActivityForEntity(userId,
@@ -1401,7 +1406,7 @@ public class EntityController extends BaseController {
 	public @ResponseBody
 	Activity updateActivityForEntity(
 			@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.GENERATED_BY_PARAM) String generatedBy,
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
@@ -1430,7 +1435,7 @@ public class EntityController extends BaseController {
 	@RequestMapping(value = { UrlHelpers.ENTITY_GENERATED_BY }, method = RequestMethod.DELETE)
 	public void deleteActivityForEntity(
 			@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
 		serviceProvider.getEntityService().deleteActivityForEntity(userId, id,
@@ -1460,7 +1465,7 @@ public class EntityController extends BaseController {
 	@RequestMapping(value = UrlHelpers.ENTITY_FILE, method = RequestMethod.GET)
 	public @ResponseBody
 	void fileRedirectURLForCurrentVersion(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id,
 			@RequestParam(required = false) Boolean redirect,
 			HttpServletResponse response) throws DatastoreException,
@@ -1495,7 +1500,7 @@ public class EntityController extends BaseController {
 	@RequestMapping(value = UrlHelpers.ENTITY_VERSION_FILE, method = RequestMethod.GET)
 	public @ResponseBody
 	void fileRedirectURLForVersion(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id, @PathVariable Long versionNumber,
 			@RequestParam(required = false) Boolean redirect,
 			HttpServletResponse response) throws DatastoreException,
@@ -1528,7 +1533,7 @@ public class EntityController extends BaseController {
 	@RequestMapping(value = UrlHelpers.ENTITY_FILE_PREVIEW, method = RequestMethod.GET)
 	public @ResponseBody
 	void filePreviewRedirectURLForCurrentVersion(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id,
 			@RequestParam(required = false) Boolean redirect,
 			HttpServletResponse response) throws DatastoreException,
@@ -1563,7 +1568,7 @@ public class EntityController extends BaseController {
 	@RequestMapping(value = UrlHelpers.ENTITY_VERSION_FILE_PREVIEW, method = RequestMethod.GET)
 	public @ResponseBody
 	void filePreviewRedirectURLForVersion(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id, @PathVariable Long versionNumber,
 			@RequestParam(required = false) Boolean redirect,
 			HttpServletResponse response) throws DatastoreException,
@@ -1593,7 +1598,7 @@ public class EntityController extends BaseController {
 	@RequestMapping(value = UrlHelpers.ENTITY_FILE_HANDLES, method = RequestMethod.GET)
 	public @ResponseBody
 	FileHandleResults getEntityFileHandlesForCurrentVersion(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id) throws DatastoreException,
 			NotFoundException, IOException {
 		// pass it!
@@ -1622,7 +1627,7 @@ public class EntityController extends BaseController {
 	@RequestMapping(value = UrlHelpers.ENTITY_VERSION_FILE_HANDLES, method = RequestMethod.GET)
 	public @ResponseBody
 	FileHandleResults getEntityFileHandlesForVersion(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id, @PathVariable Long versionNumber)
 			throws DatastoreException, NotFoundException, IOException {
 		// pass it!
@@ -1645,7 +1650,7 @@ public class EntityController extends BaseController {
 	public @ResponseBody
 	BatchResults<EntityHeader> getEntityHeaderByMd5(
 			@PathVariable String md5,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException {
 		List<EntityHeader> entityHeaders = serviceProvider.getEntityService()

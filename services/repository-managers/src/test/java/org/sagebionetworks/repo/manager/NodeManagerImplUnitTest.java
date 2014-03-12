@@ -6,8 +6,14 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -20,7 +26,6 @@ import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACL_SCHEME;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -32,8 +37,6 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.ReferenceDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.User;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
@@ -57,8 +60,8 @@ public class NodeManagerImplUnitTest {
 	private ReferenceDao mockReferenceDao = null;
 	private ActivityManager mockActivityManager;
 		
-	private final UserInfo mockUserInfo = new UserInfo(false);
-	private final UserInfo anonUserInfo = new UserInfo(false);
+	private UserInfo mockUserInfo;
+	private UserInfo anonUserInfo;
 
 	@Before
 	public void before() throws Exception {
@@ -73,21 +76,10 @@ public class NodeManagerImplUnitTest {
 		nodeManager = new NodeManagerImpl(mockNodeDao, mockAuthManager, mockAclDao, 
 				mockEntityBootstrapper, mockNodeInheritanceManager, mockReferenceDao, mockActivityManager);
 
-		UserGroup userGroup = new UserGroup();
-		userGroup.setId("2");
-		userGroup.setName("two@foo.bar");
-		userGroup.setIsIndividual(true);
-		User mockUser = new User();
-		mockUser.setId("101");
-		mockUser.setUserId("test-user");
-		mockUserInfo.setUser(mockUser);
-		mockUserInfo.setIndividualGroup(userGroup);
+
+		mockUserInfo = new UserInfo(false, 101L);
 		
-		User anonUser = new User();
-		anonUser.setId("102");
-		anonUser.setUserId(AuthorizationConstants.ANONYMOUS_USER_ID);
-		anonUserInfo.setUser(anonUser);
-		anonUserInfo.setIndividualGroup(userGroup);
+		anonUserInfo = new UserInfo(false, 102L);
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
@@ -124,20 +116,20 @@ public class NodeManagerImplUnitTest {
 		node.setCreatedByPrincipalId(presetCreatedBy);
 		node.setCreatedOn(presetCreatedOn);
 		// Now validate the node
-		NodeManagerImpl.validateNodeCreationData(Long.parseLong(anonUserInfo.getIndividualGroup().getId()), node);
+		NodeManagerImpl.validateNodeCreationData(anonUserInfo.getId(), node);
 		// the values SHOULD  have changed
 		assertTrue(Math.abs(System.currentTimeMillis()-node.getCreatedOn().getTime())<100L);
-		assertEquals(anonUserInfo.getIndividualGroup().getId(), node.getCreatedByPrincipalId().toString());
+		assertEquals(anonUserInfo.getId().toString(), node.getCreatedByPrincipalId().toString());
 	}
 	
 	@Test
 	public void testValidateNodeCreatedDataWithNulls(){
 		Node node = new Node();
 		// Now validate the node
-		NodeManagerImpl.validateNodeCreationData(Long.parseLong(anonUserInfo.getIndividualGroup().getId()), node);
+		NodeManagerImpl.validateNodeCreationData(anonUserInfo.getId(), node);
 		// the values should not have changed
 		assertNotNull(node.getCreatedOn());
-		assertEquals(anonUserInfo.getIndividualGroup().getId(), node.getCreatedByPrincipalId().toString());
+		assertEquals(anonUserInfo.getId(), node.getCreatedByPrincipalId());
 	}
 	
 	@Test
@@ -148,7 +140,7 @@ public class NodeManagerImplUnitTest {
 		node.setModifiedByPrincipalId(presetModifiedBy);
 		node.setModifiedOn(presetModifiedOn);
 		// Now validate the node
-		NodeManagerImpl.validateNodeModifiedData(Long.parseLong(anonUserInfo.getIndividualGroup().getId()), node);
+		NodeManagerImpl.validateNodeModifiedData(anonUserInfo.getId(), node);
 		// the values should have changed
 		assertTrue(!presetModifiedOn.equals( node.getModifiedOn()));
 		assertTrue(!presetModifiedBy.equals( node.getModifiedByPrincipalId().toString()));
@@ -158,10 +150,10 @@ public class NodeManagerImplUnitTest {
 	public void testValidateNodeModifiedDataWithNulls(){
 		Node node = new Node();
 		// Now validate the node
-		NodeManagerImpl.validateNodeModifiedData(Long.parseLong(anonUserInfo.getIndividualGroup().getId()), node);
+		NodeManagerImpl.validateNodeModifiedData(anonUserInfo.getId(), node);
 		// the values should not have changed
 		assertNotNull(node.getModifiedOn());
-		assertEquals(anonUserInfo.getIndividualGroup().getId(), node.getModifiedByPrincipalId().toString());
+		assertEquals(anonUserInfo.getId(), node.getModifiedByPrincipalId());
 	}
 	
 	@Test
@@ -183,8 +175,8 @@ public class NodeManagerImplUnitTest {
 		assertEquals("101", id);
 		Node processedNode = argument.getValue();
 		assertNotNull(processedNode);
-		assertEquals(anonUserInfo.getIndividualGroup().getId(), processedNode.getCreatedByPrincipalId().toString());
-		assertEquals(anonUserInfo.getIndividualGroup().getId(), processedNode.getModifiedByPrincipalId().toString());
+		assertEquals(anonUserInfo.getId(), processedNode.getCreatedByPrincipalId());
+		assertEquals(anonUserInfo.getId(), processedNode.getModifiedByPrincipalId());
 		assertNotNull(processedNode.getModifiedOn());
 		assertNotNull(processedNode.getModifiedByPrincipalId());
 	}
@@ -253,13 +245,17 @@ public class NodeManagerImplUnitTest {
 	public void testUpdateNodeActivity404() throws Exception {
 		// Test creating a new node with nothing but the name and type set
 		Node node = new Node();
-		node.setId("123");
+		String nodeId = "123";
+		String parentId = "456";
+		node.setId(nodeId);
 		node.setName("testUpdateNode");
-		node.setNodeType(EntityType.folder.name());		
+		node.setNodeType(EntityType.folder.name());	
+		node.setParentId(parentId);
 		String activityId = "8439208403928402";
 		node.setActivityId(activityId);		
 		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(node.getId()), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.UPDATE))).thenReturn(true);
-		
+		when(mockNodeDao.getParentId(nodeId)).thenReturn(parentId);
+		when(mockAuthManager.canUserMoveRestrictedEntity(eq(mockUserInfo), eq(parentId), eq(parentId))).thenReturn(true);
 		// not found
 		try {
 			when(mockActivityManager.doesActivityExist(activityId)).thenReturn(false);		
@@ -275,6 +271,7 @@ public class NodeManagerImplUnitTest {
 		when(mockAuthManager.canAccessActivity(mockUserInfo, activityId)).thenReturn(true);
 		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(node.getId()), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.UPDATE))).thenReturn(true);
 		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(node.getId()), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.READ))).thenReturn(true);
+		when(mockAuthManager.canUserMoveRestrictedEntity(eq(mockUserInfo), eq(parentId), eq(parentId))).thenReturn(true);
 		nodeManager.update(mockUserInfo, node);		
 		verify(mockNodeDao).updateNode(node);		
 	}
@@ -283,13 +280,18 @@ public class NodeManagerImplUnitTest {
 	public void testUpdateNodeActivity403() throws Exception {
 		// Test creating a new node with nothing but the name and type set
 		Node node = new Node();
-		node.setId("123");
+		String nodeId = "123";
+		String parentId = "456";
+		node.setId(nodeId);
+		node.setParentId(parentId);
 		node.setName("testUpdateNode");
 		node.setNodeType(EntityType.folder.name());		
 		String activityId = "8439208403928402";
 		node.setActivityId(activityId);		
 		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(node.getId()), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.UPDATE))).thenReturn(true);
 		when(mockActivityManager.doesActivityExist(activityId)).thenReturn(true);		
+		when(mockNodeDao.getParentId(nodeId)).thenReturn(parentId);
+		when(mockAuthManager.canUserMoveRestrictedEntity(eq(mockUserInfo), eq(parentId), eq(parentId))).thenReturn(true);
 		
 		// fail authZ
 		try {
@@ -306,6 +308,7 @@ public class NodeManagerImplUnitTest {
 		when(mockAuthManager.canAccessActivity(mockUserInfo, activityId)).thenReturn(true);
 		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(node.getId()), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.UPDATE))).thenReturn(true);
 		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(node.getId()), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.READ))).thenReturn(true);
+		when(mockAuthManager.canUserMoveRestrictedEntity(eq(mockUserInfo), eq(parentId), eq(parentId))).thenReturn(true);
 		nodeManager.update(mockUserInfo, node);		
 		verify(mockNodeDao).updateNode(node);		
 	}
@@ -341,12 +344,12 @@ public class NodeManagerImplUnitTest {
 	@Test
 	public void testIsParentIDChange(){
 		// test the various flavors of parent id change
-		assertTrue(NodeManagerImpl.isParenIdChange(null, "notNull"));
-		assertTrue(NodeManagerImpl.isParenIdChange("notNull", null));
-		assertTrue(NodeManagerImpl.isParenIdChange("one", "two"));
-		assertTrue(NodeManagerImpl.isParenIdChange("two", "one"));
-		assertFalse(NodeManagerImpl.isParenIdChange(null, null));
-		assertFalse(NodeManagerImpl.isParenIdChange("one", "one"));
+		assertTrue(NodeManagerImpl.isParentIdChange(null, "notNull"));
+		assertTrue(NodeManagerImpl.isParentIdChange("notNull", null));
+		assertTrue(NodeManagerImpl.isParentIdChange("one", "two"));
+		assertTrue(NodeManagerImpl.isParentIdChange("two", "one"));
+		assertFalse(NodeManagerImpl.isParentIdChange(null, null));
+		assertFalse(NodeManagerImpl.isParentIdChange("one", "one"));
 	}
 	
 	@Test
@@ -383,12 +386,14 @@ public class NodeManagerImplUnitTest {
 	@Test
 	public void testSetActivityForNode() throws Exception {
 		String nodeId = "123";
+		String parentId = "456";
 		String activityId = "1";
 		Activity act = new Activity();
 		act.setId(activityId);
 		Node node = mock(Node.class);
 		
 		when(node.getId()).thenReturn(nodeId);
+		when(node.getParentId()).thenReturn(parentId);
 		when(node.getNodeType()).thenReturn(EntityType.project.toString());
 		when(node.getName()).thenReturn("some name");
 		when(mockActivityManager.getActivity(mockUserInfo, activityId)).thenReturn(act);
@@ -406,12 +411,16 @@ public class NodeManagerImplUnitTest {
 
 		reset(node);
 		when(node.getId()).thenReturn(nodeId);
+		when(node.getParentId()).thenReturn(parentId);
 		when(node.getNodeType()).thenReturn(EntityType.project.toString());
 		when(node.getName()).thenReturn("some name");
 		
 		// update for real
 		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(nodeId), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.UPDATE))).thenReturn(true);
-		
+
+		when(mockNodeDao.getParentId(nodeId)).thenReturn(parentId);
+		when(mockAuthManager.canUserMoveRestrictedEntity(eq(mockUserInfo), eq(parentId), eq(parentId))).thenReturn(true);
+
 		nodeManager.setActivityForNode(mockUserInfo, nodeId, activityId);
 		verify(node).setActivityId(activityId);		
 		verify(mockNodeDao).updateNode(node);		
@@ -420,18 +429,22 @@ public class NodeManagerImplUnitTest {
 	@Test
 	public void testDeleteActivityForNode() throws Exception {
 		String nodeId = "123";
+		String parentId = "456";
 		String activityId = "1";
 		Activity act = new Activity();
 		act.setId(activityId);
 		Node node = mock(Node.class);
 		
 		when(node.getId()).thenReturn(nodeId);
+		when(node.getParentId()).thenReturn(parentId);
 		when(node.getNodeType()).thenReturn(EntityType.project.toString());
 		when(node.getName()).thenReturn("some name");
 		when(mockActivityManager.getActivity(mockUserInfo, activityId)).thenReturn(act);
 		when(mockNodeDao.getNode(nodeId)).thenReturn(node);
 		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(nodeId), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.UPDATE))).thenReturn(false);
 		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(nodeId), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.READ))).thenReturn(true);
+		when(mockNodeDao.getParentId(nodeId)).thenReturn(parentId);
+		when(mockAuthManager.canUserMoveRestrictedEntity(eq(mockUserInfo), eq(parentId), eq(parentId))).thenReturn(true);
 		
 		// unauthorized
 		try {
@@ -443,6 +456,7 @@ public class NodeManagerImplUnitTest {
 
 		reset(node);
 		when(node.getId()).thenReturn(nodeId);
+		when(node.getParentId()).thenReturn(parentId);
 		when(node.getNodeType()).thenReturn(EntityType.project.toString());
 		when(node.getName()).thenReturn("some name");
 		
@@ -457,6 +471,7 @@ public class NodeManagerImplUnitTest {
 	@Test
 	public void testUpdateNodeNewParent() throws DatastoreException, NotFoundException {
 		String nodeId = "123";
+		String currentParentId = "246";
 		String authorizedParentId = "456";
 		String unauthorizedParentId = "789";
 		Node node = mock(Node.class);
@@ -466,9 +481,11 @@ public class NodeManagerImplUnitTest {
 		when(node.getNodeType()).thenReturn(EntityType.project.toString());
 		when(node.getName()).thenReturn("some name");
 		when(mockNodeDao.getNode(nodeId)).thenReturn(node);
+		when(mockNodeDao.getParentId(nodeId)).thenReturn(currentParentId);
 		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(nodeId), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.READ))).thenReturn(true);
 		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(nodeId), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.UPDATE))).thenReturn(true);
 		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(unauthorizedParentId), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.CREATE))).thenReturn(false);
+		when(mockAuthManager.canUserMoveRestrictedEntity(eq(mockUserInfo), eq(currentParentId), eq(authorizedParentId))).thenReturn(true);
 		
 		// unauthorized
 		try {
@@ -488,7 +505,18 @@ public class NodeManagerImplUnitTest {
 		
 		// authorized	
 		nodeManager.update(mockUserInfo, node);
-		verify(mockNodeDao).updateNode(node);	
+		verify(mockNodeDao).updateNode(node);
+		
+		// governance restriction on move
+		reset(node);
+		when(mockAuthManager.canUserMoveRestrictedEntity(eq(mockUserInfo), eq(currentParentId), eq(authorizedParentId))).thenReturn(false);
+		try {
+			nodeManager.update(mockUserInfo, node);
+			fail("Should not have allowed update");
+		} catch (UnauthorizedException e) {
+			// expected
+		}
+
 	}
 
 	@Test

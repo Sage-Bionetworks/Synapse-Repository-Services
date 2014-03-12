@@ -43,6 +43,11 @@ public interface TrashCanDao {
 	TrashedEntity getTrashedEntity(String userGroupId, String nodeId) throws DatastoreException;
 
 	/**
+	 * Gets the trashed entity by entity ID. Returns null is the trashed entity does not exist.
+	 */
+	TrashedEntity getTrashedEntity(String nodeId) throws DatastoreException;
+
+	/**
 	 * Gets the trash items deleted by the specified user. Results are paged as
 	 * specified by offset (inclusive; staring from 0) and limit (the max number of items retrieved).
 	 */

@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.controller.ObjectTypeSerializer;
 import org.springframework.http.HttpHeaders;
@@ -36,7 +37,7 @@ public interface UserProfileService {
 	 * @return The UserProfile
 	 * @throws DatastoreException - Thrown when there is a server-side problem.
 	 */
-	public UserProfile getMyOwnUserProfile(String userId) throws DatastoreException,
+	public UserProfile getMyOwnUserProfile(Long userId) throws DatastoreException,
 			UnauthorizedException, NotFoundException;
 
 	/**
@@ -46,7 +47,7 @@ public interface UserProfileService {
 	 * @return The UserProfile
 	 * @throws DatastoreException - Thrown when there is a server-side problem.
 	 */
-	public UserProfile getUserProfileByOwnerId(String userId, String profileId)
+	public UserProfile getUserProfileByOwnerId(Long userId, String profileId)
 			throws DatastoreException, UnauthorizedException, NotFoundException;
 
 	/**
@@ -57,7 +58,7 @@ public interface UserProfileService {
 	 * @throws DatastoreException - Thrown when there is a server-side problem.
 	 */
 	public PaginatedResults<UserProfile> getUserProfilesPaginated(
-			HttpServletRequest request, String userId, Integer offset,
+			HttpServletRequest request, Long userId, Integer offset,
 			Integer limit, String sort, Boolean ascending)
 			throws DatastoreException, UnauthorizedException, NotFoundException;
 
@@ -68,7 +69,7 @@ public interface UserProfileService {
 	 * @return The updated UserProfile
 	 * @throws DatastoreException - Thrown when there is a server-side problem.
 	 */
-	public UserProfile updateUserProfile(String userId, HttpHeaders header, HttpServletRequest request) throws NotFoundException,
+	public UserProfile updateUserProfile(Long userId, HttpHeaders header, HttpServletRequest request) throws NotFoundException,
 			ConflictingUpdateException, DatastoreException, InvalidModelException, UnauthorizedException, IOException;
 
 	/**
@@ -86,7 +87,7 @@ public interface UserProfileService {
 	 * @throws UnauthorizedException
 	 * @throws InvalidModelException
 	 */
-	public S3AttachmentToken createUserProfileS3AttachmentToken(String userId,
+	public S3AttachmentToken createUserProfileS3AttachmentToken(Long userId,
 			String profileId, S3AttachmentToken token,
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException, InvalidModelException;
@@ -103,7 +104,7 @@ public interface UserProfileService {
 	 * @throws UnauthorizedException
 	 * @throws InvalidModelException
 	 */
-	public PresignedUrl getUserProfileAttachmentUrl(String userId, 
+	public PresignedUrl getUserProfileAttachmentUrl(Long userId, 
 			String profileId, PresignedUrl url, HttpServletRequest request)
 			throws NotFoundException, DatastoreException,
 			UnauthorizedException, InvalidModelException;
@@ -114,7 +115,7 @@ public interface UserProfileService {
 	 * @param ids
 	 * @return
 	 */
-	public UserGroupHeaderResponsePage getUserGroupHeadersByIds(String userId, List<String> ids)
+	public UserGroupHeaderResponsePage getUserGroupHeadersByIds(Long userId, List<Long> ids)
 			throws DatastoreException, NotFoundException ;
 
 	/**
@@ -170,7 +171,7 @@ public interface UserProfileService {
 	 * @throws DatastoreException
 	 * @throws InvalidModelException
 	 */
-	public EntityHeader addFavorite(String userId, String entityId) throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException;
+	public EntityHeader addFavorite(Long userId, String entityId) throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException;
 	
 	/**
 	 * Removes the specified entity id from the users's favorites list, if exists
@@ -178,7 +179,7 @@ public interface UserProfileService {
 	 * @param entityId
 	 * @throws DatastoreException
 	 */
-	public void removeFavorite(String userId, String entityId) throws DatastoreException, NotFoundException;
+	public void removeFavorite(Long userId, String entityId) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Retrieve users list of favorites, paginated
@@ -190,7 +191,9 @@ public interface UserProfileService {
 	 * @throws InvalidModelException
 	 * @throws NotFoundException
 	 */
-	public PaginatedResults<EntityHeader> getFavorites(String userId, int limit, int offset) throws DatastoreException, InvalidModelException, NotFoundException;
+	public PaginatedResults<EntityHeader> getFavorites(Long userId, int limit, int offset) throws DatastoreException, InvalidModelException, NotFoundException;
+
+	public void setPrincipalAlaisDAO(PrincipalAliasDAO mockPrincipalAlaisDAO);
 
 	
 }

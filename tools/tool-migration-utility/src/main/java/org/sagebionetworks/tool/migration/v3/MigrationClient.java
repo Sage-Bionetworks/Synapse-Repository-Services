@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -19,6 +20,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
@@ -137,10 +139,18 @@ public class MigrationClient {
 		MigrationTypeCounts startDestCounts = destination.getTypeCounts();
 		log.info("Start counts:");
 		printCounts(startSourceCounts.getList(), startDestCounts.getList());
-		// Get the primary types
-		List<MigrationType> primaryTypes = source.getPrimaryTypes().getList();
+		// Get the primary types for src and dest
+		List<MigrationType> srcPrimaryTypes = source.getPrimaryTypes().getList();
+		List<MigrationType> destPrimaryTypes = destination.getPrimaryTypes().getList();
+		// Only migrate the src primary types that are at destination
+		List<MigrationType> primaryTypesToMigrate = new LinkedList<MigrationType>();
+		for (MigrationType pt: destPrimaryTypes) {
+			if (srcPrimaryTypes.contains(pt)) {
+				primaryTypesToMigrate.add(pt);
+			}
+		}
 		// Do the actual migration.
-		migrateAll(batchSize, timeoutMS, retryDenominator, primaryTypes, deferExceptions);
+		migrateAll(batchSize, timeoutMS, retryDenominator, primaryTypesToMigrate, deferExceptions);
 		// Print the final counts
 		MigrationTypeCounts endSourceCounts = source.getTypeCounts();
 		MigrationTypeCounts endDestCounts = destination.getTypeCounts();
@@ -280,6 +290,7 @@ public class MigrationClient {
 			mapSrcCounts.put(sMtc.getType(), sMtc.getCount());
 		}
 		// All migration types of source should be at destination
+		// Note: unused src migration types are covered, they're not in destination results
 		for (MigrationTypeCount mtc: destCounts) {
 			log.info("\t" + mtc.getType().name() + ":\t" + (mapSrcCounts.containsKey(mtc.getType()) ? mapSrcCounts.get(mtc.getType()).toString() : "NA") + "\t" + mtc.getCount());
 		}

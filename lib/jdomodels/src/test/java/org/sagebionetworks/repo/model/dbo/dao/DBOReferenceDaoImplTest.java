@@ -6,14 +6,12 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -22,29 +20,27 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.ids.ETagGenerator;
-import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -52,17 +48,13 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class DBOReferenceDaoImplTest {
 
-	@Autowired
-	DBOReferenceDao dboReferenceDao;
+	private static final int NODE_COUNT = 2;
 	
 	@Autowired
-	DBOBasicDao dboBasicDao;
+	private DBOReferenceDao dboReferenceDao;
 	
 	@Autowired
-	private IdGenerator idGenerator;
-
-	@Autowired
-	private ETagGenerator eTagGenerator;
+	private NodeDAO nodeDAO;
 
 	@Autowired
 	private UserGroupDAO userGroupDAO;
@@ -71,65 +63,44 @@ public class DBOReferenceDaoImplTest {
 	private AccessControlListDAO aclDAO;
 	
 	@Autowired
-	NodeInheritanceDAO nodeInheritanceDao;
+	private NodeInheritanceDAO nodeInheritanceDao;
 	
 	private List<String> groupsToDelete;
-
 	private String aclIdToDelete;
-
-	private List<DBONode> toDelete = null;
+	private List<String> nodesToDelete;
 	
 	// This is the node we will add refrence too.
 	private DBONode node;
-	
-	private static final String GROUP_NAME = "ReferenceDAO_TestGroup";
 
 	@After
-	public void after() throws DatastoreException, NotFoundException {
-		if(dboBasicDao != null && toDelete != null){
-			for(DBONode node: toDelete){
-				MapSqlParameterSource params = new MapSqlParameterSource();
-				params.addValue("id", node.getId());
-				dboBasicDao.deleteObjectByPrimaryKey(DBONode.class, params);
-				dboReferenceDao.deleteReferencesByOwnderId(node.getId());
-			}
-		}
-		if(groupsToDelete != null && userGroupDAO != null){
-			for(String todelte: groupsToDelete){
-				userGroupDAO.delete(todelte);
-			}
+	public void after() throws Exception {
+		for (String id : nodesToDelete) {
+			nodeDAO.delete(id);
 		}
 		
-		if (aclIdToDelete!=null) aclDAO.delete(aclIdToDelete);
+		for (String todelete : groupsToDelete) {
+			userGroupDAO.delete(todelete);
+		}
+
+		if (aclIdToDelete != null) {
+			aclDAO.delete(aclIdToDelete, ObjectType.ENTITY);
+		}
 	}
 	
-	private static final int NODE_COUNT = 2;
 	
 	@Before
-	public void before() throws DatastoreException, NotFoundException, UnsupportedEncodingException {
-		toDelete = new LinkedList<DBONode>();
-		// Create a node to create revisions of.
-		for (int i=0; i<NODE_COUNT; i++) {
-			node = new DBONode();
-			node.setId(idGenerator.generateNewId());
-			toDelete.add(node);
-			node.setBenefactorId(node.getId());
-			long createdById = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId());
-			node.setCreatedBy(createdById);
-			node.setCreatedOn(System.currentTimeMillis());
-			node.setCurrentRevNumber(null);
-			node.setDescription("A basic description".getBytes("UTF-8"));
-			node.seteTag(eTagGenerator.generateETag());
-			node.setName("DBOAnnotationsDaoImplTest.baseNode "+i);
-			node.setParentId(null);
-			node.setNodeType(EntityType.project.getId());
-			dboBasicDao.createNew(node);
-		}
-		
+	public void before() throws Exception {
+		nodesToDelete = new ArrayList<String>();
 		groupsToDelete = new ArrayList<String>();
-		UserGroup ug = userGroupDAO.findGroup(GROUP_NAME, false);
-		if(ug != null){
-			userGroupDAO.delete(ug.getId());
+		
+		// Create a node to create revisions of.
+		node = new DBONode();
+		long createdById = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+		for (int i = 0; i < NODE_COUNT; i++) {
+			Node dto = NodeTestUtils.createNew("DBOReferenceDAOImplTest node " + i, createdById);
+			String id = nodeDAO.createNew(dto);
+			nodesToDelete.add(id);
+			node.setId(KeyFactory.stringToKey(id));
 		}
 	}
 	
@@ -295,10 +266,19 @@ public class DBOReferenceDaoImplTest {
 	@Test
 	public void testReferrersQuery() throws Exception {
 		// get two nodes
-		assertTrue(toDelete.size()>=2);
-		Iterator<DBONode> it = toDelete.iterator();
-		DBONode node0 = it.next();
-		DBONode node1 = it.next();
+		assertTrue(nodesToDelete.size() >= 2);
+		Iterator<String> it = nodesToDelete.iterator();
+		
+		// This node needs more fields than just the ID
+		DBONode node0 = new DBONode();
+		String node0Id = it.next();
+		node0.setId(KeyFactory.stringToKey(node0Id));
+		Node temp = nodeDAO.getNode(node0Id);
+		node0.setName(temp.getName());
+		node0.setNodeType(EntityType.valueOf(temp.getNodeType()).getId());
+		
+		DBONode node1 = new DBONode();
+		node1.setId(KeyFactory.stringToKey(it.next()));
 		
 		// create a node having references
 		{
@@ -425,12 +405,10 @@ public class DBOReferenceDaoImplTest {
 
 		// check authorization
 		UserGroup group = new UserGroup();
-		group.setName(GROUP_NAME);
-		String groupId = userGroupDAO.create(group);
+		group.setIsIndividual(false);
+		String groupId = userGroupDAO.create(group).toString();
 		group.setId(groupId);
 		groupsToDelete.add(groupId);
-
-		Long createdById = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId());
 
 		// create an ACL for node0
 		AccessControlList acl = new AccessControlList();
@@ -445,7 +423,7 @@ public class DBOReferenceDaoImplTest {
 		ra.setPrincipalId(Long.parseLong(groupId));
 		ras.add(ra);
 		acl.setResourceAccess(ras);
-		String aclId = aclDAO.create(acl);
+		String aclId = aclDAO.create(acl, ObjectType.ENTITY);
 		acl = aclDAO.get(aclId, ObjectType.ENTITY);
 		// add acl to a list of objects to delete
 		aclIdToDelete = acl.getId();
@@ -453,8 +431,8 @@ public class DBOReferenceDaoImplTest {
 		
 		// add the group to the userInfo
 		userInfo = new UserInfo(false); // not an administrator!
-		Set<UserGroup> userGroups = new HashSet<UserGroup>();
-		userGroups.add(group);
+		Set<Long> userGroups = new HashSet<Long>();
+		userGroups.add(Long.parseLong(group.getId()));
 		userInfo.setGroups(userGroups);
 		
 		// check that permissions are set up.  'userInfo' should be able to get node0 but not node1
@@ -467,11 +445,11 @@ public class DBOReferenceDaoImplTest {
 		assertEquals(1, ras2.size());
 		ResourceAccess ra2 = ras2.iterator().next();
 		assertEquals(groupId, ra2.getPrincipalId().toString());
-		assertTrue(aclDAO.canAccess(userInfo.getGroups(), permissionsBenefactor0, ACCESS_TYPE.READ));
+		assertTrue(aclDAO.canAccess(userInfo.getGroups(), permissionsBenefactor0, ObjectType.ENTITY, ACCESS_TYPE.READ));
 		String permissionsBenefactor1 = nodeInheritanceDao.getBenefactor(""+node1.getId());
 		// node1 is its own permissions supplier
 		assertEquals(""+node1.getId()+"!="+permissionsBenefactor1, KeyFactory.keyToString(node1.getId()), permissionsBenefactor1);
-		assertFalse(aclDAO.canAccess(userInfo.getGroups(), permissionsBenefactor1, ACCESS_TYPE.READ));
+		assertFalse(aclDAO.canAccess(userInfo.getGroups(), permissionsBenefactor1, ObjectType.ENTITY, ACCESS_TYPE.READ));
 		
 		// now should only find referrers which allow the created group
 		ehqr = dboReferenceDao.getReferrers(123L, null, userInfo, null, null);

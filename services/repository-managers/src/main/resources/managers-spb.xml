@@ -22,6 +22,7 @@
 	<import resource="classpath:shared-scheduler-spb.xml" />
 	<import resource="classpath:dynamo-dao-spb.xml" />
 	<import resource="classpath:audit-managers.spb.xml" />
+	<import resource="classpath:table-cluster-spb.xml" />
 
 	<!-- The real Node DAO -->
 	<bean id="nodeManager" class="org.sagebionetworks.repo.manager.NodeManagerImpl" />
@@ -33,6 +34,8 @@
 
 	<!-- Activity manager -->
 	<bean id="activityManager" class="org.sagebionetworks.repo.manager.ActivityManagerImpl" />
+	
+	<bean id="principalManager" class="org.sagebionetworks.repo.manager.principal.PrincipalManagerImpl" />
 
 	<!-- Trash manager -->
 	<bean id="trashManager" class="org.sagebionetworks.repo.manager.trash.TrashManagerImpl" />
@@ -156,12 +159,24 @@
 		
 	<bean id="authManager" class="org.sagebionetworks.repo.manager.AuthenticationManagerImpl" />
 	
-	<bean id="backupDriver" class="org.sagebionetworks.repo.manager.backup.daemon.BackupDriverImpl" scope="singleton"/>
+	<bean id="amazonSESClient" class="com.amazonaws.services.simpleemail.AmazonSimpleEmailServiceClient">
+        <constructor-arg ref="awsCredentials" />
+    </bean>
+		
+	<bean id="messageManager" class="org.sagebionetworks.repo.manager.MessageManagerImpl" />
 	
-	<bean id="migrationManager" class="org.sagebionetworks.repo.manager.migration.MigrationManagerImpl" scope="singleton">
-		<property name="backupBatchMax"
-			ref="stackConfiguration.migrationBackupBatchMax" />
-	</bean>
+	<bean id="backupDriver" class="org.sagebionetworks.repo.manager.backup.daemon.BackupDriverImpl" scope="singleton"/><bean
+        id="migrationManager"
+        class="org.sagebionetworks.repo.manager.migration.MigrationManagerImpl"
+        scope="singleton" >
+        <property
+            name="backupBatchMax"
+            ref="stackConfiguration.migrationBackupBatchMax" />
+        <property name="migrationListeners" >
+            <list>
+            </list>
+        </property>
+    </bean>
 
 	<bean id="stackStatusManager" class="org.sagebionetworks.repo.manager.StackStatusManagerImpl"
 		scope="singleton" />
@@ -201,9 +216,6 @@
 
 	<bean id="evaluationPermissionsManager" class="org.sagebionetworks.evaluation.manager.EvaluationPermissionsManagerImpl"
 		scope="singleton" />
-
-	<bean id="wikiManager" class="org.sagebionetworks.repo.manager.wiki.WikiManagerImpl" 
-		scope="singleton" />
 		
 	<bean id="v2WikiManager" class="org.sagebionetworks.repo.manager.wiki.V2WikiManagerImpl" 
 		scope="singleton" />
@@ -222,6 +234,11 @@
 
 	<bean id="columnModelManager" class="org.sagebionetworks.repo.manager.table.ColumnModelManagerImpl"
 		scope="singleton" />
+		
+	<bean id="tableRowManager" class="org.sagebionetworks.repo.manager.table.TableRowManagerImpl" scope="singleton" >
+        <property name="tableReadTimeoutMS"	ref="stackConfiguration.tableReadTimeoutMS" />
+       	<property name="maxBytesPerRequest" ref="stackConfiguration.tableMaxBytesPerRequest"/>
+    </bean>	
 
 	<bean id="nodeTreeUpdateManager" class="org.sagebionetworks.repo.manager.dynamo.NodeTreeUpdateManagerImpl">
 		<constructor-arg index="0" ref="nodeTreeUpdateDao" />
@@ -275,8 +292,21 @@
 		class="org.sagebionetworks.repo.util.jrjc.JiraClientImpl"
 		scope="singleton" />
 
-	<bean id="teamManager" class="org.sagebionetworks.repo.manager.team.TeamManagerImpl" scope="singleton" />
+	<bean id="teamManager" class="org.sagebionetworks.repo.manager.team.TeamManagerImpl" init-method="bootstrapTeams" scope="singleton">
+	    <property name="teamsToBootstrap" ref="teamsToBootstrap"/>
+    </bean>
+    
 	<bean id="membershipInvitationManager" class="org.sagebionetworks.repo.manager.team.MembershipInvitationManagerImpl" scope="singleton" />
 	<bean id="membershipRequestManager" class="org.sagebionetworks.repo.manager.team.MembershipRequestManagerImpl" scope="singleton" />
 			
+    <!-- DO NOT CHANGE ANY OF THESE NAMES OR IDS as they represent real objects in production.
+        Mirror the ID for reference in code in the AuthorizationConstants.BOOTSTRAP_TEAM enum. 
+     -->
+    <util:list id="teamsToBootstrap">
+        <bean class="org.sagebionetworks.repo.model.principal.BootstrapTeam">
+            <property name="id" value="3320020" />
+            <property name="name" value="BridgeAdministrators" />
+        </bean>
+    </util:list>
+		
 </beans>

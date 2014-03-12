@@ -1,0 +1,25 @@
+{
+	"title": "Message",
+	"description": "JSON schema for a message to another user",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.message.MessageContent"
+		}, {
+			"$ref": "org.sagebionetworks.repo.model.message.MessageRecipientSetInterface"
+		}
+	], 
+	"properties": {
+		"subject": {
+			"type": "string",
+			"description":"Topic of this message.  Optional"
+		}, 
+		"inReplyTo": {
+			"type": "string",
+			"description":"The unique identifier of the message being replied to.  Can be null"
+		}, 
+        "inReplyToRoot": {
+			"type": "string",
+			"description":"The unique identifier of the root message being replied to"
+		}
+	}
+}

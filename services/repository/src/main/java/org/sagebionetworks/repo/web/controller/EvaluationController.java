@@ -9,7 +9,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.sagebionetworks.evaluation.model.Evaluation;
-import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
@@ -29,6 +28,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.query.QueryTableResults;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.util.ControllerUtil;
+import org.sagebionetworks.repo.util.QueryTranslator;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
@@ -121,7 +121,7 @@ public class EvaluationController extends BaseController {
 	@RequestMapping(value = UrlHelpers.EVALUATION, method = RequestMethod.POST)
 	public @ResponseBody
 	Evaluation createEvaluation(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request
 			) throws DatastoreException, InvalidModelException, NotFoundException, JSONObjectAdapterException
@@ -152,7 +152,7 @@ public class EvaluationController extends BaseController {
 	@RequestMapping(value = UrlHelpers.EVALUATION_WITH_ID, method = RequestMethod.GET)
 	public @ResponseBody
 	Evaluation getEvaluation(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String evalId,
 			HttpServletRequest request
 			) throws DatastoreException, UnauthorizedException, NotFoundException 
@@ -175,7 +175,7 @@ public class EvaluationController extends BaseController {
 	@RequestMapping(value = UrlHelpers.EVALUATION_WITH_CONTENT_SOURCE, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<Evaluation> getEvaluationsByContentSourcePaginated(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id, 
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
@@ -199,9 +199,8 @@ public class EvaluationController extends BaseController {
 	 * 
 	 * @param offset
 	 *            The offset index determines where this page will start from.
-	 *            An index of 1 is the first entity. When null it will default
-	 *            to 1. Note: Starting at 1 is a misnomer for offset and will be
-	 *            changed to 0 in future versions of Synapse.
+	 *            An index of 0 is the first entity. When null it will default
+	 *            to 0.
 	 * @param limit
 	 *            Limits the number of entities that will be fetched for this
 	 *            page. When null it will default to 10.
@@ -215,7 +214,7 @@ public class EvaluationController extends BaseController {
 	@RequestMapping(value = UrlHelpers.EVALUATION, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<Evaluation> getEvaluationsPaginated(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
 			HttpServletRequest request
@@ -254,7 +253,7 @@ public class EvaluationController extends BaseController {
 	PaginatedResults<Evaluation> getAvailableEvaluationsPaginated(
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			HttpServletRequest request
 			) throws DatastoreException, NotFoundException
 	{
@@ -277,7 +276,7 @@ public class EvaluationController extends BaseController {
 	@RequestMapping(value = UrlHelpers.EVALUATION_COUNT, method = RequestMethod.GET)
 	public @ResponseBody
 	long getEvaluationCount(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			HttpServletRequest request) throws DatastoreException, NotFoundException
 	{
 		return serviceProvider.getEvaluationService().getEvaluationCount(userId);
@@ -304,7 +303,7 @@ public class EvaluationController extends BaseController {
 	@RequestMapping(value = UrlHelpers.EVALUATION_WITH_NAME, method = RequestMethod.GET)
 	public @ResponseBody
 	Evaluation findEvaluation(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String name,
 			HttpServletRequest request
 			) throws DatastoreException, UnauthorizedException, NotFoundException, UnsupportedEncodingException 
@@ -350,7 +349,7 @@ public class EvaluationController extends BaseController {
 	public @ResponseBody
 	Evaluation updateEvaluation(
 			@PathVariable String evalId,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request) throws DatastoreException, UnauthorizedException, InvalidModelException, ConflictingUpdateException, NotFoundException, JSONObjectAdapterException
 	{
@@ -383,7 +382,7 @@ public class EvaluationController extends BaseController {
 	public @ResponseBody
 	void deleteEvaluation(
 			@PathVariable String evalId,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request) throws DatastoreException, UnauthorizedException, NotFoundException 
 	{
@@ -416,7 +415,7 @@ public class EvaluationController extends BaseController {
 	public @ResponseBody
 	Participant createParticipant(
 			@PathVariable String evalId,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request
 			) throws DatastoreException, InvalidModelException, NotFoundException
@@ -447,7 +446,7 @@ public class EvaluationController extends BaseController {
 	@RequestMapping(value = UrlHelpers.PARTICIPANT_WITH_ID, method = RequestMethod.GET)
 	public @ResponseBody
 	Participant getParticipant(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String evalId,
 			@PathVariable String partId,
 			HttpServletRequest request
@@ -483,7 +482,7 @@ public class EvaluationController extends BaseController {
 	void deleteParticipantAsAdmin(
 			@PathVariable String evalId,
 			@PathVariable String partId,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request
 			) throws DatastoreException, InvalidModelException, NotFoundException
@@ -521,7 +520,7 @@ public class EvaluationController extends BaseController {
 	@RequestMapping(value = UrlHelpers.PARTICIPANT, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<Participant> getAllParticipants(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
 			@PathVariable String evalId,
@@ -552,7 +551,7 @@ public class EvaluationController extends BaseController {
 	@RequestMapping(value = UrlHelpers.PARTICIPANT_COUNT, method = RequestMethod.GET)
 	public @ResponseBody
 	long getParticipantCount(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String evalId,
 			HttpServletRequest request) 
 			throws DatastoreException, NotFoundException
@@ -561,7 +560,9 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Creates a Submission. The passed request body should contain the following fields:
+	 * Creates a Submission. 
+	 * 
+	 * The passed request body should contain the following fields:
 	 * <ul>
 	 * <li>evaluationId - The ID of the Evaluation to which this Submission belongs.</li>
 	 * <li>entityId - The ID of the Entity being submitted.</li>
@@ -570,7 +571,11 @@ public class EvaluationController extends BaseController {
 	 * <p>
 	 * <b>Note:</b> The caller must be granted the <a
 	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
-	 * >ACCESS_TYPE.SUBMIT</a>.
+	 * >ACCESS_TYPE.SUBMIT</a>.  
+	 * </p>
+	 * <p>
+	 * This call also creates an associated <a href="${org.sagebionetworks.evaluation.model.SubmissionStatus}">SubmissionStatus</a>, 
+	 * initialized with a SubmissionStatusEnum value of RECEIVED.
 	 * </p>
 	 * 
 	 * @param userId
@@ -590,7 +595,7 @@ public class EvaluationController extends BaseController {
 	@RequestMapping(value = UrlHelpers.SUBMISSION, method = RequestMethod.POST)
 	public @ResponseBody
 	Submission createSubmission(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = AuthorizationConstants.ETAG_PARAM, required = false) String entityEtag,
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request
@@ -623,7 +628,7 @@ public class EvaluationController extends BaseController {
 	public @ResponseBody
 	Submission getSubmission(
 			@PathVariable String subId,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			HttpServletRequest request
 			) throws DatastoreException, UnauthorizedException, NotFoundException 
 	{
@@ -655,7 +660,7 @@ public class EvaluationController extends BaseController {
 	public @ResponseBody
 	SubmissionStatus getSubmissionStatus(
 			@PathVariable String subId,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			HttpServletRequest request
 			) throws DatastoreException, UnauthorizedException, NotFoundException 
 	{
@@ -699,7 +704,7 @@ public class EvaluationController extends BaseController {
 	public @ResponseBody
 	SubmissionStatus updateSubmissionStatus(
 			@PathVariable String subId,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request) 
 			throws DatastoreException, UnauthorizedException, InvalidModelException, 
@@ -736,7 +741,7 @@ public class EvaluationController extends BaseController {
 	public @ResponseBody
 	void deleteSubmission(
 			@PathVariable String subId,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request) throws DatastoreException, UnauthorizedException, NotFoundException 
 	{
@@ -755,9 +760,8 @@ public class EvaluationController extends BaseController {
 	 * @param evalId - the ID of the specified Evaluation.
 	 * @param offset
 	 *            The offset index determines where this page will start from.
-	 *            An index of 1 is the first entity. When null it will default
-	 *            to 1. Note: Starting at 1 is a misnomer for offset and will be
-	 *            changed to 0 in future versions of Synapse.
+	 *            An index of 0 is the first entity. When null it will default
+	 *            to 0.
 	 * @param limit
 	 *            Limits the number of entities that will be fetched for this
 	 *            page. When null it will default to 10.
@@ -776,7 +780,7 @@ public class EvaluationController extends BaseController {
 			@PathVariable String evalId,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = UrlHelpers.STATUS, defaultValue = "") String statusString,
 			HttpServletRequest request
 			) throws DatastoreException, UnauthorizedException, NotFoundException 
@@ -804,9 +808,8 @@ public class EvaluationController extends BaseController {
 	 * @param evalId - the ID of the specified Evaluation.
 	 * @param offset
 	 *            The offset index determines where this page will start from.
-	 *            An index of 1 is the first entity. When null it will default
-	 *            to 1. Note: Starting at 1 is a misnomer for offset and will be
-	 *            changed to 0 in future versions of Synapse.
+	 *            An index of 0 is the first entity. When null it will default
+	 *            to 0.
 	 * @param limit
 	 *            Limits the number of entities that will be fetched for this
 	 *            page. When null it will default to 10.
@@ -824,7 +827,7 @@ public class EvaluationController extends BaseController {
 			@PathVariable String evalId,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = UrlHelpers.STATUS, defaultValue = "") String statusString,
 			HttpServletRequest request
 			) throws DatastoreException, UnauthorizedException, NotFoundException 
@@ -848,9 +851,8 @@ public class EvaluationController extends BaseController {
 	 * @param evalId - the ID of the specified Evaluation.
 	 * @param offset
 	 *            The offset index determines where this page will start from.
-	 *            An index of 1 is the first entity. When null it will default
-	 *            to 1. Note: Starting at 1 is a misnomer for offset and will be
-	 *            changed to 0 in future versions of Synapse.
+	 *            An index of 0 is the first entity. When null it will default
+	 *            to 0.
 	 * @param limit
 	 *            Limits the number of entities that will be fetched for this
 	 *            page. When null it will default to 10.
@@ -869,7 +871,7 @@ public class EvaluationController extends BaseController {
 			@PathVariable String evalId,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = UrlHelpers.STATUS, defaultValue = "") String statusString,
 			HttpServletRequest request
 			) throws DatastoreException, UnauthorizedException, NotFoundException 
@@ -883,18 +885,13 @@ public class EvaluationController extends BaseController {
 	
 	/**
 	 * Gets the requesting user's Submissions to a specified Evaluation.
-	 * 
-	 * <b>Note:</b> The caller must be granted the <a
-	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
-	 * >ACCESS_TYPE.READ_PRIVATE_SUBMISSION</a> on the specified Evaluation.
 	 * </p>
 	 * 
 	 * @param evalId - the ID of the specified Evaluation.
 	 * @param offset
 	 *            The offset index determines where this page will start from.
-	 *            An index of 1 is the first entity. When null it will default
-	 *            to 1. Note: Starting at 1 is a misnomer for offset and will be
-	 *            changed to 0 in future versions of Synapse.
+	 *            An index of 0 is the first entity. When null it will default
+	 *            to 0.
 	 * @param limit
 	 *            Limits the number of entities that will be fetched for this
 	 *            page. When null it will default to 10.
@@ -912,28 +909,24 @@ public class EvaluationController extends BaseController {
 			@PathVariable String evalId,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			HttpServletRequest request
 			) throws DatastoreException, UnauthorizedException, NotFoundException 
 	{
-		return serviceProvider.getEvaluationService().getAllSubmissionsByEvaluationAndUser(evalId, userId, limit, offset, request);
+		return serviceProvider.getEvaluationService().getMyOwnSubmissionsByEvaluation(evalId, userId, limit, offset, request);
 	}
 	
 	/**
 	 * Gets the requesting user's bundled Submissions and SubmissionStatuses to a specified
 	 * Evaluation.
 	 * 
-	 * <b>Note:</b> The caller must be granted the <a
-	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
-	 * >ACCESS_TYPE.READ_PRIVATE_SUBMISSION</a> on the specified Evaluation.
 	 * </p>
 	 * 
 	 * @param evalId - the ID of the specified Evaluation.
 	 * @param offset
 	 *            The offset index determines where this page will start from.
-	 *            An index of 1 is the first entity. When null it will default
-	 *            to 1. Note: Starting at 1 is a misnomer for offset and will be
-	 *            changed to 0 in future versions of Synapse.
+	 *            An index of 0 is the first entity. When null it will default
+	 *            to 0.
 	 * @param limit
 	 *            Limits the number of entities that will be fetched for this
 	 *            page. When null it will default to 10.
@@ -951,11 +944,11 @@ public class EvaluationController extends BaseController {
 			@PathVariable String evalId,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			HttpServletRequest request
 			) throws DatastoreException, UnauthorizedException, NotFoundException 
 	{
-		return serviceProvider.getEvaluationService().getAllSubmissionBundlesByEvaluationAndUser(evalId, userId, limit, offset, request);
+		return serviceProvider.getEvaluationService().getMyOwnSubmissionBundlesByEvaluation(evalId, userId, limit, offset, request);
 	}
 	
 	/**
@@ -981,7 +974,7 @@ public class EvaluationController extends BaseController {
 			@PathVariable String subId,
 			@PathVariable String fileHandleId,
 			@RequestParam (required = false) Boolean redirect,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			HttpServletResponse response
 			) throws DatastoreException, NotFoundException, IOException {
 		URL url = serviceProvider.getEvaluationService().getRedirectURLForFileHandle(userId, subId, fileHandleId);
@@ -1007,7 +1000,7 @@ public class EvaluationController extends BaseController {
 	public @ResponseBody
 	long getSubmissionCount(
 			@PathVariable String evalId,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			HttpServletRequest request
 			) throws DatastoreException, NotFoundException
 	{
@@ -1033,8 +1026,8 @@ public class EvaluationController extends BaseController {
 	@RequestMapping(value={UrlHelpers.EVALUATION_WITH_ID+UrlHelpers.ACCESS}, method=RequestMethod.GET)
 	public @ResponseBody BooleanResult hasAccess(
 			@PathVariable String evalId,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@RequestParam(value = UrlHelpers.ACCESS_TYPE_PARAM, required = false) String accessType,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(value = UrlHelpers.ACCESS_TYPE_PARAM, required = true) String accessType,
 			HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException {
 		// pass it along.
 		return new BooleanResult(serviceProvider.getEvaluationService().hasAccess(evalId, userId, request, accessType));
@@ -1054,7 +1047,7 @@ public class EvaluationController extends BaseController {
 	@RequestMapping(value = UrlHelpers.EVALUATION_ACL, method = RequestMethod.POST)
 	public @ResponseBody AccessControlList
 	createAcl(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody AccessControlList acl,
 			HttpServletRequest request)
 			throws NotFoundException, DatastoreException, InvalidModelException,
@@ -1077,7 +1070,7 @@ public class EvaluationController extends BaseController {
 	@RequestMapping(value = UrlHelpers.EVALUATION_ACL, method = RequestMethod.PUT)
 	public @ResponseBody AccessControlList
 	updateAcl(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody AccessControlList acl,
 			HttpServletRequest request)
 			throws NotFoundException, DatastoreException, InvalidModelException,
@@ -1096,7 +1089,7 @@ public class EvaluationController extends BaseController {
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.EVALUATION_ID_ACL, method = RequestMethod.DELETE)
 	public void deleteAcl(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String evalId,
 			HttpServletRequest request)
 			throws NotFoundException, DatastoreException, InvalidModelException,
@@ -1117,7 +1110,7 @@ public class EvaluationController extends BaseController {
 	@RequestMapping(value = UrlHelpers.EVALUATION_ID_ACL, method = RequestMethod.GET)
 	public @ResponseBody AccessControlList
 	getAcl(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String evalId,
 			HttpServletRequest request)
 			throws NotFoundException, DatastoreException, ACLInheritanceException {
@@ -1136,7 +1129,7 @@ public class EvaluationController extends BaseController {
 	@RequestMapping(value = UrlHelpers.EVALUATION_ID_PERMISSIONS, method = RequestMethod.GET)
 	public @ResponseBody UserEvaluationPermissions
 	getUserPermissionsForEvaluation(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String evalId,
 			HttpServletRequest request)
 			throws NotFoundException, DatastoreException {
@@ -1144,28 +1137,49 @@ public class EvaluationController extends BaseController {
 	}
 	
 	/**
-	 * Executes a user-defined query over the Submissions of a specific Evaluation. Queries may be of
-	 * the following form:
+	 * Executes a user-defined query over the Submissions of a specific Evaluation. Queries have the following form:
 	 * 
-	 * <p>
-	 * SELECT * FROM evaluation_123 WHERE myAnnotation == "bar";
-	 * </p>
-	 * 
-	 * <p>
-	 * <b>Note:</b> This service is still under construction. Query syntax and behavior are subject 
-	 * to change.
-	 * </p>
+	 * <p/>
+	 * SELECT &lt;fields&gt; FROM evaluation_&lt;id&gt; [WHERE &lt;filter&gt; (AND &lt;filter&gt;)*] [ORDER BY &lt;name&gt; asc|desc] [LIMIT &lt;L&gt; OFFSET &lt;O&gt;]
+	 * <p/>
+	 * where
+	 * <p/>
+	 * &lt;fields&gt; is either "*" or a comma delimited list of names
+	 * <br/>
+	 * <ul>
+	 * <li>"name" is the name either of a system-defined field in a Submission or of a user defined annotation.  The system-defined field names are:
+	 * objectId, scopeId, userId, submitterAlias, entityId, versionNumber, name, createdOn, modifiedOn, and status.
+	 * Note:  If a user defined annotation name and type of value matches/collides with those of a system-defined field, 
+	 * the query will be against the field name, not the user defined annotation.</li>
+	 * <li>&lt;id&gt; is the Evaluation's ID</li>
+	 * <li>&lt;filter&gt; = &lt;name&gt; &lt;comparator&gt; &lt;value&gt;</li>
+	 * <li>"comparator" is one of ==, !=, >, <, >=, or <=</li>
+	 * <li>"value" is an annotation value, of type string, integer, or decimal</li>
+	 * <li>"L" and "O" are optional limit and offset pagination parameters, limit>=1 and offset>=0.
+	 * Note:  If pagination is used, LIMIT must precede OFFSET and the pair of parameters must follow ORDER BY (if used).</li>
+	 * </ul>
+	 * <br/>
+	 * <p/>
+	 * Examples:<br/>
+	 * SELECT * FROM evaluation_123 WHERE myAnnotation == "foo"<br/>
+	 * SELECT entityId, status, myAnnotation FROM evaluation_123 WHERE myAnnotation == "foo" AND status="RECEIVED"<br/>
+	 * SELECT * FROM evaluation_123  limit 20 offset 10 order by status asc<br/>
+	 * <p/>
+	 * <p/>
+	 * Note:  IF "SELECT *" is used and if the user lacks READ_PRIVATE access to the Evaluation, then any private annotations will
+	 * be omitted from the resulting column headers.  However, if the selected annotations are specified explicitly then private
+	 * annotation names <i>will</i> be included in the column headers, but their values will be returned as null.  
+	 * Further, if the private annotation is included in a filter then no results are returned.
 	 * 
 	 * @throws JSONObjectAdapterException
 	 * @throws ParseException 
 	 * @throws  
 	 */
-	@Deprecated
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_QUERY, method = RequestMethod.GET)
 	public @ResponseBody 
 	QueryTableResults query(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.QUERY_PARAM, required = true) String query,
 			HttpServletRequest request)
 			throws NotFoundException, DatastoreException, ParseException, 

@@ -11,6 +11,7 @@ import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.UUID;
 
 import javax.servlet.ServletException;
 
@@ -20,8 +21,12 @@ import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.sagebionetworks.client.SynapseAdminClient;
+import org.sagebionetworks.client.SynapseAdminClientImpl;
+import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
@@ -40,38 +45,40 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
  * @author deflaux
  */
 public class IT510SynapseJavaClientSearchTest {
-	
-	
-	public static final long MAX_WAIT_TIME_MS = 10*60*1000; // ten min.
 
-	private static SynapseClientImpl synapse = null;
+	private static SynapseAdminClient adminSynapse;
+	private static SynapseClient synapse;
+	private static Long userToDelete;
+	
+	private static final long MAX_WAIT_TIME_MS = 10*60*1000; // ten min
 	
 	/**
 	 * All objects are added to this project.
 	 */
 	private static Project project;
 	private static List<Data> dataList;
-	static private long entitesWithDistictValue = 5;
-	static private String distictValue1;
-	static private String distictValue2;
-
-	/**
-	 * @throws Exception
-	 * 
-	 */
+	private static long entitesWithDistictValue = 5;
+	private static String distictValue1;
+	private static String distictValue2;
+	
 	@BeforeClass
 	public static void beforeClass() throws Exception {
 		StackConfiguration config = new StackConfiguration();
 		// Only run this test if search is enabled.
 		Assume.assumeTrue(config.getSearchEnabled());
 		
+		// Create a user
+		adminSynapse = new SynapseAdminClientImpl();
+		SynapseClientHelper.setEndpoints(adminSynapse);
+		adminSynapse.setUserName(StackConfiguration.getMigrationAdminUsername());
+		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
+		
 		synapse = new SynapseClientImpl();
-		synapse.setAuthEndpoint(StackConfiguration
-				.getAuthenticationServicePrivateEndpoint());
-		synapse.setRepositoryEndpoint(StackConfiguration
-				.getRepositoryServiceEndpoint());
-		synapse.login(StackConfiguration.getIntegrationTestUserOneName(),
-				StackConfiguration.getIntegrationTestUserOnePassword());
+		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
+		
+		// Update this user's profile to contain a display name
+		UserProfile profile = synapse.getMyProfile();
+		synapse.updateMyProfile(profile);
 		
 		// Setup all of the objects for this test.
 		project = new Project();
@@ -103,10 +110,18 @@ public class IT510SynapseJavaClientSearchTest {
 	}
 	
 	@AfterClass
-	public static void afterClass() throws SynapseException{
-		if(synapse != null && project != null){
+	public static void afterClass() throws Exception {
+		StackConfiguration config = new StackConfiguration();
+		// There's nothing to do if search is disabled
+		if (!config.getSearchEnabled()) {
+			return;
+		}
+		
+		if (synapse != null && project != null) {
 			synapse.deleteAndPurgeEntity(project);
 		}
+		
+		adminSynapse.deleteUser(userToDelete);
 	}
 	
 	/**
@@ -142,7 +157,10 @@ public class IT510SynapseJavaClientSearchTest {
 		long start = System.currentTimeMillis();
 		while(true){
 			SearchResults results = synapse.search(searchQuery);
-			if(results.getFound() == 1) return;
+			if (results.getFound() == 1) {
+				System.out.println("Found entity " + id + " in search index");
+				return;
+			}
 			System.out.println("Waiting for entity to be published to the search index, id: "+id+"...");
 			Thread.sleep(2000);
 			long elapse = System.currentTimeMillis()-start;
@@ -377,17 +395,6 @@ public class IT510SynapseJavaClientSearchTest {
 		assertTrue(1 <= results.getFound());
 	}
 	
-	private static String getGroupPrincipalIdFromGroupName(String groupName) throws SynapseException {
-		PaginatedResults<UserGroup> paginated = synapse.getGroups(0,100);
-		int total = (int)paginated.getTotalNumberOfResults();
-		List<UserGroup> groups = paginated.getResults();
-		if (groups.size()<total) throw new RuntimeException("System has "+total+" total users but we've only retrieved "+groups.size());
-		for (UserGroup group : groups) {
-			if (group.getName().equalsIgnoreCase(groupName)) return group.getId();
-		}
-		throw new RuntimeException("Cannot find "+groupName+" among groups.");
-	}
-	
 	/**
 	 * @throws Exception
 	 */
@@ -413,23 +420,17 @@ public class IT510SynapseJavaClientSearchTest {
 		assertTrue(-1 < cloudSearchMatchExpr
 				.indexOf("acl:'" + myPrincipalId + "'"));
 		assertTrue(-1 < cloudSearchMatchExpr
-				.indexOf("acl:'"+getGroupPrincipalIdFromGroupName("AUTHENTICATED_USERS")+"'"));
-		assertTrue(-1 < cloudSearchMatchExpr.indexOf("acl:'"+getGroupPrincipalIdFromGroupName("PUBLIC")+"'"));
+				.indexOf("acl:'"+AuthorizationConstants.BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId().toString()+"'"));
+		assertTrue(-1 < cloudSearchMatchExpr.indexOf("acl:'"+AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().toString()+"'"));
 	}
 
-	/**
-	 * @throws Exception
-	 */
 	@Test
 	public void testAnonymousSearchAuthorizationFilter() throws Exception {
-		
-		synapse.login(StackConfiguration.getIntegrationTestUserOneName(),
-				StackConfiguration.getIntegrationTestUserOnePassword());
-		
-		String publicPrincipalId = getGroupPrincipalIdFromGroupName("PUBLIC");
+		String publicPrincipalId = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().toString();
 
 		// now 'log out'
-		synapse.setSessionToken(null);
+		SynapseClient anonymous = new SynapseClientImpl();
+		SynapseClientHelper.setEndpoints(anonymous);
 
 		SearchQuery searchQuery = new SearchQuery();
 		List<String> queryTerms = new ArrayList<String>();
@@ -438,7 +439,7 @@ public class IT510SynapseJavaClientSearchTest {
 		List<String> returnFields = new ArrayList<String>();
 		returnFields.add("name");
 		searchQuery.setReturnFields(returnFields);
-		SearchResults results = synapse.search(searchQuery);
+		SearchResults results = anonymous.search(searchQuery);
 
 		String cloudSearchMatchExpr = results.getMatchExpression();
 		assertTrue(-1 < cloudSearchMatchExpr.indexOf("(or acl:"));
@@ -447,10 +448,6 @@ public class IT510SynapseJavaClientSearchTest {
 		//assertTrue(-1 < cloudSearchMatchExpr.indexOf("acl:'anonymous@sagebase.org'", 0));
 		
 		assertTrue(-1 < cloudSearchMatchExpr.indexOf("acl:'"+publicPrincipalId+"'"));
-
-		// We are reusing this client, so restore the prior logged in user
-		synapse.login(StackConfiguration.getIntegrationTestUserOneName(),
-				StackConfiguration.getIntegrationTestUserOnePassword());
 	}
 
 	/**
@@ -458,10 +455,6 @@ public class IT510SynapseJavaClientSearchTest {
 	 */
 	@Test
 	public void testAdminSearchAuthorizationFilter() throws Exception {
-		// Login as an administrator
-		synapse.login(StackConfiguration.getIntegrationTestUserAdminName(),
-				StackConfiguration.getIntegrationTestUserAdminPassword());
-
 		SearchQuery searchQuery = new SearchQuery();
 		List<String> queryTerms = new ArrayList<String>();
 		queryTerms.add(distictValue2);
@@ -469,16 +462,12 @@ public class IT510SynapseJavaClientSearchTest {
 		List<String> returnFields = new ArrayList<String>();
 		returnFields.add("name");
 		searchQuery.setReturnFields(returnFields);
-		SearchResults results = synapse.search(searchQuery);
+		SearchResults results = adminSynapse.search(searchQuery);
 
 		String cloudSearchMatchExpr = results.getMatchExpression();
 
 		// We don't add an authorization filter for admin users
 		assertEquals(-1, cloudSearchMatchExpr.indexOf("acl"));
-
-		// We are reusing this client, so restore the prior logged in user
-		synapse.login(StackConfiguration.getIntegrationTestUserOneName(),
-				StackConfiguration.getIntegrationTestUserOnePassword());
 	}
 
 	/**
@@ -527,8 +516,8 @@ public class IT510SynapseJavaClientSearchTest {
 			fail("This was a bad query");
 		}catch (SynapseException e) {
 			// did we get the expected message.
-			assertTrue(e.getMessage().indexOf("'ugh' is not defined in the metadata for this collection") > 0);
-			assertFalse("The error message contains the URL of the search index", e.getMessage().indexOf("http://search") > 0);
+			assertTrue(e.getMessage(), e.getMessage().indexOf("'ugh' is not defined in the metadata for this collection") >= 0);
+			assertFalse("The error message contains the URL of the search index", e.getMessage().indexOf("http://search") >= 0);
 		}
 	}
 }

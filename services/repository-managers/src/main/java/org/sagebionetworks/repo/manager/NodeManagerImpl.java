@@ -102,7 +102,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		NodeManagerImpl.validateNode(newNode);
 		UserInfo.validateUserInfo(userInfo);
 		// Also validate the username
-		Long userIndividualGroupId = Long.parseLong(userInfo.getIndividualGroup().getId());
+		Long userIndividualGroupId = userInfo.getId();
 		// Validate the creations data
 		NodeManagerImpl.validateNodeCreationData(userIndividualGroupId, newNode);
 		// Validate the modified data.
@@ -127,7 +127,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		
 		// check whether the user is allowed to create this type of node
 		if (!authorizationManager.canCreate(userInfo, newNode)) {
-			throw new UnauthorizedException(userInfo.getUser().getUserId()+" is not allowed to create items within container "+newNode.getParentId());
+			throw new UnauthorizedException(userInfo.getId().toString()+" is not allowed to create items within container "+newNode.getParentId());
 		}
 		// Handle permission around file handles.
 		if(newNode.getFileHandleId() != null){
@@ -151,7 +151,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 			nodeInheritanceManager.addBeneficiary(id, parentBenefactor);
 		}else if(ACL_SCHEME.GRANT_CREATOR_ALL == aclSchem){
 			AccessControlList rootAcl = AccessControlListUtil.createACLToGrantAll(id, userInfo);
-			aclDAO.create(rootAcl);
+			aclDAO.create(rootAcl, ObjectType.ENTITY);
 			// This node is its own benefactor
 			nodeInheritanceManager.addBeneficiary(id, id);
 		}else{
@@ -161,7 +161,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		// adding access is done at a higher level, not here
 		//authorizationManager.addUserAccess(newNode, userInfo);
 		if(log.isDebugEnabled()){
-			log.debug("username: "+userInfo.getUser().getUserId()+" created node: "+id);
+			log.debug("username: "+userInfo.getId().toString()+" created node: "+id);
 		}
 		return id;
 	}
@@ -174,7 +174,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	 * @return
 	 */
 	private String createFileHandleUnauthorizedMessage(String fileHandleId,	UserInfo userInfo) {
-		return String.format(FILE_HANDLE_UNAUTHORIZED_TEMPLATE, fileHandleId, userInfo.getIndividualGroup().getId());
+		return String.format(FILE_HANDLE_UNAUTHORIZED_TEMPLATE, fileHandleId, userInfo.getId().toString());
 	}
 	
 	/**
@@ -235,7 +235,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	public void delete(UserInfo userInfo, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException {
 		// First validate the username
 		UserInfo.validateUserInfo(userInfo);
-		String userName = userInfo.getUser().getUserId();
+		String userName = userInfo.getId().toString();
 		if (!authorizationManager.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.DELETE)) {
 			throw new UnauthorizedException(userName+" lacks change access to the requested object.");
 		}
@@ -243,7 +243,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		if(log.isDebugEnabled()){
 			log.debug("username "+userName+" deleted node: "+nodeId);
 		}
-		aclDAO.delete(nodeId);
+		aclDAO.delete(nodeId, ObjectType.ENTITY);
 	}
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -251,7 +251,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	public void deleteVersion(UserInfo userInfo, String id, Long versionNumber) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException {
 		// First validate the username
 		UserInfo.validateUserInfo(userInfo);
-		String userName = userInfo.getUser().getUserId();
+		String userName = userInfo.getId().toString();
 		if (!authorizationManager.canAccess(userInfo, id, ObjectType. ENTITY, ACCESS_TYPE.DELETE)) {
 			throw new UnauthorizedException(userName+" lacks change access to the requested object.");
 		}
@@ -266,7 +266,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	public Node get(UserInfo userInfo, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException {
 		// Validate the username
 		UserInfo.validateUserInfo(userInfo);
-		String userName = userInfo.getUser().getUserId();
+		String userName = userInfo.getId().toString();
 		if (!authorizationManager.canAccess(userInfo, nodeId, ObjectType. ENTITY, ACCESS_TYPE.READ)) {
 			throw new UnauthorizedException(userName + " lacks read access to the requested object.");
 		}
@@ -281,7 +281,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	@Override
 	public Node getNodeForVersionNumber(UserInfo userInfo, String nodeId, Long versionNumber) throws NotFoundException, DatastoreException, UnauthorizedException {
 		UserInfo.validateUserInfo(userInfo);
-		String userName = userInfo.getUser().getUserId();
+		String userName = userInfo.getId().toString();
 		if (!authorizationManager.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ)) {
 			throw new UnauthorizedException(userName+" lacks read access to the requested object.");
 		}
@@ -312,7 +312,13 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		UserInfo.validateUserInfo(userInfo);
 		// Validate that the user can update the node.
 		if (!authorizationManager.canAccess(userInfo, updatedNode.getId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE)) {
-			throw new UnauthorizedException(userInfo.getUser().getUserId() + " lacks change access to the requested object.");
+			throw new UnauthorizedException(userInfo.getId().toString() + " lacks change access to the requested object.");
+		}
+		// note, this is duplicated in 'updateNode', below
+		final String parentInDatabase = nodeDao.getParentId(updatedNode.getId());
+		final String parentInUpdate = updatedNode.getParentId();
+		if (!authorizationManager.canUserMoveRestrictedEntity(userInfo, parentInDatabase, parentInUpdate)) {
+			throw new UnauthorizedException(userInfo.getId()+ " is not authorized to move the entity due to existing access restrictions.");
 		}
 		
 		// Validate that the user can assign the file handle if they have it.
@@ -353,7 +359,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		NodeManagerImpl.clearNodeCreationDataForUpdate(updatedNode);
 
 		// Clear the modified data and fill it in with the new data
-		Long userIndividualGroupId = Long.parseLong(userInfo.getIndividualGroup().getId());
+		Long userIndividualGroupId = userInfo.getId();
 		NodeManagerImpl.validateNodeModifiedData(userIndividualGroupId, updatedNode);
 
 		// If this is a new version then we need to create a new version before the update
@@ -370,9 +376,9 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		final String parentInDatabase = nodeDao.getParentId(updatedNode.getId());
 		final String parentInUpdate = updatedNode.getParentId();
 		final String nodeInUpdate = updatedNode.getId();
-		if (isParenIdChange(parentInDatabase, parentInUpdate)) {
+		if (isParentIdChange(parentInDatabase, parentInUpdate)) {
 			if (!authorizationManager.canAccess(userInfo, parentInUpdate, ObjectType.ENTITY, ACCESS_TYPE.CREATE)) {
-				throw new UnauthorizedException(userInfo.getUser().getDisplayName() + " is not authorized to create an entity here.");
+				throw new UnauthorizedException(userInfo.getId()+ " is not authorized to create an entity here.");
 			}
 			nodeDao.changeNodeParent(nodeInUpdate, parentInUpdate);
 			// Update the ACL accordingly
@@ -388,7 +394,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 				newAcl = newAcl && (ACL_SCHEME.GRANT_CREATOR_ALL == aclSchem);
 				if (newAcl) {
 					AccessControlList acl = AccessControlListUtil.createACLToGrantAll(nodeInUpdate, userInfo);
-					aclDAO.create(acl);
+					aclDAO.create(acl, ObjectType.ENTITY);
 					nodeInheritanceManager.setNodeToInheritFromItself(nodeInUpdate, false);
 				} else {
 					// Remove the ACLs of all the benefactors
@@ -410,7 +416,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		}
 
 		if (log.isDebugEnabled()) {
-			log.debug("username "+userInfo.getUser().getUserId()+" updated node: "+updatedNode.getId()+", with a new eTag: "+nextETag);
+			log.debug("username "+userInfo.getId().toString()+" updated node: "+updatedNode.getId()+", with a new eTag: "+nextETag);
 		}
 	}
 
@@ -421,7 +427,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	 * @param two
 	 * @return
 	 */
-	public static boolean isParenIdChange(String one, String two){
+	public static boolean isParentIdChange(String one, String two){
 		if(one == null){
 			if(two != null){
 				return true;
@@ -437,7 +443,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	public NamedAnnotations getAnnotations(UserInfo userInfo, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException {
 		if(nodeId == null) throw new IllegalArgumentException("NodeId cannot be null");
 		UserInfo.validateUserInfo(userInfo);
-		String userName = userInfo.getUser().getUserId();
+		String userName = userInfo.getId().toString();
 		if (!authorizationManager.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ)) {
 			throw new UnauthorizedException(userName+" lacks read access to the requested object.");
 		}
@@ -452,7 +458,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	public NamedAnnotations getAnnotationsForVersion(UserInfo userInfo, String nodeId, Long versionNumber) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
 		UserInfo.validateUserInfo(userInfo);
-		String userName = userInfo.getUser().getUserId();
+		String userName = userInfo.getId().toString();
 		if (!authorizationManager.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ)) {
 			throw new UnauthorizedException(userName+" lacks read access to the requested object.");
 		}
@@ -465,7 +471,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		if(updated == null) throw new IllegalArgumentException("Annotations cannot be null");
 		if(nodeId == null) throw new IllegalArgumentException("Node ID cannot be null");
 		UserInfo.validateUserInfo(userInfo);
-		String userName = userInfo.getUser().getUserId();
+		String userName = userInfo.getId().toString();
 		// This is no longer called from a create PLFM-325
 		if (!authorizationManager.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)) {
 			throw new UnauthorizedException(userName+" lacks update access to the requested object.");
@@ -517,7 +523,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	@Override
 	public Set<Node> getChildren(UserInfo userInfo, String parentId) throws NotFoundException, DatastoreException, UnauthorizedException {
 		UserInfo.validateUserInfo(userInfo);
-		String userName = userInfo.getUser().getUserId();
+		String userName = userInfo.getId().toString();
 		if (!authorizationManager.canAccess(userInfo, parentId, ObjectType.ENTITY, ACCESS_TYPE.READ)) {
 			throw new UnauthorizedException(userName+" lacks read access to the requested object.");
 		}
@@ -535,7 +541,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 			String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException {
 		// Validate that the user can do what they are trying to do.
 		UserInfo.validateUserInfo(userInfo);
-		String userName = userInfo.getUser().getUserId();
+		String userName = userInfo.getId().toString();
 		if (!authorizationManager.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ)) {
 			throw new UnauthorizedException(userName+" lacks read access to the requested object.");
 		}
@@ -547,7 +553,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	public List<EntityHeader> getNodePath(UserInfo userInfo, String nodeId)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		UserInfo.validateUserInfo(userInfo);
-		String userName = userInfo.getUser().getUserId();
+		String userName = userInfo.getId().toString();
 		if (!authorizationManager.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ)) {
 			throw new UnauthorizedException(userName+" lacks read access to the requested object.");
 		}
@@ -579,7 +585,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	public EntityHeader getNodeHeader(UserInfo userInfo, String entityId, Long versionNumber)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		UserInfo.validateUserInfo(userInfo);
-		String userName = userInfo.getUser().getUserId();
+		String userName = userInfo.getId().toString();
 		if (!authorizationManager.canAccess(userInfo, entityId, ObjectType.ENTITY, ACCESS_TYPE.READ)) {
 			throw new UnauthorizedException(userName+" lacks read access to the requested object.");
 		}
@@ -631,7 +637,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 			throws NotFoundException {
 		UserInfo.validateUserInfo(userInfo);
 		if (!authorizationManager.canAccess(userInfo, entityId, ObjectType.ENTITY, ACCESS_TYPE.READ)) {
-			String userName = userInfo.getUser().getUserId();
+			String userName = userInfo.getId().toString();
 			throw new UnauthorizedException(userName+" lacks read access to the requested object.");
 		}
 	}
@@ -674,7 +680,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 			if(!activityManager.doesActivityExist(activityId)) 
 				throw new NotFoundException("Activity id " + activityId + " not found.");
 			if(!authorizationManager.canAccessActivity(userInfo, activityId))
-				throw new UnauthorizedException(userInfo.getUser().getUserId() +" lacks change access to the specified activity object.");
+				throw new UnauthorizedException(userInfo.getId().toString() +" lacks change access to the specified activity object.");
 		}
 	}
 
@@ -683,7 +689,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	public VersionInfo promoteEntityVersion(UserInfo userInfo, String nodeId, Long versionNumber)
 			throws NotFoundException, UnauthorizedException, DatastoreException {
 		if (!authorizationManager.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)) {
-			throw new UnauthorizedException(userInfo.getUser().getUserId() +" lacks change access to " + nodeId + ".");
+			throw new UnauthorizedException(userInfo.getId().toString() +" lacks change access to " + nodeId + ".");
 		}
 		Long currentVersion = nodeDao.getCurrentRevisionNumber(nodeId);
 		if (!currentVersion.equals(versionNumber)) {
@@ -750,7 +756,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		validateReadAccess(userInfo, id);
 		// They must have permission to dowload the file to get the handle.
 		if (!authorizationManager.canAccess(userInfo, id, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)) {
-			throw new UnauthorizedException(userInfo.getUser().getUserId() +" lacks download access to the specified object.");
+			throw new UnauthorizedException(userInfo.getId().toString() +" lacks download access to the specified object.");
 		}
 	}
 
@@ -766,7 +772,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		}
 		if (nodeId.equals(benefactor)) {
 			try {
-				aclDAO.delete(nodeId);
+				aclDAO.delete(nodeId, ObjectType.ENTITY);
 			} catch (NotFoundException e) {
 				throw new DatastoreException("ACL for benefactor " + nodeId + " is not found");
 			}

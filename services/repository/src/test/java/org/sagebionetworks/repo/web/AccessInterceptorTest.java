@@ -1,6 +1,9 @@
 package org.sagebionetworks.repo.web;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
 import javax.servlet.http.HttpServletRequest;
@@ -12,9 +15,7 @@ import org.mockito.Mockito;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.audit.utils.KeyGeneratorUtil;
 import org.sagebionetworks.audit.utils.VirtualMachineIdProvider;
-import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.audit.AccessRecord;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -32,27 +33,21 @@ public class AccessInterceptorTest {
 	Object mockHandler;
 	UserInfo mockUserInfo;
 	StubAccessRecorder stubRecorder;
-	UserManager mockUserManager;
 	AccessInterceptor interceptor;
-	String userName;
+	Long userId;
 
 	@Before
 	public void before() throws Exception {
-		userName = "user@users.r.us.gov";
+		userId = 12345L;
 		mockRequest = Mockito.mock(HttpServletRequest.class);
 		mockResponse = Mockito.mock(HttpServletResponse.class);
 		mockHandler = Mockito.mock(Object.class);
-		mockUserManager = Mockito.mock(UserManager.class);
-		mockUserInfo = new UserInfo(false);
-		mockUserInfo.setIndividualGroup(new UserGroup());
-		mockUserInfo.getIndividualGroup().setId("123");
+		mockUserInfo = new UserInfo(false, 123L);
 		stubRecorder = new StubAccessRecorder();
 		interceptor = new AccessInterceptor();
 		ReflectionTestUtils.setField(interceptor, "accessRecorder", stubRecorder);
-		ReflectionTestUtils.setField(interceptor, "userManager", mockUserManager);
 		// Setup the happy mock
-		when(mockUserManager.getUserInfo(userName)).thenReturn(mockUserInfo);
-		when(mockRequest.getParameter(AuthorizationConstants.USER_ID_PARAM)).thenReturn(userName);
+		when(mockRequest.getParameter(AuthorizationConstants.USER_ID_PARAM)).thenReturn(userId.toString());
 		when(mockRequest.getRequestURI()).thenReturn("/entity/syn789");
 		when(mockRequest.getMethod()).thenReturn("DELETE");
 		when(mockRequest.getHeader("Host")).thenReturn("localhost8080");

@@ -1,0 +1,23 @@
+{
+	"description": "Contains fields common to all messages and comments",
+	"type": "interface",
+	"properties": {
+		"id": {
+			"type": "string",
+			"description":"The unique identifier of the message or comment"
+		},
+		"createdBy": {
+			"type": "string",
+			"description":"The unique identifier of the sender of this message"
+		},
+		"fileHandleId": {
+			"type": "string",
+			"description":"The S3 file handle storing the body of this message.  Note: The file's mime type should be 'text/plain' or 'text/html'.  If no character encoding is specified, then UTF-8 is assumed."
+		}, 
+		"createdOn": {
+			"type": "string",
+			"format":"date-time",
+			"description":"When this message was created"
+		}
+	}
+}

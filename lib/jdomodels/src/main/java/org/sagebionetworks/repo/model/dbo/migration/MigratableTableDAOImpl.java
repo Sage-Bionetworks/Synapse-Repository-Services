@@ -1,12 +1,17 @@
 package org.sagebionetworks.repo.model.dbo.migration;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.model.dbo.AutoIncrementDatabaseObject;
+import org.sagebionetworks.repo.model.dbo.AutoTableMapping;
 import org.sagebionetworks.repo.model.dbo.DMLUtils;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
@@ -31,6 +36,8 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @SuppressWarnings("rawtypes")
 public class MigratableTableDAOImpl implements MigratableTableDAO {
+	
+	Logger log = LogManager.getLogger(MigratableTableDAOImpl.class);
 
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
@@ -103,13 +110,38 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		// Make sure we have a table for all registered objects
 		if(databaseObjectRegister == null) throw new IllegalArgumentException("databaseObjectRegister bean cannot be null");
 		// Create the schema for each 
+		// This index is used to validate the order of migration.
+		int lastIndex = 0;
 		for(MigratableDatabaseObject dbo: databaseObjectRegister){
 			// Root objects are registered here.
 			boolean isRoot = true;
 			registerObject(dbo, isRoot);
+			// Validate that the backupId column meets the criteria.
+			validateBackupColumn(dbo.getTableMapping());
+			// What is the index of this type
+			int typeIndex= typeIndex(dbo.getMigratableTableType());
+			if(typeIndex < lastIndex) throw new IllegalArgumentException("The order of the primary MigrationType must match the order for the MigrationType enumeration.  Type:  "+dbo.getMigratableTableType().name()+" is out of order");
+			lastIndex = typeIndex;
+		}
+		
+		// Change must always be last
+		if(!MigrationType.CHANGE.equals(MigrationType.values()[lastIndex])){
+			throw new IllegalArgumentException("The migration type: "+MigrationType.CHANGE+" must always be last since it migration triggers asynchronous message processing of the stack");
 		}
 	}
 
+	/**
+	 * What is the index of this type in the enumeration?
+	 * This is used to determine if the order of primary types is different than the enumeration order.
+	 * @param type
+	 * @return
+	 */
+	private int typeIndex(MigrationType type){
+		for(int i=0; i<MigrationType.values().length; i++){
+			if(MigrationType.values()[i].equals(type)) return i;
+		}
+		throw new IllegalArgumentException("Did not find type: "+type);
+	}
 	/**
 	 * Register a MigratableDatabaseObject with this DAO.
 	 * @param dbo
@@ -125,9 +157,9 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		// Build up the SQL cache.
 		String delete = DMLUtils.createBatchDelete(mapping);
 		deleteSqlMap.put(type, delete);
-		String count = DMLUtils.createGetCountStatement(mapping);
+		String count = DMLUtils.createGetCountByPrimaryKeyStatement(mapping);
 		countSqlMap.put(type, count);
-		String mx = DMLUtils.createGetMaxStatement(mapping);
+		String mx = DMLUtils.createGetMaxByBackupKeyStatement(mapping);
 		maxSqlMap.put(type, mx);
 		String listRowMetadataSQL = DMLUtils.listRowMetadata(mapping);
 		listSqlMap.put(type, listRowMetadataSQL);
@@ -145,6 +177,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		// Backup batch SQL
 		String batchBackup = DMLUtils.getBackupBatch(mapping);
 		backupSqlMap.put(type, batchBackup);
+
 		// map the class to the object
 		this.classToMapping.put(mapping.getDBOClass(), type);
 		this.typeTpObject.put(type, dbo);
@@ -161,6 +194,42 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		if(isRoot){
 			this.rootTypes.add(type);
 		}
+	}
+	
+	/**
+	 * All backupIds columns of primary tables must have a uniqueness constraint (primary key or unique key).
+	 * If a non-unique column were allowed as a backupId there there would be data lost during
+	 * migration.  See: PLFM-2512.
+	 * 
+	 * Note: This requirement does NOT extend to secondary tables.
+	 * 
+	 * @param mapping
+	 */
+	public void validateBackupColumn(TableMapping mapping) {
+		String backupColumnName = DMLUtils.getBackupIdColumnName(mapping)
+				.getColumnName();
+		String sql = DMLUtils.getBackupUniqueValidation(mapping);
+		List<String> names = simpleJdbcTemplate.query(sql,
+				new RowMapper<String>() {
+					@Override
+					public String mapRow(ResultSet rs, int rowNum)
+							throws SQLException {
+						return rs.getString("Key_name");
+					}
+				});
+		if (names.isEmpty()) {
+			throw new IllegalArgumentException(
+					"BackupId columns must have a uniqueness constraint.  Could not find such a constraint for table: "
+							+ mapping.getTableName()
+							+ " column: "
+							+ backupColumnName);
+		}
+		if (log.isDebugEnabled()) {
+			log.debug("The following uniqueness constraint were found for table: "
+					+ mapping.getTableName() + ":");
+			log.debug("\t" + names.toString());
+		}
+
 	}
 
 	@Override
@@ -269,7 +338,7 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		String sql = getInsertOrUpdateSql(type);
 		SqlParameterSource[] namedParameters = new BeanPropertySqlParameterSource[batch.size()];
 		for(int i=0; i<batch.size(); i++){
-			namedParameters[i] = new BeanPropertySqlParameterSource(batch.get(i));
+			namedParameters[i] = getSqlParameterSource(batch.get(i), batch.get(i).getTableMapping());
 			Object obj = namedParameters[i].getValue(backukpIdColumn.getFieldName());
 			if(!(obj instanceof Long)) throw new IllegalArgumentException("Cannot get backup ID for type : "+type);
 			Long id = (Long) obj;
@@ -279,7 +348,14 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		simpleJdbcTemplate.batchUpdate(sql, namedParameters);
 		return createOrUpdateIds;
 	}
-	
+
+	private <T> SqlParameterSource getSqlParameterSource(T toCreate, TableMapping<T> mapping) {
+		if (mapping instanceof AutoTableMapping) {
+			return ((AutoTableMapping) mapping).getSqlParameterSource(toCreate);
+		}
+		return new BeanPropertySqlParameterSource(toCreate);
+	}
+
 	/**
 	 * The the list sql for this type.
 	 * @param type

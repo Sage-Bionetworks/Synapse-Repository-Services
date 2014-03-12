@@ -96,14 +96,6 @@ public class DBOActivity implements MigratableDatabaseObject<DBOActivity, DBOAct
 		this.id = id;
 	}
 
-	public String geteTag() {
-		return eTag;
-	}
-
-	public void seteTag(String eTag) {
-		this.eTag = eTag;
-	}
-
 	public Long getCreatedBy() {
 		return createdBy;
 	}
@@ -151,6 +143,19 @@ public class DBOActivity implements MigratableDatabaseObject<DBOActivity, DBOAct
 	@Override
 	public String getIdString() {
 		return id.toString();
+	}
+
+	@Override
+	public String getEtag() {
+		return eTag;
+	}
+
+	public String geteTag() {
+		return eTag;
+	}
+
+	public void seteTag(String eTag) {
+		this.eTag = eTag;
 	}
 
 	@Override

@@ -27,4 +27,7 @@
 		<!-- Used to Serialize object types -->
 	<bean id="objectTypeSerializer"
 		class="org.sagebionetworks.repo.web.controller.ObjectTypeSerializerImpl" />
+	
+	<!-- We don't want to send emails during testing, so we stub out Amazon SES -->
+	<bean id="amazonSESClient" class="org.sagebionetworks.repo.manager.StubAmazonSimpleEmailServiceClient" />
 </beans>

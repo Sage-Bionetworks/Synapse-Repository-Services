@@ -5,6 +5,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.dynamo.DynamoTimeoutException;
 import org.sagebionetworks.dynamo.config.DynamoTableConfig.DynamoKey;
 import org.sagebionetworks.dynamo.config.DynamoTableConfig.DynamoKeySchema;
@@ -24,9 +26,22 @@ import com.amazonaws.services.dynamodb.model.TableStatus;
 import com.amazonaws.services.dynamodb.model.UpdateTableRequest;
 
 public class DynamoSetupImpl implements DynamoSetup {
+	
+	private final Logger logger = LogManager.getLogger(DynamoSetupImpl.class);
 
 	@Autowired
 	private AmazonDynamoDB dynamoClient;
+	
+	private boolean isDynamoEnabled;
+
+	@Override
+	public boolean isDynamoEnabled() {
+		return isDynamoEnabled;
+	}
+ 
+	public void setDynamoEnabled(boolean isDynamoEnabled) {
+		this.isDynamoEnabled = isDynamoEnabled;
+	}
 
 	// Called by Spring to initialize
 	public void initialize() {
@@ -41,7 +56,10 @@ public class DynamoSetupImpl implements DynamoSetup {
 
 	@Override
 	public void setup(boolean blockOnCreation, long timeoutInMillis, DynamoConfig config) {
-
+		if(!isDynamoEnabled){
+			logger.debug("Dynamo is disabled so the dynamo tables will not be configured");
+			return;
+		}
 		if (timeoutInMillis <= 0) {
 			throw new IllegalArgumentException("Timeout cannot be zero or negative.");
 		}

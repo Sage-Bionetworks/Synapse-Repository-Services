@@ -13,9 +13,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.TrashedEntity;
-import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dao.TrashCanDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,16 +28,12 @@ public class DBOTrashCanDaoImplAutowiredTest {
 	@Autowired
 	private TrashCanDao trashCanDao;
 
-	@Autowired
-	private UserGroupDAO userGroupDAO;
-
 	private String userId;
 
 	@Before
 	public void before() throws Exception {
 
-		userId = userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId();
-		assertNotNull(userId);
+		userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString();
 
 		clear();
 
@@ -114,6 +109,15 @@ public class DBOTrashCanDaoImplAutowiredTest {
 		assertEquals(userId, trash.getDeletedByPrincipalId());
 		assertEquals(parentId1, trash.getOriginalParentId());
 		assertNotNull(trash.getDeletedOn());
+
+		trash = trashCanDao.getTrashedEntity(nodeId1);
+		assertEquals(nodeId1, trash.getEntityId());
+		assertEquals(nodeName, trash.getEntityName());
+		assertEquals(userId, trash.getDeletedByPrincipalId());
+		assertEquals(parentId1, trash.getOriginalParentId());
+		assertNotNull(trash.getDeletedOn());
+		trash = trashCanDao.getTrashedEntity("syn3829195");
+		assertNull(trash);
 
 		count = trashCanDao.getCount(userId);
 		assertEquals(1, count);

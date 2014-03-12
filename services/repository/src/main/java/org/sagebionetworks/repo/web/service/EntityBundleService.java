@@ -33,7 +33,7 @@ public interface EntityBundleService {
 	 * @throws ACLInheritanceException 
 	 * @throws ParseException 
 	 */
-	public EntityBundle getEntityBundle(String userId, String entityId, int mask,
+	public EntityBundle getEntityBundle(Long userId, String entityId, int mask,
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException;
 
@@ -53,7 +53,7 @@ public interface EntityBundleService {
 	 * @throws ACLInheritanceException 
 	 * @throws ParseException 
 	 */
-	public EntityBundle getEntityBundle(String userId, String entityId, Long versionNumber, int mask,
+	public EntityBundle getEntityBundle(Long userId, String entityId, Long versionNumber, int mask,
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException;
 	
@@ -78,7 +78,7 @@ public interface EntityBundleService {
 	 * @throws ParseException 
 	 * @throws ACLInheritanceException 
 	 */
-	public EntityBundle createEntityBundle(String userId, EntityBundleCreate ebc, String activityId,
+	public EntityBundle createEntityBundle(Long userId, EntityBundleCreate ebc, String activityId,
 			HttpServletRequest request)
 			throws ConflictingUpdateException, DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException;
@@ -104,7 +104,7 @@ public interface EntityBundleService {
 	 * @throws ACLInheritanceException
 	 * @throws ParseException
 	 */
-	public EntityBundle updateEntityBundle(String userId, String entityId,
+	public EntityBundle updateEntityBundle(Long userId, String entityId,
 			EntityBundleCreate ebc,	String activityId, HttpServletRequest request) throws 
 			ConflictingUpdateException,	DatastoreException, 
 			InvalidModelException, UnauthorizedException, NotFoundException, 

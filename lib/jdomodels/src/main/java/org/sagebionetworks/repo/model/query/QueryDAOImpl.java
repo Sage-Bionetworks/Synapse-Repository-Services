@@ -22,6 +22,7 @@ import org.sagebionetworks.evaluation.dbo.DBOConstants;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -44,6 +45,14 @@ public class QueryDAOImpl implements QueryDAO {
 			StackConfiguration.getMaximumBytesPerQueryResult();
 	private static Logger log = LogManager.getLogger(QueryDAOImpl.class);
 	
+	private static ObjectType getObjectTypeFromQueryObjectType(QueryObjectType qot) {
+		if (qot==QueryObjectType.EVALUATION) {
+			return ObjectType.EVALUATION;
+		} else {
+			throw new IllegalArgumentException(qot.name());
+		}
+	}
+	
 	@Override
 	public QueryTableResults executeQuery(BasicQuery userQuery, UserInfo userInfo)
 			throws DatastoreException, NotFoundException, JSONObjectAdapterException, 
@@ -54,7 +63,7 @@ public class QueryDAOImpl implements QueryDAO {
 		// Determine query object type and access rights
 		QueryObjectType objType = QueryTools.getQueryObjectType(userQuery);
 		String objId = QueryTools.getQueryObjectId(userQuery);
-		if (!canAccess(userInfo, objId)) {
+		if (!canAccess(userInfo, objId, objType)) {
 			throw new UnauthorizedException(
 					"Insufficient permissions to read from Synapse object " + objId);
 		}
@@ -82,10 +91,7 @@ public class QueryDAOImpl implements QueryDAO {
 		SizeLimitRowMapper sizeLimitMapper = new SizeLimitRowMapper(MAX_BYTES_PER_QUERY);
 		List<Map<String, Object>> results = simpleJdbcTemplate.query(
 				fullQuery.toString(), sizeLimitMapper, queryParams);
-		String userId = null;
-		if (userInfo.getUser() != null) {
-			userId = userInfo.getUser().getUserId();
-		}
+		Long userId = userInfo.getId();
 		
 		// Log query stats
 		if (log.isDebugEnabled()) {
@@ -103,7 +109,7 @@ public class QueryDAOImpl implements QueryDAO {
 	/**
 	 * Build the two query strings and prepare the query parameters.
 	 */
-	private void buildQueryStrings(BasicQuery userQuery, QueryObjectType objType, String objId,
+	public static void buildQueryStrings(BasicQuery userQuery, QueryObjectType objType, String objId,
 			UserInfo userInfo, boolean includePrivate, StringBuilder countQuery, 
 			StringBuilder fullQuery, Map<String, Object> queryParams) throws DatastoreException {		
 		List<String> aliases = new ArrayList<String>();
@@ -146,7 +152,7 @@ public class QueryDAOImpl implements QueryDAO {
 	/**
 	 * Build the SELECT clause
 	 */
-	private String buildSelect(boolean isCount) {
+	private static String buildSelect(boolean isCount) {
 		StringBuilder builder = new StringBuilder();
 		builder.append("SELECT ");
 		if (isCount) {
@@ -164,7 +170,7 @@ public class QueryDAOImpl implements QueryDAO {
 	/**
 	 * Build the FROM clause
 	 */
-	private StringBuilder buildFrom(QueryObjectType queryObjType, String objId, 
+	private static StringBuilder buildFrom(QueryObjectType queryObjType, String objId, 
 			List<String> aliases, BasicQuery query) {
 		StringBuilder builder = new StringBuilder();
 		builder.append("FROM");
@@ -208,7 +214,7 @@ public class QueryDAOImpl implements QueryDAO {
 	/**
 	 * Build the WHERE clause
 	 */
-	private StringBuilder buildWhere(QueryObjectType queryObjType, List<String> aliases, 
+	private static StringBuilder buildWhere(QueryObjectType queryObjType, List<String> aliases, 
 			BasicQuery query, Map<String, Object> queryParams, boolean includePrivate) 
 			throws DatastoreException {
 		StringBuilder builder = new StringBuilder();
@@ -266,7 +272,7 @@ public class QueryDAOImpl implements QueryDAO {
 	/**
 	 * Build the ORDER BY clause
 	 */
-	private StringBuilder buildSort(BasicQuery query) throws DatastoreException {		
+	private static StringBuilder buildSort(BasicQuery query) throws DatastoreException {		
 		StringBuilder builder = new StringBuilder();
 		if (query.getSort() != null) {	
 			String direction = query.isAscending() ? "asc" : "desc";
@@ -280,13 +286,15 @@ public class QueryDAOImpl implements QueryDAO {
 		return builder;
 	}
 
-	private boolean canAccess(UserInfo userInfo, String objectId) {
-		return accessControlListDAO.canAccess(userInfo.getGroups(), objectId, ACCESS_TYPE.READ);
+	private boolean canAccess(UserInfo userInfo, String objectId, QueryObjectType objType) {
+		if (userInfo.isAdmin()) return true;
+		return accessControlListDAO.canAccess(userInfo.getGroups(), objectId, getObjectTypeFromQueryObjectType(objType), ACCESS_TYPE.READ);
 	}
 
 	private boolean canAccessPrivate(UserInfo userInfo, String objectId, QueryObjectType objType) {
+		if (userInfo.isAdmin()) return true;
 		return accessControlListDAO.canAccess(
-				userInfo.getGroups(), objectId, objType.getPrivateAccessType());
+				userInfo.getGroups(), objectId, getObjectTypeFromQueryObjectType(objType), objType.getPrivateAccessType());
 	}
 
 	/**

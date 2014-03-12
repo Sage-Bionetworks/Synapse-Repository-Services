@@ -1,0 +1,14 @@
+{
+	"description": "Contains a set of IDs of the intended recipients of a message",
+	"type": "interface",
+	"properties": {
+		"recipients": {
+			"type": "array",
+			"description": "The unique identifiers of the intended recipients of a message",
+            "uniqueItems":true,
+			"items": {
+				"type": "string"
+			}
+		}
+	}
+}

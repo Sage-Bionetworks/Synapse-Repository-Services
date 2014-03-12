@@ -21,9 +21,7 @@ import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmissionDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 
 public class MembershipInvitationManagerImplTest {
@@ -43,7 +41,7 @@ public class MembershipInvitationManagerImplTest {
 		MembershipInvtnSubmission mis = new MembershipInvtnSubmission();
 		mis.setId(id);
 		mis.setTeamId(TEAM_ID);
-		mis.setInvitees(Arrays.asList(new String[]{MEMBER_PRINCIPAL_ID}));
+		mis.setInviteeId(MEMBER_PRINCIPAL_ID);
 		return mis;
 	}
 	
@@ -62,12 +60,8 @@ public class MembershipInvitationManagerImplTest {
 				mockAuthorizationManager,
 				mockMembershipInvtnSubmissionDAO
 				);
-		userInfo = new UserInfo(false);
-		UserGroup individualGroup = new UserGroup();
-		individualGroup.setId(MEMBER_PRINCIPAL_ID);
-		userInfo.setIndividualGroup(individualGroup);
-		adminInfo = new UserInfo(true);
-		adminInfo.setIndividualGroup(individualGroup);
+		userInfo = new UserInfo(false, MEMBER_PRINCIPAL_ID);
+		adminInfo = new UserInfo(true, -1l);
 	}
 
 	
@@ -86,39 +80,39 @@ public class MembershipInvitationManagerImplTest {
 		
 		// Happy case
 		mis.setTeamId("101");
-		mis.setInvitees(Arrays.asList(new String[]{MEMBER_PRINCIPAL_ID}));
+		mis.setInviteeId(MEMBER_PRINCIPAL_ID);
 		MembershipInvitationManagerImpl.validateForCreate(mis);
 
 		// can't set createdBy
 		mis.setTeamId("101");
-		mis.setInvitees(Arrays.asList(new String[]{MEMBER_PRINCIPAL_ID}));
+		mis.setInviteeId(MEMBER_PRINCIPAL_ID);
 		mis.setCreatedBy("me");
 		validateForCreateExpectFailure(mis);
 		
 		
 		// must set invitees
 		mis.setTeamId("101");
-		mis.setInvitees(null);
+		mis.setInviteeId(null);
 		mis.setCreatedBy(null);
 		validateForCreateExpectFailure(mis);
 
 		// can't set createdOn
 		mis.setTeamId("101");
-		mis.setInvitees(Arrays.asList(new String[]{MEMBER_PRINCIPAL_ID}));
+		mis.setInviteeId(MEMBER_PRINCIPAL_ID);
 		mis.setCreatedBy(null);
 		mis.setCreatedOn(new Date());
 		validateForCreateExpectFailure(mis);
 
 		// must set Team
 		mis.setTeamId(null);
-		mis.setInvitees(Arrays.asList(new String[]{MEMBER_PRINCIPAL_ID}));
+		mis.setInviteeId(MEMBER_PRINCIPAL_ID);
 		mis.setCreatedBy(null);
 		mis.setCreatedOn(null);
 		validateForCreateExpectFailure(mis);
 
 		// can't set id
 		mis.setTeamId("101");
-		mis.setInvitees(Arrays.asList(new String[]{MEMBER_PRINCIPAL_ID}));
+		mis.setInviteeId(MEMBER_PRINCIPAL_ID);
 		mis.setCreatedBy(null);
 		mis.setCreatedOn(null);
 		mis.setId("007");
@@ -206,6 +200,45 @@ public class MembershipInvitationManagerImplTest {
 		PaginatedResults<MembershipInvitation> actual = membershipInvitationManagerImpl.getOpenForUserAndTeamInRange(MEMBER_PRINCIPAL_ID, TEAM_ID,1,0);
 		assertEquals(expected, actual.getResults());
 		assertEquals(1L, actual.getTotalNumberOfResults());
+	}
+
+	@Test
+	public void testGetOpenSubmissionsForTeamInRange() throws Exception {
+		MembershipInvtnSubmission mis = createMembershipInvtnSubmission(MIS_ID);
+		when(mockAuthorizationManager.canAccess(userInfo, mis.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(true);
+		List<MembershipInvtnSubmission> expected = Arrays.asList(new MembershipInvtnSubmission[]{mis});
+		when(mockMembershipInvtnSubmissionDAO.getOpenSubmissionsByTeamInRange(eq(Long.parseLong(TEAM_ID)), anyLong(), anyLong(), anyLong())).
+			thenReturn(expected);
+		when(mockMembershipInvtnSubmissionDAO.getOpenByTeamCount(eq(Long.parseLong(TEAM_ID)), anyLong())).thenReturn((long)expected.size());
+		PaginatedResults<MembershipInvtnSubmission> actual = membershipInvitationManagerImpl.getOpenSubmissionsForTeamInRange(userInfo, TEAM_ID,1,0);
+		assertEquals(expected, actual.getResults());
+		assertEquals(1L, actual.getTotalNumberOfResults());
+	}
+	
+	@Test(expected=UnauthorizedException.class)
+	public void testGetOpenSubmissionsForTeamInRangeUnauthorized() throws Exception {
+		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(false);
+		membershipInvitationManagerImpl.getOpenSubmissionsForTeamInRange(userInfo, TEAM_ID,1,0);
+	}
+	
+	@Test
+	public void testGetOpenSubmissionsForTeamAndRequesterInRange() throws Exception {
+		MembershipInvtnSubmission mis = createMembershipInvtnSubmission(MIS_ID);
+		when(mockAuthorizationManager.canAccess(userInfo, mis.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(true);
+		List<MembershipInvtnSubmission> expected = Arrays.asList(new MembershipInvtnSubmission[]{mis});
+		when(mockMembershipInvtnSubmissionDAO.getOpenSubmissionsByTeamAndUserInRange(eq(Long.parseLong(TEAM_ID)), anyLong(), anyLong(), anyLong(), anyLong())).
+			thenReturn(expected);
+		when(mockMembershipInvtnSubmissionDAO.getOpenByTeamCount(eq(Long.parseLong(TEAM_ID)), anyLong())).thenReturn((long)expected.size());
+		PaginatedResults<MembershipInvtnSubmission> actual = membershipInvitationManagerImpl.
+				getOpenSubmissionsForUserAndTeamInRange(userInfo, MEMBER_PRINCIPAL_ID, TEAM_ID,1,0);
+		assertEquals(expected, actual.getResults());
+		assertEquals(1L, actual.getTotalNumberOfResults());
+	}
+
+	@Test(expected=UnauthorizedException.class)
+	public void testGetOpenSubmissionsForTeamAndRequesterInRangeUnauthorized() throws Exception {
+		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(false);
+		membershipInvitationManagerImpl.getOpenSubmissionsForUserAndTeamInRange(userInfo, MEMBER_PRINCIPAL_ID, TEAM_ID,1,0);
 	}
 
 }

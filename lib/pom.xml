@@ -30,6 +30,9 @@
 		<module>lib-doi</module>
 		<module>lib-javadoc</module>
 		<module>lib-audit</module>
+		<module>lib-javaclient</module>
+		<module>lib-table-cluster</module>
+		<module>lib-table-query</module>
 	</modules>
 
 </project>

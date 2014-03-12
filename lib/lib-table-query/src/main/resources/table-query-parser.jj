@@ -1,0 +1,806 @@
+/* The BNF for this parser was derived from: http://savage.net.au/SQL/sql-92.bnf (SQL-92) 
+* https://javacc.java.net/doc/docindex.html
+* To debug changes to this file run:
+* mvn clean generate-sources
+*/
+options{
+STATIC = false;
+}
+/* *** Specification of the parser class *** */
+PARSER_BEGIN(TableQueryParser)
+package org.sagebionetworks.table.query;
+import java.io.StringReader;
+import java.util.LinkedList;
+import java.util.List;
+
+import org.sagebionetworks.table.query.model.*;
+
+public class TableQueryParser {
+
+	public TableQueryParser(String input){
+		this(new StringReader(input));
+	}
+
+	/**
+	 * Parse the passed query string into a TableQueryModel
+	 * 
+	 * @param query
+	 * @return
+	 * @throws ParseException
+	 */
+	public static QuerySpecification parserQuery(String query)
+			throws ParseException {
+		TableQueryParser parser = new TableQueryParser(new StringReader(query));
+		return parser.querySpecification();
+	}
+}
+
+PARSER_END(TableQueryParser)
+
+/**
+* When in the DEFAULT state, double quotes are the start of
+* string containing non-double quotes. This involves a state
+* change to: within_double_quote.  The state change is necessary
+* to limit the scope of the <not_double_quote> token which is too broad
+* for other cases.
+*/
+<DEFAULT> TOKEN: 
+{
+	< start_double_quote: "\""> : within_double_quote
+}
+// This token only has meaning within a double quote.
+<within_double_quote> TOKEN :
+{
+	< not_double_quote: ~["\""]> : within_double_quote
+}
+// This token only has meaning within a double quote.
+<within_double_quote> TOKEN :
+{
+	< escape_double_quote: "\"\"" > : within_double_quote
+}
+/**
+* While within a double quote string, another double
+* quote will terminate the string and restore the state
+* to DEFAULT.
+*/
+<within_double_quote> TOKEN :
+{
+	< end_double_quote: "\"">: DEFAULT
+}
+
+
+/**
+* When in the DEFAULT state, single quotes are the start of
+* string containing non-quotes. This involves a state
+* change to: within_single_quotes.  The state change is necessary
+* to limit the scope of the <not_quote> token which is too broad
+* for other cases.
+*/
+<DEFAULT> TOKEN: 
+{
+	< start_single_quote: "'"> : within_single_quotes
+}
+// This token only has meaning within single quotes.
+<within_single_quotes> TOKEN :
+{
+	< not_single_quote: ~["'"]> : within_single_quotes
+}
+// This token only has meaning within single quotes.
+<within_single_quotes> TOKEN :
+{
+	< escape_single_quote: "''" > : within_single_quotes
+}
+/**
+* While within single quote string, another single
+* quote will terminate the string and restore the state
+* to DEFAULT.
+*/
+<within_single_quotes> TOKEN :
+{
+	< end_single_quote: "'" > : DEFAULT
+}
+
+/* Skip whitespace */
+SKIP : /* WHITE SPACE */
+{ 
+  " "
+| "\t"
+| "\r"
+| "\f"
+| "\n"
+| < LOW_SPECIAL_ASCII: (["\u0000"-"\u001f"]) >
+| < HIGH_SPECIAL_ASCII: (["\u007f"-"\u00ff"]) >
+}
+
+TOKEN:{
+ <exponent: (["0"-"9"])+["e","E"]("+"|"-")?(["0"-"9"])+>
+| < count_asterisk: ("count"|"COUNT")"(*)" >
+}
+
+/* Reserved words */
+TOKEN [IGNORE_CASE]: {
+  < all: "ALL">
+| < and: "AND">
+| < asc: "ASC">
+| < as: "AS">
+| < avg: "AVG">
+| < between: "BETWEEN" >
+| < date: "DATE" >
+| < count: "COUNT">
+| < desc: "DESC" >
+| < current_date: "CURRENT_DATE">
+| < current_time: "CURRENT_TIME">
+| < distinct: "DISTINCT">
+| < default_specification: "DEFAULT" > 
+| < escape: "ESCAPE">
+| < _false: "FALSE">
+| < from: "FROM">
+| < group_by : "GROUP BY">
+| < interval: "INTERVAL">
+| < in: "IN">
+| < is: "IS">
+| < like: "LIKE" >
+| < limit: "LIMIT" >
+| < max: "MAX" >
+| < min: "MIN" >
+| < not: "NOT" >
+| < null_specification: "NULL" >
+| < offset: "OFFSET" >
+| < or: "OR" >
+| < order_by: "ORDER BY" >
+| < select: "SELECT" >
+| < sum: "SUM" >
+| < syn: "SYN" >
+| < time: "TIME" >
+| < timestamp: "TIMESTAMP">
+| < _true: "TRUE">
+| < where: "WHERE">
+| < unknown: "UNKNOWN">
+}
+/* Symbols and punctuation */
+TOKEN:{
+  < asterisk: "*">
+| < comma: ",">
+| < left_paren: "(">
+| < minus_sign: "-">
+| < not_equals_operator: "<>">
+| < less_than_or_equals_operator: "<=">
+| < greater_than_or_equals_operator: ">=">
+| < less_than_operator: "<">
+| < greater_than_operator: ">">
+| < equals_operator: "=">
+| < period: "." >
+| < plus_sign: "+">
+| < right_paren: ")">
+| < solidus: "/">
+| <underscore: "_">
+}
+
+TOKEN: {
+  < digit: ["0"-"9"]>
+| < letter: ["a"-"z","A"-"Z"]>
+}
+
+void regularIdentifier(StringBuilder builder):
+{
+	Token token = null;
+}
+{
+	token = <letter> { builder.append(token.image); }
+	(
+		 token = <letter> { builder.append(token.image); }
+		 | token = <digit> { builder.append(token.image); }
+		 | token = <underscore> { builder.append(token.image); }
+	)* 
+}
+/** Literal Numbers, Strings, Dates and Times */
+
+void unsignedInteger(StringBuilder builder):
+{
+	Token token = null;
+}
+{
+	token = <digit> { builder.append(token.image); }
+	(
+		token = <digit> { builder.append(token.image); } 
+	)*
+}
+String unsignedInteger2():
+{
+	StringBuilder builder = new StringBuilder();
+}
+{
+	unsignedInteger(builder)
+	{ return builder.toString(); }
+}
+void sign(StringBuilder builder):
+{}
+{
+	<plus_sign> { builder.append("+"); }
+	| <minus_sign> { builder.append("-"); }
+}
+void signedInteger(StringBuilder builder):
+{}
+{
+	[ sign(builder) ] unsignedInteger(builder) 
+}
+void period(StringBuilder builder):
+{}
+{
+	<period> { builder.append("."); }
+}
+void exactNumericLiteral(StringBuilder builder):
+{}
+{
+	( unsignedInteger(builder) period(builder) unsignedInteger(builder) )
+	| (  period(builder) unsignedInteger(builder) )
+}
+void exponent(StringBuilder builder):
+{
+	Token token = null;
+}
+{
+	token = <exponent> { builder.append(token.image); }
+}
+void approximateNumericLiteral(StringBuilder builder):
+{}
+{
+	(  period(builder) exponent(builder) )
+	| ( unsignedInteger(builder) period(builder) exponent(builder) )
+}
+void unsignedNumericLiteral(StringBuilder builder):
+{}
+{
+	( unsignedInteger(builder) [ period(builder) ( unsignedInteger(builder) | exponent(builder) ) ] )
+	| ( period(builder) ( unsignedInteger(builder) | exponent(builder) ) )
+}
+void signedNumericLiteral(StringBuilder builder):
+{
+}
+{
+	[ sign(builder) ] unsignedNumericLiteral(builder)
+}
+String literal():
+{
+	StringBuilder builder = new StringBuilder();
+}
+{
+	signedNumericLiteral(builder) { return builder.toString(); }
+	| generalLiteral(builder) { return builder.toString(); }
+}
+void generalLiteral(StringBuilder builder):
+{}
+{
+	characterStringLiteral(builder)
+}
+void characterStringLiteral(StringBuilder builder):
+{
+	Token token;
+}
+{
+	<start_single_quote>
+	(
+		token = <not_single_quote> { builder.append(token.image); }
+		| <escape_single_quote>  { builder.append("'"); }
+	)*
+	<end_single_quote>
+}
+ValueExpressionPrimary valueExpressionPrimary():
+{
+	UnsignedValueSpecification unsignedValueSpecification = null;
+	ColumnReference columnReference = null;
+	SetFunctionSpecification setFunctionSpecification = null;
+}
+{
+	setFunctionSpecification = setFunctionSpecification() { return new ValueExpressionPrimary(setFunctionSpecification);}
+	| columnReference = columnReference() { return new ValueExpressionPrimary(columnReference);}
+	| unsignedValueSpecification = unsignedValueSpecification() { return new ValueExpressionPrimary(unsignedValueSpecification); }
+}
+UnsignedValueSpecification unsignedValueSpecification():
+{
+	UnsignedLiteral unsignedLiteral;
+}
+{
+	unsignedLiteral = unsignedLiteral() { return new UnsignedValueSpecification(unsignedLiteral); }
+}
+UnsignedLiteral unsignedLiteral():
+{ StringBuilder builder = new StringBuilder(); }
+{
+	unsignedNumericLiteral(builder) { return new UnsignedLiteral(builder.toString(), null); }
+	| generalLiteral(builder) { return new UnsignedLiteral(null, builder.toString()); }
+}
+Identifier identifier():
+{
+	ActualIdentifier actualIdentifier = null;
+}
+{
+	actualIdentifier = actualIdentifier()
+	{ return new Identifier(actualIdentifier);}
+}
+ActualIdentifier actualIdentifier():
+{
+	StringBuilder builder = new StringBuilder();
+}
+{
+	regularIdentifier(builder) { builder.toString(); return new ActualIdentifier(builder.toString(), null); }
+	| delimitedIentifier(builder) { builder.toString(); return new ActualIdentifier(null, builder.toString());}
+}
+void delimitedIentifier(StringBuilder builder):
+{ 
+	Token token = null;
+}
+{
+	<start_double_quote>
+	( 
+		token = <not_double_quote> { builder.append(token.image); }
+		| <escape_double_quote> { builder.append("\""); }
+	)*
+	<end_double_quote>
+}
+ColumnReference columnReference():
+{
+	ColumnName nameLHS = null;
+	ColumnName nameRHS = null;
+}
+{
+	nameLHS = columnName() [ <period> nameRHS = columnName() ]
+	{ return new ColumnReference(nameLHS, nameRHS); }
+}
+QuerySpecification querySpecification():
+{
+	SetQuantifier setQuantifier = null;
+	SelectList selectList = null;
+	TableExpression tableExpression = null;
+}
+{
+	<select> [ setQuantifier = setQuantifier()] selectList = selectList() tableExpression = tableExpression() <EOF>
+	{ return new QuerySpecification(setQuantifier, selectList, tableExpression); }
+}
+SelectList selectList():
+{
+	List<DerivedColumn> derivedColumns = new LinkedList<DerivedColumn>();
+	DerivedColumn derivedColumn = null;
+}
+{
+	<asterisk> { return new SelectList(Boolean.TRUE); }
+	| derivedColumn = selectSubList()  { derivedColumns.add(derivedColumn); }
+	 (<comma> derivedColumn = selectSubList()  { derivedColumns.add(derivedColumn); })*
+	 { return new SelectList(derivedColumns); }
+}
+DerivedColumn selectSubList():
+{
+	DerivedColumn derivedColumn = null;
+}
+{
+	derivedColumn = derivedColumn()
+	{ return derivedColumn; }
+}
+DerivedColumn derivedColumn():
+{
+	AsClause asClause = null;
+	ValueExpression valueExpression = null;
+}
+{
+	valueExpression = valueExpression() [ asClause = asClause()]
+	{ return new DerivedColumn(valueExpression, asClause);}
+}
+AsClause asClause():
+{
+	ColumnName columnName = null;
+}
+{
+	<as> columnName = columnName()
+	{ return new AsClause(columnName); }
+}
+TableExpression tableExpression():
+{
+	FromClause fromClause = null;
+	WhereClause whereClause = null;
+	GroupByClause groupByClause = null;
+	OrderByClause orderByClause = null; 
+	Pagination pagination = null;
+}
+{
+	fromClause = fromClause() 
+	[ whereClause = whereClause() ]
+	[ groupByClause = groupByClause() ]
+	[ orderByClause = orderByClause() ]
+	[ pagination = pagination() ]
+	{ return new TableExpression(fromClause, whereClause, groupByClause, orderByClause, pagination); }
+}
+FromClause fromClause():
+{
+	TableReference tableReference = null;
+}
+{
+	<from> tableReference = tableReference()
+	{ return new FromClause(tableReference); }
+}
+TableReference tableReference():
+{
+	String tableName = null;
+}
+{
+	tableName = tableName()
+	{ return new TableReference(tableName); }
+}
+ColumnName columnName():
+{
+	Identifier identifier = null;
+}
+{
+	identifier = identifier() {return new ColumnName(identifier); }
+}
+SetQuantifier setQuantifier():
+{}
+{
+	<distinct> { return SetQuantifier.DISTINCT;}
+	|<all> { return SetQuantifier.ALL;}
+}
+String tableName():
+{ 
+	StringBuilder builder = new StringBuilder();
+}
+{	
+	[<syn>] unsignedInteger(builder) { return builder.toString(); }
+}
+SetFunctionSpecification setFunctionSpecification():
+{ SetFunctionSpecification setFunction = null; }
+{
+	<count_asterisk>
+	{ return new SetFunctionSpecification(Boolean.TRUE); }
+	| setFunction = generalSetFunction() { return setFunction;}
+}
+SetFunctionSpecification generalSetFunction():
+{ 
+	SetFunctionType setFunctionType = null;
+	SetQuantifier setQuantifier = null;
+	ValueExpression valueExpression = null;
+}
+{
+	setFunctionType = setFunctionType() <left_paren> [ setQuantifier = setQuantifier() ] valueExpression = valueExpression() <right_paren>
+	{ return new SetFunctionSpecification(setFunctionType, setQuantifier, valueExpression);}
+}
+SetFunctionType setFunctionType():
+{}
+{
+	<avg> { return SetFunctionType.AVG; }
+	| <max> { return SetFunctionType.MAX; }
+	| <min> { return SetFunctionType.MIN; }
+	| <sum> { return SetFunctionType.SUM; }
+	| <count> { return SetFunctionType.COUNT; }
+}
+WhereClause whereClause():
+{
+	SearchCondition searchCondition;
+}
+{
+	<where> searchCondition = searchCondition() { return new WhereClause(searchCondition);}
+}
+/**
+* The reference BNF definition for searchCondition() is "left recursive"
+* which is not possible with javacc, so it was re-written.
+*/
+SearchCondition searchCondition():
+{
+	SearchCondition searchCondition = new SearchCondition();
+	BooleanTerm lastBooleanTerm = null;
+}
+{
+	lastBooleanTerm = booleanTerm() { searchCondition.addOrBooleanTerm(lastBooleanTerm); }
+	( <or> lastBooleanTerm = booleanTerm() { searchCondition.addOrBooleanTerm(lastBooleanTerm); } )*
+	{ return searchCondition; }
+}
+/**
+* The reference BNF definition for booleanTerm() is "left recursive"
+* which is not possible with javacc, so it was re-written. 
+*/
+BooleanTerm booleanTerm():
+{
+	BooleanTerm booleanTerm = new BooleanTerm();
+	BooleanFactor booleanFactor = null;
+}
+{
+	booleanFactor = booleanFactor() { booleanTerm.addAndBooleanFactor(booleanFactor); }
+	( <and>  booleanFactor = booleanFactor() { booleanTerm.addAndBooleanFactor(booleanFactor); } )*
+	{ return booleanTerm; }
+}
+BooleanFactor booleanFactor():
+{
+	Boolean notB = null;
+	BooleanTest booleanTest = null;
+}
+{
+	[ <not> { notB = Boolean.TRUE; } ] booleanTest = booleanTest() { return new BooleanFactor(notB, booleanTest); }
+}
+BooleanTest booleanTest():
+{
+	BooleanPrimary booleanPrimary = null;
+	Boolean isB = null;
+	Boolean notB = null;
+	TruthValue truthValue = null;
+}
+{
+	booleanPrimary = booleanPrimary() [ <is> { isB = Boolean.TRUE; } [ <not> {notB = Boolean.TRUE; }] truthValue = truthValue() ]
+	{ return new BooleanTest(booleanPrimary, isB, notB, truthValue); }
+}
+BooleanPrimary booleanPrimary():
+{
+	Predicate predicate = null;
+	SearchCondition searchCondition = null;
+}
+{
+	LOOKAHEAD(2)
+	predicate = predicate() { return new BooleanPrimary(predicate);}
+	|  <left_paren> searchCondition = searchCondition() <right_paren> { return new BooleanPrimary(searchCondition); }
+}
+Predicate predicate():
+{
+	ColumnReference leftHandSide = null;
+	ComparisonPredicate comparisonPredicate = null;
+	BetweenPredicate betweenPredicate = null;
+	InPredicate inPredicate = null;
+	LikePredicate likePredicate = null;
+	NullPredicate nullPredicate = null;
+	Boolean notB = null;
+}
+{
+	leftHandSide = columnReference()
+	(
+		comparisonPredicate = comparisonPredicate(leftHandSide) { return new Predicate(comparisonPredicate);}
+		| nullPredicate = nullPredicate(leftHandSide) { return new Predicate(nullPredicate); }
+		|(
+			[ <not> {notB = Boolean.TRUE; }]
+			(
+					betweenPredicate = betweenPredicate(leftHandSide, notB) { return new Predicate(betweenPredicate); }
+				|	inPredicate = inPredicate(leftHandSide, notB) { return new Predicate(inPredicate); }
+				|	likePredicate = likePredicate(leftHandSide, notB) { return new Predicate(likePredicate); }
+			)
+		)
+	)
+
+}
+ComparisonPredicate comparisonPredicate(ColumnReference leftHandSide):
+{
+	CompOp compOp = null;
+	RowValueConstructor rowValueConstructorRHS = null;
+}
+{
+	compOp = compOp() rowValueConstructorRHS = rowValueConstructor()
+	{ return new ComparisonPredicate(leftHandSide,compOp,rowValueConstructorRHS);}
+}
+RowValueConstructor rowValueConstructor():
+{
+	RowValueConstructorElement rowValueConstructorElement = null;
+	RowValueConstructorList rowValueConstructorList = null;
+}
+{
+	<left_paren> rowValueConstructorList = rowValueConstructorList() <right_paren> { return new RowValueConstructor(rowValueConstructorList); }
+	| rowValueConstructorElement = rowValueConstructorElement() { return new RowValueConstructor(rowValueConstructorElement); }
+}
+RowValueConstructorList rowValueConstructorList():
+{
+	RowValueConstructorList rowValueConstructorList = new RowValueConstructorList();
+	RowValueConstructorElement rowValueConstructorElement;
+}
+{
+	rowValueConstructorElement = rowValueConstructorElement() { rowValueConstructorList.addRowValueConstructorElement(rowValueConstructorElement); }
+	(<comma> rowValueConstructorElement = rowValueConstructorElement() { rowValueConstructorList.addRowValueConstructorElement(rowValueConstructorElement); } )*
+	{ return rowValueConstructorList; } 
+}
+RowValueConstructorElement rowValueConstructorElement():
+{
+	ValueExpression valueExpression;
+}
+{
+		<null_specification> { return new RowValueConstructorElement(Boolean.TRUE, null); }
+	|	<default_specification> { return new RowValueConstructorElement(null, Boolean.TRUE); }
+	|	valueExpression = valueExpression() { return new RowValueConstructorElement(valueExpression); }
+}
+CompOp compOp():
+{}
+{
+		<equals_operator> { return CompOp.EQUALS_OPERATOR;}
+	|   <not_equals_operator> { return CompOp.NOT_EQUALS_OPERATOR;}
+	|   <less_than_operator> { return CompOp.LESS_THAN_OPERATOR;}
+	|   <greater_than_operator> { return CompOp.GREATER_THAN_OPERATOR;}
+	|   <less_than_or_equals_operator> { return CompOp.LESS_THAN_OR_EQUALS_OPERATOR;}
+	|   <greater_than_or_equals_operator> {return CompOp.GREATER_THAN_OR_EQUALS_OPERATOR;} 
+}
+BetweenPredicate betweenPredicate(ColumnReference leftHandSide, Boolean notB):
+{
+	RowValueConstructor betweenRowValueConstructor = null;
+	RowValueConstructor andRowValueConstructorRHS = null;
+}
+{
+	<between> betweenRowValueConstructor = rowValueConstructor() <and>  andRowValueConstructorRHS = rowValueConstructor()
+	{ return new BetweenPredicate(leftHandSide, notB, betweenRowValueConstructor, andRowValueConstructorRHS);}
+}
+InPredicate inPredicate(ColumnReference leftHandSide, Boolean notB):
+{
+	InPredicateValue inPredicateValue = null;
+}
+{
+	<in> inPredicateValue = inPredicateValue()
+	{ return new InPredicate(leftHandSide, notB, inPredicateValue);}
+}
+InPredicateValue inPredicateValue():
+{
+	InValueList inValueList = null;
+}
+{
+	<left_paren> inValueList = inValueList() <right_paren>
+	{ return new InPredicateValue(inValueList); }
+}
+InValueList inValueList():
+{
+	InValueList inValueList = new InValueList();
+	ValueExpression valueExpression = null;
+}
+{
+	valueExpression = valueExpression() { inValueList.addValueExpression(valueExpression); }
+	( <comma> valueExpression = valueExpression() { inValueList.addValueExpression(valueExpression); } )*
+	{ return inValueList; }
+}
+LikePredicate likePredicate(ColumnReference leftHandSide, Boolean notB):
+{
+	Pattern pattern = null;
+	EscapeCharacter escapeCharacter = null;
+}
+{
+	<like> pattern = pattern() [ <escape> escapeCharacter = escapeCharacter() ]
+	{ return new LikePredicate(leftHandSide,notB,pattern,escapeCharacter);}
+}
+MatchValue matchValue():
+{
+	CharacterValueExpression characterValueExpression = null;
+}
+{
+	characterValueExpression = characterValueExpression()
+	{return new MatchValue(characterValueExpression);}
+}
+Pattern pattern():
+{
+	CharacterValueExpression characterValueExpression = null;
+}
+{
+	characterValueExpression = characterValueExpression()
+	{return new Pattern(characterValueExpression);}
+}
+EscapeCharacter escapeCharacter():
+{
+	CharacterValueExpression characterValueExpression = null;
+}
+{
+	characterValueExpression = characterValueExpression()
+	{return new EscapeCharacter(characterValueExpression);}
+}
+NullPredicate nullPredicate(ColumnReference leftHandSide):
+{
+	Boolean notB = null;
+}
+{
+	<is> [ <not> {notB=Boolean.TRUE;}] <null_specification>
+	{ return new NullPredicate(leftHandSide, notB); }
+}
+ValueExpression valueExpression():
+{
+	StringValueExpression stringValueExpression = null;
+}
+{
+	stringValueExpression = stringValueExpression() { return new ValueExpression(stringValueExpression); }
+}
+StringValueExpression stringValueExpression():
+{
+	CharacterValueExpression characterValueExpression;
+}
+{
+	characterValueExpression = characterValueExpression() { return new StringValueExpression(characterValueExpression); }
+}
+CharacterValueExpression characterValueExpression():
+{
+	CharacterFactor characterFactor = null;
+}
+{
+	characterFactor = characterFactor() { return new CharacterValueExpression(characterFactor); }
+}
+CharacterFactor characterFactor():
+{
+	CharacterPrimary characterPrimary;
+}
+{
+	characterPrimary = characterPrimary() { return new CharacterFactor(characterPrimary); }
+}
+CharacterPrimary characterPrimary():
+{
+	ValueExpressionPrimary valueExpressionPrimary = null;
+}
+{
+	valueExpressionPrimary = valueExpressionPrimary() { return new CharacterPrimary(valueExpressionPrimary); }
+}
+TruthValue truthValue():
+{}
+{
+	<_true> { return TruthValue.TRUE; }
+	| <_false> { return TruthValue.FALSE; }
+	| <unknown> { return TruthValue.UNKNOWN; }
+}
+GroupByClause groupByClause():
+{
+	GroupingColumnReferenceList groupingColumnReferenceList = null;
+}
+{
+	<group_by> groupingColumnReferenceList = groupingColumnReferenceList()
+	{ return new GroupByClause(groupingColumnReferenceList);}
+}
+GroupingColumnReferenceList groupingColumnReferenceList():
+{
+	GroupingColumnReferenceList groupingColumnReferenceList = new GroupingColumnReferenceList();
+	GroupingColumnReference groupingColumnReference;
+}
+{
+	groupingColumnReference = groupingColumnReference() { groupingColumnReferenceList.addGroupingColumnReference(groupingColumnReference); }
+	 (
+	 	<comma> groupingColumnReference = groupingColumnReference() { groupingColumnReferenceList.addGroupingColumnReference(groupingColumnReference); }
+	 )*
+	 { return groupingColumnReferenceList; } 
+}
+GroupingColumnReference groupingColumnReference():
+{
+	ColumnReference columnReference = null;
+}
+{
+	columnReference = columnReference() { return new GroupingColumnReference(columnReference); }
+}
+OrderByClause orderByClause():
+{
+	SortSpecificationList sortSpecificationList = null;
+}
+{
+	<order_by> sortSpecificationList = sortSpecificationList()
+	{ return new OrderByClause(sortSpecificationList); }
+}
+SortSpecificationList sortSpecificationList():
+{
+	SortSpecificationList sortSpecificationList = new SortSpecificationList();
+	SortSpecification sortSpecification = null;
+}
+{
+	sortSpecification = sortSpecification() { sortSpecificationList.addSortSpecification(sortSpecification); }
+	(
+		<comma> sortSpecification = sortSpecification() { sortSpecificationList.addSortSpecification(sortSpecification); }
+	)*
+	{ return sortSpecificationList; }
+}
+SortSpecification sortSpecification():
+{
+	SortKey sortKey = null;
+	OrderingSpecification orderingSpecification = null;
+}
+{
+	sortKey = sortKey() [ orderingSpecification = orderingSpecification() ]
+	{ return new SortSpecification(sortKey, orderingSpecification); }
+}
+SortKey sortKey():
+{
+	ColumnReference columnReference = null;
+}
+{
+	columnReference = columnReference()
+	{ return new SortKey(columnReference); }
+}
+OrderingSpecification orderingSpecification():
+{}
+{
+	<asc> { return OrderingSpecification.ASC; }
+	| <desc>  { return OrderingSpecification.DESC; }
+}
+Pagination pagination():
+{
+	String _limit = null;
+	String _offset = null;
+}
+{
+	<limit> _limit = unsignedInteger2() [ <offset> _offset = unsignedInteger2() ]
+	{ return new Pagination(_limit, _offset); }
+}

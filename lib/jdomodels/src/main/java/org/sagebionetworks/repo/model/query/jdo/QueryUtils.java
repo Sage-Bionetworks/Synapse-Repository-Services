@@ -3,19 +3,17 @@ package org.sagebionetworks.repo.model.query.jdo;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.NodeQueryResults;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil;
@@ -82,20 +80,19 @@ public class QueryUtils {
 			return "";
 		}
 		// For all other cases we build up a filter
-		Collection<UserGroup> groups = userInfo.getGroups();
+		Set<Long> groups = userInfo.getGroups();
 		if(groups == null) throw new IllegalArgumentException("User's groups cannot be null");
 		if(groups.size() < 1) throw new IllegalArgumentException("User must belong to at least one group");
 		String sql = AuthorizationSqlUtil.authorizationSQL(groups.size());
 		// Bind the variables
 		parameters.put(AuthorizationSqlUtil.ACCESS_TYPE_BIND_VAR, ACCESS_TYPE.READ.name());
 		// Bind each group
-		Iterator<UserGroup> it = groups.iterator();
+		Iterator<Long> it = groups.iterator();
 		int index = 0;
 		while(it.hasNext()){
-			UserGroup ug = it.next();
+			Long ug = it.next();
 			if(ug == null) throw new IllegalArgumentException("UserGroup was null");
-			if(ug.getId() == null) throw new IllegalArgumentException("UserGroup.id cannot be null");
-			parameters.put(AuthorizationSqlUtil.BIND_VAR_PREFIX+index, KeyFactory.stringToKey(ug.getId()));
+			parameters.put(AuthorizationSqlUtil.BIND_VAR_PREFIX+index, ug);
 			index++;
 		}
 		StringBuilder builder = new StringBuilder();

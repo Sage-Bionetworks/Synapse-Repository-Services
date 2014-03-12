@@ -12,17 +12,13 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageReceiver;
-import org.sagebionetworks.evaluation.dao.AnnotationsDAO;
-import org.sagebionetworks.evaluation.dao.EvaluationDAO;
-import org.sagebionetworks.evaluation.dao.ParticipantDAO;
-import org.sagebionetworks.evaluation.dao.SubmissionDAO;
-import org.sagebionetworks.evaluation.dao.SubmissionStatusDAO;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -30,6 +26,11 @@ import org.sagebionetworks.repo.model.annotation.Annotations;
 import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
 import org.sagebionetworks.repo.model.annotation.LongAnnotation;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
+import org.sagebionetworks.repo.model.evaluation.AnnotationsDAO;
+import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
+import org.sagebionetworks.repo.model.evaluation.ParticipantDAO;
+import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
+import org.sagebionetworks.repo.model.evaluation.SubmissionStatusDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -66,23 +67,25 @@ public class AnnotationsWorkerIntegrationTest {
 	@Autowired
 	private MessageReceiver annotationsQueueMessageReceiver;
 	
-	private String nodeId = null;
-    private String submissionId = null;
-    private String userId = "0";
+	private String nodeId;
+    private String submissionId;
+    private Long userId;
     private String evalId;
     private final String name = "test submission";
     private final Long versionNumber = 1L;
 	
 	@Before
 	public void before() throws Exception {
+		userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+		
 		// Before we start, make sure the queue is empty
-		emptyQueue();
+		annotationsQueueMessageReceiver.emptyQueue();
 		
 		// create a node
   		Node node = new Node();
 		node.setName(name);
-		node.setCreatedByPrincipalId(Long.parseLong(userId));
-		node.setModifiedByPrincipalId(Long.parseLong(userId));
+		node.setCreatedByPrincipalId(userId);
+		node.setModifiedByPrincipalId(userId);
 		node.setCreatedOn(new Date(System.currentTimeMillis()));
 		node.setModifiedOn(node.getCreatedOn());
 		node.setNodeType(EntityType.project.name());
@@ -95,16 +98,16 @@ public class AnnotationsWorkerIntegrationTest {
         evaluation.setId("1234");
         evaluation.setEtag("etag");
         evaluation.setName("my eval");
-        evaluation.setOwnerId(userId);
+        evaluation.setOwnerId(userId.toString());
         evaluation.setCreatedOn(new Date());
         evaluation.setContentSource(nodeId);
         evaluation.setStatus(EvaluationStatus.PLANNED);
-        evalId = evaluationDAO.create(evaluation, Long.parseLong(userId));
+        evalId = evaluationDAO.create(evaluation, userId);
         
         // create a participant
         Participant participant = new Participant();
         participant.setCreatedOn(new Date());
-        participant.setUserId(userId);
+        participant.setUserId(userId.toString());
         participant.setEvaluationId(evalId);
         participantDAO.create(participant);
         
@@ -114,7 +117,7 @@ public class AnnotationsWorkerIntegrationTest {
         submission.setName(name);
         submission.setEntityId(nodeId);
         submission.setVersionNumber(versionNumber);
-        submission.setUserId(userId);
+        submission.setUserId(userId.toString());
         submission.setEvaluationId(evalId);
         submission.setCreatedOn(new Date());
         submission.setEntityBundleJSON("some bundle");
@@ -125,7 +128,7 @@ public class AnnotationsWorkerIntegrationTest {
         status.setModifiedOn(new Date());
         status.setId(submissionId);
         status.setEtag(null);
-        status.setStatus(SubmissionStatusEnum.OPEN);
+        status.setStatus(SubmissionStatusEnum.RECEIVED);
         status.setScore(0.1);
         status.setAnnotations(createDummyAnnotations());
         submissionStatusDAO.create(status);
@@ -140,30 +143,11 @@ public class AnnotationsWorkerIntegrationTest {
 			submissionDAO.delete(submissionId);
 		} catch (Exception e)  {};
 		try {
-			participantDAO.delete(userId, evalId);
+			participantDAO.delete(userId.toString(), evalId);
 		} catch (Exception e) {};
 		try {
 			evaluationDAO.delete(evalId);
 		} catch (Exception e) {};
-	}
-
-	/**
-	 * Empty the queue by processing all messages on the queue.
-	 * @throws InterruptedException
-	 */
-	public void emptyQueue() throws InterruptedException {
-		long start = System.currentTimeMillis();
-		int count = 0;
-		do {
-			count = annotationsQueueMessageReceiver.triggerFired();
-			System.out.println("Emptying the annotations message queue, there were at least: " + 
-					count + " messages on the queue");
-			Thread.yield();
-			long elapse = System.currentTimeMillis() - start;
-			if (elapse > MAX_WAIT * 5) {
-				throw new RuntimeException("Timed-out waiting process all messages that were on the queue before the tests started.");
-			}
-		} while(count > 0);
 	}
 	
 	

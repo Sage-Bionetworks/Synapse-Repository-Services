@@ -154,6 +154,9 @@ public class UrlHelpers {
 	public static final String ACTIVITY    = PrefixConst.ACTIVITY;
 	public static final String FAVORITE    = PrefixConst.FAVORITE;
 	
+	
+	public static final String PRINCIPAL = "/principal";
+	public static final String PRINCIPAL_AVAILABLE = PRINCIPAL+"/available";
 	/**
 	 * All of the base URLs for Synapse object batch requests
 	 */
@@ -497,9 +500,27 @@ public class UrlHelpers {
 	public static final String REFIRE_MESSAGES				= CHANGE_MESSAGES+"/refire";
 	public static final String CURRENT_NUMBER				= CHANGE_MESSAGES+"/currentnumber"; 
 	
+	// Messaging URLs
+	public static final String MESSAGE                    = "/message";
+	public static final String FORWARD                    = "/forward";
+	public static final String CONVERSATION               = "/conversation";
+	public static final String MESSAGE_STATUS             = MESSAGE + "/status";
+	public static final String MESSAGE_INBOX              = MESSAGE + "/inbox";
+	public static final String MESSAGE_OUTBOX             = MESSAGE + "/outbox";
+	public static final String MESSAGE_INBOX_FILTER_PARAM = "inboxFilter";
+	public static final String MESSAGE_ORDER_BY_PARAM     = "orderBy";
+	public static final String MESSAGE_DESCENDING_PARAM   = "descending";
+	public static final String MESSAGE_ID_PATH_VAR        = "messageId";
+	public static final String MESSAGE_ID                 = MESSAGE + "/{" + MESSAGE_ID_PATH_VAR + "}";
+	public static final String MESSAGE_ID_FORWARD         = MESSAGE_ID + FORWARD;
+	public static final String MESSAGE_ID_CONVERSATION    = MESSAGE_ID + CONVERSATION;
+	public static final String MESSAGE_ID_FILE            = MESSAGE_ID + FILE;
+	public static final String ENTITY_ID_MESSAGE          = ENTITY_ID + MESSAGE;
+	
 	/**
 	 * Mapping of dependent property classes to their URL suffixes
 	 */
+	@SuppressWarnings("rawtypes")
 	private static final Map<Class, String> PROPERTY2URLSUFFIX;
 
 	/**
@@ -525,6 +546,7 @@ public class UrlHelpers {
 	public static final String INCLUDE_DEPENDENCIES_PARAM = "includeDependencies";
 	
 	// Evaluation URLs
+	public static final String STATUS = "status";
 	public static final String EVALUATION = "/evaluation";
 	public static final String EVALUATION_ID_PATH_VAR_WITHOUT_BRACKETS = "evalId";
 	public static final String EVALUATION_ID_PATH_VAR = "{"+EVALUATION_ID_PATH_VAR_WITHOUT_BRACKETS+"}";
@@ -538,7 +560,6 @@ public class UrlHelpers {
 	public static final String PARTICIPANT_WITH_ID = PARTICIPANT + "/{partId}";
 	public static final String PARTICIPANT_COUNT = PARTICIPANT + "/count";
 	
-	public static final String STATUS = "status";
 	public static final String SUBMISSION = EVALUATION + "/submission";
 	public static final String SUBMISSION_WITH_ID = SUBMISSION + "/{subId}";
 	public static final String SUBMISSION_STATUS = SUBMISSION_WITH_ID + "/status";
@@ -593,6 +614,7 @@ public class UrlHelpers {
 	public static final String ATTACHMENT_HANDLES_V2 = "/attachmenthandles";
 	public static final String WIKI_WITH_ID_V2 = WIKI_V2 + "/{wikiId}";
 	public static final String WIKI_VERSION_V2 = "/{wikiVersion}";
+	public static final String MARKDOWN_V2 = "/markdown";
 	// Entity
 	public static final String ENTITY_OWNER_ID_V2 = ENTITY+"/{ownerId}";
 	public static final String ENTITY_WIKI_V2 = ENTITY_OWNER_ID_V2 + WIKI_V2;
@@ -603,6 +625,7 @@ public class UrlHelpers {
 	public static final String ENTITY_WIKI_ID_ATTCHMENT_FILE_PREVIEW_V2 = ENTITY_OWNER_ID_V2 + WIKI_WITH_ID_V2+ATTACHMENT_PREVIEW_V2;
 	public static final String ENTITY_WIKI_HISTORY_V2 = ENTITY_WIKI_ID_V2 + WIKI_HISTORY_V2;
 	public static final String ENTITY_WIKI_ID_AND_VERSION_V2 = ENTITY_OWNER_ID_V2+WIKI_WITH_ID_V2+WIKI_VERSION_V2;
+	public static final String ENTITY_WIKI_ID_MARKDOWN_FILE_V2 = ENTITY_OWNER_ID_V2 + WIKI_WITH_ID_V2 + MARKDOWN_V2;
 	// Evaluation
 	public static final String EVALUATION_OWNER_ID_V2 = EVALUATION+"/{ownerId}";
 	public static final String EVALUATION_WIKI_V2 = EVALUATION_OWNER_ID_V2+ WIKI_V2;
@@ -613,11 +636,15 @@ public class UrlHelpers {
 	public static final String EVALUATION_WIKI_ID_ATTCHMENT_FILE_PREVIEW_V2 =EVALUATION_OWNER_ID_V2 + WIKI_WITH_ID_V2+ATTACHMENT_PREVIEW_V2;
 	public static final String EVALUATION_WIKI_HISTORY_V2 = EVALUATION_WIKI_ID_V2 + WIKI_HISTORY_V2;
 	public static final String EVALUATION_WIKI_ID_AND_VERSION_V2 = EVALUATION_OWNER_ID_V2+WIKI_WITH_ID_V2+WIKI_VERSION_V2;
+	public static final String EVALUATION_WIKI_ID_MARKDOWN_FILE_V2 = EVALUATION_OWNER_ID_V2 + WIKI_WITH_ID_V2 + MARKDOWN_V2;
 	
 	// Tables
 	public static final String COLUMN = "/column";
+	public static final String TABLE = "/table";
 	public static final String COLUMN_ID = COLUMN+"/{columnId}";
 	public static final String ENTITY_COLUMNS = ENTITY_ID+COLUMN;
+	public static final String ENTITY_TABLE = ENTITY_ID+TABLE;
+	public static final String TABLE_QUERY = TABLE+"/query";
 	
 	// Team
 	public static final String TEAM = "/team";
@@ -638,15 +665,22 @@ public class UrlHelpers {
 	public static final String TEAMS = "/teams";
 	public static final String TEAM_MEMBERS_ID = "/teamMembers"+ID;
 	
+	public static final String ACCESS_REQUIREMENT_WITH_TEAM_ID = TEAM_ID+ACCESS_REQUIREMENT;
+	public static final String TEAM_ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID = TEAM_ID+"/accessRequirementUnfulfilled";
+	public static final String ACCESS_APPROVAL_WITH_TEAM_ID = TEAM_ID+ACCESS_APPROVAL;
+
 	// membership invitation
 	public static final String MEMBERSHIP_INVITATION = "/membershipInvitation";
 	public static final String MEMBERSHIP_INVITATION_ID = MEMBERSHIP_INVITATION+ID;
-	public static final String OPEN_MEMBERSHIP_INVITATION = USER+ID+"/openInvitation";
+	public static final String OPEN_MEMBERSHIP_INVITATION_BY_USER = USER+ID+"/openInvitation";
+	public static final String OPEN_MEMBERSHIP_INVITATION_BY_TEAM = TEAM+ID+"/openInvitation";
 	public static final String TEAM_ID_REQUEST_PARAMETER = "teamId";
+	public static final String INVITEE_ID_REQUEST_PARAMETER = "inviteeId";
 	// membership request
 	public static final String MEMBERSHIP_REQUEST = "/membershipRequest";
 	public static final String MEMBERSHIP_REQUEST_ID = MEMBERSHIP_REQUEST+ID;
-	public static final String OPEN_MEMBERSHIP_REQUEST = TEAM_ID+"/openRequest";
+	public static final String OPEN_MEMBERSHIP_REQUEST_FOR_TEAM = TEAM_ID+"/openRequest";
+	public static final String OPEN_MEMBERSHIP_REQUEST_FOR_USER = USER+ID+"/openRequest";
 	public static final String REQUESTOR_ID_REQUEST_PARAMETER = "requestorId";
 	
 	/**
@@ -659,17 +693,26 @@ public class UrlHelpers {
 	 */
 	public static final String ADMIN_DYNAMO_CLEAR_TABLE = ADMIN + DYNAMO + "/clear" + "/{tableName}";
 	
+	/**
+	 * Temporary API to migrate wiki pages from V1 to V2
+	 */
+	public static final String ADMIN_MIGRATE_WIKI = ADMIN + "/migrateWiki";
+	
 	// Authentication
 	public static final String AUTH_SESSION = "/session";
-	public static final String AUTH_SESSION_PORTAL = AUTH_SESSION + "/portal";
 	public static final String AUTH_USER = "/user";
-	public static final String AUTH_USER_PASSWORD_EMAIL = "/userPasswordEmail";
-	public static final String AUTH_API_PASSWORD_EMAIL = "/apiPasswordEmail";
-	public static final String AUTH_USER_PASSWORD = "/userPassword";
-	public static final String AUTH_CHANGE_EMAIL = "/changeEmail";
-	public static final String AUTH_REGISTERING_USER_PASSWORD = "/registeringUserPassword";
+	public static final String AUTH_USER_PASSWORD = AUTH_USER + "/password";
+	public static final String AUTH_USER_PASSWORD_EMAIL = AUTH_USER_PASSWORD + "/email";
+	public static final String AUTH_TERMS_OF_USE = "/termsOfUse";
 	public static final String AUTH_SECRET_KEY = "/secretKey";
 	public static final String AUTH_OPEN_ID_CALLBACK = "/openIdCallback";
+	
+	/**
+	 * API for creating integration test users
+	 */
+	public static final String ADMIN_USER = ADMIN + AUTH_USER;
+	
+	public static final String ADMIN_USER_ID = ADMIN_USER + ID;
 
 	
 	static {

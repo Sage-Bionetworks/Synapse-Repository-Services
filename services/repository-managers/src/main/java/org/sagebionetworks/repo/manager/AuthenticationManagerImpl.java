@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
 import org.sagebionetworks.repo.model.AuthenticationDAO;
+import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -32,20 +33,20 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public Session authenticate(String email, String password) throws NotFoundException {
+	public Session authenticate(long principalId, String password, DomainType domain) throws NotFoundException {
 		// Check the username password combination
 		// This will throw an UnauthorizedException if invalid
 		if (password != null) {
-			byte[] salt = authDAO.getPasswordSalt(email);
+			byte[] salt = authDAO.getPasswordSalt(principalId);
 			String passHash = PBKDF2Utils.hashPassword(password, salt);
-			authDAO.checkEmailAndPassword(email, passHash);
+			authDAO.checkUserCredentials(principalId, passHash);
 		}
 		
-		return getSessionToken(email);
+		return getSessionToken(principalId, domain);
 	}
 	
 	@Override
-	public Long getPrincipalId(String sessionToken) throws UnauthorizedException {
+	public Long getPrincipalId(String sessionToken) {
 		Long principalId = authDAO.getPrincipal(sessionToken);
 		if (principalId == null) {
 			throw new UnauthorizedException("The session token (" + sessionToken + ") has expired");
@@ -54,7 +55,8 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	}
 	
 	@Override
-	public Long checkSessionToken(String sessionToken) throws UnauthorizedException, TermsOfUseException {
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public Long checkSessionToken(String sessionToken, DomainType domain, boolean checkToU) throws NotFoundException {
 		Long principalId = authDAO.getPrincipalIfValid(sessionToken);
 		if (principalId == null) {
 			// Check to see why the token is invalid
@@ -62,11 +64,14 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 			if (userId == null) {
 				throw new UnauthorizedException("The session token (" + sessionToken + ") is invalid");
 			}
-			if (!authDAO.hasUserAcceptedToU(userId.toString())) {
-				throw new TermsOfUseException();
-			}
 			throw new UnauthorizedException("The session token (" + sessionToken + ") has expired");
 		}
+		// Check the terms of use
+		if (checkToU && !authDAO.hasUserAcceptedToU(principalId, domain)) {
+			throw new TermsOfUseException();
+		}
+		
+		authDAO.revalidateSessionToken(principalId, domain);
 		return principalId;
 	}
 
@@ -78,57 +83,68 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void changePassword(String id, String password) {
+	public void changePassword(Long principalId, String password) {
 		String passHash = PBKDF2Utils.hashPassword(password, null);
-		authDAO.changePassword(id, passHash);
+		authDAO.changePassword(principalId, passHash);
 	}
 	
 	@Override
-	public String getSecretKey(String id) {
-		return authDAO.getSecretKey(id);
+	public String getSecretKey(Long principalId) throws NotFoundException {
+		return authDAO.getSecretKey(principalId);
 	}
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void changeSecretKey(String id) {
-		authDAO.changeSecretKey(id);
+	public void changeSecretKey(Long principalId) {
+		authDAO.changeSecretKey(principalId);
 	}
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public Session getSessionToken(String username) throws NotFoundException {
+	public Session getSessionToken(long principalId, DomainType domain) throws NotFoundException {
 		// Get the session token
-		Session session = authDAO.getSessionTokenIfValid(username);
+		Session session = authDAO.getSessionTokenIfValid(principalId, domain);
 		
 		// Make the session token if none was returned
 		if (session == null) {
 			session = new Session();
 		}
+		
+		// Set a new session token if necessary
 		if (session.getSessionToken() == null) {
-			UserGroup ug = userGroupDAO.findGroup(username, true);
+			UserGroup ug = userGroupDAO.get(principalId);
 			if (ug == null) {
-				throw new NotFoundException("The user (" + username + ") does not exist");
+				throw new NotFoundException("The user (" + principalId + ") does not exist");
 			}
-			String principalId = ug.getId();
-			String token = authDAO.changeSessionToken(principalId, null);
+			if(!ug.getIsIndividual()) throw new IllegalArgumentException("Cannot get a session token for a team");
+			String token = authDAO.changeSessionToken(principalId, null, domain);
+			boolean toU = authDAO.hasUserAcceptedToU(principalId, domain);
 			session.setSessionToken(token);
+			
+			// Make sure to fetch the ToU state
+			session.setAcceptsTermsOfUse(toU);
 		}
 		
 		return session;
 	}
 
 	@Override
-	public boolean hasUserAcceptedTermsOfUse(String id) {
-		return authDAO.hasUserAcceptedToU(id);
+	public boolean hasUserAcceptedTermsOfUse(Long id, DomainType domain) throws NotFoundException {
+		if (domain == null) {
+			throw new IllegalArgumentException("Must provide a domain");
+		}
+		return authDAO.hasUserAcceptedToU(id, domain);
 	}
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void setTermsOfUseAcceptance(String id, Boolean acceptance) {
+	public void setTermsOfUseAcceptance(Long principalId, DomainType domain, Boolean acceptance) {
+		if (domain == null) {
+			throw new IllegalArgumentException("Must provide a domain");
+		}
 		if (acceptance == null) {
 			throw new IllegalArgumentException("Cannot \"unsee\" the terms of use");
 		}
-		authDAO.setTermsOfUseAcceptance(id, acceptance);
+		authDAO.setTermsOfUseAcceptance(principalId, domain, acceptance);
 	}
-	
 }

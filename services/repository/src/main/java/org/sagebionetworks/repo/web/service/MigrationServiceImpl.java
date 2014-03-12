@@ -27,22 +27,24 @@ public class MigrationServiceImpl implements MigrationService {
 	BackupDaemonLauncher backupDaemonLauncher;	
 
 	/**
-	 * Get the counts for each migration type.
+	 * Get the counts for each migration type in use.
 	 */
 	@Override
-	public MigrationTypeCounts getTypeCounts(String userId) throws DatastoreException, NotFoundException {
+	public MigrationTypeCounts getTypeCounts(Long userId) throws DatastoreException, NotFoundException {
 		if(userId == null) throw new IllegalArgumentException("userId cannot be null");
 		UserInfo user = userManager.getUserInfo(userId);
 		// Get the counts for each.
 		List<MigrationTypeCount> list = new LinkedList<MigrationTypeCount>();
 		for(MigrationType type: MigrationType.values()){
-			long count = migrationManager.getCount(user, type);
-			long maxId = migrationManager.getMaxId(user, type);
-			MigrationTypeCount tc = new MigrationTypeCount();
-			tc.setCount(count);
-			tc.setMaxid(maxId);
-			tc.setType(type);
-			list.add(tc);
+			if (migrationManager.isMigrationTypeUsed(user, type)) {
+				long count = migrationManager.getCount(user, type);
+				long maxId = migrationManager.getMaxId(user, type);
+				MigrationTypeCount tc = new MigrationTypeCount();
+				tc.setCount(count);
+				tc.setMaxid(maxId);
+				tc.setType(type);
+				list.add(tc);
+			}
 		}
 		MigrationTypeCounts counts = new MigrationTypeCounts();
 		counts.setList(list);
@@ -50,35 +52,35 @@ public class MigrationServiceImpl implements MigrationService {
 	}
 	
 	@Override
-	public RowMetadataResult getRowMetadaForType(String userId,	MigrationType type, long limit, long offset) throws DatastoreException, NotFoundException {
+	public RowMetadataResult getRowMetadaForType(Long userId,	MigrationType type, long limit, long offset) throws DatastoreException, NotFoundException {
 		if(userId == null) throw new IllegalArgumentException("userId cannot be null");
 		UserInfo user = userManager.getUserInfo(userId);
 		return migrationManager.getRowMetadaForType(user, type, limit, offset);
 	}
 
 	@Override
-	public RowMetadataResult getRowMetadataDeltaForType(String userId,	MigrationType type, List<Long> list) throws DatastoreException, NotFoundException {
+	public RowMetadataResult getRowMetadataDeltaForType(Long userId,	MigrationType type, List<Long> list) throws DatastoreException, NotFoundException {
 		if(userId == null) throw new IllegalArgumentException("userId cannot be null");
 		UserInfo user = userManager.getUserInfo(userId);
 		return migrationManager.getRowMetadataDeltaForType(user, type, list);
 	}
 
 	@Override
-	public BackupRestoreStatus startBackup(String userId, MigrationType type, List<Long> list) throws DatastoreException, NotFoundException {
+	public BackupRestoreStatus startBackup(Long userId, MigrationType type, List<Long> list) throws DatastoreException, NotFoundException {
 		if(userId == null) throw new IllegalArgumentException("userId cannot be null");
 		UserInfo user = userManager.getUserInfo(userId);
 		return backupDaemonLauncher.startBackup(user, type, list);
 	}
 
 	@Override
-	public BackupRestoreStatus startRestore(String userId, MigrationType type,	String fileName) throws DatastoreException, NotFoundException {
+	public BackupRestoreStatus startRestore(Long userId, MigrationType type,	String fileName) throws DatastoreException, NotFoundException {
 		if(userId == null) throw new IllegalArgumentException("userId cannot be null");
 		UserInfo user = userManager.getUserInfo(userId);
 		return backupDaemonLauncher.startRestore(user, fileName, type);
 	}
 
 	@Override
-	public MigrationTypeCount delete(String userId, MigrationType type, List<Long> list) throws DatastoreException, NotFoundException {
+	public MigrationTypeCount delete(Long userId, MigrationType type, List<Long> list) throws DatastoreException, NotFoundException {
 		if(userId == null) throw new IllegalArgumentException("userId cannot be null");
 		UserInfo user = userManager.getUserInfo(userId);
 		long count = migrationManager.deleteObjectsById(user, type, list);
@@ -89,14 +91,14 @@ public class MigrationServiceImpl implements MigrationService {
 	}
 
 	@Override
-	public BackupRestoreStatus getStatus(String userId, String daemonId) throws DatastoreException, NotFoundException {
+	public BackupRestoreStatus getStatus(Long userId, String daemonId) throws DatastoreException, NotFoundException {
 		if(userId == null) throw new IllegalArgumentException("userId cannot be null");
 		UserInfo user = userManager.getUserInfo(userId);
 		return backupDaemonLauncher.getStatus(user, daemonId);
 	}
 
 	@Override
-	public MigrationTypeList getPrimaryTypes(String userId) throws DatastoreException, NotFoundException {
+	public MigrationTypeList getPrimaryTypes(Long userId) throws DatastoreException, NotFoundException {
 		if(userId == null) throw new IllegalArgumentException("userId cannot be null");
 		UserInfo user = userManager.getUserInfo(userId);
 		List<MigrationType> list = migrationManager.getPrimaryMigrationTypes(user);

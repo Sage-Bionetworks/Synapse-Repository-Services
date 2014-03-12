@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dbo.persistence;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MEMBERSHIP_INVITATION_SUBMISSION_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MEMBERSHIP_INVITATION_SUBMISSION_EXPIRES_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MEMBERSHIP_INVITATION_SUBMISSION_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MEMBERSHIP_INVITATION_SUBMISSION_PROPERTIES;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_MEMBERSHIP_INVITATION_SUBMISSION_TEAM_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_MEMBERSHIP_INVITATION_SUBMISSION;
@@ -11,7 +12,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_MEMBER
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
-import java.util.LinkedList;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
@@ -31,6 +31,7 @@ public class DBOMembershipInvtnSubmission implements MigratableDatabaseObject<DB
 		new FieldColumn("createdOn", COL_MEMBERSHIP_INVITATION_SUBMISSION_CREATED_ON),
 		new FieldColumn("teamId", COL_MEMBERSHIP_INVITATION_SUBMISSION_TEAM_ID),
 		new FieldColumn("expiresOn", COL_MEMBERSHIP_INVITATION_SUBMISSION_EXPIRES_ON),
+		new FieldColumn("inviteeId", COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_ID),
 		new FieldColumn("properties", COL_MEMBERSHIP_INVITATION_SUBMISSION_PROPERTIES)
 	};
 	
@@ -38,6 +39,7 @@ public class DBOMembershipInvtnSubmission implements MigratableDatabaseObject<DB
 	private Long createdOn;
 	private Long teamId;
 	private Long expiresOn;
+	private Long inviteeId;
 	private byte[] properties;
 
 	@Override
@@ -45,21 +47,24 @@ public class DBOMembershipInvtnSubmission implements MigratableDatabaseObject<DB
 		return new TableMapping<DBOMembershipInvtnSubmission>(){
 			@Override
 			public DBOMembershipInvtnSubmission mapRow(ResultSet rs, int rowNum) throws SQLException {
-				DBOMembershipInvtnSubmission team = new DBOMembershipInvtnSubmission();
-				team.setId(rs.getLong(COL_MEMBERSHIP_INVITATION_SUBMISSION_ID));
+				DBOMembershipInvtnSubmission dbo = new DBOMembershipInvtnSubmission();
+				dbo.setId(rs.getLong(COL_MEMBERSHIP_INVITATION_SUBMISSION_ID));
 				Long createdOn = rs.getLong(COL_MEMBERSHIP_INVITATION_SUBMISSION_CREATED_ON);
 				if (rs.wasNull()) createdOn=null;
-				team.setCreatedOn(createdOn);
-				team.setTeamId(rs.getLong(COL_MEMBERSHIP_INVITATION_SUBMISSION_TEAM_ID));
+				dbo.setCreatedOn(createdOn);
+				dbo.setTeamId(rs.getLong(COL_MEMBERSHIP_INVITATION_SUBMISSION_TEAM_ID));
 				Long expiresOn = rs.getLong(COL_MEMBERSHIP_INVITATION_SUBMISSION_EXPIRES_ON);
 				if (rs.wasNull()) expiresOn=null;
-				team.setExpiresOn(expiresOn);
+				dbo.setExpiresOn(expiresOn);
+				Long inviteeId = rs.getLong(COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_ID);
+				if (rs.wasNull()) inviteeId=null;
+				dbo.setInviteeId(inviteeId);
 
 				java.sql.Blob blob = rs.getBlob(COL_MEMBERSHIP_INVITATION_SUBMISSION_PROPERTIES);
 				if(blob != null){
-					team.setProperties(blob.getBytes(1, (int) blob.length()));
+					dbo.setProperties(blob.getBytes(1, (int) blob.length()));
 				}
-				return team;
+				return dbo;
 			}
 
 			@Override
@@ -145,6 +150,18 @@ public class DBOMembershipInvtnSubmission implements MigratableDatabaseObject<DB
 
 
 
+	public Long getInviteeId() {
+		return inviteeId;
+	}
+
+
+
+	public void setInviteeId(Long inviteeId) {
+		this.inviteeId = inviteeId;
+	}
+
+
+
 	@Override
 	public MigrationType getMigratableTableType() {
 		return MigrationType.MEMBERSHIP_INVITATION_SUBMISSION;
@@ -177,9 +194,7 @@ public class DBOMembershipInvtnSubmission implements MigratableDatabaseObject<DB
 
 	@Override
 	public List<MigratableDatabaseObject> getSecondaryTypes() {
-		List<MigratableDatabaseObject> list = new LinkedList<MigratableDatabaseObject>();
-		list.add(new DBOMembershipInvitee());
-		return list;
+		return null;
 	}
 
 
@@ -193,6 +208,7 @@ public class DBOMembershipInvtnSubmission implements MigratableDatabaseObject<DB
 		result = prime * result
 				+ ((expiresOn == null) ? 0 : expiresOn.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
+		result = prime * result + ((inviteeId == null) ? 0 : inviteeId.hashCode());
 		result = prime * result + Arrays.hashCode(properties);
 		result = prime * result + ((teamId == null) ? 0 : teamId.hashCode());
 		return result;
@@ -223,6 +239,11 @@ public class DBOMembershipInvtnSubmission implements MigratableDatabaseObject<DB
 			if (other.id != null)
 				return false;
 		} else if (!id.equals(other.id))
+			return false;
+		if (inviteeId == null) {
+			if (other.inviteeId != null)
+				return false;
+		} else if (!inviteeId.equals(other.inviteeId))
 			return false;
 		if (!Arrays.equals(properties, other.properties))
 			return false;

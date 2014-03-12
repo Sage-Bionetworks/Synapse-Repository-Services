@@ -1,1 +1,2 @@
 This is text and not an image.
+Here's some non-ascii text: Gérard Depardieum, Camille Saint-Saëns and Mylène Demongeot

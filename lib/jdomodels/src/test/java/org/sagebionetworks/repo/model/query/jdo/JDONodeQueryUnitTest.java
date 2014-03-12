@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -16,6 +17,7 @@ import org.apache.logging.log4j.Logger;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil;
@@ -48,6 +50,7 @@ public class JDONodeQueryUnitTest {
 		when(nonAdminUserInfo.getGroups()).thenReturn(null);
 		HashMap<String, Object> params = new HashMap<String, Object>();
 		// should throw an exception
+		params.put(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, ObjectType.ENTITY.name());
 		String sql = QueryUtils.buildAuthorizationFilter(nonAdminUserInfo, params);
 	}
 	
@@ -55,9 +58,10 @@ public class JDONodeQueryUnitTest {
 	public void testAuthorizationSqlNonAdminuserEmptyGroups() throws Exception {
 		UserInfo nonAdminUserInfo = Mockito.mock(UserInfo.class);
 		when(nonAdminUserInfo.isAdmin()).thenReturn(false);
-		when(nonAdminUserInfo.getGroups()).thenReturn(new ArrayList<UserGroup>());
+		when(nonAdminUserInfo.getGroups()).thenReturn(new HashSet<Long>());
 		HashMap<String, Object> params = new HashMap<String, Object>();
 		// Should throw an exception.
+		params.put(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, ObjectType.ENTITY.name());
 		String sql = QueryUtils.buildAuthorizationFilter(nonAdminUserInfo, params);
 	}
 	
@@ -66,15 +70,16 @@ public class JDONodeQueryUnitTest {
 		HashMap<String, Object> params = new HashMap<String, Object>();
 		UserInfo nonAdminUserInfo = Mockito.mock(UserInfo.class);
 		when(nonAdminUserInfo.isAdmin()).thenReturn(false);
-		ArrayList<UserGroup> groups = new ArrayList<UserGroup>();
+		HashSet<Long> groups = new HashSet<Long>();
 		UserGroup group = Mockito.mock(UserGroup.class);
 		when(group.getId()).thenReturn("123");
-		groups.add(group);
+		groups.add(Long.parseLong(group.getId()));
 		group = Mockito.mock(UserGroup.class);
 		when(group.getId()).thenReturn("124");
-		groups.add(group);
+		groups.add(Long.parseLong(group.getId()));
 		when(nonAdminUserInfo.getGroups()).thenReturn(groups);
 		// This should build a query with two groups
+		params.put(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, ObjectType.ENTITY.name());
 		String sql = QueryUtils.buildAuthorizationFilter(nonAdminUserInfo, params);
 		assertNotNull(sql);
 		// It should not be an empty string.

@@ -47,12 +47,12 @@ public class MembershipInvitationManagerImpl implements
 		if (mis.getCreatedBy()!=null) throw new InvalidModelException("'createdBy' field is not user specifiable.");
 		if (mis.getCreatedOn()!=null) throw new InvalidModelException("'createdOn' field is not user specifiable.");
 		if (mis.getId()!=null) throw new InvalidModelException("'id' field is not user specifiable.");
-		if (mis.getInvitees()==null) throw new InvalidModelException("'invitees' field is required.");
+		if (mis.getInviteeId()==null) throw new InvalidModelException("'inviteeId' field is required.");
 		if (mis.getTeamId()==null) throw new InvalidModelException("'teamId' field is required.");
 	}
 
 	public static void populateCreationFields(UserInfo userInfo, MembershipInvtnSubmission mis, Date now) {
-		mis.setCreatedBy(userInfo.getIndividualGroup().getId());
+		mis.setCreatedBy(userInfo.getId().toString());
 		mis.setCreatedOn(now);
 	}
 
@@ -127,6 +127,38 @@ public class MembershipInvitationManagerImpl implements
 		List<MembershipInvitation> miList = membershipInvtnSubmissionDAO.getOpenByTeamAndUserInRange(teamIdAsLong, principalIdAsLong, now.getTime(), limit, offset);
 		long count = membershipInvtnSubmissionDAO.getOpenByTeamAndUserCount(teamIdAsLong, principalIdAsLong, now.getTime());
 		PaginatedResults<MembershipInvitation> results = new PaginatedResults<MembershipInvitation>();
+		results.setResults(miList);
+		results.setTotalNumberOfResults(count);
+		return results;
+	}
+
+	@Override
+	public PaginatedResults<MembershipInvtnSubmission> getOpenSubmissionsForTeamInRange(
+			UserInfo userInfo, String teamId, long limit, long offset) throws NotFoundException {
+		if (!authorizationManager.canAccess(userInfo, teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)) 
+			throw new UnauthorizedException("Cannot retrieve membership invitations for team "+teamId+".");
+		Date now = new Date();
+		long teamIdAsLong = Long.parseLong(teamId);
+		List<MembershipInvtnSubmission> miList = membershipInvtnSubmissionDAO.getOpenSubmissionsByTeamInRange(teamIdAsLong, now.getTime(), limit, offset);
+		long count = membershipInvtnSubmissionDAO.getOpenByTeamCount(teamIdAsLong, now.getTime());
+		PaginatedResults<MembershipInvtnSubmission> results = new PaginatedResults<MembershipInvtnSubmission>();
+		results.setResults(miList);
+		results.setTotalNumberOfResults(count);
+		return results;
+	}
+
+	@Override
+	public PaginatedResults<MembershipInvtnSubmission> getOpenSubmissionsForUserAndTeamInRange(
+			UserInfo userInfo, String inviteeId, String teamId, long limit,
+			long offset) throws DatastoreException, NotFoundException {
+		if (!authorizationManager.canAccess(userInfo, teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)) 
+			throw new UnauthorizedException("Cannot retrieve membership invitations for team "+teamId+".");
+		Date now = new Date();
+		long teamIdAsLong = Long.parseLong(teamId);
+		long inviteeIdAsLong = Long.parseLong(inviteeId);
+		List<MembershipInvtnSubmission> miList = membershipInvtnSubmissionDAO.getOpenSubmissionsByTeamAndUserInRange(teamIdAsLong, inviteeIdAsLong, now.getTime(), limit, offset);
+		long count = membershipInvtnSubmissionDAO.getOpenByTeamCount(teamIdAsLong, now.getTime());
+		PaginatedResults<MembershipInvtnSubmission> results = new PaginatedResults<MembershipInvtnSubmission>();
 		results.setResults(miList);
 		results.setTotalNumberOfResults(count);
 		return results;

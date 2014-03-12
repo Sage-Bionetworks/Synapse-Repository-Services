@@ -4,7 +4,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURRENT_
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_MD5;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_SIZE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_BENEFACTOR_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ETAG;
@@ -44,11 +43,11 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import org.joda.time.DateTime;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
-import org.sagebionetworks.ids.UuidETagGenerator;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -64,7 +63,6 @@ import org.sagebionetworks.repo.model.NodeParentRelation;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
-import org.sagebionetworks.repo.model.TagMessenger;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
@@ -75,6 +73,7 @@ import org.sagebionetworks.repo.model.jdo.JDORevisionUtils;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -104,8 +103,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String GET_REV_ACTIVITY_ID_SQL = "SELECT "+COL_REVISION_ACTIVITY_ID+" FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE+" = ? AND "+ COL_REVISION_NUMBER +" = ?";
 	private static final String GET_NODE_CREATED_BY_SQL = "SELECT "+COL_NODE_CREATED_BY+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
 	private static final String UPDATE_ETAG_SQL = "UPDATE "+TABLE_NODE+" SET "+COL_NODE_ETAG+" = ? WHERE "+COL_NODE_ID+" = ?";
-	private static final String SQL_COUNT_NODES = "SELECT COUNT("+COL_NODE_ID+") FROM "+TABLE_NODE;
-	private static final String SQL_SELECT_PARENT_TYPE_NAME = "SELECT "+COL_NODE_PARENT_ID+", "+COL_NODE_TYPE+", "+COL_NODE_NAME+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
+	private static final String SQL_SELECT_PARENT_TYPE_NAME = "SELECT "+COL_NODE_ID+", "+COL_NODE_PARENT_ID+", "+COL_NODE_TYPE+", "+COL_NODE_NAME+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
 	private static final String SQL_GET_ALL_CHILDREN_IDS = "SELECT "+COL_NODE_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" = ? ORDER BY "+COL_NODE_ID;
 	private static final String SQL_SELECT_VERSION_LABEL = "SELECT "+COL_REVISION_LABEL+" FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE+" = ? AND "+ COL_REVISION_NUMBER +" = ?";
 	private static final String NODE_IDS_LIST_PARAM_NAME = "NODE_IDS";
@@ -116,20 +114,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	 * To determine if a node has children we fetch the first child ID.
 	 */
 	private static final String SQL_GET_FIRST_CHILD = "SELECT "+COL_NODE_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" = ? LIMIT 1 OFFSET 0";
-
-	// get all ids, paginated
-	private static final String SQL_GET_NODES_PAGINATED =
-		"SELECT n."+COL_NODE_ID+", n."+COL_NODE_ETAG+
-		" FROM "+TABLE_NODE+" n "+
-		" ORDER BY n."+COL_NODE_ID+
-		" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
-	
-	// get all dependencies , paginated
-	private static final String SQL_GET_NODES_PAGINATED_DEPENDENCIES =
-		"SELECT n."+COL_NODE_ID+", n."+COL_NODE_ETAG+", n."+COL_NODE_PARENT_ID+", n."+COL_NODE_BENEFACTOR_ID+
-		" FROM "+TABLE_NODE+" n "+
-		" ORDER BY n."+COL_NODE_ID+
-		" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 
 	private static final String SQL_GET_ALL_VERSION_INFO_PAGINATED = "SELECT rr."
 			+ COL_REVISION_NUMBER + ", rr." + COL_REVISION_LABEL + ", rr."
@@ -166,8 +150,9 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
 	@Autowired
 	private IdGenerator idGenerator;
+	
 	@Autowired
-	private TagMessenger tagMessenger;
+	private TransactionalMessenger transactionalMessenger;
 
 	@Autowired
 	private DBOBasicDao dboBasicDao;
@@ -190,21 +175,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public String createNew(Node dto) throws NotFoundException, DatastoreException, InvalidModelException {
-		// By default we do not want to use any etag the user might provide
-		boolean forceUseEtag = false;
-		return createNodePrivate(dto, forceUseEtag);
-	}
-	
-	/**
-	 * The does the actual create.
-	 * @param dto
-	 * @param forceEtag When true, the Etag passed in the DTO will be used.
-	 * @return
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 */
-	private String createNodePrivate(Node dto, boolean forceEtag) throws DatastoreException,
-			NotFoundException, InvalidModelException {
 		if(dto == null) throw new IllegalArgumentException("Node cannot be null");
 		DBORevision rev = new DBORevision();
 		// Set the default label
@@ -249,16 +219,9 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			node.setBenefactorId(node.getId());
 		}
 
-		if(forceEtag){
-			if(dto.getETag() == null) throw new IllegalArgumentException("Cannot force the use of an ETag when the ETag is null");
-			// See PLFM-845.  We need to be able to force the use of an eTag when created from a backup.
-			node.seteTag(KeyFactory.urlDecode(dto.getETag()));
-			// Send a message without changing the etag;
-			tagMessenger.sendMessage(node, ChangeType.CREATE);
-		}else{
-			// Start it with a new e-tag
-			tagMessenger.generateEtagAndSendMessage(node, ChangeType.CREATE);
-		}
+		// Start it with a new e-tag
+		node.seteTag(UUID.randomUUID().toString());
+		transactionalMessenger.sendMessageAfterCommit(node, ChangeType.CREATE);
 
 		// Now create the revision
 		rev.setOwner(node.getId());
@@ -270,22 +233,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		}
 		dboBasicDao.createNew(rev);		
 		return KeyFactory.keyToString(node.getId());
-	}
-
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	@Override
-	public void createNewNodeFromBackup(Node node) throws NotFoundException, DatastoreException, InvalidModelException {
-		if(node == null) throw new IllegalArgumentException("Node cannot be null");
-		if(node.getETag() == null) throw new IllegalArgumentException("The backup node must have an etag");
-		if(node.getId() == null) throw new IllegalArgumentException("The backup node must have an id");
-		// The ID must not change
-		Long startingId = KeyFactory.stringToKey(node.getId());
-		// Create the node.
-		// We want to force the use of the current eTag. See PLFM-845
-		boolean forceUseEtag = true;
-		String id = this.createNodePrivate(node, forceUseEtag);
-		// validate that the ID is unchanged.
-		if(!startingId.equals(KeyFactory.stringToKey(id))) throw new DatastoreException("Creating a node from a backup changed the ID.");
 	}
 
 	/**
@@ -344,7 +291,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		Long nodeID = KeyFactory.stringToKey(id);
 		DBONode jdo =  getNodeById(nodeID);
 		// Remove the eTags (See PLFM-1420)
-		jdo.seteTag(UuidETagGenerator.ZERO_E_TAG);
+		jdo.seteTag(NodeConstants.ZERO_E_TAG);
 		DBORevision rev = getNodeRevisionById(nodeID, versionNumber);
 		return NodeUtils.copyFromJDO(jdo, rev);
 	}
@@ -355,7 +302,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		if(id == null) throw new IllegalArgumentException("NodeId cannot be null");
 		MapSqlParameterSource prams = getNodeParameters(KeyFactory.stringToKey(id));
 		// Send a delete message
-		tagMessenger.sendDeleteMessage(id, ObjectType.ENTITY);
+		transactionalMessenger.sendMessageAfterCommit(id, ObjectType.ENTITY, ChangeType.DELETE);
 		return dboBasicDao.deleteObjectByPrimaryKey(DBONode.class, prams);
 	}
 	
@@ -449,15 +396,15 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 					new AnnotationRowMapper(), KeyFactory.stringToKey(id), versionNumber);
 			// Remove the eTags (See PLFM-1420)
 			if (namedAnnos != null) {
-				namedAnnos.setEtag(UuidETagGenerator.ZERO_E_TAG);
+				namedAnnos.setEtag(NodeConstants.ZERO_E_TAG);
 			}
 			Annotations primaryAnnos = namedAnnos.getPrimaryAnnotations();
 			if (primaryAnnos != null) {
-				primaryAnnos.setEtag(UuidETagGenerator.ZERO_E_TAG);
+				primaryAnnos.setEtag(NodeConstants.ZERO_E_TAG);
 			}
 			Annotations additionalAnnos = namedAnnos.getAdditionalAnnotations();
 			if (additionalAnnos != null) {
-				additionalAnnos.setEtag(UuidETagGenerator.ZERO_E_TAG);
+				additionalAnnos.setEtag(NodeConstants.ZERO_E_TAG);
 			}
 			return namedAnnos;
 		}catch (EmptyResultDataAccessException e){
@@ -596,8 +543,9 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		}
 		// Get a new e-tag
 		DBONode node = getNodeById(longId);
-		tagMessenger.generateEtagAndSendMessage(node, changeType);
-		currentTag = node.geteTag();
+		node.seteTag(UUID.randomUUID().toString());
+		transactionalMessenger.sendMessageAfterCommit(node, changeType);
+		currentTag = node.getEtag();
 		// Update the e-tag
 		int updated = simpleJdbcTemplate.update(UPDATE_ETAG_SQL, currentTag, longId);
 		if(updated != 1) throw new ConflictingUpdateException("Failed to lock Node: "+longId);
@@ -615,18 +563,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void updateNode(Node updatedNode) throws NotFoundException, DatastoreException, InvalidModelException {
-		updateNodePrivate(updatedNode);
-	}
-
-	/**
-	 * The will do the actual update.
-	 * @param updatedNode
-	 * @param forceUseEtag When true, the Etag of the passed node will be applied.  This exists to support restoration. Under normal conditions it will be false.
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 */
-	private void updateNodePrivate(Node updatedNode) throws NotFoundException,
-			DatastoreException, InvalidModelException {
 		if(updatedNode == null) throw new IllegalArgumentException("Node to update cannot be null");
 		if(updatedNode.getId() == null) throw new IllegalArgumentException("Node to update cannot have a null ID");
 		Long nodeId = KeyFactory.stringToKey(updatedNode.getId());
@@ -644,29 +580,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		}
 		
 		dboBasicDao.update(revToUpdate);
-	}
-	
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	@Override
-	public void updateNodeFromBackup(Node toReplace) throws NotFoundException, DatastoreException {
-		if(toReplace == null) throw new IllegalArgumentException("Node to update cannot be null");
-		Long nodeId = KeyFactory.stringToKey(toReplace.getId());
-		DBONode jdoToUpdate = getNodeById(nodeId);
-		final String currentEtag = jdoToUpdate.geteTag();
-		NodeUtils.replaceFromDto(toReplace, jdoToUpdate);
-		final String newEtag = jdoToUpdate.geteTag();
-		// Delete all revisions.
-		simpleJdbcTemplate.update("DELETE FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE+" = ?", nodeId);
-		// Update the node.
-		try{
-			if (!newEtag.equals(currentEtag)) {
-				tagMessenger.sendMessage(jdoToUpdate, ChangeType.UPDATE);
-			}
-			dboBasicDao.update(jdoToUpdate);
-		}catch(IllegalArgumentException e){
-			// Check to see if this is a duplicate name exception.
-			checkExceptionDetails(toReplace.getName(), toReplace.getParentId(), e);
-		}
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -863,7 +776,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		if(versionNumber != null) {
 			versionLabel = getVersionLabel(nodeId, versionNumber);			
 		}
-		EntityHeader header = createHeaderFromParentTypeName(nodeId, ptn, versionNumber, versionLabel);
+		EntityHeader header = createHeaderFromParentTypeName(ptn, versionNumber, versionLabel);
 		return header;
 	}
 
@@ -889,8 +802,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			Long versionNumber = (Long)row.get(COL_REVISION_NUMBER);
 			String versionLabel = (String)row.get(COL_REVISION_LABEL);
 			ParentTypeName ptn = getParentTypeName(nodeId);
-			String nodeIdStr = KeyFactory.keyToString(nodeId);
-			EntityHeader header = createHeaderFromParentTypeName(nodeIdStr, ptn, versionNumber, versionLabel);
+			EntityHeader header = createHeaderFromParentTypeName(ptn, versionNumber, versionLabel);
 			entityHeaderList.add(header);
 		}
 
@@ -917,10 +829,9 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	 * @param ptn
 	 * @return the entity header
 	 */
-	public static EntityHeader createHeaderFromParentTypeName(String nodeId,
-			ParentTypeName ptn, Long versionNumber, String versionLabel) {
+	public static EntityHeader createHeaderFromParentTypeName(ParentTypeName ptn, Long versionNumber, String versionLabel) {
 		EntityHeader header = new EntityHeader();
-		header.setId(nodeId);
+		header.setId(KeyFactory.keyToString(ptn.getId()));
 		header.setName(ptn.getName());
 		header.setVersionNumber(versionNumber);
 		header.setVersionLabel(versionLabel);
@@ -939,6 +850,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		try{
 			Map<String, Object> row = simpleJdbcTemplate.queryForMap(SQL_SELECT_PARENT_TYPE_NAME, nodeId);
 			ParentTypeName results = new ParentTypeName();
+			results.setId((Long) row.get(COL_NODE_ID));
 			results.setName((String) row.get(COL_NODE_NAME));
 			results.setParentId((Long) row.get(COL_NODE_PARENT_ID));
 			results.setType(((Integer) row.get(COL_NODE_TYPE)).shortValue());
@@ -950,14 +862,74 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	}
 	
 	/**
+	 * returns up to n ancestors of nodeId, ordered from leaf to root and including the given node Id
+	 * 
+	 * @param nodeId
+	 * @param n
+	 * @return
+	 * @throws NotFoundException
+	 */
+	private List<ParentTypeName> getAncestorsPTN(Long nodeId, int depth) throws NotFoundException {
+		if(nodeId == null) throw new IllegalArgumentException("NodeId cannot be null");
+		Map<String, Object> row = null;
+		try {
+			row = simpleJdbcTemplate.queryForMap(nodeAncestorSQL(depth), nodeId);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException("Entity "+nodeId+" is not found.", e);
+		}
+		List<ParentTypeName> result = new ArrayList<ParentTypeName>();
+		for (int i=0; i<depth; i++) {
+			Long id = (Long)row.get(COL_NODE_ID+"_"+i);
+			if (id==null) break;
+			ParentTypeName ptn = new ParentTypeName();
+			ptn.setId(id);
+			ptn.setName((String)row.get(COL_NODE_NAME+"_"+i));
+			ptn.setParentId((Long)row.get(COL_NODE_PARENT_ID+"_"+i));
+			ptn.setType(((Integer)row.get(COL_NODE_TYPE+"_"+i)).shortValue());
+			result.add(ptn);
+		}
+		return result;
+	}
+	
+	public static String nodeAncestorSQL(int depth) {
+		if (depth<2) throw new IllegalArgumentException("Depth must be at least 1");
+		StringBuilder sb = new StringBuilder("SELECT ");
+		for (int i=0; i<depth; i++) {
+			if (i>0) sb.append(", ");
+			sb.append("n"+i+"."+COL_NODE_ID+" as "+COL_NODE_ID+"_"+i+", ");
+			sb.append("n"+i+"."+COL_NODE_NAME+" as "+COL_NODE_NAME+"_"+i+", ");
+			sb.append("n"+i+"."+COL_NODE_PARENT_ID+" as "+COL_NODE_PARENT_ID+"_"+i+", ");
+			sb.append("n"+i+"."+COL_NODE_TYPE+" as "+COL_NODE_TYPE+"_"+i);
+		}
+		sb.append(" \nFROM ");
+		sb.append(outerJoinElement(depth-1));
+		sb.append(" \nWHERE \nn0."+COL_NODE_ID+"=?");
+		return sb.toString();
+	}
+	
+	private static String outerJoinElement(int i) {
+		if (i<0) throw new IllegalArgumentException(""+i);
+		if (i==0) return "JDONODE n0";
+		return "("+outerJoinElement(i-1)+") \nLEFT OUTER JOIN JDONODE n"+(i)+" ON n"+(i-1)+".parent_id=n"+(i)+".id";
+	}
+	
+	/**
 	 * Simple structure for three basic pieces of information about a node.
 	 * @author jmhill
 	 *
 	 */
 	public  static class ParentTypeName {
+		Long id;
 		Long parentId;
 		Short type;
 		String name;
+		
+		public Long getId() {
+			return id;
+		}
+		public void setId(Long id) {
+			this.id = id;
+		}
 		public Long getParentId() {
 			return parentId;
 		}
@@ -982,12 +954,13 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	public List<EntityHeader> getEntityPath(String nodeId) throws DatastoreException, NotFoundException {
 		// Call the recursive method
 		LinkedList<EntityHeader> results = new LinkedList<EntityHeader>();
-		appendPath(results, KeyFactory.stringToKey(nodeId));
+		appendPathBatch(results, KeyFactory.stringToKey(nodeId));
 		return results;
 	}
 	
 	/**
 	 * A recursive method to build up the full path of of an entity.
+	 * The first EntityHeader will be the Root Node, and the last EntityHeader will be the requested Node.
 	 * @param results
 	 * @param nodeId
 	 * @throws NotFoundException 
@@ -996,7 +969,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private void appendPath(LinkedList<EntityHeader> results, Long nodeId) throws NotFoundException, DatastoreException{
 		// First Build the entity header for this node
 		ParentTypeName ptn = getParentTypeName(nodeId);
-		EntityHeader header = createHeaderFromParentTypeName(KeyFactory.keyToString(nodeId), ptn, null, null);
+		EntityHeader header = createHeaderFromParentTypeName(ptn, null, null);
 		// Add at the front
 		results.add(0, header);
 		if(ptn.getParentId() != null){
@@ -1004,6 +977,32 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			appendPath(results, ptn.getParentId());
 		}
 	}
+	
+	public static final int BATCH_PATH_DEPTH = 5;
+	
+	/**
+	 * A recursive method to build up the full path of of an entity, recursing in batch rather than one 
+	 * node at a time.
+	 * The first EntityHeader in the results will be the Root Node, and the last EntityHeader will be the requested Node.
+	 * @param results
+	 * @param nodeId
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	private void appendPathBatch(LinkedList<EntityHeader> results, Long nodeId) throws NotFoundException, DatastoreException{
+		List<ParentTypeName> ptns = getAncestorsPTN(nodeId, BATCH_PATH_DEPTH); // ordered from leaf to root, length always >=1
+		for (ParentTypeName ptn : ptns) {
+			EntityHeader header = createHeaderFromParentTypeName(ptn, null, null);
+			// Add at the front
+			results.add(0, header);
+		}
+		Long lastParentId = ptns.get(ptns.size()-1).getParentId();
+		if(lastParentId!= null){
+			// Recurse
+			appendPathBatch(results, lastParentId);
+		}
+	}
+	
 
 	@Override
 	public String getNodeIdForPath(String path) throws DatastoreException {

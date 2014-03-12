@@ -159,10 +159,8 @@ public class EntityManagerImpl implements EntityManager {
 				annos.getPrimaryAnnotations(), node.getReferences());
 		// Populate the entity using the node
 		NodeTranslationUtils.updateObjectFromNode(newEntity, node);
-		newEntity.setCreatedBy(userManager.getDisplayName(node
-				.getCreatedByPrincipalId()));
-		newEntity.setModifiedBy(userManager.getDisplayName(node
-				.getModifiedByPrincipalId()));
+		newEntity.setCreatedBy(node.getCreatedByPrincipalId().toString());
+		newEntity.setModifiedBy(node.getModifiedByPrincipalId().toString());
 		EntityWithAnnotations<T> ewa = new EntityWithAnnotations<T>();
 		ewa.setEntity(newEntity);
 		ewa.setAnnotations(annos.getAdditionalAnnotations());
@@ -449,7 +447,7 @@ public class EntityManagerImpl implements EntityManager {
 		// pass through
 		QueryResults<VersionInfo> versionsOfEntity = nodeManager.getVersionsOfEntity(userInfo, entityId, offset, limit);
 		for (VersionInfo version : versionsOfEntity.getResults()) {
-			version.setModifiedBy(userManager.getDisplayName(Long.parseLong(version.getModifiedByPrincipalId())));
+			version.setModifiedBy(version.getModifiedByPrincipalId());
 		}
 		return versionsOfEntity;
 	}
@@ -526,7 +524,7 @@ public class EntityManagerImpl implements EntityManager {
 	}
 
 	@Override
-	public S3AttachmentToken createS3AttachmentToken(String userId,
+	public S3AttachmentToken createS3AttachmentToken(Long userId,
 			String entityId, S3AttachmentToken token) throws UnauthorizedException, NotFoundException, DatastoreException, InvalidModelException{
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		validateUpdateAccess(userInfo, entityId);
@@ -534,7 +532,7 @@ public class EntityManagerImpl implements EntityManager {
 	}
 	
 	@Override
-	public PresignedUrl getAttachmentUrl(String userId, String entityId,
+	public PresignedUrl getAttachmentUrl(Long userId, String entityId,
 			String tokenId) throws NotFoundException, DatastoreException,
 			UnauthorizedException, InvalidModelException {
 		UserInfo userInfo = userManager.getUserInfo(userId);

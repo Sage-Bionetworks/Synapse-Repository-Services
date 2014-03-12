@@ -83,7 +83,7 @@ public class TeamController extends BaseController {
 	@RequestMapping(value = UrlHelpers.TEAM, method = RequestMethod.POST)
 	public @ResponseBody
 	Team createTeam(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody Team team) throws NotFoundException {
 		return serviceProvider.getTeamService().create(userId, team);
 	}
@@ -133,6 +133,16 @@ public class TeamController extends BaseController {
 		return serviceProvider.getTeamService().getByMember(id, limit, offset);
 	}
 	
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.TEAM_ID_MEMBER_ID, method = RequestMethod.GET)
+	public @ResponseBody
+	TeamMember getTeamMember(
+			@PathVariable String id,
+			@PathVariable String principalId
+			) throws NotFoundException {
+		return  serviceProvider.getTeamService().getMember(id, principalId);
+	}
+	
 	/**
 	 * Retrieve the metadata for a specified Team.
 	 * 
@@ -180,7 +190,7 @@ public class TeamController extends BaseController {
 	@RequestMapping(value = UrlHelpers.TEAM, method = RequestMethod.PUT)
 	public @ResponseBody
 	Team updateTeam(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody Team team
 			) throws NotFoundException {
 		return serviceProvider.getTeamService().update(userId, team);
@@ -197,7 +207,7 @@ public class TeamController extends BaseController {
 	@RequestMapping(value = UrlHelpers.TEAM_ID, method = RequestMethod.DELETE)
 	public void deleteTeam(
 			@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId
 			) throws NotFoundException {
 		serviceProvider.getTeamService().delete(userId, id);
 	}
@@ -218,7 +228,7 @@ public class TeamController extends BaseController {
 	public void addTeamMember(
 			@PathVariable String id,
 			@PathVariable String principalId,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId
 			) throws NotFoundException {
 		serviceProvider.getTeamService().addMember(userId, id, principalId);
 	}
@@ -238,7 +248,7 @@ public class TeamController extends BaseController {
 			@PathVariable String id,
 			@PathVariable String principalId,
 			@RequestParam(value = UrlHelpers.TEAM_PERMISSION_REQUEST_PARAMETER, required = true) Boolean isAdmin,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId
 			) throws NotFoundException {
 		serviceProvider.getTeamService().setPermissions(userId, id, principalId, isAdmin);
 	}
@@ -259,7 +269,7 @@ public class TeamController extends BaseController {
 	TeamMembershipStatus getTeamMembershipStatus(
 			@PathVariable String id,
 			@PathVariable String principalId,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId
 			) throws NotFoundException {
 		return serviceProvider.getTeamService().getTeamMembershipStatus(userId, id, principalId);
 	}
@@ -302,7 +312,7 @@ public class TeamController extends BaseController {
 	public void removeTeamMember(
 			@PathVariable String id,
 			@PathVariable String principalId,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId
 			) throws NotFoundException {
 		serviceProvider.getTeamService().removeMember(userId, id, principalId);
 	}	
@@ -318,7 +328,7 @@ public class TeamController extends BaseController {
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = UrlHelpers.TEAM_UPDATE_SEARCH_CACHE, method = RequestMethod.POST)
 	public void refreshCache(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId
 			) throws NotFoundException, DatastoreException, UnauthorizedException {
 		serviceProvider.getTeamService().refreshCache(userId);
 	}	

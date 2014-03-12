@@ -1,5 +1,10 @@
 package org.sagebionetworks.repo.manager.migration;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.when;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.Arrays;
@@ -9,10 +14,6 @@ import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
-
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
@@ -87,8 +88,6 @@ public class MigrationManagerImplTest {
 			out.close();
 		}
 		
-		System.out.println(out.toString());
-		
 		// now read back in
 		{
 			ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
@@ -110,6 +109,7 @@ public class MigrationManagerImplTest {
 		}
 		
 	}
+	
 	/**
 	 * 
 	 * @throws Exception
@@ -136,8 +136,6 @@ public class MigrationManagerImplTest {
 			BackupMarshalingUtils.writeBackupToStream(backupList, alias, out);
 			out.close();
 		}
-		
-		System.out.println(out.toString());
 		
 		// now read back in
 		{

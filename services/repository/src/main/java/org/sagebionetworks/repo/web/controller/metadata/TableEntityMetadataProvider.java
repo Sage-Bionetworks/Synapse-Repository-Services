@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.web.controller.metadata;
 
-import java.util.HashSet;
 import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
@@ -33,7 +32,7 @@ public class TableEntityMetadataProvider implements TypeSpecificMetadataProvider
 			List<String> columnIds = entity.getColumnIds();
 			if(columnIds == null || columnIds.size() < 1) throw new IllegalArgumentException("TableEntity.columnIds must contain at least one ColumnModel ID.");
 			// Bind the entity to these columns
-			columnModelManager.bindColumnToObject(event.getUserInfo(), new HashSet<String>(columnIds), entity.getId());
+			columnModelManager.bindColumnToObject(event.getUserInfo(), columnIds, entity.getId());
 		}	
 	}
 	

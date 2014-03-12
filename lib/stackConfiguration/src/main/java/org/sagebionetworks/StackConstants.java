@@ -52,6 +52,11 @@ public class StackConstants {
 	public static final String RDS_QUEUE_NAME_TEMPLATE = "%1$s-%2$s-rds-update-queue";
 	
 	/**
+	 * Template used for the name of the AWS SQS where message (to user) updates are pushed.
+	 */
+	public static final String MESSAGE_QUEUE_NAME_TEMPLATE = "%1$s-%2$s-message-send-queue";
+	
+	/**
 	 * Template used for the name of the AWS SQS where file updates are pushed.
 	 */
 	public static final String FILE_QUEUE_NAME_TEMPLATE = "%1$s-%2$s-file-update-queue";
@@ -67,6 +72,26 @@ public class StackConstants {
 	 */
 	public static final String UNSENT_MESSAGES_QUEUE_NAME_TEMPLATE = "%1$s-%2$s-unsent-messages-update-queue";
 	
+	/**
+	 * Template used for the name of the AWS SQS where ranges of change messages are pushed.
+	 */
+	public static final String PRINCIPAL_HEADER_QUEUE_NAME_TEMPLATE = "%1$s-%2$s-principal-header-update-queue";
+	
+	/**
+	 * Template used for the name of the AWS SQS where ranges of change messages are pushed.
+	 */
+	public static final String TABLE_CLUSTER_QUEUE_NAME_TEMPLATE = "%1$s-%2$s-table-cluster-queue";
+	
+	/**
+	 * The bucket containing all table row data.
+	 */
+	public static final String TABLE_ROW_CHANGE_BUCKET = "%1$s.table.row.changes";
+	
+	/**
+	 * The bucket containing all participant data.
+	 */
+	public static final String PARTICIPANT_DATA_BUCKET = "%1$s.ptdata";
+
 	/**
 	 * The bucket containing all access record data.
 	 */

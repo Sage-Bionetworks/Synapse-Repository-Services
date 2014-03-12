@@ -17,12 +17,10 @@ import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -40,12 +38,22 @@ public class AccessRequirementController extends BaseController {
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT, method = RequestMethod.POST)
 	public @ResponseBody
 	AccessRequirement createAccessRequirement(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@RequestBody AccessRequirement accessRequirement,
-			@RequestHeader HttpHeaders header,
-			HttpServletRequest request
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody AccessRequirement accessRequirement
 			) throws Exception {
 		return serviceProvider.getAccessRequirementService().createAccessRequirement(userId, accessRequirement);
+	}
+	
+
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID, method = RequestMethod.PUT)
+	public @ResponseBody
+	AccessRequirement updateAccessRequirement(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String requirementId,
+			@RequestBody AccessRequirement accessRequirement
+			) throws Exception {
+		return serviceProvider.getAccessRequirementService().updateAccessRequirement(userId, requirementId, accessRequirement);
 	}
 	
 
@@ -53,7 +61,7 @@ public class AccessRequirementController extends BaseController {
 	@RequestMapping(value = UrlHelpers.ENTITY_LOCK_ACCESS_REQURIEMENT, method = RequestMethod.POST)
 	public @ResponseBody
 	AccessRequirement createLockAccessRequirement(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String id
 			) throws Exception {
 		return serviceProvider.getAccessRequirementService().createLockAccessRequirement(userId, id);
@@ -75,7 +83,7 @@ public class AccessRequirementController extends BaseController {
 	public @ResponseBody
 	PaginatedResults<AccessRequirement>
 	 getUnfulfilledEntityAccessRequirement(
-				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(value = ID_PATH_VARIABLE) String entityId,
 			HttpServletRequest request
 			) throws DatastoreException, UnauthorizedException, NotFoundException {
@@ -90,7 +98,7 @@ public class AccessRequirementController extends BaseController {
 	public @ResponseBody
 	PaginatedResults<AccessRequirement>
 	 getEntityAccessRequirements(
-				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 				@PathVariable(value = ID_PATH_VARIABLE) String entityId,
 			HttpServletRequest request
 			) throws DatastoreException, UnauthorizedException, NotFoundException {
@@ -115,7 +123,7 @@ public class AccessRequirementController extends BaseController {
 	public @ResponseBody
 	PaginatedResults<AccessRequirement>
 	 getUnfulfilledEvaluationAccessRequirement(
-				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(value = EVALUATION_ID_PATH_VAR_WITHOUT_BRACKETS) String evaluationId,
 			HttpServletRequest request
 			) throws DatastoreException, UnauthorizedException, NotFoundException {
@@ -130,7 +138,7 @@ public class AccessRequirementController extends BaseController {
 	public @ResponseBody
 	PaginatedResults<AccessRequirement>
 	 getEvaluationAccessRequirements(
-				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 				@PathVariable(value = EVALUATION_ID_PATH_VAR_WITHOUT_BRACKETS) String evaluationId,
 			HttpServletRequest request
 			) throws DatastoreException, UnauthorizedException, NotFoundException {
@@ -140,10 +148,50 @@ public class AccessRequirementController extends BaseController {
 		return serviceProvider.getAccessRequirementService().getAccessRequirements(userId, subjectId);
 	}
 
+	/**
+	 * Retrieve a paginated list of unfulfilled access requirements (of type DOWNLOAD or PARTICIPATE) for a Team
+	 * @param userId
+	 * @param evaluationId
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.TEAM_ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID, method = RequestMethod.GET)
+	public @ResponseBody
+	PaginatedResults<AccessRequirement>
+	 getUnfulfilledTeamAccessRequirement(
+				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String id,
+			HttpServletRequest request
+			) throws DatastoreException, UnauthorizedException, NotFoundException {
+		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
+		subjectId.setId(id);
+		subjectId.setType(RestrictableObjectType.TEAM);
+		return serviceProvider.getAccessRequirementService().getUnfulfilledAccessRequirements(userId, subjectId);
+	}
+
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WITH_TEAM_ID, method = RequestMethod.GET)
+	public @ResponseBody
+	PaginatedResults<AccessRequirement>
+	 getTeamAccessRequirements(
+				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+				@PathVariable String id,
+			HttpServletRequest request
+			) throws DatastoreException, UnauthorizedException, NotFoundException {
+		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
+		subjectId.setId(id);
+		subjectId.setType(RestrictableObjectType.TEAM);
+		return serviceProvider.getAccessRequirementService().getAccessRequirements(userId, subjectId);
+	}
+
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID, method = RequestMethod.DELETE)
 	public void deleteAccessRequirements(
-				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable String requirementId,
 			HttpServletRequest request) throws DatastoreException, UnauthorizedException, NotFoundException {
 		serviceProvider.getAccessRequirementService().deleteAccessRequirements(userId, requirementId);

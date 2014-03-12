@@ -1,12 +1,24 @@
 package org.sagebionetworks.evaluation.dao;
 
-import static org.sagebionetworks.repo.model.query.SQLConstants.*;
+import static org.sagebionetworks.repo.model.query.SQLConstants.ANNO_BLOB;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_ANNO_ATTRIBUTE;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_ANNO_BLOB;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_ANNO_EVALID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_ANNO_IS_PRIVATE;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_ANNO_SUBID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_ANNO_VALUE;
+import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_SUBSTATUS_ANNO_BLOB;
+import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_SUBSTATUS_ANNO_OWNER;
+import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_SUBSTATUS_DOUBLEANNO;
+import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_SUBSTATUS_LONGANNO;
+import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_SUBSTATUS_STRINGANNO;
 
 import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+
 import org.sagebionetworks.evaluation.dbo.AnnotationsBlobDBO;
 import org.sagebionetworks.evaluation.dbo.AnnotationsOwnerDBO;
 import org.sagebionetworks.evaluation.dbo.DoubleAnnotationDBO;
@@ -19,6 +31,7 @@ import org.sagebionetworks.repo.model.annotation.LongAnnotation;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
 import org.sagebionetworks.repo.model.dbo.AnnotationDBOUtils;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.evaluation.AnnotationsDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;

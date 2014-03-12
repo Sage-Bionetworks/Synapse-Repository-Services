@@ -23,6 +23,9 @@
 	<import resource="classpath:worker-log-sweep-spb.xml" />
 	<import resource="classpath:message-queuer-sqs.xml" />
 	<import resource="classpath:message-popper-sqs-sns.xml" />
+	<import resource="classpath:message-to-user-sqs-spb.xml" />
+    <import resource="classpath:principal-header-sqs-spb.xml" />
+    <import resource="classpath:table-cluster-sqs-spb.xml" />
 
 	<bean id="mainScheduler"
 			class="org.springframework.scheduling.quartz.SchedulerFactoryBean"
@@ -41,6 +44,9 @@
 				<ref bean="workersLogSweeperTrigger" />
 				<ref bean="unsentMessageQueuerTrigger" />
 				<ref bean="unsentMessagePopperTrigger" />
+				<ref bean="messageToUserQueueMessageReceiverTrigger" />
+                <ref bean="principalHeaderQueueMessageReceiverTrigger" />
+                <ref bean="tableQueueMessageReveiverTrigger" />
 			</list>
 		</property>
 	</bean>

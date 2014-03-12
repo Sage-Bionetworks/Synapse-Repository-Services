@@ -25,7 +25,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessRequirement;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
@@ -62,7 +62,7 @@ public class AccessApprovalControllerAutowiredTest {
 
 	private static HttpServlet dispatchServlet;
 	
-	private String userName = AuthorizationConstants.ADMIN_USER_NAME;
+	private Long userId;
 	private UserInfo testUser;
 	private Project project;
 	private Evaluation evaluation;
@@ -88,14 +88,15 @@ public class AccessApprovalControllerAutowiredTest {
 		toDelete = new ArrayList<String>();
 		
 		entityServletTestHelper = new EntityServletTestHelper();
+		userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		
 		// Map test objects to their urls
 		// Make sure we have a valid user.
-		testUser = userManager.getUserInfo(userName);
+		testUser = userManager.getUserInfo(userId);
 		UserInfo.validateUserInfo(testUser);
 		project = new Project();
 		project.setName("createAtLeastOneOfEachType");
-		project = ServletTestHelper.createEntity(dispatchServlet, project, userName);
+		project = ServletTestHelper.createEntity(dispatchServlet, project, userId);
 		assertNotNull(project);
 		toDelete.add(project.getId());
 
@@ -108,14 +109,14 @@ public class AccessApprovalControllerAutowiredTest {
 		subjectId.setType(RestrictableObjectType.ENTITY);
 		entityAccessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{subjectId})); 
 		entityAccessRequirement = ServletTestHelper.createAccessRequirement(
-				 dispatchServlet, entityAccessRequirement, userName, extraParams);
+				 dispatchServlet, entityAccessRequirement, userId, extraParams);
 		
 		evaluation = new Evaluation();
 		evaluation.setName("name");
 		evaluation.setContentSource(project.getId());
 		evaluation.setDescription("description");
 		evaluation.setStatus(EvaluationStatus.OPEN);
-		evaluation = entityServletTestHelper.createEvaluation(evaluation, userName);
+		evaluation = entityServletTestHelper.createEvaluation(evaluation, userId);
 		
 		evaluationAccessRequirement = newAccessRequirement();
 		subjectId = new RestrictableObjectDescriptor();
@@ -123,17 +124,17 @@ public class AccessApprovalControllerAutowiredTest {
 		subjectId.setType(RestrictableObjectType.EVALUATION);
 		evaluationAccessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{subjectId})); 
 		evaluationAccessRequirement = ServletTestHelper.createAccessRequirement(
-				 dispatchServlet, evaluationAccessRequirement, userName, extraParams);
+				 dispatchServlet, evaluationAccessRequirement, userId, extraParams);
 		
 	}
 
 	@After
 	public void after() throws Exception {
-		ServletTestHelper.deleteAccessRequirements(dispatchServlet, entityAccessRequirement.getId().toString(), userName);
+		ServletTestHelper.deleteAccessRequirements(dispatchServlet, entityAccessRequirement.getId().toString(), userId);
 		if (entityController != null && toDelete != null) {
 			for (String idToDelete : toDelete) {
 				try {
-					entityController.deleteEntity(userName, idToDelete);
+					entityController.deleteEntity(userId, idToDelete);
 				} catch (NotFoundException e) {
 					// nothing to do here
 				} catch (DatastoreException e) {
@@ -141,9 +142,9 @@ public class AccessApprovalControllerAutowiredTest {
 				}
 			}
 		}
-		ServletTestHelper.deleteAccessRequirements(dispatchServlet, evaluationAccessRequirement.getId().toString(), userName);
+		ServletTestHelper.deleteAccessRequirements(dispatchServlet, evaluationAccessRequirement.getId().toString(), userId);
 		try {
-			entityServletTestHelper.deleteEvaluation(evaluation.getId(), userName);
+			entityServletTestHelper.deleteEvaluation(evaluation.getId(), userId);
 		} catch (Exception e) {
 		}
 	}
@@ -167,23 +168,23 @@ public class AccessApprovalControllerAutowiredTest {
 	public void testEntityAccessApprovalRoundTrip() throws Exception {
 		// create a new access approval
 		Map<String, String> extraParams = new HashMap<String, String>();
-		AccessApproval accessApproval = newToUAccessApproval(entityAccessRequirement.getId(), testUser.getIndividualGroup().getId());
+		AccessApproval accessApproval = newToUAccessApproval(entityAccessRequirement.getId(), testUser.getId().toString());
 		String entityId = project.getId();
 		AccessApproval clone = ServletTestHelper.createAccessApproval(
-				 dispatchServlet, accessApproval, userName, extraParams);
+				 dispatchServlet, accessApproval, userId, extraParams);
 		assertNotNull(clone);
 
 		// test getAccessApprovals for the entity
 		PaginatedResults<AccessApproval> results = ServletTestHelper.getEntityAccessApprovals(
-				dispatchServlet, entityId, userName);	
+				dispatchServlet, entityId, userId);	
 		List<AccessApproval> ars = results.getResults();
 		assertEquals(1, ars.size());
 		
 		// test deletion
-		ServletTestHelper.deleteAccessApprovals(dispatchServlet, ars.get(0).getId().toString(), userName);
+		ServletTestHelper.deleteAccessApprovals(dispatchServlet, ars.get(0).getId().toString(), userId);
 		
 		results = ServletTestHelper.getEntityAccessApprovals(
-				dispatchServlet, entityId, userName);	
+				dispatchServlet, entityId, userId);	
 		ars = results.getResults();
 		assertEquals(0, ars.size());
 	}
@@ -192,22 +193,22 @@ public class AccessApprovalControllerAutowiredTest {
 	public void testEvaluationAccessApprovalRoundTrip() throws Exception {
 		// create a new access approval
 		Map<String, String> extraParams = new HashMap<String, String>();
-		AccessApproval accessApproval = newToUAccessApproval(evaluationAccessRequirement.getId(), testUser.getIndividualGroup().getId());
+		AccessApproval accessApproval = newToUAccessApproval(evaluationAccessRequirement.getId(), testUser.getId().toString());
 		AccessApproval clone = ServletTestHelper.createAccessApproval(
-				 dispatchServlet, accessApproval, userName, extraParams);
+				 dispatchServlet, accessApproval, userId, extraParams);
 		assertNotNull(clone);
 
 		// test getAccessApprovals for the entity
 		PaginatedResults<AccessApproval> results = ServletTestHelper.getEvaluationAccessApprovals(
-				dispatchServlet, evaluation.getId(), userName);	
+				dispatchServlet, evaluation.getId(), userId);	
 		List<AccessApproval> ars = results.getResults();
 		assertEquals(1, ars.size());
 		
 		// test deletion
-		ServletTestHelper.deleteAccessApprovals(dispatchServlet, ars.get(0).getId().toString(), userName);
+		ServletTestHelper.deleteAccessApprovals(dispatchServlet, ars.get(0).getId().toString(), userId);
 		
 		results = ServletTestHelper.getEvaluationAccessApprovals(
-				dispatchServlet, evaluation.getId(), userName);	
+				dispatchServlet, evaluation.getId(), userId);	
 		ars = results.getResults();
 		assertEquals(0, ars.size());
 	}

@@ -1,48 +1,51 @@
 package org.sagebionetworks.repo.model;
 
-import java.util.Collection;
-
-import org.sagebionetworks.repo.model.util.UserGroupUtil;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  *  Contains both a user and the groups to which she belongs.
  */
 public class UserInfo {
 
-	private User user;
-
 	// ALL the groups the user belongs to, except "Public",
 	// which everyone implicitly belongs to, and "Administrators",
 	// which is encoded in the 'isAdmin' field
-	private Collection<UserGroup> groups;
-
-	// The user's individual group
-	private UserGroup individualGroup; 
-
+	private Set<Long> groups;
+	
 	private final boolean isAdmin;
 
-	public UserInfo(boolean isAdmin) {this.isAdmin = isAdmin;}
+	public UserInfo(boolean isAdmin) {
+		this.isAdmin = isAdmin;
+	}
+	
+	@Deprecated
+	public UserInfo(boolean isAdmin, String id){
+		this(isAdmin, Long.parseLong(id));
+	}
+	
+	/**
+	 * Helper to create a UserInfo
+	 * @param isAdmin
+	 * @param id
+	 */
+	public UserInfo(boolean isAdmin, Long id){
+		this.isAdmin = isAdmin;
+		this.id = id;
+		this.groups = new HashSet<Long>();
+		this.groups.add(this.id);
+	}
 
-	public boolean isAdmin() {return isAdmin;}
-
-	public User getUser() {return user;}
-
-	public void setUser(User user) {this.user = user;}
-
-	public Collection<UserGroup> getGroups() {
+	public Set<Long> getGroups() {
 		return groups;
 	}
+	
+	private Long id;
+	private Date creationDate;
 
-	public void setGroups(Collection<UserGroup> groups) {
+	public void setGroups(Set<Long> groups) {
 		this.groups = groups;
-	}
-
-	public UserGroup getIndividualGroup() {
-		return individualGroup;
-	}
-
-	public void setIndividualGroup(UserGroup individualGroup) {
-		this.individualGroup = individualGroup;
 	}
 
 	/**
@@ -51,17 +54,52 @@ public class UserInfo {
 	public static void validateUserInfo(UserInfo info) throws UserNotFoundException {
 
 		if (info == null) throw new IllegalArgumentException("UserInfo cannot be null");
-
-		User.validateUser(info.getUser());
-
-		UserGroupUtil.validate(info.getIndividualGroup());
-
-		// Validate each group
-		Collection<UserGroup> groups = info.getGroups();
-		if (groups != null) {
-			for (UserGroup group : groups) {
-				UserGroupUtil.validate(group);
-			}
-		}
 	}
+
+	public Long getId() {
+		return id;
+	}
+
+	public void setId(Long id) {
+		this.id = id;
+	}
+
+	public Date getCreationDate() {
+		return creationDate;
+	}
+
+	public void setCreationDate(Date creationDate) {
+		this.creationDate = creationDate;
+	}
+
+	public boolean isAdmin() {
+		return isAdmin;
+	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((id == null) ? 0 : id.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		UserInfo other = (UserInfo) obj;
+		if (id == null) {
+			if (other.id != null)
+				return false;
+		} else if (!id.equals(other.id))
+			return false;
+		return true;
+	}
+	
+	
 }

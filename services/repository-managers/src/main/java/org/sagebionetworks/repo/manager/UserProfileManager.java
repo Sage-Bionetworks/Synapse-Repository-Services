@@ -30,18 +30,19 @@ public interface UserProfileManager {
 			NotFoundException;
 
 	/**
-	 * Get the public profiles of the users in the system, paginated.
-	 */
-	public QueryResults<UserProfile> getInRange(UserInfo userInfo,
-			long startIncl, long endExcl, boolean includeEmail)
-			throws DatastoreException, NotFoundException;
-
-	/**
 	 * Update a UserProfile.
 	 */
 	public UserProfile updateUserProfile(UserInfo userInfo, UserProfile updated)
 			throws DatastoreException, UnauthorizedException,
 			InvalidModelException, NotFoundException;
+	
+	/**
+	 * Create a Users profile
+	 * @param userInfo
+	 * @param updated
+	 * @return
+	 */
+	public UserProfile createUserProfile(UserProfile updated);
 
 	/**
 	 * userId may not match the profileId
@@ -54,7 +55,7 @@ public interface UserProfileManager {
 	/**
 	 * return the preassigned url for the user profile attachment
 	 */
-	public PresignedUrl getUserProfileAttachmentUrl(UserInfo userInfo,
+	public PresignedUrl getUserProfileAttachmentUrl(Long userId,
 			String profileId, String tokenID) throws NotFoundException,
 			DatastoreException, UnauthorizedException, InvalidModelException;
 

@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFavorite;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserProfile;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
+import org.sagebionetworks.repo.model.message.Settings;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -36,7 +37,6 @@ public class UserProfileUtilsTest {
 		dto.setFirstName("foo");
 		dto.setLastName("bar");
 		dto.setRStudioUrl("http://rstudio.com");
-		dto.setDisplayName("foo bar");
 		dto.setEtag("0");
 		dto.setCompany("my company");
 		dto.setIndustry("my industry");
@@ -49,6 +49,8 @@ public class UserProfileUtilsTest {
 		picData.setTokenId("Fake token ID");
 		picData.setMd5("Fake MD5");
 		dto.setPic(picData);
+		dto.setNotificationSettings(new Settings());
+		dto.getNotificationSettings().setSendEmailNotifications(false);
 		
 		DBOUserProfile dbo = new DBOUserProfile();
 		UserProfileUtils.copyDtoToDbo(dto, dbo);
@@ -67,7 +69,6 @@ public class UserProfileUtilsTest {
 		dto.setFirstName("foo");
 		dto.setLastName("bar");
 		dto.setRStudioUrl("http://rstudio.com");
-		dto.setDisplayName("foo bar");
 		dto.setEtag("0");
 		dto.setCompany("my company");
 		dto.setIndustry("my industry");
@@ -102,7 +103,6 @@ public class UserProfileUtilsTest {
 		dto.setFirstName("foo");
 		dto.setLastName("bar");
 		dto.setRStudioUrl("http://rstudio.com");
-		dto.setDisplayName("foo bar");
 		dto.setEtag("0");
 
 		String jsonString = (String) UserProfile.class.getField(JSONEntity.EFFECTIVE_SCHEMA).get(null);
@@ -170,7 +170,6 @@ public class UserProfileUtilsTest {
 		dto.setFirstName("foo");
 		dto.setLastName("bar");
 		dto.setRStudioUrl("http://rstudio.com");
-		dto.setDisplayName("foo bar");
 		dto.setEtag("0");
 		DBOUserProfile dbo = new DBOUserProfile();
 		UserProfileUtils.copyDtoToDbo(dto, dbo);

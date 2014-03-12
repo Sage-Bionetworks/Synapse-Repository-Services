@@ -14,7 +14,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
@@ -22,8 +22,6 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.NodeQueryResults;
-import org.sagebionetworks.repo.model.User;
-import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
@@ -55,9 +53,6 @@ public class JDONodeQueryDAOSelectTest {
 	
 	@Autowired
 	private NodeDAO nodeDao;
-	
-	@Autowired
-	UserGroupDAO userGroupDAO;
 
 	private UserInfo mockUserInfo = null;
 	
@@ -73,9 +68,7 @@ public class JDONodeQueryDAOSelectTest {
 		mockUserInfo = Mockito.mock(UserInfo.class);
 		// All tests in the suite assume the user is an admin.
 		when(mockUserInfo.isAdmin()).thenReturn(true);
-		User mockUser = Mockito.mock(User.class);
-		when(mockUser.getUserId()).thenReturn("mock@sagebase.org");
-		when(mockUserInfo.getUser()).thenReturn(mockUser);
+		when(mockUserInfo.getId()).thenReturn(123L);
 		
 	}
 	
@@ -105,7 +98,7 @@ public class JDONodeQueryDAOSelectTest {
 	 * @throws DatastoreException
 	 */
 	private String createSingleNode(String name) throws NotFoundException,	DatastoreException, InvalidModelException  {
-		Long createdBy = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId());
+		Long createdBy = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		Node root = NodeTestUtils.createNew(name, createdBy);
 		String id = nodeDao.createNew(root);
 		nodeIds.add(id);

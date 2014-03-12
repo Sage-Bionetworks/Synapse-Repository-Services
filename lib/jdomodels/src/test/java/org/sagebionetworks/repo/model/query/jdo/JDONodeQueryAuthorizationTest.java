@@ -22,7 +22,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AsynchronousDAO;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -31,8 +31,8 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.NodeQueryResults;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
-import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -67,7 +67,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 	private AccessControlListDAO accessControlListDAO;
 	
 	@Autowired
-	AsynchronousDAO asynchronousDAO;
+	private AsynchronousDAO asynchronousDAO;
 	
 	private volatile static JDONodeQueryAuthorizationTest instance = null;
 
@@ -82,9 +82,9 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 	static private Node projectB;
 	static private String attributeName = "JDONodeQueryAuthorizationTest.LongAttName";
 	
-	static private Map<String, UserInfo> usersInGroupA;
-	static private Map<String, UserInfo> usersInGroupB;
-	static private Map<String, UserInfo> usersInBothGroups;
+	static private Map<Long, UserInfo> usersInGroupA;
+	static private Map<Long, UserInfo> usersInGroupB;
+	static private Map<Long, UserInfo> usersInBothGroups;
 	
 	static private Map<String, Node> nodesInProjectA;
 	static private Map<String, Node> nodesInProjectB;
@@ -155,16 +155,16 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		query.setSort("name");
 		query.setAscending(true);
 		// Try each of the Group A users
-		Iterator<String> it = usersInGroupA.keySet().iterator();
+		Iterator<Long> it = usersInGroupA.keySet().iterator();
 		while(it.hasNext()){
-			String name = it.next();
-			UserInfo userInfo = usersInGroupA.get(name);
+			Long userId = it.next();
+			UserInfo userInfo = usersInGroupA.get(userId);
 			long start = System.currentTimeMillis();
 			NodeQueryResults results = nodeQueryDao.executeQuery(query, userInfo);
 			long end = System.currentTimeMillis();
-			log.info("testUsersGroupAProjectQuery userId: "+name+" : "+(end-start)+"ms");
+			log.info("testUsersGroupAProjectQuery userId: "+userId+" : "+(end-start)+"ms");
 			assertNotNull(results);
-			assertEquals("User: "+name+" should have only been able to see one project.", 1, results.getTotalNumberOfResults());
+			assertEquals("User: "+userId+" should have only been able to see one project.", 1, results.getTotalNumberOfResults());
 			List<String> idList = results.getResultIds();
 			assertNotNull(idList);
 			assertEquals(1, idList.size());
@@ -185,16 +185,16 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		query.setSort("name");
 		query.setAscending(true);
 		// Try each of the Group A users
-		Iterator<String> it = usersInGroupB.keySet().iterator();
+		Iterator<Long> it = usersInGroupB.keySet().iterator();
 		while(it.hasNext()){
-			String name = it.next();
-			UserInfo userInfo = usersInGroupB.get(name);
+			Long userId = it.next();
+			UserInfo userInfo = usersInGroupB.get(userId);
 			long start = System.currentTimeMillis();
 			NodeQueryResults results = nodeQueryDao.executeQuery(query, userInfo);
 			long end = System.currentTimeMillis();
-			log.info("testUsersGroupBProjectQuery userId: "+name+" : "+(end-start)+"ms");
+			log.info("testUsersGroupBProjectQuery userId: "+userId+" : "+(end-start)+"ms");
 			assertNotNull(results);
-			assertEquals("User: "+name+" should have only been able to see one project.", 1, results.getTotalNumberOfResults());
+			assertEquals("User: "+userId+" should have only been able to see one project.", 1, results.getTotalNumberOfResults());
 			List<String> idList = results.getResultIds();
 			assertNotNull(idList);
 			assertEquals(1, idList.size());
@@ -215,16 +215,16 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		query.setSort("name");
 		query.setAscending(true);
 		// Try each of the Group A users
-		Iterator<String> it = usersInGroupA.keySet().iterator();
+		Iterator<Long> it = usersInGroupA.keySet().iterator();
 		while(it.hasNext()){
-			String name = it.next();
-			UserInfo userInfo = usersInGroupA.get(name);
+			Long userId = it.next();
+			UserInfo userInfo = usersInGroupA.get(userId);
 			long start = System.currentTimeMillis();
 			NodeQueryResults results = nodeQueryDao.executeQuery(query, userInfo);
 			long end = System.currentTimeMillis();
-			log.info("testUsersGroupADatasetQuery userId: "+name+" : "+(end-start)+"ms");
+			log.info("testUsersGroupADatasetQuery userId: "+userId+" : "+(end-start)+"ms");
 			assertNotNull(results);
-			assertEquals("User: "+name+" should have been able to see "+nodesInProjectA.size()+" datasets", nodesInProjectA.size(), results.getTotalNumberOfResults());
+			assertEquals("User: "+userId+" should have been able to see "+nodesInProjectA.size()+" datasets", nodesInProjectA.size(), results.getTotalNumberOfResults());
 			List<String> idList = results.getResultIds();
 			assertNotNull(idList);
 			assertEquals(nodesInProjectA.size(), idList.size());
@@ -246,17 +246,17 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		query.setSort("name");
 		query.setAscending(true);
 		// Try each of the Group A users
-		Iterator<String> it = usersInBothGroups.keySet().iterator();
+		Iterator<Long> it = usersInBothGroups.keySet().iterator();
 		while(it.hasNext()){
-			String name = it.next();
-			UserInfo userInfo = usersInBothGroups.get(name);
+			Long userId = it.next();
+			UserInfo userInfo = usersInBothGroups.get(userId);
 			long start = System.currentTimeMillis();
 			NodeQueryResults results = nodeQueryDao.executeQuery(query, userInfo);
 			long end = System.currentTimeMillis();
-			log.info("testUsersInBothGroupsDatasetQuery userId: "+name+" : "+(end-start)+"ms");
+			log.info("testUsersInBothGroupsDatasetQuery userId: "+userId+" : "+(end-start)+"ms");
 			assertNotNull(results);
 			int expectedTotalCount = nodesInProjectA.size() + nodesInProjectB.size();
-			assertEquals("User: "+name+" should have been able to see "+expectedTotalCount+" datasets", expectedTotalCount, results.getTotalNumberOfResults());
+			assertEquals("User: "+userId+" should have been able to see "+expectedTotalCount+" datasets", expectedTotalCount, results.getTotalNumberOfResults());
 			List<String> idList = results.getResultIds();
 			assertNotNull(idList);
 			assertEquals(expectedTotalCount, idList.size());
@@ -281,18 +281,18 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		query.setSort(attributeName);
 		query.setAscending(true);
 		query.addExpression(new Expression(new CompoundId(null, attributeName), Comparator.GREATER_THAN, 0));
-		Iterator<String> it = usersInGroupB.keySet().iterator();
+		Iterator<Long> it = usersInGroupB.keySet().iterator();
 		while(it.hasNext()){
-			String name = it.next();
-			UserInfo userInfo = usersInGroupB.get(name);
+			Long userId = it.next();
+			UserInfo userInfo = usersInGroupB.get(userId);
 			long start = System.currentTimeMillis();
 			NodeQueryResults results = nodeQueryDao.executeQuery(query, userInfo);
 			long end = System.currentTimeMillis();
-			log.info("testQueryWithAnnotations userId: "+name+" : "+(end-start)+"ms");
+			log.info("testQueryWithAnnotations userId: "+userId+" : "+(end-start)+"ms");
 			assertNotNull(results);
 			// The first node should be filtered out since it will have a value == 0
 			int expectedCount = nodesInProjectB.size()-1;
-			assertEquals("User: "+name+" should have been able to see "+expectedCount+" datasets", expectedCount, results.getTotalNumberOfResults());
+			assertEquals("User: "+userId+" should have been able to see "+expectedCount+" datasets", expectedCount, results.getTotalNumberOfResults());
 			List<String> idList = results.getResultIds();
 			assertNotNull(idList);
 			assertEquals(expectedCount, idList.size());
@@ -313,28 +313,18 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 	 * @throws InvalidModelException
 	 * @throws NotFoundException
 	 */
-	private UserInfo createUser(String name, boolean isAdmin) throws DatastoreException, InvalidModelException, NotFoundException{
-		User user = new User();
-		user.setUserId(name);
+	private UserInfo createUser(boolean isAdmin) throws DatastoreException, InvalidModelException, NotFoundException{
 		// Create a group for this user
-		String userGroupName = name+"group";
-		UserGroup group = userGroupDAO.findGroup(userGroupName, true); //new UserGroup();
-		String id = null;
-		if (group==null) {
-			group = new UserGroup();
-			group.setName(userGroupName);
-			group.setIsIndividual(true);
-			id = userGroupDAO.create(group);
-		} else {
-			id = group.getId();
-		}
-		groupsToDelete.add(id);
-		group = userGroupDAO.get(id);
+		UserGroup user = new UserGroup();
+		user.setIsIndividual(true);
+		Long id = userGroupDAO.create(user);
+		groupsToDelete.add(id.toString());
+		user = userGroupDAO.get(id);
 		UserInfo info = new UserInfo(isAdmin);
-		info.setUser(user);
-		info.setIndividualGroup(group);
-		info.setGroups(new ArrayList<UserGroup>());
-		info.getGroups().add(group);
+		info.setId(id);
+		info.setGroups(new HashSet<Long>());
+		// add the user to their own groups
+		info.getGroups().add(id);
 
 		return info;
 	}
@@ -347,18 +337,11 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 	 * @throws InvalidModelException
 	 * @throws NotFoundException
 	 */
-	private UserGroup createGroup(String name) throws DatastoreException, InvalidModelException, NotFoundException{
-		UserGroup group = userGroupDAO.findGroup(name, false);
-		String id = null;
-		if (group==null) { 
-			group = new UserGroup();
-			group.setName(name);
-			group.setIsIndividual(false);
-			id = userGroupDAO.create(group);
-		} else {
-			id = group.getId();
-		}
-		groupsToDelete.add(id);
+	private UserGroup createGroup() throws DatastoreException, InvalidModelException, NotFoundException{
+		UserGroup group = new UserGroup();
+		group.setIsIndividual(false);
+		Long id = userGroupDAO.create(group);
+		groupsToDelete.add(id.toString());
 		return userGroupDAO.get(id);
 	}
 
@@ -393,7 +376,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 	 */
 	@Override
 	public void afterPropertiesSet() throws Exception {
-		Long creatorUserGroupId = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId());
+		Long creatorUserGroupId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 
 		if(instance != null){
 			return;
@@ -405,38 +388,35 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		nodesToDelete = new ArrayList<String>();
 		groupsToDelete = new ArrayList<String>();
 		// Create some users
-		adminUser= createUser("admin@JDONodeQueryAuthorizationTest.org", true);
+		adminUser= createUser(true);
 		// Create two groups
-		groupA = createGroup("groupA@JDONodeQueryAuthorizationTest.org");
-		groupB = createGroup("groupB@JDONodeQueryAuthorizationTest.org");
+		groupA = createGroup();
+		groupB = createGroup();
 		// Create users in each group
-		usersInGroupA = new HashMap<String, UserInfo>();
+		usersInGroupA = new HashMap<Long, UserInfo>();
 		for(int i=0; i<10; i++){
 			// Create all of the users
-			String userId = "userInA"+i+"@JDONodeQueryAuthorizationTest.org";
-			UserInfo info = createUser(userId, false);
-			info.getGroups().add(groupA);
-			usersInGroupA.put(userId, info);
+			UserInfo info = createUser(false);
+			info.getGroups().add(Long.parseLong(groupA.getId()));
+			usersInGroupA.put(info.getId(), info);
 		}
 		// Create group b users
-		usersInGroupB = new HashMap<String, UserInfo>();
+		usersInGroupB = new HashMap<Long, UserInfo>();
 		for(int i=0; i<7; i++){
 			// Create all of the users
-			String userId = "userInB"+i+"@JDONodeQueryAuthorizationTest.org";
-			UserInfo info = createUser(userId, false);
-			info.getGroups().add(groupB);
-			usersInGroupB.put(userId, info);
+			UserInfo info = createUser(false);
+			info.getGroups().add(Long.parseLong(groupB.getId()));
+			usersInGroupB.put(info.getId(), info);
 		}
 		
 		// Create users in both groups
-		usersInBothGroups = new HashMap<String, UserInfo>();
+		usersInBothGroups = new HashMap<Long, UserInfo>();
 		for(int i=0; i<7; i++){
 			// Create all of the users
-			String userId = "userInBothA&B"+i+"@JDONodeQueryAuthorizationTest.org";
-			UserInfo info = createUser(userId, false);
-			info.getGroups().add(groupB);
-			info.getGroups().add(groupA);
-			usersInBothGroups.put(userId, info);
+			UserInfo info = createUser(false);
+			info.getGroups().add(Long.parseLong(groupB.getId()));
+			info.getGroups().add(Long.parseLong(groupA.getId()));
+			usersInBothGroups.put(info.getId(), info);
 		}
 		
 		// Now create the two projects
@@ -455,7 +435,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		access.setAccessType(new HashSet<ACCESS_TYPE>());
 		access.getAccessType().add(ACCESS_TYPE.READ);
 		acl.getResourceAccess().add(access);
-		accessControlListDAO.create(acl);
+		accessControlListDAO.create(acl, ObjectType.ENTITY);
 		// Project B
 		projectB = NodeTestUtils.createNew("projectB", creatorUserGroupId);
 		projectB.setNodeType(EntityType.project.name());
@@ -471,7 +451,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		access.setAccessType(new HashSet<ACCESS_TYPE>());
 		access.getAccessType().add(ACCESS_TYPE.READ);
 		acl.getResourceAccess().add(access);
-		accessControlListDAO.create(acl);
+		accessControlListDAO.create(acl, ObjectType.ENTITY);
 		
 		// Now add some nodes to each project.
 		nodesInProjectA = new HashMap<String, Node>();

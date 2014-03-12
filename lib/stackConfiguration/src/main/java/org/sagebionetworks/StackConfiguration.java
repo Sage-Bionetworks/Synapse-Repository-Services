@@ -199,6 +199,10 @@ public class StackConfiguration {
 		return configuration.getFileServiceEndpoint();
 	}
 
+	public static String getBridgeServiceEndpoint() {
+		return configuration.getBridgeServiceEndpoint();
+	}
+
 	/**
 	 * This is the bucket for workflow-related files such as configuration or
 	 * search document files. Each workflow should store stuff under its own
@@ -320,7 +324,17 @@ public class StackConfiguration {
 	 */
 	public String getRepositoryDatabaseDriver() {
 		return configuration
-				.getProperty("org.sagebionetworks.id.generator.database.driver");
+				.getProperty("org.sagebionetworks.repository.databaes.driver");
+	}
+	
+	/**
+	 * Driver for the repository service.
+	 * 
+	 * @return
+	 */
+	public String getTableDatabaseDriver() {
+		return configuration
+				.getProperty("org.sagebionetworks.table.databaes.driver");
 	}
 
 	/**
@@ -405,6 +419,13 @@ public class StackConfiguration {
 	public static int getHttpClientMaxConnsPerRoute() {
 		return configuration.getHttpClientMaxConnsPerRoute();
 	}
+	
+	/**
+	 * @return The username of the migration admin
+	 */
+	public static String getMigrationAdminUsername() {
+		return configuration.getProperty("org.sagebionetworks.migration.admin.username");
+	}
 
 	/**
 	 * @return The API key of the migration admin
@@ -412,94 +433,6 @@ public class StackConfiguration {
 	public static String getMigrationAdminAPIKey() {
 		return configuration
 				.getDecryptedProperty("org.sagebionetworks.migration.admin.apikey");
-	}
-
-	/**
-	 * @return The name of a user for integration tests
-	 */
-	public static String getIntegrationTestUserOneName() {
-		return configuration
-				.getProperty("org.sagebionetworks.integration.test.username.one");
-	}
-	
-	/**
-	 * @return The password of a user for integration tests
-	 */
-	public static String getIntegrationTestUserOnePassword() {
-		return configuration
-				.getProperty("org.sagebionetworks.integration.test.password.one");
-	}
-
-	/**
-	 * @return The name of a second user for integration tests
-	 */
-	public static String getIntegrationTestUserTwoName() {
-		return configuration
-				.getProperty("org.sagebionetworks.integration.test.username.two");
-	}
-
-	/**
-	 * @return The password of a second user for integration tests
-	 */
-	public static String getIntegrationTestUserTwoPassword() {
-		return configuration
-				.getProperty("org.sagebionetworks.integration.test.password.two");
-	}
-
-	/**
-	 * @return The name of a user for integration tests
-	 */
-	public static String getIntegrationTestUserThreeName() {
-		return configuration
-				.getProperty("org.sagebionetworks.integration.test.username.three");
-	}
-
-	/**
-	 * @return The password of a user for integration tests
-	 */
-	public static String getIntegrationTestUserThreePassword() {
-		return configuration
-				.getProperty("org.sagebionetworks.integration.test.password.three");
-	}
-
-	/**
-	 * @return The name of a user for integration tests
-	 */
-	public static String getIntegrationTestUserThreeDisplayName() {
-		return configuration
-				.getProperty("org.sagebionetworks.integration.test.displayname.three");
-	}
-
-	/**
-	 * @return The name of a second user for integration tests
-	 */
-	public static String getIntegrationTestUserAdminName() {
-		return configuration
-				.getProperty("org.sagebionetworks.integration.test.username.admin");
-	}
-
-	/**
-	 * @return The password of a second user for integration tests
-	 */
-	public static String getIntegrationTestUserAdminPassword() {
-		return configuration
-				.getProperty("org.sagebionetworks.integration.test.password.admin");
-	}
-
-	/**
-	 * @return The name of a user for integration tests
-	 */
-	public static String getIntegrationTestRejectTermsOfUseName() {
-		return configuration
-				.getProperty("org.sagebionetworks.integration.test.username.rejecttermsofuse");
-	}
-
-	/**
-	 * @return The password of a user for integration tests
-	 */
-	public static String getIntegrationTestRejectTermsOfUsePassword() {
-		return configuration
-				.getProperty("org.sagebionetworks.integration.test.password.rejecttermsofuse");
 	}
 
 	/**
@@ -527,6 +460,11 @@ public class StackConfiguration {
 		return Boolean
 				.parseBoolean(configuration
 						.getProperty("org.sagebionetworks.logging.sweeper.delete.enabled"));
+	}
+	
+	public static String getNotificationEmailAddress() {
+		return configuration
+				.getProperty("org.sagebionetworks.notification.email.address");
 	}
 
 	/**
@@ -560,6 +498,22 @@ public class StackConfiguration {
 	public long getCloudWatchTriggerTime() {
 		return Long.valueOf(configuration
 				.getProperty("org.sagebionetworks.cloud.watch.trigger"));
+	}
+
+	/**
+	 * @return whether the call performance profiler should be on or off boolean. True means on, false means off.
+	 */
+	public boolean getCallPerformanceOnOff() {
+		return Boolean.parseBoolean(configuration.getProperty("org.sagebionetworks.call.performance.report.enabled"));
+	}
+
+	/**
+	 * @return the time in milliseconds for the call performance profiler's trigger. It will trigger and log average
+	 *         call performance ever xxx milliseconds.
+	 */
+	public long getCallPerformanceTriggerTime() {
+		return Long.valueOf(configuration
+				.getProperty("org.sagebionetworks.call.performance.trigger"));
 	}
 
 	/**
@@ -632,6 +586,33 @@ public class StackConfiguration {
 	public boolean getSearchEnabled(){
 		return Boolean.parseBoolean(configuration
 				.getProperty("org.sagebionetworks.search.enabled"));
+	}
+	
+	/**
+	 * Is the Dynamo feature enabled?
+	 * @return
+	 */
+	public boolean getDynamoEnabled(){
+		return Boolean.parseBoolean(configuration
+				.getProperty("org.sagebionetworks.dynamo.enabled"));
+	}
+	
+	/**
+	 * Is the Table feature enabled?
+	 * @return
+	 */
+	public boolean getTableEnabled(){
+		return Boolean.parseBoolean(configuration
+				.getProperty("org.sagebionetworks.table.enabled"));
+	}
+
+	/**
+	 * Is the DOI feature enabled?
+	 * @return
+	 */
+	public boolean getDoiEnabled(){
+		return Boolean.parseBoolean(configuration
+				.getProperty("org.sagebionetworks.doi.enabled"));
 	}
 
 	/**
@@ -791,6 +772,17 @@ public class StackConfiguration {
 	}
 
 	/**
+	 * The name of the AWS SQS where message (to user) updates are pushed.
+	 * 
+	 * @return
+	 */
+	public String getMessageUpdateQueueName() {
+		return String.format(StackConstants.MESSAGE_QUEUE_NAME_TEMPLATE,
+				StackConfiguration.getStack(),
+				StackConfiguration.getStackInstance());
+	}
+
+	/**
 	 * The name of the AWS SQS where file updates are pushed.
 	 * 
 	 * @return
@@ -820,7 +812,24 @@ public class StackConfiguration {
 				StackConfiguration.getStack(),
 				StackConfiguration.getStackInstance());
 	}
+	
+	/**
+	 * @return The name of the AWS SQS where user identifier updates are pushed
+	 */
+	public String getPrincipalHeaderQueueName() {
+		return String.format(StackConstants.PRINCIPAL_HEADER_QUEUE_NAME_TEMPLATE,
+				StackConfiguration.getStack(),
+				StackConfiguration.getStackInstance());
+	}
 
+	public String getTableUpdateQueueName() {
+		return String.format(StackConstants.TABLE_CLUSTER_QUEUE_NAME_TEMPLATE,
+				StackConfiguration.getStack(),
+				StackConfiguration.getStackInstance());
+	}
+
+	
+	
 	/**
 	 * This is the size of a single file transfer memory block used as a buffer.
 	 * Note: Due to S3 limitations on the minimum size of a single part of a
@@ -993,6 +1002,15 @@ public class StackConfiguration {
 	}
 
 	/**
+	 * The maximum number of workers in the cluster that will send messages to users
+	 */
+	public Integer getSemaphoreGatedMaxRunnersMessageToUser() {
+		return Integer
+				.parseInt(configuration
+						.getProperty("org.sagebionetworks.semaphore.gated.max.runners.message.to.user"));
+	}
+
+	/**
 	 * The maximum number of workers in the cluster that will process search
 	 * index data
 	 * 
@@ -1058,6 +1076,21 @@ public class StackConfiguration {
 				.parseInt(configuration
 						.getProperty("org.sagebionetworks.semaphore.gated.max.runners.unsent.message.poppers"));
 	}
+	
+	/**
+	 * The maximum number of workers in the cluster that will update the PrincipalHeader table from SQS
+	 */
+	public Integer getSemaphoreGatedMaxRunnersPrincipalHeaderFiller() {
+		return Integer
+				.parseInt(configuration
+						.getProperty("org.sagebionetworks.semaphore.gated.max.runners.principal.header.filler"));
+	}
+	
+	public Integer getSemaphoreGatedMaxRunnersTableCluster() {
+		return Integer
+				.parseInt(configuration
+						.getProperty("org.sagebionetworks.semaphore.gated.max.runners.table.cluster"));
+	}
 	/**
 	 * The maximum number of workers in the cluster that will process
 	 * Annotations
@@ -1068,6 +1101,28 @@ public class StackConfiguration {
 		return Integer
 				.parseInt(configuration
 						.getProperty("org.sagebionetworks.semaphore.gated.max.runners.annotations"));
+	}
+	
+	/**
+	 * The maximum timeout for an exclusive lock in milliseconds.
+	 * 
+	 * @return
+	 */
+	public Integer getSemaphoreExclusiveMaxTimeoutMS() {
+		return Integer
+				.parseInt(configuration
+						.getProperty("org.sagebionetworks.semaphore.exclusive.max.timeout.ms"));
+	}
+	
+	/**
+	 * The maximum timeout for a shared lock in milliseconds.
+	 * 
+	 * @return
+	 */
+	public Integer getSemaphoreSharedMaxTimeoutMS() {
+		return Integer
+				.parseInt(configuration
+						.getProperty("org.sagebionetworks.semaphore.shared.max.timeout.ms"));
 	}
 
 	/**
@@ -1119,6 +1174,16 @@ public class StackConfiguration {
 	public static String getJiraUserPassword() {
 		return configuration
 				.getDecryptedProperty("org.sagebionetworks.repo.manager.jira.user.password");
+	}
+
+	public static String getBridgeDataMappingEncryptionKey() {
+		return "::TODO::";
+		// return configuration.getDecryptedProperty("org.sagebionetworks.bridge.data.mapping.encryptionkey");
+	}
+
+	public static String getBridgeDataEncryptionKey() {
+		return "::TODO::";
+		// return configuration.getDecryptedProperty("org.sagebionetworks.bridge.data.encryptionkey");
 	}
 
 	/**
@@ -1183,6 +1248,53 @@ public class StackConfiguration {
 	public static String getTrashFolderEntityIdStatic() {
 		return configuration
 				.getProperty("org.sagebionetworks.repo.model.bootstrap.trash.folder.entity.id");
+	}
+	
+
+	/**
+	 * Get the name of the table row bucket.
+	 * 
+	 * @return
+	 */
+	public String getTableRowChangeBucketName() {
+		return String.format(StackConstants.TABLE_ROW_CHANGE_BUCKET, StackConfiguration.getStack());
+	}
+	
+	/**
+	 * Get the name of the participant data bucket.
+	 * 
+	 * @return
+	 */
+	public String getParticipantDataBucketName() {
+		return String.format(StackConstants.PARTICIPANT_DATA_BUCKET, StackConfiguration.getStack());
+	}
+
+	/**
+	 * Get the name of the audit record bucket.
+	 * 
+	 * @return
+	 */
+	public int getTableMaxBytesPerRequest() {
+		return Integer.parseInt(configuration
+				.getProperty("org.sagebionetworks.table.max.bytes.per.request"));
+	}
+	/**
+	 * The maximum amount of time in MS that the table worker can hold the semaphore
+	 * lock on the table.
+	 * @return
+	 */
+	public long getTableWorkerTimeoutMS() {
+		return Long.parseLong(configuration
+				.getProperty("org.sagebionetworks.table.worker.timeout.ms"));
+	}
+	
+	/**
+	 * The maxiumn amount of time in MS that a table reader can hold a read lock on a table.
+	 * @return
+	 */
+	public long getTableReadTimeoutMS() {
+		return Long.parseLong(configuration
+				.getProperty("org.sagebionetworks.table.read.timeout.ms"));
 	}
 
 	/**

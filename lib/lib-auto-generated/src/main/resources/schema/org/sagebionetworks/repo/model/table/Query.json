@@ -1,0 +1,9 @@
+{
+    "title":"Query",
+    "properties":{
+        "sql":{
+            "type":"string",
+            "description":"The SQL query string."
+        }
+    }
+}

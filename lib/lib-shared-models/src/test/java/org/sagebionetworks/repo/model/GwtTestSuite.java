@@ -104,7 +104,7 @@ public class GwtTestSuite extends GWTTestCase {
 	
 	@Test
 	public void serviceConstantsTest() throws JSONObjectAdapterException, UnsupportedEncodingException{
-		assertNotNull(ServiceConstants.DEFAULT_PAGINATION_OFFSET);
+		assertNotNull(ServiceConstants.DEFAULT_PAGINATION_OFFSET_NO_OFFSET_EQUALS_ONE);
 	}
 	
 }

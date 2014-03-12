@@ -140,8 +140,46 @@ public class SqlConstants {
  	public static final String COL_PROCESSED_MESSAGES_TIME_STAMP	= "TIME_STAMP";
 	public static final String COL_PROCESSED_MESSAGES_QUEUE_NAME	= "QUEUE_NAME";
  	public static final String DDL_PROCESSED_MESSAGES				= "schema/ProcessedMessages-ddl.sql";
+ 	
+ 	// Message content
+ 	public static final String TABLE_MESSAGE_CONTENT                = "MESSAGE_CONTENT";
+ 	public static final String COL_MESSAGE_CONTENT_ID               = "ID";
+ 	public static final String COL_MESSAGE_CONTENT_CREATED_BY       = "CREATED_BY";
+ 	public static final String COL_MESSAGE_CONTENT_FILE_HANDLE_ID   = "FILE_HANDLE_ID";
+ 	public static final String COL_MESSAGE_CONTENT_CREATED_ON       = "CREATED_ON";
+ 	public static final String COL_MESSAGE_CONTENT_ETAG             = "ETAG";
+ 	public static final String DDL_MESSAGE_CONTENT                  = "schema/MessageContent-ddl.sql";
+ 	
+ 	// Message to user
+ 	public static final String TABLE_MESSAGE_TO_USER                = "MESSAGE_TO_USER";
+ 	public static final String COL_MESSAGE_TO_USER_MESSAGE_ID       = "MESSAGE_ID";
+ 	public static final String COL_MESSAGE_TO_USER_ROOT_ID          = "ROOT_MESSAGE_ID";
+ 	public static final String COL_MESSAGE_TO_USER_REPLY_TO_ID      = "IN_REPLY_TO";
+ 	public static final String COL_MESSAGE_TO_USER_SUBJECT          = "SUBJECT";
+ 	public static final String COL_MESSAGE_TO_USER_SENT       		= "SENT";
+ 	public static final String DDL_MESSAGE_TO_USER                  = "schema/MessageToUser-ddl.sql";
+ 	
+ 	// Message recipient
+ 	public static final String TABLE_MESSAGE_RECIPIENT              = "MESSAGE_RECIPIENT";
+ 	public static final String COL_MESSAGE_RECIPIENT_MESSAGE_ID     = "MESSAGE_ID";
+ 	public static final String COL_MESSAGE_RECIPIENT_ID             = "RECIPIENT_ID";
+ 	public static final String DDL_MESSAGE_RECIPIENT                = "schema/MessageRecipient-ddl.sql";
+ 	
+ 	// Message status
+ 	public static final String TABLE_MESSAGE_STATUS                 = "MESSAGE_STATUS";
+ 	public static final String COL_MESSAGE_STATUS_MESSAGE_ID        = "MESSAGE_ID";
+ 	public static final String COL_MESSAGE_STATUS_RECIPIENT_ID      = "RECIPIENT_ID";
+ 	public static final String COL_MESSAGE_STATUS                   = "STATUS";
+ 	public static final String DDL_MESSAGE_STATUS                   = "schema/MessageStatus-ddl.sql";
+ 	
+ 	// Comment
+ 	public static final String TABLE_COMMENT                        = "COMMENT";
+ 	public static final String COL_COMMENT_MESSAGE_ID               = "MESSAGE_ID";
+ 	public static final String COL_COMMENT_OBJECT_TYPE              = "OBJECT_TYPE";
+ 	public static final String COL_COMMENT_OBJECT_ID                = "OBJECT_ID";
+ 	public static final String DDL_COMMENT                          = "schema/Comment-ddl.sql";
 
-	// The file metada table
+	// The file metadata table
 	public static final String TABLE_FILES							= "FILES";
 	public static final String COL_FILES_ID							= "ID";
 	public static final String COL_FILES_ETAG						= "ETAG";
@@ -194,11 +232,18 @@ public class SqlConstants {
 	public static final String TABLE_USER_GROUP				= "JDOUSERGROUP";
 	public static final String TABLE_USER_GROUP_USERS		= "JDOUSERGROUPUSERS";
 	public static final String COL_USER_GROUP_ID			= "ID";
-	public static final String COL_USER_GROUP_NAME 			= "NAME";
 	public static final String COL_USER_GROUP_IS_INDIVIDUAL = "ISINDIVIDUAL";
 	public static final String COL_USER_GROUP_E_TAG         = "ETAG";
 	public static final String COL_USER_GROUP_CREATION_DATE = "CREATION_DATE";
 	public static final String DDL_FILE_USER_GROUP			="schema/UserGroup-ddl.sql";
+	
+	// Principal headers table
+	public static final String TABLE_PRINCIPAL_HEADER              = "PRINCIPAL_HEADER";
+	public static final String COL_PRINCIPAL_HEADER_ID             = "PRINCIPAL_ID";
+	public static final String COL_PRINCIPAL_HEADER_FRAGMENT       = "FRAGMENT";
+	public static final String COL_PRINCIPAL_HEADER_SOUNDEX        = "SOUNDEX";
+	public static final String COL_PRINCIPAL_HEADER_PRINCIPAL_TYPE = "PRINCIPAL_TYPE";
+	public static final String COL_PRINCIPAL_HEADER_DOMAIN_TYPE    = "DOMAIN_TYPE";
     
     // The group members table
     public static final String TABLE_GROUP_MEMBERS         = "GROUP_MEMBERS";
@@ -207,7 +252,9 @@ public class SqlConstants {
     public static final String DDL_FILE_GROUP_MEMBERS      = "schema/GroupMembers-ddl.sql";
 
 	public static final String TABLE_ACCESS_CONTROL_LIST  = "ACL";
-	public static final String COL_ACL_ID                 = "ID";
+	public static final String COL_ACL_ID          = "ID";
+	public static final String COL_ACL_OWNER_ID           = "OWNER_ID";
+	public static final String COL_ACL_OWNER_TYPE               = "OWNER_TYPE";
 	public static final String COL_ACL_ETAG               = "ETAG";
 	public static final String COL_ACL_CREATED_ON         = "CREATED_ON";
 	public static final String DDL_FILE_ACL               = "schema/ACL-ddl.sql";
@@ -307,12 +354,54 @@ public class SqlConstants {
 	public static final String COL_CM_BYTES					= "BYTES";
 	public static final String DDL_COLUMN_MODEL = "schema/ColumnModel-ddl.sql";
 	
+	// This table controls IDs issued to TableEntities.
+	public static final String TABLE_TABLE_ID_SEQUENCE		= "TABLE_ID_SEQUENCE";
+	public static final String COL_ID_SEQUENCE_TABLE_ID		= "TABLE_ID";
+	public static final String COL_ID_SEQUENCE_TABLE_ETAG	= "ETAG";
+	public static final String COL_ID_SEQUENCE_VERSION		= "ROW_VERSION";
+	public static final String COL_ID_SEQUENCE				= "SEQUENCE";
+	public static final String DDL_TABLE_ID_SEQUENCE = "schema/TableIdSequence-ddl.sql";
+	
+	// The table row changes
+	public static final String TABLE_ROW_CHANGE				= "TABLE_ROW_CHANGE";
+	public static final String COL_TABLE_ROW_TABLE_ID		= "TABLE_ID";
+	public static final String COL_TABLE_ROW_TABLE_ETAG		= "ETAG";
+	public static final String COL_TABLE_ROW_VERSION		= "ROW_VERSION";
+	public static final String COL_TABLE_ROW_COL_IDS		= "COLUMN_IDS";
+	public static final String COL_TABLE_ROW_CREATED_BY		= "CREATED_BY";
+	public static final String COL_TABLE_ROW_CREATED_ON		= "CREATED_ON";
+	public static final String COL_TABLE_ROW_BUCKET			= "S3_BUCKET";
+	public static final String COL_TABLE_ROW_KEY			= "S3_KEY";
+	public static final String COL_TABLE_ROW_COUNT			= "ROW_COUNT";
+	public static final String DDL_TABLE_ROW_CHANGE = "schema/TableRowChange-ddl.sql";
+	
 	// The bound column model table
 	public static final String TABLE_BOUND_COLUMN			= "BOUND_COLUMN";
 	public static final String COL_BOUND_CM_COLUMN_ID		= "COLUMN_ID";
 	public static final String COL_BOUND_CM_OBJECT_ID		= "OBJECT_ID";
-	public static final String COL_BOUND_CM_IS_CURRENT		= "IS_CURRENT";
+	public static final String COL_BOUND_CM_UPDATED_ON		= "UPDATED_ON";
 	public static final String DDL_BOUND_COLUMN = "schema/BoundColumn-ddl.sql";
+	
+	// The bound column ordinal model table
+	public static final String TABLE_BOUND_COLUMN_ORDINAL		= "BOUND_COLUMN_ORDINAL";
+	public static final String COL_BOUND_CM_ORD_COLUMN_ID		= "COLUMN_ID";
+	public static final String COL_BOUND_CM_ORD_OBJECT_ID		= "OBJECT_ID";
+	public static final String COL_BOUND_CM_ORD_ORDINAL			= "ORDINAL";
+	public static final String DDL_BOUND_COLUMN_ORDINAL = "schema/BoundColumnOrdinal-ddl.sql";
+	
+	// The bound column ordinal model table
+	public static final String TABLE_STATUS							= "TABLE_STATUS";
+	public static final String COL_TABLE_STATUS_ID					= "TABLE_ID";
+	public static final String COL_TABLE_STATUS_STATE				= "STATE";
+	public static final String COL_TABLE_STATUS_RESET_TOKEN			= "RESET_TOKEN";
+	public static final String COL_TABLE_STATUS_STARTED_ON			= "STARTED_ON";
+	public static final String COL_TABLE_STATUS_CHANGE_ON			= "CHANGED_ON";
+	public static final String COL_TABLE_STATUS_PROGRESS_MESSAGE	= "PROGRESS_MESSAGE";
+	public static final String COL_TABLE_STATUS_PROGRESS_CURRENT	= "PROGRESS_CURRENT";
+	public static final String COL_TABLE_STATUS_PROGRESS_TOTAL		= "PROGRESS_TOTAL";
+	public static final String COL_TABLE_STATUS_ERROR_MESSAGE		= "ERROR_MESSAGE";
+	public static final String COL_TABLE_STATUS_ERROR_DETAILS		= "ERROR_DETAILS";
+	public static final String COL_TABLE_STATUS_RUNTIME_MS			= "RUNTIME_MS";
 	
 	// The wiki attachment table
 	public static final String TABLE_WIKI_ATTACHMENT				= "WIKI_ATTACHMENTS";
@@ -403,6 +492,19 @@ public class SqlConstants {
 	public static final String COL_SEMAPHORE_EXPIRES	= "EXPIRATION";
 	public static final String DDL_FILE_SEMAPHORE		= "schema/Semaphore-ddl.sql";
 	
+	// Exclusive semaphore
+	public static final String TABLE_EXCLUSIVE_SEMAPHORE 				= "EXCLUSIVE_SEMAPHORE";
+	public static final String COL_EXCLUSIVE_SEMAPHORE_KEY				= "SEMAPHORE_KEY";
+	public static final String COL_EXCLUSIVE_SEMAPHORE_PRECURSOR_TOKEN	= "PRECURSOR_TOKEN";
+	public static final String COL_EXCLUSIVE_SEMAPHORE_LOCK_TOKEN		= "LOCK_TOKEN";
+	public static final String COL_EXCLUSIVE_SEMAPHORE_EXPIRES			= "EXPIRATION";
+	
+	// Shared semaphore
+	public static final String TABLE_SHARED_SEMAPHORE 				= "SHARED_SEMAPHORE";
+	public static final String COL_SHARED_SEMAPHORE_KEY				= "SEMAPHORE_KEY";
+	public static final String COL_SHARED_SEMAPHORE_LOCK_TOKEN		= "LOCK_TOKEN";
+	public static final String COL_SHARED_SEMAPHORE_EXPIRES			= "EXPIRATION";
+
 	// Upload status
 	public static final String TABLE_UPLOAD_STATUS					= "UPLOAD_STATUS";
 	public static final String COL_UPLOAD_STATUS_ID					= "ID";
@@ -425,20 +527,41 @@ public class SqlConstants {
 	// Credential
 	public static final String TABLE_CREDENTIAL             = "CREDENTIAL";
 	public static final String COL_CREDENTIAL_PRINCIPAL_ID  = "PRINCIPAL_ID";
-	public static final String COL_CREDENTIAL_VALIDATED_ON  = "VALIDATED_ON";
-	public static final String COL_CREDENTIAL_SESSION_TOKEN = "SESSION_TOKEN";
 	public static final String COL_CREDENTIAL_PASS_HASH     = "PASS_HASH";
 	public static final String COL_CREDENTIAL_SECRET_KEY    = "SECRET_KEY";
-	public static final String COL_CREDENTIAL_TOU           = "AGREES_TO_TERMS_OF_USE";
 	public static final String DDL_CREDENTIAL               = "schema/Credential-ddl.sql";
-
+	
+	// Session token
+	public static final String TABLE_SESSION_TOKEN             = "SESSION_TOKEN";
+	public static final String COL_SESSION_TOKEN_PRINCIPAL_ID  = "PRINCIPAL_ID";
+	public static final String COL_SESSION_TOKEN_VALIDATED_ON  = "VALIDATED_ON";
+	public static final String COL_SESSION_TOKEN_DOMAIN  	   = "DOMAIN";
+	public static final String COL_SESSION_TOKEN_SESSION_TOKEN = "SESSION_TOKEN";
+	
+	// Terms of use agreement
+	public static final String TABLE_TERMS_OF_USE_AGREEMENT             = "TERMS_OF_USE_AGREEMENT";
+	public static final String COL_TERMS_OF_USE_AGREEMENT_PRINCIPAL_ID  = "PRINCIPAL_ID";
+	public static final String COL_TERMS_OF_USE_AGREEMENT_DOMAIN  		= "DOMAIN";
+	public static final String COL_TERMS_OF_USE_AGREEMENT_AGREEMENT     = "AGREES_TO_TERMS_OF_USE";
+	
 	// The Team table
 	public static final String TABLE_TEAM				= "TEAM";
 	public static final String COL_TEAM_ID				= "ID";
 	public static final String COL_TEAM_ETAG			= "ETAG";
 	public static final String COL_TEAM_PROPERTIES		= "PROPERTIES";
 	public static final String DDL_FILE_TEAM = "schema/Team-ddl.sql";
-
+	
+	// This table holds the binding of principal IDs to alias.
+	// These alias can be used to lookup a principal.
+	public static final String TABLE_PRINCIPAL_ALIAS 				= "PRINCIPAL_ALIAS";
+	public static final String COL_PRINCIPAL_ALIAS_ID 				= "ID";
+	public static final String COL_PRINCIPAL_ALIAS_ETAG				= "ETAG";
+	public static final String COL_PRINCIPAL_ALIAS_PRINCIPAL_ID		= "PRINCIPAL_ID";
+	public static final String COL_PRINCIPAL_ALIAS_UNIQUE			= "ALIAS_UNIQUE";
+	public static final String COL_BOUND_ALIAS_DISPLAY				= "ALIAS_DISPLAY";
+	public static final String COL_PRINCIPAL_ALIAS_TYPE				= "TYPE";
+	public static final String COL_PRINCIPAL_ALIAS_IS_VALIDATED		= "IS_VALIDATED";
+	public static final String CONSTRAINT_PRINCIPAL_ALIAS_UNIQUE 	= "UNIQUE KEY `PRINCIPAL_ALIAS_UNIQUE` (`"+COL_PRINCIPAL_ALIAS_UNIQUE+"`)";
 	
 	// MembershipInvitation Table
 	public static final String TABLE_MEMBERSHIP_INVITATION_SUBMISSION	= "MEMBERSHIP_INVITATION_SUBMISSION";
@@ -446,14 +569,9 @@ public class SqlConstants {
 	public static final String COL_MEMBERSHIP_INVITATION_SUBMISSION_CREATED_ON		= "CREATED_ON";
 	public static final String COL_MEMBERSHIP_INVITATION_SUBMISSION_TEAM_ID			= "TEAM_ID";
 	public static final String COL_MEMBERSHIP_INVITATION_SUBMISSION_EXPIRES_ON		= "EXPIRES_ON";
+	public static final String COL_MEMBERSHIP_INVITATION_SUBMISSION_INVITEE_ID		= "INVITEE_ID";
 	public static final String COL_MEMBERSHIP_INVITATION_SUBMISSION_PROPERTIES		= "PROPERTIES";
 	public static final String DDL_FILE_MEMBERSHIP_INVITATION_SUBMISSION	= "schema/MembershipInvitationSubmission-ddl.sql";
-	
-	// Membership-Invitee Table
-	public static final String TABLE_MEMBERSHIP_INVITEE = "MEMBERSHIP_INVITEE";
-	public static final String COL_MEMBERSHIP_INVITEE_INVITATION_ID		= "MEMBERSHIP_INVITATION_ID";
-	public static final String COL_MEMBERSHIP_INVITEE_INVITEE_ID		= "INVITEE_ID";
-	public static final String DDL_FILE_MEMBERSHIP_INVITEE_SUBMISSION	= "schema/Membership-Invitee-ddl.sql";
 	
 	// MembershipRequest Table
 	public static final String TABLE_MEMBERSHIP_REQUEST_SUBMISSION	= "MEMBERSHIP_REQUEST_SUBMISSION";
@@ -464,6 +582,51 @@ public class SqlConstants {
 	public static final String COL_MEMBERSHIP_REQUEST_SUBMISSION_EXPIRES_ON		= "EXPIRES_ON";
 	public static final String COL_MEMBERSHIP_REQUEST_SUBMISSION_PROPERTIES		= "PROPERTIES";
 	public static final String DDL_FILE_MEMBERSHIP_REQUEST_SUBMISSION	= "schema/MembershipRequestSubmission-ddl.sql";
+
+	// The community team table
+	public static final String TABLE_COMMUNITY_TEAM = "COMMUNITY_TEAM";
+	public static final String COL_COMMUNITY_TEAM_COMMUNITY_ID = "COMMUNITY_ID";
+	public static final String COL_COMMUNITY_TEAM_TEAM_ID = "TEAM_ID";
+
+	// User to participant mapping
+	public static final String TABLE_USER_PARTICIPANT_MAP = "USER_PARTICIPANT_MAP";
+	public static final String COL_USER_PARTICIPANT_MAP_USER_ID = "ID";
+	public static final String COL_USER_PARTICIPANT_MAP_MAP = "MAP";
+
+	// Participant
+	public static final String TABLE_PARTICIPANT = "PARTICIPANT";
+	public static final String COL_PARTICIPANT_ID = "ID";
+
+	// Participant data sets descriptor
+	public static final String TABLE_PARTICIPANT_DATA_DESCRIPTOR = "PARTICIPANT_DATA_DESCRIPTOR";
+	public static final String COL_PARTICIPANT_DATA_DESCRIPTOR_ID = "ID";
+	public static final String COL_PARTICIPANT_DATA_DESCRIPTOR_NAME = "NAME";
+	public static final String COL_PARTICIPANT_DATA_DESCRIPTOR_DESCRIPTION = "DESCRIPTION";
+	public static final String COL_PARTICIPANT_DATA_DESCRIPTOR_TYPE = "TYPE";
+	public static final String COL_PARTICIPANT_DATA_DESCRIPTOR_REPEAT_TYPE = "REPEAT_TYPE";
+	public static final String COL_PARTICIPANT_DATA_DESCRIPTOR_FREQUENCY = "FREQUENCY";
+	public static final String COL_PARTICIPANT_DATA_DESCRIPTOR_DATETIME_START_COLUMN_NAME = "DATETIME_START_COLUMN_NAME";
+	public static final String COL_PARTICIPANT_DATA_DESCRIPTOR_EVENT_COLUMN_NAME = "EVENT_COLUMN_NAME";
+
+	// Participant data sets column descriptor
+	public static final String TABLE_PARTICIPANT_DATA_COLUMN_DESCRIPTOR = "PARTICIPANT_DATA_COLUMN_DESCRIPTOR";
+	public static final String COL_PARTICIPANT_DATA_COLUMN_DESCRIPTOR_ID = "ID";
+	public static final String COL_PARTICIPANT_DATA_COLUMN_DESCRIPTOR_PARTICIPANT_DATA_ID = "PARTICIPANT_DATA_ID";
+	public static final String COL_PARTICIPANT_DATA_COLUMN_DESCRIPTOR_NAME = "NAME";
+	public static final String COL_PARTICIPANT_DATA_COLUMN_DESCRIPTOR_PROPERTIES = "PROPERTIES";
+
+	// Participant data sets
+	public static final String TABLE_PARTICIPANT_DATA = "PARTICIPANT_DATA";
+	public static final String COL_PARTICIPANT_DATA_PARTICIPANT_DATA_DESCRIPTOR_ID = "PARTICIPANT_DATA_DESCRIPTOR_ID";
+	public static final String COL_PARTICIPANT_DATA_PARTICIPANT_DATA_ID = "PARTICIPANT_DATA_ID";
+	public static final String COL_PARTICIPANT_DATA_BUCKET = "S3_BUCKET";
+	public static final String COL_PARTICIPANT_DATA_KEY = "S3_KEY";
+
+	// Participant data set statuses
+	public static final String TABLE_PARTICIPANT_DATA_STATUS = "PARTICIPANT_DATA_STATUS";
+	public static final String COL_PARTICIPANT_DATA_STATUS_PARTICIPANT_DATA_ID = "PARTICIPANT_DATA_ID";
+	public static final String COL_PARTICIPANT_DATA_STATUS_PARTICIPANT_DATA_DESCRIPTOR_ID = "PARTICIPANT_DATA_DESCRIPTOR_ID";
+	public static final String COL_PARTICIPANT_DATA_STATUS_STATUS = "STATUS";
 
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";

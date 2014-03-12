@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.manager;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -14,24 +13,33 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -55,15 +63,23 @@ public class EntityPermissionsManagerImplTest {
 	
 	@Autowired
 	private EntityPermissionsManager entityPermissionsManager;
+	
+	@Autowired
+	private AccessRequirementManager accessRequirementManager;
+	
+	@Autowired
+	private DBOBasicDao basicDao;
 
 	private Collection<Node> nodeList = new ArrayList<Node>();
 	private Node project = null;
 	private Node childNode = null;
 	private Node grandchildNode0 = null;
 	private Node grandchildNode1 = null;
-	private UserInfo userInfo;
 	private UserInfo adminUserInfo;
+	private UserInfo userInfo;
+	private UserInfo otherUserInfo;
 	private static Long ownerId;
+	private String arId;
 	
 	private Node createDTO(String name, Long createdBy, Long modifiedBy, String parentId) {
 		Node node = new Node();
@@ -87,9 +103,29 @@ public class EntityPermissionsManagerImplTest {
 
 	@Before
 	public void setUp() throws Exception {
-		userInfo = userManager.getUserInfo(AuthorizationConstants.TEST_USER_NAME);
-		ownerId = Long.parseLong(userInfo.getIndividualGroup().getId());
-		adminUserInfo = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
+		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		
+		DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();
+		tou.setDomain(DomainType.SYNAPSE);
+		tou.setAgreesToTermsOfUse(Boolean.TRUE);
+		
+		DBOCredential cred = new DBOCredential();
+		cred.setSecretKey("");
+		
+		// Need two users for this test
+		NewUser nu = new NewUser();
+		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
+		nu.setUserName(UUID.randomUUID().toString());
+		userInfo = userManager.createUser(adminUserInfo, nu, cred, tou);
+		
+		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
+		nu.setUserName(UUID.randomUUID().toString());
+		otherUserInfo = userManager.createUser(adminUserInfo, nu, cred, tou);
+		
+		tou.setPrincipalId(otherUserInfo.getId());
+		basicDao.createOrUpdate(tou);
+		
+		ownerId = userInfo.getId();
 		
 		// create a resource
 		project = createNode("foo", 1L, 2L, null);
@@ -106,6 +142,13 @@ public class EntityPermissionsManagerImplTest {
 			try {
 				nodeManager.delete(adminUserInfo, n.getId());
 			} catch (NotFoundException e) {}
+		}
+		
+		userManager.deletePrincipal(adminUserInfo, userInfo.getId());
+		userManager.deletePrincipal(adminUserInfo, otherUserInfo.getId());
+		
+		if (arId!=null) {
+			accessRequirementManager.deleteAccessRequirement(adminUserInfo, arId);
 		}
 	}
 	
@@ -133,7 +176,7 @@ public class EntityPermissionsManagerImplTest {
 	@Test
 	public void testValidateACLContent() throws Exception {
 		ResourceAccess userRA = new ResourceAccess();
-		userRA.setPrincipalId(Long.parseLong(userInfo.getIndividualGroup().getId()));
+		userRA.setPrincipalId(userInfo.getId());
 		Set<ACCESS_TYPE> ats = new HashSet<ACCESS_TYPE>();
 		ats.add(ACCESS_TYPE.CHANGE_PERMISSIONS);
 		userRA.setAccessType(ats);
@@ -155,7 +198,6 @@ public class EntityPermissionsManagerImplTest {
 		acl.setId("resource id");
 		
 		// Should fail, since user is not included with proper permissions in ACL
-		UserInfo otherUserInfo = userManager.getUserInfo(StackConfiguration.getIntegrationTestUserOneName());
 		PermissionsManagerUtils.validateACLContent(acl, otherUserInfo, ownerId);
 	}
 
@@ -181,7 +223,7 @@ public class EntityPermissionsManagerImplTest {
 	@Test(expected = InvalidModelException.class)
 	public void testValidateACLContent_UserInsufficientPermissions() throws Exception {
 		ResourceAccess userRA = new ResourceAccess();
-		userRA.setPrincipalId(Long.parseLong(userInfo.getIndividualGroup().getId()));
+		userRA.setPrincipalId(userInfo.getId());
 		Set<ACCESS_TYPE> ats = new HashSet<ACCESS_TYPE>();
 		ats.add(ACCESS_TYPE.READ);
 		userRA.setAccessType(ats);
@@ -194,8 +236,31 @@ public class EntityPermissionsManagerImplTest {
 		acl.setResourceAccess(ras);	
 		
 		// Should fail since user does not have permission editing rights in ACL
-		UserInfo otherUserInfo = userManager.getUserInfo(StackConfiguration.getIntegrationTestUserOneName());
 		PermissionsManagerUtils.validateACLContent(acl, otherUserInfo, ownerId);
+	}
+	
+	@Test
+	public void testValidateACLContent_indirectMembership() throws Exception {
+		ResourceAccess userRA = new ResourceAccess();
+		// 'other user' should be a member of 'authenticated users'
+		Long groupId = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId();
+		assertTrue(otherUserInfo.getGroups().contains(groupId));
+		// giving 'authenticated users' change_permissions access should fulfill the requirement
+		// that the editor of the ACL does not remove their own access
+		userRA.setPrincipalId(groupId);
+		Set<ACCESS_TYPE> ats = new HashSet<ACCESS_TYPE>();
+		ats.add(ACCESS_TYPE.CHANGE_PERMISSIONS);
+		userRA.setAccessType(ats);
+		
+		Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
+		ras.add(userRA);
+		
+		AccessControlList acl = new AccessControlList();
+		acl.setId("resource id");
+		acl.setResourceAccess(ras);	
+		
+		PermissionsManagerUtils.validateACLContent(acl, otherUserInfo, ownerId);
+		
 	}
 
 
@@ -206,7 +271,7 @@ public class EntityPermissionsManagerImplTest {
 		// Check the etag before
 		String etagBefore = acl.getEtag();
 		assertNotNull(etagBefore);
-		acl = AuthorizationTestHelper.addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.READ);
+		acl = AuthorizationTestHelper.addToACL(acl, userInfo.getId(), ACCESS_TYPE.READ);
 		acl = entityPermissionsManager.updateACL(acl, adminUserInfo);
 		// The etag should have changed
 		assertNotNull(acl.getEtag());
@@ -220,7 +285,7 @@ public class EntityPermissionsManagerImplTest {
 		boolean foundIt = false;
 		while(it.hasNext()){
 			ResourceAccess ra = it.next();
-			if(ra.getPrincipalId().toString().equals(userInfo.getIndividualGroup().getId())){
+			if(ra.getPrincipalId().toString().equals(userInfo.getId().toString())){
 				assertEquals(new HashSet<ACCESS_TYPE>(Arrays.asList(new ACCESS_TYPE[]{ACCESS_TYPE.READ})),
 						ra.getAccessType());
 				foundIt = true;
@@ -244,7 +309,7 @@ public class EntityPermissionsManagerImplTest {
 	public void testUpdateInvalidACL() throws Exception {
 		AccessControlList acl = entityPermissionsManager.getACL(project.getId(), adminUserInfo);
 		assertEquals(1, acl.getResourceAccess().size());
-		acl = AuthorizationTestHelper.addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.READ);
+		acl = AuthorizationTestHelper.addToACL(acl, userInfo.getId(), ACCESS_TYPE.READ);
 		acl = entityPermissionsManager.updateACL(acl, adminUserInfo);
 		acl.setId(project.getId());
 		// ...group id is null...
@@ -433,9 +498,9 @@ public class EntityPermissionsManagerImplTest {
 		entityPermissionsManager.overrideInheritance(grandchild0Acl, adminUserInfo);
 		
 		// authorize test user to change permissions of parent and child nodes
-		parentAcl = AuthorizationTestHelper.addToACL(parentAcl, userInfo.getIndividualGroup(), ACCESS_TYPE.CHANGE_PERMISSIONS);
+		parentAcl = AuthorizationTestHelper.addToACL(parentAcl, userInfo.getId(), ACCESS_TYPE.CHANGE_PERMISSIONS);
 		parentAcl = entityPermissionsManager.updateACL(parentAcl, adminUserInfo);
-		childAcl = AuthorizationTestHelper.addToACL(childAcl, userInfo.getIndividualGroup(), ACCESS_TYPE.CHANGE_PERMISSIONS);
+		childAcl = AuthorizationTestHelper.addToACL(childAcl, userInfo.getId(), ACCESS_TYPE.CHANGE_PERMISSIONS);
 		childAcl = entityPermissionsManager.updateACL(childAcl, adminUserInfo);
 		
 		// apply inheritance to children as test user
@@ -470,12 +535,12 @@ public class EntityPermissionsManagerImplTest {
 		AccessControlList acl = entityPermissionsManager.getACL(project.getId(), adminUserInfo);
 		ResourceAccess ra = new ResourceAccess();
 		ra.setAccessType(collaboratorAccess);
-		ra.setPrincipalId(new Long(userInfo.getIndividualGroup().getId()));	
+		ra.setPrincipalId(userInfo.getId());	
 		acl.getResourceAccess().add(ra);
 		entityPermissionsManager.updateACL(acl, adminUserInfo);
 		
 		// create folder in project as collaborator
-		Node folder = createDTO("collaborators folder", new Long(userInfo.getIndividualGroup().getId()), new Long(userInfo.getIndividualGroup().getId()), project.getId());
+		Node folder = createDTO("collaborators folder", userInfo.getId(), userInfo.getId(), project.getId());
 		String nodeId = nodeManager.createNewNode(folder, userInfo);
 		assertNotNull(nodeId);
 		folder.setId(nodeId);
@@ -509,5 +574,38 @@ public class EntityPermissionsManagerImplTest {
 			// The exception should tell us the benefactor
 			assertEquals(expectedBenefactorId, e.getBenefactorId());
 		}	
+	}
+	
+	@Test
+	public void testCanDownload() throws Exception {
+		// baseline:  there is no restriction against downloading this entity
+		assertTrue(entityPermissionsManager.hasAccess(childNode.getId(), ACCESS_TYPE.DOWNLOAD, otherUserInfo));
+		// now create an access requirement on project and child
+		TermsOfUseAccessRequirement ar = new TermsOfUseAccessRequirement();
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId(project.getId());
+		rod.setType(RestrictableObjectType.ENTITY);
+		ar.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod}));
+		ar.setEntityType(ar.getClass().getName());
+		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		ar.setTermsOfUse("foo");
+		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
+		arId = ""+ar.getId();
+		// now we can't download
+		assertFalse(entityPermissionsManager.hasAccess(childNode.getId(), ACCESS_TYPE.DOWNLOAD, otherUserInfo));
+		accessRequirementManager.deleteAccessRequirement(adminUserInfo, arId);
+		arId=null;
+		// back to the baseline
+		assertTrue(entityPermissionsManager.hasAccess(childNode.getId(), ACCESS_TYPE.DOWNLOAD, otherUserInfo));
+		// now add the AR to the child node itself
+		ar.setId(null);
+		ar.setEtag(null);
+		rod.setId(childNode.getId());
+		rod.setType(RestrictableObjectType.ENTITY);
+		ar.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod}));
+		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
+		arId = ""+ar.getId();
+		// again, we can't download
+		assertFalse(entityPermissionsManager.hasAccess(childNode.getId(), ACCESS_TYPE.DOWNLOAD, otherUserInfo));
 	}
 }

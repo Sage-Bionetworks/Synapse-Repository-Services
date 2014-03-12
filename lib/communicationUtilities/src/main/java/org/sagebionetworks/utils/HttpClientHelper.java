@@ -12,6 +12,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLException;
@@ -31,6 +32,7 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.conn.params.ConnPerRouteBean;
 import org.apache.http.conn.scheme.PlainSocketFactory;
 import org.apache.http.conn.scheme.Scheme;
 import org.apache.http.conn.scheme.SchemeRegistry;
@@ -58,7 +60,7 @@ public class HttpClientHelper {
 	 */
 	public static final int MAX_ALLOWED_DOWNLOAD_TO_STRING_LENGTH = 1024 * 1024;
 
-	private static final int DEFAULT_CONNECT_TIMEOUT_MSEC = 500;
+	private static final int DEFAULT_CONNECT_TIMEOUT_MSEC = 5000;
 	private static final int DEFAULT_SOCKET_TIMEOUT_MSEC = 20000;
 
 	// Note: Having this 'password' in plaintext is OK because (1) it's a well
@@ -130,6 +132,9 @@ public class HttpClientHelper {
 		schemeRegistry.register(new Scheme("https", 443, ssf));
 		// schemeRegistry.register(new Scheme("https", 8443, ssf));
 
+		// This is the maximum number connections to a single route
+		// This was increased from 2 to 100 to address SWC-
+		int maxConnectionsPerRoute = 100;
 		// TODO its unclear how to set a default for the timeout in
 		// milliseconds
 		// used when retrieving an
@@ -137,7 +142,10 @@ public class HttpClientHelper {
 		// ClientConnectionManager
 		// since parameters are now deprecated for connection managers.
 		ThreadSafeClientConnManager connectionManager = new ThreadSafeClientConnManager(
-				schemeRegistry);
+				schemeRegistry,
+				-1,// max connection lifetime, <=0 implies "infinity"
+				TimeUnit.MILLISECONDS,
+				new ConnPerRouteBean(maxConnectionsPerRoute));
 		return connectionManager;
 	}
 
@@ -290,12 +298,11 @@ public class HttpClientHelper {
 	 * @return the response object
 	 * @throws ClientProtocolException
 	 * @throws IOException
-	 * @throws HttpClientHelperException
 	 */
 	public static HttpResponse performRequest(HttpClient client,
 			String requestUrl, String requestMethod, String requestContent,
 			Map<String, String> requestHeaders) throws ClientProtocolException,
-			IOException, HttpClientHelperException {
+			IOException {
 
 		HttpEntity requestEntity = null;
 		if (null != requestContent) {
@@ -322,7 +329,7 @@ public class HttpClientHelper {
 	public static HttpResponse performEntityRequest(HttpClient client,
 			String requestUrl, String requestMethod, HttpEntity requestEntity,
 			Map<String, String> requestHeaders) throws ClientProtocolException,
-			IOException, HttpClientHelperException {
+			IOException {
 
 		HttpRequestBase request = null;
 		if (requestMethod.equals("GET")) {
@@ -351,35 +358,14 @@ public class HttpClientHelper {
 
 		HttpResponse response = client.execute(request);
 
-		if (300 <= response.getStatusLine().getStatusCode()) {
-			StringBuilder verboseMessage = new StringBuilder(
-					"FAILURE: Got HTTP status "
-							+ response.getStatusLine().getStatusCode()
-							+ " for " + requestUrl);
-
-			// TODO this potentially prints out headers such as sessionToken to
-			// our logs, consider whether this is a good idea
-			if ((null != requestHeaders) && (0 < requestHeaders.size())) {
-				verboseMessage.append("\nHeaders: ");
-				for (Entry<String, String> entry : requestHeaders.entrySet()) {
-					verboseMessage.append("\n\t" + entry.getKey() + ": "
-							+ entry.getValue());
-				}
-			}
-			if (null != requestEntity) {
-				verboseMessage.append("\nRequest Content: " + requestEntity);
-			}
-			String responseBody = (null != response.getEntity()) ? EntityUtils
-					.toString(response.getEntity()) : null;
-			verboseMessage.append("\nResponse Content: " + responseBody);
-			throw new HttpClientHelperException(verboseMessage.toString(),
-					response);
-		}
 		return response;
 	}
 
 	/**
 	 * Get content as a string using the provided HttpClient.
+	 * 
+	 * Note: This is used only by the SearchController, which maps any
+	 * HttpClientHelperException into a 400 (Bad Request) status
 	 * 
 	 * @param client
 	 * @param requestUrl
@@ -396,6 +382,7 @@ public class HttpClientHelper {
 
 		HttpResponse response = HttpClientHelper.performRequest(client,
 				requestUrl, "GET", null, null);
+		convertHttpStatusToException(response);
 		HttpEntity entity = response.getEntity();
 		if (null != entity) {
 			if (MAX_ALLOWED_DOWNLOAD_TO_STRING_LENGTH < entity
@@ -403,15 +390,27 @@ public class HttpClientHelper {
 				throw new HttpClientHelperException("Requested content("
 						+ requestUrl + ") is too large("
 						+ entity.getContentLength()
-						+ "), download it to a file instead", response);
+						+ "), download it to a file instead", response.getStatusLine().getStatusCode(), responseContent);
+
 			}
 			responseContent = EntityUtils.toString(entity);
 		}
 		return responseContent;
 	}
+	
+	private static void convertHttpStatusToException(HttpResponse response) throws HttpClientHelperException, IOException {
+		int statusCode = response.getStatusLine().getStatusCode();
+		if (statusCode>=200 && statusCode<300) return;
+		String statusMessage = response.getStatusLine().getReasonPhrase();
+		HttpEntity responseEntity = response.getEntity();
+		String responseBody = (null == responseEntity) ? "" : EntityUtils.toString(responseEntity);
+		throw new HttpClientHelperException(responseBody, statusCode, statusMessage);
+	}
 
 	/**
 	 * Get content as a file using the provided HttpClient
+	 * 
+	 * Note:  This is used only for an integration test on Locationable objects.
 	 * 
 	 * @param client
 	 * @param requestUrl
@@ -422,6 +421,7 @@ public class HttpClientHelper {
 	 * @throws IOException
 	 * @throws HttpClientHelperException
 	 */
+	@Deprecated
 	public static File getContent(final HttpClient client,
 			final String requestUrl, File file) throws ClientProtocolException,
 			IOException, HttpClientHelperException {
@@ -432,6 +432,7 @@ public class HttpClientHelper {
 
 		HttpResponse response = HttpClientHelper.performRequest(client,
 				requestUrl, "GET", null, null);
+		convertHttpStatusToException(response);
 		HttpEntity fileEntity = response.getEntity();
 		if (null != fileEntity) {
 			FileOutputStream fileOutputStream = new FileOutputStream(file);
@@ -443,6 +444,8 @@ public class HttpClientHelper {
 
 	/**
 	 * Post content provided as a string using the provided HttpClient.
+	 * 
+	 * Note:  This is used only by the CloudSearchClient
 	 * 
 	 * @param client
 	 * @param requestUrl
@@ -462,6 +465,7 @@ public class HttpClientHelper {
 
 		HttpResponse response = HttpClientHelper.performRequest(client,
 				requestUrl, "POST", requestContent, requestHeaders);
+		convertHttpStatusToException(response);
 		HttpEntity entity = response.getEntity();
 		if (null != entity) {
 			if (MAX_ALLOWED_DOWNLOAD_TO_STRING_LENGTH < entity
@@ -469,7 +473,7 @@ public class HttpClientHelper {
 				throw new HttpClientHelperException("Requested content("
 						+ requestUrl + ") is too large("
 						+ entity.getContentLength()
-						+ "), download it to a file instead", response);
+						+ "), download it to a file instead", response.getStatusLine().getStatusCode(), responseContent);
 			}
 			responseContent = EntityUtils.toString(entity);
 		}
@@ -478,6 +482,8 @@ public class HttpClientHelper {
 
 	/**
 	 * Post content provided as an InputStream using the provided HttpClient.
+	 * 
+	 * Note:  This is used only by the CloudSearchClient
 	 * 
 	 * @param client
 	 * @param requestUrl
@@ -501,6 +507,7 @@ public class HttpClientHelper {
 
 		HttpResponse response = HttpClientHelper.performEntityRequest(client,
 				requestUrl, "POST", requestEntity, requestHeaders);
+		convertHttpStatusToException(response);
 		HttpEntity entity = response.getEntity();
 		if (null != entity) {
 			if (MAX_ALLOWED_DOWNLOAD_TO_STRING_LENGTH < entity
@@ -508,7 +515,7 @@ public class HttpClientHelper {
 				throw new HttpClientHelperException("Requested content("
 						+ requestUrl + ") is too large("
 						+ entity.getContentLength()
-						+ "), download it to a file instead", response);
+						+ "), download it to a file instead", response.getStatusLine().getStatusCode(), responseContent);
 			}
 			responseContent = EntityUtils.toString(entity);
 		}
@@ -540,6 +547,7 @@ public class HttpClientHelper {
 
 		HttpResponse response = HttpClientHelper.performEntityRequest(client,
 				requestUrl, "PUT", requestEntity, requestHeaders);
+		convertHttpStatusToException(response);
 		HttpEntity entity = response.getEntity();
 		if (null != entity) {
 			if (MAX_ALLOWED_DOWNLOAD_TO_STRING_LENGTH < entity
@@ -547,7 +555,7 @@ public class HttpClientHelper {
 				throw new HttpClientHelperException("Requested content("
 						+ requestUrl + ") is too large("
 						+ entity.getContentLength()
-						+ "), download it to a file instead", response);
+						+ "), download it to a file instead", response.getStatusLine().getStatusCode(), responseContent);
 			}
 			responseContent = EntityUtils.toString(entity);
 		}
@@ -573,6 +581,7 @@ public class HttpClientHelper {
 
 		HttpResponse response = HttpClientHelper.performRequest(client,
 				requestUrl, "GET", null, null);
+		convertHttpStatusToException(response);
 		HttpEntity fileEntity = response.getEntity();
 		if (null != fileEntity) {
 			FileOutputStream fileOutputStream = new FileOutputStream(filepath);
@@ -617,10 +626,11 @@ public class HttpClientHelper {
 			String errorMessage = "Request(" + requestUrl + ") failed: "
 					+ response.getStatusLine().getReasonPhrase();
 			HttpEntity responseEntity = response.getEntity();
+			String responseContent = EntityUtils.toString(responseEntity);
 			if (null != responseEntity) {
-				errorMessage += EntityUtils.toString(responseEntity);
+				errorMessage += responseContent;
 			}
-			throw new HttpClientHelperException(errorMessage, response);
+			throw new HttpClientHelperException(errorMessage, response.getStatusLine().getStatusCode(), responseContent);
 		}
 	}
 }

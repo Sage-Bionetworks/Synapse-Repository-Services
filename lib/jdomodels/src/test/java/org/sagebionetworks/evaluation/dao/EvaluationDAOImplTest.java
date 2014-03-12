@@ -25,10 +25,13 @@ import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,6 +52,9 @@ public class EvaluationDAOImplTest {
 	
 	private Evaluation eval;	
 	private AccessControlList aclToDelete = null;
+	
+	@Autowired
+	private UserGroupDAO userGroupDAO;
 
 	List<String> toDelete;
 	
@@ -87,7 +93,7 @@ public class EvaluationDAOImplTest {
 			}
 		}
 		if (aclToDelete!=null && aclDAO!=null) {
-			aclDAO.delete(aclToDelete.getId());
+			aclDAO.delete(aclToDelete.getId(), ObjectType.EVALUATION);
 			aclToDelete = null;
 		}
 	}
@@ -231,7 +237,7 @@ public class EvaluationDAOImplTest {
 		List<Evaluation> evalList;
 
 		// those who have not joined do not get this result
-		long participantId = 0L;
+		long participantId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
 		pids = Arrays.asList(new Long[]{participantId,104L});
 		evalList = evaluationDAO.getAvailableInRange(pids, 10, 0);
 		assertTrue(evalList.isEmpty());
@@ -253,7 +259,8 @@ public class EvaluationDAOImplTest {
 		ra.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(new ACCESS_TYPE[]{ACCESS_TYPE.SUBMIT})));
 		ras.add(ra);
 		acl.setResourceAccess(ras);
-		aclDAO.create(acl);
+		String aclId = aclDAO.create(acl, ObjectType.EVALUATION);
+		acl.setId(aclId);
 		aclToDelete = acl;
 		
 		// As a participant, I can find:
@@ -267,7 +274,24 @@ public class EvaluationDAOImplTest {
 		evalList = evaluationDAO.getAvailableInRange(pids, 10, 0);
 		assertTrue(evalList.isEmpty());
 		assertEquals(0L, evaluationDAO.getAvailableCount(pids));
-    }
+		
+		
+		// PLFM-2312 problem with repeated entries
+		ra = new ResourceAccess();
+		ra.setPrincipalId(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId());
+		ra.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(new ACCESS_TYPE[]{ACCESS_TYPE.SUBMIT})));
+		ras = acl.getResourceAccess();
+		ras.add(ra);
+		aclDAO.update(acl, ObjectType.EVALUATION);
+		// should still find just one result, even though I'm in the ACL twice
+		pids = Arrays.asList(new Long[] {
+				participantId,
+				BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId() });
+		evalList = evaluationDAO.getAvailableInRange(pids, 10, 0);
+		assertEquals(1, evalList.size());
+		assertEquals(eval, evalList.get(0));
+		assertEquals(1L, evaluationDAO.getAvailableCount(pids));
+   }
     
     @Test
     public void testGetInRangeByStatus() throws DatastoreException, NotFoundException {        
@@ -286,20 +310,6 @@ public class EvaluationDAOImplTest {
 		evalList = evaluationDAO.getInRange(10, 0, EvaluationStatus.OPEN);
 		assertEquals(0, evalList.size());
     }
-    
-	@Test
-	public void testCreateFromBackup() throws Exception {        
-        // Create it
-		eval.setOwnerId(EVALUATION_OWNER_ID.toString());
-		eval.setEtag("original-etag");
-		String evalId = evaluationDAO.createFromBackup(eval, EVALUATION_OWNER_ID);
-		assertNotNull(evalId);
-		toDelete.add(evalId);
-		
-		// Get it
-		Evaluation created = evaluationDAO.get(evalId);
-		assertEquals(eval, created);
-	}
     
     @Test
     public void testDtoToDbo() {

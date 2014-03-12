@@ -27,13 +27,21 @@ public class ServiceConstants {
 	 * section on paging</a>
 	 */
 	public static final String PAGINATION_OFFSET_PARAM = "offset";
+	
+	/**
+	 * Should the participant data service return data normalized to a common unit of measure?
+	 * true if values should be normalized, false otherwise. Normalized units are declared
+	 * in the Units enumberation for each unit the user may select. 
+	 */
+	public static final String NORMALIZE_DATA = "normalizeData";
+	
 	/**
 	 * Default value for offset parameter used RequestParam annotations which
 	 * require a static string
 	 */
 	@Deprecated
 	// SEE: PLFM-972
-	public static final String DEFAULT_PAGINATION_OFFSET_PARAM = "1";
+	public static final String DEFAULT_PAGINATION_OFFSET_PARAM_NO_OFFSET_EQUALS_ONE = "1";
 
 	/**
 	 * As PLFM-972 points out offsets should start at zero not one.
@@ -42,8 +50,10 @@ public class ServiceConstants {
 	/**
 	 * Default value for offset parameter
 	 */
-	public static final Long DEFAULT_PAGINATION_OFFSET = new Long(
-			DEFAULT_PAGINATION_OFFSET_PARAM);
+	public static final Long DEFAULT_PAGINATION_OFFSET_NO_OFFSET_EQUALS_ONE = new Long(
+			DEFAULT_PAGINATION_OFFSET_PARAM_NO_OFFSET_EQUALS_ONE);
+	
+	public static final Long DEFAULT_PAGINATION_OFFSET = new Long(0);
 
 	/**
 	 * Request parameter used to indicate the maximum number of results to be
@@ -188,6 +198,28 @@ public class ServiceConstants {
 
 	
 	/**
+	 * Utility method to sanity check pagination parameters, using incorrect legacy definition
+	 * of '1' for no offset
+	 * <p>
+	 * 
+	 * @param offset
+	 * @param limit
+	 * @throws IllegalArgumentException
+	 */
+	public static void validatePaginationParamsNoOffsetEqualsOne(Long offset, Long limit)
+			throws IllegalArgumentException {
+		if (1 > offset) {
+			throw new IllegalArgumentException(
+					"pagination offset must be 1 or greater");
+		}
+		if (1 > limit) {
+			throw new IllegalArgumentException(
+					"pagination limit must be 1 or greater");
+		}
+		return;
+	}
+
+	/**
 	 * Utility method to sanity check pagination parameters
 	 * <p>
 	 * 
@@ -197,9 +229,9 @@ public class ServiceConstants {
 	 */
 	public static void validatePaginationParams(Long offset, Long limit)
 			throws IllegalArgumentException {
-		if (1 > offset) {
+		if (0 > offset) {
 			throw new IllegalArgumentException(
-					"pagination offset must be 1 or greater");
+					"pagination offset must be 0 or greater");
 		}
 		if (1 > limit) {
 			throw new IllegalArgumentException(
@@ -220,4 +252,9 @@ public class ServiceConstants {
 
 	public static final String DYNAMO_HASH_KEY_NAME_PARAM = "hashKeyName";
 	public static final String DYNAMO_RANGE_KEY_NAME_PARAM = "rangeKeyName";
+
+	/**
+	 * A query string parameter indicating whether to skip the trash can when deleting entities.
+	 */
+	public static final String SKIP_TRASH_CAN_PARAM = "skipTrashCan";
 }

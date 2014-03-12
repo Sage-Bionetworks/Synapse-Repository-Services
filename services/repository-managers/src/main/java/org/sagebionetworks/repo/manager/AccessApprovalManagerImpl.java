@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessApproval;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
@@ -15,14 +14,17 @@ import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
@@ -40,6 +42,8 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 	private EvaluationDAO evaluationDAO;
 	@Autowired
 	private AuthorizationManager authorizationManager;
+	@Autowired
+	private NodeDAO nodeDao;
 	
 	// check an incoming object (i.e. during 'create' and 'update')
 	private void validateAccessApproval(UserInfo userInfo, AccessApproval a) throws 
@@ -59,9 +63,9 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 
 	public static void populateCreationFields(UserInfo userInfo, AccessApproval a) {
 		Date now = new Date();
-		a.setCreatedBy(userInfo.getIndividualGroup().getId());
+		a.setCreatedBy(userInfo.getId().toString());
 		a.setCreatedOn(now);
-		a.setModifiedBy(userInfo.getIndividualGroup().getId());
+		a.setModifiedBy(userInfo.getId().toString());
 		a.setModifiedOn(now);
 	}
 
@@ -69,7 +73,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		Date now = new Date();
 		a.setCreatedBy(null); // by setting to null we are telling the DAO to use the current values
 		a.setCreatedOn(null);
-		a.setModifiedBy(userInfo.getIndividualGroup().getId());
+		a.setModifiedBy(userInfo.getId().toString());
 		a.setModifiedOn(now);
 	}
 
@@ -80,7 +84,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		
 		if (accessApproval instanceof TermsOfUseAccessApproval) {
 			// fill in the user's identity
-			accessApproval.setAccessorId(userInfo.getIndividualGroup().getId());
+			accessApproval.setAccessorId(userInfo.getId().toString());
 		}
 		
 		validateAccessApproval(userInfo, accessApproval);
@@ -102,7 +106,13 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 			throw new UnauthorizedException("You are not allowed to retrieve access approvals for this subject.");
 		}
 
-		List<AccessRequirement> ars = accessRequirementDAO.getForSubject(subjectId);
+		List<String> subjectIds = new ArrayList<String>();
+		if (RestrictableObjectType.ENTITY==subjectId.getType()) {
+			subjectIds.addAll(AccessRequirementUtil.getNodeAncestorIds(nodeDao, subjectId.getId(), true));
+		} else {
+			subjectIds.add(subjectId.getId());			
+		}
+		List<AccessRequirement> ars = accessRequirementDAO.getForSubject(subjectIds, subjectId.getType());
 		List<AccessApproval> aas = new ArrayList<AccessApproval>();
 		for (AccessRequirement ar : ars) {
 			aas.addAll(accessApprovalDAO.getForAccessRequirement(ar.getId().toString()));
@@ -119,7 +129,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		
 		if (accessApproval instanceof TermsOfUseAccessApproval) {
 			// fill in the user's identity
-			accessApproval.setAccessorId(userInfo.getIndividualGroup().getId());
+			accessApproval.setAccessorId(userInfo.getId().toString());
 		}
 		
 		validateAccessApproval(userInfo, accessApproval);

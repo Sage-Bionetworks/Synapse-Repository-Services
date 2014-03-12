@@ -1,17 +1,15 @@
 package org.sagebionetworks.evaluation.dao;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 
 import java.util.Date;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.evaluation.dao.EvaluationDAO;
-import org.sagebionetworks.evaluation.dao.ParticipantDAO;
-import org.sagebionetworks.evaluation.dao.SubmissionDAO;
-import org.sagebionetworks.evaluation.dao.SubmissionStatusDAO;
-import org.sagebionetworks.evaluation.dao.SubmissionStatusDAOImpl;
 import org.sagebionetworks.evaluation.dbo.SubmissionStatusDBO;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
@@ -19,11 +17,16 @@ import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
+import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
+import org.sagebionetworks.repo.model.evaluation.ParticipantDAO;
+import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
+import org.sagebionetworks.repo.model.evaluation.SubmissionStatusDAO;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -46,15 +49,18 @@ public class SubmissionStatusDAOImplTest {
 	@Autowired
 	NodeDAO nodeDAO;
  
-	private String nodeId = null;
+	private String nodeId;
+	private String userId;
+	
     private String submissionId = null;
-    private String userId = "0";
     private String evalId;
     private String name = "test submission";
     private Long versionNumber = 1L;
     
     @Before
     public void setUp() throws DatastoreException, InvalidModelException, NotFoundException, JSONObjectAdapterException {
+    	userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString();
+    	
     	// create a node
   		Node toCreate = NodeTestUtils.createNew(name, Long.parseLong(userId));
     	toCreate.setVersionComment("This is the first version of the first node ever!");
@@ -115,7 +121,7 @@ public class SubmissionStatusDAOImplTest {
         status.setModifiedOn(new Date());
         status.setId(submissionId);
         status.setEtag(null);
-        status.setStatus(SubmissionStatusEnum.OPEN);
+        status.setStatus(SubmissionStatusEnum.RECEIVED);
         status.setScore(0.1);
         status.setAnnotations(TestUtils.createDummyAnnotations());
         long initialCount = submissionStatusDAO.getCount();
@@ -158,22 +164,6 @@ public class SubmissionStatusDAOImplTest {
     }
     
     @Test
-    public void testCreateFromBackup() throws Exception{
-        // Initialize a new SubmissionStatus object for submissionId
-        SubmissionStatus status = new SubmissionStatus();
-        status.setModifiedOn(new Date());
-        status.setId(submissionId);
-        status.setEtag("original-eTag");
-        status.setStatus(SubmissionStatusEnum.OPEN);
-        status.setScore(0.1);
-        
-        // Create it
-        submissionStatusDAO.createFromBackup(status);
-        SubmissionStatus restored = submissionStatusDAO.get(submissionId);
-        assertEquals(status, restored);
-    }
-    
-    @Test
     public void testDtoToDbo() {
     	SubmissionStatus subStatusDTO = new SubmissionStatus();
     	SubmissionStatus subStatusDTOclone = new SubmissionStatus();
@@ -184,7 +174,7 @@ public class SubmissionStatusDAOImplTest {
     	subStatusDTO.setId("123");
     	subStatusDTO.setModifiedOn(new Date());
     	subStatusDTO.setScore(0.42);
-    	subStatusDTO.setStatus(SubmissionStatusEnum.CLOSED);
+    	subStatusDTO.setStatus(SubmissionStatusEnum.SCORED);
     	subStatusDTO.setReport("lorem ipsum");
     	    	
     	subStatusDBO = SubmissionStatusDAOImpl.convertDtoToDbo(subStatusDTO);

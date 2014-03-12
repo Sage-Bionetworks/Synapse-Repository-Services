@@ -27,16 +27,26 @@ public class AccessRequirementServiceImpl implements AccessRequirementService {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public AccessRequirement createAccessRequirement(String userId, 
+	public AccessRequirement createAccessRequirement(Long userId, 
 			AccessRequirement accessRequirement) throws Exception {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 
 		return accessRequirementManager.createAccessRequirement(userInfo, accessRequirement);
 	}
 	
+
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public AccessRequirement createLockAccessRequirement(String userId, 
+	public AccessRequirement updateAccessRequirement(Long userId,
+			String accessRequirementId, AccessRequirement accessRequirement) throws Exception {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return accessRequirementManager.updateAccessRequirement(userInfo, accessRequirementId, accessRequirement);
+	}
+	
+	
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public AccessRequirement createLockAccessRequirement(Long userId, 
 			String entityId) throws Exception {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 
@@ -45,7 +55,7 @@ public class AccessRequirementServiceImpl implements AccessRequirementService {
 	
 	@Override
 	public PaginatedResults<AccessRequirement> getUnfulfilledAccessRequirements(
-			String userId, RestrictableObjectDescriptor subjectId) 
+			Long userId, RestrictableObjectDescriptor subjectId) 
 			throws DatastoreException, UnauthorizedException, 
 			NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
@@ -65,7 +75,7 @@ public class AccessRequirementServiceImpl implements AccessRequirementService {
 
 	@Override	
 	public PaginatedResults<AccessRequirement> getAccessRequirements(
-			String userId, RestrictableObjectDescriptor subjectId) 
+			Long userId, RestrictableObjectDescriptor subjectId) 
 			throws DatastoreException, UnauthorizedException, NotFoundException
 			 {
 		UserInfo userInfo = userManager.getUserInfo(userId);
@@ -85,11 +95,11 @@ public class AccessRequirementServiceImpl implements AccessRequirementService {
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void deleteAccessRequirements(String userId, String requirementId) 
+	public void deleteAccessRequirements(Long userId, String requirementId) 
 			throws DatastoreException, UnauthorizedException, NotFoundException
 			 {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		accessRequirementManager.deleteAccessRequirement(userInfo, requirementId);
 	}
-	
+
 }

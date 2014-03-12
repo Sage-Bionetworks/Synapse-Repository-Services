@@ -20,7 +20,7 @@ import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.preview.ImagePreviewGenerator;
 import org.sagebionetworks.repo.manager.file.preview.TabCsvPreviewGenerator;
 import org.sagebionetworks.repo.manager.file.preview.TextPreviewGenerator;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
@@ -63,16 +63,16 @@ public class PreviewIntegrationTest {
 	@Autowired
 	private FileHandleDao fileMetadataDao;
 	
+	private UserInfo adminUserInfo;
 	private List<S3FileHandleInterface> toDelete;
-	private UserInfo userInfo;
 	private S3FileHandle imageFileHandle, csvFileHandle, tabFileHandle, txtFileHandle;
 	
 	@Before
 	public void before() throws Exception {
 		// Before we start, make sure the queue is empty
-		emptyQueue();
+		fileQueueMessageReveiver.emptyQueue();
 		// Create a file
-		userInfo = userManager.getUserInfo(AuthorizationConstants.TEST_USER_NAME);
+		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		toDelete = new LinkedList<S3FileHandleInterface>();
 		// First upload a file that we want to generate a preview for.
 		imageFileHandle = uploadFile(LITTLE_IMAGE_NAME, ImagePreviewGenerator.IMAGE_PNG);
@@ -96,7 +96,7 @@ public class PreviewIntegrationTest {
 		when(mockFiz.getContentType()).thenReturn(contentType);
 		when(mockFiz.getName()).thenReturn(fileName);
 		// Now upload the file.
-		return fileUploadManager.uploadFile(userInfo.getIndividualGroup().getId(), mockFiz);
+		return fileUploadManager.uploadFile(adminUserInfo.getId().toString(), mockFiz);
 	}
 	
 	@After
@@ -110,25 +110,7 @@ public class PreviewIntegrationTest {
 				fileMetadataDao.delete(meta.getId());
 			}
 		}
-	}
-
-	/**
-	 * Empty the queue by processing all messages on the queue.
-	 * @throws InterruptedException
-	 */
-	public void emptyQueue() throws InterruptedException {
-		long start = System.currentTimeMillis();
-		int count = 0;
-		do{
-			count = fileQueueMessageReveiver.triggerFired();
-			System.out.println("Emptying the file message queue, there were at least: "+count+" messages on the queue");
-			Thread.yield();
-			long elapse = System.currentTimeMillis()-start;
-			if(elapse > MAX_WAIT*2) throw new RuntimeException("Timed-out waiting process all messages that were on the queue before the tests started.");
-		}while(count > 0);
-	}
-
-	
+	}	
 	
 	public void testRoundTripHelper(S3FileHandle imageFileHandle) throws Exception {
 		// If the preview system is setup correctly, then a preview should

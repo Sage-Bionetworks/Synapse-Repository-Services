@@ -1,13 +1,10 @@
 {
-	"description": "Needs a description",
+	"title": "NewUser", 
+	"description": "Fields required to create a new user account",
 	"properties": {
 		"email": {
 			"type": "string",
-			"description": "The user's email"
-		},
-		"password": {
-			"type": "string",
-			"description": "User's password"
+			"description": "User's email"
 		},
 		"firstName": {
 			"type": "string",
@@ -17,13 +14,9 @@
 			"type": "string",
 			"description": "User's last name"
 		},
-		"displayName": {
+		"userName": {
 			"type": "string",
-			"description": "User's display name"
-		},
-		"acceptsTermsOfUse": {
-			"type": "boolean",
-			"description": "Does the user accept the terms of use"
+			"description": "A is a unique alias that will identify a user. A userName can only contain letters, numbers, dot (.), dash (-) and underscore (_) and must be at least 3 characters long."
 		}
 	}
 }

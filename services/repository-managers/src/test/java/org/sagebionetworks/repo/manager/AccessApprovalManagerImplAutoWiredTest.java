@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
@@ -21,7 +22,8 @@ import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.ACTApprovalStatus;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
@@ -34,6 +36,10 @@ import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -61,22 +67,38 @@ public class AccessApprovalManagerImplAutoWiredTest {
 	@Autowired
 	private EntityPermissionsManager entityPermissionsManager;
 	
+	@Autowired
+	private DBOBasicDao basicDao;
+	
 	private UserInfo adminUserInfo;
 	private UserInfo testUserInfo;
 	
 	private static final String TERMS_OF_USE = "my dog has fleas";
 
-	List<String> nodesToDelete;
+	private List<String> nodesToDelete;
 	
-	String entityId;
+	private String nodeAId;
+	private String nodeBId;
 	
-	TermsOfUseAccessRequirement ar;
-	ACTAccessRequirement actAr;
+	private TermsOfUseAccessRequirement ar;
+	private ACTAccessRequirement actAr;
 	
+	private TermsOfUseAccessRequirement arB;
+
 	@Before
-	public void before() throws Exception{
-		adminUserInfo = userManager.getUserInfo(AuthorizationConstants.ADMIN_USER_NAME);
-		testUserInfo = userManager.getUserInfo(AuthorizationConstants.TEST_USER_NAME);
+	public void before() throws Exception {
+		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		DBOCredential cred = new DBOCredential();
+		cred.setSecretKey("");
+		NewUser nu = new NewUser();
+		nu.setEmail(UUID.randomUUID().toString() + "@test.com");
+		nu.setUserName(UUID.randomUUID().toString());
+		
+		DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();
+		tou.setDomain(DomainType.SYNAPSE);
+		tou.setAgreesToTermsOfUse(Boolean.TRUE);
+		testUserInfo = userManager.createUser(adminUserInfo, nu, cred, tou);
+		
 		assertNotNull(nodeManager);
 		nodesToDelete = new ArrayList<String>();
 		
@@ -89,20 +111,27 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		node.setName("A");
 		node.setNodeType(EntityType.layer.name());
 		node.setParentId(rootId);
-		entityId = nodeManager.createNewNode(node, adminUserInfo);
-
-		ar = newToUAccessRequirement(entityId);
+		nodeAId = nodeManager.createNewNode(node, adminUserInfo);
+		ar = newToUAccessRequirement(nodeAId);
 		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
 		
-		// now give 'testUserInfo' READ access to the entity
+		node = new Node();
+		node.setName("B");
+		node.setNodeType(EntityType.layer.name());
+		node.setParentId(nodeAId);
+		nodeBId = nodeManager.createNewNode(node, adminUserInfo);
+		arB = newToUAccessRequirement(nodeBId);
+		arB = accessRequirementManager.createAccessRequirement(adminUserInfo, arB);
+
+		// now give 'testUserInfo' READ access to the entity hierarchy
 		AccessControlList acl = entityPermissionsManager.getACL(rootId, adminUserInfo);
 		Set<ResourceAccess> ras = acl.getResourceAccess();
 		ResourceAccess ra = new ResourceAccess();
-		ra.setPrincipalId(Long.parseLong(testUserInfo.getIndividualGroup().getId()));
+		ra.setPrincipalId(testUserInfo.getId());
 		ra.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(new ACCESS_TYPE[]{ACCESS_TYPE.READ})));
 		ras.add(ra);
 		entityPermissionsManager.updateACL(acl, adminUserInfo);
-}
+	}
 	
 	@After
 	public void after() throws Exception {
@@ -120,11 +149,16 @@ public class AccessApprovalManagerImplAutoWiredTest {
 				accessRequirementManager.deleteAccessRequirement(adminUserInfo, ar.getId().toString());
 				ar=null;
 			}
+			if (arB!=null && arB.getId()!=null) {
+				accessRequirementManager.deleteAccessRequirement(adminUserInfo, arB.getId().toString());
+				arB=null;
+			}
 			if (actAr!=null && actAr.getId()!=null) {
 				accessRequirementManager.deleteAccessRequirement(adminUserInfo, actAr.getId().toString());
 				actAr=null;
 			}
 		}
+		userManager.deletePrincipal(adminUserInfo, testUserInfo.getId());
 	}
 	
 	private static TermsOfUseAccessRequirement newToUAccessRequirement(String entityId) {
@@ -174,14 +208,14 @@ public class AccessApprovalManagerImplAutoWiredTest {
 	
 	@Test
 	public void testCreateAccessApproval() throws Exception {
-		TermsOfUseAccessApproval aa = newToUAccessApproval(ar.getId(), adminUserInfo.getIndividualGroup().getId());
+		TermsOfUseAccessApproval aa = newToUAccessApproval(ar.getId(), adminUserInfo.getId().toString());
 		aa = accessApprovalManager.createAccessApproval(adminUserInfo, aa);
 		assertNotNull(aa.getCreatedBy());
 		assertNotNull(aa.getCreatedOn());
 		assertNotNull(aa.getId());
 		assertNotNull(aa.getModifiedBy());
 		assertNotNull(aa.getModifiedOn());
-		assertEquals(adminUserInfo.getIndividualGroup().getId(), aa.getAccessorId());
+		assertEquals(adminUserInfo.getId().toString(), aa.getAccessorId());
 		assertEquals(ar.getId(), aa.getRequirementId());
 		assertEquals(TermsOfUseAccessApproval.class.getName(), aa.getEntityType());
 	}
@@ -198,29 +232,39 @@ public class AccessApprovalManagerImplAutoWiredTest {
 	@Test
 	public void testHappyPath() throws Exception {
 		// can't download at first
-		assertFalse(authorizationManager.canAccess(testUserInfo, entityId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD));
+		assertFalse(authorizationManager.canAccess(testUserInfo, nodeAId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD));
 		// then he signs the terms of use for the data
-		TermsOfUseAccessApproval aa = newToUAccessApproval(ar.getId(), testUserInfo.getIndividualGroup().getId());
+		TermsOfUseAccessApproval aa = newToUAccessApproval(ar.getId(), testUserInfo.getId().toString());
 		aa = accessApprovalManager.createAccessApproval(testUserInfo, aa);
 		// now he *can* download the data
-		assertTrue(authorizationManager.canAccess(testUserInfo, entityId,  ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD));
+		assertTrue(authorizationManager.canAccess(testUserInfo, nodeAId,  ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD));
+
+		// nodeB inherits both access requirements
+		// can't download at first
+		assertFalse(authorizationManager.canAccess(testUserInfo, nodeBId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD));
+		// then he signs the terms of use for the data
+		TermsOfUseAccessApproval aa2 = newToUAccessApproval(arB.getId(), testUserInfo.getId().toString());
+		aa2 = accessApprovalManager.createAccessApproval(testUserInfo, aa2);
+		// now he *can* download the data
+		assertTrue(authorizationManager.canAccess(testUserInfo, nodeBId,  ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD));
+	
 	}
 		
 	public void testCreateAccessApprovalAndFillInUser() throws Exception {
 		TermsOfUseAccessApproval aa = newToUAccessApproval(ar.getId(), null);
 		aa = accessApprovalManager.createAccessApproval(adminUserInfo, aa);
-		assertEquals(adminUserInfo.getIndividualGroup().getId(), aa.getAccessorId());
+		assertEquals(adminUserInfo.getId().toString(), aa.getAccessorId());
 	}
 	
 	@Test(expected=InvalidModelException.class)
 	public void testCreateAccessApprovalBadParam2() throws Exception {
-		TermsOfUseAccessApproval aa = newToUAccessApproval(null, adminUserInfo.getIndividualGroup().getId());
+		TermsOfUseAccessApproval aa = newToUAccessApproval(null, adminUserInfo.getId().toString());
 		aa = accessApprovalManager.createAccessApproval(adminUserInfo, aa);
 	}
 	
 	@Test(expected=InvalidModelException.class)
 	public void testCreateAccessApprovalBadParam3() throws Exception {
-		TermsOfUseAccessApproval aa = newToUAccessApproval(ar.getId(), adminUserInfo.getIndividualGroup().getId());
+		TermsOfUseAccessApproval aa = newToUAccessApproval(ar.getId(), adminUserInfo.getId().toString());
 		aa.setEntityType(ACTAccessApproval.class.getName());
 		aa = accessApprovalManager.createAccessApproval(adminUserInfo, aa);
 	}
@@ -228,16 +272,16 @@ public class AccessApprovalManagerImplAutoWiredTest {
 	// can't apply an ACTAccessApproval to a TermsOfUse requirement
 	@Test(expected=InvalidModelException.class)
 	public void testCreateAccessApprovalBadParam4() throws Exception {
-		ACTAccessApproval aa = newACTAccessApproval(ar.getId(), adminUserInfo.getIndividualGroup().getId());
+		ACTAccessApproval aa = newACTAccessApproval(ar.getId(), adminUserInfo.getId().toString());
 		aa = accessApprovalManager.createAccessApproval(adminUserInfo, aa);
 	}
 	
 	// can't apply a TermsOfUseApproval to an ACT requirement
 	@Test(expected=InvalidModelException.class)
 	public void testCreateAccessApprovalBadParam5() throws Exception {
-		actAr = newACTAccessRequirement(entityId);
+		actAr = newACTAccessRequirement(nodeAId);
 		actAr = accessRequirementManager.createAccessRequirement(adminUserInfo, actAr);
-		TermsOfUseAccessApproval aa = newToUAccessApproval(actAr.getId(), adminUserInfo.getIndividualGroup().getId());
+		TermsOfUseAccessApproval aa = newToUAccessApproval(actAr.getId(), adminUserInfo.getId().toString());
 		aa = accessApprovalManager.createAccessApproval(adminUserInfo, aa);
 	}
 	
@@ -245,17 +289,17 @@ public class AccessApprovalManagerImplAutoWiredTest {
 	// the service fills in the accessor ID appropriately
 	@Test
 	public void testCreateAccessApprovalBadAccessorId() throws Exception {
-		TermsOfUseAccessApproval aa = newToUAccessApproval(ar.getId(), adminUserInfo.getIndividualGroup().getId());
+		TermsOfUseAccessApproval aa = newToUAccessApproval(ar.getId(), adminUserInfo.getId().toString());
 		aa = accessApprovalManager.createAccessApproval(testUserInfo, aa);
-		assertEquals(testUserInfo.getIndividualGroup().getId(), aa.getAccessorId());
+		assertEquals(testUserInfo.getId().toString(), aa.getAccessorId());
 	}
 	
 	// it's OK for an administrator of the resource to give ACT approval
 	@Test
 	public void testGiveACTApproval() throws Exception {
-		actAr = newACTAccessRequirement(entityId);
+		actAr = newACTAccessRequirement(nodeAId);
 		actAr = accessRequirementManager.createAccessRequirement(adminUserInfo, actAr);
-		ACTAccessApproval actAa = newACTAccessApproval(actAr.getId(), testUserInfo.getIndividualGroup().getId());
+		ACTAccessApproval actAa = newACTAccessApproval(actAr.getId(), testUserInfo.getId().toString());
 		actAa = accessApprovalManager.createAccessApproval(adminUserInfo, actAa);
 		assertNotNull(actAa.getId());
 	}
@@ -263,9 +307,9 @@ public class AccessApprovalManagerImplAutoWiredTest {
 	// it's not ok for a non-admin to give ACT approval (in this case for themselves)
 	@Test(expected=UnauthorizedException.class)
 	public void testGiveACTApprovalForbidden() throws Exception {
-		actAr = newACTAccessRequirement(entityId);
+		actAr = newACTAccessRequirement(nodeAId);
 		actAr = accessRequirementManager.createAccessRequirement(adminUserInfo, actAr);
-		ACTAccessApproval actAa = newACTAccessApproval(actAr.getId(), testUserInfo.getIndividualGroup().getId());
+		ACTAccessApproval actAa = newACTAccessApproval(actAr.getId(),  testUserInfo.getId().toString());
 		actAa = accessApprovalManager.createAccessApproval(testUserInfo, actAa);
 		assertNotNull(actAa.getId());
 	}
@@ -273,22 +317,35 @@ public class AccessApprovalManagerImplAutoWiredTest {
 	@Test
 	public void testApprovalRetrieval() throws Exception {
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
-		rod.setId(entityId);
+		rod.setId(nodeAId);
 		rod.setType(RestrictableObjectType.ENTITY);
 
 		QueryResults<AccessApproval> aas = accessApprovalManager.getAccessApprovalsForSubject(adminUserInfo, rod);
 		assertEquals(0L, aas.getTotalNumberOfResults());
 		assertEquals(0, aas.getResults().size());
-		TermsOfUseAccessApproval aa = newToUAccessApproval(ar.getId(), adminUserInfo.getIndividualGroup().getId());
+		TermsOfUseAccessApproval aa = newToUAccessApproval(ar.getId(), adminUserInfo.getId().toString());
 		aa = accessApprovalManager.createAccessApproval(adminUserInfo, aa);
 		aas = accessApprovalManager.getAccessApprovalsForSubject(adminUserInfo, rod);
 		assertEquals(1L, aas.getTotalNumberOfResults());
 		assertEquals(1, aas.getResults().size());
+		
+		// node B inherits the ARs and AAs from Node A
+		rod.setId(nodeBId);
+		aas = accessApprovalManager.getAccessApprovalsForSubject(adminUserInfo, rod);
+		assertEquals(1L, aas.getTotalNumberOfResults());
+		assertEquals(1, aas.getResults().size());
+		
+		TermsOfUseAccessApproval aaB = newToUAccessApproval(arB.getId(), adminUserInfo.getId().toString());
+		aaB = accessApprovalManager.createAccessApproval(adminUserInfo, aaB);
+		
+		aas = accessApprovalManager.getAccessApprovalsForSubject(adminUserInfo, rod);
+		assertEquals(2L, aas.getTotalNumberOfResults());
+		assertEquals(2, aas.getResults().size());
 	}
 	
 	@Test
 	public void testUpdateAccessApproval() throws Exception {
-		TermsOfUseAccessApproval aa = newToUAccessApproval(ar.getId(), adminUserInfo.getIndividualGroup().getId());
+		TermsOfUseAccessApproval aa = newToUAccessApproval(ar.getId(), adminUserInfo.getId().toString());
 		aa = accessApprovalManager.createAccessApproval(adminUserInfo, aa);
 
 		// ensure that the 'modifiedOn' date is later
@@ -300,11 +357,11 @@ public class AccessApprovalManagerImplAutoWiredTest {
 	
 	@Test
 	public void testDeleteAccessApproval() throws Exception {
-		TermsOfUseAccessApproval aa = newToUAccessApproval(ar.getId(), adminUserInfo.getIndividualGroup().getId());
+		TermsOfUseAccessApproval aa = newToUAccessApproval(ar.getId(), adminUserInfo.getId().toString());
 		aa = accessApprovalManager.createAccessApproval(adminUserInfo, aa);
 		accessApprovalManager.deleteAccessApproval(adminUserInfo, aa.getId().toString());
 		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
-		rod.setId(entityId);
+		rod.setId(nodeAId);
 		rod.setType(RestrictableObjectType.ENTITY);
 		QueryResults<AccessApproval> aas = accessApprovalManager.getAccessApprovalsForSubject(adminUserInfo, rod);
 		assertEquals(0L, aas.getTotalNumberOfResults());

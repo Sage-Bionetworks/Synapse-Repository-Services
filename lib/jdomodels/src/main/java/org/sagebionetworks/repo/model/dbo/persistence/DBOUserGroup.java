@@ -4,11 +4,10 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_CREATION_DATE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_E_TAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_IS_INDIVIDUAL;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_USER_GROUP;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_E_TAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_GROUP;
 
 import java.sql.ResultSet;
@@ -30,6 +29,10 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
  */
 public class DBOUserGroup implements MigratableDatabaseObject<DBOUserGroup, DBOUserGroup> {
 	private Long id;
+	/**
+	 * This field will be remove in stack-28
+	 */
+	@Deprecated
 	private String name;
 	private Date creationDate;
 	private Boolean isIndividual = false;
@@ -38,9 +41,6 @@ public class DBOUserGroup implements MigratableDatabaseObject<DBOUserGroup, DBOU
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("id", COL_USER_GROUP_ID, true).withIsBackupId(true),
-		// we treat the user name like an etag, so if the name assigned to an
-		// ID across stacks does not match, the destination stack user will be replaced with the source user.
-		new FieldColumn("name", COL_USER_GROUP_NAME),
 		new FieldColumn("creationDate", COL_USER_GROUP_CREATION_DATE),
 		new FieldColumn("isIndividual", COL_USER_GROUP_IS_INDIVIDUAL), 
 		new FieldColumn("etag", COL_USER_GROUP_E_TAG).withIsEtag(true)
@@ -55,7 +55,6 @@ public class DBOUserGroup implements MigratableDatabaseObject<DBOUserGroup, DBOU
 			public DBOUserGroup mapRow(ResultSet rs, int rowNum) throws SQLException {
 				DBOUserGroup ug = new DBOUserGroup();
 				ug.setId(rs.getLong(COL_USER_GROUP_ID));
-				ug.setName(rs.getString(COL_USER_GROUP_NAME));
 				Timestamp ts = rs.getTimestamp(COL_USER_GROUP_CREATION_DATE);
 				ug.setCreationDate(ts==null ? null : new Date(ts.getTime()));
 				ug.setIsIndividual(rs.getBoolean(COL_USER_GROUP_IS_INDIVIDUAL));
@@ -86,6 +85,16 @@ public class DBOUserGroup implements MigratableDatabaseObject<DBOUserGroup, DBOU
 	}
 
 
+	public String getName() {
+		return name;
+	}
+
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+
 	/**
 	 * @return the id
 	 */
@@ -99,22 +108,6 @@ public class DBOUserGroup implements MigratableDatabaseObject<DBOUserGroup, DBOU
 	 */
 	public void setId(Long id) {
 		this.id = id;
-	}
-
-
-	/**
-	 * @return the name
-	 */
-	public String getName() {
-		return name;
-	}
-
-
-	/**
-	 * @param name the name to set
-	 */
-	public void setName(String name) {
-		this.name = name;
 	}
 
 	/**
@@ -169,26 +162,6 @@ public class DBOUserGroup implements MigratableDatabaseObject<DBOUserGroup, DBOU
 	}
 
 
-	@Override
-	public MigratableTableTranslation<DBOUserGroup, DBOUserGroup> getTranslator() {
-		// We do not currently have a backup for this object.
-		return new MigratableTableTranslation<DBOUserGroup, DBOUserGroup>(){
-
-			@Override
-			public DBOUserGroup createDatabaseObjectFromBackup(
-					DBOUserGroup backup) {
-				if(backup.getEtag() == null){
-					backup.setEtag("0");
-				}
-				return backup;
-			}
-
-			@Override
-			public DBOUserGroup createBackupFromDatabaseObject(DBOUserGroup dbo) {
-				return dbo;
-			}};
-	}
-
 
 	@Override
 	public Class<? extends DBOUserGroup> getBackupClass() {
@@ -202,14 +175,78 @@ public class DBOUserGroup implements MigratableDatabaseObject<DBOUserGroup, DBOU
 	}
 
 
+	@SuppressWarnings("rawtypes")
 	@Override
 	public List<MigratableDatabaseObject> getSecondaryTypes() {
 		List<MigratableDatabaseObject> list = new LinkedList<MigratableDatabaseObject>();
 		list.add(new DBOGroupMembers());
 		list.add(new DBOCredential());
+		list.add(new DBOTermsOfUseAgreement());
+		list.add(new DBOSessionToken());
 		return list;
 	}
 
+	@Override
+	public MigratableTableTranslation<DBOUserGroup, DBOUserGroup> getTranslator() {
+		return new MigratableTableTranslation<DBOUserGroup, DBOUserGroup>(){
 
+			@Override
+			public DBOUserGroup createDatabaseObjectFromBackup(
+					DBOUserGroup backup) {
+				return backup;
+			}
+
+			@Override
+			public DBOUserGroup createBackupFromDatabaseObject(
+					DBOUserGroup dbo) {
+				return dbo;
+			}};
+	}
+
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result
+				+ ((creationDate == null) ? 0 : creationDate.hashCode());
+		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
+		result = prime * result + ((id == null) ? 0 : id.hashCode());
+		result = prime * result
+				+ ((isIndividual == null) ? 0 : isIndividual.hashCode());
+		return result;
+	}
+
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		DBOUserGroup other = (DBOUserGroup) obj;
+		if (creationDate == null) {
+			if (other.creationDate != null)
+				return false;
+		} else if (!creationDate.equals(other.creationDate))
+			return false;
+		if (etag == null) {
+			if (other.etag != null)
+				return false;
+		} else if (!etag.equals(other.etag))
+			return false;
+		if (id == null) {
+			if (other.id != null)
+				return false;
+		} else if (!id.equals(other.id))
+			return false;
+		if (isIndividual == null) {
+			if (other.isIndividual != null)
+				return false;
+		} else if (!isIndividual.equals(other.isIndividual))
+			return false;
+		return true;
+	}
 
 }

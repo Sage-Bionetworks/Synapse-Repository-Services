@@ -3,65 +3,50 @@ package org.sagebionetworks.repo.manager;
 import java.util.Collection;
 import java.util.List;
 
-import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOSessionToken;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
+import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface UserManager {
-
-	/**
-	 * Get the User and UserGroup information for the given user name.
-	 * Has the side effect of creating permissions-related objects for the
-	 * groups that the user is in.
-	 * 
-	 */
-	public UserInfo getUserInfo(String userName) throws DatastoreException, NotFoundException;
 	
 	/**
-	 * Get a default group
+	 * Get the User and UserGroup information for the given user ID.  
+	 * 
+	 * @param principalId the ID of the user of interest
 	 */
-	public UserGroup getDefaultUserGroup(DEFAULT_GROUPS group) throws DatastoreException;
-
-	/**
-	 * Find a group
-	 */
-	public UserGroup findGroup(String name, boolean b) throws DatastoreException;
+	public UserInfo getUserInfo(Long principalId) throws NotFoundException;
 	
 	/**
 	 * Creates a new user
+	 * 
+	 * @return The ID of the user
 	 */
-	public void createUser(NewUser user);
-	
-	
-	/**
-	 * Does a principal with this name exist?
-	 */
-	public boolean doesPrincipalExist(String name);
+	public long createUser(NewUser user);
 	
 	/**
-	 * Delete a principal by name
+	 * Creates a new user and initializes some fields as specified.
+	 * Must be an admin to use this
 	 */
-	public boolean deletePrincipal(String name);
+	public UserInfo createUser(UserInfo adminUserInfo, NewUser user, DBOCredential credential,
+			DBOTermsOfUseAgreement touAgreement, DBOSessionToken token) throws NotFoundException;
 
-	/**
-	 * @param principalId
-	 * @return for a group, returns the group name, for a user returns the display name in the user's profile
-	 */
-	public String getDisplayName(Long principalId) throws NotFoundException;
+	public UserInfo createUser(UserInfo adminUserInfo, NewUser user, DBOCredential credential,
+			DBOTermsOfUseAgreement touAgreement) throws NotFoundException;
 	
 	/**
-	 * Returns the group name
+	 * Delete a principal by ID
+	 * 
+	 * For testing purposes only
 	 */
-	public String getGroupName(String principalId) throws NotFoundException;
-
-	/**
-	 * Changes the user's email
-	 */
-	public void updateEmail(UserInfo userInfo, String newEmail) throws DatastoreException, NotFoundException;
+	public void deletePrincipal(UserInfo adminUserInfo, Long principalId) throws NotFoundException;
 
 	/**
 	 * Get all non-individual user groups, including Public.
@@ -72,4 +57,15 @@ public interface UserManager {
 	 * Get non-individual user groups (including Public) in range
 	 **/
 	public List<UserGroup> getGroupsInRange(UserInfo userInfo, long startIncl, long endExcl, String sort, boolean ascending) throws DatastoreException, UnauthorizedException;
+	
+	
+	/**
+	 * Principals can have many aliases including a username, multiple email addresses, and OpenIds.
+	 * This method will look a user by any of the aliases.
+	 * @param alias
+	 * @return
+	 */
+	public PrincipalAlias lookupPrincipalByAlias(String alias);
+	
+	
 }

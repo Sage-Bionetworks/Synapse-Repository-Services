@@ -21,6 +21,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.regex.Pattern;
 
+import org.apache.http.HttpStatus;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.pivot.wtk.Window;
@@ -29,7 +30,7 @@ import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
-import org.sagebionetworks.client.exceptions.SynapseUserException;
+import org.sagebionetworks.client.exceptions.SynapseServerException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Folder;
@@ -213,7 +214,8 @@ public class FileUploader implements FileUploaderView.Presenter {
 							setFileStatus(file, UploadStatus.UPLOADED);
 						} catch (Exception e) {
 							log.error(e);
-							if(e != null && e.getCause() != null && e.getCause() instanceof SynapseUserException && e.getMessage().contains("(409)")) {
+							if(e != null && e.getCause() != null && e.getCause() instanceof SynapseServerException && 
+									((SynapseServerException)e.getCause()).getStatusCode()==HttpStatus.SC_CONFLICT) {
 								setFileStatus(file, UploadStatus.ALREADY_EXISTS);
 							} else {
 								setFileStatus(file, UploadStatus.FAILED);
@@ -280,7 +282,7 @@ public class FileUploader implements FileUploaderView.Presenter {
 			} else if(e instanceof SynapseForbiddenException) {
 				String userName = "(undefined)";
 				if(userSessionData != null && userSessionData.getProfile() != null) 
-					userName = userSessionData.getProfile().getDisplayName();
+					userName = userSessionData.getProfile().getUserName();
 				view.alert("Access Denied to " + targetEntityId + "for user " + userName + ". Please gain access and then reload.");
 			} else {
 				view.alert("An Error Occured. Please reload.");

@@ -12,19 +12,27 @@
 		},
 		"isMember": {
 			"type": "boolean",
-			"description": "true iff the user is a member of the team"
+			"description": "true if and only if the user is a member of the team"
 		},
 		"hasOpenInvitation": {
 			"type": "boolean",
-			"description": "true iff the user has an open invitation to join the team"
+			"description": "true if and only if  the user has an open invitation to join the team"
 		},
 		"hasOpenRequest": {
 			"type": "boolean",
-			"description": "true iff the user has an open request to join the team"
+			"description": "true if and only if  the user has an open request to join the team"
 		},
 		"canJoin": {
 			"type": "boolean",
-			"description": "true iff the user requesting this status information can join the user to the team"
+			"description": "true if and only if the user requesting this status information can join the user to the team"
+		},
+		"membershipApprovalRequired": {
+			"type": "boolean",
+			"description": "true if and only if  team admin approval is required for the user to join the team"
+		},
+		"hasUnmetAccessRequirement": {
+			"type": "boolean",
+			"description": "true if and only if  there is at least one unmet access requirement for the user on the team"
 		}
 	}
 }

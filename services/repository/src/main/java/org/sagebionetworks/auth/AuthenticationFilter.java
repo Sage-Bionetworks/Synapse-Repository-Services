@@ -21,7 +21,8 @@ import org.joda.time.Minutes;
 import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.authutil.ModParamHttpServletRequest;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.TermsOfUseException;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.HMACUtils;
@@ -68,7 +69,7 @@ public class AuthenticationFilter implements Filter {
 		//      http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.47
 		//      http://www.ietf.org/rfc/rfc2617.txt
 		resp.setHeader("WWW-Authenticate", "\"Digest\" your email");
-		resp.getWriter().println("{\"reason\", \""+reason+"\"}");
+		resp.getWriter().println("{\"reason\": \""+reason+"\"}");
 	}
 
 	@Override
@@ -77,70 +78,97 @@ public class AuthenticationFilter implements Filter {
 		// First look for a session token in the header or as a parameter
 		HttpServletRequest req = (HttpServletRequest) servletRqst;
 		String sessionToken = req.getHeader(AuthorizationConstants.SESSION_TOKEN_PARAM);
-		if (sessionToken == null) {
+		if (isSessionTokenEmptyOrNull(sessionToken)) {
 			// Check for a session token as a parameter
 			sessionToken = req.getParameter(AuthorizationConstants.SESSION_TOKEN_PARAM);
 		}
 		
 		// Determine the caller's identity
-		String username = null;
+		Long userId = null;
+		DomainType domain = DomainTypeUtils.valueOf(req.getParameter(AuthorizationConstants.DOMAIN_PARAM));
 		
 		// A session token maps to a specific user
-		if (sessionToken != null) {
+		if (!isSessionTokenEmptyOrNull(sessionToken)) {
+			String failureReason = "Invalid session token";
 			try {
-				String userId = authenticationService.revalidate(sessionToken);
-				username = authenticationService.getUsername(userId);
-			} catch (TermsOfUseException e) {
-				String reason = "Terms of use have not been signed";
-				reject(req, (HttpServletResponse) servletResponse, reason, HttpStatus.FORBIDDEN);
-				log.warn("Session token used without signing terms of use", e);
-				return;
+				userId = authenticationService.revalidate(sessionToken, domain, false);
 			} catch (UnauthorizedException e) {
-				String reason = "The session token is invalid";
-				reject(req, (HttpServletResponse) servletResponse, reason);
-				log.warn("Invalid session token", e);
+				reject(req, (HttpServletResponse) servletResponse, failureReason);
+				log.warn(failureReason, e);
 				return;
 			} catch (NotFoundException e) {
-				String reason = "The session token is invalid";
-				reject(req, (HttpServletResponse) servletResponse, reason);
-				log.warn("Invalid session token", e);
+				reject(req, (HttpServletResponse) servletResponse, failureReason);
+				log.warn(failureReason, e);
 				return;
 			}
 		
 		// If there is no session token, then check for a HMAC signature
-		} else if (isSigned(req)) {  
-			username = req.getHeader(AuthorizationConstants.USER_ID_HEADER);
+		} else if (isSigned(req)) {
+			String failureReason = "Invalid HMAC signature";
+			String username = req.getHeader(AuthorizationConstants.USER_ID_HEADER);
 			try {
-				String secretKey = authenticationService.getSecretKey(username);
+				userId = authenticationService.getUserId(username);
+				String secretKey = authenticationService.getSecretKey(userId);
 				matchHMACSHA1Signature(req, secretKey);
 			} catch (UnauthorizedException e) {
 				reject(req, (HttpServletResponse) servletResponse, e.getMessage());
-				log.warn("Invalid HMAC signature", e);
+				log.warn(failureReason, e);
 				return;
 			} catch (NotFoundException e) {
 				reject(req, (HttpServletResponse) servletResponse, e.getMessage());
-				log.warn("Invalid HMAC signature", e);
+				log.warn(failureReason, e);
 				return;
 			}
 		}
-		if (username == null && !allowAnonymous) {
+		
+		if (userId == null && !allowAnonymous) {
 			String reason = "The session token provided was missing, invalid or expired.";
 			reject(req, (HttpServletResponse) servletResponse, reason);
 			log.warn("Anonymous not allowed");
 			return;
 		}
-		if (username == null) {
-			username = AuthorizationConstants.ANONYMOUS_USER_ID;
+		
+		// If the user has been identified, check if they have accepted the terms of use
+		if (userId != null) {
+			boolean toUCheck = false;
+			try {
+				toUCheck = authenticationService.hasUserAcceptedTermsOfUse(userId, domain);
+			} catch (NotFoundException e) {
+				String reason = "User " + userId + " does not exist";
+				reject(req, (HttpServletResponse) servletResponse, reason, HttpStatus.NOT_FOUND);
+				log.error("This should be unreachable", e);
+				return;
+			}
+			if (!toUCheck) {
+				String reason = "Terms of use have not been signed";
+				reject(req, (HttpServletResponse) servletResponse, reason, HttpStatus.FORBIDDEN);
+				return;
+			}	
+		}
+		
+		if (userId == null) {
+			userId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
 		}
 
 		// Pass along, including the user ID
 		@SuppressWarnings("unchecked")
 		Map<String, String[]> modParams = new HashMap<String, String[]>(req.getParameterMap());
-		modParams.put(AuthorizationConstants.USER_ID_PARAM, new String[] { username });
+		modParams.put(AuthorizationConstants.USER_ID_PARAM, new String[] { userId.toString() });
 		HttpServletRequest modRqst = new ModParamHttpServletRequest(req, modParams);
 		filterChain.doFilter(modRqst, servletResponse);
 	}
 
+	/**
+	 * Is a session token empty or null?
+	 * This is part of the fix for PLFM-2422.
+	 * @param sessionToken
+	 * @return
+	 */
+	private boolean isSessionTokenEmptyOrNull(String sessionToken){
+		if(sessionToken == null) return true;
+		if("".equals(sessionToken.trim())) return true;
+		return false;
+	}
 	private static final long MAX_TIMESTAMP_DIFF_MIN = 15;
 	
 	public static boolean isSigned(HttpServletRequest request) {

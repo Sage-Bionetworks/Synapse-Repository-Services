@@ -7,180 +7,195 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
 import java.util.UUID;
 
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
+import org.sagebionetworks.client.SynapseAdminClient;
+import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
+import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
+import org.sagebionetworks.client.exceptions.SynapseServerException;
+import org.sagebionetworks.repo.model.auth.NewIntegrationTestUser;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.auth.Session;
 
 public class IT990AuthenticationController {
-	private static SynapseClient synapse;
-	
-	private static final String username = StackConfiguration.getIntegrationTestUserThreeName();
-	private static final String password = StackConfiguration.getIntegrationTestUserThreePassword();
 
-	@BeforeClass
+	private static SynapseAdminClient adminSynapse;
+	private static Long userToDelete;
+	
+	/**
+	 * Signs in with username + password, has signed the ToU
+	 */
+	private static SynapseClient synapse;
+	private static String email;
+	private static String username;
+	private static final String PASSWORD = "password";
+	
+	@BeforeClass 
 	public static void beforeClass() throws Exception {
-		String authEndpoint = StackConfiguration.getAuthenticationServicePrivateEndpoint();
-		String repoEndpoint = StackConfiguration.getRepositoryServiceEndpoint();
+		// Create a user
+		adminSynapse = new SynapseAdminClientImpl();
+		SynapseClientHelper.setEndpoints(adminSynapse);
+		adminSynapse.setUserName(StackConfiguration.getMigrationAdminUsername());
+		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
+		
+		// Don't use the SynapseClientHelper here, since we need something different
+		email = UUID.randomUUID().toString() + "@sagebase.org";
+		username = UUID.randomUUID().toString();
+		NewIntegrationTestUser nu = new NewIntegrationTestUser();
+		nu.setEmail(email);
+		nu.setUsername(username);
+		nu.setPassword(PASSWORD);
+		userToDelete = adminSynapse.createUser(nu);
+		
+		// Construct the client, but do nothing else
 		synapse = new SynapseClientImpl();
-		synapse.setAuthEndpoint(authEndpoint);
-		synapse.setRepositoryEndpoint(repoEndpoint);
+		SynapseClientHelper.setEndpoints(synapse);
 	}
 	
 	@Before
 	public void setup() throws Exception {
-		synapse.login(username, password);
+		synapse.login(username, PASSWORD);
+		synapse.signTermsOfUse(synapse.getCurrentSessionToken(), true);
+	}
+	
+	@AfterClass
+	public static void afterClass() throws Exception {
+		adminSynapse.deleteUser(userToDelete);
 	}
 
 	@Test
-	public void testCreateSession() throws Exception {
-		synapse.login(username, password);
-		assertNotNull(synapse.getCurrentSessionToken());
-	}
-	
-	@Test
-	public void testCreateSessionSigningTermsOfUse() throws Exception {
-		synapse.login(username, password, true);
+	public void testLogin() throws Exception {
+		synapse.login(username, PASSWORD);
 		assertNotNull(synapse.getCurrentSessionToken());
 	}
 	
 	@Test(expected = SynapseUnauthorizedException.class)
-	public void testCreateSessionBadCredentials() throws Exception {
+	public void testLogin_BadCredentials() throws Exception {
 		synapse.login(username, "incorrectPassword");
 	}
 	
-	@Test(expected = SynapseTermsOfUseException.class)
-	public void testCreateSessionNoTermsOfUse() throws Exception {
-		String username = StackConfiguration.getIntegrationTestRejectTermsOfUseName();
-		String password = StackConfiguration.getIntegrationTestRejectTermsOfUsePassword();
-		synapse.login(username, password);
+	@Test
+	public void testLogin_NoTermsOfUse() throws Exception {
+		synapse.signTermsOfUse(synapse.getCurrentSessionToken(), false);
+		Session session = synapse.login(username, PASSWORD);
+		assertFalse(session.getAcceptsTermsOfUse());
+		try {
+			synapse.revalidateSession();
+		} catch (SynapseTermsOfUseException e) { }
+		
+		// The session token can't be used to do much though
+		try {
+			synapse.getMyProfile();
+			fail();
+		} catch (SynapseForbiddenException e) { }
 	}
 	
 	
 	@Test
-	public void testRevalidateSvc() throws Exception {
+	public void testRevalidate() throws Exception {
 		synapse.revalidateSession();
 		assertNotNull(synapse.getCurrentSessionToken());
+		
+		synapse.getMyProfile();
 	}
 	
 	@Test(expected=SynapseUnauthorizedException.class)
-	public void testRevalidateBadTokenSvc() throws Exception {
+	public void testRevalidate_BadToken() throws Exception {
 		synapse.setSessionToken("invalid-session-token");
 		synapse.revalidateSession();
 	}
 	
 	@Test
-	public void testCreateSessionThenLogout() throws Exception {
+	public void testLoginThenLogout() throws Exception {
 		synapse.logout();
 		assertNull(synapse.getCurrentSessionToken());
 	}
 	
-	@Test(expected = SynapseUnauthorizedException.class)
+	@Test
 	public void testCreateExistingUser() throws Exception {
 		NewUser user = new NewUser();
-		user.setEmail(username);
-		user.setFirstName("dev");
-		user.setLastName("usr");
-		user.setDisplayName("dev usr");
+		user.setEmail(email);
+		user.setUserName(UUID.randomUUID().toString());
+		user.setFirstName("Foo");
+		user.setLastName("Bar");
 		
-		synapse.createUser(user);
-	}
-	
-	
-	@Test
-	public void testCreateUserAndAcceptToU() throws Exception {	
-		String username = "integration@test." + UUID.randomUUID();
-		String password = "password";
-		
-		NewUser user = new NewUser();
-		user.setEmail(username);
-		user.setFirstName("foo");
-		user.setLastName("bar");
-		user.setDisplayName("foo bar");
-		// Note: passwords are only accepted in this request in non-production stacks
-		user.setPassword(password);
-		
-		synapse.createUser(user);
-		
-		// Expect a ToU failure here, which means the user was created
 		try {
-			synapse.login(username, password);
-			fail();
-		} catch (SynapseTermsOfUseException e) { }
-		
-		// Now accept the terms and get a session token
-		synapse.login(username, password, true);
-		assertNotNull(synapse.getCurrentSessionToken());
-	}
-	
-	@Test
-	public void testGetUser() throws Exception {
-		NewUser user = synapse.getAuthUserInfo();
-		assertEquals(username, user.getEmail());
-		assertEquals("First-" + username, user.getFirstName());
-		assertEquals("Last-" + username, user.getLastName());
-		assertEquals(username, user.getDisplayName());
+			synapse.createUser(user);
+		} catch (SynapseServerException e) {
+			assertTrue(e.getStatusCode()==409);
+		}
 	}
 	
 	@Test
 	public void testChangePassword() throws Exception {
 		String testNewPassword = "newPassword";
-		synapse.changePassword(testNewPassword);
+		synapse.changePassword(synapse.getCurrentSessionToken(), testNewPassword);
+		
+		// Session token should be invalid
+		try {
+			synapse.getMyProfile();
+			fail();
+		} catch (SynapseUnauthorizedException e) { }
+		
 		synapse.logout();
 		synapse.login(username, testNewPassword);
 		
 		// Restore original password
-		synapse.changePassword(password);
-	}
-	
-	/**
-	 * Functionality is currently disabled pending PLFM-2231
-	 * https://sagebionetworks.jira.com/browse/PLFM-2231
-	 */
-	@Ignore
-	@Test(expected=SynapseNotFoundException.class)
-	public void testChangeEmail() throws Exception {
-		// Changes the current email (IT user 3) to the email of the session token (IT user 3)
-		synapse.changeEmail(synapse.getCurrentSessionToken(), password);
-		
-		//TODO actually change the email
-		//TODO change the email back
+		synapse.changePassword(synapse.getCurrentSessionToken(), PASSWORD);
 	}
 	
 	@Test
-	public void testRegisterChangePassword() throws Exception {
+	public void testChangePassword_NoToU() throws Exception {
 		String testNewPassword = "newPassword";
-		synapse.changePassword(synapse.getCurrentSessionToken(), testNewPassword);
 		
-		// To check the password, we have to try to log-in:
+		// Reject the terms
+		synapse.signTermsOfUse(synapse.getCurrentSessionToken(), false);
+		
+		// Password change should still work
+		synapse.changePassword(synapse.getCurrentSessionToken(), testNewPassword);
+		synapse.logout();
 		synapse.login(username, testNewPassword);
 		
 		// Restore original password
-		synapse.changePassword(password);
+		synapse.changePassword(synapse.getCurrentSessionToken(), PASSWORD);
+		
+		// Accept the terms again (cleanup)
+		synapse.login(username, PASSWORD);
+		synapse.signTermsOfUse(synapse.getCurrentSessionToken(), true);
+	}
+	
+	@Test
+	public void testSignTermsViaSessionToken() throws Exception {
+		String sessionToken = synapse.getCurrentSessionToken();
+		
+		// Reject the terms
+		synapse.signTermsOfUse(sessionToken, false);
+		
+		// Now I can't do authenticated requests
+		Session session = synapse.login(username, PASSWORD);
+		assertFalse(session.getAcceptsTermsOfUse());
+		
+		// Accept the terms
+		synapse.signTermsOfUse(sessionToken, true);
+		
+		session = synapse.login(username, PASSWORD);
+		assertEquals(sessionToken, synapse.getCurrentSessionToken());
+		assertTrue(session.getAcceptsTermsOfUse());
 	}
 	
 	@Test
 	public void testSendResetPasswordEmail() throws Exception {
 		// Note: non-production stacks do not send emails, but instead print a log message
-		synapse.sendPasswordResetEmail(username);
-	}
-	
-	@Test
-	public void testSetAPIPasswordEmail() throws Exception {
-		// Note: non-production stacks do not send emails, but instead print a log message
-		synapse.sendPasswordResetEmail();
+		synapse.sendPasswordResetEmail(email);
 	}
 	
 	
@@ -194,6 +209,31 @@ public class IT990AuthenticationController {
 	public void testGetSecretKey() throws Exception {
 		String apikey = synapse.retrieveApiKey();
 		assertNotNull(apikey);
+		System.out.println(apikey);
+		
+		// Use the API key
+		synapse.logout();
+		synapse.setUserName(username);
+		synapse.setApiKey(apikey);
+		
+		// Should work
+		synapse.getMyProfile();
+		
+		// This should make subsequent API key calls fail
+		synapse.login(username, PASSWORD);
+		synapse.signTermsOfUse(synapse.getCurrentSessionToken(), false);
+		
+		synapse.logout();
+		synapse.setUserName(username);
+		synapse.setApiKey(apikey);
+		try {
+			synapse.getMyProfile();
+			fail();
+		} catch (SynapseForbiddenException e) { }
+
+		// Clean up
+		synapse.login(username, PASSWORD);
+		synapse.signTermsOfUse(synapse.getCurrentSessionToken(), true);
 	}
 	
 	@Test
@@ -205,79 +245,6 @@ public class IT990AuthenticationController {
 		// Should be different from the first one
 		assertFalse(apikey.equals(secondKey));
 	}
-
-	private static long UBER_TIMEOUT = 60 * 1000L;
-	private class MutableLong {
-		long L = 0L;
-
-		public void set(long L) {
-			this.L = L;
-	}
-
-		public long get() {
-			return L;
-				}
-			}
-	
-	private void authenticate() throws Exception {
-		String username = StackConfiguration.getIntegrationTestUserThreeName();
-		synapse.login(username, StackConfiguration.getIntegrationTestUserThreePassword());
-	}
-	
-	/**
-	 * Without Crowd in place, this test may or may not be needed anymore
-	 */
-	@Ignore
-	@Test
-	public void testMultipleLoginsMultiThreaded() throws Exception {
-		for (int n : new int[] { 100 }) {
-		Map<Integer, MutableLong> times = new HashMap<Integer, MutableLong>();
-			for (int i = 0; i < n; i++) {
-			final MutableLong L = new MutableLong();
-			times.put(i, L);
-		 	Thread thread = new Thread() {
-				public void run() {
-					try {
-						long start = System.currentTimeMillis();
-						authenticate();
-							L.set(System.currentTimeMillis() - start);
-					} catch (Exception e) {
-							// fail(e.toString());
-						e.printStackTrace(); // 'fail' will be thrown below
-					}
-				}
-			};
-			thread.start();
-		}
-		int count = 0;
-		long elapsed = 0L;
-		Set<Long> sortedTimes = new TreeSet<Long>();
-			long uberTimeOut = System.currentTimeMillis() + UBER_TIMEOUT;
-			while (!times.isEmpty() && System.currentTimeMillis() < uberTimeOut) {
-				for (int i : times.keySet()) {
-				long L = times.get(i).get();
-					if (L != 0) {
-					elapsed += L;
-					sortedTimes.add(L);
-					count++;
-					times.remove(i);
-					break;
-				}
-			}
-		}
-			System.out.println(count
-					+ " authentication request response time (sec): min "
-					+ ((float) sortedTimes.iterator().next() / 1000L) + " avg "
-					+ ((float) elapsed / count / 1000L) + " max "
-					+ ((float) getLast(sortedTimes) / 1000L));
-	}
-	}
-	
-	private static <T> T getLast(Set<T> set) {
-		T ans = null;
-		for (T v : set) ans=v;
-		return ans;
-	}
 	
 	/**
 	 * Since we don't know Google's private OpenID information, this is a bit difficult to integration test
@@ -286,7 +253,7 @@ public class IT990AuthenticationController {
 	@Test
 	public void testOpenIDCallback() throws Exception {
 		try {
-			synapse.passThroughOpenIDParameters("", null);
+			synapse.passThroughOpenIDParameters("org.sagebionetworks.openid.provider=GOOGLE");
 			fail();
 		} catch (SynapseUnauthorizedException e) {
 			assertTrue(e.getMessage().contains("Required parameter missing"));

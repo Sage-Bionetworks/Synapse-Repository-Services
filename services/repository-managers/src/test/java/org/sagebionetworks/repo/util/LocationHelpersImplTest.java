@@ -29,7 +29,8 @@ public class LocationHelpersImplTest {
 	@Autowired
 	LocationHelper helper;
 
-	private static final String INTEGRATION_TEST_READ_ONLY_USER_ID = "integration.test@sagebase.org";
+	private static final Long TEST_USER_ID = 2938475L;
+	private static final Long OTHER_TEST_USER_ID = 9378952L;
 
 	/**
 	 * @throws java.lang.Exception
@@ -55,7 +56,7 @@ public class LocationHelpersImplTest {
 	@Test
 	public void testCreateS3Url() throws Exception {
 
-		String url = helper.presignS3PUTUrl(INTEGRATION_TEST_READ_ONLY_USER_ID,
+		String url = helper.presignS3PUTUrl(TEST_USER_ID,
 				"/9876/unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0.tar.gz",
 				"33183779e53ce0cfc35f59cc2a762cbd", "application/binary");
 		assertNotNull(url);
@@ -71,7 +72,7 @@ public class LocationHelpersImplTest {
 	@Test
 	public void testGetS3Url() throws Exception {
 
-		String url = helper.presignS3GETUrl(INTEGRATION_TEST_READ_ONLY_USER_ID,
+		String url = helper.presignS3GETUrl(TEST_USER_ID,
 				"/9876/unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0.tar.gz");
 
 		assertNotNull(url);
@@ -87,7 +88,7 @@ public class LocationHelpersImplTest {
 	@Test
 	public void testGetS3HeadUrl() throws Exception {
 
-		String url = helper.presignS3HEADUrl(INTEGRATION_TEST_READ_ONLY_USER_ID,
+		String url = helper.presignS3HEADUrl(TEST_USER_ID,
 				"/9123123123/unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0.tar.gz");
 
 		assertNotNull(url);
@@ -116,31 +117,31 @@ public class LocationHelpersImplTest {
 	@Test
 	public void testCache() throws Exception {
 		
-		String getUrl = helper.presignS3GETUrl("user1@foo.com", "/123/foo.zip", 6);
-		String headUrl = helper.presignS3HEADUrl("user1@foo.com", "/123/foo.zip", 6);
+		String getUrl = helper.presignS3GETUrl(TEST_USER_ID, "/123/foo.zip", 6);
+		String headUrl = helper.presignS3HEADUrl(TEST_USER_ID, "/123/foo.zip", 6);
 		assertFalse(getUrl.equals(headUrl));
 
 		// If 2 of the 6 seconds have elapsed, the urls are still "fresh enough" to reuse
 		Thread.sleep(1000);  
 		
 		// Test Cache Hits
-		assertTrue(getUrl.equals(helper.presignS3GETUrl("user1@foo.com", "/123/foo.zip", 6)));
-		assertTrue(headUrl.equals(helper.presignS3HEADUrl("user1@foo.com", "/123/foo.zip", 6)));
+		assertTrue(getUrl.equals(helper.presignS3GETUrl(TEST_USER_ID, "/123/foo.zip", 6)));
+		assertTrue(headUrl.equals(helper.presignS3HEADUrl(TEST_USER_ID, "/123/foo.zip", 6)));
 		
 		// Test Cache Misses due to different users
-		assertFalse(getUrl.equals(helper.presignS3GETUrl("user2@foo.com", "/123/foo.zip", 6)));
-		assertFalse(headUrl.equals(helper.presignS3HEADUrl("user2@foo.com", "/123/foo.zip", 6)));
+		assertFalse(getUrl.equals(helper.presignS3GETUrl(OTHER_TEST_USER_ID, "/123/foo.zip", 6)));
+		assertFalse(headUrl.equals(helper.presignS3HEADUrl(OTHER_TEST_USER_ID, "/123/foo.zip", 6)));
 
 		// Test Cache Misses due to different s3Keys
-		assertFalse(getUrl.equals(helper.presignS3GETUrl("user1@foo.com", "/123/foo.tgz", 6)));
-		assertFalse(headUrl.equals(helper.presignS3HEADUrl("user1@foo.com", "/123/foo.tgz", 6)));
+		assertFalse(getUrl.equals(helper.presignS3GETUrl(TEST_USER_ID, "/123/foo.tgz", 6)));
+		assertFalse(headUrl.equals(helper.presignS3HEADUrl(TEST_USER_ID, "/123/foo.tgz", 6)));
 
 		// Now that 4+ of the 6 seconds have elapsed, the urls are NOT "fresh enough" to reuse
 		Thread.sleep(3000);  
 		
 		// Test Cache Misses due to timing
-		assertFalse(getUrl.equals(helper.presignS3GETUrl("user1@foo.com", "/123/foo.zip", 6)));
-		assertFalse(headUrl.equals(helper.presignS3HEADUrl("user1@foo.com", "/123/foo.zip", 6)));
+		assertFalse(getUrl.equals(helper.presignS3GETUrl(TEST_USER_ID, "/123/foo.zip", 6)));
+		assertFalse(headUrl.equals(helper.presignS3HEADUrl(TEST_USER_ID, "/123/foo.zip", 6)));
 	}
 	
 }

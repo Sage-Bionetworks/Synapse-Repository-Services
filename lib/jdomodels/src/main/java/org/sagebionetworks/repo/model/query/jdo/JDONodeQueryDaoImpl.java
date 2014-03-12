@@ -11,7 +11,9 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.NodeQueryResults;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil;
 import org.sagebionetworks.repo.model.jdo.FieldTypeCache;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.query.BasicQuery;
@@ -107,10 +109,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 		// Now execute the non-count query
 		SizeLimitRowMapper sizeLimitMapper = new SizeLimitRowMapper(MAX_BYTES_PER_QUERY);
 		List<Map<String, Object>> results = simpleJdbcTemplate.query(fullQuery.toString(), sizeLimitMapper, parameters);
-		String userId = null;
-		if(userInfo.getUser() != null){
-			userId = userInfo.getUser().getUserId();
-		}
+		Long userId = userInfo.getId();
 		// Build the results based on on the select
 		if(log.isDebugEnabled()){
 			log.debug("user: "+userId+ " Query: "+fullQuery.toString());
@@ -197,6 +196,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 			return false;
 		}
 		// Build the authorization filter
+		parameters.put(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, ObjectType.ENTITY.name());
 		String authorizationFilter = QueryUtils.buildAuthorizationFilter(userInfo, parameters);
 		// Build the paging
 		String paging = QueryUtils.buildPaging(in.getOffset(), in.getLimit(), parameters);

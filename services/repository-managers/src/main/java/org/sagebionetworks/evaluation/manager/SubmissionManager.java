@@ -3,9 +3,9 @@ package org.sagebionetworks.evaluation.manager;
 import java.net.URL;
 
 import org.sagebionetworks.evaluation.model.Submission;
+import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
-import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.QueryResults;
@@ -108,7 +108,7 @@ public interface SubmissionManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public QueryResults<Submission> getAllSubmissionsByEvaluationAndUser(UserInfo userInfo,
+	public QueryResults<Submission> getMyOwnSubmissionsByEvaluation(UserInfo userInfo,
 			String evalId, long limit, long offset)
 			throws DatastoreException, NotFoundException;
 
@@ -134,7 +134,7 @@ public interface SubmissionManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public QueryResults<SubmissionBundle> getAllSubmissionBundlesByEvaluationAndUser(
+	public QueryResults<SubmissionBundle> getMyOwnSubmissionBundlesByEvaluation(
 			UserInfo userInfo, String evalId, long limit, long offset)
 			throws DatastoreException, NotFoundException;
 

@@ -7,8 +7,6 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
 import java.util.Date;
 import java.util.List;
 
-import org.sagebionetworks.evaluation.dao.EvaluationDAO;
-import org.sagebionetworks.evaluation.dao.ParticipantDAO;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.util.EvaluationUtils;
@@ -17,6 +15,8 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
+import org.sagebionetworks.repo.model.evaluation.ParticipantDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
@@ -49,7 +49,7 @@ public class ParticipantManagerImpl implements ParticipantManager {
 			throw new IllegalArgumentException("Evaluation ID cannot be null or empty.");
 		}
 
-		String userId = userInfo.getIndividualGroup().getId();
+		String userId = userInfo.getId().toString();
 		if (!userId.equals(participantId)) {
 			if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, UPDATE)) {
 				throw new UnauthorizedException("User " + userId +
@@ -66,7 +66,7 @@ public class ParticipantManagerImpl implements ParticipantManager {
 		EvaluationUtils.ensureNotNull(evalId, "Evaluation ID");
 
 		if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, PARTICIPATE)) {
-			throw new UnauthorizedException("User " + userInfo.getIndividualGroup().getId() +
+			throw new UnauthorizedException("User " + userInfo.getId().toString() +
 					" is not allowed to join evaluation " + evalId);
 		}
 		Evaluation eval = evaluationDAO.get(evalId);
@@ -76,7 +76,7 @@ public class ParticipantManagerImpl implements ParticipantManager {
 			throw new UnauthorizedException("Cannot join Evaluation ID " + evalId + " which is not currently OPEN.");
 		}
 		UserInfo.validateUserInfo(userInfo);
-		String principalIdToAdd = userInfo.getIndividualGroup().getId();
+		String principalIdToAdd = userInfo.getId().toString();
 		
 		// create the new Participant
 		Participant part = new Participant();
@@ -100,7 +100,7 @@ public class ParticipantManagerImpl implements ParticipantManager {
 		EvaluationUtils.ensureNotNull(evalId, "Evaluation ID");
 		EvaluationUtils.ensureNotNull(idToRemove, "Participant User ID");
 		UserInfo.validateUserInfo(userInfo);
-		String principalId = userInfo.getIndividualGroup().getId();
+		String principalId = userInfo.getId().toString();
 
 		// verify permissions
 		if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, DELETE)) {
@@ -145,7 +145,7 @@ public class ParticipantManagerImpl implements ParticipantManager {
 		}
 
 		if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, UPDATE)) {
-			throw new UnauthorizedException("User " + userInfo.getIndividualGroup().getId() +
+			throw new UnauthorizedException("User " + userInfo.getId().toString() +
 						" not allowed to get participants for evaluation " + evalId);
 		}
 	}

@@ -25,7 +25,9 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.dbo.dao.AuthorizationUtils;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.DomainType;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.securitytools.HMACUtils;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -39,15 +41,16 @@ public class AuthenticationFilterTest {
 	private static final String sessionToken = "someSortaSessionToken";
 	private static final String secretKey = "Totally a plain text key :D";
 	private static final String username = "AuthFilter@test.sagebase.org";
-	private static final String userId = "123456789";
+	private static final Long userId = 123456789L;
 
 	@Before
 	public void setupFilter() throws Exception {
 		mockAuthService = mock(AuthenticationService.class);
-		when(mockAuthService.revalidate(eq(sessionToken))).thenReturn(userId);
-		when(mockAuthService.getUsername(eq(userId))).thenReturn(username);
-		when(mockAuthService.getSecretKey(eq(username))).thenReturn(secretKey);
-		
+		when(mockAuthService.revalidate(eq(sessionToken), eq(DomainType.SYNAPSE), eq(false))).thenReturn(userId);
+		when(mockAuthService.getSecretKey(eq(userId))).thenReturn(secretKey);
+		when(mockAuthService.hasUserAcceptedTermsOfUse(eq(userId), eq(DomainType.SYNAPSE))).thenReturn(true);
+		when(mockAuthService.getUserId(eq(username))).thenReturn(userId);
+
 		final Map<String,String> filterParams = new HashMap<String, String>();
 		filterParams.put("allow-anonymous", "true");
 
@@ -93,7 +96,29 @@ public class AuthenticationFilterTest {
 		ServletRequest modRequest = filterChain.getRequest();
 		assertNotNull(modRequest);
 		String anonymous = modRequest.getParameter(AuthorizationConstants.USER_ID_PARAM);
-		assertTrue(AuthorizationUtils.isUserAnonymous(anonymous));
+		assertEquals(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString(), anonymous);
+	}
+	
+	/**
+	 * Test that we treat an empty session token the same an a null session token.
+	 * @throws Exception
+	 */
+	@Test
+	public void testPLFM_2422() throws Exception {
+		// A request with no information provided
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		request.addHeader(AuthorizationConstants.SESSION_TOKEN_PARAM, "");
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		MockFilterChain filterChain = new MockFilterChain();
+		when(mockAuthService.revalidate(eq(""), eq(DomainType.SYNAPSE), eq(false))).thenThrow(new UnauthorizedException("That is not a valid session token"));
+		
+		filter.doFilter(request, response, filterChain);
+		
+		// Should default to anonymous
+		ServletRequest modRequest = filterChain.getRequest();
+		assertNotNull(modRequest);
+		String anonymous = modRequest.getParameter(AuthorizationConstants.USER_ID_PARAM);
+		assertTrue(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString().equals(anonymous));
 	}
 	
 	@Test
@@ -107,11 +132,11 @@ public class AuthenticationFilterTest {
 		filter.doFilter(request, response, filterChain);
 		
 		// Session token should be recognized
-		Mockito.verify(mockAuthService, times(1)).revalidate(eq(sessionToken));
+		Mockito.verify(mockAuthService, times(1)).revalidate(eq(sessionToken), eq(DomainType.SYNAPSE), eq(false));
 		ServletRequest modRequest = filterChain.getRequest();
 		assertNotNull(modRequest);
-		String sessionUsername = modRequest.getParameter(AuthorizationConstants.USER_ID_PARAM);
-		assertEquals(username, sessionUsername);
+		String sessionUserId = modRequest.getParameter(AuthorizationConstants.USER_ID_PARAM);
+		assertEquals(userId.toString(), sessionUserId);
 	}
 	
 	@Test
@@ -125,11 +150,11 @@ public class AuthenticationFilterTest {
 		filter.doFilter(request, response, filterChain);
 
 		// Session token should be recognized
-		verify(mockAuthService, times(1)).revalidate(eq(sessionToken));
+		verify(mockAuthService, times(1)).revalidate(eq(sessionToken), eq(DomainType.SYNAPSE), eq(false));
 		ServletRequest modRequest = filterChain.getRequest();
 		assertNotNull(modRequest);
-		String sessionUsername = modRequest.getParameter(AuthorizationConstants.USER_ID_PARAM);
-		assertEquals(username, sessionUsername);
+		String sessionUserId = modRequest.getParameter(AuthorizationConstants.USER_ID_PARAM);
+		assertEquals(userId.toString(), sessionUserId);
 	}
 	
 	@Test
@@ -146,7 +171,7 @@ public class AuthenticationFilterTest {
 		ServletRequest modRequest = filterChain.getRequest();
 		assertNotNull(modRequest);
 		String sessionUsername = modRequest.getParameter(AuthorizationConstants.USER_ID_PARAM);
-		assertTrue(AuthorizationUtils.isUserAnonymous(sessionUsername));
+		assertEquals(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString(), sessionUsername);
 	}
 	
 	@Test
@@ -160,11 +185,11 @@ public class AuthenticationFilterTest {
 		filter.doFilter(request, response, filterChain);
 
 		// Signature should match
-		verify(mockAuthService, times(1)).getSecretKey(eq(username));
+		verify(mockAuthService, times(1)).getSecretKey(eq(userId));
 		ServletRequest modRequest = filterChain.getRequest();
 		assertNotNull(modRequest);
 		String passedAlongUsername = modRequest.getParameter(AuthorizationConstants.USER_ID_PARAM);
-		assertEquals(username, passedAlongUsername);
+		assertEquals(userId.toString(), passedAlongUsername);
 	}
 
 	/**
