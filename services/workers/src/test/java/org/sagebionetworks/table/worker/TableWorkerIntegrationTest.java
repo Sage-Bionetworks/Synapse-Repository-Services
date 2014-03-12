@@ -1,6 +1,6 @@
 package org.sagebionetworks.table.worker;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -153,6 +153,7 @@ public class TableWorkerIntegrationTest {
 		assertEquals(2, rowSet.getRows().size());
 		assertNotNull(rowSet.getEtag());
 		assertEquals("The etag for the last applied change set should be set for the status and the results",status.getLastTableChangeEtag(), rowSet.getEtag());
+		assertEquals("The etag should also match the rereferenceSet.etag",referenceSet.getEtag(), rowSet.getEtag());
 	}
 	
 	

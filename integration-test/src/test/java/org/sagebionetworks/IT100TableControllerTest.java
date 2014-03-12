@@ -2,7 +2,7 @@ package org.sagebionetworks;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -33,6 +33,7 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableEntity;
+import org.sagebionetworks.repo.model.table.TableState;
 
 /**
  * Tests for TableEntity and ColumnModel services.
@@ -165,7 +166,8 @@ public class IT100TableControllerTest {
 		RowSet queryResults = waitForQueryResults("select * from "+table.getId()+" limit 2", isConsistent, countOnly);
 		assertNotNull(queryResults);
 		assertNotNull(queryResults.getEtag());
-		assertEquals(table.getId(), queryResults.getEtag());
+		assertEquals(results.getEtag(), queryResults.getEtag());
+		assertEquals(table.getId(), queryResults.getTableId());
 		assertNotNull(queryResults.getRows());
 		assertEquals(2, queryResults.getRows().size());
 		// Now use these results to update the table. By setting the row IDs to null, they should be treated as additions
@@ -181,12 +183,13 @@ public class IT100TableControllerTest {
 		queryResults = waitForQueryResults("select * from "+table.getId()+" limit 2", isConsistent, countOnly);
 		assertNotNull(queryResults);
 		assertNotNull(queryResults.getEtag());
-		assertEquals(table.getId(), queryResults.getEtag());
+		assertEquals(results.getEtag(), queryResults.getEtag());
+		assertEquals(table.getId(), queryResults.getTableId());
 		assertNotNull(queryResults.getRows());
 		assertEquals(1, queryResults.getRows().size());
 		Row onlyRow = queryResults.getRows().get(0);
 		assertNotNull(onlyRow.getValues());
-		assertEquals(1, onlyRow.getValues());
+		assertEquals(1, onlyRow.getValues().size());
 		assertEquals("There should be 4 rows in this table", "4", onlyRow.getValues().get(0));
 	}
 
@@ -202,10 +205,11 @@ public class IT100TableControllerTest {
 		long start = System.currentTimeMillis();
 		while(true){
 			try {
-				RowSet queryResutls = synapse.queryTableEntity(sql);
+				RowSet queryResutls = synapse.queryTableEntity(sql, isConsistent, countOnly);
 				return queryResutls;
 			} catch (SynapseTableUnavilableException e) {
 				// The table is not ready yet
+				assertFalse("Table processing failed: "+e.getStatus().getErrorMessage(), TableState.PROCESSING_FAILED.equals(e.getStatus().getState()));
 				System.out.println("Waiting for table index to be available: "+e.getStatus());
 				Thread.sleep(2000);
 				assertTrue("Timed out waiting for query results for sql: "+sql,System.currentTimeMillis()-start < MAX_QUERY_TIMEOUT_MS);

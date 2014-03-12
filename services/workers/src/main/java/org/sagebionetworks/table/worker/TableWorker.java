@@ -237,21 +237,23 @@ public class TableWorker implements Callable<List<Message>> {
 		tableRowManager.attemptToUpdateTableProgress(tableId, resetToken, "Listing table changes ", 0L, 100L);
 		List<TableRowChange> changes = tableRowManager
 				.listRowSetsKeysForTable(tableId);
+		if(changes == null || changes.isEmpty()){
+			// If there are no changes for this table then the last etag will be null
+			// and there is nothing else to do.
+			return null;
+		}
 		// Apply any change that has a version number greater than the max
 		// version already in the index
 		String lastEtag = null;
-		if (changes != null) {
-			for (TableRowChange change : changes) {
-				if (change.getRowVersion() > maxVersion) {
-					// This is a change that we must apply.
-					RowSet rowSet = tableRowManager.getRowSet(tableId,
-							change.getRowVersion());
-					
-					tableRowManager.attemptToUpdateTableProgress(tableId, resetToken, "Applying rows "+rowSet.getRows().size()+" to version: "+change.getRowVersion(), 0L, 100L);
-					// apply the change to the table
-					indexDao.createOrUpdateRows(rowSet,	currentSchema);
-					lastEtag = change.getEtag();
-				}
+		for (TableRowChange change : changes) {
+			lastEtag = change.getEtag();
+			if (change.getRowVersion() > maxVersion) {
+				// This is a change that we must apply.
+				RowSet rowSet = tableRowManager.getRowSet(tableId,	change.getRowVersion());
+
+				tableRowManager.attemptToUpdateTableProgress(tableId,	resetToken, "Applying rows " + rowSet.getRows().size()	+ " to version: " + change.getRowVersion(), 0L,	100L);
+				// apply the change to the table
+				indexDao.createOrUpdateRows(rowSet, currentSchema);
 			}
 		}
 		return lastEtag;
