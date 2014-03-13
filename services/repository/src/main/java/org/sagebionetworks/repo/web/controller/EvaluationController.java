@@ -1140,19 +1140,19 @@ public class EvaluationController extends BaseController {
 	 * Executes a user-defined query over the Submissions of a specific Evaluation. Queries have the following form:
 	 * 
 	 * <p/>
-	 * SELECT &lt;fields&gt; FROM evaluation_&lt;id&gt; [WHERE &lt;filter&gt; (AND &lt;filter&gt;)*] [ORDER BY &lt;name&gt; asc|desc] [LIMIT &lt;L&gt; OFFSET &lt;O&gt;]
+	 * SELECT <fields> FROM evaluation_<id> [WHERE <filter> (AND <filter>)*] [ORDER BY <name> asc|desc] [LIMIT <L> OFFSET <O>]
 	 * <p/>
 	 * where
 	 * <p/>
-	 * &lt;fields&gt; is either "*" or a comma delimited list of names
+	 * <fields> is either "*" or a comma delimited list of names
 	 * <br/>
 	 * <ul>
-	 * <li>"name" is the name either of a system-defined field in a Submission or of a user defined annotation.  The system-defined field names are:
+	 * <li>"name" is the name either of a system-defined field in a Submission or of a user-defined annotation.  The system-defined field names are:
 	 * objectId, scopeId, userId, submitterAlias, entityId, versionNumber, name, createdOn, modifiedOn, and status.
-	 * Note:  If a user defined annotation name and type of value matches/collides with those of a system-defined field, 
+	 * Note:  If a user-defined annotation name and type of value matches/collides with those of a system-defined field, 
 	 * the query will be against the field name, not the user defined annotation.</li>
-	 * <li>&lt;id&gt; is the Evaluation's ID</li>
-	 * <li>&lt;filter&gt; = &lt;name&gt; &lt;comparator&gt; &lt;value&gt;</li>
+	 * <li><id> is the Evaluation's ID</li>
+	 * <li><filter> = <name> <comparator> <value></li>
 	 * <li>"comparator" is one of ==, !=, >, <, >=, or <=</li>
 	 * <li>"value" is an annotation value, of type string, integer, or decimal</li>
 	 * <li>"L" and "O" are optional limit and offset pagination parameters, limit>=1 and offset>=0.
@@ -1166,10 +1166,21 @@ public class EvaluationController extends BaseController {
 	 * SELECT * FROM evaluation_123  limit 20 offset 10 order by status asc<br/>
 	 * <p/>
 	 * <p/>
-	 * Note:  IF "SELECT *" is used and if the user lacks READ_PRIVATE access to the Evaluation, then any private annotations will
+	 * User must be granted READ access to the Evaluation in order to issue any query.  READ_PRIVATE access provides access to those 
+	 * annotations having their "isPrivate" flag set to true.
+	 * <p/>
+	 * Notes:  
+	 * <br/>
+	 * IF "SELECT *" is used and if the user lacks READ_PRIVATE access to the Evaluation, then any private annotations will
 	 * be omitted from the resulting column headers.  However, if the selected annotations are specified explicitly then private
 	 * annotation names <i>will</i> be included in the column headers, but their values will be returned as null.  
 	 * Further, if the private annotation is included in a filter then no results are returned.
+	 * <br/>
+	 * While privacy levels for user defined annotations are set by the user, for system-defined fields the privacy level is fixed as follows:  
+	 * <br/>
+	 * The fields userId, name, createdOn, and submitterAlias are private.
+	 * <br/>
+	 * The fields objectId, scopeId, entityId, versionNumber, modifiedOn, and status are public.
 	 * 
 	 * @throws JSONObjectAdapterException
 	 * @throws ParseException 

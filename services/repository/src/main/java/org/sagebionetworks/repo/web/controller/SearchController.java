@@ -34,8 +34,6 @@ import org.springframework.web.servlet.ModelAndView;
  * into a Synapse model object
  * </ol>
  * 
- * @author deflaux
- * 
  */
 @ControllerInfo(displayName="Search Services", path="repo/v1")
 @Controller

@@ -26,7 +26,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * https://sagebionetworks.jira.com/wiki/display/PLFM/Repository+Service+API#RepositoryServiceAPI-QueryAPI
  * 
  * 
- * @author deflaux
  */
 @ControllerInfo(displayName="Entity Query Services", path="repo/v1")
 @Controller
