@@ -183,12 +183,10 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 		insertAnnotation(submitterAnno, longAnnoMap, doubleAnnoMap, stringAnnoMap);
 		
 		// entityId
-		LongAnnotation entityIdAnno = new LongAnnotation();
+		StringAnnotation entityIdAnno = new StringAnnotation();
 		entityIdAnno.setIsPrivate(false);
 		entityIdAnno.setKey(DBOConstants.PARAM_SUBMISSION_ENTITY_ID);
-		if (submission.getEntityId() != null) {
-			entityIdAnno.setValue(KeyFactory.stringToKey(submission.getEntityId()));
-		}
+		entityIdAnno.setValue(submission.getEntityId());
 		insertAnnotation(entityIdAnno, longAnnoMap, doubleAnnoMap, stringAnnoMap);
 		
 		// entity version
