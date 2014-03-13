@@ -247,6 +247,8 @@ public class ServiceConstants {
 	public static final int DEFAULT_CONNECT_TIMEOUT_MSEC = 5000;
 	public static final int DEFAULT_SOCKET_TIMEOUT_MSEC = 20000;
 	
+	public static final String EVALUATION_IDS_PARAM = "evaluationIds";
+	
 	// default EntityBundle mask for serialization in Submission objects.
 	public static final int DEFAULT_ENTITYBUNDLE_MASK_FOR_SUBMISSIONS = EntityBundle.ENTITY + EntityBundle.ANNOTATIONS + EntityBundle.FILE_HANDLES;
 
@@ -257,4 +259,7 @@ public class ServiceConstants {
 	 * A query string parameter indicating whether to skip the trash can when deleting entities.
 	 */
 	public static final String SKIP_TRASH_CAN_PARAM = "skipTrashCan";
+	
+	public static final String COUNT_ONLY = "countOnly";
+	public static final String IS_CONSISTENT = "isConsistent";
 }

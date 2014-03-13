@@ -52,12 +52,8 @@ public class TemplatedConfigurationImpl implements TemplatedConfiguration {
 		// Load the required properties
 		loadPropertiesFromClasspath(templatePropertiesFilename,
 				requiredProperties);
-		// If the system properties does not have the property file url,
-		// then we need to try and load the maven settings file.
-		if (System.getProperty(StackConstants.STACK_PROPERTY_FILE_URL) == null) {
-			// Try loading the settings file
-			addSettingsPropertiesToSystem(stackPropertyOverrides);
-		}
+		// Try loading the settings file
+		addSettingsPropertiesToSystem(stackPropertyOverrides);
 		// These three properties are required. If they are null, an exception
 		// will be thrown
 		getEncryptionKey();

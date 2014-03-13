@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DomainType;
@@ -211,6 +212,10 @@ public class MessageManagerImpl implements MessageManager {
 		dto.setCreatedBy(userInfo.getId().toString());
 		
 		if (!userInfo.isAdmin()) {
+			// Can't be anonymous
+			if (userInfo.getId().equals(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId())) {
+				throw new UnauthorizedException("Anonymous user may not send messages.");
+			}
 			// Throttle message creation
 			if (!messageDAO.canCreateMessage(userInfo.getId().toString(), 
 						MAX_NUMBER_OF_NEW_MESSAGES,

@@ -34,6 +34,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseTableUnavilableException;
 import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
 import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.evaluation.model.Evaluation;
@@ -129,6 +130,7 @@ import org.sagebionetworks.repo.model.storage.StorageUsageDimension;
 import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
+import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
@@ -225,6 +227,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String STATUS_SUFFIX = "?status=";
 	private static final String EVALUATION_ACL_URI_PATH = "/evaluation/acl";
 	private static final String EVALUATION_QUERY_URI_PATH = EVALUATION_URI_PATH + "/" + SUBMISSION + QUERY_URI;
+	private static final String EVALUATION_IDS_FILTER_PARAM = "evaluationIds";
 	
 	private static final String MESSAGE                    = "/message";
 	private static final String FORWARD                    = "/forward";
@@ -240,6 +243,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	
 	protected static final String COLUMN = "/column";
 	protected static final String TABLE = "/table";
+	protected static final String TABLE_QUERY = TABLE+"/query";
 
 	private static final String USER_PROFILE_PATH = "/userProfile";
 	
@@ -3935,6 +3939,36 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		}
 	}
 	
+	private String idsToString(List<String> ids) {
+		StringBuilder sb = new StringBuilder();
+		boolean firsttime = true;
+		for (String s : ids) {
+			if (firsttime) {
+				firsttime=false;
+			} else {
+				sb.append(",");
+			}
+			sb.append(s);
+		}
+		return sb.toString();
+	}
+	
+	@Override
+	public PaginatedResults<Evaluation> getAvailableEvaluationsPaginated(int offset, int limit, List<String> evaluationIds) throws SynapseException {
+		String url = AVAILABLE_EVALUATION_URI_PATH + "?" + OFFSET + "=" + offset + "&limit=" + limit
+				+ "&"+EVALUATION_IDS_FILTER_PARAM+"="+idsToString(evaluationIds);
+		JSONObject jsonObj = getEntity(url);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedResults<Evaluation> results = new PaginatedResults<Evaluation>(Evaluation.class);
+
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+	
 	@Deprecated
 	@Override
 	public Long getEvaluationCount() throws SynapseException {
@@ -4611,6 +4645,19 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		if(toAppend.getTableId() == null) throw new IllegalArgumentException("RowSet.tableId cannot be null");
 		String url = getRepoEndpoint()+ENTITY+"/"+toAppend.getTableId()+TABLE;
 		return asymmetricalPost(url, toAppend, RowReferenceSet.class);
+	}
+	@Override
+	public RowSet queryTableEntity(String sql) throws SynapseException, SynapseTableUnavilableException{
+		boolean isConsistent = true;
+		boolean countOnly = false;
+		return queryTableEntity(sql, isConsistent, countOnly);
+	}
+	@Override
+	public RowSet queryTableEntity(String sql, boolean isConsistent, boolean countOnly) throws SynapseException, SynapseTableUnavilableException{
+		String url = getRepoEndpoint()+TABLE_QUERY+"?isConsistent="+isConsistent+"&countOnly="+countOnly;
+		Query query = new Query();
+		query.setSql(sql);
+		return asymmetricalPost(url, query, RowSet.class);
 	}
 	
 	@Override

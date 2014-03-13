@@ -28,7 +28,11 @@
 		},
 		"resetToken": {
 			"type": "string",
-			"description": "Whenever the status of a table is rest to PROCESSING, a new reset-token will be issued.  The table status can only be set to AVAILABLE_FOR_QUERY by providing the current reset-token."
+			"description": "Whenever the status of a table is rest to PROCESSING, a new reset-token will be issued.  The table status can only be set to AVAILABLE by providing the current reset-token."
+		},
+		"lastTableChangeEtag": {
+			"type": "string",
+			"description": "Whenever the status of a table is set to AVAILABLE, this will be set to the etag of the last table change applied to the index."
 		},
 		"progresssMessage": {
 			"type": "string",

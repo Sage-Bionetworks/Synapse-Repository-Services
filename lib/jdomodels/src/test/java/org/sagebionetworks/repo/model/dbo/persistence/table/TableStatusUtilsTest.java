@@ -25,6 +25,7 @@ public class TableStatusUtilsTest {
 		dto.setState(TableState.PROCESSING_FAILED);
 		dto.setTotalTimeMS(10L);
 		dto.setResetToken("reset token");
+		dto.setLastTableChangeEtag("last etag");
 		
 		// to the DBO 
 		DBOTableStatus dbo = TableStatusUtils.createDBOFromDTO(dto);

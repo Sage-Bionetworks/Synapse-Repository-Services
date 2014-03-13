@@ -309,6 +309,13 @@ public class IT520SynapseJavaClientEvaluationTest {
 				assertEquals(1, evals.getResults().size());
 		eval1=synapseOne.getEvaluation(eval1.getId());
 		assertEquals(eval1, evals.getResults().iterator().next());
+		
+		// check that filtering parameter works
+		evals = synapseOne.getAvailableEvaluationsPaginated(0, 100, Arrays.asList(new String[]{eval1.getId()}));
+		assertEquals(1, evals.getTotalNumberOfResults());
+				assertEquals(1, evals.getResults().size());
+		eval1=synapseOne.getEvaluation(eval1.getId());
+		assertEquals(eval1, evals.getResults().iterator().next());
 	}
 	
 	@Test

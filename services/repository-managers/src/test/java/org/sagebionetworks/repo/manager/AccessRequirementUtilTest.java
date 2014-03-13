@@ -60,13 +60,14 @@ public class AccessRequirementUtilTest {
 		downloadOnly.add(ACCESS_TYPE.DOWNLOAD);
 		List<ACCESS_TYPE> participateOnly = new ArrayList<ACCESS_TYPE>();
 		participateOnly.add(ACCESS_TYPE.PARTICIPATE);
-		List<ACCESS_TYPE> downloadAndParticipate = new ArrayList<ACCESS_TYPE>();
-		downloadAndParticipate.addAll(downloadOnly);
-		downloadAndParticipate.addAll(participateOnly);
+		List<ACCESS_TYPE> downloadParticipateAndSubmit = new ArrayList<ACCESS_TYPE>();
+		downloadParticipateAndSubmit.addAll(downloadOnly);
+		downloadParticipateAndSubmit.addAll(participateOnly);
+		downloadParticipateAndSubmit.add(ACCESS_TYPE.SUBMIT);
 		
 		when(mockAccessRequirementDAO.unmetAccessRequirements(any(List.class), any(RestrictableObjectType.class), any(Collection.class), eq(downloadOnly))).thenReturn(unmetARsDownload);
 		when(mockAccessRequirementDAO.unmetAccessRequirements(any(List.class), any(RestrictableObjectType.class), any(Collection.class), eq(participateOnly))).thenReturn(unmetARsParticipate);
-		when(mockAccessRequirementDAO.unmetAccessRequirements(any(List.class), any(RestrictableObjectType.class), any(Collection.class), eq(downloadAndParticipate))).thenReturn(unmetARsDownloadAndParticipate);
+		when(mockAccessRequirementDAO.unmetAccessRequirements(any(List.class), any(RestrictableObjectType.class), any(Collection.class), eq(downloadParticipateAndSubmit))).thenReturn(unmetARsDownloadAndParticipate);
 	}
 	
 	@Test

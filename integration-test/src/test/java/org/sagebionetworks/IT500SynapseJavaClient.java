@@ -222,10 +222,10 @@ public class IT500SynapseJavaClient {
 	public static void afterClass() throws Exception {
 		try {
 			adminSynapse.deleteUser(user1ToDelete);
-		} catch (SynapseClientException e) { }
+		} catch (SynapseException e) { }
 		try {
 			adminSynapse.deleteUser(user2ToDelete);
-		} catch (SynapseClientException e) { }
+		} catch (SynapseException e) { }
 	}
 	
 	@Test

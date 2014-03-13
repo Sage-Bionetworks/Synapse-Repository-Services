@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.web.controller;
 
+import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -20,13 +21,18 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
+import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableEntity;
+import org.sagebionetworks.repo.model.table.TableState;
+import org.sagebionetworks.repo.model.table.TableStatus;
+import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -157,5 +163,61 @@ public class TableControllerAutowireTest {
 		expected.clear();
 		expected.add(three);
 		assertEquals(expected, pcm.getResults());
+	}
+	
+	@Test
+	public void testTableQueryTableUnavailable() throws ServletException, Exception{
+		// Create a table with two ColumnModels
+		// one
+		ColumnModel one = new ColumnModel();
+		one.setName("foo");
+		one.setColumnType(ColumnType.LONG);
+		one = ServletTestHelper.createColumnModel(DispatchServletSingleton.getInstance(), one, adminUserId);
+		// two
+		ColumnModel two = new ColumnModel();
+		two.setName("bar");
+		two.setColumnType(ColumnType.STRING);
+		two = ServletTestHelper.createColumnModel(DispatchServletSingleton.getInstance(), two, adminUserId);
+		// Now create a TableEntity with these Columns
+		TableEntity table = new TableEntity();
+		table.setName("TableEntity2");
+		table.setParentId(parent.getId());
+		List<String> idList = new LinkedList<String>();
+		idList.add(one.getId());
+		idList.add(two.getId());
+		table.setColumnIds(idList);
+		table = ServletTestHelper.createEntity(DispatchServletSingleton.getInstance(), table, adminUserId);
+		assertNotNull(table);
+		assertNotNull(table.getId());
+		TableEntity clone = ServletTestHelper.getEntity(DispatchServletSingleton.getInstance(), TableEntity.class, table.getId(), adminUserId);
+		assertNotNull(clone);
+		assertEquals(table, clone);
+		// Now make sure we can get the list of columns for this entity
+		List<ColumnModel> cols = ServletTestHelper.getColumnModelsForTableEntity(DispatchServletSingleton.getInstance(), table.getId(), adminUserId);
+		assertNotNull(cols);
+		
+		// Add some rows to the table.
+		RowSet set = new RowSet();
+		List<Row> rows = TableModelUtils.createRows(cols, 2);
+		set.setRows(rows);
+		set.setHeaders(TableModelUtils.getHeaders(cols));
+		set.setTableId(table.getId());
+		ServletTestHelper.appendTableRows(DispatchServletSingleton.getInstance(), set, adminUserId);
+		
+		// Since the worker is not working on the table, this should fail
+		try{
+			Query query = new Query();
+			query.setSql("select * from "+table.getId()+" limit 2");
+			ServletTestHelper.tableQuery(DispatchServletSingleton.getInstance(), adminUserId, query);
+			fail("This should have failed");
+		}catch(TableUnavilableException e){
+			TableStatus status = e.getStatus();
+			assertNotNull(status);
+			assertEquals(TableState.PROCESSING, status.getState());
+			assertEquals(KeyFactory.stringToKey(table.getId()).toString(), status.getTableId());
+			// expected
+			System.out.println(e.getStatus());
+		}
+		
 	}
 }
