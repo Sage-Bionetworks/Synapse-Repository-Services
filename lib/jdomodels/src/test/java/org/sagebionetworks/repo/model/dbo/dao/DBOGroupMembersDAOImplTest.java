@@ -15,6 +15,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.ids.NamedIdGenerator;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_TEAM;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -190,7 +191,7 @@ public class DBOGroupMembersDAOImplTest {
 	
 	@Test
 	public void testBootstrapGroups() throws Exception {
-		String adminGroupId = BOOTSTRAP_PRINCIPAL.ADMINISTRATORS_GROUP.getPrincipalId().toString();
+		String adminGroupId = BOOTSTRAP_TEAM.ADMINISTRATORS_GROUP.getId();
 		List<UserGroup> admins = groupMembersDAO.getMembers(adminGroupId);
 		Set<String> adminIds = new HashSet<String>();
 		for (UserGroup ug : admins) {

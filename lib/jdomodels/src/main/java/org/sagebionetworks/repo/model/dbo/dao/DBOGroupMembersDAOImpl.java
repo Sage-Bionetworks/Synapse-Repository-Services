@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_TEAM;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -173,7 +174,7 @@ public class DBOGroupMembersDAOImpl implements GroupMembersDAO {
 		List<String> adminUserIdList = new ArrayList<String>();
 		adminUserIdList.add(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString());
 		
-		String adminGroupId = BOOTSTRAP_PRINCIPAL.ADMINISTRATORS_GROUP.getPrincipalId().toString();
+		String adminGroupId = BOOTSTRAP_TEAM.ADMINISTRATORS_GROUP.getId();
 		addMembers(adminGroupId, adminUserIdList);
 	}
 }
