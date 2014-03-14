@@ -38,6 +38,7 @@ import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseServerException;
+import org.sagebionetworks.client.exceptions.SynapseTableUnavilableException;
 import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.downloadtools.FileUtils;
@@ -46,6 +47,7 @@ import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.auth.LoginCredentials;
 import org.sagebionetworks.repo.model.auth.Session;
+import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.securitytools.HMACUtils;
@@ -357,6 +359,9 @@ public class SharedClientConnection {
 			if(code < 200 || code > 299){
 				throw new SynapseServerException(code, "Response code: "+code+" "+response.getStatusLine().getReasonPhrase()+" for "+url);
 			}
+			if(code == 202){
+				throw new SynapseTableUnavilableException(createTableStatus(responseBody));
+			}
 			return responseBody;
 		} catch (UnsupportedEncodingException e) {
 			throw new SynapseClientException(e);
@@ -366,6 +371,14 @@ public class SharedClientConnection {
 			throw new SynapseClientException(e);
 		} catch (URISyntaxException e) {
 			throw new SynapseClientException(e);
+		}
+	}
+	
+	TableStatus createTableStatus(String json){
+		try {
+			return EntityFactory.createEntityFromJSONString(json, TableStatus.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
 		}
 	}
 	

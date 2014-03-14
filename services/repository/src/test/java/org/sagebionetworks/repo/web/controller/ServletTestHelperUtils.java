@@ -103,7 +103,7 @@ public class ServletTestHelperUtils {
 	/**
 	 * Convert the status code into an exception
 	 */
-	private static void handleException(int status, String message)
+	public static void handleException(int status, String message)
 			throws Exception {
 		log.debug("HTTP status: " + status + ", Message: " + message);
 		if (HttpStatus.NOT_FOUND.value() == status) {

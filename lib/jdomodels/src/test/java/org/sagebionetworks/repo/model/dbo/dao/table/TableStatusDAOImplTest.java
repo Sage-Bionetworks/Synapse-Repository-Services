@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
 import java.util.List;
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
@@ -99,21 +100,23 @@ public class TableStatusDAOImplTest {
 		assertEquals("123", status.getTableId());
 		assertEquals(TableState.PROCESSING, status.getState());
 		assertNotNull(status.getChangedOn());
+		String lastTableChangeEtag = UUID.randomUUID().toString();
 		// Not make available
-		tableStatusDAO.attemptToSetTableStatusToAvailable(tableId, resetToken);
+		tableStatusDAO.attemptToSetTableStatusToAvailable(tableId, resetToken, lastTableChangeEtag);
 		// the state should have changed
 		status = tableStatusDAO.getTableStatus(tableId);
 		assertNotNull(status);
 		assertEquals("123", status.getTableId());
 		assertEquals(TableState.AVAILABLE, status.getState());
 		assertNotNull(status.getTotalTimeMS());
+		assertEquals(lastTableChangeEtag, lastTableChangeEtag);
 	}
 	
 	@Test (expected=NotFoundException.class)
 	public void testAttemptToSetTableStatusNotFound() throws NotFoundException{
 		String tableId = "syn123";
 		// Not make available
-		tableStatusDAO.attemptToSetTableStatusToAvailable(tableId, "fake token");
+		tableStatusDAO.attemptToSetTableStatusToAvailable(tableId, "fake token", UUID.randomUUID().toString());
 	}
 	
 	@Test (expected=ConflictingUpdateException.class)
@@ -125,7 +128,7 @@ public class TableStatusDAOImplTest {
 		TableStatus status = tableStatusDAO.getTableStatus(tableId);
 		assertNotNull(status);
 		// This should fail since the passed token does not match the current token
-		tableStatusDAO.attemptToSetTableStatusToAvailable(tableId, resetToken+"invalidated");
+		tableStatusDAO.attemptToSetTableStatusToAvailable(tableId, resetToken+"invalidated", UUID.randomUUID().toString());
 	}
 	
 	@Test
@@ -149,6 +152,7 @@ public class TableStatusDAOImplTest {
 		assertNotNull(status.getTotalTimeMS());
 		assertEquals("error", status.getErrorMessage());
 		assertEquals("error details", status.getErrorDetails());
+		assertEquals(null, status.getLastTableChangeEtag());
 	}
 	
 	@Test (expected=NotFoundException.class)

@@ -46,7 +46,7 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 	
 	private static final String SQL_UPDATE_TABLE_PROGRESS = "UPDATE "+TABLE_STATUS+" SET "+COL_TABLE_STATUS_CHANGE_ON+" = ?, "+COL_TABLE_STATUS_PROGRESS_MESSAGE+" = ?, "+COL_TABLE_STATUS_PROGRESS_CURRENT+" = ?, "+COL_TABLE_STATUS_PROGRESS_TOTAL+" = ?, "+COL_TABLE_STATUS_RUNTIME_MS+" = ? WHERE "+COL_TABLE_STATUS_ID+" = ?";
 	private static final String CONFLICT_MESSAGE = "The passed reset-token was invalid. The table's status was reset after the passed reset-token was acquired.";
-	private static final String SQL_UPDATE_END_STATE = "UPDATE "+TABLE_STATUS+" SET "+COL_TABLE_STATUS_STATE+" = ?, "+COL_TABLE_STATUS_CHANGE_ON+" = ?, "+COL_TABLE_STATUS_PROGRESS_MESSAGE+" = ?, "+COL_TABLE_STATUS_PROGRESS_CURRENT+" = ?, "+COL_TABLE_STATUS_ERROR_MESSAGE+" = ?, "+COL_TABLE_STATUS_ERROR_DETAILS+" = ?, "+COL_TABLE_STATUS_RUNTIME_MS+" = ? WHERE "+COL_TABLE_STATUS_ID+" = ?";
+	private static final String SQL_UPDATE_END_STATE = "UPDATE "+TABLE_STATUS+" SET "+COL_TABLE_STATUS_STATE+" = ?, "+COL_TABLE_STATUS_CHANGE_ON+" = ?, "+COL_TABLE_STATUS_PROGRESS_MESSAGE+" = ?, "+COL_TABLE_STATUS_PROGRESS_CURRENT+" = ?, "+COL_TABLE_STATUS_ERROR_MESSAGE+" = ?, "+COL_TABLE_STATUS_ERROR_DETAILS+" = ?, "+COL_TABLE_STATUS_RUNTIME_MS+" = ?, "+COL_TABLE_LAST_TABLE_CHANGE_ETAG+" = ? WHERE "+COL_TABLE_STATUS_ID+" = ?";
 	private static final String SQL_SELECT_STATUS_FOR_UPDATE = "SELECT * FROM "+TABLE_STATUS+" WHERE "+COL_TABLE_STATUS_ID+" = ? FOR UPDATE";
 	private static final String SQL_DELETE_ALL_STATE = "DELETE FROM "+TABLE_STATUS+" WHERE "+COL_TABLE_STATUS_ID+" > -1";
 	private static final String SQL_RESET_TO_PENDING = "INSERT INTO "+TABLE_STATUS+" ("+COL_TABLE_STATUS_ID+", "+COL_TABLE_STATUS_STATE+", "+COL_TABLE_STATUS_RESET_TOKEN+", "+COL_TABLE_STATUS_STARTED_ON+", "+COL_TABLE_STATUS_CHANGE_ON+") VALUES (?,?,?,?,?) ON DUPLICATE KEY UPDATE "+COL_TABLE_STATUS_STATE+" = ?, "+COL_TABLE_STATUS_RESET_TOKEN+" = ?, "+COL_TABLE_STATUS_STARTED_ON+" = ?, "+COL_TABLE_STATUS_CHANGE_ON+" = ?";
@@ -91,15 +91,16 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 			String resetToken, String errorMessage, String errorDetails)
 			throws ConflictingUpdateException, NotFoundException {
 		if(tableIdString == null) throw new IllegalArgumentException("TableId cannot be null");
-		attemptToSetTableEndState(tableIdString, resetToken, TableState.PROCESSING_FAILED, null, errorMessage, errorDetails);
+		attemptToSetTableEndState(tableIdString, resetToken, TableState.PROCESSING_FAILED, null, errorMessage, errorDetails, null);
 	}
 
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void attemptToSetTableStatusToAvailable(String tableIdString,
-			String resetToken) throws ConflictingUpdateException, NotFoundException {
-		attemptToSetTableEndState(tableIdString, resetToken, TableState.AVAILABLE, null, null, null);
+			String resetToken, String tableChangeEtag) throws ConflictingUpdateException, NotFoundException {
+		if(tableChangeEtag == null) throw new IllegalArgumentException("tableChangeEtag cannot be null when setting to available.");
+		attemptToSetTableEndState(tableIdString, resetToken, TableState.AVAILABLE, null, null, null, tableChangeEtag);
 	}
 	
 	/**
@@ -115,7 +116,7 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 	 * @throws ConflictingUpdateException Thrown if the passed reset-token does not match the current reset-token, indicating it have been reset since the processing started.
 	 */
 	private void attemptToSetTableEndState(String tableIdString,
-			String resetToken, TableState state, String progressMessage, String errorMessage, String errorDetails) throws NotFoundException, ConflictingUpdateException{
+			String resetToken, TableState state, String progressMessage, String errorMessage, String errorDetails, String tableChangeEtag) throws NotFoundException, ConflictingUpdateException{
 		// This method cannot be used to reset to processing
 		if(TableState.PROCESSING.equals(state)) throw new IllegalArgumentException("This method cannot be used to change the state to PROCESSING because it does not change the reset-token");
 		if(tableIdString == null) throw new IllegalArgumentException("TableId cannot be null");
@@ -129,7 +130,7 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 		// Set the progress current to be the same as the progress total.
 		Long progressCurrent = current.getProgresssTotal();
 		byte[] errorDetailsBytes = TableStatusUtils.createErrorDetails(errorDetails);
-		simpleJdbcTemplate.update(SQL_UPDATE_END_STATE, state.name(), now, progressMessage, progressCurrent, errorMessage, errorDetailsBytes, runtimeMS, tableId);
+		simpleJdbcTemplate.update(SQL_UPDATE_END_STATE, state.name(), now, progressMessage, progressCurrent, errorMessage, errorDetailsBytes, runtimeMS,tableChangeEtag, tableId);
  	}
 	
 	/**
