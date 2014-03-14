@@ -8,9 +8,9 @@ import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.repo.manager.principal.NewUserUtils;
+import org.sagebionetworks.repo.manager.team.TeamConstants;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_TEAM;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.NameConflictException;
@@ -186,7 +186,7 @@ public class UserManagerImpl implements UserManager {
 		// Check to see if the user is an Admin
 		boolean isAdmin = false;
 		// If the user belongs to the admin group they are an admin
-		if(groups.contains(Long.parseLong(BOOTSTRAP_TEAM.ADMINISTRATORS_GROUP.getId()))){
+		if(groups.contains(TeamConstants.ADMINISTRATORS_TEAM_ID)){
 			isAdmin = true;
 		}
 		UserInfo ui = new UserInfo(isAdmin);

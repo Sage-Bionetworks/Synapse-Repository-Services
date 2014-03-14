@@ -304,10 +304,6 @@
      -->
     <util:list id="teamsToBootstrap">
         <bean class="org.sagebionetworks.repo.model.principal.BootstrapTeam">
-            <property name="id" value="3320020" />
-            <property name="name" value="BridgeAdministrators" />
-        </bean>
-        <bean class="org.sagebionetworks.repo.model.principal.BootstrapTeam">
             <property name="id" value="2" />
             <property name="name" value="Administrators" />
             <property name="initialMembers">
@@ -321,6 +317,10 @@
             <property name="id" value="464532" />
             <property name="name" value="Synapse Access and Compliance Team" />
         </bean>
-        </util:list>
+        <bean class="org.sagebionetworks.repo.model.principal.BootstrapTeam">
+            <property name="id" value="3320020" />
+            <property name="name" value="BridgeAdministrators" />
+        </bean>
+	</util:list>
 		
 </beans>

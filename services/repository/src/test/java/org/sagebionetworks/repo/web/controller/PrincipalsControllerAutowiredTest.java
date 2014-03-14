@@ -17,8 +17,8 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.team.TeamConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_TEAM;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -122,7 +122,7 @@ public class PrincipalsControllerAutowiredTest {
 				foundPublic = true;
 			}
 			if (ug.getId().equals(
-					BOOTSTRAP_TEAM.ADMINISTRATORS_GROUP.getId())) {
+					TeamConstants.ADMINISTRATORS_TEAM_ID.toString())) {
 				foundAdmin = true;
 			}
 			assertTrue(ug.toString(), !ug.getIsIndividual());

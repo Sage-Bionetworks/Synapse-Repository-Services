@@ -27,22 +27,6 @@ public class AuthorizationConstants {
 		}
 	}
 	
-	public enum BOOTSTRAP_TEAM {
-		BRIDGE_ADMINISTRATORS("3320020"),
-		ADMINISTRATORS_GROUP("2"), 
-		ACCESS_AND_COMPLIANCE_GROUP("464532");
-
-		private final String id;
-		
-		public String getId() {
-			return this.id;
-		}
-
-		private BOOTSTRAP_TEAM(String id) {
-			this.id = id;
-		}		
-	}
-	
 	/**
 	 * A scheme that describes how an ACL should be applied to an entity.
 	 */
