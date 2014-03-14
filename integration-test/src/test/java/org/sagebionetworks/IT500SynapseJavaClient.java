@@ -208,7 +208,7 @@ public class IT500SynapseJavaClient {
 			try {
 				adminSynapse.deleteFileHandle(id);
 			} catch (SynapseNotFoundException e) {
-			} catch (SynapseClientException e) { }
+			} catch (SynapseException e) { }
 		}
 		
 		for (String id : teamsToDelete) {
