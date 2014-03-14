@@ -25,6 +25,7 @@ import org.sagebionetworks.javadoc.velocity.ClassContextGenerator;
 import org.sagebionetworks.javadoc.velocity.ContextFactory;
 import org.sagebionetworks.javadoc.velocity.ContextFactoryImpl;
 import org.sagebionetworks.javadoc.velocity.controller.ControllerContextGenerator;
+import org.sagebionetworks.javadoc.velocity.schema.CSVExampleContextGenerator;
 import org.sagebionetworks.javadoc.velocity.schema.SchemaClassContextGenerator;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
@@ -46,6 +47,7 @@ public class SpringMVCDoclet {
 	static {
 		generators.add(new SchemaClassContextGenerator());
 		generators.add(new ControllerContextGenerator());
+		generators.add(new CSVExampleContextGenerator());
 	}
 
 	/**
