@@ -521,8 +521,7 @@ public class SharedClientConnection {
 	 * @param endpoint
 	 * @param uri
 	 * @param userAgent 
-	 * @param entity
-	 * @param originClient
+	 * @param parameters
 	 * @return
 	 * @throws SynapseException 
 	 */

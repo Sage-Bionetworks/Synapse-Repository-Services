@@ -628,7 +628,7 @@ public class MessageManagerImpl implements MessageManager {
 	// Email template constants and methods //
 	//////////////////////////////////////////
 	
-	private static final String TEMPLATE_KEY_ORIGIN_CLIENT = "#originclient#";
+	private static final String TEMPLATE_KEY_ORIGIN_CLIENT = "#domain#";
 	private static final String TEMPLATE_KEY_DISPLAY_NAME = "#displayname#";
 	private static final String TEMPLATE_KEY_USERNAME = "#username#";
 	private static final String TEMPLATE_KEY_WEB_LINK = "#link#";
@@ -638,13 +638,13 @@ public class MessageManagerImpl implements MessageManager {
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void sendPasswordResetEmail(Long recipientId, DomainType originClient, String sessionToken) throws NotFoundException {
+	public void sendPasswordResetEmail(Long recipientId, DomainType domain, String sessionToken) throws NotFoundException {
 		// Build the subject and body of the message
 		UserInfo recipient = userManager.getUserInfo(recipientId);
-		String domain = WordUtils.capitalizeFully(originClient.name());
+		String domainString = WordUtils.capitalizeFully(domain.name());
 		String subject = "Set " + domain + " Password";
 		String messageBody = readMailTemplate("message/PasswordResetTemplate.txt");
-		messageBody = messageBody.replaceAll(TEMPLATE_KEY_ORIGIN_CLIENT, domain);
+		messageBody = messageBody.replaceAll(TEMPLATE_KEY_ORIGIN_CLIENT, domainString);
 		
 		UserProfile profile = this.userProfileDAO.get(recipientId.toString());
 		
@@ -657,7 +657,7 @@ public class MessageManagerImpl implements MessageManager {
 		
 		messageBody = messageBody.replaceAll(TEMPLATE_KEY_USERNAME, alias);
 		String webLink;
-		switch (originClient) {
+		switch (domain) {
 		case BRIDGE:
 			webLink = "https://bridge.synapse.org/resetPassword.html?token=" + sessionToken;
 			break;
@@ -665,7 +665,7 @@ public class MessageManagerImpl implements MessageManager {
 			webLink = "https://www.synapse.org/Portal.html#!PasswordReset:" + sessionToken;
 			break;
 		default:
-			throw new IllegalArgumentException("Unknown origin client type: " + originClient);
+			throw new IllegalArgumentException("Unknown origin client type: " + domain);
 		}
 		messageBody = messageBody.replaceAll(TEMPLATE_KEY_WEB_LINK, webLink);
 		String email = getEmailForUser(profile);
@@ -674,13 +674,13 @@ public class MessageManagerImpl implements MessageManager {
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void sendWelcomeEmail(Long recipientId, DomainType originClient) throws NotFoundException {
+	public void sendWelcomeEmail(Long recipientId, DomainType domain) throws NotFoundException {
 		// Build the subject and body of the message
 		UserInfo recipient = userManager.getUserInfo(recipientId);
-		String domain = WordUtils.capitalizeFully(originClient.name());
+		String domainString = WordUtils.capitalizeFully(domain.name());
 		String subject = "Welcome to " + domain + "!";
 		String messageBody = readMailTemplate("message/WelcomeTemplate.txt");
-		messageBody = messageBody.replaceAll(TEMPLATE_KEY_ORIGIN_CLIENT, domain);
+		messageBody = messageBody.replaceAll(TEMPLATE_KEY_ORIGIN_CLIENT, domainString);
 		
 		//TODO use the Alias here
 		UserProfile profile = this.userProfileDAO.get(recipientId.toString());

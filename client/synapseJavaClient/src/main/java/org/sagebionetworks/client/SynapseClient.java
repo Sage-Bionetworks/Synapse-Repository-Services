@@ -1273,11 +1273,11 @@ public interface SynapseClient extends BaseClient {
 			Boolean createUserIfNecessary) throws SynapseException;
 
 	/**
-	 * @param originClient
+	 * @param domain
 	 *            Which client did the user access to authenticate via a third
 	 *            party provider (Synapse or Bridge)?
 	 */
 	public Session passThroughOpenIDParameters(String queryString,
-			Boolean createUserIfNecessary, DomainType originClient)
+			Boolean createUserIfNecessary, DomainType domain)
 			throws SynapseException;
 }

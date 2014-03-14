@@ -65,7 +65,7 @@ public class AuthorizationConstants {
 	 * change depending on whether this is Bridge or a Synapse client (at the least, 
 	 * email contents change).
 	 */
-	public static final String DOMAIN_PARAM = "originClient";
+	public static final String DOMAIN_PARAM = "domain";
 	
 	/**
 	 * A reserved parameter name for passing in a user id (not necessarily the name of the requestor,

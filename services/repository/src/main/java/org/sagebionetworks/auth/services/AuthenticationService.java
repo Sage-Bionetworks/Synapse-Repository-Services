@@ -48,7 +48,7 @@ public interface AuthenticationService {
 	 * Initializes a new user into the system
 	 * @throws UnauthorizedException If a user with the supplied email already exists 
 	 */
-	public void createUser(NewUser user, DomainType originClient);
+	public void createUser(NewUser user, DomainType domain);
 	
 	/**
 	 * Sends a password-reset email to the user
@@ -106,11 +106,11 @@ public interface AuthenticationService {
 	/**
 	 * This should only be called after the OpendId info havs already been validated.
 	 * @param info
-	 * @param originClient
+	 * @param domain
 	 * @return
 	 * @throws NotFoundException
 	 */
-	public Session processOpenIDInfo(OpenIDInfo info, DomainType originClient) throws NotFoundException;
+	public Session processOpenIDInfo(OpenIDInfo info, DomainType domain) throws NotFoundException;
 
-	public void sendPasswordEmail(String email, DomainType originClient) throws NotFoundException;
+	public void sendPasswordEmail(String email, DomainType domain) throws NotFoundException;
 }
