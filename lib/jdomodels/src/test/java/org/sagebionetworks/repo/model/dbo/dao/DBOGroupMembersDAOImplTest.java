@@ -5,16 +5,13 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.ids.NamedIdGenerator;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -186,17 +183,5 @@ public class DBOGroupMembersDAOImplTest {
 		// Verify that the parent group's etag has changed
 		updatedTestGroup = userGroupDAO.get(Long.parseLong(testGroup.getId()));
 		assertTrue("Etag must have changed", !testGroup.getEtag().equals(updatedTestGroup.getEtag()));
-	}
-	
-	@Test
-	public void testBootstrapGroups() throws Exception {
-		String adminGroupId = BOOTSTRAP_PRINCIPAL.ADMINISTRATORS_GROUP.getPrincipalId().toString();
-		List<UserGroup> admins = groupMembersDAO.getMembers(adminGroupId);
-		Set<String> adminIds = new HashSet<String>();
-		for (UserGroup ug : admins) {
-			adminIds.add(ug.getId());
-		}
-		
-		assertTrue(adminIds.contains(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString()));
 	}
 }

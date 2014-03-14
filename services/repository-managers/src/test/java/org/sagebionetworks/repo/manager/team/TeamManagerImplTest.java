@@ -295,7 +295,7 @@ public class TeamManagerImplTest {
 		teamManagerImpl.bootstrapTeams();
 		
 		verify(mockTeamDAO, times(2)).get(any(String.class));
-		verify(mockBasicDAO, times(2)).createNew(any(DBOUserGroup.class));
+		verify(mockBasicDAO, times(2)).createOrUpdate(any(DBOUserGroup.class));
 		verify(mockPrincipalAliasDAO, times(2)).findPrincipalWithAlias(any(String.class));
 		verify(mockPrincipalAliasDAO, times(2)).bindAliasToPrincipal(any(PrincipalAlias.class));
 		verify(mockPrincipalManager, times(2)).isAliasValid(any(String.class), eq(AliasType.TEAM_NAME));

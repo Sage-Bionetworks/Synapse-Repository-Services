@@ -12,11 +12,9 @@ public class AuthorizationConstants {
 	 */
 	public enum BOOTSTRAP_PRINCIPAL {
 		THE_ADMIN_USER(1L), 
-		ADMINISTRATORS_GROUP(2L), 
 		AUTHENTICATED_USERS_GROUP(273948L), 
 		PUBLIC_GROUP(273949L), 
-		ANONYMOUS_USER(273950L),
-		ACCESS_AND_COMPLIANCE_GROUP(464532L);
+		ANONYMOUS_USER(273950L);
 
 		private final long principalId;
 		
@@ -27,20 +25,6 @@ public class AuthorizationConstants {
 		private BOOTSTRAP_PRINCIPAL(long principalId) {
 			this.principalId = principalId;
 		}
-	}
-	
-	public enum BOOTSTRAP_TEAM {
-		BRIDGE_ADMINISTRATORS("3320020");
-
-		private final String id;
-		
-		public String getId() {
-			return this.id;
-		}
-
-		private BOOTSTRAP_TEAM(String id) {
-			this.id = id;
-		}		
 	}
 	
 	/**

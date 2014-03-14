@@ -68,15 +68,6 @@
 			</property>
 		</bean>
 		<bean class="org.sagebionetworks.repo.model.principal.BootstrapGroup">
-			<property name="id" value="2" />
-			<property name="groupAlias">
-			   	<bean class="org.sagebionetworks.repo.model.principal.BootstrapAlias">
-			   		<property name="aliasName" value="Administrators" />
-			   		<property name="aliasId" value="2" />
-			   	</bean>
-			</property>
-		</bean>
-		<bean class="org.sagebionetworks.repo.model.principal.BootstrapGroup">
 			<property name="id" value="273948" />
 			<property name="groupAlias">
 			   	<bean class="org.sagebionetworks.repo.model.principal.BootstrapAlias">
@@ -109,15 +100,6 @@
 			   	</bean>
 			</property>			
 		</bean>
-		<bean class="org.sagebionetworks.repo.model.principal.BootstrapGroup">
-			<property name="id" value="464532" />
-			<property name="groupAlias">
-			   	<bean class="org.sagebionetworks.repo.model.principal.BootstrapAlias">
-			   		<property name="aliasName" value="Synapse ACT Team" /><!-- This name is was already misspelled -->
-			   		<property name="aliasId" value="4572" />
-			   	</bean>
-			</property>				
-		</bean>		
 	</util:list>
 
 	<bean id="userGroupDAO"

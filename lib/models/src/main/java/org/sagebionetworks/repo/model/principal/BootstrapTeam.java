@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model.principal;
 
+import java.util.List;
+
 public class BootstrapTeam {
 
 	private String id;
@@ -7,6 +9,7 @@ public class BootstrapTeam {
 	private String description;
 	private String icon;
 	private Boolean canPublicJoin;
+	private List<String> initialMembers;
 	
 	public String getId() {
 		return id;
@@ -37,6 +40,12 @@ public class BootstrapTeam {
 	}
 	public void setCanPublicJoin(Boolean canPublicJoin) {
 		this.canPublicJoin = canPublicJoin;
+	}
+	public List<String> getInitialMembers() {
+		return initialMembers;
+	}
+	public void setInitialMembers(List<String> initialMembers) {
+		this.initialMembers = initialMembers;
 	}
 	
 }

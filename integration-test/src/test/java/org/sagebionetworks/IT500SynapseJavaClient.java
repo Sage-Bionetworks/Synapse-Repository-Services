@@ -40,16 +40,15 @@ import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
+import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
-import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_TEAM;
 import org.sagebionetworks.repo.model.BatchResults;
 import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.DomainType;
@@ -124,9 +123,10 @@ public class IT500SynapseJavaClient {
 	
 	private static Set<String> bootstrappedTeams = Sets.newHashSet();
 	static {
-		for (int i=0; i < BOOTSTRAP_TEAM.values().length; i++) {
-			bootstrappedTeams.add(BOOTSTRAP_TEAM.values()[i].getId());
-		}
+		// note, this must match the bootstrapped teams defined in managers-spb.xml
+		bootstrappedTeams.add("2"); // Administrators
+		bootstrappedTeams.add("464532"); // Access and Compliance Team
+		bootstrappedTeams.add("3320020"); // Bridge Administrators
 	}
 	
 	private long getBootstrapCountPlus(long number) {
@@ -208,7 +208,7 @@ public class IT500SynapseJavaClient {
 			try {
 				adminSynapse.deleteFileHandle(id);
 			} catch (SynapseNotFoundException e) {
-			} catch (SynapseClientException e) { }
+			} catch (SynapseException e) { }
 		}
 		
 		for (String id : teamsToDelete) {
