@@ -310,7 +310,13 @@
         <bean class="org.sagebionetworks.repo.model.principal.BootstrapTeam">
             <property name="id" value="2" />
             <property name="name" value="Administrators" />
-        </bean>
+            <property name="initialMembers">
+                <list>
+                    <!-- the admin user -->
+                    <value>1</value>
+                </list>
+            </property>
+            </bean>
         <bean class="org.sagebionetworks.repo.model.principal.BootstrapTeam">
             <property name="id" value="464532" />
             <property name="name" value="Synapse Access and Compliance Team" />

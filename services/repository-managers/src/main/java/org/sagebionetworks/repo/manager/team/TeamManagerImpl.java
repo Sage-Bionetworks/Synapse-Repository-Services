@@ -267,7 +267,7 @@ public class TeamManagerImpl implements TeamManager {
 	 * @param teamIdTakesPriority
 	 * @return
 	 */
-	private void bootstrapCreate(Team team) {
+	private Team bootstrapCreate(Team team) {
 		Long teamId = Long.parseLong(team.getId());
 		Date now = new Date();
 		
@@ -286,7 +286,7 @@ public class TeamManagerImpl implements TeamManager {
 		// bind the team name to this principal. 
 		bindTeamName(team.getName(), teamId);
 		
-		teamDAO.create(team);
+		return teamDAO.create(team);
 	}
 	
 	private void bindTeamName(String name, Long teamId){
@@ -591,7 +591,7 @@ public class TeamManagerImpl implements TeamManager {
 		return tms;
 	}
 
-	public void bootstrapTeams() {
+	public void bootstrapTeams() throws NotFoundException {
 		if (this.teamsToBootstrap == null) {
 			throw new IllegalArgumentException("bootstrapTeams cannot be null");
 		}
@@ -611,7 +611,10 @@ public class TeamManagerImpl implements TeamManager {
 				newTeam.setCanPublicJoin(team.getCanPublicJoin());
 				newTeam.setDescription(team.getDescription());
 				newTeam.setIcon(team.getIcon());
-				bootstrapCreate(newTeam);	
+				newTeam = bootstrapCreate(newTeam);	
+				if (null!=team.getInitialMembers()) {
+					groupMembersDAO.addMembers(newTeam.getId(), team.getInitialMembers());
+				}
 			}
 		}
 	}
