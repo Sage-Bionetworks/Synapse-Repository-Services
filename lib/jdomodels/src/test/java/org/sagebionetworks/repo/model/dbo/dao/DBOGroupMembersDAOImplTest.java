@@ -188,16 +188,4 @@ public class DBOGroupMembersDAOImplTest {
 		updatedTestGroup = userGroupDAO.get(Long.parseLong(testGroup.getId()));
 		assertTrue("Etag must have changed", !testGroup.getEtag().equals(updatedTestGroup.getEtag()));
 	}
-	
-	@Test
-	public void testBootstrapGroups() throws Exception {
-		String adminGroupId = BOOTSTRAP_TEAM.ADMINISTRATORS_GROUP.getId();
-		List<UserGroup> admins = groupMembersDAO.getMembers(adminGroupId);
-		Set<String> adminIds = new HashSet<String>();
-		for (UserGroup ug : admins) {
-			adminIds.add(ug.getId());
-		}
-		
-		assertTrue(adminIds.contains(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString()));
-	}
 }

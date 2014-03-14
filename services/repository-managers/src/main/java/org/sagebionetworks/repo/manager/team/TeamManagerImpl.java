@@ -281,7 +281,7 @@ public class TeamManagerImpl implements TeamManager {
 		dbo.setEtag(UUID.randomUUID().toString());
 		dbo.setIsIndividual(false);
 		dbo.setCreationDate(now);
-		basicDao.createNew(dbo);
+		basicDao.createOrUpdate(dbo);
 		
 		// bind the team name to this principal. 
 		bindTeamName(team.getName(), teamId);
