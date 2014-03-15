@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+#parse( "docHeaderTemplate.html" )
+<body>
+	<div id="container">
+		#parse( "bannerHeader.html" )
+		<div id="main">
+			<div class="ym-wrapper">
+				<div class="ym-wbox">
+					<div id="rootPanel" class="ym-grid linearize-level-1">
+						<div class="ym-grid">
+							<div class="ym-gbox">
+								#foreach( $catagory in $categories )
+								<h2 id="${catagory.name}">${catagory.name}</h2>
+									#foreach( $example in $catagory.examples )
+										<p>${example.description}</p>
+										<div class="ym-gbox">
+											<pre class="prettyprint lang-sql">$example.value</pre>
+										</div>
+									#end
+								#end
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		#parse( "footerTemplate.html" )
+	</div>
+</body>
+</html>
