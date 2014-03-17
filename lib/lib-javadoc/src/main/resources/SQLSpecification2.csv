@@ -1,18 +1,7 @@
-Category,Description,SQL
-Syntax,"The SQL syntax used is a sub-set of &ltquery specification&gt from <a href=""http://savage.net.au/SQL/sql-92.bnf"">SQL-92</a> with the addition of LIMIT and OFFSET.
-The following is a simplified version of the syntax:
-SELECT
-    [ALL | DISTINCT]
-    select_expr [, select_expr ...]
-    FROM table_references
-    [WHERE where_condition]
-    [GROUP BY {col_name [, [col_name ...] }
-    [ORDER BY {col_name [ [ASC | DESC] [, col_name [ [ASC | DESC]]}
-    [LIMIT row_count [ OFFSET offset] ]",select * from syn123 where bar = 1 group by foobar order by foo limit 10 offset 0
-Basics,Select all columns from the table identified by 'syn123'.,select * from syn123
-Basics,Select only two columns identified by 'foo' and 'bar' from the table identified by 'syn'123'.,"select foo, bar from syn123"
-Basics,"To refer to a column name that contains spaces or punctuation, the name must be with double quotes.","select ""has space"" from syn123"
-Basics,Any double quotes within a column name must be escaped with another double quote.,"select ""The """"Cool"""" name"" from syn123"
+Basics Table Query,Select all columns from the table identified by 'syn123'.,select * from syn123
+Basics Table Query,Select only two columns identified by 'foo' and 'bar' from the table identified by 'syn'123'.,"select foo, bar from syn123"
+Basics Table Query,"To refer to a column name that contains spaces or punctuation, the name must be with double quotes.","select ""has space"" from syn123"
+Basics Table Query,Any double quotes within a column name must be escaped with another double quote.,"select ""The """"Cool"""" name"" from syn123"
 Aggregation Functions,Count the number of rows in table 'syn123'.,select count(*) from syn123
 Aggregation Functions,Get the maximum of all values for the column 'foo' in table 'syn123'.,select max( foo ) from syn123
 Aggregation Functions,Get the minimum of all values for the column 'foo' in table 'syn123'.,select min(foo) from syn123

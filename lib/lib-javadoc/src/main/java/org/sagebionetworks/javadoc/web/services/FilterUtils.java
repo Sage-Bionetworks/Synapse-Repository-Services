@@ -4,6 +4,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.sagebionetworks.repo.web.rest.doc.CSVGeneratedExample;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.springframework.web.bind.annotation.RequestMapping;
 
@@ -67,4 +68,26 @@ public class FilterUtils {
 		}
 		return list.iterator();
 	}
+	
+	/**
+	 * Find all classes with the CSVGeneratedExample annotation.
+	 * @param classes
+	 * @return
+	 */
+	public static Iterator<ClassDoc> csvExampleIterator(ClassDoc[] classes){
+		if(classes == null) throw new IllegalArgumentException("classes cannot be null");
+		List<ClassDoc> list = new LinkedList<ClassDoc>();
+		for(ClassDoc classDoc: classes){
+            AnnotationDesc[] annos = classDoc.annotations();
+            if(annos != null){
+            	for(AnnotationDesc ad: annos){
+                    if(CSVGeneratedExample.class.getName().equals(ad.annotationType().qualifiedName())){
+                    	list.add(classDoc);
+                    }
+            	}
+            }
+		}
+		return list.iterator();
+	}
+
 }
