@@ -19,6 +19,10 @@
 		<!-- Sage Bionetworks Dependencies -->
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
+			<artifactId>lib-table-query</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
 			<artifactId>repository-managers</artifactId>
 		</dependency>
 		<dependency>
@@ -208,6 +212,13 @@
 					<destDir>${project.build.directory}/javadoc/restdocs</destDir>
 					<!-- This name is used to link to the authentication controller -->
 					<additionalJOption>-authControllerName org.sagebionetworks.auth.AuthenticationController</additionalJOption>
+					<additionnalDependencies>
+					    <additionnalDependency>
+							<groupId>org.sagebionetworks</groupId>
+							<artifactId>lib-table-query</artifactId>
+							<version>${project.version}</version>
+						</additionnalDependency>
+					</additionnalDependencies>
 				</configuration>
 			</plugin>
 			<plugin>

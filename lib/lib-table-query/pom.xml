@@ -53,6 +53,12 @@
 			<artifactId>mockito-all</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<!-- Currently the CSV file use for testing belongs to this project and is only used for testing -->	
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>lib-javadoc</artifactId>
+			<scope>test</scope>
+		</dependency>
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
