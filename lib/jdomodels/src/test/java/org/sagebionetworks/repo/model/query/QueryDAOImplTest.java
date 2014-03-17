@@ -293,6 +293,50 @@ public class QueryDAOImplTest {
 		assertEquals(1, results.getRows().size());
 	}
 	
+	// ordering by a private annotation (when we lack private read access) doesn't affect the results
+	@Test
+	public void testQueryNoPrivateRead_OrderByPrivate() throws DatastoreException, NotFoundException, JSONObjectAdapterException {		
+		// SELECT * FROM evaluation_2 where long_anno=300
+		// we do not have READ_PRIVATE_ANNOTATIONS permission on evaluation_2
+		BasicQuery query = new BasicQuery();
+		query.setFrom("evaluation" + QueryTools.FROM_TYPE_ID_DELIMTER + EVAL_ID2);
+		List<Expression> filters = new ArrayList<Expression>();
+		query.setFilters(filters);		
+		query.setLimit(NUM_SUBMISSIONS);
+		query.setOffset(0);
+		query.setSort(TestUtils.PRIVATE_LONG_ANNOTATION_NAME);
+		
+		// perform the query
+		QueryTableResults noPrivateAccessResults = queryDAO.executeQuery(query, mockUserInfo);
+		assertNotNull(noPrivateAccessResults);
+		assertEquals(30, noPrivateAccessResults.getTotalNumberOfResults().longValue());
+		assertEquals(30, noPrivateAccessResults.getRows().size());
+		int noPrivateObjectIdIndex = findString("objectId", noPrivateAccessResults.getHeaders());
+		assertFalse(noPrivateObjectIdIndex==-1);
+		
+		// if we have private read access we CAN see the results
+		when(mockAclDAO.canAccess(Matchers.<Set<Long>>any(), eq(EVAL_ID2), 
+				eq(ObjectType.EVALUATION), eq(ACCESS_TYPE.READ_PRIVATE_SUBMISSION))).thenReturn(true);
+		QueryTableResults privateAccessResults = queryDAO.executeQuery(query, mockUserInfo);
+		assertNotNull(privateAccessResults);
+		assertEquals(30, privateAccessResults.getTotalNumberOfResults().longValue());
+		assertEquals(30, privateAccessResults.getRows().size());
+		int privateObjectIdIndex = findString("objectId", privateAccessResults.getHeaders());
+		assertFalse(privateObjectIdIndex==-1);
+		
+		// show that the ordering doesn't change!
+		for (int i=0; i<30; i++) {
+			Row privateRow = privateAccessResults.getRows().get(i);
+			Row noPrivateRow = noPrivateAccessResults.getRows().get(i);
+			assertEquals(noPrivateRow.getValues().get(noPrivateObjectIdIndex), privateRow.getValues().get(privateObjectIdIndex));
+		}
+	}
+	
+	private static int findString(String s, List<String> list) {
+		for (int i=0; i<list.size(); i++) if (s.equals(list.get(i))) return i;
+		return -1;
+	}
+	
 	@Test
 	public void testQueryNoPrivateRead_InequalityFilterOnPrivate() throws DatastoreException, NotFoundException, JSONObjectAdapterException {		
 		// SELECT * FROM evaluation_2 where long_anno=300
