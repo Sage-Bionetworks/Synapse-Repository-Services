@@ -7,12 +7,13 @@ import java.util.concurrent.Callable;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.SubmissionStatusAnnotationsAsyncManager;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.springframework.dao.DeadlockLoserDataAccessException;
 
 import com.amazonaws.services.sqs.model.Message;
 
@@ -70,6 +71,8 @@ public class AnnotationsWorker implements Callable<List<Message>> {
 					log.info("Processing error: "+e.getMessage()+". The message will be returend as processed and removed from the queue");
 					// If a Submission does not exist anymore then we want the message to be deleted from the queue
 					processedMessages.add(message);
+				} catch (DeadlockLoserDataAccessException e) {
+					log.info("Intermittent error in AnnotationsWorker: "+e.getMessage()+". Will retry");
 				} catch (Throwable e) {
 					// Something went wrong and we did not process the message.  By default we remove the message from the queue.
 					log.error("Failed to process message", e);
