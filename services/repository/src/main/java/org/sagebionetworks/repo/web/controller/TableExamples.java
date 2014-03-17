@@ -7,7 +7,7 @@ import org.sagebionetworks.repo.web.rest.doc.CSVGeneratedExample;
  * using the given csv file as input.  A link to the generated page can be added using the 
  * full class name of this class.
  */
-@CSVGeneratedExample(csvFileName="SQLSpecification.csv")
+@CSVGeneratedExample(csvFileName="SQLSpecification2.csv")
 public class TableExamples {
 
 }

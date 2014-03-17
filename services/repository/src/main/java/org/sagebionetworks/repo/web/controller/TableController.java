@@ -32,10 +32,48 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * href="${org.sagebionetworks.repo.model.table.TableEntity}">TableEntity</a>
  * model object represents the metadata of a table. Each TableEntity is defined
  * by a list of <a
- * href="${org.sagebionetworks.repo.model.table.ColumnModel}">ColumnModels</a>
- * IDs.
+ * href="${org.sagebionetworks.repo.model.table.ColumnModel}">ColumnModel</a>
+ * IDs. Use <a href="${POST.column}">POST /column</a> to create new ColumnModle
+ * objects. Each ColumnModel object is immutable, so to change a column of a
+ * table a new column must be added and the old column must be removed.
+ * TableEntities can be created, updated, read and deleted like any other
+ * entity:
+ * <ul>
+ * <li><a href="${POST.entity}">POST /entity</a></li>
+ * <li><a href="${GET.entity.id}">GET /entity/{id}</a></li>
+ * <li><a href="${PUT.entity.id}">PUT /entity/{id}</a></li>
+ * <li><a href="${DELETE.entity.id}">DELETE /entity/{id}</a></li>
+ * </ul>
+ * </p>
+ * <p>
+ * <p>
+ * All ColumnModel objects are publicly viewable and usable. Since each
+ * ColumnModel is immutable it is safe to re-use ColumModels created by other
+ * users. Use the <a href="${GET.column}">GET /column</a> services to list all
+ * of the existing ColumnModels that are currently in use.
  * </p>
  * 
+ * Once the columns for a TableEntity have been created and assigned to the
+ * TableEntity, rows can be added to the table using <a
+ * href="${POST.entity.id.table}">POST /entity/{id}/table</a>. Each <a
+ * href="${org.sagebionetworks.repo.model.table.Row}">Row</a> appended to the
+ * table will automatically be assigned a rowId and a versionNumber and can be
+ * found in the resulting <a
+ * href="${org.sagebionetworks.repo.model.table.RowReferenceSet}"
+ * >RowReferenceSet</a>. To update a row, simply include the row's rowId in the
+ * passed <a href="${org.sagebionetworks.repo.model.table.RowSet}">RowSet</a>.
+ * Any row without a rowId will be treated as a new row. When a row is updated a
+ * new versionNumber will automatically be assigned the Row. While previous
+ * versions of any row are kept, only the current version of any row will appear
+ * in the table index used to support the query service: <a
+ * href="${POST.table.query}">POST /table/query</a> </p>
+ * <p>
+ * Use the <a href="${POST.table.query}">POST /table/query</a> services to query
+ * for the current rows of a table. The returned <a
+ * href="${org.sagebionetworks.repo.model.table.RowSet}">RowSet</a> of the table
+ * query can be modified and returned to update the rows of a table using <a
+ * href="${POST.entity.id.table}">POST /entity/{id}/table</a>.
+ * </p>
  */
 @ControllerInfo(displayName = "Table Services", path = "repo/v1")
 @Controller
@@ -49,7 +87,13 @@ public class TableController extends BaseController {
 	 * href="${org.sagebionetworks.repo.model.table.ColumnModel}">ColumnModel
 	 * </a> that can be used as a column of a <a
 	 * href="${org.sagebionetworks.repo.model.table.TableEntity}"
-	 * >TableEntity</a>. ColumnModels are immutable and reusable.
+	 * >TableEntity</a>. Unlike other objects in Synapse ColumnModels are
+	 * immutable and reusable and do not have an "owner" or "creator". This
+	 * method is idempotent, so if the same ColumnModel is passed multiple time
+	 * a new ColumnModel will not be created. Instead the existing ColumnModel
+	 * will be returned. This also means if two users create identical
+	 * ColumnModels for their tables they will both receive the same
+	 * ColumnModel.
 	 * 
 	 * @param userId
 	 *            The user's id.
@@ -98,7 +142,7 @@ public class TableController extends BaseController {
 	 * href="${org.sagebionetworks.repo.model.table.TableEntity}"
 	 * >TableEntity</a>, get its list of <a
 	 * href="${org.sagebionetworks.repo.model.table.ColumnModel}"
-	 * >ColumnModels</a>.
+	 * >ColumnModels</a> that are currently assigned to the table.
 	 * 
 	 * @param userId
 	 * @param id
@@ -119,9 +163,13 @@ public class TableController extends BaseController {
 	}
 
 	/**
-	 * List all of the a
+	 * <p>
+	 * List all of the <a
 	 * href="${org.sagebionetworks.repo.model.table.ColumnModel}"
-	 * >ColumnModels</a> in Synapse.
+	 * >ColumnModels</a> that have been created in Synapse.
+	 * </p>
+	 * Since each ColumnModel is immutable it is safe to re-use ColumModels
+	 * created by other users.
 	 * 
 	 * @param userId
 	 * @param prefix
@@ -153,12 +201,13 @@ public class TableController extends BaseController {
 	}
 
 	/**
+	 * <p>
 	 * This method is used to both add and update rows to a TableEntity. The
-	 * passed RowSet will contain all data for the rows to add or update. The
-	 * RowSet.rows is a list of Rows, one of each row to add or update. If the
-	 * Row.rowId is null, then a row will be added for that request, if a rowId
-	 * is provided then the row with that ID will be updated (a 400 will be
-	 * returned if a row ID is provided that does not actually exist). The
+	 * passed RowSet will contain all data for the rows to be added or updated.
+	 * The RowSet.rows is a list of Rows, one of each row to add or update. If
+	 * the Row.rowId is null, then a row will be added for that request, if a
+	 * rowId is provided then the row with that ID will be updated (a 400 will
+	 * be returned if a row ID is provided that does not actually exist). The
 	 * Row.values list should contain a value for each column of the row. The
 	 * RowSet.headers identifies the columns (by ID) that are to be updated by
 	 * this request. Each Row.value list must be the same size as the
@@ -169,9 +218,24 @@ public class TableController extends BaseController {
 	 * will enumerate all rowIds and versionNumbers for this update. The
 	 * resulting RowReferecnes will be listed in the same order as the passed
 	 * result set. A single POST to this services will be treated as a single
-	 * transaction, meaning all of the rows will be added/updated or none of the
-	 * rows will be added/updated. If this web-services fails for any reason all
-	 * changes will be "rolled back".
+	 * transaction, meaning either all of the rows will be added/updated or none
+	 * of the rows will be added/updated. If this web-services fails for any
+	 * reason all changes will be "rolled back".
+	 * </p>
+	 * <p>
+	 * There is a limit to the size of a RowSet that can be passed in a single
+	 * web-services call. Currently, that limit is set to a maximum size of 2 MB
+	 * per call. The maximum size is calculated based on the maximum possible
+	 * size of a the ColumModel definition, NOT on the size of the actual passed
+	 * data. For example, the maximum size of an integer column is 20
+	 * characters. Since each integer is represented as a UTF-8 string (not a
+	 * binary representation) with 1 byte per character (for numbers), a single
+	 * integer has a maximum size of 20 bytes (20 chars * 1 bytes/char). Since
+	 * the page size limits are based on the maximum size and not the actual
+	 * size of the data it will be consistent from page to page. This means a
+	 * valid page size will work for a all pages even if some pages have more
+	 * data that others.
+	 * </p>
 	 * 
 	 * @param userId
 	 * @param id
@@ -197,6 +261,25 @@ public class TableController extends BaseController {
 	}
 
 	/**
+	 * <p>
+	 * Using a 'SQL like' syntax, query the current version of the rows in a
+	 * single table. The following pseudo-syntax is the basic supported format:
+	 * </p>
+	 * SELECT <br>
+	 * [ALL | DISTINCT] select_expr [, select_expr ...] <br>
+	 * FROM table_references <br>
+	 * [WHERE where_condition] <br>
+	 * [GROUP BY {col_name [, [col_name * ...] } <br>
+	 * [ORDER BY {col_name [ [ASC | DESC] [, col_name [ [ASC | DESC]]}<br>
+	 * [LIMIT row_count [ OFFSET offset ]]<br>
+	 * <p>
+	 * Please see the following for samples: <a
+	 * href="${org.sagebionetworks.repo.web.controller.TableExamples}">Table SQL
+	 * Examples</a>
+	 * </p>
+	 * <p>
+	 * Note: Sub-queries and joining tables is not supported.
+	 * </p>
 	 * 
 	 * @param userId
 	 * @param query
@@ -206,12 +289,15 @@ public class TableController extends BaseController {
 	 *            read-lock is successfully acquired on the index. When set to
 	 *            false, the query will be run against the index regardless of
 	 *            the state of the index and without attempting to acquire a
-	 *            read-lock.
+	 *            read-lock. When isConsistent is set to false the query results
+	 *            will not contain an etag so the results cannot be used as
+	 *            input to a table update.
 	 * @param countOnly
 	 *            When this parameter is included and set to 'true', the passed
 	 *            query will be converted into a count query. This means the
 	 *            passed select clause will be replaced with 'count(*)' and
-	 *            pagination, order by, and group by will all be ignored.
+	 *            pagination, order by, and group by will all be ignored. This
+	 *            can be used to to setup client-side paging.
 	 * 
 	 * @return
 	 * @throws DatastoreException

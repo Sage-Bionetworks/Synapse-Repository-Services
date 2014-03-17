@@ -19,8 +19,6 @@ import org.sagebionetworks.table.query.model.TableExpression;
 import org.sagebionetworks.table.query.model.UnsignedLiteral;
 import org.sagebionetworks.table.query.model.UnsignedValueSpecification;
 import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
-import org.sagebionetworks.table.query.util.SQLExample;
-import org.sagebionetworks.table.query.util.SQLExampleProvider;
 
 public class TableQueryParserTest {
 	

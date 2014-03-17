@@ -14,9 +14,7 @@
 								<h2 id="${catagory.name}">${catagory.name}</h2>
 									#foreach( $example in $catagory.examples )
 										<p>${example.description}</p>
-										<div class="ym-gbox">
-											<pre class="prettyprint lang-sql">$example.value</pre>
-										</div>
+										<pre class="prettyprint lang-sql">$example.value</pre>
 									#end
 								#end
 							</div>
