@@ -39,7 +39,7 @@ public class BridgeClientTest {
 		BridgeVersionInfo version = new BridgeVersionInfo();
 		version.setVersion("none");
 
-		// You cannot set originClient to bridge here, because getVersionInfo() has no version
+		// You cannot set domain to bridge here, because getVersionInfo() has no version
 		// that takes OriginatingClient (there's no difference in the call between clients). 
 		// The underlying libraries always set this to synapse (and it's ignored).
 		

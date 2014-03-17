@@ -90,7 +90,7 @@ public class AuthenticationController extends BaseController {
 	/**
 	 * Create a new user.  An email will be sent regarding how to set a password for the account.    
 	 * <br/>
-	 * The query parameter <code>originClient</code> may be appended to this URI. If absent or 
+	 * The query parameter <code>domain</code> may be appended to this URI. If absent or 
 	 * set to "synapse", the service will send email specific to the Synapse application; if set 
 	 * to "bridge", the application will send email appropriate to the Bridge application.
 	 * <br/>
@@ -109,7 +109,7 @@ public class AuthenticationController extends BaseController {
 	/**
 	 * Sends an email for setting a user's password.
 	 * <br/>
-	 * The query parameter <code>originClient</code> may be appended to this URI. If absent or 
+	 * The query parameter <code>domain</code> may be appended to this URI. If absent or 
 	 * set to "synapse", the service will send email specific to the Synapse application; if set 
 	 * to "bridge", the application will send email appropriate to the Bridge application.
 	 */

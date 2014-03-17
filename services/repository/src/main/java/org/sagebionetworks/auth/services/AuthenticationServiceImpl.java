@@ -94,14 +94,14 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void createUser(NewUser user, DomainType originClient) {
+	public void createUser(NewUser user, DomainType domain) {
 		if (user == null || user.getEmail() == null) {
 			throw new IllegalArgumentException("Email must be specified");
 		}
 		
 		Long userid = userManager.createUser(user);
 		try {
-			sendPasswordEmail(userid, originClient);
+			sendPasswordEmail(userid, domain);
 		} catch (NotFoundException e) {
 			throw new DatastoreException("Could not find user that was just created", e);
 		}
@@ -189,10 +189,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 			throw new UnauthorizedException("OpenID is not valid");
 		}
 			
-		String originClientParam = parameters.getParameterValue(OpenIDInfo.ORIGINATING_CLIENT_PARAM_NAME);
-		DomainType originClient = DomainType.valueOf(originClientParam);
+		String domainParam = parameters.getParameterValue(OpenIDInfo.ORIGINATING_CLIENT_PARAM_NAME);
+		DomainType domain = DomainType.valueOf(domainParam);
 		
-		return processOpenIDInfo(openIDInfo, originClient);
+		return processOpenIDInfo(openIDInfo, domain);
 	}
 	
 	/**
@@ -260,10 +260,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	}
 
 	@Override
-	public void sendPasswordEmail(String email, DomainType originClient) throws NotFoundException {
+	public void sendPasswordEmail(String email, DomainType domain) throws NotFoundException {
 		PrincipalAlias pa = lookupUserForAuthenication(email);
 		if(pa == null) throw new NotFoundException("Did not find a user with alias: "+email);
-		sendPasswordEmail(pa.getPrincipalId(), originClient);
+		sendPasswordEmail(pa.getPrincipalId(), domain);
 		
 	}
 }
