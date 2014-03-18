@@ -9,7 +9,8 @@
 
 	<context:annotation-config />
 
-	<import resource="classpath:main-scheduler-spb.xml" />
+	<import resource="classpath:managers-spb.xml" />
+	
 		
 	<bean id="annotationsDAO" 
 		class="org.sagebionetworks.annotations.worker.StubbedAnnotationDAO"
