@@ -77,11 +77,6 @@ public class IT100TableControllerTest {
 		for (Entity entity : entitiesToDelete) {
 			adminSynapse.deleteAndPurgeEntity(entity);
 		}
-		
-		for (TableEntity table : tablesToDelete) {
-			//TODO This function does not exist
-			// adminSynapse.deleteTable(table);
-		}
 	}
 	
 	@AfterClass
@@ -254,6 +249,33 @@ public class IT100TableControllerTest {
 		expected.clear();
 		expected.add(three);
 		assertEquals(expected, pcm.getResults());
+	}
+	
+	@Test
+	public void testEmtpyTableRoundTrip() throws SynapseException, InterruptedException{
+		// Create a project to contain it all
+		Project project = new Project();
+		project.setName(UUID.randomUUID().toString());
+		project = synapse.createEntity(project);
+		assertNotNull(project);
+		entitiesToDelete.add(project);
+		// now create a table entity
+		TableEntity table = new TableEntity();
+		table.setName("Table");
+		table.setColumnIds(null);
+		table.setParentId(project.getId());
+		table = synapse.createEntity(table);
+		tablesToDelete.add(table);
+		// Now attempt to query for the table results
+		boolean isConsistent = true;
+		boolean countOnly = false;
+		// This table has no rows and no columns
+		RowSet queryResults = waitForQueryResults("select * from "+table.getId()+" limit 2", isConsistent, countOnly);
+		assertNotNull(queryResults);
+		assertNull(queryResults.getEtag());
+		assertEquals(table.getId(), queryResults.getTableId());
+		assertNull(queryResults.getRows());
+		assertNull(queryResults.getHeaders());
 	}
 	
 }

@@ -84,17 +84,18 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public boolean bindColumnToObject(UserInfo user, List<String> columnIds, String objectId) throws DatastoreException, NotFoundException {
+	public boolean bindColumnToObject(UserInfo user, List<String> columnIds, String objectId, boolean isNew) throws DatastoreException, NotFoundException {
 		if(user == null) throw new IllegalArgumentException("User cannot be null");
-		if(columnIds == null) throw new IllegalArgumentException("ColumnModel IDs cannot be null");
 		// pass it along to the DAO.
 		long count = columnModelDao.bindColumnToObject(columnIds, objectId);
 		// If there was an actual change we need change the status of the table.
-		if(count > 0){
+		if(count > 0 || isNew){
 			// The table has change so we must rest the state to processing.
 			tableStatusDAO.resetTableStatusToProcessing(objectId);
+			return true;
+		}else{
+			return false;
 		}
-		return count > 0;
 	}
 
 	@Override

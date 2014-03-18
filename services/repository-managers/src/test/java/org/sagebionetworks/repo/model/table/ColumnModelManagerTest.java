@@ -155,10 +155,29 @@ public class ColumnModelManagerTest {
 		List<String> ids = new LinkedList<String>();
 		ids.add("123");
 		when(mockColumnModelDAO.bindColumnToObject(ids, objectId)).thenReturn(1);
-		assertTrue(columnModelManager.bindColumnToObject(user, ids, objectId));
+		assertTrue(columnModelManager.bindColumnToObject(user, ids, objectId, false));
 		// Validate that the table status gets changed
 		verify(mockTableStatusDao, times(1)).resetTableStatusToProcessing(objectId);
 	}
+	
+	/**
+	 * This is a test for PLFM-2636
+	 * 
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@Test
+	public void testBindColumnNull() throws DatastoreException, NotFoundException{
+		String objectId = "syn123";
+		when(mockauthorizationManager.canAccess(user, objectId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(true);
+		List<String> ids = new LinkedList<String>();
+		ids.add("123");
+		when(mockColumnModelDAO.bindColumnToObject(ids, objectId)).thenReturn(0);
+		assertTrue("Binding null columns should trigger a rest for a new object",columnModelManager.bindColumnToObject(user, ids, objectId, true));
+		// Validate that the table status gets changed
+		verify(mockTableStatusDao, times(1)).resetTableStatusToProcessing(objectId);
+	}
+	
 	
 	@Test (expected =IllegalArgumentException.class)
 	public void testListObjectsBoundToColumnNullUser(){
