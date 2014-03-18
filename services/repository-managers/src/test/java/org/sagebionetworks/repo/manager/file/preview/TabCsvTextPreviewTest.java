@@ -168,4 +168,14 @@ public class TabCsvTextPreviewTest {
 		
 		assertFalse(tabPreviewGenerator.supportsContentType("text/xml"));
 	}
+	
+	@Test
+	public void testEmptyFile() throws IOException {
+		ByteArrayOutputStream os = new ByteArrayOutputStream();
+		String s = "";
+		InputStream is = IOUtils.toInputStream(s);
+		csvPreviewGenerator.generatePreview(is, os);
+		String out = os.toString();
+		assertEquals("", out);
+	}
 }
