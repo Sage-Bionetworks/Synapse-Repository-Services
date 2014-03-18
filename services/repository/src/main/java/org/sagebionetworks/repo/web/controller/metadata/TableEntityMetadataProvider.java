@@ -29,10 +29,13 @@ public class TableEntityMetadataProvider implements TypeSpecificMetadataProvider
 			DatastoreException, UnauthorizedException {
 		// For create/update/new version we need to bind the columns to the entity.
 		if(EventType.CREATE == event.getType() || EventType.UPDATE == event.getType() || EventType.NEW_VERSION == event.getType()){
+			boolean isNew = false;
+			if(EventType.CREATE == event.getType()){
+				isNew = true;
+			}
 			List<String> columnIds = entity.getColumnIds();
-			if(columnIds == null || columnIds.size() < 1) throw new IllegalArgumentException("TableEntity.columnIds must contain at least one ColumnModel ID.");
 			// Bind the entity to these columns
-			columnModelManager.bindColumnToObject(event.getUserInfo(), columnIds, entity.getId());
+			columnModelManager.bindColumnToObject(event.getUserInfo(), columnIds, entity.getId(), isNew);
 		}	
 	}
 	

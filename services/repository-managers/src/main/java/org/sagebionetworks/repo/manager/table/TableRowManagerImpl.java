@@ -162,10 +162,17 @@ public class TableRowManagerImpl implements TableRowManager {
 			throw new UnauthorizedException("User does not have READ permission on: "+tableId);
 		}
 		// Lookup the column models for this table
-		List<ColumnModel> columnModels = columnModelDAO.getColumnModelsForObject(tableId);		
+		List<ColumnModel> columnModels = columnModelDAO.getColumnModelsForObject(tableId);
 		Map<String, Long> columnNameToIdMap = TableModelUtils.createColumnNameToIdMap(columnModels);
-
 		final SqlQuery query = new SqlQuery(model, columnNameToIdMap);
+		// Does this table exist?
+		if(columnModels == null | columnModels.isEmpty()){
+			// there are no columns for this table so the table does not actually exist.
+			// for this case the caller expects an empty result set.  See PLFM-2636
+			RowSet emptyResults = new RowSet();
+			emptyResults.setTableId(query.getTableId());
+			return emptyResults;
+		}
 		// validate the size
 		validateQuerySize(query, columnModels, this.maxBytesPerRequest);
 		// If this is a consistent read then we need a read lock

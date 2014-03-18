@@ -230,7 +230,13 @@ public class TableWorker implements Callable<List<Message>> {
 				.getColumnModelsForTable(tableId);
 		// Create or update the table with this schema.
 		tableRowManager.attemptToUpdateTableProgress(tableId, resetToken, "Creating table ", 0L, 100L);
-		indexDao.createOrUpdateTable(currentSchema, tableId);
+		if(currentSchema.isEmpty()){
+			// If there is no schema delete the table
+			indexDao.deleteTable(tableId);
+		}else{
+			// We have a schema so create or update the table
+			indexDao.createOrUpdateTable(currentSchema, tableId);
+		}
 		// Now determine which changes need to be applied to the table
 		Long maxVersion = indexDao.getMaxVersionForTable(tableId);
 		// List all of the changes
