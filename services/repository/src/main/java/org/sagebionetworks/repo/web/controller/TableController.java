@@ -236,6 +236,11 @@ public class TableController extends BaseController {
 	 * valid page size will work for a all pages even if some pages have more
 	 * data that others.
 	 * </p>
+	 * <p>
+	 * Note: The caller must have the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.UPDATE</a> permission on the TableEntity to make this call.
+	 * </p>
 	 * 
 	 * @param userId
 	 * @param id
@@ -279,6 +284,23 @@ public class TableController extends BaseController {
 	 * </p>
 	 * <p>
 	 * Note: Sub-queries and joining tables is not supported.
+	 * </p>
+	 * <p>
+	 * This services depends on an index that is created/update asynchronously
+	 * from table creation and update events. This means there could be short
+	 * window of time when the index is inconsistent with the true state of the
+	 * table. When a query is run with the isConsistent parameter set to true
+	 * (the default) and the index is out-of-sych, then a status code of 202
+	 * (ACCEPTED) will be returned and the response body will be a <a
+	 * href="${org.sagebionetworks.repo.model.table.TableStatus}"
+	 * >TableStatus</a> object. The TableStatus will indicates the current
+	 * status of the index including how much work is remaining until the index
+	 * is consistent with the truth of the table.
+	 * </p>
+	 * <p>
+	 * Note: The caller must have the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.READ</a> permission on the TableEntity to make this call.
 	 * </p>
 	 * 
 	 * @param userId
