@@ -88,7 +88,7 @@ public class DBOColumnModelImplTest {
 		ColumnModel two = columnModelDao.getColumnModel(originalId);
 		assertEquals(result, two);
 		// Now delete the model
-		columnModelDao.delete(originalId);
+		columnModelDao.deleteColumModel(originalId);
 		// Now it should be not found
 		try {
 			columnModelDao.getColumnModel(originalId);
@@ -299,6 +299,31 @@ public class DBOColumnModelImplTest {
 		assertEquals(models, fetched);
 	}
 	
+	@Test
+	public void testBindNull() throws NotFoundException{
+		String tableId = "syn123";
+		int count = columnModelDao.bindColumnToObject(null, tableId);
+		assertEquals(0, count);
+		// Now bind some columns
+		List<ColumnModel> raw = TableModelUtils.createOneOfEachType();
+		// Create each one
+		List<ColumnModel> models = new LinkedList<ColumnModel>();
+		for(ColumnModel cm: raw){
+			models.add(columnModelDao.createColumnModel(cm));
+		}
+		List<String> headers = TableModelUtils.getHeaders(models);
+		count = columnModelDao.bindColumnToObject(headers, tableId);
+		assertEquals(headers.size(), count);
+		// Now if we set it back to empty the update should include 5 rows
+		List<String> empty = new LinkedList<String>();
+		count = columnModelDao.bindColumnToObject(empty, tableId);
+		assertEquals(headers.size(), count);
+		
+		// The bound list should not be null
+		List<ColumnModel> results = columnModelDao.getColumnModelsForObject(tableId);
+		assertNotNull(results);
+		assertEquals(0,  results.size());
+	}
 	
 	/**
 	 * Helper to create columns by name

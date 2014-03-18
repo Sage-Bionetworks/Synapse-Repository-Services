@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.manager.table;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
@@ -14,6 +16,7 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -169,6 +172,24 @@ public class TableRowManagerImplTest {
 		// The etag should be set
 		assertEquals(status.getLastTableChangeEtag(), results.getEtag());
 		assertEquals(set, results);
+	}
+	
+	@Test 
+	public void testQueryNoColumns() throws Exception {
+		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(true);
+		// Return no columns
+		when(mockColumnModelDAO.getColumnModelsForObject(tableId)).thenReturn(new LinkedList<ColumnModel>());
+		TableStatus status = new TableStatus();
+		status.setTableId(tableId);
+		status.setState(TableState.AVAILABLE);
+		status.setLastTableChangeEtag(UUID.randomUUID().toString());
+		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
+		RowSet results = manager.query(user, "select * from "+tableId+" limit 1", true, false);
+		assertNotNull(results);
+		assertEquals(tableId, results.getTableId());
+		assertNull(results.getEtag());
+		assertNull(results.getHeaders());
+		assertNull(results.getRows());
 	}
 	
 	/**

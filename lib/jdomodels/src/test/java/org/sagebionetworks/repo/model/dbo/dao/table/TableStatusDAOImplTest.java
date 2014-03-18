@@ -109,7 +109,33 @@ public class TableStatusDAOImplTest {
 		assertEquals("123", status.getTableId());
 		assertEquals(TableState.AVAILABLE, status.getState());
 		assertNotNull(status.getTotalTimeMS());
-		assertEquals(lastTableChangeEtag, lastTableChangeEtag);
+		assertEquals(lastTableChangeEtag, status.getLastTableChangeEtag());
+	}
+	
+	/**
+	 * This is a test for PLFM-2634 and PLFM-2636
+	 * @throws NotFoundException
+	 */
+	@Test
+	public void testAttemptToSetTableStatusToAvailableNullEtag() throws NotFoundException{
+		String tableId = "syn123";
+		// This should insert a row for this table.
+		String resetToken = tableStatusDAO.resetTableStatusToProcessing("syn123");
+		// Status should start as processing
+		TableStatus status = tableStatusDAO.getTableStatus(tableId);
+		assertNotNull(status);
+		assertEquals("123", status.getTableId());
+		assertEquals(TableState.PROCESSING, status.getState());
+		assertNotNull(status.getChangedOn());
+		// Not make available
+		tableStatusDAO.attemptToSetTableStatusToAvailable(tableId, resetToken, null);
+		// the state should have changed
+		status = tableStatusDAO.getTableStatus(tableId);
+		assertNotNull(status);
+		assertEquals("123", status.getTableId());
+		assertEquals(TableState.AVAILABLE, status.getState());
+		assertNotNull(status.getTotalTimeMS());
+		assertEquals(null, status.getLastTableChangeEtag());
 	}
 	
 	@Test (expected=NotFoundException.class)

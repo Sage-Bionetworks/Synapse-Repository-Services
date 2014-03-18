@@ -15,6 +15,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_COLUMN
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -48,7 +49,9 @@ import org.springframework.transaction.annotation.Transactional;
 public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 
 	private static final String SQL_GET_COLUMN_MODELS_FOR_OBJECT = "SELECT CM.* FROM "+TABLE_BOUND_COLUMN_ORDINAL+" BO, "+TABLE_COLUMN_MODEL+" CM WHERE BO."+COL_BOUND_CM_ORD_COLUMN_ID+" = CM."+COL_CM_ID+" AND BO."+COL_BOUND_CM_ORD_OBJECT_ID+" = ? ORDER BY BO."+COL_BOUND_CM_ORD_ORDINAL+" ASC";
-	private static final String SQL_DELETE_ORDINAL = "DELETE FROM "+TABLE_BOUND_COLUMN_ORDINAL+" WHERE "+COL_BOUND_CM_ORD_OBJECT_ID+" = ?";
+	private static final String SQL_DELETE_BOUND_ORDINAL = "DELETE FROM "+TABLE_BOUND_COLUMN_ORDINAL+" WHERE "+COL_BOUND_CM_ORD_OBJECT_ID+" = ?";
+	private static final String SQL_DELETE_BOUND_COLUMNS = "DELETE FROM "+TABLE_BOUND_COLUMN+" WHERE "+COL_BOUND_CM_OBJECT_ID+" = ?";
+	private static final String SQL_DELETE_COLUMN_MODEL = "DELETE FROM "+TABLE_COLUMN_MODEL+" WHERE "+COL_CM_ID+" = ?";
 	private static final String SQL_SELECT_COLUMNS_WITH_NAME_PREFIX_COUNT = "SELECT COUNT(*) FROM "+TABLE_COLUMN_MODEL+" WHERE "+COL_CM_NAME+" LIKE ? ";
 	private static final String SQL_SELECT_COLUMNS_WITH_NAME_PREFIX = "SELECT * FROM "+TABLE_COLUMN_MODEL+" WHERE "+COL_CM_NAME+" LIKE ? ORDER BY "+COL_CM_NAME+" LIMIT ? OFFSET ?";
 	private static final String SQL_TRUNCATE_BOUND_COLUMNS = "DELETE FROM "+TABLE_BOUND_COLUMN+" WHERE "+COL_BOUND_CM_COLUMN_ID+" >= 0";
@@ -82,10 +85,9 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 	}
 	@Override
 	public List<ColumnModel> getColumnModelsForObject(String tableIdString)
-			throws DatastoreException, NotFoundException {
+			throws DatastoreException{
 		long tableId = KeyFactory.stringToKey(tableIdString);
 		List<DBOColumnModel> dbos = simpleJdbcTemplate.query(SQL_GET_COLUMN_MODELS_FOR_OBJECT, ROW_MAPPER, tableId);
-		if(dbos.size() < 1) throw new NotFoundException("No columns were found for "+tableIdString);
 		// Convert to DTOs
 		return ColumnModelUtlis.createDTOFromDBO(dbos);
 	}
@@ -133,21 +135,32 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 		DBOColumnModel dbo = basicDao.getObjectByPrimaryKey(DBOColumnModel.class, param);
 		return ColumnModelUtlis.createDTOFromDBO(dbo);
 	}
+	
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public int deleteColumModel(String id) {
+		if(id == null) throw new IllegalArgumentException("id cannot be null");
+		return simpleJdbcTemplate.update(SQL_DELETE_COLUMN_MODEL, id);
+	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void delete(String id) {
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(DBOConstants.PARAM_EVALUATION_ID, id);
-		basicDao.deleteObjectByPrimaryKey(DBOColumnModel.class, param);
+	public int unbindAllColumnsFromObject(String objectIdString) {
+		if(objectIdString == null) throw new IllegalArgumentException("objectId cannot be null");
+		Long objectId = KeyFactory.stringToKey(objectIdString);
+		// Now replace the current current ordinal binding for this object.
+		simpleJdbcTemplate.update(SQL_DELETE_BOUND_ORDINAL, objectId);
+		return simpleJdbcTemplate.update(SQL_DELETE_BOUND_COLUMNS, objectId);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public int bindColumnToObject(List<String> newCurrentColumnIds, String objectIdString) throws NotFoundException {
-		if(newCurrentColumnIds == null) throw new IllegalArgumentException("columnIds cannot be null");
-		if(newCurrentColumnIds.size() < 1) throw new IllegalArgumentException("Must include at least one column to bind to an object");
 		if(objectIdString == null) throw new IllegalArgumentException("objectId cannot be null");
+		if(newCurrentColumnIds == null || newCurrentColumnIds.isEmpty()){
+			// delete all columns for this object
+			return unbindAllColumnsFromObject(objectIdString);
+		}
 		// Get each model to valid they exist.
 		getColumnModel(newCurrentColumnIds);
 		Long objectId = KeyFactory.stringToKey(objectIdString);
@@ -159,7 +172,7 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 			// Insert or update the batch
 			basicDao.createOrUpdateBatch(permanent);
 			// Now replace the current current ordinal binding for this object.
-			simpleJdbcTemplate.update(SQL_DELETE_ORDINAL, objectId);
+			simpleJdbcTemplate.update(SQL_DELETE_BOUND_ORDINAL, objectId);
 			// Now insert the ordinal values
 			List<DBOBoundColumnOrdinal> ordinal = ColumnModelUtlis.createDBOBoundColumnOrdinalList(objectId, newCurrentColumnIds);
 			// this is just an insert

@@ -99,7 +99,6 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 	@Override
 	public void attemptToSetTableStatusToAvailable(String tableIdString,
 			String resetToken, String tableChangeEtag) throws ConflictingUpdateException, NotFoundException {
-		if(tableChangeEtag == null) throw new IllegalArgumentException("tableChangeEtag cannot be null when setting to available.");
 		attemptToSetTableEndState(tableIdString, resetToken, TableState.AVAILABLE, null, null, null, tableChangeEtag);
 	}
 	

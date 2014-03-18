@@ -3,6 +3,7 @@ package org.sagebionetworks.table.worker;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
@@ -23,6 +24,8 @@ import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableRowManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -79,31 +82,6 @@ public class TableWorkerIntegrationTest {
 		tableQueueMessageReveiver.emptyQueue();
 		// Get the admin user
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
-	
-		// Create one column of each type
-		List<ColumnModel> temp = TableModelUtils.createOneOfEachType();
-		schema = new LinkedList<ColumnModel>();
-		for(ColumnModel cm: temp){
-			// Skip strings
-			if(cm.getColumnType() == ColumnType.STRING) continue;
-			cm = columnManager.createColumnModel(adminUserInfo, cm);
-			schema.add(cm);
-		}
-		List<String> headers = TableModelUtils.getHeaders(schema);
-		// Create the table.
-		TableEntity table = new TableEntity();
-		table.setName(UUID.randomUUID().toString());
-		table.setColumnIds(headers);
-		tableId = entityManager.createEntity(adminUserInfo, table, null);
-		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
-		columnManager.bindColumnToObject(adminUserInfo, headers, tableId);
-		// Now add some data
-		List<Row> rows = TableModelUtils.createRows(schema, 2);
-		RowSet rowSet = new RowSet();
-		rowSet.setRows(rows);
-		rowSet.setHeaders(headers);
-		rowSet.setTableId(tableId);
-		referenceSet = tableRowManager.appendRows(adminUserInfo, tableId, schema, rowSet);
 	}
 	
 	@After
@@ -128,8 +106,132 @@ public class TableWorkerIntegrationTest {
 	}
 	
 	@Test
-	public void testRoundTrip() throws NotFoundException, InterruptedException, DatastoreException, TableUnavilableException{
+	public void testRoundTrip() throws NotFoundException, InterruptedException, DatastoreException, TableUnavilableException, IOException{
+		// Create one column of each type
+		List<ColumnModel> temp = TableModelUtils.createOneOfEachType();
+		schema = new LinkedList<ColumnModel>();
+		for(ColumnModel cm: temp){
+			// Skip strings
+			if(cm.getColumnType() == ColumnType.STRING) continue;
+			cm = columnManager.createColumnModel(adminUserInfo, cm);
+			schema.add(cm);
+		}
+		List<String> headers = TableModelUtils.getHeaders(schema);
+		// Create the table.
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		table.setColumnIds(headers);
+		tableId = entityManager.createEntity(adminUserInfo, table, null);
+		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
+		columnManager.bindColumnToObject(adminUserInfo, headers, tableId, true);
+		// Now add some data
+		List<Row> rows = TableModelUtils.createRows(schema, 2);
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(rows);
+		rowSet.setHeaders(headers);
+		rowSet.setTableId(tableId);
+		referenceSet = tableRowManager.appendRows(adminUserInfo, tableId, schema, rowSet);
 		// Wait for the table to become available
+		TableStatus status = waitForTableToBeAvailable(tableId);
+		// Validate that we can query the table
+		boolean isConsistent = true;
+		boolean countOnly = false;
+		rowSet = tableRowManager.query(adminUserInfo, "select * from "+tableId+" limit 2", isConsistent, countOnly);
+		assertNotNull(rowSet);
+		assertEquals(tableId, rowSet.getTableId());
+		assertNotNull(rowSet.getHeaders());
+		assertEquals(schema.size(), rowSet.getHeaders().size());
+		assertNotNull(rowSet.getRows());
+		assertEquals(2, rowSet.getRows().size());
+		assertNotNull(rowSet.getEtag());
+		assertEquals("The etag for the last applied change set should be set for the status and the results",status.getLastTableChangeEtag(), rowSet.getEtag());
+		assertEquals("The etag should also match the rereferenceSet.etag",referenceSet.getEtag(), rowSet.getEtag());
+	}
+
+	
+	/**
+	 * There were several issue related to creating tables with no columns an now rows.  This test validates that such tables are supported.
+	 * @throws NotFoundException 
+	 * @throws UnauthorizedException 
+	 * @throws InvalidModelException 
+	 * @throws Exception 
+	 */
+	@Test
+	public void testNoColumnsNoRows() throws Exception {
+		// Create a table with no columns.
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		table.setColumnIds(null);
+		tableId = entityManager.createEntity(adminUserInfo, table, null);
+		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
+		columnManager.bindColumnToObject(adminUserInfo, null, tableId, true);
+		// Wait for the table to be available
+		TableStatus status = waitForTableToBeAvailable(tableId);
+		assertNotNull(status);
+		// We should be able to query
+		String sql = "select * from "+tableId+" limit 1";
+		boolean isConsistent = true;
+		boolean countOnly = false;
+		RowSet rowSet = tableRowManager.query(adminUserInfo, sql, isConsistent, countOnly);
+		assertNotNull(rowSet);
+		assertNull(rowSet.getEtag());
+		assertEquals(tableId, rowSet.getTableId());
+		assertTrue(rowSet.getHeaders() == null || rowSet.getHeaders().isEmpty());
+		assertTrue(rowSet.getRows() == null || rowSet.getRows().isEmpty());
+	}
+	
+	/**
+	 * There were several issue related to creating tables with no columns an now rows.  This test validates that such tables are supported.
+	 * @throws NotFoundException 
+	 * @throws UnauthorizedException 
+	 * @throws InvalidModelException 
+	 * @throws Exception 
+	 */
+	@Test
+	public void testNoRows() throws Exception {
+		// Create one column of each type
+		List<ColumnModel> temp = TableModelUtils.createOneOfEachType();
+		schema = new LinkedList<ColumnModel>();
+		for(ColumnModel cm: temp){
+			// Skip strings
+			if(cm.getColumnType() == ColumnType.STRING) continue;
+			cm = columnManager.createColumnModel(adminUserInfo, cm);
+			schema.add(cm);
+		}
+		List<String> headers = TableModelUtils.getHeaders(schema);
+		// Create the table.
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		table.setColumnIds(headers);
+		tableId = entityManager.createEntity(adminUserInfo, table, null);
+		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
+		columnManager.bindColumnToObject(adminUserInfo, headers, tableId, true);
+		// Wait for the table to be available
+		TableStatus status = waitForTableToBeAvailable(tableId);
+		assertNotNull(status);
+		// We should be able to query
+		String sql = "select * from "+tableId+" limit 1";
+		boolean isConsistent = true;
+		boolean countOnly = false;
+		RowSet rowSet = tableRowManager.query(adminUserInfo, sql, isConsistent, countOnly);
+		assertNotNull(rowSet);
+		assertNull(rowSet.getEtag());
+		assertEquals(tableId, rowSet.getTableId());
+		assertTrue(rowSet.getHeaders() == null || rowSet.getHeaders().isEmpty());
+		assertTrue(rowSet.getRows() == null || rowSet.getRows().isEmpty());
+	}
+	
+
+	/**
+	 * Helper to wait for a table to become available.
+	 * 
+	 * @param tableId
+	 * @return
+	 * @throws NotFoundException
+	 * @throws InterruptedException
+	 */
+	private TableStatus waitForTableToBeAvailable(String tableId) throws NotFoundException,
+			InterruptedException {
 		TableStatus status = tableRowManager.getTableStatus(tableId);
 		assertNotNull(status);
 		// wait for the status to become available.
@@ -141,20 +243,7 @@ public class TableWorkerIntegrationTest {
 			Thread.sleep(1000);
 			status = tableRowManager.getTableStatus(tableId);
 		}
-		// Validate that we can query the table
-		boolean isConsistent = true;
-		boolean countOnly = false;
-		RowSet rowSet = tableRowManager.query(adminUserInfo, "select * from "+tableId+" limit 2", isConsistent, countOnly);
-		assertNotNull(rowSet);
-		assertEquals(tableId, rowSet.getTableId());
-		assertNotNull(rowSet.getHeaders());
-		assertEquals(schema.size(), rowSet.getHeaders().size());
-		assertNotNull(rowSet.getRows());
-		assertEquals(2, rowSet.getRows().size());
-		assertNotNull(rowSet.getEtag());
-		assertEquals("The etag for the last applied change set should be set for the status and the results",status.getLastTableChangeEtag(), rowSet.getEtag());
-		assertEquals("The etag should also match the rereferenceSet.etag",referenceSet.getEtag(), rowSet.getEtag());
+		return status;
 	}
-	
 	
 }
