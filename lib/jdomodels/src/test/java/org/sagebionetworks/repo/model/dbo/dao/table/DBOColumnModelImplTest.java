@@ -41,11 +41,14 @@ public class DBOColumnModelImplTest {
 		one = new ColumnModel();
 		one.setName("one");
 		one.setColumnType(ColumnType.STRING);
+		one.setMaximumSize(10L);
 		one = columnModelDao.createColumnModel(one);
 		// two
 		two = new ColumnModel();
 		two.setName("two");
 		two.setColumnType(ColumnType.STRING);
+		// Get the default
+		two.setMaximumSize(null);
 		two = columnModelDao.createColumnModel(two);
 		// three
 		three = new ColumnModel();
@@ -65,6 +68,7 @@ public class DBOColumnModelImplTest {
 		ColumnModel model = new ColumnModel();
 		model.setName("column model dao test");
 		model.setColumnType(ColumnType.STRING);
+		model.setMaximumSize(13L);
 		model.setDefaultValue("someDefaultValue");
 		model.setEnumValues(new LinkedList<String>());
 		model.getEnumValues().add("xyz");
@@ -75,7 +79,8 @@ public class DBOColumnModelImplTest {
 		assertNotNull(result.getId());
 		assertEquals("column model dao test", result.getName());
 		assertEquals(ColumnType.STRING, result.getColumnType());
-		assertEquals("somedefaultvalue", result.getDefaultValue());
+		assertEquals(ColumnType.STRING, result.getColumnType());
+		assertEquals(new Long(13), result.getMaximumSize());
 		assertNotNull(result.getEnumValues());
 		assertEquals(2, result.getEnumValues().size());
 		assertEquals("abc", result.getEnumValues().get(0));

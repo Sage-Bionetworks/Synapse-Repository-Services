@@ -4,6 +4,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.Collections;
 import java.util.LinkedList;
@@ -24,6 +26,7 @@ public class ColumnModelUtlisTest {
 		original.setId("123");
 		original.setName("Name");
 		original.setDefaultValue("DefaultValue");
+		original.setMaximumSize(444l);
 		original.setColumnType(ColumnType.FILEHANDLEID);
 		original.setEnumValues(new LinkedList<String>());
 		original.getEnumValues().add("Fox");
@@ -43,6 +46,7 @@ public class ColumnModelUtlisTest {
 		expected.getEnumValues().add("alpha");
 		expected.getEnumValues().add("fox");
 		expected.getEnumValues().add("trot");
+		expected.setMaximumSize(444L);
 		
 		// Normalize
 		ColumnModel normlaized = ColumnModelUtlis.createNormalizedClone(original);
@@ -50,6 +54,63 @@ public class ColumnModelUtlisTest {
 		assertNotSame("A new object should have been created", normlaized == original);
 		assertEquals(expected, normlaized);
 	}
+	
+	@Test
+	public void testNormalizedStringColumnNullSize(){
+		ColumnModel expected = new ColumnModel();
+		expected.setId(null);
+		expected.setName("name");
+		expected.setDefaultValue("123");
+		expected.setColumnType(ColumnType.STRING);
+		expected.setMaximumSize(ColumnModelUtlis.DEFAULT_MAX_STRING_SIZE);
+		//input
+		original.setName("name");
+		original.setColumnType(ColumnType.STRING);
+		original.setEnumValues(null);
+		original.setDefaultValue("123");
+		// Setting this to null should result in the default size.
+		original.setMaximumSize(null);
+		ColumnModel normlaized = ColumnModelUtlis.createNormalizedClone(original);
+		assertNotNull(normlaized);
+		assertNotSame("A new object should have been created", normlaized == original);
+		assertEquals(expected, normlaized);
+	}
+	
+	@Test
+	public void testNormalizedStringColumnSizeTooBig(){
+		original.setName("name");
+		original.setColumnType(ColumnType.STRING);
+		original.setEnumValues(null);
+		original.setDefaultValue("123");
+		original.setMaximumSize(ColumnModelUtlis.MAX_ALLOWED_STRING_SIZE+1);
+		try {
+			ColumnModelUtlis.createNormalizedClone(original);
+			fail("Should have failed as the size is too large");
+		} catch (IllegalArgumentException e) {
+			assertTrue(e.getMessage().contains(ColumnModelUtlis.MAX_ALLOWED_STRING_SIZE.toString()));
+		}
+	}
+	
+	@Test
+	public void testNormalizedStringColumnJustRight(){
+		ColumnModel expected = new ColumnModel();
+		expected.setId(null);
+		expected.setName("name");
+		expected.setDefaultValue("123");
+		expected.setColumnType(ColumnType.STRING);
+		expected.setMaximumSize(ColumnModelUtlis.DEFAULT_MAX_STRING_SIZE-1);
+		// input
+		original.setName("name");
+		original.setColumnType(ColumnType.STRING);
+		original.setEnumValues(null);
+		original.setDefaultValue("123");
+		original.setMaximumSize(ColumnModelUtlis.DEFAULT_MAX_STRING_SIZE-1);
+		ColumnModel normlaized = ColumnModelUtlis.createNormalizedClone(original);
+		assertNotNull(normlaized);
+		assertNotSame("A new object should have been created", normlaized == original);
+		assertEquals(expected, normlaized);
+	}
+	
 	
 	@Test
 	public void testCalculateHash() throws JSONObjectAdapterException{

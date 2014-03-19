@@ -299,14 +299,15 @@ public class TableModelUtilsTest {
 	public void testValidateString(){
 		ColumnModel cm = new ColumnModel();
 		cm.setColumnType(ColumnType.STRING);
+		cm.setMaximumSize(555L);
 		assertEquals("some string", TableModelUtils.validateRowValue("some string", cm, 0, 0));
 		try {
-			char[] tooLarge = new char[TableModelUtils.MAX_STRING_LENGTH+1];
+			char[] tooLarge = new char[(int) (cm.getMaximumSize()+1)];
 			Arrays.fill(tooLarge, 'b');
 			TableModelUtils.validateRowValue(new String(tooLarge), cm, 1, 4);
 			fail("should have failed");
 		} catch (IllegalArgumentException e) {
-			assertEquals("Value at [1,4] was not a valid STRING. String exceeds the maximum length of 2000 characters. Consider using a FileHandle to store large strings.", e.getMessage());
+			assertEquals("Value at [1,4] was not a valid STRING. String exceeds the maximum length of 555 characters. Consider using a FileHandle to store large strings.", e.getMessage());
 		}
 		assertEquals(null, TableModelUtils.validateRowValue(null, cm, 2, 2));
 		// Set the default to boolean
@@ -671,41 +672,46 @@ public class TableModelUtilsTest {
 	
 	@Test
 	public void testCalculateMaxSizeForTypeString() throws UnsupportedEncodingException{
-		char[] array = new char[ColumnConstants.MAX_CHARS_IN_STRING_COLUMN];
+		long maxSize = 444;
+		char[] array = new char[(int) maxSize];
 		Arrays.fill(array, Character.MAX_VALUE);
 		int expected  = new String(array).getBytes("UTF-8").length;
-		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.STRING));
+		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.STRING, maxSize));
 	}
 	
 	@Test
 	public void testCalculateMaxSizeForTypeBoolean() throws UnsupportedEncodingException{
 		int expected  = new String("false").getBytes("UTF-8").length;
-		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.BOOLEAN));
+		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.BOOLEAN, null));
 	}
 	
 	@Test
 	public void testCalculateMaxSizeForTypeLong() throws UnsupportedEncodingException{
 		int expected  = new String(Long.toString(-1111111111111111111l)).getBytes("UTF-8").length;
-		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.LONG));
+		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.LONG, null));
 	}
 	@Test
 	public void testCalculateMaxSizeForTypeDouble() throws UnsupportedEncodingException{
 		double big = -1.123456789123456789e123;
 		int expected  = Double.toString(big).getBytes("UTF-8").length;
-		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.DOUBLE));
+		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.DOUBLE, null));
 	}
 	
 	@Test
 	public void testCalculateMaxSizeForTypeFileHandle() throws UnsupportedEncodingException{
 		int expected  = new String(Long.toString(-1111111111111111111l)).getBytes("UTF-8").length;
-		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.FILEHANDLEID));
+		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.FILEHANDLEID, null));
 	}
 	
 	@Test
 	public void testCalculateMaxSizeForTypeAll() throws UnsupportedEncodingException{
 		// The should be a size for each type.
 		for(ColumnType ct:ColumnType.values()){
-			TableModelUtils.calculateMaxSizeForType(ct);
+			Long maxSize = null;
+			if(ColumnType.STRING == ct){
+				maxSize = 14L;
+			}
+			TableModelUtils.calculateMaxSizeForType(ct, maxSize);
 		}
 	}
 	
@@ -713,7 +719,7 @@ public class TableModelUtilsTest {
 	public void testCalculateMaxRowSize(){
 		List<ColumnModel> all = TableModelUtils.createOneOfEachType();
 		int allBytes = TableModelUtils.calculateMaxRowSize(all);
-		assertEquals(6068, allBytes);
+		assertEquals(209, allBytes);
 	}
 	
 	@Test
