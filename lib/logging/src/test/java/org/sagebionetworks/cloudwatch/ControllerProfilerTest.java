@@ -75,6 +75,14 @@ public class ControllerProfilerTest {
 		assertNotNull(testjdkDate);
 	}
 	
+	@Test(expected=IllegalArgumentException.class)
+	public void testBadLatency() throws Exception {
+		String testNamespace = "test namespace";
+		String testName = "testName";
+		long badLatency = (long) -10;
+		controllerProfiler.makeProfileDataDTO(testNamespace, testName, badLatency);
+	}
+	
 	/**
 	 * Tests that makeProfileDataDTO throws IllegalArgumentException when
 	 * it does not receive valid String parameters

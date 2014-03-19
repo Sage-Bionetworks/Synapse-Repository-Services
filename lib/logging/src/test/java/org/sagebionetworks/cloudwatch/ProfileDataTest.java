@@ -84,15 +84,6 @@ public class ProfileDataTest {
 	}
 	
 	/**
-	 * Tests setLatency for invalid parameters.
-	 */
-	@Test (expected = IllegalArgumentException.class)
-	public void testSetLatencyWithInvalidParameter() throws Exception {
-		long badLatency = (long) -788.8;
-		testProfileData.setValue((double)badLatency);
-	}
-	
-	/**
 	 * Tests setUnit and getUnit.
 	 */
 	@Test
@@ -140,7 +131,7 @@ public class ProfileDataTest {
 	public void testToString() throws Exception {
 		String testNamespace = "test namespace";
 		String testName = "test name";
-		long testLatency = (long) 99.8;
+		double testLatency =  99.0;
 		String testUnit = "Milliseconds";
 		DateTime timestamp = new DateTime();
 		Date jdkDateTest = timestamp.toDate();
@@ -152,8 +143,11 @@ public class ProfileDataTest {
 		testProfileData.setTimestamp(jdkDateTest);
 		
 		String results = testProfileData.toString();
-		String shouldBe = testNamespace + ":" + testName + ":" + testLatency + 
-		":" + testUnit + ":" + jdkDateTest.toString();
+		String shouldBe = "ProfileData [namespace="+testNamespace+", name="+testName
+				+", value="+testLatency+", unit="+testUnit+
+				", timestamp="+jdkDateTest+
+				", dimension=null, metricStats=null]";
+		//testNamespace + ":" + testName + ":" + testLatency + ":" + testUnit + ":" + jdkDateTest.toString();
 		assertEquals(shouldBe, results);
 	}
 }
