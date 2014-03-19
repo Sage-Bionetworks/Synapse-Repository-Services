@@ -39,10 +39,6 @@ public class TableModelUtils {
 
 	private static final String INVALID_VALUE_TEMPLATE = "Value at [%1$s,%2$s] was not a valid %3$s. %4$s";
 	private static final String TABLE_SEMAPHORE_KEY_TEMPLATE = "TALBE-LOCK-%1$d";
-	/**
-	 * Sets the maximum string length for a string value in a table.
-	 */
-	public static final int MAX_STRING_LENGTH = 2000;
 	
 	/**
 	 * Delimiter used to list column model IDs as a string.
@@ -208,10 +204,11 @@ public class TableModelUtils {
 					double dv = Double.parseDouble(value);
 					return Double.toString(dv);
 				} else if (ColumnType.STRING.equals(cm.getColumnType())) {
-					if (value.length() > MAX_STRING_LENGTH)
+					if(cm.getMaximumSize() == null) throw new IllegalArgumentException("Strign columns must have a maximum size");
+					if (value.length() > cm.getMaximumSize())
 						throw new IllegalArgumentException(
 								"String exceeds the maximum length of "
-										+ MAX_STRING_LENGTH
+										+ cm.getMaximumSize()
 										+ " characters. Consider using a FileHandle to store large strings.");
 					return value;
 				} else {
@@ -442,6 +439,9 @@ public class TableModelUtils {
 			cm.setColumnType(type);
 			cm.setName("i"+i);
 			cm.setId(""+i);
+			if(ColumnType.STRING == type){
+				cm.setMaximumSize(47L);
+			}
 			results.add(cm);
 		}
 		return results;
@@ -676,7 +676,7 @@ public class TableModelUtils {
 		if(models == null) throw new IllegalArgumentException("Models cannot be null");
 		int size = 0;
 		for(ColumnModel cm: models){
-			size += calculateMaxSizeForType(cm.getColumnType());
+			size += calculateMaxSizeForType(cm.getColumnType(), cm.getMaximumSize());
 		}
 		return size;
 	}
@@ -686,10 +686,11 @@ public class TableModelUtils {
 	 * @param cm
 	 * @return
 	 */
-	public static int calculateMaxSizeForType(ColumnType type){
+	public static int calculateMaxSizeForType(ColumnType type, Long maxSize){
 		if(type == null) throw new IllegalArgumentException("ColumnType cannot be null");
 		if(ColumnType.STRING.equals(type)){
-			return ColumnConstants.MAX_STRING_BYTES;
+			if(maxSize == null) throw new IllegalArgumentException("maxSize cannot be null for String types");
+			return (int) (ColumnConstants.MAX_BYTES_PER_CHAR_UTF_8*maxSize);
 		}else if(ColumnType.BOOLEAN.equals(type)){
 			return ColumnConstants.MAX_BOOLEAN_BYTES_AS_STRING;
 		}else if(ColumnType.LONG.equals(type)){

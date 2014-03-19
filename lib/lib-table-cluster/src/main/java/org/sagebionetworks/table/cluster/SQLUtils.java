@@ -124,7 +124,7 @@ public class SQLUtils {
 		// Column name
 		builder.append("`").append(getColumnNameForId(newSchema.getId())).append("` ");
 		// column data type
-		builder.append(getSQLTypeForColumnType(newSchema.getColumnType()));
+		builder.append(getSQLTypeForColumnType(newSchema.getColumnType(), newSchema.getMaximumSize()));
 		builder.append(" ");
 		// default value
 		builder.append((getSQLDefaultForColumnType(newSchema.getColumnType(),
@@ -137,13 +137,14 @@ public class SQLUtils {
 	 * @param type
 	 * @return
 	 */
-	public static String getSQLTypeForColumnType(ColumnType type) {
+	public static String getSQLTypeForColumnType(ColumnType type, Long maxSize) {
 		if (ColumnType.LONG.equals(type)
 				|| ColumnType.FILEHANDLEID.equals(type)) {
 			return "bigint(20)";
 		} else if (ColumnType.STRING.equals(type)) {
-			return "varchar(" + TableModelUtils.MAX_STRING_LENGTH
-					+ ") CHARACTER SET utf8 COLLATE utf8_general_ci";
+			// Strings must have a size
+			if(maxSize == null) throw new IllegalArgumentException("Cannot create a string column without a max size.");
+			return "varchar(" + maxSize + ") CHARACTER SET utf8 COLLATE utf8_general_ci";
 		} else if (ColumnType.DOUBLE.equals(type)) {
 			return "double";
 		} else if (ColumnType.BOOLEAN.equals(type)) {

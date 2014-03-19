@@ -26,6 +26,15 @@ import com.thoughtworks.xstream.XStream;
  *
  */
 public class ColumnModelUtlis {
+	
+	/**
+	 * The default maximum number of characters for a string.
+	 */
+	public static Long DEFAULT_MAX_STRING_SIZE = 50L;
+	/**
+	 * The maximum allowed value for the number characters for a string.
+	 */
+	public static Long MAX_ALLOWED_STRING_SIZE = 1000L;
 
 	/**
 	 * Translate from a DTO to DBO.
@@ -144,6 +153,16 @@ public class ColumnModelUtlis {
 			// Create a clone from the JSON
 			String json = EntityFactory.createJSONStringForEntity(toClone);
 			ColumnModel clone = EntityFactory.createEntityFromJSONString(json, ColumnModel.class);
+			// Is this a string?
+			if(ColumnType.STRING.equals(clone.getColumnType())){
+				if(clone.getMaximumSize() == null){
+					// Use the default value
+					clone.setMaximumSize(DEFAULT_MAX_STRING_SIZE);
+				}else if(clone.getMaximumSize() > MAX_ALLOWED_STRING_SIZE){
+					// The max is beyond the allowed size
+					throw new IllegalArgumentException("ColumnModel.maxSize for a STRING cannot exceed: "+MAX_ALLOWED_STRING_SIZE);
+				}
+			}
 			// The ID is not part of the normalized form.
 			clone.setId(null);
 			// to lower on the name

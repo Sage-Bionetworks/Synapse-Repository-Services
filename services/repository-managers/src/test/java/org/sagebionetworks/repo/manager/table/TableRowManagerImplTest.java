@@ -65,8 +65,8 @@ public class TableRowManagerImplTest {
 	UserInfo user;
 	String tableId;
 	RowSet set;
+	RowSet tooBigSet;
 	RowReferenceSet refSet;
-	
 	
 	@Before
 	public void before() throws Exception {
@@ -93,7 +93,8 @@ public class TableRowManagerImplTest {
 		});
 		
 		manager = new TableRowManagerImpl();
-		manager.setMaxBytesPerRequest(10000000);
+		int maxBytesPerRequest = 10000000;
+		manager.setMaxBytesPerRequest(maxBytesPerRequest);
 		user = new UserInfo(false, 7L);
 		models = TableModelUtils.createOneOfEachType();
 		tableId = "syn123";
@@ -102,6 +103,16 @@ public class TableRowManagerImplTest {
 		set.setTableId(tableId);
 		set.setHeaders(TableModelUtils.getHeaders(models));
 		set.setRows(rows);
+		
+		// What is the row size for the model?
+		int rowSizeBytes = TableModelUtils.calculateMaxRowSize(models);
+		// Create a rowSet that is too big
+		int tooManyRows = maxBytesPerRequest/rowSizeBytes+1;
+		rows = TableModelUtils.createRows(models, tooManyRows);
+		tooBigSet = new RowSet();
+		tooBigSet.setTableId(tableId);
+		tooBigSet.setHeaders(TableModelUtils.getHeaders(models));
+		tooBigSet.setRows(rows);
 		
 		refSet = new RowReferenceSet();
 		refSet.setTableId(tableId);
@@ -135,6 +146,18 @@ public class TableRowManagerImplTest {
 		assertEquals(refSet, results);
 		// verify the table status was set
 		verify(mockTableStatusDAO, times(1)).resetTableStatusToProcessing(tableId);
+	}
+	
+	@Test
+	public void testAppendRowsTooLarge() throws DatastoreException, NotFoundException, IOException{
+		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(true);
+		when(mockTruthDao.appendRowSetToTable(user.getId().toString(), tableId, models, set)).thenReturn(refSet);
+		try {
+			manager.appendRows(user, tableId, models, tooBigSet);
+			fail("The passed RowSet should have been too large");
+		} catch (IllegalArgumentException e) {
+			assertTrue(e.getMessage().contains("Request exceed the maximum number of bytes per request"));
+		}
 	}
 
 	@Test (expected = UnauthorizedException.class)

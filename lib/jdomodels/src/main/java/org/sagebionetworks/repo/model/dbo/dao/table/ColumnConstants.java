@@ -4,11 +4,6 @@ import java.io.UnsupportedEncodingException;
 
 public class ColumnConstants {
 
-	/**
-	 * The maximum number of characters in a string column.
-	 */
-	public static final int MAX_CHARS_IN_STRING_COLUMN = 2000;
-	
 	public static final int MAX_BYTES_PER_CHAR_UTF_8;
 	static{
 		char[] chars = new char[]{Character.MAX_VALUE};
@@ -18,10 +13,6 @@ public class ColumnConstants {
 			throw new RuntimeException(e);
 		}
 	}
-	/**
-	 * The maximum number of bytes of a string.
-	 */
-	public static final int MAX_STRING_BYTES = MAX_CHARS_IN_STRING_COLUMN * MAX_BYTES_PER_CHAR_UTF_8;
 	
 	/**
 	 * The maximum number of bytes of a boolean when represented as a string.
