@@ -50,5 +50,12 @@
 			</list>
 		</property>
 	</bean>
+	
+		<!-- controllerProfiler that collects latency information in the form of CloudWatch objects -->
+	<bean id="workerLogger" class="org.sagebionetworks.cloudwatch.WorkerLoggerImpl">
+		<property name="shouldProfile" ref="stackConfiguration.cloudWatchOnOff" />
+	</bean>
+
+	
 
 </beans>
