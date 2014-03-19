@@ -267,6 +267,7 @@ public class TableRowManagerImplTest {
 		bar.setColumnType(ColumnType.STRING);
 		bar.setId("222");
 		bar.setName("bar");
+		bar.setMaximumSize(1L);
 		List<ColumnModel> models = Arrays.asList(foo, bar);
 		Map<String, Long> nameToIdMap = TableModelUtils.createColumnNameToIdMap(models);
 		SqlQuery query = new SqlQuery("select foo, bar from syn123", nameToIdMap);
@@ -291,6 +292,7 @@ public class TableRowManagerImplTest {
 		bar.setColumnType(ColumnType.STRING);
 		bar.setId("222");
 		bar.setName("bar");
+		bar.setMaximumSize(2L);
 		List<ColumnModel> models = Arrays.asList(foo, bar);
 		Map<String, Long> nameToIdMap = TableModelUtils.createColumnNameToIdMap(models);
 		SqlQuery query = new SqlQuery("select foo, bar from syn123 limit 2", nameToIdMap);
@@ -310,6 +312,7 @@ public class TableRowManagerImplTest {
 		bar.setColumnType(ColumnType.STRING);
 		bar.setId("222");
 		bar.setName("bar");
+		bar.setMaximumSize(3L);
 		List<ColumnModel> models = Arrays.asList(foo, bar);
 		Map<String, Long> nameToIdMap = TableModelUtils.createColumnNameToIdMap(models);
 		SqlQuery query = new SqlQuery("select foo, bar from syn123 limit 2", nameToIdMap);
