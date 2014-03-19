@@ -1,20 +1,25 @@
 package org.sagebionetworks.annotations.worker;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 import java.util.LinkedList;
 import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
-import static org.mockito.Mockito.*;
 import org.mockito.Mockito;
-import org.sagebionetworks.annotations.worker.AnnotationsWorker;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
+import org.sagebionetworks.cloudwatch.WorkerLogger;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.SubmissionStatusAnnotationsAsyncManager;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 import com.amazonaws.services.sqs.model.Message;
@@ -25,10 +30,12 @@ import com.amazonaws.services.sqs.model.Message;
 public class AnnotationsWorkerTest {
 	
 	SubmissionStatusAnnotationsAsyncManager mockDAO;
+	WorkerLogger mockWorkerLogger;
 	
 	@Before
 	public void before(){
 		mockDAO = Mockito.mock(SubmissionStatusAnnotationsAsyncManager.class);
+		mockWorkerLogger = Mockito.mock(WorkerLogger.class);
 	}
 	
 	/**
@@ -44,7 +51,7 @@ public class AnnotationsWorkerTest {
 		List<Message> list = new LinkedList<Message>();
 		list.add(awsMessage);
 		// Make the call
-		AnnotationsWorker worker = new AnnotationsWorker(list, mockDAO);
+		AnnotationsWorker worker = new AnnotationsWorker(list, mockDAO, mockWorkerLogger);
 		List<Message> resultList = worker.call();
 		assertNotNull(resultList);
 		// Non-Submission messages should be returned so they can be removed from the queue.
@@ -64,7 +71,7 @@ public class AnnotationsWorkerTest {
 		List<Message> list = new LinkedList<Message>();
 		list.add(awsMessage);
 		// Make the call
-		AnnotationsWorker worker = new AnnotationsWorker(list, mockDAO);
+		AnnotationsWorker worker = new AnnotationsWorker(list, mockDAO, mockWorkerLogger);
 		list = worker.call();
 		assertNotNull(list);
 		// the manager should not be called
@@ -82,7 +89,7 @@ public class AnnotationsWorkerTest {
 		List<Message> list = new LinkedList<Message>();
 		list.add(awsMessage);
 		// Make the call
-		AnnotationsWorker worker = new AnnotationsWorker(list, mockDAO);
+		AnnotationsWorker worker = new AnnotationsWorker(list, mockDAO, mockWorkerLogger);
 		list = worker.call();
 		assertNotNull(list);
 		// the manager should not be called
@@ -117,7 +124,7 @@ public class AnnotationsWorkerTest {
 		list.add(awsMessage);
 		// Simulate a not found
 		doThrow(new NotFoundException()).when(mockDAO).updateSubmissionStatus(eq(failId));
-		AnnotationsWorker worker = new AnnotationsWorker(list, mockDAO);
+		AnnotationsWorker worker = new AnnotationsWorker(list, mockDAO, mockWorkerLogger);
 		List<Message> resultLIst = worker.call();
 		assertEquals(list, resultLIst);
 	}
@@ -148,7 +155,7 @@ public class AnnotationsWorkerTest {
 		list.add(awsMessage);
 		// Simulate a runtime exception
 		doThrow(new RuntimeException()).when(mockDAO).updateSubmissionStatus(eq(failId));
-		AnnotationsWorker worker = new AnnotationsWorker(list, mockDAO);
+		AnnotationsWorker worker = new AnnotationsWorker(list, mockDAO, mockWorkerLogger);
 		List<Message> resultLIst = worker.call();
 		assertEquals(list, resultLIst);
 	}

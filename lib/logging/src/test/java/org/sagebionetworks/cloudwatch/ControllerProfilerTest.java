@@ -69,7 +69,7 @@ public class ControllerProfilerTest {
 		assertNotNull(results);
 		assertEquals(testNamespace, results.getNamespace());
 		assertEquals(tempMetricName, results.getName());
-		assertEquals(testLatency, results.getLatency());
+		assertEquals(testLatency, results.getValue().longValue());
 		assertEquals("Milliseconds", results.getUnit());
 		Date testjdkDate = results.getTimestamp();
 		assertNotNull(testjdkDate);

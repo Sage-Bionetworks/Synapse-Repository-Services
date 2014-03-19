@@ -16,7 +16,7 @@ import com.amazonaws.services.cloudwatch.model.MetricDatum;
 import com.amazonaws.services.cloudwatch.model.PutMetricDataRequest;
 
 /**
- * Sends latency information to AmazonWebServices CloudWatch. It's the consumer
+ * Sends metric information to AmazonWebServices CloudWatch. It's the consumer
  * in the producer/consumer pattern and it handles the Watchers in the Observer
  * pattern. Watchers can monitor success or failure of "puts" to CloudWatch
  * 
@@ -156,10 +156,9 @@ public class Consumer {
 		//and unit can't be smaller than zero as it represents latency
 		if (pd == null) throw new IllegalArgumentException("ProfileData cannot be null");
 		if(pd.getName() == null) throw new IllegalArgumentException("ProfileData.name cannot be null");
-		if(pd.getLatency() < 0) throw new IllegalArgumentException("ProfileData.latency cannot be negative");
 		MetricDatum toReturn = new MetricDatum();
 		toReturn.setMetricName(pd.getName());
-		toReturn.setValue((double) pd.getLatency());
+		toReturn.setValue(pd.getValue());
 		toReturn.setUnit(pd.getUnit());
 		toReturn.setTimestamp(pd.getTimestamp());
 		return toReturn;

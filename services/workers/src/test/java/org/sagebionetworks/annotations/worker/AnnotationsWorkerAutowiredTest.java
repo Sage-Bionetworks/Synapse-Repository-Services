@@ -10,7 +10,9 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mockito;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
+import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Submission;
@@ -125,7 +127,8 @@ public class AnnotationsWorkerAutowiredTest {
 		String etag = "";
 		Message message = MessageUtils.buildMessage(ChangeType.CREATE, ""+submissionId, ObjectType.SUBMISSION, etag);
 		List<Message> messages = Collections.singletonList(message);
-		AnnotationsWorker worker = new AnnotationsWorker(messages, ssAsyncMgr);
+		WorkerLogger mockWorkerLogger = Mockito.mock(WorkerLogger.class);
+		AnnotationsWorker worker = new AnnotationsWorker(messages, ssAsyncMgr, mockWorkerLogger);
 		List<Message> completedMessages = worker.call();
 		// if the message is not in the list it means it is not completed and will be retried
 		assertFalse(completedMessages.contains(message));

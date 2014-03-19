@@ -126,7 +126,7 @@ public class DynamoRdsSynchronizer implements Runnable {
 		ProfileData profileData = new ProfileData();
 		profileData.setNamespace("DynamoRdsSynchronizer");
 		profileData.setName(name);
-		profileData.setLatency(metric);
+		profileData.setValue((double)metric);
 		profileData.setUnit(unit);
 		profileData.setTimestamp(new Date());
 		consumer.addProfileData(profileData);

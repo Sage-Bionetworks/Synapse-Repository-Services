@@ -79,8 +79,8 @@ public class ProfileDataTest {
 	@Test
 	public void testSetLatency() throws Exception {
 		long testLatency = (long) 456.7;
-		testProfileData.setLatency(testLatency);
-		assertEquals(testLatency, testProfileData.getLatency());
+		testProfileData.setValue((double)testLatency);
+		assertEquals(testLatency, testProfileData.getValue().longValue());
 	}
 	
 	/**
@@ -89,7 +89,7 @@ public class ProfileDataTest {
 	@Test (expected = IllegalArgumentException.class)
 	public void testSetLatencyWithInvalidParameter() throws Exception {
 		long badLatency = (long) -788.8;
-		testProfileData.setLatency(badLatency);
+		testProfileData.setValue((double)badLatency);
 	}
 	
 	/**
@@ -147,7 +147,7 @@ public class ProfileDataTest {
 		
 		testProfileData.setNamespace(testNamespace);
 		testProfileData.setName(testName);
-		testProfileData.setLatency(testLatency);
+		testProfileData.setValue((double)testLatency);
 		testProfileData.setUnit(testUnit);
 		testProfileData.setTimestamp(jdkDateTest);
 		

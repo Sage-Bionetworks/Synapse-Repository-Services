@@ -39,7 +39,7 @@ public class ConsumerTest {
 	public void testMakeMetricDatum(){
 		// Start with a profile data
 		ProfileData pd = new ProfileData();
-		pd.setLatency(123l);
+		pd.setValue(123D);
 		pd.setName("name");
 		pd.setNamespace("nameSpace");
 		pd.setTimestamp(new Date());
@@ -47,7 +47,7 @@ public class ConsumerTest {
 		// Conver to a put metric.
 		MetricDatum expectedDatum = new MetricDatum();
 		expectedDatum.setMetricName(pd.getName());
-		expectedDatum.setValue((double)pd.getLatency());
+		expectedDatum.setValue(pd.getValue());
 		expectedDatum.setUnit(pd.getUnit());
 		expectedDatum.setTimestamp(pd.getTimestamp());
 		
@@ -165,7 +165,7 @@ public class ConsumerTest {
 				pd.setNamespace("namespace"+namespace);
 				pd.setTimestamp(new Date());
 				pd.setUnit("units");
-				pd.setLatency((namespace*name+1)+name);
+				pd.setValue((double)(namespace*name+1)+name);
 				list.add(pd);
 			}
 		}
