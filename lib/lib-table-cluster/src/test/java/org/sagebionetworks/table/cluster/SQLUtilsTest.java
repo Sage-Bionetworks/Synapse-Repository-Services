@@ -64,36 +64,36 @@ public class SQLUtilsTest {
 	
 	@Test
 	public void testGetSQLTypeForColumnTypeString(){
-		String expected = "varchar(2000) CHARACTER SET utf8 COLLATE utf8_general_ci";
-		String sql = SQLUtils.getSQLTypeForColumnType(ColumnType.STRING);
+		String expected = "varchar(13) CHARACTER SET utf8 COLLATE utf8_general_ci";
+		String sql = SQLUtils.getSQLTypeForColumnType(ColumnType.STRING, 13L);
 		assertEquals(expected, sql);
 	}
 	
 	@Test
 	public void testGetSQLTypeForColumnTypeLong(){
 		String expected = "bigint(20)";
-		String sql = SQLUtils.getSQLTypeForColumnType(ColumnType.LONG);
+		String sql = SQLUtils.getSQLTypeForColumnType(ColumnType.LONG, null);
 		assertEquals(expected, sql);
 	}
 	
 	@Test
 	public void testGetSQLTypeForColumnTypeFileHandle(){
 		String expected = "bigint(20)";
-		String sql = SQLUtils.getSQLTypeForColumnType(ColumnType.FILEHANDLEID);
+		String sql = SQLUtils.getSQLTypeForColumnType(ColumnType.FILEHANDLEID, null);
 		assertEquals(expected, sql);
 	}
 	
 	@Test
 	public void testGetSQLTypeForColumnTypeDouble(){
 		String expected = "double";
-		String sql = SQLUtils.getSQLTypeForColumnType(ColumnType.DOUBLE);
+		String sql = SQLUtils.getSQLTypeForColumnType(ColumnType.DOUBLE, null);
 		assertEquals(expected, sql);
 	}
 	
 	@Test
 	public void testGetSQLTypeForColumnTypeBoolean(){
 		String expected = "boolean";
-		String sql = SQLUtils.getSQLTypeForColumnType(ColumnType.BOOLEAN);
+		String sql = SQLUtils.getSQLTypeForColumnType(ColumnType.BOOLEAN, null);
 		assertEquals(expected, sql);
 	}
 	 
@@ -101,7 +101,11 @@ public class SQLUtilsTest {
 	public void testGetSQLTypeForColumnTypeAllTypes(){
 		// We should be able to get sql for each type.
 		for(ColumnType type: ColumnType.values()){
-			String sql = SQLUtils.getSQLTypeForColumnType(type);
+			Long size = null;
+			if(ColumnType.STRING == type){
+				size = 100L;
+			}
+			String sql = SQLUtils.getSQLTypeForColumnType(type, size);
 			assertNotNull(sql);
 		}
 	}

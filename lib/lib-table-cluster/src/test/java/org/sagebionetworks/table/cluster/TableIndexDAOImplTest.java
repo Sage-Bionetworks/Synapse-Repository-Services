@@ -304,6 +304,7 @@ public class TableIndexDAOImplTest {
 		foo.setColumnType(ColumnType.STRING);
 		foo.setName("foo");
 		foo.setId("111");
+		foo.setMaximumSize(10L);
 		ColumnModel bar = new ColumnModel();
 		bar.setColumnType(ColumnType.LONG);
 		bar.setId("222");

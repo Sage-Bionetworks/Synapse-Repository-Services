@@ -27,6 +27,10 @@
 				"FILEHANDLEID"
 			]
 		},
+        "maximumSize":{
+            "type":"integer",
+            "description":"A parameter for columnTypes with a maximum size.  For example, ColumnType.STRINGs have a default maximum size of 50 characters, but can be set to a maximumSize of 1 to 1000 characters."
+        },
 		"enumValues": {
 			"description": "Columns type of STRING can be constrained to an enumeration values set on this list.",
 			"type": "array",
