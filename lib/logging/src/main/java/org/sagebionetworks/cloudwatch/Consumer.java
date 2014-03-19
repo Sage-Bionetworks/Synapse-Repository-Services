@@ -12,8 +12,10 @@ import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.cloudwatch.AmazonCloudWatchClient;
+import com.amazonaws.services.cloudwatch.model.Dimension;
 import com.amazonaws.services.cloudwatch.model.MetricDatum;
 import com.amazonaws.services.cloudwatch.model.PutMetricDataRequest;
+import com.amazonaws.services.cloudwatch.model.StatisticSet;
 
 /**
  * Sends metric information to AmazonWebServices CloudWatch. It's the consumer
@@ -161,6 +163,24 @@ public class Consumer {
 		toReturn.setValue(pd.getValue());
 		toReturn.setUnit(pd.getUnit());
 		toReturn.setTimestamp(pd.getTimestamp());
+		List<Dimension> dimensions = new ArrayList<Dimension>();
+		if (pd.getDimension()!=null) {
+			for (String key : pd.getDimension().keySet()) {
+				Dimension dimension = new Dimension();
+				dimension.setName(key);
+				dimension.setValue(pd.getDimension().get(key));
+				dimensions.add(dimension);
+			}
+			toReturn.setDimensions(dimensions);
+		}
+		if (pd.getMetricStats()!=null) {
+			StatisticSet statisticValues = new StatisticSet();
+			statisticValues.setMaximum(pd.getMetricStats().getMaximum());
+			statisticValues.setMinimum(pd.getMetricStats().getMinimum());
+			statisticValues.setSampleCount(pd.getMetricStats().getCount());
+			statisticValues.setSum(pd.getMetricStats().getSum());
+			toReturn.setStatisticValues(statisticValues);
+		}
 		return toReturn;
 	}
 
