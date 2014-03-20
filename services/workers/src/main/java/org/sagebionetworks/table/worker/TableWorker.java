@@ -125,6 +125,15 @@ public class TableWorker implements Callable<List<Message>> {
 			final String tableResetToken) {
 		// Attempt to run with
 		try {
+			// If the passed token does not match the current token then this 
+			// is an old message that should be removed from the queue.
+			// See PLFM-2641.  We must check message before we acquire the lock.
+			 TableStatus status = tableRowManager.getTableStatus(tableId);
+			// If the reset-tokens do not match this message should be ignored
+			if (!tableResetToken.equals(status.getResetToken())) {
+				// This is an old message so we ignore it
+				return State.SUCCESS;
+			}
 			// Run with the exclusive lock on the table if we can get it.
 			return tableRowManager.tryRunWithTableExclusiveLock(tableId,
 					timeoutMS, new Callable<State>() {
@@ -169,16 +178,6 @@ public class TableWorker implements Callable<List<Message>> {
 	 */
 	private State createOrUpdateWhileHoldingLock(String tableId,
 			String tableResetToken) throws ConflictingUpdateException, NotFoundException {
-		// Get the rest-token before we start. We will need to this to update
-		// the progress
-		TableStatus status = null;
-		status = tableRowManager.getTableStatus(tableId);
-		// If the reset-tokens do not match this message should be ignored
-		if (!tableResetToken.equals(status.getResetToken())) {
-			// This is an old message so we ignore it
-			return State.SUCCESS;
-		}
-
 		// Start the real work
 		try {
 			// Save the status before we start
@@ -248,19 +247,26 @@ public class TableWorker implements Callable<List<Message>> {
 			// and there is nothing else to do.
 			return null;
 		}
+		// Calculate the total work to perform
+		long totalProgress = 1;
+		for (TableRowChange change : changes) {
+			totalProgress += change.getRowCount();
+		}
 		// Apply any change that has a version number greater than the max
 		// version already in the index
 		String lastEtag = null;
+		long currentProgress = 0;
 		for (TableRowChange change : changes) {
 			lastEtag = change.getEtag();
 			if (change.getRowVersion() > maxVersion) {
 				// This is a change that we must apply.
 				RowSet rowSet = tableRowManager.getRowSet(tableId,	change.getRowVersion());
 
-				tableRowManager.attemptToUpdateTableProgress(tableId,	resetToken, "Applying rows " + rowSet.getRows().size()	+ " to version: " + change.getRowVersion(), 0L,	100L);
+				tableRowManager.attemptToUpdateTableProgress(tableId,	resetToken, "Applying rows " + rowSet.getRows().size()	+ " to version: " + change.getRowVersion(), currentProgress, totalProgress);
 				// apply the change to the table
 				indexDao.createOrUpdateRows(rowSet, currentSchema);
 			}
+			currentProgress += change.getRowCount();
 		}
 		return lastEtag;
 	}
