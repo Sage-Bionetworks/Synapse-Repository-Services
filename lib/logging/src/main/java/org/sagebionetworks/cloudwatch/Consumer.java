@@ -122,6 +122,11 @@ public class Consumer {
 		}
 		return list;
 	}
+	
+	// for testing only
+	public void clearProfileData() {
+		this.listProfileData.clear();
+	}
 
 	/**
 	 * Returns a map of namespaces, with value being list of each MetricDatum
@@ -147,6 +152,9 @@ public class Consumer {
 		return toReturn;
 	}
 
+	// http://docs.aws.amazon.com/AWSJavaSDK/latest/javadoc/com/amazonaws/services/cloudwatch/model/Dimension.html#setName%28java.lang.String%29
+	private static final int MAX_DIMENSION_STRING_LENGTH_PLUS_ONE = 256;
+	
 	/**
 	 * Converts a ProfileData to a MetricDatum.
 	 * 
@@ -168,8 +176,13 @@ public class Consumer {
 		if (pd.getDimension()!=null) {
 			for (String key : pd.getDimension().keySet()) {
 				Dimension dimension = new Dimension();
+				String value = pd.getDimension().get(key);
+				if (key.length()>=MAX_DIMENSION_STRING_LENGTH_PLUS_ONE) 
+					key = key.substring(0, MAX_DIMENSION_STRING_LENGTH_PLUS_ONE);
+				if (value.length()>=MAX_DIMENSION_STRING_LENGTH_PLUS_ONE) 
+					value = value.substring(0, MAX_DIMENSION_STRING_LENGTH_PLUS_ONE);
 				dimension.setName(key);
-				dimension.setValue(pd.getDimension().get(key));
+				dimension.setValue(value);
 				dimensions.add(dimension);
 			}
 			toReturn.setDimensions(dimensions);
