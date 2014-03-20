@@ -247,6 +247,8 @@ public class TableWorkerTest {
 		// The connection factory should never be called
 		verify(mockTableConnectionFactory, never()).getConnection(anyString());
 		verify(mockTableRowManager, never()).attemptToSetTableStatusToAvailable(anyString(), anyString(), anyString());
+		// The token must be checked before we acquire the lock
+		verify(mockTableRowManager, never()).tryRunWithTableExclusiveLock(anyString(), anyLong(), any(Callable.class));
 	}
 	
 	/**
