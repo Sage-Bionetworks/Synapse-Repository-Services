@@ -3,6 +3,7 @@ package org.sagebionetworks.cloudwatch;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.anyObject;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
@@ -11,7 +12,6 @@ import java.util.Map;
 
 import org.junit.Test;
 import org.mockito.Mockito;
-import static org.mockito.Mockito.*;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -19,7 +19,7 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 public class WorkerLoggerImplTest {
 
 	@Test
-	public void test() throws Exception {
+	public void testStackTraceToString() throws Exception {
 		Throwable t = new Exception();
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		PrintStream ps = new PrintStream(baos);

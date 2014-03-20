@@ -147,7 +147,6 @@ public class ProfileDataTest {
 				+", value="+testLatency+", unit="+testUnit+
 				", timestamp="+jdkDateTest+
 				", dimension=null, metricStats=null]";
-		//testNamespace + ":" + testName + ":" + testLatency + ":" + testUnit + ":" + jdkDateTest.toString();
 		assertEquals(shouldBe, results);
 	}
 }
