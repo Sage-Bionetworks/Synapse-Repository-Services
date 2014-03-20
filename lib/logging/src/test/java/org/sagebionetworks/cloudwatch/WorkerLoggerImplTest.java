@@ -49,10 +49,9 @@ public class WorkerLoggerImplTest {
 		assertEquals("Count", pd.getUnit());
 		assertEquals(1D, pd.getValue(), 1E-10);
 		Map<String,String> dimension = pd.getDimension();
-		assertEquals(5, dimension.size());
+		assertEquals(4, dimension.size());
 		assertEquals("false", dimension.get("willRetry"));
 		assertEquals("CREATE", dimension.get("changeType"));
-		assertEquals("101", dimension.get("objectId"));
 		assertEquals("ENTITY", dimension.get("objectType"));
 		assertEquals(stackTrace, dimension.get("stackTrace"));
 	}

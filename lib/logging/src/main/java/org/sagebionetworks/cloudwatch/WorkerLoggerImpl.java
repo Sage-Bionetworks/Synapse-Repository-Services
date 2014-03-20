@@ -63,14 +63,13 @@ public class WorkerLoggerImpl implements WorkerLogger {
 			Date timestamp) {
 		ProfileData nextPD = new ProfileData();
 		nextPD.setNamespace(WORKER_NAMESPACE); 
-		nextPD.setName(workerClass.getName()+(willRetry? " - "+WILL_RETRY_KEY:""));
+		nextPD.setName(workerClass.getName());
 		nextPD.setValue(1D); // i.e. we are counting discrete events
 		nextPD.setUnit("Count"); // for allowed values see http://docs.aws.amazon.com/AWSJavaSDK/latest/javadoc/com/amazonaws/services/cloudwatch/model/StandardUnit.html
 		nextPD.setTimestamp(timestamp);
 		Map<String,String> dimension = new HashMap<String, String>();
 		dimension.put(WILL_RETRY_KEY, ""+willRetry);
 		dimension.put(CHANGE_TYPE_KEY, changeMessage.getChangeType().toString());
-		dimension.put(OBJECT_ID_KEY, changeMessage.getObjectId());
 		dimension.put(OBJECT_TYPE_KEY, changeMessage.getObjectType().toString());
 		dimension.put(STACK_TRACE_KEY, stackTraceToString(cause));
 		nextPD.setDimension(dimension);
@@ -81,7 +80,6 @@ public class WorkerLoggerImpl implements WorkerLogger {
 	private static final String WORKER_NAMESPACE = "Asynchronous Workers";
 	private static final String WILL_RETRY_KEY = "willRetry";
 	private static final String CHANGE_TYPE_KEY = "changeType";
-	private static final String OBJECT_ID_KEY = "objectId";
 	private static final String OBJECT_TYPE_KEY = "objectType";
 	private static final String STACK_TRACE_KEY = "stackTrace";
 	
