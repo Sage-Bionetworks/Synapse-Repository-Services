@@ -239,7 +239,7 @@ public class TableWorkerIntegrationTest {
 		while(!TableState.AVAILABLE.equals(status.getState())){
 			assertTrue("Timed out waiting for table index worker to make the table available.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
 			assertFalse("Failed to process table: "+status.getErrorMessage(), TableState.PROCESSING_FAILED.equals(status.getState()));
-			System.out.println("Waiting for table index worker to build table..."+status.getProgresssMessage());
+			System.out.println("Waiting for table index worker to build table..."+status.getProgresssMessage()+ " current: "+status.getProgresssCurrent()+" of: "+status.getProgresssTotal());
 			Thread.sleep(1000);
 			status = tableRowManager.getTableStatus(tableId);
 		}
