@@ -43,7 +43,7 @@ public class ConsumerTest {
 		pd.setName("name");
 		pd.setNamespace("nameSpace");
 		pd.setTimestamp(new Date());
-		pd.setUnit("units");
+		pd.setUnit("Count");
 		// Conver to a put metric.
 		MetricDatum expectedDatum = new MetricDatum();
 		expectedDatum.setMetricName(pd.getName());
@@ -164,7 +164,7 @@ public class ConsumerTest {
 				pd.setName("name"+name);
 				pd.setNamespace("namespace"+namespace);
 				pd.setTimestamp(new Date());
-				pd.setUnit("units");
+				pd.setUnit("Count");
 				pd.setValue((double)(namespace*name+1)+name);
 				list.add(pd);
 			}
