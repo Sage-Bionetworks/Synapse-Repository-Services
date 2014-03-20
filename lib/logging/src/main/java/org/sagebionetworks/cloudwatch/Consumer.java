@@ -15,6 +15,7 @@ import com.amazonaws.services.cloudwatch.AmazonCloudWatchClient;
 import com.amazonaws.services.cloudwatch.model.Dimension;
 import com.amazonaws.services.cloudwatch.model.MetricDatum;
 import com.amazonaws.services.cloudwatch.model.PutMetricDataRequest;
+import com.amazonaws.services.cloudwatch.model.StandardUnit;
 import com.amazonaws.services.cloudwatch.model.StatisticSet;
 
 /**
@@ -161,7 +162,7 @@ public class Consumer {
 		MetricDatum toReturn = new MetricDatum();
 		toReturn.setMetricName(pd.getName());
 		toReturn.setValue(pd.getValue());
-		toReturn.setUnit(pd.getUnit());
+		toReturn.setUnit(StandardUnit.valueOf(pd.getUnit()));
 		toReturn.setTimestamp(pd.getTimestamp());
 		List<Dimension> dimensions = new ArrayList<Dimension>();
 		if (pd.getDimension()!=null) {

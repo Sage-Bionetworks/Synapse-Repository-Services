@@ -38,11 +38,11 @@ public class WorkerLoggerImpl implements WorkerLogger {
 	
 	private static final int MAX_STACK_TRACE_ROWS = 3;
 	
-	private static final String stackTraceToString(Throwable cause) {
-		StringBuilder sb = new StringBuilder();
+	public static final String stackTraceToString(Throwable cause) {
+		StringBuilder sb = new StringBuilder(cause.toString());
 		for (int i= 0; i<cause.getStackTrace().length && i<MAX_STACK_TRACE_ROWS; i++) {
-			if (i>0) sb.append("\n");
-			sb.append(cause.getStackTrace()[i].toString());
+			sb.append("\n");
+			sb.append("\tat "+cause.getStackTrace()[i].toString());
 		}
 		return sb.toString();
 	}
@@ -63,10 +63,10 @@ public class WorkerLoggerImpl implements WorkerLogger {
 			boolean willRetry,
 			Date timestamp) {
 		ProfileData nextPD = new ProfileData();
-		nextPD.setNamespace(workerClass.getName()); 
-		nextPD.setName(workerClass.getName()+" - "+(willRetry? WILL_RETRY_KEY:""));
+		nextPD.setNamespace(WORKER_NAMESPACE); 
+		nextPD.setName(workerClass.getName()+(willRetry? " - "+WILL_RETRY_KEY:""));
 		nextPD.setValue(1D); // i.e. we are counting discrete events
-		nextPD.setUnit("events");
+		nextPD.setUnit("Count"); // for allowed values see http://docs.aws.amazon.com/AWSJavaSDK/latest/javadoc/com/amazonaws/services/cloudwatch/model/StandardUnit.html
 		nextPD.setTimestamp(new Date());
 		Map<String,String> dimension = new HashMap<String, String>();
 		dimension.put(WILL_RETRY_KEY, ""+willRetry);
@@ -79,6 +79,7 @@ public class WorkerLoggerImpl implements WorkerLogger {
 		return nextPD;
 	}
 	
+	private static final String WORKER_NAMESPACE = "Asynchronous Workers";
 	private static final String WILL_RETRY_KEY = "willRetry";
 	private static final String CHANGE_TYPE_KEY = "changeType";
 	private static final String OBJECT_ID_KEY = "objectId";
