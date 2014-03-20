@@ -41,8 +41,7 @@ public class WorkerLoggerImpl implements WorkerLogger {
 	public static final String stackTraceToString(Throwable cause) {
 		StringBuilder sb = new StringBuilder(cause.toString());
 		for (int i= 0; i<cause.getStackTrace().length && i<MAX_STACK_TRACE_ROWS; i++) {
-			sb.append("\n");
-			sb.append("\tat "+cause.getStackTrace()[i].toString());
+			sb.append("\n\tat "+cause.getStackTrace()[i].toString());
 		}
 		return sb.toString();
 	}
@@ -67,7 +66,7 @@ public class WorkerLoggerImpl implements WorkerLogger {
 		nextPD.setName(workerClass.getName()+(willRetry? " - "+WILL_RETRY_KEY:""));
 		nextPD.setValue(1D); // i.e. we are counting discrete events
 		nextPD.setUnit("Count"); // for allowed values see http://docs.aws.amazon.com/AWSJavaSDK/latest/javadoc/com/amazonaws/services/cloudwatch/model/StandardUnit.html
-		nextPD.setTimestamp(new Date());
+		nextPD.setTimestamp(timestamp);
 		Map<String,String> dimension = new HashMap<String, String>();
 		dimension.put(WILL_RETRY_KEY, ""+willRetry);
 		dimension.put(CHANGE_TYPE_KEY, changeMessage.getChangeType().toString());
