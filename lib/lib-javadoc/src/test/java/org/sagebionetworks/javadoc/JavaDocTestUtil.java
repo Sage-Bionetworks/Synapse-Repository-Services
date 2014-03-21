@@ -46,7 +46,7 @@ public class JavaDocTestUtil {
 		BufferedReader reader = new BufferedReader(new FileReader(classpathFile));
 		String classpath = reader.readLine();
 		reader.close();
-		classpath += File.pathSeparator + additionalClasspathDirectory.getAbsolutePath() + File.separator;
+		classpath += File.pathSeparator + additionalClasspathDirectory.getAbsolutePath();
 
 		int result = Main.execute(JavaDocTestUtil.class.getClassLoader(), new String[]{
 			"-d",
