@@ -18,6 +18,7 @@ import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.StatusLine;
+import org.apache.http.client.methods.HttpUriRequest;
 import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
@@ -84,6 +85,7 @@ public class SharedClientConnectionTest {
 		sharedClientConnection = new SharedClientConnection(mockClientProvider);
 		mockResponse = Mockito.mock(HttpResponse.class);
 		when(mockClientProvider.performRequest(any(String.class),any(String.class),any(String.class),(Map<String,String>)anyObject())).thenReturn(mockResponse);
+		when(mockClientProvider.execute(any(HttpUriRequest.class))).thenReturn(mockResponse);
 	}
 
 	@Test
@@ -145,6 +147,51 @@ public class SharedClientConnectionTest {
 			sharedClientConnection.postJson(endpoint, uri,jsonString, userAgent, null);
 			fail("expected exception");
 		} catch (SynapseServerException e) {
+			assertEquals("user message", e.getMessage());
+		}
+	}
+
+	@Test
+	public void testAsymmetricalPostErrorHandling() throws Exception {
+		configureMockHttpResponse(HttpStatus.SC_UNAUTHORIZED, "{\"reason\":\"user message\"}");
+		try {
+			sharedClientConnection.asymmetricalPost(uri, jsonString, userAgent);
+			fail("expected exception");
+		} catch (SynapseUnauthorizedException e) {
+			assertEquals("user message", e.getMessage());
+		}
+	}
+
+	@Test
+	public void testDownloadZippedFileStringErrorHandling() throws Exception {
+		configureMockHttpResponse(HttpStatus.SC_UNAUTHORIZED, "{\"reason\":\"user message\"}");
+		try {
+			sharedClientConnection.downloadZippedFileString(uri, uri, userAgent);
+			fail("expected exception");
+		} catch (SynapseUnauthorizedException e) {
+			assertEquals("user message", e.getMessage());
+		}
+	}
+
+	@Test
+	public void testPostStringDirectErrorHandling() throws Exception {
+		configureMockHttpResponse(HttpStatus.SC_UNAUTHORIZED, "{\"reason\":\"user message\"}");
+		try {
+			sharedClientConnection.postStringDirect(uri, uri, jsonString, userAgent);
+			fail("expected exception");
+		} catch (SynapseUnauthorizedException e) {
+			assertEquals("user message", e.getMessage());
+		}
+	}
+
+
+	@Test
+	public void testGetDirectErrorHandling() throws Exception {
+		configureMockHttpResponse(HttpStatus.SC_UNAUTHORIZED, "{\"reason\":\"user message\"}");
+		try {
+			sharedClientConnection.getDirect(uri, uri, userAgent);
+			fail("expected exception");
+		} catch (SynapseUnauthorizedException e) {
 			assertEquals("user message", e.getMessage());
 		}
 	}

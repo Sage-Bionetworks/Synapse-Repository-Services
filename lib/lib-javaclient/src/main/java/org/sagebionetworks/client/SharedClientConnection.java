@@ -356,9 +356,7 @@ public class SharedClientConnection {
 			HttpResponse response = clientProvider.execute(post);
 			int code = response.getStatusLine().getStatusCode();
 			String responseBody = (null != response.getEntity()) ? EntityUtils.toString(response.getEntity()) : null;
-			if(code < 200 || code > 299){
-				throw new SynapseServerException(code, "Response code: "+code+" "+response.getStatusLine().getReasonPhrase()+" for "+url);
-			}
+			convertHttpResponseToException(code, responseBody);
 			if(code == 202){
 				throw new SynapseTableUnavilableException(createTableStatus(responseBody));
 			}
@@ -373,6 +371,46 @@ public class SharedClientConnection {
 			throw new SynapseClientException(e);
 		}
 	}
+	
+	private static final String ERROR_REASON_TAG = "reason";
+	
+	private static boolean isOKStatusCode(int statusCode) {
+		return statusCode>=200 && statusCode<300;
+	}
+	
+	private static void convertHttpResponseToException(int statusCode, String responseBody) throws SynapseException {
+		if (isOKStatusCode(statusCode)) return;
+		JSONObject results = null;
+		try {
+			results = new JSONObject(responseBody);
+		} catch (JSONException e) {
+			throw new SynapseClientException("responseBody: <<"+responseBody+">>", e);
+		}
+		convertHttpResponseToException(statusCode, results);
+	}
+	
+	private static void convertHttpResponseToException(int statusCode, JSONObject responseBody) throws SynapseException {
+		if (isOKStatusCode(statusCode)) return;
+		String reasonStr = null;
+		try {
+			reasonStr = responseBody.getString(ERROR_REASON_TAG);
+		} catch (JSONException e) {
+			throw new SynapseClientException(e);
+		}
+		if (statusCode == HttpStatus.SC_UNAUTHORIZED) {
+			throw new SynapseUnauthorizedException(reasonStr);
+		} else if (statusCode == HttpStatus.SC_FORBIDDEN) {
+			throw new SynapseForbiddenException(reasonStr);
+		} else if (statusCode == HttpStatus.SC_NOT_FOUND) {
+			throw new SynapseNotFoundException(reasonStr);
+		} else if (statusCode == HttpStatus.SC_BAD_REQUEST) {
+			throw new SynapseBadRequestException(reasonStr);
+		} else {
+			throw new SynapseServerException(statusCode, reasonStr);
+		}
+	}
+
+
 	
 	TableStatus createTableStatus(String json){
 		try {
@@ -422,9 +460,10 @@ public class SharedClientConnection {
 		HttpResponse response = clientProvider.execute(get);
 		HttpEntity entity = response.getEntity();
 		int statusCode = response.getStatusLine().getStatusCode();
-		if(statusCode != 200) {
-			String message = EntityUtils.toString(entity);
-			throw new SynapseServerException(statusCode, "Status code: " + statusCode + ", " + message);
+		if (!isOKStatusCode(statusCode)) {
+			// we only want to read the input stream in case of an error
+			String responseBody = (null != entity) ? EntityUtils.toString(entity) : null;
+			convertHttpResponseToException(statusCode, responseBody);
 		}
 		return FileUtils.readCompressedStreamAsString(entity.getContent());
 	}
@@ -497,19 +536,23 @@ public class SharedClientConnection {
 	}
 
 	public String postStringDirect(String endpoint, String uri, String data, String userAgent) throws SynapseException {
+		URIBuilder builder = null;
 		try {
-			URIBuilder builder = new URIBuilder(endpoint + uri);
-			builder.addParameter(AuthorizationConstants.DOMAIN_PARAM, domain.name());
-			
+			builder = new URIBuilder(endpoint + uri);
+			builder.addParameter(AuthorizationConstants.DOMAIN_PARAM, domain.name());	
+		} catch (URISyntaxException e) {
+			throw new SynapseClientException(e);
+		}
+		try {
 			HttpPost post = new HttpPost(builder.toString());
 			setHeaders(post, defaultPOSTPUTHeaders, userAgent);
 			StringEntity stringEntity = new StringEntity(data);
 			post.setEntity(stringEntity);
 			HttpResponse response = clientProvider.execute(post);
-			return (null != response.getEntity()) ? EntityUtils.toString(response.getEntity()) : null;
+			String responseBody = (null != response.getEntity()) ? EntityUtils.toString(response.getEntity()) : null;
+			convertHttpResponseToException(response.getStatusLine().getStatusCode(), responseBody);
+			return responseBody;
 		} catch (IOException e) {
-			throw new SynapseClientException(e);
-		} catch (URISyntaxException e) {
 			throw new SynapseClientException(e);
 		}
 	}
@@ -701,39 +744,18 @@ public class SharedClientConnection {
 				}
 			}
 		}
-
-		if (statusCode<200 || statusCode>299) {
-			// Well-handled server side exceptions come back as JSON, attempt to
-			// deserialize and convert the error
-			String reasonStr = null;
-			try {
-				reasonStr = results.getString("reason");
-			} catch (JSONException e) {
-				// if we can't parse we just return the whole response body
-				reasonStr = responseBody;
-			}
-	
-			if (statusCode == HttpStatus.SC_UNAUTHORIZED) {
-				throw new SynapseUnauthorizedException(reasonStr);
-			} else if (statusCode == HttpStatus.SC_FORBIDDEN) {
-				throw new SynapseForbiddenException(reasonStr);
-			} else if (statusCode == HttpStatus.SC_NOT_FOUND) {
-				throw new SynapseNotFoundException(reasonStr);
-			} else if (statusCode == HttpStatus.SC_BAD_REQUEST) {
-				throw new SynapseBadRequestException(reasonStr);
-			} else {
-				throw new SynapseServerException(statusCode, reasonStr);
-			}
-		}
+		
+		convertHttpResponseToException(statusCode, results);
 
 		return results;
 	}
 
-	public String getDirect(String endpoint, String uri, String userAgent) throws ClientProtocolException, IOException {
+	public String getDirect(String endpoint, String uri, String userAgent) throws ClientProtocolException, IOException, SynapseException {
 		HttpGet get = new HttpGet(endpoint + uri);
 		setHeaders(get, defaultGETDELETEHeaders, userAgent);
 		HttpResponse response = clientProvider.execute(get);
 		String responseBody = (null != response.getEntity()) ? EntityUtils.toString(response.getEntity()) : null;
+		convertHttpResponseToException(response.getStatusLine().getStatusCode(), responseBody);
 		return responseBody;
 	}
 
