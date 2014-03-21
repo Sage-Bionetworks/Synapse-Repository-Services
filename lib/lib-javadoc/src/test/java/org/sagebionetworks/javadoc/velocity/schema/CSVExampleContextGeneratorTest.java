@@ -26,7 +26,7 @@ public class CSVExampleContextGeneratorTest {
 	private static ClassDoc exampleClassDoc;
 	private static Map<String, MethodDoc> methodMap;
 	@BeforeClass
-	public static void beforeClass(){
+	public static void beforeClass() throws Exception {
 		// Lookup the test files.
 		rootDoc = JavaDocTestUtil.buildRootDoc("CSVExample.java");
 		assertNotNull(rootDoc);

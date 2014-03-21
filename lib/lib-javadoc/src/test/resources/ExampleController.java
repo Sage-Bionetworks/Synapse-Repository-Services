@@ -1,4 +1,6 @@
 package org.sagebionetworks.samples;
+import java.util.List;
+
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -11,6 +13,7 @@ import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
+import org.sagebionetworks.javadoc.testclasses.GenericList;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -244,4 +247,15 @@ public class ExampleController {
 		return null;
 	}
 	
+	/**
+	 * returning a generic
+	 * @param annos the list of annotations
+	 * @return the list of strings
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = "/some/generic", method = RequestMethod.GET)
+	public @ResponseBody
+	GenericList<Entity> someGenericReturn(@RequestBody GenericList<Annotations> annos) {
+		return null;
+	}
 }
