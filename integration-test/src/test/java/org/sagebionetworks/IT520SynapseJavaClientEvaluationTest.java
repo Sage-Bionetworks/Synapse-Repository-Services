@@ -192,8 +192,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		if(fileHandle != null){
 			try {
 				adminSynapse.deleteFileHandle(fileHandle.getId());
-			} catch (SynapseNotFoundException e) {
-			} catch (SynapseClientException e) { }
+			} catch (SynapseException e) { }
 		}
 	}
 	
@@ -201,10 +200,10 @@ public class IT520SynapseJavaClientEvaluationTest {
 	public static void afterClass() throws Exception {
 		try {
 			adminSynapse.deleteUser(user1ToDelete);
-		} catch (SynapseClientException e) { }
+		} catch (SynapseException e) { }
 		try {
 			adminSynapse.deleteUser(user2ToDelete);
-		} catch (SynapseClientException e) { }
+		} catch (SynapseException e) { }
 	}
 	
 	@Test

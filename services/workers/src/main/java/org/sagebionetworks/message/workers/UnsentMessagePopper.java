@@ -89,7 +89,7 @@ public class UnsentMessagePopper implements Callable<List<Message>> {
 		ProfileData profileData = new ProfileData();
 		profileData.setNamespace("UnsentMessagePopper");
 		profileData.setName(name);
-		profileData.setLatency(metric);
+		profileData.setValue((double)metric);
 		profileData.setUnit(unit);
 		profileData.setTimestamp(new Date());
 		consumer.addProfileData(profileData);

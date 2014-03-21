@@ -66,7 +66,9 @@ public class MergeWorkerTest {
 		accessRecordDAO.deleteAllStackInstanceBatches();
 		
 		for (String key : lockTokens.keySet()) {
-			semaphoreDAO.releaseLock(key, lockTokens.get(key));
+			if (lockTokens.get(key)!=null) {
+				semaphoreDAO.releaseLock(key, lockTokens.get(key));
+			}
 		}
 	}
 	

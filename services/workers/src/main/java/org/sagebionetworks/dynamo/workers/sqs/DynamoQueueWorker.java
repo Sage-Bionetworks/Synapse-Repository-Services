@@ -86,7 +86,7 @@ public class DynamoQueueWorker implements Callable<List<Message>> {
 		ProfileData profileData = new ProfileData();
 		profileData.setNamespace("DynamoQueueWorker");
 		profileData.setName("TotalLatency"); // Method name
-		profileData.setLatency(latency);
+		profileData.setValue((double)latency);
 		profileData.setUnit("Milliseconds");
 		profileData.setTimestamp(new Date());
 		consumer.addProfileData(profileData);

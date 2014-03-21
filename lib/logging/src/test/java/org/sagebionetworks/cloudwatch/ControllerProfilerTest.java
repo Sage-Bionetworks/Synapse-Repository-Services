@@ -69,10 +69,18 @@ public class ControllerProfilerTest {
 		assertNotNull(results);
 		assertEquals(testNamespace, results.getNamespace());
 		assertEquals(tempMetricName, results.getName());
-		assertEquals(testLatency, results.getLatency());
+		assertEquals(testLatency, results.getValue().longValue());
 		assertEquals("Milliseconds", results.getUnit());
 		Date testjdkDate = results.getTimestamp();
 		assertNotNull(testjdkDate);
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void testBadLatency() throws Exception {
+		String testNamespace = "test namespace";
+		String testName = "testName";
+		long badLatency = (long) -10;
+		controllerProfiler.makeProfileDataDTO(testNamespace, testName, badLatency);
 	}
 	
 	/**
