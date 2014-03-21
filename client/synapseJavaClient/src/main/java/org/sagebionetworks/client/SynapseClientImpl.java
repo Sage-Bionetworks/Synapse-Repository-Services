@@ -1986,9 +1986,10 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @return
 	 * @throws IOException 
 	 * @throws ClientProtocolException 
+	 * @throws SynapseException 
 	 */
 	@Override
-	public URL getWikiAttachmentTemporaryUrl(WikiPageKey key, String fileName) throws ClientProtocolException, IOException{
+	public URL getWikiAttachmentTemporaryUrl(WikiPageKey key, String fileName) throws ClientProtocolException, IOException, SynapseException{
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
 		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
 		String encodedName = URLEncoder.encode(fileName, "UTF-8");
@@ -2005,9 +2006,10 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @return
 	 * @throws IOException 
 	 * @throws ClientProtocolException 
+	 * @throws SynapseException 
 	 */
 	@Override
-	public URL getWikiAttachmentPreviewTemporaryUrl(WikiPageKey key, String fileName) throws ClientProtocolException, IOException{
+	public URL getWikiAttachmentPreviewTemporaryUrl(WikiPageKey key, String fileName) throws ClientProtocolException, IOException, SynapseException{
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
 		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
 		String encodedName = URLEncoder.encode(fileName, "UTF-8");
@@ -2024,9 +2026,10 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @throws ClientProtocolException
 	 * @throws MalformedURLException
 	 * @throws IOException
+	 * @throws SynapseException 
 	 */
 	@Override
-	public URL getFileEntityTemporaryUrlForCurrentVersion(String entityId) throws ClientProtocolException, MalformedURLException, IOException{
+	public URL getFileEntityTemporaryUrlForCurrentVersion(String entityId) throws ClientProtocolException, MalformedURLException, IOException, SynapseException{
 		String uri = ENTITY + "/" + entityId + FILE + QUERY_REDIRECT_PARAMETER + "false";
 		return getUrl(uri);
 	}
@@ -2039,9 +2042,10 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @throws ClientProtocolException
 	 * @throws MalformedURLException
 	 * @throws IOException
+	 * @throws SynapseException 
 	 */
 	@Override
-	public URL getFileEntityPreviewTemporaryUrlForCurrentVersion(String entityId) throws ClientProtocolException, MalformedURLException, IOException{
+	public URL getFileEntityPreviewTemporaryUrlForCurrentVersion(String entityId) throws ClientProtocolException, MalformedURLException, IOException, SynapseException{
 		String uri = ENTITY + "/" + entityId + FILE_PREVIEW + QUERY_REDIRECT_PARAMETER + "false";
 		return getUrl(uri);
 	}
@@ -2054,9 +2058,10 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @throws ClientProtocolException
 	 * @throws MalformedURLException
 	 * @throws IOException
+	 * @throws SynapseException 
 	 */
 	@Override
-	public URL getFileEntityTemporaryUrlForVersion(String entityId, Long versionNumber) throws ClientProtocolException, MalformedURLException, IOException{
+	public URL getFileEntityTemporaryUrlForVersion(String entityId, Long versionNumber) throws ClientProtocolException, MalformedURLException, IOException, SynapseException{
 		String uri = ENTITY + "/" + entityId + VERSION_INFO + "/" + versionNumber + FILE + QUERY_REDIRECT_PARAMETER + "false";
 		return getUrl(uri);
 	}
@@ -2069,9 +2074,10 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @throws ClientProtocolException
 	 * @throws MalformedURLException
 	 * @throws IOException
+	 * @throws SynapseException 
 	 */
 	@Override
-	public URL getFileEntityPreviewTemporaryUrlForVersion(String entityId, Long versionNumber) throws ClientProtocolException, MalformedURLException, IOException{
+	public URL getFileEntityPreviewTemporaryUrlForVersion(String entityId, Long versionNumber) throws ClientProtocolException, MalformedURLException, IOException, SynapseException{
 		String uri = ENTITY + "/" + entityId + VERSION_INFO + "/" + versionNumber + FILE_PREVIEW + QUERY_REDIRECT_PARAMETER
 				+ "false";
 		return getUrl(uri);
@@ -2085,9 +2091,10 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @throws ClientProtocolException
 	 * @throws IOException
 	 * @throws MalformedURLException
+	 * @throws SynapseException
 	 */
 	private URL getUrl(String uri) throws ClientProtocolException, IOException,
-			MalformedURLException {
+			MalformedURLException, SynapseException {
 		return new URL(getSharedClientConnection().getDirect(repoEndpoint, uri, getUserAgent()));
 	}
 		
@@ -2362,10 +2369,11 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @return
 	 * @throws IOException 
 	 * @throws ClientProtocolException 
+	 * @throws SynapseException 
 	 */
 	@Override
 	public URL getV2WikiAttachmentTemporaryUrl(WikiPageKey key,
-			String fileName) throws ClientProtocolException, IOException {
+			String fileName) throws ClientProtocolException, IOException, SynapseException {
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
 		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
 		String encodedName = URLEncoder.encode(fileName, "UTF-8");
@@ -2381,10 +2389,11 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @return
 	 * @throws IOException 
 	 * @throws ClientProtocolException 
+	 * @throws SynapseException 
 	 */
 	@Override
 	public URL getV2WikiAttachmentPreviewTemporaryUrl(WikiPageKey key,
-			String fileName) throws ClientProtocolException, IOException {
+			String fileName) throws ClientProtocolException, IOException, SynapseException {
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
 		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
 		String encodedName = URLEncoder.encode(fileName, "UTF-8");
@@ -2395,7 +2404,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	
 	@Override
 	public URL getVersionOfV2WikiAttachmentPreviewTemporaryUrl(WikiPageKey key,
-			String fileName, Long version) throws ClientProtocolException, IOException {
+			String fileName, Long version) throws ClientProtocolException, IOException, SynapseException {
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
 		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
 		String encodedName = URLEncoder.encode(fileName, "UTF-8");
@@ -2406,7 +2415,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	@Override
 	public URL getVersionOfV2WikiAttachmentTemporaryUrl(WikiPageKey key,
-			String fileName, Long version) throws ClientProtocolException, IOException {
+			String fileName, Long version) throws ClientProtocolException, IOException, SynapseException {
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
 		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
 		String encodedName = URLEncoder.encode(fileName, "UTF-8");
@@ -4280,10 +4289,11 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @throws ClientProtocolException
 	 * @throws MalformedURLException
 	 * @throws IOException
+	 * @throws SynapseException 
 	 */
 	@Override
 	public URL getFileTemporaryUrlForSubmissionFileHandle(String submissionId, String fileHandleId)
-			throws ClientProtocolException, MalformedURLException, IOException {
+			throws ClientProtocolException, MalformedURLException, IOException, SynapseException {
 		String url = EVALUATION_URI_PATH + "/" +
 				SUBMISSION + "/" + submissionId + FILE + "/" + fileHandleId +
 				QUERY_REDIRECT_PARAMETER + "false";

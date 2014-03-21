@@ -177,10 +177,10 @@ public interface SynapseClient extends BaseClient {
 			String tokenId) throws SynapseException, JSONObjectAdapterException;
 
 	public URL getWikiAttachmentPreviewTemporaryUrl(WikiPageKey properKey,
-			String fileName) throws ClientProtocolException, IOException;
+			String fileName) throws ClientProtocolException, IOException, SynapseException;
 
 	public URL getWikiAttachmentTemporaryUrl(WikiPageKey properKey,
-			String fileName) throws ClientProtocolException, IOException;
+			String fileName) throws ClientProtocolException, IOException, SynapseException;
 
 	/**
 	 * Log into Synapse
@@ -220,18 +220,18 @@ public interface SynapseClient extends BaseClient {
 			JSONObjectAdapterException;
 
 	public URL getFileEntityPreviewTemporaryUrlForCurrentVersion(String entityId)
-			throws ClientProtocolException, MalformedURLException, IOException;
+			throws ClientProtocolException, MalformedURLException, IOException, SynapseException;
 
 	public URL getFileEntityTemporaryUrlForCurrentVersion(String entityId)
-			throws ClientProtocolException, MalformedURLException, IOException;
+			throws ClientProtocolException, MalformedURLException, IOException, SynapseException;
 
 	public URL getFileEntityPreviewTemporaryUrlForVersion(String entityId,
 			Long versionNumber) throws ClientProtocolException,
-			MalformedURLException, IOException;
+			MalformedURLException, IOException, SynapseException;
 
 	public URL getFileEntityTemporaryUrlForVersion(String entityId,
 			Long versionNumber) throws ClientProtocolException,
-			MalformedURLException, IOException;
+			MalformedURLException, IOException, SynapseException;
 
 	/**
 	 * Get a WikiPage using its key
@@ -506,16 +506,16 @@ public interface SynapseClient extends BaseClient {
 //		throws ClientProtocolException, FileNotFoundException, IOException, SynapseException;
 	
 	public URL getV2WikiAttachmentPreviewTemporaryUrl(WikiPageKey key,
-			String fileName) throws ClientProtocolException, IOException;
+			String fileName) throws ClientProtocolException, IOException, SynapseException;
 
 	public URL getV2WikiAttachmentTemporaryUrl(WikiPageKey key,
-			String fileName) throws ClientProtocolException, IOException;
+			String fileName) throws ClientProtocolException, IOException, SynapseException;
 	
 	public URL getVersionOfV2WikiAttachmentPreviewTemporaryUrl(WikiPageKey key,
-			String fileName, Long version) throws ClientProtocolException, IOException;
+			String fileName, Long version) throws ClientProtocolException, IOException, SynapseException;
 
 	public URL getVersionOfV2WikiAttachmentTemporaryUrl(WikiPageKey key,
-			String fileName, Long version) throws ClientProtocolException, IOException;
+			String fileName, Long version) throws ClientProtocolException, IOException, SynapseException;
 
 	public void deleteV2WikiPage(WikiPageKey key) throws SynapseException;
 	
@@ -898,7 +898,7 @@ public interface SynapseClient extends BaseClient {
 
 	public URL getFileTemporaryUrlForSubmissionFileHandle(String submissionId,
 			String fileHandleId) throws ClientProtocolException,
-			MalformedURLException, IOException;
+			MalformedURLException, IOException, SynapseException;
 
 	public Long getSubmissionCount(String evalId) throws SynapseException;
 
