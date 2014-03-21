@@ -20,7 +20,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.servlet.ServletException;
 
 import junit.framework.Assert;
 
@@ -358,7 +357,7 @@ public class SynapseTest {
 	};
 
 	@Test
-	public void testGetEntityBundle() throws NameConflictException, JSONObjectAdapterException, ServletException, IOException, NotFoundException, DatastoreException, SynapseException {
+	public void testGetEntityBundle() throws NameConflictException, JSONObjectAdapterException, IOException, NotFoundException, DatastoreException, SynapseException {
 		// Create an entity
 		Study s = EntityCreator.createNewDataset();
 		

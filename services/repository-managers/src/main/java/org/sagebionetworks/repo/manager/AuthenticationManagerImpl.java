@@ -41,7 +41,6 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 			String passHash = PBKDF2Utils.hashPassword(password, salt);
 			authDAO.checkUserCredentials(principalId, passHash);
 		}
-		
 		return getSessionToken(principalId, domain);
 	}
 	

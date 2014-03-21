@@ -140,7 +140,7 @@ import com.google.common.collect.Lists;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class MigrationIntegrationAutowireTest {
 
-	public static final long MAX_WAIT_MS = 10 * 1000; // 10 sec.
+	public static final long MAX_WAIT_MS = 30 * 1000; // 10 sec.
 
 	@Autowired
 	private DBOBasicDao basicDao;

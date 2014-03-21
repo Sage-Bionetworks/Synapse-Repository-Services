@@ -17,14 +17,9 @@
 	<dependencies>
 
 		<dependency>
-			<groupId>joda-time</groupId>
-			<artifactId>joda-time</artifactId>
-		</dependency>
-
-		<!-- Sage Bionetworks Dependencies -->
-		<dependency>
-			<groupId>org.sagebionetworks</groupId>
-			<artifactId>lib-auto-generated</artifactId>
+			<groupId>javax.servlet</groupId>
+			<artifactId>javax.servlet-api</artifactId>
+			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
@@ -45,33 +40,27 @@
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-securityUtilities</artifactId>
 		</dependency>
-
-		<!-- Spring Framework dependencies -->
-		<dependency>
-			<groupId>org.springframework</groupId>
-			<artifactId>org.springframework.web</artifactId>
-		</dependency>
-		
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 		</dependency>
 		<dependency>
-		    <groupId>org.springframework</groupId>
-		    <artifactId>spring-test</artifactId>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-test</artifactId>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>com.google.inject</groupId>
 			<artifactId>guice</artifactId>
 			<version>3.0-rc2</version>
 		</dependency>
-		
-		<!-- note: This refers to a custom POM in the SageBionetworks artifactory, omitting Guice 2.0 -->
+
+		<!-- note: This refers to a custom POM in the SageBionetworks artifactory, 
+			omitting Guice 2.0 -->
 		<dependency>
-		    <groupId>org.openid4java</groupId>
-		    <artifactId>openid4java-nodeps</artifactId>
-		    <version>0.9.6.sb</version>
+			<groupId>org.openid4java</groupId>
+			<artifactId>openid4java-nodeps</artifactId>
+			<version>0.9.6.sb</version>
 		</dependency>
 
 		<dependency>
