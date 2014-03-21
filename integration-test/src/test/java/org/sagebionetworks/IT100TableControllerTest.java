@@ -1,15 +1,15 @@
 package org.sagebionetworks;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
-
-import javax.servlet.ServletException;
 
 import org.junit.After;
 import org.junit.AfterClass;
@@ -213,7 +213,7 @@ public class IT100TableControllerTest {
 	}
 	
 	@Test
-	public void testListColumnModels() throws ServletException, Exception{
+	public void testListColumnModels() throws Exception{
 		ColumnModel one = new ColumnModel();
 		String prefix = UUID.randomUUID().toString();
 		one.setName(prefix+"a");

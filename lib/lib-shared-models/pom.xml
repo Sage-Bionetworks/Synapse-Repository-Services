@@ -97,12 +97,13 @@
 		<dependency>
 			<groupId>com.google.gwt</groupId>
 			<artifactId>gwt-user</artifactId>
-			<scope>provided</scope>
+			<scope>test</scope>
 		</dependency>
 
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>schema-to-pojo-gwt</artifactId>
+			<scope>provided</scope>
 		</dependency>
 
 		<dependency>

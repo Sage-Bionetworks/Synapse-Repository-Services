@@ -54,7 +54,6 @@ import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.orm.jdo.JdoObjectRetrievalFailureException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.transaction.IllegalTransactionStateException;
@@ -333,16 +332,12 @@ public class NodeDAOImplTest {
 			fail("The child should not exist after the parent was deleted");
 		}catch (NotFoundException e){
 			// expected.
-		}catch (JdoObjectRetrievalFailureException e){
-			System.out.println(e);
 		}
 		try{
 			nodeDao.getNode(grandkidId);
 			fail("The grandchild should not exist after the grandparent was deleted");
 		}catch (NotFoundException e){
 			// expected.
-		}catch (JdoObjectRetrievalFailureException e){
-			System.out.println(e);
 		}
 	}
 
