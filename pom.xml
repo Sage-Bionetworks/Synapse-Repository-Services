@@ -156,13 +156,14 @@
 				<version>${jackson.version}</version>
 			</dependency>
 
-			<!-- Used for timer triggers (cron-like) -->
+			<!-- Used for timer triggers (cron-like)
+			Note: spring-context-support also depends on this libary as an optional dependancy.
+			Since spring-context-support version 4.0.2-RELEASE uses quartz version 1.8.6 that 
+			is the version of quartz we are using.  See the  spring-context-support pom.xml.-->
 			<dependency>
-				<groupId>opensymphony</groupId>
-				<artifactId>quartz-all</artifactId>
-				<version>1.6.3</version>
-				<type>jar</type>
-				<scope>compile</scope>
+				<groupId>org.quartz-scheduler</groupId>
+				<artifactId>quartz</artifactId>
+				<version>1.8.6</version>
 			</dependency>
 			<dependency>
 				<groupId>javax.servlet</groupId>
