@@ -16,7 +16,7 @@
 	<import resource="classpath:stack-configuration.spb.xml" />
 
 	<!--  bean saying we want to invoke the sendEm method in Consumer class -->
-	<bean id="methodInvoking" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+	<bean id="performanceMethodInvoking" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
   		<property name="targetObject" ref="profiler" />
   		<property name="targetMethod" value="collectGlobalMethodCallCounts" />
   		<property name="concurrent" value="false" />
@@ -24,7 +24,7 @@
 
 	<!--  bean that creates trigger for the sendEm method of the consumer every number of seconds -->
 	<bean id="performanceLogTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean">
-    	<property name="jobDetail" ref="methodInvoking" />
+    	<property name="jobDetail" ref="performanceMethodInvoking" />
     	<property name="startDelay" value="0" />
     	<property name="repeatInterval" ref="stackConfiguration.callPerformanceTriggerTime" />
 	</bean>
