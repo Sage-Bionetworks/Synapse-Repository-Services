@@ -14,7 +14,8 @@ public class AuthorizationConstants {
 		THE_ADMIN_USER(1L), 
 		AUTHENTICATED_USERS_GROUP(273948L), 
 		PUBLIC_GROUP(273949L), 
-		ANONYMOUS_USER(273950L);
+		ANONYMOUS_USER(273950L),
+		CERTIFIED_USERS(3L);
 
 		private final long principalId;
 		
