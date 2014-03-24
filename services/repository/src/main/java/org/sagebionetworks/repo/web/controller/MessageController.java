@@ -80,9 +80,9 @@ public class MessageController extends BaseController {
 	 * Unauthorized delivery, such as messaging a team you are not affiliated with, 
 	 * will result in a bounce message being sent to your email.
 	 * <br/>
-	 * There are limits on the number of messae recipients you can specify (50) and
+	 * There are limits on the number of message recipients you can specify (50) and
 	 * the rate at which you can send messages (10 per minute).  Neither these restrictions,
-	 * nor the restriction that you can't message a team with which you are unaffiliated,
+	 * nor the restriction that you can't message a Team with which you are unaffiliated,
 	 * apply if you are a member of the Trusted Message Senders Team.
 	 * </p>
 	 */
