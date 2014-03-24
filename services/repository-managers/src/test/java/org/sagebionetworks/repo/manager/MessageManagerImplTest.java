@@ -7,8 +7,9 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
 
 import java.net.URL;
 import java.util.ArrayList;
@@ -530,6 +531,20 @@ public class MessageManagerImplTest {
 		assertTrue(errors.get(0).contains("may not send"));
 	}
 	
+	@Test
+	public void testTrustedUserCanSendToAnyTeam() throws Exception {
+		// can't send a message to a team you're not in...
+		MessageToUser messageToTeam = createMessage(otherTestUser, "messageToTeam", 
+					new HashSet<String>() {{add(testTeam.getId());}}, null);
+		cleanup.add(messageToTeam.getId());
+		assertEquals(1, messageManager.processMessage(messageToTeam.getId()).size());
+
+		// ... unless you're a Trusted Message Sender
+		messageToTeam = createMessage(trustedMessageSender, "messageToTeam", tmsFileHandleId,
+				new HashSet<String>() {{add(testTeam.getId());}}, null);
+		assertEquals(0, messageManager.processMessage(messageToTeam.getId()).size());
+	}
+	
 	/**
 	 * Bottom part of the test is related to {@link #testGetInbox_AfterSending()}
 	 */
@@ -623,8 +638,9 @@ public class MessageManagerImplTest {
 	@Test(expected=TooManyRequestsException.class)
 	public void testCreateTooFast() throws Exception {
 		for (int i=0; i<11; i++) {
-			userToOther = createMessage(testUser, "userToOther", 
+			MessageToUser m = createMessage(testUser, "userToOther", 
 				new HashSet<String>() {{add(otherTestUser.getId().toString());}}, null);
+			cleanup.add(m.getId());
 		}
 
 	}
@@ -634,8 +650,9 @@ public class MessageManagerImplTest {
 	@Test
 	public void testCreateTooFastAsTrustedMessageSender() throws Exception {
 		for (int i=0; i<11; i++) {
-			userToOther = createMessage(trustedMessageSender, "userToOther", tmsFileHandleId, 
+			MessageToUser m = createMessage(trustedMessageSender, "userToOther", tmsFileHandleId, 
 				new HashSet<String>() {{add(trustedMessageSender.getId().toString());}}, null);
+			cleanup.add(m.getId());
 		}
 
 	}

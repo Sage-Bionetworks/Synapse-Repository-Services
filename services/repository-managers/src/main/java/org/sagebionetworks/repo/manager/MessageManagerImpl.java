@@ -508,9 +508,11 @@ public class MessageManagerImpl implements MessageManager {
 				continue;
 			}
 			
+			boolean userIsTrustedMessageSender = userInfo.getGroups().contains(TeamConstants.TRUSTED_MESSAGE_SENDER_TEAM_ID);
 			// Check permissions to send to non-individuals
-			if (!ug.getIsIndividual()
-					&& !authorizationManager.canAccess(userInfo, principalId, ObjectType.TEAM, ACCESS_TYPE.SEND_MESSAGE)) {
+			if (!userIsTrustedMessageSender &&
+					!ug.getIsIndividual() &&
+					!authorizationManager.canAccess(userInfo, principalId, ObjectType.TEAM, ACCESS_TYPE.SEND_MESSAGE)) {
 				errors.add(userInfo.getId()
 						+ " may not send messages to the group (" + principalId + ")");
 				continue;
