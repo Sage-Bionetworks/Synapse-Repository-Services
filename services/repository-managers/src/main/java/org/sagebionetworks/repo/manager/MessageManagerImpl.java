@@ -19,6 +19,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
+import org.sagebionetworks.repo.manager.team.TeamConstants;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -216,8 +217,9 @@ public class MessageManagerImpl implements MessageManager {
 			if (userInfo.getId().equals(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId())) {
 				throw new UnauthorizedException("Anonymous user may not send messages.");
 			}
+			boolean userIsTrustedMessageSender = userInfo.getGroups().contains(TeamConstants.TRUSTED_MESSAGE_SENDER_TEAM_ID);
 			// Throttle message creation
-			if (!messageDAO.canCreateMessage(userInfo.getId().toString(), 
+			if (!userIsTrustedMessageSender && !messageDAO.canCreateMessage(userInfo.getId().toString(), 
 						MAX_NUMBER_OF_NEW_MESSAGES,
 						MESSAGE_CREATION_INTERVAL_MILLISECONDS)) {
 				throw new TooManyRequestsException(
@@ -227,7 +229,7 @@ public class MessageManagerImpl implements MessageManager {
 			}
 			
 			// Limit the number of recipients
-			if (dto.getRecipients() != null && dto.getRecipients().size() > MAX_NUMBER_OF_RECIPIENTS) {
+			if (!userIsTrustedMessageSender && dto.getRecipients() != null && dto.getRecipients().size() > MAX_NUMBER_OF_RECIPIENTS) {
 				throw new IllegalArgumentException(
 						"May not message more than "
 								+ MAX_NUMBER_OF_RECIPIENTS
