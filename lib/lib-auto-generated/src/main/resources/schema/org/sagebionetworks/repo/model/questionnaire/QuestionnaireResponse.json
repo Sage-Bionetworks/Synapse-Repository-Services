@@ -26,6 +26,10 @@
 				"type":"object",
 				"$ref":"org.sagebionetworks.repo.model.questionnaire.QuestionResponse"
 			}
+		},
+		"pass":{
+			"description":"if the Questionnaire is a test, this indicates whether the response passes, as determined by the system",
+			"type":"boolean"
 		}
 	}
 }

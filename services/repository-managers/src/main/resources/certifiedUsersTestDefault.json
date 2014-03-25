@@ -1,0 +1,18 @@
+{
+	"id":1,
+	"header":"this is the questionnaire header",
+	"questions":[{
+		"questionOptions":[{
+			"questionIndex":101,
+			"concreteType":"org.sagebionetworks.repo.model.questionnaire.MultichoiceQuestion",
+			"prompt":"What is 1+1?",
+			"exclusive":true,
+			"answers":[
+				{"answerIndex":10,"prompt":"1"},
+				{"answerIndex":20,"prompt":"2"},
+				{"answerIndex":30,"prompt":"3"}
+			]
+		}]
+	}],
+	"minimumScore":1
+}

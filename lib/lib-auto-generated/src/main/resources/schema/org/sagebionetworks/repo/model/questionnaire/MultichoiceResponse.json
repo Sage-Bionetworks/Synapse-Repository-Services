@@ -13,6 +13,9 @@
     			"description":"The index of the MultichoiceAnswer object",
     			"type":"string"
     		}
-    	}
+    	},
+    	"concreteType":{
+			"type": "string"
+		}
 	}
 }

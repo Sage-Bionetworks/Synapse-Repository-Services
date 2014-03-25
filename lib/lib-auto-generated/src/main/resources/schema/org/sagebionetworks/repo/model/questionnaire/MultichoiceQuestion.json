@@ -18,6 +18,9 @@
 				"type":"object",
 				"$ref":"org.sagebionetworks.repo.model.questionnaire.MultichoiceAnswer"
 			}
+		},
+		"concreteType":{
+			"type": "string"
 		}
 	}
 }
