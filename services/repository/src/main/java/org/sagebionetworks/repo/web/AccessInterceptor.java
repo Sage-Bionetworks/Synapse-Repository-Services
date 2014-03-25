@@ -103,7 +103,9 @@ public class AccessInterceptor implements HandlerInterceptor, AccessIdListener{
 		// Calculate the elapse time
 		data.setElapseMS(System.currentTimeMillis() - data.getTimestamp());
 		// If there is an exception then it failed.
-		data.setSuccess(exception == null);
+		int status = response.getStatus();
+		data.setSuccess(exception == null && status >= 200 && status <= 299);
+		data.setResponseStatus(new Long(status));
 		// Save this record
 		accessRecorder.save(data);
 		// Clear the logging thread context
