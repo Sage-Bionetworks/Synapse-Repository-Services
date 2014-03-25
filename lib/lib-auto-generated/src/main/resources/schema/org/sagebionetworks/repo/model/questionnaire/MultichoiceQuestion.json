@@ -1,0 +1,23 @@
+{
+	"type":"object",
+	"description":"A multiple choice question",
+    "implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.questionnaire.Question"
+        }
+    ],
+	"properties":{
+		"exclusive":{
+			"description":"If true then only one response is correct",
+			"type":"boolean"
+		},
+		"answers":{
+			"description":"The possible answers for this question",
+			"type":"array",
+			"items":{
+				"type":"object",
+				"$ref":"org.sagebionetworks.repo.model.questionnaire.MultichoiceAnswer"
+			}
+		}
+	}
+}

@@ -1,0 +1,18 @@
+{
+	"type":"object",
+	"description":"One of the multiple choices in a multiple choice question",
+	"properties":{
+		"answerIndex":{
+			"description":"An index unique within the scope the multiple choice question",
+			"type":"integer"
+		},
+		"prompt":{
+			"description":"The user-readable prompt or label for this answer",
+			"type":"string"
+		},
+		"isCorrect":{
+			"description":"True if and only if this is a correct response",
+			"type":"boolean"
+		}
+	}
+}

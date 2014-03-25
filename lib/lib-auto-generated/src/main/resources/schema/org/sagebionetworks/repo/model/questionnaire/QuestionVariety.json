@@ -1,0 +1,14 @@
+{
+	"type":"object",
+	"description":"A list of variations of a question",
+	"properties":{
+		"questionOptions": {
+			"description":"A list of variations of a question",
+			"type": "array",
+			"items": {
+				"type":"object",
+				"$ref":"org.sagebionetworks.repo.model.questionnaire.Question"
+			}
+		}
+	}
+}

@@ -1,0 +1,15 @@
+{
+	"type":"object",
+	"description":"A question whose response is an (unconstrained) text string",
+    "implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.questionnaire.Question"
+        }
+    ],	
+    "properties":{
+    	"prompt":{
+    		"description":"An optional, user-readable prompt",
+    		"type":"string"
+    	}
+	}
+}

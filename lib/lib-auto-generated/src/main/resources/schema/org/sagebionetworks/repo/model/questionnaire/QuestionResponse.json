@@ -1,0 +1,10 @@
+{
+	"type":"interface",
+	"description":"The response to a question",
+	"properties":{
+		"questionIndex":{
+			"description":"an index unique in the Questionnaire, used to refer to the question being answered",
+			"type":"integer"
+		}
+	}
+}

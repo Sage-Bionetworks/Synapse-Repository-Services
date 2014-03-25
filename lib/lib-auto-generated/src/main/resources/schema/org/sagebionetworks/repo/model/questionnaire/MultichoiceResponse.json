@@ -1,0 +1,18 @@
+{
+	"type":"object",
+	"description":"The response to a multiple choice question",
+    "implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.questionnaire.QuestionResponse"
+        }
+    ],
+    "properties":{
+    	"answerIndex":{
+    		"type":"array",
+    		"items":{
+    			"description":"The index of the MultichoiceAnswer object",
+    			"type":"string"
+    		}
+    	}
+	}
+}
