@@ -1,0 +1,31 @@
+{
+	"type":"object",
+	"description":"A record of whether a given user passed a given test",
+	"properties":{
+		"userId":{
+			"type": "string",
+			"description":"The principal id of the user"
+		},
+		"questionnaireId":{
+			"type": "integer",
+			"description":"The id of the questionnaire"
+		},
+		"responseId":{
+			"type": "integer",
+			"description":"The id of the user's response"
+		},
+		"score":{
+			"type": "number",
+			"description":"The score the user received on the test"
+		},
+		"passed":{
+			"type": "boolean",
+			"description":"Whether the user passed the given test"
+		},
+		"passedOn":{
+			"type": "string",
+			"format":"date-time",
+			"description":"Date/time when the user passed the test (omitted if the user has not passed)"
+		}
+	}	
+}

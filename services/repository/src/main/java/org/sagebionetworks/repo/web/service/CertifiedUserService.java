@@ -1,17 +1,12 @@
-package org.sagebionetworks.repo.manager;
+package org.sagebionetworks.repo.web.service;
 
 import org.sagebionetworks.repo.model.PaginatedResults;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.questionnaire.PassingRecord;
 import org.sagebionetworks.repo.model.questionnaire.Questionnaire;
 import org.sagebionetworks.repo.model.questionnaire.QuestionnaireResponse;
+import org.sagebionetworks.repo.web.NotFoundException;
 
-/**
- * 
- * @author brucehoff
- *
- */
-public interface CertifiedUserManager {
+public interface CertifiedUserService {
 	
 	/**
 	 * Get the (static) Certified Users Questionnaire
@@ -23,38 +18,41 @@ public interface CertifiedUserManager {
 	 * Store the response and score it. If the user passes they are added to the 
 	 * Certified Users group
 	 * 
-	 * @parm userInfo
+	 * @param userId
 	 * @param response
 	 * @return
+	 * @throws NotFoundException 
 	 */
-	public QuestionnaireResponse submitCertificationQuestionnaireResponse(UserInfo userInfo, QuestionnaireResponse response);
+	public QuestionnaireResponse submitCertificationQuestionnaireResponse(Long userId, QuestionnaireResponse response) throws NotFoundException;
 
 	/**
 	 * Retrieve the questionnaire responses in the system, optionally filtering by user Id.
 	 * Must be a Synapse admin to make this call
-	 * @param userInfo
+	 * @param userId
 	 * @param questionnaireId
 	 * @param principalId
 	 * @param limit
 	 * @param offset
 	 * @return
+	 * @throws NotFoundException 
 	 */
-	public PaginatedResults<QuestionnaireResponse> getQuestionnaireResponses(UserInfo userInfo, Long principalId, long limit, long offset);
+	public PaginatedResults<QuestionnaireResponse> getQuestionnaireResponses(Long userId, Long principalId, long limit, long offset) throws NotFoundException;
 	
 	/**
 	 * Delete a Questionnaire Response
-	 * @param userInfo
+	 * @param userId
 	 * @param responseId
+	 * @throws NotFoundException 
 	 */
-	public void deleteQuestionnaireResponse(UserInfo userInfo, Long responseId);
+	public void deleteQuestionnaireResponse(Long userId, Long responseId) throws NotFoundException;
 	
 	
 	/**
 	 * Get the info about the user (indicated by principalId) passing the test.
 	 * Requestor must be the 
-	 * @param userInfo
+	 * @param userIf
 	 * @param principalId
 	 * @return
 	 */
-	public PassingRecord getPassingRecord(UserInfo userInfo, Long principalId);
+	public PassingRecord getPassingRecord(Long userId, Long principalId) throws NotFoundException;
 }
