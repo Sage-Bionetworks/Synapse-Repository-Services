@@ -56,6 +56,8 @@ public class AccessInterceptorTest {
 		when(mockRequest.getHeader("Origin")).thenReturn("http://www.example-social-network.com");
 		when(mockRequest.getHeader("Via")).thenReturn("1.0 fred, 1.1 example.com");
 		when(mockRequest.getQueryString()).thenReturn("?param1=foo");
+		// setup response
+		when(mockResponse.getStatus()).thenReturn(200);
 	}
 	
 	
@@ -115,5 +117,49 @@ public class AccessInterceptorTest {
 		assertTrue(result.getTimestamp() >= start);
 		assertTrue(result.getElapseMS() > 99);
 		assertFalse(result.getSuccess());
+	}
+	
+	@Test
+	public void testStatusCode200() throws Exception{
+		long start = System.currentTimeMillis();
+		// Start
+		interceptor.preHandle(mockRequest, mockResponse, mockHandler);
+		// Wait to add some elapse time
+		Thread.sleep(100);
+		// return a 200
+		// setup response
+		when(mockResponse.getStatus()).thenReturn(200);
+		interceptor.afterCompletion(mockRequest, mockResponse, mockHandler, null);
+		// Now get the results from the stub
+		assertNotNull(stubRecorder.getSavedRecords());
+		assertEquals(1, stubRecorder.getSavedRecords().size());
+		AccessRecord result = stubRecorder.getSavedRecords().get(0);
+		assertNotNull(result);
+		assertTrue(result.getTimestamp() >= start);
+		assertTrue(result.getElapseMS() > 99);
+		assertTrue("200 is a success",result.getSuccess());
+		assertEquals(new Long(200), result.getResponseStatus());
+	}
+	
+	@Test
+	public void testStatusCode400() throws Exception{
+		long start = System.currentTimeMillis();
+		// Start
+		interceptor.preHandle(mockRequest, mockResponse, mockHandler);
+		// Wait to add some elapse time
+		Thread.sleep(100);
+		// return a 200
+		// setup response
+		when(mockResponse.getStatus()).thenReturn(400);
+		interceptor.afterCompletion(mockRequest, mockResponse, mockHandler, null);
+		// Now get the results from the stub
+		assertNotNull(stubRecorder.getSavedRecords());
+		assertEquals(1, stubRecorder.getSavedRecords().size());
+		AccessRecord result = stubRecorder.getSavedRecords().get(0);
+		assertNotNull(result);
+		assertTrue(result.getTimestamp() >= start);
+		assertTrue(result.getElapseMS() > 99);
+		assertFalse("400 is not a success",result.getSuccess());
+		assertEquals(new Long(400), result.getResponseStatus());
 	}
 }

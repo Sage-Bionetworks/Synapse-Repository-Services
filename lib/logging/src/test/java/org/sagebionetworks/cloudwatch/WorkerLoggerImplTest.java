@@ -10,6 +10,7 @@ import java.io.PrintStream;
 import java.util.Date;
 import java.util.Map;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -18,6 +19,7 @@ import org.sagebionetworks.repo.model.message.ChangeType;
 
 public class WorkerLoggerImplTest {
 
+	@Ignore // See PLFM-2655
 	@Test
 	public void testStackTraceToString() throws Exception {
 		Throwable t = new Exception();
