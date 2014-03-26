@@ -9,6 +9,11 @@
     "properties":{
     	"prompt":{
     		"description":"An optional, user-readable prompt",
+    		"type":"string",
+    		"links": [{"rel": "describedby","href": "http://synapse.sagebase.org/access/public"}]
+    	},
+    	"answer":{
+    		"description":"The correct answer for this question",
     		"type":"string"
     	},
 		"concreteType":{

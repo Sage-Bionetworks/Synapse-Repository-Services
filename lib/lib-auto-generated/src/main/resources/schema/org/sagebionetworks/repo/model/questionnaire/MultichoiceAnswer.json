@@ -4,11 +4,13 @@
 	"properties":{
 		"answerIndex":{
 			"description":"An index unique within the scope the multiple choice question",
-			"type":"integer"
+			"type":"integer",
+			"links": [{"rel": "describedby","href": "http://synapse.sagebase.org/access/public"}]
 		},
 		"prompt":{
 			"description":"The user-readable prompt or label for this answer",
-			"type":"string"
+			"type":"string",
+			"links": [{"rel": "describedby","href": "http://synapse.sagebase.org/access/public"}]
 		},
 		"isCorrect":{
 			"description":"True if and only if this is a correct response",

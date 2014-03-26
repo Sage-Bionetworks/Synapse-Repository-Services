@@ -9,7 +9,8 @@
 	"properties":{
 		"exclusive":{
 			"description":"If true then only one response is correct",
-			"type":"boolean"
+			"type":"boolean",
+			"links": [{"rel": "describedby","href": "http://synapse.sagebase.org/access/public"}]
 		},
 		"answers":{
 			"description":"The possible answers for this question",
@@ -17,7 +18,8 @@
 			"items":{
 				"type":"object",
 				"$ref":"org.sagebionetworks.repo.model.questionnaire.MultichoiceAnswer"
-			}
+			},
+			"links": [{"rel": "describedby","href": "http://synapse.sagebase.org/access/public"}]
 		},
 		"concreteType":{
 			"type": "string"

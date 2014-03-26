@@ -8,7 +8,8 @@
 			"items": {
 				"type":"object",
 				"$ref":"org.sagebionetworks.repo.model.questionnaire.Question"
-			}
+			},
+			"links": [{"rel": "describedby","href": "http://synapse.sagebase.org/access/public"}]
 		}
 	}
 }

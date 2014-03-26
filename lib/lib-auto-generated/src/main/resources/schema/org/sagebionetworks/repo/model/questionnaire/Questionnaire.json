@@ -4,11 +4,14 @@
 	"properties":{
 		"id":{
 			"description":"the ID of this Questionnaire",
-			"type":"integer"
+			"type":"integer",
+			"links": [{"rel": "describedby","href": "http://synapse.sagebase.org/access/public"}]
 		},
 		"header": {
 			"description":"Content preceding the series of questions",
-			"type": "string"
+			"type": "string",
+			"links": [{"rel": "describedby","href": "http://synapse.sagebase.org/access/public"}]
+			
 		},
 		"minimumScore": {
 			"description":"Minimum number of questions to answer correctly to pass",
@@ -20,7 +23,8 @@
 			"items": {
 				"type":"object",
 				"$ref":"org.sagebionetworks.repo.model.questionnaire.QuestionVariety"
-			}
+			},
+			"links": [{"rel": "describedby","href": "http://synapse.sagebase.org/access/public"}]
 		}
 	}
 }
