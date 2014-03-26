@@ -26,6 +26,7 @@
 	<import resource="classpath:message-to-user-sqs-spb.xml" />
     <import resource="classpath:principal-header-sqs-spb.xml" />
     <import resource="classpath:table-cluster-sqs-spb.xml" />
+    <import resource="classpath:cloudwatch-spb.xml" />
 
 	<bean id="mainScheduler"
 			class="org.springframework.scheduling.quartz.SchedulerFactoryBean"
@@ -47,6 +48,7 @@
 				<ref bean="messageToUserQueueMessageReceiverTrigger" />
                 <ref bean="principalHeaderQueueMessageReceiverTrigger" />
                 <ref bean="tableQueueMessageReveiverTrigger" />
+                <ref bean="cloudwatchTrigger" />
 			</list>
 		</property>
 	</bean>
