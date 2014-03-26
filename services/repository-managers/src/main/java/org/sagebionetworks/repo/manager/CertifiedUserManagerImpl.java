@@ -7,6 +7,7 @@ import java.io.InputStream;
 
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.questionnaire.PassingRecord;
 import org.sagebionetworks.repo.model.questionnaire.Questionnaire;
 import org.sagebionetworks.repo.model.questionnaire.QuestionnaireResponse;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
@@ -89,7 +90,7 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager, Initializ
 	}
 
 	@Override
-	public Object getPassingRecord(UserInfo userInfo, Long principalId) {
+	public PassingRecord getPassingRecord(UserInfo userInfo, Long principalId) {
 		// TODO retrieve whether the user passed and if so when
 		return null;
 	}
