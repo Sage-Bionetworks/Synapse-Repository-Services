@@ -296,7 +296,7 @@
 	    <property name="teamsToBootstrap" ref="teamsToBootstrap"/>
     </bean>
     
-	<bean id="membershipInvitationManager" class="org.sagebionetworks.repo.manager.team.MembershipInvitationManagerImpl" scope="singleton" />
+	<bean id="membershipInvitationManager" class="org.sagebionetworks.repo.manager.team.MembershipInvitationManagerImpl" scope="singleton"/>
 	<bean id="membershipRequestManager" class="org.sagebionetworks.repo.manager.team.MembershipRequestManagerImpl" scope="singleton" />
 			
     <!-- DO NOT CHANGE ANY OF THESE NAMES OR IDS as they represent real objects in production.
@@ -323,4 +323,6 @@
         </bean>
 	</util:list>
 		
+	<bean id="certifiedUserManager" class="org.sagebionetworks.repo.manager.CertifiedUserManagerImpl" scope="singleton"/>
+    
 </beans>

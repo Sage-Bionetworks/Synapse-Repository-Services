@@ -1,0 +1,16 @@
+{
+	"type":"interface",
+	"description":"a single question in a Questionnaire",
+	"properties":{
+		"questionIndex":{
+			"description":"an index unique in the Questionnaire, used to refer to this question",
+			"type":"integer",
+			"links": [{"rel": "describedby","href": "http://synapse.sagebase.org/access/public"}]
+		},
+		"prompt":{
+			"description":"the user-readable prompt for this question",
+			"type":"string",
+			"links": [{"rel": "describedby","href": "http://synapse.sagebase.org/access/public"}]
+		}
+	}
+}

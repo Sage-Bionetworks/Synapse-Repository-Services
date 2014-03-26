@@ -1,0 +1,23 @@
+{
+	"type":"object",
+	"description":"A question whose response is an (unconstrained) text string",
+    "implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.questionnaire.Question"
+        }
+    ],	
+    "properties":{
+    	"prompt":{
+    		"description":"An optional, user-readable prompt",
+    		"type":"string",
+    		"links": [{"rel": "describedby","href": "http://synapse.sagebase.org/access/public"}]
+    	},
+    	"answer":{
+    		"description":"The correct answer for this question",
+    		"type":"string"
+    	},
+		"concreteType":{
+			"type": "string"
+		}
+	}
+}

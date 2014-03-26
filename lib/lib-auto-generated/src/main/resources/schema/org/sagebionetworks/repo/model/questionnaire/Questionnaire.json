@@ -1,0 +1,30 @@
+{
+	"type":"object",
+	"description":"Schema for a questionnaire and, optionally, its answer key",
+	"properties":{
+		"id":{
+			"description":"the ID of this Questionnaire",
+			"type":"integer",
+			"links": [{"rel": "describedby","href": "http://synapse.sagebase.org/access/public"}]
+		},
+		"header": {
+			"description":"Content preceding the series of questions",
+			"type": "string",
+			"links": [{"rel": "describedby","href": "http://synapse.sagebase.org/access/public"}]
+			
+		},
+		"minimumScore": {
+			"description":"Minimum number of questions to answer correctly to pass",
+			"type":"integer"
+		},
+		"questions": {
+			"description":"The questions in the questionnaire",
+			"type": "array",
+			"items": {
+				"type":"object",
+				"$ref":"org.sagebionetworks.repo.model.questionnaire.QuestionVariety"
+			},
+			"links": [{"rel": "describedby","href": "http://synapse.sagebase.org/access/public"}]
+		}
+	}
+}
