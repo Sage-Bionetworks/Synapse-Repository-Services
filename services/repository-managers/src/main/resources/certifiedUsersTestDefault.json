@@ -9,7 +9,7 @@
 			"exclusive":true,
 			"answers":[
 				{"answerIndex":10,"prompt":"1"},
-				{"answerIndex":20,"prompt":"2"},
+				{"answerIndex":20,"prompt":"2", "isCorrect":"true"},
 				{"answerIndex":30,"prompt":"3"}
 			]
 		}]

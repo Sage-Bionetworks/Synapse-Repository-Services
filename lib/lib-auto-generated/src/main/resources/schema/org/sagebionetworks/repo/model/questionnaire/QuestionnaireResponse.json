@@ -20,7 +20,7 @@
 			"description":"When this response was created"
 		},
 		"questionResponses":{
-			"description":"The this list of responses to the questions in the questionnaire",
+			"description":"The list of responses to the questions in the questionnaire",
 			"type": "array",
 			"items": {
 				"type":"object",

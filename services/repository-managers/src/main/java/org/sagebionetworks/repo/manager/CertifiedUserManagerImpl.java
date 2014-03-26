@@ -28,6 +28,19 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager, Initializ
 	@Autowired
 	AmazonS3Utility s3Utility;	
 	
+	/**
+	 * Throw exception if not valid
+	 * 
+	 * @param questionnaire
+	 */
+	public static void validateQuestionnaire(Questionnaire questionnaire) {
+		//	make sure there is a minimum score and that it's >=0, <=# question varieties
+		//	make sure there's an answer for each question
+		//  for 'exclusive' multichoice questions make sure there's only one right answer
+		//	make sure each question variety has at least one question
+		
+	}
+	
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.CertifiedUserManager#getCertificationQuestionnaire()
 	 */
@@ -42,12 +55,7 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager, Initializ
 		} catch (JSONObjectAdapterException e) {
 			throw new RuntimeException(e);
 		}
-
-		// TODO validate the questionnaire
-		//	make sure there is a minimum score and that it's >=0, <=# question varieties
-		//	make sure there's an answer for each question
-		//  for 'exclusive' multichoice questions make sure there's only one right answer
-		//	make sure each question variety has at least one question
+		validateQuestionnaire(questionnaire);
 		// TODO scrub the private fields
 		
 		return questionnaire;

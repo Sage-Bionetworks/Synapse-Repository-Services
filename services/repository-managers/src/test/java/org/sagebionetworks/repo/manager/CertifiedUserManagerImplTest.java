@@ -17,9 +17,11 @@ public class CertifiedUserManagerImplTest {
 
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
 		adapter = adapter.createNew(readFromInputStream(is, "utf-8"));
+		Questionnaire questionnaire = new Questionnaire();
 		// if the resource file does not contain a valid Questionnaire, this will fail
-		(new Questionnaire()).initializeFromJSONObject(adapter);
-		
+		questionnaire.initializeFromJSONObject(adapter);
+		// do additional validation
+		CertifiedUserManagerImpl.validateQuestionnaire(questionnaire);
 	}
 	
 	private static String readFromInputStream(InputStream is, String charSet) {

@@ -10,8 +10,8 @@
     	"answerIndex":{
     		"type":"array",
     		"items":{
-    			"description":"The index of the MultichoiceAnswer object",
-    			"type":"string"
+    			"description":"The indices of the MultichoiceAnswer objects",
+    			"type":"integer"
     		}
     	},
     	"concreteType":{
