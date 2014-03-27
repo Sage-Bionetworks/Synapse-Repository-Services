@@ -16,6 +16,7 @@ public class MethodModel {
 	String fullMethodName;
 	Link methodLink;
 	Link responseBody;
+	Link[] responseBodyGenericParams;
 	Link requestBody;
 	String httpType;
 	String url;
@@ -31,6 +32,15 @@ public class MethodModel {
 	public void setResponseBody(Link responseBody) {
 		this.responseBody = responseBody;
 	}
+
+	public Link[] getResponseBodyGenericParams() {
+		return responseBodyGenericParams;
+	}
+
+	public void setResponseBodyGenericParams(Link[] responseBodyGenericParams) {
+		this.responseBodyGenericParams = responseBodyGenericParams;
+	}
+
 	public Link getRequestBody() {
 		return requestBody;
 	}
