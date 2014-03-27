@@ -128,9 +128,24 @@ public class ControllerUtils {
         					// Request body
         					String schema = SchemaUtils.getEffectiveSchema(param.type().qualifiedTypeName());
         					if(schema != null){
-            					Link link = new Link("${"+param.type().qualifiedTypeName()+"}", param.typeName());
-            					methodModel.setRequestBody(link);
-        					}
+								Type paramType = param.type();
+								if (paramType.asParameterizedType() != null) {
+									Link paramLink = new Link("${" + paramType.qualifiedTypeName() + "}", paramType.simpleTypeName());
+									methodModel.setRequestBody(paramLink);
+
+									List<Link> genericParameters = Lists.newArrayList();
+									for (Type type : paramType.asParameterizedType().typeArguments()) {
+										Link link = new Link();
+										link.setHref("${" + type.qualifiedTypeName() + "}");
+										link.setDisplay(type.simpleTypeName());
+										genericParameters.add(link);
+									}
+									methodModel.setRequestBodyGenericParams(genericParameters.toArray(new Link[] {}));
+								} else {
+									Link paramLink = new Link("${" + param.type().qualifiedTypeName() + "}", param.typeName());
+									methodModel.setRequestBody(paramLink);
+								}
+							}
         				}else if(PathVariable.class.getName().equals(qualifiedName)){
         					// Path parameter
         					ParameterModel paramModel = new ParameterModel();
