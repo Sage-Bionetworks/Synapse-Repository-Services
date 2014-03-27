@@ -2741,7 +2741,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		S3Token s3Token = new S3Token();
 		s3Token.setPath(dataFile.getName());
 		s3Token.setMd5(md5);
-		s3Token = createJSONEntity("/repo/v1"+locationable.getS3Token(), s3Token);
+		s3Token = createJSONEntity(locationable.getS3Token(), s3Token);
 
 		// Step 2: perform the upload
 		dataUploader.uploadDataMultiPart(s3Token, dataFile);
