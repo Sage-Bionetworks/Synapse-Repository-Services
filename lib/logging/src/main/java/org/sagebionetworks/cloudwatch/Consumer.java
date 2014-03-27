@@ -152,8 +152,21 @@ public class Consumer {
 		return toReturn;
 	}
 
+	// tried following this guide
 	// http://docs.aws.amazon.com/AWSJavaSDK/latest/javadoc/com/amazonaws/services/cloudwatch/model/Dimension.html#setName%28java.lang.String%29
-	private static final int MAX_DIMENSION_STRING_LENGTH_PLUS_ONE = 256;
+	// which says the string can be up to 255 char, but got this runtime exception
+	// 'The parameter MetricData.member.1.Dimensions.member.4.Value must be shorter than 250 characters.'
+	private static final int MAX_DIMENSION_STRING_LENGTH_PLUS_ONE = 250;
+	
+	// CloudWatch restricts strings used in Dimensions to be < 250 characters
+	// and throws an error if "contains non-ASCII characters" which seems to
+	// arise if you use \n or \t (even though they are, in fact, ascii char's!)
+	public static String scrubDimensionString(String s) {
+		s = s.replaceAll("\\s", " "); // replace all white space with a simple space
+		if (s.length()>=MAX_DIMENSION_STRING_LENGTH_PLUS_ONE) 
+			s = s.substring(0, MAX_DIMENSION_STRING_LENGTH_PLUS_ONE);
+		return s;
+	}
 	
 	/**
 	 * Converts a ProfileData to a MetricDatum.
@@ -177,10 +190,8 @@ public class Consumer {
 			for (String key : pd.getDimension().keySet()) {
 				Dimension dimension = new Dimension();
 				String value = pd.getDimension().get(key);
-				if (key.length()>=MAX_DIMENSION_STRING_LENGTH_PLUS_ONE) 
-					key = key.substring(0, MAX_DIMENSION_STRING_LENGTH_PLUS_ONE);
-				if (value.length()>=MAX_DIMENSION_STRING_LENGTH_PLUS_ONE) 
-					value = value.substring(0, MAX_DIMENSION_STRING_LENGTH_PLUS_ONE);
+				key = scrubDimensionString(key);
+				value = scrubDimensionString(value);
 				dimension.setName(key);
 				dimension.setValue(value);
 				dimensions.add(dimension);

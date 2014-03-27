@@ -4,12 +4,13 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class WorkerLoggerImpl implements WorkerLogger {
-	//a singleton consumer from the Spring settings file 
+
 	@Autowired
 	Consumer consumer;
 	
@@ -37,16 +38,6 @@ public class WorkerLoggerImpl implements WorkerLogger {
 		this.consumer = consumer;
 	}	
 	
-	private static final int MAX_STACK_TRACE_ROWS = 3;
-	
-	public static final String stackTraceToString(Throwable cause) {
-		StringBuilder sb = new StringBuilder(cause.toString());
-		for (int i= 0; i<cause.getStackTrace().length && i<MAX_STACK_TRACE_ROWS; i++) {
-			sb.append("\n\tat "+cause.getStackTrace()[i].toString());
-		}
-		return sb.toString();
-	}
-	
 	/**
 	 * Makes transfer object and returns it.
 	 * 
@@ -70,9 +61,10 @@ public class WorkerLoggerImpl implements WorkerLogger {
 		nextPD.setTimestamp(timestamp);
 		Map<String,String> dimension = new HashMap<String, String>();
 		dimension.put(WILL_RETRY_KEY, ""+willRetry);
-		dimension.put(CHANGE_TYPE_KEY, changeMessage.getChangeType().toString());
-		dimension.put(OBJECT_TYPE_KEY, changeMessage.getObjectType().toString());
-		dimension.put(STACK_TRACE_KEY, stackTraceToString(cause));
+		dimension.put(CHANGE_TYPE_KEY, changeMessage.getChangeType().name());
+		dimension.put(OBJECT_TYPE_KEY, changeMessage.getObjectType().name());
+		String stackTraceAsString = (cause==null ? "" : ExceptionUtils.getStackTrace(cause));
+		dimension.put(STACK_TRACE_KEY, stackTraceAsString);
 		nextPD.setDimension(dimension);
 		
 		return nextPD;
@@ -96,7 +88,6 @@ public class WorkerLoggerImpl implements WorkerLogger {
 		ProfileData profileData = makeProfileDataDTO(workerClass, changeMessage, cause, willRetry, new Date());
 		consumer.addProfileData(profileData);
 	}
-	
 	
 	/**
 	 * Setter for consumer.  
