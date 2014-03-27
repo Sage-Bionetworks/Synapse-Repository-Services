@@ -10,7 +10,7 @@
 
   <context:annotation-config />
 
-  <import resource="classpath:repository-servlet.xml" />
+  <import resource="classpath:singleton-servlet.xml" />
  
     <!--  bean that creates trigger for the sendEm method of the consumer every number of seconds -->
 	<bean id="simpleTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean">

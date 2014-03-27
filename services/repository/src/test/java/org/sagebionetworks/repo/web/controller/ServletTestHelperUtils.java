@@ -60,14 +60,14 @@ public class ServletTestHelperUtils {
 	 * @param entity
 	 *            Optional, object to serialize into the body of the request
 	 */
-	public static MockHttpServletRequest initRequest(HTTPMODE mode,
+	public static MockHttpServletRequest initRequest(HTTPMODE mode, String path,
 			String requestURI, Long userId, JSONEntity entity)
 			throws Exception {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		request.setMethod(mode.name());
 		request.addHeader("Accept", "application/json");
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
-		request.setRequestURI(requestURI);
+		request.setRequestURI(path+requestURI);
 		if (userId != null) {
 			request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId.toString());
 		}
@@ -77,6 +77,12 @@ public class ServletTestHelperUtils {
 			log.debug("Request content: " + body);
 		}
 		return request;
+	}
+	
+	public static MockHttpServletRequest initRequest(HTTPMODE mode,
+			String requestURI, Long userId, JSONEntity entity)
+			throws Exception {
+		return initRequest(mode, "/repo/v1", requestURI, userId, entity);
 	}
 
 	/**
