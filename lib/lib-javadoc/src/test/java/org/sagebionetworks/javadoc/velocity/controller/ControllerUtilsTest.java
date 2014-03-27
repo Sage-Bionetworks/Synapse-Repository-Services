@@ -173,6 +173,19 @@ public class ControllerUtilsTest {
 	}
 
 	@Test
+	public void testGenericParam() {
+		MethodDoc method = methodMap.get("someGenericParam");
+		assertNotNull(method);
+		// Now translate the message
+		MethodModel model = ControllerUtils.translateMethod(method);
+		assertNotNull(model);
+		Link requestLink = model.getRequestBody();
+		assertEquals(new Link("${org.sagebionetworks.javadoc.testclasses.GenericList}", "GenericList"), requestLink);
+		Link[] requestGenParamLinks = model.getRequestBodyGenericParams();
+		assertEquals(new Link("${org.sagebionetworks.repo.model.Annotations}", "Annotations"), requestGenParamLinks[0]);
+	}
+
+	@Test
 	public void testCreateTruncatedTextNull(){
 		String result = ControllerUtils.createTruncatedText(100, null);
 		assertEquals(null, result);

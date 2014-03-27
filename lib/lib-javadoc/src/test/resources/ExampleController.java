@@ -255,7 +255,19 @@ public class ExampleController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = "/some/generic", method = RequestMethod.GET)
 	public @ResponseBody
-	GenericList<Entity> someGenericReturn(@RequestBody GenericList<Annotations> annos) {
+	GenericList<Entity> someGenericReturn() {
+		return null;
+	}
+	
+	/**
+	 * passing a generic
+	 * @param annos the list of annotations
+	 * @return the list of strings
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = "/some/generic", method = RequestMethod.POST)
+	public @ResponseBody
+	Long someGenericParam(@RequestBody GenericList<Annotations> annos) {
 		return null;
 	}
 }
