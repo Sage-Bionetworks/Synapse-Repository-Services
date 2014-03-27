@@ -8,15 +8,12 @@ import static org.mockito.Matchers.anyObject;
 import java.util.Date;
 import java.util.Map;
 
-import org.apache.commons.lang.exception.ExceptionUtils;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
-
-import com.amazonaws.services.sns.model.NotFoundException;
 
 public class WorkerLoggerImplTest {
 	
