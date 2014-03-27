@@ -35,6 +35,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  */
 // @ControllerInfo(displayName = "Community Services", path = BridgeUrlHelpers.BASE_V1)
 @Controller
+@RequestMapping(BridgeUrlHelpers.BRIDGE_PATH)
 public class CommunityController extends BridgeBaseController {
 
 	@Autowired

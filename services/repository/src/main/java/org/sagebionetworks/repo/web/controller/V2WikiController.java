@@ -85,6 +85,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  */
 @ControllerInfo(displayName = "WikiPage Services 2", path = "repo/v1")
 @Controller
+@RequestMapping(UrlHelpers.REPO_PATH)
 public class V2WikiController extends BaseController {
 	@Autowired
 	ServiceProvider serviceProvider;

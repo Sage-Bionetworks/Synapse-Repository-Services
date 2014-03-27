@@ -44,6 +44,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  */
 @ControllerInfo(displayName="Authentication Services", path="auth/v1")
 @Controller
+@RequestMapping(UrlHelpers.AUTH_PATH)
 public class AuthenticationController extends BaseController {
 	
 	private static Log log = LogFactory.getLog(AuthenticationController.class);

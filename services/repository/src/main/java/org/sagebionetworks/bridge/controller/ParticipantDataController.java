@@ -35,6 +35,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 // @ControllerInfo(displayName = "Participant data", path = BridgeUrlHelpers.BASE_V1)
 @Controller
+@RequestMapping(BridgeUrlHelpers.BRIDGE_PATH)
 public class ParticipantDataController {
 
 	private static final Logger logger = LogManager.getLogger(ParticipantDataController.class.getName());

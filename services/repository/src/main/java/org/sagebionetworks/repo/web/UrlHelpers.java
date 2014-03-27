@@ -36,6 +36,9 @@ public class UrlHelpers {
 	private static final Logger log = Logger.getLogger(UrlHelpers.class.getName());
 	
 	public static final String ACCESS 				= "/access";
+	public static final String AUTH_PATH			= "/auth/v1";
+	public static final String FILE_PATH			= "/file/v1";
+	public static final String REPO_PATH			= "/repo/v1";
 	
 	/**
 	 * Used for batch requests
@@ -857,6 +860,7 @@ public class UrlHelpers {
 		if(urlPrefix == null) throw new IllegalArgumentException("Url prefix cannot be null");
 		StringBuilder builder = new StringBuilder();
 		builder.append(urlPrefix);
+		builder.append(UrlHelpers.REPO_PATH);
 		builder.append(UrlHelpers.ENTITY);
 		builder.append("/");
 		builder.append(entityId);
