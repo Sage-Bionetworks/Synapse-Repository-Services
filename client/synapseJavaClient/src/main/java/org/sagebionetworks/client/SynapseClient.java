@@ -1280,4 +1280,6 @@ public interface SynapseClient extends BaseClient {
 	public Session passThroughOpenIDParameters(String queryString,
 			Boolean createUserIfNecessary, DomainType domain)
 			throws SynapseException;
+	
+	
 }
