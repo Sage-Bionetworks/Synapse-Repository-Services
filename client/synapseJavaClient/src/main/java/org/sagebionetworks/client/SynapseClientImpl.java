@@ -122,6 +122,9 @@ import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
 import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.query.QueryTableResults;
+import org.sagebionetworks.repo.model.questionnaire.PassingRecord;
+import org.sagebionetworks.repo.model.questionnaire.Questionnaire;
+import org.sagebionetworks.repo.model.questionnaire.QuestionnaireResponse;
 import org.sagebionetworks.repo.model.request.ReferenceList;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
@@ -320,6 +323,10 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String MEMBERSHIP_REQUEST = "/membershipRequest";
 	private static final String OPEN_MEMBERSHIP_REQUEST = "/openRequest";
 	private static final String REQUESTOR_ID_REQUEST_PARAMETER = "requestorId";
+
+	private static String CERTIFIED_USER_TEST = "/certifiedUserTest";
+	private static String CERTIFIED_USER_TEST_RESPONSE = "/certifiedUserTestResponse";
+	private static String CERTIFIED_USER_PASSING_RECORD = "/certifiedUserPassingRecord";
 
 	protected String repoEndpoint;
 	protected String authEndpoint;
@@ -5174,6 +5181,71 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		Map<String,String> parameters = Maps.newHashMap();
 		parameters.put(AuthorizationConstants.DOMAIN_PARAM, domain.name());
 		return parameters;
+	}
+
+	@Override
+	public Questionnaire getCertifiedUserTest() throws SynapseException {
+		JSONObject jsonObj = getEntity(CERTIFIED_USER_TEST);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		Questionnaire results = new Questionnaire();
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+
+	@Override
+	public QuestionnaireResponse submitCertifiedUserTestResponse(
+			QuestionnaireResponse response) throws SynapseException {
+		try {
+			JSONObject jsonObj = EntityFactory.createJSONObjectForEntity(response);
+			jsonObj = createJSONObject(CERTIFIED_USER_TEST_RESPONSE, jsonObj);
+			return initializeFromJSONObject(jsonObj, QuestionnaireResponse.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+	
+	@Override
+	public PaginatedResults<QuestionnaireResponse> getCertifiedUserTestResponses(
+			long offset, long limit, Long principalId) throws SynapseException {
+
+		String uri = null;
+		if (principalId==null) {
+			uri = CERTIFIED_USER_TEST_RESPONSE+"?"+OFFSET+"="+offset+"&"+LIMIT+"="+limit;
+		} else {
+			uri = CERTIFIED_USER_TEST_RESPONSE+"?"+TEAM_ID_REQUEST_PARAMETER+"="+principalId+"&"+OFFSET+"="+offset+"&"+LIMIT+"="+limit;
+		}
+		JSONObject jsonObj = getEntity(uri);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedResults<QuestionnaireResponse> results = new PaginatedResults<QuestionnaireResponse>(QuestionnaireResponse.class);
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+
+	@Override
+	public void deleteCertifiedUserTestResponse(Long id) throws SynapseException {
+		getSharedClientConnection().deleteUri(repoEndpoint, CERTIFIED_USER_TEST_RESPONSE + "/" + id, getUserAgent());
+	}
+
+	@Override
+	public PassingRecord getCertifiedUserPassingRecord(Long principalId) throws SynapseException {
+		if (principalId==null) throw new IllegalArgumentException("principalId may not be null.");
+		JSONObject jsonObj = getEntity(USER+principalId+CERTIFIED_USER_PASSING_RECORD);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PassingRecord results = new PassingRecord();
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
 	}
 	
 }
