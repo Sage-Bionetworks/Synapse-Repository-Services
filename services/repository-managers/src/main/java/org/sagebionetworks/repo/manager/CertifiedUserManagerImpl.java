@@ -41,6 +41,10 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager, Initializ
 		
 	}
 	
+	public static void scrubPrivateFields(Questionnaire questionnaire) {
+		
+	}
+	
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.CertifiedUserManager#getCertificationQuestionnaire()
 	 */
@@ -56,7 +60,7 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager, Initializ
 			throw new RuntimeException(e);
 		}
 		validateQuestionnaire(questionnaire);
-		// TODO scrub the private fields
+		scrubPrivateFields(questionnaire);
 		
 		return questionnaire;
 	}

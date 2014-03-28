@@ -17,7 +17,7 @@ public class UserProfileManagerUtilsTest {
 	@Test
 	public void testIsPublic() {
 		ObjectSchema schema = SchemaCache.getSchema(UserProfile.class);
-		assertFalse(UserProfileManagerUtils.isPublic("rStudioUrl", schema));
+		assertFalse(PrivateFieldUtils.isPublic("rStudioUrl", schema));
 	}
 	
 	@Test
@@ -35,7 +35,6 @@ public class UserProfileManagerUtilsTest {
 	
 	@Test
 	public void testClearPrivateFields() {
-		String email = "test@example.com";
 		UserInfo userInfo = new UserInfo(false);
 		UserProfile up = new UserProfile();
 		AttachmentData pic = new AttachmentData();
@@ -49,7 +48,6 @@ public class UserProfileManagerUtilsTest {
 
 	@Test
 	public void testClearPrivateFieldsAsAdmin() {
-		String email = "test@example.com";
 		UserInfo userInfo = new UserInfo(true);
 		UserProfile up = new UserProfile();
 		AttachmentData pic = new AttachmentData();
