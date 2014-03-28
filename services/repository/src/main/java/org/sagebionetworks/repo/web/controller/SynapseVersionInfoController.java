@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * @author xschildw
  */
 @Controller
+@RequestMapping(UrlHelpers.REPO_PATH)
 public class SynapseVersionInfoController extends BaseController {
 	
 	private static class Holder {

@@ -172,7 +172,7 @@ public class ServletTestHelper {
 	public <T extends Object> T createObject(String uri, T object)
 			throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, uri, userId, null);
+				HTTPMODE.POST, "",uri, userId, null);
 
 		StringWriter out = new StringWriter();
 		objectMapper.writeValue(out, object);
@@ -1759,7 +1759,7 @@ public class ServletTestHelper {
 	
 	public static S3FileHandle getFileHandle(Long userId, String fileHandleId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.GET, "/fileHandle/" + fileHandleId, userId, null);
+				HTTPMODE.GET,"/file/v1", "/fileHandle/" + fileHandleId, userId, null);
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
 
@@ -1768,14 +1768,14 @@ public class ServletTestHelper {
 	
 	public static void deleteFilePreview(Long userId, String fileHandleId) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.DELETE, "/fileHandle/" + fileHandleId + "/filepreview", userId, null);
+				HTTPMODE.DELETE,"/file/v1", "/fileHandle/" + fileHandleId + "/filepreview", userId, null);
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
 	}
 	
 	public static ExternalFileHandle createExternalFileHandle(Long userId, ExternalFileHandle handle) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, "/externalFileHandle", userId, handle);
+				HTTPMODE.POST,"/file/v1", "/externalFileHandle", userId, handle);
 		MockHttpServletResponse response = ServletTestHelperUtils
 				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
 

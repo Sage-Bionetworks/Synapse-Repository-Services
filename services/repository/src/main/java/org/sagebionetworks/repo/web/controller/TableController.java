@@ -77,6 +77,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  */
 @ControllerInfo(displayName = "Table Services", path = "repo/v1")
 @Controller
+@RequestMapping(UrlHelpers.REPO_PATH)
 public class TableController extends BaseController {
 
 	@Autowired

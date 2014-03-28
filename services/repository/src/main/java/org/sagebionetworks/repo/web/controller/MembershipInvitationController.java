@@ -33,6 +33,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  */
 @ControllerInfo(displayName="Membership Invitation Services", path="repo/v1")
 @Controller
+@RequestMapping(UrlHelpers.REPO_PATH)
 public class MembershipInvitationController extends BaseController {
 	@Autowired
 	ServiceProvider serviceProvider;

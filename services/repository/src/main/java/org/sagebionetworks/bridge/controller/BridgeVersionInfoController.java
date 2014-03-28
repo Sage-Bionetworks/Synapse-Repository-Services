@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 @Controller
+@RequestMapping(BridgeUrlHelpers.BRIDGE_PATH)
 public class BridgeVersionInfoController extends BridgeBaseController {
 	
 	private static class Holder {

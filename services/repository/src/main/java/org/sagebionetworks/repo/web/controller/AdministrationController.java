@@ -39,6 +39,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  *
  */
 @Controller
+@RequestMapping(UrlHelpers.REPO_PATH)
 public class AdministrationController extends BaseController {
 	
 	@Autowired
