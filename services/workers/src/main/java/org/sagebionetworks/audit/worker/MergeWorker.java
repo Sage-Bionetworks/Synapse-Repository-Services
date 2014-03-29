@@ -56,10 +56,17 @@ public class MergeWorker {
 							rollingKeys.add(key);
 						}
 					}
+					// To avoid thrashing on the current data, we skip any file that
+					// matches the current date and hour
+					String currentDateHour = KeyGeneratorUtil.getDateAndHourFromTimeMS(System.currentTimeMillis());
 					for(String key: rollingKeys){
-						
 						// Bucket by date/hour
 						String fileDateHour = KeyGeneratorUtil.getDateAndHourFromKey(key);
+						// skip files that are in the current date an hour
+						if(currentDateHour.equals(fileDateHour)){
+							// Skip this file for now. It will be processed in an hour.
+							continue;
+						}
 						// Do we have a complete batch?
 						if (batchData != null) {
 							// The current batch is completed if the next file

@@ -131,4 +131,16 @@ public class KeyGeneratorUtil {
 		builder.append(split[2].substring(0, 2));
 		return builder.toString();
 	}
+	
+	/**
+	 * Create a string with the date and hour for UTC time in MS.
+	 * 
+	 * @param timeMs
+	 * @return
+	 */
+	public static String getDateAndHourFromTimeMS(long timeMs){
+		// Create a key that would contain the passed time.
+		String tempKey = createNewKey(1, timeMs, false);
+		return getDateAndHourFromKey(tempKey);
+	}
 }
