@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.sagebionetworks.utils.HttpClientHelperException;
@@ -37,6 +38,7 @@ import org.springframework.web.servlet.ModelAndView;
  */
 @ControllerInfo(displayName="Search Services", path="repo/v1")
 @Controller
+@RequestMapping(UrlHelpers.REPO_PATH)
 public class SearchController extends BaseController {
 	
 	@Autowired
