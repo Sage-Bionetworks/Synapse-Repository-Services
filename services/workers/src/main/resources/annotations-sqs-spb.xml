@@ -46,8 +46,8 @@
 		scope="singleton">
 		<property name="messageQueue" ref="annotationsMessageQueue" />
 		<property name="workerFactory" ref="annotationsQueueWorkerFactory" />
-		<property name="maxNumberOfWorkerThreads" value="2" />
-		<property name="maxMessagePerWorker" value="5" />
+		<property name="maxNumberOfWorkerThreads" value="1" />
+		<property name="maxMessagePerWorker" value="10" />
 		<property name="visibilityTimeoutSec" value="60" />
 	</bean>
 
@@ -73,7 +73,7 @@
 		</property>
 		<!-- We stager the start delay of each trigger to spread out the timing -->
 		<property name="startDelay" value="256" />
-		<property name="repeatInterval" value="3000" />
+		<property name="repeatInterval" value="937" />
 	</bean>
 
 </beans>

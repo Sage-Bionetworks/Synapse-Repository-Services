@@ -94,4 +94,13 @@ public class KeyGeneratorUtilTest {
 		String resultDateString = KeyGeneratorUtil.getDateAndHourFromKey(resultsString);
 		assertEquals(expected, resultDateString);
 	}
+	
+	@Test
+	public void testGetDateAndHourFromTimeMS(){
+	    Calendar cal = KeyGeneratorUtil.getClaendarUTC();
+		cal.set(1984, 2, 13, 22, 49);
+		String expected = "1984-03-13/22";
+		String resultsString = KeyGeneratorUtil.getDateAndHourFromTimeMS(cal.getTimeInMillis());
+		assertEquals(expected, resultsString);
+	}
 }

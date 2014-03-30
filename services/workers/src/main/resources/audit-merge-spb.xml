@@ -18,8 +18,8 @@
 	<!-- This gate ensures we never run more than the max number or runners across the entire cluster for this worker  -->
 	<bean id="auditMergeWorkerSemaphoreGatedRunner"
 		class="org.sagebionetworks.repo.model.dbo.dao.semaphore.SemaphoreGatedRunnerImpl" scope="singleton">
-		<!-- The timeout on this worker is set to one hour since it buckets data by the hour -->
-		<property name="timeoutMS" value="3600000" />
+		<!-- The timeout on this worker is set to five minutes. This is longer than is needed for most cases. -->
+		<property name="timeoutMS" value="300000" />
 		<!-- There must never be more than one instances of this worker running at a time! 
 		 If more than one worker is run then the workers will duplicate the audit data!!!! -->
 		<property name="maxNumberRunners" value="1" />
@@ -40,8 +40,8 @@
 		</property>
 		<!-- We stager the start delay of each trigger to spread out the timing -->
 		<property name="startDelay" value="31" />
-		<!-- This is a slow worker and does not need to be run more than once every 1 hour. -->
-		<property name="repeatInterval" value="3600000" />
+		<!-- This worker runs every minute.  It will do nothing if there is no work to do. -->
+		<property name="repeatInterval" value="60000" />
 	</bean>
 
 </beans>

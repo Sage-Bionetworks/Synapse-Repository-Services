@@ -46,8 +46,8 @@
 		scope="singleton">
 		<property name="messageQueue" ref="rdsMessageQueue" />
 		<property name="workerFactory" ref="rdsQueueWorkerFactory" />
-		<property name="maxNumberOfWorkerThreads" value="5" />
-		<property name="maxMessagePerWorker" value="2" />
+		<property name="maxNumberOfWorkerThreads" value="1" />
+		<property name="maxMessagePerWorker" value="10" />
 		<property name="visibilityTimeoutSec" value="60" />
 	</bean>
 	
