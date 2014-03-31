@@ -462,13 +462,10 @@ public class SharedClientConnection {
 		return FileUtils.readCompressedStreamAsString(entity.getContent());
 	}
 
-	public File downloadFromSynapse(String endpoint, String uri, String md5,
+	public File downloadFromSynapse(String url, String md5,
 				File destinationFile, String userAgent) throws SynapseException {
-		if (null == endpoint) {
-			throw new IllegalArgumentException("must provide endpoint");
-		}
-		if (null == uri) {
-			throw new IllegalArgumentException("must provide uri");
+		if (null == url) {
+			throw new IllegalArgumentException("must provide path");
 		}
 		
 		Map<String, String> modHeaders = new HashMap<String, String>(defaultGETDELETEHeaders);
@@ -478,11 +475,10 @@ public class SharedClientConnection {
 		}
 		modHeaders.put(USER_AGENT, userAgent);
 		if (apiKey!=null) {
-			addDigitalSignature(endpoint, uri, modHeaders);
+			addDigitalSignature(url, modHeaders);
 		}
-		String path = endpoint + uri;
 		try {
-			clientProvider.downloadFile(path, destinationFile.getAbsolutePath(), modHeaders);
+			clientProvider.downloadFile(url, destinationFile.getAbsolutePath(), modHeaders);
 			// Check that the md5s match, if applicable
 			if (null != md5) {
 				String localMd5 = MD5ChecksumHelper
@@ -644,11 +640,11 @@ public class SharedClientConnection {
 		signAndDispatchSynapseRequest(endpoint, uri, "DELETE", null, defaultGETDELETEHeaders, userAgent, null);
 	}
 	
-	private void addDigitalSignature(String endpoint, String uri, Map<String, String> modHeaders) throws SynapseClientException {
+	private void addDigitalSignature(String url, Map<String, String> modHeaders) throws SynapseClientException {
 		String timeStamp = (new DateTime()).toString();
 		String uriRawPath = null; 
 		try {
-			uriRawPath = (new URI(endpoint+uri)).getRawPath(); // chop off the query, if any
+			uriRawPath = (new URI(url)).getRawPath(); // chop off the query, if any
 		} catch (URISyntaxException e) {
 			throw new SynapseClientException(e);
 		}
@@ -665,7 +661,7 @@ public class SharedClientConnection {
 		modHeaders.put(USER_AGENT, userAgent);
 		
 		if (apiKey!=null) {
-			addDigitalSignature(endpoint, uri, modHeaders);
+			addDigitalSignature(endpoint + uri, modHeaders);
 		    return dispatchSynapseRequest(endpoint, uri, requestMethod, requestContent, modHeaders, parameters);
 		} 
 		return dispatchSynapseRequest(endpoint, uri, requestMethod, requestContent, modHeaders, parameters);
