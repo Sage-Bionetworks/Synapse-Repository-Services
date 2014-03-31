@@ -4,12 +4,19 @@
 package org.sagebionetworks.repo.manager;
 
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.questionnaire.MultichoiceAnswer;
+import org.sagebionetworks.repo.model.questionnaire.MultichoiceQuestion;
 import org.sagebionetworks.repo.model.questionnaire.PassingRecord;
+import org.sagebionetworks.repo.model.questionnaire.Question;
+import org.sagebionetworks.repo.model.questionnaire.QuestionVariety;
 import org.sagebionetworks.repo.model.questionnaire.Questionnaire;
 import org.sagebionetworks.repo.model.questionnaire.QuestionnaireResponse;
+import org.sagebionetworks.repo.model.questionnaire.TextFieldQuestion;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
@@ -35,14 +42,43 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager, Initializ
 	 */
 	public static void validateQuestionnaire(Questionnaire questionnaire) {
 		//	make sure there is a minimum score and that it's >=0, <=# question varieties
+		Long minimumScore = questionnaire.getMinimumScore();
+		if (minimumScore==null || minimumScore<0) 
+			throw new RuntimeException("expected minimumScore>-0 but found "+minimumScore);
+		List<QuestionVariety> varieties = questionnaire.getQuestions();
+		if (varieties==null || varieties.size()==0)
+			throw new RuntimeException("This test has no questions.");
+		if (minimumScore>varieties.size())
+			throw new RuntimeException("Minimum score cannot exceed the number of questions.");
 		//	make sure there's an answer for each question
-		//  for 'exclusive' multichoice questions make sure there's only one right answer
-		//	make sure each question variety has at least one question
-		
-	}
-	
-	public static void scrubPrivateFields(Questionnaire questionnaire) {
-		
+		for (QuestionVariety v : varieties) {
+			List<Question> questions = v.getQuestionOptions();
+			if (questions==null || questions.size()==0) 
+				throw new RuntimeException("Question variety has no questions.");
+			for (Question q : questions) {
+				Long qIndex = q.getQuestionIndex();
+				if (qIndex==null) throw new RuntimeException("Missing question index.");
+				if (q instanceof MultichoiceQuestion) {
+					MultichoiceQuestion mq = (MultichoiceQuestion)q;
+					List<Long> correctAnswers = new ArrayList<Long>();
+					for (MultichoiceAnswer a : mq.getAnswers()) {
+						if (a.getAnswerIndex()==null)
+							throw new RuntimeException("Answer "+a.getPrompt()+" has no index.");
+						if (a.getIsCorrect()!=null && a.getIsCorrect()) correctAnswers.add(a.getAnswerIndex());
+					}
+					if (correctAnswers.size()==0)
+						throw new RuntimeException("No correct answer specified to question "+q.getPrompt());
+					if (mq.getExclusive()!=null && mq.getExclusive() && correctAnswers.size()>1)
+						throw new RuntimeException("Expected a single correct answer but found: "+correctAnswers);
+				} else if (q instanceof TextFieldQuestion) {
+					TextFieldQuestion tq  = (TextFieldQuestion)q;
+					if (tq.getAnswer()==null)
+						throw new RuntimeException("No answer provided for "+q.getPrompt());
+				} else {
+					throw new RuntimeException("Unexpected questions type "+QUESTIONNAIRE_PROPERTIES_FILE.getClass());
+				}
+			}
+		}		
 	}
 	
 	/* (non-Javadoc)
@@ -60,7 +96,7 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager, Initializ
 			throw new RuntimeException(e);
 		}
 		validateQuestionnaire(questionnaire);
-		scrubPrivateFields(questionnaire);
+		PrivateFieldUtils.clearPrivateFields(questionnaire);
 		
 		return questionnaire;
 	}

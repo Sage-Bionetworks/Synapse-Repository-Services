@@ -1,14 +1,8 @@
 package org.sagebionetworks.repo.manager;
 
-import java.util.Map;
-
 import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.schema.LinkDescription;
-import org.sagebionetworks.schema.LinkDescription.LinkRel;
-import org.sagebionetworks.schema.ObjectSchema;
-import org.sagebionetworks.schema.adapter.JSONEntity;
 
 public class UserProfileManagerUtils {
 	
