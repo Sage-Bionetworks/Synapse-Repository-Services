@@ -15,7 +15,6 @@ import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
@@ -463,10 +462,27 @@ public class SharedClientConnection {
 		return FileUtils.readCompressedStreamAsString(entity.getContent());
 	}
 
-	public File downloadToFile(String path, String md5,
-				File destinationFile) throws SynapseException {
+	public File downloadFromSynapse(String endpoint, String uri, String md5,
+				File destinationFile, String userAgent) throws SynapseException {
+		if (null == endpoint) {
+			throw new IllegalArgumentException("must provide endpoint");
+		}
+		if (null == uri) {
+			throw new IllegalArgumentException("must provide uri");
+		}
+		
+		Map<String, String> modHeaders = new HashMap<String, String>(defaultGETDELETEHeaders);
+		// remove session token if it is null
+		if(modHeaders.containsKey(SESSION_TOKEN_HEADER) && modHeaders.get(SESSION_TOKEN_HEADER) == null) {
+			modHeaders.remove(SESSION_TOKEN_HEADER);
+		}
+		modHeaders.put(USER_AGENT, userAgent);
+		if (apiKey!=null) {
+			addDigitalSignature(endpoint, uri, modHeaders);
+		}
+		String path = endpoint + uri;
 		try {
-			clientProvider.downloadFile(path, destinationFile.getAbsolutePath());
+			clientProvider.downloadFile(path, destinationFile.getAbsolutePath(), modHeaders);
 			// Check that the md5s match, if applicable
 			if (null != md5) {
 				String localMd5 = MD5ChecksumHelper

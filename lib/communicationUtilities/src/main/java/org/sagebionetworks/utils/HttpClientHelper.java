@@ -573,14 +573,13 @@ public class HttpClientHelper {
 	 * @throws IOException
 	 * @throws HttpClientHelperException
 	 */
-	@Deprecated
 	public static void downloadFile(final HttpClient client,
-			final String requestUrl, final String filepath)
+			final String requestUrl, final String filepath, Map<String,String> headers)
 			throws ClientProtocolException, IOException,
 			HttpClientHelperException {
 
 		HttpResponse response = HttpClientHelper.performRequest(client,
-				requestUrl, "GET", null, null);
+				requestUrl, "GET", null, headers);
 		convertHttpStatusToException(response);
 		HttpEntity fileEntity = response.getEntity();
 		if (null != fileEntity) {

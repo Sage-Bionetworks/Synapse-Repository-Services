@@ -598,12 +598,33 @@ public interface SynapseClient extends BaseClient {
 	public void downloadFromFileEntityCurrentVersion(String entityId, File destinationFile)
 			throws SynapseException;
 	
+	/**
+	 * Download the file attached to a given version of an FileEntity
+	 * 
+	 * @param entityId
+	 * @param version
+	 * @param destinationFile
+	 * @throws SynapseException
+	 */
 	public void downloadFromFileEntityForVersion(String entityId, Long version, File destinationFile)
 			throws SynapseException;
 	
+	/**
+	 * Download the preview for a given FileEntity
+	 * @param entityId
+	 * @param destinationFile
+	 * @throws SynapseException
+	 */
 	public void downloadFromFileEntityPreviewCurrentVersion(String entityId, File destinationFile)
 			throws SynapseException;
 	
+	/**
+	 * Download the preview attached to a given version of an entity
+	 * @param entityId
+	 * @param version
+	 * @param destinationFile
+	 * @throws SynapseException
+	 */
 	public void downloadFromFileEntityPreviewForVersion(String entityId, Long version, File destinationFile)
 			throws SynapseException;
 	

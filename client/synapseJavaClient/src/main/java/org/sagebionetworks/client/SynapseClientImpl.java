@@ -166,8 +166,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String DEFAULT_FILE_ENDPOINT = "https://repo-prod.prod.sagebase.org/file/v1";
 
 	private static final String PARAM_GENERATED_BY = "generatedBy";
-	
-	private static final String GET = "GET";
 
 	private static final String QUERY_URI = "/query?query=";
 	private static final String REPO_SUFFIX_VERSION = "/version";
@@ -2040,7 +2038,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public void downloadFromFileEntityCurrentVersion(String fileEntityId,
 				File destinationFile) throws SynapseException {
 		String url = getRepoEndpoint()+ENTITY+"/"+fileEntityId+FILE;
-		getSharedClientConnection().downloadToFile(url, null, destinationFile);
+		getSharedClientConnection().downloadFromSynapse(url, null, destinationFile);
 	}
 
 	/**
@@ -2063,7 +2061,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public void downloadFromFileEntityPreviewCurrentVersion(String fileEntityId,
 				File destinationFile) throws SynapseException {
 		String url = getRepoEndpoint()+ENTITY+"/"+fileEntityId+FILE_PREVIEW;
-		getSharedClientConnection().downloadToFile(url, null, destinationFile);
+		getSharedClientConnection().downloadFromSynapse(url, null, destinationFile);
 	}
 
 	/**
@@ -2086,7 +2084,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public void downloadFromFileEntityForVersion(String entityId, Long versionNumber,
 				File destinationFile) throws SynapseException {
 		String url = getRepoEndpoint()+ENTITY+"/"+entityId + VERSION_INFO + "/" + versionNumber + FILE;
-		getSharedClientConnection().downloadToFile(url, null, destinationFile);
+		getSharedClientConnection().downloadFromSynapse(url, null, destinationFile);
 	}
 
 	/**
@@ -2110,7 +2108,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public void downloadFromFileEntityPreviewForVersion(String entityId, Long versionNumber,
 				File destinationFile) throws SynapseException {
 		String url = getRepoEndpoint()+ENTITY+"/"+entityId + VERSION_INFO + "/" + versionNumber + FILE_PREVIEW;
-		getSharedClientConnection().downloadToFile(url, null, destinationFile);
+		getSharedClientConnection().downloadFromSynapse(url, null, destinationFile);
 	}
 
 
@@ -2724,7 +2722,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	
 	public File downloadFromSynapse(String path, String md5,
 				File destinationFile) throws SynapseException {
-		return getSharedClientConnection().downloadToFile(path, md5, destinationFile);
+		return getSharedClientConnection().downloadFromSynapse(path, md5, destinationFile);
 	}
 
 	/**
@@ -4332,7 +4330,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public void downloadFromSubmission(String submissionId, String fileHandleId, File destinationFile) throws SynapseException {
 		String redirectUrl = getRepoEndpoint()+EVALUATION_URI_PATH+"/"+SUBMISSION+"/"+
 				submissionId+FILE+ "/" +fileHandleId;
-		getSharedClientConnection().downloadToFile(redirectUrl, null, destinationFile);
+		getSharedClientConnection().downloadFromSynapse(redirectUrl, null, destinationFile);
 	}
 
 	@Override

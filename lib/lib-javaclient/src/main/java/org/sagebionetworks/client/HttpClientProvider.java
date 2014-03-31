@@ -51,7 +51,7 @@ public interface HttpClientProvider {
 	 * @throws IOException
 	 * @throws HttpClientHelperException 
 	 */
-	public void downloadFile(final String requestUrl, final String filepath) throws ClientProtocolException, IOException, HttpClientHelperException;
+	public void downloadFile(final String requestUrl, final String filepath, Map<String,String> headers) throws ClientProtocolException, IOException, HttpClientHelperException;
 
 	/**
 	 * Perform an HTTP request.
