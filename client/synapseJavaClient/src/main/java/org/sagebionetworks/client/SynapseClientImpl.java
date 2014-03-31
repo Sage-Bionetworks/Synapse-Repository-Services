@@ -2707,7 +2707,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public void downloadFromSubmission(String submissionId, String fileHandleId, File destinationFile) throws SynapseException {
 		SharedClientConnection client = getSharedClientConnection();
 		String redirectUrl = client.resolveTemporaryRedirect(GET, 
-				getRepoEndpoint(), EVALUATION_URI_PATH+"/"+SUBMISSION+"/"+submissionId+FILE+fileHandleId, getUserAgent());
+				getRepoEndpoint(), EVALUATION_URI_PATH+"/"+SUBMISSION+"/"+submissionId+FILE+ "/" +fileHandleId, getUserAgent());
 		getSharedClientConnection().downloadToFile(redirectUrl, null, destinationFile);
 	}
 
@@ -4315,13 +4315,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 				SUBMISSION + "/" + submissionId + FILE + "/" + fileHandleId +
 				QUERY_REDIRECT_PARAMETER + "false";
 		return getUrl(url);
-	}
-	
-	public void downloadSubmissionFileHandle(String submissionId, String fileHandleId, File target) {
-		String url = EVALUATION_URI_PATH + "/" +
-				SUBMISSION + "/" + submissionId + FILE + "/" + fileHandleId +
-				QUERY_REDIRECT_PARAMETER + "true";
-		
 	}
 	
 	@Override
