@@ -594,52 +594,7 @@ public class SharedClientConnection {
 				userAgent, null);
 		return jsonObject;
 	}
-	
-	public String resolveTemporaryRedirect(String method, String endpoint, String uri, String userAgent) throws SynapseException {
-		if (null == endpoint) {
-			throw new IllegalArgumentException("must provide endpoint");
-		}
-		if (null == uri) {
-			throw new IllegalArgumentException("must provide uri");
-		}
 		
-		Map<String, String> modHeaders = new HashMap<String, String>(defaultGETDELETEHeaders);
-		// remove session token if it is null
-		if(modHeaders.containsKey(SESSION_TOKEN_HEADER) && modHeaders.get(SESSION_TOKEN_HEADER) == null) {
-			modHeaders.remove(SESSION_TOKEN_HEADER);
-		}
-		modHeaders.put(USER_AGENT, userAgent);
-		if (apiKey!=null) {
-			addDigitalSignature(endpoint, uri, modHeaders);
-		}
-		String urlString = endpoint + uri;
-		HttpRequestBase request;
-		if ("GET".equalsIgnoreCase(method)) {
-			request = new HttpGet(urlString);
-		} else if ("PUT".equalsIgnoreCase(method)) {
-			request = new HttpPut(urlString);
-		} else if ("POST".equalsIgnoreCase(method)) {
-			request = new HttpPost(urlString);
-		} else if ("DELETE".equalsIgnoreCase(method)) {
-			request = new HttpDelete(urlString);
-		} else {
-			throw new IllegalArgumentException("Unexpected HTTP method "+method);
-		}
-		setHeaders(request, modHeaders, userAgent);
-		try {
-			HttpResponse response = clientProvider.execute(request);
-			int statusCode = response.getStatusLine().getStatusCode();
-			if (statusCode==HttpStatus.SC_TEMPORARY_REDIRECT) {
-				return response.getFirstHeader("Location").getValue();
-			}
-			String responseBody = (null != response.getEntity()) ? EntityUtils.toString(response.getEntity()) : null;
-			convertHttpResponseToException(statusCode, responseBody);
-			throw new SynapseClientException("Expected "+HttpStatus.SC_TEMPORARY_REDIRECT+" but found "+statusCode);
-		} catch (IOException e) {
-			throw new SynapseClientException(e);
-		}
-	}
-	
 	/**
 	 * Get a JSONEntity
 	 * @param userAgent 

@@ -2036,6 +2036,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return getUrl(uri);
 	}
 	
+	@Override
+	public void downloadFromFileEntityCurrentVersion(String fileEntityId,
+				File destinationFile) throws SynapseException {
+		String url = getRepoEndpoint()+ENTITY+"/"+fileEntityId+FILE;
+		getSharedClientConnection().downloadToFile(url, null, destinationFile);
+	}
+
 	/**
 	 * Get the temporary URL for the data file preview of a FileEntity for the current version of the entity..  This is an alternative to downloading the file.
 	 * 
@@ -2052,6 +2059,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return getUrl(uri);
 	}
 	
+	@Override
+	public void downloadFromFileEntityPreviewCurrentVersion(String fileEntityId,
+				File destinationFile) throws SynapseException {
+		String url = getRepoEndpoint()+ENTITY+"/"+fileEntityId+FILE_PREVIEW;
+		getSharedClientConnection().downloadToFile(url, null, destinationFile);
+	}
+
 	/**
 	 * Get the temporary URL for the data file of a FileEntity for a given version number.  This is an alternative to downloading the file.
 	 * 
@@ -2068,6 +2082,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return getUrl(uri);
 	}
 	
+	@Override
+	public void downloadFromFileEntityForVersion(String entityId, Long versionNumber,
+				File destinationFile) throws SynapseException {
+		String url = getRepoEndpoint()+ENTITY+"/"+entityId + VERSION_INFO + "/" + versionNumber + FILE;
+		getSharedClientConnection().downloadToFile(url, null, destinationFile);
+	}
+
 	/**
 	 * Get the temporary URL for the data file of a FileEntity for a given version number.  This is an alternative to downloading the file.
 	 * 
@@ -2083,6 +2104,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		String uri = ENTITY + "/" + entityId + VERSION_INFO + "/" + versionNumber + FILE_PREVIEW + QUERY_REDIRECT_PARAMETER
 				+ "false";
 		return getUrl(uri);
+	}
+
+	@Override
+	public void downloadFromFileEntityPreviewForVersion(String entityId, Long versionNumber,
+				File destinationFile) throws SynapseException {
+		String url = getRepoEndpoint()+ENTITY+"/"+entityId + VERSION_INFO + "/" + versionNumber + FILE_PREVIEW;
+		getSharedClientConnection().downloadToFile(url, null, destinationFile);
 	}
 
 
@@ -2694,23 +2722,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return downloadFromSynapse(location.getPath(), md5, destinationFile);
 	}
 	
-	@Override
-	public void downloadFromFileEntity(String fileEntityId,
-				File destinationFile) throws SynapseException {
-		SharedClientConnection client = getSharedClientConnection();
-		String redirectUrl = client.resolveTemporaryRedirect(GET, 
-				getRepoEndpoint(), ENTITY+"/"+fileEntityId+FILE, getUserAgent());
-		getSharedClientConnection().downloadToFile(redirectUrl, null, destinationFile);
-	}
-
-	@Override
-	public void downloadFromSubmission(String submissionId, String fileHandleId, File destinationFile) throws SynapseException {
-		SharedClientConnection client = getSharedClientConnection();
-		String redirectUrl = client.resolveTemporaryRedirect(GET, 
-				getRepoEndpoint(), EVALUATION_URI_PATH+"/"+SUBMISSION+"/"+submissionId+FILE+ "/" +fileHandleId, getUserAgent());
-		getSharedClientConnection().downloadToFile(redirectUrl, null, destinationFile);
-	}
-
 	public File downloadFromSynapse(String path, String md5,
 				File destinationFile) throws SynapseException {
 		return getSharedClientConnection().downloadToFile(path, md5, destinationFile);
@@ -4317,6 +4328,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return getUrl(url);
 	}
 	
+	@Override
+	public void downloadFromSubmission(String submissionId, String fileHandleId, File destinationFile) throws SynapseException {
+		String redirectUrl = getRepoEndpoint()+EVALUATION_URI_PATH+"/"+SUBMISSION+"/"+
+				submissionId+FILE+ "/" +fileHandleId;
+		getSharedClientConnection().downloadToFile(redirectUrl, null, destinationFile);
+	}
+
 	@Override
 	public Long getSubmissionCount(String evalId) throws SynapseException {
 		if (evalId == null) throw new IllegalArgumentException("Evaluation id cannot be null");

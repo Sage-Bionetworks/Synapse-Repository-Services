@@ -595,18 +595,16 @@ public interface SynapseClient extends BaseClient {
 	 * @param destinationFile
 	 * @throws SynapseException
 	 */
-	public void downloadFromFileEntity(String entityId, File destinationFile)
+	public void downloadFromFileEntityCurrentVersion(String entityId, File destinationFile)
 			throws SynapseException;
 	
-	/**
-	 * Download a selected file attachment for a Submission, following redirects as needed.
-	 * 
-	 * @param submissionId
-	 * @param fileHandleId
-	 * @param destinationFile
-	 * @throws SynapseException
-	 */
-	public void downloadFromSubmission(String submissionId, String fileHandleId, File destinationFile) 
+	public void downloadFromFileEntityForVersion(String entityId, Long version, File destinationFile)
+			throws SynapseException;
+	
+	public void downloadFromFileEntityPreviewCurrentVersion(String entityId, File destinationFile)
+			throws SynapseException;
+	
+	public void downloadFromFileEntityPreviewForVersion(String entityId, Long version, File destinationFile)
 			throws SynapseException;
 	
 	@Deprecated
@@ -917,6 +915,17 @@ public interface SynapseClient extends BaseClient {
 			String fileHandleId) throws ClientProtocolException,
 			MalformedURLException, IOException, SynapseException;
 
+	/**
+	 * Download a selected file attachment for a Submission, following redirects as needed.
+	 * 
+	 * @param submissionId
+	 * @param fileHandleId
+	 * @param destinationFile
+	 * @throws SynapseException
+	 */
+	public void downloadFromSubmission(String submissionId, String fileHandleId, File destinationFile) 
+			throws SynapseException;
+	
 	public Long getSubmissionCount(String evalId) throws SynapseException;
 
 	public UserEvaluationState getUserEvaluationState(String evalId)
