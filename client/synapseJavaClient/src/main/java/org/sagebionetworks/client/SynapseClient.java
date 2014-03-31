@@ -588,10 +588,11 @@ public interface SynapseClient extends BaseClient {
 	public File downloadFromSynapse(LocationData location, String md5,
 			File destinationFile) throws SynapseException;
 
-	@Deprecated
-	public File downloadFromSynapse(String path, String md5, File destinationFile)
+	public void downloadFromFileEntity(String entityId, File destinationFile)
 			throws SynapseException;
-
+	
+	public void downloadFromSubmission(String submissionId, String fileHandleId, File destinationFile) throws SynapseException;
+	
 	@Deprecated
 	public Locationable uploadLocationableToSynapse(Locationable locationable,
 			File dataFile) throws SynapseException;

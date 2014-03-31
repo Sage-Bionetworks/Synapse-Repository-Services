@@ -167,6 +167,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	private static final String PARAM_GENERATED_BY = "generatedBy";
 	
+	private static final String GET = "GET";
+
 	private static final String QUERY_URI = "/query?query=";
 	private static final String REPO_SUFFIX_VERSION = "/version";
 	private static final String ANNOTATION_URI_SUFFIX = "annotations";
@@ -2692,11 +2694,26 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return downloadFromSynapse(location.getPath(), md5, destinationFile);
 	}
 	
-	@Deprecated
 	@Override
+	public void downloadFromFileEntity(String fileEntityId,
+				File destinationFile) throws SynapseException {
+		SharedClientConnection client = getSharedClientConnection();
+		String redirectUrl = client.resolveTemporaryRedirect(GET, 
+				getRepoEndpoint(), ENTITY+"/"+fileEntityId+FILE, getUserAgent());
+		getSharedClientConnection().downloadToFile(redirectUrl, null, destinationFile);
+	}
+
+	@Override
+	public void downloadFromSubmission(String submissionId, String fileHandleId, File destinationFile) throws SynapseException {
+		SharedClientConnection client = getSharedClientConnection();
+		String redirectUrl = client.resolveTemporaryRedirect(GET, 
+				getRepoEndpoint(), EVALUATION_URI_PATH+"/"+SUBMISSION+"/"+submissionId+FILE+fileHandleId, getUserAgent());
+		getSharedClientConnection().downloadToFile(redirectUrl, null, destinationFile);
+	}
+
 	public File downloadFromSynapse(String path, String md5,
 				File destinationFile) throws SynapseException {
-		return getSharedClientConnection().downloadFromSynapse(path, md5, destinationFile);
+		return getSharedClientConnection().downloadToFile(path, md5, destinationFile);
 	}
 
 	/**
@@ -4299,6 +4316,14 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 				QUERY_REDIRECT_PARAMETER + "false";
 		return getUrl(url);
 	}
+	
+	public void downloadSubmissionFileHandle(String submissionId, String fileHandleId, File target) {
+		String url = EVALUATION_URI_PATH + "/" +
+				SUBMISSION + "/" + submissionId + FILE + "/" + fileHandleId +
+				QUERY_REDIRECT_PARAMETER + "true";
+		
+	}
+	
 	@Override
 	public Long getSubmissionCount(String evalId) throws SynapseException {
 		if (evalId == null) throw new IllegalArgumentException("Evaluation id cannot be null");
