@@ -85,7 +85,7 @@ public class UrlHelperTest {
 		String id = "123";
 		for(EntityType type: array){
 			String expectedUri = uriPrefix+UrlHelpers.ENTITY+"/"+id;
-			String uri = UrlHelpers.createEntityUri(id, type.getClassForType(), uriPrefix);
+			String uri = UrlHelpers.createEntityUri(id, type.getClassForType(), "");
 			assertEquals(expectedUri, uri);
 		}
 	}
@@ -109,7 +109,7 @@ public class UrlHelperTest {
 	public void testSetBaseUriForEntity(){
 		HttpServletRequest mockRequest = Mockito.mock(HttpServletRequest.class);
 		when(mockRequest.getContextPath()).thenReturn("http://localhost:8080");
-		when(mockRequest.getServletPath()).thenReturn("/repo/v1");
+		when(mockRequest.getServletPath()).thenReturn("");
 		Study ds = new Study();
 		ds.setId("456");
 		UrlHelpers.setBaseUriForEntity(ds, mockRequest);
@@ -175,7 +175,7 @@ public class UrlHelperTest {
 		when(mockRequest.getContextPath()).thenReturn(null);
 		String base = "/repo/v1";
 		String id = "56";
-		when(mockRequest.getServletPath()).thenReturn(base);
+		when(mockRequest.getServletPath()).thenReturn("");
 		// Test each type
 		EntityType[] array = EntityType.values();
 		for(EntityType type: array){

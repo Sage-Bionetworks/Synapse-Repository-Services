@@ -11,7 +11,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:repository-servlet.xml" })
+@ContextConfiguration(locations = { "classpath:singleton-servlet.xml" })
 public class UserProfileServiceScheduledTest {
 	
 	@Autowired

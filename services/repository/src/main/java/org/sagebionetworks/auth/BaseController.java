@@ -13,12 +13,10 @@ import org.sagebionetworks.repo.model.error.ErrorResponse;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
-@Controller
 public class BaseController {
 	private static final Logger log = LogManager.getLogger(BaseController.class
 			.getName());

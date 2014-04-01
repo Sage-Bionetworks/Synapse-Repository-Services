@@ -13,6 +13,7 @@ public class BridgeUrlHelpers extends UrlHelpers {
 
 	public static final String BASE_V1 = "bridge/v1";
 
+	public static final String BRIDGE_PATH = "/"+BASE_V1;
 	public static final String VERSION = "/version";
 
 	public static final String COMMUNITY = "/community";

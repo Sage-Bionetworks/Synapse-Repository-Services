@@ -82,14 +82,26 @@
 											<tr>
 												<td>Request Object</td>
 												<td>#if($method.requestBody) <a
-													href="$method.requestBody.href">$method.requestBody.display</a><br>(application/json)</br>
+													href="$method.requestBody.href">$method.requestBody.display</a>#*
+													*##if($method.requestBodyGenericParams)#*
+														*#&lt;#foreach( $param in $method.requestBodyGenericParams)#*
+															*#<a href="$param.href">$param.display</a>#if($velocityCount > 1),#end#*
+														*##end&gt;#*
+													*##end#*
+													*#<br>(application/json)</br>
 													#else None #end
 												</td>
 											</tr>
 											<tr>
 												<td>Response Object</td>
 												<td>#if($method.responseBody) <a
-													href="$method.responseBody.href">$method.responseBody.display</a><br>(application/json)</br>
+													href="$method.responseBody.href">$method.responseBody.display</a>#*
+													*##if($method.responseBodyGenericParams)#*
+														*#&lt;#foreach( $param in $method.responseBodyGenericParams)#*
+															*#<a href="$param.href">$param.display</a>#if($velocityCount > 1),#end#*
+														*##end&gt;#*
+													*##end#*
+													*#<br>(application/json)</br>
 													#else None #end
 												</td>
 											</tr>

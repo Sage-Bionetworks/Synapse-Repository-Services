@@ -27,7 +27,13 @@ public class AuditTestUtils {
 			ar.setElapseMS((long) (10*i));
 			ar.setTimestamp(startTimestamp+i);
 			ar.setMethod(Method.values()[i%4].toString());
-			ar.setSuccess(i%2 > 0);
+			if(i%2 > 0){
+				ar.setSuccess(true);
+				ar.setResponseStatus(201L);
+			}else{
+				ar.setSuccess(false);
+				ar.setResponseStatus(401L);
+			}
 			ar.setRequestURL("/url/"+i);
 			ar.setSessionId(UUID.randomUUID().toString());
 			ar.setHost("localhost:8080");
@@ -35,6 +41,7 @@ public class AuditTestUtils {
 			ar.setUserAgent("The bat-mobile OS");
 			ar.setThreadId(Thread.currentThread().getId());
 			ar.setVia("1 then two");
+
 			list.add(ar);
 		}
 		return list;

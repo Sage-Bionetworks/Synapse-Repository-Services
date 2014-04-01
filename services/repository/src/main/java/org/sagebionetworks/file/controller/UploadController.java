@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
+import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.controller.BaseController;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -151,6 +152,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  */
 @ControllerInfo(displayName = "File Services", path = "file/v1")
 @Controller
+@RequestMapping(UrlHelpers.FILE_PATH)
 public class UploadController extends BaseController {
 
 	public static final String HEADER_KEY_CONTENT_LENGTH = "content-length";

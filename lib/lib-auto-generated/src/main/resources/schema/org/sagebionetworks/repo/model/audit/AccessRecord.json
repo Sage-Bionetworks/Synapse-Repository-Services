@@ -76,7 +76,10 @@
 		"queryString": {
 			"type": "string",
 			"description": "The query string of the request."
+		},	
+		"responseStatus": {
+			"type": "integer",
+			"description": "The resulting HTTP response code."
 		}
-
 	}
 }

@@ -91,6 +91,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  */
 @ControllerInfo(displayName="Evaluation Services", path="repo/v1")
 @Controller
+@RequestMapping(UrlHelpers.REPO_PATH)
 public class EvaluationController extends BaseController {
 
 	@Autowired
@@ -984,7 +985,6 @@ public class EvaluationController extends BaseController {
 	 * @throws NotFoundException
 	 * @throws IOException 
 	 */
-	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.SUBMISSION_FILE, method = RequestMethod.GET)
 	public @ResponseBody
 	void redirectURLForFileHandle(
