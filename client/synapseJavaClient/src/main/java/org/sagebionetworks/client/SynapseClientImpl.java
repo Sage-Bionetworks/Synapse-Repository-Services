@@ -1978,6 +1978,18 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return getJSONEntity(uri, FileHandleResults.class);
 	}
 	
+	private static String createWikiAttachmentURI(WikiPageKey key, String fileName, boolean redirect) throws SynapseClientException {
+		if(key == null) throw new IllegalArgumentException("Key cannot be null");
+		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
+		String encodedName;
+		try {
+			encodedName = URLEncoder.encode(fileName, "UTF-8");
+		} catch (IOException e) {
+			throw new SynapseClientException("Failed to encode "+fileName, e);
+		}
+		return createWikiURL(key) + ATTACHMENT_FILE + FILE_NAME_PARAMETER + encodedName + AND_REDIRECT_PARAMETER
+				+ redirect;
+	}
 	
 	/**
 	 * Get the temporary URL for a WikiPage attachment. This is an alternative to downloading the attachment to a file.
@@ -1990,15 +2002,30 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 */
 	@Override
 	public URL getWikiAttachmentTemporaryUrl(WikiPageKey key, String fileName) throws ClientProtocolException, IOException, SynapseException{
-		if(key == null) throw new IllegalArgumentException("Key cannot be null");
-		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
-		String encodedName = URLEncoder.encode(fileName, "UTF-8");
-		String uri = createWikiURL(key) + ATTACHMENT_FILE + FILE_NAME_PARAMETER + encodedName + AND_REDIRECT_PARAMETER
-				+ "false";
-		return getUrl(uri);
+		return getUrl(createWikiAttachmentURI(key, fileName, false));
 	}
 	
+	@Override
+	public void downloadWikiAttachment(WikiPageKey key, String fileName,
+			File target) throws SynapseException {
+		String uri = createWikiAttachmentURI(key, fileName, true);
+		getSharedClientConnection().downloadFromSynapse(getRepoEndpoint() + uri, null, target, getUserAgent());
+	}
 	
+	private static String createWikiAttachmentPreviewURI(WikiPageKey key, String fileName, boolean redirect) throws SynapseClientException {
+		if(key == null) throw new IllegalArgumentException("Key cannot be null");
+		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
+		String encodedName;
+		try {
+			encodedName = URLEncoder.encode(fileName, "UTF-8");
+		} catch (IOException e) {
+			throw new SynapseClientException("Failed to encode "+fileName, e);
+		}
+		return createWikiURL(key) + ATTACHMENT_FILE_PREVIEW + FILE_NAME_PARAMETER + encodedName + AND_REDIRECT_PARAMETER
+				+ redirect;
+		
+	}
+
 	/**
 	 * Get the temporary URL for a WikiPage attachment preview. This is an alternative to downloading the attachment to a file.
 	 * @param key - Identifies a wiki page.
@@ -2010,14 +2037,17 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 */
 	@Override
 	public URL getWikiAttachmentPreviewTemporaryUrl(WikiPageKey key, String fileName) throws ClientProtocolException, IOException, SynapseException{
-		if(key == null) throw new IllegalArgumentException("Key cannot be null");
-		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
-		String encodedName = URLEncoder.encode(fileName, "UTF-8");
-		String uri = createWikiURL(key) + ATTACHMENT_FILE_PREVIEW + FILE_NAME_PARAMETER + encodedName + AND_REDIRECT_PARAMETER
-				+ "false";
-		return getUrl(uri);
+		return getUrl(createWikiAttachmentPreviewURI(key, fileName, false));
 	}
 	
+	@Override
+	public void downloadWikiAttachmentPreview(WikiPageKey key,
+			String fileName, File target) throws SynapseException {
+		String uri = createWikiAttachmentPreviewURI(key, fileName, true);
+		getSharedClientConnection().downloadFromSynapse(getRepoEndpoint() + uri, null, target, getUserAgent());
+		
+	}
+
 	/**
 	 * Get the temporary URL for the data file of a FileEntity for the current version of the entity..  This is an alternative to downloading the file.
 	 * 
@@ -2162,7 +2192,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @param key
 	 * @return
 	 */
-	private String createWikiURL(WikiPageKey key) {
+	private static String createWikiURL(WikiPageKey key) {
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
 		return String.format(WIKI_ID_URI_TEMPLATE, key.getOwnerObjectType().name().toLowerCase(), key.getOwnerObjectId(), key.getWikiPageId());
 	}
@@ -2232,7 +2262,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @param key
 	 * @return
 	 */
-	private String createV2WikiURL(WikiPageKey key) {
+	private static String createV2WikiURL(WikiPageKey key) {
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
 		return String.format(WIKI_ID_URI_TEMPLATE_V2, key.getOwnerObjectType().name().toLowerCase(), 
 				key.getOwnerObjectId(), key.getWikiPageId());
@@ -2390,6 +2420,21 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return getSharedClientConnection().downloadZippedFileString(repoEndpoint, uri, getUserAgent());
 	}
 	
+	private static String createV2WikiAttachmentURI(WikiPageKey key,
+			String fileName, boolean redirect) throws SynapseClientException {
+		if(key == null) throw new IllegalArgumentException("Key cannot be null");
+		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
+		String encodedName;
+		try {
+			encodedName = URLEncoder.encode(fileName, "UTF-8");
+		} catch (IOException e) {
+			throw new SynapseClientException("Failed to encode "+fileName, e);
+		}
+		return createV2WikiURL(key) + ATTACHMENT_FILE + FILE_NAME_PARAMETER + encodedName + AND_REDIRECT_PARAMETER
+				+ redirect;
+		
+	}
+	
 	/**
 	 * Get the temporary URL for a V2 WikiPage attachment. This is an alternative to downloading the attachment to a file.
 	 * @param key - Identifies a V2 wiki page.
@@ -2402,12 +2447,28 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public URL getV2WikiAttachmentTemporaryUrl(WikiPageKey key,
 			String fileName) throws ClientProtocolException, IOException, SynapseException {
+		return getUrl(createV2WikiAttachmentURI(key, fileName, false));
+	}
+	
+	@Override
+	public void downloadV2WikiAttachment(WikiPageKey key, String fileName,
+			File target) throws SynapseException {
+		String uri = createV2WikiAttachmentURI(key, fileName, true);
+		getSharedClientConnection().downloadFromSynapse(getRepoEndpoint() + uri, null, target, getUserAgent());
+	}
+	
+	private static String createV2WikiAttachmentPreviewURI(WikiPageKey key,
+			String fileName, boolean redirect) throws SynapseClientException {
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
 		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
-		String encodedName = URLEncoder.encode(fileName, "UTF-8");
-		String uri = createV2WikiURL(key) + ATTACHMENT_FILE + FILE_NAME_PARAMETER + encodedName + AND_REDIRECT_PARAMETER
-				+ "false";
-		return getUrl(uri);
+		String encodedName;
+		try {
+			encodedName = URLEncoder.encode(fileName, "UTF-8");
+		} catch (IOException e) {
+			throw new SynapseClientException("Failed to encode "+fileName, e);
+		}
+		return createV2WikiURL(key) + ATTACHMENT_FILE_PREVIEW + FILE_NAME_PARAMETER + encodedName
+				+ AND_REDIRECT_PARAMETER + redirect;
 	}
 	
 	/**
@@ -2422,34 +2483,69 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public URL getV2WikiAttachmentPreviewTemporaryUrl(WikiPageKey key,
 			String fileName) throws ClientProtocolException, IOException, SynapseException {
+		return getUrl(createV2WikiAttachmentPreviewURI(key, fileName, false));
+	}
+	
+	@Override
+	public void downloadV2WikiAttachmentPreview(WikiPageKey key,
+			String fileName, File target) throws SynapseException {
+		String uri = createV2WikiAttachmentPreviewURI(key, fileName, true);
+		getSharedClientConnection().downloadFromSynapse(getRepoEndpoint() + uri, null, target, getUserAgent());
+	}
+
+	private static String createVersionOfV2WikiAttachmentPreviewURI(WikiPageKey key,
+			String fileName, Long version, boolean redirect) throws SynapseClientException {
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
 		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
-		String encodedName = URLEncoder.encode(fileName, "UTF-8");
-		String uri = createV2WikiURL(key) + ATTACHMENT_FILE_PREVIEW + FILE_NAME_PARAMETER + encodedName
-				+ AND_REDIRECT_PARAMETER + "false";
-		return getUrl(uri);
+		String encodedName;
+		try {
+			encodedName = URLEncoder.encode(fileName, "UTF-8");
+		} catch (IOException e) {
+			throw new SynapseClientException("Failed to encode "+fileName, e);
+		}
+		return createV2WikiURL(key) + ATTACHMENT_FILE_PREVIEW + FILE_NAME_PARAMETER + encodedName
+			+ AND_REDIRECT_PARAMETER + redirect + AND_VERSION_PARAMETER + version;
 	}
 	
 	@Override
 	public URL getVersionOfV2WikiAttachmentPreviewTemporaryUrl(WikiPageKey key,
 			String fileName, Long version) throws ClientProtocolException, IOException, SynapseException {
+		return getUrl(createVersionOfV2WikiAttachmentPreviewURI(key, fileName, version, false));
+	}
+	
+	@Override
+	public void downloadVersionOfV2WikiAttachmentPreview(WikiPageKey key,
+			String fileName, Long version, File target) throws SynapseException {
+		String uri = createVersionOfV2WikiAttachmentPreviewURI(key, fileName, version, true);
+		getSharedClientConnection().downloadFromSynapse(getRepoEndpoint() + uri, null, target, getUserAgent());
+	}
+	
+	private static String createVersionOfV2WikiAttachmentURI(WikiPageKey key,
+			String fileName, Long version, boolean redirect) throws SynapseClientException {
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
 		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
-		String encodedName = URLEncoder.encode(fileName, "UTF-8");
-		String uri = createV2WikiURL(key) + ATTACHMENT_FILE_PREVIEW + FILE_NAME_PARAMETER + encodedName
-			+ AND_REDIRECT_PARAMETER + "false" + AND_VERSION_PARAMETER + version;
-		return getUrl(uri);
+		String encodedName;
+		try {
+			encodedName = URLEncoder.encode(fileName, "UTF-8");
+		} catch (IOException e) {
+			throw new SynapseClientException("Failed to encode "+fileName, e);
+		}
+		return createV2WikiURL(key) + ATTACHMENT_FILE + FILE_NAME_PARAMETER + encodedName + AND_REDIRECT_PARAMETER
+			+ redirect + AND_VERSION_PARAMETER + version;
 	}
 
 	@Override
 	public URL getVersionOfV2WikiAttachmentTemporaryUrl(WikiPageKey key,
 			String fileName, Long version) throws ClientProtocolException, IOException, SynapseException {
-		if(key == null) throw new IllegalArgumentException("Key cannot be null");
-		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
-		String encodedName = URLEncoder.encode(fileName, "UTF-8");
-		String uri = createV2WikiURL(key) + ATTACHMENT_FILE + FILE_NAME_PARAMETER + encodedName + AND_REDIRECT_PARAMETER
-			+ "false" + AND_VERSION_PARAMETER + version;
-		return getUrl(uri);
+		return getUrl(createVersionOfV2WikiAttachmentURI(key, fileName, version, false));
+	}
+
+	// alternative to getVersionOfV2WikiAttachmentTemporaryUrl
+	@Override
+	public void downloadVersionOfV2WikiAttachment(WikiPageKey key,
+			String fileName, Long version, File target) throws SynapseException {
+		String uri = createVersionOfV2WikiAttachmentURI(key, fileName, version, true);
+		getSharedClientConnection().downloadFromSynapse(getRepoEndpoint() + uri, null, target, getUserAgent());
 	}
 	
 	/**
@@ -3590,10 +3686,27 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		getSharedClientConnection().deleteUri(repoEndpoint, uri, getUserAgent());
 	}
 	
+	private static String createDownloadMessageURI(String messageId, boolean redirect) {
+		return MESSAGE + "/" + messageId + FILE+"?"+REDIRECT_PARAMETER+redirect;
+	}
+	
+	@Override
+	public String getMessageTemporaryUrl(String messageId) throws SynapseException, MalformedURLException, IOException {
+		String uri = createDownloadMessageURI(messageId, false);
+		return getSharedClientConnection().getDirect(repoEndpoint, uri, getUserAgent());
+	}
+
 	@Override
 	public String downloadMessage(String messageId) throws SynapseException, MalformedURLException, IOException {
-		String uri = MESSAGE + "/" + messageId + FILE;
+		String uri = createDownloadMessageURI(messageId, true);
 		return getSharedClientConnection().getDirect(repoEndpoint, uri, getUserAgent());
+	}
+
+	@Override
+	public void downloadMessageToFile(String messageId, File target)
+			throws SynapseException {
+		String uri = createDownloadMessageURI(messageId, true);
+		getSharedClientConnection().downloadFromSynapse(getRepoEndpoint() + uri, null, target, getUserAgent());
 	}
 
 	/**
@@ -4841,22 +4954,27 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		}
 	}
 	
+	private static String createGetTeamIconURI(String teamId, boolean redirect) {
+		return TEAM+"/"+teamId+ICON+"?"+REDIRECT_PARAMETER+redirect;
+	}
+	
 	@Override
-	public URL getTeamIcon(String teamId, Boolean redirect)
-			throws SynapseException {
-		String uri = null;
-		if (redirect==null) {
-			uri = TEAM+"/"+teamId+ICON;
-		} else {
-			uri = TEAM+"/"+teamId+ICON+"?"+REDIRECT_PARAMETER+redirect;
-		}
+	public URL getTeamIcon(String teamId) throws SynapseException {
 		try {
-			return getUrl(uri);
+			return getUrl(createGetTeamIconURI(teamId, false));
 		} catch (IOException e) {
 			throw new SynapseClientException(e);
 		}
 	}
-
+	
+	// alternative to getTeamIcon
+	@Override
+	public void downloadTeamIcon(String teamId, File target)
+			throws SynapseException {
+		String uri = createGetTeamIconURI(teamId, true);
+		getSharedClientConnection().downloadFromSynapse(getRepoEndpoint() + uri, null, target, getUserAgent());
+	}
+	
 	@Override
 	public Team updateTeam(Team team) throws SynapseException {
 		JSONObjectAdapter toUpdateAdapter = new JSONObjectAdapterImpl();
@@ -5208,6 +5326,5 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		parameters.put(AuthorizationConstants.DOMAIN_PARAM, domain.name());
 		return parameters;
 	}
-	
 }
 
