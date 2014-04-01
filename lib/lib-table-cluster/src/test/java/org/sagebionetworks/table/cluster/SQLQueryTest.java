@@ -69,6 +69,29 @@ public class SQLQueryTest {
 	}
 	
 	@Test
+	public void testTranslateColumnReferenceRowId() throws ParseException{
+		ColumnReference columnReference = SqlElementUntils.createColumnReference("ROW_ID");
+		StringBuilder builder = new StringBuilder();
+		SQLTranslatorUtils.translate(columnReference, builder, columnNameToIdMap);
+		assertEquals("ROW_ID", builder.toString());
+	}
+	
+	@Test
+	public void testIsReservedColumnNameNegative(){
+		assertNull(SQLTranslatorUtils.isReservedColumnName("notReserved"));
+	}
+	
+	@Test
+	public void testIsReservedColumnNameRowIdCaseInsensitive(){
+		assertEquals("The isReservedColumnName() method should be case insensitive.","ROW_ID", SQLTranslatorUtils.isReservedColumnName("row_id"));
+	}
+	
+	@Test
+	public void testIsReservedColumnNameRowVersion(){
+		assertEquals("ROW_VERSION", SQLTranslatorUtils.isReservedColumnName("ROW_VERSION"));
+	}
+	
+	@Test
 	public void testSelectStar() throws ParseException{
 		SqlQuery translator = new SqlQuery("select * from syn123", columnNameToIdMap);
 		assertEquals("SELECT * FROM T123", translator.getOutputSQL());
