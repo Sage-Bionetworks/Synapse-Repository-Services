@@ -587,6 +587,9 @@ public interface SynapseClient extends BaseClient {
 	@Deprecated
 	public File downloadFromSynapse(LocationData location, String md5,
 			File destinationFile) throws SynapseException;
+	
+	@Deprecated
+	public File downloadFromSynapse(String path, String md5, File destinationFile) throws SynapseException;
 
 	/**
 	 * Download the File attachment for an entity, following redirects as needed.

@@ -984,6 +984,7 @@ public class EvaluationController extends BaseController {
 	 * @throws NotFoundException
 	 * @throws IOException 
 	 */
+	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.SUBMISSION_FILE, method = RequestMethod.GET)
 	public @ResponseBody
 	void redirectURLForFileHandle(

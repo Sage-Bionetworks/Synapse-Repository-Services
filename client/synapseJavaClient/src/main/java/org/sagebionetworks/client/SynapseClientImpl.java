@@ -2720,7 +2720,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return downloadFromSynapse(location.getPath(), md5, destinationFile);
 	}
 	
-	private File downloadFromSynapse(String path, String md5,
+	public File downloadFromSynapse(String path, String md5,
 				File destinationFile) throws SynapseException {
 		return getSharedClientConnection().downloadFromSynapse(path, md5, destinationFile, null);
 	}

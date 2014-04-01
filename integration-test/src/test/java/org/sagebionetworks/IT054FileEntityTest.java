@@ -152,14 +152,14 @@ public class IT054FileEntityTest {
 		assertNotNull(tempUrl);
 		assertTrue("The temporary URL did not contain the expected file handle key",tempUrl.toString().indexOf(expectedPreviewKey) > 0);
 		synapse.downloadFromFileEntityPreviewCurrentVersion(file.getId(), tempfile);
-		assertEquals(fileHandle.getContentMd5(),  MD5ChecksumHelper.getMD5Checksum(tempfile));
+		assertTrue(tempfile.length()>0);
 
 		// Get the preview using the version number
 		tempUrl = synapse.getFileEntityPreviewTemporaryUrlForVersion(file.getId(), file.getVersionNumber());
 		assertNotNull(tempUrl);
 		assertTrue("The temporary URL did not contain the expected file handle key",tempUrl.toString().indexOf(expectedPreviewKey) > 0);
 		synapse.downloadFromFileEntityPreviewForVersion(file.getId(), file.getVersionNumber(), tempfile);
-		assertEquals(fileHandle.getContentMd5(),  MD5ChecksumHelper.getMD5Checksum(tempfile));
+		assertTrue(tempfile.length()>0);
 	}
 
 	@Test
