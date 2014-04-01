@@ -60,10 +60,10 @@ public class AcceptAllCertificateHttpClientProvider implements HttpClientProvide
 
 
 	@Override
-	public void downloadFile(String requestUrl, String filepath)
+	public void downloadFile(String requestUrl, String filepath, Map<String, String> headers)
 			throws ClientProtocolException, IOException,
 			HttpClientHelperException {
-		HttpClientHelper.downloadFile(getSingleton(), requestUrl, filepath);
+		HttpClientHelper.downloadFile(getSingleton(), requestUrl, filepath, headers);
 	}
 
 

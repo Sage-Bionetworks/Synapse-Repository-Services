@@ -166,7 +166,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String DEFAULT_FILE_ENDPOINT = "https://repo-prod.prod.sagebase.org/file/v1";
 
 	private static final String PARAM_GENERATED_BY = "generatedBy";
-	
+
 	private static final String QUERY_URI = "/query?query=";
 	private static final String REPO_SUFFIX_VERSION = "/version";
 	private static final String ANNOTATION_URI_SUFFIX = "annotations";
@@ -2034,6 +2034,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return getUrl(uri);
 	}
 	
+	@Override
+	public void downloadFromFileEntityCurrentVersion(String fileEntityId,
+				File destinationFile) throws SynapseException {
+		String uri = ENTITY+"/"+fileEntityId+FILE;
+		getSharedClientConnection().downloadFromSynapse(getRepoEndpoint() + uri, null, destinationFile, getUserAgent());
+	}
+
 	/**
 	 * Get the temporary URL for the data file preview of a FileEntity for the current version of the entity..  This is an alternative to downloading the file.
 	 * 
@@ -2050,6 +2057,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return getUrl(uri);
 	}
 	
+	@Override
+	public void downloadFromFileEntityPreviewCurrentVersion(String fileEntityId,
+				File destinationFile) throws SynapseException {
+		String uri = ENTITY+"/"+fileEntityId+FILE_PREVIEW;
+		getSharedClientConnection().downloadFromSynapse(getRepoEndpoint() + uri, null, destinationFile, getUserAgent());
+	}
+
 	/**
 	 * Get the temporary URL for the data file of a FileEntity for a given version number.  This is an alternative to downloading the file.
 	 * 
@@ -2066,6 +2080,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return getUrl(uri);
 	}
 	
+	@Override
+	public void downloadFromFileEntityForVersion(String entityId, Long versionNumber,
+				File destinationFile) throws SynapseException {
+		String uri = ENTITY+"/"+entityId + VERSION_INFO + "/" + versionNumber + FILE;
+		getSharedClientConnection().downloadFromSynapse(getRepoEndpoint() + uri, null, destinationFile, getUserAgent());
+	}
+
 	/**
 	 * Get the temporary URL for the data file of a FileEntity for a given version number.  This is an alternative to downloading the file.
 	 * 
@@ -2081,6 +2102,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		String uri = ENTITY + "/" + entityId + VERSION_INFO + "/" + versionNumber + FILE_PREVIEW + QUERY_REDIRECT_PARAMETER
 				+ "false";
 		return getUrl(uri);
+	}
+
+	@Override
+	public void downloadFromFileEntityPreviewForVersion(String entityId, Long versionNumber,
+				File destinationFile) throws SynapseException {
+		String uri = ENTITY+"/"+entityId + VERSION_INFO + "/" + versionNumber + FILE_PREVIEW;
+		getSharedClientConnection().downloadFromSynapse(getRepoEndpoint() + uri, null, destinationFile, getUserAgent());
 	}
 
 
@@ -2692,11 +2720,9 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return downloadFromSynapse(location.getPath(), md5, destinationFile);
 	}
 	
-	@Deprecated
-	@Override
 	public File downloadFromSynapse(String path, String md5,
 				File destinationFile) throws SynapseException {
-		return getSharedClientConnection().downloadFromSynapse(path, md5, destinationFile);
+		return getSharedClientConnection().downloadFromSynapse(path, md5, destinationFile, null);
 	}
 
 	/**
@@ -4299,6 +4325,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 				QUERY_REDIRECT_PARAMETER + "false";
 		return getUrl(url);
 	}
+	
+	@Override
+	public void downloadFromSubmission(String submissionId, String fileHandleId, File destinationFile) throws SynapseException {
+		String uri = EVALUATION_URI_PATH+"/"+SUBMISSION+"/"+ submissionId+FILE+ "/" +fileHandleId;
+		getSharedClientConnection().downloadFromSynapse(getRepoEndpoint() + uri, null, destinationFile, getUserAgent());
+	}
+
 	@Override
 	public Long getSubmissionCount(String evalId) throws SynapseException {
 		if (evalId == null) throw new IllegalArgumentException("Evaluation id cannot be null");
