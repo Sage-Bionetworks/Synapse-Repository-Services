@@ -6,6 +6,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -33,6 +34,7 @@ import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
+import org.sagebionetworks.utils.MD5ChecksumHelper;
 
 public class IT055WikiPageTest {
 
@@ -46,6 +48,7 @@ public class IT055WikiPageTest {
 	private List<WikiPageKey> toDelete;
 	private List<String> handlesToDelete;
 	private File imageFile;
+	private String imageFileMD5;
 	private S3FileHandle fileHandle;
 	private Project project;
 	
@@ -62,7 +65,7 @@ public class IT055WikiPageTest {
 	}
 	
 	@Before
-	public void before() throws SynapseException {
+	public void before() throws SynapseException, IOException {
 		toDelete = new ArrayList<WikiPageKey>();
 		handlesToDelete = new ArrayList<String>();
 		
@@ -71,6 +74,8 @@ public class IT055WikiPageTest {
 		imageFile = new File(url.getFile().replaceAll("%20", " "));
 		assertNotNull(imageFile);
 		assertTrue(imageFile.exists());
+		imageFileMD5 = MD5ChecksumHelper.getMD5Checksum(imageFile);
+
 		// Create the image file handle
 		List<File> list = new LinkedList<File>();
 		list.add(imageFile);
@@ -185,7 +190,21 @@ public class IT055WikiPageTest {
 		assertTrue(two instanceof PreviewFileHandle);
 		PreviewFileHandle preview = (PreviewFileHandle) two;
 		assertTrue(handle.getPreviewId().equals(preview.getId()));
-
+		
+		// also test the methods that get wiki attachments themselves	
+		URL url = synapse.getWikiAttachmentTemporaryUrl(key, handle.getFileName());
+		assertNotNull(url);
+		
+		File target = File.createTempFile("test", null);
+		target.deleteOnExit();
+		synapse.downloadWikiAttachment(key, handle.getFileName(), target);
+		assertEquals(imageFileMD5, MD5ChecksumHelper.getMD5Checksum(target));
+		
+		url = synapse.getWikiAttachmentPreviewTemporaryUrl(key, handle.getFileName());
+		assertNotNull(url);
+		
+		synapse.downloadWikiAttachmentPreview(key, handle.getFileName(), target);
+		assertTrue(target.length()>0);
 	}
 
 	/**

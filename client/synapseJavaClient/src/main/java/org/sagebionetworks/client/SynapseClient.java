@@ -86,9 +86,9 @@ import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
 import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.query.QueryTableResults;
-import org.sagebionetworks.repo.model.questionnaire.PassingRecord;
-import org.sagebionetworks.repo.model.questionnaire.Questionnaire;
-import org.sagebionetworks.repo.model.questionnaire.QuestionnaireResponse;
+import org.sagebionetworks.repo.model.quiz.PassingRecord;
+import org.sagebionetworks.repo.model.quiz.Quiz;
+import org.sagebionetworks.repo.model.quiz.QuizResponse;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
@@ -181,9 +181,15 @@ public interface SynapseClient extends BaseClient {
 
 	public URL getWikiAttachmentPreviewTemporaryUrl(WikiPageKey properKey,
 			String fileName) throws ClientProtocolException, IOException, SynapseException;
+	
+	public void downloadWikiAttachmentPreview(WikiPageKey properKey,
+			String fileName, File target) throws SynapseException;
 
 	public URL getWikiAttachmentTemporaryUrl(WikiPageKey properKey,
 			String fileName) throws ClientProtocolException, IOException, SynapseException;
+	
+	public void downloadWikiAttachment(WikiPageKey properKey,
+			String fileName, File target) throws SynapseException;
 
 	/**
 	 * Log into Synapse
@@ -502,23 +508,29 @@ public interface SynapseClient extends BaseClient {
 	
 	public String downloadVersionOfV2WikiMarkdown(WikiPageKey key, Long version) throws ClientProtocolException, FileNotFoundException, IOException, SynapseException;
 	
-//	public String downloadV2WikiAttachment(WikiPageKey key, String fileName)
-//		throws ClientProtocolException, IOException, SynapseException;
-	
-//	public String downloadV2WikiAttachmentPreview(WikiPageKey key, String fileName)
-//		throws ClientProtocolException, FileNotFoundException, IOException, SynapseException;
-	
 	public URL getV2WikiAttachmentPreviewTemporaryUrl(WikiPageKey key,
 			String fileName) throws ClientProtocolException, IOException, SynapseException;
+	
+	public void downloadV2WikiAttachmentPreview(WikiPageKey key,
+			String fileName, File target) throws SynapseException;
 
 	public URL getV2WikiAttachmentTemporaryUrl(WikiPageKey key,
 			String fileName) throws ClientProtocolException, IOException, SynapseException;
 	
+	public void downloadV2WikiAttachment(WikiPageKey key,
+			String fileName, File target) throws SynapseException;
+	
 	public URL getVersionOfV2WikiAttachmentPreviewTemporaryUrl(WikiPageKey key,
 			String fileName, Long version) throws ClientProtocolException, IOException, SynapseException;
+	
+	public void downloadVersionOfV2WikiAttachmentPreview(WikiPageKey key,
+			String fileName, Long version, File target) throws SynapseException;
 
 	public URL getVersionOfV2WikiAttachmentTemporaryUrl(WikiPageKey key,
 			String fileName, Long version) throws ClientProtocolException, IOException, SynapseException;
+	
+	public void downloadVersionOfV2WikiAttachment(WikiPageKey key,
+			String fileName, Long version, File target) throws SynapseException;
 
 	public void deleteV2WikiPage(WikiPageKey key) throws SynapseException;
 	
@@ -815,9 +827,23 @@ public interface SynapseClient extends BaseClient {
 	public void deleteMessage(String messageId) throws SynapseException;
 	
 	/**
-	 * Returns a temporary URL that can be used to download the body of a message
+	 * Downloads the body of a message and returns it in a String
 	 */
 	public String downloadMessage(String messageId) throws SynapseException, MalformedURLException, IOException;
+	
+	/**
+	 * Returns a temporary URL that can be used to download the body of a message
+	 */
+	public String getMessageTemporaryUrl(String messageId) throws SynapseException, MalformedURLException, IOException;
+	
+	/**
+	 * Downloads the body of a message to the given target file location.
+	 * 
+	 * @param messageId
+	 * @param target
+	 * @throws SynapseException
+	 */
+	public void downloadMessageToFile(String messageId, File target) throws SynapseException;
 
 	public Long getChildCount(String entityId) throws SynapseException;
 
@@ -1090,13 +1116,22 @@ public interface SynapseClient extends BaseClient {
 	PaginatedResults<Team> getTeamsForUser(String memberId, long limit, long offset) throws SynapseException;
 	
 	/**
+	 * Get the URL to follow to download the icon
 	 * 
 	 * @param teamId
 	 * @param redirect
 	 * @return
 	 * @throws SynapseException if no icon for team (service throws 404)
 	 */
-	URL getTeamIcon(String teamId, Boolean redirect) throws SynapseException;
+	URL getTeamIcon(String teamId) throws SynapseException;
+	
+	/**
+	 * 
+	 * @param teamId
+	 * @param target
+	 * @throws SynapseException
+	 */
+	public void downloadTeamIcon(String teamId, File target) throws SynapseException;
 	
 	/**
 	 * 
@@ -1335,11 +1370,11 @@ public interface SynapseClient extends BaseClient {
 			throws SynapseException;
 	
 	/**
-	 * Get the Questionnaire specifically intended to be the Certified User test
+	 * Get the Quiz specifically intended to be the Certified User test
 	 * @return
 	 * @throws SynapseException 
 	 */
-	public Questionnaire getCertifiedUserTest() throws SynapseException;
+	public Quiz getCertifiedUserTest() throws SynapseException;
 	
 	/**
 	 * Submit the response to the Certified User test
@@ -1347,7 +1382,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException 
 	 */
-	public QuestionnaireResponse submitCertifiedUserTestResponse(QuestionnaireResponse response) throws SynapseException;
+	public QuizResponse submitCertifiedUserTestResponse(QuizResponse response) throws SynapseException;
 	
 	/**
 	 * Must be a Synapse admin to make this request
@@ -1358,7 +1393,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return the C.U. test responses in the system, optionally filtered by principalId
 	 * @throws SynapseException 
 	 */
-	public PaginatedResults<QuestionnaireResponse> getCertifiedUserTestResponses(long offset, long limit, Long principalId) throws SynapseException;
+	public PaginatedResults<QuizResponse> getCertifiedUserTestResponses(long offset, long limit, Long principalId) throws SynapseException;
 	
 	/**
 	 * Delete the Test Response indicated by the given id

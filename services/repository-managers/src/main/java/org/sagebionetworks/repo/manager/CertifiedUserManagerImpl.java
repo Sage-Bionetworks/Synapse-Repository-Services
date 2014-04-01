@@ -9,14 +9,14 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.questionnaire.MultichoiceAnswer;
-import org.sagebionetworks.repo.model.questionnaire.MultichoiceQuestion;
-import org.sagebionetworks.repo.model.questionnaire.PassingRecord;
-import org.sagebionetworks.repo.model.questionnaire.Question;
-import org.sagebionetworks.repo.model.questionnaire.QuestionVariety;
-import org.sagebionetworks.repo.model.questionnaire.Questionnaire;
-import org.sagebionetworks.repo.model.questionnaire.QuestionnaireResponse;
-import org.sagebionetworks.repo.model.questionnaire.TextFieldQuestion;
+import org.sagebionetworks.repo.model.quiz.MultichoiceAnswer;
+import org.sagebionetworks.repo.model.quiz.MultichoiceQuestion;
+import org.sagebionetworks.repo.model.quiz.PassingRecord;
+import org.sagebionetworks.repo.model.quiz.Question;
+import org.sagebionetworks.repo.model.quiz.QuestionVariety;
+import org.sagebionetworks.repo.model.quiz.Quiz;
+import org.sagebionetworks.repo.model.quiz.QuizResponse;
+import org.sagebionetworks.repo.model.quiz.TextFieldQuestion;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
@@ -38,14 +38,14 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager, Initializ
 	/**
 	 * Throw exception if not valid
 	 * 
-	 * @param questionnaire
+	 * @param quiz
 	 */
-	public static void validateQuestionnaire(Questionnaire questionnaire) {
+	public static void validateQuiz(Quiz quiz) {
 		//	make sure there is a minimum score and that it's >=0, <=# question varieties
-		Long minimumScore = questionnaire.getMinimumScore();
+		Long minimumScore = quiz.getMinimumScore();
 		if (minimumScore==null || minimumScore<0) 
 			throw new RuntimeException("expected minimumScore>-0 but found "+minimumScore);
-		List<QuestionVariety> varieties = questionnaire.getQuestions();
+		List<QuestionVariety> varieties = quiz.getQuestions();
 		if (varieties==null || varieties.size()==0)
 			throw new RuntimeException("This test has no questions.");
 		if (minimumScore>varieties.size())
@@ -82,33 +82,33 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager, Initializ
 	}
 	
 	/* (non-Javadoc)
-	 * @see org.sagebionetworks.repo.manager.CertifiedUserManager#getCertificationQuestionnaire()
+	 * @see org.sagebionetworks.repo.manager.CertifiedUserManager#getCertificationQuiz()
 	 */
 	@Override
-	public Questionnaire getCertificationQuestionnaire() {
+	public Quiz getCertificationQuiz() {
 		// pull this from an S-3 File (TODO cache it, temporarily)
-		String questionnaireAsString = s3Utility.downloadFromS3ToString(S3_QUESTIONNAIRE_KEY);
-		Questionnaire questionnaire = new Questionnaire();
+		String quizAsString = s3Utility.downloadFromS3ToString(S3_QUESTIONNAIRE_KEY);
+		Quiz quiz = new Quiz();
 		try {
-			JSONObjectAdapter adapter = (new JSONObjectAdapterImpl()).createNew(questionnaireAsString);
-			questionnaire.initializeFromJSONObject(adapter);
+			JSONObjectAdapter adapter = (new JSONObjectAdapterImpl()).createNew(quizAsString);
+			quiz.initializeFromJSONObject(adapter);
 		} catch (JSONObjectAdapterException e) {
 			throw new RuntimeException(e);
 		}
-		validateQuestionnaire(questionnaire);
-		PrivateFieldUtils.clearPrivateFields(questionnaire);
+		validateQuiz(quiz);
+		PrivateFieldUtils.clearPrivateFields(quiz);
 		
-		return questionnaire;
+		return quiz;
 	}
 
 	/* (non-Javadoc)
-	 * @see org.sagebionetworks.repo.manager.CertifiedUserManager#submitCertificationQuestionnaireResponse(org.sagebionetworks.repo.model.UserInfo, org.sagebionetworks.repo.model.questionnaire.QuestionnaireResponse)
+	 * @see org.sagebionetworks.repo.manager.CertifiedUserManager#submitCertificationQuizResponse(org.sagebionetworks.repo.model.UserInfo, org.sagebionetworks.repo.model.quiz.QuizResponse)
 	 */
 	@Override
-	public QuestionnaireResponse submitCertificationQuestionnaireResponse(
-			UserInfo userInfo, QuestionnaireResponse response) {
+	public QuizResponse submitCertificationQuizResponse(
+			UserInfo userInfo, QuizResponse response) {
 		// TODO validate the submission
-		// make sure that the questionnaire ID matches that of the Cert User questionnaire
+		// make sure that the quiz ID matches that of the Cert User quiz
 		// make sure createdOn and createdBy are not null
 		// TODO grade the submission:  pass or fail?
 		// TODO if pass, add to Certified group
@@ -117,24 +117,24 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager, Initializ
 	}
 
 	/* (non-Javadoc)
-	 * @see org.sagebionetworks.repo.manager.CertifiedUserManager#getQuestionnaireResponses(org.sagebionetworks.repo.model.UserInfo, java.lang.Long, java.lang.Long, long, long)
+	 * @see org.sagebionetworks.repo.manager.CertifiedUserManager#getQuizResponses(org.sagebionetworks.repo.model.UserInfo, java.lang.Long, java.lang.Long, long, long)
 	 */
 	@Override
-	public PaginatedResults<QuestionnaireResponse> getQuestionnaireResponses(
+	public PaginatedResults<QuizResponse> getQuizResponses(
 			UserInfo userInfo, Long principalId,
 			long limit, long offset) {
 		// TODO validate userInfo -- only an admin may make this request
-		// TODO get the responses in the system, filtered questionnaire id and optionally user id
+		// TODO get the responses in the system, filtered quiz id and optionally user id
 		return null;
 	}
 
 	/* (non-Javadoc)
-	 * @see org.sagebionetworks.repo.manager.CertifiedUserManager#deleteQuestionnaireResponse(org.sagebionetworks.repo.model.UserInfo, java.lang.Long)
+	 * @see org.sagebionetworks.repo.manager.CertifiedUserManager#deleteQuizResponse(org.sagebionetworks.repo.model.UserInfo, java.lang.Long)
 	 */
 	@Override
-	public void deleteQuestionnaireResponse(UserInfo userInfo, Long responseId) {
+	public void deleteQuizResponse(UserInfo userInfo, Long responseId) {
 		// TODO validate userInfo -- only an admin may make this request
-		// TODO delete the questionnaire
+		// TODO delete the quiz
 	}
 
 	@Override

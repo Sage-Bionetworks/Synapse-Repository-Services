@@ -10,9 +10,9 @@ import java.util.List;
 
 import org.junit.Test;
 import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.questionnaire.MultichoiceAnswer;
-import org.sagebionetworks.repo.model.questionnaire.MultichoiceQuestion;
-import org.sagebionetworks.repo.model.questionnaire.Questionnaire;
+import org.sagebionetworks.repo.model.quiz.MultichoiceAnswer;
+import org.sagebionetworks.repo.model.quiz.MultichoiceQuestion;
+import org.sagebionetworks.repo.model.quiz.Quiz;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 
@@ -31,17 +31,17 @@ public class PrivateFieldUtilsTest {
 	}
 	
 	@Test
-	public void testQuestionnaire() throws Exception {
+	public void testQuiz() throws Exception {
 		InputStream is = PrivateFieldUtilsTest.class.getClassLoader().getResourceAsStream(CertifiedUserManagerImpl.QUESTIONNAIRE_PROPERTIES_FILE);
 
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
 		adapter = adapter.createNew(IOTestUtil.readFromInputStream(is, "utf-8"));
-		Questionnaire questionnaire = new Questionnaire();
-		// if the resource file does not contain a valid Questionnaire, this will fail
-		questionnaire.initializeFromJSONObject(adapter);
+		Quiz quiz = new Quiz();
+		// if the resource file does not contain a valid Quiz, this will fail
+		quiz.initializeFromJSONObject(adapter);
 		
-		assertNotNull(questionnaire.getMinimumScore());
-		List<MultichoiceAnswer> answers = ((MultichoiceQuestion)questionnaire.getQuestions().get(0).getQuestionOptions().get(0)).getAnswers();
+		assertNotNull(quiz.getMinimumScore());
+		List<MultichoiceAnswer> answers = ((MultichoiceQuestion)quiz.getQuestions().get(0).getQuestionOptions().get(0)).getAnswers();
 		
 		// at least one of the answers is correct
 		boolean foundCorrect = false;
@@ -50,16 +50,16 @@ public class PrivateFieldUtilsTest {
 		}
 		assertTrue(foundCorrect);
 		
-		PrivateFieldUtils.clearPrivateFields(questionnaire);
+		PrivateFieldUtils.clearPrivateFields(quiz);
 		
 		// check that the arrays are still in place
-		answers = ((MultichoiceQuestion)questionnaire.getQuestions().get(0).getQuestionOptions().get(0)).getAnswers();
+		answers = ((MultichoiceQuestion)quiz.getQuestions().get(0).getQuestionOptions().get(0)).getAnswers();
 
 		// now the min score field is cleared
-		assertNull(questionnaire.getMinimumScore());
+		assertNull(quiz.getMinimumScore());
 		
 		// but other fields are not scrubbed
-		assertNotNull(questionnaire.getId());
+		assertNotNull(quiz.getId());
 
 		for (MultichoiceAnswer a : answers) {
 			// and the correct answer field is cleared

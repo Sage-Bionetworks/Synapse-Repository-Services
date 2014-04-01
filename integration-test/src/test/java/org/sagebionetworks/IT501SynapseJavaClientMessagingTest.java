@@ -4,8 +4,10 @@ import static junit.framework.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.PrintWriter;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -259,10 +261,35 @@ public class IT501SynapseJavaClientMessagingTest {
 	}
 	
 	@Test
+	public void testDownloadMessageToFile() throws Exception {
+		File temp = File.createTempFile("test", null);
+		temp.deleteOnExit();
+		synapseTwo.downloadMessageToFile(oneToTwo.getId(), temp);
+		// now compare the downloaded file to the message body
+		FileInputStream f = new FileInputStream( temp );
+		int b;
+		byte[] bytes = new byte[(int)temp.length()];
+		int i = 0;
+		try {
+			while ( (b=f.read()) != -1 ) bytes[i++]=(byte)b;
+		} finally {
+			f.close();
+		}
+		assertEquals(new String(bytes, "utf-8"), MESSAGE_BODY);
+	}
+	
+	@Test
 	public void testDownloadMessage() throws Exception {
 		String message = synapseTwo.downloadMessage(oneToTwo.getId());
 		
 		assertTrue("Downloaded: " + message, MESSAGE_BODY.equals(message));
+	}
+	
+	@Test
+	public void testGetMessageTemporaryUrl() throws Exception {
+		String url = synapseTwo.getMessageTemporaryUrl(oneToTwo.getId());
+		// just test that it's a valid URL (will throw exception if not)
+		new URL(url);
 	}
 	
 	@Test
