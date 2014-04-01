@@ -27,7 +27,7 @@ public class DBOSemaphoreDaoImpl implements SemaphoreDao {
 	
 	static private Logger log = LogManager.getLogger(DBOSemaphoreDaoImpl.class);
 
-	private static final String SQL_RELEASE_LOCK = "DELETE FROM "+TABLE_SEMAPHORE+" WHERE "+COL_SEMAPHORE_KEY+" = ? AND "+COL_SEMAPHORE_TOKEN+" = ?";
+	private static final String SQL_RELEASE_LOCK =  "UPDATE "+TABLE_SEMAPHORE+" SET "+COL_SEMAPHORE_TOKEN+" = NULL, "+COL_SEMAPHORE_EXPIRES+" = NULL WHERE "+COL_SEMAPHORE_KEY+" = ? AND "+COL_SEMAPHORE_TOKEN+" = ?";
 
 	private static final String UPDATE_LOCKED_ROW_WITH_NEW_TOKEN_AND_EXPIRES = "UPDATE "+TABLE_SEMAPHORE+" SET "+COL_SEMAPHORE_TOKEN+" = ?, "+COL_SEMAPHORE_EXPIRES+" = ? WHERE "+COL_SEMAPHORE_KEY+" = ?";
 
@@ -47,10 +47,10 @@ public class DBOSemaphoreDaoImpl implements SemaphoreDao {
 		try{
 			// If there is no lock then an EmptyResultDataAccessException will be thrown.
 			// If there is a lock then we will hold a lock on this row in the database.
-			long expires = simpleJdbcTemplate.queryForLong(SQL_SELECT_EXPIRES_FOR_UPDATE, key);
+			Long expires = simpleJdbcTemplate.queryForObject(SQL_SELECT_EXPIRES_FOR_UPDATE, Long.class, key);
 			// Is the lock expired?
 			long currentTime = System.currentTimeMillis();
-			if(currentTime > expires){
+			if(expires == null || currentTime > expires){
 				// the current lock is expired so we can grab it.
 				// Issue the lock to the caller by updating the currently locked row.
 				long newExpires = currentTime+timeoutMS;
