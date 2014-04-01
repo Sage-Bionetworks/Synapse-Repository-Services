@@ -587,11 +587,50 @@ public interface SynapseClient extends BaseClient {
 	@Deprecated
 	public File downloadFromSynapse(LocationData location, String md5,
 			File destinationFile) throws SynapseException;
-
+	
 	@Deprecated
-	public File downloadFromSynapse(String path, String md5, File destinationFile)
-			throws SynapseException;
+	public File downloadFromSynapse(String path, String md5, File destinationFile) throws SynapseException;
 
+	/**
+	 * Download the File attachment for an entity, following redirects as needed.
+	 * 
+	 * @param entityId
+	 * @param destinationFile
+	 * @throws SynapseException
+	 */
+	public void downloadFromFileEntityCurrentVersion(String entityId, File destinationFile)
+			throws SynapseException;
+	
+	/**
+	 * Download the file attached to a given version of an FileEntity
+	 * 
+	 * @param entityId
+	 * @param version
+	 * @param destinationFile
+	 * @throws SynapseException
+	 */
+	public void downloadFromFileEntityForVersion(String entityId, Long version, File destinationFile)
+			throws SynapseException;
+	
+	/**
+	 * Download the preview for a given FileEntity
+	 * @param entityId
+	 * @param destinationFile
+	 * @throws SynapseException
+	 */
+	public void downloadFromFileEntityPreviewCurrentVersion(String entityId, File destinationFile)
+			throws SynapseException;
+	
+	/**
+	 * Download the preview attached to a given version of an entity
+	 * @param entityId
+	 * @param version
+	 * @param destinationFile
+	 * @throws SynapseException
+	 */
+	public void downloadFromFileEntityPreviewForVersion(String entityId, Long version, File destinationFile)
+			throws SynapseException;
+	
 	@Deprecated
 	public Locationable uploadLocationableToSynapse(Locationable locationable,
 			File dataFile) throws SynapseException;
@@ -900,6 +939,17 @@ public interface SynapseClient extends BaseClient {
 			String fileHandleId) throws ClientProtocolException,
 			MalformedURLException, IOException, SynapseException;
 
+	/**
+	 * Download a selected file attachment for a Submission, following redirects as needed.
+	 * 
+	 * @param submissionId
+	 * @param fileHandleId
+	 * @param destinationFile
+	 * @throws SynapseException
+	 */
+	public void downloadFromSubmission(String submissionId, String fileHandleId, File destinationFile) 
+			throws SynapseException;
+	
 	public Long getSubmissionCount(String evalId) throws SynapseException;
 
 	public UserEvaluationState getUserEvaluationState(String evalId)

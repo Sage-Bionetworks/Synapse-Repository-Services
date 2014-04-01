@@ -50,7 +50,7 @@ public class BridgeStubHttpClientProvider implements HttpClientProvider {
 	}
 
 	@Override
-	public void downloadFile(String requestUrl, String filepath)
+	public void downloadFile(String requestUrl, String filepath, Map<String, String> headers)
 			throws ClientProtocolException, IOException,
 			HttpClientHelperException {
 		// TODO Auto-generated method stub

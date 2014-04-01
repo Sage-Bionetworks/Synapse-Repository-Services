@@ -8,16 +8,12 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.commons.codec.binary.Base64;
-import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
-import org.apache.http.ParseException;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
@@ -53,8 +49,6 @@ import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.securitytools.HMACUtils;
 import org.sagebionetworks.utils.HttpClientHelperException;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
-
-import com.google.common.collect.Maps;
 
 /**
  * Low-level Java Client API for Synapse REST APIs
@@ -468,11 +462,23 @@ public class SharedClientConnection {
 		return FileUtils.readCompressedStreamAsString(entity.getContent());
 	}
 
-	@Deprecated
-	public File downloadFromSynapse(String path, String md5,
-				File destinationFile) throws SynapseException {
+	public File downloadFromSynapse(String url, String md5,
+				File destinationFile, String userAgent) throws SynapseException {
+		if (null == url) {
+			throw new IllegalArgumentException("must provide path");
+		}
+		
+		Map<String, String> modHeaders = new HashMap<String, String>(defaultGETDELETEHeaders);
+		// remove session token if it is null
+		if(modHeaders.containsKey(SESSION_TOKEN_HEADER) && modHeaders.get(SESSION_TOKEN_HEADER) == null) {
+			modHeaders.remove(SESSION_TOKEN_HEADER);
+		}
+		modHeaders.put(USER_AGENT, userAgent);
+		if (apiKey!=null) {
+			addDigitalSignature(url, modHeaders);
+		}
 		try {
-			clientProvider.downloadFile(path, destinationFile.getAbsolutePath());
+			clientProvider.downloadFile(url, destinationFile.getAbsolutePath(), modHeaders);
 			// Check that the md5s match, if applicable
 			if (null != md5) {
 				String localMd5 = MD5ChecksumHelper
@@ -600,7 +606,7 @@ public class SharedClientConnection {
 				userAgent, null);
 		return jsonObject;
 	}
-	
+		
 	/**
 	 * Get a JSONEntity
 	 * @param userAgent 
@@ -633,7 +639,21 @@ public class SharedClientConnection {
 		if (null == uri) throw new IllegalArgumentException("must provide uri");		
 		signAndDispatchSynapseRequest(endpoint, uri, "DELETE", null, defaultGETDELETEHeaders, userAgent, null);
 	}
-
+	
+	private void addDigitalSignature(String url, Map<String, String> modHeaders) throws SynapseClientException {
+		String timeStamp = (new DateTime()).toString();
+		String uriRawPath = null; 
+		try {
+			uriRawPath = (new URI(url)).getRawPath(); // chop off the query, if any
+		} catch (URISyntaxException e) {
+			throw new SynapseClientException(e);
+		}
+	    String signature = HMACUtils.generateHMACSHA1Signature(userName, uriRawPath, timeStamp, apiKey);
+	    modHeaders.put(AuthorizationConstants.USER_ID_HEADER, userName);
+	    modHeaders.put(AuthorizationConstants.SIGNATURE_TIMESTAMP, timeStamp);
+	    modHeaders.put(AuthorizationConstants.SIGNATURE, signature);
+	}
+	
 	protected JSONObject signAndDispatchSynapseRequest(String endpoint, String uri, String requestMethod,
 			String requestContent, Map<String, String> requestHeaders, String userAgent, Map<String,String> parameters)
 			throws SynapseException {
@@ -641,17 +661,7 @@ public class SharedClientConnection {
 		modHeaders.put(USER_AGENT, userAgent);
 		
 		if (apiKey!=null) {
-			String timeStamp = (new DateTime()).toString();
-			String uriRawPath = null; 
-			try {
-				uriRawPath = (new URI(endpoint+uri)).getRawPath(); // chop off the query, if any
-			} catch (URISyntaxException e) {
-				throw new SynapseClientException(e);
-			}
-		    String signature = HMACUtils.generateHMACSHA1Signature(userName, uriRawPath, timeStamp, apiKey);
-		    modHeaders.put(AuthorizationConstants.USER_ID_HEADER, userName);
-		    modHeaders.put(AuthorizationConstants.SIGNATURE_TIMESTAMP, timeStamp);
-		    modHeaders.put(AuthorizationConstants.SIGNATURE, signature);
+			addDigitalSignature(endpoint + uri, modHeaders);
 		    return dispatchSynapseRequest(endpoint, uri, requestMethod, requestContent, modHeaders, parameters);
 		} 
 		return dispatchSynapseRequest(endpoint, uri, requestMethod, requestContent, modHeaders, parameters);
