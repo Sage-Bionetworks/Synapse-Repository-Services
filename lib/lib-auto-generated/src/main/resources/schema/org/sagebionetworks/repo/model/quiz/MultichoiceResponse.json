@@ -3,7 +3,7 @@
 	"description":"The response to a multiple choice question",
     "implements":[
         {
-            "$ref":"org.sagebionetworks.repo.model.questionnaire.QuestionResponse"
+            "$ref":"org.sagebionetworks.repo.model.quiz.QuestionResponse"
         }
     ],
     "properties":{
