@@ -824,9 +824,14 @@ public interface SynapseClient extends BaseClient {
 	public void deleteMessage(String messageId) throws SynapseException;
 	
 	/**
-	 * Returns a temporary URL that can be used to download the body of a message
+	 * Downloads the body of a message and returns it in a String
 	 */
 	public String downloadMessage(String messageId) throws SynapseException, MalformedURLException, IOException;
+	
+	/**
+	 * Returns a temporary URL that can be used to download the body of a message
+	 */
+	public String getMessageTemporaryUrl(String messageId) throws SynapseException, MalformedURLException, IOException;
 	
 	/**
 	 * Downloads the body of a message to the given target file location.

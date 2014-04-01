@@ -40,7 +40,6 @@ import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
-import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
@@ -1205,7 +1204,7 @@ public class IT500SynapseJavaClient {
 		// upload an icon and get the file handle
 		// before setting the icon
 		try {
-			synapseOne.getTeamIcon(createdTeam.getId(), false);
+			synapseOne.getTeamIcon(createdTeam.getId());
 			fail("Expected: Not Found");
 		} catch (SynapseException e) {
 			// expected
@@ -1229,8 +1228,12 @@ public class IT500SynapseJavaClient {
 		createdTeam.setIcon(fileHandle.getId());
 		Team updatedTeam = synapseOne.updateTeam(createdTeam);
 		// get the icon url
-		URL url = synapseOne.getTeamIcon(updatedTeam.getId(), false);
+		URL url = synapseOne.getTeamIcon(updatedTeam.getId());
 		assertNotNull(url);
+		// check that we can download the Team icon to a file
+		File target = File.createTempFile("temp", null);
+		synapseOne.downloadTeamIcon(updatedTeam.getId(), target);
+		assertTrue(target.length()>0);
 		// query for all teams
 		PaginatedResults<Team> teams = synapseOne.getTeams(null, getBootstrapCountPlus(1L), 0);
 		assertEquals(getBootstrapCountPlus(1L), teams.getTotalNumberOfResults());
