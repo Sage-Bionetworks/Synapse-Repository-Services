@@ -37,8 +37,9 @@ public class HttpClientProviderImpl implements HttpClientProvider {
 	}
 
 	@Override
-	public void downloadFile(String requestUrl, String filepath)throws ClientProtocolException, IOException, HttpClientHelperException {
-		HttpClientHelper.downloadFile(DefaultHttpClientSingleton.getInstance(), requestUrl, filepath);
+	public void downloadFile(String requestUrl, String filepath, Map<String,String> headers) 
+			throws ClientProtocolException, IOException, HttpClientHelperException {
+		HttpClientHelper.downloadFile(DefaultHttpClientSingleton.getInstance(), requestUrl, filepath, headers);
 	}
 
 

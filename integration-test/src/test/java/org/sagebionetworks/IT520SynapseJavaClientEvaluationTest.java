@@ -7,6 +7,8 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -21,14 +23,13 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
 import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
-import org.sagebionetworks.client.exceptions.SynapseClientException;
+import org.sagebionetworks.client.exceptions.SynapseServerException;
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
@@ -64,6 +65,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
+import org.sagebionetworks.utils.MD5ChecksumHelper;
 
 /**
  * Exercise the Evaluation Services methods in the Synapse Java Client
@@ -89,6 +91,8 @@ public class IT520SynapseJavaClientEvaluationTest {
 	private static Evaluation eval2;
 	private static Submission sub1;
 	private static Submission sub2;
+	private File dataSourceFile;
+	private static FileEntity fileEntity;
 	
 	private static List<String> evaluationsToDelete;
 	private static List<String> submissionsToDelete;
@@ -114,7 +118,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 	}
 	
 	@Before
-	public void before() throws DatastoreException, NotFoundException, SynapseException {
+	public void before() throws DatastoreException, NotFoundException, SynapseException, IOException {
 		evaluationsToDelete = new ArrayList<String>();
 		submissionsToDelete = new ArrayList<String>();
 		entitiesToDelete = new ArrayList<String>();
@@ -126,6 +130,19 @@ public class IT520SynapseJavaClientEvaluationTest {
 		dataset.setParentId(project.getId());
 		dataset = synapseOne.createEntity(dataset);
 		projectTwo = synapseTwo.createEntity(new Project());
+		
+		{
+			dataSourceFile = File.createTempFile("integrationTest", ".txt");
+			dataSourceFile.deleteOnExit();
+			FileWriter writer = new FileWriter(dataSourceFile);
+			writer.write("Hello world!");
+			writer.close();
+			S3FileHandle fileHandle = synapseOne.createFileHandle(dataSourceFile, "text/plain");
+			fileEntity = new FileEntity();
+			fileEntity.setParentId(project.getId());
+			fileEntity.setDataFileHandleId(fileHandle.getId());
+			fileEntity = synapseOne.createEntity(fileEntity);
+		}
 		
 		entitiesToDelete.add(project.getId());
 		entitiesToDelete.add(dataset.getId());
@@ -194,6 +211,8 @@ public class IT520SynapseJavaClientEvaluationTest {
 				adminSynapse.deleteFileHandle(fileHandle.getId());
 			} catch (SynapseException e) { }
 		}
+		
+		dataSourceFile=null;
 	}
 	
 	@AfterClass
@@ -318,14 +337,14 @@ public class IT520SynapseJavaClientEvaluationTest {
 	}
 	
 	@Test
-	public void testSubmissionRoundTrip() throws SynapseException, NotFoundException, InterruptedException {
+	public void testSubmissionRoundTrip() throws SynapseException, NotFoundException, InterruptedException, IOException {
 		eval1.setStatus(EvaluationStatus.OPEN);
 		eval1 = synapseOne.createEvaluation(eval1);
 		evaluationsToDelete.add(eval1.getId());
-		String entityId = project.getId();
-		String entityEtag = project.getEtag();
+		String entityId = fileEntity.getId();
+		String entityEtag = fileEntity.getEtag();
+		String entityFileHandleId = fileEntity.getDataFileHandleId();
 		assertNotNull(entityId);
-		entitiesToDelete.add(entityId);
 		
 		Long initialCount = synapseOne.getSubmissionCount(eval1.getId());
 		
@@ -350,6 +369,13 @@ public class IT520SynapseJavaClientEvaluationTest {
 		assertEquals(sub1.getVersionNumber(), status.getVersionNumber());
 		assertEquals(SubmissionStatusEnum.RECEIVED, status.getStatus());
 		
+		File target = File.createTempFile("test", null);
+		target.deleteOnExit();
+		adminSynapse.downloadFromSubmission(sub1.getId(), entityFileHandleId, target);
+		String expectedMD5 = MD5ChecksumHelper.getMD5Checksum(this.dataSourceFile);
+		String actualMD5 = MD5ChecksumHelper.getMD5Checksum(target);
+		assertEquals(expectedMD5, actualMD5);
+
 		// update
 		Thread.sleep(1L);
 		
