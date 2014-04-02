@@ -5,6 +5,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
+
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -123,11 +126,11 @@ public class TableIndexDAOImplTest {
 		assertEquals(5, result.size());
 		// Row zero
 		Map<String, Object> row = result.get(0);
-		assertEquals(100l, row.get(SQLUtils.ROW_ID));
+		assertEquals(100l, row.get(ROW_ID));
 		assertEquals(0l, row.get("C4"));
 		// row four
 		row = result.get(4);
-		assertEquals(104l, row.get(SQLUtils.ROW_ID));
+		assertEquals(104l, row.get(ROW_ID));
 		assertEquals(13.64, row.get("C1"));
 		assertEquals(4l, row.get("C4"));
 		
@@ -143,8 +146,8 @@ public class TableIndexDAOImplTest {
 		// row four
 		row = result.get(4);
 		// Check all values on the updated row.
-		assertEquals(104l, row.get(SQLUtils.ROW_ID));
-		assertEquals(5L, row.get(SQLUtils.ROW_VERSION));
+		assertEquals(104l, row.get(ROW_ID));
+		assertEquals(5L, row.get(ROW_VERSION));
 		assertEquals("update", row.get("C0"));
 		assertEquals(99.99, row.get("C1"));
 		assertEquals(3L, row.get("C2"));

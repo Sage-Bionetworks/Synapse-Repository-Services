@@ -1,15 +1,10 @@
 package org.sagebionetworks.table.cluster;
 
-import static org.sagebionetworks.table.cluster.SQLUtils.ROW_ID;
-import static org.sagebionetworks.table.cluster.SQLUtils.ROW_VERSION;
-
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.query.model.ActualIdentifier;
 import org.sagebionetworks.table.query.model.BetweenPredicate;
 import org.sagebionetworks.table.query.model.BooleanFactor;
@@ -54,6 +49,8 @@ import org.sagebionetworks.table.query.model.ValueExpression;
 import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
 import org.sagebionetworks.table.query.model.WhereClause;
 
+import static org.sagebionetworks.repo.model.table.TableConstants.*;
+
 /**
  * Helper methods to translate table SQL queries.
  * 
@@ -62,12 +59,6 @@ import org.sagebionetworks.table.query.model.WhereClause;
  */
 public class SQLTranslatorUtils {
 	
-	/**
-	 * The set of reserved column names includes things like ROW_ID and ROW_VERSION
-	 */
-	private static final Set<String> RESERVED_COLUMNS_NAMES = new HashSet<String>(Arrays.asList(ROW_ID, ROW_VERSION));
-
-
 	/**
 	 * Translate the passed query model into output SQL.
 	 * @param model The model representing a query.
@@ -119,7 +110,7 @@ public class SQLTranslatorUtils {
 			}
 			// If this is not an aggregate query then we must also fetch the row id and row version
 			if(!isAggregate){
-				builder.append(", ").append(SQLUtils.ROW_ID).append(", ").append(SQLUtils.ROW_VERSION);
+				builder.append(", ").append(ROW_ID).append(", ").append(ROW_VERSION);
 			}
 			return isAggregate;
 		}else{
@@ -200,14 +191,13 @@ public class SQLTranslatorUtils {
 		if(columnReference == null) throw new IllegalArgumentException("ColumnReference cannot be null");
 		String columnName = getStringValueOf(columnReference.getNameLHS());
 		// Is this a reserved column name like ROW_ID or ROW_VERSION?
-		String reserevedName = isReservedColumnName(columnName);
-		if(reserevedName != null){
+		if(TableConstants.isReservedColumnName(columnName)){
 			// use the returned reserve name in destination SQL.
-			builder.append(reserevedName);
+			builder.append(columnName.toUpperCase());
 		}else{
 			// Not a reserved column name.
 			// Lookup the ID for this column
-			Long columnId = columnNameToIdMap.get(columnName);
+			Long columnId = columnNameToIdMap.get(columnName.toLowerCase());
 			if(columnId == null) throw new IllegalArgumentException("Unknown column name: "+columnName);
 			builder.append(SQLUtils.COLUMN_PREFIX).append(columnId);
 			if(columnReference.getNameRHS() != null){
@@ -903,22 +893,5 @@ public class SQLTranslatorUtils {
 			return selectIds;
 		}
 	}
-	
-	/**
-	 * Is the passed column name a reserved column name like ROW_ID or ROW_VERSION?
-	 * If true, then the column name used for a query will be returned, otherwise null.
-	 * 
-	 * This check must be case insensitive.
-	 * @param name
-	 * @return
-	 */
-	public static String isReservedColumnName(String name){
-		if(name == null) return null;
-		String upper = name.toUpperCase();
-		if(RESERVED_COLUMNS_NAMES.contains(upper)){
-			return upper;
-		}else{
-			return null;
-		}
-	}
+
 }

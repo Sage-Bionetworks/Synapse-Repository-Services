@@ -1,5 +1,8 @@
 package org.sagebionetworks.table.cluster;
 
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
@@ -16,6 +19,8 @@ import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
+
+
 
 
 public class SQLUtilsTest {
@@ -325,7 +330,7 @@ public class SQLUtilsTest {
 	@Test
 	public void testConvertColumnNamesToColumnId(){
 		// Start with column
-		List<String> columnNames = Arrays.asList(SQLUtils.ROW_ID, SQLUtils.ROW_VERSION,"C2","C1");
+		List<String> columnNames = Arrays.asList(ROW_ID, ROW_VERSION,"C2","C1");
 		List<String> expected = Arrays.asList("2","1");
 		List<String> results = SQLUtils.convertColumnNamesToColumnId(columnNames);
 		assertEquals(expected, results);

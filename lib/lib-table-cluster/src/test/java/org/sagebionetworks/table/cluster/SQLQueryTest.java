@@ -40,6 +40,14 @@ public class SQLQueryTest {
 		assertEquals("C111", builder.toString());
 	}
 	
+	@Test
+	public void testTranslateColumnReferenceIgnoreCase() throws ParseException{
+		ColumnReference columnReference = SqlElementUntils.createColumnReference("Foo");
+		StringBuilder builder = new StringBuilder();
+		SQLTranslatorUtils.translate(columnReference, builder, columnNameToIdMap);
+		assertEquals("C111", builder.toString());
+	}
+	
 	@Test 
 	public void testTranslateColumnReferenceUnknownColumn() throws ParseException{
 		try{
@@ -76,20 +84,6 @@ public class SQLQueryTest {
 		assertEquals("ROW_ID", builder.toString());
 	}
 	
-	@Test
-	public void testIsReservedColumnNameNegative(){
-		assertNull(SQLTranslatorUtils.isReservedColumnName("notReserved"));
-	}
-	
-	@Test
-	public void testIsReservedColumnNameRowIdCaseInsensitive(){
-		assertEquals("The isReservedColumnName() method should be case insensitive.","ROW_ID", SQLTranslatorUtils.isReservedColumnName("row_id"));
-	}
-	
-	@Test
-	public void testIsReservedColumnNameRowVersion(){
-		assertEquals("ROW_VERSION", SQLTranslatorUtils.isReservedColumnName("ROW_VERSION"));
-	}
 	
 	@Test
 	public void testSelectStar() throws ParseException{

@@ -16,6 +16,8 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
+import static org.sagebionetworks.repo.model.table.TableConstants.*;
+
 /**
  * Utilities for generating Table SQL, DML, and DDL.
  * 
@@ -24,9 +26,8 @@ import org.springframework.jdbc.core.namedparam.SqlParameterSource;
  */
 public class SQLUtils {
 
-	public static final String ROW_ID = "ROW_ID";
+
 	public static final String ROW_ID_BIND = "bRI";
-	public static final String ROW_VERSION = "ROW_VERSION";
 	public static final String ROW_VERSION_BIND = "bRV";
 	public static final String DEFAULT = "DEFAULT";
 	public static final String TABLE_PREFIX = "T";

@@ -1,13 +1,16 @@
 package org.sagebionetworks.table.cluster;
 
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
+
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.RowMapper;
@@ -164,8 +167,8 @@ public class TableIndexDAOImpl implements TableIndexDAO{
 				row.setValues(values);
 				if(!query.isAggregatedResult()){
 					// Non-aggregate queries include two extra columns, row id and row version.
-					row.setRowId(rs.getLong(SQLUtils.ROW_ID));
-					row.setVersionNumber(rs.getLong(SQLUtils.ROW_VERSION));
+					row.setRowId(rs.getLong(ROW_ID));
+					row.setVersionNumber(rs.getLong(ROW_VERSION));
 				}
 				// fill the value list
 				for(Integer index: nonMetadataColumnIndicies){
@@ -189,7 +192,7 @@ public class TableIndexDAOImpl implements TableIndexDAO{
 		for(int i=1; i<columnCount+1; i++){
 			String name = resultSetMetaData.getColumnName(i);
 			// If this is a real column then we can extract the ColumnId.
-			if(SQLUtils.ROW_ID.equals(name) || SQLUtils.ROW_VERSION.equals(name)){
+			if(ROW_ID.equals(name) || ROW_VERSION.equals(name)){
 				// We do not include row id or row version in the headers.
 				continue;
 			}
