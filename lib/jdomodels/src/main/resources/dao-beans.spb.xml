@@ -282,7 +282,9 @@
 		class="org.sagebionetworks.evaluation.dao.SubmissionFileHandleDAOImpl" />
 	<bean id="annotationsDAO"
 		class="org.sagebionetworks.evaluation.dao.AnnotationsDAOImpl" />
-	
+	<bean id="quizResponseDao"
+		class="org.sagebionetworks.repo.model.dbo.dao.DBOQuizResponseDAOImpl" />
+		
 	<!-- Misc beans -->
 	<bean id="semaphoreDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.semaphore.DBOSemaphoreDaoImpl" />

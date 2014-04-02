@@ -5,6 +5,7 @@ package org.sagebionetworks.repo.manager;
 
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -13,7 +14,10 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
+import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.QuizResponseDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.quiz.MultichoiceAnswer;
 import org.sagebionetworks.repo.model.quiz.MultichoiceQuestion;
@@ -27,6 +31,8 @@ import org.sagebionetworks.repo.model.quiz.QuizGenerator;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
 import org.sagebionetworks.repo.model.quiz.TextFieldQuestion;
 import org.sagebionetworks.repo.model.quiz.TextFieldResponse;
+import org.sagebionetworks.repo.web.ForbiddenException;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
@@ -43,13 +49,40 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager, Initializ
 	public static final String S3_QUESTIONNAIRE_KEY = "repository-managers."+QUESTIONNAIRE_PROPERTIES_FILE;
 
 	@Autowired
-	AmazonS3Utility s3Utility;	
+	private AmazonS3Utility s3Utility;	
+	
+	@Autowired
+	private GroupMembersDAO groupMembersDao;
+	
+	@Autowired
+	private QuizResponseDAO quizResponseDao;
+	
+	public CertifiedUserManagerImpl() {}
+	
+	/**
+	 * For unit testing
+	 * 
+	 * @param s3Utility
+	 * @param groupMembersDao
+	 * @param quizResponseDao
+	 */
+	public CertifiedUserManagerImpl(
+			 AmazonS3Utility s3Utility,
+			 GroupMembersDAO groupMembersDao,
+			 QuizResponseDAO quizResponseDao
+			) {
+		this.s3Utility=s3Utility;
+		this.groupMembersDao=groupMembersDao;
+		this.quizResponseDao=quizResponseDao;
+	}
 	
 	/**
 	 * Throw exception if not valid
 	 * 
 	 * @param quiz
 	 */
+	// TODO check for DUPLICATE question indices too, and return all errors in a single batch
+	// TODO check unique answer indices (per question)
 	public static void validateQuizGenerator(QuizGenerator quiz) {
 		//	make sure there is a minimum score and that it's >=0, <=# question varieties
 		Long minimumScore = quiz.getMinimumScore();
@@ -158,11 +191,11 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager, Initializ
 	 * @param response
 	 * @return true iff response passes
 	 */
-	public static boolean scoreQuizResponse(QuizGenerator quizGenerator, QuizResponse quizResponse) {
-		//Map<Long, QuestionResponse> correctResponses = compileCorrectAnswers(quiz);
-		// The key in the following map is the *index* of the answered question in 
-		// the *question variety* of the QuizGenerator.  The value says whether the
-		// answer is right or wrong.
+	public static void scoreQuizResponse(QuizGenerator quizGenerator, QuizResponse quizResponse) {
+		// The key in the following map is the *index* of the *question variety* 
+		// containing the question in the list of question varieties in the QuizGenerator.  
+		// (This allows us to make sure we don't receive multiple answers to a single question variety.)
+		// The value in the map says whether the answer is right or wrong.
 		Map<Integer, Boolean> responseMap = new HashMap<Integer, Boolean>();
 		for (QuestionResponse r : quizResponse.getQuestionResponses()) {
 			Integer questionVarietyIndex = null;
@@ -190,7 +223,7 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager, Initializ
 		}
 		boolean pass = correctAnswerCount >= quizGenerator.getMinimumScore();
 		quizResponse.setPass(pass);
-		return pass;
+		quizResponse.setScore(correctAnswerCount));
 	}
 	
 	public static void fillInResponseValues(QuizResponse response, Long userId, Date createdOn, Long quizId) {
@@ -203,15 +236,29 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager, Initializ
 	 * @see org.sagebionetworks.repo.manager.CertifiedUserManager#submitCertificationQuizResponse(org.sagebionetworks.repo.model.UserInfo, org.sagebionetworks.repo.model.quiz.QuizResponse)
 	 */
 	@Override
-	public QuizResponse submitCertificationQuizResponse(
-			UserInfo userInfo, QuizResponse response) {
+	public PassingRecord submitCertificationQuizResponse(
+			UserInfo userInfo, QuizResponse response) throws NotFoundException {
 		QuizGenerator quizGenerator = retrieveCertificationQuizGenerator();
 		// grade the submission:  pass or fail?
-		boolean pass = scoreQuizResponse(quizGenerator, response);
+		scoreQuizResponse(quizGenerator, response);
+		Date now = new Date();
 		fillInResponseValues(response, userInfo.getId(), new Date(), quizGenerator.getId());
-		// TODO store the submission in the RDS
-		// TODO if pass, add to Certified group
-		return null; // TODO return the created object
+		// store the submission in the RDS
+		QuizResponse created = quizResponseDao.create(response);
+		// if pass, add to Certified group
+		if (response.getPass()) {
+			groupMembersDao.addMembers(
+					AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(), 
+					Collections.singletonList(userInfo.getId().toString()));
+		}
+		PassingRecord passingRecord = new PassingRecord();
+		passingRecord.setPassed(response.getPass());
+		passingRecord.setPassedOn(now);
+		passingRecord.setQuizId(response.getQuizId());
+		passingRecord.setResponseId(response.getId());
+		passingRecord.setScore(response.getScore());
+		passingRecord.setUserId(response.getCreatedBy());
+		return passingRecord;
 	}
 
 	/* (non-Javadoc)
@@ -221,8 +268,11 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager, Initializ
 	public PaginatedResults<QuizResponse> getQuizResponses(
 			UserInfo userInfo, Long principalId,
 			long limit, long offset) {
-		// TODO validate userInfo -- only an admin may make this request
+		if (!userInfo.isAdmin()) throw new ForbiddenException("Only Synapse administrators may make this request.");
 		// TODO get the responses in the system, filtered quiz id and optionally user id
+		if (principalId==null) {
+		} else {
+		}
 		return null;
 	}
 

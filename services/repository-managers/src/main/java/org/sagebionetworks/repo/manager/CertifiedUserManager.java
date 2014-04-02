@@ -5,6 +5,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
 import org.sagebionetworks.repo.model.quiz.Quiz;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
+import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
  * 
@@ -26,8 +27,9 @@ public interface CertifiedUserManager {
 	 * @parm userInfo
 	 * @param response
 	 * @return
+	 * @throws NotFoundException 
 	 */
-	public QuizResponse submitCertificationQuizResponse(UserInfo userInfo, QuizResponse response);
+	public PassingRecord submitCertificationQuizResponse(UserInfo userInfo, QuizResponse response) throws NotFoundException;
 
 	/**
 	 * Retrieve the questionnaire responses in the system, optionally filtering by user Id.
