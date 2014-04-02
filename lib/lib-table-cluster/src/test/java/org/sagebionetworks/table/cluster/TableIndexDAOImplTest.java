@@ -5,6 +5,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
+
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -124,11 +127,11 @@ public class TableIndexDAOImplTest {
 		assertEquals(5, result.size());
 		// Row zero
 		Map<String, Object> row = result.get(0);
-		assertEquals(100l, row.get(SQLUtils.ROW_ID));
+		assertEquals(100l, row.get(ROW_ID));
 		assertEquals(0l, row.get("C4"));
 		// row four
 		row = result.get(4);
-		assertEquals(104l, row.get(SQLUtils.ROW_ID));
+		assertEquals(104l, row.get(ROW_ID));
 		assertEquals(13.64, row.get("C1"));
 		assertEquals(4l, row.get("C4"));
 		
@@ -144,8 +147,8 @@ public class TableIndexDAOImplTest {
 		// row four
 		row = result.get(4);
 		// Check all values on the updated row.
-		assertEquals(104l, row.get(SQLUtils.ROW_ID));
-		assertEquals(5L, row.get(SQLUtils.ROW_VERSION));
+		assertEquals(104l, row.get(ROW_ID));
+		assertEquals(5L, row.get(ROW_VERSION));
 		assertEquals("update", row.get("C0"));
 		assertEquals(99.99, row.get("C1"));
 		assertEquals(3L, row.get("C2"));
@@ -346,6 +349,55 @@ public class TableIndexDAOImplTest {
 		assertEquals(new Long(199), row.getRowId());
 		assertEquals(new Long(4), row.getVersionNumber());
 		List<String> expectedValues = Arrays.asList("string99", "99");
+		assertEquals(expectedValues, row.getValues());
+	}
+	
+	@Test
+	public void testQueryRowIdAndRowVersion() throws ParseException{
+		ColumnModel foo = new ColumnModel();
+		foo.setColumnType(ColumnType.STRING);
+		foo.setName("foo");
+		foo.setId("111");
+		foo.setMaximumSize(10L);
+		ColumnModel bar = new ColumnModel();
+		bar.setColumnType(ColumnType.LONG);
+		bar.setId("222");
+		bar.setName("bar");
+		List<ColumnModel> schema = new LinkedList<ColumnModel>();
+		schema.add(foo);
+		schema.add(bar);
+		// Create the table.
+		tableIndexDAO.createOrUpdateTable(schema, tableId);
+		// Create some data
+		// Now add some data
+		List<Row> rows = TableModelUtils.createRows(schema, 100);
+		RowSet set = new RowSet();
+		set.setRows(rows);
+		List<String> headers = TableModelUtils.getHeaders(schema);
+		set.setHeaders(headers);
+		set.setTableId(tableId);
+		IdRange range = new IdRange();
+		range.setMinimumId(100L);
+		range.setMaximumId(200L);
+		range.setVersionNumber(4L);
+		TableModelUtils.assignRowIdsAndVersionNumbers(set, range);
+		// Now fill the table with data
+		tableIndexDAO.createOrUpdateRows(set, schema);
+		Map<String, Long> columnNameToIdMap = TableModelUtils.createColumnNameToIdMap(schema);
+		// Now create the query
+		SqlQuery query = new SqlQuery("select * from "+tableId+" where ROW_ID = 104 AND Row_Version > 1 limit 1 offset 0", columnNameToIdMap);
+		// Now query for the results
+		RowSet results = tableIndexDAO.query(query);
+		assertNotNull(results);
+		assertNotNull(results.getRows());
+		assertEquals(tableId, results.getTableId());
+		assertEquals(1, results.getRows().size());
+		// first and only row.
+		Row row = results.getRows().get(0);
+		assertNotNull(row);
+		assertEquals(new Long(104), row.getRowId());
+		assertEquals(new Long(4), row.getVersionNumber());
+		List<String> expectedValues = Arrays.asList("string4", "4");
 		assertEquals(expectedValues, row.getValues());
 	}
 }

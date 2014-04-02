@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.table;
 
+import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -109,6 +110,28 @@ public class ColumnModelManagerTest {
 		when(mockColumnModelDAO.createColumnModel(in)).thenReturn(out);
 		ColumnModel results = columnModelManager.createColumnModel(user, in);
 		assertEquals(out, results);
+	}
+	
+	/**
+	 * Should not be able to create a column with a name that is reserved.
+	 * 
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@Test
+	public void testCreateColumnModelReservedName() throws DatastoreException, NotFoundException{
+		ColumnModel in = new ColumnModel();
+		in.setName(TableConstants.ROW_ID.toLowerCase());
+		// Setup the anonymous users
+		when(mockauthorizationManager.isAnonymousUser(user)).thenReturn(false);
+		when(mockColumnModelDAO.createColumnModel(in)).thenReturn(in);
+		try{
+			columnModelManager.createColumnModel(user, in);
+			fail("should not be able to create a column model with a reserved column name");
+		}catch(IllegalArgumentException e){
+			// expected
+			assertTrue(e.getMessage().contains(in.getName()));
+		}
 	}
 	
 	@Test (expected = IllegalArgumentException.class)
