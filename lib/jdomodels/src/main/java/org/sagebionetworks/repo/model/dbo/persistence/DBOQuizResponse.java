@@ -34,7 +34,7 @@ public class DBOQuizResponse implements MigratableDatabaseObject<DBOQuizResponse
 	@Field(name = SqlConstants.COL_QUIZ_RESPONSE_PASSED, backupId = false, primary = false, nullable = false)
 	private Boolean passed;
 	
-	@Field(name = SqlConstants.COL_QUIZ_RESPONSE_SERIALIZED, backupId = false, primary = false, nullable = false)
+	@Field(name = SqlConstants.COL_QUIZ_RESPONSE_SERIALIZED, backupId = false, primary = false, nullable = false, serialized="mediumblob")
 	private byte[] serialized;
 
 	private static TableMapping<DBOQuizResponse> tableMapping = AutoTableMapping.create(DBOQuizResponse.class);
