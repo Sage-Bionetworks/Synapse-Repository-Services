@@ -4,7 +4,7 @@
 	"questions":[{
 		"questionOptions":[{
 			"questionIndex":101,
-			"concreteType":"org.sagebionetworks.repo.model.questionnaire.MultichoiceQuestion",
+			"concreteType":"org.sagebionetworks.repo.model.quiz.MultichoiceQuestion",
 			"prompt":"What is 1+1?",
 			"exclusive":true,
 			"answers":[
