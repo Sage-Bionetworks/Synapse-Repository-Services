@@ -370,7 +370,7 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.createOrUpdateTable(schema, tableId);
 		// Create some data
 		// Now add some data
-		List<Row> rows = TableModelUtils.createRows(schema, 100);
+		List<Row> rows = TableModelTestUtils.createRows(schema, 100);
 		RowSet set = new RowSet();
 		set.setRows(rows);
 		List<String> headers = TableModelUtils.getHeaders(schema);
