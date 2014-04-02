@@ -3,7 +3,7 @@
 	"description":"The text response to a TextFieldQuestion",
     "implements":[
         {
-            "$ref":"org.sagebionetworks.repo.model.questionnaire.QuestionResponse"
+            "$ref":"org.sagebionetworks.repo.model.quiz.QuestionResponse"
         }
     ],
     "properties":{

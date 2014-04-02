@@ -63,6 +63,8 @@ public class ServiceProviderImpl implements ServiceProvider {
 	private MembershipRequestService membershipRequestService;
 	@Autowired
 	private PrincipalService principalService;
+	@Autowired
+	private CertifiedUserService certifiedUserService;
 	
 	public AccessApprovalService getAccessApprovalService() {
 		return accessApprovalService;
@@ -156,6 +158,10 @@ public class ServiceProviderImpl implements ServiceProvider {
 	@Override
 	public PrincipalService getPrincipalService() {
 		return principalService;
+	}
+	@Override
+	public CertifiedUserService getCertifiedUserService()  {
+		return certifiedUserService;
 	}
 
 }

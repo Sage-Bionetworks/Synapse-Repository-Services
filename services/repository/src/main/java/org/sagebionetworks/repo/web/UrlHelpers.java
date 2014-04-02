@@ -686,6 +686,12 @@ public class UrlHelpers {
 	public static final String OPEN_MEMBERSHIP_REQUEST_FOR_USER = USER+ID+"/openRequest";
 	public static final String REQUESTOR_ID_REQUEST_PARAMETER = "requestorId";
 	
+	// certified user services
+	public static final String CERTIFIED_USER_TEST = "/certifiedUserTest";
+	public static final String CERTIFIED_USER_TEST_RESPONSE = "/certifiedUserTestResponse";
+	public static final String CERTIFIED_USER_TEST_RESPONSE_WITH_ID = "/certifiedUserTestResponse"+ID;
+	public static final String CERTIFIED_USER_PASSING_RECORD_WITH_ID = USER+ID+"/certifiedUserPassingRecord";
+	
 	/**
 	 * APIs for DynamoDB related operations.
 	 */

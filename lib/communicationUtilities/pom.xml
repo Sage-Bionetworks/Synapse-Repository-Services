@@ -45,14 +45,6 @@
 			<artifactId>httpclient</artifactId>
 		</dependency>
 
-		<!-- jsoup HTML parser library @ http://jsoup.org/ -->
-		<!-- JQuery-like HTML parser -->
-		<dependency>
-			<groupId>org.jsoup</groupId>
-			<artifactId>jsoup</artifactId>
-			<version>1.5.2</version>
-		</dependency>
-
 		<!-- String utils -->
 		<dependency>
 			<groupId>commons-lang</groupId>

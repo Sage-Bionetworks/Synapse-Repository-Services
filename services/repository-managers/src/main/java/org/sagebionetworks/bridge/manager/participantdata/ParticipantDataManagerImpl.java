@@ -8,7 +8,6 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
-import java.util.Map;
 
 import org.apache.commons.lang.BooleanUtils;
 import org.sagebionetworks.bridge.model.ParticipantDataDAO;
@@ -24,7 +23,6 @@ import org.sagebionetworks.bridge.model.data.value.ParticipantDataDatetimeValue;
 import org.sagebionetworks.bridge.model.data.value.ParticipantDataEventValue;
 import org.sagebionetworks.bridge.model.data.value.ParticipantDataLabValue;
 import org.sagebionetworks.bridge.model.data.value.ParticipantDataValue;
-import org.sagebionetworks.bridge.model.data.value.ValueFactory;
 import org.sagebionetworks.bridge.model.data.value.ValueTranslator;
 import org.sagebionetworks.bridge.model.timeseries.TimeSeriesColumn;
 import org.sagebionetworks.bridge.model.timeseries.TimeSeriesRow;
