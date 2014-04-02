@@ -9,6 +9,7 @@ import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -84,6 +85,13 @@ public class SQLUtilsTest {
 	}
 	
 	@Test
+	public void testGetSQLTypeForColumnTypeDate() {
+		String expected = "bigint(20)";
+		String sql = SQLUtils.getSQLTypeForColumnType(ColumnType.DATE, null);
+		assertEquals(expected, sql);
+	}
+
+	@Test
 	public void testGetSQLTypeForColumnTypeDouble(){
 		String expected = "double";
 		String sql = SQLUtils.getSQLTypeForColumnType(ColumnType.DOUBLE, null);
@@ -125,6 +133,13 @@ public class SQLUtilsTest {
 	}
 	
 	@Test
+	public void testparseValueForDBDate() {
+		Long expected = new Long(123);
+		Object objectValue = SQLUtils.parseValueForDB(ColumnType.DATE, "123");
+		assertEquals(expected, objectValue);
+	}
+
+	@Test
 	public void testparseValueForDBDouble(){
 		Double expected = new Double(123.456);
 		Object objectValue = SQLUtils.parseValueForDB(ColumnType.DOUBLE, "123.456");
@@ -160,6 +175,13 @@ public class SQLUtilsTest {
 		assertEquals(expected, sql);
 	}
 	
+	@Test
+	public void testGetSQLDefaultsForDATE() {
+		String expected = "DEFAULT 123";
+		String sql = SQLUtils.getSQLDefaultForColumnType(ColumnType.DATE, "123");
+		assertEquals(expected, sql);
+	}
+
 	@Test
 	public void testGetSQLDefaultsForString(){
 		String expected = "DEFAULT 'a string'";
@@ -206,7 +228,7 @@ public class SQLUtilsTest {
 	
 	@Test
 	public void testCreateAllTypes(){
-		List<ColumnModel> allTypes = TableModelUtils.createOneOfEachType();
+		List<ColumnModel> allTypes = TableModelTestUtils.createOneOfEachType();
 		String sql = SQLUtils.createTableSQL(allTypes, "syn123");
 		assertNotNull(sql);
 		System.out.println(sql);
@@ -386,9 +408,9 @@ public class SQLUtilsTest {
 	
 	@Test
 	public void testBindParametersForCreateOrUpdateAllTypes(){
-		List<ColumnModel> newSchema = TableModelUtils.createOneOfEachType();
+		List<ColumnModel> newSchema = TableModelTestUtils.createOneOfEachType();
 		RowSet set = new RowSet();
-		set.setRows(TableModelUtils.createRows(newSchema, 3));
+		set.setRows(TableModelTestUtils.createRows(newSchema, 3));
 		set.setHeaders(TableModelUtils.getHeaders(newSchema));
 		set.setTableId("syn123");
 		IdRange range = new IdRange();

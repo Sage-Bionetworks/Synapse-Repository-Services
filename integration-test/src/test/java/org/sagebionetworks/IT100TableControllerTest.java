@@ -25,6 +25,7 @@ import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseTableUnavilableException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -144,7 +145,7 @@ public class IT100TableControllerTest {
 		
 		// Append some rows
 		RowSet set = new RowSet();
-		List<Row> rows = TableModelUtils.createRows(columns, 2);
+		List<Row> rows = TableModelTestUtils.createRows(columns, 2);
 		set.setRows(rows);
 		set.setHeaders(TableModelUtils.getHeaders(columns));
 		set.setTableId(table.getId());

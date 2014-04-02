@@ -16,6 +16,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -67,7 +68,7 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testCRUD(){
 		// Create a Simple table with only a few columns
-		List<ColumnModel> allTypes = TableModelUtils.createOneOfEachType();
+		List<ColumnModel> allTypes = TableModelTestUtils.createOneOfEachType();
 		// Create the table
 		boolean updated = tableIndexDAO.createOrUpdateTable(allTypes, tableId);
 		assertTrue("The table should not have existed so update should be true",updated);
@@ -103,8 +104,8 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testCreateOrUpdateRows(){
 		// Create a Simple table with only a few columns
-		List<ColumnModel> allTypes = TableModelUtils.createOneOfEachType();
-		List<Row> rows = TableModelUtils.createRows(allTypes, 5);
+		List<ColumnModel> allTypes = TableModelTestUtils.createOneOfEachType();
+		List<Row> rows = TableModelTestUtils.createRows(allTypes, 5);
 		RowSet set = new RowSet();
 		set.setRows(rows);
 		set.setHeaders(TableModelUtils.getHeaders(allTypes));
@@ -158,13 +159,13 @@ public class TableIndexDAOImplTest {
 		Long count = tableIndexDAO.getRowCountForTable(tableId);
 		assertEquals("The row count should be null when the table does not exist",null, count);
 		// Create the table
-		List<ColumnModel> allTypes = TableModelUtils.createOneOfEachType();
+		List<ColumnModel> allTypes = TableModelTestUtils.createOneOfEachType();
 		tableIndexDAO.createOrUpdateTable(allTypes, tableId);
 		// the table now exists
 		count = tableIndexDAO.getRowCountForTable(tableId);
 		assertEquals("The row count should be 0 when the table is empty", new Long(0), count);
 		// Now add some data
-		List<Row> rows = TableModelUtils.createRows(allTypes, 4);
+		List<Row> rows = TableModelTestUtils.createRows(allTypes, 4);
 		RowSet set = new RowSet();
 		set.setRows(rows);
 		set.setHeaders(TableModelUtils.getHeaders(allTypes));
@@ -187,13 +188,13 @@ public class TableIndexDAOImplTest {
 		Long maxVersion = tableIndexDAO.getMaxVersionForTable(tableId);
 		assertEquals("The max version should be null when the table does not exist",null, maxVersion);
 		// Create the table
-		List<ColumnModel> allTypes = TableModelUtils.createOneOfEachType();
+		List<ColumnModel> allTypes = TableModelTestUtils.createOneOfEachType();
 		tableIndexDAO.createOrUpdateTable(allTypes, tableId);
 		// The max version should now be -1
 		maxVersion = tableIndexDAO.getMaxVersionForTable(tableId);
 		assertEquals("The max version should be -1 when the table is empty", new Long(-1), maxVersion);
 		// Now add some data
-		List<Row> rows = TableModelUtils.createRows(allTypes, 2);
+		List<Row> rows = TableModelTestUtils.createRows(allTypes, 2);
 		RowSet set = new RowSet();
 		set.setRows(rows);
 		set.setHeaders(TableModelUtils.getHeaders(allTypes));
@@ -214,10 +215,10 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testSimpleQuery() throws ParseException{
 		// Create the table
-		List<ColumnModel> allTypes = TableModelUtils.createOneOfEachType();
+		List<ColumnModel> allTypes = TableModelTestUtils.createOneOfEachType();
 		tableIndexDAO.createOrUpdateTable(allTypes, tableId);
 		// Now add some data
-		List<Row> rows = TableModelUtils.createRows(allTypes, 2);
+		List<Row> rows = TableModelTestUtils.createRows(allTypes, 2);
 		RowSet set = new RowSet();
 		set.setRows(rows);
 		List<String> headers = TableModelUtils.getHeaders(allTypes);
@@ -262,10 +263,10 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testQueryAggregate() throws ParseException{
 		// Create the table
-		List<ColumnModel> allTypes = TableModelUtils.createOneOfEachType();
+		List<ColumnModel> allTypes = TableModelTestUtils.createOneOfEachType();
 		tableIndexDAO.createOrUpdateTable(allTypes, tableId);
 		// Now add some data
-		List<Row> rows = TableModelUtils.createRows(allTypes, 2);
+		List<Row> rows = TableModelTestUtils.createRows(allTypes, 2);
 		RowSet set = new RowSet();
 		set.setRows(rows);
 		List<String> headers = TableModelUtils.getHeaders(allTypes);
@@ -316,7 +317,7 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.createOrUpdateTable(schema, tableId);
 		// Create some data
 		// Now add some data
-		List<Row> rows = TableModelUtils.createRows(schema, 100);
+		List<Row> rows = TableModelTestUtils.createRows(schema, 100);
 		RowSet set = new RowSet();
 		set.setRows(rows);
 		List<String> headers = TableModelUtils.getHeaders(schema);

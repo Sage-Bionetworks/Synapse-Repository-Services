@@ -46,6 +46,13 @@
 		</dependency>
 
 		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>lib-test</artifactId>
+			<type>test-jar</type>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
 			<groupId>javax.transaction</groupId>
 			<artifactId>jta</artifactId>
 			<version>1.1</version>

@@ -37,6 +37,7 @@ import org.sagebionetworks.repo.model.dao.semaphore.ExclusiveOrSharedSemaphoreRu
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.exception.LockUnavilableException;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -99,9 +100,9 @@ public class TableRowManagerImplTest {
 		int maxBytesPerRequest = 10000000;
 		manager.setMaxBytesPerRequest(maxBytesPerRequest);
 		user = new UserInfo(false, 7L);
-		models = TableModelUtils.createOneOfEachType();
+		models = TableModelTestUtils.createOneOfEachType();
 		tableId = "syn123";
-		List<Row> rows = TableModelUtils.createRows(models, 10);
+		List<Row> rows = TableModelTestUtils.createRows(models, 10);
 		set = new RowSet();
 		set.setTableId(tableId);
 		set.setHeaders(TableModelUtils.getHeaders(models));
@@ -111,7 +112,7 @@ public class TableRowManagerImplTest {
 		int rowSizeBytes = TableModelUtils.calculateMaxRowSize(models);
 		// Create a rowSet that is too big
 		int tooManyRows = maxBytesPerRequest/rowSizeBytes+1;
-		rows = TableModelUtils.createRows(models, tooManyRows);
+		rows = TableModelTestUtils.createRows(models, tooManyRows);
 		tooBigSet = new RowSet();
 		tooBigSet.setTableId(tableId);
 		tooBigSet.setHeaders(TableModelUtils.getHeaders(models));
