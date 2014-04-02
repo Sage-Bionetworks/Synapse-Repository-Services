@@ -223,7 +223,7 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager, Initializ
 		}
 		boolean pass = correctAnswerCount >= quizGenerator.getMinimumScore();
 		quizResponse.setPass(pass);
-		quizResponse.setScore(correctAnswerCount));
+		quizResponse.setScore((long)correctAnswerCount);
 	}
 	
 	public static void fillInResponseValues(QuizResponse response, Long userId, Date createdOn, Long quizId) {
