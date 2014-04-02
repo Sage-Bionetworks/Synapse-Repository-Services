@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -108,7 +109,7 @@ public class TableWorkerIntegrationTest {
 	@Test
 	public void testRoundTrip() throws NotFoundException, InterruptedException, DatastoreException, TableUnavilableException, IOException{
 		// Create one column of each type
-		List<ColumnModel> temp = TableModelUtils.createOneOfEachType();
+		List<ColumnModel> temp = TableModelTestUtils.createOneOfEachType();
 		schema = new LinkedList<ColumnModel>();
 		for(ColumnModel cm: temp){
 			// Skip strings
@@ -125,7 +126,7 @@ public class TableWorkerIntegrationTest {
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
 		columnManager.bindColumnToObject(adminUserInfo, headers, tableId, true);
 		// Now add some data
-		List<Row> rows = TableModelUtils.createRows(schema, 2);
+		List<Row> rows = TableModelTestUtils.createRows(schema, 2);
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(rows);
 		rowSet.setHeaders(headers);
@@ -190,7 +191,7 @@ public class TableWorkerIntegrationTest {
 	@Test
 	public void testNoRows() throws Exception {
 		// Create one column of each type
-		List<ColumnModel> temp = TableModelUtils.createOneOfEachType();
+		List<ColumnModel> temp = TableModelTestUtils.createOneOfEachType();
 		schema = new LinkedList<ColumnModel>();
 		for(ColumnModel cm: temp){
 			// Skip strings

@@ -13,7 +13,9 @@ import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+
 import static org.mockito.Mockito.*;
+
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManagerImpl;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -23,7 +25,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
-import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -221,7 +223,7 @@ public class ColumnModelManagerTest {
 	@Test
 	public void testGetColumnModelsForTableAuthorized() throws DatastoreException, NotFoundException{
 		String objectId = "syn123";
-		List<ColumnModel> expected = TableModelUtils.createOneOfEachType();
+		List<ColumnModel> expected = TableModelTestUtils.createOneOfEachType();
 		when(mockauthorizationManager.canAccess(user, objectId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(true);
 		when(mockColumnModelDAO.getColumnModelsForObject(objectId)).thenReturn(expected);
 		List<ColumnModel> resutls = columnModelManager.getColumnModelsForTable(user, objectId);
@@ -231,7 +233,7 @@ public class ColumnModelManagerTest {
 	@Test (expected=UnauthorizedException.class)
 	public void testGetColumnModelsForTableUnauthorized() throws DatastoreException, NotFoundException{
 		String objectId = "syn123";
-		List<ColumnModel> expected = TableModelUtils.createOneOfEachType();
+		List<ColumnModel> expected = TableModelTestUtils.createOneOfEachType();
 		when(mockauthorizationManager.canAccess(user, objectId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(false);
 		when(mockColumnModelDAO.getColumnModelsForObject(objectId)).thenReturn(expected);
 		List<ColumnModel> resutls = columnModelManager.getColumnModelsForTable(user, objectId);
