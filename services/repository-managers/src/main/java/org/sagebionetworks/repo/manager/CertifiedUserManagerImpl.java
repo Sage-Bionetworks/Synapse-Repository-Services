@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.PaginatedResults;
@@ -104,10 +105,20 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager, Initializ
 		return quizGenerator;
 	}
 	
+	private static Random random = new Random();
+	
 	public static Quiz selectQuiz(QuizGenerator quizGenerator) {
 		Quiz quiz = new Quiz();
-		// TODO create Quiz from QuizGenerator
-		PrivateFieldUtils.clearPrivateFields(quiz); // TODO is this necessary?
+		quiz.setHeader(quizGenerator.getHeader());
+		quiz.setId(quizGenerator.getId());
+		List<Question> questions = new ArrayList<Question>();
+		for (QuestionVariety v : quizGenerator.getQuestions()) {
+			List<Question> questionOptions = v.getQuestionOptions();
+			// pick a random question from the variety of questions in the QuizGenerator
+			questions.add(questionOptions.get(random.nextInt(questionOptions.size())));
+		}
+		quiz.setQuestions(questions);
+		PrivateFieldUtils.clearPrivateFields(quiz);
 		return quiz;
 	}
 	
