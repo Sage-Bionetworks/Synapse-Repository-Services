@@ -24,7 +24,7 @@
 			"type": "array",
 			"items": {
 				"type":"object",
-				"$ref":"org.sagebionetworks.repo.model.quiz.Quiz"
+				"$ref":"org.sagebionetworks.repo.model.quiz.QuestionResponse"
 			}
 		},
 		"pass":{

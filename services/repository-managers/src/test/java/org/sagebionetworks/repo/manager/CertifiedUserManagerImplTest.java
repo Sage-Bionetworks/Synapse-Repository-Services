@@ -3,7 +3,7 @@ package org.sagebionetworks.repo.manager;
 import java.io.InputStream;
 
 import org.junit.Test;
-import org.sagebionetworks.repo.model.quiz.Quiz;
+import org.sagebionetworks.repo.model.quiz.QuizGenerator;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 
@@ -15,12 +15,16 @@ public class CertifiedUserManagerImplTest {
 
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
 		adapter = adapter.createNew(IOTestUtil.readFromInputStream(is, "utf-8"));
-		Quiz quiz = new Quiz();
+		QuizGenerator quizGenerator = new QuizGenerator();
 		// if the resource file does not contain a valid Quiz, this will fail
-		quiz.initializeFromJSONObject(adapter);
+		quizGenerator.initializeFromJSONObject(adapter);
 		// do additional validation
-		CertifiedUserManagerImpl.validateQuiz(quiz);
+		CertifiedUserManagerImpl.validateQuizGenerator(quizGenerator);
 	}
 
+	@Test
+	public void testValidateQuizGenerator() throws Exception {
+		// TODO
+	}
 
 }

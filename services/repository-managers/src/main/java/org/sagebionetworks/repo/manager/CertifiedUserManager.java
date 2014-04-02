@@ -14,7 +14,7 @@ import org.sagebionetworks.repo.model.quiz.QuizResponse;
 public interface CertifiedUserManager {
 	
 	/**
-	 * Get the (static) Certified Users Quiz
+	 * Get the Certified Users Quiz
 	 * @return
 	 */
 	public Quiz getCertificationQuiz();

@@ -5,18 +5,27 @@ package org.sagebionetworks.repo.manager;
 
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.quiz.MultichoiceAnswer;
 import org.sagebionetworks.repo.model.quiz.MultichoiceQuestion;
+import org.sagebionetworks.repo.model.quiz.MultichoiceResponse;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
 import org.sagebionetworks.repo.model.quiz.Question;
+import org.sagebionetworks.repo.model.quiz.QuestionResponse;
 import org.sagebionetworks.repo.model.quiz.QuestionVariety;
 import org.sagebionetworks.repo.model.quiz.Quiz;
+import org.sagebionetworks.repo.model.quiz.QuizGenerator;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
 import org.sagebionetworks.repo.model.quiz.TextFieldQuestion;
+import org.sagebionetworks.repo.model.quiz.TextFieldResponse;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
@@ -40,7 +49,7 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager, Initializ
 	 * 
 	 * @param quiz
 	 */
-	public static void validateQuiz(Quiz quiz) {
+	public static void validateQuizGenerator(QuizGenerator quiz) {
 		//	make sure there is a minimum score and that it's >=0, <=# question varieties
 		Long minimumScore = quiz.getMinimumScore();
 		if (minimumScore==null || minimumScore<0) 
@@ -81,24 +90,102 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager, Initializ
 		}		
 	}
 	
+	private QuizGenerator retrieveCertificationQuizGenerator() {
+		// pull this from an S-3 File (TODO cache it, temporarily)
+		String quizGeneratorAsString = s3Utility.downloadFromS3ToString(S3_QUESTIONNAIRE_KEY);
+		QuizGenerator quizGenerator = new QuizGenerator();
+		try {
+			JSONObjectAdapter adapter = (new JSONObjectAdapterImpl()).createNew(quizGeneratorAsString);
+			quizGenerator.initializeFromJSONObject(adapter);
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
+		}
+		validateQuizGenerator(quizGenerator);
+		return quizGenerator;
+	}
+	
+	public static Quiz selectQuiz(QuizGenerator quizGenerator) {
+		Quiz quiz = new Quiz();
+		// TODO create Quiz from QuizGenerator
+		PrivateFieldUtils.clearPrivateFields(quiz); // TODO is this necessary?
+		return quiz;
+	}
+	
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.CertifiedUserManager#getCertificationQuiz()
 	 */
 	@Override
 	public Quiz getCertificationQuiz() {
-		// pull this from an S-3 File (TODO cache it, temporarily)
-		String quizAsString = s3Utility.downloadFromS3ToString(S3_QUESTIONNAIRE_KEY);
-		Quiz quiz = new Quiz();
-		try {
-			JSONObjectAdapter adapter = (new JSONObjectAdapterImpl()).createNew(quizAsString);
-			quiz.initializeFromJSONObject(adapter);
-		} catch (JSONObjectAdapterException e) {
-			throw new RuntimeException(e);
-		}
-		validateQuiz(quiz);
-		PrivateFieldUtils.clearPrivateFields(quiz);
-		
+		QuizGenerator quizGenerator = retrieveCertificationQuizGenerator();
+		Quiz quiz = selectQuiz(quizGenerator);
 		return quiz;
+	}
+	
+	public static boolean isCorrectResponse(Question q, QuestionResponse response) {
+		if (q instanceof MultichoiceQuestion) {
+			if (!(response instanceof MultichoiceResponse)) 
+				throw new IllegalArgumentException("MultichoiceQuestion must have a MultichoiceResponse");
+			Set<Long> correctAnswers = new HashSet<Long>();
+			for (MultichoiceAnswer a : ((MultichoiceQuestion)q).getAnswers()) {
+				if (a.getIsCorrect()) correctAnswers.add(a.getAnswerIndex());
+			}
+			return ((MultichoiceResponse)response).
+					getAnswerIndex().equals(correctAnswers);
+		} else if (q instanceof TextFieldQuestion) {
+			if (!(response instanceof TextFieldResponse)) 
+				throw new IllegalArgumentException("TextFieldQuestion must have a TextFieldResponse");
+			return ((TextFieldResponse)response).getResponse().
+					equalsIgnoreCase(((TextFieldQuestion)q).getAnswer());
+		} else {
+			throw new IllegalArgumentException("Unexpected question type "+q.getClass());
+		}
+	}
+	
+	/**
+	 * 
+	 * @param quiz
+	 * @param response
+	 * @return true iff response passes
+	 */
+	public static boolean scoreQuizResponse(QuizGenerator quizGenerator, QuizResponse quizResponse) {
+		//Map<Long, QuestionResponse> correctResponses = compileCorrectAnswers(quiz);
+		// The key in the following map is the *index* of the answered question in 
+		// the *question variety* of the QuizGenerator.  The value says whether the
+		// answer is right or wrong.
+		Map<Integer, Boolean> responseMap = new HashMap<Integer, Boolean>();
+		for (QuestionResponse r : quizResponse.getQuestionResponses()) {
+			Integer questionVarietyIndex = null;
+			// find the variety index for the question
+			List<QuestionVariety> variety = quizGenerator.getQuestions();
+			for (int i=0; i<variety.size(); i++) {
+				for (Question q: variety.get(i).getQuestionOptions()) {
+					if (r.getQuestionIndex() == q.getQuestionIndex()) {
+						// found it!
+						if (responseMap.containsKey(questionVarietyIndex)) {
+							throw new IllegalArgumentException("Response set contains multiple responses for question variety "+questionVarietyIndex);
+						}
+						responseMap.put(questionVarietyIndex, isCorrectResponse(q, r));
+					}
+				}
+			}
+			if (questionVarietyIndex==null) {
+				throw new IllegalArgumentException("Question index "+r.getQuestionIndex()+
+						" does not appear in quiz generator "+quizGenerator.getId());
+			}
+		}
+		int correctAnswerCount = 0;
+		for (Boolean isCorrect : responseMap.values()) {
+			if (isCorrect) correctAnswerCount++;
+		}
+		boolean pass = correctAnswerCount >= quizGenerator.getMinimumScore();
+		quizResponse.setPass(pass);
+		return pass;
+	}
+	
+	public static void fillInResponseValues(QuizResponse response, Long userId, Date createdOn, Long quizId) {
+		response.setCreatedBy(userId.toString());
+		response.setCreatedOn(createdOn);
+		response.setQuizId(quizId);
 	}
 
 	/* (non-Javadoc)
@@ -107,12 +194,12 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager, Initializ
 	@Override
 	public QuizResponse submitCertificationQuizResponse(
 			UserInfo userInfo, QuizResponse response) {
-		// TODO validate the submission
-		// make sure that the quiz ID matches that of the Cert User quiz
-		// make sure createdOn and createdBy are not null
-		// TODO grade the submission:  pass or fail?
-		// TODO if pass, add to Certified group
+		QuizGenerator quizGenerator = retrieveCertificationQuizGenerator();
+		// grade the submission:  pass or fail?
+		boolean pass = scoreQuizResponse(quizGenerator, response);
+		fillInResponseValues(response, userInfo.getId(), new Date(), quizGenerator.getId());
 		// TODO store the submission in the RDS
+		// TODO if pass, add to Certified group
 		return null; // TODO return the created object
 	}
 

@@ -9,6 +9,7 @@
     "properties":{
     	"answerIndex":{
     		"type":"array",
+    	    "uniqueItems":true,
     		"items":{
     			"description":"The indices of the MultichoiceAnswer objects",
     			"type":"integer"

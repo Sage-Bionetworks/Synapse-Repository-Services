@@ -12,7 +12,7 @@ import org.junit.Test;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.quiz.MultichoiceAnswer;
 import org.sagebionetworks.repo.model.quiz.MultichoiceQuestion;
-import org.sagebionetworks.repo.model.quiz.Quiz;
+import org.sagebionetworks.repo.model.quiz.QuizGenerator;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 
@@ -36,12 +36,12 @@ public class PrivateFieldUtilsTest {
 
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
 		adapter = adapter.createNew(IOTestUtil.readFromInputStream(is, "utf-8"));
-		Quiz quiz = new Quiz();
+		QuizGenerator quizGenerator = new QuizGenerator();
 		// if the resource file does not contain a valid Quiz, this will fail
-		quiz.initializeFromJSONObject(adapter);
+		quizGenerator.initializeFromJSONObject(adapter);
 		
-		assertNotNull(quiz.getMinimumScore());
-		List<MultichoiceAnswer> answers = ((MultichoiceQuestion)quiz.getQuestions().get(0).getQuestionOptions().get(0)).getAnswers();
+		assertNotNull(quizGenerator.getMinimumScore());
+		List<MultichoiceAnswer> answers = ((MultichoiceQuestion)quizGenerator.getQuestions().get(0).getQuestionOptions().get(0)).getAnswers();
 		
 		// at least one of the answers is correct
 		boolean foundCorrect = false;
@@ -50,16 +50,16 @@ public class PrivateFieldUtilsTest {
 		}
 		assertTrue(foundCorrect);
 		
-		PrivateFieldUtils.clearPrivateFields(quiz);
+		PrivateFieldUtils.clearPrivateFields(quizGenerator);
 		
 		// check that the arrays are still in place
-		answers = ((MultichoiceQuestion)quiz.getQuestions().get(0).getQuestionOptions().get(0)).getAnswers();
+		answers = ((MultichoiceQuestion)quizGenerator.getQuestions().get(0).getQuestionOptions().get(0)).getAnswers();
 
 		// now the min score field is cleared
-		assertNull(quiz.getMinimumScore());
+		assertNull(quizGenerator.getMinimumScore());
 		
 		// but other fields are not scrubbed
-		assertNotNull(quiz.getId());
+		assertNotNull(quizGenerator.getId());
 
 		for (MultichoiceAnswer a : answers) {
 			// and the correct answer field is cleared
