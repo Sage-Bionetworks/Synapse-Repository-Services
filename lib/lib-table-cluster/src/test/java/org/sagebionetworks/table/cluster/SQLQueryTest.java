@@ -1,16 +1,15 @@
 package org.sagebionetworks.table.cluster;
 
-import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -84,6 +83,13 @@ public class SQLQueryTest {
 		assertEquals("ROW_ID", builder.toString());
 	}
 	
+	@Test
+	public void testTranslateColumnReferenceRowVersionIgnoreCase() throws ParseException{
+		ColumnReference columnReference = SqlElementUntils.createColumnReference("row_version");
+		StringBuilder builder = new StringBuilder();
+		SQLTranslatorUtils.translate(columnReference, builder, columnNameToIdMap);
+		assertEquals("ROW_VERSION", builder.toString());
+	}
 	
 	@Test
 	public void testSelectStar() throws ParseException{
