@@ -1,9 +1,6 @@
 package org.sagebionetworks.repo.web.controller;
 
 import static org.junit.Assert.*;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -20,6 +17,7 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -114,7 +112,7 @@ public class TableControllerAutowireTest {
 		
 		// Add some rows to the table.
 		RowSet set = new RowSet();
-		List<Row> rows = TableModelUtils.createRows(cols, 2);
+		List<Row> rows = TableModelTestUtils.createRows(cols, 2);
 		set.setRows(rows);
 		set.setHeaders(TableModelUtils.getHeaders(cols));
 		set.setTableId(table.getId());
@@ -198,7 +196,7 @@ public class TableControllerAutowireTest {
 		
 		// Add some rows to the table.
 		RowSet set = new RowSet();
-		List<Row> rows = TableModelUtils.createRows(cols, 2);
+		List<Row> rows = TableModelTestUtils.createRows(cols, 2);
 		set.setRows(rows);
 		set.setHeaders(TableModelUtils.getHeaders(cols));
 		set.setTableId(table.getId());

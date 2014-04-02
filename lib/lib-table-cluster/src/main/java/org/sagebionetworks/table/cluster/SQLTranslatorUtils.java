@@ -4,7 +4,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.query.model.ActualIdentifier;
 import org.sagebionetworks.table.query.model.BetweenPredicate;
 import org.sagebionetworks.table.query.model.BooleanFactor;
@@ -49,7 +49,7 @@ import org.sagebionetworks.table.query.model.ValueExpression;
 import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
 import org.sagebionetworks.table.query.model.WhereClause;
 
-import com.google.inject.internal.LinkedBindingImpl;
+import static org.sagebionetworks.repo.model.table.TableConstants.*;
 
 /**
  * Helper methods to translate table SQL queries.
@@ -58,7 +58,7 @@ import com.google.inject.internal.LinkedBindingImpl;
  *
  */
 public class SQLTranslatorUtils {
-
+	
 	/**
 	 * Translate the passed query model into output SQL.
 	 * @param model The model representing a query.
@@ -110,7 +110,7 @@ public class SQLTranslatorUtils {
 			}
 			// If this is not an aggregate query then we must also fetch the row id and row version
 			if(!isAggregate){
-				builder.append(", ").append(SQLUtils.ROW_ID).append(", ").append(SQLUtils.ROW_VERSION);
+				builder.append(", ").append(ROW_ID).append(", ").append(ROW_VERSION);
 			}
 			return isAggregate;
 		}else{
@@ -190,15 +190,22 @@ public class SQLTranslatorUtils {
 	static void translate(ColumnReference columnReference, StringBuilder builder, Map<String, Long> columnNameToIdMap){
 		if(columnReference == null) throw new IllegalArgumentException("ColumnReference cannot be null");
 		String columnName = getStringValueOf(columnReference.getNameLHS());
-		// Lookup the ID for this column
-		Long columnId = columnNameToIdMap.get(columnName);
-		if(columnId == null) throw new IllegalArgumentException("Unknown column name: "+columnName);
-		builder.append(SQLUtils.COLUMN_PREFIX).append(columnId);
-		if(columnReference.getNameRHS() != null){
-			String subName = getStringValueOf(columnReference.getNameRHS());
-			// Remove double quotes if they are included.
-			subName = subName.replaceAll("\"", "");
-			builder.append("_").append(subName);
+		// Is this a reserved column name like ROW_ID or ROW_VERSION?
+		if(TableConstants.isReservedColumnName(columnName)){
+			// use the returned reserve name in destination SQL.
+			builder.append(columnName.toUpperCase());
+		}else{
+			// Not a reserved column name.
+			// Lookup the ID for this column
+			Long columnId = columnNameToIdMap.get(columnName.toLowerCase());
+			if(columnId == null) throw new IllegalArgumentException("Unknown column name: "+columnName);
+			builder.append(SQLUtils.COLUMN_PREFIX).append(columnId);
+			if(columnReference.getNameRHS() != null){
+				String subName = getStringValueOf(columnReference.getNameRHS());
+				// Remove double quotes if they are included.
+				subName = subName.replaceAll("\"", "");
+				builder.append("_").append(subName);
+			}
 		}
 	}
 
@@ -886,4 +893,5 @@ public class SQLTranslatorUtils {
 			return selectIds;
 		}
 	}
+
 }

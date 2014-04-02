@@ -87,9 +87,9 @@ public class TableRowTruthDAOImplTest {
 	@Test
 	public void testAppendRows() throws IOException{
 		// Create some test column models
-		List<ColumnModel> models = TableModelUtils.createOneOfEachType();
+		List<ColumnModel> models = TableModelTestUtils.createOneOfEachType();
 		// create some test rows.
-		List<Row> rows = TableModelUtils.createRows(models, 5);
+		List<Row> rows = TableModelTestUtils.createRows(models, 5);
 		String tableId = "syn123";
 		RowSet set = new RowSet();
 		set.setHeaders(TableModelUtils.getHeaders(models));
@@ -114,9 +114,9 @@ public class TableRowTruthDAOImplTest {
 	
 	@Test
 	public void testListRowSetsForTable() throws IOException{
-		List<ColumnModel> models = TableModelUtils.createOneOfEachType();
+		List<ColumnModel> models = TableModelTestUtils.createOneOfEachType();
 		// create some test rows.
-		List<Row> rows = TableModelUtils.createRows(models, 5);
+		List<Row> rows = TableModelTestUtils.createRows(models, 5);
 		String tableId = "syn123";
 		// Before we start there should be no changes
 		List<TableRowChange> results = tableRowTruthDao.listRowSetsKeysForTable(tableId);
@@ -130,7 +130,7 @@ public class TableRowTruthDAOImplTest {
 		RowReferenceSet refSet = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, models, set);
 		assertNotNull(refSet);
 		// Add some more rows
-		set.setRows(TableModelUtils.createRows(models, 2));
+		set.setRows(TableModelTestUtils.createRows(models, 2));
 		refSet = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, models, set);
 		// There should now be two version of the data
 		results = tableRowTruthDao.listRowSetsKeysForTable(tableId);
@@ -170,9 +170,9 @@ public class TableRowTruthDAOImplTest {
 	
 	@Test
 	public void testGetRowSet() throws IOException, NotFoundException{
-		List<ColumnModel> models = TableModelUtils.createOneOfEachType();
+		List<ColumnModel> models = TableModelTestUtils.createOneOfEachType();
 		// create some test rows.
-		List<Row> rows = TableModelUtils.createRows(models, 5);
+		List<Row> rows = TableModelTestUtils.createRows(models, 5);
 		String tableId = "syn123";
 		RowSet set = new RowSet();
 		set.setHeaders(TableModelUtils.getHeaders(models));
@@ -220,9 +220,9 @@ public class TableRowTruthDAOImplTest {
 	
 	@Test
 	public void testGetRowSetOriginals() throws IOException, NotFoundException{
-		List<ColumnModel> models = TableModelUtils.createOneOfEachType();
+		List<ColumnModel> models = TableModelTestUtils.createOneOfEachType();
 		// create some test rows.
-		List<Row> rows = TableModelUtils.createRows(models, 5);
+		List<Row> rows = TableModelTestUtils.createRows(models, 5);
 		
 		String tableId = "syn123";
 		RowSet set = new RowSet();
@@ -252,9 +252,9 @@ public class TableRowTruthDAOImplTest {
 	@Test
 	public void testAppendRowsUpdate() throws IOException, NotFoundException{
 		// Create some test column models
-		List<ColumnModel> models = TableModelUtils.createOneOfEachType();
+		List<ColumnModel> models = TableModelTestUtils.createOneOfEachType();
 		// create some test rows.
-		List<Row> rows = TableModelUtils.createRows(models, 5);
+		List<Row> rows = TableModelTestUtils.createRows(models, 5);
 		String tableId = "syn123";
 		RowSet set = new RowSet();
 		set.setHeaders(TableModelUtils.getHeaders(models));
@@ -270,11 +270,11 @@ public class TableRowTruthDAOImplTest {
 		toUpdate.getRows().remove(1);
 		toUpdate.getRows().remove(1);
 		// Update the remaining rows
-		TableModelUtils.updateRow(models, toUpdate.getRows().get(0), 15);
-		TableModelUtils.updateRow(models, toUpdate.getRows().get(1), 18);
+		TableModelTestUtils.updateRow(models, toUpdate.getRows().get(0), 15);
+		TableModelTestUtils.updateRow(models, toUpdate.getRows().get(1), 18);
 
 		// create some new rows
-		rows = TableModelUtils.createRows(models, 2);
+		rows = TableModelTestUtils.createRows(models, 2);
 		// Add them to the update
 		toUpdate.getRows().addAll(rows);
 		// Now append the changes.
@@ -292,9 +292,9 @@ public class TableRowTruthDAOImplTest {
 	@Test
 	public void testAppendRowsUpdateNoConflicted() throws IOException, NotFoundException{
 		// Create some test column models
-		List<ColumnModel> models = TableModelUtils.createOneOfEachType();
+		List<ColumnModel> models = TableModelTestUtils.createOneOfEachType();
 		// create some test rows.
-		List<Row> rows = TableModelUtils.createRows(models, 3);
+		List<Row> rows = TableModelTestUtils.createRows(models, 3);
 		String tableId = "syn123";
 		RowSet set = new RowSet();
 		set.setHeaders(TableModelUtils.getHeaders(models));
@@ -310,19 +310,19 @@ public class TableRowTruthDAOImplTest {
 		// For this case each update will change a different row so there is no conflict.
 		// update row one
 		Row toUpdate = toUpdateOne.getRows().get(0);
-		TableModelUtils.updateRow(models, toUpdate, 100);
+		TableModelTestUtils.updateRow(models, toUpdate, 100);
 		toUpdateOne.getRows().clear();
 		toUpdateOne.getRows().add(toUpdate);
 		tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, models, toUpdateOne);
 		// update row two
 		toUpdate = toUpdateTwo.getRows().get(1);
-		TableModelUtils.updateRow(models, toUpdate, 101);
+		TableModelTestUtils.updateRow(models, toUpdate, 101);
 		toUpdateTwo.getRows().clear();
 		toUpdateTwo.getRows().add(toUpdate);
 		tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, models, toUpdateTwo);
 		// update row three
 		toUpdate = toUpdateThree.getRows().get(2);
-		TableModelUtils.updateRow(models, toUpdate, 102);
+		TableModelTestUtils.updateRow(models, toUpdate, 102);
 		toUpdateThree.getRows().clear();
 		toUpdateThree.getRows().add(toUpdate);
 		tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, models, toUpdateThree);
@@ -331,9 +331,9 @@ public class TableRowTruthDAOImplTest {
 	@Test
 	public void testAppendRowsUpdateWithConflicts() throws IOException, NotFoundException{
 		// Create some test column models
-		List<ColumnModel> models = TableModelUtils.createOneOfEachType();
+		List<ColumnModel> models = TableModelTestUtils.createOneOfEachType();
 		// create some test rows.
-		List<Row> rows = TableModelUtils.createRows(models, 3);
+		List<Row> rows = TableModelTestUtils.createRows(models, 3);
 		String tableId = "syn123";
 		RowSet set = new RowSet();
 		set.setHeaders(TableModelUtils.getHeaders(models));
@@ -349,19 +349,19 @@ public class TableRowTruthDAOImplTest {
 		// For this case each update will change a different row so there is no conflict.
 		// update row one
 		Row toUpdate = toUpdateOne.getRows().get(0);
-		TableModelUtils.updateRow(models, toUpdate, 100);
+		TableModelTestUtils.updateRow(models, toUpdate, 100);
 		toUpdateOne.getRows().clear();
 		toUpdateOne.getRows().add(toUpdate);
 		tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, models, toUpdateOne);
 		// update row two
 		toUpdate = toUpdateTwo.getRows().get(1);
-		TableModelUtils.updateRow(models, toUpdate, 101);
+		TableModelTestUtils.updateRow(models, toUpdate, 101);
 		toUpdateTwo.getRows().clear();
 		toUpdateTwo.getRows().add(toUpdate);
 		tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, models, toUpdateTwo);
 		// update row one again
 		toUpdate = toUpdateThree.getRows().get(0);
-		TableModelUtils.updateRow(models, toUpdate, 102);
+		TableModelTestUtils.updateRow(models, toUpdate, 102);
 		toUpdateThree.getRows().clear();
 		toUpdateThree.getRows().add(toUpdate);
 		try{
@@ -378,10 +378,10 @@ public class TableRowTruthDAOImplTest {
 	@Test
 	public void testAppendRowIdOutOfRange() throws IOException, NotFoundException{
 		// create some test rows.
-		List<ColumnModel> models = TableModelUtils.createOneOfEachType();
+		List<ColumnModel> models = TableModelTestUtils.createOneOfEachType();
 			
 		// create some test rows.
-		List<Row> rows = TableModelUtils.createRows(models, 1);
+		List<Row> rows = TableModelTestUtils.createRows(models, 1);
 		// Set the ID of the row to be beyond the valid range
 		String tableId = "syn123";
 		RowSet set = new RowSet();
@@ -392,7 +392,7 @@ public class TableRowTruthDAOImplTest {
 		// get the rows back
 		RowSet toUpdateOne = tableRowTruthDao.getRowSet(tableId, 0l);
 		// Create a row with an ID that is beyond the current max ID for the table
-		Row toAdd = TableModelUtils.createRows(models, 1).get(0);
+		Row toAdd = TableModelTestUtils.createRows(models, 1).get(0);
 		toAdd.setRowId(toUpdateOne.getRows().get(0).getRowId()+1);
 		toUpdateOne.getRows().add(toAdd);
 		try{

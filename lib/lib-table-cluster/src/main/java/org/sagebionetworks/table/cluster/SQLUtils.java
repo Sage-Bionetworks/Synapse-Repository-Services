@@ -8,7 +8,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang.StringEscapeUtils;
-import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -16,6 +15,8 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
+
+import static org.sagebionetworks.repo.model.table.TableConstants.*;
 
 /**
  * Utilities for generating Table SQL, DML, and DDL.
@@ -25,9 +26,8 @@ import org.springframework.jdbc.core.namedparam.SqlParameterSource;
  */
 public class SQLUtils {
 
-	public static final String ROW_ID = "ROW_ID";
+
 	public static final String ROW_ID_BIND = "bRI";
-	public static final String ROW_VERSION = "ROW_VERSION";
 	public static final String ROW_VERSION_BIND = "bRV";
 	public static final String DEFAULT = "DEFAULT";
 	public static final String TABLE_PREFIX = "T";
@@ -138,20 +138,25 @@ public class SQLUtils {
 	 * @return
 	 */
 	public static String getSQLTypeForColumnType(ColumnType type, Long maxSize) {
-		if (ColumnType.LONG.equals(type)
-				|| ColumnType.FILEHANDLEID.equals(type)) {
-			return "bigint(20)";
-		} else if (ColumnType.STRING.equals(type)) {
-			// Strings must have a size
-			if(maxSize == null) throw new IllegalArgumentException("Cannot create a string column without a max size.");
-			return "varchar(" + maxSize + ") CHARACTER SET utf8 COLLATE utf8_general_ci";
-		} else if (ColumnType.DOUBLE.equals(type)) {
-			return "double";
-		} else if (ColumnType.BOOLEAN.equals(type)) {
-			return "boolean";
-		} else {
-			throw new IllegalArgumentException("Unknown type: " + type.name());
+		if (type == null) {
+			throw new IllegalArgumentException("ColumnType cannot be null");
 		}
+		switch (type) {
+		case LONG:
+		case FILEHANDLEID:
+		case DATE:
+			return "bigint(20)";
+		case STRING:
+			// Strings must have a size
+			if (maxSize == null)
+				throw new IllegalArgumentException("Cannot create a string column without a max size.");
+			return "varchar(" + maxSize + ") CHARACTER SET utf8 COLLATE utf8_general_ci";
+		case DOUBLE:
+			return "double";
+		case BOOLEAN:
+			return "boolean";
+		}
+		throw new IllegalArgumentException("Unknown type: " + type.name());
 	}
 
 	/**
@@ -164,22 +169,24 @@ public class SQLUtils {
 		if(value == null) return null;
 		if(type == null) throw new IllegalArgumentException("Type cannot be null");
 		try {
-			if(ColumnType.STRING.equals(type)){
+			switch (type) {
+			case STRING:
 				return value;
-			}else if(ColumnType.DOUBLE.equals(type)){
+			case DOUBLE:
 				return Double.parseDouble(value);
-			}else if(ColumnType.LONG.equals(type) || ColumnType.FILEHANDLEID.equals(type)){
+			case LONG:
+			case FILEHANDLEID:
+			case DATE:
 				return Long.parseLong(value);
-			}else if (ColumnType.BOOLEAN.equals(type)) {
+			case BOOLEAN:
 				boolean booleanValue = Boolean.parseBoolean(value);
 				if (booleanValue) {
 					return TRUE_INT;
 				} else {
 					return FALSE_INT;
 				}
-			}else{
-				throw new IllegalArgumentException("Unknown Type: "+type);
 			}
+			throw new IllegalArgumentException("Unknown Type: " + type);
 		} catch (NumberFormatException e) {
 			// Convert all parsing errors to illegal args.
 			throw new IllegalArgumentException(e);
