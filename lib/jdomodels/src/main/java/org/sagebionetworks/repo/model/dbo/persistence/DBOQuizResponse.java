@@ -18,15 +18,23 @@ public class DBOQuizResponse implements MigratableDatabaseObject<DBOQuizResponse
 	@Field(name = SqlConstants.COL_QUIZ_RESPONSE_ID, backupId = true, primary = true, nullable = false)
 	private Long id;
 	
-	// TODO define the foreign key constraomt
+	// TODO define the foreign key constraint
 	@Field(name = SqlConstants.COL_QUIZ_RESPONSE_CREATED_BY, backupId = false, primary = false, nullable = false)
 	private Long createdBy;
 	
-	@Field(name = SqlConstants.COL_QUIZ_RESPONSE_CREATED_BY, backupId = false, primary = false, nullable = false)
+	@Field(name = SqlConstants.COL_QUIZ_RESPONSE_CREATED_ON, backupId = false, primary = false, nullable = false)
 	private Long createOn;
+
+	@Field(name = SqlConstants.COL_QUIZ_RESPONSE_QUIZ_ID, backupId = false, primary = false, nullable = false)
 	private Long quizId;
+	
+	@Field(name = SqlConstants.COL_QUIZ_RESPONSE_SCORE, backupId = false, primary = false, nullable = false)
 	private Long score;
+	
+	@Field(name = SqlConstants.COL_QUIZ_RESPONSE_PASSED, backupId = false, primary = false, nullable = false)
 	private Boolean passed;
+	
+	@Field(name = SqlConstants.COL_QUIZ_RESPONSE_SERIALIZED, backupId = false, primary = false, nullable = false)
 	private byte[] serialized;
 
 	private static TableMapping<DBOQuizResponse> tableMapping = AutoTableMapping.create(DBOQuizResponse.class);

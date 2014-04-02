@@ -33,7 +33,7 @@ public class DBOQuizResponseDAOImpl implements QuizResponseDAO {
 			dbo.setId(idGenerator.generateNewId());
 		}
 		dbo = basicDao.createNew(dbo);
-		DBOQuizResponse result = (DBOQuizResponse)QuizResponseUtils.copyDboToDto(dbo);
+		QuizResponse result = QuizResponseUtils.copyDboToDto(dbo);
 		return result;
 	}
 

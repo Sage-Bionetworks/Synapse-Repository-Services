@@ -54,6 +54,7 @@
         "TABLE_SEQUENCE",
         "TABLE_CHANGE",
         "STORAGE_QUOTA",
+        "QUIZ_RESPONSE",
         "CHANGE"
     ]
 }
