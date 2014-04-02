@@ -2,9 +2,9 @@ package org.sagebionetworks.repo.manager;
 
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.questionnaire.PassingRecord;
-import org.sagebionetworks.repo.model.questionnaire.Questionnaire;
-import org.sagebionetworks.repo.model.questionnaire.QuestionnaireResponse;
+import org.sagebionetworks.repo.model.quiz.PassingRecord;
+import org.sagebionetworks.repo.model.quiz.Quiz;
+import org.sagebionetworks.repo.model.quiz.QuizResponse;
 
 /**
  * 
@@ -14,10 +14,10 @@ import org.sagebionetworks.repo.model.questionnaire.QuestionnaireResponse;
 public interface CertifiedUserManager {
 	
 	/**
-	 * Get the (static) Certified Users Questionnaire
+	 * Get the Certified Users Quiz
 	 * @return
 	 */
-	public Questionnaire getCertificationQuestionnaire();
+	public Quiz getCertificationQuiz();
 	
 	/**
 	 * Store the response and score it. If the user passes they are added to the 
@@ -27,7 +27,7 @@ public interface CertifiedUserManager {
 	 * @param response
 	 * @return
 	 */
-	public QuestionnaireResponse submitCertificationQuestionnaireResponse(UserInfo userInfo, QuestionnaireResponse response);
+	public QuizResponse submitCertificationQuizResponse(UserInfo userInfo, QuizResponse response);
 
 	/**
 	 * Retrieve the questionnaire responses in the system, optionally filtering by user Id.
@@ -39,14 +39,14 @@ public interface CertifiedUserManager {
 	 * @param offset
 	 * @return
 	 */
-	public PaginatedResults<QuestionnaireResponse> getQuestionnaireResponses(UserInfo userInfo, Long principalId, long limit, long offset);
+	public PaginatedResults<QuizResponse> getQuizResponses(UserInfo userInfo, Long principalId, long limit, long offset);
 	
 	/**
-	 * Delete a Questionnaire Response
+	 * Delete a Quiz Response
 	 * @param userInfo
 	 * @param responseId
 	 */
-	public void deleteQuestionnaireResponse(UserInfo userInfo, Long responseId);
+	public void deleteQuizResponse(UserInfo userInfo, Long responseId);
 	
 	
 	/**

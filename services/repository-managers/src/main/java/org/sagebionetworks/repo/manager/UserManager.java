@@ -4,7 +4,6 @@ import java.util.Collection;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
