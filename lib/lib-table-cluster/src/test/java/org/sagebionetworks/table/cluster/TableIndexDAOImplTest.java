@@ -136,7 +136,7 @@ public class TableIndexDAOImplTest {
 		assertEquals(4l, row.get("C4"));
 		
 		// We should be able to update all of the rows
-		rows.get(4).setValues(Arrays.asList("update", "99.99", "3", "false", "123"));
+		rows.get(4).setValues(Arrays.asList("update", "99.99", "3", "false", "123", "123"));
 		rows.get(4).setVersionNumber(5L);
 		// This should not fail
 		tableIndexDAO.createOrUpdateRows(set, allTypes);
@@ -250,14 +250,14 @@ public class TableIndexDAOImplTest {
 		assertNotNull(row);
 		assertEquals(new Long(100), row.getRowId());
 		assertEquals(new Long(3), row.getVersionNumber());
-		List<String> expectedValues = Arrays.asList("string0", "0", "0", "0", "0");
+		List<String> expectedValues = Arrays.asList("string0", "0", "0", "0", "0", "0");
 		assertEquals(expectedValues, row.getValues());
 		// Second row
 		row = results.getRows().get(1);
 		assertNotNull(row);
 		assertEquals(new Long(101), row.getRowId());
 		assertEquals(new Long(3), row.getVersionNumber());
-		expectedValues = Arrays.asList("string1", "3.41", "1", "1", "1");
+		expectedValues = Arrays.asList("string1", "3.41", "1", "1", "1", "1");
 		assertEquals(expectedValues, row.getValues());
 		
 
