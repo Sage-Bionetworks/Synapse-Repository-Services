@@ -23,7 +23,7 @@ public class DBOQuizResponse implements MigratableDatabaseObject<DBOQuizResponse
 	private Long createdBy;
 	
 	@Field(name = SqlConstants.COL_QUIZ_RESPONSE_CREATED_ON, backupId = false, primary = false, nullable = false)
-	private Long createOn;
+	private Long createdOn;
 
 	@Field(name = SqlConstants.COL_QUIZ_RESPONSE_QUIZ_ID, backupId = false, primary = false, nullable = false)
 	private Long quizId;
@@ -97,12 +97,12 @@ public class DBOQuizResponse implements MigratableDatabaseObject<DBOQuizResponse
 		this.createdBy = createdBy;
 	}
 
-	public Long getCreateOn() {
-		return createOn;
+	public Long getCreatedOn() {
+		return createdOn;
 	}
 
-	public void setCreateOn(Long createOn) {
-		this.createOn = createOn;
+	public void setCreatedOn(Long createdOn) {
+		this.createdOn = createdOn;
 	}
 
 	public Long getQuizId() {
@@ -146,7 +146,7 @@ public class DBOQuizResponse implements MigratableDatabaseObject<DBOQuizResponse
 		final int prime = 31;
 		int result = 1;
 		result = prime * result
-				+ ((createOn == null) ? 0 : createOn.hashCode());
+				+ ((createdOn == null) ? 0 : createdOn.hashCode());
 		result = prime * result
 				+ ((createdBy == null) ? 0 : createdBy.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
@@ -166,10 +166,10 @@ public class DBOQuizResponse implements MigratableDatabaseObject<DBOQuizResponse
 		if (getClass() != obj.getClass())
 			return false;
 		DBOQuizResponse other = (DBOQuizResponse) obj;
-		if (createOn == null) {
-			if (other.createOn != null)
+		if (createdOn == null) {
+			if (other.createdOn != null)
 				return false;
-		} else if (!createOn.equals(other.createOn))
+		} else if (!createdOn.equals(other.createdOn))
 			return false;
 		if (createdBy == null) {
 			if (other.createdBy != null)
@@ -204,7 +204,7 @@ public class DBOQuizResponse implements MigratableDatabaseObject<DBOQuizResponse
 	@Override
 	public String toString() {
 		return "DBOQuizResponse [id=" + id + ", createdBy=" + createdBy
-				+ ", createOn=" + createOn + ", quizId=" + quizId + ", score="
+				+ ", createOn=" + createdOn + ", quizId=" + quizId + ", score="
 				+ score + ", passed=" + passed + ", serialized="
 				+ Arrays.toString(serialized) + "]";
 	}
