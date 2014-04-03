@@ -7,6 +7,7 @@ import java.util.concurrent.Callable;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
+import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
@@ -24,9 +25,11 @@ public class MessageToUserWorker implements Callable<List<Message>> {
 
 	private List<Message> messages;
 	private MessageManager messageManager;
+	WorkerLogger workerLogger;
 
 	public MessageToUserWorker(List<Message> messages,
-			MessageManager messageManager) {
+			MessageManager messageManager,
+			WorkerLogger workerProfiler) {
 		if (messages == null) {
 			throw new IllegalArgumentException("Messages cannot be null");
 		}
@@ -35,6 +38,7 @@ public class MessageToUserWorker implements Callable<List<Message>> {
 		}
 		this.messages = messages;
 		this.messageManager = messageManager;
+		this.workerLogger = workerProfiler;
 	}
 
 	@Override
@@ -64,10 +68,12 @@ public class MessageToUserWorker implements Callable<List<Message>> {
 					processedMessages.add(message);
 				} catch (NotFoundException e) {
 					log.info("NotFound: " + e.getMessage() + ". The message will be returned as processed and removed from the queue");
+					workerLogger.logWorkerFailure(this.getClass(), change, e, false);
 					processedMessages.add(message);
 				} catch (Throwable e) {
 					// Something went wrong and we did not process the message
 					log.error("Failed to process message", e);
+					workerLogger.logWorkerFailure(this.getClass(), change, e, true);
 				}
 			} else {
 				// Non-MESSAGE messages must be returned so they can be removed from the queue.
