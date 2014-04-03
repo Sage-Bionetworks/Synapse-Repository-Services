@@ -5,6 +5,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
+
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -16,6 +19,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -67,7 +71,7 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testCRUD(){
 		// Create a Simple table with only a few columns
-		List<ColumnModel> allTypes = TableModelUtils.createOneOfEachType();
+		List<ColumnModel> allTypes = TableModelTestUtils.createOneOfEachType();
 		// Create the table
 		boolean updated = tableIndexDAO.createOrUpdateTable(allTypes, tableId);
 		assertTrue("The table should not have existed so update should be true",updated);
@@ -103,8 +107,8 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testCreateOrUpdateRows(){
 		// Create a Simple table with only a few columns
-		List<ColumnModel> allTypes = TableModelUtils.createOneOfEachType();
-		List<Row> rows = TableModelUtils.createRows(allTypes, 5);
+		List<ColumnModel> allTypes = TableModelTestUtils.createOneOfEachType();
+		List<Row> rows = TableModelTestUtils.createRows(allTypes, 5);
 		RowSet set = new RowSet();
 		set.setRows(rows);
 		set.setHeaders(TableModelUtils.getHeaders(allTypes));
@@ -123,16 +127,16 @@ public class TableIndexDAOImplTest {
 		assertEquals(5, result.size());
 		// Row zero
 		Map<String, Object> row = result.get(0);
-		assertEquals(100l, row.get(SQLUtils.ROW_ID));
+		assertEquals(100l, row.get(ROW_ID));
 		assertEquals(0l, row.get("C4"));
 		// row four
 		row = result.get(4);
-		assertEquals(104l, row.get(SQLUtils.ROW_ID));
+		assertEquals(104l, row.get(ROW_ID));
 		assertEquals(13.64, row.get("C1"));
 		assertEquals(4l, row.get("C4"));
 		
 		// We should be able to update all of the rows
-		rows.get(4).setValues(Arrays.asList("update", "99.99", "3", "false", "123"));
+		rows.get(4).setValues(Arrays.asList("update", "99.99", "3", "false", "123", "123"));
 		rows.get(4).setVersionNumber(5L);
 		// This should not fail
 		tableIndexDAO.createOrUpdateRows(set, allTypes);
@@ -143,8 +147,8 @@ public class TableIndexDAOImplTest {
 		// row four
 		row = result.get(4);
 		// Check all values on the updated row.
-		assertEquals(104l, row.get(SQLUtils.ROW_ID));
-		assertEquals(5L, row.get(SQLUtils.ROW_VERSION));
+		assertEquals(104l, row.get(ROW_ID));
+		assertEquals(5L, row.get(ROW_VERSION));
 		assertEquals("update", row.get("C0"));
 		assertEquals(99.99, row.get("C1"));
 		assertEquals(3L, row.get("C2"));
@@ -158,13 +162,13 @@ public class TableIndexDAOImplTest {
 		Long count = tableIndexDAO.getRowCountForTable(tableId);
 		assertEquals("The row count should be null when the table does not exist",null, count);
 		// Create the table
-		List<ColumnModel> allTypes = TableModelUtils.createOneOfEachType();
+		List<ColumnModel> allTypes = TableModelTestUtils.createOneOfEachType();
 		tableIndexDAO.createOrUpdateTable(allTypes, tableId);
 		// the table now exists
 		count = tableIndexDAO.getRowCountForTable(tableId);
 		assertEquals("The row count should be 0 when the table is empty", new Long(0), count);
 		// Now add some data
-		List<Row> rows = TableModelUtils.createRows(allTypes, 4);
+		List<Row> rows = TableModelTestUtils.createRows(allTypes, 4);
 		RowSet set = new RowSet();
 		set.setRows(rows);
 		set.setHeaders(TableModelUtils.getHeaders(allTypes));
@@ -187,13 +191,13 @@ public class TableIndexDAOImplTest {
 		Long maxVersion = tableIndexDAO.getMaxVersionForTable(tableId);
 		assertEquals("The max version should be null when the table does not exist",null, maxVersion);
 		// Create the table
-		List<ColumnModel> allTypes = TableModelUtils.createOneOfEachType();
+		List<ColumnModel> allTypes = TableModelTestUtils.createOneOfEachType();
 		tableIndexDAO.createOrUpdateTable(allTypes, tableId);
 		// The max version should now be -1
 		maxVersion = tableIndexDAO.getMaxVersionForTable(tableId);
 		assertEquals("The max version should be -1 when the table is empty", new Long(-1), maxVersion);
 		// Now add some data
-		List<Row> rows = TableModelUtils.createRows(allTypes, 2);
+		List<Row> rows = TableModelTestUtils.createRows(allTypes, 2);
 		RowSet set = new RowSet();
 		set.setRows(rows);
 		set.setHeaders(TableModelUtils.getHeaders(allTypes));
@@ -214,10 +218,10 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testSimpleQuery() throws ParseException{
 		// Create the table
-		List<ColumnModel> allTypes = TableModelUtils.createOneOfEachType();
+		List<ColumnModel> allTypes = TableModelTestUtils.createOneOfEachType();
 		tableIndexDAO.createOrUpdateTable(allTypes, tableId);
 		// Now add some data
-		List<Row> rows = TableModelUtils.createRows(allTypes, 2);
+		List<Row> rows = TableModelTestUtils.createRows(allTypes, 2);
 		RowSet set = new RowSet();
 		set.setRows(rows);
 		List<String> headers = TableModelUtils.getHeaders(allTypes);
@@ -246,14 +250,14 @@ public class TableIndexDAOImplTest {
 		assertNotNull(row);
 		assertEquals(new Long(100), row.getRowId());
 		assertEquals(new Long(3), row.getVersionNumber());
-		List<String> expectedValues = Arrays.asList("string0", "0", "0", "0", "0");
+		List<String> expectedValues = Arrays.asList("string0", "0", "0", "0", "0", "0");
 		assertEquals(expectedValues, row.getValues());
 		// Second row
 		row = results.getRows().get(1);
 		assertNotNull(row);
 		assertEquals(new Long(101), row.getRowId());
 		assertEquals(new Long(3), row.getVersionNumber());
-		expectedValues = Arrays.asList("string1", "3.41", "1", "1", "1");
+		expectedValues = Arrays.asList("string1", "3.41", "1", "1", "1", "1");
 		assertEquals(expectedValues, row.getValues());
 		
 
@@ -262,10 +266,10 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testQueryAggregate() throws ParseException{
 		// Create the table
-		List<ColumnModel> allTypes = TableModelUtils.createOneOfEachType();
+		List<ColumnModel> allTypes = TableModelTestUtils.createOneOfEachType();
 		tableIndexDAO.createOrUpdateTable(allTypes, tableId);
 		// Now add some data
-		List<Row> rows = TableModelUtils.createRows(allTypes, 2);
+		List<Row> rows = TableModelTestUtils.createRows(allTypes, 2);
 		RowSet set = new RowSet();
 		set.setRows(rows);
 		List<String> headers = TableModelUtils.getHeaders(allTypes);
@@ -316,7 +320,7 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.createOrUpdateTable(schema, tableId);
 		// Create some data
 		// Now add some data
-		List<Row> rows = TableModelUtils.createRows(schema, 100);
+		List<Row> rows = TableModelTestUtils.createRows(schema, 100);
 		RowSet set = new RowSet();
 		set.setRows(rows);
 		List<String> headers = TableModelUtils.getHeaders(schema);
@@ -345,6 +349,55 @@ public class TableIndexDAOImplTest {
 		assertEquals(new Long(199), row.getRowId());
 		assertEquals(new Long(4), row.getVersionNumber());
 		List<String> expectedValues = Arrays.asList("string99", "99");
+		assertEquals(expectedValues, row.getValues());
+	}
+	
+	@Test
+	public void testQueryRowIdAndRowVersion() throws ParseException{
+		ColumnModel foo = new ColumnModel();
+		foo.setColumnType(ColumnType.STRING);
+		foo.setName("foo");
+		foo.setId("111");
+		foo.setMaximumSize(10L);
+		ColumnModel bar = new ColumnModel();
+		bar.setColumnType(ColumnType.LONG);
+		bar.setId("222");
+		bar.setName("bar");
+		List<ColumnModel> schema = new LinkedList<ColumnModel>();
+		schema.add(foo);
+		schema.add(bar);
+		// Create the table.
+		tableIndexDAO.createOrUpdateTable(schema, tableId);
+		// Create some data
+		// Now add some data
+		List<Row> rows = TableModelTestUtils.createRows(schema, 100);
+		RowSet set = new RowSet();
+		set.setRows(rows);
+		List<String> headers = TableModelUtils.getHeaders(schema);
+		set.setHeaders(headers);
+		set.setTableId(tableId);
+		IdRange range = new IdRange();
+		range.setMinimumId(100L);
+		range.setMaximumId(200L);
+		range.setVersionNumber(4L);
+		TableModelUtils.assignRowIdsAndVersionNumbers(set, range);
+		// Now fill the table with data
+		tableIndexDAO.createOrUpdateRows(set, schema);
+		Map<String, Long> columnNameToIdMap = TableModelUtils.createColumnNameToIdMap(schema);
+		// Now create the query
+		SqlQuery query = new SqlQuery("select * from "+tableId+" where ROW_ID = 104 AND Row_Version > 1 limit 1 offset 0", columnNameToIdMap);
+		// Now query for the results
+		RowSet results = tableIndexDAO.query(query);
+		assertNotNull(results);
+		assertNotNull(results.getRows());
+		assertEquals(tableId, results.getTableId());
+		assertEquals(1, results.getRows().size());
+		// first and only row.
+		Row row = results.getRows().get(0);
+		assertNotNull(row);
+		assertEquals(new Long(104), row.getRowId());
+		assertEquals(new Long(4), row.getVersionNumber());
+		List<String> expectedValues = Arrays.asList("string4", "4");
 		assertEquals(expectedValues, row.getValues());
 	}
 }

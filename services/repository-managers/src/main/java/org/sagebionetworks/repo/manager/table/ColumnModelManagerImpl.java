@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.PaginatedIds;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
@@ -62,6 +63,10 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 		// Must login to create a column model.
 		if(authorizationManager.isAnonymousUser(user)){
 			throw new UnauthorizedException("You must login to create a ColumnModel");
+		}
+		// Validate the name
+		if(TableConstants.isReservedColumnName(columnModel.getName())){
+			throw new IllegalArgumentException("The column name: "+columnModel.getName()+" is a system reserved column name.");
 		}
 		// Pass it along to the DAO.
 		return columnModelDao.createColumnModel(columnModel);

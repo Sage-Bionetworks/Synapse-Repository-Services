@@ -3,15 +3,16 @@
 	"description":"The response to a multiple choice question",
     "implements":[
         {
-            "$ref":"org.sagebionetworks.repo.model.questionnaire.QuestionResponse"
+            "$ref":"org.sagebionetworks.repo.model.quiz.QuestionResponse"
         }
     ],
     "properties":{
     	"answerIndex":{
     		"type":"array",
+    	    "uniqueItems":true,
     		"items":{
-    			"description":"The index of the MultichoiceAnswer object",
-    			"type":"string"
+    			"description":"The indices of the MultichoiceAnswer objects",
+    			"type":"integer"
     		}
     	},
     	"concreteType":{

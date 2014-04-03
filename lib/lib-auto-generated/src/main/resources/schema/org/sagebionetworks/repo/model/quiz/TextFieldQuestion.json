@@ -3,7 +3,7 @@
 	"description":"A question whose response is an (unconstrained) text string",
     "implements":[
         {
-            "$ref":"org.sagebionetworks.repo.model.questionnaire.Question"
+            "$ref":"org.sagebionetworks.repo.model.quiz.Question"
         }
     ],	
     "properties":{

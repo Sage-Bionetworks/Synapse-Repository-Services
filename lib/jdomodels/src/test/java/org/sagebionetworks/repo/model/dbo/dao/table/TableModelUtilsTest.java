@@ -279,6 +279,23 @@ public class TableModelUtilsTest {
 	}
 	
 	@Test
+	public void testValidateDate() {
+		ColumnModel cm = new ColumnModel();
+		cm.setColumnType(ColumnType.DATE);
+		assertEquals("123", TableModelUtils.validateRowValue("123", cm, 0, 0));
+		try {
+			TableModelUtils.validateRowValue("true", cm, 1, 3);
+			fail("should have failed");
+		} catch (IllegalArgumentException e) {
+			assertEquals("Value at [1,3] was not a valid DATE. For input string: \"true\"", e.getMessage());
+		}
+		assertEquals(null, TableModelUtils.validateRowValue(null, cm, 2, 2));
+		// Set the default to boolean
+		cm.setDefaultValue("890");
+		assertEquals("890", TableModelUtils.validateRowValue(null, cm, 2, 3));
+	}
+
+	@Test
 	public void testValidateDouble(){
 		ColumnModel cm = new ColumnModel();
 		cm.setColumnType(ColumnType.DOUBLE);
@@ -590,7 +607,7 @@ public class TableModelUtilsTest {
 		models.add(cm);
 		
 		// Create some data for this model
-		List<Row> v1Rows = TableModelUtils.createRows(models, 2);
+		List<Row> v1Rows = TableModelTestUtils.createRows(models, 2);
 		RowSet v1Set = new RowSet();
 		v1Set.setHeaders(TableModelUtils.getHeaders(models));
 		v1Set.setRows(v1Rows);
@@ -616,7 +633,7 @@ public class TableModelUtilsTest {
 		models.add(cm);
 		
 		// Create some more data with the new schema
-		List<Row> v2Rows = TableModelUtils.createRows(models, 2);
+		List<Row> v2Rows = TableModelTestUtils.createRows(models, 2);
 		RowSet v2Set = new RowSet();
 		v2Set.setHeaders(TableModelUtils.getHeaders(models));
 		v2Set.setRows(v2Rows);
@@ -690,6 +707,13 @@ public class TableModelUtilsTest {
 		int expected  = new String(Long.toString(-1111111111111111111l)).getBytes("UTF-8").length;
 		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.LONG, null));
 	}
+
+	@Test
+	public void testCalculateMaxSizeForTypeDate() throws UnsupportedEncodingException {
+		int expected = new String(Long.toString(-1111111111111111111l)).getBytes("UTF-8").length;
+		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.DATE, null));
+	}
+
 	@Test
 	public void testCalculateMaxSizeForTypeDouble() throws UnsupportedEncodingException{
 		double big = -1.123456789123456789e123;
@@ -717,14 +741,14 @@ public class TableModelUtilsTest {
 	
 	@Test
 	public void testCalculateMaxRowSize(){
-		List<ColumnModel> all = TableModelUtils.createOneOfEachType();
+		List<ColumnModel> all = TableModelTestUtils.createOneOfEachType();
 		int allBytes = TableModelUtils.calculateMaxRowSize(all);
-		assertEquals(209, allBytes);
+		assertEquals(229, allBytes);
 	}
 	
 	@Test
 	public void testIsRequestWithinMaxBytePerRequest(){
-		List<ColumnModel> all = TableModelUtils.createOneOfEachType();
+		List<ColumnModel> all = TableModelTestUtils.createOneOfEachType();
 		int allBytes = TableModelUtils.calculateMaxRowSize(all);
 		// Set the max to be 100 rows
 		int maxBytes = allBytes*100;

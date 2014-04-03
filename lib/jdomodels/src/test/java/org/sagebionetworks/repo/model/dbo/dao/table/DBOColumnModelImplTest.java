@@ -276,7 +276,7 @@ public class DBOColumnModelImplTest {
 	@Test
 	public void testGetColumnModelsForObject() throws NotFoundException{
 		// Start with all types
-		List<ColumnModel> raw = TableModelUtils.createOneOfEachType();
+		List<ColumnModel> raw = TableModelTestUtils.createOneOfEachType();
 		// Create each one
 		List<ColumnModel> models = new LinkedList<ColumnModel>();
 		for(ColumnModel cm: raw){
@@ -310,7 +310,7 @@ public class DBOColumnModelImplTest {
 		int count = columnModelDao.bindColumnToObject(null, tableId);
 		assertEquals(0, count);
 		// Now bind some columns
-		List<ColumnModel> raw = TableModelUtils.createOneOfEachType();
+		List<ColumnModel> raw = TableModelTestUtils.createOneOfEachType();
 		// Create each one
 		List<ColumnModel> models = new LinkedList<ColumnModel>();
 		for(ColumnModel cm: raw){

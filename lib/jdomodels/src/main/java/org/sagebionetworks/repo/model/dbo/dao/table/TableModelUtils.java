@@ -193,17 +193,19 @@ public class TableModelUtils {
 		// Validate non-null values
 		if (value != null) {
 			try {
-				if (ColumnType.BOOLEAN.equals(cm.getColumnType())) {
+				switch (cm.getColumnType()) {
+				case BOOLEAN:
 					boolean boolValue = Boolean.parseBoolean(value);
 					return Boolean.toString(boolValue);
-				} else if (ColumnType.LONG.equals(cm.getColumnType())
-						|| ColumnType.FILEHANDLEID.equals(cm.getColumnType())) {
+				case LONG:
+				case FILEHANDLEID:
+				case DATE:
 					long lv = Long.parseLong(value);
 					return Long.toString(lv);
-				} else if (ColumnType.DOUBLE.equals(cm.getColumnType())) {
+				case DOUBLE:
 					double dv = Double.parseDouble(value);
 					return Double.toString(dv);
-				} else if (ColumnType.STRING.equals(cm.getColumnType())) {
+				case STRING:
 					if(cm.getMaximumSize() == null) throw new IllegalArgumentException("Strign columns must have a maximum size");
 					if (value.length() > cm.getMaximumSize())
 						throw new IllegalArgumentException(
@@ -211,10 +213,8 @@ public class TableModelUtils {
 										+ cm.getMaximumSize()
 										+ " characters. Consider using a FileHandle to store large strings.");
 					return value;
-				} else {
-					throw new IllegalArgumentException(
-							"Unknown ColumModel type: " + cm.getColumnType());
 				}
+				throw new IllegalArgumentException("Unknown ColumModel type: " + cm.getColumnType());
 			} catch (Exception e) {
 				throw new IllegalArgumentException(String.format(
 						INVALID_VALUE_TEMPLATE, rowIndex, columnIndex,
@@ -426,90 +426,6 @@ public class TableModelUtils {
 		}
 		return result;
 	}
-	
-	/**
-	 * Create one column of each type.
-	 * @return
-	 */
-	public static List<ColumnModel> createOneOfEachType(){
-		List<ColumnModel> results = new LinkedList<ColumnModel>();
-		for(int i=0; i<ColumnType.values().length; i++){
-			ColumnType type = ColumnType.values()[i];
-			ColumnModel cm = new ColumnModel();
-			cm.setColumnType(type);
-			cm.setName("i"+i);
-			cm.setId(""+i);
-			if(ColumnType.STRING == type){
-				cm.setMaximumSize(47L);
-			}
-			results.add(cm);
-		}
-		return results;
-	}
-	
-	/**
-	 * Create the given number of rows.
-	 * @param cms
-	 * @param count
-	 * @return
-	 */
-	public static List<Row> createRows(List<ColumnModel> cms, int count){
-		List<Row> rows = new LinkedList<Row>();
-		for(int i=0; i<count; i++){
-			Row row = new Row();
-			// Add a value for each column
-			List<String> values = new LinkedList<String>();
-			for(ColumnModel cm: cms){
-				if(ColumnType.STRING.equals(cm.getColumnType())){
-					values.add("string"+i);
-				}else if(ColumnType.LONG.equals(cm.getColumnType())){
-					values.add(""+i);
-				}else if(ColumnType.BOOLEAN.equals(cm.getColumnType())){
-					if(i % 2 > 0){
-						values.add(Boolean.TRUE.toString());
-					}else{
-						values.add(Boolean.FALSE.toString());
-					}
-				}else if(ColumnType.FILEHANDLEID.equals(cm.getColumnType())){
-					values.add(""+i);
-				}else if(ColumnType.DOUBLE.equals(cm.getColumnType())){
-					values.add(""+(i*3.41));
-				}else{
-					throw new IllegalArgumentException("Unknown ColumnType: "+cm.getColumnType());
-				}
-			}
-			row.setValues(values);
-			rows.add(row);
-		}
-		return rows;
-	}
-	
-	public static void updateRow(List<ColumnModel> cms, Row toUpdatet, int i) {
-		// Add a value for each column
-		List<String> values = new LinkedList<String>();
-		for (ColumnModel cm : cms) {
-			if (ColumnType.STRING.equals(cm.getColumnType())) {
-				values.add("updateString" + i);
-			} else if (ColumnType.LONG.equals(cm.getColumnType())) {
-				values.add("" + i);
-			} else if (ColumnType.BOOLEAN.equals(cm.getColumnType())) {
-				if (i % 2 > 0) {
-					values.add(Boolean.TRUE.toString());
-				} else {
-					values.add(Boolean.FALSE.toString());
-				}
-			} else if (ColumnType.FILEHANDLEID.equals(cm.getColumnType())) {
-				values.add("" + i);
-			} else if (ColumnType.DOUBLE.equals(cm.getColumnType())) {
-				values.add("" + (i * 3.41));
-			} else {
-				throw new IllegalArgumentException("Unknown ColumnType: "
-						+ cm.getColumnType());
-			}
-		}
-		toUpdatet.setValues(values);
-	}
-	
 	/**
 	 * Convert from the DBO to the DTO
 	 * @param dbo
@@ -688,20 +604,22 @@ public class TableModelUtils {
 	 */
 	public static int calculateMaxSizeForType(ColumnType type, Long maxSize){
 		if(type == null) throw new IllegalArgumentException("ColumnType cannot be null");
-		if(ColumnType.STRING.equals(type)){
-			if(maxSize == null) throw new IllegalArgumentException("maxSize cannot be null for String types");
-			return (int) (ColumnConstants.MAX_BYTES_PER_CHAR_UTF_8*maxSize);
-		}else if(ColumnType.BOOLEAN.equals(type)){
+		switch (type) {
+		case STRING:
+			if (maxSize == null)
+				throw new IllegalArgumentException("maxSize cannot be null for String types");
+			return (int) (ColumnConstants.MAX_BYTES_PER_CHAR_UTF_8 * maxSize);
+		case BOOLEAN:
 			return ColumnConstants.MAX_BOOLEAN_BYTES_AS_STRING;
-		}else if(ColumnType.LONG.equals(type)){
+		case LONG:
+		case DATE:
 			return ColumnConstants.MAX_LONG_BYTES_AS_STRING;
-		}else if(ColumnType.DOUBLE.equals(type)){
+		case DOUBLE:
 			return ColumnConstants.MAX_DOUBLE_BYTES_AS_STRING;
-		}else if(ColumnType.FILEHANDLEID.equals(type)){
+		case FILEHANDLEID:
 			return ColumnConstants.MAX_FILE_HANDLE_ID_BYTES_AS_STRING;
-		}else{
-			throw new IllegalArgumentException("Unknown ColumnType: "+type);
 		}
+		throw new IllegalArgumentException("Unknown ColumnType: " + type);
 	}
 	
 	/**

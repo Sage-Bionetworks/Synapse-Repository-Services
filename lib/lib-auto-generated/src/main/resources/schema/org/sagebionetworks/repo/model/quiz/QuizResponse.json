@@ -1,13 +1,13 @@
 {
 	"type":"object",
-	"description":"The set of responses to a Questionnaire",
+	"description":"The set of responses to a Quiz",
 	"properties":{
 		"id":{
 			"description":"The unique ID for this response",
 			"type":"integer"
 		},
-		"questionnaireId":{
-			"description":"The ID of the Questionnaire to which this is a response",
+		"quizId":{
+			"description":"The ID of the Quiz to which this is a response",
 			"type":"integer"
 		},
 		"createdBy": {
@@ -20,16 +20,20 @@
 			"description":"When this response was created"
 		},
 		"questionResponses":{
-			"description":"The this list of responses to the questions in the questionnaire",
+			"description":"The list of responses to the questions in the Quiz",
 			"type": "array",
 			"items": {
 				"type":"object",
-				"$ref":"org.sagebionetworks.repo.model.questionnaire.QuestionResponse"
+				"$ref":"org.sagebionetworks.repo.model.quiz.QuestionResponse"
 			}
 		},
 		"pass":{
-			"description":"if the Questionnaire is a test, this indicates whether the response passes, as determined by the system",
+			"description":"if the Quiz is a test, this indicates whether the response passes, as determined by the system",
 			"type":"boolean"
+		},
+		"score":{
+			"description":"the number of correct answers in the response",
+			"type":"integer"
 		}
 	}
 }

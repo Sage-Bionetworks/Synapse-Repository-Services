@@ -33,6 +33,7 @@
 		<module>lib-javaclient</module>
 		<module>lib-table-cluster</module>
 		<module>lib-table-query</module>
+		<module>lib-test</module>
 	</modules>
 
 </project>

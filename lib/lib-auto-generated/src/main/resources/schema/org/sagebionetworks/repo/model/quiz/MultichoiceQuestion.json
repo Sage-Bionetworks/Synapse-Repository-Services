@@ -3,7 +3,7 @@
 	"description":"A multiple choice question",
     "implements":[
         {
-            "$ref":"org.sagebionetworks.repo.model.questionnaire.Question"
+            "$ref":"org.sagebionetworks.repo.model.quiz.Question"
         }
     ],
 	"properties":{
@@ -17,7 +17,7 @@
 			"type":"array",
 			"items":{
 				"type":"object",
-				"$ref":"org.sagebionetworks.repo.model.questionnaire.MultichoiceAnswer"
+				"$ref":"org.sagebionetworks.repo.model.quiz.MultichoiceAnswer"
 			},
 			"links": [{"rel": "describedby","href": "http://synapse.sagebase.org/access/public"}]
 		},

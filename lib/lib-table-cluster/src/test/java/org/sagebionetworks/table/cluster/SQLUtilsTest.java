@@ -1,5 +1,8 @@
 package org.sagebionetworks.table.cluster;
 
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
@@ -9,6 +12,7 @@ import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -16,6 +20,8 @@ import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
+
+
 
 
 public class SQLUtilsTest {
@@ -84,6 +90,13 @@ public class SQLUtilsTest {
 	}
 	
 	@Test
+	public void testGetSQLTypeForColumnTypeDate() {
+		String expected = "bigint(20)";
+		String sql = SQLUtils.getSQLTypeForColumnType(ColumnType.DATE, null);
+		assertEquals(expected, sql);
+	}
+
+	@Test
 	public void testGetSQLTypeForColumnTypeDouble(){
 		String expected = "double";
 		String sql = SQLUtils.getSQLTypeForColumnType(ColumnType.DOUBLE, null);
@@ -125,6 +138,13 @@ public class SQLUtilsTest {
 	}
 	
 	@Test
+	public void testparseValueForDBDate() {
+		Long expected = new Long(123);
+		Object objectValue = SQLUtils.parseValueForDB(ColumnType.DATE, "123");
+		assertEquals(expected, objectValue);
+	}
+
+	@Test
 	public void testparseValueForDBDouble(){
 		Double expected = new Double(123.456);
 		Object objectValue = SQLUtils.parseValueForDB(ColumnType.DOUBLE, "123.456");
@@ -160,6 +180,13 @@ public class SQLUtilsTest {
 		assertEquals(expected, sql);
 	}
 	
+	@Test
+	public void testGetSQLDefaultsForDATE() {
+		String expected = "DEFAULT 123";
+		String sql = SQLUtils.getSQLDefaultForColumnType(ColumnType.DATE, "123");
+		assertEquals(expected, sql);
+	}
+
 	@Test
 	public void testGetSQLDefaultsForString(){
 		String expected = "DEFAULT 'a string'";
@@ -206,7 +233,7 @@ public class SQLUtilsTest {
 	
 	@Test
 	public void testCreateAllTypes(){
-		List<ColumnModel> allTypes = TableModelUtils.createOneOfEachType();
+		List<ColumnModel> allTypes = TableModelTestUtils.createOneOfEachType();
 		String sql = SQLUtils.createTableSQL(allTypes, "syn123");
 		assertNotNull(sql);
 		System.out.println(sql);
@@ -325,7 +352,7 @@ public class SQLUtilsTest {
 	@Test
 	public void testConvertColumnNamesToColumnId(){
 		// Start with column
-		List<String> columnNames = Arrays.asList(SQLUtils.ROW_ID, SQLUtils.ROW_VERSION,"C2","C1");
+		List<String> columnNames = Arrays.asList(ROW_ID, ROW_VERSION,"C2","C1");
 		List<String> expected = Arrays.asList("2","1");
 		List<String> results = SQLUtils.convertColumnNamesToColumnId(columnNames);
 		assertEquals(expected, results);
@@ -386,9 +413,9 @@ public class SQLUtilsTest {
 	
 	@Test
 	public void testBindParametersForCreateOrUpdateAllTypes(){
-		List<ColumnModel> newSchema = TableModelUtils.createOneOfEachType();
+		List<ColumnModel> newSchema = TableModelTestUtils.createOneOfEachType();
 		RowSet set = new RowSet();
-		set.setRows(TableModelUtils.createRows(newSchema, 3));
+		set.setRows(TableModelTestUtils.createRows(newSchema, 3));
 		set.setHeaders(TableModelUtils.getHeaders(newSchema));
 		set.setTableId("syn123");
 		IdRange range = new IdRange();

@@ -86,6 +86,9 @@ import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
 import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.query.QueryTableResults;
+import org.sagebionetworks.repo.model.quiz.PassingRecord;
+import org.sagebionetworks.repo.model.quiz.Quiz;
+import org.sagebionetworks.repo.model.quiz.QuizResponse;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
@@ -1365,4 +1368,49 @@ public interface SynapseClient extends BaseClient {
 	public Session passThroughOpenIDParameters(String queryString,
 			Boolean createUserIfNecessary, DomainType domain)
 			throws SynapseException;
+	
+	/**
+	 * Get the Quiz specifically intended to be the Certified User test
+	 * @return
+	 * @throws SynapseException 
+	 */
+	public Quiz getCertifiedUserTest() throws SynapseException;
+	
+	/**
+	 * Submit the response to the Certified User test
+	 * @param response
+	 * @return
+	 * @throws SynapseException 
+	 */
+	public PassingRecord submitCertifiedUserTestResponse(QuizResponse response) throws SynapseException;
+	
+	/**
+	 * Must be a Synapse admin to make this request
+	 * 
+	 * @param offset
+	 * @param limit
+	 * @param principalId (optional)
+	 * @return the C.U. test responses in the system, optionally filtered by principalId
+	 * @throws SynapseException 
+	 */
+	public PaginatedResults<QuizResponse> getCertifiedUserTestResponses(long offset, long limit, Long principalId) throws SynapseException;
+	
+	/**
+	 * Delete the Test Response indicated by the given id
+	 * 
+	 * Must be a Synapse admin to make this request
+	 * 
+	 * @param id
+	 * @throws SynapseException 
+	 */
+	public void deleteCertifiedUserTestResponse(Long id) throws SynapseException;
+	
+	/**
+	 * Get the Passing Record on the Certified User test for the given user
+	 * 
+	 * @param principalId
+	 * @return
+	 * @throws SynapseException 
+	 */
+	public PassingRecord getCertifiedUserPassingRecord(Long principalId) throws SynapseException;
 }

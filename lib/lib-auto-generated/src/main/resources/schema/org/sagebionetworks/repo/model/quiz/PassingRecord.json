@@ -6,16 +6,16 @@
 			"type": "string",
 			"description":"The principal id of the user"
 		},
-		"questionnaireId":{
+		"quizId":{
 			"type": "integer",
-			"description":"The id of the questionnaire"
+			"description":"The id of the quiz"
 		},
 		"responseId":{
 			"type": "integer",
 			"description":"The id of the user's response"
 		},
 		"score":{
-			"type": "number",
+			"type": "integer",
 			"description":"The score the user received on the test"
 		},
 		"passed":{

@@ -303,6 +303,9 @@ public class SchemaUtils {
 		} if(TYPE.ARRAY == type.getType()){
 			if(type.getItems() == null) throw new IllegalArgumentException("ObjectSchema.items cannot be null for TYPE.ARRAY");
 			return getTypeHref(type.getItems());
+		} else if (type.getType() == TYPE.STRING && type.getEnum() != null && type.getId() != null) {
+			String typeName = type.getId();
+			return "${" + typeName + "}";
 		}else{
 			// primitives do not have links
 			return null;
@@ -315,6 +318,8 @@ public class SchemaUtils {
 		} if(TYPE.ARRAY == type.getType()){
 			if(type.getItems() == null) throw new IllegalArgumentException("ObjectSchema.items cannot be null for TYPE.ARRAY");
 			return getTypeDisplay(type.getItems());
+		} else if (type.getType() == TYPE.STRING && type.getEnum() != null && type.getId() != null) {
+			return type.getName();
 		}else{
 			return type.getType().toString();
 		}

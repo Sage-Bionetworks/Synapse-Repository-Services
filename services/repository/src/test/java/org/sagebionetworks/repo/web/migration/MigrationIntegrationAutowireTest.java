@@ -68,6 +68,7 @@ import org.sagebionetworks.repo.model.MembershipRqstSubmissionDAO;
 import org.sagebionetworks.repo.model.MessageDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.QuizResponseDAO;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.StorageQuotaAdminDao;
@@ -87,6 +88,7 @@ import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSessionToken;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
@@ -105,6 +107,7 @@ import org.sagebionetworks.repo.model.migration.MigrationUtils;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.provenance.Activity;
+import org.sagebionetworks.repo.model.quiz.QuizResponse;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
@@ -222,6 +225,9 @@ public class MigrationIntegrationAutowireTest {
 
 	@Autowired
 	private V2WikiPageDao v2wikiPageDAO;
+	
+	@Autowired
+	private QuizResponseDAO quizResponseDAO;
 
 	private Long adminUserId;
 	private String adminUserIdString;
@@ -291,12 +297,24 @@ public class MigrationIntegrationAutowireTest {
 		UserGroup sampleGroup2 = createUserGroups(2);
 		createCommunity(sampleGroup2);
 		createParticipantData(sampleGroup);
+		createQuizResponse();
+	}
+	
+	private void createQuizResponse() {
+		QuizResponse dto = new QuizResponse();
+		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+		dto.setCreatedBy(adminUserId.toString());
+		dto.setCreatedOn(new Date());
+		dto.setPass(true);
+		dto.setQuizId(101L);
+		dto.setScore(7L);
+		quizResponseDAO.create(dto);
 	}
 
 	private void createColumnModel() throws DatastoreException, NotFoundException, IOException {
 		String tableId = "syn123";
 		// Create some test column models
-		List<ColumnModel> start = TableModelUtils.createOneOfEachType();
+		List<ColumnModel> start = TableModelTestUtils.createOneOfEachType();
 		// Create each one
 		List<ColumnModel> models = new LinkedList<ColumnModel>();
 		for (ColumnModel cm : start) {
@@ -308,7 +326,7 @@ public class MigrationIntegrationAutowireTest {
 		columnModelDao.bindColumnToObject(header, tableId);
 
 		// create some test rows.
-		List<Row> rows = TableModelUtils.createRows(models, 5);
+		List<Row> rows = TableModelTestUtils.createRows(models, 5);
 		RowSet set = new RowSet();
 		set.setHeaders(TableModelUtils.getHeaders(models));
 		set.setRows(rows);
@@ -316,7 +334,7 @@ public class MigrationIntegrationAutowireTest {
 		// Append the rows to the table
 		tableRowTruthDao.appendRowSetToTable(adminUserIdString, tableId, models, set);
 		// Append some more rows
-		rows = TableModelUtils.createRows(models, 6);
+		rows = TableModelTestUtils.createRows(models, 6);
 		set.setRows(rows);
 		tableRowTruthDao.appendRowSetToTable(adminUserIdString, tableId, models, set);
 	}

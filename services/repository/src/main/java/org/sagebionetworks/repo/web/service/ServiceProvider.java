@@ -60,4 +60,6 @@ public interface ServiceProvider {
 	
 	public PrincipalService getPrincipalService();
 	
+	public CertifiedUserService getCertifiedUserService();
+	
 }
