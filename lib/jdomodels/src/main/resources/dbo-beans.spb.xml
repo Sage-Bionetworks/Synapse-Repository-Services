@@ -94,6 +94,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOSharedLock" />
 								
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOUploadDaemonStatus" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOQuizResponse" />
 				<!-- bridge -->
 				<bean class="org.sagebionetworks.bridge.model.dbo.persistence.DBOCommunityTeam" />
 				<bean class="org.sagebionetworks.bridge.model.dbo.persistence.DBOParticipant" />
@@ -151,6 +152,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableIdSequence" />
 				
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOStorageQuota" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOQuizResponse" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOChange" />
 			</list>
 		</property>

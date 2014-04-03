@@ -105,7 +105,9 @@
 	<!-- The DOI Service -->
 	<bean id="doiService" class="org.sagebionetworks.repo.web.service.DoiServiceImpl" />
 
-	<bean id="teamService" class="org.sagebionetworks.repo.web.service.TeamServiceImpl" />
+	<bean id="certifiedUserService" class="org.sagebionetworks.repo.web.service.CertifiedUserServiceImpl" />
+
+		<bean id="teamService" class="org.sagebionetworks.repo.web.service.TeamServiceImpl" />
 	<bean id="membershipInvitationService" class="org.sagebionetworks.repo.web.service.MembershipInvitationServiceImpl" />
 	<bean id="membershipRequestService" class="org.sagebionetworks.repo.web.service.MembershipRequestServiceImpl" />
 		

@@ -1,18 +1,18 @@
 package org.sagebionetworks.repo.web.service;
 
 import org.sagebionetworks.repo.model.PaginatedResults;
-import org.sagebionetworks.repo.model.questionnaire.PassingRecord;
-import org.sagebionetworks.repo.model.questionnaire.Questionnaire;
-import org.sagebionetworks.repo.model.questionnaire.QuestionnaireResponse;
+import org.sagebionetworks.repo.model.quiz.PassingRecord;
+import org.sagebionetworks.repo.model.quiz.Quiz;
+import org.sagebionetworks.repo.model.quiz.QuizResponse;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface CertifiedUserService {
 	
 	/**
-	 * Get the (static) Certified Users Questionnaire
+	 * Get the (static) Certified Users Quiz
 	 * @return
 	 */
-	public Questionnaire getCertificationQuestionnaire();
+	public Quiz getCertificationQuiz();
 	
 	/**
 	 * Store the response and score it. If the user passes they are added to the 
@@ -23,7 +23,7 @@ public interface CertifiedUserService {
 	 * @return
 	 * @throws NotFoundException 
 	 */
-	public QuestionnaireResponse submitCertificationQuestionnaireResponse(Long userId, QuestionnaireResponse response) throws NotFoundException;
+	public PassingRecord submitCertificationQuizResponse(Long userId, QuizResponse response) throws NotFoundException;
 
 	/**
 	 * Retrieve the questionnaire responses in the system, optionally filtering by user Id.
@@ -36,15 +36,15 @@ public interface CertifiedUserService {
 	 * @return
 	 * @throws NotFoundException 
 	 */
-	public PaginatedResults<QuestionnaireResponse> getQuestionnaireResponses(Long userId, Long principalId, long limit, long offset) throws NotFoundException;
+	public PaginatedResults<QuizResponse> getQuizResponses(Long userId, Long principalId, long limit, long offset) throws NotFoundException;
 	
 	/**
-	 * Delete a Questionnaire Response
+	 * Delete a Quiz Response
 	 * @param userId
 	 * @param responseId
 	 * @throws NotFoundException 
 	 */
-	public void deleteQuestionnaireResponse(Long userId, Long responseId) throws NotFoundException;
+	public void deleteQuizResponse(Long userId, Long responseId) throws NotFoundException;
 	
 	
 	/**

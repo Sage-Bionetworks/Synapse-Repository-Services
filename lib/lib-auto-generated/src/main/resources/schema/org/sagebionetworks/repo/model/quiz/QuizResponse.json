@@ -30,6 +30,10 @@
 		"pass":{
 			"description":"if the Quiz is a test, this indicates whether the response passes, as determined by the system",
 			"type":"boolean"
+		},
+		"score":{
+			"description":"the number of correct answers in the response",
+			"type":"integer"
 		}
 	}
 }

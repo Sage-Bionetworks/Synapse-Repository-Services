@@ -5348,12 +5348,12 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public QuizResponse submitCertifiedUserTestResponse(
+	public PassingRecord submitCertifiedUserTestResponse(
 			QuizResponse response) throws SynapseException {
 		try {
 			JSONObject jsonObj = EntityFactory.createJSONObjectForEntity(response);
 			jsonObj = createJSONObject(CERTIFIED_USER_TEST_RESPONSE, jsonObj);
-			return initializeFromJSONObject(jsonObj, QuizResponse.class);
+			return initializeFromJSONObject(jsonObj, PassingRecord.class);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseClientException(e);
 		}

@@ -5,9 +5,9 @@ import static org.sagebionetworks.repo.web.UrlHelpers.ID_PATH_VARIABLE;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
-import org.sagebionetworks.repo.model.questionnaire.PassingRecord;
-import org.sagebionetworks.repo.model.questionnaire.Questionnaire;
-import org.sagebionetworks.repo.model.questionnaire.QuestionnaireResponse;
+import org.sagebionetworks.repo.model.quiz.PassingRecord;
+import org.sagebionetworks.repo.model.quiz.Quiz;
+import org.sagebionetworks.repo.model.quiz.QuizResponse;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
@@ -44,8 +44,8 @@ public class CertifiedUserController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.CERTIFIED_USER_TEST, method = RequestMethod.GET)
 	public @ResponseBody
-	Questionnaire getCertificationQuestionnaire()  {
-		return serviceProvider.getCertifiedUserService().getCertificationQuestionnaire();
+	Quiz getCertificationQuiz()  {
+		return serviceProvider.getCertifiedUserService().getCertificationQuiz();
 	}
 
 	/**
@@ -59,12 +59,12 @@ public class CertifiedUserController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.CERTIFIED_USER_TEST_RESPONSE, method = RequestMethod.POST)
 	public @ResponseBody
-	QuestionnaireResponse submitCertificationQuestionnaireResponse(
+	PassingRecord submitCertificationQuizResponse(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody QuestionnaireResponse response
+			@RequestBody QuizResponse response
 			) throws NotFoundException {
 		return serviceProvider.getCertifiedUserService().
-				submitCertificationQuestionnaireResponse(userId, response);
+				submitCertificationQuizResponse(userId, response);
 	}
 	
 	/**
@@ -80,13 +80,13 @@ public class CertifiedUserController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.CERTIFIED_USER_TEST_RESPONSE, method = RequestMethod.GET)
 	public @ResponseBody 
-	PaginatedResults<QuestionnaireResponse> getQuestionnaireResponses(
+	PaginatedResults<QuizResponse> getQuizResponses(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.PRINCIPAL_ID, required = false) Long principalId,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset
 			) throws NotFoundException {
-		return serviceProvider.getCertifiedUserService().getQuestionnaireResponses(userId, principalId, limit, offset);
+		return serviceProvider.getCertifiedUserService().getQuizResponses(userId, principalId, limit, offset);
 	}
 	
 	/**
@@ -97,11 +97,11 @@ public class CertifiedUserController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.CERTIFIED_USER_TEST_RESPONSE_WITH_ID, method = RequestMethod.DELETE)
-	public void deleteQuestionnaireResponse(
+	public void deleteQuizResponse(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(value = ID_PATH_VARIABLE) Long responseId
 			) throws NotFoundException {
-		serviceProvider.getCertifiedUserService().deleteQuestionnaireResponse(userId, responseId);	
+		serviceProvider.getCertifiedUserService().deleteQuizResponse(userId, responseId);	
 	}
 	
 	/**

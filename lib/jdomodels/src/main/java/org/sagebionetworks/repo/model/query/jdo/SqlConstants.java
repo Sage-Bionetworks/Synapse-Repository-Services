@@ -628,7 +628,17 @@ public class SqlConstants {
 	public static final String COL_PARTICIPANT_DATA_STATUS_PARTICIPANT_DATA_ID = "PARTICIPANT_DATA_ID";
 	public static final String COL_PARTICIPANT_DATA_STATUS_PARTICIPANT_DATA_DESCRIPTOR_ID = "PARTICIPANT_DATA_DESCRIPTOR_ID";
 	public static final String COL_PARTICIPANT_DATA_STATUS_STATUS = "STATUS";
-
+	
+	// QuizResponse data set
+	public static final String TABLE_QUIZ_RESPONSE = "QUIZ_RESPONSE";
+	public static final String COL_QUIZ_RESPONSE_ID = "ID";
+	public static final String COL_QUIZ_RESPONSE_CREATED_BY = "CREATED_BY";
+	public static final String COL_QUIZ_RESPONSE_CREATED_ON = "CREATED_ON";
+	public static final String COL_QUIZ_RESPONSE_QUIZ_ID = "QUIZ_ID";
+	public static final String COL_QUIZ_RESPONSE_SCORE = "SCORE";
+	public static final String COL_QUIZ_RESPONSE_PASSED = "PASSED";
+	public static final String COL_QUIZ_RESPONSE_SERIALIZED = "SERIALIZED";
+	
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";
 	

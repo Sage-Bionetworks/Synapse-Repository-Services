@@ -1382,7 +1382,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException 
 	 */
-	public QuizResponse submitCertifiedUserTestResponse(QuizResponse response) throws SynapseException;
+	public PassingRecord submitCertifiedUserTestResponse(QuizResponse response) throws SynapseException;
 	
 	/**
 	 * Must be a Synapse admin to make this request

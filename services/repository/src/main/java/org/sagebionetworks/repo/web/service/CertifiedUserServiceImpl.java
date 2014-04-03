@@ -4,9 +4,9 @@ import org.sagebionetworks.repo.manager.CertifiedUserManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.questionnaire.PassingRecord;
-import org.sagebionetworks.repo.model.questionnaire.Questionnaire;
-import org.sagebionetworks.repo.model.questionnaire.QuestionnaireResponse;
+import org.sagebionetworks.repo.model.quiz.PassingRecord;
+import org.sagebionetworks.repo.model.quiz.Quiz;
+import org.sagebionetworks.repo.model.quiz.QuizResponse;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -18,29 +18,29 @@ public class CertifiedUserServiceImpl implements CertifiedUserService {
 	private CertifiedUserManager certifiedUserManager;
 	
 	@Override
-	public Questionnaire getCertificationQuestionnaire() {
-		return certifiedUserManager.getCertificationQuestionnaire();
+	public Quiz getCertificationQuiz() {
+		return certifiedUserManager.getCertificationQuiz();
 	}
 
 	@Override
-	public QuestionnaireResponse submitCertificationQuestionnaireResponse(
-			Long userId, QuestionnaireResponse response) throws NotFoundException {
+	public PassingRecord submitCertificationQuizResponse(
+			Long userId, QuizResponse response) throws NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return certifiedUserManager.submitCertificationQuestionnaireResponse(userInfo, response);
+		return certifiedUserManager.submitCertificationQuizResponse(userInfo, response);
 	}
 
 	@Override
-	public PaginatedResults<QuestionnaireResponse> getQuestionnaireResponses(
+	public PaginatedResults<QuizResponse> getQuizResponses(
 			Long userId, Long principalId, long limit, long offset) throws NotFoundException {
 
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return certifiedUserManager.getQuestionnaireResponses(userInfo, principalId, limit, offset);
+		return certifiedUserManager.getQuizResponses(userInfo, principalId, limit, offset);
 	}
 
 	@Override
-	public void deleteQuestionnaireResponse(Long userId, Long responseId) throws NotFoundException {
+	public void deleteQuizResponse(Long userId, Long responseId) throws NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		certifiedUserManager.deleteQuestionnaireResponse(userInfo, responseId);
+		certifiedUserManager.deleteQuizResponse(userInfo, responseId);
 	}
 
 	@Override
