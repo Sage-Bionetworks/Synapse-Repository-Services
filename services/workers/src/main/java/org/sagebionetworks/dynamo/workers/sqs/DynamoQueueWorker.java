@@ -10,6 +10,7 @@ import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.ProfileData;
+import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.repo.manager.dynamo.NodeTreeUpdateManager;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -26,9 +27,12 @@ public class DynamoQueueWorker implements Callable<List<Message>> {
 	private final List<Message> messages;
 
 	private final NodeTreeUpdateManager updateManager;
+	
+	private final WorkerLogger workerLogger;
 
 	public DynamoQueueWorker(List<Message> messageList,
-			NodeTreeUpdateManager updateManager, Consumer consumer) {
+			NodeTreeUpdateManager updateManager, Consumer consumer,
+			WorkerLogger workerProfiler) {
 
 		if (messageList == null) {
 			throw new IllegalArgumentException("The list of messages cannot be null.");
@@ -43,6 +47,7 @@ public class DynamoQueueWorker implements Callable<List<Message>> {
 		this.messages = messageList;
 		this.updateManager = updateManager;
 		this.consumer = consumer;
+		this.workerLogger = workerProfiler;
 	}
 
 	@Override
@@ -75,6 +80,7 @@ public class DynamoQueueWorker implements Callable<List<Message>> {
 					processedMessages.add(message);
 				} catch (Throwable e) {
 					logger.error("Failed to process message", e);
+					workerLogger.logWorkerFailure(DynamoQueueWorker.class, change, e, true);
 				}
 			} else {
 				processedMessages.add(message);
