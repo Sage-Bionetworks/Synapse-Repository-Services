@@ -464,7 +464,7 @@ public class SqlElementUntils {
 	 */
 	public static String getTableId(TableReference tableReference) {
 		if(tableReference == null) throw new IllegalArgumentException("TableReference cannot be null");
-		return "syn"+tableReference.getTableName();
+		return tableReference.getTableName();
 	}
 	
 	/**
