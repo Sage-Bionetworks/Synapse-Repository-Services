@@ -18,7 +18,6 @@ public class TableReference implements SQLElement {
 
 	@Override
 	public void toSQL(StringBuilder builder) {
-		builder.append("syn");
 		builder.append(tableName);
 	}
 

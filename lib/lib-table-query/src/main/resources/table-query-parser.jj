@@ -150,13 +150,18 @@ TOKEN [IGNORE_CASE]: {
 | < order_by: "ORDER BY" >
 | < select: "SELECT" >
 | < sum: "SUM" >
-| < syn: "SYN" >
 | < time: "TIME" >
 | < timestamp: "TIMESTAMP">
 | < _true: "TRUE">
 | < where: "WHERE">
 | < unknown: "UNKNOWN">
 }
+
+TOKEN [IGNORE_CASE]: {
+  < entity_id: "SYN"(["0"-"9"])*>
+| < regular_identifier: ["a"-"z","A"-"Z"](["a"-"z","A"-"Z","0"-"9","_"])*>
+}
+
 /* Symbols and punctuation */
 TOKEN:{
   < asterisk: "*">
@@ -186,12 +191,7 @@ void regularIdentifier(StringBuilder builder):
 	Token token = null;
 }
 {
-	token = <letter> { builder.append(token.image); }
-	(
-		 token = <letter> { builder.append(token.image); }
-		 | token = <digit> { builder.append(token.image); }
-		 | token = <underscore> { builder.append(token.image); }
-	)* 
+	token = <regular_identifier> { builder.append(token.image); }
 }
 /** Literal Numbers, Strings, Dates and Times */
 
@@ -439,10 +439,10 @@ SetQuantifier setQuantifier():
 }
 String tableName():
 { 
-	StringBuilder builder = new StringBuilder();
+	Token token = null;
 }
 {	
-	[<syn>] unsignedInteger(builder) { return builder.toString(); }
+	token = <entity_id> { return token.image; }
 }
 SetFunctionSpecification setFunctionSpecification():
 { SetFunctionSpecification setFunction = null; }
