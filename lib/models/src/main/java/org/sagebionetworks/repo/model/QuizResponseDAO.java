@@ -21,5 +21,5 @@ public interface QuizResponseDAO {
 	
 	public PassingRecord getPassingRecord(Long quizId, Long principalId) throws DatastoreException, NotFoundException;
 	
-	public void delete(String id) throws DatastoreException, NotFoundException;
+	public void delete(Long id) throws DatastoreException, NotFoundException;
 }

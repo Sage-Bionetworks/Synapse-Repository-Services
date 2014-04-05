@@ -68,7 +68,7 @@ public class DBOQuizResponseDAOImpl implements QuizResponseDAO {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void delete(String id) throws DatastoreException, NotFoundException {
+	public void delete(Long id) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_QUIZ_RESPONSE_ID.toLowerCase(), id);
 		basicDao.deleteObjectByPrimaryKey(DBOQuizResponse.class, param);
