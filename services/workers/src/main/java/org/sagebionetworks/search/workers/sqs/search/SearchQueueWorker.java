@@ -6,10 +6,12 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.http.client.ClientProtocolException;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
+import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.repo.manager.search.SearchDocumentDriver;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
@@ -41,7 +43,9 @@ public class SearchQueueWorker implements Callable<List<Message>> {
 	
 	private List<ChangeMessage> createOrUpdateMessages;
 	private List<ChangeMessage> deleteMessages;
-	
+
+	WorkerLogger workerLogger;
+
 
 	/**
 	 * Create a new worker to process jobs
@@ -49,7 +53,7 @@ public class SearchQueueWorker implements Callable<List<Message>> {
 	 * @param nodeWorkerManager
 	 * @param messagesToProcess
 	 */
-	public SearchQueueWorker(SearchDao searchDao, SearchDocumentDriver documentProvider, List<Message> messagesToProcess, V2WikiPageDao wikiPageDao) {
+	public SearchQueueWorker(SearchDao searchDao, SearchDocumentDriver documentProvider, List<Message> messagesToProcess, V2WikiPageDao wikiPageDao, WorkerLogger workerProfiler) {
 		if(searchDao == null) throw new IllegalArgumentException("SearchDao canot be null");
 		if(documentProvider == null) throw new IllegalArgumentException("SearchDocumentDriver cannot be null");
 		if(messagesToProcess == null) throw new IllegalArgumentException("messagesToProcess cannot be null");
@@ -57,6 +61,7 @@ public class SearchQueueWorker implements Callable<List<Message>> {
 		this.documentProvider = documentProvider;
 		this.messagesToProcess = messagesToProcess;
 		this.wikiPageDao = wikiPageDao;
+		this.workerLogger = workerProfiler;
 	}
 
 	@Override
@@ -131,7 +136,24 @@ public class SearchQueueWorker implements Callable<List<Message>> {
 				toDelete.add(message.getObjectId());
 			}
 			// Delete the batch
-			searchDao.deleteDocuments(toDelete);
+			try {
+				searchDao.deleteDocuments(toDelete);
+			} catch (Throwable e) {
+				processDeleteBatchAsSingle();
+			}
+		}
+	}
+	
+	private void processDeleteBatchAsSingle() {
+		if (deleteMessages != null) {
+			log.debug("Re-processing delete batch as single messages");
+			for (ChangeMessage msg: deleteMessages) {
+				try {
+					searchDao.deleteDocument(msg.getObjectId());
+				} catch (Throwable e) {
+					workerLogger.logWorkerFailure(SearchQueueWorker.class, msg, e, false);
+				}
+			}
 		}
 	}
 
@@ -166,7 +188,37 @@ public class SearchQueueWorker implements Callable<List<Message>> {
 				}
 			}
 			if(!batch.isEmpty()){
-				searchDao.createOrUpdateSearchDocument(batch);
+				try {
+					searchDao.createOrUpdateSearchDocument(batch);
+				} catch (Throwable e) {
+					processCreateUpdateBatchAsSingle();
+				}
+			}
+		}
+	}
+
+	private void processCreateUpdateBatchAsSingle() {
+		if (createOrUpdateMessages != null) {
+			log.debug("Re-processing createUpdate batch as single messages");
+			for (ChangeMessage msg: createOrUpdateMessages) {
+				try {
+					if (!searchDao.doesDocumentExist(msg.getObjectId(), msg.getObjectEtag())) {
+						if (msg.getObjectEtag() == null || documentProvider.doesDocumentExist(msg.getObjectId(), msg.getObjectEtag())) {
+							Document newDoc = null;
+							try {
+								newDoc = documentProvider.formulateSearchDocument(msg.getObjectId());
+							} catch (NotFoundException e) {
+								// There is nothing to do if it does not exist
+								log.debug("Node not found for id: "+msg.getObjectId()+" Message:"+e.getMessage());
+							}
+							if (newDoc != null) {
+								searchDao.createOrUpdateSearchDocument(newDoc);
+							}
+						}
+						}
+				} catch (Throwable e) {
+					workerLogger.logWorkerFailure(SearchQueueWorker.class, msg, e, false);
+				}
 			}
 		}
 	}

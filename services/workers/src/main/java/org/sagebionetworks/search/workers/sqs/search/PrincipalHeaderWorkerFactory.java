@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.concurrent.Callable;
 
 import org.sagebionetworks.asynchronous.workers.sqs.MessageWorkerFactory;
+import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.repo.model.PrincipalHeaderDAO;
 import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -28,10 +29,13 @@ public class PrincipalHeaderWorkerFactory implements MessageWorkerFactory {
 	
 	@Autowired
 	private TeamDAO teamDAO;
+	
+	@Autowired
+	private WorkerLogger workerLogger;
 
 	@Override
 	public Callable<List<Message>> createWorker(List<Message> messages) {
-		return new PrincipalHeaderWorker(messages, prinHeadDAO, userGroupDAO, userProfileDAO, teamDAO);
+		return new PrincipalHeaderWorker(messages, prinHeadDAO, userGroupDAO, userProfileDAO, teamDAO, workerLogger);
 	}
 
 }

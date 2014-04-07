@@ -10,6 +10,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
+import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PrincipalHeaderDAO;
@@ -38,10 +39,11 @@ public class PrincipalHeaderWorker implements Callable<List<Message>> {
 	private UserGroupDAO userGroupDAO;
 	private UserProfileDAO userProfileDAO;
 	private TeamDAO teamDAO;
+	WorkerLogger workerLogger;
 
 	public PrincipalHeaderWorker(List<Message> messages,
 			PrincipalHeaderDAO prinHeadDAO, UserGroupDAO userGroupDAO,
-			UserProfileDAO userProfileDAO, TeamDAO teamDAO) {
+			UserProfileDAO userProfileDAO, TeamDAO teamDAO, WorkerLogger workerProfiler) {
 		if (messages == null) {
 			throw new IllegalArgumentException("Messages cannot be null");
 		}
@@ -57,11 +59,15 @@ public class PrincipalHeaderWorker implements Callable<List<Message>> {
 		if (teamDAO == null) {
 			throw new IllegalArgumentException("TeamDAO cannot be null");
 		}
+		if (workerProfiler == null) {
+			throw new IllegalArgumentException("WorkerProfiler cannot be null");
+		}
 		this.messages = messages;
 		this.prinHeadDAO = prinHeadDAO;
 		this.userGroupDAO = userGroupDAO;
 		this.userProfileDAO = userProfileDAO;
 		this.teamDAO = teamDAO;
+		this.workerLogger = workerProfiler;
 	}
 
 	@Override
@@ -92,10 +98,12 @@ public class PrincipalHeaderWorker implements Callable<List<Message>> {
 					processedMessages.add(message);
 				} catch (NotFoundException e) {
 					log.info("NotFound: " + e.getMessage() + ". The message will be returned as processed and removed from the queue");
+					workerLogger.logWorkerFailure(this.getClass(), change, e, false);
 					processedMessages.add(message);
 				} catch (Throwable e) {
 					// Something went wrong and we did not process the message
 					log.error("Failed to process message", e);
+					workerLogger.logWorkerFailure(this.getClass(), change, e, true);
 				}
 			} else {
 				// Non-MESSAGE messages must be returned so they can be removed from the queue.
