@@ -7,6 +7,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.junit.After;
@@ -85,7 +86,7 @@ public class TableRowTruthDAOImplTest {
 	}
 	
 	@Test
-	public void testAppendRows() throws IOException{
+	public void testAppendRows() throws Exception {
 		// Create some test column models
 		List<ColumnModel> models = TableModelTestUtils.createOneOfEachType();
 		// create some test rows.
@@ -110,8 +111,26 @@ public class TableRowTruthDAOImplTest {
 			assertEquals(version, ref.getVersionNumber());
 			expectedId++;
 		}
+		assertEquals(set, tableRowTruthDao.getRowSet(refSet, models));
 	}
 	
+	@Test
+	public void testNullValues() throws Exception {
+		// Create some test column models
+		List<ColumnModel> models = TableModelTestUtils.createOneOfEachType();
+		// create some test rows.
+		List<Row> rows = TableModelTestUtils.createNullRows(models, 5);
+
+		String tableId = "syn123";
+		RowSet set = new RowSet();
+		set.setHeaders(TableModelUtils.getHeaders(models));
+		set.setRows(rows);
+		set.setTableId(tableId);
+		// Append this change set
+		RowReferenceSet refSet = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, models, set);
+		assertEquals(set, tableRowTruthDao.getRowSet(refSet, models));
+	}
+
 	@Test
 	public void testListRowSetsForTable() throws IOException{
 		List<ColumnModel> models = TableModelTestUtils.createOneOfEachType();

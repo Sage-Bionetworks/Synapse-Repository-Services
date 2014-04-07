@@ -128,12 +128,12 @@ public class TableIndexDAOImplTest {
 		// Row zero
 		Map<String, Object> row = result.get(0);
 		assertEquals(100l, row.get(ROW_ID));
-		assertEquals(0l, row.get("C4"));
+		assertEquals(4000l, row.get("C4"));
 		// row four
 		row = result.get(4);
 		assertEquals(104l, row.get(ROW_ID));
-		assertEquals(13.64, row.get("C1"));
-		assertEquals(4l, row.get("C4"));
+		assertEquals(16.76, row.get("C1"));
+		assertEquals(4004l, row.get("C4"));
 		
 		// We should be able to update all of the rows
 		rows.get(4).setValues(Arrays.asList("update", "99.99", "3", "false", "123", "123"));
@@ -250,19 +250,64 @@ public class TableIndexDAOImplTest {
 		assertNotNull(row);
 		assertEquals(new Long(100), row.getRowId());
 		assertEquals(new Long(3), row.getVersionNumber());
-		List<String> expectedValues = Arrays.asList("string0", "0", "0", "0", "0", "0");
+		List<String> expectedValues = Arrays.asList("string0", "3.12", "3000", "0", "4000", "5000");
 		assertEquals(expectedValues, row.getValues());
 		// Second row
 		row = results.getRows().get(1);
 		assertNotNull(row);
 		assertEquals(new Long(101), row.getRowId());
 		assertEquals(new Long(3), row.getVersionNumber());
-		expectedValues = Arrays.asList("string1", "3.41", "1", "1", "1", "1");
+		expectedValues = Arrays.asList("string1", "6.53", "3001", "1", "4001", "5001");
 		assertEquals(expectedValues, row.getValues());
 		
 
 	}
 	
+	@Test
+	public void testNullQuery() throws ParseException {
+		// Create the table
+		List<ColumnModel> allTypes = TableModelTestUtils.createOneOfEachType();
+		tableIndexDAO.createOrUpdateTable(allTypes, tableId);
+		// Now add some data
+		List<Row> rows = TableModelTestUtils.createNullRows(allTypes, 2);
+		RowSet set = new RowSet();
+		set.setRows(rows);
+		List<String> headers = TableModelUtils.getHeaders(allTypes);
+		set.setHeaders(headers);
+		set.setTableId(tableId);
+		IdRange range = new IdRange();
+		range.setMinimumId(100L);
+		range.setMaximumId(200L);
+		range.setVersionNumber(3L);
+		TableModelUtils.assignRowIdsAndVersionNumbers(set, range);
+		// Now fill the table with data
+		tableIndexDAO.createOrUpdateRows(set, allTypes);
+		Map<String, Long> columnNameToIdMap = TableModelUtils.createColumnNameToIdMap(allTypes);
+		// Now query for the results
+		SqlQuery query = new SqlQuery("select * from " + tableId, columnNameToIdMap);
+		RowSet results = tableIndexDAO.query(query);
+		assertNotNull(results);
+		System.out.println(results);
+		assertEquals(headers, results.getHeaders());
+		assertNotNull(results.getRows());
+		assertEquals(tableId, results.getTableId());
+		assertEquals(2, results.getRows().size());
+		// the first row
+		Row row = results.getRows().get(0);
+		assertNotNull(row);
+		assertEquals(new Long(100), row.getRowId());
+		assertEquals(new Long(3), row.getVersionNumber());
+		List<String> expectedValues = Arrays.asList(null, null, null, null, null, null);
+		assertEquals(expectedValues, row.getValues());
+		// Second row
+		row = results.getRows().get(1);
+		assertNotNull(row);
+		assertEquals(new Long(101), row.getRowId());
+		assertEquals(new Long(3), row.getVersionNumber());
+		expectedValues = Arrays.asList(null, null, null, null, null, null);
+		assertEquals(expectedValues, row.getValues());
+	}
+
 	@Test
 	public void testQueryAggregate() throws ParseException{
 		// Create the table
@@ -348,7 +393,7 @@ public class TableIndexDAOImplTest {
 		assertNotNull(row);
 		assertEquals(new Long(199), row.getRowId());
 		assertEquals(new Long(4), row.getVersionNumber());
-		List<String> expectedValues = Arrays.asList("string99", "99");
+		List<String> expectedValues = Arrays.asList("string99", "3099");
 		assertEquals(expectedValues, row.getValues());
 	}
 	
@@ -397,7 +442,7 @@ public class TableIndexDAOImplTest {
 		assertNotNull(row);
 		assertEquals(new Long(104), row.getRowId());
 		assertEquals(new Long(4), row.getVersionNumber());
-		List<String> expectedValues = Arrays.asList("string4", "4");
+		List<String> expectedValues = Arrays.asList("string4", "3004");
 		assertEquals(expectedValues, row.getValues());
 	}
 }
