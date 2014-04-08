@@ -21,6 +21,7 @@ import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.sagebionetworks.bridge.model.dbo.dao.CsvNullReader;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableRowChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -30,7 +31,6 @@ import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 
-import au.com.bytecode.opencsv.CSVReader;
 import au.com.bytecode.opencsv.CSVWriter;
 
 /**
@@ -224,7 +224,7 @@ public class TableModelUtilsTest {
 		System.out.println(csv);
 		StringReader reader = new StringReader(csv);
 		// There should be two rows
-		CSVReader in = new CSVReader(reader);
+		CsvNullReader in = new CsvNullReader(reader);
 		List<String[]> results = in.readAll();
 		assertNotNull(results);
 		assertEquals(2, results.size());
@@ -476,7 +476,7 @@ public class TableModelUtilsTest {
 		CSVWriter csvWriter = new CSVWriter(writer);
 		TableModelUtils.validateAndWriteToCSV(validModel, validRowSet2, csvWriter);
 		StringReader reader = new StringReader(writer.toString());
-		CSVReader csvReader = new CSVReader(reader);
+		CsvNullReader csvReader = new CsvNullReader(reader);
 		List<Row> cloneRows = TableModelUtils.readFromCSV(csvReader);
 		assertNotNull(cloneRows);
 		assertEquals(validRowSet2.getRows(), cloneRows);
