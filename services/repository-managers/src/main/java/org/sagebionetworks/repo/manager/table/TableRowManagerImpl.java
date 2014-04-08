@@ -1,9 +1,12 @@
 package org.sagebionetworks.repo.manager.table;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 
 import org.sagebionetworks.repo.manager.AuthorizationManager;
@@ -15,11 +18,15 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.semaphore.ExclusiveOrSharedSemaphoreRunner;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
+import org.sagebionetworks.repo.model.dao.table.RowAccessor;
+import org.sagebionetworks.repo.model.dao.table.RowSetAccessor;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.exception.LockUnavilableException;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
@@ -37,6 +44,10 @@ import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 public class TableRowManagerImpl implements TableRowManager {
 	
@@ -83,6 +94,8 @@ public class TableRowManagerImpl implements TableRowManager {
 		}
 		// Validate the request is under the max bytes per requested
 		validateRequestSize(models, delta.getRows().size());
+		// Validate there aren't any illegal file handle replaces
+		validateFileHandles(user, tableId, models, delta);
 		// Let the DAO do the rest of the work.
 		RowReferenceSet rrs = tableRowTruthDao.appendRowSetToTable(user.getId().toString(), tableId, models, delta);
 		// The table has change so we must reset the state.
@@ -317,4 +330,100 @@ public class TableRowManagerImpl implements TableRowManager {
 		this.maxBytesPerRequest = maxBytesPerRequest;
 	}
 
+	private void validateFileHandles(UserInfo user, String tableId, List<ColumnModel> models, RowSet delta) throws IOException,
+			NotFoundException {
+
+		List<String> fileHandleColumns = Lists.newArrayList();
+		for (ColumnModel cm : models) {
+			if (cm.getColumnType() == ColumnType.FILEHANDLEID) {
+				fileHandleColumns.add(cm.getId());
+			}
+		}
+
+		if (fileHandleColumns.isEmpty()) {
+			// no filehandles: success!
+			return;
+		}
+
+		// clone with copy of row list
+		List<Row> deltaCopy = Lists.newArrayList(delta.getRows());
+		// filter out new and invalid rows (rowId == null)
+		for (Iterator<Row> iterator = deltaCopy.iterator(); iterator.hasNext();) {
+			Row row = iterator.next();
+			if (TableModelUtils.isNullOrInvalid(row.getRowId())) {
+				iterator.remove();
+			}
+		}
+
+		if (deltaCopy.isEmpty()) {
+			// no replaces: success!
+			return;
+		}
+
+		RowSet fileHandlesToCheck = new RowSet();
+		fileHandlesToCheck.setEtag(delta.getEtag());
+		fileHandlesToCheck.setHeaders(delta.getHeaders());
+		fileHandlesToCheck.setTableId(delta.getTableId());
+		fileHandlesToCheck.setRows(deltaCopy);
+		RowSetAccessor fileHandlesToCheckAccessor = TableModelUtils.getRowSetAccessor(fileHandlesToCheck);
+
+		// eliminate all file handles that are owned by current user
+		Set<String> ownedFileHandles = Sets.newHashSet();
+		Set<String> unownedFileHandles = Sets.newHashSet();
+		for (Iterator<RowAccessor> rowIter = fileHandlesToCheckAccessor.getRows().iterator(); rowIter.hasNext();) {
+			RowAccessor row = rowIter.next();
+			boolean isAllowed = true;
+			for (String fileHandleColumn : fileHandleColumns) {
+				String fileHandleId = row.getCell(fileHandleColumn);
+				if (fileHandleId == null) {
+					// erasing a file handle id is always allowed
+					continue;
+				}
+				if (ownedFileHandles.contains(fileHandleId)) {
+					// we already checked. We own this one
+					continue;
+				}
+				if (unownedFileHandles.contains(fileHandleId)) {
+					// we already checked. We don't own this one. Row needs to be checked
+					isAllowed = false;
+					continue;
+				}
+
+				boolean canAccess = authorizationManager.canAccessRawFileHandleById(user, fileHandleId);
+				if (canAccess) {
+					ownedFileHandles.add(fileHandleId);
+				} else {
+					unownedFileHandles.add(fileHandleId);
+					isAllowed = false;
+				}
+			}
+			if (isAllowed) {
+				rowIter.remove();
+			}
+		}
+
+		if (fileHandlesToCheckAccessor.getRows().isEmpty()) {
+			// all file handles null or owned by calling user: success!
+			return;
+		}
+
+		RowSetAccessor latestVersions = tableRowTruthDao.getLatestVersions(tableId, fileHandlesToCheckAccessor.getRowIds());
+
+		// now we need to check if any of the unowned filehandles is changing with this request
+		for (RowAccessor row : fileHandlesToCheckAccessor.getRows()) {
+			RowAccessor lastRowVersion = latestVersions.getRow(row.getRow().getRowId());
+			for (String fileHandleColumn : fileHandleColumns) {
+				String newFileHandleId = row.getCell(fileHandleColumn);
+				if (newFileHandleId == null) {
+					// erasing a file handle id is always allowed
+					continue;
+				}
+				String oldFileHandleId = lastRowVersion.getCell(fileHandleColumn);
+				if (!oldFileHandleId.equals(newFileHandleId) && !ownedFileHandles.contains(newFileHandleId)) {
+					throw new IllegalArgumentException("You cannot change a file id to a new file id that you do not own: rowId="
+							+ row.getRow().getRowId() + ", old file handle=" + oldFileHandleId + ", new file handle=" + newFileHandleId);
+				}
+			}
+		}
+	}
 }

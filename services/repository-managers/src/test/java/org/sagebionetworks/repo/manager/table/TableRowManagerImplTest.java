@@ -6,16 +6,21 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyList;
+import static org.mockito.Matchers.anyListOf;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.stub;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -35,6 +40,8 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.semaphore.ExclusiveOrSharedSemaphoreRunner;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
+import org.sagebionetworks.repo.model.dao.table.RowAccessor;
+import org.sagebionetworks.repo.model.dao.table.RowSetAccessor;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
@@ -43,6 +50,7 @@ import org.sagebionetworks.repo.model.exception.LockUnavilableException;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableState;
@@ -54,6 +62,9 @@ import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.query.ParseException;
 import org.springframework.test.util.ReflectionTestUtils;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 public class TableRowManagerImplTest {
 	
@@ -162,6 +173,75 @@ public class TableRowManagerImplTest {
 		} catch (IllegalArgumentException e) {
 			assertTrue(e.getMessage().contains("Request exceed the maximum number of bytes per request"));
 		}
+	}
+
+	@Test
+	public void testChangeFileHandles() throws DatastoreException, NotFoundException, IOException {
+		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(true);
+
+		RowSet replace = new RowSet();
+		replace.setTableId(tableId);
+		replace.setHeaders(TableModelUtils.getHeaders(models));
+
+		int fileHandleColumnIndex = ColumnType.FILEHANDLEID.ordinal();
+
+		List<Row> replaceRows = TableModelTestUtils.createRows(models, 3);
+		for (int i = 0; i < 3; i++) {
+			replaceRows.get(i).setRowId((long) i);
+			replaceRows.get(i).setVersionNumber(0L);
+		}
+		// different owned filehandle
+		replaceRows.get(0).getValues().set(ColumnType.FILEHANDLEID.ordinal(), "3333");
+		// erase file handle
+		replaceRows.get(1).getValues().set(ColumnType.FILEHANDLEID.ordinal(), null);
+		// unowned, but unchanged replaceRows[2]
+		replace.setRows(replaceRows);
+
+		RowSetAccessor originalAccessor = mock(RowSetAccessor.class);
+		RowAccessor row2Accessor = mock(RowAccessor.class);
+		when(originalAccessor.getRow(2L)).thenReturn(row2Accessor);
+		when(row2Accessor.getCell(models.get(ColumnType.FILEHANDLEID.ordinal()).getId())).thenReturn("5002");
+
+		when(mockAuthManager.canAccessRawFileHandleById(user, "5002")).thenReturn(false);
+		when(mockAuthManager.canAccessRawFileHandleById(user, "3333")).thenReturn(true);
+		when(mockTruthDao.getLatestVersions(tableId, Sets.newHashSet(2L))).thenReturn(originalAccessor);
+		manager.appendRows(user, tableId, models, replace);
+
+		verify(mockTruthDao).appendRowSetToTable(anyString(), anyString(), anyListOf(ColumnModel.class), any(RowSet.class));
+		verify(mockTruthDao).getLatestVersions(tableId, Sets.newHashSet(2L));
+		verify(mockAuthManager).canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
+		verify(mockAuthManager).canAccessRawFileHandleById(user, "5002");
+		verify(mockAuthManager).canAccessRawFileHandleById(user, "3333");
+		verifyNoMoreInteractions(mockAuthManager, mockTruthDao);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testChangeFileHandlesFails() throws DatastoreException, NotFoundException, IOException {
+		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(true);
+
+		ColumnModel model = new ColumnModel();
+		model.setColumnType(ColumnType.FILEHANDLEID);
+		model.setId("33");
+		List<ColumnModel> models = Collections.singletonList(model);
+
+		RowSet replace = new RowSet();
+		replace.setTableId(tableId);
+		replace.setHeaders(TableModelUtils.getHeaders(models));
+
+		Row row = new Row();
+		row.setRowId(0L);
+		// different unowned filehandle
+		row.setValues(Lists.newArrayList("3333"));
+		replace.setRows(Lists.newArrayList(row));
+
+		RowSetAccessor originalAccessor = mock(RowSetAccessor.class);
+		RowAccessor row0Accessor = mock(RowAccessor.class);
+		when(originalAccessor.getRow(0L)).thenReturn(row0Accessor);
+		when(row0Accessor.getCell(models.get(0).getId())).thenReturn("5002");
+
+		when(mockAuthManager.canAccessRawFileHandleById(user, "3333")).thenReturn(false);
+		when(mockTruthDao.getLatestVersions(tableId, Sets.newHashSet(0L))).thenReturn(originalAccessor);
+		manager.appendRows(user, tableId, models, replace);
 	}
 
 	@Test (expected = UnauthorizedException.class)

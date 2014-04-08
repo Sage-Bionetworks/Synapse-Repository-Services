@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -16,7 +17,9 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 import org.sagebionetworks.bridge.model.dbo.dao.CsvNullReader;
+import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
+import org.sagebionetworks.repo.model.dao.table.RowSetAccessor;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableRowChange;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -26,6 +29,8 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
+
+import com.google.common.collect.Maps;
 
 import au.com.bytecode.opencsv.CSVWriter;
 
@@ -97,12 +102,7 @@ public class TableModelUtils {
 							+ " columns and the passed RowSet.headers has: "
 							+ set.getHeaders().size());
 		// Now map the index of each column
-		Map<String, Integer> columnIndexMap = new HashMap<String, Integer>();
-		int index = 0;
-		for (String header : set.getHeaders()) {
-			columnIndexMap.put(header, index);
-			index++;
-		}
+		Map<String, Integer> columnIndexMap = createColumnIdToIndexMap(set);
 		// Process each row
 		int count = 0;
 		for (Row row : set.getRows()) {
@@ -157,6 +157,7 @@ public class TableModelUtils {
 			count++;
 		}
 	}
+
 
 	/**
 	 * @param set
@@ -250,7 +251,7 @@ public class TableModelUtils {
 	 * @param rowId
 	 * @return
 	 */
-	private static boolean isNullOrInvalid(Long rowId){
+	public static boolean isNullOrInvalid(Long rowId) {
 		if(rowId == null) return true;
 		return rowId < 0;
 	}
@@ -285,7 +286,7 @@ public class TableModelUtils {
 			}
 		}
 	}
-	
+
 	/**
 	 * Read the passed CSV into a RowSet.
 	 * @param reader
@@ -543,13 +544,7 @@ public class TableModelUtils {
 	 * @param sets
 	 */
 	public static void convertToSchemaAndMerge(RowSet in, List<ColumnModel> resultSchema, RowSet out){
-		// map the index of each column
-		Map<String, Integer> columnIndexMap = new HashMap<String, Integer>();
-		int index = 0;
-		for (String header : in.getHeaders()) {
-			columnIndexMap.put(header, index);
-			index++;
-		}
+		Map<String, Integer> columnIndexMap = createColumnIdToIndexMap(in);
 		// Now convert each row into the requested format.
 		// Process each row
 		for (Row row : in.getRows()) {
@@ -661,9 +656,40 @@ public class TableModelUtils {
 		}
 		return map;
 	}
-	
+
+	/**
+	 * Map the column id to the column index.
+	 * 
+	 * @param rowset
+	 * @return
+	 */
+	public static Map<String, Integer> createColumnIdToIndexMap(TableRowChange rowChange) {
+		return createColumnIdToIndexMap(rowChange.getHeaders());
+	}
+
+	/**
+	 * Map the column id to the column index.
+	 * 
+	 * @param rowset
+	 * @return
+	 */
+	public static Map<String, Integer> createColumnIdToIndexMap(RowSet rowset) {
+		return createColumnIdToIndexMap(rowset.getHeaders());
+	}
+
+	private static Map<String, Integer> createColumnIdToIndexMap(List<String> headers) {
+		Map<String, Integer> columnIndexMap = new HashMap<String, Integer>();
+		int index = 0;
+		for (String header : headers) {
+			columnIndexMap.put(header, index);
+			index++;
+		}
+		return columnIndexMap;
+	}
+
 	/**
 	 * Map column Id to column Models.
+	 * 
 	 * @param columns
 	 * @return
 	 */
@@ -673,5 +699,42 @@ public class TableModelUtils {
 			map.put(Long.parseLong(cm.getId()), cm);
 		}
 		return map;
+	}
+
+	public static RowSetAccessor getRowSetAccessor(final RowSet rowset) {
+		return new RowSetAccessor() {
+
+			private Map<String, Integer> columnIdToIndexMap = null;
+			private Map<Long, RowAccessor> rowIdToRowMap = null;
+
+			protected Map<Long, RowAccessor> getRowIdToRowMap() {
+				if (rowIdToRowMap == null) {
+					rowIdToRowMap = Maps.newHashMap();
+					for (final Row row : rowset.getRows()) {
+						if (row.getRowId() == null) {
+							throw new IllegalArgumentException("Cannot handle new rows in RowSetAccessor");
+						}
+						rowIdToRowMap.put(row.getRowId(), new RowAccessor() {
+							public String getCell(String columnId) {
+								return row.getValues().get(getColumnIdToIndexMap().get(columnId));
+							}
+
+							@Override
+							public Row getRow() {
+								return row;
+							}
+						});
+					}
+				}
+				return rowIdToRowMap;
+			}
+
+			private Map<String, Integer> getColumnIdToIndexMap() {
+				if (columnIdToIndexMap == null) {
+					columnIdToIndexMap = TableModelUtils.createColumnIdToIndexMap(rowset);
+				}
+				return columnIdToIndexMap;
+			}
+		};
 	}
 }

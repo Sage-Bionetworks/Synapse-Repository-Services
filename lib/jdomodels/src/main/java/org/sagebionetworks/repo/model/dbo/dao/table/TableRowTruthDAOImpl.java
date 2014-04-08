@@ -14,14 +14,18 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
+import org.sagebionetworks.repo.model.dao.table.RowSetAccessor;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableIdSequence;
@@ -44,6 +48,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.S3Object;
+import com.google.common.collect.Maps;
 
 /**
  * Basic S3 & RDS implementation of the TableRowTruthDAO.
@@ -503,6 +508,42 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			results.add(thisSet);
 		}
 		return results;
+	}
+
+	@Override
+	public RowSetAccessor getLatestVersions(String tableId, final Set<Long> rowIds) throws IOException, NotFoundException {
+		final Map<Long, RowAccessor> rowIdToRowMap = Maps.newHashMap();
+
+		// For each version of the table
+		for (final TableRowChange rowChange : listRowSetsKeysForTable(tableId)) {
+			final Map<String, Integer> columnIdToIndexMap = TableModelUtils.createColumnIdToIndexMap(rowChange);
+			// Scan over the delta
+			scanChange(new RowHandler() {
+				@Override
+				public void nextRow(final Row row) {
+					if (rowIds.contains(row.getRowId())) {
+						rowIdToRowMap.put(row.getRowId(), new RowAccessor() {
+							@Override
+							public String getCell(String columnId) {
+								return row.getValues().get(columnIdToIndexMap.get(columnId));
+							}
+
+							@Override
+							public Row getRow() {
+								return row;
+							}
+						});
+					}
+				}
+			}, rowChange);
+		}
+
+		return new RowSetAccessor() {
+			@Override
+			protected Map<Long, RowAccessor> getRowIdToRowMap() {
+				return rowIdToRowMap;
+			}
+		};
 	}
 
 	@Override
