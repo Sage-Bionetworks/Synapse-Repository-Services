@@ -83,6 +83,13 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 	}
 	
 	/**
+	 * for testing only
+	 */
+	public void expireQuizGeneratorCache() {
+		quizGeneratorCache = null;
+	}
+	
+	/**
 	 * Throw exception if not valid
 	 * 
 	 * @param quiz
@@ -167,7 +174,7 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 
 	}
 	
-	private QuizGenerator retrieveCertificationQuizGenerator() {
+	public QuizGenerator retrieveCertificationQuizGenerator() {
 		if ((System.currentTimeMillis() - quizGeneratorCacheLastUpdated < QUIZ_GENERATOR_CACHE_TIMEOUT_MILLIS) 
 				&& quizGeneratorCache!=null) {
 			return quizGeneratorCache;
@@ -296,24 +303,16 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 		QuizGenerator quizGenerator = retrieveCertificationQuizGenerator();
 		// grade the submission:  pass or fail?
 		scoreQuizResponse(quizGenerator, response);
-		Date now = new Date();
 		fillInResponseValues(response, userInfo.getId(), new Date(), quizGenerator.getId());
 		// store the submission in the RDS
-		QuizResponse created = quizResponseDao.create(response);
+		quizResponseDao.create(response);
 		// if pass, add to Certified group
 		if (response.getPass()) {
 			groupMembersDao.addMembers(
 					AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(), 
 					Collections.singletonList(userInfo.getId().toString()));
 		}
-		PassingRecord passingRecord = new PassingRecord();
-		passingRecord.setPassed(response.getPass());
-		passingRecord.setPassedOn(now);
-		passingRecord.setQuizId(response.getQuizId());
-		passingRecord.setResponseId(response.getId());
-		passingRecord.setScore(response.getScore());
-		passingRecord.setUserId(response.getCreatedBy());
-		return passingRecord;
+		return quizResponseDao.getPassingRecord(quizGenerator.getId(), userInfo.getId());
 	}
 
 	/* (non-Javadoc)
@@ -352,18 +351,5 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 		long quizId = quizGenerator.getId();
 		return quizResponseDao.getPassingRecord(quizId, principalId);
 	}
-	
-//	/**
-//	 * make sure that the Certified User test is created in S3
-//	 */
-//	@Override
-//	public void afterPropertiesSet() {
-//		if (!s3Utility.doesExist(S3_QUESTIONNAIRE_KEY)) {
-//			// read from properties file
-//			InputStream is = MessageManagerImpl.class.getClassLoader().getResourceAsStream(QUESTIONNAIRE_PROPERTIES_FILE);
-//			// upload to S3
-//			s3Utility.uploadInputStreamToS3File(S3_QUESTIONNAIRE_KEY, is, "utf-8");
-//		}
-//	}
 
 }

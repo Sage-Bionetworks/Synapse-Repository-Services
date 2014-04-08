@@ -138,11 +138,9 @@ public class DBOQuizResponseDAOImplTest {
 	@Test
 	public void testPassingRecord() throws Exception {
 		Long quizId = 1L;
-		Long limit = 10L;
-		Long offset = 0L;
 		Long principalId = 111L;
 		try {
-			PassingRecord pr = quizResponseDao.getPassingRecord(quizId, principalId);
+			quizResponseDao.getPassingRecord(quizId, principalId);
 			fail("Exception expected.");
 		} catch (NotFoundException e) {
 			// as expected
@@ -151,8 +149,8 @@ public class DBOQuizResponseDAOImplTest {
 		long score = 10L;
 		{
 			QuizResponse failedQuiz = createDTOAndStore(principalId.toString(), quizId, false, score);
-			QuizResponse otherUser = createDTOAndStore("112", quizId, false, score+1);
-			QuizResponse otherQuiz = createDTOAndStore(principalId.toString(), quizId+1, false, score+2);
+			createDTOAndStore("112", quizId, false, score+1);
+			createDTOAndStore(principalId.toString(), quizId+1, false, score+2);
 			PassingRecord pr = quizResponseDao.getPassingRecord(quizId, principalId);
 			checkPassingRecord(pr, quizId, principalId.toString(), failedQuiz.getId(), false, score);
 		}
