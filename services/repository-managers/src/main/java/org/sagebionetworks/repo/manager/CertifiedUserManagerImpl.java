@@ -3,7 +3,10 @@
  */
 package org.sagebionetworks.repo.manager;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -37,14 +40,13 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
-import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * @author brucehoff
  *
  */
-public class CertifiedUserManagerImpl implements CertifiedUserManager, InitializingBean {
+public class CertifiedUserManagerImpl implements CertifiedUserManager {
 	
 	public static final String QUESTIONNAIRE_PROPERTIES_FILE = "certifiedUsersTestDefault.json";
 	public static final String S3_QUESTIONNAIRE_KEY = "repository-managers."+QUESTIONNAIRE_PROPERTIES_FILE;
@@ -142,13 +144,42 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager, Initializ
 		if (!errorMessages.isEmpty()) throw new RuntimeException(errorMessages.toString());
 	}
 	
+	private static String readInputStreamToString(InputStream is) {
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		try {
+			int n = 0;
+			byte[] buffer = new byte[1024];
+			while (n>-1) {
+				n = is.read(buffer);
+				if (n>0) baos.write(buffer, 0, n);
+			}
+			return baos.toString(Charset.defaultCharset().name());
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		} finally {
+			try {
+				is.close();
+				baos.close();
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+		}
+
+	}
+	
 	private QuizGenerator retrieveCertificationQuizGenerator() {
 		if ((System.currentTimeMillis() - quizGeneratorCacheLastUpdated < QUIZ_GENERATOR_CACHE_TIMEOUT_MILLIS) 
 				&& quizGeneratorCache!=null) {
 			return quizGeneratorCache;
 		}
-		// pull this from an S-3 File
-		String quizGeneratorAsString = s3Utility.downloadFromS3ToString(S3_QUESTIONNAIRE_KEY);
+		// pull this from an S-3 File (if it's there) otherwise read from the default file on the classpath
+		String quizGeneratorAsString;
+		if (s3Utility.doesExist(S3_QUESTIONNAIRE_KEY)) {
+			quizGeneratorAsString = s3Utility.downloadFromS3ToString(S3_QUESTIONNAIRE_KEY);
+		} else {
+			InputStream is = MessageManagerImpl.class.getClassLoader().getResourceAsStream(QUESTIONNAIRE_PROPERTIES_FILE);
+			quizGeneratorAsString = readInputStreamToString(is);
+		}
 		QuizGenerator quizGenerator = new QuizGenerator();
 		try {
 			JSONObjectAdapter adapter = (new JSONObjectAdapterImpl()).createNew(quizGeneratorAsString);
@@ -322,17 +353,17 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager, Initializ
 		return quizResponseDao.getPassingRecord(quizId, principalId);
 	}
 	
-	/**
-	 * make sure that the Certified User test is created in S3
-	 */
-	@Override
-	public void afterPropertiesSet() {
-		if (!s3Utility.doesExist(S3_QUESTIONNAIRE_KEY)) {
-			// read from properties file
-			InputStream is = MessageManagerImpl.class.getClassLoader().getResourceAsStream(QUESTIONNAIRE_PROPERTIES_FILE);
-			// upload to S3
-			s3Utility.uploadInputStreamToS3File(S3_QUESTIONNAIRE_KEY, is, "utf-8");
-		}
-	}
+//	/**
+//	 * make sure that the Certified User test is created in S3
+//	 */
+//	@Override
+//	public void afterPropertiesSet() {
+//		if (!s3Utility.doesExist(S3_QUESTIONNAIRE_KEY)) {
+//			// read from properties file
+//			InputStream is = MessageManagerImpl.class.getClassLoader().getResourceAsStream(QUESTIONNAIRE_PROPERTIES_FILE);
+//			// upload to S3
+//			s3Utility.uploadInputStreamToS3File(S3_QUESTIONNAIRE_KEY, is, "utf-8");
+//		}
+//	}
 
 }

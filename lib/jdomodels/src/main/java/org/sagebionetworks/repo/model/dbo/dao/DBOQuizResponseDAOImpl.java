@@ -25,6 +25,7 @@ import org.sagebionetworks.repo.model.quiz.PassingRecord;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
@@ -82,7 +83,7 @@ public class DBOQuizResponseDAOImpl implements QuizResponseDAO {
 	private static final String SELECT_FOR_QUIZ_ID_PAGINATED = "SELECT * "+SELECT_FOR_QUIZ_ID_CORE+
 			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 	
-	private static final String SELECT_FOR_QUIZ_ID_COUNT = "SELECT COUNT(*) "+SELECT_FOR_QUIZ_ID_CORE;
+	private static final String SELECT_FOR_QUIZ_ID_COUNT = "SELECT COUNT(ID) "+SELECT_FOR_QUIZ_ID_CORE;
 	
 	private static final String SELECT_FOR_QUIZ_ID_AND_USER_CORE = " FROM "+TABLE_QUIZ_RESPONSE+" WHERE "+
 			COL_QUIZ_RESPONSE_QUIZ_ID+"=:"+COL_QUIZ_RESPONSE_QUIZ_ID+" AND "+
@@ -91,7 +92,7 @@ public class DBOQuizResponseDAOImpl implements QuizResponseDAO {
 	private static final String SELECT_FOR_QUIZ_ID_AND_USER_PAGINATED = "SELECT * "+SELECT_FOR_QUIZ_ID_AND_USER_CORE+
 			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 	
-	private static final String SELECT_FOR_QUIZ_ID_AND_USER_COUNT = "SELECT COUNT(*) "+SELECT_FOR_QUIZ_ID_AND_USER_CORE;
+	private static final String SELECT_FOR_QUIZ_ID_AND_USER_COUNT = "SELECT COUNT(ID) "+SELECT_FOR_QUIZ_ID_AND_USER_CORE;
 	
 	// select * from QUIZ_RESPONSE where CREATED_BY=? and QUIZ_ID=? order by score desc limit 1
 	private static final String SELECT_BEST_RESPONSE_FOR_USER_AND_QUIZ = "SELECT "+
@@ -101,7 +102,7 @@ public class DBOQuizResponseDAOImpl implements QuizResponseDAO {
 			COL_QUIZ_RESPONSE_QUIZ_ID+", "+
 			COL_QUIZ_RESPONSE_SCORE+", "+
 			COL_QUIZ_RESPONSE_PASSED+
-			", FROM "+TABLE_QUIZ_RESPONSE+" WHERE "+
+			" FROM "+TABLE_QUIZ_RESPONSE+" WHERE "+
 			COL_QUIZ_RESPONSE_QUIZ_ID+"=:"+COL_QUIZ_RESPONSE_QUIZ_ID+" AND "+
 			COL_QUIZ_RESPONSE_CREATED_BY+"=:"+COL_QUIZ_RESPONSE_CREATED_BY+
 			" ORDER BY "+COL_QUIZ_RESPONSE_SCORE+" DESC LIMIT 1";
@@ -142,7 +143,7 @@ public class DBOQuizResponseDAOImpl implements QuizResponseDAO {
 			throws DatastoreException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_QUIZ_RESPONSE_QUIZ_ID, quizId);
-		return simpleJdbcTemplate.queryForLong(SELECT_FOR_QUIZ_ID_COUNT, QUIZ_RESPONSE_ROW_MAPPER, param);
+		return simpleJdbcTemplate.queryForLong(SELECT_FOR_QUIZ_ID_COUNT, param);
 	}
 
 	@Override
@@ -168,14 +169,20 @@ public class DBOQuizResponseDAOImpl implements QuizResponseDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_QUIZ_RESPONSE_QUIZ_ID, quizId);
 		param.addValue(COL_QUIZ_RESPONSE_CREATED_BY, principalId);
-		return simpleJdbcTemplate.queryForLong(SELECT_FOR_QUIZ_ID_AND_USER_COUNT, QUIZ_RESPONSE_ROW_MAPPER, param);
+		return simpleJdbcTemplate.queryForLong(SELECT_FOR_QUIZ_ID_AND_USER_COUNT, param);
 	}		
 
 	@Override
 	public PassingRecord getPassingRecord(Long quizId, Long principalId)
 			throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		return simpleJdbcTemplate.queryForObject(SELECT_BEST_RESPONSE_FOR_USER_AND_QUIZ, PASSING_RECORD_ROW_MAPPER, param);
+		param.addValue(COL_QUIZ_RESPONSE_QUIZ_ID, quizId);
+		param.addValue(COL_QUIZ_RESPONSE_CREATED_BY, principalId);
+		try {
+			return simpleJdbcTemplate.queryForObject(SELECT_BEST_RESPONSE_FOR_USER_AND_QUIZ, PASSING_RECORD_ROW_MAPPER, param);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException("No quiz results for quiz "+quizId+" and user "+principalId, e);
+		}
 	}
 
 }
