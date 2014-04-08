@@ -148,21 +148,20 @@ public class DBOQuizResponseDAOImplTest {
 			// as expected
 		}
 		// now add some records and try retrieving
-		boolean passed = true;
 		long score = 10L;
 		{
 			QuizResponse failedQuiz = createDTOAndStore(principalId.toString(), quizId, false, score);
-			QuizResponse otherUser = createDTOAndStore("112", quizId, passed, score+1);
-			QuizResponse otherQuiz = createDTOAndStore(principalId.toString(), quizId+1, passed, score+2);
+			QuizResponse otherUser = createDTOAndStore("112", quizId, false, score+1);
+			QuizResponse otherQuiz = createDTOAndStore(principalId.toString(), quizId+1, false, score+2);
 			PassingRecord pr = quizResponseDao.getPassingRecord(quizId, principalId);
 			checkPassingRecord(pr, quizId, principalId.toString(), failedQuiz.getId(), false, score);
 		}
 		
 		// now add a passing quiz result and retrieve it
 		{
-			QuizResponse passedQuiz = createDTOAndStore(principalId.toString(), quizId, true, score);
+			QuizResponse passedQuiz = createDTOAndStore(principalId.toString(), quizId, true, score+5L);
 			PassingRecord pr = quizResponseDao.getPassingRecord(quizId, principalId);
-			checkPassingRecord(pr, quizId, principalId.toString(), passedQuiz.getId(), true, score);
+			checkPassingRecord(pr, quizId, principalId.toString(), passedQuiz.getId(), true, score+5L);
 		}
 		
 		// now add a better passing quiz result and retrieve it
