@@ -1270,13 +1270,22 @@ public class StackConfiguration {
 	}
 
 	/**
-	 * Get the name of the audit record bucket.
+	 * Get the max bytes per HTTP request for a table.
 	 * 
 	 * @return
 	 */
 	public int getTableMaxBytesPerRequest() {
 		return Integer.parseInt(configuration
 				.getProperty("org.sagebionetworks.table.max.bytes.per.request"));
+	}
+	/**
+	 * The maximum number of rows in a single table change set file.
+	 * 
+	 * @return
+	 */
+	public int getTableMaxRowsPerBatch() {
+		return Integer.parseInt(configuration
+				.getProperty("org.sagebionetworks.table.max.rows.per.batch"));
 	}
 	/**
 	 * The maximum amount of time in MS that the table worker can hold the semaphore

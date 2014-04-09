@@ -14,6 +14,7 @@ import java.util.UUID;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
@@ -52,7 +53,7 @@ public class TableWorkerIntegrationTest {
 	/**
 	 * 
 	 */
-	public static final int MAX_WAIT_MS = 1000*60;
+	public static final int MAX_WAIT_MS = 1000*600;
 	
 	@Autowired
 	StackConfiguration config;
@@ -131,7 +132,55 @@ public class TableWorkerIntegrationTest {
 		rowSet.setRows(rows);
 		rowSet.setHeaders(headers);
 		rowSet.setTableId(tableId);
+		long start = System.currentTimeMillis();
 		referenceSet = tableRowManager.appendRows(adminUserInfo, tableId, schema, rowSet);
+		System.out.println("Appended "+rowSet.getRows().size()+" rows in: "+(System.currentTimeMillis()-start)+" MS");
+		// Wait for the table to become available
+		TableStatus status = waitForTableToBeAvailable(tableId);
+		// Validate that we can query the table
+		boolean isConsistent = true;
+		boolean countOnly = false;
+		rowSet = tableRowManager.query(adminUserInfo, "select * from "+tableId+" limit 2", isConsistent, countOnly);
+		assertNotNull(rowSet);
+		assertEquals(tableId, rowSet.getTableId());
+		assertNotNull(rowSet.getHeaders());
+		assertEquals(schema.size(), rowSet.getHeaders().size());
+		assertNotNull(rowSet.getRows());
+		assertEquals(2, rowSet.getRows().size());
+		assertNotNull(rowSet.getEtag());
+		assertEquals("The etag for the last applied change set should be set for the status and the results",status.getLastTableChangeEtag(), rowSet.getEtag());
+		assertEquals("The etag should also match the rereferenceSet.etag",referenceSet.getEtag(), rowSet.getEtag());
+	}
+	
+	@Ignore // This is a very slow test that pushes massive amounts of data so it is disabled.
+	@Test
+	public void testAppendRowsAtScale() throws NotFoundException, InterruptedException, DatastoreException, TableUnavilableException, IOException{
+		// Create one column of each type
+		List<ColumnModel> temp = TableModelTestUtils.createOneOfEachType();
+		schema = new LinkedList<ColumnModel>();
+		for(ColumnModel cm: temp){
+			// Skip strings
+			if(cm.getColumnType() == ColumnType.STRING) continue;
+			cm = columnManager.createColumnModel(adminUserInfo, cm);
+			schema.add(cm);
+		}
+		List<String> headers = TableModelUtils.getHeaders(schema);
+		// Create the table.
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		table.setColumnIds(headers);
+		tableId = entityManager.createEntity(adminUserInfo, table, null);
+		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
+		columnManager.bindColumnToObject(adminUserInfo, headers, tableId, true);
+		// Now add some data
+		List<Row> rows = TableModelTestUtils.createRows(schema, 500000);
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(rows);
+		rowSet.setHeaders(headers);
+		rowSet.setTableId(tableId);
+		long start = System.currentTimeMillis();
+		String etag = tableRowManager.appendRowsAsStream(adminUserInfo, tableId, schema, rowSet.getRows().iterator(), null, null);
+		System.out.println("Appended "+rowSet.getRows().size()+" rows in: "+(System.currentTimeMillis()-start)+" MS");
 		// Wait for the table to become available
 		TableStatus status = waitForTableToBeAvailable(tableId);
 		// Validate that we can query the table
