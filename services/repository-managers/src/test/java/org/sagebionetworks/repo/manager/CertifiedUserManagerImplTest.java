@@ -5,7 +5,12 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.anyLong;
+import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.InputStream;
@@ -20,6 +25,7 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.QuizResponseDAO;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.quiz.MultichoiceAnswer;
 import org.sagebionetworks.repo.model.quiz.MultichoiceQuestion;
 import org.sagebionetworks.repo.model.quiz.MultichoiceResponse;
@@ -31,6 +37,7 @@ import org.sagebionetworks.repo.model.quiz.QuizGenerator;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
 import org.sagebionetworks.repo.model.quiz.TextFieldQuestion;
 import org.sagebionetworks.repo.model.quiz.TextFieldResponse;
+import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
@@ -72,13 +79,156 @@ public class CertifiedUserManagerImplTest {
 	public void testDefaultQuiz() throws Exception {
 		QuizGenerator quizGenerator = getDefaultQuizGenerator();
 		// do additional validation
-		CertifiedUserManagerImpl.validateQuizGenerator(quizGenerator);
+		assertTrue(CertifiedUserManagerImpl.validateQuizGenerator(quizGenerator).isEmpty());
 	}
 
 	@Test
 	public void testValidateQuizGenerator() throws Exception {
 		QuizGenerator quizGenerator = new QuizGenerator();
-		// TODO
+		quizGenerator.setId(999L);
+		quizGenerator.setMinimumScore(1L);
+		List<QuestionVariety> qvs = new ArrayList<QuestionVariety>();
+		quizGenerator.setQuestions(qvs);
+		// test missing question
+		assertFalse(CertifiedUserManagerImpl.validateQuizGenerator(quizGenerator).isEmpty());  
+		{
+			QuestionVariety qv = new QuestionVariety();
+			qvs.add(qv);
+			List<Question> questionOptions = new ArrayList<Question>();
+			qv.setQuestionOptions(questionOptions);
+			questionOptions.add(generateQuestion(1L, "1"));
+			questionOptions.add(generateQuestion(2L, "2"));
+		}
+		// happy case
+		assertTrue(CertifiedUserManagerImpl.validateQuizGenerator(quizGenerator).isEmpty());
+		quizGenerator.setMinimumScore(null); // can't be null
+		assertFalse(CertifiedUserManagerImpl.validateQuizGenerator(quizGenerator).isEmpty());
+		quizGenerator.setMinimumScore(2L); // can't be bigger than # qv's
+		assertFalse(CertifiedUserManagerImpl.validateQuizGenerator(quizGenerator).isEmpty());
+		
+		// test missing ID
+		quizGenerator.setMinimumScore(1L);
+		quizGenerator.setId(null);
+		assertFalse(CertifiedUserManagerImpl.validateQuizGenerator(quizGenerator).isEmpty());
+		
+		quizGenerator.setId(999L);
+
+		// test missing question index
+		qvs.clear();
+		{
+			QuestionVariety qv = new QuestionVariety();
+			qvs.add(qv);
+			List<Question> questionOptions = new ArrayList<Question>();
+			qv.setQuestionOptions(questionOptions);
+			MultichoiceQuestion mq = new MultichoiceQuestion();
+			questionOptions.add(mq);
+			List<MultichoiceAnswer> mas = new ArrayList<MultichoiceAnswer>();
+			mq.setAnswers(mas);
+			//mq.setQuestionIndex(99L);
+			mas.add(createMultichoiceAnswer(true, 10L));
+		}
+		assertFalse(CertifiedUserManagerImpl.validateQuizGenerator(quizGenerator).isEmpty());
+		
+		// test repeated question index
+		qvs.clear();
+		{
+			QuestionVariety qv = new QuestionVariety();
+			qvs.add(qv);
+			List<Question> questionOptions = new ArrayList<Question>();
+			qv.setQuestionOptions(questionOptions);
+			MultichoiceQuestion mq = new MultichoiceQuestion();
+			questionOptions.add(mq);
+			List<MultichoiceAnswer> mas = new ArrayList<MultichoiceAnswer>();
+			mq.setAnswers(mas);
+			mq.setQuestionIndex(99L);
+			mas.add(createMultichoiceAnswer(true, 10L));
+			
+			mq = new MultichoiceQuestion();
+			questionOptions.add(mq);
+			mas = new ArrayList<MultichoiceAnswer>();
+			mq.setAnswers(mas);
+			mq.setQuestionIndex(99L);
+			mas.add(createMultichoiceAnswer(true, 20L));
+		}
+		assertFalse(CertifiedUserManagerImpl.validateQuizGenerator(quizGenerator).isEmpty());
+		
+		// test multichoice answer missing index
+		qvs.clear();
+		{
+			QuestionVariety qv = new QuestionVariety();
+			qvs.add(qv);
+			List<Question> questionOptions = new ArrayList<Question>();
+			qv.setQuestionOptions(questionOptions);
+			MultichoiceQuestion mq = new MultichoiceQuestion();
+			questionOptions.add(mq);
+			List<MultichoiceAnswer> mas = new ArrayList<MultichoiceAnswer>();
+			mq.setAnswers(mas);
+			mq.setQuestionIndex(99L);
+			mas.add(createMultichoiceAnswer(true, null));
+		}
+		assertFalse(CertifiedUserManagerImpl.validateQuizGenerator(quizGenerator).isEmpty());
+		
+		// test multichoice answer repeating index
+		qvs.clear();
+		{
+			QuestionVariety qv = new QuestionVariety();
+			qvs.add(qv);
+			List<Question> questionOptions = new ArrayList<Question>();
+			qv.setQuestionOptions(questionOptions);
+			MultichoiceQuestion mq = new MultichoiceQuestion();
+			questionOptions.add(mq);
+			List<MultichoiceAnswer> mas = new ArrayList<MultichoiceAnswer>();
+			mq.setAnswers(mas);
+			mq.setQuestionIndex(99L);
+			mas.add(createMultichoiceAnswer(true, 10L));
+			mas.add(createMultichoiceAnswer(false, 10L));
+		}
+		assertFalse(CertifiedUserManagerImpl.validateQuizGenerator(quizGenerator).isEmpty());
+		
+		// test multichoice missing answer
+		qvs.clear();
+		{
+			QuestionVariety qv = new QuestionVariety();
+			qvs.add(qv);
+			List<Question> questionOptions = new ArrayList<Question>();
+			qv.setQuestionOptions(questionOptions);
+			MultichoiceQuestion mq = new MultichoiceQuestion();
+			questionOptions.add(mq);
+			List<MultichoiceAnswer> mas = new ArrayList<MultichoiceAnswer>();
+			mq.setAnswers(mas);
+			mq.setQuestionIndex(99L);
+		}
+		assertFalse(CertifiedUserManagerImpl.validateQuizGenerator(quizGenerator).isEmpty());
+		
+		// test 'exclusive' multichoice with multiple correct answers
+		qvs.clear();
+		{
+			QuestionVariety qv = new QuestionVariety();
+			qvs.add(qv);
+			List<Question> questionOptions = new ArrayList<Question>();
+			qv.setQuestionOptions(questionOptions);
+			MultichoiceQuestion mq = new MultichoiceQuestion();
+			questionOptions.add(mq);
+			List<MultichoiceAnswer> mas = new ArrayList<MultichoiceAnswer>();
+			mq.setAnswers(mas);
+			mq.setQuestionIndex(99L);
+			mq.setExclusive(true);
+			mas.add(createMultichoiceAnswer(true, 10L));
+			mas.add(createMultichoiceAnswer(true, 20L));
+		}
+		assertFalse(CertifiedUserManagerImpl.validateQuizGenerator(quizGenerator).isEmpty());
+		
+		// test text field question missing answer
+		qvs.clear();
+		{
+			QuestionVariety qv = new QuestionVariety();
+			qvs.add(qv);
+			List<Question> questionOptions = new ArrayList<Question>();
+			qv.setQuestionOptions(questionOptions);
+			TextFieldQuestion tf = generateQuestion(10L, null);
+			questionOptions.add(tf);
+		}
+		assertFalse(CertifiedUserManagerImpl.validateQuizGenerator(quizGenerator).isEmpty());
 	}
 	
 	@Test
@@ -185,35 +335,219 @@ public class CertifiedUserManagerImplTest {
 		}
 	}
 	
+	private static TextFieldQuestion generateQuestion(Long questionIndex, String correctAnswer) {
+		TextFieldQuestion q = new TextFieldQuestion();
+		q.setQuestionIndex(questionIndex);
+		q.setAnswer(correctAnswer);
+		return q;
+	}
+	
 	private static QuizGenerator createQuizGenerator() {
 		QuizGenerator gen = new QuizGenerator();
-		gen.setMinimumScore(1L);
+		gen.setId(999L);
+		gen.setMinimumScore(2L); // you need to get two questions right, one from each 'variety'
 		List<QuestionVariety> qvs = new ArrayList<QuestionVariety>();
 		gen.setQuestions(qvs);
-		QuestionVariety qv = new QuestionVariety();
-		qvs.add(qv);
-		List<Question> questionOptions = new ArrayList<Question>();
-		qv.setQuestionOptions(questionOptions);
-		TextFieldQuestion q = new TextFieldQuestion();
-		questionOptions.add(q);
-		q.setQuestionIndex(1L);
-		q.setAnswer("1");
+		// the first question variety, having two questions
+		{
+			QuestionVariety qv = new QuestionVariety();
+			qvs.add(qv);
+			List<Question> questionOptions = new ArrayList<Question>();
+			qv.setQuestionOptions(questionOptions);
+			questionOptions.add(generateQuestion(1L, "1"));
+			questionOptions.add(generateQuestion(2L, "2"));
+		}
+		// the second question variety, having two questions
+		{
+			QuestionVariety qv = new QuestionVariety();
+			qvs.add(qv);
+			List<Question> questionOptions = new ArrayList<Question>();
+			qv.setQuestionOptions(questionOptions);
+			questionOptions.add(generateQuestion(3L, "3"));
+			questionOptions.add(generateQuestion(4L, "4"));
+		}
 		return gen;
 	}
 	
-	@Test
-	public void testScoreQuizResponse() throws Exception {
-		QuizGenerator gen = createQuizGenerator();
+	private static QuizResponse createPassingQuizResponse() {
 		QuizResponse resp = new QuizResponse();
 		List<QuestionResponse> questionResponses = new ArrayList<QuestionResponse>();
 		resp.setQuestionResponses(questionResponses);
-		TextFieldResponse tr = new TextFieldResponse();
-		questionResponses.add(tr);
-		tr.setQuestionIndex(1L);
-		tr.setResponse("1");
+		{
+			TextFieldResponse tr = new TextFieldResponse();
+			questionResponses.add(tr);
+			tr.setQuestionIndex(1L);
+			tr.setResponse("1");
+		}
+		{
+			TextFieldResponse tr = new TextFieldResponse();
+			questionResponses.add(tr);
+			tr.setQuestionIndex(3L);
+			tr.setResponse("3");
+		}
+		return resp;
+	}
+	
+	@Test
+	public void testScoreQuizResponseHappyCase() throws Exception {
+		QuizGenerator gen = createQuizGenerator();
+		QuizResponse resp = createPassingQuizResponse();
 		CertifiedUserManagerImpl.scoreQuizResponse(gen, resp);
 		assertTrue(resp.getPass());
-		assertEquals(new Long(1L), resp.getScore());
+		assertEquals(new Long(2L), resp.getScore());
 	}
 
+	private static QuizResponse createFailingQuizResponse() {
+		QuizResponse resp = new QuizResponse();
+		List<QuestionResponse> questionResponses = new ArrayList<QuestionResponse>();
+		resp.setQuestionResponses(questionResponses);
+		{
+			TextFieldResponse tr = new TextFieldResponse();
+			questionResponses.add(tr);
+			tr.setQuestionIndex(1L);
+			tr.setResponse("1");
+		}
+		{
+			TextFieldResponse tr = new TextFieldResponse();
+			questionResponses.add(tr);
+			tr.setQuestionIndex(3L);
+			tr.setResponse("99");
+		}
+		return resp;
+	}
+	
+	@Test
+	public void testScoreQuizResponseWrongAnswer() throws Exception {
+		QuizGenerator gen = createQuizGenerator();
+		QuizResponse resp = createFailingQuizResponse();
+		CertifiedUserManagerImpl.scoreQuizResponse(gen, resp);
+		assertFalse(resp.getPass());
+		assertEquals(new Long(1L), resp.getScore());
+	}
+	
+	private static QuizResponse createIllegalQuizResponse() {
+		QuizResponse resp = new QuizResponse();
+		List<QuestionResponse> questionResponses = new ArrayList<QuestionResponse>();
+		resp.setQuestionResponses(questionResponses);
+		{
+			TextFieldResponse tr = new TextFieldResponse();
+			questionResponses.add(tr);
+			tr.setQuestionIndex(1L);
+			tr.setResponse("1");
+		}
+		{
+			TextFieldResponse tr = new TextFieldResponse();
+			questionResponses.add(tr);
+			tr.setQuestionIndex(2L);
+			tr.setResponse("2");
+		}
+		return resp;
+	}
+
+	@Test(expected=IllegalArgumentException.class)
+	public void testScoreQuizResponseWrongQuestions() throws Exception {
+		QuizGenerator gen = createQuizGenerator();
+		// can't answer two questions from one variety.  
+		// this will throw an IllegalArgumentException
+		QuizResponse resp = createIllegalQuizResponse();
+		CertifiedUserManagerImpl.scoreQuizResponse(gen, resp);
+	}
+
+	@Test
+	public void testSubmitCertificationQuizPASSINGResponse() throws Exception {
+		certifiedUserManager.expireQuizGeneratorCache();
+		when(s3Utility.doesExist(CertifiedUserManagerImpl.S3_QUESTIONNAIRE_KEY)).thenReturn(true);
+		QuizGenerator quizGenerator = createQuizGenerator();
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
+		quizGenerator.writeToJSONObject(adapter);
+		String quizGeneratorAsString = adapter.toJSONString();
+		when(s3Utility.downloadFromS3ToString(CertifiedUserManagerImpl.S3_QUESTIONNAIRE_KEY)).thenReturn(quizGeneratorAsString);
+		QuizResponse quizResponse = createPassingQuizResponse();
+		UserInfo userInfo = new UserInfo(false);
+		userInfo.setId(666L);
+		certifiedUserManager.submitCertificationQuizResponse(userInfo, quizResponse);
+		// check that 5 fields are filled in quizResponse
+		assertEquals(userInfo.getId().toString(), quizResponse.getCreatedBy());
+		assertEquals(true, quizResponse.getPass());
+		assertEquals(quizGenerator.getId(), quizResponse.getQuizId());
+		assertEquals(2L, quizResponse.getScore().longValue());
+		assertNotNull(quizResponse.getCreatedOn());
+		Mockito.verify(quizResponseDao).create(quizResponse);
+		Mockito.verify(groupMembersDao).addMembers(anyString(), (List<String>)anyObject());
+		Mockito.verify(quizResponseDao).getPassingRecord(quizGenerator.getId(), userInfo.getId());
+	}
+	
+	@Test
+	public void testSubmitCertificationQuizFAILINGResponse() throws Exception {
+		certifiedUserManager.expireQuizGeneratorCache();
+		when(s3Utility.doesExist(CertifiedUserManagerImpl.S3_QUESTIONNAIRE_KEY)).thenReturn(true);
+		QuizGenerator quizGenerator = createQuizGenerator();
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
+		quizGenerator.writeToJSONObject(adapter);
+		String quizGeneratorAsString = adapter.toJSONString();
+		when(s3Utility.downloadFromS3ToString(CertifiedUserManagerImpl.S3_QUESTIONNAIRE_KEY)).thenReturn(quizGeneratorAsString);
+		QuizResponse quizResponse = createFailingQuizResponse();
+		UserInfo userInfo = new UserInfo(false);
+		userInfo.setId(666L);
+		certifiedUserManager.submitCertificationQuizResponse(userInfo, quizResponse);
+		// check that 5 fields are filled in quizResponse
+		assertEquals(userInfo.getId().toString(), quizResponse.getCreatedBy());
+		assertEquals(false, quizResponse.getPass());
+		assertEquals(quizGenerator.getId(), quizResponse.getQuizId());
+		assertEquals(1L, quizResponse.getScore().longValue());
+		assertNotNull(quizResponse.getCreatedOn());
+		verify(quizResponseDao).create(quizResponse);
+		verify(groupMembersDao, never()).addMembers(anyString(), (List<String>)anyObject());
+		verify(quizResponseDao).getPassingRecord(quizGenerator.getId(), userInfo.getId());
+	}
+	
+	@Test
+	public void testGetQuizResponses() throws Exception {
+		UserInfo userInfo = new UserInfo(true);
+		certifiedUserManager.getQuizResponses(userInfo, null, 3L, 10L);
+		Long quizId = getDefaultQuizGenerator().getId();
+		verify(quizResponseDao).getAllResponsesForQuiz(quizId, 3L, 10L);
+		verify(quizResponseDao).getAllResponsesForQuizCount(quizId);
+	}
+
+	@Test
+	public void testGetQuizResponsesForAUser() throws Exception {
+		UserInfo userInfo = new UserInfo(true);
+		certifiedUserManager.getQuizResponses(userInfo, null, 3L, 10L);
+		Long quizId = getDefaultQuizGenerator().getId();
+		Long userId = 666L;
+		verify(quizResponseDao).getUserResponsesForQuiz(quizId, userId, 3L, 10L);
+		verify(quizResponseDao).getUserResponsesForQuizCount(quizId, userId);
+	}
+
+	@Test(expected=ForbiddenException.class)
+	public void testGetQuizResponsesNonAdmin() throws Exception {
+		UserInfo userInfo = new UserInfo(false);
+		certifiedUserManager.getQuizResponses(userInfo, 101L, 3L, 10L);
+	}
+
+	@Test
+	public void testDeleteQuizResponseAdmin() throws Exception {
+		UserInfo userInfo = new UserInfo(true);
+		certifiedUserManager.deleteQuizResponse(userInfo, 101L);
+		verify(quizResponseDao).delete(101L);
+	}
+	
+	@Test(expected=ForbiddenException.class)
+	public void testDeleteQuizResponseNonAdmin() throws Exception {
+		UserInfo userInfo = new UserInfo(false);
+		certifiedUserManager.deleteQuizResponse(userInfo, 101L);
+		verify(quizResponseDao).delete(101L);
+	}
+	
+	@Test
+	public void testGetPassingRecord() throws Exception {
+		UserInfo userInfo = new UserInfo(false);
+		userInfo.setId(666L);
+		certifiedUserManager.getPassingRecord(userInfo, 101L);
+		verify(quizResponseDao).getPassingRecord(anyLong(), eq(666L));
+	}
+	
 }
+
+

@@ -90,28 +90,29 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 	}
 	
 	/**
-	 * Throw exception if not valid
+	 * returns exception if not valid.  if list is empty the quiz generator is valid
 	 * 
 	 * @param quiz
 	 */
-	public static void validateQuizGenerator(QuizGenerator quiz) {
+	public static List<String> validateQuizGenerator(QuizGenerator quiz) {
 		List<String> errorMessages = new ArrayList<String>();
+		if (quiz.getId()==null) errorMessages.add("id is required.");
 		//	make sure there is a minimum score and that it's >=0, <=# question varieties
 		Long minimumScore = quiz.getMinimumScore();
 		if (minimumScore==null || minimumScore<0) 
 			errorMessages.add("expected minimumScore>=0 but found "+minimumScore);
 		List<QuestionVariety> varieties = quiz.getQuestions();
-		if (varieties==null || varieties.size()==0) {
+		if (varieties==null || varieties.isEmpty()) {
 			errorMessages.add("This test has no questions.");
 			varieties = new ArrayList<QuestionVariety>(); // create an empty list so we can continue
 		}
-		if (minimumScore>varieties.size())
+		if (minimumScore!=null && minimumScore>varieties.size())
 			errorMessages.add("Minimum score cannot exceed the number of questions.");
 		//	make sure there's an answer for each question
 		Set<Long> questionIndices = new HashSet<Long>();
 		for (QuestionVariety v : varieties) {
 			List<Question> questions = v.getQuestionOptions();
-			if (questions==null || questions.size()==0) {
+			if (questions==null || questions.isEmpty()) {
 				errorMessages.add("Question variety has no questions.");
 				questions = new ArrayList<Question>(); // create an empty list so we can continue
 			}
@@ -135,7 +136,7 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 						answerIndices.add(a.getAnswerIndex());
 						if (a.getIsCorrect()!=null && a.getIsCorrect()) correctAnswers.add(a.getAnswerIndex());
 					}
-					if (correctAnswers.size()==0)
+					if (correctAnswers.isEmpty())
 						errorMessages.add("No correct answer specified to question "+q.getPrompt());
 					if (mq.getExclusive()!=null && mq.getExclusive() && correctAnswers.size()>1)
 						errorMessages.add("Expected a single correct answer but found: "+correctAnswers);
@@ -147,8 +148,8 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 					errorMessages.add("Unexpected questions type "+QUESTIONNAIRE_PROPERTIES_FILE.getClass());
 				}
 			}
-		}		
-		if (!errorMessages.isEmpty()) throw new RuntimeException(errorMessages.toString());
+		}	
+		return errorMessages;
 	}
 	
 	private static String readInputStreamToString(InputStream is) {
@@ -194,7 +195,9 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 		} catch (JSONObjectAdapterException e) {
 			throw new RuntimeException(e);
 		}
-		validateQuizGenerator(quizGenerator);
+		List<String> errorMessages = validateQuizGenerator(quizGenerator);
+		if (!errorMessages.isEmpty()) throw new RuntimeException(errorMessages.toString());
+		
 		quizGeneratorCacheLastUpdated = System.currentTimeMillis();
 		quizGeneratorCache = quizGenerator;
 		return quizGenerator;
@@ -264,7 +267,7 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 			List<QuestionVariety> variety = quizGenerator.getQuestions();
 			for (int i=0; i<variety.size(); i++) {
 				for (Question q: variety.get(i).getQuestionOptions()) {
-					if (r.getQuestionIndex() == q.getQuestionIndex()) {
+					if (r.getQuestionIndex().equals(q.getQuestionIndex())) {
 						// found it!
 						questionVarietyIndex = i;
 						if (responseMap.containsKey(questionVarietyIndex)) {
