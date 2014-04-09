@@ -90,6 +90,9 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
 import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
 import org.sagebionetworks.repo.model.principal.AliasType;
+import org.sagebionetworks.repo.model.quiz.PassingRecord;
+import org.sagebionetworks.repo.model.quiz.Quiz;
+import org.sagebionetworks.repo.model.quiz.QuizResponse;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 import org.sagebionetworks.utils.HttpClientHelper;
@@ -1595,5 +1598,28 @@ public class IT500SynapseJavaClient {
 			ContentType.create("text/plain", Charset.forName("UTF-8")));
 		assertNotNull(fileHandleId);
 		handlesToDelete.add(fileHandleId);
+	}
+	
+	@Test
+	public void testCertifiedUserQuiz() throws Exception {
+		Quiz quiz = synapseOne.getCertifiedUserTest();
+		assertNotNull(quiz);
+		assertNotNull(quiz.getId());
+		QuizResponse response = new QuizResponse();
+		response.setQuizId(quiz.getId());
+		// this quiz will fail
+		PassingRecord pr = synapseOne.submitCertifiedUserTestResponse(response);
+		assertEquals(new Long(0L), pr.getScore());
+		assertFalse(pr.getPassed());
+		assertEquals(quiz.getId(), pr.getQuizId());
+		assertNotNull(pr.getResponseId());
+		String myId = synapseOne.getMyProfile().getOwnerId();
+		PassingRecord pr2 = synapseOne.getCertifiedUserPassingRecord(myId);
+		assertEquals(pr, pr2);
+		
+		PaginatedResults<QuizResponse> qrs = adminSynapse.getCertifiedUserTestResponses(0L, 2L, myId);
+		assertEquals(1, qrs.getResults().size());
+		// TODO..
+		adminSynapse.deleteCertifiedUserTestResponse(pr.getResponseId().toString());
 	}
 }

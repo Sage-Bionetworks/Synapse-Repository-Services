@@ -17,6 +17,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.QuizResponseDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.quiz.MultichoiceResponse;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
 import org.sagebionetworks.repo.model.quiz.QuestionResponse;
@@ -63,9 +64,12 @@ public class DBOQuizResponseDAOImplTest {
 	
 	private Collection<Long> toDelete;
 	
+	private String userId;
+	
 	@Before
 	public void before() throws Exception {
 		toDelete = new ArrayList<Long>();
+    	userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString();
 	}
 	
 	@After
@@ -77,7 +81,7 @@ public class DBOQuizResponseDAOImplTest {
 
 	@Test
 	public void testRoundTrip() throws Exception {
-		QuizResponse dto = createDTO("111", 1L, true, 10L);
+		QuizResponse dto = createDTO(userId, 1L, true, 10L);
 		QuizResponse created = storeDTO(dto);
 		dto.setId(created.getId());
 		assertEquals(dto, created);
@@ -91,7 +95,7 @@ public class DBOQuizResponseDAOImplTest {
 		Long quizId = 1L;
 		Long limit = 10L;
 		Long offset = 0L;
-		Long principalId = 111L;
+		Long principalId = Long.parseLong(userId);
 		List<QuizResponse> list = quizResponseDao.getAllResponsesForQuiz(quizId, limit, offset);
 		assertTrue(list.isEmpty());
 		long count = quizResponseDao.getAllResponsesForQuizCount(quizId);
@@ -103,7 +107,8 @@ public class DBOQuizResponseDAOImplTest {
 		
 		// now add some records and try retrieving
 		QuizResponse created = createDTOAndStore(principalId.toString(), quizId, true, 10L);
-		QuizResponse otherUser = createDTOAndStore("112", quizId, true, 10L);
+		String someOtherUserId=BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString();
+		QuizResponse otherUser = createDTOAndStore(someOtherUserId, quizId, true, 10L);
 		QuizResponse otherQuiz = createDTOAndStore(principalId.toString(), quizId+1, true, 10L);
 		list = quizResponseDao.getAllResponsesForQuiz(quizId, limit, offset);
 		assertEquals(2, list.size());
@@ -138,7 +143,7 @@ public class DBOQuizResponseDAOImplTest {
 	@Test
 	public void testPassingRecord() throws Exception {
 		Long quizId = 1L;
-		Long principalId = 111L;
+		Long principalId = Long.parseLong(userId);
 		try {
 			quizResponseDao.getPassingRecord(quizId, principalId);
 			fail("Exception expected.");
@@ -149,7 +154,8 @@ public class DBOQuizResponseDAOImplTest {
 		long score = 10L;
 		{
 			QuizResponse failedQuiz = createDTOAndStore(principalId.toString(), quizId, false, score);
-			createDTOAndStore("112", quizId, false, score+1);
+			String someOtherUserId=BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString();
+			createDTOAndStore(someOtherUserId, quizId, false, score+1);
 			createDTOAndStore(principalId.toString(), quizId+1, false, score+2);
 			PassingRecord pr = quizResponseDao.getPassingRecord(quizId, principalId);
 			checkPassingRecord(pr, quizId, principalId.toString(), failedQuiz.getId(), false, score);
