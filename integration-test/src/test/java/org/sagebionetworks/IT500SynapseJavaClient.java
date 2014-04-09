@@ -1619,7 +1619,11 @@ public class IT500SynapseJavaClient {
 		
 		PaginatedResults<QuizResponse> qrs = adminSynapse.getCertifiedUserTestResponses(0L, 2L, myId);
 		assertEquals(1, qrs.getResults().size());
-		// TODO..
+		assertEquals(pr, qrs.getResults().iterator().next());
+		qrs = adminSynapse.getCertifiedUserTestResponses(0L, 2L, null);
+		assertEquals(1, qrs.getResults().size());
+		assertEquals(pr, qrs.getResults().iterator().next());
+
 		adminSynapse.deleteCertifiedUserTestResponse(pr.getResponseId().toString());
 	}
 }
