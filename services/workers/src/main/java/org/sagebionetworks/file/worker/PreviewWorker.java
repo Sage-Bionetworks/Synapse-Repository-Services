@@ -7,6 +7,7 @@ import java.util.concurrent.Callable;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
+import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.repo.manager.file.preview.PreviewManager;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -33,6 +34,7 @@ public class PreviewWorker implements Callable<List<Message>> {
 	
 	private PreviewManager previewManager;
 	private List<Message> messages;
+	WorkerLogger workerLogger;
 	
 	/**
 	 * Instances of this class are created on the fly as needed.  Therefore, all of the
@@ -40,10 +42,11 @@ public class PreviewWorker implements Callable<List<Message>> {
 	 * @param fileMetadataDao
 	 * @param messages
 	 */
-	public PreviewWorker(PreviewManager previewManager, List<Message> messages) {
+	public PreviewWorker(PreviewManager previewManager, List<Message> messages, WorkerLogger workerProfiler) {
 		super();
 		this.previewManager = previewManager;
 		this.messages = messages;
+		this.workerLogger = workerProfiler;
 	}
 
 	@Override
@@ -52,8 +55,8 @@ public class PreviewWorker implements Callable<List<Message>> {
 		List<Message> processedMessage = new LinkedList<Message>();
 		// Process the messages
 		for(Message message: messages){
+			ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 			try{
-				ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 				// Ignore all non-file messages.
 				if (ObjectType.FILE == changeMessage.getObjectType()
 						&& (ChangeType.CREATE == changeMessage.getChangeType() || ChangeType.UPDATE == changeMessage.getChangeType())) {
@@ -86,18 +89,22 @@ public class PreviewWorker implements Callable<List<Message>> {
 				// and treat the message as processed.
 				processedMessage.add(message);
 				log.error("Failed to process message: "+message.toString(), e);
+				workerLogger.logWorkerFailure(this.getClass(), changeMessage, e, false);
 			}catch (UnsupportedOperationException e){
 				// We cannot recover from this exception so log the error
 				// and treat the message as processed.
 				processedMessage.add(message);
 				log.error("Failed to process message: "+message.toString(), e);
+				workerLogger.logWorkerFailure(this.getClass(), changeMessage, e, false);
 			}catch (TemporarilyUnavailableException e){
 				// When this occurs we want the message to go back on the queue, so we can try again later.
 				log.info("Failed to process message: "+message.toString(), e);
+				workerLogger.logWorkerFailure(this.getClass(), changeMessage, e, true);
 			}catch (Throwable e){
 				// Failing to process a message should not terminate the rest of the message processing.
 				// For unknown errors we leave the messages on the queue.
 				log.error("Failed to process message: "+message.toString(), e);
+				workerLogger.logWorkerFailure(this.getClass(), changeMessage, e, true);
 			}
 		}
 		return processedMessage;

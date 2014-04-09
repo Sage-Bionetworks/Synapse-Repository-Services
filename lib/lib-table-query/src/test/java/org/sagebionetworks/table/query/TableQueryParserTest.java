@@ -515,19 +515,19 @@ public class TableQueryParserTest {
 		assertNotNull(sq.getTableExpression().getFromClause());
 		assertNotNull(sq.getTableExpression().getFromClause().getTableReference());
 		assertNotNull(sq.getTableExpression().getFromClause().getTableReference().getTableName());
-		assertEquals("123", sq.getTableExpression().getFromClause().getTableReference().getTableName());
+		assertEquals("syn123", sq.getTableExpression().getFromClause().getTableReference().getTableName());
 	}
 	
 	@Test
 	public void testSelectTableNameUnsigned() throws ParseException{
 		// Parse the query into a basic model object
-		QuerySpecification sq = TableQueryParser.parserQuery("select * from 123");
+		QuerySpecification sq = TableQueryParser.parserQuery("select * from syn123");
 		assertNotNull(sq);
 		assertNotNull(sq.getTableExpression());
 		assertNotNull(sq.getTableExpression().getFromClause());
 		assertNotNull(sq.getTableExpression().getFromClause().getTableReference());
 		assertNotNull(sq.getTableExpression().getFromClause().getTableReference().getTableName());
-		assertEquals("123", sq.getTableExpression().getFromClause().getTableReference().getTableName());
+		assertEquals("syn123", sq.getTableExpression().getFromClause().getTableReference().getTableName());
 	}
 	
 	
@@ -574,5 +574,19 @@ public class TableQueryParserTest {
 	public void testQueryEndOfFile() throws ParseException{
 		// There must not be anything at the end of the query.
 		TableQueryParser.parserQuery("select foo from syn456 limit 1 offset 2 select foo");
+	}
+	
+	/**
+	 * See PLFM-2618
+	 * Validate that literals can contain key words but not be keywords.
+	 * @throws ParseException 
+	 * 
+	 */
+	@Test
+	public void testKeyWordsInLiterals() throws ParseException{
+		QuerySpecification element = TableQueryParser.parserQuery("select doesNotExist, isIn, string, sAnd, sNot, WeLikeIt from SyN456 limit 1 offset 2");
+		assertNotNull(element);
+		String sql = toSQL(element);
+		assertEquals("SELECT doesNotExist, isIn, string, sAnd, sNot, WeLikeIt FROM SyN456 LIMIT 1 OFFSET 2", sql);
 	}
 }

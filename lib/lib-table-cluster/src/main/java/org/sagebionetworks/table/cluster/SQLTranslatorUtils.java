@@ -341,7 +341,8 @@ public class SQLTranslatorUtils {
 		if(tableExpression.getFromClause() == null) throw new IllegalArgumentException("FromClause cannot be null");
 		if(tableExpression.getFromClause().getTableReference() == null) throw new IllegalArgumentException("TableReference cannot be null");
 		builder.append("FROM ");
-		Long tableId = Long.parseLong(tableExpression.getFromClause().getTableReference().getTableName());
+		String tableName = tableExpression.getFromClause().getTableReference().getTableName();
+		Long tableId = Long.parseLong(tableName.substring(3, tableName.length()));
 		builder.append(SQLUtils.TABLE_PREFIX).append(tableId);
 		if(tableExpression.getWhereClause() != null){
 			builder.append(" ");

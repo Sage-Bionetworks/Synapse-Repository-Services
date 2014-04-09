@@ -430,17 +430,19 @@ public class SQLUtilsTest {
 		// First row
 		assertEquals(new Long(100), results[0].getValue(SQLUtils.ROW_ID_BIND));
 		assertEquals(new Long(3), results[0].getValue(SQLUtils.ROW_VERSION_BIND));
-		assertEquals(new Double(0.0), results[0].getValue("C1"));
-		assertEquals(new Long(0), results[0].getValue("C2"));
+		assertEquals(new Double(3.12), results[0].getValue("C1"));
+		assertEquals(new Long(3000), results[0].getValue("C2"));
 		assertEquals(new Integer(0), results[0].getValue("C3"));
-		assertEquals(new Long(0), results[0].getValue("C4"));
+		assertEquals(new Long(4000), results[0].getValue("C4"));
+		assertEquals(new Long(5000), results[0].getValue("C5"));
 		// second
 		assertEquals(new Long(101), results[1].getValue(SQLUtils.ROW_ID_BIND));
 		assertEquals(new Long(3), results[1].getValue(SQLUtils.ROW_VERSION_BIND));
-		assertEquals(new Double(3.41), results[1].getValue("C1"));
-		assertEquals(new Long(1), results[1].getValue("C2"));
+		assertEquals(new Double(6.53), results[1].getValue("C1"));
+		assertEquals(new Long(3001), results[1].getValue("C2"));
 		assertEquals(new Integer(1), results[1].getValue("C3"));
-		assertEquals(new Long(1), results[1].getValue("C4"));
+		assertEquals(new Long(4001), results[1].getValue("C4"));
+		assertEquals(new Long(5001), results[1].getValue("C5"));
 	}
 	
 	@Test

@@ -7,9 +7,12 @@ import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
+
 import static org.mockito.Mockito.*;
+
 import org.mockito.Mockito;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
+import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.repo.model.AsynchronousDAO;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -26,10 +29,12 @@ import com.amazonaws.services.sqs.model.Message;
 public class RdsWorkerTest {
 	
 	AsynchronousDAO mockManager;
+	WorkerLogger mockWorkerLogger;
 	
 	@Before
 	public void before(){
 		mockManager = Mockito.mock(AsynchronousDAO.class);
+		mockWorkerLogger = Mockito.mock(WorkerLogger.class);
 	}
 	
 	/**
@@ -45,7 +50,7 @@ public class RdsWorkerTest {
 		List<Message> list = new LinkedList<Message>();
 		list.add(awsMessage);
 		// Make the call
-		RdsWorker worker = new RdsWorker(list, mockManager);
+		RdsWorker worker = new RdsWorker(list, mockManager, mockWorkerLogger);
 		List<Message> resultList = worker.call();
 		assertNotNull(resultList);
 		// Non-entity messages should be returned so they can be removed from the queue.
@@ -66,7 +71,7 @@ public class RdsWorkerTest {
 		List<Message> list = new LinkedList<Message>();
 		list.add(awsMessage);
 		// Make the call
-		RdsWorker worker = new RdsWorker(list, mockManager);
+		RdsWorker worker = new RdsWorker(list, mockManager, mockWorkerLogger);
 		list = worker.call();
 		assertNotNull(list);
 		// the manager should not be called
@@ -85,7 +90,7 @@ public class RdsWorkerTest {
 		List<Message> list = new LinkedList<Message>();
 		list.add(awsMessage);
 		// Make the call
-		RdsWorker worker = new RdsWorker(list, mockManager);
+		RdsWorker worker = new RdsWorker(list, mockManager, mockWorkerLogger);
 		list = worker.call();
 		assertNotNull(list);
 		// the manager should not be called
@@ -104,7 +109,7 @@ public class RdsWorkerTest {
 		List<Message> list = new LinkedList<Message>();
 		list.add(awsMessage);
 		// Make the call
-		RdsWorker worker = new RdsWorker(list, mockManager);
+		RdsWorker worker = new RdsWorker(list, mockManager, mockWorkerLogger);
 		list = worker.call();
 		assertNotNull(list);
 		// the manager should not be called
@@ -140,7 +145,7 @@ public class RdsWorkerTest {
 		list.add(awsMessage);
 		// Simulate a not found
 		when(mockManager.updateEntity(failId)).thenThrow(new NotFoundException("NotFound"));
-		RdsWorker worker = new RdsWorker(list, mockManager);
+		RdsWorker worker = new RdsWorker(list, mockManager, mockWorkerLogger);
 		List<Message> resultLIst = worker.call();
 		assertEquals(list, resultLIst);
 	}
@@ -170,8 +175,9 @@ public class RdsWorkerTest {
 		awsMessage = MessageUtils.createMessage(message, "abc", "handle");
 		list.add(awsMessage);
 		// Simulate a not found
-		when(mockManager.updateEntity(failId)).thenThrow(new RuntimeException("Unknown exception"));
-		RdsWorker worker = new RdsWorker(list, mockManager);
+		Exception expectedException = new RuntimeException("Unknown exception");
+		when(mockManager.updateEntity(failId)).thenThrow(expectedException);
+		RdsWorker worker = new RdsWorker(list, mockManager, mockWorkerLogger);
 		List<Message> resultLIst = worker.call();
 		// The result list should only contain the success message.
 		// The error message must stay on the queue.
@@ -180,5 +186,6 @@ public class RdsWorkerTest {
 		ChangeMessage change = MessageUtils.extractMessageBody(resultMessage);
 		assertNotNull(change);
 		assertEquals(successId, change.getObjectId());
+		verify(mockWorkerLogger).logWorkerFailure(RdsWorker.class, message, expectedException, true);
 	}
 }
