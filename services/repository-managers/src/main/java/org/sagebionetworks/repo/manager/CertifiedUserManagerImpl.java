@@ -248,10 +248,9 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 	}
 	
 	/**
-	 * 
+	 * fills in 'pass' and 'score' in the response
 	 * @param quiz
 	 * @param response
-	 * @return true iff response passes
 	 */
 	public static void scoreQuizResponse(QuizGenerator quizGenerator, QuizResponse quizResponse) {
 		// The key in the following map is the *index* of the *question variety* 
@@ -267,6 +266,7 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 				for (Question q: variety.get(i).getQuestionOptions()) {
 					if (r.getQuestionIndex() == q.getQuestionIndex()) {
 						// found it!
+						questionVarietyIndex = i;
 						if (responseMap.containsKey(questionVarietyIndex)) {
 							throw new IllegalArgumentException("Response set contains multiple responses for question variety "+questionVarietyIndex);
 						}

@@ -43,38 +43,6 @@ public class DBOQuizResponseDAOImpl implements QuizResponseDAO {
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	@Override
-	public QuizResponse create(QuizResponse dto) throws DatastoreException {
-		
-		DBOQuizResponse dbo = new DBOQuizResponse();
-		QuizResponseUtils.copyDtoToDbo(dto, dbo);
-		if (dbo.getId() == null) {
-			dbo.setId(idGenerator.generateNewId());
-		}
-		dbo = basicDao.createNew(dbo);
-		QuizResponse result = QuizResponseUtils.copyDboToDto(dbo);
-		return result;
-	}
-
-	@Override
-	public QuizResponse get(String id) throws DatastoreException,
-			NotFoundException {
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(COL_QUIZ_RESPONSE_ID.toLowerCase(), id);
-		DBOQuizResponse dbo = basicDao.getObjectByPrimaryKey(DBOQuizResponse.class, param);
-		QuizResponse dto = QuizResponseUtils.copyDboToDto(dbo);
-		return dto;
-	}
-
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	@Override
-	public void delete(Long id) throws DatastoreException, NotFoundException {
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(COL_QUIZ_RESPONSE_ID.toLowerCase(), id);
-		basicDao.deleteObjectByPrimaryKey(DBOQuizResponse.class, param);
-	}
-
 	private static final RowMapper<DBOQuizResponse> QUIZ_RESPONSE_ROW_MAPPER = (new DBOQuizResponse()).getTableMapping();
 	
 	private static final String SELECT_FOR_QUIZ_ID_CORE = " FROM "+TABLE_QUIZ_RESPONSE+" WHERE "+
@@ -120,6 +88,38 @@ public class DBOQuizResponseDAOImpl implements QuizResponseDAO {
 			return pr;
 		}
 	};
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public QuizResponse create(QuizResponse dto) throws DatastoreException {
+		
+		DBOQuizResponse dbo = new DBOQuizResponse();
+		QuizResponseUtils.copyDtoToDbo(dto, dbo);
+		if (dbo.getId() == null) {
+			dbo.setId(idGenerator.generateNewId());
+		}
+		dbo = basicDao.createNew(dbo);
+		QuizResponse result = QuizResponseUtils.copyDboToDto(dbo);
+		return result;
+	}
+
+	@Override
+	public QuizResponse get(String id) throws DatastoreException,
+			NotFoundException {
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(COL_QUIZ_RESPONSE_ID.toLowerCase(), id);
+		DBOQuizResponse dbo = basicDao.getObjectByPrimaryKey(DBOQuizResponse.class, param);
+		QuizResponse dto = QuizResponseUtils.copyDboToDto(dbo);
+		return dto;
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public void delete(Long id) throws DatastoreException, NotFoundException {
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(COL_QUIZ_RESPONSE_ID.toLowerCase(), id);
+		basicDao.deleteObjectByPrimaryKey(DBOQuizResponse.class, param);
+	}
 
 	@Override
 	public List<QuizResponse> getAllResponsesForQuiz(Long quizId, Long limit,

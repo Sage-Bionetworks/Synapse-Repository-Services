@@ -1,13 +1,18 @@
 package org.sagebionetworks.repo.manager;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.when;
 
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.junit.Before;
@@ -15,11 +20,17 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.QuizResponseDAO;
+import org.sagebionetworks.repo.model.quiz.MultichoiceAnswer;
+import org.sagebionetworks.repo.model.quiz.MultichoiceQuestion;
+import org.sagebionetworks.repo.model.quiz.MultichoiceResponse;
 import org.sagebionetworks.repo.model.quiz.Question;
 import org.sagebionetworks.repo.model.quiz.QuestionResponse;
 import org.sagebionetworks.repo.model.quiz.QuestionVariety;
 import org.sagebionetworks.repo.model.quiz.Quiz;
 import org.sagebionetworks.repo.model.quiz.QuizGenerator;
+import org.sagebionetworks.repo.model.quiz.QuizResponse;
+import org.sagebionetworks.repo.model.quiz.TextFieldQuestion;
+import org.sagebionetworks.repo.model.quiz.TextFieldResponse;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
@@ -116,11 +127,93 @@ public class CertifiedUserManagerImplTest {
 		assertNotNull(certifiedUserManager.getCertificationQuiz().getId());
 	}
 	
+	private static MultichoiceAnswer createMultichoiceAnswer(boolean isCorrect, Long index) {
+		MultichoiceAnswer ma = new MultichoiceAnswer();
+		ma.setAnswerIndex(index);
+		ma.setIsCorrect(isCorrect);
+		return ma;
+	}
+	
+	private static MultichoiceResponse createMultiChoiceResponse(Long[] choices) {
+		MultichoiceResponse mr = new MultichoiceResponse();
+		mr.setAnswerIndex(new HashSet<Long>(Arrays.asList(choices)));
+		return mr;
+	}
+	
 	@Test
 	public void testIsCorrectResponse() throws Exception {
-		Question q;
-		QuestionResponse response;
-		// TODO assertTrue(isCorrectResponse(Question q, QuestionResponse response));
+		MultichoiceQuestion mq = new MultichoiceQuestion();
+		List<MultichoiceAnswer> mas = new ArrayList<MultichoiceAnswer>();
+		mq.setAnswers(mas);
+		mas.add(createMultichoiceAnswer(true, 1L));
+		mas.add(createMultichoiceAnswer(false, 2L));
+		// the correct answer is 1
+		assertTrue(CertifiedUserManagerImpl.isCorrectResponse(mq, createMultiChoiceResponse(new Long[]{1L})));
+		// 2 is wrong
+		assertFalse(CertifiedUserManagerImpl.isCorrectResponse(mq, createMultiChoiceResponse(new Long[]{2L})));
+		mas = new ArrayList<MultichoiceAnswer>();
+		mq.setAnswers(mas);
+		mas.add(createMultichoiceAnswer(true, 1L));
+		mas.add(createMultichoiceAnswer(true, 2L));
+		mas.add(createMultichoiceAnswer(false, 3L));
+		// if there are two right answers you have to get both
+		assertFalse(CertifiedUserManagerImpl.isCorrectResponse(mq, createMultiChoiceResponse(new Long[]{1L})));
+		assertTrue(CertifiedUserManagerImpl.isCorrectResponse(mq, createMultiChoiceResponse(new Long[]{1L, 2L})));
+		
+		TextFieldQuestion tq = new TextFieldQuestion();
+		tq.setAnswer("FOO");
+		TextFieldResponse tr = new TextFieldResponse();
+		tr.setResponse("foo");
+		// question and answer must match, but not necessarily in case
+		assertTrue(CertifiedUserManagerImpl.isCorrectResponse(tq, tr));
+		tr = new TextFieldResponse();
+		tr.setResponse("bar");
+		assertFalse(CertifiedUserManagerImpl.isCorrectResponse(tq, tr));
+			
+		try {
+			CertifiedUserManagerImpl.isCorrectResponse(mq, tr);
+			fail("Exception expected");
+		} catch (IllegalArgumentException e) {
+			// as expected
+		}
+		
+		try {
+			CertifiedUserManagerImpl.isCorrectResponse(tq, createMultiChoiceResponse(new Long[]{1L}));
+			fail("Exception expected");
+		} catch (IllegalArgumentException e) {
+			// as expected
+		}
+	}
+	
+	private static QuizGenerator createQuizGenerator() {
+		QuizGenerator gen = new QuizGenerator();
+		gen.setMinimumScore(1L);
+		List<QuestionVariety> qvs = new ArrayList<QuestionVariety>();
+		gen.setQuestions(qvs);
+		QuestionVariety qv = new QuestionVariety();
+		qvs.add(qv);
+		List<Question> questionOptions = new ArrayList<Question>();
+		qv.setQuestionOptions(questionOptions);
+		TextFieldQuestion q = new TextFieldQuestion();
+		questionOptions.add(q);
+		q.setQuestionIndex(1L);
+		q.setAnswer("1");
+		return gen;
+	}
+	
+	@Test
+	public void testScoreQuizResponse() throws Exception {
+		QuizGenerator gen = createQuizGenerator();
+		QuizResponse resp = new QuizResponse();
+		List<QuestionResponse> questionResponses = new ArrayList<QuestionResponse>();
+		resp.setQuestionResponses(questionResponses);
+		TextFieldResponse tr = new TextFieldResponse();
+		questionResponses.add(tr);
+		tr.setQuestionIndex(1L);
+		tr.setResponse("1");
+		CertifiedUserManagerImpl.scoreQuizResponse(gen, resp);
+		assertTrue(resp.getPass());
+		assertEquals(new Long(1L), resp.getScore());
 	}
 
 }
