@@ -20,6 +20,7 @@ import org.sagebionetworks.bridge.model.dbo.dao.CsvNullReader;
 import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dao.table.RowSetAccessor;
+import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableRowChange;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -106,24 +107,6 @@ public class TableModelUtils {
 		// Process each row
 		int count = 0;
 		for (Row row : set.getRows()) {
-			// First convert the values to
-			if (row.getValues() == null)
-				throw new IllegalArgumentException("Row " + count
-						+ " has null list of values");
-			if (models.size() != row.getValues().size())
-				throw new IllegalArgumentException(
-						"Row.value size must be equal to the number of columns in the table.  The table has :"
-								+ models.size()
-								+ " columns and the passed Row.value has: "
-								+ row.getValues().size()
-								+ " for row number: "
-								+ count);
-			// Convert the values to an array for quick lookup
-			String[] values = row.getValues().toArray(
-					new String[row.getValues().size()]);
-			// Prepare the final array which includes the ID and version number
-			// as the first two columns.
-			String[] finalRow = new String[values.length + 2];
 			if (row.getRowId() == null)
 				throw new IllegalArgumentException(
 						"Row.rowId cannot be null for row number: " + count);
@@ -131,28 +114,52 @@ public class TableModelUtils {
 				throw new IllegalArgumentException(
 						"Row.versionNumber cannot be null for row number: "
 								+ count);
+			String[] finalRow;
+			if (isDeletedRow(row)) {
+				// only output rowId and rowVersion
+				finalRow = new String[2];
+			} else {
+				// First convert the values to
+				if (row.getValues() == null)
+					throw new IllegalArgumentException("Row " + count
+							+ " has null list of values");
+				if (models.size() != row.getValues().size())
+					throw new IllegalArgumentException(
+							"Row.value size must be equal to the number of columns in the table.  The table has :"
+									+ models.size()
+									+ " columns and the passed Row.value has: "
+									+ row.getValues().size()
+									+ " for row number: "
+									+ count);
+				// Convert the values to an array for quick lookup
+				String[] values = row.getValues().toArray(
+						new String[row.getValues().size()]);
+				// Prepare the final array which includes the ID and version number
+				// as the first two columns.
+				finalRow = new String[values.length + 2];
+				// Now process all of the columns as defined by the schema
+				for (int i = 0; i < models.size(); i++) {
+					ColumnModel cm = models.get(i);
+					Integer valueIndex = columnIndexMap.get(cm.getId());
+					if (valueIndex == null)
+						throw new IllegalArgumentException(
+								"The Table's ColumnModels includes: name="
+										+ cm.getName()
+										+ " with id="
+										+ cm.getId()
+										+ " but "
+										+ cm.getId()
+										+ " was not found in the headers of the RowResults");
+					// Get the value
+					String value = values[valueIndex];
+					// Validate the value against the model
+					value = validateRowValue(value, cm, i, valueIndex);
+					// Add the value to the final
+					finalRow[i + 2] = value;
+				}
+			}
 			finalRow[0] = row.getRowId().toString();
 			finalRow[1] = row.getVersionNumber().toString();
-			// Now process all of the columns as defined by the schema
-			for (int i = 0; i < models.size(); i++) {
-				ColumnModel cm = models.get(i);
-				Integer valueIndex = columnIndexMap.get(cm.getId());
-				if (valueIndex == null)
-					throw new IllegalArgumentException(
-							"The Table's ColumnModels includes: name="
-									+ cm.getName()
-									+ " with id="
-									+ cm.getId()
-									+ " but "
-									+ cm.getId()
-									+ " was not found in the headers of the RowResults");
-				// Get the value
-				String value = values[valueIndex];
-				// Validate the value against the model
-				value = validateRowValue(value, cm, i, valueIndex);
-				// Add the value to the final
-				finalRow[i + 2] = value;
-			}
 			out.writeNext(finalRow);
 			count++;
 		}
@@ -257,6 +264,16 @@ public class TableModelUtils {
 	}
 	
 	/**
+	 * Is this a deleted row?
+	 * 
+	 * @param row
+	 * @return
+	 */
+	public static boolean isDeletedRow(Row row) {
+		return row.getValues() == null || row.getValues().size() == 0;
+	}
+
+	/**
 	 * Assign RowIDs and version numbers to each row in the set according to the passed range.
 	 * @param set
 	 * @param range
@@ -321,7 +338,8 @@ public class TableModelUtils {
 		String[] rowArray = null;
 		while((rowArray = reader.readNext()) != null){
 			Row row = new Row();
-			if(rowArray.length < 3) throw new IllegalArgumentException("Row does not contain at least three columns");
+			if (rowArray.length < 2)
+				throw new IllegalArgumentException("Row does not contain at least three columns");
 			row.setRowId(Long.parseLong(rowArray[0]));
 			row.setVersionNumber(Long.parseLong(rowArray[1]));
 			List<String> values = new LinkedList<String>();

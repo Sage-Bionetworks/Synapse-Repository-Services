@@ -161,17 +161,6 @@ public class TableModelUtilsTest {
 	}
 	
 	@Test
-	public void testValidateAndWriteToCSVOneNullRow(){
-		try{
-			validRowSet.getRows().get(0).setValues(null);
-			TableModelUtils.validateAndWriteToCSV(validModel, validRowSet, out);
-			fail("Should have failed");
-		}catch (IllegalArgumentException e){
-			assertEquals("Row 0 has null list of values", e.getMessage());
-		}
-	}
-	
-	@Test
 	public void testValidateAndWriteToCSVWrongValueSize(){
 		try{
 			validRowSet.getRows().get(0).getValues().add("too many");

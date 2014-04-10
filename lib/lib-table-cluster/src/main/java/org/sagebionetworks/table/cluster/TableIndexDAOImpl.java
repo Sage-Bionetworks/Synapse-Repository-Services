@@ -87,23 +87,29 @@ public class TableIndexDAOImpl implements TableIndexDAO{
 	}
 
 	@Override
-	public int[] createOrUpdateRows(RowSet rowset, List<ColumnModel> schema) {
+	public void createOrUpdateOrDeleteRows(RowSet rowset, List<ColumnModel> schema) {
 		if (rowset == null)
 			throw new IllegalArgumentException("Rowset cannot be null");
 		if (schema == null)
 			throw new IllegalArgumentException("Current schema cannot be null");
 		// Build the SQL
-		String sql = SQLUtils.buildCreateOrUpdateRowSQL(schema,	rowset.getTableId());
-		SqlParameterSource[] batchBinding = SQLUtils.bindParametersForCreateOrUpdate(rowset, schema);
+		String createOrUpdateSql = SQLUtils.buildCreateOrUpdateRowSQL(schema, rowset.getTableId());
+		String deleteSql = SQLUtils.buildDeleteSQL(schema, rowset.getTableId());
+		SqlParameterSource[] batchUpdateOrCreateBinding = SQLUtils.bindParametersForCreateOrUpdate(rowset, schema);
+		SqlParameterSource batchDeleteBinding = SQLUtils.bindParameterForDelete(rowset, schema);
 		// Execute this within a transaction
 		DefaultTransactionDefinition def = new DefaultTransactionDefinition();
 		def.setName("createOrUpdateRows");
 		def.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRED);
 		TransactionStatus status = transactionManager.getTransaction(def);
 		try {
-			int[] results = template.batchUpdate(sql, batchBinding);
+			if (batchUpdateOrCreateBinding.length > 0) {
+				template.batchUpdate(createOrUpdateSql, batchUpdateOrCreateBinding);
+			}
+			if (batchDeleteBinding != null) {
+				template.update(deleteSql, batchDeleteBinding);
+			}
 			transactionManager.commit(status);
-			return results;
 		} catch (Exception ex) {
 			transactionManager.rollback(status);
 			throw new RuntimeException(ex);

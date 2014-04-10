@@ -202,10 +202,12 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		List<RowReference> refs = new LinkedList<RowReference>();
 		// Build up the row references
 		for (Row row : delta.getRows()) {
-			RowReference ref = new RowReference();
-			ref.setRowId(row.getRowId());
-			ref.setVersionNumber(row.getVersionNumber());
-			refs.add(ref);
+			if (!TableModelUtils.isDeletedRow(row)) {
+				RowReference ref = new RowReference();
+				ref.setRowId(row.getRowId());
+				ref.setVersionNumber(row.getVersionNumber());
+				refs.add(ref);
+			}
 		}
 		results.setRows(refs);
 		return results;
@@ -522,17 +524,21 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 				@Override
 				public void nextRow(final Row row) {
 					if (rowIds.contains(row.getRowId())) {
-						rowIdToRowMap.put(row.getRowId(), new RowAccessor() {
-							@Override
-							public String getCell(String columnId) {
-								return row.getValues().get(columnIdToIndexMap.get(columnId));
-							}
+						if (TableModelUtils.isDeletedRow(row)) {
+							rowIdToRowMap.remove(row.getRowId());
+						} else {
+							rowIdToRowMap.put(row.getRowId(), new RowAccessor() {
+								@Override
+								public String getCell(String columnId) {
+									return row.getValues().get(columnIdToIndexMap.get(columnId));
+								}
 
-							@Override
-							public Row getRow() {
-								return row;
-							}
-						});
+								@Override
+								public Row getRow() {
+									return row;
+								}
+							});
+						}
 					}
 				}
 			}, rowChange);

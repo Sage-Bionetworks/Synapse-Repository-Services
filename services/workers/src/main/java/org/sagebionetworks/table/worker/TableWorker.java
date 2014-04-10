@@ -264,7 +264,7 @@ public class TableWorker implements Callable<List<Message>> {
 
 				tableRowManager.attemptToUpdateTableProgress(tableId,	resetToken, "Applying rows " + rowSet.getRows().size()	+ " to version: " + change.getRowVersion(), currentProgress, totalProgress);
 				// apply the change to the table
-				indexDao.createOrUpdateRows(rowSet, currentSchema);
+				indexDao.createOrUpdateOrDeleteRows(rowSet, currentSchema);
 			}
 			currentProgress += change.getRowCount();
 		}
