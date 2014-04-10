@@ -10,9 +10,6 @@
     	"response":{
     		"description":"The response to the text-field question",
     		"type":"string"
-    	},
-    	"concreteType":{
-			"type": "string"
-		}
+    	}
 	}
 }

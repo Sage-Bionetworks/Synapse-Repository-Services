@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -101,6 +102,8 @@ public class AmazonS3UtilityImpl implements AmazonS3Utility{
 		ObjectMetadata metadata = s3Object.getObjectMetadata();
 		String contentTypeString = metadata.getContentType();
 		ContentType contentType = ContentType.parse(contentTypeString);
+		Charset contentTypeCharSet = contentType.getCharset();
+		if (contentTypeCharSet==null) contentTypeCharSet = Charset.defaultCharset();
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		S3ObjectInputStream is = s3Object.getObjectContent();
 		try {
@@ -110,7 +113,7 @@ public class AmazonS3UtilityImpl implements AmazonS3Utility{
 				n = is.read(buffer);
 				if (n>0) baos.write(buffer, 0, n);
 			}
-			return baos.toString(contentType.getCharset().name());
+			return baos.toString(contentTypeCharSet.name());
 		} catch (IOException e) {
 			throw new RuntimeException("contentType="+contentType, e);
 		} finally {

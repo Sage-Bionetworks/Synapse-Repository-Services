@@ -1,14 +1,11 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Row;
-
-import com.google.common.collect.Lists;
 
 /**
  * Utilities for working with Tables and Row data.

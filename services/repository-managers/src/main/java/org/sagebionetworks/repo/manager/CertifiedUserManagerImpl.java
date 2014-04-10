@@ -3,7 +3,10 @@
  */
 package org.sagebionetworks.repo.manager;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -15,6 +18,7 @@ import java.util.Random;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QuizResponseDAO;
@@ -36,18 +40,20 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
-import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * @author brucehoff
  *
  */
-public class CertifiedUserManagerImpl implements CertifiedUserManager, InitializingBean {
+public class CertifiedUserManagerImpl implements CertifiedUserManager {
 	
 	public static final String QUESTIONNAIRE_PROPERTIES_FILE = "certifiedUsersTestDefault.json";
 	public static final String S3_QUESTIONNAIRE_KEY = "repository-managers."+QUESTIONNAIRE_PROPERTIES_FILE;
-
+	private static final long QUIZ_GENERATOR_CACHE_TIMEOUT_MILLIS = 60*1000L; // one minute
+	private volatile Long quizGeneratorCacheLastUpdated = 0L;
+	private volatile QuizGenerator quizGeneratorCache;
+	
 	@Autowired
 	private AmazonS3Utility s3Utility;	
 	
@@ -77,56 +83,111 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager, Initializ
 	}
 	
 	/**
-	 * Throw exception if not valid
+	 * for testing only
+	 */
+	public void expireQuizGeneratorCache() {
+		quizGeneratorCache = null;
+	}
+	
+	/**
+	 * returns exception if not valid.  if list is empty the quiz generator is valid
 	 * 
 	 * @param quiz
 	 */
-	// TODO check for DUPLICATE question indices too, and return all errors in a single batch
-	// TODO check unique answer indices (per question)
-	public static void validateQuizGenerator(QuizGenerator quiz) {
+	public static List<String> validateQuizGenerator(QuizGenerator quiz) {
+		List<String> errorMessages = new ArrayList<String>();
+		if (quiz.getId()==null) errorMessages.add("id is required.");
 		//	make sure there is a minimum score and that it's >=0, <=# question varieties
 		Long minimumScore = quiz.getMinimumScore();
 		if (minimumScore==null || minimumScore<0) 
-			throw new RuntimeException("expected minimumScore>-0 but found "+minimumScore);
+			errorMessages.add("expected minimumScore>=0 but found "+minimumScore);
 		List<QuestionVariety> varieties = quiz.getQuestions();
-		if (varieties==null || varieties.size()==0)
-			throw new RuntimeException("This test has no questions.");
-		if (minimumScore>varieties.size())
-			throw new RuntimeException("Minimum score cannot exceed the number of questions.");
+		if (varieties==null || varieties.isEmpty()) {
+			errorMessages.add("This test has no questions.");
+			varieties = new ArrayList<QuestionVariety>(); // create an empty list so we can continue
+		}
+		if (minimumScore!=null && minimumScore>varieties.size())
+			errorMessages.add("Minimum score cannot exceed the number of questions.");
 		//	make sure there's an answer for each question
+		Set<Long> questionIndices = new HashSet<Long>();
 		for (QuestionVariety v : varieties) {
 			List<Question> questions = v.getQuestionOptions();
-			if (questions==null || questions.size()==0) 
-				throw new RuntimeException("Question variety has no questions.");
+			if (questions==null || questions.isEmpty()) {
+				errorMessages.add("Question variety has no questions.");
+				questions = new ArrayList<Question>(); // create an empty list so we can continue
+			}
 			for (Question q : questions) {
 				Long qIndex = q.getQuestionIndex();
-				if (qIndex==null) throw new RuntimeException("Missing question index.");
+				if (qIndex==null) errorMessages.add("Missing question index.");
+				if (questionIndices.contains(qIndex)) {
+					errorMessages.add("Repeated question index "+qIndex);
+				}
+				questionIndices.add(qIndex);
 				if (q instanceof MultichoiceQuestion) {
 					MultichoiceQuestion mq = (MultichoiceQuestion)q;
 					List<Long> correctAnswers = new ArrayList<Long>();
+					Set<Long> answerIndices = new HashSet<Long>();
 					for (MultichoiceAnswer a : mq.getAnswers()) {
 						if (a.getAnswerIndex()==null)
-							throw new RuntimeException("Answer "+a.getPrompt()+" has no index.");
+							errorMessages.add("Answer "+a.getPrompt()+" has no index.");
+						if (answerIndices.contains(a.getAnswerIndex())) {
+							errorMessages.add("Repeated answer index "+a.getAnswerIndex());
+						}
+						answerIndices.add(a.getAnswerIndex());
 						if (a.getIsCorrect()!=null && a.getIsCorrect()) correctAnswers.add(a.getAnswerIndex());
 					}
-					if (correctAnswers.size()==0)
-						throw new RuntimeException("No correct answer specified to question "+q.getPrompt());
+					if (correctAnswers.isEmpty())
+						errorMessages.add("No correct answer specified to question "+q.getPrompt());
 					if (mq.getExclusive()!=null && mq.getExclusive() && correctAnswers.size()>1)
-						throw new RuntimeException("Expected a single correct answer but found: "+correctAnswers);
+						errorMessages.add("Expected a single correct answer but found: "+correctAnswers);
 				} else if (q instanceof TextFieldQuestion) {
 					TextFieldQuestion tq  = (TextFieldQuestion)q;
 					if (tq.getAnswer()==null)
-						throw new RuntimeException("No answer provided for "+q.getPrompt());
+						errorMessages.add("No answer provided for "+q.getPrompt());
 				} else {
-					throw new RuntimeException("Unexpected questions type "+QUESTIONNAIRE_PROPERTIES_FILE.getClass());
+					errorMessages.add("Unexpected questions type "+QUESTIONNAIRE_PROPERTIES_FILE.getClass());
 				}
 			}
-		}		
+		}	
+		return errorMessages;
 	}
 	
-	private QuizGenerator retrieveCertificationQuizGenerator() {
-		// pull this from an S-3 File (TODO cache it, temporarily)
-		String quizGeneratorAsString = s3Utility.downloadFromS3ToString(S3_QUESTIONNAIRE_KEY);
+	private static String readInputStreamToString(InputStream is) {
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		try {
+			int n = 0;
+			byte[] buffer = new byte[1024];
+			while (n>-1) {
+				n = is.read(buffer);
+				if (n>0) baos.write(buffer, 0, n);
+			}
+			return baos.toString(Charset.defaultCharset().name());
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		} finally {
+			try {
+				is.close();
+				baos.close();
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+		}
+
+	}
+	
+	public QuizGenerator retrieveCertificationQuizGenerator() {
+		if ((System.currentTimeMillis() - quizGeneratorCacheLastUpdated < QUIZ_GENERATOR_CACHE_TIMEOUT_MILLIS) 
+				&& quizGeneratorCache!=null) {
+			return quizGeneratorCache;
+		}
+		// pull this from an S-3 File (if it's there) otherwise read from the default file on the classpath
+		String quizGeneratorAsString;
+		if (s3Utility.doesExist(S3_QUESTIONNAIRE_KEY)) {
+			quizGeneratorAsString = s3Utility.downloadFromS3ToString(S3_QUESTIONNAIRE_KEY);
+		} else {
+			InputStream is = MessageManagerImpl.class.getClassLoader().getResourceAsStream(QUESTIONNAIRE_PROPERTIES_FILE);
+			quizGeneratorAsString = readInputStreamToString(is);
+		}
 		QuizGenerator quizGenerator = new QuizGenerator();
 		try {
 			JSONObjectAdapter adapter = (new JSONObjectAdapterImpl()).createNew(quizGeneratorAsString);
@@ -134,7 +195,11 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager, Initializ
 		} catch (JSONObjectAdapterException e) {
 			throw new RuntimeException(e);
 		}
-		validateQuizGenerator(quizGenerator);
+		List<String> errorMessages = validateQuizGenerator(quizGenerator);
+		if (!errorMessages.isEmpty()) throw new RuntimeException(errorMessages.toString());
+		
+		quizGeneratorCacheLastUpdated = System.currentTimeMillis();
+		quizGeneratorCache = quizGenerator;
 		return quizGenerator;
 	}
 	
@@ -186,10 +251,9 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager, Initializ
 	}
 	
 	/**
-	 * 
+	 * fills in 'pass' and 'score' in the response
 	 * @param quiz
 	 * @param response
-	 * @return true iff response passes
 	 */
 	public static void scoreQuizResponse(QuizGenerator quizGenerator, QuizResponse quizResponse) {
 		// The key in the following map is the *index* of the *question variety* 
@@ -197,24 +261,27 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager, Initializ
 		// (This allows us to make sure we don't receive multiple answers to a single question variety.)
 		// The value in the map says whether the answer is right or wrong.
 		Map<Integer, Boolean> responseMap = new HashMap<Integer, Boolean>();
-		for (QuestionResponse r : quizResponse.getQuestionResponses()) {
-			Integer questionVarietyIndex = null;
-			// find the variety index for the question
-			List<QuestionVariety> variety = quizGenerator.getQuestions();
-			for (int i=0; i<variety.size(); i++) {
-				for (Question q: variety.get(i).getQuestionOptions()) {
-					if (r.getQuestionIndex() == q.getQuestionIndex()) {
-						// found it!
-						if (responseMap.containsKey(questionVarietyIndex)) {
-							throw new IllegalArgumentException("Response set contains multiple responses for question variety "+questionVarietyIndex);
+		if (quizResponse.getQuestionResponses()!=null) {
+			for (QuestionResponse r : quizResponse.getQuestionResponses()) {
+				Integer questionVarietyIndex = null;
+				// find the variety index for the question
+				List<QuestionVariety> variety = quizGenerator.getQuestions();
+				for (int i=0; variety!=null && i<variety.size(); i++) {
+					for (Question q: variety.get(i).getQuestionOptions()) {
+						if (r.getQuestionIndex()!=null && r.getQuestionIndex().equals(q.getQuestionIndex())) {
+							// found it!
+							questionVarietyIndex = i;
+							if (responseMap.containsKey(questionVarietyIndex)) {
+								throw new IllegalArgumentException("Response set contains multiple responses for question variety "+questionVarietyIndex);
+							}
+							responseMap.put(questionVarietyIndex, isCorrectResponse(q, r));
 						}
-						responseMap.put(questionVarietyIndex, isCorrectResponse(q, r));
 					}
 				}
-			}
-			if (questionVarietyIndex==null) {
-				throw new IllegalArgumentException("Question index "+r.getQuestionIndex()+
-						" does not appear in quiz generator "+quizGenerator.getId());
+				if (questionVarietyIndex==null) {
+					throw new IllegalArgumentException("Question index "+r.getQuestionIndex()+
+							" does not appear in quiz generator "+quizGenerator.getId());
+				}
 			}
 		}
 		int correctAnswerCount = 0;
@@ -242,22 +309,22 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager, Initializ
 		// grade the submission:  pass or fail?
 		scoreQuizResponse(quizGenerator, response);
 		Date now = new Date();
-		fillInResponseValues(response, userInfo.getId(), new Date(), quizGenerator.getId());
+		fillInResponseValues(response, userInfo.getId(), now, quizGenerator.getId());
 		// store the submission in the RDS
 		QuizResponse created = quizResponseDao.create(response);
 		// if pass, add to Certified group
-		if (response.getPass()) {
+		if (created.getPass()) {
 			groupMembersDao.addMembers(
 					AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(), 
 					Collections.singletonList(userInfo.getId().toString()));
 		}
 		PassingRecord passingRecord = new PassingRecord();
-		passingRecord.setPassed(response.getPass());
+		passingRecord.setPassed(created.getPass());
 		passingRecord.setPassedOn(now);
-		passingRecord.setQuizId(response.getQuizId());
-		passingRecord.setResponseId(response.getId());
-		passingRecord.setScore(response.getScore());
-		passingRecord.setUserId(response.getCreatedBy());
+		passingRecord.setQuizId(created.getQuizId());
+		passingRecord.setResponseId(created.getId());
+		passingRecord.setScore(created.getScore());
+		passingRecord.setUserId(created.getCreatedBy());
 		return passingRecord;
 	}
 
@@ -269,39 +336,33 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager, Initializ
 			UserInfo userInfo, Long principalId,
 			long limit, long offset) {
 		if (!userInfo.isAdmin()) throw new ForbiddenException("Only Synapse administrators may make this request.");
-		// TODO get the responses in the system, filtered quiz id and optionally user id
+		QuizGenerator quizGenerator = retrieveCertificationQuizGenerator();
+		long quizId = quizGenerator.getId();
+		PaginatedResults<QuizResponse> result = new PaginatedResults<QuizResponse>();
 		if (principalId==null) {
+			result.setResults(quizResponseDao.getAllResponsesForQuiz(quizId, limit, offset));
+			result.setTotalNumberOfResults(quizResponseDao.getAllResponsesForQuizCount(quizId));
 		} else {
+			result.setResults(quizResponseDao.getUserResponsesForQuiz(quizId, principalId, limit, offset));
+			result.setTotalNumberOfResults(quizResponseDao.getUserResponsesForQuizCount(quizId, principalId));
 		}
-		return null;
+		return result;
 	}
 
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.CertifiedUserManager#deleteQuizResponse(org.sagebionetworks.repo.model.UserInfo, java.lang.Long)
 	 */
 	@Override
-	public void deleteQuizResponse(UserInfo userInfo, Long responseId) {
-		// TODO validate userInfo -- only an admin may make this request
-		// TODO delete the quiz
+	public void deleteQuizResponse(UserInfo userInfo, Long responseId) throws NotFoundException {
+		if (!userInfo.isAdmin()) throw new ForbiddenException("Only Synapse administrators may make this request.");
+		quizResponseDao.delete(responseId);
 	}
 
 	@Override
-	public PassingRecord getPassingRecord(UserInfo userInfo, Long principalId) {
-		// TODO retrieve whether the user passed and if so when
-		return null;
-	}
-	
-	/**
-	 * make sure that the Certified User test is created in S3
-	 */
-	@Override
-	public void afterPropertiesSet() {
-		if (!s3Utility.doesExist(S3_QUESTIONNAIRE_KEY)) {
-			// read from properties file
-			InputStream is = MessageManagerImpl.class.getClassLoader().getResourceAsStream(QUESTIONNAIRE_PROPERTIES_FILE);
-			// upload to S3
-			s3Utility.uploadInputStreamToS3File(S3_QUESTIONNAIRE_KEY, is, "utf-8");
-		}
+	public PassingRecord getPassingRecord(UserInfo userInfo, Long principalId) throws DatastoreException, NotFoundException {
+		QuizGenerator quizGenerator = retrieveCertificationQuizGenerator();
+		long quizId = quizGenerator.getId();
+		return quizResponseDao.getPassingRecord(quizId, principalId);
 	}
 
 }

@@ -9,6 +9,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -27,6 +29,7 @@ import org.sagebionetworks.repo.model.exception.LockUnavilableException;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
@@ -51,6 +54,8 @@ import com.google.common.collect.Sets;
 
 public class TableRowManagerImpl implements TableRowManager {
 	
+	static private Log log = LogFactory.getLog(TableRowManagerImpl.class);
+	
 	@Autowired
 	AuthorizationManager authorizationManager;
 	@Autowired
@@ -72,6 +77,11 @@ public class TableRowManagerImpl implements TableRowManager {
 	 * Injected via spring
 	 */
 	int maxBytesPerRequest;
+	
+	/**
+	 * Injected by spring
+	 */
+	int maxBytesPerChangeSet;
 	/**
 	 * Injected via spring
 	 * @param tableReadTimeoutMS
@@ -80,6 +90,15 @@ public class TableRowManagerImpl implements TableRowManager {
 		this.tableReadTimeoutMS = tableReadTimeoutMS;
 	}
 
+	/**
+	 * Injected via spring
+	 * @param maxBytesPerChangeSet
+	 */
+	public void setMaxBytesPerChangeSet(int maxBytesPerChangeSet) {
+		this.maxBytesPerChangeSet = maxBytesPerChangeSet;
+	}
+
+
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public RowReferenceSet appendRows(UserInfo user, String tableId, List<ColumnModel> models, RowSet delta) throws DatastoreException, NotFoundException, IOException {
@@ -87,20 +106,84 @@ public class TableRowManagerImpl implements TableRowManager {
 		if(tableId == null) throw new IllegalArgumentException("TableId cannot be null");
 		if(models == null) throw new IllegalArgumentException("Models cannot be null");
 		if(delta == null) throw new IllegalArgumentException("RowSet cannot be null");
-
+		// Validate the request is under the max bytes per requested
+		validateRequestSize(models, delta.getRows().size());
+		// For this case we want to capture the resulting RowReferenceSet
+		RowReferenceSet results = new RowReferenceSet();
+		appendRowsAsStream(user, tableId, models, delta.getRows().iterator(), delta.getEtag(), results);
+		return results;
+	}
+	
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public String appendRowsAsStream(UserInfo user, String tableId, List<ColumnModel> models, Iterator<Row> rowStream, String etag, RowReferenceSet results) throws DatastoreException, NotFoundException, IOException {
+		if(user == null) throw new IllegalArgumentException("User cannot be null");
+		if(tableId == null) throw new IllegalArgumentException("TableId cannot be null");
+		if(models == null) throw new IllegalArgumentException("Models cannot be null");
 		// Validate the user has permission to edit the table
 		if(!authorizationManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)){
 			throw new UnauthorizedException("User does not have permission to update TableEntity: "+tableId);
 		}
-		// Validate the request is under the max bytes per requested
-		validateRequestSize(models, delta.getRows().size());
-		// Validate there aren't any illegal file handle replaces
-		validateFileHandles(user, tableId, models, delta);
-		// Let the DAO do the rest of the work.
-		RowReferenceSet rrs = tableRowTruthDao.appendRowSetToTable(user.getId().toString(), tableId, models, delta);
+		List<String> headers = TableModelUtils.getHeaders(models);
+		// Calculate the size per row
+		int maxBytesPerRow = TableModelUtils.calculateMaxRowSize(models);
+		List<Row> batch = new LinkedList<Row>();
+		int batchSizeBytes = 0;
+		int count = 0;
+		RowSet delta = new RowSet();
+		delta.setEtag(etag);
+		delta.setHeaders(headers);
+		delta.setRows(batch);
+		delta.setTableId(tableId);
+		while(rowStream.hasNext()){
+			batch.add(rowStream.next());
+			batchSizeBytes += maxBytesPerRow;
+			if(batchSizeBytes >= maxBytesPerChangeSet){
+				// Validate there aren't any illegal file handle replaces
+				validateFileHandles(user, tableId, models, delta);
+				// Send this batch and keep the etag.
+				etag = appendBatchOfRowsToTable(user, models, delta, results);
+				// Clear the batch
+				count += batch.size();
+				batch.clear();
+				batchSizeBytes = 0;
+				log.info("Appended: "+count+" rows to table: "+tableId);
+			}
+		}
+		// Send the last batch is there are any rows
+		if(!batch.isEmpty()){
+			 etag = appendBatchOfRowsToTable(user, models, delta, results);
+		}
 		// The table has change so we must reset the state.
 		tableStatusDAO.resetTableStatusToProcessing(tableId);
-		return rrs;
+		return etag;
+	}
+
+	/**
+	 * Append a batch of rows to a table.
+	 * @param tableId
+	 * @param models
+	 * @param etag
+	 * @param results
+	 * @param headers
+	 * @param batch
+	 * @return
+	 * @throws IOException
+	 */
+	private String appendBatchOfRowsToTable(UserInfo user,	List<ColumnModel> models, RowSet delta, RowReferenceSet results) throws IOException {
+		RowReferenceSet rrs = tableRowTruthDao.appendRowSetToTable(user.getId().toString(), delta.getTableId(), models, delta);
+		if(results != null){
+			results.setEtag(rrs.getEtag());
+			results.setHeaders(delta.getHeaders());
+			results.setTableId(delta.getTableId());
+			if(results.getRows() == null){
+				results.setRows(new LinkedList<RowReference>());
+			}
+			if(rrs.getRows()!= null){
+				results.getRows().addAll(rrs.getRows());
+			}
+		}
+		return rrs.getEtag();
 	}
 
 	@Override
