@@ -7,8 +7,6 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageWorkerFactory;
 import org.sagebionetworks.repo.manager.table.TableRowManager;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
-import org.sagebionetworks.table.cluster.TableIndexDAO;
-import org.sagebionetworks.table.cluster.TableIndexDAOImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.sqs.model.Message;
