@@ -1393,7 +1393,7 @@ public interface SynapseClient extends BaseClient {
 	 * @return the C.U. test responses in the system, optionally filtered by principalId
 	 * @throws SynapseException 
 	 */
-	public PaginatedResults<QuizResponse> getCertifiedUserTestResponses(long offset, long limit, Long principalId) throws SynapseException;
+	public PaginatedResults<QuizResponse> getCertifiedUserTestResponses(long offset, long limit, String principalId) throws SynapseException;
 	
 	/**
 	 * Delete the Test Response indicated by the given id
@@ -1403,7 +1403,7 @@ public interface SynapseClient extends BaseClient {
 	 * @param id
 	 * @throws SynapseException 
 	 */
-	public void deleteCertifiedUserTestResponse(Long id) throws SynapseException;
+	public void deleteCertifiedUserTestResponse(String id) throws SynapseException;
 	
 	/**
 	 * Get the Passing Record on the Certified User test for the given user
@@ -1412,5 +1412,5 @@ public interface SynapseClient extends BaseClient {
 	 * @return
 	 * @throws SynapseException 
 	 */
-	public PassingRecord getCertifiedUserPassingRecord(Long principalId) throws SynapseException;
+	public PassingRecord getCertifiedUserPassingRecord(String principalId) throws SynapseException;
 }

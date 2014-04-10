@@ -82,6 +82,8 @@ public class TableRowManagerImplTest {
 	RowSet set;
 	RowSet tooBigSet;
 	RowReferenceSet refSet;
+	long rowIdSequence;
+	long rowVersionSequence;
 	
 	@Before
 	public void before() throws Exception {
@@ -110,6 +112,7 @@ public class TableRowManagerImplTest {
 		manager = new TableRowManagerImpl();
 		int maxBytesPerRequest = 10000000;
 		manager.setMaxBytesPerRequest(maxBytesPerRequest);
+		manager.setMaxBytesPerChangeSet(1000000000);
 		user = new UserInfo(false, 7L);
 		models = TableModelTestUtils.createOneOfEachType();
 		tableId = "syn123";
@@ -132,6 +135,8 @@ public class TableRowManagerImplTest {
 		refSet = new RowReferenceSet();
 		refSet.setTableId(tableId);
 		refSet.setHeaders(TableModelUtils.getHeaders(models));
+		refSet.setRows(new LinkedList<RowReference>());
+		refSet.setEtag("etag123");
 		
 		when(mockColumnModelDAO.getColumnModelsForObject(tableId)).thenReturn(models);
 		when(mockTableConnectionFactory.getConnection(tableId)).thenReturn(mockTableIndexDAO);
@@ -145,6 +150,37 @@ public class TableRowManagerImplTest {
 		ReflectionTestUtils.setField(manager, "tableConnectionFactory", mockTableConnectionFactory);
 		ReflectionTestUtils.setField(manager, "exclusiveOrSharedSemaphoreRunner", mockExclusiveOrSharedSemaphoreRunner);
 		ReflectionTestUtils.setField(manager, "tableReadTimeoutMS", 5000L);
+		
+		rowIdSequence = 0;
+		rowVersionSequence = 0;
+		// Stub the dao 
+		stub(mockTruthDao.appendRowSetToTable(any(String.class), any(String.class), any(List.class), any(RowSet.class))).toAnswer(new Answer<RowReferenceSet>() {
+
+			@Override
+			public RowReferenceSet answer(InvocationOnMock invocation)
+					throws Throwable {
+				RowReferenceSet results = new RowReferenceSet();
+				String tableId = (String) invocation.getArguments()[1];
+				List<String> columnModels = (List<String>) invocation.getArguments()[2];
+				RowSet rowset = (RowSet) invocation.getArguments()[3];
+				results.setTableId(tableId);
+				results.setEtag("etag"+rowVersionSequence);
+				List<RowReference> resultsRefs = new LinkedList<RowReference>();
+				results.setRows(resultsRefs);
+				if(rowset != null){
+					// Set the id an version for each row
+					for(Row row: rowset.getRows()){
+						RowReference ref = new RowReference();
+						ref.setRowId(rowIdSequence);
+						ref.setVersionNumber(rowVersionSequence);
+						resultsRefs.add(ref);
+						rowIdSequence++;
+					}
+					rowVersionSequence++;
+				}
+				return results;
+			}
+		});
 	}
 	
 	@Test (expected=UnauthorizedException.class)
@@ -153,12 +189,30 @@ public class TableRowManagerImplTest {
 		manager.appendRows(user, tableId, models, set);
 	}
 	
+	@Test (expected=UnauthorizedException.class)
+	public void testAppendRowsAsStreamUnauthroized() throws DatastoreException, NotFoundException, IOException{
+		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(false);
+		manager.appendRowsAsStream(user, tableId, models, set.getRows().iterator(), "etag", null);
+	}
+	
 	@Test
 	public void testAppendRowsHappy() throws DatastoreException, NotFoundException, IOException{
 		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(true);
 		when(mockTruthDao.appendRowSetToTable(user.getId().toString(), tableId, models, set)).thenReturn(refSet);
 		RowReferenceSet results = manager.appendRows(user, tableId, models, set);
 		assertEquals(refSet, results);
+		// verify the table status was set
+		verify(mockTableStatusDAO, times(1)).resetTableStatusToProcessing(tableId);
+	}
+	
+	@Test
+	public void testAppendRowsAsStreamHappy() throws DatastoreException, NotFoundException, IOException{
+		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(true);
+		when(mockTruthDao.appendRowSetToTable(any(String.class), any(String.class), any(List.class), any(RowSet.class))).thenReturn(refSet);
+		RowReferenceSet results = new RowReferenceSet();
+		String etag = manager.appendRowsAsStream(user, tableId, models, set.getRows().iterator(), "etag", results);
+		assertEquals(refSet, results);
+		assertEquals(refSet.getEtag(), etag);
 		// verify the table status was set
 		verify(mockTableStatusDAO, times(1)).resetTableStatusToProcessing(tableId);
 	}
@@ -173,6 +227,29 @@ public class TableRowManagerImplTest {
 		} catch (IllegalArgumentException e) {
 			assertTrue(e.getMessage().contains("Request exceed the maximum number of bytes per request"));
 		}
+	}
+	
+	@Test
+	public void testAppendRowsAsStreamMultipleBatches() throws DatastoreException, NotFoundException, IOException{
+		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(true);
+		int maxBytesPerRow = TableModelUtils.calculateMaxRowSize(models);
+		// With a batch size of three, a total of ten rows should end up in 4 batches (3,3,3,1).	
+		manager.setMaxBytesPerChangeSet(maxBytesPerRow*3);
+		RowReferenceSet results = new RowReferenceSet();
+		String etag = manager.appendRowsAsStream(user, tableId, models, set.getRows().iterator(), "etag", results);
+		assertEquals("etag3", etag);
+		assertEquals(tableId, results.getTableId());
+		assertEquals(etag, results.getEtag());
+		// All ten rows should be referenced
+		assertNotNull(results.getRows());
+		assertEquals(10, results.getRows().size());
+		// Each batch should be assigned its own version number
+		assertEquals(new Long(0), results.getRows().get(0).getVersionNumber());
+		assertEquals(new Long(1), results.getRows().get(3).getVersionNumber());
+		assertEquals(new Long(2), results.getRows().get(6).getVersionNumber());
+		assertEquals(new Long(3), results.getRows().get(9).getVersionNumber());
+		// verify the table status was set
+		verify(mockTableStatusDAO, times(1)).resetTableStatusToProcessing(tableId);
 	}
 
 	@Test

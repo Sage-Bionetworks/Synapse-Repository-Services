@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
@@ -47,8 +48,9 @@ public interface CertifiedUserManager {
 	 * Delete a Quiz Response
 	 * @param userInfo
 	 * @param responseId
+	 * @throws NotFoundException 
 	 */
-	public void deleteQuizResponse(UserInfo userInfo, Long responseId);
+	public void deleteQuizResponse(UserInfo userInfo, Long responseId) throws NotFoundException;
 	
 	
 	/**
@@ -57,6 +59,8 @@ public interface CertifiedUserManager {
 	 * @param userInfo
 	 * @param principalId
 	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
 	 */
-	public PassingRecord getPassingRecord(UserInfo userInfo, Long principalId);
+	public PassingRecord getPassingRecord(UserInfo userInfo, Long principalId) throws DatastoreException, NotFoundException;
 }

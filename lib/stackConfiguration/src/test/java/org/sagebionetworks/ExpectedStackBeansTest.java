@@ -42,6 +42,7 @@ public class ExpectedStackBeansTest {
 			"stackConfiguration.tableUpdateQueueName",
 			"stackConfiguration.tableReadTimeoutMS",
 			"stackConfiguration.semaphoreGatedMaxRunnersTableCluster",
+			"stackConfiguration.tableMaxBytesPerChangeSet",
 			
 			// Semaphore gated runner configuration.
 			"stackConfiguration.semaphoreGatedLockTimeoutMS",

@@ -324,9 +324,10 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String OPEN_MEMBERSHIP_REQUEST = "/openRequest";
 	private static final String REQUESTOR_ID_REQUEST_PARAMETER = "requestorId";
 
-	private static String CERTIFIED_USER_TEST = "/certifiedUserTest";
-	private static String CERTIFIED_USER_TEST_RESPONSE = "/certifiedUserTestResponse";
-	private static String CERTIFIED_USER_PASSING_RECORD = "/certifiedUserPassingRecord";
+	private static final String CERTIFIED_USER_TEST = "/certifiedUserTest";
+	private static final String CERTIFIED_USER_TEST_RESPONSE = "/certifiedUserTestResponse";
+	private static final String CERTIFIED_USER_PASSING_RECORD = "/certifiedUserPassingRecord";
+	private static final String CERTIFIED_USER_PRINCIPAL_ID_REQUEST_PARAM = "principalId";
 
 	protected String repoEndpoint;
 	protected String authEndpoint;
@@ -5361,13 +5362,13 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	
 	@Override
 	public PaginatedResults<QuizResponse> getCertifiedUserTestResponses(
-			long offset, long limit, Long principalId) throws SynapseException {
+			long offset, long limit, String principalId) throws SynapseException {
 
 		String uri = null;
 		if (principalId==null) {
 			uri = CERTIFIED_USER_TEST_RESPONSE+"?"+OFFSET+"="+offset+"&"+LIMIT+"="+limit;
 		} else {
-			uri = CERTIFIED_USER_TEST_RESPONSE+"?"+TEAM_ID_REQUEST_PARAMETER+"="+principalId+"&"+OFFSET+"="+offset+"&"+LIMIT+"="+limit;
+			uri = CERTIFIED_USER_TEST_RESPONSE+"?"+CERTIFIED_USER_PRINCIPAL_ID_REQUEST_PARAM+"="+principalId+"&"+OFFSET+"="+offset+"&"+LIMIT+"="+limit;
 		}
 		JSONObject jsonObj = getEntity(uri);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
@@ -5381,14 +5382,14 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public void deleteCertifiedUserTestResponse(Long id) throws SynapseException {
+	public void deleteCertifiedUserTestResponse(String id) throws SynapseException {
 		getSharedClientConnection().deleteUri(repoEndpoint, CERTIFIED_USER_TEST_RESPONSE + "/" + id, getUserAgent());
 	}
 
 	@Override
-	public PassingRecord getCertifiedUserPassingRecord(Long principalId) throws SynapseException {
+	public PassingRecord getCertifiedUserPassingRecord(String principalId) throws SynapseException {
 		if (principalId==null) throw new IllegalArgumentException("principalId may not be null.");
-		JSONObject jsonObj = getEntity(USER+principalId+CERTIFIED_USER_PASSING_RECORD);
+		JSONObject jsonObj = getEntity(USER+"/"+principalId+CERTIFIED_USER_PASSING_RECORD);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
 		PassingRecord results = new PassingRecord();
 		try {
