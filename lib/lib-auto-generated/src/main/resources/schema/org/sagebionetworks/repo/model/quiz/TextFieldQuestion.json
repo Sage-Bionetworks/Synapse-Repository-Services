@@ -15,9 +15,6 @@
     	"answer":{
     		"description":"The correct answer for this question",
     		"type":"string"
-    	},
-		"concreteType":{
-			"type": "string"
-		}
+    	}
 	}
 }

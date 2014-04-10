@@ -33,6 +33,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  */
 @ControllerInfo(displayName="Team Services", path="repo/v1")
 @Controller
+@RequestMapping(UrlHelpers.REPO_PATH)
 public class CertifiedUserController {
 	@Autowired
 	ServiceProvider serviceProvider;
@@ -113,7 +114,7 @@ public class CertifiedUserController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.CERTIFIED_USER_PASSING_RECORD_WITH_ID, method = RequestMethod.GET)
-	public PassingRecord getPassingRecord(
+	public  @ResponseBody PassingRecord getPassingRecord(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@PathVariable(value = ID_PATH_VARIABLE) Long principalId
 			) throws NotFoundException {

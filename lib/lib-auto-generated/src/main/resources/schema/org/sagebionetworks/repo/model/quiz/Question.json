@@ -11,6 +11,9 @@
 			"description":"the user-readable prompt for this question",
 			"type":"string",
 			"links": [{"rel": "describedby","href": "http://synapse.sagebase.org/access/public"}]
+		},
+		"concreteType":{
+			"type": "string"
 		}
 	}
 }

@@ -1,18 +1,668 @@
 {
-	"id":1,
-	"header":"this is the questionnaire header",
-	"questions":[{
-		"questionOptions":[{
-			"questionIndex":101,
-			"concreteType":"org.sagebionetworks.repo.model.quiz.MultichoiceQuestion",
-			"prompt":"What is 1+1?",
-			"exclusive":true,
-			"answers":[
-				{"answerIndex":10,"prompt":"1"},
-				{"answerIndex":20,"prompt":"2", "isCorrect":"true"},
-				{"answerIndex":30,"prompt":"3"}
-			]
-		}]
-	}],
-	"minimumScore":1
+  "id": 1,
+  "minimumScore": 21,
+  "questions": [
+    {
+      "questionOptions": [
+        {
+          "questionIndex": 0,
+          "concreteType": "org.sagebionetworks.repo.model.quiz.MultichoiceQuestion",
+          "exclusive": true,
+          "answers": [
+            {
+              "answerIndex": 0,
+              "isCorrect": true,
+              "prompt": "a Projects"
+            },
+            {
+              "answerIndex": 1,
+              "isCorrect": false,
+              "prompt": "b Relationship"
+            },
+            {
+              "answerIndex": 2,
+              "isCorrect": false,
+              "prompt": "c Versioning"
+            },
+            {
+              "answerIndex": 3,
+              "isCorrect": false,
+              "prompt": "d Data sharing"
+            }
+          ],
+          "prompt": "How is information organized in Synapse?"
+        }
+      ]
+    },
+    {
+      "questionOptions": [
+        {
+          "questionIndex": 1,
+          "concreteType": "org.sagebionetworks.repo.model.quiz.MultichoiceQuestion",
+          "exclusive": true,
+          "answers": [
+            {
+              "answerIndex": 0,
+              "isCorrect": false,
+              "prompt": "a Public data, tools, and results"
+            },
+            {
+              "answerIndex": 1,
+              "isCorrect": false,
+              "prompt": "b Other people's private data, tools and results"
+            },
+            {
+              "answerIndex": 2,
+              "isCorrect": false,
+              "prompt": "c Private data, tools, and results that have been created by or shared specifically with me"
+            },
+            {
+              "answerIndex": 3,
+              "isCorrect": false,
+              "prompt": "d Data containing personally identifiable information"
+            },
+            {
+              "answerIndex": 4,
+              "isCorrect": false,
+              "prompt": "e A, B, and C only"
+            },
+            {
+              "answerIndex": 5,
+              "isCorrect": true,
+              "prompt": "f A and C only"
+            }
+          ],
+          "prompt": "With a Synapse account, I have access to:"
+        }
+      ]
+    },
+    {
+      "questionOptions": [
+        {
+          "questionIndex": 2,
+          "concreteType": "org.sagebionetworks.repo.model.quiz.MultichoiceQuestion",
+          "exclusive": true,
+          "answers": [
+            {
+              "answerIndex": 0,
+              "isCorrect": false,
+              "prompt": "a In publications"
+            },
+            {
+              "answerIndex": 1,
+              "isCorrect": false,
+              "prompt": "b Inside Synapse"
+            },
+            {
+              "answerIndex": 2,
+              "isCorrect": false,
+              "prompt": "c On the external web"
+            },
+            {
+              "answerIndex": 3,
+              "isCorrect": false,
+              "prompt": "d In external databases"
+            },
+            {
+              "answerIndex": 4,
+              "isCorrect": true,
+              "prompt": "e All of the above"
+            }
+          ],
+          "prompt": "Project and Project content identifiers can be used:"
+        }
+      ]
+    },
+    {
+      "questionOptions": [
+        {
+          "questionIndex": 3,
+          "concreteType": "org.sagebionetworks.repo.model.quiz.MultichoiceQuestion",
+          "exclusive": false,
+          "answers": [
+            {
+              "answerIndex": 0,
+              "isCorrect": false,
+              "prompt": "a Content must be physically loaded into the Synapse instance"
+            },
+            {
+              "answerIndex": 1,
+              "isCorrect": true,
+              "prompt": "b Content may be present in external systems controlled by the user"
+            },
+            {
+              "answerIndex": 2,
+              "isCorrect": true,
+              "prompt": "c Content may be present on local systems controlled by the user"
+            },
+            {
+              "answerIndex": 3,
+              "isCorrect": false,
+              "prompt": "d Content cannot be held on github"
+            },
+            {
+              "answerIndex": 4,
+              "isCorrect": false,
+              "prompt": "e Content cannot be held on Amazon or Google's clouds"
+            }
+          ],
+          "prompt": "Which of the following is true about content you are accessing through Synapse?"
+        }
+      ]
+    },
+    {
+      "questionOptions": [
+        {
+          "questionIndex": 4,
+          "concreteType": "org.sagebionetworks.repo.model.quiz.MultichoiceQuestion",
+          "exclusive": false,
+          "answers": [
+            {
+              "answerIndex": 0,
+              "isCorrect": false,
+              "prompt": "a Sharing Settings and Conditions for Use are the same thing"
+            },
+            {
+              "answerIndex": 1,
+              "isCorrect": true,
+              "prompt": "b Sharing Settings control who can view and use content and Conditions for Use specifies any human privacy regulations or contractual obligations the data user must obey"
+            },
+            {
+              "answerIndex": 2,
+              "isCorrect": true,
+              "prompt": "c Public data must be have Condition for Use applied if applicable"
+            },
+            {
+              "answerIndex": 3,
+              "isCorrect": false,
+              "prompt": "d There is no need to pass along legal restrictions, including human subjects protection, intellectual property and contractual restrictions when making data public in Synapse "
+            },
+            {
+              "answerIndex": 4,
+              "isCorrect": true,
+              "prompt": "e I am responsible for knowing what restrictions exist on data before uploading"
+            }
+          ],
+          "prompt": "Mark each of the following statements about uploading content as true or false "
+        }
+      ]
+    },
+    {
+      "questionOptions": [
+        {
+          "questionIndex": 5,
+          "concreteType": "org.sagebionetworks.repo.model.quiz.MultichoiceQuestion",
+          "exclusive": true,
+          "answers": [
+            {
+              "answerIndex": 0,
+              "isCorrect": false,
+              "prompt": "a Sage Bionetworks' Access and Compliance Team is responsible for determining if data has any Conditions for Use"
+            },
+            {
+              "answerIndex": 1,
+              "isCorrect": false,
+              "prompt": "b Conditions For Use are enforced by Sage Bionetworks' Access and Compliance Team in Private Projects"
+            },
+            {
+              "answerIndex": 2,
+              "isCorrect": true,
+              "prompt": "c Conditions for use are enforced by Sage Bionetworks' Access and Control Team in Public Projects"
+            }
+          ],
+          "prompt": "Mark each of the following statements about Data Sharing and Conditions for Use as true or false."
+        }
+      ]
+    },
+    {
+      "questionOptions": [
+        {
+          "questionIndex": 6,
+          "concreteType": "org.sagebionetworks.repo.model.quiz.MultichoiceQuestion",
+          "exclusive": false,
+          "answers": [
+            {
+              "answerIndex": 0,
+              "isCorrect": true,
+              "prompt": "a Data marked as having no Conditions for Use can be downloaded with no additional requirements"
+            },
+            {
+              "answerIndex": 1,
+              "isCorrect": false,
+              "prompt": "b Controlled Use data can be downloaded without contacting Sage Bionetworks' Access and Compliance Team if the user has IRB approval already"
+            },
+            {
+              "answerIndex": 2,
+              "isCorrect": true,
+              "prompt": "c Restricted Use data requires agreement to certain terms of use, but no IRB approval "
+            },
+            {
+              "answerIndex": 3,
+              "isCorrect": false,
+              "prompt": "d I can freely share any data, no matter what Conditions for Use, downloaded from Synapse with my collaborators "
+            }
+          ],
+          "prompt": "Mark each of the following statements about downloading data as true or false"
+        }
+      ]
+    },
+    {
+      "questionOptions": [
+        {
+          "questionIndex": 7,
+          "concreteType": "org.sagebionetworks.repo.model.quiz.MultichoiceQuestion",
+          "exclusive": true,
+          "answers": [
+            {
+              "answerIndex": 0,
+              "isCorrect": false,
+              "prompt": "a Do not hack Synapse"
+            },
+            {
+              "answerIndex": 1,
+              "isCorrect": false,
+              "prompt": "b Abide by all applicable laws and regulations"
+            },
+            {
+              "answerIndex": 2,
+              "isCorrect": true,
+              "prompt": "c Feel free to redistribute personal identifiable data"
+            },
+            {
+              "answerIndex": 3,
+              "isCorrect": false,
+              "prompt": "d Take full responsibility for your use of data, software and other Synapse content"
+            }
+          ],
+          "prompt": "Which of the following are not Synapse ethics principles"
+        }
+      ]
+    },
+    {
+      "questionOptions": [
+        {
+          "questionIndex": 8,
+          "concreteType": "org.sagebionetworks.repo.model.quiz.MultichoiceQuestion",
+          "exclusive": true,
+          "answers": [
+            {
+              "answerIndex": 0,
+              "isCorrect": false,
+              "prompt": "a It's my boss, so it's okay to do this."
+            },
+            {
+              "answerIndex": 1,
+              "isCorrect": false,
+              "prompt": "b Ignore the request and hope he/she forgets."
+            },
+            {
+              "answerIndex": 2,
+              "isCorrect": true,
+              "prompt": "c Decline the request and remind my supervisor that using someone else's credentials is against Synapse policy."
+            }
+          ],
+          "prompt": "Your supervisor is very busy and asks you to log onto Synapse using his/her credentials to retrieve Controlled Use data.  What should you do? "
+        }
+      ]
+    },
+    {
+      "questionOptions": [
+        {
+          "questionIndex": 9,
+          "concreteType": "org.sagebionetworks.repo.model.quiz.MultichoiceQuestion",
+          "exclusive": true,
+          "answers": [
+            {
+              "answerIndex": 0,
+              "isCorrect": false,
+              "prompt": "a It's my boss, so it's okay to do this."
+            },
+            {
+              "answerIndex": 1,
+              "isCorrect": false,
+              "prompt": "b Ignore the request and hope he/she forgets."
+            },
+            {
+              "answerIndex": 2,
+              "isCorrect": true,
+              "prompt": "c Decline the request and remind my supervisor that anyone using Controlled Use data from Synapse must sign the data use terms"
+            }
+          ],
+          "prompt": "Your supervisor is very busy and asks you to share the Controlled Use data you have approval to download from Synapse so that they don't have to waste the time going through the process of gaining approval to download the data themselves.   What should you do? "
+        }
+      ]
+    },
+    {
+      "questionOptions": [
+        {
+          "questionIndex": 10,
+          "concreteType": "org.sagebionetworks.repo.model.quiz.MultichoiceQuestion",
+          "exclusive": true,
+          "answers": [
+            {
+              "answerIndex": 0,
+              "isCorrect": false,
+              "prompt": "a Nothing, this isn't my concern."
+            },
+            {
+              "answerIndex": 1,
+              "isCorrect": false,
+              "prompt": "b Alert the person who uploaded the data to Synapse"
+            },
+            {
+              "answerIndex": 2,
+              "isCorrect": false,
+              "prompt": "c Alert the Synapse Access and Compliance team by clicking the Report Issue Flag next to the file name."
+            },
+            {
+              "answerIndex": 3,
+              "isCorrect": true,
+              "prompt": "d B and C"
+            }
+          ],
+          "prompt": "You notice that a data file containing sensitive human health information has been posted in Synapse with no Conditions for Use.  You believe this is an error. What should you do? "
+        }
+      ]
+    },
+    {
+      "questionOptions": [
+        {
+          "questionIndex": 11,
+          "concreteType": "org.sagebionetworks.repo.model.quiz.MultichoiceQuestion",
+          "exclusive": true,
+          "answers": [
+            {
+              "answerIndex": 0,
+              "isCorrect": false,
+              "prompt": "a Yes, absolutely. They can themselves decide to ignore or answer me"
+            },
+            {
+              "answerIndex": 1,
+              "isCorrect": true,
+              "prompt": "b No, I should not to use the data to re-identify participants in the first place"
+            },
+            {
+              "answerIndex": 2,
+              "isCorrect": false,
+              "prompt": "c Maybe.  It depends of the follow up question I wish to ask."
+            }
+          ],
+          "prompt": "You are analyzing data and are able to deduce the identity of data participants.  You would like to ask follow-up questions to the data participant.  Should you contact them?"
+        }
+      ]
+    },
+    {
+      "questionOptions": [
+        {
+          "questionIndex": 12,
+          "concreteType": "org.sagebionetworks.repo.model.quiz.MultichoiceQuestion",
+          "exclusive": true,
+          "answers": [
+            {
+              "answerIndex": 0,
+              "isCorrect": false,
+              "prompt": "a To make sure that animal research is conducted in an ethical manner."
+            },
+            {
+              "answerIndex": 1,
+              "isCorrect": true,
+              "prompt": "b To ensure that my use of the data meets all applicable human subjects research regulations at my parent institution."
+            },
+            {
+              "answerIndex": 2,
+              "isCorrect": false,
+              "prompt": "c To make sure that I can share data with Conditions for Use in an ethical manner."
+            }
+          ],
+          "prompt": "You are applying for access to a dataset with Conditions for Use that requires you to show evidence of an IRB (or ethics board) review of your analysis plan. What is the purpose of this review?"
+        }
+      ]
+    },
+    {
+      "questionOptions": [
+        {
+          "questionIndex": 13,
+          "concreteType": "org.sagebionetworks.repo.model.quiz.MultichoiceQuestion",
+          "exclusive": true,
+          "answers": [
+            {
+              "answerIndex": 0,
+              "isCorrect": true,
+              "prompt": "a Anyone over 13 years old"
+            },
+            {
+              "answerIndex": 1,
+              "isCorrect": false,
+              "prompt": "b only researchers in an accredited academic institution"
+            },
+            {
+              "answerIndex": 2,
+              "isCorrect": false,
+              "prompt": "c only European data privacy regulators"
+            },
+            {
+              "answerIndex": 3,
+              "isCorrect": false,
+              "prompt": "d only people working at not-for-profit research organizations"
+            }
+          ],
+          "prompt": "Who can have an account on Synapse?"
+        }
+      ]
+    },
+    {
+      "questionOptions": [
+        {
+          "questionIndex": 14,
+          "concreteType": "org.sagebionetworks.repo.model.quiz.MultichoiceQuestion",
+          "exclusive": false,
+          "answers": [
+            {
+              "answerIndex": 0,
+              "isCorrect": false,
+              "prompt": "a Sharing Settings and Conditions for Use can only be set on individual files"
+            },
+            {
+              "answerIndex": 1,
+              "isCorrect": true,
+              "prompt": "b Sharing Settings and Conditions for Use can be set on a folder containing multiple files"
+            },
+            {
+              "answerIndex": 2,
+              "isCorrect": false,
+              "prompt": "c All files in a folder inherit the Sharing Settings and Conditions for Use of that folder"
+            },
+            {
+              "answerIndex": 3,
+              "isCorrect": true,
+              "prompt": "d A folder created within another folder inherits the Sharing Settings and Conditions for Use from the parent folder"
+            }
+          ],
+          "prompt": "Mark each of the following statements about uploading data as true or false "
+        }
+      ]
+    },
+    {
+      "questionOptions": [
+        {
+          "questionIndex": 15,
+          "concreteType": "org.sagebionetworks.repo.model.quiz.MultichoiceQuestion",
+          "exclusive": true,
+          "answers": [
+            {
+              "answerIndex": 0,
+              "isCorrect": false,
+              "prompt": "a I can't change the Conditions for Use on data once it is uploaded"
+            },
+            {
+              "answerIndex": 1,
+              "isCorrect": false,
+              "prompt": "b I can request a change in Conditions for Use through the Synapse Access and Compliance Team by clicking on the Conditions For Use \"change\" link below my data file name"
+            },
+            {
+              "answerIndex": 2,
+              "isCorrect": false,
+              "prompt": "c I can contact the Synapse Access and Compliance Team with questions about Conditions for Use through act@synapse.org"
+            },
+            {
+              "answerIndex": 3,
+              "isCorrect": true,
+              "prompt": "d b and c"
+            }
+          ],
+          "prompt": " To change the Conditions for Use on data I can do the following:"
+        }
+      ]
+    },
+    {
+      "questionOptions": [
+        {
+          "questionIndex": 16,
+          "concreteType": "org.sagebionetworks.repo.model.quiz.MultichoiceQuestion",
+          "exclusive": false,
+          "answers": [
+            {
+              "answerIndex": 0,
+              "isCorrect": false,
+              "prompt": "a When I create a new Project it and any content is automatically made public"
+            },
+            {
+              "answerIndex": 1,
+              "isCorrect": true,
+              "prompt": "b When I create a new Project I am the only one who has access to it and I can share it with others through the Sharing Settings"
+            },
+            {
+              "answerIndex": 2,
+              "isCorrect": true,
+              "prompt": "c I can have a Private content in a Public Project by creating a Local Sharing Setting"
+            },
+            {
+              "answerIndex": 3,
+              "isCorrect": true,
+              "prompt": "d I can have Public content in a Private Project by creating a Local Sharing Setting"
+            }
+          ],
+          "prompt": "Mark each of the following statement about the Synapse Sharing Settings as true or false "
+        }
+      ]
+    },
+    {
+      "questionOptions": [
+        {
+          "questionIndex": 17,
+          "concreteType": "org.sagebionetworks.repo.model.quiz.MultichoiceQuestion",
+          "exclusive": false,
+          "answers": [
+            {
+              "answerIndex": 0,
+              "isCorrect": true,
+              "prompt": "a Browse any Public content"
+            },
+            {
+              "answerIndex": 1,
+              "isCorrect": true,
+              "prompt": "b Download Public content"
+            },
+            {
+              "answerIndex": 2,
+              "isCorrect": false,
+              "prompt": "c Browse any content no matter if it is Public or not"
+            },
+            {
+              "answerIndex": 3,
+              "isCorrect": false,
+              "prompt": "d Upload data as long as it is made Public"
+            }
+          ],
+          "prompt": "If you are not logged into Synapse you can do the following: "
+        }
+      ]
+    },
+    {
+      "questionOptions": [
+        {
+          "questionIndex": 18,
+          "concreteType": "org.sagebionetworks.repo.model.quiz.MultichoiceQuestion",
+          "exclusive": false,
+          "answers": [
+            {
+              "answerIndex": 0,
+              "isCorrect": true,
+              "prompt": "a Download Public content and Private content I have specifically been given access to"
+            },
+            {
+              "answerIndex": 1,
+              "isCorrect": false,
+              "prompt": "b Download Controlled or Restricted Use data"
+            },
+            {
+              "answerIndex": 2,
+              "isCorrect": true,
+              "prompt": "c Use the Synapse programmatic clients"
+            },
+            {
+              "answerIndex": 3,
+              "isCorrect": false,
+              "prompt": "d Upload data that does not need any Conditions for Use"
+            }
+          ],
+          "prompt": "If you have a Synapse account, but have not undergone certification training you can do the following:"
+        }
+      ]
+    },
+    {
+      "questionOptions": [
+        {
+          "questionIndex": 19,
+          "concreteType": "org.sagebionetworks.repo.model.quiz.MultichoiceQuestion",
+          "exclusive": false,
+          "answers": [
+            {
+              "answerIndex": 0,
+              "isCorrect": true,
+              "prompt": "a Synapse only has a web interface"
+            },
+            {
+              "answerIndex": 1,
+              "isCorrect": true,
+              "prompt": "b Synapse has a set of programmatic clients in addition to the web client"
+            },
+            {
+              "answerIndex": 2,
+              "isCorrect": false,
+              "prompt": "c I can only upload or download data via the web client"
+            }
+          ],
+          "prompt": "Mark the following statements true or false about interacting with Synapse"
+        }
+      ]
+    },
+    {
+      "questionOptions": [
+        {
+          "questionIndex": 20,
+          "concreteType": "org.sagebionetworks.repo.model.quiz.MultichoiceQuestion",
+          "exclusive": true,
+          "answers": [
+            {
+              "answerIndex": 0,
+              "isCorrect": false,
+              "prompt": "a Ask questions in the Synpase support forum: http://support.sagebase.org/sagebase"
+            },
+            {
+              "answerIndex": 1,
+              "isCorrect": false,
+              "prompt": "b Send an email to synapseInfo@sagebase.org"
+            },
+            {
+              "answerIndex": 2,
+              "isCorrect": true,
+              "prompt": "c a and b"
+            }
+          ],
+          "prompt": "If I have any questions about Synapse I can do the following:"
+        }
+      ]
+    }
+  ]
 }

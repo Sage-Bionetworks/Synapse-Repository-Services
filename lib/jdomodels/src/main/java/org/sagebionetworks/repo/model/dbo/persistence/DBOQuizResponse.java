@@ -1,10 +1,14 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_GROUP;
+
 import java.util.Arrays;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.dbo.AutoTableMapping;
 import org.sagebionetworks.repo.model.dbo.Field;
+import org.sagebionetworks.repo.model.dbo.ForeignKey;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.Table;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
@@ -18,8 +22,8 @@ public class DBOQuizResponse implements MigratableDatabaseObject<DBOQuizResponse
 	@Field(name = SqlConstants.COL_QUIZ_RESPONSE_ID, backupId = true, primary = true, nullable = false)
 	private Long id;
 	
-	// TODO define the foreign key constraint
 	@Field(name = SqlConstants.COL_QUIZ_RESPONSE_CREATED_BY, backupId = false, primary = false, nullable = false)
+	@ForeignKey(table = TABLE_USER_GROUP, field = COL_USER_GROUP_ID, cascadeDelete = true)
 	private Long createdBy;
 	
 	@Field(name = SqlConstants.COL_QUIZ_RESPONSE_CREATED_ON, backupId = false, primary = false, nullable = false)
