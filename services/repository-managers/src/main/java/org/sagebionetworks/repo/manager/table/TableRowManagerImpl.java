@@ -122,12 +122,17 @@ public class TableRowManagerImpl implements TableRowManager {
 		List<Row> batch = new LinkedList<Row>();
 		int batchSizeBytes = 0;
 		int count = 0;
+		RowSet delta = new RowSet();
+		delta.setEtag(etag);
+		delta.setHeaders(headers);
+		delta.setRows(batch);
+		delta.setTableId(tableId);
 		while(rowStream.hasNext()){
 			batch.add(rowStream.next());
 			batchSizeBytes += maxBytesPerRow;
 			if(batchSizeBytes >= maxBytesPerChangeSet){
 				// Send this batch and keep the etag.
-				 etag = appendBatchOfRowsToTable(user, tableId, models, etag, results, headers, batch);
+				 etag = appendBatchOfRowsToTable(user, models, delta, results);
 				// Clear the batch
 				count += batch.size();
 				batch.clear();
@@ -137,7 +142,7 @@ public class TableRowManagerImpl implements TableRowManager {
 		}
 		// Send the last batch is there are any rows
 		if(!batch.isEmpty()){
-			 etag = appendBatchOfRowsToTable(user, tableId, models, etag, results, headers, batch);
+			 etag = appendBatchOfRowsToTable(user, models, delta, results);
 		}
 		// The table has change so we must reset the state.
 		tableStatusDAO.resetTableStatusToProcessing(tableId);
@@ -155,20 +160,12 @@ public class TableRowManagerImpl implements TableRowManager {
 	 * @return
 	 * @throws IOException
 	 */
-	private String appendBatchOfRowsToTable(UserInfo user, String tableId,
-			List<ColumnModel> models, String etag, RowReferenceSet results,
-			List<String> headers, List<Row> batch) throws IOException {
-		// Send the batch
-		RowSet delta = new RowSet();
-		delta.setEtag(etag);
-		delta.setHeaders(headers);
-		delta.setRows(batch);
-		delta.setTableId(tableId);
-		RowReferenceSet rrs = tableRowTruthDao.appendRowSetToTable(user.getId().toString(), tableId, models, delta);
+	private String appendBatchOfRowsToTable(UserInfo user,	List<ColumnModel> models, RowSet delta, RowReferenceSet results) throws IOException {
+		RowReferenceSet rrs = tableRowTruthDao.appendRowSetToTable(user.getId().toString(), delta.getTableId(), models, delta);
 		if(results != null){
 			results.setEtag(rrs.getEtag());
-			results.setHeaders(headers);
-			results.setTableId(tableId);
+			results.setHeaders(delta.getHeaders());
+			results.setTableId(delta.getTableId());
 			if(results.getRows() == null){
 				results.setRows(new LinkedList<RowReference>());
 			}
