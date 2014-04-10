@@ -10,7 +10,6 @@ import java.util.concurrent.Callable;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.manager.message.RepositoryMessagePublisherImpl;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -46,7 +45,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 public class TableRowManagerImpl implements TableRowManager {
 	
-	static private Log log = LogFactory.getLog(RepositoryMessagePublisherImpl.class);
+	static private Log log = LogFactory.getLog(TableRowManagerImpl.class);
 	
 	@Autowired
 	AuthorizationManager authorizationManager;
