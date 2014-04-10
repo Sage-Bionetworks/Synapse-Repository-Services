@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.quiz.MultichoiceAnswer;
 import org.sagebionetworks.repo.model.quiz.MultichoiceQuestion;
 import org.sagebionetworks.repo.model.quiz.MultichoiceResponse;
+import org.sagebionetworks.repo.model.quiz.PassingRecord;
 import org.sagebionetworks.repo.model.quiz.Question;
 import org.sagebionetworks.repo.model.quiz.QuestionResponse;
 import org.sagebionetworks.repo.model.quiz.QuestionVariety;
@@ -108,6 +109,7 @@ public class CertifiedUserManagerImplTest {
 		
 		// test missing ID
 		quizGenerator.setMinimumScore(1L);
+		assertTrue(CertifiedUserManagerImpl.validateQuizGenerator(quizGenerator).isEmpty());
 		quizGenerator.setId(null);
 		assertFalse(CertifiedUserManagerImpl.validateQuizGenerator(quizGenerator).isEmpty());
 		
@@ -124,10 +126,12 @@ public class CertifiedUserManagerImplTest {
 			questionOptions.add(mq);
 			List<MultichoiceAnswer> mas = new ArrayList<MultichoiceAnswer>();
 			mq.setAnswers(mas);
-			//mq.setQuestionIndex(99L);
 			mas.add(createMultichoiceAnswer(true, 10L));
+			mq.setQuestionIndex(99L);
+			assertTrue(CertifiedUserManagerImpl.validateQuizGenerator(quizGenerator).toString(), CertifiedUserManagerImpl.validateQuizGenerator(quizGenerator).isEmpty());
+			mq.setQuestionIndex(null);
+			assertFalse(CertifiedUserManagerImpl.validateQuizGenerator(quizGenerator).isEmpty());
 		}
-		assertFalse(CertifiedUserManagerImpl.validateQuizGenerator(quizGenerator).isEmpty());
 		
 		// test repeated question index
 		qvs.clear();
@@ -147,10 +151,12 @@ public class CertifiedUserManagerImplTest {
 			questionOptions.add(mq);
 			mas = new ArrayList<MultichoiceAnswer>();
 			mq.setAnswers(mas);
-			mq.setQuestionIndex(99L);
+			mq.setQuestionIndex(100L);
 			mas.add(createMultichoiceAnswer(true, 20L));
+			assertTrue(CertifiedUserManagerImpl.validateQuizGenerator(quizGenerator).isEmpty());
+			mq.setQuestionIndex(99L);
+			assertFalse(CertifiedUserManagerImpl.validateQuizGenerator(quizGenerator).isEmpty());
 		}
-		assertFalse(CertifiedUserManagerImpl.validateQuizGenerator(quizGenerator).isEmpty());
 		
 		// test multichoice answer missing index
 		qvs.clear();
@@ -164,9 +170,12 @@ public class CertifiedUserManagerImplTest {
 			List<MultichoiceAnswer> mas = new ArrayList<MultichoiceAnswer>();
 			mq.setAnswers(mas);
 			mq.setQuestionIndex(99L);
+			mas.add(createMultichoiceAnswer(true, 5L));
+			assertTrue(CertifiedUserManagerImpl.validateQuizGenerator(quizGenerator).isEmpty());
+			mas.clear();
 			mas.add(createMultichoiceAnswer(true, null));
+			assertFalse(CertifiedUserManagerImpl.validateQuizGenerator(quizGenerator).isEmpty());
 		}
-		assertFalse(CertifiedUserManagerImpl.validateQuizGenerator(quizGenerator).isEmpty());
 		
 		// test multichoice answer repeating index
 		qvs.clear();
@@ -181,24 +190,21 @@ public class CertifiedUserManagerImplTest {
 			mq.setAnswers(mas);
 			mq.setQuestionIndex(99L);
 			mas.add(createMultichoiceAnswer(true, 10L));
+			mas.add(createMultichoiceAnswer(false, 20L));
+			assertTrue(CertifiedUserManagerImpl.validateQuizGenerator(quizGenerator).isEmpty());
+			mas.clear();
+			mas.add(createMultichoiceAnswer(true, 10L));
 			mas.add(createMultichoiceAnswer(false, 10L));
+			assertFalse(CertifiedUserManagerImpl.validateQuizGenerator(quizGenerator).isEmpty());
+			
+			// test multichoice missing answer
+			mas.clear();
+			mas.add(createMultichoiceAnswer(true, 10L));
+			mas.add(createMultichoiceAnswer(false, 20L));
+			assertTrue(CertifiedUserManagerImpl.validateQuizGenerator(quizGenerator).isEmpty());
+			mas.clear();
+			assertFalse(CertifiedUserManagerImpl.validateQuizGenerator(quizGenerator).isEmpty());
 		}
-		assertFalse(CertifiedUserManagerImpl.validateQuizGenerator(quizGenerator).isEmpty());
-		
-		// test multichoice missing answer
-		qvs.clear();
-		{
-			QuestionVariety qv = new QuestionVariety();
-			qvs.add(qv);
-			List<Question> questionOptions = new ArrayList<Question>();
-			qv.setQuestionOptions(questionOptions);
-			MultichoiceQuestion mq = new MultichoiceQuestion();
-			questionOptions.add(mq);
-			List<MultichoiceAnswer> mas = new ArrayList<MultichoiceAnswer>();
-			mq.setAnswers(mas);
-			mq.setQuestionIndex(99L);
-		}
-		assertFalse(CertifiedUserManagerImpl.validateQuizGenerator(quizGenerator).isEmpty());
 		
 		// test 'exclusive' multichoice with multiple correct answers
 		qvs.clear();
@@ -214,9 +220,13 @@ public class CertifiedUserManagerImplTest {
 			mq.setQuestionIndex(99L);
 			mq.setExclusive(true);
 			mas.add(createMultichoiceAnswer(true, 10L));
+			mas.add(createMultichoiceAnswer(false, 20L));
+			assertTrue(CertifiedUserManagerImpl.validateQuizGenerator(quizGenerator).isEmpty());
+			mas.clear();
+			mas.add(createMultichoiceAnswer(true, 10L));
 			mas.add(createMultichoiceAnswer(true, 20L));
+			assertFalse(CertifiedUserManagerImpl.validateQuizGenerator(quizGenerator).isEmpty());
 		}
-		assertFalse(CertifiedUserManagerImpl.validateQuizGenerator(quizGenerator).isEmpty());
 		
 		// test text field question missing answer
 		qvs.clear();
@@ -225,10 +235,12 @@ public class CertifiedUserManagerImplTest {
 			qvs.add(qv);
 			List<Question> questionOptions = new ArrayList<Question>();
 			qv.setQuestionOptions(questionOptions);
-			TextFieldQuestion tf = generateQuestion(10L, null);
-			questionOptions.add(tf);
+			questionOptions.add(generateQuestion(10L, "foo"));
+			assertTrue(CertifiedUserManagerImpl.validateQuizGenerator(quizGenerator).isEmpty());
+			questionOptions.clear();
+			questionOptions.add(generateQuestion(10L, null));
+			assertFalse(CertifiedUserManagerImpl.validateQuizGenerator(quizGenerator).isEmpty());
 		}
-		assertFalse(CertifiedUserManagerImpl.validateQuizGenerator(quizGenerator).isEmpty());
 	}
 	
 	@Test
@@ -238,7 +250,7 @@ public class CertifiedUserManagerImplTest {
 		QuizGenerator q = certifiedUserManager.retrieveCertificationQuizGenerator();
 		assertNotNull(q); // we check the content elsewhere, so here we just check we get a result
 		
-		when(s3Utility.doesExist(CertifiedUserManagerImpl.S3_QUESTIONNAIRE_KEY)).thenReturn(false);
+		when(s3Utility.doesExist(CertifiedUserManagerImpl.S3_QUESTIONNAIRE_KEY)).thenReturn(true);
 		when(s3Utility.downloadFromS3ToString(anyString())).thenReturn(getDefaultQuizGeneratorAsString());
 		certifiedUserManager.expireQuizGeneratorCache();
 		assertEquals(getDefaultQuizGenerator(), certifiedUserManager.retrieveCertificationQuizGenerator());
@@ -465,7 +477,7 @@ public class CertifiedUserManagerImplTest {
 		QuizResponse quizResponse = createPassingQuizResponse();
 		UserInfo userInfo = new UserInfo(false);
 		userInfo.setId(666L);
-		certifiedUserManager.submitCertificationQuizResponse(userInfo, quizResponse);
+		PassingRecord pr = certifiedUserManager.submitCertificationQuizResponse(userInfo, quizResponse);
 		// check that 5 fields are filled in quizResponse
 		assertEquals(userInfo.getId().toString(), quizResponse.getCreatedBy());
 		assertEquals(true, quizResponse.getPass());
@@ -474,7 +486,12 @@ public class CertifiedUserManagerImplTest {
 		assertNotNull(quizResponse.getCreatedOn());
 		Mockito.verify(quizResponseDao).create(quizResponse);
 		Mockito.verify(groupMembersDao).addMembers(anyString(), (List<String>)anyObject());
-		Mockito.verify(quizResponseDao).getPassingRecord(quizGenerator.getId(), userInfo.getId());
+		assertEquals(quizResponse.getPass(), pr.getPassed());
+		assertEquals(quizResponse.getCreatedOn(), pr.getPassedOn());
+		assertEquals(quizResponse.getQuizId(), pr.getQuizId());
+		assertEquals(quizResponse.getId(), pr.getResponseId());
+		assertEquals(quizResponse.getScore(), pr.getScore());
+		assertEquals(quizResponse.getCreatedBy(), pr.getUserId());
 	}
 	
 	@Test
@@ -489,7 +506,7 @@ public class CertifiedUserManagerImplTest {
 		QuizResponse quizResponse = createFailingQuizResponse();
 		UserInfo userInfo = new UserInfo(false);
 		userInfo.setId(666L);
-		certifiedUserManager.submitCertificationQuizResponse(userInfo, quizResponse);
+		PassingRecord pr = certifiedUserManager.submitCertificationQuizResponse(userInfo, quizResponse);
 		// check that 5 fields are filled in quizResponse
 		assertEquals(userInfo.getId().toString(), quizResponse.getCreatedBy());
 		assertEquals(false, quizResponse.getPass());
@@ -498,7 +515,12 @@ public class CertifiedUserManagerImplTest {
 		assertNotNull(quizResponse.getCreatedOn());
 		verify(quizResponseDao).create(quizResponse);
 		verify(groupMembersDao, never()).addMembers(anyString(), (List<String>)anyObject());
-		verify(quizResponseDao).getPassingRecord(quizGenerator.getId(), userInfo.getId());
+		assertEquals(quizResponse.getPass(), pr.getPassed());
+		assertEquals(quizResponse.getCreatedOn(), pr.getPassedOn());
+		assertEquals(quizResponse.getQuizId(), pr.getQuizId());
+		assertEquals(quizResponse.getId(), pr.getResponseId());
+		assertEquals(quizResponse.getScore(), pr.getScore());
+		assertEquals(quizResponse.getCreatedBy(), pr.getUserId());
 	}
 	
 	@Test
@@ -513,9 +535,9 @@ public class CertifiedUserManagerImplTest {
 	@Test
 	public void testGetQuizResponsesForAUser() throws Exception {
 		UserInfo userInfo = new UserInfo(true);
-		certifiedUserManager.getQuizResponses(userInfo, null, 3L, 10L);
-		Long quizId = getDefaultQuizGenerator().getId();
 		Long userId = 666L;
+		certifiedUserManager.getQuizResponses(userInfo, userId, 3L, 10L);
+		Long quizId = getDefaultQuizGenerator().getId();
 		verify(quizResponseDao).getUserResponsesForQuiz(quizId, userId, 3L, 10L);
 		verify(quizResponseDao).getUserResponsesForQuizCount(quizId, userId);
 	}
@@ -543,9 +565,8 @@ public class CertifiedUserManagerImplTest {
 	@Test
 	public void testGetPassingRecord() throws Exception {
 		UserInfo userInfo = new UserInfo(false);
-		userInfo.setId(666L);
 		certifiedUserManager.getPassingRecord(userInfo, 101L);
-		verify(quizResponseDao).getPassingRecord(anyLong(), eq(666L));
+		verify(quizResponseDao).getPassingRecord(anyLong(), eq(101L));
 	}
 	
 }

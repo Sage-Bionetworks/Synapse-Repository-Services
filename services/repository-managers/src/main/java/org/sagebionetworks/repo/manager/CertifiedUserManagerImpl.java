@@ -306,7 +306,8 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 		QuizGenerator quizGenerator = retrieveCertificationQuizGenerator();
 		// grade the submission:  pass or fail?
 		scoreQuizResponse(quizGenerator, response);
-		fillInResponseValues(response, userInfo.getId(), new Date(), quizGenerator.getId());
+		Date now = new Date();
+		fillInResponseValues(response, userInfo.getId(), now, quizGenerator.getId());
 		// store the submission in the RDS
 		quizResponseDao.create(response);
 		// if pass, add to Certified group
@@ -315,7 +316,14 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 					AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(), 
 					Collections.singletonList(userInfo.getId().toString()));
 		}
-		return quizResponseDao.getPassingRecord(quizGenerator.getId(), userInfo.getId());
+		PassingRecord passingRecord = new PassingRecord();
+		passingRecord.setPassed(response.getPass());
+		passingRecord.setPassedOn(now);
+		passingRecord.setQuizId(response.getQuizId());
+		passingRecord.setResponseId(response.getId());
+		passingRecord.setScore(response.getScore());
+		passingRecord.setUserId(response.getCreatedBy());
+		return passingRecord;
 	}
 
 	/* (non-Javadoc)
