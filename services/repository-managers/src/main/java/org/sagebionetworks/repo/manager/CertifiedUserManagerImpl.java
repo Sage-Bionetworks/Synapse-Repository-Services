@@ -261,25 +261,27 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 		// (This allows us to make sure we don't receive multiple answers to a single question variety.)
 		// The value in the map says whether the answer is right or wrong.
 		Map<Integer, Boolean> responseMap = new HashMap<Integer, Boolean>();
-		for (QuestionResponse r : quizResponse.getQuestionResponses()) {
-			Integer questionVarietyIndex = null;
-			// find the variety index for the question
-			List<QuestionVariety> variety = quizGenerator.getQuestions();
-			for (int i=0; i<variety.size(); i++) {
-				for (Question q: variety.get(i).getQuestionOptions()) {
-					if (r.getQuestionIndex().equals(q.getQuestionIndex())) {
-						// found it!
-						questionVarietyIndex = i;
-						if (responseMap.containsKey(questionVarietyIndex)) {
-							throw new IllegalArgumentException("Response set contains multiple responses for question variety "+questionVarietyIndex);
+		if (quizResponse.getQuestionResponses()!=null) {
+			for (QuestionResponse r : quizResponse.getQuestionResponses()) {
+				Integer questionVarietyIndex = null;
+				// find the variety index for the question
+				List<QuestionVariety> variety = quizGenerator.getQuestions();
+				for (int i=0; variety!=null && i<variety.size(); i++) {
+					for (Question q: variety.get(i).getQuestionOptions()) {
+						if (r.getQuestionIndex()!=null && r.getQuestionIndex().equals(q.getQuestionIndex())) {
+							// found it!
+							questionVarietyIndex = i;
+							if (responseMap.containsKey(questionVarietyIndex)) {
+								throw new IllegalArgumentException("Response set contains multiple responses for question variety "+questionVarietyIndex);
+							}
+							responseMap.put(questionVarietyIndex, isCorrectResponse(q, r));
 						}
-						responseMap.put(questionVarietyIndex, isCorrectResponse(q, r));
 					}
 				}
-			}
-			if (questionVarietyIndex==null) {
-				throw new IllegalArgumentException("Question index "+r.getQuestionIndex()+
-						" does not appear in quiz generator "+quizGenerator.getId());
+				if (questionVarietyIndex==null) {
+					throw new IllegalArgumentException("Question index "+r.getQuestionIndex()+
+							" does not appear in quiz generator "+quizGenerator.getId());
+				}
 			}
 		}
 		int correctAnswerCount = 0;
@@ -309,20 +311,20 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 		Date now = new Date();
 		fillInResponseValues(response, userInfo.getId(), now, quizGenerator.getId());
 		// store the submission in the RDS
-		quizResponseDao.create(response);
+		QuizResponse created = quizResponseDao.create(response);
 		// if pass, add to Certified group
-		if (response.getPass()) {
+		if (created.getPass()) {
 			groupMembersDao.addMembers(
 					AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(), 
 					Collections.singletonList(userInfo.getId().toString()));
 		}
 		PassingRecord passingRecord = new PassingRecord();
-		passingRecord.setPassed(response.getPass());
+		passingRecord.setPassed(created.getPass());
 		passingRecord.setPassedOn(now);
-		passingRecord.setQuizId(response.getQuizId());
-		passingRecord.setResponseId(response.getId());
-		passingRecord.setScore(response.getScore());
-		passingRecord.setUserId(response.getCreatedBy());
+		passingRecord.setQuizId(created.getQuizId());
+		passingRecord.setResponseId(created.getId());
+		passingRecord.setScore(created.getScore());
+		passingRecord.setUserId(created.getCreatedBy());
 		return passingRecord;
 	}
 

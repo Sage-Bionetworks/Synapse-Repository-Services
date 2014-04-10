@@ -16,6 +16,7 @@ import static org.mockito.Mockito.when;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -80,7 +81,8 @@ public class CertifiedUserManagerImplTest {
 	public void testDefaultQuiz() throws Exception {
 		QuizGenerator quizGenerator = getDefaultQuizGenerator();
 		// do additional validation
-		assertTrue(CertifiedUserManagerImpl.validateQuizGenerator(quizGenerator).isEmpty());
+		List<String> errors = CertifiedUserManagerImpl.validateQuizGenerator(quizGenerator);
+		assertTrue(errors.toString(), errors.isEmpty());
 	}
 
 	@Test
@@ -381,8 +383,9 @@ public class CertifiedUserManagerImplTest {
 		return gen;
 	}
 	
-	private static QuizResponse createPassingQuizResponse() {
+	private static QuizResponse createPassingQuizResponse(long quizId) {
 		QuizResponse resp = new QuizResponse();
+		resp.setQuizId(quizId);
 		List<QuestionResponse> questionResponses = new ArrayList<QuestionResponse>();
 		resp.setQuestionResponses(questionResponses);
 		{
@@ -403,14 +406,15 @@ public class CertifiedUserManagerImplTest {
 	@Test
 	public void testScoreQuizResponseHappyCase() throws Exception {
 		QuizGenerator gen = createQuizGenerator();
-		QuizResponse resp = createPassingQuizResponse();
+		QuizResponse resp = createPassingQuizResponse(gen.getId());
 		CertifiedUserManagerImpl.scoreQuizResponse(gen, resp);
 		assertTrue(resp.getPass());
 		assertEquals(new Long(2L), resp.getScore());
 	}
 
-	private static QuizResponse createFailingQuizResponse() {
+	private static QuizResponse createFailingQuizResponse(long quizId) {
 		QuizResponse resp = new QuizResponse();
+		resp.setQuizId(quizId);
 		List<QuestionResponse> questionResponses = new ArrayList<QuestionResponse>();
 		resp.setQuestionResponses(questionResponses);
 		{
@@ -431,14 +435,15 @@ public class CertifiedUserManagerImplTest {
 	@Test
 	public void testScoreQuizResponseWrongAnswer() throws Exception {
 		QuizGenerator gen = createQuizGenerator();
-		QuizResponse resp = createFailingQuizResponse();
+		QuizResponse resp = createFailingQuizResponse(gen.getId());
 		CertifiedUserManagerImpl.scoreQuizResponse(gen, resp);
 		assertFalse(resp.getPass());
 		assertEquals(new Long(1L), resp.getScore());
 	}
 	
-	private static QuizResponse createIllegalQuizResponse() {
+	private static QuizResponse createIllegalQuizResponse(long quizId) {
 		QuizResponse resp = new QuizResponse();
+		resp.setQuizId(quizId);
 		List<QuestionResponse> questionResponses = new ArrayList<QuestionResponse>();
 		resp.setQuestionResponses(questionResponses);
 		{
@@ -461,7 +466,7 @@ public class CertifiedUserManagerImplTest {
 		QuizGenerator gen = createQuizGenerator();
 		// can't answer two questions from one variety.  
 		// this will throw an IllegalArgumentException
-		QuizResponse resp = createIllegalQuizResponse();
+		QuizResponse resp = createIllegalQuizResponse(gen.getId());
 		CertifiedUserManagerImpl.scoreQuizResponse(gen, resp);
 	}
 
@@ -474,9 +479,16 @@ public class CertifiedUserManagerImplTest {
 		quizGenerator.writeToJSONObject(adapter);
 		String quizGeneratorAsString = adapter.toJSONString();
 		when(s3Utility.downloadFromS3ToString(CertifiedUserManagerImpl.S3_QUESTIONNAIRE_KEY)).thenReturn(quizGeneratorAsString);
-		QuizResponse quizResponse = createPassingQuizResponse();
+		QuizResponse quizResponse = createPassingQuizResponse(quizGenerator.getId());
 		UserInfo userInfo = new UserInfo(false);
 		userInfo.setId(666L);
+		QuizResponse created = createPassingQuizResponse(quizGenerator.getId());
+		created.setCreatedBy(userInfo.getId().toString());
+		created.setCreatedOn(new Date());
+		created.setId(10101L);
+		created.setPass(true);
+		created.setScore(2L);
+		when(quizResponseDao.create(quizResponse)).thenReturn(created);
 		PassingRecord pr = certifiedUserManager.submitCertificationQuizResponse(userInfo, quizResponse);
 		// check that 5 fields are filled in quizResponse
 		assertEquals(userInfo.getId().toString(), quizResponse.getCreatedBy());
@@ -486,12 +498,12 @@ public class CertifiedUserManagerImplTest {
 		assertNotNull(quizResponse.getCreatedOn());
 		Mockito.verify(quizResponseDao).create(quizResponse);
 		Mockito.verify(groupMembersDao).addMembers(anyString(), (List<String>)anyObject());
-		assertEquals(quizResponse.getPass(), pr.getPassed());
-		assertEquals(quizResponse.getCreatedOn(), pr.getPassedOn());
-		assertEquals(quizResponse.getQuizId(), pr.getQuizId());
-		assertEquals(quizResponse.getId(), pr.getResponseId());
-		assertEquals(quizResponse.getScore(), pr.getScore());
-		assertEquals(quizResponse.getCreatedBy(), pr.getUserId());
+		assertEquals(created.getPass(), pr.getPassed());
+		assertNotNull(pr.getPassedOn());
+		assertEquals(created.getQuizId(), pr.getQuizId());
+		assertEquals(created.getId(), pr.getResponseId());
+		assertEquals(created.getScore(), pr.getScore());
+		assertEquals(created.getCreatedBy(), pr.getUserId());
 	}
 	
 	@Test
@@ -503,9 +515,16 @@ public class CertifiedUserManagerImplTest {
 		quizGenerator.writeToJSONObject(adapter);
 		String quizGeneratorAsString = adapter.toJSONString();
 		when(s3Utility.downloadFromS3ToString(CertifiedUserManagerImpl.S3_QUESTIONNAIRE_KEY)).thenReturn(quizGeneratorAsString);
-		QuizResponse quizResponse = createFailingQuizResponse();
+		QuizResponse quizResponse = createFailingQuizResponse(quizGenerator.getId());
 		UserInfo userInfo = new UserInfo(false);
 		userInfo.setId(666L);
+		QuizResponse created = createFailingQuizResponse(quizGenerator.getId());
+		created.setCreatedBy(userInfo.getId().toString());
+		created.setCreatedOn(new Date());
+		created.setId(10101L);
+		created.setPass(false);
+		created.setScore(1L);
+		when(quizResponseDao.create(quizResponse)).thenReturn(created);
 		PassingRecord pr = certifiedUserManager.submitCertificationQuizResponse(userInfo, quizResponse);
 		// check that 5 fields are filled in quizResponse
 		assertEquals(userInfo.getId().toString(), quizResponse.getCreatedBy());
@@ -515,12 +534,12 @@ public class CertifiedUserManagerImplTest {
 		assertNotNull(quizResponse.getCreatedOn());
 		verify(quizResponseDao).create(quizResponse);
 		verify(groupMembersDao, never()).addMembers(anyString(), (List<String>)anyObject());
-		assertEquals(quizResponse.getPass(), pr.getPassed());
-		assertEquals(quizResponse.getCreatedOn(), pr.getPassedOn());
-		assertEquals(quizResponse.getQuizId(), pr.getQuizId());
-		assertEquals(quizResponse.getId(), pr.getResponseId());
-		assertEquals(quizResponse.getScore(), pr.getScore());
-		assertEquals(quizResponse.getCreatedBy(), pr.getUserId());
+		assertEquals(created.getPass(), pr.getPassed());
+		assertNotNull(pr.getPassedOn());
+		assertEquals(created.getQuizId(), pr.getQuizId());
+		assertEquals(created.getId(), pr.getResponseId());
+		assertEquals(created.getScore(), pr.getScore());
+		assertEquals(created.getCreatedBy(), pr.getUserId());
 	}
 	
 	@Test

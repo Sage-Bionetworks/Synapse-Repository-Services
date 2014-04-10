@@ -91,6 +91,7 @@ import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
 import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
+import org.sagebionetworks.repo.model.quiz.QuestionResponse;
 import org.sagebionetworks.repo.model.quiz.Quiz;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -1607,6 +1608,7 @@ public class IT500SynapseJavaClient {
 		assertNotNull(quiz.getId());
 		QuizResponse response = new QuizResponse();
 		response.setQuizId(quiz.getId());
+		response.setQuestionResponses(new ArrayList<QuestionResponse>());
 		// this quiz will fail
 		PassingRecord pr = synapseOne.submitCertifiedUserTestResponse(response);
 		assertEquals(new Long(0L), pr.getScore());
@@ -1619,10 +1621,10 @@ public class IT500SynapseJavaClient {
 		
 		PaginatedResults<QuizResponse> qrs = adminSynapse.getCertifiedUserTestResponses(0L, 2L, myId);
 		assertEquals(1, qrs.getResults().size());
-		assertEquals(pr, qrs.getResults().iterator().next());
+		assertEquals(pr.getResponseId(), qrs.getResults().iterator().next().getId());
 		qrs = adminSynapse.getCertifiedUserTestResponses(0L, 2L, null);
 		assertEquals(1, qrs.getResults().size());
-		assertEquals(pr, qrs.getResults().iterator().next());
+		assertEquals(pr.getResponseId(), qrs.getResults().iterator().next().getId());
 
 		adminSynapse.deleteCertifiedUserTestResponse(pr.getResponseId().toString());
 	}

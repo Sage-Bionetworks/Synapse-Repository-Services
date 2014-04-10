@@ -14,9 +14,6 @@
     			"description":"The indices of the MultichoiceAnswer objects",
     			"type":"integer"
     		}
-    	},
-    	"concreteType":{
-			"type": "string"
-		}
+    	}
 	}
 }

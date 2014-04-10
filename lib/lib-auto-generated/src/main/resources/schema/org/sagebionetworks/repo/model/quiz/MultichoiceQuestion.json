@@ -20,9 +20,6 @@
 				"$ref":"org.sagebionetworks.repo.model.quiz.MultichoiceAnswer"
 			},
 			"links": [{"rel": "describedby","href": "http://synapse.sagebase.org/access/public"}]
-		},
-		"concreteType":{
-			"type": "string"
 		}
 	}
 }

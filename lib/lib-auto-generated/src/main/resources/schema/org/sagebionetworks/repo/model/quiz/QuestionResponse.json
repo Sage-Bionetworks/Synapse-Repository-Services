@@ -5,6 +5,9 @@
 		"questionIndex":{
 			"description":"an index unique in the Quiz, used to refer to the question being answered",
 			"type":"integer"
+		},
+		"concreteType":{
+			"type": "string"
 		}
 	}
 }
