@@ -102,7 +102,7 @@ public class TableRowManagerImplTest {
 		manager = new TableRowManagerImpl();
 		int maxBytesPerRequest = 10000000;
 		manager.setMaxBytesPerRequest(maxBytesPerRequest);
-		manager.setMaxRowsPerBatch(1000000);
+		manager.setMaxBytesPerChangeSet(1000000000);
 		user = new UserInfo(false, 7L);
 		models = TableModelTestUtils.createOneOfEachType();
 		tableId = "syn123";

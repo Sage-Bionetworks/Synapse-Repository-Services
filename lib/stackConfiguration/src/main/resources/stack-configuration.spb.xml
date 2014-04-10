@@ -70,7 +70,7 @@
 	<bean id="stackConfiguration.tableEnabled" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.tableUpdateQueueName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />		
 	<bean id="stackConfiguration.tableReadTimeoutMS" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	<bean id="stackConfiguration.tableMaxRowsPerBatch" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />			
+	<bean id="stackConfiguration.tableMaxBytesPerChangeSet" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />			
 		
 	<!-- Bridge participant data -->
 	<bean id="stackConfiguration.participantDataBucketName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />	

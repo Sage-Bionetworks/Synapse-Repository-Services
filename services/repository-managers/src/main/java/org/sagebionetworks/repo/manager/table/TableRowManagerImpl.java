@@ -73,7 +73,7 @@ public class TableRowManagerImpl implements TableRowManager {
 	/**
 	 * Injected by spring
 	 */
-	int maxRowsPerBatch;
+	int maxBytesPerChangeSet;
 	/**
 	 * Injected via spring
 	 * @param tableReadTimeoutMS
@@ -83,13 +83,14 @@ public class TableRowManagerImpl implements TableRowManager {
 	}
 
 	/**
-	 * Injected via spring.
-	 * @param maxRowsPerFile
+	 * Injected via spring
+	 * @param maxBytesPerChangeSet
 	 */
-	public void setMaxRowsPerBatch(int maxRowsPerFile){
-		this.maxRowsPerBatch = maxRowsPerFile;
+	public void setMaxBytesPerChangeSet(int maxBytesPerChangeSet) {
+		this.maxBytesPerChangeSet = maxBytesPerChangeSet;
 	}
-	
+
+
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public RowReferenceSet appendRows(UserInfo user, String tableId, List<ColumnModel> models, RowSet delta) throws DatastoreException, NotFoundException, IOException {
@@ -116,16 +117,21 @@ public class TableRowManagerImpl implements TableRowManager {
 			throw new UnauthorizedException("User does not have permission to update TableEntity: "+tableId);
 		}
 		List<String> headers = TableModelUtils.getHeaders(models);
+		// Calculate the size per row
+		int maxBytesPerRow = TableModelUtils.calculateMaxRowSize(models);
 		List<Row> batch = new LinkedList<Row>();
+		int batchSizeBytes = 0;
 		int count = 0;
 		while(rowStream.hasNext()){
 			batch.add(rowStream.next());
-			if(batch.size() >= maxRowsPerBatch){
+			batchSizeBytes += maxBytesPerRow;
+			if(batchSizeBytes >= maxBytesPerChangeSet){
 				// Send this batch and keep the etag.
 				 etag = appendBatchOfRowsToTable(user, tableId, models, etag, results, headers, batch);
 				// Clear the batch
 				count += batch.size();
 				batch.clear();
+				batchSizeBytes = 0;
 				log.info("Appended: "+count+" rows to table: "+tableId);
 			}
 		}

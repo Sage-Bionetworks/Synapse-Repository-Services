@@ -1283,9 +1283,9 @@ public class StackConfiguration {
 	 * 
 	 * @return
 	 */
-	public int getTableMaxRowsPerBatch() {
+	public int getTableMaxBytesPerChangeSet() {
 		return Integer.parseInt(configuration
-				.getProperty("org.sagebionetworks.table.max.rows.per.batch"));
+				.getProperty("org.sagebionetworks.table.max.bytes.per.change.set"));
 	}
 	/**
 	 * The maximum amount of time in MS that the table worker can hold the semaphore
