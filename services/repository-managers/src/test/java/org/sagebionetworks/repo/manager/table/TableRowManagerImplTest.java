@@ -222,8 +222,9 @@ public class TableRowManagerImplTest {
 	@Test
 	public void testAppendRowsAsStreamMultipleBatches() throws DatastoreException, NotFoundException, IOException{
 		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(true);
+		int maxBytesPerRow = TableModelUtils.calculateMaxRowSize(models);
 		// With a batch size of three, a total of ten rows should end up in 4 batches (3,3,3,1).	
-		manager.setMaxRowsPerBatch(3);
+		manager.setMaxBytesPerChangeSet(maxBytesPerRow*3);
 		RowReferenceSet results = new RowReferenceSet();
 		String etag = manager.appendRowsAsStream(user, tableId, models, set.getRows().iterator(), "etag", results);
 		assertEquals("etag3", etag);
