@@ -409,7 +409,7 @@ public class TableRowManagerImpl implements TableRowManager {
 
 		RowSetAccessor latestVersions = tableRowTruthDao.getLatestVersions(tableId, fileHandlesToCheckAccessor.getRowIds());
 
-		// now we need to check if any of the unowned filehandles is changing with this request
+		// now we need to check if any of the unowned filehandles are changing with this request
 		for (RowAccessor row : fileHandlesToCheckAccessor.getRows()) {
 			RowAccessor lastRowVersion = latestVersions.getRow(row.getRow().getRowId());
 			for (String fileHandleColumn : fileHandleColumns) {

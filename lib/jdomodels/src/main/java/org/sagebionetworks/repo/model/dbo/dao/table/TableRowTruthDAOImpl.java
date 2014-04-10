@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -48,7 +49,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.S3Object;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 /**
  * Basic S3 & RDS implementation of the TableRowTruthDAO.
@@ -513,24 +517,48 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	}
 
 	@Override
-	public RowSetAccessor getLatestVersions(String tableId, final Set<Long> rowIds) throws IOException, NotFoundException {
+	public RowSetAccessor getLatestVersions(String tableId, Set<Long> rowIds) throws IOException, NotFoundException {
 		final Map<Long, RowAccessor> rowIdToRowMap = Maps.newHashMap();
 
-		// For each version of the table
-		for (final TableRowChange rowChange : listRowSetsKeysForTable(tableId)) {
-			final Map<String, Integer> columnIdToIndexMap = TableModelUtils.createColumnIdToIndexMap(rowChange);
+		List<TableRowChange> rowChanges = listRowSetsKeysForTable(tableId);
+
+		// rowChanges is sorted by size, hence the last rowChange has all the headers
+		final Map<String, Integer> columnIdToIndexMap;
+		if (!rowChanges.isEmpty()) {
+			columnIdToIndexMap = TableModelUtils.createColumnIdToIndexMap(rowChanges.get(rowChanges.size() - 1));
+		} else {
+			columnIdToIndexMap = Collections.emptyMap();
+		}
+
+		// we are scanning backwards through the row changes. Even though it shouldn't happen the same row id could be
+		// in a change set more than once. We need to scan forward in each change set, and only after the change set is
+		// done can we mark a row as found if it is in the change set at least once
+
+		final Set<Long> rowIdsToFind = Sets.newHashSet(rowIds);
+		// For each version of the table (starting at the last one)
+		for (final TableRowChange rowChange : Lists.reverse(rowChanges)) {
+			if (rowIdsToFind.isEmpty()) {
+				// we found all the rows that we need to find
+				break;
+			}
+			final List<Long> rowIdsFound = Lists.newArrayListWithCapacity(rowChange.getRowCount().intValue());
 			// Scan over the delta
 			scanChange(new RowHandler() {
 				@Override
 				public void nextRow(final Row row) {
-					if (rowIds.contains(row.getRowId())) {
+					if (rowIdsToFind.contains(row.getRowId())) {
+						rowIdsFound.add(row.getRowId());
 						if (TableModelUtils.isDeletedRow(row)) {
 							rowIdToRowMap.remove(row.getRowId());
 						} else {
 							rowIdToRowMap.put(row.getRowId(), new RowAccessor() {
 								@Override
 								public String getCell(String columnId) {
-									return row.getValues().get(columnIdToIndexMap.get(columnId));
+									Integer index = columnIdToIndexMap.get(columnId);
+									if (index >= row.getValues().size()) {
+										return null;
+									}
+									return row.getValues().get(index);
 								}
 
 								@Override
@@ -542,6 +570,8 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 					}
 				}
 			}, rowChange);
+			// remove all the rows we found in this change set
+			rowIdsToFind.removeAll(rowIdsFound);
 		}
 
 		return new RowSetAccessor() {
