@@ -65,11 +65,30 @@ public class TableModelTestUtils {
 		List<Row> rows = new LinkedList<Row>();
 		for (int i = 0; i < count; i++) {
 			Row row = new Row();
-			// Add a value for each column
-			updateRow(cms, row, i, false);
 			List<String> values = new LinkedList<String>();
 			for (ColumnModel cm : cms) {
 				values.add(null);
+			}
+			row.setValues(values);
+			rows.add(row);
+		}
+		return rows;
+	}
+	
+	/**
+	 * Create the given number of rows with all values as empty strings.
+	 * 
+	 * @param cms
+	 * @param count
+	 * @return
+	 */
+	public static List<Row> createEmptyRows(List<ColumnModel> cms, int count) {
+		List<Row> rows = new LinkedList<Row>();
+		for (int i = 0; i < count; i++) {
+			Row row = new Row();
+			List<String> values = new LinkedList<String>();
+			for (ColumnModel cm : cms) {
+				values.add("");
 			}
 			row.setValues(values);
 			rows.add(row);

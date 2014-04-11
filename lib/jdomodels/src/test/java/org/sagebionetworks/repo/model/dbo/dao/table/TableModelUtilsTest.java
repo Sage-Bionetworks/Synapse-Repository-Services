@@ -333,6 +333,28 @@ public class TableModelUtilsTest {
 	}
 	
 	@Test
+	public void testValidateStringColumnEmptyString(){
+		ColumnModel cm = new ColumnModel();
+		cm.setColumnType(ColumnType.STRING);
+		cm.setMaximumSize(555L);
+		assertEquals("", TableModelUtils.validateRowValue("", cm, 0, 0));
+	}
+	
+	@Test
+	public void testValidateNonColumnEmptyString(){
+		for(ColumnType type: ColumnType.values()){
+			ColumnModel cm = new ColumnModel();
+			// String are allowed to be empty
+			if(ColumnType.STRING.equals(type)) continue;
+			cm.setColumnType(type);
+			cm.setMaximumSize(555L);
+			cm.setDefaultValue(null);
+			assertEquals("Value of an empty string for a none string should be treated as null",null, TableModelUtils.validateRowValue("", cm, 0, 0));
+		}
+	}
+	
+	
+	@Test
 	public void testCountEmptyOrInvalidRowIdsNone(){
 		assertEquals(0, TableModelUtils.countEmptyOrInvalidRowIds(validRowSet));
 	}
