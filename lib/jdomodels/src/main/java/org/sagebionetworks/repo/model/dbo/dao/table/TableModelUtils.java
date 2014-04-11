@@ -190,8 +190,14 @@ public class TableModelUtils {
 		if (cm.getColumnType() == null)
 			throw new IllegalArgumentException(
 					"ColumnModel.columnType cannot be null");
+		
+		// Only strings can have a value that is an empty string. See PLFM-2657
+		if("".equals(value)  &&  !ColumnType.STRING.equals(cm.getColumnType())){
+			value = null;
+		}
+		
 		// Validate non-null values
-		if (value != null) {
+		if (value != null) {	
 			try {
 				switch (cm.getColumnType()) {
 				case BOOLEAN:
