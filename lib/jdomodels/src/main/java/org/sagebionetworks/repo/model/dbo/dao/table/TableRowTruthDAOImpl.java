@@ -14,14 +14,19 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
+import org.sagebionetworks.repo.model.dao.table.RowSetAccessor;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableIdSequence;
@@ -44,6 +49,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.S3Object;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 /**
  * Basic S3 & RDS implementation of the TableRowTruthDAO.
@@ -197,10 +206,12 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		List<RowReference> refs = new LinkedList<RowReference>();
 		// Build up the row references
 		for (Row row : delta.getRows()) {
-			RowReference ref = new RowReference();
-			ref.setRowId(row.getRowId());
-			ref.setVersionNumber(row.getVersionNumber());
-			refs.add(ref);
+			if (!TableModelUtils.isDeletedRow(row)) {
+				RowReference ref = new RowReference();
+				ref.setRowId(row.getRowId());
+				ref.setVersionNumber(row.getVersionNumber());
+				refs.add(ref);
+			}
 		}
 		results.setRows(refs);
 		return results;
@@ -503,6 +514,72 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			results.add(thisSet);
 		}
 		return results;
+	}
+
+	@Override
+	public RowSetAccessor getLatestVersions(String tableId, Set<Long> rowIds) throws IOException, NotFoundException {
+		final Map<Long, RowAccessor> rowIdToRowMap = Maps.newHashMap();
+
+		List<TableRowChange> rowChanges = listRowSetsKeysForTable(tableId);
+
+		// rowChanges is sorted by size, hence the last rowChange has all the headers
+		final Map<String, Integer> columnIdToIndexMap;
+		if (!rowChanges.isEmpty()) {
+			columnIdToIndexMap = TableModelUtils.createColumnIdToIndexMap(rowChanges.get(rowChanges.size() - 1));
+		} else {
+			columnIdToIndexMap = Collections.emptyMap();
+		}
+
+		// we are scanning backwards through the row changes. Even though it shouldn't happen the same row id could be
+		// in a change set more than once. We need to scan forward in each change set, and only after the change set is
+		// done can we mark a row as found if it is in the change set at least once
+
+		final Set<Long> rowIdsToFind = Sets.newHashSet(rowIds);
+		// For each version of the table (starting at the last one)
+		for (final TableRowChange rowChange : Lists.reverse(rowChanges)) {
+			if (rowIdsToFind.isEmpty()) {
+				// we found all the rows that we need to find
+				break;
+			}
+			final List<Long> rowIdsFound = Lists.newArrayListWithCapacity(rowChange.getRowCount().intValue());
+			// Scan over the delta
+			scanChange(new RowHandler() {
+				@Override
+				public void nextRow(final Row row) {
+					if (rowIdsToFind.contains(row.getRowId())) {
+						rowIdsFound.add(row.getRowId());
+						if (TableModelUtils.isDeletedRow(row)) {
+							rowIdToRowMap.remove(row.getRowId());
+						} else {
+							rowIdToRowMap.put(row.getRowId(), new RowAccessor() {
+								@Override
+								public String getCell(String columnId) {
+									Integer index = columnIdToIndexMap.get(columnId);
+									if (index >= row.getValues().size()) {
+										return null;
+									}
+									return row.getValues().get(index);
+								}
+
+								@Override
+								public Row getRow() {
+									return row;
+								}
+							});
+						}
+					}
+				}
+			}, rowChange);
+			// remove all the rows we found in this change set
+			rowIdsToFind.removeAll(rowIdsFound);
+		}
+
+		return new RowSetAccessor() {
+			@Override
+			protected Map<Long, RowAccessor> getRowIdToRowMap() {
+				return rowIdToRowMap;
+			}
+		};
 	}
 
 	@Override

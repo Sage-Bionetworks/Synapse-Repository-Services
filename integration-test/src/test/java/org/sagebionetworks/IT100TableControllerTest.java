@@ -36,6 +36,8 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableState;
 
+import com.google.common.collect.Lists;
+
 /**
  * Tests for TableEntity and ColumnModel services.
  * 
@@ -149,12 +151,12 @@ public class IT100TableControllerTest {
 		set.setRows(rows);
 		set.setHeaders(TableModelUtils.getHeaders(columns));
 		set.setTableId(table.getId());
-		RowReferenceSet results = synapse.appendRowsToTable(set);
-		assertNotNull(results);
-		assertNotNull(results.getRows());
-		assertEquals(2, results.getRows().size());
-		assertEquals(table.getId(), results.getTableId());
-		assertEquals(TableModelUtils.getHeaders(columns), results.getHeaders());
+		RowReferenceSet results1 = synapse.appendRowsToTable(set);
+		assertNotNull(results1);
+		assertNotNull(results1.getRows());
+		assertEquals(2, results1.getRows().size());
+		assertEquals(table.getId(), results1.getTableId());
+		assertEquals(TableModelUtils.getHeaders(columns), results1.getHeaders());
 		
 		// Now attempt to query for the table results
 		boolean isConsistent = true;
@@ -162,7 +164,7 @@ public class IT100TableControllerTest {
 		RowSet queryResults = waitForQueryResults("select * from "+table.getId()+" limit 2", isConsistent, countOnly);
 		assertNotNull(queryResults);
 		assertNotNull(queryResults.getEtag());
-		assertEquals(results.getEtag(), queryResults.getEtag());
+		assertEquals(results1.getEtag(), queryResults.getEtag());
 		assertEquals(table.getId(), queryResults.getTableId());
 		assertNotNull(queryResults.getRows());
 		assertEquals(2, queryResults.getRows().size());
@@ -171,15 +173,15 @@ public class IT100TableControllerTest {
 			row.setRowId(null);
 			row.setVersionNumber(null);
 		}
-		results = synapse.appendRowsToTable(queryResults);
-		assertNotNull(results);
-		assertNotNull(results.getRows());
+		RowReferenceSet results2 = synapse.appendRowsToTable(queryResults);
+		assertNotNull(results2);
+		assertNotNull(results2.getRows());
 		// run the query again, but this time get the counts
 		countOnly = true;
 		queryResults = waitForQueryResults("select * from "+table.getId()+" limit 2", isConsistent, countOnly);
 		assertNotNull(queryResults);
 		assertNotNull(queryResults.getEtag());
-		assertEquals(results.getEtag(), queryResults.getEtag());
+		assertEquals(results2.getEtag(), queryResults.getEtag());
 		assertEquals(table.getId(), queryResults.getTableId());
 		assertNotNull(queryResults.getRows());
 		assertEquals(1, queryResults.getRows().size());
@@ -187,6 +189,33 @@ public class IT100TableControllerTest {
 		assertNotNull(onlyRow.getValues());
 		assertEquals(1, onlyRow.getValues().size());
 		assertEquals("There should be 4 rows in this table", "4", onlyRow.getValues().get(0));
+
+		// Now use these results to delete a row
+		RowSet rowsToDelete = new RowSet();
+		rowsToDelete.setTableId(table.getId());
+		rowsToDelete.setHeaders(TableModelUtils.getHeaders(columns));
+		rowsToDelete.setEtag(results1.getEtag());
+		Row rowToDelete = new Row();
+		rowToDelete.setRowId(results1.getRows().get(1).getRowId());
+		rowToDelete.setVersionNumber(results1.getRows().get(1).getVersionNumber());
+		rowsToDelete.setRows(Lists.newArrayList(rowToDelete));
+		RowReferenceSet results3 = synapse.appendRowsToTable(rowsToDelete);
+		assertNotNull(results3);
+		assertNotNull(results3.getRows());
+
+		// run the query again, to get the counts
+		countOnly = true;
+		queryResults = waitForQueryResults("select * from " + table.getId() + " limit 2", isConsistent, countOnly);
+		assertNotNull(queryResults);
+		assertNotNull(queryResults.getEtag());
+		assertEquals(results3.getEtag(), queryResults.getEtag());
+		assertEquals(table.getId(), queryResults.getTableId());
+		assertNotNull(queryResults.getRows());
+		assertEquals(1, queryResults.getRows().size());
+		onlyRow = queryResults.getRows().get(0);
+		assertNotNull(onlyRow.getValues());
+		assertEquals(1, onlyRow.getValues().size());
+		assertEquals("There should be 3 rows in this table", "3", onlyRow.getValues().get(0));
 	}
 
 	/**

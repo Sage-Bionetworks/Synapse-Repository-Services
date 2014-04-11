@@ -121,7 +121,7 @@ public class TableIndexDAOImplTest {
 		// Create the table
 		tableIndexDAO.createOrUpdateTable(allTypes, tableId);
 		// Now fill the table with data
-		tableIndexDAO.createOrUpdateRows(set, allTypes);
+		tableIndexDAO.createOrUpdateOrDeleteRows(set, allTypes);
 		List<Map<String, Object>> result = tableIndexDAO.getConnection().queryForList("SELECT * FROM "+SQLUtils.getTableNameForId("syn123"));
 		assertNotNull(result);
 		assertEquals(5, result.size());
@@ -139,7 +139,7 @@ public class TableIndexDAOImplTest {
 		rows.get(4).setValues(Arrays.asList("update", "99.99", "3", "false", "123", "123"));
 		rows.get(4).setVersionNumber(5L);
 		// This should not fail
-		tableIndexDAO.createOrUpdateRows(set, allTypes);
+		tableIndexDAO.createOrUpdateOrDeleteRows(set, allTypes);
 		// Check the update
 		result = tableIndexDAO.getConnection().queryForList("SELECT * FROM "+SQLUtils.getTableNameForId("syn123"));
 		assertNotNull(result);
@@ -179,7 +179,7 @@ public class TableIndexDAOImplTest {
 		range.setVersionNumber(3L);
 		TableModelUtils.assignRowIdsAndVersionNumbers(set, range);
 		// Now fill the table with data
-		tableIndexDAO.createOrUpdateRows(set, allTypes);
+		tableIndexDAO.createOrUpdateOrDeleteRows(set, allTypes);
 		// Check again
 		count = tableIndexDAO.getRowCountForTable(tableId);
 		assertEquals(new Long(rows.size()), count);
@@ -208,7 +208,7 @@ public class TableIndexDAOImplTest {
 		range.setVersionNumber(3L);
 		TableModelUtils.assignRowIdsAndVersionNumbers(set, range);
 		// Now fill the table with data
-		tableIndexDAO.createOrUpdateRows(set, allTypes);
+		tableIndexDAO.createOrUpdateOrDeleteRows(set, allTypes);
 		// Check again
 		maxVersion = tableIndexDAO.getMaxVersionForTable(tableId);
 		assertEquals(new Long(3), maxVersion);
@@ -233,7 +233,7 @@ public class TableIndexDAOImplTest {
 		range.setVersionNumber(3L);
 		TableModelUtils.assignRowIdsAndVersionNumbers(set, range);
 		// Now fill the table with data
-		tableIndexDAO.createOrUpdateRows(set, allTypes);
+		tableIndexDAO.createOrUpdateOrDeleteRows(set, allTypes);
 		Map<String, Long> columnNameToIdMap = TableModelUtils.createColumnNameToIdMap(allTypes);
 		// This is our query
 		SqlQuery query = new SqlQuery("select * from "+tableId, columnNameToIdMap);
@@ -264,6 +264,50 @@ public class TableIndexDAOImplTest {
 	}
 	
 	@Test
+	public void testSimpleQueryWithDeletedRows() throws ParseException {
+		// Create the table
+		List<ColumnModel> allTypes = TableModelTestUtils.createOneOfEachType();
+		tableIndexDAO.createOrUpdateTable(allTypes, tableId);
+		// Now add some data
+		List<Row> rows = TableModelTestUtils.createRows(allTypes, 4);
+		Row deletion = new Row();
+		rows.add(deletion);
+		RowSet set = new RowSet();
+		set.setRows(rows);
+		List<String> headers = TableModelUtils.getHeaders(allTypes);
+		set.setHeaders(headers);
+		set.setTableId(tableId);
+		IdRange range = new IdRange();
+		range.setMinimumId(100L);
+		range.setMaximumId(200L);
+		range.setMaximumUpdateId(200L);
+		range.setVersionNumber(3L);
+		TableModelUtils.assignRowIdsAndVersionNumbers(set, range);
+		// Now fill the table with data
+		tableIndexDAO.createOrUpdateOrDeleteRows(set, allTypes);
+
+		// now delete the second and fourth row
+		set.getRows().remove(0);
+		set.getRows().remove(1);
+		set.getRows().get(0).getValues().clear();
+		set.getRows().get(1).getValues().clear();
+		range.setVersionNumber(4L);
+		TableModelUtils.assignRowIdsAndVersionNumbers(set, range);
+		tableIndexDAO.createOrUpdateOrDeleteRows(set, allTypes);
+
+		Map<String, Long> columnNameToIdMap = TableModelUtils.createColumnNameToIdMap(allTypes);
+		// This is our query
+		SqlQuery query = new SqlQuery("select * from " + tableId, columnNameToIdMap);
+		// Now query for the results
+		RowSet results = tableIndexDAO.query(query);
+		assertNotNull(results);
+		System.out.println(results);
+		assertEquals(2, results.getRows().size());
+		assertEquals(100L, results.getRows().get(0).getRowId().longValue());
+		assertEquals(102L, results.getRows().get(1).getRowId().longValue());
+	}
+
+	@Test
 	public void testNullQuery() throws ParseException {
 		// Create the table
 		List<ColumnModel> allTypes = TableModelTestUtils.createOneOfEachType();
@@ -281,7 +325,7 @@ public class TableIndexDAOImplTest {
 		range.setVersionNumber(3L);
 		TableModelUtils.assignRowIdsAndVersionNumbers(set, range);
 		// Now fill the table with data
-		tableIndexDAO.createOrUpdateRows(set, allTypes);
+		tableIndexDAO.createOrUpdateOrDeleteRows(set, allTypes);
 		Map<String, Long> columnNameToIdMap = TableModelUtils.createColumnNameToIdMap(allTypes);
 		// Now query for the results
 		SqlQuery query = new SqlQuery("select * from " + tableId, columnNameToIdMap);
@@ -326,7 +370,7 @@ public class TableIndexDAOImplTest {
 		range.setVersionNumber(3L);
 		TableModelUtils.assignRowIdsAndVersionNumbers(set, range);
 		// Now fill the table with data
-		tableIndexDAO.createOrUpdateRows(set, allTypes);
+		tableIndexDAO.createOrUpdateOrDeleteRows(set, allTypes);
 		Map<String, Long> columnNameToIdMap = TableModelUtils.createColumnNameToIdMap(allTypes);
 		// Now a count query
 		SqlQuery query = new SqlQuery("select count(*) from "+tableId, columnNameToIdMap);
@@ -377,7 +421,7 @@ public class TableIndexDAOImplTest {
 		range.setVersionNumber(4L);
 		TableModelUtils.assignRowIdsAndVersionNumbers(set, range);
 		// Now fill the table with data
-		tableIndexDAO.createOrUpdateRows(set, schema);
+		tableIndexDAO.createOrUpdateOrDeleteRows(set, schema);
 		Map<String, Long> columnNameToIdMap = TableModelUtils.createColumnNameToIdMap(schema);
 		// Now create the query
 		SqlQuery query = new SqlQuery("select foo, bar from "+tableId+" where foo is not null group by foo order by bar desc limit 1 offset 0", columnNameToIdMap);
@@ -427,7 +471,7 @@ public class TableIndexDAOImplTest {
 		range.setVersionNumber(4L);
 		TableModelUtils.assignRowIdsAndVersionNumbers(set, range);
 		// Now fill the table with data
-		tableIndexDAO.createOrUpdateRows(set, schema);
+		tableIndexDAO.createOrUpdateOrDeleteRows(set, schema);
 		Map<String, Long> columnNameToIdMap = TableModelUtils.createColumnNameToIdMap(schema);
 		// Now create the query
 		SqlQuery query = new SqlQuery("select * from "+tableId+" where ROW_ID = 104 AND Row_Version > 1 limit 1 offset 0", columnNameToIdMap);

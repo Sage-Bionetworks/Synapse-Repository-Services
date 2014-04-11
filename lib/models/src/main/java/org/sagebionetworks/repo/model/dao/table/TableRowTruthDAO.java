@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dao.table;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.IdRange;
@@ -88,9 +89,20 @@ public interface TableRowTruthDAO {
 	public List<RowSet> getRowSetOriginals(RowReferenceSet ref) throws IOException, NotFoundException;
 	
 	/**
+	 * Get all the latest versions of the rows specified by the rowIds
+	 * 
+	 * @param tableId
+	 * @param rowIds
+	 * @return
+	 * @throws IOException
+	 * @throws NotFoundException
+	 */
+	public RowSetAccessor getLatestVersions(String tableId, Set<Long> rowIds) throws IOException, NotFoundException;
+
+	/**
 	 * List the keys of all change sets applied to a table.
 	 * 
-	 * This can be used to synch the "truth" store with secondary stores.  This is the full history of the table.
+	 * This can be used to synch the "truth" store with secondary stores. This is the full history of the table.
 	 * 
 	 * @param tableId
 	 * @return
@@ -119,6 +131,4 @@ public interface TableRowTruthDAO {
 	 * 
 	 */
 	public void truncateAllRowData();
-	
-
 }
