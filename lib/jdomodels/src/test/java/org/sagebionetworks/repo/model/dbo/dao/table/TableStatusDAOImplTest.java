@@ -69,8 +69,8 @@ public class TableStatusDAOImplTest {
 		// The rest should be null
 		assertEquals(null, status.getErrorDetails());
 		assertEquals(null, status.getErrorMessage());
-		assertEquals(null, status.getProgresssCurrent());
-		assertEquals(null, status.getProgresssTotal());
+		assertEquals(null, status.getProgressCurrent());
+		assertEquals(null, status.getProgressTotal());
 		assertEquals(null, status.getTotalTimeMS());
 		// Now if we call it again we should get a new rest-token
 		String newResetToken = tableStatusDAO.resetTableStatusToProcessing("123");
@@ -219,9 +219,9 @@ public class TableStatusDAOImplTest {
 		assertEquals("123", status.getTableId());
 		assertEquals(TableState.PROCESSING, status.getState());
 		assertNotNull(status.getTotalTimeMS());
-		assertEquals("message", status.getProgresssMessage());
-		assertEquals(new Long(0), status.getProgresssCurrent());
-		assertEquals(new Long(100), status.getProgresssTotal());
+		assertEquals("message", status.getProgressMessage());
+		assertEquals(new Long(0), status.getProgressCurrent());
+		assertEquals(new Long(100), status.getProgressTotal());
 	}
 	
 	@Test (expected=NotFoundException.class)

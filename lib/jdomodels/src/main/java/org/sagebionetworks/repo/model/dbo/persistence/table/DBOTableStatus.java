@@ -52,13 +52,13 @@ public class DBOTableStatus implements DatabaseObject<DBOTableStatus>{
 	private Long changedOn;
 	
 	@Field(name = COL_TABLE_STATUS_PROGRESS_MESSAGE, varchar= 1000)
-	private String progresssMessage;
+	private String progressMessage;
 	
 	@Field(name = COL_TABLE_STATUS_PROGRESS_CURRENT)
-	private Long progresssCurrent;
+	private Long progressCurrent;
 	
 	@Field(name = COL_TABLE_STATUS_PROGRESS_TOTAL)
-	private Long progresssTotal;
+	private Long progressTotal;
 	
 	@Field(name = COL_TABLE_STATUS_ERROR_MESSAGE, varchar= 1000)
 	private String errorMessage;
@@ -115,28 +115,28 @@ public class DBOTableStatus implements DatabaseObject<DBOTableStatus>{
 		this.changedOn = changedOn;
 	}
 
-	public String getProgresssMessage() {
-		return progresssMessage;
+	public String getProgressMessage() {
+		return progressMessage;
 	}
 
-	public void setProgresssMessage(String progresssMessage) {
-		this.progresssMessage = progresssMessage;
+	public void setProgressMessage(String progressMessage) {
+		this.progressMessage = progressMessage;
 	}
 
-	public Long getProgresssCurrent() {
-		return progresssCurrent;
+	public Long getProgressCurrent() {
+		return progressCurrent;
 	}
 
-	public void setProgresssCurrent(Long progresssCurrent) {
-		this.progresssCurrent = progresssCurrent;
+	public void setProgressCurrent(Long progressCurrent) {
+		this.progressCurrent = progressCurrent;
 	}
 
-	public Long getProgresssTotal() {
-		return progresssTotal;
+	public Long getProgressTotal() {
+		return progressTotal;
 	}
 
-	public void setProgresssTotal(Long progresssTotal) {
-		this.progresssTotal = progresssTotal;
+	public void setProgressTotal(Long progressTotal) {
+		this.progressTotal = progressTotal;
 	}
 
 	public String getErrorMessage() {
@@ -190,12 +190,12 @@ public class DBOTableStatus implements DatabaseObject<DBOTableStatus>{
 						.hashCode());
 		result = prime
 				* result
-				+ ((progresssCurrent == null) ? 0 : progresssCurrent.hashCode());
+				+ ((progressCurrent == null) ? 0 : progressCurrent.hashCode());
 		result = prime
 				* result
-				+ ((progresssMessage == null) ? 0 : progresssMessage.hashCode());
+				+ ((progressMessage == null) ? 0 : progressMessage.hashCode());
 		result = prime * result
-				+ ((progresssTotal == null) ? 0 : progresssTotal.hashCode());
+				+ ((progressTotal == null) ? 0 : progressTotal.hashCode());
 		result = prime * result
 				+ ((resetToken == null) ? 0 : resetToken.hashCode());
 		result = prime * result
@@ -233,20 +233,20 @@ public class DBOTableStatus implements DatabaseObject<DBOTableStatus>{
 				return false;
 		} else if (!lastTableChangeEtag.equals(other.lastTableChangeEtag))
 			return false;
-		if (progresssCurrent == null) {
-			if (other.progresssCurrent != null)
+		if (progressCurrent == null) {
+			if (other.progressCurrent != null)
 				return false;
-		} else if (!progresssCurrent.equals(other.progresssCurrent))
+		} else if (!progressCurrent.equals(other.progressCurrent))
 			return false;
-		if (progresssMessage == null) {
-			if (other.progresssMessage != null)
+		if (progressMessage == null) {
+			if (other.progressMessage != null)
 				return false;
-		} else if (!progresssMessage.equals(other.progresssMessage))
+		} else if (!progressMessage.equals(other.progressMessage))
 			return false;
-		if (progresssTotal == null) {
-			if (other.progresssTotal != null)
+		if (progressTotal == null) {
+			if (other.progressTotal != null)
 				return false;
-		} else if (!progresssTotal.equals(other.progresssTotal))
+		} else if (!progressTotal.equals(other.progressTotal))
 			return false;
 		if (resetToken == null) {
 			if (other.resetToken != null)
@@ -278,12 +278,13 @@ public class DBOTableStatus implements DatabaseObject<DBOTableStatus>{
 		return "DBOTableStatus [tableId=" + tableId + ", state=" + state
 				+ ", resetToken=" + resetToken + ", lastTableChangeEtag="
 				+ lastTableChangeEtag + ", startedOn=" + startedOn
-				+ ", changedOn=" + changedOn + ", progresssMessage="
-				+ progresssMessage + ", progresssCurrent=" + progresssCurrent
-				+ ", progresssTotal=" + progresssTotal + ", errorMessage="
+				+ ", changedOn=" + changedOn + ", progressMessage="
+				+ progressMessage + ", progressCurrent=" + progressCurrent
+				+ ", progressTotal=" + progressTotal + ", errorMessage="
 				+ errorMessage + ", errorDetails="
 				+ Arrays.toString(errorDetails) + ", totalRunTimeMS="
 				+ totalRunTimeMS + "]";
 	}
+
 	
 }
