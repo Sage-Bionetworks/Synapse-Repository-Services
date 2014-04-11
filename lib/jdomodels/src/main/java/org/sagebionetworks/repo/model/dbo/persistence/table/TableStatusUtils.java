@@ -35,9 +35,9 @@ public class TableStatusUtils {
 		if(dto.getState() != null){
 			dbo.setState(TableStateEnum.valueOf(dto.getState().name()));
 		}
-		dbo.setProgresssCurrent(dto.getProgressCurrent());
-		dbo.setProgresssTotal(dto.getProgressTotal());
-		dbo.setProgresssMessage(dto.getProgressMessage());
+		dbo.setProgressCurrent(dto.getProgressCurrent());
+		dbo.setProgressTotal(dto.getProgressTotal());
+		dbo.setProgressMessage(dto.getProgressMessage());
 		dbo.setResetToken(dto.getResetToken());
 		dbo.setTotalRunTimeMS(dto.getTotalTimeMS());
 		dbo.setLastTableChangeEtag(dto.getLastTableChangeEtag());
@@ -65,10 +65,10 @@ public class TableStatusUtils {
 		if(dbo.getState() != null){
 			dto.setState(TableState.valueOf(dbo.getState().name()));
 		}
-		dto.setProgressCurrent(dbo.getProgresssCurrent());
-		dto.setProgressMessage(dbo.getProgresssMessage());
+		dto.setProgressCurrent(dbo.getProgressCurrent());
+		dto.setProgressMessage(dbo.getProgressMessage());
 		dto.setResetToken(dbo.getResetToken());
-		dto.setProgressTotal(dbo.getProgresssTotal());
+		dto.setProgressTotal(dbo.getProgressTotal());
 		dto.setTotalTimeMS(dbo.getTotalRunTimeMS());
 		dto.setLastTableChangeEtag(dbo.getLastTableChangeEtag());
 		return dto;
