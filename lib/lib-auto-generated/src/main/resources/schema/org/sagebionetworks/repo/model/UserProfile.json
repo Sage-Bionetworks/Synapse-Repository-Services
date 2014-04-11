@@ -181,8 +181,13 @@
         "notificationSettings": {
             "type": "object", 
             "title": "Notification Settings", 
-            "descriptions": "The user's preferences regarding when email notifications should be sent", 
+            "description": "The user's preferences regarding when email notifications should be sent", 
             "$ref": "org.sagebionetworks.repo.model.message.Settings"
+        },
+        "preferences": {
+            "type": "object", 
+            "title": "User Preferences", 
+             "$ref": "org.sagebionetworks.repo.model.UserPreferences"
         }
 	}
 }
