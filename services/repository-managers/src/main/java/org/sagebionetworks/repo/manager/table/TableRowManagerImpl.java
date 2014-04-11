@@ -152,7 +152,9 @@ public class TableRowManagerImpl implements TableRowManager {
 		}
 		// Send the last batch is there are any rows
 		if(!batch.isEmpty()){
-			 etag = appendBatchOfRowsToTable(user, models, delta, results);
+			// Validate there aren't any illegal file handle replaces
+			validateFileHandles(user, tableId, models, delta);
+			etag = appendBatchOfRowsToTable(user, models, delta, results);
 		}
 		// The table has change so we must reset the state.
 		tableStatusDAO.resetTableStatusToProcessing(tableId);
