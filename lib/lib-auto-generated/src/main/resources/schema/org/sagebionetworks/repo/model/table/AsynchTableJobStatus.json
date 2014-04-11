@@ -1,0 +1,72 @@
+{
+	"description": "Object used to track the status of an Asynchronous table job.",
+	"properties": {
+		"state": {
+			"type": "string",
+			"description": "The job's state can be one of the following enumerations",
+			"name": "AsynchJobState",
+			"id": "org.sagebionetworks.repo.model.table.AsynchJobState",
+			"enum": [
+				"PROCESSING",
+				"FAILED",
+				"COMPLETE"
+			]
+		},
+		"type": {
+			"type": "string",
+			"description": "The type of job.",
+			"name": "JobType",
+			"id": "org.sagebionetworks.repo.model.table.JobType",
+			"enum": [
+				"UPLOAD",
+				"DOWNLOAD"
+			]
+		},
+		"tableId": {
+			"type": "string",
+			"description": "The ID of the table."
+		},
+		"jobId": {
+			"type": "string",
+			"description": "The ID if the job issued when this job request was issued."
+		},		
+		"startedOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date-time when the status of this table last changed to PROCESSING."
+		},
+		"changedOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date-time when the status of this table last changed."
+		},
+		"progresssMessage": {
+			"type": "string",
+			"description": "The current message of the progress tracker."
+		},
+		"progresssCurrent": {
+			"type": "integer",
+			"description": "The progress current value indicates how much progress has been made. For example: If progressTotal = 100; and progressCurrent = 50; then the work is 50% complete."
+		},
+		"progresssTotal": {
+			"type": "integer",
+			"description": "The progress total indicates the total amount of work to complete. For example: If progressTotal = 100; and progressCurrent = 50; then the work is 50% complete."
+		},
+		"errorMessage": {
+			"type": "string",
+			"description": "When processing fails, this is a one line error message."
+		},
+		"errorDetails": {
+			"type": "string",
+			"description": "When processing fails, this is the full stack trace of the error."
+		},
+		"uploadFileHandleId": {
+			"type": "string",
+			"description": "The ID of the filehandle for a type of UPLOAD"
+		},
+		"downloadURL": {
+			"type": "string",
+			"description": "The resulting URL for a type of DOWNLOAD"
+		}
+	}
+}
