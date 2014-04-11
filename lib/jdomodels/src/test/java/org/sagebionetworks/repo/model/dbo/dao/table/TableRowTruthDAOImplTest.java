@@ -7,6 +7,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -129,6 +130,26 @@ public class TableRowTruthDAOImplTest {
 		// Append this change set
 		RowReferenceSet refSet = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, models, set);
 		assertEquals(set, tableRowTruthDao.getRowSet(refSet, models));
+	}
+	
+	@Test
+	public void testEmptyValues() throws Exception {
+		// Create some test column models
+		List<ColumnModel> models = TableModelTestUtils.createOneOfEachType();
+		// create some test rows.
+		List<Row> rows = TableModelTestUtils.createEmptyRows(models, 5);
+
+		String tableId = "syn123";
+		RowSet set = new RowSet();
+		set.setHeaders(TableModelUtils.getHeaders(models));
+		set.setRows(rows);
+		set.setTableId(tableId);
+		// Append this change set
+		RowReferenceSet refSet = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, models, set);
+		RowSet results =  tableRowTruthDao.getRowSet(refSet, models);
+		assertEquals(5, results.getRows().size());
+		// The first value should be an empty string, the rest of the columns should be null
+		assertEquals(Arrays.asList("",null,null,null,null,null), results.getRows().get(0).getValues());
 	}
 
 	@Test

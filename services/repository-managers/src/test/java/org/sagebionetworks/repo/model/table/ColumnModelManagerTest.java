@@ -134,6 +134,29 @@ public class ColumnModelManagerTest {
 		}
 	}
 	
+	/**
+	 * Should not be able to create a column with a name that is a SQL key word
+	 * 
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@Test
+	public void testCreateColumnModelKeyWordsAsName() throws DatastoreException, NotFoundException{
+		ColumnModel in = new ColumnModel();
+		in.setName("max");
+		// Setup the anonymous users
+		when(mockauthorizationManager.isAnonymousUser(user)).thenReturn(false);
+		when(mockColumnModelDAO.createColumnModel(in)).thenReturn(in);
+		try{
+			columnModelManager.createColumnModel(user, in);
+			fail("should not be able to create a column model with a key word column name");
+		}catch(IllegalArgumentException e){
+			// expected
+			assertTrue(e.getMessage().contains(in.getName()));
+			assertTrue(e.getMessage().contains("SQL key word"));
+		}
+	}
+	
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetColumnsNullUser() throws DatastoreException, NotFoundException{
 		List<String> ids = new LinkedList<String>();

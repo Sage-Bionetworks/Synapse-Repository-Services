@@ -127,7 +127,7 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 		// Calculate the total runtime
 		long runtimeMS = now - current.getStartedOn();
 		// Set the progress current to be the same as the progress total.
-		Long progressCurrent = current.getProgresssTotal();
+		Long progressCurrent = current.getProgressTotal();
 		byte[] errorDetailsBytes = TableStatusUtils.createErrorDetails(errorDetails);
 		simpleJdbcTemplate.update(SQL_UPDATE_END_STATE, state.name(), now, progressMessage, progressCurrent, errorMessage, errorDetailsBytes, runtimeMS,tableChangeEtag, tableId);
  	}

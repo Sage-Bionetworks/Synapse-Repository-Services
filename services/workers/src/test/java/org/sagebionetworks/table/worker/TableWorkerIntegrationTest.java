@@ -128,6 +128,10 @@ public class TableWorkerIntegrationTest {
 		columnManager.bindColumnToObject(adminUserInfo, headers, tableId, true);
 		// Now add some data
 		List<Row> rows = TableModelTestUtils.createRows(schema, 2);
+		// Add null rows
+		rows.addAll(TableModelTestUtils.createNullRows(schema, 2));
+		// Add empty rows
+		rows.addAll(TableModelTestUtils.createEmptyRows(schema, 2));
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(rows);
 		rowSet.setHeaders(headers);
@@ -140,13 +144,13 @@ public class TableWorkerIntegrationTest {
 		// Validate that we can query the table
 		boolean isConsistent = true;
 		boolean countOnly = false;
-		rowSet = tableRowManager.query(adminUserInfo, "select * from "+tableId+" limit 2", isConsistent, countOnly);
+		rowSet = tableRowManager.query(adminUserInfo, "select * from "+tableId+" limit 6", isConsistent, countOnly);
 		assertNotNull(rowSet);
 		assertEquals(tableId, rowSet.getTableId());
 		assertNotNull(rowSet.getHeaders());
 		assertEquals(schema.size(), rowSet.getHeaders().size());
 		assertNotNull(rowSet.getRows());
-		assertEquals(2, rowSet.getRows().size());
+		assertEquals(6, rowSet.getRows().size());
 		assertNotNull(rowSet.getEtag());
 		assertEquals("The etag for the last applied change set should be set for the status and the results",status.getLastTableChangeEtag(), rowSet.getEtag());
 		assertEquals("The etag should also match the rereferenceSet.etag",referenceSet.getEtag(), rowSet.getEtag());
@@ -289,7 +293,7 @@ public class TableWorkerIntegrationTest {
 		while(!TableState.AVAILABLE.equals(status.getState())){
 			assertTrue("Timed out waiting for table index worker to make the table available.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
 			assertFalse("Failed to process table: "+status.getErrorMessage(), TableState.PROCESSING_FAILED.equals(status.getState()));
-			System.out.println("Waiting for table index worker to build table..."+status.getProgresssMessage()+ " current: "+status.getProgresssCurrent()+" of: "+status.getProgresssTotal());
+			System.out.println("Waiting for table index worker to build table..."+status.getProgressMessage()+ " current: "+status.getProgressCurrent()+" of: "+status.getProgressTotal());
 			Thread.sleep(1000);
 			status = tableRowManager.getTableStatus(tableId);
 		}

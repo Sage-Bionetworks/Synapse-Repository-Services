@@ -19,9 +19,9 @@ public class TableStatusUtilsTest {
 		dto.setErrorDetails("This is the longer error details");
 		dto.setErrorMessage("This is the short message");
 		dto.setTableId("123");
-		dto.setProgresssCurrent(50L);
-		dto.setProgresssMessage("Making progress");
-		dto.setProgresssTotal(100L);
+		dto.setProgressCurrent(50L);
+		dto.setProgressMessage("Making progress");
+		dto.setProgressTotal(100L);
 		dto.setState(TableState.PROCESSING_FAILED);
 		dto.setTotalTimeMS(10L);
 		dto.setResetToken("reset token");
