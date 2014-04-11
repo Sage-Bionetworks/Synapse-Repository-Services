@@ -349,7 +349,7 @@ public class TableModelUtilsTest {
 			cm.setColumnType(type);
 			cm.setMaximumSize(555L);
 			cm.setDefaultValue(null);
-			assertEquals("Value of an empty string for a none string should be treated as null",null, TableModelUtils.validateRowValue("", cm, 0, 0));
+			assertEquals("Value of an empty string for a non-string should be treated as null",null, TableModelUtils.validateRowValue("", cm, 0, 0));
 		}
 	}
 	
