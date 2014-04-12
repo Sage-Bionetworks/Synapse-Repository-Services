@@ -40,15 +40,15 @@
 			"format": "date-time",
 			"description": "The date-time when the status of this table last changed."
 		},
-		"progresssMessage": {
+		"progressMessage": {
 			"type": "string",
 			"description": "The current message of the progress tracker."
 		},
-		"progresssCurrent": {
+		"progressCurrent": {
 			"type": "integer",
 			"description": "The progress current value indicates how much progress has been made. For example: If progressTotal = 100; and progressCurrent = 50; then the work is 50% complete."
 		},
-		"progresssTotal": {
+		"progressTotal": {
 			"type": "integer",
 			"description": "The progress total indicates the total amount of work to complete. For example: If progressTotal = 100; and progressCurrent = 50; then the work is 50% complete."
 		},
