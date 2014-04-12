@@ -1,7 +1,7 @@
 {
 	"description": "Object used to track the status of an Asynchronous table job.",
 	"properties": {
-		"state": {
+		"jobState": {
 			"type": "string",
 			"description": "The job's state can be one of the following enumerations",
 			"name": "AsynchJobState",
@@ -12,7 +12,7 @@
 				"COMPLETE"
 			]
 		},
-		"type": {
+		"jobType": {
 			"type": "string",
 			"description": "The type of job.",
 			"name": "JobType",

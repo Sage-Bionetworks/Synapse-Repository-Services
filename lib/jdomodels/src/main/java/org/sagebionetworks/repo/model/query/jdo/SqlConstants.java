@@ -404,6 +404,12 @@ public class SqlConstants {
 	public static final String COL_TABLE_STATUS_RUNTIME_MS			= "RUNTIME_MS";
 	public static final String COL_TABLE_LAST_TABLE_CHANGE_ETAG		= "LAST_TABLE_CHANGE_ETAG";
 	
+	// Status table for Asynchronous table jobs
+	public static final String ASYNCH_TABLE_JOB_STATUS				= "ASYNCH_TABLE_JOB_STATUS";
+	public static final String COL_ASYNCH_JOB_ID					= "JOB_ID";
+	public static final String COL_ASYNCH_JOB_STATE					= "JOB_STATE";
+	public static final String COL_ASYNCH_JOB_TYPE					= "JOB_TYPE";
+	
 	// The wiki attachment table
 	public static final String TABLE_WIKI_ATTACHMENT				= "WIKI_ATTACHMENTS";
 	public static final String COL_WIKI_ATTACHMENT_ID				= "WIKI_ID";

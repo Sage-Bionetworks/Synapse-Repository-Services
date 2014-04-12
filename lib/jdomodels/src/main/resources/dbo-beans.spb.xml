@@ -86,6 +86,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableIdSequence" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableRowChange" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableStatus" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.table.DBOAsynchTableJobStatus" />
 				<!-- misc -->
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOSentMessage" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOProcessedMessage" />
@@ -150,6 +151,7 @@
 				
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.table.DBOColumnModel" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableIdSequence" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.table.DBOAsynchTableJobStatus" />
 				
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOStorageQuota" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOQuizResponse" />

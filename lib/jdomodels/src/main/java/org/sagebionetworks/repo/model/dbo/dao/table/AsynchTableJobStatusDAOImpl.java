@@ -5,8 +5,7 @@ import org.sagebionetworks.repo.model.table.AsynchTableJobStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-
-public class AsynchTableJobStatusImpl implements AsynchTableJobStatusDAO {
+public class AsynchTableJobStatusDAOImpl implements AsynchTableJobStatusDAO {
 	
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
