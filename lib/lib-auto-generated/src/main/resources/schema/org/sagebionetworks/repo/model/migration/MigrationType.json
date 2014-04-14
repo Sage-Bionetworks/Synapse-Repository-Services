@@ -49,6 +49,7 @@
         "PARTICIPANT_DATA",
         "PARTICIPANT_DATA_STATUS",
         "COLUMN_MODEL",
+        "BOUND_COLUMN_OWNER",
         "BOUND_COLUMN",
         "BOUND_COLUMN_ORDINAL",
         "TABLE_SEQUENCE",

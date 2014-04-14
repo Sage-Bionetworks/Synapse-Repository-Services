@@ -15,9 +15,9 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_COLUMN
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
 import org.sagebionetworks.ids.IdGenerator;
@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.table.ColumnModelUtlis;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOBoundColumn;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOBoundColumnOrdinal;
+import org.sagebionetworks.repo.model.dbo.persistence.table.DBOBoundColumnOwner;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOColumnModel;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -165,6 +166,12 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 		getColumnModel(newCurrentColumnIds);
 		Long objectId = KeyFactory.stringToKey(objectIdString);
 		try {
+			// Create or update the owner.
+			DBOBoundColumnOwner owner = new DBOBoundColumnOwner();
+			owner.setObjectId(objectId);
+			owner.setEtag(UUID.randomUUID().toString());
+			basicDao.createOrUpdate(owner);
+			
 			// first bind these columns to the object. This binding is permanent and can only grow over time.
 			List<DBOBoundColumn> permanent = ColumnModelUtlis.createDBOBoundColumnList(objectId, newCurrentColumnIds);
 			// Sort by columnId to prevent deadlock
