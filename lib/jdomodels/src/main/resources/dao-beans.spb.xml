@@ -148,6 +148,8 @@
 		factory-method="getIAMUserId" />
 	<bean id="secretKey" class="org.sagebionetworks.StackConfiguration"
 		factory-method="getIAMUserKey" />
+	<bean id="s3Endpoint" class="org.sagebionetworks.StackConfiguration"
+		factory-method="getS3Endpoint" />
 	<bean id="awsCredentials" class="com.amazonaws.auth.BasicAWSCredentials">
 		<constructor-arg index="0" ref="accessKey" />
 		<constructor-arg index="1" ref="secretKey" />
@@ -155,6 +157,7 @@
 	<bean id="amazonS3Client" class="com.amazonaws.services.s3.AmazonS3Client"
 		scope="singleton">
 		<constructor-arg ref="awsCredentials" />
+		<property name="endpoint" ref="s3Endpoint"/>
 	</bean>
 	<bean id="storageUsageQueryDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.StorageUsageQueryDaoImpl"

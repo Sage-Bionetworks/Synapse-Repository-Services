@@ -204,10 +204,18 @@ public class StackConfiguration {
 	}
 
 	/**
-	 * This is the bucket for workflow-related files such as configuration or
-	 * search document files. Each workflow should store stuff under its own
-	 * workflow name prefix so that we can configure permissions not only on the
-	 * bucket but also the S3 object prefix.
+	 * Get the S3 endpoint
+	 * 
+	 * @return
+	 */
+	public static String getS3Endpoint() {
+		return configuration.getProperty("org.sagebionetworks.s3.endpoint");
+	}
+
+	/**
+	 * This is the bucket for workflow-related files such as configuration or search document files. Each workflow
+	 * should store stuff under its own workflow name prefix so that we can configure permissions not only on the bucket
+	 * but also the S3 object prefix.
 	 */
 	public static String getS3WorkflowBucket() {
 		return configuration

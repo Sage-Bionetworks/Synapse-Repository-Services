@@ -17,6 +17,8 @@
 		factory-method="getIAMUserId" />
 	<bean id="userKey" class="org.sagebionetworks.StackConfiguration"
 		factory-method="getIAMUserKey" />
+	<bean id="s3Endpoint" class="org.sagebionetworks.StackConfiguration"
+		factory-method="getS3Endpoint" />
 
 	<!-- bean for AmazonWebServices BasicAWSCredentials -->
 	<bean id="awsCredentials" class="com.amazonaws.auth.BasicAWSCredentials">
@@ -31,6 +33,7 @@
 	<bean id="amazonS3Client" class="com.amazonaws.services.s3.AmazonS3Client"
 		scope="singleton">
 		<constructor-arg ref="awsCredentials" />
+		<property name="endpoint" ref="s3Endpoint"/>
 	</bean>
 
 	<bean id="accessRecordDAO" class="org.sagebionetworks.audit.dao.AccessRecordDAOImpl"
