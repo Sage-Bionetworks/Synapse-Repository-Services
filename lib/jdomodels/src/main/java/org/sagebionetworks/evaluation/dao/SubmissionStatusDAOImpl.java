@@ -1,9 +1,13 @@
 package org.sagebionetworks.evaluation.dao;
 
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_ETAG;
+import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_SUBSTATUS;
 
 import java.io.IOException;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
@@ -22,6 +26,7 @@ import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.query.SQLConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
@@ -47,6 +52,12 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 
 	private static final String SUBMISSION_NOT_FOUND = "Submission could not be found with id :";
 	
+	private static final String SELECT_BATCH_SQL =
+			"SELECT * FROM "+ TABLE_SUBSTATUS +
+			" WHERE "+ SQLConstants.COL_SUBSTATUS_SUBMISSION_ID + " in (:"+SQLConstants.COL_SUBMISSION_ID+")";
+	
+	private static final RowMapper<SubmissionStatusDBO> rowMapper = ((new SubmissionStatusDBO()).getTableMapping());
+
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public String create(SubmissionStatus dto) throws DatastoreException {
@@ -77,6 +88,19 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 		return convertDboToDto(dbo);
 	}
 	
+	@Override
+	public Map<String, SubmissionStatus> getBatch(List<String> ids) throws DatastoreException, NotFoundException {
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(SQLConstants.COL_SUBSTATUS_SUBMISSION_ID, ids);	
+		List<SubmissionStatusDBO> dbos = simpleJdbcTemplate.query(SELECT_BATCH_SQL, rowMapper, param);
+		Map<String, SubmissionStatus> dtos = new HashMap<String,SubmissionStatus>();
+		for (SubmissionStatusDBO dbo : dbos) {
+			SubmissionStatus dto = convertDboToDto(dbo);
+			dtos.put(dto.getId(), dto);
+		}
+		return dtos;
+	}
+
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void update(SubmissionStatus dto) throws DatastoreException,

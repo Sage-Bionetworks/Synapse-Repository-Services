@@ -1,5 +1,8 @@
 package org.sagebionetworks.repo.model.evaluation;
 
+import java.util.List;
+import java.util.Map;
+
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -28,6 +31,15 @@ public interface SubmissionStatusDAO {
 	 */
 	public SubmissionStatus get(String id) throws DatastoreException,
 			NotFoundException;
+
+	/**
+	 * Get the submission statuses for the given list of Ids
+	 * @param ids
+	 * @return a Map from Id to the submission statuses having said Id
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public Map<String, SubmissionStatus> getBatch(List<String> ids) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Update a SubmissionStatus object. An eTag update will be triggered.

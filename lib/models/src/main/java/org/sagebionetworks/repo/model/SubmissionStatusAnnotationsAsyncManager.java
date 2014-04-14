@@ -10,7 +10,6 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
  */
 public interface SubmissionStatusAnnotationsAsyncManager {
 	
-
 	/**
 	 * Update the query tables with any Annotations included in the created SubmissionStatus.
 	 * 
@@ -41,5 +40,36 @@ public interface SubmissionStatusAnnotationsAsyncManager {
 	 * @return
 	 */
 	public void deleteSubmission(String id);
+
+	/**
+	 * Update the query tables with any Annotations included in the created Evaluation's SubmissionStatuses.
+	 * 
+	 * @param subId
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws JSONObjectAdapterException
+	 */
+	public void createEvaluationSubmissionStatuses(String evalId) 
+			throws NotFoundException, DatastoreException, JSONObjectAdapterException;
+
+	/**
+	 * Update the query tables with any Annotations included in the updated Evaluation's SubmissionStatuses.
+	 * 
+	 * @param id
+	 * @return
+	 * @throws NotFoundException
+	 * @throws JSONObjectAdapterException 
+	 * @throws DatastoreException 
+	 */
+	public void updateEvaluationSubmissionStatuses(String id) 
+			throws NotFoundException, DatastoreException, JSONObjectAdapterException;
+
+	/**
+	 * Delete all entries in the query tables for the deleted Evaluation.
+	 * 
+	 * @param id
+	 * @return
+	 */
+	public void deleteEvaluationSubmissions(String id);
 
 }

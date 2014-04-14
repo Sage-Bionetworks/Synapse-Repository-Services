@@ -1,12 +1,19 @@
 package org.sagebionetworks.evaluation.dao;
 
 import static org.sagebionetworks.repo.model.query.SQLConstants.ANNO_BLOB;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_EVAL_ID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_ANNO_ATTRIBUTE;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_ANNO_BLOB;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_ANNO_ETAG;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_ANNO_EVALID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_ANNO_IS_PRIVATE;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_ANNO_SUBID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_ANNO_VALUE;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_ETAG;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_SUBMISSION_ID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_SUBMISSION;
+import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_SUBSTATUS;
 import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_SUBSTATUS_ANNO_BLOB;
 import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_SUBSTATUS_ANNO_OWNER;
 import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_SUBSTATUS_DOUBLEANNO;
@@ -17,6 +24,7 @@ import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.sagebionetworks.evaluation.dbo.AnnotationsBlobDBO;
@@ -24,6 +32,9 @@ import org.sagebionetworks.evaluation.dbo.AnnotationsOwnerDBO;
 import org.sagebionetworks.evaluation.dbo.DoubleAnnotationDBO;
 import org.sagebionetworks.evaluation.dbo.LongAnnotationDBO;
 import org.sagebionetworks.evaluation.dbo.StringAnnotationDBO;
+import org.sagebionetworks.evaluation.model.Submission;
+import org.sagebionetworks.evaluation.model.SubmissionBundle;
+import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.annotation.Annotations;
 import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
@@ -38,18 +49,23 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 public class AnnotationsDAOImpl implements AnnotationsDAO {
 	
-	private static final String FROM_ANNO_OWNER =
-			" FROM " + TABLE_SUBSTATUS_ANNO_OWNER + " WHERE " + COL_SUBSTATUS_ANNO_SUBID + " = ?";
+	private static final String SELECT_FROM_ANNO_OWNER = "SELECT * " +
+			" FROM " + TABLE_SUBSTATUS_ANNO_OWNER + " WHERE " + 
+			COL_SUBSTATUS_ANNO_SUBID + " = ?";;
 	
-	private static final String DELETE_FROM_ANNO_OWNER = "DELETE" + FROM_ANNO_OWNER;
+	private static final String DELETE_FROM_ANNO_OWNERS = "DELETE " + 
+			" FROM " + TABLE_SUBSTATUS_ANNO_OWNER + " WHERE " + 
+			COL_SUBSTATUS_ANNO_SUBID + "IN :?";
 	
-	private static final String SELECT_FROM_ANNO_OWNER = "SELECT *" + FROM_ANNO_OWNER;
+	private static final String DELETE_FROM_ANNO_SCOPE = "DELETE FROM " + TABLE_SUBSTATUS_ANNO_OWNER + 
+			" WHERE " + COL_SUBSTATUS_ANNO_EVALID + "=:"+COL_SUBSTATUS_ANNO_EVALID;
 	
 	private static final String SELECT_FORMAT =
 			"SELECT " + COL_SUBSTATUS_ANNO_ATTRIBUTE + ", " + COL_SUBSTATUS_ANNO_VALUE + ", " +
@@ -62,6 +78,20 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 	private static final String SELECT_ANNO_BLOB = "SELECT " + COL_SUBSTATUS_ANNO_BLOB + " FROM " +
 			TABLE_SUBSTATUS_ANNO_BLOB + " WHERE " + COL_SUBSTATUS_ANNO_SUBID + " = ?";
 	
+	//	select s.ID from JDOSUBMISSION s, JDOSUBMISSION_STATUS t 
+	//	left outer join SUBSTATUS_ANNOTATIONS_BLOB a on a.SUBMISSION_ID=t.ID
+	//	where
+	//	s.ID=t.ID and
+	//	(a.ETAG is null or a.ETAG<>t.ETAG)
+	//	and s.EVALUATION_ID=:EVALUATION_ID;
+	private static final String SELECT_MISSING_OR_CHANGED_SUBSTATUSES = 
+			"SELECT s."+COL_SUBMISSION_ID+" FROM "+TABLE_SUBMISSION+" s, "+TABLE_SUBSTATUS+" t "+
+			" LEFT OUTER JOIN "+TABLE_SUBSTATUS_ANNO_BLOB+" a ON a."+COL_SUBSTATUS_ANNO_SUBID+"=t."+
+			COL_SUBSTATUS_SUBMISSION_ID+
+			" WHERE s."+COL_SUBMISSION_ID+"=t."+COL_SUBSTATUS_SUBMISSION_ID+" AND (a."+
+			COL_SUBSTATUS_ANNO_ETAG+" IS NULL OR a."+COL_SUBSTATUS_ANNO_ETAG+"<>t."+COL_SUBSTATUS_ETAG+") "+
+			" AND s."+COL_SUBMISSION_EVAL_ID+"=:"+COL_SUBMISSION_EVAL_ID;
+
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
 	@Autowired
@@ -157,62 +187,92 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 		return annos;
 	}
 
+	@Override
+	public void replaceAnnotationsBatch(List<Annotations> annotations)
+			throws DatastoreException, JSONObjectAdapterException {
+		replaceAnnotations(annotations);
+	}
+
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void replaceAnnotations(Annotations annotations) throws DatastoreException, JSONObjectAdapterException {
-		if(annotations == null) throw new IllegalArgumentException("Annotations cannot be null");
-		if(annotations.getObjectId() == null) throw new IllegalArgumentException("Annotations owner id cannot be null");
-		Long ownerId = KeyFactory.stringToKey(annotations.getObjectId());
-		Long ownerParentId = 0L;
-		if (annotations.getScopeId() != null) {
-			ownerParentId = KeyFactory.stringToKey(annotations.getScopeId());
-		}
-		
+		replaceAnnotations(Collections.singletonList(annotations));
+	}
+	
+	private void replaceAnnotations(List<Annotations> annotationsList) {
 		// Create DBOs
 		// Note that a copy of every Annotation is stored on the String table, regardless of type.
 		// This is necessary to support queries on Annotations of unknown type.
 		List<LongAnnotationDBO> longAnnoDBOs = new ArrayList<LongAnnotationDBO>();
 		List<DoubleAnnotationDBO> doubleAnnoDBOs = new ArrayList<DoubleAnnotationDBO>();
 		List<StringAnnotationDBO> stringAnnoDBOs = new ArrayList<StringAnnotationDBO>();
+		List<AnnotationsBlobDBO> ssAnnoBlobDBOs = new ArrayList<AnnotationsBlobDBO>();
+		List<Long> ownerIds = new ArrayList<Long>();
 		
-		List<LongAnnotation> longAnnos = annotations.getLongAnnos();
-		if (longAnnos != null) {
-			for (LongAnnotation la : longAnnos) {
-				longAnnoDBOs.add(AnnotationDBOUtils.createLongAnnotationDBO(ownerId, la));
-				stringAnnoDBOs.add(AnnotationDBOUtils.createStringAnnotationDBO(ownerId, la));
+		Long scopeId = null;
+		for (Annotations annotations : annotationsList) {
+			if(annotations == null) throw new IllegalArgumentException("Annotations cannot be null");
+			if(annotations.getObjectId() == null) throw new IllegalArgumentException("Annotations owner id cannot be null");
+			Long ownerId = KeyFactory.stringToKey(annotations.getObjectId());
+			ownerIds.add(ownerId);
+			if (annotations.getScopeId() != null) {
+				Long thisScopeId = KeyFactory.stringToKey(annotations.getScopeId());
+				if (scopeId==null) {
+					scopeId=thisScopeId;
+				} else {
+					if (!scopeId.equals(thisScopeId))
+						throw new IllegalArgumentException("Expected all annotations to have have the same scope but found "+
+								scopeId+ " and "+thisScopeId);
+				}
 			}
-		}
-		List<DoubleAnnotation> doubleAnnos = annotations.getDoubleAnnos();
-		if (doubleAnnos != null) {
-			for (DoubleAnnotation da : doubleAnnos) {
-				doubleAnnoDBOs.add(AnnotationDBOUtils.createDoubleAnnotationDBO(ownerId, da));
-				stringAnnoDBOs.add(AnnotationDBOUtils.createStringAnnotationDBO(ownerId, da));
+			
+			List<LongAnnotation> longAnnos = annotations.getLongAnnos();
+			if (longAnnos != null) {
+				for (LongAnnotation la : longAnnos) {
+					longAnnoDBOs.add(AnnotationDBOUtils.createLongAnnotationDBO(ownerId, la));
+					stringAnnoDBOs.add(AnnotationDBOUtils.createStringAnnotationDBO(ownerId, la));
+				}
 			}
-		}
-		List<StringAnnotation> stringAnnos = annotations.getStringAnnos();
-		if (stringAnnos != null) {
-			for (StringAnnotation sa : stringAnnos) {
-				stringAnnoDBOs.add(AnnotationDBOUtils.createStringAnnotationDBO(ownerId, sa));
+			List<DoubleAnnotation> doubleAnnos = annotations.getDoubleAnnos();
+			if (doubleAnnos != null) {
+				for (DoubleAnnotation da : doubleAnnos) {
+					doubleAnnoDBOs.add(AnnotationDBOUtils.createDoubleAnnotationDBO(ownerId, da));
+					stringAnnoDBOs.add(AnnotationDBOUtils.createStringAnnotationDBO(ownerId, da));
+				}
 			}
+			List<StringAnnotation> stringAnnos = annotations.getStringAnnos();
+			if (stringAnnos != null) {
+				for (StringAnnotation sa : stringAnnos) {
+					stringAnnoDBOs.add(AnnotationDBOUtils.createStringAnnotationDBO(ownerId, sa));
+				}
+			}
+			// Create the serialized blob
+			AnnotationsBlobDBO ssAnnoBlobDBO = new AnnotationsBlobDBO();
+			ssAnnoBlobDBO.setSubmissionId(ownerId);
+			JSONObjectAdapter joa = new JSONObjectAdapterImpl();
+			try {
+				annotations.writeToJSONObject(joa);
+			} catch (JSONObjectAdapterException e) {
+				throw new RuntimeException(e);
+			}
+			ssAnnoBlobDBO.setAnnoBlob(joa.toJSONString().getBytes());
 		}
 		
 		// Persist the DBOs		
+		
 		// Delete existing annos for this object
-		deleteAnnotationsByOwnerId(ownerId);
+		deleteAnnotationsByOwnerIds(ownerIds);
 		
-		// Create an owner for this object
-		AnnotationsOwnerDBO ownerDBO = new AnnotationsOwnerDBO();
-		ownerDBO.setSubmissionId(ownerId);
-		ownerDBO.setEvaluationId(ownerParentId);
-		dboBasicDao.createNew(ownerDBO);
+		// Create an owners for these objects
+		List<AnnotationsOwnerDBO> ownerDBOs = new ArrayList<AnnotationsOwnerDBO>();
+		for (Long ownerId : ownerIds) {
+			AnnotationsOwnerDBO ownerDBO = new AnnotationsOwnerDBO();
+			ownerDBO.setSubmissionId(ownerId);
+			ownerDBO.setEvaluationId(scopeId);
+		}
+		dboBasicDao.createBatch(ownerDBOs);
 		
-		// Create the serialized blob
-		AnnotationsBlobDBO ssAnnoBlobDBO = new AnnotationsBlobDBO();
-		ssAnnoBlobDBO.setSubmissionId(ownerId);
-		JSONObjectAdapter joa = new JSONObjectAdapterImpl();
-		annotations.writeToJSONObject(joa);
-		ssAnnoBlobDBO.setAnnoBlob(joa.toJSONString().getBytes());
-		dboBasicDao.createNew(ssAnnoBlobDBO);	
+		dboBasicDao.createBatch(ssAnnoBlobDBOs);	
 		
 		// Create the typed annos
 		if (!longAnnoDBOs.isEmpty()) {
@@ -232,7 +292,38 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 	public void deleteAnnotationsByOwnerId(Long ownerId) {
 		if (ownerId == null) throw new IllegalArgumentException("Owner id cannot be null");
 		// Delete the annotation's owner which will trigger the cascade delete of all annotations.
-		simpleJdbcTemplate.update(DELETE_FROM_ANNO_OWNER, ownerId);
+		deleteAnnotationsByOwnerIds(Collections.singletonList(ownerId));
+	}
+	
+	private void deleteAnnotationsByOwnerIds(List<Long> ownerIds) {
+		if (ownerIds == null || ownerIds.isEmpty()) throw new IllegalArgumentException("Owner ids required");
+		// Delete the annotation's owner which will trigger the cascade delete of all annotations.
+		simpleJdbcTemplate.update(DELETE_FROM_ANNO_OWNERS, ownerIds);
+		
+	}
+	
+	@Override
+	public List<Long> getChangedSubmissionIds(Long scopeId) {
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(COL_SUBMISSION_EVAL_ID, scopeId);
+		return simpleJdbcTemplate.query(SELECT_MISSING_OR_CHANGED_SUBSTATUSES,
+				new RowMapper<Long>() {
+					@Override
+					public Long mapRow(ResultSet rs, int rowNum)
+							throws SQLException {
+						return rs.getLong(COL_SUBMISSION_ID);
+					}
+		}, param);
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public void deleteAnnotationsByScope(Long scopeId) {
+		if (scopeId == null) throw new IllegalArgumentException("Owner id cannot be null");
+		// Delete the annotation's owner which will trigger the cascade delete of all annotations.
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(COL_SUBSTATUS_ANNO_EVALID, scopeId);
+		simpleJdbcTemplate.update(DELETE_FROM_ANNO_SCOPE, param);
 	}
 
 }

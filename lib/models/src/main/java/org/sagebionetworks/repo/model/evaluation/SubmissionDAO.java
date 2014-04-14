@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.evaluation;
 
 import java.util.List;
+import java.util.Map;
 
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
@@ -27,6 +28,16 @@ public interface SubmissionDAO {
 	 */
 	public Submission get(String id) throws DatastoreException,
 			NotFoundException;
+	
+	/**
+	 * Get the submissions for the given list of Ids
+	 * @param ids
+	 * @return a Map from Id to the submission having said Id
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public Map<String, Submission> getBatch(List<String> ids) throws DatastoreException,
+	NotFoundException;
 
 	/**
 	 * Get the total number of Submissions in Synapse

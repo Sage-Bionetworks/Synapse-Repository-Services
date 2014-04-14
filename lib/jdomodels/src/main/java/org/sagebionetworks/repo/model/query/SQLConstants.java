@@ -87,6 +87,7 @@ public class SQLConstants {
 	public static final String COL_SUBSTATUS_ANNO_VALUE			= COL_ANNO_VALUE;
 	public static final String COL_SUBSTATUS_ANNO_IS_PRIVATE	= COL_ANNO_IS_PRIVATE;
 	public static final String COL_SUBSTATUS_ANNO_BLOB			= ANNO_BLOB;
+	public static final String COL_SUBSTATUS_ANNO_ETAG			= "ETAG";
 	
 	// Aliases for use with Annotations tables
 	public static final String ALIAS_ANNO_OWNER					= "annoOwner";

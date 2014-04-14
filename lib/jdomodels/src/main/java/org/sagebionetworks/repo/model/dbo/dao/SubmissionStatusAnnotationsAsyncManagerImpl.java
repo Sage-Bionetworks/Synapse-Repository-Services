@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
@@ -56,6 +57,15 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
+	public void createEvaluationSubmissionStatuses(String evalId)
+			throws NotFoundException, DatastoreException,
+			JSONObjectAdapterException {
+		if (evalId == null) throw new IllegalArgumentException("Id cannot be null");
+		replaceAnnotationsForEvaluation(evalId);
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
 	public void updateSubmissionStatus(String subId) 
 			throws NotFoundException, DatastoreException, JSONObjectAdapterException {
 		if (subId == null) throw new IllegalArgumentException("Id cannot be null");
@@ -64,10 +74,27 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
+	public void updateEvaluationSubmissionStatuses(String evalId)
+			throws NotFoundException, DatastoreException,
+			JSONObjectAdapterException {
+		if (evalId == null) throw new IllegalArgumentException("Id cannot be null");
+		replaceAnnotationsForEvaluation(evalId);
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
 	public void deleteSubmission(String id) {
 		if (id == null) throw new IllegalArgumentException("Id cannot be null");
 		Long subId = KeyFactory.stringToKey(id);
 		annotationsDAO.deleteAnnotationsByOwnerId(subId);
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public void deleteEvaluationSubmissions(String id) {
+		if (id == null) throw new IllegalArgumentException("Id cannot be null");
+		Long evalId = KeyFactory.stringToKey(id);
+		annotationsDAO.deleteAnnotationsByScope(evalId);
 	}
 
 	private void replaceAnnotations(String subId) 
@@ -98,13 +125,17 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 		if (!subId.equals(subStatus.getId())) {
 			throw new IllegalArgumentException("Submission and SubmissionStatus IDs do not match!");
 		}
-		
 		// Prepare all Annotations
+		Annotations annos = fillInAnnotations(submission, subStatus);
+		annotationsDAO.replaceAnnotations(annos);
+	}
+	
+	private static Annotations fillInAnnotations(Submission submission, SubmissionStatus subStatus) {
 		Annotations annos = subStatus.getAnnotations();
 		if (annos == null) {
 			annos = new Annotations();
 		}
-		annos.setObjectId(subId);
+		annos.setObjectId(submission.getId());
 		annos.setScopeId(submission.getEvaluationId());
 				
 		// We use Maps since we will be inserting system-defined Annotations which may overwrite
@@ -140,8 +171,25 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 		// Pass along to the DAO
 		annos.setLongAnnos(new ArrayList<LongAnnotation>(longAnnoMap.values()));
 		annos.setDoubleAnnos(new ArrayList<DoubleAnnotation>(doubleAnnoMap.values()));
-		annos.setStringAnnos(new ArrayList<StringAnnotation>(stringAnnoMap.values()));
-		annotationsDAO.replaceAnnotations(annos);
+		annos.setStringAnnos(new ArrayList<StringAnnotation>(stringAnnoMap.values()));	
+		return annos;
+	}
+	
+	public void replaceAnnotationsForEvaluation(String evalId) throws DatastoreException, NotFoundException, JSONObjectAdapterException {
+		// get the submissions and statuses that are new or have changed
+		List<Long> changedSubmissionIds = annotationsDAO.getChangedSubmissionIds(Long.parseLong(evalId));
+		List<String> changedSubmissionIdsAsString = new ArrayList<String>();
+		for (Long id : changedSubmissionIds) changedSubmissionIdsAsString.add(id.toString());
+		Map<String, Submission> changedSubmissions = submissionDAO.getBatch(changedSubmissionIdsAsString);
+		Map<String, SubmissionStatus> changedSubmissionStatuses = submissionStatusDAO.getBatch(changedSubmissionIdsAsString);
+		// create the updated annotations
+		List<Annotations> annos = new ArrayList<Annotations>();
+		for (Long id : changedSubmissionIds) {
+			String idAsString = id.toString();
+			replaceAnnotations(changedSubmissions.get(idAsString), changedSubmissionStatuses.get(idAsString));
+		}
+		// push the updated annotations to the database
+		annotationsDAO.replaceAnnotationsBatch(annos);
 	}
 
 	private static void insertSystemAnnotations(Submission submission, SubmissionStatus subStatus,
@@ -250,4 +298,5 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 			throw new IllegalArgumentException("Unknown Annotation type: " + anno.getClass());
 		}
 	}
+
 }
