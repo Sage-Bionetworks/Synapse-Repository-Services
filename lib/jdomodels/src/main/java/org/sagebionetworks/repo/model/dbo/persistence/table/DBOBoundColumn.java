@@ -24,8 +24,8 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 public class DBOBoundColumn implements MigratableDatabaseObject<DBOBoundColumn, DBOBoundColumn>{
 	
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
-		new FieldColumn("columnId", COL_BOUND_CM_COLUMN_ID, true).withIsBackupId(true),
-		new FieldColumn("objectId", COL_BOUND_CM_OBJECT_ID, true),
+		new FieldColumn("columnId", COL_BOUND_CM_COLUMN_ID, true),
+		new FieldColumn("objectId", COL_BOUND_CM_OBJECT_ID, true).withIsBackupId(true),
 		new FieldColumn("updatedOn", COL_BOUND_CM_UPDATED_ON),
 	};
 	
