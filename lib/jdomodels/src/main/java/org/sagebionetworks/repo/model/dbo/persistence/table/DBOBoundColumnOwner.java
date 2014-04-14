@@ -27,7 +27,7 @@ public class DBOBoundColumnOwner implements MigratableDatabaseObject<DBOBoundCol
 	@Field(name = COL_BOUND_OWNER_OBJECT_ID, nullable = false, primary=true, backupId = true)
 	private Long objectId;
 	
-	@Field(name = COL_BOUND_OWNER_ETAG, nullable = false, varchar = 256)
+	@Field(name = COL_BOUND_OWNER_ETAG, nullable = false, varchar = 256, etag=true)
 	private String etag;
 	
 	@Override
