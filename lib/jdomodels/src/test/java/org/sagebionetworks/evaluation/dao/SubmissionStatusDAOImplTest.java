@@ -177,9 +177,9 @@ public class SubmissionStatusDAOImplTest {
     	subStatusDTO.setStatus(SubmissionStatusEnum.SCORED);
     	subStatusDTO.setReport("lorem ipsum");
     	    	
-    	subStatusDBO = SubmissionStatusDAOImpl.convertDtoToDbo(subStatusDTO);
-    	subStatusDTOclone = SubmissionStatusDAOImpl.convertDboToDto(subStatusDBO);
-    	subStatusDBOclone = SubmissionStatusDAOImpl.convertDtoToDbo(subStatusDTOclone);
+    	subStatusDBO = SubmissionUtils.convertDtoToDbo(subStatusDTO);
+    	subStatusDTOclone = SubmissionUtils.convertDboToDto(subStatusDBO);
+    	subStatusDBOclone = SubmissionUtils.convertDtoToDbo(subStatusDTOclone);
     	
     	assertEquals(subStatusDTO, subStatusDTOclone);
     	assertEquals(subStatusDBO, subStatusDBOclone);

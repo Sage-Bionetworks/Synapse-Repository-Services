@@ -29,6 +29,7 @@ import java.util.List;
 
 import org.sagebionetworks.evaluation.dbo.AnnotationsBlobDBO;
 import org.sagebionetworks.evaluation.dbo.AnnotationsOwnerDBO;
+import org.sagebionetworks.evaluation.dbo.DBOConstants;
 import org.sagebionetworks.evaluation.dbo.DoubleAnnotationDBO;
 import org.sagebionetworks.evaluation.dbo.LongAnnotationDBO;
 import org.sagebionetworks.evaluation.dbo.StringAnnotationDBO;
@@ -251,6 +252,7 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 			// Create the serialized blob
 			AnnotationsBlobDBO ssAnnoBlobDBO = new AnnotationsBlobDBO();
 			ssAnnoBlobDBO.setSubmissionId(ownerId);
+			ssAnnoBlobDBO.setVersion(getStatusVersionFromAnnotations(annotations));
 			JSONObjectAdapter joa = new JSONObjectAdapterImpl();
 			try {
 				annotations.writeToJSONObject(joa);
@@ -286,6 +288,14 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 		if (!stringAnnoDBOs.isEmpty()) {
 			dboBasicDao.createBatch(stringAnnoDBOs);
 		}
+	}
+	
+	private static Long getStatusVersionFromAnnotations(Annotations annotations) {
+		for (LongAnnotation longAnno : annotations.getLongAnnos()) {
+			if (longAnno.getKey().equals(DBOConstants.PARAM_SUBSTATUS_VERSION)) 
+				return longAnno.getValue();
+		}
+		throw new IllegalArgumentException("Annotations object lacks annotation "+DBOConstants.PARAM_SUBSTATUS_VERSION);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)

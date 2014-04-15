@@ -2,6 +2,7 @@ package org.sagebionetworks.evaluation.dbo;
 
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_ANNO_BLOB;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_ANNO_SUBID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_ANNO_VERSION;
 import static org.sagebionetworks.repo.model.query.SQLConstants.DDL_FILE_SUBSTATUS_ANNO_BLOB;
 import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_SUBSTATUS_ANNO_BLOB;
 
@@ -16,10 +17,12 @@ import org.sagebionetworks.repo.model.dbo.TableMapping;
 public class AnnotationsBlobDBO implements DatabaseObject<AnnotationsBlobDBO>{
 	
 	private Long submissionId;
+	private Long version;
 	private byte[] annoBlob;
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("submissionId", COL_SUBSTATUS_ANNO_SUBID, true),
+		new FieldColumn("version", COL_SUBSTATUS_ANNO_VERSION),
 		new FieldColumn("annoBlob", COL_SUBSTATUS_ANNO_BLOB),
 		};
 
@@ -32,6 +35,7 @@ public class AnnotationsBlobDBO implements DatabaseObject<AnnotationsBlobDBO>{
 					throws SQLException {
 				AnnotationsBlobDBO result = new AnnotationsBlobDBO();
 				result.setSubmissionId(rs.getLong(COL_SUBSTATUS_ANNO_SUBID));
+				result.setVersion(rs.getLong(COL_SUBSTATUS_ANNO_VERSION));		
 				java.sql.Blob blob = rs.getBlob(COL_SUBSTATUS_ANNO_BLOB);
 				if (blob != null){
 					result.setAnnoBlob(blob.getBytes(1, (int) blob.length()));
@@ -77,12 +81,22 @@ public class AnnotationsBlobDBO implements DatabaseObject<AnnotationsBlobDBO>{
 		this.annoBlob = annoBlob;
 	}
 
+	public Long getVersion() {
+		return version;
+	}
+
+	public void setVersion(Long version) {
+		this.version = version;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + Arrays.hashCode(annoBlob);
-		result = prime * result + ((submissionId == null) ? 0 : submissionId.hashCode());
+		result = prime * result
+				+ ((submissionId == null) ? 0 : submissionId.hashCode());
+		result = prime * result + ((version == null) ? 0 : version.hashCode());
 		return result;
 	}
 
@@ -102,12 +116,18 @@ public class AnnotationsBlobDBO implements DatabaseObject<AnnotationsBlobDBO>{
 				return false;
 		} else if (!submissionId.equals(other.submissionId))
 			return false;
+		if (version == null) {
+			if (other.version != null)
+				return false;
+		} else if (!version.equals(other.version))
+			return false;
 		return true;
 	}
 
 	@Override
 	public String toString() {
-		return "SubmissionStatusAnnotationBlobDBO [id=" + submissionId + ", annoBlob="
+		return "AnnotationsBlobDBO [submissionId=" + submissionId
+				+ ", version=" + version + ", annoBlob="
 				+ Arrays.toString(annoBlob) + "]";
 	}
 
