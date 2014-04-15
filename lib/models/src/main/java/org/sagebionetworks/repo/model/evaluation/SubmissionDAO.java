@@ -30,16 +30,6 @@ public interface SubmissionDAO {
 			NotFoundException;
 	
 	/**
-	 * Get the submissions for the given list of Ids
-	 * @param ids
-	 * @return a Map from Id to the submission having said Id
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 */
-	public Map<String, Submission> getBatch(List<String> ids) throws DatastoreException,
-	NotFoundException;
-
-	/**
 	 * Get the total number of Submissions in Synapse
 	 * 
 	 * @return

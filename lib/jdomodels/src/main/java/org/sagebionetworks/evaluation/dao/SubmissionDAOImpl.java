@@ -100,7 +100,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 
 		// Convert to DBO
 		SubmissionDBO dbo = new SubmissionDBO();
-		copyDtoToDbo(dto, dbo);
+		SubmissionUtils.copyDtoToDbo(dto, dbo);
 		
 		// Ensure DBO has required information
 		verifySubmissionDBO(dbo);
@@ -121,22 +121,8 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		param.addValue(ID, id);
 		SubmissionDBO dbo = basicDao.getObjectByPrimaryKey(SubmissionDBO.class, param);
 		Submission dto = new Submission();
-		copyDboToDto(dbo, dto);
+		SubmissionUtils.copyDboToDto(dbo, dto);
 		return dto;
-	}
-
-	@Override
-	public Map<String, Submission> getBatch(List<String> ids) throws DatastoreException, NotFoundException {
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(SQLConstants.COL_SUBMISSION_ID, ids);	
-		List<SubmissionDBO> dbos = simpleJdbcTemplate.query(SELECT_BATCH_SQL, rowMapper, param);
-		Map<String, Submission> dtos = new HashMap<String,Submission>();
-		for (SubmissionDBO dbo : dbos) {
-			Submission dto = new Submission();
-			copyDboToDto(dbo, dto);
-			dtos.put(dto.getId(), dto);
-		}
-		return dtos;
 	}
 
 	@Override
@@ -154,7 +140,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		List<Submission> dtos = new ArrayList<Submission>();
 		for (SubmissionDBO dbo : dbos) {
 			Submission dto = new Submission();
-			copyDboToDto(dbo, dto);
+			SubmissionUtils.copyDboToDto(dbo, dto);
 			dtos.add(dto);
 		}
 		return dtos;
@@ -177,7 +163,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		List<Submission> dtos = new ArrayList<Submission>();
 		for (SubmissionDBO dbo : dbos) {
 			Submission dto = new Submission();
-			copyDboToDto(dbo, dto);
+			SubmissionUtils.copyDboToDto(dbo, dto);
 			dtos.add(dto);
 		}
 		return dtos;
@@ -201,7 +187,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		List<Submission> dtos = new ArrayList<Submission>();
 		for (SubmissionDBO dbo : dbos) {
 			Submission dto = new Submission();
-			copyDboToDto(dbo, dto);
+			SubmissionUtils.copyDboToDto(dbo, dto);
 			dtos.add(dto);
 		}
 		return dtos;
@@ -226,7 +212,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		List<Submission> dtos = new ArrayList<Submission>();
 		for (SubmissionDBO dbo : dbos) {
 			Submission dto = new Submission();
-			copyDboToDto(dbo, dto);
+			SubmissionUtils.copyDboToDto(dbo, dto);
 			dtos.add(dto);
 		}
 		return dtos;
@@ -246,55 +232,6 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(ID, id);
 		basicDao.deleteObjectByPrimaryKey(SubmissionDBO.class, param);
-	}
-
-	/**
-	 * Copy a Submission data transfer object to a SubmissionDBO database object
-	 * 
-	 * @param dbo
-	 * @param dto
-	 * @throws DatastoreException
-	 */
-	protected static void copyDtoToDbo(Submission dto, SubmissionDBO dbo) {	
-		try {
-			dbo.setId(dto.getId() == null ? null : Long.parseLong(dto.getId()));
-		} catch (NumberFormatException e) {
-			throw new NumberFormatException("Invalid Submission ID: " + dto.getId());
-		}
-		try {
-			dbo.setUserId(dto.getUserId() == null ? null : Long.parseLong(dto.getUserId()));
-		} catch (NumberFormatException e) {
-			throw new NumberFormatException("Invalid User ID: " + dto.getUserId());
-		}
-		dbo.setSubmitterAlias(dto.getSubmitterAlias());
-		try {
-			dbo.setEvalId(dto.getEvaluationId() == null ? null : Long.parseLong(dto.getEvaluationId()));
-		} catch (NumberFormatException e) {
-			throw new NumberFormatException("Invalid Evaluation ID: " + dto.getEvaluationId());
-		}
-		dbo.setEntityId(dto.getEntityId() == null ? null : KeyFactory.stringToKey(dto.getEntityId()));
-		dbo.setVersionNumber(dto.getVersionNumber());
-		dbo.setName(dto.getName());
-		dbo.setCreatedOn(dto.getCreatedOn() == null ? null : dto.getCreatedOn().getTime());
-		dbo.setEntityBundle(dto.getEntityBundleJSON() == null ? null : dto.getEntityBundleJSON().getBytes());
-	}
-	
-	/**
-	 * Copy a SubmissionDBO database object to a Submission data transfer object
-	 * 
-	 * @param dto
-	 * @param dbo
-	 */
-	protected static void copyDboToDto(SubmissionDBO dbo, Submission dto) throws DatastoreException {
-		dto.setId(dbo.getId() == null ? null : dbo.getId().toString());
-		dto.setUserId(dbo.getUserId() == null ? null : dbo.getUserId().toString());
-		dto.setSubmitterAlias(dbo.getSubmitterAlias());
-		dto.setEvaluationId(dbo.getEvalId() == null ? null : dbo.getEvalId().toString());
-		dto.setEntityId(dbo.getEntityId() == null ? null : KeyFactory.keyToString(dbo.getEntityId()));
-		dto.setVersionNumber(dbo.getVersionNumber());
-		dto.setName(dbo.getName());
-		dto.setCreatedOn(new Date(dbo.getCreatedOn()));
-		dto.setEntityBundleJSON(dbo.getEntityBundle() == null ? null : new String(dbo.getEntityBundle()));
 	}
 
 	/**

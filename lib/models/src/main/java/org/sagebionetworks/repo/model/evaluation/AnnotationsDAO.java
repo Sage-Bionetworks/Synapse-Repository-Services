@@ -23,7 +23,7 @@ public interface AnnotationsDAO {
 	 * since the last annotations update
 	 * @param scopeId
 	 */
-	public List<Long> getChangedSubmissionIds(Long scopeId);
+	public List<SubmissionBundle> getChangedSubmissions(Long scopeId);
 	
 	/**
 	 * Get all of the annotations for a specific SubmissionStatus. Reads from the blob table.

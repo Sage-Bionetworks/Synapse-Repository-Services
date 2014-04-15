@@ -32,6 +32,8 @@ import org.sagebionetworks.evaluation.dbo.AnnotationsOwnerDBO;
 import org.sagebionetworks.evaluation.dbo.DoubleAnnotationDBO;
 import org.sagebionetworks.evaluation.dbo.LongAnnotationDBO;
 import org.sagebionetworks.evaluation.dbo.StringAnnotationDBO;
+import org.sagebionetworks.evaluation.dbo.SubmissionDBO;
+import org.sagebionetworks.evaluation.dbo.SubmissionStatusDBO;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
@@ -78,14 +80,14 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 	private static final String SELECT_ANNO_BLOB = "SELECT " + COL_SUBSTATUS_ANNO_BLOB + " FROM " +
 			TABLE_SUBSTATUS_ANNO_BLOB + " WHERE " + COL_SUBSTATUS_ANNO_SUBID + " = ?";
 	
-	//	select s.ID from JDOSUBMISSION s, JDOSUBMISSION_STATUS t 
+	//	select s.*, t.* from JDOSUBMISSION s, JDOSUBMISSION_STATUS t 
 	//	left outer join SUBSTATUS_ANNOTATIONS_BLOB a on a.SUBMISSION_ID=t.ID
 	//	where
 	//	s.ID=t.ID and
 	//	(a.ETAG is null or a.ETAG<>t.ETAG)
 	//	and s.EVALUATION_ID=:EVALUATION_ID;
 	private static final String SELECT_MISSING_OR_CHANGED_SUBSTATUSES = 
-			"SELECT s."+COL_SUBMISSION_ID+" FROM "+TABLE_SUBMISSION+" s, "+TABLE_SUBSTATUS+" t "+
+			"SELECT s.*, t.* FROM "+TABLE_SUBMISSION+" s, "+TABLE_SUBSTATUS+" t "+
 			" LEFT OUTER JOIN "+TABLE_SUBSTATUS_ANNO_BLOB+" a ON a."+COL_SUBSTATUS_ANNO_SUBID+"=t."+
 			COL_SUBSTATUS_SUBMISSION_ID+
 			" WHERE s."+COL_SUBMISSION_ID+"=t."+COL_SUBSTATUS_SUBMISSION_ID+" AND (a."+
@@ -300,16 +302,31 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 		simpleJdbcTemplate.update(DELETE_FROM_ANNO_OWNERS, ownerIds);	
 	}
 	
+	
+	private static final RowMapper<SubmissionDBO> submissionRowMapper = ((new SubmissionDBO()).getTableMapping());
+
+	private static final RowMapper<SubmissionStatusDBO> statusRowMapper = ((new SubmissionStatusDBO()).getTableMapping());
+
+	
 	@Override
-	public List<Long> getChangedSubmissionIds(Long scopeId) {
+	public List<SubmissionBundle> getChangedSubmissionIds(Long scopeId) {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_SUBMISSION_EVAL_ID, scopeId);
 		return simpleJdbcTemplate.query(SELECT_MISSING_OR_CHANGED_SUBSTATUSES,
-				new RowMapper<Long>() {
+				new RowMapper<SubmissionBundle>() {
 					@Override
-					public Long mapRow(ResultSet rs, int rowNum)
+					public SubmissionBundle mapRow(ResultSet rs, int rowNum)
 							throws SQLException {
-						return rs.getLong(COL_SUBMISSION_ID);
+						SubmissionBundle sb = new SubmissionBundle();
+						SubmissionDBO submissionDBO = submissionRowMapper.mapRow(rs,  rowNum);
+						Submission submission = new Submission();
+						SubmissionUtils.copyDboToDto(submissionDBO, submission);
+						sb.setSubmission(submission);
+						SubmissionStatusDBO statusDBO = statusRowMapper.mapRow(rs,  rowNum);
+						SubmissionStatus submissionStatus = new SubmissionStatus();
+						SubmissionUtils.copyDboToDto(statusDBO, submissionStatus);
+						sb.setSubmissionStatus(submissionStatus);
+						return sb;
 					}
 		}, param);
 	}

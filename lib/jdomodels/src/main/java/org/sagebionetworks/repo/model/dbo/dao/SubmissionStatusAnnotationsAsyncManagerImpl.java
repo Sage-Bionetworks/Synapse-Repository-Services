@@ -7,6 +7,7 @@ import java.util.Map;
 
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
 import org.sagebionetworks.evaluation.model.Submission;
+import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.SubmissionStatusAnnotationsAsyncManager;
@@ -177,16 +178,11 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 	
 	public void replaceAnnotationsForEvaluation(String evalId) throws DatastoreException, NotFoundException, JSONObjectAdapterException {
 		// get the submissions and statuses that are new or have changed
-		List<Long> changedSubmissionIds = annotationsDAO.getChangedSubmissionIds(Long.parseLong(evalId));
-		List<String> changedSubmissionIdsAsString = new ArrayList<String>();
-		for (Long id : changedSubmissionIds) changedSubmissionIdsAsString.add(id.toString());
-		Map<String, Submission> changedSubmissions = submissionDAO.getBatch(changedSubmissionIdsAsString);
-		Map<String, SubmissionStatus> changedSubmissionStatuses = submissionStatusDAO.getBatch(changedSubmissionIdsAsString);
+		List<SubmissionBundle> changedSubmissions = annotationsDAO.getChangedSubmissions(Long.parseLong(evalId));
 		// create the updated annotations
 		List<Annotations> annoList = new ArrayList<Annotations>();
-		for (Long id : changedSubmissionIds) {
-			String idAsString = id.toString();
-			annoList.add(fillInAnnotations(changedSubmissions.get(idAsString), changedSubmissionStatuses.get(idAsString)));
+		for (SubmissionBundle sb : changedSubmissions) {
+			annoList.add(fillInAnnotations(sb.getSubmission(), sb.getSubmissionStatus()));
 		}
 		// push the updated annotations to the database
 		annotationsDAO.replaceAnnotationsBatch(annoList);

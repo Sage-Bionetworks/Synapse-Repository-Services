@@ -52,17 +52,11 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 
 	private static final String SUBMISSION_NOT_FOUND = "Submission could not be found with id :";
 	
-	private static final String SELECT_BATCH_SQL =
-			"SELECT * FROM "+ TABLE_SUBSTATUS +
-			" WHERE "+ SQLConstants.COL_SUBSTATUS_SUBMISSION_ID + " in (:"+SQLConstants.COL_SUBMISSION_ID+")";
-	
-	private static final RowMapper<SubmissionStatusDBO> rowMapper = ((new SubmissionStatusDBO()).getTableMapping());
-
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public String create(SubmissionStatus dto) throws DatastoreException {
 		// Convert to DBO
-		SubmissionStatusDBO dbo = convertDtoToDbo(dto);
+		SubmissionStatusDBO dbo = SubmissionUtils.convertDtoToDbo(dto);
 		
 		// Generate a new eTag and CREATE message
 		dbo.seteTag(UUID.randomUUID().toString());
@@ -85,27 +79,14 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(ID, id);
 		SubmissionStatusDBO dbo = basicDao.getObjectByPrimaryKey(SubmissionStatusDBO.class, param);		
-		return convertDboToDto(dbo);
+		return SubmissionUtils.convertDboToDto(dbo);
 	}
 	
-	@Override
-	public Map<String, SubmissionStatus> getBatch(List<String> ids) throws DatastoreException, NotFoundException {
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(SQLConstants.COL_SUBSTATUS_SUBMISSION_ID, ids);	
-		List<SubmissionStatusDBO> dbos = simpleJdbcTemplate.query(SELECT_BATCH_SQL, rowMapper, param);
-		Map<String, SubmissionStatus> dtos = new HashMap<String,SubmissionStatus>();
-		for (SubmissionStatusDBO dbo : dbos) {
-			SubmissionStatus dto = convertDboToDto(dbo);
-			dtos.put(dto.getId(), dto);
-		}
-		return dtos;
-	}
-
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void update(SubmissionStatus dto) throws DatastoreException,
 			InvalidModelException, NotFoundException, ConflictingUpdateException {
-		SubmissionStatusDBO dbo = convertDtoToDbo(dto);
+		SubmissionStatusDBO dbo = SubmissionUtils.convertDtoToDbo(dto);
 		dbo.setModifiedOn(System.currentTimeMillis());
 		verifySubmissionStatusDBO(dbo);
 
@@ -173,69 +154,5 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 	@Override
 	public long getCount() throws DatastoreException {
 		return basicDao.getCount(SubmissionStatusDBO.class);
-	}
-
-	/**
-	 * Convert a SubmissionStatusDBO database object to a Participant data transfer object
-	 * 
-	 * @param dto
-	 * @param dbo
-	 */
-	protected static SubmissionStatusDBO convertDtoToDbo(SubmissionStatus dto) {
-		SubmissionStatusDBO dbo = new SubmissionStatusDBO();
-		try {
-			dbo.setId(dto.getId() == null ? null : Long.parseLong(dto.getId()));
-		} catch (NumberFormatException e) {
-			throw new NumberFormatException("Invalid Submission ID: " + dto.getId());
-		}
-		dbo.seteTag(dto.getEtag());
-		dbo.setModifiedOn(dto.getModifiedOn() == null ? null : dto.getModifiedOn().getTime());
-		dbo.setScore(dto.getScore());
-		dbo.setStatusEnum(dto.getStatus());
-		copyToSerializedField(dto, dbo);
-		
-		return dbo;
-	}
-
-	/**
-	 * Convert a SubmissionStatus data transfer object to a SubmissionDBO database object
-	 * 
-	 * @param dbo
-	 * @param dto
-	 * @throws DatastoreException
-	 */
-	protected static SubmissionStatus convertDboToDto(SubmissionStatusDBO dbo) throws DatastoreException {		
-		// serialized entity is regarded as the "true" representation of the object
-		SubmissionStatus dto = copyFromSerializedField(dbo);
-		
-		// use non-serialized eTag and modified date as the "true" values
-		dto.setEtag(dbo.getEtag());
-		dto.setModifiedOn(dbo.getModifiedOn() == null ? null : new Date(dbo.getModifiedOn()));
-		
-		// populate from secondary columns if necessary (to support legacy non-serialized objects)
-		if (dto.getId() == null) 
-			dto.setId(dbo.getId().toString());			
-		if (dto.getScore() == null)
-			dto.setScore(dbo.getScore());
-		if (dto.getStatus() == null)
-			dto.setStatus(dbo.getStatusEnum());
-		
-		return dto;
-	}	
-	
-	protected static void copyToSerializedField(SubmissionStatus dto, SubmissionStatusDBO dbo) throws DatastoreException {
-		try {
-			dbo.setSerializedEntity(JDOSecondaryPropertyUtils.compressObject(dto));
-		} catch (IOException e) {
-			throw new DatastoreException(e);
-		}
-	}
-	
-	protected static SubmissionStatus copyFromSerializedField(SubmissionStatusDBO dbo) throws DatastoreException {
-		try {
-			return (SubmissionStatus) JDOSecondaryPropertyUtils.decompressedObject(dbo.getSerializedEntity());
-		} catch (IOException e) {
-			throw new DatastoreException(e);
-		}
 	}
 }
