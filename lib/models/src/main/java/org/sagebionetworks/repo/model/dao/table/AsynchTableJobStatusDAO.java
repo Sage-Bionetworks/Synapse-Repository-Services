@@ -35,7 +35,16 @@ public interface AsynchTableJobStatusDAO {
 	 * @param progressTotal
 	 * @return The new etag.
 	 */
-	public String updateProgress(String jobId, Long progressCurrent, Long progressTotal, String progressMessage);
+	public String updateJobProgress(String jobId, Long progressCurrent, Long progressTotal, String progressMessage);
+	
+	/**
+	 * Set a job to failed.
+	 * 
+	 * @param jobId
+	 * @param error
+	 * @return
+	 */
+	public String setJobFailed(String jobId, Throwable error);
 	
 	/**
 	 * Clear all job status data from the database.

@@ -91,7 +91,7 @@ public class AsynchTableJobStatusUtils {
 	 * @param bytes
 	 * @return
 	 */
-	private static String bytesToString(byte[] bytes){
+	public static String bytesToString(byte[] bytes){
 		if(bytes == null) return null;
 		try {
 			return new String(bytes, "UTF-8");
@@ -105,7 +105,7 @@ public class AsynchTableJobStatusUtils {
 	 * @param string
 	 * @return
 	 */
-	private static byte[] stringToBytes(String string){
+	public static byte[] stringToBytes(String string){
 		if(string == null) return null;
 		try {
 			return string.getBytes("UTF-8");

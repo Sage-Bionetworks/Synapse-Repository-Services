@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.dao.table;
 
 import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
@@ -78,7 +79,7 @@ public class AsynchTableJobStatusDaoImplTest {
 		assertNotNull(status.getEtag());
 		String startEtag = status.getEtag();
 		// update the progress
-		String newEtag = asynchTableJobStatusDao.updateProgress(status.getJobId(), 0L, 1000L, "A MESSAGE");
+		String newEtag = asynchTableJobStatusDao.updateJobProgress(status.getJobId(), 0L, 1000L, "A MESSAGE");
 		assertNotNull(newEtag);
 		assertFalse("The etag must change when the progress changes",startEtag.equals(newEtag));
 		AsynchTableJobStatus clone = asynchTableJobStatusDao.getJobStatus(status.getJobId());
@@ -100,7 +101,7 @@ public class AsynchTableJobStatusDaoImplTest {
 		char[] chars = new char[DBOAsynchTableJobStatus.MAX_MESSAGE_CHARS+1];
 		Arrays.fill(chars, '1');
 		String tooBig = new String(chars);
-		String newEtag = asynchTableJobStatusDao.updateProgress(status.getJobId(), 0L, 1000L, tooBig);
+		String newEtag = asynchTableJobStatusDao.updateJobProgress(status.getJobId(), 0L, 1000L, tooBig);
 		assertNotNull(newEtag);
 		assertFalse("The etag must change when the progress changes",startEtag.equals(newEtag));
 		AsynchTableJobStatus clone = asynchTableJobStatusDao.getJobStatus(status.getJobId());
@@ -109,4 +110,28 @@ public class AsynchTableJobStatusDaoImplTest {
 		assertEquals(tooBig.substring(0,  DBOAsynchTableJobStatus.MAX_MESSAGE_CHARS-1), clone.getProgressMessage());
 		assertEquals(newEtag, clone.getEtag());
 	}
+	
+	@Test
+	public void testSetFailed() throws DatastoreException, NotFoundException{
+		String tableId = "syn456";
+		Long fileHandleId = 123L;
+		AsynchTableJobStatus status = asynchTableJobStatusDao.starteNewUploadJobStatus(creatorUserGroupId, fileHandleId, tableId);
+		assertNotNull(status);
+		assertNotNull(status.getEtag());
+		String startEtag = status.getEtag();
+		// update the progress
+		Throwable error = new Throwable("something when wrong", new IllegalArgumentException("This is bad"));
+		String newEtag = asynchTableJobStatusDao.setJobFailed(status.getJobId(), error);
+		assertNotNull(newEtag);
+		assertFalse("The etag must change when the status changes",startEtag.equals(newEtag));
+		// Get the status
+		AsynchTableJobStatus clone = asynchTableJobStatusDao.getJobStatus(status.getJobId());
+		assertEquals("something when wrong", clone.getErrorMessage());
+		assertEquals(AsynchJobState.FAILED, clone.getJobState());
+		System.out.println(clone.getErrorDetails());
+		assertNotNull(clone.getErrorDetails());
+		assertTrue(clone.getErrorDetails().contains("This is bad"));
+		assertEquals(newEtag, clone.getEtag());
+	}
+	
 }

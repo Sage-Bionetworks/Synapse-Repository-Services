@@ -3,6 +3,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
 import java.util.UUID;
 
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -20,7 +21,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 public class AsynchTableJobStatusDAOImpl implements AsynchTableJobStatusDAO {
 	
-	private static final String SQL_UPDATE_PROGRESS = "UPDATE "+ASYNCH_TABLE_JOB_STATUS+" SET "+COL_ASYNCH_TABLE_JOB_PROGRESS_CURRENT+" = ?, "+COL_ASYNCH_TABLE_JOB_PROGRESS_TOTAL+" = ?, "+COL_ASYNCH_TABLE_JOB_PROGRESS_MESSAGE+" = ?, "+COL_ASYNCH_TABLE_JOB_ETAG+" = ? WHERE "+COL_ASYNCH_TABLE_JOB_ID+" = ?";
+	private static final String SQL_UPDATE_PROGRESS = "UPDATE "+ASYNCH_TABLE_JOB_STATUS+" SET "+COL_ASYNCH_TABLE_JOB_PROGRESS_CURRENT+" = ?, "+COL_ASYNCH_TABLE_JOB_PROGRESS_TOTAL+" = ?, "+COL_ASYNCH_TABLE_JOB_PROGRESS_MESSAGE+" = ?, "+COL_ASYNCH_TABLE_JOB_ETAG+" = ?, "+COL_ASYNCH_TABLE_JOB_CHANGED_ON+" = ?  WHERE "+COL_ASYNCH_TABLE_JOB_ID+" = ?";
+	private static final String SQL_SET_FAILED = "UPDATE "+ASYNCH_TABLE_JOB_STATUS+" SET "+COL_ASYNCH_TABLE_JOB_ERROR_MESSAGE+" = ?, "+COL_ASYNCH_TABLE_JOB_ERROR_DETAILS+" = ?, "+COL_ASYNCH_TABLE_JOB_STATE+" = ?, "+COL_ASYNCH_TABLE_JOB_ETAG+" = ?, "+COL_ASYNCH_TABLE_JOB_CHANGED_ON+" = ?  WHERE "+COL_ASYNCH_TABLE_JOB_ID+" = ?";
 
 	private static final String TRUNCATE_ALL = "DELETE FROM "+ASYNCH_TABLE_JOB_STATUS+" WHERE "+COL_ASYNCH_TABLE_JOB_ID+" > -1";
 
@@ -68,11 +70,26 @@ public class AsynchTableJobStatusDAOImpl implements AsynchTableJobStatusDAO {
 	}
 
 	@Override
-	public String updateProgress(String jobId, Long progressCurrent, Long progressTotal, String progressMessage) {
+	public String updateJobProgress(String jobId, Long progressCurrent, Long progressTotal, String progressMessage) {
+		if(jobId == null) throw new IllegalArgumentException("JobId cannot be null");
 		String newEtag = UUID.randomUUID().toString();
 		progressMessage = AsynchTableJobStatusUtils.truncateMessageStringIfNeeded(progressMessage);
-		jdbcTemplate.update(SQL_UPDATE_PROGRESS, progressCurrent, progressTotal, progressMessage, newEtag, jobId);
+		long now = System.currentTimeMillis();
+		jdbcTemplate.update(SQL_UPDATE_PROGRESS, progressCurrent, progressTotal, progressMessage, newEtag, now, jobId);
 		return newEtag;
 	}
+
+	@Override
+	public String setJobFailed(String jobId, Throwable error) {
+		if(jobId == null) throw new IllegalArgumentException("JobId cannot be null");
+		if(error == null) throw new IllegalArgumentException("Error cannot be null");
+		String newEtag = UUID.randomUUID().toString();
+		String errorMessage = AsynchTableJobStatusUtils.truncateMessageStringIfNeeded(error.getMessage());
+		byte[] errorDetails = AsynchTableJobStatusUtils.stringToBytes(ExceptionUtils.getStackTrace(error));
+		long now = System.currentTimeMillis();
+		jdbcTemplate.update(SQL_SET_FAILED, errorMessage, errorDetails, JobState.FAILED.name(), newEtag, now, jobId);
+		return newEtag;
+	}
+	
 
 }
