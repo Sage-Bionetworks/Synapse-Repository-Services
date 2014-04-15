@@ -91,7 +91,7 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void deleteEvaluationSubmissions(String id) {
+	public void deleteEvaluationSubmissionStatuses(String id) {
 		if (id == null) throw new IllegalArgumentException("Id cannot be null");
 		Long evalId = KeyFactory.stringToKey(id);
 		annotationsDAO.deleteAnnotationsByScope(evalId);

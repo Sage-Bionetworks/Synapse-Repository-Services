@@ -284,7 +284,6 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 		if (!stringAnnoDBOs.isEmpty()) {
 			dboBasicDao.createBatch(stringAnnoDBOs);
 		}
-		
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -298,8 +297,7 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 	private void deleteAnnotationsByOwnerIds(List<Long> ownerIds) {
 		if (ownerIds == null || ownerIds.isEmpty()) throw new IllegalArgumentException("Owner ids required");
 		// Delete the annotation's owner which will trigger the cascade delete of all annotations.
-		simpleJdbcTemplate.update(DELETE_FROM_ANNO_OWNERS, ownerIds);
-		
+		simpleJdbcTemplate.update(DELETE_FROM_ANNO_OWNERS, ownerIds);	
 	}
 	
 	@Override

@@ -45,35 +45,21 @@ public class AnnotationsWorker implements Callable<List<Message>> {
 			// Extract the ChangeMessage
 			ChangeMessage change = MessageUtils.extractMessageBody(message);
 			// We only care about Submission messages here
+			if (ObjectType.EVALUATION_SUBMISSIONS == change.getObjectType()) {
 				try {
-					if (ObjectType.SUBMISSION == change.getObjectType()) {
-						// Is this a create, update, or delete?
-						if (ChangeType.CREATE == change.getChangeType()) {
-							ssAsyncMgr.createSubmissionStatus(change.getObjectId());
-						} else if (ChangeType.UPDATE == change.getChangeType()) {
-							// update
-							ssAsyncMgr.updateSubmissionStatus(change.getObjectId());
-						} else if(ChangeType.DELETE == change.getChangeType()) {
-							// delete
-							ssAsyncMgr.deleteSubmission(change.getObjectId());
-						} else {
-							throw new IllegalArgumentException("Unknown change type: "+change.getChangeType());
-						}
-					} else if (ObjectType.EVALUATION == change.getObjectType()) {
-						// Is this a create, update, or delete?
-						if (ChangeType.CREATE == change.getChangeType()) {
-							ssAsyncMgr.createEvaluationSubmissionStatuses(change.getObjectId());
-						} else if (ChangeType.UPDATE == change.getChangeType()) {
-							// update
-							ssAsyncMgr.updateEvaluationSubmissionStatuses(change.getObjectId());
-						} else if(ChangeType.DELETE == change.getChangeType()) {
-							// delete
-							ssAsyncMgr.deleteEvaluationSubmissions(change.getObjectId());
-						} else {
-							throw new IllegalArgumentException("Unknown change type: "+change.getChangeType());
-						}
+					// Is this a create, update, or delete?
+					if (ChangeType.CREATE == change.getChangeType()) {
+						ssAsyncMgr.createEvaluationSubmissionStatuses(change.getObjectId());
+					} else if (ChangeType.UPDATE == change.getChangeType()) {
+						// update
+						ssAsyncMgr.updateEvaluationSubmissionStatuses(change.getObjectId());
+					} else if(ChangeType.DELETE == change.getChangeType()) {
+						// delete
+						ssAsyncMgr.deleteEvaluationSubmissionStatuses(change.getObjectId());
+					} else {
+						throw new IllegalArgumentException("Unknown change type: "+change.getChangeType());
 					}
-					// this line is reached both (1) for successfully processed messages and (2) for unprocessed messages
+					// This message was processed.
 					processedMessages.add(message);
 				} catch (DeadlockLoserDataAccessException e) {
 					log.info("Intermittent error in AnnotationsWorker: "+e.getMessage()+". Will retry");
@@ -84,6 +70,10 @@ public class AnnotationsWorker implements Callable<List<Message>> {
 					processedMessages.add(message);
 					workerLogger.logWorkerFailure(this.getClass(), change, e, false);
 				}
+			} else {
+				// Non-Submission messages must be returned so they can be removed from the queue.
+				processedMessages.add(message);
+			}
 		}
 		return processedMessages;
 	}

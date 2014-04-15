@@ -70,6 +70,6 @@ public interface SubmissionStatusAnnotationsAsyncManager {
 	 * @param id
 	 * @return
 	 */
-	public void deleteEvaluationSubmissions(String id);
+	public void deleteEvaluationSubmissionStatuses(String id);
 
 }
