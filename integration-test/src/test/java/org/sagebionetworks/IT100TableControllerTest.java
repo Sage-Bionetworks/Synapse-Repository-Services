@@ -21,6 +21,7 @@ import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
+import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseTableUnavilableException;
 import org.sagebionetworks.repo.model.Entity;
@@ -190,25 +191,18 @@ public class IT100TableControllerTest {
 		assertEquals(1, onlyRow.getValues().size());
 		assertEquals("There should be 4 rows in this table", "4", onlyRow.getValues().get(0));
 
-		// Now use these results to delete a row
-		RowSet rowsToDelete = new RowSet();
-		rowsToDelete.setTableId(table.getId());
-		rowsToDelete.setHeaders(TableModelUtils.getHeaders(columns));
-		rowsToDelete.setEtag(results1.getEtag());
-		Row rowToDelete = new Row();
-		rowToDelete.setRowId(results1.getRows().get(1).getRowId());
-		rowToDelete.setVersionNumber(results1.getRows().get(1).getVersionNumber());
-		rowsToDelete.setRows(Lists.newArrayList(rowToDelete));
-		RowReferenceSet results3 = synapse.appendRowsToTable(rowsToDelete);
-		assertNotNull(results3);
-		assertNotNull(results3.getRows());
+		// Now use these results to delete a row using the row delete api
+		results1.getRows().remove(1);
+		RowReferenceSet results4 = synapse.deleteRowsFromTable(results1);
+		assertNotNull(results4);
+		assertNotNull(results4.getRows());
+		assertEquals(1, results4.getRows().size());
 
 		// run the query again, to get the counts
 		countOnly = true;
 		queryResults = waitForQueryResults("select * from " + table.getId() + " limit 2", isConsistent, countOnly);
 		assertNotNull(queryResults);
 		assertNotNull(queryResults.getEtag());
-		assertEquals(results3.getEtag(), queryResults.getEtag());
 		assertEquals(table.getId(), queryResults.getTableId());
 		assertNotNull(queryResults.getRows());
 		assertEquals(1, queryResults.getRows().size());
@@ -241,7 +235,158 @@ public class IT100TableControllerTest {
 			}
 		}
 	}
-	
+
+	@Test(expected = SynapseBadRequestException.class)
+	public void testDuplicateRowUpdateFails() throws SynapseException, InterruptedException {
+		// Create a few columns to add to a table entity
+		ColumnModel one = new ColumnModel();
+		one.setName("one");
+		one.setColumnType(ColumnType.STRING);
+		one = synapse.createColumnModel(one);
+		// Create a project to contain it all
+		Project project = new Project();
+		project.setName(UUID.randomUUID().toString());
+		project = synapse.createEntity(project);
+		assertNotNull(project);
+		entitiesToDelete.add(project);
+
+		// now create a table entity
+		TableEntity table = new TableEntity();
+		table.setName("Table");
+		List<String> idList = new LinkedList<String>();
+		idList.add(one.getId());
+		table.setColumnIds(idList);
+		table.setParentId(project.getId());
+		table = synapse.createEntity(table);
+		tablesToDelete.add(table);
+
+		assertNotNull(table);
+		assertNotNull(table.getId());
+		// Now make sure we can get the columns for this entity.
+		List<ColumnModel> columns = synapse.getColumnModelsForTableEntity(table.getId());
+		assertNotNull(columns);
+		assertEquals(1, columns.size());
+		List<ColumnModel> expected = new LinkedList<ColumnModel>();
+		expected.add(one);
+		assertEquals(expected, columns);
+
+		// Append some rows
+		RowSet set = new RowSet();
+		List<Row> rows = TableModelTestUtils.createRows(columns, 2);
+		set.setRows(rows);
+		set.setHeaders(TableModelUtils.getHeaders(columns));
+		set.setTableId(table.getId());
+		RowReferenceSet results1 = synapse.appendRowsToTable(set);
+
+		// update one row twice
+		RowSet update = new RowSet();
+		Row row1 = new Row();
+		row1.setRowId(results1.getRows().get(0).getRowId());
+		row1.setVersionNumber(results1.getRows().get(0).getVersionNumber());
+		row1.setValues(rows.get(0).getValues());
+		Row row2 = new Row();
+		row2.setRowId(results1.getRows().get(0).getRowId());
+		row2.setVersionNumber(results1.getRows().get(0).getVersionNumber());
+		row2.setValues(rows.get(0).getValues());
+		update.setRows(Lists.newArrayList(row1, row2));
+		update.setTableId(results1.getTableId());
+		update.setHeaders(results1.getHeaders());
+		update.setEtag(results1.getEtag());
+		synapse.appendRowsToTable(update);
+	}
+
+	@Test(expected = SynapseBadRequestException.class)
+	public void testNullRowUpdateFails() throws SynapseException, InterruptedException {
+		// Create a few columns to add to a table entity
+		ColumnModel one = new ColumnModel();
+		one.setName("one");
+		one.setColumnType(ColumnType.STRING);
+		one = synapse.createColumnModel(one);
+		// Create a project to contain it all
+		Project project = new Project();
+		project.setName(UUID.randomUUID().toString());
+		project = synapse.createEntity(project);
+		entitiesToDelete.add(project);
+
+		// now create a table entity
+		TableEntity table = new TableEntity();
+		table.setName("Table");
+		List<String> idList = new LinkedList<String>();
+		idList.add(one.getId());
+		table.setColumnIds(idList);
+		table.setParentId(project.getId());
+		table = synapse.createEntity(table);
+		tablesToDelete.add(table);
+
+		List<ColumnModel> columns = synapse.getColumnModelsForTableEntity(table.getId());
+
+		// Append some rows
+		RowSet set = new RowSet();
+		List<Row> rows = TableModelTestUtils.createRows(columns, 2);
+		set.setRows(rows);
+		set.setHeaders(TableModelUtils.getHeaders(columns));
+		set.setTableId(table.getId());
+		RowReferenceSet results1 = synapse.appendRowsToTable(set);
+
+		// update one row with null values
+		RowSet update = new RowSet();
+		Row row1 = new Row();
+		row1.setRowId(results1.getRows().get(0).getRowId());
+		row1.setVersionNumber(results1.getRows().get(0).getVersionNumber());
+		row1.setValues(null);
+		update.setRows(Lists.newArrayList(row1));
+		update.setTableId(results1.getTableId());
+		update.setHeaders(results1.getHeaders());
+		update.setEtag(results1.getEtag());
+		synapse.appendRowsToTable(update);
+	}
+
+	@Test(expected = SynapseBadRequestException.class)
+	public void testEmptyRowUpdateFails() throws SynapseException, InterruptedException {
+		// Create a few columns to add to a table entity
+		ColumnModel one = new ColumnModel();
+		one.setName("one");
+		one.setColumnType(ColumnType.STRING);
+		one = synapse.createColumnModel(one);
+		// Create a project to contain it all
+		Project project = new Project();
+		project.setName(UUID.randomUUID().toString());
+		project = synapse.createEntity(project);
+		entitiesToDelete.add(project);
+
+		// now create a table entity
+		TableEntity table = new TableEntity();
+		table.setName("Table");
+		List<String> idList = new LinkedList<String>();
+		idList.add(one.getId());
+		table.setColumnIds(idList);
+		table.setParentId(project.getId());
+		table = synapse.createEntity(table);
+		tablesToDelete.add(table);
+
+		List<ColumnModel> columns = synapse.getColumnModelsForTableEntity(table.getId());
+
+		// Append some rows
+		RowSet set = new RowSet();
+		List<Row> rows = TableModelTestUtils.createRows(columns, 2);
+		set.setRows(rows);
+		set.setHeaders(TableModelUtils.getHeaders(columns));
+		set.setTableId(table.getId());
+		RowReferenceSet results1 = synapse.appendRowsToTable(set);
+
+		// update one row with empty values
+		RowSet update = new RowSet();
+		Row row1 = new Row();
+		row1.setRowId(results1.getRows().get(0).getRowId());
+		row1.setVersionNumber(results1.getRows().get(0).getVersionNumber());
+		row1.setValues(Lists.<String> newArrayList());
+		update.setRows(Lists.newArrayList(row1));
+		update.setTableId(results1.getTableId());
+		update.setHeaders(results1.getHeaders());
+		update.setEtag(results1.getEtag());
+		synapse.appendRowsToTable(update);
+	}
+
 	@Test
 	public void testListColumnModels() throws Exception{
 		ColumnModel one = new ColumnModel();

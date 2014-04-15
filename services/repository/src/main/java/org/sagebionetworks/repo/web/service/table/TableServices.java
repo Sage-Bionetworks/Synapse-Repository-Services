@@ -76,6 +76,18 @@ public interface TableServices {
 	public RowReferenceSet appendRows(Long userId, RowSet rows) throws DatastoreException, NotFoundException, IOException;
 
 	/**
+	 * Delete rows in a table.
+	 * 
+	 * @param userId
+	 * @param rows
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws IOException
+	 */
+	public RowReferenceSet deleteRows(Long userId, RowReferenceSet rowsToDelete) throws DatastoreException, NotFoundException, IOException;
+
+	/**
 	 * Run a query for a user.
 	 * @param userId
 	 * @param query

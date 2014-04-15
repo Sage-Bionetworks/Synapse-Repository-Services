@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.table;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -11,6 +12,7 @@ import java.util.concurrent.Callable;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.sagebionetworks.manager.util.Validate;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -116,6 +118,41 @@ public class TableRowManagerImpl implements TableRowManager {
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
+	public RowReferenceSet deleteRows(UserInfo user, String tableId, List<ColumnModel> models, RowReferenceSet rowsToDelete)
+			throws DatastoreException, NotFoundException, IOException {
+		Validate.required(user, "user");
+		Validate.required(tableId, "tableId");
+		Validate.required(rowsToDelete, "rowsToDelete");
+
+		// Validate the user has permission to edit the table
+		if (!authorizationManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)) {
+			throw new UnauthorizedException("User does not have permission to update TableEntity: " + tableId);
+		}
+
+		// create a rowset of all deletes
+		List<Row> rows = Lists.transform(rowsToDelete.getRows(), new Function<RowReference, Row>() {
+			@Override
+			public Row apply(RowReference input) {
+				Row row = new Row();
+				row.setRowId(input.getRowId());
+				row.setVersionNumber(input.getVersionNumber());
+				row.setValues(Collections.<String> emptyList());
+				return row;
+			}
+		});
+		RowSet rowSetToDelete = new RowSet();
+		rowSetToDelete.setHeaders(rowsToDelete.getHeaders());
+		rowSetToDelete.setEtag(rowsToDelete.getEtag());
+		rowSetToDelete.setTableId(tableId);
+		rowSetToDelete.setRows(rows);
+		RowReferenceSet result = tableRowTruthDao.appendRowSetToTable(user.getId().toString(), tableId, models, rowSetToDelete, true);
+		// The table has change so we must reset the state.
+		tableStatusDAO.resetTableStatusToProcessing(tableId);
+		return result;
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
 	public String appendRowsAsStream(UserInfo user, String tableId, List<ColumnModel> models, Iterator<Row> rowStream, String etag, RowReferenceSet results) throws DatastoreException, NotFoundException, IOException {
 		if(user == null) throw new IllegalArgumentException("User cannot be null");
 		if(tableId == null) throw new IllegalArgumentException("TableId cannot be null");
@@ -173,7 +210,7 @@ public class TableRowManagerImpl implements TableRowManager {
 	 * @throws IOException
 	 */
 	private String appendBatchOfRowsToTable(UserInfo user,	List<ColumnModel> models, RowSet delta, RowReferenceSet results) throws IOException {
-		RowReferenceSet rrs = tableRowTruthDao.appendRowSetToTable(user.getId().toString(), delta.getTableId(), models, delta);
+		RowReferenceSet rrs = tableRowTruthDao.appendRowSetToTable(user.getId().toString(), delta.getTableId(), models, delta, false);
 		if(results != null){
 			results.setEtag(rrs.getEtag());
 			results.setHeaders(delta.getHeaders());
@@ -430,59 +467,43 @@ public class TableRowManagerImpl implements TableRowManager {
 			return;
 		}
 
-		// clone with copy of row list
-		List<Row> deltaCopy = Lists.newArrayList(delta.getRows());
-		// filter out new and invalid rows (rowId == null)
-		for (Iterator<Row> iterator = deltaCopy.iterator(); iterator.hasNext();) {
-			Row row = iterator.next();
-			if (TableModelUtils.isNullOrInvalid(row.getRowId())) {
-				iterator.remove();
-			}
-		}
-
-		if (deltaCopy.isEmpty()) {
-			// no replaces: success!
-			return;
-		}
-
 		RowSet fileHandlesToCheck = new RowSet();
 		fileHandlesToCheck.setEtag(delta.getEtag());
 		fileHandlesToCheck.setHeaders(delta.getHeaders());
 		fileHandlesToCheck.setTableId(delta.getTableId());
-		fileHandlesToCheck.setRows(deltaCopy);
+		fileHandlesToCheck.setRows(Lists.newArrayList(delta.getRows()));
 		RowSetAccessor fileHandlesToCheckAccessor = TableModelUtils.getRowSetAccessor(fileHandlesToCheck);
 
 		// eliminate all file handles that are owned by current user
 		Set<String> ownedFileHandles = Sets.newHashSet();
 		Set<String> unownedFileHandles = Sets.newHashSet();
+
+		// first handle all new rows
 		for (Iterator<RowAccessor> rowIter = fileHandlesToCheckAccessor.getRows().iterator(); rowIter.hasNext();) {
 			RowAccessor row = rowIter.next();
-			boolean isAllowed = true;
-			for (String fileHandleColumn : fileHandleColumns) {
-				String fileHandleId = row.getCell(fileHandleColumn);
-				if (fileHandleId == null) {
-					// erasing a file handle id is always allowed
-					continue;
+			if (TableModelUtils.isNullOrInvalid(row.getRow().getRowId())) {
+				String unownedFileHandle = checkRowForUnownedFileHandle(row, fileHandleColumns, user, ownedFileHandles,
+						unownedFileHandles);
+				if (unownedFileHandle != null) {
+					// this is a new row and the user is trying to add a file handle they do not own
+					throw new IllegalArgumentException("You cannot add a new file id that you do not own: rowId=" + row.getRow().getRowId()
+							+ ", file handle=" + unownedFileHandle);
 				}
-				if (ownedFileHandles.contains(fileHandleId)) {
-					// we already checked. We own this one
-					continue;
-				}
-				if (unownedFileHandles.contains(fileHandleId)) {
-					// we already checked. We don't own this one. Row needs to be checked
-					isAllowed = false;
-					continue;
-				}
-
-				boolean canAccess = authorizationManager.canAccessRawFileHandleById(user, fileHandleId);
-				if (canAccess) {
-					ownedFileHandles.add(fileHandleId);
-				} else {
-					unownedFileHandles.add(fileHandleId);
-					isAllowed = false;
-				}
+				rowIter.remove();
 			}
-			if (isAllowed) {
+		}
+
+		if (fileHandlesToCheckAccessor.getRows().isEmpty()) {
+			// all new rows and all file handles owned by user: success!
+			return;
+		}
+
+		// now all we have left is rows that are updated
+		for (Iterator<RowAccessor> rowIter = fileHandlesToCheckAccessor.getRows().iterator(); rowIter.hasNext();) {
+			RowAccessor row = rowIter.next();
+			String unownedFileHandle = checkRowForUnownedFileHandle(row, fileHandleColumns, user, ownedFileHandles, unownedFileHandles);
+			if (unownedFileHandle == null) {
+				// No unowned file handles, so no need to check previous values
 				rowIter.remove();
 			}
 		}
@@ -503,6 +524,10 @@ public class TableRowManagerImpl implements TableRowManager {
 					// erasing a file handle id is always allowed
 					continue;
 				}
+				if (ownedFileHandles.contains(newFileHandleId)) {
+					// we already checked. We own this one
+					continue;
+				}
 				String oldFileHandleId = lastRowVersion.getCell(fileHandleColumn);
 				if (!oldFileHandleId.equals(newFileHandleId) && !ownedFileHandles.contains(newFileHandleId)) {
 					throw new IllegalArgumentException("You cannot change a file id to a new file id that you do not own: rowId="
@@ -510,5 +535,37 @@ public class TableRowManagerImpl implements TableRowManager {
 				}
 			}
 		}
+	}
+
+	private String checkRowForUnownedFileHandle(RowAccessor row, List<String> fileHandleColumns, UserInfo user,
+			Set<String> ownedFileHandles, Set<String> unownedFileHandles) throws NotFoundException {
+		String unownedFileHandle = null;
+		for (String fileHandleColumn : fileHandleColumns) {
+			String fileHandleId = row.getCell(fileHandleColumn);
+			if (fileHandleId == null) {
+				// erasing a file handle id is always allowed
+				continue;
+			}
+			if (ownedFileHandles.contains(fileHandleId)) {
+				// we already checked. We own this one
+				continue;
+			}
+			if (unownedFileHandles.contains(fileHandleId)) {
+				// we already checked. We don't own this one.
+				unownedFileHandle = fileHandleId;
+				continue;
+			}
+
+			// ::TODO:: make this a batch check
+			boolean canAccess = authorizationManager.canAccessRawFileHandleById(user, fileHandleId);
+			if (canAccess) {
+				ownedFileHandles.add(fileHandleId);
+			} else {
+				// need to remember we checked
+				unownedFileHandles.add(fileHandleId);
+				unownedFileHandle = fileHandleId;
+			}
+		}
+		return unownedFileHandle;
 	}
 }

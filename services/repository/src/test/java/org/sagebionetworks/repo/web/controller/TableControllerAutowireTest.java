@@ -122,6 +122,10 @@ public class TableControllerAutowireTest {
 		assertEquals(2, results.getRows().size());
 		assertEquals(table.getId(), results.getTableId());
 		assertEquals(TableModelUtils.getHeaders(cols), results.getHeaders());
+
+		// delete a row
+		results.getRows().remove(0);
+		ServletTestHelper.deleteTableRows(DispatchServletSingleton.getInstance(), results, adminUserId);
 	}
 
 	@Test

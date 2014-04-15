@@ -1,11 +1,15 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.RowReference;
+
+import com.google.common.collect.Lists;
 
 /**
  * Utilities for working with Tables and Row data.
@@ -133,5 +137,20 @@ public class TableModelTestUtils {
 			throw new IllegalArgumentException("Unknown ColumnType: " + cm.getColumnType());
 		}
 		toUpdate.setValues(values);
+	}
+
+	public static Row createRow(long rowId, long rowVersion, String... values) {
+		Row row = new Row();
+		row.setRowId(rowId);
+		row.setVersionNumber(rowVersion);
+		row.setValues(Lists.newArrayList(values));
+		return row;
+	}
+
+	public static RowReference createRowReference(long rowId, long rowVersion) {
+		RowReference ref = new RowReference();
+		ref.setRowId(rowId);
+		ref.setVersionNumber(rowVersion);
+		return ref;
 	}
 }

@@ -31,6 +31,8 @@ import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 
+import com.google.common.collect.Lists;
+
 import au.com.bytecode.opencsv.CSVWriter;
 
 /**
@@ -124,47 +126,47 @@ public class TableModelUtilsTest {
 
 	@Test (expected=IllegalArgumentException.class)
 	public void testValidateAndWriteToCSVNullModel(){
-		TableModelUtils.validateAndWriteToCSV(null, validRowSet, out);
+		TableModelUtils.validateAndWriteToCSV(null, validRowSet, out, false);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testValidateAndWriteToCSVNullRowSet(){
-		TableModelUtils.validateAndWriteToCSV(validModel, null, out);
+		TableModelUtils.validateAndWriteToCSV(validModel, null, out, false);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testValidateAndWriteToCSVNullOut(){
-		TableModelUtils.validateAndWriteToCSV(validModel, validRowSet, null);
+		TableModelUtils.validateAndWriteToCSV(validModel, validRowSet, null, false);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testValidateAndWriteToCSVNullHeaders(){
 		validRowSet.setHeaders(null);
-		TableModelUtils.validateAndWriteToCSV(validModel, validRowSet, out);
+		TableModelUtils.validateAndWriteToCSV(validModel, validRowSet, out, false);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testValidateAndWriteToCSVNullRows(){
 		validRowSet.setRows(null);
-		TableModelUtils.validateAndWriteToCSV(validModel, validRowSet, out);
+		TableModelUtils.validateAndWriteToCSV(validModel, validRowSet, out, false);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testValidateAndWriteToCSVRowsEmpty(){
 		validRowSet.setRows(new LinkedList<Row>());
-		TableModelUtils.validateAndWriteToCSV(validModel, validRowSet, out);
+		TableModelUtils.validateAndWriteToCSV(validModel, validRowSet, out, false);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testValidateAndWriteToCSVModelsEmpty(){
-		TableModelUtils.validateAndWriteToCSV(new LinkedList<ColumnModel>(), validRowSet, out);
+		TableModelUtils.validateAndWriteToCSV(new LinkedList<ColumnModel>(), validRowSet, out, false);
 	}
 	
 	@Test
 	public void testValidateAndWriteToCSVWrongValueSize(){
 		try{
 			validRowSet.getRows().get(0).getValues().add("too many");
-			TableModelUtils.validateAndWriteToCSV(validModel, validRowSet, out);
+			TableModelUtils.validateAndWriteToCSV(validModel, validRowSet, out, false);
 			fail("Should have failed");
 		}catch (IllegalArgumentException e){
 			assertEquals("Row.value size must be equal to the number of columns in the table.  The table has :2 columns and the passed Row.value has: 3 for row number: 0", e.getMessage());
@@ -175,7 +177,7 @@ public class TableModelUtilsTest {
 	public void testValidateAndWriteToCSVRowIdNull(){
 		try{
 			validRowSet.getRows().get(0).setRowId(null);
-			TableModelUtils.validateAndWriteToCSV(validModel, validRowSet, out);
+			TableModelUtils.validateAndWriteToCSV(validModel, validRowSet, out, false);
 			fail("Should have failed");
 		}catch (IllegalArgumentException e){
 			assertEquals("Row.rowId cannot be null for row number: 0", e.getMessage());
@@ -186,7 +188,7 @@ public class TableModelUtilsTest {
 	public void testValidateAndWriteToCSVRowVersionNull(){
 		try{
 			validRowSet.getRows().get(1).setVersionNumber(null);
-			TableModelUtils.validateAndWriteToCSV(validModel, validRowSet, out);
+			TableModelUtils.validateAndWriteToCSV(validModel, validRowSet, out, false);
 			fail("Should have failed");
 		}catch (IllegalArgumentException e){
 			assertEquals("Row.versionNumber cannot be null for row number: 1", e.getMessage());
@@ -198,29 +200,76 @@ public class TableModelUtilsTest {
 		try{
 			validRowSet.getHeaders().remove(0);
 			validRowSet.getHeaders().add(0, "3");
-			TableModelUtils.validateAndWriteToCSV(validModel, validRowSet, out);
+			TableModelUtils.validateAndWriteToCSV(validModel, validRowSet, out, false);
 			fail("Should have failed");
 		}catch (IllegalArgumentException e){
 			assertEquals("The Table's ColumnModels includes: name=two with id=2 but 2 was not found in the headers of the RowResults", e.getMessage());
 		}
 	}
 	
+	@Test(expected = IllegalArgumentException.class)
+	public void testValidateAndWriteToCSVNullValues() {
+		validRowSet.getRows().get(1).setValues(null);
+		TableModelUtils.validateAndWriteToCSV(validModel, validRowSet, out, false);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testValidateAndWriteToCSVEmptyValues() {
+		validRowSet.getRows().get(1).setValues(Lists.<String> newArrayList());
+		TableModelUtils.validateAndWriteToCSV(validModel, validRowSet, out, false);
+	}
+
 	@Test
 	public void testHappyCase() throws IOException{
 		// Write the following data
-		TableModelUtils.validateAndWriteToCSV(validModel, validRowSet, out);
+		TableModelUtils.validateAndWriteToCSV(validModel, validRowSet, out, false);
 		String csv = outWritter.toString();
 		System.out.println(csv);
 		StringReader reader = new StringReader(csv);
 		// There should be two rows
 		CsvNullReader in = new CsvNullReader(reader);
 		List<String[]> results = in.readAll();
+		in.close();
 		assertNotNull(results);
 		assertEquals(2, results.size());
 		assertTrue(Arrays.equals(new String[]{"456","2","true","9999"}, results.get(0)));
 		assertTrue(Arrays.equals(new String[]{"457","2","false","0"}, results.get(1)));
 	}
 	
+	@Test
+	public void testHappyDeleteNullValues() throws IOException {
+		validRowSet.getRows().get(1).setValues(null);
+		TableModelUtils.validateAndWriteToCSV(validModel, validRowSet, out, true);
+		String csv = outWritter.toString();
+		System.out.println(csv);
+		StringReader reader = new StringReader(csv);
+		// There should be two rows
+		CsvNullReader in = new CsvNullReader(reader);
+		List<String[]> results = in.readAll();
+		in.close();
+		assertNotNull(results);
+		assertEquals(2, results.size());
+		assertTrue(Arrays.equals(new String[] { "456", "2" }, results.get(0)));
+		assertTrue(Arrays.equals(new String[] { "457", "2" }, results.get(1)));
+	}
+
+	@Test
+	public void testHappyDeleteEmptyValues() throws IOException {
+		validRowSet.getRows().get(1).setValues(Lists.<String> newArrayList());
+		TableModelUtils.validateAndWriteToCSV(validModel, validRowSet, out, true);
+		String csv = outWritter.toString();
+		System.out.println(csv);
+		StringReader reader = new StringReader(csv);
+		// There should be two rows
+		CsvNullReader in = new CsvNullReader(reader);
+		List<String[]> results = in.readAll();
+		in.close();
+		assertNotNull(results);
+		assertEquals(2, results.size());
+		assertTrue(Arrays.equals(new String[] { "456", "2" }, results.get(0)));
+		assertTrue(Arrays.equals(new String[] { "457", "2" }, results.get(1)));
+	}
+
 	@Test
 	public void testValidateBoolean(){
 		ColumnModel cm = new ColumnModel();
@@ -485,7 +534,7 @@ public class TableModelUtilsTest {
 		// Write this to a string
 		StringWriter writer = new StringWriter();
 		CSVWriter csvWriter = new CSVWriter(writer);
-		TableModelUtils.validateAndWriteToCSV(validModel, validRowSet2, csvWriter);
+		TableModelUtils.validateAndWriteToCSV(validModel, validRowSet2, csvWriter, false);
 		StringReader reader = new StringReader(writer.toString());
 		CsvNullReader csvReader = new CsvNullReader(reader);
 		List<Row> cloneRows = TableModelUtils.readFromCSV(csvReader);
@@ -497,7 +546,7 @@ public class TableModelUtilsTest {
 	public void testCSVGZipRoundTrip() throws IOException{
 		// Write this to a string
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		TableModelUtils.validateAnWriteToCSVgz(validModel, validRowSet2, out);
+		TableModelUtils.validateAnWriteToCSVgz(validModel, validRowSet2, out, false);
 		ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());
 		List<Row> cloneRows = TableModelUtils.readFromCSVgzStream(in);
 		assertNotNull(cloneRows);
@@ -517,7 +566,7 @@ public class TableModelUtilsTest {
 	@Test (expected=IllegalArgumentException.class)
 	public void testGetHeadersNullId(){
 		validModel.get(0).setId(null);
-		List<String> headers = TableModelUtils.getHeaders(validModel);
+		TableModelUtils.getHeaders(validModel);
 	}
 	
 	@Test
@@ -583,9 +632,6 @@ public class TableModelUtilsTest {
 		ref.setRowId(100l);
 		refs.add(ref);
 		ref = new Row();
-		ref.setRowId(100l);
-		refs.add(ref);
-		ref = new Row();
 		ref.setRowId(101l);
 		refs.add(ref);
 		ref = new Row();
@@ -600,6 +646,27 @@ public class TableModelUtilsTest {
 		assertEquals(expected, TableModelUtils.getDistictValidRowIds(refs));
 	}
 	
+	@Test(expected = IllegalArgumentException.class)
+	public void testDuplicateRowIds() {
+		List<Row> refs = new LinkedList<Row>();
+		Row ref = new Row();
+		ref.setRowId(100l);
+		refs.add(ref);
+		ref = new Row();
+		ref.setRowId(101l);
+		refs.add(ref);
+		ref = new Row();
+		ref.setRowId(100l);
+		refs.add(ref);
+		ref = new Row();
+		ref.setRowId(null);
+		refs.add(ref);
+		ref = new Row();
+		ref.setRowId(-1l);
+		refs.add(ref);
+		TableModelUtils.getDistictValidRowIds(refs);
+	}
+
 	@Test
 	public void testConvertToSchemaAndMerge(){
 		List<ColumnModel> models = new LinkedList<ColumnModel>();
