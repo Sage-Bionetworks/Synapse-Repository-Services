@@ -619,7 +619,7 @@
           "answers": [
             {
               "answerIndex": 0,
-              "isCorrect": true,
+              "isCorrect": false,
               "prompt": "a Synapse only has a web interface"
             },
             {
