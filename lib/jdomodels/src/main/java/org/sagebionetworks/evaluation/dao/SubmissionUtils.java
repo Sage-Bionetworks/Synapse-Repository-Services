@@ -67,7 +67,7 @@ public class SubmissionUtils {
 	 * @param dto
 	 * @param dbo
 	 */
-	protected static SubmissionStatusDBO convertDtoToDbo(SubmissionStatus dto) {
+	public static SubmissionStatusDBO convertDtoToDbo(SubmissionStatus dto) {
 		SubmissionStatusDBO dbo = new SubmissionStatusDBO();
 		try {
 			dbo.setId(dto.getId() == null ? null : Long.parseLong(dto.getId()));
@@ -78,6 +78,7 @@ public class SubmissionUtils {
 		dbo.setModifiedOn(dto.getModifiedOn() == null ? null : dto.getModifiedOn().getTime());
 		dbo.setScore(dto.getScore());
 		dbo.setStatusEnum(dto.getStatus());
+		dbo.setVersion(dto.getStatusVersion());
 		copyToSerializedField(dto, dbo);
 		
 		return dbo;
@@ -90,7 +91,7 @@ public class SubmissionUtils {
 	 * @param dto
 	 * @throws DatastoreException
 	 */
-	protected static SubmissionStatus convertDboToDto(SubmissionStatusDBO dbo) throws DatastoreException {		
+	public static SubmissionStatus convertDboToDto(SubmissionStatusDBO dbo) throws DatastoreException {		
 		// serialized entity is regarded as the "true" representation of the object
 		SubmissionStatus dto = copyFromSerializedField(dbo);
 		
@@ -105,11 +106,11 @@ public class SubmissionUtils {
 			dto.setScore(dbo.getScore());
 		if (dto.getStatus() == null)
 			dto.setStatus(dbo.getStatusEnum());
-		
+		dto.setStatusVersion(dbo.getVersion());
 		return dto;
 	}	
 	
-	protected static void copyToSerializedField(SubmissionStatus dto, SubmissionStatusDBO dbo) throws DatastoreException {
+	public static void copyToSerializedField(SubmissionStatus dto, SubmissionStatusDBO dbo) throws DatastoreException {
 		try {
 			dbo.setSerializedEntity(JDOSecondaryPropertyUtils.compressObject(dto));
 		} catch (IOException e) {
@@ -117,7 +118,7 @@ public class SubmissionUtils {
 		}
 	}
 	
-	protected static SubmissionStatus copyFromSerializedField(SubmissionStatusDBO dbo) throws DatastoreException {
+	public static SubmissionStatus copyFromSerializedField(SubmissionStatusDBO dbo) throws DatastoreException {
 		try {
 			return (SubmissionStatus) JDOSecondaryPropertyUtils.decompressedObject(dbo.getSerializedEntity());
 		} catch (IOException e) {

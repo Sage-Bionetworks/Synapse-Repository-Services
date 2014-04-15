@@ -219,6 +219,13 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 		}
 		insertAnnotation(creatorIdAnno, longAnnoMap, doubleAnnoMap, stringAnnoMap);
 		
+		// status version
+		LongAnnotation statusVersionAnno = new LongAnnotation();
+		statusVersionAnno.setIsPrivate(true);
+		statusVersionAnno.setKey(DBOConstants.PARAM_SUBSTATUS_VERSION);
+		statusVersionAnno.setValue(subStatus.getStatusVersion());
+		insertAnnotation(statusVersionAnno, longAnnoMap, doubleAnnoMap, stringAnnoMap);
+		
 		// submitterAlias
 		StringAnnotation submitterAnno = new StringAnnotation();
 		submitterAnno.setIsPrivate(true);

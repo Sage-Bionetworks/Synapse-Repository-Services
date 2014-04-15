@@ -6,6 +6,7 @@ import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBSTATUS_MO
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBSTATUS_SCORE;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBSTATUS_SERIALIZED_ENTITY;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBSTATUS_STATUS;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBSTATUS_VERSION;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_ETAG;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_MODIFIED_ON;
@@ -13,6 +14,7 @@ import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_SC
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_SERIALIZED_ENTITY;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_STATUS;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_SUBMISSION_ID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_VERSION;
 import static org.sagebionetworks.repo.model.query.SQLConstants.DDL_FILE_SUBSTATUS;
 import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_SUBSTATUS;
 
@@ -21,6 +23,8 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 
+import org.sagebionetworks.evaluation.dao.SubmissionUtils;
+import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ObservableEntity;
@@ -40,6 +44,7 @@ public class SubmissionStatusDBO implements MigratableDatabaseObject<SubmissionS
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 			new FieldColumn(PARAM_SUBMISSION_ID, COL_SUBSTATUS_SUBMISSION_ID, true).withIsBackupId(true),
 			new FieldColumn(PARAM_SUBSTATUS_ETAG, COL_SUBSTATUS_ETAG).withIsEtag(true),
+			new FieldColumn(PARAM_SUBSTATUS_VERSION, COL_SUBSTATUS_VERSION),
 			new FieldColumn(PARAM_SUBSTATUS_MODIFIED_ON, COL_SUBSTATUS_MODIFIED_ON),
 			new FieldColumn(PARAM_SUBSTATUS_STATUS, COL_SUBSTATUS_STATUS),
 			new FieldColumn(PARAM_SUBSTATUS_SCORE, COL_SUBSTATUS_SCORE),
@@ -53,6 +58,7 @@ public class SubmissionStatusDBO implements MigratableDatabaseObject<SubmissionS
 				SubmissionStatusDBO sub = new SubmissionStatusDBO();
 				sub.setId(rs.getLong(COL_SUBMISSION_ID));
 				sub.seteTag(rs.getString(COL_SUBSTATUS_ETAG));
+				sub.setVersion(rs.getLong(COL_SUBSTATUS_VERSION));
 				sub.setModifiedOn(rs.getLong(COL_SUBSTATUS_MODIFIED_ON));
 				sub.setStatus(rs.getInt(COL_SUBSTATUS_STATUS));
 				sub.setScore(rs.getDouble(COL_SUBSTATUS_SCORE));
@@ -83,6 +89,7 @@ public class SubmissionStatusDBO implements MigratableDatabaseObject<SubmissionS
 	
 	private Long id;
 	private String eTag;
+	private Long version;
 	private Long modifiedOn;
 	private int status;
 	private Double score;
@@ -126,8 +133,16 @@ public class SubmissionStatusDBO implements MigratableDatabaseObject<SubmissionS
 	public String geteTag() {
 		return eTag;
 	}
+	
 	public void seteTag(String eTag) {
 		this.eTag = eTag;
+	}
+	
+	public Long getVersion() {
+		return version;
+	}
+	public void setVersion(Long version) {
+		this.version = version;
 	}
 	@Override
 	public String getIdString() {
@@ -139,7 +154,7 @@ public class SubmissionStatusDBO implements MigratableDatabaseObject<SubmissionS
 	}
 	@Override
 	public ObjectType getObjectType() {
-		return ObjectType.SUBMISSION;
+		return ObjectType.EVALUATION_SUBMISSIONS;
 	}
 
 	@Override
@@ -164,6 +179,7 @@ public class SubmissionStatusDBO implements MigratableDatabaseObject<SubmissionS
 		result = prime * result + ((score == null) ? 0 : score.hashCode());
 		result = prime * result + Arrays.hashCode(serializedEntity);
 		result = prime * result + status;
+		result = prime * result + ((version == null) ? 0 : version.hashCode());
 		return result;
 	}
 	@Override
@@ -199,14 +215,20 @@ public class SubmissionStatusDBO implements MigratableDatabaseObject<SubmissionS
 			return false;
 		if (status != other.status)
 			return false;
+		if (version == null) {
+			if (other.version != null)
+				return false;
+		} else if (!version.equals(other.version))
+			return false;
 		return true;
 	}
 	@Override
 	public String toString() {
 		return "SubmissionStatusDBO [id=" + id + ", eTag=" + eTag
-				+ ", modifiedOn=" + modifiedOn + ", status=" + status
-				+ ", score=" + score + ", serializedEntity="
-				+ Arrays.toString(serializedEntity) + "]";
+				+ ", version=" + version + ", modifiedOn=" + modifiedOn
+				+ ", status=" + status + ", score=" + score
+				+ ", serializedEntity=" + Arrays.toString(serializedEntity)
+				+ "]";
 	}
 	@Override
 	public MigrationType getMigratableTableType() {
@@ -219,6 +241,13 @@ public class SubmissionStatusDBO implements MigratableDatabaseObject<SubmissionS
 			@Override
 			public SubmissionStatusDBO createDatabaseObjectFromBackup(
 					SubmissionStatusDBO backup) {
+				if (backup.getVersion()!=null) return backup;
+				backup.setVersion(DBOConstants.SUBSTATUS_INITIAL_VERSION_NUMBER);
+				byte[] serialized = backup.getSerializedEntity();
+				backup.setSerializedEntity(serialized);
+				SubmissionStatus status = SubmissionUtils.copyFromSerializedField(backup);
+				status.setStatusVersion(DBOConstants.SUBSTATUS_INITIAL_VERSION_NUMBER);
+				SubmissionUtils.copyToSerializedField(status, backup);
 				return backup;
 			}
 

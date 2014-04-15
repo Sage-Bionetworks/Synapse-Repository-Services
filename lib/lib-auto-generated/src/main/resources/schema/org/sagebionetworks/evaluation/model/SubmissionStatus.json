@@ -47,6 +47,10 @@
 		"versionNumber":{
             "type":"integer",
             "description":"The version number of the Entity in this Submission."            
-        }
+        },
+		"statusVersion": {
+			"type":"integer",
+			"description":"A version of the status, auto-generated and auto-incremented by the system and read-only to the client."
+		}
 	}
 }

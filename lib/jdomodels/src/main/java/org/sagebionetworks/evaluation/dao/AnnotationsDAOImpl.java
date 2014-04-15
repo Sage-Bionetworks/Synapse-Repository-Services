@@ -5,13 +5,13 @@ import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_E
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBMISSION_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_ANNO_ATTRIBUTE;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_ANNO_BLOB;
-import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_ANNO_ETAG;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_ANNO_EVALID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_ANNO_IS_PRIVATE;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_ANNO_SUBID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_ANNO_VALUE;
-import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_ETAG;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_ANNO_VERSION;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_SUBMISSION_ID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_VERSION;
 import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_SUBMISSION;
 import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_SUBSTATUS;
 import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_SUBSTATUS_ANNO_BLOB;
@@ -91,7 +91,7 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 			" LEFT OUTER JOIN "+TABLE_SUBSTATUS_ANNO_BLOB+" a ON a."+COL_SUBSTATUS_ANNO_SUBID+"=t."+
 			COL_SUBSTATUS_SUBMISSION_ID+
 			" WHERE s."+COL_SUBMISSION_ID+"=t."+COL_SUBSTATUS_SUBMISSION_ID+" AND (a."+
-			COL_SUBSTATUS_ANNO_ETAG+" IS NULL OR a."+COL_SUBSTATUS_ANNO_ETAG+"<>t."+COL_SUBSTATUS_ETAG+") "+
+			COL_SUBSTATUS_ANNO_VERSION+" IS NULL OR a."+COL_SUBSTATUS_ANNO_VERSION+"<>t."+COL_SUBSTATUS_VERSION+") "+
 			" AND s."+COL_SUBMISSION_EVAL_ID+"=:"+COL_SUBMISSION_EVAL_ID;
 
 	@Autowired
@@ -323,8 +323,7 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 						SubmissionUtils.copyDboToDto(submissionDBO, submission);
 						sb.setSubmission(submission);
 						SubmissionStatusDBO statusDBO = statusRowMapper.mapRow(rs,  rowNum);
-						SubmissionStatus submissionStatus = new SubmissionStatus();
-						SubmissionUtils.copyDboToDto(statusDBO, submissionStatus);
+						SubmissionStatus submissionStatus = SubmissionUtils.convertDboToDto(statusDBO);
 						sb.setSubmissionStatus(submissionStatus);
 						return sb;
 					}

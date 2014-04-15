@@ -27,7 +27,7 @@ public interface SubmissionDAO {
 	 */
 	public Submission get(String id) throws DatastoreException,
 			NotFoundException;
-	
+
 	/**
 	 * Get the total number of Submissions in Synapse
 	 * 
