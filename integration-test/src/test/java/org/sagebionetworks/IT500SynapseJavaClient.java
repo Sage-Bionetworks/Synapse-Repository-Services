@@ -1603,6 +1603,14 @@ public class IT500SynapseJavaClient {
 	
 	@Test
 	public void testCertifiedUserQuiz() throws Exception {
+		// before taking the test there's no passing record
+		String myId = synapseOne.getMyProfile().getOwnerId();
+		try {
+			synapseOne.getCertifiedUserPassingRecord(myId);
+			fail("Expected SynapseNotFoundException");
+		} catch (SynapseNotFoundException e) {
+			// as expected
+		}
 		Quiz quiz = synapseOne.getCertifiedUserTest();
 		assertNotNull(quiz);
 		assertNotNull(quiz.getId());
@@ -1615,7 +1623,6 @@ public class IT500SynapseJavaClient {
 		assertFalse(pr.getPassed());
 		assertEquals(quiz.getId(), pr.getQuizId());
 		assertNotNull(pr.getResponseId());
-		String myId = synapseOne.getMyProfile().getOwnerId();
 		PassingRecord pr2 = synapseOne.getCertifiedUserPassingRecord(myId);
 		assertEquals(pr, pr2);
 		

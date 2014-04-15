@@ -34,7 +34,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @ControllerInfo(displayName="Team Services", path="repo/v1")
 @Controller
 @RequestMapping(UrlHelpers.REPO_PATH)
-public class CertifiedUserController {
+public class CertifiedUserController extends BaseController {
 	@Autowired
 	ServiceProvider serviceProvider;
 	
