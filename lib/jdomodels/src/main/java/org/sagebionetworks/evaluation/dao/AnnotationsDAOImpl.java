@@ -61,11 +61,11 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 	
 	private static final String SELECT_FROM_ANNO_OWNER = "SELECT * " +
 			" FROM " + TABLE_SUBSTATUS_ANNO_OWNER + " WHERE " + 
-			COL_SUBSTATUS_ANNO_SUBID + " = ?";;
+			COL_SUBSTATUS_ANNO_SUBID + " = ?";
 	
 	private static final String DELETE_FROM_ANNO_OWNERS = "DELETE " + 
 			" FROM " + TABLE_SUBSTATUS_ANNO_OWNER + " WHERE " + 
-			COL_SUBSTATUS_ANNO_SUBID + "IN :?";
+			COL_SUBSTATUS_ANNO_SUBID + " IN (:"+COL_SUBSTATUS_ANNO_SUBID+")";
 	
 	private static final String DELETE_FROM_ANNO_SCOPE = "DELETE FROM " + TABLE_SUBSTATUS_ANNO_OWNER + 
 			" WHERE " + COL_SUBSTATUS_ANNO_EVALID + "=:"+COL_SUBSTATUS_ANNO_EVALID;
@@ -252,7 +252,9 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 			// Create the serialized blob
 			AnnotationsBlobDBO ssAnnoBlobDBO = new AnnotationsBlobDBO();
 			ssAnnoBlobDBO.setSubmissionId(ownerId);
-			ssAnnoBlobDBO.setVersion(getStatusVersionFromAnnotations(annotations));
+			Long version = annotations.getVersion();
+			if (version==null) throw new IllegalArgumentException("Version cannot be null.");
+			ssAnnoBlobDBO.setVersion(version);
 			JSONObjectAdapter joa = new JSONObjectAdapterImpl();
 			try {
 				annotations.writeToJSONObject(joa);
@@ -260,6 +262,7 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 				throw new RuntimeException(e);
 			}
 			ssAnnoBlobDBO.setAnnoBlob(joa.toJSONString().getBytes());
+			ssAnnoBlobDBOs.add(ssAnnoBlobDBO);
 		}
 		
 		// Persist the DBOs		
@@ -273,6 +276,7 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 			AnnotationsOwnerDBO ownerDBO = new AnnotationsOwnerDBO();
 			ownerDBO.setSubmissionId(ownerId);
 			ownerDBO.setEvaluationId(scopeId);
+			ownerDBOs.add(ownerDBO);
 		}
 		dboBasicDao.createBatch(ownerDBOs);
 		
@@ -290,14 +294,6 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 		}
 	}
 	
-	private static Long getStatusVersionFromAnnotations(Annotations annotations) {
-		for (LongAnnotation longAnno : annotations.getLongAnnos()) {
-			if (longAnno.getKey().equals(DBOConstants.PARAM_SUBSTATUS_VERSION)) 
-				return longAnno.getValue();
-		}
-		throw new IllegalArgumentException("Annotations object lacks annotation "+DBOConstants.PARAM_SUBSTATUS_VERSION);
-	}
-
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void deleteAnnotationsByOwnerId(Long ownerId) {
@@ -309,7 +305,9 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 	private void deleteAnnotationsByOwnerIds(List<Long> ownerIds) {
 		if (ownerIds == null || ownerIds.isEmpty()) throw new IllegalArgumentException("Owner ids required");
 		// Delete the annotation's owner which will trigger the cascade delete of all annotations.
-		simpleJdbcTemplate.update(DELETE_FROM_ANNO_OWNERS, ownerIds);	
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(COL_SUBSTATUS_ANNO_SUBID, ownerIds);
+		simpleJdbcTemplate.update(DELETE_FROM_ANNO_OWNERS, param);	
 	}
 	
 	

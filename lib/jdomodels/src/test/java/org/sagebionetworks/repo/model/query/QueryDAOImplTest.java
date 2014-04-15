@@ -110,6 +110,7 @@ public class QueryDAOImplTest {
 		SubmissionStatus status = new SubmissionStatus();
 		status.setId(annos.getObjectId());
 		status.setAnnotations(annos);
+		status.setStatusVersion(0L);
 
     	ssAnnoAsyncManager.replaceAnnotations(sub, status);
 	}

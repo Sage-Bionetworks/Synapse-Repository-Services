@@ -124,6 +124,7 @@ public class AnnotationsDAOImplTest {
 		annos = new Annotations();
 		annos.setObjectId(submissionId);
 		annos.setScopeId(evalId);
+		annos.setVersion(0L);
 		annos.setDoubleAnnos(new ArrayList<DoubleAnnotation>());
 		annos.setLongAnnos(new ArrayList<LongAnnotation>());
 		annos.setStringAnnos(new ArrayList<StringAnnotation>());

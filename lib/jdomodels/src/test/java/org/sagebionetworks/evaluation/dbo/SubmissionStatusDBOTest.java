@@ -114,6 +114,7 @@ public class SubmissionStatusDBOTest {
         SubmissionStatusDBO status = new SubmissionStatusDBO();
         status.setId(submissionId);
         status.seteTag(eTag);
+        status.setVersion(1L);
         status.setModifiedOn(System.currentTimeMillis());
         status.setStatusEnum(SubmissionStatusEnum.RECEIVED);
         status.setScore(0.0);

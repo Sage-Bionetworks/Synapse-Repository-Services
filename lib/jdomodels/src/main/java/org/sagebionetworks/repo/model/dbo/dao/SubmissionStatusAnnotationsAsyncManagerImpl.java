@@ -138,6 +138,7 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 		}
 		annos.setObjectId(submission.getId());
 		annos.setScopeId(submission.getEvaluationId());
+		annos.setVersion(subStatus.getStatusVersion());
 				
 		// We use Maps since we will be inserting system-defined Annotations which may overwrite
 		// user Annotations
@@ -218,13 +219,6 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 			creatorIdAnno.setValue(KeyFactory.stringToKey(submission.getUserId()));
 		}
 		insertAnnotation(creatorIdAnno, longAnnoMap, doubleAnnoMap, stringAnnoMap);
-		
-		// status version
-		LongAnnotation statusVersionAnno = new LongAnnotation();
-		statusVersionAnno.setIsPrivate(true);
-		statusVersionAnno.setKey(DBOConstants.PARAM_SUBSTATUS_VERSION);
-		statusVersionAnno.setValue(subStatus.getStatusVersion());
-		insertAnnotation(statusVersionAnno, longAnnoMap, doubleAnnoMap, stringAnnoMap);
 		
 		// submitterAlias
 		StringAnnotation submitterAnno = new StringAnnotation();

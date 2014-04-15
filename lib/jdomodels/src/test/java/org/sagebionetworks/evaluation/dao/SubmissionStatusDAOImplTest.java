@@ -149,6 +149,7 @@ public class SubmissionStatusDAOImplTest {
         assertFalse("Modified date was not updated", clone.getModifiedOn().equals(clone2.getModifiedOn()));
         clone.setModifiedOn(clone2.getModifiedOn());
         clone.setEtag(clone2.getEtag());
+        clone.setStatusVersion(clone2.getStatusVersion());
         assertEquals(clone, clone2);
 
     	// Delete it
