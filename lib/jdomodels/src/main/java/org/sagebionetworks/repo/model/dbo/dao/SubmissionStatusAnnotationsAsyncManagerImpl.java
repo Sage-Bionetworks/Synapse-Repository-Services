@@ -183,13 +183,13 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 		Map<String, Submission> changedSubmissions = submissionDAO.getBatch(changedSubmissionIdsAsString);
 		Map<String, SubmissionStatus> changedSubmissionStatuses = submissionStatusDAO.getBatch(changedSubmissionIdsAsString);
 		// create the updated annotations
-		List<Annotations> annos = new ArrayList<Annotations>();
+		List<Annotations> annoList = new ArrayList<Annotations>();
 		for (Long id : changedSubmissionIds) {
 			String idAsString = id.toString();
-			replaceAnnotations(changedSubmissions.get(idAsString), changedSubmissionStatuses.get(idAsString));
+			annoList.add(fillInAnnotations(changedSubmissions.get(idAsString), changedSubmissionStatuses.get(idAsString)));
 		}
 		// push the updated annotations to the database
-		annotationsDAO.replaceAnnotationsBatch(annos);
+		annotationsDAO.replaceAnnotationsBatch(annoList);
 	}
 
 	private static void insertSystemAnnotations(Submission submission, SubmissionStatus subStatus,
