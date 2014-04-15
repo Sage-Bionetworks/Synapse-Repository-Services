@@ -15,8 +15,8 @@
 		"jobType": {
 			"type": "string",
 			"description": "The type of job.",
-			"name": "JobType",
-			"id": "org.sagebionetworks.repo.model.table.JobType",
+			"name": "AsynchJobType",
+			"id": "org.sagebionetworks.repo.model.table.AsynchJobType",
 			"enum": [
 				"UPLOAD",
 				"DOWNLOAD"
@@ -26,9 +26,17 @@
 			"type": "string",
 			"description": "The ID of the table."
 		},
+		"etag": {
+			"type": "string",
+			"description": "The etag of the status will change whenever the status changes."
+		},
 		"jobId": {
 			"type": "string",
 			"description": "The ID if the job issued when this job request was issued."
+		},		
+		"startedByUserId": {
+			"type": "integer",
+			"description": "The ID of the user that started the job"
 		},		
 		"startedOn": {
 			"type": "string",

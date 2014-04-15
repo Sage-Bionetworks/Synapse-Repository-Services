@@ -19,7 +19,8 @@ public interface IdGenerator {
 		MESSAGE_ID,
 		PRINCIPAL_ID,
 		PRINCIPAL_ALIAS_ID,
-		ACL_ID
+		ACL_ID,
+		ASYNCH_TABLE_JOB_ID
 	}
 	
 
