@@ -309,7 +309,7 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 
 	
 	@Override
-	public List<SubmissionBundle> getChangedSubmissionIds(Long scopeId) {
+	public List<SubmissionBundle> getChangedSubmissions(Long scopeId) {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_SUBMISSION_EVAL_ID, scopeId);
 		return simpleJdbcTemplate.query(SELECT_MISSING_OR_CHANGED_SUBSTATUSES,

@@ -1,13 +1,7 @@
 package org.sagebionetworks.evaluation.dao;
 
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_ETAG;
-import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_SUBSTATUS;
 
-import java.io.IOException;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
@@ -20,13 +14,11 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.evaluation.SubmissionStatusDAO;
-import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.query.SQLConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;

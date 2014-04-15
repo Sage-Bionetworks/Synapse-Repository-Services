@@ -294,5 +294,4 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 			throw new IllegalArgumentException("Unknown Annotation type: " + anno.getClass());
 		}
 	}
-
 }

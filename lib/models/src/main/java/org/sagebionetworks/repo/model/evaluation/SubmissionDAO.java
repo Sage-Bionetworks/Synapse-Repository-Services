@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.model.evaluation;
 
 import java.util.List;
-import java.util.Map;
 
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;

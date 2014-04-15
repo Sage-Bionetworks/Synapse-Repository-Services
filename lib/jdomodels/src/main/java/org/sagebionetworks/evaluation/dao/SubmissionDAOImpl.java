@@ -43,10 +43,6 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 			" LIMIT :"+ SQLConstants.LIMIT_PARAM_NAME +
 			" OFFSET :" + SQLConstants.OFFSET_PARAM_NAME;
 	
-	private static final String SELECT_BATCH_SQL =
-			"SELECT * FROM "+ SQLConstants.TABLE_SUBMISSION +
-			" WHERE "+ SQLConstants.COL_SUBMISSION_ID + " in (:"+SQLConstants.COL_SUBMISSION_ID+")";
-	
 	private static final String BY_USER_SQL = 
 			" FROM "+ SQLConstants.TABLE_SUBMISSION +
 			" WHERE "+ SQLConstants.COL_SUBMISSION_USER_ID + "=:"+ USER_ID;

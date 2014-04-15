@@ -1,8 +1,5 @@
 package org.sagebionetworks.repo.model.evaluation;
 
-import java.util.List;
-import java.util.Map;
-
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
