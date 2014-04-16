@@ -29,7 +29,6 @@ import java.util.List;
 
 import org.sagebionetworks.evaluation.dbo.AnnotationsBlobDBO;
 import org.sagebionetworks.evaluation.dbo.AnnotationsOwnerDBO;
-import org.sagebionetworks.evaluation.dbo.DBOConstants;
 import org.sagebionetworks.evaluation.dbo.DoubleAnnotationDBO;
 import org.sagebionetworks.evaluation.dbo.LongAnnotationDBO;
 import org.sagebionetworks.evaluation.dbo.StringAnnotationDBO;
@@ -94,9 +93,23 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 			" WHERE s."+COL_SUBMISSION_ID+"=t."+COL_SUBSTATUS_SUBMISSION_ID+" AND (a."+
 			COL_SUBSTATUS_ANNO_VERSION+" IS NULL OR a."+COL_SUBSTATUS_ANNO_VERSION+"<>t."+COL_SUBSTATUS_VERSION+") "+
 			" AND s."+COL_SUBMISSION_EVAL_ID+"=:"+COL_SUBMISSION_EVAL_ID;
+	
+	private static final String SELECT_IDS_FOR_DELETED_SUBMISSIONS = 
+			"SELECT o."+COL_SUBSTATUS_ANNO_SUBID+" FROM "+
+			TABLE_SUBSTATUS_ANNO_OWNER+" o left outer join "+
+			TABLE_SUBMISSION+" s on o."+COL_SUBSTATUS_ANNO_SUBID+
+			"=s."+COL_SUBMISSION_ID+" WHERE o."+COL_SUBSTATUS_ANNO_EVALID+"=:"+
+			COL_SUBSTATUS_ANNO_EVALID+" AND s."+COL_SUBMISSION_ID+" is null";
+	
+	// DELETE FROM SUBSTATUS_ANNOTATIONS_OWNER o WHERE 
+	// o.SUBMISSION_ID IN (...)
+	private static final String DELETE_ANNOS_FOR_DELETED_SUBMISSIONS = 
+			"DELETE FROM "+TABLE_SUBSTATUS_ANNO_OWNER+" o WHERE o."+
+			COL_SUBSTATUS_ANNO_SUBID+" IN ("+SELECT_IDS_FOR_DELETED_SUBMISSIONS+")";
 
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
+	
 	@Autowired
 	private DBOBasicDao dboBasicDao;
 	
@@ -337,7 +350,7 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 					}
 		}, param);
 	}
-
+	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void deleteAnnotationsByScope(Long scopeId) {
@@ -345,8 +358,7 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 		// Delete the annotation's owner which will trigger the cascade delete of all annotations.
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_SUBSTATUS_ANNO_EVALID, scopeId);
-		simpleJdbcTemplate.update(DELETE_FROM_ANNO_SCOPE, param);
-		throw new RuntimeException("Not yet implemented.  This method should remove the annotations for deleted submissions.");
+		simpleJdbcTemplate.update(DELETE_ANNOS_FOR_DELETED_SUBMISSIONS, param);
 	}
 
 }

@@ -21,13 +21,10 @@ public class AnnotationsWorkerFactory implements MessageWorkerFactory{
 	
 	@Autowired
 	private WorkerLogger workerLogger;
-	
-	@Autowired
-	private EvaluationDAO evaluationDAO;
 
 	@Override
 	public Callable<List<Message>> createWorker(List<Message> messages) {
-		return new AnnotationsWorker(messages, ssAsyncMgr, workerLogger, evaluationDAO);
+		return new AnnotationsWorker(messages, ssAsyncMgr, workerLogger);
 	}
 	
 }

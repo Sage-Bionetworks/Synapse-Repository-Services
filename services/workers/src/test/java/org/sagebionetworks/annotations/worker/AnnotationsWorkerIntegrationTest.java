@@ -12,6 +12,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageReceiver;
+import org.sagebionetworks.evaluation.manager.SubmissionManager;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Participant;
@@ -19,9 +20,11 @@ import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.annotation.Annotations;
 import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
 import org.sagebionetworks.repo.model.annotation.LongAnnotation;
@@ -29,7 +32,6 @@ import org.sagebionetworks.repo.model.annotation.StringAnnotation;
 import org.sagebionetworks.repo.model.evaluation.AnnotationsDAO;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.evaluation.ParticipantDAO;
-import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionStatusDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -49,11 +51,14 @@ public class AnnotationsWorkerIntegrationTest {
 	@Autowired
 	private AnnotationsDAO annotationsDAO;
 	
-	@Autowired
-	private SubmissionStatusDAO submissionStatusDAO;
+//	@Autowired
+//	private SubmissionStatusDAO submissionStatusDAO;
     
+//	@Autowired
+//    private SubmissionDAO submissionDAO;
+	
 	@Autowired
-    private SubmissionDAO submissionDAO;
+	private SubmissionManager submissionManager;
     
 	@Autowired
     private ParticipantDAO participantDAO;
@@ -70,6 +75,7 @@ public class AnnotationsWorkerIntegrationTest {
 	private String nodeId;
     private String submissionId;
     private Long userId;
+    private UserInfo userInfo;
     private String evalId;
     private final String name = "test submission";
     private final Long versionNumber = 1L;
@@ -77,6 +83,8 @@ public class AnnotationsWorkerIntegrationTest {
 	@Before
 	public void before() throws Exception {
 		userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
+	    userInfo = new UserInfo(true);
+	    userInfo.setId(userId);
 		
 		// Before we start, make sure the queue is empty
 		annotationsQueueMessageReceiver.emptyQueue();
@@ -121,17 +129,17 @@ public class AnnotationsWorkerIntegrationTest {
         submission.setEvaluationId(evalId);
         submission.setCreatedOn(new Date());
         submission.setEntityBundleJSON("some bundle");
-        submissionId = submissionDAO.create(submission);
+        Node created = nodeDAO.getNode(nodeId);
+        EntityBundle bundle = new EntityBundle();
+        Submission createdSub = submissionManager.createSubmission(userInfo, submission, created.getETag(), bundle);
+        submissionId = createdSub.getId();
         
         // create a submissionstatus
-        SubmissionStatus status = new SubmissionStatus();
-        status.setModifiedOn(new Date());
-        status.setId(submissionId);
-        status.setEtag(null);
+        SubmissionStatus status = submissionManager.getSubmissionStatus(userInfo, submissionId);
         status.setStatus(SubmissionStatusEnum.RECEIVED);
         status.setScore(0.1);
         status.setAnnotations(createDummyAnnotations());
-        submissionStatusDAO.create(status);
+        submissionManager.updateSubmissionStatus(userInfo, status);
 	}
 	
 	@After
@@ -140,7 +148,7 @@ public class AnnotationsWorkerIntegrationTest {
     		nodeDAO.delete(nodeId);
     	} catch (Exception e) {};
 		try {
-			submissionDAO.delete(submissionId);
+			submissionManager.deleteSubmission(userInfo, submissionId);
 		} catch (Exception e)  {};
 		try {
 			participantDAO.delete(userId.toString(), evalId);
@@ -168,7 +176,7 @@ public class AnnotationsWorkerIntegrationTest {
 		assertEquals(submissionId, annos.getObjectId());
 		
 		// check that Annotations are deleted
-		submissionStatusDAO.delete(submissionId);
+		submissionManager.deleteSubmission(userInfo, submissionId);
 		start = System.currentTimeMillis();
 		while (annos.getObjectId() != null) {
 			System.out.println("Waiting for Annotations to be deleted for Submission: " + submissionIdLong);

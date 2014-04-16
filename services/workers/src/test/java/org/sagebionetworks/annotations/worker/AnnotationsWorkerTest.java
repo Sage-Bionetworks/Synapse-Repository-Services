@@ -65,7 +65,7 @@ public class AnnotationsWorkerTest {
 	@Test
 	public void testUpdateSubmissionStatus() throws Exception{
 		ChangeMessage message = new ChangeMessage();
-		message.setObjectType(ObjectType.SUBMISSION);
+		message.setObjectType(ObjectType.EVALUATION_SUBMISSIONS);
 		message.setChangeType(ChangeType.UPDATE);
 		message.setObjectId("123");
 		Message awsMessage = MessageUtils.createMessage(message, "abc", "handle");
@@ -83,7 +83,7 @@ public class AnnotationsWorkerTest {
 	@Test
 	public void testDeleteSubmission() throws Exception{
 		ChangeMessage message = new ChangeMessage();
-		message.setObjectType(ObjectType.SUBMISSION);
+		message.setObjectType(ObjectType.EVALUATION_SUBMISSIONS);
 		message.setChangeType(ChangeType.DELETE);
 		message.setObjectId("123");
 		Message awsMessage = MessageUtils.createMessage(message, "abc", "handle");
@@ -109,7 +109,7 @@ public class AnnotationsWorkerTest {
 		List<Message> list = new LinkedList<Message>();
 		// This will succeed
 		ChangeMessage message = new ChangeMessage();
-		message.setObjectType(ObjectType.SUBMISSION);
+		message.setObjectType(ObjectType.EVALUATION_SUBMISSIONS);
 		message.setChangeType(ChangeType.UPDATE);
 		String successId = "success";
 		message.setObjectId(successId);
@@ -117,7 +117,7 @@ public class AnnotationsWorkerTest {
 		list.add(awsMessage);
 		// This will fail
 		message = new ChangeMessage();
-		message.setObjectType(ObjectType.SUBMISSION);
+		message.setObjectType(ObjectType.EVALUATION_SUBMISSIONS);
 		message.setChangeType(ChangeType.UPDATE);
 		String failId = "fail";
 		message.setObjectId(failId);
@@ -140,7 +140,7 @@ public class AnnotationsWorkerTest {
 		List<Message> list = new LinkedList<Message>();
 		// This will succeed
 		ChangeMessage message = new ChangeMessage();
-		message.setObjectType(ObjectType.SUBMISSION);
+		message.setObjectType(ObjectType.EVALUATION_SUBMISSIONS);
 		message.setChangeType(ChangeType.UPDATE);
 		String successId = "success";
 		message.setObjectId(successId);
@@ -148,7 +148,7 @@ public class AnnotationsWorkerTest {
 		list.add(awsMessage);
 		// This will fail
 		message = new ChangeMessage();
-		message.setObjectType(ObjectType.SUBMISSION);
+		message.setObjectType(ObjectType.EVALUATION_SUBMISSIONS);
 		message.setChangeType(ChangeType.UPDATE);
 		String failId = "fail";
 		message.setObjectId(failId);

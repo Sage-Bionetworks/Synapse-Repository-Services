@@ -39,7 +39,7 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
  * 
  * @author bkng
  */
-public class SubmissionStatusDBO implements MigratableDatabaseObject<SubmissionStatusDBO, SubmissionStatusDBO>, ObservableEntity {
+public class SubmissionStatusDBO implements MigratableDatabaseObject<SubmissionStatusDBO, SubmissionStatusDBO> {
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 			new FieldColumn(PARAM_SUBMISSION_ID, COL_SUBSTATUS_SUBMISSION_ID, true).withIsBackupId(true),
@@ -143,23 +143,6 @@ public class SubmissionStatusDBO implements MigratableDatabaseObject<SubmissionS
 	}
 	public void setVersion(Long version) {
 		this.version = version;
-	}
-	@Override
-	public String getIdString() {
-		return id.toString();
-	}
-	@Override
-	public String getParentIdString() {
-		return null;
-	}
-	@Override
-	public ObjectType getObjectType() {
-		return ObjectType.SUBMISSION;
-	}
-
-	@Override
-	public String getEtag() {
-		return eTag;
 	}
 	
 	public byte[] getSerializedEntity() {

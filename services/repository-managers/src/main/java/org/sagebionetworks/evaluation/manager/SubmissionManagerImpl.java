@@ -139,7 +139,8 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		Long evalIdLong = KeyFactory.stringToKey(submission.getEvaluationId());
 
 		submissionStatusDAO.create(status);
-		sendEvaluationSubmissionsChangeMessage(evalIdLong, ChangeType.CREATE);
+		EvaluationChangeMessageUtil.sendEvaluationSubmissionsChangeMessage(
+				evalIdLong, ChangeType.CREATE, evaluationDAO, transactionalMessenger);
 		
 		// save FileHandle IDs
 		for (FileHandle handle : bundle.getFileHandles()) {
@@ -150,14 +151,6 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		return submissionDAO.get(submissionId);
 	}
 	
-	private void sendEvaluationSubmissionsChangeMessage(Long evalId, ChangeType changeType) {
-		String evaluationSubmissionsEtag = UUID.randomUUID().toString();
-		evaluationDAO.updateSubmissionsEtag(evalId.toString(), evaluationSubmissionsEtag); 
-		EvaluationSubmissionsObservableEntity observable = new EvaluationSubmissionsObservableEntity(
-				evalId.toString(), evaluationSubmissionsEtag);
-		transactionalMessenger.sendMessageAfterCommit(observable, changeType);
-	}
-
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public SubmissionStatus updateSubmissionStatus(UserInfo userInfo, SubmissionStatus submissionStatus) throws NotFoundException {
@@ -192,7 +185,11 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		
 		// update and return the new Submission
 		submissionStatusDAO.update(submissionStatus);
-		sendEvaluationSubmissionsChangeMessage(KeyFactory.stringToKey(evalId), ChangeType.UPDATE);
+		EvaluationChangeMessageUtil.sendEvaluationSubmissionsChangeMessage(
+				KeyFactory.stringToKey(evalId), 
+				ChangeType.UPDATE, 
+				evaluationDAO, 
+				transactionalMessenger);
 		return submissionStatusDAO.get(submissionStatus.getId());
 	}
 	
@@ -209,7 +206,11 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		// ... but that's not enough to generate a delete message, so we delete it ourselves:
 		submissionStatusDAO.delete(submissionId);
 		submissionDAO.delete(submissionId);
-		sendEvaluationSubmissionsChangeMessage(KeyFactory.stringToKey(evalId), ChangeType.DELETE);
+		EvaluationChangeMessageUtil.sendEvaluationSubmissionsChangeMessage(
+				KeyFactory.stringToKey(evalId), 
+				ChangeType.DELETE, 
+				evaluationDAO, 
+				transactionalMessenger);
 	}
 
 	@Override

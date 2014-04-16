@@ -125,7 +125,7 @@ public class AnnotationsWorkerAutowiredTest {
 	@Test
 	public void testDeadlockException() throws Exception {
 		String etag = "";
-		Message message = MessageUtils.buildMessage(ChangeType.CREATE, ""+submissionId, ObjectType.SUBMISSION, etag);
+		Message message = MessageUtils.buildMessage(ChangeType.CREATE, ""+submissionId, ObjectType.EVALUATION_SUBMISSIONS, etag);
 		List<Message> messages = Collections.singletonList(message);
 		WorkerLogger mockWorkerLogger = Mockito.mock(WorkerLogger.class);
 		AnnotationsWorker worker = new AnnotationsWorker(messages, ssAsyncMgr, mockWorkerLogger);

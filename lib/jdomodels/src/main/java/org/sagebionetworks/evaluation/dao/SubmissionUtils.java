@@ -96,7 +96,7 @@ public class SubmissionUtils {
 		SubmissionStatus dto = copyFromSerializedField(dbo);
 		
 		// use non-serialized eTag and modified date as the "true" values
-		dto.setEtag(dbo.getEtag());
+		dto.setEtag(dbo.geteTag());
 		dto.setModifiedOn(dbo.getModifiedOn() == null ? null : new Date(dbo.getModifiedOn()));
 		
 		// populate from secondary columns if necessary (to support legacy non-serialized objects)

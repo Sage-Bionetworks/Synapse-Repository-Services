@@ -88,7 +88,7 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 		verifySubmissionStatusDBO(dbo);
 
 		// update eTag and send message of update
-		EtagAndVersion newEtagAndVersion = lockAndGenerateEtag(dbo.getIdString(), dbo.getEtag());
+		EtagAndVersion newEtagAndVersion = lockAndGenerateEtag(dbo.getId().toString(), dbo.geteTag());
 		dbo.seteTag(newEtagAndVersion.getEtag());
 		dbo.setVersion(newEtagAndVersion.getVersion());
 		
@@ -114,7 +114,7 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 	 */
 	private void verifySubmissionStatusDBO(SubmissionStatusDBO dbo) {
 		EvaluationUtils.ensureNotNull(dbo.getId(), "Submission ID");
-		EvaluationUtils.ensureNotNull(dbo.getEtag(), "eTag");
+		EvaluationUtils.ensureNotNull(dbo.geteTag(), "eTag");
 		EvaluationUtils.ensureNotNull(dbo.getModifiedOn(), "Modified date");
 		EvaluationUtils.ensureNotNull(dbo.getStatusEnum(), "Submission status");
 		EvaluationUtils.ensureNotNull(dbo.getVersion(), "Status version");
