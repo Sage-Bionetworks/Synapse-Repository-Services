@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
 import org.sagebionetworks.repo.model.annotation.LongAnnotation;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
 import org.sagebionetworks.repo.model.evaluation.AnnotationsDAO;
+import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionStatusDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -34,6 +35,8 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 	private SubmissionStatusDAO submissionStatusDAO;
 	@Autowired
 	private AnnotationsDAO annotationsDAO;	
+	@Autowired
+	private EvaluationDAO evaluationDAO;
 
 	public SubmissionStatusAnnotationsAsyncManagerImpl() {};
 
@@ -55,13 +58,23 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 		if (subId == null) throw new IllegalArgumentException("Id cannot be null");
 		replaceAnnotations(subId);
 	}
+	
+	private void checkSubmissionsEtag(String evalId, String submissionsEtag) {
+		String currentSubmissionsEtag = evaluationDAO.getSubmissionsEtag(evalId);
+		if (currentSubmissionsEtag==null || 
+				!currentSubmissionsEtag.equals(submissionsEtag)) {
+			throw new IllegalStateException("Change message has etag "+submissionsEtag+
+					" but "+currentSubmissionsEtag+" is expected.");
+		}
+	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void createEvaluationSubmissionStatuses(String evalId)
+	public void createEvaluationSubmissionStatuses(String evalId, String submissionsEtag)
 			throws NotFoundException, DatastoreException,
 			JSONObjectAdapterException {
 		if (evalId == null) throw new IllegalArgumentException("Id cannot be null");
+		checkSubmissionsEtag(evalId, submissionsEtag);
 		replaceAnnotationsForEvaluation(evalId);
 	}
 
@@ -75,10 +88,11 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void updateEvaluationSubmissionStatuses(String evalId)
+	public void updateEvaluationSubmissionStatuses(String evalId, String submissionsEtag)
 			throws NotFoundException, DatastoreException,
 			JSONObjectAdapterException {
 		if (evalId == null) throw new IllegalArgumentException("Id cannot be null");
+		checkSubmissionsEtag(evalId, submissionsEtag);
 		replaceAnnotationsForEvaluation(evalId);
 	}
 
@@ -92,9 +106,10 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void deleteEvaluationSubmissionStatuses(String id) {
-		if (id == null) throw new IllegalArgumentException("Id cannot be null");
-		Long evalId = KeyFactory.stringToKey(id);
+	public void deleteEvaluationSubmissionStatuses(String evalIdString, String submissionsEtag) {
+		if (evalIdString == null) throw new IllegalArgumentException("Id cannot be null");
+		checkSubmissionsEtag(evalIdString, submissionsEtag);
+		Long evalId = KeyFactory.stringToKey(evalIdString);
 		annotationsDAO.deleteAnnotationsByScope(evalId);
 	}
 

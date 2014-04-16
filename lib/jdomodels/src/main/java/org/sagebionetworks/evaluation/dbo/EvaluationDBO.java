@@ -8,8 +8,9 @@ import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_I
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_NAME;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_OWNER_ID;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_STATUS;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_SUBMISSIONS_ETAG;
 import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_SUB_INSTRUCT_MSG;
-import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_SUB_RECEPIT_MSG;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_EVALUATION_SUB_RECEIPT_MSG;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_CONTENT_SOURCE;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_DESCRIPTION;
@@ -18,6 +19,7 @@ import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_I
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_NAME;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_OWNER_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_STATUS;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_SUBMISSIONS_ETAG;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_SUB_INSTRUCT_MSG;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_SUB_RECEIPT_MSG;
 import static org.sagebionetworks.repo.model.query.SQLConstants.DDL_FILE_EVALUATION;
@@ -55,7 +57,8 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 			new FieldColumn(PARAM_EVALUATION_CONTENT_SOURCE, COL_EVALUATION_CONTENT_SOURCE),
 			new FieldColumn(PARAM_EVALUATION_STATUS, COL_EVALUATION_STATUS),
 			new FieldColumn(PARAM_EVALUATION_SUB_INSTRUCT_MSG, COL_EVALUATION_SUB_INSTRUCT_MSG),
-			new FieldColumn(PARAM_EVALUATION_SUB_RECEPIT_MSG, COL_EVALUATION_SUB_RECEIPT_MSG)
+			new FieldColumn(PARAM_EVALUATION_SUB_RECEIPT_MSG, COL_EVALUATION_SUB_RECEIPT_MSG),
+			new FieldColumn(PARAM_EVALUATION_SUBMISSIONS_ETAG, COL_EVALUATION_SUBMISSIONS_ETAG)
 			};
 
 	public TableMapping<EvaluationDBO> getTableMapping() {
@@ -113,6 +116,7 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 	private int status;
 	private byte[] submissionInstructionsMessage;
 	private byte[] submissionReceiptMessage;
+	private String submissionsEtag;
 	
 	public Long getId() {
 		return id;
@@ -189,6 +193,13 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 	public void setSubmissionReceiptMessage(byte[] submissionReceiptMessage) {
 		this.submissionReceiptMessage = submissionReceiptMessage;
 	}
+	
+	public String getSubmissionsEtag() {
+		return submissionsEtag;
+	}
+	public void setSubmissionsEtag(String submissionsEtag) {
+		this.submissionsEtag = submissionsEtag;
+	}
 	@Override
 	public String getIdString() {
 		return id.toString();
@@ -233,7 +244,8 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 				+ ", submissionInstructionsMessage="
 				+ Arrays.toString(submissionInstructionsMessage)
 				+ ", submissionReceiptMessage="
-				+ Arrays.toString(submissionReceiptMessage) + "]";
+				+ Arrays.toString(submissionReceiptMessage)
+				+ ", submissionsEtag=" + submissionsEtag + "]";
 	}
 	@Override
 	public int hashCode() {
@@ -252,6 +264,8 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 		result = prime * result
 				+ Arrays.hashCode(submissionInstructionsMessage);
 		result = prime * result + Arrays.hashCode(submissionReceiptMessage);
+		result = prime * result
+				+ ((submissionsEtag == null) ? 0 : submissionsEtag.hashCode());
 		return result;
 	}
 	@Override
@@ -302,6 +316,11 @@ public class EvaluationDBO implements MigratableDatabaseObject<EvaluationDBO, Ev
 			return false;
 		if (!Arrays.equals(submissionReceiptMessage,
 				other.submissionReceiptMessage))
+			return false;
+		if (submissionsEtag == null) {
+			if (other.submissionsEtag != null)
+				return false;
+		} else if (!submissionsEtag.equals(other.submissionsEtag))
 			return false;
 		return true;
 	}

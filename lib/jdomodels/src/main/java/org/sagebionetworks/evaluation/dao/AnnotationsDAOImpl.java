@@ -346,6 +346,7 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_SUBSTATUS_ANNO_EVALID, scopeId);
 		simpleJdbcTemplate.update(DELETE_FROM_ANNO_SCOPE, param);
+		throw new RuntimeException("Not yet implemented.  This method should remove the annotations for deleted submissions.");
 	}
 
 }

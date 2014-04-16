@@ -154,7 +154,7 @@ public class SubmissionStatusDBO implements MigratableDatabaseObject<SubmissionS
 	}
 	@Override
 	public ObjectType getObjectType() {
-		return ObjectType.EVALUATION_SUBMISSIONS;
+		return ObjectType.SUBMISSION;
 	}
 
 	@Override

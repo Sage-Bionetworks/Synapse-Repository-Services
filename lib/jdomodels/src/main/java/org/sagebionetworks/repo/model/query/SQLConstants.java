@@ -31,6 +31,7 @@ public class SQLConstants {
 	public static final String COL_EVALUATION_STATUS 			= "STATUS";
 	public static final String COL_EVALUATION_SUB_INSTRUCT_MSG	= "SUBMISSION_INSTRUCTIONS_MESSAGE";
 	public static final String COL_EVALUATION_SUB_RECEIPT_MSG	= "SUBMISSION_RECEIPT_MESSAGE";
+	public static final String COL_EVALUATION_SUBMISSIONS_ETAG	= "SUBMISSIONS_ETAG";
 	
 	// Participant table constants
 	public static final String DDL_FILE_PARTICIPANT				= "schema/evaluation/Participant-ddl.sql";

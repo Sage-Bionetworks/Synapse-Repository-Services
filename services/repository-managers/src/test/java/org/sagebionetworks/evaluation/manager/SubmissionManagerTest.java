@@ -46,12 +46,14 @@ import org.sagebionetworks.repo.model.annotation.Annotations;
 import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
 import org.sagebionetworks.repo.model.annotation.LongAnnotation;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
+import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionFileHandleDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionStatusDAO;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -70,7 +72,8 @@ public class SubmissionManagerTest {
 	private SubmissionDAO mockSubmissionDAO;
 	private SubmissionStatusDAO mockSubmissionStatusDAO;
 	private SubmissionFileHandleDAO mockSubmissionFileHandleDAO;
-	private EvaluationManager mockEvaluationManager;
+	private EvaluationDAO mockEvaluationDAO;
+	private TransactionalMessenger mockTransactionalMessenger;
 	private EntityManager mockEntityManager;
 	private NodeManager mockNodeManager;
 	private FileHandleManager mockFileHandleManager;
@@ -181,7 +184,8 @@ public class SubmissionManagerTest {
     	mockSubmissionDAO = mock(SubmissionDAO.class);
     	mockSubmissionStatusDAO = mock(SubmissionStatusDAO.class);
     	mockSubmissionFileHandleDAO = mock(SubmissionFileHandleDAO.class);
-    	mockEvaluationManager = mock(EvaluationManager.class);
+    	mockEvaluationDAO = mock(EvaluationDAO.class);
+    	mockTransactionalMessenger = mock(TransactionalMessenger.class);
     	mockEntityManager = mock(EntityManager.class);
     	mockNodeManager = mock(NodeManager.class, RETURNS_DEEP_STUBS);
     	mockNode = mock(Node.class);
@@ -189,7 +193,6 @@ public class SubmissionManagerTest {
       	mockEvalPermissionsManager = mock(EvaluationPermissionsManager.class);
 
     	when(mockIdGenerator.generateNewId()).thenReturn(Long.parseLong(SUB_ID));
-    	when(mockEvaluationManager.getEvaluation(any(UserInfo.class), eq(EVAL_ID))).thenReturn(eval);
     	when(mockSubmissionDAO.get(eq(SUB_ID))).thenReturn(subWithId);
     	when(mockSubmissionDAO.get(eq(SUB2_ID))).thenReturn(sub2WithId);
     	when(mockSubmissionDAO.create(eq(sub))).thenReturn(SUB_ID);
@@ -213,7 +216,8 @@ public class SubmissionManagerTest {
     	ReflectionTestUtils.setField(submissionManager, "submissionDAO", mockSubmissionDAO);
     	ReflectionTestUtils.setField(submissionManager, "submissionStatusDAO", mockSubmissionStatusDAO);
     	ReflectionTestUtils.setField(submissionManager, "submissionFileHandleDAO", mockSubmissionFileHandleDAO);
-    	ReflectionTestUtils.setField(submissionManager, "evaluationManager", mockEvaluationManager);
+    	ReflectionTestUtils.setField(submissionManager, "evaluationDAO", mockEvaluationDAO);
+    	ReflectionTestUtils.setField(submissionManager, "transactionalMessenger", mockTransactionalMessenger);
     	ReflectionTestUtils.setField(submissionManager, "entityManager", mockEntityManager);
     	ReflectionTestUtils.setField(submissionManager, "nodeManager", mockNodeManager);
     	ReflectionTestUtils.setField(submissionManager, "fileHandleManager", mockFileHandleManager);

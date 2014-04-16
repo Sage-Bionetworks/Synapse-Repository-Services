@@ -44,32 +44,36 @@ public interface SubmissionStatusAnnotationsAsyncManager {
 	/**
 	 * Update the query tables with any Annotations included in the created Evaluation's SubmissionStatuses.
 	 * 
-	 * @param subId
+	 * @param evalId
+	 * @param submissionsEtag
+	 * 
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 * @throws JSONObjectAdapterException
 	 */
-	public void createEvaluationSubmissionStatuses(String evalId) 
+	public void createEvaluationSubmissionStatuses(String evalId, String submissionsEtag) 
 			throws NotFoundException, DatastoreException, JSONObjectAdapterException;
 
 	/**
 	 * Update the query tables with any Annotations included in the updated Evaluation's SubmissionStatuses.
 	 * 
-	 * @param id
+	 * @param evalId
+	 * @param submissionsEtag
 	 * @return
 	 * @throws NotFoundException
 	 * @throws JSONObjectAdapterException 
 	 * @throws DatastoreException 
 	 */
-	public void updateEvaluationSubmissionStatuses(String id) 
+	public void updateEvaluationSubmissionStatuses(String evalId, String submissionsEtag) 
 			throws NotFoundException, DatastoreException, JSONObjectAdapterException;
 
 	/**
 	 * Delete all entries in the query tables for the deleted Evaluation.
 	 * 
-	 * @param id
+	 * @param evalId
+	 * @param submissionsEtag
 	 * @return
 	 */
-	public void deleteEvaluationSubmissionStatuses(String id);
+	public void deleteEvaluationSubmissionStatuses(String evalId, String submissionsEtag);
 
 }

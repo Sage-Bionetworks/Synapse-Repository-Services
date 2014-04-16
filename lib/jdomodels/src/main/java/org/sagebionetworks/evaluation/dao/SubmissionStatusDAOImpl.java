@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.ObservableEntity;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.evaluation.SubmissionStatusDAO;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -36,9 +37,6 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
 	
-	@Autowired
-	private TransactionalMessenger transactionalMessenger;
-	
 	private static final String ID = DBOConstants.PARAM_SUBMISSION_ID;
 	
 	private static final String SQL_ETAG_WITHOUT_LOCK = "SELECT " + COL_SUBSTATUS_ETAG +", "+
@@ -49,6 +47,8 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 
 	private static final String SUBMISSION_NOT_FOUND = "Submission could not be found with id :";
 	
+	
+	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public String create(SubmissionStatus dto) throws DatastoreException {
@@ -56,9 +56,8 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 		dto.setStatusVersion(DBOConstants.SUBSTATUS_INITIAL_VERSION_NUMBER);
 		SubmissionStatusDBO dbo = SubmissionUtils.convertDtoToDbo(dto);
 		
-		// Generate a new eTag and CREATE message
+		// Generate a new eTag
 		dbo.seteTag(UUID.randomUUID().toString());
-		transactionalMessenger.sendMessageAfterCommit(dbo, ChangeType.CREATE);
 
 		// Ensure DBO has required information
 		verifySubmissionStatusDBO(dbo);
@@ -89,7 +88,7 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 		verifySubmissionStatusDBO(dbo);
 
 		// update eTag and send message of update
-		EtagAndVersion newEtagAndVersion = lockAndGenerateEtag(dbo.getIdString(), dbo.getEtag(), ChangeType.UPDATE);
+		EtagAndVersion newEtagAndVersion = lockAndGenerateEtag(dbo.getIdString(), dbo.getEtag());
 		dbo.seteTag(newEtagAndVersion.getEtag());
 		dbo.setVersion(newEtagAndVersion.getVersion());
 		
@@ -106,9 +105,6 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(ID, id);
 		basicDao.deleteObjectByPrimaryKey(SubmissionStatusDBO.class, param);
-		
-		// Send a delete message
-		transactionalMessenger.sendMessageAfterCommit(id, ObjectType.SUBMISSION, ChangeType.DELETE);
 	}
 
 	/**
@@ -124,7 +120,7 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 		EvaluationUtils.ensureNotNull(dbo.getVersion(), "Status version");
 	}
 	
-	private EtagAndVersion lockAndGenerateEtag(String id, String eTag, ChangeType changeType)
+	private EtagAndVersion lockAndGenerateEtag(String id, String eTag)
 			throws NotFoundException, ConflictingUpdateException, DatastoreException {
 		EtagAndVersion current = lockForUpdate(id);
 		// Check the eTags
@@ -132,23 +128,7 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 			throw new ConflictingUpdateException("Node: "+id+" was updated since you last fetched it, retrieve it again and reapply the update");
 		}
 		// Get a new e-tag
-		SubmissionStatusDBO dbo = getDBO(id);
-		dbo.seteTag(UUID.randomUUID().toString());
-		dbo.setVersion(current.getVersion()+1L);
-		transactionalMessenger.sendMessageAfterCommit(dbo, changeType);
-		return new EtagAndVersion(dbo.getEtag(), dbo.getVersion());
-	}
-	
-	private SubmissionStatusDBO getDBO(String id) throws NotFoundException {
-		EvaluationUtils.ensureNotNull(id, "Submission id");
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(DBOConstants.PARAM_EVALUATION_ID, id);
-		try {
-			SubmissionStatusDBO dbo = basicDao.getObjectByPrimaryKey(SubmissionStatusDBO.class, param);
-			return dbo;
-		} catch (NotFoundException e) {
-			throw new NotFoundException(SUBMISSION_NOT_FOUND + id);
-		}
+		return new EtagAndVersion(UUID.randomUUID().toString(), current.getVersion()+1L);
 	}
 	
 	private EtagAndVersion lockForUpdate(String id) {

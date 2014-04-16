@@ -10,6 +10,7 @@ import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.SubmissionStatusAnnotationsAsyncManager;
+import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.springframework.dao.DeadlockLoserDataAccessException;
@@ -24,11 +25,13 @@ public class AnnotationsWorker implements Callable<List<Message>> {
 	
 	static private Log log = LogFactory.getLog(AnnotationsWorker.class);
 	
-	List<Message> messages;
-	SubmissionStatusAnnotationsAsyncManager ssAsyncMgr;
-	WorkerLogger workerLogger;
+	private List<Message> messages;
+	private SubmissionStatusAnnotationsAsyncManager ssAsyncMgr;
+	private WorkerLogger workerLogger;
 
-	public AnnotationsWorker(List<Message> messages, SubmissionStatusAnnotationsAsyncManager ssAsyncMgr, WorkerLogger workerProfiler) {
+	public AnnotationsWorker(List<Message> messages, 
+			SubmissionStatusAnnotationsAsyncManager ssAsyncMgr, 
+			WorkerLogger workerProfiler) {
 		if(messages == null) throw new IllegalArgumentException("Messages cannot be null");
 		if(ssAsyncMgr == null) throw new IllegalArgumentException("Asynchronous DAO cannot be null");
 		if (workerProfiler == null) throw new IllegalArgumentException("workerProfiler cannot be null");
@@ -49,13 +52,13 @@ public class AnnotationsWorker implements Callable<List<Message>> {
 				try {
 					// Is this a create, update, or delete?
 					if (ChangeType.CREATE == change.getChangeType()) {
-						ssAsyncMgr.createEvaluationSubmissionStatuses(change.getObjectId());
+						ssAsyncMgr.createEvaluationSubmissionStatuses(change.getObjectId(), change.getObjectEtag());
 					} else if (ChangeType.UPDATE == change.getChangeType()) {
 						// update
-						ssAsyncMgr.updateEvaluationSubmissionStatuses(change.getObjectId());
+						ssAsyncMgr.updateEvaluationSubmissionStatuses(change.getObjectId(), change.getObjectEtag());
 					} else if(ChangeType.DELETE == change.getChangeType()) {
 						// delete
-						ssAsyncMgr.deleteEvaluationSubmissionStatuses(change.getObjectId());
+						ssAsyncMgr.deleteEvaluationSubmissionStatuses(change.getObjectId(), change.getObjectEtag());
 					} else {
 						throw new IllegalArgumentException("Unknown change type: "+change.getChangeType());
 					}
