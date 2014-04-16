@@ -131,7 +131,7 @@ public class ServletTestHelperUtils {
 			throw new IllegalArgumentException(message);
 		}
 		// Not sure what else it could be!
-		throw new RuntimeException(message);
+		throw new RuntimeException(status + ":" + message);
 	}
 
 	/**

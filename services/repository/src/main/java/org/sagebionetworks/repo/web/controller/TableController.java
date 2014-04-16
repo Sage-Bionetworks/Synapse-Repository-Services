@@ -268,6 +268,36 @@ public class TableController extends BaseController {
 
 	/**
 	 * <p>
+	 * This method is used to delete rows in a TableEntity. The rows in the passed in RowReferenceSet will be deleted if
+	 * they exists (a 400 will be returned if a row ID is provided that does not actually exist). A single POST to this
+	 * services will be treated as a single transaction, meaning either all of the rows will be deleted or none of the
+	 * rows will be deleted. If this web-services fails for any reason all changes will be "rolled back".
+	 * </p>
+	 * <p>
+	 * Note: The caller must have the <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}" >ACCESS_TYPE.UPDATE</a>
+	 * permission on the TableEntity to make this call.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param id The ID of the TableEntity to append rows to.
+	 * @param rows The set of rows to add/update.
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_DELETE_ROWS, method = RequestMethod.POST)
+	public @ResponseBody
+	RowReferenceSet deleteRows(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String id,
+			@RequestBody RowReferenceSet rowsToDelete) throws DatastoreException, NotFoundException, IOException {
+		if (id == null)
+			throw new IllegalArgumentException("{id} cannot be null");
+		rowsToDelete.setTableId(id);
+		return serviceProvider.getTableServices().deleteRows(userId, rowsToDelete);
+	}
+
+	/**
+	 * <p>
 	 * Using a 'SQL like' syntax, query the current version of the rows in a
 	 * single table. The following pseudo-syntax is the basic supported format:
 	 * </p>

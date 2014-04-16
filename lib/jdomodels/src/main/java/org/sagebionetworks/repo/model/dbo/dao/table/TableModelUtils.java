@@ -31,6 +31,7 @@ import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import au.com.bytecode.opencsv.CSVWriter;
@@ -53,14 +54,15 @@ public class TableModelUtils {
 	
 
 	/**
-	 * This utility will validate and convert the passed RowSet to an output
-	 * CSV written to a GZip stream.
+	 * This utility will validate and convert the passed RowSet to an output CSV written to a GZip stream.
+	 * 
 	 * @param models
 	 * @param set
 	 * @param out
+	 * @param isDeletion
 	 * @throws IOException
 	 */
-	public static void validateAnWriteToCSVgz(List<ColumnModel> models,	RowSet set, OutputStream out) throws IOException{
+	public static void validateAnWriteToCSVgz(List<ColumnModel> models, RowSet set, OutputStream out, boolean isDeletion) throws IOException {
 		GZIPOutputStream zipOut = null;
 		OutputStreamWriter osw = null;
 		CSVWriter csvWriter = null;
@@ -69,7 +71,7 @@ public class TableModelUtils {
 			osw = new OutputStreamWriter(zipOut);
 			csvWriter = new CSVWriter(osw);
 			// Write the data to the the CSV.
-			TableModelUtils.validateAndWriteToCSV(models, set, csvWriter);
+			TableModelUtils.validateAndWriteToCSV(models, set, csvWriter, isDeletion);
 		}finally{
 			if(csvWriter != null){
 				csvWriter.flush();
@@ -90,7 +92,7 @@ public class TableModelUtils {
 	 * @param set
 	 */
 	public static void validateAndWriteToCSV(List<ColumnModel> models,
-			RowSet set, CSVWriter out) {
+ RowSet set, CSVWriter out, boolean isDeletion) {
 		if (models == null)
 			throw new IllegalArgumentException("Models cannot be null");
 		validateRowSet(set);
@@ -115,7 +117,7 @@ public class TableModelUtils {
 						"Row.versionNumber cannot be null for row number: "
 								+ count);
 			String[] finalRow;
-			if (isDeletedRow(row)) {
+			if (isDeletion) {
 				// only output rowId and rowVersion
 				finalRow = new String[2];
 			} else {
@@ -123,6 +125,8 @@ public class TableModelUtils {
 				if (row.getValues() == null)
 					throw new IllegalArgumentException("Row " + count
 							+ " has null list of values");
+				if (row.getValues().size() == 0)
+					throw new IllegalArgumentException("Row " + count + " has empty list of values");
 				if (models.size() != row.getValues().size())
 					throw new IllegalArgumentException(
 							"Row.value size must be equal to the number of columns in the table.  The table has :"
@@ -535,7 +539,10 @@ public class TableModelUtils {
 		Set<Long> distictRowIds = new HashSet<Long>();
 		for(Row ref: rows){
 			if(!isNullOrInvalid(ref.getRowId())){
-				distictRowIds.add(ref.getRowId());
+				if (!distictRowIds.add(ref.getRowId())) {
+					// the row id is found twice int the same rowset
+					throw new IllegalArgumentException("The row id " + ref.getRowId() + " is included more than once in the rowset");
+				}
 			}
 		}
 		return distictRowIds;
@@ -701,7 +708,7 @@ public class TableModelUtils {
 		return createColumnIdToIndexMap(rowset.getHeaders());
 	}
 
-	private static Map<String, Integer> createColumnIdToIndexMap(List<String> headers) {
+	public static Map<String, Integer> createColumnIdToIndexMap(List<String> headers) {
 		Map<String, Integer> columnIndexMap = new HashMap<String, Integer>();
 		int index = 0;
 		for (String header : headers) {
@@ -730,17 +737,20 @@ public class TableModelUtils {
 
 			private Map<String, Integer> columnIdToIndexMap = null;
 			private Map<Long, RowAccessor> rowIdToRowMap = null;
+			private List<RowAccessor> rows = null;
 
-			protected Map<Long, RowAccessor> getRowIdToRowMap() {
-				if (rowIdToRowMap == null) {
-					rowIdToRowMap = Maps.newHashMap();
+			@Override
+			public Collection<RowAccessor> getRows() {
+				if (rows == null) {
+					rows = Lists.newArrayListWithCapacity(rowset.getRows().size());
 					for (final Row row : rowset.getRows()) {
-						if (row.getRowId() == null) {
-							throw new IllegalArgumentException("Cannot handle new rows in RowSetAccessor");
-						}
-						rowIdToRowMap.put(row.getRowId(), new RowAccessor() {
+						rows.add(new RowAccessor() {
 							public String getCell(String columnId) {
-								return row.getValues().get(getColumnIdToIndexMap().get(columnId));
+								Integer index = getColumnIdToIndexMap().get(columnId);
+								if (row.getValues() == null || index >= row.getValues().size()) {
+									return null;
+								}
+								return row.getValues().get(index);
 							}
 
 							@Override
@@ -748,6 +758,19 @@ public class TableModelUtils {
 								return row;
 							}
 						});
+					}
+				}
+				return rows;
+			}
+
+			protected Map<Long, RowAccessor> getRowIdToRowMap() {
+				if (rowIdToRowMap == null) {
+					rowIdToRowMap = Maps.newHashMap();
+					for (final RowAccessor row : getRows()) {
+						if (row.getRow().getRowId() == null) {
+							throw new IllegalArgumentException("Cannot handle new rows in RowSetAccessor, access by id");
+						}
+						rowIdToRowMap.put(row.getRow().getRowId(), row);
 					}
 				}
 				return rowIdToRowMap;

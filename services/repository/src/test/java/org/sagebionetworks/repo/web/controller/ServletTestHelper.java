@@ -1416,6 +1416,12 @@ public class ServletTestHelper {
 				RowReferenceSet.class);
 	}
 
+	public static void deleteTableRows(DispatcherServlet instance, RowReferenceSet rows, Long userId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.POST, UrlHelpers.ENTITY + "/" + rows.getTableId()
+				+ UrlHelpers.TABLE + "/deleteRows", userId, rows);
+		ServletTestHelperUtils.dispatchRequest(instance, request, HttpStatus.CREATED);
+	}
+
 	/**
 	 * List all of the ColumnModels in Synapse.
 	 * 

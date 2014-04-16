@@ -41,6 +41,15 @@ public interface TableRowManager {
 			NotFoundException, IOException;
 
 	/**
+	 * Delete a set of rows from a table.
+	 * 
+	 * @param models
+	 */
+	public RowReferenceSet deleteRows(UserInfo user, String tableId, List<ColumnModel> models, RowReferenceSet rowsToDelete)
+			throws DatastoreException,
+			NotFoundException, IOException;
+
+	/**
 	 * Append all rows from the provided iterator into the a table. This method
 	 * will batch rows into optimum sized RowSets.
 	 * 

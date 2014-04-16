@@ -171,8 +171,8 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public RowReferenceSet appendRowSetToTable(String userId, String tableId,
-			List<ColumnModel> models, RowSet delta) throws IOException {
+	public RowReferenceSet appendRowSetToTable(String userId, String tableId, List<ColumnModel> models, RowSet delta, boolean isDeletion)
+			throws IOException {
 		// Now set the row version numbers and ID.
 		int coutToReserver = TableModelUtils.countEmptyOrInvalidRowIds(delta);
 		// Reserver IDs for the missing
@@ -182,7 +182,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		// Now assign the rowIds and set the version number
 		TableModelUtils.assignRowIdsAndVersionNumbers(delta, range);
 		// We are ready to convert the file to a CSV and save it to S3.
-		String key = saveCSVToS3(models, delta);
+		String key = saveCSVToS3(models, delta, isDeletion);
 		List<String> headers = TableModelUtils.getHeaders(models);
 		// record the change
 		DBOTableRowChange changeDBO = new DBOTableRowChange();
@@ -206,12 +206,10 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		List<RowReference> refs = new LinkedList<RowReference>();
 		// Build up the row references
 		for (Row row : delta.getRows()) {
-			if (!TableModelUtils.isDeletedRow(row)) {
-				RowReference ref = new RowReference();
-				ref.setRowId(row.getRowId());
-				ref.setVersionNumber(row.getVersionNumber());
-				refs.add(ref);
-			}
+			RowReference ref = new RowReference();
+			ref.setRowId(row.getRowId());
+			ref.setVersionNumber(row.getVersionNumber());
+			refs.add(ref);
 		}
 		results.setRows(refs);
 		return results;
@@ -314,18 +312,19 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	 * 
 	 * @param models
 	 * @param delta
+	 * @param isDeletion
 	 * @return
 	 * @throws IOException
 	 * @throws FileNotFoundException
 	 */
-	private String saveCSVToS3(List<ColumnModel> models, RowSet delta)
+	private String saveCSVToS3(List<ColumnModel> models, RowSet delta, boolean isDeletion)
 			throws IOException, FileNotFoundException {
 		File temp = File.createTempFile("rowSet", "csv.gz");
 		FileOutputStream out = null;
 		try {
 			out = new FileOutputStream(temp);
 			// Save this to the the zipped CSV
-			TableModelUtils.validateAnWriteToCSVgz(models, delta, out);
+			TableModelUtils.validateAnWriteToCSVgz(models, delta, out, isDeletion);
 			// upload it to S3.
 			String key = String.format(KEY_TEMPLATE, UUID.randomUUID()
 					.toString());
@@ -522,14 +521,6 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 
 		List<TableRowChange> rowChanges = listRowSetsKeysForTable(tableId);
 
-		// rowChanges is sorted by size, hence the last rowChange has all the headers
-		final Map<String, Integer> columnIdToIndexMap;
-		if (!rowChanges.isEmpty()) {
-			columnIdToIndexMap = TableModelUtils.createColumnIdToIndexMap(rowChanges.get(rowChanges.size() - 1));
-		} else {
-			columnIdToIndexMap = Collections.emptyMap();
-		}
-
 		// we are scanning backwards through the row changes. Even though it shouldn't happen the same row id could be
 		// in a change set more than once. We need to scan forward in each change set, and only after the change set is
 		// done can we mark a row as found if it is in the change set at least once
@@ -541,21 +532,28 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 				// we found all the rows that we need to find
 				break;
 			}
-			final List<Long> rowIdsFound = Lists.newArrayListWithCapacity(rowChange.getRowCount().intValue());
+
+			final List<String> rowChangeHeaders = rowChange.getHeaders();
 			// Scan over the delta
 			scanChange(new RowHandler() {
 				@Override
 				public void nextRow(final Row row) {
 					if (rowIdsToFind.contains(row.getRowId())) {
-						rowIdsFound.add(row.getRowId());
+						// we found it, no longer need to find this one
+						rowIdsToFind.remove(row.getRowId());
 						if (TableModelUtils.isDeletedRow(row)) {
 							rowIdToRowMap.remove(row.getRowId());
 						} else {
 							rowIdToRowMap.put(row.getRowId(), new RowAccessor() {
+								Map<String, Integer> columnIdToIndexMap = null;
+
 								@Override
 								public String getCell(String columnId) {
+									if (columnIdToIndexMap == null) {
+										columnIdToIndexMap = TableModelUtils.createColumnIdToIndexMap(rowChangeHeaders);
+									}
 									Integer index = columnIdToIndexMap.get(columnId);
-									if (index >= row.getValues().size()) {
+									if (row.getValues() == null || index >= row.getValues().size()) {
 										return null;
 									}
 									return row.getValues().get(index);
@@ -570,8 +568,6 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 					}
 				}
 			}, rowChange);
-			// remove all the rows we found in this change set
-			rowIdsToFind.removeAll(rowIdsFound);
 		}
 
 		return new RowSetAccessor() {
