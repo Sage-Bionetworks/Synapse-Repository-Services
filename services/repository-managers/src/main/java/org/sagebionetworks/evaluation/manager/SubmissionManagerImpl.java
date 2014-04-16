@@ -154,7 +154,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		String evaluationSubmissionsEtag = UUID.randomUUID().toString();
 		evaluationDAO.updateSubmissionsEtag(evalId.toString(), evaluationSubmissionsEtag); 
 		EvaluationSubmissionsObservableEntity observable = new EvaluationSubmissionsObservableEntity(
-				KeyFactory.keyToString(evalId), evaluationSubmissionsEtag);
+				evalId.toString(), evaluationSubmissionsEtag);
 		transactionalMessenger.sendMessageAfterCommit(observable, changeType);
 	}
 
