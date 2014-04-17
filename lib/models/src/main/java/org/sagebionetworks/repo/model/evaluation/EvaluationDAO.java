@@ -95,6 +95,16 @@ public interface EvaluationDAO {
 	 * concurrency scheme:  If the value is not as expected, then a subsequent operation
 	 * has been applied to the Evaluation.
 	 */
+	public String selectSubmissionsEtag(String id);
+
+	/**
+	 * This variation 'locks' the field to prevent concurrent access
+	 * 
+	 * @return a token which was created in the course of modifying one or more
+	 * submissions under this evaluation.  This token is used in an optimistic
+	 * concurrency scheme:  If the value is not as expected, then a subsequent operation
+	 * has been applied to the Evaluation.
+	 */
 	public String selectAndLockSubmissionsEtag(String id);
 
 }
