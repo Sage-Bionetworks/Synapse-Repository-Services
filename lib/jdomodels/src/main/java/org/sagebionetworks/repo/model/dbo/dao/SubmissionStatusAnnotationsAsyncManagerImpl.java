@@ -72,6 +72,19 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 		replaceAnnotationsForEvaluation(evalId);
 	}
 
+	private void replaceAnnotationsForEvaluation(String evalId) throws DatastoreException, NotFoundException, JSONObjectAdapterException {
+		// get the submissions and statuses that are new or have changed
+		List<SubmissionBundle> changedSubmissions = annotationsDAO.getChangedSubmissions(Long.parseLong(evalId));
+		if (changedSubmissions.isEmpty()) return;
+		// create the updated annotations
+		List<Annotations> annoList = new ArrayList<Annotations>();
+		for (SubmissionBundle sb : changedSubmissions) {
+			annoList.add(fillInAnnotations(sb.getSubmission(), sb.getSubmissionStatus()));
+		}
+		// push the updated annotations to the database
+		annotationsDAO.replaceAnnotations(annoList);
+	}
+
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void deleteEvaluationSubmissionStatuses(String evalIdString, String submissionsEtag) {
@@ -127,19 +140,6 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 		return annos;
 	}
 	
-	private void replaceAnnotationsForEvaluation(String evalId) throws DatastoreException, NotFoundException, JSONObjectAdapterException {
-		// get the submissions and statuses that are new or have changed
-		List<SubmissionBundle> changedSubmissions = annotationsDAO.getChangedSubmissions(Long.parseLong(evalId));
-		if (changedSubmissions.isEmpty()) return;
-		// create the updated annotations
-		List<Annotations> annoList = new ArrayList<Annotations>();
-		for (SubmissionBundle sb : changedSubmissions) {
-			annoList.add(fillInAnnotations(sb.getSubmission(), sb.getSubmissionStatus()));
-		}
-		// push the updated annotations to the database
-		annotationsDAO.replaceAnnotations(annoList);
-	}
-
 	private static void insertSystemAnnotations(Submission submission, SubmissionStatus subStatus,
 			Map<String, LongAnnotation> longAnnoMap,
 			Map<String, DoubleAnnotation> doubleAnnoMap,

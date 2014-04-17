@@ -13,6 +13,7 @@ import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -53,6 +54,7 @@ import org.sagebionetworks.repo.model.evaluation.SubmissionStatusDAO;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -238,6 +240,10 @@ public class SubmissionManagerTest {
 		verify(mockSubmissionStatusDAO).update(any(SubmissionStatus.class));
 		verify(mockSubmissionFileHandleDAO).create(eq(SUB_ID), eq(fileHandle1.getId()));
 		verify(mockSubmissionFileHandleDAO).create(eq(SUB_ID), eq(fileHandle2.getId()));
+		// message sending occurs 3 times, for Create, Update, Delete
+		verify(mockTransactionalMessenger, times(3)).sendMessageAfterCommit((ChangeMessage)any());
+		verify(mockEvaluationDAO, times(3)).selectAndLockSubmissionsEtag(EVAL_ID);
+		verify(mockEvaluationDAO, times(3)).updateSubmissionsEtag(eq(EVAL_ID), anyString());
 	}
 	
 	@Test(expected=UnauthorizedException.class)

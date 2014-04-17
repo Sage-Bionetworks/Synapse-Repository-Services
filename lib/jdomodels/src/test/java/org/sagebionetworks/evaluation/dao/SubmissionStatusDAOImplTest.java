@@ -135,6 +135,7 @@ public class SubmissionStatusDAOImplTest {
         assertNotNull(clone);
         assertNotNull(clone.getModifiedOn());        
         assertNotNull(clone.getEtag());
+        assertEquals(new Long(0L), clone.getStatusVersion());
         status.setModifiedOn(clone.getModifiedOn());
         status.setEtag(clone.getEtag());
         assertEquals(status, clone);
@@ -146,6 +147,7 @@ public class SubmissionStatusDAOImplTest {
         submissionStatusDAO.update(clone);
         SubmissionStatus clone2 = submissionStatusDAO.get(submissionId);
         assertFalse("eTag was not updated.", clone.getEtag().equals(clone2.getEtag()));
+        assertEquals("status-version was not updated.", new Long(1L), clone2.getStatusVersion());
         assertFalse("Modified date was not updated", clone.getModifiedOn().equals(clone2.getModifiedOn()));
         clone.setModifiedOn(clone2.getModifiedOn());
         clone.setEtag(clone2.getEtag());
@@ -177,6 +179,7 @@ public class SubmissionStatusDAOImplTest {
     	subStatusDTO.setScore(0.42);
     	subStatusDTO.setStatus(SubmissionStatusEnum.SCORED);
     	subStatusDTO.setReport("lorem ipsum");
+    	subStatusDTO.setStatusVersion(5L);
     	    	
     	subStatusDBO = SubmissionUtils.convertDtoToDbo(subStatusDTO);
     	subStatusDTOclone = SubmissionUtils.convertDboToDto(subStatusDBO);

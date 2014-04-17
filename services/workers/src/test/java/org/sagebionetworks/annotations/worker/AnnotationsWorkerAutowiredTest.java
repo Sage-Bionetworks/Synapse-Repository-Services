@@ -5,35 +5,16 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.doThrow;
 
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
-import org.sagebionetworks.evaluation.model.Evaluation;
-import org.sagebionetworks.evaluation.model.EvaluationStatus;
-import org.sagebionetworks.evaluation.model.Submission;
-import org.sagebionetworks.evaluation.model.SubmissionStatus;
-import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.SubmissionStatusAnnotationsAsyncManager;
-import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
-import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
-import org.sagebionetworks.repo.model.evaluation.SubmissionStatusDAO;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DeadlockLoserDataAccessException;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.amazonaws.services.sqs.model.Message;
 

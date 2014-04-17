@@ -60,7 +60,6 @@ public class AnnotationsWorkerTest {
 		// the DAO should not be called
 		verify(mockDAO, never()).updateEvaluationSubmissionStatuses(any(String.class),any(String.class));
 		verify(mockDAO, never()).deleteEvaluationSubmissionStatuses(any(String.class),any(String.class));
-//		verify(mockWorkerLogger, never()).logWorkerFailure(AnnotationsWorker.class, any(ChangeMessage.class), any(Throwable.class), any(boolean.class));
 	}
 	
 	@Test

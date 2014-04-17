@@ -1,4 +1,5 @@
 package org.sagebionetworks.repo.model.dbo.dao;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -43,6 +44,7 @@ public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 	
 	private static final String EVAL_ID = "456";
 	private static final String EVAL_SUB_ETAG = "someEvalSubEtag-00000";
+	private static final Long STATUS_VERSION = 7L;
 	
 	@Before
 	public void before() throws DatastoreException, NotFoundException, UnsupportedEncodingException, JSONObjectAdapterException{
@@ -66,17 +68,20 @@ public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 		subStatus.setId(submission.getId());
 		subStatus.setModifiedOn(new Date());
 		subStatus.setStatus(SubmissionStatusEnum.SCORED);
+		subStatus.setStatusVersion(STATUS_VERSION);
 		
 		// provided input Annotations
 		annosIn = new Annotations();
 		annosIn.setObjectId(submission.getId());
 		annosIn.setScopeId(submission.getEvaluationId());
+		annosIn.setVersion(STATUS_VERSION);
 		subStatus.setAnnotations(annosIn);
 		
 		// expected output Annotations
 		expectedAnnosOut = new Annotations();
 		expectedAnnosOut.setObjectId(submission.getId());
 		expectedAnnosOut.setScopeId(submission.getEvaluationId());
+		expectedAnnosOut.setVersion(STATUS_VERSION);
 		insertExpectedAnnos(expectedAnnosOut);
 		
 		annosCaptor = ArgumentCaptor.forClass(List.class);
@@ -89,7 +94,6 @@ public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 			thenReturn(Collections.singletonList(bundle));
 		
 		ssAnnoAsyncManager = new SubmissionStatusAnnotationsAsyncManagerImpl(mockSubStatusAnnoDAO, mockEvaluationDAO);
-		
 	}
 	
 	private void insertExpectedAnnos(Annotations annos) {
@@ -167,13 +171,39 @@ public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 		statusAnno.setValue(subStatus.getStatus().toString());
 		annos.getStringAnnos().add(statusAnno);
 	}
+	
+	@Test(expected=IllegalStateException.class)
+	public void testStaleCreateChangeMessage() throws Exception {
+		when(mockEvaluationDAO.selectAndLockSubmissionsEtag(EVAL_ID)).thenReturn("some other etag");
+		ssAnnoAsyncManager.createEvaluationSubmissionStatuses(submission.getEvaluationId(), EVAL_SUB_ETAG);
+		
+	}
+
+	@Test(expected=IllegalStateException.class)
+	public void testStaleUpdateChangeMessage() throws Exception {
+		when(mockEvaluationDAO.selectAndLockSubmissionsEtag(EVAL_ID)).thenReturn("some other etag");
+		ssAnnoAsyncManager.updateEvaluationSubmissionStatuses(submission.getEvaluationId(), EVAL_SUB_ETAG);
+		
+	}
+
+	@Test(expected=IllegalStateException.class)
+	public void testStaleCreateChangeMessageNullEtag() throws Exception {
+		when(mockEvaluationDAO.selectAndLockSubmissionsEtag(EVAL_ID)).thenReturn(null);
+		ssAnnoAsyncManager.createEvaluationSubmissionStatuses(submission.getEvaluationId(), EVAL_SUB_ETAG);		
+	}
+	
+	private static void checkAnnoMetadata(Annotations annos, String submissionId) {
+		assertEquals(STATUS_VERSION, annos.getVersion());
+		assertEquals(submissionId, annos.getObjectId());
+		assertEquals(EVAL_ID, annos.getScopeId());
+	}
 
 	@Test
 	public void testCreateSubmissionStatus() throws NotFoundException, DatastoreException, JSONObjectAdapterException {
 		// Annotations will initially be null when the SubmissionStatus object is created
 		subStatus.setAnnotations(null);
 		
-		ssAnnoAsyncManager.updateEvaluationSubmissionStatuses(submission.getEvaluationId(), EVAL_SUB_ETAG);
+		ssAnnoAsyncManager.createEvaluationSubmissionStatuses(submission.getEvaluationId(), EVAL_SUB_ETAG);
 		verify(mockSubStatusAnnoDAO).replaceAnnotations(annosCaptor.capture());
 		Annotations actualAnnosOut = (Annotations)annosCaptor.getValue().get(0);
 		assertTrue(actualAnnosOut.getDoubleAnnos().containsAll(expectedAnnosOut.getDoubleAnnos()));
@@ -182,6 +212,7 @@ public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 		assertTrue(expectedAnnosOut.getDoubleAnnos().containsAll(actualAnnosOut.getDoubleAnnos()));
 		assertTrue(expectedAnnosOut.getLongAnnos().containsAll(actualAnnosOut.getLongAnnos()));
 		assertTrue(expectedAnnosOut.getStringAnnos().containsAll(actualAnnosOut.getStringAnnos()));
+		checkAnnoMetadata(actualAnnosOut, submission.getId());
 	}
 	
 	@Test
@@ -212,6 +243,7 @@ public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 		assertTrue(expectedAnnosOut.getDoubleAnnos().containsAll(actualAnnosOut.getDoubleAnnos()));
 		assertTrue(expectedAnnosOut.getLongAnnos().containsAll(actualAnnosOut.getLongAnnos()));
 		assertTrue(expectedAnnosOut.getStringAnnos().containsAll(actualAnnosOut.getStringAnnos()));
+		checkAnnoMetadata(actualAnnosOut, submission.getId());
 	}
 	
 	@Test
@@ -235,6 +267,7 @@ public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 		assertTrue(expectedAnnosOut.getDoubleAnnos().containsAll(actualAnnosOut.getDoubleAnnos()));
 		assertTrue(expectedAnnosOut.getLongAnnos().containsAll(actualAnnosOut.getLongAnnos()));
 		assertTrue(expectedAnnosOut.getStringAnnos().containsAll(actualAnnosOut.getStringAnnos()));
+		checkAnnoMetadata(actualAnnosOut, submission.getId());
 	}
 	
 	
