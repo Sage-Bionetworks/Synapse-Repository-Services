@@ -110,7 +110,7 @@ public class QueryDAOImplTest {
 	
 	private static LongAnnotation createScopeAnno(long scopeId) {
     	LongAnnotation scopeAnno = new LongAnnotation();
-    	scopeAnno.setIsPrivate(true);
+    	scopeAnno.setIsPrivate(false);
     	scopeAnno.setKey("scopeId");
     	scopeAnno.setValue(scopeId);
 		return scopeAnno;
