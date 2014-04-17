@@ -1,0 +1,18 @@
+{
+	"description": "Object used to track the status of an Asynchronous table job.",
+	"implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus"
+        }
+    ],
+	"properties": {
+		"tableId": {
+			"type": "string",
+			"description": "The ID of the table."
+		},
+		"uploadFileHandleId": {
+			"type": "string",
+			"description": "The ID of the file handle for a type of UPLOAD"
+		}
+	}
+}

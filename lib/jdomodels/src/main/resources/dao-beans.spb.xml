@@ -216,8 +216,8 @@
 		scope="singleton">
 	</bean>
 	
-	<bean id="asynchTableJobStatusDao"
-		class="org.sagebionetworks.repo.model.dbo.dao.table.AsynchTableJobStatusDAOImpl"
+	<bean id="asynchJobStatusDao"
+		class="org.sagebionetworks.repo.model.dbo.asynch.AsynchJobStatusDAOImpl"
 		scope="singleton">
 	</bean>
 

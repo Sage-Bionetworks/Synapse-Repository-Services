@@ -1,22 +1,22 @@
-package org.sagebionetworks.repo.model.dao.table;
+package org.sagebionetworks.repo.model.dao.asynch;
 
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.table.AsynchTableJobStatus;
+import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
- * Basic abstraction for the status of Asynchronous table jobs.
+ * Basic abstraction for the status of Asynchronous jobs.
  * @author jmhill
  *
  */
-public interface AsynchTableJobStatusDAO {
+public interface AsynchronousJobStatusDAO {
 	
 	/**
-	 * 
+	 * Create a new status for a new job
 	 * @param status
 	 * @return
 	 */
-	public AsynchTableJobStatus starteNewUploadJobStatus(Long userId, Long fileHandleId, String tableId);
+	public <T extends AsynchronousJobStatus> T startJob(T status);
 	
 	/**
 	 * Get the status of a job from its jobId.
@@ -26,7 +26,7 @@ public interface AsynchTableJobStatusDAO {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public AsynchTableJobStatus getJobStatus(String jobId) throws DatastoreException, NotFoundException;
+	public <T extends AsynchronousJobStatus> T getJobStatus(String jobId, Class<? extends T> clazz) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Update the progress of a job.

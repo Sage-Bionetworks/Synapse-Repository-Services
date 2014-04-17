@@ -53,7 +53,7 @@
         "BOUND_COLUMN_ORDINAL",
         "TABLE_SEQUENCE",
         "TABLE_CHANGE",
-        "ASYNCH_TABLE_JOB_STATUS",
+        "ASYNCH_JOB_STATUS",
         "STORAGE_QUOTA",
         "QUIZ_RESPONSE",
         "CHANGE"

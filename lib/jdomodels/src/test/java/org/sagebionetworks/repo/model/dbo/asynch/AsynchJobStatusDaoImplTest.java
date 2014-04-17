@@ -1,10 +1,10 @@
-package org.sagebionetworks.repo.model.dbo.dao.table;
+package org.sagebionetworks.repo.model.dbo.asynch;
 
-import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
 
@@ -14,11 +14,10 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.dao.table.AsynchTableJobStatusDAO;
-import org.sagebionetworks.repo.model.dbo.persistence.table.DBOAsynchTableJobStatus;
-import org.sagebionetworks.repo.model.table.AsynchJobState;
-import org.sagebionetworks.repo.model.table.AsynchJobType;
-import org.sagebionetworks.repo.model.table.AsynchTableJobStatus;
+import org.sagebionetworks.repo.model.asynch.AsynchJobState;
+import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
+import org.sagebionetworks.repo.model.dao.asynch.AsynchronousJobStatusDAO;
+import org.sagebionetworks.repo.model.table.AsynchUploadJobStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -26,10 +25,10 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
-public class AsynchTableJobStatusDaoImplTest {
+public class AsynchJobStatusDaoImplTest {
 	
 	@Autowired
-	AsynchTableJobStatusDAO asynchTableJobStatusDao;
+	AsynchronousJobStatusDAO asynchJobStatusDao;
 	private Long creatorUserGroupId;
 
 	@Before
@@ -40,98 +39,112 @@ public class AsynchTableJobStatusDaoImplTest {
 	
 	@After
 	public void after(){
-		asynchTableJobStatusDao.truncateAllAsynchTableJobStatus();
+		asynchJobStatusDao.truncateAllAsynchTableJobStatus();
 	}
 	
 	@Test
 	public void testUploadCreateGet() throws DatastoreException, NotFoundException{
-		String tableId = "syn456";
-		Long fileHandleId = 123L;
-		AsynchTableJobStatus status = asynchTableJobStatusDao.starteNewUploadJobStatus(creatorUserGroupId, fileHandleId, tableId);
-		assertNotNull(status);
+		AsynchUploadJobStatus dto = new AsynchUploadJobStatus();
+		dto.setTableId("syn456");
+		dto.setUploadFileHandleId("123");
+		dto.setStartedByUserId(creatorUserGroupId);
+		AsynchUploadJobStatus result = asynchJobStatusDao.startJob(dto);
+		AsynchUploadJobStatus status = (AsynchUploadJobStatus) result;
 		assertNotNull(status.getJobId());
 		assertNotNull(status.getEtag());
 		assertNotNull(status.getChangedOn());
 		assertNotNull(status.getStartedOn());
 		assertNull(status.getErrorDetails());
 		assertNull(status.getErrorMessage());
+
 		assertEquals(creatorUserGroupId, status.getStartedByUserId());
-		assertEquals(tableId, status.getTableId());
-		assertEquals(fileHandleId.toString(), status.getUploadFileHandleId());
+		assertEquals(dto.getTableId(), status.getTableId());
+		assertEquals(dto.getUploadFileHandleId(), status.getUploadFileHandleId());
 		assertEquals(AsynchJobState.PROCESSING, status.getJobState());
-		assertEquals(AsynchJobType.UPLOAD, status.getJobType());
 		
-		AsynchTableJobStatus clone = asynchTableJobStatusDao.getJobStatus(status.getJobId());
+		AsynchronousJobStatus clone = asynchJobStatusDao.getJobStatus(status.getJobId(), AsynchUploadJobStatus.class);
 		assertEquals(status, clone);
 	}
 	
 	@Test (expected=NotFoundException.class)
 	public void testNotFound() throws DatastoreException, NotFoundException{
-		asynchTableJobStatusDao.getJobStatus("-99");
+		asynchJobStatusDao.getJobStatus("-99", AsynchUploadJobStatus.class);
 	}
 	
 	@Test
 	public void testUpdateProgress() throws DatastoreException, NotFoundException{
-		String tableId = "syn456";
-		Long fileHandleId = 123L;
-		AsynchTableJobStatus status = asynchTableJobStatusDao.starteNewUploadJobStatus(creatorUserGroupId, fileHandleId, tableId);
+		AsynchUploadJobStatus dto = new AsynchUploadJobStatus();
+		dto.setTableId("syn456");
+		dto.setUploadFileHandleId("123");
+		dto.setStartedByUserId(creatorUserGroupId);
+		AsynchUploadJobStatus status = asynchJobStatusDao.startJob(dto);
 		assertNotNull(status);
 		assertNotNull(status.getEtag());
 		String startEtag = status.getEtag();
 		// update the progress
-		String newEtag = asynchTableJobStatusDao.updateJobProgress(status.getJobId(), 0L, 1000L, "A MESSAGE");
+		String newEtag = asynchJobStatusDao.updateJobProgress(status.getJobId(), 0L, 1000L, "A MESSAGE");
 		assertNotNull(newEtag);
 		assertFalse("The etag must change when the progress changes",startEtag.equals(newEtag));
-		AsynchTableJobStatus clone = asynchTableJobStatusDao.getJobStatus(status.getJobId());
+		AsynchUploadJobStatus clone = asynchJobStatusDao.getJobStatus(status.getJobId(), AsynchUploadJobStatus.class);
 		assertEquals(new Long(0), clone.getProgressCurrent());
 		assertEquals(new Long(1000), clone.getProgressTotal());
 		assertEquals("A MESSAGE", clone.getProgressMessage());
 		assertEquals(newEtag, clone.getEtag());
+		assertEquals(dto.getTableId(), status.getTableId());
+		assertEquals(dto.getUploadFileHandleId(), status.getUploadFileHandleId());
+		assertEquals(AsynchJobState.PROCESSING, status.getJobState());
 	}
 	
 	@Test
 	public void testUpdateProgressTooBig() throws DatastoreException, NotFoundException{
-		String tableId = "syn456";
-		Long fileHandleId = 123L;
-		AsynchTableJobStatus status = asynchTableJobStatusDao.starteNewUploadJobStatus(creatorUserGroupId, fileHandleId, tableId);
+		AsynchUploadJobStatus dto = new AsynchUploadJobStatus();
+		dto.setTableId("syn456");
+		dto.setUploadFileHandleId("123");
+		dto.setStartedByUserId(creatorUserGroupId);
+		AsynchUploadJobStatus status = asynchJobStatusDao.startJob(dto);
 		assertNotNull(status);
 		assertNotNull(status.getEtag());
 		String startEtag = status.getEtag();
 		// update the progress
-		char[] chars = new char[DBOAsynchTableJobStatus.MAX_MESSAGE_CHARS+1];
+		char[] chars = new char[DBOAsynchJobStatus.MAX_MESSAGE_CHARS+1];
 		Arrays.fill(chars, '1');
 		String tooBig = new String(chars);
-		String newEtag = asynchTableJobStatusDao.updateJobProgress(status.getJobId(), 0L, 1000L, tooBig);
+		String newEtag = asynchJobStatusDao.updateJobProgress(status.getJobId(), 0L, 1000L, tooBig);
 		assertNotNull(newEtag);
 		assertFalse("The etag must change when the progress changes",startEtag.equals(newEtag));
-		AsynchTableJobStatus clone = asynchTableJobStatusDao.getJobStatus(status.getJobId());
+		AsynchUploadJobStatus clone = asynchJobStatusDao.getJobStatus(status.getJobId(), AsynchUploadJobStatus.class);
 		assertEquals(new Long(0), clone.getProgressCurrent());
 		assertEquals(new Long(1000), clone.getProgressTotal());
-		assertEquals(tooBig.substring(0,  DBOAsynchTableJobStatus.MAX_MESSAGE_CHARS-1), clone.getProgressMessage());
+		assertEquals(tooBig.substring(0,  DBOAsynchJobStatus.MAX_MESSAGE_CHARS-1), clone.getProgressMessage());
 		assertEquals(newEtag, clone.getEtag());
 	}
 	
 	@Test
 	public void testSetFailed() throws DatastoreException, NotFoundException{
-		String tableId = "syn456";
-		Long fileHandleId = 123L;
-		AsynchTableJobStatus status = asynchTableJobStatusDao.starteNewUploadJobStatus(creatorUserGroupId, fileHandleId, tableId);
+		AsynchUploadJobStatus dto = new AsynchUploadJobStatus();
+		dto.setTableId("syn456");
+		dto.setUploadFileHandleId("123");
+		dto.setStartedByUserId(creatorUserGroupId);
+		AsynchUploadJobStatus status = asynchJobStatusDao.startJob(dto);
 		assertNotNull(status);
 		assertNotNull(status.getEtag());
 		String startEtag = status.getEtag();
 		// update the progress
 		Throwable error = new Throwable("something when wrong", new IllegalArgumentException("This is bad"));
-		String newEtag = asynchTableJobStatusDao.setJobFailed(status.getJobId(), error);
+		String newEtag = asynchJobStatusDao.setJobFailed(status.getJobId(), error);
 		assertNotNull(newEtag);
 		assertFalse("The etag must change when the status changes",startEtag.equals(newEtag));
 		// Get the status
-		AsynchTableJobStatus clone = asynchTableJobStatusDao.getJobStatus(status.getJobId());
+		AsynchUploadJobStatus clone = asynchJobStatusDao.getJobStatus(status.getJobId(), AsynchUploadJobStatus.class);
 		assertEquals("something when wrong", clone.getErrorMessage());
 		assertEquals(AsynchJobState.FAILED, clone.getJobState());
 		System.out.println(clone.getErrorDetails());
 		assertNotNull(clone.getErrorDetails());
 		assertTrue(clone.getErrorDetails().contains("This is bad"));
 		assertEquals(newEtag, clone.getEtag());
+		assertEquals(dto.getTableId(), status.getTableId());
+		assertEquals(dto.getUploadFileHandleId(), status.getUploadFileHandleId());
+		assertEquals(AsynchJobState.PROCESSING, status.getJobState());
 	}
 	
 }

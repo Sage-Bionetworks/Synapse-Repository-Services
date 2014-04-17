@@ -20,7 +20,7 @@ public interface IdGenerator {
 		PRINCIPAL_ID,
 		PRINCIPAL_ALIAS_ID,
 		ACL_ID,
-		ASYNCH_TABLE_JOB_ID
+		ASYNCH_JOB_STATUS_ID
 	}
 	
 
