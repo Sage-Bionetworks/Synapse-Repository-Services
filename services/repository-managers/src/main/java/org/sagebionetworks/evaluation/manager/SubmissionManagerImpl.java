@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -33,6 +34,7 @@ import org.sagebionetworks.repo.model.evaluation.SubmissionFileHandleDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionStatusDAO;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -140,8 +142,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		Long evalIdLong = KeyFactory.stringToKey(submission.getEvaluationId());
 
 		submissionStatusDAO.create(status);
-		EvaluationChangeMessageUtil.sendEvaluationSubmissionsChangeMessage(
-				evalIdLong, ChangeType.CREATE, evaluationDAO, transactionalMessenger);
+		sendEvaluationSubmissionsChangeMessage(evalIdLong, ChangeType.CREATE);
 		
 		// save FileHandle IDs
 		for (FileHandle handle : bundle.getFileHandles()) {
@@ -187,11 +188,8 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		// update and return the new Submission
 		evaluationDAO.selectAndLockSubmissionsEtag(evalId);
 		submissionStatusDAO.update(submissionStatus);
-		EvaluationChangeMessageUtil.sendEvaluationSubmissionsChangeMessage(
-				KeyFactory.stringToKey(evalId), 
-				ChangeType.UPDATE, 
-				evaluationDAO, 
-				transactionalMessenger);
+		sendEvaluationSubmissionsChangeMessage(KeyFactory.stringToKey(evalId), 
+				ChangeType.UPDATE);
 		return submissionStatusDAO.get(submissionStatus.getId());
 	}
 	
@@ -207,11 +205,9 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		// the associated SubmissionStatus object will be deleted via cascade
 		evaluationDAO.selectAndLockSubmissionsEtag(evalId);
 		submissionDAO.delete(submissionId);
-		EvaluationChangeMessageUtil.sendEvaluationSubmissionsChangeMessage(
+		sendEvaluationSubmissionsChangeMessage(
 				KeyFactory.stringToKey(evalId), 
-				ChangeType.DELETE, 
-				evaluationDAO, 
-				transactionalMessenger);
+				ChangeType.DELETE);
 	}
 
 	@Override
@@ -429,5 +425,21 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		
 		return annos;
 	}
+	
+	@Override
+	public void sendEvaluationSubmissionsChangeMessage(
+			Long evalId, 
+			ChangeType changeType) {
+		String evaluationSubmissionsEtag = UUID.randomUUID().toString();
+		evaluationDAO.updateSubmissionsEtag(evalId.toString(), evaluationSubmissionsEtag); 
+		ChangeMessage message = new ChangeMessage();
+		message.setChangeType(changeType);
+		message.setObjectType(ObjectType.EVALUATION_SUBMISSIONS);
+		message.setObjectId(evalId.toString());
+		message.setObjectEtag(evaluationSubmissionsEtag);
+		transactionalMessenger.sendMessageAfterCommit(message);
+	}
+
+
 
 }

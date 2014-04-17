@@ -44,7 +44,7 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 	}
 
 	private void checkSubmissionsEtag(String evalId, String submissionsEtag) {
-		String currentSubmissionsEtag = evaluationDAO.selectAndLockSubmissionsEtag(evalId);
+		String currentSubmissionsEtag = evaluationDAO.selectSubmissionsEtag(evalId);
 		if (currentSubmissionsEtag==null || 
 				!currentSubmissionsEtag.equals(submissionsEtag)) {
 			throw new IllegalStateException("Change message has etag "+submissionsEtag+

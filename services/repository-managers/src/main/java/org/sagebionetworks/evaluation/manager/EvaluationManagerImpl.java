@@ -46,6 +46,9 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	
 	@Autowired
 	private TransactionalMessenger transactionalMessenger;
+	
+	@Autowired
+	private SubmissionManager submissionManager;
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -213,11 +216,9 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		// lock out multi-submission access (e.g. batch updates)
 		evaluationDAO.selectAndLockSubmissionsEtag(id);
 		evaluationDAO.delete(id);
-		EvaluationChangeMessageUtil.sendEvaluationSubmissionsChangeMessage(
+		submissionManager.sendEvaluationSubmissionsChangeMessage(
 				KeyFactory.stringToKey(id), 
-				ChangeType.DELETE, 
-				evaluationDAO, 
-				transactionalMessenger);
+				ChangeType.DELETE);
 	}
 
 	private static void validateEvaluation(Evaluation oldEval, Evaluation newEval) {
