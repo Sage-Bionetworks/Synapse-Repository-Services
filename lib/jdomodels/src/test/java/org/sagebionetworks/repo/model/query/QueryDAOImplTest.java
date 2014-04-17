@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -37,8 +38,7 @@ import org.sagebionetworks.repo.model.annotation.StringAnnotation;
 import org.sagebionetworks.repo.model.dbo.dao.SubmissionStatusAnnotationsAsyncManagerImpl;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.evaluation.AnnotationsDAO;
-import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
-import org.sagebionetworks.repo.model.evaluation.SubmissionStatusDAO;
+import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,9 +56,7 @@ public class QueryDAOImplTest {
 	@Autowired
 	private AnnotationsDAO annotationsDAO;
 	@Autowired
-	private SubmissionDAO submissionDAO;
-	@Autowired
-	private SubmissionStatusDAO submissionStatusDAO;	
+	private EvaluationDAO evaluationDAO;
 
 	SubmissionStatusAnnotationsAsyncManagerImpl ssAnnoAsyncManager;
 	
@@ -68,29 +66,37 @@ public class QueryDAOImplTest {
     private AccessControlListDAO mockAclDAO;
     private UserInfo mockUserInfo;
     private Map<String, Object> annoMap;
+    
 	
 	@Before
 	public void setUp() throws DatastoreException, JSONObjectAdapterException, NotFoundException {
-		ssAnnoAsyncManager = new SubmissionStatusAnnotationsAsyncManagerImpl(
-				submissionDAO, submissionStatusDAO, annotationsDAO);
+		ssAnnoAsyncManager = new SubmissionStatusAnnotationsAsyncManagerImpl(annotationsDAO, evaluationDAO);
 		// create Annotations
 		Annotations annos;
 		submissionIds = new HashSet<String>();
 		annoMap = new HashMap<String, Object>();
 		
+		List<Annotations> eval1List = new ArrayList<Annotations>();
+		List<Annotations> eval2List = new ArrayList<Annotations>();
 		for (int i = 0; i < NUM_SUBMISSIONS; i++) {
 	    	annos = TestUtils.createDummyAnnotations(i);
+	    	annos.getLongAnnos().add(createScopeAnno(Long.parseLong(EVAL_ID1)));
 	    	annos.setScopeId(EVAL_ID1);
+	    	annos.setVersion(0L);
 	    	submissionIds.add(annos.getObjectId());
 	    	dumpAnnosToMap(annoMap, annos);
-	    	persistAnnos(annos);
+	    	eval1List.add(annos);
 	    	
 	    	annos = TestUtils.createDummyAnnotations(i + NUM_SUBMISSIONS);
+	    	annos.getLongAnnos().add(createScopeAnno(Long.parseLong(EVAL_ID2)));
 	    	annos.setScopeId(EVAL_ID2);
+	    	annos.setVersion(0L);
 	    	submissionIds.add(annos.getObjectId());
 	    	dumpAnnosToMap(annoMap, annos);
-	    	persistAnnos(annos);
+	    	eval2List.add(annos);
 		}
+    	annotationsDAO.replaceAnnotations(eval1List);
+    	annotationsDAO.replaceAnnotations(eval2List);
 		
 		// set up mocks
 		mockUserInfo = mock(UserInfo.class);
@@ -102,23 +108,18 @@ public class QueryDAOImplTest {
 		queryDAO.setAclDAO(mockAclDAO);
 	}
 	
-	private void persistAnnos(Annotations annos) throws DatastoreException, JSONObjectAdapterException {
-		Submission sub = new Submission();
-		sub.setId(annos.getObjectId());
-		sub.setEvaluationId(annos.getScopeId());
-		
-		SubmissionStatus status = new SubmissionStatus();
-		status.setId(annos.getObjectId());
-		status.setAnnotations(annos);
-
-    	ssAnnoAsyncManager.replaceAnnotations(sub, status);
+	private static LongAnnotation createScopeAnno(long scopeId) {
+    	LongAnnotation scopeAnno = new LongAnnotation();
+    	scopeAnno.setIsPrivate(false);
+    	scopeAnno.setKey("scopeId");
+    	scopeAnno.setValue(scopeId);
+		return scopeAnno;
 	}
-
+	
 	@After
 	public void tearDown() {
-		for (String subId : submissionIds) {
-			ssAnnoAsyncManager.deleteSubmission(subId);
-		}
+		annotationsDAO.deleteAnnotationsByScope(Long.parseLong(EVAL_ID1));
+		annotationsDAO.deleteAnnotationsByScope(Long.parseLong(EVAL_ID2));
 	}
 
 	@Test

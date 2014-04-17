@@ -2,10 +2,12 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
 import org.sagebionetworks.evaluation.model.Submission;
+import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.SubmissionStatusAnnotationsAsyncManager;
@@ -15,8 +17,7 @@ import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
 import org.sagebionetworks.repo.model.annotation.LongAnnotation;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
 import org.sagebionetworks.repo.model.evaluation.AnnotationsDAO;
-import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
-import org.sagebionetworks.repo.model.evaluation.SubmissionStatusDAO;
+import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -27,85 +28,80 @@ import org.springframework.transaction.annotation.Transactional;
 public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionStatusAnnotationsAsyncManager {
 
 	@Autowired
-	private SubmissionDAO submissionDAO;
-	@Autowired
-	private SubmissionStatusDAO submissionStatusDAO;
-	@Autowired
 	private AnnotationsDAO annotationsDAO;	
+	@Autowired
+	private EvaluationDAO evaluationDAO;
 
 	public SubmissionStatusAnnotationsAsyncManagerImpl() {};
 
 	/**
 	 * Constructor for testing.
 	 */
-	public SubmissionStatusAnnotationsAsyncManagerImpl(SubmissionDAO submissionDAO, 
-			SubmissionStatusDAO submissionStatusDAO, AnnotationsDAO annotationsDAO) {
-		this.submissionDAO = submissionDAO;
-		this.submissionStatusDAO = submissionStatusDAO;
+	public SubmissionStatusAnnotationsAsyncManagerImpl(AnnotationsDAO annotationsDAO,  
+			EvaluationDAO evaluationDAO) {
 		this.annotationsDAO = annotationsDAO;
+		this.evaluationDAO=evaluationDAO;
 	}
 
-
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	@Override
-	public void createSubmissionStatus(String subId) 
-			throws NotFoundException, DatastoreException, JSONObjectAdapterException {
-		if (subId == null) throw new IllegalArgumentException("Id cannot be null");
-		replaceAnnotations(subId);
-	}
-
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	@Override
-	public void updateSubmissionStatus(String subId) 
-			throws NotFoundException, DatastoreException, JSONObjectAdapterException {
-		if (subId == null) throw new IllegalArgumentException("Id cannot be null");
-		replaceAnnotations(subId);
-	}
-
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	@Override
-	public void deleteSubmission(String id) {
-		if (id == null) throw new IllegalArgumentException("Id cannot be null");
-		Long subId = KeyFactory.stringToKey(id);
-		annotationsDAO.deleteAnnotationsByOwnerId(subId);
-	}
-
-	private void replaceAnnotations(String subId) 
-			throws DatastoreException, NotFoundException, JSONObjectAdapterException {
-		Submission submission = submissionDAO.get(subId);
-		SubmissionStatus subStatus = submissionStatusDAO.get(subId);
-
-		if (submission == null || subStatus == null) {
-			throw new NotFoundException("Could not find Submission " + subId);
+	private void checkSubmissionsEtag(String evalId, String submissionsEtag) {
+		String currentSubmissionsEtag = evaluationDAO.selectAndLockSubmissionsEtag(evalId);
+		if (currentSubmissionsEtag==null || 
+				!currentSubmissionsEtag.equals(submissionsEtag)) {
+			throw new IllegalStateException("Change message has etag "+submissionsEtag+
+					" but "+currentSubmissionsEtag+" is expected.");
 		}
-		
-		replaceAnnotations(submission, subStatus);
 	}
-		
-	/**
-	 * This is a short-circuit method to replace Annotations directly from the provided objects.
-	 * It is not defined in the interface, and should only be used for testing purposes.
-	 * 
-	 * @param submission
-	 * @param subStatus
-	 * @throws DatastoreException
-	 * @throws JSONObjectAdapterException
-	 */
+
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void replaceAnnotations(Submission submission, SubmissionStatus subStatus) 
-			throws DatastoreException, JSONObjectAdapterException {
-		String subId = submission.getId();
-		if (!subId.equals(subStatus.getId())) {
-			throw new IllegalArgumentException("Submission and SubmissionStatus IDs do not match!");
+	@Override
+	public void createEvaluationSubmissionStatuses(String evalId, String submissionsEtag)
+			throws NotFoundException, DatastoreException,
+			JSONObjectAdapterException {
+		if (evalId == null) throw new IllegalArgumentException("Id cannot be null");
+		checkSubmissionsEtag(evalId, submissionsEtag);
+		replaceAnnotationsForEvaluation(evalId);
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public void updateEvaluationSubmissionStatuses(String evalId, String submissionsEtag)
+			throws NotFoundException, DatastoreException,
+			JSONObjectAdapterException {
+		if (evalId == null) throw new IllegalArgumentException("Id cannot be null");
+		checkSubmissionsEtag(evalId, submissionsEtag);
+		replaceAnnotationsForEvaluation(evalId);
+	}
+
+	private void replaceAnnotationsForEvaluation(String evalId) throws DatastoreException, NotFoundException, JSONObjectAdapterException {
+		// get the submissions and statuses that are new or have changed
+		List<SubmissionBundle> changedSubmissions = annotationsDAO.getChangedSubmissions(Long.parseLong(evalId));
+		if (changedSubmissions.isEmpty()) return;
+		// create the updated annotations
+		List<Annotations> annoList = new ArrayList<Annotations>();
+		for (SubmissionBundle sb : changedSubmissions) {
+			annoList.add(fillInAnnotations(sb.getSubmission(), sb.getSubmissionStatus()));
 		}
-		
-		// Prepare all Annotations
+		// push the updated annotations to the database
+		annotationsDAO.replaceAnnotations(annoList);
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public void deleteEvaluationSubmissionStatuses(String evalIdString, String submissionsEtag) {
+		if (evalIdString == null) throw new IllegalArgumentException("Id cannot be null");
+		checkSubmissionsEtag(evalIdString, submissionsEtag);
+		Long evalId = KeyFactory.stringToKey(evalIdString);
+		annotationsDAO.deleteAnnotationsByScope(evalId);
+	}
+
+	private static Annotations fillInAnnotations(Submission submission, SubmissionStatus subStatus) {
 		Annotations annos = subStatus.getAnnotations();
 		if (annos == null) {
 			annos = new Annotations();
 		}
-		annos.setObjectId(subId);
+		annos.setObjectId(submission.getId());
 		annos.setScopeId(submission.getEvaluationId());
+		annos.setVersion(subStatus.getStatusVersion());
 				
 		// We use Maps since we will be inserting system-defined Annotations which may overwrite
 		// user Annotations
@@ -140,10 +136,10 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 		// Pass along to the DAO
 		annos.setLongAnnos(new ArrayList<LongAnnotation>(longAnnoMap.values()));
 		annos.setDoubleAnnos(new ArrayList<DoubleAnnotation>(doubleAnnoMap.values()));
-		annos.setStringAnnos(new ArrayList<StringAnnotation>(stringAnnoMap.values()));
-		annotationsDAO.replaceAnnotations(annos);
+		annos.setStringAnnos(new ArrayList<StringAnnotation>(stringAnnoMap.values()));	
+		return annos;
 	}
-
+	
 	private static void insertSystemAnnotations(Submission submission, SubmissionStatus subStatus,
 			Map<String, LongAnnotation> longAnnoMap,
 			Map<String, DoubleAnnotation> doubleAnnoMap,

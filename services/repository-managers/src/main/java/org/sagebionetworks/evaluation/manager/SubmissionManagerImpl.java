@@ -4,6 +4,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
@@ -26,10 +27,14 @@ import org.sagebionetworks.repo.model.annotation.AnnotationsUtils;
 import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
 import org.sagebionetworks.repo.model.annotation.LongAnnotation;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
+import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionFileHandleDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionStatusDAO;
 import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -49,7 +54,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	@Autowired
 	private SubmissionFileHandleDAO submissionFileHandleDAO;
 	@Autowired
-	private EvaluationManager evaluationManager;
+	private EvaluationDAO evaluationDAO;
 	@Autowired
 	private ParticipantManager participantManager;
 	@Autowired
@@ -60,6 +65,9 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	private FileHandleManager fileHandleManager;
 	@Autowired
 	private EvaluationPermissionsManager evaluationPermissionsManager;
+	@Autowired
+	private TransactionalMessenger transactionalMessenger;
+	
 
 	@Override
 	public Submission getSubmission(UserInfo userInfo, String submissionId) throws DatastoreException, NotFoundException {
@@ -120,6 +128,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		submission.setCreatedOn(new Date());
 		
 		// create the Submission	
+		evaluationDAO.selectAndLockSubmissionsEtag(evalId);
 		String submissionId = submissionDAO.create(submission);
 		
 		// create an accompanying SubmissionStatus object
@@ -127,7 +136,12 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		status.setId(submissionId);
 		status.setStatus(SubmissionStatusEnum.RECEIVED);
 		status.setModifiedOn(new Date());
+		
+		Long evalIdLong = KeyFactory.stringToKey(submission.getEvaluationId());
+
 		submissionStatusDAO.create(status);
+		EvaluationChangeMessageUtil.sendEvaluationSubmissionsChangeMessage(
+				evalIdLong, ChangeType.CREATE, evaluationDAO, transactionalMessenger);
 		
 		// save FileHandle IDs
 		for (FileHandle handle : bundle.getFileHandles()) {
@@ -137,7 +151,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		// return the Submission
 		return submissionDAO.get(submissionId);
 	}
-
+	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public SubmissionStatus updateSubmissionStatus(UserInfo userInfo, SubmissionStatus submissionStatus) throws NotFoundException {
@@ -171,7 +185,13 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		}
 		
 		// update and return the new Submission
+		evaluationDAO.selectAndLockSubmissionsEtag(evalId);
 		submissionStatusDAO.update(submissionStatus);
+		EvaluationChangeMessageUtil.sendEvaluationSubmissionsChangeMessage(
+				KeyFactory.stringToKey(evalId), 
+				ChangeType.UPDATE, 
+				evaluationDAO, 
+				transactionalMessenger);
 		return submissionStatusDAO.get(submissionStatus.getId());
 	}
 	
@@ -185,9 +205,13 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		validateEvaluationAccess(userInfo, evalId, ACCESS_TYPE.DELETE_SUBMISSION);
 		
 		// the associated SubmissionStatus object will be deleted via cascade
-		// ... but that's not enough to generate a delete message, so we delete it ourselves:
-		submissionStatusDAO.delete(submissionId);
+		evaluationDAO.selectAndLockSubmissionsEtag(evalId);
 		submissionDAO.delete(submissionId);
+		EvaluationChangeMessageUtil.sendEvaluationSubmissionsChangeMessage(
+				KeyFactory.stringToKey(evalId), 
+				ChangeType.DELETE, 
+				evaluationDAO, 
+				transactionalMessenger);
 	}
 
 	@Override
@@ -367,7 +391,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	 * @param annos
 	 * @return
 	 */
-	protected Annotations removePrivateAnnos(Annotations annos) {
+	protected static Annotations removePrivateAnnos(Annotations annos) {
 		EvaluationUtils.ensureNotNull(annos, "Annotations");
 
 		List<StringAnnotation> oldStringAnnos = annos.getStringAnnos();

@@ -4,6 +4,7 @@ import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_E
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_NAME;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_STATUS;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_SUBMISSIONS_ETAG;
 import static org.sagebionetworks.repo.model.query.SQLConstants.LIMIT_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.SQLConstants.OFFSET_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_EVALUATION;
@@ -78,6 +79,15 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	private static final String SELECT_BY_NAME_SQL = 
 			"SELECT ID FROM "+ TABLE_EVALUATION +
 			" WHERE "+ COL_EVALUATION_NAME + "=:" + NAME;
+	
+	private static final String SELECT_EVALUATION_SUBMISSIONS_ETAG = "SELECT "+
+			COL_EVALUATION_SUBMISSIONS_ETAG+" FROM "+
+			TABLE_EVALUATION + " WHERE "+ COL_EVALUATION_ID + 
+			"=:" + COL_EVALUATION_ID+ " FOR UPDATE";
+	
+	private static final String UPDATE_EVALUATION_SUBMISSIONS_ETAG = "UPDATE "+TABLE_EVALUATION+
+			" SET "+COL_EVALUATION_SUBMISSIONS_ETAG+"=:"+COL_EVALUATION_SUBMISSIONS_ETAG+
+			" WHERE "+COL_EVALUATION_ID+"=:"+COL_EVALUATION_ID;
 	
 	private static final String SELECT_ALL_SQL_PAGINATED = 
 			"SELECT * FROM "+ TABLE_EVALUATION +
@@ -205,7 +215,10 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	public void update(Evaluation dto)
 			throws DatastoreException, InvalidModelException,
 			NotFoundException, ConflictingUpdateException {
-		EvaluationDBO dbo = new EvaluationDBO();
+		// we do this to preserve the EvaluationSubmissions etag
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(ID, dto.getId());
+		EvaluationDBO dbo = basicDao.getObjectByPrimaryKey(EvaluationDBO.class, param);
 		copyDtoToDbo(dto, dbo);
 		verifyEvaluationDBO(dbo);
 		
@@ -449,6 +462,26 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 			sql.append(SELECT_AVAILABLE_EVALUATIONS_FILTERED_COUNT_SUFFIX);
 		}
 		return simpleJdbcTemplate.queryForLong(sql.toString(), param);
+	}
+	
+	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public void updateSubmissionsEtag(String id, String submissionsEtag) {
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(COL_EVALUATION_ID, id);
+		param.addValue(COL_EVALUATION_SUBMISSIONS_ETAG, submissionsEtag);
+		simpleJdbcTemplate.update(UPDATE_EVALUATION_SUBMISSIONS_ETAG, param);
+	}
+
+	@Override
+	public String selectAndLockSubmissionsEtag(String id) {
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(COL_EVALUATION_ID, id);
+		try {
+			return simpleJdbcTemplate.queryForObject(SELECT_EVALUATION_SUBMISSIONS_ETAG, String.class, param);
+		} catch (EmptyResultDataAccessException e) {
+			return null;
+		}
 	}
 
 	
