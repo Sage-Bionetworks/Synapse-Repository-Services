@@ -18,6 +18,7 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.asynch.AsynchJobState;
+import org.sagebionetworks.repo.model.asynch.AsynchronousJobBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.dao.asynch.AsynchronousJobStatusDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -51,9 +52,9 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 
 
 	@Override
-	public <T extends AsynchronousJobStatus> T getJobStatus(String jobId, Class<? extends T> clazz) throws DatastoreException, NotFoundException {
+	public AsynchronousJobStatus getJobStatus(String jobId) throws DatastoreException, NotFoundException {
 		DBOAsynchJobStatus dbo =  basicDao.getObjectByPrimaryKey(DBOAsynchJobStatus.class, new SinglePrimaryKeySqlParameterSource(jobId));
-		return AsynchJobStatusUtils.createDTOFromDBO(dbo, clazz);
+		return AsynchJobStatusUtils.createDTOFromDBO(dbo);
 	}
 
 	@Override
@@ -63,18 +64,22 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 	
 	@SuppressWarnings("unchecked")
 	@Override
-	public <T extends AsynchronousJobStatus> T startJob(T status) {
-		if(status == null) throw new IllegalArgumentException("Status cannot be null");
-		if(status.getStartedByUserId() == null) throw new IllegalArgumentException("Status.startedByUserId cannot be null");
+	public AsynchronousJobStatus startJob(Long userId, AsynchronousJobBody body) {
+		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
+		if(body == null) throw new IllegalArgumentException("body cannot be null");
+		AsynchronousJobStatus status = new AsynchronousJobStatus();
 		long now = System.currentTimeMillis();
+		status.setStartedByUserId(userId);
 		status.setJobId(idGenerator.generateNewId(TYPE.ASYNCH_JOB_STATUS_ID).toString());
 		status.setEtag(UUID.randomUUID().toString());
 		status.setChangedOn(new Date(now));
 		status.setStartedOn(new Date(now));
 		status.setJobState(AsynchJobState.PROCESSING);
+		status.setRuntimeMS(0L);
+		status.setJobBody(body);
 		DBOAsynchJobStatus dbo = AsynchJobStatusUtils.createDBOFromDTO(status);
 		dbo = basicDao.createNew(dbo);
-		return (T) AsynchJobStatusUtils.createDTOFromDBO(dbo, status.getClass());
+		return AsynchJobStatusUtils.createDTOFromDBO(dbo);
 	}
 
 	@Override
@@ -97,6 +102,31 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 		long now = System.currentTimeMillis();
 		jdbcTemplate.update(SQL_SET_FAILED, errorMessage, errorDetails, JobState.FAILED.name(), newEtag, now, jobId);
 		return newEtag;
-	}	
+	}
 
+	@Override
+	public String setComplete(String jobId, AsynchronousJobBody body) throws DatastoreException, NotFoundException {
+		if(jobId == null) throw new IllegalArgumentException("JobId cannot be null");
+		if(body == null) throw new IllegalArgumentException("Body cannot be null");
+		// Get the current value for this job
+		AsynchronousJobStatus dto = getJobStatus(jobId);
+		// Calculate the runtime
+		long now = System.currentTimeMillis();
+		long runtimeMS = now - dto.getStartedOn().getTime();
+		dto.setRuntimeMS(runtimeMS);
+		String newEtag = UUID.randomUUID().toString();
+		dto.setEtag(newEtag);
+		dto.setProgressCurrent(dto.getProgressTotal());
+		dto.setProgressMessage("Complete");
+		dto.setChangedOn(new Date(now));
+		dto.setErrorDetails(null);
+		dto.setErrorMessage(null);
+		dto.setJobState(AsynchJobState.COMPLETE);
+		dto.setJobBody(body);
+		// Convert to DBO.
+		DBOAsynchJobStatus dbo = AsynchJobStatusUtils.createDBOFromDTO(dto);
+		basicDao.update(dbo);
+		return newEtag;
+	}
+	
 }

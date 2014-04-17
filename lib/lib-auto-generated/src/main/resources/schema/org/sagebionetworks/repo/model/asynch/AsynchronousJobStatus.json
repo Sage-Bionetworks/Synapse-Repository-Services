@@ -1,6 +1,5 @@
 {
 	"description": "Object used to track the status of an Asynchronous Job.",
-	"type": "interface",
 	"properties": {
 		"jobState": {
 			"type": "string",
@@ -13,8 +12,10 @@
 				"COMPLETE"
 			]
 		},
-		"concreteType":{
-			"type": "string"
+		"jobBody":{
+			"type": "object",
+			"description": "Data specific to a type of job.",
+			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousJobBody"
 		},
 		"etag": {
 			"type": "string",
@@ -57,6 +58,10 @@
 		"errorDetails": {
 			"type": "string",
 			"description": "When processing fails, this is the full stack trace of the error."
+		},
+		"runtimeMS": {
+			"type": "integer",
+			"description": "The number of milliseconds from the start to completion of this job."
 		}
 	}
 }

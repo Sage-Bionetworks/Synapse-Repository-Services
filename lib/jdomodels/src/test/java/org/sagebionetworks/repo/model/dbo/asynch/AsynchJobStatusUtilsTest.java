@@ -8,15 +8,15 @@ import java.util.Date;
 
 import org.junit.Test;
 import org.sagebionetworks.repo.model.asynch.AsynchJobState;
-import org.sagebionetworks.repo.model.dbo.asynch.AsynchJobStatusUtils;
-import org.sagebionetworks.repo.model.table.AsynchUploadJobStatus;
+import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
+import org.sagebionetworks.repo.model.table.AsynchUploadJobBody;
 
 public class AsynchJobStatusUtilsTest {
 	
 	
 	@Test
 	public void testUploadRoundTrip(){
-		AsynchUploadJobStatus status = new AsynchUploadJobStatus();
+		AsynchronousJobStatus status = new AsynchronousJobStatus();
 		status.setChangedOn(new Date(1));
 		status.setJobId("123");
 		status.setJobState(AsynchJobState.PROCESSING);
@@ -24,11 +24,13 @@ public class AsynchJobStatusUtilsTest {
 		status.setProgressTotal(444L);
 		status.setStartedByUserId(999L);
 		status.setStartedOn(new Date(900000));
-		status.setTableId("syn123");
-		status.setUploadFileHandleId("55555");
+		AsynchUploadJobBody body = new AsynchUploadJobBody();
+		body.setTableId("syn123");
+		body.setUploadFileHandleId("55555");
+		status.setJobBody(body);
 		// to DBO
 		DBOAsynchJobStatus dbo = AsynchJobStatusUtils.createDBOFromDTO(status);
-		AsynchUploadJobStatus clone = (AsynchUploadJobStatus) AsynchJobStatusUtils.createDTOFromDBO(dbo, AsynchUploadJobStatus.class);
+		AsynchronousJobStatus clone = AsynchJobStatusUtils.createDTOFromDBO(dbo);
 		assertEquals(status, clone);
 	}
 	
@@ -56,7 +58,7 @@ public class AsynchJobStatusUtilsTest {
 		char[] chars = new char[DBOAsynchJobStatus.MAX_MESSAGE_CHARS+1];
 		Arrays.fill(chars, '1');
 		String tooBig = new String(chars);
-		AsynchUploadJobStatus status = new AsynchUploadJobStatus();
+		AsynchronousJobStatus status = new AsynchronousJobStatus();
 		status.setChangedOn(new Date(1));
 		status.setErrorDetails("error details");
 		status.setErrorMessage(tooBig);
@@ -68,11 +70,14 @@ public class AsynchJobStatusUtilsTest {
 		status.setProgressMessage(tooBig);
 		status.setStartedByUserId(999L);
 		status.setStartedOn(new Date(900000));
-		status.setTableId("syn123");
-		status.setUploadFileHandleId("55555");
+		status.setRuntimeMS(333L);
+		AsynchUploadJobBody body = new AsynchUploadJobBody();
+		body.setTableId("syn123");
+		body.setUploadFileHandleId("55555");
+		status.setJobBody(body);
 		// to DBO
 		DBOAsynchJobStatus dbo = AsynchJobStatusUtils.createDBOFromDTO(status);
-		AsynchUploadJobStatus clone = (AsynchUploadJobStatus) AsynchJobStatusUtils.createDTOFromDBO(dbo, AsynchUploadJobStatus.class);
+		AsynchronousJobStatus clone = AsynchJobStatusUtils.createDTOFromDBO(dbo);
 		// Should be truncated
 		assertEquals(DBOAsynchJobStatus.MAX_MESSAGE_CHARS-1, clone.getProgressMessage().length());
 		assertEquals(DBOAsynchJobStatus.MAX_MESSAGE_CHARS-1, clone.getErrorMessage().length());

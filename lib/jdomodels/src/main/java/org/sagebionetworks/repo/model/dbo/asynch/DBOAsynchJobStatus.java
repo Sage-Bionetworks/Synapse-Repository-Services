@@ -92,7 +92,17 @@ public class DBOAsynchJobStatus implements MigratableDatabaseObject<DBOAsynchJob
 	@Field(name = COL_ASYNCH_JOB_COMPRESSED_BODY, blob="mediumblob", nullable = false)
 	private byte[] compressedBody;
 
+	@Field(name = COL_ASYNCH_JOB_RUNTIME_MS, nullable = false)
+	private Long runtimeMS;
 	
+	public Long getRuntimeMS() {
+		return runtimeMS;
+	}
+
+	public void setRuntimeMS(Long runtimeMS) {
+		this.runtimeMS = runtimeMS;
+	}
+
 	public Long getJobId() {
 		return jobId;
 	}

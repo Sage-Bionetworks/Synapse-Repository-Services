@@ -5,6 +5,7 @@ import java.io.UnsupportedEncodingException;
 import java.util.Date;
 
 import org.sagebionetworks.repo.model.asynch.AsynchJobState;
+import org.sagebionetworks.repo.model.asynch.AsynchronousJobBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.dbo.asynch.DBOAsynchJobStatus.JobState;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
@@ -21,13 +22,12 @@ public class AsynchJobStatusUtils {
 	 * @param dbo
 	 * @return
 	 */
-	@SuppressWarnings("unchecked")
-	public static <T extends AsynchronousJobStatus> T createDTOFromDBO(DBOAsynchJobStatus dbo, Class<? extends T> clazz){
+	public static AsynchronousJobStatus createDTOFromDBO(DBOAsynchJobStatus dbo){
 		// Read in the compressed data
-		T dto;
+		AsynchronousJobStatus dto = new AsynchronousJobStatus();
 		try {
 			// The compressed body contains the truth data for all type specific data.
-			dto = (T) JDOSecondaryPropertyUtils.decompressedObject(dbo.getCompressedBody(), dbo.getJobType().name(), clazz);
+			dto.setJobBody((AsynchronousJobBody) JDOSecondaryPropertyUtils.decompressedObject(dbo.getCompressedBody(), dbo.getJobType().name(), dbo.getJobType().getTypeClass()));
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
@@ -43,6 +43,7 @@ public class AsynchJobStatusUtils {
 		dto.setProgressMessage(dbo.getProgressMessage());
 		dto.setStartedByUserId(dbo.getStartedByUserId());
 		dto.setStartedOn(new Date(dbo.getStartedOn()));
+		dto.setRuntimeMS(dbo.getRuntimeMS());
 		return dto;
 	}
 	
@@ -54,7 +55,7 @@ public class AsynchJobStatusUtils {
 	public static DBOAsynchJobStatus createDBOFromDTO(AsynchronousJobStatus dto){
 		if(dto == null) throw new IllegalArgumentException("AsynchronousJobStatus cannot be null");
 		// Lookup the type
-		AsynchJobType type = AsynchJobType.findType(dto.getClass());
+		AsynchJobType type = AsynchJobType.findType(dto.getJobBody().getClass());
 		DBOAsynchJobStatus dbo = new DBOAsynchJobStatus();
 		dbo.setChangedOn(dto.getChangedOn().getTime()); 
 		dbo.setErrorDetails(stringToBytes(dto.getErrorDetails()));
@@ -68,9 +69,10 @@ public class AsynchJobStatusUtils {
 		dbo.setProgressMessage(truncateMessageStringIfNeeded(dto.getProgressMessage()));
 		dbo.setStartedByUserId(dto.getStartedByUserId());
 		dbo.setStartedOn(dto.getStartedOn().getTime());
+		dbo.setRuntimeMS(dto.getRuntimeMS());
 		// Compress the body
 		try {
-			dbo.setCompressedBody(JDOSecondaryPropertyUtils.compressObject(dto, type.name()));
+			dbo.setCompressedBody(JDOSecondaryPropertyUtils.compressObject(dto.getJobBody(), type.name()));
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}

@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.asynch;
 
-import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
-import org.sagebionetworks.repo.model.table.AsynchUploadJobStatus;
+import org.sagebionetworks.repo.model.asynch.AsynchronousJobBody;
+import org.sagebionetworks.repo.model.table.AsynchUploadJobBody;
 
 /**
  * This enum maps types to classes.
@@ -11,12 +11,12 @@ import org.sagebionetworks.repo.model.table.AsynchUploadJobStatus;
  */
 public enum AsynchJobType {
 
-	UPLOAD(AsynchUploadJobStatus.class);
+	UPLOAD(AsynchUploadJobBody.class);
 	
 	
-	private Class<? extends AsynchronousJobStatus> clazz;
+	private Class<? extends AsynchronousJobBody> clazz;
 	
-	AsynchJobType(Class<? extends AsynchronousJobStatus> clazz){
+	AsynchJobType(Class<? extends AsynchronousJobBody> clazz){
 		this.clazz = clazz;
 	}
 	
@@ -25,7 +25,7 @@ public enum AsynchJobType {
 	 * @param clazz
 	 * @return
 	 */
-	public static AsynchJobType findType(Class<? extends AsynchronousJobStatus> clazz){
+	public static AsynchJobType findType(Class<? extends AsynchronousJobBody> clazz){
 		for(AsynchJobType type: AsynchJobType.values()){
 			if(type.clazz.equals(clazz)) return type;
 		}
@@ -36,7 +36,7 @@ public enum AsynchJobType {
 	 * The class bound to this type.
 	 * @return
 	 */
-	public Class<? extends AsynchronousJobStatus> getTypeClass(){
+	public Class<? extends AsynchronousJobBody> getTypeClass(){
 		return this.clazz;
 	}
 }
