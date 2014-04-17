@@ -18,8 +18,6 @@ import org.sagebionetworks.repo.model.annotation.LongAnnotation;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
 import org.sagebionetworks.repo.model.evaluation.AnnotationsDAO;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
-import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
-import org.sagebionetworks.repo.model.evaluation.SubmissionStatusDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -46,7 +44,7 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 	}
 
 	private void checkSubmissionsEtag(String evalId, String submissionsEtag) {
-		String currentSubmissionsEtag = evaluationDAO.getSubmissionsEtag(evalId);
+		String currentSubmissionsEtag = evaluationDAO.selectAndLockSubmissionsEtag(evalId);
 		if (currentSubmissionsEtag==null || 
 				!currentSubmissionsEtag.equals(submissionsEtag)) {
 			throw new IllegalStateException("Change message has etag "+submissionsEtag+
@@ -129,17 +127,7 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 		return annos;
 	}
 	
-	/**
-	 * This is a short-circuit method to replace Annotations directly from the provided objects.
-	 * It is not defined in the interface, and should only be used for testing purposes.
-	 * 
-	 * @param submission
-	 * @param subStatus
-	 * @throws DatastoreException
-	 * @throws JSONObjectAdapterException
-	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void replaceAnnotationsForEvaluation(String evalId) throws DatastoreException, NotFoundException, JSONObjectAdapterException {
+	private void replaceAnnotationsForEvaluation(String evalId) throws DatastoreException, NotFoundException, JSONObjectAdapterException {
 		// get the submissions and statuses that are new or have changed
 		List<SubmissionBundle> changedSubmissions = annotationsDAO.getChangedSubmissions(Long.parseLong(evalId));
 		if (changedSubmissions.isEmpty()) return;

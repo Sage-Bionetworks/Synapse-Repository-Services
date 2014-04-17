@@ -81,7 +81,7 @@ public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 		
 		annosCaptor = ArgumentCaptor.forClass(List.class);
 		
-		when(mockEvaluationDAO.getSubmissionsEtag(EVAL_ID)).thenReturn(EVAL_SUB_ETAG);
+		when(mockEvaluationDAO.selectAndLockSubmissionsEtag(EVAL_ID)).thenReturn(EVAL_SUB_ETAG);
 		SubmissionBundle bundle = new SubmissionBundle();
 		bundle.setSubmission(submission);
 		bundle.setSubmissionStatus(subStatus);

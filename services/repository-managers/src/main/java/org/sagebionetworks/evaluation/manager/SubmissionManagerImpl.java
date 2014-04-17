@@ -128,6 +128,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		submission.setCreatedOn(new Date());
 		
 		// create the Submission	
+		evaluationDAO.selectAndLockSubmissionsEtag(evalId);
 		String submissionId = submissionDAO.create(submission);
 		
 		// create an accompanying SubmissionStatus object
@@ -184,6 +185,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		}
 		
 		// update and return the new Submission
+		evaluationDAO.selectAndLockSubmissionsEtag(evalId);
 		submissionStatusDAO.update(submissionStatus);
 		EvaluationChangeMessageUtil.sendEvaluationSubmissionsChangeMessage(
 				KeyFactory.stringToKey(evalId), 
@@ -203,8 +205,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		validateEvaluationAccess(userInfo, evalId, ACCESS_TYPE.DELETE_SUBMISSION);
 		
 		// the associated SubmissionStatus object will be deleted via cascade
-		// ... but that's not enough to generate a delete message, so we delete it ourselves:
-		submissionStatusDAO.delete(submissionId);
+		evaluationDAO.selectAndLockSubmissionsEtag(evalId);
 		submissionDAO.delete(submissionId);
 		EvaluationChangeMessageUtil.sendEvaluationSubmissionsChangeMessage(
 				KeyFactory.stringToKey(evalId), 

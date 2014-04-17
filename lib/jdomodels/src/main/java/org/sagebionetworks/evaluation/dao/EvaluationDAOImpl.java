@@ -83,7 +83,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	private static final String SELECT_EVALUATION_SUBMISSIONS_ETAG = "SELECT "+
 			COL_EVALUATION_SUBMISSIONS_ETAG+" FROM "+
 			TABLE_EVALUATION + " WHERE "+ COL_EVALUATION_ID + 
-			"=:" + COL_EVALUATION_ID;
+			"=:" + COL_EVALUATION_ID+ " FOR UPDATE";
 	
 	private static final String UPDATE_EVALUATION_SUBMISSIONS_ETAG = "UPDATE "+TABLE_EVALUATION+
 			" SET "+COL_EVALUATION_SUBMISSIONS_ETAG+"=:"+COL_EVALUATION_SUBMISSIONS_ETAG+
@@ -474,7 +474,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	}
 
 	@Override
-	public String getSubmissionsEtag(String id) {
+	public String selectAndLockSubmissionsEtag(String id) {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_EVALUATION_ID, id);
 		try {

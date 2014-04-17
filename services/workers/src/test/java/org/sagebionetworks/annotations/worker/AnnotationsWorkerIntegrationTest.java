@@ -15,7 +15,6 @@ import org.sagebionetworks.asynchronous.workers.sqs.MessageReceiver;
 import org.sagebionetworks.evaluation.manager.SubmissionManager;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
-import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
@@ -31,7 +30,6 @@ import org.sagebionetworks.repo.model.annotation.LongAnnotation;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
 import org.sagebionetworks.repo.model.evaluation.AnnotationsDAO;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
-import org.sagebionetworks.repo.model.evaluation.ParticipantDAO;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -51,17 +49,8 @@ public class AnnotationsWorkerIntegrationTest {
 	@Autowired
 	private AnnotationsDAO annotationsDAO;
 	
-//	@Autowired
-//	private SubmissionStatusDAO submissionStatusDAO;
-    
-//	@Autowired
-//    private SubmissionDAO submissionDAO;
-	
 	@Autowired
 	private SubmissionManager submissionManager;
-    
-	@Autowired
-    private ParticipantDAO participantDAO;
     
 	@Autowired
     private EvaluationDAO evaluationDAO;
@@ -112,13 +101,6 @@ public class AnnotationsWorkerIntegrationTest {
         evaluation.setStatus(EvaluationStatus.PLANNED);
         evalId = evaluationDAO.create(evaluation, userId);
         
-        // create a participant
-        Participant participant = new Participant();
-        participant.setCreatedOn(new Date());
-        participant.setUserId(userId.toString());
-        participant.setEvaluationId(evalId);
-        participantDAO.create(participant);
-        
         // create a submission
         Submission submission = new Submission();
         submission.setId("5678");
@@ -151,9 +133,6 @@ public class AnnotationsWorkerIntegrationTest {
 		try {
 			submissionManager.deleteSubmission(userInfo, submissionId);
 		} catch (Exception e)  {};
-		try {
-			participantDAO.delete(userId.toString(), evalId);
-		} catch (Exception e) {};
 		try {
 			evaluationDAO.delete(evalId);
 		} catch (Exception e) {};

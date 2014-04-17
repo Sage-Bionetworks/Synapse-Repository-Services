@@ -95,6 +95,6 @@ public interface EvaluationDAO {
 	 * concurrency scheme:  If the value is not as expected, then a subsequent operation
 	 * has been applied to the Evaluation.
 	 */
-	public String getSubmissionsEtag(String id);
+	public String selectAndLockSubmissionsEtag(String id);
 
 }

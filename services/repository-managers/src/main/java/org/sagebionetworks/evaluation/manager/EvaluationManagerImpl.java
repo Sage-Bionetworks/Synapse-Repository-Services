@@ -210,6 +210,8 @@ public class EvaluationManagerImpl implements EvaluationManager {
 					" (" + eval.getName() + ")");
 		}
 		evaluationPermissionsManager.deleteAcl(userInfo, id);
+		// lock out multi-submission access (e.g. batch updates)
+		evaluationDAO.selectAndLockSubmissionsEtag(id);
 		evaluationDAO.delete(id);
 		EvaluationChangeMessageUtil.sendEvaluationSubmissionsChangeMessage(
 				KeyFactory.stringToKey(id), 

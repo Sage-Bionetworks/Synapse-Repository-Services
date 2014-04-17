@@ -1,6 +1,8 @@
 package org.sagebionetworks.annotations.worker;
 
 import static org.junit.Assert.assertFalse;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.doThrow;
 
 import java.util.Collections;
 import java.util.Date;
@@ -29,105 +31,24 @@ import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionStatusDAO;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DeadlockLoserDataAccessException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.amazonaws.services.sqs.model.Message;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:annot-worker-test-context.xml" })
 public class AnnotationsWorkerAutowiredTest {
-	@Autowired
-	private SubmissionStatusDAO submissionStatusDAO;
-    
-	@Autowired
-    private SubmissionDAO submissionDAO;
-      
-	@Autowired
-    private EvaluationDAO evaluationDAO;
-	
-	@Autowired
-	private NodeDAO nodeDAO;
-	
-	@Autowired
-	SubmissionStatusAnnotationsAsyncManager ssAsyncMgr;
-	
-	private String nodeId;
-    private String submissionId;
-    private Long userId;
-    private String evalId;
-    private final String name = "test submission";
-    private final Long versionNumber = 1L;
 
-    @Before
-	public void before() throws Exception {
-		userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
-		
-		// create a node
-  		Node node = new Node();
-		node.setName(name);
-		node.setCreatedByPrincipalId(userId);
-		node.setModifiedByPrincipalId(userId);
-		node.setCreatedOn(new Date(System.currentTimeMillis()));
-		node.setModifiedOn(node.getCreatedOn());
-		node.setNodeType(EntityType.project.name());
-		node.setVersionComment("This is the first version of the first node ever!");
-		node.setVersionLabel("0.0.1");
-    	nodeId = nodeDAO.createNew(node).substring(3); // trim "syn" from node ID
-    	
-    	// create an evaluation
-        Evaluation evaluation = new Evaluation();
-        evaluation.setId("1234");
-        evaluation.setEtag("etag");
-        evaluation.setName("my eval");
-        evaluation.setOwnerId(userId.toString());
-        evaluation.setCreatedOn(new Date());
-        evaluation.setContentSource(nodeId);
-        evaluation.setStatus(EvaluationStatus.PLANNED);
-        evalId = evaluationDAO.create(evaluation, userId);
-        
-        // create a submission
-        Submission submission = new Submission();
-        submission.setId("5678");
-        submission.setName(name);
-        submission.setEntityId(nodeId);
-        submission.setVersionNumber(versionNumber);
-        submission.setUserId(userId.toString());
-        submission.setEvaluationId(evalId);
-        submission.setCreatedOn(new Date());
-        submission.setEntityBundleJSON("some bundle");
-        submissionId = submissionDAO.create(submission);
-        
-        // create a submissionstatus
-        SubmissionStatus status = new SubmissionStatus();
-        status.setModifiedOn(new Date());
-        status.setId(submissionId);
-        status.setEtag(null);
-        status.setStatus(SubmissionStatusEnum.RECEIVED);
-        status.setScore(0.1);
-        submissionStatusDAO.create(status);
-	}
-	
-	@After
-	public void after(){
-		try {
-			submissionDAO.delete(submissionId);
-		} catch (Exception e)  {};
-		try {
-			evaluationDAO.delete(evalId);
-		} catch (Exception e) {};
-    	try {
-    		nodeDAO.delete(nodeId);
-    	} catch (Exception e) {};
-	}
-	
 	// test that a DeadlockLoserDataAccessException will cause the create/update to be retried
 	@Test
 	public void testDeadlockException() throws Exception {
-		String etag = "";
-		Message message = MessageUtils.buildMessage(ChangeType.CREATE, ""+submissionId, ObjectType.EVALUATION_SUBMISSIONS, etag);
+		Message message = MessageUtils.buildMessage(ChangeType.CREATE, "101", ObjectType.EVALUATION_SUBMISSIONS, "98976");
 		List<Message> messages = Collections.singletonList(message);
 		WorkerLogger mockWorkerLogger = Mockito.mock(WorkerLogger.class);
+		SubmissionStatusAnnotationsAsyncManager ssAsyncMgr = 
+				Mockito.mock(SubmissionStatusAnnotationsAsyncManager.class);
+		doThrow(new DeadlockLoserDataAccessException("foo", null)).
+			when(ssAsyncMgr).createEvaluationSubmissionStatuses(anyString(), anyString());
 		AnnotationsWorker worker = new AnnotationsWorker(messages, ssAsyncMgr, mockWorkerLogger);
 		List<Message> completedMessages = worker.call();
 		// if the message is not in the list it means it is not completed and will be retried
