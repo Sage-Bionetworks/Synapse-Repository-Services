@@ -134,6 +134,7 @@ import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.Query;
+import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
@@ -246,6 +247,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	
 	protected static final String COLUMN = "/column";
 	protected static final String TABLE = "/table";
+	protected static final String ROW_ID = "/row";
+	protected static final String ROW_VERSION = "/version";
 	protected static final String TABLE_QUERY = TABLE+"/query";
 
 	private static final String USER_PROFILE_PATH = "/userProfile";
@@ -4825,6 +4828,45 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseClientException(e);
 		}
+	}
+
+	/**
+	 * Get the temporary URL for the data file of a file handle column for a row.  This is an alternative to downloading the file.
+	 * 
+	 * @param entityId
+	 * @return
+	 * @throws IOException
+	 * @throws SynapseException 
+	 */
+	@Override
+	public URL getTableFileHandleTemporaryUrl(String tableId, RowReference row, String columnId) throws IOException, SynapseException {
+		String uri = getUriForFileHandle(tableId, row, columnId) + FILE + QUERY_REDIRECT_PARAMETER + "false";
+		return getUrl(uri);
+	}
+
+	@Override
+	public void downloadFromTableFileHandleTemporaryUrl(String tableId, RowReference row, String columnId, File destinationFile)
+			throws SynapseException {
+		String uri = getUriForFileHandle(tableId, row, columnId) + FILE;
+		getSharedClientConnection().downloadFromSynapse(getRepoEndpoint() + uri, null, destinationFile, getUserAgent());
+	}
+
+	@Override
+	public URL getTableFileHandlePreviewTemporaryUrl(String tableId, RowReference row, String columnId) throws IOException, SynapseException {
+		String uri = getUriForFileHandle(tableId, row, columnId) + FILE_PREVIEW + QUERY_REDIRECT_PARAMETER + "false";
+		return getUrl(uri);
+	}
+
+	@Override
+	public void downloadFromTableFileHandlePreviewTemporaryUrl(String tableId, RowReference row, String columnId, File destinationFile)
+			throws SynapseException {
+		String uri = getUriForFileHandle(tableId, row, columnId) + FILE_PREVIEW;
+		getSharedClientConnection().downloadFromSynapse(getRepoEndpoint() + uri, null, destinationFile, getUserAgent());
+	}
+
+	private static String getUriForFileHandle(String tableId, RowReference row, String columnId) {
+		return ENTITY + "/" + tableId + TABLE + COLUMN + "/" + columnId + ROW_ID + "/" + row.getRowId() + ROW_VERSION + "/"
+				+ row.getVersionNumber();
 	}
 
 	@Override

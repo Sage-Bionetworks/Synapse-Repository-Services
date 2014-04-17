@@ -6,7 +6,14 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.Reader;
+import java.io.Writer;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
@@ -28,10 +35,12 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableEntity;
@@ -53,6 +62,7 @@ public class IT100TableControllerTest {
 
 	private List<Entity> entitiesToDelete;
 	private List<TableEntity> tablesToDelete;
+	private List<File> tempFiles = Lists.newArrayList();
 	
 	private static long MAX_QUERY_TIMEOUT_MS = 1000*60*5;
 	
@@ -80,6 +90,9 @@ public class IT100TableControllerTest {
 	public void after() throws Exception {
 		for (Entity entity : entitiesToDelete) {
 			adminSynapse.deleteAndPurgeEntity(entity);
+		}
+		for (File tempFile : tempFiles) {
+			tempFile.delete();
 		}
 	}
 	
@@ -385,6 +398,57 @@ public class IT100TableControllerTest {
 		update.setHeaders(results1.getHeaders());
 		update.setEtag(results1.getEtag());
 		synapse.appendRowsToTable(update);
+	}
+
+	@Test
+	public void testAddRetrieveFileHandle() throws Exception {
+		// Create a few columns to add to a table entity
+		ColumnModel one = new ColumnModel();
+		one.setName("one");
+		one.setColumnType(ColumnType.FILEHANDLEID);
+		one = synapse.createColumnModel(one);
+		// Create a project to contain it all
+		Project project = new Project();
+		project.setName(UUID.randomUUID().toString());
+		project = synapse.createEntity(project);
+		entitiesToDelete.add(project);
+
+		// now create a table entity
+		TableEntity table = new TableEntity();
+		table.setName("Table");
+		List<String> idList = Lists.newArrayList(one.getId());
+		table.setColumnIds(idList);
+		table.setParentId(project.getId());
+		table = synapse.createEntity(table);
+		tablesToDelete.add(table);
+
+		List<ColumnModel> columns = synapse.getColumnModelsForTableEntity(table.getId());
+
+		File tempFile = File.createTempFile("temp", ".txt");
+		tempFiles.add(tempFile);
+		Writer writer = new FileWriter(tempFile);
+		writer.write("a temporary string");
+		writer.close();
+
+		S3FileHandle fileHandle = synapse.createFileHandle(tempFile, "text/plain");
+
+		// Append some rows
+		RowSet set = new RowSet();
+		List<Row> rows = Collections.singletonList(TableModelTestUtils.createRow(null, null, fileHandle.getId()));
+		set.setRows(rows);
+		set.setHeaders(TableModelUtils.getHeaders(columns));
+		set.setTableId(table.getId());
+		RowReferenceSet results = synapse.appendRowsToTable(set);
+
+		File tempFile2 = File.createTempFile("temp", ".txt");
+		tempFiles.add(tempFile2);
+		synapse.downloadFromTableFileHandleTemporaryUrl(table.getId(), results.getRows().get(0), one.getId(), tempFile2);
+
+		BufferedReader reader = new BufferedReader(new FileReader(tempFile2));
+		String fileContent = reader.readLine();
+		reader.close();
+
+		assertEquals("a temporary string", fileContent);
 	}
 
 	@Test

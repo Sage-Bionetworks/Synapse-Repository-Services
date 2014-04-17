@@ -760,7 +760,7 @@ public class SharedClientConnection {
 		return results;
 	}
 
-	public String getDirect(String endpoint, String uri, String userAgent) throws ClientProtocolException, IOException, SynapseException {
+	public String getDirect(String endpoint, String uri, String userAgent) throws IOException, SynapseException {
 		HttpGet get = new HttpGet(endpoint + uri);
 		setHeaders(get, defaultGETDELETEHeaders, userAgent);
 		HttpResponse response = clientProvider.execute(get);

@@ -139,7 +139,7 @@ public class TableModelTestUtils {
 		toUpdate.setValues(values);
 	}
 
-	public static Row createRow(long rowId, long rowVersion, String... values) {
+	public static Row createRow(Long rowId, Long rowVersion, String... values) {
 		Row row = new Row();
 		row.setRowId(rowId);
 		row.setVersionNumber(rowVersion);
@@ -147,7 +147,7 @@ public class TableModelTestUtils {
 		return row;
 	}
 
-	public static RowReference createRowReference(long rowId, long rowVersion) {
+	public static RowReference createRowReference(Long rowId, Long rowVersion) {
 		RowReference ref = new RowReference();
 		ref.setRowId(rowId);
 		ref.setVersionNumber(rowVersion);

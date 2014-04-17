@@ -515,6 +515,35 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		return results;
 	}
 
+	/**
+	 * Get the RowSet original for each row referenced.
+	 * 
+	 * @throws NotFoundException
+	 */
+	@Override
+	public Row getRowOriginal(String tableId, final RowReference ref, List<ColumnModel> columns) throws IOException, NotFoundException {
+		if (ref == null)
+			throw new IllegalArgumentException("RowReferenceSet cannot be null");
+		if (tableId == null)
+			throw new IllegalArgumentException("RowReferenceSet.tableId cannot be null");
+		// First determine the versions we will need to inspect for this query.
+		final List<Row> results = Lists.newArrayList();
+		TableRowChange trc = scanRowSet(tableId, ref.getVersionNumber(), new RowHandler() {
+			@Override
+			public void nextRow(Row row) {
+				// Is this a row we are looking for?
+				if (row.getRowId().equals(ref.getRowId())) {
+					results.add(row);
+				}
+			}
+		});
+		if (results.size() == 0) {
+			throw new NotFoundException("Row not found, row=" + ref.getRowId() + ", version=" + ref.getVersionNumber());
+		}
+		Map<String, Integer> columnIndexMap = TableModelUtils.createColumnIdToIndexMap(trc);
+		return TableModelUtils.convertToSchemaAndMerge(results.get(0), columnIndexMap, columns);
+	}
+
 	@Override
 	public RowSetAccessor getLatestVersions(String tableId, Set<Long> rowIds) throws IOException, NotFoundException {
 		final Map<Long, RowAccessor> rowIdToRowMap = Maps.newHashMap();

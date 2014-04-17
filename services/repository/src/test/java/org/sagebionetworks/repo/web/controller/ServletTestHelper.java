@@ -4,6 +4,7 @@ import static org.junit.Assert.assertNotNull;
 
 import java.io.StringWriter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -67,6 +68,7 @@ import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.Query;
+import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableStatus;
@@ -81,6 +83,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.servlet.DispatcherServlet;
 
 /**
@@ -1420,6 +1424,16 @@ public class ServletTestHelper {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.POST, UrlHelpers.ENTITY + "/" + rows.getTableId()
 				+ UrlHelpers.TABLE + "/deleteRows", userId, rows);
 		ServletTestHelperUtils.dispatchRequest(instance, request, HttpStatus.CREATED);
+	}
+
+	public static String getTableFileHandle(DispatcherServlet instance, String tableId, RowReference row, String columnId, Long userId,
+			boolean preview) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.GET, UrlHelpers.ENTITY + "/" + tableId
+				+ UrlHelpers.TABLE + UrlHelpers.COLUMN + "/" + columnId + "/row/" + row.getRowId() + "/version/" + row.getVersionNumber()
+				+ (preview ? UrlHelpers.FILE_PREVIEW : UrlHelpers.FILE), userId, null);
+		ServletTestHelperUtils.addExtraParams(request, Collections.singletonMap("redirect", "false"));
+		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(instance, request, HttpStatus.OK);
+		return response.getContentAsString();
 	}
 
 	/**

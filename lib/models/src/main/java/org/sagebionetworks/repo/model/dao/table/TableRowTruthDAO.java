@@ -6,6 +6,8 @@ import java.util.Set;
 
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.IdRange;
+import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
@@ -88,6 +90,18 @@ public interface TableRowTruthDAO {
 	 * @throws NotFoundException 
 	 */
 	public List<RowSet> getRowSetOriginals(RowReferenceSet ref) throws IOException, NotFoundException;
+
+	/**
+	 * Get a rows referenced in its unmodified form.
+	 * 
+	 * @param tableId
+	 * @param ref
+	 * @param columns
+	 * @return
+	 * @throws IOException
+	 * @throws NotFoundException
+	 */
+	public Row getRowOriginal(String tableId, RowReference ref, List<ColumnModel> columns) throws IOException, NotFoundException;
 	
 	/**
 	 * Get all the latest versions of the rows specified by the rowIds

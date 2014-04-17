@@ -426,6 +426,24 @@ public class TableRowManagerImplTest {
 		manager.appendRows(user, tableId, models, replace);
 	}
 
+	@Test
+	public void testGetColumnValuesHappy() throws Exception {
+		final int columnIndex = 1;
+		RowReference rowRef = new RowReference();
+		Row row = new Row();
+		row.setValues(Lists.newArrayList("yy"));
+		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(true);
+		when(mockTruthDao.getRowOriginal(tableId, rowRef, Lists.newArrayList(models.get(columnIndex)))).thenReturn(row);
+		String result = manager.getCellValue(user, tableId, rowRef, models.get(columnIndex));
+		assertEquals("yy", result);
+	}
+
+	@Test(expected = UnauthorizedException.class)
+	public void testGetColumnValuesFailReadAccess() throws Exception {
+		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(false);
+		manager.getCellValue(user, tableId, null, null);
+	}
+
 	@Test (expected = UnauthorizedException.class)
 	public void testQueryUnauthroized() throws Exception {
 		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(false);

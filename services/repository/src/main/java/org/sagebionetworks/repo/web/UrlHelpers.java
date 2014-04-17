@@ -643,11 +643,15 @@ public class UrlHelpers {
 	
 	// Tables
 	public static final String COLUMN = "/column";
+	public static final String ROW_ID = "/row/{rowId}";
+	public static final String ROW_VERSION = "/version/{versionNumber}";
 	public static final String TABLE = "/table";
 	public static final String COLUMN_ID = COLUMN+"/{columnId}";
 	public static final String ENTITY_COLUMNS = ENTITY_ID+COLUMN;
 	public static final String ENTITY_TABLE = ENTITY_ID+TABLE;
 	public static final String ENTITY_TABLE_DELETE_ROWS = ENTITY_ID + TABLE + "/deleteRows";
+	public static final String ENTITY_TABLE_FILE = ENTITY_TABLE + COLUMN_ID + ROW_ID + ROW_VERSION + FILE;
+	public static final String ENTITY_TABLE_FILE_PREVIEW = ENTITY_TABLE + COLUMN_ID + ROW_ID + ROW_VERSION + FILE_PREVIEW;
 	public static final String TABLE_QUERY = TABLE+"/query";
 	
 	// Team

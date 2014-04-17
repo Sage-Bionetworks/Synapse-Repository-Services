@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.exception.LockUnavilableException;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
@@ -108,6 +109,19 @@ public interface TableRowManager {
 	 */
 	public RowSet getRowSet(String tableId, Long rowVersion)
 			throws IOException, NotFoundException;
+
+	/**
+	 * Get the values for a specific row reference set and column
+	 * 
+	 * @param userInfo
+	 * @param refSet
+	 * @param model
+	 * @return
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	public String getCellValue(UserInfo userInfo, String tableId, RowReference rowRef, ColumnModel model) throws IOException,
+			NotFoundException;
 
 	/**
 	 * <p>
