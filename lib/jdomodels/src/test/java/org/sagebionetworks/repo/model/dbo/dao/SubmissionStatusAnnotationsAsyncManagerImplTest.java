@@ -86,7 +86,7 @@ public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 		
 		annosCaptor = ArgumentCaptor.forClass(List.class);
 		
-		when(mockEvaluationDAO.selectAndLockSubmissionsEtag(EVAL_ID)).thenReturn(EVAL_SUB_ETAG);
+		when(mockEvaluationDAO.selectSubmissionsEtag(EVAL_ID)).thenReturn(EVAL_SUB_ETAG);
 		SubmissionBundle bundle = new SubmissionBundle();
 		bundle.setSubmission(submission);
 		bundle.setSubmissionStatus(subStatus);
@@ -174,21 +174,21 @@ public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 	
 	@Test(expected=IllegalStateException.class)
 	public void testStaleCreateChangeMessage() throws Exception {
-		when(mockEvaluationDAO.selectAndLockSubmissionsEtag(EVAL_ID)).thenReturn("some other etag");
+		when(mockEvaluationDAO.selectSubmissionsEtag(EVAL_ID)).thenReturn("some other etag");
 		ssAnnoAsyncManager.createEvaluationSubmissionStatuses(submission.getEvaluationId(), EVAL_SUB_ETAG);
 		
 	}
 
 	@Test(expected=IllegalStateException.class)
 	public void testStaleUpdateChangeMessage() throws Exception {
-		when(mockEvaluationDAO.selectAndLockSubmissionsEtag(EVAL_ID)).thenReturn("some other etag");
+		when(mockEvaluationDAO.selectSubmissionsEtag(EVAL_ID)).thenReturn("some other etag");
 		ssAnnoAsyncManager.updateEvaluationSubmissionStatuses(submission.getEvaluationId(), EVAL_SUB_ETAG);
 		
 	}
 
 	@Test(expected=IllegalStateException.class)
 	public void testStaleCreateChangeMessageNullEtag() throws Exception {
-		when(mockEvaluationDAO.selectAndLockSubmissionsEtag(EVAL_ID)).thenReturn(null);
+		when(mockEvaluationDAO.selectSubmissionsEtag(EVAL_ID)).thenReturn(null);
 		ssAnnoAsyncManager.createEvaluationSubmissionStatuses(submission.getEvaluationId(), EVAL_SUB_ETAG);		
 	}
 	

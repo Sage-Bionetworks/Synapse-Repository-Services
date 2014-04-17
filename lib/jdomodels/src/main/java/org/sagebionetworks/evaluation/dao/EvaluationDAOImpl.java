@@ -217,12 +217,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		params.addValue(CONTENT_SOURCE, KeyFactory.stringToKey(id));
 		return simpleJdbcTemplate.queryForLong(COUNT_BY_CONTENT_SOURCE, params);
 	}
-	
-	private String getSubmissionsEtag(String evalId) {
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(ID, evalId);
-		return simpleJdbcTemplate.queryForObject(SELECT_SUBMISSIONS_ETAG, String.class, param);
-	}
+
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -234,7 +229,9 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		param.addValue(ID, dto.getId());
 		EvaluationDBO dbo = new EvaluationDBO();
 		copyDtoToDbo(dto, dbo);
-		dbo.setSubmissionsEtag(getSubmissionsEtag(dto.getId()));
+		dbo.setSubmissionsEtag(
+				simpleJdbcTemplate.queryForObject(SELECT_SUBMISSIONS_ETAG, String.class, dto.getId())
+		);
 		verifyEvaluationDBO(dbo);
 		
 		String newEtag = lockAndGenerateEtag(dbo.getIdString(), dbo.getEtag(), ChangeType.UPDATE);	
