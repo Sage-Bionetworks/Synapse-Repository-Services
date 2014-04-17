@@ -33,25 +33,12 @@ public interface AnnotationsDAO {
 	public Annotations getAnnotationsFromBlob(Long owner);
 
 	/**
-	 * Replace all annotations.
-	 * @param annotations
-	 * @throws DatastoreException 
-	 * @throws JSONObjectAdapterException 
-	 */
-	public void replaceAnnotations(Annotations annotations) throws DatastoreException, JSONObjectAdapterException;
-	
-	/**
 	 * Replace all annotations corresponding to a list of submissions.
 	 * @param annotations
 	 * @throws DatastoreException 
 	 * @throws JSONObjectAdapterException 
 	 */
-	public void replaceAnnotationsBatch(List<Annotations> annotations) throws DatastoreException, JSONObjectAdapterException;
-
-	/**
-	 * Deletes all the annotations associated with the specified owner.
-	 */
-	public void deleteAnnotationsByOwnerId(Long ownerId);
+	public void replaceAnnotations(List<Annotations> annotations) throws DatastoreException, JSONObjectAdapterException;
 	
 	/**
 	 * Deletes all annotations associated with the given scope

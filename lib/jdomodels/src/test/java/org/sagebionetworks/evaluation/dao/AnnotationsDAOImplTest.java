@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
@@ -49,8 +50,6 @@ public class AnnotationsDAOImplTest {
     @Autowired
     SubmissionDAO submissionDAO;
     @Autowired
-    ParticipantDAO participantDAO;
-    @Autowired
     EvaluationDAO evaluationDAO;
 	@Autowired
 	NodeDAO nodeDAO;
@@ -65,16 +64,13 @@ public class AnnotationsDAOImplTest {
 	
 	@After
 	public void after() throws DatastoreException {
-		subStatusAnnoDAO.deleteAnnotationsByOwnerId(Long.parseLong(submissionId));
+		subStatusAnnoDAO.deleteAnnotationsByScope(Long.parseLong(evalId));
     	try {
     		nodeDAO.delete(nodeId);
     	} catch (NotFoundException e) {};
 		try {
 			submissionDAO.delete(submissionId);
 		} catch (NotFoundException e)  {};
-		try {
-			participantDAO.delete(userId, evalId);
-		} catch (NotFoundException e) {};
 		try {
 			evaluationDAO.delete(evalId);
 		} catch (NotFoundException e) {};
@@ -100,13 +96,6 @@ public class AnnotationsDAOImplTest {
         evaluation.setContentSource(nodeId);
         evaluation.setStatus(EvaluationStatus.PLANNED);
         evalId = evaluationDAO.create(evaluation, Long.parseLong(userId));
-        
-        // create a participant
-        Participant participant = new Participant();
-        participant.setCreatedOn(new Date());
-        participant.setUserId(userId);
-        participant.setEvaluationId(evalId);
-        participantDAO.create(participant);
         
         // create a submission
         Submission submission = new Submission();
@@ -145,7 +134,7 @@ public class AnnotationsDAOImplTest {
 		stringAnnos.add(sa2);
 		stringAnnos.add(sa1);
 		annos.setStringAnnos(stringAnnos);
-		subStatusAnnoDAO.replaceAnnotations(annos);
+		subStatusAnnoDAO.replaceAnnotations(Collections.singletonList(annos));
 		
 		// Read
 		Annotations clone = subStatusAnnoDAO.getAnnotations(Long.parseLong(submissionId));
@@ -163,7 +152,7 @@ public class AnnotationsDAOImplTest {
 		stringAnnos.add(sa1);
 		stringAnnos.add(sa3);
 		annos.setStringAnnos(stringAnnos);
-		subStatusAnnoDAO.replaceAnnotations(annos);
+		subStatusAnnoDAO.replaceAnnotations(Collections.singletonList(annos));
 		
 		// Verify
 		Annotations clone2 = subStatusAnnoDAO.getAnnotations(Long.parseLong(submissionId));
@@ -172,7 +161,7 @@ public class AnnotationsDAOImplTest {
 		assertFalse(clone.getStringAnnos().containsAll(clone2.getStringAnnos()));
 
 		// Delete
-		subStatusAnnoDAO.deleteAnnotationsByOwnerId(Long.parseLong(submissionId));
+		subStatusAnnoDAO.deleteAnnotationsByScope(Long.parseLong(evalId));
 		clone = subStatusAnnoDAO.getAnnotations(Long.parseLong(submissionId));
 		assertNotNull(clone);
 		assertEquals(0, clone.getStringAnnos().size());
@@ -193,7 +182,7 @@ public class AnnotationsDAOImplTest {
 		longAnnos.add(la1);
 		longAnnos.add(la2);
 		annos.setLongAnnos(longAnnos);
-		subStatusAnnoDAO.replaceAnnotations(annos);
+		subStatusAnnoDAO.replaceAnnotations(Collections.singletonList(annos));
 		
 		// Read
 		Annotations clone = subStatusAnnoDAO.getAnnotations(Long.parseLong(submissionId));
@@ -211,7 +200,7 @@ public class AnnotationsDAOImplTest {
 		longAnnos.add(la1);
 		longAnnos.add(la3);
 		annos.setLongAnnos(longAnnos);
-		subStatusAnnoDAO.replaceAnnotations(annos);
+		subStatusAnnoDAO.replaceAnnotations(Collections.singletonList(annos));
 		
 		// Verify
 		Annotations clone2 = subStatusAnnoDAO.getAnnotations(Long.parseLong(submissionId));
@@ -220,7 +209,7 @@ public class AnnotationsDAOImplTest {
 		assertFalse(clone.getLongAnnos().containsAll(clone2.getLongAnnos()));
 
 		// Delete
-		subStatusAnnoDAO.deleteAnnotationsByOwnerId(Long.parseLong(submissionId));
+		subStatusAnnoDAO.deleteAnnotationsByScope(Long.parseLong(evalId));
 		clone = subStatusAnnoDAO.getAnnotations(Long.parseLong(submissionId));
 		assertNotNull(clone);
 		assertEquals(0, clone.getStringAnnos().size());
@@ -241,7 +230,7 @@ public class AnnotationsDAOImplTest {
 		doubleAnnos.add(da1);
 		doubleAnnos.add(da2);
 		annos.setDoubleAnnos(doubleAnnos);
-		subStatusAnnoDAO.replaceAnnotations(annos);
+		subStatusAnnoDAO.replaceAnnotations(Collections.singletonList(annos));
 		
 		// Read
 		Annotations clone = subStatusAnnoDAO.getAnnotations(Long.parseLong(submissionId));
@@ -259,7 +248,7 @@ public class AnnotationsDAOImplTest {
 		doubleAnnos.add(da1);
 		doubleAnnos.add(da3);
 		annos.setDoubleAnnos(doubleAnnos);
-		subStatusAnnoDAO.replaceAnnotations(annos);
+		subStatusAnnoDAO.replaceAnnotations(Collections.singletonList(annos));
 		
 		// Verify
 		Annotations clone2 = subStatusAnnoDAO.getAnnotations(Long.parseLong(submissionId));
@@ -268,7 +257,7 @@ public class AnnotationsDAOImplTest {
 		assertFalse(clone.getDoubleAnnos().containsAll(clone2.getDoubleAnnos()));
 
 		// Delete
-		subStatusAnnoDAO.deleteAnnotationsByOwnerId(Long.parseLong(submissionId));
+		subStatusAnnoDAO.deleteAnnotationsByScope(Long.parseLong(evalId));
 		clone = subStatusAnnoDAO.getAnnotations(Long.parseLong(submissionId));
 		assertNotNull(clone);
 		assertEquals(0, clone.getStringAnnos().size());
@@ -301,7 +290,7 @@ public class AnnotationsDAOImplTest {
 		doubleAnnos.add(da1);
 		annos.setDoubleAnnos(doubleAnnos);		
 		
-		subStatusAnnoDAO.replaceAnnotations(annos);
+		subStatusAnnoDAO.replaceAnnotations(Collections.singletonList(annos));
 		
 		// Read
 		Annotations clone = subStatusAnnoDAO.getAnnotations(Long.parseLong(submissionId));
@@ -344,7 +333,7 @@ public class AnnotationsDAOImplTest {
 		doubleAnnos.add(da2);
 		annos.setDoubleAnnos(doubleAnnos);
 		
-		subStatusAnnoDAO.replaceAnnotations(annos);
+		subStatusAnnoDAO.replaceAnnotations(Collections.singletonList(annos));
 		
 		// Verify
 		Annotations clone2 = subStatusAnnoDAO.getAnnotations(Long.parseLong(submissionId));
@@ -359,7 +348,7 @@ public class AnnotationsDAOImplTest {
 		assertEquals(annos, blobClone2);
 		
 		// Delete
-		subStatusAnnoDAO.deleteAnnotationsByOwnerId(Long.parseLong(submissionId));
+		subStatusAnnoDAO.deleteAnnotationsByScope(Long.parseLong(evalId));
 		clone = subStatusAnnoDAO.getAnnotations(Long.parseLong(submissionId));
 		assertNotNull(clone);
 		assertEquals(0, clone.getStringAnnos().size());

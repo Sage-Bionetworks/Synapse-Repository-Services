@@ -104,8 +104,8 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 	// DELETE FROM SUBSTATUS_ANNOTATIONS_OWNER o WHERE 
 	// o.SUBMISSION_ID IN (...)
 	private static final String DELETE_ANNOS_FOR_DELETED_SUBMISSIONS = 
-			"DELETE FROM "+TABLE_SUBSTATUS_ANNO_OWNER+" o WHERE o."+
-			COL_SUBSTATUS_ANNO_SUBID+" IN ("+SELECT_IDS_FOR_DELETED_SUBMISSIONS+")";
+			"DELETE FROM "+TABLE_SUBSTATUS_ANNO_OWNER+" WHERE "+
+			COL_SUBSTATUS_ANNO_SUBID+" IN (:"+COL_SUBSTATUS_ANNO_SUBID+")";
 
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
@@ -204,18 +204,8 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 	}
 
 	@Override
-	public void replaceAnnotationsBatch(List<Annotations> annotations)
+	public void replaceAnnotations(List<Annotations> annotationsList)
 			throws DatastoreException, JSONObjectAdapterException {
-		replaceAnnotations(annotations);
-	}
-
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	@Override
-	public void replaceAnnotations(Annotations annotations) throws DatastoreException, JSONObjectAdapterException {
-		replaceAnnotations(Collections.singletonList(annotations));
-	}
-	
-	private void replaceAnnotations(List<Annotations> annotationsList) {
 		// Create DBOs
 		// Note that a copy of every Annotation is stored on the String table, regardless of type.
 		// This is necessary to support queries on Annotations of unknown type.
@@ -307,14 +297,6 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 		}
 	}
 	
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	@Override
-	public void deleteAnnotationsByOwnerId(Long ownerId) {
-		if (ownerId == null) throw new IllegalArgumentException("Owner id cannot be null");
-		// Delete the annotation's owner which will trigger the cascade delete of all annotations.
-		deleteAnnotationsByOwnerIds(Collections.singletonList(ownerId));
-	}
-	
 	private void deleteAnnotationsByOwnerIds(List<Long> ownerIds) {
 		if (ownerIds == null || ownerIds.isEmpty()) throw new IllegalArgumentException("Owner ids required");
 		// Delete the annotation's owner which will trigger the cascade delete of all annotations.
@@ -355,9 +337,24 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 	@Override
 	public void deleteAnnotationsByScope(Long scopeId) {
 		if (scopeId == null) throw new IllegalArgumentException("Owner id cannot be null");
-		// Delete the annotation's owner which will trigger the cascade delete of all annotations.
+		
+		// first find the IDs that are in the annotations table but (no longer) in the SUBMISSION (truth) table
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_SUBSTATUS_ANNO_EVALID, scopeId);
+		List<Long> idsToDelete = simpleJdbcTemplate.query(
+				SELECT_IDS_FOR_DELETED_SUBMISSIONS, 
+				new RowMapper<Long>(){
+					@Override
+					public Long mapRow(ResultSet rs, int rowNum)
+							throws SQLException {
+						return rs.getLong(COL_SUBSTATUS_ANNO_SUBID);
+					}}, 
+				param);
+		
+		// Now delete the annotation table entries
+		// deleting the annotations' owners which will trigger the cascade delete of all annotations.
+		param = new MapSqlParameterSource();
+		param.addValue(COL_SUBSTATUS_ANNO_SUBID, idsToDelete);
 		simpleJdbcTemplate.update(DELETE_ANNOS_FOR_DELETED_SUBMISSIONS, param);
 	}
 

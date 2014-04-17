@@ -32,7 +32,7 @@ import org.sagebionetworks.repo.model.annotation.StringAnnotation;
 import org.sagebionetworks.repo.model.evaluation.AnnotationsDAO;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.evaluation.ParticipantDAO;
-import org.sagebionetworks.repo.model.evaluation.SubmissionStatusDAO;
+import org.sagebionetworks.repo.model.file.FileHandle;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -131,6 +131,7 @@ public class AnnotationsWorkerIntegrationTest {
         submission.setEntityBundleJSON("some bundle");
         Node created = nodeDAO.getNode(nodeId);
         EntityBundle bundle = new EntityBundle();
+        bundle.setFileHandles(new ArrayList<FileHandle>());
         Submission createdSub = submissionManager.createSubmission(userInfo, submission, created.getETag(), bundle);
         submissionId = createdSub.getId();
         

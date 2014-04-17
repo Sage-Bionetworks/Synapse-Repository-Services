@@ -477,7 +477,11 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	public String getSubmissionsEtag(String id) {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_EVALUATION_ID, id);
-		return simpleJdbcTemplate.queryForObject(SELECT_EVALUATION_SUBMISSIONS_ETAG, String.class, param);
+		try {
+			return simpleJdbcTemplate.queryForObject(SELECT_EVALUATION_SUBMISSIONS_ETAG, String.class, param);
+		} catch (EmptyResultDataAccessException e) {
+			return null;
+		}
 	}
 
 	

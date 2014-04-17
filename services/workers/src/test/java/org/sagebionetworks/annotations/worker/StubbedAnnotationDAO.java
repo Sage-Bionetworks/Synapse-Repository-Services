@@ -24,25 +24,13 @@ public class StubbedAnnotationDAO implements AnnotationsDAO {
 	}
 
 	@Override
-	public void replaceAnnotations(Annotations annotations)
-			throws DatastoreException, JSONObjectAdapterException {
-		throw new DeadlockLoserDataAccessException("foo", null);
-	}
-
-	@Override
-	public void deleteAnnotationsByOwnerId(Long ownerId) {
-		// TODO Auto-generated method stub
-
-	}
-
-	@Override
 	public List<SubmissionBundle> getChangedSubmissions(Long scopeId) {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public void replaceAnnotationsBatch(List<Annotations> annotations)
+	public void replaceAnnotations(List<Annotations> annotations)
 			throws DatastoreException, JSONObjectAdapterException {
 		// TODO Auto-generated method stub
 		

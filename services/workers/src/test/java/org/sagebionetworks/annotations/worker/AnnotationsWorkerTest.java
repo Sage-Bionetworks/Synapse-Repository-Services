@@ -3,6 +3,7 @@ package org.sagebionetworks.annotations.worker;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
@@ -57,8 +58,8 @@ public class AnnotationsWorkerTest {
 		// Non-Submission messages should be returned so they can be removed from the queue.
 		assertEquals("Non-Submission messages must be returned so they can be removed from the queue!",list, resultList);
 		// the DAO should not be called
-		verify(mockDAO, never()).updateSubmissionStatus(any(String.class));
-		verify(mockDAO, never()).deleteSubmission(any(String.class));
+		verify(mockDAO, never()).updateEvaluationSubmissionStatuses(any(String.class),any(String.class));
+		verify(mockDAO, never()).deleteEvaluationSubmissionStatuses(any(String.class),any(String.class));
 //		verify(mockWorkerLogger, never()).logWorkerFailure(AnnotationsWorker.class, any(ChangeMessage.class), any(Throwable.class), any(boolean.class));
 	}
 	
@@ -76,8 +77,8 @@ public class AnnotationsWorkerTest {
 		list = worker.call();
 		assertNotNull(list);
 		// the manager should not be called
-		verify(mockDAO).updateSubmissionStatus(message.getObjectId());
-		verify(mockDAO, never()).deleteSubmission(any(String.class));
+		verify(mockDAO).updateEvaluationSubmissionStatuses(eq(message.getObjectId()), anyString());
+		verify(mockDAO, never()).deleteEvaluationSubmissionStatuses(eq(message.getObjectId()), anyString());
 	}
 	
 	@Test
@@ -94,8 +95,8 @@ public class AnnotationsWorkerTest {
 		list = worker.call();
 		assertNotNull(list);
 		// the manager should not be called
-		verify(mockDAO, never()).updateSubmissionStatus(message.getObjectId());
-		verify(mockDAO).deleteSubmission(any(String.class));
+		verify(mockDAO, never()).updateEvaluationSubmissionStatuses(eq(message.getObjectId()), anyString());
+		verify(mockDAO).deleteEvaluationSubmissionStatuses(any(String.class),any(String.class));
 	}
 	
 	
@@ -124,7 +125,7 @@ public class AnnotationsWorkerTest {
 		awsMessage = MessageUtils.createMessage(message, "abc", "handle");
 		list.add(awsMessage);
 		// Simulate a not found
-		doThrow(new NotFoundException()).when(mockDAO).updateSubmissionStatus(eq(failId));
+		doThrow(new NotFoundException()).when(mockDAO).updateEvaluationSubmissionStatuses(eq(failId), anyString());
 		AnnotationsWorker worker = new AnnotationsWorker(list, mockDAO, mockWorkerLogger);
 		List<Message> resultLIst = worker.call();
 		assertEquals(list, resultLIst);
@@ -155,7 +156,7 @@ public class AnnotationsWorkerTest {
 		awsMessage = MessageUtils.createMessage(message, "abc", "handle");
 		list.add(awsMessage);
 		// Simulate a runtime exception
-		doThrow(new RuntimeException()).when(mockDAO).updateSubmissionStatus(eq(failId));
+		doThrow(new RuntimeException()).when(mockDAO).updateEvaluationSubmissionStatuses(eq(failId), anyString());
 		AnnotationsWorker worker = new AnnotationsWorker(list, mockDAO, mockWorkerLogger);
 		List<Message> resultLIst = worker.call();
 		assertEquals(list, resultLIst);
