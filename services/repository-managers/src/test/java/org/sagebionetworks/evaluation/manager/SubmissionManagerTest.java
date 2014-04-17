@@ -238,7 +238,6 @@ public class SubmissionManagerTest {
 		verify(mockSubmissionStatusDAO).update(any(SubmissionStatus.class));
 		verify(mockSubmissionFileHandleDAO).create(eq(SUB_ID), eq(fileHandle1.getId()));
 		verify(mockSubmissionFileHandleDAO).create(eq(SUB_ID), eq(fileHandle2.getId()));
-		verify(mockSubmissionStatusDAO).delete(SUB_ID);
 	}
 	
 	@Test(expected=UnauthorizedException.class)

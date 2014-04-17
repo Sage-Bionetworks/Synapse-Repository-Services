@@ -24,7 +24,6 @@ import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import org.sagebionetworks.evaluation.dbo.AnnotationsBlobDBO;
@@ -65,9 +64,6 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 	private static final String DELETE_FROM_ANNO_OWNERS = "DELETE " + 
 			" FROM " + TABLE_SUBSTATUS_ANNO_OWNER + " WHERE " + 
 			COL_SUBSTATUS_ANNO_SUBID + " IN (:"+COL_SUBSTATUS_ANNO_SUBID+")";
-	
-	private static final String DELETE_FROM_ANNO_SCOPE = "DELETE FROM " + TABLE_SUBSTATUS_ANNO_OWNER + 
-			" WHERE " + COL_SUBSTATUS_ANNO_EVALID + "=:"+COL_SUBSTATUS_ANNO_EVALID;
 	
 	private static final String SELECT_FORMAT =
 			"SELECT " + COL_SUBSTATUS_ANNO_ATTRIBUTE + ", " + COL_SUBSTATUS_ANNO_VALUE + ", " +

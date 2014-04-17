@@ -398,6 +398,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		status.setModifiedOn(statusClone.getModifiedOn());
 		assertFalse("Etag was not updated", status.getEtag().equals(statusClone.getEtag()));
 		status.setEtag(statusClone.getEtag());
+		status.setStatusVersion(statusClone.getStatusVersion());
 		status.getAnnotations().setObjectId(sub1.getId());
 		status.getAnnotations().setScopeId(sub1.getEvaluationId());
 		assertEquals(status, statusClone);
