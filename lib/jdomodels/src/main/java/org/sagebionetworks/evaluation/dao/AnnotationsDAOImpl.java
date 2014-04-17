@@ -353,6 +353,7 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 		
 		// Now delete the annotation table entries
 		// deleting the annotations' owners which will trigger the cascade delete of all annotations.
+		if (idsToDelete.isEmpty()) return;
 		param = new MapSqlParameterSource();
 		param.addValue(COL_SUBSTATUS_ANNO_SUBID, idsToDelete);
 		simpleJdbcTemplate.update(DELETE_ANNOS_FOR_DELETED_SUBMISSIONS, param);

@@ -1,12 +1,12 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
@@ -15,6 +15,7 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
 import org.sagebionetworks.evaluation.model.Submission;
+import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -24,8 +25,6 @@ import org.sagebionetworks.repo.model.annotation.LongAnnotation;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
 import org.sagebionetworks.repo.model.evaluation.AnnotationsDAO;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
-import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
-import org.sagebionetworks.repo.model.evaluation.SubmissionStatusDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -83,6 +82,11 @@ public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 		annosCaptor = ArgumentCaptor.forClass(List.class);
 		
 		when(mockEvaluationDAO.getSubmissionsEtag(EVAL_ID)).thenReturn(EVAL_SUB_ETAG);
+		SubmissionBundle bundle = new SubmissionBundle();
+		bundle.setSubmission(submission);
+		bundle.setSubmissionStatus(subStatus);
+		when(mockSubStatusAnnoDAO.getChangedSubmissions(Long.parseLong(EVAL_ID))).
+			thenReturn(Collections.singletonList(bundle));
 		
 		ssAnnoAsyncManager = new SubmissionStatusAnnotationsAsyncManagerImpl(mockSubStatusAnnoDAO, mockEvaluationDAO);
 		

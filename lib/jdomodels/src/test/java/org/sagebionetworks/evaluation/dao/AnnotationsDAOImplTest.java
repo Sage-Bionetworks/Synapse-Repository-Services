@@ -16,7 +16,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
-import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -29,7 +28,6 @@ import org.sagebionetworks.repo.model.annotation.LongAnnotation;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
 import org.sagebionetworks.repo.model.evaluation.AnnotationsDAO;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
-import org.sagebionetworks.repo.model.evaluation.ParticipantDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionStatusDAO;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
@@ -45,8 +43,6 @@ public class AnnotationsDAOImplTest {
 
 	@Autowired
 	AnnotationsDAO subStatusAnnoDAO;
-	@Autowired
-	SubmissionStatusDAO submissionStatusDAO;
     @Autowired
     SubmissionDAO submissionDAO;
     @Autowired
@@ -120,7 +116,7 @@ public class AnnotationsDAOImplTest {
 	}
 	
 	@Test
-	public void testStringAnnotations() throws DatastoreException, JSONObjectAdapterException{		 
+	public void testStringAnnotations() throws DatastoreException, JSONObjectAdapterException, NotFoundException{		 
 		// Create
 		List<StringAnnotation> stringAnnos = new ArrayList<StringAnnotation>();
 		StringAnnotation sa1 = new StringAnnotation();
@@ -161,6 +157,7 @@ public class AnnotationsDAOImplTest {
 		assertFalse(clone.getStringAnnos().containsAll(clone2.getStringAnnos()));
 
 		// Delete
+		submissionDAO.delete(submissionId);
 		subStatusAnnoDAO.deleteAnnotationsByScope(Long.parseLong(evalId));
 		clone = subStatusAnnoDAO.getAnnotations(Long.parseLong(submissionId));
 		assertNotNull(clone);
@@ -168,7 +165,7 @@ public class AnnotationsDAOImplTest {
 	}
 	
 	@Test
-	public void testLongAnnotations() throws DatastoreException, JSONObjectAdapterException{
+	public void testLongAnnotations() throws DatastoreException, JSONObjectAdapterException, NotFoundException{
 		// Create
 		List<LongAnnotation> longAnnos = new ArrayList<LongAnnotation>();
 		LongAnnotation la1 = new LongAnnotation();
@@ -209,6 +206,7 @@ public class AnnotationsDAOImplTest {
 		assertFalse(clone.getLongAnnos().containsAll(clone2.getLongAnnos()));
 
 		// Delete
+		submissionDAO.delete(submissionId);
 		subStatusAnnoDAO.deleteAnnotationsByScope(Long.parseLong(evalId));
 		clone = subStatusAnnoDAO.getAnnotations(Long.parseLong(submissionId));
 		assertNotNull(clone);
@@ -216,7 +214,7 @@ public class AnnotationsDAOImplTest {
 	}
 	
 	@Test
-	public void testDoubleAnnotations() throws DatastoreException, JSONObjectAdapterException{
+	public void testDoubleAnnotations() throws DatastoreException, JSONObjectAdapterException, NotFoundException{
 		// Create
 		List<DoubleAnnotation> doubleAnnos = new ArrayList<DoubleAnnotation>();
 		DoubleAnnotation da1 = new DoubleAnnotation();
@@ -257,6 +255,7 @@ public class AnnotationsDAOImplTest {
 		assertFalse(clone.getDoubleAnnos().containsAll(clone2.getDoubleAnnos()));
 
 		// Delete
+		submissionDAO.delete(submissionId);
 		subStatusAnnoDAO.deleteAnnotationsByScope(Long.parseLong(evalId));
 		clone = subStatusAnnoDAO.getAnnotations(Long.parseLong(submissionId));
 		assertNotNull(clone);
@@ -264,7 +263,7 @@ public class AnnotationsDAOImplTest {
 	}
 	
 	@Test
-	public void testMixedAnnotations() throws DatastoreException, JSONObjectAdapterException{
+	public void testMixedAnnotations() throws DatastoreException, JSONObjectAdapterException, NotFoundException{
 		// Create
 		List<StringAnnotation> stringAnnos = new ArrayList<StringAnnotation>();
 		StringAnnotation sa1 = new StringAnnotation();
@@ -348,6 +347,7 @@ public class AnnotationsDAOImplTest {
 		assertEquals(annos, blobClone2);
 		
 		// Delete
+		submissionDAO.delete(submissionId);
 		subStatusAnnoDAO.deleteAnnotationsByScope(Long.parseLong(evalId));
 		clone = subStatusAnnoDAO.getAnnotations(Long.parseLong(submissionId));
 		assertNotNull(clone);
