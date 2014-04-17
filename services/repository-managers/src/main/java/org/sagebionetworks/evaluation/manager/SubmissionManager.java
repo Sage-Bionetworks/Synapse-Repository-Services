@@ -65,6 +65,9 @@ public interface SubmissionManager {
 	 */
 	public SubmissionStatus updateSubmissionStatus(UserInfo userInfo,
 			SubmissionStatus submissionStatus) throws NotFoundException;
+	
+	public BatchUploadResponse updateSubmissionBatch(UserInfo userInfo,
+			SubmissionStatusBatch batch) throws NotFoundException;
 
 	/**
 	 * Delete a Submission. Note that the requesting user must be an admin
