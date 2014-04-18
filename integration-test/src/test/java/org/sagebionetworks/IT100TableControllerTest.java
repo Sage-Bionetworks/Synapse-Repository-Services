@@ -10,8 +10,9 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
-import java.io.Reader;
 import java.io.Writer;
+import java.net.URL;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -28,7 +29,6 @@ import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
-import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseTableUnavilableException;
 import org.sagebionetworks.repo.model.Entity;
@@ -40,7 +40,6 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.Row;
-import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableEntity;
@@ -292,6 +291,10 @@ public class IT100TableControllerTest {
 
 		TableFileHandleResults fileHandles = synapse.getFileHandlesFromTable(results);
 		assertEquals(fileHandle.getId(), fileHandles.getRows().get(0).getList().get(0).getId());
+
+		URL url = synapse.getTableFileHandleTemporaryUrl(table.getId(), results.getRows().get(0), one.getId());
+		assertTrue("The temporary URL did not contain the expected file handle key",
+				url.toString().indexOf(URLEncoder.encode(fileHandle.getKey(), "UTF-8")) > 0);
 
 		File tempFile2 = File.createTempFile("temp", ".txt");
 		tempFiles.add(tempFile2);
