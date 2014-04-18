@@ -4946,7 +4946,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public AsynchronousJobStatus getAsynchronousJobStatus(String jobId) throws JSONObjectAdapterException, SynapseException{
 		if(jobId == null) throw new IllegalArgumentException("JobId cannot be null");
-		String url = getRepoEndpoint()+ASYNCHRONOUS_JOB+"/"+jobId;
+		String url = ASYNCHRONOUS_JOB+"/"+jobId;
 		return  getJSONEntity(url, AsynchronousJobStatus.class);
 	}
 	

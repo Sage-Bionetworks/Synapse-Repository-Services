@@ -1,12 +1,11 @@
 package org.sagebionetworks;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
@@ -69,10 +68,14 @@ public class IT099AsynchronousJobTest {
 	@After
 	public void after() throws Exception {
 		for (Entity entity : entitiesToDelete) {
-			adminSynapse.deleteAndPurgeEntity(entity);
+			try {
+				adminSynapse.deleteAndPurgeEntity(entity);
+			} catch (Exception e) {}
 		}
 		for(S3FileHandle fh: filesToDelete){
-			adminSynapse.deleteFileHandle(fh.getId());
+			try {
+				adminSynapse.deleteFileHandle(fh.getId());
+			} catch (Exception e) {}
 		}
 	}
 	
@@ -112,6 +115,7 @@ public class IT099AsynchronousJobTest {
 			table.setName("Table");
 			List<String> idList = new LinkedList<String>();
 			idList.add(cm1.getId());
+			idList.add(cm2.getId());
 			table.setColumnIds(idList);
 			table.setParentId(project.getId());
 			table = synapse.createEntity(table);
