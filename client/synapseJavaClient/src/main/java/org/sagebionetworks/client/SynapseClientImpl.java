@@ -139,6 +139,7 @@ import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
@@ -4829,6 +4830,20 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			String jsonBody = EntityFactory.createJSONStringForEntity(toDelete);
 			JSONObject obj = getSharedClientConnection().postJson(repoEndpoint, uri, jsonBody, getUserAgent(), null);
 			return EntityFactory.createEntityFromJSONObject(obj, RowReferenceSet.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+
+	@Override
+	public TableFileHandleResults getFileHandlesFromTable(RowReferenceSet fileHandlesToFind) throws SynapseException {
+		if (fileHandlesToFind == null)
+			throw new IllegalArgumentException("RowReferenceSet cannot be null");
+		String uri = ENTITY + "/" + fileHandlesToFind.getTableId() + TABLE + FILE_HANDLES;
+		try {
+			String jsonBody = EntityFactory.createJSONStringForEntity(fileHandlesToFind);
+			JSONObject obj = getSharedClientConnection().postJson(repoEndpoint, uri, jsonBody, getUserAgent(), null);
+			return EntityFactory.createEntityFromJSONObject(obj, TableFileHandleResults.class);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseClientException(e);
 		}

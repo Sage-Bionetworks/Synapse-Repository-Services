@@ -50,6 +50,7 @@ import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
+import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageRecipientSet;
@@ -73,6 +74,7 @@ import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
@@ -1474,7 +1476,7 @@ public class ServletTestHelper {
 		ServletTestHelperUtils.dispatchRequest(instance, request, HttpStatus.CREATED);
 	}
 
-	public static String getTableFileHandle(DispatcherServlet instance, String tableId, RowReference row, String columnId, Long userId,
+	public static String getTableFileHandleUrl(DispatcherServlet instance, String tableId, RowReference row, String columnId, Long userId,
 			boolean preview) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.GET, UrlHelpers.ENTITY + "/" + tableId
 				+ UrlHelpers.TABLE + UrlHelpers.COLUMN + "/" + columnId + "/row/" + row.getRowId() + "/version/" + row.getVersionNumber()
@@ -1482,6 +1484,14 @@ public class ServletTestHelper {
 		ServletTestHelperUtils.addExtraParams(request, Collections.singletonMap("redirect", "false"));
 		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(instance, request, HttpStatus.OK);
 		return response.getContentAsString();
+	}
+
+	public static TableFileHandleResults getTableFileHandles(DispatcherServlet instance, RowReferenceSet row, Long userId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.POST, UrlHelpers.ENTITY + "/" + row.getTableId()
+				+ UrlHelpers.TABLE + UrlHelpers.FILE_HANDLE, userId, row);
+		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(instance, request, HttpStatus.OK);
+		TableFileHandleResults tfhr = ServletTestHelperUtils.readResponse(response, TableFileHandleResults.class);
+		return tfhr;
 	}
 
 	/**

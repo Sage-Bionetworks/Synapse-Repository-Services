@@ -251,6 +251,15 @@ public class TableRowManagerImpl implements TableRowManager {
 	}
 
 	@Override
+	public RowSet getCellValues(UserInfo userInfo, String tableId, RowReferenceSet rowRefs, List<ColumnModel> columns) throws IOException,
+			NotFoundException {
+		if (!authorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)) {
+			throw new UnauthorizedException("User does not have permission to read values from TableEntity: " + tableId);
+		}
+		return tableRowTruthDao.getRowSet(rowRefs, columns);
+	}
+
+	@Override
 	public <T> T tryRunWithTableExclusiveLock(String tableId, long lockTimeoutMS, Callable<T> runner)
 			throws InterruptedException, Exception {
 		String key = TableModelUtils.getTableSemaphoreKey(tableId);

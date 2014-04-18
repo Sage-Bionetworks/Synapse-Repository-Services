@@ -16,6 +16,7 @@ import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -300,6 +301,37 @@ public class TableController extends BaseController {
 			throw new IllegalArgumentException("{id} cannot be null");
 		rowsToDelete.setTableId(id);
 		return serviceProvider.getTableServices().deleteRows(userId, rowsToDelete);
+	}
+
+	/**
+	 * <p>
+	 * This method is used to get file handle information for rows in a TableEntity. The columns in the passed in
+	 * RowReferenceSet need to be FILEHANDLEID columns and the rows in the passed in RowReferenceSet need to exists (a
+	 * 400 will be returned if a row ID is provided that does not actually exist). The order of the returned rows of
+	 * file handles is the same as the order of the rows requested, and the order of the file handles in each row is the
+	 * same as the order of the columns requested.
+	 * </p>
+	 * <p>
+	 * Note: The caller must have the <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}" >ACCESS_TYPE.READ</a>
+	 * permission on the TableEntity to make this call.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param id The ID of the TableEntity to append rows to.
+	 * @param rows The set of rows and columns for which to return the file handles.
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_FILE_HANDLES, method = RequestMethod.POST)
+	public @ResponseBody
+	TableFileHandleResults getFileHandles(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String id,
+			@RequestBody RowReferenceSet fileHandlesToFind) throws DatastoreException, NotFoundException, IOException {
+		if (id == null)
+			throw new IllegalArgumentException("{id} cannot be null");
+		fileHandlesToFind.setTableId(id);
+		return serviceProvider.getTableServices().getFileHandles(userId, fileHandlesToFind);
 	}
 
 	/**

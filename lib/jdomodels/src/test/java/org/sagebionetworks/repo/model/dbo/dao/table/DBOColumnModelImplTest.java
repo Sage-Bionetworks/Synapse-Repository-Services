@@ -24,6 +24,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import com.google.common.collect.Lists;
+
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class DBOColumnModelImplTest {
@@ -110,7 +112,7 @@ public class DBOColumnModelImplTest {
 		// ask for the rows out of order.
 		ids.add(three.getId());
 		ids.add(one.getId());
-		List<ColumnModel> list = columnModelDao.getColumnModel(ids);
+		List<ColumnModel> list = columnModelDao.getColumnModel(ids, false);
 		assertNotNull(list);
 		assertEquals(2, list.size());
 		// The rows should be alphabetical order by name.
@@ -118,6 +120,19 @@ public class DBOColumnModelImplTest {
 		assertEquals(three, list.get(1));
 	}
 	
+	@Test
+	public void testGetListInOrder() throws DatastoreException, NotFoundException {
+		// Get the list
+		List<String> ids = Lists.newArrayList(two.getId(), three.getId(), one.getId());
+		List<ColumnModel> list = columnModelDao.getColumnModel(ids, true);
+		assertNotNull(list);
+		assertEquals(3, list.size());
+		// The rows should be alphabetical order by name.
+		assertEquals(two, list.get(0));
+		assertEquals(three, list.get(1));
+		assertEquals(one, list.get(2));
+	}
+
 	@Test
 	public void testBindColumns() throws DatastoreException, NotFoundException{
 		// Now bind one column

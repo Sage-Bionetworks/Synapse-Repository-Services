@@ -111,7 +111,7 @@ public interface TableRowManager {
 			throws IOException, NotFoundException;
 
 	/**
-	 * Get the values for a specific row reference set and column
+	 * Get the values for a specific row reference and column
 	 * 
 	 * @param userInfo
 	 * @param refSet
@@ -122,6 +122,19 @@ public interface TableRowManager {
 	 */
 	public String getCellValue(UserInfo userInfo, String tableId, RowReference rowRef, ColumnModel model) throws IOException,
 			NotFoundException;
+
+	/**
+	 * Get the values for a specific row reference set and columns
+	 * 
+	 * @param userInfo
+	 * @param refSet
+	 * @param model
+	 * @return
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	public RowSet getCellValues(UserInfo userInfo, String tableId, RowReferenceSet fileHandlesToFind, List<ColumnModel> models)
+			throws IOException, NotFoundException;
 
 	/**
 	 * <p>
@@ -269,5 +282,4 @@ public interface TableRowManager {
 	public RowSet query(UserInfo user, String sql, boolean isConsistent,
 			boolean countOnly) throws DatastoreException, NotFoundException,
 			TableUnavilableException;
-
 }

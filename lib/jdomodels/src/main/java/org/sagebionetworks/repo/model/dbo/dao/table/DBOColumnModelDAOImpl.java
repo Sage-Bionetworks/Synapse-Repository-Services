@@ -59,6 +59,8 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 	private static final String SQL_TRUNCATE_BOUND_COLUMN_ORDINAL = "DELETE FROM "+TABLE_BOUND_COLUMN_ORDINAL+" WHERE "+COL_BOUND_CM_ORD_ORDINAL+" >= 0";
 	private static final String SQL_TRUNCATE_COLUMN_MODEL= "DELETE FROM "+TABLE_COLUMN_MODEL+" WHERE "+COL_CM_ID+" >= 0";
 	private static final String SQL_SELECT_COLUMNS_FOR_IDS = "SELECT * FROM "+TABLE_COLUMN_MODEL+" WHERE "+COL_CM_ID+" IN ( :ids ) ORDER BY "+COL_CM_NAME;
+	private static final String SQL_SELECT_COLUMNS_FOR_IDS_IN_ORDER = "SELECT * FROM " + TABLE_COLUMN_MODEL + " WHERE " + COL_CM_ID
+			+ " IN ( :ids ) ORDER BY FIELD(" + COL_CM_ID + ", :ids )";
 	private static final String SQL_SELECT_ID_WHERE_HASH_EQUALS = "SELECT "+COL_CM_ID+" FROM "+TABLE_COLUMN_MODEL+" WHERE "+COL_CM_HASH+" = ?";
 	
 	@Autowired
@@ -163,7 +165,7 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 			return unbindAllColumnsFromObject(objectIdString);
 		}
 		// Get each model to valid they exist.
-		getColumnModel(newCurrentColumnIds);
+		getColumnModel(newCurrentColumnIds, false);
 		Long objectId = KeyFactory.stringToKey(objectIdString);
 		try {
 			// Create or update the owner.
@@ -206,11 +208,11 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 	}
 
 	@Override
-	public List<ColumnModel> getColumnModel(List<String> ids) throws DatastoreException, NotFoundException {
+	public List<ColumnModel> getColumnModel(List<String> ids, boolean keepOrder) throws DatastoreException, NotFoundException {
 		if(ids == null) throw new IllegalArgumentException("Ids cannot be null");
-		MapSqlParameterSource parameters = new MapSqlParameterSource();
-		parameters.addValue("ids", ids);
-		List<DBOColumnModel> dbos = simpleJdbcTemplate.query(SQL_SELECT_COLUMNS_FOR_IDS, ROW_MAPPER, parameters);
+		MapSqlParameterSource parameters = new MapSqlParameterSource("ids", ids);
+		String sql = keepOrder ? SQL_SELECT_COLUMNS_FOR_IDS_IN_ORDER : SQL_SELECT_COLUMNS_FOR_IDS;
+		List<DBOColumnModel> dbos = simpleJdbcTemplate.query(sql, ROW_MAPPER, parameters);
 		// Convert to DTOs
 		List<ColumnModel> results = ColumnModelUtlis.createDTOFromDBO(dbos);
 		if(results.size() < ids.size()){

@@ -84,11 +84,11 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 	}
 
 	@Override
-	public List<ColumnModel> getColumnModel(UserInfo user, List<String> ids)
+	public List<ColumnModel> getColumnModel(UserInfo user, List<String> ids, boolean keepOrder)
 			throws DatastoreException, NotFoundException {
 		if(user == null) throw new IllegalArgumentException("User cannot be null");
 		if(ids == null) throw new IllegalArgumentException("ColumnModel IDs cannot be null");
-		return columnModelDao.getColumnModel(ids);
+		return columnModelDao.getColumnModel(ids, keepOrder);
 	}
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)

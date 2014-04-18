@@ -12,16 +12,22 @@ import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableRowManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.Query;
+import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import com.google.common.collect.Lists;
 
 /**
  * Basic implementation of the TableServices.
@@ -94,6 +100,54 @@ public class TableServicesImpl implements TableServices {
 	}
 
 	@Override
+	public TableFileHandleResults getFileHandles(Long userId, RowReferenceSet fileHandlesToFind) throws IOException, NotFoundException {
+		Validate.required(fileHandlesToFind, "fileHandlesToFind");
+		Validate.required(fileHandlesToFind.getTableId(), "fileHandlesToFind.tableId");
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		List<ColumnModel> models = getColumnsForTable(userInfo, fileHandlesToFind.getTableId(), fileHandlesToFind.getHeaders());
+		for (ColumnModel model : models) {
+			if (model.getColumnType() != ColumnType.FILEHANDLEID) {
+				throw new IllegalArgumentException("Column " + model.getId() + " is not of type FILEHANDLEID");
+			}
+		}
+		RowSet rowSet = tableRowManager.getCellValues(userInfo, fileHandlesToFind.getTableId(), fileHandlesToFind, models);
+
+		// we expect there to be null entries, but the file handle manager does not
+		List<String> idsList = Lists.newArrayListWithCapacity(models.size() * rowSet.getRows().size());
+		for (Row row : rowSet.getRows()) {
+			for (String id : row.getValues()) {
+				if (id != null) {
+					idsList.add(id);
+				}
+			}
+		}
+		FileHandleResults fileHandles = fileHandleManager.getAllFileHandles(idsList, false);
+
+		TableFileHandleResults results = new TableFileHandleResults();
+		results.setTableId(fileHandlesToFind.getTableId());
+		results.setHeaders(fileHandlesToFind.getHeaders());
+		results.setRows(Lists.<FileHandleResults> newArrayListWithCapacity(rowSet.getRows().size()));
+
+		// reinsert the null entries
+		int index = 0;
+		for (Row row : rowSet.getRows()) {
+			FileHandleResults rowHandles = new FileHandleResults();
+			rowHandles.setList(Lists.<FileHandle> newArrayListWithCapacity(models.size()));
+			for (String id : row.getValues()) {
+				FileHandle fh;
+				if (id != null) {
+					fh = fileHandles.getList().get(index++);
+				} else {
+					fh = null;
+				}
+				rowHandles.getList().add(fh);
+			}
+			results.getRows().add(rowHandles);
+		}
+		return results;
+	}
+
+	@Override
 	public URL getFileRedirectURL(Long userId, String tableId, RowReference rowRef, String columnId) throws IOException, NotFoundException {
 		Validate.required(columnId, "columnId");
 		Validate.required(userId, "userId");
@@ -133,6 +187,11 @@ public class TableServicesImpl implements TableServices {
 
 	private ColumnModel getColumnForTable(UserInfo user, String tableId, String columnId) throws DatastoreException, NotFoundException {
 		return columnModelManager.getColumnModel(user, columnId);
+	}
+
+	private List<ColumnModel> getColumnsForTable(UserInfo user, String tableId, List<String> columnIds) throws DatastoreException,
+			NotFoundException {
+		return columnModelManager.getColumnModel(user, columnIds, true);
 	}
 
 	@Override

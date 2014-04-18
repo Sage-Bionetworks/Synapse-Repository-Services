@@ -44,6 +44,7 @@ import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableEntity;
+import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.table.TableState;
 
 import com.google.common.collect.Lists;
@@ -249,157 +250,6 @@ public class IT100TableControllerTest {
 		}
 	}
 
-	@Test(expected = SynapseBadRequestException.class)
-	public void testDuplicateRowUpdateFails() throws SynapseException, InterruptedException {
-		// Create a few columns to add to a table entity
-		ColumnModel one = new ColumnModel();
-		one.setName("one");
-		one.setColumnType(ColumnType.STRING);
-		one = synapse.createColumnModel(one);
-		// Create a project to contain it all
-		Project project = new Project();
-		project.setName(UUID.randomUUID().toString());
-		project = synapse.createEntity(project);
-		assertNotNull(project);
-		entitiesToDelete.add(project);
-
-		// now create a table entity
-		TableEntity table = new TableEntity();
-		table.setName("Table");
-		List<String> idList = new LinkedList<String>();
-		idList.add(one.getId());
-		table.setColumnIds(idList);
-		table.setParentId(project.getId());
-		table = synapse.createEntity(table);
-		tablesToDelete.add(table);
-
-		assertNotNull(table);
-		assertNotNull(table.getId());
-		// Now make sure we can get the columns for this entity.
-		List<ColumnModel> columns = synapse.getColumnModelsForTableEntity(table.getId());
-		assertNotNull(columns);
-		assertEquals(1, columns.size());
-		List<ColumnModel> expected = new LinkedList<ColumnModel>();
-		expected.add(one);
-		assertEquals(expected, columns);
-
-		// Append some rows
-		RowSet set = new RowSet();
-		List<Row> rows = TableModelTestUtils.createRows(columns, 2);
-		set.setRows(rows);
-		set.setHeaders(TableModelUtils.getHeaders(columns));
-		set.setTableId(table.getId());
-		RowReferenceSet results1 = synapse.appendRowsToTable(set);
-
-		// update one row twice
-		RowSet update = new RowSet();
-		Row row1 = new Row();
-		row1.setRowId(results1.getRows().get(0).getRowId());
-		row1.setVersionNumber(results1.getRows().get(0).getVersionNumber());
-		row1.setValues(rows.get(0).getValues());
-		Row row2 = new Row();
-		row2.setRowId(results1.getRows().get(0).getRowId());
-		row2.setVersionNumber(results1.getRows().get(0).getVersionNumber());
-		row2.setValues(rows.get(0).getValues());
-		update.setRows(Lists.newArrayList(row1, row2));
-		update.setTableId(results1.getTableId());
-		update.setHeaders(results1.getHeaders());
-		update.setEtag(results1.getEtag());
-		synapse.appendRowsToTable(update);
-	}
-
-	@Test(expected = SynapseBadRequestException.class)
-	public void testNullRowUpdateFails() throws SynapseException, InterruptedException {
-		// Create a few columns to add to a table entity
-		ColumnModel one = new ColumnModel();
-		one.setName("one");
-		one.setColumnType(ColumnType.STRING);
-		one = synapse.createColumnModel(one);
-		// Create a project to contain it all
-		Project project = new Project();
-		project.setName(UUID.randomUUID().toString());
-		project = synapse.createEntity(project);
-		entitiesToDelete.add(project);
-
-		// now create a table entity
-		TableEntity table = new TableEntity();
-		table.setName("Table");
-		List<String> idList = new LinkedList<String>();
-		idList.add(one.getId());
-		table.setColumnIds(idList);
-		table.setParentId(project.getId());
-		table = synapse.createEntity(table);
-		tablesToDelete.add(table);
-
-		List<ColumnModel> columns = synapse.getColumnModelsForTableEntity(table.getId());
-
-		// Append some rows
-		RowSet set = new RowSet();
-		List<Row> rows = TableModelTestUtils.createRows(columns, 2);
-		set.setRows(rows);
-		set.setHeaders(TableModelUtils.getHeaders(columns));
-		set.setTableId(table.getId());
-		RowReferenceSet results1 = synapse.appendRowsToTable(set);
-
-		// update one row with null values
-		RowSet update = new RowSet();
-		Row row1 = new Row();
-		row1.setRowId(results1.getRows().get(0).getRowId());
-		row1.setVersionNumber(results1.getRows().get(0).getVersionNumber());
-		row1.setValues(null);
-		update.setRows(Lists.newArrayList(row1));
-		update.setTableId(results1.getTableId());
-		update.setHeaders(results1.getHeaders());
-		update.setEtag(results1.getEtag());
-		synapse.appendRowsToTable(update);
-	}
-
-	@Test(expected = SynapseBadRequestException.class)
-	public void testEmptyRowUpdateFails() throws SynapseException, InterruptedException {
-		// Create a few columns to add to a table entity
-		ColumnModel one = new ColumnModel();
-		one.setName("one");
-		one.setColumnType(ColumnType.STRING);
-		one = synapse.createColumnModel(one);
-		// Create a project to contain it all
-		Project project = new Project();
-		project.setName(UUID.randomUUID().toString());
-		project = synapse.createEntity(project);
-		entitiesToDelete.add(project);
-
-		// now create a table entity
-		TableEntity table = new TableEntity();
-		table.setName("Table");
-		List<String> idList = new LinkedList<String>();
-		idList.add(one.getId());
-		table.setColumnIds(idList);
-		table.setParentId(project.getId());
-		table = synapse.createEntity(table);
-		tablesToDelete.add(table);
-
-		List<ColumnModel> columns = synapse.getColumnModelsForTableEntity(table.getId());
-
-		// Append some rows
-		RowSet set = new RowSet();
-		List<Row> rows = TableModelTestUtils.createRows(columns, 2);
-		set.setRows(rows);
-		set.setHeaders(TableModelUtils.getHeaders(columns));
-		set.setTableId(table.getId());
-		RowReferenceSet results1 = synapse.appendRowsToTable(set);
-
-		// update one row with empty values
-		RowSet update = new RowSet();
-		Row row1 = new Row();
-		row1.setRowId(results1.getRows().get(0).getRowId());
-		row1.setVersionNumber(results1.getRows().get(0).getVersionNumber());
-		row1.setValues(Lists.<String> newArrayList());
-		update.setRows(Lists.newArrayList(row1));
-		update.setTableId(results1.getTableId());
-		update.setHeaders(results1.getHeaders());
-		update.setEtag(results1.getEtag());
-		synapse.appendRowsToTable(update);
-	}
-
 	@Test
 	public void testAddRetrieveFileHandle() throws Exception {
 		// Create a few columns to add to a table entity
@@ -439,6 +289,9 @@ public class IT100TableControllerTest {
 		set.setHeaders(TableModelUtils.getHeaders(columns));
 		set.setTableId(table.getId());
 		RowReferenceSet results = synapse.appendRowsToTable(set);
+
+		TableFileHandleResults fileHandles = synapse.getFileHandlesFromTable(results);
+		assertEquals(fileHandle.getId(), fileHandles.getRows().get(0).getList().get(0).getId());
 
 		File tempFile2 = File.createTempFile("temp", ".txt");
 		tempFiles.add(tempFile2);

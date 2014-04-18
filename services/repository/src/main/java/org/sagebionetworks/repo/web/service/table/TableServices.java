@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -89,6 +90,17 @@ public interface TableServices {
 	 * @throws IOException
 	 */
 	public RowReferenceSet deleteRows(Long userId, RowReferenceSet rowsToDelete) throws DatastoreException, NotFoundException, IOException;
+
+	/**
+	 * Get the file handles
+	 * 
+	 * @param userId
+	 * @param fileHandlesToFind
+	 * @return
+	 * @throws IOException
+	 * @throws NotFoundException
+	 */
+	public TableFileHandleResults getFileHandles(Long userId, RowReferenceSet fileHandlesToFind) throws IOException, NotFoundException;
 
 	/**
 	 * get file redirect urls for the rows from the column
