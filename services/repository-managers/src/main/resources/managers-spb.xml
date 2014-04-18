@@ -239,7 +239,9 @@
         <property name="tableReadTimeoutMS"	ref="stackConfiguration.tableReadTimeoutMS" />
        	<property name="maxBytesPerRequest" ref="stackConfiguration.tableMaxBytesPerRequest"/>
        	<property name="maxBytesPerChangeSet" ref="stackConfiguration.tableMaxBytesPerChangeSet"/>
-    </bean>	
+    </bean>
+    
+   	<bean id="asynchJobStatusManager" class="org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManagerImpl" scope="singleton" />
 
 	<bean id="nodeTreeUpdateManager" class="org.sagebionetworks.repo.manager.dynamo.NodeTreeUpdateManagerImpl">
 		<constructor-arg index="0" ref="nodeTreeUpdateDao" />

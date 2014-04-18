@@ -27,10 +27,12 @@ import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.asynch.AsynchronousJobBody;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.dao.AuthorizationUtils;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.provenance.Activity;
+import org.sagebionetworks.repo.model.table.AsynchUploadJobBody;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -244,5 +246,24 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	public boolean isAnonymousUser(UserInfo userInfo) {
 		if(userInfo == null) throw new IllegalArgumentException("UserInfo cannot be null");
 		return AuthorizationUtils.isUserAnonymous(userInfo);
+	}
+
+	@Override
+	public boolean canUserStartJob(UserInfo userInfo, AsynchronousJobBody bodyIntf) throws DatastoreException, NotFoundException {
+		if(bodyIntf == null) throw new IllegalArgumentException("Body cannot be null");
+		// Anonymous cannot start a job
+		if(AuthorizationUtils.isUserAnonymous(userInfo)) return false;
+		if(bodyIntf instanceof AsynchUploadJobBody){
+			AsynchUploadJobBody body = (AsynchUploadJobBody) bodyIntf;
+			// the user must have update on the table
+			if(!this.canAccess(userInfo, body.getTableId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE)){
+				// they cannot update the entity
+				return false;
+			}
+			// The user must have access to the file handle
+			return this.canAccessRawFileHandleById(userInfo, body.getUploadFileHandleId());
+		}else{
+			throw new IllegalArgumentException("Unknown AsynchronousJobBody: "+bodyIntf.getClass().getName());
+		}
 	}
 }

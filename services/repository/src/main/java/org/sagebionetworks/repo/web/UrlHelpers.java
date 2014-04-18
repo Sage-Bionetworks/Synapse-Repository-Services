@@ -649,6 +649,10 @@ public class UrlHelpers {
 	public static final String ENTITY_TABLE = ENTITY_ID+TABLE;
 	public static final String TABLE_QUERY = TABLE+"/query";
 	
+	// Asynchronous jobs
+	public static final String ASYNCHRONOUS_JOB = "/asynchronous/job";
+	public static final String ASYNCHRONOUS_JOB_ID = ASYNCHRONOUS_JOB+"/{jobId}";
+	
 	// Team
 	public static final String TEAM = "/team";
 	public static final String TEAM_ID = TEAM+ID;

@@ -29,6 +29,7 @@ public class AsynchJobStatusDaoImplTest {
 	
 	@Autowired
 	AsynchronousJobStatusDAO asynchJobStatusDao;
+	
 	private Long creatorUserGroupId;
 
 	@Before

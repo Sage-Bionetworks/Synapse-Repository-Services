@@ -152,9 +152,6 @@
 				
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.table.DBOColumnModel" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableIdSequence" />
-
-				<!-- Job Status -->
-				<bean class="org.sagebionetworks.repo.model.dbo.asynch.DBOAsynchJobStatus" />
 								
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOStorageQuota" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOQuizResponse" />

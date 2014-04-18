@@ -62,5 +62,6 @@ public interface AsynchronousJobStatusDAO {
 	 * Clear all job status data from the database.
 	 */
 	public void truncateAllAsynchTableJobStatus();
+	
 
 }

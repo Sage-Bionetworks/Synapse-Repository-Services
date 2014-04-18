@@ -18,6 +18,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_J
 import java.util.List;
 
 import org.sagebionetworks.repo.model.dbo.AutoTableMapping;
+import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.Field;
 import org.sagebionetworks.repo.model.dbo.ForeignKey;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
@@ -34,7 +35,7 @@ import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
  *
  */
 @Table(name = ASYNCH_JOB_STATUS)
-public class DBOAsynchJobStatus implements MigratableDatabaseObject<DBOAsynchJobStatus, DBOAsynchJobStatus> {
+public class DBOAsynchJobStatus implements DatabaseObject<DBOAsynchJobStatus> {
 	
 	/**
 	 * The maximum number of characters in a string message.
@@ -214,45 +215,6 @@ public class DBOAsynchJobStatus implements MigratableDatabaseObject<DBOAsynchJob
 	@Override
 	public TableMapping<DBOAsynchJobStatus> getTableMapping() {
 		return tableMapping;
-	}
-
-	@Override
-	public MigrationType getMigratableTableType() {
-		return MigrationType.ASYNCH_JOB_STATUS;
-	}
-
-	@Override
-	public MigratableTableTranslation<DBOAsynchJobStatus, DBOAsynchJobStatus> getTranslator() {
-		return new MigratableTableTranslation<DBOAsynchJobStatus, DBOAsynchJobStatus>(){
-
-			@Override
-			public DBOAsynchJobStatus createDatabaseObjectFromBackup(
-					DBOAsynchJobStatus backup) {
-				return backup;
-			}
-
-			@Override
-			public DBOAsynchJobStatus createBackupFromDatabaseObject(
-					DBOAsynchJobStatus dbo) {
-				return dbo;
-			}
-			
-		};
-	}
-
-	@Override
-	public Class<? extends DBOAsynchJobStatus> getBackupClass() {
-		return DBOAsynchJobStatus.class;
-	}
-
-	@Override
-	public Class<? extends DBOAsynchJobStatus> getDatabaseObjectClass() {
-		return DBOAsynchJobStatus.class;
-	}
-
-	@Override
-	public List<MigratableDatabaseObject> getSecondaryTypes() {
-		return null;
 	}
 
 }

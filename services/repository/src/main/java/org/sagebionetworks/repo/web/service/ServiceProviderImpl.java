@@ -65,6 +65,8 @@ public class ServiceProviderImpl implements ServiceProvider {
 	private PrincipalService principalService;
 	@Autowired
 	private CertifiedUserService certifiedUserService;
+	@Autowired
+	private AsynchronousJobServices asynchronousJobServices;
 	
 	public AccessApprovalService getAccessApprovalService() {
 		return accessApprovalService;
@@ -162,6 +164,10 @@ public class ServiceProviderImpl implements ServiceProvider {
 	@Override
 	public CertifiedUserService getCertifiedUserService()  {
 		return certifiedUserService;
+	}
+	@Override
+	public AsynchronousJobServices getAsynchronousJobServices() {
+		return asynchronousJobServices;
 	}
 
 }

@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.asynch.AsynchronousJobBody;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface AuthorizationManager {
@@ -119,4 +120,14 @@ public interface AuthorizationManager {
 	 * @throws NotFoundException 
 	 */
 	public boolean canUserMoveRestrictedEntity(UserInfo userInfo, String sourceParentId, String destParentId) throws NotFoundException;
+	
+	/**
+	 * Check if the user can start a given Asynchronous job
+	 * @param userInfo
+	 * @param body
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	public boolean canUserStartJob(UserInfo userInfo, AsynchronousJobBody body) throws DatastoreException, NotFoundException;
 }
