@@ -294,6 +294,27 @@ public class TableRowTruthDAOImplTest {
 		}
 	}
 	
+	@Test
+	public void testGetRowOriginal() throws IOException, NotFoundException {
+		List<ColumnModel> models = TableModelTestUtils.createOneOfEachType();
+		// create some test rows.
+		List<Row> rows = TableModelTestUtils.createRows(models, 5);
+
+		String tableId = "syn123";
+		RowSet set = new RowSet();
+		set.setHeaders(TableModelUtils.getHeaders(models));
+		set.setRows(rows);
+		set.setTableId(tableId);
+		// Append this change set
+		RowReferenceSet refSet = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, models, set, false);
+		assertNotNull(refSet);
+		// Get the rows for this set
+		Row back = tableRowTruthDao.getRowOriginal(tableId, refSet.getRows().get(3), Lists.newArrayList(models.get(3), models.get(0)));
+		assertNotNull(back);
+		assertEquals(2, back.getValues().size());
+		assertEquals(rows.get(3).getValues().get(3), back.getValues().get(0));
+		assertEquals(rows.get(3).getValues().get(0), back.getValues().get(1));
+	}
 	
 	@Test
 	public void testAppendRowsUpdate() throws IOException, NotFoundException{

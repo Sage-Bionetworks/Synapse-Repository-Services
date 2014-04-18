@@ -581,33 +581,44 @@ public class TableModelUtils {
 		for (Row row : in.getRows()) {
 			// First convert the values to
 			if (row.getValues() == null) continue;
-			// Convert the values to an array for quick lookup
-			String[] values = row.getValues().toArray(new String[row.getValues().size()]);
-			
-			// Create the new row
-			Row newRow = new Row();
-			newRow.setRowId(row.getRowId());
-			newRow.setVersionNumber(row.getVersionNumber());
-			List<String> newValues = new LinkedList<String>();
-			newRow.setValues(newValues);
-			
-			// Now process all of the columns as defined by the schema
-			for (int i = 0; i < resultSchema.size(); i++) {
-				ColumnModel cm = resultSchema.get(i);
-				Integer valueIndex = columnIndexMap.get(cm.getId());
-				String value = null;
-				if (valueIndex == null){
-					// this means this column did not exist when this row as created, so set the value to the default value
-					value = cm.getDefaultValue();
-				}else{
-					// Get the value
-					value = values[valueIndex];
-				}
-				newValues.add(value);
-			}
+			Row newRow = convertToSchemaAndMerge(row, columnIndexMap, resultSchema);
 			// add the new row to the out set
 			out.getRows().add(newRow);
 		}
+	}
+	
+	/**
+	 * Convert the passed RowSet into the passed schema and append the rows to the passed output set.
+	 * @param sets
+	 * @param resultSchema
+	 * @param sets
+	 */
+	public static Row convertToSchemaAndMerge(Row row, Map<String, Integer> columnIndexMap, List<ColumnModel> resultSchema) {
+		// Convert the values to an array for quick lookup
+		String[] values = row.getValues().toArray(new String[row.getValues().size()]);
+
+		// Create the new row
+		Row newRow = new Row();
+		newRow.setRowId(row.getRowId());
+		newRow.setVersionNumber(row.getVersionNumber());
+		List<String> newValues = new LinkedList<String>();
+		newRow.setValues(newValues);
+
+		// Now process all of the columns as defined by the schema
+		for (int i = 0; i < resultSchema.size(); i++) {
+			ColumnModel cm = resultSchema.get(i);
+			Integer valueIndex = columnIndexMap.get(cm.getId());
+			String value = null;
+			if (valueIndex == null) {
+				// this means this column did not exist when this row as created, so set the value to the default value
+				value = cm.getDefaultValue();
+			} else {
+				// Get the value
+				value = values[valueIndex];
+			}
+			newValues.add(value);
+		}
+		return newRow;
 	}
 	
 	/**

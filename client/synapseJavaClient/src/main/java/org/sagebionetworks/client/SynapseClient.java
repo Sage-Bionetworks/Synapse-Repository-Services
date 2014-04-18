@@ -98,6 +98,7 @@ import org.sagebionetworks.repo.model.storage.StorageUsageDimension;
 import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
+import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
@@ -1050,6 +1051,56 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseTableUnavilableException
 	 */
 	public RowReferenceSet deleteRowsFromTable(RowReferenceSet toDelete) throws SynapseException, SynapseTableUnavilableException;
+
+	/**
+	 * Get the temporary URL for the data file of a file handle column for a row. This is an alternative to downloading
+	 * the file.
+	 * 
+	 * @param row
+	 * @param column
+	 * @return
+	 * @throws IOException
+	 * @throws SynapseException
+	 */
+	public URL getTableFileHandleTemporaryUrl(String tableId, RowReference row, String column) throws IOException, SynapseException;
+
+	/**
+	 * Get the temporary URL for the data file of a file handle column for a row. This is an alternative to downloading
+	 * the file.
+	 * 
+	 * @param row
+	 * @param column
+	 * @return
+	 * @throws IOException
+	 * @throws SynapseException
+	 */
+	public void downloadFromTableFileHandleTemporaryUrl(String tableId, RowReference row, String column, File destinationFile)
+			throws SynapseException;
+
+	/**
+	 * Get the temporary URL for the preview of a file handle column for a row. This is an alternative to downloading
+	 * the file.
+	 * 
+	 * @param row
+	 * @param column
+	 * @return
+	 * @throws IOException
+	 * @throws SynapseException
+	 */
+	public URL getTableFileHandlePreviewTemporaryUrl(String tableId, RowReference row, String column) throws IOException, SynapseException;
+
+	/**
+	 * Get the temporary URL for preview of a file handle column for a row. This is an alternative to downloading the
+	 * file.
+	 * 
+	 * @param row
+	 * @param column
+	 * @return
+	 * @throws IOException
+	 * @throws SynapseException
+	 */
+	public void downloadFromTableFileHandlePreviewTemporaryUrl(String tableId, RowReference row, String column, File destinationFile)
+			throws SynapseException;
 
 	/**
 	 * Query for data in a table entity.

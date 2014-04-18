@@ -1,6 +1,11 @@
 package org.sagebionetworks.repo.web.controller;
 
 import java.io.IOException;
+import java.net.URL;
+import java.util.Collections;
+import java.util.List;
+
+import javax.servlet.http.HttpServletResponse;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -8,6 +13,7 @@ import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.Query;
+import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
@@ -296,6 +302,69 @@ public class TableController extends BaseController {
 		return serviceProvider.getTableServices().deleteRows(userId, rowsToDelete);
 	}
 
+	/**
+	 * Get the actual URL of the file associated with a specific version of a row and file handle column.
+	 * <p>
+	 * Note: This call will result in a HTTP temporary redirect (307), to the actual file URL if the caller meets all of
+	 * the download requirements.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param id The ID of the FileEntity to get.
+	 * @param columnId
+	 * @param rowId
+	 * @param versionNumber
+	 * @param redirect When set to false, the URL will be returned as text/plain instead of redirecting.
+	 * @param response
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_FILE, method = RequestMethod.GET)
+	public @ResponseBody
+	void fileRedirectURLForRow(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String id,
+			@PathVariable String columnId, @PathVariable Long rowId, @PathVariable Long versionNumber,
+			@RequestParam(required = false) Boolean redirect, HttpServletResponse response) throws DatastoreException, NotFoundException,
+			IOException {
+		// Get the redirect url
+		RowReference ref = new RowReference();
+		ref.setRowId(rowId);
+		ref.setVersionNumber(versionNumber);
+		URL redirectUrl = serviceProvider.getTableServices().getFileRedirectURL(userId, id, ref, columnId);
+		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
+	}
+
+	/**
+	 * Get the preview URL of the file associated with a specific version of a row and file handle column.
+	 * <p>
+	 * Note: This call will result in a HTTP temporary redirect (307), to the actual file URL if the caller meets all of
+	 * the download requirements.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param id The ID of the FileEntity to get.
+	 * @param columnId
+	 * @param rowId
+	 * @param versionNumber
+	 * @param redirect When set to false, the URL will be returned as text/plain instead of redirecting.
+	 * @param response
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_FILE_PREVIEW, method = RequestMethod.GET)
+	public @ResponseBody
+	void filePreviewRedirectURLForRow(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String id,
+			@PathVariable String columnId, @PathVariable Long rowId, @PathVariable Long versionNumber,
+			@RequestParam(required = false) Boolean redirect, HttpServletResponse response) throws DatastoreException, NotFoundException,
+			IOException {
+		// Get the redirect url
+		RowReference ref = new RowReference();
+		ref.setRowId(rowId);
+		ref.setVersionNumber(versionNumber);
+		URL redirectUrl = serviceProvider.getTableServices().getFilePreviewRedirectURL(userId, id, ref, columnId);
+		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
+	}
 	/**
 	 * <p>
 	 * Using a 'SQL like' syntax, query the current version of the rows in a

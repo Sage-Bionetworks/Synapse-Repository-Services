@@ -1,11 +1,14 @@
 package org.sagebionetworks.repo.web.service.table;
 
 import java.io.IOException;
+import java.net.URL;
+import java.util.List;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.Query;
+import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
@@ -88,6 +91,29 @@ public interface TableServices {
 	public RowReferenceSet deleteRows(Long userId, RowReferenceSet rowsToDelete) throws DatastoreException, NotFoundException, IOException;
 
 	/**
+	 * get file redirect urls for the rows from the column
+	 * 
+	 * @param userId
+	 * @param rowRef
+	 * @return
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	public URL getFileRedirectURL(Long userId, String tableId, RowReference rowRef, String columnId) throws IOException, NotFoundException;
+
+	/**
+	 * get file preview redirect urls for the rows from the column
+	 * 
+	 * @param userId
+	 * @param rowRef
+	 * @return
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	public URL getFilePreviewRedirectURL(Long userId, String tableId, RowReference rowRef, String columnId) throws IOException,
+			NotFoundException;
+
+	/**
 	 * Run a query for a user.
 	 * @param userId
 	 * @param query
@@ -97,5 +123,4 @@ public interface TableServices {
 	 * @throws DatastoreException 
 	 */
 	public RowSet query(Long userId, Query query, boolean isConsistent, boolean countOnly) throws NotFoundException, DatastoreException, TableUnavilableException;
-	
 }

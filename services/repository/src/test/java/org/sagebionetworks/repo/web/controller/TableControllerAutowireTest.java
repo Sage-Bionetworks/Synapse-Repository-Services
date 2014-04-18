@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.web.controller;
 
 import static org.junit.Assert.*;
 
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
@@ -17,29 +18,42 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
+import org.sagebionetworks.repo.model.file.PreviewFileHandle;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import com.google.common.collect.Lists;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class TableControllerAutowireTest {
-	
+
+	@Autowired
+	private FileHandleDao fileMetadataDao;
+
 	private Entity parent;
 	private Long adminUserId;
+
+	private S3FileHandle handleOne = null;
+	private S3FileHandle handleTwo = null;
 	
 	@Before
 	public void before() throws Exception {
@@ -58,8 +72,14 @@ public class TableControllerAutowireTest {
 				ServletTestHelper.deleteEntity(DispatchServletSingleton.getInstance(), Project.class, parent.getId(), adminUserId);
 			} catch (Exception e) {} 
 		}
+		if (handleOne != null) {
+			fileMetadataDao.delete(handleOne.getId());
+		}
+		if (handleTwo != null) {
+			fileMetadataDao.delete(handleTwo.getId());
+		}
 	}
-	
+
 	@Test
 	public void testCreateGetDeleteColumnModel() throws ServletException, Exception{
 		ColumnModel cm = new ColumnModel();
@@ -126,6 +146,136 @@ public class TableControllerAutowireTest {
 		// delete a row
 		results.getRows().remove(0);
 		ServletTestHelper.deleteTableRows(DispatchServletSingleton.getInstance(), results, adminUserId);
+	}
+
+	@Test
+	public void testGetFileHandleURL() throws Exception {
+
+		handleOne = new S3FileHandle();
+		handleOne.setCreatedBy(adminUserId.toString());
+		handleOne.setCreatedOn(new Date());
+		handleOne.setBucketName("bucket");
+		handleOne.setKey("EntityControllerTest.mainFileKeyOne");
+		handleOne.setEtag("etag");
+		handleOne.setFileName("foo.bar");
+		handleOne.setContentMd5("handleOneContentMd5");
+		handleOne = fileMetadataDao.createFile(handleOne);
+
+		handleTwo = new S3FileHandle();
+		handleTwo.setCreatedBy(adminUserId.toString());
+		handleTwo.setCreatedOn(new Date());
+		handleTwo.setBucketName("bucket");
+		handleTwo.setKey("EntityControllerTest.mainFileKeyTwo");
+		handleTwo.setEtag("etag");
+		handleTwo.setFileName("foo2.bar");
+		handleTwo = fileMetadataDao.createFile(handleTwo);
+
+		// Create a table with two ColumnModels
+		// one
+		ColumnModel one = new ColumnModel();
+		one.setName("one");
+		one.setColumnType(ColumnType.STRING);
+		one = ServletTestHelper.createColumnModel(DispatchServletSingleton.getInstance(), one, adminUserId);
+		// two
+		ColumnModel two = new ColumnModel();
+		two.setName("two");
+		two.setColumnType(ColumnType.FILEHANDLEID);
+		two = ServletTestHelper.createColumnModel(DispatchServletSingleton.getInstance(), two, adminUserId);
+		// Now create a TableEntity with these Columns
+		TableEntity table = new TableEntity();
+		table.setName("TableEntity");
+		table.setParentId(parent.getId());
+		List<String> idList = new LinkedList<String>();
+		idList.add(one.getId());
+		idList.add(two.getId());
+		table.setColumnIds(idList);
+		table = ServletTestHelper.createEntity(DispatchServletSingleton.getInstance(), table, adminUserId);
+
+		// Add some rows to the table.
+		List<ColumnModel> cols = ServletTestHelper.getColumnModelsForTableEntity(DispatchServletSingleton.getInstance(), table.getId(),
+				adminUserId);
+		RowSet set = new RowSet();
+		set.setRows(Lists.newArrayList(TableModelTestUtils.createRow(null, null, "x", handleOne.getId()),
+				TableModelTestUtils.createRow(null, null, "x", handleTwo.getId())));
+		set.setHeaders(TableModelUtils.getHeaders(cols));
+		set.setTableId(table.getId());
+		RowReferenceSet results = ServletTestHelper.appendTableRows(DispatchServletSingleton.getInstance(), set, adminUserId);
+
+		RowReference rowRef = TableModelTestUtils.createRowReference(results.getRows().get(0).getRowId(), results.getRows().get(0)
+				.getVersionNumber());
+		String url = ServletTestHelper.getTableFileHandle(DispatchServletSingleton.getInstance(), table.getId(), rowRef, two.getId(),
+				adminUserId, false);
+		assertTrue(url.startsWith("https://bucket.s3.amazonaws.com/EntityControllerTest.mainFileKeyOne?"));
+
+		rowRef = TableModelTestUtils.createRowReference(results.getRows().get(1).getRowId(), results.getRows().get(1).getVersionNumber());
+		url = ServletTestHelper.getTableFileHandle(DispatchServletSingleton.getInstance(), table.getId(), rowRef, two.getId(), adminUserId,
+				false);
+		assertTrue(url.startsWith("https://bucket.s3.amazonaws.com/EntityControllerTest.mainFileKeyTwo?"));
+
+		try {
+			ServletTestHelper.getTableFileHandle(DispatchServletSingleton.getInstance(), table.getId(), rowRef, one.getId(), adminUserId,
+					false);
+			fail("Should have thrown illegal column");
+		} catch (IllegalArgumentException e) {
+		}
+	}
+
+	@Test
+	public void testGetFileHandlePreviewURL() throws Exception {
+
+		handleOne = new S3FileHandle();
+		handleOne.setCreatedBy(adminUserId.toString());
+		handleOne.setCreatedOn(new Date());
+		handleOne.setBucketName("bucket");
+		handleOne.setKey("EntityControllerTest.mainFileKeyOne");
+		handleOne.setEtag("etag");
+		handleOne.setFileName("foo.bar");
+		handleOne.setContentMd5("handleOneContentMd5");
+		handleOne = fileMetadataDao.createFile(handleOne);
+
+		handleTwo = new S3FileHandle();
+		handleTwo.setCreatedBy(adminUserId.toString());
+		handleTwo.setCreatedOn(new Date());
+		handleTwo.setBucketName("bucket");
+		handleTwo.setKey("EntityControllerTest.mainFileKeyTwo");
+		handleTwo.setEtag("etag");
+		handleTwo.setFileName("foo2.bar");
+		handleTwo.setPreviewId(handleOne.getId());
+		handleTwo = fileMetadataDao.createFile(handleTwo);
+
+		// Create a table with onw ColumnModel
+		// one
+		ColumnModel one = new ColumnModel();
+		one.setName("one");
+		one.setColumnType(ColumnType.FILEHANDLEID);
+		one = ServletTestHelper.createColumnModel(DispatchServletSingleton.getInstance(), one, adminUserId);
+
+		// Now create a TableEntity with this Column
+		TableEntity table = new TableEntity();
+		table.setName("TableEntity");
+		table.setParentId(parent.getId());
+		List<String> idList = Lists.newArrayList(one.getId());
+		table.setColumnIds(idList);
+		table = ServletTestHelper.createEntity(DispatchServletSingleton.getInstance(), table, adminUserId);
+
+		// Add a rows to the table.
+		List<ColumnModel> cols = ServletTestHelper.getColumnModelsForTableEntity(DispatchServletSingleton.getInstance(), table.getId(),
+				adminUserId);
+		RowSet set = new RowSet();
+		set.setRows(Lists.newArrayList(TableModelTestUtils.createRow(null, null, handleTwo.getId())));
+		set.setHeaders(TableModelUtils.getHeaders(cols));
+		set.setTableId(table.getId());
+		RowReferenceSet results = ServletTestHelper.appendTableRows(DispatchServletSingleton.getInstance(), set, adminUserId);
+
+		RowReference rowRef = TableModelTestUtils.createRowReference(results.getRows().get(0).getRowId(), results.getRows().get(0)
+				.getVersionNumber());
+		String url = ServletTestHelper.getTableFileHandle(DispatchServletSingleton.getInstance(), table.getId(), rowRef, one.getId(),
+				adminUserId, false);
+		assertTrue(url.startsWith("https://bucket.s3.amazonaws.com/EntityControllerTest.mainFileKeyTwo?"));
+
+		url = ServletTestHelper.getTableFileHandle(DispatchServletSingleton.getInstance(), table.getId(), rowRef, one.getId(), adminUserId,
+				true);
+		assertTrue(url.startsWith("https://bucket.s3.amazonaws.com/EntityControllerTest.mainFileKeyOne?"));
 	}
 
 	@Test
