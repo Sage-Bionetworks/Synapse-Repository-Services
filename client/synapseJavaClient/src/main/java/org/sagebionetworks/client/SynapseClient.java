@@ -14,11 +14,13 @@ import org.apache.http.entity.ContentType;
 import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseTableUnavilableException;
+import org.sagebionetworks.evaluation.model.BatchUploadResponse;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
+import org.sagebionetworks.evaluation.model.SubmissionStatusBatch;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.evaluation.model.UserEvaluationState;
@@ -937,6 +939,9 @@ public interface SynapseClient extends BaseClient {
 	public SubmissionStatus getSubmissionStatus(String subId) throws SynapseException;
 
 	public SubmissionStatus updateSubmissionStatus(SubmissionStatus status)
+			throws SynapseException;
+
+	public BatchUploadResponse updateSubmissionStatusBatch(String evaluationId, SubmissionStatusBatch batch)
 			throws SynapseException;
 
 	public void deleteSubmission(String subId) throws SynapseException;

@@ -5,11 +5,13 @@ import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.sagebionetworks.evaluation.model.BatchUploadResponse;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
+import org.sagebionetworks.evaluation.model.SubmissionStatusBatch;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
@@ -244,6 +246,16 @@ public interface EvaluationService {
 			SubmissionStatus submissionStatus) throws NotFoundException;
 
 	/**
+	 * 
+	 * @param userId
+	 * @param batch
+	 * @return
+	 * @throws NotFoundException
+	 */
+	BatchUploadResponse updateSubmissionStatusBatch(Long userId, String evalId,
+			SubmissionStatusBatch batch) throws NotFoundException;
+	
+	/**
 	 * Delete a Submission. Note that the requesting user must be an admin
 	 * of the Evaluation for which this Submission was created.
 	 * 
@@ -441,4 +453,5 @@ public interface EvaluationService {
 	 */
 	public QueryTableResults query(String userQuery, Long userId)
 			throws DatastoreException, NotFoundException, JSONObjectAdapterException, ParseException;
+
 }

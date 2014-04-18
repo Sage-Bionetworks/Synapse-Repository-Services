@@ -24,7 +24,7 @@ public class DeadlockWatcher {
 	
 	public static final String START_MESSAGE = "Deadlock detected: %1$s";
 	public static final String FAILED_ATTEMPT = "Failed attempt: %1$d after waiting for: %2$d ms";
-	public static final String EXASTED_ALL_ATTEMPTS = "Exasted all attempts to recover from deadlock.  Total attempts: %1$d";
+	public static final String EXAUSTED_ALL_ATTEMPTS = "Exausted all attempts to recover from deadlock.  Total attempts: %1$d";
 	
 	/**
 	 * this is used by tests to inject a mock log.
@@ -57,7 +57,7 @@ public class DeadlockWatcher {
 				attempt++;
 			}
 			// throw the error
-			log.debug(String.format(EXASTED_ALL_ATTEMPTS, attempt-1));
+			log.debug(String.format(EXAUSTED_ALL_ATTEMPTS, attempt-1));
 			throw e;
 		}
 	}

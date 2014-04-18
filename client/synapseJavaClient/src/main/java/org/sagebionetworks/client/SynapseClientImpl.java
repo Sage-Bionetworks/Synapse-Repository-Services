@@ -37,12 +37,14 @@ import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseTableUnavilableException;
 import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
 import org.sagebionetworks.downloadtools.FileUtils;
+import org.sagebionetworks.evaluation.model.BatchUploadResponse;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
+import org.sagebionetworks.evaluation.model.SubmissionStatusBatch;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.evaluation.model.UserEvaluationState;
@@ -224,6 +226,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String NAME = "name";
 	private static final String ALL = "/all";
 	private static final String STATUS = "/status";
+	private static final String STATUS_BATCH = "/statusBatch";
 	private static final String PARTICIPANT = "participant";
 	private static final String LOCK_ACCESS_REQUIREMENT = "/lockAccessRequirement";
 	private static final String SUBMISSION = "submission";
@@ -4278,7 +4281,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public SubmissionStatus updateSubmissionStatus(SubmissionStatus status) throws SynapseException {
 		if (status == null) {
-			throw new IllegalArgumentException("SubmissionStatus  cannot be null");
+			throw new IllegalArgumentException("SubmissionStatus cannot be null.");
 		}
 		if (status.getAnnotations() != null) {
 			AnnotationsUtils.validateAnnotations(status.getAnnotations());
@@ -4297,6 +4300,49 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throw new RuntimeException(e1);
 		}
 	}
+	
+	
+	public BatchUploadResponse updateSubmissionStatusBatch(String evaluationId, SubmissionStatusBatch batch)
+			throws SynapseException {
+		if (evaluationId==null) {
+			throw new IllegalArgumentException("evaluationId is required.");
+		}
+		if (batch == null) {
+			throw new IllegalArgumentException("SubmissionStatusBatch cannot be null.");
+		}
+		if (batch.getIsFirstBatch()==null) {
+			throw new IllegalArgumentException("isFirstBatch must be set to true or false.");
+		}
+		if (batch.getIsLastBatch()==null) {
+			throw new IllegalArgumentException("isLastBatch must be set to true or false.");
+		}
+		if (!batch.getIsFirstBatch() && batch.getBatchToken()==null) {
+			throw new IllegalArgumentException("batchToken cannot be null for any but the first batch.");
+		}
+		List<SubmissionStatus> statuses = batch.getStatuses();
+		if (statuses == null || statuses.size()==0)  {
+			throw new IllegalArgumentException("SubmissionStatusBatch must contain at least one SubmissionStatus.");
+		}
+		for (SubmissionStatus status : statuses) {
+			if (status.getAnnotations() != null) {
+				AnnotationsUtils.validateAnnotations(status.getAnnotations());
+			}
+		}
+		String url = EVALUATION_URI_PATH + "/" + evaluationId + STATUS_BATCH;			
+		JSONObjectAdapter toUpdateAdapter = new JSONObjectAdapterImpl();
+		JSONObject obj;
+		try {
+			obj = new JSONObject(batch.writeToJSONObject(toUpdateAdapter).toJSONString());
+			JSONObject jsonObj = getSharedClientConnection().putJson(repoEndpoint, url, obj.toString(), getUserAgent());
+			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+			return new BatchUploadResponse(adapter);
+		} catch (JSONException e1) {
+			throw new RuntimeException(e1);
+		} catch (JSONObjectAdapterException e1) {
+			throw new RuntimeException(e1);
+		}	}
+
+	
 	@Override
 	public void deleteSubmission(String subId) throws SynapseException {
 		if (subId == null) throw new IllegalArgumentException("Submission id cannot be null");
