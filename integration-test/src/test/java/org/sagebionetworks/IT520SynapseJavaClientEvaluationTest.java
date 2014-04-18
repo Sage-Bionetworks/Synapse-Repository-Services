@@ -3,6 +3,7 @@ package org.sagebionetworks;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -29,13 +30,14 @@ import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
-import org.sagebionetworks.client.exceptions.SynapseServerException;
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
+import org.sagebionetworks.evaluation.model.BatchUploadResponse;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
+import org.sagebionetworks.evaluation.model.SubmissionStatusBatch;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.evaluation.model.UserEvaluationState;
@@ -403,6 +405,17 @@ public class IT520SynapseJavaClientEvaluationTest {
 		status.getAnnotations().setScopeId(sub1.getEvaluationId());
 		assertEquals(status, statusClone);
 		assertEquals(newCount, synapseOne.getSubmissionCount(eval1.getId()));
+		
+		status = statusClone; // 'status' is, once again, the current version
+		SubmissionStatusBatch batch = new SubmissionStatusBatch();
+		List<SubmissionStatus> statuses = new ArrayList<SubmissionStatus>();
+		statuses.add(status);
+		batch.setStatuses(statuses);
+		batch.setIsFirstBatch(true);
+		batch.setIsLastBatch(true);
+		BatchUploadResponse batchUpdateResponse = synapseOne.updateSubmissionStatusbatch(eval1.getId(), batch);
+		// after last batch there's no 'next batch' token
+		assertNull(batchUpdateResponse.getNextUploadToken());
 		
 		// delete
 		synapseOne.deleteSubmission(sub1.getId());

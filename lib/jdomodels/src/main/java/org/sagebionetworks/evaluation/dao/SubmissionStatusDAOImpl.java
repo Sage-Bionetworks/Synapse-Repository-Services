@@ -105,13 +105,12 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 			idToEtagMap.put(dbo.getId().toString(), dbo.geteTag());
 		}
 
-		// update eTag and send message of update
-		Map<String, EtagAndVersion> newEtagAndVersionMap = 
-				lockAndGenerateEtagBatch(idToEtagMap);
+		// update eTag and increment the version
+		Map<Long, Long> versionMap = lockForUpdateAndGetVersion(idToEtagMap);
 		for (SubmissionStatusDBO dbo : dbos) {
-			EtagAndVersion newEtagAndVersion = newEtagAndVersionMap.get(dbo.getId().toString());
-			dbo.seteTag(newEtagAndVersion.getEtag());
-			dbo.setVersion(newEtagAndVersion.getVersion());
+			Long currentVersion = versionMap.get(dbo.getId());
+			dbo.seteTag(UUID.randomUUID().toString());
+			dbo.setVersion(currentVersion+1);
 			// we also need to update the serialized field
 			SubmissionStatus dto = SubmissionUtils.convertDboToDto(dbo);
 			SubmissionUtils.copyToSerializedField(dto, dbo);
@@ -142,21 +141,21 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 	}
 	
 	// returns a map whose key is submission Id and whose value is new Etag and new version
-	private Map<String,EtagAndVersion> lockAndGenerateEtagBatch(Map<String,String> idToEtagMap)
+	private Map<Long,Long> lockForUpdateAndGetVersion(Map<String,String> idToEtagMap)
 			throws NotFoundException, ConflictingUpdateException, DatastoreException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_SUBSTATUS_SUBMISSION_ID, idToEtagMap.keySet());
-		List<EtagAndVersion> current = simpleJdbcTemplate.query(SQL_ETAG_FOR_UPDATE_BATCH, new RowMapper<EtagAndVersion>() {
+		List<IdETagVersion> current = simpleJdbcTemplate.query(SQL_ETAG_FOR_UPDATE_BATCH, new RowMapper<IdETagVersion>() {
 			@Override
-			public EtagAndVersion mapRow(ResultSet rs, int rowNum) throws SQLException {
-				return new EtagAndVersion(
+			public IdETagVersion mapRow(ResultSet rs, int rowNum) throws SQLException {
+				return new IdETagVersion(
 						rs.getLong(COL_SUBSTATUS_SUBMISSION_ID), 
 						rs.getString(COL_SUBSTATUS_ETAG), 
 						rs.getLong(COL_SUBSTATUS_VERSION));
 			}
 		}, param);
 		// Check the eTags
-		for (EtagAndVersion ev : current) {
+		for (IdETagVersion ev : current) {
 			String id = ev.getId().toString();
 			String etagFromClient = idToEtagMap.get(id);
 			String currentEtag = ev.getEtag();
@@ -165,10 +164,9 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 			}
 		}
 		// Get a new e-tag
-		Map<String,EtagAndVersion> result = new HashMap<String,EtagAndVersion>();
-		for (EtagAndVersion ev : current) {
-			result.put(ev.getId().toString(), 
-					new EtagAndVersion(ev.getId(), UUID.randomUUID().toString(), ev.getVersion()+1L));
+		Map<Long,Long> result = new HashMap<Long,Long>();
+		for (IdETagVersion ev : current) {
+			result.put(ev.getId(), ev.getVersion());
 		}
 		
 		return result;
