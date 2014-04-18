@@ -3,8 +3,12 @@ package org.sagebionetworks.evaluation.dao;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 
 import org.junit.After;
 import org.junit.Before;
@@ -13,7 +17,6 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.evaluation.dbo.SubmissionStatusDBO;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
-import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
@@ -24,7 +27,6 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
-import org.sagebionetworks.repo.model.evaluation.ParticipantDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionStatusDAO;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
@@ -43,8 +45,6 @@ public class SubmissionStatusDAOImplTest {
     @Autowired
     SubmissionDAO submissionDAO;
     @Autowired
-    ParticipantDAO participantDAO;
-    @Autowired
     EvaluationDAO evaluationDAO;
 	@Autowired
 	NodeDAO nodeDAO;
@@ -52,50 +52,81 @@ public class SubmissionStatusDAOImplTest {
 	private String nodeId;
 	private String userId;
 	
-    private String submissionId = null;
-    private String evalId;
-    private String name = "test submission";
-    private Long versionNumber = 1L;
+    private List<String> submissionIds;
+    private String rogueSubmissionId;
+    private List<String> evalIds;
+    private static final String NODE_NAME = "test-submission";
+    private static final Long VERSION_NUMBER = 1L;
+    private static final int NUMBER_OF_EVALUATIONS = 2;
+    private static final int NUMBER_OF_SUBMISSIONS = 2;
     
     @Before
     public void setUp() throws DatastoreException, InvalidModelException, NotFoundException, JSONObjectAdapterException {
+    	evalIds = new ArrayList<String>();
+    	submissionIds = new ArrayList<String>();
     	userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString();
     	
     	// create a node
-  		Node toCreate = NodeTestUtils.createNew(name, Long.parseLong(userId));
+  		Node toCreate = NodeTestUtils.createNew(NODE_NAME, Long.parseLong(userId));
     	toCreate.setVersionComment("This is the first version of the first node ever!");
     	toCreate.setVersionLabel("0.0.1");
     	nodeId = nodeDAO.createNew(toCreate).substring(3); // trim "syn" from node ID
     	
-    	// create an evaluation
-        Evaluation evaluation = new Evaluation();
-        evaluation.setId("1234");
-        evaluation.setEtag("etag");
-        evaluation.setName("name");
-        evaluation.setOwnerId(userId);
-        evaluation.setCreatedOn(new Date());
-        evaluation.setContentSource(nodeId);
-        evaluation.setStatus(EvaluationStatus.PLANNED);
-        evalId = evaluationDAO.create(evaluation, Long.parseLong(userId));
+    	// create evaluations
+    	for (int i=0; i<NUMBER_OF_EVALUATIONS; i++) {
+	        Evaluation evaluation = new Evaluation();
+	        evaluation.setId("1234"+i);
+	        evaluation.setEtag("etag"+i);
+	        evaluation.setName("name"+i);
+	        evaluation.setOwnerId(userId);
+	        evaluation.setCreatedOn(new Date());
+	        evaluation.setContentSource(nodeId);
+	        evaluation.setStatus(EvaluationStatus.PLANNED);
+	        evalIds.add(evaluationDAO.create(evaluation, Long.parseLong(userId)));
+    	}
+    	
+        // create submissions
+        for (int i=0; i<NUMBER_OF_SUBMISSIONS; i++) {
+        	Submission submission = createSubmission(
+        			"5678"+i,
+        			NODE_NAME+"_"+i,
+        			nodeId,
+        			VERSION_NUMBER,
+        			userId,
+        			evalIds.get(0)
+        			);
+        	submissionIds.add(submissionDAO.create(submission));
+        }
         
-        // create a participant
-        Participant participant = new Participant();
-        participant.setCreatedOn(new Date());
-        participant.setUserId(userId);
-        participant.setEvaluationId(evalId);
-        participantDAO.create(participant);
-        
-        // create a submission
-        Submission submission = new Submission();
-        submission.setId("5678");
-        submission.setName(name);
-        submission.setEntityId(nodeId);
-        submission.setVersionNumber(versionNumber);
-        submission.setUserId(userId);
-        submission.setEvaluationId(evalId);
-        submission.setCreatedOn(new Date());
-        submission.setEntityBundleJSON("some bundle");
-        submissionId = submissionDAO.create(submission);
+        // create submission under other eval:
+    	Submission submission = createSubmission(
+    			"98765",
+    			"rogue",
+    			nodeId,
+    			VERSION_NUMBER,
+    			userId,
+    			evalIds.get(1)
+    			);
+    	rogueSubmissionId = submissionDAO.create(submission);
+    }
+    
+    private static Submission createSubmission(
+    		String id, 
+    		String name, 
+    		String nodeId, 
+    		Long versionNumber, 
+    		String userId,
+    		String evalId) {
+    	Submission submission = new Submission();
+    	submission.setId(id);
+    	submission.setName(name);
+    	submission.setEntityId(nodeId);
+    	submission.setVersionNumber(versionNumber);
+    	submission.setUserId(userId);
+    	submission.setEvaluationId(evalId);
+    	submission.setCreatedOn(new Date());
+    	submission.setEntityBundleJSON("some bundle");
+    	return submission;
     }
     
     @After
@@ -103,67 +134,125 @@ public class SubmissionStatusDAOImplTest {
     	try {
     		nodeDAO.delete(nodeId);
     	} catch (NotFoundException e) {};
+    	for (String submissionId : submissionIds) {
+    		try {
+    			submissionDAO.delete(submissionId);
+    		} catch (NotFoundException e)  {};
+    	}
 		try {
-			submissionDAO.delete(submissionId);
+			submissionDAO.delete(rogueSubmissionId);
 		} catch (NotFoundException e)  {};
-		try {
-			participantDAO.delete(userId, evalId);
-		} catch (NotFoundException e) {};
-		try {
-			evaluationDAO.delete(evalId);
-		} catch (NotFoundException e) {};
+		for (String evalId : evalIds) {
+			try {
+				evaluationDAO.delete(evalId);
+			} catch (NotFoundException e) {};
+    	}
+    }
+    
+    private SubmissionStatus createStatus(String id) {
+        SubmissionStatus status = new SubmissionStatus();
+		status.setModifiedOn(new Date());
+		status.setId(id);
+		status.setStatus(SubmissionStatusEnum.RECEIVED);
+		status.setScore(0.1);
+		status.setAnnotations(TestUtils.createDummyAnnotations());
+        // Create it
+        submissionStatusDAO.create(status);
+    	return status;
+    }
+    
+    private List<SubmissionStatus> createStatusesForSubmissions(long initialCount) throws DatastoreException, NotFoundException {
+    	List<SubmissionStatus> clones = new ArrayList<SubmissionStatus>();
+        for (int i=0; i<submissionIds.size(); i++) {
+        	SubmissionStatus status = createStatus(submissionIds.get(i));
+            assertEquals(initialCount + i + 1, submissionStatusDAO.getCount());
+            
+            // Fetch it
+            SubmissionStatus clone = submissionStatusDAO.get(submissionIds.get(i));
+            assertNotNull(clone);
+            assertNotNull(clone.getModifiedOn());        
+            assertNotNull(clone.getEtag());
+            assertEquals(new Long(0L), clone.getStatusVersion());
+            status.setModifiedOn(clone.getModifiedOn());
+            status.setEtag(clone.getEtag());
+            assertEquals(status, clone);
+            clones.add(clone);
+    	}
+    	return clones;
     }
     
     @Test
     public void testCRUD() throws Exception{
-        // Initialize a new SubmissionStatus object for submissionId
-        SubmissionStatus status = new SubmissionStatus();
-        status.setModifiedOn(new Date());
-        status.setId(submissionId);
-        status.setEtag(null);
-        status.setStatus(SubmissionStatusEnum.RECEIVED);
-        status.setScore(0.1);
-        status.setAnnotations(TestUtils.createDummyAnnotations());
+        // Initialize new SubmissionStatus objects for submissionId
         long initialCount = submissionStatusDAO.getCount();
-        
-        // Create it
-        submissionStatusDAO.create(status);
-        assertEquals(initialCount + 1, submissionStatusDAO.getCount());
-        
-        // Fetch it
-        SubmissionStatus clone = submissionStatusDAO.get(submissionId);
-        assertNotNull(clone);
-        assertNotNull(clone.getModifiedOn());        
-        assertNotNull(clone.getEtag());
-        assertEquals(new Long(0L), clone.getStatusVersion());
-        status.setModifiedOn(clone.getModifiedOn());
-        status.setEtag(clone.getEtag());
-        assertEquals(status, clone);
+    	List<SubmissionStatus> clones = createStatusesForSubmissions(initialCount);
         
         // Update it
-        clone.setStatus(SubmissionStatusEnum.SCORED);
-        clone.setScore(0.9);
-        Thread.sleep(1L);
-        submissionStatusDAO.update(clone);
-        SubmissionStatus clone2 = submissionStatusDAO.get(submissionId);
-        assertFalse("eTag was not updated.", clone.getEtag().equals(clone2.getEtag()));
-        assertEquals("status-version was not updated.", new Long(1L), clone2.getStatusVersion());
-        assertFalse("Modified date was not updated", clone.getModifiedOn().equals(clone2.getModifiedOn()));
-        clone.setModifiedOn(clone2.getModifiedOn());
-        clone.setEtag(clone2.getEtag());
-        clone.setStatusVersion(clone2.getStatusVersion());
-        assertEquals(clone, clone2);
+        {
+	    	assertTrue(clones.size()>1); 
+	    	SubmissionStatus clone = clones.get(0);
+	        clone.setStatus(SubmissionStatusEnum.SCORED);
+	        clone.setScore(0.9);
+	        Thread.sleep(1L);
+	        submissionStatusDAO.update(Collections.singletonList(clone));
+	        SubmissionStatus clone2 = submissionStatusDAO.get(clone.getId());
+	        compare(clone, clone2);
+	        clones.set(0, clone2);
+        }
+        
+        // now update all
+        submissionStatusDAO.update(clones);
+        for (int i=0; i<clones.size(); i++) {
+        	SubmissionStatus orig = clones.get(i);
+        	SubmissionStatus retrieved = submissionStatusDAO.get(clones.get(i).getId());
+	        compare(orig, retrieved);
+        }
 
     	// Delete it
-        submissionStatusDAO.delete(submissionId);
-        assertEquals(initialCount, submissionStatusDAO.getCount());
-        
-        // Fetch it (should not exist)
-        try {
-        	status = submissionStatusDAO.get(submissionId);
-        } catch (NotFoundException e) {
-        	// expected
-        }
+    	for (int i=0; i<submissionIds.size(); i++) {
+    		submissionStatusDAO.delete(submissionIds.get(i));
+            // Fetch it (should not exist)
+            try {
+            	submissionStatusDAO.get(submissionIds.get(i));
+            } catch (NotFoundException e) {
+            	// expected
+            }
+    	}
+   		assertEquals(initialCount, submissionStatusDAO.getCount());    
+    }
+    
+    @Test
+    public void testGetEvaluationsForBatch() throws Exception {
+        long initialCount = submissionStatusDAO.getCount();
+    	List<SubmissionStatus> clones = createStatusesForSubmissions(initialCount);
+    	assertEquals(
+    			evalIds.get(0),
+    			submissionStatusDAO.getEvaluationIdForBatch(clones).toString()
+    			);
+    }
+    
+    @Test(expected=IllegalArgumentException.class)
+    public void testGetEvaluationsForBatchMultipleEvals() throws Exception {
+        long initialCount = submissionStatusDAO.getCount();
+    	List<SubmissionStatus> clones = createStatusesForSubmissions(initialCount);
+    	clones.add(createStatus(rogueSubmissionId));
+    	submissionStatusDAO.getEvaluationIdForBatch(clones);
+    }
+    
+    @Test(expected=IllegalArgumentException.class)
+    public void testGetEvaluationsForBatchEmptyList() throws Exception {
+		submissionStatusDAO.getEvaluationIdForBatch(new ArrayList<SubmissionStatus>());    	
+    }
+    
+    // note: this updates 'orig', so the caller shouldn't use 'orig' after passing it to this method
+    private static void compare(SubmissionStatus orig, SubmissionStatus retrieved) {
+        assertFalse("eTag was not updated.", orig.getEtag().equals(retrieved.getEtag()));
+        assertEquals("status-version was not updated.", new Long(orig.getStatusVersion()+1L), retrieved.getStatusVersion());
+        assertFalse("Modified date was not updated", orig.getModifiedOn().equals(retrieved.getModifiedOn()));
+        orig.setModifiedOn(retrieved.getModifiedOn());
+        orig.setEtag(retrieved.getEtag());
+        orig.setStatusVersion(retrieved.getStatusVersion());
+        assertEquals(orig, retrieved);
     }
     
     @Test

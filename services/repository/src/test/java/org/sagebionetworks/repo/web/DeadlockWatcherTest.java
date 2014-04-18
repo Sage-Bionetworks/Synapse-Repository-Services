@@ -54,7 +54,7 @@ public class DeadlockWatcherTest {
 			String.format(DeadlockWatcher.FAILED_ATTEMPT, 2, 10),
 			String.format(DeadlockWatcher.FAILED_ATTEMPT, 3, 10*10),
 			String.format(DeadlockWatcher.FAILED_ATTEMPT, 4, 100*100),
-			String.format(DeadlockWatcher.EXASTED_ALL_ATTEMPTS, 4),
+			String.format(DeadlockWatcher.EXAUSTED_ALL_ATTEMPTS, 4),
 		};
 		// Verify we get each entry in the log
 

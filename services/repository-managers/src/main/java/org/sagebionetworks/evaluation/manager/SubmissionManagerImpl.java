@@ -2,13 +2,16 @@ package org.sagebionetworks.evaluation.manager;
 
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
+import org.sagebionetworks.evaluation.model.BatchUploadResponse;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
+import org.sagebionetworks.evaluation.model.SubmissionStatusBatch;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.util.EvaluationUtils;
 import org.sagebionetworks.ids.IdGenerator;
@@ -16,6 +19,7 @@ import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.Node;
@@ -69,6 +73,8 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	private EvaluationPermissionsManager evaluationPermissionsManager;
 	@Autowired
 	private TransactionalMessenger transactionalMessenger;
+	
+	private static final int MAX_BATCH_SIZE = 500;
 	
 
 	@Override
@@ -160,14 +166,20 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		UserInfo.validateUserInfo(userInfo);
 		
 		// ensure Submission exists and validate access rights
-		SubmissionStatus old = getSubmissionStatus(userInfo, submissionStatus.getId());
 		String evalId = getSubmission(userInfo, submissionStatus.getId()).getEvaluationId();
 		validateEvaluationAccess(userInfo, evalId, ACCESS_TYPE.UPDATE_SUBMISSION);
 		
-		if (!old.getEtag().equals(submissionStatus.getEtag()))
-			throw new IllegalArgumentException("Your copy of SubmissionStatus " + 
-					submissionStatus.getId() + " is out of date. Please fetch it again before updating.");
+		validateContent(submissionStatus, evalId);
 		
+		evaluationDAO.selectAndLockSubmissionsEtag(evalId);
+		// update and return the new Submission
+		submissionStatusDAO.update(Collections.singletonList(submissionStatus));
+		sendEvaluationSubmissionsChangeMessage(KeyFactory.stringToKey(evalId), 
+				ChangeType.UPDATE);
+		return submissionStatusDAO.get(submissionStatus.getId());
+	}
+	
+	private static void validateContent(SubmissionStatus submissionStatus, String evalId) {
 		// validate score, if any
 		Double score = submissionStatus.getScore();
 		if (score != null) {
@@ -183,16 +195,57 @@ public class SubmissionManagerImpl implements SubmissionManager {
 			AnnotationsUtils.populateMissingFields(annos);
 			annos.setObjectId(submissionStatus.getId());
 			annos.setScopeId(evalId);
-		}
-		
-		// update and return the new Submission
-		evaluationDAO.selectAndLockSubmissionsEtag(evalId);
-		submissionStatusDAO.update(submissionStatus);
-		sendEvaluationSubmissionsChangeMessage(KeyFactory.stringToKey(evalId), 
-				ChangeType.UPDATE);
-		return submissionStatusDAO.get(submissionStatus.getId());
+		}	
 	}
 	
+	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public BatchUploadResponse updateSubmissionStatusBatch(UserInfo userInfo, String evalId,
+			SubmissionStatusBatch batch) throws NotFoundException, ConflictingUpdateException {
+		
+		UserInfo.validateUserInfo(userInfo);
+		
+		// validate content of batch
+		EvaluationUtils.ensureNotNull(batch.getIsFirstBatch(), "isFirstBatch");
+		EvaluationUtils.ensureNotNull(batch.getIsLastBatch(), "isLastBatch");
+		EvaluationUtils.ensureNotNull(batch.getStatuses(), "statuses");
+		EvaluationUtils.ensureNotEmpty(batch.getStatuses(), "statuses");
+		if (batch.getStatuses().size()>MAX_BATCH_SIZE) 
+			throw new IllegalArgumentException("Batch size cannot exceed "+MAX_BATCH_SIZE);
+		for (SubmissionStatus submissionStatus : batch.getStatuses()) {
+			EvaluationUtils.ensureNotNull(submissionStatus, "SubmissionStatus");
+			validateContent(submissionStatus, evalId);
+		}
+		
+		String evalIdForBatch = submissionStatusDAO.getEvaluationIdForBatch(batch.getStatuses()).toString();
+		if (!evalIdForBatch.equals(evalId)) 
+			throw new IllegalArgumentException("Specified Evaluation ID does not match submissions in the batch.");
+		
+		// ensure Submission exists and validate access rights
+		validateEvaluationAccess(userInfo, evalId, ACCESS_TYPE.UPDATE_SUBMISSION);
+		
+		String evaluationSubmissionsEtag = evaluationDAO.selectAndLockSubmissionsEtag(evalId);
+		// if not first batch, check batch etag
+		if (!batch.getIsFirstBatch()) {
+			String batchToken = batch.getBatchToken();
+			if (!batchToken.equals(evaluationSubmissionsEtag))
+				throw new ConflictingUpdateException("Your batch token is out of date.  You must restart upload from first batch.");
+		}
+
+		// update the Submissions
+		submissionStatusDAO.update(batch.getStatuses());
+		
+		String newEvaluationSubmissionsEtag = updateEvaluationSubmissionsEtag(evalId);
+		BatchUploadResponse response = new BatchUploadResponse();
+		if (batch.getIsLastBatch()) {
+			sendEvaluationSubmissionsChangeMessage(evalId, ChangeType.UPDATE, newEvaluationSubmissionsEtag);
+			response.setNextUploadToken(null);
+		} else {
+			response.setNextUploadToken(newEvaluationSubmissionsEtag);
+		}
+		return response;
+	}
+
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void deleteSubmission(UserInfo userInfo, String submissionId) throws DatastoreException, NotFoundException {
@@ -426,20 +479,28 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		return annos;
 	}
 	
-	@Override
-	public void sendEvaluationSubmissionsChangeMessage(
-			Long evalId, 
-			ChangeType changeType) {
+	private String updateEvaluationSubmissionsEtag(String evalId) {
 		String evaluationSubmissionsEtag = UUID.randomUUID().toString();
-		evaluationDAO.updateSubmissionsEtag(evalId.toString(), evaluationSubmissionsEtag); 
+		evaluationDAO.updateSubmissionsEtag(evalId, evaluationSubmissionsEtag); 
+		return evaluationSubmissionsEtag;
+	}
+	
+	private void sendEvaluationSubmissionsChangeMessage(String evalId, ChangeType changeType, String evaluationSubmissionsEtag) {
 		ChangeMessage message = new ChangeMessage();
 		message.setChangeType(changeType);
 		message.setObjectType(ObjectType.EVALUATION_SUBMISSIONS);
 		message.setObjectId(evalId.toString());
 		message.setObjectEtag(evaluationSubmissionsEtag);
 		transactionalMessenger.sendMessageAfterCommit(message);
+		
 	}
-
-
+	
+	@Override
+	public void sendEvaluationSubmissionsChangeMessage(
+			Long evalId, 
+			ChangeType changeType) {
+		String evaluationSubmissionsEtag = updateEvaluationSubmissionsEtag(evalId.toString());
+		sendEvaluationSubmissionsChangeMessage(evalId.toString(), changeType, evaluationSubmissionsEtag);
+	}
 
 }

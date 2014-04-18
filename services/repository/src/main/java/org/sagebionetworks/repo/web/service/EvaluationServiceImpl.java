@@ -9,11 +9,13 @@ import org.sagebionetworks.evaluation.manager.EvaluationManager;
 import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
 import org.sagebionetworks.evaluation.manager.ParticipantManager;
 import org.sagebionetworks.evaluation.manager.SubmissionManager;
+import org.sagebionetworks.evaluation.model.BatchUploadResponse;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
+import org.sagebionetworks.evaluation.model.SubmissionStatusBatch;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -246,6 +248,14 @@ public class EvaluationServiceImpl implements EvaluationService {
 			SubmissionStatus submissionStatus) throws NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return submissionManager.updateSubmissionStatus(userInfo, submissionStatus);
+	}
+
+	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public BatchUploadResponse updateSubmissionStatusBatch(Long userId, String evalId,
+			SubmissionStatusBatch batch) throws NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return submissionManager.updateSubmissionStatusBatch(userInfo, evalId, batch);
 	}
 
 	@Override

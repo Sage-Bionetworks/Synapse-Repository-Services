@@ -1,0 +1,26 @@
+{
+	"description": "A batch of status objects, to be updated en masse.",
+	"name": "SubmissionStatusBatch",
+	"properties": {
+		"statuses":{
+			"description":"A collection of Submission Statuses",
+			"type":"array",
+			"items":{
+				"type":"object",
+           		"$ref":"org.sagebionetworks.evaluation.model.SubmissionStatus"
+			}
+		},
+		"batchToken":{
+			"description":"A token required to accept a batch submission for all but the first batch.",
+			"type":"string"
+		},
+		"isFirstBatch":{
+			"description":"true if and only if this is the first batch to upload",
+			"type":"boolean"
+		},
+		"isLastBatch":{
+			"description":"true if and only if this is the last batch to upload",
+			"type":"boolean"
+		}
+	}
+}
