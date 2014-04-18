@@ -160,12 +160,12 @@ public class ColumnModelManagerTest {
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetColumnsNullUser() throws DatastoreException, NotFoundException{
 		List<String> ids = new LinkedList<String>();
-		columnModelManager.getColumnModel(null, ids);
+		columnModelManager.getColumnModel(null, ids, false);
 	}
 	
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetColumnsNullList() throws DatastoreException, NotFoundException{
-		columnModelManager.getColumnModel(user, (List<String>)null);
+		columnModelManager.getColumnModel(user, (List<String>) null, false);
 	}
 	
 	@Test
@@ -177,8 +177,8 @@ public class ColumnModelManagerTest {
 		cm.setName("abb");
 		cm.setId("123");
 		results.add(cm);
-		when(mockColumnModelDAO.getColumnModel(ids)).thenReturn(results);
-		List<ColumnModel> out  = columnModelManager.getColumnModel(user, ids);
+		when(mockColumnModelDAO.getColumnModel(ids, false)).thenReturn(results);
+		List<ColumnModel> out = columnModelManager.getColumnModel(user, ids, false);
 		assertNotNull(out);
 		assertEquals(results, out);
 	}

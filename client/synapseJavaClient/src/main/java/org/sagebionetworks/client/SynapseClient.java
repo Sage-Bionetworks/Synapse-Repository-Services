@@ -99,6 +99,7 @@ import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
@@ -1049,6 +1050,16 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseTableUnavilableException
 	 */
 	public RowReferenceSet deleteRowsFromTable(RowReferenceSet toDelete) throws SynapseException, SynapseTableUnavilableException;
+
+	/**
+	 * Get the file handles for the requested file handle columns for the rows.
+	 * 
+	 * @param fileHandlesToFind rows set for the rows and columns for which file handles need to be returned
+	 * @return
+	 * @throws IOException
+	 * @throws SynapseException
+	 */
+	public TableFileHandleResults getFileHandlesFromTable(RowReferenceSet fileHandlesToFind) throws SynapseException;
 
 	/**
 	 * Get the temporary URL for the data file of a file handle column for a row. This is an alternative to downloading

@@ -427,6 +427,32 @@ public class TableRowManagerImplTest {
 	}
 
 	@Test
+	public void testGetCellValues() throws DatastoreException, NotFoundException, IOException {
+		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(true);
+
+		RowReferenceSet rows = new RowReferenceSet();
+		rows.setTableId(tableId);
+		rows.setHeaders(TableModelUtils.getHeaders(models));
+		rows.setEtag("444");
+		rows.setRows(Lists.newArrayList(TableModelTestUtils.createRowReference(1L, 2L), TableModelTestUtils.createRowReference(3L, 4L)));
+
+		RowSet returnValue = new RowSet();
+		when(mockTruthDao.getRowSet(rows, models)).thenReturn(returnValue);
+		RowSet result = manager.getCellValues(user, tableId, rows, models);
+		assertTrue(result == returnValue);
+
+		verify(mockAuthManager).canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		verify(mockTruthDao).getRowSet(rows, models);
+		verifyNoMoreInteractions(mockAuthManager, mockTruthDao);
+	}
+
+	@Test(expected = UnauthorizedException.class)
+	public void testGetCellValuesFailNoAccess() throws DatastoreException, NotFoundException, IOException {
+		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(false);
+		manager.getCellValues(user, tableId, null, null);
+	}
+
+	@Test
 	public void testGetColumnValuesHappy() throws Exception {
 		final int columnIndex = 1;
 		RowReference rowRef = new RowReference();

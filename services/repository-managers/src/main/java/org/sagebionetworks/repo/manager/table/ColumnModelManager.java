@@ -42,7 +42,7 @@ public interface ColumnModelManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public List<ColumnModel> getColumnModel(UserInfo user, List<String> ids) throws DatastoreException, NotFoundException;
+	public List<ColumnModel> getColumnModel(UserInfo user, List<String> ids, boolean keepOrder) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Get the columns models bound to a Table.
