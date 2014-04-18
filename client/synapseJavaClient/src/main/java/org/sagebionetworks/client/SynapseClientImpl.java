@@ -88,6 +88,8 @@ import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.annotation.AnnotationsUtils;
+import org.sagebionetworks.repo.model.asynch.AsynchronousJobBody;
+import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
@@ -247,6 +249,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	protected static final String COLUMN = "/column";
 	protected static final String TABLE = "/table";
 	protected static final String TABLE_QUERY = TABLE+"/query";
+	
+	protected static final  String ASYNCHRONOUS_JOB = "/asynchronous/job";
 
 	private static final String USER_PROFILE_PATH = "/userProfile";
 	
@@ -4917,6 +4921,33 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			builder.append(offset);
 		}
 		return builder.toString();
+	}
+	
+	/**
+	 * Start a new Asynchronous Job
+	 * @param jobBody
+	 * @return
+	 * @throws SynapseException 
+	 */
+	@Override
+	public AsynchronousJobStatus startAsynchronousJob(AsynchronousJobBody jobBody) throws SynapseException{
+		if(jobBody == null) throw new IllegalArgumentException("JobBody cannot be null");
+		String url = getRepoEndpoint()+ASYNCHRONOUS_JOB;
+		return asymmetricalPost(url, jobBody, AsynchronousJobStatus.class);
+	}
+	
+	/**
+	 * Get the status of an Asynchronous Job from its ID.
+	 * @param jobId
+	 * @return
+	 * @throws SynapseException 
+	 * @throws JSONObjectAdapterException 
+	 */
+	@Override
+	public AsynchronousJobStatus getAsynchronousJobStatus(String jobId) throws JSONObjectAdapterException, SynapseException{
+		if(jobId == null) throw new IllegalArgumentException("JobId cannot be null");
+		String url = getRepoEndpoint()+ASYNCHRONOUS_JOB+"/"+jobId;
+		return  getJSONEntity(url, AsynchronousJobStatus.class);
 	}
 	
 	@Override

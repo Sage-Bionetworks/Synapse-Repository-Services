@@ -57,6 +57,8 @@ import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
 import org.sagebionetworks.repo.model.VersionInfo;
+import org.sagebionetworks.repo.model.asynch.AsynchronousJobBody;
+import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
@@ -1423,4 +1425,23 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException 
 	 */
 	public PassingRecord getCertifiedUserPassingRecord(String principalId) throws SynapseException;
+
+	
+	/**
+	 * Start a new Asynchronous Job
+	 * @param jobBody
+	 * @return
+	 * @throws SynapseException 
+	 */
+	public AsynchronousJobStatus startAsynchronousJob(AsynchronousJobBody jobBody)
+			throws SynapseException;
+
+	/**
+	 * Get the status of an Asynchronous Job from its ID.
+	 * @param jobId
+	 * @return
+	 * @throws SynapseException 
+	 * @throws JSONObjectAdapterException 
+	 */
+	public AsynchronousJobStatus getAsynchronousJobStatus(String jobId) throws JSONObjectAdapterException, SynapseException;
 }
