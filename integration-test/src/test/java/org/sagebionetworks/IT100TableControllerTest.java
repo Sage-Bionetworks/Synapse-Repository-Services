@@ -30,7 +30,7 @@ import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.client.exceptions.SynapseTableUnavilableException;
+import org.sagebionetworks.client.exceptions.SynapseTableUnavailableException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
@@ -239,7 +239,7 @@ public class IT100TableControllerTest {
 			try {
 				RowSet queryResutls = synapse.queryTableEntity(sql, isConsistent, countOnly);
 				return queryResutls;
-			} catch (SynapseTableUnavilableException e) {
+			} catch (SynapseTableUnavailableException e) {
 				// The table is not ready yet
 				assertFalse("Table processing failed: "+e.getStatus().getErrorMessage(), TableState.PROCESSING_FAILED.equals(e.getStatus().getState()));
 				System.out.println("Waiting for table index to be available: "+e.getStatus());

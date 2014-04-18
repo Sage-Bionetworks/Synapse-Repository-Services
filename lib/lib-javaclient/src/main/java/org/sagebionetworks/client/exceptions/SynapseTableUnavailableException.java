@@ -9,7 +9,7 @@ import org.sagebionetworks.repo.model.table.TableStatus;
  * @author John
  *
  */
-public class SynapseTableUnavilableException extends SynapseServerException {
+public class SynapseTableUnavailableException extends SynapseServerException {
 	
 	private static final long serialVersionUID = 1L;
 
@@ -17,7 +17,7 @@ public class SynapseTableUnavilableException extends SynapseServerException {
 	
 	TableStatus status = null;
 
-	public SynapseTableUnavilableException(TableStatus status) {
+	public SynapseTableUnavailableException(TableStatus status) {
 		super(ACCEPTED);
 		this.status = status;
 	}

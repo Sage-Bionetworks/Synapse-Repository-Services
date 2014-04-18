@@ -152,17 +152,6 @@ public class SharedClientConnectionTest {
 	}
 
 	@Test
-	public void testAsymmetricalPostErrorHandling() throws Exception {
-		configureMockHttpResponse(HttpStatus.SC_UNAUTHORIZED, "{\"reason\":\"user message\"}");
-		try {
-			sharedClientConnection.asymmetricalPost(uri, jsonString, userAgent);
-			fail("expected exception");
-		} catch (SynapseUnauthorizedException e) {
-			assertEquals("user message", e.getMessage());
-		}
-	}
-
-	@Test
 	public void testDownloadZippedFileStringErrorHandling() throws Exception {
 		configureMockHttpResponse(HttpStatus.SC_UNAUTHORIZED, "{\"reason\":\"user message\"}");
 		try {
