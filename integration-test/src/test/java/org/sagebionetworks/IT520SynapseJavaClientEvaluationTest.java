@@ -939,7 +939,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 			Thread.sleep(1000);
 			results = synapseOne.queryEvaluation(queryString);
 		}
-		assertEquals(0, results.getRows().size());
+		assertEquals(1, results.getRows().size());
 		
 	}
 }
