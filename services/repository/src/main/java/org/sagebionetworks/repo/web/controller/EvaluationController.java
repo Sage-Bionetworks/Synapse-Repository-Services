@@ -21,6 +21,7 @@ import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.BooleanResult;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -736,19 +737,49 @@ public class EvaluationController extends BaseController {
 		return serviceProvider.getEvaluationService().updateSubmissionStatus(userId, status);
 	}
 	
+	/**
+	 * Update multiple SubmissionStatuses. The maximum batch size is 500.  To allow upload
+	 * of more than this maximum, the system supports uploading of a <i>series</i> of batches.
+	 * Synapse employs optimistic concurrency on the series in the form of a batch token.   
+	 * Each request (except the first) must include the 'batch token' returned in the 
+	 * response to the previous batch. If another client begins batch upload simultaneously, 
+	 * a PRECONDITION_FAILED (412) response will be generated and upload must restart from the
+	 * first batch.  After the final batch is uploaded, the data for the Evaluation queue will
+	 * be mirrored to the tables which support querying.  Therefore uploaded data will not appear
+	 * in Evaluation queries until after the final batch is successfully uploaded.  It is the
+	 * client's responsibility to note in each batch request (1) whether it is the first batch
+	 * in the series and (2) whether it is the last batch.  (For a single batch both are set to 'true'.)
+	 * Failure to use the flags correctly risks corrupted data (due to simultaneous, conflicting
+	 * uploads by multiple clients) or data not appearing in query results.
+	 * 
+	 * <p>
+	 * <b>Note:</b> The caller must be granted the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.UPDATE_SUBMISSION</a> on the specified Evaluation.
+	 * </p>
+	 * 
+	 * @param evalId the ID of the Evaluation to which the SubmissionSatus objects belong.
+	 * @param userId
+	 * @param header
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws InvalidModelException
+	 * @throws ConflictingUpdateException
+	 * @throws NotFoundException
+	 * @throws JSONObjectAdapterException
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_STATUS_BATCH, method = RequestMethod.PUT)
 	public @ResponseBody
 	BatchUploadResponse updateSubmissionStatusBatch(
 			@PathVariable String evalId,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestHeader HttpHeaders header,
-			HttpServletRequest request) 
+			@RequestBody SubmissionStatusBatch batch) 
 			throws DatastoreException, UnauthorizedException, InvalidModelException, 
-			ConflictingUpdateException, NotFoundException, JSONObjectAdapterException
+			ConflictingUpdateException, NotFoundException
 	{
-		String requestBody = ControllerUtil.getRequestBodyAsString(request);
-		SubmissionStatusBatch batch = new SubmissionStatusBatch(new JSONObjectAdapterImpl(requestBody));
 		return serviceProvider.getEvaluationService().updateSubmissionStatusBatch(userId, evalId, batch);
 	}
 	
