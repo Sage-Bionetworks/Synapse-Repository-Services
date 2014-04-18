@@ -937,7 +937,7 @@ public interface SynapseClient extends BaseClient {
 	public SubmissionStatus updateSubmissionStatus(SubmissionStatus status)
 			throws SynapseException;
 
-	public BatchUploadResponse updateSubmissionStatusbatch(String evaluationId, SubmissionStatusBatch batch)
+	public BatchUploadResponse updateSubmissionStatusBatch(String evaluationId, SubmissionStatusBatch batch)
 			throws SynapseException;
 
 	public void deleteSubmission(String subId) throws SynapseException;

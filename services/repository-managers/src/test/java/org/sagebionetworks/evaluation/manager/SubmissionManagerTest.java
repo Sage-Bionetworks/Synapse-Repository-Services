@@ -26,6 +26,8 @@ import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.sagebionetworks.evaluation.model.BatchUploadResponse;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Submission;
@@ -37,6 +39,7 @@ import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityType;
@@ -510,9 +513,69 @@ public class SubmissionManagerTest {
 		} catch (IllegalArgumentException e) {
 			// as expected
 		}
+		List<SubmissionStatus> hasNull = new ArrayList<SubmissionStatus>();
+		hasNull.add(null);
+		batch.setStatuses(hasNull);
+		try {
+			submissionManager.updateSubmissionStatusBatch(ownerInfo, EVAL_ID, batch);
+			fail("statuses can't pass null");
+		} catch (IllegalArgumentException e) {
+			// as expected
+		}
 		
 		// back to base-line
 		batch.setStatuses(statuses);
 		submissionManager.updateSubmissionStatusBatch(ownerInfo, EVAL_ID, batch);
+		
+		try {
+			submissionManager.updateSubmissionStatusBatch(ownerInfo, EVAL_ID+"xxx", batch);
+			fail("statuses can't wrong ID");
+		} catch (IllegalArgumentException e) {
+			// as expected
+		}
+	}
+	
+	@Test
+	public void testConflictingBatchUpdate() throws Exception {
+		// baseline:  all is OK
+		submissionManager.updateSubmissionStatusBatch(ownerInfo, EVAL_ID, batch);
+		batch.setIsFirstBatch(false);
+		batch.setBatchToken("foo");
+		when(mockEvaluationDAO.selectAndLockSubmissionsEtag(EVAL_ID)).thenReturn("foo");
+		// still OK
+		submissionManager.updateSubmissionStatusBatch(ownerInfo, EVAL_ID, batch);
+		
+		// but what if the token is wrong?
+		when(mockEvaluationDAO.selectAndLockSubmissionsEtag(EVAL_ID)).thenReturn("bar");
+		try {
+			submissionManager.updateSubmissionStatusBatch(ownerInfo, EVAL_ID, batch);
+			fail("ConflictingUpdateException expected");
+		} catch (ConflictingUpdateException e) {
+			// as expected
+		}
+		// should also work if etag in system is null
+		when(mockEvaluationDAO.selectAndLockSubmissionsEtag(EVAL_ID)).thenReturn(null);
+		try {
+			submissionManager.updateSubmissionStatusBatch(ownerInfo, EVAL_ID, batch);
+			fail("ConflictingUpdateException expected");
+		} catch (ConflictingUpdateException e) {
+			// as expected
+		}
+	}
+	
+	@Test
+	public void testBatchResponseToken() throws Exception {
+		batch.setIsFirstBatch(true);
+		batch.setIsLastBatch(false);
+		when(mockEvaluationDAO.selectAndLockSubmissionsEtag(EVAL_ID)).thenReturn("foo");
+		BatchUploadResponse resp = submissionManager.updateSubmissionStatusBatch(ownerInfo, EVAL_ID, batch);
+		ArgumentCaptor<String> etagArg = ArgumentCaptor.forClass(String.class);
+		verify(mockEvaluationDAO).updateSubmissionsEtag(eq(EVAL_ID), etagArg.capture());
+		assertEquals(resp.getNextUploadToken(), etagArg.getValue());
+		
+		// last batch doesn't get a token back
+		batch.setIsLastBatch(true);
+		resp = submissionManager.updateSubmissionStatusBatch(ownerInfo, EVAL_ID, batch);
+		assertNull(resp.getNextUploadToken());
 	}
 }

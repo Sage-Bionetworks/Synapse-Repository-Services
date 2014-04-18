@@ -14,6 +14,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -413,7 +414,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		batch.setStatuses(statuses);
 		batch.setIsFirstBatch(true);
 		batch.setIsLastBatch(true);
-		BatchUploadResponse batchUpdateResponse = synapseOne.updateSubmissionStatusbatch(eval1.getId(), batch);
+		BatchUploadResponse batchUpdateResponse = synapseOne.updateSubmissionStatusBatch(eval1.getId(), batch);
 		// after last batch there's no 'next batch' token
 		assertNull(batchUpdateResponse.getNextUploadToken());
 		
@@ -844,24 +845,59 @@ public class IT520SynapseJavaClientEvaluationTest {
 		sub1.setEntityId(entityId);
 		sub1 = synapseOne.createSubmission(sub1, entityEtag);
 		submissionsToDelete.add(sub1.getId());
+		sub2.setEvaluationId(eval1.getId());
+		sub2.setEntityId(entityId);
+		sub2 = synapseOne.createSubmission(sub2, entityEtag);
+		submissionsToDelete.add(sub2.getId());
 		
 		// add annotations
-		SubmissionStatus status = synapseOne.getSubmissionStatus(sub1.getId());
-		Thread.sleep(1L);		
-		StringAnnotation sa = new StringAnnotation();
-		sa.setIsPrivate(true);
-		sa.setKey("foo");
-		sa.setValue("bar");
-		List<StringAnnotation> stringAnnos = new ArrayList<StringAnnotation>();
-		stringAnnos.add(sa);
-		Annotations annos = new Annotations();
-		annos.setStringAnnos(stringAnnos);		
-		status.setScore(0.5);
-		status.setStatus(SubmissionStatusEnum.SCORED);
-		status.setReport("Lorem ipsum");
-		status.setAnnotations(annos);
-		synapseOne.updateSubmissionStatus(status);
-		
+		BatchUploadResponse response = null;
+		{
+			SubmissionStatus status = synapseOne.getSubmissionStatus(sub1.getId());
+			Thread.sleep(1L);		
+			StringAnnotation sa = new StringAnnotation();
+			sa.setIsPrivate(true);
+			sa.setKey("foo");
+			sa.setValue("bar");
+			List<StringAnnotation> stringAnnos = new ArrayList<StringAnnotation>();
+			stringAnnos.add(sa);
+			Annotations annos = new Annotations();
+			annos.setStringAnnos(stringAnnos);		
+			status.setScore(0.5);
+			status.setStatus(SubmissionStatusEnum.SCORED);
+			status.setReport("Lorem ipsum");
+			status.setAnnotations(annos);
+			SubmissionStatusBatch batch = new SubmissionStatusBatch();
+			batch.setStatuses(Collections.singletonList(status));
+			batch.setIsFirstBatch(true);
+			batch.setIsLastBatch(false);
+			response = synapseOne.updateSubmissionStatusBatch(eval1.getId(), batch);
+		}
+		{
+			SubmissionStatus status = synapseOne.getSubmissionStatus(sub2.getId());
+			Thread.sleep(1L);		
+			StringAnnotation sa = new StringAnnotation();
+			sa.setIsPrivate(true);
+			sa.setKey("foo");
+			sa.setValue("bar");
+			List<StringAnnotation> stringAnnos = new ArrayList<StringAnnotation>();
+			stringAnnos.add(sa);
+			Annotations annos = new Annotations();
+			annos.setStringAnnos(stringAnnos);		
+			status.setScore(0.5);
+			status.setStatus(SubmissionStatusEnum.SCORED);
+			status.setReport("Lorem ipsum");
+			status.setAnnotations(annos);
+			SubmissionStatusBatch batch = new SubmissionStatusBatch();
+			batch.setStatuses(Collections.singletonList(status));
+			batch.setIsFirstBatch(false);
+			batch.setIsLastBatch(true);
+			batch.setBatchToken(response.getNextUploadToken());
+			response = synapseOne.updateSubmissionStatusBatch(eval1.getId(), batch);
+			assertNull(response.getNextUploadToken());
+		}
+
+	
 		// query for the object
 		// we must wait for the annotations to be populated by a worker
 		String queryString = "SELECT * FROM evaluation_" + eval1.getId() + " WHERE foo == \"bar\"";
@@ -880,21 +916,22 @@ public class IT520SynapseJavaClientEvaluationTest {
 		// verify the results
 		List<String> headers = results.getHeaders();
 		List<org.sagebionetworks.repo.model.query.Row> rows = results.getRows();
-		assertEquals(1, rows.size());
+		assertEquals(2, rows.size());
 		assertTrue(headers.contains("foo"));
 		int index = headers.indexOf(DBOConstants.PARAM_ANNOTATION_OBJECT_ID);
-		assertEquals(sub1.getId(), rows.get(0).getValues().get(index));
+		assertTrue(rows.get(0).getValues().get(index).contains(sub1.getId()));
+		assertTrue(rows.get(1).getValues().get(index).contains(sub2.getId()));
 		
 		
 		// now check that if you delete the submission it stops appearing in the query
 		adminSynapse.deleteSubmission(sub1.getId());
 		submissionsToDelete.remove(sub1.getId());
-		// rerun the query.  We should get no results
+		// rerun the query.  We should get just one result (for sub2)
 		// we must wait for the annotations to be populated by a worker
 		results = synapseOne.queryEvaluation(queryString);
 		assertNotNull(results);
 		start = System.currentTimeMillis();
-		while (results.getTotalNumberOfResults() > 0) {
+		while (results.getTotalNumberOfResults() > 1) {
 			long elapsed = System.currentTimeMillis() - start;
 			assertTrue("Timed out waiting for annotations to be deleted for query: " + queryString,
 					elapsed < RDS_WORKER_TIMEOUT);

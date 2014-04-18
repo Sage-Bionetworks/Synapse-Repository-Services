@@ -4294,7 +4294,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 	
 	
-	public BatchUploadResponse updateSubmissionStatusbatch(String evaluationId, SubmissionStatusBatch batch)
+	public BatchUploadResponse updateSubmissionStatusBatch(String evaluationId, SubmissionStatusBatch batch)
 			throws SynapseException {
 		if (evaluationId==null) {
 			throw new IllegalArgumentException("evaluationId is required.");
