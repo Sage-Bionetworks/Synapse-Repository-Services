@@ -141,10 +141,7 @@ public class DBOColumnModel implements MigratableDatabaseObject<DBOColumnModel, 
 
 	@Override
 	public List<MigratableDatabaseObject> getSecondaryTypes() {
-		List<MigratableDatabaseObject> seconday = new LinkedList<MigratableDatabaseObject>();
-		seconday.add(new DBOBoundColumn());
-		seconday.add(new DBOBoundColumnOrdinal());
-		return seconday;
+		return null;
 	}
 
 	@Override

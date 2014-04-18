@@ -1040,6 +1040,16 @@ public interface SynapseClient extends BaseClient {
 	public RowReferenceSet appendRowsToTable(RowSet toAppend) throws SynapseException, SynapseTableUnavilableException;
 	
 	/**
+	 * Delete rows from table entity.
+	 * 
+	 * @param toDelete
+	 * @return
+	 * @throws SynapseException
+	 * @throws SynapseTableUnavilableException
+	 */
+	public RowReferenceSet deleteRowsFromTable(RowReferenceSet toDelete) throws SynapseException, SynapseTableUnavilableException;
+
+	/**
 	 * Query for data in a table entity.
 	 * @param sql
 	 * @return

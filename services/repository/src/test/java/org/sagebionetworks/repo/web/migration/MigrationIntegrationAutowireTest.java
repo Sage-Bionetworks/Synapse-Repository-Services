@@ -332,11 +332,11 @@ public class MigrationIntegrationAutowireTest {
 		set.setRows(rows);
 		set.setTableId(tableId);
 		// Append the rows to the table
-		tableRowTruthDao.appendRowSetToTable(adminUserIdString, tableId, models, set);
+		tableRowTruthDao.appendRowSetToTable(adminUserIdString, tableId, models, set, false);
 		// Append some more rows
 		rows = TableModelTestUtils.createRows(models, 6);
 		set.setRows(rows);
-		tableRowTruthDao.appendRowSetToTable(adminUserIdString, tableId, models, set);
+		tableRowTruthDao.appendRowSetToTable(adminUserIdString, tableId, models, set, false);
 	}
 
 	public void createNewUser() throws NotFoundException {

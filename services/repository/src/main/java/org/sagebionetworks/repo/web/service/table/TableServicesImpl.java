@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.web.service.table;
 import java.io.IOException;
 import java.util.List;
 
+import org.sagebionetworks.manager.util.Validate;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
@@ -77,6 +78,14 @@ public class TableServicesImpl implements TableServices {
 		return tableRowManager.appendRows(user, rows.getTableId(), models, rows);
 	}
 
+	@Override
+	public RowReferenceSet deleteRows(Long userId, RowReferenceSet rowsToDelete) throws DatastoreException, NotFoundException, IOException {
+		Validate.required(rowsToDelete, "rowsToDelete");
+		Validate.required(rowsToDelete.getTableId(), "rowsToDelete.tableId");
+		UserInfo user = userManager.getUserInfo(userId);
+		List<ColumnModel> models = getCurrentColumnsForTable(user, rowsToDelete.getTableId());
+		return tableRowManager.deleteRows(user, rowsToDelete.getTableId(), models, rowsToDelete);
+	}
 	
 	private List<ColumnModel> getCurrentColumnsForTable(UserInfo user, String tableId) throws DatastoreException, NotFoundException{
 		return columnModelManager.getColumnModelsForTable(user, tableId);

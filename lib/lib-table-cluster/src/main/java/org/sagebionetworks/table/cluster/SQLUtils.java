@@ -1,5 +1,6 @@
 package org.sagebionetworks.table.cluster;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -8,6 +9,8 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang.StringEscapeUtils;
+import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -15,6 +18,8 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
+
+import com.google.common.collect.Lists;
 
 import static org.sagebionetworks.repo.model.table.TableConstants.*;
 
@@ -448,9 +453,29 @@ public class SQLUtils {
 		return builder.toString();
 	}
 
-	
+	/**
+	 * Build the delete statement for inserting rows into a table.
+	 * 
+	 * @param schema
+	 * @param tableId
+	 * @return
+	 */
+	public static String buildDeleteSQL(List<ColumnModel> schema, String tableId){
+		if(schema == null) throw new IllegalArgumentException("Schema cannot be null");
+		if(schema.size() < 1) throw new IllegalArgumentException("Schema must include at least on column");
+		if(tableId == null) throw new IllegalArgumentException("TableID cannot be null");
+ 		StringBuilder builder = new StringBuilder();
+		builder.append("DELETE FROM ");
+		builder.append(getTableNameForId(tableId));
+		builder.append(" WHERE ");
+		builder.append(ROW_ID);
+		builder.append(" IN ( :").append(ROW_ID_BIND).append(" )");
+		return builder.toString();
+	}
+
 	/**
 	 * Build the parameters that will bind the passed RowSet to a SQL statement.
+	 * 
 	 * @param toBind
 	 * @param schema
 	 * @return
@@ -464,37 +489,61 @@ public class SQLUtils {
 			index++;
 		}
 		// We will need a binding for every row
-		MapSqlParameterSource[] results = new MapSqlParameterSource[toBind.getRows().size()];
-		int rowIndex = 0;
+		List<MapSqlParameterSource> results = Lists.newArrayListWithExpectedSize(toBind.getRows().size());
 		for(Row row: toBind.getRows()){
-			Map<String, Object> rowMap = new HashMap<String, Object>(schema.size()+2);
-			// Always bind the row ID and version
-			if(row.getRowId() == null) throw new IllegalArgumentException("RowID cannot be null");
-			if(row.getVersionNumber() == null) throw new IllegalArgumentException("RowVersionNumber cannot be null");
-			rowMap.put(ROW_ID_BIND, row.getRowId());
-			rowMap.put(ROW_VERSION_BIND, row.getVersionNumber());
-			// Bind each column
-			for(ColumnModel cm: schema){
-				// Lookup the index of this column
-				String columnName = getColumnNameForId(cm.getId());
-				Integer columnIndex = columnIndexMap.get(cm.getId());
-				Object value = null;
-				if(columnIndex == null){
-					// Use the default value for this column
-					value = parseValueForDB(cm.getColumnType(), cm.getDefaultValue());
-				}else{
-					value = parseValueForDB(cm.getColumnType(), row.getValues().get(columnIndex));
+			if (!TableModelUtils.isDeletedRow(row)) {
+				Map<String, Object> rowMap = new HashMap<String, Object>(schema.size() + 2);
+				// Always bind the row ID and version
+				if (row.getRowId() == null)
+					throw new IllegalArgumentException("RowID cannot be null");
+				if (row.getVersionNumber() == null)
+					throw new IllegalArgumentException("RowVersionNumber cannot be null");
+				rowMap.put(ROW_ID_BIND, row.getRowId());
+				rowMap.put(ROW_VERSION_BIND, row.getVersionNumber());
+				// Bind each column
+				for (ColumnModel cm : schema) {
+					// Lookup the index of this column
+					String columnName = getColumnNameForId(cm.getId());
+					Integer columnIndex = columnIndexMap.get(cm.getId());
+					Object value = null;
+					if (columnIndex == null) {
+						// Use the default value for this column
+						value = parseValueForDB(cm.getColumnType(), cm.getDefaultValue());
+					} else {
+						value = parseValueForDB(cm.getColumnType(), row.getValues().get(columnIndex));
+					}
+					rowMap.put(columnName, value);
 				}
-				rowMap.put(columnName, value);
+				results.add(new MapSqlParameterSource(rowMap));
 			}
-			results[rowIndex] = new MapSqlParameterSource(rowMap);
-			rowIndex++;
 		}
-		return results;
+		return results.toArray(new MapSqlParameterSource[results.size()]);
 	}
 	
 	/**
+	 * Build the parameters that will bind the passed RowSet to a SQL statement.
+	 * 
+	 * @param toBind
+	 * @param schema
+	 * @return
+	 */
+	public static SqlParameterSource bindParameterForDelete(RowSet toBind, List<ColumnModel> schema) {
+		List<Long> rowIds = Lists.newArrayList();
+		for (Row row : toBind.getRows()) {
+			if (TableModelUtils.isDeletedRow(row)) {
+				rowIds.add(row.getRowId());
+			}
+		}
+		if (rowIds.isEmpty()) {
+			return null;
+		} else {
+			return new MapSqlParameterSource(Collections.singletonMap(ROW_ID_BIND, rowIds));
+		}
+	}
+
+	/**
 	 * Create the SQL used to get the max version number from a table.
+	 * 
 	 * @return
 	 */
 	public static String getCountSQL(String tableId){

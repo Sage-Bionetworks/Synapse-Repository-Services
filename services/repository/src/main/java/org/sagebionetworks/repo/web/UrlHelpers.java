@@ -647,6 +647,7 @@ public class UrlHelpers {
 	public static final String COLUMN_ID = COLUMN+"/{columnId}";
 	public static final String ENTITY_COLUMNS = ENTITY_ID+COLUMN;
 	public static final String ENTITY_TABLE = ENTITY_ID+TABLE;
+	public static final String ENTITY_TABLE_DELETE_ROWS = ENTITY_ID + TABLE + "/deleteRows";
 	public static final String TABLE_QUERY = TABLE+"/query";
 	
 	// Asynchronous jobs

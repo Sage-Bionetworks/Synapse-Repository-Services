@@ -16,6 +16,7 @@ import static org.mockito.Mockito.when;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -291,7 +292,7 @@ public class CertifiedUserManagerImplTest {
 		assertNotNull(certifiedUserManager.getCertificationQuiz().getId());
 	}
 	
-	private static MultichoiceAnswer createMultichoiceAnswer(boolean isCorrect, Long index) {
+	private static MultichoiceAnswer createMultichoiceAnswer(Boolean isCorrect, Long index) {
 		MultichoiceAnswer ma = new MultichoiceAnswer();
 		ma.setAnswerIndex(index);
 		ma.setIsCorrect(isCorrect);
@@ -347,6 +348,14 @@ public class CertifiedUserManagerImplTest {
 		} catch (IllegalArgumentException e) {
 			// as expected
 		}
+	}
+	
+	@Test
+	public void testPLFM2701() throws Exception {
+		MultichoiceQuestion mq = new MultichoiceQuestion();
+		mq.setAnswers(Collections.singletonList(createMultichoiceAnswer(null, 2L)));
+		// throws a NPE in PLFM-2701
+		CertifiedUserManagerImpl.isCorrectResponse(mq, createMultiChoiceResponse(new Long[]{1L}));
 	}
 	
 	private static TextFieldQuestion generateQuestion(Long questionIndex, String correctAnswer) {

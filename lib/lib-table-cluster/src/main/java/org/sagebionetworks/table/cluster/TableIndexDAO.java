@@ -48,7 +48,7 @@ public interface TableIndexDAO {
 	 * @param rowset
 	 * @return
 	 */
-	int[] createOrUpdateRows(RowSet rowset, List<ColumnModel> currentSchema);
+	void createOrUpdateOrDeleteRows(RowSet rowset, List<ColumnModel> currentSchema);
 	
 	/**
 	 * Query a RowSet from the table.

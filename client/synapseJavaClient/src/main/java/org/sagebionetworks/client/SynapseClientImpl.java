@@ -4810,6 +4810,23 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		String url = getRepoEndpoint()+ENTITY+"/"+toAppend.getTableId()+TABLE;
 		return asymmetricalPost(url, toAppend, RowReferenceSet.class);
 	}
+
+	@Override
+	public RowReferenceSet deleteRowsFromTable(RowReferenceSet toDelete) throws SynapseException {
+		if (toDelete == null)
+			throw new IllegalArgumentException("RowReferenceSet cannot be null");
+		if (toDelete.getTableId() == null)
+			throw new IllegalArgumentException("RowReferenceSet.tableId cannot be null");
+		String uri = ENTITY + "/" + toDelete.getTableId() + TABLE + "/deleteRows";
+		try {
+			String jsonBody = EntityFactory.createJSONStringForEntity(toDelete);
+			JSONObject obj = getSharedClientConnection().postJson(repoEndpoint, uri, jsonBody, getUserAgent(), null);
+			return EntityFactory.createEntityFromJSONObject(obj, RowReferenceSet.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+
 	@Override
 	public RowSet queryTableEntity(String sql) throws SynapseException, SynapseTableUnavilableException{
 		boolean isConsistent = true;

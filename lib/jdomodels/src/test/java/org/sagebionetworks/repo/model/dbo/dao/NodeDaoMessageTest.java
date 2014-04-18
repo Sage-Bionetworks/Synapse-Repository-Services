@@ -140,6 +140,8 @@ public class NodeDaoMessageTest {
 		TransactionalMessengerObserver updateObserver = Mockito.mock(TransactionalMessengerObserver.class);
 		transactionalMessanger.registerObserver(updateObserver);
 		
+		final StringBuilder failMessage = new StringBuilder();
+
 		// The act of locking and updating an etag is what triggers an update message
 		// however, the message should not fire until, we release the transaction.
 		Thread threadOne = new Thread(new Runnable() {
@@ -148,7 +150,8 @@ public class NodeDaoMessageTest {
 				try {
 					nodeLockerA.aquireAndHoldLock(id, eTag);
 				} catch (Exception e) {
-					fail(e.getMessage());
+					failMessage.append("Should never get here");
+					fail("Should never get here");
 				}
 			}
 		});
@@ -188,8 +191,20 @@ public class NodeDaoMessageTest {
 			// Release the lock even if we fail.
 			nodeLockerA.releaseLock();
 		}
+
+		if (failMessage.length() > 0) {
+			fail(failMessage.toString());
+		}
 	}
 	
+	private static class SpecialDatastoreException extends DatastoreException {
+		private static final long serialVersionUID = 1L;
+
+		public SpecialDatastoreException(String message) {
+			super(message);
+		}
+	}
+
 	/**
 	 * If a transaction is rolled-back a message should not fire.
 	 */
@@ -205,6 +220,8 @@ public class NodeDaoMessageTest {
 		TransactionalMessengerObserver updateObserver = Mockito.mock(TransactionalMessengerObserver.class);
 		transactionalMessanger.registerObserver(updateObserver);
 		
+		final StringBuilder failMessage = new StringBuilder();
+
 		// The act of locking and updating an etag is what triggers an update message
 		// however, the message should not fire until, we release the transaction.
 		Thread threadOne = new Thread(new Runnable() {
@@ -212,7 +229,12 @@ public class NodeDaoMessageTest {
 			public void run() {
 				try {
 					nodeLockerA.aquireAndHoldLock(id, eTag);
+					failMessage.append("Should never get here");
+					fail("Should never get here");
+				} catch (SpecialDatastoreException e) {
+					// success!
 				} catch (Exception e) {
+					failMessage.append(e.getMessage());
 					fail(e.getMessage());
 				}
 			}
@@ -228,7 +250,7 @@ public class NodeDaoMessageTest {
 			verify(updateObserver, never()).fireChangeMessage(any(ChangeMessage.class));
 			
 			// Now throw an exception.
-			nodeLockerA.throwException(new DatastoreException("Triggered exception"));
+			nodeLockerA.throwException(new SpecialDatastoreException("Triggered exception"));
 			
 			// make sure a rollback actually occurred and the etag has not changed.
 			Node current = nodeDao.getNode(id);
@@ -242,6 +264,10 @@ public class NodeDaoMessageTest {
 		}finally{
 			// Release the lock even if we fail.
 			nodeLockerA.releaseLock();
+		}
+
+		if (failMessage.length() > 0) {
+			fail(failMessage.toString());
 		}
 	}
 	

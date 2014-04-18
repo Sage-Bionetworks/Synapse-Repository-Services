@@ -7,6 +7,7 @@
     	"ACTIVITY",
     	"EVALUATION",
     	"SUBMISSION",
+    	"EVALUATION_SUBMISSIONS",
     	"FILE",
     	"MESSAGE", 
     	"WIKI",

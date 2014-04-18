@@ -368,6 +368,7 @@ public class EvaluationControllerAutowiredTest {
 		status.setModifiedOn(statusClone.getModifiedOn());
 		assertFalse("Etag was not updated", status.getEtag().equals(statusClone.getEtag()));
 		status.setEtag(statusClone.getEtag());
+		status.setStatusVersion(statusClone.getStatusVersion());
 		assertEquals(status, statusClone);
 		assertEquals(initialCount + 1, entityServletHelper.getSubmissionCount(adminUserId, eval1.getId()));
 		

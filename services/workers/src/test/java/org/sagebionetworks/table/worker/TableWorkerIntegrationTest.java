@@ -33,6 +33,7 @@ import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableEntity;
@@ -45,6 +46,8 @@ import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import com.google.common.collect.Lists;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -106,7 +109,7 @@ public class TableWorkerIntegrationTest {
 			}
 		}
 	}
-	
+
 	@Test
 	public void testRoundTrip() throws NotFoundException, InterruptedException, DatastoreException, TableUnavilableException, IOException{
 		// Create one column of each type
@@ -144,7 +147,7 @@ public class TableWorkerIntegrationTest {
 		// Validate that we can query the table
 		boolean isConsistent = true;
 		boolean countOnly = false;
-		rowSet = tableRowManager.query(adminUserInfo, "select * from "+tableId+" limit 6", isConsistent, countOnly);
+		rowSet = tableRowManager.query(adminUserInfo, "select * from " + tableId + " limit 8", isConsistent, countOnly);
 		assertNotNull(rowSet);
 		assertEquals(tableId, rowSet.getTableId());
 		assertNotNull(rowSet.getHeaders());
@@ -156,6 +159,69 @@ public class TableWorkerIntegrationTest {
 		assertEquals("The etag should also match the rereferenceSet.etag",referenceSet.getEtag(), rowSet.getEtag());
 	}
 	
+	@Test
+	public void testReplaceAndDeleteRoundTrip() throws NotFoundException, InterruptedException, DatastoreException, TableUnavilableException,
+			IOException {
+		// Create one column of each type
+		schema = new LinkedList<ColumnModel>();
+		ColumnModel cm = new ColumnModel();
+		cm.setColumnType(ColumnType.STRING);
+		cm.setName("col1");
+		cm = columnManager.createColumnModel(adminUserInfo, cm);
+		schema.add(cm);
+
+		List<String> headers = TableModelUtils.getHeaders(schema);
+		// Create the table.
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		table.setColumnIds(headers);
+		tableId = entityManager.createEntity(adminUserInfo, table, null);
+		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
+		columnManager.bindColumnToObject(adminUserInfo, headers, tableId, true);
+		// Now add some data
+		List<Row> rows = TableModelTestUtils.createRows(schema, 4);
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(rows);
+		rowSet.setHeaders(headers);
+		rowSet.setTableId(tableId);
+		referenceSet = tableRowManager.appendRows(adminUserInfo, tableId, schema, rowSet);
+		assertEquals(4, referenceSet.getRows().size());
+
+		rowSet.setEtag(referenceSet.getEtag());
+		for (int i = 0; i < 4; i++) {
+			rows.get(i).setRowId(referenceSet.getRows().get(i).getRowId());
+			rows.get(i).setVersionNumber(referenceSet.getRows().get(i).getVersionNumber());
+		}
+
+		List<Row> updateRows = Lists.newArrayList(rows);
+		updateRows.remove(3);
+
+		TableModelTestUtils.updateRow(schema, updateRows.get(0), 333);
+		TableModelTestUtils.updateRow(schema, updateRows.get(1), 444);
+		TableModelTestUtils.updateRow(schema, updateRows.get(2), 555);
+		rowSet.setRows(updateRows);
+		RowReferenceSet referenceSet2 = tableRowManager.appendRows(adminUserInfo, tableId, schema, rowSet);
+		assertEquals(3, referenceSet2.getRows().size());
+
+		RowReferenceSet rowsToDelete = referenceSet2;
+		rowsToDelete.getRows().remove(2);
+		rowsToDelete.getRows().remove(0);
+		rowsToDelete.getRows().add(referenceSet.getRows().get(3));
+
+		referenceSet = tableRowManager.deleteRows(adminUserInfo, tableId, schema, rowsToDelete);
+		assertEquals(2, referenceSet.getRows().size());
+
+		// Wait for the table to become available
+		waitForTableToBeAvailable(tableId);
+		// Validate that we can query the table
+		boolean isConsistent = true;
+		boolean countOnly = false;
+		rowSet = tableRowManager.query(adminUserInfo, "select * from " + tableId + " limit 100", isConsistent, countOnly);
+		assertEquals(2, rowSet.getRows().size());
+		assertEquals("updatestring333", rowSet.getRows().get(0).getValues().get(0));
+		assertEquals("updatestring555", rowSet.getRows().get(1).getValues().get(0));
+	}
+
 	@Ignore // This is a very slow test that pushes massive amounts of data so it is disabled.
 	@Test
 	public void testAppendRowsAtScale() throws NotFoundException, InterruptedException, DatastoreException, TableUnavilableException, IOException{

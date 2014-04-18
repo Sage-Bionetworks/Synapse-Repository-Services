@@ -4,6 +4,7 @@ import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_E
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_ID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_NAME;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_STATUS;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_EVALUATION_SUBMISSIONS_ETAG;
 import static org.sagebionetworks.repo.model.query.SQLConstants.LIMIT_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.SQLConstants.OFFSET_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.SQLConstants.TABLE_EVALUATION;
@@ -79,6 +80,18 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 			"SELECT ID FROM "+ TABLE_EVALUATION +
 			" WHERE "+ COL_EVALUATION_NAME + "=:" + NAME;
 	
+	private static final String SELECT_EVALUATION_SUBMISSIONS_ETAG = "SELECT "+
+			COL_EVALUATION_SUBMISSIONS_ETAG+" FROM "+
+			TABLE_EVALUATION + " WHERE "+ COL_EVALUATION_ID + 
+			"=:" + COL_EVALUATION_ID;
+	
+	private static final String SELECT_EVALUATION_SUBMISSIONS_ETAG_FOR_UPDATE = 
+			SELECT_EVALUATION_SUBMISSIONS_ETAG+ " FOR UPDATE";
+	
+	private static final String UPDATE_EVALUATION_SUBMISSIONS_ETAG = "UPDATE "+TABLE_EVALUATION+
+			" SET "+COL_EVALUATION_SUBMISSIONS_ETAG+"=:"+COL_EVALUATION_SUBMISSIONS_ETAG+
+			" WHERE "+COL_EVALUATION_ID+"=:"+COL_EVALUATION_ID;
+	
 	private static final String SELECT_ALL_SQL_PAGINATED = 
 			"SELECT * FROM "+ TABLE_EVALUATION +
 			OFFSET_AND_LIMIT;
@@ -96,6 +109,11 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	private static final RowMapper<EvaluationDBO> rowMapper = ((new EvaluationDBO()).getTableMapping());
 
 	private static final String EVALUATION_NOT_FOUND = "Evaluation could not be found with id :";
+	
+	private static final String SELECT_SUBMISSIONS_ETAG = "SELECT " + COL_EVALUATION_SUBMISSIONS_ETAG +
+			" FROM " + TABLE_EVALUATION +" WHERE ID = ?";
+	
+
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -200,13 +218,20 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		return simpleJdbcTemplate.queryForLong(COUNT_BY_CONTENT_SOURCE, params);
 	}
 
+
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void update(Evaluation dto)
 			throws DatastoreException, InvalidModelException,
 			NotFoundException, ConflictingUpdateException {
+		// we do this to preserve the EvaluationSubmissions etag
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(ID, dto.getId());
 		EvaluationDBO dbo = new EvaluationDBO();
 		copyDtoToDbo(dto, dbo);
+		dbo.setSubmissionsEtag(
+				simpleJdbcTemplate.queryForObject(SELECT_SUBMISSIONS_ETAG, String.class, dto.getId())
+		);
 		verifyEvaluationDBO(dbo);
 		
 		String newEtag = lockAndGenerateEtag(dbo.getIdString(), dbo.getEtag(), ChangeType.UPDATE);	
@@ -449,6 +474,37 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 			sql.append(SELECT_AVAILABLE_EVALUATIONS_FILTERED_COUNT_SUFFIX);
 		}
 		return simpleJdbcTemplate.queryForLong(sql.toString(), param);
+	}
+	
+	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public void updateSubmissionsEtag(String id, String submissionsEtag) {
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(COL_EVALUATION_ID, id);
+		param.addValue(COL_EVALUATION_SUBMISSIONS_ETAG, submissionsEtag);
+		simpleJdbcTemplate.update(UPDATE_EVALUATION_SUBMISSIONS_ETAG, param);
+	}
+
+	@Override
+	public String selectSubmissionsEtag(String id) {
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(COL_EVALUATION_ID, id);
+		try {
+			return simpleJdbcTemplate.queryForObject(SELECT_EVALUATION_SUBMISSIONS_ETAG, String.class, param);
+		} catch (EmptyResultDataAccessException e) {
+			return null;
+		}
+	}
+
+	@Override
+	public String selectAndLockSubmissionsEtag(String id) {
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(COL_EVALUATION_ID, id);
+		try {
+			return simpleJdbcTemplate.queryForObject(SELECT_EVALUATION_SUBMISSIONS_ETAG_FOR_UPDATE, String.class, param);
+		} catch (EmptyResultDataAccessException e) {
+			return null;
+		}
 	}
 
 	

@@ -236,7 +236,7 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 				throw new IllegalArgumentException("MultichoiceQuestion must have a MultichoiceResponse");
 			Set<Long> correctAnswers = new HashSet<Long>();
 			for (MultichoiceAnswer a : ((MultichoiceQuestion)q).getAnswers()) {
-				if (a.getIsCorrect()) correctAnswers.add(a.getAnswerIndex());
+				if (a.getIsCorrect()!=null && a.getIsCorrect()) correctAnswers.add(a.getAnswerIndex());
 			}
 			return ((MultichoiceResponse)response).
 					getAnswerIndex().equals(correctAnswers);

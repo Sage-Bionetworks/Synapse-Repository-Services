@@ -22,6 +22,9 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.jdo.EntityNameValidation;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
@@ -40,6 +43,12 @@ public class EvaluationManagerImpl implements EvaluationManager {
 
 	@Autowired
 	private EvaluationPermissionsManager evaluationPermissionsManager;
+	
+	@Autowired
+	private TransactionalMessenger transactionalMessenger;
+	
+	@Autowired
+	private SubmissionManager submissionManager;
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -204,7 +213,12 @@ public class EvaluationManagerImpl implements EvaluationManager {
 					" (" + eval.getName() + ")");
 		}
 		evaluationPermissionsManager.deleteAcl(userInfo, id);
+		// lock out multi-submission access (e.g. batch updates)
+		evaluationDAO.selectAndLockSubmissionsEtag(id);
 		evaluationDAO.delete(id);
+		submissionManager.sendEvaluationSubmissionsChangeMessage(
+				KeyFactory.stringToKey(id), 
+				ChangeType.DELETE);
 	}
 
 	private static void validateEvaluation(Evaluation oldEval, Evaluation newEval) {

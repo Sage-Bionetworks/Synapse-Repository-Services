@@ -1,9 +1,10 @@
 package org.sagebionetworks.evaluation.dao;
 
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_ETAG;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_VERSION;
 
-import java.io.IOException;
-import java.util.Date;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.UUID;
 
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
@@ -14,14 +15,15 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.ObservableEntity;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.evaluation.SubmissionStatusDAO;
-import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.query.SQLConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
@@ -35,27 +37,27 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
 	
-	@Autowired
-	private TransactionalMessenger transactionalMessenger;
-	
 	private static final String ID = DBOConstants.PARAM_SUBMISSION_ID;
 	
-	private static final String SQL_ETAG_WITHOUT_LOCK = "SELECT " + COL_SUBSTATUS_ETAG + " FROM " +
+	private static final String SQL_ETAG_WITHOUT_LOCK = "SELECT " + COL_SUBSTATUS_ETAG +", "+
+			COL_SUBSTATUS_VERSION + " FROM " +
 			SQLConstants.TABLE_SUBSTATUS +" WHERE ID = ?";
 
 	private static final String SQL_ETAG_FOR_UPDATE = SQL_ETAG_WITHOUT_LOCK + " FOR UPDATE";
 
 	private static final String SUBMISSION_NOT_FOUND = "Submission could not be found with id :";
 	
+	
+	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public String create(SubmissionStatus dto) throws DatastoreException {
 		// Convert to DBO
-		SubmissionStatusDBO dbo = convertDtoToDbo(dto);
+		dto.setStatusVersion(DBOConstants.SUBSTATUS_INITIAL_VERSION_NUMBER);
+		SubmissionStatusDBO dbo = SubmissionUtils.convertDtoToDbo(dto);
 		
-		// Generate a new eTag and CREATE message
+		// Generate a new eTag
 		dbo.seteTag(UUID.randomUUID().toString());
-		transactionalMessenger.sendMessageAfterCommit(dbo, ChangeType.CREATE);
 
 		// Ensure DBO has required information
 		verifySubmissionStatusDBO(dbo);
@@ -74,20 +76,25 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(ID, id);
 		SubmissionStatusDBO dbo = basicDao.getObjectByPrimaryKey(SubmissionStatusDBO.class, param);		
-		return convertDboToDto(dbo);
+		return SubmissionUtils.convertDboToDto(dbo);
 	}
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void update(SubmissionStatus dto) throws DatastoreException,
 			InvalidModelException, NotFoundException, ConflictingUpdateException {
-		SubmissionStatusDBO dbo = convertDtoToDbo(dto);
+		SubmissionStatusDBO dbo = SubmissionUtils.convertDtoToDbo(dto);
 		dbo.setModifiedOn(System.currentTimeMillis());
 		verifySubmissionStatusDBO(dbo);
 
 		// update eTag and send message of update
-		String newEtag = lockAndGenerateEtag(dbo.getIdString(), dbo.getEtag(), ChangeType.UPDATE);
-		dbo.seteTag(newEtag);
+		EtagAndVersion newEtagAndVersion = lockAndGenerateEtag(dbo.getId().toString(), dbo.geteTag());
+		dbo.seteTag(newEtagAndVersion.getEtag());
+		dbo.setVersion(newEtagAndVersion.getVersion());
+		
+		// we also need to update the serialized field
+		dto = SubmissionUtils.convertDboToDto(dbo);
+		SubmissionUtils.copyToSerializedField(dto, dbo);
 		
 		basicDao.update(dbo);
 	}
@@ -98,9 +105,6 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(ID, id);
 		basicDao.deleteObjectByPrimaryKey(SubmissionStatusDBO.class, param);
-		
-		// Send a delete message
-		transactionalMessenger.sendMessageAfterCommit(id, ObjectType.SUBMISSION, ChangeType.DELETE);
 	}
 
 	/**
@@ -110,108 +114,35 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 	 */
 	private void verifySubmissionStatusDBO(SubmissionStatusDBO dbo) {
 		EvaluationUtils.ensureNotNull(dbo.getId(), "Submission ID");
-		EvaluationUtils.ensureNotNull(dbo.getEtag(), "eTag");
+		EvaluationUtils.ensureNotNull(dbo.geteTag(), "eTag");
 		EvaluationUtils.ensureNotNull(dbo.getModifiedOn(), "Modified date");
 		EvaluationUtils.ensureNotNull(dbo.getStatusEnum(), "Submission status");
+		EvaluationUtils.ensureNotNull(dbo.getVersion(), "Status version");
 	}
 	
-	private String lockAndGenerateEtag(String id, String eTag, ChangeType changeType)
+	private EtagAndVersion lockAndGenerateEtag(String id, String eTag)
 			throws NotFoundException, ConflictingUpdateException, DatastoreException {
-		String currentTag = lockForUpdate(id);
+		EtagAndVersion current = lockForUpdate(id);
 		// Check the eTags
-		if(!currentTag.equals(eTag)){
+		if(!current.getEtag().equals(eTag)){
 			throw new ConflictingUpdateException("Node: "+id+" was updated since you last fetched it, retrieve it again and reapply the update");
 		}
 		// Get a new e-tag
-		SubmissionStatusDBO dbo = getDBO(id);
-		dbo.seteTag(UUID.randomUUID().toString());
-		transactionalMessenger.sendMessageAfterCommit(dbo, changeType);
-		return dbo.getEtag();
+		return new EtagAndVersion(UUID.randomUUID().toString(), current.getVersion()+1L);
 	}
 	
-	private SubmissionStatusDBO getDBO(String id) throws NotFoundException {
-		EvaluationUtils.ensureNotNull(id, "Submission id");
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(DBOConstants.PARAM_EVALUATION_ID, id);
-		try {
-			SubmissionStatusDBO dbo = basicDao.getObjectByPrimaryKey(SubmissionStatusDBO.class, param);
-			return dbo;
-		} catch (NotFoundException e) {
-			throw new NotFoundException(SUBMISSION_NOT_FOUND + id);
-		}
-	}
-	
-	private String lockForUpdate(String id) {
+	private EtagAndVersion lockForUpdate(String id) {
 		// Create a Select for update query
-		return simpleJdbcTemplate.queryForObject(SQL_ETAG_FOR_UPDATE, String.class, id);
+		return simpleJdbcTemplate.queryForObject(SQL_ETAG_FOR_UPDATE, new RowMapper<EtagAndVersion>() {
+			@Override
+			public EtagAndVersion mapRow(ResultSet rs, int rowNum)
+					throws SQLException {
+				return new EtagAndVersion(rs.getString(COL_SUBSTATUS_ETAG), rs.getLong(COL_SUBSTATUS_VERSION));
+			}}, id);
 	}
 
 	@Override
 	public long getCount() throws DatastoreException {
 		return basicDao.getCount(SubmissionStatusDBO.class);
-	}
-
-	/**
-	 * Convert a SubmissionStatusDBO database object to a Participant data transfer object
-	 * 
-	 * @param dto
-	 * @param dbo
-	 */
-	protected static SubmissionStatusDBO convertDtoToDbo(SubmissionStatus dto) {
-		SubmissionStatusDBO dbo = new SubmissionStatusDBO();
-		try {
-			dbo.setId(dto.getId() == null ? null : Long.parseLong(dto.getId()));
-		} catch (NumberFormatException e) {
-			throw new NumberFormatException("Invalid Submission ID: " + dto.getId());
-		}
-		dbo.seteTag(dto.getEtag());
-		dbo.setModifiedOn(dto.getModifiedOn() == null ? null : dto.getModifiedOn().getTime());
-		dbo.setScore(dto.getScore());
-		dbo.setStatusEnum(dto.getStatus());
-		copyToSerializedField(dto, dbo);
-		
-		return dbo;
-	}
-
-	/**
-	 * Convert a SubmissionStatus data transfer object to a SubmissionDBO database object
-	 * 
-	 * @param dbo
-	 * @param dto
-	 * @throws DatastoreException
-	 */
-	protected static SubmissionStatus convertDboToDto(SubmissionStatusDBO dbo) throws DatastoreException {		
-		// serialized entity is regarded as the "true" representation of the object
-		SubmissionStatus dto = copyFromSerializedField(dbo);
-		
-		// use non-serialized eTag and modified date as the "true" values
-		dto.setEtag(dbo.getEtag());
-		dto.setModifiedOn(dbo.getModifiedOn() == null ? null : new Date(dbo.getModifiedOn()));
-		
-		// populate from secondary columns if necessary (to support legacy non-serialized objects)
-		if (dto.getId() == null) 
-			dto.setId(dbo.getId().toString());			
-		if (dto.getScore() == null)
-			dto.setScore(dbo.getScore());
-		if (dto.getStatus() == null)
-			dto.setStatus(dbo.getStatusEnum());
-		
-		return dto;
-	}	
-	
-	protected static void copyToSerializedField(SubmissionStatus dto, SubmissionStatusDBO dbo) throws DatastoreException {
-		try {
-			dbo.setSerializedEntity(JDOSecondaryPropertyUtils.compressObject(dto));
-		} catch (IOException e) {
-			throw new DatastoreException(e);
-		}
-	}
-	
-	protected static SubmissionStatus copyFromSerializedField(SubmissionStatusDBO dbo) throws DatastoreException {
-		try {
-			return (SubmissionStatus) JDOSecondaryPropertyUtils.decompressedObject(dbo.getSerializedEntity());
-		} catch (IOException e) {
-			throw new DatastoreException(e);
-		}
 	}
 }

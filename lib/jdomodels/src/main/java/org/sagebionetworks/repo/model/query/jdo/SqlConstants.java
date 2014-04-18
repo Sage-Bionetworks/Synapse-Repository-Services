@@ -375,6 +375,11 @@ public class SqlConstants {
 	public static final String COL_TABLE_ROW_COUNT			= "ROW_COUNT";
 	public static final String DDL_TABLE_ROW_CHANGE = "schema/TableRowChange-ddl.sql";
 	
+	
+	public static final String TABLE_BOUND_COLUMN_OWNER		= "BOUND_COLUMN_OWNER";
+	public static final String COL_BOUND_OWNER_OBJECT_ID	= "OBJECT_ID";
+	public static final String COL_BOUND_OWNER_ETAG			= "ETAG";
+	
 	// The bound column model table
 	public static final String TABLE_BOUND_COLUMN			= "BOUND_COLUMN";
 	public static final String COL_BOUND_CM_COLUMN_ID		= "COLUMN_ID";

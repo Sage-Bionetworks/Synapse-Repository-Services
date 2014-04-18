@@ -31,6 +31,7 @@ public class SQLConstants {
 	public static final String COL_EVALUATION_STATUS 			= "STATUS";
 	public static final String COL_EVALUATION_SUB_INSTRUCT_MSG	= "SUBMISSION_INSTRUCTIONS_MESSAGE";
 	public static final String COL_EVALUATION_SUB_RECEIPT_MSG	= "SUBMISSION_RECEIPT_MESSAGE";
+	public static final String COL_EVALUATION_SUBMISSIONS_ETAG	= "SUBMISSIONS_ETAG";
 	
 	// Participant table constants
 	public static final String DDL_FILE_PARTICIPANT				= "schema/evaluation/Participant-ddl.sql";
@@ -58,6 +59,7 @@ public class SQLConstants {
 	public static final String TABLE_SUBSTATUS					= "JDOSUBMISSION_STATUS";
 	public static final String COL_SUBSTATUS_SUBMISSION_ID 		= "ID";
 	public static final String COL_SUBSTATUS_ETAG				= "ETAG";
+	public static final String COL_SUBSTATUS_VERSION			= "VERSION";
 	public static final String COL_SUBSTATUS_MODIFIED_ON 		= "MODIFIED_ON";
 	public static final String COL_SUBSTATUS_SCORE		 		= "SCORE";
 	public static final String COL_SUBSTATUS_STATUS 			= "STATUS";
@@ -87,6 +89,7 @@ public class SQLConstants {
 	public static final String COL_SUBSTATUS_ANNO_VALUE			= COL_ANNO_VALUE;
 	public static final String COL_SUBSTATUS_ANNO_IS_PRIVATE	= COL_ANNO_IS_PRIVATE;
 	public static final String COL_SUBSTATUS_ANNO_BLOB			= ANNO_BLOB;
+	public static final String COL_SUBSTATUS_ANNO_VERSION		= "VERSION";
 	
 	// Aliases for use with Annotations tables
 	public static final String ALIAS_ANNO_OWNER					= "annoOwner";
