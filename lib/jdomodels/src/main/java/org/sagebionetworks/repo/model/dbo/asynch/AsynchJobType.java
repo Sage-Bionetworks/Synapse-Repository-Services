@@ -27,7 +27,9 @@ public enum AsynchJobType {
 	 */
 	public static AsynchJobType findType(Class<? extends AsynchronousJobBody> clazz){
 		for(AsynchJobType type: AsynchJobType.values()){
-			if(type.clazz.equals(clazz)) return type;
+			if(type.clazz.equals(clazz)){
+				return type;
+			}
 		}
 		throw new IllegalArgumentException("Unknown type for class:"+clazz);
 	}

@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.dao.asynch.AsynchronousJobStatusDAO;
@@ -72,6 +73,8 @@ public class AsynchJobStatusManagerImplTest {
 		status.setStartedByUserId(user.getId());
 		status.setJobId("8888");
 		when(mockAsynchJobStatusDao.getJobStatus(anyString())).thenReturn(status);
+		
+		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_WRITE);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -115,6 +118,80 @@ public class AsynchJobStatusManagerImplTest {
 		when(mockAuthorizationManager.isUserCreatorOrAdmin(any(UserInfo.class), anyString())).thenReturn(true);
 		AsynchronousJobStatus status = manager.getJobStatus(user,"999");
 		assertNotNull(status);
+	}
+	
+	/**
+	 * Should be able to get a completed job while in read-only mode.
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@Test
+	public void testGetJobStatusReadOnlyComplete() throws DatastoreException, NotFoundException{
+		when(mockAuthorizationManager.isUserCreatorOrAdmin(any(UserInfo.class), anyString())).thenReturn(true);
+		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_ONLY);
+		AsynchronousJobStatus status = new AsynchronousJobStatus();
+		status.setStartedByUserId(user.getId());
+		status.setJobId("999");
+		status.setJobState(AsynchJobState.COMPLETE);
+		when(mockAsynchJobStatusDao.getJobStatus(anyString())).thenReturn(status);
+		AsynchronousJobStatus result = manager.getJobStatus(user,"999");
+		assertNotNull(result);
+	}
+	
+	/**
+	 * Should be able to get a failed job while in read-only mode.
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@Test
+	public void testGetJobStatusReadOnlyFailed() throws DatastoreException, NotFoundException{
+		when(mockAuthorizationManager.isUserCreatorOrAdmin(any(UserInfo.class), anyString())).thenReturn(true);
+		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_ONLY);
+		AsynchronousJobStatus status = new AsynchronousJobStatus();
+		status.setStartedByUserId(user.getId());
+		status.setJobId("999");
+		status.setJobState(AsynchJobState.FAILED);
+		when(mockAsynchJobStatusDao.getJobStatus(anyString())).thenReturn(status);
+		AsynchronousJobStatus result = manager.getJobStatus(user,"999");
+		assertNotNull(result);
+	}
+	
+	/**
+	 * Accessing a PROCESSING job while in read-only mode should trigger an error
+	 * 
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@Test (expected=IllegalStateException.class)
+	public void testGetJobStatusReadOnlyProcessing() throws DatastoreException, NotFoundException{
+		when(mockAuthorizationManager.isUserCreatorOrAdmin(any(UserInfo.class), anyString())).thenReturn(true);
+		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_ONLY);
+		AsynchronousJobStatus status = new AsynchronousJobStatus();
+		status.setStartedByUserId(user.getId());
+		status.setJobId("999");
+		status.setJobState(AsynchJobState.PROCESSING);
+		when(mockAsynchJobStatusDao.getJobStatus(anyString())).thenReturn(status);
+		AsynchronousJobStatus result = manager.getJobStatus(user,"999");
+		assertNotNull(result);
+	}
+	
+	/**
+	 * Accessing a PROCESSING job while in DOWN mode should trigger an error
+	 * 
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@Test (expected=IllegalStateException.class)
+	public void testGetJobStatusDownProcessing() throws DatastoreException, NotFoundException{
+		when(mockAuthorizationManager.isUserCreatorOrAdmin(any(UserInfo.class), anyString())).thenReturn(true);
+		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.DOWN);
+		AsynchronousJobStatus status = new AsynchronousJobStatus();
+		status.setStartedByUserId(user.getId());
+		status.setJobId("999");
+		status.setJobState(AsynchJobState.PROCESSING);
+		when(mockAsynchJobStatusDao.getJobStatus(anyString())).thenReturn(status);
+		AsynchronousJobStatus result = manager.getJobStatus(user,"999");
+		assertNotNull(result);
 	}
 	
 	/**
