@@ -252,7 +252,9 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	public boolean canUserStartJob(UserInfo userInfo, AsynchronousJobBody bodyIntf) throws DatastoreException, NotFoundException {
 		if(bodyIntf == null) throw new IllegalArgumentException("Body cannot be null");
 		// Anonymous cannot start a job
-		if(AuthorizationUtils.isUserAnonymous(userInfo)) return false;
+		if(AuthorizationUtils.isUserAnonymous(userInfo)) {
+			return false;
+		}
 		if(bodyIntf instanceof AsynchUploadJobBody){
 			AsynchUploadJobBody body = (AsynchUploadJobBody) bodyIntf;
 			// the user must have update on the table

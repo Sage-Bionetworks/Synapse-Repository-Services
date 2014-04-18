@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.model.dbo.asynch;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.util.Date;
 
 import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobBody;
@@ -32,8 +31,8 @@ public class AsynchJobStatusUtils {
 			throw new RuntimeException(e);
 		}
 		// The database contains the truth data for all generic data.
-		dto.setChangedOn(new Date(dbo.getChangedOn()));
-		dto.setErrorDetails(bytesToString(dbo.getErrorDetails()));
+		dto.setChangedOn(dbo.getChangedOn());
+		dto.setErrorDetails(dbo.getErrorDetails());
 		dto.setErrorMessage(dbo.getErrorMessage());
 		dto.setEtag(dbo.getEtag());
 		dto.setJobId(dbo.getJobId().toString());
@@ -42,7 +41,7 @@ public class AsynchJobStatusUtils {
 		dto.setProgressTotal(dbo.getProgressTotal());
 		dto.setProgressMessage(dbo.getProgressMessage());
 		dto.setStartedByUserId(dbo.getStartedByUserId());
-		dto.setStartedOn(new Date(dbo.getStartedOn()));
+		dto.setStartedOn(dbo.getStartedOn());
 		dto.setRuntimeMS(dbo.getRuntimeMS());
 		return dto;
 	}
@@ -57,8 +56,8 @@ public class AsynchJobStatusUtils {
 		// Lookup the type
 		AsynchJobType type = AsynchJobType.findType(dto.getJobBody().getClass());
 		DBOAsynchJobStatus dbo = new DBOAsynchJobStatus();
-		dbo.setChangedOn(dto.getChangedOn().getTime()); 
-		dbo.setErrorDetails(stringToBytes(dto.getErrorDetails()));
+		dbo.setChangedOn(dto.getChangedOn()); 
+		dbo.setErrorDetails(dto.getErrorDetails());
 		dbo.setErrorMessage(truncateMessageStringIfNeeded(dto.getErrorMessage()));
 		dbo.setEtag(dto.getEtag());
 		dbo.setJobId(Long.parseLong(dto.getJobId()));
@@ -68,7 +67,7 @@ public class AsynchJobStatusUtils {
 		dbo.setProgressTotal(dto.getProgressTotal());
 		dbo.setProgressMessage(truncateMessageStringIfNeeded(dto.getProgressMessage()));
 		dbo.setStartedByUserId(dto.getStartedByUserId());
-		dbo.setStartedOn(dto.getStartedOn().getTime());
+		dbo.setStartedOn(dto.getStartedOn());
 		dbo.setRuntimeMS(dto.getRuntimeMS());
 		// Compress the body
 		try {

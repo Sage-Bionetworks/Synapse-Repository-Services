@@ -5,6 +5,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.dao.asynch.AsynchronousJobStatusDAO;
@@ -16,6 +17,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 	
+	private static final String JOB_ABORTED_MESSAGE = "Job aborted because the stack was not in: "+StatusEnum.READ_WRITE;
+
 	@Autowired
 	AsynchronousJobStatusDAO asynchJobStatusDao;
 	
@@ -33,6 +36,11 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 		// Only the user that started a job can read it
 		if(!authorizationManager.isUserCreatorOrAdmin(userInfo, status.getStartedByUserId().toString())){
 			throw new UnauthorizedException("Only the user that created a job can access the job's status.");
+		}
+		// If a job is running and the stack is not in READ-WRITE mode then the job is failed.
+		if(AsynchJobState.PROCESSING.equals(status.getJobState())){
+			// Since the job is processing check the state of the stack.
+			checkStackReadWrite();
 		}
 		return status;
 	}
@@ -64,7 +72,7 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 	 */
 	private void checkStackReadWrite() {
 		if(!StatusEnum.READ_WRITE.equals(stackStatusDao.getCurrentStatus())){
-			throw new IllegalStateException("Job aborted because the stack was not in: "+StatusEnum.READ_WRITE);
+			throw new IllegalStateException(JOB_ABORTED_MESSAGE);
 		}
 	}
 

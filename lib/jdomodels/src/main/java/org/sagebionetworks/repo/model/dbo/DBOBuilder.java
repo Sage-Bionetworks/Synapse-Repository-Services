@@ -359,7 +359,9 @@ public class DBOBuilder<T> {
 					type = "CHAR(" + fieldAnnotation.fixedchar() + ")";
 				} else if (fieldAnnotation.etag()) {
 					type = "CHAR(36)";
-				} else {
+				} else if (fieldAnnotation.blob() != null) {
+					type = fieldAnnotation.blob();
+				}  else {
 					throw new IllegalArgumentException("No type defined and String field does not have varchar or fixedchar set for "
 							+ fieldAnnotation.name() + " on " + owner.getName());
 				}
