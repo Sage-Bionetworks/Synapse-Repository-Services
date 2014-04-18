@@ -7,6 +7,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
+import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
@@ -29,6 +30,7 @@ import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
+import org.sagebionetworks.evaluation.model.SubmissionStatusBatch;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.manager.EntityManager;
@@ -69,6 +71,7 @@ public class SubmissionManagerTest {
 	private Submission subWithId;
 	private Submission sub2WithId;
 	private SubmissionStatus subStatus;
+	private SubmissionStatusBatch batch;
 	
 	private IdGenerator mockIdGenerator;
 	private SubmissionDAO mockSubmissionDAO;
@@ -176,6 +179,13 @@ public class SubmissionManagerTest {
         subStatus.setStatus(SubmissionStatusEnum.RECEIVED);
         subStatus.setAnnotations(createDummyAnnotations());
         
+        batch = new SubmissionStatusBatch();
+        List<SubmissionStatus> statuses = new ArrayList<SubmissionStatus>();
+        statuses.add(subStatus);
+        batch.setStatuses(statuses);
+        batch.setIsFirstBatch(true);
+        batch.setIsLastBatch(true);
+        
         folder = new Folder();
         bundle = new EntityBundle();
         bundle.setEntity(folder);
@@ -211,7 +221,7 @@ public class SubmissionManagerTest {
     	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.PARTICIPATE))).thenReturn(true);
     	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.SUBMIT))).thenReturn(true);
     	when(mockEvalPermissionsManager.hasAccess(eq(ownerInfo), eq(EVAL_ID), any(ACCESS_TYPE.class))).thenReturn(true);
-
+    	when(mockSubmissionStatusDAO.getEvaluationIdForBatch((List<SubmissionStatus>)anyObject())).thenReturn(Long.parseLong(EVAL_ID));
     	// Submission Manager
     	submissionManager = new SubmissionManagerImpl();
     	ReflectionTestUtils.setField(submissionManager, "idGenerator", mockIdGenerator);
@@ -233,17 +243,18 @@ public class SubmissionManagerTest {
 		submissionManager.createSubmission(userInfo, sub, ETAG, bundle);
 		submissionManager.getSubmission(ownerInfo, SUB_ID);
 		submissionManager.updateSubmissionStatus(ownerInfo, subStatus);
+		submissionManager.updateSubmissionStatusBatch(ownerInfo, EVAL_ID, batch);
 		submissionManager.deleteSubmission(ownerInfo, SUB_ID);
 		verify(mockSubmissionDAO).create(any(Submission.class));
 		verify(mockSubmissionDAO).delete(eq(SUB_ID));
 		verify(mockSubmissionStatusDAO).create(any(SubmissionStatus.class));
-		verify(mockSubmissionStatusDAO).update(any(List.class));
+		verify(mockSubmissionStatusDAO, times(2)).update(any(List.class));
 		verify(mockSubmissionFileHandleDAO).create(eq(SUB_ID), eq(fileHandle1.getId()));
 		verify(mockSubmissionFileHandleDAO).create(eq(SUB_ID), eq(fileHandle2.getId()));
 		// message sending occurs 3 times, for Create, Update, Delete
-		verify(mockTransactionalMessenger, times(3)).sendMessageAfterCommit((ChangeMessage)any());
-		verify(mockEvaluationDAO, times(3)).selectAndLockSubmissionsEtag(EVAL_ID);
-		verify(mockEvaluationDAO, times(3)).updateSubmissionsEtag(eq(EVAL_ID), anyString());
+		verify(mockTransactionalMessenger, times(4)).sendMessageAfterCommit((ChangeMessage)any());
+		verify(mockEvaluationDAO, times(4)).selectAndLockSubmissionsEtag(EVAL_ID);
+		verify(mockEvaluationDAO, times(4)).updateSubmissionsEtag(eq(EVAL_ID), anyString());
 	}
 	
 	@Test(expected=UnauthorizedException.class)
@@ -270,6 +281,12 @@ public class SubmissionManagerTest {
 		}
 		try {
 			submissionManager.updateSubmissionStatus(userInfo, subStatus);
+			fail();
+		} catch (UnauthorizedException e) {
+			//expected
+		}
+		try {
+			submissionManager.updateSubmissionStatusBatch(userInfo, EVAL_ID, batch);
 			fail();
 		} catch (UnauthorizedException e) {
 			//expected
@@ -444,4 +461,58 @@ public class SubmissionManagerTest {
 		return annos;
 	}
 
+	@Test
+	public void testBadBatch() throws Exception {
+		// baseline:  all is good
+		submissionManager.updateSubmissionStatusBatch(ownerInfo, EVAL_ID, batch);
+		
+		batch.setIsFirstBatch(null);
+		try {
+			submissionManager.updateSubmissionStatusBatch(ownerInfo, EVAL_ID, batch);
+			fail("firstBatch can't be null");
+		} catch (IllegalArgumentException e) {
+			// as expected
+		}
+		batch.setIsFirstBatch(true);
+		submissionManager.updateSubmissionStatusBatch(ownerInfo, EVAL_ID, batch);
+		
+		batch.setIsLastBatch(null);
+		try {
+			submissionManager.updateSubmissionStatusBatch(ownerInfo, EVAL_ID, batch);
+			fail("lastBatch can't be null");
+		} catch (IllegalArgumentException e) {
+			// as expected
+		}
+		batch.setIsLastBatch(true);
+		submissionManager.updateSubmissionStatusBatch(ownerInfo, EVAL_ID, batch);
+		
+		List<SubmissionStatus> statuses = new ArrayList<SubmissionStatus>(batch.getStatuses());
+		batch.getStatuses().clear();
+		try {
+			submissionManager.updateSubmissionStatusBatch(ownerInfo, EVAL_ID, batch);
+			fail("statuses can't be empty");
+		} catch (IllegalArgumentException e) {
+			// as expected
+		}
+		batch.setStatuses(null);
+		try {
+			submissionManager.updateSubmissionStatusBatch(ownerInfo, EVAL_ID, batch);
+			fail("statuses can't be null");
+		} catch (IllegalArgumentException e) {
+			// as expected
+		}
+		List<SubmissionStatus> tooLong = new ArrayList<SubmissionStatus>();
+		for (int i=0; i<501; i++) tooLong.add(new SubmissionStatus());
+		batch.setStatuses(tooLong);
+		try {
+			submissionManager.updateSubmissionStatusBatch(ownerInfo, EVAL_ID, batch);
+			fail("statuses can't be this many");
+		} catch (IllegalArgumentException e) {
+			// as expected
+		}
+		
+		// back to base-line
+		batch.setStatuses(statuses);
+		submissionManager.updateSubmissionStatusBatch(ownerInfo, EVAL_ID, batch);
+	}
 }

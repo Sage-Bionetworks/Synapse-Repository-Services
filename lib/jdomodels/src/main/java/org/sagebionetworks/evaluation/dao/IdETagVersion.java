@@ -7,6 +7,7 @@ public class IdETagVersion {
 	
 	public IdETagVersion(Long id, String etag, Long version) {
 		this.id=id;
+		this.etag=etag;
 		this.version = version;
 	}
 	

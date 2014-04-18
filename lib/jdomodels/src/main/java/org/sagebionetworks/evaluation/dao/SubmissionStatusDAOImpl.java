@@ -57,7 +57,7 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 	
 	// SELECT s.EVALUATION_ID FROM JDOSUBMISSION s WHERE s.ID IN (:ID)
 	private static final String SELECT_EVALUATION_FOR_IDS = 
-			"SELECT s."+COL_SUBMISSION_EVAL_ID+" FROM "+TABLE_SUBMISSION+
+			"SELECT DISTINCT s."+COL_SUBMISSION_EVAL_ID+" FROM "+TABLE_SUBMISSION+
 			" s WHERE s."+COL_SUBMISSION_ID+" IN (:"+COL_SUBMISSION_ID+")";
 
 	@Override
