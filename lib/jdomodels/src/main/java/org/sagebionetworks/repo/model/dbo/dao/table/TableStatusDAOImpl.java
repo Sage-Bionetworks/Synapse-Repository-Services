@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
@@ -57,7 +58,7 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 	private DBOBasicDao basicDao;
 
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTemplate;
+	private JdbcTemplate jdbcTemplate;
 	@Autowired
 	TransactionalMessenger transactionalMessanger;
 	
@@ -79,7 +80,7 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 		String resetToken = UUID.randomUUID().toString();
 		long now = System.currentTimeMillis();
 		// We are not unconditionally replacing this row.  Instead we are only setting the columns that we wish to change.
-		simpleJdbcTemplate.update(SQL_RESET_TO_PENDING, tableId, state,resetToken, now, now, state, resetToken, now, now);
+		jdbcTemplate.update(SQL_RESET_TO_PENDING, tableId, state,resetToken, now, now, state, resetToken, now, now);
 		// Fire a change event
 		transactionalMessanger.sendMessageAfterCommit(tableId.toString(), ObjectType.TABLE, resetToken, ChangeType.UPDATE);
 		return resetToken;
@@ -129,7 +130,7 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 		// Set the progress current to be the same as the progress total.
 		Long progressCurrent = current.getProgressTotal();
 		byte[] errorDetailsBytes = TableStatusUtils.createErrorDetails(errorDetails);
-		simpleJdbcTemplate.update(SQL_UPDATE_END_STATE, state.name(), now, progressMessage, progressCurrent, errorMessage, errorDetailsBytes, runtimeMS,tableChangeEtag, tableId);
+		jdbcTemplate.update(SQL_UPDATE_END_STATE, state.name(), now, progressMessage, progressCurrent, errorMessage, errorDetailsBytes, runtimeMS,tableChangeEtag, tableId);
  	}
 	
 	/**
@@ -140,7 +141,7 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 	 */
 	private DBOTableStatus selectResetTokenForUpdate(Long tableId) throws NotFoundException{
 		try {
-			return simpleJdbcTemplate.queryForObject(SQL_SELECT_STATUS_FOR_UPDATE, tableMapping, tableId);
+			return jdbcTemplate.queryForObject(SQL_SELECT_STATUS_FOR_UPDATE, tableMapping, tableId);
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException("Table status does not exist for: "+tableId);
 		}
@@ -150,7 +151,7 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void clearAllTableState() {
-		simpleJdbcTemplate.update(SQL_DELETE_ALL_STATE);
+		jdbcTemplate.update(SQL_DELETE_ALL_STATE);
 	}
 
 	@Override
@@ -166,7 +167,7 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 		long now = System.currentTimeMillis();
 		// Calculate the total runtime
 		long runtimeMS = now - current.getStartedOn();
-		simpleJdbcTemplate.update(SQL_UPDATE_TABLE_PROGRESS, now, progressMessage, currentProgress, totalProgress, runtimeMS, tableId);
+		jdbcTemplate.update(SQL_UPDATE_TABLE_PROGRESS, now, progressMessage, currentProgress, totalProgress, runtimeMS, tableId);
 	}
 
 }

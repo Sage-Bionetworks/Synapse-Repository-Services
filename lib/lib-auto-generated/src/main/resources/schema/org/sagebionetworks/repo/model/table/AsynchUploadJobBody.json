@@ -1,0 +1,18 @@
+{
+	"description": "The body of an asynchronous CSV table upload job.",
+	"implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.asynch.AsynchronousJobBody"
+        }
+    ],
+	"properties": {
+		"tableId": {
+			"type": "string",
+			"description": "The ID of the table."
+		},
+		"uploadFileHandleId": {
+			"type": "string",
+			"description": "The ID of the file handle for a type of UPLOAD"
+		}
+	}
+}

@@ -41,6 +41,8 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.Versionable;
+import org.sagebionetworks.repo.model.asynch.AsynchronousJobBody;
+import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
@@ -1390,6 +1392,52 @@ public class ServletTestHelper {
 		}else if(response.getStatus() == 202){
 			TableStatus status = EntityFactory.createEntityFromJSONString(reponseString, TableStatus.class);
 			throw new TableUnavilableException(status);
+		}else{
+			ServletTestHelperUtils.handleException(response.getStatus(), response.getContentAsString());
+			return null;
+		}
+	}
+	
+	/**
+	 * Start a new Asynchronous Job.
+	 * 
+	 * @param instance
+	 * @param userId
+	 * @param body
+	 * @return
+	 * @throws Exception 
+	 */
+	public static AsynchronousJobStatus startAsynchJob(DispatcherServlet instance, Long userId, AsynchronousJobBody body) throws Exception{
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, UrlHelpers.ASYNCHRONOUS_JOB, userId, body);
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		instance.service(request, response);
+		String reponseString = response.getContentAsString();
+		if(response.getStatus() == 201){
+			return EntityFactory.createEntityFromJSONString(reponseString, AsynchronousJobStatus.class);
+		}else{
+			ServletTestHelperUtils.handleException(response.getStatus(), response.getContentAsString());
+			return null;
+		}
+	}
+	
+	/**
+	 * Get the status for a job
+	 * 
+	 * @param instance
+	 * @param userId
+	 * @param jobId
+	 * @return
+	 * @throws Exception
+	 */
+	public static AsynchronousJobStatus getAsynchJobStatus(DispatcherServlet instance, Long userId, String jobId) throws Exception{
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.ASYNCHRONOUS_JOB+"/"+jobId, userId, null);
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		instance.service(request, response);
+		String reponseString = response.getContentAsString();
+		if(response.getStatus() == 200){
+			return EntityFactory.createEntityFromJSONString(reponseString, AsynchronousJobStatus.class);
 		}else{
 			ServletTestHelperUtils.handleException(response.getStatus(), response.getContentAsString());
 			return null;

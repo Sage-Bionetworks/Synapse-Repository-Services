@@ -62,4 +62,6 @@ public interface ServiceProvider {
 	
 	public CertifiedUserService getCertifiedUserService();
 	
+	public AsynchronousJobServices getAsynchronousJobServices();
+	
 }

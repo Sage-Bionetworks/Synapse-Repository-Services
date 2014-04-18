@@ -38,9 +38,11 @@ import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.provenance.Activity;
+import org.sagebionetworks.repo.model.table.AsynchUploadJobBody;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -408,5 +410,56 @@ public class AuthorizationManagerImplUnitTest {
 		
 		// but if the user is an admin, will be true
 		assertTrue(authorizationManager.canUserMoveRestrictedEntity(adminUser, parentId, newParentId));
+	}
+	
+	@Test
+	public void testCanUserStartJobUploadJobHappyCase() throws DatastoreException, NotFoundException{
+		AsynchUploadJobBody body = new AsynchUploadJobBody();
+		body.setTableId("syn123");
+		body.setUploadFileHandleId("456");
+		// the user can update the entity
+		when(mockEntityPermissionsManager.hasAccess(body.getTableId(), ACCESS_TYPE.UPDATE, userInfo)).thenReturn(true);
+		when(mockFileHandleDao.getHandleCreator(body.getUploadFileHandleId())).thenReturn(userInfo.getId().toString());
+		// make the call
+		assertTrue(this.authorizationManager.canUserStartJob(userInfo, body));
+	}
+	
+	@Test
+	public void testCanUserStartJobUploadJobNoTableUpdate() throws DatastoreException, NotFoundException{
+		AsynchUploadJobBody body = new AsynchUploadJobBody();
+		body.setTableId("syn123");
+		body.setUploadFileHandleId("456");
+		// the user cannot update the entity
+		when(mockEntityPermissionsManager.hasAccess(body.getTableId(), ACCESS_TYPE.UPDATE, userInfo)).thenReturn(false);
+		when(mockFileHandleDao.getHandleCreator(body.getUploadFileHandleId())).thenReturn(userInfo.getId().toString());
+		// make the call
+		assertFalse(this.authorizationManager.canUserStartJob(userInfo, body));
+	}
+	
+	@Test
+	public void testCanUserStartJobUploadJobNotFileHandleOwner() throws DatastoreException, NotFoundException{
+		AsynchUploadJobBody body = new AsynchUploadJobBody();
+		body.setTableId("syn123");
+		body.setUploadFileHandleId("456");
+		// the user can update the entity
+		when(mockEntityPermissionsManager.hasAccess(body.getTableId(), ACCESS_TYPE.UPDATE, userInfo)).thenReturn(true);
+		// Set the owner to someone else
+		when(mockFileHandleDao.getHandleCreator(body.getUploadFileHandleId())).thenReturn("-9999");
+		// make the call
+		assertFalse(this.authorizationManager.canUserStartJob(userInfo, body));
+	}
+	
+	
+	@Test
+	public void testCanUserStartJobUploadJobAnonymous() throws DatastoreException, NotFoundException{
+		AsynchUploadJobBody body = new AsynchUploadJobBody();
+		body.setTableId("syn123");
+		body.setUploadFileHandleId("456");
+		userInfo.setId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		// the user can update the entity
+		when(mockEntityPermissionsManager.hasAccess(body.getTableId(), ACCESS_TYPE.UPDATE, userInfo)).thenReturn(true);
+		when(mockFileHandleDao.getHandleCreator(body.getUploadFileHandleId())).thenReturn(userInfo.getId().toString());
+		// make the call
+		assertFalse(this.authorizationManager.canUserStartJob(userInfo, body));
 	}
 }

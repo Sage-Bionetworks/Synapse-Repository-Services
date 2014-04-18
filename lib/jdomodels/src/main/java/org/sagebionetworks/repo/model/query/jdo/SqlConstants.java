@@ -409,6 +409,23 @@ public class SqlConstants {
 	public static final String COL_TABLE_STATUS_RUNTIME_MS			= "RUNTIME_MS";
 	public static final String COL_TABLE_LAST_TABLE_CHANGE_ETAG		= "LAST_TABLE_CHANGE_ETAG";
 	
+	// Status table for Asynchronous jobs
+	public static final String ASYNCH_JOB_STATUS					= "ASYNCH_JOB_STATUS";
+	public static final String COL_ASYNCH_JOB_ID					= "JOB_ID";
+	public static final String COL_ASYNCH_JOB_ETAG					= "ETAG";
+	public static final String COL_ASYNCH_JOB_STATE					= "JOB_STATE";
+	public static final String COL_ASYNCH_JOB_TYPE					= "JOB_TYPE";
+	public static final String COL_ASYNCH_JOB_PROGRESS_CURRENT		= "PROGRESS_CURRENT";
+	public static final String COL_ASYNCH_JOB_PROGRESS_TOTAL		= "PROGRESS_TOTAL";
+	public static final String COL_ASYNCH_JOB_PROGRESS_MESSAGE		= "PROGRESS_MESSAGE";
+	public static final String COL_ASYNCH_JOB_ERROR_MESSAGE			= "ERROR_MESSAGE";
+	public static final String COL_ASYNCH_JOB_ERROR_DETAILS			= "ERROR_DETAILS";
+	public static final String COL_ASYNCH_JOB_STARTED_ON			= "STARTED_ON";
+	public static final String COL_ASYNCH_JOB_STARTED_BY			= "STARTED_BY";
+	public static final String COL_ASYNCH_JOB_CHANGED_ON			= "CHANGED_ON";
+	public static final String COL_ASYNCH_JOB_COMPRESSED_BODY		= "COMPRESSED_BODY";
+	public static final String COL_ASYNCH_JOB_RUNTIME_MS			= "RUNTIME_MS";
+	
 	// The wiki attachment table
 	public static final String TABLE_WIKI_ATTACHMENT				= "WIKI_ATTACHMENTS";
 	public static final String COL_WIKI_ATTACHMENT_ID				= "WIKI_ID";
