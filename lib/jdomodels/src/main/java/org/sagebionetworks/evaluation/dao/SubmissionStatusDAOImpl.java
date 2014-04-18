@@ -100,10 +100,9 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 			dbo.setModifiedOn(System.currentTimeMillis());
 			verifySubmissionStatusDBO(dbo);
 			dbos.add(dbo);
-			if (idToEtagMap.containsKey(dbo.getId().toString())) {
+			if (null!=idToEtagMap.put(dbo.getId().toString(), dbo.geteTag())) {
 				throw new InvalidModelException(""+dbo.getId()+" occurs more than once in the SubmissonStatus batch.");
 			}
-			idToEtagMap.put(dbo.getId().toString(), dbo.geteTag());
 		}
 
 		// update eTag and increment the version
