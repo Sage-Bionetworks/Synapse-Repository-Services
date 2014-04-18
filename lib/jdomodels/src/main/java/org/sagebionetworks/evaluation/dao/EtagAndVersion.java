@@ -1,16 +1,21 @@
 package org.sagebionetworks.evaluation.dao;
 
 public class EtagAndVersion {
+	private Long id;
 	private String Etag;
 	private Long version;
 	
 	
-	public EtagAndVersion(String etag, Long version) {
+	public EtagAndVersion(Long id, String etag, Long version) {
 		super();
-		Etag = etag;
+		this.id=id;
+		this.Etag = etag;
 		this.version = version;
 	}
 	
+	public Long getId() {
+		return id;
+	}
 	public String getEtag() {
 		return Etag;
 	}

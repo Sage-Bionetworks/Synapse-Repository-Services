@@ -566,6 +566,7 @@ public class UrlHelpers {
 	public static final String SUBMISSION = EVALUATION + "/submission";
 	public static final String SUBMISSION_WITH_ID = SUBMISSION + "/{subId}";
 	public static final String SUBMISSION_STATUS = SUBMISSION_WITH_ID + "/status";
+	public static final String EVALUATION_STATUS_BATCH = EVALUATION_WITH_ID + "/statusBatch";
 	public static final String SUBMISSION_WITH_EVAL_ID = EVALUATION_WITH_ID + "/submission";
 	public static final String SUBMISSION_WITH_EVAL_ID_BUNDLE = SUBMISSION_WITH_EVAL_ID + BUNDLE;
 	public static final String SUBMISSION_WITH_EVAL_ID_ADMIN = SUBMISSION_WITH_EVAL_ID + ALL;

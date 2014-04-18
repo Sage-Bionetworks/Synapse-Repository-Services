@@ -237,7 +237,7 @@ public class SubmissionManagerTest {
 		verify(mockSubmissionDAO).create(any(Submission.class));
 		verify(mockSubmissionDAO).delete(eq(SUB_ID));
 		verify(mockSubmissionStatusDAO).create(any(SubmissionStatus.class));
-		verify(mockSubmissionStatusDAO).update(any(SubmissionStatus.class));
+		verify(mockSubmissionStatusDAO).update(any(List.class));
 		verify(mockSubmissionFileHandleDAO).create(eq(SUB_ID), eq(fileHandle1.getId()));
 		verify(mockSubmissionFileHandleDAO).create(eq(SUB_ID), eq(fileHandle2.getId()));
 		// message sending occurs 3 times, for Create, Update, Delete
@@ -283,7 +283,7 @@ public class SubmissionManagerTest {
 		verify(mockSubmissionDAO).create(any(Submission.class));
 		verify(mockSubmissionDAO, never()).delete(eq(SUB_ID));
 		verify(mockSubmissionStatusDAO).create(any(SubmissionStatus.class));
-		verify(mockSubmissionStatusDAO, never()).update(any(SubmissionStatus.class));
+		verify(mockSubmissionStatusDAO, never()).update(any(List.class));
 	}
 	
 	@Test(expected=UnauthorizedException.class)

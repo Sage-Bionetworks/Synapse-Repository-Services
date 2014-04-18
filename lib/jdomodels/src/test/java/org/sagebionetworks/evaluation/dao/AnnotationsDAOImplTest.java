@@ -504,7 +504,7 @@ public class AnnotationsDAOImplTest {
 		assertTrue(changed.isEmpty());
 		
 		// this should increment the version.  once again the submission is in the 'diff list'
-		submissionStatusDAO.update(status);
+		submissionStatusDAO.update(Collections.singletonList(status));
 		changed = subStatusAnnoDAO.getChangedSubmissions(Long.parseLong(evalId));
 		assertEquals(1, changed.size());
 		Submission changedSubmission = changed.get(0).getSubmission();

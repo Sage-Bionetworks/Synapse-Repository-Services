@@ -5,17 +5,18 @@ import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.sagebionetworks.evaluation.model.BatchUploadResponse;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
+import org.sagebionetworks.evaluation.model.SubmissionStatusBatch;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
@@ -733,6 +734,22 @@ public class EvaluationController extends BaseController {
 		if (!subId.equals(status.getId()))
 			throw new IllegalArgumentException("Submission ID does not match requested ID: " + subId);
 		return serviceProvider.getEvaluationService().updateSubmissionStatus(userId, status);
+	}
+	
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.EVALUATION_STATUS_BATCH, method = RequestMethod.PUT)
+	public @ResponseBody
+	BatchUploadResponse updateSubmissionStatusBatch(
+			@PathVariable String evalId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestHeader HttpHeaders header,
+			HttpServletRequest request) 
+			throws DatastoreException, UnauthorizedException, InvalidModelException, 
+			ConflictingUpdateException, NotFoundException, JSONObjectAdapterException
+	{
+		String requestBody = ControllerUtil.getRequestBodyAsString(request);
+		SubmissionStatusBatch batch = new SubmissionStatusBatch(new JSONObjectAdapterImpl(requestBody));
+		return serviceProvider.getEvaluationService().updateSubmissionStatusBatch(userId, evalId, batch);
 	}
 	
 	/**	

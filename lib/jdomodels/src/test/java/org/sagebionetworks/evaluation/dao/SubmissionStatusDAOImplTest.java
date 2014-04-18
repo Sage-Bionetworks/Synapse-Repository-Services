@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 
+import java.util.Collections;
 import java.util.Date;
 
 import org.junit.After;
@@ -43,8 +44,6 @@ public class SubmissionStatusDAOImplTest {
     @Autowired
     SubmissionDAO submissionDAO;
     @Autowired
-    ParticipantDAO participantDAO;
-    @Autowired
     EvaluationDAO evaluationDAO;
 	@Autowired
 	NodeDAO nodeDAO;
@@ -78,13 +77,6 @@ public class SubmissionStatusDAOImplTest {
         evaluation.setStatus(EvaluationStatus.PLANNED);
         evalId = evaluationDAO.create(evaluation, Long.parseLong(userId));
         
-        // create a participant
-        Participant participant = new Participant();
-        participant.setCreatedOn(new Date());
-        participant.setUserId(userId);
-        participant.setEvaluationId(evalId);
-        participantDAO.create(participant);
-        
         // create a submission
         Submission submission = new Submission();
         submission.setId("5678");
@@ -106,9 +98,6 @@ public class SubmissionStatusDAOImplTest {
 		try {
 			submissionDAO.delete(submissionId);
 		} catch (NotFoundException e)  {};
-		try {
-			participantDAO.delete(userId, evalId);
-		} catch (NotFoundException e) {};
 		try {
 			evaluationDAO.delete(evalId);
 		} catch (NotFoundException e) {};
@@ -144,7 +133,7 @@ public class SubmissionStatusDAOImplTest {
         clone.setStatus(SubmissionStatusEnum.SCORED);
         clone.setScore(0.9);
         Thread.sleep(1L);
-        submissionStatusDAO.update(clone);
+        submissionStatusDAO.update(Collections.singletonList(clone));
         SubmissionStatus clone2 = submissionStatusDAO.get(submissionId);
         assertFalse("eTag was not updated.", clone.getEtag().equals(clone2.getEtag()));
         assertEquals("status-version was not updated.", new Long(1L), clone2.getStatusVersion());
