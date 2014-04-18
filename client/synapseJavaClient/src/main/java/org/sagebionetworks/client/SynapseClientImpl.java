@@ -34,7 +34,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.client.exceptions.SynapseTableUnavilableException;
+import org.sagebionetworks.client.exceptions.SynapseTableUnavailableException;
 import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
 import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.evaluation.model.Evaluation;
@@ -140,6 +140,7 @@ import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
+import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
@@ -580,8 +581,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	@Override
 	public AliasCheckResponse checkAliasAvailable(AliasCheckRequest request) throws SynapseException {
-		String url = getRepoEndpoint()+PRINCIPAL_AVAILABLE;
-		return asymmetricalPost(url, request, AliasCheckResponse.class);
+		String url = PRINCIPAL_AVAILABLE;
+		return asymmetricalPost(getRepoEndpoint(), url, request, AliasCheckResponse.class, null);
 	}
 	
 	/**
@@ -1703,8 +1704,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		if(ccftr == null) throw new IllegalArgumentException("CreateChunkedFileTokenRequest cannot be null");
 		if(ccftr.getFileName() == null) throw new IllegalArgumentException("FileName cannot be null");
 		if(ccftr.getContentType() == null) throw new IllegalArgumentException("ContentType cannot be null");
-		String url = getFileEndpoint()+CREATE_CHUNKED_FILE_UPLOAD_TOKEN;
-		return asymmetricalPost(url, ccftr, ChunkedFileToken.class);
+		String url = CREATE_CHUNKED_FILE_UPLOAD_TOKEN;
+		return asymmetricalPost(getFileEndpoint(), url, ccftr, ChunkedFileToken.class, null);
 	}
 	
 	/**
@@ -1767,8 +1768,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Deprecated
 	@Override
 	public ChunkResult addChunkToFile(ChunkRequest chunkRequest) throws SynapseException{
-		String url = getFileEndpoint()+ADD_CHUNK_TO_FILE;
-		return asymmetricalPost(url, chunkRequest, ChunkResult.class);
+		String url = ADD_CHUNK_TO_FILE;
+		return asymmetricalPost(getFileEndpoint(), url, chunkRequest, ChunkResult.class, null);
 	}
 	
 	/**
@@ -1787,8 +1788,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Deprecated
 	@Override
 	public S3FileHandle completeChunkFileUpload(CompleteChunkedFileRequest request) throws SynapseException{
-		String url = getFileEndpoint()+COMPLETE_CHUNK_FILE_UPLOAD;
-		return asymmetricalPost(url, request, S3FileHandle.class);
+		String url = COMPLETE_CHUNK_FILE_UPLOAD;
+		return asymmetricalPost(getFileEndpoint(), url, request, S3FileHandle.class, null);
 	}
 	
 	/**
@@ -1799,8 +1800,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 */
 	@Override
 	public UploadDaemonStatus startUploadDeamon(CompleteAllChunksRequest cacr) throws SynapseException{
-		String url = getFileEndpoint()+START_COMPLETE_UPLOAD_DAEMON;
-		return asymmetricalPost(url, cacr, UploadDaemonStatus.class);
+		String url = START_COMPLETE_UPLOAD_DAEMON;
+		return asymmetricalPost(getFileEndpoint(), url, cacr, UploadDaemonStatus.class, null);
 	}
 	
 	/**
@@ -1843,11 +1844,12 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @param calls
 	 * @throws SynapseException
 	 */
-	private <T extends JSONEntity> T asymmetricalPost(String url, JSONEntity requestBody, Class<? extends T> returnClass) throws SynapseException{
+	private <T extends JSONEntity> T asymmetricalPost(String endpoint, String url, JSONEntity requestBody, Class<? extends T> returnClass,
+			SharedClientConnection.ErrorHandler errorHandler) throws SynapseException {
 		try {
-			String responseBody = getSharedClientConnection().asymmetricalPost(url, EntityFactory.createJSONStringForEntity(requestBody),
-					getUserAgent());
-			return EntityFactory.createEntityFromJSONString(responseBody, returnClass);
+			String jsonString = EntityFactory.createJSONStringForEntity(requestBody);
+			JSONObject responseBody = getSharedClientConnection().postJson(endpoint, url, jsonString, getUserAgent(), null, errorHandler);
+			return EntityFactory.createEntityFromJSONObject(responseBody, returnClass);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseClientException(e);
 		}
@@ -4815,8 +4817,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public RowReferenceSet appendRowsToTable(RowSet toAppend) throws SynapseException {
 		if(toAppend == null) throw new IllegalArgumentException("RowSet cannot be null");
 		if(toAppend.getTableId() == null) throw new IllegalArgumentException("RowSet.tableId cannot be null");
-		String url = getRepoEndpoint()+ENTITY+"/"+toAppend.getTableId()+TABLE;
-		return asymmetricalPost(url, toAppend, RowReferenceSet.class);
+		String url = ENTITY + "/" + toAppend.getTableId() + TABLE;
+		return asymmetricalPost(getRepoEndpoint(), url, toAppend, RowReferenceSet.class, null);
 	}
 
 	@Override
@@ -4840,13 +4842,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		if (fileHandlesToFind == null)
 			throw new IllegalArgumentException("RowReferenceSet cannot be null");
 		String uri = ENTITY + "/" + fileHandlesToFind.getTableId() + TABLE + FILE_HANDLES;
-		try {
-			String jsonBody = EntityFactory.createJSONStringForEntity(fileHandlesToFind);
-			JSONObject obj = getSharedClientConnection().postJson(repoEndpoint, uri, jsonBody, getUserAgent(), null);
-			return EntityFactory.createEntityFromJSONObject(obj, TableFileHandleResults.class);
-		} catch (JSONObjectAdapterException e) {
-			throw new SynapseClientException(e);
-		}
+		return asymmetricalPost(getRepoEndpoint(), uri, fileHandlesToFind, TableFileHandleResults.class, null);
 	}
 
 	/**
@@ -4889,19 +4885,31 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public RowSet queryTableEntity(String sql) throws SynapseException, SynapseTableUnavilableException{
+	public RowSet queryTableEntity(String sql) throws SynapseException, SynapseTableUnavailableException{
 		boolean isConsistent = true;
 		boolean countOnly = false;
 		return queryTableEntity(sql, isConsistent, countOnly);
 	}
 	@Override
-	public RowSet queryTableEntity(String sql, boolean isConsistent, boolean countOnly) throws SynapseException, SynapseTableUnavilableException{
-		String url = getRepoEndpoint()+TABLE_QUERY+"?isConsistent="+isConsistent+"&countOnly="+countOnly;
+	public RowSet queryTableEntity(String sql, boolean isConsistent, boolean countOnly) throws SynapseException, SynapseTableUnavailableException{
+		String url = TABLE_QUERY + "?isConsistent=" + isConsistent + "&countOnly=" + countOnly;
 		Query query = new Query();
 		query.setSql(sql);
-		return asymmetricalPost(url, query, RowSet.class);
+		return asymmetricalPost(getRepoEndpoint(), url, query, RowSet.class, new SharedClientConnection.ErrorHandler() {
+			@Override
+			public void handleError(int code, String responseBody) throws SynapseException {
+				if (code == 202) {
+					try {
+						TableStatus status = EntityFactory.createEntityFromJSONString(responseBody, TableStatus.class);
+						throw new SynapseTableUnavailableException(status);
+					} catch (JSONObjectAdapterException e) {
+						throw new SynapseClientException(e.getMessage(), e);
+					}
+				}
+			}
+		});
 	}
-	
+
 	@Override
 	public ColumnModel createColumnModel(ColumnModel model) throws SynapseException {
 		if(model == null) throw new IllegalArgumentException("ColumnModel cannot be null");
@@ -4989,8 +4997,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public AsynchronousJobStatus startAsynchronousJob(AsynchronousJobBody jobBody) throws SynapseException{
 		if(jobBody == null) throw new IllegalArgumentException("JobBody cannot be null");
-		String url = getRepoEndpoint()+ASYNCHRONOUS_JOB;
-		return asymmetricalPost(url, jobBody, AsynchronousJobStatus.class);
+		String url = ASYNCHRONOUS_JOB;
+		return asymmetricalPost(getRepoEndpoint(), url, jobBody, AsynchronousJobStatus.class, null);
 	}
 	
 	/**

@@ -13,7 +13,7 @@ import org.apache.http.client.ClientProtocolException;
 import org.apache.http.entity.ContentType;
 import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.client.exceptions.SynapseTableUnavilableException;
+import org.sagebionetworks.client.exceptions.SynapseTableUnavailableException;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
@@ -1039,9 +1039,9 @@ public interface SynapseClient extends BaseClient {
 	 * @param toAppend
 	 * @return
 	 * @throws SynapseException
-	 * @throws SynapseTableUnavilableException
+	 * @throws SynapseTableUnavailableException
 	 */
-	public RowReferenceSet appendRowsToTable(RowSet toAppend) throws SynapseException, SynapseTableUnavilableException;
+	public RowReferenceSet appendRowsToTable(RowSet toAppend) throws SynapseException, SynapseTableUnavailableException;
 	
 	/**
 	 * Delete rows from table entity.
@@ -1049,9 +1049,9 @@ public interface SynapseClient extends BaseClient {
 	 * @param toDelete
 	 * @return
 	 * @throws SynapseException
-	 * @throws SynapseTableUnavilableException
+	 * @throws SynapseTableUnavailableException
 	 */
-	public RowReferenceSet deleteRowsFromTable(RowReferenceSet toDelete) throws SynapseException, SynapseTableUnavilableException;
+	public RowReferenceSet deleteRowsFromTable(RowReferenceSet toDelete) throws SynapseException, SynapseTableUnavailableException;
 
 	/**
 	 * Get the file handles for the requested file handle columns for the rows.
@@ -1118,9 +1118,9 @@ public interface SynapseClient extends BaseClient {
 	 * @param sql
 	 * @return
 	 * @throws SynapseException
-	 * @throws SynapseTableUnavilableException Thrown when the table index is not ready for query.  The exception will contain the status of the table.
+	 * @throws SynapseTableUnavailableException Thrown when the table index is not ready for query.  The exception will contain the status of the table.
 	 */
-	public RowSet queryTableEntity(String sql) throws SynapseException, SynapseTableUnavilableException;
+	public RowSet queryTableEntity(String sql) throws SynapseException, SynapseTableUnavailableException;
 	
 	/**
 	 * Query for data in a table entity.
@@ -1130,7 +1130,7 @@ public interface SynapseClient extends BaseClient {
 	 * @param countOnly
 	 * @return
 	 * @throws SynapseException 
-	 * @throws SynapseTableUnavilableException Thrown when the table index is not ready for query.  The exception will contain the status of the table.
+	 * @throws SynapseTableUnavailableException Thrown when the table index is not ready for query.  The exception will contain the status of the table.
 	 */
 	public RowSet queryTableEntity(String sql, boolean isConsistent, boolean countOnly) throws SynapseException;
 	/**
