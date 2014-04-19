@@ -21,12 +21,12 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 
 	@Autowired
 	AsynchronousJobStatusDAO asynchJobStatusDao;
-	
 	@Autowired
 	AuthorizationManager authorizationManager;
 	@Autowired
 	StackStatusDao stackStatusDao;
-
+	@Autowired
+	AsynchJobQueuePublisher asynchJobQueuePublisher;
 	
 	@Override
 	public AsynchronousJobStatus getJobStatus(UserInfo userInfo, String jobId) throws DatastoreException, NotFoundException {
@@ -45,8 +45,6 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 		return status;
 	}
 
-
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public AsynchronousJobStatus startJob(UserInfo user, AsynchronousJobBody body) throws DatastoreException, NotFoundException {
 		if(user == null) throw new IllegalArgumentException("UserInfo cannot be null");
@@ -55,7 +53,10 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 			throw new UnauthorizedException("The user is not authorized to start the job.");
 		}
 		// Dao does the rest.
-		return asynchJobStatusDao.startJob(user.getId(), body);
+		AsynchronousJobStatus status = asynchJobStatusDao.startJob(user.getId(), body);
+		// publish a message to get the work started
+		asynchJobQueuePublisher.publishMessage(status);
+		return status;
 	}
 
 

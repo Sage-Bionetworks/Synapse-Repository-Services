@@ -11,13 +11,15 @@ import org.sagebionetworks.repo.model.table.AsynchUploadJobBody;
  */
 public enum AsynchJobType {
 
-	UPLOAD(AsynchUploadJobBody.class);
+	UPLOAD(AsynchUploadJobBody.class, "table-csv-upload-queue");
 	
 	
 	private Class<? extends AsynchronousJobBody> clazz;
+	private String queueNameSuffix;
 	
-	AsynchJobType(Class<? extends AsynchronousJobBody> clazz){
+	AsynchJobType(Class<? extends AsynchronousJobBody> clazz, String queueNameSuffix){
 		this.clazz = clazz;
+		this.queueNameSuffix = queueNameSuffix;
 	}
 	
 	/**
@@ -40,5 +42,13 @@ public enum AsynchJobType {
 	 */
 	public Class<? extends AsynchronousJobBody> getTypeClass(){
 		return this.clazz;
+	}
+	
+	/**
+	 * The suffix of the queue name where jobs of this type are published. 
+	 * @return
+	 */
+	public String getQueueNameSuffix(){
+		return this.queueNameSuffix;
 	}
 }

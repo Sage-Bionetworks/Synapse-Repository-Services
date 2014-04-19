@@ -33,6 +33,7 @@ public class AsynchJobStatusManagerImplTest {
 	AsynchronousJobStatusDAO mockAsynchJobStatusDao;
 	AuthorizationManager mockAuthorizationManager;
 	StackStatusDao mockStackStatusDao;
+	AsynchJobQueuePublisher mockAsynchJobQueuePublisher;
 	UserInfo user = null;
 	AsynchJobStatusManager manager;
 	
@@ -42,12 +43,14 @@ public class AsynchJobStatusManagerImplTest {
 		mockAsynchJobStatusDao = Mockito.mock(AsynchronousJobStatusDAO.class);
 		mockAuthorizationManager = Mockito.mock(AuthorizationManager.class);
 		mockStackStatusDao = Mockito.mock(StackStatusDao.class);
+		mockAsynchJobQueuePublisher = Mockito.mock(AsynchJobQueuePublisher.class);
 		manager = new AsynchJobStatusManagerImpl();
 		
 		
 		ReflectionTestUtils.setField(manager, "asynchJobStatusDao", mockAsynchJobStatusDao);
 		ReflectionTestUtils.setField(manager, "authorizationManager", mockAuthorizationManager);
 		ReflectionTestUtils.setField(manager, "stackStatusDao", mockStackStatusDao);
+		ReflectionTestUtils.setField(manager, "asynchJobQueuePublisher", mockAsynchJobQueuePublisher);
 		
 		stub(mockAsynchJobStatusDao.startJob(anyLong(), any(AsynchronousJobBody.class))).toAnswer(new Answer<AsynchronousJobStatus>() {
 			@Override
@@ -105,6 +108,7 @@ public class AsynchJobStatusManagerImplTest {
 		AsynchronousJobStatus status = manager.startJob(user, body);
 		assertNotNull(status);
 		assertEquals(body, status.getJobBody());
+		verify(mockAsynchJobQueuePublisher, times(1)).publishMessage(status);
 	}
 	
 	@Test (expected=UnauthorizedException.class)

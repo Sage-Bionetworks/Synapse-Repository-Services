@@ -727,6 +727,16 @@ public class StackConfiguration {
 				.parseInt(configuration
 						.getProperty("org.sagebionetworks.repo.manager.trash.max.trashable"));
 	}
+	
+	/**
+	 * Stack and instance: <stack>-<stack_instance>
+	 * @return
+	 */
+	public String getStackAndStackInstancePrefix(){
+		return String.format(StackConstants.STACK_AND_INSTANCE,
+				StackConfiguration.getStack(),
+				StackConfiguration.getStackInstance());
+	}
 
 	/**
 	 * The name of the AWS topic where repository changes messages are

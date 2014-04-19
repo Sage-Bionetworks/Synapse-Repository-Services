@@ -65,7 +65,11 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 		jdbcTemplate.update(TRUNCATE_ALL);
 	}
 	
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	/**
+	 * This is set to Propagation.REQUIRES_NEW because the transaction
+	 * must be committed before a message is sent to the worker.
+	 */
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
 	@Override
 	public AsynchronousJobStatus startJob(Long userId, AsynchronousJobBody body) {
 		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
