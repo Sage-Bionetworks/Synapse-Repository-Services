@@ -31,6 +31,8 @@ public class StackConstants {
 	
 	static final String DATABASE_URL_PROPERTY = "connection.url";
 	
+	public static final String STACK_AND_INSTANCE = "%1$s-%2$s";
+	
 	/**
 	 * Template used the name of the AWS topic where repository changes messages are published.
 	 */
