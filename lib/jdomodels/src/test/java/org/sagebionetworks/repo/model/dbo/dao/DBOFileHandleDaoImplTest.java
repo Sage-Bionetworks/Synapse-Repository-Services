@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.junit.After;
@@ -30,6 +31,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 
@@ -478,6 +480,40 @@ public class DBOFileHandleDaoImplTest {
 		assertEquals(preview, results.getList().get(2));
 	}
 
+	@Test
+	public void testgetAllFileHandlesBatch() throws Exception {
+		// Create one without a preview
+		S3FileHandle noPreviewHandle = TestUtils.createS3FileHandle(creatorUserGroupId);
+		noPreviewHandle.setFileName("newPreview.txt");
+		noPreviewHandle = fileHandleDao.createFile(noPreviewHandle);
+		assertNotNull(noPreviewHandle);
+		toDelete.add(noPreviewHandle.getId());
+		// The one will have a preview
+		S3FileHandle withPreview = TestUtils.createS3FileHandle(creatorUserGroupId);
+		withPreview.setFileName("withPreview.txt");
+		withPreview = fileHandleDao.createFile(withPreview);
+		assertNotNull(withPreview);
+		toDelete.add(withPreview.getId());
+		// The Preview
+		PreviewFileHandle preview = TestUtils.createPreviewFileHandle(creatorUserGroupId);
+		preview.setFileName("preview.txt");
+		preview = fileHandleDao.createFile(preview);
+		assertNotNull(preview);
+		toDelete.add(preview.getId());
+		// Assign it as a preview
+		fileHandleDao.setPreviewId(withPreview.getId(), preview.getId());
+		// The etag should have changed
+		withPreview = (S3FileHandle) fileHandleDao.get(withPreview.getId());
+
+		// Now get all file handles without previews
+		List<String> toFetch = new ArrayList<String>();
+		toFetch.add(noPreviewHandle.getId());
+		toFetch.add(withPreview.getId());
+		Map<String, FileHandle> results = fileHandleDao.getAllFileHandlesBatch(toFetch);
+		assertEquals(2, results.size());
+		assertEquals(noPreviewHandle, results.get(noPreviewHandle.getId()));
+		assertEquals(withPreview, results.get(withPreview.getId()));
+	}
 	
 	@Test
 	public void testFindFileHandleWithKeyAndMD5(){

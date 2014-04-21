@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.fileupload.FileItemIterator;
@@ -123,7 +124,18 @@ public interface FileHandleManager {
 	FileHandleResults getAllFileHandles(List<String> idsList, boolean includePreviews) throws DatastoreException, NotFoundException;
 
 	/**
+	 * Get all file handles on the list in batches. A null id will return a null file handle
+	 * 
+	 * @param idsList
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	Map<String, FileHandle> getAllFileHandlesBatch(List<String> idsList) throws DatastoreException, NotFoundException;
+
+	/**
 	 * Create an external file handle.
+	 * 
 	 * @param userInfo
 	 * @param fileHandle
 	 * @return

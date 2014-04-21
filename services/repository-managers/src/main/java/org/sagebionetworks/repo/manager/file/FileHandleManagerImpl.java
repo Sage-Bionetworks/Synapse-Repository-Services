@@ -7,6 +7,7 @@ import java.net.URL;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
@@ -350,6 +351,11 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	@Override
 	public FileHandleResults getAllFileHandles(List<String> idList, boolean includePreviews) throws DatastoreException, NotFoundException {
 		return fileHandleDao.getAllFileHandles(idList, includePreviews);
+	}
+
+	@Override
+	public Map<String, FileHandle> getAllFileHandlesBatch(List<String> idsList) throws DatastoreException, NotFoundException {
+		return fileHandleDao.getAllFileHandlesBatch(idsList);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)

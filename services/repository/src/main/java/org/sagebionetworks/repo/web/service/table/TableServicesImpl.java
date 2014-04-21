@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.web.service.table;
 import java.io.IOException;
 import java.net.URL;
 import java.util.List;
+import java.util.Map;
 
 import org.sagebionetworks.manager.util.Validate;
 import org.sagebionetworks.repo.manager.EntityManager;
@@ -121,22 +122,22 @@ public class TableServicesImpl implements TableServices {
 				}
 			}
 		}
-		FileHandleResults fileHandles = fileHandleManager.getAllFileHandles(idsList, false);
+
+		Map<String, FileHandle> fileHandles = fileHandleManager.getAllFileHandlesBatch(idsList);
 
 		TableFileHandleResults results = new TableFileHandleResults();
 		results.setTableId(fileHandlesToFind.getTableId());
 		results.setHeaders(fileHandlesToFind.getHeaders());
 		results.setRows(Lists.<FileHandleResults> newArrayListWithCapacity(rowSet.getRows().size()));
 
-		// reinsert the null entries
-		int index = 0;
+		// insert the file handles in order. Null ids will give null file handles
 		for (Row row : rowSet.getRows()) {
 			FileHandleResults rowHandles = new FileHandleResults();
 			rowHandles.setList(Lists.<FileHandle> newArrayListWithCapacity(models.size()));
 			for (String id : row.getValues()) {
 				FileHandle fh;
 				if (id != null) {
-					fh = fileHandles.getList().get(index++);
+					fh = fileHandles.get(id);
 				} else {
 					fh = null;
 				}
