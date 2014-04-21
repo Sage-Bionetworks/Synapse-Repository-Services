@@ -42,6 +42,7 @@ import org.apache.http.conn.ssl.X509HostnameVerifier;
 import org.apache.http.entity.FileEntity;
 import org.apache.http.entity.InputStreamEntity;
 import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.DecompressingHttpClient;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
 import org.apache.http.params.BasicHttpParams;
@@ -83,8 +84,7 @@ public class HttpClientHelper {
 					DEFAULT_CONNECT_TIMEOUT_MSEC);
 			clientParams.setParameter(CoreConnectionPNames.SO_TIMEOUT,
 					DEFAULT_SOCKET_TIMEOUT_MSEC);
-
-			return new DefaultHttpClient(connectionManager, clientParams);
+			return new DecompressingHttpClient(new DefaultHttpClient(connectionManager, clientParams));
 		} catch (KeyStoreException e) {
 			throw new RuntimeException(e);
 		} catch (KeyManagementException e) {
