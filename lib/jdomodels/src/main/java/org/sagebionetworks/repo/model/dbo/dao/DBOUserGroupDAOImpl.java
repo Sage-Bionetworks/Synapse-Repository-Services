@@ -31,6 +31,7 @@ import org.sagebionetworks.repo.model.principal.BootstrapUser;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
@@ -281,10 +282,11 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public String getEtagForUpdate(String id) {
+	public String getEtagForUpdate(String id) throws NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(ID_PARAM_NAME, id);
-		return simpleJdbcTemplate.queryForObject(SELECT_ETAG_AND_LOCK_ROW_BY_ID, 
+		try {
+			return simpleJdbcTemplate.queryForObject(SELECT_ETAG_AND_LOCK_ROW_BY_ID, 
 				new RowMapper<String>() {
 					@Override
 					public String mapRow(ResultSet rs, int rowNum)
@@ -292,6 +294,9 @@ public class DBOUserGroupDAOImpl implements UserGroupDAO {
 						return rs.getString(SqlConstants.COL_USER_GROUP_E_TAG);
 					}
 				}, param);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException("Principal ID "+id+" not found in system.");
+		}
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
