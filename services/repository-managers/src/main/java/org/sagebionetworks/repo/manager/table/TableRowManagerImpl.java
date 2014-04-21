@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.manager.table;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -499,29 +498,43 @@ public class TableRowManagerImpl implements TableRowManager {
 		Set<String> unownedFileHandles = Sets.newHashSet();
 
 		// first handle all new rows
+		List<String> fileHandles = Lists.newLinkedList();
 		for (Iterator<RowAccessor> rowIter = fileHandlesToCheckAccessor.getRows().iterator(); rowIter.hasNext();) {
 			RowAccessor row = rowIter.next();
 			if (TableModelUtils.isNullOrInvalid(row.getRow().getRowId())) {
-				String unownedFileHandle = checkRowForUnownedFileHandle(row, fileHandleColumns, user, ownedFileHandles,
-						unownedFileHandles);
-				if (unownedFileHandle != null) {
-					// this is a new row and the user is trying to add a file handle they do not own
-					throw new IllegalArgumentException("You cannot add a new file id that you do not own: rowId=" + row.getRow().getRowId()
-							+ ", file handle=" + unownedFileHandle);
-				}
+				getFileHandles(row, fileHandleColumns, user, fileHandles);
 				rowIter.remove();
 			}
 		}
 
+		// check the file handles?
+		if (!fileHandles.isEmpty()) {
+			authorizationManager.canAccessRawFileHandlesByIds(user, fileHandles, ownedFileHandles, unownedFileHandles);
+
+			if (!unownedFileHandles.isEmpty()) {
+				// this is a new row and the user is trying to add a file handle they do not own
+				throw new IllegalArgumentException("You cannot add new file ids that you do not own");
+			}
+		}
+
 		if (fileHandlesToCheckAccessor.getRows().isEmpty()) {
-			// all new rows and all file handles owned by user: success!
+			// all new rows and all file handles owned by user or null: success!
 			return;
 		}
 
 		// now all we have left is rows that are updated
+
+		// collect all file handles
+		fileHandles.clear();
+		for (RowAccessor row : fileHandlesToCheckAccessor.getRows()) {
+			getFileHandles(row, fileHandleColumns, user, fileHandles);
+		}
+		// check all file handles for access
+		authorizationManager.canAccessRawFileHandlesByIds(user, fileHandles, ownedFileHandles, unownedFileHandles);
+
 		for (Iterator<RowAccessor> rowIter = fileHandlesToCheckAccessor.getRows().iterator(); rowIter.hasNext();) {
 			RowAccessor row = rowIter.next();
-			String unownedFileHandle = checkRowForUnownedFileHandle(row, fileHandleColumns, user, ownedFileHandles, unownedFileHandles);
+			String unownedFileHandle = checkRowForUnownedFileHandle(row, fileHandleColumns, ownedFileHandles, unownedFileHandles);
 			if (unownedFileHandle == null) {
 				// No unowned file handles, so no need to check previous values
 				rowIter.remove();
@@ -557,9 +570,17 @@ public class TableRowManagerImpl implements TableRowManager {
 		}
 	}
 
-	private String checkRowForUnownedFileHandle(RowAccessor row, List<String> fileHandleColumns, UserInfo user,
-			Set<String> ownedFileHandles, Set<String> unownedFileHandles) throws NotFoundException {
-		String unownedFileHandle = null;
+	private void getFileHandles(RowAccessor row, List<String> fileHandleColumns, UserInfo user, List<String> fileHandles) {
+		for (String fileHandleColumn : fileHandleColumns) {
+			String fileHandleId = row.getCell(fileHandleColumn);
+			if (fileHandleId != null) {
+				fileHandles.add(fileHandleId);
+			}
+		}
+	}
+
+	private String checkRowForUnownedFileHandle(RowAccessor row, List<String> fileHandleColumns, Set<String> ownedFileHandles,
+			Set<String> unownedFileHandles) {
 		for (String fileHandleColumn : fileHandleColumns) {
 			String fileHandleId = row.getCell(fileHandleColumn);
 			if (fileHandleId == null) {
@@ -567,25 +588,15 @@ public class TableRowManagerImpl implements TableRowManager {
 				continue;
 			}
 			if (ownedFileHandles.contains(fileHandleId)) {
-				// we already checked. We own this one
+				// We own this one
 				continue;
 			}
 			if (unownedFileHandles.contains(fileHandleId)) {
-				// we already checked. We don't own this one.
-				unownedFileHandle = fileHandleId;
-				continue;
+				// We don't own this one.
+				return fileHandleId;
 			}
-
-			// ::TODO:: make this a batch check
-			boolean canAccess = authorizationManager.canAccessRawFileHandleById(user, fileHandleId);
-			if (canAccess) {
-				ownedFileHandles.add(fileHandleId);
-			} else {
-				// need to remember we checked
-				unownedFileHandles.add(fileHandleId);
-				unownedFileHandle = fileHandleId;
-			}
+			throw new DatastoreException("File handle was not processed for access");
 		}
-		return unownedFileHandle;
+		return null;
 	}
 }

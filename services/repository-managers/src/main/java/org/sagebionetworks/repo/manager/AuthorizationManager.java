@@ -1,5 +1,8 @@
 package org.sagebionetworks.repo.manager;
 
+import java.util.List;
+import java.util.Set;
+
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessRequirement;
@@ -91,6 +94,16 @@ public interface AuthorizationManager {
 	 * @throws NotFoundException 
 	 */
 	public boolean canAccessRawFileHandleById(UserInfo userInfo, String fileHandleId) throws NotFoundException;
+
+	/**
+	 * 
+	 * @param userInfo
+	 * @param fileHandleId
+	 * @return
+	 * @throws NotFoundException
+	 */
+	public void canAccessRawFileHandlesByIds(UserInfo userInfo, List<String> fileHandleId, Set<String> allowed, Set<String> disallowed)
+			throws NotFoundException;
 
 	/**
 	 * 

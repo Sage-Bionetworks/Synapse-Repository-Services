@@ -7,11 +7,11 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyBoolean;
-import static org.mockito.Matchers.anyList;
 import static org.mockito.Matchers.anyListOf;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.stub;
@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 
@@ -328,16 +329,24 @@ public class TableRowManagerImplTest {
 		when(originalAccessor.getRow(2L)).thenReturn(row2Accessor);
 		when(row2Accessor.getCell(models.get(ColumnType.FILEHANDLEID.ordinal()).getId())).thenReturn("5002");
 
-		when(mockAuthManager.canAccessRawFileHandleById(user, "5002")).thenReturn(false);
-		when(mockAuthManager.canAccessRawFileHandleById(user, "3333")).thenReturn(true);
+		doAnswer(new Answer<Void>() {
+			@SuppressWarnings("unchecked")
+			@Override
+			public Void answer(InvocationOnMock invocation) throws Throwable {
+				((Set<String>) invocation.getArguments()[2]).add("3333");
+				((Set<String>) invocation.getArguments()[3]).add("5002");
+				return null;
+			}
+		}).when(mockAuthManager).canAccessRawFileHandlesByIds(user, Lists.newArrayList("3333", "5002"), Sets.<String> newHashSet(),
+				Sets.<String> newHashSet());
 		when(mockTruthDao.getLatestVersions(tableId, Sets.newHashSet(2L))).thenReturn(originalAccessor);
 		manager.appendRows(user, tableId, models, replace);
 
 		verify(mockTruthDao).appendRowSetToTable(anyString(), anyString(), anyListOf(ColumnModel.class), any(RowSet.class), anyBoolean());
 		verify(mockTruthDao).getLatestVersions(tableId, Sets.newHashSet(2L));
 		verify(mockAuthManager).canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
-		verify(mockAuthManager).canAccessRawFileHandleById(user, "5002");
-		verify(mockAuthManager).canAccessRawFileHandleById(user, "3333");
+		verify(mockAuthManager).canAccessRawFileHandlesByIds(user, Lists.newArrayList("3333", "5002"), Sets.<String> newHashSet("3333"),
+				Sets.<String> newHashSet("5002"));
 		verifyNoMoreInteractions(mockAuthManager, mockTruthDao);
 	}
 
@@ -359,12 +368,21 @@ public class TableRowManagerImplTest {
 		updateRows.get(1).getValues().set(ColumnType.FILEHANDLEID.ordinal(), null);
 		replace.setRows(updateRows);
 
-		when(mockAuthManager.canAccessRawFileHandleById(user, "3333")).thenReturn(true);
+		doAnswer(new Answer<Void>() {
+			@SuppressWarnings("unchecked")
+			@Override
+			public Void answer(InvocationOnMock invocation) throws Throwable {
+				((Set<String>) invocation.getArguments()[2]).add("3333");
+				return null;
+			}
+		}).when(mockAuthManager).canAccessRawFileHandlesByIds(user, Lists.newArrayList("3333"), Sets.<String> newHashSet(),
+				Sets.<String> newHashSet());
 		manager.appendRows(user, tableId, models, replace);
 
 		verify(mockTruthDao).appendRowSetToTable(anyString(), anyString(), anyListOf(ColumnModel.class), any(RowSet.class), anyBoolean());
 		verify(mockAuthManager).canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
-		verify(mockAuthManager).canAccessRawFileHandleById(user, "3333");
+		verify(mockAuthManager).canAccessRawFileHandlesByIds(user, Lists.newArrayList("3333"), Sets.<String> newHashSet("3333"),
+				Sets.<String> newHashSet());
 		verifyNoMoreInteractions(mockAuthManager, mockTruthDao);
 	}
 
@@ -392,7 +410,15 @@ public class TableRowManagerImplTest {
 		when(originalAccessor.getRow(0L)).thenReturn(row0Accessor);
 		when(row0Accessor.getCell(models.get(0).getId())).thenReturn("5002");
 
-		when(mockAuthManager.canAccessRawFileHandleById(user, "3333")).thenReturn(false);
+		doAnswer(new Answer<Void>() {
+			@SuppressWarnings("unchecked")
+			@Override
+			public Void answer(InvocationOnMock invocation) throws Throwable {
+				((Set<String>) invocation.getArguments()[3]).add("3333");
+				return null;
+			}
+		}).when(mockAuthManager).canAccessRawFileHandlesByIds(user, Lists.newArrayList("3333"), Sets.<String> newHashSet(),
+				Sets.<String> newHashSet());
 		when(mockTruthDao.getLatestVersions(tableId, Sets.newHashSet(0L))).thenReturn(originalAccessor);
 		manager.appendRows(user, tableId, models, replace);
 	}
@@ -421,7 +447,15 @@ public class TableRowManagerImplTest {
 		when(originalAccessor.getRow(0L)).thenReturn(row0Accessor);
 		when(row0Accessor.getCell(models.get(0).getId())).thenReturn("5002");
 
-		when(mockAuthManager.canAccessRawFileHandleById(user, "3333")).thenReturn(false);
+		doAnswer(new Answer<Void>() {
+			@SuppressWarnings("unchecked")
+			@Override
+			public Void answer(InvocationOnMock invocation) throws Throwable {
+				((Set<String>) invocation.getArguments()[3]).add("3333");
+				return null;
+			}
+		}).when(mockAuthManager).canAccessRawFileHandlesByIds(user, Lists.newArrayList("3333"), Sets.<String> newHashSet(),
+				Sets.<String> newHashSet());
 		when(mockTruthDao.getLatestVersions(tableId, Sets.newHashSet(0L))).thenReturn(originalAccessor);
 		manager.appendRows(user, tableId, models, replace);
 	}

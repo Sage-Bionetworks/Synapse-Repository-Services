@@ -1,7 +1,9 @@
 package org.sagebionetworks.repo.manager;
 
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
@@ -35,6 +37,8 @@ import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.table.AsynchUploadJobBody;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import com.google.common.collect.Multimap;
 
 public class AuthorizationManagerImpl implements AuthorizationManager {
 
@@ -173,6 +177,32 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		String creator  = fileHandleDao.getHandleCreator(fileHandleId);
 		// Call the other methods
 		return canAccessRawFileHandleByCreator(userInfo, creator);
+	}
+
+	@Override
+	public void canAccessRawFileHandlesByIds(UserInfo userInfo, List<String> fileHandleIds, Set<String> allowed, Set<String> disallowed)
+			throws NotFoundException {
+		// no file handles, nothing to do
+		if (fileHandleIds.isEmpty()) {
+			return;
+		}
+
+		// Admins can do anything
+		if (userInfo.isAdmin()) {
+			allowed.addAll(fileHandleIds);
+			return;
+		}
+
+		// Lookup the creators
+		Multimap<String, String> creatorMap = fileHandleDao.getHandleCreators(fileHandleIds);
+		for (Entry<String, Collection<String>> entry : creatorMap.asMap().entrySet()) {
+			String creator = entry.getKey();
+			if (canAccessRawFileHandleByCreator(userInfo, creator)) {
+				allowed.addAll(entry.getValue());
+			} else {
+				disallowed.addAll(entry.getValue());
+			}
+		}
 	}
 
 	@Override

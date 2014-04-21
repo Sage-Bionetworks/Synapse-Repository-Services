@@ -1,17 +1,19 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -45,6 +47,11 @@ import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.table.AsynchUploadJobBody;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
+
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 
 public class AuthorizationManagerImplUnitTest {
 
@@ -191,6 +198,44 @@ public class AuthorizationManagerImplUnitTest {
 		// change the users id
 		UserInfo notTheCreatoro = new UserInfo(false, "999999");
 		assertFalse("Only the creator (or admin) should have access a FileHandle", authorizationManager.canAccessRawFileHandleById(notTheCreatoro, fileHandlId));
+		verify(mockFileHandleDao, times(2)).getHandleCreator(fileHandlId);
+	}
+
+	@Test
+	public void testCanAccessRawFileHandlesByIds() throws NotFoundException {
+		// The admin can access anything
+		Multimap<String, String> creators = ArrayListMultimap.create();
+		creators.put(userInfo.getId().toString(), "3333");
+		creators.put(userInfo.getId().toString(), "4444");
+		List<String> fileHandlIds = Lists.newArrayList("3333", "4444");
+		when(mockFileHandleDao.getHandleCreators(fileHandlIds)).thenReturn(creators);
+		Set<String> allowed = Sets.newHashSet();
+		Set<String> disallowed = Sets.newHashSet();
+		authorizationManager.canAccessRawFileHandlesByIds(adminUser, fileHandlIds, allowed, disallowed);
+		assertEquals("Admin should have access to all FileHandles", 2, allowed.size());
+		assertEquals("Admin should have access to all FileHandles", 0, disallowed.size());
+
+		allowed.clear();
+		disallowed.clear();
+		authorizationManager.canAccessRawFileHandlesByIds(userInfo, fileHandlIds, allowed, disallowed);
+		assertEquals("Creator should have access to their own FileHandles", 2, allowed.size());
+		assertEquals("Creator should have access to their own FileHandles", 0, disallowed.size());
+
+		// change the users id
+		UserInfo notTheCreator = new UserInfo(false, "999999");
+		allowed.clear();
+		disallowed.clear();
+		authorizationManager.canAccessRawFileHandlesByIds(notTheCreator, fileHandlIds, allowed, disallowed);
+		assertEquals("Only the creator (or admin) should have access a FileHandle", 0, allowed.size());
+		assertEquals("Only the creator (or admin) should have access a FileHandle", 2, disallowed.size());
+
+		verify(mockFileHandleDao, times(2)).getHandleCreators(fileHandlIds);
+	}
+
+	@Test
+	public void testCanAccessRawFileHandlesByIdsEmptyList() throws NotFoundException {
+		authorizationManager.canAccessRawFileHandlesByIds(adminUser, Lists.<String> newArrayList(), null, null);
+		verifyZeroInteractions(mockFileHandleDao);
 	}
 
 	@Test
