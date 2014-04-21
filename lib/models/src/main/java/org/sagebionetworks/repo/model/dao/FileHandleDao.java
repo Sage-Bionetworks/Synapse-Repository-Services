@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dao;
 
 import java.util.List;
+import java.util.Map;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -58,6 +59,16 @@ public interface FileHandleDao {
 	 * @throws DatastoreException 
 	 */
 	public FileHandleResults getAllFileHandles(List<String> ids, boolean includePreviews) throws DatastoreException, NotFoundException;
+
+	/**
+	 * Map all of the file handles for a given list of IDs in batch calls
+	 * 
+	 * @param ids - The list of FileHandle ids to fetch.
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	public Map<String, FileHandle> getAllFileHandlesBatch(List<String> idsList);
 
 	/**
 	 * Delete the file metadata.
