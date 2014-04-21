@@ -100,6 +100,15 @@
 			   	</bean>
 			</property>			
 		</bean>
+		<bean class="org.sagebionetworks.repo.model.principal.BootstrapGroup">
+			<property name="id" value="3" />
+			<property name="groupAlias">
+			   	<bean class="org.sagebionetworks.repo.model.principal.BootstrapAlias">
+			   		<property name="aliasName" value="CERTIFIED_USERS" />
+			   		<property name="aliasId" value="6" />
+			   	</bean>
+			</property>			
+		</bean>
 	</util:list>
 
 	<bean id="userGroupDAO"

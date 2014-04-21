@@ -35,8 +35,9 @@ public interface UserGroupDAO {
 	
 	/**
 	 * Gets and locks a row of the table
+	 * @throws NotFoundException 
 	 */
-	public String getEtagForUpdate(String id);
+	public String getEtagForUpdate(String id) throws NotFoundException;
 
 	/**
 	 * Updates the etag the group with the given ID
