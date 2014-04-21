@@ -8,6 +8,8 @@ import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.web.NotFoundException;
 
+import com.google.common.collect.Multimap;
+
 /**
  * Abstraction for creating/updating/reading/deleting CRUD metadata about files. 
  * 
@@ -77,6 +79,15 @@ public interface FileHandleDao {
 	 * @throws NotFoundException 
 	 */
 	public String getHandleCreator(String fileHandleId) throws NotFoundException;
+
+	/**
+	 * Lookup the creators of a FileHandles.
+	 * 
+	 * @param fileHandleIds
+	 * @return the list of creators in the same order as the file handles
+	 * @throws NotFoundException
+	 */
+	public Multimap<String, String> getHandleCreators(List<String> fileHandleIds) throws NotFoundException;
 
 	/**
 	 * Get the preview associated with a given file handle.

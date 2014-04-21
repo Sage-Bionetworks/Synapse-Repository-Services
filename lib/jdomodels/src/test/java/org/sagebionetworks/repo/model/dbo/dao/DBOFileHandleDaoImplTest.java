@@ -30,6 +30,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
+
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class DBOFileHandleDaoImplTest {
@@ -39,12 +42,15 @@ public class DBOFileHandleDaoImplTest {
 	
 	private List<String> toDelete;
 	private String creatorUserGroupId;
+	private String creatorUserGroupId2;
 	
 	@Before
 	public void before(){
 		toDelete = new LinkedList<String>();
 		creatorUserGroupId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString();
 		assertNotNull(creatorUserGroupId);
+		creatorUserGroupId2 = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString();
+		assertNotNull(creatorUserGroupId2);
 	}
 	
 	@After
@@ -117,7 +123,48 @@ public class DBOFileHandleDaoImplTest {
 		assertEquals(creatorUserGroupId, lookupCreator);
 	}
 
+	@Test
+	public void testGetCreators() throws NotFoundException {
+		S3FileHandle meta1 = TestUtils.createS3FileHandle(creatorUserGroupId);
+		meta1 = fileHandleDao.createFile(meta1);
+		S3FileHandle meta2 = TestUtils.createS3FileHandle(creatorUserGroupId);
+		meta2 = fileHandleDao.createFile(meta2);
+		S3FileHandle meta3 = TestUtils.createS3FileHandle(creatorUserGroupId2);
+		meta3 = fileHandleDao.createFile(meta3);
+		toDelete.add(meta1.getId());
+		toDelete.add(meta2.getId());
+		toDelete.add(meta3.getId());
 
+		Multimap<String, String> lookupCreator = fileHandleDao.getHandleCreators(Lists.newArrayList(meta3.getId(), meta1.getId(),
+				meta2.getId()));
+		assertEquals(2, lookupCreator.get(creatorUserGroupId).size());
+		assertEquals(1, lookupCreator.get(creatorUserGroupId2).size());
+		assertTrue(lookupCreator.get(creatorUserGroupId).contains(meta1.getId()));
+		assertTrue(lookupCreator.get(creatorUserGroupId).contains(meta2.getId()));
+		assertTrue(lookupCreator.get(creatorUserGroupId2).contains(meta3.getId()));
+	}
+
+	@Test
+	public void testGetCreatorBatches() throws NotFoundException {
+		S3FileHandle meta1 = TestUtils.createS3FileHandle(creatorUserGroupId);
+		meta1 = fileHandleDao.createFile(meta1);
+		S3FileHandle meta2 = TestUtils.createS3FileHandle(creatorUserGroupId2);
+		meta2 = fileHandleDao.createFile(meta2);
+		toDelete.add(meta1.getId());
+		toDelete.add(meta2.getId());
+
+		final int SIZE = 100;
+		List<String> handles = Lists.newArrayListWithCapacity(SIZE * 2);
+		for (int i = 0; i < SIZE * 2; i += 2) {
+			handles.add(meta1.getId());
+			handles.add(meta2.getId());
+		}
+		Multimap<String, String> lookupCreator = fileHandleDao.getHandleCreators(handles);
+		// because the inclause has repeated ids, only two rows are returned per sql query.
+		// if batching works, each id returns twice
+		assertEquals(2, lookupCreator.get(creatorUserGroupId).size());
+		assertEquals(2, lookupCreator.get(creatorUserGroupId2).size());
+	}
 
 	@Test (expected=NotFoundException.class)
 	public void testGetCreatorNotFound() throws NotFoundException{

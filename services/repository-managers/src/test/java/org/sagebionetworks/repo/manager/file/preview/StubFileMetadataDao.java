@@ -14,6 +14,9 @@ import org.sagebionetworks.repo.model.file.HasPreviewId;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.web.NotFoundException;
 
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Multimap;
+
 /**
  * A simple stub implementation of the FileMetadataDao.
  * 
@@ -110,4 +113,12 @@ public class StubFileMetadataDao implements FileHandleDao {
 		return null;
 	}
 
+	@Override
+	public Multimap<String, String> getHandleCreators(List<String> fileHandleIds) throws NotFoundException {
+		Multimap<String, String> result = ArrayListMultimap.create();
+		for (String fileHandleId : fileHandleIds) {
+			result.put(map.get(fileHandleId).getCreatedBy(), fileHandleId);
+		}
+		return result;
+	}
 }
