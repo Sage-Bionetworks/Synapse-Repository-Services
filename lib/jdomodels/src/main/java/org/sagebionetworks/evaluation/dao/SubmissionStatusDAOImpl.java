@@ -53,8 +53,6 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 			SQLConstants.TABLE_SUBSTATUS +" WHERE "+
 			COL_SUBSTATUS_SUBMISSION_ID+" IN (:"+COL_SUBSTATUS_SUBMISSION_ID+")" + " FOR UPDATE";
 
-	private static final String SUBMISSION_NOT_FOUND = "Submission could not be found with id :";
-	
 	// SELECT s.EVALUATION_ID FROM JDOSUBMISSION s WHERE s.ID IN (:ID)
 	private static final String SELECT_EVALUATION_FOR_IDS = 
 			"SELECT DISTINCT s."+COL_SUBMISSION_EVAL_ID+" FROM "+TABLE_SUBMISSION+
@@ -102,7 +100,9 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 			dbo.setModifiedOn(System.currentTimeMillis());
 			verifySubmissionStatusDBO(dbo);
 			dbos.add(dbo);
-			idToEtagMap.put(dbo.getId().toString(), dbo.geteTag());
+			if (null!=idToEtagMap.put(dbo.getId().toString(), dbo.geteTag())) {
+				throw new InvalidModelException(""+dbo.getId()+" occurs more than once in the SubmissonStatus batch.");
+			}
 		}
 
 		// update eTag and increment the version
@@ -155,6 +155,7 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 			}
 		}, param);
 		// Check the eTags
+		Map<Long,Long> result = new HashMap<Long,Long>();
 		for (IdETagVersion ev : current) {
 			String id = ev.getId().toString();
 			String etagFromClient = idToEtagMap.get(id);
@@ -162,10 +163,6 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 			if(!currentEtag.equals(etagFromClient)) {
 				throw new ConflictingUpdateException("Submission Status: "+id+" was updated since you last fetched it, retrieve it again and reapply the update");
 			}
-		}
-		// Get a new e-tag
-		Map<Long,Long> result = new HashMap<Long,Long>();
-		for (IdETagVersion ev : current) {
 			result.put(ev.getId(), ev.getVersion());
 		}
 		

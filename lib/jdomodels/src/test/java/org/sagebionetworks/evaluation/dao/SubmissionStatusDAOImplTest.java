@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -200,6 +201,17 @@ public class SubmissionStatusDAOImplTest {
 	        clones.set(0, clone2);
         }
         
+        // cannot have repeats in a batch
+        List<SubmissionStatus> repeats = new ArrayList<SubmissionStatus>();
+        repeats.add(clones.get(0));
+        repeats.add(clones.get(0));
+        try {
+        	submissionStatusDAO.update(repeats);
+        	fail("InvalidModelException expected");
+        } catch (InvalidModelException ime) {
+        	// as expected
+        }
+        
         // now update all
         submissionStatusDAO.update(clones);
         for (int i=0; i<clones.size(); i++) {
@@ -214,6 +226,7 @@ public class SubmissionStatusDAOImplTest {
             // Fetch it (should not exist)
             try {
             	submissionStatusDAO.get(submissionIds.get(i));
+            	fail("NotFoundException expected");
             } catch (NotFoundException e) {
             	// expected
             }
