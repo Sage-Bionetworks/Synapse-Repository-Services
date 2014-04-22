@@ -41,6 +41,7 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
+import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
@@ -205,8 +206,11 @@ public class IT100TableControllerTest {
 		assertEquals("There should be 4 rows in this table", "4", onlyRow.getValues().get(0));
 
 		// Now use these results to delete a row using the row delete api
-		results1.getRows().remove(1);
-		RowReferenceSet results4 = synapse.deleteRowsFromTable(results1);
+		RowSelection toDelete = new RowSelection();
+		toDelete.setEtag(results1.getEtag());
+		toDelete.setTableId(results1.getTableId());
+		toDelete.setRowIds(Lists.newArrayList(results1.getRows().get(0).getRowId()));
+		RowReferenceSet results4 = synapse.deleteRowsFromTable(toDelete);
 		assertNotNull(results4);
 		assertNotNull(results4.getRows());
 		assertEquals(1, results4.getRows().size());

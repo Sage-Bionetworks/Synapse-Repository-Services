@@ -102,6 +102,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
+import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
@@ -1056,7 +1057,7 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 * @throws SynapseTableUnavailableException
 	 */
-	public RowReferenceSet deleteRowsFromTable(RowReferenceSet toDelete) throws SynapseException, SynapseTableUnavailableException;
+	public RowReferenceSet deleteRowsFromTable(RowSelection toDelete) throws SynapseException, SynapseTableUnavailableException;
 
 	/**
 	 * Get the file handles for the requested file handle columns for the rows.

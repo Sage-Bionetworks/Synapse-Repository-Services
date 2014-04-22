@@ -140,6 +140,7 @@ import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
+import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.table.TableStatus;
@@ -4868,7 +4869,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public RowReferenceSet deleteRowsFromTable(RowReferenceSet toDelete) throws SynapseException {
+	public RowReferenceSet deleteRowsFromTable(RowSelection toDelete) throws SynapseException {
 		if (toDelete == null)
 			throw new IllegalArgumentException("RowReferenceSet cannot be null");
 		if (toDelete.getTableId() == null)
