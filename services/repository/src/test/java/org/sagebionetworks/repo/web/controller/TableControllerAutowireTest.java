@@ -33,6 +33,7 @@ import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
+import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
@@ -143,8 +144,11 @@ public class TableControllerAutowireTest {
 		assertEquals(TableModelUtils.getHeaders(cols), results.getHeaders());
 
 		// delete a row
-		results.getRows().remove(0);
-		ServletTestHelper.deleteTableRows(DispatchServletSingleton.getInstance(), results, adminUserId);
+		RowSelection toDelete = new RowSelection();
+		toDelete.setEtag(results.getEtag());
+		toDelete.setTableId(results.getTableId());
+		toDelete.setRowIds(Lists.newArrayList(results.getRows().get(1).getRowId()));
+		ServletTestHelper.deleteTableRows(DispatchServletSingleton.getInstance(), toDelete, adminUserId);
 	}
 
 	@Test(expected = IllegalArgumentException.class)
