@@ -257,6 +257,8 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		}
 		if(bodyIntf instanceof AsynchUploadJobBody){
 			AsynchUploadJobBody body = (AsynchUploadJobBody) bodyIntf;
+			if(body.getTableId() == null) throw new IllegalArgumentException("TableId cannot be null");
+			if(body.getUploadFileHandleId() == null) throw new IllegalArgumentException("FileHandle.id cannot be null");
 			// the user must have update on the table
 			if(!this.canAccess(userInfo, body.getTableId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE)){
 				// they cannot update the entity

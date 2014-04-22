@@ -125,7 +125,7 @@ public class IT099AsynchronousJobTest {
 			CSVWriter csv = new CSVWriter(new FileWriter(temp));
 			try{
 				// Write the header
-				csv.writeNext(new String[]{cm1.getId(), cm2.getId()});
+				csv.writeNext(new String[]{cm1.getName(), cm2.getName()});
 				int rows = 2;
 				// Write some rows
 				for(int i=0; i<rows; i++){

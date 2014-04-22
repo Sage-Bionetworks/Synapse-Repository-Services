@@ -70,4 +70,6 @@ public interface AsynchJobStatusManager {
 	 */
 	public String setComplete(String jobId, AsynchronousJobBody body) throws DatastoreException, NotFoundException;
 
+	public void emptyAllQueues();
+
 }

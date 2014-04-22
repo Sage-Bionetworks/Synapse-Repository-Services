@@ -17,6 +17,7 @@ public class ExpectedStackBeansTest {
 	String[] expectedBeanNames = new String[]{
 			"stackConfiguration",
 			"stackConfiguration.stackAndStackInstancePrefix",
+			"stackConfiguration.tableCSVUploadQueueName",
 			// Id generator Properties
 			"stackConfiguration.idGeneratorDatabaseDriver",
 			"stackConfiguration.idGeneratorDatabaseConnectionUrl",
