@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
+import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableStatus;
@@ -46,9 +47,8 @@ public interface TableRowManager {
 	 * 
 	 * @param models
 	 */
-	public RowReferenceSet deleteRows(UserInfo user, String tableId, List<ColumnModel> models, RowReferenceSet rowsToDelete)
-			throws DatastoreException,
-			NotFoundException, IOException;
+	public RowReferenceSet deleteRows(UserInfo user, String tableId, List<ColumnModel> models, RowSelection rowsToDelete)
+			throws DatastoreException, NotFoundException, IOException;
 
 	/**
 	 * Append all rows from the provided iterator into the a table. This method

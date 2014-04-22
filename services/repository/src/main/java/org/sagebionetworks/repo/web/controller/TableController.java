@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
+import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
@@ -296,7 +297,7 @@ public class TableController extends BaseController {
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_DELETE_ROWS, method = RequestMethod.POST)
 	public @ResponseBody
 	RowReferenceSet deleteRows(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String id,
-			@RequestBody RowReferenceSet rowsToDelete) throws DatastoreException, NotFoundException, IOException {
+			@RequestBody RowSelection rowsToDelete) throws DatastoreException, NotFoundException, IOException {
 		if (id == null)
 			throw new IllegalArgumentException("{id} cannot be null");
 		rowsToDelete.setTableId(id);

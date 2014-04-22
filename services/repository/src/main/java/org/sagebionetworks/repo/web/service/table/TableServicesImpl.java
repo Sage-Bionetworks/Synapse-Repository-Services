@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
+import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
@@ -92,7 +93,7 @@ public class TableServicesImpl implements TableServices {
 	}
 
 	@Override
-	public RowReferenceSet deleteRows(Long userId, RowReferenceSet rowsToDelete) throws DatastoreException, NotFoundException, IOException {
+	public RowReferenceSet deleteRows(Long userId, RowSelection rowsToDelete) throws DatastoreException, NotFoundException, IOException {
 		Validate.required(rowsToDelete, "rowsToDelete");
 		Validate.required(rowsToDelete.getTableId(), "rowsToDelete.tableId");
 		UserInfo user = userManager.getUserInfo(userId);

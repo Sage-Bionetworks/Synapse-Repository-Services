@@ -1,0 +1,20 @@
+{
+    "description":"Represents a selection of rows of a TablEntity",
+    "properties":{
+		"tableId":{
+			"description":"The ID of the TableEntity than owns these rows",
+			"type": "string"
+		},
+		"etag": {
+		    "description":"When a RowReferencesRow is returned from a table update, this will be set to the current etag of the table.",
+			"type": "string"
+		},
+		"rowIds": {
+		    "description":"Each row id of this list refers to a single row of a TableEntity.",
+			"type": "array",
+			"items": {
+				"type": "integer"
+			}
+		}
+    }
+}

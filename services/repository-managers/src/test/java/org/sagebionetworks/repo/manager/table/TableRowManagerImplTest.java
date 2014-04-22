@@ -55,6 +55,7 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
+import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
@@ -284,19 +285,19 @@ public class TableRowManagerImplTest {
 
 	@Test
 	public void testDeleteRowsHappy() throws DatastoreException, NotFoundException, IOException{
-		Row row1 = TableModelTestUtils.createRow(1L, 11L);
-		Row row2 = TableModelTestUtils.createRow(2L, 22L);
+		Row row1 = TableModelTestUtils.createRow(1L, null);
+		Row row2 = TableModelTestUtils.createRow(2L, null);
 		set.setEtag("aa");
 		set.setRows(Lists.newArrayList(row1, row2));
 
-		refSet.getRows().add(TableModelTestUtils.createRowReference(1L, 11L));
-		refSet.getRows().add(TableModelTestUtils.createRowReference(2L, 22L));
-		refSet.setEtag("aa");
+		RowSelection rowSelection = new RowSelection();
+		rowSelection.setRowIds(Lists.newArrayList(1L, 2L));
+		rowSelection.setEtag("aa");
 
 		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(true);
 		when(mockTruthDao.appendRowSetToTable(user.getId().toString(), tableId, models, set, true)).thenReturn(refSet);
 
-		manager.deleteRows(user, tableId, models, refSet);
+		manager.deleteRows(user, tableId, models, rowSelection);
 
 		// verify the correct row set was generated
 		verify(mockTruthDao).appendRowSetToTable(user.getId().toString(), tableId, models, set, true);
