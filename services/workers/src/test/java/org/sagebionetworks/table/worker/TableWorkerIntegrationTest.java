@@ -35,6 +35,7 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
+import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableState;
@@ -203,10 +204,9 @@ public class TableWorkerIntegrationTest {
 		RowReferenceSet referenceSet2 = tableRowManager.appendRows(adminUserInfo, tableId, schema, rowSet);
 		assertEquals(3, referenceSet2.getRows().size());
 
-		RowReferenceSet rowsToDelete = referenceSet2;
-		rowsToDelete.getRows().remove(2);
-		rowsToDelete.getRows().remove(0);
-		rowsToDelete.getRows().add(referenceSet.getRows().get(3));
+		RowSelection rowsToDelete = new RowSelection();
+		rowsToDelete.setEtag(referenceSet2.getEtag());
+		rowsToDelete.setRowIds(Lists.newArrayList(referenceSet2.getRows().get(1).getRowId(), referenceSet.getRows().get(3).getRowId()));
 
 		referenceSet = tableRowManager.deleteRows(adminUserInfo, tableId, schema, rowsToDelete);
 		assertEquals(2, referenceSet.getRows().size());
@@ -249,7 +249,7 @@ public class TableWorkerIntegrationTest {
 		rowSet.setHeaders(headers);
 		rowSet.setTableId(tableId);
 		long start = System.currentTimeMillis();
-		String etag = tableRowManager.appendRowsAsStream(adminUserInfo, tableId, schema, rowSet.getRows().iterator(), null, null);
+		tableRowManager.appendRowsAsStream(adminUserInfo, tableId, schema, rowSet.getRows().iterator(), null, null);
 		System.out.println("Appended "+rowSet.getRows().size()+" rows in: "+(System.currentTimeMillis()-start)+" MS");
 		// Wait for the table to become available
 		TableStatus status = waitForTableToBeAvailable(tableId);

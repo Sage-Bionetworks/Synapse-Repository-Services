@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
+import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
@@ -89,7 +90,7 @@ public interface TableServices {
 	 * @throws DatastoreException
 	 * @throws IOException
 	 */
-	public RowReferenceSet deleteRows(Long userId, RowReferenceSet rowsToDelete) throws DatastoreException, NotFoundException, IOException;
+	public RowReferenceSet deleteRows(Long userId, RowSelection rowsToDelete) throws DatastoreException, NotFoundException, IOException;
 
 	/**
 	 * Get the file handles

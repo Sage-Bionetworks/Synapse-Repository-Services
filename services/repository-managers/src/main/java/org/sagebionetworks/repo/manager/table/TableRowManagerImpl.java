@@ -32,6 +32,7 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
+import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableState;
@@ -117,7 +118,7 @@ public class TableRowManagerImpl implements TableRowManager {
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public RowReferenceSet deleteRows(UserInfo user, String tableId, List<ColumnModel> models, RowReferenceSet rowsToDelete)
+	public RowReferenceSet deleteRows(UserInfo user, String tableId, List<ColumnModel> models, RowSelection rowsToDelete)
 			throws DatastoreException, NotFoundException, IOException {
 		Validate.required(user, "user");
 		Validate.required(tableId, "tableId");
@@ -128,22 +129,25 @@ public class TableRowManagerImpl implements TableRowManager {
 			throw new UnauthorizedException("User does not have permission to update TableEntity: " + tableId);
 		}
 
+		final List<String> headers = TableModelUtils.getHeaders(models);
+
 		// create a rowset of all deletes
-		List<Row> rows = Lists.transform(rowsToDelete.getRows(), new Function<RowReference, Row>() {
+		List<Row> rows = Lists.transform(rowsToDelete.getRowIds(), new Function<Long, Row>() {
 			@Override
-			public Row apply(RowReference input) {
+			public Row apply(Long input) {
 				Row row = new Row();
-				row.setRowId(input.getRowId());
-				row.setVersionNumber(input.getVersionNumber());
+				row.setRowId(input);
+				row.setVersionNumber(null);
 				row.setValues(Collections.<String> emptyList());
 				return row;
 			}
 		});
 		RowSet rowSetToDelete = new RowSet();
-		rowSetToDelete.setHeaders(rowsToDelete.getHeaders());
+		rowSetToDelete.setHeaders(headers);
 		rowSetToDelete.setEtag(rowsToDelete.getEtag());
 		rowSetToDelete.setTableId(tableId);
-		rowSetToDelete.setRows(rows);
+		// need copy of list here, as appendRowSetToTable changes rows in place
+		rowSetToDelete.setRows(Lists.newArrayList(rows));
 		RowReferenceSet result = tableRowTruthDao.appendRowSetToTable(user.getId().toString(), tableId, models, rowSetToDelete, true);
 		// The table has change so we must reset the state.
 		tableStatusDAO.resetTableStatusToProcessing(tableId);
