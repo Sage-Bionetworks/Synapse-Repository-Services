@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.manager.asynch;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.dbo.asynch.AsynchJobType;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -30,21 +29,11 @@ public class AsynchJobQueuePublisherImpl implements AsynchJobQueuePublisher {
 	@Autowired
 	AmazonSQSClient awsSQSClient;
 	
-	private String stackAndStackInstancePrefix;
-	
 	/**
 	 * Mapping from a job type to a queue URL
 	 */
 	private Map<AsynchJobType, String> toTypeToQueueURLMap;
-	
-	/**
-	 * Injected via spring
-	 * 
-	 * @param stackAndStackInstancePrefix
-	 */
-	public void setStackAndStackInstancePrefix(String stackAndStackInstancePrefix) {
-		this.stackAndStackInstancePrefix = stackAndStackInstancePrefix;
-	}
+
 
 	@Override
 	public void publishMessage(AsynchronousJobStatus status) {
@@ -71,7 +60,7 @@ public class AsynchJobQueuePublisherImpl implements AsynchJobQueuePublisher {
 		// Map each type to its queue;
 		toTypeToQueueURLMap = new HashMap<AsynchJobType, String>(AsynchJobType.values().length);
 		for(AsynchJobType type: AsynchJobType.values()){
-			CreateQueueRequest cqRequest = new CreateQueueRequest(stackAndStackInstancePrefix+"-"+type.getQueueNameSuffix());
+			CreateQueueRequest cqRequest = new CreateQueueRequest(type.getQueueName());
 			CreateQueueResult cqResult = this.awsSQSClient.createQueue(cqRequest);
 			String qUrl = cqResult.getQueueUrl();
 			toTypeToQueueURLMap.put(type, qUrl);
@@ -117,5 +106,4 @@ public class AsynchJobQueuePublisherImpl implements AsynchJobQueuePublisher {
 		}
 	}
 	
-
 }

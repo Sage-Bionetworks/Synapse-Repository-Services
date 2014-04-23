@@ -7,6 +7,7 @@ import static org.junit.Assert.fail;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -31,6 +32,9 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
+import org.sagebionetworks.repo.model.UserPreference;
+import org.sagebionetworks.repo.model.UserPreferenceBoolean;
+import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.service.EntityService;
 import org.sagebionetworks.repo.web.service.UserProfileService;
@@ -181,6 +185,35 @@ public class UserProfileControllerAutowiredTest {
 		favs = ServletTestHelper.getFavorites(dispatchServlet, adminUserId, extraParams);
 		assertEquals(0, favs.getTotalNumberOfResults());
 		assertEquals(0, favs.getResults().size());
+	}
+	
+	@Test
+	public void testPreferences() throws Exception {
+		UserProfile userProfile = ServletTestHelper.getUserProfile(dispatchServlet, adminUserId);
+		userProfile.setUserName(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.name());
+		userProfile.setEmails(Collections.singletonList("migrationAdmin@sagebase.org"));
+		Set<UserPreference> preferences = userProfile.getPreferences();
+		if (preferences==null) {
+			preferences = new HashSet<UserPreference>();
+			userProfile.setPreferences(preferences);
+		}
+		{
+			UserPreferenceBoolean pref = new UserPreferenceBoolean();
+			pref.setName("testPref");
+			pref.setValue(true);
+			preferences.add(pref);
+		}
+		ServletTestHelper.updateUserProfile(adminUserId, userProfile);
+		userProfile = ServletTestHelper.getUserProfile(dispatchServlet, adminUserId);
+		boolean foundIt = false;
+		for (UserPreference pref : userProfile.getPreferences()) {
+			if (pref.getName().equals("testPref")) {
+				foundIt=true;
+				assertTrue(((UserPreferenceBoolean)pref).getValue());
+				break;
+			}
+		}
+		assertTrue(foundIt);
 	}
 	
 }

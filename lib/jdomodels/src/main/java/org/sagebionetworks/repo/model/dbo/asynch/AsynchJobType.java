@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.asynch;
 
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobBody;
 import org.sagebionetworks.repo.model.table.AsynchUploadJobBody;
 
@@ -10,16 +11,18 @@ import org.sagebionetworks.repo.model.table.AsynchUploadJobBody;
  *
  */
 public enum AsynchJobType {
+	
+	
 
-	UPLOAD(AsynchUploadJobBody.class, "table-csv-upload-queue");
+	UPLOAD(AsynchUploadJobBody.class, StackConfiguration.singleton().getTableCSVUploadQueueName());
 	
 	
 	private Class<? extends AsynchronousJobBody> clazz;
-	private String queueNameSuffix;
+	private String queueName;
 	
-	AsynchJobType(Class<? extends AsynchronousJobBody> clazz, String queueNameSuffix){
+	AsynchJobType(Class<? extends AsynchronousJobBody> clazz, String queueName){
 		this.clazz = clazz;
-		this.queueNameSuffix = queueNameSuffix;
+		this.queueName = queueName;
 	}
 	
 	/**
@@ -48,7 +51,7 @@ public enum AsynchJobType {
 	 * The suffix of the queue name where jobs of this type are published. 
 	 * @return
 	 */
-	public String getQueueNameSuffix(){
-		return this.queueNameSuffix;
+	public String getQueueName(){
+		return this.queueName;
 	}
 }

@@ -185,9 +185,13 @@
             "$ref": "org.sagebionetworks.repo.model.message.Settings"
         },
         "preferences": {
-            "type": "object", 
+            "type": "array", 
             "title": "User Preferences", 
-             "$ref": "org.sagebionetworks.repo.model.UserPreferences"
-        }
+			"items": {
+				"type":"object",
+				"$ref":"org.sagebionetworks.repo.model.UserPreference"
+			},
+  			"uniqueItems": true
+        } 
 	}
 }

@@ -737,6 +737,16 @@ public class StackConfiguration {
 				StackConfiguration.getStack(),
 				StackConfiguration.getStackInstance());
 	}
+	
+	/**
+	 * The name of the queue used used to upload CSV files to tables.
+	 * @return
+	 */
+	public String getTableCSVUploadQueueName(){
+		return String.format(StackConstants.TABLE_CSV_UPLOAD_QUEUE_TEMPLATE,
+				StackConfiguration.getStack(),
+				StackConfiguration.getStackInstance());
+	}
 
 	/**
 	 * The name of the AWS topic where repository changes messages are
@@ -1334,4 +1344,13 @@ public class StackConfiguration {
 		return String.format(StackConstants.STACK_LOG_BUCKET, StackConfiguration.getStack());
 	}
 
+	private static StackConfiguration singleton = new StackConfiguration();
+	/**
+	 * Singleton instance of the stack configuration object.
+	 * This can be used for static access to non-static methods.
+	 * @return
+	 */
+	public static StackConfiguration singleton(){
+		return singleton;
+	}
 }
