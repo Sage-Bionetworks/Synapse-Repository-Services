@@ -7,6 +7,7 @@ import static org.junit.Assert.fail;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -189,6 +190,8 @@ public class UserProfileControllerAutowiredTest {
 	@Test
 	public void testPreferences() throws Exception {
 		UserProfile userProfile = ServletTestHelper.getUserProfile(dispatchServlet, adminUserId);
+		userProfile.setUserName(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.name());
+		userProfile.setEmails(Collections.singletonList("migrationAdmin@sagebase.org"));
 		Set<UserPreference> preferences = userProfile.getPreferences();
 		if (preferences==null) {
 			preferences = new HashSet<UserPreference>();
