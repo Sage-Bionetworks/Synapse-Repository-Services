@@ -1,0 +1,15 @@
+{
+	"type":"object",
+	"description":"A user preference of type boolean",
+    "implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.UserPreference"
+        }
+    ],
+	"properties":{
+		"value":{
+			"description":"the value of the user preference",
+			"type":"boolean"
+		}
+	}
+}
