@@ -1,7 +1,9 @@
 package org.sagebionetworks;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -21,14 +23,17 @@ import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.AsynchUploadJobBody;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.TableEntity;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 import au.com.bytecode.opencsv.CSVWriter;
@@ -43,7 +48,7 @@ public class IT099AsynchronousJobTest {
 	private List<Entity> entitiesToDelete;
 	private List<S3FileHandle> filesToDelete;
 	
-	private static long MAX_QUERY_TIMEOUT_MS = 1000*60*5;
+	private static long MAX_WAIT_MS = 1000*60*5;
 	
 	@BeforeClass 
 	public static void beforeClass() throws Exception {
@@ -87,7 +92,7 @@ public class IT099AsynchronousJobTest {
 	}
 	
 	@Test
-	public void testUploadCSVToTable() throws IOException, SynapseException, JSONObjectAdapterException{
+	public void testUploadCSVToTable() throws Exception{
 		File temp = File.createTempFile("UploadCSVTest", ".csv");
 		try{
 			// Create a table with some columns
@@ -151,9 +156,23 @@ public class IT099AsynchronousJobTest {
 			assertNotNull(status);
 			assertNotNull(status.getJobId());
 			assertEquals(body, status.getJobBody());
+			// Wait for the job to finish
+			waitForStatus(status);
 			
 		}finally{
 			temp.delete();
+		}
+	}
+	
+	private void waitForStatus(AsynchronousJobStatus status) throws Exception{
+		long start = System.currentTimeMillis();
+		while(!AsynchJobState.COMPLETE.equals(status.getJobState())){
+			assertFalse("Job Failed: "+status.getErrorDetails(), AsynchJobState.FAILED.equals(status.getJobState()));
+			System.out.println("Waiting for job to complete: Message: "+status.getProgressMessage()+" progress: "+status.getProgressCurrent()+"/"+status.getProgressTotal());
+			assertTrue("Timed out waiting for table status",(System.currentTimeMillis()-start) < MAX_WAIT_MS);
+			Thread.sleep(1000);
+			// Get the status again 
+			status = synapse.getAsynchronousJobStatus(status.getJobId());
 		}
 	}
 	

@@ -1,6 +1,8 @@
 package org.sagebionetworks.table.worker;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
@@ -36,6 +38,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.TableEntity;
+import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -139,12 +142,12 @@ public class TableCSVAppenderWorkerIntegrationTest {
 		// Create a CSV file to upload
 		this.tempFile = File.createTempFile("TableCSVAppenderWorkerIntegrationTest", ".csv");
 		CSVWriter csv = new CSVWriter(new FileWriter(tempFile));
+		int rowCount = 100;
 		try{
 			// Write the header
 			csv.writeNext(new String[]{schema.get(1).getName(), schema.get(0).getName()});
-			int rows = 100;
 			// Write some rows
-			for(int i=0; i<rows; i++){
+			for(int i=0; i<rowCount; i++){
 				csv.writeNext(new String[]{""+i, "stringdate"+i});
 			}
 		}finally{
@@ -167,6 +170,12 @@ public class TableCSVAppenderWorkerIntegrationTest {
 		AsynchronousJobStatus status = asynchJobStatusManager.startJob(adminUserInfo, body);
 		// Wait for the job to complete.
 		waitForStatus(status);
+		// There should be one change set applied to the table
+		List<TableRowChange> changes = this.tableRowManager.listRowSetsKeysForTable(tableId);
+		assertNotNull(changes);
+		assertEquals(1, changes.size());
+		TableRowChange change = changes.get(0);
+		assertEquals(new Long(rowCount), change.getRowCount());
 	}
 	
 	private void waitForStatus(AsynchronousJobStatus status) throws InterruptedException, DatastoreException, NotFoundException{

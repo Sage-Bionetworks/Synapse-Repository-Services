@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.table.TableRowManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
+import org.sagebionetworks.repo.model.dbo.dao.table.CSVToRowIterator;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.AsynchUploadJobBody;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -25,6 +26,7 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.S3Object;
+import com.amazonaws.services.s3.model.S3ObjectInputStream;
 import com.amazonaws.services.sqs.model.Message;
 /**
  * This worker reads CSV files from S3 and appends the data to a given TableEntity.
@@ -92,6 +94,7 @@ public class TableCSVAppenderWorker implements Callable<List<Message>> {
 	 */
 	public void processStatus(AsynchronousJobStatus status) throws Throwable {
 		CsvNullReader reader = null;
+		S3ObjectInputStream inputStream;
 		try{
 			UserInfo user = userManger.getUserInfo(status.getStartedByUserId());
 			AsynchUploadJobBody body = (AsynchUploadJobBody) status.getJobBody();
@@ -105,17 +108,20 @@ public class TableCSVAppenderWorker implements Callable<List<Message>> {
 			long progressTotal = fileMetadata.getContentLength();
 			// Start the progress
 			asynchJobStatusManager.updateJobProgress(status.getJobId(), progressCurrent, progressTotal, "Starting...");
-			// Start reading
+			// Open a stream to the file in S3.
 			S3Object s3Object = s3Client.getObject(fileHandle.getBucketName(), fileHandle.getKey());
 			// This stream is used to keep track of the bytes read.
 			CountingInputStream countingInputStream = new CountingInputStream(s3Object.getObjectContent());
 			reader = new CsvNullReader(new InputStreamReader(countingInputStream, "UTF-8"));
 			// Reports progress back the caller.
-			ProgressReporter progressReporter = new ProgressReporterImpl(status.getJobId(),fileMetadata.getContentLength(),countingInputStream, asynchJobStatusManager);
+			// Report progress every 2 seconds.
+			long progressIntervalMs = 2000;
+			ProgressReporter progressReporter = new IntervalProgressReporter(status.getJobId(),fileMetadata.getContentLength(), countingInputStream, asynchJobStatusManager, progressIntervalMs);
 			// Create the iterator
-			CSVRowIterator iterator = new CSVRowIterator(tableSchema, reader, 2000, progressReporter);
+			CSVToRowIterator iterator = new CSVToRowIterator(tableSchema, reader);
+			ProgressingIteratorProxy iteratorProxy = new  ProgressingIteratorProxy(iterator, progressReporter);
 			// Append the data to the table
-			tableRowManager.appendRowsAsStream(user, body.getTableId(), tableSchema, iterator, null, null);
+			tableRowManager.appendRowsAsStream(user, body.getTableId(), tableSchema, iteratorProxy, null, null);
 			// Done
 			asynchJobStatusManager.setComplete(status.getJobId(), body);
 		}catch(Throwable e){
@@ -125,7 +131,7 @@ public class TableCSVAppenderWorker implements Callable<List<Message>> {
 		}finally{
 			if(reader != null){
 				try {
-					// Unconditionally close the stream
+					// Unconditionally close the stream to the S3 file.
 					reader.close();
 				} catch (IOException e) {}
 			}

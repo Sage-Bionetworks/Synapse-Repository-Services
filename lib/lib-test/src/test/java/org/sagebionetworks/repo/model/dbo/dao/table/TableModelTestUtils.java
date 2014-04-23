@@ -153,4 +153,23 @@ public class TableModelTestUtils {
 		ref.setVersionNumber(rowVersion);
 		return ref;
 	}
+	
+	/**
+	 * Helper to create columns by name.
+	 * @param names
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public static List<ColumnModel> createColumsWithNames(String...names){
+		List<ColumnModel> results = new ArrayList<ColumnModel>(names.length);
+		for(int i=0; i<names.length; i++){
+			ColumnModel cm  = new ColumnModel();
+			cm.setId(""+i);
+			cm.setName(names[i]);
+			cm.setColumnType(ColumnType.STRING);
+			results.add(cm);
+		}
+		return results;
+	}
 }
