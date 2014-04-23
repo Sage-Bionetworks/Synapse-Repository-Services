@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.UnsentMessageRange;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
@@ -173,6 +174,17 @@ public class MessageUtils {
 							: (i + SQS_MAX_REQUEST_SIZE))));
 		}
 		return miniBatches;
+	}
+	
+	/**
+	 * Read a JSON entity from the message body
+	 * @param e
+	 * @param clazz
+	 * @return
+	 * @throws JSONObjectAdapterException 
+	 */
+	public static <T extends JSONEntity> T readMessageBody(Message e, Class<? extends T> clazz) throws JSONObjectAdapterException{
+		return EntityFactory.createEntityFromJSONString(e.getBody(), clazz);
 	}
 
 }

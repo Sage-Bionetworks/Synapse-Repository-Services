@@ -586,6 +586,38 @@ public class ServletTestHelper {
 	}
 
 	/**
+	 * Get User Profile
+	 */
+	public static UserProfile getUserProfile(
+			HttpServlet dispatchServlet, Long userId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET, UrlHelpers.USER_PROFILE, userId, null);
+
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.OK);
+
+		return (UserProfile) objectMapper.readValue(
+				response.getContentAsString(), UserProfile.class);
+	}
+	
+	/**
+	 * Update User Profile
+	 * @param userId
+	 * @param userProfile
+	 * @throws Exception
+	 */
+	public static void updateUserProfile(Long userId, UserProfile userProfile)
+			throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.PUT, UrlHelpers.USER_PROFILE, userId, userProfile);
+
+		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
+				HttpStatus.OK);
+	}
+
+
+
+	/**
 	 * Calls 'hasAccess'
 	 */
 	public static <T extends Entity> BooleanResult hasAccess(

@@ -9,6 +9,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +30,7 @@ import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 
 import com.google.common.collect.Lists;
@@ -335,6 +337,7 @@ public class TableModelUtils {
 		});
 		return rows;
 	}
+	
 	
 	/**
 	 * Read the passed CSV into a RowSet.
@@ -741,6 +744,54 @@ public class TableModelUtils {
 			map.put(Long.parseLong(cm.getId()), cm);
 		}
 		return map;
+	}
+	
+	/**
+	 * Map column names to column IDs
+	 * @param columns
+	 * @return
+	 */
+	public static Map<String, String> createNameToIDMap(List<ColumnModel> columns){
+		HashMap<String, String>  map = new HashMap<String, String> ();
+		for(ColumnModel cm: columns){
+			map.put(cm.getName(), cm.getId());
+		}
+		return map;
+	}
+	
+	/**
+	 * Given the first row of a CSV create a columnId to Index map.
+	 * If the row does not contain the names of the columns then null.
+	 * @param rowValues
+	 * @param schema
+	 * @return
+	 */
+	public static Map<String, Integer> createColumnIdToIndexMapFromFirstRow(String[] rowValues, List<ColumnModel> schema){
+		Map<String, String> nameMap = createNameToIDMap(schema);
+		// Are all of the values names?
+		for(String value: rowValues){
+			// skip reserved column names
+			if(TableConstants.isReservedColumnName(value)){
+				continue;
+			}
+			if(!nameMap.containsKey(value)){
+				// The values are not column names so this was not a header row.
+				return null;
+			}
+		}
+		// Build the map from the names
+		Map<String, Integer> columnIdToIndex = new HashMap<String, Integer>(rowValues.length);
+		for(int i=0; i<rowValues.length; i++){
+			String name = rowValues[i];
+			if(TableConstants.isReservedColumnName(name)){
+				// Use the name of a reserved column for its name.
+				columnIdToIndex.put(name, i);
+			}else{
+				String columnId = nameMap.get(name);
+				columnIdToIndex.put(columnId, i);
+			}
+		}
+		return columnIdToIndex;
 	}
 
 	public static RowSetAccessor getRowSetAccessor(final RowSet rowset) {

@@ -140,6 +140,8 @@ public class DBOColumnModelImplTest {
 		toBind.add(two.getId());
 		int count = columnModelDao.bindColumnToObject(toBind, "syn123");
 		assertTrue(count > 0);
+		String ownerEtag = columnModelDao.lockOnOwner("syn123");
+		assertNotNull(ownerEtag);
 		// Now bind the next two
 		toBind.clear();
 		toBind.add(one.getId());

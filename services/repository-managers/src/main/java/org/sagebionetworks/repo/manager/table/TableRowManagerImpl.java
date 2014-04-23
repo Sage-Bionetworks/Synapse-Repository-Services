@@ -164,6 +164,10 @@ public class TableRowManagerImpl implements TableRowManager {
 		if(!authorizationManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)){
 			throw new UnauthorizedException("User does not have permission to update TableEntity: "+tableId);
 		}
+		// To prevent race conditions on concurrency checking we apply all changes to a single table
+		// serially by locking on the table's Id.
+		columnModelDAO.lockOnOwner(tableId);
+		
 		List<String> headers = TableModelUtils.getHeaders(models);
 		// Calculate the size per row
 		int maxBytesPerRow = TableModelUtils.calculateMaxRowSize(models);

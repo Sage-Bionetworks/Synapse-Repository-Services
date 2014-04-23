@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dbo.dao.table;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -13,10 +14,12 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.junit.Before;
@@ -31,9 +34,9 @@ import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 
-import com.google.common.collect.Lists;
-
 import au.com.bytecode.opencsv.CSVWriter;
+
+import com.google.common.collect.Lists;
 
 /**
  * 
@@ -840,4 +843,38 @@ public class TableModelUtilsTest {
 		assertEquals("TALBE-LOCK-123", TableModelUtils.getTableSemaphoreKey("syn123"));
 		assertEquals("TALBE-LOCK-456", TableModelUtils.getTableSemaphoreKey("456"));
 	}
+	
+	@Test
+	public void createColumnIdToIndexMapFromFirstRow(){
+		List<ColumnModel> all = TableModelTestUtils.createOneOfEachType();
+		List<String> names = new LinkedList<String>();
+		for(ColumnModel cm: all){
+			names.add(cm.getName());
+		}
+		Collections.shuffle(names);
+		Map<String, Integer> map = TableModelUtils.createColumnIdToIndexMapFromFirstRow(names.toArray(new String[names.size()]), all);
+		assertNotNull(map);
+		assertEquals(all.size(), map.size());
+		Map<String, String> nameToIdMap = TableModelUtils.createNameToIDMap(all);
+		// Check the reverse
+		for(String columnId: map.keySet()){
+			Integer index = map.get(columnId);
+			String name = names.get(index);
+			assertEquals(columnId, nameToIdMap.get(name));
+		}
+	}
+	
+	@Test
+	public void createColumnIdToIndexMapFromNotFirstRow(){
+		List<ColumnModel> all = TableModelTestUtils.createOneOfEachType();
+		List<String> names = new LinkedList<String>();
+		for(ColumnModel cm: all){
+			names.add(cm.getName()+"not");
+		}
+		Collections.shuffle(names);
+		Map<String, Integer> map = TableModelUtils.createColumnIdToIndexMapFromFirstRow(names.toArray(new String[names.size()]), all);
+		assertNull(map);
+	}
+	
+
 }

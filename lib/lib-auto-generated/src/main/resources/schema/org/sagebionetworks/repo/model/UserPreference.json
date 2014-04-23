@@ -1,0 +1,14 @@
+{
+	"title": "User Preference",
+	"type":"interface",
+	"description": "User preferences",
+	"properties": {
+        "name": {
+            "type": "string", 
+            "description": "The name of the user preference."
+        },
+		"concreteType":{
+			"type": "string"
+		}
+	}
+}
