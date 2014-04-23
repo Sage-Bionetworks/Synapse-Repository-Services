@@ -121,6 +121,14 @@ public interface ColumnModelDAO {
 	public long listObjectsBoundToColumnCount(Set<String> columnIds, boolean currentOnly);
 	
 	/**
+	 * Select for update on an owner object.
+	 * 
+	 * @param objectId
+	 * @return The current etag set to the owner.
+	 */
+	public String lockOnOwner(String objectId);
+	
+	/**
 	 * This should only be called by tests.
 	 * 
 	 */

@@ -243,7 +243,6 @@
     
     <bean id="asynchJobQueuePublisher" class="org.sagebionetworks.repo.manager.asynch.AsynchJobQueuePublisherImpl"
         init-method="initialize" scope="singleton" >
-       <property name="stackAndStackInstancePrefix" ref="stackConfiguration.stackAndStackInstancePrefix"/>
     </bean>
 	
    	<bean id="asynchJobStatusManager" class="org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManagerImpl" scope="singleton" />

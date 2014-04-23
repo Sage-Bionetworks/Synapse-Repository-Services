@@ -94,6 +94,11 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 		checkStackReadWrite();
 		return asynchJobStatusDao.setComplete(jobId, body);
 	}
+
+	@Override
+	public void emptyAllQueues() {
+		asynchJobQueuePublisher.emptyAllQueues();
+	}
 	
 	
 
