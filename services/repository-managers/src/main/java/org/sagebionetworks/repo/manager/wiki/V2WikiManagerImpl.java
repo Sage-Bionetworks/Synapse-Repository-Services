@@ -322,6 +322,7 @@ public class V2WikiManagerImpl implements V2WikiManager {
 		V2WikiPage newWikiVersion = new V2WikiPage();
 		newWikiVersion.setId(wikiId);
 		newWikiVersion.setEtag(wiki.getEtag());
+		newWikiVersion.setParentWikiId(wiki.getParentWikiId());
 		//Preserve creation metadata
 		newWikiVersion.setCreatedBy(wiki.getCreatedBy());
 		newWikiVersion.setCreatedOn(wiki.getCreatedOn());
