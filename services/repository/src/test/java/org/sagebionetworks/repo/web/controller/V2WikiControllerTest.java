@@ -353,8 +353,8 @@ public class V2WikiControllerTest {
 		V2WikiPage childRestored = entityServletHelper.restoreWikiPage(adminUserId, ownerId, ownerType, childUpdated, 0L);
 		assertNotNull(childRestored);
 		assertFalse("The etag should have changed from the restore", childCurrentEtag2.equals(childRestored.getEtag()));
-		assertEquals(clonedChild.getCreatedBy(), restored.getCreatedBy());
-		//assertEquals(clonedChild.getCreatedOn(), restored.getCreatedOn());
+		assertEquals(clonedChild.getCreatedBy(), childRestored.getCreatedBy());
+		assertEquals(clonedChild.getCreatedOn(), childRestored.getCreatedOn());
 		assertEquals(childRestored.getMarkdownFileHandleId(), markdown.getId());
 		assertEquals(childRestored.getAttachmentFileHandleIds().size(), 1);
 		assertEquals(childRestored.getAttachmentFileHandleIds().get(0), handleOne.getId());
