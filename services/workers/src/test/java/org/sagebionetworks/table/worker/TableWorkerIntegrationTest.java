@@ -268,6 +268,51 @@ public class TableWorkerIntegrationTest {
 		assertEquals("The etag should also match the rereferenceSet.etag",referenceSet.getEtag(), rowSet.getEtag());
 	}
 
+	@Test
+	public void testColumnNameRange() throws NotFoundException, InterruptedException, DatastoreException, TableUnavilableException, IOException{
+		// Create one column of each type
+		String specialChars = "Specialchars~!@#$%^^&*()_+|}{:?></.,;'[]\'";
+		List<ColumnModel> temp = TableModelTestUtils.createColumsWithNames("Has Space", "a", "A", specialChars);
+		schema = new LinkedList<ColumnModel>();
+		for(ColumnModel cm: temp){
+			cm = columnManager.createColumnModel(adminUserInfo, cm);
+			schema.add(cm);
+		}
+		List<String> headers = TableModelUtils.getHeaders(schema);
+		// Create the table.
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		table.setColumnIds(headers);
+		tableId = entityManager.createEntity(adminUserInfo, table, null);
+		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
+		columnManager.bindColumnToObject(adminUserInfo, headers, tableId, true);
+		// Now add some data
+		List<Row> rows = TableModelTestUtils.createRows(schema, 10);
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(rows);
+		rowSet.setHeaders(headers);
+		rowSet.setTableId(tableId);
+		long start = System.currentTimeMillis();
+		tableRowManager.appendRowsAsStream(adminUserInfo, tableId, schema, rowSet.getRows().iterator(), null, null);
+		System.out.println("Appended "+rowSet.getRows().size()+" rows in: "+(System.currentTimeMillis()-start)+" MS");
+		// Wait for the table to become available
+		TableStatus status = waitForTableToBeAvailable(tableId);
+		// Validate that we can query the table
+		boolean isConsistent = true;
+		boolean countOnly = false;
+		rowSet = tableRowManager.query(adminUserInfo, "select A, a, \"Has Space\",\""+specialChars+"\" from "+tableId+" limit 2", isConsistent, countOnly);
+		assertNotNull(rowSet);
+		assertEquals(tableId, rowSet.getTableId());
+		assertNotNull(rowSet.getHeaders());
+		assertEquals(4, rowSet.getHeaders().size());
+		assertEquals(headers.get(0), rowSet.getHeaders().get(2));
+		assertEquals(headers.get(1), rowSet.getHeaders().get(1));
+		assertEquals(headers.get(2), rowSet.getHeaders().get(0));
+		assertEquals(headers.get(3), rowSet.getHeaders().get(3));
+		assertNotNull(rowSet.getRows());
+		assertEquals(2, rowSet.getRows().size());
+		assertNotNull(rowSet.getEtag());
+	}
 	
 	/**
 	 * There were several issue related to creating tables with no columns an now rows.  This test validates that such tables are supported.

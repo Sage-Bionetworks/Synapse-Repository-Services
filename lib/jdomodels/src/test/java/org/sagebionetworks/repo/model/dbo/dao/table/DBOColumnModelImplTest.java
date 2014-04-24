@@ -1,10 +1,12 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -345,6 +347,56 @@ public class DBOColumnModelImplTest {
 		List<ColumnModel> results = columnModelDao.getColumnModelsForObject(tableId);
 		assertNotNull(results);
 		assertEquals(0,  results.size());
+	}
+	
+	@Test
+	public void testCaseSenstive() throws DatastoreException, NotFoundException{
+		ColumnModel first = new ColumnModel();
+		first.setName("AbbB");
+		first.setColumnType(ColumnType.STRING);
+		first.setMaximumSize(10L);
+		String firstId = columnModelDao.createColumnModel(first).getId();
+		// Create a second column that is the same.
+		ColumnModel second = new ColumnModel();
+		second.setName(first.getName());
+		second.setColumnType(first.getColumnType());
+		second.setMaximumSize(first.getMaximumSize());
+		String secondId = columnModelDao.createColumnModel(second).getId();
+		assertTrue("Two columns that are identical should have the same ID",firstId.equals(secondId));
+		// Now change the case and try again
+		second.setName(first.getName().toLowerCase());
+		secondId = columnModelDao.createColumnModel(second).getId();
+		assertFalse("Two columns that differ only by case should not get the same",firstId.equals(secondId));
+	}
+	
+	/**
+	 *  Should not be able to bind two columns with the same name to the same object
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	@Test
+	public void testBindWithNameConflict() throws DatastoreException, NotFoundException{
+		// Should not be able to bind two columns with the same name to the same object
+		ColumnModel first = new ColumnModel();
+		first.setName("AbbB");
+		first.setColumnType(ColumnType.STRING);
+		first.setMaximumSize(10L);
+		first = columnModelDao.createColumnModel(first);
+		// The second has the same name but different type.
+		ColumnModel second = new ColumnModel();
+		second.setName(first.getName());
+		second.setColumnType(ColumnType.LONG);
+		second = columnModelDao.createColumnModel(second);
+		// They should not have the same id
+		assertFalse("Two columns with the same name but different type should not have the same ID",first.getId().equals(second.getId()));
+		// now try to bind both columns to an object
+		try{
+			columnModelDao.bindColumnToObject(Arrays.asList(first.getId(), second.getId()), "syn123");
+			fail("Should not be able to bind two columns with the same name to the same object");
+		}catch(IllegalArgumentException e){
+			// expected
+			assertTrue("The error should contain the duplicate name",e.getMessage().contains(first.getName()));
+		}
 	}
 	
 	/**

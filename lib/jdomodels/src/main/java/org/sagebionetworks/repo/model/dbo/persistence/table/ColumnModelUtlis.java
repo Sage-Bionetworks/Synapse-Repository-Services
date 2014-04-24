@@ -166,15 +166,15 @@ public class ColumnModelUtlis {
 			// The ID is not part of the normalized form.
 			clone.setId(null);
 			// to lower on the name
-			clone.setName(clone.getName().toLowerCase());
+			clone.setName(clone.getName().trim());
 			// Default to lower.
 			if(clone.getDefaultValue() != null){
-				clone.setDefaultValue(clone.getDefaultValue().toLowerCase());
+				clone.setDefaultValue(clone.getDefaultValue().trim());
 			}
 			if(clone.getEnumValues() != null){
 				List<String> newList = new LinkedList<String>();
 				for(String enumValue: clone.getEnumValues()){
-					newList.add(enumValue.toLowerCase());
+					newList.add(enumValue.trim());
 				}
 				Collections.sort(newList);
 				clone.setEnumValues(newList);

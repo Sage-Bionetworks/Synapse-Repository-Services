@@ -24,14 +24,14 @@ public class ColumnModelUtlisTest {
 	public void before(){
 		original = new ColumnModel();
 		original.setId("123");
-		original.setName("Name");
-		original.setDefaultValue("DefaultValue");
+		original.setName("Name ");
+		original.setDefaultValue(" DefaultValue");
 		original.setMaximumSize(444l);
 		original.setColumnType(ColumnType.FILEHANDLEID);
 		original.setEnumValues(new LinkedList<String>());
-		original.getEnumValues().add("Fox");
-		original.getEnumValues().add("Trot");
-		original.getEnumValues().add("Alpha");
+		original.getEnumValues().add(" Fox");
+		original.getEnumValues().add("Trot ");
+		original.getEnumValues().add(" Alpha ");
 	}
 	
 	@Test
@@ -39,13 +39,13 @@ public class ColumnModelUtlisTest {
 		// The expected normalized
 		ColumnModel expected = new ColumnModel();
 		expected.setId(null);
-		expected.setName("name");
-		expected.setDefaultValue("defaultvalue");
+		expected.setName("Name");
+		expected.setDefaultValue("DefaultValue");
 		expected.setColumnType(ColumnType.FILEHANDLEID);
 		expected.setEnumValues(new LinkedList<String>());
-		expected.getEnumValues().add("alpha");
-		expected.getEnumValues().add("fox");
-		expected.getEnumValues().add("trot");
+		expected.getEnumValues().add("Alpha");
+		expected.getEnumValues().add("Fox");
+		expected.getEnumValues().add("Trot");
 		expected.setMaximumSize(444L);
 		
 		// Normalize
@@ -117,7 +117,7 @@ public class ColumnModelUtlisTest {
 		// Create two copies of the original
 		ColumnModel clone = ColumnModelUtlis.createNormalizedClone(original);
 		clone.setId("999");
-		clone.setName(clone.getName().toUpperCase());
+		clone.setName(clone.getName());
 		Collections.shuffle(clone.getEnumValues());
 		// The clone and the original should produce the same hash.
 		String originalHash = ColumnModelUtlis.calculateHash(original);

@@ -197,7 +197,7 @@ public class SQLTranslatorUtils {
 		}else{
 			// Not a reserved column name.
 			// Lookup the ID for this column
-			Long columnId = columnNameToIdMap.get(columnName.toLowerCase());
+			Long columnId = columnNameToIdMap.get(columnName.trim());
 			if(columnId == null) throw new IllegalArgumentException("Unknown column name: "+columnName);
 			builder.append(SQLUtils.COLUMN_PREFIX).append(columnId);
 			if(columnReference.getNameRHS() != null){
