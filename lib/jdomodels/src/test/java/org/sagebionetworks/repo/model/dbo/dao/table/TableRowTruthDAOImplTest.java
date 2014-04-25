@@ -494,7 +494,7 @@ public class TableRowTruthDAOImplTest {
 			fail("Should have triggered a row level conflict with row zero");
 		}catch(ConflictingUpdateException e){
 			// expected
-			assertEquals("Row id: 0 has been changes since lasted read.  Please get the latest value for this row and then attempt to update it again.", e.getMessage());
+			assertEquals("Row id: 0 has been changes since last read.  Please get the latest value for this row and then attempt to update it again.", e.getMessage());
 		}
 
 	}
