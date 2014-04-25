@@ -150,6 +150,55 @@ public class TableControllerAutowireTest {
 		toDelete.setRowIds(Lists.newArrayList(results.getRows().get(1).getRowId()));
 		ServletTestHelper.deleteTableRows(DispatchServletSingleton.getInstance(), toDelete, adminUserId);
 	}
+	
+	@Test
+	public void testColumnNameCaseSensitiveCreateTableEntity() throws Exception{
+		// create two columns that differ only by case.
+		ColumnModel one = new ColumnModel();
+		one.setName("Abc");
+		one.setColumnType(ColumnType.STRING);
+		one = ServletTestHelper.createColumnModel(DispatchServletSingleton.getInstance(), one, adminUserId);
+		// two
+		ColumnModel two = new ColumnModel();
+		two.setName("aBC");
+		two.setColumnType(ColumnType.STRING);
+		two = ServletTestHelper.createColumnModel(DispatchServletSingleton.getInstance(), two, adminUserId);
+		// Now create a TableEntity with these Columns
+		TableEntity table = new TableEntity();
+		table.setName("TableEntity");
+		table.setParentId(parent.getId());
+		List<String> idList = new LinkedList<String>();
+		idList.add(one.getId());
+		idList.add(two.getId());
+		table.setColumnIds(idList);
+		table = ServletTestHelper.createEntity(DispatchServletSingleton.getInstance(), table, adminUserId);
+		assertNotNull(table);
+		assertNotNull(table.getId());
+		TableEntity clone = ServletTestHelper.getEntity(DispatchServletSingleton.getInstance(), TableEntity.class, table.getId(), adminUserId);
+		assertNotNull(clone);
+		assertEquals(table, clone);
+		// Now make sure we can get the list of columns for this entity
+		List<ColumnModel> cols = ServletTestHelper.getColumnModelsForTableEntity(DispatchServletSingleton.getInstance(), table.getId(), adminUserId);
+		assertNotNull(cols);
+		assertEquals(2, cols.size());
+		List<ColumnModel> expected = new LinkedList<ColumnModel>();
+		expected.add(one);
+		expected.add(two);
+		assertEquals(expected, cols);
+		
+		// Add some rows to the table.
+		RowSet set = new RowSet();
+		List<Row> rows = TableModelTestUtils.createRows(cols, 2);
+		set.setRows(rows);
+		set.setHeaders(TableModelUtils.getHeaders(cols));
+		set.setTableId(table.getId());
+		RowReferenceSet results = ServletTestHelper.appendTableRows(DispatchServletSingleton.getInstance(), set, adminUserId);
+		assertNotNull(results);
+		assertNotNull(results.getRows());
+		assertEquals(2, results.getRows().size());
+		assertEquals(table.getId(), results.getTableId());
+		assertEquals(TableModelUtils.getHeaders(cols), results.getHeaders());
+	}
 
 	@Test(expected = IllegalArgumentException.class)
 	public void testDuplicateRowUpdateFails() throws Exception {

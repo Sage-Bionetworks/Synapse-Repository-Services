@@ -14,6 +14,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_COLUMN
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -35,8 +36,11 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.SingleColumnRowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -67,7 +71,7 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 	@Autowired
 	private DBOBasicDao basicDao;
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTemplate;
+	private JdbcTemplate jdbcTemplate;
 	@Autowired
 	private IdGenerator idGenerator;
 	
@@ -83,7 +87,7 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 	@Override
 	public List<ColumnModel> listColumnModels(String namePrefix, long limit, long offset) {
 		String likeString = preparePrefix(namePrefix);
-		List<DBOColumnModel> dbos = simpleJdbcTemplate.query(SQL_SELECT_COLUMNS_WITH_NAME_PREFIX, ROW_MAPPER, likeString, limit, offset);
+		List<DBOColumnModel> dbos = jdbcTemplate.query(SQL_SELECT_COLUMNS_WITH_NAME_PREFIX, ROW_MAPPER, likeString, limit, offset);
 		// Convert to DTOs
 		return ColumnModelUtlis.createDTOFromDBO(dbos);
 	}
@@ -91,7 +95,7 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 	public List<ColumnModel> getColumnModelsForObject(String tableIdString)
 			throws DatastoreException{
 		long tableId = KeyFactory.stringToKey(tableIdString);
-		List<DBOColumnModel> dbos = simpleJdbcTemplate.query(SQL_GET_COLUMN_MODELS_FOR_OBJECT, ROW_MAPPER, tableId);
+		List<DBOColumnModel> dbos = jdbcTemplate.query(SQL_GET_COLUMN_MODELS_FOR_OBJECT, ROW_MAPPER, tableId);
 		// Convert to DTOs
 		return ColumnModelUtlis.createDTOFromDBO(dbos);
 	}
@@ -110,7 +114,7 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 	@Override
 	public long listColumnModelsCount(String namePrefix) {
 		String likeString = preparePrefix(namePrefix);
-		return simpleJdbcTemplate.queryForLong(SQL_SELECT_COLUMNS_WITH_NAME_PREFIX_COUNT, likeString);
+		return jdbcTemplate.queryForObject(SQL_SELECT_COLUMNS_WITH_NAME_PREFIX_COUNT,new SingleColumnRowMapper<Long>(), likeString);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -144,7 +148,7 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 	@Override
 	public int deleteColumModel(String id) {
 		if(id == null) throw new IllegalArgumentException("id cannot be null");
-		return simpleJdbcTemplate.update(SQL_DELETE_COLUMN_MODEL, id);
+		return jdbcTemplate.update(SQL_DELETE_COLUMN_MODEL, id);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -153,8 +157,8 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 		if(objectIdString == null) throw new IllegalArgumentException("objectId cannot be null");
 		Long objectId = KeyFactory.stringToKey(objectIdString);
 		// Now replace the current current ordinal binding for this object.
-		simpleJdbcTemplate.update(SQL_DELETE_BOUND_ORDINAL, objectId);
-		return simpleJdbcTemplate.update(SQL_DELETE_BOUND_COLUMNS, objectId);
+		jdbcTemplate.update(SQL_DELETE_BOUND_ORDINAL, objectId);
+		return jdbcTemplate.update(SQL_DELETE_BOUND_COLUMNS, objectId);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -166,7 +170,15 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 			return unbindAllColumnsFromObject(objectIdString);
 		}
 		// Get each model to valid they exist.
-		getColumnModel(newCurrentColumnIds, false);
+		List<ColumnModel> columns = getColumnModel(newCurrentColumnIds, false);
+		// Validate that all names are unique within this object
+		Set<String> nameSet = new HashSet<String>(columns.size());
+		for(ColumnModel cm: columns){
+			if(!nameSet.add(cm.getName())){
+				throw new IllegalArgumentException("Cannot add two columns with the same name: '"+cm.getName()+"' to table: "+objectIdString);
+			}
+		}
+		
 		Long objectId = KeyFactory.stringToKey(objectIdString);
 		try {
 			// Create or update the owner.
@@ -182,7 +194,7 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 			// Insert or update the batch
 			basicDao.createOrUpdateBatch(permanent);
 			// Now replace the current current ordinal binding for this object.
-			simpleJdbcTemplate.update(SQL_DELETE_BOUND_ORDINAL, objectId);
+			jdbcTemplate.update(SQL_DELETE_BOUND_ORDINAL, objectId);
 			// Now insert the ordinal values
 			List<DBOBoundColumnOrdinal> ordinal = ColumnModelUtlis.createDBOBoundColumnOrdinalList(objectId, newCurrentColumnIds);
 			// this is just an insert
@@ -201,7 +213,7 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 	@Override
 	public String getColumnForHash(String hash) {
 		try {
-			long id = simpleJdbcTemplate.queryForLong(SQL_SELECT_ID_WHERE_HASH_EQUALS, hash);
+			long id = jdbcTemplate.queryForObject(SQL_SELECT_ID_WHERE_HASH_EQUALS,new SingleColumnRowMapper<Long>(), hash);
 			return Long.toString(id);
 		} catch (EmptyResultDataAccessException e) {
 			return null;
@@ -213,7 +225,8 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 		if(ids == null) throw new IllegalArgumentException("Ids cannot be null");
 		MapSqlParameterSource parameters = new MapSqlParameterSource("ids", ids);
 		String sql = keepOrder ? SQL_SELECT_COLUMNS_FOR_IDS_IN_ORDER : SQL_SELECT_COLUMNS_FOR_IDS;
-		List<DBOColumnModel> dbos = simpleJdbcTemplate.query(sql, ROW_MAPPER, parameters);
+		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
+		List<DBOColumnModel> dbos = namedTemplate.query(sql, parameters,ROW_MAPPER);
 		// Convert to DTOs
 		List<ColumnModel> results = ColumnModelUtlis.createDTOFromDBO(dbos);
 		if(results.size() < ids.size()){
@@ -226,9 +239,9 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public boolean truncateAllColumnData() {
-		int count = simpleJdbcTemplate.update(SQL_TRUNCATE_BOUND_COLUMN_ORDINAL);
-		count = simpleJdbcTemplate.update(SQL_TRUNCATE_BOUND_COLUMNS);
-		count += simpleJdbcTemplate.update(SQL_TRUNCATE_COLUMN_MODEL);
+		int count = jdbcTemplate.update(SQL_TRUNCATE_BOUND_COLUMN_ORDINAL);
+		count = jdbcTemplate.update(SQL_TRUNCATE_BOUND_COLUMNS);
+		count += jdbcTemplate.update(SQL_TRUNCATE_COLUMN_MODEL);
 		return count >0;
 	}
 
@@ -237,8 +250,9 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 		MapSqlParameterSource parameters = new MapSqlParameterSource();
 		// With currently only we have one additional condition.
 		String sql = builderListObjectsSql(columnIds, currentOnly, limit, offset, parameters, false);
+		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
 		// Run the query
-		return simpleJdbcTemplate.query(sql, ENTITY_ID_MAPPER, parameters);
+		return namedTemplate.query(sql, parameters, ENTITY_ID_MAPPER);
 	}
 	
 	@Override
@@ -246,7 +260,8 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 		MapSqlParameterSource parameters = new MapSqlParameterSource();
 		// With currently only we have one additional condition.
 		String sql = builderListObjectsSql(columnIds, currentOnly, -1, -1, parameters, true);
-		return simpleJdbcTemplate.queryForLong(sql, parameters);
+		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
+		return namedTemplate.queryForObject(sql, parameters, new SingleColumnRowMapper<Long>());
 	}
 
 	/**
@@ -316,7 +331,7 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 	@Override
 	public String lockOnOwner(String objectIdString) {
 		Long objectId = KeyFactory.stringToKey(objectIdString);
-		return simpleJdbcTemplate.queryForObject(SQL_SELECT_OWNER_ETAG_FOR_UPDATE, new RowMapper<String>() {
+		return jdbcTemplate.queryForObject(SQL_SELECT_OWNER_ETAG_FOR_UPDATE, new RowMapper<String>() {
 			@Override
 			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
 				return rs.getString(COL_BOUND_OWNER_ETAG);

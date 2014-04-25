@@ -4,7 +4,7 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowSet;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
  * This is an abstraction for table index CRUD operations.
@@ -77,5 +77,5 @@ public interface TableIndexDAO {
 	 * Get the connection
 	 * @return
 	 */
-	public SimpleJdbcTemplate getConnection();
+	public JdbcTemplate getConnection();
 }

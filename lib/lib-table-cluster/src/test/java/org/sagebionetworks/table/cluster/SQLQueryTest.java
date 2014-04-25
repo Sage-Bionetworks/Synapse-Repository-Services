@@ -29,6 +29,7 @@ public class SQLQueryTest {
 		columnNameToIdMap.put("has space", 222L);
 		columnNameToIdMap.put("bar", 333L);
 		columnNameToIdMap.put("foobar", 444L);
+		columnNameToIdMap.put("Foo", 555L);
 	}
 	
 	@Test
@@ -40,11 +41,19 @@ public class SQLQueryTest {
 	}
 	
 	@Test
-	public void testTranslateColumnReferenceIgnoreCase() throws ParseException{
+	public void testTranslateColumnReferenceCaseSensitive() throws ParseException{
 		ColumnReference columnReference = SqlElementUntils.createColumnReference("Foo");
 		StringBuilder builder = new StringBuilder();
 		SQLTranslatorUtils.translate(columnReference, builder, columnNameToIdMap);
-		assertEquals("C111", builder.toString());
+		assertEquals("C555", builder.toString());
+	}
+	
+	@Test
+	public void testTranslateColumnReferenceTrim() throws ParseException{
+		ColumnReference columnReference = SqlElementUntils.createColumnReference("Foo ");
+		StringBuilder builder = new StringBuilder();
+		SQLTranslatorUtils.translate(columnReference, builder, columnNameToIdMap);
+		assertEquals("C555", builder.toString());
 	}
 	
 	@Test 
