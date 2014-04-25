@@ -282,7 +282,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 					throw new ConflictingUpdateException(
 							"Row id: "
 									+ row.getRowId()
-									+ " has been changes since lasted read.  Please get the latest value for this row and then attempt to update it again.");
+									+ " has been changes since last read.  Please get the latest value for this row and then attempt to update it again.");
 				}
 			}
 		}, change);
