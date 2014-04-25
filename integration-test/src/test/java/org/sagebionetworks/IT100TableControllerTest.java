@@ -1,5 +1,6 @@
 package org.sagebionetworks;
 
+import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -14,6 +15,7 @@ import java.io.Writer;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -29,6 +31,7 @@ import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
+import org.sagebionetworks.client.exceptions.SynapseConflictingUpdateException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseTableUnavailableException;
 import org.sagebionetworks.repo.model.Entity;
@@ -375,6 +378,59 @@ public class IT100TableControllerTest {
 		assertEquals(table.getId(), queryResults.getTableId());
 		assertNull(queryResults.getRows());
 		assertNull(queryResults.getHeaders());
+	}
+	
+	@Test
+	public void testConflictingResultS() throws SynapseException, InterruptedException{
+		// Create a few columns to add to a table entity
+		ColumnModel one = new ColumnModel();
+		one.setName("one");
+		one.setColumnType(ColumnType.STRING);
+		one = synapse.createColumnModel(one);
+		List<ColumnModel> columns = Arrays.asList(one);
+		// Create a project to contain it all
+		Project project = new Project();
+		project.setName(UUID.randomUUID().toString());
+		project = synapse.createEntity(project);
+		entitiesToDelete.add(project);
+
+		// now create a table entity
+		TableEntity table = new TableEntity();
+		table.setName("Table");
+		List<String> idList = Lists.newArrayList(one.getId());
+		table.setColumnIds(idList);
+		table.setParentId(project.getId());
+		table = synapse.createEntity(table);
+		tablesToDelete.add(table);
+		
+		RowSet set = new RowSet();
+		List<Row> rows = TableModelTestUtils.createRows(columns, 2);
+		set.setRows(rows);
+		set.setHeaders(TableModelUtils.getHeaders(columns));
+		set.setTableId(table.getId());
+		synapse.appendRowsToTable(set);
+		// Query for the results
+		boolean isConsistent = true;
+		boolean countOnly = false;
+		RowSet queryResults = waitForQueryResults("select * from "+table.getId()+" limit 2", isConsistent, countOnly);
+		// Change the data
+		for(Row row: queryResults.getRows()){
+			String oldValue = row.getValues().get(0);
+			row.setValues(Arrays.asList(oldValue+" changed"));
+		}
+		// Apply the changes
+		synapse.appendRowsToTable(queryResults);
+		
+		// If we try to apply the same change again we should get a conflict
+		try{
+			synapse.appendRowsToTable(queryResults);
+			fail("Should not be able to apply the same change twice.  It should result in a SynapseConflictingUpdateException update exception.");
+		}catch(SynapseConflictingUpdateException e){
+			// expected
+			System.out.println(e.getMessage());
+			assertTrue(e.getMessage().contains("Row id:"));
+			assertTrue(e.getMessage().contains("has been changes"));
+		}
 	}
 	
 }
