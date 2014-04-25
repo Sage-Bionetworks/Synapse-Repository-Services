@@ -174,7 +174,17 @@ public class UserProfileControllerAutowiredTest {
 		assertEquals(1, favs.getTotalNumberOfResults());
 		assertEquals(1, favs.getResults().size());
 		assertEquals(fav.getId(), favs.getResults().get(0).getId());
-		
+
+		// Shouldn't retrieve the favorite if the node in trash can
+		ServletTestHelper.deleteEntity(dispatchServlet, Project.class, proj.getId(), adminUserId);
+		extraParams = new HashMap<String, String>();
+		extraParams.put("offset", "0");
+		extraParams.put("limit", Integer.toString(Integer.MAX_VALUE));
+		favs = ServletTestHelper.getFavorites(dispatchServlet, adminUserId, extraParams);
+		assertEquals(0, favs.getTotalNumberOfResults());
+		assertEquals(0, favs.getResults().size());
+		ServletTestHelper.restoreEntity(adminUserId, proj.getId());
+
 		// test removal
 		extraParams = new HashMap<String, String>();
 		ServletTestHelper.removeFavorite(dispatchServlet, proj.getId(), adminUserId, extraParams);

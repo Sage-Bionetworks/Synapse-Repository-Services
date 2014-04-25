@@ -8,6 +8,7 @@ import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -606,8 +607,12 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		List<EntityHeader> entityHeaderList = nodeDao.getEntityHeaderByMd5(md5);
 		List<EntityHeader> results = new ArrayList<EntityHeader>(entityHeaderList.size());
 		for (EntityHeader entityHeader: entityHeaderList) {
-			if (authorizationManager.canAccess(userInfo, entityHeader.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ)) {
-				results.add(entityHeader);
+			try {
+				if (authorizationManager.canAccess(userInfo, entityHeader.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ)) {
+					results.add(entityHeader);
+				}
+			} catch (EntityInTrashCanException e) {
+				// Skip trash can items for md5 search
 			}
 		}
 		return results;
