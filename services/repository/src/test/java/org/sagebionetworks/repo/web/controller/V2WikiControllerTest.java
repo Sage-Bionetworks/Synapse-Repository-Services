@@ -324,7 +324,41 @@ public class V2WikiControllerTest {
 		// The first should be the S3FileHandle, the second should be the Preview.
 		assertEquals(handleOne.getId(), handles.getList().get(0).getId());
 		assertEquals(handleTwo.getId(), handles.getList().get(1).getId());
-	
+		
+		// PLFM-2727: restore child wiki
+		V2WikiPage clonedChild = entityServletHelper.getV2WikiPage(childKey, adminUserId, null);
+		// Create a new version of the child
+		clonedChild.setMarkdownFileHandleId(markdownTwo.getId());
+		clonedChild.getAttachmentFileHandleIds().add(handleTwo.getId());
+		clonedChild.setTitle("Child Version 1 title");
+		String childCurrentEtag1 = clonedChild.getEtag();
+		V2WikiPage childUpdated = entityServletHelper.updateWikiPage(adminUserId, ownerId, ownerType, clonedChild);
+		assertNotNull(childUpdated);
+		assertEquals("Child Version 1 title", childUpdated.getTitle());
+		assertEquals(childUpdated.getMarkdownFileHandleId(), markdownTwo.getId());
+		assertEquals(2, childUpdated.getAttachmentFileHandleIds().size());
+		assertEquals(handleOne.getId(), childUpdated.getAttachmentFileHandleIds().get(0));
+		assertEquals(handleTwo.getId(), childUpdated.getAttachmentFileHandleIds().get(1));
+		assertFalse("The etag should have changed from the update", childCurrentEtag1.equals(childUpdated.getEtag()));
+		// Get history
+		PaginatedResults<V2WikiHistorySnapshot> childHistoryResults = entityServletHelper.getV2WikiHistory(childKey, adminUserId, new Long(0), new Long(10));
+		assertNotNull(childHistoryResults);
+		List<V2WikiHistorySnapshot> childSnapshots = childHistoryResults.getResults();
+		assertNotNull(childSnapshots);
+		assertEquals(2, childSnapshots.size());
+		assertEquals("1", childSnapshots.get(0).getVersion());
+		assertEquals("0", childSnapshots.get(1).getVersion());
+		// Restore wiki to version 0 which had markdownOne and one file attachment, and a title of "Child"
+		String childCurrentEtag2 = childUpdated.getEtag();
+		V2WikiPage childRestored = entityServletHelper.restoreWikiPage(adminUserId, ownerId, ownerType, childUpdated, 0L);
+		assertNotNull(childRestored);
+		assertFalse("The etag should have changed from the restore", childCurrentEtag2.equals(childRestored.getEtag()));
+		assertEquals(clonedChild.getCreatedBy(), childRestored.getCreatedBy());
+		assertEquals(clonedChild.getCreatedOn(), childRestored.getCreatedOn());
+		assertEquals(childRestored.getMarkdownFileHandleId(), markdown.getId());
+		assertEquals(childRestored.getAttachmentFileHandleIds().size(), 1);
+		assertEquals(childRestored.getAttachmentFileHandleIds().get(0), handleOne.getId());
+		assertEquals(child.getTitle(), childRestored.getTitle());	
 	}
 
 }
