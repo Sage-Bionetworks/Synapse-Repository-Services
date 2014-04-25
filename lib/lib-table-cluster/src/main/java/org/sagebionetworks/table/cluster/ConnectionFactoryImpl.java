@@ -8,6 +8,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.TransactionAwareDataSourceProxy;
@@ -47,15 +48,8 @@ public class ConnectionFactoryImpl implements ConnectionFactory {
 	
 	@Override
 	public TableIndexDAO getConnection(String tableId) {
-		validateEnable();
-		// Setup a dynamic dao that can still use transactions
-		// This proxy is the 'glue' that  allows the SimpleJDBCTempate to participate in transactions
-		TransactionAwareDataSourceProxy dataSourceProxy = new TransactionAwareDataSourceProxy(singleConnectionPool);
-		// Give the proxy to both the template and transaction manager.
-		SimpleJdbcTemplate template = new SimpleJdbcTemplate(dataSourceProxy);
-		DataSourceTransactionManager transactionManager = new DataSourceTransactionManager(dataSourceProxy);
 		// Create a new DAO for this call.
-		return new TableIndexDAOImpl(template, transactionManager);	
+		return new TableIndexDAOImpl(singleConnectionPool);	
 	}
 	
 	/**
