@@ -198,8 +198,6 @@ public class DBOFavoriteDAOImpl implements FavoriteDAO {
 		params.addValue(COL_FAVORITE_PRINCIPAL_ID, principalId);
 		params.addValue(OFFSET_PARAM_NAME, offset);
 		params.addValue(LIMIT_PARAM_NAME, limit);
-		
-		System.out.println(SELECT_FAVORITES_HEADERS_SQL);
 
 		List<EntityHeader> favoritesHeaders = null;
 		favoritesHeaders = simpleJdbcTemplate.query(SELECT_FAVORITES_HEADERS_SQL, new RowMapper<EntityHeader>() {
