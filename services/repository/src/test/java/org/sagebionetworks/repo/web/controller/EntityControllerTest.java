@@ -486,5 +486,11 @@ public class EntityControllerTest {
 		assertNotNull(results);
 		assertEquals(1, results.getTotalNumberOfResults());
 		assertEquals(file.getId(), results.getResults().get(0).getId());
+
+		// Move to trash can and we should get back empty results
+		entityServletHelper.deleteEntity(file.getId(), adminUserId);
+		results = entityServletHelper.getEntityHeaderByMd5(adminUserId, handleOne.getContentMd5());
+		assertNotNull(results);
+		assertEquals(0, results.getTotalNumberOfResults());
 	}
 }
