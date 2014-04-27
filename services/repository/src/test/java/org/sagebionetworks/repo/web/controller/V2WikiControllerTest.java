@@ -339,6 +339,7 @@ public class V2WikiControllerTest {
 		V2WikiPage childUpdated = entityServletHelper.updateWikiPage(adminUserId, ownerId, ownerType, clonedChild);
 		assertNotNull(childUpdated);
 		assertEquals("Child Version 1 title", childUpdated.getTitle());
+		assertEquals(markdownTwoHandle.getId(), childUpdated.getMarkdownFileHandleId());
 		assertEquals(0, childUpdated.getAttachmentFileHandleIds().size());
 		assertFalse("The etag should have changed from the update", childCurrentEtag1.equals(childUpdated.getEtag()));
 		// Get history
