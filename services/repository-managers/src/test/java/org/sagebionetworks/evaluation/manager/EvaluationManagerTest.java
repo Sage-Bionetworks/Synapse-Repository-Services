@@ -33,6 +33,7 @@ import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
+import org.sagebionetworks.repo.model.evaluation.EvaluationSubmissionsDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -48,6 +49,7 @@ public class EvaluationManagerTest {
 	private EvaluationPermissionsManager mockPermissionsManager;
 	private IdGenerator mockIdGenerator;
 	private EvaluationDAO mockEvaluationDAO;
+	private EvaluationSubmissionsDAO mockEvaluationSubmissionsDAO;
 	
 	private final Long OWNER_ID = 123L;
 	private final Long USER_ID = 456L;
@@ -72,6 +74,8 @@ public class EvaluationManagerTest {
 
     	// Authorization manager
     	mockAuthorizationManager = mock(AuthorizationManager.class);
+    	
+    	mockEvaluationSubmissionsDAO = mock(EvaluationSubmissionsDAO.class);
 
     	// UserInfo
     	ownerInfo = new UserInfo(false, OWNER_ID);
@@ -102,6 +106,7 @@ public class EvaluationManagerTest {
     	ReflectionTestUtils.setField(evaluationManager, "idGenerator", mockIdGenerator);
     	ReflectionTestUtils.setField(evaluationManager, "authorizationManager", mockAuthorizationManager);
     	ReflectionTestUtils.setField(evaluationManager, "evaluationPermissionsManager", mockPermissionsManager);
+    	ReflectionTestUtils.setField(evaluationManager, "evaluationSubmissionsDAO", mockEvaluationSubmissionsDAO);
 
     	// configure mocks
     	when(mockIdGenerator.generateNewId()).thenReturn(Long.parseLong(EVALUATION_ID));

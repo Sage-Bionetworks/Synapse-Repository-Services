@@ -8,6 +8,8 @@ import java.util.UUID;
 
 import org.sagebionetworks.evaluation.dbo.EvaluationSubmissionsDBO;
 import org.sagebionetworks.evaluation.model.EvaluationSubmissions;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -20,22 +22,21 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 public class EvaluationSubmissionsDAOImpl implements EvaluationSubmissionsDAO {
 	private static final String SELECT_FOR_EVALUATION = "SELECT * FROM "+TABLE_EVALUATION_SUBMISSIONS+
-			" WHERE "+COL_EVALUATION_SUBMISSIONS_EVAL_ID+" = :"+COL_EVALUATION_SUBMISSIONS_EVAL_ID;
+			" WHERE "+COL_EVALUATION_SUBMISSIONS_EVAL_ID+" = ?";
 	
 	private static final String SELECT_FOR_EVALUATION_FOR_UPDATE = SELECT_FOR_EVALUATION+" FOR UPDATE";
 
 	private static final String UPDATE_ETAG_FOR_EVALUATION = "UPDATE "+TABLE_EVALUATION_SUBMISSIONS+
-			" SET "+COL_EVALUATION_SUBMISSIONS_ETAG+" = :"+COL_EVALUATION_SUBMISSIONS_ETAG+ " WHERE "+
-			COL_EVALUATION_SUBMISSIONS_EVAL_ID+" = :"+COL_EVALUATION_SUBMISSIONS_EVAL_ID;
+			" SET "+COL_EVALUATION_SUBMISSIONS_ETAG+" = ?"+ " WHERE "+
+			COL_EVALUATION_SUBMISSIONS_EVAL_ID+" = ?";
 	
 	private static final String DELETE_FOR_EVALUATION = "DELETE FROM "+TABLE_EVALUATION_SUBMISSIONS+
-			" WHERE "+COL_EVALUATION_SUBMISSIONS_EVAL_ID+" = :"+COL_EVALUATION_SUBMISSIONS_EVAL_ID;
+			" WHERE "+COL_EVALUATION_SUBMISSIONS_EVAL_ID+" = ?";
 	
 	private static final RowMapper<EvaluationSubmissionsDBO> EVAL_SUB_ROW_MAPPER = 
 			(new EvaluationSubmissionsDBO()).getTableMapping();
@@ -44,6 +45,9 @@ public class EvaluationSubmissionsDAOImpl implements EvaluationSubmissionsDAO {
 	@Autowired
 	private DBOBasicDao basicDao;
 	
+	@Autowired
+	private IdGenerator idGenerator;
+
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
 	
@@ -67,6 +71,7 @@ public class EvaluationSubmissionsDAOImpl implements EvaluationSubmissionsDAO {
 	public EvaluationSubmissions createForEvaluation(long evaluationId)
 			throws DatastoreException {
 		EvaluationSubmissionsDBO dbo = new EvaluationSubmissionsDBO();
+		dbo.setId(idGenerator.generateNewId(TYPE.DOMAIN_IDS));
 		dbo.setEvaluationId(evaluationId);
 		// Generate a new eTag and CREATE message
 		dbo.setEtag(UUID.randomUUID().toString());
@@ -93,10 +98,8 @@ public class EvaluationSubmissionsDAOImpl implements EvaluationSubmissionsDAO {
 	@Override
 	public EvaluationSubmissions getForEvaluation(long evaluationId)
 			throws NotFoundException {
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(COL_EVALUATION_SUBMISSIONS_EVAL_ID, evaluationId);
 		try {
-			EvaluationSubmissionsDBO dbo = jdbcTemplate.queryForObject(SELECT_FOR_EVALUATION, EVAL_SUB_ROW_MAPPER, param);
+			EvaluationSubmissionsDBO dbo = jdbcTemplate.queryForObject(SELECT_FOR_EVALUATION, new Object[]{evaluationId}, EVAL_SUB_ROW_MAPPER);
 			EvaluationSubmissions dto = new EvaluationSubmissions();
 			copyDboToDto(dbo, dto);
 			return dto;		
@@ -109,10 +112,8 @@ public class EvaluationSubmissionsDAOImpl implements EvaluationSubmissionsDAO {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public EvaluationSubmissions lockAndGetForEvaluation(long evaluationId)
 			throws NotFoundException {
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(COL_EVALUATION_SUBMISSIONS_EVAL_ID, evaluationId);
 		try {
-			EvaluationSubmissionsDBO dbo = jdbcTemplate.queryForObject(SELECT_FOR_EVALUATION_FOR_UPDATE, EVAL_SUB_ROW_MAPPER, param);
+			EvaluationSubmissionsDBO dbo = jdbcTemplate.queryForObject(SELECT_FOR_EVALUATION_FOR_UPDATE, new Object[]{evaluationId}, EVAL_SUB_ROW_MAPPER);
 			EvaluationSubmissions dto = new EvaluationSubmissions();
 			copyDboToDto(dbo, dto);
 			return dto;		
@@ -125,11 +126,8 @@ public class EvaluationSubmissionsDAOImpl implements EvaluationSubmissionsDAO {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public String updateEtagForEvaluation(long evaluationId, boolean sendChangeMessage)
 			throws DatastoreException, NotFoundException {
-		MapSqlParameterSource param = new MapSqlParameterSource();
 		String etag = UUID.randomUUID().toString();
-		param.addValue(COL_EVALUATION_SUBMISSIONS_ETAG, etag);
-		param.addValue(COL_EVALUATION_SUBMISSIONS_EVAL_ID, evaluationId);
-		jdbcTemplate.update(UPDATE_ETAG_FOR_EVALUATION, param);
+		jdbcTemplate.update(UPDATE_ETAG_FOR_EVALUATION, new Object[]{etag, evaluationId});
 		if (sendChangeMessage) sendChangeMessage(evaluationId, etag, ChangeType.UPDATE);
 		return etag;
 	}
@@ -138,9 +136,7 @@ public class EvaluationSubmissionsDAOImpl implements EvaluationSubmissionsDAO {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void deleteForEvaluation(long evaluationId)
 			throws DatastoreException, NotFoundException {
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(COL_EVALUATION_SUBMISSIONS_EVAL_ID, evaluationId);
-		jdbcTemplate.update(DELETE_FOR_EVALUATION, param);
+		jdbcTemplate.update(DELETE_FOR_EVALUATION, new Object[]{evaluationId});
 		sendChangeMessage(evaluationId, null, ChangeType.DELETE);
 	}
 
