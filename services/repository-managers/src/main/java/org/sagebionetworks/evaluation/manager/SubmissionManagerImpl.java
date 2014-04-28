@@ -5,9 +5,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
-import java.util.UUID;
 
 import org.sagebionetworks.evaluation.model.BatchUploadResponse;
+import org.sagebionetworks.evaluation.model.EvaluationSubmissions;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
@@ -23,7 +23,6 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -32,15 +31,13 @@ import org.sagebionetworks.repo.model.annotation.AnnotationsUtils;
 import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
 import org.sagebionetworks.repo.model.annotation.LongAnnotation;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
-import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
+import org.sagebionetworks.repo.model.evaluation.EvaluationSubmissionsDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionFileHandleDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionStatusDAO;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -60,7 +57,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	@Autowired
 	private SubmissionFileHandleDAO submissionFileHandleDAO;
 	@Autowired
-	private EvaluationDAO evaluationDAO;
+	private EvaluationSubmissionsDAO evaluationSubmissionsDAO;
 	@Autowired
 	private ParticipantManager participantManager;
 	@Autowired
@@ -71,8 +68,6 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	private FileHandleManager fileHandleManager;
 	@Autowired
 	private EvaluationPermissionsManager evaluationPermissionsManager;
-	@Autowired
-	private TransactionalMessenger transactionalMessenger;
 	
 	private static final int MAX_BATCH_SIZE = 500;
 	
@@ -136,7 +131,6 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		submission.setCreatedOn(new Date());
 		
 		// create the Submission	
-		evaluationDAO.selectAndLockSubmissionsEtag(evalId);
 		String submissionId = submissionDAO.create(submission);
 		
 		// create an accompanying SubmissionStatus object
@@ -145,15 +139,16 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		status.setStatus(SubmissionStatusEnum.RECEIVED);
 		status.setModifiedOn(new Date());
 		
-		Long evalIdLong = KeyFactory.stringToKey(submission.getEvaluationId());
-
 		submissionStatusDAO.create(status);
-		sendEvaluationSubmissionsChangeMessage(evalIdLong, ChangeType.CREATE);
 		
 		// save FileHandle IDs
 		for (FileHandle handle : bundle.getFileHandles()) {
 			submissionFileHandleDAO.create(submissionId, handle.getId());
 		}
+		
+		// update the EvaluationSubmissions etag
+		Long evalIdLong = KeyFactory.stringToKey(submission.getEvaluationId());
+		evaluationSubmissionsDAO.updateEtagForEvaluation(evalIdLong, true);
 		
 		// return the Submission
 		return submissionDAO.get(submissionId);
@@ -171,11 +166,13 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		
 		validateContent(submissionStatus, evalId);
 		
-		evaluationDAO.selectAndLockSubmissionsEtag(evalId);
 		// update and return the new Submission
 		submissionStatusDAO.update(Collections.singletonList(submissionStatus));
-		sendEvaluationSubmissionsChangeMessage(KeyFactory.stringToKey(evalId), 
-				ChangeType.UPDATE);
+		
+		// update the EvaluationSubmissions etag
+		Long evalIdLong = KeyFactory.stringToKey(evalId);
+		evaluationSubmissionsDAO.updateEtagForEvaluation(evalIdLong, true);
+		
 		return submissionStatusDAO.get(submissionStatus.getId());
 	}
 	
@@ -224,21 +221,22 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		// ensure Submission exists and validate access rights
 		validateEvaluationAccess(userInfo, evalId, ACCESS_TYPE.UPDATE_SUBMISSION);
 		
-		String evaluationSubmissionsEtag = evaluationDAO.selectAndLockSubmissionsEtag(evalId);
+		Long evalIdLong = KeyFactory.stringToKey(evalId);
+		EvaluationSubmissions evalSubs = evaluationSubmissionsDAO.lockAndGetForEvaluation(evalIdLong);
 		// if not first batch, check batch etag
 		if (!batch.getIsFirstBatch()) {
 			String batchToken = batch.getBatchToken();
-			if (!batchToken.equals(evaluationSubmissionsEtag))
+			if (!batchToken.equals(evalSubs.getEtag()))
 				throw new ConflictingUpdateException("Your batch token is out of date.  You must restart upload from first batch.");
 		}
 
 		// update the Submissions
 		submissionStatusDAO.update(batch.getStatuses());
 		
-		String newEvaluationSubmissionsEtag = updateEvaluationSubmissionsEtag(evalId);
+		String newEvaluationSubmissionsEtag = 
+				evaluationSubmissionsDAO.updateEtagForEvaluation(evalIdLong, batch.getIsLastBatch());
 		BatchUploadResponse response = new BatchUploadResponse();
 		if (batch.getIsLastBatch()) {
-			sendEvaluationSubmissionsChangeMessage(evalId, ChangeType.UPDATE, newEvaluationSubmissionsEtag);
 			response.setNextUploadToken(null);
 		} else {
 			response.setNextUploadToken(newEvaluationSubmissionsEtag);
@@ -256,11 +254,9 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		validateEvaluationAccess(userInfo, evalId, ACCESS_TYPE.DELETE_SUBMISSION);
 		
 		// the associated SubmissionStatus object will be deleted via cascade
-		evaluationDAO.selectAndLockSubmissionsEtag(evalId);
+		Long evalIdLong = KeyFactory.stringToKey(evalId);
+		evaluationSubmissionsDAO.updateEtagForEvaluation(evalIdLong, true);
 		submissionDAO.delete(submissionId);
-		sendEvaluationSubmissionsChangeMessage(
-				KeyFactory.stringToKey(evalId), 
-				ChangeType.DELETE);
 	}
 
 	@Override
@@ -479,28 +475,29 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		return annos;
 	}
 	
-	private String updateEvaluationSubmissionsEtag(String evalId) {
-		String evaluationSubmissionsEtag = UUID.randomUUID().toString();
-		evaluationDAO.updateSubmissionsEtag(evalId, evaluationSubmissionsEtag); 
-		return evaluationSubmissionsEtag;
-	}
-	
-	private void sendEvaluationSubmissionsChangeMessage(String evalId, ChangeType changeType, String evaluationSubmissionsEtag) {
-		ChangeMessage message = new ChangeMessage();
-		message.setChangeType(changeType);
-		message.setObjectType(ObjectType.EVALUATION_SUBMISSIONS);
-		message.setObjectId(evalId.toString());
-		message.setObjectEtag(evaluationSubmissionsEtag);
-		transactionalMessenger.sendMessageAfterCommit(message);
-		
-	}
-	
-	@Override
-	public void sendEvaluationSubmissionsChangeMessage(
-			Long evalId, 
-			ChangeType changeType) {
-		String evaluationSubmissionsEtag = updateEvaluationSubmissionsEtag(evalId.toString());
-		sendEvaluationSubmissionsChangeMessage(evalId.toString(), changeType, evaluationSubmissionsEtag);
-	}
-
+//	private String updateEvaluationSubmissionsEtag(String evalId) {
+//		String evaluationSubmissionsEtag = UUID.randomUUID().toString();
+//		evaluationDAO.updateSubmissionsEtag(evalId, evaluationSubmissionsEtag); 
+//		return evaluationSubmissionsEtag;
+//	}
+//	
+//	private void sendEvaluationSubmissionsChangeMessage(String evalId, ChangeType changeType, String evaluationSubmissionsEtag) {
+//		ChangeMessage message = new ChangeMessage();
+//		message.setChangeType(changeType);
+//		message.setObjectType(ObjectType.EVALUATION_SUBMISSIONS);
+//		message.setObjectId(evalId.toString());
+//		message.setObjectEtag(evaluationSubmissionsEtag);
+//		transactionalMessenger.sendMessageAfterCommit(message);
+//		
+//	}
+//	
+//	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+//	@Override
+//	public void sendEvaluationSubmissionsChangeMessage(
+//			Long evalId, 
+//			ChangeType changeType) {
+//		String evaluationSubmissionsEtag = updateEvaluationSubmissionsEtag(evalId.toString());
+//		sendEvaluationSubmissionsChangeMessage(evalId.toString(), changeType, evaluationSubmissionsEtag);
+//	}
+//
 }

@@ -21,9 +21,9 @@ import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
+import org.sagebionetworks.repo.model.evaluation.EvaluationSubmissionsDAO;
 import org.sagebionetworks.repo.model.jdo.EntityNameValidation;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,7 +48,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	private TransactionalMessenger transactionalMessenger;
 	
 	@Autowired
-	private SubmissionManager submissionManager;
+	private EvaluationSubmissionsDAO evaluationSubmissionsDAO;
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -78,6 +78,8 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		// Create the default ACL
 		AccessControlList acl = createDefaultAcl(userInfo, eval.getId());
 		evaluationPermissionsManager.createAcl(userInfo, acl);
+		
+		evaluationSubmissionsDAO.createForEvaluation(KeyFactory.stringToKey(id));
 
 		return evaluationDAO.get(id);
 	}
@@ -214,11 +216,8 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		}
 		evaluationPermissionsManager.deleteAcl(userInfo, id);
 		// lock out multi-submission access (e.g. batch updates)
-		evaluationDAO.selectAndLockSubmissionsEtag(id);
+		evaluationSubmissionsDAO.deleteForEvaluation(Long.parseLong(id));
 		evaluationDAO.delete(id);
-		submissionManager.sendEvaluationSubmissionsChangeMessage(
-				KeyFactory.stringToKey(id), 
-				ChangeType.DELETE);
 	}
 
 	private static void validateEvaluation(Evaluation oldEval, Evaluation newEval) {

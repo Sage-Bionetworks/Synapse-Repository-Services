@@ -25,6 +25,7 @@
         "NODE_REVISION",
         "NODE_ACCESS_REQUIRMENT",
         "EVALUATION",
+        "EVALUATION_SUBMISSIONS",
         "PARTICIPANT",
         "SUBMISSION",
         "SUBMISSION_FILE",

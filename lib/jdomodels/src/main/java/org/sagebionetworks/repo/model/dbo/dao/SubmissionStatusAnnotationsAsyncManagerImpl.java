@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
+import org.sagebionetworks.evaluation.model.EvaluationSubmissions;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
@@ -17,7 +18,7 @@ import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
 import org.sagebionetworks.repo.model.annotation.LongAnnotation;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
 import org.sagebionetworks.repo.model.evaluation.AnnotationsDAO;
-import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
+import org.sagebionetworks.repo.model.evaluation.EvaluationSubmissionsDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -30,7 +31,7 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 	@Autowired
 	private AnnotationsDAO annotationsDAO;	
 	@Autowired
-	private EvaluationDAO evaluationDAO;
+	private EvaluationSubmissionsDAO evaluationSubmissionsDAO;
 
 	public SubmissionStatusAnnotationsAsyncManagerImpl() {};
 
@@ -38,17 +39,18 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 	 * Constructor for testing.
 	 */
 	public SubmissionStatusAnnotationsAsyncManagerImpl(AnnotationsDAO annotationsDAO,  
-			EvaluationDAO evaluationDAO) {
+			EvaluationSubmissionsDAO evaluationSubmissionsDAO) {
 		this.annotationsDAO = annotationsDAO;
-		this.evaluationDAO=evaluationDAO;
+		this.evaluationSubmissionsDAO=evaluationSubmissionsDAO;
 	}
 
-	private void checkSubmissionsEtag(String evalId, String submissionsEtag) {
-		String currentSubmissionsEtag = evaluationDAO.selectSubmissionsEtag(evalId);
+	private void checkSubmissionsEtag(String evalId, String submissionsEtag) 
+			throws NumberFormatException, NotFoundException {
+		EvaluationSubmissions evalSubs = evaluationSubmissionsDAO.getForEvaluation(Long.parseLong(evalId));
+		String currentSubmissionsEtag = evalSubs.getEtag();
 		if (currentSubmissionsEtag==null || 
 				!currentSubmissionsEtag.equals(submissionsEtag)) {
-			throw new IllegalStateException("Change message has etag "+submissionsEtag+
-					" but "+currentSubmissionsEtag+" is expected.");
+			throw new IllegalStateException("Change message etag mismatch.");
 		}
 	}
 
@@ -89,7 +91,6 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 	@Override
 	public void deleteEvaluationSubmissionStatuses(String evalIdString, String submissionsEtag) {
 		if (evalIdString == null) throw new IllegalArgumentException("Id cannot be null");
-		checkSubmissionsEtag(evalIdString, submissionsEtag);
 		Long evalId = KeyFactory.stringToKey(evalIdString);
 		annotationsDAO.deleteAnnotationsByScope(evalId);
 	}
