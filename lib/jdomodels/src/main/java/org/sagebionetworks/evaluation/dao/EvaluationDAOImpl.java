@@ -96,12 +96,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	
 	private static final RowMapper<EvaluationDBO> rowMapper = ((new EvaluationDBO()).getTableMapping());
 
-	private static final String EVALUATION_NOT_FOUND = "Evaluation could not be found with id :";
-	
-	private static final String SELECT_SUBMISSIONS_ETAG = "SELECT " + COL_EVALUATION_SUBMISSIONS_ETAG +
-			" FROM " + TABLE_EVALUATION +" WHERE ID = ?";
-	
-
+	private static final String EVALUATION_NOT_FOUND = "Evaluation could not be found with id :";	
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -217,9 +212,6 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		param.addValue(ID, dto.getId());
 		EvaluationDBO dbo = new EvaluationDBO();
 		copyDtoToDbo(dto, dbo);
-		dbo.setSubmissionsEtag(
-				simpleJdbcTemplate.queryForObject(SELECT_SUBMISSIONS_ETAG, String.class, dto.getId())
-		);
 		verifyEvaluationDBO(dbo);
 		
 		String newEtag = lockAndGenerateEtag(dbo.getIdString(), dbo.getEtag(), ChangeType.UPDATE);	

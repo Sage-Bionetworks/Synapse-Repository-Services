@@ -26,7 +26,6 @@ import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.ArgumentCaptor;
 import org.sagebionetworks.evaluation.model.BatchUploadResponse;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
@@ -53,7 +52,6 @@ import org.sagebionetworks.repo.model.annotation.Annotations;
 import org.sagebionetworks.repo.model.annotation.DoubleAnnotation;
 import org.sagebionetworks.repo.model.annotation.LongAnnotation;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
-import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.evaluation.EvaluationSubmissionsDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionFileHandleDAO;
@@ -61,8 +59,6 @@ import org.sagebionetworks.repo.model.evaluation.SubmissionStatusDAO;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.message.ChangeMessage;
-import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -83,7 +79,6 @@ public class SubmissionManagerTest {
 	private SubmissionStatusDAO mockSubmissionStatusDAO;
 	private SubmissionFileHandleDAO mockSubmissionFileHandleDAO;
 	private EvaluationSubmissionsDAO mockEvaluationSubmissionsDAO;
-	private TransactionalMessenger mockTransactionalMessenger;
 	private EntityManager mockEntityManager;
 	private NodeManager mockNodeManager;
 	private FileHandleManager mockFileHandleManager;
@@ -203,7 +198,6 @@ public class SubmissionManagerTest {
     	mockSubmissionStatusDAO = mock(SubmissionStatusDAO.class);
     	mockSubmissionFileHandleDAO = mock(SubmissionFileHandleDAO.class);
     	mockEvaluationSubmissionsDAO = mock(EvaluationSubmissionsDAO.class);
-    	mockTransactionalMessenger = mock(TransactionalMessenger.class);
     	mockEntityManager = mock(EntityManager.class);
     	mockNodeManager = mock(NodeManager.class, RETURNS_DEEP_STUBS);
     	mockNode = mock(Node.class);
@@ -235,7 +229,6 @@ public class SubmissionManagerTest {
     	ReflectionTestUtils.setField(submissionManager, "submissionStatusDAO", mockSubmissionStatusDAO);
     	ReflectionTestUtils.setField(submissionManager, "submissionFileHandleDAO", mockSubmissionFileHandleDAO);
     	ReflectionTestUtils.setField(submissionManager, "evaluationSubmissionsDAO", mockEvaluationSubmissionsDAO);
-    	ReflectionTestUtils.setField(submissionManager, "transactionalMessenger", mockTransactionalMessenger);
     	ReflectionTestUtils.setField(submissionManager, "entityManager", mockEntityManager);
     	ReflectionTestUtils.setField(submissionManager, "nodeManager", mockNodeManager);
     	ReflectionTestUtils.setField(submissionManager, "fileHandleManager", mockFileHandleManager);
@@ -257,9 +250,7 @@ public class SubmissionManagerTest {
 		verify(mockSubmissionStatusDAO, times(2)).update(any(List.class));
 		verify(mockSubmissionFileHandleDAO).create(eq(SUB_ID), eq(fileHandle1.getId()));
 		verify(mockSubmissionFileHandleDAO).create(eq(SUB_ID), eq(fileHandle2.getId()));
-		// message sending occurs 3 times, for Create, Update, Delete
-		verify(mockTransactionalMessenger, times(4)).sendMessageAfterCommit((ChangeMessage)any());
-		verify(mockEvaluationSubmissionsDAO, times(4)).lockAndGetForEvaluation(EVAL_ID_LONG);
+		verify(mockEvaluationSubmissionsDAO, times(1)).lockAndGetForEvaluation(EVAL_ID_LONG);
 		verify(mockEvaluationSubmissionsDAO, times(4)).updateEtagForEvaluation(EVAL_ID_LONG, true);
 	}
 	
@@ -559,27 +550,15 @@ public class SubmissionManagerTest {
 		} catch (ConflictingUpdateException e) {
 			// as expected
 		}
-		// should also work if etag in system is null
-		evalSubs.setEtag(null);
-		when(mockEvaluationSubmissionsDAO.lockAndGetForEvaluation(EVAL_ID_LONG)).thenReturn(evalSubs);
-		when(mockEvaluationSubmissionsDAO.lockAndGetForEvaluation(EVAL_ID_LONG)).thenReturn(null);
-		try {
-			submissionManager.updateSubmissionStatusBatch(ownerInfo, EVAL_ID, batch);
-			fail("ConflictingUpdateException expected");
-		} catch (ConflictingUpdateException e) {
-			// as expected
-		}
 	}
 	
 	@Test
 	public void testBatchResponseToken() throws Exception {
 		batch.setIsFirstBatch(true);
 		batch.setIsLastBatch(false);
-		EvaluationSubmissions evalSubs = new EvaluationSubmissions();
-		evalSubs.setEtag("foo");
-		when(mockEvaluationSubmissionsDAO.lockAndGetForEvaluation(EVAL_ID_LONG)).thenReturn(evalSubs);
+		when(mockEvaluationSubmissionsDAO.updateEtagForEvaluation(EVAL_ID_LONG, false)).thenReturn("foo");
 		BatchUploadResponse resp = submissionManager.updateSubmissionStatusBatch(ownerInfo, EVAL_ID, batch);
-		verify(mockEvaluationSubmissionsDAO).updateEtagForEvaluation(EVAL_ID_LONG, true);
+		verify(mockEvaluationSubmissionsDAO).updateEtagForEvaluation(EVAL_ID_LONG, false);
 		assertEquals(resp.getNextUploadToken(), "foo");
 		
 		// last batch doesn't get a token back

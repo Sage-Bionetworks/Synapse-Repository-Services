@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityBundle;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -37,7 +38,6 @@ import org.sagebionetworks.repo.model.evaluation.SubmissionFileHandleDAO;
 import org.sagebionetworks.repo.model.evaluation.SubmissionStatusDAO;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -226,6 +226,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		// if not first batch, check batch etag
 		if (!batch.getIsFirstBatch()) {
 			String batchToken = batch.getBatchToken();
+			EvaluationUtils.ensureNotNull(batchToken, "batchToken");
 			if (!batchToken.equals(evalSubs.getEtag()))
 				throw new ConflictingUpdateException("Your batch token is out of date.  You must restart upload from first batch.");
 		}
