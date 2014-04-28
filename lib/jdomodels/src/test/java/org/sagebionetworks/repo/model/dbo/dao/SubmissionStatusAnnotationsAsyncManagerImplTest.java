@@ -15,6 +15,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
+import org.sagebionetworks.evaluation.model.EvaluationSubmissions;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
@@ -26,6 +27,7 @@ import org.sagebionetworks.repo.model.annotation.LongAnnotation;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
 import org.sagebionetworks.repo.model.evaluation.AnnotationsDAO;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
+import org.sagebionetworks.repo.model.evaluation.EvaluationSubmissionsDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -36,13 +38,14 @@ public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 	private SubmissionStatus subStatus;
 
 	private AnnotationsDAO mockSubStatusAnnoDAO;
-	private EvaluationDAO mockEvaluationDAO;
+	private EvaluationSubmissionsDAO mockEvaluationSubmissionsDAO;
 	private SubmissionStatusAnnotationsAsyncManagerImpl ssAnnoAsyncManager;
 	private Annotations annosIn;
 	private Annotations expectedAnnosOut;
 	private ArgumentCaptor<List> annosCaptor;
 	
 	private static final String EVAL_ID = "456";
+	private static final Long EVAL_ID_AS_LONG = Long.parseLong(EVAL_ID);
 	private static final String EVAL_SUB_ETAG = "someEvalSubEtag-00000";
 	private static final Long STATUS_VERSION = 7L;
 	
@@ -50,7 +53,7 @@ public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 	public void before() throws DatastoreException, NotFoundException, UnsupportedEncodingException, JSONObjectAdapterException{
 
 		mockSubStatusAnnoDAO = mock(AnnotationsDAO.class);
-		mockEvaluationDAO = mock(EvaluationDAO.class);
+		mockEvaluationSubmissionsDAO = mock(EvaluationSubmissionsDAO.class);
 		
 		// Submission
 		submission = new Submission();
@@ -85,15 +88,16 @@ public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 		insertExpectedAnnos(expectedAnnosOut);
 		
 		annosCaptor = ArgumentCaptor.forClass(List.class);
-		
-		when(mockEvaluationDAO.selectSubmissionsEtag(EVAL_ID)).thenReturn(EVAL_SUB_ETAG);
+		EvaluationSubmissions evalSubs = new EvaluationSubmissions();
+		evalSubs.setEtag(EVAL_SUB_ETAG);
+		when(mockEvaluationSubmissionsDAO.getForEvaluation(EVAL_ID_AS_LONG)).thenReturn(evalSubs);
 		SubmissionBundle bundle = new SubmissionBundle();
 		bundle.setSubmission(submission);
 		bundle.setSubmissionStatus(subStatus);
 		when(mockSubStatusAnnoDAO.getChangedSubmissions(Long.parseLong(EVAL_ID))).
 			thenReturn(Collections.singletonList(bundle));
 		
-		ssAnnoAsyncManager = new SubmissionStatusAnnotationsAsyncManagerImpl(mockSubStatusAnnoDAO, mockEvaluationDAO);
+		ssAnnoAsyncManager = new SubmissionStatusAnnotationsAsyncManagerImpl(mockSubStatusAnnoDAO, mockEvaluationSubmissionsDAO);
 	}
 	
 	private void insertExpectedAnnos(Annotations annos) {
@@ -174,21 +178,25 @@ public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 	
 	@Test(expected=IllegalStateException.class)
 	public void testStaleCreateChangeMessage() throws Exception {
-		when(mockEvaluationDAO.selectSubmissionsEtag(EVAL_ID)).thenReturn("some other etag");
+		EvaluationSubmissions evalSubs = new EvaluationSubmissions();
+		evalSubs.setEtag("some other etag");
+		when(mockEvaluationSubmissionsDAO.getForEvaluation(EVAL_ID_AS_LONG)).thenReturn(evalSubs);
 		ssAnnoAsyncManager.createEvaluationSubmissionStatuses(submission.getEvaluationId(), EVAL_SUB_ETAG);
 		
 	}
 
 	@Test(expected=IllegalStateException.class)
 	public void testStaleUpdateChangeMessage() throws Exception {
-		when(mockEvaluationDAO.selectSubmissionsEtag(EVAL_ID)).thenReturn("some other etag");
+		EvaluationSubmissions evalSubs = new EvaluationSubmissions();
+		evalSubs.setEtag("some other etag");
+		when(mockEvaluationSubmissionsDAO.getForEvaluation(EVAL_ID_AS_LONG)).thenReturn(evalSubs);
 		ssAnnoAsyncManager.updateEvaluationSubmissionStatuses(submission.getEvaluationId(), EVAL_SUB_ETAG);
 		
 	}
 
 	@Test(expected=IllegalStateException.class)
 	public void testStaleCreateChangeMessageNullEtag() throws Exception {
-		when(mockEvaluationDAO.selectSubmissionsEtag(EVAL_ID)).thenReturn(null);
+		when(mockEvaluationSubmissionsDAO.getForEvaluation(EVAL_ID_AS_LONG)).thenReturn(null);
 		ssAnnoAsyncManager.createEvaluationSubmissionStatuses(submission.getEvaluationId(), EVAL_SUB_ETAG);		
 	}
 	

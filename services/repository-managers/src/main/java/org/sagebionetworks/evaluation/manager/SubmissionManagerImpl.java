@@ -474,30 +474,4 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		
 		return annos;
 	}
-	
-//	private String updateEvaluationSubmissionsEtag(String evalId) {
-//		String evaluationSubmissionsEtag = UUID.randomUUID().toString();
-//		evaluationDAO.updateSubmissionsEtag(evalId, evaluationSubmissionsEtag); 
-//		return evaluationSubmissionsEtag;
-//	}
-//	
-//	private void sendEvaluationSubmissionsChangeMessage(String evalId, ChangeType changeType, String evaluationSubmissionsEtag) {
-//		ChangeMessage message = new ChangeMessage();
-//		message.setChangeType(changeType);
-//		message.setObjectType(ObjectType.EVALUATION_SUBMISSIONS);
-//		message.setObjectId(evalId.toString());
-//		message.setObjectEtag(evaluationSubmissionsEtag);
-//		transactionalMessenger.sendMessageAfterCommit(message);
-//		
-//	}
-//	
-//	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-//	@Override
-//	public void sendEvaluationSubmissionsChangeMessage(
-//			Long evalId, 
-//			ChangeType changeType) {
-//		String evaluationSubmissionsEtag = updateEvaluationSubmissionsEtag(evalId.toString());
-//		sendEvaluationSubmissionsChangeMessage(evalId.toString(), changeType, evaluationSubmissionsEtag);
-//	}
-//
 }

@@ -47,7 +47,7 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 	private void checkSubmissionsEtag(String evalId, String submissionsEtag) 
 			throws NumberFormatException, NotFoundException {
 		EvaluationSubmissions evalSubs = evaluationSubmissionsDAO.getForEvaluation(Long.parseLong(evalId));
-		String currentSubmissionsEtag = evalSubs.getEtag();
+		String currentSubmissionsEtag = evalSubs==null ? null : evalSubs.getEtag();
 		if (currentSubmissionsEtag==null || 
 				!currentSubmissionsEtag.equals(submissionsEtag)) {
 			throw new IllegalStateException("Change message etag mismatch.");
