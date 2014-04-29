@@ -189,6 +189,16 @@ public class EvaluationManagerImpl implements EvaluationManager {
 			throw new NotFoundException("No Evaluation found with id " + eval.getId());
 		}
 		validateEvaluation(old, eval);
+		
+		// this is only needed until all legacy Evaluations have associated EvaluationSubmissions objects
+		Long evalIdLong = KeyFactory.stringToKey(evalId);
+		try {
+			evaluationSubmissionsDAO.lockAndGetForEvaluation(evalIdLong);
+			// OK
+		} catch (NotFoundException e) {
+			// need to create one
+			evaluationSubmissionsDAO.createForEvaluation(evalIdLong);			
+		}
 
 		// perform the update
 		evaluationDAO.update(eval);

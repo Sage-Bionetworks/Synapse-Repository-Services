@@ -252,7 +252,9 @@ public class SubmissionManagerTest {
 		verify(mockSubmissionFileHandleDAO).create(eq(SUB_ID), eq(fileHandle1.getId()));
 		verify(mockSubmissionFileHandleDAO).create(eq(SUB_ID), eq(fileHandle2.getId()));
 		verify(mockEvaluationSubmissionsDAO, times(1)).lockAndGetForEvaluation(EVAL_ID_LONG);
-		verify(mockEvaluationSubmissionsDAO, times(4)).updateEtagForEvaluation(EVAL_ID_LONG, true, ChangeType.CREATE);
+		verify(mockEvaluationSubmissionsDAO, times(1)).updateEtagForEvaluation(EVAL_ID_LONG, true, ChangeType.CREATE);
+		verify(mockEvaluationSubmissionsDAO, times(2)).updateEtagForEvaluation(EVAL_ID_LONG, true, ChangeType.UPDATE);
+		verify(mockEvaluationSubmissionsDAO, times(1)).updateEtagForEvaluation(EVAL_ID_LONG, true, ChangeType.DELETE);
 	}
 	
 	@Test(expected=UnauthorizedException.class)

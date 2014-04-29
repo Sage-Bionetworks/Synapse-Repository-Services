@@ -58,6 +58,7 @@ public class EvaluationManagerTest {
 	
 	private final String EVALUATION_NAME = "test-evaluation";
     private final String EVALUATION_ID = "1234";
+    private final Long EVALUATION_ID_LONG = Long.parseLong(EVALUATION_ID);
     private final String EVALUATION_CONTENT_SOURCE = KeyFactory.SYN_ROOT_ID;
     private final String EVALUATION_ETAG = "etag";
     
@@ -150,8 +151,11 @@ public class EvaluationManagerTest {
 	@Test
 	public void testUpdateEvaluationAsOwner() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException, UnauthorizedException {
 		assertNotNull(evalWithId.getCreatedOn());
+		when(mockEvaluationSubmissionsDAO.lockAndGetForEvaluation(EVALUATION_ID_LONG)).thenThrow(new NotFoundException());
 		evaluationManager.updateEvaluation(ownerInfo, evalWithId);
 		verify(mockEvaluationDAO).update(eq(evalWithId));
+		verify(mockEvaluationSubmissionsDAO).lockAndGetForEvaluation(EVALUATION_ID_LONG);
+		verify(mockEvaluationSubmissionsDAO).createForEvaluation(EVALUATION_ID_LONG);
 	}
 	
 	@Test
