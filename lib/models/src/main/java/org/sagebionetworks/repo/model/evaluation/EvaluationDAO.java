@@ -79,32 +79,5 @@ public interface EvaluationDAO {
 	 * @param id the id of the object to be deleted
 	 */
 	public void delete(String id) throws DatastoreException, NotFoundException;
-	
-	/**
-	 * Save a token which was created in the course of modifying one or more
-	 * submissions under this evaluation.  This token is used in an optimistic
-	 * concurrency scheme:  A change to the token means that a subsequent operation
-	 * has been applied to the Evaluation.
-	 */
-	public void updateSubmissionsEtag(String id, String submissionsEtag);
-	
-	/**
-	 * 
-	 * @return a token which was created in the course of modifying one or more
-	 * submissions under this evaluation.  This token is used in an optimistic
-	 * concurrency scheme:  If the value is not as expected, then a subsequent operation
-	 * has been applied to the Evaluation.
-	 */
-	public String selectSubmissionsEtag(String id);
-
-	/**
-	 * This variation 'locks' the field to prevent concurrent access
-	 * 
-	 * @return a token which was created in the course of modifying one or more
-	 * submissions under this evaluation.  This token is used in an optimistic
-	 * concurrency scheme:  If the value is not as expected, then a subsequent operation
-	 * has been applied to the Evaluation.
-	 */
-	public String selectAndLockSubmissionsEtag(String id);
 
 }

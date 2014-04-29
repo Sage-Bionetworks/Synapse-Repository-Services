@@ -193,12 +193,4 @@ public interface SubmissionManager {
 			String submissionId, String filehandleId)
 			throws DatastoreException, NotFoundException;
 
-	/**
-	 * 
-	 * @param evalId
-	 * @param changeType
-	 */
-	public void sendEvaluationSubmissionsChangeMessage(Long evalId,
-			ChangeType changeType);
-
 }

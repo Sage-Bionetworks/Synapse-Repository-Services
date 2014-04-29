@@ -290,7 +290,9 @@
 	<bean id="participatnDAO" class="org.sagebionetworks.evaluation.dao.ParticipantDAOImpl" />
 	<bean id="submissionDAO" class="org.sagebionetworks.evaluation.dao.SubmissionDAOImpl"
 		depends-on="idGenerator" />
-	<bean id="submissionStatusDAO"
+	<bean id="evaluationSubmissionsDAO" class="org.sagebionetworks.evaluation.dao.EvaluationSubmissionsDAOImpl"
+		depends-on="idGenerator" />
+		<bean id="submissionStatusDAO"
 		class="org.sagebionetworks.evaluation.dao.SubmissionStatusDAOImpl" />
 	<bean id="submissionFileHandleDAO"
 		class="org.sagebionetworks.evaluation.dao.SubmissionFileHandleDAOImpl" />
