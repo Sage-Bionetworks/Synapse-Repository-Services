@@ -33,6 +33,7 @@ import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
+import org.sagebionetworks.repo.model.evaluation.EvaluationSubmissionsDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -48,6 +49,7 @@ public class EvaluationManagerTest {
 	private EvaluationPermissionsManager mockPermissionsManager;
 	private IdGenerator mockIdGenerator;
 	private EvaluationDAO mockEvaluationDAO;
+	private EvaluationSubmissionsDAO mockEvaluationSubmissionsDAO;
 	
 	private final Long OWNER_ID = 123L;
 	private final Long USER_ID = 456L;
@@ -56,6 +58,7 @@ public class EvaluationManagerTest {
 	
 	private final String EVALUATION_NAME = "test-evaluation";
     private final String EVALUATION_ID = "1234";
+    private final Long EVALUATION_ID_LONG = Long.parseLong(EVALUATION_ID);
     private final String EVALUATION_CONTENT_SOURCE = KeyFactory.SYN_ROOT_ID;
     private final String EVALUATION_ETAG = "etag";
     
@@ -72,6 +75,8 @@ public class EvaluationManagerTest {
 
     	// Authorization manager
     	mockAuthorizationManager = mock(AuthorizationManager.class);
+    	
+    	mockEvaluationSubmissionsDAO = mock(EvaluationSubmissionsDAO.class);
 
     	// UserInfo
     	ownerInfo = new UserInfo(false, OWNER_ID);
@@ -102,6 +107,7 @@ public class EvaluationManagerTest {
     	ReflectionTestUtils.setField(evaluationManager, "idGenerator", mockIdGenerator);
     	ReflectionTestUtils.setField(evaluationManager, "authorizationManager", mockAuthorizationManager);
     	ReflectionTestUtils.setField(evaluationManager, "evaluationPermissionsManager", mockPermissionsManager);
+    	ReflectionTestUtils.setField(evaluationManager, "evaluationSubmissionsDAO", mockEvaluationSubmissionsDAO);
 
     	// configure mocks
     	when(mockIdGenerator.generateNewId()).thenReturn(Long.parseLong(EVALUATION_ID));
@@ -145,8 +151,11 @@ public class EvaluationManagerTest {
 	@Test
 	public void testUpdateEvaluationAsOwner() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException, UnauthorizedException {
 		assertNotNull(evalWithId.getCreatedOn());
+		when(mockEvaluationSubmissionsDAO.lockAndGetForEvaluation(EVALUATION_ID_LONG)).thenThrow(new NotFoundException());
 		evaluationManager.updateEvaluation(ownerInfo, evalWithId);
 		verify(mockEvaluationDAO).update(eq(evalWithId));
+		verify(mockEvaluationSubmissionsDAO).lockAndGetForEvaluation(EVALUATION_ID_LONG);
+		verify(mockEvaluationSubmissionsDAO).createForEvaluation(EVALUATION_ID_LONG);
 	}
 	
 	@Test
