@@ -36,7 +36,7 @@ import com.amazonaws.services.sqs.model.Message;
  */
 public class TableCSVAppenderWorker implements Callable<List<Message>> {
 
-	static private Logger log = LogManager.getLogger(TableCSVAppenderWorker.class);
+	static private Logger log = LogManager.getLogger(TableCSVAppenderWorkerTest.class);
 
 	private AsynchJobStatusManager asynchJobStatusManager;
 	private TableRowManager tableRowManager;
@@ -94,7 +94,6 @@ public class TableCSVAppenderWorker implements Callable<List<Message>> {
 	 */
 	public void processStatus(AsynchronousJobStatus status) throws Throwable {
 		CsvNullReader reader = null;
-		S3ObjectInputStream inputStream;
 		try{
 			UserInfo user = userManger.getUserInfo(status.getStartedByUserId());
 			AsynchUploadJobBody body = (AsynchUploadJobBody) status.getJobBody();

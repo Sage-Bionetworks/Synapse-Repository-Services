@@ -148,7 +148,7 @@ public class TableCSVAppenderWorkerIntegrationTest {
 			csv.writeNext(new String[]{schema.get(1).getName(), schema.get(0).getName()});
 			// Write some rows
 			for(int i=0; i<rowCount; i++){
-				csv.writeNext(new String[]{""+i, "stringdate"+i});
+				csv.writeNext(new String[]{""+i, "stringdata"+i});
 			}
 		}finally{
 			csv.close();
