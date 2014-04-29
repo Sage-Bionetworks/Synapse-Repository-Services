@@ -18,7 +18,7 @@ public class SubmissionMigrationListener implements MigrationTypeListener {
 	@Override
 	public <D extends DatabaseObject<?>> void afterCreateOrUpdate(
 			MigrationType type, List<D> delta) {
-		if (!type.equals(MigrationType.SUBMISSION_STATUS)) return;
+		if (!type.equals(MigrationType.SUBMISSION)) return;
 		// For each Evaluation object, create an EvaluationSubmissions object
 		for (D dbo : delta) {
 			if (!(dbo instanceof SubmissionDBO)) continue;
