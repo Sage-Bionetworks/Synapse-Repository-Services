@@ -94,8 +94,6 @@ public class EvaluationSubmissionsDAOImpl implements EvaluationSubmissionsDAO {
 		// create DBO
 		dbo = basicDao.createNew(dbo);
 		
-        System.out.println("\n\nCreated evalSubs for "+evaluationId+" with etag: "+dbo.getEtag()+"\n\n");
-
         // send change message
 		sendChangeMessage(evaluationId, dbo.getEtag(), ChangeType.CREATE);
 		
@@ -110,7 +108,6 @@ public class EvaluationSubmissionsDAOImpl implements EvaluationSubmissionsDAO {
 		message.setObjectType(ObjectType.EVALUATION_SUBMISSIONS);
 		message.setObjectId(evaluationId.toString());
 		message.setObjectEtag(etag);
-		System.out.println("\nScheduling "+evaluationId+" "+changeType+" "+etag+" to be sent after commit.\n");
 		transactionalMessenger.sendMessageAfterCommit(message);
 	}
 	
