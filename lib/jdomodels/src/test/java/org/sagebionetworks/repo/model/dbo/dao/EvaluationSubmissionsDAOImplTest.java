@@ -3,6 +3,10 @@ package org.sagebionetworks.repo.model.dbo.dao;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.anyObject;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import java.util.Date;
 
@@ -10,6 +14,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.evaluation.dao.EvaluationSubmissionsDAOImpl;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.EvaluationSubmissions;
@@ -19,10 +24,14 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
-import org.sagebionetworks.repo.model.evaluation.EvaluationSubmissionsDAO;
+import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -37,13 +46,20 @@ public class EvaluationSubmissionsDAOImplTest {
 	private EvaluationDAO evaluationDAO;
 	
 	@Autowired
-	private EvaluationSubmissionsDAO evaluationSubmissionsDAO;
+	private DBOBasicDao basicDao;
 	
 	@Autowired
 	private IdGenerator idGenerator;
 
+	@Autowired
+	private JdbcTemplate jdbcTemplate;
+
+	private EvaluationSubmissionsDAOImpl evaluationSubmissionsDAO;
+	
 	private String nodeIdToDelete;
 	private String evaluationIdToDelete;
+	
+	private TransactionalMessenger mockTransactionalMessenger;
 
 	@Before
 	public void setUp() throws Exception {
@@ -65,6 +81,9 @@ public class EvaluationSubmissionsDAOImplTest {
 		evaluation.setCreatedOn(new Date());
 		evaluation.setStatus(EvaluationStatus.OPEN);
 		evaluationIdToDelete = evaluationDAO.create(evaluation, ownerId);
+		
+		mockTransactionalMessenger = mock(TransactionalMessenger.class);
+		evaluationSubmissionsDAO = new EvaluationSubmissionsDAOImpl(basicDao,idGenerator,jdbcTemplate,mockTransactionalMessenger);
 	}
 
 	@After
@@ -87,6 +106,7 @@ public class EvaluationSubmissionsDAOImplTest {
 		assertEquals(evalIdLong, evalSubs.getEvaluationId());
 		assertNotNull(evalSubs.getId());
 		assertNotNull(evalSubs.getEtag());
+		verify(mockTransactionalMessenger, times(1)).sendMessageAfterCommit((ChangeMessage)anyObject());
 		
 		EvaluationSubmissions retrieved = evaluationSubmissionsDAO.getForEvaluation(evalIdLong);
 		assertEquals(evalSubs, retrieved);
@@ -94,13 +114,18 @@ public class EvaluationSubmissionsDAOImplTest {
 		retrieved = evaluationSubmissionsDAO.lockAndGetForEvaluation(evalIdLong);
 		assertEquals(evalSubs, retrieved);
 		
-		String newEtag = evaluationSubmissionsDAO.updateEtagForEvaluation(evalIdLong, false);
+		String newEtag = evaluationSubmissionsDAO.updateEtagForEvaluation(evalIdLong, false, null);
+		verify(mockTransactionalMessenger, times(1)).sendMessageAfterCommit((ChangeMessage)anyObject());
 		
 		evalSubs.setEtag(newEtag);
 		retrieved = evaluationSubmissionsDAO.getForEvaluation(evalIdLong);
 		assertEquals(evalSubs, retrieved);
 		
+		newEtag = evaluationSubmissionsDAO.updateEtagForEvaluation(evalIdLong, true, ChangeType.UPDATE);
+		verify(mockTransactionalMessenger, times(2)).sendMessageAfterCommit((ChangeMessage)anyObject());
+		
 		evaluationSubmissionsDAO.deleteForEvaluation(evalIdLong);
+		verify(mockTransactionalMessenger, times(3)).sendMessageAfterCommit((ChangeMessage)anyObject());
 		
 		try {
 			evaluationSubmissionsDAO.getForEvaluation(evalIdLong);

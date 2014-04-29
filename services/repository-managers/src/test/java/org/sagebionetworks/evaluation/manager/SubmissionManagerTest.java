@@ -59,6 +59,7 @@ import org.sagebionetworks.repo.model.evaluation.SubmissionStatusDAO;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -251,7 +252,7 @@ public class SubmissionManagerTest {
 		verify(mockSubmissionFileHandleDAO).create(eq(SUB_ID), eq(fileHandle1.getId()));
 		verify(mockSubmissionFileHandleDAO).create(eq(SUB_ID), eq(fileHandle2.getId()));
 		verify(mockEvaluationSubmissionsDAO, times(1)).lockAndGetForEvaluation(EVAL_ID_LONG);
-		verify(mockEvaluationSubmissionsDAO, times(4)).updateEtagForEvaluation(EVAL_ID_LONG, true);
+		verify(mockEvaluationSubmissionsDAO, times(4)).updateEtagForEvaluation(EVAL_ID_LONG, true, ChangeType.CREATE);
 	}
 	
 	@Test(expected=UnauthorizedException.class)
@@ -556,9 +557,9 @@ public class SubmissionManagerTest {
 	public void testBatchResponseToken() throws Exception {
 		batch.setIsFirstBatch(true);
 		batch.setIsLastBatch(false);
-		when(mockEvaluationSubmissionsDAO.updateEtagForEvaluation(EVAL_ID_LONG, false)).thenReturn("foo");
+		when(mockEvaluationSubmissionsDAO.updateEtagForEvaluation(EVAL_ID_LONG, false, ChangeType.UPDATE)).thenReturn("foo");
 		BatchUploadResponse resp = submissionManager.updateSubmissionStatusBatch(ownerInfo, EVAL_ID, batch);
-		verify(mockEvaluationSubmissionsDAO).updateEtagForEvaluation(EVAL_ID_LONG, false);
+		verify(mockEvaluationSubmissionsDAO).updateEtagForEvaluation(EVAL_ID_LONG, false, ChangeType.UPDATE);
 		assertEquals(resp.getNextUploadToken(), "foo");
 		
 		// last batch doesn't get a token back

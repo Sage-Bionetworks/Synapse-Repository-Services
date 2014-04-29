@@ -1,6 +1,7 @@
 package org.sagebionetworks.annotations.worker;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
@@ -15,6 +16,7 @@ import org.sagebionetworks.asynchronous.workers.sqs.MessageReceiver;
 import org.sagebionetworks.evaluation.manager.SubmissionManager;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
+import org.sagebionetworks.evaluation.model.EvaluationSubmissions;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
@@ -30,6 +32,7 @@ import org.sagebionetworks.repo.model.annotation.LongAnnotation;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
 import org.sagebionetworks.repo.model.evaluation.AnnotationsDAO;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
+import org.sagebionetworks.repo.model.evaluation.EvaluationSubmissionsDAO;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -54,6 +57,9 @@ public class AnnotationsWorkerIntegrationTest {
     
 	@Autowired
     private EvaluationDAO evaluationDAO;
+	
+	@Autowired
+    private EvaluationSubmissionsDAO evaluationSubmissionsDAO;
 	
 	@Autowired
 	private NodeDAO nodeDAO;
@@ -100,6 +106,10 @@ public class AnnotationsWorkerIntegrationTest {
         evaluation.setContentSource(nodeId);
         evaluation.setStatus(EvaluationStatus.PLANNED);
         evalId = evaluationDAO.create(evaluation, userId);
+        
+        EvaluationSubmissions evalSubs = evaluationSubmissionsDAO.createForEvaluation(Long.parseLong(evaluation.getId()));
+        assertNotNull(evalSubs.getEtag());
+        assertEquals("1234", evalSubs.getEvaluationId().toString());
         
         // create a submission
         Submission submission = new Submission();

@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.evaluation;
 
 import org.sagebionetworks.evaluation.model.EvaluationSubmissions;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface EvaluationSubmissionsDAO {
@@ -37,7 +38,7 @@ public interface EvaluationSubmissionsDAO {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public String updateEtagForEvaluation(long evaluationId, boolean sendChangeMessage) throws DatastoreException, NotFoundException;
+	public String updateEtagForEvaluation(long evaluationId, boolean sendChangeMessage, ChangeType changeType) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * 

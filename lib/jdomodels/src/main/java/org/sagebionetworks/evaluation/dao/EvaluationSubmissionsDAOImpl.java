@@ -53,6 +53,21 @@ public class EvaluationSubmissionsDAOImpl implements EvaluationSubmissionsDAO {
 	
 	@Autowired
 	private TransactionalMessenger transactionalMessenger;
+	
+	public EvaluationSubmissionsDAOImpl() {}
+	
+	// for testing
+	public EvaluationSubmissionsDAOImpl(
+			DBOBasicDao basicDao,
+			IdGenerator idGenerator,
+			JdbcTemplate jdbcTemplate,
+			TransactionalMessenger transactionalMessenger
+			) {
+		this.basicDao=basicDao;
+		this.idGenerator=idGenerator;
+		this.jdbcTemplate=jdbcTemplate;
+		this.transactionalMessenger=transactionalMessenger;
+	}
 
 	public static void copyDtoToDbo(EvaluationSubmissions dto, EvaluationSubmissionsDBO dbo) {
 		dbo.setId(dto.getId());
@@ -76,10 +91,14 @@ public class EvaluationSubmissionsDAOImpl implements EvaluationSubmissionsDAO {
 		// Generate a new eTag and CREATE message
 		dbo.setEtag(UUID.randomUUID().toString());
 		
-		sendChangeMessage(evaluationId, dbo.getEtag(), ChangeType.CREATE);
-		
 		// create DBO
 		dbo = basicDao.createNew(dbo);
+		
+        System.out.println("\n\nCreated evalSubs for "+evaluationId+" with etag: "+dbo.getEtag()+"\n\n");
+
+        // send change message
+		sendChangeMessage(evaluationId, dbo.getEtag(), ChangeType.CREATE);
+		
 		EvaluationSubmissions dto = new EvaluationSubmissions();
 		copyDboToDto(dbo, dto);
 		return dto;
@@ -91,8 +110,8 @@ public class EvaluationSubmissionsDAOImpl implements EvaluationSubmissionsDAO {
 		message.setObjectType(ObjectType.EVALUATION_SUBMISSIONS);
 		message.setObjectId(evaluationId.toString());
 		message.setObjectEtag(etag);
+		System.out.println("\nScheduling "+evaluationId+" "+changeType+" "+etag+" to be sent after commit.\n");
 		transactionalMessenger.sendMessageAfterCommit(message);
-		
 	}
 	
 	@Override
@@ -124,11 +143,11 @@ public class EvaluationSubmissionsDAOImpl implements EvaluationSubmissionsDAO {
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public String updateEtagForEvaluation(long evaluationId, boolean sendChangeMessage)
+	public String updateEtagForEvaluation(long evaluationId, boolean sendChangeMessage, ChangeType changeType)
 			throws DatastoreException, NotFoundException {
 		String etag = UUID.randomUUID().toString();
 		jdbcTemplate.update(UPDATE_ETAG_FOR_EVALUATION, new Object[]{etag, evaluationId});
-		if (sendChangeMessage) sendChangeMessage(evaluationId, etag, ChangeType.UPDATE);
+		if (sendChangeMessage) sendChangeMessage(evaluationId, etag, changeType);
 		return etag;
 	}
 
