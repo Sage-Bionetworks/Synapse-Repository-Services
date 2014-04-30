@@ -1,7 +1,6 @@
 package org.sagebionetworks.table.worker;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -37,8 +36,6 @@ import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableEntity;
-import org.sagebionetworks.repo.model.table.TableState;
-import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
@@ -56,7 +53,7 @@ public class TableWorkerIntegrationTest {
 	/**
 	 * 
 	 */
-	public static final int MAX_WAIT_MS = 1000*60*10;
+	public static final int MAX_WAIT_MS = 1000*60;
 	
 	@Autowired
 	StackConfiguration config;
@@ -94,20 +91,20 @@ public class TableWorkerIntegrationTest {
 	public void after(){
 		if(config.getTableEnabled()){
 			// cleanup
-//			columnManager.truncateAllColumnData(adminUserInfo);
-//			
-//			if(tableId != null){
-//				try {
-//					entityManager.deleteEntity(adminUserInfo, tableId);
-//				} catch (Exception e) {	} 
-//				
-//				TableIndexDAO dao = tableConnectionFactory.getConnection(tableId);
-//				if(dao != null){
-//					try {
-//						dao.deleteTable(tableId);
-//					} catch (Exception e) {	}
-//				}
-//			}
+			columnManager.truncateAllColumnData(adminUserInfo);
+			
+			if(tableId != null){
+				try {
+					entityManager.deleteEntity(adminUserInfo, tableId);
+				} catch (Exception e) {	} 
+				
+				TableIndexDAO dao = tableConnectionFactory.getConnection(tableId);
+				if(dao != null){
+					try {
+						dao.deleteTable(tableId);
+					} catch (Exception e) {	}
+				}
+			}
 		}
 	}
 
