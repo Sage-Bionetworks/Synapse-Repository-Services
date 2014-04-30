@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.Row;
@@ -126,8 +127,10 @@ public interface TableRowTruthDAO {
 	
 	/**
 	 * List all changes for a table with a version number greater than the given value (exclusive).
+	 * 
 	 * @param tableId
 	 * @param version
+	 * @param ascending
 	 * @return
 	 */
 	public List<TableRowChange> listRowSetsKeysForTableGreaterThanVersion(String tableId, long version);

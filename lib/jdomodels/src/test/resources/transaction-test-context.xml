@@ -18,5 +18,7 @@
 		class=" org.sagebionetworks.repo.model.dbo.dao.transactions.TransactionValidatorImpl"
 		init-method="initialize" />
 
+	<bean id="CurrentRowCacheDao" class="org.sagebionetworks.dynamo.dao.rowcache.CurrentRowCacheDaoStub"/>
+	<bean id="RowCacheDao" class="org.sagebionetworks.dynamo.dao.rowcache.RowCacheDaoStub"/>
 
 </beans>

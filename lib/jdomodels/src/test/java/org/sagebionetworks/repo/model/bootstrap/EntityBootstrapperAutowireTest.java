@@ -20,7 +20,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:dao-beans.spb.xml" })
+@ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class EntityBootstrapperAutowireTest {
 	
 	@Autowired

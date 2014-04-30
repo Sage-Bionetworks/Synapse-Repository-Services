@@ -1,5 +1,7 @@
 package org.sagebionetworks.dynamo.config;
 
+import static org.junit.Assert.*;
+
 import org.junit.Assert;
 import org.junit.Test;
 import org.sagebionetworks.StackConfiguration;
@@ -18,20 +20,14 @@ public class DynamoTableConfigTest {
 
 		try {
 			key = new DynamoTableConfig.DynamoKey("name", null);
-			Assert.assertNull(key);
-		} catch (NullPointerException e) {
-			Assert.assertTrue(true);
-		} catch (Throwable e) {
-			Assert.fail();
+			fail();
+		} catch (IllegalArgumentException e) {
 		}
 
 		try {
 			key = new DynamoTableConfig.DynamoKey(null, ScalarAttributeType.S);
-			Assert.assertNull(key);
-		} catch (NullPointerException e) {
-			Assert.assertTrue(true);
-		} catch (Throwable e) {
-			Assert.fail();
+			fail();
+		} catch (IllegalArgumentException e) {
 		}
 	}
 
@@ -46,22 +42,13 @@ public class DynamoTableConfigTest {
 		Assert.assertEquals("range", keySchema.getRangeKey().getKeyName());
 		Assert.assertEquals(ScalarAttributeType.S, keySchema.getRangeKey().getKeyType());
 
-		try {
-			keySchema = new DynamoTableConfig.DynamoKeySchema(hashKey, null);
-			Assert.assertNull(keySchema);
-		} catch (NullPointerException e) {
-			Assert.assertTrue(true);
-		} catch (Throwable e) {
-			Assert.fail();
-		}
+		keySchema = new DynamoTableConfig.DynamoKeySchema(hashKey, null);
+		Assert.assertNotNull(keySchema);
 
 		try {
 			keySchema = new DynamoTableConfig.DynamoKeySchema(null, rangeKey);
-			Assert.assertNull(keySchema);
-		} catch (NullPointerException e) {
-			Assert.assertTrue(true);
-		} catch (Throwable e) {
-			Assert.fail();
+			fail();
+		} catch (IllegalArgumentException e) {
 		}
 	}
 
@@ -76,20 +63,14 @@ public class DynamoTableConfigTest {
 
 		try {
 			throughput = new DynamoTableConfig.DynamoThroughput(read, null);
-			Assert.assertNull(throughput);
-		} catch (NullPointerException e) {
-			Assert.assertTrue(true);
-		} catch (Throwable e) {
-			Assert.fail();
+			fail();
+		} catch (IllegalArgumentException e) {
 		}
 
 		try {
 			throughput = new DynamoTableConfig.DynamoThroughput(null, write);
-			Assert.assertNull(throughput);
-		} catch (NullPointerException e) {
-			Assert.assertTrue(true);
-		} catch (Throwable e) {
-			Assert.fail();
+			fail();
+		} catch (IllegalArgumentException e) {
 		}
 	}
 
@@ -114,29 +95,20 @@ public class DynamoTableConfigTest {
 
 		try {
 			table = new DynamoTableConfig(null, keySchema, throughput);
-			Assert.assertNull(table);
-		} catch (NullPointerException e) {
-			Assert.assertTrue(true);
-		} catch (Throwable e) {
-			Assert.fail();
+			fail();
+		} catch (IllegalArgumentException e) {
 		}
 
 		try {
 			table = new DynamoTableConfig(tableName, null, throughput);
-			Assert.assertNull(table);
-		} catch (NullPointerException e) {
-			Assert.assertTrue(true);
-		} catch (Throwable e) {
-			Assert.fail();
+			fail();
+		} catch (IllegalArgumentException e) {
 		}
 
 		try {
 			table = new DynamoTableConfig(tableName, keySchema, null);
-			Assert.assertNull(table);
-		} catch (NullPointerException e) {
-			Assert.assertTrue(true);
-		} catch (Throwable e) {
-			Assert.fail();
+			fail();
+		} catch (IllegalArgumentException e) {
 		}
 	}
 }

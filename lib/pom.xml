@@ -24,6 +24,7 @@
 		<module>models</module>
 		<module>jdomodels</module>
 		<module>logging</module>
+		<module>lib-utils</module>
 		<module>lib-search</module>
 		<module>lib-dynamo</module>
 		<module>lib-worker</module>
