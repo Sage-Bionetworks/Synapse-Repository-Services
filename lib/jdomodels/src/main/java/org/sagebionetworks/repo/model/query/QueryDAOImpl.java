@@ -76,8 +76,14 @@ public class QueryDAOImpl implements QueryDAO {
 		buildQueryStrings(userQuery, objType, objId, userInfo, includePrivate, 
 				countQuery, fullQuery, queryParams);
 		
+		String countQueryString = countQuery.toString();
+		String fullQueryString = fullQuery.toString();
+		
+		// for debug
+		System.out.println("full query: "+fullQueryString);
+		
 		// Execute the count query
-		long count = simpleJdbcTemplate.queryForLong(countQuery.toString(), queryParams);
+		long count = simpleJdbcTemplate.queryForLong(countQueryString, queryParams);
 		if (count == 0) {
 			// no results
 			QueryTableResults results = new QueryTableResults();
@@ -90,12 +96,12 @@ public class QueryDAOImpl implements QueryDAO {
 		// Execute the full query
 		SizeLimitRowMapper sizeLimitMapper = new SizeLimitRowMapper(MAX_BYTES_PER_QUERY);
 		List<Map<String, Object>> results = simpleJdbcTemplate.query(
-				fullQuery.toString(), sizeLimitMapper, queryParams);
+				fullQueryString, sizeLimitMapper, queryParams);
 		Long userId = userInfo.getId();
 		
 		// Log query stats
 		if (log.isDebugEnabled()) {
-			log.debug("user: " + userId + " query: " + fullQuery.toString());
+			log.debug("user: " + userId + " query: " + fullQueryString);
 			log.debug("user: " + userId + " parameters: " + queryParams);
 		}
 		if (log.isInfoEnabled()) {
@@ -203,7 +209,7 @@ public class QueryDAOImpl implements QueryDAO {
 		
 		// Add the typed table for the sort
 		if (query.getSort() != null) {
-			// TODO: read type "hint" from query to sort as Double or Long
+			//TODO: read type "hint" from query to sort as Double or Long
 			FieldType type = FieldType.STRING_ATTRIBUTE;
 			String tableName = QueryTools.getTableNameForFieldType(type);
 			appendTable(builder, aliases, tablePrefix, tableName, ALIAS_SORT, false);

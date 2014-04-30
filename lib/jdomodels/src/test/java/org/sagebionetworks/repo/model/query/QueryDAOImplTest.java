@@ -777,6 +777,7 @@ public class QueryDAOImplTest {
 		String previous = null;
 		for (int i = 0; i < rows.size(); i++) {
 			Row row = rows.get(i);
+			System.out.println(row);
 			List<String> values = row.getValues();
 			// validate ordering
 			String current = values.get(index);
