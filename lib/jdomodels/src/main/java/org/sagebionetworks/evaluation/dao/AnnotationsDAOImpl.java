@@ -108,7 +108,7 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 				"s."+COL_SUBMISSION_CREATED_ON+", "+
 				"s."+COL_SUBMISSION_ENTITY_BUNDLE+", "+
 				"t."+COL_SUBSTATUS_ETAG+", "+
-				"t."+COL_SUBSTATUS_VERSION+" AS "+STATUS_VERSION+", "+ // uncomment to fix PLFM-2742
+				"t."+COL_SUBSTATUS_VERSION+" AS "+STATUS_VERSION+", "+ // PLFM-2742
 				"t."+COL_SUBSTATUS_MODIFIED_ON+", "+
 				"t."+COL_SUBSTATUS_STATUS+", "+
 				"t."+COL_SUBSTATUS_SCORE+", "+
