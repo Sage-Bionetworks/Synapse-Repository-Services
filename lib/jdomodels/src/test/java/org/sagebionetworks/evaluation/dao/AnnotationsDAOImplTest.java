@@ -478,7 +478,7 @@ public class AnnotationsDAOImplTest {
 		SubmissionStatus status = new SubmissionStatus();
 		status.setId(submissionId);
 		status.setStatus(SubmissionStatusEnum.RECEIVED);
-		status.setVersionNumber(0L);
+		status.setVersionNumber(7L);
 		status.setStatusVersion(0L);
 		status.setModifiedOn(new Date());
         Annotations annos = createAnnotations(evalId, submissionId);
@@ -491,7 +491,10 @@ public class AnnotationsDAOImplTest {
 		changed = subStatusAnnoDAO.getChangedSubmissions(Long.parseLong(evalId));
 		assertEquals(1, changed.size());
 		assertEquals(submissionId, changed.get(0).getSubmission().getId());
-		assertEquals(submissionStatusId, changed.get(0).getSubmissionStatus().getId());
+		SubmissionStatus retrievedStatus = changed.get(0).getSubmissionStatus();
+		assertEquals(submissionStatusId, retrievedStatus.getId());
+		assertEquals(status.getVersionNumber(), retrievedStatus.getVersionNumber());
+		assertEquals(status.getStatusVersion(), retrievedStatus.getStatusVersion());
 		
 		status = submissionStatusDAO.get(submissionStatusId);
 		annos = status.getAnnotations();
