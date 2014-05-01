@@ -12,9 +12,6 @@ import org.sagebionetworks.dynamo.DynamoTable;
 import org.sagebionetworks.dynamo.config.DynamoTableConfig.DynamoKey;
 import org.sagebionetworks.dynamo.config.DynamoTableConfig.DynamoKeySchema;
 import org.sagebionetworks.dynamo.config.DynamoTableConfig.DynamoThroughput;
-import org.sagebionetworks.dynamo.dao.nodetree.DboNodeLineage;
-import org.sagebionetworks.dynamo.dao.rowcache.DboCurrentRowCache;
-import org.sagebionetworks.dynamo.dao.rowcache.DboRowCache;
 import org.sagebionetworks.util.Pair;
 
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBHashKey;
