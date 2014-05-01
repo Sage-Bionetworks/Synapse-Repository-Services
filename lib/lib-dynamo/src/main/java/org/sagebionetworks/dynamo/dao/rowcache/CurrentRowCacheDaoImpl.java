@@ -1,6 +1,7 @@
 package org.sagebionetworks.dynamo.dao.rowcache;
 
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
@@ -23,6 +24,7 @@ import com.amazonaws.services.dynamodb.model.Condition;
 import com.amazonaws.services.dynamodb.model.ConditionalCheckFailedException;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
@@ -30,6 +32,20 @@ public class CurrentRowCacheDaoImpl extends DynamoDaoBaseImpl implements Current
 
 	DynamoDBMapper mapper;
 	DynamoDBMapper statusMapper;
+
+	private static final Comparator<DboCurrentRowCache> CURRENT_ROW_CACHE_COMPARATOR = new Comparator<DboCurrentRowCache>() {
+		@Override
+		public int compare(DboCurrentRowCache o1, DboCurrentRowCache o2) {
+			return ComparisonChain.start().compare(o1.getHashKey(), o2.getHashKey()).compare(o1.getRangeKey(), o2.getRangeKey()).result();
+		}
+	};
+
+	private static final Comparator<DboCurrentRowCacheStatus> CURRENT_ROW_CACHE_STATUS_COMPARATOR = new Comparator<DboCurrentRowCacheStatus>() {
+		@Override
+		public int compare(DboCurrentRowCacheStatus o1, DboCurrentRowCacheStatus o2) {
+			return ComparisonChain.start().compare(o1.getHashKey(), o2.getHashKey()).result();
+		}
+	};
 
 	public CurrentRowCacheDaoImpl(AmazonDynamoDB dynamoClient) {
 		super(dynamoClient);
@@ -148,15 +164,15 @@ public class CurrentRowCacheDaoImpl extends DynamoDaoBaseImpl implements Current
 	public void deleteCurrentTable(final String tableId) {
 		AttributeValue hashKeyValue = new AttributeValue(DboCurrentRowCache.createHashKey(tableId));
 		PaginatedQueryList<DboCurrentRowCache> results = mapper.query(DboCurrentRowCache.class, new DynamoDBQueryExpression(hashKeyValue));
-		mapper.batchDelete(results);
+		mapper.batchDelete(uniqueify(results, CURRENT_ROW_CACHE_COMPARATOR));
 	}
 
 	@Override
 	public void truncateAllData() {
 		DynamoDBScanExpression scanExpression = new DynamoDBScanExpression();
 		PaginatedScanList<DboCurrentRowCache> scanResult = mapper.scan(DboCurrentRowCache.class, scanExpression);
-		mapper.batchDelete(scanResult);
-		PaginatedScanList<DboCurrentRowCacheStatus> scanResult2 = mapper.scan(DboCurrentRowCacheStatus.class, scanExpression);
-		statusMapper.batchDelete(scanResult2);
+		mapper.batchDelete(uniqueify(scanResult, CURRENT_ROW_CACHE_COMPARATOR));
+		PaginatedScanList<DboCurrentRowCacheStatus> scanResult2 = statusMapper.scan(DboCurrentRowCacheStatus.class, scanExpression);
+		statusMapper.batchDelete(uniqueify(scanResult2, CURRENT_ROW_CACHE_STATUS_COMPARATOR));
 	}
 }

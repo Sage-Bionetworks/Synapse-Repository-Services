@@ -3,6 +3,7 @@ package org.sagebionetworks.dynamo.dao.rowcache;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
@@ -19,10 +20,18 @@ import com.amazonaws.services.dynamodb.datamodeling.DynamoDBScanExpression;
 import com.amazonaws.services.dynamodb.datamodeling.KeyPair;
 import com.amazonaws.services.dynamodb.datamodeling.PaginatedScanList;
 import com.google.common.base.Function;
+import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 
 public class RowCacheDaoImpl extends DynamoDaoBaseImpl implements RowCacheDao {
+	private static final Comparator<DboRowCache> ROW_CACHE_COMPARATOR = new Comparator<DboRowCache>() {
+		@Override
+		public int compare(DboRowCache o1, DboRowCache o2) {
+			return ComparisonChain.start().compare(o1.getHashKey(), o2.getHashKey()).compare(o1.getRangeKey(), o2.getRangeKey()).result();
+		}
+	};
+
 	DynamoDBMapper mapper;
 
 	public RowCacheDaoImpl(AmazonDynamoDB dynamoClient) {
@@ -155,6 +164,6 @@ public class RowCacheDaoImpl extends DynamoDaoBaseImpl implements RowCacheDao {
 	public void truncateAllData() {
 		DynamoDBScanExpression scanExpression = new DynamoDBScanExpression();
 		PaginatedScanList<DboRowCache> scanResult = mapper.scan(DboRowCache.class, scanExpression);
-		mapper.batchDelete(scanResult);
+		mapper.batchDelete(uniqueify(scanResult, ROW_CACHE_COMPARATOR));
 	}
 }

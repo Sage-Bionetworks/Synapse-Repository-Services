@@ -143,6 +143,8 @@ public class CurrentRowCacheDaoAutowireTest {
 		map.put(14L, 144L);
 		currentRowCacheDao.putCurrentVersions(tableName, map);
 		currentRowCacheDao.putCurrentVersions(tableName + "2", map);
+		map.put(14L, 155L);
+		currentRowCacheDao.putCurrentVersions(tableName, map);
 		ArrayList<Long> allRowIdsAndMore = Lists.newArrayList(12L, 13L, 14L, 15L, 16L, 17L, 18L);
 		assertEquals(2, currentRowCacheDao.getCurrentVersions(tableName, allRowIdsAndMore).size());
 		assertEquals(2, currentRowCacheDao.getCurrentVersions(tableName + "2", allRowIdsAndMore).size());
