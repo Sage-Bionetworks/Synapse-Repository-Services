@@ -92,20 +92,20 @@ public class TableWorkerIntegrationTest {
 	public void after(){
 		if(config.getTableEnabled()){
 			// cleanup
-//			columnManager.truncateAllColumnData(adminUserInfo);
-//			
-//			if(tableId != null){
-//				try {
-//					entityManager.deleteEntity(adminUserInfo, tableId);
-//				} catch (Exception e) {	} 
-//				
-//				TableIndexDAO dao = tableConnectionFactory.getConnection(tableId);
-//				if(dao != null){
-//					try {
-//						dao.deleteTable(tableId);
-//					} catch (Exception e) {	}
-//				}
-//			}
+			columnManager.truncateAllColumnData(adminUserInfo);
+			
+			if(tableId != null){
+				try {
+					entityManager.deleteEntity(adminUserInfo, tableId);
+				} catch (Exception e) {	} 
+				
+				TableIndexDAO dao = tableConnectionFactory.getConnection(tableId);
+				if(dao != null){
+					try {
+						dao.deleteTable(tableId);
+					} catch (Exception e) {	}
+				}
+			}
 		}
 	}
 
