@@ -31,7 +31,7 @@ public class QueryTranslator {
 
 	/**
 	 * Create a BasicQuery from a QueryStatement
-	 * decrementing offset to handle statements which erroneously use offse=1 to mean no offset
+	 * decrementing offset to handle statements which erroneously use offset=1 to mean no offset
 	 * @param stmt
 	 * @return
 	 */

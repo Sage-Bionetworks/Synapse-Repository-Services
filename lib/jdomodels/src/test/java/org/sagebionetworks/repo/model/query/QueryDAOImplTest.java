@@ -823,6 +823,42 @@ public class QueryDAOImplTest {
 		}
 	}
 	
+	@Test
+	public void testQuerySortLongAscending() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
+		// SELECT * FROM evaluation_1 ORDER BY "long_anno" ASC
+		BasicQuery query = new BasicQuery();
+		query.setFrom("evaluation" + QueryTools.FROM_TYPE_ID_DELIMTER + EVAL_ID1);
+		query.setLimit(NUM_SUBMISSIONS);
+		query.setOffset(0);
+		query.setSort(TestUtils.PRIVATE_LONG_ANNOTATION_NAME);
+		query.setAscending(true);
+		List<String> select = new ArrayList<String>();
+		select.add(TestUtils.PRIVATE_LONG_ANNOTATION_NAME);
+		query.setSelect(select);
+		
+		// perform the query
+		QueryTableResults results = queryDAO.executeQuery(query, mockUserInfo);
+		assertNotNull(results);
+		assertEquals(NUM_SUBMISSIONS, results.getTotalNumberOfResults().longValue());
+		assertEquals(NUM_SUBMISSIONS, results.getRows().size());
+		
+		// examine the results
+		List<Row> rows = results.getRows();
+		int index = results.getHeaders().indexOf(TestUtils.PRIVATE_LONG_ANNOTATION_NAME);
+		Long previous = null;
+		for (int i = 0; i < rows.size(); i++) {
+			Row row = rows.get(i);
+			System.out.println(row);
+			List<String> values = row.getValues();
+			// validate ordering
+			Long current = Long.parseLong(values.get(index));
+			if (previous != null) {
+				assertTrue(""+current+" should be bigger than "+previous+" but it's not.", current.compareTo(previous) >= 0);
+			}
+			previous = current;
+		}
+	}
+	
 	// Flatten an Annotations object to a map. The key is given by [Object ID] + [attribute name],
 	// and the value is simply the [attribute value]
 	private static void dumpAnnosToMap(Map<String, Object> annoMap, Annotations annos) {
