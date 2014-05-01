@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dbo.dao.table;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.ConcurrentModificationException;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -33,10 +34,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 
 /**
@@ -192,18 +195,18 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 		if (!tableRowCache.isEnabled()) {
 			return null;
 		}
-		Multimap<Long, Long> versions = createVersionToRowsMap(ref.getRows());
+		SetMultimap<Long, Long> versions = createVersionToRowsMap(ref.getRows());
 
 		List<RowSet> results = new LinkedList<RowSet>();
 		for (Entry<Long, Collection<Long>> versionWithRows : versions.asMap().entrySet()) {
-			Collection<Long> rowsToGet = versionWithRows.getValue();
+			Set<Long> rowsToGet = (Set<Long>) versionWithRows.getValue();
 			Long version = versionWithRows.getKey();
 
 			TableRowChange trc = getTableRowChange(ref.getTableId(), version);
 
 			final Map<Long, Row> resultRows = tableRowCache.getRowsFromCache(ref.getTableId(), version, rowsToGet);
 			if (resultRows.size() != rowsToGet.size()) {
-				// we are still missing some rows here. Read them from S3 and add to cache
+				// we are still missing some (or all) rows here. Read them from S3 and add to cache
 				final List<Row> rows = Lists.newArrayListWithCapacity(rowsToGet.size() - resultRows.size());
 				scanChange(new RowHandler() {
 					@Override
@@ -217,7 +220,9 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 				}, trc);
 				tableRowCache.putRowsInCache(ref.getTableId(), rows);
 				for (Row row : rows) {
-					resultRows.put(row.getRowId(), row);
+					if (rowsToGet.contains(row.getRowId())) {
+						resultRows.put(row.getRowId(), row);
+					}
 				}
 			}
 
@@ -297,18 +302,18 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 		return rowIdToRowMap;
 	}
 
-	private Multimap<Long, Long> createVersionToRowsMap(Map<Long, Long> currentVersionNumbers) {
+	private SetMultimap<Long, Long> createVersionToRowsMap(Map<Long, Long> currentVersionNumbers) {
 		// create a map from version to set of row ids map
-		Multimap<Long, Long> versions = ArrayListMultimap.create();
+		SetMultimap<Long, Long> versions = HashMultimap.create();
 		for (Entry<Long, Long> rowVersion : currentVersionNumbers.entrySet()) {
 			versions.put(rowVersion.getValue(), rowVersion.getKey());
 		}
 		return versions;
 	}
 
-	private Multimap<Long, Long> createVersionToRowsMap(Iterable<RowReference> refs) {
+	private SetMultimap<Long, Long> createVersionToRowsMap(Iterable<RowReference> refs) {
 		// create a map from version to set of row ids map
-		Multimap<Long, Long> versions = ArrayListMultimap.create();
+		SetMultimap<Long, Long> versions = HashMultimap.create();
 		for (RowReference ref : refs) {
 			versions.put(ref.getVersionNumber(), ref.getRowId());
 		}
