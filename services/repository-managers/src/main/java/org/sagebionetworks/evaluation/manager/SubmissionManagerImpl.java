@@ -84,7 +84,8 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	public SubmissionStatus getSubmissionStatus(UserInfo userInfo, String submissionId) throws DatastoreException, NotFoundException {
 		EvaluationUtils.ensureNotNull(submissionId, "Submission ID");
 		Submission sub = submissionDAO.get(submissionId);
-		// only authorized users can view private Annotations
+		validateEvaluationAccess(userInfo, sub.getEvaluationId(), ACCESS_TYPE.READ);
+		// only authorized users can view private Annotations 
 		boolean includePrivateAnnos = evaluationPermissionsManager.hasAccess(
 				userInfo, sub.getEvaluationId(), ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
 		return submissionToSubmissionStatus(sub, includePrivateAnnos);
@@ -290,10 +291,14 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	public QueryResults<SubmissionStatus> getAllSubmissionStatuses(UserInfo userInfo, String evalId, 
 			SubmissionStatusEnum status, long limit, long offset) 
 			throws DatastoreException, UnauthorizedException, NotFoundException {
+		EvaluationUtils.ensureNotNull(evalId, "Evaluation ID");
+		UserInfo.validateUserInfo(userInfo);
+		validateEvaluationAccess(userInfo, evalId, ACCESS_TYPE.READ);
 		// only authorized users can view private Annotations
 		boolean includePrivateAnnos = evaluationPermissionsManager.hasAccess(
 				userInfo, evalId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
-		QueryResults<Submission> submissions = getAllSubmissions(userInfo, evalId, status, limit, offset);
+		QueryResults<Submission> submissions = 
+				getAllSubmissionsPrivate(evalId, status, limit, offset);
 		return submissionsToSubmissionStatuses(submissions, includePrivateAnnos);
 	}
 	
