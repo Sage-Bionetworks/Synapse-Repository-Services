@@ -1,6 +1,12 @@
 package org.sagebionetworks.dynamo.dao;
 
+import java.util.Comparator;
+import java.util.List;
+import java.util.Set;
+
 import com.amazonaws.services.dynamodb.AmazonDynamoDB;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 public abstract class DynamoDaoBaseImpl {
 
@@ -32,5 +38,19 @@ public abstract class DynamoDaoBaseImpl {
 
 	public AmazonDynamoDB getDynamoClient() {
 		return dynamoClient;
+	}
+
+	/**
+	 * Helper to make make a unique item list according to comparator. Needed for batch deletes, since dynamo does not
+	 * allow duplicate keys
+	 * 
+	 * @param items
+	 * @param comparator
+	 * @return
+	 */
+	protected <T> List<T> uniqueify(List<T> items, Comparator<T> comparator) {
+		Set<T> set = Sets.newTreeSet(comparator);
+		set.addAll(items);
+		return Lists.newArrayList(set);
 	}
 }
