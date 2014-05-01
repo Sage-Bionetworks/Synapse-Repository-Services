@@ -11,19 +11,23 @@ import org.sagebionetworks.dynamo.DynamoTimeoutException;
 import org.sagebionetworks.dynamo.config.DynamoTableConfig.DynamoKey;
 import org.sagebionetworks.dynamo.config.DynamoTableConfig.DynamoKeySchema;
 import org.sagebionetworks.dynamo.config.DynamoTableConfig.DynamoThroughput;
+import org.sagebionetworks.util.TimeUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.dynamodb.AmazonDynamoDB;
 import com.amazonaws.services.dynamodb.model.CreateTableRequest;
+import com.amazonaws.services.dynamodb.model.DeleteTableRequest;
 import com.amazonaws.services.dynamodb.model.DescribeTableRequest;
 import com.amazonaws.services.dynamodb.model.KeySchema;
 import com.amazonaws.services.dynamodb.model.KeySchemaElement;
 import com.amazonaws.services.dynamodb.model.ListTablesResult;
 import com.amazonaws.services.dynamodb.model.ProvisionedThroughput;
 import com.amazonaws.services.dynamodb.model.ProvisionedThroughputDescription;
+import com.amazonaws.services.dynamodb.model.ResourceNotFoundException;
 import com.amazonaws.services.dynamodb.model.TableDescription;
 import com.amazonaws.services.dynamodb.model.TableStatus;
 import com.amazonaws.services.dynamodb.model.UpdateTableRequest;
+import com.google.common.base.Predicate;
 
 public class DynamoSetupImpl implements DynamoSetup {
 	
@@ -84,11 +88,26 @@ public class DynamoSetupImpl implements DynamoSetup {
 				TableDescription existingTable = this.describeTable(tableName);
 				// Make sure they have the same KeySchema
 				if (!this.hasSameKeySchema(existingTable, configTable)) {
-					throw new DynamoTableExistsException("Table " + tableName
-							+ " already exists but has a different key schema.");
-				}
-				// If they have different throughput, update the throughput
-				if (!this.hasSameThroughput(existingTable, configTable)) {
+					// delete and recreate the table
+					this.deleteTable(existingTable.getTableName());
+					if (!TimeUtils.waitFor(timeoutInMillis, -1000L, existingTable.getTableName(), new Predicate<String>() {
+						@Override
+						public boolean apply(String tableName) {
+							try {
+								describeTable(tableName);
+								return false;
+							} catch (ResourceNotFoundException e) {
+								return true;
+							}
+						}
+					})) {
+						throw new DynamoTimeoutException("Table " + tableName
+								+ " already exists but has different throughput and deletion did not happen in time.");
+					}
+					this.createTable(configTable);
+					tablesToWatch.add(tableName);
+				} else if (!this.hasSameThroughput(existingTable, configTable)) {
+					// If they have different throughput, update the throughput
 					// The table must be in ACTIVE status (i.e. ready to update)
 					TableStatus status = TableStatus.fromValue(existingTable.getTableStatus());
 					if (!TableStatus.ACTIVE.equals(status)) {
@@ -114,39 +133,23 @@ public class DynamoSetupImpl implements DynamoSetup {
 			return;
 		}
 
-		// Otherwise wait for the tables to be ready
-		long delay = timeoutInMillis / 60 + 1;
-		long startTime = System.currentTimeMillis();
-		long endTime = startTime + timeoutInMillis;
-		while (System.currentTimeMillis() < endTime) {
-
-			try {
-				Thread.sleep(delay);
-			} catch (InterruptedException e) {
-				throw new RuntimeException(e);
-			}
-
-			// Check readiness
-			boolean allActive = true;
-			for (String tableName : tablesToWatch) {
-				DescribeTableRequest request = new DescribeTableRequest();
-				request.setTableName(tableName);
-				TableDescription tableDesc = this.dynamoClient.describeTable(request).getTable();
-				TableStatus tableStatus = TableStatus.fromValue(tableDesc.getTableStatus());
-				if (!TableStatus.ACTIVE.equals(tableStatus)) {
-					allActive = false;
-					break;
+		if (!TimeUtils.waitFor(timeoutInMillis, -1000L, tablesToWatch, new Predicate<List<String>>() {
+			@Override
+			public boolean apply(List<String> tablesToWatch) {
+				// Check readiness
+				for (String tableName : tablesToWatch) {
+					DescribeTableRequest request = new DescribeTableRequest().withTableName(tableName);
+					TableDescription tableDesc = dynamoClient.describeTable(request).getTable();
+					TableStatus tableStatus = TableStatus.fromValue(tableDesc.getTableStatus());
+					if (!TableStatus.ACTIVE.equals(tableStatus)) {
+						return false;
+					}
 				}
+				return true;
 			}
-
-			if (allActive) {
-				return;
-			}
+		})) {
+			throw new DynamoTimeoutException("Tables are not ready within the specified timeout of " + timeoutInMillis + " milliseconds.");
 		}
-
-		// We have timed out
-		throw new DynamoTimeoutException("Tables are not ready within the specified timeout of "
-					+  timeoutInMillis + " milliseconds.");
 	}
 
 	/**
@@ -172,8 +175,14 @@ public class DynamoSetupImpl implements DynamoSetup {
 	}
 
 	/**
-	 * Updates an existing table. This methods does not block.
-	 * It returns while the table is being updated.
+	 * Deletes an existing table
+	 */
+	void deleteTable(String tableName) {
+		this.dynamoClient.deleteTable(new DeleteTableRequest().withTableName(tableName));
+	}
+
+	/**
+	 * Updates an existing table. This methods does not block. It returns while the table is being updated.
 	 */
 	void updateProvisionedThroughput(DynamoTableConfig table) {
 
@@ -202,14 +211,15 @@ public class DynamoSetupImpl implements DynamoSetup {
 				.withAttributeName(hKey.getKeyName())
 				.withAttributeType(hKey.getKeyType());
 
-		DynamoKey rKey = kSchema.getRangeKey();
-		KeySchemaElement rangeKey = new KeySchemaElement()
-				.withAttributeName(rKey.getKeyName())
-				.withAttributeType(rKey.getKeyType());
+		KeySchema keySchema = new KeySchema().withHashKeyElement(hashKey);
 
-		KeySchema keySchema = new KeySchema()
-				.withHashKeyElement(hashKey)
-				.withRangeKeyElement(rangeKey);
+		DynamoKey rKey = kSchema.getRangeKey();
+		if (rKey != null) {
+			KeySchemaElement rangeKey = new KeySchemaElement()
+					.withAttributeName(rKey.getKeyName())
+					.withAttributeType(rKey.getKeyType());
+			keySchema.setRangeKeyElement(rangeKey);
+		}
 
 		return keySchema;
 	}

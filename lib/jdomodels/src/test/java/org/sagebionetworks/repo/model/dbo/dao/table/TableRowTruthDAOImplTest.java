@@ -43,7 +43,7 @@ public class TableRowTruthDAOImplTest {
 	@Autowired
 	private TableRowTruthDAO tableRowTruthDao;
 		
-	private String creatorUserGroupId;
+	protected String creatorUserGroupId;
 
 	@Before
 	public void before(){

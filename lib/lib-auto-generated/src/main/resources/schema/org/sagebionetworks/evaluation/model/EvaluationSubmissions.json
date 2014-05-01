@@ -1,0 +1,18 @@
+{
+	"description": "This object holds the metadata for a collection of Submissions belonging to an Evaluation.",
+	"name": "EvaluationSubmissions",
+	"properties": {
+		"id": {
+			"type": "integer",
+			"description": "The unique immutable ID for this object."
+		},
+		"etag": {
+			"type": "string",
+			"description": "a etag that changes whenever any SubmissionStatus under the parent Evaluation does"
+		},
+		"evaluationId": {
+			"type": "integer",
+			"description": "The ID of the Evaluation."
+		}
+	}
+}

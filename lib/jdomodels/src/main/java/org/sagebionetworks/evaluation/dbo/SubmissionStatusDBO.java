@@ -111,7 +111,7 @@ public class SubmissionStatusDBO implements MigratableDatabaseObject<SubmissionS
 	public int getStatus() {
 		return status;
 	}
-	private void setStatus(int status) {
+	public void setStatus(int status) {
 		this.status = status;
 	}
 	

@@ -17,9 +17,11 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ThreadTestUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.transaction.UnexpectedRollbackException;
 
 /**
  * Test that we can acquire a lock on a node.
@@ -51,6 +53,7 @@ public class NodeLockTest {
 	
 	@Before
 	public void before() throws Exception{
+		ThreadTestUtils.doBefore();
 		assertNotNull(nodeLockerA);
 		assertNotNull(nodeLockerB);
 		assertNotNull(nodeDao);
@@ -79,6 +82,7 @@ public class NodeLockTest {
 				
 			}
 		}
+		ThreadTestUtils.doAfter();
 	}
 	
 	@Test
@@ -113,13 +117,9 @@ public class NodeLockTest {
 			public void run() {
 				try {
 					nodeLockerB.aquireAndHoldLock(theNodeId, eTag);
-				} catch (InterruptedException e) {
-					fail(e.getMessage());
-				} catch (NotFoundException e) {
-					fail(e.getMessage());
-				} catch (ConflictingUpdateException e) {
-					fail(e.getMessage());
-				} catch (DatastoreException e) {
+				} catch (UnexpectedRollbackException e) {
+					// expected
+				} catch (Exception e) {
 					fail(e.getMessage());
 				}
 			}
@@ -149,6 +149,8 @@ public class NodeLockTest {
 		nodeLockerA.releaseLock();
 		nodeLockerB.releaseLock();
 			
+		threadOne.join(10000);
+		threadTwo.join(10000);
 	}
 	
 

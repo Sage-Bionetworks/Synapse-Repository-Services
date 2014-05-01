@@ -222,7 +222,6 @@ public class TableWorker implements Callable<List<Message>> {
 	String synchIndexWithTable(TableIndexDAO indexDao,
 			String tableId, String resetToken) throws DatastoreException, NotFoundException,
 			IOException {
-		tableRowManager.attemptToUpdateTableProgress(tableId, resetToken, "Starting ", 0L, 100L);
 		// The first task is to get the table schema in-synch.
 		// Get the current schema of the table.
 		List<ColumnModel> currentSchema = tableRowManager

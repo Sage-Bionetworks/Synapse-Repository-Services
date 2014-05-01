@@ -1,10 +1,9 @@
 package org.sagebionetworks.table.worker;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 import java.io.IOException;
 import java.util.LinkedList;
@@ -38,7 +37,6 @@ import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableState;
-import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
@@ -144,11 +142,10 @@ public class TableWorkerIntegrationTest {
 		referenceSet = tableRowManager.appendRows(adminUserInfo, tableId, schema, rowSet);
 		System.out.println("Appended "+rowSet.getRows().size()+" rows in: "+(System.currentTimeMillis()-start)+" MS");
 		// Wait for the table to become available
-		TableStatus status = waitForTableToBeAvailable(tableId);
-		// Validate that we can query the table
-		boolean isConsistent = true;
-		boolean countOnly = false;
-		rowSet = tableRowManager.query(adminUserInfo, "select * from " + tableId + " limit 8", isConsistent, countOnly);
+		String sql = "select * from " + tableId + " limit 8";
+		rowSet = waitForConsistentQuery(adminUserInfo, sql);
+		System.out.println("testRoundTrip");
+		System.out.println(rowSet);
 		assertNotNull(rowSet);
 		assertEquals(tableId, rowSet.getTableId());
 		assertNotNull(rowSet.getHeaders());
@@ -156,7 +153,7 @@ public class TableWorkerIntegrationTest {
 		assertNotNull(rowSet.getRows());
 		assertEquals(6, rowSet.getRows().size());
 		assertNotNull(rowSet.getEtag());
-		assertEquals("The etag for the last applied change set should be set for the status and the results",status.getLastTableChangeEtag(), rowSet.getEtag());
+		assertEquals("The etag for the last applied change set should be set for the status and the results",referenceSet.getEtag(), rowSet.getEtag());
 		assertEquals("The etag should also match the rereferenceSet.etag",referenceSet.getEtag(), rowSet.getEtag());
 	}
 	
@@ -212,11 +209,8 @@ public class TableWorkerIntegrationTest {
 		assertEquals(2, referenceSet.getRows().size());
 
 		// Wait for the table to become available
-		waitForTableToBeAvailable(tableId);
-		// Validate that we can query the table
-		boolean isConsistent = true;
-		boolean countOnly = false;
-		rowSet = tableRowManager.query(adminUserInfo, "select * from " + tableId + " limit 100", isConsistent, countOnly);
+		String sql = "select * from " + tableId + " limit 100";
+		rowSet = waitForConsistentQuery(adminUserInfo, sql);
 		assertEquals("TableId: "+tableId, 2, rowSet.getRows().size());
 		assertEquals("updatestring333", rowSet.getRows().get(0).getValues().get(0));
 		assertEquals("updatestring555", rowSet.getRows().get(1).getValues().get(0));
@@ -249,14 +243,11 @@ public class TableWorkerIntegrationTest {
 		rowSet.setHeaders(headers);
 		rowSet.setTableId(tableId);
 		long start = System.currentTimeMillis();
-		tableRowManager.appendRowsAsStream(adminUserInfo, tableId, schema, rowSet.getRows().iterator(), null, null);
+		String etag = tableRowManager.appendRowsAsStream(adminUserInfo, tableId, schema, rowSet.getRows().iterator(), null, null);
 		System.out.println("Appended "+rowSet.getRows().size()+" rows in: "+(System.currentTimeMillis()-start)+" MS");
 		// Wait for the table to become available
-		TableStatus status = waitForTableToBeAvailable(tableId);
-		// Validate that we can query the table
-		boolean isConsistent = true;
-		boolean countOnly = false;
-		rowSet = tableRowManager.query(adminUserInfo, "select * from "+tableId+" limit 2", isConsistent, countOnly);
+		String sql = "select * from "+tableId+" limit 2";
+		rowSet = waitForConsistentQuery(adminUserInfo, sql);
 		assertNotNull(rowSet);
 		assertEquals(tableId, rowSet.getTableId());
 		assertNotNull(rowSet.getHeaders());
@@ -264,7 +255,7 @@ public class TableWorkerIntegrationTest {
 		assertNotNull(rowSet.getRows());
 		assertEquals(2, rowSet.getRows().size());
 		assertNotNull(rowSet.getEtag());
-		assertEquals("The etag for the last applied change set should be set for the status and the results",status.getLastTableChangeEtag(), rowSet.getEtag());
+		assertEquals("The etag for the last applied change set should be set for the status and the results",etag, rowSet.getEtag());
 		assertEquals("The etag should also match the rereferenceSet.etag",referenceSet.getEtag(), rowSet.getEtag());
 	}
 
@@ -295,12 +286,9 @@ public class TableWorkerIntegrationTest {
 		long start = System.currentTimeMillis();
 		tableRowManager.appendRowsAsStream(adminUserInfo, tableId, schema, rowSet.getRows().iterator(), null, null);
 		System.out.println("Appended "+rowSet.getRows().size()+" rows in: "+(System.currentTimeMillis()-start)+" MS");
-		// Wait for the table to become available
-		TableStatus status = waitForTableToBeAvailable(tableId);
-		// Validate that we can query the table
-		boolean isConsistent = true;
-		boolean countOnly = false;
-		rowSet = tableRowManager.query(adminUserInfo, "select A, a, \"Has Space\",\""+specialChars+"\" from "+tableId+" limit 2", isConsistent, countOnly);
+		// Query for the results
+		String sql = "select A, a, \"Has Space\",\""+specialChars+"\" from "+tableId+" limit 2";
+		rowSet = waitForConsistentQuery(adminUserInfo, sql);
 		assertNotNull(rowSet);
 		assertEquals(tableId, rowSet.getTableId());
 		assertNotNull(rowSet.getHeaders());
@@ -330,14 +318,9 @@ public class TableWorkerIntegrationTest {
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
 		columnManager.bindColumnToObject(adminUserInfo, null, tableId, true);
-		// Wait for the table to be available
-		TableStatus status = waitForTableToBeAvailable(tableId);
-		assertNotNull(status);
 		// We should be able to query
 		String sql = "select * from "+tableId+" limit 1";
-		boolean isConsistent = true;
-		boolean countOnly = false;
-		RowSet rowSet = tableRowManager.query(adminUserInfo, sql, isConsistent, countOnly);
+		RowSet rowSet = waitForConsistentQuery(adminUserInfo, sql);
 		assertNotNull(rowSet);
 		assertNull(rowSet.getEtag());
 		assertEquals(tableId, rowSet.getTableId());
@@ -371,14 +354,11 @@ public class TableWorkerIntegrationTest {
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
 		columnManager.bindColumnToObject(adminUserInfo, headers, tableId, true);
-		// Wait for the table to be available
-		TableStatus status = waitForTableToBeAvailable(tableId);
-		assertNotNull(status);
 		// We should be able to query
 		String sql = "select * from "+tableId+" limit 1";
-		boolean isConsistent = true;
-		boolean countOnly = false;
-		RowSet rowSet = tableRowManager.query(adminUserInfo, sql, isConsistent, countOnly);
+		RowSet rowSet = waitForConsistentQuery(adminUserInfo, sql);
+		System.out.println("testNoRows");
+		System.out.println(rowSet);
 		assertNotNull(rowSet);
 		assertNull(rowSet.getEtag());
 		assertEquals(tableId, rowSet.getTableId());
@@ -386,29 +366,31 @@ public class TableWorkerIntegrationTest {
 		assertTrue("TableId: "+tableId, rowSet.getRows() == null || rowSet.getRows().isEmpty());
 	}
 	
-
 	/**
-	 * Helper to wait for a table to become available.
+	 * Attempt to run a query. If the table is unavailable, it will continue to try until successful or the timeout is exceeded.
 	 * 
-	 * @param tableId
+	 * @param user
+	 * @param sql
 	 * @return
+	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 * @throws InterruptedException
 	 */
-	private TableStatus waitForTableToBeAvailable(String tableId) throws NotFoundException,
-			InterruptedException {
-		TableStatus status = tableRowManager.getTableStatus(tableId);
-		assertNotNull(status);
-		// wait for the status to become available.
+	private RowSet waitForConsistentQuery(UserInfo user, String sql) throws DatastoreException, NotFoundException, InterruptedException{
 		long start = System.currentTimeMillis();
-		while(!TableState.AVAILABLE.equals(status.getState())){
-			assertTrue("Timed out waiting for table index worker to make the table available.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
-			assertFalse("Failed to process table: "+status.getErrorMessage(), TableState.PROCESSING_FAILED.equals(status.getState()));
-			System.out.println("Waiting for table index worker to build table..."+status.getProgressMessage()+ " current: "+status.getProgressCurrent()+" of: "+status.getProgressTotal());
-			Thread.sleep(1000);
-			status = tableRowManager.getTableStatus(tableId);
+		while(true){
+			try {
+				return  tableRowManager.query(adminUserInfo, sql, true, false);
+			} catch (TableUnavilableException e) {
+				assertTrue("Timed out waiting for table index worker to make the table available.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
+				assertNotNull(e.getStatus());
+				assertFalse("Failed: "+e.getStatus().getErrorMessage(),TableState.PROCESSING_FAILED.equals(e.getStatus().getState()));
+				System.out.println("Waiting for table index worker to build table. Status: "+e.getStatus());
+				Thread.sleep(1000);
+			}
 		}
-		return status;
 	}
+	
+
 	
 }

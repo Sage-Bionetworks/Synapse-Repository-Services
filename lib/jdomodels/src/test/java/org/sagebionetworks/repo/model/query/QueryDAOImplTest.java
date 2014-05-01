@@ -11,7 +11,6 @@ import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -24,8 +23,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Matchers;
 import org.sagebionetworks.evaluation.dbo.DBOConstants;
-import org.sagebionetworks.evaluation.model.Submission;
-import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -38,7 +35,7 @@ import org.sagebionetworks.repo.model.annotation.StringAnnotation;
 import org.sagebionetworks.repo.model.dbo.dao.SubmissionStatusAnnotationsAsyncManagerImpl;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.evaluation.AnnotationsDAO;
-import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
+import org.sagebionetworks.repo.model.evaluation.EvaluationSubmissionsDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,7 +53,7 @@ public class QueryDAOImplTest {
 	@Autowired
 	private AnnotationsDAO annotationsDAO;
 	@Autowired
-	private EvaluationDAO evaluationDAO;
+	private EvaluationSubmissionsDAO evaluationSubmissionsDAO;
 
 	SubmissionStatusAnnotationsAsyncManagerImpl ssAnnoAsyncManager;
 	
@@ -70,7 +67,7 @@ public class QueryDAOImplTest {
 	
 	@Before
 	public void setUp() throws DatastoreException, JSONObjectAdapterException, NotFoundException {
-		ssAnnoAsyncManager = new SubmissionStatusAnnotationsAsyncManagerImpl(annotationsDAO, evaluationDAO);
+		ssAnnoAsyncManager = new SubmissionStatusAnnotationsAsyncManagerImpl(annotationsDAO, evaluationSubmissionsDAO);
 		// create Annotations
 		Annotations annos;
 		submissionIds = new HashSet<String>();
@@ -823,6 +820,59 @@ public class QueryDAOImplTest {
 			}
 			previous = current;
 		}
+	}
+	
+	@Test
+	public void testQuerySortLongAscending() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
+		// SELECT * FROM evaluation_1 ORDER BY "long_anno" ASC
+		BasicQuery query = new BasicQuery();
+		query.setFrom("evaluation" + QueryTools.FROM_TYPE_ID_DELIMTER + EVAL_ID1);
+		query.setLimit(NUM_SUBMISSIONS);
+		query.setOffset(0);
+		query.setSort(TestUtils.PRIVATE_LONG_ANNOTATION_NAME);
+		query.setAscending(true);
+		List<String> select = new ArrayList<String>();
+		select.add(TestUtils.PRIVATE_LONG_ANNOTATION_NAME);
+		query.setSelect(select);
+		
+		// perform the query
+		QueryTableResults results = queryDAO.executeQuery(query, mockUserInfo);
+		assertNotNull(results);
+		assertEquals(NUM_SUBMISSIONS, results.getTotalNumberOfResults().longValue());
+		assertEquals(NUM_SUBMISSIONS, results.getRows().size());
+		
+		// examine the results
+		List<Row> rows = results.getRows();
+		int index = results.getHeaders().indexOf(TestUtils.PRIVATE_LONG_ANNOTATION_NAME);
+		Long previous = null;
+		for (int i = 0; i < rows.size(); i++) {
+			Row row = rows.get(i);
+			System.out.println(row);
+			List<String> values = row.getValues();
+			// validate ordering
+			Long current = Long.parseLong(values.get(index));
+			if (previous != null) {
+				assertTrue(""+current+" should be bigger than "+previous+" but it's not.", current.compareTo(previous) >= 0);
+			}
+			previous = current;
+		}
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void testQuerySortLongAscendingBadSortBy() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
+		// SELECT * FROM evaluation_1 ORDER BY "gobbledygook" ASC
+		BasicQuery query = new BasicQuery();
+		query.setFrom("evaluation" + QueryTools.FROM_TYPE_ID_DELIMTER + EVAL_ID1);
+		query.setLimit(NUM_SUBMISSIONS);
+		query.setOffset(0);
+		query.setSort("gobbledygook");
+		query.setAscending(true);
+		List<String> select = new ArrayList<String>();
+		select.add(TestUtils.PRIVATE_LONG_ANNOTATION_NAME);
+		query.setSelect(select);
+		
+		// perform the query, exception expected
+		queryDAO.executeQuery(query, mockUserInfo);
 	}
 	
 	// Flatten an Annotations object to a map. The key is given by [Object ID] + [attribute name],
