@@ -1,14 +1,20 @@
 package org.sagebionetworks.repo.model.query;
 
-import static org.sagebionetworks.repo.model.query.SQLConstants.*;
+import static org.sagebionetworks.repo.model.query.SQLConstants.ALIAS_ANNO_BLOB;
 import static org.sagebionetworks.repo.model.query.SQLConstants.ALIAS_ANNO_OWNER;
 import static org.sagebionetworks.repo.model.query.SQLConstants.ALIAS_EXPRESSION;
 import static org.sagebionetworks.repo.model.query.SQLConstants.ALIAS_SORT;
 import static org.sagebionetworks.repo.model.query.SQLConstants.ANNO_BLOB;
+import static org.sagebionetworks.repo.model.query.SQLConstants.ANNO_DOUBLE;
+import static org.sagebionetworks.repo.model.query.SQLConstants.ANNO_LONG;
 import static org.sagebionetworks.repo.model.query.SQLConstants.ANNO_OWNER;
+import static org.sagebionetworks.repo.model.query.SQLConstants.ANNO_STRING;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_ANNO_ATTRIBUTE;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_ANNO_IS_PRIVATE;
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_ANNO_VALUE;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_ANNO_EVALID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_ANNO_SUBID;
+import static org.sagebionetworks.repo.model.query.SQLConstants.PREFIX_SUBSTATUS;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -32,7 +38,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 
@@ -46,6 +51,20 @@ public class QueryDAOImpl implements QueryDAO {
 	private static final long MAX_BYTES_PER_QUERY = 
 			StackConfiguration.getMaximumBytesPerQueryResult();
 	private static Logger log = LogManager.getLogger(QueryDAOImpl.class);
+	
+	private static final String ATTRIBUTE_PARAM = "ATTRIBUTE";
+	private static final String SCOPE_PARAM = "SCOPE_ID";
+	private static final String LONG_ATTR_NAME = "LONG_ATTR";
+	private static final String DBBL_ATTR_NAME = "DBBL_ATTR";
+	private static final String STRG_ATTR_NAME = "STRG_ATTR";
+	
+	private static final String FIND_ATTRIBUTE_SQL = 
+			"select distinct s."+COL_ANNO_ATTRIBUTE+" '"+STRG_ATTR_NAME+"', l."+COL_ANNO_ATTRIBUTE+" '"+LONG_ATTR_NAME+"', d."+COL_ANNO_ATTRIBUTE+" '"+DBBL_ATTR_NAME+"' from "+
+			PREFIX_SUBSTATUS+ANNO_OWNER+" o "+
+			"left outer join "+PREFIX_SUBSTATUS+ANNO_STRING+" s on (s."+COL_SUBSTATUS_ANNO_SUBID+"=o."+COL_SUBSTATUS_ANNO_SUBID+" and s."+COL_ANNO_ATTRIBUTE+"=:"+ATTRIBUTE_PARAM+") "+
+			"left outer join "+PREFIX_SUBSTATUS+ANNO_LONG+" l on (l."+COL_SUBSTATUS_ANNO_SUBID+"=o."+COL_SUBSTATUS_ANNO_SUBID+" and l."+COL_ANNO_ATTRIBUTE+"=:"+ATTRIBUTE_PARAM+") "+
+			"left outer join "+PREFIX_SUBSTATUS+ANNO_DOUBLE+" d on (d."+COL_SUBSTATUS_ANNO_SUBID+"=o."+COL_SUBSTATUS_ANNO_SUBID+" and d."+COL_ANNO_ATTRIBUTE+"=:"+ATTRIBUTE_PARAM+") "+
+			"where o."+COL_SUBSTATUS_ANNO_EVALID+"=:"+SCOPE_PARAM+"";
 	
 	private static ObjectType getObjectTypeFromQueryObjectType(QueryObjectType qot) {
 		if (qot==QueryObjectType.EVALUATION) {
@@ -73,7 +92,7 @@ public class QueryDAOImpl implements QueryDAO {
 		
 		FieldType sortFieldType = null;
 		if (userQuery.getSort()!=null) {
-			sortFieldType = findTableNameForAttribute(Long.parseLong(objId), userQuery.getSort());
+			sortFieldType = findFieldTypeForAttribute(Long.parseLong(objId), userQuery.getSort());
 			if (sortFieldType==null) throw new IllegalArgumentException("Cannot find sort attribute "+userQuery.getSort());
 		}
 		
@@ -86,9 +105,6 @@ public class QueryDAOImpl implements QueryDAO {
 		
 		String countQueryString = countQuery.toString();
 		String fullQueryString = fullQuery.toString();
-		
-		// for debug
-		System.out.println("full query: "+fullQueryString);
 		
 		// Execute the count query
 		long count = simpleJdbcTemplate.queryForLong(countQueryString, queryParams);
@@ -120,27 +136,13 @@ public class QueryDAOImpl implements QueryDAO {
 		return QueryTools.translateResults(results, count, userQuery.getSelect(), includePrivate);
 	}
 	
-	private static final String ATTRIBUTE_PARAM = "ATTRIBUTE";
-	private static final String SCOPE_PARAM = "SCOPE_ID";
-	private static final String LONG_ATTR_NAME = "LONG_ATTR";
-	private static final String DBBL_ATTR_NAME = "DBBL_ATTR";
-	private static final String STRG_ATTR_NAME = "STRG_ATTR";
-	
-	private static final String FIND_ATTRIBUTE_SQL = 
-			"select distinct s."+COL_ANNO_ATTRIBUTE+" '"+STRG_ATTR_NAME+"', l."+COL_ANNO_ATTRIBUTE+" '"+LONG_ATTR_NAME+"', d."+COL_ANNO_ATTRIBUTE+" '"+DBBL_ATTR_NAME+"' from "+
-			PREFIX_SUBSTATUS+ANNO_OWNER+" o "+
-			"left outer join "+PREFIX_SUBSTATUS+ANNO_STRING+" s on (s."+COL_SUBSTATUS_ANNO_SUBID+"=o."+COL_SUBSTATUS_ANNO_SUBID+" and s."+COL_ANNO_ATTRIBUTE+"=:"+ATTRIBUTE_PARAM+") "+
-			"left outer join "+PREFIX_SUBSTATUS+ANNO_LONG+" l on (l."+COL_SUBSTATUS_ANNO_SUBID+"=o."+COL_SUBSTATUS_ANNO_SUBID+" and l."+COL_ANNO_ATTRIBUTE+"=:"+ATTRIBUTE_PARAM+") "+
-			"left outer join "+PREFIX_SUBSTATUS+ANNO_DOUBLE+" d on (d."+COL_SUBSTATUS_ANNO_SUBID+"=o."+COL_SUBSTATUS_ANNO_SUBID+" and d."+COL_ANNO_ATTRIBUTE+"=:"+ATTRIBUTE_PARAM+") "+
-			"where o."+COL_SUBSTATUS_ANNO_EVALID+"=:"+SCOPE_PARAM+"";
-	
 	/**
 	 * When we sort by a given attribute we need to determine what type its values are
 	 * @param scopeId the scope of the attribute (e.g. the Evaluation)
 	 * @param attribute
 	 * @return the FieldType of the attributes or null if the attribute doesn't appear in the given scope
 	 */
-	public FieldType findTableNameForAttribute(Long scopeId, String attribute) {
+	public FieldType findFieldTypeForAttribute(Long scopeId, String attribute) {
 		MapSqlParameterSource args = new MapSqlParameterSource();
 		args.addValue(ATTRIBUTE_PARAM, attribute);
 		args.addValue(SCOPE_PARAM, scopeId);
@@ -248,8 +250,8 @@ public class QueryDAOImpl implements QueryDAO {
 		
 		// Add the typed table for the sort
 		if (query.getSort() != null) {
-			String sortTableName = QueryTools.getTableNameForFieldType(sortFieldType);
-			appendTable(builder, aliases, tablePrefix, sortTableName, ALIAS_SORT, false);
+			String tableName = QueryTools.getTableNameForFieldType(sortFieldType);
+			appendTable(builder, aliases, tablePrefix, tableName, ALIAS_SORT, false);
 		}
 		return builder;
 	}

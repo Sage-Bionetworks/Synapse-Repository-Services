@@ -777,7 +777,6 @@ public class QueryDAOImplTest {
 		String previous = null;
 		for (int i = 0; i < rows.size(); i++) {
 			Row row = rows.get(i);
-			System.out.println(row);
 			List<String> values = row.getValues();
 			// validate ordering
 			String current = values.get(index);
@@ -857,6 +856,23 @@ public class QueryDAOImplTest {
 			}
 			previous = current;
 		}
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void testQuerySortLongAscendingBadSortBy() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
+		// SELECT * FROM evaluation_1 ORDER BY "gobbledygook" ASC
+		BasicQuery query = new BasicQuery();
+		query.setFrom("evaluation" + QueryTools.FROM_TYPE_ID_DELIMTER + EVAL_ID1);
+		query.setLimit(NUM_SUBMISSIONS);
+		query.setOffset(0);
+		query.setSort("gobbledygook");
+		query.setAscending(true);
+		List<String> select = new ArrayList<String>();
+		select.add(TestUtils.PRIVATE_LONG_ANNOTATION_NAME);
+		query.setSelect(select);
+		
+		// perform the query, exception expected
+		queryDAO.executeQuery(query, mockUserInfo);
 	}
 	
 	// Flatten an Annotations object to a map. The key is given by [Object ID] + [attribute name],
