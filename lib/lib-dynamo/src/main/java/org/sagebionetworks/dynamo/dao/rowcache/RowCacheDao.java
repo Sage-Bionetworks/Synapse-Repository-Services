@@ -1,12 +1,9 @@
 package org.sagebionetworks.dynamo.dao.rowcache;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.repo.model.table.Row;
-import org.sagebionetworks.repo.model.table.RowReference;
 
 public interface RowCacheDao {
 	boolean isEnabled();

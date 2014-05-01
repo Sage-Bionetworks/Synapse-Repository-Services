@@ -1,17 +1,20 @@
 package org.sagebionetworks.dynamo.dao.rowcache;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Random;
-import java.util.RandomAccess;
 
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.table.CurrentRowCacheStatus;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -29,6 +32,12 @@ public class CurrentRowCacheDaoAutowireTest {
 	private CurrentRowCacheDao currentRowCacheDao;
 
 	private String tableName = "t" + new Random().nextLong();
+
+	@BeforeClass
+	public static void beforeClass() {
+		StackConfiguration config = new StackConfiguration();
+		Assume.assumeTrue(config.getDynamoEnabled());
+	}
 
 	@Before
 	public void setup() {
