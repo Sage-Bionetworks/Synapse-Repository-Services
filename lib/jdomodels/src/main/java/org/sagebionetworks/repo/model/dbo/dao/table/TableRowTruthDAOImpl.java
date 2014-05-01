@@ -14,8 +14,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -23,6 +21,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
@@ -49,7 +49,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.S3Object;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -61,6 +60,7 @@ import com.google.common.collect.Sets;
  * 
  */
 public class TableRowTruthDAOImpl implements TableRowTruthDAO {
+	private static Logger log = LogManager.getLogger(TableRowTruthDAOImpl.class);
 
 	private static final String SQL_SELECT_VERSION_FOR_ETAG = "SELECT "
 			+ COL_TABLE_ROW_VERSION + " FROM " + TABLE_ROW_CHANGE + " WHERE "
@@ -177,8 +177,12 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		int coutToReserver = TableModelUtils.countEmptyOrInvalidRowIds(delta);
 		// Reserver IDs for the missing
 		IdRange range = reserveIdsInRange(tableId, coutToReserver);
-		// Validate that this update does not contain any row level conflicts.
-		checkForRowLevelConflict(tableId, delta, coutToReserver);
+		// Are any rows being updated?
+		if (coutToReserver < delta.getRows().size()) {
+			// Validate that this update does not contain any row level conflicts.
+			checkForRowLevelConflict(tableId, delta);
+		}
+
 		// Now assign the rowIds and set the version number
 		TableModelUtils.assignRowIdsAndVersionNumbers(delta, range);
 		// We are ready to convert the file to a CSV and save it to S3.
@@ -226,37 +230,15 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	 * @throws ConflictingUpdateException
 	 *             when a conflict is found
 	 */
-	private void checkForRowLevelConflict(String tableId, RowSet delta, int coutToReserver)
-			throws IOException {
-		// Are any rows being updated?
-		if (coutToReserver < delta.getRows().size()) {
-			// This indicates there was an update
-			if (delta.getEtag() == null)
-				throw new IllegalArgumentException(
-						"RowSet.etag cannot be null when rows are being updated.");
-			// Lookup the version number for this update.
-			long versionOfEtag = getVersionForEtag(tableId, delta.getEtag());
-			// Check each version greater than the version for the etag
-			List<TableRowChange> changes = listRowSetsKeysForTableGreaterThanVersion(
-					tableId, versionOfEtag);
-			// check for row level conflicts
-			checkForRowLevelConflict(changes,
-					TableModelUtils.getDistictValidRowIds(delta.getRows()));
-		}
-	}
-
-	/**
-	 * Check for a row level conflicts in the passed change sets, by scanning
-	 * each row of each change set and looking for the intersection with the
-	 * passed row Ids.
-	 * 
-	 * @param changes
-	 * @param delta
-	 * @throws ConflictingUpdateException
-	 *             when a conflict is found
-	 */
-	private void checkForRowLevelConflict(List<TableRowChange> changes,
-			final Set<Long> rowIds) throws IOException {
+	public void checkForRowLevelConflict(String tableId, RowSet delta) throws IOException {
+		if (delta.getEtag() == null)
+			throw new IllegalArgumentException("RowSet.etag cannot be null when rows are being updated.");
+		// Lookup the version number for this update.
+		long versionOfEtag = getVersionForEtag(tableId, delta.getEtag());
+		// Check each version greater than the version for the etag
+		List<TableRowChange> changes = listRowSetsKeysForTableGreaterThanVersion(tableId, versionOfEtag);
+		// check for row level conflicts
+		Set<Long> rowIds = TableModelUtils.getDistictValidRowIds(delta.getRows());
 		for (TableRowChange change : changes) {
 			checkForRowLevelConflict(change, rowIds);
 		}
@@ -545,15 +527,13 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	}
 
 	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public RowSetAccessor getLatestVersions(String tableId, Set<Long> rowIds) throws IOException, NotFoundException {
 		final Map<Long, RowAccessor> rowIdToRowMap = Maps.newHashMap();
 
 		List<TableRowChange> rowChanges = listRowSetsKeysForTable(tableId);
 
-		// we are scanning backwards through the row changes. Even though it shouldn't happen the same row id could be
-		// in a change set more than once. We need to scan forward in each change set, and only after the change set is
-		// done can we mark a row as found if it is in the change set at least once
-
+		// we are scanning backwards through the row changes.
 		final Set<Long> rowIdsToFind = Sets.newHashSet(rowIds);
 		// For each version of the table (starting at the last one)
 		for (final TableRowChange rowChange : Lists.reverse(rowChanges)) {
@@ -570,30 +550,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 					if (rowIdsToFind.contains(row.getRowId())) {
 						// we found it, no longer need to find this one
 						rowIdsToFind.remove(row.getRowId());
-						if (TableModelUtils.isDeletedRow(row)) {
-							rowIdToRowMap.remove(row.getRowId());
-						} else {
-							rowIdToRowMap.put(row.getRowId(), new RowAccessor() {
-								Map<String, Integer> columnIdToIndexMap = null;
-
-								@Override
-								public String getCell(String columnId) {
-									if (columnIdToIndexMap == null) {
-										columnIdToIndexMap = TableModelUtils.createColumnIdToIndexMap(rowChangeHeaders);
-									}
-									Integer index = columnIdToIndexMap.get(columnId);
-									if (row.getValues() == null || index >= row.getValues().size()) {
-										return null;
-									}
-									return row.getValues().get(index);
-								}
-
-								@Override
-								public Row getRow() {
-									return row;
-								}
-							});
-						}
+						appendRowDataToMap(rowIdToRowMap, rowChangeHeaders, row);
 					}
 				}
 			}, rowChange);
@@ -605,6 +562,33 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 				return rowIdToRowMap;
 			}
 		};
+	}
+
+	protected void appendRowDataToMap(final Map<Long, RowAccessor> rowIdToRowMap, final List<String> rowChangeHeaders, final Row row) {
+		if (TableModelUtils.isDeletedRow(row)) {
+			rowIdToRowMap.remove(row.getRowId());
+		} else {
+			rowIdToRowMap.put(row.getRowId(), new RowAccessor() {
+				Map<String, Integer> columnIdToIndexMap = null;
+
+				@Override
+				public String getCell(String columnId) {
+					if (columnIdToIndexMap == null) {
+						columnIdToIndexMap = TableModelUtils.createColumnIdToIndexMap(rowChangeHeaders);
+					}
+					Integer index = columnIdToIndexMap.get(columnId);
+					if (row.getValues() == null || index >= row.getValues().size()) {
+						return null;
+					}
+					return row.getValues().get(index);
+				}
+
+				@Override
+				public Row getRow() {
+					return row;
+				}
+			});
+		}
 	}
 
 	@Override

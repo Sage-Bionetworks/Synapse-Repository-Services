@@ -6,10 +6,10 @@ import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import org.sagebionetworks.dynamo.DynamoWriteExecution;
 import org.sagebionetworks.dynamo.DynamoWriteExecutor;
 import org.sagebionetworks.dynamo.DynamoWriteOperation;
+import org.sagebionetworks.dynamo.dao.DynamoDaoBaseImpl;
 
 import com.amazonaws.services.dynamodb.AmazonDynamoDB;
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMapper;
@@ -18,34 +18,18 @@ import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMapperConfig;
 /**
  * Implementation based on ancestor-descendant and descendant-ancestor pointers.
  */
-public class NodeTreeUpdateDaoImpl implements NodeTreeUpdateDao {
+public class NodeTreeUpdateDaoImpl extends DynamoDaoBaseImpl implements NodeTreeUpdateDao {
 
 	private final Logger logger = LogManager.getLogger(NodeTreeUpdateDaoImpl.class);
 
-	private final AmazonDynamoDB dynamoClient;
 	private final DynamoDBMapper writeMapper;
 	private final DynamoWriteExecutor writeExecutor;
 
-	private boolean isDynamoEnabled;
-
-	@Override
-	public boolean isDynamoEnabled() {
-		return isDynamoEnabled;
-	}
- 
-	public void setDynamoEnabled(boolean isDynamoEnabled) {
-		this.isDynamoEnabled = isDynamoEnabled;
-	}
-	
 	public NodeTreeUpdateDaoImpl(AmazonDynamoDB dynamoClient) {
+		super(dynamoClient);
 
-		if (dynamoClient == null) {
-			throw new IllegalArgumentException("DynamoDB client cannot be null.");
-		}
-
-		this.dynamoClient = dynamoClient;
 		DynamoDBMapperConfig mapperConfig = NodeLineageMapperConfig.getMapperConfigWithConsistentReads();
-		this.writeMapper = new DynamoDBMapper(this.dynamoClient, mapperConfig);
+		this.writeMapper = new DynamoDBMapper(dynamoClient, mapperConfig);
 		this.writeExecutor = new NodeLineageWriteExecutor();
 	}
 
@@ -356,12 +340,5 @@ public class NodeTreeUpdateDaoImpl implements NodeTreeUpdateDao {
 			final Date timestamp, final String op) {
 		return "Execution [child=" + child + ", parent=" + parent +
 				", timestamp=" + timestamp + ", operation=" + op + "]";
-	}
-	
-	/**
-	 * @throws UnsupportedOperationException when Dynamo is disabled
-	 */
-	public void validateDynamoEnabled(){
-		if(!isDynamoEnabled) throw new UnsupportedOperationException("All Dynamo related features are disabled");
 	}
 }

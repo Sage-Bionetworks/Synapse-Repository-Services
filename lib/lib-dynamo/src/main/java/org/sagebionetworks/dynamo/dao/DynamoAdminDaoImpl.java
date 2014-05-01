@@ -13,27 +13,21 @@ import com.amazonaws.services.dynamodb.model.Key;
 import com.amazonaws.services.dynamodb.model.ScanRequest;
 import com.amazonaws.services.dynamodb.model.ScanResult;
 
-public class DynamoAdminDaoImpl implements DynamoAdminDao {
-
-	@Autowired
-	private AmazonDynamoDB dynamoClient;
-	
-	private boolean isDynamoEnabled;
+public class DynamoAdminDaoImpl extends DynamoDaoBaseImpl implements DynamoAdminDao {
 
 	@Override
 	public boolean isDynamoEnabled() {
-		return isDynamoEnabled;
-	}
- 
-	public void setDynamoEnabled(boolean isDynamoEnabled) {
-		this.isDynamoEnabled = isDynamoEnabled;
+		return super.isDynamoEnabled();
 	}
 
+	public DynamoAdminDaoImpl(AmazonDynamoDB dynamoClient) {
+		super(dynamoClient);
+	}
 	@Override
 	public void clear(final String tableName,
 			final String hashKeyName, final String rangeKeyName) {
 		
-		if(!isDynamoEnabled) throw new UnsupportedOperationException("All Dynamo related features are disabled");
+		if(!isDynamoEnabled()) throw new UnsupportedOperationException("All Dynamo related features are disabled");
 		
 		if (tableName == null || tableName.isEmpty()) {
 			throw new IllegalArgumentException("Table name cannot be null or empty.");
@@ -51,7 +45,7 @@ public class DynamoAdminDaoImpl implements DynamoAdminDao {
 		ScanRequest scanRequest = new ScanRequest()
 				.withTableName(fullTableName)
 				.withAttributesToGet(hashKeyName, rangeKeyName);
-		ScanResult scanResult = dynamoClient.scan(scanRequest);
+		ScanResult scanResult = getDynamoClient().scan(scanRequest);
 		List<Map<String, AttributeValue>> items = scanResult.getItems();
 
 		for (Map<String, AttributeValue> item : items) {
@@ -63,7 +57,7 @@ public class DynamoAdminDaoImpl implements DynamoAdminDao {
 			DeleteItemRequest deleteItemRequest = new DeleteItemRequest()
 					.withTableName(fullTableName)
 					.withKey(key);
-			dynamoClient.deleteItem(deleteItemRequest);
+			getDynamoClient().deleteItem(deleteItemRequest);
 		}
 	}
 

@@ -31,6 +31,7 @@
 	</bean>
 
 	<bean id="dynamoAdminDao" class="org.sagebionetworks.dynamo.dao.DynamoAdminDaoImpl" >
+		<constructor-arg ref="dynamoClient" />
 		<property name="dynamoEnabled" ref="stackConfiguration.dynamoEnabled"/>
 	</bean>
 
@@ -43,4 +44,15 @@
 		<constructor-arg ref="dynamoClient" />
 		<property name="dynamoEnabled" ref="stackConfiguration.dynamoEnabled"/>
 	</bean>
+
+	<bean id="rowCacheDao" class="org.sagebionetworks.dynamo.dao.rowcache.RowCacheDaoImpl">
+		<constructor-arg ref="dynamoClient" />
+		<property name="dynamoEnabled" ref="stackConfiguration.dynamoEnabled"/>		
+	</bean>
+
+	<bean id="currentRowCacheDao" class="org.sagebionetworks.dynamo.dao.rowcache.CurrentRowCacheDaoImpl">
+		<constructor-arg ref="dynamoClient" />
+		<property name="dynamoEnabled" ref="stackConfiguration.dynamoEnabled"/>		
+	</bean>
+
 </beans>

@@ -14,10 +14,10 @@ public final class DynamoTableConfig {
 
 		DynamoKey(String keyName, ScalarAttributeType keyType) {
 			if (keyName == null) {
-				throw new NullPointerException();
+				throw new IllegalArgumentException("keyName is required");
 			}
 			if (keyType == null) {
-				throw new NullPointerException();
+				throw new IllegalArgumentException("keyType is required");
 			}
 			this.keyName = keyName;
 			this.keyType = keyType;
@@ -39,10 +39,7 @@ public final class DynamoTableConfig {
 
 		DynamoKeySchema(DynamoKey hashKey, DynamoKey rangeKey) {
 			if (hashKey == null) {
-				throw new NullPointerException();
-			}
-			if (rangeKey == null) {
-				throw new NullPointerException();
+				throw new IllegalArgumentException("hashKey is required");
 			}
 			this.hashKey = hashKey;
 			this.rangeKey = rangeKey;
@@ -64,10 +61,10 @@ public final class DynamoTableConfig {
 
 		DynamoThroughput(Long readThroughput, Long writeThroughput) {
 			if (readThroughput == null) {
-				throw new NullPointerException();
+				throw new IllegalArgumentException("readThroughput is required");
 			}
 			if (writeThroughput == null) {
-				throw new NullPointerException();
+				throw new IllegalArgumentException("writeThroughput is required");
 			}
 			this.readThroughput = readThroughput;
 			this.writeThroughput = writeThroughput;
@@ -88,13 +85,13 @@ public final class DynamoTableConfig {
 	DynamoTableConfig(String tableName, DynamoKeySchema keySchema,
 			DynamoThroughput throughput) {
 		if (tableName == null) {
-			throw new NullPointerException();
+			throw new IllegalArgumentException("tableName is required");
 		}
 		if (keySchema == null) {
-			throw new NullPointerException();
+			throw new IllegalArgumentException("keySchema is required");
 		}
 		if (throughput == null) {
-			throw new NullPointerException();
+			throw new IllegalArgumentException("throughput is required");
 		}
 		String stackPrefix = StackConfiguration.getStack() + "-" + StackConfiguration.getStackInstance() + "-";
 		this.tableName = stackPrefix + tableName;

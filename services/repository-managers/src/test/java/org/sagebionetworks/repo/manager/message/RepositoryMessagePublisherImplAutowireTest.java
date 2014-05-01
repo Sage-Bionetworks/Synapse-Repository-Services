@@ -37,7 +37,7 @@ import com.amazonaws.services.sns.model.PublishRequest;
  *
  */
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:shared-scheduler-spb.xml" })
+@ContextConfiguration(locations = { "classpath:shared-scheduler-spb.xml", "classpath:dynamo-dao-spb.xml" })
 public class RepositoryMessagePublisherImplAutowireTest {
 	
 	@Autowired
