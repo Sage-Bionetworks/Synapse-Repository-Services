@@ -10,7 +10,6 @@ import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMapperConfig.Consist
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMapperConfig.SaveBehavior;
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBRangeKey;
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBTable;
-import com.amazonaws.services.dynamodb.datamodeling.DynamoDBVersionAttribute;
 
 @DynamoDBTable(tableName = DboCurrentRowCache.TABLE_NAME)
 // we can't allow eventual consistency

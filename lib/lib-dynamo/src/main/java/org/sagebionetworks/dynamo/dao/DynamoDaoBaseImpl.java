@@ -1,7 +1,6 @@
 package org.sagebionetworks.dynamo.dao;
 
 import com.amazonaws.services.dynamodb.AmazonDynamoDB;
-import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMapper;
 
 public abstract class DynamoDaoBaseImpl {
 

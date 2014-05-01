@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.StackConfiguration;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.dynamodb.AmazonDynamoDB;
 import com.amazonaws.services.dynamodb.model.AttributeValue;

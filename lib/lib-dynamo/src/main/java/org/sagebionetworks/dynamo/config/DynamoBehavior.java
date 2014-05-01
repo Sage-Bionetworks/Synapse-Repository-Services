@@ -6,7 +6,6 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMapperConfig;
-import com.amazonaws.services.dynamodb.datamodeling.DynamoDBTable;
 
 /**
  * Annotation for marking a property as the hash key for a modeled class. Applied to the getter method for a hash key

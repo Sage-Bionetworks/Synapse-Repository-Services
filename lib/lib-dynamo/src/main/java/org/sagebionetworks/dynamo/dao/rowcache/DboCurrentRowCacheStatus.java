@@ -5,10 +5,8 @@ import org.sagebionetworks.dynamo.config.DynamoBehavior;
 
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBAttribute;
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBHashKey;
-import com.amazonaws.services.dynamodb.datamodeling.DynamoDBIgnore;
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMapperConfig.ConsistentReads;
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMapperConfig.SaveBehavior;
-import com.amazonaws.services.dynamodb.datamodeling.DynamoDBRangeKey;
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBTable;
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBVersionAttribute;
 

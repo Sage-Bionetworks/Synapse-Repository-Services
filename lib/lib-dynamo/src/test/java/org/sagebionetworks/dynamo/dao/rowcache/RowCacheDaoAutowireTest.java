@@ -1,21 +1,20 @@
 package org.sagebionetworks.dynamo.dao.rowcache;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.RandomAccess;
 
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.dynamo.dao.DynamoAdminDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.Row;
-import org.sagebionetworks.repo.model.table.RowReference;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -37,6 +36,9 @@ public class RowCacheDaoAutowireTest {
 
 	@Before
 	public void setup() {
+		StackConfiguration config = new StackConfiguration();
+		Assume.assumeTrue(config.getDynamoEnabled());
+
 		adminDao.clear(DboRowCache.TABLE_NAME, DboRowCache.HASH_KEY_NAME, DboRowCache.RANGE_KEY_NAME);
 	}
 

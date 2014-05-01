@@ -1,11 +1,10 @@
 package org.sagebionetworks.dynamo.config;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.fail;
 
 import org.junit.Assert;
 import org.junit.Test;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.dynamo.config.DynamoTableConfig;
 
 import com.amazonaws.services.dynamodb.model.ScalarAttributeType;
 
