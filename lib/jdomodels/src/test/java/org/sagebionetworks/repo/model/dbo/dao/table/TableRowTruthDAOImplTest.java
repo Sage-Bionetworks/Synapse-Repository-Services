@@ -406,7 +406,7 @@ public class TableRowTruthDAOImplTest {
 		}
 
 		assertEquals(7, rowVersions.size());
-		RowSetAccessor latestVersions = tableRowTruthDao.getLatestVersions(tableId, rowVersions.keySet());
+		RowSetAccessor latestVersions = tableRowTruthDao.getLatestVersions(tableId, rowVersions.keySet(), toUpdate.getEtag());
 		assertEquals(7, latestVersions.getRows().size());
 		for (RowAccessor row : latestVersions.getRows()) {
 			assertEquals(row.getRow().getVersionNumber(), rowVersions.get(row.getRow().getRowId()));
@@ -542,7 +542,7 @@ public class TableRowTruthDAOImplTest {
 		toUpdate3.setRows(Lists.newArrayList(deletion));
 		tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, models, toUpdate3, true);
 
-		RowSetAccessor rowSetLatest = tableRowTruthDao.getLatestVersions(tableId, Sets.newHashSet(0L, 1L, 2L, 3L));
+		RowSetAccessor rowSetLatest = tableRowTruthDao.getLatestVersions(tableId, Sets.newHashSet(0L, 1L, 2L, 3L), toUpdate3.getEtag());
 		RowSet rowSetBefore = tableRowTruthDao.getRowSet(tableId, 0L);
 		RowSet rowSetAfter = tableRowTruthDao.getRowSet(tableId, 1L);
 		RowSet rowSetAfter2 = tableRowTruthDao.getRowSet(tableId, 2L);

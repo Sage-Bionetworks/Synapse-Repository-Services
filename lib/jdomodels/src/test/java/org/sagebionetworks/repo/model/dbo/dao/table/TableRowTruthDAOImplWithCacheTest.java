@@ -78,7 +78,7 @@ public class TableRowTruthDAOImplWithCacheTest extends TableRowTruthDAOImplTest 
 		assertEquals(5, Iterables.getOnlyElement(((CurrentRowCacheDaoStub) currentRowCacheDao).latestVersionNumbers.values()).size());
 		assertEquals(5, ((RowCacheDaoStub) rowCacheDao).rows.values().size());
 
-		tableRowTruthDao.getLatestVersions(tableId, Collections.<Long> emptySet());
+		tableRowTruthDao.getLatestVersions(tableId, Collections.<Long> emptySet(), "etag");
 		assertEquals(1, ((CurrentRowCacheDaoStub) currentRowCacheDao).latestVersionNumbers.size());
 		assertEquals(5, Iterables.getOnlyElement(((CurrentRowCacheDaoStub) currentRowCacheDao).latestVersionNumbers.values()).size());
 		assertEquals(6, ((RowCacheDaoStub) rowCacheDao).rows.values().size());

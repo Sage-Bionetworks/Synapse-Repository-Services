@@ -39,10 +39,25 @@ public class RowCacheDaoImpl extends DynamoDaoBaseImpl implements RowCacheDao {
 		mapper = new DynamoDBMapper(dynamoClient, DynamoConfig.getDynamoDBMapperConfigFor(DboRowCache.class));
 	}
 
-	private DboRowCache dboCreate(String tableId, Long rowId, Long versionNumber) {
+	private DboRowCache dboCreate(String tableId, Long rowId, Long versionNumber, List<String> value) throws IOException {
 		DboRowCache row = new DboRowCache();
 		row.setHashKey(DboRowCache.createHashKey(tableId));
 		row.setRangeKey(DboRowCache.createRangeKey(rowId, versionNumber));
+		if (value != null) {
+			byte[] serialized = Serializer.compressObject(value.toArray(new String[value.size()]));
+			row.setValue(serialized);
+		}
+		return row;
+	}
+
+	private Row rowCreate(Long rowId, Long versionNumber, byte[] value) throws IOException {
+		Row row = new Row();
+		row.setRowId(rowId);
+		row.setVersionNumber(versionNumber);
+		if (value != null) {
+			String[] values = (String[]) Serializer.decompressedObject(value);
+			row.setValues(Arrays.asList(values));
+		}
 		return row;
 	}
 
@@ -61,14 +76,7 @@ public class RowCacheDaoImpl extends DynamoDaoBaseImpl implements RowCacheDao {
 			return null;
 		}
 
-		Row row = new Row();
-		row.setRowId(rowId);
-		row.setVersionNumber(versionNumber);
-		if (cachedRow.getValue() != null) {
-			String[] values = (String[]) Serializer.decompressedObject(cachedRow.getValue());
-			row.setValues(Arrays.asList(values));
-		}
-		return row;
+		return rowCreate(rowId, versionNumber, cachedRow.getValue());
 	}
 
 	@Override
@@ -105,18 +113,12 @@ public class RowCacheDaoImpl extends DynamoDaoBaseImpl implements RowCacheDao {
 				@Override
 				public TransformEntry<Long, Row> apply(Object input) {
 					DboRowCache cachedRow = (DboRowCache) input;
-					Row row = new Row();
-					row.setRowId(cachedRow.getRowId());
-					row.setVersionNumber(cachedRow.getVersionNumber());
-					if (cachedRow.getValue() != null) {
-						try {
-							String[] values = (String[]) Serializer.decompressedObject(cachedRow.getValue());
-							row.setValues(Arrays.asList(values));
-						} catch (IOException e) {
-							throw new UncheckedExecutionException(e);
-						}
+					try {
+						Row row = rowCreate(cachedRow.getRowId(), cachedRow.getVersionNumber(), cachedRow.getValue());
+						return new TransformEntry<Long, Row>(row.getRowId(), row);
+					} catch (IOException e) {
+						throw new UncheckedExecutionException(e);
 					}
-					return new TransformEntry<Long, Row>(row.getRowId(), row);
 				}
 			});
 		} catch (UncheckedExecutionException e) {
@@ -126,11 +128,7 @@ public class RowCacheDaoImpl extends DynamoDaoBaseImpl implements RowCacheDao {
 
 	@Override
 	public void putRow(String tableId, Row row) throws IOException {
-		DboRowCache rowToCache = dboCreate(tableId, row.getRowId(), row.getVersionNumber());
-		if (row.getValues() != null) {
-			byte[] serialized = Serializer.compressObject(row.getValues().toArray(new String[row.getValues().size()]));
-			rowToCache.setValue(serialized);
-		}
+		DboRowCache rowToCache = dboCreate(tableId, row.getRowId(), row.getVersionNumber(), row.getValues());
 		mapper.save(rowToCache);
 	}
 
@@ -141,17 +139,12 @@ public class RowCacheDaoImpl extends DynamoDaoBaseImpl implements RowCacheDao {
 			toUpdate = Transform.toList(rowsToPut, new Function<Row, DboRowCache>() {
 				@Override
 				public DboRowCache apply(Row row) {
-					DboRowCache rowToCache = dboCreate(tableId, row.getRowId(), row.getVersionNumber());
-					if (row.getValues() != null) {
-						byte[] serialized;
-						try {
-							serialized = Serializer.compressObject(row.getValues().toArray(new String[row.getValues().size()]));
-						} catch (IOException e) {
-							throw new UncheckedExecutionException(e);
-						}
-						rowToCache.setValue(serialized);
+					try {
+						DboRowCache rowToCache = dboCreate(tableId, row.getRowId(), row.getVersionNumber(), row.getValues());
+						return rowToCache;
+					} catch (IOException e) {
+						throw new UncheckedExecutionException(e);
 					}
-					return rowToCache;
 				}
 			});
 		} catch (UncheckedExecutionException e) {

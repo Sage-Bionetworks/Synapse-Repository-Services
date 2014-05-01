@@ -38,7 +38,7 @@ public class TimeUtilsTest {
 		TestClock.useTestClockProvider();
 		long start = Clock.currentTimeMillis();
 		final AtomicInteger count = new AtomicInteger(0);
-		boolean result = TimeUtils.waitFor(6000, -1000, "a", new Predicate<String>() {
+		boolean result = TimeUtils.waitForExponential(6000, 1000, "a", new Predicate<String>() {
 			@Override
 			public boolean apply(String input) {
 				return count.incrementAndGet() > 5;
@@ -69,7 +69,7 @@ public class TimeUtilsTest {
 		TestClock.useTestClockProvider();
 		long start = Clock.currentTimeMillis();
 		final AtomicInteger count = new AtomicInteger(0);
-		boolean result = TimeUtils.waitFor(6000, -1000, "a", new Predicate<String>() {
+		boolean result = TimeUtils.waitForExponential(6000, 1000, "a", new Predicate<String>() {
 			@Override
 			public boolean apply(String input) {
 				return count.incrementAndGet() > 6;

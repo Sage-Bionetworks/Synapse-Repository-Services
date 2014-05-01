@@ -184,7 +184,7 @@ public class TableRowManagerImpl implements TableRowManager {
 			batchSizeBytes += maxBytesPerRow;
 			if(batchSizeBytes >= maxBytesPerChangeSet){
 				// Validate there aren't any illegal file handle replaces
-				validateFileHandles(user, tableId, models, delta);
+				validateFileHandles(user, tableId, models, delta, etag);
 				// Send this batch and keep the etag.
 				etag = appendBatchOfRowsToTable(user, models, delta, results);
 				// Clear the batch
@@ -197,7 +197,7 @@ public class TableRowManagerImpl implements TableRowManager {
 		// Send the last batch is there are any rows
 		if(!batch.isEmpty()){
 			// Validate there aren't any illegal file handle replaces
-			validateFileHandles(user, tableId, models, delta);
+			validateFileHandles(user, tableId, models, delta, etag);
 			etag = appendBatchOfRowsToTable(user, models, delta, results);
 		}
 		// The table has change so we must reset the state.
@@ -479,7 +479,7 @@ public class TableRowManagerImpl implements TableRowManager {
 		this.maxBytesPerRequest = maxBytesPerRequest;
 	}
 
-	private void validateFileHandles(UserInfo user, String tableId, List<ColumnModel> models, RowSet delta) throws IOException,
+	private void validateFileHandles(UserInfo user, String tableId, List<ColumnModel> models, RowSet delta, String etag) throws IOException,
 			NotFoundException {
 
 		List<String> fileHandleColumns = Lists.newArrayList();
@@ -554,7 +554,7 @@ public class TableRowManagerImpl implements TableRowManager {
 			return;
 		}
 
-		RowSetAccessor latestVersions = tableRowTruthDao.getLatestVersions(tableId, fileHandlesToCheckAccessor.getRowIds());
+		RowSetAccessor latestVersions = tableRowTruthDao.getLatestVersions(tableId, fileHandlesToCheckAccessor.getRowIds(), etag);
 
 		// now we need to check if any of the unowned filehandles are changing with this request
 		for (RowAccessor row : fileHandlesToCheckAccessor.getRows()) {

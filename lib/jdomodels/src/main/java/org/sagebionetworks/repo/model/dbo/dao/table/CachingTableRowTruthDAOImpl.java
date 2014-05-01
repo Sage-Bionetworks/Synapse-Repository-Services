@@ -62,7 +62,7 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 	 */
 	@Override
 	public void checkForRowLevelConflict(String tableId, RowSet delta) throws IOException {
-		if (checkAndUpdateRowCache(tableId)) {
+		if (checkAndUpdateCurrentRowCache(tableId)) {
 			checkForRowLevelConflictUsingCache(tableId, delta);
 		} else {
 			// Validate that this update does not contain any row level conflicts.
@@ -70,7 +70,7 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 		}
 	}
 
-	private boolean checkAndUpdateRowCache(String tableId) {
+	private boolean checkAndUpdateCurrentRowCache(String tableId) {
 		try {
 			if (tableRowCache.isEnabled()) {
 				// Lookup the version number for this update.
@@ -93,7 +93,6 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 						}
 					}, change);
 					tableRowCache.updateCurrentVersionNumbers(tableId, rowIdVersionNumbers);
-					tableRowCache.putRowsInCache(tableId, rows);
 				}
 				if (newLastCurrentVersion >= 0) {
 					try {
@@ -180,8 +179,9 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 		if (ref.getRows() == null)
 			throw new IllegalArgumentException(
 					"RowReferenceSet.rows cannot be null");
-		if (checkAndUpdateRowCache(ref.getTableId())) {
-			return getRowSetOriginalsFromCache(ref);
+		List<RowSet> results = getRowSetOriginalsFromCache(ref);
+		if (results != null) {
+			return results;
 		} else {
 			return super.getRowSetOriginals(ref);
 		}
@@ -189,6 +189,9 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 
 	private List<RowSet> getRowSetOriginalsFromCache(RowReferenceSet ref) throws IOException, NotFoundException {
 
+		if (!tableRowCache.isEnabled()) {
+			return null;
+		}
 		Multimap<Long, Long> versions = createVersionToRowsMap(ref.getRows());
 
 		List<RowSet> results = new LinkedList<RowSet>();
@@ -198,11 +201,31 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 
 			TableRowChange trc = getTableRowChange(ref.getTableId(), version);
 
+			final Map<Long, Row> resultRows = tableRowCache.getRowsFromCache(ref.getTableId(), version, rowsToGet);
+			if (resultRows.size() != rowsToGet.size()) {
+				// we are still missing some rows here. Read them from S3 and add to cache
+				final List<Row> rows = Lists.newArrayListWithCapacity(rowsToGet.size() - resultRows.size());
+				scanChange(new RowHandler() {
+					@Override
+					public void nextRow(Row row) {
+						// Is this a row we are still looking for?
+						if (!resultRows.containsKey(row.getRowId())) {
+							// This is a match
+							rows.add(row);
+						}
+					}
+				}, trc);
+				tableRowCache.putRowsInCache(ref.getTableId(), rows);
+				for (Row row : rows) {
+					resultRows.put(row.getRowId(), row);
+				}
+			}
+
 			RowSet thisSet = new RowSet();
 			thisSet.setTableId(ref.getTableId());
 			thisSet.setEtag(trc.getEtag());
 			thisSet.setHeaders(trc.getHeaders());
-			thisSet.setRows(Lists.newArrayList(tableRowCache.getRowsFromCache(ref.getTableId(), version, rowsToGet).values()));
+			thisSet.setRows(Lists.newArrayList(resultRows.values()));
 
 			results.add(thisSet);
 		}
@@ -233,9 +256,12 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public RowSetAccessor getLatestVersions(String tableId, Set<Long> rowIds) throws IOException, NotFoundException {
+	public RowSetAccessor getLatestVersions(String tableId, Set<Long> rowIds, String etag) throws IOException, NotFoundException {
+		if (etag == null) {
+			throw new IllegalArgumentException("A valid etag must be passed in");
+		}
 		final Map<Long, RowAccessor> rowIdToRowMap;
-		if (checkAndUpdateRowCache(tableId)) {
+		if (checkAndUpdateCurrentRowCache(tableId)) {
 			rowIdToRowMap = getLatestVersionsFromCache(tableId, rowIds);
 
 			return new RowSetAccessor() {
@@ -245,11 +271,12 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 				}
 			};
 		} else {
-			return super.getLatestVersions(tableId, rowIds);
+			return super.getLatestVersions(tableId, rowIds, etag);
 		}
 	}
 
-	private Map<Long, RowAccessor> getLatestVersionsFromCache(String tableId, Set<Long> rowIds) throws NotFoundException, IOException {
+	private Map<Long, RowAccessor> getLatestVersionsFromCache(String tableId, Set<Long> rowIds) throws NotFoundException,
+			IOException {
 
 		Map<Long, Long> currentVersionNumbers = tableRowCache.getCurrentVersionNumbers(tableId, rowIds);
 
@@ -260,7 +287,7 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 			Collection<Long> rowsToGet = versionWithRows.getValue();
 			Long version = versionWithRows.getKey();
 
-			TableRowChange rowChange = this.getTableRowChange(tableId, versionWithRows.getKey());
+			TableRowChange rowChange = getTableRowChange(tableId, versionWithRows.getKey());
 			List<String> rowChangeHeaders = rowChange.getHeaders();
 
 			for (Row row : tableRowCache.getRowsFromCache(tableId, version, rowsToGet).values()) {

@@ -77,7 +77,12 @@ public class CurrentRowCacheDaoAutowireTest {
 		map.put(15L, 155L);
 		currentRowCacheDao.putCurrentVersions(tableName, map);
 
+		// uses range query
 		Map<Long, Long> result = currentRowCacheDao.getCurrentVersions(tableName, Lists.newArrayList(12L, 13L, 14L, 15L, 16L));
+		assertEquals(map, result);
+
+		// uses batch load
+		result = currentRowCacheDao.getCurrentVersions(tableName, Lists.newArrayList(12L, 13L, 14L, 15L, 1600000L));
 		assertEquals(map, result);
 
 		result = currentRowCacheDao.getCurrentVersions(tableName, Lists.newArrayList(12L, 16L));

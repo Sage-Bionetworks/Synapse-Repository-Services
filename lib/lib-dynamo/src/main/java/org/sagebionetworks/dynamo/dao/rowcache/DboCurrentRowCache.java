@@ -21,6 +21,8 @@ public class DboCurrentRowCache implements DynamoTable {
 	public static final String HASH_KEY_NAME = "table";
 	public static final String RANGE_KEY_NAME = "row";
 
+	public static final int AVERAGE_RECORD_SIZE = 20 + 10 + 10 + 3 * 4;
+
 	private String hashKey;
 	private Long rangeKey;
 	private Long version = null;
