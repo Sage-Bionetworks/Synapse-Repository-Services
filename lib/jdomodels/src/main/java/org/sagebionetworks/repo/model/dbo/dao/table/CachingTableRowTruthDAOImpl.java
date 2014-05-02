@@ -204,27 +204,7 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 
 			TableRowChange trc = getTableRowChange(ref.getTableId(), version);
 
-			final Map<Long, Row> resultRows = tableRowCache.getRowsFromCache(ref.getTableId(), version, rowsToGet);
-			if (resultRows.size() != rowsToGet.size()) {
-				// we are still missing some (or all) rows here. Read them from S3 and add to cache
-				final List<Row> rows = Lists.newArrayListWithCapacity(rowsToGet.size() - resultRows.size());
-				scanChange(new RowHandler() {
-					@Override
-					public void nextRow(Row row) {
-						// Is this a row we are still looking for?
-						if (!resultRows.containsKey(row.getRowId())) {
-							// This is a match
-							rows.add(row);
-						}
-					}
-				}, trc);
-				tableRowCache.putRowsInCache(ref.getTableId(), rows);
-				for (Row row : rows) {
-					if (rowsToGet.contains(row.getRowId())) {
-						resultRows.put(row.getRowId(), row);
-					}
-				}
-			}
+			final Map<Long, Row> resultRows = getRowsFromCacheOrS3(ref.getTableId(), rowsToGet, version, trc);
 
 			RowSet thisSet = new RowSet();
 			thisSet.setTableId(ref.getTableId());
@@ -235,6 +215,31 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 			results.add(thisSet);
 		}
 		return results;
+	}
+
+	private Map<Long, Row> getRowsFromCacheOrS3(String tableId, Set<Long> rowsToGet, Long version, TableRowChange trc) throws IOException {
+		final Map<Long, Row> resultRows = tableRowCache.getRowsFromCache(tableId, version, rowsToGet);
+		if (resultRows.size() != rowsToGet.size()) {
+			// we are still missing some (or all) rows here. Read them from S3 and add to cache
+			final List<Row> rows = Lists.newArrayListWithCapacity(rowsToGet.size() - resultRows.size());
+			scanChange(new RowHandler() {
+				@Override
+				public void nextRow(Row row) {
+					// Is this a row we are still looking for?
+					if (!resultRows.containsKey(row.getRowId())) {
+						// This is a match
+						rows.add(row);
+					}
+				}
+			}, trc);
+			tableRowCache.putRowsInCache(tableId, rows);
+			for (Row row : rows) {
+				if (rowsToGet.contains(row.getRowId())) {
+					resultRows.put(row.getRowId(), row);
+				}
+			}
+		}
+		return resultRows;
 	}
 
 	/**
@@ -285,17 +290,19 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 
 		Map<Long, Long> currentVersionNumbers = tableRowCache.getCurrentVersionNumbers(tableId, rowIds);
 
-		Multimap<Long, Long> versions = createVersionToRowsMap(currentVersionNumbers);
+		SetMultimap<Long, Long> versions = createVersionToRowsMap(currentVersionNumbers);
 
 		Map<Long, RowAccessor> rowIdToRowMap = Maps.newHashMap();
 		for (Entry<Long, Collection<Long>> versionWithRows : versions.asMap().entrySet()) {
-			Collection<Long> rowsToGet = versionWithRows.getValue();
+			Set<Long> rowsToGet = (Set<Long>)versionWithRows.getValue();
 			Long version = versionWithRows.getKey();
 
 			TableRowChange rowChange = getTableRowChange(tableId, versionWithRows.getKey());
 			List<String> rowChangeHeaders = rowChange.getHeaders();
 
-			for (Row row : tableRowCache.getRowsFromCache(tableId, version, rowsToGet).values()) {
+			Map<Long, Row> resultRows = getRowsFromCacheOrS3(tableId, rowsToGet, version, rowChange);
+
+			for (Row row : resultRows.values()) {
 				appendRowDataToMap(rowIdToRowMap, rowChangeHeaders, row);
 			}
 		}

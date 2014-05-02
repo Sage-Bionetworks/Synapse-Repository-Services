@@ -73,14 +73,18 @@ public class TableRowTruthDAOImplWithCacheTest extends TableRowTruthDAOImplTest 
 		rows.get(0).setVersionNumber(refSet.getRows().get(0).getVersionNumber());
 		set.setRows(rows);
 		set.setEtag(refSet.getEtag());
-		tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, models, set, false);
+		RowReferenceSet refs = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, models, set, false);
 		assertEquals(1, ((CurrentRowCacheDaoStub) currentRowCacheDao).latestVersionNumbers.size());
 		assertEquals(5, Iterables.getOnlyElement(((CurrentRowCacheDaoStub) currentRowCacheDao).latestVersionNumbers.values()).size());
-		assertEquals(5, ((RowCacheDaoStub) rowCacheDao).rows.values().size());
-
+		
 		tableRowTruthDao.getLatestVersions(tableId, Collections.<Long> emptySet(), "etag");
 		assertEquals(1, ((CurrentRowCacheDaoStub) currentRowCacheDao).latestVersionNumbers.size());
 		assertEquals(5, Iterables.getOnlyElement(((CurrentRowCacheDaoStub) currentRowCacheDao).latestVersionNumbers.values()).size());
-		assertEquals(6, ((RowCacheDaoStub) rowCacheDao).rows.values().size());
+
+		assertEquals(0, ((RowCacheDaoStub) rowCacheDao).rows.values().size());
+		tableRowTruthDao.getRowSetOriginals(refs);
+		assertEquals(1, ((RowCacheDaoStub) rowCacheDao).rows.values().size());
+		tableRowTruthDao.getRowSetOriginals(refs);
+		assertEquals(1, ((RowCacheDaoStub) rowCacheDao).rows.values().size());
 	}
 }

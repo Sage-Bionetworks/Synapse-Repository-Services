@@ -312,6 +312,7 @@ public class TableRowManagerImplTest {
 		RowSet replace = new RowSet();
 		replace.setTableId(tableId);
 		replace.setHeaders(TableModelUtils.getHeaders(models));
+		replace.setEtag("etag");
 
 		List<Row> replaceRows = TableModelTestUtils.createRows(models, 3);
 		for (int i = 0; i < 3; i++) {
@@ -399,6 +400,7 @@ public class TableRowManagerImplTest {
 		RowSet replace = new RowSet();
 		replace.setTableId(tableId);
 		replace.setHeaders(TableModelUtils.getHeaders(models));
+		replace.setEtag("etag");
 
 		Row row = new Row();
 		row.setRowId(0L);
@@ -436,6 +438,7 @@ public class TableRowManagerImplTest {
 		RowSet replace = new RowSet();
 		replace.setTableId(tableId);
 		replace.setHeaders(TableModelUtils.getHeaders(models));
+		replace.setEtag("etag");
 
 		Row row = new Row();
 		row.setRowId(0L);

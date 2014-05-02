@@ -51,7 +51,10 @@ public class RowCacheDaoStub implements RowCacheDao {
 	public Map<Long, Row> getRows(String tableId, Long version, Iterable<Long> rowsToGet) throws IOException {
 		Map<Long, Row> result = Maps.newHashMap();
 		for (Long rowId : rowsToGet) {
-			result.put(rowId, rows.get(createKey(tableId, rowId, version)));
+			Row row = rows.get(createKey(tableId, rowId, version));
+			if (row != null) {
+				result.put(rowId, row);
+			}
 		}
 		return result;
 	}
