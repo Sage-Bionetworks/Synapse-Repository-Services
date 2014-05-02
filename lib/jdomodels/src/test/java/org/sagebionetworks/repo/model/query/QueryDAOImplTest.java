@@ -858,7 +858,7 @@ public class QueryDAOImplTest {
 		}
 	}
 	
-	@Test(expected=IllegalArgumentException.class)
+	@Test
 	public void testQuerySortLongAscendingBadSortBy() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
 		// SELECT * FROM evaluation_1 ORDER BY "gobbledygook" ASC
 		BasicQuery query = new BasicQuery();
@@ -871,8 +871,54 @@ public class QueryDAOImplTest {
 		select.add(TestUtils.PRIVATE_LONG_ANNOTATION_NAME);
 		query.setSelect(select);
 		
-		// perform the query, exception expected
-		queryDAO.executeQuery(query, mockUserInfo);
+		// perform the query, sort is ignored
+		QueryTableResults results = queryDAO.executeQuery(query, mockUserInfo);
+		assertNotNull(results);
+		assertEquals(NUM_SUBMISSIONS, results.getTotalNumberOfResults().longValue());
+		assertEquals(NUM_SUBMISSIONS, results.getRows().size());
+	}
+	
+	@Test
+	public void testQueryNoAnnotations() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
+		// SELECT * FROM evaluation_1
+		BasicQuery query = new BasicQuery();
+		query.setFrom("evaluation" + QueryTools.FROM_TYPE_ID_DELIMTER + EVAL_ID1);
+		query.setLimit(NUM_SUBMISSIONS);
+		query.setOffset(0);
+		query.setAscending(true);
+		List<String> select = new ArrayList<String>();
+		select.add(TestUtils.PRIVATE_LONG_ANNOTATION_NAME);
+		query.setSelect(select);
+		
+		// for this test remove all the annotations
+		annotationsDAO.deleteAnnotationsByScope(Long.parseLong(EVAL_ID1));
+		// perform the query, should work, with no results
+		QueryTableResults results = queryDAO.executeQuery(query, mockUserInfo);
+		assertNotNull(results);
+		assertEquals(0, results.getTotalNumberOfResults().longValue());
+		assertEquals(0, results.getRows().size());
+	}
+	
+	@Test
+	public void testQueryNoAnnotationsOrderBy() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
+		// SELECT * FROM evaluation_1 ORDER BY "long_anno" ASC
+		BasicQuery query = new BasicQuery();
+		query.setFrom("evaluation" + QueryTools.FROM_TYPE_ID_DELIMTER + EVAL_ID1);
+		query.setLimit(NUM_SUBMISSIONS);
+		query.setOffset(0);
+		query.setSort(TestUtils.PRIVATE_LONG_ANNOTATION_NAME);
+		query.setAscending(true);
+		List<String> select = new ArrayList<String>();
+		select.add(TestUtils.PRIVATE_LONG_ANNOTATION_NAME);
+		query.setSelect(select);
+		
+		// for this test remove all the annotations
+		annotationsDAO.deleteAnnotationsByScope(Long.parseLong(EVAL_ID1));
+		// perform the query, should work, with no results
+		QueryTableResults results = queryDAO.executeQuery(query, mockUserInfo);
+		assertNotNull(results);
+		assertEquals(0, results.getTotalNumberOfResults().longValue());
+		assertEquals(0, results.getRows().size());
 	}
 	
 	// Flatten an Annotations object to a map. The key is given by [Object ID] + [attribute name],
