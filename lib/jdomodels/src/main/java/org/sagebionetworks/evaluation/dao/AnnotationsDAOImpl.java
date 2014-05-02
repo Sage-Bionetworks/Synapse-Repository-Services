@@ -97,23 +97,7 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 	//	a.VERISION IS NULL OR a.VERSION<>t.VERSION
 	//	and s.EVALUATION_ID=:EVALUATION_ID;
 	private static final String SELECT_MISSING_OR_CHANGED_SUBSTATUSES = 
-			"SELECT "+	
-				"s."+COL_SUBMISSION_ID+", "+
-				"s."+COL_SUBMISSION_USER_ID+", "+
-				"s."+COL_SUBMISSION_SUBMITTER_ALIAS+", "+
-				"s."+COL_SUBMISSION_EVAL_ID+", "+
-				"s."+COL_SUBMISSION_ENTITY_ID+", "+
-				"s."+COL_SUBMISSION_ENTITY_VERSION+", "+
-				"s."+COL_SUBMISSION_NAME+", "+
-				"s."+COL_SUBMISSION_CREATED_ON+", "+
-				"s."+COL_SUBMISSION_ENTITY_BUNDLE+", "+
-				"t."+COL_SUBSTATUS_ETAG+", "+
-				"t."+COL_SUBSTATUS_VERSION+" AS "+STATUS_VERSION+", "+ // PLFM-2742
-				"t."+COL_SUBSTATUS_MODIFIED_ON+", "+
-				"t."+COL_SUBSTATUS_STATUS+", "+
-				"t."+COL_SUBSTATUS_SCORE+", "+
-				"t."+COL_SUBSTATUS_SERIALIZED_ENTITY+
-			" FROM "+TABLE_SUBMISSION+" s, "+TABLE_SUBSTATUS+" t "+
+			"SELECT s.*, t.* FROM "+TABLE_SUBMISSION+" s, "+TABLE_SUBSTATUS+" t "+
 			" LEFT OUTER JOIN "+TABLE_SUBSTATUS_ANNO_BLOB+" a ON a."+COL_SUBSTATUS_ANNO_SUBID+"=t."+
 			COL_SUBSTATUS_SUBMISSION_ID+
 			" WHERE s."+COL_SUBMISSION_ID+"=t."+COL_SUBSTATUS_SUBMISSION_ID+" AND (a."+
@@ -348,37 +332,12 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 					public SubmissionBundle mapRow(ResultSet rs, int rowNum)
 							throws SQLException {
 						SubmissionBundle sb = new SubmissionBundle();
-						SubmissionDBO submissionDBO = new SubmissionDBO();
-						
-						// warning:  this is copied from SubmissionDBO and must be kept in sync
-						submissionDBO.setId(rs.getLong(COL_SUBMISSION_ID));
-						submissionDBO.setUserId(rs.getLong(COL_SUBMISSION_USER_ID));
-						submissionDBO.setSubmitterAlias(rs.getString(COL_SUBMISSION_SUBMITTER_ALIAS));
-						submissionDBO.setEvalId(rs.getLong(COL_SUBMISSION_EVAL_ID));
-						submissionDBO.setEntityId(rs.getLong(COL_SUBMISSION_ENTITY_ID));
-						submissionDBO.setVersionNumber(rs.getLong(COL_SUBMISSION_ENTITY_VERSION));
-						submissionDBO.setName(rs.getString(COL_SUBMISSION_NAME));
-						submissionDBO.setCreatedOn(rs.getLong(COL_SUBMISSION_CREATED_ON));
-						java.sql.Blob blob = rs.getBlob(COL_SUBMISSION_ENTITY_BUNDLE);
-						if(blob != null){
-							submissionDBO.setEntityBundle(blob.getBytes(1, (int) blob.length()));
-						}
+						SubmissionDBO submissionDBO = submissionRowMapper.mapRow(rs,  rowNum);
 						Submission submission = new Submission();
 						SubmissionUtils.copyDboToDto(submissionDBO, submission);
 						sb.setSubmission(submission);
 						
-						SubmissionStatusDBO statusDBO = new SubmissionStatusDBO();
-						// warning:  this is copied from SubmissionStatusDBO and must be kept in sync
-						statusDBO.setId(rs.getLong(COL_SUBMISSION_ID));
-						statusDBO.seteTag(rs.getString(COL_SUBSTATUS_ETAG));
-						statusDBO.setVersion(rs.getLong(STATUS_VERSION));
-						statusDBO.setModifiedOn(rs.getLong(COL_SUBSTATUS_MODIFIED_ON));
-						statusDBO.setStatus(rs.getInt(COL_SUBSTATUS_STATUS));
-						statusDBO.setScore(rs.getDouble(COL_SUBSTATUS_SCORE));
-						blob = rs.getBlob(COL_SUBSTATUS_SERIALIZED_ENTITY);
-						if(blob != null){
-							statusDBO.setSerializedEntity(blob.getBytes(1, (int) blob.length()));
-						}
+						SubmissionStatusDBO statusDBO = statusRowMapper.mapRow(rs,  rowNum);
 						SubmissionStatus submissionStatus = SubmissionUtils.convertDboToDto(statusDBO);
 						sb.setSubmissionStatus(submissionStatus);
 						return sb;

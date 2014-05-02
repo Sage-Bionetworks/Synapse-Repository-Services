@@ -54,7 +54,7 @@ public class SQLConstants {
 	public static final String COL_SUBMISSION_SUBMITTER_ALIAS 	= "SUBMITTER_ALIAS";
 	public static final String COL_SUBMISSION_ENTITY_ID 		= "ENTITY_ID";
 	public static final String COL_SUBMISSION_ENTITY_BUNDLE 	= "ENTITY_BUNDLE";
-	public static final String COL_SUBMISSION_ENTITY_VERSION	= "VERSION";
+	public static final String COL_SUBMISSION_ENTITY_VERSION	= "ENTITY_VERSION";
 	public static final String COL_SUBMISSION_NAME				= "NAME";
 	public static final String COL_SUBMISSION_CREATED_ON 		= "CREATED_ON";
 	
@@ -63,7 +63,7 @@ public class SQLConstants {
 	public static final String TABLE_SUBSTATUS					= "JDOSUBMISSION_STATUS";
 	public static final String COL_SUBSTATUS_SUBMISSION_ID 		= "ID";
 	public static final String COL_SUBSTATUS_ETAG				= "ETAG";
-	public static final String COL_SUBSTATUS_VERSION			= "VERSION";
+	public static final String COL_SUBSTATUS_VERSION			= "SUBSTATUS_VERSION";
 	public static final String COL_SUBSTATUS_MODIFIED_ON 		= "MODIFIED_ON";
 	public static final String COL_SUBSTATUS_SCORE		 		= "SCORE";
 	public static final String COL_SUBSTATUS_STATUS 			= "STATUS";
