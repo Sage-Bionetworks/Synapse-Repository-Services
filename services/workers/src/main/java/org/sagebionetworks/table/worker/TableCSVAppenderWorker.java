@@ -125,7 +125,7 @@ public class TableCSVAppenderWorker implements Callable<List<Message>> {
 			String etag = tableRowManager.appendRowsAsStream(user, body.getTableId(), tableSchema, iteratorProxy, null, null);
 			// Done
 			AsynchUploadResponseBody response = new AsynchUploadResponseBody();
-			response.setRowsProcessed(new Long(progressReporter.getRowNumber()));
+			response.setRowsProcessed(new Long(progressReporter.getRowNumber()+1));
 			response.setEtag(etag);
 			asynchJobStatusManager.setComplete(status.getJobId(), response);
 		}catch(Throwable e){
