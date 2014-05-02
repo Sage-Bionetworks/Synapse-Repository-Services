@@ -2,7 +2,7 @@ package org.sagebionetworks.repo.model.dbo.asynch;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.ASYNCH_JOB_STATUS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_CHANGED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_COMPRESSED_BODY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_ERROR_DETAILS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_ERROR_MESSAGE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ASYNCH_JOB_ETAG;
@@ -88,8 +88,11 @@ public class DBOAsynchJobStatus implements DatabaseObject<DBOAsynchJobStatus> {
 	@Field(name = COL_ASYNCH_JOB_CHANGED_ON, nullable = false)
 	private Date changedOn;
 	
-	@Field(name = COL_ASYNCH_JOB_COMPRESSED_BODY, blob="mediumblob", nullable = false)
-	private byte[] compressedBody;
+	@Field(name = COL_ASYNCH_JOB_REQUEST_BODY, blob="mediumblob", nullable = false)
+	private byte[] requestBody;
+	
+	@Field(name = COL_ASYNCH_JOB_RESPONSE_BODY, blob="mediumblob", nullable = true)
+	private byte[] responseBody;
 
 	@Field(name = COL_ASYNCH_JOB_RUNTIME_MS, nullable = false)
 	private Long runtimeMS;
@@ -198,12 +201,20 @@ public class DBOAsynchJobStatus implements DatabaseObject<DBOAsynchJobStatus> {
 		this.startedByUserId = startedByUserId;
 	}
 
-	public byte[] getCompressedBody() {
-		return compressedBody;
+	public byte[] getRequestBody() {
+		return requestBody;
 	}
 
-	public void setCompressedBody(byte[] compressedBody) {
-		this.compressedBody = compressedBody;
+	public void setRequestBody(byte[] requestBody) {
+		this.requestBody = requestBody;
+	}
+
+	public byte[] getResponseBody() {
+		return responseBody;
+	}
+
+	public void setResponseBody(byte[] responseBody) {
+		this.responseBody = responseBody;
 	}
 
 	public static void setTableMapping(

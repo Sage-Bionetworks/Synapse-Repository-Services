@@ -20,6 +20,7 @@ public class IntervalProgressReporter implements ProgressReporter {
 	private AsynchJobStatusManager asynchJobStatusManager;
 	private long lastReportTime;
 	long progressIntervalMS;
+	private int rowNumber;
 
 	/**
 	 * Create a new object for each use.
@@ -50,6 +51,7 @@ public class IntervalProgressReporter implements ProgressReporter {
 
 	@Override
 	public void tryReportProgress(int rowNumber) {
+		this.rowNumber = rowNumber;
 		// Check to see if an interval has elapsed.
 		if ((System.currentTimeMillis() - lastReportTime) > this.progressIntervalMS) {
 			// It is time to actually send the progress
@@ -59,6 +61,11 @@ public class IntervalProgressReporter implements ProgressReporter {
 			// Rest the timer
 			lastReportTime = System.currentTimeMillis();
 		}
+	}
+
+	@Override
+	public int getRowNumber() {
+		return rowNumber;
 	}
 
 }

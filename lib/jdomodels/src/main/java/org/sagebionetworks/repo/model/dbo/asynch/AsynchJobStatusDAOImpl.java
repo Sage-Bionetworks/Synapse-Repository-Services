@@ -18,8 +18,9 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.asynch.AsynchJobState;
-import org.sagebionetworks.repo.model.asynch.AsynchronousJobBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
+import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
+import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.dao.asynch.AsynchronousJobStatusDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
@@ -71,7 +72,7 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 	 */
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
 	@Override
-	public AsynchronousJobStatus startJob(Long userId, AsynchronousJobBody body) {
+	public AsynchronousJobStatus startJob(Long userId, AsynchronousRequestBody body) {
 		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
 		if(body == null) throw new IllegalArgumentException("body cannot be null");
 		AsynchronousJobStatus status = new AsynchronousJobStatus();
@@ -83,7 +84,7 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 		status.setStartedOn(new Date(now));
 		status.setJobState(AsynchJobState.PROCESSING);
 		status.setRuntimeMS(0L);
-		status.setJobBody(body);
+		status.setRequestBody(body);
 		DBOAsynchJobStatus dbo = AsynchJobStatusUtils.createDBOFromDTO(status);
 		dbo = basicDao.createNew(dbo);
 		return AsynchJobStatusUtils.createDTOFromDBO(dbo);
@@ -115,7 +116,7 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public String setComplete(String jobId, AsynchronousJobBody body) throws DatastoreException, NotFoundException {
+	public String setComplete(String jobId, AsynchronousResponseBody body) throws DatastoreException, NotFoundException {
 		if(jobId == null) throw new IllegalArgumentException("JobId cannot be null");
 		if(body == null) throw new IllegalArgumentException("Body cannot be null");
 		// Get the current value for this job
@@ -132,7 +133,7 @@ public class AsynchJobStatusDAOImpl implements AsynchronousJobStatusDAO {
 		dto.setErrorDetails(null);
 		dto.setErrorMessage(null);
 		dto.setJobState(AsynchJobState.COMPLETE);
-		dto.setJobBody(body);
+		dto.setResponseBody(body);
 		// Convert to DBO.
 		DBOAsynchJobStatus dbo = AsynchJobStatusUtils.createDBOFromDTO(dto);
 		basicDao.update(dbo);

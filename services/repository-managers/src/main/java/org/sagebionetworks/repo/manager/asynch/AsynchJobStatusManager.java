@@ -2,8 +2,9 @@ package org.sagebionetworks.repo.manager.asynch;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.asynch.AsynchronousJobBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
+import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
+import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -23,7 +24,7 @@ public interface AsynchJobStatusManager {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public AsynchronousJobStatus startJob(UserInfo user, AsynchronousJobBody body) throws DatastoreException, NotFoundException;
+	public AsynchronousJobStatus startJob(UserInfo user, AsynchronousRequestBody body) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Get the current status of a job.
@@ -68,7 +69,7 @@ public interface AsynchJobStatusManager {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public String setComplete(String jobId, AsynchronousJobBody body) throws DatastoreException, NotFoundException;
+	public String setComplete(String jobId, AsynchronousResponseBody body) throws DatastoreException, NotFoundException;
 
 	public void emptyAllQueues();
 

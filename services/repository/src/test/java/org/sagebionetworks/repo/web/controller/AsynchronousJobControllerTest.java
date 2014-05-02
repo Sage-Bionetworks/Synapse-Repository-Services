@@ -1,10 +1,9 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import java.util.Date;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.UUID;
 
 import javax.servlet.ServletException;
@@ -16,13 +15,13 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.table.AsynchUploadJobBody;
+import org.sagebionetworks.repo.model.table.AsynchUploadRequestBody;
 import org.sagebionetworks.repo.model.table.TableEntity;
-import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.Project;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -81,14 +80,14 @@ public class AsynchronousJobControllerTest {
 	
 	@Test
 	public void testStartUploadJob() throws ServletException, Exception{
-		AsynchUploadJobBody body = new AsynchUploadJobBody();
+		AsynchUploadRequestBody body = new AsynchUploadRequestBody();
 		body.setTableId(table.getId());
 		body.setUploadFileHandleId(fileHandle.getId());
 		// Start the job
 		AsynchronousJobStatus status = ServletTestHelper.startAsynchJob(DispatchServletSingleton.getInstance(), adminUserId, body);
 		assertNotNull(status);
 		assertNotNull(status.getJobId());
-		assertEquals(body, status.getJobBody());
+		assertEquals(body, status.getRequestBody());
 		// Now get the status again using the ID
 		AsynchronousJobStatus clone = ServletTestHelper.getAsynchJobStatus(DispatchServletSingleton.getInstance(), adminUserId, status.getJobId());
 		assertEquals(status, clone);

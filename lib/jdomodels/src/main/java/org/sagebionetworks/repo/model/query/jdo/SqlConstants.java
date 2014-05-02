@@ -423,7 +423,8 @@ public class SqlConstants {
 	public static final String COL_ASYNCH_JOB_STARTED_ON			= "STARTED_ON";
 	public static final String COL_ASYNCH_JOB_STARTED_BY			= "STARTED_BY";
 	public static final String COL_ASYNCH_JOB_CHANGED_ON			= "CHANGED_ON";
-	public static final String COL_ASYNCH_JOB_COMPRESSED_BODY		= "COMPRESSED_BODY";
+	public static final String COL_ASYNCH_JOB_REQUEST_BODY			= "COMPRESSED_REQUEST_BODY";
+	public static final String COL_ASYNCH_JOB_RESPONSE_BODY			= "COMPRESSED_RESPONSE_BODY";
 	public static final String COL_ASYNCH_JOB_RUNTIME_MS			= "RUNTIME_MS";
 	
 	// The wiki attachment table

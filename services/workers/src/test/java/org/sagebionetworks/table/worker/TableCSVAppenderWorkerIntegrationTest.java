@@ -33,7 +33,7 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.table.AsynchUploadJobBody;
+import org.sagebionetworks.repo.model.table.AsynchUploadRequestBody;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
@@ -164,7 +164,7 @@ public class TableCSVAppenderWorkerIntegrationTest {
 		// Upload the file to S3.
 		s3Client.putObject(fileHandle.getBucketName(), fileHandle.getKey(), this.tempFile);
 		// We are now ready to start the job
-		AsynchUploadJobBody body = new AsynchUploadJobBody();
+		AsynchUploadRequestBody body = new AsynchUploadRequestBody();
 		body.setTableId(tableId);
 		body.setUploadFileHandleId(fileHandle.getId());
 		AsynchronousJobStatus status = asynchJobStatusManager.startJob(adminUserInfo, body);

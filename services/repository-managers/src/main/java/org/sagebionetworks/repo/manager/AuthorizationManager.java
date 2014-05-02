@@ -11,7 +11,7 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.asynch.AsynchronousJobBody;
+import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface AuthorizationManager {
@@ -142,5 +142,5 @@ public interface AuthorizationManager {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public boolean canUserStartJob(UserInfo userInfo, AsynchronousJobBody body) throws DatastoreException, NotFoundException;
+	public boolean canUserStartJob(UserInfo userInfo, AsynchronousRequestBody body) throws DatastoreException, NotFoundException;
 }

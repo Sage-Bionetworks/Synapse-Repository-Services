@@ -7,7 +7,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.FileWriter;
-import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
@@ -22,19 +21,16 @@ import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
-import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.table.AsynchUploadJobBody;
+import org.sagebionetworks.repo.model.table.AsynchUploadRequestBody;
+import org.sagebionetworks.repo.model.table.AsynchUploadResponseBody;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.TableEntity;
-import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 import au.com.bytecode.opencsv.CSVWriter;
 
@@ -128,12 +124,12 @@ public class IT099AsynchronousJobTest {
 			
 			// Now create a CSV
 			CSVWriter csv = new CSVWriter(new FileWriter(temp));
+			int rowCount = 2;
 			try{
 				// Write the header
 				csv.writeNext(new String[]{cm1.getName(), cm2.getName()});
-				int rows = 2;
 				// Write some rows
-				for(int i=0; i<rows; i++){
+				for(int i=0; i<rowCount; i++){
 					csv.writeNext(new String[]{""+i, "data"+i});
 				}
 			}finally{
@@ -144,27 +140,36 @@ public class IT099AsynchronousJobTest {
 			S3FileHandle fileHandle = synapse.createFileHandle(temp, "text/csv");
 			filesToDelete.add(fileHandle);
 			// We now have enough to apply the data to the table
-			AsynchUploadJobBody body = new AsynchUploadJobBody();
+			AsynchUploadRequestBody body = new AsynchUploadRequestBody();
 			body.setTableId(table.getId());
 			body.setUploadFileHandleId(fileHandle.getId());
 			AsynchronousJobStatus status = synapse.startAsynchronousJob(body);
 			assertNotNull(status);
 			assertNotNull(status.getJobId());
-			assertEquals(body, status.getJobBody());
+			assertEquals(body, status.getRequestBody());
 			// Now make sure we can get the status
 			status = synapse.getAsynchronousJobStatus(status.getJobId());
 			assertNotNull(status);
 			assertNotNull(status.getJobId());
-			assertEquals(body, status.getJobBody());
+			assertEquals(body, status.getRequestBody());
+			
 			// Wait for the job to finish
-			waitForStatus(status);
+			status = waitForStatus(status);
+			assertNotNull(status);
+			assertNotNull(status.getJobId());
+			assertEquals(body, status.getRequestBody());
+			assertNotNull(status.getResponseBody());
+			assertTrue(status.getResponseBody() instanceof AsynchUploadResponseBody);
+			AsynchUploadResponseBody response = (AsynchUploadResponseBody) status.getResponseBody();
+			assertNotNull(response.getEtag());
+			assertEquals(new Long(rowCount), response.getRowsProcessed());
 			
 		}finally{
 			temp.delete();
 		}
 	}
 	
-	private void waitForStatus(AsynchronousJobStatus status) throws Exception{
+	private AsynchronousJobStatus waitForStatus(AsynchronousJobStatus status) throws Exception{
 		long start = System.currentTimeMillis();
 		while(!AsynchJobState.COMPLETE.equals(status.getJobState())){
 			assertFalse("Job Failed: "+status.getErrorDetails(), AsynchJobState.FAILED.equals(status.getJobState()));
@@ -174,6 +179,7 @@ public class IT099AsynchronousJobTest {
 			// Get the status again 
 			status = synapse.getAsynchronousJobStatus(status.getJobId());
 		}
+		return status;
 	}
 	
 }

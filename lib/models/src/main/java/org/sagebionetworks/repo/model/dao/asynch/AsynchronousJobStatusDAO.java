@@ -1,8 +1,9 @@
 package org.sagebionetworks.repo.model.dao.asynch;
 
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.asynch.AsynchronousJobBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
+import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
+import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -18,7 +19,7 @@ public interface AsynchronousJobStatusDAO {
 	 * @param body
 	 * @return
 	 */
-	public AsynchronousJobStatus startJob(Long startedByUserId, AsynchronousJobBody body);
+	public AsynchronousJobStatus startJob(Long startedByUserId, AsynchronousRequestBody body);
 	
 	/**
 	 * Get the status of a job from its jobId.
@@ -56,7 +57,7 @@ public interface AsynchronousJobStatusDAO {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public String setComplete(String jobId, AsynchronousJobBody body) throws DatastoreException, NotFoundException;
+	public String setComplete(String jobId, AsynchronousResponseBody body) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Clear all job status data from the database.

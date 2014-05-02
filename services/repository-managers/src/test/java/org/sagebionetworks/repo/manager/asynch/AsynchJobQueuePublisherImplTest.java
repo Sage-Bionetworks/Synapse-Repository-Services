@@ -1,18 +1,20 @@
 package org.sagebionetworks.repo.manager.asynch;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.dbo.asynch.AsynchJobType;
-import org.sagebionetworks.repo.model.table.AsynchUploadJobBody;
+import org.sagebionetworks.repo.model.table.AsynchUploadRequestBody;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
 import com.amazonaws.services.sqs.model.Message;
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -32,10 +34,10 @@ public class AsynchJobQueuePublisherImplTest {
 	public void testPublishRoundTrip() throws JSONObjectAdapterException{
 		AsynchronousJobStatus status = new AsynchronousJobStatus();
 		status.setJobId("123");
-		AsynchUploadJobBody body = new AsynchUploadJobBody();
+		AsynchUploadRequestBody body = new AsynchUploadRequestBody();
 		body.setTableId("syn8786");
 		body.setUploadFileHandleId("333");
-		status.setJobBody(body);
+		status.setRequestBody(body);
 		// publish it
 		asynchJobQueuePublisher.publishMessage(status);
 		// There should be one message on the queue

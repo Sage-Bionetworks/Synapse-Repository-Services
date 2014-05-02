@@ -6,10 +6,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import org.sagebionetworks.bridge.model.dbo.dao.CsvNullReader;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.TableConstants;
+import org.sagebionetworks.util.csv.CsvNullReader;
 
 /**
  * Provides an Iterator<Row> abstraction over a raw CSV reader.

@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
+import java.io.StringReader;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -8,6 +10,9 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
+import org.sagebionetworks.util.csv.CsvNullReader;
+
+import au.com.bytecode.opencsv.CSVWriter;
 
 import com.google.common.collect.Lists;
 
@@ -171,5 +176,29 @@ public class TableModelTestUtils {
 			results.add(cm);
 		}
 		return results;
+	}
+	
+
+	/**
+	 * Create a CSV string from the passed row data.
+	 * @param  input List of rows where each row is represented by a string array.
+	 * @return
+	 */
+	public static String createCSVString(List<String[]> input) {
+		StringWriter writer = new StringWriter();
+		CSVWriter csvWriter = new CSVWriter(writer);
+		csvWriter.writeAll(input);
+		return writer.toString();
+	}
+	
+	/**
+	 * Create a reader that wraps the passed row data.
+	 * @param input List of rows where each row is represented by a string array.
+	 * @return
+	 */
+	public static CsvNullReader createReader(List<String[]> input) {
+		String csv = createCSVString(input);
+		StringReader reader = new StringReader(csv);
+		return new CsvNullReader(reader);
 	}
 }

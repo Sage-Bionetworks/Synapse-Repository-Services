@@ -6,8 +6,9 @@ import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchJobState;
-import org.sagebionetworks.repo.model.asynch.AsynchronousJobBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
+import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
+import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.dao.asynch.AsynchronousJobStatusDAO;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -46,7 +47,7 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 	}
 
 	@Override
-	public AsynchronousJobStatus startJob(UserInfo user, AsynchronousJobBody body) throws DatastoreException, NotFoundException {
+	public AsynchronousJobStatus startJob(UserInfo user, AsynchronousRequestBody body) throws DatastoreException, NotFoundException {
 		if(user == null) throw new IllegalArgumentException("UserInfo cannot be null");
 		if(body == null) throw new IllegalArgumentException("Body cannot be null");
 		if(!authorizationManager.canUserStartJob(user, body)){
@@ -88,7 +89,7 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public String setComplete(String jobId, AsynchronousJobBody body)
+	public String setComplete(String jobId, AsynchronousResponseBody body)
 			throws DatastoreException, NotFoundException {
 		// Job can only be completed if the stack is in read-write mode.
 		checkStackReadWrite();
