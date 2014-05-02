@@ -391,6 +391,4 @@ public class TableWorkerIntegrationTest {
 		}
 	}
 	
-
-	
 }

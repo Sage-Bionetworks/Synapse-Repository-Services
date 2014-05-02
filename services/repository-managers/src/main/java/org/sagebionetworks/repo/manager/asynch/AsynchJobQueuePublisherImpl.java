@@ -38,9 +38,9 @@ public class AsynchJobQueuePublisherImpl implements AsynchJobQueuePublisher {
 	@Override
 	public void publishMessage(AsynchronousJobStatus status) {
 		if(status == null) throw new IllegalArgumentException("AsynchronousJobStatus cannot be null");
-		if(status.getJobBody() == null) throw new IllegalArgumentException("AsynchronousJobStatus.jobBody cannot be null");
+		if(status.getRequestBody() == null) throw new IllegalArgumentException("AsynchronousJobStatus.jobBody cannot be null");
 		// Get the type for the job
-		AsynchJobType type = AsynchJobType.findType(status.getJobBody().getClass());
+		AsynchJobType type = AsynchJobType.findTypeFromRequestClass(status.getRequestBody().getClass());
 		// Get the URL for this type's queue
 		String url = getQueueURLForType(type);
 		String bodyJson;

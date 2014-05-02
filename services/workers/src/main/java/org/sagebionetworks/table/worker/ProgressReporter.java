@@ -17,4 +17,10 @@ public interface ProgressReporter {
 	 * @param rowNumber
 	 */
 	public void tryReportProgress(int rowNumber);
+	
+	/**
+	 * The currently provided row number
+	 * @return
+	 */
+	public int getRowNumber();
 }

@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
@@ -28,6 +30,7 @@ import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ActivityDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -40,11 +43,10 @@ import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.provenance.Activity;
-import org.sagebionetworks.repo.model.table.AsynchUploadJobBody;
+import org.sagebionetworks.repo.model.table.AsynchUploadRequestBody;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -459,7 +461,7 @@ public class AuthorizationManagerImplUnitTest {
 	
 	@Test
 	public void testCanUserStartJobUploadJobHappyCase() throws DatastoreException, NotFoundException{
-		AsynchUploadJobBody body = new AsynchUploadJobBody();
+		AsynchUploadRequestBody body = new AsynchUploadRequestBody();
 		body.setTableId("syn123");
 		body.setUploadFileHandleId("456");
 		// the user can update the entity
@@ -471,7 +473,7 @@ public class AuthorizationManagerImplUnitTest {
 	
 	@Test
 	public void testCanUserStartJobUploadJobNoTableUpdate() throws DatastoreException, NotFoundException{
-		AsynchUploadJobBody body = new AsynchUploadJobBody();
+		AsynchUploadRequestBody body = new AsynchUploadRequestBody();
 		body.setTableId("syn123");
 		body.setUploadFileHandleId("456");
 		// the user cannot update the entity
@@ -483,7 +485,7 @@ public class AuthorizationManagerImplUnitTest {
 	
 	@Test
 	public void testCanUserStartJobUploadJobNotFileHandleOwner() throws DatastoreException, NotFoundException{
-		AsynchUploadJobBody body = new AsynchUploadJobBody();
+		AsynchUploadRequestBody body = new AsynchUploadRequestBody();
 		body.setTableId("syn123");
 		body.setUploadFileHandleId("456");
 		// the user can update the entity
@@ -497,7 +499,7 @@ public class AuthorizationManagerImplUnitTest {
 	
 	@Test
 	public void testCanUserStartJobUploadJobAnonymous() throws DatastoreException, NotFoundException{
-		AsynchUploadJobBody body = new AsynchUploadJobBody();
+		AsynchUploadRequestBody body = new AsynchUploadRequestBody();
 		body.setTableId("syn123");
 		body.setUploadFileHandleId("456");
 		userInfo.setId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());

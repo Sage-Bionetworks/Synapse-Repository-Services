@@ -1,10 +1,17 @@
 package org.sagebionetworks.repo.manager.asynch;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyLong;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.stub;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -14,11 +21,13 @@ import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchJobState;
-import org.sagebionetworks.repo.model.asynch.AsynchronousJobBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
+import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
+import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.dao.asynch.AsynchronousJobStatusDAO;
 import org.sagebionetworks.repo.model.status.StatusEnum;
-import org.sagebionetworks.repo.model.table.AsynchUploadJobBody;
+import org.sagebionetworks.repo.model.table.AsynchUploadRequestBody;
+import org.sagebionetworks.repo.model.table.AsynchUploadResponseBody;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -52,17 +61,17 @@ public class AsynchJobStatusManagerImplTest {
 		ReflectionTestUtils.setField(manager, "stackStatusDao", mockStackStatusDao);
 		ReflectionTestUtils.setField(manager, "asynchJobQueuePublisher", mockAsynchJobQueuePublisher);
 		
-		stub(mockAsynchJobStatusDao.startJob(anyLong(), any(AsynchronousJobBody.class))).toAnswer(new Answer<AsynchronousJobStatus>() {
+		stub(mockAsynchJobStatusDao.startJob(anyLong(), any(AsynchronousRequestBody.class))).toAnswer(new Answer<AsynchronousJobStatus>() {
 			@Override
 			public AsynchronousJobStatus answer(InvocationOnMock invocation)
 					throws Throwable {
 				Long userId = (Long) invocation.getArguments()[0];
-				AsynchronousJobBody body = (AsynchronousJobBody) invocation.getArguments()[1];
+				AsynchronousRequestBody body = (AsynchronousRequestBody) invocation.getArguments()[1];
 				AsynchronousJobStatus results = null;
 				if(userId != null && body != null){
 					results = new AsynchronousJobStatus();
 					results.setStartedByUserId(userId);
-					results.setJobBody(body);
+					results.setRequestBody(body);
 					results.setJobId("99999");
 				}
 				return results;
@@ -92,7 +101,7 @@ public class AsynchJobStatusManagerImplTest {
 	
 	@Test (expected=UnauthorizedException.class)
 	public void testStartJobBodyUploadUnauthorizedException() throws DatastoreException, NotFoundException{
-		AsynchUploadJobBody body = new AsynchUploadJobBody();
+		AsynchUploadRequestBody body = new AsynchUploadRequestBody();
 		body.setTableId("syn123");
 		body.setUploadFileHandleId("456");
 		when(mockAuthorizationManager.canUserStartJob(user, body)).thenReturn(false);
@@ -101,13 +110,13 @@ public class AsynchJobStatusManagerImplTest {
 	
 	@Test
 	public void testStartJobBodyUploadHappy() throws DatastoreException, NotFoundException{
-		AsynchUploadJobBody body = new AsynchUploadJobBody();
+		AsynchUploadRequestBody body = new AsynchUploadRequestBody();
 		body.setTableId("syn123");
 		body.setUploadFileHandleId("456");
 		when(mockAuthorizationManager.canUserStartJob(user, body)).thenReturn(true);
 		AsynchronousJobStatus status = manager.startJob(user, body);
 		assertNotNull(status);
-		assertEquals(body, status.getJobBody());
+		assertEquals(body, status.getRequestBody());
 		verify(mockAsynchJobQueuePublisher, times(1)).publishMessage(status);
 	}
 	
@@ -233,9 +242,9 @@ public class AsynchJobStatusManagerImplTest {
 	@Test (expected=IllegalStateException.class)
 	public void testSetCompleteReadOnlyMode() throws DatastoreException, NotFoundException{
 		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_ONLY);
-		AsynchUploadJobBody body = new AsynchUploadJobBody();
-		body.setTableId("syn123");
-		body.setUploadFileHandleId("456");
+		AsynchUploadResponseBody body = new AsynchUploadResponseBody();
+		body.setRowsProcessed(101L);
+		body.setEtag("etag");
 		manager.setComplete("456", body);
 	}
 	
@@ -247,19 +256,19 @@ public class AsynchJobStatusManagerImplTest {
 	@Test (expected=IllegalStateException.class)
 	public void testSetCompleteDownMode() throws DatastoreException, NotFoundException{
 		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.DOWN);
-		AsynchUploadJobBody body = new AsynchUploadJobBody();
-		body.setTableId("syn123");
-		body.setUploadFileHandleId("456");
+		AsynchUploadResponseBody body = new AsynchUploadResponseBody();
+		body.setRowsProcessed(101L);
+		body.setEtag("etag");
 		manager.setComplete("456", body);
 	}
 	
 	@Test
 	public void testSetCompleteHappy() throws DatastoreException, NotFoundException{
 		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_WRITE);
-		when(mockAsynchJobStatusDao.setComplete(anyString(), any(AsynchronousJobBody.class))).thenReturn("etag");
-		AsynchUploadJobBody body = new AsynchUploadJobBody();
-		body.setTableId("syn123");
-		body.setUploadFileHandleId("456");
+		when(mockAsynchJobStatusDao.setComplete(anyString(), any(AsynchronousResponseBody.class))).thenReturn("etag");
+		AsynchUploadResponseBody body = new AsynchUploadResponseBody();
+		body.setRowsProcessed(101L);
+		body.setEtag("etag");
 		String result = manager.setComplete("456", body);
 		assertEquals("etag", result);
 	}

@@ -1,8 +1,8 @@
 package org.sagebionetworks.repo.web.controller;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.asynch.AsynchronousJobBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
+import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
@@ -55,7 +55,7 @@ public class AsynchronousJobController extends BaseController {
 	public @ResponseBody
 	AsynchronousJobStatus launchNewJob(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody AsynchronousJobBody body) throws NotFoundException {
+			@RequestBody AsynchronousRequestBody body) throws NotFoundException {
 		return serviceProvider.getAsynchronousJobServices().startJob(userId, body);
 	}
 	

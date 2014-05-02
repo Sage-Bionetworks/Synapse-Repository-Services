@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNull;
 import java.io.StringReader;
 
 import org.junit.Test;
+import org.sagebionetworks.util.csv.CsvNullReader;
 
 public class CsvNullReaderTest {
 

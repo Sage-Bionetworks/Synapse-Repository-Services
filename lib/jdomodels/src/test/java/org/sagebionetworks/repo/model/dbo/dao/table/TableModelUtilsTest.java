@@ -24,7 +24,6 @@ import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.sagebionetworks.bridge.model.dbo.dao.CsvNullReader;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableRowChange;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -33,6 +32,7 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
+import org.sagebionetworks.util.csv.CsvNullReader;
 
 import au.com.bytecode.opencsv.CSVWriter;
 

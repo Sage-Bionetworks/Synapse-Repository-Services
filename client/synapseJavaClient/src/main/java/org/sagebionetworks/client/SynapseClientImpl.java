@@ -90,8 +90,8 @@ import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.annotation.AnnotationsUtils;
-import org.sagebionetworks.repo.model.asynch.AsynchronousJobBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
+import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
@@ -5042,7 +5042,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @throws SynapseException 
 	 */
 	@Override
-	public AsynchronousJobStatus startAsynchronousJob(AsynchronousJobBody jobBody) throws SynapseException{
+	public AsynchronousJobStatus startAsynchronousJob(AsynchronousRequestBody jobBody) throws SynapseException{
 		if(jobBody == null) throw new IllegalArgumentException("JobBody cannot be null");
 		String url = ASYNCHRONOUS_JOB;
 		return asymmetricalPost(getRepoEndpoint(), url, jobBody, AsynchronousJobStatus.class, null);

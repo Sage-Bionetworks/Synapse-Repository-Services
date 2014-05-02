@@ -1,8 +1,10 @@
 package org.sagebionetworks.repo.model.dbo.asynch;
 
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.repo.model.asynch.AsynchronousJobBody;
-import org.sagebionetworks.repo.model.table.AsynchUploadJobBody;
+import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
+import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
+import org.sagebionetworks.repo.model.table.AsynchUploadRequestBody;
+import org.sagebionetworks.repo.model.table.AsynchUploadResponseBody;
 
 /**
  * This enum maps types to classes.
@@ -14,14 +16,16 @@ public enum AsynchJobType {
 	
 	
 
-	UPLOAD(AsynchUploadJobBody.class, StackConfiguration.singleton().getTableCSVUploadQueueName());
+	UPLOAD(AsynchUploadRequestBody.class, AsynchUploadResponseBody.class,  StackConfiguration.singleton().getTableCSVUploadQueueName());
 	
 	
-	private Class<? extends AsynchronousJobBody> clazz;
+	private Class<? extends AsynchronousRequestBody> requestClass;
+	private Class<? extends AsynchronousResponseBody> responseClass;
 	private String queueName;
 	
-	AsynchJobType(Class<? extends AsynchronousJobBody> clazz, String queueName){
-		this.clazz = clazz;
+	AsynchJobType(Class<? extends AsynchronousRequestBody> requestClass, Class<? extends AsynchronousResponseBody> responseClass, String queueName){
+		this.requestClass = requestClass;
+		this.responseClass = responseClass;
 		this.queueName = queueName;
 	}
 	
@@ -30,9 +34,9 @@ public enum AsynchJobType {
 	 * @param clazz
 	 * @return
 	 */
-	public static AsynchJobType findType(Class<? extends AsynchronousJobBody> clazz){
+	public static AsynchJobType findTypeFromRequestClass(Class<? extends AsynchronousRequestBody> clazz){
 		for(AsynchJobType type: AsynchJobType.values()){
-			if(type.clazz.equals(clazz)){
+			if(type.requestClass.equals(clazz)){
 				return type;
 			}
 		}
@@ -43,10 +47,13 @@ public enum AsynchJobType {
 	 * The class bound to this type.
 	 * @return
 	 */
-	public Class<? extends AsynchronousJobBody> getTypeClass(){
-		return this.clazz;
+	public Class<? extends AsynchronousRequestBody> getRequestClass(){
+		return this.requestClass;
 	}
 	
+	public Class<? extends AsynchronousResponseBody> getResponseClass(){
+		return this.responseClass;
+	}
 	/**
 	 * The suffix of the queue name where jobs of this type are published. 
 	 * @return

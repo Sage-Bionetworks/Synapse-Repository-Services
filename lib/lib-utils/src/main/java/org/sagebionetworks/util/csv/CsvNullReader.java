@@ -1,4 +1,4 @@
-package org.sagebionetworks.bridge.model.dbo.dao;
+package org.sagebionetworks.util.csv;
 
 /**
  * Source copied and modified from au.com.bytecode.opencsv:
@@ -287,6 +287,26 @@ public class CsvNullReader implements Closeable {
 	 */
 	public void close() throws IOException {
 		br.close();
+	}
+
+	public boolean isHasNext() {
+		return hasNext;
+	}
+
+	public char getSeparator() {
+		return separator;
+	}
+
+	public char getQuotechar() {
+		return quotechar;
+	}
+
+	public char getEscape() {
+		return escape;
+	}
+
+	public int getSkipLines() {
+		return skipLines;
 	}
 
 }

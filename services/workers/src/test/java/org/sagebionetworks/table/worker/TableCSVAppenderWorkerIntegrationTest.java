@@ -33,7 +33,8 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.table.AsynchUploadJobBody;
+import org.sagebionetworks.repo.model.table.AsynchUploadRequestBody;
+import org.sagebionetworks.repo.model.table.AsynchUploadResponseBody;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
@@ -148,7 +149,7 @@ public class TableCSVAppenderWorkerIntegrationTest {
 			csv.writeNext(new String[]{schema.get(1).getName(), schema.get(0).getName()});
 			// Write some rows
 			for(int i=0; i<rowCount; i++){
-				csv.writeNext(new String[]{""+i, "stringdate"+i});
+				csv.writeNext(new String[]{""+i, "stringdata"+i});
 			}
 		}finally{
 			csv.close();
@@ -164,21 +165,29 @@ public class TableCSVAppenderWorkerIntegrationTest {
 		// Upload the file to S3.
 		s3Client.putObject(fileHandle.getBucketName(), fileHandle.getKey(), this.tempFile);
 		// We are now ready to start the job
-		AsynchUploadJobBody body = new AsynchUploadJobBody();
+		AsynchUploadRequestBody body = new AsynchUploadRequestBody();
 		body.setTableId(tableId);
 		body.setUploadFileHandleId(fileHandle.getId());
 		AsynchronousJobStatus status = asynchJobStatusManager.startJob(adminUserInfo, body);
 		// Wait for the job to complete.
-		waitForStatus(status);
+		status = waitForStatus(status);
+		assertNotNull(status);
+		assertNotNull(status.getResponseBody());
+		assertTrue(status.getResponseBody() instanceof AsynchUploadResponseBody);
+		AsynchUploadResponseBody response = (AsynchUploadResponseBody) status.getResponseBody();
+		assertNotNull(response.getEtag());
+		assertEquals(new Long(rowCount), response.getRowsProcessed());
 		// There should be one change set applied to the table
 		List<TableRowChange> changes = this.tableRowManager.listRowSetsKeysForTable(tableId);
 		assertNotNull(changes);
 		assertEquals(1, changes.size());
 		TableRowChange change = changes.get(0);
 		assertEquals(new Long(rowCount), change.getRowCount());
+		// the etag of the change should match what the job returned.
+		assertEquals(change.getEtag(), response.getEtag());
 	}
 	
-	private void waitForStatus(AsynchronousJobStatus status) throws InterruptedException, DatastoreException, NotFoundException{
+	private AsynchronousJobStatus waitForStatus(AsynchronousJobStatus status) throws InterruptedException, DatastoreException, NotFoundException{
 		long start = System.currentTimeMillis();
 		while(!AsynchJobState.COMPLETE.equals(status.getJobState())){
 			assertFalse("Job Failed: "+status.getErrorDetails(), AsynchJobState.FAILED.equals(status.getJobState()));
@@ -188,5 +197,6 @@ public class TableCSVAppenderWorkerIntegrationTest {
 			// Get the status again 
 			status = this.asynchJobStatusManager.getJobStatus(adminUserInfo, status.getJobId());
 		}
+		return status;
 	}
 }

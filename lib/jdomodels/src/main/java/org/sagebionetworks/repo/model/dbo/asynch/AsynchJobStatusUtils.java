@@ -4,8 +4,9 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 
 import org.sagebionetworks.repo.model.asynch.AsynchJobState;
-import org.sagebionetworks.repo.model.asynch.AsynchronousJobBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
+import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
+import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.dbo.asynch.DBOAsynchJobStatus.JobState;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 
@@ -26,9 +27,16 @@ public class AsynchJobStatusUtils {
 		AsynchronousJobStatus dto = new AsynchronousJobStatus();
 		try {
 			// The compressed body contains the truth data for all type specific data.
-			dto.setJobBody((AsynchronousJobBody) JDOSecondaryPropertyUtils.decompressedObject(dbo.getCompressedBody(), dbo.getJobType().name(), dbo.getJobType().getTypeClass()));
+			dto.setRequestBody((AsynchronousRequestBody) JDOSecondaryPropertyUtils.decompressedObject(dbo.getRequestBody(), dbo.getJobType().name(), dbo.getJobType().getRequestClass()));
 		} catch (IOException e) {
 			throw new RuntimeException(e);
+		}
+		if(dbo.getResponseBody() != null){
+			try {
+				dto.setResponseBody((AsynchronousResponseBody) JDOSecondaryPropertyUtils.decompressedObject(dbo.getResponseBody(), dbo.getJobType().name(), dbo.getJobType().getResponseClass()));
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
 		}
 		// The database contains the truth data for all generic data.
 		dto.setChangedOn(dbo.getChangedOn());
@@ -54,7 +62,7 @@ public class AsynchJobStatusUtils {
 	public static DBOAsynchJobStatus createDBOFromDTO(AsynchronousJobStatus dto){
 		if(dto == null) throw new IllegalArgumentException("AsynchronousJobStatus cannot be null");
 		// Lookup the type
-		AsynchJobType type = AsynchJobType.findType(dto.getJobBody().getClass());
+		AsynchJobType type = AsynchJobType.findTypeFromRequestClass(dto.getRequestBody().getClass());
 		DBOAsynchJobStatus dbo = new DBOAsynchJobStatus();
 		dbo.setChangedOn(dto.getChangedOn()); 
 		dbo.setErrorDetails(dto.getErrorDetails());
@@ -71,9 +79,16 @@ public class AsynchJobStatusUtils {
 		dbo.setRuntimeMS(dto.getRuntimeMS());
 		// Compress the body
 		try {
-			dbo.setCompressedBody(JDOSecondaryPropertyUtils.compressObject(dto.getJobBody(), type.name()));
+			dbo.setRequestBody(JDOSecondaryPropertyUtils.compressObject(dto.getRequestBody(), type.name()));
 		} catch (IOException e) {
 			throw new RuntimeException(e);
+		}
+		if(dto.getResponseBody() != null){
+			try {
+				dbo.setResponseBody(JDOSecondaryPropertyUtils.compressObject(dto.getResponseBody(), type.name()));
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
 		}
 		return dbo;
 	}

@@ -8,7 +8,7 @@
 	</parent>
 	<groupId>org.sagebionetworks</groupId>
 	<artifactId>lib-test</artifactId>
-	
+
 	<version>develop-SNAPSHOT</version>
 	<name>lib-test</name>
 	<description>Shared library with test-only code</description>
@@ -31,7 +31,10 @@
 			<groupId>com.google.guava</groupId>
 			<artifactId>guava</artifactId>
 		</dependency>
-
+		<dependency>
+			<groupId>net.sf.opencsv</groupId>
+			<artifactId>opencsv</artifactId>
+		</dependency>
 	</dependencies>
 
 	<build>

@@ -186,5 +186,17 @@ public class MessageUtils {
 	public static <T extends JSONEntity> T readMessageBody(Message e, Class<? extends T> clazz) throws JSONObjectAdapterException{
 		return EntityFactory.createEntityFromJSONString(e.getBody(), clazz);
 	}
+	
+	/**
+	 * Create a message with the passed JSONEntity as the body of the message.
+	 * @param body
+	 * @return
+	 * @throws JSONObjectAdapterException
+	 */
+	public static Message buildMessage(JSONEntity body) throws JSONObjectAdapterException{
+		Message message = new Message();
+		message.setBody(EntityFactory.createJSONStringForEntity(body));
+		return message;
+	}
 
 }
