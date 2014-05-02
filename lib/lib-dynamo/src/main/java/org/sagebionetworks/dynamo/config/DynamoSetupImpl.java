@@ -90,7 +90,7 @@ public class DynamoSetupImpl implements DynamoSetup {
 				if (!this.hasSameKeySchema(existingTable, configTable)) {
 					// delete and recreate the table
 					this.deleteTable(existingTable.getTableName());
-					if (!TimeUtils.waitFor(timeoutInMillis, -1000L, existingTable.getTableName(), new Predicate<String>() {
+					if (!TimeUtils.waitForExponential(timeoutInMillis, 1000L, existingTable.getTableName(), new Predicate<String>() {
 						@Override
 						public boolean apply(String tableName) {
 							try {
@@ -133,7 +133,7 @@ public class DynamoSetupImpl implements DynamoSetup {
 			return;
 		}
 
-		if (!TimeUtils.waitFor(timeoutInMillis, -1000L, tablesToWatch, new Predicate<List<String>>() {
+		if (!TimeUtils.waitForExponential(timeoutInMillis, 1000L, tablesToWatch, new Predicate<List<String>>() {
 			@Override
 			public boolean apply(List<String> tablesToWatch) {
 				// Check readiness
