@@ -38,6 +38,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 
@@ -146,7 +147,12 @@ public class QueryDAOImpl implements QueryDAO {
 		MapSqlParameterSource args = new MapSqlParameterSource();
 		args.addValue(ATTRIBUTE_PARAM, attribute);
 		args.addValue(SCOPE_PARAM, scopeId);
-		Map<String,Object> map = simpleJdbcTemplate.queryForMap(FIND_ATTRIBUTE_SQL, args);
+		Map<String,Object> map;
+		try {
+			map = simpleJdbcTemplate.queryForMap(FIND_ATTRIBUTE_SQL, args);
+		} catch (EmptyResultDataAccessException e) {
+			return null;
+		}
 		if (map.get(LONG_ATTR_NAME)!=null) return FieldType.LONG_ATTRIBUTE;
 		if (map.get(DBBL_ATTR_NAME)!=null) return FieldType.DOUBLE_ATTRIBUTE;
 		if (map.get(STRG_ATTR_NAME)!=null) return FieldType.STRING_ATTRIBUTE;
