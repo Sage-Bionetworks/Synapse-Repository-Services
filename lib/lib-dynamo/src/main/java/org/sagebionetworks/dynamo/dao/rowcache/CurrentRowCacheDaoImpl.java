@@ -126,11 +126,8 @@ public class CurrentRowCacheDaoImpl extends DynamoDaoBaseImpl implements Current
 
 		final String hashKey = DboCurrentRowCache.createHashKey(tableId);
 
-		// should we use a range query (we get records we don't care about, but we add up all sizes for total result and
-		// then round up to 4K) or a batch get (we only get the records we care about, but each record is separately
-		// rounded up to 4K)
 		Iterable<DboCurrentRowCache> results;
-		if ((rowIdSet.last().longValue() - rowIdSet.first().longValue()) * DboCurrentRowCache.AVERAGE_RECORD_SIZE < rowIdSet.size() * 4096) {
+		if (useQueryInsteadOfBatchLoad(rowIdSet)) {
 			AttributeValue hashKeyValue = new AttributeValue(hashKey);
 
 			// limit the query a bit by using the range of rowIds
@@ -163,6 +160,13 @@ public class CurrentRowCacheDaoImpl extends DynamoDaoBaseImpl implements Current
 				return new TransformEntry<Long, Long>(input.getRowId(), input.getVersion());
 			}
 		});
+	}
+
+	// should we use a range query (we get records we don't care about, but we add up all sizes for total result and
+	// then round up to 4K) or a batch get (we only get the records we care about, but each record is separately
+	// rounded up to 4K)
+	private boolean useQueryInsteadOfBatchLoad(final SortedSet<Long> rowIdSet) {
+		return (rowIdSet.last().longValue() - rowIdSet.first().longValue()) * DboCurrentRowCache.AVERAGE_RECORD_SIZE < rowIdSet.size() * 4096;
 	}
 
 	@Override

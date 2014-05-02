@@ -60,9 +60,6 @@ public class Clock {
 			// we haven't loaded lib-stackConfiguration
 		} catch (NoSuchMethodException e) {
 			throw new RuntimeException("isProductionStack is no longer a method on StackConfiguration? " + e.getMessage(), e);
-		} catch (SecurityException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		} catch (Exception e) {
 			throw new RuntimeException(e.getMessage(), e);
 		}

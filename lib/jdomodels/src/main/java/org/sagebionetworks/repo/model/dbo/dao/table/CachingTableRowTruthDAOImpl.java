@@ -268,7 +268,7 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public RowSetAccessor getLatestVersions(String tableId, Set<Long> rowIds, String etag) throws IOException, NotFoundException {
 		if (etag == null) {
-			throw new IllegalArgumentException("A valid etag must be passed in");
+			throw new IllegalArgumentException("A valid etag from a select for update must be passed in");
 		}
 		final Map<Long, RowAccessor> rowIdToRowMap;
 		if (checkAndUpdateCurrentRowCache(tableId)) {
