@@ -94,7 +94,8 @@ public class QueryDAOImpl implements QueryDAO {
 		FieldType sortFieldType = null;
 		if (userQuery.getSort()!=null) {
 			sortFieldType = findFieldTypeForAttribute(Long.parseLong(objId), userQuery.getSort());
-			if (sortFieldType==null) throw new IllegalArgumentException("Cannot find sort attribute "+userQuery.getSort());
+			// if the sort-by attribute doesn't occur, then we simply don't sort
+			if (sortFieldType==null) userQuery.setSort(null);
 		}
 		
 		// Build the SQL queries
