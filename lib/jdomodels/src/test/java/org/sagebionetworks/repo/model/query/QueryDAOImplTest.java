@@ -858,14 +858,14 @@ public class QueryDAOImplTest {
 		}
 	}
 	
-	@Test
+	@Test(expected=IllegalArgumentException.class)
 	public void testQuerySortLongAscendingBadSortBy() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
 		// SELECT * FROM evaluation_1 ORDER BY "gobbledygook" ASC
 		BasicQuery query = new BasicQuery();
 		query.setFrom("evaluation" + QueryTools.FROM_TYPE_ID_DELIMTER + EVAL_ID1);
 		query.setLimit(NUM_SUBMISSIONS);
 		query.setOffset(0);
-		query.setSort(TestUtils.PRIVATE_LONG_ANNOTATION_NAME);
+		query.setSort("gobbledygook");
 		query.setAscending(true);
 		List<String> select = new ArrayList<String>();
 		select.add(TestUtils.PRIVATE_LONG_ANNOTATION_NAME);
