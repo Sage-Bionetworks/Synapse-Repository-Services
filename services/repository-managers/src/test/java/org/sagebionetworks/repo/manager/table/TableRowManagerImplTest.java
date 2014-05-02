@@ -312,6 +312,7 @@ public class TableRowManagerImplTest {
 		RowSet replace = new RowSet();
 		replace.setTableId(tableId);
 		replace.setHeaders(TableModelUtils.getHeaders(models));
+		replace.setEtag("etag");
 
 		List<Row> replaceRows = TableModelTestUtils.createRows(models, 3);
 		for (int i = 0; i < 3; i++) {
@@ -340,11 +341,11 @@ public class TableRowManagerImplTest {
 			}
 		}).when(mockAuthManager).canAccessRawFileHandlesByIds(user, Lists.newArrayList("3333", "5002"), Sets.<String> newHashSet(),
 				Sets.<String> newHashSet());
-		when(mockTruthDao.getLatestVersions(tableId, Sets.newHashSet(2L))).thenReturn(originalAccessor);
+		when(mockTruthDao.getLatestVersions(tableId, Sets.newHashSet(2L), "etag")).thenReturn(originalAccessor);
 		manager.appendRows(user, tableId, models, replace);
 
 		verify(mockTruthDao).appendRowSetToTable(anyString(), anyString(), anyListOf(ColumnModel.class), any(RowSet.class), anyBoolean());
-		verify(mockTruthDao).getLatestVersions(tableId, Sets.newHashSet(2L));
+		verify(mockTruthDao).getLatestVersions(tableId, Sets.newHashSet(2L), "etag");
 		verify(mockAuthManager).canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
 		verify(mockAuthManager).canAccessRawFileHandlesByIds(user, Lists.newArrayList("3333", "5002"), Sets.<String> newHashSet("3333"),
 				Sets.<String> newHashSet("5002"));
@@ -399,6 +400,7 @@ public class TableRowManagerImplTest {
 		RowSet replace = new RowSet();
 		replace.setTableId(tableId);
 		replace.setHeaders(TableModelUtils.getHeaders(models));
+		replace.setEtag("etag");
 
 		Row row = new Row();
 		row.setRowId(0L);
@@ -420,7 +422,7 @@ public class TableRowManagerImplTest {
 			}
 		}).when(mockAuthManager).canAccessRawFileHandlesByIds(user, Lists.newArrayList("3333"), Sets.<String> newHashSet(),
 				Sets.<String> newHashSet());
-		when(mockTruthDao.getLatestVersions(tableId, Sets.newHashSet(0L))).thenReturn(originalAccessor);
+		when(mockTruthDao.getLatestVersions(tableId, Sets.newHashSet(0L), "etag")).thenReturn(originalAccessor);
 		manager.appendRows(user, tableId, models, replace);
 	}
 
@@ -436,6 +438,7 @@ public class TableRowManagerImplTest {
 		RowSet replace = new RowSet();
 		replace.setTableId(tableId);
 		replace.setHeaders(TableModelUtils.getHeaders(models));
+		replace.setEtag("etag");
 
 		Row row = new Row();
 		row.setRowId(0L);
@@ -457,7 +460,7 @@ public class TableRowManagerImplTest {
 			}
 		}).when(mockAuthManager).canAccessRawFileHandlesByIds(user, Lists.newArrayList("3333"), Sets.<String> newHashSet(),
 				Sets.<String> newHashSet());
-		when(mockTruthDao.getLatestVersions(tableId, Sets.newHashSet(0L))).thenReturn(originalAccessor);
+		when(mockTruthDao.getLatestVersions(tableId, Sets.newHashSet(0L), "etag")).thenReturn(originalAccessor);
 		manager.appendRows(user, tableId, models, replace);
 	}
 

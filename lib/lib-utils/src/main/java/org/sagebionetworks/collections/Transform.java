@@ -1,6 +1,7 @@
 package org.sagebionetworks.collections;
 
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -40,5 +41,33 @@ public class Transform {
 			result.put(entry.key, entry.value);
 		}
 		return result;
+	}
+
+	public static <T, F> Iterable<T> castElements(final Iterable<?> iterable) {
+		return new Iterable<T>() {
+			@Override
+			public Iterator<T> iterator() {
+				// TODO Auto-generated method stub
+				return new Iterator<T>() {
+					Iterator<?> iterator = iterable.iterator();
+
+					@Override
+					public boolean hasNext() {
+						return iterator.hasNext();
+					}
+
+					@SuppressWarnings("unchecked")
+					@Override
+					public T next() {
+						return (T) iterator.next();
+					}
+
+					@Override
+					public void remove() {
+						iterator.remove();
+					}
+				};
+			}
+		};
 	}
 }

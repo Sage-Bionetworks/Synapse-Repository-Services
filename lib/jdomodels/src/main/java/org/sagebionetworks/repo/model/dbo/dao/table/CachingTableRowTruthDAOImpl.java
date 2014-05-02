@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dbo.dao.table;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.ConcurrentModificationException;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -33,10 +34,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 
 /**
@@ -62,7 +65,7 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 	 */
 	@Override
 	public void checkForRowLevelConflict(String tableId, RowSet delta) throws IOException {
-		if (checkAndUpdateRowCache(tableId)) {
+		if (checkAndUpdateCurrentRowCache(tableId)) {
 			checkForRowLevelConflictUsingCache(tableId, delta);
 		} else {
 			// Validate that this update does not contain any row level conflicts.
@@ -70,7 +73,7 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 		}
 	}
 
-	private boolean checkAndUpdateRowCache(String tableId) {
+	private boolean checkAndUpdateCurrentRowCache(String tableId) {
 		try {
 			if (tableRowCache.isEnabled()) {
 				// Lookup the version number for this update.
@@ -93,7 +96,6 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 						}
 					}, change);
 					tableRowCache.updateCurrentVersionNumbers(tableId, rowIdVersionNumbers);
-					tableRowCache.putRowsInCache(tableId, rows);
 				}
 				if (newLastCurrentVersion >= 0) {
 					try {
@@ -180,8 +182,9 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 		if (ref.getRows() == null)
 			throw new IllegalArgumentException(
 					"RowReferenceSet.rows cannot be null");
-		if (checkAndUpdateRowCache(ref.getTableId())) {
-			return getRowSetOriginalsFromCache(ref);
+		List<RowSet> results = getRowSetOriginalsFromCache(ref);
+		if (results != null) {
+			return results;
 		} else {
 			return super.getRowSetOriginals(ref);
 		}
@@ -189,24 +192,54 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 
 	private List<RowSet> getRowSetOriginalsFromCache(RowReferenceSet ref) throws IOException, NotFoundException {
 
-		Multimap<Long, Long> versions = createVersionToRowsMap(ref.getRows());
+		if (!tableRowCache.isEnabled()) {
+			return null;
+		}
+		SetMultimap<Long, Long> versions = createVersionToRowsMap(ref.getRows());
 
 		List<RowSet> results = new LinkedList<RowSet>();
 		for (Entry<Long, Collection<Long>> versionWithRows : versions.asMap().entrySet()) {
-			Collection<Long> rowsToGet = versionWithRows.getValue();
+			Set<Long> rowsToGet = (Set<Long>) versionWithRows.getValue();
 			Long version = versionWithRows.getKey();
 
 			TableRowChange trc = getTableRowChange(ref.getTableId(), version);
+
+			final Map<Long, Row> resultRows = getRowsFromCacheOrS3(ref.getTableId(), rowsToGet, version, trc);
 
 			RowSet thisSet = new RowSet();
 			thisSet.setTableId(ref.getTableId());
 			thisSet.setEtag(trc.getEtag());
 			thisSet.setHeaders(trc.getHeaders());
-			thisSet.setRows(Lists.newArrayList(tableRowCache.getRowsFromCache(ref.getTableId(), version, rowsToGet).values()));
+			thisSet.setRows(Lists.newArrayList(resultRows.values()));
 
 			results.add(thisSet);
 		}
 		return results;
+	}
+
+	private Map<Long, Row> getRowsFromCacheOrS3(String tableId, Set<Long> rowsToGet, Long version, TableRowChange trc) throws IOException {
+		final Map<Long, Row> resultRows = tableRowCache.getRowsFromCache(tableId, version, rowsToGet);
+		if (resultRows.size() != rowsToGet.size()) {
+			// we are still missing some (or all) rows here. Read them from S3 and add to cache
+			final List<Row> rows = Lists.newArrayListWithCapacity(rowsToGet.size() - resultRows.size());
+			scanChange(new RowHandler() {
+				@Override
+				public void nextRow(Row row) {
+					// Is this a row we are still looking for?
+					if (!resultRows.containsKey(row.getRowId())) {
+						// This is a match
+						rows.add(row);
+					}
+				}
+			}, trc);
+			tableRowCache.putRowsInCache(tableId, rows);
+			for (Row row : rows) {
+				if (rowsToGet.contains(row.getRowId())) {
+					resultRows.put(row.getRowId(), row);
+				}
+			}
+		}
+		return resultRows;
 	}
 
 	/**
@@ -233,9 +266,12 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public RowSetAccessor getLatestVersions(String tableId, Set<Long> rowIds) throws IOException, NotFoundException {
+	public RowSetAccessor getLatestVersions(String tableId, Set<Long> rowIds, String etag) throws IOException, NotFoundException {
+		if (etag == null) {
+			throw new IllegalArgumentException("A valid etag from a select for update must be passed in");
+		}
 		final Map<Long, RowAccessor> rowIdToRowMap;
-		if (checkAndUpdateRowCache(tableId)) {
+		if (checkAndUpdateCurrentRowCache(tableId)) {
 			rowIdToRowMap = getLatestVersionsFromCache(tableId, rowIds);
 
 			return new RowSetAccessor() {
@@ -245,43 +281,46 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 				}
 			};
 		} else {
-			return super.getLatestVersions(tableId, rowIds);
+			return super.getLatestVersions(tableId, rowIds, etag);
 		}
 	}
 
-	private Map<Long, RowAccessor> getLatestVersionsFromCache(String tableId, Set<Long> rowIds) throws NotFoundException, IOException {
+	private Map<Long, RowAccessor> getLatestVersionsFromCache(String tableId, Set<Long> rowIds) throws NotFoundException,
+			IOException {
 
 		Map<Long, Long> currentVersionNumbers = tableRowCache.getCurrentVersionNumbers(tableId, rowIds);
 
-		Multimap<Long, Long> versions = createVersionToRowsMap(currentVersionNumbers);
+		SetMultimap<Long, Long> versions = createVersionToRowsMap(currentVersionNumbers);
 
 		Map<Long, RowAccessor> rowIdToRowMap = Maps.newHashMap();
 		for (Entry<Long, Collection<Long>> versionWithRows : versions.asMap().entrySet()) {
-			Collection<Long> rowsToGet = versionWithRows.getValue();
+			Set<Long> rowsToGet = (Set<Long>)versionWithRows.getValue();
 			Long version = versionWithRows.getKey();
 
-			TableRowChange rowChange = this.getTableRowChange(tableId, versionWithRows.getKey());
+			TableRowChange rowChange = getTableRowChange(tableId, versionWithRows.getKey());
 			List<String> rowChangeHeaders = rowChange.getHeaders();
 
-			for (Row row : tableRowCache.getRowsFromCache(tableId, version, rowsToGet).values()) {
+			Map<Long, Row> resultRows = getRowsFromCacheOrS3(tableId, rowsToGet, version, rowChange);
+
+			for (Row row : resultRows.values()) {
 				appendRowDataToMap(rowIdToRowMap, rowChangeHeaders, row);
 			}
 		}
 		return rowIdToRowMap;
 	}
 
-	private Multimap<Long, Long> createVersionToRowsMap(Map<Long, Long> currentVersionNumbers) {
+	private SetMultimap<Long, Long> createVersionToRowsMap(Map<Long, Long> currentVersionNumbers) {
 		// create a map from version to set of row ids map
-		Multimap<Long, Long> versions = ArrayListMultimap.create();
+		SetMultimap<Long, Long> versions = HashMultimap.create();
 		for (Entry<Long, Long> rowVersion : currentVersionNumbers.entrySet()) {
 			versions.put(rowVersion.getValue(), rowVersion.getKey());
 		}
 		return versions;
 	}
 
-	private Multimap<Long, Long> createVersionToRowsMap(Iterable<RowReference> refs) {
+	private SetMultimap<Long, Long> createVersionToRowsMap(Iterable<RowReference> refs) {
 		// create a map from version to set of row ids map
-		Multimap<Long, Long> versions = ArrayListMultimap.create();
+		SetMultimap<Long, Long> versions = HashMultimap.create();
 		for (RowReference ref : refs) {
 			versions.put(ref.getVersionNumber(), ref.getRowId());
 		}

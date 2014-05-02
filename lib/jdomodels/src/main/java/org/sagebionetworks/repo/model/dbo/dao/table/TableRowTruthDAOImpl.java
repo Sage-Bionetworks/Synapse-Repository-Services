@@ -528,7 +528,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public RowSetAccessor getLatestVersions(String tableId, Set<Long> rowIds) throws IOException, NotFoundException {
+	public RowSetAccessor getLatestVersions(String tableId, Set<Long> rowIds, String etag) throws IOException, NotFoundException {
 		final Map<Long, RowAccessor> rowIdToRowMap = Maps.newHashMap();
 
 		List<TableRowChange> rowChanges = listRowSetsKeysForTable(tableId);

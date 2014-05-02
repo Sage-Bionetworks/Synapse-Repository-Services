@@ -113,7 +113,7 @@ public interface TableRowTruthDAO {
 	 * @throws IOException
 	 * @throws NotFoundException
 	 */
-	public RowSetAccessor getLatestVersions(String tableId, Set<Long> rowIds) throws IOException, NotFoundException;
+	public RowSetAccessor getLatestVersions(String tableId, Set<Long> rowIds, String etag) throws IOException, NotFoundException;
 
 	/**
 	 * List the keys of all change sets applied to a table.

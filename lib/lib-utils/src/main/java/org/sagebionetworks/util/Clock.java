@@ -1,5 +1,8 @@
 package org.sagebionetworks.util;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+
 public class Clock {
 	public interface ClockProvider {
 		public long currentTimeMillis();
@@ -27,12 +30,11 @@ public class Clock {
 		provider.sleep(millis);
 	}
 
-	public static boolean sleepNoInterrupt(long millis) {
+	public static void sleepNoInterrupt(long millis) {
 		try {
 			provider.sleep(millis);
-			return true;
 		} catch (InterruptedException e) {
-			return false;
+			throw new RuntimeException(e.getMessage(), e);
 		}
 
 	}
@@ -41,11 +43,30 @@ public class Clock {
 		return provider;
 	}
 
-	public static void setProvider(ClockProvider provider) {
+	/**
+	 * Only call for unit testing. As per John, calling this method in production is grounds for termination
+	 * 
+	 * @param provider
+	 */
+	static void setProvider(ClockProvider provider) {
+		try {
+			Class<?> stackConfigurationClass = Class.forName("org.sagebionetworks.StackConfiguration");
+			Method isProductionStackmethod = stackConfigurationClass.getMethod("isProductionStack");
+			boolean result = (Boolean) isProductionStackmethod.invoke(null);
+			if (result) {
+				throw new RuntimeException("This method should never be called in production!");
+			}
+		} catch (ClassNotFoundException e) {
+			// we haven't loaded lib-stackConfiguration
+		} catch (NoSuchMethodException e) {
+			throw new RuntimeException("isProductionStack is no longer a method on StackConfiguration? " + e.getMessage(), e);
+		} catch (Exception e) {
+			throw new RuntimeException(e.getMessage(), e);
+		}
 		Clock.provider = provider;
 	}
 
-	public static void setSystemProvider() {
+	static void setSystemProvider() {
 		Clock.provider = systemProvider;
 	}
 }

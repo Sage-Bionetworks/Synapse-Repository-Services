@@ -16,6 +16,7 @@ import com.amazonaws.services.dynamodb.AmazonDynamoDB;
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMapper;
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBQueryExpression;
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBScanExpression;
+import com.amazonaws.services.dynamodb.datamodeling.KeyPair;
 import com.amazonaws.services.dynamodb.datamodeling.PaginatedQueryList;
 import com.amazonaws.services.dynamodb.datamodeling.PaginatedScanList;
 import com.amazonaws.services.dynamodb.model.AttributeValue;
@@ -26,6 +27,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 public class CurrentRowCacheDaoImpl extends DynamoDaoBaseImpl implements CurrentRowCacheDao {
@@ -114,6 +116,7 @@ public class CurrentRowCacheDaoImpl extends DynamoDaoBaseImpl implements Current
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public Map<Long, Long> getCurrentVersions(String tableId, Iterable<Long> rowIds) {
 		final SortedSet<Long> rowIdSet = Sets.newTreeSet(rowIds);
@@ -121,27 +124,49 @@ public class CurrentRowCacheDaoImpl extends DynamoDaoBaseImpl implements Current
 			return Collections.emptyMap();
 		}
 
-		AttributeValue hashKeyValue = new AttributeValue(DboCurrentRowCache.createHashKey(tableId));
+		final String hashKey = DboCurrentRowCache.createHashKey(tableId);
 
-		// try limit the query a bit by using the range of rowIds
-		AttributeValue min = new AttributeValue().withN(rowIdSet.first().toString());
-		AttributeValue max = new AttributeValue().withN(rowIdSet.last().toString());
-		Condition condition = new Condition().withComparisonOperator(ComparisonOperator.BETWEEN).withAttributeValueList(min, max);
+		Iterable<DboCurrentRowCache> results;
+		if (useQueryInsteadOfBatchLoad(rowIdSet)) {
+			AttributeValue hashKeyValue = new AttributeValue(hashKey);
 
-		PaginatedQueryList<DboCurrentRowCache> results = mapper.query(DboCurrentRowCache.class,
-				new DynamoDBQueryExpression(hashKeyValue).withRangeKeyCondition(condition));
-		Iterable<DboCurrentRowCache> filteredResults = Iterables.filter(results, new Predicate<DboCurrentRowCache>() {
-			@Override
-			public boolean apply(DboCurrentRowCache input) {
-				return rowIdSet.contains(input.getRowId());
-			}
-		});
-		return Transform.toMap(filteredResults, new Function<DboCurrentRowCache, TransformEntry<Long, Long>>() {
+			// limit the query a bit by using the range of rowIds
+			AttributeValue min = new AttributeValue().withN(rowIdSet.first().toString());
+			AttributeValue max = new AttributeValue().withN(rowIdSet.last().toString());
+			Condition condition = new Condition().withComparisonOperator(ComparisonOperator.BETWEEN).withAttributeValueList(min, max);
+
+			PaginatedQueryList<DboCurrentRowCache> queryResults = mapper.query(DboCurrentRowCache.class, new DynamoDBQueryExpression(
+					hashKeyValue).withRangeKeyCondition(condition));
+			Iterable<DboCurrentRowCache> filteredResults = Iterables.filter(queryResults, new Predicate<DboCurrentRowCache>() {
+				@Override
+				public boolean apply(DboCurrentRowCache input) {
+					return rowIdSet.contains(input.getRowId());
+				}
+			});
+			results = filteredResults;
+		} else {
+			Map<String, List<Object>> batchLoad = mapper.batchLoad(Collections.<Class<?>, List<KeyPair>> singletonMap(DboCurrentRowCache.class,
+					Transform.toList(rowIdSet, new Function<Long, KeyPair>() {
+						@Override
+						public KeyPair apply(Long rowId) {
+							return new KeyPair().withHashKey(hashKey).withRangeKey(DboCurrentRowCache.createRangeKey(rowId));
+						}
+					})));
+			results = Transform.castElements(Iterables.getOnlyElement(batchLoad.values()));
+		}
+		return Transform.toMap(results, new Function<DboCurrentRowCache, TransformEntry<Long, Long>>() {
 			@Override
 			public TransformEntry<Long, Long> apply(DboCurrentRowCache input) {
 				return new TransformEntry<Long, Long>(input.getRowId(), input.getVersion());
 			}
 		});
+	}
+
+	// should we use a range query (we get records we don't care about, but we add up all sizes for total result and
+	// then round up to 4K) or a batch get (we only get the records we care about, but each record is separately
+	// rounded up to 4K)
+	private boolean useQueryInsteadOfBatchLoad(final SortedSet<Long> rowIdSet) {
+		return (rowIdSet.last().longValue() - rowIdSet.first().longValue()) * DboCurrentRowCache.AVERAGE_RECORD_SIZE < rowIdSet.size() * 4096;
 	}
 
 	@Override
