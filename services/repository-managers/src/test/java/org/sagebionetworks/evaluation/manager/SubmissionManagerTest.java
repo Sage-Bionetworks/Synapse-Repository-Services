@@ -219,8 +219,8 @@ public class SubmissionManagerTest {
     	when(mockEntityManager.getEntityForVersion(any(UserInfo.class), anyString(), anyLong(), any(Class.class))).thenReturn(folder);
     	when(mockSubmissionFileHandleDAO.getAllBySubmission(eq(SUB_ID))).thenReturn(handleIds);
     	when(mockFileHandleManager.getRedirectURLForFileHandle(eq(HANDLE_ID_1))).thenReturn(new URL(TEST_URL));
-    	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.PARTICIPATE))).thenReturn(true);
     	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.SUBMIT))).thenReturn(true);
+       	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.READ))).thenReturn(true);
     	when(mockEvalPermissionsManager.hasAccess(eq(ownerInfo), eq(EVAL_ID), any(ACCESS_TYPE.class))).thenReturn(true);
     	when(mockSubmissionStatusDAO.getEvaluationIdForBatch((List<SubmissionStatus>)anyObject())).thenReturn(Long.parseLong(EVAL_ID));
     	// Submission Manager
@@ -404,6 +404,18 @@ public class SubmissionManagerTest {
 		assertEquals(1, annos.getDoubleAnnos().size());
 	}
 	
+	@Test(expected=UnauthorizedException.class)
+	public void testGetSubmissionStatusNoREADAccess() throws Exception {
+    	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.READ))).thenReturn(false);
+		submissionManager.getSubmissionStatus(userInfo, SUB_ID);
+	}
+	
+	@Test(expected=UnauthorizedException.class)
+	public void testGetALLSubmissionStatusNoREADAccess() throws Exception {
+    	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.READ))).thenReturn(false);
+		submissionManager.getAllSubmissionStatuses(userInfo, EVAL_ID, null, 100L, 0L);
+	}
+	
 	@Test
 	public void testGetSubmissionStatusNoPrivate() throws DatastoreException, NotFoundException {
 		SubmissionStatus status = submissionManager.getSubmissionStatus(userInfo, SUB_ID);
@@ -425,7 +437,7 @@ public class SubmissionManagerTest {
 	
 	@Test
 	public void testGetSubmissionStatusNoPrivateNoAnnot() throws DatastoreException, NotFoundException {
-		Annotations annots = subStatus.getAnnotations();
+ 		Annotations annots = subStatus.getAnnotations();
 		annots.setStringAnnos(null); // this is the case in PLFM-2586
 		annots.setLongAnnos(null);
 		annots.setDoubleAnnos(null);
