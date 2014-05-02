@@ -11,6 +11,8 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -438,6 +440,34 @@ public class DBOChangeDAOImplAutowiredTest {
 			unSent = changeDAO.listUnsentMessages(min, max); 
 			assertEquals(batch, unSent);
 		}
+	}
+	
+	/**
+	 * Duplicate entry for key 'CHANGES_UKEY_OID_OTYPE' can occur with fast conccurent updates
+	 * @throws ExecutionException 
+	 * @throws InterruptedException 
+	 */
+	@Test
+	public void testPLFM2756() throws InterruptedException, ExecutionException{
+		final List<ChangeMessage> toSpam = createList(1, ObjectType.PRINCIPAL);
+		final int timesToRun = 100;
+		Callable<Integer> callable = new Callable<Integer>(){
+			@Override
+			public Integer call() throws Exception {
+				for(int i=0; i<timesToRun; i++){
+					changeDAO.replaceChange(toSpam);
+				}
+				return timesToRun;
+		}};
+		// Run multiple threads at the same time
+		ExecutorService pool = Executors.newFixedThreadPool(2);
+		// Submit twice
+		Future<Integer> one = pool.submit(callable);
+		// Submit again
+		Future<Integer> two = pool.submit(callable);
+		// There should be no errors
+		Integer oneResult = one.get();
+		Integer twoResult = two.get();
 	}
 	
 	/**
