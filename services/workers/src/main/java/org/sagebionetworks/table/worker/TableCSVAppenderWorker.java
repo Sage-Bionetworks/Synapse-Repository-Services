@@ -37,7 +37,7 @@ import com.amazonaws.services.sqs.model.Message;
  */
 public class TableCSVAppenderWorker implements Callable<List<Message>> {
 
-	static private Logger log = LogManager.getLogger(TableCSVAppenderWorkerTest.class);
+	static private Logger log = LogManager.getLogger(TableCSVAppenderWorker.class);
 
 	private AsynchJobStatusManager asynchJobStatusManager;
 	private TableRowManager tableRowManager;
