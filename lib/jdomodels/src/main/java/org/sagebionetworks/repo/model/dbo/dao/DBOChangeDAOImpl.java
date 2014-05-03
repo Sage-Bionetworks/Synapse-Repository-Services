@@ -30,7 +30,10 @@ import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeMessageUtils;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.SingleColumnRowMapper;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -60,7 +63,7 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 	private static final String SQL_SELECT_CHANGES_NOT_SENT_IN_RANGE = 
 			SQL_CHANGES_NOT_SENT_PREFIX+
 			" AND C."+COL_SENT_MESSAGES_CHANGE_NUM+" >= ?"+
-			" AND C."+COL_SENT_MESSAGES_CHANGE_NUM+" <= ?";
+			" AND C."+COL_SENT_MESSAGES_CHANGE_NUM+" <= ? ORDER BY "+COL_SENT_MESSAGES_CHANGE_NUM;
 	
 	private static final String SELECT_CHANGE_NUMBER_FOR_OBJECT_ID_AND_TYPE = 
 			"SELECT "+COL_CHANGES_CHANGE_NUM+" FROM "+TABLE_CHANGES+
@@ -113,8 +116,6 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 		if(ChangeType.CREATE == change.getChangeType() && change.getObjectEtag() == null) throw new IllegalArgumentException("Etag cannot be null for ChangeType: "+change.getChangeType());
 		if(ChangeType.UPDATE == change.getChangeType() && change.getObjectEtag() == null) throw new IllegalArgumentException("Etag cannot be null for ChangeType: "+change.getChangeType());
 		DBOChange dbo = ChangeMessageUtils.createDBO(change);
-		// First delete the change.
-		deleteChange(dbo.getObjectId(), dbo.getObjectTypeEnum());
 		// Clear the time stamp so that we get a new one automatically.
 		// Note: Mysql TIMESTAMP only keeps seconds (not MS) so for consistency we only write second accuracy.
 		// We are using (System.currentTimeMillis()/1000)*1000; to convert all MS to zeros.
@@ -122,7 +123,7 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 		dbo.setChangeNumber(idGenerator.generateNewId(TYPE.CHANGE_ID));
 		dbo.setTimeStamp(new Timestamp(nowMs));
 		// Now insert the row with the current value
-		dbo = basicDao.createNew(dbo);
+		dbo = basicDao.createOrUpdate(dbo);
 		return ChangeMessageUtils.createDTO(dbo);
 	}
 

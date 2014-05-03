@@ -12,7 +12,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -449,7 +448,7 @@ public class DBOChangeDAOImplAutowiredTest {
 	 */
 	@Test
 	public void testPLFM2756() throws InterruptedException, ExecutionException{
-		final List<ChangeMessage> toSpam = createList(1, ObjectType.PRINCIPAL);
+		final List<ChangeMessage> toSpam = createList(1, ObjectType.TABLE);
 		final int timesToRun = 100;
 		Callable<Integer> callable = new Callable<Integer>(){
 			@Override
@@ -467,7 +466,9 @@ public class DBOChangeDAOImplAutowiredTest {
 		Future<Integer> two = pool.submit(callable);
 		// There should be no errors
 		Integer oneResult = one.get();
+		assertEquals(new Integer(timesToRun), oneResult);
 		Integer twoResult = two.get();
+		assertEquals(new Integer(timesToRun), twoResult);
 	}
 	
 	/**

@@ -32,11 +32,11 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 public class DBOChange implements MigratableDatabaseObject<DBOChange, DBOChange>  {
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[]{
-		new FieldColumn("changeNumber", COL_CHANGES_CHANGE_NUM, true).withIsBackupId(true),
+		new FieldColumn("changeNumber", COL_CHANGES_CHANGE_NUM).withIsBackupId(true),
 		new FieldColumn("timeStamp", COL_CHANGES_TIME_STAMP),
-		new FieldColumn("objectId", COL_CHANGES_OBJECT_ID),
+		new FieldColumn("objectId", COL_CHANGES_OBJECT_ID, true),
 		new FieldColumn("parentId", COL_CHANGES_PARENT_ID),
-		new FieldColumn("objectType", COL_CHANGES_OBJECT_TYPE),
+		new FieldColumn("objectType", COL_CHANGES_OBJECT_TYPE, true),
 		new FieldColumn("objectEtag", COL_CHANGES_OBJECT_ETAG),
 		new FieldColumn("changeType", COL_CHANGES_CHANGE_TYPE),
 	};
