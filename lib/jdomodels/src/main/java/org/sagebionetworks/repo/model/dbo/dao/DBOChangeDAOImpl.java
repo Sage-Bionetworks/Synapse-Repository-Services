@@ -26,15 +26,15 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOChange;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOSentMessage;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeMessageUtils;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataAccessException;
-import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -99,7 +99,7 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 	private DBOBasicDao basicDao;
 
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTemplate;
+	private JdbcTemplate jdbcTemplate;
 	
 	@Autowired
 	private IdGenerator idGenerator;
@@ -148,7 +148,7 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 		if(objectId == null) throw new IllegalArgumentException("ObjectId cannot be null");
 		if(type == null) throw new IllegalArgumentException("ObjectType cannot be null");
 		// To avoid gap locking we do not delete by the ID.  Rather we get the primary key, then delete by the primary key.
-		List<Long> list = simpleJdbcTemplate.query(SELECT_CHANGE_NUMBER_FOR_OBJECT_ID_AND_TYPE, new RowMapper<Long>(){
+		List<Long> list = jdbcTemplate.query(SELECT_CHANGE_NUMBER_FOR_OBJECT_ID_AND_TYPE, new RowMapper<Long>(){
 			@Override
 			public Long mapRow(ResultSet rs, int rowNum) throws SQLException {
 				return rs.getLong(COL_CHANGES_CHANGE_NUM);
@@ -160,29 +160,29 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 		// Even if there are multiple, delete them all
 		for(Long primaryKey: list){
 			// Unless there is an error there will only be one here.
-			simpleJdbcTemplate.update(SQL_DELETE_BY_CHANGE_NUM, primaryKey);
+			jdbcTemplate.update(SQL_DELETE_BY_CHANGE_NUM, primaryKey);
 		}
 	}
 
 	@Override
 	public long getMinimumChangeNumber() {
-		return simpleJdbcTemplate.queryForLong(SQL_SELECT_MIN_CHANGE_NUMBER);
+		return jdbcTemplate.queryForLong(SQL_SELECT_MIN_CHANGE_NUMBER);
 	}
 	
 	@Override
 	public long getCurrentChangeNumber() {
-		return simpleJdbcTemplate.queryForLong(SQL_SELECT_MAX_CHANGE_NUMBER);
+		return jdbcTemplate.queryForLong(SQL_SELECT_MAX_CHANGE_NUMBER);
 	}
 	
 	@Override
 	public long getCount() {
-		return simpleJdbcTemplate.queryForLong(SQL_SELECT_COUNT_CHANGE_NUMBER);
+		return jdbcTemplate.queryForLong(SQL_SELECT_COUNT_CHANGE_NUMBER);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void deleteAllChanges() {
-		simpleJdbcTemplate.update("DELETE FROM  "+TABLE_CHANGES+" WHERE "+COL_CHANGES_CHANGE_NUM+" > -1");
+		jdbcTemplate.update("DELETE FROM  "+TABLE_CHANGES+" WHERE "+COL_CHANGES_CHANGE_NUM+" > -1");
 	}
 
 	@Override
@@ -191,10 +191,10 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 		List<DBOChange> dboList = null;
 		if(type == null){
 			// There is no type filter.
-			dboList = simpleJdbcTemplate.query(SQL_SELECT_ALL_GREATER_THAN_OR_EQUAL_TO_CHANGE_NUMBER, new DBOChange().getTableMapping(), greaterOrEqualChangeNumber, limit);
+			dboList = jdbcTemplate.query(SQL_SELECT_ALL_GREATER_THAN_OR_EQUAL_TO_CHANGE_NUMBER, new DBOChange().getTableMapping(), greaterOrEqualChangeNumber, limit);
 		}else{
 			// Filter by object type.
-			dboList = simpleJdbcTemplate.query(SQL_SELECT_ALL_GREATER_THAN_OR_EQUAL_TO_CHANGE_NUMBER_FILTER_BY_OBJECT_TYPE, rowMapper, greaterOrEqualChangeNumber, type.name(), limit);
+			dboList = jdbcTemplate.query(SQL_SELECT_ALL_GREATER_THAN_OR_EQUAL_TO_CHANGE_NUMBER_FILTER_BY_OBJECT_TYPE, rowMapper, greaterOrEqualChangeNumber, type.name(), limit);
 		}
 		return ChangeMessageUtils.createDTOList(dboList);
 	}
@@ -202,14 +202,18 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
 	@Override
-	public void registerMessageSent(long changeNumber) {
-		simpleJdbcTemplate.update(SQL_INSERT_SENT_ON_DUPLICATE_UPDATE, changeNumber, null, null);
+	public void registerMessageSent(ChangeMessage message) {
+		DBOSentMessage sent = new DBOSentMessage();
+		sent.setChangeNumber(message.getChangeNumber());
+		sent.setObjectId(KeyFactory.stringToKey(message.getObjectId()));
+		sent.setObjectType(message.getObjectType());
+		basicDao.createOrUpdate(sent);
 	}
 
 	
 	@Override
 	public List<ChangeMessage> listUnsentMessages(long limit) {
-		List<DBOChange> dboList = simpleJdbcTemplate.query(SQL_SELECT_CHANGES_NOT_SENT, rowMapper, limit);
+		List<DBOChange> dboList = jdbcTemplate.query(SQL_SELECT_CHANGES_NOT_SENT, rowMapper, limit);
 		return ChangeMessageUtils.createDTOList(dboList);
 	}
 
@@ -217,19 +221,19 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 	@Override
 	public List<ChangeMessage> listUnsentMessages(long lowerBound,
 			long upperBound) {
-		List<DBOChange> dboList = simpleJdbcTemplate.query(SQL_SELECT_CHANGES_NOT_SENT_IN_RANGE, rowMapper, lowerBound, upperBound);
+		List<DBOChange> dboList = jdbcTemplate.query(SQL_SELECT_CHANGES_NOT_SENT_IN_RANGE, rowMapper, lowerBound, upperBound);
 		return ChangeMessageUtils.createDTOList(dboList);
 	}
 
 	@Override
 	public void registerMessageProcessed(long changeNumber, String queueName) {
-		simpleJdbcTemplate.update(SQL_INSERT_PROCESSED_ON_DUPLICATE_UPDATE, changeNumber, queueName, null, null);
+		jdbcTemplate.update(SQL_INSERT_PROCESSED_ON_DUPLICATE_UPDATE, changeNumber, queueName, null, null);
 		
 	}
 
 	@Override
 	public List<ChangeMessage> listNotProcessedMessages(String queueName, long limit) {
-		List<DBOChange> l = simpleJdbcTemplate.query(SQL_SELECT_CHANGES_NOT_PROCESSED, new DBOChange().getTableMapping(), queueName, limit);
+		List<DBOChange> l = jdbcTemplate.query(SQL_SELECT_CHANGES_NOT_PROCESSED, new DBOChange().getTableMapping(), queueName, limit);
 		return ChangeMessageUtils.createDTOList(l);
 	}
 

@@ -234,11 +234,11 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 	}
 
 	@Override
-	public void registerMessageSent(long changeNumber) throws NotFoundException {
+	public void registerMessageSent(ChangeMessage message) throws NotFoundException {
 		try {
-			this.changeDAO.registerMessageSent(changeNumber);
+			this.changeDAO.registerMessageSent(message);
 		} catch (DataIntegrityViolationException e) {
-			throw new NotFoundException("Change number: '"+changeNumber+"' does not exist");
+			throw new NotFoundException("Change number: '"+message.getChangeNumber()+"' does not exist");
 		}
 	}
 

@@ -132,8 +132,9 @@ public class SqlConstants {
 	public static final String TABLE_SENT_MESSAGES					= "SENT_MESSAGES";
 	public static final String COL_SENT_MESSAGES_CHANGE_NUM			= "CHANGE_NUM";
 	public static final String COL_SENT_MESSAGES_TIME_STAMP			= "TIME_STAMP";
-	public static final String DDL_SENT_MESSAGES					= "schema/SentMessages-ddl.sql";
-
+	public static final String COL_SENT_MESSAGES_OBJECT_ID			= "OBJECT_ID";
+	public static final String COL_SENT_MESSAGES_OBJECT_TYPE		= "OBJECT_TYPE";
+	
  	// Processed messages
  	public static final String TABLE_PROCESSED_MESSAGES				= "PROCESSED_MESSAGES";
  	public static final String COL_PROCESSED_MESSAGES_CHANGE_NUM	= "CHANGE_NUM";

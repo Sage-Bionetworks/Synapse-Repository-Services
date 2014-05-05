@@ -104,7 +104,7 @@ public class DBOChangeDAOImplExperiment {
 		// Insert about 90% of the items into the sent table
 		Collections.shuffle(messages, random);
 		for (int i = 0; i < messages.size() * 0.9; i++) {
-			changeDAO.registerMessageSent(messages.get(i).getChangeNumber());
+			changeDAO.registerMessageSent(messages.get(i));
 			if (i % 1000 == 0) {
 				System.out.println(i);
 			}

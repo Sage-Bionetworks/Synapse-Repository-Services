@@ -363,15 +363,15 @@ public class DBOChangeDAOImplAutowiredTest {
 		List<ChangeMessage> unSent = changeDAO.listUnsentMessages(3); 
 		assertEquals(batch, unSent);
 		// Now register one
-		changeDAO.registerMessageSent(batch.get(1).getChangeNumber());
+		changeDAO.registerMessageSent(batch.get(1));
 		// Need to be able to set the same message twice
-		changeDAO.registerMessageSent(batch.get(1).getChangeNumber());
+		changeDAO.registerMessageSent(batch.get(1));
 		unSent = changeDAO.listUnsentMessages(3);
 		assertNotNull(unSent);
 		assertEquals(1, unSent.size());
 		assertEquals(batch.get(0).getChangeNumber(), unSent.get(0).getChangeNumber());
 		// Register the second
-		changeDAO.registerMessageSent(batch.get(0).getChangeNumber());
+		changeDAO.registerMessageSent(batch.get(0));
 		unSent = changeDAO.listUnsentMessages(3);
 		assertNotNull(unSent);
 		assertEquals(0, unSent.size());
@@ -385,11 +385,11 @@ public class DBOChangeDAOImplAutowiredTest {
 		List<ChangeMessage> notProcessed = processedMessageDAO.listNotProcessedMessages("Q", 3);
 		assertEquals(0, notProcessed.size());
 		// Register sent msgs
-		changeDAO.registerMessageSent(batch.get(0).getChangeNumber());
+		changeDAO.registerMessageSent(batch.get(0));
 		Thread.sleep(500);
-		changeDAO.registerMessageSent(batch.get(1).getChangeNumber());
+		changeDAO.registerMessageSent(batch.get(1));
 		Thread.sleep(500);
-		changeDAO.registerMessageSent(batch.get(2).getChangeNumber());
+		changeDAO.registerMessageSent(batch.get(2));
 		Thread.sleep(500);
 		List<ChangeMessage> notSent = changeDAO.listUnsentMessages(3);
 		assertEquals(0, notSent.size());

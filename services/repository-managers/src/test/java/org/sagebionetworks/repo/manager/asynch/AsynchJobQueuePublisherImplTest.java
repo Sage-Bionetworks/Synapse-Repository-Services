@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.asynch;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -9,7 +10,6 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.dbo.asynch.AsynchJobType;
 import org.sagebionetworks.repo.model.table.AsynchUploadRequestBody;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -21,6 +21,8 @@ import com.amazonaws.services.sqs.model.Message;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class AsynchJobQueuePublisherImplTest {
 	
+	private static long MAX_WAIT = 1000*30;
+	
 	@Autowired
 	AsynchJobQueuePublisher asynchJobQueuePublisher;
 	
@@ -31,7 +33,7 @@ public class AsynchJobQueuePublisherImplTest {
 	}
 	
 	@Test
-	public void testPublishRoundTrip() throws JSONObjectAdapterException{
+	public void testPublishRoundTrip() throws Exception{
 		AsynchronousJobStatus status = new AsynchronousJobStatus();
 		status.setJobId("123");
 		AsynchUploadRequestBody body = new AsynchUploadRequestBody();
@@ -41,12 +43,30 @@ public class AsynchJobQueuePublisherImplTest {
 		// publish it
 		asynchJobQueuePublisher.publishMessage(status);
 		// There should be one message on the queue
-		Message message = asynchJobQueuePublisher.recieveOneMessage(AsynchJobType.UPLOAD);
+		Message message = waitForOneMessage();
 		assertNotNull(message);
 		AsynchronousJobStatus clone = EntityFactory.createEntityFromJSONString(message.getBody(), AsynchronousJobStatus.class);
 		assertEquals(clone, status);
 		// Delete the message
 		asynchJobQueuePublisher.deleteMessage(AsynchJobType.UPLOAD, message);
+	}
+
+	/**
+	 * @return
+	 * @throws InterruptedException 
+	 */
+	public Message waitForOneMessage() throws InterruptedException {
+		long start = System.currentTimeMillis();
+		while(true){
+			Message message = asynchJobQueuePublisher.recieveOneMessage(AsynchJobType.UPLOAD);
+			if(message != null){
+				return message;
+			}else{
+				assertTrue("Timed out waiting for message",System.currentTimeMillis() - start < MAX_WAIT);
+				System.out.println("Waiting for message...");
+				Thread.sleep(1000L);
+			}
+		}
 	}
 
 }
