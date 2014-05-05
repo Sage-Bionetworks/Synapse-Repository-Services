@@ -63,7 +63,17 @@ public class WorkerLoggerImpl implements WorkerLogger {
 		dimension.put(WILL_RETRY_KEY, ""+willRetry);
 		dimension.put(CHANGE_TYPE_KEY, changeMessage.getChangeType().name());
 		dimension.put(OBJECT_TYPE_KEY, changeMessage.getObjectType().name());
-		String stackTraceAsString = (cause==null ? "" : ExceptionUtils.getStackTrace(cause));
+		String stackTraceAsString = "";
+		if (cause!=null) {
+			stackTraceAsString = ExceptionUtils.getStackTrace(cause);
+			String message = cause.getMessage();
+			if (message!=null && message.length()>0) {
+				int i = stackTraceAsString.indexOf(message);
+				if (i>=0) {
+					stackTraceAsString = stackTraceAsString.substring(0, i)+stackTraceAsString.substring(i+message.length());
+				}
+			}
+		}
 		dimension.put(STACK_TRACE_KEY, stackTraceAsString);
 		nextPD.setDimension(dimension);
 		

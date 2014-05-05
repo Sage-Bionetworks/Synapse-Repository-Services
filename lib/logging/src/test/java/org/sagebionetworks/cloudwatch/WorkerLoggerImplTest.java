@@ -8,6 +8,7 @@ import static org.mockito.Matchers.anyObject;
 import java.util.Date;
 import java.util.Map;
 
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -27,7 +28,9 @@ public class WorkerLoggerImplTest {
 		changeMessage.setObjectType(ObjectType.ENTITY);
 		boolean willRetry = false;
 		Date timestamp = new Date();
-		ProfileData pd = WorkerLoggerImpl.makeProfileDataDTO(workerClass, changeMessage, null, willRetry, timestamp);
+		String message = "Entity syn12345 failed";
+		Throwable throwable = new Exception(message);
+		ProfileData pd = WorkerLoggerImpl.makeProfileDataDTO(workerClass, changeMessage, throwable, willRetry, timestamp);
 
 		assertNull(pd.getMetricStats());
 		assertEquals("org.sagebionetworks.cloudwatch.WorkerLogger", pd.getName());
@@ -40,6 +43,16 @@ public class WorkerLoggerImplTest {
 		assertEquals("false", dimension.get("willRetry"));
 		assertEquals("CREATE", dimension.get("changeType"));
 		assertEquals("ENTITY", dimension.get("objectType"));
+		
+		String origStackTrace = ExceptionUtils.getStackTrace(throwable);
+		String retrievedStackTrace = dimension.get("stackTrace");
+		// check that the message has been removed
+		assertTrue(retrievedStackTrace.indexOf(message)<0);
+		// check that after the first (modified) line they are the same
+		assertEquals(
+				origStackTrace.substring(origStackTrace.indexOf("at")),
+				retrievedStackTrace.substring(retrievedStackTrace.indexOf("at"))
+		);
 	}
 	
 	@Test
