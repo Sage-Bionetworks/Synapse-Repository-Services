@@ -174,7 +174,6 @@
             ref="stackConfiguration.migrationBackupBatchMax" />
         <property name="migrationListeners" >
             <list>
-                <bean class="org.sagebionetworks.evaluation.manager.SubmissionMigrationListener"/>
             </list>
         </property>
     </bean>

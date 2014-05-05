@@ -154,8 +154,6 @@ public class EvaluationManagerTest {
 		when(mockEvaluationSubmissionsDAO.lockAndGetForEvaluation(EVALUATION_ID_LONG)).thenThrow(new NotFoundException());
 		evaluationManager.updateEvaluation(ownerInfo, evalWithId);
 		verify(mockEvaluationDAO).update(eq(evalWithId));
-		verify(mockEvaluationSubmissionsDAO).lockAndGetForEvaluation(EVALUATION_ID_LONG);
-		verify(mockEvaluationSubmissionsDAO).createForEvaluation(EVALUATION_ID_LONG);
 	}
 	
 	@Test
