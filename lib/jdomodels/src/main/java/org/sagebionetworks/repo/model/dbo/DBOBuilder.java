@@ -124,6 +124,16 @@ public class DBOBuilder<T> {
 		}
 	}
 	
+	private static class TimestampRowMapper extends BaseRowMapper {
+		public TimestampRowMapper(Method fieldSetter, String columnName, boolean nullable) {
+			super(fieldSetter, columnName, nullable);
+		}
+
+		public Object getValue(ResultSet rs, String columnName) throws SQLException {
+			return  rs.getTimestamp(columnName);
+		}
+	}
+	
 	private static class BooleanRowMapper extends BaseRowMapper{
 
 		public BooleanRowMapper(Method fieldSetter, String columnName,
@@ -238,7 +248,7 @@ public class DBOBuilder<T> {
 				}
 				
 				if (fieldEntry.field.getType() == Timestamp.class) {
-					return new DateRowMapper(setterMethod, fieldEntry.annotation.name(), fieldEntry.annotation.nullable());
+					return new TimestampRowMapper(setterMethod, fieldEntry.annotation.name(), fieldEntry.annotation.nullable());
 				}
 				
 				if (fieldEntry.field.getType() == Boolean.class) {
