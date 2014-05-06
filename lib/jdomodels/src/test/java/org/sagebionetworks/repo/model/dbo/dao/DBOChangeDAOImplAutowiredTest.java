@@ -378,6 +378,28 @@ public class DBOChangeDAOImplAutowiredTest {
 	}
 	
 	@Test
+	public void testUpdateSentMessageSameIdDifferentType(){
+		// Create a few messages.
+		List<ChangeMessage> batch = createList(2, ObjectType.ENTITY);
+		ChangeMessage zero = batch.get(0);
+		zero.setObjectId("123");
+		zero.setObjectType(ObjectType.ENTITY);
+		ChangeMessage one = batch.get(1);
+		one.setObjectId("123");
+		one.setObjectType(ObjectType.TABLE);
+		// Pass the batch.
+		batch  = changeDAO.replaceChange(batch);
+		// Register as sent
+		changeDAO.registerMessageSent(batch.get(0));
+		changeDAO.registerMessageSent(batch.get(1));
+		// Pass the batch.
+		batch  = changeDAO.replaceChange(batch);
+		// again
+		changeDAO.registerMessageSent(batch.get(0));
+		changeDAO.registerMessageSent(batch.get(1));
+	}
+	
+	@Test
 	public void testRegisterProcessedAndListNotProcessed() throws Exception{
 		// Create msgs
 		List<ChangeMessage> batch = createList(3, ObjectType.ENTITY);
