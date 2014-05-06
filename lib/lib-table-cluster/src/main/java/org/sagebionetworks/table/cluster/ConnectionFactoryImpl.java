@@ -9,9 +9,6 @@ import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.springframework.jdbc.datasource.DataSourceTransactionManager;
-import org.springframework.jdbc.datasource.TransactionAwareDataSourceProxy;
 
 import com.amazonaws.services.rds.AmazonRDSClient;
 import com.amazonaws.services.rds.model.DBInstance;
@@ -26,6 +23,10 @@ import com.amazonaws.services.rds.model.DBInstance;
 public class ConnectionFactoryImpl implements ConnectionFactory {
 	
 	Logger log = LogManager.getLogger(ConnectionFactoryImpl.class);
+	
+	private static final String USE_DATABASE = "USE ";
+	private static final String CREATE_DATABASE = "CREATE DATABASE ";
+	private static final String DROP_DATABASE = "DROP DATABASE ";
 	
 	@Autowired
 	AmazonRDSClient awsRDSClient;
@@ -65,7 +66,7 @@ public class ConnectionFactoryImpl implements ConnectionFactory {
 			// This will be improved in the future.  For now we just use the first database we find
 			DBInstance instance = instances.get(0);
 			// Use the one instance to create a single connection pool
-			singleConnectionPool = InstanceUtils.createNewDatabaseConnectionPool(stackConfig, instance);			
+			singleConnectionPool = InstanceUtils.createNewDatabaseConnectionPool(stackConfig, instance);
 		}else{
 			log.debug("The table feature is disabled and cannot be used");
 		}
@@ -90,6 +91,19 @@ public class ConnectionFactoryImpl implements ConnectionFactory {
 			log.debug("Closing connection pool to: "+singleConnectionPool.getUrl());
 			singleConnectionPool.close();
 		}
+	}
+
+	@Override
+	public void dropAllTablesForAllConnections() {
+		// For now we only have one database
+		if(this.singleConnectionPool != null){
+			String schema = InstanceUtils.createDatabaseSchemaName(stackConfig.getStack(), stackConfig.getStackInstance());
+			JdbcTemplate template = new JdbcTemplate(this.singleConnectionPool);
+			template.update(DROP_DATABASE+schema);
+			template.update(CREATE_DATABASE+schema);
+			template.update(USE_DATABASE+schema);
+		}
+		
 	}
 
 }
