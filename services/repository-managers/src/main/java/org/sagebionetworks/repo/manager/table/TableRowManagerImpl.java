@@ -22,6 +22,8 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.semaphore.ExclusiveOrSharedSemaphoreRunner;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.RowAccessor;
+import org.sagebionetworks.repo.model.dao.table.RowAndHeaderHandler;
+import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dao.table.RowSetAccessor;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
@@ -313,20 +315,14 @@ public class TableRowManagerImpl implements TableRowManager {
 		if(user == null) throw new IllegalArgumentException("UserInfo cannot be null");
 		if(sql == null) throw new IllegalArgumentException("Query SQL string cannot be null");
 		// First parse the SQL
-		QuerySpecification model = parserQuery(sql);
-		// Do they want use to convert it to a count query?
-		if(countOnly){
-			model = convertToCountQuery(model);
-		}
-		String tableId = SqlElementUntils.getTableId(model);
+		final SqlQuery query = createQuery(sql, countOnly);
 		// Validate the user has read access on this object
-		if(!authorizationManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)){
-			throw new UnauthorizedException("User does not have READ permission on: "+tableId);
+		if(!authorizationManager.canAccess(user, query.getTableId(), ObjectType.ENTITY, ACCESS_TYPE.READ)){
+			throw new UnauthorizedException("User does not have READ permission on: "+query.getTableId());
 		}
 		// Lookup the column models for this table
-		List<ColumnModel> columnModels = columnModelDAO.getColumnModelsForObject(tableId);
-		Map<String, ColumnModel> columnNameToModelMap = TableModelUtils.createColumnNameToModelMap(columnModels);
-		final SqlQuery query = new SqlQuery(model, columnNameToModelMap);
+		List<ColumnModel> columnModels = columnModelDAO.getColumnModelsForObject(query.getTableId());
+
 		// Does this table exist?
 		if(columnModels == null | columnModels.isEmpty()){
 			// there are no columns for this table so the table does not actually exist.
@@ -341,7 +337,7 @@ public class TableRowManagerImpl implements TableRowManager {
 		if(isConsistent){
 			// A consistent query is only run if the table index is available and up-to-date
 			// with the table state.  A read-lock on the index will be held while the query is run.
-			return runConsistentQuery(tableId, query);
+			return runConsistentQuery(query);
 		}else{
 			// This path queries the table index regardless of the state of the index and without a
 			// read-lock.
@@ -349,6 +345,20 @@ public class TableRowManagerImpl implements TableRowManager {
 		}
 	}
 	
+	@Override
+	public SqlQuery createQuery(String sql,boolean countOnly){
+		// First parse the SQL
+		QuerySpecification model = parserQuery(sql);
+		// Do they want use to convert it to a count query?
+		if(countOnly){
+			model = convertToCountQuery(model);
+		}
+		String tableId = SqlElementUntils.getTableId(model);
+		// Lookup the column models for this table
+		List<ColumnModel> columnModels = columnModelDAO.getColumnModelsForObject(tableId);
+		Map<String, ColumnModel> columnNameToModelMap = TableModelUtils.createColumnNameToModelMap(columnModels);
+		return new SqlQuery(model, columnNameToModelMap);
+	}
 
 	/**
 	 * Validate that a query result will be under the max size.
@@ -383,33 +393,62 @@ public class TableRowManagerImpl implements TableRowManager {
 	}
 	
 	/**
-	 * 
+	 * Run a consistent query.  All resulting rows will be loading into memory at one time with this method.
 	 * @param tableId
 	 * @param query
 	 * @return
 	 * @throws TableUnavilableException
 	 */
-	private RowSet runConsistentQuery(final String tableId, final SqlQuery query) throws TableUnavilableException{
+	@Override
+	public RowSet runConsistentQuery(final SqlQuery query) throws TableUnavilableException{
+		final RowSet results = new RowSet();
+		final List<Row> rows = new LinkedList<Row>();
+		results.setRows(rows);
+		String etag = runConsistentQueryAsStream(query, new RowAndHeaderHandler() {
+			
+			@Override
+			public void nextRow(Row row) {
+				rows.add(row);
+			}
+			
+			@Override
+			public void setHeaderColumnIds(List<String> headers) {
+				results.setHeaders(headers);
+			}
+		});
+		results.setTableId(query.getTableId());
+		results.setEtag(etag);
+		return results;
+	}
+	
+	/**
+	 * Run a consistent query and stream the results.  Use this method to avoid loading all rows into memory at one time.
+	 * @param query
+	 * @param handler
+	 * @return
+	 * @throws TableUnavilableException
+	 */
+	@Override
+	public String runConsistentQueryAsStream(final SqlQuery query, final RowAndHeaderHandler handler) throws TableUnavilableException{
 		try {
 			// Run with a read lock.
-			return tryRunWithTableNonexclusiveLock(tableId, tableReadTimeoutMS, new Callable<RowSet>() {
+			return tryRunWithTableNonexclusiveLock(query.getTableId(), tableReadTimeoutMS, new Callable<String>() {
 				@Override
-				public RowSet call() throws Exception {
+				public String call() throws Exception {
 					// We can only run this query if the table  is available.
-					TableStatus status = getTableStatus(tableId);
+					TableStatus status = getTableStatus(query.getTableId());
 					if(!TableState.AVAILABLE.equals(status.getState())){
 						// When the table is not available, we communicate the current status of the 
 						// table in this exception.
 						throw new TableUnavilableException(status);
 					}
 					// We can only run this 
-					RowSet results =  query(query);
-					results.setEtag(status.getLastTableChangeEtag());
-					return results;
+					queryAsStream(query, handler);
+					return status.getLastTableChangeEtag();
 				}
 			});
 		} catch (LockUnavilableException e) {
-			TableUnavilableException e1 = createTableUnavilableException(tableId);
+			TableUnavilableException e1 = createTableUnavilableException(query.getTableId());
 			throw e1;
 		} catch(TableUnavilableException e){
 			throw e;
@@ -438,6 +477,16 @@ public class TableRowManagerImpl implements TableRowManager {
 		// Get a connection
 		TableIndexDAO indexDao = tableConnectionFactory.getConnection(query.getTableId());
 		return indexDao.query(query);
+	}
+	
+	/**
+	 * Query a query and stream the results.
+	 * @param query
+	 * @param handler
+	 */
+	private void queryAsStream(SqlQuery query, RowAndHeaderHandler handler){
+		TableIndexDAO indexDao = tableConnectionFactory.getConnection(query.getTableId());
+		indexDao.queryAsStream(query, handler);
 	}
 	
 	/**

@@ -8,6 +8,7 @@ import java.util.concurrent.Callable;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dao.table.RowAndHeaderHandler;
 import org.sagebionetworks.repo.model.exception.LockUnavilableException;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.Row;
@@ -19,6 +20,7 @@ import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.table.cluster.SqlQuery;
 
 /**
  * Abstraction for Table Row management.
@@ -282,4 +284,36 @@ public interface TableRowManager {
 	public RowSet query(UserInfo user, String sql, boolean isConsistent,
 			boolean countOnly) throws DatastoreException, NotFoundException,
 			TableUnavilableException;
+
+	/**
+	 * Create an query object for the given SQL.
+	 * 
+	 * @param sql
+	 * @param countOnly
+	 * @return
+	 */
+	SqlQuery createQuery(String sql, boolean countOnly);
+
+	/**
+	 * Run a query while holding a non-exclusive lock (read lock) on the table.  This method will load all 
+	 * resulting rows into memory at on time an should only be used if there is a limit to the number of rows read.
+	 * 
+	 * @param query
+	 * @return
+	 * @throws TableUnavilableException
+	 */
+	RowSet runConsistentQuery(SqlQuery query) throws TableUnavilableException;
+
+	/**
+	 * Run a query while holding a non-exclusive lock (read lock) on the table.
+	 * This method will stream over the rows and will not load all rows into memory at the same time.
+	 * This method can be used to stream over results sets that are larger than the available system memory.
+	 * @param query
+	 * @param handler
+	 * @return The etag of the last change set applied to the table index.
+	 * @throws TableUnavilableException
+	 */
+	String runConsistentQueryAsStream(SqlQuery query,
+			RowAndHeaderHandler handler) throws TableUnavilableException;
+
 }
