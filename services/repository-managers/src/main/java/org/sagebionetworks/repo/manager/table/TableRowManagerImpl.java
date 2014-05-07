@@ -325,8 +325,8 @@ public class TableRowManagerImpl implements TableRowManager {
 		}
 		// Lookup the column models for this table
 		List<ColumnModel> columnModels = columnModelDAO.getColumnModelsForObject(tableId);
-		Map<String, Long> columnNameToIdMap = TableModelUtils.createColumnNameToIdMap(columnModels);
-		final SqlQuery query = new SqlQuery(model, columnNameToIdMap);
+		Map<String, ColumnModel> columnNameToModelMap = TableModelUtils.createColumnNameToModelMap(columnModels);
+		final SqlQuery query = new SqlQuery(model, columnNameToModelMap);
 		// Does this table exist?
 		if(columnModels == null | columnModels.isEmpty()){
 			// there are no columns for this table so the table does not actually exist.
