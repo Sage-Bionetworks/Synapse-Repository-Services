@@ -1,65 +1,22 @@
 package org.sagebionetworks.table.cluster;
 
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
+
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
 import org.joda.time.DateTime;
-import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.DateTimeFormatterBuilder;
-import org.joda.time.format.DateTimeParser;
 import org.sagebionetworks.collections.Transform;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.TableConstants;
-import org.sagebionetworks.table.query.model.ActualIdentifier;
-import org.sagebionetworks.table.query.model.BetweenPredicate;
-import org.sagebionetworks.table.query.model.BooleanFactor;
-import org.sagebionetworks.table.query.model.BooleanPrimary;
-import org.sagebionetworks.table.query.model.BooleanTerm;
-import org.sagebionetworks.table.query.model.BooleanTest;
-import org.sagebionetworks.table.query.model.CharacterFactor;
-import org.sagebionetworks.table.query.model.CharacterPrimary;
-import org.sagebionetworks.table.query.model.CharacterValueExpression;
-import org.sagebionetworks.table.query.model.ColumnName;
-import org.sagebionetworks.table.query.model.ColumnReference;
-import org.sagebionetworks.table.query.model.ComparisonPredicate;
-import org.sagebionetworks.table.query.model.DerivedColumn;
-import org.sagebionetworks.table.query.model.EscapeCharacter;
-import org.sagebionetworks.table.query.model.GroupByClause;
-import org.sagebionetworks.table.query.model.GroupingColumnReference;
-import org.sagebionetworks.table.query.model.GroupingColumnReferenceList;
-import org.sagebionetworks.table.query.model.Identifier;
-import org.sagebionetworks.table.query.model.InPredicate;
-import org.sagebionetworks.table.query.model.InPredicateValue;
-import org.sagebionetworks.table.query.model.InValueList;
-import org.sagebionetworks.table.query.model.LikePredicate;
-import org.sagebionetworks.table.query.model.NullPredicate;
-import org.sagebionetworks.table.query.model.OrderByClause;
-import org.sagebionetworks.table.query.model.Pagination;
-import org.sagebionetworks.table.query.model.Pattern;
-import org.sagebionetworks.table.query.model.Predicate;
-import org.sagebionetworks.table.query.model.QuerySpecification;
-import org.sagebionetworks.table.query.model.RowValueConstructor;
-import org.sagebionetworks.table.query.model.RowValueConstructorElement;
-import org.sagebionetworks.table.query.model.SearchCondition;
-import org.sagebionetworks.table.query.model.SelectList;
-import org.sagebionetworks.table.query.model.SetFunctionSpecification;
-import org.sagebionetworks.table.query.model.SortKey;
-import org.sagebionetworks.table.query.model.SortSpecification;
-import org.sagebionetworks.table.query.model.SortSpecificationList;
-import org.sagebionetworks.table.query.model.StringValueExpression;
-import org.sagebionetworks.table.query.model.TableExpression;
-import org.sagebionetworks.table.query.model.UnsignedLiteral;
-import org.sagebionetworks.table.query.model.UnsignedValueSpecification;
-import org.sagebionetworks.table.query.model.ValueExpression;
-import org.sagebionetworks.table.query.model.ValueExpressionPrimary;
-import org.sagebionetworks.table.query.model.WhereClause;
+import org.sagebionetworks.table.query.model.*;
 
 import com.google.common.base.Function;
-
-import static org.sagebionetworks.repo.model.table.TableConstants.*;
 
 /**
  * Helper methods to translate table SQL queries.
@@ -68,8 +25,6 @@ import static org.sagebionetworks.repo.model.table.TableConstants.*;
  *
  */
 public class SQLTranslatorUtils {
-
-	public static final boolean USE_SQL_TO_PARSE_DATE = false;
 
 	public static final DateTimeFormatter dateParser;
 	
@@ -893,15 +848,9 @@ public class SQLTranslatorUtils {
 			if (isNumber(primary.getUnsignedValueSpecification())) {
 				builder.append(":").append(bindKey);
 			} else {
-				if (USE_SQL_TO_PARSE_DATE) {
-					builder.append("(1000*unix_timestamp(:");
-					builder.append(bindKey);
-					builder.append("))");
-				} else {
-					builder.append(":").append(bindKey);
-					DateTime parsedDateTime = dateParser.parseDateTime(value);
-					value = Long.toString(parsedDateTime.getMillis());
-				}
+				builder.append(":").append(bindKey);
+				DateTime parsedDateTime = dateParser.parseDateTime(value);
+				value = Long.toString(parsedDateTime.getMillis());
 			}
 			break;
 		default:

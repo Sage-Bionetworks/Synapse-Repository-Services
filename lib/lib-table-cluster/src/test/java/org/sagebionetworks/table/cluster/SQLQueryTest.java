@@ -32,9 +32,9 @@ import com.google.common.collect.Lists;
 public class SQLQueryTest {
 	
 	private static final String DATE1 = "11-11-11";
-	private static final String DATE1TIME = "1320998400000";
+	private static final String DATE1TIME = "1320969600000";
 
-	private static final String DATE2TIME = "1298361600000";
+	private static final String DATE2TIME = "1298332800000";
 	private static final String DATE2 = "11-02-22";
 
 	Map<String, ColumnModel> columnNameToModelMap;
@@ -228,41 +228,39 @@ public class SQLQueryTest {
 		StringBuilder builder = new StringBuilder();
 		HashMap<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translate(predicate, builder, parameters, columnNameToModelMap);
-		assertEquals(SQLTranslatorUtils.USE_SQL_TO_PARSE_DATE ? "C666 <> (1000*unix_timestamp(:b0))" : "C666 <> :b0", builder.toString());
-		assertEquals(SQLTranslatorUtils.USE_SQL_TO_PARSE_DATE ? "11-11-2011 11:11" : DATE1TIME, parameters.get("b0"));
+		assertEquals("C666 <> :b0", builder.toString());
+		assertEquals(DATE1TIME, parameters.get("b0"));
 	}
 
 	@Test
 	public void testComparisonPredicateDateParsing() throws ParseException {
-		if (!SQLTranslatorUtils.USE_SQL_TO_PARSE_DATE) {
-			for (String date : new String[] { DATE1, "2011-11-11", "2011-11-11 0:00", "2011-11-11 0:00:00", "2011-11-11 0:00:00.0",
-					"2011-11-11 0:00:00.00", "2011-11-11 0:00:00.000" }) {
-				StringBuilder builder = new StringBuilder();
-				HashMap<String, Object> parameters = new HashMap<String, Object>();
+		for (String date : new String[] { DATE1, "2011-11-11", "2011-11-11 0:00", "2011-11-11 0:00:00", "2011-11-11 0:00:00.0",
+				"2011-11-11 0:00:00.00", "2011-11-11 0:00:00.000" }) {
+			StringBuilder builder = new StringBuilder();
+			HashMap<String, Object> parameters = new HashMap<String, Object>();
 
-				SQLTranslatorUtils.translate(SqlElementUntils.createPredicate("datetype <> '" + date + "'"), builder, parameters,
-						columnNameToModelMap);
-				assertEquals("C666 <> :b0", builder.toString());
-				assertEquals(DATE1TIME, parameters.get("b0"));
-			}
-			for (String date : new String[] { "2001-01-01", "2001-01-01", "2001-1-1", "2001-1-01", "2001-01-1" }) {
-				StringBuilder builder = new StringBuilder();
-				HashMap<String, Object> parameters = new HashMap<String, Object>();
+			SQLTranslatorUtils.translate(SqlElementUntils.createPredicate("datetype <> '" + date + "'"), builder, parameters,
+					columnNameToModelMap);
+			assertEquals("C666 <> :b0", builder.toString());
+			assertEquals(DATE1TIME, parameters.get("b0"));
+		}
+		for (String date : new String[] { "2001-01-01", "2001-01-01", "2001-1-1", "2001-1-01", "2001-01-1" }) {
+			StringBuilder builder = new StringBuilder();
+			HashMap<String, Object> parameters = new HashMap<String, Object>();
 
-				SQLTranslatorUtils.translate(SqlElementUntils.createPredicate("datetype <> '" + date + "'"), builder, parameters,
-						columnNameToModelMap);
-				assertEquals("C666 <> :b0", builder.toString());
-				assertEquals("978336000000", parameters.get("b0"));
-			}
-			for (String date : new String[] { "2011-11-11 01:01:01.001", "2011-11-11 1:01:1.001", "2011-11-11 1:1:1.001" }) {
-				StringBuilder builder = new StringBuilder();
-				HashMap<String, Object> parameters = new HashMap<String, Object>();
+			SQLTranslatorUtils.translate(SqlElementUntils.createPredicate("datetype <> '" + date + "'"), builder, parameters,
+					columnNameToModelMap);
+			assertEquals("C666 <> :b0", builder.toString());
+			assertEquals("978307200000", parameters.get("b0"));
+		}
+		for (String date : new String[] { "2011-11-11 01:01:01.001", "2011-11-11 1:01:1.001", "2011-11-11 1:1:1.001" }) {
+			StringBuilder builder = new StringBuilder();
+			HashMap<String, Object> parameters = new HashMap<String, Object>();
 
-				SQLTranslatorUtils.translate(SqlElementUntils.createPredicate("datetype <> '" + date + "'"), builder, parameters,
-						columnNameToModelMap);
-				assertEquals("C666 <> :b0", builder.toString());
-				assertEquals("1321002061001", parameters.get("b0"));
-			}
+			SQLTranslatorUtils.translate(SqlElementUntils.createPredicate("datetype <> '" + date + "'"), builder, parameters,
+					columnNameToModelMap);
+			assertEquals("C666 <> :b0", builder.toString());
+			assertEquals("1320973261001", parameters.get("b0"));
 		}
 	}
 
@@ -294,10 +292,9 @@ public class SQLQueryTest {
 		StringBuilder builder = new StringBuilder();
 		HashMap<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translate(predicate, builder, parameters, columnNameToModelMap);
-		assertEquals(SQLTranslatorUtils.USE_SQL_TO_PARSE_DATE ? "C666 IN ((1000*unix_timestamp(:b0)), (1000*unix_timestamp(:b1)))"
-				: "C666 IN (:b0, :b1)", builder.toString());
-		assertEquals(SQLTranslatorUtils.USE_SQL_TO_PARSE_DATE ? DATE1 : DATE1TIME, parameters.get("b0"));
-		assertEquals(SQLTranslatorUtils.USE_SQL_TO_PARSE_DATE ? DATE2 : DATE2TIME, parameters.get("b1"));
+		assertEquals("C666 IN (:b0, :b1)", builder.toString());
+		assertEquals(DATE1TIME, parameters.get("b0"));
+		assertEquals(DATE2TIME, parameters.get("b1"));
 	}
 
 	@Test
@@ -317,10 +314,9 @@ public class SQLQueryTest {
 		StringBuilder builder = new StringBuilder();
 		HashMap<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translate(predicate, builder, parameters, columnNameToModelMap);
-		assertEquals(SQLTranslatorUtils.USE_SQL_TO_PARSE_DATE ? "C666 BETWEEN (1000*unix_timestamp(:b0)) AND (1000*unix_timestamp(:b1))"
-				: "C666 BETWEEN :b0 AND :b1", builder.toString());
-		assertEquals(SQLTranslatorUtils.USE_SQL_TO_PARSE_DATE ? DATE1 : DATE1TIME, parameters.get("b0"));
-		assertEquals(SQLTranslatorUtils.USE_SQL_TO_PARSE_DATE ? DATE2 : DATE2TIME, parameters.get("b1"));
+		assertEquals("C666 BETWEEN :b0 AND :b1", builder.toString());
+		assertEquals(DATE1TIME, parameters.get("b0"));
+		assertEquals(DATE2TIME, parameters.get("b1"));
 	}
 
 	@Test
