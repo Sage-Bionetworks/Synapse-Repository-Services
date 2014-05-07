@@ -7,36 +7,24 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
 import javax.sql.DataSource;
 
-import org.sagebionetworks.repo.model.dao.table.RowHandler;
+import org.sagebionetworks.repo.model.dao.table.RowAndHeaderHandler;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
-import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.PreparedStatementCreator;
-import org.springframework.jdbc.core.PreparedStatementCreatorFactory;
-import org.springframework.jdbc.core.ResultSetExtractor;
 import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
-import org.springframework.jdbc.core.SqlParameter;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.jdbc.core.namedparam.NamedParameterUtils;
-import org.springframework.jdbc.core.namedparam.ParsedSql;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
-import org.springframework.jdbc.datasource.SingleConnectionDataSource;
-import org.springframework.jdbc.datasource.TransactionAwareDataSourceProxy;
-import org.springframework.jdbc.support.rowset.SqlRowSet;
-import org.springframework.jdbc.support.rowset.SqlRowSetMetaData;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
@@ -199,22 +187,27 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			throw new IllegalArgumentException("SqlQuery cannot be null");
 		
 		final List<Row> rows = new LinkedList<Row>();
-		RowSet rowSet = new RowSet();
+		final RowSet rowSet = new RowSet();
 		rowSet.setRows(rows);
 		// Stream over the results and save the results in a a list
-		List<String> headers = queryAsStream(query, new RowHandler() {
+		queryAsStream(query, new RowAndHeaderHandler() {
 			@Override
 			public void nextRow(Row row) {
 				rows.add(row);
 			}
+			
+			@Override
+			public void setHeaderColumnIds(List<String> headers) {
+				rowSet.setHeaders(headers);
+				
+			}
 		});
-		rowSet.setHeaders(headers);
 		rowSet.setTableId(query.getTableId());
 		return rowSet;
 	}
 	
 	@Override
-	public List<String> queryAsStream(final SqlQuery query, final RowHandler handler) {
+	public void queryAsStream(final SqlQuery query, final RowAndHeaderHandler handler) {
 		if(query == null) throw new IllegalArgumentException("Query cannot be null");
 		final List<String> headers = new LinkedList<String>();
 		final List<Integer> nonMetadataColumnIndicies = new LinkedList<Integer>();
@@ -228,6 +221,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 					// Read the headers from the result set
 					populateHeadersFromResultsSet(headers,
 							nonMetadataColumnIndicies, metadata);
+					handler.setHeaderColumnIds(headers);
 				}
 				// Read the results into a new list
 				List<String> values = new LinkedList<String>();
@@ -246,7 +240,6 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				handler.nextRow(row);
 			}
 		});
-		return headers;
 	}
 
 	static void populateHeadersFromResultsSet(List<String> headers,
