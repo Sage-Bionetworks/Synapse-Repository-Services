@@ -41,12 +41,12 @@ public class AsynchJobQueuePublisherImplTest {
 		// publish it
 		asynchJobQueuePublisher.publishMessage(status);
 		// There should be one message on the queue
-		Message message = asynchJobQueuePublisher.recieveOneMessage(AsynchJobType.UPLOAD);
+		Message message = asynchJobQueuePublisher.recieveOneMessage(AsynchJobType.UPLOAD_CSV_TO_TABLE);
 		assertNotNull(message);
 		AsynchronousJobStatus clone = EntityFactory.createEntityFromJSONString(message.getBody(), AsynchronousJobStatus.class);
 		assertEquals(clone, status);
 		// Delete the message
-		asynchJobQueuePublisher.deleteMessage(AsynchJobType.UPLOAD, message);
+		asynchJobQueuePublisher.deleteMessage(AsynchJobType.UPLOAD_CSV_TO_TABLE, message);
 	}
 
 }

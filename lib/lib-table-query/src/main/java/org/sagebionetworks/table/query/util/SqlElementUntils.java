@@ -436,6 +436,17 @@ public class SqlElementUntils {
 		if(querySpecification == null) throw new IllegalArgumentException("QuerySpecification cannot be null");
 		return getTableId(querySpecification.getTableExpression());
 	}
+	
+	/**
+	 * Get the tableId from the passed SQL string.
+	 * @param sql
+	 * @return
+	 * @throws ParseException
+	 */
+	public static String getTableId(String sql) throws ParseException {
+		if(sql == null) throw new IllegalArgumentException("SQL cannot be null");
+		return getTableId(new TableQueryParser(sql).querySpecification());
+	}
 
 	/**
 	 * Get the tableId from a TableExpression

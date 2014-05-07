@@ -3,6 +3,8 @@ package org.sagebionetworks.repo.model.dbo.asynch;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
+import org.sagebionetworks.repo.model.table.AsynchDownloadRequestBody;
+import org.sagebionetworks.repo.model.table.AsynchDownloadResponseBody;
 import org.sagebionetworks.repo.model.table.AsynchUploadRequestBody;
 import org.sagebionetworks.repo.model.table.AsynchUploadResponseBody;
 
@@ -14,10 +16,8 @@ import org.sagebionetworks.repo.model.table.AsynchUploadResponseBody;
  */
 public enum AsynchJobType {
 	
-	
-
-	UPLOAD(AsynchUploadRequestBody.class, AsynchUploadResponseBody.class,  StackConfiguration.singleton().getTableCSVUploadQueueName());
-	
+	UPLOAD_CSV_TO_TABLE(AsynchUploadRequestBody.class, AsynchUploadResponseBody.class,  StackConfiguration.singleton().getTableCSVUploadQueueName()),
+	DOWNLOAD_CSV_FROM_TABLE(AsynchDownloadRequestBody.class, AsynchDownloadResponseBody.class,  StackConfiguration.singleton().getTableCSVDownloadQueueName());
 	
 	private Class<? extends AsynchronousRequestBody> requestClass;
 	private Class<? extends AsynchronousResponseBody> responseClass;
