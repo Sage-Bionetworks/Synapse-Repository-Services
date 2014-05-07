@@ -86,6 +86,8 @@ public class TableWorkerIntegrationTest {
 		// Get the admin user
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		this.tableId = null;
+		// Start with an empty database
+		this.tableConnectionFactory.dropAllTablesForAllConnections();
 	}
 	
 	@After
@@ -93,19 +95,8 @@ public class TableWorkerIntegrationTest {
 		if(config.getTableEnabled()){
 			// cleanup
 			columnManager.truncateAllColumnData(adminUserInfo);
-			
-			if(tableId != null){
-				try {
-					entityManager.deleteEntity(adminUserInfo, tableId);
-				} catch (Exception e) {	} 
-				
-				TableIndexDAO dao = tableConnectionFactory.getConnection(tableId);
-				if(dao != null){
-					try {
-						dao.deleteTable(tableId);
-					} catch (Exception e) {	}
-				}
-			}
+			// Drop all data in the index database
+			this.tableConnectionFactory.dropAllTablesForAllConnections();
 		}
 	}
 

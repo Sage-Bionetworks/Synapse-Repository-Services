@@ -15,4 +15,10 @@ public interface ConnectionFactory {
 	 * @return
 	 */
 	TableIndexDAO getConnection(String tableId);
+	
+	/**
+	 * Drop all tables in every database connectoin.
+	 * 
+	 */
+	void dropAllTablesForAllConnections();
 }
