@@ -7,24 +7,36 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
 import javax.sql.DataSource;
 
+import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.PreparedStatementCreator;
+import org.springframework.jdbc.core.PreparedStatementCreatorFactory;
+import org.springframework.jdbc.core.ResultSetExtractor;
+import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
+import org.springframework.jdbc.core.SqlParameter;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterUtils;
+import org.springframework.jdbc.core.namedparam.ParsedSql;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 import org.springframework.jdbc.datasource.TransactionAwareDataSourceProxy;
+import org.springframework.jdbc.support.rowset.SqlRowSet;
+import org.springframework.jdbc.support.rowset.SqlRowSetMetaData;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
@@ -185,45 +197,56 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	public RowSet query(final SqlQuery query) {
 		if (query == null)
 			throw new IllegalArgumentException("SqlQuery cannot be null");
+		
+		final List<Row> rows = new LinkedList<Row>();
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(rows);
+		// Stream over the results and save the results in a a list
+		List<String> headers = queryAsStream(query, new RowHandler() {
+			@Override
+			public void nextRow(Row row) {
+				rows.add(row);
+			}
+		});
+		rowSet.setHeaders(headers);
+		rowSet.setTableId(query.getTableId());
+		return rowSet;
+	}
+	
+	@Override
+	public List<String> queryAsStream(final SqlQuery query, final RowHandler handler) {
+		if(query == null) throw new IllegalArgumentException("Query cannot be null");
 		final List<String> headers = new LinkedList<String>();
 		final List<Integer> nonMetadataColumnIndicies = new LinkedList<Integer>();
-		// Get the rows for this query from the database.
+		// We use spring to create create the prepared statement
 		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
-		List<Row> rows = namedTemplate.query(query.getOutputSQL(), new MapSqlParameterSource(query.getParameters()),
-				new RowMapper<Row>() {
-					@Override
-					public Row mapRow(ResultSet rs, int rowNum)
-							throws SQLException {
-						ResultSetMetaData metadata = rs.getMetaData();
-						if (headers.isEmpty()) {
-							// Read the headers from the result set
-							populateHeadersFromResultsSet(headers,
-									nonMetadataColumnIndicies, metadata);
-						}
-						// Read the results into a new list
-						List<String> values = new LinkedList<String>();
-						Row row = new Row();
-						row.setValues(values);
-						if (!query.isAggregatedResult()) {
-							// Non-aggregate queries include two extra columns,
-							// row id and row version.
-							row.setRowId(rs.getLong(ROW_ID));
-							row.setVersionNumber(rs.getLong(ROW_VERSION));
-						}
-						// fill the value list
-						for (Integer index : nonMetadataColumnIndicies) {
-							values.add(rs.getString(index));
-						}
-						return row;
-					}
-				});
-		RowSet rowSet = new RowSet();
-		rowSet.setHeaders(headers);
-		rowSet.setRows(rows);
-		// Set the tableId
-		rowSet.setTableId(query.getTableId());
-
-		return rowSet;
+		namedTemplate.query(query.getOutputSQL(), new MapSqlParameterSource(query.getParameters()), new RowCallbackHandler() {
+			@Override
+			public void processRow(ResultSet rs) throws SQLException {
+				ResultSetMetaData metadata = rs.getMetaData();
+				if (headers.isEmpty()) {
+					// Read the headers from the result set
+					populateHeadersFromResultsSet(headers,
+							nonMetadataColumnIndicies, metadata);
+				}
+				// Read the results into a new list
+				List<String> values = new LinkedList<String>();
+				Row row = new Row();
+				row.setValues(values);
+				if (!query.isAggregatedResult()) {
+					// Non-aggregate queries include two extra columns,
+					// row id and row version.
+					row.setRowId(rs.getLong(ROW_ID));
+					row.setVersionNumber(rs.getLong(ROW_VERSION));
+				}
+				// fill the value list
+				for (Integer index : nonMetadataColumnIndicies) {
+					values.add(rs.getString(index));
+				}
+				handler.nextRow(row);
+			}
+		});
+		return headers;
 	}
 
 	static void populateHeadersFromResultsSet(List<String> headers,

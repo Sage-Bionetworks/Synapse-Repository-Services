@@ -1,7 +1,10 @@
 package org.sagebionetworks.table.cluster;
 
+import java.util.Iterator;
 import java.util.List;
 
+import org.sagebionetworks.repo.model.dao.table.RowHandler;
+import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -56,6 +59,15 @@ public interface TableIndexDAO {
 	 * @return
 	 */
 	public RowSet query(SqlQuery query);
+	
+	/**
+	 * Provides the means to stream over query results without keeping the row data in memory.
+	 * 
+	 * @param query
+	 * @param handler
+	 * @return
+	 */
+	public List<String> queryAsStream(SqlQuery query, RowHandler handler);
 	
 	/**
 	 * Get the row count for this table.
