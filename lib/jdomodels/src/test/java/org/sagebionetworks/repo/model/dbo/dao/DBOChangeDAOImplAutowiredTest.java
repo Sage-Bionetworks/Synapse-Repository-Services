@@ -11,6 +11,7 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -362,18 +363,40 @@ public class DBOChangeDAOImplAutowiredTest {
 		List<ChangeMessage> unSent = changeDAO.listUnsentMessages(3); 
 		assertEquals(batch, unSent);
 		// Now register one
-		changeDAO.registerMessageSent(batch.get(1).getChangeNumber());
+		changeDAO.registerMessageSent(batch.get(1));
 		// Need to be able to set the same message twice
-		changeDAO.registerMessageSent(batch.get(1).getChangeNumber());
+		changeDAO.registerMessageSent(batch.get(1));
 		unSent = changeDAO.listUnsentMessages(3);
 		assertNotNull(unSent);
 		assertEquals(1, unSent.size());
 		assertEquals(batch.get(0).getChangeNumber(), unSent.get(0).getChangeNumber());
 		// Register the second
-		changeDAO.registerMessageSent(batch.get(0).getChangeNumber());
+		changeDAO.registerMessageSent(batch.get(0));
 		unSent = changeDAO.listUnsentMessages(3);
 		assertNotNull(unSent);
 		assertEquals(0, unSent.size());
+	}
+	
+	@Test
+	public void testUpdateSentMessageSameIdDifferentType(){
+		// Create a few messages.
+		List<ChangeMessage> batch = createList(2, ObjectType.ENTITY);
+		ChangeMessage zero = batch.get(0);
+		zero.setObjectId("123");
+		zero.setObjectType(ObjectType.ENTITY);
+		ChangeMessage one = batch.get(1);
+		one.setObjectId("123");
+		one.setObjectType(ObjectType.TABLE);
+		// Pass the batch.
+		batch  = changeDAO.replaceChange(batch);
+		// Register as sent
+		changeDAO.registerMessageSent(batch.get(0));
+		changeDAO.registerMessageSent(batch.get(1));
+		// Pass the batch.
+		batch  = changeDAO.replaceChange(batch);
+		// again
+		changeDAO.registerMessageSent(batch.get(0));
+		changeDAO.registerMessageSent(batch.get(1));
 	}
 	
 	@Test
@@ -384,11 +407,11 @@ public class DBOChangeDAOImplAutowiredTest {
 		List<ChangeMessage> notProcessed = processedMessageDAO.listNotProcessedMessages("Q", 3);
 		assertEquals(0, notProcessed.size());
 		// Register sent msgs
-		changeDAO.registerMessageSent(batch.get(0).getChangeNumber());
+		changeDAO.registerMessageSent(batch.get(0));
 		Thread.sleep(500);
-		changeDAO.registerMessageSent(batch.get(1).getChangeNumber());
+		changeDAO.registerMessageSent(batch.get(1));
 		Thread.sleep(500);
-		changeDAO.registerMessageSent(batch.get(2).getChangeNumber());
+		changeDAO.registerMessageSent(batch.get(2));
 		Thread.sleep(500);
 		List<ChangeMessage> notSent = changeDAO.listUnsentMessages(3);
 		assertEquals(0, notSent.size());
@@ -438,6 +461,36 @@ public class DBOChangeDAOImplAutowiredTest {
 			unSent = changeDAO.listUnsentMessages(min, max); 
 			assertEquals(batch, unSent);
 		}
+	}
+	
+	/**
+	 * Duplicate entry for key 'CHANGES_UKEY_OID_OTYPE' can occur with fast conccurent updates
+	 * @throws ExecutionException 
+	 * @throws InterruptedException 
+	 */
+	@Test
+	public void testPLFM2756() throws InterruptedException, ExecutionException{
+		final List<ChangeMessage> toSpam = createList(1, ObjectType.TABLE);
+		final int timesToRun = 100;
+		Callable<Integer> callable = new Callable<Integer>(){
+			@Override
+			public Integer call() throws Exception {
+				for(int i=0; i<timesToRun; i++){
+					changeDAO.replaceChange(toSpam);
+				}
+				return timesToRun;
+		}};
+		// Run multiple threads at the same time
+		ExecutorService pool = Executors.newFixedThreadPool(2);
+		// Submit twice
+		Future<Integer> one = pool.submit(callable);
+		// Submit again
+		Future<Integer> two = pool.submit(callable);
+		// There should be no errors
+		Integer oneResult = one.get();
+		assertEquals(new Integer(timesToRun), oneResult);
+		Integer twoResult = two.get();
+		assertEquals(new Integer(timesToRun), twoResult);
 	}
 	
 	/**

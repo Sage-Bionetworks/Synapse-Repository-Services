@@ -616,8 +616,8 @@ public class TableRowManagerImplTest {
 		bar.setId("222");
 		bar.setName("bar");
 		List<ColumnModel> models = Arrays.asList(foo, bar);
-		Map<String, Long> nameToIdMap = TableModelUtils.createColumnNameToIdMap(models);
-		SqlQuery query = new SqlQuery("select count(foo) from syn123", nameToIdMap);
+		Map<String, ColumnModel> nameToModelMap = TableModelUtils.createColumnNameToModelMap(models);
+		SqlQuery query = new SqlQuery("select count(foo) from syn123", nameToModelMap);
 		
 		// Aggregate queries are always small enough to run. 
 		TableRowManagerImpl.validateQuerySize(query, models, 1);
@@ -635,8 +635,8 @@ public class TableRowManagerImplTest {
 		bar.setName("bar");
 		bar.setMaximumSize(1L);
 		List<ColumnModel> models = Arrays.asList(foo, bar);
-		Map<String, Long> nameToIdMap = TableModelUtils.createColumnNameToIdMap(models);
-		SqlQuery query = new SqlQuery("select foo, bar from syn123", nameToIdMap);
+		Map<String, ColumnModel> nameToModelMap = TableModelUtils.createColumnNameToModelMap(models);
+		SqlQuery query = new SqlQuery("select foo, bar from syn123", nameToModelMap);
 		
 		int maxBytesPerRow = TableModelUtils.calculateMaxRowSize(models);
 		try{
@@ -660,8 +660,8 @@ public class TableRowManagerImplTest {
 		bar.setName("bar");
 		bar.setMaximumSize(2L);
 		List<ColumnModel> models = Arrays.asList(foo, bar);
-		Map<String, Long> nameToIdMap = TableModelUtils.createColumnNameToIdMap(models);
-		SqlQuery query = new SqlQuery("select foo, bar from syn123 limit 2", nameToIdMap);
+		Map<String, ColumnModel> nameToModelMap = TableModelUtils.createColumnNameToModelMap(models);
+		SqlQuery query = new SqlQuery("select foo, bar from syn123 limit 2", nameToModelMap);
 		
 		int maxBytesPerRow = TableModelUtils.calculateMaxRowSize(models);
 		// this is under the limit
@@ -680,8 +680,8 @@ public class TableRowManagerImplTest {
 		bar.setName("bar");
 		bar.setMaximumSize(3L);
 		List<ColumnModel> models = Arrays.asList(foo, bar);
-		Map<String, Long> nameToIdMap = TableModelUtils.createColumnNameToIdMap(models);
-		SqlQuery query = new SqlQuery("select foo, bar from syn123 limit 2", nameToIdMap);
+		Map<String, ColumnModel> nameToModelMap = TableModelUtils.createColumnNameToModelMap(models);
+		SqlQuery query = new SqlQuery("select foo, bar from syn123 limit 2", nameToModelMap);
 		
 		int maxBytesPerRow = TableModelUtils.calculateMaxRowSize(models);
 		// Set too small for this query

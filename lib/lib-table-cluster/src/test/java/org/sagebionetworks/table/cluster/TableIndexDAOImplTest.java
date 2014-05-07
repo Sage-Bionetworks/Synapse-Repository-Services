@@ -234,9 +234,9 @@ public class TableIndexDAOImplTest {
 		TableModelUtils.assignRowIdsAndVersionNumbers(set, range);
 		// Now fill the table with data
 		tableIndexDAO.createOrUpdateOrDeleteRows(set, allTypes);
-		Map<String, Long> columnNameToIdMap = TableModelUtils.createColumnNameToIdMap(allTypes);
+		Map<String, ColumnModel> columnNameToModelMap = TableModelUtils.createColumnNameToModelMap(allTypes);
 		// This is our query
-		SqlQuery query = new SqlQuery("select * from "+tableId, columnNameToIdMap);
+		SqlQuery query = new SqlQuery("select * from "+tableId, columnNameToModelMap);
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(query);
 		assertNotNull(results);
@@ -295,9 +295,9 @@ public class TableIndexDAOImplTest {
 		TableModelUtils.assignRowIdsAndVersionNumbers(set, range);
 		tableIndexDAO.createOrUpdateOrDeleteRows(set, allTypes);
 
-		Map<String, Long> columnNameToIdMap = TableModelUtils.createColumnNameToIdMap(allTypes);
+		Map<String, ColumnModel> columnNameToModelMap = TableModelUtils.createColumnNameToModelMap(allTypes);
 		// This is our query
-		SqlQuery query = new SqlQuery("select * from " + tableId, columnNameToIdMap);
+		SqlQuery query = new SqlQuery("select * from " + tableId, columnNameToModelMap);
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(query);
 		assertNotNull(results);
@@ -326,9 +326,9 @@ public class TableIndexDAOImplTest {
 		TableModelUtils.assignRowIdsAndVersionNumbers(set, range);
 		// Now fill the table with data
 		tableIndexDAO.createOrUpdateOrDeleteRows(set, allTypes);
-		Map<String, Long> columnNameToIdMap = TableModelUtils.createColumnNameToIdMap(allTypes);
+		Map<String, ColumnModel> columnNameToModelMap = TableModelUtils.createColumnNameToModelMap(allTypes);
 		// Now query for the results
-		SqlQuery query = new SqlQuery("select * from " + tableId, columnNameToIdMap);
+		SqlQuery query = new SqlQuery("select * from " + tableId, columnNameToModelMap);
 		RowSet results = tableIndexDAO.query(query);
 		assertNotNull(results);
 		System.out.println(results);
@@ -371,9 +371,9 @@ public class TableIndexDAOImplTest {
 		TableModelUtils.assignRowIdsAndVersionNumbers(set, range);
 		// Now fill the table with data
 		tableIndexDAO.createOrUpdateOrDeleteRows(set, allTypes);
-		Map<String, Long> columnNameToIdMap = TableModelUtils.createColumnNameToIdMap(allTypes);
+		Map<String, ColumnModel> columnNameToModelMap = TableModelUtils.createColumnNameToModelMap(allTypes);
 		// Now a count query
-		SqlQuery query = new SqlQuery("select count(*) from "+tableId, columnNameToIdMap);
+		SqlQuery query = new SqlQuery("select count(*) from "+tableId, columnNameToModelMap);
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(query);
 		assertNotNull(results);
@@ -422,9 +422,9 @@ public class TableIndexDAOImplTest {
 		TableModelUtils.assignRowIdsAndVersionNumbers(set, range);
 		// Now fill the table with data
 		tableIndexDAO.createOrUpdateOrDeleteRows(set, schema);
-		Map<String, Long> columnNameToIdMap = TableModelUtils.createColumnNameToIdMap(schema);
+		Map<String, ColumnModel> columnNameToModelMap = TableModelUtils.createColumnNameToModelMap(schema);
 		// Now create the query
-		SqlQuery query = new SqlQuery("select foo, bar from "+tableId+" where foo is not null group by foo order by bar desc limit 1 offset 0", columnNameToIdMap);
+		SqlQuery query = new SqlQuery("select foo, bar from "+tableId+" where foo is not null group by foo order by bar desc limit 1 offset 0", columnNameToModelMap);
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(query);
 		assertNotNull(results);
@@ -472,9 +472,9 @@ public class TableIndexDAOImplTest {
 		TableModelUtils.assignRowIdsAndVersionNumbers(set, range);
 		// Now fill the table with data
 		tableIndexDAO.createOrUpdateOrDeleteRows(set, schema);
-		Map<String, Long> columnNameToIdMap = TableModelUtils.createColumnNameToIdMap(schema);
+		Map<String, ColumnModel> columnNameToModelMap = TableModelUtils.createColumnNameToModelMap(schema);
 		// Now create the query
-		SqlQuery query = new SqlQuery("select * from "+tableId+" where ROW_ID = 104 AND Row_Version > 1 limit 1 offset 0", columnNameToIdMap);
+		SqlQuery query = new SqlQuery("select * from "+tableId+" where ROW_ID = 104 AND Row_Version > 1 limit 1 offset 0", columnNameToModelMap);
 		// Now query for the results
 		RowSet results = tableIndexDAO.query(query);
 		assertNotNull(results);

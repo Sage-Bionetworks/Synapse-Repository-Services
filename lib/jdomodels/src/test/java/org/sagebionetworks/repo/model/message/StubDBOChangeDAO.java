@@ -72,11 +72,6 @@ public class StubDBOChangeDAO implements DBOChangeDAO {
 		return new LinkedList<ChangeMessage>(map.values());
 	}
 
-	@Override
-	public void registerMessageSent(long changeNumber) {
-		// TODO Auto-generated method stub
-		
-	}
 
 	@Override
 	public List<ChangeMessage> listUnsentMessages(long limit) {
@@ -114,6 +109,12 @@ public class StubDBOChangeDAO implements DBOChangeDAO {
 			long limit) {
 		// TODO Auto-generated method stub
 		return null;
+	}
+
+	@Override
+	public void registerMessageSent(ChangeMessage message) {
+		// TODO Auto-generated method stub
+		
 	}
 
 }

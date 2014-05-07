@@ -73,7 +73,7 @@ public interface DBOChangeDAO extends ProcessedMessageDAO {
 	 * 
 	 * @param changeNumber
 	 */
-	public void registerMessageSent(long changeNumber);
+	public void registerMessageSent(ChangeMessage message);
 
 	
 	/**

@@ -169,15 +169,22 @@ public class TableModelTestUtils {
 	public static List<ColumnModel> createColumsWithNames(String...names){
 		List<ColumnModel> results = new ArrayList<ColumnModel>(names.length);
 		for(int i=0; i<names.length; i++){
-			ColumnModel cm  = new ColumnModel();
-			cm.setId(""+i);
-			cm.setName(names[i]);
-			cm.setColumnType(ColumnType.STRING);
-			results.add(cm);
+			results.add(createColumn(i, names[i], ColumnType.STRING));
 		}
 		return results;
 	}
-	
+
+	public static ColumnModel createColumn(long id) {
+		return createColumn(id, "col_" + id, ColumnType.STRING);
+	}
+
+	public static ColumnModel createColumn(long id, String name, ColumnType type) {
+		ColumnModel cm = new ColumnModel();
+		cm.setId("" + id);
+		cm.setName(name);
+		cm.setColumnType(type);
+		return cm;
+	}
 
 	/**
 	 * Create a CSV string from the passed row data.

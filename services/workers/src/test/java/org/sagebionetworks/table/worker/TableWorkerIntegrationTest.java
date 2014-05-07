@@ -1,13 +1,15 @@
 package org.sagebionetworks.table.worker;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.*;
 
 import java.io.IOException;
+import java.sql.Time;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.TimeZone;
 import java.util.UUID;
 
 import org.junit.After;
@@ -86,6 +88,8 @@ public class TableWorkerIntegrationTest {
 		// Get the admin user
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		this.tableId = null;
+		// Start with an empty database
+		this.tableConnectionFactory.dropAllTablesForAllConnections();
 	}
 	
 	@After
@@ -93,19 +97,8 @@ public class TableWorkerIntegrationTest {
 		if(config.getTableEnabled()){
 			// cleanup
 			columnManager.truncateAllColumnData(adminUserInfo);
-			
-			if(tableId != null){
-				try {
-					entityManager.deleteEntity(adminUserInfo, tableId);
-				} catch (Exception e) {	} 
-				
-				TableIndexDAO dao = tableConnectionFactory.getConnection(tableId);
-				if(dao != null){
-					try {
-						dao.deleteTable(tableId);
-					} catch (Exception e) {	}
-				}
-			}
+			// Drop all data in the index database
+			this.tableConnectionFactory.dropAllTablesForAllConnections();
 		}
 	}
 
@@ -157,6 +150,49 @@ public class TableWorkerIntegrationTest {
 		assertEquals("The etag should also match the rereferenceSet.etag",referenceSet.getEtag(), rowSet.getEtag());
 	}
 	
+	@Test
+	public void testDates() throws Exception {
+		schema = Lists.newArrayList(columnManager.createColumnModel(adminUserInfo,
+				TableModelTestUtils.createColumn(0L, "coldate", ColumnType.DATE)));
+		List<String> headers = TableModelUtils.getHeaders(schema);
+		// Create the table.
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		table.setColumnIds(headers);
+		tableId = entityManager.createEntity(adminUserInfo, table, null);
+		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
+		columnManager.bindColumnToObject(adminUserInfo, headers, tableId, true);
+		DateFormat dateTimeInstance = new SimpleDateFormat("yyy-M-d h:mm");
+		dateTimeInstance.setTimeZone(TimeZone.getTimeZone("GMT"));
+		Date[] dates = new Date[] { dateTimeInstance.parse("2014-2-3 2:12"), dateTimeInstance.parse("2014-2-3 3:41"),
+				dateTimeInstance.parse("2015-2-3 3:41"), dateTimeInstance.parse("2016-2-3 3:41") };
+		// Now add some data
+		List<Row> rows = TableModelTestUtils.createRows(schema, dates.length);
+		for (int i = 0; i < dates.length; i++) {
+			rows.get(i).getValues().set(0, "" + dates[i].getTime());
+		}
+
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(rows);
+		rowSet.setHeaders(headers);
+		rowSet.setTableId(tableId);
+		referenceSet = tableRowManager.appendRows(adminUserInfo, tableId, schema, rowSet);
+
+		// Wait for the table to become available
+		String sql = "select * from " + tableId + " where coldate between '2014-2-3 3:00' and '2016-1-1' order by coldate asc limit 8";
+		rowSet = waitForConsistentQuery(adminUserInfo, sql);
+		assertNotNull(rowSet);
+		assertEquals(2, rowSet.getRows().size());
+		assertEquals("2014-2-3 3:41", dateTimeInstance.format(new Date(Long.parseLong(rowSet.getRows().get(0).getValues().get(0)))));
+		assertEquals("2015-2-3 3:41", dateTimeInstance.format(new Date(Long.parseLong(rowSet.getRows().get(1).getValues().get(0)))));
+
+		// Again, but now with longs
+		sql = "select * from " + tableId + " where coldate between " + dateTimeInstance.parse("2014-2-3 3:00").getTime() + " and "
+				+ dateTimeInstance.parse("2016-1-1 0:00").getTime() + " order by coldate asc limit 8";
+		RowSet rowSet2 = waitForConsistentQuery(adminUserInfo, sql);
+		assertEquals(rowSet, rowSet2);
+	}
+
 	@Test
 	public void testReplaceAndDeleteRoundTrip() throws NotFoundException, InterruptedException, DatastoreException, TableUnavilableException,
 			IOException {

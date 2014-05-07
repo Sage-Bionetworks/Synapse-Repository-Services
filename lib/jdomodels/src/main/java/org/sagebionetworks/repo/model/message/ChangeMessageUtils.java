@@ -90,8 +90,8 @@ public class ChangeMessageUtils {
 		dto.setChangeNumber(dbo.getChangeNumber());
 		dto.setTimestamp(dbo.getTimeStamp());
 		dto.setObjectEtag(dbo.getObjectEtag());
-		dto.setObjectType(dbo.getObjectTypeEnum());
-		if(ObjectType.ENTITY == dbo.getObjectTypeEnum()){
+		dto.setObjectType(dbo.getObjectType());
+		if(ObjectType.ENTITY == dbo.getObjectType()){
 			// Entities get an 'syn' prefix
 			dto.setObjectId(KeyFactory.keyToString(dbo.getObjectId()));
 			dto.setParentId(KeyFactory.keyToString(dbo.getParentId()));
@@ -103,7 +103,7 @@ public class ChangeMessageUtils {
 				dto.setParentId(parentId.toString());
 			}
 		}
-		dto.setChangeType(dbo.getChangeTypeEnum());
+		dto.setChangeType(dbo.getChangeType());
 		return dto;
 	}
 	

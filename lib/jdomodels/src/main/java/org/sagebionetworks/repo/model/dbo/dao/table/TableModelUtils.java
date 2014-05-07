@@ -703,6 +703,20 @@ public class TableModelUtils {
 	}
 
 	/**
+	 * Map the column names to the column models.
+	 * 
+	 * @param columns
+	 * @return
+	 */
+	public static Map<String, ColumnModel> createColumnNameToModelMap(List<ColumnModel> columns) {
+		HashMap<String, ColumnModel> map = new HashMap<String, ColumnModel>();
+		for (ColumnModel cm : columns) {
+			map.put(cm.getName(), cm);
+		}
+		return map;
+	}
+
+	/**
 	 * Map the column id to the column index.
 	 * 
 	 * @param rowset
