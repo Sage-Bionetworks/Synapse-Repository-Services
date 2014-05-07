@@ -76,7 +76,7 @@ public class UnsentMessagePopper implements Callable<List<Message>> {
 		try {
 			String json = EntityFactory.createJSONStringForEntity(message);
 			awsSNSClient.publish(new PublishRequest(this.topicArn, json));
-			changeDAO.registerMessageSent(message.getChangeNumber());
+			changeDAO.registerMessageSent(message);
 		} catch (JSONObjectAdapterException e) {
 			// This should not occur.
 			// If it does we want to log it but continue to send messages

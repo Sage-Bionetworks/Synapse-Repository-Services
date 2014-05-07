@@ -186,7 +186,7 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 			}
 			awsSNSClient.publish(new PublishRequest(this.topicArn, json));
 			// Register the message was sent
-			this.transactionalMessanger.registerMessageSent(message.getChangeNumber());
+			this.transactionalMessanger.registerMessageSent(message);
 		} catch (JSONObjectAdapterException e) {
 			// This should not occur.
 			// If it does we want to log it but continue to send messages

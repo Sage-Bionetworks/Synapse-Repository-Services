@@ -61,7 +61,7 @@ public interface TransactionalMessenger {
 	 * @param changeNumber
 	 * @throws NotFoundException 
 	 */
-	public void registerMessageSent(long changeNumber) throws NotFoundException;
+	public void registerMessageSent(ChangeMessage message) throws NotFoundException;
 	
 	/**
 	 * List messages that have been created but not registered as sent (see {@link #registerMessageSent(long)}).

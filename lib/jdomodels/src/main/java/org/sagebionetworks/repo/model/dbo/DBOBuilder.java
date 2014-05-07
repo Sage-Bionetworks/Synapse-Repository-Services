@@ -7,6 +7,7 @@ import java.lang.reflect.Method;
 import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.Date;
 import java.util.List;
@@ -123,6 +124,16 @@ public class DBOBuilder<T> {
 		}
 	}
 	
+	private static class TimestampRowMapper extends BaseRowMapper {
+		public TimestampRowMapper(Method fieldSetter, String columnName, boolean nullable) {
+			super(fieldSetter, columnName, nullable);
+		}
+
+		public Object getValue(ResultSet rs, String columnName) throws SQLException {
+			return  rs.getTimestamp(columnName);
+		}
+	}
+	
 	private static class BooleanRowMapper extends BaseRowMapper{
 
 		public BooleanRowMapper(Method fieldSetter, String columnName,
@@ -234,6 +245,10 @@ public class DBOBuilder<T> {
 
 				if (fieldEntry.field.getType() == Date.class) {
 					return new DateRowMapper(setterMethod, fieldEntry.annotation.name(), fieldEntry.annotation.nullable());
+				}
+				
+				if (fieldEntry.field.getType() == Timestamp.class) {
+					return new TimestampRowMapper(setterMethod, fieldEntry.annotation.name(), fieldEntry.annotation.nullable());
 				}
 				
 				if (fieldEntry.field.getType() == Boolean.class) {
@@ -373,6 +388,8 @@ public class DBOBuilder<T> {
 				type = fieldAnnotation.serialized();
 			} else if (fieldClazz == Boolean.class) {
 				type = "bit(1)";
+			} else if (fieldClazz == Timestamp.class) {
+				type = "timestamp";
 			} else {
 				throw new IllegalArgumentException("No type defined and " + fieldAnnotation.name() + " on " + owner.getName()
 						+ " cannot be automatically translated");
