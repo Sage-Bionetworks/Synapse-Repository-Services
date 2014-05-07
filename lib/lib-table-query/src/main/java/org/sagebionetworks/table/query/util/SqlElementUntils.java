@@ -479,7 +479,8 @@ public class SqlElementUntils {
 		if(currentTableExpression == null) throw new IllegalArgumentException("TableExpression cannot be null");
 		// Clear the select list
 		SelectList count = new SelectList(createDerivedColumns("count(*)"));
-		TableExpression tableExpression = new TableExpression(currentTableExpression.getFromClause(), currentTableExpression.getWhereClause(), null, null, null);
+		TableExpression tableExpression = new TableExpression(currentTableExpression.getFromClause(),
+				currentTableExpression.getWhereClause(), currentTableExpression.getGroupByClause(), null, null);
 		return new QuerySpecification(null, count, tableExpression);
 	}
 	
