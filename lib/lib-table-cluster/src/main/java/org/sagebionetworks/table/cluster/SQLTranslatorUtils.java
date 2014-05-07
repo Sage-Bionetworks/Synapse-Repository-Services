@@ -845,18 +845,15 @@ public class SQLTranslatorUtils {
 		String value = getStringValueOf(primary.getUnsignedValueSpecification());
 		switch (lhsColumnModel == null ? ColumnType.STRING : lhsColumnModel.getColumnType()) {
 		case DATE:
-			if (isNumber(primary.getUnsignedValueSpecification())) {
-				builder.append(":").append(bindKey);
-			} else {
-				builder.append(":").append(bindKey);
+			if (!isNumber(primary.getUnsignedValueSpecification())) {
 				DateTime parsedDateTime = dateParser.parseDateTime(value);
 				value = Long.toString(parsedDateTime.getMillis());
 			}
 			break;
 		default:
-			builder.append(":").append(bindKey);
 			break;
 		}
+		builder.append(":").append(bindKey);
 		parameters.put(bindKey, value);
 	}
 
