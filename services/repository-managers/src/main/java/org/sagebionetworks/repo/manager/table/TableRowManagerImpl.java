@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.table;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -29,6 +30,7 @@ import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.exception.LockUnavilableException;
+import org.sagebionetworks.repo.model.table.AsynchDownloadResponseBody;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Row;
@@ -36,6 +38,7 @@ import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
@@ -51,6 +54,8 @@ import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+
+import au.com.bytecode.opencsv.CSVWriter;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
@@ -404,6 +409,7 @@ public class TableRowManagerImpl implements TableRowManager {
 		final RowSet results = new RowSet();
 		final List<Row> rows = new LinkedList<Row>();
 		results.setRows(rows);
+		// Stream the results but keep them in memory.
 		String etag = runConsistentQueryAsStream(query, new RowAndHeaderHandler() {
 			
 			@Override
@@ -456,6 +462,42 @@ public class TableRowManagerImpl implements TableRowManager {
 			// All other exception are converted to generic datastore.
 			throw new DatastoreException(e);
 		}
+	}
+	
+	/**
+	 * 
+	 * @param sql
+	 * @param writer
+	 * @return The resulting RowSet will not contain any 
+	 * @throws TableUnavilableException
+	 */
+	@Override
+	public AsynchDownloadResponseBody runConsistentQueryAsStream(String sql, final CSVWriter writer, final boolean includeRowIdAndVersion) throws TableUnavilableException{
+		// Convert to a query.
+		final SqlQuery query = createQuery(sql, false);
+		if(includeRowIdAndVersion && query.isAggregatedResult()){
+			throw new IllegalArgumentException("Cannot include ROW_ID and ROW_VERSION for aggregate queries");
+		}
+		final AsynchDownloadResponseBody repsonse = new AsynchDownloadResponseBody();
+		String etag = runConsistentQueryAsStream(query, new RowAndHeaderHandler() {
+			
+			@Override
+			public void nextRow(Row row) {
+				String[] array = TableModelUtils.writeRowToStringArray(row, includeRowIdAndVersion);
+				writer.writeNext(array);
+			}
+			@Override
+			public void setHeaderColumnIds(List<String> headers) {
+				// Capture the headers
+				repsonse.setHeaders(headers);
+				// The headers passed here are the column IDs.  Use the IDs to create a name header
+				String[] header = TableModelUtils.createColumnNameHeader(headers, query.getcolumnNameToModelMap().values(), includeRowIdAndVersion);
+				writer.writeNext(header);
+			}
+		});
+		repsonse.setEtag(etag);
+		repsonse.setTableId(query.getTableId());
+		return repsonse;
 	}
 	
 	TableUnavilableException createTableUnavilableException(String tableId){

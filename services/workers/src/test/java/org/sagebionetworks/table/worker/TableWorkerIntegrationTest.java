@@ -3,9 +3,11 @@ package org.sagebionetworks.table.worker;
 import static org.junit.Assert.*;
 
 import java.io.IOException;
+import java.io.StringReader;
 import java.sql.Time;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
@@ -29,6 +31,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dbo.dao.table.CSVToRowIterator;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -43,6 +46,7 @@ import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
+import org.sagebionetworks.util.csv.CsvNullReader;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -108,8 +112,6 @@ public class TableWorkerIntegrationTest {
 		List<ColumnModel> temp = TableModelTestUtils.createOneOfEachType();
 		schema = new LinkedList<ColumnModel>();
 		for(ColumnModel cm: temp){
-			// Skip strings
-			if(cm.getColumnType() == ColumnType.STRING) continue;
 			cm = columnManager.createColumnModel(adminUserInfo, cm);
 			schema.add(cm);
 		}
@@ -259,8 +261,6 @@ public class TableWorkerIntegrationTest {
 		List<ColumnModel> temp = TableModelTestUtils.createOneOfEachType();
 		schema = new LinkedList<ColumnModel>();
 		for(ColumnModel cm: temp){
-			// Skip strings
-			if(cm.getColumnType() == ColumnType.STRING) continue;
 			cm = columnManager.createColumnModel(adminUserInfo, cm);
 			schema.add(cm);
 		}
@@ -377,8 +377,6 @@ public class TableWorkerIntegrationTest {
 		List<ColumnModel> temp = TableModelTestUtils.createOneOfEachType();
 		schema = new LinkedList<ColumnModel>();
 		for(ColumnModel cm: temp){
-			// Skip strings
-			if(cm.getColumnType() == ColumnType.STRING) continue;
 			cm = columnManager.createColumnModel(adminUserInfo, cm);
 			schema.add(cm);
 		}
@@ -400,6 +398,39 @@ public class TableWorkerIntegrationTest {
 		assertEquals(tableId, rowSet.getTableId());
 		assertTrue("TableId: "+tableId, rowSet.getHeaders() == null || rowSet.getHeaders().isEmpty());
 		assertTrue("TableId: "+tableId, rowSet.getRows() == null || rowSet.getRows().isEmpty());
+	}
+	
+	@Test
+	public void testCopyAndUpdateTableFromCSV() throws Exception {
+		// Create one column of each type
+		List<ColumnModel> temp = new LinkedList<ColumnModel>();
+		temp.add(TableModelTestUtils.createColumn(0L, "a", ColumnType.STRING));
+		temp.add(TableModelTestUtils.createColumn(0L, "b", ColumnType.LONG));
+		temp.add(TableModelTestUtils.createColumn(0L, "c", ColumnType.BOOLEAN));
+		schema = new LinkedList<ColumnModel>();
+		for(ColumnModel cm: temp){
+			cm = columnManager.createColumnModel(adminUserInfo, cm);
+			schema.add(cm);
+		}
+		List<String> headers = TableModelUtils.getHeaders(schema);
+		// Create the table.
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		table.setColumnIds(headers);
+		tableId = entityManager.createEntity(adminUserInfo, table, null);
+		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
+		columnManager.bindColumnToObject(adminUserInfo, headers, tableId, true);
+		// Create some CSV data
+		List<String[]> input = new ArrayList<String[]>(3);
+		input.add(new String[] { "AAA", "2", "true" });
+		input.add(new String[] { null, "3", "false" });
+		input.add(new String[] { "FFF", "4", null });
+		input.add(new String[] { "FFF", null, "true" });
+		// This is the starting input stream
+		CsvNullReader reader = TableModelTestUtils.createReader(input);
+		// Write the CSV to the table
+		CSVToRowIterator iterator = new CSVToRowIterator(schema, reader);
+		tableRowManager.appendRowsAsStream(adminUserInfo, tableId, schema, iterator, null, null);
 	}
 	
 	/**
