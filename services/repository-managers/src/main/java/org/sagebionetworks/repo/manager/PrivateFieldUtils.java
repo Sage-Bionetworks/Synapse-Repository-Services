@@ -64,8 +64,6 @@ public class PrivateFieldUtils {
 	 */
 	public static <T extends JSONEntity> boolean isPublic(String property, ObjectSchema schema) {
 		if (property.equals("concreteType")) return true;
-		//profile picture is always public, even though AttachmentData might not be
-		if (property.equals("pic")) return true;
 		Map<String, ObjectSchema> schemaProperties = schema.getProperties();	
 		ObjectSchema propertySchema = schemaProperties.get(property);
 		if (propertySchema==null) throw new RuntimeException("No property "+property+" found in "+schema.getName()+" schema.");
