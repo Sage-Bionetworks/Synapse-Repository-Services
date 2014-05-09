@@ -10,6 +10,7 @@ import java.util.List;
 
 import org.junit.Test;
 import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.quiz.MultichoiceAnswer;
 import org.sagebionetworks.repo.model.quiz.MultichoiceQuestion;
 import org.sagebionetworks.repo.model.quiz.QuizGenerator;
@@ -28,6 +29,19 @@ public class PrivateFieldUtilsTest {
 		assertNull(up.getEmails());
 		assertNotNull(up.getLastName());
 		assertNotNull(up.getUserName());
+	}
+	
+	@Test
+	public void testProfilePic() {
+		UserProfile up = new UserProfile();
+		AttachmentData ad = new AttachmentData();
+		ad.setName("name");
+		ad.setPreviewId("123");
+		up.setPic(ad);
+		PrivateFieldUtils.clearPrivateFields(up);
+		assertNotNull(up.getPic());
+		assertNotNull(up.getPic().getName());
+		assertNotNull(up.getPic().getPreviewId());
 	}
 	
 	@Test
@@ -68,9 +82,6 @@ public class PrivateFieldUtilsTest {
 			assertNotNull(a.getPrompt());
 			assertNotNull(a.getAnswerIndex());
 		}
-		
-
-
 	}
 
 }
