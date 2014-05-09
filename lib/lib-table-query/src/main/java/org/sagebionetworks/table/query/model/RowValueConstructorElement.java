@@ -5,9 +5,10 @@ package org.sagebionetworks.table.query.model;
  */
 public class RowValueConstructorElement implements SQLElement {
 	
-	ValueExpression valueExpression;
-	Boolean nullSpecification;
-	Boolean defaultSpecification;
+	ValueExpression valueExpression = null;
+	Boolean nullSpecification = null;
+	TruthValue truthSpecification = null;
+	Boolean defaultSpecification = null;
 	public RowValueConstructorElement(ValueExpression valueExpression) {
 		super();
 		this.valueExpression = valueExpression;
@@ -18,6 +19,10 @@ public class RowValueConstructorElement implements SQLElement {
 		this.nullSpecification = nullSpecification;
 		this.defaultSpecification = defaultSpecification;
 	}
+
+	public RowValueConstructorElement(TruthValue truthSpecification) {
+		this.truthSpecification = truthSpecification;
+	}
 	public ValueExpression getValueExpression() {
 		return valueExpression;
 	}
@@ -27,12 +32,18 @@ public class RowValueConstructorElement implements SQLElement {
 	public Boolean getDefaultSpecification() {
 		return defaultSpecification;
 	}
+
+	public TruthValue getTruthSpecification() {
+		return truthSpecification;
+	}
 	@Override
 	public void toSQL(StringBuilder builder) {
 		if(valueExpression != null){
 			valueExpression.toSQL(builder);
 		}else if(nullSpecification != null){
 			builder.append("NULL");
+		} else if (truthSpecification != null) {
+			builder.append(truthSpecification.name());
 		}else{
 			builder.append("DEFAULT");
 		}

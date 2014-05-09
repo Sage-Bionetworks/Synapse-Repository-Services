@@ -9,7 +9,7 @@ public class Predicate implements SQLElement {
 	BetweenPredicate betweenPredicate;
 	InPredicate inPredicate;
 	LikePredicate likePredicate;
-	NullPredicate nullPredicate;
+	IsPredicate isPredicate;
 	public Predicate(ComparisonPredicate comparisonPredicate) {
 		super();
 		this.comparisonPredicate = comparisonPredicate;
@@ -26,10 +26,11 @@ public class Predicate implements SQLElement {
 		super();
 		this.likePredicate = likePredicate;
 	}
-	public Predicate(NullPredicate nullPredicate) {
-		super();
-		this.nullPredicate = nullPredicate;
+
+	public Predicate(IsPredicate isPredicate) {
+		this.isPredicate = isPredicate;
 	}
+
 	public ComparisonPredicate getComparisonPredicate() {
 		return comparisonPredicate;
 	}
@@ -42,8 +43,9 @@ public class Predicate implements SQLElement {
 	public LikePredicate getLikePredicate() {
 		return likePredicate;
 	}
-	public NullPredicate getNullPredicate() {
-		return nullPredicate;
+
+	public IsPredicate getIsPredicate() {
+		return isPredicate;
 	}
 	@Override
 	public void toSQL(StringBuilder builder) {
@@ -55,8 +57,8 @@ public class Predicate implements SQLElement {
 			inPredicate.toSQL(builder);
 		}else if(likePredicate != null){
 			likePredicate.toSQL(builder);
-		}else {
-			nullPredicate.toSQL(builder);
+		} else {
+			isPredicate.toSQL(builder);
 		}
 	}
 	

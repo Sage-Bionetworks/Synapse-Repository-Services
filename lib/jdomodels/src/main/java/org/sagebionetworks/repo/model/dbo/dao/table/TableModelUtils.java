@@ -215,7 +215,15 @@ public class TableModelUtils {
 			try {
 				switch (cm.getColumnType()) {
 				case BOOLEAN:
-					boolean boolValue = Boolean.parseBoolean(value);
+					boolean boolValue;
+					if (value.equalsIgnoreCase("true")) {
+						boolValue = true;
+					} else if (value.equalsIgnoreCase("false")) {
+						boolValue = false;
+					} else {
+						throw new IllegalArgumentException("A value in a boolean column must be null, 'true' or 'false', but was '" + value
+								+ "'");
+					}
 					return Boolean.toString(boolValue);
 				case LONG:
 				case FILEHANDLEID:
@@ -226,7 +234,8 @@ public class TableModelUtils {
 					double dv = Double.parseDouble(value);
 					return Double.toString(dv);
 				case STRING:
-					if(cm.getMaximumSize() == null) throw new IllegalArgumentException("Strign columns must have a maximum size");
+					if (cm.getMaximumSize() == null)
+						throw new IllegalArgumentException("String columns must have a maximum size");
 					if (value.length() > cm.getMaximumSize())
 						throw new IllegalArgumentException(
 								"String exceeds the maximum length of "
@@ -752,7 +761,7 @@ public class TableModelUtils {
 	 * @param columns
 	 * @return
 	 */
-	public static Map<Long, ColumnModel> createIDtoColumnModelMap(List<ColumnModel> columns){
+	public static Map<Long, ColumnModel> createIDtoColumnModelMap(Iterable<ColumnModel> columns) {
 		HashMap<Long, ColumnModel>  map = new HashMap<Long, ColumnModel> ();
 		for(ColumnModel cm: columns){
 			map.put(Long.parseLong(cm.getId()), cm);
