@@ -257,7 +257,27 @@ public class TableModelUtils {
 			return value;
 		}
 	}
-	
+
+	/**
+	 * Translate the value as returned from a query according to the column model
+	 * 
+	 * @param value
+	 * @param columnModel
+	 * @return
+	 */
+	public static String translateRowValueFromQuery(String value, ColumnModel columnModel) {
+		if (columnModel != null) {
+			if (columnModel.getColumnType() == ColumnType.BOOLEAN) {
+				if ("0".equals(value)) {
+					value = "false";
+				} else if ("1".equals(value)) {
+					value = "true";
+				}
+			}
+		}
+		return value;
+	}
+
 	/**
 	 * Count all of the empty or invalid rows in the set
 	 * @param set

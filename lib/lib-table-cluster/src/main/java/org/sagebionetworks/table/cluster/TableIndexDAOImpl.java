@@ -217,15 +217,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				for (Integer index : nonMetadataColumnIndicies) {
 					String value = rs.getString(index);
 					ColumnModel columnModel = modeledColumns.get(index);
-					if (columnModel != null) {
-						if (columnModel.getColumnType() == ColumnType.BOOLEAN) {
-							if ("0".equals(value)) {
-								value = "false";
-							} else if ("1".equals(value)) {
-								value = "true";
-							}
-						}
-					}
+					value = TableModelUtils.translateRowValueFromQuery(value, columnModel);
 					values.add(value);
 				}
 				return row;

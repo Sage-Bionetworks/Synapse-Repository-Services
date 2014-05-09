@@ -884,5 +884,20 @@ public class TableModelUtilsTest {
 		assertNull(map);
 	}
 	
+	@Test
+	public void testTranslateFromQuery() {
+		assertEquals("false", TableModelUtils.translateRowValueFromQuery("0", TableModelTestUtils.createColumn(0, "", ColumnType.BOOLEAN)));
+		assertEquals("true", TableModelUtils.translateRowValueFromQuery("1", TableModelTestUtils.createColumn(0, "", ColumnType.BOOLEAN)));
+		assertEquals("something else",
+				TableModelUtils.translateRowValueFromQuery("something else", TableModelTestUtils.createColumn(0, "", ColumnType.BOOLEAN)));
+		assertEquals("0", TableModelUtils.translateRowValueFromQuery("0", TableModelTestUtils.createColumn(0, "", null)));
 
+		// for all other types
+		for (ColumnType type : ColumnType.values()) {
+			if (type == ColumnType.BOOLEAN) {
+				continue;
+			}
+			assertEquals("anything", TableModelUtils.translateRowValueFromQuery("anything", TableModelTestUtils.createColumn(0, "", type)));
+		}
+	}
 }
