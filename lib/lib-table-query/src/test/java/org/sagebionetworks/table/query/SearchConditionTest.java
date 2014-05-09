@@ -21,6 +21,15 @@ public class SearchConditionTest {
 	}
 	
 	@Test
+	public void testSearchConditionToSQLSingleTrue() throws ParseException {
+		List<BooleanTerm> terms = SqlElementUntils.createBooleanTerms("foo= True");
+		SearchCondition element = new SearchCondition(terms);
+		StringBuilder builder = new StringBuilder();
+		element.toSQL(builder);
+		assertEquals("foo = TRUE", builder.toString());
+	}
+
+	@Test
 	public void testSearchConditionToSQLMultiple() throws ParseException{
 		List<BooleanTerm> terms = SqlElementUntils.createBooleanTerms("foo=1", "bar=2");
 		SearchCondition element = new SearchCondition(terms);

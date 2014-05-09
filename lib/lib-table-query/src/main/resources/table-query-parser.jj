@@ -541,15 +541,14 @@ Predicate predicate():
 	BetweenPredicate betweenPredicate = null;
 	InPredicate inPredicate = null;
 	LikePredicate likePredicate = null;
-	NullPredicate nullPredicate = null;
+	IsPredicate isPredicate = null;
 	Boolean notB = null;
 }
 {
 	leftHandSide = columnReference()
 	(
 		comparisonPredicate = comparisonPredicate(leftHandSide) { return new Predicate(comparisonPredicate);}
-		| nullPredicate = nullPredicate(leftHandSide) { return new Predicate(nullPredicate); }
-		|(
+		| <is> isPredicate = isPredicate(leftHandSide) { return new Predicate(isPredicate);}		|(
 			[ <not> {notB = Boolean.TRUE; }]
 			(
 					betweenPredicate = betweenPredicate(leftHandSide, notB) { return new Predicate(betweenPredicate); }
@@ -591,9 +590,11 @@ RowValueConstructorList rowValueConstructorList():
 RowValueConstructorElement rowValueConstructorElement():
 {
 	ValueExpression valueExpression;
+	TruthValue truthValue;
 }
 {
 		<null_specification> { return new RowValueConstructorElement(Boolean.TRUE, null); }
+	| 	truthValue = truthValue() { return new RowValueConstructorElement(truthValue); }
 	|	<default_specification> { return new RowValueConstructorElement(null, Boolean.TRUE); }
 	|	valueExpression = valueExpression() { return new RowValueConstructorElement(valueExpression); }
 }
@@ -675,13 +676,15 @@ EscapeCharacter escapeCharacter():
 	characterValueExpression = characterValueExpression()
 	{return new EscapeCharacter(characterValueExpression);}
 }
-NullPredicate nullPredicate(ColumnReference leftHandSide):
+IsPredicate isPredicate(ColumnReference leftHandSide):
 {
 	Boolean notB = null;
+	TruthValue truthValue = null;
 }
 {
-	<is> [ <not> {notB=Boolean.TRUE;}] <null_specification>
-	{ return new NullPredicate(leftHandSide, notB); }
+	[ <not> {notB=Boolean.TRUE;}]
+	(	  	  truthValue = truthValue() { return new BooleanPredicate(leftHandSide, notB, truthValue); }	 	| <null_specification> { return new NullPredicate(leftHandSide, notB); }
+	)
 }
 ValueExpression valueExpression():
 {

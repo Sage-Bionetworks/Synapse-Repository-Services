@@ -9,10 +9,13 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import javax.sql.DataSource;
 
+import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.springframework.jdbc.BadSqlGrammarException;
@@ -30,6 +33,8 @@ import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
+
+import com.google.common.collect.Maps;
 
 public class TableIndexDAOImpl implements TableIndexDAO {
 
@@ -187,36 +192,45 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			throw new IllegalArgumentException("SqlQuery cannot be null");
 		final List<String> headers = new LinkedList<String>();
 		final List<Integer> nonMetadataColumnIndicies = new LinkedList<Integer>();
+		final Map<Integer, ColumnModel> modeledColumns = Maps.newHashMap();
 		// Get the rows for this query from the database.
 		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
-		List<Row> rows = namedTemplate.query(query.getOutputSQL(), new MapSqlParameterSource(query.getParameters()),
-				new RowMapper<Row>() {
-					@Override
-					public Row mapRow(ResultSet rs, int rowNum)
-							throws SQLException {
-						ResultSetMetaData metadata = rs.getMetaData();
-						if (headers.isEmpty()) {
-							// Read the headers from the result set
-							populateHeadersFromResultsSet(headers,
-									nonMetadataColumnIndicies, metadata);
+		List<Row> rows = namedTemplate.query(query.getOutputSQL(), new MapSqlParameterSource(query.getParameters()), new RowMapper<Row>() {
+			@Override
+			public Row mapRow(ResultSet rs, int rowNum) throws SQLException {
+				ResultSetMetaData metadata = rs.getMetaData();
+				if (headers.isEmpty()) {
+					// Read the headers from the result set
+					populateHeadersFromResultsSet(headers, nonMetadataColumnIndicies, query, modeledColumns, metadata);
+				}
+				// Read the results into a new list
+				List<String> values = new LinkedList<String>();
+				Row row = new Row();
+				row.setValues(values);
+				if (!query.isAggregatedResult()) {
+					// Non-aggregate queries include two extra columns,
+					// row id and row version.
+					row.setRowId(rs.getLong(ROW_ID));
+					row.setVersionNumber(rs.getLong(ROW_VERSION));
+				}
+				// fill the value list
+				for (Integer index : nonMetadataColumnIndicies) {
+					String value = rs.getString(index);
+					ColumnModel columnModel = modeledColumns.get(index);
+					if (columnModel != null) {
+						if (columnModel.getColumnType() == ColumnType.BOOLEAN) {
+							if ("0".equals(value)) {
+								value = "false";
+							} else if ("1".equals(value)) {
+								value = "true";
+							}
 						}
-						// Read the results into a new list
-						List<String> values = new LinkedList<String>();
-						Row row = new Row();
-						row.setValues(values);
-						if (!query.isAggregatedResult()) {
-							// Non-aggregate queries include two extra columns,
-							// row id and row version.
-							row.setRowId(rs.getLong(ROW_ID));
-							row.setVersionNumber(rs.getLong(ROW_VERSION));
-						}
-						// fill the value list
-						for (Integer index : nonMetadataColumnIndicies) {
-							values.add(rs.getString(index));
-						}
-						return row;
 					}
-				});
+					values.add(value);
+				}
+				return row;
+			}
+		});
 		RowSet rowSet = new RowSet();
 		rowSet.setHeaders(headers);
 		rowSet.setRows(rows);
@@ -226,11 +240,11 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		return rowSet;
 	}
 
-	static void populateHeadersFromResultsSet(List<String> headers,
-			List<Integer> nonMetadataColumnIndicies,
-			ResultSetMetaData resultSetMetaData) throws SQLException {
+	static void populateHeadersFromResultsSet(List<String> headers, List<Integer> nonMetadataColumnIndicies, SqlQuery query,
+			Map<Integer, ColumnModel> modeledColumns, ResultSetMetaData resultSetMetaData) throws SQLException {
 		// There are three possibilities, column ID, aggregate function, or row
 		// metadata.
+		Map<Long, ColumnModel> columnIdToModelMap = TableModelUtils.createIDtoColumnModelMap(query.getcolumnNameToModelMap().values());
 		int columnCount = resultSetMetaData.getColumnCount();
 		for (int i = 1; i < columnCount + 1; i++) {
 			String name = resultSetMetaData.getColumnName(i);
@@ -241,13 +255,20 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			}
 			if (SQLUtils.hasColumnPrefixe(name) && !name.startsWith("COUNT")) {
 				// Extract the column ID
-				headers.add(SQLUtils.getColumnIdForColumnName(name));
+				String columnId = SQLUtils.getColumnIdForColumnName(name);
+				headers.add(columnId);
+				if (columnIdToModelMap != null) {
+					ColumnModel columnModel = columnIdToModelMap.get(Long.parseLong(columnId));
+					if (columnModel != null) {
+						modeledColumns.put(i, columnModel);
+					}
+				}
 			} else {
 				// Return what was provided unchanged
 				headers.add(name);
 			}
 			// This is not a row_id or row_version column.
-			nonMetadataColumnIndicies.add(new Integer(i));
+			nonMetadataColumnIndicies.add(i);
 		}
 	}
 

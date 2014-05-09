@@ -5,37 +5,7 @@ import java.util.List;
 
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
-import org.sagebionetworks.table.query.model.BetweenPredicate;
-import org.sagebionetworks.table.query.model.BooleanFactor;
-import org.sagebionetworks.table.query.model.BooleanPrimary;
-import org.sagebionetworks.table.query.model.BooleanTerm;
-import org.sagebionetworks.table.query.model.BooleanTest;
-import org.sagebionetworks.table.query.model.ColumnReference;
-import org.sagebionetworks.table.query.model.ComparisonPredicate;
-import org.sagebionetworks.table.query.model.DerivedColumn;
-import org.sagebionetworks.table.query.model.EscapeCharacter;
-import org.sagebionetworks.table.query.model.FromClause;
-import org.sagebionetworks.table.query.model.GroupingColumnReference;
-import org.sagebionetworks.table.query.model.GroupingColumnReferenceList;
-import org.sagebionetworks.table.query.model.InPredicate;
-import org.sagebionetworks.table.query.model.InPredicateValue;
-import org.sagebionetworks.table.query.model.LikePredicate;
-import org.sagebionetworks.table.query.model.MatchValue;
-import org.sagebionetworks.table.query.model.NullPredicate;
-import org.sagebionetworks.table.query.model.Pattern;
-import org.sagebionetworks.table.query.model.Predicate;
-import org.sagebionetworks.table.query.model.QuerySpecification;
-import org.sagebionetworks.table.query.model.RowValueConstructor;
-import org.sagebionetworks.table.query.model.RowValueConstructorElement;
-import org.sagebionetworks.table.query.model.RowValueConstructorList;
-import org.sagebionetworks.table.query.model.SearchCondition;
-import org.sagebionetworks.table.query.model.SelectList;
-import org.sagebionetworks.table.query.model.SortKey;
-import org.sagebionetworks.table.query.model.SortSpecification;
-import org.sagebionetworks.table.query.model.SortSpecificationList;
-import org.sagebionetworks.table.query.model.TableExpression;
-import org.sagebionetworks.table.query.model.TableReference;
-import org.sagebionetworks.table.query.model.ValueExpression;
+import org.sagebionetworks.table.query.model.*;
 
 /**
  * Utilities for creating SQL elements
@@ -235,13 +205,25 @@ public class SqlElementUntils {
 	}
 
 	/**
+	 * Create boolean predicate from the input SQL.
+	 * 
+	 * @param sql
+	 * @return
+	 * @throws ParseException
+	 */
+	public static BooleanPredicate createBooleanPredicate(String sql) throws ParseException {
+		return (BooleanPredicate) new TableQueryParser(sql).predicate().getIsPredicate();
+	}
+
+	/**
 	 * Create null predicate from the input SQL.
+	 * 
 	 * @param sql
 	 * @return
 	 * @throws ParseException
 	 */
 	public static NullPredicate createNullPredicate(String sql) throws ParseException {
-		return new TableQueryParser(sql).predicate().getNullPredicate();
+		return (NullPredicate) new TableQueryParser(sql).predicate().getIsPredicate();
 	}
 
 	/**

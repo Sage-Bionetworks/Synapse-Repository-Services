@@ -213,6 +213,16 @@ public class SQLQueryTest {
 	}
 
 	@Test
+	public void testStringComparisonBooleanPredicate() throws ParseException {
+		Predicate predicate = SqlElementUntils.createPredicate("foo = true");
+		StringBuilder builder = new StringBuilder();
+		HashMap<String, Object> parameters = new HashMap<String, Object>();
+		SQLTranslatorUtils.translate(predicate, builder, parameters, columnNameToModelMap);
+		assertEquals("C111 = TRUE", builder.toString());
+		assertEquals(0, parameters.size());
+	}
+
+	@Test
 	public void testComparisonPredicateDateNumber() throws ParseException {
 		Predicate predicate = SqlElementUntils.createPredicate("datetype <> 1");
 		StringBuilder builder = new StringBuilder();
