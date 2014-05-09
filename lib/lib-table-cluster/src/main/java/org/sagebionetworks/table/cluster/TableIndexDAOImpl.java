@@ -16,7 +16,6 @@ import javax.sql.DataSource;
 import org.sagebionetworks.repo.model.dao.table.RowAndHeaderHandler;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.springframework.jdbc.BadSqlGrammarException;
@@ -190,55 +189,8 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	public RowSet query(final SqlQuery query) {
 		if (query == null)
 			throw new IllegalArgumentException("SqlQuery cannot be null");
-//<<<<<<< HEAD
-		
 		final List<Row> rows = new LinkedList<Row>();
 		final RowSet rowSet = new RowSet();
-//=======
-//		final List<String> headers = new LinkedList<String>();
-//		final List<Integer> nonMetadataColumnIndicies = new LinkedList<Integer>();
-//		final Map<Integer, ColumnModel> modeledColumns = Maps.newHashMap();
-//		// Get the rows for this query from the database.
-//		NamedParameterJdbcTemplate namedTemplate = new NamedParameterJdbcTemplate(this.template);
-//		List<Row> rows = namedTemplate.query(query.getOutputSQL(), new MapSqlParameterSource(query.getParameters()), new RowMapper<Row>() {
-//			@Override
-//			public Row mapRow(ResultSet rs, int rowNum) throws SQLException {
-//				ResultSetMetaData metadata = rs.getMetaData();
-//				if (headers.isEmpty()) {
-//					// Read the headers from the result set
-//					populateHeadersFromResultsSet(headers, nonMetadataColumnIndicies, query, modeledColumns, metadata);
-//				}
-//				// Read the results into a new list
-//				List<String> values = new LinkedList<String>();
-//				Row row = new Row();
-//				row.setValues(values);
-//				if (!query.isAggregatedResult()) {
-//					// Non-aggregate queries include two extra columns,
-//					// row id and row version.
-//					row.setRowId(rs.getLong(ROW_ID));
-//					row.setVersionNumber(rs.getLong(ROW_VERSION));
-//				}
-//				// fill the value list
-//				for (Integer index : nonMetadataColumnIndicies) {
-//					String value = rs.getString(index);
-//					ColumnModel columnModel = modeledColumns.get(index);
-//					if (columnModel != null) {
-//						if (columnModel.getColumnType() == ColumnType.BOOLEAN) {
-//							if ("0".equals(value)) {
-//								value = "false";
-//							} else if ("1".equals(value)) {
-//								value = "true";
-//							}
-//						}
-//					}
-//					values.add(value);
-//				}
-//				return row;
-//			}
-//		});
-//		RowSet rowSet = new RowSet();
-//		rowSet.setHeaders(headers);
-//>>>>>>> develop
 		rowSet.setRows(rows);
 		// Stream over the results and save the results in a a list
 		queryAsStream(query, new RowAndHeaderHandler() {
@@ -289,15 +241,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				for (Integer index : nonMetadataColumnIndicies) {
 					String value = rs.getString(index);
 					ColumnModel columnModel = modeledColumns.get(index);
-					if (columnModel != null) {
-						if (columnModel.getColumnType() == ColumnType.BOOLEAN) {
-							if ("0".equals(value)) {
-								value = "false";
-							} else if ("1".equals(value)) {
-								value = "true";
-							}
-						}
-					}
+					value = TableModelUtils.translateRowValueFromQuery(value, columnModel);
 					values.add(value);
 				}
 				handler.nextRow(row);
