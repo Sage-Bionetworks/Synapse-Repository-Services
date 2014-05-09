@@ -132,14 +132,14 @@ public class TableControllerAutowireTest {
 		
 		// Add some rows to the table.
 		RowSet set = new RowSet();
-		List<Row> rows = TableModelTestUtils.createRows(cols, 2);
+		List<Row> rows = TableModelTestUtils.createRows(cols, 3);
 		set.setRows(rows);
 		set.setHeaders(TableModelUtils.getHeaders(cols));
 		set.setTableId(table.getId());
 		RowReferenceSet results = ServletTestHelper.appendTableRows(DispatchServletSingleton.getInstance(), set, adminUserId);
 		assertNotNull(results);
 		assertNotNull(results.getRows());
-		assertEquals(2, results.getRows().size());
+		assertEquals(3, results.getRows().size());
 		assertEquals(table.getId(), results.getTableId());
 		assertEquals(TableModelUtils.getHeaders(cols), results.getHeaders());
 
@@ -149,6 +149,16 @@ public class TableControllerAutowireTest {
 		toDelete.setTableId(results.getTableId());
 		toDelete.setRowIds(Lists.newArrayList(results.getRows().get(1).getRowId()));
 		ServletTestHelper.deleteTableRows(DispatchServletSingleton.getInstance(), toDelete, adminUserId);
+
+		// get the rows
+		results.getRows().remove(1);
+		RowSet rowsAfter = ServletTestHelper.getTableRows(DispatchServletSingleton.getInstance(), results, adminUserId);
+		set.getRows().remove(1);
+		set.getRows().get(0).setRowId(results.getRows().get(0).getRowId());
+		set.getRows().get(0).setVersionNumber(results.getRows().get(0).getVersionNumber());
+		set.getRows().get(1).setRowId(results.getRows().get(1).getRowId());
+		set.getRows().get(1).setVersionNumber(results.getRows().get(1).getVersionNumber());
+		assertEquals(set, rowsAfter);
 	}
 	
 	@Test
