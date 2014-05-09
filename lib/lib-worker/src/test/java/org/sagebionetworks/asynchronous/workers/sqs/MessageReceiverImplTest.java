@@ -17,6 +17,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import com.amazonaws.services.sqs.AmazonSQSClient;
+import com.amazonaws.services.sqs.model.ChangeMessageVisibilityBatchRequest;
 import com.amazonaws.services.sqs.model.DeleteMessageBatchRequest;
 import com.amazonaws.services.sqs.model.DeleteMessageBatchRequestEntry;
 import com.amazonaws.services.sqs.model.Message;
@@ -34,7 +35,7 @@ public class MessageReceiverImplTest {
 	MessageReceiverImpl messageReveiver;
 	Integer maxNumberOfWorkerThreads = 5;
 	Integer maxMessagePerWorker = 3;
-	Integer visibilityTimeout = 5;
+	Integer visibilityTimeoutSecs = 5;
 	String queueUrl = "queueUrl";
 	MessageQueue mockQueue;
 	MessageWorkerFactory stubFactory;
@@ -49,7 +50,7 @@ public class MessageReceiverImplTest {
 		when(mockQueue.getQueueUrl()).thenReturn(queueUrl);
 		when(mockQueue.isEnabled()).thenReturn(true);
 		// Inject all of the dependencies
-		messageReveiver = new MessageReceiverImpl(mockSQSClient, maxNumberOfWorkerThreads, maxMessagePerWorker,visibilityTimeout, mockQueue, stubFactory);
+		messageReveiver = new MessageReceiverImpl(mockSQSClient, maxNumberOfWorkerThreads, maxMessagePerWorker,visibilityTimeoutSecs, mockQueue, stubFactory);
 		
 		// Setup a list of messages.
 		int maxMessages = maxNumberOfWorkerThreads*maxMessagePerWorker;
@@ -165,7 +166,7 @@ public class MessageReceiverImplTest {
 			workerStack.push(new StubWorker(0, null));
 		}
 		// Make the first worker timeout
-		workerStack.push(new StubWorker(visibilityTimeout*1000+100, null));
+		workerStack.push(new StubWorker(visibilityTimeoutSecs*1000+100, null));
 		StubWorkerFactory factory = new StubWorkerFactory(workerStack);
 		messageReveiver.setWorkerFactory(factory);
 		
@@ -220,6 +221,25 @@ public class MessageReceiverImplTest {
 		messageReveiver.triggerFired();
 		// Since each worker has a different sleep time, the delete messages should be staggered over 5 calls.
 		verify(mockSQSClient, times(0)).deleteMessageBatch(any(DeleteMessageBatchRequest.class));
+	}
+	
+	@Test
+	public void testResetVisibility() throws InterruptedException{
+		Stack<StubWorker> workerStack = new Stack<StubWorker>();
+		// Setup workers that will take longer than the half-life of the timeout
+		// which should trigger a reset of the visibility timeout.
+		long visibilityTimeoutMS = visibilityTimeoutSecs*1000;
+		long sleepTime = visibilityTimeoutMS;
+		for(int i=0; i<maxNumberOfWorkerThreads; i++){
+			workerStack.push(new StubWorker(sleepTime, null));
+		}
+		StubWorkerFactory factory = new StubWorkerFactory(workerStack);
+		messageReveiver.setWorkerFactory(factory);
+		
+		// now trigger
+		messageReveiver.triggerFired();
+		// since each worker's sleep is equal to the visibility timeout they should each have their messages visibility rest once.
+		verify(mockSQSClient, times(maxNumberOfWorkerThreads)).changeMessageVisibilityBatch(any(ChangeMessageVisibilityBatchRequest.class));
 	}
 
 }

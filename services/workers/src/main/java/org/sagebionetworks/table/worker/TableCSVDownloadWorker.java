@@ -12,8 +12,10 @@ import javax.swing.text.TabExpander;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.table.TableRowManager;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.dao.table.RowAndHeaderHandler;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
@@ -21,6 +23,7 @@ import org.sagebionetworks.repo.model.table.AsynchDownloadRequestBody;
 import org.sagebionetworks.repo.model.table.AsynchDownloadResponseBody;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.SqlQuery;
@@ -40,13 +43,17 @@ public class TableCSVDownloadWorker implements Callable<List<Message>>{
 	private ConnectionFactory tableConnectionFactory;
 	private AsynchJobStatusManager asynchJobStatusManager;
 	private TableRowManager tableRowManager;
+	private UserManager userManger;
 	
 	@Override
 	public List<Message> call() throws Exception {
 		List<Message> toDelete = new LinkedList<Message>();
 		for(Message message: messages){
 			try{
-				toDelete.add(processMessage(message));
+				Message returned = processMessage(message);
+				if(returned != null){
+					toDelete.add(returned);
+				}
 			}catch(Throwable e){
 				// Treat unknown errors as unrecoverable and return them
 				toDelete.add(message);
@@ -62,14 +69,20 @@ public class TableCSVDownloadWorker implements Callable<List<Message>>{
 		File temp = null;
 		CSVWriter writer = null;
 		try{
+			UserInfo user = userManger.getUserInfo(status.getStartedByUserId());
 			temp = File.createTempFile(fileName, ".csv");
 			writer = new CSVWriter(new FileWriter(temp));
 			AsynchDownloadRequestBody request = (AsynchDownloadRequestBody) status.getRequestBody();
 			// Pares the query
 			AsynchDownloadResponseBody response = tableRowManager.runConsistentQueryAsStream(request.getSql(), writer, true);
-			
+			// Now upload the file as a filehandle
 			asynchJobStatusManager.setComplete(status.getJobId(), response);
 			return message;
+		}catch (TableUnavilableException e){
+			// This just means we cannot do this right now.  We can try again later.
+			asynchJobStatusManager.updateJobProgress(status.getJobId(), 0L, 100L, "Waiting for the table index to become available...");
+			// do not return the message because we do not want it to be deleted.
+			return null;
 		}catch(Throwable e){
 			// The job failed
 			asynchJobStatusManager.setJobFailed(status.getJobId(), e);

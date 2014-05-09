@@ -1,8 +1,10 @@
 package org.sagebionetworks.asynchronous.workers.sqs;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -14,6 +16,8 @@ import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.sqs.AmazonSQSClient;
+import com.amazonaws.services.sqs.model.ChangeMessageVisibilityBatchRequest;
+import com.amazonaws.services.sqs.model.ChangeMessageVisibilityBatchRequestEntry;
 import com.amazonaws.services.sqs.model.DeleteMessageBatchRequest;
 import com.amazonaws.services.sqs.model.DeleteMessageBatchRequestEntry;
 import com.amazonaws.services.sqs.model.Message;
@@ -29,6 +33,15 @@ public class MessageReceiverImpl implements MessageReceiver {
 	
 
 	static private Logger log = LogManager.getLogger(MessageReceiverImpl.class);
+	
+	/**
+	 * The maximum number of seconds that a message visibility timeout can be set to.
+	 * Note: This does not mean a worker cannot run for more than this time.
+	 * The message receiver will automatically refresh the timeout for any message
+	 * that reaches its timeout half-life.
+	 * By keeping the visibility timeout small we can quickly recover from failures.
+	 */
+	public static final int MAX_VISIBILITY_TIMEOUT_SECS = 60;
 	
 	@Autowired
 	AmazonSQSClient awsSQSClient;
@@ -78,6 +91,7 @@ public class MessageReceiverImpl implements MessageReceiver {
 		this.awsSQSClient = awsSQSClient;
 		this.maxNumberOfWorkerThreads = maxNumberOfWorkerThreads;
 		this.maxMessagePerWorker = maxMessagePerWorker;
+		if(visibilityTimeout > MAX_VISIBILITY_TIMEOUT_SECS) throw new IllegalArgumentException("Visibility Timeout Seconds cannot exceed: "+MAX_VISIBILITY_TIMEOUT_SECS+" seconds. This does not limit the amount of time a worker can run since, the message receiver will automatically refresh the timeout for any message that reaches its timeout half-life.");
 		this.visibilityTimeoutSec = visibilityTimeout;
 		this.messageQueue = messageQueue;
 		this.workerFactory = workerFactory;
@@ -221,8 +235,9 @@ public class MessageReceiverImpl implements MessageReceiver {
 		}
 		
 		// Process all of the messages.
-		List<Future<List<Message>>> currentWorkers = new LinkedList<Future<List<Message>>>();
+		List<WorkerData> currentWorkers = new LinkedList<WorkerData>();
 		List<Message> messageBatch = new LinkedList<Message>();
+		int workerId = 0;
 		for (Message message: toBeProcessed) {
 			// Add this message to a batch
 			messageBatch.add(message);
@@ -230,8 +245,9 @@ public class MessageReceiverImpl implements MessageReceiver {
 				Callable<List<Message>> worker = workerFactory.createWorker(messageBatch);
 				// Fire up the worker
 				Future<List<Message>> future = executors.submit(worker);
+				WorkerData data = new WorkerData(workerId++, messageBatch, future);
 				// Add the worker to the list.
-				currentWorkers.add(future);
+				currentWorkers.add(data);
 				// Create a new batch
 				messageBatch = new LinkedList<Message>();
 			}
@@ -241,31 +257,52 @@ public class MessageReceiverImpl implements MessageReceiver {
 			Callable<List<Message>> worker = workerFactory.createWorker(messageBatch);
 			// Fire up the worker
 			Future<List<Message>> future = executors.submit(worker);
+			WorkerData data = new WorkerData(workerId++, messageBatch, future);
 			// Add the worker to the list.
-			currentWorkers.add(future);
+			currentWorkers.add(data);
 		}
 		// Give the workers a chance to start
 		Thread.sleep(100);
 		// Watch the workers.  As they complete their tasks, delete the messages from the queue.
 		long startTime = System.currentTimeMillis();
 		long visibilityMs = visibilityTimeoutSec*1000;
+		long visibilityMsHalfLife = visibilityMs/2L;
 		while(currentWorkers.size() > 0){
 			long elapase = System.currentTimeMillis()-startTime;
-			if(elapase > visibilityMs){
-				log.error("Failed to process all messages within the visibility window.");
-				break;
+			if(elapase > visibilityMsHalfLife){
+				// If the visibility timeout is exceeded the messages will once again become visible
+				// to other works.  We do not want this to happen to messages that are currently bing processed.
+				// Therefore we reset the visibility timeout of the remaining messages when the half-life is reached.
+				resetMessageVisibilityForWorkers(visibilityTimeoutSec, currentWorkers);
+				// Reset the clock
+				startTime = System.currentTimeMillis();
 			}
 			// Once a worker is done we remove it.
-			List<Future<List<Message>>> toRemove = new LinkedList<Future<List<Message>>>();
+			List<WorkerData> toRemove = new LinkedList<WorkerData>();
 			// Used to keep track of messages that need to be deleted.
 			List<DeleteMessageBatchRequestEntry> messagesToDelete = new LinkedList<DeleteMessageBatchRequestEntry>();
-			for(Future<List<Message>> future: currentWorkers){
-				if(future.isDone()){
+			// When a worker is done all messages should either be deleted or made visible.
+			List<Message> messagesToMakeVisible = new LinkedList<Message>();
+			for(WorkerData data: currentWorkers){
+				if(data.getFuture().isDone()){
 					try {
-						List<Message> messages = future.get();
+						List<Message> messages = data.getFuture().get();
 						// We processed the message
+						Set<String> deletedMessages = new HashSet<String>();
 						for(Message toDelet: messages){
 							messagesToDelete.add(new DeleteMessageBatchRequestEntry(toDelet.getMessageId(), toDelet.getReceiptHandle()));
+							deletedMessages.add(toDelet.getMessageId());
+						}
+						// any message that does not get deleted should become visible
+						for(Message originalMessage: data.getMessagesPassedToWorker()){
+							// If this message is not going to be deleted, then it must become visible
+							if(!deletedMessages.contains(originalMessage.getMessageId())){
+								messagesToMakeVisible.add(originalMessage);
+							}
+						}
+						if(!messagesToMakeVisible.isEmpty()){
+							// make all of these messages visible by resetting their visibility timeout to a single second.
+							resetMessageVisibility(1, messagesToMakeVisible);
 						}
 					} catch (InterruptedException e) {
 						// We cannot remove this message from the queue.
@@ -275,7 +312,7 @@ public class MessageReceiverImpl implements MessageReceiver {
 						log.error("Failed to process a SQS message:", e);
 					}
 					// done with this future
-					toRemove.add(future);
+					toRemove.add(data);
 				}
 			}
 			// Batch delete all of the completed message.
@@ -293,6 +330,31 @@ public class MessageReceiverImpl implements MessageReceiver {
 		}
 		// Return the number of messages that were on the queue.
 		return toBeProcessed.size();
+	}
+	/**
+	 * Reset the visibility Timeout of the passed worker data.
+	 * @param newVisibiltySeconds
+	 * @param toReset
+	 */
+	private void resetMessageVisibilityForWorkers(int newVisibiltySeconds, List<WorkerData> toReset){
+		List<ChangeMessageVisibilityBatchRequestEntry> list = new ArrayList<ChangeMessageVisibilityBatchRequestEntry>();
+		for(WorkerData data: toReset){
+			resetMessageVisibility(newVisibiltySeconds, data.getMessagesPassedToWorker());
+		}
+	}
+	
+	/**
+	 * Reset the visibility Timeout of the passed messages to the to a new value.
+	 * @param newVisibiltySeconds
+	 * @param toReset
+	 */
+	private void resetMessageVisibility(int newVisibiltySeconds, List<Message> toReset){
+		List<ChangeMessageVisibilityBatchRequestEntry> list = new ArrayList<ChangeMessageVisibilityBatchRequestEntry>();
+		for(Message message: toReset){
+			list.add(new ChangeMessageVisibilityBatchRequestEntry(message.getMessageId(), message.getReceiptHandle()));
+		}
+		ChangeMessageVisibilityBatchRequest request = new ChangeMessageVisibilityBatchRequest(messageQueue.getQueueUrl(), list);
+		awsSQSClient.changeMessageVisibilityBatch(request);
 	}
 
 
@@ -322,6 +384,54 @@ public class MessageReceiverImpl implements MessageReceiver {
 			long timeoutMS = visibilityTimeoutSec*1000*10;
 			if(elapse > timeoutMS) throw new RuntimeException("Timed-out waiting process all messages that were on the queue.");
 		}while(count > 0);
+	}
+	
+	/**
+	 * Captures data about a single worker.
+	 * @author John
+	 *
+	 */
+	private static class WorkerData {
+		int workerId;
+		List<Message> messagesPassedToWorker;
+		Future<List<Message>> future;
+		
+		public WorkerData(int workerId, List<Message> messagesPassedToWorker,
+				Future<List<Message>> future) {
+			super();
+			this.workerId = workerId;
+			this.messagesPassedToWorker = messagesPassedToWorker;
+			this.future = future;
+		}
+		public int getWorkerId() {
+			return workerId;
+		}
+		public List<Message> getMessagesPassedToWorker() {
+			return messagesPassedToWorker;
+		}
+		public Future<List<Message>> getFuture() {
+			return future;
+		}
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result + workerId;
+			return result;
+		}
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj == null)
+				return false;
+			if (getClass() != obj.getClass())
+				return false;
+			WorkerData other = (WorkerData) obj;
+			if (workerId != other.workerId)
+				return false;
+			return true;
+		}
 	}
 
 }
