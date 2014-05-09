@@ -288,7 +288,7 @@ public class TableController extends BaseController {
 	 * 
 	 * @param userId
 	 * @param id The ID of the TableEntity to append rows to.
-	 * @param rows The set of rows to add/update.
+	 * @param rows The set of rows to delete.
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 * @throws IOException
@@ -302,6 +302,34 @@ public class TableController extends BaseController {
 			throw new IllegalArgumentException("{id} cannot be null");
 		rowsToDelete.setTableId(id);
 		return serviceProvider.getTableServices().deleteRows(userId, rowsToDelete);
+	}
+
+	/**
+	 * <p>
+	 * This method is used to get specific versions of rows in a TableEntity. The rows are in the passed in as a
+	 * RowReferenceSet. (a 400 will be returned if a row ID is provided that does not actually exist).
+	 * </p>
+	 * <p>
+	 * Note: The caller must have the <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}" >ACCESS_TYPE.READ</a>
+	 * permission on the TableEntity to make this call.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param id The ID of the TableEntity to append rows to.
+	 * @param rows The set of rows to get.
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_GET_ROWS, method = RequestMethod.POST)
+	public @ResponseBody
+	RowSet getRows(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String id,
+			@RequestBody RowReferenceSet rowsToGet) throws DatastoreException, NotFoundException, IOException {
+		if (id == null)
+			throw new IllegalArgumentException("{id} cannot be null");
+		rowsToGet.setTableId(id);
+		return serviceProvider.getTableServices().getReferenceSet(userId, rowsToGet);
 	}
 
 	/**

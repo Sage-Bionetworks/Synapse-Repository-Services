@@ -1060,6 +1060,16 @@ public interface SynapseClient extends BaseClient {
 	public RowReferenceSet deleteRowsFromTable(RowSelection toDelete) throws SynapseException, SynapseTableUnavailableException;
 
 	/**
+	 * Get specific rows from table entity.
+	 * 
+	 * @param toGet
+	 * @return
+	 * @throws SynapseException
+	 * @throws SynapseTableUnavailableException
+	 */
+	public RowSet getRowsFromTable(RowReferenceSet toGet) throws SynapseException, SynapseTableUnavailableException;
+
+	/**
 	 * Get the file handles for the requested file handle columns for the rows.
 	 * 
 	 * @param fileHandlesToFind rows set for the rows and columns for which file handles need to be returned

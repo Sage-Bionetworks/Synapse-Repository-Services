@@ -133,7 +133,7 @@ public interface TableRowManager {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
-	public RowSet getCellValues(UserInfo userInfo, String tableId, RowReferenceSet fileHandlesToFind, List<ColumnModel> models)
+	public RowSet getCellValues(UserInfo userInfo, String tableId, RowReferenceSet rowRefs, List<ColumnModel> models)
 			throws IOException, NotFoundException;
 
 	/**

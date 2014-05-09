@@ -1506,6 +1506,13 @@ public class ServletTestHelper {
 		ServletTestHelperUtils.dispatchRequest(instance, request, HttpStatus.CREATED);
 	}
 
+	public static RowSet getTableRows(DispatcherServlet instance, RowReferenceSet rows, Long userId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.POST, UrlHelpers.ENTITY + "/" + rows.getTableId()
+				+ UrlHelpers.TABLE + "/getRows", userId, rows);
+		MockHttpServletResponse response = ServletTestHelperUtils.dispatchRequest(instance, request, HttpStatus.CREATED);
+		return ServletTestHelperUtils.readResponse(response, RowSet.class);
+	}
+
 	public static String getTableFileHandleUrl(DispatcherServlet instance, String tableId, RowReference row, String columnId, Long userId,
 			boolean preview) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.GET, UrlHelpers.ENTITY + "/" + tableId
