@@ -250,14 +250,14 @@ public class TableIndexDAOImplTest {
 		assertNotNull(row);
 		assertEquals(new Long(100), row.getRowId());
 		assertEquals(new Long(3), row.getVersionNumber());
-		List<String> expectedValues = Arrays.asList("string0", "3.12", "3000", "0", "4000", "5000");
+		List<String> expectedValues = Arrays.asList("string0", "3.12", "3000", "false", "4000", "5000");
 		assertEquals(expectedValues, row.getValues());
 		// Second row
 		row = results.getRows().get(1);
 		assertNotNull(row);
 		assertEquals(new Long(101), row.getRowId());
 		assertEquals(new Long(3), row.getVersionNumber());
-		expectedValues = Arrays.asList("string1", "6.53", "3001", "1", "4001", "5001");
+		expectedValues = Arrays.asList("string1", "6.53", "3001", "true", "4001", "5001");
 		assertEquals(expectedValues, row.getValues());
 		
 

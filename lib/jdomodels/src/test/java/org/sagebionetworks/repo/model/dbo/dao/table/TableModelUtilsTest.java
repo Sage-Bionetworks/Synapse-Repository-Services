@@ -88,7 +88,7 @@ public class TableModelUtilsTest {
 		row.setVersionNumber(new Long(2));
 		values = new LinkedList<String>();
 		values.add("0");
-		values.add("anything that is not 'true' is treated as false so this is false");
+		values.add("false");
 		row.setValues(values);
 		rows.add(row);
 		validRowSet.setRows(rows);
@@ -279,14 +279,22 @@ public class TableModelUtilsTest {
 	public void testValidateBoolean(){
 		ColumnModel cm = new ColumnModel();
 		cm.setColumnType(ColumnType.BOOLEAN);
-		assertEquals(Boolean.FALSE.toString(), TableModelUtils.validateRowValue("some string", cm, 0, 0));
+		assertEquals(Boolean.FALSE.toString(), TableModelUtils.validateRowValue("FalSE", cm, 0, 0));
 		assertEquals(Boolean.TRUE.toString(), TableModelUtils.validateRowValue("true", cm, 1, 1));
 		assertEquals(null, TableModelUtils.validateRowValue(null, cm, 2, 2));
+		assertEquals(null, TableModelUtils.validateRowValue("", cm, 2, 2));
 		// Set the default to boolean
 		cm.setDefaultValue(Boolean.TRUE.toString());
 		assertEquals(Boolean.TRUE.toString(), TableModelUtils.validateRowValue(null, cm, 2, 2));
 	}
 	
+	@Test(expected = IllegalArgumentException.class)
+	public void testValidateBooleanFail() {
+		ColumnModel cm = new ColumnModel();
+		cm.setColumnType(ColumnType.BOOLEAN);
+		TableModelUtils.validateRowValue("some string", cm, 0, 0);
+	}
+
 	@Test
 	public void testValidateLong(){
 		ColumnModel cm = new ColumnModel();

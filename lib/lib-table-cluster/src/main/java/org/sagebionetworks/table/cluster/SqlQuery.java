@@ -30,7 +30,7 @@ public class SqlQuery {
 	Map<String, Object> parameters;
 	
 	/**
-	 * The map of column names to column IDs.
+	 * The map of column names to column models.
 	 */
 	Map<String, ColumnModel> columnNameToModelMap;
 	

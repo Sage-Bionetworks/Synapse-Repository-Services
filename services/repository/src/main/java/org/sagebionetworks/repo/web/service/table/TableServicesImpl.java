@@ -102,6 +102,16 @@ public class TableServicesImpl implements TableServices {
 	}
 
 	@Override
+	public RowSet getReferenceSet(Long userId, RowReferenceSet rowsToGet) throws DatastoreException, NotFoundException, IOException {
+		Validate.required(rowsToGet, "rowsToGet");
+		Validate.required(rowsToGet.getTableId(), "rowsToGet.tableId");
+		UserInfo user = userManager.getUserInfo(userId);
+		List<ColumnModel> models = getCurrentColumnsForTable(user, rowsToGet.getTableId());
+
+		return tableRowManager.getCellValues(user, rowsToGet.getTableId(), rowsToGet, models);
+	}
+
+	@Override
 	public TableFileHandleResults getFileHandles(Long userId, RowReferenceSet fileHandlesToFind) throws IOException, NotFoundException {
 		Validate.required(fileHandlesToFind, "fileHandlesToFind");
 		Validate.required(fileHandlesToFind.getTableId(), "fileHandlesToFind.tableId");

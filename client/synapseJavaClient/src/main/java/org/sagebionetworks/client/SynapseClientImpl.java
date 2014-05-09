@@ -4871,14 +4871,30 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public RowReferenceSet deleteRowsFromTable(RowSelection toDelete) throws SynapseException {
 		if (toDelete == null)
-			throw new IllegalArgumentException("RowReferenceSet cannot be null");
+			throw new IllegalArgumentException("RowSelection cannot be null");
 		if (toDelete.getTableId() == null)
-			throw new IllegalArgumentException("RowReferenceSet.tableId cannot be null");
+			throw new IllegalArgumentException("RowSelection.tableId cannot be null");
 		String uri = ENTITY + "/" + toDelete.getTableId() + TABLE + "/deleteRows";
 		try {
 			String jsonBody = EntityFactory.createJSONStringForEntity(toDelete);
 			JSONObject obj = getSharedClientConnection().postJson(repoEndpoint, uri, jsonBody, getUserAgent(), null);
 			return EntityFactory.createEntityFromJSONObject(obj, RowReferenceSet.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+
+	@Override
+	public RowSet getRowsFromTable(RowReferenceSet toGet) throws SynapseException, SynapseTableUnavailableException {
+		if (toGet == null)
+			throw new IllegalArgumentException("RowReferenceSet cannot be null");
+		if (toGet.getTableId() == null)
+			throw new IllegalArgumentException("RowReferenceSet.tableId cannot be null");
+		String uri = ENTITY + "/" + toGet.getTableId() + TABLE + "/getRows";
+		try {
+			String jsonBody = EntityFactory.createJSONStringForEntity(toGet);
+			JSONObject obj = getSharedClientConnection().postJson(repoEndpoint, uri, jsonBody, getUserAgent(), null);
+			return EntityFactory.createEntityFromJSONObject(obj, RowSet.class);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseClientException(e);
 		}

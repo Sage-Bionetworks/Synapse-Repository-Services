@@ -4,11 +4,14 @@ import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 import org.sagebionetworks.table.query.model.BetweenPredicate;
+import org.sagebionetworks.table.query.model.BooleanPrimary;
+import org.sagebionetworks.table.query.model.BooleanTest;
 import org.sagebionetworks.table.query.model.ComparisonPredicate;
 import org.sagebionetworks.table.query.model.InPredicate;
 import org.sagebionetworks.table.query.model.LikePredicate;
 import org.sagebionetworks.table.query.model.NullPredicate;
 import org.sagebionetworks.table.query.model.Predicate;
+import org.sagebionetworks.table.query.model.TruthValue;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 
 public class PredicateTest {
@@ -51,6 +54,15 @@ public class PredicateTest {
 	
 	@Test
 	public void testPredicateToSQLNullPredicate() throws ParseException{
+		NullPredicate nullPredicate = SqlElementUntils.createNullPredicate("foo is null");
+		Predicate element = new Predicate(nullPredicate);
+		StringBuilder builder = new StringBuilder();
+		element.toSQL(builder);
+		assertEquals("foo IS NULL", builder.toString());
+	}
+
+	@Test
+	public void testPredicateToSQLNotNullPredicate() throws ParseException {
 		NullPredicate nullPredicate = SqlElementUntils.createNullPredicate("foo is not null");
 		Predicate element = new Predicate(nullPredicate);
 		StringBuilder builder = new StringBuilder();
@@ -58,4 +70,51 @@ public class PredicateTest {
 		assertEquals("foo IS NOT NULL", builder.toString());
 	}
 	
+	@Test
+	public void testBooleanTestSQLPrimaryIsBooleanTrue() throws ParseException {
+		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("foo is true");
+		StringBuilder builder = new StringBuilder();
+		booleanPrimary.toSQL(builder);
+		assertEquals("foo IS TRUE", builder.toString());
+	}
+
+	@Test
+	public void testBooleanTestSQLPrimaryIsBooleanFalse() throws ParseException {
+		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("foo is fAlse");
+		StringBuilder builder = new StringBuilder();
+		booleanPrimary.toSQL(builder);
+		assertEquals("foo IS FALSE", builder.toString());
+	}
+
+	@Test
+	public void testBooleanTestSQLPrimaryIsBooleanNotTrue() throws ParseException {
+		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("foo is not true");
+		StringBuilder builder = new StringBuilder();
+		booleanPrimary.toSQL(builder);
+		assertEquals("foo IS NOT TRUE", builder.toString());
+	}
+
+	@Test
+	public void testBooleanTestSQLPrimaryIsBooleanNotFalse() throws ParseException {
+		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("foo is not false");
+		StringBuilder builder = new StringBuilder();
+		booleanPrimary.toSQL(builder);
+		assertEquals("foo IS NOT FALSE", builder.toString());
+	}
+
+	@Test
+	public void testBooleanTestSQLPrimaryIsBooleanEqualsTrue() throws ParseException {
+		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("foo = true");
+		StringBuilder builder = new StringBuilder();
+		booleanPrimary.toSQL(builder);
+		assertEquals("foo = TRUE", builder.toString());
+	}
+
+	@Test
+	public void testBooleanTestSQLPrimaryIsBooleanEqualsFalse() throws ParseException {
+		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("foo <> fAlse");
+		StringBuilder builder = new StringBuilder();
+		booleanPrimary.toSQL(builder);
+		assertEquals("foo <> FALSE", builder.toString());
+	}
 }

@@ -72,25 +72,37 @@ public interface TableServices {
 	 * Append rows to a table.
 	 * 
 	 * @param userId
-	 * @param rows
+	 * @param rowsToAppend
 	 * @return
-	 * @throws NotFoundException 
-	 * @throws DatastoreException 
-	 * @throws IOException 
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws IOException
 	 */
-	public RowReferenceSet appendRows(Long userId, RowSet rows) throws DatastoreException, NotFoundException, IOException;
+	public RowReferenceSet appendRows(Long userId, RowSet rowsToAppend) throws DatastoreException, NotFoundException, IOException;
 
 	/**
 	 * Delete rows in a table.
 	 * 
 	 * @param userId
-	 * @param rows
+	 * @param rowsToDelete
 	 * @return
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 * @throws IOException
 	 */
 	public RowReferenceSet deleteRows(Long userId, RowSelection rowsToDelete) throws DatastoreException, NotFoundException, IOException;
+
+	/**
+	 * Get specific versions of rows in a table.
+	 * 
+	 * @param userId
+	 * @param rowsToGet
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws IOException
+	 */
+	public RowSet getReferenceSet(Long userId, RowReferenceSet rowsToGet) throws DatastoreException, NotFoundException, IOException;
 
 	/**
 	 * Get the file handles

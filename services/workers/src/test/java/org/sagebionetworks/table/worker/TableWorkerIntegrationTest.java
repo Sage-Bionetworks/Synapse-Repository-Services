@@ -34,12 +34,14 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.table.CSVToRowIterator;
+import org.sagebionetworks.repo.model.dao.table.TableRowCache;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.table.AsynchDownloadResponseBody;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
@@ -82,6 +84,8 @@ public class TableWorkerIntegrationTest {
 	@Autowired
 	MessageReceiver tableQueueMessageReveiver;
 	@Autowired
+	TableRowCache tableRowCache;
+	@Autowired
 	ConnectionFactory tableConnectionFactory;
 	
 	private UserInfo adminUserInfo;
@@ -100,6 +104,7 @@ public class TableWorkerIntegrationTest {
 		this.tableId = null;
 		// Start with an empty database
 		this.tableConnectionFactory.dropAllTablesForAllConnections();
+		tableRowCache.truncateAllData();
 	}
 	
 	@After
@@ -110,14 +115,15 @@ public class TableWorkerIntegrationTest {
 			// Drop all data in the index database
 			this.tableConnectionFactory.dropAllTablesForAllConnections();
 		}
+		tableRowCache.truncateAllData();
 	}
 
 	@Test
 	public void testRoundTrip() throws NotFoundException, InterruptedException, DatastoreException, TableUnavilableException, IOException{
 		// Create one column of each type
-		List<ColumnModel> temp = TableModelTestUtils.createOneOfEachType();
+		List<ColumnModel> columnModels = TableModelTestUtils.createOneOfEachType();
 		schema = new LinkedList<ColumnModel>();
-		for(ColumnModel cm: temp){
+		for(ColumnModel cm: columnModels){
 			cm = columnManager.createColumnModel(adminUserInfo, cm);
 			schema.add(cm);
 		}
@@ -143,7 +149,7 @@ public class TableWorkerIntegrationTest {
 		referenceSet = tableRowManager.appendRows(adminUserInfo, tableId, schema, rowSet);
 		System.out.println("Appended "+rowSet.getRows().size()+" rows in: "+(System.currentTimeMillis()-start)+" MS");
 		// Wait for the table to become available
-		String sql = "select * from " + tableId + " limit 8";
+		String sql = "select * from " + tableId + " order by row_id limit 8";
 		rowSet = waitForConsistentQuery(adminUserInfo, sql);
 		System.out.println("testRoundTrip");
 		System.out.println(rowSet);
@@ -156,8 +162,11 @@ public class TableWorkerIntegrationTest {
 		assertNotNull(rowSet.getEtag());
 		assertEquals("The etag for the last applied change set should be set for the status and the results",referenceSet.getEtag(), rowSet.getEtag());
 		assertEquals("The etag should also match the rereferenceSet.etag",referenceSet.getEtag(), rowSet.getEtag());
+
+		RowSet expectedRowSet = tableRowManager.getRowSet(tableId, referenceSet.getRows().get(0).getVersionNumber());
+		assertEquals(expectedRowSet, rowSet);
 	}
-	
+
 	@Test
 	public void testDates() throws Exception {
 		schema = Lists.newArrayList(columnManager.createColumnModel(adminUserInfo,
@@ -199,6 +208,95 @@ public class TableWorkerIntegrationTest {
 				+ dateTimeInstance.parse("2016-1-1 0:00").getTime() + " order by coldate asc limit 8";
 		RowSet rowSet2 = waitForConsistentQuery(adminUserInfo, sql);
 		assertEquals(rowSet, rowSet2);
+	}
+
+	@Test
+	public void testBooleans() throws Exception {
+		schema = Lists.newArrayList(columnManager.createColumnModel(adminUserInfo,
+				TableModelTestUtils.createColumn(0L, "colbool", ColumnType.BOOLEAN)));
+		List<String> headers = TableModelUtils.getHeaders(schema);
+		// Create the table.
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		table.setColumnIds(headers);
+		tableId = entityManager.createEntity(adminUserInfo, table, null);
+		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
+		columnManager.bindColumnToObject(adminUserInfo, headers, tableId, true);
+
+		String[] booleans = new String[] { null, "", "true", "false", "True", "False", "TRUE", "FALSE", Boolean.TRUE.toString(),
+				Boolean.FALSE.toString(), Boolean.FALSE.toString() };
+		String[] expectedOut = new String[] { null, null, "true", "false", "true", "false", "true", "false", "true", "false", "false" };
+		int expectedTrueCount = 4;
+		int expectedFalseCount = 5;
+		int expectedNullCount = 2;
+		// Now add some data
+		List<Row> rows = TableModelTestUtils.createRows(schema, booleans.length);
+		for (int i = 0; i < booleans.length; i++) {
+			rows.get(i).getValues().set(0, booleans[i]);
+		}
+
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(rows);
+		rowSet.setHeaders(headers);
+		rowSet.setTableId(tableId);
+		referenceSet = tableRowManager.appendRows(adminUserInfo, tableId, schema, rowSet);
+
+		String[] failingBooleans = new String[] { "1", "0", "2", "falseish", "nottrue" };
+		for (String failingBoolean : failingBooleans) {
+			List<Row> failRow = TableModelTestUtils.createRows(schema, 1);
+			failRow.get(0).getValues().set(0, failingBoolean);
+
+			RowSet failRowSet = new RowSet();
+			failRowSet.setRows(failRow);
+			failRowSet.setHeaders(headers);
+			failRowSet.setTableId(tableId);
+			try {
+				tableRowManager.appendRows(adminUserInfo, tableId, schema, failRowSet);
+				fail("Should have rejected as boolean: " + failingBoolean);
+			} catch (IllegalArgumentException e) {
+			}
+		}
+
+		// Wait for the table to become available
+		String sql = "select * from " + tableId + " order by row_id asc limit 20";
+		rowSet = waitForConsistentQuery(adminUserInfo, sql);
+		assertNotNull(rowSet);
+		assertEquals(expectedOut.length, rowSet.getRows().size());
+		for (int i = 0; i < expectedOut.length; i++) {
+			assertEquals(expectedOut[i], rowSet.getRows().get(i).getValues().get(0));
+		}
+
+		sql = "select * from " + tableId + " where colbool is true order by row_id asc limit 20";
+		rowSet = waitForConsistentQuery(adminUserInfo, sql);
+		assertEquals(expectedTrueCount, rowSet.getRows().size());
+
+		sql = "select * from " + tableId + " where colbool is false order by row_id asc limit 20";
+		rowSet = waitForConsistentQuery(adminUserInfo, sql);
+		assertEquals(expectedFalseCount, rowSet.getRows().size());
+
+		sql = "select * from " + tableId + " where colbool is not true order by row_id asc limit 20";
+		rowSet = waitForConsistentQuery(adminUserInfo, sql);
+		assertEquals(expectedFalseCount + expectedNullCount, rowSet.getRows().size());
+
+		sql = "select * from " + tableId + " where colbool is not false order by row_id asc limit 20";
+		rowSet = waitForConsistentQuery(adminUserInfo, sql);
+		assertEquals(expectedTrueCount + expectedNullCount, rowSet.getRows().size());
+
+		sql = "select * from " + tableId + " where colbool = true order by row_id asc limit 20";
+		rowSet = waitForConsistentQuery(adminUserInfo, sql);
+		assertEquals(expectedTrueCount, rowSet.getRows().size());
+
+		sql = "select * from " + tableId + " where colbool = false order by row_id asc limit 20";
+		rowSet = waitForConsistentQuery(adminUserInfo, sql);
+		assertEquals(expectedFalseCount, rowSet.getRows().size());
+
+		sql = "select * from " + tableId + " where colbool <> true order by row_id asc limit 20";
+		rowSet = waitForConsistentQuery(adminUserInfo, sql);
+		assertEquals(expectedFalseCount, rowSet.getRows().size());
+
+		sql = "select * from " + tableId + " where colbool <> false order by row_id asc limit 20";
+		rowSet = waitForConsistentQuery(adminUserInfo, sql);
+		assertEquals(expectedTrueCount, rowSet.getRows().size());
 	}
 
 	@Test

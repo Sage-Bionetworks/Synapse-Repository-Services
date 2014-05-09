@@ -1,27 +1,34 @@
 {
 	"description": "This object is deprecated and will be removed in future versions of Synapse.",
+	"links": [{"rel": "describedby","href": "http://synapse.sagebase.org/access/public"}],
 	"properties": {
 		"name": {
 			"type": "string",
-			"description": "The name of this attachment."
+			"description": "The name of this attachment.",
+			"links": [{"rel": "describedby","href": "http://synapse.sagebase.org/access/public"}]
 		},
 		"tokenId": {
 			"type": "string",
-			"description": "This token is used to get a pre-signed URL that can be used to download this attachment."
+			"description": "This token is used to get a pre-signed URL that can be used to download this attachment.",
+			"links": [{"rel": "describedby","href": "http://synapse.sagebase.org/access/public"}]
 		},
 		"previewId": {
 			"type": "string",
-			"description": "This token is used to get a pre-signed URL that can be used to download this attachment's preview."
+			"description": "This token is used to get a pre-signed URL that can be used to download this attachment's preview.",
+			"links": [{"rel": "describedby","href": "http://synapse.sagebase.org/access/public"}]
 		},
 		"url": {
 			"type": "string",
-			"description": "When provided, the URL can be used to directly download this attachment."
+			"description": "When provided, the URL can be used to directly download this attachment.",
+			"links": [{"rel": "describedby","href": "http://synapse.sagebase.org/access/public"}]
 		},
 		"contentType": {
-			"type": "string"
+			"type": "string",
+			"links": [{"rel": "describedby","href": "http://synapse.sagebase.org/access/public"}]
 		},
 		"md5": {
-			"type": "string"
+			"type": "string",
+			"links": [{"rel": "describedby","href": "http://synapse.sagebase.org/access/public"}]
 		},
 		"previewState": {
 			"type": "string",
@@ -32,7 +39,8 @@
 				"FAILED",
 				"PREVIEW_EXISTS",
 				"NOT_COMPATIBLE"
-			]
+			],
+			"links": [{"rel": "describedby","href": "http://synapse.sagebase.org/access/public"}]
 		}
 	}
 }

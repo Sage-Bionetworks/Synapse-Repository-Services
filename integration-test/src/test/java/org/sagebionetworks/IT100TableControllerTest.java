@@ -179,13 +179,20 @@ public class IT100TableControllerTest {
 		// Now attempt to query for the table results
 		boolean isConsistent = true;
 		boolean countOnly = false;
-		RowSet queryResults = waitForQueryResults("select * from "+table.getId()+" limit 2", isConsistent, countOnly);
+		RowSet queryResults = waitForQueryResults("select * from "+table.getId()+" limit 100", isConsistent, countOnly);
 		assertNotNull(queryResults);
 		assertNotNull(queryResults.getEtag());
 		assertEquals(results1.getEtag(), queryResults.getEtag());
 		assertEquals(table.getId(), queryResults.getTableId());
 		assertNotNull(queryResults.getRows());
 		assertEquals(2, queryResults.getRows().size());
+
+		// get the rows direct
+		RowSet directResults = synapse.getRowsFromTable(results1);
+		// etag not set in direct case
+		directResults.setEtag(queryResults.getEtag());
+		assertEquals(queryResults, directResults);
+
 		// Now use these results to update the table. By setting the row IDs to null, they should be treated as additions
 		for(Row row: queryResults.getRows()){
 			row.setRowId(null);

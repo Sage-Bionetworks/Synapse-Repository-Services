@@ -638,8 +638,8 @@ public class SQLTranslatorUtils {
 			translate(predicate.getBetweenPredicate(), builder, parameters, columnNameToModelMap);
 		}else if(predicate.getLikePredicate() != null){
 			translate(predicate.getLikePredicate(), builder, parameters, columnNameToModelMap);
-		}else if(predicate.getNullPredicate() != null){
-			translate(predicate.getNullPredicate(), builder, parameters, columnNameToModelMap);
+		} else if (predicate.getIsPredicate() != null) {
+			translate(predicate.getIsPredicate(), builder, parameters, columnNameToModelMap);
 		}else{
 			throw new IllegalArgumentException("Unknown Predicate type");
 		}
@@ -653,17 +653,18 @@ public class SQLTranslatorUtils {
 	 * @param parameters
 	 * @param columnNameToModelMap
 	 */
-	static void translate(NullPredicate nullPredicate,
+	static void translate(IsPredicate isPredicate,
 			StringBuilder builder, Map<String, Object> parameters,
 			Map<String, ColumnModel> columnNameToModelMap) {
-		if(nullPredicate == null) throw new IllegalArgumentException("NullPredicate cannot be null");
+		if (isPredicate == null)
+			throw new IllegalArgumentException("IsPredicate cannot be null");
 		// RHS
-		translate(nullPredicate.getColumnReferenceLHS(), builder, columnNameToModelMap);
-		builder.append(" IS");
-		if(nullPredicate.getNot() != null){
-			builder.append(" NOT");
+		translate(isPredicate.getColumnReferenceLHS(), builder, columnNameToModelMap);
+		builder.append(" IS ");
+		if (isPredicate.getNot() != null) {
+			builder.append("NOT ");
 		}
-		builder.append(" NULL");
+		builder.append(isPredicate.getCompareValue());
 	}
 
 	/**
@@ -813,6 +814,8 @@ public class SQLTranslatorUtils {
 			builder.append("NULL");
 		}else if(rowValueConstructorElement.getDefaultSpecification() != null){
 			builder.append("DEFAULT");
+		} else if (rowValueConstructorElement.getTruthSpecification() != null) {
+			builder.append(rowValueConstructorElement.getTruthSpecification().name());
 		}else{
 			translateRHS(rowValueConstructorElement.getValueExpression(), builder, parameters, lhsColumnModel);
 		}
