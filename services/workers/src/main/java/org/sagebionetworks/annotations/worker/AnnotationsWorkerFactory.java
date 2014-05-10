@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.concurrent.Callable;
 
 import org.sagebionetworks.asynchronous.workers.sqs.MessageWorkerFactory;
+import org.sagebionetworks.asynchronous.workers.sqs.WorkerProgress;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.repo.model.SubmissionStatusAnnotationsAsyncManager;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
@@ -23,7 +24,7 @@ public class AnnotationsWorkerFactory implements MessageWorkerFactory{
 	private WorkerLogger workerLogger;
 
 	@Override
-	public Callable<List<Message>> createWorker(List<Message> messages) {
+	public Callable<List<Message>> createWorker(List<Message> messages, WorkerProgress workerProgress) {
 		return new AnnotationsWorker(messages, ssAsyncMgr, workerLogger);
 	}
 	

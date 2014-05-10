@@ -5,6 +5,7 @@ import java.util.concurrent.Callable;
 
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageWorkerFactory;
+import org.sagebionetworks.asynchronous.workers.sqs.WorkerProgress;
 import org.sagebionetworks.repo.manager.table.TableRowManager;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,7 +22,7 @@ public class TableWorkerFactory implements MessageWorkerFactory {
 	TableRowManager tableRowManager;	
 	
 	@Override
-	public Callable<List<Message>> createWorker(List<Message> messages) {
+	public Callable<List<Message>> createWorker(List<Message> messages, WorkerProgress workerProgress) {
 		return new TableWorker(messages, tableConnectionFactory, tableRowManager,  configuration);
 	}
 
