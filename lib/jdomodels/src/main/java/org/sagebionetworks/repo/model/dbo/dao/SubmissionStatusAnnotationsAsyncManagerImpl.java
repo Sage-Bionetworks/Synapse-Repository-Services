@@ -72,6 +72,8 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 		if (evalId == null) throw new IllegalArgumentException("Id cannot be null");
 		checkSubmissionsEtag(evalId, submissionsEtag);
 		replaceAnnotationsForEvaluation(evalId);
+		Long evalIdLong = KeyFactory.stringToKey(evalId);
+		annotationsDAO.deleteAnnotationsByScope(evalIdLong);
 	}
 
 	private void replaceAnnotationsForEvaluation(String evalId) throws DatastoreException, NotFoundException, JSONObjectAdapterException {
