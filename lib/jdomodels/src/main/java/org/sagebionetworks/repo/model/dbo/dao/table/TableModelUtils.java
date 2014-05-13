@@ -9,7 +9,6 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -20,7 +19,6 @@ import java.util.zip.GZIPOutputStream;
 import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dao.table.RowSetAccessor;
-import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableRowChange;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -31,12 +29,13 @@ import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableRowChange;
+import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.util.csv.CsvNullReader;
+
+import au.com.bytecode.opencsv.CSVWriter;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-
-import au.com.bytecode.opencsv.CSVWriter;
 
 /**
  * Utilities for working with Tables and Row data.
@@ -227,9 +226,19 @@ public class TableModelUtils {
 					return Boolean.toString(boolValue);
 				case LONG:
 				case FILEHANDLEID:
-				case DATE:
 					long lv = Long.parseLong(value);
 					return Long.toString(lv);
+				case DATE:
+					// value can be either a number (in which case it is milliseconds since blah) or not a number (in
+					// which
+					// case it is date string)
+					long time;
+					try {
+						time = Long.parseLong(value);
+					} catch (NumberFormatException e) {
+						time = TimeUtils.parseSqlDate(value);
+					}
+					return Long.toString(time);
 				case DOUBLE:
 					double dv = Double.parseDouble(value);
 					return Double.toString(dv);

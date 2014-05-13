@@ -2,9 +2,12 @@ package org.sagebionetworks.repo.model.dbo.dao.table;
 
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.TimeZone;
 
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -53,11 +56,15 @@ public class TableModelTestUtils {
 	 * @return
 	 */
 	public static List<Row> createRows(List<ColumnModel> cms, int count) {
+		return createRows(cms, count, true);
+	}
+
+	public static List<Row> createRows(List<ColumnModel> cms, int count, boolean useDateStrings) {
 		List<Row> rows = new LinkedList<Row>();
 		for (int i = 0; i < count; i++) {
 			Row row = new Row();
 			// Add a value for each column
-			updateRow(cms, row, i, false);
+			updateRow(cms, row, i, false, useDateStrings);
 			rows.add(row);
 		}
 		return rows;
@@ -106,10 +113,16 @@ public class TableModelTestUtils {
 	}
 
 	public static void updateRow(List<ColumnModel> cms, Row toUpdate, int i) {
-		updateRow(cms, toUpdate, i, true);
+		updateRow(cms, toUpdate, i, true, false);
 	}
 
-	private static void updateRow(List<ColumnModel> cms, Row toUpdate, int i, boolean isUpdate) {
+	private static final SimpleDateFormat gmtDateFormatter;
+	static {
+		gmtDateFormatter = new SimpleDateFormat("yy-M-d H:m:s.SSS");
+		gmtDateFormatter.setTimeZone(TimeZone.getTimeZone("UTC"));
+	}
+
+	private static void updateRow(List<ColumnModel> cms, Row toUpdate, int i, boolean isUpdate, boolean useDateStrings) {
 		// Add a value for each column
 		List<String> values = new LinkedList<String>();
 		for (ColumnModel cm : cms) {
@@ -123,7 +136,11 @@ public class TableModelTestUtils {
 				values.add("" + (i + 3000));
 				continue;
 			case DATE:
-				values.add("" + (i + 4000));
+				if (useDateStrings && i % 2 == 0) {
+					values.add(gmtDateFormatter.format(new Date(i + 4000)));
+				} else {
+					values.add("" + (i + 4000));
+				}
 				continue;
 			case FILEHANDLEID:
 				values.add("" + (i + 5000));
