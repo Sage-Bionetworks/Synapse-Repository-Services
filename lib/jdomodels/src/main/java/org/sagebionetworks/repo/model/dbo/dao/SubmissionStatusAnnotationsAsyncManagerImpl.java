@@ -59,9 +59,7 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 	public void createEvaluationSubmissionStatuses(String evalId, String submissionsEtag)
 			throws NotFoundException, DatastoreException,
 			JSONObjectAdapterException {
-		if (evalId == null) throw new IllegalArgumentException("Id cannot be null");
-		checkSubmissionsEtag(evalId, submissionsEtag);
-		replaceAnnotationsForEvaluation(evalId);
+		createOrUpdateEvaluationSubmissionStatuses(evalId, submissionsEtag);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -69,11 +67,18 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 	public void updateEvaluationSubmissionStatuses(String evalId, String submissionsEtag)
 			throws NotFoundException, DatastoreException,
 			JSONObjectAdapterException {
+		createOrUpdateEvaluationSubmissionStatuses(evalId, submissionsEtag);
+	}
+	
+	private void createOrUpdateEvaluationSubmissionStatuses(String evalId, String submissionsEtag) 
+			throws NumberFormatException, NotFoundException, DatastoreException, JSONObjectAdapterException {
 		if (evalId == null) throw new IllegalArgumentException("Id cannot be null");
 		checkSubmissionsEtag(evalId, submissionsEtag);
 		replaceAnnotationsForEvaluation(evalId);
 		Long evalIdLong = KeyFactory.stringToKey(evalId);
+		// delete any annotations for which the SubmissionStatus has been deleted
 		annotationsDAO.deleteAnnotationsByScope(evalIdLong);
+		
 	}
 
 	private void replaceAnnotationsForEvaluation(String evalId) throws DatastoreException, NotFoundException, JSONObjectAdapterException {
