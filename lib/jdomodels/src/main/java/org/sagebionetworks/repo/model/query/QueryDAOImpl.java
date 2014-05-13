@@ -40,7 +40,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
-import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
@@ -151,40 +150,22 @@ public class QueryDAOImpl implements QueryDAO {
 		MapSqlParameterSource args = new MapSqlParameterSource();
 		args.addValue(ATTRIBUTE_PARAM, attribute);
 		args.addValue(SCOPE_PARAM, scopeId);
-			List<FieldTypeTable> results = simpleJdbcTemplate.query(FIND_ATTRIBUTE_SQL, new RowMapper<FieldTypeTable>(){
-				@Override
-				public FieldTypeTable mapRow(ResultSet rs, int rowNum)
-						throws SQLException {
-					FieldTypeTable ftt = new FieldTypeTable();
-					ftt.foundInLong = (rs.getString(LONG_ATTR_NAME)!=null);
-					ftt.foundInDouble = (rs.getString(DBBL_ATTR_NAME)!=null);
-					ftt.foundInString = (rs.getString(STRG_ATTR_NAME)!=null);
-					return ftt;
-				}}, args);
-
-		if (results.isEmpty()) return null;
-		FieldTypeTable nonNullFtt = null;
-		for (FieldTypeTable ftt : results) {
-			if (ftt.foundInLong || ftt.foundInDouble || ftt.foundInString) {
-				if (nonNullFtt!=null) throw new IllegalStateException("Expected 0-1 non-null rows but found multiple.");
-				nonNullFtt = ftt;
-			}
-		}
-		if (nonNullFtt==null) return null;
-		// OK to have multiple rows as long as only one is not all nulls
-		if (nonNullFtt.foundInLong) return FieldType.LONG_ATTRIBUTE;
-		if (nonNullFtt.foundInDouble) return FieldType.DOUBLE_ATTRIBUTE;
-		if (nonNullFtt.foundInString) return FieldType.STRING_ATTRIBUTE;
-		// should never reach this point, but must have a return statement
+		final Map<String,Boolean> map = new HashMap<String,Boolean>();
+		simpleJdbcTemplate.query(FIND_ATTRIBUTE_SQL, new RowMapper<Object>(){
+			@Override
+			public Object mapRow(ResultSet rs, int rowNum)
+					throws SQLException {
+				if (rs.getString(LONG_ATTR_NAME)!=null) map.put(LONG_ATTR_NAME, true);
+				if (rs.getString(DBBL_ATTR_NAME)!=null) map.put(DBBL_ATTR_NAME, true);
+				if (rs.getString(STRG_ATTR_NAME)!=null) map.put(STRG_ATTR_NAME, true);
+				return null;
+			}}, args);
+		if (map.get(LONG_ATTR_NAME)!=null) return FieldType.LONG_ATTRIBUTE;
+		if (map.get(DBBL_ATTR_NAME)!=null) return FieldType.DOUBLE_ATTRIBUTE;
+		if (map.get(STRG_ATTR_NAME)!=null) return FieldType.STRING_ATTRIBUTE;
 		return null;
 	}
-	
-	// simple class to hold the table in which an attribute is found
-	private class FieldTypeTable {
-		public boolean foundInLong=false;
-		public boolean foundInDouble=false;
-		public boolean foundInString=false;
-	}
+
 
 	/**
 	 * Build the two query strings and prepare the query parameters.
