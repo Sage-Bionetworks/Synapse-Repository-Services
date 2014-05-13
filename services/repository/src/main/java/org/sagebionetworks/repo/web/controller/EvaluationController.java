@@ -1244,6 +1244,9 @@ public class EvaluationController extends BaseController {
 	 * annotation names <i>will</i> be included in the column headers, but their values will be returned as null.  
 	 * Further, if the private annotation is included in a filter then no results are returned.
 	 * <p/>
+	 * Filtering on 'myAnnotaton==null' is allowed, but will only return entries having 'myAnnotation' explicitly set to null,
+	 * and not entries which simply have no annotation called 'myAnnotation'.
+	 * <p/>
 	 * While privacy levels for user defined annotations are set by the user, for system-defined fields the privacy level is fixed as follows:  
 	 * <br/>
 	 * The fields userId, name, createdOn, and submitterAlias are private.

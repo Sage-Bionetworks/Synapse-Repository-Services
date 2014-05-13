@@ -133,6 +133,7 @@ public class TestUtils {
 	}
 	
 	public static final String PUBLIC_STRING_ANNOTATION_NAME = "string_anno";
+	public static final String PUBLIC_STRING_ANNOTATION_WITH_NULLS_NAME = "string anno_null";
 	public static final String PRIVATE_LONG_ANNOTATION_NAME = "long_anno";
 
 	public static Annotations createDummyAnnotations(int i) {
@@ -143,15 +144,17 @@ public class TestUtils {
 		sa.setValue("foo " + i);
 		stringAnnos.add(sa);
 		
-		StringAnnotation sa2 = new StringAnnotation();
-		sa2.setIsPrivate(false);
-		sa2.setKey("string anno_null");
-		if (i % 2 == 1) {
-			sa2.setValue(null);
-		} else {
-			sa2.setValue("not null");
+		if (i % 4 != 3) { // two ways to have a null annot:  set it null (i%4==1) or omit altogether (i%4==3)
+			StringAnnotation sa2 = new StringAnnotation();
+			sa2.setIsPrivate(false);
+			sa2.setKey(PUBLIC_STRING_ANNOTATION_WITH_NULLS_NAME);
+			if (i % 2 == 1) { // odd numbered annotations are null
+				sa2.setValue(null);
+			} else {
+				sa2.setValue("not null");
+			}
+			stringAnnos.add(sa2);
 		}
-		stringAnnos.add(sa2);
 		
 		List<LongAnnotation> longAnnos = new ArrayList<LongAnnotation>();
 		LongAnnotation la = new LongAnnotation();

@@ -16,6 +16,8 @@ import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_AN
 import static org.sagebionetworks.repo.model.query.SQLConstants.COL_SUBSTATUS_ANNO_SUBID;
 import static org.sagebionetworks.repo.model.query.SQLConstants.PREFIX_SUBSTATUS;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -38,7 +40,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
-import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 
@@ -148,17 +150,22 @@ public class QueryDAOImpl implements QueryDAO {
 		MapSqlParameterSource args = new MapSqlParameterSource();
 		args.addValue(ATTRIBUTE_PARAM, attribute);
 		args.addValue(SCOPE_PARAM, scopeId);
-		Map<String,Object> map;
-		try {
-			map = simpleJdbcTemplate.queryForMap(FIND_ATTRIBUTE_SQL, args);
-		} catch (EmptyResultDataAccessException e) {
-			return null;
-		}
+		final Map<String,Boolean> map = new HashMap<String,Boolean>();
+		simpleJdbcTemplate.query(FIND_ATTRIBUTE_SQL, new RowMapper<Object>(){
+			@Override
+			public Object mapRow(ResultSet rs, int rowNum)
+					throws SQLException {
+				if (rs.getString(LONG_ATTR_NAME)!=null) map.put(LONG_ATTR_NAME, true);
+				if (rs.getString(DBBL_ATTR_NAME)!=null) map.put(DBBL_ATTR_NAME, true);
+				if (rs.getString(STRG_ATTR_NAME)!=null) map.put(STRG_ATTR_NAME, true);
+				return null;
+			}}, args);
 		if (map.get(LONG_ATTR_NAME)!=null) return FieldType.LONG_ATTRIBUTE;
 		if (map.get(DBBL_ATTR_NAME)!=null) return FieldType.DOUBLE_ATTRIBUTE;
 		if (map.get(STRG_ATTR_NAME)!=null) return FieldType.STRING_ATTRIBUTE;
 		return null;
 	}
+
 
 	/**
 	 * Build the two query strings and prepare the query parameters.

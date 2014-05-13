@@ -632,8 +632,8 @@ public class QueryDAOImplTest {
 		
 		QueryTableResults results = queryDAO.executeQuery(query, mockUserInfo);
 		assertNotNull(results);
-		assertEquals(15, results.getTotalNumberOfResults().longValue());
-		assertEquals(15, results.getRows().size());
+		assertEquals(8, results.getTotalNumberOfResults().longValue());
+		assertEquals(8, results.getRows().size());
 		
 		// examine the results
 		List<Row> rows = results.getRows();
@@ -856,6 +856,23 @@ public class QueryDAOImplTest {
 			}
 			previous = current;
 		}
+	}
+	
+	@Test
+	public void testSortOnColumnHavingNulls() throws Exception {
+		// SELECT "string anno_null" FROM evaluation_1 ORDER BY "string anno_null" ASC
+		BasicQuery query = new BasicQuery();
+		query.setFrom("evaluation" + QueryTools.FROM_TYPE_ID_DELIMTER + EVAL_ID1);
+		query.setLimit(NUM_SUBMISSIONS);
+		query.setOffset(0);
+		query.setSort(TestUtils.PUBLIC_STRING_ANNOTATION_WITH_NULLS_NAME);
+		query.setAscending(true);
+		List<String> select = new ArrayList<String>();
+		select.add(TestUtils.PUBLIC_STRING_ANNOTATION_NAME);
+		query.setSelect(select);
+		
+		// In PLFM-2778 this generates an exception 
+		queryDAO.executeQuery(query, mockUserInfo);
 	}
 	
 	@Test
