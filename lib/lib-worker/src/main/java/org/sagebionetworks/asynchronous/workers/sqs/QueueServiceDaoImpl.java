@@ -1,8 +1,10 @@
 package org.sagebionetworks.asynchronous.workers.sqs;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -48,6 +50,10 @@ public class QueueServiceDaoImpl implements QueueServiceDao {
 				// Add all of the messages to the results.
 				results.addAll(rmr.getMessages());
 			}
+			if(rmr.getMessages() == null || rmr.getMessages().size() < toFetch){
+				// There are no more messages
+				break;
+			}
 			remaining = maxMessages - results.size();
 		}
 		return results;
@@ -56,10 +62,13 @@ public class QueueServiceDaoImpl implements QueueServiceDao {
 	@Override
 	public void deleteMessages(String queueUrl, List<Message> messagesToDelete) {
 		// Send the data in batches
+		Set<String> ids = new HashSet<String>();
 		List<DeleteMessageBatchRequestEntry> batch = new LinkedList<DeleteMessageBatchRequestEntry>();
 		for(Message message: messagesToDelete){
 			DeleteMessageBatchRequestEntry entry = new DeleteMessageBatchRequestEntry(message.getMessageId(), message.getReceiptHandle());
-			batch.add(entry);
+			if(ids.add(message.getMessageId())){
+				batch.add(entry);
+			}
 			if(batch.size() == maxSQSRequestSize){
 				amazonSQSClient.deleteMessageBatch(new DeleteMessageBatchRequest(queueUrl, batch));
 				batch.clear();
