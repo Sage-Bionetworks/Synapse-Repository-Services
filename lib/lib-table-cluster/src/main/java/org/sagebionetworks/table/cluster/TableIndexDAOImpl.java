@@ -210,7 +210,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 	
 	@Override
-	public void queryAsStream(final SqlQuery query, final RowAndHeaderHandler handler) {
+	public boolean queryAsStream(final SqlQuery query, final RowAndHeaderHandler handler) {
 		if(query == null) throw new IllegalArgumentException("Query cannot be null");
 		final List<String> headers = new LinkedList<String>();
 		final List<Integer> nonMetadataColumnIndicies = new LinkedList<Integer>();
@@ -247,6 +247,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				handler.nextRow(row);
 			}
 		});
+		return true;
 	}
 
 	static void populateHeadersFromResultsSet(List<String> headers, List<Integer> nonMetadataColumnIndicies, SqlQuery query,

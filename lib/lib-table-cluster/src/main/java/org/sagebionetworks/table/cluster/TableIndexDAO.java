@@ -68,7 +68,7 @@ public interface TableIndexDAO {
 	 * @param handler
 	 * @return
 	 */
-	public void queryAsStream(SqlQuery query, RowAndHeaderHandler handler);
+	public boolean queryAsStream(SqlQuery query, RowAndHeaderHandler handler);
 	
 	/**
 	 * Get the row count for this table.
