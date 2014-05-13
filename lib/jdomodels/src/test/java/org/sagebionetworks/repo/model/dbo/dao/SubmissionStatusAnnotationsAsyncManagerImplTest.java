@@ -212,6 +212,7 @@ public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 		
 		ssAnnoAsyncManager.createEvaluationSubmissionStatuses(submission.getEvaluationId(), EVAL_SUB_ETAG);
 		verify(mockSubStatusAnnoDAO).replaceAnnotations(annosCaptor.capture());
+		verify(mockSubStatusAnnoDAO).deleteAnnotationsByScope(EVAL_ID_AS_LONG);
 		Annotations actualAnnosOut = (Annotations)annosCaptor.getValue().get(0);
 		assertTrue(actualAnnosOut.getDoubleAnnos().containsAll(expectedAnnosOut.getDoubleAnnos()));
 		assertTrue(actualAnnosOut.getLongAnnos().containsAll(expectedAnnosOut.getLongAnnos()));
@@ -243,6 +244,7 @@ public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 		
 		ssAnnoAsyncManager.updateEvaluationSubmissionStatuses(submission.getEvaluationId(), EVAL_SUB_ETAG);
 		verify(mockSubStatusAnnoDAO).replaceAnnotations(annosCaptor.capture());
+		verify(mockSubStatusAnnoDAO).deleteAnnotationsByScope(EVAL_ID_AS_LONG);
 		Annotations actualAnnosOut = (Annotations)annosCaptor.getValue().get(0);
 		assertTrue(actualAnnosOut.getDoubleAnnos().containsAll(expectedAnnosOut.getDoubleAnnos()));
 		assertTrue(actualAnnosOut.getLongAnnos().containsAll(expectedAnnosOut.getLongAnnos()));

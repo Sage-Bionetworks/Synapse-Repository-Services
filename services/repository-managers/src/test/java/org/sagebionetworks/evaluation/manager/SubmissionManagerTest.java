@@ -580,10 +580,4 @@ public class SubmissionManagerTest {
 		resp = submissionManager.updateSubmissionStatusBatch(ownerInfo, EVAL_ID, batch);
 		assertNull(resp.getNextUploadToken());
 	}
-	
-	@Test
-	public void testDelete() throws Exception {
-		submissionManager.deleteSubmission(ownerInfo, subWithId.getId());
-		verify(mockEvaluationSubmissionsDAO).updateEtagForEvaluation(EVAL_ID_LONG, true, ChangeType.UPDATE);
-	}
 }
