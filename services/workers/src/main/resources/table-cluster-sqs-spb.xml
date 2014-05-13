@@ -49,7 +49,7 @@
 		<property name="workerFactory" ref="tableQueueWorkerFactory" />
 		<property name="maxNumberOfWorkerThreads" value="5" />
 		<property name="maxMessagePerWorker" value="2" />
-		<property name="visibilityTimeoutSec" value="600" />
+		<property name="visibilityTimeoutSec" value="60" />
 	</bean>
 
 	<!-- This gate ensures we never run more than the max number or runners across the entire cluster for this worker  -->

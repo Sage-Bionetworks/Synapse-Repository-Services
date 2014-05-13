@@ -47,8 +47,8 @@
 		scope="singleton">
 		<property name="messageQueue" ref="searchMessageQueue" />
 		<property name="workerFactory" ref="searchQueueWorkerFactory" />
-		<property name="maxNumberOfWorkerThreads" value="5" />
-		<property name="maxMessagePerWorker" value="2" />
+		<property name="maxNumberOfWorkerThreads" value="10" />
+		<property name="maxMessagePerWorker" value="1" />
 		<property name="visibilityTimeoutSec" value="60" />
 	</bean>
 

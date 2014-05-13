@@ -23,7 +23,7 @@ public class TableWorkerFactory implements MessageWorkerFactory {
 	
 	@Override
 	public Callable<List<Message>> createWorker(List<Message> messages, WorkerProgress workerProgress) {
-		return new TableWorker(messages, tableConnectionFactory, tableRowManager,  configuration);
+		return new TableWorker(messages, tableConnectionFactory, tableRowManager,  configuration, workerProgress);
 	}
 
 }

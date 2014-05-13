@@ -11,6 +11,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
+import org.sagebionetworks.asynchronous.workers.sqs.WorkerProgress;
 import org.sagebionetworks.repo.manager.table.TableRowManager;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -48,6 +49,7 @@ public class TableWorker implements Callable<List<Message>> {
 	TableRowManager tableRowManager;
 	boolean featureEnabled;
 	long timeoutMS;
+	WorkerProgress workerProgress;
 
 	/**
 	 * This worker has many dependencies.
@@ -64,13 +66,14 @@ public class TableWorker implements Callable<List<Message>> {
 	 */
 	public TableWorker(List<Message> messages,
 			ConnectionFactory tableConnectionFactory,
-			TableRowManager tableRowManager, StackConfiguration configuration) {
+			TableRowManager tableRowManager, StackConfiguration configuration, WorkerProgress workerProgress) {
 		super();
 		this.messages = messages;
 		this.tableConnectionFactory = tableConnectionFactory;
 		this.tableRowManager = tableRowManager;
 		this.featureEnabled = configuration.getTableEnabled();
 		this.timeoutMS = configuration.getTableWorkerTimeoutMS();
+		this.workerProgress = workerProgress;
 	}
 
 	@Override
@@ -99,7 +102,7 @@ public class TableWorker implements Callable<List<Message>> {
 					String tableId = change.getObjectId();
 					// this method does the real work.
 					State state = createOrUpdateTable(tableId,
-							change.getObjectEtag());
+							change.getObjectEtag(), message);
 					if (!State.RECOVERABLE_FAILURE.equals(state)) {
 						// Only recoverable failures should remain in the queue.
 						// All other must be removed.
@@ -122,7 +125,7 @@ public class TableWorker implements Callable<List<Message>> {
 	 * @return
 	 */
 	public State createOrUpdateTable(final String tableId,
-			final String tableResetToken) {
+			final String tableResetToken, final Message message) {
 		// Attempt to run with
 		try {
 			// If the passed token does not match the current token then this 
@@ -141,7 +144,7 @@ public class TableWorker implements Callable<List<Message>> {
 						public State call() throws Exception {
 							// This method does the real work.
 							return createOrUpdateWhileHoldingLock(tableId,
-									tableResetToken);
+									tableResetToken, message);
 						}
 					});
 		} catch (LockUnavilableException e) {
@@ -177,7 +180,7 @@ public class TableWorker implements Callable<List<Message>> {
 	 * @throws ConflictingUpdateException 
 	 */
 	private State createOrUpdateWhileHoldingLock(String tableId,
-			String tableResetToken) throws ConflictingUpdateException, NotFoundException {
+			String tableResetToken, Message message) throws ConflictingUpdateException, NotFoundException {
 		// Start the real work
 		try {
 			// Save the status before we start
@@ -189,7 +192,7 @@ public class TableWorker implements Callable<List<Message>> {
 				return State.RECOVERABLE_FAILURE;
 			}
 			// This method will do the rest of the work.
-			String lastEtag = synchIndexWithTable(indexDAO, tableId, tableResetToken);
+			String lastEtag = synchIndexWithTable(indexDAO, tableId, tableResetToken, message);
 			// We are finished set the status
 			tableRowManager.attemptToSetTableStatusToAvailable(tableId,	tableResetToken, lastEtag);
 			return State.SUCCESS;
@@ -220,7 +223,7 @@ public class TableWorker implements Callable<List<Message>> {
 	 * @throws IOException
 	 */
 	String synchIndexWithTable(TableIndexDAO indexDao,
-			String tableId, String resetToken) throws DatastoreException, NotFoundException,
+			String tableId, String resetToken, Message message) throws DatastoreException, NotFoundException,
 			IOException {
 		// The first task is to get the table schema in-synch.
 		// Get the current schema of the table.
@@ -258,6 +261,8 @@ public class TableWorker implements Callable<List<Message>> {
 		for (TableRowChange change : changes) {
 			lastEtag = change.getEtag();
 			if (change.getRowVersion() > maxVersion) {
+				// Keep this message invisible
+				workerProgress.progressMadeForMessage(message);
 				// This is a change that we must apply.
 				RowSet rowSet = tableRowManager.getRowSet(tableId,	change.getRowVersion());
 

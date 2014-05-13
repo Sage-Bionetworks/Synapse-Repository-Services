@@ -37,7 +37,7 @@
 		<property name="workerFactory" ref="unsentMessagePopperFactory" />
 		<property name="maxNumberOfWorkerThreads" ref="stackConfiguration.semaphoreGatedMaxRunnersUnsentMessagePoppers" />
 		<property name="maxMessagePerWorker" value="1" />
-		<property name="visibilityTimeoutSec" value="200" />
+		<property name="visibilityTimeoutSec" value="60" />
 	</bean>
 			
 	<bean id="unsentMessagePopperSemaphoreGatedRunner"

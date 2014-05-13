@@ -47,7 +47,7 @@
 		<property name="messageQueue" ref="rdsMessageQueue" />
 		<property name="workerFactory" ref="rdsQueueWorkerFactory" />
 		<property name="maxNumberOfWorkerThreads" value="1" />
-		<property name="maxMessagePerWorker" value="10" />
+		<property name="maxMessagePerWorker" value="1" />
 		<property name="visibilityTimeoutSec" value="60" />
 	</bean>
 	
@@ -73,7 +73,7 @@
 		</property>
 		<!-- We stager the start delay of each trigger to spread out the timing -->
 		<property name="startDelay" value="103" />
-		<property name="repeatInterval" value="993" />
+		<property name="repeatInterval" value="132" />
 	</bean>
 
 </beans>
