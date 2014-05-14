@@ -3,7 +3,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
@@ -175,28 +175,32 @@ public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 		annos.getStringAnnos().add(statusAnno);
 	}
 	
-	@Test(expected=IllegalStateException.class)
+	@Test
 	public void testStaleCreateChangeMessage() throws Exception {
 		EvaluationSubmissions evalSubs = new EvaluationSubmissions();
 		evalSubs.setEtag("some other etag");
 		when(mockEvaluationSubmissionsDAO.getForEvaluation(EVAL_ID_AS_LONG)).thenReturn(evalSubs);
 		ssAnnoAsyncManager.createEvaluationSubmissionStatuses(submission.getEvaluationId(), EVAL_SUB_ETAG);
-		
+		verify(mockSubStatusAnnoDAO, times(0)).deleteAnnotationsByScope(EVAL_ID_AS_LONG);
+		verify(mockSubStatusAnnoDAO, times(0)).replaceAnnotations((List<Annotations>)any());		
 	}
 
-	@Test(expected=IllegalStateException.class)
+	@Test
 	public void testStaleUpdateChangeMessage() throws Exception {
 		EvaluationSubmissions evalSubs = new EvaluationSubmissions();
 		evalSubs.setEtag("some other etag");
 		when(mockEvaluationSubmissionsDAO.getForEvaluation(EVAL_ID_AS_LONG)).thenReturn(evalSubs);
 		ssAnnoAsyncManager.updateEvaluationSubmissionStatuses(submission.getEvaluationId(), EVAL_SUB_ETAG);
-		
+		verify(mockSubStatusAnnoDAO, times(0)).replaceAnnotations((List<Annotations>)any());
+		verify(mockSubStatusAnnoDAO, times(0)).deleteAnnotationsByScope(EVAL_ID_AS_LONG);		
 	}
 
-	@Test(expected=IllegalStateException.class)
+	@Test
 	public void testStaleCreateChangeMessageNullEtag() throws Exception {
 		when(mockEvaluationSubmissionsDAO.getForEvaluation(EVAL_ID_AS_LONG)).thenReturn(null);
 		ssAnnoAsyncManager.createEvaluationSubmissionStatuses(submission.getEvaluationId(), EVAL_SUB_ETAG);		
+		verify(mockSubStatusAnnoDAO, times(0)).replaceAnnotations((List<Annotations>)any());
+		verify(mockSubStatusAnnoDAO, times(0)).deleteAnnotationsByScope(EVAL_ID_AS_LONG);		
 	}
 	
 	private static void checkAnnoMetadata(Annotations annos, String submissionId) {
@@ -212,6 +216,7 @@ public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 		
 		ssAnnoAsyncManager.createEvaluationSubmissionStatuses(submission.getEvaluationId(), EVAL_SUB_ETAG);
 		verify(mockSubStatusAnnoDAO).replaceAnnotations(annosCaptor.capture());
+		verify(mockSubStatusAnnoDAO).deleteAnnotationsByScope(EVAL_ID_AS_LONG);
 		Annotations actualAnnosOut = (Annotations)annosCaptor.getValue().get(0);
 		assertTrue(actualAnnosOut.getDoubleAnnos().containsAll(expectedAnnosOut.getDoubleAnnos()));
 		assertTrue(actualAnnosOut.getLongAnnos().containsAll(expectedAnnosOut.getLongAnnos()));
@@ -243,6 +248,7 @@ public class SubmissionStatusAnnotationsAsyncManagerImplTest {
 		
 		ssAnnoAsyncManager.updateEvaluationSubmissionStatuses(submission.getEvaluationId(), EVAL_SUB_ETAG);
 		verify(mockSubStatusAnnoDAO).replaceAnnotations(annosCaptor.capture());
+		verify(mockSubStatusAnnoDAO).deleteAnnotationsByScope(EVAL_ID_AS_LONG);
 		Annotations actualAnnosOut = (Annotations)annosCaptor.getValue().get(0);
 		assertTrue(actualAnnosOut.getDoubleAnnos().containsAll(expectedAnnosOut.getDoubleAnnos()));
 		assertTrue(actualAnnosOut.getLongAnnos().containsAll(expectedAnnosOut.getLongAnnos()));

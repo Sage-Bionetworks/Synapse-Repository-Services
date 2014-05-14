@@ -44,14 +44,11 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 		this.evaluationSubmissionsDAO=evaluationSubmissionsDAO;
 	}
 
-	private void checkSubmissionsEtag(String evalId, String submissionsEtag) 
+	private boolean isSubmissionsEtagValid(String evalId, String submissionsEtag) 
 			throws NumberFormatException, NotFoundException {
 		EvaluationSubmissions evalSubs = evaluationSubmissionsDAO.getForEvaluation(Long.parseLong(evalId));
-		String currentSubmissionsEtag = evalSubs==null ? null : evalSubs.getEtag();
-		if (currentSubmissionsEtag==null || 
-				!currentSubmissionsEtag.equals(submissionsEtag)) {
-			throw new IllegalStateException("Change message etag mismatch.");
-		}
+		if (evalSubs==null) return false;
+		return evalSubs.getEtag()!=null && evalSubs.getEtag().equals(submissionsEtag);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -59,9 +56,7 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 	public void createEvaluationSubmissionStatuses(String evalId, String submissionsEtag)
 			throws NotFoundException, DatastoreException,
 			JSONObjectAdapterException {
-		if (evalId == null) throw new IllegalArgumentException("Id cannot be null");
-		checkSubmissionsEtag(evalId, submissionsEtag);
-		replaceAnnotationsForEvaluation(evalId);
+		createOrUpdateEvaluationSubmissionStatuses(evalId, submissionsEtag);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -69,9 +64,18 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 	public void updateEvaluationSubmissionStatuses(String evalId, String submissionsEtag)
 			throws NotFoundException, DatastoreException,
 			JSONObjectAdapterException {
+		createOrUpdateEvaluationSubmissionStatuses(evalId, submissionsEtag);
+	}
+	
+	private void createOrUpdateEvaluationSubmissionStatuses(String evalId, String submissionsEtag) 
+			throws NumberFormatException, NotFoundException, DatastoreException, JSONObjectAdapterException {
 		if (evalId == null) throw new IllegalArgumentException("Id cannot be null");
-		checkSubmissionsEtag(evalId, submissionsEtag);
+		if (!isSubmissionsEtagValid(evalId, submissionsEtag)) return;
 		replaceAnnotationsForEvaluation(evalId);
+		Long evalIdLong = KeyFactory.stringToKey(evalId);
+		// delete any annotations for which the SubmissionStatus has been deleted
+		annotationsDAO.deleteAnnotationsByScope(evalIdLong);
+		
 	}
 
 	private void replaceAnnotationsForEvaluation(String evalId) throws DatastoreException, NotFoundException, JSONObjectAdapterException {

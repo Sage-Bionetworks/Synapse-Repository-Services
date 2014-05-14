@@ -257,7 +257,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		
 		// the associated SubmissionStatus object will be deleted via cascade
 		Long evalIdLong = KeyFactory.stringToKey(evalId);
-		evaluationSubmissionsDAO.updateEtagForEvaluation(evalIdLong, true, ChangeType.DELETE);
+		evaluationSubmissionsDAO.updateEtagForEvaluation(evalIdLong, true, ChangeType.UPDATE);
 		submissionDAO.delete(submissionId);
 	}
 
