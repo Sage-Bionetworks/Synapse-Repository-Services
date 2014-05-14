@@ -52,6 +52,8 @@ import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
+import org.sagebionetworks.util.csv.CSVWriterStream;
+import org.sagebionetworks.util.csv.CSVWriterStreamProxy;
 import org.sagebionetworks.util.csv.CsvNullReader;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -550,9 +552,10 @@ public class TableWorkerIntegrationTest {
 		// Now stream the query results to a CSV
 		StringWriter stringWriter = new StringWriter();
 		CSVWriter csvWriter = new CSVWriter(stringWriter);
+		CSVWriterStreamProxy proxy = new CSVWriterStreamProxy(csvWriter);
 		// Downlaod the data to a csv
 		boolean includeRowIdAndVersion = true;
-		AsynchDownloadResponseBody response = waitForConsistentStreamQuery("select * from "+tableId, csvWriter, includeRowIdAndVersion);
+		AsynchDownloadResponseBody response = waitForConsistentStreamQuery("select * from "+tableId, proxy, includeRowIdAndVersion);
 		assertNotNull(response);
 		assertNotNull(response.getEtag());
 		// Read the results
@@ -576,8 +579,9 @@ public class TableWorkerIntegrationTest {
 		// Fetch the results again but this time without row id and version so it can be used to create a new table.
 		stringWriter = new StringWriter();
 		csvWriter = new CSVWriter(stringWriter);
+		proxy = new CSVWriterStreamProxy(csvWriter);
 		includeRowIdAndVersion = false;
-		response = waitForConsistentStreamQuery("select c, a, b from "+tableId, csvWriter, includeRowIdAndVersion);
+		response = waitForConsistentStreamQuery("select c, a, b from "+tableId, proxy, includeRowIdAndVersion);
 		// read the results
 		copyReader = new CsvNullReader(new StringReader(stringWriter.toString()));
 		copy = copyReader.readAll();
@@ -623,7 +627,7 @@ public class TableWorkerIntegrationTest {
 	 * @throws NotFoundException
 	 * @throws InterruptedException
 	 */
-	private AsynchDownloadResponseBody waitForConsistentStreamQuery(String sql, CSVWriter writer, boolean includeRowIdAndVersion) throws DatastoreException, NotFoundException, InterruptedException{
+	private AsynchDownloadResponseBody waitForConsistentStreamQuery(String sql, CSVWriterStream writer, boolean includeRowIdAndVersion) throws DatastoreException, NotFoundException, InterruptedException{
 		long start = System.currentTimeMillis();
 		while(true){
 			try {

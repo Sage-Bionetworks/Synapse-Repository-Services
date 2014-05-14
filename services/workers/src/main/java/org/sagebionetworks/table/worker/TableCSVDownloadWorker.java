@@ -4,33 +4,22 @@ import java.io.File;
 import java.io.FileWriter;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.Callable;
-
-import javax.swing.text.TabExpander;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
+import org.sagebionetworks.asynchronous.workers.sqs.WorkerProgress;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.table.TableRowManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
-import org.sagebionetworks.repo.model.dao.table.RowAndHeaderHandler;
-import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.table.AsynchDownloadRequestBody;
 import org.sagebionetworks.repo.model.table.AsynchDownloadResponseBody;
-import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.table.cluster.ConnectionFactory;
-import org.sagebionetworks.table.cluster.SqlQuery;
-import org.sagebionetworks.table.query.ParseException;
-import org.sagebionetworks.table.query.TableQueryParser;
-import org.sagebionetworks.table.query.model.QuerySpecification;
-import org.sagebionetworks.table.query.util.SqlElementUntils;
 
 import au.com.bytecode.opencsv.CSVWriter;
 
@@ -40,10 +29,10 @@ public class TableCSVDownloadWorker implements Callable<List<Message>>{
 
 	static private Logger log = LogManager.getLogger(TableCSVDownloadWorker.class);
 	private List<Message> messages;
-	private ConnectionFactory tableConnectionFactory;
 	private AsynchJobStatusManager asynchJobStatusManager;
 	private TableRowManager tableRowManager;
 	private UserManager userManger;
+	private WorkerProgress workerProgress;
 	
 	@Override
 	public List<Message> call() throws Exception {
@@ -70,11 +59,22 @@ public class TableCSVDownloadWorker implements Callable<List<Message>>{
 		CSVWriter writer = null;
 		try{
 			UserInfo user = userManger.getUserInfo(status.getStartedByUserId());
+			AsynchDownloadRequestBody request = (AsynchDownloadRequestBody) status.getRequestBody();
+			// Before we start determine how many rows there are.
+			RowSet countSet = tableRowManager.query(user, request.getSql(), true, true);
+			long rowCount = Long.parseLong(countSet.getRows().get(0).getValues().get(0));
+			// For now we are assuming the query takes 3/4ths of the time and the file upload takes 1/4;
+			long totalProgress = rowCount+(rowCount/4L);
+			long currentProgress = 0;
+			
 			temp = File.createTempFile(fileName, ".csv");
 			writer = new CSVWriter(new FileWriter(temp));
-			AsynchDownloadRequestBody request = (AsynchDownloadRequestBody) status.getRequestBody();
+			// this object will update the progress of both the job and refresh the timeout on the message as rows are read from the DB.
+			ProgressingCSVWriterStream stream = new ProgressingCSVWriterStream(writer, workerProgress, message, asynchJobStatusManager, currentProgress, totalProgress, status.getJobId());
+			// we can use this to update the progress
 			// Pares the query
-			AsynchDownloadResponseBody response = tableRowManager.runConsistentQueryAsStream(request.getSql(), writer, true);
+			AsynchDownloadResponseBody response = tableRowManager.runConsistentQueryAsStream(request.getSql(), stream, true);
+			// Create the file
 			// Now upload the file as a filehandle
 			asynchJobStatusManager.setComplete(status.getJobId(), response);
 			return message;

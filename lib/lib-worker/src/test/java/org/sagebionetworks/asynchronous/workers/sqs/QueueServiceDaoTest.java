@@ -8,6 +8,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.junit.Before;
@@ -30,6 +31,7 @@ public class QueueServiceDaoTest {
 	QueueServiceDaoImpl queueServiceDao;
 	int maxRequestSize;
 	int messageIdSequence;
+	LinkedList<Message> messageQueue;
 	
 	@Before
 	public void before(){
@@ -39,7 +41,11 @@ public class QueueServiceDaoTest {
 		ReflectionTestUtils.setField(queueServiceDao, "amazonSQSClient", mockSQSClient);
 		ReflectionTestUtils.setField(queueServiceDao, "maxSQSRequestSize", maxRequestSize);
 		messageIdSequence = 0;
-		
+		// Create messages for the queue
+		messageQueue = new LinkedList<Message>();
+		for(int i=0; i<10; i++){
+			messageQueue.push(new Message().withMessageId("id"+i).withReceiptHandle("handle"+i));
+		}
 		stub(mockSQSClient.receiveMessage(any(ReceiveMessageRequest.class))).toAnswer(new Answer<ReceiveMessageResult>() {
 
 			@Override
@@ -49,7 +55,12 @@ public class QueueServiceDaoTest {
 				if(request.getMaxNumberOfMessages()> maxRequestSize) throw new IllegalArgumentException("Maximum number of messages exceeded");
 				List<Message> messages= new ArrayList<Message>();
 				for(int i=0; i<request.getMaxNumberOfMessages(); i++){
-					messages.add(new Message().withMessageId("id"+messageIdSequence++).withReceiptHandle("handle"+messageIdSequence));
+					Message message = messageQueue.poll();
+					if(message == null){
+						// queue is now empty
+						break;
+					}
+					messages.add(message);
 				}
 				ReceiveMessageResult results = new ReceiveMessageResult().withMessages(messages);
 				return results;
@@ -71,9 +82,35 @@ public class QueueServiceDaoTest {
 	}
 
 	@Test
+	public void testReceiveMessagesBatchAll(){
+		String url = "url";
+		int visibiltyTimeout = 100;
+		// get more messages than are in the queue.
+		int startQueueSize =  messageQueue.size();
+		List<Message> list = queueServiceDao.receiveMessages(url, 100,startQueueSize+1);
+		assertNotNull(list);
+		// The queue should be empty
+		assertEquals(0, messageQueue.size());
+		assertEquals("All messages on the queue should have been fetched",startQueueSize, list.size());
+	}
+	
+	@Test
 	public void testDeleteMessages(){
 		List<Message> toDelete = new ArrayList<Message>(5);
 		for(int i=0; i<5; i++){
+			toDelete.add(new Message().withMessageId("id"+i).withReceiptHandle("handle"+i));
+		}
+		String url = "url";
+		queueServiceDao.deleteMessages(url, toDelete);
+		// It should talke three calls to delete all three.
+		verify(mockSQSClient, times(3)).deleteMessageBatch(any(DeleteMessageBatchRequest.class));
+	}
+	@Test
+	public void testDeleteMessagesDuplicate(){
+		List<Message> toDelete = new ArrayList<Message>(5);
+		for(int i=0; i<5; i++){
+			toDelete.add(new Message().withMessageId("id"+i).withReceiptHandle("handle"+i));
+			// Add a duplicate for each message.
 			toDelete.add(new Message().withMessageId("id"+i).withReceiptHandle("handle"+i));
 		}
 		String url = "url";
@@ -86,6 +123,20 @@ public class QueueServiceDaoTest {
 	public void testResetMessageVisibility(){
 		List<Message> toReset = new ArrayList<Message>(5);
 		for(int i=0; i<5; i++){
+			toReset.add(new Message().withMessageId("id"+i).withReceiptHandle("handle"+i));
+		}
+		String url = "url";
+		queueServiceDao.resetMessageVisibility(url, 99, toReset);
+		// It should take three calls to change the visibility of all five messages.
+		verify(mockSQSClient, times(3)).changeMessageVisibilityBatch(any(ChangeMessageVisibilityBatchRequest.class));
+	}
+	
+	@Test
+	public void testResetMessageVisibilityDuplicate(){
+		List<Message> toReset = new ArrayList<Message>(5);
+		for(int i=0; i<5; i++){
+			toReset.add(new Message().withMessageId("id"+i).withReceiptHandle("handle"+i));
+			// Add a duplicate for each message.
 			toReset.add(new Message().withMessageId("id"+i).withReceiptHandle("handle"+i));
 		}
 		String url = "url";

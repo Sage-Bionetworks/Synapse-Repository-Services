@@ -66,6 +66,7 @@ public class QueueServiceDaoImpl implements QueueServiceDao {
 		List<DeleteMessageBatchRequestEntry> batch = new LinkedList<DeleteMessageBatchRequestEntry>();
 		for(Message message: messagesToDelete){
 			DeleteMessageBatchRequestEntry entry = new DeleteMessageBatchRequestEntry(message.getMessageId(), message.getReceiptHandle());
+			// Only add messages with new IDs to the batch.
 			if(ids.add(message.getMessageId())){
 				batch.add(entry);
 			}
@@ -82,9 +83,13 @@ public class QueueServiceDaoImpl implements QueueServiceDao {
 	@Override
 	public void resetMessageVisibility(String queueUrl, int newVisibiltySeconds, Collection<Message> toReset) {
 		List<ChangeMessageVisibilityBatchRequestEntry> batch = new LinkedList<ChangeMessageVisibilityBatchRequestEntry>();
+		Set<String> ids = new HashSet<String>();
 		for(Message message: toReset){
 			ChangeMessageVisibilityBatchRequestEntry entry = new ChangeMessageVisibilityBatchRequestEntry(message.getMessageId(), message.getReceiptHandle()).withVisibilityTimeout(newVisibiltySeconds);
-			batch.add(entry);
+			// Only add messages with new IDs to the batch.
+			if(ids.add(message.getMessageId())){
+				batch.add(entry);
+			}
 			if(batch.size() == maxSQSRequestSize){
 				amazonSQSClient.changeMessageVisibilityBatch(new ChangeMessageVisibilityBatchRequest(queueUrl, batch));
 				batch.clear();

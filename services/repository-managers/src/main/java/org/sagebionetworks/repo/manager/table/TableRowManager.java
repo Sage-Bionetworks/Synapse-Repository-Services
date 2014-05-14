@@ -22,8 +22,7 @@ import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.SqlQuery;
-
-import au.com.bytecode.opencsv.CSVWriter;
+import org.sagebionetworks.util.csv.CSVWriterStream;
 
 /**
  * Abstraction for Table Row management.
@@ -331,6 +330,6 @@ public interface TableRowManager {
 	 * @throws TableUnavilableException
 	 */
 	AsynchDownloadResponseBody runConsistentQueryAsStream(String sql,
-			CSVWriter writer, boolean includeRowIdAndVersion) throws TableUnavilableException;
+			CSVWriterStream writer, boolean includeRowIdAndVersion) throws TableUnavilableException;
 
 }

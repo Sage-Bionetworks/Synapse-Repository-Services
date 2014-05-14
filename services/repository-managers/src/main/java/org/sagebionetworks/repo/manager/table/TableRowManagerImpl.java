@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.manager.table;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -24,7 +23,6 @@ import org.sagebionetworks.repo.model.dao.semaphore.ExclusiveOrSharedSemaphoreRu
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.dao.table.RowAndHeaderHandler;
-import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dao.table.RowSetAccessor;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
@@ -38,7 +36,6 @@ import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
-import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
@@ -51,11 +48,10 @@ import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
+import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-
-import au.com.bytecode.opencsv.CSVWriter;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
@@ -472,7 +468,7 @@ public class TableRowManagerImpl implements TableRowManager {
 	 * @throws TableUnavilableException
 	 */
 	@Override
-	public AsynchDownloadResponseBody runConsistentQueryAsStream(String sql, final CSVWriter writer, final boolean includeRowIdAndVersion) throws TableUnavilableException{
+	public AsynchDownloadResponseBody runConsistentQueryAsStream(String sql, final CSVWriterStream writer, final boolean includeRowIdAndVersion) throws TableUnavilableException{
 		// Convert to a query.
 		final SqlQuery query = createQuery(sql, false);
 		if(includeRowIdAndVersion && query.isAggregatedResult()){
