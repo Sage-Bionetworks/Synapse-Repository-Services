@@ -16,6 +16,7 @@ import com.amazonaws.services.sqs.model.DeleteMessageBatchRequestEntry;
 import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.amazonaws.services.sqs.model.ReceiveMessageResult;
+import com.google.common.collect.Lists;
 
 /**
  * Batching implementation of the QueueServiceDao.
@@ -63,39 +64,35 @@ public class QueueServiceDaoImpl implements QueueServiceDao {
 	public void deleteMessages(String queueUrl, List<Message> messagesToDelete) {
 		// Send the data in batches
 		Set<String> ids = new HashSet<String>();
-		List<DeleteMessageBatchRequestEntry> batch = new LinkedList<DeleteMessageBatchRequestEntry>();
+		List<DeleteMessageBatchRequestEntry> allEntries = new LinkedList<DeleteMessageBatchRequestEntry>();
 		for(Message message: messagesToDelete){
 			DeleteMessageBatchRequestEntry entry = new DeleteMessageBatchRequestEntry(message.getMessageId(), message.getReceiptHandle());
 			// Only add messages with new IDs to the batch.
 			if(ids.add(message.getMessageId())){
-				batch.add(entry);
-			}
-			if(batch.size() == maxSQSRequestSize){
-				amazonSQSClient.deleteMessageBatch(new DeleteMessageBatchRequest(queueUrl, batch));
-				batch.clear();
+				allEntries.add(entry);
 			}
 		}
-		if(batch.size() > 0){
+		// Make batches that are the max allowed size for SQS calls.
+		List<List<DeleteMessageBatchRequestEntry>> batchedEntries = Lists.partition(allEntries, maxSQSRequestSize);
+		for(List<DeleteMessageBatchRequestEntry> batch: batchedEntries){
 			amazonSQSClient.deleteMessageBatch(new DeleteMessageBatchRequest(queueUrl, batch));
 		}
 	}
 
 	@Override
 	public void resetMessageVisibility(String queueUrl, int newVisibiltySeconds, Collection<Message> toReset) {
-		List<ChangeMessageVisibilityBatchRequestEntry> batch = new LinkedList<ChangeMessageVisibilityBatchRequestEntry>();
+		List<ChangeMessageVisibilityBatchRequestEntry> allEntries = new LinkedList<ChangeMessageVisibilityBatchRequestEntry>();
 		Set<String> ids = new HashSet<String>();
 		for(Message message: toReset){
 			ChangeMessageVisibilityBatchRequestEntry entry = new ChangeMessageVisibilityBatchRequestEntry(message.getMessageId(), message.getReceiptHandle()).withVisibilityTimeout(newVisibiltySeconds);
 			// Only add messages with new IDs to the batch.
 			if(ids.add(message.getMessageId())){
-				batch.add(entry);
-			}
-			if(batch.size() == maxSQSRequestSize){
-				amazonSQSClient.changeMessageVisibilityBatch(new ChangeMessageVisibilityBatchRequest(queueUrl, batch));
-				batch.clear();
+				allEntries.add(entry);
 			}
 		}
-		if(batch.size() > 0){
+		// Make batches that are the max allowed size for SQS calls.
+		List<List<ChangeMessageVisibilityBatchRequestEntry>> batchedEntries = Lists.partition(allEntries, maxSQSRequestSize);
+		for(List<ChangeMessageVisibilityBatchRequestEntry> batch: batchedEntries){
 			amazonSQSClient.changeMessageVisibilityBatch(new ChangeMessageVisibilityBatchRequest(queueUrl, batch));
 		}
 	}
