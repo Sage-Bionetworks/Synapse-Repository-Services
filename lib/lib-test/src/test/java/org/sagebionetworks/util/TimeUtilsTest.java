@@ -19,6 +19,20 @@ public class TimeUtilsTest {
 	}
 
 	@Test
+	public void testSqlDateParse() {
+		assertEquals(0, TimeUtils.parseSqlDate("1970-01-01 00:00:00.000"));
+		assertEquals(0, TimeUtils.parseSqlDate("1970-1-1 0:0:0.0"));
+		assertEquals(0, TimeUtils.parseSqlDate("1970-1-1 00:00:00"));
+		assertEquals(0, TimeUtils.parseSqlDate("1970-1-1"));
+		assertEquals(123, TimeUtils.parseSqlDate("1970-1-1 00:00:00.123"));
+
+		assertEquals(65844122200L, TimeUtils.parseSqlDate("1972-02-02 02:02:02.200"));
+		assertEquals(65844122200L, TimeUtils.parseSqlDate("1972-2-2 2:2:2.2"));
+
+		assertEquals(1400084625398L, TimeUtils.parseSqlDate("2014-5-14 16:23:45.398"));
+	}
+
+	@Test
 	public void testNormal() {
 		TestClock.useTestClockProvider();
 		long start = Clock.currentTimeMillis();

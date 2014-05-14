@@ -97,7 +97,7 @@ public class TableRowTruthDAOImplTest {
 		// Create some test column models
 		List<ColumnModel> models = TableModelTestUtils.createOneOfEachType();
 		// create some test rows.
-		List<Row> rows = TableModelTestUtils.createRows(models, 5);
+		List<Row> rows = TableModelTestUtils.createRows(models, 5, false);
 		String tableId = "syn123";
 		RowSet set = new RowSet();
 		set.setHeaders(TableModelUtils.getHeaders(models));
@@ -218,7 +218,7 @@ public class TableRowTruthDAOImplTest {
 	public void testGetRowSet() throws IOException, NotFoundException{
 		List<ColumnModel> models = TableModelTestUtils.createOneOfEachType();
 		// create some test rows.
-		List<Row> rows = TableModelTestUtils.createRows(models, 5);
+		List<Row> rows = TableModelTestUtils.createRows(models, 5, false);
 		String tableId = "syn123";
 		RowSet set = new RowSet();
 		set.setHeaders(TableModelUtils.getHeaders(models));

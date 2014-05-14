@@ -338,7 +338,7 @@ public class TableModelUtilsTest {
 			TableModelUtils.validateRowValue("true", cm, 1, 3);
 			fail("should have failed");
 		} catch (IllegalArgumentException e) {
-			assertEquals("Value at [1,3] was not a valid DATE. For input string: \"true\"", e.getMessage());
+			assertEquals("Value at [1,3] was not a valid DATE. Invalid format: \"true\"", e.getMessage());
 		}
 		assertEquals(null, TableModelUtils.validateRowValue(null, cm, 2, 2));
 		// Set the default to boolean
