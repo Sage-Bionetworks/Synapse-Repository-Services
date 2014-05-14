@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.concurrent.Callable;
 
 import org.sagebionetworks.asynchronous.workers.sqs.MessageWorkerFactory;
+import org.sagebionetworks.asynchronous.workers.sqs.WorkerProgress;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.repo.model.PrincipalHeaderDAO;
 import org.sagebionetworks.repo.model.TeamDAO;
@@ -34,7 +35,7 @@ public class PrincipalHeaderWorkerFactory implements MessageWorkerFactory {
 	private WorkerLogger workerLogger;
 
 	@Override
-	public Callable<List<Message>> createWorker(List<Message> messages) {
+	public Callable<List<Message>> createWorker(List<Message> messages, WorkerProgress workerProgress) {
 		return new PrincipalHeaderWorker(messages, prinHeadDAO, userGroupDAO, userProfileDAO, teamDAO, workerLogger);
 	}
 

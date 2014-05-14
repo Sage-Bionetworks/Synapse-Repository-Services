@@ -747,6 +747,16 @@ public class StackConfiguration {
 				StackConfiguration.getStack(),
 				StackConfiguration.getStackInstance());
 	}
+	
+	/**
+	 * The name of the queue used used to download CSV files from tables.
+	 * @return
+	 */
+	public String getTableCSVDownloadQueueName(){
+		return String.format(StackConstants.TABLE_CSV_DOWNLOAD_QUEUE_TEMPLATE,
+				StackConfiguration.getStack(),
+				StackConfiguration.getStackInstance());
+	}
 
 	/**
 	 * The name of the AWS topic where repository changes messages are

@@ -5,11 +5,14 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.File;
 import java.io.IOException;
+import java.io.StringWriter;
 import java.net.URL;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.HttpPut;
@@ -37,6 +40,8 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.ProgressEvent;
+import com.amazonaws.services.s3.model.ProgressListener;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -148,5 +153,41 @@ public class MultipartManagerImplAutowireTest {
 		assertEquals(md5, multiPartHandle.getContentMd5());
 		// The part should be deleted
 		assertFalse("The part should have been deleted upon completion of the multi-part upload", multipartManager.doesPartExist(token, 1, bucket));
+	}
+	
+	/**
+	 * Test the upload of a local file.
+	 * @throws IOException 
+	 */
+	@Test
+	public void testMultipartUploadLocalFile() throws IOException{
+		File temp  = File.createTempFile("testMultipartUploadLocalFile", ".txt");
+		try{
+			String fileBody = "This is the body of the file!!!!!";
+			byte[] fileBodyBytes = fileBody.getBytes("UTF-8");
+			String md5 = TransferUtils.createMD5(fileBodyBytes);
+			String bucket = StackConfiguration.getS3Bucket();
+			FileUtils.writeStringToFile(temp, fileBody);
+			String contentType = "text/plain";
+			// Now upload the file to S3
+			S3FileHandle handle = multipartManager.multipartUploadLocalFile(bucket, adminUserInfo.getId().toString(), temp, contentType, new ProgressListener(){
+				@Override
+				public void progressChanged(ProgressEvent progressEvent) {
+					System.out.println("FileUpload bytesTransfered: : "+progressEvent.getBytesTransfered());
+					
+				}});
+			assertNotNull(handle);
+			fileHandlesToDelete.add(handle.getId());
+			assertEquals(md5, handle.getContentMd5());
+			assertEquals(temp.getName(), handle.getFileName());
+			assertEquals(contentType, handle.getContentType());
+			assertEquals(new Long(temp.length()), handle.getContentSize());
+			assertEquals(adminUserInfo.getId().toString(), handle.getCreatedBy());
+			assertNotNull(handle.getBucketName());
+			assertNotNull(handle.getKey());
+			assertNotNull(handle.getContentSize());
+		}finally{
+			temp.delete();
+		}
 	}
 }

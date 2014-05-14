@@ -11,20 +11,9 @@
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
+	<import resource="aws-worker.spb.xml"/>
 	<import resource="classpath:search-dao.spb.xml" />
 	<import resource="classpath:managers-spb.xml" />
-
-	<!-- The AmazonSQSClient -->
-	<bean id="awsSQSClient" class="com.amazonaws.services.sqs.AmazonSQSClient"
-		scope="singleton">
-		<constructor-arg ref="awsCredentials" />
-	</bean>
-
-	<!-- AmazonSNSClient -->
-	<bean id="awsSNSClient" class="com.amazonaws.services.sns.AmazonSNSClient"
-		scope="singleton">
-		<constructor-arg ref="awsCredentials" />
-	</bean>
 
 	<!-- Setups the search message queue. -->
 	<bean id="searchMessageQueue"
@@ -47,8 +36,8 @@
 		scope="singleton">
 		<property name="messageQueue" ref="searchMessageQueue" />
 		<property name="workerFactory" ref="searchQueueWorkerFactory" />
-		<property name="maxNumberOfWorkerThreads" value="5" />
-		<property name="maxMessagePerWorker" value="2" />
+		<property name="maxNumberOfWorkerThreads" value="10" />
+		<property name="maxMessagePerWorker" value="1" />
 		<property name="visibilityTimeoutSec" value="60" />
 	</bean>
 

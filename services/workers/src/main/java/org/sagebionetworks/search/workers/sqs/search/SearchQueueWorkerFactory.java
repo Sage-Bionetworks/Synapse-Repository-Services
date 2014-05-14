@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.concurrent.Callable;
 
 import org.sagebionetworks.asynchronous.workers.sqs.MessageWorkerFactory;
+import org.sagebionetworks.asynchronous.workers.sqs.WorkerProgress;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.repo.manager.search.SearchDocumentDriver;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
@@ -35,7 +36,7 @@ public class SearchQueueWorkerFactory implements MessageWorkerFactory {
 	}
 
 	@Override
-	public Callable<List<Message>> createWorker(List<Message> messages) {
+	public Callable<List<Message>> createWorker(List<Message> messages, WorkerProgress workerProgress) {
 		// Create a new worker
 		return new SearchQueueWorker(searchDao, searchDocumentDriver, messages, wikPageDao, workerLogger);
 	}

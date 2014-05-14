@@ -165,6 +165,10 @@
 		scope="singleton">
 		<constructor-arg ref="awsCredentials" />
 	</bean>
+	<bean id="transferManager" class="com.amazonaws.services.s3.transfer.TransferManager"
+		scope="singleton">
+		<constructor-arg ref="awsCredentials" />
+	</bean>
 	<bean id="storageUsageQueryDao"
 		class="org.sagebionetworks.repo.model.dbo.dao.StorageUsageQueryDaoImpl"
 		scope="singleton">

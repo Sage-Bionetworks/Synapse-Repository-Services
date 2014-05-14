@@ -8,7 +8,9 @@ import java.util.concurrent.Callable;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dao.table.RowAndHeaderHandler;
 import org.sagebionetworks.repo.model.exception.LockUnavilableException;
+import org.sagebionetworks.repo.model.table.AsynchDownloadResponseBody;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
@@ -19,6 +21,8 @@ import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.table.cluster.SqlQuery;
+import org.sagebionetworks.util.csv.CSVWriterStream;
 
 /**
  * Abstraction for Table Row management.
@@ -282,4 +286,50 @@ public interface TableRowManager {
 	public RowSet query(UserInfo user, String sql, boolean isConsistent,
 			boolean countOnly) throws DatastoreException, NotFoundException,
 			TableUnavilableException;
+
+	/**
+	 * Create an query object for the given SQL.
+	 * 
+	 * @param sql
+	 * @param countOnly
+	 * @return
+	 */
+	SqlQuery createQuery(String sql, boolean countOnly);
+
+	/**
+	 * Run a query while holding a non-exclusive lock (read lock) on the table.  This method will load all 
+	 * resulting rows into memory at on time an should only be used if there is a limit to the number of rows read.
+	 * 
+	 * @param query
+	 * @return
+	 * @throws TableUnavilableException
+	 */
+	RowSet runConsistentQuery(SqlQuery query) throws TableUnavilableException;
+
+	/**
+	 * Run a query while holding a non-exclusive lock (read lock) on the table.
+	 * This method will stream over the rows and will not keep the row data in memory.
+	 * This method can be used to stream over results sets that are larger than the available system memory,
+	 * as long as the caller does not hold the resulting rows in memory.
+	 * @param query
+	 * @param handler
+	 * @return The etag of the last change set applied to the table index.
+	 * @throws TableUnavilableException
+	 */
+	String runConsistentQueryAsStream(SqlQuery query,
+			RowAndHeaderHandler handler) throws TableUnavilableException;
+
+	/**
+	 * Run the provided SQL query string and stream the results to the passed CSVWriter.
+	 * This method will stream over the rows and will not keep the row data in memory.
+	 * This method can be used to stream over results sets that are larger than the available system memory,
+	 * as long as the caller does not hold the resulting rows in memory.
+	 * @param sql
+	 * @param writer
+	 * @return
+	 * @throws TableUnavilableException
+	 */
+	AsynchDownloadResponseBody runConsistentQueryAsStream(String sql,
+			CSVWriterStream writer, boolean includeRowIdAndVersion) throws TableUnavilableException;
+
 }
