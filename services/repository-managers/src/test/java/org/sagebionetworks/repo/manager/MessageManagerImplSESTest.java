@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.Settings;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -66,6 +67,7 @@ public class MessageManagerImplSESTest {
 	private GroupMembersDAO mockGroupMembersDAO;
 	private UserManager mockUserManager;
 	private UserProfileDAO mockUserProfileDAO;
+	private PrincipalAliasDAO mockPrincipalAliasDAO;
 	private AuthorizationManager mockAuthorizationManager;
 	private FileHandleManager mockFileHandleManager;
 	private NodeDAO mockNodeDAO;
@@ -105,6 +107,7 @@ public class MessageManagerImplSESTest {
 		mockGroupMembersDAO = mock(GroupMembersDAO.class);
 		mockUserManager = mock(UserManager.class);
 		mockUserProfileDAO = mock(UserProfileDAO.class);
+		mockPrincipalAliasDAO = mock(PrincipalAliasDAO.class);
 		mockAuthorizationManager = mock(AuthorizationManager.class);
 		mockFileHandleManager = mock(FileHandleManager.class);
 		mockNodeDAO = mock(NodeDAO.class);
@@ -116,7 +119,7 @@ public class MessageManagerImplSESTest {
 
 		messageManager = new MessageManagerImpl(mockMessageDAO,
 				mockUserGroupDAO, mockGroupMembersDAO, mockUserManager,
-				mockUserProfileDAO, mockAuthorizationManager, amazonSESClient,
+				mockUserProfileDAO, mockPrincipalAliasDAO, mockAuthorizationManager, amazonSESClient,
 				mockFileHandleManager, mockNodeDAO, mockEntityPermissionsManager,
 				mockFileHandleDao);
 		

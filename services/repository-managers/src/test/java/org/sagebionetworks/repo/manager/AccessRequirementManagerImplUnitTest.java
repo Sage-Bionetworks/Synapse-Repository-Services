@@ -2,12 +2,14 @@ package org.sagebionetworks.repo.manager;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -26,7 +28,9 @@ import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.UserProfileDAO;
+import org.sagebionetworks.repo.model.principal.AliasType;
+import org.sagebionetworks.repo.model.principal.PrincipalAlias;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.util.jrjc.JiraClient;
 
 import com.atlassian.jira.rest.client.api.OptionalIterable;
@@ -47,7 +51,7 @@ public class AccessRequirementManagerImplUnitTest {
 	private AuthorizationManager authorizationManager;
 	private AccessRequirementManagerImpl arm;
 	private UserInfo userInfo;
-	private UserProfileDAO userProfileDAO;
+	private PrincipalAliasDAO principalAliasDAO;
 
 	
 	@Before
@@ -55,12 +59,13 @@ public class AccessRequirementManagerImplUnitTest {
 		accessRequirementDAO = Mockito.mock(AccessRequirementDAO.class);
 		when(accessRequirementDAO.create((AccessRequirement)any())).thenReturn(null);
 		authorizationManager = Mockito.mock(AuthorizationManager.class);
-		userProfileDAO = Mockito.mock(UserProfileDAO.class);
-		UserProfile up = new UserProfile();
-		up.setEmails(Collections.singletonList("foo@bar.com"));
-		when(userProfileDAO.get(anyString())).thenReturn(up);
+		principalAliasDAO = Mockito.mock(PrincipalAliasDAO.class);
+		List<PrincipalAlias> aliases = new ArrayList<PrincipalAlias>();
+		PrincipalAlias alias = new PrincipalAlias();
+		alias.setAlias("foo@bar.com");
+		when(principalAliasDAO.listPrincipalAliases(anyLong(), (AliasType)any())).thenReturn(aliases);
 		jiraClient = Mockito.mock(JiraClient.class);
-		arm = new AccessRequirementManagerImpl(accessRequirementDAO, authorizationManager, jiraClient, userProfileDAO);
+		arm = new AccessRequirementManagerImpl(accessRequirementDAO, authorizationManager, jiraClient, principalAliasDAO);
 		userInfo = new UserInfo(false, TEST_PRINCIPAL_ID);
 		Project sgProject;
 		sgProject = Mockito.mock(Project.class);
