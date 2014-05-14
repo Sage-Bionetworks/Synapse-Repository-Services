@@ -48,7 +48,7 @@ public class AsynchJobQueuePublisherImplTest {
 		AsynchronousJobStatus clone = EntityFactory.createEntityFromJSONString(message.getBody(), AsynchronousJobStatus.class);
 		assertEquals(clone, status);
 		// Delete the message
-		asynchJobQueuePublisher.deleteMessage(AsynchJobType.UPLOAD, message);
+		asynchJobQueuePublisher.deleteMessage(AsynchJobType.UPLOAD_CSV_TO_TABLE, message);
 	}
 
 	/**
@@ -58,7 +58,7 @@ public class AsynchJobQueuePublisherImplTest {
 	public Message waitForOneMessage() throws InterruptedException {
 		long start = System.currentTimeMillis();
 		while(true){
-			Message message = asynchJobQueuePublisher.recieveOneMessage(AsynchJobType.UPLOAD);
+			Message message = asynchJobQueuePublisher.recieveOneMessage(AsynchJobType.UPLOAD_CSV_TO_TABLE);
 			if(message != null){
 				return message;
 			}else{

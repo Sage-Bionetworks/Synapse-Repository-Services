@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
@@ -31,6 +32,7 @@ import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowSet;
+import static org.sagebionetworks.repo.model.table.TableConstants.*;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.util.csv.CsvNullReader;
 
@@ -885,6 +887,56 @@ public class TableModelUtilsTest {
 	}
 	
 	@Test
+	public void testCreateColumnNameHeaderWithoutRowId(){
+		List<ColumnModel> schema = new ArrayList<ColumnModel>();
+		schema.add(TableModelTestUtils.createColumn(123, "one", ColumnType.STRING));
+		schema.add(TableModelTestUtils.createColumn(345, "two", ColumnType.STRING));
+		schema.add(TableModelTestUtils.createColumn(567, "three", ColumnType.STRING));
+		List<String> idList = Arrays.asList("567", "345");
+		boolean includeRowIdAndVersion = false;
+		String[] results = TableModelUtils.createColumnNameHeader(idList, schema, includeRowIdAndVersion);
+		String[] expected = new String[]{"three", "two"};
+		assertEquals(Arrays.toString(expected), Arrays.toString(results));
+	}
+	
+	@Test
+	public void testCreateColumnNameHeaderWithRowId(){
+		List<ColumnModel> schema = new ArrayList<ColumnModel>();
+		schema.add(TableModelTestUtils.createColumn(123, "one", ColumnType.STRING));
+		schema.add(TableModelTestUtils.createColumn(345, "two", ColumnType.STRING));
+		schema.add(TableModelTestUtils.createColumn(567, "three", ColumnType.STRING));
+		List<String> idList = Arrays.asList("567", "123");
+		boolean includeRowIdAndVersion = true;
+		String[] results = TableModelUtils.createColumnNameHeader(idList, schema, includeRowIdAndVersion);
+		String[] expected = new String[]{ROW_ID, ROW_VERSION,"three", "one"};
+		assertEquals(Arrays.toString(expected), Arrays.toString(results));
+	}
+	
+	@Test
+	public void testWriteRowToStringArrayIncludeRowId(){
+		Row row = new Row();
+		row.setRowId(123L);
+		row.setVersionNumber(2L);
+		row.setValues(Arrays.asList("a","b","c"));
+		boolean includeRowIdAndVersion = true;
+		String[] results = TableModelUtils.writeRowToStringArray(row, includeRowIdAndVersion);
+		String[] expected = new String[]{"123", "2","a","b","c"};
+		assertEquals(Arrays.toString(expected), Arrays.toString(results));
+	}
+	
+	@Test
+	public void testWriteRowToStringArrayWihtoutRowId(){
+		Row row = new Row();
+		row.setRowId(123L);
+		row.setVersionNumber(2L);
+		row.setValues(Arrays.asList("a","b","c"));
+		boolean includeRowIdAndVersion = false;
+		String[] results = TableModelUtils.writeRowToStringArray(row, includeRowIdAndVersion);
+		String[] expected = new String[]{"a","b","c"};
+		assertEquals(Arrays.toString(expected), Arrays.toString(results));
+	}
+	
+	@Test
 	public void testTranslateFromQuery() {
 		assertEquals("false", TableModelUtils.translateRowValueFromQuery("0", TableModelTestUtils.createColumn(0, "", ColumnType.BOOLEAN)));
 		assertEquals("true", TableModelUtils.translateRowValueFromQuery("1", TableModelTestUtils.createColumn(0, "", ColumnType.BOOLEAN)));
@@ -900,4 +952,5 @@ public class TableModelUtilsTest {
 			assertEquals("anything", TableModelUtils.translateRowValueFromQuery("anything", TableModelTestUtils.createColumn(0, "", type)));
 		}
 	}
+
 }

@@ -44,6 +44,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.semaphore.ExclusiveOrSharedSemaphoreRunner;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.RowAccessor;
+import org.sagebionetworks.repo.model.dao.table.RowAndHeaderHandler;
 import org.sagebionetworks.repo.model.dao.table.RowSetAccessor;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
@@ -100,11 +101,11 @@ public class TableRowManagerImplTest {
 		mockExclusiveOrSharedSemaphoreRunner = Mockito.mock(ExclusiveOrSharedSemaphoreRunner.class);
 		
 		// Just call the caller.
-		stub(mockExclusiveOrSharedSemaphoreRunner.tryRunWithSharedLock(anyString(), anyLong(), any(Callable.class))).toAnswer(new Answer<RowSet>() {
+		stub(mockExclusiveOrSharedSemaphoreRunner.tryRunWithSharedLock(anyString(), anyLong(), any(Callable.class))).toAnswer(new Answer<String>() {
 			@Override
-			public RowSet answer(InvocationOnMock invocation) throws Throwable {
+			public String answer(InvocationOnMock invocation) throws Throwable {
 				if(invocation == null) return null;
-				Callable<RowSet> callable = (Callable<RowSet>) invocation.getArguments()[2];
+				Callable<String> callable = (Callable<String>) invocation.getArguments()[2];
 				if(callable != null){
 					return callable.call();
 				}else{
@@ -145,7 +146,18 @@ public class TableRowManagerImplTest {
 		when(mockColumnModelDAO.getColumnModelsForObject(tableId)).thenReturn(models);
 		when(mockTableConnectionFactory.getConnection(tableId)).thenReturn(mockTableIndexDAO);
 		when(mockTableIndexDAO.query(any(SqlQuery.class))).thenReturn(set);
-	
+		stub(mockTableIndexDAO.queryAsStream(any(SqlQuery.class), any(RowAndHeaderHandler.class))).toAnswer(new Answer<Boolean>() {
+			@Override
+			public Boolean answer(InvocationOnMock invocation) throws Throwable {
+				RowAndHeaderHandler handler =  (RowAndHeaderHandler) invocation.getArguments()[1];
+				handler.setHeaderColumnIds(set.getHeaders());
+				// Pass all rows to the handler
+				for(Row row: set.getRows()){
+					handler.nextRow(row);
+				}
+				return true;
+			}
+		});	
 		
 		ReflectionTestUtils.setField(manager, "tableRowTruthDao", mockTruthDao);
 		ReflectionTestUtils.setField(manager, "authorizationManager", mockAuthManager);
@@ -539,6 +551,8 @@ public class TableRowManagerImplTest {
 		RowSet results = manager.query(user, "select * from "+tableId+" limit 1", true, false);
 		// The etag should be set
 		assertEquals(status.getLastTableChangeEtag(), results.getEtag());
+		// Clear the etag for the test
+		results.setEtag(null);
 		assertEquals(set, results);
 	}
 	

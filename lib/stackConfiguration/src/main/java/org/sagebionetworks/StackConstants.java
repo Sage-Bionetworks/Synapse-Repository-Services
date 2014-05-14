@@ -35,6 +35,8 @@ public class StackConstants {
 		
 	public static final String TABLE_CSV_UPLOAD_QUEUE_TEMPLATE = "%1$s-%2$s-table-csv-upload-queue";
 	
+	public static final String TABLE_CSV_DOWNLOAD_QUEUE_TEMPLATE = "%1$s-%2$s-table-csv-download-queue";
+	
 	/**
 	 * Template used the name of the AWS topic where repository changes messages are published.
 	 */

@@ -14,6 +14,10 @@
 			"type": "string",
 			"description": "The ID of the file handle for a type of UPLOAD"
 		},
+		"updateEtag": {
+			"type": "string",
+			"description": "Any RowSet returned from Synapse will contain the current etag of the change set.  To update any rows from a RowSet the etag must be provided with the POST."
+		},
 		"separator": {
 			"type": "string",
 			"description": "The delimiter to used for separating entries in the provided file. The default character ',' will be used if this is not provided by the caller.  For tab-separated values use '\\t'"

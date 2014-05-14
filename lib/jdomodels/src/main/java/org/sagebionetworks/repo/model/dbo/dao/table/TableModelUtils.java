@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
@@ -796,6 +797,70 @@ public class TableModelUtils {
 			map.put(Long.parseLong(cm.getId()), cm);
 		}
 		return map;
+	}
+	/**
+	 * Map String column id to column model
+	 * @param columns
+	 * @return
+	 */
+	public static Map<String, ColumnModel> createStringIDtoColumnModelMap(Collection<ColumnModel> columns){
+		HashMap<String, ColumnModel>  map = new HashMap<String, ColumnModel> ();
+		for(ColumnModel cm: columns){
+			map.put(cm.getId(), cm);
+		}
+		return map;
+	}
+	
+	/**
+	 * Give a list of column Ids, create a column name header array.
+	 * @param columnIds
+	 * @param columns
+	 * @param isAggregate
+	 * @return
+	 */
+	public static String[] createColumnNameHeader(List<String> columnIds, Collection<ColumnModel> columns, boolean includeRowIdAndVersion){
+		Map<String, ColumnModel> map = TableModelUtils.createStringIDtoColumnModelMap(columns);
+		List<String> outHeaderList = new ArrayList<String>(columnIds.size()+2);
+		if(includeRowIdAndVersion){
+			outHeaderList.add(TableConstants.ROW_ID);
+			outHeaderList.add(TableConstants.ROW_VERSION);
+		}
+		for(String id: columnIds){
+			String columnName = null;
+			ColumnModel cm = map.get(id);
+			if(cm != null){
+				columnName = cm.getName();
+			}
+			outHeaderList.add(columnName);
+		}
+		return outHeaderList.toArray(new String[outHeaderList.size()]);
+	}
+	
+	/**
+	 * Write a row to a string array.
+	 * 
+	 * @param row
+	 * @param isAggregate
+	 * @return
+	 */
+	public static String[] writeRowToStringArray(Row row, boolean includeRowIdAndVersion){
+		String[] array = null;
+		// Write this row
+		if(!includeRowIdAndVersion){
+			// For aggregates just write the values to the array.
+			array = row.getValues().toArray(new String[row.getValues().size()]);
+		}else{
+			// For non-aggregates the rowId and rowVersion must also be written
+			array = new String[row.getValues().size()+2];
+			array[0] = row.getRowId().toString();
+			array[1] = row.getVersionNumber().toString();
+			int index = 2;
+			for(String value: row.getValues()){
+				array[index] = value;
+				index++;
+			}
+		}
+		return array;
 	}
 	
 	/**

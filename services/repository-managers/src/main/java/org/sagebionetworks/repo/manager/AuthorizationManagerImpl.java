@@ -34,8 +34,12 @@ import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.dao.AuthorizationUtils;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.provenance.Activity;
+import org.sagebionetworks.repo.model.table.AsynchDownloadRequestBody;
 import org.sagebionetworks.repo.model.table.AsynchUploadRequestBody;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.table.query.ParseException;
+import org.sagebionetworks.table.query.TableQueryParser;
+import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.common.collect.Multimap;
@@ -296,8 +300,27 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 			}
 			// The user must have access to the file handle
 			return this.canAccessRawFileHandleById(userInfo, body.getUploadFileHandleId());
-		}else{
+		}else if(bodyIntf instanceof AsynchDownloadRequestBody){
+			AsynchDownloadRequestBody body = (AsynchDownloadRequestBody)bodyIntf;
+			String tableId = getTableIDFromSQL(body.getSql());
+			// The user must have read permission to perform this action.
+			return this.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		}else {
 			throw new IllegalArgumentException("Unknown AsynchronousJobBody: "+bodyIntf.getClass().getName());
+		}
+	}
+	
+	/**
+	 * Get the tableId from a SQL string
+	 * @param sql
+	 * @return
+	 */
+	private String getTableIDFromSQL(String sql){
+		// Parse the SQL
+		try {
+			return SqlElementUntils.getTableId(sql);
+		} catch (ParseException e) {
+			throw new IllegalArgumentException(e);
 		}
 	}
 }
