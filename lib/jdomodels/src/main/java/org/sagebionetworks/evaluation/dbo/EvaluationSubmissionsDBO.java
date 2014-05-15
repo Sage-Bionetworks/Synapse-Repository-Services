@@ -24,7 +24,7 @@ public class EvaluationSubmissionsDBO implements MigratableDatabaseObject<Evalua
 	@Field(name = COL_EVALUATION_SUBMISSIONS_ID, backupId = true, primary = true, nullable = false)
 	private Long id;
 	
-	@Field(name = COL_EVALUATION_SUBMISSIONS_ETAG, backupId = false, varchar = 256, primary = false, nullable = false)
+	@Field(name = COL_EVALUATION_SUBMISSIONS_ETAG, backupId = false, etag = true, varchar = 256, primary = false, nullable = false)
 	private String etag;
 	
 	@Field(name = COL_EVALUATION_SUBMISSIONS_EVAL_ID, backupId = false, primary = false, nullable = false)

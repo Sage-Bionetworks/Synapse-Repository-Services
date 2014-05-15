@@ -5,11 +5,11 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -20,7 +20,6 @@ import java.util.zip.GZIPOutputStream;
 import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dao.table.RowSetAccessor;
-import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableRowChange;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -31,12 +30,13 @@ import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableRowChange;
+import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.util.csv.CsvNullReader;
+
+import au.com.bytecode.opencsv.CSVWriter;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-
-import au.com.bytecode.opencsv.CSVWriter;
 
 /**
  * Utilities for working with Tables and Row data.
@@ -227,9 +227,19 @@ public class TableModelUtils {
 					return Boolean.toString(boolValue);
 				case LONG:
 				case FILEHANDLEID:
-				case DATE:
 					long lv = Long.parseLong(value);
 					return Long.toString(lv);
+				case DATE:
+					// value can be either a number (in which case it is milliseconds since blah) or not a number (in
+					// which
+					// case it is date string)
+					long time;
+					try {
+						time = Long.parseLong(value);
+					} catch (NumberFormatException e) {
+						time = TimeUtils.parseSqlDate(value);
+					}
+					return Long.toString(time);
 				case DOUBLE:
 					double dv = Double.parseDouble(value);
 					return Double.toString(dv);
@@ -787,6 +797,70 @@ public class TableModelUtils {
 			map.put(Long.parseLong(cm.getId()), cm);
 		}
 		return map;
+	}
+	/**
+	 * Map String column id to column model
+	 * @param columns
+	 * @return
+	 */
+	public static Map<String, ColumnModel> createStringIDtoColumnModelMap(Collection<ColumnModel> columns){
+		HashMap<String, ColumnModel>  map = new HashMap<String, ColumnModel> ();
+		for(ColumnModel cm: columns){
+			map.put(cm.getId(), cm);
+		}
+		return map;
+	}
+	
+	/**
+	 * Give a list of column Ids, create a column name header array.
+	 * @param columnIds
+	 * @param columns
+	 * @param isAggregate
+	 * @return
+	 */
+	public static String[] createColumnNameHeader(List<String> columnIds, Collection<ColumnModel> columns, boolean includeRowIdAndVersion){
+		Map<String, ColumnModel> map = TableModelUtils.createStringIDtoColumnModelMap(columns);
+		List<String> outHeaderList = new ArrayList<String>(columnIds.size()+2);
+		if(includeRowIdAndVersion){
+			outHeaderList.add(TableConstants.ROW_ID);
+			outHeaderList.add(TableConstants.ROW_VERSION);
+		}
+		for(String id: columnIds){
+			String columnName = null;
+			ColumnModel cm = map.get(id);
+			if(cm != null){
+				columnName = cm.getName();
+			}
+			outHeaderList.add(columnName);
+		}
+		return outHeaderList.toArray(new String[outHeaderList.size()]);
+	}
+	
+	/**
+	 * Write a row to a string array.
+	 * 
+	 * @param row
+	 * @param isAggregate
+	 * @return
+	 */
+	public static String[] writeRowToStringArray(Row row, boolean includeRowIdAndVersion){
+		String[] array = null;
+		// Write this row
+		if(!includeRowIdAndVersion){
+			// For aggregates just write the values to the array.
+			array = row.getValues().toArray(new String[row.getValues().size()]);
+		}else{
+			// For non-aggregates the rowId and rowVersion must also be written
+			array = new String[row.getValues().size()+2];
+			array[0] = row.getRowId().toString();
+			array[1] = row.getVersionNumber().toString();
+			int index = 2;
+			for(String value: row.getValues()){
+				array[index] = value;
+				index++;
+			}
+		}
+		return array;
 	}
 	
 	/**

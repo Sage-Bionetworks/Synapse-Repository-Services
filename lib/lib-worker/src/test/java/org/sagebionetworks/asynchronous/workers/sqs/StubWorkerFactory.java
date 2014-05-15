@@ -21,7 +21,7 @@ public class StubWorkerFactory implements MessageWorkerFactory{
 	}
 
 	@Override
-	public Callable<List<Message>> createWorker(List<Message> messages) {
-		return workerStack.pop().withMessage(messages);
+	public Callable<List<Message>> createWorker(List<Message> messages, WorkerProgress workerProgress) {
+		return workerStack.pop().withMessage(messages).withProgress(workerProgress);
 	}
 }

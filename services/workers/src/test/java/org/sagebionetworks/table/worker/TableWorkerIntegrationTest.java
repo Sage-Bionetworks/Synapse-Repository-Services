@@ -3,9 +3,13 @@ package org.sagebionetworks.table.worker;
 import static org.junit.Assert.*;
 
 import java.io.IOException;
+import java.io.StringReader;
+import java.io.StringWriter;
 import java.sql.Time;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
@@ -29,9 +33,11 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dbo.dao.table.CSVToRowIterator;
 import org.sagebionetworks.repo.model.dao.table.TableRowCache;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
+import org.sagebionetworks.repo.model.table.AsynchDownloadResponseBody;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Row;
@@ -39,15 +45,21 @@ import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
+import org.sagebionetworks.util.csv.CSVWriterStream;
+import org.sagebionetworks.util.csv.CSVWriterStreamProxy;
+import org.sagebionetworks.util.csv.CsvNullReader;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import au.com.bytecode.opencsv.CSVWriter;
 
 import com.google.common.collect.Lists;
 
@@ -114,8 +126,6 @@ public class TableWorkerIntegrationTest {
 		List<ColumnModel> columnModels = TableModelTestUtils.createOneOfEachType();
 		schema = new LinkedList<ColumnModel>();
 		for(ColumnModel cm: columnModels){
-			// Skip strings
-			if(cm.getColumnType() == ColumnType.STRING) continue;
 			cm = columnManager.createColumnModel(adminUserInfo, cm);
 			schema.add(cm);
 		}
@@ -357,8 +367,6 @@ public class TableWorkerIntegrationTest {
 		List<ColumnModel> temp = TableModelTestUtils.createOneOfEachType();
 		schema = new LinkedList<ColumnModel>();
 		for(ColumnModel cm: temp){
-			// Skip strings
-			if(cm.getColumnType() == ColumnType.STRING) continue;
 			cm = columnManager.createColumnModel(adminUserInfo, cm);
 			schema.add(cm);
 		}
@@ -475,8 +483,6 @@ public class TableWorkerIntegrationTest {
 		List<ColumnModel> temp = TableModelTestUtils.createOneOfEachType();
 		schema = new LinkedList<ColumnModel>();
 		for(ColumnModel cm: temp){
-			// Skip strings
-			if(cm.getColumnType() == ColumnType.STRING) continue;
 			cm = columnManager.createColumnModel(adminUserInfo, cm);
 			schema.add(cm);
 		}
@@ -501,6 +507,92 @@ public class TableWorkerIntegrationTest {
 	}
 	
 	/**
+	 * This test will first create a table from an input CSV, then stream all of the data from the table
+	 * to an output CSV.  The output CSV is then updated and then used to update the table.
+	 * The output date is then stream again, but without the headers so that it can be used to create
+	 * a copy of original table.
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void testCopyAndUpdateTableFromCSV() throws Exception {
+		// Create one column of each type
+		List<ColumnModel> temp = new LinkedList<ColumnModel>();
+		temp.add(TableModelTestUtils.createColumn(0L, "a", ColumnType.STRING));
+		temp.add(TableModelTestUtils.createColumn(0L, "b", ColumnType.LONG));
+		temp.add(TableModelTestUtils.createColumn(0L, "c", ColumnType.DOUBLE));
+		schema = new LinkedList<ColumnModel>();
+		for(ColumnModel cm: temp){
+			cm = columnManager.createColumnModel(adminUserInfo, cm);
+			schema.add(cm);
+		}
+		List<String> headers = TableModelUtils.getHeaders(schema);
+		// Create the table.
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		table.setColumnIds(headers);
+		tableId = entityManager.createEntity(adminUserInfo, table, null);
+		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
+		columnManager.bindColumnToObject(adminUserInfo, headers, tableId, true);
+		// Create some CSV data
+		List<String[]> input = new ArrayList<String[]>(3);
+		input.add(new String[] { "a", "b", "c" });
+		input.add(new String[] { "AAA", "2", "1.1" });
+		input.add(new String[] { null, "3", "1.2" });
+		input.add(new String[] { "FFF", "4", null });
+		input.add(new String[] { "ZZZ", null, "1.3" });
+		// This is the starting input stream
+		CsvNullReader reader = TableModelTestUtils.createReader(input);
+		// Write the CSV to the table
+		CSVToRowIterator iterator = new CSVToRowIterator(schema, reader);
+		tableRowManager.appendRowsAsStream(adminUserInfo, tableId, schema, iterator, null, null);
+		// Now wait for the table index to be ready
+		RowSet rowSet = waitForConsistentQuery(adminUserInfo, "select * from "+tableId+" limit 100");
+		assertNotNull(rowSet);
+		// Now stream the query results to a CSV
+		StringWriter stringWriter = new StringWriter();
+		CSVWriter csvWriter = new CSVWriter(stringWriter);
+		CSVWriterStreamProxy proxy = new CSVWriterStreamProxy(csvWriter);
+		// Downlaod the data to a csv
+		boolean includeRowIdAndVersion = true;
+		AsynchDownloadResponseBody response = waitForConsistentStreamQuery("select * from "+tableId, proxy, includeRowIdAndVersion);
+		assertNotNull(response);
+		assertNotNull(response.getEtag());
+		// Read the results
+		CsvNullReader copyReader = new CsvNullReader(new StringReader(stringWriter.toString()));
+		List<String[]> copy = copyReader.readAll();
+		assertNotNull(copy);
+		// the results should include a header.
+		assertEquals(input.size(),  copy.size());
+		// the first two columns should include the rowId can verionNumber
+		assertEquals(Arrays.asList(TableConstants.ROW_ID, TableConstants.ROW_VERSION, "a", "b", "c").toString(), Arrays.toString(copy.get(0)));
+		assertEquals(Arrays.asList("0", "0", "AAA", "2", "1.1").toString(), Arrays.toString(copy.get(1)));
+		assertEquals(Arrays.asList("1", "0",  null, "3", "1.2" ).toString(), Arrays.toString(copy.get(2)));
+		// make some changes
+		copy.get(1)[2] = "DDD";
+		copy.get(2)[2] = "EEE";
+		copy.get(3)[2] = "FFF";
+		reader = TableModelTestUtils.createReader(copy);
+		// Use the data to update the table
+		iterator = new CSVToRowIterator(schema, reader);
+		tableRowManager.appendRowsAsStream(adminUserInfo, tableId, schema, iterator, response.getEtag(), null);
+		// Fetch the results again but this time without row id and version so it can be used to create a new table.
+		stringWriter = new StringWriter();
+		csvWriter = new CSVWriter(stringWriter);
+		proxy = new CSVWriterStreamProxy(csvWriter);
+		includeRowIdAndVersion = false;
+		response = waitForConsistentStreamQuery("select c, a, b from "+tableId, proxy, includeRowIdAndVersion);
+		// read the results
+		copyReader = new CsvNullReader(new StringReader(stringWriter.toString()));
+		copy = copyReader.readAll();
+		assertNotNull(copy);
+		// As long as the updated data does not includes rowIds and row version we can use it to create a new table.
+		assertEquals(Arrays.asList( "c", "a", "b").toString(), Arrays.toString(copy.get(0)));
+		assertEquals(Arrays.asList("1.1","DDD", "2").toString(), Arrays.toString(copy.get(1)));
+		assertEquals(Arrays.asList("1.2","EEE", "3").toString(), Arrays.toString(copy.get(2)));
+	}
+	
+	/**
 	 * Attempt to run a query. If the table is unavailable, it will continue to try until successful or the timeout is exceeded.
 	 * 
 	 * @param user
@@ -515,6 +607,31 @@ public class TableWorkerIntegrationTest {
 		while(true){
 			try {
 				return  tableRowManager.query(adminUserInfo, sql, true, false);
+			} catch (TableUnavilableException e) {
+				assertTrue("Timed out waiting for table index worker to make the table available.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
+				assertNotNull(e.getStatus());
+				assertFalse("Failed: "+e.getStatus().getErrorMessage(),TableState.PROCESSING_FAILED.equals(e.getStatus().getState()));
+				System.out.println("Waiting for table index worker to build table. Status: "+e.getStatus());
+				Thread.sleep(1000);
+			}
+		}
+	}
+	
+	/**
+	 * Attempt to run a query as a stream.  If the table is unavailable, it will continue to try until successful or the timeout is exceeded.
+	 * @param sql
+	 * @param writer
+	 * @param includeRowIdAndVersion
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws InterruptedException
+	 */
+	private AsynchDownloadResponseBody waitForConsistentStreamQuery(String sql, CSVWriterStream writer, boolean includeRowIdAndVersion) throws DatastoreException, NotFoundException, InterruptedException{
+		long start = System.currentTimeMillis();
+		while(true){
+			try {
+				return  tableRowManager.runConsistentQueryAsStream(sql, writer, includeRowIdAndVersion);
 			} catch (TableUnavilableException e) {
 				assertTrue("Timed out waiting for table index worker to make the table available.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
 				assertNotNull(e.getStatus());

@@ -24,5 +24,4 @@
 		<constructor-arg index="1"><ref bean="userKey"/></constructor-arg>
 	</bean>
 	
-	
 </beans>

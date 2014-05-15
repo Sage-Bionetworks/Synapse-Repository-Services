@@ -28,6 +28,7 @@
 		<constructor-arg ref="awsCredentials" />
 	</bean>
 
+
 	<!-- The RepositoryMessagePublisher publish repository change messages to 
 		an AWS topic -->
 	<bean id="messagePublisher"

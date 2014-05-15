@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.concurrent.Callable;
 
 import org.sagebionetworks.asynchronous.workers.sqs.MessageWorkerFactory;
+import org.sagebionetworks.asynchronous.workers.sqs.WorkerProgress;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
@@ -32,7 +33,7 @@ public class TableCSVAppenderWorkerFactory implements MessageWorkerFactory{
 	private AmazonS3Client s3Client;
 	
 	@Override
-	public Callable<List<Message>> createWorker(List<Message> messages) {
+	public Callable<List<Message>> createWorker(List<Message> messages, WorkerProgress workerProgress) {
 		return new TableCSVAppenderWorker(asynchJobStatusManager, tableRowManager,fileHandleManger,userManager,s3Client,messages);
 	}
 

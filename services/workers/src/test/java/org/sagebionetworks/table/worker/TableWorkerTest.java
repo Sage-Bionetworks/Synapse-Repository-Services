@@ -22,6 +22,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
+import org.sagebionetworks.asynchronous.workers.sqs.WorkerProgress;
 import org.sagebionetworks.repo.manager.table.TableRowManager;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -77,7 +78,13 @@ public class TableWorkerTest {
 	 * @return
 	 */
 	public TableWorker createNewWorker(List<Message> messages){
-		return new TableWorker(messages, mockTableConnectionFactory, mockTableRowManager, mockConfiguration);
+		return new TableWorker(messages, mockTableConnectionFactory, mockTableRowManager, mockConfiguration, new WorkerProgress() {
+			@Override
+			public void progressMadeForMessage(Message message) {
+				// TODO Auto-generated method stub
+				
+			}
+		});
 	}
 	
 	/**

@@ -2,11 +2,11 @@ package org.sagebionetworks.table.cluster;
 
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import java.util.Arrays;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -145,6 +145,13 @@ public class SQLUtilsTest {
 	}
 
 	@Test
+	public void testparseValueForDBDateString() {
+		Long expected = new Long(123);
+		Object objectValue = SQLUtils.parseValueForDB(ColumnType.DATE, "1970-1-1 00:00:00.123");
+		assertEquals(expected, objectValue);
+	}
+
+	@Test
 	public void testparseValueForDBDouble(){
 		Double expected = new Double(123.456);
 		Object objectValue = SQLUtils.parseValueForDB(ColumnType.DOUBLE, "123.456");
@@ -153,14 +160,14 @@ public class SQLUtilsTest {
 	
 	@Test
 	public void testparseValueForDBBooleanTrue(){
-		Integer expected = new Integer(1);
+		Boolean expected = new Boolean(true);
 		Object objectValue = SQLUtils.parseValueForDB(ColumnType.BOOLEAN, "true");
 		assertEquals(expected, objectValue);
 	}
 	
 	@Test
 	public void testparseValueForDBBooleanFalse(){
-		Integer expected = new Integer(0);
+		Boolean expected = new Boolean(false);
 		Object objectValue = SQLUtils.parseValueForDB(ColumnType.BOOLEAN, "false");
 		assertEquals(expected, objectValue);
 	}
@@ -212,14 +219,14 @@ public class SQLUtilsTest {
 	
 	@Test
 	public void testGetSQLDefaultsForBooleanTrue(){
-		String expected = "DEFAULT 1";
+		String expected = "DEFAULT true";
 		String sql = SQLUtils.getSQLDefaultForColumnType(ColumnType.BOOLEAN, "true");
 		assertEquals(expected, sql);
 	}
 	
 	@Test
 	public void testGetSQLDefaultsForBooleanFalse(){
-		String expected = "DEFAULT 0";
+		String expected = "DEFAULT false";
 		String sql = SQLUtils.getSQLDefaultForColumnType(ColumnType.BOOLEAN, "false");
 		assertEquals(expected, sql);
 	}
@@ -432,7 +439,7 @@ public class SQLUtilsTest {
 		assertEquals(new Long(3), results[0].getValue(SQLUtils.ROW_VERSION_BIND));
 		assertEquals(new Double(3.12), results[0].getValue("C1"));
 		assertEquals(new Long(3000), results[0].getValue("C2"));
-		assertEquals(new Integer(0), results[0].getValue("C3"));
+		assertEquals(new Boolean(false), results[0].getValue("C3"));
 		assertEquals(new Long(4000), results[0].getValue("C4"));
 		assertEquals(new Long(5000), results[0].getValue("C5"));
 		// second
@@ -440,7 +447,7 @@ public class SQLUtilsTest {
 		assertEquals(new Long(3), results[1].getValue(SQLUtils.ROW_VERSION_BIND));
 		assertEquals(new Double(6.53), results[1].getValue("C1"));
 		assertEquals(new Long(3001), results[1].getValue("C2"));
-		assertEquals(new Integer(1), results[1].getValue("C3"));
+		assertEquals(new Boolean(true), results[1].getValue("C3"));
 		assertEquals(new Long(4001), results[1].getValue("C4"));
 		assertEquals(new Long(5001), results[1].getValue("C5"));
 	}

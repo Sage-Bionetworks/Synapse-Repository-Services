@@ -46,6 +46,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.provenance.Activity;
+import org.sagebionetworks.repo.model.table.AsynchDownloadRequestBody;
 import org.sagebionetworks.repo.model.table.AsynchUploadRequestBody;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -508,5 +509,39 @@ public class AuthorizationManagerImplUnitTest {
 		when(mockFileHandleDao.getHandleCreator(body.getUploadFileHandleId())).thenReturn(userInfo.getId().toString());
 		// make the call
 		assertFalse(this.authorizationManager.canUserStartJob(userInfo, body));
+	}
+	
+	@Test
+	public void testCanUserStartJobDownloadJobAnonymous() throws DatastoreException, NotFoundException{
+		AsynchDownloadRequestBody body = new AsynchDownloadRequestBody();
+		String tableId = "syn123";
+		body.setSql("select * from "+tableId);
+		userInfo.setId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		// the user can update the entity
+		when(mockEntityPermissionsManager.hasAccess(tableId, ACCESS_TYPE.READ, userInfo)).thenReturn(true);
+		// make the call
+		assertFalse(this.authorizationManager.canUserStartJob(userInfo, body));
+	}
+	
+	@Test
+	public void testCanUserStartJobDownloadJobNoRead() throws DatastoreException, NotFoundException{
+		AsynchDownloadRequestBody body = new AsynchDownloadRequestBody();
+		String tableId = "syn123";
+		body.setSql("select * from "+tableId);
+		// the user can update the entity
+		when(mockEntityPermissionsManager.hasAccess(tableId, ACCESS_TYPE.READ, userInfo)).thenReturn(false);
+		// make the call
+		assertFalse(this.authorizationManager.canUserStartJob(userInfo, body));
+	}
+	
+	@Test
+	public void testCanUserStartJobDownloadJobCanRead() throws DatastoreException, NotFoundException{
+		AsynchDownloadRequestBody body = new AsynchDownloadRequestBody();
+		String tableId = "syn123";
+		body.setSql("select * from "+tableId);
+		// the user can update the entity
+		when(mockEntityPermissionsManager.hasAccess(tableId, ACCESS_TYPE.READ, userInfo)).thenReturn(true);
+		// make the call
+		assertTrue(this.authorizationManager.canUserStartJob(userInfo, body));
 	}
 }

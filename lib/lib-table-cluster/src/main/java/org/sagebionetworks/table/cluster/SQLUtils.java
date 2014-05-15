@@ -16,6 +16,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.util.TimeUtils;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
@@ -181,15 +182,18 @@ public class SQLUtils {
 				return Double.parseDouble(value);
 			case LONG:
 			case FILEHANDLEID:
-			case DATE:
 				return Long.parseLong(value);
+			case DATE:
+				// value can be either a number (in which case it is milliseconds since blah) or not a number (in which
+				// case it is date string)
+				try {
+					return Long.parseLong(value);
+				} catch (NumberFormatException e) {
+					return TimeUtils.parseSqlDate(value);
+				}
 			case BOOLEAN:
 				boolean booleanValue = Boolean.parseBoolean(value);
-				if (booleanValue) {
-					return TRUE_INT;
-				} else {
-					return FALSE_INT;
-				}
+				return booleanValue;
 			}
 			throw new IllegalArgumentException("Unknown Type: " + type);
 		} catch (NumberFormatException e) {

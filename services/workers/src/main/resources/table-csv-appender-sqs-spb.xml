@@ -11,19 +11,8 @@
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
+	<import resource="aws-worker.spb.xml"/>
 	<import resource="classpath:managers-spb.xml" />
-
-	<!-- The AmazonSQSClient -->
-	<bean id="awsSQSClient" class="com.amazonaws.services.sqs.AmazonSQSClient"
-		scope="singleton">
-		<constructor-arg ref="awsCredentials" />
-	</bean>
-
-	<!-- AmazonSNSClient -->
-	<bean id="awsSNSClient" class="com.amazonaws.services.sns.AmazonSNSClient"
-		scope="singleton">
-		<constructor-arg ref="awsCredentials" />
-	</bean>
 
 	<!-- provides table message queue workers -->
 	<bean id="tableCSVAppenderWorkerFactory"

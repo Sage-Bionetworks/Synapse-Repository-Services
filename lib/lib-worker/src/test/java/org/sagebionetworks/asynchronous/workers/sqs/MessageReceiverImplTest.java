@@ -1,6 +1,8 @@
 package org.sagebionetworks.asynchronous.workers.sqs;
 
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyInt;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -16,12 +18,7 @@ import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-import com.amazonaws.services.sqs.AmazonSQSClient;
-import com.amazonaws.services.sqs.model.DeleteMessageBatchRequest;
-import com.amazonaws.services.sqs.model.DeleteMessageBatchRequestEntry;
 import com.amazonaws.services.sqs.model.Message;
-import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
-import com.amazonaws.services.sqs.model.ReceiveMessageResult;
 
 /**
  * Unit test for the MessageReceiverImpl.
@@ -34,22 +31,22 @@ public class MessageReceiverImplTest {
 	MessageReceiverImpl messageReveiver;
 	Integer maxNumberOfWorkerThreads = 5;
 	Integer maxMessagePerWorker = 3;
-	Integer visibilityTimeout = 5;
+	Integer visibilityTimeoutSecs = 5;
 	String queueUrl = "queueUrl";
 	MessageQueue mockQueue;
 	MessageWorkerFactory stubFactory;
-	AmazonSQSClient mockSQSClient;
+	QueueServiceDao mockSQSDao;
 	List<Message> messageList;
 	Queue<Message> messageQueue;
 	
 	@Before
 	public void before(){
-		mockSQSClient = Mockito.mock(AmazonSQSClient.class);
+		mockSQSDao = Mockito.mock(QueueServiceDao.class);
 		mockQueue = Mockito.mock(MessageQueue.class);
 		when(mockQueue.getQueueUrl()).thenReturn(queueUrl);
 		when(mockQueue.isEnabled()).thenReturn(true);
 		// Inject all of the dependencies
-		messageReveiver = new MessageReceiverImpl(mockSQSClient, maxNumberOfWorkerThreads, maxMessagePerWorker,visibilityTimeout, mockQueue, stubFactory);
+		messageReveiver = new MessageReceiverImpl(mockSQSDao, maxNumberOfWorkerThreads, maxMessagePerWorker,visibilityTimeoutSecs, mockQueue, stubFactory);
 		
 		// Setup a list of messages.
 		int maxMessages = maxNumberOfWorkerThreads*maxMessagePerWorker;
@@ -60,27 +57,22 @@ public class MessageReceiverImplTest {
 		}
 		// Setup the messages
 		messageQueue = new LinkedList<Message>(messageList);
-		when(mockSQSClient.receiveMessage(any(ReceiveMessageRequest.class))).thenAnswer(new Answer<ReceiveMessageResult>() {
+		when(mockSQSDao.receiveMessages(any(String.class), anyInt(), anyInt())).thenAnswer(new Answer<List<Message>>() {
 
 			@Override
-			public ReceiveMessageResult answer(InvocationOnMock invocation)
+			public List<Message> answer(InvocationOnMock invocation)
 					throws Throwable {
-				ReceiveMessageRequest rmRequest = (ReceiveMessageRequest) invocation.getArguments()[0];
-				ReceiveMessageResult results = new ReceiveMessageResult();
-				for (int i = 0; i < rmRequest.getMaxNumberOfMessages() && !messageQueue.isEmpty(); i++) {
-					results.withMessages(messageQueue.poll());
+				String url = (String) invocation.getArguments()[0];
+				Integer visibilityTimeout = (Integer) invocation.getArguments()[1];
+				Integer maxReqeusts = (Integer) invocation.getArguments()[2];
+				List<Message> results = new LinkedList<Message>();
+				for (int i = 0; i < maxReqeusts && !messageQueue.isEmpty(); i++) {
+					results.add(messageQueue.poll());
 				}
 				return results;
 			}
 			
 		});
-
-	}
-	
-	@Test (expected=IllegalStateException.class)
-	public void testNullawsSQSClient() throws InterruptedException{
-		messageReveiver.setAwsSQSClient(null);
-		messageReveiver.triggerFired();
 	}
 	
 	@Test (expected=IllegalStateException.class)
@@ -107,25 +99,14 @@ public class MessageReceiverImplTest {
 		Stack<StubWorker> workerStack = new Stack<StubWorker>();
 		// Setup workers that will not timeout or throw exceptions
 		for(int i=0; i<maxNumberOfWorkerThreads; i++){
-			workerStack.push(new StubWorker(0, null));
+			workerStack.push(new StubWorker(0, 0, null));
 		}
 		StubWorkerFactory factory = new StubWorkerFactory(workerStack);
 		messageReveiver.setWorkerFactory(factory);
 		
 		// now trigger
 		messageReveiver.triggerFired();
-		List<DeleteMessageBatchRequestEntry> deleteRequest = new LinkedList<DeleteMessageBatchRequestEntry>();
-		// We all messages should get deleted.
-		for(Message message: messageList){
-			deleteRequest.add(new DeleteMessageBatchRequestEntry().withId(message.getMessageId()).withReceiptHandle(message.getReceiptHandle()));
-		}
-		DeleteMessageBatchRequest expectedBatch = new DeleteMessageBatchRequest(queueUrl,
-				deleteRequest.subList(0, MessageUtils.SQS_MAX_REQUEST_SIZE));
-		DeleteMessageBatchRequest expectedBatch2 = new DeleteMessageBatchRequest(queueUrl, 
-				deleteRequest.subList(MessageUtils.SQS_MAX_REQUEST_SIZE, deleteRequest.size()));
-		// Verify that all were deleted
-		verify(mockSQSClient, times(1)).deleteMessageBatch(expectedBatch);
-		verify(mockSQSClient, times(1)).deleteMessageBatch(expectedBatch2);
+		verify(mockSQSDao, times(1)).deleteMessages(queueUrl, messageList);
 	}
 	@Test
 	public void testTrigerFiredOneFailureMulitipleSuccess() throws InterruptedException{
@@ -133,27 +114,22 @@ public class MessageReceiverImplTest {
 		Stack<StubWorker> workerStack = new Stack<StubWorker>();
 		// Setup workers that will not timeout or throw exceptions
 		for(int i=0; i<maxNumberOfWorkerThreads-1; i++){
-			workerStack.push(new StubWorker(0, null));
+			workerStack.push(new StubWorker(0, 0, null));
 		}
 		// Make the last worker throw an exception
-		workerStack.push(new StubWorker(1000, new Exception("Simulated a failure")));
+		workerStack.push(new StubWorker(1000, 0, new Exception("Simulated a failure")));
 		StubWorkerFactory factory = new StubWorkerFactory(workerStack);
 		messageReveiver.setWorkerFactory(factory);
 		
 		// now trigger
 		messageReveiver.triggerFired();
-		List<DeleteMessageBatchRequestEntry> deleteRequest = new LinkedList<DeleteMessageBatchRequestEntry>();
-		// We all messages should get deleted.
-		for(Message message: messageList){
-			deleteRequest.add(new DeleteMessageBatchRequestEntry().withId(message.getMessageId()).withReceiptHandle(message.getReceiptHandle()));
-		}
+		List<Message> deleteRequest = new LinkedList<Message>(messageList);
 		// This time the first batch of messages should not get delete because of the failure
 		for(int i=0; i<maxMessagePerWorker; i++){
 			deleteRequest.remove(0);
 		}
-		DeleteMessageBatchRequest expectedBatch = new DeleteMessageBatchRequest(queueUrl, deleteRequest);
 		// Verify that all were deleted
-		verify(mockSQSClient, times(1)).deleteMessageBatch(expectedBatch);
+		verify(mockSQSDao, times(1)).deleteMessages(queueUrl, deleteRequest);
 	}
 	
 	@Test
@@ -162,27 +138,22 @@ public class MessageReceiverImplTest {
 		Stack<StubWorker> workerStack = new Stack<StubWorker>();
 		// Setup workers that will not timeout or throw exceptions
 		for(int i=0; i<maxNumberOfWorkerThreads-1; i++){
-			workerStack.push(new StubWorker(0, null));
+			workerStack.push(new StubWorker(0, 0, null));
 		}
 		// Make the first worker timeout
-		workerStack.push(new StubWorker(visibilityTimeout*1000+100, null));
+		workerStack.push(new StubWorker(visibilityTimeoutSecs*1000+100, 0, null));
 		StubWorkerFactory factory = new StubWorkerFactory(workerStack);
 		messageReveiver.setWorkerFactory(factory);
 		
 		// now trigger
 		messageReveiver.triggerFired();
-		List<DeleteMessageBatchRequestEntry> deleteRequest = new LinkedList<DeleteMessageBatchRequestEntry>();
-		// We all messages should get deleted.
-		for(Message message: messageList){
-			deleteRequest.add(new DeleteMessageBatchRequestEntry().withId(message.getMessageId()).withReceiptHandle(message.getReceiptHandle()));
-		}
+		List<Message> deleteRequest = new LinkedList<Message>(messageList);
 		// This time the first batch of messages should not get delete because of the timeout
 		for(int i=0; i<maxMessagePerWorker; i++){
 			deleteRequest.remove(0);
 		}
-		DeleteMessageBatchRequest expectedBatch = new DeleteMessageBatchRequest(queueUrl, deleteRequest);
 		// Verify that all were deleted
-		verify(mockSQSClient, times(1)).deleteMessageBatch(expectedBatch);
+		verify(mockSQSDao, times(1)).deleteMessages(queueUrl, deleteRequest);
 	}
 	
 	@Test
@@ -192,7 +163,7 @@ public class MessageReceiverImplTest {
 		// Setup workers that will not timeout or throw exceptions
 		long sleepTime = 0;
 		for(int i=0; i<maxNumberOfWorkerThreads; i++){
-			workerStack.push(new StubWorker(sleepTime+=500, null));
+			workerStack.push(new StubWorker(sleepTime+=500, 0, null));
 		}
 		StubWorkerFactory factory = new StubWorkerFactory(workerStack);
 		messageReveiver.setWorkerFactory(factory);
@@ -200,7 +171,7 @@ public class MessageReceiverImplTest {
 		// now trigger
 		messageReveiver.triggerFired();
 		// Since each worker has a different sleep time, the delete messages should be staggered over 5 calls.
-		verify(mockSQSClient, times(maxNumberOfWorkerThreads)).deleteMessageBatch(any(DeleteMessageBatchRequest.class));
+		verify(mockSQSDao, times(maxNumberOfWorkerThreads)).deleteMessages(anyString(), any(List.class));
 	}
 	
 	@Test
@@ -211,7 +182,7 @@ public class MessageReceiverImplTest {
 		// Setup workers that will not timeout or throw exceptions
 		long sleepTime = 0;
 		for(int i=0; i<maxNumberOfWorkerThreads; i++){
-			workerStack.push(new StubWorker(sleepTime+=500, null));
+			workerStack.push(new StubWorker(sleepTime+=500, 0, null));
 		}
 		StubWorkerFactory factory = new StubWorkerFactory(workerStack);
 		messageReveiver.setWorkerFactory(factory);
@@ -219,7 +190,26 @@ public class MessageReceiverImplTest {
 		// now trigger
 		messageReveiver.triggerFired();
 		// Since each worker has a different sleep time, the delete messages should be staggered over 5 calls.
-		verify(mockSQSClient, times(0)).deleteMessageBatch(any(DeleteMessageBatchRequest.class));
+		verify(mockSQSDao, times(0)).deleteMessages(anyString(), any(List.class));
+	}
+	
+	@Test
+	public void testResetVisibility() throws InterruptedException{
+		Stack<StubWorker> workerStack = new Stack<StubWorker>();
+		// Setup workers that will take longer than the half-life of the timeout
+		// which should trigger a reset of the visibility timeout.
+		long visibilityTimeoutMS = visibilityTimeoutSecs*1000;
+		long sleepTime = visibilityTimeoutMS;
+		for(int i=0; i<maxNumberOfWorkerThreads; i++){
+			workerStack.push(new StubWorker(sleepTime, 2, null));
+		}
+		StubWorkerFactory factory = new StubWorkerFactory(workerStack);
+		messageReveiver.setWorkerFactory(factory);
+		
+		// now trigger
+		messageReveiver.triggerFired();
+		// since each worker's sleep is equal to the visibility timeout they should each have their messages visibility rest once.
+		verify(mockSQSDao, times(1)).resetMessageVisibility(anyString(), anyInt(), any(List.class));
 	}
 
 }

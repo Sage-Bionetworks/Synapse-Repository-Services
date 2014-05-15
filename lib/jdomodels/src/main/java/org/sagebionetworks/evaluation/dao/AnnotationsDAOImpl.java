@@ -36,6 +36,7 @@ import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.sagebionetworks.evaluation.dbo.AnnotationsBlobDBO;
@@ -312,6 +313,7 @@ public class AnnotationsDAOImpl implements AnnotationsDAO {
 		if (ownerIds == null || ownerIds.isEmpty()) throw new IllegalArgumentException("Owner ids required");
 		// Delete the annotation's owner which will trigger the cascade delete of all annotations.
 		MapSqlParameterSource param = new MapSqlParameterSource();
+		Collections.sort(ownerIds);
 		param.addValue(COL_SUBSTATUS_ANNO_SUBID, ownerIds);
 		simpleJdbcTemplate.update(DELETE_FROM_ANNO_OWNERS, param);	
 	}

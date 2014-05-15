@@ -12,18 +12,7 @@
 	<aop:aspectj-autoproxy />
 
 	<import resource="classpath:managers-spb.xml" />
-
-	<!-- The AmazonSQSClient -->
-	<bean id="awsSQSClient" class="com.amazonaws.services.sqs.AmazonSQSClient"
-		scope="singleton">
-		<constructor-arg ref="awsCredentials" />
-	</bean>
-
-	<!-- AmazonSNSClient -->
-	<bean id="awsSNSClient" class="com.amazonaws.services.sns.AmazonSNSClient"
-		scope="singleton">
-		<constructor-arg ref="awsCredentials" />
-	</bean>
+	<import resource="aws-worker.spb.xml"/>
 
 	<!-- Setups the search message queue. -->
 	<bean id="messageToUserMessageQueue"
@@ -48,7 +37,7 @@
 		<property name="workerFactory" ref="messageToUserQueueWorkerFactory" />
 		<property name="maxNumberOfWorkerThreads" value="2" />
 		<property name="maxMessagePerWorker" value="5" />
-		<property name="visibilityTimeoutSec" value="600" />
+		<property name="visibilityTimeoutSec" value="60" />
 	</bean>
 	
 	<!-- This gate ensures we never run more than the max number or runners across the entire cluster for this worker  -->

@@ -20,6 +20,39 @@ import org.apache.logging.log4j.Logger;
  */
 public class StackConfiguration {
 
+	public class StackConfigurationPropertyAccessor implements PropertyAccessor {
+		String name;
+
+		private StackConfigurationPropertyAccessor(String name) {
+			this.name = name;
+		}
+
+		@Override
+		public String getString() {
+			return dynamicConfiguration.getProperty(this.name);
+		}
+
+		@Override
+		public long getLong() {
+			return Long.parseLong(getString());
+		}
+
+		@Override
+		public int getInteger() {
+			return Integer.parseInt(getString());
+		}
+
+		@Override
+		public boolean getBoolean() {
+			return Boolean.parseBoolean(getString());
+		}
+
+		@Override
+		public double getDouble() {
+			return Double.parseDouble(getString());
+		}
+	}
+
 	private static final String PROD = "prod";
 	private static final String DEV = "dev";
 	private static final String HUDSON = "hud";
@@ -32,6 +65,8 @@ public class StackConfiguration {
 
 	private static TemplatedConfiguration configuration = null;
 	private static InetAddress address = null;
+
+	private static volatile TemplatedConfiguration dynamicConfiguration = null;
 
 	static {
 		init();
@@ -47,6 +82,13 @@ public class StackConfiguration {
 			log.error(t.getMessage(), t);
 			throw new RuntimeException(t);
 		}
+		dynamicConfiguration = configuration;
+	}
+
+	public static void reloadDynamicStackConfiguration() {
+		TemplatedConfiguration newConfiguration = new TemplatedConfigurationImpl(DEFAULT_PROPERTIES_FILENAME, TEMPLATE_PROPERTIES);
+		newConfiguration.reloadConfiguration();
+		dynamicConfiguration = newConfiguration;
 	}
 
 	public static void reloadStackConfiguration() {
@@ -747,6 +789,16 @@ public class StackConfiguration {
 				StackConfiguration.getStack(),
 				StackConfiguration.getStackInstance());
 	}
+	
+	/**
+	 * The name of the queue used used to download CSV files from tables.
+	 * @return
+	 */
+	public String getTableCSVDownloadQueueName(){
+		return String.format(StackConstants.TABLE_CSV_DOWNLOAD_QUEUE_TEMPLATE,
+				StackConfiguration.getStack(),
+				StackConfiguration.getStackInstance());
+	}
 
 	/**
 	 * The name of the AWS topic where repository changes messages are
@@ -1324,6 +1376,10 @@ public class StackConfiguration {
 	public long getTableReadTimeoutMS() {
 		return Long.parseLong(configuration
 				.getProperty("org.sagebionetworks.table.read.timeout.ms"));
+	}
+
+	public PropertyAccessor getMaxConcurrentRepoConnections() {
+		return new StackConfigurationPropertyAccessor("org.sagebionetworks.max.concurrent.repo.connections");
 	}
 
 	/**

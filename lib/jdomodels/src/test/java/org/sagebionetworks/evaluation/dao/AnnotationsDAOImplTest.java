@@ -348,7 +348,13 @@ public class AnnotationsDAOImplTest {
         // create Annotations
         Annotations annos2 = createAnnotations(evalId, submissionId2);
 		
-		annotationsList.add(annos2);
+        // in order to test PLFM-2775, make sure the Ids are in *descending* order
+        if (Long.parseLong(submissionId2)<Long.parseLong(submissionId)) {
+        	annotationsList.add(annos2);
+		} else {
+        	annotationsList.add(0, annos2);
+		}
+        
 		{
 			// Create
 			List<StringAnnotation> stringAnnos = new ArrayList<StringAnnotation>();

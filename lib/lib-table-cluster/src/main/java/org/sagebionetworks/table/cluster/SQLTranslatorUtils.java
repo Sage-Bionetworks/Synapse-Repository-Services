@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.query.model.*;
+import org.sagebionetworks.util.TimeUtils;
 
 import com.google.common.base.Function;
 
@@ -25,20 +26,6 @@ import com.google.common.base.Function;
  *
  */
 public class SQLTranslatorUtils {
-
-	public static final DateTimeFormatter dateParser;
-	
-	static {
-		// DateTimeFormat.forPattern("yyyy-M-D H:m:s.S");
-		DateTimeFormatter dateFormatter = new DateTimeFormatterBuilder().appendPattern("yy-M-d").toFormatter();
-		DateTimeFormatter microSecondsFormatter = new DateTimeFormatterBuilder().appendLiteral('.').appendPattern("SSS").toFormatter();
-		DateTimeFormatter secondsFormatter = new DateTimeFormatterBuilder().appendPattern(":s")
-				.appendOptional(microSecondsFormatter.getParser()).toFormatter();
-		DateTimeFormatter timeFormatter = new DateTimeFormatterBuilder().appendPattern(" H:m")
-				.appendOptional(secondsFormatter.getParser()).toFormatter();
-		dateParser = new DateTimeFormatterBuilder().append(dateFormatter).appendOptional(timeFormatter.getParser()).toFormatter()
-				.withZoneUTC();
-	}
 
 	private static final Function<ColumnModel, Long> MODEL_TO_ID = new Function<ColumnModel, Long>() {
 		@Override
@@ -849,8 +836,7 @@ public class SQLTranslatorUtils {
 		switch (lhsColumnModel == null ? ColumnType.STRING : lhsColumnModel.getColumnType()) {
 		case DATE:
 			if (!isNumber(primary.getUnsignedValueSpecification())) {
-				DateTime parsedDateTime = dateParser.parseDateTime(value);
-				value = Long.toString(parsedDateTime.getMillis());
+				value = Long.toString(TimeUtils.parseSqlDate(value));
 			}
 			break;
 		default:
