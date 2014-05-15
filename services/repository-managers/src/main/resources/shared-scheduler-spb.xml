@@ -14,6 +14,7 @@
 
 	<import resource="classpath:aws-topic-publisher.spb.xml" />
 	<import resource="classpath:audit-trigger.spb.xml" />
+	<import resource="classpath:stack-reload-trigger.spb.xml" />
 	
 	<!-- This is a shared  Scheduler-->
 	<bean class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
@@ -21,6 +22,7 @@
 			<list>
 				<ref bean="messagePublisherTrigger" />
 				<ref bean="accessRecorderTrigger" />
+				<ref bean="stackConfigurationReloadTrigger" />
 			</list>
 		</property>
 	</bean>
