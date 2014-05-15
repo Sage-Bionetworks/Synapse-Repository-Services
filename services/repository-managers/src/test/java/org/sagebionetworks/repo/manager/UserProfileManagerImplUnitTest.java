@@ -5,6 +5,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Random;
 
@@ -186,6 +187,8 @@ public class UserProfileManagerImplUnitTest {
 	public void testGetOwnUserProfle() throws Exception {
 		String ownerId = userInfo.getId().toString();
 		UserProfile upClone = userProfileManager.getUserProfile(userInfo, ownerId);
+		userProfile.setEmail(null);
+		userProfile.setEmails(new ArrayList<String>());
 		assertEquals(userProfile, upClone);
 	}
 		
@@ -193,6 +196,8 @@ public class UserProfileManagerImplUnitTest {
 	public void testgetOthersUserProfleByAdmin() throws Exception {
 		String ownerId = userInfo.getId().toString();
 		UserProfile upClone = userProfileManager.getUserProfile(adminUserInfo, ownerId);
+		userProfile.setEmail(null);
+		userProfile.setEmails(new ArrayList<String>());
 		assertEquals(userProfile, upClone);
 	}
 	

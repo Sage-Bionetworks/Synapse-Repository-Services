@@ -7,8 +7,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.net.URL;
+import java.util.Collections;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -29,6 +29,8 @@ import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.Settings;
+import org.sagebionetworks.repo.model.principal.AliasType;
+import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -96,9 +98,7 @@ public class MessageManagerImplSESTest {
 	/**
 	 * This is the one object that the tests will modify
 	 */
-	private UserProfile mockUserProfile;
-	
-	private UserProfile mockSenderUserProfile;
+	private PrincipalAlias mockRecipientPrincipalAlias;
 
 	@Before
 	public void setUp() throws Exception {
@@ -158,14 +158,30 @@ public class MessageManagerImplSESTest {
 		when(mockUserGroupDAO.get(eq(mockRecipientId))).thenReturn(mockUserGroup);
 		
 		// Mocks the getting of settings
-		mockUserProfile = new UserProfile();
+		UserProfile mockUserProfile = new UserProfile();
 		mockUserProfile.setNotificationSettings(new Settings());
 		when(mockUserProfileDAO.get(eq(mockRecipientIdString))).thenReturn(mockUserProfile);
 		
-		mockSenderUserProfile = new UserProfile();
+		mockRecipientPrincipalAlias = new PrincipalAlias();
+		mockRecipientPrincipalAlias.setType(AliasType.USER_EMAIL);
+		mockRecipientPrincipalAlias.setIsValidated(true);
+
+		List<PrincipalAlias> recipientAliases = Collections.singletonList(mockRecipientPrincipalAlias);
+		when(mockPrincipalAliasDAO.listPrincipalAliases(mockRecipientId, AliasType.USER_EMAIL))
+			.thenReturn(recipientAliases);
+		
+		UserProfile mockSenderUserProfile = new UserProfile();
 		mockSenderUserProfile.setUserName("foo");
 		when(mockUserProfileDAO.get(eq(mockUserIdString))).thenReturn(mockSenderUserProfile);
 
+		PrincipalAlias senderPrincipalAlias = new PrincipalAlias();
+		senderPrincipalAlias.setType(AliasType.USER_EMAIL);
+		senderPrincipalAlias.setAlias("foo@bar.com");
+		senderPrincipalAlias.setIsValidated(true);
+		List<PrincipalAlias> senderAliases = Collections.singletonList(senderPrincipalAlias);
+		when(mockPrincipalAliasDAO.listPrincipalAliases(mockUserId, AliasType.USER_EMAIL))
+			.thenReturn(senderAliases);
+		
 		// Mocks the username supplied to SES
 		mockUserInfo = new UserInfo(false, mockUserId);
 		when(mockUserManager.getUserInfo(eq(mockUserId))).thenReturn(mockUserInfo);
@@ -205,40 +221,35 @@ public class MessageManagerImplSESTest {
 	
 	@Test
 	public void testSuccess() throws Exception {
-		mockUserProfile.setEmails(new LinkedList<String>());
-		mockUserProfile.getEmails().add(SUCCESS_EMAIL);
+		mockRecipientPrincipalAlias.setAlias(SUCCESS_EMAIL);
 		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT);
 		assertEquals(errors.toString(), 0, errors.size());
 	}
 	
 	@Test
 	public void testBounce() throws Exception {
-		mockUserProfile.setEmails(new LinkedList<String>());
-		mockUserProfile.getEmails().add(BOUNCE_EMAIL);
+		mockRecipientPrincipalAlias.setAlias(BOUNCE_EMAIL);
 		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT);
 		assertEquals(errors.toString(), 0, errors.size());
 	}
 	
 	@Test
 	public void testOutOfOffice() throws Exception {
-		mockUserProfile.setEmails(new LinkedList<String>());
-		mockUserProfile.getEmails().add(OOTO_EMAIL);
+		mockRecipientPrincipalAlias.setAlias(OOTO_EMAIL);
 		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT);
 		assertEquals(errors.toString(), 0, errors.size());
 	}
 	
 	@Test
 	public void testComplaint() throws Exception {
-		mockUserProfile.setEmails(new LinkedList<String>());
-		mockUserProfile.getEmails().add(COMPLAINT_EMAIL);
+		mockRecipientPrincipalAlias.setAlias(COMPLAINT_EMAIL);
 		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT);
 		assertEquals(errors.toString(), 0, errors.size());
 	}
 	
 	@Test
 	public void testSuppressionList() throws Exception {
-		mockUserProfile.setEmails(new LinkedList<String>());
-		mockUserProfile.getEmails().add(SUPPRESSION_EMAIL);
+		mockRecipientPrincipalAlias.setAlias(SUPPRESSION_EMAIL);
 		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT);
 		assertEquals(errors.toString(), 0, errors.size());
 	}

@@ -13,6 +13,7 @@ import static org.mockito.Mockito.when;
 
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -26,7 +27,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
-import org.sagebionetworks.repo.manager.migration.TestUtils;
 import org.sagebionetworks.repo.manager.team.MembershipRequestManager;
 import org.sagebionetworks.repo.manager.team.TeamConstants;
 import org.sagebionetworks.repo.manager.team.TeamManager;
@@ -37,6 +37,7 @@ import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.MembershipRqstSubmission;
+import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.QueryResults;
@@ -44,12 +45,15 @@ import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TooManyRequestsException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -59,6 +63,9 @@ import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.Settings;
+import org.sagebionetworks.repo.model.principal.AliasType;
+import org.sagebionetworks.repo.model.principal.PrincipalAlias;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -95,6 +102,9 @@ public class MessageManagerImplTest {
 	private UserProfileDAO userProfileDAO;
 	
 	@Autowired
+	private UserGroupDAO userGroupDAO;
+	
+	@Autowired
 	private FileHandleManager fileHandleManager;
 	private FileHandleManager mockFileHandleManager;
 	
@@ -109,6 +119,9 @@ public class MessageManagerImplTest {
 	
 	@Autowired
 	private GroupMembersDAO groupMembersDao;
+	
+	@Autowired
+	private PrincipalAliasDAO principalAliasDAO;
 	
 	private static final MessageSortBy SORT_ORDER = MessageSortBy.SEND_DATE;
 	private static final boolean DESCENDING = true;
@@ -144,7 +157,14 @@ public class MessageManagerImplTest {
 	@SuppressWarnings("serial")
 	@Before
 	public void setUp() throws Exception {
+		principalIdsToDelete = new ArrayList<Long>();
+		Collection<UserGroup> allIndividuals = userGroupDAO.getAll(true);
+		for (UserGroup individual : allIndividuals) {
+			setUpAlias(Long.parseLong(individual.getId()), individual.getId()+"@foo.bar");
+		}
+		
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		setUpAlias(adminUserInfo.getId(), "admin@foo.bar");
 		cleanup = new ArrayList<String>();
 		
 		DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();
@@ -160,11 +180,13 @@ public class MessageManagerImplTest {
 			nu.setEmail(UUID.randomUUID().toString() + "@test.com");
 			nu.setUserName(UUID.randomUUID().toString());
 			testUser = userManager.createUser(adminUserInfo, nu, cred, tou);
+			setUpAlias(testUser.getId(), nu.getEmail());
 			
 			nu = new NewUser();
 			nu.setEmail(UUID.randomUUID().toString() + "@test.com");
 			nu.setUserName(UUID.randomUUID().toString());
 			otherTestUser = userManager.createUser(adminUserInfo,nu, cred, tou);
+			setUpAlias(otherTestUser.getId(), nu.getEmail());
 			
 			tou.setPrincipalId(otherTestUser.getId());
 			basicDao.createOrUpdate(tou);
@@ -175,6 +197,7 @@ public class MessageManagerImplTest {
 			nu2.setEmail(UUID.randomUUID().toString() + "@test.com");
 			nu2.setUserName(UUID.randomUUID().toString());
 			trustedMessageSender = userManager.createUser(adminUserInfo, nu2, cred, tou);
+			setUpAlias(trustedMessageSender.getId(), nu2.getEmail());
 			tou.setPrincipalId(trustedMessageSender.getId());
 			basicDao.createOrUpdate(tou);
 			// now add to trusted users group
@@ -237,6 +260,29 @@ public class MessageManagerImplTest {
 				new HashSet<String>() {{add(testUserId); add(testTeamId);}}, null);
 		otherToGroup = createMessage(otherTestUser, "otherToGroup", 
 				new HashSet<String>() {{add(testTeamId);}}, null);
+	}
+	
+	private List<Long> principalIdsToDelete;
+	
+	private void setUpAlias(long principalId, String email) throws NotFoundException {
+		PrincipalAlias alias = new PrincipalAlias();
+		alias.setAlias(email);
+		alias.setIsValidated(true);
+		alias.setPrincipalId(principalId);
+		alias.setType(AliasType.USER_EMAIL);
+		try {
+			principalAliasDAO.bindAliasToPrincipal(alias);
+			principalIdsToDelete.add(principalId);
+		} catch (NameConflictException e) {
+			// alias is already set up
+		}
+	}
+	
+	@After
+	public void tearDown() throws Exception {
+		for (Long principalId : principalIdsToDelete) {
+			principalAliasDAO.removeAllAliasFromPrincipal(principalId);
+		}
 	}
 	
 	/**

@@ -138,6 +138,7 @@ public class UserProfileManagerImplTest {
 		
 	}
 	
+	// Note:  In PLFM-2486 we allow the client to change the emails passed in, we just ignore them
 	@Test
 	public void testPLFM_2504() throws DatastoreException, UnauthorizedException, NotFoundException{
 		// Create a new UserProfile
@@ -163,12 +164,7 @@ public class UserProfileManagerImplTest {
 		profile.getEmails().add("myNewEmail@spies.org");
 		String startEtag = profile.getEtag();
 		// update
-		try{
-			// Changing emails is currently disabled See 
-			profile = userProfileManager.updateUserProfile(userInfo, profile);
-			fail("Should not be able to change my emails. See PLFM-2504");
-		}catch(IllegalArgumentException e){
-			// This is expected until email edit is enabled.
-		}		
+		// OK to change emails, as any changes to email are ignored
+		profile = userProfileManager.updateUserProfile(userInfo, profile);
 	}
 }
