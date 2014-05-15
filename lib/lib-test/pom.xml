@@ -23,6 +23,10 @@
 			<artifactId>lib-utils</artifactId>
 		</dependency>
 		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>lib-models</artifactId>
+		</dependency>
+				<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 		</dependency>

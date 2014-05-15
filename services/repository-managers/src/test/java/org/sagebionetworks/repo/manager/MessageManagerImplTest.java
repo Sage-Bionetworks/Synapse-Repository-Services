@@ -37,7 +37,6 @@ import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.MembershipRqstSubmission;
-import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.QueryResults;
@@ -53,6 +52,7 @@ import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.dao.PrincipalAliasTestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
@@ -63,7 +63,6 @@ import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.Settings;
-import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -151,20 +150,22 @@ public class MessageManagerImplTest {
 	private List<String> cleanup;
 	private String nodeId;
 	
+	private List<PrincipalAlias> aliasesToDelete;
+	
 	/**
 	 * Note: This setup is very similar to {@link #DBOMessageDAOImplTest}
 	 */
 	@SuppressWarnings("serial")
 	@Before
 	public void setUp() throws Exception {
-		principalIdsToDelete = new ArrayList<Long>();
+		aliasesToDelete = new ArrayList<PrincipalAlias>();
 		Collection<UserGroup> allIndividuals = userGroupDAO.getAll(true);
 		for (UserGroup individual : allIndividuals) {
-			setUpAlias(Long.parseLong(individual.getId()), individual.getId()+"@foo.bar");
+			PrincipalAliasTestUtils.setUpAlias(Long.parseLong(individual.getId()), individual.getId()+"@foo.bar", principalAliasDAO, aliasesToDelete);
 		}
 		
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
-		setUpAlias(adminUserInfo.getId(), "admin@foo.bar");
+		PrincipalAliasTestUtils.setUpAlias(adminUserInfo.getId(), "admin@foo.bar", principalAliasDAO, aliasesToDelete);
 		cleanup = new ArrayList<String>();
 		
 		DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();
@@ -180,13 +181,13 @@ public class MessageManagerImplTest {
 			nu.setEmail(UUID.randomUUID().toString() + "@test.com");
 			nu.setUserName(UUID.randomUUID().toString());
 			testUser = userManager.createUser(adminUserInfo, nu, cred, tou);
-			setUpAlias(testUser.getId(), nu.getEmail());
+			PrincipalAliasTestUtils.setUpAlias(testUser.getId(), nu.getEmail(), principalAliasDAO, aliasesToDelete);
 			
 			nu = new NewUser();
 			nu.setEmail(UUID.randomUUID().toString() + "@test.com");
 			nu.setUserName(UUID.randomUUID().toString());
 			otherTestUser = userManager.createUser(adminUserInfo,nu, cred, tou);
-			setUpAlias(otherTestUser.getId(), nu.getEmail());
+			PrincipalAliasTestUtils.setUpAlias(otherTestUser.getId(), nu.getEmail(), principalAliasDAO, aliasesToDelete);
 			
 			tou.setPrincipalId(otherTestUser.getId());
 			basicDao.createOrUpdate(tou);
@@ -197,7 +198,7 @@ public class MessageManagerImplTest {
 			nu2.setEmail(UUID.randomUUID().toString() + "@test.com");
 			nu2.setUserName(UUID.randomUUID().toString());
 			trustedMessageSender = userManager.createUser(adminUserInfo, nu2, cred, tou);
-			setUpAlias(trustedMessageSender.getId(), nu2.getEmail());
+			PrincipalAliasTestUtils.setUpAlias(trustedMessageSender.getId(), nu2.getEmail(), principalAliasDAO, aliasesToDelete);
 			tou.setPrincipalId(trustedMessageSender.getId());
 			basicDao.createOrUpdate(tou);
 			// now add to trusted users group
@@ -262,26 +263,10 @@ public class MessageManagerImplTest {
 				new HashSet<String>() {{add(testTeamId);}}, null);
 	}
 	
-	private List<Long> principalIdsToDelete;
-	
-	private void setUpAlias(long principalId, String email) throws NotFoundException {
-		PrincipalAlias alias = new PrincipalAlias();
-		alias.setAlias(email);
-		alias.setIsValidated(true);
-		alias.setPrincipalId(principalId);
-		alias.setType(AliasType.USER_EMAIL);
-		try {
-			principalAliasDAO.bindAliasToPrincipal(alias);
-			principalIdsToDelete.add(principalId);
-		} catch (NameConflictException e) {
-			// alias is already set up
-		}
-	}
-	
 	@After
 	public void tearDown() throws Exception {
-		for (Long principalId : principalIdsToDelete) {
-			principalAliasDAO.removeAllAliasFromPrincipal(principalId);
+		for (PrincipalAlias alias : aliasesToDelete) {
+			principalAliasDAO.removeAliasFromPrincipal(alias.getPrincipalId(), alias.getAliasId());
 		}
 	}
 	

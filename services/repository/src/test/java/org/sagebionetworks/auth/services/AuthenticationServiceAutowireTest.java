@@ -2,6 +2,7 @@ package org.sagebionetworks.auth.services;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.After;
 import org.junit.Before;
@@ -84,7 +85,7 @@ public class AuthenticationServiceAutowireTest {
 		// Before we start the user should not have an openId, but they should have an Email
 		UserProfile profile = userProfileManger.getUserProfile(amdin, principalId.toString());
 		assertNotNull(profile);
-		assertEquals(null, profile.getOpenIds());
+		assertTrue(profile.getOpenIds().isEmpty());
 		// Now the user should be able to login with open ID because we look them up by email.
 		// After doing so their openID should be bound to the user.
 		OpenIDInfo openIdInfo = new OpenIDInfo();

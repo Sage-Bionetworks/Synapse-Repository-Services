@@ -5,6 +5,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -25,6 +26,9 @@ import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.dbo.dao.PrincipalAliasTestUtils;
+import org.sagebionetworks.repo.model.principal.PrincipalAlias;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -42,7 +46,12 @@ public class UserProfileServiceAutowireTest {
 	@Autowired
 	UserProfileService userProfileService;
 
+	@Autowired
+	private PrincipalAliasDAO principalAliasDAO;
+	
 	List<Long> principalsToDelete;
+
+	private List<PrincipalAlias> aliasesToDelete;
 
 	Long principalOne;
 	Long principalTwo;
@@ -52,6 +61,7 @@ public class UserProfileServiceAutowireTest {
 	@Before
 	public void before() throws NotFoundException{
 		principalsToDelete = new LinkedList<Long>();
+		aliasesToDelete = new ArrayList<PrincipalAlias>();
 		// Get the admin info
 		admin = userManger.getUserInfo(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		// Create two users
@@ -63,6 +73,8 @@ public class UserProfileServiceAutowireTest {
 		nu.setUserName("007");
 		nu.setEmail("superSpy@Spies.org");
 		principalOne = userManger.createUser(nu);
+		PrincipalAliasTestUtils.setUpAlias(principalOne, nu.getEmail(), 
+				principalAliasDAO, aliasesToDelete);
 		principalsToDelete.add(principalOne);
 		
 		// Create another profile
@@ -72,6 +84,8 @@ public class UserProfileServiceAutowireTest {
 		nu.setUserName("random");
 		nu.setEmail("super@duper.org");
 		principalTwo = userManger.createUser(nu);
+		PrincipalAliasTestUtils.setUpAlias(principalTwo, nu.getEmail(), 
+				principalAliasDAO, aliasesToDelete);
 		principalsToDelete.add(principalTwo);
 		
 		// Create another profile
@@ -81,6 +95,8 @@ public class UserProfileServiceAutowireTest {
 		nu.setUserName("cate001");
 		nu.setEmail("cate@Spies.org");
 		principalThree = userManger.createUser(nu);
+		PrincipalAliasTestUtils.setUpAlias(principalThree, nu.getEmail(), 
+				principalAliasDAO, aliasesToDelete);
 		principalsToDelete.add(principalThree);
 		
 		// refresh the cache here
@@ -89,6 +105,9 @@ public class UserProfileServiceAutowireTest {
 	
 	@After
 	public void after(){
+		for (PrincipalAlias alias : aliasesToDelete) {
+			principalAliasDAO.removeAliasFromPrincipal(alias.getPrincipalId(), alias.getAliasId());
+		}
 		if(principalsToDelete != null){
 			for(Long id: principalsToDelete){
 				try {

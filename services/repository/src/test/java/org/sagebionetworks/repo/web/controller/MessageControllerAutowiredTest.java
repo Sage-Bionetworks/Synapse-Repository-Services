@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.dbo.dao.PrincipalAliasTestUtils;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageRecipientSet;
@@ -29,6 +30,8 @@ import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
+import org.sagebionetworks.repo.model.principal.PrincipalAlias;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.service.MessageService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -47,6 +50,9 @@ public class MessageControllerAutowiredTest {
 	
 	@Autowired
 	private UserManager userManager;
+	
+	@Autowired
+	private PrincipalAliasDAO principalAliasDAO;
 	
 	@Autowired
 	private MessageService messageService;
@@ -74,6 +80,7 @@ public class MessageControllerAutowiredTest {
 	private Set<String> toEve;
 	
 	private List<String> cleanup;
+	private List<PrincipalAlias> aliasesToDelete;
 	
 	@SuppressWarnings("serial")
 	private static List<MessageStatusType> inboxFilter = new ArrayList<MessageStatusType>() {{add(MessageStatusType.UNREAD);}};
@@ -82,25 +89,32 @@ public class MessageControllerAutowiredTest {
 	@Before
 	public void before() throws Exception {
 		cleanup = new ArrayList<String>();
+		aliasesToDelete = new ArrayList<PrincipalAlias>();
 		testHelper.setUp();
 		
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		
 		// Need 3 users
-		NewUser user = new NewUser();
+		NewUser user = new NewUser(); 
 		user.setEmail(UUID.randomUUID().toString() + "@test.com");
 		user.setUserName(UUID.randomUUID().toString());
 		alice = userManager.createUser(user);
+		PrincipalAliasTestUtils.setUpAlias(alice, user.getEmail(), 
+				principalAliasDAO, aliasesToDelete);
 		aliceId = "" + alice;
 		
 		user.setEmail(UUID.randomUUID().toString() + "@test.com");
 		user.setUserName(UUID.randomUUID().toString());
 		bob = userManager.createUser(user);
+		PrincipalAliasTestUtils.setUpAlias(bob, user.getEmail(), 
+				principalAliasDAO, aliasesToDelete);
 		bobId = "" + bob;
 		
 		user.setEmail(UUID.randomUUID().toString() + "@test.com");
 		user.setUserName(UUID.randomUUID().toString());
 		eve = userManager.createUser(user);
+		PrincipalAliasTestUtils.setUpAlias(eve, user.getEmail(), 
+				principalAliasDAO, aliasesToDelete);
 		eveId = "" + eve;
 		
 		toAlice = new HashSet<String>() {{
@@ -127,6 +141,10 @@ public class MessageControllerAutowiredTest {
 	
 	@After
 	public void after() throws Exception {
+		for (PrincipalAlias alias : aliasesToDelete) {
+			principalAliasDAO.removeAliasFromPrincipal(alias.getPrincipalId(), alias.getAliasId());
+		}
+		
 		for (String id : cleanup) {
 			messageService.deleteMessage(adminUserInfo.getId(), id);
 		}
