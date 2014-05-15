@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.file;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -27,6 +28,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 
 import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
+import com.amazonaws.services.s3.model.ProgressListener;
 
 /**
  * Manages uploading files.
@@ -202,5 +204,16 @@ public interface FileHandleManager {
 	 * @throws DatastoreException 
 	 */
 	public UploadDaemonStatus getUploadDaemonStatus(UserInfo userInfo, String daemonId) throws DatastoreException, NotFoundException;
+
+	/**
+	 * Multi-part upload a local file to S3.  This is used by workers.
+	 * 
+	 * @param userInfo
+	 * @param fileToUpload
+	 * @param contentType
+	 * @param listener
+	 * @return
+	 */
+	S3FileHandle multipartUploadLocalFile(UserInfo userInfo, File fileToUpload,	String contentType, ProgressListener listener);
 	
 }
