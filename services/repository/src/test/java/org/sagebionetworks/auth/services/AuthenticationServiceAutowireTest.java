@@ -20,6 +20,8 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
+import org.sagebionetworks.repo.model.dbo.dao.PrincipalAliasTestUtils;
+import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,7 +39,7 @@ public class AuthenticationServiceAutowireTest {
 	UserManager userManger;
 	
 	@Autowired
-	PrincipalAliasDAO principalAlaisDAO;
+	PrincipalAliasDAO principalAliasDAO;
 	
 	@Autowired
 	AuthenticationService authenticationService;
@@ -57,6 +59,7 @@ public class AuthenticationServiceAutowireTest {
 		nu.setEmail(OPEN_ID_TEST_EMAIL);
 		nu.setUserName("openIdTestUser");
 		principalId = userManger.createUser(nu);
+		PrincipalAliasTestUtils.setUpAlias(principalId, OPEN_ID_TEST_EMAIL, AliasType.USER_EMAIL, principalAliasDAO, null);
 	}
 	
 
@@ -119,6 +122,7 @@ public class AuthenticationServiceAutowireTest {
 		// Create a user with temporary Username
 		nu.setUserName(UserProfileUtillity.createTempoaryUserName(123));
 		principalId2 = userManger.createUser(nu);
+		PrincipalAliasTestUtils.setUpAlias(principalId2, nu.getEmail(), AliasType.USER_EMAIL, principalAliasDAO, null);
 		// Now try to loging with open ID
 		OpenIDInfo openIdInfo = new OpenIDInfo();
 		openIdInfo.setEmail(nu.getEmail());

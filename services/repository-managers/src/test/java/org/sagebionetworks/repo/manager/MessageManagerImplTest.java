@@ -165,7 +165,6 @@ public class MessageManagerImplTest {
 		}
 		
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
-		PrincipalAliasTestUtils.setUpAlias(adminUserInfo.getId(), "admin@foo.bar", principalAliasDAO, aliasesToDelete);
 		cleanup = new ArrayList<String>();
 		
 		DBOTermsOfUseAgreement tou = new DBOTermsOfUseAgreement();

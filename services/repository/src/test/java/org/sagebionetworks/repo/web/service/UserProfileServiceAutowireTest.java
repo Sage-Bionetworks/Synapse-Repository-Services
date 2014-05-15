@@ -49,9 +49,7 @@ public class UserProfileServiceAutowireTest {
 	@Autowired
 	private PrincipalAliasDAO principalAliasDAO;
 	
-	List<Long> principalsToDelete;
-
-	private List<PrincipalAlias> aliasesToDelete;
+	private List<Long> principalsToDelete;
 
 	Long principalOne;
 	Long principalTwo;
@@ -61,7 +59,6 @@ public class UserProfileServiceAutowireTest {
 	@Before
 	public void before() throws NotFoundException{
 		principalsToDelete = new LinkedList<Long>();
-		aliasesToDelete = new ArrayList<PrincipalAlias>();
 		// Get the admin info
 		admin = userManger.getUserInfo(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		// Create two users
@@ -74,7 +71,7 @@ public class UserProfileServiceAutowireTest {
 		nu.setEmail("superSpy@Spies.org");
 		principalOne = userManger.createUser(nu);
 		PrincipalAliasTestUtils.setUpAlias(principalOne, nu.getEmail(), 
-				principalAliasDAO, aliasesToDelete);
+				principalAliasDAO, null);
 		principalsToDelete.add(principalOne);
 		
 		// Create another profile
@@ -85,7 +82,7 @@ public class UserProfileServiceAutowireTest {
 		nu.setEmail("super@duper.org");
 		principalTwo = userManger.createUser(nu);
 		PrincipalAliasTestUtils.setUpAlias(principalTwo, nu.getEmail(), 
-				principalAliasDAO, aliasesToDelete);
+				principalAliasDAO, null);
 		principalsToDelete.add(principalTwo);
 		
 		// Create another profile
@@ -96,7 +93,7 @@ public class UserProfileServiceAutowireTest {
 		nu.setEmail("cate@Spies.org");
 		principalThree = userManger.createUser(nu);
 		PrincipalAliasTestUtils.setUpAlias(principalThree, nu.getEmail(), 
-				principalAliasDAO, aliasesToDelete);
+				principalAliasDAO, null);
 		principalsToDelete.add(principalThree);
 		
 		// refresh the cache here
@@ -105,9 +102,6 @@ public class UserProfileServiceAutowireTest {
 	
 	@After
 	public void after(){
-		for (PrincipalAlias alias : aliasesToDelete) {
-			principalAliasDAO.removeAliasFromPrincipal(alias.getPrincipalId(), alias.getAliasId());
-		}
 		if(principalsToDelete != null){
 			for(Long id: principalsToDelete){
 				try {

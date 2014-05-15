@@ -187,8 +187,6 @@ public class UserProfileManagerImplUnitTest {
 	public void testGetOwnUserProfle() throws Exception {
 		String ownerId = userInfo.getId().toString();
 		UserProfile upClone = userProfileManager.getUserProfile(userInfo, ownerId);
-		userProfile.setEmail(null);
-		userProfile.setEmails(new ArrayList<String>());
 		assertEquals(userProfile, upClone);
 	}
 		

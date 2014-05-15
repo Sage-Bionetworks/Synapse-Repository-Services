@@ -80,7 +80,6 @@ public class MessageControllerAutowiredTest {
 	private Set<String> toEve;
 	
 	private List<String> cleanup;
-	private List<PrincipalAlias> aliasesToDelete;
 	
 	@SuppressWarnings("serial")
 	private static List<MessageStatusType> inboxFilter = new ArrayList<MessageStatusType>() {{add(MessageStatusType.UNREAD);}};
@@ -89,7 +88,6 @@ public class MessageControllerAutowiredTest {
 	@Before
 	public void before() throws Exception {
 		cleanup = new ArrayList<String>();
-		aliasesToDelete = new ArrayList<PrincipalAlias>();
 		testHelper.setUp();
 		
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
@@ -100,21 +98,21 @@ public class MessageControllerAutowiredTest {
 		user.setUserName(UUID.randomUUID().toString());
 		alice = userManager.createUser(user);
 		PrincipalAliasTestUtils.setUpAlias(alice, user.getEmail(), 
-				principalAliasDAO, aliasesToDelete);
+				principalAliasDAO, null);
 		aliceId = "" + alice;
 		
 		user.setEmail(UUID.randomUUID().toString() + "@test.com");
 		user.setUserName(UUID.randomUUID().toString());
 		bob = userManager.createUser(user);
 		PrincipalAliasTestUtils.setUpAlias(bob, user.getEmail(), 
-				principalAliasDAO, aliasesToDelete);
+				principalAliasDAO, null);
 		bobId = "" + bob;
 		
 		user.setEmail(UUID.randomUUID().toString() + "@test.com");
 		user.setUserName(UUID.randomUUID().toString());
 		eve = userManager.createUser(user);
 		PrincipalAliasTestUtils.setUpAlias(eve, user.getEmail(), 
-				principalAliasDAO, aliasesToDelete);
+				principalAliasDAO, null);
 		eveId = "" + eve;
 		
 		toAlice = new HashSet<String>() {{
@@ -141,10 +139,6 @@ public class MessageControllerAutowiredTest {
 	
 	@After
 	public void after() throws Exception {
-		for (PrincipalAlias alias : aliasesToDelete) {
-			principalAliasDAO.removeAliasFromPrincipal(alias.getPrincipalId(), alias.getAliasId());
-		}
-		
 		for (String id : cleanup) {
 			messageService.deleteMessage(adminUserInfo.getId(), id);
 		}
