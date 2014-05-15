@@ -1,13 +1,13 @@
 package org.sagebionetworks;
 
 public interface PropertyAccessor {
-	String getValueAsString();
+	String getString();
 
-	long getValueAsLong();
+	long getLong();
 
-	int getValueAsInteger();
+	int getInteger();
 
-	boolean getValueAsBoolean();
+	boolean getBoolean();
 
-	double getValueAsDouble();
+	double getDouble();
 }

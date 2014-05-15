@@ -28,28 +28,28 @@ public class StackConfiguration {
 		}
 
 		@Override
-		public String getValueAsString() {
+		public String getString() {
 			return dynamicConfiguration.getProperty(this.name);
 		}
 
 		@Override
-		public long getValueAsLong() {
-			return Long.parseLong(getValueAsString());
+		public long getLong() {
+			return Long.parseLong(getString());
 		}
 
 		@Override
-		public int getValueAsInteger() {
-			return Integer.parseInt(getValueAsString());
+		public int getInteger() {
+			return Integer.parseInt(getString());
 		}
 
 		@Override
-		public boolean getValueAsBoolean() {
-			return Boolean.parseBoolean(getValueAsString());
+		public boolean getBoolean() {
+			return Boolean.parseBoolean(getString());
 		}
 
 		@Override
-		public double getValueAsDouble() {
-			return Double.parseDouble(getValueAsString());
+		public double getDouble() {
+			return Double.parseDouble(getString());
 		}
 	}
 
