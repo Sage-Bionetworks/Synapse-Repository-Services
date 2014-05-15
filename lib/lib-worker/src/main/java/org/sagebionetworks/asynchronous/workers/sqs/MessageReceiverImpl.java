@@ -16,6 +16,7 @@ import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.sqs.model.Message;
+import com.google.common.collect.Lists;
 
 /**
  * A basic implementation of the MessageReceiver.
@@ -281,28 +282,14 @@ public class MessageReceiverImpl implements MessageReceiver {
 	public List<WorkerData> startWorkers(List<Message> toBeProcessed,
 			WorkerProgress workerProgresss) {
 		List<WorkerData> currentWorkers = new LinkedList<WorkerData>();
-		List<Message> messageBatch = new LinkedList<Message>();
+		// Batch for each worker.
+		List<List<Message>> batches = Lists.partition(toBeProcessed, maxMessagePerWorker);
 		int workerId = 0;
-		for (Message message: toBeProcessed) {
-			// Add this message to a batch
-			messageBatch.add(message);
-			if(messageBatch.size() >= maxMessagePerWorker){
-				Callable<List<Message>> worker = workerFactory.createWorker(messageBatch, workerProgresss);
-				// Fire up the worker
-				Future<List<Message>> future = executors.submit(worker);
-				WorkerData data = new WorkerData(workerId++, messageBatch, future);
-				// Add the worker to the list.
-				currentWorkers.add(data);
-				// Create a new batch
-				messageBatch = new LinkedList<Message>();
-			}
-		}
-		// Add any dangling messages
-		if(messageBatch.size() > 0){
-			Callable<List<Message>> worker = workerFactory.createWorker(messageBatch, workerProgresss);
+		for(List<Message> batch: batches){
+			Callable<List<Message>> worker = workerFactory.createWorker(batch, workerProgresss);
 			// Fire up the worker
 			Future<List<Message>> future = executors.submit(worker);
-			WorkerData data = new WorkerData(workerId++, messageBatch, future);
+			WorkerData data = new WorkerData(workerId++, batch, future);
 			// Add the worker to the list.
 			currentWorkers.add(data);
 		}

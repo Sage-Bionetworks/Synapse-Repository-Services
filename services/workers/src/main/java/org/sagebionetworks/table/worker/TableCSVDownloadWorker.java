@@ -12,9 +12,11 @@ import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.asynchronous.workers.sqs.WorkerProgress;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
+import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.table.TableRowManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.AsynchDownloadRequestBody;
 import org.sagebionetworks.repo.model.table.AsynchDownloadResponseBody;
 import org.sagebionetworks.repo.model.table.RowSet;
@@ -27,12 +29,15 @@ import com.amazonaws.services.sqs.model.Message;
 
 public class TableCSVDownloadWorker implements Callable<List<Message>>{
 
+	private static final String TEXT_CSV = "text/csv";
 	static private Logger log = LogManager.getLogger(TableCSVDownloadWorker.class);
 	private List<Message> messages;
 	private AsynchJobStatusManager asynchJobStatusManager;
 	private TableRowManager tableRowManager;
 	private UserManager userManger;
+	private FileHandleManager fileHandleManager;
 	private WorkerProgress workerProgress;
+	
 	
 	@Override
 	public List<Message> call() throws Exception {
@@ -63,8 +68,9 @@ public class TableCSVDownloadWorker implements Callable<List<Message>>{
 			// Before we start determine how many rows there are.
 			RowSet countSet = tableRowManager.query(user, request.getSql(), true, true);
 			long rowCount = Long.parseLong(countSet.getRows().get(0).getValues().get(0));
-			// For now we are assuming the query takes 3/4ths of the time and the file upload takes 1/4;
-			long totalProgress = rowCount+(rowCount/4L);
+			// Since each row must first be read from the database then uploaded to S3
+			// The total amount of progress is two times the number of rows.
+			long totalProgress = rowCount*2;
 			long currentProgress = 0;
 			
 			temp = File.createTempFile(fileName, ".csv");
@@ -74,6 +80,14 @@ public class TableCSVDownloadWorker implements Callable<List<Message>>{
 			// we can use this to update the progress
 			// Pares the query
 			AsynchDownloadResponseBody response = tableRowManager.runConsistentQueryAsStream(request.getSql(), stream, true);
+			// At this point we have the entire CSV written to a local file.
+			// Upload the file to S3 can create the filehandle.
+			long startProgress = totalProgress/2; // we are half done at this point
+			double bytesPerRow = temp.length()/rowCount;
+			// This will keep the progress updated as the file is uploaded.
+			UploadProgressListener uploadListener = new UploadProgressListener(workerProgress, message, startProgress, bytesPerRow, totalProgress, asynchJobStatusManager, status.getJobId());
+			S3FileHandle fileHandle = fileHandleManager.multipartUploadLocalFile(user, temp, TEXT_CSV, uploadListener);
+			response.setResultsFileHandleId(fileHandle.getId());
 			// Create the file
 			// Now upload the file as a filehandle
 			asynchJobStatusManager.setComplete(status.getJobId(), response);

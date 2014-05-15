@@ -8,7 +8,7 @@
 	"properties": {
 		"sql": {
 			"type": "string",
-			"description": "The SQL to use to build the resulting CSV."
+			"description": "The SQL to be used to build the resulting CSV."
 		},
 		"writeHeader": {
 			"type": "boolean",
@@ -16,19 +16,19 @@
 		},
 		"separator": {
 			"type": "string",
-			"description": "The delimiter to used for separating entries in the resulting file. The default character ',' will be used if this is not provided by the caller.  For tab-separated values use '\\t'"
+			"description": "The delimiter to be used for separating entries in the resulting file. The default character ',' will be used if this is not provided by the caller.  For tab-separated values use '\\t'"
 		},
 		"quoteCharacter": {
 			"type": "string",
-			"description": "The character to used for quoted elements in the resulting file.  The default character '\"' will be used if this is not provided by the caller."
+			"description": "The character to be used for quoted elements in the resulting file.  The default character '\"' will be used if this is not provided by the caller."
 		},
 		"escapeCharacter": {
 			"type": "string",
-			"description": "The escape character used for escaping a separator or quote in the resulting file. The default character '\\\\' will be used if this is not provided by the caller."
+			"description": "The escape character to be used for escaping a separator or quote in the resulting file. The default character '\\\\' will be used if this is not provided by the caller."
 		},
 		"lineEnd": {
 			"type": "string",
-			"description": "The line feed terminator to use for the resulting file.  The default value of '\\n' will be used if this is not provided by the caller."
+			"description": "The line feed terminator to be used for the resulting file.  The default value of '\\n' will be used if this is not provided by the caller."
 		}
 	}
 }
