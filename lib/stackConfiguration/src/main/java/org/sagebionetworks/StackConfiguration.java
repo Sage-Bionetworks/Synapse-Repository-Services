@@ -20,6 +20,39 @@ import org.apache.logging.log4j.Logger;
  */
 public class StackConfiguration {
 
+	public class StackConfigurationPropertyAccessor implements PropertyAccessor {
+		String name;
+
+		private StackConfigurationPropertyAccessor(String name) {
+			this.name = name;
+		}
+
+		@Override
+		public String getValueAsString() {
+			return dynamicConfiguration.getProperty(this.name);
+		}
+
+		@Override
+		public long getValueAsLong() {
+			return Long.parseLong(getValueAsString());
+		}
+
+		@Override
+		public int getValueAsInteger() {
+			return Integer.parseInt(getValueAsString());
+		}
+
+		@Override
+		public boolean getValueAsBoolean() {
+			return Boolean.parseBoolean(getValueAsString());
+		}
+
+		@Override
+		public double getValueAsDouble() {
+			return Double.parseDouble(getValueAsString());
+		}
+	}
+
 	private static final String PROD = "prod";
 	private static final String DEV = "dev";
 	private static final String HUDSON = "hud";
@@ -32,6 +65,8 @@ public class StackConfiguration {
 
 	private static TemplatedConfiguration configuration = null;
 	private static InetAddress address = null;
+
+	private static volatile TemplatedConfiguration dynamicConfiguration = null;
 
 	static {
 		init();
@@ -47,6 +82,13 @@ public class StackConfiguration {
 			log.error(t.getMessage(), t);
 			throw new RuntimeException(t);
 		}
+		dynamicConfiguration = configuration;
+	}
+
+	public static void reloadDynamicStackConfiguration() {
+		TemplatedConfiguration newConfiguration = new TemplatedConfigurationImpl(DEFAULT_PROPERTIES_FILENAME, TEMPLATE_PROPERTIES);
+		newConfiguration.reloadConfiguration();
+		dynamicConfiguration = newConfiguration;
 	}
 
 	public static void reloadStackConfiguration() {
@@ -1334,6 +1376,10 @@ public class StackConfiguration {
 	public long getTableReadTimeoutMS() {
 		return Long.parseLong(configuration
 				.getProperty("org.sagebionetworks.table.read.timeout.ms"));
+	}
+
+	public PropertyAccessor getMaxConcurrentRepoConnections() {
+		return new StackConfigurationPropertyAccessor("org.sagebionetworks.max.concurrent.repo.connections");
 	}
 
 	/**
