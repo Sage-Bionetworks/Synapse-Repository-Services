@@ -21,8 +21,8 @@
 				<property name="concurrent" value="false" />
 			</bean>
 		</property>
-		<property name="startDelay" value="600" />
-		<property name="repeatInterval" value="600" />
+		<property name="startDelay" value="600000" />
+		<property name="repeatInterval" value="600000" />
 	</bean>
 
 </beans>
