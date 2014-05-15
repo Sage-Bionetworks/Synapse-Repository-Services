@@ -11,7 +11,6 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.authutil.OpenIDInfo;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
-import org.sagebionetworks.repo.manager.principal.UserProfileUtillity;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DomainType;
@@ -115,12 +114,22 @@ public class AuthenticationServiceAutowireTest {
 		assertEquals(OPEN_ID_TEST_ID, profile.getOpenIds().get(0));
 	}
 	
+	private static final String TEMPORARY_USERNAME_PREFIX = "TEMPORARY-";
+
+	/**
+	 * This is used to create a temporary username for users that have not yet set their username.
+	 * @return
+	 */
+	public static String createTempoaryUserName(long principalId){
+		return TEMPORARY_USERNAME_PREFIX+principalId;
+	}
+	
 	@Test
 	public void testPLFM_2511() throws NotFoundException{
 		NewUser nu = new NewUser();
 		nu.setEmail("user123@test.org");
 		// Create a user with temporary Username
-		nu.setUserName(UserProfileUtillity.createTempoaryUserName(123));
+		nu.setUserName(createTempoaryUserName(123));
 		principalId2 = userManger.createUser(nu);
 		PrincipalAliasTestUtils.setUpAlias(principalId2, nu.getEmail(), AliasType.USER_EMAIL, principalAliasDAO, null);
 		// Now try to loging with open ID

@@ -88,6 +88,7 @@ import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.dao.PrincipalAliasTestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSessionToken;
@@ -106,6 +107,7 @@ import org.sagebionetworks.repo.model.migration.MigrationTypeList;
 import org.sagebionetworks.repo.model.migration.MigrationUtils;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -177,6 +179,9 @@ public class MigrationIntegrationAutowireTest {
 
 	@Autowired
 	private UserGroupDAO userGroupDAO;
+	
+	@Autowired
+	private PrincipalAliasDAO principalAliasDAO;
 
 	@Autowired
 	private GroupMembersDAO groupMembersDAO;
@@ -263,8 +268,6 @@ public class MigrationIntegrationAutowireTest {
 
 	private HttpServletRequest mockRequest;
 
-	private UserInfo newUser;
-
 	@Before
 	public void before() throws Exception {
 		mockRequest = Mockito.mock(HttpServletRequest.class);
@@ -274,6 +277,7 @@ public class MigrationIntegrationAutowireTest {
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		adminUserIdString = adminUserId.toString();
 		adminUserInfo = userManager.getUserInfo(adminUserId);
+		PrincipalAliasTestUtils.setUpAlias(adminUserId, "some@email.addr", principalAliasDAO, null);
 
 		resetDatabase();
 		createNewUser();
@@ -344,7 +348,7 @@ public class MigrationIntegrationAutowireTest {
 		user.setUserName(UUID.randomUUID().toString());
 		user.setEmail(user.getUserName() + "@test.com");
 		Long id = userManager.createUser(user);
-		newUser = userManager.getUserInfo(id);
+		userManager.getUserInfo(id);
 	}
 
 	private void resetDatabase() throws Exception {

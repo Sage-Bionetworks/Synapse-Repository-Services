@@ -109,8 +109,6 @@ public class UserManagerImpl implements UserManager {
 		userProfile.setFirstName(user.getFirstName());
 		userProfile.setLastName(user.getLastName());
 		userProfile.setUserName(user.getUserName());
-		userProfile.setEmails(new LinkedList<String>());
-		userProfile.getEmails().add(user.getEmail());
 		userProfileManger.createUserProfile(userProfile);
 		
 		return principalId;
