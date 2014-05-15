@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.file;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
@@ -52,6 +53,7 @@ import com.amazonaws.HttpMethod;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
 import com.amazonaws.services.s3.model.CORSRule;
+import com.amazonaws.services.s3.model.ProgressListener;
 import com.amazonaws.services.s3.model.CORSRule.AllowedMethods;
 
 /**
@@ -524,6 +526,13 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		uploadFileDaemonThreadPoolPrimary.submit(worker);
 		// Return the status to the caller.
 		return status;
+	}
+	
+	@Override
+	public S3FileHandle multipartUploadLocalFile(UserInfo userInfo, File fileToUpload, String contentType, ProgressListener listener){
+		String bucket = StackConfiguration.getS3Bucket();
+		String userId =  getUserId(userInfo);
+		return multipartManager.multipartUploadLocalFile(bucket, userId, fileToUpload, contentType, listener);
 	}
 
 	@Override
