@@ -109,6 +109,7 @@ public class AccessRequirementManagerImplUnitTest {
 		AccessRequirement expectedAR = createExpectedAR();
 		ArgumentCaptor<AccessRequirement> argument = ArgumentCaptor.forClass(AccessRequirement.class);
 		verify(accessRequirementDAO).create(argument.capture());
+		verify(principalAliasDAO).listPrincipalAliases(userInfo.getId(), AliasType.USER_EMAIL);
 		// can't just call equals on the objects, because the time stamps are slightly different
 		assertEquals(expectedAR.getAccessType(), argument.getValue().getAccessType());
 		assertEquals(expectedAR.getCreatedBy(), argument.getValue().getCreatedBy());

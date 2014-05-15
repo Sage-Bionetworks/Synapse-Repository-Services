@@ -115,7 +115,7 @@ public class UserProfileManagerImpl implements UserProfileManager {
 				if (alias.getType().equals(AliasType.USER_EMAIL)) {
 					profileIdToEmailListMap.get(alias.getPrincipalId()).add(alias.getAlias());
 				} else if (alias.getType().equals(AliasType.USER_OPEN_ID)) {
-					profileIdToEmailListMap.get(alias.getPrincipalId()).add(alias.getAlias());
+					profileIdToOpenIDListMap.get(alias.getPrincipalId()).add(alias.getAlias());
 				}
 			}
 		}

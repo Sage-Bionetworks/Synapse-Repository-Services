@@ -4,7 +4,7 @@ package org.sagebionetworks.repo.manager;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Date;
 import java.util.LinkedList;
@@ -104,36 +104,46 @@ public class UserProfileManagerImplTest {
 	public void testCRU() throws DatastoreException, UnauthorizedException, NotFoundException{
 		// Create a new UserProfile
 		Long principalId = Long.parseLong(this.individualGroup.getId());
-		UserProfile profile = new UserProfile();
-		profile.setCompany("Spies 'R' Us");
-		profile.setEmails(new LinkedList<String>());
-		profile.getEmails().add("jamesBond@spies.org");
-		profile.getEmails().add("jamesBon2@spies.org");
-		profile.setOpenIds(new LinkedList<String>());
-		profile.getOpenIds().add("https://google.com/007");
-		profile.setUserName("007");
-		profile.setFirstName("James");
-		profile.setLastName("Bond");
-		profile.setOwnerId(this.individualGroup.getId());
-		// Create the profile
-		profile = this.userProfileManager.createUserProfile(profile);
-		assertNotNull(profile);
-		assertNotNull(profile.getEtag());
+		UserProfile created;
+		{
+			UserProfile profile = new UserProfile();
+			profile.setCompany("Spies 'R' Us");
+			profile.setEmails(new LinkedList<String>());
+			profile.getEmails().add("jamesBond@spies.org");
+			profile.getEmails().add("jamesBon2@spies.org");
+			profile.setOpenIds(new LinkedList<String>());
+			profile.getOpenIds().add("https://google.com/007");
+			profile.setUserName("007");
+			profile.setFirstName("James");
+			profile.setLastName("Bond");
+			profile.setOwnerId(this.individualGroup.getId());
+			// Create the profile
+			created = this.userProfileManager.createUserProfile(profile);
+			// the changed fields are etag and emails (which are ignored)
+			// set these fields in 'profile' so we can compare to 'created'
+			profile.setEmails(created.getEmails());
+			profile.setOpenIds(created.getOpenIds());
+			profile.setEtag(created.getEtag());
+			assertEquals(profile, created);
+		}
+		assertNotNull(created);
+		assertNotNull(created.getEtag());
+		
 		
 		UserInfo userInfo = new UserInfo(false, principalId);
 		// Get it back
 		UserProfile clone = userProfileManager.getUserProfile(userInfo, principalId.toString());
-		assertEquals(profile, clone);
+		assertEquals(created, clone);
 		
 		// Make sure we can update it
-		profile.setUserName("newUsername");
-		String startEtag = profile.getEtag();
+		created.setUserName("newUsername");
+		String startEtag = created.getEtag();
 		// Changing emails is currently disabled See 
-		profile = userProfileManager.updateUserProfile(userInfo, profile);
-		assertFalse("Update failed to update the etag",startEtag.equals(profile.getEtag()));
+		UserProfile updated = userProfileManager.updateUserProfile(userInfo, created);
+		assertFalse("Update failed to update the etag",startEtag.equals(updated.getEtag()));
 		// Get it back
 		clone = userProfileManager.getUserProfile(userInfo, principalId.toString());
-		assertEquals(profile, clone);
+		assertEquals(updated, clone);
 		
 		
 	}
@@ -158,6 +168,8 @@ public class UserProfileManagerImplTest {
 		// Get it back
 		UserProfile clone = userProfileManager.getUserProfile(userInfo, principalId.toString());
 		assertEquals(profile, clone);
+		// Since we don't allow setting email via the UP, we get nothing back
+		assertTrue(clone.getEmails().isEmpty());
 		
 		// Make sure we can update it
 		profile.getEmails().clear();
@@ -166,5 +178,6 @@ public class UserProfileManagerImplTest {
 		// update
 		// OK to change emails, as any changes to email are ignored
 		profile = userProfileManager.updateUserProfile(userInfo, profile);
+		assertTrue(profile.getEmails().isEmpty());
 	}
 }

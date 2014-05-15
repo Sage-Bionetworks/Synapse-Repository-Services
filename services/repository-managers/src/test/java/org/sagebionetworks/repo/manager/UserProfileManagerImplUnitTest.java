@@ -1,12 +1,15 @@
 package org.sagebionetworks.repo.manager;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Random;
 
 import org.junit.Before;
@@ -19,6 +22,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.FavoriteDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -28,6 +32,8 @@ import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.dbo.dao.UserProfileUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserProfile;
+import org.sagebionetworks.repo.model.principal.AliasType;
+import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.util.LocationHelper;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -53,6 +59,8 @@ public class UserProfileManagerImplUnitTest {
 	
 	private static final Long userId = 9348725L;
 	private static final Long adminUserId = 823746L;
+	private static final String USER_EMAIL = "foo@bar.org";
+	private static final String USER_OPEN_ID = "http://myspace.com/foo";
 	
 	private Random rand = new Random();
 	private static final String TEST_USER_NAME = "TruncatableName@test.com";
@@ -70,18 +78,17 @@ public class UserProfileManagerImplUnitTest {
 		userProfileManager = new UserProfileManagerImpl(mockProfileDAO, mockUserGroupDAO, mockS3TokenManager, mockFavoriteDAO, mockAttachmentManager, mockPrincipalAliasDAO);
 		
 		
-		userInfo = new UserInfo(false, 111L);
+		userInfo = new UserInfo(false, userId);
 
-		adminUserInfo = new UserInfo(true, 456L);
+		adminUserInfo = new UserInfo(true, adminUserId);
 		
 		userProfile = new UserProfile();
 		userProfile.setOwnerId(userInfo.getId().toString());
 		userProfile.setRStudioUrl("myPrivateRStudioUrl");
 		userProfile.setUserName("TEMPORARY-111");
 		userProfile.setLocation("I'm guessing this is private");
-		userProfile.setEmails(new LinkedList<String>());
-		userProfile.getEmails().add("foo@bar.org");
-		userProfile.setOpenIds(new LinkedList<String>());
+		userProfile.setOpenIds(Collections.singletonList(USER_OPEN_ID));
+		userProfile.setEmails(Collections.singletonList(USER_EMAIL));
 		
 		// UserProfileDAO should return a copy of the mock UserProfile when getting
 		Mockito.doAnswer(new Answer<UserProfile>() {
@@ -110,6 +117,23 @@ public class UserProfileManagerImplUnitTest {
 		
 		testToken = new S3AttachmentToken();
 		testToken.setFileName("testonly.jpg");
+		
+		PrincipalAlias alias = new PrincipalAlias();
+		alias.setAlias(USER_EMAIL);
+		alias.setPrincipalId(userId);
+		alias.setIsValidated(true);
+		alias.setType(AliasType.USER_EMAIL);
+		List<PrincipalAlias> aliases =  new ArrayList<PrincipalAlias>();
+		aliases.add(alias);
+		alias = new PrincipalAlias();
+		alias.setAlias(USER_OPEN_ID);
+		alias.setPrincipalId(userId);
+		alias.setIsValidated(true);
+		alias.setType(AliasType.USER_OPEN_ID);
+		aliases.add(alias);
+		when(mockPrincipalAliasDAO.listPrincipalAliases(userId)).thenReturn(aliases);
+		when(mockPrincipalAliasDAO.listPrincipalAliases(Collections.singleton(userId))).thenReturn(aliases);
+		
 	}
 	
 	@Test (expected=UnauthorizedException.class)
@@ -118,7 +142,7 @@ public class UserProfileManagerImplUnitTest {
 	}
 	@Test
 	public void testIsOwner() throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
-		userProfileManager.createS3UserProfileAttachmentToken(userInfo, "111", testToken);			
+		userProfileManager.createS3UserProfileAttachmentToken(userInfo, userId.toString(), testToken);			
 	}
 	@Test
 	public void testIsAdmin() throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
@@ -191,11 +215,30 @@ public class UserProfileManagerImplUnitTest {
 	}
 		
 	@Test
-	public void testgetOthersUserProfleByAdmin() throws Exception {
+	public void getAll() throws Exception {
+		UserProfile upForList = new UserProfile();
+		upForList.setOwnerId(userProfile.getOwnerId());
+		upForList.setRStudioUrl(userProfile.getRStudioUrl());
+		upForList.setUserName(userProfile.getUserName());
+		upForList.setLocation(userProfile.getLocation());
+		upForList.setEmails(userProfile.getEmails());
+		upForList.setOpenIds(userProfile.getOpenIds());
+		
+		List<UserProfile> upList = Collections.singletonList(upForList);
+		when(mockProfileDAO.getInRange(0L, 1L)).thenReturn(upList);
+		when(mockProfileDAO.getCount()).thenReturn(1L);
+
+		QueryResults<UserProfile> results=userProfileManager.getInRange(adminUserInfo, 0, 1);
+		assertFalse(upForList.getEmails().isEmpty());
+		assertFalse(upForList.getOpenIds().isEmpty());
+		assertEquals(1L, results.getTotalNumberOfResults());
+		assertEquals(upList, results.getResults());
+	}
+		
+	@Test
+	public void testGetOthersUserProfleByAdmin() throws Exception {
 		String ownerId = userInfo.getId().toString();
 		UserProfile upClone = userProfileManager.getUserProfile(adminUserInfo, ownerId);
-		userProfile.setEmail(null);
-		userProfile.setEmails(new ArrayList<String>());
 		assertEquals(userProfile, upClone);
 	}
 	
