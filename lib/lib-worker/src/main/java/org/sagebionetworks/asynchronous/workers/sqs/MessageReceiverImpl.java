@@ -85,10 +85,7 @@ public class MessageReceiverImpl implements MessageReceiver {
 		this.sqsDao = sqsDao;
 		this.maxNumberOfWorkerThreads = maxNumberOfWorkerThreads;
 		this.maxMessagePerWorker = maxMessagePerWorker;
-		if(visibilityTimeout > MAX_VISIBILITY_TIMEOUT_SECS) {
-			throw new IllegalArgumentException("Visibility Timeout Seconds cannot exceed: "+MAX_VISIBILITY_TIMEOUT_SECS+" seconds. This does not limit the amount of time a worker can run since, the message receiver will automatically refresh the timeout for any message that reaches its timeout half-life.");
-		}
-		this.visibilityTimeoutSec = visibilityTimeout;
+		setVisibilityTimeoutSec(visibilityTimeout);
 		this.messageQueue = messageQueue;
 		this.workerFactory = workerFactory;
 	}
@@ -116,6 +113,9 @@ public class MessageReceiverImpl implements MessageReceiver {
 	 * @param visibilityTimeout
 	 */
 	public void setVisibilityTimeoutSec(Integer visibilityTimeout) {
+		if(visibilityTimeout > MAX_VISIBILITY_TIMEOUT_SECS) {
+			throw new IllegalArgumentException("Visibility Timeout Seconds cannot exceed: "+MAX_VISIBILITY_TIMEOUT_SECS+" seconds. This does not limit the amount of time a worker can run since, the message receiver will automatically refresh the timeout for any message that reaches its timeout half-life.");
+		}
 		this.visibilityTimeoutSec = visibilityTimeout;
 	}
 
