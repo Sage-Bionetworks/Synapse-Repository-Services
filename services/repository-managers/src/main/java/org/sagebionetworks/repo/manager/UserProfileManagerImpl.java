@@ -79,12 +79,10 @@ public class UserProfileManagerImpl implements UserProfileManager {
 		List<String> emails = new ArrayList<String>();
 		List<String> openIds = new ArrayList<String>();
 		for (PrincipalAlias alias : aliases) {
-			if (true /*alias.getIsValidated() this is to be restored as part of PLFM-2487*/) {
-				if (alias.getType().equals(AliasType.USER_EMAIL)) {
-					emails.add(alias.getAlias());
-				} else if (alias.getType().equals(AliasType.USER_OPEN_ID)) {
-					openIds.add(alias.getAlias());
-				}
+			if (alias.getType().equals(AliasType.USER_EMAIL)) {
+				emails.add(alias.getAlias());
+			} else if (alias.getType().equals(AliasType.USER_OPEN_ID)) {
+				openIds.add(alias.getAlias());
 			}
 		}
 		userProfile.setEmails(emails);
@@ -111,12 +109,10 @@ public class UserProfileManagerImpl implements UserProfileManager {
 			profileIdToOpenIDListMap.put(ownerIdLong, openIds);
 		}
 		for (PrincipalAlias alias : principalAliasDAO.listPrincipalAliases(principalIds)) {
-			if (true/*alias.getIsValidated() this is to be restored as part of PLFM-2487*/) {
-				if (alias.getType().equals(AliasType.USER_EMAIL)) {
-					profileIdToEmailListMap.get(alias.getPrincipalId()).add(alias.getAlias());
-				} else if (alias.getType().equals(AliasType.USER_OPEN_ID)) {
-					profileIdToOpenIDListMap.get(alias.getPrincipalId()).add(alias.getAlias());
-				}
+			if (alias.getType().equals(AliasType.USER_EMAIL)) {
+				profileIdToEmailListMap.get(alias.getPrincipalId()).add(alias.getAlias());
+			} else if (alias.getType().equals(AliasType.USER_OPEN_ID)) {
+				profileIdToOpenIDListMap.get(alias.getPrincipalId()).add(alias.getAlias());
 			}
 		}
 		long totalNumberOfResults = userProfileDAO.getCount();
