@@ -29,7 +29,7 @@
 		class="org.sagebionetworks.asynchronous.workers.sqs.MessageReceiverImpl"
 		scope="singleton">
 		<property name="messageQueue" ref="tableCSVDownloaderQueue" />
-		<property name="workerFactory" ref="tableCSVDownloaderWorkerFactory" />
+		<property name="workerFactory" ref="tableCSVDownloadWorkerFactory" />
 		<property name="maxNumberOfWorkerThreads" value="1" />
 		<property name="maxMessagePerWorker" value="1" />
 		<property name="visibilityTimeoutSec" value="60" />
@@ -38,7 +38,7 @@
 	<!-- This gate ensures we never run more than the max number or runners across the entire cluster for this worker  -->
 	<bean id="tableCSVDownloaderSemaphoreGatedRunner"
 		class="org.sagebionetworks.repo.model.dbo.dao.semaphore.SemaphoreGatedRunnerImpl" scope="singleton">
-		<property name="timeoutMS" value="600000" />
+		<property name="timeoutMS" value="60000" />
 		<property name="maxNumberRunners" value="4" />
 		<property name="semaphoreKey" value="tableCSVDownloader" />		
 		<property name="runner" ref="tableCSVDownloaderMessageReveiver" />

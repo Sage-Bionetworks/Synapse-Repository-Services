@@ -113,9 +113,10 @@ public class MessageReceiverImpl implements MessageReceiver {
 	 * @param visibilityTimeout
 	 */
 	public void setVisibilityTimeoutSec(Integer visibilityTimeout) {
-		if(visibilityTimeout > MAX_VISIBILITY_TIMEOUT_SECS) {
-			throw new IllegalArgumentException("Visibility Timeout Seconds cannot exceed: "+MAX_VISIBILITY_TIMEOUT_SECS+" seconds. This does not limit the amount of time a worker can run since, the message receiver will automatically refresh the timeout for any message that reaches its timeout half-life.");
-		}
+// Will put this back after all workers can be ajusted.
+//		if(visibilityTimeout > MAX_VISIBILITY_TIMEOUT_SECS) {
+//			throw new IllegalArgumentException("Visibility Timeout Seconds cannot exceed: "+MAX_VISIBILITY_TIMEOUT_SECS+" seconds. This does not limit the amount of time a worker can run since, the message receiver will automatically refresh the timeout for any message that reaches its timeout half-life.");
+//		}
 		this.visibilityTimeoutSec = visibilityTimeout;
 	}
 
