@@ -160,9 +160,6 @@ public class MessageManagerImplTest {
 	public void setUp() throws Exception {
 		aliasesToDelete = new ArrayList<PrincipalAlias>();
 		Collection<UserGroup> allIndividuals = userGroupDAO.getAll(true);
-		for (UserGroup individual : allIndividuals) {
-			PrincipalAliasTestUtils.setUpAlias(Long.parseLong(individual.getId()), individual.getId()+"@foo.bar", principalAliasDAO, aliasesToDelete);
-		}
 		
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		cleanup = new ArrayList<String>();
@@ -180,13 +177,11 @@ public class MessageManagerImplTest {
 			nu.setEmail(UUID.randomUUID().toString() + "@test.com");
 			nu.setUserName(UUID.randomUUID().toString());
 			testUser = userManager.createUser(adminUserInfo, nu, cred, tou);
-			PrincipalAliasTestUtils.setUpAlias(testUser.getId(), nu.getEmail(), principalAliasDAO, aliasesToDelete);
 			
 			nu = new NewUser();
 			nu.setEmail(UUID.randomUUID().toString() + "@test.com");
 			nu.setUserName(UUID.randomUUID().toString());
 			otherTestUser = userManager.createUser(adminUserInfo,nu, cred, tou);
-			PrincipalAliasTestUtils.setUpAlias(otherTestUser.getId(), nu.getEmail(), principalAliasDAO, aliasesToDelete);
 			
 			tou.setPrincipalId(otherTestUser.getId());
 			basicDao.createOrUpdate(tou);
@@ -197,7 +192,6 @@ public class MessageManagerImplTest {
 			nu2.setEmail(UUID.randomUUID().toString() + "@test.com");
 			nu2.setUserName(UUID.randomUUID().toString());
 			trustedMessageSender = userManager.createUser(adminUserInfo, nu2, cred, tou);
-			PrincipalAliasTestUtils.setUpAlias(trustedMessageSender.getId(), nu2.getEmail(), principalAliasDAO, aliasesToDelete);
 			tou.setPrincipalId(trustedMessageSender.getId());
 			basicDao.createOrUpdate(tou);
 			// now add to trusted users group

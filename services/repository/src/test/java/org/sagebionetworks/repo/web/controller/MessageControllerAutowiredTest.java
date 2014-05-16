@@ -97,22 +97,16 @@ public class MessageControllerAutowiredTest {
 		user.setEmail(UUID.randomUUID().toString() + "@test.com");
 		user.setUserName(UUID.randomUUID().toString());
 		alice = userManager.createUser(user);
-		PrincipalAliasTestUtils.setUpAlias(alice, user.getEmail(), 
-				principalAliasDAO, null);
 		aliceId = "" + alice;
 		
 		user.setEmail(UUID.randomUUID().toString() + "@test.com");
 		user.setUserName(UUID.randomUUID().toString());
 		bob = userManager.createUser(user);
-		PrincipalAliasTestUtils.setUpAlias(bob, user.getEmail(), 
-				principalAliasDAO, null);
 		bobId = "" + bob;
 		
 		user.setEmail(UUID.randomUUID().toString() + "@test.com");
 		user.setUserName(UUID.randomUUID().toString());
 		eve = userManager.createUser(user);
-		PrincipalAliasTestUtils.setUpAlias(eve, user.getEmail(), 
-				principalAliasDAO, null);
 		eveId = "" + eve;
 		
 		toAlice = new HashSet<String>() {{

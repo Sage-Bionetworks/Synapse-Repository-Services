@@ -277,7 +277,6 @@ public class MigrationIntegrationAutowireTest {
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		adminUserIdString = adminUserId.toString();
 		adminUserInfo = userManager.getUserInfo(adminUserId);
-		PrincipalAliasTestUtils.setUpAlias(adminUserId, "some@email.addr", principalAliasDAO, null);
 
 		resetDatabase();
 		createNewUser();

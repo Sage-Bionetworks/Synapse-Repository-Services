@@ -70,8 +70,6 @@ public class UserProfileServiceAutowireTest {
 		nu.setUserName("007");
 		nu.setEmail("superSpy@Spies.org");
 		principalOne = userManger.createUser(nu);
-		PrincipalAliasTestUtils.setUpAlias(principalOne, nu.getEmail(), 
-				principalAliasDAO, null);
 		principalsToDelete.add(principalOne);
 		
 		// Create another profile
@@ -81,8 +79,6 @@ public class UserProfileServiceAutowireTest {
 		nu.setUserName("random");
 		nu.setEmail("super@duper.org");
 		principalTwo = userManger.createUser(nu);
-		PrincipalAliasTestUtils.setUpAlias(principalTwo, nu.getEmail(), 
-				principalAliasDAO, null);
 		principalsToDelete.add(principalTwo);
 		
 		// Create another profile
@@ -92,8 +88,6 @@ public class UserProfileServiceAutowireTest {
 		nu.setUserName("cate001");
 		nu.setEmail("cate@Spies.org");
 		principalThree = userManger.createUser(nu);
-		PrincipalAliasTestUtils.setUpAlias(principalThree, nu.getEmail(), 
-				principalAliasDAO, null);
 		principalsToDelete.add(principalThree);
 		
 		// refresh the cache here

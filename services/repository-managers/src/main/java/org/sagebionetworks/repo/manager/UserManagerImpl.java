@@ -25,6 +25,7 @@ import org.sagebionetworks.repo.model.dbo.dao.AuthorizationUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSessionToken;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
+import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -111,7 +112,34 @@ public class UserManagerImpl implements UserManager {
 		userProfile.setUserName(user.getUserName());
 		userProfileManger.createUserProfile(userProfile);
 		
+		bindAllAliases(user, principalId);
+		
 		return principalId;
+	}
+	
+	/**
+	 * This method is idempotent.
+	 * @param profile
+	 * @param principalId
+	 */
+	private void bindAllAliases(NewUser user, Long principalId) {
+		// Bind all aliases
+		bindAlias(user.getUserName(), AliasType.USER_NAME, principalId, true);
+		bindAlias(user.getEmail(), AliasType.USER_EMAIL, principalId, false);
+	}
+
+	private void bindAlias(String aliasName, AliasType type, Long principalId, boolean isValidated) {
+		// bind the username to this user
+		PrincipalAlias alias = new PrincipalAlias();
+		alias.setAlias(aliasName);
+		alias.setIsValidated(isValidated);
+		alias.setPrincipalId(principalId);
+		alias.setType(type);
+		try {
+			principalAliasDAO.bindAliasToPrincipal(alias);
+		} catch (NotFoundException e1) {
+			throw new DatastoreException(e1);
+		}
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)

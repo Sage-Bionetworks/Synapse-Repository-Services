@@ -79,7 +79,7 @@ public class UserProfileManagerImpl implements UserProfileManager {
 		List<String> emails = new ArrayList<String>();
 		List<String> openIds = new ArrayList<String>();
 		for (PrincipalAlias alias : aliases) {
-			if (alias.getIsValidated()) {
+			if (true /*alias.getIsValidated() this is to be restored as part of PLFM-2487*/) {
 				if (alias.getType().equals(AliasType.USER_EMAIL)) {
 					emails.add(alias.getAlias());
 				} else if (alias.getType().equals(AliasType.USER_OPEN_ID)) {
@@ -111,7 +111,7 @@ public class UserProfileManagerImpl implements UserProfileManager {
 			profileIdToOpenIDListMap.put(ownerIdLong, openIds);
 		}
 		for (PrincipalAlias alias : principalAliasDAO.listPrincipalAliases(principalIds)) {
-			if (alias.getIsValidated()) {
+			if (true/*alias.getIsValidated() this is to be restored as part of PLFM-2487*/) {
 				if (alias.getType().equals(AliasType.USER_EMAIL)) {
 					profileIdToEmailListMap.get(alias.getPrincipalId()).add(alias.getAlias());
 				} else if (alias.getType().equals(AliasType.USER_OPEN_ID)) {

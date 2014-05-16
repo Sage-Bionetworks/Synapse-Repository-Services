@@ -732,7 +732,7 @@ public class MessageManagerImpl implements MessageManager {
 	private String getEmailForUser(Long principalId) {
 		List<PrincipalAlias> aliases = principalAliasDAO.listPrincipalAliases(principalId, AliasType.USER_EMAIL);
 		for (PrincipalAlias alias : aliases) {
-			if (alias.getIsValidated()) {
+			if (true /*alias.getIsValidated() this is to be restored as part of PLFM-2487*/) {
 				return alias.getAlias();
 			}
 		}
