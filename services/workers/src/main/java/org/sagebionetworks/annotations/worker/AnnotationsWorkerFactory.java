@@ -7,7 +7,6 @@ import org.sagebionetworks.asynchronous.workers.sqs.MessageWorkerFactory;
 import org.sagebionetworks.asynchronous.workers.sqs.WorkerProgress;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.repo.model.SubmissionStatusAnnotationsAsyncManager;
-import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.sqs.model.Message;
