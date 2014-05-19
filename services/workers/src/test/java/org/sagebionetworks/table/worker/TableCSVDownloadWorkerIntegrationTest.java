@@ -5,7 +5,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
+import java.io.FileReader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
@@ -36,7 +38,10 @@ import org.sagebionetworks.repo.model.table.AsynchDownloadResponseBody;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
+import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableEntity;
+import org.sagebionetworks.repo.model.table.TableState;
+import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.csv.CsvNullReader;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -137,10 +142,16 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		// Write the CSV to the table
 		CSVToRowIterator iterator = new CSVToRowIterator(schema, reader);
 		tableRowManager.appendRowsAsStream(adminUserInfo, tableId, schema, iterator, null, null);
+		
+		String sql = "select * from "+tableId;
+		// Wait for the table to be ready
+		RowSet result = waitForConsistentQuery(adminUserInfo, sql+" limit 100");
+		assertNotNull(result);
 		// Now download the data from this table as a csv
 		AsynchDownloadRequestBody request = new AsynchDownloadRequestBody();
-		request.setSql("select * from "+tableId);
+		request.setSql(sql);
 		request.setWriteHeader(true);
+		request.setIncludeRowIdAndRowVersion(false);
 		AsynchronousJobStatus status = asynchJobStatusManager.startJob(adminUserInfo, request);
 		// Wait for the job to complete.
 		status = waitForStatus(status);
@@ -158,8 +169,35 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		assertNotNull(fileHandle.getContentMd5());
 		// Download the file
 		tempFile = File.createTempFile("DownloadCSV", ".csv");
-		s3Client.getObject(new GetObjectRequest(fileHandle.getBucketName(), fileHandle.getKey()));
-		
+		s3Client.getObject(new GetObjectRequest(fileHandle.getBucketName(), fileHandle.getKey()), tempFile);
+		// Load the CSV data
+		CsvNullReader csvReader = new CsvNullReader(new FileReader(tempFile));
+		List<String[]> results = null;
+		try{
+			results = csvReader.readAll();
+		}finally{
+			csvReader.close();
+		}
+		assertNotNull(results);
+		assertEquals(input.size(), results.size());
+		for(int i=0; i<input.size(); i++){
+			assertEquals(Arrays.toString(input.get(i)), Arrays.toString(results.get(i)));
+		}
+
+	}
+	private RowSet waitForConsistentQuery(UserInfo user, String sql) throws DatastoreException, NotFoundException, InterruptedException{
+		long start = System.currentTimeMillis();
+		while(true){
+			try {
+				return  tableRowManager.query(adminUserInfo, sql, true, false);
+			} catch (TableUnavilableException e) {
+				assertTrue("Timed out waiting for table index worker to make the table available.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
+				assertNotNull(e.getStatus());
+				assertFalse("Failed: "+e.getStatus().getErrorMessage(),TableState.PROCESSING_FAILED.equals(e.getStatus().getState()));
+				System.out.println("Waiting for table index worker to build table. Status: "+e.getStatus());
+				Thread.sleep(1000);
+			}
+		}
 	}
 	
 	private AsynchronousJobStatus waitForStatus(AsynchronousJobStatus status) throws InterruptedException, DatastoreException, NotFoundException{
