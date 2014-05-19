@@ -106,8 +106,18 @@ public class TableCSVDownloadWorker implements Callable<List<Message>>{
 			writer = createCSVWriter(new FileWriter(temp), request);
 			// this object will update the progress of both the job and refresh the timeout on the message as rows are read from the DB.
 			ProgressingCSVWriterStream stream = new ProgressingCSVWriterStream(writer, workerProgress, message, asynchJobStatusManager, currentProgress, totalProgress, status.getJobId());
+			boolean includeRowIdAndVersion = true;
+			if(request.getIncludeRowIdAndRowVersion() != null){
+				includeRowIdAndVersion = request.getIncludeRowIdAndRowVersion();
+			}
 			// Execute the actual query and stream the results to the file.
-			AsynchDownloadResponseBody response = tableRowManager.runConsistentQueryAsStream(request.getSql(), stream, true);
+			AsynchDownloadResponseBody response = null;
+			try{
+				response = tableRowManager.runConsistentQueryAsStream(request.getSql(), stream, includeRowIdAndVersion);
+			}finally{
+				writer.close();
+			}
+
 			// At this point we have the entire CSV written to a local file.
 			// Upload the file to S3 can create the filehandle.
 			long startProgress = totalProgress/2; // we are half done at this point
