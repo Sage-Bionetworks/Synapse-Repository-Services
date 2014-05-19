@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.apache.commons.lang.BooleanUtils;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -267,5 +268,15 @@ public class AdministrationController extends BaseController {
 	        @RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) 
 	        		throws NotFoundException {
 		serviceProvider.getAdministrationService().deleteUser(userId, id);
+	}
+
+	/**
+	 * Wait for a while or release all waiters
+	 */
+	@RequestMapping(value = { UrlHelpers.ADMIN_WAIT }, method = RequestMethod.GET)
+	@ResponseStatus(HttpStatus.OK)
+	public void waitForTesting(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(required = false) Boolean release) throws Exception {
+		serviceProvider.getAdministrationService().waitForTesting(userId, BooleanUtils.isTrue(release));
 	}
 }

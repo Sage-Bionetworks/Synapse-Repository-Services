@@ -153,4 +153,13 @@ public interface AdministrationService {
 	 * Deletes a user, iff all FK constraints are met
 	 */
 	public void deleteUser(Long userId, String id) throws NotFoundException;
+
+	/**
+	 * Wait for a long time or release the waiters
+	 * 
+	 * @param userId
+	 * @param release
+	 * @throws Exception
+	 */
+	public void waitForTesting(Long userId, boolean release) throws Exception;
 }

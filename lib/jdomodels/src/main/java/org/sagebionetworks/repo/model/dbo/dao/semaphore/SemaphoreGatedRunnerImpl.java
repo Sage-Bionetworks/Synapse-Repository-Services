@@ -1,16 +1,26 @@
 package org.sagebionetworks.repo.model.dbo.dao.semaphore;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.Callable;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.PropertyAccessor;
+import org.sagebionetworks.StaticPropertyAccessor;
 import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreDao;
 import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreGatedRunner;
+import org.sagebionetworks.repo.model.exception.LockUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import com.amazonaws.transform.MapUnmarshaller;
+import com.amazonaws.transform.SimpleTypeUnmarshallers.IntegerUnmarshaller;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Ranges;
 
 /**
  * This implementation uses a database backed semaphore and designed to be used with a 
@@ -51,7 +61,7 @@ public class SemaphoreGatedRunnerImpl implements SemaphoreGatedRunner {
 	@Autowired
 	private SemaphoreDao semaphoreDao;
 	private String semaphoreKey;
-	private int maxNumberRunners;
+	private PropertyAccessor maxNumberRunners;
 	private Runnable runner;
 	private Random randomGen = new Random(System.currentTimeMillis());;
 	private long timeoutMS;
@@ -83,11 +93,23 @@ public class SemaphoreGatedRunnerImpl implements SemaphoreGatedRunner {
 	 * runners (inclusive) concurrently running across the entire cluster.  Set this to a number less than one to disable this runner.
 	 */
 	public void setMaxNumberRunners(int maxNumberRunners) {
+		this.maxNumberRunners = new StaticPropertyAccessor(maxNumberRunners);
+	}
+
+	/**
+	 * Injected via Spring
+	 * 
+	 * @param maxNumberRunners The maximum number of runners of this type. This gate will guarantee that there are never
+	 *        more than this number of runners (inclusive) concurrently running across the entire cluster. Set this to a
+	 *        number less than one to disable this runner.
+	 */
+	public void setMaxNumberRunnersAccessor(PropertyAccessor maxNumberRunners) {
 		this.maxNumberRunners = maxNumberRunners;
 	}
 
 	/**
 	 * Injected via Spring
+	 * 
 	 * @param runner When a lock is acquired, the run() of this runner will be called.
 	 */
 	public void setRunner(Runnable runner) {
@@ -111,14 +133,14 @@ public class SemaphoreGatedRunnerImpl implements SemaphoreGatedRunner {
 		if(this.runner == null) throw new IllegalArgumentException("Runner cannot be null");
 		if(this.timeoutMS < MIN_TIMEOUT_MS) throw new IllegalArgumentException("The lock timeout is below the minimum timeout of "+MIN_TIMEOUT_MS+" MS");
 		// do nothing if the max number of of runner is less than one
-		if(maxNumberRunners < 1){
+		if (maxNumberRunners.getInteger() < 1) {
 			if(log.isDebugEnabled()){
 				log.debug("Max number of runners is less than one so the runner will not be run");
 			}
 			return;
 		}
 		// randomly generate a lock number to attempt
-		int lockNumber = randomGen.nextInt(maxNumberRunners);
+		int lockNumber = randomGen.nextInt(maxNumberRunners.getInteger());
 		String key = generateKeyForLockNumber(lockNumber);
 		String token = semaphoreDao.attemptToAcquireLock(key, timeoutMS);
 		if(token != null){
@@ -131,6 +153,41 @@ public class SemaphoreGatedRunnerImpl implements SemaphoreGatedRunner {
 				semaphoreDao.releaseLock(key, token);
 			}
 		}
+	}
+
+	@Override
+	public <T> T attemptToRunAllSlots(Callable<T> task) throws Exception {
+		if (this.semaphoreKey == null)
+			throw new IllegalArgumentException("semaphoreKey cannot be null");
+		if (this.semaphoreDao == null)
+			throw new IllegalArgumentException("semaphoreDao cannot be null");
+		if (this.runner != null)
+			throw new IllegalArgumentException("Runner should not be set");
+		if (this.timeoutMS < MIN_TIMEOUT_MS)
+			throw new IllegalArgumentException("The lock timeout is below the minimum timeout of " + MIN_TIMEOUT_MS + " MS");
+		// do nothing if the max number of of runner is less than one
+		if (maxNumberRunners.getInteger() < 1) {
+			if (log.isDebugEnabled()) {
+				log.debug("Max number of runners is less than one so the runner will not be run");
+			}
+			return null;
+		}
+
+		List<String> allLockKeys = getAllLockKeys();
+		// randomly shuffle, so not all machines will try in the same order
+		Collections.shuffle(allLockKeys, randomGen);
+
+		for (String key : allLockKeys) {
+			String token = semaphoreDao.attemptToAcquireLock(key, timeoutMS);
+			if (token != null) {
+				try {
+					return task.call();
+				} finally {
+					semaphoreDao.releaseLock(key, token);
+				}
+			}
+		}
+		throw new LockUnavilableException("No empty slot available");
 	}
 
 	/**
@@ -146,8 +203,9 @@ public class SemaphoreGatedRunnerImpl implements SemaphoreGatedRunner {
 	
 	@Override
 	public List<String> getAllLockKeys() {
-		List<String> keys = new ArrayList<String>();
-		for (int i = 0; i < maxNumberRunners; i++) {
+		int size = maxNumberRunners.getInteger();
+		List<String> keys = Lists.newArrayListWithCapacity(size);
+		for (int i = 0; i < size; i++) {
 			keys.add(generateKeyForLockNumber(i));
 		}
 		return keys;

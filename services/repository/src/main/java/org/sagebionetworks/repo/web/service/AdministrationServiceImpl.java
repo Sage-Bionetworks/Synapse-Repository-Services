@@ -5,6 +5,7 @@ import java.util.Date;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.StackStatusManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.backup.daemon.BackupDaemonLauncher;
@@ -233,5 +234,26 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	public void deleteUser(Long userId, String id) throws NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		userManager.deletePrincipal(userInfo, Long.parseLong(id));
+	}
+
+	private static final Object waitObject = new Object();
+	@Override
+	public void waitForTesting(Long userId, boolean release) throws Exception {
+		if (StackConfiguration.isProductionStack()) {
+			throw new UnauthorizedException("Should never be called on production stack.");
+		}
+		if (release) {
+			synchronized (waitObject) {
+				waitObject.notifyAll();
+			}
+		} else {
+			UserInfo userInfo = userManager.getUserInfo(userId);
+			if (!userInfo.isAdmin()) {
+				throw new UnauthorizedException("Only an administrator may access this service.");
+			}
+			synchronized (waitObject) {
+				waitObject.wait(30000);
+			}
+		}
 	}
 }

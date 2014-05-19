@@ -735,6 +735,10 @@ public class UrlHelpers {
 	
 	public static final String ADMIN_USER_ID = ADMIN_USER + ID;
 
+	/**
+	 * API for testing throttling
+	 */
+	public static final String ADMIN_WAIT = ADMIN + "/wait";
 	
 	static {
 		@SuppressWarnings("rawtypes")

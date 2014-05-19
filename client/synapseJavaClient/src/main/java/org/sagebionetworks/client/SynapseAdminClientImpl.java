@@ -1,8 +1,11 @@
 package org.sagebionetworks.client;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.URISyntaxException;
 import java.net.URLEncoder;
 
+import org.apache.http.client.utils.URIBuilder;
 import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
@@ -41,6 +44,7 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	private static final String ADMIN_GET_CURRENT_CHANGE_NUM = ADMIN + "/messages/currentnumber";
 	private static final String ADMIN_PUBLISH_MESSAGES = ADMIN_CHANGE_MESSAGES + "/rebroadcast";
 	private static final String ADMIN_DOI_CLEAR = ADMIN + "/doi/clear";
+	private static final String ADMIN_WAIT = ADMIN + "/wait";
 
 	private static final String MIGRATION = "/migration";
 	private static final String MIGRATION_COUNTS = MIGRATION + "/counts";
@@ -316,5 +320,15 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	public void deleteUser(Long id) throws SynapseException, JSONObjectAdapterException {
 		String url = ADMIN_USER + "/" + id; 
 		getSharedClientConnection().deleteUri(repoEndpoint, url, getUserAgent());
+	}
+
+	@Override
+	public void waitForTesting(boolean release) throws SynapseException {
+		try {
+			URIBuilder uri = new URIBuilder(ADMIN_WAIT).setParameter("release", Boolean.toString(release));
+			getSharedClientConnection().getJson(repoEndpoint, uri.build().toString(), getUserAgent());
+		} catch (URISyntaxException e) {
+			throw new SynapseClientException(e);
+		}
 	}
 }
