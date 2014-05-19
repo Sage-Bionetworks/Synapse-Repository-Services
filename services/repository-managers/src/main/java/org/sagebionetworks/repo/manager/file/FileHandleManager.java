@@ -215,5 +215,16 @@ public interface FileHandleManager {
 	 * @return
 	 */
 	S3FileHandle multipartUploadLocalFile(UserInfo userInfo, File fileToUpload,	String contentType, ProgressListener listener);
+
+	/**
+	 * Only the creator of a FileHandle can call this method.
+	 * 
+	 * @param userInfo
+	 * @param fileHandleId
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	URL getRedirectURLForFileHandle(UserInfo userInfo, String fileHandleId) throws DatastoreException, NotFoundException;
 	
 }

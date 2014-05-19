@@ -1586,6 +1586,21 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public S3FileHandle createFileHandle(File temp, String contentType) throws SynapseException, IOException{
 		return createFileHandle(temp, contentType, null);
 	}
+	
+	@Override
+	public URL getFileHandleTemporaryUrl(String fileHandleId) throws IOException, SynapseException {
+		String uri = getFileHandleTemporaryURI(fileHandleId);
+		return getUrl(uri);
+	}
+	private String getFileHandleTemporaryURI(String fileHandleId){
+		return getFileEndpoint()+FILE_HANDLE + "/" +fileHandleId+"/url"+ QUERY_REDIRECT_PARAMETER + "false";
+	}
+	@Override
+	public void downloadFromFileHandleTemporaryUrl(String fileHandleId, File destinationFile)
+			throws SynapseException {
+		String uri = getFileHandleTemporaryURI(fileHandleId);
+		getSharedClientConnection().downloadFromSynapse(uri, null, destinationFile, getUserAgent());
+	}
 
 	@Override
 	public S3FileHandle createFileHandle(File temp, String contentType, Boolean shouldPreviewBeCreated)
