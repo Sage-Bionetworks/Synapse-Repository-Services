@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.StackStatusDao;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
@@ -129,4 +130,19 @@ public class AdministrationControllerTest {
 		back = ServletTestHelper.updateStackStatus(dispatchServlet, adminUserId, setDown);
 		assertEquals(setDown, back);
 	}
+	
+	@Test
+	public void testClearLocks() throws Exception{
+		// Clear all locks
+		ServletTestHelper.clearAllLocks(dispatchServlet, adminUserId);
+		
+	}
+	
+	@Test (expected=UnauthorizedException.class)
+	public void testClearLocksUnauthorized() throws Exception{
+		// Clear all locks
+		ServletTestHelper.clearAllLocks(dispatchServlet, BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		
+	}
 }
+

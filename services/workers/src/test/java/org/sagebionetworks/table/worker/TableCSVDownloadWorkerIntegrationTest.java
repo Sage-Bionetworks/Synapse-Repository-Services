@@ -18,6 +18,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.EntityManager;
+import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
@@ -73,6 +74,8 @@ public class TableCSVDownloadWorkerIntegrationTest {
 	UserManager userManager;
 	@Autowired
 	AmazonS3Client s3Client;
+	@Autowired
+	SemaphoreManager semphoreManager;
 	
 	private UserInfo adminUserInfo;
 	RowReferenceSet referenceSet;
@@ -85,6 +88,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 	
 	@Before
 	public void before() throws NotFoundException{
+		semphoreManager.releaseAllLocksAsAdmin(new UserInfo(true));
 		// Start with an empty queue.
 		asynchJobStatusManager.emptyAllQueues();
 		// Get the admin user

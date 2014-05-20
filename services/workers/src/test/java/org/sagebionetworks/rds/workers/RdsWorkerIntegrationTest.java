@@ -9,6 +9,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageReceiver;
 import org.sagebionetworks.repo.manager.EntityManager;
+import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -48,6 +49,9 @@ public class RdsWorkerIntegrationTest {
 	@Autowired
 	private MessageReceiver rdsQueueMessageReveiver;
 	
+	@Autowired
+	private SemaphoreManager semphoreManager;
+	
 	private UserInfo adminUserInfo;
 	private final String key = "some_annotation_key";
 	private String uniqueValue;
@@ -55,6 +59,7 @@ public class RdsWorkerIntegrationTest {
 	
 	@Before
 	public void before() throws Exception {
+		semphoreManager.releaseAllLocksAsAdmin(new UserInfo(true));
 		// Before we start, make sure the queue is empty
 		emptyQueue();
 		

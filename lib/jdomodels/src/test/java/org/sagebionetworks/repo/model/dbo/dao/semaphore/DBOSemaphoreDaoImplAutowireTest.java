@@ -68,4 +68,23 @@ public class DBOSemaphoreDaoImplAutowireTest {
 		assertFalse("The second token locked expired so we should not be able to release it.",semaphoreDao.releaseLock(key, secondToken));
 		assertTrue("The third token should be valid so we should have been able to release it.",semaphoreDao.releaseLock(key, thirdToken));
 	}
+	
+	@Test
+	public void testForceReleaseAllLocks() throws InterruptedException{
+		String key = "UNSENT_MESSAGE_WORKER";
+		// Get the lock and hold it for 1 second
+		String originalToken = semaphoreDao.attemptToAcquireLock(key, 1000);
+		assertNotNull(originalToken);
+		// Force the release of the lock
+		semaphoreDao.forceReleaseAllLocks();
+		// Now releasing the original lock should fail, since they lost the lock
+		assertFalse("The original token lock was force released so we should not be able to release it. ",semaphoreDao.releaseLock(key, originalToken));
+	}
+	
+	@Test
+	public void testForceReleaseAllLocksEmpty() throws InterruptedException{
+		// needs to work even when there are no locks.
+		semaphoreDao.forceReleaseAllLocks();
+		semaphoreDao.forceReleaseAllLocks();
+	}
 }
