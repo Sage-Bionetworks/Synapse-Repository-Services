@@ -54,7 +54,7 @@ public class SharedClientConnectionTest {
 		return header;
 	}
 	
-	private StatusLine configureMockHttpResponse(final int statusCode, final String responseBody) {
+	private void configureMockHttpResponse(final int statusCode, final String responseBody) {
 		StatusLine statusLine = Mockito.mock(StatusLine.class);
 		when(statusLine.getStatusCode()).thenReturn(statusCode);
 		when(mockResponse.getStatusLine()).thenReturn(statusLine);
@@ -81,7 +81,6 @@ public class SharedClientConnectionTest {
 			public void consumeContent() throws IOException {}
 		};
 		when(mockResponse.getEntity()).thenReturn(entity);
-		return statusLine;
 	}
 	
 	@Before
