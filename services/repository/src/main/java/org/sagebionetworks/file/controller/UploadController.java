@@ -13,6 +13,8 @@ import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.file.services.FileUploadService;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
 import org.sagebionetworks.repo.model.file.ChunkResult;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
@@ -28,6 +30,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.controller.BaseController;
+import org.sagebionetworks.repo.web.controller.RedirectUtils;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
@@ -465,5 +468,38 @@ public class UploadController extends BaseController {
 			@PathVariable String daemonId) throws DatastoreException,
 			NotFoundException {
 		return fileService.getUploadDaemonStatus(userId, daemonId);
+	}
+	
+	/**
+	 * Get a URL that can be used to download a file of a FileHandle.
+	 * <p>
+	 * Note: This call will result in a HTTP temporary redirect (307), to the
+	 * actual file URL if the caller meets all of the download requirements.
+	 * </p>
+	 * <p>
+	 * Note: Only the user that created the FileHandle can use this method for download.
+	 * </p>
+	 * @param userId
+	 * @param fileHandleId The ID of the FileHandle to download.
+	 * @param redirect
+	 *            When set to false, the URL will be returned as text/plain
+	 *            instead of redirecting.
+	 * @param response
+	 * @param wikiVersion
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	@RequestMapping(value = "/fileHandle/{handleId}/url", method = RequestMethod.GET)
+	public @ResponseBody
+	void getFileHandleURL(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String handleId,
+			@RequestParam(required = false) Boolean redirect,
+			HttpServletResponse response) throws DatastoreException,
+			NotFoundException, IOException {
+		// Get the redirect url
+		URL redirectUrl = fileService.getPresignedUrlForFileHandle(userId, handleId);
+		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
 }

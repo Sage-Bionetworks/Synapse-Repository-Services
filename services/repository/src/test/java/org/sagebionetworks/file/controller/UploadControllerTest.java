@@ -3,6 +3,7 @@ package org.sagebionetworks.file.controller;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
+import java.net.URL;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
@@ -84,6 +85,17 @@ public class UploadControllerTest {
 	public void testGetFileHandle() throws Exception {
 		S3FileHandle handle = ServletTestHelper.getFileHandle(adminUserId, handleOne.getId());
 		assertEquals(handleOne.getId(), handle.getId());
+		// Should also be able to get the URL
+		URL url = ServletTestHelper.getFileHandleUrl(adminUserId, handleOne.getId(), false);
+		assertNotNull(url);
+		String one = url.toString();
+		// With redirect this time
+		 url = ServletTestHelper.getFileHandleUrl(adminUserId, handleOne.getId(), true);
+		assertNotNull(url);
+		assertNotNull(url);
+		String two = url.toString();
+		// They should be the same
+		assertEquals(one, two);
 	}
 	
 	@Test

@@ -431,6 +431,36 @@ public class FileHandleManagerImplTest {
 		manager.createExternalFileHandle(mockUser, efh);
 	}
 	
+	@Test
+	public void testGetURLAuthroized() throws Exception{
+		S3FileHandle s3FileHandle = new S3FileHandle();
+		s3FileHandle.setId("123");
+		s3FileHandle.setCreatedBy("456");
+		s3FileHandle.setBucketName("bucket");
+		s3FileHandle.setKey("key");
+		when(mockfileMetadataDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
+		String expecedURL = "https://amamzon.com";
+		when(mockS3Client.generatePresignedUrl(any(String.class), any(String.class), any(Date.class), any(HttpMethod.class))).thenReturn(new URL(expecedURL));
+		when(mockAuthorizationManager.isUserCreatorOrAdmin(mockUser, s3FileHandle.getCreatedBy())).thenReturn(true);
+		URL redirect = manager.getRedirectURLForFileHandle(mockUser, s3FileHandle.getId());
+		assertEquals(expecedURL, redirect.toString());
+	}
+	
+	@Test (expected=UnauthorizedException.class)
+	public void testGetURLUnauthroized() throws Exception{
+		S3FileHandle s3FileHandle = new S3FileHandle();
+		s3FileHandle.setId("123");
+		s3FileHandle.setCreatedBy("456");
+		s3FileHandle.setBucketName("bucket");
+		s3FileHandle.setKey("key");
+		when(mockfileMetadataDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
+		String expecedURL = "https://amamzon.com";
+		when(mockS3Client.generatePresignedUrl(any(String.class), any(String.class), any(Date.class), any(HttpMethod.class))).thenReturn(new URL(expecedURL));
+		when(mockAuthorizationManager.isUserCreatorOrAdmin(mockUser, s3FileHandle.getCreatedBy())).thenReturn(false);
+		URL redirect = manager.getRedirectURLForFileHandle(mockUser, s3FileHandle.getId());
+		assertEquals(expecedURL, redirect.toString());
+	}
+	
 	/**
 	 * This a file handle that has all of the required fields filled in.
 	 * @return

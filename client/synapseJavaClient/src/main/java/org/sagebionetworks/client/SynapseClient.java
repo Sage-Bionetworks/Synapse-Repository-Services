@@ -1522,4 +1522,23 @@ public interface SynapseClient extends BaseClient {
 	 * @throws JSONObjectAdapterException 
 	 */
 	public AsynchronousJobStatus getAsynchronousJobStatus(String jobId) throws JSONObjectAdapterException, SynapseException;
+
+	/**
+	 * Get a Temporary URL that can be used to download a FileHandle.  Only the creator of a FileHandle can use this method.
+	 * 
+	 * @param fileHandleId
+	 * @return
+	 * @throws IOException
+	 * @throws SynapseException
+	 */
+	URL getFileHandleTemporaryUrl(String fileHandleId) throws IOException,
+			SynapseException;
+
+	/**
+	 * Download A file contain 
+	 * @param fileHandleId
+	 * @param destinationFile
+	 * @throws SynapseException
+	 */
+	void downloadFromFileHandleTemporaryUrl(String fileHandleId, File destinationFile) throws SynapseException;
 }
