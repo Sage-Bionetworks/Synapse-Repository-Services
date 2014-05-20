@@ -94,9 +94,10 @@ public class TimeUtils {
 
 	private static <T> boolean waitForInternalMaxRetry(int maxRetryCount, long initialCheckIntervalMillis, T input, Predicate<T> condition,
 			boolean exponential) {
-		final AtomicInteger count = new AtomicInteger(0);
+		int count = 0;
 		while (!condition.apply(input)) {
-			if (count.incrementAndGet() >= maxRetryCount) {
+			count++;
+			if (count >= maxRetryCount) {
 				return false;
 			}
 			Clock.sleepNoInterrupt(initialCheckIntervalMillis);

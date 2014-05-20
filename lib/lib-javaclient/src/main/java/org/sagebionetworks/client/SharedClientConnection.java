@@ -9,6 +9,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nullable;
 
@@ -52,6 +53,7 @@ import org.sagebionetworks.utils.HttpClientHelperException;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 
 import com.google.common.base.Predicate;
+import com.google.common.util.concurrent.UncheckedExecutionException;
 
 /**
  * Low-level Java Client API for Synapse REST APIs
@@ -734,32 +736,25 @@ public class SharedClientConnection {
 		return clientProvider.performRequest(requestUrl, requestMethod, requestContent, requestHeaders);
 	}
 	
-	public HttpResponse performRequestWithRetry(String requestUrl, String requestMethod, String requestContent, Map<String, String> requestHeaders) throws ClientProtocolException, IOException {
-		ClientRequestData data = new ClientRequestData(requestUrl, requestMethod, requestContent, requestHeaders);
-		TimeUtils.waitForExponentialMaxRetry(MAX_RETRY_SERVICE_UNAVAILABLE_COUNT, 1000, data, new Predicate<ClientRequestData>(){
+	public HttpResponse performRequestWithRetry(final String requestUrl, final String requestMethod, final String requestContent, final Map<String, String> requestHeaders) throws ClientProtocolException, IOException {
+		AtomicReference<HttpResponse> responseWrapper = new AtomicReference<HttpResponse>();
+		TimeUtils.waitForExponentialMaxRetry(MAX_RETRY_SERVICE_UNAVAILABLE_COUNT, 1000, responseWrapper, new Predicate<AtomicReference<HttpResponse>>(){
 			@Override
-			public boolean apply(@Nullable ClientRequestData data) {
+			public boolean apply(@Nullable AtomicReference<HttpResponse> responseWrapper) {
 				try {
-					HttpResponse response = clientProvider.performRequest(data.requestUrl, data.requestMethod, data.requestContent, data.requestHeaders);
-					data.response.getAndSet(response);
+					HttpResponse response = clientProvider.performRequest(requestUrl, requestMethod, requestContent, requestHeaders);
+					responseWrapper.set(response);
 					//if 503, then we can retry
 					int statusCode = response.getStatusLine().getStatusCode();
 					if (statusCode == HttpStatus.SC_SERVICE_UNAVAILABLE)
 						return false;
-				} catch (ClientProtocolException cpe) {
-					data.clientProtocolException.getAndSet(cpe);
 				} catch (IOException ioe) {
-					data.ioException.getAndSet(ioe);
+					throw new UncheckedExecutionException(ioe);
 				} 
 				return true;
 			}
 		});
-		if (data.clientProtocolException.get() != null)
-			throw data.clientProtocolException.get();
-		else if (data.ioException.get() != null)
-			throw data.ioException.get();
-		else
-			return data.response.get();
+		return responseWrapper.get();
 	}
 	
 	public String getDirect(String endpoint, String uri, String userAgent) throws IOException, SynapseException {
