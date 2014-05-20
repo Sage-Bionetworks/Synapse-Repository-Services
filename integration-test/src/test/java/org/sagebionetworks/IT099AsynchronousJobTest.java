@@ -186,7 +186,6 @@ public class IT099AsynchronousJobTest {
 			status = waitForStatus(status);
 			assertNotNull(status);
 			assertNotNull(status.getJobId());
-			assertEquals(body, status.getRequestBody());
 			assertNotNull(status.getResponseBody());
 			assertTrue(status.getResponseBody() instanceof AsynchDownloadResponseBody);
 			AsynchDownloadResponseBody downLoadresponse = (AsynchDownloadResponseBody) status.getResponseBody();

@@ -1589,16 +1589,16 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	
 	@Override
 	public URL getFileHandleTemporaryUrl(String fileHandleId) throws IOException, SynapseException {
-		String uri = getFileHandleTemporaryURI(fileHandleId);
-		return getUrl(uri);
+		String uri = getFileHandleTemporaryURI(fileHandleId, false);
+		return getUrl(getFileEndpoint(), uri);
 	}
-	private String getFileHandleTemporaryURI(String fileHandleId){
-		return getFileEndpoint()+FILE_HANDLE + "/" +fileHandleId+"/url"+ QUERY_REDIRECT_PARAMETER + "false";
+	private String getFileHandleTemporaryURI(String fileHandleId, boolean redirect){
+		return FILE_HANDLE + "/" +fileHandleId+"/url"+ QUERY_REDIRECT_PARAMETER + redirect;
 	}
 	@Override
 	public void downloadFromFileHandleTemporaryUrl(String fileHandleId, File destinationFile)
 			throws SynapseException {
-		String uri = getFileHandleTemporaryURI(fileHandleId);
+		String uri = getFileEndpoint()+getFileHandleTemporaryURI(fileHandleId, true);
 		getSharedClientConnection().downloadFromSynapse(uri, null, destinationFile, getUserAgent());
 	}
 
@@ -2191,6 +2191,12 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private URL getUrl(String uri) throws ClientProtocolException, IOException,
 			MalformedURLException, SynapseException {
 		return new URL(getSharedClientConnection().getDirect(repoEndpoint, uri, getUserAgent()));
+	}
+
+	private URL getUrl(String endpoint, String uri) throws ClientProtocolException, IOException,
+			MalformedURLException, SynapseException {
+		return new URL(getSharedClientConnection().getDirect(endpoint, uri,
+				getUserAgent()));
 	}
 		
 	/**
