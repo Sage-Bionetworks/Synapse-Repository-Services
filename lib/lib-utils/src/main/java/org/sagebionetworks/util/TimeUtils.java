@@ -1,5 +1,8 @@
 package org.sagebionetworks.util;
 
+import java.util.concurrent.Callable;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.DateTimeFormatterBuilder;
@@ -74,4 +77,34 @@ public class TimeUtils {
 		}
 		return true;
 	}
+	
+	/**
+	 * Wait for at most maxRetryCount for condition to return true. Recheck every checkIntervalMillis with exponential
+	 * back off
+	 * 
+	 * @param maxRetryCount
+	 * @param initialCheckIntervalMillis check at this interval and back of by 1.2x
+	 * @param condition
+	 * @param input
+	 * @return false if condition returned false 
+	 */
+	public static <T> boolean waitForExponentialMaxRetry(int maxRetryCount, long initialCheckIntervalMillis, T input, Predicate<T> condition) {
+		return waitForInternalMaxRetry(maxRetryCount, initialCheckIntervalMillis, input, condition, true);
+	}
+
+	private static <T> boolean waitForInternalMaxRetry(int maxRetryCount, long initialCheckIntervalMillis, T input, Predicate<T> condition,
+			boolean exponential) {
+		final AtomicInteger count = new AtomicInteger(0);
+		while (!condition.apply(input)) {
+			if (count.incrementAndGet() >= maxRetryCount) {
+				return false;
+			}
+			Clock.sleepNoInterrupt(initialCheckIntervalMillis);
+			if (exponential) {
+				initialCheckIntervalMillis *= 1.2;
+			}
+		}
+		return true;
+	}
+
 }

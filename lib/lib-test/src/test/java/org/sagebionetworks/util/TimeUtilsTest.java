@@ -93,4 +93,34 @@ public class TimeUtilsTest {
 		assertEquals(6, count.get());
 		assertEquals(start + 1000 * 7.4, Clock.currentTimeMillis(), 100);
 	}
+	
+	@Test
+	public void testExponentialMaxRetry() {
+		final int maxRetry = 3;
+		final AtomicInteger count = new AtomicInteger(0);
+		boolean result = TimeUtils.waitForExponentialMaxRetry(maxRetry, 100, "a", new Predicate<String>() {
+			@Override
+			public boolean apply(String input) {
+				//return false if it should retry, true if done
+				return count.incrementAndGet() >= maxRetry; //boundary test.  done if we call 3 times
+			}
+		});
+		assertTrue(result);
+		assertEquals(maxRetry, count.get());
+	}
+	
+	@Test
+	public void testExponentialMaxRetryFail() {
+		final int maxRetry = 3;
+		final AtomicInteger count = new AtomicInteger(0);
+		boolean result = TimeUtils.waitForExponentialMaxRetry(maxRetry, 100, "a", new Predicate<String>() {
+			@Override
+			public boolean apply(String input) {
+				return count.incrementAndGet() >= maxRetry + 1; //boundary test.  done if we call 4 times
+			}
+		});
+		assertFalse(result);
+		//should have called apply maxRetry times, no more.
+		assertEquals(maxRetry, count.get());
+	}
 }

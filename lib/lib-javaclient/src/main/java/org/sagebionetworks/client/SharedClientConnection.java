@@ -10,6 +10,8 @@ import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.annotation.Nullable;
+
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
@@ -45,8 +47,11 @@ import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.securitytools.HMACUtils;
+import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.utils.HttpClientHelperException;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
+
+import com.google.common.base.Predicate;
 
 /**
  * Low-level Java Client API for Synapse REST APIs
@@ -62,6 +67,7 @@ public class SharedClientConnection {
 	private static final Logger log = LogManager.getLogger(SharedClientConnection.class.getName());
 
 	private static final int JSON_INDENT = 2;
+	public static final int MAX_RETRY_SERVICE_UNAVAILABLE_COUNT = 5;
 	protected static final String DEFAULT_AUTH_ENDPOINT = "https://repo-prod.prod.sagebase.org/auth/v1";
 	private static final String SESSION_TOKEN_HEADER = "sessionToken";
 	private static final String REQUEST_PROFILE_DATA = "profile_request";
@@ -78,6 +84,7 @@ public class SharedClientConnection {
 	private String userName;
 	private String apiKey;
 	private DomainType domain = DomainType.SYNAPSE;
+	protected boolean retryRequestIfServiceUnavailable;
 
 	/**
 	 * Default constructor uses the default repository and auth services
@@ -112,6 +119,8 @@ public class SharedClientConnection {
 		clientProvider.setGlobalSocketTimeout(ServiceConstants.DEFAULT_SOCKET_TIMEOUT_MSEC);
 		
 		requestProfile = false;
+		//by default, retry if we get a 503
+		retryRequestIfServiceUnavailable = true;
 	}
 	
 	public SharedClientConnection(DomainType domain) {
@@ -160,6 +169,10 @@ public class SharedClientConnection {
 		return this.profileData;
 	}
 	
+	public void setRetryRequestIfServiceUnavailable(
+			boolean retryRequestIfServiceUnavailable) {
+		this.retryRequestIfServiceUnavailable = retryRequestIfServiceUnavailable;
+	}
 
 	/**
 	 * @return the userName
@@ -678,9 +691,12 @@ public class SharedClientConnection {
 		int statusCode = 0;
 		try {
 			requestUrl = createRequestUrl(endpoint, uri, parameters);
-			
-			HttpResponse response = clientProvider.performRequest(requestUrl, requestMethod, requestContent,
-					requestHeaders);
+			HttpResponse response;
+			if (retryRequestIfServiceUnavailable) {
+				response = performRequestWithRetry(requestUrl, requestMethod, requestContent, requestHeaders);
+			} else {
+				response = performRequest(requestUrl, requestMethod, requestContent, requestHeaders);
+			}
 			statusCode = response.getStatusLine().getStatusCode();
 			HttpEntity responseEntity = response.getEntity();
 			responseBody = (null != responseEntity) ? EntityUtils
@@ -714,6 +730,38 @@ public class SharedClientConnection {
 		return results;
 	}
 
+	public HttpResponse performRequest(String requestUrl, String requestMethod, String requestContent, Map<String, String> requestHeaders) throws ClientProtocolException, IOException {
+		return clientProvider.performRequest(requestUrl, requestMethod, requestContent, requestHeaders);
+	}
+	
+	public HttpResponse performRequestWithRetry(String requestUrl, String requestMethod, String requestContent, Map<String, String> requestHeaders) throws ClientProtocolException, IOException {
+		ClientRequestData data = new ClientRequestData(requestUrl, requestMethod, requestContent, requestHeaders);
+		TimeUtils.waitForExponentialMaxRetry(MAX_RETRY_SERVICE_UNAVAILABLE_COUNT, 1000, data, new Predicate<ClientRequestData>(){
+			@Override
+			public boolean apply(@Nullable ClientRequestData data) {
+				try {
+					HttpResponse response = clientProvider.performRequest(data.requestUrl, data.requestMethod, data.requestContent, data.requestHeaders);
+					data.response.getAndSet(response);
+					//if 503, then we can retry
+					int statusCode = response.getStatusLine().getStatusCode();
+					if (statusCode == HttpStatus.SC_SERVICE_UNAVAILABLE)
+						return false;
+				} catch (ClientProtocolException cpe) {
+					data.clientProtocolException.getAndSet(cpe);
+				} catch (IOException ioe) {
+					data.ioException.getAndSet(ioe);
+				} 
+				return true;
+			}
+		});
+		if (data.clientProtocolException.get() != null)
+			throw data.clientProtocolException.get();
+		else if (data.ioException.get() != null)
+			throw data.ioException.get();
+		else
+			return data.response.get();
+	}
+	
 	public String getDirect(String endpoint, String uri, String userAgent) throws IOException, SynapseException {
 		HttpGet get = new HttpGet(endpoint + uri);
 		setHeaders(get, defaultGETDELETEHeaders, userAgent);
