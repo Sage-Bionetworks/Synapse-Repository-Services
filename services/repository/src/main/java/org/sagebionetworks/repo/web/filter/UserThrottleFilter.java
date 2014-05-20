@@ -2,6 +2,8 @@ package org.sagebionetworks.repo.web.filter;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -18,6 +20,8 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpStatus;
+import org.sagebionetworks.cloudwatch.Consumer;
+import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreGatedRunner;
@@ -33,6 +37,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class UserThrottleFilter implements Filter {
 
 	private SemaphoreGatedRunner userThrottleGate;
+
+	@Autowired
+	private Consumer consumer;
 
 	public void setUserThrottleGate(SemaphoreGatedRunner userThrottleGate) {
 		this.userThrottleGate = userThrottleGate;
@@ -58,6 +65,14 @@ public class UserThrottleFilter implements Filter {
 					}
 				});
 			} catch (LockUnavilableException e) {
+				ProfileData lockUnavailableEvent = new ProfileData();
+				lockUnavailableEvent.setNamespace(this.getClass().getName());
+				lockUnavailableEvent.setName("LockUnavailable");
+				lockUnavailableEvent.setValue(1.0);
+				lockUnavailableEvent.setUnit("Count");
+				lockUnavailableEvent.setTimestamp(new Date());
+				lockUnavailableEvent.setDimension(Collections.singletonMap("UserId", userId));
+				consumer.addProfileData(lockUnavailableEvent);
 				HttpServletResponse httpResponse = (HttpServletResponse) response;
 				httpResponse.setStatus(HttpStatus.SC_SERVICE_UNAVAILABLE);
 				httpResponse.getWriter().println("{\"reason\": \"Too many concurrent requests\"}");

@@ -82,8 +82,9 @@ public class SemaphoreGatedRunnerImpl implements SemaphoreGatedRunner {
 	public void setSemaphoreKey(String semaphoreKey) {
 		if(semaphoreKey == null) throw new IllegalArgumentException("semaphoreKey cannot be null");
 		if(semaphoreKey.length() > MAX_KEY_LENGTH) throw new IllegalArgumentException("semaphoreKey cannot be longer than "+MAX_KEY_LENGTH+" characters");
-		if(USED_KEY_SET.contains(semaphoreKey)) throw new IllegalArgumentException("The key: '"+semaphoreKey+"' is already in use and cannot be used again");
-		USED_KEY_SET.add(semaphoreKey);
+		if (!USED_KEY_SET.add(semaphoreKey)) {
+			log.info("The key: '" + semaphoreKey + "' was already in use. Duplicate key name?");
+		}
 		this.semaphoreKey = semaphoreKey;
 	}
 

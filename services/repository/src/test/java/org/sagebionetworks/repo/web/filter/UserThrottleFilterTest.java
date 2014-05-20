@@ -30,6 +30,8 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+import org.sagebionetworks.cloudwatch.Consumer;
+import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreGatedRunner;
@@ -40,6 +42,7 @@ import org.sagebionetworks.securitytools.HMACUtils;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.test.util.ReflectionTestUtils;
 
 public class UserThrottleFilterTest {
 
@@ -90,18 +93,38 @@ public class UserThrottleFilterTest {
 
 	@SuppressWarnings("unchecked")
 	@Test(expected = ServletException.class)
-	public void testNoEmptySlots() throws Exception {
+	public void testException() throws Exception {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, "111");
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		FilterChain filterChain = mock(FilterChain.class);
 
-		when(userThrottleGate.attemptToRunAllSlots(any(Callable.class))).thenThrow(new LockUnavilableException());
+		when(userThrottleGate.attemptToRunAllSlots(any(Callable.class))).thenThrow(new Exception());
 		try {
 			filter.doFilter(request, response, filterChain);
 		} finally {
 			verify(userThrottleGate).attemptToRunAllSlots(any(Callable.class));
 			verifyNoMoreInteractions(filterChain, userThrottleGate);
 		}
+	}
+
+	@SuppressWarnings("unchecked")
+	@Test
+	public void testNoEmptySlots() throws Exception {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, "111");
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		FilterChain filterChain = mock(FilterChain.class);
+		Consumer consumer = mock(Consumer.class);
+		ReflectionTestUtils.setField(filter, "consumer", consumer);
+
+		when(userThrottleGate.attemptToRunAllSlots(any(Callable.class))).thenThrow(new LockUnavilableException());
+
+		filter.doFilter(request, response, filterChain);
+		assertEquals(503, response.getStatus());
+
+		verify(userThrottleGate).attemptToRunAllSlots(any(Callable.class));
+		verify(consumer).addProfileData(any(ProfileData.class));
+		verifyNoMoreInteractions(filterChain, userThrottleGate, consumer);
 	}
 }
