@@ -471,38 +471,6 @@ public class UploadController extends BaseController {
 	}
 	
 	/**
-	 * Get a URL that can be used to download a preview file for a given
-	 * WikiPage file attachment.
-	 * <p>
-	 * Note: This call will result in a HTTP temporary redirect (307), to the
-	 * actual file URL if the caller meets all of the download requirements.
-	 * </p>
-	 * <p>
-	 * Note: The caller must be granted the <a
-	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
-	 * >ACCESS_TYPE.READ</a> permission on the owner.
-	 * </p>
-	 * 
-	 * @param userId
-	 * @param ownerId
-	 *            The ID of the owning Entity
-	 * @param wikiId
-	 *            The ID of the WikiPage
-	 * @param fileName
-	 *            The name of the file to get. The file names can be found in
-	 *            the FileHandles from the <a
-	 *            href="${GET.entity.ownerId.wiki.wikiId.attachmenthandles}">GET
-	 *            /entity/{ownerId}/wiki/{wikiId}/attachmenthandles</a> method.
-	 * @param redirect
-	 *            When set to false, the URL will be returned as text/plain
-	 *            instead of redirecting.
-	 * @param response
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 * @throws IOException
-	 */
-	
-	/**
 	 * Get a URL that can be used to download a file of a FileHandle.
 	 * <p>
 	 * Note: This call will result in a HTTP temporary redirect (307), to the
