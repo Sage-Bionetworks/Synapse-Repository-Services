@@ -268,4 +268,14 @@ public class AdministrationController extends BaseController {
 	        		throws NotFoundException {
 		serviceProvider.getAdministrationService().deleteUser(userId, id);
 	}
+	
+	@RequestMapping(value = {UrlHelpers.ADMIN_CLEAR_LOCKS}, method = RequestMethod.DELETE)
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	public void clearLocks(
+	        @RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) 
+	        		throws NotFoundException {
+		serviceProvider.getAdministrationService().clearAllLocks(userId);
+	}
+	
+
 }

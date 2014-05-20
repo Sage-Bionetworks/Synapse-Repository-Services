@@ -16,6 +16,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageReceiver;
 import org.sagebionetworks.repo.manager.MessageManager;
+import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -53,6 +54,9 @@ public class MessageToUserWorkerIntegrationTest {
 	@Autowired
 	private MessageReceiver messageToUserQueueMessageReceiver;
 	
+	@Autowired
+	private SemaphoreManager semphoreManager;
+	
 	private UserInfo userInfo;
 	private UserInfo adminUserInfo;
 	
@@ -62,9 +66,9 @@ public class MessageToUserWorkerIntegrationTest {
 	@SuppressWarnings("serial")
 	@Before
 	public void before() throws Exception {
+		semphoreManager.releaseAllLocksAsAdmin(new UserInfo(true));
 		// Before we start, make sure the queue is empty
 		emptyQueue();
-		
 		NewUser user = new NewUser();
 		user.setEmail(UUID.randomUUID().toString() + "@test.com");
 		user.setUserName(UUID.randomUUID().toString());

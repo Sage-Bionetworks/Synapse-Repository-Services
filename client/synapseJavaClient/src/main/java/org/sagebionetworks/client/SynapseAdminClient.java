@@ -184,4 +184,10 @@ public interface SynapseAdminClient extends SynapseClient {
 	public PublishResults publishChangeMessages(String queueName,
 			Long startChangeNumber, ObjectType type, Long limit)
 			throws SynapseException, JSONObjectAdapterException;
+
+	/**
+	 * Clear all semaphore locks.
+	 * @throws SynapseException 
+	 */
+	void clearAllLocks() throws SynapseException;
 }
