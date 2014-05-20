@@ -75,6 +75,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * considered to be owned by the same object as the root page.
  * </p>
  */
+@ControllerInfo(displayName = "WikiPage Services", path = "repo/v1")
 @Controller
 @RequestMapping(UrlHelpers.REPO_PATH)
 public class WikiController extends BaseController {
