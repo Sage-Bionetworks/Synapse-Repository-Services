@@ -706,6 +706,21 @@ public class ServletTestHelper {
 		return (StackStatus) objectMapper.readValue(
 				response.getContentAsString(), StackStatus.class);
 	}
+	
+	/**
+	 * Clear all semaphore locks.
+	 * 
+	 * @param dispatchServlet
+	 * @param userId
+	 * @throws Exception
+	 */
+	public static void clearAllLocks(HttpServlet dispatchServlet,
+			Long userId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.DELETE, UrlHelpers.ADMIN_CLEAR_LOCKS, userId, null);
+
+		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.NO_CONTENT);
+	}
 
 	public static void terminateDaemon(HttpServlet dispatchServlet,
 			Long userId, String id) throws Exception {

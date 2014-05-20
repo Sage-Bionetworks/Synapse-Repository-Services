@@ -15,6 +15,8 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.logging.s3.LogDAO;
+import org.sagebionetworks.repo.manager.SemaphoreManager;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -42,8 +44,12 @@ public class WorkerLoggingIntegrationTest {
 	@Autowired
 	LogDAO logDAO;
 	
+	@Autowired
+	private SemaphoreManager semphoreManager;
+	
 	@Before
 	public void before(){
+		semphoreManager.releaseAllLocksAsAdmin(new UserInfo(true));
 		// clear all s3 log data before we start
 		logDAO.deleteAllStackInstanceLogs();
 

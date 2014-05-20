@@ -20,6 +20,7 @@ import org.sagebionetworks.evaluation.model.EvaluationSubmissions;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
+import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityType;
@@ -67,6 +68,9 @@ public class AnnotationsWorkerIntegrationTest {
 	@Autowired
 	private MessageReceiver annotationsQueueMessageReceiver;
 	
+	@Autowired
+	private SemaphoreManager semphoreManager;
+	
 	private String nodeId;
     private String submissionId;
     private Long userId;
@@ -80,7 +84,7 @@ public class AnnotationsWorkerIntegrationTest {
 		userId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 	    userInfo = new UserInfo(true);
 	    userInfo.setId(userId);
-		
+		semphoreManager.releaseAllLocksAsAdmin(userInfo);
 		// Before we start, make sure the queue is empty
 		annotationsQueueMessageReceiver.emptyQueue();
 		

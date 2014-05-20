@@ -734,6 +734,10 @@ public class UrlHelpers {
 	public static final String ADMIN_USER = ADMIN + AUTH_USER;
 	
 	public static final String ADMIN_USER_ID = ADMIN_USER + ID;
+	/**
+	 * Clear all locks.
+	 */
+	public static final String ADMIN_CLEAR_LOCKS = ADMIN+"/locks";
 
 	
 	static {

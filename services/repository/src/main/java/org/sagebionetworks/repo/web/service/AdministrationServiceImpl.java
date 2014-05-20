@@ -5,6 +5,7 @@ import java.util.Date;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.StackStatusManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.backup.daemon.BackupDaemonLauncher;
@@ -66,6 +67,9 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	
 	@Autowired
 	private DynamoAdminManager dynamoAdminManager;
+	
+	@Autowired
+	SemaphoreManager semaphoreManager;
 
 	/**
 	 * Spring will use this constructor
@@ -233,5 +237,11 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	public void deleteUser(Long userId, String id) throws NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		userManager.deletePrincipal(userInfo, Long.parseLong(id));
+	}
+	@Override
+	public void clearAllLocks(Long userId) throws NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		// Ony an admin can make this call
+		semaphoreManager.releaseAllLocksAsAdmin(userInfo);
 	}
 }

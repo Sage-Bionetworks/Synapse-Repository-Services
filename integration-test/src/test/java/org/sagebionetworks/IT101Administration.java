@@ -132,4 +132,9 @@ public class IT101Administration {
 		assertEquals(1, results.getList().size());
 		System.out.println(results);
 	}
+	
+	@Test
+	public void testClearAllLocks() throws SynapseException{
+		adminSynapse.clearAllLocks();
+	}
 }
