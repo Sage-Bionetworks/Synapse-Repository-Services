@@ -76,44 +76,44 @@ public class UserProfileManagerImpl implements UserProfileManager {
 		UserProfile userProfile = userProfileDAO.get(ownerId);
 		List<PrincipalAlias> aliases = principalAliasDAO.
 				listPrincipalAliases(Long.parseLong(ownerId));
-		List<String> emails = new ArrayList<String>();
-		List<String> openIds = new ArrayList<String>();
+		userProfile.setEmails(new ArrayList<String>());
+		userProfile.setOpenIds(new ArrayList<String>());
 		for (PrincipalAlias alias : aliases) {
-			if (alias.getType().equals(AliasType.USER_EMAIL)) {
-				emails.add(alias.getAlias());
-			} else if (alias.getType().equals(AliasType.USER_OPEN_ID)) {
-				openIds.add(alias.getAlias());
-			}
+			insertAliasIntoProfile(userProfile, alias);
 		}
-		userProfile.setEmails(emails);
-		userProfile.setOpenIds(openIds);
 		return userProfile;
+	}
+	
+	private static void insertAliasIntoProfile(UserProfile profile, PrincipalAlias alias) {
+		String aliasName = alias.getAlias();
+		if (alias.getType().equals(AliasType.USER_NAME)) {
+			profile.setUserName(aliasName);
+		} else if (alias.getType().equals(AliasType.USER_EMAIL)) {
+			profile.getEmails().add(aliasName);
+		} else if (alias.getType().equals(AliasType.USER_OPEN_ID)) {
+			profile.getOpenIds().add(aliasName);
+		} else {
+			throw new IllegalStateException("Expected user name, email or open id but found "+alias.getType());
+		}
 	}
 	
 	@Override
 	public QueryResults<UserProfile> getInRange(UserInfo userInfo, long startIncl, long endExcl) throws DatastoreException, NotFoundException{
 		List<UserProfile> userProfiles = userProfileDAO.getInRange(startIncl, endExcl);
 		Set<Long> principalIds = new HashSet<Long>();
-		Map<Long,List<String>> profileIdToEmailListMap = new HashMap<Long,List<String>>();
-		Map<Long,List<String>> profileIdToOpenIDListMap = new HashMap<Long,List<String>>();
+		Map<Long,UserProfile> profileMap = new HashMap<Long,UserProfile>();
 		for (UserProfile profile : userProfiles) {
 			Long ownerIdLong = Long.parseLong(profile.getOwnerId());
 			principalIds.add(ownerIdLong);
-			List<String> profileEmails = new ArrayList<String>();
-			profile.setEmails(profileEmails);
+			profile.setUserName(null);
+			profile.setEmails(new ArrayList<String>());
+			profile.setOpenIds(new ArrayList<String>());
 			// add to a map so we can find quickly, below
-			profileIdToEmailListMap.put(ownerIdLong, profileEmails);
-			List<String> openIds = new ArrayList<String>();
-			profile.setOpenIds(openIds);
-			// add to a map so we can find quickly, below
-			profileIdToOpenIDListMap.put(ownerIdLong, openIds);
+			profileMap.put(ownerIdLong, profile);
 		}
 		for (PrincipalAlias alias : principalAliasDAO.listPrincipalAliases(principalIds)) {
-			if (alias.getType().equals(AliasType.USER_EMAIL)) {
-				profileIdToEmailListMap.get(alias.getPrincipalId()).add(alias.getAlias());
-			} else if (alias.getType().equals(AliasType.USER_OPEN_ID)) {
-				profileIdToOpenIDListMap.get(alias.getPrincipalId()).add(alias.getAlias());
-			}
+			UserProfile profile = profileMap.get(alias.getPrincipalId());
+			insertAliasIntoProfile(profile, alias);
 		}
 		long totalNumberOfResults = userProfileDAO.getCount();
 		QueryResults<UserProfile> result = new QueryResults<UserProfile>(userProfiles, (int)totalNumberOfResults);
@@ -127,13 +127,16 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	public UserProfile updateUserProfile(UserInfo userInfo, UserProfile updated) 
 			throws DatastoreException, UnauthorizedException, InvalidModelException, NotFoundException {
 		validateProfile(updated);
+		Long principalId = Long.parseLong(updated.getOwnerId());
+		String updatedUserName = updated.getUserName();
 		clearAliasFields(updated);
 		boolean canUpdate = UserProfileManagerUtils.isOwnerOrAdmin(userInfo, updated.getOwnerId());
 		if (!canUpdate) throw new UnauthorizedException("Only owner or administrator may update UserProfile.");
 		attachmentManager.checkAttachmentsForPreviews(updated);
 		// Update the DAO first
 		userProfileDAO.update(updated);
-		
+		// Bind all aliases
+		bindUserName(updatedUserName, principalId);
 		// Get the updated value
 		return getUserProfilePrivate(updated.getOwnerId());
 	}
@@ -194,6 +197,20 @@ public class UserProfileManagerImpl implements UserProfileManager {
 		}
 	}
 
+	private void bindUserName(String username, Long principalId) {
+		// bind the username to this user
+		PrincipalAlias alias = new PrincipalAlias();
+		alias.setAlias(username);
+		alias.setIsValidated(true);
+		alias.setPrincipalId(principalId);
+		alias.setType(AliasType.USER_NAME);
+		try {
+			principalAliasDAO.bindAliasToPrincipal(alias);
+		} catch (NotFoundException e1) {
+			throw new DatastoreException(e1);
+		}
+	}
+	
 	private void validateProfile(UserProfile profile) {
 		if(profile == null) throw new IllegalArgumentException("UserProfile cannot be null");
 		if(profile.getOwnerId() == null) throw new IllegalArgumentException("OwnerId cannot be null");
