@@ -50,6 +50,9 @@ import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.Settings;
+import org.sagebionetworks.repo.model.principal.AliasType;
+import org.sagebionetworks.repo.model.principal.PrincipalAlias;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
@@ -119,6 +122,9 @@ public class MessageManagerImpl implements MessageManager {
 	private UserProfileDAO userProfileDAO;
 	
 	@Autowired
+	private PrincipalAliasDAO principalAliasDAO;
+	
+	@Autowired
 	private AuthorizationManager authorizationManager;
 	
 	@Autowired
@@ -144,6 +150,7 @@ public class MessageManagerImpl implements MessageManager {
 	public MessageManagerImpl(MessageDAO messageDAO, UserGroupDAO userGroupDAO,
 			GroupMembersDAO groupMembersDAO, UserManager userManager,
 			UserProfileDAO userProfileDAO,
+			PrincipalAliasDAO principalAliasDAO,
 			AuthorizationManager authorizationManager,
 			AmazonSimpleEmailService amazonSESClient,
 			FileHandleManager fileHandleManager, NodeDAO nodeDAO,
@@ -154,6 +161,7 @@ public class MessageManagerImpl implements MessageManager {
 		this.groupMembersDAO = groupMembersDAO;
 		this.userManager = userManager;
 		this.userProfileDAO = userProfileDAO;
+		this.principalAliasDAO = principalAliasDAO;
 		this.authorizationManager = authorizationManager;
 		this.amazonSESClient = amazonSESClient;
 		this.fileHandleManager = fileHandleManager;
@@ -452,18 +460,16 @@ public class MessageManagerImpl implements MessageManager {
 				
 				// Should emails be sent?
 				if (settings.getSendEmailNotifications() == null || settings.getSendEmailNotifications()) {
-					if(profile.getEmails() != null){
-						String email = getEmailForUser(profile);
-						sendEmail(email, 
-								dto.getSubject(),
-								messageBody, 
-								isHtml,
-								senderUserName);
+					String email = getEmailForUser(Long.parseLong(user));
+					sendEmail(email, 
+							dto.getSubject(),
+							messageBody, 
+							isHtml,
+							senderUserName);
 						
-						// Should the message be marked as READ?
-						if (settings.getMarkEmailedMessagesAsRead() != null && settings.getMarkEmailedMessagesAsRead()) {
-							userMessageStatus = MessageStatusType.READ;
-						}
+					// Should the message be marked as READ?
+					if (settings.getMarkEmailedMessagesAsRead() != null && settings.getMarkEmailedMessagesAsRead()) {
+						userMessageStatus = MessageStatusType.READ;
 					}
 				}
 				
@@ -672,7 +678,7 @@ public class MessageManagerImpl implements MessageManager {
 			throw new IllegalArgumentException("Unknown origin client type: " + domain);
 		}
 		messageBody = messageBody.replaceAll(TEMPLATE_KEY_WEB_LINK, webLink);
-		String email = getEmailForUser(profile);
+		String email = getEmailForUser(recipientId);
 		sendEmail(email, subject, messageBody, false, DEFAULT_NOTIFICATION_DISPLAY_NAME);
 	}
 	
@@ -695,7 +701,7 @@ public class MessageManagerImpl implements MessageManager {
 		messageBody = messageBody.replaceAll(TEMPLATE_KEY_DISPLAY_NAME, alias);
 		
 		messageBody = messageBody.replaceAll(TEMPLATE_KEY_USERNAME, alias);
-		String email = getEmailForUser(profile);
+		String email = getEmailForUser(recipientId);
 		sendEmail(email, subject, messageBody, false, DEFAULT_NOTIFICATION_DISPLAY_NAME);
 	}
 	
@@ -718,16 +724,17 @@ public class MessageManagerImpl implements MessageManager {
 		
 		messageBody = messageBody.replaceAll(TEMPLATE_KEY_MESSAGE_ID, messageId);
 		messageBody = messageBody.replaceAll(TEMPLATE_KEY_DETAILS, "- " + StringUtils.join(errors, "\n- "));
-		String email = getEmailForUser(profile);
+		String email = getEmailForUser(sender.getId());
 		sendEmail(email, subject, messageBody, false, DEFAULT_NOTIFICATION_DISPLAY_NAME);
 	}
 	
 	
-	private String getEmailForUser(UserProfile profile){
-		if(profile == null) throw new IllegalArgumentException("Profile cannot be null");
-		if(profile.getEmails() == null) throw new IllegalArgumentException("UserProfile.getEmails() was null");
-		if(profile.getEmails().size() < 1) throw new IllegalArgumentException("UserProfile.getEmails() was empty");
-		return profile.getEmails().get(0);
+	private String getEmailForUser(Long principalId) {
+		List<PrincipalAlias> aliases = principalAliasDAO.listPrincipalAliases(principalId, AliasType.USER_EMAIL);
+		for (PrincipalAlias alias : aliases) {
+			return alias.getAlias();
+		}
+		throw new IllegalStateException("No validated user email alias for "+principalId);
 	}
 	/**
 	 * Helper for sending templated emails

@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
@@ -35,7 +36,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	private AuthenticationManager authManager;
 	
 	@Autowired
-	private UserProfileManager userProfileManager;
+	private PrincipalAliasDAO principalAliasDAO;
 	
 	@Autowired
 	private MessageManager messageManager;
@@ -229,15 +230,13 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		 * Binding the OpenID here is temporary and should be removed when PLFM-2437 is resolved.
 		 */
 		if(!isOpenIDBound){
-			// Get the current UserProfile and added it
-			UserInfo userInfo = userManager.getUserInfo(alias.getPrincipalId());
-			UserProfile profile = userProfileManager.getUserProfile(userInfo, alias.getPrincipalId().toString());
-			if(profile.getOpenIds() == null){
-				profile.setOpenIds(new LinkedList<String>());
-			}
-			profile.getOpenIds().add(info.getIdentifier());
-			// Update the user's profile.
-			userProfileManager.updateUserProfile(userInfo, profile);
+			// Create the alias
+			PrincipalAlias openIdAlias = new PrincipalAlias();
+			openIdAlias.setType(AliasType.USER_OPEN_ID);
+			openIdAlias.setAlias(info.getIdentifier());
+			openIdAlias.setIsValidated(true);
+			openIdAlias.setPrincipalId(alias.getPrincipalId());
+			principalAliasDAO.bindAliasToPrincipal(openIdAlias);
 		}
 		
 		return sesion;

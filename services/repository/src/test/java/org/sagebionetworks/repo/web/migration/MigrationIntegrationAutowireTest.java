@@ -106,6 +106,7 @@ import org.sagebionetworks.repo.model.migration.MigrationTypeList;
 import org.sagebionetworks.repo.model.migration.MigrationUtils;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -177,6 +178,9 @@ public class MigrationIntegrationAutowireTest {
 
 	@Autowired
 	private UserGroupDAO userGroupDAO;
+	
+	@Autowired
+	private PrincipalAliasDAO principalAliasDAO;
 
 	@Autowired
 	private GroupMembersDAO groupMembersDAO;
@@ -263,8 +267,6 @@ public class MigrationIntegrationAutowireTest {
 
 	private HttpServletRequest mockRequest;
 
-	private UserInfo newUser;
-
 	@Before
 	public void before() throws Exception {
 		mockRequest = Mockito.mock(HttpServletRequest.class);
@@ -344,7 +346,7 @@ public class MigrationIntegrationAutowireTest {
 		user.setUserName(UUID.randomUUID().toString());
 		user.setEmail(user.getUserName() + "@test.com");
 		Long id = userManager.createUser(user);
-		newUser = userManager.getUserInfo(id);
+		userManager.getUserInfo(id);
 	}
 
 	private void resetDatabase() throws Exception {
