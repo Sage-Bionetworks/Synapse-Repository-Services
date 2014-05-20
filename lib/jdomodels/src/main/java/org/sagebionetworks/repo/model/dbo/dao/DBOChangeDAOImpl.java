@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHANGES_CHANGE_NUM;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHANGES_OBJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHANGES_OBJECT_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROCESSED_MESSAGES_CHANGE_NUM;
@@ -16,6 +16,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
@@ -27,13 +28,16 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOChange;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSentMessage;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOSentMessageSynch;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeMessageUtils;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.SingleColumnRowMapper;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,6 +49,8 @@ import org.springframework.transaction.annotation.Transactional;
  */
 public class DBOChangeDAOImpl implements DBOChangeDAO {
 	
+	private static final String SQL_SELECT_LAST_SYNCHED_CHANGE_NUMBER = "SELECT "+COL_SENT_MESSAGE_SYCH_LAST_CHANGE_NUMBER+" FROM "+TABLE_SENT_MESSAGES_SYNCH+" WHERE "+COL_SENT_MESSAGE_SYCH_ID+" = ?";
+
 	static private Logger log = LogManager.getLogger(DBOChangeDAOImpl.class);
 	
 	private static final String SQL_INSERT_SENT_ON_DUPLICATE_UPDATE = 
@@ -234,6 +240,31 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 	public List<ChangeMessage> listNotProcessedMessages(String queueName, long limit) {
 		List<DBOChange> l = jdbcTemplate.query(SQL_SELECT_CHANGES_NOT_PROCESSED, new DBOChange().getTableMapping(), queueName, limit);
 		return ChangeMessageUtils.createDTOList(l);
+	}
+
+
+	@Override
+	public Long getLastSynchedChangeNumber() {
+		try{
+			return jdbcTemplate.queryForObject(SQL_SELECT_LAST_SYNCHED_CHANGE_NUMBER, new SingleColumnRowMapper<Long>(), DBOSentMessageSynch.THE_ID);
+		}catch(EmptyResultDataAccessException e){
+			// Add the row
+			DBOSentMessageSynch dbo = new DBOSentMessageSynch();
+			dbo.setId(DBOSentMessageSynch.THE_ID);
+			dbo.setLastChangeNumber(new Long(-1));
+			dbo.setUpdatedOn(new Date());
+			this.basicDao.createNew(dbo);
+		}
+
+		return null;
+	}
+
+
+	@Override
+	public boolean setLastSynchedChangeNunber(Long oldLastChangeNumber,
+			Long lastChangeNumber) {
+		// TODO Auto-generated method stub
+		return false;
 	}
 
 }

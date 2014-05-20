@@ -91,5 +91,21 @@ public interface DBOChangeDAO extends ProcessedMessageDAO {
 	 * This is used to detect messages that need to be sent either for the first time or re-sent on a new stacks.
 	 */
 	public List<ChangeMessage> listUnsentMessages(long lowerBound, long upperBound);
+	
+	/**
+	 * Get the last change number that was synchronized between the changes and sent message table.
+	 * This is used to determine w
+	 * @return
+	 */
+	public Long getLastSynchedChangeNumber();
+	
+	/**
+	 * Replace the current last change number with a new value.  The old value must be provided to actaully apply the change
+	 * to reduce the chance of a concurrent update.
+	 * @param oldLastChangeNumber
+	 * @param lastChangeNumber
+	 * @return
+	 */
+	public boolean setLastSynchedChangeNunber(Long oldLastChangeNumber, Long lastChangeNumber);
 
 }
