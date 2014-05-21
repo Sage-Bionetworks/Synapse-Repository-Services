@@ -1,7 +1,6 @@
 package org.sagebionetworks.client;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyMap;
 import static org.mockito.Matchers.anyObject;
@@ -28,10 +27,13 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
+import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseServerException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
+
+import com.google.common.util.concurrent.UncheckedExecutionException;
 
 public class SharedClientConnectionTest {
 	
@@ -132,10 +134,10 @@ public class SharedClientConnectionTest {
 		try {
 			sharedClientConnection.postJson(endpoint, uri,jsonString, userAgent, null);
 			fail("expected exception");
-		} catch (SynapseServerException e) {
+		} catch (SynapseClientException e) {
 			//verify retried with SERVICE_UNAVAILABLE
 			verify(mockClientProvider, times(SharedClientConnection.MAX_RETRY_SERVICE_UNAVAILABLE_COUNT)).performRequest(anyString(), anyString(), anyString(), anyMap());
-			assertEquals("throttled", e.getMessage());
+			assertTrue(e.getMessage().contains("throttled"));
 		}
 	}
 	

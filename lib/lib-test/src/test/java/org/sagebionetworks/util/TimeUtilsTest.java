@@ -1,8 +1,10 @@
 package org.sagebionetworks.util;
 
 import static org.junit.Assert.*;
+
 import org.sagebionetworks.util.TestClock;
 
+import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.After;
@@ -98,13 +100,15 @@ public class TimeUtilsTest {
 	public void testExponentialMaxRetry() {
 		final int maxRetry = 3;
 		final AtomicInteger count = new AtomicInteger(0);
-		boolean result = TimeUtils.waitForExponentialMaxRetry(maxRetry, 100, "a", new Predicate<String>() {
+		Boolean result = TimeUtils.waitForExponentialMaxRetry(maxRetry, 100, new Callable<Boolean>() {
 			@Override
-			public boolean apply(String input) {
-				//return false if it should retry, true if done
-				return count.incrementAndGet() >= maxRetry; //boundary test.  done if we call 3 times
+			public Boolean call() throws Exception {
+				if (count.incrementAndGet() < maxRetry)
+					throw new Exception("Failed");
+				else return true;
 			}
 		});
+
 		assertTrue(result);
 		assertEquals(maxRetry, count.get());
 	}
@@ -113,13 +117,20 @@ public class TimeUtilsTest {
 	public void testExponentialMaxRetryFail() {
 		final int maxRetry = 3;
 		final AtomicInteger count = new AtomicInteger(0);
-		boolean result = TimeUtils.waitForExponentialMaxRetry(maxRetry, 100, "a", new Predicate<String>() {
-			@Override
-			public boolean apply(String input) {
-				return count.incrementAndGet() >= maxRetry + 1; //boundary test.  done if we call 4 times
-			}
-		});
-		assertFalse(result);
+		try {
+			Boolean result = TimeUtils.waitForExponentialMaxRetry(maxRetry, 100, new Callable<Boolean>() {
+				@Override
+				public Boolean call() throws Exception {
+					if (count.incrementAndGet() <= maxRetry)
+						throw new Exception("Failed");
+					else return true;
+				}
+			});
+			fail("expected exception");
+		} catch (Exception e) {
+			assertEquals("Failed", e.getMessage());
+		}
+		
 		//should have called apply maxRetry times, no more.
 		assertEquals(maxRetry, count.get());
 	}

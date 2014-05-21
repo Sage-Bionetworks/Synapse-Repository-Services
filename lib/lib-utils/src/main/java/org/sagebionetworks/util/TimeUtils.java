@@ -8,6 +8,7 @@ import org.joda.time.format.DateTimeFormatter;
 import org.joda.time.format.DateTimeFormatterBuilder;
 
 import com.google.common.base.Predicate;
+import com.google.common.util.concurrent.UncheckedExecutionException;
 
 public class TimeUtils {
 	private static final DateTimeFormatter dateParser;
@@ -88,24 +89,26 @@ public class TimeUtils {
 	 * @param input
 	 * @return false if condition returned false 
 	 */
-	public static <T> boolean waitForExponentialMaxRetry(int maxRetryCount, long initialCheckIntervalMillis, T input, Predicate<T> condition) {
-		return waitForInternalMaxRetry(maxRetryCount, initialCheckIntervalMillis, input, condition, true);
+	public static <T> T waitForExponentialMaxRetry(int maxRetryCount, long initialCheckIntervalMillis, Callable<T> callable) throws Exception {
+		return waitForInternalMaxRetry(maxRetryCount, initialCheckIntervalMillis, callable, true);
 	}
 
-	private static <T> boolean waitForInternalMaxRetry(int maxRetryCount, long initialCheckIntervalMillis, T input, Predicate<T> condition,
-			boolean exponential) {
+	private static <T> T waitForInternalMaxRetry(int maxRetryCount, long initialCheckIntervalMillis, Callable<T> callable,
+			boolean exponential) throws Exception{
 		int count = 0;
-		while (!condition.apply(input)) {
-			count++;
-			if (count >= maxRetryCount) {
-				return false;
-			}
-			Clock.sleepNoInterrupt(initialCheckIntervalMillis);
-			if (exponential) {
-				initialCheckIntervalMillis *= 1.2;
+		while (true) {
+			try {
+				return callable.call();	
+			} catch (Exception e) {
+				if (++count >= maxRetryCount) {
+					throw e;
+				}
+				Clock.sleepNoInterrupt(initialCheckIntervalMillis);
+				if (exponential) {
+					initialCheckIntervalMillis *= 1.2;
+				}
 			}
 		}
-		return true;
 	}
 
 }

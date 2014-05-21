@@ -9,6 +9,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.annotation.Nullable;
@@ -706,7 +707,7 @@ public class SharedClientConnection {
 			if (errorHandler != null) {
 				errorHandler.handleError(statusCode, responseBody);
 			}
-		} catch (IOException e) {
+		} catch (Exception e) {
 			throw new SynapseClientException(e);
 		}
 		
@@ -736,25 +737,23 @@ public class SharedClientConnection {
 		return clientProvider.performRequest(requestUrl, requestMethod, requestContent, requestHeaders);
 	}
 	
-	public HttpResponse performRequestWithRetry(final String requestUrl, final String requestMethod, final String requestContent, final Map<String, String> requestHeaders) throws ClientProtocolException, IOException {
-		AtomicReference<HttpResponse> responseWrapper = new AtomicReference<HttpResponse>();
-		TimeUtils.waitForExponentialMaxRetry(MAX_RETRY_SERVICE_UNAVAILABLE_COUNT, 1000, responseWrapper, new Predicate<AtomicReference<HttpResponse>>(){
+	public HttpResponse performRequestWithRetry(final String requestUrl, final String requestMethod, final String requestContent, final Map<String, String> requestHeaders) throws Exception {
+		return TimeUtils.waitForExponentialMaxRetry(MAX_RETRY_SERVICE_UNAVAILABLE_COUNT, 1000, new Callable<HttpResponse>() {
 			@Override
-			public boolean apply(@Nullable AtomicReference<HttpResponse> responseWrapper) {
-				try {
-					HttpResponse response = clientProvider.performRequest(requestUrl, requestMethod, requestContent, requestHeaders);
-					responseWrapper.set(response);
-					//if 503, then we can retry
-					int statusCode = response.getStatusLine().getStatusCode();
-					if (statusCode == HttpStatus.SC_SERVICE_UNAVAILABLE)
-						return false;
-				} catch (IOException ioe) {
-					throw new UncheckedExecutionException(ioe);
-				} 
-				return true;
+			public HttpResponse call() throws Exception {
+				HttpResponse response = clientProvider.performRequest(requestUrl, requestMethod, requestContent, requestHeaders);
+				//if 503, then we can retry
+				int statusCode = response.getStatusLine().getStatusCode();
+				if (statusCode == HttpStatus.SC_SERVICE_UNAVAILABLE) {
+					HttpEntity responseEntity = response.getEntity();
+					String responseBody = (null != responseEntity) ? EntityUtils
+							.toString(responseEntity) : null;
+					throw new SynapseServerException(statusCode, responseBody);
+				}
+					
+				return response;
 			}
 		});
-		return responseWrapper.get();
 	}
 	
 	public String getDirect(String endpoint, String uri, String userAgent) throws IOException, SynapseException {
