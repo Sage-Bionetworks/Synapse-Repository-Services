@@ -10,6 +10,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class TestTestClock {
@@ -36,6 +37,7 @@ public class TestTestClock {
 		assertTrue(System.currentTimeMillis() - start < 5000);
 	}
 
+	@Ignore // See PLFM-2791
 	@Test
 	public void testThreaded() throws InterruptedException {
 		long start = System.currentTimeMillis();

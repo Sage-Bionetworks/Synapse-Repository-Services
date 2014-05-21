@@ -2,6 +2,7 @@ package org.sagebionetworks.auth.services;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.After;
 import org.junit.Before;
@@ -10,7 +11,6 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.authutil.OpenIDInfo;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
-import org.sagebionetworks.repo.manager.principal.UserProfileUtillity;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DomainType;
@@ -36,7 +36,7 @@ public class AuthenticationServiceAutowireTest {
 	UserManager userManger;
 	
 	@Autowired
-	PrincipalAliasDAO principalAlaisDAO;
+	PrincipalAliasDAO principalAliasDAO;
 	
 	@Autowired
 	AuthenticationService authenticationService;
@@ -84,7 +84,7 @@ public class AuthenticationServiceAutowireTest {
 		// Before we start the user should not have an openId, but they should have an Email
 		UserProfile profile = userProfileManger.getUserProfile(amdin, principalId.toString());
 		assertNotNull(profile);
-		assertEquals(null, profile.getOpenIds());
+		assertTrue(profile.getOpenIds().isEmpty());
 		// Now the user should be able to login with open ID because we look them up by email.
 		// After doing so their openID should be bound to the user.
 		OpenIDInfo openIdInfo = new OpenIDInfo();
@@ -111,13 +111,24 @@ public class AuthenticationServiceAutowireTest {
 		assertEquals(OPEN_ID_TEST_ID, profile.getOpenIds().get(0));
 	}
 	
+	private static final String TEMPORARY_USERNAME_PREFIX = "TEMPORARY-";
+
+	/**
+	 * This is used to create a temporary username for users that have not yet set their username.
+	 * @return
+	 */
+	public static String createTempoaryUserName(long principalId){
+		return TEMPORARY_USERNAME_PREFIX+principalId;
+	}
+	
 	@Test
 	public void testPLFM_2511() throws NotFoundException{
 		NewUser nu = new NewUser();
 		nu.setEmail("user123@test.org");
 		// Create a user with temporary Username
-		nu.setUserName(UserProfileUtillity.createTempoaryUserName(123));
+		nu.setUserName(createTempoaryUserName(123));
 		principalId2 = userManger.createUser(nu);
+
 		// Now try to loging with open ID
 		OpenIDInfo openIdInfo = new OpenIDInfo();
 		openIdInfo.setEmail(nu.getEmail());

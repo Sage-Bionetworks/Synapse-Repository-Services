@@ -1,9 +1,11 @@
 package org.sagebionetworks.repo.manager;
 
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -72,12 +74,47 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	private UserProfile getUserProfilePrivate(String ownerId)
 			throws NotFoundException {
 		UserProfile userProfile = userProfileDAO.get(ownerId);
+		List<PrincipalAlias> aliases = principalAliasDAO.
+				listPrincipalAliases(Long.parseLong(ownerId));
+		userProfile.setEmails(new ArrayList<String>());
+		userProfile.setOpenIds(new ArrayList<String>());
+		for (PrincipalAlias alias : aliases) {
+			insertAliasIntoProfile(userProfile, alias);
+		}
 		return userProfile;
+	}
+	
+	private static void insertAliasIntoProfile(UserProfile profile, PrincipalAlias alias) {
+		String aliasName = alias.getAlias();
+		if (alias.getType().equals(AliasType.USER_NAME)) {
+			profile.setUserName(aliasName);
+		} else if (alias.getType().equals(AliasType.USER_EMAIL)) {
+			profile.getEmails().add(aliasName);
+		} else if (alias.getType().equals(AliasType.USER_OPEN_ID)) {
+			profile.getOpenIds().add(aliasName);
+		} else {
+			throw new IllegalStateException("Expected user name, email or open id but found "+alias.getType());
+		}
 	}
 	
 	@Override
 	public QueryResults<UserProfile> getInRange(UserInfo userInfo, long startIncl, long endExcl) throws DatastoreException, NotFoundException{
 		List<UserProfile> userProfiles = userProfileDAO.getInRange(startIncl, endExcl);
+		Set<Long> principalIds = new HashSet<Long>();
+		Map<Long,UserProfile> profileMap = new HashMap<Long,UserProfile>();
+		for (UserProfile profile : userProfiles) {
+			Long ownerIdLong = Long.parseLong(profile.getOwnerId());
+			principalIds.add(ownerIdLong);
+			profile.setUserName(null);
+			profile.setEmails(new ArrayList<String>());
+			profile.setOpenIds(new ArrayList<String>());
+			// add to a map so we can find quickly, below
+			profileMap.put(ownerIdLong, profile);
+		}
+		for (PrincipalAlias alias : principalAliasDAO.listPrincipalAliases(principalIds)) {
+			UserProfile profile = profileMap.get(alias.getPrincipalId());
+			insertAliasIntoProfile(profile, alias);
+		}
 		long totalNumberOfResults = userProfileDAO.getCount();
 		QueryResults<UserProfile> result = new QueryResults<UserProfile>(userProfiles, (int)totalNumberOfResults);
 		return result;
@@ -91,18 +128,15 @@ public class UserProfileManagerImpl implements UserProfileManager {
 			throws DatastoreException, UnauthorizedException, InvalidModelException, NotFoundException {
 		validateProfile(updated);
 		Long principalId = Long.parseLong(updated.getOwnerId());
+		String updatedUserName = updated.getUserName();
+		clearAliasFields(updated);
 		boolean canUpdate = UserProfileManagerUtils.isOwnerOrAdmin(userInfo, updated.getOwnerId());
 		if (!canUpdate) throw new UnauthorizedException("Only owner or administrator may update UserProfile.");
 		attachmentManager.checkAttachmentsForPreviews(updated);
 		// Update the DAO first
 		userProfileDAO.update(updated);
 		// Bind all aliases
-		List<PrincipalAlias> newEmails = bindAllAliases(updated, principalId);
-		// We have temporarily turned-off the ability to add new email. See PLFM-2405
-		if(newEmails.size() > 0){
-			throw new IllegalArgumentException("Adding new email addresses to a UserProfile is currently disabled.");
-		}
-		
+		bindUserName(updatedUserName, principalId);
 		// Get the updated value
 		return getUserProfilePrivate(updated.getOwnerId());
 	}
@@ -153,9 +187,7 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	@Override
 	public UserProfile createUserProfile(UserProfile profile) {
 		validateProfile(profile);
-		Long principalId = Long.parseLong(profile.getOwnerId());
-		bindAllAliases(profile, principalId);
-	
+		clearAliasFields(profile);
 		// Save the profile
 		this.userProfileDAO.create(profile);
 		try {
@@ -163,24 +195,6 @@ public class UserProfileManagerImpl implements UserProfileManager {
 		} catch (NotFoundException e) {
 			throw new DatastoreException(e);
 		}
-	}
-
-	/**
-	 * This method is idempotent.
-	 * @param profile
-	 * @param principalId
-	 */
-	private List<PrincipalAlias> bindAllAliases(UserProfile profile, Long principalId) {
-		validateProfile(profile);
-		// Bind all aliases
-		bindUserName(profile.getUserName(), principalId);
-		List<PrincipalAlias> newEmails = new LinkedList<PrincipalAlias>();
-		newEmails.addAll(bindAliases(principalId, profile.getEmails(), AliasType.USER_EMAIL));
-		// A user might not have any open IDs.
-		if(profile.getOpenIds() != null){
-			bindAliases(principalId, profile.getOpenIds(), AliasType.USER_OPEN_ID);
-		}
-		return newEmails;
 	}
 
 	private void bindUserName(String username, Long principalId) {
@@ -197,48 +211,16 @@ public class UserProfileManagerImpl implements UserProfileManager {
 		}
 	}
 	
-	/**
-	 * 
-	 * @param emails
-	 * @param principalId
-	 */
-	private List<PrincipalAlias> bindAliases(Long principalId, List<String> aliases, AliasType type) {
-		List<PrincipalAlias> currentAliases = principalAliasDAO.listPrincipalAliases(principalId);;
-		Map<String, PrincipalAlias> map = new HashMap<String, PrincipalAlias>();
-		// Map the current by name
-		for(PrincipalAlias alias: currentAliases){
-			map.put(alias.getAlias(), alias);
-		}
-		List<PrincipalAlias> newAliases = new LinkedList<PrincipalAlias>();
-		// Bind all all new
-		for(String aliasValue: aliases){
-			// First determine if this alias already exists?
-			PrincipalAlias alias = map.get(aliasValue);
-			if(alias == null){
-				// This is a new alias so bind it.
-				alias = new PrincipalAlias();
-				alias.setAlias(aliasValue);
-				alias.setIsValidated(false);
-				alias.setPrincipalId(principalId);
-				alias.setType(type);
-				// bind this alias
-				try {
-					alias = principalAliasDAO.bindAliasToPrincipal(alias);
-					newAliases.add(alias);
-				} catch (NotFoundException e1) {
-					throw new DatastoreException(e1);
-				}
-			}
-		}
-		return newAliases;
-	}
-	
 	private void validateProfile(UserProfile profile) {
 		if(profile == null) throw new IllegalArgumentException("UserProfile cannot be null");
 		if(profile.getOwnerId() == null) throw new IllegalArgumentException("OwnerId cannot be null");
 		if(profile.getUserName() == null) throw new IllegalArgumentException("Username cannot be null");
-		if(profile.getEmails() == null) throw new IllegalArgumentException("Emails cannot be null");
-		if(profile.getEmails().size() < 1) throw new IllegalArgumentException("A user profile must contain at least one email");
+	}
+	
+	private void clearAliasFields(UserProfile profile) {
+		profile.setEmail(null);
+		profile.setEmails(null);
+		profile.setOpenIds(null);
 	}
 
 }

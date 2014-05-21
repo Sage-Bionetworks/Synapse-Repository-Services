@@ -5,12 +5,14 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SEMAPHOR
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SEMAPHORE_TOKEN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_SEMAPHORE;
 
+import java.util.List;
 import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSemaphore;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -38,6 +40,8 @@ public class DBOSemaphoreDaoImpl implements SemaphoreDao {
 
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
+	
+	private TableMapping<DBOSemaphore> mapping = new DBOSemaphore().getTableMapping();
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
@@ -98,6 +102,23 @@ public class DBOSemaphoreDaoImpl implements SemaphoreDao {
 		// Attempt to release a lock.  If the token does not match the current token it will not work.
 		int result = simpleJdbcTemplate.update(SQL_RELEASE_LOCK, key, token);
 		return result == 1;
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public void forceReleaseAllLocks() {
+		// Set all locks to timeout
+		Long now = System.currentTimeMillis();
+		List<DBOSemaphore> allActiveLocks = simpleJdbcTemplate.query("SELECT * FROM "+TABLE_SEMAPHORE+" WHERE "+COL_SEMAPHORE_EXPIRES+" IS NOT NULL", mapping);
+		// release each lock
+		for(DBOSemaphore dbo: allActiveLocks){
+			// Clear each token and timestamp
+			dbo.setExpiration(null);
+			dbo.setToken(null);
+		}
+		if(!allActiveLocks.isEmpty()){
+			this.basicDao.createOrUpdateBatch(allActiveLocks);
+		}
 	}
 
 }

@@ -42,6 +42,8 @@
 	
 	<bean id="multipartManager" class="org.sagebionetworks.repo.manager.file.MultipartManagerImpl" />
 	
+	<bean id="semaphoreManager" class="org.sagebionetworks.repo.manager.SemaphoreManagerImpl" />
+	
 	<!-- The thread pool used by the asynchronous fileupload primary daemons -->
 	<bean id="uploadFileDaemonThreadPoolPrimary"
 		class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">

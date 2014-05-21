@@ -108,7 +108,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		long endExcl = offset+limit;
-		QueryResults<UserProfile >results = userProfileManager.getInRange(userInfo, offset, endExcl);
+		QueryResults<UserProfile> results = userProfileManager.getInRange(userInfo, offset, endExcl);
 		List<UserProfile> profileResults = results.getResults();
 		for (UserProfile profile : profileResults) {
 			UserProfileManagerUtils.clearPrivateFields(userInfo, profile);

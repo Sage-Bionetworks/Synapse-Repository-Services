@@ -10,7 +10,9 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageQueue;
+import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,6 +41,9 @@ public class UnsentMessageWorkersIntegrationTest {
 	private DBOChangeDAO changeDAO;
 	
 	@Autowired
+	private SemaphoreManager semphoreManager;
+	
+	@Autowired
 	private AmazonSQSClient awsSQSClient;
 	private String queueURL;
 
@@ -47,6 +52,7 @@ public class UnsentMessageWorkersIntegrationTest {
 	
 	@Before
 	public void setup() throws Exception {
+		semphoreManager.releaseAllLocksAsAdmin(new UserInfo(true));
 		queueURL = unsentMessageQueue.getQueueUrl();
 		
 		changeDAO.deleteAllChanges();

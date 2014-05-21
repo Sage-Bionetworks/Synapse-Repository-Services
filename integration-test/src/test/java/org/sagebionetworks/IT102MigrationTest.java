@@ -43,6 +43,7 @@ public class IT102MigrationTest {
 		SynapseClientHelper.setEndpoints(adminSynapse);
 		adminSynapse.setUserName(StackConfiguration.getMigrationAdminUsername());
 		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
+		adminSynapse.clearAllLocks();
 	}
 	
 	@Before

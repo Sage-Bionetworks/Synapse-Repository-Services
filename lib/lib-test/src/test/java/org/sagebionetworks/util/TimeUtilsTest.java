@@ -1,8 +1,10 @@
 package org.sagebionetworks.util;
 
 import static org.junit.Assert.*;
+
 import org.sagebionetworks.util.TestClock;
 
+import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.After;
@@ -92,5 +94,44 @@ public class TimeUtilsTest {
 		assertFalse(result);
 		assertEquals(6, count.get());
 		assertEquals(start + 1000 * 7.4, Clock.currentTimeMillis(), 100);
+	}
+	
+	@Test
+	public void testExponentialMaxRetry() {
+		final int maxRetry = 3;
+		final AtomicInteger count = new AtomicInteger(0);
+		Boolean result = TimeUtils.waitForExponentialMaxRetry(maxRetry, 100, new Callable<Boolean>() {
+			@Override
+			public Boolean call() throws Exception {
+				if (count.incrementAndGet() < maxRetry)
+					throw new Exception("Failed");
+				else return true;
+			}
+		});
+
+		assertTrue(result);
+		assertEquals(maxRetry, count.get());
+	}
+	
+	@Test
+	public void testExponentialMaxRetryFail() {
+		final int maxRetry = 3;
+		final AtomicInteger count = new AtomicInteger(0);
+		try {
+			Boolean result = TimeUtils.waitForExponentialMaxRetry(maxRetry, 100, new Callable<Boolean>() {
+				@Override
+				public Boolean call() throws Exception {
+					if (count.incrementAndGet() <= maxRetry)
+						throw new Exception("Failed");
+					else return true;
+				}
+			});
+			fail("expected exception");
+		} catch (Exception e) {
+			assertEquals("Failed", e.getMessage());
+		}
+		
+		//should have called apply maxRetry times, no more.
+		assertEquals(maxRetry, count.get());
 	}
 }

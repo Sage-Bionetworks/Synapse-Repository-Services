@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.service.MessageService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -47,6 +48,9 @@ public class MessageControllerAutowiredTest {
 	
 	@Autowired
 	private UserManager userManager;
+	
+	@Autowired
+	private PrincipalAliasDAO principalAliasDAO;
 	
 	@Autowired
 	private MessageService messageService;
@@ -87,7 +91,7 @@ public class MessageControllerAutowiredTest {
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		
 		// Need 3 users
-		NewUser user = new NewUser();
+		NewUser user = new NewUser(); 
 		user.setEmail(UUID.randomUUID().toString() + "@test.com");
 		user.setUserName(UUID.randomUUID().toString());
 		alice = userManager.createUser(user);

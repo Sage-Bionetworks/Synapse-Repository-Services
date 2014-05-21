@@ -155,6 +155,14 @@ public interface AdministrationService {
 	public void deleteUser(Long userId, String id) throws NotFoundException;
 
 	/**
+	 * Clear all locks.
+	 * 
+	 * @param userId
+	 * @throws NotFoundException 
+	 */
+	public void clearAllLocks(Long userId) throws NotFoundException;
+
+	/**
 	 * Wait for a long time or release the waiters
 	 * 
 	 * @param userId

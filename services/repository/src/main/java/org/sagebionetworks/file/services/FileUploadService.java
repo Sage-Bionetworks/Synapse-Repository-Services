@@ -140,6 +140,16 @@ public interface FileUploadService {
 	 * @throws DatastoreException 
 	 */
 	public UploadDaemonStatus getUploadDaemonStatus(Long userId, String daemonId) throws DatastoreException, NotFoundException;
+
+	/**
+	 * Get a pre-signed URL for a FileHandle.
+	 * 
+	 * @param userId
+	 * @param fileHandleId
+	 * @return
+	 * @throws NotFoundException 
+	 */
+	URL getPresignedUrlForFileHandle(Long userId, String fileHandleId) throws NotFoundException;
 	
 
 }

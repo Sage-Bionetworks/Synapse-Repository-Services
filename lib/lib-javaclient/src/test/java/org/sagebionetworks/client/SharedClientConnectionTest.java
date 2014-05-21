@@ -1,9 +1,12 @@
 package org.sagebionetworks.client;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyMap;
 import static org.mockito.Matchers.anyObject;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
@@ -24,10 +27,13 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
+import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseServerException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
+
+import com.google.common.util.concurrent.UncheckedExecutionException;
 
 public class SharedClientConnectionTest {
 	
@@ -86,6 +92,7 @@ public class SharedClientConnectionTest {
 		mockResponse = Mockito.mock(HttpResponse.class);
 		when(mockClientProvider.performRequest(any(String.class),any(String.class),any(String.class),(Map<String,String>)anyObject())).thenReturn(mockResponse);
 		when(mockClientProvider.execute(any(HttpUriRequest.class))).thenReturn(mockResponse);
+		sharedClientConnection.setRetryRequestIfServiceUnavailable(false);
 	}
 
 	@Test
@@ -97,16 +104,43 @@ public class SharedClientConnectionTest {
 	}
 
 	@Test
+	public void testHappyPathWithRetry() throws Exception {
+		sharedClientConnection.setRetryRequestIfServiceUnavailable(true);
+		String expectedResponse = "{\"foo\":\"bar\"}";
+		configureMockHttpResponse(201, expectedResponse);
+		JSONObject result = sharedClientConnection.postJson(endpoint, uri,jsonString, userAgent, null);
+		assertEquals(expectedResponse, result.toString());
+	}
+
+	@Test
 	public void testBadRequest() throws Exception {
+		sharedClientConnection.setRetryRequestIfServiceUnavailable(true);
 		configureMockHttpResponse(HttpStatus.SC_BAD_REQUEST, "{\"reason\":\"user message\"}");
 		try {
 			sharedClientConnection.postJson(endpoint, uri,jsonString, userAgent, null);
 			fail("expected exception");
 		} catch (SynapseBadRequestException e) {
+			//verify does not retry with BAD_REQUEST
+			verify(mockClientProvider, times(1)).performRequest(anyString(), anyString(), anyString(), anyMap());
 			assertEquals("user message", e.getMessage());
 		}
 	}
+	
 
+	@Test
+	public void testServiceUnavailableRetry() throws Exception {
+		sharedClientConnection.setRetryRequestIfServiceUnavailable(true);
+		configureMockHttpResponse(HttpStatus.SC_SERVICE_UNAVAILABLE, "{\"reason\":\"throttled\"}");
+		try {
+			sharedClientConnection.postJson(endpoint, uri,jsonString, userAgent, null);
+			fail("expected exception");
+		} catch (SynapseClientException e) {
+			//verify retried with SERVICE_UNAVAILABLE
+			verify(mockClientProvider, times(SharedClientConnection.MAX_RETRY_SERVICE_UNAVAILABLE_COUNT)).performRequest(anyString(), anyString(), anyString(), anyMap());
+			assertTrue(e.getCause().getCause().getMessage().contains("throttled"));
+		}
+	}
+	
 	@Test
 	public void testUnauthorized() throws Exception {
 		configureMockHttpResponse(HttpStatus.SC_UNAUTHORIZED, "{\"reason\":\"user message\"}");
