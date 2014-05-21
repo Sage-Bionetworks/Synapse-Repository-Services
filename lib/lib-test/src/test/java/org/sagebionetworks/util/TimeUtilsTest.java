@@ -97,14 +97,14 @@ public class TimeUtilsTest {
 	}
 	
 	@Test
-	public void testExponentialMaxRetry() {
+	public void testExponentialMaxRetry() throws Exception{
 		final int maxRetry = 3;
 		final AtomicInteger count = new AtomicInteger(0);
 		Boolean result = TimeUtils.waitForExponentialMaxRetry(maxRetry, 100, new Callable<Boolean>() {
 			@Override
 			public Boolean call() throws Exception {
 				if (count.incrementAndGet() < maxRetry)
-					throw new Exception("Failed");
+					throw new RetryException("Failed, should retry");
 				else return true;
 			}
 		});
@@ -122,13 +122,13 @@ public class TimeUtilsTest {
 				@Override
 				public Boolean call() throws Exception {
 					if (count.incrementAndGet() <= maxRetry)
-						throw new Exception("Failed");
+						throw new RetryException("Failed, retry");
 					else return true;
 				}
 			});
 			fail("expected exception");
 		} catch (Exception e) {
-			assertEquals("Failed", e.getMessage());
+			assertTrue(e.getMessage().contains("User rate limit has been exceeded"));
 		}
 		
 		//should have called apply maxRetry times, no more.
