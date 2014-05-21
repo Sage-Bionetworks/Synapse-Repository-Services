@@ -101,7 +101,7 @@ public class TimeUtils {
 				return callable.call();	
 			} catch (RetryException re) {
 				if (++count >= maxRetryCount) {
-					throw re;
+					throw new RetryException("User rate limit has been exceeded", re.getCause());
 				}
 				Clock.sleepNoInterrupt(initialCheckIntervalMillis);
 				if (exponential) {

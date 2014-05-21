@@ -137,7 +137,7 @@ public class SharedClientConnectionTest {
 		} catch (SynapseClientException e) {
 			//verify retried with SERVICE_UNAVAILABLE
 			verify(mockClientProvider, times(SharedClientConnection.MAX_RETRY_SERVICE_UNAVAILABLE_COUNT)).performRequest(anyString(), anyString(), anyString(), anyMap());
-			assertTrue(e.getMessage().contains("throttled"));
+			assertTrue(e.getCause().getCause().getMessage().contains("throttled"));
 		}
 	}
 	
