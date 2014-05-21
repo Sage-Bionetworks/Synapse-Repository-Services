@@ -25,6 +25,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.http.entity.ContentType;
 import org.json.JSONArray;
@@ -40,9 +45,11 @@ import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
+import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
+import org.sagebionetworks.client.exceptions.SynapseServerException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
@@ -95,6 +102,8 @@ import org.sagebionetworks.repo.model.quiz.QuestionResponse;
 import org.sagebionetworks.repo.model.quiz.Quiz;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.util.RetryException;
+import org.sagebionetworks.util.ThreadTestUtils;
 import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 import org.sagebionetworks.utils.HttpClientHelper;
 
@@ -111,6 +120,7 @@ public class IT500SynapseJavaClient {
 	private static SynapseAdminClient adminSynapse;
 	private static SynapseClient synapseOne;
 	private static SynapseClient synapseTwo;
+	private static SynapseAdminClient synapseAnonymous;
 	private static Long user1ToDelete;
 	private static Long user2ToDelete;
 	
@@ -160,6 +170,9 @@ public class IT500SynapseJavaClient {
 		synapseTwo = new SynapseClientImpl();
 		user2ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseTwo);
 		
+		synapseAnonymous = new SynapseAdminClientImpl();
+		SynapseClientHelper.setEndpoints(synapseAnonymous);
+
 		// Update this user's profile to contain a display name
 		UserProfile profile = synapseTwo.getMyProfile();
 		synapseTwo.updateMyProfile(profile);
@@ -1634,5 +1647,67 @@ public class IT500SynapseJavaClient {
 		assertEquals(pr.getResponseId(), qrs.getResults().iterator().next().getId());
 
 		adminSynapse.deleteCertifiedUserTestResponse(pr.getResponseId().toString());
+	}
+
+	@Test
+	public void testThrottlingRetry() throws Exception {
+		ThreadTestUtils.doBefore();
+		int max = StackConfiguration.singleton().getMaxConcurrentRepoConnections().getInteger();
+		ExecutorService executor = Executors.newFixedThreadPool(max + 1);
+		for (int i = 0; i < max; i++) {
+			executor.submit(new Callable<Void>() {
+				@Override
+				public Void call() throws Exception {
+					adminSynapse.waitForTesting(false);
+					return null;
+				}
+			});
+		}
+		// give it some time to send all requests and have the requests waiting
+		Thread.sleep(5000);
+		try {
+			adminSynapse.waitForTesting(false);
+			fail("Should have been throttled");
+		} catch (SynapseClientException e) {
+			assertEquals(RetryException.class, e.getCause().getClass());
+		}
+		synapseAnonymous.waitForTesting(true);
+		executor.shutdown();
+		assertTrue(executor.awaitTermination(20, TimeUnit.SECONDS));
+		ThreadTestUtils.doAfter();
+	}
+
+	@Test
+	public void testThrottlingNoRetry() throws Exception {
+		ThreadTestUtils.doBefore();
+		final SynapseAdminClientImpl nonWaitingAdminSynapse = new SynapseAdminClientImpl();
+		SynapseClientHelper.setEndpoints(nonWaitingAdminSynapse);
+		nonWaitingAdminSynapse.setUserName(StackConfiguration.getMigrationAdminUsername());
+		nonWaitingAdminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
+		nonWaitingAdminSynapse.clearAllLocks();
+		nonWaitingAdminSynapse.getSharedClientConnection().setRetryRequestIfServiceUnavailable(false);
+		int max = StackConfiguration.singleton().getMaxConcurrentRepoConnections().getInteger();
+		ExecutorService executor = Executors.newFixedThreadPool(max + 1);
+		for (int i = 0; i < max; i++) {
+			executor.submit(new Callable<Void>() {
+				@Override
+				public Void call() throws Exception {
+					nonWaitingAdminSynapse.waitForTesting(false);
+					return null;
+				}
+			});
+		}
+		// give it some time to send all requests and have the requests waiting
+		Thread.sleep(5000);
+		try {
+			nonWaitingAdminSynapse.waitForTesting(false);
+			fail("Should have been throttled");
+		} catch (SynapseServerException e) {
+			assertEquals(503, e.getStatusCode());
+		}
+		synapseAnonymous.waitForTesting(true);
+		executor.shutdown();
+		assertTrue(executor.awaitTermination(20, TimeUnit.SECONDS));
+		ThreadTestUtils.doAfter();
 	}
 }
