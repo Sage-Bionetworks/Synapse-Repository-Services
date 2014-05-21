@@ -134,10 +134,10 @@ public class SharedClientConnectionTest {
 		try {
 			sharedClientConnection.postJson(endpoint, uri,jsonString, userAgent, null);
 			fail("expected exception");
-		} catch (SynapseClientException e) {
+		} catch (SynapseServerException e) {
 			//verify retried with SERVICE_UNAVAILABLE
 			verify(mockClientProvider, times(SharedClientConnection.MAX_RETRY_SERVICE_UNAVAILABLE_COUNT)).performRequest(anyString(), anyString(), anyString(), anyMap());
-			assertTrue(e.getCause().getCause().getMessage().contains("throttled"));
+			assertTrue(e.getMessage().contains("throttled"));
 		}
 	}
 	

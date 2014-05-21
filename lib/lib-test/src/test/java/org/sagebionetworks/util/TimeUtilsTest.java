@@ -128,7 +128,7 @@ public class TimeUtilsTest {
 			});
 			fail("expected exception");
 		} catch (Exception e) {
-			assertTrue(e.getMessage().contains("User rate limit has been exceeded"));
+			assertTrue(e.getMessage().contains("Exceeded maximum retries"));
 		}
 		
 		//should have called apply maxRetry times, no more.
