@@ -108,4 +108,14 @@ public interface DBOChangeDAO extends ProcessedMessageDAO {
 	 */
 	public boolean setLastSynchedChangeNunber(Long oldLastChangeNumber, Long lastChangeNumber);
 
+	/**
+	 * Rest the last change number that was  synchronized between the changes and sent message table to -1
+	 */
+	public Long resetLastChangeNumber();
+	
+	/**
+	 * Get the maximum change number from the sent message table.
+	 * @return
+	 */
+	public Long getMaxSentChangeNumber();
 }

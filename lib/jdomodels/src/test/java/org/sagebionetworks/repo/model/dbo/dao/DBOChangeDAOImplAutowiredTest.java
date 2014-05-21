@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
+import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -25,6 +26,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ProcessedMessageDAO;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOSentMessageSynch;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeMessageUtils;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -47,6 +49,7 @@ public class DBOChangeDAOImplAutowiredTest {
 	public void before(){
 		if(changeDAO != null){
 			changeDAO.deleteAllChanges();
+			changeDAO.resetLastChangeNumber();
 		}
 	}
 	
@@ -355,6 +358,8 @@ public class DBOChangeDAOImplAutowiredTest {
 	
 	@Test
 	public void testRegisterSentAndListUnsent(){
+		Long startMax = changeDAO.getMaxSentChangeNumber();
+		assertNotNull(startMax);
 		// Create a few messages.
 		List<ChangeMessage> batch = createList(2, ObjectType.ENTITY);
 		// Pass the batch.
@@ -375,6 +380,9 @@ public class DBOChangeDAOImplAutowiredTest {
 		unSent = changeDAO.listUnsentMessages(3);
 		assertNotNull(unSent);
 		assertEquals(0, unSent.size());
+		
+		Long currentMax = changeDAO.getMaxSentChangeNumber();
+		assertTrue(currentMax > startMax+2);
 	}
 	
 	@Test
@@ -491,6 +499,26 @@ public class DBOChangeDAOImplAutowiredTest {
 		assertEquals(new Integer(timesToRun), oneResult);
 		Integer twoResult = two.get();
 		assertEquals(new Integer(timesToRun), twoResult);
+	}
+	
+	@Test
+	public void testGetLastSynchedChangeNumberCRUD(){
+		// Get the start value
+		Long start = changeDAO.getLastSynchedChangeNumber();
+		assertNotNull(start);
+		assertEquals(DBOSentMessageSynch.DEFAULT_START_CHANGE_NUMBER, start);
+		// Now update it
+		Long next = 101L;
+		assertTrue("Should not have failed to set the value",changeDAO.setLastSynchedChangeNunber(start, next));
+		// Now get it again
+		Long current = changeDAO.getLastSynchedChangeNumber();
+		assertEquals(next, current);
+		// Update should fail if we give it the wrong start
+		assertFalse("Update should fail when the wrong old value is given.",changeDAO.setLastSynchedChangeNunber(333L, 444L));
+		// Rest should put it back
+		changeDAO.resetLastChangeNumber();
+		current = changeDAO.getLastSynchedChangeNumber();
+		assertEquals(DBOSentMessageSynch.DEFAULT_START_CHANGE_NUMBER, current);
 	}
 	
 	/**

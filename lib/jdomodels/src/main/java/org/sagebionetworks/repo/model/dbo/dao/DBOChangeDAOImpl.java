@@ -49,6 +49,10 @@ import org.springframework.transaction.annotation.Transactional;
  */
 public class DBOChangeDAOImpl implements DBOChangeDAO {
 	
+	private static final String SQL_SELECT_MAX_SENT_CHANGE_NUMBER = "SELECT MAX("+COL_SENT_MESSAGES_CHANGE_NUM+") FROM "+TABLE_SENT_MESSAGES;
+
+	private static final String SQL_REPLACE_LAST_SYCH_CHANGE_NUMBER = "UPDATE "+TABLE_SENT_MESSAGES_SYNCH+" SET "+COL_SENT_MESSAGE_SYCH_LAST_CHANGE_NUMBER+" = ?, "+COL_SENT_MESSAGE_SYCH_CHANGED_ON+" = ? WHERE "+COL_SENT_MESSAGE_SYCH_LAST_CHANGE_NUMBER+" = ? AND "+COL_SENT_MESSAGE_SYCH_ID+" = ?";
+
 	private static final String SQL_SELECT_LAST_SYNCHED_CHANGE_NUMBER = "SELECT "+COL_SENT_MESSAGE_SYCH_LAST_CHANGE_NUMBER+" FROM "+TABLE_SENT_MESSAGES_SYNCH+" WHERE "+COL_SENT_MESSAGE_SYCH_ID+" = ?";
 
 	static private Logger log = LogManager.getLogger(DBOChangeDAOImpl.class);
@@ -248,23 +252,41 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 		try{
 			return jdbcTemplate.queryForObject(SQL_SELECT_LAST_SYNCHED_CHANGE_NUMBER, new SingleColumnRowMapper<Long>(), DBOSentMessageSynch.THE_ID);
 		}catch(EmptyResultDataAccessException e){
-			// Add the row
-			DBOSentMessageSynch dbo = new DBOSentMessageSynch();
-			dbo.setId(DBOSentMessageSynch.THE_ID);
-			dbo.setLastChangeNumber(new Long(-1));
-			dbo.setUpdatedOn(new Date());
-			this.basicDao.createNew(dbo);
+			// This just means the row does not exist yet.
+			return resetLastChangeNumber();
 		}
+	}
 
-		return null;
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public boolean setLastSynchedChangeNunber(Long oldLastChangeNumber,
+			Long lastChangeNumber) {
+		// Update the last change number
+		int count = jdbcTemplate.update(SQL_REPLACE_LAST_SYCH_CHANGE_NUMBER, lastChangeNumber,System.currentTimeMillis(), oldLastChangeNumber, DBOSentMessageSynch.THE_ID);
+		return count > 0;
+	}
+
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public Long resetLastChangeNumber() {
+		// Reset back to the factory settings.
+		DBOSentMessageSynch dbo = new DBOSentMessageSynch();
+		dbo.setId(DBOSentMessageSynch.THE_ID);
+		dbo.setLastChangeNumber(DBOSentMessageSynch.DEFAULT_START_CHANGE_NUMBER);
+		dbo.setUpdatedOn(new Date());
+		this.basicDao.createOrUpdate(dbo);
+		return getLastSynchedChangeNumber();
 	}
 
 
 	@Override
-	public boolean setLastSynchedChangeNunber(Long oldLastChangeNumber,
-			Long lastChangeNumber) {
-		// TODO Auto-generated method stub
-		return false;
+	public Long getMaxSentChangeNumber() {
+		Long max = jdbcTemplate.queryForObject(SQL_SELECT_MAX_SENT_CHANGE_NUMBER, new SingleColumnRowMapper<Long>());
+		if(max == null){
+			max = new Long(-1);
+		}
+		return max;
 	}
 
 }

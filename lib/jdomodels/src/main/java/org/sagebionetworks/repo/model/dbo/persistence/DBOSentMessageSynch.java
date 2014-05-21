@@ -22,6 +22,10 @@ public class DBOSentMessageSynch implements DatabaseObject<DBOSentMessageSynch>{
 	 * This is a table with only a single row with this id.
 	 */
 	public static final Long THE_ID = new Long(1);
+	/**
+	 * We start with this number.
+	 */
+	public static final Long DEFAULT_START_CHANGE_NUMBER = new Long(-1);
 
 	private static TableMapping<DBOSentMessageSynch> tableMapping = AutoTableMapping.create(DBOSentMessageSynch.class);
 	
