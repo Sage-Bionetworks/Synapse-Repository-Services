@@ -1,29 +1,29 @@
 package org.sagebionetworks;
 
-public class StaticPropertyAccessor implements PropertyAccessor {
+public class ImmutablePropertyAccessor implements PropertyAccessor {
 	private String str = null;
 	private Long l = null;
 	private Integer i = null;
 	private Boolean b = null;
 	private Double d = null;
 
-	public StaticPropertyAccessor(String str) {
+	public ImmutablePropertyAccessor(String str) {
 		this.str = str;
 	}
 
-	public StaticPropertyAccessor(Long l) {
+	public ImmutablePropertyAccessor(Long l) {
 		this.l = l;
 	}
 
-	public StaticPropertyAccessor(Integer i) {
+	public ImmutablePropertyAccessor(Integer i) {
 		this.i = i;
 	}
 
-	public StaticPropertyAccessor(Boolean b) {
+	public ImmutablePropertyAccessor(Boolean b) {
 		this.b = b;
 	}
 
-	public StaticPropertyAccessor(Double d) {
+	public ImmutablePropertyAccessor(Double d) {
 		this.d = d;
 	}
 
