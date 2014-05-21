@@ -19,6 +19,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageReceiver;
 import org.sagebionetworks.downloadtools.FileUtils;
 import org.sagebionetworks.repo.manager.EntityManager;
+import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -81,6 +82,9 @@ public class SearchWorkerIntegrationTest {
 	private FileHandleManager fileHandleManager;
 	
 	@Autowired
+	private SemaphoreManager semphoreManager;
+	
+	@Autowired
 	private AmazonS3Client s3Client;
 	
 	private UserInfo adminUserInfo;
@@ -93,6 +97,7 @@ public class SearchWorkerIntegrationTest {
 	
 	@Before
 	public void before() throws Exception {
+		semphoreManager.releaseAllLocksAsAdmin(new UserInfo(true));
 		// Only run this test if search is enabled
 		Assume.assumeTrue(searchDao.isSearchEnabled());
 		// Before we start, make sure the search queue is empty

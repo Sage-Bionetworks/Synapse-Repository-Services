@@ -13,6 +13,7 @@ import static org.mockito.Mockito.when;
 
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -26,7 +27,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
-import org.sagebionetworks.repo.manager.migration.TestUtils;
 import org.sagebionetworks.repo.manager.team.MembershipRequestManager;
 import org.sagebionetworks.repo.manager.team.TeamConstants;
 import org.sagebionetworks.repo.manager.team.TeamManager;
@@ -44,12 +44,15 @@ import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TooManyRequestsException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -59,6 +62,8 @@ import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.Settings;
+import org.sagebionetworks.repo.model.principal.PrincipalAlias;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -95,6 +100,9 @@ public class MessageManagerImplTest {
 	private UserProfileDAO userProfileDAO;
 	
 	@Autowired
+	private UserGroupDAO userGroupDAO;
+	
+	@Autowired
 	private FileHandleManager fileHandleManager;
 	private FileHandleManager mockFileHandleManager;
 	
@@ -109,6 +117,9 @@ public class MessageManagerImplTest {
 	
 	@Autowired
 	private GroupMembersDAO groupMembersDao;
+	
+	@Autowired
+	private PrincipalAliasDAO principalAliasDAO;
 	
 	private static final MessageSortBy SORT_ORDER = MessageSortBy.SEND_DATE;
 	private static final boolean DESCENDING = true;
@@ -138,12 +149,17 @@ public class MessageManagerImplTest {
 	private List<String> cleanup;
 	private String nodeId;
 	
+	private List<PrincipalAlias> aliasesToDelete;
+	
 	/**
 	 * Note: This setup is very similar to {@link #DBOMessageDAOImplTest}
 	 */
 	@SuppressWarnings("serial")
 	@Before
 	public void setUp() throws Exception {
+		aliasesToDelete = new ArrayList<PrincipalAlias>();
+		Collection<UserGroup> allIndividuals = userGroupDAO.getAll(true);
+		
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		cleanup = new ArrayList<String>();
 		
@@ -237,6 +253,13 @@ public class MessageManagerImplTest {
 				new HashSet<String>() {{add(testUserId); add(testTeamId);}}, null);
 		otherToGroup = createMessage(otherTestUser, "otherToGroup", 
 				new HashSet<String>() {{add(testTeamId);}}, null);
+	}
+	
+	@After
+	public void tearDown() throws Exception {
+		for (PrincipalAlias alias : aliasesToDelete) {
+			principalAliasDAO.removeAliasFromPrincipal(alias.getPrincipalId(), alias.getAliasId());
+		}
 	}
 	
 	/**

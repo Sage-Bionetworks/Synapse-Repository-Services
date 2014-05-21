@@ -1,5 +1,6 @@
 package org.sagebionetworks.file.worker;
 
+import java.io.EOFException;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -182,6 +183,22 @@ public class PreviewWorkerTest {
 	}
 	
 	@Test
+	public void testEOFError() throws Exception {
+		S3FileHandle meta = new S3FileHandle();
+		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenReturn(meta);
+		Exception expectedException = new EOFException();
+		when(mockPreveiwManager.generatePreview(meta)).thenThrow(expectedException);
+		// create the worker.
+		PreviewWorker worker = new PreviewWorker(mockPreveiwManager, inputList, mockWorkerLogger);
+		// fire!
+		List<Message> processedList = worker.call();
+		assertNotNull(processedList);
+		// The msg should not be re-processed
+		assertEquals(1, processedList.size());
+		verify(mockWorkerLogger).logWorkerFailure(PreviewWorker.class, change, expectedException, false);
+	}
+	
+	@Test
 	public void testIllegalArgumentException() throws Exception{
 		// We cannot recover from this type of exception so the message should be returned.
 		S3FileHandle meta = new S3FileHandle();
@@ -193,6 +210,7 @@ public class PreviewWorkerTest {
 		// fire!
 		List<Message> processedList = worker.call();
 		assertNotNull(processedList);
+		assertEquals(1, processedList.size());
 		// This message should have been processed and returned.
 		assertTrue("We cannot recover from this type of exception so the message should be returned as processed so it can be deleted from the queue",isMessageOnList(processedList, message));
 		verify(mockWorkerLogger).logWorkerFailure(PreviewWorker.class, change, expectedException, false);

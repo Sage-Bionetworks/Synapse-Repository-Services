@@ -1,5 +1,6 @@
 package org.sagebionetworks.file.worker;
 
+import java.io.EOFException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -100,6 +101,12 @@ public class PreviewWorker implements Callable<List<Message>> {
 				// When this occurs we want the message to go back on the queue, so we can try again later.
 				log.info("Failed to process message: "+message.toString(), e);
 				workerLogger.logWorkerFailure(this.getClass(), changeMessage, e, true);
+			}catch (EOFException e){
+				// We cannot recover from this exception so log the error
+				// and treat the message as processed.
+				processedMessage.add(message);
+				log.error("Failed to process message: "+message.toString(), e);
+				workerLogger.logWorkerFailure(this.getClass(), changeMessage, e, false);
 			}catch (Throwable e){
 				// Failing to process a message should not terminate the rest of the message processing.
 				// For unknown errors we leave the messages on the queue.

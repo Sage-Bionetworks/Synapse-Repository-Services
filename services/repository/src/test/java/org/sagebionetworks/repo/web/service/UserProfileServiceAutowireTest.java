@@ -25,6 +25,7 @@ import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -42,7 +43,10 @@ public class UserProfileServiceAutowireTest {
 	@Autowired
 	UserProfileService userProfileService;
 
-	List<Long> principalsToDelete;
+	@Autowired
+	private PrincipalAliasDAO principalAliasDAO;
+	
+	private List<Long> principalsToDelete;
 
 	Long principalOne;
 	Long principalTwo;

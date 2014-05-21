@@ -60,6 +60,7 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	private static final String ADMIN_MIGRATE_WIKIS_TO_V2 = ADMIN + "/migrateWiki";
 	
 	private static final String ADMIN_USER = ADMIN + "/user";
+	private static final String ADMIN_CLEAR_LOCKS = ADMIN+"/locks";
 
 	public SynapseAdminClientImpl() {
 		super();
@@ -320,6 +321,11 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 	public void deleteUser(Long id) throws SynapseException, JSONObjectAdapterException {
 		String url = ADMIN_USER + "/" + id; 
 		getSharedClientConnection().deleteUri(repoEndpoint, url, getUserAgent());
+	}
+	
+	@Override
+	public void clearAllLocks() throws SynapseException{
+		getSharedClientConnection().deleteUri(repoEndpoint, ADMIN_CLEAR_LOCKS, getUserAgent());
 	}
 
 	@Override

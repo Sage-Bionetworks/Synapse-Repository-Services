@@ -313,6 +313,14 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	public URL getRedirectURLForFileHandle(String handleId) throws DatastoreException, NotFoundException {
 		// First lookup the file handle
 		FileHandle handle = fileHandleDao.get(handleId);
+		return getURLForFileHandle(handle);
+	}
+
+	/**
+	 * @param handle
+	 * @return
+	 */
+	public URL getURLForFileHandle(FileHandle handle) {
 		if(handle instanceof ExternalFileHandle){
 			ExternalFileHandle efh = (ExternalFileHandle) handle;
 			try {
@@ -545,6 +553,22 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			throw new UnauthorizedException("Only the user that started the daemon may access the daemon status");
 		}
 		return status;
+	}
+
+	@Override
+	public URL getRedirectURLForFileHandle(UserInfo userInfo, String fileHandleId) throws DatastoreException, NotFoundException {
+		if(userInfo == null){
+			throw new IllegalArgumentException("User cannot be null");
+		}
+		if(fileHandleId == null){
+			throw new IllegalArgumentException("FileHandleId cannot be null");
+		}
+		FileHandle handle = fileHandleDao.get(fileHandleId);
+		// Only the user that created the FileHandle can get the URL directly.
+		if(!authorizationManager.isUserCreatorOrAdmin(userInfo, handle.getCreatedBy())){
+			throw new UnauthorizedException("Only the user that created the FileHandle can get the URL of the file.");
+		}
+		return getURLForFileHandle(handle);
 	}
 
 }

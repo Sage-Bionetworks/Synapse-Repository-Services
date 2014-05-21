@@ -2,6 +2,7 @@ package org.sagebionetworks.table.worker;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.io.Writer;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -27,6 +28,13 @@ import au.com.bytecode.opencsv.CSVWriter;
 
 import com.amazonaws.services.sqs.model.Message;
 
+/**
+ * This worker will stream the results of a table SQL query to a local CSV file and upload the file
+ * to S3 as a FileHandle.
+ * 
+ * @author jmhill
+ *
+ */
 public class TableCSVDownloadWorker implements Callable<List<Message>>{
 
 	private static final String TEXT_CSV = "text/csv";
@@ -38,7 +46,28 @@ public class TableCSVDownloadWorker implements Callable<List<Message>>{
 	private FileHandleManager fileHandleManager;
 	private WorkerProgress workerProgress;
 	
-	
+	/**
+	 * Create a new worker for each use.
+	 * @param messages
+	 * @param asynchJobStatusManager
+	 * @param tableRowManager
+	 * @param userManger
+	 * @param fileHandleManager
+	 * @param workerProgress
+	 */
+	public TableCSVDownloadWorker(List<Message> messages,
+			AsynchJobStatusManager asynchJobStatusManager,
+			TableRowManager tableRowManager, UserManager userManger,
+			FileHandleManager fileHandleManager, WorkerProgress workerProgress) {
+		super();
+		this.messages = messages;
+		this.asynchJobStatusManager = asynchJobStatusManager;
+		this.tableRowManager = tableRowManager;
+		this.userManger = userManger;
+		this.fileHandleManager = fileHandleManager;
+		this.workerProgress = workerProgress;
+	}
+
 	@Override
 	public List<Message> call() throws Exception {
 		List<Message> toDelete = new LinkedList<Message>();
@@ -72,14 +101,23 @@ public class TableCSVDownloadWorker implements Callable<List<Message>>{
 			// The total amount of progress is two times the number of rows.
 			long totalProgress = rowCount*2;
 			long currentProgress = 0;
-			
+			// The CSV data will first be written to this file.
 			temp = File.createTempFile(fileName, ".csv");
-			writer = new CSVWriter(new FileWriter(temp));
+			writer = createCSVWriter(new FileWriter(temp), request);
 			// this object will update the progress of both the job and refresh the timeout on the message as rows are read from the DB.
 			ProgressingCSVWriterStream stream = new ProgressingCSVWriterStream(writer, workerProgress, message, asynchJobStatusManager, currentProgress, totalProgress, status.getJobId());
-			// we can use this to update the progress
-			// Pares the query
-			AsynchDownloadResponseBody response = tableRowManager.runConsistentQueryAsStream(request.getSql(), stream, true);
+			boolean includeRowIdAndVersion = true;
+			if(request.getIncludeRowIdAndRowVersion() != null){
+				includeRowIdAndVersion = request.getIncludeRowIdAndRowVersion();
+			}
+			// Execute the actual query and stream the results to the file.
+			AsynchDownloadResponseBody response = null;
+			try{
+				response = tableRowManager.runConsistentQueryAsStream(request.getSql(), stream, includeRowIdAndVersion);
+			}finally{
+				writer.close();
+			}
+
 			// At this point we have the entire CSV written to a local file.
 			// Upload the file to S3 can create the filehandle.
 			long startProgress = totalProgress/2; // we are half done at this point
@@ -134,4 +172,40 @@ public class TableCSVDownloadWorker implements Callable<List<Message>>{
 		return status;
 	}
 
+	/**
+	 * Prepare a writer with the parameters from the request.
+	 * @param writer
+	 * @param request
+	 * @return
+	 */
+	public static CSVWriter createCSVWriter(Writer writer, AsynchDownloadRequestBody request){
+		if(request == null) throw new IllegalArgumentException("AsynchDownloadRequestBody cannot be null");
+		char separator = CSVWriter.DEFAULT_SEPARATOR;
+		char quotechar = CSVWriter.DEFAULT_QUOTE_CHARACTER;
+		char escape = CSVWriter.DEFAULT_ESCAPE_CHARACTER;
+		String lineEnd = CSVWriter.DEFAULT_LINE_END;
+		if(request.getSeparator() != null){
+			if(request.getSeparator().length() != 1){
+				throw new IllegalArgumentException("AsynchDownloadRequestBody.separator must be exactly one character.");
+			}
+			separator = request.getSeparator().charAt(0);
+		}
+		if(request.getQuoteCharacter() != null){
+			if(request.getQuoteCharacter().length() != 1){
+				throw new IllegalArgumentException("AsynchDownloadRequestBody.quoteCharacter must be exactly one character.");
+			}
+			quotechar = request.getQuoteCharacter().charAt(0);
+		}
+		if(request.getEscapeCharacter() != null){
+			if(request.getEscapeCharacter().length() != 1){
+				throw new IllegalArgumentException("AsynchDownloadRequestBody.escapeCharacter must be exactly one character.");
+			}
+			escape = request.getEscapeCharacter().charAt(0);
+		}
+		if(request.getLineEnd() != null){
+			lineEnd = request.getLineEnd();
+		}
+		// Create the reader.
+		return new CSVWriter(writer, separator, quotechar, escape, lineEnd);
+	}
 }

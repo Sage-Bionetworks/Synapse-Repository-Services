@@ -15,44 +15,42 @@
 	<import resource="classpath:managers-spb.xml" />
 
 	<!-- provides table message queue workers -->
-	<bean id="tableCSVAppenderWorkerFactory"
-		class="org.sagebionetworks.table.worker.TableCSVAppenderWorkerFactory"
+	<bean id="tableCSVDownloadWorkerFactory"
+		class="org.sagebionetworks.table.worker.TableCSVDownloadWorkerFactory"
 		scope="singleton" />
 	
-	<bean id="tableCSVAppenderQueue"
+	<bean id="tableCSVDownloaderQueue"
 			class="org.sagebionetworks.asynchronous.workers.sqs.MessageQueueSimpleImpl"
 			depends-on="stackConfiguration">
-		<constructor-arg index="0" ref="stackConfiguration.tableCSVUploadQueueName" />
+		<constructor-arg index="0" ref="stackConfiguration.tableCSVDownloadQueueName" />
 	</bean>
 
-	<!-- Pull messages off the search queue, create works, deletes successfully 
-		processed messages -->
-	<bean id="tableCSVAppenderMessageReveiver"
+	<bean id="tableCSVDownloaderMessageReveiver"
 		class="org.sagebionetworks.asynchronous.workers.sqs.MessageReceiverImpl"
 		scope="singleton">
-		<property name="messageQueue" ref="tableCSVAppenderQueue" />
-		<property name="workerFactory" ref="tableCSVAppenderWorkerFactory" />
+		<property name="messageQueue" ref="tableCSVDownloaderQueue" />
+		<property name="workerFactory" ref="tableCSVDownloadWorkerFactory" />
 		<property name="maxNumberOfWorkerThreads" value="1" />
 		<property name="maxMessagePerWorker" value="1" />
 		<property name="visibilityTimeoutSec" value="60" />
 	</bean>
 
 	<!-- This gate ensures we never run more than the max number or runners across the entire cluster for this worker  -->
-	<bean id="tableCSVAppenderSemaphoreGatedRunner"
+	<bean id="tableCSVDownloaderSemaphoreGatedRunner"
 		class="org.sagebionetworks.repo.model.dbo.dao.semaphore.SemaphoreGatedRunnerImpl" scope="singleton">
-		<property name="timeoutMS" value="600000" />
+		<property name="timeoutMS" value="60000" />
 		<property name="maxNumberRunners" value="4" />
-		<property name="semaphoreKey" value="tableCSVAppender" />		
-		<property name="runner" ref="tableCSVAppenderMessageReveiver" />
+		<property name="semaphoreKey" value="tableCSVDownloader" />		
+		<property name="runner" ref="tableCSVDownloaderMessageReveiver" />
 	</bean>
 
 	<!-- This trigger is used to process messages from the search queue. -->
-	<bean id="tableCSVAppenderQueueMessageReveiverTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean"
+	<bean id="tableCSVDownloaderQueueMessageReveiverTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean"
 		scope="singleton">
 		<property name="jobDetail">
 			<bean
 				class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
-				<property name="targetObject" ref="tableCSVAppenderSemaphoreGatedRunner" />
+				<property name="targetObject" ref="tableCSVDownloaderSemaphoreGatedRunner" />
 				<property name="targetMethod" value="attemptToRun" />
 				<property name="concurrent" value="false" />
 			</bean>

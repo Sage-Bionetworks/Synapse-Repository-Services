@@ -145,7 +145,11 @@ public class FileUploadServiceImpl implements FileUploadService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return fileUploadManager.getUploadDaemonStatus(userInfo, daemonId);
 	}
-	
-	
+
+	@Override
+	public URL getPresignedUrlForFileHandle(Long userId, String fileHandleId) throws NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return fileUploadManager.getRedirectURLForFileHandle(userInfo, fileHandleId);
+	}
 
 }

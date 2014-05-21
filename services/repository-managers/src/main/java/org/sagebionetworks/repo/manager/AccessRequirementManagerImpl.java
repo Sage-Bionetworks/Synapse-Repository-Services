@@ -23,6 +23,9 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
+import org.sagebionetworks.repo.model.principal.AliasType;
+import org.sagebionetworks.repo.model.principal.PrincipalAlias;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.util.jrjc.JRJCHelper;
 import org.sagebionetworks.repo.util.jrjc.JiraClient;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -43,12 +46,12 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 
 	@Autowired
 	EvaluationDAO evaluationDAO;
+	
+	@Autowired
+	PrincipalAliasDAO principalAliasDAO;
 
 	@Autowired
 	private JiraClient jiraClient;
-	
-	@Autowired
-	private UserProfileDAO userProfileDAO;
 	
 	public AccessRequirementManagerImpl() {}
 	
@@ -57,12 +60,12 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 			AccessRequirementDAO accessRequirementDAO,
 			AuthorizationManager authorizationManager,
 			JiraClient jiraClient,
-			UserProfileDAO userProfileDAO
+			PrincipalAliasDAO principalAliasDAO
 	) {
 		this.accessRequirementDAO=accessRequirementDAO;
 		this.authorizationManager=authorizationManager;
 		this.jiraClient=jiraClient;
-		this.userProfileDAO=userProfileDAO;
+		this.principalAliasDAO=principalAliasDAO;
 	}
 	
 	public static void validateAccessRequirement(AccessRequirement a) throws InvalidModelException {
@@ -133,10 +136,9 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		ACTAccessRequirement accessRequirement = newLockAccessRequirement(userInfo, entityId);
 		ACTAccessRequirement result  = accessRequirementDAO.create(accessRequirement);
 		
-		UserProfile creatorUserProfile = userProfileDAO.get(userInfo.getId().toString());
+		List<PrincipalAlias> emailAliases = principalAliasDAO.listPrincipalAliases(userInfo.getId(), AliasType.USER_EMAIL);
 		String emailString = "";
-		List<String> emails = creatorUserProfile.getEmails();
-		if (emails!=null && emails.size()>0) emailString = emails.get(0);
+		if (emailAliases.size()>0) emailString = emailAliases.get(0).getAlias();
 		
 		// now create the Jira issue
 		JRJCHelper.createRestrictIssue(jiraClient, 

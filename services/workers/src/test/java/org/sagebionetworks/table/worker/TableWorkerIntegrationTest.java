@@ -25,6 +25,7 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageReceiver;
 import org.sagebionetworks.repo.manager.EntityManager;
+import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableRowManager;
@@ -89,6 +90,8 @@ public class TableWorkerIntegrationTest {
 	TableRowCache tableRowCache;
 	@Autowired
 	ConnectionFactory tableConnectionFactory;
+	@Autowired
+	SemaphoreManager semphoreManager;
 	
 	private UserInfo adminUserInfo;
 	RowReferenceSet referenceSet;
@@ -99,6 +102,7 @@ public class TableWorkerIntegrationTest {
 	public void before() throws NotFoundException, DatastoreException, IOException, InterruptedException{
 		// Only run this test if the table feature is enabled.
 		Assume.assumeTrue(config.getTableEnabled());
+		semphoreManager.releaseAllLocksAsAdmin(new UserInfo(true));
 		// Start with an empty queue.
 		tableQueueMessageReveiver.emptyQueue();
 		// Get the admin user

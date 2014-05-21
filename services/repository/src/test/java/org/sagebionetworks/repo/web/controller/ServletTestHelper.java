@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.web.controller;
 import static org.junit.Assert.assertNotNull;
 
 import java.io.StringWriter;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -48,6 +49,7 @@ import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
+import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -703,6 +705,21 @@ public class ServletTestHelper {
 
 		return (StackStatus) objectMapper.readValue(
 				response.getContentAsString(), StackStatus.class);
+	}
+	
+	/**
+	 * Clear all semaphore locks.
+	 * 
+	 * @param dispatchServlet
+	 * @param userId
+	 * @throws Exception
+	 */
+	public static void clearAllLocks(HttpServlet dispatchServlet,
+			Long userId) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.DELETE, UrlHelpers.ADMIN_CLEAR_LOCKS, userId, null);
+
+		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request, HttpStatus.NO_CONTENT);
 	}
 
 	public static void terminateDaemon(HttpServlet dispatchServlet,
@@ -1886,6 +1903,17 @@ public class ServletTestHelper {
 				HTTPMODE.DELETE,"/file/v1", "/fileHandle/" + fileHandleId + "/filepreview", userId, null);
 		ServletTestHelperUtils.dispatchRequest(dispatchServlet, request,
 				HttpStatus.OK);
+	}
+	
+	public static URL getFileHandleUrl(Long userId, String fileHandleId, Boolean redirect) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.GET,"/file/v1", "/fileHandle/" + fileHandleId +"/url", userId, null);
+		if (redirect != null) {
+			request.setParameter("redirect", redirect.toString());
+		}
+		MockHttpServletResponse response = ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, null);
+		return ServletTestHelperUtils.handleRedirectReponse(redirect, response);
 	}
 	
 	public static ExternalFileHandle createExternalFileHandle(Long userId, ExternalFileHandle handle) throws Exception {

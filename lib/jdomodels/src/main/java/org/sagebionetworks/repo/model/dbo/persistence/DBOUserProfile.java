@@ -9,15 +9,19 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PRO
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_USER_PROFILE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_PROFILE;
 
+import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 
+import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.dao.UserProfileUtils;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
 /**
@@ -179,6 +183,16 @@ public class DBOUserProfile implements MigratableDatabaseObject<DBOUserProfile, 
 			@Override
 			public DBOUserProfile createDatabaseObjectFromBackup(
 					DBOUserProfile backup) {
+				// ensure that emails are not stored in the user profile
+				UserProfile up = UserProfileUtils.deserialize(backup.getProperties());
+				up.setEmail(null);
+				up.setEmails(null);
+				up.setOpenIds(null);
+				try {
+					backup.setProperties(JDOSecondaryPropertyUtils.compressObject(up));
+				} catch (IOException e) {
+					throw new RuntimeException(e);
+				}
 				return backup;
 			}
 

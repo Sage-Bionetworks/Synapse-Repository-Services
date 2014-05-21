@@ -6,7 +6,9 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
+import java.io.FileReader;
 import java.io.FileWriter;
+import java.net.URL;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
@@ -21,16 +23,24 @@ import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
+import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseTableUnavailableException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.table.AsynchDownloadRequestBody;
+import org.sagebionetworks.repo.model.table.AsynchDownloadResponseBody;
 import org.sagebionetworks.repo.model.table.AsynchUploadRequestBody;
 import org.sagebionetworks.repo.model.table.AsynchUploadResponseBody;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableEntity;
+import org.sagebionetworks.repo.model.table.TableState;
+import org.sagebionetworks.util.csv.CsvNullReader;
 
 import au.com.bytecode.opencsv.CSVWriter;
 
@@ -55,7 +65,7 @@ public class IT099AsynchronousJobTest {
 		SynapseClientHelper.setEndpoints(adminSynapse);
 		adminSynapse.setUserName(StackConfiguration.getMigrationAdminUsername());
 		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
-		
+		adminSynapse.clearAllLocks();
 		synapse = new SynapseClientImpl();
 		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
 	}
@@ -163,7 +173,52 @@ public class IT099AsynchronousJobTest {
 			AsynchUploadResponseBody response = (AsynchUploadResponseBody) status.getResponseBody();
 			assertNotNull(response.getEtag());
 			assertEquals(new Long(rowCount), response.getRowsProcessed());
-			
+			// Wait for the table to be ready
+			String sql = "select * from "+table.getId();
+			RowSet results = waitForQueryResults(sql+" limit 100", true, false);
+			// Now start a download job
+			AsynchDownloadRequestBody downloadBody = new AsynchDownloadRequestBody();
+			downloadBody.setSql(sql);
+			downloadBody.setIncludeRowIdAndRowVersion(true);
+			downloadBody.setWriteHeader(true);
+			status = synapse.startAsynchronousJob(downloadBody);
+			// Wait for it to finish
+			status = waitForStatus(status);
+			assertNotNull(status);
+			assertNotNull(status.getJobId());
+			assertNotNull(status.getResponseBody());
+			assertTrue(status.getResponseBody() instanceof AsynchDownloadResponseBody);
+			AsynchDownloadResponseBody downLoadresponse = (AsynchDownloadResponseBody) status.getResponseBody();
+			// Now download the file
+			URL url = synapse.getFileHandleTemporaryUrl(downLoadresponse.getResultsFileHandleId());
+			assertNotNull(url);
+			File temp2= File.createTempFile("downloadTemp", ".csv");
+			CsvNullReader reader = null;
+			List<String[]> downloadCSV = null;
+			try{
+				synapse.downloadFromFileHandleTemporaryUrl(downLoadresponse.getResultsFileHandleId(), temp2);
+				reader = new CsvNullReader(new FileReader(temp2));
+				downloadCSV = reader.readAll();
+			}finally{
+				if(reader != null){
+					reader.close();
+				}
+				temp2.delete();
+			}
+			assertNotNull(downloadCSV);
+			// Should match the data from the results.
+			assertEquals(results.getRows().size()+1, downloadCSV.size());
+			// Check the ids
+			for(int i=0; i<results.getRows().size(); i++){
+				Row row = results.getRows().get(i);
+				String[] row2 = downloadCSV.get(i+1);
+				assertEquals(row.getRowId().toString(), row2[0]);
+				assertEquals(row.getVersionNumber().toString(), row2[1]);
+				// The CSV includes two extra columns (rowId and version)
+				assertEquals(row.getValues().size(), row2.length-2);
+				// Check the first column
+				assertEquals(row.getValues().get(0), row2[2]);
+			}
 		}finally{
 			temp.delete();
 		}
@@ -180,6 +235,22 @@ public class IT099AsynchronousJobTest {
 			status = synapse.getAsynchronousJobStatus(status.getJobId());
 		}
 		return status;
+	}
+	
+	public RowSet waitForQueryResults(String sql, boolean isConsistent, boolean countOnly) throws InterruptedException, SynapseException{
+		long start = System.currentTimeMillis();
+		while(true){
+			try {
+				RowSet queryResutls = synapse.queryTableEntity(sql, isConsistent, countOnly);
+				return queryResutls;
+			} catch (SynapseTableUnavailableException e) {
+				// The table is not ready yet
+				assertFalse("Table processing failed: "+e.getStatus().getErrorMessage(), TableState.PROCESSING_FAILED.equals(e.getStatus().getState()));
+				System.out.println("Waiting for table index to be available: "+e.getStatus());
+				Thread.sleep(2000);
+				assertTrue("Timed out waiting for query results for sql: "+sql,System.currentTimeMillis()-start < MAX_WAIT_MS);
+			}
+		}
 	}
 	
 }

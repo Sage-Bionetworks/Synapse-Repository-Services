@@ -12,11 +12,14 @@ import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.logging.s3.LogDAO;
 import org.sagebionetworks.logging.s3.LogEntry;
 import org.sagebionetworks.logging.s3.LogReader;
+import org.sagebionetworks.repo.manager.SemaphoreManager;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -34,6 +37,14 @@ public class LogCollateIntegrationTest {
 	
 	@Autowired
 	LogDAO logDAO;
+	
+	@Autowired
+	private SemaphoreManager semphoreManager;
+	
+	@Before
+	public void before(){
+		semphoreManager.releaseAllLocksAsAdmin(new UserInfo(true));
+	}
 	
 	@After
 	public void after(){
