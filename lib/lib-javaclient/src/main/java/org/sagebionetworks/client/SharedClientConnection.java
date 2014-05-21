@@ -10,9 +10,6 @@ import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
-import java.util.concurrent.atomic.AtomicReference;
-
-import javax.annotation.Nullable;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -49,12 +46,10 @@ import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.securitytools.HMACUtils;
+import org.sagebionetworks.util.RetryException;
 import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.utils.HttpClientHelperException;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
-
-import com.google.common.base.Predicate;
-import com.google.common.util.concurrent.UncheckedExecutionException;
 
 /**
  * Low-level Java Client API for Synapse REST APIs
@@ -748,7 +743,7 @@ public class SharedClientConnection {
 					HttpEntity responseEntity = response.getEntity();
 					String responseBody = (null != responseEntity) ? EntityUtils
 							.toString(responseEntity) : null;
-					throw new SynapseServerException(statusCode, responseBody);
+					throw new RetryException(new SynapseServerException(statusCode, responseBody));
 				}
 					
 				return response;

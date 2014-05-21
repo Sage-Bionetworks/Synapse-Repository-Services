@@ -99,15 +99,15 @@ public class TimeUtils {
 		while (true) {
 			try {
 				return callable.call();	
-			} catch (Exception e) {
+			} catch (RetryException re) {
 				if (++count >= maxRetryCount) {
-					throw e;
+					throw re;
 				}
 				Clock.sleepNoInterrupt(initialCheckIntervalMillis);
 				if (exponential) {
 					initialCheckIntervalMillis *= 1.2;
 				}
-			}
+			} 
 		}
 	}
 
