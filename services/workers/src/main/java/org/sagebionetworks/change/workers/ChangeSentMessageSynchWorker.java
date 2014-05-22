@@ -24,7 +24,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * </ol>
  * The second case would not cause this process to miss a messages that still
  * needs to be sent, but the first could. Therefore, whenever the last synched
- * message no longer exists we assume the worst case senario and use the maximum
+ * message no longer exists we assume the worst case scenario and use the maximum
  * change number that still exists and is less than or equal to the
  * lastSynchedChangeNumber as the starting point for the synchronization
  * process.
@@ -88,7 +88,7 @@ public class ChangeSentMessageSynchWorker implements Runnable {
 	}
 	
 	/**
-	 * Caller can use use the monitor to wait for 
+	 * Caller can use use the monitor to wait for the worker to run at least once.
 	 * @return
 	 */
 	public void setMonitor(Object monitor){
