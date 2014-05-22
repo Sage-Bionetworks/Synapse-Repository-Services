@@ -136,9 +136,10 @@ public class StubDBOChangeDAO implements DBOChangeDAO {
 	}
 
 	@Override
-	public Long getMaxSentChangeNumber() {
+	public Long getMaxSentChangeNumber(Long lessThanOrEqual) {
 		// TODO Auto-generated method stub
 		return null;
 	}
+
 
 }

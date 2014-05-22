@@ -116,7 +116,8 @@ public interface DBOChangeDAO extends ProcessedMessageDAO {
 	
 	/**
 	 * Get the maximum sent change number that is less than or equal to a given value.
+	 * @param lessThanOrEqual The returned changed number will be the max existing change number that is less than or equal to this number.
 	 * @return
 	 */
-	public Long getMaxSentChangeNumber(Long greaterThanOrEqualsTo);
+	public Long getMaxSentChangeNumber(Long lessThanOrEqual);
 }

@@ -37,9 +37,6 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 	@Autowired
 	AmazonSNSClient awsSNSClient;
 	
-	@Autowired
-	SemaphoreDao semaphoreDao;
-	
 	private boolean shouldMessagesBePublishedToTopic;
 	
 	/**
@@ -156,7 +153,7 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 		}
 		// Publish each message to the topic
 		for(ChangeMessage message: currentQueue){
-			publishMessage(message);
+			publishToTopic(message);
 		}
 	}
 	
@@ -178,7 +175,8 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 	 * 
 	 * @param message
 	 */
-	private void publishMessage(ChangeMessage message) {
+	@Override
+	public void publishToTopic(ChangeMessage message) {
 		try {
 			String json = EntityFactory.createJSONStringForEntity(message);
 			if(log.isTraceEnabled()){

@@ -49,7 +49,7 @@ import org.springframework.transaction.annotation.Transactional;
  */
 public class DBOChangeDAOImpl implements DBOChangeDAO {
 	
-	private static final String SQL_SELECT_MAX_SENT_CHANGE_NUMBER = "SELECT MAX("+COL_SENT_MESSAGES_CHANGE_NUM+") FROM "+TABLE_SENT_MESSAGES;
+	private static final String SQL_SELECT_MAX_SENT_CHANGE_NUMBER_LESS_THAN_OR_EQUAL = "SELECT MAX("+COL_SENT_MESSAGES_CHANGE_NUM+") FROM "+TABLE_SENT_MESSAGES+" WHERE "+COL_SENT_MESSAGES_CHANGE_NUM+" <= ?";
 
 	private static final String SQL_REPLACE_LAST_SYCH_CHANGE_NUMBER = "UPDATE "+TABLE_SENT_MESSAGES_SYNCH+" SET "+COL_SENT_MESSAGE_SYCH_LAST_CHANGE_NUMBER+" = ?, "+COL_SENT_MESSAGE_SYCH_CHANGED_ON+" = ? WHERE "+COL_SENT_MESSAGE_SYCH_LAST_CHANGE_NUMBER+" = ? AND "+COL_SENT_MESSAGE_SYCH_ID+" = ?";
 
@@ -281,8 +281,8 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 
 
 	@Override
-	public Long getMaxSentChangeNumber() {
-		Long max = jdbcTemplate.queryForObject(SQL_SELECT_MAX_SENT_CHANGE_NUMBER, new SingleColumnRowMapper<Long>());
+	public Long getMaxSentChangeNumber(Long lessThanOrEqual) {
+		Long max = jdbcTemplate.queryForObject(SQL_SELECT_MAX_SENT_CHANGE_NUMBER_LESS_THAN_OR_EQUAL, new SingleColumnRowMapper<Long>(), lessThanOrEqual);
 		if(max == null){
 			max = new Long(-1);
 		}

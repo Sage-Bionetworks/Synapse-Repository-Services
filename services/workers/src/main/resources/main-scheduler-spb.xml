@@ -21,13 +21,12 @@
 	<import resource="classpath:trash-spb.xml" />
 	<import resource="classpath:log-collate-spb.xml" />
 	<import resource="classpath:worker-log-sweep-spb.xml" />
-	<import resource="classpath:message-queuer-sqs.xml" />
-	<import resource="classpath:message-popper-sqs-sns.xml" />
 	<import resource="classpath:message-to-user-sqs-spb.xml" />
     <import resource="classpath:table-cluster-sqs-spb.xml" />
     <import resource="classpath:cloudwatch-spb.xml" />
     <import resource="classpath:table-csv-appender-sqs-spb.xml" />
     <import resource="classpath:table-csv-downloader-sqs-spb.xml" />
+    <import resource="classpath:change-synch-worker-spb.xml" />
 
 	<bean id="mainScheduler"
 			class="org.springframework.scheduling.quartz.SchedulerFactoryBean"
@@ -44,13 +43,12 @@
 				<ref bean="logCollateWorkerTrigger" />
 				<ref bean="trashWorkerTrigger" />
 				<ref bean="workersLogSweeperTrigger" />
-				<ref bean="unsentMessageQueuerTrigger" />
-				<ref bean="unsentMessagePopperTrigger" />
 				<ref bean="messageToUserQueueMessageReceiverTrigger" />
                 <ref bean="tableQueueMessageReveiverTrigger" />
                 <ref bean="cloudwatchTrigger" />
                 <ref bean="tableCSVAppenderQueueMessageReveiverTrigger" />
                 <ref bean="tableCSVDownloaderQueueMessageReveiverTrigger" />
+                <ref bean="changeSentMessageSynchTrigger" />
 			</list>
 		</property>
 	</bean>

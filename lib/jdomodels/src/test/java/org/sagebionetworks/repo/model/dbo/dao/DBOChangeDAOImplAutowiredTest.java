@@ -358,8 +358,6 @@ public class DBOChangeDAOImplAutowiredTest {
 	
 	@Test
 	public void testRegisterSentAndListUnsent(){
-		Long startMax = changeDAO.getMaxSentChangeNumber();
-		assertNotNull(startMax);
 		// Create a few messages.
 		List<ChangeMessage> batch = createList(2, ObjectType.ENTITY);
 		// Pass the batch.
@@ -380,9 +378,24 @@ public class DBOChangeDAOImplAutowiredTest {
 		unSent = changeDAO.listUnsentMessages(3);
 		assertNotNull(unSent);
 		assertEquals(0, unSent.size());
-		
-		Long currentMax = changeDAO.getMaxSentChangeNumber();
-		assertTrue(currentMax > startMax+2);
+	}
+	
+	@Test
+	public void testGetMaxSentChangeNumber(){
+		assertEquals("When the sent messages is empty, the max sent change number should be -1",new Long(-1), changeDAO.getMaxSentChangeNumber(Long.MAX_VALUE));
+		List<ChangeMessage> batch = createList(3, ObjectType.ENTITY);
+		// Add all three to changes
+		batch  = changeDAO.replaceChange(batch);
+		// Only add the first and last to sent.
+		changeDAO.registerMessageSent(batch.get(0));
+		changeDAO.registerMessageSent(batch.get(2));
+		Long firstChangeNumber = batch.get(0).getChangeNumber();
+		Long secondChangeNumber = batch.get(1).getChangeNumber();
+		Long thirdChangeNumber = batch.get(2).getChangeNumber();
+		assertEquals(firstChangeNumber, changeDAO.getMaxSentChangeNumber(firstChangeNumber));
+		assertEquals("Since the second change number was not sent, the max sent change number less than or equals to the second should be the first.",firstChangeNumber, changeDAO.getMaxSentChangeNumber(secondChangeNumber));
+		assertEquals(thirdChangeNumber, changeDAO.getMaxSentChangeNumber(thirdChangeNumber));
+		assertEquals(new Long(-1), changeDAO.getMaxSentChangeNumber(new Long(-1)));
 	}
 	
 	@Test
