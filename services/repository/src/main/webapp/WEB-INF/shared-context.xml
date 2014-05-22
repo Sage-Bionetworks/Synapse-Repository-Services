@@ -12,5 +12,9 @@
   
   <!-- Load the authFilter -->
   <import resource="classpath:authentication-services-spb.xml" />
+  <!-- Load the single cloudwatch consumer -->
+  <import resource="classpath:cloudwatch-spb.xml" />
+  <!-- Load the userThrottleFilter -->
+  <import resource="classpath:throttle-services-spb.xml" />
   
 </beans>

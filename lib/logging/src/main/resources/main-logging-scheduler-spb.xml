@@ -12,7 +12,6 @@
 
 	<aop:aspectj-autoproxy />
 
-	<import resource="classpath:cloudwatch-spb.xml" />
 	<import resource="classpath:performance-logging-spb.xml" />
 
 	<bean id="mainLoggingScheduler"

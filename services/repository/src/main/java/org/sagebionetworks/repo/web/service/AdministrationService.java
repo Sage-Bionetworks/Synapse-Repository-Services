@@ -161,4 +161,13 @@ public interface AdministrationService {
 	 * @throws NotFoundException 
 	 */
 	public void clearAllLocks(Long userId) throws NotFoundException;
+
+	/**
+	 * Wait for a long time or release the waiters
+	 * 
+	 * @param userId
+	 * @param release
+	 * @throws Exception
+	 */
+	public void waitForTesting(Long userId, boolean release) throws Exception;
 }

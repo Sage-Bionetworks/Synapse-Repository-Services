@@ -190,4 +190,13 @@ public interface SynapseAdminClient extends SynapseClient {
 	 * @throws SynapseException 
 	 */
 	void clearAllLocks() throws SynapseException;
+
+	/**
+	 * Don't return unless someone makes this call with release set to true. Only used for testing to emulate long
+	 * running calls
+	 * 
+	 * @param release
+	 * @throws SynapseException
+	 */
+	public void waitForTesting(boolean release) throws SynapseException;
 }
