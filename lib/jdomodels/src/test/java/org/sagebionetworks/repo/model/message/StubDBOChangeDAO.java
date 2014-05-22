@@ -117,4 +117,29 @@ public class StubDBOChangeDAO implements DBOChangeDAO {
 		
 	}
 
+	@Override
+	public Long getLastSynchedChangeNumber() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public boolean setLastSynchedChangeNunber(Long oldLastChangeNumber,
+			Long lastChangeNumber) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public Long resetLastChangeNumber() {
+		return null;
+	}
+
+	@Override
+	public Long getMaxSentChangeNumber(Long lessThanOrEqual) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
 }

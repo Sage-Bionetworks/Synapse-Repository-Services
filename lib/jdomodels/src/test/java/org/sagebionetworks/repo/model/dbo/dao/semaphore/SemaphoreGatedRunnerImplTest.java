@@ -17,6 +17,7 @@ import java.util.concurrent.Callable;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreDao;
@@ -113,6 +114,7 @@ public class SemaphoreGatedRunnerImplTest {
 		semaphoreGatedRunner.setSemaphoreKey(key);
 	}
 	
+	@Ignore // See PLFM-2796
 	@Test
 	public void testDuplicateKey(){
 		SemaphoreGatedRunnerImpl gateOne = new SemaphoreGatedRunnerImpl();

@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
+import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -25,6 +26,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ProcessedMessageDAO;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOSentMessageSynch;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeMessageUtils;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -47,6 +49,7 @@ public class DBOChangeDAOImplAutowiredTest {
 	public void before(){
 		if(changeDAO != null){
 			changeDAO.deleteAllChanges();
+			changeDAO.resetLastChangeNumber();
 		}
 	}
 	
@@ -378,6 +381,24 @@ public class DBOChangeDAOImplAutowiredTest {
 	}
 	
 	@Test
+	public void testGetMaxSentChangeNumber(){
+		assertEquals("When the sent messages is empty, the max sent change number should be -1",new Long(-1), changeDAO.getMaxSentChangeNumber(Long.MAX_VALUE));
+		List<ChangeMessage> batch = createList(3, ObjectType.ENTITY);
+		// Add all three to changes
+		batch  = changeDAO.replaceChange(batch);
+		// Only add the first and last to sent.
+		changeDAO.registerMessageSent(batch.get(0));
+		changeDAO.registerMessageSent(batch.get(2));
+		Long firstChangeNumber = batch.get(0).getChangeNumber();
+		Long secondChangeNumber = batch.get(1).getChangeNumber();
+		Long thirdChangeNumber = batch.get(2).getChangeNumber();
+		assertEquals(firstChangeNumber, changeDAO.getMaxSentChangeNumber(firstChangeNumber));
+		assertEquals("Since the second change number was not sent, the max sent change number less than or equals to the second should be the first.",firstChangeNumber, changeDAO.getMaxSentChangeNumber(secondChangeNumber));
+		assertEquals(thirdChangeNumber, changeDAO.getMaxSentChangeNumber(thirdChangeNumber));
+		assertEquals(new Long(-1), changeDAO.getMaxSentChangeNumber(new Long(-1)));
+	}
+	
+	@Test
 	public void testUpdateSentMessageSameIdDifferentType(){
 		// Create a few messages.
 		List<ChangeMessage> batch = createList(2, ObjectType.ENTITY);
@@ -491,6 +512,26 @@ public class DBOChangeDAOImplAutowiredTest {
 		assertEquals(new Integer(timesToRun), oneResult);
 		Integer twoResult = two.get();
 		assertEquals(new Integer(timesToRun), twoResult);
+	}
+	
+	@Test
+	public void testGetLastSynchedChangeNumberCRUD(){
+		// Get the start value
+		Long start = changeDAO.getLastSynchedChangeNumber();
+		assertNotNull(start);
+		assertEquals(DBOSentMessageSynch.DEFAULT_START_CHANGE_NUMBER, start);
+		// Now update it
+		Long next = 101L;
+		assertTrue("Should not have failed to set the value",changeDAO.setLastSynchedChangeNunber(start, next));
+		// Now get it again
+		Long current = changeDAO.getLastSynchedChangeNumber();
+		assertEquals(next, current);
+		// Update should fail if we give it the wrong start
+		assertFalse("Update should fail when the wrong old value is given.",changeDAO.setLastSynchedChangeNunber(333L, 444L));
+		// Rest should put it back
+		changeDAO.resetLastChangeNumber();
+		current = changeDAO.getLastSynchedChangeNumber();
+		assertEquals(DBOSentMessageSynch.DEFAULT_START_CHANGE_NUMBER, current);
 	}
 	
 	/**
