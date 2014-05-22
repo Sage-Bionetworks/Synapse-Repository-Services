@@ -82,6 +82,7 @@ public class TimeUtils {
 	/**
 	 * Wait for at most maxRetryCount for condition to return true. Recheck every checkIntervalMillis with exponential
 	 * back off
+	 * Throws retry exception if the max number of retries is exceeded. That RetryException will have the same cause as the retry exception thrown from the callable
 	 * 
 	 * @param maxRetryCount
 	 * @param initialCheckIntervalMillis check at this interval and back of by 1.2x
@@ -101,7 +102,7 @@ public class TimeUtils {
 				return callable.call();	
 			} catch (RetryException re) {
 				if (++count >= maxRetryCount) {
-					throw new RetryException("User rate limit has been exceeded", re.getCause());
+					throw new RetryException("Exceeded maximum retries", re.getCause());
 				}
 				Clock.sleepNoInterrupt(initialCheckIntervalMillis);
 				if (exponential) {

@@ -702,6 +702,8 @@ public class SharedClientConnection {
 			if (errorHandler != null) {
 				errorHandler.handleError(statusCode, responseBody);
 			}
+		} catch (SynapseServerException sse) {
+			throw sse;
 		} catch (Exception e) {
 			throw new SynapseClientException(e);
 		}
@@ -733,22 +735,26 @@ public class SharedClientConnection {
 	}
 	
 	public HttpResponse performRequestWithRetry(final String requestUrl, final String requestMethod, final String requestContent, final Map<String, String> requestHeaders) throws Exception {
-		return TimeUtils.waitForExponentialMaxRetry(MAX_RETRY_SERVICE_UNAVAILABLE_COUNT, 1000, new Callable<HttpResponse>() {
-			@Override
-			public HttpResponse call() throws Exception {
-				HttpResponse response = clientProvider.performRequest(requestUrl, requestMethod, requestContent, requestHeaders);
-				//if 503, then we can retry
-				int statusCode = response.getStatusLine().getStatusCode();
-				if (statusCode == HttpStatus.SC_SERVICE_UNAVAILABLE) {
-					HttpEntity responseEntity = response.getEntity();
-					String responseBody = (null != responseEntity) ? EntityUtils
-							.toString(responseEntity) : null;
-					throw new RetryException(new SynapseServerException(statusCode, responseBody));
-				}
-					
-				return response;
-			}
-		});
+		try {
+			return TimeUtils.waitForExponentialMaxRetry(MAX_RETRY_SERVICE_UNAVAILABLE_COUNT, 1000, new Callable<HttpResponse>() {
+				@Override
+				public HttpResponse call() throws Exception {
+					HttpResponse response = clientProvider.performRequest(requestUrl, requestMethod, requestContent, requestHeaders);
+					//if 503, then we can retry
+					int statusCode = response.getStatusLine().getStatusCode();
+					if (statusCode == HttpStatus.SC_SERVICE_UNAVAILABLE) {
+						HttpEntity responseEntity = response.getEntity();
+						String responseBody = (null != responseEntity) ? EntityUtils
+								.toString(responseEntity) : null;
+						throw new RetryException(new SynapseServerException(statusCode, responseBody));
+					}
+						
+					return response;
+							}
+			});
+		} catch (RetryException e) {
+			throw (SynapseServerException) e.getCause();
+		}
 	}
 	
 	public String getDirect(String endpoint, String uri, String userAgent) throws IOException, SynapseException {

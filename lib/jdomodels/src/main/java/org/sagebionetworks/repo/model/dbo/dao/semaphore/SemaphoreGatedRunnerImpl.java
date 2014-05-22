@@ -11,7 +11,7 @@ import java.util.concurrent.Callable;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.PropertyAccessor;
-import org.sagebionetworks.StaticPropertyAccessor;
+import org.sagebionetworks.ImmutablePropertyAccessor;
 import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreDao;
 import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreGatedRunner;
 import org.sagebionetworks.repo.model.exception.LockUnavilableException;
@@ -94,7 +94,7 @@ public class SemaphoreGatedRunnerImpl implements SemaphoreGatedRunner {
 	 * runners (inclusive) concurrently running across the entire cluster.  Set this to a number less than one to disable this runner.
 	 */
 	public void setMaxNumberRunners(int maxNumberRunners) {
-		this.maxNumberRunners = new StaticPropertyAccessor(maxNumberRunners);
+		this.maxNumberRunners = new ImmutablePropertyAccessor(maxNumberRunners);
 	}
 
 	/**
