@@ -28,8 +28,8 @@ import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.http.entity.ContentType;
 import org.json.JSONArray;
@@ -45,52 +45,11 @@ import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
-import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseServerException;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.AccessRequirement;
-import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.BatchResults;
-import org.sagebionetworks.repo.model.Data;
-import org.sagebionetworks.repo.model.DomainType;
-import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityBundle;
-import org.sagebionetworks.repo.model.EntityBundleCreate;
-import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.EntityPath;
-import org.sagebionetworks.repo.model.Folder;
-import org.sagebionetworks.repo.model.LayerTypeNames;
-import org.sagebionetworks.repo.model.Link;
-import org.sagebionetworks.repo.model.LocationData;
-import org.sagebionetworks.repo.model.LocationTypeNames;
-import org.sagebionetworks.repo.model.MembershipInvitation;
-import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
-import org.sagebionetworks.repo.model.MembershipRequest;
-import org.sagebionetworks.repo.model.MembershipRqstSubmission;
-import org.sagebionetworks.repo.model.NodeConstants;
-import org.sagebionetworks.repo.model.PaginatedResults;
-import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.repo.model.Reference;
-import org.sagebionetworks.repo.model.ResourceAccess;
-import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
-import org.sagebionetworks.repo.model.RestrictableObjectType;
-import org.sagebionetworks.repo.model.Study;
-import org.sagebionetworks.repo.model.Team;
-import org.sagebionetworks.repo.model.TeamMember;
-import org.sagebionetworks.repo.model.TeamMembershipStatus;
-import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
-import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
-import org.sagebionetworks.repo.model.UserGroup;
-import org.sagebionetworks.repo.model.UserGroupHeader;
-import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
-import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.UserSessionData;
-import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
+import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -102,11 +61,10 @@ import org.sagebionetworks.repo.model.quiz.QuestionResponse;
 import org.sagebionetworks.repo.model.quiz.Quiz;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.util.RetryException;
-import org.sagebionetworks.util.ThreadTestUtils;
 import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 import org.sagebionetworks.utils.HttpClientHelper;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 /**
@@ -1650,36 +1608,7 @@ public class IT500SynapseJavaClient {
 	}
 
 	@Test
-	public void testThrottlingRetry() throws Exception {
-		ThreadTestUtils.doBefore();
-		int max = StackConfiguration.singleton().getMaxConcurrentRepoConnections().getInteger();
-		ExecutorService executor = Executors.newFixedThreadPool(max + 1);
-		for (int i = 0; i < max; i++) {
-			executor.submit(new Callable<Void>() {
-				@Override
-				public Void call() throws Exception {
-					adminSynapse.waitForTesting(false);
-					return null;
-				}
-			});
-		}
-		// give it some time to send all requests and have the requests waiting
-		Thread.sleep(5000);
-		try {
-			adminSynapse.waitForTesting(false);
-			fail("Should have been throttled");
-		} catch (SynapseClientException e) {
-			assertEquals(RetryException.class, e.getCause().getClass());
-		}
-		synapseAnonymous.waitForTesting(true);
-		executor.shutdown();
-		assertTrue(executor.awaitTermination(20, TimeUnit.SECONDS));
-		ThreadTestUtils.doAfter();
-	}
-
-	@Test
 	public void testThrottlingNoRetry() throws Exception {
-		ThreadTestUtils.doBefore();
 		final SynapseAdminClientImpl nonWaitingAdminSynapse = new SynapseAdminClientImpl();
 		SynapseClientHelper.setEndpoints(nonWaitingAdminSynapse);
 		nonWaitingAdminSynapse.setUserName(StackConfiguration.getMigrationAdminUsername());
@@ -1688,26 +1617,37 @@ public class IT500SynapseJavaClient {
 		nonWaitingAdminSynapse.getSharedClientConnection().setRetryRequestIfServiceUnavailable(false);
 		int max = StackConfiguration.singleton().getMaxConcurrentRepoConnections().getInteger();
 		ExecutorService executor = Executors.newFixedThreadPool(max + 1);
+		List<Future<Void>> results = Lists.newArrayList();
 		for (int i = 0; i < max; i++) {
-			executor.submit(new Callable<Void>() {
+			results.add(executor.submit(new Callable<Void>() {
 				@Override
 				public Void call() throws Exception {
-					nonWaitingAdminSynapse.waitForTesting(false);
+					adminSynapse.waitForTesting(false);
 					return null;
 				}
-			});
+			}));
 		}
 		// give it some time to send all requests and have the requests waiting
 		Thread.sleep(5000);
+		// non waiting one should fail with 503
 		try {
 			nonWaitingAdminSynapse.waitForTesting(false);
 			fail("Should have been throttled");
 		} catch (SynapseServerException e) {
 			assertEquals(503, e.getStatusCode());
 		}
+		// waiting one should fail with retry exception
+		try {
+			adminSynapse.waitForTesting(false);
+			fail("Should have been throttled");
+		} catch (SynapseServerException e) {
+			assertTrue(e.getMessage().indexOf("Too many concurrent requests") >= 0);
+		}
 		synapseAnonymous.waitForTesting(true);
+		for (Future<Void> result : results) {
+			result.get();
+		}
 		executor.shutdown();
 		assertTrue(executor.awaitTermination(20, TimeUnit.SECONDS));
-		ThreadTestUtils.doAfter();
 	}
 }
