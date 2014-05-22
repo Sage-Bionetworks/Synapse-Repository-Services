@@ -36,7 +36,6 @@ public class TestTestClock {
 		assertTrue(System.currentTimeMillis() - start < 5000);
 	}
 
-	@Ignore // See PLFM-2791
 	@Test
 	public void testThreaded() throws InterruptedException {
 		long start = System.currentTimeMillis();
