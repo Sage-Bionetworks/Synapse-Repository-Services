@@ -1,7 +1,6 @@
 package org.sagebionetworks.util;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.util.concurrent.CountDownLatch;
@@ -59,7 +58,8 @@ public class TestTestClock {
 			}
 		};
 		t.start();
-		wait1.await(60, TimeUnit.SECONDS);
+		assertTrue(wait1.await(60, TimeUnit.SECONDS));
+		TestClock.waitForSleepers(1);
 		assertTrue(done.compareAndSet(1, 2));
 		TestClock.warpForward(30000);
 		// make sure the thread stays sleeping
@@ -67,7 +67,7 @@ public class TestTestClock {
 		assertTrue(done.compareAndSet(2, 3));
 		// now wake it up
 		TestClock.warpForward(30000);
-		wait2.await(60, TimeUnit.SECONDS);
+		assertTrue(wait2.await(60, TimeUnit.SECONDS));
 		assertTrue(done.compareAndSet(4, 5));
 		t.join(60000);
 		assertEquals(now + 60000, Clock.currentTimeMillis());
