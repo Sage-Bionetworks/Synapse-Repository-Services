@@ -99,6 +99,7 @@ public interface DBOChangeDAO extends ProcessedMessageDAO {
 	 */
 	public Long getLastSynchedChangeNumber();
 	
+	
 	/**
 	 * Replace the current last change number with a new value.  The old value must be provided to actaully apply the change
 	 * to reduce the chance of a concurrent update.
@@ -114,8 +115,8 @@ public interface DBOChangeDAO extends ProcessedMessageDAO {
 	public Long resetLastChangeNumber();
 	
 	/**
-	 * Get the maximum change number from the sent message table.
+	 * Get the maximum sent change number that is less than or equal to a given value.
 	 * @return
 	 */
-	public Long getMaxSentChangeNumber();
+	public Long getMaxSentChangeNumber(Long greaterThanOrEqualsTo);
 }
