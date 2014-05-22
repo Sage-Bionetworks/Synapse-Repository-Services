@@ -94,14 +94,14 @@ public interface DBOChangeDAO extends ProcessedMessageDAO {
 	
 	/**
 	 * Get the last change number that was synchronized between the changes and sent message table.
-	 * This is used to determine w
+	 * This is used as a high-water-mark for the synchronization process that reconciles changes with sent messages.
 	 * @return
 	 */
 	public Long getLastSynchedChangeNumber();
 	
 	
 	/**
-	 * Replace the current last change number with a new value.  The old value must be provided to actaully apply the change
+	 * Replace the current last change number with a new value.  The old value must be provided to actually apply the change
 	 * to reduce the chance of a concurrent update.
 	 * @param oldLastChangeNumber
 	 * @param lastChangeNumber

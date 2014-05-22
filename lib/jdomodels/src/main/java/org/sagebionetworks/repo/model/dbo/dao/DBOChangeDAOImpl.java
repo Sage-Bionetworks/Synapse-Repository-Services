@@ -247,6 +247,8 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 	}
 
 
+	// This is Transactional because it can call reset when empty
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public Long getLastSynchedChangeNumber() {
 		try{
