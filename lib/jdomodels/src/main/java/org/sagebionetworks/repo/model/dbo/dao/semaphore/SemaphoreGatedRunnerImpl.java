@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -12,6 +13,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.PropertyAccessor;
 import org.sagebionetworks.ImmutablePropertyAccessor;
+import org.sagebionetworks.collections.Maps2;
 import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreDao;
 import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreGatedRunner;
 import org.sagebionetworks.repo.model.exception.LockUnavilableException;
@@ -19,8 +21,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.transform.MapUnmarshaller;
 import com.amazonaws.transform.SimpleTypeUnmarshallers.IntegerUnmarshaller;
+import com.google.common.base.Supplier;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Ranges;
+import com.google.common.collect.Sets;
 
 /**
  * This implementation uses a database backed semaphore and designed to be used with a 
@@ -46,7 +51,12 @@ public class SemaphoreGatedRunnerImpl implements SemaphoreGatedRunner {
 	/**
 	 * This set ensures that the same key is not used by two separate runners
 	 */
-	private static Set<String> USED_KEY_SET = new HashSet<String>();
+	private static Map<Object, Set<String>> USED_KEY_SET = Maps2.createSupplierHashMap(new Supplier<Set<String>>() {
+		@Override
+		public Set<String> get() {
+			return Sets.newHashSet();
+		}
+	});
 	/**
 	 * The maximum number of characters allowed for a semaphore key. 
 	 */
@@ -82,8 +92,11 @@ public class SemaphoreGatedRunnerImpl implements SemaphoreGatedRunner {
 	public void setSemaphoreKey(String semaphoreKey) {
 		if(semaphoreKey == null) throw new IllegalArgumentException("semaphoreKey cannot be null");
 		if(semaphoreKey.length() > MAX_KEY_LENGTH) throw new IllegalArgumentException("semaphoreKey cannot be longer than "+MAX_KEY_LENGTH+" characters");
-		if (!USED_KEY_SET.add(semaphoreKey)) {
-			log.info("The key: '" + semaphoreKey + "' was already in use. Duplicate key name?");
+		// This checks to make sure that we don't use the same key twice. For testing, we reload the context multiple
+		// times, which leads to these beans being recreated multiple times. This check uses a singleton bean to make
+		// sure we only check for duplicates within a single bean context and not across bean contexts.
+		if (!USED_KEY_SET.get(semaphoreDao).add(semaphoreKey)) {
+			throw new IllegalArgumentException("The key: '" + semaphoreKey + "' is already in use. Duplicate key name?");
 		}
 		this.semaphoreKey = semaphoreKey;
 	}
