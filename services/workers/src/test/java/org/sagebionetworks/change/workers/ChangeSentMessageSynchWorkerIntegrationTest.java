@@ -58,8 +58,11 @@ public class ChangeSentMessageSynchWorkerIntegrationTest {
 	
 	@Test
 	public void testMissing() throws InterruptedException{
+		// At the start the last change number should be -1 after the worker has a chance to run.
 		synchronized (monitor) {
-			waitForSynchState(new Long(-1));
+			while(-1 != changeDao.getLastSynchedChangeNumber()){
+				monitor.wait(MAX_PUBLISH_WAIT_MS);
+			}
 		}
 		// Create some change messages
 		List<ChangeMessage> changes = createList(3, ObjectType.ACTIVITY);
@@ -70,7 +73,14 @@ public class ChangeSentMessageSynchWorkerIntegrationTest {
 			changes = changeDao.replaceChange(changes);
 			log.info("replaced: "+changes);
 			// they should be synched by the time the worker is done.
-			waitForSynchState(changes.get(2).getChangeNumber());
+			// Wait for the worker to run and chagne the number
+			long expectedChaneNumber = changes.get(2).getChangeNumber();
+			while(expectedChaneNumber != changeDao.getLastSynchedChangeNumber()){
+				monitor.wait(MAX_PUBLISH_WAIT_MS);
+			}
+			// wait for the worker then check the state while holding the lock.
+			List<ChangeMessage> notSynchded = changeDao.listUnsentMessages(0, Long.MAX_VALUE);
+			assertTrue("There should be no unsent message after the worker has finished: "+notSynchded.toString(),notSynchded.isEmpty());
 		}
 
 		// Make change while we have the lock
@@ -80,7 +90,13 @@ public class ChangeSentMessageSynchWorkerIntegrationTest {
 			changes = changeDao.replaceChange(changes);
 			log.info("replaced: "+changes);
 			// they should be synched by the time the worker is done.
-			waitForSynchState(changes.get(2).getChangeNumber());
+			long expectedChaneNumber = changes.get(2).getChangeNumber();
+			while(expectedChaneNumber != changeDao.getLastSynchedChangeNumber()){
+				monitor.wait(MAX_PUBLISH_WAIT_MS);
+			}
+			// wait for the worker then check the state while holding the lock.
+			List<ChangeMessage> notSynchded = changeDao.listUnsentMessages(0, Long.MAX_VALUE);
+			assertTrue("There should be no unsent message after the worker has finished: "+notSynchded.toString(),notSynchded.isEmpty());
 		}
 
 		// Make change while we have the lock
@@ -94,7 +110,13 @@ public class ChangeSentMessageSynchWorkerIntegrationTest {
 			// At this point the LastSynchedChangeNumber will not longer exist in the sent table.
 			// There are also two changes that have not been sent that have change numbers less than the max sent change number
 			// the worker must be able to find this changes and send them.
-			waitForSynchState(changes.get(2).getChangeNumber());
+			long expectedChaneNumber = changes.get(2).getChangeNumber();
+			while(expectedChaneNumber != changeDao.getLastSynchedChangeNumber()){
+				monitor.wait(MAX_PUBLISH_WAIT_MS);
+			}
+			// wait for the worker then check the state while holding the lock.
+			List<ChangeMessage> notSynchded = changeDao.listUnsentMessages(0, Long.MAX_VALUE);
+			assertTrue("There should be no unsent message after the worker has finished: "+notSynchded.toString(),notSynchded.isEmpty());
 		}
 
 	}
@@ -114,8 +136,11 @@ public class ChangeSentMessageSynchWorkerIntegrationTest {
 	 * @throws InterruptedException 
 	 */
 	private void waitForSynchState(Long expectedLastChangeNumber) throws InterruptedException {
+		// Wait for the worker to run and chagne the number
+		while(expectedLastChangeNumber.equals(changeDao.getLastSynchedChangeNumber())){
+			monitor.wait(MAX_PUBLISH_WAIT_MS);
+		}
 		// wait for the worker then check the state while holding the lock.
-		monitor.wait(MAX_PUBLISH_WAIT_MS);
 		List<ChangeMessage> notSynchded = changeDao.listUnsentMessages(0, Long.MAX_VALUE);
 		assertTrue("There should be no unsent message after the worker has finished: "+notSynchded.toString(),notSynchded.isEmpty());
 		assertEquals("The last synched changed number did not match the expected value.",expectedLastChangeNumber, changeDao.getLastSynchedChangeNumber());
