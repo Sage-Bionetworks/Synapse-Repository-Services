@@ -54,6 +54,7 @@ public class ChangeSentMessageSynchWorkerIntegrationTest {
 	
 	@Test
 	public void testMissing() throws InterruptedException{
+		waitForSynchState(new Long(-1));
 		// Create some change messages
 		List<ChangeMessage> changes = createList(3, ObjectType.ACTIVITY);
 
@@ -97,6 +98,7 @@ public class ChangeSentMessageSynchWorkerIntegrationTest {
 			testMissing();
 		}
 	}
+	
 	/**
 	 * Wait for all of the messages to be synched.
 	 * @throws InterruptedException 
