@@ -194,14 +194,13 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 			return false;
 		}catch (IllegalArgumentException e){
 			// This can occur when we try to send a message that has already been sent.
-			return false;
 		}catch (NotFoundException e){
 			// This can occur when we try to send a message that has already been deleted.
 		}catch (DataIntegrityViolationException e){
 			// This can occur when we try to send a message that has already been deleted or has already been sent.
 		}catch (Throwable e){
 			// This should never throw an exception.
-			log.debug("Unknown failure: "+e.getMessage(),e);
+			log.error("Unknown failure: "+e.getMessage(),e);
 		}
 		return false;
 	}
