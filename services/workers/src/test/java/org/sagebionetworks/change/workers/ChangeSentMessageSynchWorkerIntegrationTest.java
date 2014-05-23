@@ -11,6 +11,7 @@ import static org.junit.Assert.*;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
+import org.sagebionetworks.repo.manager.message.RepositoryMessagePublisher;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
@@ -34,12 +35,16 @@ public class ChangeSentMessageSynchWorkerIntegrationTest {
 	SemaphoreManager semphoreManager;
 	@Autowired
 	ChangeSentMessageSynchWorker changeSentMessageSynchWorker;
+	@Autowired
+	RepositoryMessagePublisher repositoryMessagePublisher;
 	Object monitor;
 	
 	private int objectIdSequence;
 	
 	@Before
 	public void before(){
+		// If there are any pending messages make sure they are sent before we start this test
+		repositoryMessagePublisher.timerFired();
 		changeDao.deleteAllChanges();
 		changeDao.resetLastChangeNumber();
 		semphoreManager.releaseAllLocksAsAdmin(new UserInfo(true));

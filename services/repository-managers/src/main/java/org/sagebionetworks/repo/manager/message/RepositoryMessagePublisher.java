@@ -44,6 +44,7 @@ public interface RepositoryMessagePublisher extends TransactionalMessengerObserv
 	 * Publish a message to its topic and register the message as sent.
 	 * 
 	 * @param message
+	 * @return 
 	 */
-	public void publishToTopic(ChangeMessage message);
+	public boolean publishToTopic(ChangeMessage message);
 }
