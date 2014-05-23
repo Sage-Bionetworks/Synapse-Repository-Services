@@ -92,14 +92,18 @@ public class ChangeSentMessageSynchWorkerIntegrationTest {
 	 * Wait for all of the messages to be synched.
 	 * @throws InterruptedException 
 	 */
-	private void waitForSynchState() throws InterruptedException{
+	private void waitForSynchState() throws InterruptedException {
 		// Wait for the worker to run once
-		System.out.println("Waiting for ChangeSentMessageSynchWorker to run...");
-		synchronized (monitor) {
-			monitor.wait(MAX_PUBLISH_WAIT_MS);
+		long start = System.currentTimeMillis();
+		List<ChangeMessage> notSynched = null;
+		while (notSynched == null || !notSynched.isEmpty()) {
+			System.out.println("Waiting for ChangeSentMessageSynchWorker to run...");
+			synchronized (monitor) {
+				monitor.wait(MAX_PUBLISH_WAIT_MS);
+			}
+			notSynched = changeDao.listUnsentMessages(0, Long.MAX_VALUE);
+			assertTrue("Timed out waiting for ChangeSentMessageSynchWorker", System.currentTimeMillis() - start < MAX_PUBLISH_WAIT_MS);
 		}
-		List<ChangeMessage> notSynched = changeDao.listUnsentMessages(0, Long.MAX_VALUE);
-		assertTrue("After the ChangeSentMessageSynchWorker runs there should be no more messages to send", notSynched.isEmpty());
 	}
 	
 	/**
