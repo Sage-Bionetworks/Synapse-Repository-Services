@@ -19,9 +19,12 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.util.TimeUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import com.google.common.base.Predicate;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -41,7 +44,6 @@ public class ChangeSentMessageSynchWorkerIntegrationTest {
 	ChangeSentMessageSynchWorker changeSentMessageSynchWorker;
 	@Autowired
 	RepositoryMessagePublisher repositoryMessagePublisher;
-	Object monitor;
 	
 	private int objectIdSequence;
 	
@@ -53,72 +55,33 @@ public class ChangeSentMessageSynchWorkerIntegrationTest {
 		changeDao.resetLastChangeNumber();
 		semphoreManager.releaseAllLocksAsAdmin(new UserInfo(true));
 		objectIdSequence = 0;
-		monitor = changeSentMessageSynchWorker.getMonitor();
 	}
 	
 	@Test
 	public void testMissing() throws InterruptedException{
 		// At the start the last change number should be -1 after the worker has a chance to run.
-		synchronized (monitor) {
-			while(-1 != changeDao.getLastSynchedChangeNumber()){
-				monitor.wait(MAX_PUBLISH_WAIT_MS);
-			}
-		}
+		waitForSynchState();
 		// Create some change messages
 		List<ChangeMessage> changes = createList(3, ObjectType.ACTIVITY);
+		// set the changes
+		changes = changeDao.replaceChange(changes);
+		waitForSynchState();
+		assertEquals(changes.get(2).getChangeNumber(), changeDao.getLastSynchedChangeNumber());
+		
+		// create more changes
+		changes = createList(3, ObjectType.ACTIVITY);
+		changes = changeDao.replaceChange(changes);
+		waitForSynchState();
+		assertEquals(changes.get(2).getChangeNumber(), changeDao.getLastSynchedChangeNumber());
 
-		// Make change while we have the lock
-		synchronized (monitor) {
-			// set the changes
-			changes = changeDao.replaceChange(changes);
-			log.info("replaced: "+changes);
-			// they should be synched by the time the worker is done.
-			// Wait for the worker to run and chagne the number
-			long expectedChaneNumber = changes.get(2).getChangeNumber();
-			while(expectedChaneNumber != changeDao.getLastSynchedChangeNumber()){
-				monitor.wait(MAX_PUBLISH_WAIT_MS);
-			}
-			// wait for the worker then check the state while holding the lock.
-			List<ChangeMessage> notSynchded = changeDao.listUnsentMessages(0, Long.MAX_VALUE);
-			assertTrue("There should be no unsent message after the worker has finished: "+notSynchded.toString(),notSynchded.isEmpty());
-		}
-
-		// Make change while we have the lock
-		synchronized (monitor) {
-			// create more changes
-			changes = createList(3, ObjectType.ACTIVITY);
-			changes = changeDao.replaceChange(changes);
-			log.info("replaced: "+changes);
-			// they should be synched by the time the worker is done.
-			long expectedChaneNumber = changes.get(2).getChangeNumber();
-			while(expectedChaneNumber != changeDao.getLastSynchedChangeNumber()){
-				monitor.wait(MAX_PUBLISH_WAIT_MS);
-			}
-			// wait for the worker then check the state while holding the lock.
-			List<ChangeMessage> notSynchded = changeDao.listUnsentMessages(0, Long.MAX_VALUE);
-			assertTrue("There should be no unsent message after the worker has finished: "+notSynchded.toString(),notSynchded.isEmpty());
-		}
-
-		// Make change while we have the lock
-		synchronized (monitor) {
-			// By replacing changes the LastSynchedChangeNumber will no longer exist in the sent table.
-			changes = changeDao.replaceChange(changes);
-			log.info("replaced: "+changes);
-			// Set the last message as sent.
-			changeDao.registerMessageSent(changes.get(2));
-			log.info("Set sent: "+changes.get(2));
-			// At this point the LastSynchedChangeNumber will not longer exist in the sent table.
-			// There are also two changes that have not been sent that have change numbers less than the max sent change number
-			// the worker must be able to find this changes and send them.
-			long expectedChaneNumber = changes.get(2).getChangeNumber();
-			while(expectedChaneNumber != changeDao.getLastSynchedChangeNumber()){
-				monitor.wait(MAX_PUBLISH_WAIT_MS);
-			}
-			// wait for the worker then check the state while holding the lock.
-			List<ChangeMessage> notSynchded = changeDao.listUnsentMessages(0, Long.MAX_VALUE);
-			assertTrue("There should be no unsent message after the worker has finished: "+notSynchded.toString(),notSynchded.isEmpty());
-		}
-
+		// By replacing changes the LastSynchedChangeNumber will no longer exist in the sent table.
+		changes = changeDao.replaceChange(changes);
+		changeDao.registerMessageSent(changes.get(2));
+		// At this point the LastSynchedChangeNumber will not longer exist in the sent table.
+		// There are also two changes that have not been sent that have change numbers less than the max sent change number
+		// the worker must be able to find this changes and send them.
+		waitForSynchState();
+		assertEquals(changes.get(2).getChangeNumber(), changeDao.getLastSynchedChangeNumber());
 	}
 	
 	@Ignore // this is a long running test that does not always need to be run.
@@ -135,15 +98,15 @@ public class ChangeSentMessageSynchWorkerIntegrationTest {
 	 * Wait for all of the messages to be synched.
 	 * @throws InterruptedException 
 	 */
-	private void waitForSynchState(Long expectedLastChangeNumber) throws InterruptedException {
-		// Wait for the worker to run and chagne the number
-		while(expectedLastChangeNumber.equals(changeDao.getLastSynchedChangeNumber())){
-			monitor.wait(MAX_PUBLISH_WAIT_MS);
-		}
-		// wait for the worker then check the state while holding the lock.
-		List<ChangeMessage> notSynchded = changeDao.listUnsentMessages(0, Long.MAX_VALUE);
-		assertTrue("There should be no unsent message after the worker has finished: "+notSynchded.toString(),notSynchded.isEmpty());
-		assertEquals("The last synched changed number did not match the expected value.",expectedLastChangeNumber, changeDao.getLastSynchedChangeNumber());
+	private void waitForSynchState() throws InterruptedException {
+		boolean passed = TimeUtils.waitFor(MAX_PUBLISH_WAIT_MS, 1000, null, new Predicate<Void>() {
+			@Override
+			public boolean apply(Void input) {
+				List<ChangeMessage> notSynchded = changeDao.listUnsentMessages(0, Long.MAX_VALUE);
+				return notSynchded.isEmpty();
+			}
+		});
+		assertTrue("Timed out waiting for ChangeSentMessageSynchWorker to synchronize",passed);
 	}
 	
 	/**
