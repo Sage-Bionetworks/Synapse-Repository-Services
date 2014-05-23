@@ -33,9 +33,7 @@ import org.springframework.http.converter.HttpMessageNotWritableException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:test-context.xml" })
-public class ObjectTypeSerializerTest {
+public class ObjectTypeSerializerTest extends AbstractAutowiredControllerTestBase {
 	
 	MediaType mediaType = new MediaType("application", "json", Charset.forName("UTF-8"));
 	

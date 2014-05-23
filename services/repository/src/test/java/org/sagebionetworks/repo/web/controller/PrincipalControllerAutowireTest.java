@@ -14,9 +14,7 @@ import org.sagebionetworks.repo.model.principal.AliasType;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:test-context.xml" })
-public class PrincipalControllerAutowireTest {
+public class PrincipalControllerAutowireTest extends AbstractAutowiredControllerTestBase {
 
 	
 	@Test
@@ -25,7 +23,7 @@ public class PrincipalControllerAutowireTest {
 		// This is valid but already in use
 		request.setAlias("anonymous");
 		request.setType(AliasType.USER_NAME);
-		AliasCheckResponse response = ServletTestHelper.checkAlias(DispatchServletSingleton.getInstance(), request);
+		AliasCheckResponse response = servletTestHelper.checkAlias(dispatchServlet, request);
 		assertNotNull(response);
 		assertTrue(response.getValid());
 		assertFalse("The 'anonymous' users should already have this alias so it cannot be available!",response.getAvailable());

@@ -54,17 +54,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
-/**
- * Note: In order to use this class you must have the following annotations on
- * your test to get the DispatcherServlet initialized:
- * 
- * @RunWith(SpringJUnit4ClassRunner.class)
- * @ContextConfiguration(locations = { "classpath:test-context.xml" })
- * 
- */
 public class EntityServletTestHelper {
 
-	private static HttpServlet dispatcherServlet = null;
+	private HttpServlet dispatcherServlet = null;
 
 	/**
 	 * Setup the servlet, default test user, and entity list for test cleanup.
@@ -74,8 +66,8 @@ public class EntityServletTestHelper {
 	 * 
 	 * @throws Exception
 	 */
-	public EntityServletTestHelper() throws Exception {
-		dispatcherServlet = DispatchServletSingleton.getInstance();
+	public EntityServletTestHelper(HttpServlet dispatcherServlet) throws Exception {
+		this.dispatcherServlet = dispatcherServlet;
 	}
 
 	/**

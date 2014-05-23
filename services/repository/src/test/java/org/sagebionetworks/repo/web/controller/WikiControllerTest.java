@@ -14,7 +14,6 @@ import java.util.List;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.repo.manager.NodeManager;
@@ -36,8 +35,6 @@ import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 
@@ -46,12 +43,7 @@ import com.amazonaws.services.s3.AmazonS3Client;
  * @author jmhill
  *
  */
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:test-context.xml" })
-public class WikiControllerTest {
-	
-	@Autowired
-	private EntityServletTestHelper entityServletHelper;
+public class WikiControllerTest extends AbstractAutowiredControllerTestBase {
 	
 	@Autowired
 	private UserManager userManager;
@@ -82,7 +74,7 @@ public class WikiControllerTest {
 		// get user IDs
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		adminUserIdString = adminUserId.toString();
-		
+
 		toDelete = new LinkedList<WikiPageKey>();
 		// Create a file handle
 		handleOne = new S3FileHandle();

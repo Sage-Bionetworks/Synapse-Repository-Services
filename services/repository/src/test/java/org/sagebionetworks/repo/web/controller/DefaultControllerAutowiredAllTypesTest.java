@@ -77,12 +77,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
  * 
  */
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:test-context.xml" })
-public class DefaultControllerAutowiredAllTypesTest {
-
-	@Autowired
-	private ServletTestHelper testHelper;
+public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredControllerTestBase {
 
 	// Used for cleanup
 	@Autowired
@@ -106,8 +101,6 @@ public class DefaultControllerAutowiredAllTypesTest {
 	@Autowired
 	private TeamManager teamManager;
 
-	private static HttpServlet dispatchServlet;
-	
 	private Long userId;
 	private UserInfo testUser;
 	private Team testTeam;
@@ -179,21 +172,16 @@ public class DefaultControllerAutowiredAllTypesTest {
 		}
 	}
 
-	@BeforeClass
-	public static void beforeClass() throws ServletException {
-		dispatchServlet = DispatchServletSingleton.getInstance();
-	}
-	
 	@Test
 	public void testAnonymousGet() throws Exception {
 		Project project = new Project();
 		project.setName("testAnonymousGet");
-		project = ServletTestHelper.createEntity(dispatchServlet, project, userId);
+		project = servletTestHelper.createEntity(dispatchServlet, project, userId);
 		String id = project.getId();
 		assertNotNull(project);
 		toDelete.add(id);
 		// Grant this project public access
-		AccessControlList acl = ServletTestHelper.getEntityACL(dispatchServlet, id, userId);
+		AccessControlList acl = servletTestHelper.getEntityACL(dispatchServlet, id, userId);
 		assertNotNull(acl);
 		assertEquals(id, acl.getId());
 		ResourceAccess ac = new ResourceAccess();
@@ -203,10 +191,11 @@ public class DefaultControllerAutowiredAllTypesTest {
 		ac.setAccessType(new HashSet<ACCESS_TYPE>());
 		ac.getAccessType().add(ACCESS_TYPE.READ);
 		acl.getResourceAccess().add(ac);
-		ServletTestHelper.updateEntityAcl(dispatchServlet,id, acl, userId);
+		servletTestHelper.updateEntityAcl(dispatchServlet, id, acl, userId);
 		
 		// Make sure the anonymous user can see this.
-		Project clone = ServletTestHelper.getEntity(dispatchServlet, Project.class, project.getId(), BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		Project clone = servletTestHelper.getEntity(dispatchServlet, Project.class, project.getId(),
+				BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		assertNotNull(clone);
 	}
 	
@@ -227,15 +216,15 @@ public class DefaultControllerAutowiredAllTypesTest {
 		// Create a project
 		Project project = new Project();
 		project.setName("createAtLeastOneOfEachType");
-		project = ServletTestHelper.createEntity(dispatchServlet, project, userId);
+		project = servletTestHelper.createEntity(dispatchServlet, project, userId);
 		assertNotNull(project);
 		toDelete.add(project.getId());
 		// Create a dataset
 		Study datasetParent = (Study) ObjectTypeFactory.createObjectForTest("datasetParent", EntityType.dataset, project.getId());
-		datasetParent = ServletTestHelper.createEntity(dispatchServlet, datasetParent, userId);
+		datasetParent = servletTestHelper.createEntity(dispatchServlet, datasetParent, userId);
 		// Create a layer parent
 		Data layerParent = (Data) ObjectTypeFactory.createObjectForTest("layerParent", EntityType.layer, datasetParent.getId());
-		layerParent = ServletTestHelper.createEntity(dispatchServlet, layerParent, userId);
+		layerParent = servletTestHelper.createEntity(dispatchServlet, layerParent, userId);
 		// Now get the path of the layer
 		List<EntityHeader> path = entityController.getEntityPath(userId, layerParent.getId());
 		
@@ -265,7 +254,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 					Community community = (Community) object;
 					community.setTeamId(testTeam.getId());
 				}
-				Entity clone = ServletTestHelper.createEntity(dispatchServlet, object, userId);
+				Entity clone = servletTestHelper.createEntity(dispatchServlet, object, userId);
 				assertNotNull(clone);
 				assertNotNull(clone.getId());
 				assertNotNull(clone.getEtag());
@@ -328,7 +317,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 		// Now make sure we can get each type
 		for(Entity entity: created){
 			// Can we get it?
-			Entity fromGet = ServletTestHelper.getEntity(dispatchServlet,entity.getClass(), entity.getId(), userId);
+			Entity fromGet = servletTestHelper.getEntity(dispatchServlet, entity.getClass(), entity.getId(), userId);
 			assertNotNull(fromGet);
 			// Should match the clone
 			assertEquals(entity, fromGet);
@@ -344,10 +333,10 @@ public class DefaultControllerAutowiredAllTypesTest {
 		
 		// Now delete each one
 		for(Entity entity: created){
-			ServletTestHelper.deleteEntity(dispatchServlet, entity.getClass(), entity.getId(), userId);
+			servletTestHelper.deleteEntity(dispatchServlet, entity.getClass(), entity.getId(), userId);
 			// This should throw an exception
 			try {
-				ServletTestHelper.getEntity(dispatchServlet, entity.getClass(), entity.getId(), userId);
+				servletTestHelper.getEntity(dispatchServlet, entity.getClass(), entity.getId(), userId);
 				fail("Entity ID " + entity.getId() + " should no longer exist. Expected an exception.");
 			} catch (Exception e) {
 				// expected
@@ -368,7 +357,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 			// Now change the name
 			String newName ="my new name"+counter;
 			entity.setName(newName);
-			Entity updated = ServletTestHelper.updateEntity(dispatchServlet, entity, userId);
+			Entity updated = servletTestHelper.updateEntity(dispatchServlet, entity, userId);
 			assertNotNull(updated);
 			// Updating an entity should not create a new version
 			if(updated instanceof Versionable){
@@ -379,7 +368,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 			assertNotNull(updated.getEtag());
 			assertFalse(updated.getEtag().equals(entity.getEtag()));
 			// Now get the object
-			Entity fromGet = ServletTestHelper.getEntity(dispatchServlet, entity.getClass(), entity.getId(), userId);
+			Entity fromGet = servletTestHelper.getEntity(dispatchServlet, entity.getClass(), entity.getId(), userId);
 			assertEquals(updated, fromGet);
 			assertEquals(newName, fromGet.getName());
 			counter++;
@@ -397,7 +386,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 		// Now update each
 		for(Entity entity: created){
 			// Make sure we can get the annotations for this entity.
-			EntityPath entityPath = ServletTestHelper.getEntityPath(dispatchServlet, entity.getClass(), entity.getId(), userId);
+			EntityPath entityPath = servletTestHelper.getEntityPath(dispatchServlet, entity.getClass(), entity.getId(), userId);
 			List<EntityHeader> path = entityPath.getPath();
 			assertNotNull(path);
 			assertTrue(path.size() > 0);
@@ -421,7 +410,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 		// Now update each
 		for(Entity entity: created){
 			// Make sure we can get the annotations for this entity.
-			Annotations annos = ServletTestHelper.getEntityAnnotations(dispatchServlet, entity.getClass(), entity.getId(), userId);
+			Annotations annos = servletTestHelper.getEntityAnnotations(dispatchServlet, entity.getClass(), entity.getId(), userId);
 			assertNotNull(annos);
 			// Annotations use the same etag as the entity
 			assertEquals(entity.getEtag(), annos.getEtag());
@@ -440,13 +429,13 @@ public class DefaultControllerAutowiredAllTypesTest {
 		// Now update each
 		for(Entity entity: created){
 			// Make sure we can get the annotations for this entity.
-			Annotations annos = ServletTestHelper.getEntityAnnotations(dispatchServlet, entity.getClass(), entity.getId(), userId);
+			Annotations annos = servletTestHelper.getEntityAnnotations(dispatchServlet, entity.getClass(), entity.getId(), userId);
 			assertNotNull(annos);
 			assertNotNull(annos.getEtag());
 			annos.addAnnotation("someStringKey", "one");
 			annos.addAnnotation("someBlobKey", "I am a very long string".getBytes("UTF-8"));
 			// Do the update
-			Annotations updatedAnnos = ServletTestHelper.updateEntityAnnotations(dispatchServlet, entity.getClass(), annos, userId);
+			Annotations updatedAnnos = servletTestHelper.updateEntityAnnotations(dispatchServlet, entity.getClass(), annos, userId);
 			assertNotNull(updatedAnnos);
 			assertNotNull(updatedAnnos.getEtag());
 			assertFalse(updatedAnnos.getEtag().equals(annos.getEtag()));
@@ -467,9 +456,9 @@ public class DefaultControllerAutowiredAllTypesTest {
 		for(Entity entity: created){
 			AccessControlList acl = null;
 			try{
-				acl = ServletTestHelper.getEntityACL(dispatchServlet, entity.getId(), userId);
+				acl = servletTestHelper.getEntityACL(dispatchServlet, entity.getId(), userId);
 			}catch(ACLInheritanceException e){
-				acl = ServletTestHelper.getEntityACL(dispatchServlet, e.getBenefactorId(), userId);
+				acl = servletTestHelper.getEntityACL(dispatchServlet, e.getBenefactorId(), userId);
 			}
 			assertNotNull(acl);
 		}
@@ -486,12 +475,12 @@ public class DefaultControllerAutowiredAllTypesTest {
 		for(Entity entity: created){
 			AccessControlList acl = null;
 			try{
-				acl = ServletTestHelper.getEntityACL(dispatchServlet, entity.getId(), userId);
+				acl = servletTestHelper.getEntityACL(dispatchServlet, entity.getId(), userId);
 			}catch(ACLInheritanceException e){
-				acl = ServletTestHelper.getEntityACL(dispatchServlet, e.getBenefactorId(), userId);
+				acl = servletTestHelper.getEntityACL(dispatchServlet, e.getBenefactorId(), userId);
 			}
 			assertNotNull(acl);
-			ServletTestHelper.updateEntityAcl(dispatchServlet, acl.getId(), acl, userId);
+			servletTestHelper.updateEntityAcl(dispatchServlet, acl.getId(), acl, userId);
 		}
 
 	}
@@ -508,14 +497,14 @@ public class DefaultControllerAutowiredAllTypesTest {
 		for(Entity entity: created){
 			AccessControlList acl = null;
 			try{
-				acl = ServletTestHelper.getEntityACL(dispatchServlet, entity.getId(), userId);
+				acl = servletTestHelper.getEntityACL(dispatchServlet, entity.getId(), userId);
 			}catch(ACLInheritanceException e){
 				// occurs when the child inherits its permissions from a benefactor
-				acl = ServletTestHelper.getEntityACL(dispatchServlet, e.getBenefactorId(), userId);
+				acl = servletTestHelper.getEntityACL(dispatchServlet, e.getBenefactorId(), userId);
 			}
 			assertNotNull(acl);
 			// Get the full path of this entity.
-			EntityPath entityPath = ServletTestHelper.getEntityPath(dispatchServlet, entity.getClass(), entity.getId(), userId);			
+			EntityPath entityPath = servletTestHelper.getEntityPath(dispatchServlet, entity.getClass(), entity.getId(), userId);
 			List<EntityHeader> path = entityPath.getPath();
 			assertNotNull(path);
 			assertTrue(path.size() > 0);
@@ -533,22 +522,22 @@ public class DefaultControllerAutowiredAllTypesTest {
 			acl.setId(null);
 			// (Is this OK, or do we have to make new ResourceAccess objects inside?)
 			// now POST to /dataset/{id}/acl with this acl as the body
-			AccessControlList acl2 = ServletTestHelper.createEntityACL(dispatchServlet, entity.getId(), acl, userId);
+			AccessControlList acl2 = servletTestHelper.createEntityACL(dispatchServlet, entity.getId(), acl, userId);
 			// now retrieve the acl for the child. should get its own back
-			AccessControlList acl3 = ServletTestHelper.getEntityACL(dispatchServlet, entity.getId(), userId);
+			AccessControlList acl3 = servletTestHelper.getEntityACL(dispatchServlet, entity.getId(), userId);
 			assertEquals(entity.getId(), acl3.getId());
 			
 			
 			// now delete the ACL (restore inheritance)
-			ServletTestHelper.deleteEntityACL(dispatchServlet, entity.getId(), userId);
+			servletTestHelper.deleteEntityACL(dispatchServlet, entity.getId(), userId);
 			// try retrieving the ACL for the child
 			
 			// should get the parent's ACL
 			AccessControlList acl4 = null;
 			try{
-				 acl4 = ServletTestHelper.getEntityACL(dispatchServlet, entity.getId(), userId);
+				acl4 = servletTestHelper.getEntityACL(dispatchServlet, entity.getId(), userId);
 			}catch(ACLInheritanceException e){
-				acl4 = ServletTestHelper.getEntityACL(dispatchServlet, e.getBenefactorId(), userId);
+				acl4 = servletTestHelper.getEntityACL(dispatchServlet, e.getBenefactorId(), userId);
 			}
 			assertNotNull(acl4);
 			// the returned ACL should refer to the parent
@@ -574,7 +563,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 				// We must give it a new version label or it will fail
 				versionableEntity.setVersionLabel("1.1.99");
 				versionableEntity.setVersionComment("Testing the DefaultController.createNewVersion()");
-				Versionable newVersion = ServletTestHelper.createNewVersion(dispatchServlet, versionableEntity, userId);
+				Versionable newVersion = servletTestHelper.createNewVersion(dispatchServlet, versionableEntity, userId);
 				assertNotNull(newVersion);
 				// Make sure we have a new version number.
 				assertEquals(new Long(2), newVersion.getVersionNumber());
@@ -600,7 +589,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 				// We must give it a new version label or it will fail
 				versionableEntity.setVersionLabel("1.1.99");
 				versionableEntity.setVersionComment("Testing the DefaultController.testGetVersion()");
-				Versionable newVersion = ServletTestHelper.createNewVersion(dispatchServlet, versionableEntity, userId);
+				Versionable newVersion = servletTestHelper.createNewVersion(dispatchServlet, versionableEntity, userId);
 				assertNotNull(newVersion);
 				// Make sure we have a new version number.
 				assertEquals(new Long(2), newVersion.getVersionNumber());
@@ -608,12 +597,14 @@ public class DefaultControllerAutowiredAllTypesTest {
 				assertEquals(versionableEntity.getVersionComment(), newVersion.getVersionComment());
 				
 				// Get the first version
-				Versionable v1 =ServletTestHelper.getEntityForVersion(dispatchServlet, versionableEntity.getClass(), versionableEntity.getId(), new Long(1), userId);
+				Versionable v1 = servletTestHelper.getEntityForVersion(dispatchServlet, versionableEntity.getClass(),
+						versionableEntity.getId(), new Long(1), userId);
 				assertNotNull(v1);
 				assertEquals(new Long(1), v1.getVersionNumber());
 				UrlHelpers.validateAllUrls(v1);
 				// now get the second version
-				Versionable v2 =ServletTestHelper.getEntityForVersion(dispatchServlet, versionableEntity.getClass(), versionableEntity.getId(), new Long(2), userId);
+				Versionable v2 = servletTestHelper.getEntityForVersion(dispatchServlet, versionableEntity.getClass(),
+						versionableEntity.getId(), new Long(2), userId);
 				assertNotNull(v2);
 				assertEquals(new Long(2), v2.getVersionNumber());
 				UrlHelpers.validateAllUrls(v2);
@@ -636,16 +627,17 @@ public class DefaultControllerAutowiredAllTypesTest {
 				// Create multiple versions for each.
 				for(int i=0; i<numberVersion; i++){
 					// Create a comment and label for each
-					versionableEntity = ServletTestHelper.getEntity(dispatchServlet, versionableEntity.getClass(), entity.getId(), userId);
+					versionableEntity = servletTestHelper.getEntity(dispatchServlet, versionableEntity.getClass(), entity.getId(), userId);
 					versionableEntity.setVersionLabel("1.1."+i);
 					versionableEntity.setVersionComment("Comment: "+i);
-					ServletTestHelper.createNewVersion(dispatchServlet, versionableEntity, userId);
+					servletTestHelper.createNewVersion(dispatchServlet, versionableEntity, userId);
 				}
 				long currentVersion = numberVersion+1;
 				long previousVersion = currentVersion-1;
 				long firstVersion = 1;
 				// Now get all entities
-				PaginatedResults<VersionInfo> results = ServletTestHelper.getAllVersionsOfEntity(dispatchServlet, entity.getId(), 1, 100, userId);
+				PaginatedResults<VersionInfo> results = servletTestHelper.getAllVersionsOfEntity(dispatchServlet, entity.getId(), 1, 100,
+						userId);
 				assertNotNull(results);
 				assertEquals(currentVersion, results.getTotalNumberOfResults());
 				assertNotNull(results.getResults());
@@ -657,7 +649,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 				assertEquals(new Long(firstVersion), results.getResults().get(results.getResults().size()-1).getVersionNumber());
 				
 				// Query again but this time get a sub-set
-				results = ServletTestHelper.getAllVersionsOfEntity(dispatchServlet, entity.getId(), 2, 3, userId);
+				results = servletTestHelper.getAllVersionsOfEntity(dispatchServlet, entity.getId(), 2, 3, userId);
 				assertNotNull(results);
 				assertEquals(currentVersion, results.getTotalNumberOfResults());
 				assertNotNull(results.getResults());
@@ -684,37 +676,41 @@ public class DefaultControllerAutowiredAllTypesTest {
 				Versionable versionableEntity = (Versionable) entity;
 				
 				// Before we create a new version make sure the current version has some annotations
-				Annotations v1Annos = ServletTestHelper.getEntityAnnotations(dispatchServlet, versionableEntity.getClass(), entity.getId(), userId);
+				Annotations v1Annos = servletTestHelper.getEntityAnnotations(dispatchServlet, versionableEntity.getClass(), entity.getId(),
+						userId);
 				assertNotNull(v1Annos);
 				String v1Value = "I am on the first version, whooo hooo!...";
 				v1Annos.addAnnotation("stringKey", v1Value);
-				v1Annos = ServletTestHelper.updateEntityAnnotations(dispatchServlet, versionableEntity.getClass(), v1Annos, userId);
+				v1Annos = servletTestHelper.updateEntityAnnotations(dispatchServlet, versionableEntity.getClass(), v1Annos, userId);
 
 				// Now create a new version
 				// We must give it a new version label or it will fail
-				versionableEntity = ServletTestHelper.getEntity(dispatchServlet, versionableEntity.getClass(), entity.getId(), userId);
+				versionableEntity = servletTestHelper.getEntity(dispatchServlet, versionableEntity.getClass(), entity.getId(), userId);
 				versionableEntity.setVersionLabel("1.1.80");
 				versionableEntity.setVersionComment("Testing the DefaultController.EntityAnnotationsForVersion()");
-				Versionable newVersion = ServletTestHelper.createNewVersion(dispatchServlet, versionableEntity, userId);
+				Versionable newVersion = servletTestHelper.createNewVersion(dispatchServlet, versionableEntity, userId);
 				assertNotNull(newVersion);
 				
 				// Make sure the new version has the annotations
-				Annotations v2Annos = ServletTestHelper.getEntityAnnotations(dispatchServlet, versionableEntity.getClass(), entity.getId(), userId);
+				Annotations v2Annos = servletTestHelper.getEntityAnnotations(dispatchServlet, versionableEntity.getClass(), entity.getId(),
+						userId);
 				assertNotNull(v2Annos);
 				assertEquals(v1Value, v2Annos.getSingleValue("stringKey"));
 				// Now update the v2 annotations
 				v2Annos.getStringAnnotations().clear();
 				String v2Value = "I am on the second version, booo hooo!...";
 				v2Annos.addAnnotation("stringKey", v2Value);
-				v2Annos = ServletTestHelper.updateEntityAnnotations(dispatchServlet, versionableEntity.getClass(), v2Annos, userId);
+				v2Annos = servletTestHelper.updateEntityAnnotations(dispatchServlet, versionableEntity.getClass(), v2Annos, userId);
 				
 				// Now make sure we can get both v1 and v2 annotations and each has the correct values
 				//v1
-				v1Annos = ServletTestHelper.getEntityAnnotationsForVersion(dispatchServlet, versionableEntity.getClass(), entity.getId(), 1l, userId);
+				v1Annos = servletTestHelper.getEntityAnnotationsForVersion(dispatchServlet, versionableEntity.getClass(), entity.getId(), 1l,
+						userId);
 				assertNotNull(v1Annos);
 				assertEquals(v1Value, v1Annos.getSingleValue("stringKey"));
 				//v2
-				v2Annos = ServletTestHelper.getEntityAnnotationsForVersion(dispatchServlet, versionableEntity.getClass(), entity.getId(), 2l, userId);
+				v2Annos = servletTestHelper.getEntityAnnotationsForVersion(dispatchServlet, versionableEntity.getClass(), entity.getId(), 2l,
+						userId);
 				assertNotNull(v2Annos);
 				assertEquals(v2Value, v2Annos.getSingleValue("stringKey"));
 			}
@@ -735,21 +731,22 @@ public class DefaultControllerAutowiredAllTypesTest {
 				
 				// Now create a new version
 				// We must give it a new version label or it will fail
-				versionableEntity = ServletTestHelper.getEntity(dispatchServlet, versionableEntity.getClass(), entity.getId(), userId);
+				versionableEntity = servletTestHelper.getEntity(dispatchServlet, versionableEntity.getClass(), entity.getId(), userId);
 				versionableEntity.setVersionLabel("1.1.80");
 				versionableEntity.setVersionComment("Testing the DefaultController.testDeleteVersion()");
-				Versionable newVersion = ServletTestHelper.createNewVersion(dispatchServlet, versionableEntity, userId);
+				Versionable newVersion = servletTestHelper.createNewVersion(dispatchServlet, versionableEntity, userId);
 				assertNotNull(newVersion);
 				
 				// There should be two versions
-				PaginatedResults<VersionInfo> paging = ServletTestHelper.getAllVersionsOfEntity(dispatchServlet, entity.getId(), 1, 100, userId);
+				PaginatedResults<VersionInfo> paging = servletTestHelper.getAllVersionsOfEntity(dispatchServlet, entity.getId(), 1, 100,
+						userId);
 				assertNotNull(paging);
 				assertEquals(2, paging.getTotalNumberOfResults());
 				
 				// Now delete the new version
-				ServletTestHelper.deleteEntityVersion(dispatchServlet, versionableEntity.getClass(), entity.getId(), 2l, userId);
+				servletTestHelper.deleteEntityVersion(dispatchServlet, versionableEntity.getClass(), entity.getId(), 2l, userId);
 				// We should be down to one version
-				paging = ServletTestHelper.getAllVersionsOfEntity(dispatchServlet, entity.getId(), 1, 100, userId);
+				paging = servletTestHelper.getAllVersionsOfEntity(dispatchServlet, entity.getId(), 1, 100, userId);
 				assertNotNull(paging);
 				assertEquals(1, paging.getTotalNumberOfResults());
 				
@@ -765,8 +762,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 	 */
 	@Test
 	public void testLocationableS3Token() throws Exception {
-		testHelper.setUp();
-		testHelper.setTestUser(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
+		servletTestHelper.setTestUser(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		
 		// First create one of each type
 		List<Entity> created = createEntitesOfEachType(1);
@@ -782,7 +778,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 				S3Token token = new S3Token();
 				token.setPath("20111204/data.tsv");
 				token.setMd5("76af51ccdd0aabacca67d083d0b422e6");
-				token = testHelper.createObject(locationableEntity.getS3Token(), token);
+				token = servletTestHelper.createObject(locationableEntity.getS3Token(), token);
 				assertNotNull(token.getSecretAccessKey());
 				assertNotNull(token.getAccessKeyId());
 				assertNotNull(token.getSessionToken());
@@ -801,7 +797,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 		// Now update each
 		for(Entity entity: created){
 			// Make sure we can get the annotations for this entity.
-			UserEntityPermissions uep = ServletTestHelper.getUserEntityPermissions(dispatchServlet, entity.getId(), userId);
+			UserEntityPermissions uep = servletTestHelper.getUserEntityPermissions(dispatchServlet, entity.getId(), userId);
 			assertNotNull(uep);
 			assertEquals(true, uep.getCanDownload());
 			assertEquals(true, uep.getCanEdit());

@@ -44,13 +44,8 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 /**
  * @author deflaux
  */
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:test-context.xml" })
-public class S3TokenControllerTest {
+public class S3TokenControllerTest extends AbstractAutowiredControllerTestBase {
 
-	@Autowired
-	private ServletTestHelper testHelper;
-	
 	@Autowired
 	private AmazonS3Utility s3Utility;
 	
@@ -76,32 +71,29 @@ public class S3TokenControllerTest {
 		user.setUserName(UUID.randomUUID().toString());
 		testUserInfo = userManager.getUserInfo(userManager.createUser(user));
 		
-		testHelper.setUp();
-		testHelper.setTestUser(adminUserInfo.getId());
+		servletTestHelper.setTestUser(adminUserInfo.getId());
 		
 		project = new Project();
 		project.setName("proj");
-		project = testHelper.createEntity(project, null);
+		project = servletTestHelper.createEntity(project, null);
 
 		dataset = new Study();
 		dataset.setName("study");
 		dataset.setParentId(project.getId());
-		dataset = testHelper.createEntity(dataset, null);
+		dataset = servletTestHelper.createEntity(dataset, null);
 
 		// Add a public read ACL to the project object
-		AccessControlList projectAcl = testHelper.getEntityACL(project);
+		AccessControlList projectAcl = servletTestHelper.getEntityACL(project);
 		ResourceAccess ac = new ResourceAccess();
 		ac.setPrincipalId(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId());
 		ac.setAccessType(new HashSet<ACCESS_TYPE>());
 		ac.getAccessType().add(ACCESS_TYPE.READ);
 		projectAcl.getResourceAccess().add(ac);
-		projectAcl = testHelper.updateEntityAcl(project, projectAcl);
+		projectAcl = servletTestHelper.updateEntityAcl(project, projectAcl);
 	}
 
 	@After
 	public void tearDown() throws Exception {
-		testHelper.tearDown();
-		
 		userManager.deletePrincipal(adminUserInfo, testUserInfo.getId());
 	}
 	
@@ -110,7 +102,7 @@ public class S3TokenControllerTest {
 		Data layer = new Data();
 		layer.setParentId(dataset.getId());
 		layer.setType(LayerTypeNames.E);
-		layer = testHelper.createEntity(layer, null);
+		layer = servletTestHelper.createEntity(layer, null);
 
 		// an absolute path to a file
 		String initialPath = "/data/123.zip";
@@ -119,7 +111,7 @@ public class S3TokenControllerTest {
 		token.setPath(initialPath);
 		token.setMd5(TEST_MD5);
 
-		token = testHelper.createObject(layer.getS3Token(), token);
+		token = servletTestHelper.createObject(layer.getS3Token(), token);
 
 		assertEquals(StackConfiguration.getS3Bucket(), token.getBucket());
 		assertTrue(token.getPath().matches(
@@ -140,7 +132,7 @@ public class S3TokenControllerTest {
 	public void testCreateS3TokenRelativePath() throws Exception {
 		Code code = new Code();
 		code.setParentId(project.getId());
-		code = testHelper.createEntity(code, null);
+		code = servletTestHelper.createEntity(code, null);
 
 		// a relative path to a file
 		String initialPath = "foo.java";
@@ -148,7 +140,7 @@ public class S3TokenControllerTest {
 		token.setPath(initialPath);
 		token.setMd5(TEST_MD5);
 
-		token = testHelper.createObject(code.getS3Token(), token);
+		token = servletTestHelper.createObject(code.getS3Token(), token);
 
 		assertEquals(StackConfiguration.getS3Bucket(), token.getBucket());
 		assertTrue(token.getPath().matches(
@@ -168,12 +160,12 @@ public class S3TokenControllerTest {
 		S3Token token = new S3Token();
 		token.setPath(initialPath);
 		token.setMd5(TEST_MD5);
-		token = testHelper.createObject(dataset.getUri() + "/"
+		token = servletTestHelper.createObject(dataset.getUri() + "/"
 				+ UrlHelpers.S3TOKEN, token);
 
-		testHelper.setTestUser(testUserInfo.getId());
+		servletTestHelper.setTestUser(testUserInfo.getId());
 		try {
-			token = testHelper.createObject(dataset.getUri() + "/"
+			token = servletTestHelper.createObject(dataset.getUri() + "/"
 					+ UrlHelpers.S3TOKEN, token);
 			fail("expected exception not thrown");
 		} catch (UnauthorizedException ex) {
@@ -196,7 +188,7 @@ public class S3TokenControllerTest {
 		File toUpload = new File(toUpUrl.getFile());
 		// Create the token
 		
-		S3AttachmentToken resultToken = ServletTestHelper.createS3AttachmentToken(adminUserId, 
+		S3AttachmentToken resultToken = servletTestHelper.createS3AttachmentToken(adminUserId,
 				ServiceConstants.AttachmentType.USER_PROFILE, adminUserInfo.getId().toString(), startToken);
 		System.out.println(resultToken);
 		assertNotNull(resultToken);
@@ -210,7 +202,7 @@ public class S3TokenControllerTest {
 		// Make sure we can get a signed download URL for this attachment.
 		long now = System.currentTimeMillis();
 		long oneMinuteFromNow = now + (60*1000);
-		PresignedUrl url = testHelper.getUserProfileAttachmentUrl(adminUserId, 
+		PresignedUrl url = servletTestHelper.getUserProfileAttachmentUrl(adminUserId,
 				adminUserInfo.getId().toString(), resultToken.getTokenId());
 		System.out.println(url);
 		assertNotNull(url);
@@ -244,7 +236,7 @@ public class S3TokenControllerTest {
 		assertNotNull("Failed to find: "+fileName+" on the classpath", toUpUrl);
 		File toUpload = new File(toUpUrl.getFile());
 		// Create the token
-		S3AttachmentToken resultToken = ServletTestHelper.createS3AttachmentToken(adminUserId, 
+		S3AttachmentToken resultToken = servletTestHelper.createS3AttachmentToken(adminUserId,
 				ServiceConstants.AttachmentType.ENTITY, project.getId(), startToken);
 		System.out.println(resultToken);
 		assertNotNull(resultToken);
@@ -258,7 +250,7 @@ public class S3TokenControllerTest {
 		// Make sure we can get a signed download URL for this attachment.
 		long now = System.currentTimeMillis();
 		long oneMinuteFromNow = now + (60*1000);
-		PresignedUrl url = testHelper.getAttachmentUrl(adminUserId, project.getId(), resultToken.getTokenId());
+		PresignedUrl url = servletTestHelper.getAttachmentUrl(adminUserId, project.getId(), resultToken.getTokenId());
 		System.out.println(url);
 		assertNotNull(url);
 		assertNotNull(url.getPresignedUrl());

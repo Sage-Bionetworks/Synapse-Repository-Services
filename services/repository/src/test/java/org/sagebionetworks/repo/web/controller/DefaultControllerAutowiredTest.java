@@ -59,9 +59,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
  * @author jmhill
  *
  */
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:test-context.xml" })
-public class DefaultControllerAutowiredTest {
+public class DefaultControllerAutowiredTest extends AbstractAutowiredControllerTestBase {
 
 	@Autowired
 	private EntityService entityService;
@@ -72,8 +70,6 @@ public class DefaultControllerAutowiredTest {
 	private UserManager userManager;
 	@Autowired
 	private AsynchronousDAO asynchronousDAO;
-
-	private static HttpServlet dispatchServlet;
 
 	private Long userId;
 	private Long otherUserId;
@@ -119,20 +115,15 @@ public class DefaultControllerAutowiredTest {
 		userManager.deletePrincipal(adminUserInfo, Long.parseLong(otherUserInfo.getId().toString()));
 	}
 
-	@BeforeClass
-	public static void beforeClass() throws ServletException {
-		dispatchServlet = DispatchServletSingleton.getInstance();
-	}
-
 	@Test(expected = EntityInTrashCanException.class)
 	public void testDelete() throws Exception {
 		// Create a project
 		Project project = new Project();
 		project.setName("testCreateProject");
-		Project clone = ServletTestHelper.createEntity(dispatchServlet, project, userId);
+		Project clone = servletTestHelper.createEntity(dispatchServlet, project, userId);
 		assertNotNull(clone);
 		toDelete.add(clone.getId());
-		ServletTestHelper.deleteEntity(dispatchServlet, Project.class, clone.getId(), userId);
+		servletTestHelper.deleteEntity(dispatchServlet, Project.class, clone.getId(), userId);
 		// This should throw an exception
 		HttpServletRequest mockRequest = Mockito.mock(HttpServletRequest.class);
 		entityService.getEntity(userId, clone.getId(), mockRequest, Project.class);
@@ -143,13 +134,13 @@ public class DefaultControllerAutowiredTest {
 		// Create a project
 		Project project = new Project();
 		project.setName("testCreateProject");
-		Project clone = ServletTestHelper.createEntity(dispatchServlet, project, userId);
+		Project clone = servletTestHelper.createEntity(dispatchServlet, project, userId);
 		assertNotNull(clone);
 		toDelete.add(clone.getId());
-		AccessControlList acl = ServletTestHelper.getEntityACL(dispatchServlet, clone.getId(), userId);
+		AccessControlList acl = servletTestHelper.getEntityACL(dispatchServlet, clone.getId(), userId);
 		assertNotNull(acl);
 		assertNotNull(acl.getUri());
-		acl = ServletTestHelper.updateEntityAcl(dispatchServlet, clone.getId(), acl, userId);
+		acl = servletTestHelper.updateEntityAcl(dispatchServlet, clone.getId(), acl, userId);
 		assertNotNull(acl);
 		assertNotNull(acl.getUri());
 	}
@@ -159,7 +150,7 @@ public class DefaultControllerAutowiredTest {
 		// Create a project
 		Project project = new Project();
 		project.setName("testCreateProject");
-		Project clone = ServletTestHelper.createEntity(dispatchServlet, project, userId);
+		Project clone = servletTestHelper.createEntity(dispatchServlet, project, userId);
 		assertNotNull(clone);
 		toDelete.add(clone.getId());
 
@@ -167,17 +158,17 @@ public class DefaultControllerAutowiredTest {
 		Study ds = new Study();
 		ds.setName("testDataset");
 		ds.setParentId(clone.getId());
-		Study dsClone = ServletTestHelper.createEntity(dispatchServlet, ds, userId);
+		Study dsClone = servletTestHelper.createEntity(dispatchServlet, ds, userId);
 		assertNotNull(dsClone);
 		toDelete.add(dsClone.getId());
 
 		AccessControlList acl = null;
 		try {
-			acl = ServletTestHelper.getEntityACL(dispatchServlet, dsClone.getId(), userId);
+			acl = servletTestHelper.getEntityACL(dispatchServlet, dsClone.getId(), userId);
 			fail("Should have failed to get the ACL of an inheriting node");
 		} catch (ACLInheritanceException e) {
 			// Get the ACL from the redirect
-			acl = ServletTestHelper.getEntityACL(dispatchServlet, e.getBenefactorId(), userId);
+			acl = servletTestHelper.getEntityACL(dispatchServlet, e.getBenefactorId(), userId);
 		}
 		assertNotNull(acl);
 		// the returned ACL should refer to the parent
@@ -193,22 +184,22 @@ public class DefaultControllerAutowiredTest {
 		childAcl.setResourceAccess(new HashSet<ResourceAccess>());
 		// (Is this OK, or do we have to make new ResourceAccess objects inside?)
 		// now POST to /dataset/{id}/acl with this acl as the body
-		AccessControlList acl2 = ServletTestHelper.createEntityACL(dispatchServlet, dsClone.getId(), childAcl, userId);
+		AccessControlList acl2 = servletTestHelper.createEntityACL(dispatchServlet, dsClone.getId(), childAcl, userId);
 		assertNotNull(acl2.getUri());
 		// now retrieve the acl for the child. should get its own back
-		AccessControlList acl3 = ServletTestHelper.getEntityACL(dispatchServlet, dsClone.getId(), userId);
+		AccessControlList acl3 = servletTestHelper.getEntityACL(dispatchServlet, dsClone.getId(), userId);
 		assertEquals(dsClone.getId(), acl3.getId());
 
 		// now delete the ACL (restore inheritance)
-		ServletTestHelper.deleteEntityACL(dispatchServlet, dsClone.getId(), userId);
+		servletTestHelper.deleteEntityACL(dispatchServlet, dsClone.getId(), userId);
 		// try retrieving the ACL for the child
 
 		// should get the parent's ACL
 		AccessControlList acl4 = null;
 		try{
-			 ServletTestHelper.getEntityACL(dispatchServlet, dsClone.getId(), userId);
+			servletTestHelper.getEntityACL(dispatchServlet, dsClone.getId(), userId);
 		}catch (ACLInheritanceException e){
-			acl4 = ServletTestHelper.getEntityACL(dispatchServlet, e.getBenefactorId(), userId);
+			acl4 = servletTestHelper.getEntityACL(dispatchServlet, e.getBenefactorId(), userId);
 		}
 
 		assertNotNull(acl4);
@@ -221,15 +212,15 @@ public class DefaultControllerAutowiredTest {
 		// Create a project
 		Project project = new Project();
 		project.setName("testCreateProject");
-		Project clone = ServletTestHelper.createEntity(dispatchServlet, project, userId);
+		Project clone = servletTestHelper.createEntity(dispatchServlet, project, userId);
 		assertNotNull(clone);
 		toDelete.add(clone.getId());
 
 		String accessType = ACCESS_TYPE.READ.name();
-		assertEquals(new BooleanResult(true), ServletTestHelper.hasAccess(dispatchServlet, Project.class, clone.getId(), userId, accessType));
+		assertEquals(new BooleanResult(true), servletTestHelper.hasAccess(dispatchServlet, Project.class, clone.getId(), userId, accessType));
 
 		assertEquals(new BooleanResult(false), 
-				ServletTestHelper.hasAccess(dispatchServlet, Project.class, clone.getId(), otherUserId, accessType));
+				servletTestHelper.hasAccess(dispatchServlet, Project.class, clone.getId(), otherUserId, accessType));
 	}
 
 	/**
@@ -243,15 +234,15 @@ public class DefaultControllerAutowiredTest {
 		Project project = new Project();
 		// Make sure we can still set a name to null.  The name should then match the ID.
 		project.setName(null);
-		Project clone = ServletTestHelper.createEntity(dispatchServlet, project, otherUserId);
+		Project clone = servletTestHelper.createEntity(dispatchServlet, project, otherUserId);
 		assertNotNull(clone);
 		toDelete.add(clone.getId());
 		assertEquals("The name should match the ID when the name is set to null", clone.getId(), clone.getName());
 		// Now make sure this user can update
 		String newName = "testProjectUpdatePLFM-473-updated";
 		clone.setName("testProjectUpdatePLFM-473-updated");
-		clone = ServletTestHelper.updateEntity(dispatchServlet, clone, otherUserId);
-		clone = ServletTestHelper.getEntity(dispatchServlet, Project.class, clone.getId(), otherUserId);
+		clone = servletTestHelper.updateEntity(dispatchServlet, clone, otherUserId);
+		clone = servletTestHelper.getEntity(dispatchServlet, Project.class, clone.getId(), otherUserId);
 		assertEquals(newName, clone.getName());
 
 	}
@@ -268,11 +259,11 @@ public class DefaultControllerAutowiredTest {
 		Project project = new Project();
 		// Make sure we can still set a name to null.  The name should then match the ID.
 		project.setName(null);
-		Project clone = ServletTestHelper.createEntity(dispatchServlet, project, otherUserId);
+		Project clone = servletTestHelper.createEntity(dispatchServlet, project, otherUserId);
 		assertNotNull(clone);
 		toDelete.add(clone.getId());
 		// Now try to get the project as a dataset
-		Object wrong = ServletTestHelper.getEntity(dispatchServlet, Study.class, clone.getId(), otherUserId);
+		Object wrong = servletTestHelper.getEntity(dispatchServlet, Study.class, clone.getId(), otherUserId);
 
 	}
 
@@ -280,11 +271,11 @@ public class DefaultControllerAutowiredTest {
 	public void testGetEntityType() throws Exception {
 		Project project = new Project();
 		project.setName(null);
-		Project clone = ServletTestHelper.createEntity(dispatchServlet, project, otherUserId);
+		Project clone = servletTestHelper.createEntity(dispatchServlet, project, otherUserId);
 		assertNotNull(clone);
 		toDelete.add(clone.getId());
 
-		EntityHeader type = ServletTestHelper.getEntityType(dispatchServlet, clone.getId(), otherUserId);
+		EntityHeader type = servletTestHelper.getEntityType(dispatchServlet, clone.getId(), otherUserId);
 		assertNotNull(type);
 		assertEquals(EntityType.project.getEntityType(), type.getType());
 		assertEquals(clone.getId(), type.getName());
@@ -295,17 +286,18 @@ public class DefaultControllerAutowiredTest {
 	public void testGetEntityBenefactor() throws Exception {
 		Project project = new Project();
 		project.setName(null);
-		project = ServletTestHelper.createEntity(dispatchServlet, project, otherUserId);;
+		project = servletTestHelper.createEntity(dispatchServlet, project, otherUserId);
+		;
 		toDelete.add(project.getId());
 		// Create a dataset
 		Study ds = new Study();
 		ds.setParentId(project.getId());
-		ds = ServletTestHelper.createEntity(dispatchServlet, ds, userId);
+		ds = servletTestHelper.createEntity(dispatchServlet, ds, userId);
 		assertNotNull(ds);
 		toDelete.add(ds.getId());
 
 		// Now get the permission information for the project
-		EntityHeader benefactor = ServletTestHelper.getEntityBenefactor(dispatchServlet, project.getId(), Project.class, otherUserId);
+		EntityHeader benefactor = servletTestHelper.getEntityBenefactor(dispatchServlet, project.getId(), Project.class, otherUserId);
 		assertNotNull(benefactor);
 		// The project should be its own benefactor
 		assertEquals(project.getId(), benefactor.getId());
@@ -313,7 +305,7 @@ public class DefaultControllerAutowiredTest {
 		assertEquals(project.getName(), benefactor.getName());
 
 		// Now check the dataset
-		benefactor = ServletTestHelper.getEntityBenefactor(dispatchServlet, ds.getId(), Study.class, otherUserId);
+		benefactor = servletTestHelper.getEntityBenefactor(dispatchServlet, ds.getId(), Study.class, otherUserId);
 		assertNotNull(benefactor);
 		// The project should be the dataset's benefactor
 		assertEquals(project.getId(), benefactor.getId());
@@ -326,20 +318,21 @@ public class DefaultControllerAutowiredTest {
 	public void testAclUpdateWithChildType() throws Exception {
 		Project project = new Project();
 		project.setName(null);
-		project = ServletTestHelper.createEntity(dispatchServlet, project, otherUserId);;
+		project = servletTestHelper.createEntity(dispatchServlet, project, otherUserId);
+		;
 		toDelete.add(project.getId());
 		// Create a dataset
 		Study ds = new Study();
 		ds.setParentId(project.getId());
-		ds = ServletTestHelper.createEntity(dispatchServlet, ds, userId);
+		ds = servletTestHelper.createEntity(dispatchServlet, ds, userId);
 		assertNotNull(ds);
 		toDelete.add(ds.getId());
 
 		// Get the ACL for the project
-		AccessControlList projectAcl = ServletTestHelper.getEntityACL(dispatchServlet, project.getId(), otherUserId);
+		AccessControlList projectAcl = servletTestHelper.getEntityACL(dispatchServlet, project.getId(), otherUserId);
 
 		// Now attempt to update the ACL as the dataset
-		projectAcl = ServletTestHelper.updateEntityAcl(dispatchServlet, ds.getId(), projectAcl, otherUserId);
+		projectAcl = servletTestHelper.updateEntityAcl(dispatchServlet, ds.getId(), projectAcl, otherUserId);
 	}
 
 	@Test
@@ -347,12 +340,12 @@ public class DefaultControllerAutowiredTest {
 		// Create project
 		Project project = new Project();
 		project.setName("testProject");
-		Project projectClone = ServletTestHelper.createEntity(dispatchServlet, project, userId);
+		Project projectClone = servletTestHelper.createEntity(dispatchServlet, project, userId);
 		toDelete.add(projectClone.getId());
 		Study dataset = new Study();
 		dataset.setName("testDataset");
 		dataset.setParentId(projectClone.getId());
-		Study datasetClone = ServletTestHelper.createEntity(dispatchServlet, dataset, userId);
+		Study datasetClone = servletTestHelper.createEntity(dispatchServlet, dataset, userId);
 		toDelete.add(datasetClone.getId());
 		// Create a layer
 		Data layer = new Data();
@@ -360,13 +353,13 @@ public class DefaultControllerAutowiredTest {
 		layer.setVersionNumber((Long)1L);
 		layer.setParentId(datasetClone.getId());
 		layer.setType(LayerTypeNames.E);
-		Data clone = ServletTestHelper.createEntity(dispatchServlet, layer, userId);
+		Data clone = servletTestHelper.createEntity(dispatchServlet, layer, userId);
 		assertEquals((Long)1L, clone.getVersionNumber());
 		assertNotNull(clone);
 		toDelete.add(clone.getId());
 
 		// get references to object
-		PaginatedResults<EntityHeader> prs = ServletTestHelper.getEntityReferences(dispatchServlet, clone.getId(), userId);
+		PaginatedResults<EntityHeader> prs = servletTestHelper.getEntityReferences(dispatchServlet, clone.getId(), userId);
 		List<EntityHeader> ehs = prs.getResults();
 		assertEquals(0, prs.getTotalNumberOfResults());
 		assertEquals(0, ehs.size());
@@ -381,7 +374,7 @@ public class DefaultControllerAutowiredTest {
 			Set<Reference> refs = new HashSet<Reference>();
 			refs.add(ref);
 			step.setInput(refs);
-			stepClone = ServletTestHelper.createEntity(dispatchServlet, step, userId);
+			stepClone = servletTestHelper.createEntity(dispatchServlet, step, userId);
 			toDelete.add(stepClone.getId());
 			Set<Reference> refs2 = stepClone.getInput();
 			assertEquals(1, refs2.size());
@@ -391,7 +384,7 @@ public class DefaultControllerAutowiredTest {
 		}
 		// manual update
 		updateAnnotationsAndReferences();
-		prs = ServletTestHelper.getEntityReferences(dispatchServlet, clone.getId(), userId);
+		prs = servletTestHelper.getEntityReferences(dispatchServlet, clone.getId(), userId);
 		ehs = prs.getResults();
 		assertEquals(1, ehs.size());
 		assertEquals(stepClone.getId(), ehs.iterator().next().getId());
@@ -406,25 +399,25 @@ public class DefaultControllerAutowiredTest {
 			Set<Reference> refs = new HashSet<Reference>();
 			refs.add(ref);
 			step.setInput(refs);
-			stepClone = ServletTestHelper.createEntity(dispatchServlet, step, userId);
+			stepClone = servletTestHelper.createEntity(dispatchServlet, step, userId);
 			toDelete.add(stepClone.getId());
 		}
 		// manual update
 		updateAnnotationsAndReferences();
 		// both Steps refer to some version of the Project
-		prs = ServletTestHelper.getEntityReferences(dispatchServlet, clone.getId(), userId);
+		prs = servletTestHelper.getEntityReferences(dispatchServlet, clone.getId(), userId);
 		ehs = prs.getResults();
 		assertEquals(ehs.toString(), 2, ehs.size());
 		// manual update
 		updateAnnotationsAndReferences();
 		// only one step refers to version 1 of the Project
-		prs = ServletTestHelper.getEntityReferences(dispatchServlet, clone.getId(), v, userId);
+		prs = servletTestHelper.getEntityReferences(dispatchServlet, clone.getId(), v, userId);
 		ehs = prs.getResults();
 		assertEquals(ehs.toString(), 1, ehs.size());
 		// manual update
 		updateAnnotationsAndReferences();
 		// No Step refers to version 100 of the Project
-		prs = ServletTestHelper.getEntityReferences(dispatchServlet, clone.getId(), v+99, userId);
+		prs = servletTestHelper.getEntityReferences(dispatchServlet, clone.getId(), v + 99, userId);
 		ehs = prs.getResults();
 		assertEquals(0, ehs.size());
 
@@ -446,34 +439,36 @@ public class DefaultControllerAutowiredTest {
 	public void testForPLFM_1096() throws Exception {
 		Project project = new Project();
 		project.setName(null);
-		project = ServletTestHelper.createEntity(dispatchServlet, project, otherUserId);;
+		project = servletTestHelper.createEntity(dispatchServlet, project, otherUserId);
+		;
 		toDelete.add(project.getId());
 		// Create a dataset
 		Study ds = new Study();
 		ds.setParentId(project.getId());
-		ds = ServletTestHelper.createEntity(dispatchServlet, ds, userId);
+		ds = servletTestHelper.createEntity(dispatchServlet, ds, userId);
 		assertNotNull(ds);
 		toDelete.add(ds.getId());
 		
 		// Create a layer
 		Data data = new Data();
 		data.setParentId(project.getId());
-		data = ServletTestHelper.createEntity(dispatchServlet, data, userId);
+		data = servletTestHelper.createEntity(dispatchServlet, data, userId);
 		assertNotNull(data);
 		toDelete.add(data.getId());
 		// Make sure we can find both
-		QueryResults<Map<String,Object>> qr = ServletTestHelper.query(dispatchServlet, "select * from study where parentId=='"+project.getId()+"'", userId);
+		QueryResults<Map<String, Object>> qr = servletTestHelper.query(dispatchServlet,
+				"select * from study where parentId=='" + project.getId() + "'", userId);
 		assertNotNull(qr);
 		assertEquals(1, qr.getTotalNumberOfResults());
 		assertEquals(ds.getId(), qr.getResults().get(0).get("study.id"));
 		
 		// Make sure we can find both
-		qr = ServletTestHelper.query(dispatchServlet, "select * from data where parentId=='"+project.getId()+"'", userId);
+		qr = servletTestHelper.query(dispatchServlet, "select * from data where parentId=='" + project.getId() + "'", userId);
 		assertNotNull(qr);
 		assertEquals(1, qr.getTotalNumberOfResults());
 		assertEquals(data.getId(), qr.getResults().get(0).get("data.id"));
 		// Make sure we can find both with versionable
-		qr = ServletTestHelper.query(dispatchServlet, "select * from versionable where parentId=='"+project.getId()+"'", userId);
+		qr = servletTestHelper.query(dispatchServlet, "select * from versionable where parentId=='" + project.getId() + "'", userId);
 		assertNotNull(qr);
 		assertEquals(2, qr.getTotalNumberOfResults());
 
