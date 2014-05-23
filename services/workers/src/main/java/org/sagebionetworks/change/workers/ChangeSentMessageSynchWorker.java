@@ -41,7 +41,7 @@ public class ChangeSentMessageSynchWorker implements Runnable {
 	// Start with a default batch size of 10K
 	private int batchSize = 10 * 1000;
 
-	private Object monitor = null;
+	private Object monitor = new Object();
 	/**
 	 * Override the batch size.
 	 * 
@@ -53,45 +53,41 @@ public class ChangeSentMessageSynchWorker implements Runnable {
 
 	@Override
 	public void run() {
-		long maxChangeNumber = changeDao.getCurrentChangeNumber();
-		long lastSychedChangeNumberStart = changeDao
-				.getLastSynchedChangeNumber();
-		// Use the max sent change number that still exits that is less than or
-		// equal to the last sent change message as the starting point for this
-		// synchronization run. This ensures we never miss a message that still
-		// needs to be sent.
-		long synchStart = changeDao
-				.getMaxSentChangeNumber(lastSychedChangeNumberStart);
-		// List any unsent messages from this start
-		long upperBounds = Math.min(synchStart + batchSize, maxChangeNumber);
-		List<ChangeMessage> toBeSent = changeDao.listUnsentMessages(synchStart,
-				upperBounds);
-		// Send
-		for (ChangeMessage toSend : toBeSent) {
-			repositoryMessagePublisher.publishToTopic(toSend);
-		}
-		// the new Last synched change number is the max sent change number that exists
-		// that is less than or equal to the upper bounds for this round.
-		long newLastSynchedChangeNumber = changeDao.getMaxSentChangeNumber(upperBounds);
-		// Set the new high-water-mark if it has changed
-		if (newLastSynchedChangeNumber > lastSychedChangeNumberStart) {
-			changeDao.setLastSynchedChangeNunber(lastSychedChangeNumberStart,
-					newLastSynchedChangeNumber);
-		}
-		if(monitor != null){
-			// Notify anyone watching this worker that it is done
-			synchronized(monitor){
-				monitor.notifyAll();
+		synchronized (monitor) {
+			long maxChangeNumber = changeDao.getCurrentChangeNumber();
+			long lastSychedChangeNumberStart = changeDao
+					.getLastSynchedChangeNumber();
+			// Use the max sent change number that still exits that is less than or
+			// equal to the last sent change message as the starting point for this
+			// synchronization run. This ensures we never miss a message that still
+			// needs to be sent.
+			long synchStart = changeDao
+					.getMaxSentChangeNumber(lastSychedChangeNumberStart);
+			// List any unsent messages from this start
+			long upperBounds = Math.min(synchStart + batchSize, maxChangeNumber);
+			List<ChangeMessage> toBeSent = changeDao.listUnsentMessages(synchStart,
+					upperBounds);
+			// Send
+			for (ChangeMessage toSend : toBeSent) {
+				repositoryMessagePublisher.publishToTopic(toSend);
 			}
+			// the new Last synched change number is the max sent change number that exists
+			// that is less than or equal to the upper bounds for this round.
+			long newLastSynchedChangeNumber = changeDao.getMaxSentChangeNumber(upperBounds);
+			// Set the new high-water-mark if it has changed
+			if (newLastSynchedChangeNumber > lastSychedChangeNumberStart) {
+				changeDao.setLastSynchedChangeNunber(lastSychedChangeNumberStart,
+						newLastSynchedChangeNumber);
+			}
+			monitor.notifyAll();
 		}
-
 	}
 	
 	/**
 	 * Caller can use use the monitor to wait for the worker to run at least once.
 	 * @return
 	 */
-	public void setMonitor(Object monitor){
-		this.monitor = monitor;
+	public Object getMonitor(){
+		return this.monitor;
 	}
 }

@@ -49,34 +49,43 @@ public class ChangeSentMessageSynchWorkerIntegrationTest {
 		changeDao.resetLastChangeNumber();
 		semphoreManager.releaseAllLocksAsAdmin(new UserInfo(true));
 		objectIdSequence = 0;
-		monitor = new Object();
-		changeSentMessageSynchWorker.setMonitor(monitor);
+		monitor = changeSentMessageSynchWorker.getMonitor();
 	}
 	
 	@Test
 	public void testMissing() throws InterruptedException{
 		// Create some change messages
 		List<ChangeMessage> changes = createList(3, ObjectType.ACTIVITY);
-		// set the changes
-		changes = changeDao.replaceChange(changes);
+
+		// Make change while we have the lock
+		synchronized (monitor) {
+			// set the changes
+			changes = changeDao.replaceChange(changes);
+		}
 		// they should be synched by the time the worker is done.
-		waitForSynchState();
-		assertEquals("The last synched changed number should match the last change added.",changes.get(2).getChangeNumber(), changeDao.getLastSynchedChangeNumber());
-		// create more changes
-		changes = createList(3, ObjectType.ACTIVITY);
-		changes = changeDao.replaceChange(changes);
+		waitForSynchState(changes.get(2).getChangeNumber());
+
+		// Make change while we have the lock
+		synchronized (monitor) {
+			// create more changes
+			changes = createList(3, ObjectType.ACTIVITY);
+			changes = changeDao.replaceChange(changes);
+		}
 		// they should be synched by the time the worker is done.
-		waitForSynchState();
-		assertEquals("The last synched changed number should match the last change added.",changes.get(2).getChangeNumber(), changeDao.getLastSynchedChangeNumber());
-		// By replacing changes the LastSynchedChangeNumber will no longer exist in the sent table.
-		changes = changeDao.replaceChange(changes);
-		// Set the last message as sent.
-		changeDao.registerMessageSent(changes.get(2));
+		waitForSynchState(changes.get(2).getChangeNumber());
+		
+		// Make change while we have the lock
+		synchronized (monitor) {
+			// By replacing changes the LastSynchedChangeNumber will no longer exist in the sent table.
+			changes = changeDao.replaceChange(changes);
+			// Set the last message as sent.
+			changeDao.registerMessageSent(changes.get(2));
+
+		}
 		// At this point the LastSynchedChangeNumber will not longer exist in the sent table.
 		// There are also two changes that have not been sent that have change numbers less than the max sent change number
 		// the worker must be able to find this changes and send them.
-		waitForSynchState();
-		assertEquals("The last synched changed number should match the last change added.",changes.get(2).getChangeNumber(), changeDao.getLastSynchedChangeNumber());
+		waitForSynchState(changes.get(2).getChangeNumber());
 	}
 	
 	@Ignore // this is a long running test that does not always need to be run.
@@ -92,17 +101,13 @@ public class ChangeSentMessageSynchWorkerIntegrationTest {
 	 * Wait for all of the messages to be synched.
 	 * @throws InterruptedException 
 	 */
-	private void waitForSynchState() throws InterruptedException {
-		// Wait for the worker to run once
-		long start = System.currentTimeMillis();
-		List<ChangeMessage> notSynched = null;
-		while (notSynched == null || !notSynched.isEmpty()) {
-			System.out.println("Waiting for ChangeSentMessageSynchWorker to run...");
-			synchronized (monitor) {
-				monitor.wait(MAX_PUBLISH_WAIT_MS);
-			}
-			notSynched = changeDao.listUnsentMessages(0, Long.MAX_VALUE);
-			assertTrue("Timed out waiting for ChangeSentMessageSynchWorker", System.currentTimeMillis() - start < MAX_PUBLISH_WAIT_MS);
+	private void waitForSynchState(Long expectedLastChangeNumber) throws InterruptedException {
+		synchronized (monitor) {
+			// wait for the worker then check the state while holding the lock.
+			monitor.wait(MAX_PUBLISH_WAIT_MS);
+			List<ChangeMessage> notSynchded = changeDao.listUnsentMessages(0, Long.MAX_VALUE);
+			assertTrue("There should be unsent message after the worker has finished",notSynchded.isEmpty());
+			assertEquals("The last synched changed number did not match the expected value.",expectedLastChangeNumber, changeDao.getLastSynchedChangeNumber());
 		}
 	}
 	
