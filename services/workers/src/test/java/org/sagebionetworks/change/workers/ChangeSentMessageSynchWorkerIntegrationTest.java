@@ -58,7 +58,9 @@ public class ChangeSentMessageSynchWorkerIntegrationTest {
 	
 	@Test
 	public void testMissing() throws InterruptedException{
-		waitForSynchState(new Long(-1));
+		synchronized (monitor) {
+			waitForSynchState(new Long(-1));
+		}
 		// Create some change messages
 		List<ChangeMessage> changes = createList(3, ObjectType.ACTIVITY);
 
