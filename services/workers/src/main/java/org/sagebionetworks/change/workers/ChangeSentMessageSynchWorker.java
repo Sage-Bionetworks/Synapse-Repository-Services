@@ -79,25 +79,26 @@ public class ChangeSentMessageSynchWorker implements Runnable {
 			repositoryMessagePublisher.publishToTopic(toSend);
 		}
 		// the new Last synched change number is the max sent change number
-		// that
-		// exists
-		// that is less than or equal to the upper bounds for this round.
+		// that exists that is less than or equal to the upper bounds for this
+		// round.
 		long newLastSynchedChangeNumber = changeDao
 				.getMaxSentChangeNumber(upperBounds);
 
 		// Set the new high-water-mark if it has changed
 		if (newLastSynchedChangeNumber > lastSychedChangeNumberStart) {
-			boolean changed = changeDao.setLastSynchedChangeNunber(
-					lastSychedChangeNumberStart, newLastSynchedChangeNumber);
+			changeDao.setLastSynchedChangeNunber(lastSychedChangeNumberStart,
+					newLastSynchedChangeNumber);
 		}
-		if(log.isInfoEnabled()){
+		if (log.isInfoEnabled()) {
 			log.info("maxChangeNumber: " + maxChangeNumber);
-			log.info("minChangeNumber: "+minChangeNumber);
-			log.info("lastSychedChangeNumberStart: " + lastSychedChangeNumberStart);
+			log.info("minChangeNumber: " + minChangeNumber);
+			log.info("lastSychedChangeNumberStart: "
+					+ lastSychedChangeNumberStart);
 			log.info("synchStart: " + synchStart);
 			log.info("upperBounds: " + upperBounds);
 			log.info("toBeSent size: " + toBeSent.size());
-			log.info("newLastSynchedChangeNumber: " + newLastSynchedChangeNumber);
+			log.info("newLastSynchedChangeNumber: "
+					+ newLastSynchedChangeNumber);
 			log.info("Run count: " + runCount++);
 		}
 	}
