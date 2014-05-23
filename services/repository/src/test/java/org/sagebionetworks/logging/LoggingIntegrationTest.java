@@ -16,6 +16,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.logging.s3.LogDAO;
 import org.sagebionetworks.repo.web.AccessInterceptor;
+import org.sagebionetworks.repo.web.controller.AbstractAutowiredControllerTestBase;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -26,9 +27,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
  * @author John
  *
  */
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:test-context.xml" })
-public class LoggingIntegrationTest {
+public class LoggingIntegrationTest extends AbstractAutowiredControllerTestBase {
 
 	private static Logger log = LogManager.getLogger(LoggingIntegrationTest.class);
 	

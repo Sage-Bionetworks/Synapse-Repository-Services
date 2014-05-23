@@ -17,7 +17,6 @@ import javax.servlet.ServletException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.Annotations;
@@ -43,16 +42,9 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:test-context.xml" })
-public class EntityControllerTest {
+public class EntityControllerTest extends AbstractAutowiredControllerTestBase {
 
-	@Autowired
-	private EntityServletTestHelper entityServletHelper;
-	
 	@Autowired
 	private FileHandleDao fileMetadataDao;
 	
@@ -73,7 +65,6 @@ public class EntityControllerTest {
 	
 	@Before
 	public void setUp() throws Exception {
-		assertNotNull(entityServletHelper);
 		assertNotNull(fileMetadataDao);
 		assertNotNull(userManager);
 		assertNotNull(nodeManager);

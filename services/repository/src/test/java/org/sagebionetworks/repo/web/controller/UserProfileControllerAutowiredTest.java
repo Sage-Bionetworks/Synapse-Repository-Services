@@ -42,21 +42,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:test-context.xml" })
-public class UserProfileControllerAutowiredTest {
+public class UserProfileControllerAutowiredTest extends AbstractAutowiredControllerTestBase {
 	
 	@Autowired
 	private UserProfileService userProfileService;
 	
-	@Autowired
-	private ServletTestHelper testHelper;
-
 	@Autowired 
 	private EntityService entityService;
 
-	private static HttpServlet dispatchServlet;
-	
 	private Long adminUserId;
 
 	private List<String> favoritesToDelete;
@@ -64,16 +57,10 @@ public class UserProfileControllerAutowiredTest {
 
 	HttpServletRequest mockRequest;
 
-	@BeforeClass
-	public static void beforeClass() throws ServletException {
-		dispatchServlet = DispatchServletSingleton.getInstance();
-	}
-
 	@Before
 	public void before() throws Exception{
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		
-		testHelper.setUp();
 		assertNotNull(userProfileService);
 		favoritesToDelete = new ArrayList<String>();
 		entityIdsToDelete = new ArrayList<String>();
@@ -116,7 +103,7 @@ public class UserProfileControllerAutowiredTest {
 		int offset = 0;
 		
 		@SuppressWarnings("static-access")
-		UserGroupHeaderResponsePage response = testHelper.getUserGroupHeadersByPrefix(prefix, limit, offset);
+		UserGroupHeaderResponsePage response = servletTestHelper.getUserGroupHeadersByPrefix(prefix, limit, offset);
 		assertNotNull(response);
 		List<UserGroupHeader> children = response.getChildren();
 		assertNotNull(children);
@@ -138,7 +125,7 @@ public class UserProfileControllerAutowiredTest {
 		int offset = 0;
 		
 		@SuppressWarnings("static-access")
-		UserGroupHeaderResponsePage response = testHelper.getUserGroupHeadersByPrefix(prefix, limit, offset);
+		UserGroupHeaderResponsePage response = servletTestHelper.getUserGroupHeadersByPrefix(prefix, limit, offset);
 		assertNotNull(response);
 		List<UserGroupHeader> children = response.getChildren();
 		assertNotNull(children);
@@ -161,7 +148,7 @@ public class UserProfileControllerAutowiredTest {
 		
 		// add favorite
 		Map<String, String> extraParams = new HashMap<String, String>();
-		EntityHeader fav = ServletTestHelper.addFavorite(dispatchServlet, proj.getId(), adminUserId, extraParams);
+		EntityHeader fav = servletTestHelper.addFavorite(dispatchServlet, proj.getId(), adminUserId, extraParams);
 		favoritesToDelete.add(fav.getId());
 		assertNotNull(fav);
 
@@ -169,37 +156,37 @@ public class UserProfileControllerAutowiredTest {
 		extraParams = new HashMap<String, String>();
 		extraParams.put("offset", "0");
 		extraParams.put("limit", Integer.toString(Integer.MAX_VALUE));
-		PaginatedResults<EntityHeader> favs = ServletTestHelper.getFavorites(dispatchServlet, adminUserId, extraParams);
+		PaginatedResults<EntityHeader> favs = servletTestHelper.getFavorites(dispatchServlet, adminUserId, extraParams);
 		assertNotNull(favs);
 		assertEquals(1, favs.getTotalNumberOfResults());
 		assertEquals(1, favs.getResults().size());
 		assertEquals(fav.getId(), favs.getResults().get(0).getId());
 
 		// Shouldn't retrieve the favorite if the node in trash can
-		ServletTestHelper.deleteEntity(dispatchServlet, Project.class, proj.getId(), adminUserId);
+		servletTestHelper.deleteEntity(dispatchServlet, Project.class, proj.getId(), adminUserId);
 		extraParams = new HashMap<String, String>();
 		extraParams.put("offset", "0");
 		extraParams.put("limit", Integer.toString(Integer.MAX_VALUE));
-		favs = ServletTestHelper.getFavorites(dispatchServlet, adminUserId, extraParams);
+		favs = servletTestHelper.getFavorites(dispatchServlet, adminUserId, extraParams);
 		assertEquals(0, favs.getTotalNumberOfResults());
 		assertEquals(0, favs.getResults().size());
-		ServletTestHelper.restoreEntity(adminUserId, proj.getId());
+		servletTestHelper.restoreEntity(adminUserId, proj.getId());
 
 		// test removal
 		extraParams = new HashMap<String, String>();
-		ServletTestHelper.removeFavorite(dispatchServlet, proj.getId(), adminUserId, extraParams);
+		servletTestHelper.removeFavorite(dispatchServlet, proj.getId(), adminUserId, extraParams);
 		// assure deletion
 		extraParams = new HashMap<String, String>();
 		extraParams.put("offset", "0");
 		extraParams.put("limit", Integer.toString(Integer.MAX_VALUE));
-		favs = ServletTestHelper.getFavorites(dispatchServlet, adminUserId, extraParams);
+		favs = servletTestHelper.getFavorites(dispatchServlet, adminUserId, extraParams);
 		assertEquals(0, favs.getTotalNumberOfResults());
 		assertEquals(0, favs.getResults().size());
 	}
 	
 	@Test
 	public void testPreferences() throws Exception {
-		UserProfile userProfile = ServletTestHelper.getUserProfile(dispatchServlet, adminUserId);
+		UserProfile userProfile = servletTestHelper.getUserProfile(dispatchServlet, adminUserId);
 		userProfile.setUserName(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.name());
 		userProfile.setEmails(Collections.singletonList("migrationAdmin@sagebase.org"));
 		Set<UserPreference> preferences = userProfile.getPreferences();
@@ -213,8 +200,8 @@ public class UserProfileControllerAutowiredTest {
 			pref.setValue(true);
 			preferences.add(pref);
 		}
-		ServletTestHelper.updateUserProfile(adminUserId, userProfile);
-		userProfile = ServletTestHelper.getUserProfile(dispatchServlet, adminUserId);
+		servletTestHelper.updateUserProfile(adminUserId, userProfile);
+		userProfile = servletTestHelper.getUserProfile(dispatchServlet, adminUserId);
 		boolean foundIt = false;
 		for (UserPreference pref : userProfile.getPreferences()) {
 			if (pref.getName().equals("testPref")) {

@@ -7,9 +7,11 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.manager.AttachmentManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
@@ -19,23 +21,32 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.controller.AbstractAutowiredControllerTestBase;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.util.ReflectionTestUtils;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:test-context.xml" })
-public class AllTypesValidatorTest {
+public class AllTypesValidatorTest extends AbstractAutowiredControllerTestBase {
 
 	@Autowired
 	AllTypesValidator allTypesValidator;
+
+	@Autowired
+	NodeDAO nodeDAO;
+
 	NodeDAO mockNodeDAO;
 	
 	@Before
 	public void setUp() {
 		mockNodeDAO = mock(NodeDAO.class);
 	}
-	
+
+	@After
+	public void tearDown() {
+		allTypesValidator.setNodeDAO(nodeDAO);
+	}
+
 	@Test (expected=IllegalArgumentException.class)
 	public void testNullEntity() throws InvalidModelException, NotFoundException, DatastoreException, UnauthorizedException{
 		EntityEvent mockEvent = mock(EntityEvent.class);
@@ -106,6 +117,8 @@ public class AllTypesValidatorTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testFolderWithSelfParent() throws InvalidModelException, NotFoundException, DatastoreException, UnauthorizedException{
+		when(mockNodeDAO.isNodeRoot(eq("123"))).thenReturn(false);
+		allTypesValidator.setNodeDAO(mockNodeDAO);
 		String parentId = "123";
 		// This is our parent header
 		EntityHeader parentHeader = new EntityHeader();
@@ -124,6 +137,8 @@ public class AllTypesValidatorTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testFolderWithSelfAncestor() throws InvalidModelException, NotFoundException, DatastoreException, UnauthorizedException{
+		when(mockNodeDAO.isNodeRoot(eq("123"))).thenReturn(false);
+		allTypesValidator.setNodeDAO(mockNodeDAO);
 		String grandparentId = "123";
 		String parentId = "456";
 		

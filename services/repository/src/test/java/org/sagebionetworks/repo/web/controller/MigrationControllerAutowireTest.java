@@ -9,7 +9,6 @@ import java.util.Date;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
@@ -23,17 +22,11 @@ import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:test-context.xml" })
-public class MigrationControllerAutowireTest {
+public class MigrationControllerAutowireTest extends AbstractAutowiredControllerTestBase {
 	
 	public static final long MAX_WAIT_MS = 10*1000; // 10 sec.
 	
-	@Autowired
-	private EntityServletTestHelper entityServletHelper;
 	@Autowired
 	private UserManager userManager;
 	@Autowired
@@ -53,7 +46,7 @@ public class MigrationControllerAutowireTest {
 		// get user IDs
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		String adminUserIdString = adminUserId.toString();
-		
+
 		startFileCount = fileMetadataDao.getCount();
 		// Create a file handle
 		handleOne = new S3FileHandle();

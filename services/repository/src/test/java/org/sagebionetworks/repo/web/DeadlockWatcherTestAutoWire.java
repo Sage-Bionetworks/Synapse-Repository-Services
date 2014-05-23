@@ -11,6 +11,7 @@ import org.apache.commons.logging.Log;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
+import org.sagebionetworks.repo.web.controller.AbstractAutowiredControllerTestBase;
 import org.sagebionetworks.repo.web.service.EntityService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DeadlockLoserDataAccessException;
@@ -22,9 +23,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
  * @author jmhill
  *
  */
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:test-context.xml" })
-public class DeadlockWatcherTestAutoWire {
+public class DeadlockWatcherTestAutoWire extends AbstractAutowiredControllerTestBase {
 	
 	@Autowired
 	DeadlockWatcher deadlockWatcher;

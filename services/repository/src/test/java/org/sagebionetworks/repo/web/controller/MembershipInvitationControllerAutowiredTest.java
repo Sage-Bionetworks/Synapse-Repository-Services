@@ -30,14 +30,10 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
  * @author jmhill, adapted by bhoff
  * 
  */
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:test-context.xml" })
-public class MembershipInvitationControllerAutowiredTest {
+public class MembershipInvitationControllerAutowiredTest extends AbstractAutowiredControllerTestBase {
 
 	@Autowired
 	public UserManager userManager;
-
-	private static HttpServlet dispatchServlet;
 
 	private Long adminUserId;
 	private UserInfo adminUserInfo;
@@ -45,11 +41,6 @@ public class MembershipInvitationControllerAutowiredTest {
 	
 	private static final String TEAM_NAME = "MIS_CONTRL_AW_TEST";
 	private Team teamToDelete;
-
-	@BeforeClass
-	public static void beforeClass() throws ServletException {
-		dispatchServlet = DispatchServletSingleton.getInstance();
-	}
 
 	@Before
 	public void before() throws Exception {
@@ -59,7 +50,7 @@ public class MembershipInvitationControllerAutowiredTest {
 		// create a Team
 		Team team = new Team();
 		team.setName(TEAM_NAME);
-		teamToDelete = ServletTestHelper.createTeam(dispatchServlet, adminUserId, team);
+		teamToDelete = servletTestHelper.createTeam(dispatchServlet, adminUserId, team);
 		
 		NewUser user = new NewUser();
 		user.setEmail(UUID.randomUUID().toString() + "@test.com");
@@ -70,7 +61,7 @@ public class MembershipInvitationControllerAutowiredTest {
 
 	@After
 	public void after() throws Exception {
-		 ServletTestHelper.deleteTeam(dispatchServlet, adminUserId, teamToDelete);
+		servletTestHelper.deleteTeam(dispatchServlet, adminUserId, teamToDelete);
 		 teamToDelete = null;
 		 
 		 userManager.deletePrincipal(adminUserInfo, testInvitee.getId());
@@ -82,13 +73,13 @@ public class MembershipInvitationControllerAutowiredTest {
 		MembershipInvtnSubmission mis = new MembershipInvtnSubmission();
 		mis.setInviteeId(testInvitee.getId().toString());
 		mis.setTeamId(teamToDelete.getId());
-		MembershipInvtnSubmission created = ServletTestHelper.createMembershipInvitation(dispatchServlet, adminUserId, mis);
+		MembershipInvtnSubmission created = servletTestHelper.createMembershipInvitation(dispatchServlet, adminUserId, mis);
 		
 		// get the invitation
-		MembershipInvtnSubmission mis2 = ServletTestHelper.getMembershipInvitation(dispatchServlet, adminUserId, created.getId());
+		MembershipInvtnSubmission mis2 = servletTestHelper.getMembershipInvitation(dispatchServlet, adminUserId, created.getId());
 		assertEquals(created, mis2);
 		// get all invitations for the team
-		PaginatedResults<MembershipInvtnSubmission> miss = ServletTestHelper.
+		PaginatedResults<MembershipInvtnSubmission> miss = servletTestHelper.
 				getMembershipInvitationSubmissions(dispatchServlet, adminUserId, teamToDelete.getId());
 		assertEquals(1L, miss.getTotalNumberOfResults());
 		assertEquals(created, miss.getResults().get(0));

@@ -39,12 +39,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
  * Simplistic test to see if things are wired up correctly
  * All messages are retrieved oldest first
  */
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:test-context.xml" })
-public class MessageControllerAutowiredTest {
-	
-	@Autowired
-	private ServletTestHelper testHelper;
+public class MessageControllerAutowiredTest extends AbstractAutowiredControllerTestBase {
 	
 	@Autowired
 	private UserManager userManager;
@@ -86,7 +81,6 @@ public class MessageControllerAutowiredTest {
 	@Before
 	public void before() throws Exception {
 		cleanup = new ArrayList<String>();
-		testHelper.setUp();
 		
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		
@@ -156,7 +150,7 @@ public class MessageControllerAutowiredTest {
 	@Test
 	public void testCreateMessage() throws Exception {
 		MessageToUser messageToBob = getMessageDTO(toBob, null);
-		messageToBob = ServletTestHelper.sendMessage(alice, messageToBob);
+		messageToBob = servletTestHelper.sendMessage(alice, messageToBob);
 		cleanup.add(messageToBob.getId());
 		assertNotNull(messageToBob.getId());
 		assertEquals(aliceId, messageToBob.getCreatedBy());
@@ -169,7 +163,7 @@ public class MessageControllerAutowiredTest {
 		MessageToUser aliceToBob = getMessageDTO(toBob, null);
 		aliceToBob.setFileHandleId(null);
 		try {
-			aliceToBob = ServletTestHelper.sendMessage(alice, aliceToBob);
+			aliceToBob = servletTestHelper.sendMessage(alice, aliceToBob);
 			cleanup.add(aliceToBob.getId());
 			fail();
 		} catch (IllegalArgumentException e) { }
@@ -178,15 +172,15 @@ public class MessageControllerAutowiredTest {
 	@Test
 	public void testGetBoxes() throws Exception {
 		MessageToUser messageToBob = getMessageDTO(toBob, null);
-		messageToBob = ServletTestHelper.sendMessage(alice, messageToBob);
+		messageToBob = servletTestHelper.sendMessage(alice, messageToBob);
 		cleanup.add(messageToBob.getId());
 		
-		PaginatedResults<MessageToUser> outboxOfAlice = ServletTestHelper.getOutbox(alice, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
+		PaginatedResults<MessageToUser> outboxOfAlice = servletTestHelper.getOutbox(alice, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		assertEquals(1L, outboxOfAlice.getTotalNumberOfResults());
 		assertEquals(1, outboxOfAlice.getResults().size());
 		assertEquals(messageToBob, outboxOfAlice.getResults().get(0));
 		
-		PaginatedResults<MessageBundle> inboxOfBob = ServletTestHelper.getInbox(bob, inboxFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
+		PaginatedResults<MessageBundle> inboxOfBob = servletTestHelper.getInbox(bob, inboxFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		assertEquals(1L, inboxOfBob.getTotalNumberOfResults());
 		assertEquals(1, inboxOfBob.getResults().size());
 		assertEquals(messageToBob, inboxOfBob.getResults().get(0).getMessage());
@@ -198,7 +192,7 @@ public class MessageControllerAutowiredTest {
 		weirderFilter.add(MessageStatusType.READ);
 		weirderFilter.add(MessageStatusType.ARCHIVED);
 		
-		inboxOfBob = ServletTestHelper.getInbox(bob, weirderFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
+		inboxOfBob = servletTestHelper.getInbox(bob, weirderFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		assertEquals(1L, inboxOfBob.getTotalNumberOfResults());
 		assertEquals(1, inboxOfBob.getResults().size());
 		assertEquals(messageToBob, inboxOfBob.getResults().get(0).getMessage());
@@ -207,25 +201,25 @@ public class MessageControllerAutowiredTest {
 	@Test
 	public void testGetMessage() throws Exception {
 		MessageToUser messageToBob = getMessageDTO(toBob, null);
-		messageToBob = ServletTestHelper.sendMessage(alice, messageToBob);
+		messageToBob = servletTestHelper.sendMessage(alice, messageToBob);
 		cleanup.add(messageToBob.getId());
 		
-		MessageToUser message = ServletTestHelper.getMessage(alice, messageToBob.getId());
+		MessageToUser message = servletTestHelper.getMessage(alice, messageToBob.getId());
 		assertEquals(messageToBob, message);
 		
-		message = ServletTestHelper.getMessage(bob, messageToBob.getId());
+		message = servletTestHelper.getMessage(bob, messageToBob.getId());
 		assertEquals(messageToBob, message);
 		
 		// No eavesdropping
 		try {
-			ServletTestHelper.getMessage(eve, messageToBob.getId());
+			servletTestHelper.getMessage(eve, messageToBob.getId());
 			fail();
 		} catch (UnauthorizedException e) { }
 		
 		MessageRecipientSet intercept = new MessageRecipientSet();
 		intercept.setRecipients(toEve);
 		try {
-			ServletTestHelper.forwardMessage(eve, messageToBob.getId(), intercept);
+			servletTestHelper.forwardMessage(eve, messageToBob.getId(), intercept);
 			fail();
 		} catch (UnauthorizedException e) { }
 	}
@@ -233,16 +227,16 @@ public class MessageControllerAutowiredTest {
 	@Test
 	public void testForwardMessage() throws Exception {
 		MessageToUser messageToBob = getMessageDTO(toBob, null);
-		messageToBob = ServletTestHelper.sendMessage(alice, messageToBob);
+		messageToBob = servletTestHelper.sendMessage(alice, messageToBob);
 		cleanup.add(messageToBob.getId());
 		
 		// Bob forwards the message back to Alice
 		MessageRecipientSet bouncy = new MessageRecipientSet();
 		bouncy.setRecipients(toAlice);
-		MessageToUser messageToAlice = ServletTestHelper.forwardMessage(bob, messageToBob.getId(), bouncy);
+		MessageToUser messageToAlice = servletTestHelper.forwardMessage(bob, messageToBob.getId(), bouncy);
 		cleanup.add(messageToAlice.getId());
 		
-		PaginatedResults<MessageBundle> inboxOfAlice = ServletTestHelper.getInbox(alice, inboxFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
+		PaginatedResults<MessageBundle> inboxOfAlice = servletTestHelper.getInbox(alice, inboxFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		assertEquals(1L, inboxOfAlice.getTotalNumberOfResults());
 		assertEquals(1, inboxOfAlice.getResults().size());
 		assertEquals(messageToAlice, inboxOfAlice.getResults().get(0).getMessage());
@@ -250,22 +244,25 @@ public class MessageControllerAutowiredTest {
 	
 	@Test
 	public void testGetConversation() throws Exception {
-		MessageToUser aliceToBob = ServletTestHelper.sendMessage(alice, getMessageDTO(toBob, null));
+		MessageToUser aliceToBob = servletTestHelper.sendMessage(alice, getMessageDTO(toBob, null));
 		cleanup.add(aliceToBob.getId());
-		MessageToUser bobToAlice = ServletTestHelper.sendMessage(alice, getMessageDTO(toAlice, aliceToBob.getId()));
+		MessageToUser bobToAlice = servletTestHelper.sendMessage(alice, getMessageDTO(toAlice, aliceToBob.getId()));
 		cleanup.add(bobToAlice.getId());
 		
-		PaginatedResults<MessageToUser> conversation_alice = ServletTestHelper.getConversation(alice, aliceToBob.getId(), SORT_ORDER, DESCENDING, LIMIT, OFFSET);
+		PaginatedResults<MessageToUser> conversation_alice = servletTestHelper.getConversation(alice, aliceToBob.getId(), SORT_ORDER,
+				DESCENDING, LIMIT, OFFSET);
 		assertEquals(2L, conversation_alice.getTotalNumberOfResults());
 		assertEquals(2, conversation_alice.getResults().size());
 		assertEquals(aliceToBob, conversation_alice.getResults().get(0));
 		assertEquals(bobToAlice, conversation_alice.getResults().get(1));
 		
-		PaginatedResults<MessageToUser> conversation_bob = ServletTestHelper.getConversation(alice, bobToAlice.getId(), SORT_ORDER, DESCENDING, LIMIT, OFFSET);
+		PaginatedResults<MessageToUser> conversation_bob = servletTestHelper.getConversation(alice, bobToAlice.getId(), SORT_ORDER,
+				DESCENDING, LIMIT, OFFSET);
 		assertEquals(conversation_alice, conversation_bob);
 
 		// Can't see anything :P
-		PaginatedResults<MessageToUser> conversation_eve = ServletTestHelper.getConversation(eve, aliceToBob.getId(), SORT_ORDER, DESCENDING, LIMIT, OFFSET);
+		PaginatedResults<MessageToUser> conversation_eve = servletTestHelper.getConversation(eve, aliceToBob.getId(), SORT_ORDER, DESCENDING,
+				LIMIT, OFFSET);
 		assertEquals(0L, conversation_eve.getTotalNumberOfResults());
 		assertEquals(0, conversation_eve.getResults().size());
 	}
@@ -273,10 +270,10 @@ public class MessageControllerAutowiredTest {
 	@Test
 	public void testUpdateStatus() throws Exception {
 		MessageToUser messageToBob = getMessageDTO(toBob, null);
-		messageToBob = ServletTestHelper.sendMessage(alice, messageToBob);
+		messageToBob = servletTestHelper.sendMessage(alice, messageToBob);
 		cleanup.add(messageToBob.getId());
 		
-		PaginatedResults<MessageBundle> inboxOfBob = ServletTestHelper.getInbox(bob, inboxFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
+		PaginatedResults<MessageBundle> inboxOfBob = servletTestHelper.getInbox(bob, inboxFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		assertEquals(1L, inboxOfBob.getTotalNumberOfResults());
 		assertEquals(1, inboxOfBob.getResults().size());
 		assertEquals(messageToBob, inboxOfBob.getResults().get(0).getMessage());
@@ -285,20 +282,20 @@ public class MessageControllerAutowiredTest {
 		status.setMessageId(messageToBob.getId());
 		status.setRecipientId(bobId);
 		status.setStatus(MessageStatusType.ARCHIVED);
-		ServletTestHelper.updateMessageStatus(bob, status);
+		servletTestHelper.updateMessageStatus(bob, status);
 		
-		inboxOfBob = ServletTestHelper.getInbox(bob, inboxFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
+		inboxOfBob = servletTestHelper.getInbox(bob, inboxFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		assertEquals(0L, inboxOfBob.getTotalNumberOfResults());
 		assertEquals(0, inboxOfBob.getResults().size());
 		
 		// Eve can't interfere (does nothing)
 		status.setStatus(MessageStatusType.UNREAD);
 		try {
-			ServletTestHelper.updateMessageStatus(eve, status);
+			servletTestHelper.updateMessageStatus(eve, status);
 			fail();
 		} catch (UnauthorizedException e) { }
 		
-		inboxOfBob = ServletTestHelper.getInbox(bob, inboxFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
+		inboxOfBob = servletTestHelper.getInbox(bob, inboxFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		assertEquals(0L, inboxOfBob.getTotalNumberOfResults());
 		assertEquals(0, inboxOfBob.getResults().size());
 	}

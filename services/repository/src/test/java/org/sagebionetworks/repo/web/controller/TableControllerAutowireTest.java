@@ -46,9 +46,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.google.common.collect.Lists;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:test-context.xml" })
-public class TableControllerAutowireTest {
+public class TableControllerAutowireTest extends AbstractAutowiredControllerTestBase {
 
 	@Autowired
 	private FileHandleDao fileMetadataDao;
@@ -64,7 +62,7 @@ public class TableControllerAutowireTest {
 		
 		parent = new Project();
 		parent.setName(UUID.randomUUID().toString());
-		parent = ServletTestHelper.createEntity(DispatchServletSingleton.getInstance(), parent, adminUserId);
+		parent = servletTestHelper.createEntity(dispatchServlet, parent, adminUserId);
 		Assert.assertNotNull(parent);
 	}
 	
@@ -72,7 +70,7 @@ public class TableControllerAutowireTest {
 	public void after(){
 		if(parent != null){
 			try {
-				ServletTestHelper.deleteEntity(DispatchServletSingleton.getInstance(), Project.class, parent.getId(), adminUserId);
+				servletTestHelper.deleteEntity(dispatchServlet, Project.class, parent.getId(), adminUserId);
 			} catch (Exception e) {} 
 		}
 		for (S3FileHandle handle : handles) {
@@ -86,11 +84,11 @@ public class TableControllerAutowireTest {
 		cm.setName("TableControllerAutowireTest One");
 		cm.setColumnType(ColumnType.STRING);
 		// Save the column
-		cm = ServletTestHelper.createColumnModel(DispatchServletSingleton.getInstance(), cm, adminUserId);
+		cm = servletTestHelper.createColumnModel(dispatchServlet, cm, adminUserId);
 		assertNotNull(cm);
 		assertNotNull(cm.getId());
 		// Make sure we can get it
-		ColumnModel clone = ServletTestHelper.getColumnModel(DispatchServletSingleton.getInstance(), cm.getId(), adminUserId);
+		ColumnModel clone = servletTestHelper.getColumnModel(dispatchServlet, cm.getId(), adminUserId);
 		assertEquals(cm, clone);
 	}
 	
@@ -101,12 +99,12 @@ public class TableControllerAutowireTest {
 		ColumnModel one = new ColumnModel();
 		one.setName("one");
 		one.setColumnType(ColumnType.STRING);
-		one = ServletTestHelper.createColumnModel(DispatchServletSingleton.getInstance(), one, adminUserId);
+		one = servletTestHelper.createColumnModel(dispatchServlet, one, adminUserId);
 		// two
 		ColumnModel two = new ColumnModel();
 		two.setName("two");
 		two.setColumnType(ColumnType.STRING);
-		two = ServletTestHelper.createColumnModel(DispatchServletSingleton.getInstance(), two, adminUserId);
+		two = servletTestHelper.createColumnModel(dispatchServlet, two, adminUserId);
 		// Now create a TableEntity with these Columns
 		TableEntity table = new TableEntity();
 		table.setName("TableEntity");
@@ -115,14 +113,16 @@ public class TableControllerAutowireTest {
 		idList.add(one.getId());
 		idList.add(two.getId());
 		table.setColumnIds(idList);
-		table = ServletTestHelper.createEntity(DispatchServletSingleton.getInstance(), table, adminUserId);
+		table = servletTestHelper.createEntity(dispatchServlet, table, adminUserId);
 		assertNotNull(table);
 		assertNotNull(table.getId());
-		TableEntity clone = ServletTestHelper.getEntity(DispatchServletSingleton.getInstance(), TableEntity.class, table.getId(), adminUserId);
+		TableEntity clone = servletTestHelper
+.getEntity(dispatchServlet, TableEntity.class, table.getId(), adminUserId);
 		assertNotNull(clone);
 		assertEquals(table, clone);
 		// Now make sure we can get the list of columns for this entity
-		List<ColumnModel> cols = ServletTestHelper.getColumnModelsForTableEntity(DispatchServletSingleton.getInstance(), table.getId(), adminUserId);
+		List<ColumnModel> cols = servletTestHelper.getColumnModelsForTableEntity(dispatchServlet, table.getId(),
+				adminUserId);
 		assertNotNull(cols);
 		assertEquals(2, cols.size());
 		List<ColumnModel> expected = new LinkedList<ColumnModel>();
@@ -136,7 +136,7 @@ public class TableControllerAutowireTest {
 		set.setRows(rows);
 		set.setHeaders(TableModelUtils.getHeaders(cols));
 		set.setTableId(table.getId());
-		RowReferenceSet results = ServletTestHelper.appendTableRows(DispatchServletSingleton.getInstance(), set, adminUserId);
+		RowReferenceSet results = servletTestHelper.appendTableRows(dispatchServlet, set, adminUserId);
 		assertNotNull(results);
 		assertNotNull(results.getRows());
 		assertEquals(3, results.getRows().size());
@@ -148,11 +148,11 @@ public class TableControllerAutowireTest {
 		toDelete.setEtag(results.getEtag());
 		toDelete.setTableId(results.getTableId());
 		toDelete.setRowIds(Lists.newArrayList(results.getRows().get(1).getRowId()));
-		ServletTestHelper.deleteTableRows(DispatchServletSingleton.getInstance(), toDelete, adminUserId);
+		servletTestHelper.deleteTableRows(dispatchServlet, toDelete, adminUserId);
 
 		// get the rows
 		results.getRows().remove(1);
-		RowSet rowsAfter = ServletTestHelper.getTableRows(DispatchServletSingleton.getInstance(), results, adminUserId);
+		RowSet rowsAfter = servletTestHelper.getTableRows(dispatchServlet, results, adminUserId);
 		set.getRows().remove(1);
 		set.getRows().get(0).setRowId(results.getRows().get(0).getRowId());
 		set.getRows().get(0).setVersionNumber(results.getRows().get(0).getVersionNumber());
@@ -167,12 +167,12 @@ public class TableControllerAutowireTest {
 		ColumnModel one = new ColumnModel();
 		one.setName("Abc");
 		one.setColumnType(ColumnType.STRING);
-		one = ServletTestHelper.createColumnModel(DispatchServletSingleton.getInstance(), one, adminUserId);
+		one = servletTestHelper.createColumnModel(dispatchServlet, one, adminUserId);
 		// two
 		ColumnModel two = new ColumnModel();
 		two.setName("aBC");
 		two.setColumnType(ColumnType.STRING);
-		two = ServletTestHelper.createColumnModel(DispatchServletSingleton.getInstance(), two, adminUserId);
+		two = servletTestHelper.createColumnModel(dispatchServlet, two, adminUserId);
 		// Now create a TableEntity with these Columns
 		TableEntity table = new TableEntity();
 		table.setName("TableEntity");
@@ -181,14 +181,16 @@ public class TableControllerAutowireTest {
 		idList.add(one.getId());
 		idList.add(two.getId());
 		table.setColumnIds(idList);
-		table = ServletTestHelper.createEntity(DispatchServletSingleton.getInstance(), table, adminUserId);
+		table = servletTestHelper.createEntity(dispatchServlet, table, adminUserId);
 		assertNotNull(table);
 		assertNotNull(table.getId());
-		TableEntity clone = ServletTestHelper.getEntity(DispatchServletSingleton.getInstance(), TableEntity.class, table.getId(), adminUserId);
+		TableEntity clone = servletTestHelper
+.getEntity(dispatchServlet, TableEntity.class, table.getId(), adminUserId);
 		assertNotNull(clone);
 		assertEquals(table, clone);
 		// Now make sure we can get the list of columns for this entity
-		List<ColumnModel> cols = ServletTestHelper.getColumnModelsForTableEntity(DispatchServletSingleton.getInstance(), table.getId(), adminUserId);
+		List<ColumnModel> cols = servletTestHelper.getColumnModelsForTableEntity(dispatchServlet, table.getId(),
+				adminUserId);
 		assertNotNull(cols);
 		assertEquals(2, cols.size());
 		List<ColumnModel> expected = new LinkedList<ColumnModel>();
@@ -202,7 +204,7 @@ public class TableControllerAutowireTest {
 		set.setRows(rows);
 		set.setHeaders(TableModelUtils.getHeaders(cols));
 		set.setTableId(table.getId());
-		RowReferenceSet results = ServletTestHelper.appendTableRows(DispatchServletSingleton.getInstance(), set, adminUserId);
+		RowReferenceSet results = servletTestHelper.appendTableRows(dispatchServlet, set, adminUserId);
 		assertNotNull(results);
 		assertNotNull(results.getRows());
 		assertEquals(2, results.getRows().size());
@@ -216,15 +218,15 @@ public class TableControllerAutowireTest {
 		ColumnModel one = new ColumnModel();
 		one.setName("one");
 		one.setColumnType(ColumnType.STRING);
-		one = ServletTestHelper.createColumnModel(DispatchServletSingleton.getInstance(), one, adminUserId);
+		one = servletTestHelper.createColumnModel(dispatchServlet, one, adminUserId);
 
 		// now create a table entity
 		TableEntity table = new TableEntity();
 		table.setName("Table");
 		table.setColumnIds(Lists.newArrayList(one.getId()));
 		table.setParentId(parent.getId());
-		table = ServletTestHelper.createEntity(DispatchServletSingleton.getInstance(), table, adminUserId);
-		List<ColumnModel> columns = ServletTestHelper.getColumnModelsForTableEntity(DispatchServletSingleton.getInstance(), table.getId(),
+		table = servletTestHelper.createEntity(dispatchServlet, table, adminUserId);
+		List<ColumnModel> columns = servletTestHelper.getColumnModelsForTableEntity(dispatchServlet, table.getId(),
 				adminUserId);
 
 		// Append some rows
@@ -233,7 +235,7 @@ public class TableControllerAutowireTest {
 		set.setRows(rows);
 		set.setHeaders(TableModelUtils.getHeaders(columns));
 		set.setTableId(table.getId());
-		RowReferenceSet results1 = ServletTestHelper.appendTableRows(DispatchServletSingleton.getInstance(), set, adminUserId);
+		RowReferenceSet results1 = servletTestHelper.appendTableRows(dispatchServlet, set, adminUserId);
 
 		// update one row twice
 		RowSet update = new RowSet();
@@ -245,7 +247,7 @@ public class TableControllerAutowireTest {
 		update.setTableId(results1.getTableId());
 		update.setHeaders(results1.getHeaders());
 		update.setEtag(results1.getEtag());
-		ServletTestHelper.appendTableRows(DispatchServletSingleton.getInstance(), update, adminUserId);
+		servletTestHelper.appendTableRows(dispatchServlet, update, adminUserId);
 	}
 
 	@Test(expected = IllegalArgumentException.class)
@@ -254,15 +256,15 @@ public class TableControllerAutowireTest {
 		ColumnModel one = new ColumnModel();
 		one.setName("one");
 		one.setColumnType(ColumnType.STRING);
-		one = ServletTestHelper.createColumnModel(DispatchServletSingleton.getInstance(), one, adminUserId);
+		one = servletTestHelper.createColumnModel(dispatchServlet, one, adminUserId);
 
 		// now create a table entity
 		TableEntity table = new TableEntity();
 		table.setName("Table");
 		table.setColumnIds(Lists.newArrayList(one.getId()));
 		table.setParentId(parent.getId());
-		table = ServletTestHelper.createEntity(DispatchServletSingleton.getInstance(), table, adminUserId);
-		List<ColumnModel> columns = ServletTestHelper.getColumnModelsForTableEntity(DispatchServletSingleton.getInstance(), table.getId(),
+		table = servletTestHelper.createEntity(dispatchServlet, table, adminUserId);
+		List<ColumnModel> columns = servletTestHelper.getColumnModelsForTableEntity(dispatchServlet, table.getId(),
 				adminUserId);
 
 		// Append some rows
@@ -271,7 +273,7 @@ public class TableControllerAutowireTest {
 		set.setRows(rows);
 		set.setHeaders(TableModelUtils.getHeaders(columns));
 		set.setTableId(table.getId());
-		RowReferenceSet results1 = ServletTestHelper.appendTableRows(DispatchServletSingleton.getInstance(), set, adminUserId);
+		RowReferenceSet results1 = servletTestHelper.appendTableRows(dispatchServlet, set, adminUserId);
 
 		// update one row with null values
 		RowSet update = new RowSet();
@@ -283,7 +285,7 @@ public class TableControllerAutowireTest {
 		update.setTableId(results1.getTableId());
 		update.setHeaders(results1.getHeaders());
 		update.setEtag(results1.getEtag());
-		ServletTestHelper.appendTableRows(DispatchServletSingleton.getInstance(), update, adminUserId);
+		servletTestHelper.appendTableRows(dispatchServlet, update, adminUserId);
 	}
 
 	@Test(expected = IllegalArgumentException.class)
@@ -292,15 +294,15 @@ public class TableControllerAutowireTest {
 		ColumnModel one = new ColumnModel();
 		one.setName("one");
 		one.setColumnType(ColumnType.STRING);
-		one = ServletTestHelper.createColumnModel(DispatchServletSingleton.getInstance(), one, adminUserId);
+		one = servletTestHelper.createColumnModel(dispatchServlet, one, adminUserId);
 
 		// now create a table entity
 		TableEntity table = new TableEntity();
 		table.setName("Table");
 		table.setColumnIds(Lists.newArrayList(one.getId()));
 		table.setParentId(parent.getId());
-		table = ServletTestHelper.createEntity(DispatchServletSingleton.getInstance(), table, adminUserId);
-		List<ColumnModel> columns = ServletTestHelper.getColumnModelsForTableEntity(DispatchServletSingleton.getInstance(), table.getId(),
+		table = servletTestHelper.createEntity(dispatchServlet, table, adminUserId);
+		List<ColumnModel> columns = servletTestHelper.getColumnModelsForTableEntity(dispatchServlet, table.getId(),
 				adminUserId);
 
 		// Append some rows
@@ -309,7 +311,7 @@ public class TableControllerAutowireTest {
 		set.setRows(rows);
 		set.setHeaders(TableModelUtils.getHeaders(columns));
 		set.setTableId(table.getId());
-		RowReferenceSet results1 = ServletTestHelper.appendTableRows(DispatchServletSingleton.getInstance(), set, adminUserId);
+		RowReferenceSet results1 = servletTestHelper.appendTableRows(dispatchServlet, set, adminUserId);
 
 		// update one row with empty values
 		RowSet update = new RowSet();
@@ -321,7 +323,7 @@ public class TableControllerAutowireTest {
 		update.setTableId(results1.getTableId());
 		update.setHeaders(results1.getHeaders());
 		update.setEtag(results1.getEtag());
-		ServletTestHelper.appendTableRows(DispatchServletSingleton.getInstance(), update, adminUserId);
+		servletTestHelper.appendTableRows(dispatchServlet, update, adminUserId);
 	}
 
 	@Test
@@ -353,12 +355,12 @@ public class TableControllerAutowireTest {
 		ColumnModel one = new ColumnModel();
 		one.setName("one");
 		one.setColumnType(ColumnType.STRING);
-		one = ServletTestHelper.createColumnModel(DispatchServletSingleton.getInstance(), one, adminUserId);
+		one = servletTestHelper.createColumnModel(dispatchServlet, one, adminUserId);
 		// two
 		ColumnModel two = new ColumnModel();
 		two.setName("two");
 		two.setColumnType(ColumnType.FILEHANDLEID);
-		two = ServletTestHelper.createColumnModel(DispatchServletSingleton.getInstance(), two, adminUserId);
+		two = servletTestHelper.createColumnModel(dispatchServlet, two, adminUserId);
 		// Now create a TableEntity with these Columns
 		TableEntity table = new TableEntity();
 		table.setName("TableEntity");
@@ -367,32 +369,32 @@ public class TableControllerAutowireTest {
 		idList.add(one.getId());
 		idList.add(two.getId());
 		table.setColumnIds(idList);
-		table = ServletTestHelper.createEntity(DispatchServletSingleton.getInstance(), table, adminUserId);
+		table = servletTestHelper.createEntity(dispatchServlet, table, adminUserId);
 
 		// Add some rows to the table.
-		List<ColumnModel> cols = ServletTestHelper.getColumnModelsForTableEntity(DispatchServletSingleton.getInstance(), table.getId(),
+		List<ColumnModel> cols = servletTestHelper.getColumnModelsForTableEntity(dispatchServlet, table.getId(),
 				adminUserId);
 		RowSet set = new RowSet();
 		set.setRows(Lists.newArrayList(TableModelTestUtils.createRow(null, null, "x", handleOne.getId()),
 				TableModelTestUtils.createRow(null, null, "x", handleTwo.getId())));
 		set.setHeaders(TableModelUtils.getHeaders(cols));
 		set.setTableId(table.getId());
-		RowReferenceSet results = ServletTestHelper.appendTableRows(DispatchServletSingleton.getInstance(), set, adminUserId);
+		RowReferenceSet results = servletTestHelper.appendTableRows(dispatchServlet, set, adminUserId);
 
 		RowReference rowRef = TableModelTestUtils.createRowReference(results.getRows().get(0).getRowId(), results.getRows().get(0)
 				.getVersionNumber());
-		String url = ServletTestHelper.getTableFileHandleUrl(DispatchServletSingleton.getInstance(), table.getId(), rowRef, two.getId(),
+		String url = servletTestHelper.getTableFileHandleUrl(dispatchServlet, table.getId(), rowRef, two.getId(),
 				adminUserId, false);
 		assertTrue(url.startsWith("https://bucket.s3.amazonaws.com/EntityControllerTest.mainFileKeyOne?"));
 
 		rowRef = TableModelTestUtils.createRowReference(results.getRows().get(1).getRowId(), results.getRows().get(1).getVersionNumber());
-		url = ServletTestHelper.getTableFileHandleUrl(DispatchServletSingleton.getInstance(), table.getId(), rowRef, two.getId(),
+		url = servletTestHelper.getTableFileHandleUrl(dispatchServlet, table.getId(), rowRef, two.getId(),
 				adminUserId,
 				false);
 		assertTrue(url.startsWith("https://bucket.s3.amazonaws.com/EntityControllerTest.mainFileKeyTwo?"));
 
 		try {
-			ServletTestHelper.getTableFileHandleUrl(DispatchServletSingleton.getInstance(), table.getId(), rowRef, one.getId(), adminUserId,
+			servletTestHelper.getTableFileHandleUrl(dispatchServlet, table.getId(), rowRef, one.getId(), adminUserId,
 					false);
 			fail("Should have thrown illegal column");
 		} catch (IllegalArgumentException e) {
@@ -429,7 +431,7 @@ public class TableControllerAutowireTest {
 		ColumnModel one = new ColumnModel();
 		one.setName("one");
 		one.setColumnType(ColumnType.FILEHANDLEID);
-		one = ServletTestHelper.createColumnModel(DispatchServletSingleton.getInstance(), one, adminUserId);
+		one = servletTestHelper.createColumnModel(dispatchServlet, one, adminUserId);
 
 		// Now create a TableEntity with this Column
 		TableEntity table = new TableEntity();
@@ -437,24 +439,24 @@ public class TableControllerAutowireTest {
 		table.setParentId(parent.getId());
 		List<String> idList = Lists.newArrayList(one.getId());
 		table.setColumnIds(idList);
-		table = ServletTestHelper.createEntity(DispatchServletSingleton.getInstance(), table, adminUserId);
+		table = servletTestHelper.createEntity(dispatchServlet, table, adminUserId);
 
 		// Add a rows to the table.
-		List<ColumnModel> cols = ServletTestHelper.getColumnModelsForTableEntity(DispatchServletSingleton.getInstance(), table.getId(),
+		List<ColumnModel> cols = servletTestHelper.getColumnModelsForTableEntity(dispatchServlet, table.getId(),
 				adminUserId);
 		RowSet set = new RowSet();
 		set.setRows(Lists.newArrayList(TableModelTestUtils.createRow(null, null, handleTwo.getId())));
 		set.setHeaders(TableModelUtils.getHeaders(cols));
 		set.setTableId(table.getId());
-		RowReferenceSet results = ServletTestHelper.appendTableRows(DispatchServletSingleton.getInstance(), set, adminUserId);
+		RowReferenceSet results = servletTestHelper.appendTableRows(dispatchServlet, set, adminUserId);
 
 		RowReference rowRef = TableModelTestUtils.createRowReference(results.getRows().get(0).getRowId(), results.getRows().get(0)
 				.getVersionNumber());
-		String url = ServletTestHelper.getTableFileHandleUrl(DispatchServletSingleton.getInstance(), table.getId(), rowRef, one.getId(),
+		String url = servletTestHelper.getTableFileHandleUrl(dispatchServlet, table.getId(), rowRef, one.getId(),
 				adminUserId, false);
 		assertTrue(url.startsWith("https://bucket.s3.amazonaws.com/EntityControllerTest.mainFileKeyTwo?"));
 
-		url = ServletTestHelper.getTableFileHandleUrl(DispatchServletSingleton.getInstance(), table.getId(), rowRef, one.getId(),
+		url = servletTestHelper.getTableFileHandleUrl(dispatchServlet, table.getId(), rowRef, one.getId(),
 				adminUserId,
 				true);
 		assertTrue(url.startsWith("https://bucket.s3.amazonaws.com/EntityControllerTest.mainFileKeyOne?"));
@@ -479,26 +481,26 @@ public class TableControllerAutowireTest {
 		ColumnModel one = new ColumnModel();
 		one.setName("one");
 		one.setColumnType(ColumnType.FILEHANDLEID);
-		one = ServletTestHelper.createColumnModel(DispatchServletSingleton.getInstance(), one, adminUserId);
+		one = servletTestHelper.createColumnModel(dispatchServlet, one, adminUserId);
 		// two
 		ColumnModel two = new ColumnModel();
 		two.setName("two");
 		two.setColumnType(ColumnType.STRING);
-		two = ServletTestHelper.createColumnModel(DispatchServletSingleton.getInstance(), two, adminUserId);
+		two = servletTestHelper.createColumnModel(dispatchServlet, two, adminUserId);
 		// three
 		ColumnModel three = new ColumnModel();
 		three.setName("three");
 		three.setColumnType(ColumnType.FILEHANDLEID);
-		three = ServletTestHelper.createColumnModel(DispatchServletSingleton.getInstance(), three, adminUserId);
+		three = servletTestHelper.createColumnModel(dispatchServlet, three, adminUserId);
 		// Now create a TableEntity with these Columns
 		TableEntity table = new TableEntity();
 		table.setName("TableEntity");
 		table.setParentId(parent.getId());
 		table.setColumnIds(Lists.newArrayList(one.getId(), two.getId(), three.getId()));
-		table = ServletTestHelper.createEntity(DispatchServletSingleton.getInstance(), table, adminUserId);
+		table = servletTestHelper.createEntity(dispatchServlet, table, adminUserId);
 
 		// Add some rows to the table.
-		List<ColumnModel> cols = ServletTestHelper.getColumnModelsForTableEntity(DispatchServletSingleton.getInstance(), table.getId(),
+		List<ColumnModel> cols = servletTestHelper.getColumnModelsForTableEntity(dispatchServlet, table.getId(),
 				adminUserId);
 		RowSet set = new RowSet();
 		set.setRows(Lists.newArrayList(TableModelTestUtils.createRow(null, null, handles.get(0).getId(), null, handles.get(1).getId()),
@@ -507,11 +509,11 @@ public class TableControllerAutowireTest {
 				TableModelTestUtils.createRow(null, null, null, null, null)));
 		set.setHeaders(TableModelUtils.getHeaders(cols));
 		set.setTableId(table.getId());
-		RowReferenceSet results = ServletTestHelper.appendTableRows(DispatchServletSingleton.getInstance(), set, adminUserId);
+		RowReferenceSet results = servletTestHelper.appendTableRows(dispatchServlet, set, adminUserId);
 
 		// remove the string column
 		results.setHeaders(Lists.newArrayList(three.getId(), one.getId()));
-		TableFileHandleResults tableFileHandles = ServletTestHelper.getTableFileHandles(DispatchServletSingleton.getInstance(), results,
+		TableFileHandleResults tableFileHandles = servletTestHelper.getTableFileHandles(dispatchServlet, results,
 				adminUserId);
 		assertEquals(2, tableFileHandles.getHeaders().size());
 		assertEquals(three.getId(), tableFileHandles.getHeaders().get(0));
@@ -541,23 +543,23 @@ public class TableControllerAutowireTest {
 		String prefix = UUID.randomUUID().toString();
 		one.setName(prefix+"a");
 		one.setColumnType(ColumnType.STRING);
-		one = ServletTestHelper.createColumnModel(DispatchServletSingleton.getInstance(), one, adminUserId);
+		one = servletTestHelper.createColumnModel(dispatchServlet, one, adminUserId);
 		// two
 		ColumnModel two = new ColumnModel();
 		two.setName(prefix+"b");
 		two.setColumnType(ColumnType.STRING);
-		two = ServletTestHelper.createColumnModel(DispatchServletSingleton.getInstance(), two, adminUserId);
+		two = servletTestHelper.createColumnModel(dispatchServlet, two, adminUserId);
 		// three
 		ColumnModel three = new ColumnModel();
 		three.setName(prefix+"bb");
 		three.setColumnType(ColumnType.STRING);
-		three = ServletTestHelper.createColumnModel(DispatchServletSingleton.getInstance(), three, adminUserId);
+		three = servletTestHelper.createColumnModel(dispatchServlet, three, adminUserId);
 		// Now make sure we can find our columns
-		PaginatedColumnModels pcm = ServletTestHelper.listColumnModels(DispatchServletSingleton.getInstance(), adminUserId, null, null, null);
+		PaginatedColumnModels pcm = servletTestHelper.listColumnModels(dispatchServlet, adminUserId, null, null, null);
 		assertNotNull(pcm);
 		assertTrue(pcm.getTotalNumberOfResults() >= 3);
 		// filter by our prefix
-		pcm = ServletTestHelper.listColumnModels(DispatchServletSingleton.getInstance(), adminUserId, prefix, null, null);
+		pcm = servletTestHelper.listColumnModels(dispatchServlet, adminUserId, prefix, null, null);
 		assertNotNull(pcm);
 		List<ColumnModel> expected = new LinkedList<ColumnModel>();
 		expected.add(one);
@@ -566,7 +568,7 @@ public class TableControllerAutowireTest {
 		assertEquals(new Long(3), pcm.getTotalNumberOfResults());
 		assertEquals(expected, pcm.getResults());
 		// Now try pagination.
-		pcm = ServletTestHelper.listColumnModels(DispatchServletSingleton.getInstance(), adminUserId, prefix, 1l, 2l);
+		pcm = servletTestHelper.listColumnModels(dispatchServlet, adminUserId, prefix, 1l, 2l);
 		assertNotNull(pcm);
 		assertEquals(new Long(3), pcm.getTotalNumberOfResults());
 		expected.clear();
@@ -581,12 +583,12 @@ public class TableControllerAutowireTest {
 		ColumnModel one = new ColumnModel();
 		one.setName("foo");
 		one.setColumnType(ColumnType.LONG);
-		one = ServletTestHelper.createColumnModel(DispatchServletSingleton.getInstance(), one, adminUserId);
+		one = servletTestHelper.createColumnModel(dispatchServlet, one, adminUserId);
 		// two
 		ColumnModel two = new ColumnModel();
 		two.setName("bar");
 		two.setColumnType(ColumnType.STRING);
-		two = ServletTestHelper.createColumnModel(DispatchServletSingleton.getInstance(), two, adminUserId);
+		two = servletTestHelper.createColumnModel(dispatchServlet, two, adminUserId);
 		// Now create a TableEntity with these Columns
 		TableEntity table = new TableEntity();
 		table.setName("TableEntity2");
@@ -595,14 +597,16 @@ public class TableControllerAutowireTest {
 		idList.add(one.getId());
 		idList.add(two.getId());
 		table.setColumnIds(idList);
-		table = ServletTestHelper.createEntity(DispatchServletSingleton.getInstance(), table, adminUserId);
+		table = servletTestHelper.createEntity(dispatchServlet, table, adminUserId);
 		assertNotNull(table);
 		assertNotNull(table.getId());
-		TableEntity clone = ServletTestHelper.getEntity(DispatchServletSingleton.getInstance(), TableEntity.class, table.getId(), adminUserId);
+		TableEntity clone = servletTestHelper
+.getEntity(dispatchServlet, TableEntity.class, table.getId(), adminUserId);
 		assertNotNull(clone);
 		assertEquals(table, clone);
 		// Now make sure we can get the list of columns for this entity
-		List<ColumnModel> cols = ServletTestHelper.getColumnModelsForTableEntity(DispatchServletSingleton.getInstance(), table.getId(), adminUserId);
+		List<ColumnModel> cols = servletTestHelper.getColumnModelsForTableEntity(dispatchServlet, table.getId(),
+				adminUserId);
 		assertNotNull(cols);
 		
 		// Add some rows to the table.
@@ -611,13 +615,13 @@ public class TableControllerAutowireTest {
 		set.setRows(rows);
 		set.setHeaders(TableModelUtils.getHeaders(cols));
 		set.setTableId(table.getId());
-		ServletTestHelper.appendTableRows(DispatchServletSingleton.getInstance(), set, adminUserId);
+		servletTestHelper.appendTableRows(dispatchServlet, set, adminUserId);
 		
 		// Since the worker is not working on the table, this should fail
 		try{
 			Query query = new Query();
 			query.setSql("select * from "+table.getId()+" limit 2");
-			ServletTestHelper.tableQuery(DispatchServletSingleton.getInstance(), adminUserId, query);
+			servletTestHelper.tableQuery(dispatchServlet, adminUserId, query);
 			fail("This should have failed");
 		}catch(TableUnavilableException e){
 			TableStatus status = e.getStatus();
