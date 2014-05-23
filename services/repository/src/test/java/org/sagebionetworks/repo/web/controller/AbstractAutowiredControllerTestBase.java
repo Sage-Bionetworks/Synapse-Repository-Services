@@ -40,6 +40,7 @@ public abstract class AbstractAutowiredControllerTestBase implements Application
 
 	private ApplicationContext parentContext;
 
+	// injected by spring
 	public void setApplicationContext(ApplicationContext parentContext) {
 		this.parentContext = parentContext;
 	}
