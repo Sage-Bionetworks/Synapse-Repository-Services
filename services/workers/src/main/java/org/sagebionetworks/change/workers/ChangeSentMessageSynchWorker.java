@@ -89,17 +89,17 @@ public class ChangeSentMessageSynchWorker implements Runnable {
 			changeDao.setLastSynchedChangeNunber(lastSychedChangeNumberStart,
 					newLastSynchedChangeNumber);
 		}
-		if (log.isInfoEnabled()) {
-			log.info("maxChangeNumber: " + maxChangeNumber);
-			log.info("minChangeNumber: " + minChangeNumber);
-			log.info("lastSychedChangeNumberStart: "
+		if (log.isTraceEnabled()) {
+			log.trace("maxChangeNumber: " + maxChangeNumber);
+			log.trace("minChangeNumber: " + minChangeNumber);
+			log.trace("lastSychedChangeNumberStart: "
 					+ lastSychedChangeNumberStart);
-			log.info("synchStart: " + synchStart);
-			log.info("upperBounds: " + upperBounds);
-			log.info("toBeSent size: " + toBeSent.size());
-			log.info("newLastSynchedChangeNumber: "
+			log.trace("synchStart: " + synchStart);
+			log.trace("upperBounds: " + upperBounds);
+			log.trace("toBeSent size: " + toBeSent.size());
+			log.trace("newLastSynchedChangeNumber: "
 					+ newLastSynchedChangeNumber);
-			log.info("Run count: " + runCount++);
+			log.trace("Run count: " + runCount++);
 		}
 	}
 
