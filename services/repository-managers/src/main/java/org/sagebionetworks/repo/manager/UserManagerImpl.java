@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.manager;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -20,6 +19,7 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.dao.AuthorizationUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCredential;
@@ -51,6 +51,9 @@ public class UserManagerImpl implements UserManager {
 	@Autowired
 	private PrincipalAliasDAO principalAliasDAO;
 	
+	@Autowired
+	private NotificationEmailDAO notificationEmailDao;
+	
 	/**
 	 * Testing purposes only
 	 * Do NOT use in non-test code
@@ -61,13 +64,20 @@ public class UserManagerImpl implements UserManager {
 	
 	public UserManagerImpl() { }
 	
-	public UserManagerImpl(UserGroupDAO userGroupDAO, UserProfileManager userProfileManger, GroupMembersDAO groupMembersDAO, AuthenticationDAO authDAO, DBOBasicDao basicDAO, PrincipalAliasDAO principalAliasDAO) {
+	public UserManagerImpl(UserGroupDAO userGroupDAO, 
+			UserProfileManager userProfileManger, 
+			GroupMembersDAO groupMembersDAO, 
+			AuthenticationDAO authDAO, 
+			DBOBasicDao basicDAO, 
+			PrincipalAliasDAO principalAliasDAO,
+			NotificationEmailDAO notificationEmailDao) {
 		this.userGroupDAO = userGroupDAO;
 		this.userProfileManger = userProfileManger;
 		this.groupMembersDAO = groupMembersDAO;
 		this.authDAO = authDAO;
 		this.basicDAO = basicDAO;
 		this.principalAliasDAO = principalAliasDAO;
+		this.notificationEmailDao = notificationEmailDao;
 	}
 	
 	public void setUserGroupDAO(UserGroupDAO userGroupDAO) {
@@ -125,10 +135,11 @@ public class UserManagerImpl implements UserManager {
 	private void bindAllAliases(NewUser user, Long principalId) {
 		// Bind all aliases
 		bindAlias(user.getUserName(), AliasType.USER_NAME, principalId, true);
-		bindAlias(user.getEmail(), AliasType.USER_EMAIL, principalId, false);
+		PrincipalAlias emailAlias = bindAlias(user.getEmail(), AliasType.USER_EMAIL, principalId, false);
+		notificationEmailDao.create(emailAlias);
 	}
 
-	private void bindAlias(String aliasName, AliasType type, Long principalId, boolean isValidated) {
+	private PrincipalAlias bindAlias(String aliasName, AliasType type, Long principalId, boolean isValidated) {
 		// bind the username to this user
 		PrincipalAlias alias = new PrincipalAlias();
 		alias.setAlias(aliasName);
@@ -136,10 +147,11 @@ public class UserManagerImpl implements UserManager {
 		alias.setPrincipalId(principalId);
 		alias.setType(type);
 		try {
-			principalAliasDAO.bindAliasToPrincipal(alias);
+			alias = principalAliasDAO.bindAliasToPrincipal(alias);
 		} catch (NotFoundException e1) {
 			throw new DatastoreException(e1);
 		}
+		return alias;
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)

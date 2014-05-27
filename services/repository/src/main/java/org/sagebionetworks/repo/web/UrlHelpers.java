@@ -160,6 +160,7 @@ public class UrlHelpers {
 	
 	public static final String PRINCIPAL = "/principal";
 	public static final String PRINCIPAL_AVAILABLE = PRINCIPAL+"/available";
+	public static final String NOTIFICATION_EMAIL = "/notificationEmail";
 	/**
 	 * All of the base URLs for Synapse object batch requests
 	 */

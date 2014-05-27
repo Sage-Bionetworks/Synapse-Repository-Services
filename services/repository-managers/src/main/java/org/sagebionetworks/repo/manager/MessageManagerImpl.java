@@ -42,6 +42,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageRecipientSet;
@@ -122,7 +123,7 @@ public class MessageManagerImpl implements MessageManager {
 	private UserProfileDAO userProfileDAO;
 	
 	@Autowired
-	private PrincipalAliasDAO principalAliasDAO;
+	private NotificationEmailDAO notificationEmailDao;
 	
 	@Autowired
 	private AuthorizationManager authorizationManager;
@@ -150,7 +151,7 @@ public class MessageManagerImpl implements MessageManager {
 	public MessageManagerImpl(MessageDAO messageDAO, UserGroupDAO userGroupDAO,
 			GroupMembersDAO groupMembersDAO, UserManager userManager,
 			UserProfileDAO userProfileDAO,
-			PrincipalAliasDAO principalAliasDAO,
+			NotificationEmailDAO notificationEmailDao,
 			AuthorizationManager authorizationManager,
 			AmazonSimpleEmailService amazonSESClient,
 			FileHandleManager fileHandleManager, NodeDAO nodeDAO,
@@ -161,7 +162,7 @@ public class MessageManagerImpl implements MessageManager {
 		this.groupMembersDAO = groupMembersDAO;
 		this.userManager = userManager;
 		this.userProfileDAO = userProfileDAO;
-		this.principalAliasDAO = principalAliasDAO;
+		this.notificationEmailDao = notificationEmailDao;
 		this.authorizationManager = authorizationManager;
 		this.amazonSESClient = amazonSESClient;
 		this.fileHandleManager = fileHandleManager;
@@ -729,13 +730,10 @@ public class MessageManagerImpl implements MessageManager {
 	}
 	
 	
-	private String getEmailForUser(Long principalId) {
-		List<PrincipalAlias> aliases = principalAliasDAO.listPrincipalAliases(principalId, AliasType.USER_EMAIL);
-		for (PrincipalAlias alias : aliases) {
-			return alias.getAlias();
-		}
-		throw new IllegalStateException("No validated user email alias for "+principalId);
+	private String getEmailForUser(Long principalId) throws NotFoundException {
+		return notificationEmailDao.getNotificationEmailForPrincipal(principalId);
 	}
+	
 	/**
 	 * Helper for sending templated emails
 	 * 

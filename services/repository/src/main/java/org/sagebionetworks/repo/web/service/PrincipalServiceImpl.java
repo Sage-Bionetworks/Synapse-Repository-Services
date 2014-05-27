@@ -1,8 +1,12 @@
 package org.sagebionetworks.repo.web.service;
 
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.principal.PrincipalManager;
+import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.Username;
 import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
 import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -12,6 +16,8 @@ import org.springframework.beans.factory.annotation.Autowired;
  *
  */
 public class PrincipalServiceImpl implements PrincipalService {
+	@Autowired
+	private UserManager userManager;
 	
 	@Autowired
 	PrincipalManager principalManager;
@@ -32,6 +38,28 @@ public class PrincipalServiceImpl implements PrincipalService {
 		response.setAvailable(isAvailable);
 		response.setValid(isValid);
 		return response;
+	}
+	
+	/**
+	 * Set the email address used for notification.  The address must already be
+	 * registered as an alias for the given user.
+	 * 
+	 * @param userId
+	 * @param email
+	 */
+	public void setNotificationEmail(Long userId, String email) throws NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		principalManager.setNotificationEmail(userInfo, email);
+	}
+
+	/**
+	 * Get the email address used for notification.
+	 * 
+	 * @param userId
+	 */
+	public Username getNotificationEmail(Long userId) throws NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return principalManager.getNotificationEmail(userInfo);
 	}
 
 }

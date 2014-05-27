@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.model.dbo.principal;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_ALIAS_DISPLAY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NOTIFICATION_EMAIL_ALIAS_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NOTIFICATION_EMAIL_ETAG;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NOTIFICATION_EMAIL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NOTIFICATION_EMAIL_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NOTIFICATION_EMAIL;
@@ -17,19 +16,21 @@ import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 public class NotificationEmailDaoImpl implements NotificationEmailDAO {
 	private static final String UPDATE_FOR_PRINCIPAL = "UPDATE "+TABLE_NOTIFICATION_EMAIL+
-			" SET "+COL_NOTIFICATION_EMAIL_PRINCIPAL_ID+" = ?, "+COL_NOTIFICATION_EMAIL_ETAG+" = ?, "+
-			" WHERE "+COL_NOTIFICATION_EMAIL_ID+" = ?";
+			" SET "+COL_NOTIFICATION_EMAIL_ALIAS_ID+" = ?, "+COL_NOTIFICATION_EMAIL_ETAG+" = ? "+
+			" WHERE "+COL_NOTIFICATION_EMAIL_PRINCIPAL_ID+" = ?";
 	
 	private static final String SELECT_NOTIFICATION_EMAIL_FOR_PRINCIPAL = 
 			"SELECT a."+COL_BOUND_ALIAS_DISPLAY+" FROM "+TABLE_NOTIFICATION_EMAIL+" n, "+TABLE_PRINCIPAL_ALIAS+
-			"a WHERE n."+COL_NOTIFICATION_EMAIL_ALIAS_ID+"=a."+COL_PRINCIPAL_ALIAS_ID+
+			" a WHERE n."+COL_NOTIFICATION_EMAIL_ALIAS_ID+"=a."+COL_PRINCIPAL_ALIAS_ID+
 			" AND n."+COL_NOTIFICATION_EMAIL_PRINCIPAL_ID+" = ?";
 	
 	@Autowired
@@ -40,18 +41,8 @@ public class NotificationEmailDaoImpl implements NotificationEmailDAO {
 
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
-	
-	// for testing
-	public NotificationEmailDaoImpl(
-			DBOBasicDao basicDao,
-			IdGenerator idGenerator,
-			JdbcTemplate jdbcTemplate) {
-		this.basicDao=basicDao;
-		this.idGenerator=idGenerator;
-		this.jdbcTemplate=jdbcTemplate;
-	}
 
-
+	public NotificationEmailDaoImpl() {}
 	
 	private static void validateDTO(PrincipalAlias dto) {
 		if (dto.getAlias()==null) throw new IllegalArgumentException("email address is missing.");
@@ -81,12 +72,16 @@ public class NotificationEmailDaoImpl implements NotificationEmailDAO {
 	@Override
 	public void update(PrincipalAlias dto) {
 		String etag = UUID.randomUUID().toString();
-		jdbcTemplate.update(UPDATE_FOR_PRINCIPAL, new Object[]{dto.getPrincipalId(), etag, dto.getAliasId()});
+		jdbcTemplate.update(UPDATE_FOR_PRINCIPAL, new Object[]{dto.getAliasId(), etag, dto.getPrincipalId()});
 	}
 
 	@Override
-	public String getNotificationEmailForPrincipal(long principalId) {
-		return jdbcTemplate.queryForObject(SELECT_NOTIFICATION_EMAIL_FOR_PRINCIPAL, String.class, principalId);
+	public String getNotificationEmailForPrincipal(long principalId) throws NotFoundException {
+		try {
+			return jdbcTemplate.queryForObject(SELECT_NOTIFICATION_EMAIL_FOR_PRINCIPAL, String.class, principalId);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException("Cannot find notification email for "+principalId);
+		}
 	}
 
 }

@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dao;
 
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
+import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
  * 
@@ -28,7 +29,8 @@ public interface NotificationEmailDAO {
 	 * @param principalId
 	 * @return the PrincipalAlias which is the chosen notification email for the given principal.
 	 * The AliasType is guaranteed to be AliasType.USER_EMAIL
+	 * @throws NotFoundException 
 	 */
-	public String getNotificationEmailForPrincipal(long principalId);
+	public String getNotificationEmailForPrincipal(long principalId) throws NotFoundException;
 
 }

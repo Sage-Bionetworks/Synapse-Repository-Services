@@ -200,6 +200,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	
 	public static final String PRINCIPAL = "/principal";
 	public static final String PRINCIPAL_AVAILABLE = PRINCIPAL+"/available";
+	public static final String NOTIFICATION_EMAIL = "/notificationEmail";
 	
 	private static final String WIKI_URI_TEMPLATE = "/%1$s/%2$s/wiki";
 	private static final String WIKI_ID_URI_TEMPLATE = "/%1$s/%2$s/wiki/%3$s";
@@ -587,6 +588,52 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public AliasCheckResponse checkAliasAvailable(AliasCheckRequest request) throws SynapseException {
 		String url = PRINCIPAL_AVAILABLE;
 		return asymmetricalPost(getRepoEndpoint(), url, request, AliasCheckResponse.class, null);
+	}
+	
+	/**
+	 * This sets the email used for user notifications, i.e. when a Synapse message is
+	 * sent and if the user has elected to receive messages by email, then this is the email
+	 * address at which the user will receive the message.  Note:  The given email address
+	 * must already be established as being owned by the user.
+	 */
+	public void setNotificationEmail(String email) throws SynapseException {
+		if (email == null) {
+			throw new IllegalArgumentException("email can not be null.");
+		}
+
+		String url = NOTIFICATION_EMAIL;	
+		JSONObjectAdapter toUpdateAdapter = new JSONObjectAdapterImpl();
+		JSONObject obj;
+		try {
+			Username un = new Username();
+			un.setEmail(email);
+			obj = new JSONObject(un.writeToJSONObject(toUpdateAdapter).toJSONString());
+			getSharedClientConnection().putJson(repoEndpoint, url, obj.toString(), getUserAgent());
+		} catch (JSONException e) {
+			throw new SynapseClientException(e);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}		
+	}
+	
+	/**
+	 * This gets the email used for user notifications, i.e. when a Synapse message is
+	 * sent and if the user has elected to receive messages by email, then this is the email
+	 * address at which the user will receive the message.
+	 * @throws SynapseException
+	 */
+	public String getNotificationEmail() throws SynapseException {
+		String url = NOTIFICATION_EMAIL;	
+		JSONObject jsonObj = getEntity(url);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		try {
+			Username un = new Username();
+			un.initializeFromJSONObject(adapter);
+			return un.getEmail();
+		} catch (JSONObjectAdapterException e1) {
+			throw new RuntimeException(e1);
+		}
+		
 	}
 	
 	/**

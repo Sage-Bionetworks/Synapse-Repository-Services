@@ -50,9 +50,6 @@ public class MessageControllerAutowiredTest {
 	private UserManager userManager;
 	
 	@Autowired
-	private PrincipalAliasDAO principalAliasDAO;
-	
-	@Autowired
 	private MessageService messageService;
 	
 	@Autowired

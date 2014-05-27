@@ -20,8 +20,7 @@ import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.UserProfileDAO;
+import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
@@ -42,13 +41,13 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	private AuthorizationManager authorizationManager;
 	
 	@Autowired
-	NodeDAO nodeDao;
+	private NodeDAO nodeDao;
 
 	@Autowired
-	EvaluationDAO evaluationDAO;
+	private EvaluationDAO evaluationDAO;
 	
 	@Autowired
-	PrincipalAliasDAO principalAliasDAO;
+	private NotificationEmailDAO notificationEmailDao;
 
 	@Autowired
 	private JiraClient jiraClient;
@@ -60,12 +59,12 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 			AccessRequirementDAO accessRequirementDAO,
 			AuthorizationManager authorizationManager,
 			JiraClient jiraClient,
-			PrincipalAliasDAO principalAliasDAO
+			NotificationEmailDAO notificationEmailDAO
 	) {
 		this.accessRequirementDAO=accessRequirementDAO;
 		this.authorizationManager=authorizationManager;
 		this.jiraClient=jiraClient;
-		this.principalAliasDAO=principalAliasDAO;
+		this.notificationEmailDao=notificationEmailDao;
 	}
 	
 	public static void validateAccessRequirement(AccessRequirement a) throws InvalidModelException {
@@ -136,9 +135,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		ACTAccessRequirement accessRequirement = newLockAccessRequirement(userInfo, entityId);
 		ACTAccessRequirement result  = accessRequirementDAO.create(accessRequirement);
 		
-		List<PrincipalAlias> emailAliases = principalAliasDAO.listPrincipalAliases(userInfo.getId(), AliasType.USER_EMAIL);
-		String emailString = "";
-		if (emailAliases.size()>0) emailString = emailAliases.get(0).getAlias();
+		String emailString = notificationEmailDao.getNotificationEmailForPrincipal(userInfo.getId());
 		
 		// now create the Jira issue
 		JRJCHelper.createRestrictIssue(jiraClient, 

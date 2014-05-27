@@ -135,6 +135,9 @@
 		depends-on="userGroupDAO" 
 		init-method="bootstrap" />
 
+	<bean id="notificationEmailDao"
+		class="org.sagebionetworks.repo.model.dbo.principal.NotificationEmailDaoImpl"/>
+
 	<bean id="authDAO"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOAuthenticationDAOImpl"
 		depends-on="userGroupDAO"

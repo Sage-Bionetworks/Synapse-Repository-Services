@@ -1,7 +1,10 @@
 package org.sagebionetworks.repo.web.controller;
 
+import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.auth.Username;
 import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
 import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
@@ -11,6 +14,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
@@ -24,7 +28,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @Controller
 @ControllerInfo(displayName = "Principal Services", path = "repo/v1")
 @RequestMapping(UrlHelpers.REPO_PATH)
-public class PrincipalControler {
+public class PrincipalController {
 
 	@Autowired
 	ServiceProvider serviceProvider;
@@ -60,6 +64,32 @@ public class PrincipalControler {
 	AliasCheckResponse checkAlias(
 			@RequestBody AliasCheckRequest check) {
 		return serviceProvider.getPrincipalService().checkAlias(check);
+	}
+	
+	/**
+	 * This service sets the email used for user notifications, i.e. when a Synapse message is
+	 * sent and if the user has elected to receive messages by email, then this is the email
+	 * address at which the user will receive the message.  Note:  The given email address
+	 * must already be established as being owned by the user.
+	 * 
+	 * @param userId
+	 * @param email
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.NOTIFICATION_EMAIL }, method = RequestMethod.PUT)
+	void setNotificationEmail(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody Username email
+		) throws NotFoundException {
+		serviceProvider.getPrincipalService().setNotificationEmail(userId, email.getEmail());
+	}
+	
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.NOTIFICATION_EMAIL }, method = RequestMethod.GET)
+	Username getNotificationEmail(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) throws NotFoundException {
+		return serviceProvider.getPrincipalService().getNotificationEmail(userId);
 	}
 
 }
