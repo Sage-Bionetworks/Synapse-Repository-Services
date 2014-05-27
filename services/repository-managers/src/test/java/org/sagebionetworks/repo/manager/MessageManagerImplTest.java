@@ -237,7 +237,7 @@ public class MessageManagerImplTest {
 		}
 		
 		// Create all the messages
-		// These will be send automatically since they have only one recipient
+		// These will be sent automatically since they have only one recipient
 		final String otherTestUserId = otherTestUser.getId().toString();
 		userToOther = createMessage(testUser, "userToOther", 
 				new HashSet<String>() {{add(otherTestUserId);}}, null);
@@ -606,11 +606,7 @@ public class MessageManagerImplTest {
 		assertEquals(StringUtils.join(errors, "\n"), 0, errors.size());
 		
 		// Now everyone has been spammed
-		QueryResults<MessageBundle> messages = messageManager.getInbox(adminUserInfo, 
-				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
-		assertEquals(spam, messages.getResults().get(0).getMessage());
-		
-		messages = messageManager.getInbox(testUser, 
+		QueryResults<MessageBundle> messages = messageManager.getInbox(testUser, 
 				unreadMessageFilter, SORT_ORDER, DESCENDING, LIMIT, OFFSET);
 		assertEquals(spam, messages.getResults().get(0).getMessage());
 		

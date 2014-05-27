@@ -533,7 +533,7 @@ public class MessageManagerImpl implements MessageManager {
 				// Note: only admins can pass the authorization check to reach this
 				if (BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId().toString().equals(principalId)) {
 					for (UserGroup member : userGroupDAO.getAllPrincipals()) {
-						if (member.getIsIndividual()) {
+						if (member.getIsIndividual() && !isNotEmailRecipient(member.getId())) {
 							recipients.add(member.getId());
 						}
 					}
@@ -547,6 +547,14 @@ public class MessageManagerImpl implements MessageManager {
 		}
 		
 		return recipients;
+	}
+	
+	// this filters out bootstrapped principals, who are NOT email recipients
+	private static boolean isNotEmailRecipient(String principalId) {
+		for (BOOTSTRAP_PRINCIPAL pb : BOOTSTRAP_PRINCIPAL.values()) {
+			if (pb.getPrincipalId().toString().equals(principalId)) return true;
+		}
+		return false;
 	}
 	
 	/**
