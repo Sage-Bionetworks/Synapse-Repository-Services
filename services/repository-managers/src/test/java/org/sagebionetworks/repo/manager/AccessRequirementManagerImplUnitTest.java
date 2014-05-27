@@ -11,7 +11,6 @@ import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 import org.junit.Before;
@@ -27,7 +26,7 @@ import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
@@ -51,7 +50,7 @@ public class AccessRequirementManagerImplUnitTest {
 	private AuthorizationManager authorizationManager;
 	private AccessRequirementManagerImpl arm;
 	private UserInfo userInfo;
-	private PrincipalAliasDAO principalAliasDAO;
+	private NotificationEmailDAO notificationEmailDao;
 
 	
 	@Before
@@ -59,13 +58,13 @@ public class AccessRequirementManagerImplUnitTest {
 		accessRequirementDAO = Mockito.mock(AccessRequirementDAO.class);
 		when(accessRequirementDAO.create((AccessRequirement)any())).thenReturn(null);
 		authorizationManager = Mockito.mock(AuthorizationManager.class);
-		principalAliasDAO = Mockito.mock(PrincipalAliasDAO.class);
+		notificationEmailDao = Mockito.mock(NotificationEmailDAO.class);
 		List<PrincipalAlias> aliases = new ArrayList<PrincipalAlias>();
 		PrincipalAlias alias = new PrincipalAlias();
 		alias.setAlias("foo@bar.com");
-		when(principalAliasDAO.listPrincipalAliases(anyLong(), (AliasType)any())).thenReturn(aliases);
+		when(notificationEmailDao.getNotificationEmailForPrincipal(anyLong())).thenReturn(alias.getAlias());
 		jiraClient = Mockito.mock(JiraClient.class);
-		arm = new AccessRequirementManagerImpl(accessRequirementDAO, authorizationManager, jiraClient, principalAliasDAO);
+		arm = new AccessRequirementManagerImpl(accessRequirementDAO, authorizationManager, jiraClient, notificationEmailDao);
 		userInfo = new UserInfo(false, TEST_PRINCIPAL_ID);
 		Project sgProject;
 		sgProject = Mockito.mock(Project.class);
@@ -109,7 +108,7 @@ public class AccessRequirementManagerImplUnitTest {
 		AccessRequirement expectedAR = createExpectedAR();
 		ArgumentCaptor<AccessRequirement> argument = ArgumentCaptor.forClass(AccessRequirement.class);
 		verify(accessRequirementDAO).create(argument.capture());
-		verify(principalAliasDAO).listPrincipalAliases(userInfo.getId(), AliasType.USER_EMAIL);
+		verify(notificationEmailDao).getNotificationEmailForPrincipal(userInfo.getId());
 		// can't just call equals on the objects, because the time stamps are slightly different
 		assertEquals(expectedAR.getAccessType(), argument.getValue().getAccessType());
 		assertEquals(expectedAR.getCreatedBy(), argument.getValue().getCreatedBy());

@@ -204,6 +204,18 @@ public class IT500SynapseJavaClient {
 	}
 	
 	@Test
+	public void testNotificationEmail() throws SynapseException {
+		UserProfile up = synapseOne.getMyProfile();
+		assertEquals(1, up.getEmails().size());
+		String myEmail = up.getEmails().get(0);
+		String notificationEmail = synapseOne.getNotificationEmail();
+		// the current notification email is the one/only email that I have
+		assertEquals(myEmail, notificationEmail);
+		// no-op, just checking that everything's wired up right
+		synapseOne.setNotificationEmail(myEmail);
+	}
+	
+	@Test
 	public void testCheckAliasAvailable() throws SynapseException{
 		AliasCheckRequest request = new AliasCheckRequest();
 		// This is valid but already in use

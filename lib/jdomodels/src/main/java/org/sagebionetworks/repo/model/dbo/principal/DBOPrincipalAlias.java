@@ -41,7 +41,7 @@ public class DBOPrincipalAlias implements MigratableDatabaseObject<DBOPrincipalA
 	@Field(name = COL_PRINCIPAL_ALIAS_ID, nullable = false, primary=true, backupId=true)
 	private Long id;
 	
-	@Field(name = COL_PRINCIPAL_ALIAS_ETAG, varchar = 500, nullable = false)
+	@Field(name = COL_PRINCIPAL_ALIAS_ETAG, varchar = 500, etag = true, nullable = false)
 	private String etag;
 	
 	/**

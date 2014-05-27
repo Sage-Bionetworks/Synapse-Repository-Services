@@ -27,6 +27,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOSessionToken" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOTermsOfUseAgreement" />
 				<bean class="org.sagebionetworks.repo.model.dbo.principal.DBOPrincipalAlias" />
+				<bean class="org.sagebionetworks.repo.model.dbo.principal.DBONotificationEmail" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBONodeType" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBONodeTypeAlias" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOActivity" />
@@ -118,6 +119,7 @@
 			<list>
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup" />
 				<bean class="org.sagebionetworks.repo.model.dbo.principal.DBOPrincipalAlias" />
+				<bean class="org.sagebionetworks.repo.model.dbo.principal.DBONotificationEmail" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOUserProfile" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle" />
                 <bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOMessageContent" />

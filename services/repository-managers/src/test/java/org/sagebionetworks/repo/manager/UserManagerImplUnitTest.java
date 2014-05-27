@@ -12,6 +12,7 @@ import java.util.UUID;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -20,7 +21,9 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 
 public class UserManagerImplUnitTest {
@@ -33,6 +36,7 @@ public class UserManagerImplUnitTest {
 	private AuthenticationDAO mockAuthDAO;
 	private DBOBasicDao basicDAO;
 	private PrincipalAliasDAO mockPrincipalAliasDAO;
+	private NotificationEmailDAO notificationEmailDao;
 	
 	private UserInfo admin;
 	private UserInfo notAdmin;
@@ -59,7 +63,10 @@ public class UserManagerImplUnitTest {
 		mockUserProfile = new UserProfile();
 		when(mockUserProfileManger.getUserProfile(any(UserInfo.class), anyString())).thenReturn(mockUserProfile);
 		
-		userManager = new UserManagerImpl(mockUserGroupDAO, mockUserProfileManger, mockGroupMembersDAO, mockAuthDAO, basicDAO, mockPrincipalAliasDAO);
+		notificationEmailDao = Mockito.mock(NotificationEmailDAO.class);
+		
+		userManager = new UserManagerImpl(mockUserGroupDAO, mockUserProfileManger, 
+				mockGroupMembersDAO, mockAuthDAO, basicDAO, mockPrincipalAliasDAO, notificationEmailDao);
 		
 		admin = new UserInfo(true);
 		notAdmin = new UserInfo(false);
@@ -72,12 +79,14 @@ public class UserManagerImplUnitTest {
 		nu.setEmail(UUID.randomUUID().toString()+"@testing.com");
 		nu.setUserName(UUID.randomUUID().toString());
 		userManager.createUser(admin, nu, null, null);
+		verify(notificationEmailDao).create((PrincipalAlias)any());
 		
 		// Call with a non admin
 		try {
 			userManager.createUser(notAdmin, null, null, null);
 			fail();
 		} catch (UnauthorizedException e) { }
+		
 	}
 	
 	@Test

@@ -136,6 +136,22 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException 
 	 */
 	public AliasCheckResponse checkAliasAvailable(AliasCheckRequest request) throws SynapseException;
+	
+	/**
+	 * This sets the email used for user notifications, i.e. when a Synapse message is
+	 * sent and if the user has elected to receive messages by email, then this is the email
+	 * address at which the user will receive the message.  Note:  The given email address
+	 * must already be established as being owned by the user.
+	 */
+	public void setNotificationEmail(String email) throws SynapseException;
+	
+	/**
+	 * This gets the email used for user notifications, i.e. when a Synapse message is
+	 * sent and if the user has elected to receive messages by email, then this is the email
+	 * address at which the user will receive the message.
+	 * @throws SynapseException
+	 */
+	public String getNotificationEmail() throws SynapseException;
 
 	/**
 	 * Get the endpoint of the repository service

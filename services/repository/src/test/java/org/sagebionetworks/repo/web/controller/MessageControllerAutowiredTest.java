@@ -45,9 +45,6 @@ public class MessageControllerAutowiredTest extends AbstractAutowiredControllerT
 	private UserManager userManager;
 	
 	@Autowired
-	private PrincipalAliasDAO principalAliasDAO;
-	
-	@Autowired
 	private MessageService messageService;
 	
 	@Autowired

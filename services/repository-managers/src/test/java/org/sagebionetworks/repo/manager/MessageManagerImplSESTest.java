@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.Settings;
@@ -69,7 +70,7 @@ public class MessageManagerImplSESTest {
 	private GroupMembersDAO mockGroupMembersDAO;
 	private UserManager mockUserManager;
 	private UserProfileDAO mockUserProfileDAO;
-	private PrincipalAliasDAO mockPrincipalAliasDAO;
+	private NotificationEmailDAO mockNotificationEmailDao;
 	private AuthorizationManager mockAuthorizationManager;
 	private FileHandleManager mockFileHandleManager;
 	private NodeDAO mockNodeDAO;
@@ -107,7 +108,7 @@ public class MessageManagerImplSESTest {
 		mockGroupMembersDAO = mock(GroupMembersDAO.class);
 		mockUserManager = mock(UserManager.class);
 		mockUserProfileDAO = mock(UserProfileDAO.class);
-		mockPrincipalAliasDAO = mock(PrincipalAliasDAO.class);
+		mockNotificationEmailDao = mock(NotificationEmailDAO.class);
 		mockAuthorizationManager = mock(AuthorizationManager.class);
 		mockFileHandleManager = mock(FileHandleManager.class);
 		mockNodeDAO = mock(NodeDAO.class);
@@ -119,7 +120,7 @@ public class MessageManagerImplSESTest {
 
 		messageManager = new MessageManagerImpl(mockMessageDAO,
 				mockUserGroupDAO, mockGroupMembersDAO, mockUserManager,
-				mockUserProfileDAO, mockPrincipalAliasDAO, mockAuthorizationManager, amazonSESClient,
+				mockUserProfileDAO, mockNotificationEmailDao, mockAuthorizationManager, amazonSESClient,
 				mockFileHandleManager, mockNodeDAO, mockEntityPermissionsManager,
 				mockFileHandleDao);
 		
@@ -167,8 +168,6 @@ public class MessageManagerImplSESTest {
 		mockRecipientPrincipalAlias.setIsValidated(true);
 
 		List<PrincipalAlias> recipientAliases = Collections.singletonList(mockRecipientPrincipalAlias);
-		when(mockPrincipalAliasDAO.listPrincipalAliases(mockRecipientId, AliasType.USER_EMAIL))
-			.thenReturn(recipientAliases);
 		
 		UserProfile mockSenderUserProfile = new UserProfile();
 		mockSenderUserProfile.setUserName("foo");
@@ -179,8 +178,8 @@ public class MessageManagerImplSESTest {
 		senderPrincipalAlias.setAlias("foo@bar.com");
 		senderPrincipalAlias.setIsValidated(true);
 		List<PrincipalAlias> senderAliases = Collections.singletonList(senderPrincipalAlias);
-		when(mockPrincipalAliasDAO.listPrincipalAliases(mockUserId, AliasType.USER_EMAIL))
-			.thenReturn(senderAliases);
+		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(mockUserId))
+		.thenReturn(senderPrincipalAlias.getAlias());
 		
 		// Mocks the username supplied to SES
 		mockUserInfo = new UserInfo(false, mockUserId);
@@ -222,6 +221,8 @@ public class MessageManagerImplSESTest {
 	@Test
 	public void testSuccess() throws Exception {
 		mockRecipientPrincipalAlias.setAlias(SUCCESS_EMAIL);
+		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(mockRecipientId))
+		.thenReturn(mockRecipientPrincipalAlias.getAlias());
 		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT);
 		assertEquals(errors.toString(), 0, errors.size());
 	}
@@ -229,6 +230,8 @@ public class MessageManagerImplSESTest {
 	@Test
 	public void testBounce() throws Exception {
 		mockRecipientPrincipalAlias.setAlias(BOUNCE_EMAIL);
+		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(mockRecipientId))
+		.thenReturn(mockRecipientPrincipalAlias.getAlias());
 		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT);
 		assertEquals(errors.toString(), 0, errors.size());
 	}
@@ -236,6 +239,8 @@ public class MessageManagerImplSESTest {
 	@Test
 	public void testOutOfOffice() throws Exception {
 		mockRecipientPrincipalAlias.setAlias(OOTO_EMAIL);
+		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(mockRecipientId))
+		.thenReturn(mockRecipientPrincipalAlias.getAlias());
 		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT);
 		assertEquals(errors.toString(), 0, errors.size());
 	}
@@ -243,6 +248,8 @@ public class MessageManagerImplSESTest {
 	@Test
 	public void testComplaint() throws Exception {
 		mockRecipientPrincipalAlias.setAlias(COMPLAINT_EMAIL);
+		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(mockRecipientId))
+		.thenReturn(mockRecipientPrincipalAlias.getAlias());
 		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT);
 		assertEquals(errors.toString(), 0, errors.size());
 	}
@@ -250,6 +257,8 @@ public class MessageManagerImplSESTest {
 	@Test
 	public void testSuppressionList() throws Exception {
 		mockRecipientPrincipalAlias.setAlias(SUPPRESSION_EMAIL);
+		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(mockRecipientId))
+		.thenReturn(mockRecipientPrincipalAlias.getAlias());
 		List<String> errors = messageManager.processMessage(MESSAGE_ID_PLAIN_TEXT);
 		assertEquals(errors.toString(), 0, errors.size());
 	}
