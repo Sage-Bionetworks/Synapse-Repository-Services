@@ -176,6 +176,7 @@
             ref="stackConfiguration.migrationBackupBatchMax" />
         <property name="migrationListeners" >
             <list>
+                <bean class="org.sagebionetworks.repo.manager.principal.NotificationEmailMigrationListener"/>
             </list>
         </property>
     </bean>
