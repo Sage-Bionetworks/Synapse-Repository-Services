@@ -234,7 +234,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 			PrincipalAlias openIdAlias = new PrincipalAlias();
 			openIdAlias.setType(AliasType.USER_OPEN_ID);
 			openIdAlias.setAlias(info.getIdentifier());
-			openIdAlias.setIsValidated(true);
 			openIdAlias.setPrincipalId(alias.getPrincipalId());
 			principalAliasDAO.bindAliasToPrincipal(openIdAlias);
 		}

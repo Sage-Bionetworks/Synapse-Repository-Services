@@ -134,16 +134,15 @@ public class UserManagerImpl implements UserManager {
 	 */
 	private void bindAllAliases(NewUser user, Long principalId) {
 		// Bind all aliases
-		bindAlias(user.getUserName(), AliasType.USER_NAME, principalId, true);
-		PrincipalAlias emailAlias = bindAlias(user.getEmail(), AliasType.USER_EMAIL, principalId, false);
+		bindAlias(user.getUserName(), AliasType.USER_NAME, principalId);
+		PrincipalAlias emailAlias = bindAlias(user.getEmail(), AliasType.USER_EMAIL, principalId);
 		notificationEmailDao.create(emailAlias);
 	}
 
-	private PrincipalAlias bindAlias(String aliasName, AliasType type, Long principalId, boolean isValidated) {
+	private PrincipalAlias bindAlias(String aliasName, AliasType type, Long principalId) {
 		// bind the username to this user
 		PrincipalAlias alias = new PrincipalAlias();
 		alias.setAlias(aliasName);
-		alias.setIsValidated(isValidated);
 		alias.setPrincipalId(principalId);
 		alias.setType(type);
 		try {

@@ -121,14 +121,12 @@ public class UserProfileManagerImplUnitTest {
 		PrincipalAlias alias = new PrincipalAlias();
 		alias.setAlias(USER_EMAIL);
 		alias.setPrincipalId(userId);
-		alias.setIsValidated(true);
 		alias.setType(AliasType.USER_EMAIL);
 		List<PrincipalAlias> aliases =  new ArrayList<PrincipalAlias>();
 		aliases.add(alias);
 		alias = new PrincipalAlias();
 		alias.setAlias(USER_OPEN_ID);
 		alias.setPrincipalId(userId);
-		alias.setIsValidated(true);
 		alias.setType(AliasType.USER_OPEN_ID);
 		aliases.add(alias);
 		when(mockPrincipalAliasDAO.listPrincipalAliases(userId)).thenReturn(aliases);

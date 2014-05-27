@@ -16,7 +16,6 @@ public class AliasUtilsTest {
 		dto.setAlias("alias");
 		dto.setAliasId(new Long(123));
 		dto.setEtag("etag");
-		dto.setIsValidated(Boolean.TRUE);
 		dto.setPrincipalId(new Long(456));
 		dto.setType(AliasType.USER_NAME);
 

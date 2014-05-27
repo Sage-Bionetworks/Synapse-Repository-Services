@@ -238,7 +238,6 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 		PrincipalAlias alias = new PrincipalAlias();
 		alias.setAlias(boot.getAliasName());
 		alias.setAliasId(boot.getAliasId());
-		alias.setIsValidated(true);
 		alias.setPrincipalId(principalId);
 		alias.setType(type);
 		alias.setEtag(UUID.randomUUID().toString());
