@@ -72,7 +72,7 @@ public class DBOPrincipalAlias implements MigratableDatabaseObject<DBOPrincipalA
 	/**
 	 * Has this alias been validated?
 	 */
-	@Field(name = COL_PRINCIPAL_ALIAS_IS_VALIDATED, nullable = false)
+	// NOTE THIS IS NO LONGER A DATABASE COLUMN.  We leave it in so migration won't break.
 	private Boolean validated;
 
 	@Override
