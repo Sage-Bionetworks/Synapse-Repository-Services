@@ -60,9 +60,9 @@ public class NotificationEmailDaoImpl implements NotificationEmailDAO {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void create(PrincipalAlias principalAlias) {
-		validateDTO(principalAlias);
-		DBONotificationEmail dbo = copyDtoToDbo(principalAlias);
+	public void create(PrincipalAlias dto) {
+		validateDTO(dto);
+		DBONotificationEmail dbo = copyDtoToDbo(dto);
 		dbo.setId(idGenerator.generateNewId(TYPE.NOTIFICATION_EMAIL_ID));
 		dbo.setEtag(UUID.randomUUID().toString());
 		basicDao.createNew(dbo);
@@ -71,6 +71,7 @@ public class NotificationEmailDaoImpl implements NotificationEmailDAO {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void update(PrincipalAlias dto) {
+		validateDTO(dto);
 		String etag = UUID.randomUUID().toString();
 		jdbcTemplate.update(UPDATE_FOR_PRINCIPAL, new Object[]{dto.getAliasId(), etag, dto.getPrincipalId()});
 	}
