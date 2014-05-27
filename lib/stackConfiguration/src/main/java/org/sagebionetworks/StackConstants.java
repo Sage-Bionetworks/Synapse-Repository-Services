@@ -40,7 +40,7 @@ public class StackConstants {
 	/**
 	 * Template used the name of the AWS topic where repository changes messages are published.
 	 */
-	public static final String TOPIC_NAME_TEMPLATE = "%1$s-%2$s-repo-changes";
+	public static final String TOPIC_NAME_TEMPLATE_PREFIX = "%1$s-%2$s-repo-";
 	
 	/**
 	 * Template used for the name of the AWS SQS where search updates are pushed.

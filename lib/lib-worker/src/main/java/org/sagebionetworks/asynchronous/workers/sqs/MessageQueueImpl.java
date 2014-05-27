@@ -1,6 +1,7 @@
 package org.sagebionetworks.asynchronous.workers.sqs;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import javax.annotation.PostConstruct;
@@ -8,6 +9,7 @@ import javax.annotation.PostConstruct;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.sagebionetworks.repo.model.ObjectType;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.sns.AmazonSNSClient;
@@ -44,21 +46,22 @@ public class MessageQueueImpl implements MessageQueue {
 	private AmazonSNSClient awsSNSClient;
 
 	private final String queueName;
-	private final String topicName;
+	private final List<ObjectType> objectTypes;
 	private String queueUrl;
+	private String topicPrefix;
 	private boolean isEnabled;
 
-	public MessageQueueImpl(final String queueName, final String topicName, boolean isEnabled) {
-
+	public MessageQueueImpl(final String queueName, String topicPrefix, List<ObjectType> objectTypes, boolean isEnabled) {
 		if (queueName == null) {
-			throw new NullPointerException();
+			throw new IllegalArgumentException("QueueName cannot be null");
 		}
-		if (topicName == null) {
-			throw new NullPointerException();
+		if (objectTypes == null || objectTypes.isEmpty()) {
+			throw new IllegalArgumentException("ObjectTypes cannot be null or empty");
 		}
 		this.isEnabled = isEnabled;
 		this.queueName = queueName;
-		this.topicName = topicName;
+		this.objectTypes = objectTypes;
+		this.topicPrefix = topicPrefix;
 	}
 
 	@PostConstruct
@@ -71,34 +74,24 @@ public class MessageQueueImpl implements MessageQueue {
 		// Create the queue if it does not already exist
 		CreateQueueRequest cqRequest = new CreateQueueRequest(queueName);
 		CreateQueueResult cqResult = this.awsSQSClient.createQueue(cqRequest);
-		final String qUrl = cqResult.getQueueUrl();
+		final String queueUrl = cqResult.getQueueUrl();
 
 		String attrName = "QueueArn";
 		GetQueueAttributesRequest attrRequest = new GetQueueAttributesRequest()
-				.withQueueUrl(qUrl)
+				.withQueueUrl(queueUrl)
 				.withAttributeNames(attrName);
 		GetQueueAttributesResult attrResult = this.awsSQSClient.getQueueAttributes(attrRequest);
-		final String qArn = attrResult.getAttributes().get(attrName);
+		final String queueArn = attrResult.getAttributes().get(attrName);
 
-		if (qArn == null) {
+		if (queueArn == null) {
 			throw new IllegalStateException("Failed to get the ARN for Queue: " + getQueueName());
 		}
 
-		this.logger.info("Queue created. URL: " + qUrl + " ARN: " + qArn);
+		this.logger.info("Queue created. URL: " + queueUrl + " ARN: " + queueArn);
+		// create topics and setup access.
+		createAndGrandAccessToTopic(queueArn, queueUrl, this.objectTypes);
 
-		// Let the queue subscribe to the topic
-		CreateTopicRequest ctRequest = new CreateTopicRequest(topicName);
-		CreateTopicResult topicResult = this.awsSNSClient.createTopic(ctRequest);
-		final String tArn = topicResult.getTopicArn();
-		final Subscription subscription = subscribeQueueToTopicIfNeeded(tArn, qArn);
-		if (subscription == null) {
-			throw new IllegalStateException("Failed to subscribe queue (" + qArn + ") to topic (" + tArn + ")");
-		}
-
-		// Make sure the topic has the permission it needs
-		grantPolicyIfNeeded(tArn, qArn, qUrl);
-
-		this.queueUrl = qUrl;
+		this.queueUrl = queueUrl;
 	}
 
 	@Override
@@ -109,6 +102,38 @@ public class MessageQueueImpl implements MessageQueue {
 	@Override
 	public String getQueueName(){
 		return this.queueName;
+	}
+	
+	/**
+	 * Create a topic (if needed) for each type and grant access to publish from the topics to the queue.
+	 * @param queueArn
+	 * @param queueUrl
+	 * @param type
+	 */
+	private void createAndGrandAccessToTopic(String queueArn, String queueUrl, List<ObjectType> types){
+		for(ObjectType type: types){
+			createAndGrandAccessToTopic(queueArn, queueUrl, type);
+		}
+	}
+	
+	/**
+	 * Create a topic (if needed) and grant access to publish from the topic to the queue.
+	 * @param queueArn
+	 * @param queueUrl
+	 * @param type
+	 */
+	private void createAndGrandAccessToTopic(String queueArn, String queueUrl, ObjectType type){
+		// Let the queue subscribe to the topic
+		String topicName = topicPrefix+type.name();
+		CreateTopicRequest ctRequest = new CreateTopicRequest(topicName);
+		CreateTopicResult topicResult = this.awsSNSClient.createTopic(ctRequest);
+		final String topicArn = topicResult.getTopicArn();
+		final Subscription subscription = subscribeQueueToTopicIfNeeded(topicArn, queueArn);
+		if (subscription == null) {
+			throw new IllegalStateException("Failed to subscribe queue (" + queueArn + ") to topic (" + topicArn + ")");
+		}
+		// Make sure the topic has the permission it needs
+		grantPolicyIfNeeded(topicArn, queueArn, queueUrl);
 	}
 
 	/**

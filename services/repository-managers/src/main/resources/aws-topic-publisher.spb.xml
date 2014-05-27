@@ -35,7 +35,7 @@
 		class="org.sagebionetworks.repo.manager.message.RepositoryMessagePublisherImpl"
 		init-method="initialize">
 		<constructor-arg type="java.lang.String">
-			<ref bean="stackConfiguration.repositoryChangeTopicName" />
+			<ref bean="stackConfiguration.repositoryChangeTopicPrefix" />
 		</constructor-arg>
 		<property name="shouldMessagesBePublishedToTopic"
 			ref="stackConfiguration.shouldMessagesBePublishedToTopic"></property>

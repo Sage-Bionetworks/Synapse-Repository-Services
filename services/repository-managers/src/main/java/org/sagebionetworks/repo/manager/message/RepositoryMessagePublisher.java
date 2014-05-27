@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.message;
 
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.TransactionalMessengerObserver;
 
@@ -19,14 +20,14 @@ public interface RepositoryMessagePublisher extends TransactionalMessengerObserv
 	 * 
 	 * @return
 	 */
-	public String getTopicName();
+	public String getTopicName(ObjectType type);
 	
 	/**
 	 * The ARN for the topic where messages are published.
 	 * 
 	 * @return
 	 */
-	public String getTopicArn();
+	public String getTopicArn(ObjectType type);
 	
 	/**
 	 * Used by tests to inject a mock client.

@@ -67,7 +67,7 @@ public class RepositoryMessagePublisherImplAutowireTest {
 	
 	@Test
 	public void testGetArn(){
-		String arn = messagePublisher.getTopicArn();
+		String arn = messagePublisher.getTopicArn(ObjectType.ENTITY);
 		System.out.println("Arn: "+arn);
 		assertNotNull(arn);
 	}
@@ -86,7 +86,7 @@ public class RepositoryMessagePublisherImplAutowireTest {
 			}
 		}
 		assertTrue("Failed to find the RepositoryMessagePublisher on the list of transactionalMessanger observers",found);
-		assertNotNull(messagePublisher.getTopicName());
+		assertNotNull(messagePublisher.getTopicName(ObjectType.ENTITY));
 	}
 	
 	@Test
@@ -108,7 +108,7 @@ public class RepositoryMessagePublisherImplAutowireTest {
 		// Validate that our message was fired.
 		String json = EntityFactory.createJSONStringForEntity(message);
 		// The message should be published once and only once.
-		verify(mockSNSClient, times(1)).publish(new PublishRequest(messagePublisher.getTopicArn(), json));
+		verify(mockSNSClient, times(1)).publish(new PublishRequest(messagePublisher.getTopicArn(ObjectType.ENTITY), json));
 		// The message should be sent
 		unsent = changeDao.listUnsentMessages(Long.MAX_VALUE);
 		assertEquals(0, unsent.size());
@@ -142,7 +142,7 @@ public class RepositoryMessagePublisherImplAutowireTest {
 		for(String messageBody: messageBodyList){
 			System.out.println("Checking for message body: "+messageBody);
 			// The message should be published once and only once.
-			verify(mockSNSClient, times(1)).publish(new PublishRequest(messagePublisher.getTopicArn(), messageBody));
+			verify(mockSNSClient, times(1)).publish(new PublishRequest(messagePublisher.getTopicArn(ObjectType.ENTITY), messageBody));
 		}
 
 	}
