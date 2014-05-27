@@ -69,12 +69,6 @@ public class DBOPrincipalAlias implements MigratableDatabaseObject<DBOPrincipalA
 	@Field(name = COL_PRINCIPAL_ALIAS_TYPE, nullable = false)
 	private AliasEnum aliasType;
 	
-	/**
-	 * Has this alias been validated?
-	 */
-	@Field(name = COL_PRINCIPAL_ALIAS_IS_VALIDATED, nullable = false)
-	private Boolean validated;
-
 	@Override
 	public TableMapping<DBOPrincipalAlias> getTableMapping() {
 		return tableMapping;
@@ -163,14 +157,6 @@ public class DBOPrincipalAlias implements MigratableDatabaseObject<DBOPrincipalA
 		this.aliasType = aliasType;
 	}
 
-	public Boolean getValidated() {
-		return validated;
-	}
-
-	public void setValidated(Boolean validated) {
-		this.validated = validated;
-	}
-
 	public String getEtag() {
 		return etag;
 	}
@@ -193,8 +179,6 @@ public class DBOPrincipalAlias implements MigratableDatabaseObject<DBOPrincipalA
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result
 				+ ((principalId == null) ? 0 : principalId.hashCode());
-		result = prime * result
-				+ ((validated == null) ? 0 : validated.hashCode());
 		return result;
 	}
 
@@ -234,11 +218,6 @@ public class DBOPrincipalAlias implements MigratableDatabaseObject<DBOPrincipalA
 				return false;
 		} else if (!principalId.equals(other.principalId))
 			return false;
-		if (validated == null) {
-			if (other.validated != null)
-				return false;
-		} else if (!validated.equals(other.validated))
-			return false;
 		return true;
 	}
 
@@ -247,7 +226,7 @@ public class DBOPrincipalAlias implements MigratableDatabaseObject<DBOPrincipalA
 		return "DBOPrincipalAlias [id=" + id + ", etag=" + etag
 				+ ", principalId=" + principalId + ", aliasUnique="
 				+ aliasUnique + ", aliasDisplay=" + aliasDisplay
-				+ ", aliasType=" + aliasType + ", validated=" + validated + "]";
+				+ ", aliasType=" + aliasType + "]";
 	}
 	
 }
