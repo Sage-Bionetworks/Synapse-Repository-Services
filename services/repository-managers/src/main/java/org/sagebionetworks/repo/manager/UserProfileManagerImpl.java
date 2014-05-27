@@ -201,7 +201,6 @@ public class UserProfileManagerImpl implements UserProfileManager {
 		// bind the username to this user
 		PrincipalAlias alias = new PrincipalAlias();
 		alias.setAlias(username);
-		alias.setIsValidated(true);
 		alias.setPrincipalId(principalId);
 		alias.setType(AliasType.USER_NAME);
 		try {

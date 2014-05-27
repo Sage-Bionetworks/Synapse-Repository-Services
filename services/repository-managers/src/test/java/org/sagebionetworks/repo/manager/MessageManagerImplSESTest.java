@@ -165,7 +165,6 @@ public class MessageManagerImplSESTest {
 		
 		mockRecipientPrincipalAlias = new PrincipalAlias();
 		mockRecipientPrincipalAlias.setType(AliasType.USER_EMAIL);
-		mockRecipientPrincipalAlias.setIsValidated(true);
 
 		List<PrincipalAlias> recipientAliases = Collections.singletonList(mockRecipientPrincipalAlias);
 		
@@ -176,7 +175,6 @@ public class MessageManagerImplSESTest {
 		PrincipalAlias senderPrincipalAlias = new PrincipalAlias();
 		senderPrincipalAlias.setType(AliasType.USER_EMAIL);
 		senderPrincipalAlias.setAlias("foo@bar.com");
-		senderPrincipalAlias.setIsValidated(true);
 		List<PrincipalAlias> senderAliases = Collections.singletonList(senderPrincipalAlias);
 		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(mockUserId))
 		.thenReturn(senderPrincipalAlias.getAlias());

@@ -297,7 +297,6 @@ public class TeamManagerImpl implements TeamManager {
 		// Bind the team name
 		alias = new PrincipalAlias();
 		alias.setAlias(name);
-		alias.setIsValidated(true);
 		alias.setPrincipalId(teamId);
 		alias.setType(AliasType.TEAM_NAME);
 		// bind this alias

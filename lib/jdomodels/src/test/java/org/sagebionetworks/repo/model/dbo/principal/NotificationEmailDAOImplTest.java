@@ -54,7 +54,6 @@ public class NotificationEmailDAOImplTest {
 		// Use to upper as the alias
 		alias.setAlias(UUID.randomUUID().toString()+"@test.com");
 		alias.setType(AliasType.USER_EMAIL);
-		alias.setIsValidated(true);
 		alias.setPrincipalId(principalId);
 		alias = principalAliasDao.bindAliasToPrincipal(alias);
 		toDelete.add(alias);
@@ -64,7 +63,6 @@ public class NotificationEmailDAOImplTest {
 		// Use to upper as the alias
 		alias2.setAlias(UUID.randomUUID().toString()+"@test.com");
 		alias2.setType(AliasType.USER_EMAIL);
-		alias2.setIsValidated(true);
 		alias2.setPrincipalId(principalId);
 		alias2 = principalAliasDao.bindAliasToPrincipal(alias2);
 		toDelete.add(alias2);
