@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.web.controller;
 
+import org.sagebionetworks.auth.BaseController;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.auth.Username;
 import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
@@ -28,7 +29,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @Controller
 @ControllerInfo(displayName = "Principal Services", path = "repo/v1")
 @RequestMapping(UrlHelpers.REPO_PATH)
-public class PrincipalController {
+public class PrincipalController extends BaseController {
 
 	@Autowired
 	ServiceProvider serviceProvider;
@@ -87,6 +88,7 @@ public class PrincipalController {
 	
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.NOTIFICATION_EMAIL }, method = RequestMethod.GET)
+	public @ResponseBody
 	Username getNotificationEmail(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId) throws NotFoundException {
 		return serviceProvider.getPrincipalService().getNotificationEmail(userId);
