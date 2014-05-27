@@ -15,25 +15,16 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.ontology.Concept;
 import org.sagebionetworks.repo.model.ontology.ConceptResponsePage;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:test-context.xml" })
-public class ConceptControllerTest {
+public class ConceptControllerTest extends AbstractAutowiredControllerTestBase {
 	static final String MOTILE_CELL_CONCEPT_ID = "11328";
 	static final String ADRENAL_MEDULLA_CELL_CONCEPT_ID = "398";
 	final MemoryMXBean memBean = ManagementFactory.getMemoryMXBean(); 
 	private static final int MB_PER_BYTE = 1024*1024;
-	
-	@Autowired
-	private ServletTestHelper testHelper;
 	
 	// Start memory
 	long startMemoryMB;
@@ -41,7 +32,6 @@ public class ConceptControllerTest {
 	@Before
 	public void before() throws Exception{
 		startMemoryMB = memBean.getHeapMemoryUsage().getUsed()/MB_PER_BYTE;
-		testHelper.setUp();
 	}
 	
 	@After
@@ -53,7 +43,7 @@ public class ConceptControllerTest {
 	@Test
 	public void testGetSummaryNoFilter() throws Exception {
 		String parentUrl = "http://synapse.sagebase.org/ontology#"+MOTILE_CELL_CONCEPT_ID;
-		ConceptResponsePage response = ServletTestHelper.getConceptsForParent(MOTILE_CELL_CONCEPT_ID, null, 10, 0);
+		ConceptResponsePage response = servletTestHelper.getConceptsForParent(MOTILE_CELL_CONCEPT_ID, null, 10, 0);
 		assertNotNull(response);
 		assertEquals(parentUrl, response.getParentConceptUri());
 		List<Concept> children = response.getChildren();
@@ -63,7 +53,7 @@ public class ConceptControllerTest {
 		
 		// Test paging
 		Concept fourthConcept = children.get(3);
-		response = ServletTestHelper.getConceptsForParent(MOTILE_CELL_CONCEPT_ID, null, 1, 3);
+		response = servletTestHelper.getConceptsForParent(MOTILE_CELL_CONCEPT_ID, null, 1, 3);
 		assertNotNull(response);
 		assertEquals(parentUrl, response.getParentConceptUri());
 		children = response.getChildren();
@@ -80,7 +70,7 @@ public class ConceptControllerTest {
 		String parentId = "8406";
 		String parentUrl = "http://synapse.sagebase.org/ontology#"+parentId;
 		String prefix = "adrenal medulla cell";
-		ConceptResponsePage response = ServletTestHelper.getConceptsForParent(parentId, prefix, Integer.MAX_VALUE, 0);
+		ConceptResponsePage response = servletTestHelper.getConceptsForParent(parentId, prefix, Integer.MAX_VALUE, 0);
 		assertNotNull(response);
 		assertEquals(parentUrl, response.getParentConceptUri());
 		assertEquals(parentUrl, response.getParentConceptUri());
@@ -94,7 +84,7 @@ public class ConceptControllerTest {
 	@Test
 	public void testGetConcept() throws Exception {
 		String conceptUrl = "http://synapse.sagebase.org/ontology#"+MOTILE_CELL_CONCEPT_ID;
-		Concept response = ServletTestHelper.getConcept(MOTILE_CELL_CONCEPT_ID);
+		Concept response = servletTestHelper.getConcept(MOTILE_CELL_CONCEPT_ID);
 		assertNotNull(response);
 		assertEquals(conceptUrl, response.getUri());
 	}
@@ -110,7 +100,7 @@ public class ConceptControllerTest {
 	public void testGetConceptJSONP() throws Exception , JSONObjectAdapterException{
 		String conceptUrl = "http://synapse.sagebase.org/ontology#"+ADRENAL_MEDULLA_CELL_CONCEPT_ID;
 		String callbackName = "exampleCallback";
-		String response = ServletTestHelper.getConceptAsJSONP(ADRENAL_MEDULLA_CELL_CONCEPT_ID, callbackName);
+		String response = servletTestHelper.getConceptAsJSONP(ADRENAL_MEDULLA_CELL_CONCEPT_ID, callbackName);
 		assertNotNull(response);
 		System.out.println(response);
 		String expectedPrefix = callbackName+"(";

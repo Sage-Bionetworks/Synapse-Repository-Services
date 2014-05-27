@@ -740,6 +740,10 @@ public class UrlHelpers {
 	 */
 	public static final String ADMIN_CLEAR_LOCKS = ADMIN+"/locks";
 
+	/**
+	 * API for testing throttling
+	 */
+	public static final String ADMIN_WAIT = ADMIN + "/wait";
 	
 	static {
 		@SuppressWarnings("rawtypes")

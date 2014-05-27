@@ -33,14 +33,9 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
  * @author John
  *
  */
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:test-context.xml" })
-public class SearchControllerTest {
+public class SearchControllerTest extends AbstractAutowiredControllerTestBase {
 	
 	private static long MAX_WAIT = 1000*15;
-	
-	@Autowired
-	private ServletTestHelper servletTestHelper;
 	
 	private Long adminUserId;
 	
@@ -57,13 +52,11 @@ public class SearchControllerTest {
 		// Only run this test if search is enabled.
 		Assume.assumeTrue(config.getSearchEnabled());
 		
-		servletTestHelper.setUp();
-		
-		provider = DispatchServletSingleton.getInstance().getWebApplicationContext().getBean(ServiceProvider.class);
+		provider = dispatchServlet.getWebApplicationContext().getBean(ServiceProvider.class);
 		assertNotNull(provider);
-		searchDao =  DispatchServletSingleton.getInstance().getWebApplicationContext().getBean(SearchDao.class);
+		searchDao = dispatchServlet.getWebApplicationContext().getBean(SearchDao.class);
 		assertNotNull(searchDao);
-		documentProvider = DispatchServletSingleton.getInstance().getWebApplicationContext().getBean(SearchDocumentDriver.class);
+		documentProvider = dispatchServlet.getWebApplicationContext().getBean(SearchDocumentDriver.class);
 		assertNotNull(documentProvider);
 		// Create an project
 		project = new Project();
@@ -100,7 +93,7 @@ public class SearchControllerTest {
 		kv.setValue(project.getId());
 		query.getBooleanQuery().add(kv);
 		
-		SearchResults results = ServletTestHelper.getSearchResults(adminUserId, query);
+		SearchResults results = servletTestHelper.getSearchResults(adminUserId, query);
 		assertNotNull(results);
 		assertNotNull(results.getHits());
 		assertEquals(1l, results.getHits().size());

@@ -6,13 +6,13 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreDao;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 
 import com.amazonaws.services.sns.AmazonSNSClient;
 import com.amazonaws.services.sns.model.CreateTopicRequest;
@@ -36,9 +36,6 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 
 	@Autowired
 	AmazonSNSClient awsSNSClient;
-	
-	@Autowired
-	SemaphoreDao semaphoreDao;
 	
 	private boolean shouldMessagesBePublishedToTopic;
 	
@@ -156,7 +153,7 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 		}
 		// Publish each message to the topic
 		for(ChangeMessage message: currentQueue){
-			publishMessage(message);
+			publishToTopic(message);
 		}
 	}
 	
@@ -178,7 +175,8 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 	 * 
 	 * @param message
 	 */
-	private void publishMessage(ChangeMessage message) {
+	@Override
+	public boolean publishToTopic(ChangeMessage message) {
 		try {
 			String json = EntityFactory.createJSONStringForEntity(message);
 			if(log.isTraceEnabled()){
@@ -187,17 +185,23 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 			awsSNSClient.publish(new PublishRequest(this.topicArn, json));
 			// Register the message was sent
 			this.transactionalMessanger.registerMessageSent(message);
+			return true;
 		} catch (JSONObjectAdapterException e) {
 			// This should not occur.
 			// If it does we want to log it but continue to send messages
 			// as this is called from a timer and not a web-services.
 			log.error("Failed to parse ChangeMessage:", e);
+			return false;
+		}catch (IllegalArgumentException e){
+			// This can occur when we try to send a message that has already been sent.
 		}catch (NotFoundException e){
 			// This can occur when we try to send a message that has already been deleted.
-			// It is not really an error condition but we log it.
-			if(log.isDebugEnabled()){
-				log.debug(e.getMessage());
-			}
+		}catch (DataIntegrityViolationException e){
+			// This can occur when we try to send a message that has already been deleted or has already been sent.
+		}catch (Throwable e){
+			// This should never throw an exception.
+			log.error("Unknown failure: "+e.getMessage(),e);
 		}
+		return false;
 	}
 }

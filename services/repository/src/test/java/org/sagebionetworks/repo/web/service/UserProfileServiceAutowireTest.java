@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.controller.AbstractAutowiredControllerTestBase;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -34,9 +35,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 /**
  *
  */
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:test-context.xml" })
-public class UserProfileServiceAutowireTest {
+public class UserProfileServiceAutowireTest extends AbstractAutowiredControllerTestBase {
 	
 	@Autowired
 	UserManager userManger;

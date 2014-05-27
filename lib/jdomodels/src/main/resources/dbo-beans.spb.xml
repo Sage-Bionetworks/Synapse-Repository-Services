@@ -93,6 +93,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.asynch.DBOAsynchJobStatus" />
 				<!-- misc -->
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOSentMessage" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOSentMessageSynch" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOProcessedMessage" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOSemaphore" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOExclusiveLock" />

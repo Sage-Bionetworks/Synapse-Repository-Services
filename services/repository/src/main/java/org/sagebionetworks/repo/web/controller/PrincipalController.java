@@ -74,7 +74,7 @@ public class PrincipalController extends BaseController {
 	 * must already be established as being owned by the user.
 	 * 
 	 * @param userId
-	 * @param email
+	 * @param email the email address to use for notifications
 	 * @throws NotFoundException
 	 */
 	@ResponseStatus(HttpStatus.OK)
@@ -86,6 +86,15 @@ public class PrincipalController extends BaseController {
 		serviceProvider.getPrincipalService().setNotificationEmail(userId, email.getEmail());
 	}
 	
+	/**
+	 * This service returns the email used for user notifications, i.e. when a Synapse message is
+	 * sent and if the user has elected to receive messages by email, then this is the email
+	 * address at which the user will receive the message.
+	 * 
+	 * @param userId
+	 * @return the email address to use for notifications
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.NOTIFICATION_EMAIL }, method = RequestMethod.GET)
 	public @ResponseBody

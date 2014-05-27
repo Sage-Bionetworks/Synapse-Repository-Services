@@ -7,6 +7,7 @@ public class TestClock {
 	private static class TestClockProvider implements ClockProvider {
 		long currentTime = 100000L;
 		boolean sleepIsThreaded = false;
+		int sleeperCount = 0;
 
 		@Override
 		public long currentTimeMillis() {
@@ -18,12 +19,29 @@ public class TestClock {
 			if (sleepIsThreaded) {
 				long startTime = currentTime;
 				synchronized (this) {
-					while (currentTime < startTime + millis) {
-						this.wait(60000);
+					sleeperCount++;
+					try {
+						while (currentTime < startTime + millis) {
+							this.wait(60000);
+						}
+					} finally {
+						sleeperCount--;
 					}
 				}
 			} else {
 				currentTime += millis;
+			}
+		}
+
+		public void waitForSleepers(int expectedSleeperCount) {
+			synchronized (this) {
+				while (expectedSleeperCount > sleeperCount) {
+					try {
+						this.wait(10);
+					} catch (InterruptedException e) {
+						throw new RuntimeException(e);
+					}
+				}
 			}
 		}
 	};
@@ -52,5 +70,9 @@ public class TestClock {
 
 	public static void warpBackward(long millis) {
 		testClockProvider.currentTime -= millis;
+	}
+
+	public static void waitForSleepers(int expectedSleeperCount) {
+		testClockProvider.waitForSleepers(expectedSleeperCount);
 	}
 }

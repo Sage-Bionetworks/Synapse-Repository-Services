@@ -11,6 +11,7 @@ import java.util.concurrent.Callable;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.manager.util.Validate;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -163,6 +164,7 @@ public class TableRowManagerImpl implements TableRowManager {
 		if(user == null) throw new IllegalArgumentException("User cannot be null");
 		if(tableId == null) throw new IllegalArgumentException("TableId cannot be null");
 		if(models == null) throw new IllegalArgumentException("Models cannot be null");
+		validateFeatureEnabled();
 		// Validate the user has permission to edit the table
 		if(!authorizationManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)){
 			throw new UnauthorizedException("User does not have permission to update TableEntity: "+tableId);
@@ -315,6 +317,7 @@ public class TableRowManagerImpl implements TableRowManager {
 	public RowSet query(UserInfo user, String sql, boolean isConsistent, boolean countOnly) throws DatastoreException, NotFoundException, TableUnavilableException {
 		if(user == null) throw new IllegalArgumentException("UserInfo cannot be null");
 		if(sql == null) throw new IllegalArgumentException("Query SQL string cannot be null");
+		validateFeatureEnabled();
 		// First parse the SQL
 		final SqlQuery query = createQuery(sql, countOnly);
 		// Validate the user has read access on this object
@@ -693,5 +696,14 @@ public class TableRowManagerImpl implements TableRowManager {
 			throw new DatastoreException("File handle was not processed for access");
 		}
 		return null;
+	}
+	
+	/**
+	 * Thows an exception if the table feature is disabled.
+	 */
+	public void validateFeatureEnabled(){
+		if(!StackConfiguration.singleton().getTableEnabled()){
+			throw new IllegalStateException("This method cannot be called when the table feature is disabled.");
+		}
 	}
 }

@@ -44,9 +44,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
  * @author dburdick
  * 
  */
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:test-context.xml" })
-public class ActivityControllerAutowiredTest {
+public class ActivityControllerAutowiredTest extends AbstractAutowiredControllerTestBase {
 
 	// Used for cleanup
 	@Autowired
@@ -55,8 +53,6 @@ public class ActivityControllerAutowiredTest {
 	@Autowired 
 	private EntityService entityService;
 
-	private static HttpServlet dispatchServlet;
-	
 	private Long userId;
 
 	private List<String> activityIdstoDelete;
@@ -104,11 +100,6 @@ public class ActivityControllerAutowiredTest {
 		}
 	}
 
-	@BeforeClass
-	public static void beforeClass() throws ServletException {
-		dispatchServlet = DispatchServletSingleton.getInstance();
-	}
-	
 	@Test
 	public void testCRUD() throws Exception {
 		// create activity
@@ -116,27 +107,27 @@ public class ActivityControllerAutowiredTest {
 		act = new Activity();
 		act.setDescription("some desc");
 		Map<String, String> extraParams = new HashMap<String, String>();
-		act = ServletTestHelper.createActivity(dispatchServlet, act, userId, extraParams);
+		act = servletTestHelper.createActivity(dispatchServlet, act, userId, extraParams);
 		assertNotNull(act);
 		activityIdstoDelete.add(act.getId());
 		
 		// get activity
-		Activity getAct = ServletTestHelper.getActivity(dispatchServlet, act.getId(), userId);
+		Activity getAct = servletTestHelper.getActivity(dispatchServlet, act.getId(), userId);
 		assertEquals(act.getId(), getAct.getId());
 		assertEquals(act.getDescription(), getAct.getDescription());
 
 		// test update
 		String updatedDesc = "updated Desc";
 		act.setDescription(updatedDesc);
-		Activity updatedAct = ServletTestHelper.updateActivity(dispatchServlet, act, userId, extraParams);
+		Activity updatedAct = servletTestHelper.updateActivity(dispatchServlet, act, userId, extraParams);
 		assertEquals(act.getId(), updatedAct.getId());
 		assertEquals(updatedDesc, updatedAct.getDescription());
 		
 		// test deletion
-		ServletTestHelper.deleteActivity(dispatchServlet, act.getId(), userId, extraParams);
+		servletTestHelper.deleteActivity(dispatchServlet, act.getId(), userId, extraParams);
 		// assure deletion
 		try {
-			ServletTestHelper.getActivity(dispatchServlet, act.getId(), userId);
+			servletTestHelper.getActivity(dispatchServlet, act.getId(), userId);
 			fail("Activity should have been deleted");
 		} catch (NotFoundException e) {
 			// good.
@@ -150,7 +141,7 @@ public class ActivityControllerAutowiredTest {
 		act = new Activity();
 		act.setDescription("some desc");
 		Map<String, String> extraParams = new HashMap<String, String>();
-		act = ServletTestHelper.createActivity(dispatchServlet, act, userId, extraParams);
+		act = servletTestHelper.createActivity(dispatchServlet, act, userId, extraParams);
 		assertNotNull(act);
 		activityIdstoDelete.add(act.getId());
 
@@ -175,7 +166,7 @@ public class ActivityControllerAutowiredTest {
 		extraParams = new HashMap<String, String>();
 		extraParams.put("offset", "0");
 		extraParams.put("limit", Integer.toString(Integer.MAX_VALUE));
-		generated = ServletTestHelper.getEntitiesGeneratedBy(dispatchServlet, act, userId, extraParams);
+		generated = servletTestHelper.getEntitiesGeneratedBy(dispatchServlet, act, userId, extraParams);
 		
 		// verify
 		assertNotNull(generated);

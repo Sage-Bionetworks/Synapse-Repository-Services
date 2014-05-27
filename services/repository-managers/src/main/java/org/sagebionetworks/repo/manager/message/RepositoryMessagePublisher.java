@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.message;
 
+import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.TransactionalMessengerObserver;
 
 import com.amazonaws.services.sns.AmazonSNSClient;
@@ -38,4 +39,12 @@ public interface RepositoryMessagePublisher extends TransactionalMessengerObserv
 	 * Quartz will fire this method on a timer.  This is where we actually publish the data. 
 	 */
 	public void timerFired();
+	
+	/**
+	 * Publish a message to its topic and register the message as sent.
+	 * 
+	 * @param message
+	 * @return 
+	 */
+	public boolean publishToTopic(ChangeMessage message);
 }

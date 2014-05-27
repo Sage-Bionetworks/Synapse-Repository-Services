@@ -135,6 +135,11 @@ public class SqlConstants {
 	public static final String COL_SENT_MESSAGES_OBJECT_ID			= "OBJECT_ID";
 	public static final String COL_SENT_MESSAGES_OBJECT_TYPE		= "OBJECT_TYPE";
 	
+	public static final String TABLE_SENT_MESSAGES_SYNCH					="SENT_MESSAGES_SYNCH";
+	public static final String COL_SENT_MESSAGE_SYCH_ID						= "ID";
+	public static final String COL_SENT_MESSAGE_SYCH_LAST_CHANGE_NUMBER		= "LAST_CHANGE_NUMBER";
+	public static final String COL_SENT_MESSAGE_SYCH_CHANGED_ON				= "CHAGNED_ON";
+	
  	// Processed messages
  	public static final String TABLE_PROCESSED_MESSAGES				= "PROCESSED_MESSAGES";
  	public static final String COL_PROCESSED_MESSAGES_CHANGE_NUM	= "CHANGE_NUM";

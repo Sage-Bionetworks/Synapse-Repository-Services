@@ -28,9 +28,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:test-context.xml" })
-public class DoiControllerAutowiredTest {
+public class DoiControllerAutowiredTest extends AbstractAutowiredControllerTestBase {
 
 	@Autowired
 	private EntityService entityService;
@@ -41,8 +39,6 @@ public class DoiControllerAutowiredTest {
 	@Autowired
 	private UserManager userManager;
 	
-	@Autowired
-	private ServletTestHelper servletTestHelper;
 	
 	private Long adminUserId;
 	private Entity entity;
@@ -55,12 +51,9 @@ public class DoiControllerAutowiredTest {
 
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		
-		servletTestHelper.setUp();
-		
 		entity = new Project();
 		entity.setName("DoiControllerAutowiredTest");
-		HttpServlet dispatchServlet = DispatchServletSingleton.getInstance();
-		entity = ServletTestHelper.createEntity(dispatchServlet, entity, adminUserId);
+		entity = servletTestHelper.createEntity(dispatchServlet, entity, adminUserId);
 		Assert.assertNotNull(entity);
 	}
 
@@ -83,11 +76,11 @@ public class DoiControllerAutowiredTest {
 		}
 
 		// Put without version
-		Doi doiPut = ServletTestHelper.putDoiWithoutVersion(adminUserId, entity.getId());
+		Doi doiPut = servletTestHelper.putDoiWithoutVersion(adminUserId, entity.getId());
 		assertNotNull(doiPut);
 
 		// Get without version
-		Doi doiGet = ServletTestHelper.getDoiWithoutVersion(adminUserId, entity.getId());
+		Doi doiGet = servletTestHelper.getDoiWithoutVersion(adminUserId, entity.getId());
 		assertNotNull(doiGet);
 		assertEquals(doiPut.getCreatedBy(), doiGet.getCreatedBy());
 		assertEquals(doiPut.getCreatedOn(), doiGet.getCreatedOn());
@@ -101,11 +94,11 @@ public class DoiControllerAutowiredTest {
 		assertEquals(doiPut.getUpdatedOn(), doiGet.getUpdatedOn());
 
 		// Put with version
-		doiPut = ServletTestHelper.putDoiWithVersion(adminUserId, entity.getId(), 1);
+		doiPut = servletTestHelper.putDoiWithVersion(adminUserId, entity.getId(), 1);
 		assertNotNull(doiPut);
 
 		// Get with version
-		doiGet = ServletTestHelper.getDoiWithVersion(adminUserId, entity.getId(), 1);
+		doiGet = servletTestHelper.getDoiWithVersion(adminUserId, entity.getId(), 1);
 		assertNotNull(doiGet);
 		assertEquals(doiPut.getCreatedBy(), doiGet.getCreatedBy());
 		assertEquals(doiPut.getCreatedOn(), doiGet.getCreatedOn());
@@ -132,20 +125,20 @@ public class DoiControllerAutowiredTest {
 
 		// Without version
 		try {
-			ServletTestHelper.putDoiWithoutVersion(adminUserId, entityId);
+			servletTestHelper.putDoiWithoutVersion(adminUserId, entityId);
 		} catch (NotFoundException e) { }
 
 		try {
-			ServletTestHelper.getDoiWithoutVersion(adminUserId, entityId);
+			servletTestHelper.getDoiWithoutVersion(adminUserId, entityId);
 		} catch (NotFoundException e) { }
 
 		// With version
 		try {
-			ServletTestHelper.putDoiWithVersion(adminUserId, entityId, 1);
+			servletTestHelper.putDoiWithVersion(adminUserId, entityId, 1);
 		} catch (NotFoundException e) { }
 
 		try {
-			ServletTestHelper.getDoiWithVersion(adminUserId, entityId, 1);
+			servletTestHelper.getDoiWithVersion(adminUserId, entityId, 1);
 		} catch (NotFoundException e) { }
 	}
 }

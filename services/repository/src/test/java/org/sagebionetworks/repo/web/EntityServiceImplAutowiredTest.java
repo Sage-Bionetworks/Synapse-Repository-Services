@@ -15,7 +15,6 @@ import javax.servlet.http.HttpServletRequest;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AsynchronousDAO;
@@ -35,16 +34,13 @@ import org.sagebionetworks.repo.model.Step;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.web.controller.AbstractAutowiredControllerTestBase;
 import org.sagebionetworks.repo.web.service.EntityService;
 import org.sagebionetworks.repo.web.service.TrashService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:test-context.xml" })
 @Deprecated // This test builds up old objects types in the before methods so it will be deleted when the old object types are removed.
-public class EntityServiceImplAutowiredTest {
+public class EntityServiceImplAutowiredTest extends AbstractAutowiredControllerTestBase {
 	
 	@Autowired
 	private EntityService entityController;
@@ -78,6 +74,8 @@ public class EntityServiceImplAutowiredTest {
 		adminUserInfo = userManager.getUserInfo(adminUserId);
 		UserInfo.validateUserInfo(adminUserInfo);
 		
+		trashService.purgeTrashForUser(adminUserId);
+
 		mockRequest = Mockito.mock(HttpServletRequest.class);
 		activityId = null;
 		when(mockRequest.getServletPath()).thenReturn("/repo/v1");

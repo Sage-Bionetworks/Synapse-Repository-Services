@@ -1,6 +1,13 @@
 package org.sagebionetworks.repo.web.service;
 
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.when;
+
+import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -92,4 +99,30 @@ public class AdministrationServiceImplTest {
 		adminService.getCurrentChangeNumber(adminUserId);
 	}
 	
+	@Test
+	public void testWaiter() throws Exception {
+		final int count = 3;
+		ExecutorService executor = Executors.newFixedThreadPool(count);
+		final CountDownLatch arrivalCounter = new CountDownLatch(count);
+		final CountDownLatch returnCounter = new CountDownLatch(count);
+		for (int i = 0; i < count; i++) {
+			executor.submit(new Callable<Void>() {
+				@Override
+				public Void call() throws Exception {
+					arrivalCounter.countDown();
+					adminService.waitForTesting(adminUserId, false);
+					returnCounter.countDown();
+					return null;
+				}
+			});
+		}
+		assertTrue(arrivalCounter.await(20, TimeUnit.SECONDS));
+		// an extra bit of sleep to make sure all service calls have been made and are waiting
+		Thread.sleep(500);
+		assertEquals(count, returnCounter.getCount());
+		adminService.waitForTesting(adminUserId, true);
+		assertTrue(returnCounter.await(1, TimeUnit.SECONDS));
+		executor.shutdown();
+		assertTrue(executor.awaitTermination(10, TimeUnit.SECONDS));
+	}
 }

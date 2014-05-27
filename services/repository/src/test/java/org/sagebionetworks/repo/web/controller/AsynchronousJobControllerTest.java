@@ -13,7 +13,6 @@ import junit.framework.Assert;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Project;
@@ -23,17 +22,14 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.AsynchUploadRequestBody;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.context.ApplicationContext;
 
 /**
  * Autowired test for AsynchronousJobController
  * @author John
  *
  */
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:test-context.xml" })
-public class AsynchronousJobControllerTest {
+public class AsynchronousJobControllerTest extends AbstractAutowiredControllerTestBase {
 	
 	private Entity parent;
 	private TableEntity table;
@@ -42,19 +38,19 @@ public class AsynchronousJobControllerTest {
 	@Autowired
 	private FileHandleDao fileMetadataDao;
 	private S3FileHandle fileHandle;
-	
+
 	@Before
 	public void before() throws Exception {
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		parent = new Project();
 		parent.setName(UUID.randomUUID().toString());
-		parent = ServletTestHelper.createEntity(DispatchServletSingleton.getInstance(), parent, adminUserId);
+		parent = servletTestHelper.createEntity(dispatchServlet, parent, adminUserId);
 		Assert.assertNotNull(parent);
 		// Create a table
 		table = new TableEntity();
 		table.setName("TableEntity");
 		table.setParentId(parent.getId());
-		table = ServletTestHelper.createEntity(DispatchServletSingleton.getInstance(), table, adminUserId);
+		table = servletTestHelper.createEntity(dispatchServlet, table, adminUserId);
 		// Create a file handle
 		fileHandle = new S3FileHandle();
 		fileHandle.setCreatedBy(adminUserId.toString());
@@ -70,7 +66,7 @@ public class AsynchronousJobControllerTest {
 	public void after(){
 		if(parent != null){
 			try {
-				ServletTestHelper.deleteEntity(DispatchServletSingleton.getInstance(), Project.class, parent.getId(), adminUserId);
+				servletTestHelper.deleteEntity(dispatchServlet, Project.class, parent.getId(), adminUserId);
 			} catch (Exception e) {} 
 		}
 		if(fileHandle != null){
@@ -84,12 +80,13 @@ public class AsynchronousJobControllerTest {
 		body.setTableId(table.getId());
 		body.setUploadFileHandleId(fileHandle.getId());
 		// Start the job
-		AsynchronousJobStatus status = ServletTestHelper.startAsynchJob(DispatchServletSingleton.getInstance(), adminUserId, body);
+		AsynchronousJobStatus status = servletTestHelper.startAsynchJob(dispatchServlet, adminUserId, body);
 		assertNotNull(status);
 		assertNotNull(status.getJobId());
 		assertEquals(body, status.getRequestBody());
 		// Now get the status again using the ID
-		AsynchronousJobStatus clone = ServletTestHelper.getAsynchJobStatus(DispatchServletSingleton.getInstance(), adminUserId, status.getJobId());
+		AsynchronousJobStatus clone = servletTestHelper.getAsynchJobStatus(dispatchServlet, adminUserId,
+				status.getJobId());
 		assertEquals(status, clone);
 	}
 
