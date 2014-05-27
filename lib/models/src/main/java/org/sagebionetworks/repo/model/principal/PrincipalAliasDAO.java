@@ -71,20 +71,6 @@ public interface PrincipalAliasDAO {
 	 * @return
 	 */
 	public boolean isAliasAvailable(String alias);
-	/**
-	 * Set 
-	 * @param aliasId
-	 * @param valid
-	 * @return
-	 */
-	public boolean setAliasValid(Long aliasId, boolean valid);
-	
-	/**
-	 * Set the given alias as the default for its type.
-	 * @param aliasId
-	 * @return
-	 */
-	public boolean setAliasDefault(Long aliasId);
 	
 	/**
 	 * Remove an alias from a principal.

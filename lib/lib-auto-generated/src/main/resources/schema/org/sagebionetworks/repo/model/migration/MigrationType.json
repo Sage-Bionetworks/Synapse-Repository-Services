@@ -8,6 +8,7 @@
         "TERMS_OF_USE_AGREEMENT",
         "SESSION_TOKEN",
     	"PRINCIPAL_ALIAS", 
+    	"NOTIFICATION_EMAIL", 
     	"USER_PROFILE",
         "FILE_HANDLE",
 		"MESSAGE", 

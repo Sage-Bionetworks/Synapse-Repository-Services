@@ -224,6 +224,7 @@ public class MigratableTableDAOImplAutowireTest {
 		List<MigrationType> expectedPrimaryTypes = new LinkedList<MigrationType>();
 		expectedPrimaryTypes.add(MigrationType.PRINCIPAL);
 		expectedPrimaryTypes.add(MigrationType.PRINCIPAL_ALIAS);
+		expectedPrimaryTypes.add(MigrationType.NOTIFICATION_EMAIL);
 		expectedPrimaryTypes.add(MigrationType.USER_PROFILE);
 		expectedPrimaryTypes.add(MigrationType.FILE_HANDLE);
 		expectedPrimaryTypes.add(MigrationType.MESSAGE_CONTENT);

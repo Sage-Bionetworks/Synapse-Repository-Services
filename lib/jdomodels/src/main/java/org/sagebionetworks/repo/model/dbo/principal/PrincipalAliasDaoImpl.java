@@ -153,20 +153,6 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 		return count < 1;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	@Override
-	public boolean setAliasValid(Long aliasId, boolean valid) {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	@Override
-	public boolean setAliasDefault(Long aliasId) {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
 	@Override
 	public boolean removeAliasFromPrincipal(Long principalId, Long aliasId) {
 		if(principalId == null) throw new IllegalArgumentException("PrincipalId cannot be null");
