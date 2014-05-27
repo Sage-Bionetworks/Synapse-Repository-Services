@@ -232,7 +232,7 @@ public class MultipartManagerImpl implements MultipartManager {
 			handle.setContentSize(meta.getContentLength());
 
 			// Save the file handle
-			handle = fileHandleDao.createFile(handle, false);
+			handle = fileHandleDao.createFile(handle);
 			// done
 			return handle;
 		} catch (Exception e) {
