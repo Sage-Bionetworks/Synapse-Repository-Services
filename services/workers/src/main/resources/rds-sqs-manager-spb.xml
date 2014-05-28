@@ -19,8 +19,13 @@
 			class="org.sagebionetworks.asynchronous.workers.sqs.MessageQueueImpl"
 			depends-on="stackConfiguration">
 		<constructor-arg index="0" ref="stackConfiguration.rdsUpdateQueueName" />
-		<constructor-arg index="1" ref="stackConfiguration.repositoryChangeTopicName" />
-		<constructor-arg index="2" value="true" />
+		<constructor-arg index="1" ref="stackConfiguration.repositoryChangeTopicPrefix" />
+		<constructor-arg index="2">
+			<list>
+				<value>ENTITY</value>
+			</list>
+		</constructor-arg>
+		<constructor-arg index="3" value="true" />
 	</bean>
 
 	<!-- provides search message queue workers -->

@@ -806,8 +806,8 @@ public class StackConfiguration {
 	 * 
 	 * @return
 	 */
-	public String getRepositoryChangeTopicName() {
-		return String.format(StackConstants.TOPIC_NAME_TEMPLATE,
+	public String getRepositoryChangeTopicPrefix() {
+		return String.format(StackConstants.TOPIC_NAME_TEMPLATE_PREFIX,
 				StackConfiguration.getStack(),
 				StackConfiguration.getStackInstance());
 	}

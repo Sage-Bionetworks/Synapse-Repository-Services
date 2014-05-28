@@ -49,7 +49,7 @@
 	<bean id="stackConfiguration.AWSDomainName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.workflowExecutionRetentionPeriodInDays" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 
-	<bean id="stackConfiguration.repositoryChangeTopicName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean id="stackConfiguration.repositoryChangeTopicPrefix" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.searchUpdateQueueName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.dynamoUpdateQueueName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.rdsUpdateQueueName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />

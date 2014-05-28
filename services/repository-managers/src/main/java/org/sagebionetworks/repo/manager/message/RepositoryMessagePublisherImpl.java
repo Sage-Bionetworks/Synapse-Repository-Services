@@ -1,11 +1,14 @@
 package org.sagebionetworks.repo.manager.message;
 
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -38,6 +41,11 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 	AmazonSNSClient awsSNSClient;
 	
 	private boolean shouldMessagesBePublishedToTopic;
+	
+	// Maps each object type to its topic
+	Map<ObjectType, TopicInfo> typeToTopicMap = new HashMap<ObjectType, TopicInfo>();;
+	// The prefix applied to each topic.
+	String topicPrefix;
 	
 	/**
 	 * This is injected from spring.
@@ -79,16 +87,14 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 		this.awsSNSClient = awsSNSClient;
 	}
 
-	private String topicArn;
-	private String topicName;
 
 	private ConcurrentLinkedQueue<ChangeMessage> messageQueue = new ConcurrentLinkedQueue<ChangeMessage>();
 
-	public RepositoryMessagePublisherImpl(final String topicName) {
-		if (topicName == null) {
-			throw new NullPointerException();
+	public RepositoryMessagePublisherImpl(final String topicPrefix) {
+		if (topicPrefix == null) {
+			throw new IllegalArgumentException("topicPrefix cannot be null");
 		}
-		this.topicName = topicName;
+		this.topicPrefix = topicPrefix;
 	}
 
 	/**
@@ -100,16 +106,6 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 		// We only want to be in the list once
 		transactionalMessanger.removeObserver(this);
 		transactionalMessanger.registerObserver(this);
-		// Make sure the topic exists, if not create it.
-		// Is this a mock client?
-		if(awsSNSClient.toString().startsWith("Mock for AmazonSNSClient")){
-			// We have a mock client
-			topicArn = "mockARN";
-		}else{
-			// We have  a real client.
-			CreateTopicResult result = awsSNSClient.createTopic(new CreateTopicRequest(getTopicName()));
-			topicArn = result.getTopicArn();
-		}
 	}
 
 	/**
@@ -128,13 +124,13 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 	}
 
 	@Override
-	public String getTopicName(){
-		return topicName;
+	public String getTopicName(ObjectType type){
+		return getTopicInfoLazy(type).getName();
 	}
 
 	@Override
-	public String getTopicArn() {
-		return topicArn;
+	public String getTopicArn(ObjectType type) {
+		return getTopicInfoLazy(type).getArn();
 	}
 
 	/**
@@ -169,6 +165,26 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 		}
 		return list;
 	}
+	/**
+	 * Get the topic info for a given type (lazy loaded).
+	 * @param type
+	 * @return
+	 */
+	private TopicInfo getTopicInfoLazy(ObjectType type){
+		if(type == null){
+			throw new IllegalArgumentException("ObjectType cannot be null");
+		}
+		TopicInfo info = this.typeToTopicMap.get(type);
+		if(info == null){
+			// Create the topic
+			String name = this.topicPrefix+type.name();
+			CreateTopicResult result = awsSNSClient.createTopic(new CreateTopicRequest(name));
+			String arn = result.getTopicArn();
+			info = new TopicInfo(name, arn);
+			this.typeToTopicMap.put(type, info);
+		}
+		return info;
+	}
 
 	/**
 	 * Publish the message and recored it as sent.
@@ -182,7 +198,8 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 			if(log.isTraceEnabled()){
 				log.info("Publishing a message: "+json);
 			}
-			awsSNSClient.publish(new PublishRequest(this.topicArn, json));
+			String topicArn = getTopicInfoLazy(message.getObjectType()).getArn();
+			awsSNSClient.publish(new PublishRequest(topicArn, json));
 			// Register the message was sent
 			this.transactionalMessanger.registerMessageSent(message);
 			return true;
@@ -203,5 +220,25 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 			log.error("Unknown failure: "+e.getMessage(),e);
 		}
 		return false;
+	}
+	
+	/**
+	 * Information about a topic.
+	 *
+	 */
+	private static class TopicInfo{
+		private String name;
+		private String arn;
+		public TopicInfo(String name, String arn) {
+			super();
+			this.name = name;
+			this.arn = arn;
+		}
+		public String getName() {
+			return name;
+		}
+		public String getArn() {
+			return arn;
+		}
 	}
 }
