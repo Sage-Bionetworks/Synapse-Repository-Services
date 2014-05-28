@@ -1,0 +1,22 @@
+{
+	"description": "Information needed to establish a new user account, following email validation.",
+	"properties": {
+		"firstName": {
+			"type": "string",
+			"description": "The user's first name"
+		},
+		"lastName": {
+			"type": "string",
+			"description": "The user's last name"
+		},
+		"username": {
+			"type": "string",
+			"description": "The account username"
+		},
+		"emailValidationToken": {
+			"type": "string",
+			"description": "The validation token sent via email"
+		},
+
+	}
+}
