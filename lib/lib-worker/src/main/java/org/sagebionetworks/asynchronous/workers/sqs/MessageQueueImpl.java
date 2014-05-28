@@ -133,7 +133,7 @@ public class MessageQueueImpl implements MessageQueue {
 			throw new IllegalStateException("Failed to subscribe queue (" + queueArn + ") to topic (" + topicArn + ")");
 		}
 		// Make sure the topic has the permission it needs
-		grantPolicyIfNeeded(topicArn, queueArn, queueUrl);
+		grantPolicyIfNeeded(topicArn, queueArn, queueUrl, type);
 	}
 
 	/**
@@ -176,18 +176,22 @@ public class MessageQueueImpl implements MessageQueue {
 	/**
 	 * Grants the topic permission to write to the queue if it does not already have such a permission.
 	 */
-	private void grantPolicyIfNeeded(final String topicArn, final String queueArn, final String queueUrl) {
+	private void grantPolicyIfNeeded(final String topicArn, final String queueArn, final String queueUrl, ObjectType type) {
 		assert topicArn != null;
+		// All topics for this stack should be able to publish to this queue, so we setup a wildcard ARN:
+		// for example: 'arn:aws:sns:us-east-1:<userid>:<stack>-<instances>-repo-ENTITY' will become 
+		// 'arn:aws:sns:us-east-1:<userid>:<stack>-<instances>-repo-*;
+		String wildArn = topicArn.replaceAll(type.name(), "*");
 		GetQueueAttributesRequest attrRequest = new GetQueueAttributesRequest()
 				.withQueueUrl(queueUrl)
 				.withAttributeNames("Policy");
 		GetQueueAttributesResult attrResult = this.awsSQSClient.getQueueAttributes(attrRequest);
 		String policyString =  attrResult.getAttributes().get("Policy");
 		this.logger.info("Currently policy: " + policyString);
-		if(policyString == null || policyString.indexOf(topicArn) < 1) {
+		if(policyString == null || policyString.indexOf(wildArn) < 1) {
 			this.logger.info("Policy not set to grant the topic write permission to the queue. Adding a policy now...");
 			// Now we need to grant the topic permission to send messages to the queue.
-			String permissionString = String.format(GRAN_SET_MESSAGE_TEMPLATE, queueArn, topicArn);
+			String permissionString = String.format(GRAN_SET_MESSAGE_TEMPLATE, queueArn, wildArn);
 			Map<String, String> map = new HashMap<String, String>();
 			map.put("Policy", permissionString);
 			this.logger.info("Setting policy to: "+permissionString);
@@ -196,7 +200,7 @@ public class MessageQueueImpl implements MessageQueue {
 					.withAttributes(map);
 			this.awsSQSClient.setQueueAttributes(setAttrRequest);
 		} else {
-			this.logger.info("Topic already has sendMessage permssion on this queue");
+			this.logger.info("Topic already has sendMessage permission on this queue");
 		}
 	}
 
