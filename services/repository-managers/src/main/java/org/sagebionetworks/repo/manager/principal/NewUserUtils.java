@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.manager.principal;
 
 import org.sagebionetworks.repo.model.auth.NewUser;
-import org.sagebionetworks.repo.model.principal.AliasEnum;
 
 /**
  * Helper for preparing new users.
@@ -23,7 +22,7 @@ public class NewUserUtils {
 		if(newUser.getUserName() == null) throw new IllegalArgumentException("New users must provide a unique username");
 		// Trim the email and username.
 		newUser.setEmail(newUser.getEmail().trim());
-				newUser.setUserName(newUser.getUserName().trim());
+		newUser.setUserName(newUser.getUserName().trim());
 		if(newUser.getFirstName() != null){
 			newUser.setFirstName(newUser.getFirstName().trim());
 		}

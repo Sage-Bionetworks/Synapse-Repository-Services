@@ -20,7 +20,6 @@
 		"emailValidationToken": {
 			"type": "string",
 			"description": "The validation token sent via email"
-		},
-
+		}
 	}
 }

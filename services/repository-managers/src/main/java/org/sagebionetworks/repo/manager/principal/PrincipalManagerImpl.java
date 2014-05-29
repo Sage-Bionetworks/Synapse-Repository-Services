@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.Username;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
+import org.sagebionetworks.repo.model.principal.AddEmailInfo;
 import org.sagebionetworks.repo.model.principal.AliasEnum;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
@@ -71,6 +72,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 	public static final String EMAIL_VALIDATION_FIRST_NAME_PARAM = "firstname";
 	public static final String EMAIL_VALIDATION_DOMAIN_PARAM = "domain";
 	public static final String EMAIL_VALIDATION_LAST_NAME_PARAM = "lastname";
+	public static final String EMAIL_VALIDATION_USER_ID_PARAM = "userid";
 	public static final String EMAIL_VALIDATION_EMAIL_PARAM = "email";
 	public static final String EMAIL_VALIDATION_TIME_STAMP_PARAM = "timestamp";
 	public static final String EMAIL_VALIDATION_SIGNATURE_PARAM = "mac";
@@ -250,22 +252,24 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		return authManager.authenticate(newPrincipalId, accountSetupInfo.getPassword(), domain);
 	}
 
-	public static String generateSignatureForAdditionalEmail(String email, String timestamp, String domain) {
-		return generateSignature(email+timestamp+domain);
+	public static String generateSignatureForAdditionalEmail(String userId, String email, String timestamp, String domain) {
+		return generateSignature(userId+email+timestamp+domain);
 	}
 	
-	public static String createTokenForAdditionalEmail(String email, DomainType domain, Date now) {
+	public static String createTokenForAdditionalEmail(Long userId, String email, DomainType domain, Date now) {
 		try {
 			StringBuilder sb = new StringBuilder();
+			String urlEncodedUserId = URLEncoder.encode(userId.toString(), PARAMETER_CHARSET);
+			sb.append(EMAIL_VALIDATION_USER_ID_PARAM+EQUALS+urlEncodedUserId);
 			String urlEncodedEmail = URLEncoder.encode(email, PARAMETER_CHARSET);
-			sb.append(EMAIL_VALIDATION_EMAIL_PARAM+EQUALS+urlEncodedEmail);
+			sb.append(AMPERSAND+EMAIL_VALIDATION_EMAIL_PARAM+EQUALS+urlEncodedEmail);
 			DateFormat df = new SimpleDateFormat(DATE_FORMAT_ISO8601);
 			String timestampString = df.format(now);
 			String urlEncodedTimeStampString = URLEncoder.encode(timestampString, PARAMETER_CHARSET);
 			sb.append(AMPERSAND+EMAIL_VALIDATION_TIME_STAMP_PARAM+EQUALS+urlEncodedTimeStampString);
 			String urlEncodedDomain = URLEncoder.encode(domain.name(), PARAMETER_CHARSET);
 			sb.append(AMPERSAND+EMAIL_VALIDATION_DOMAIN_PARAM+EQUALS+urlEncodedDomain);
-			String mac = generateSignatureForAdditionalEmail(urlEncodedEmail, 
+			String mac = generateSignatureForAdditionalEmail(urlEncodedUserId, urlEncodedEmail, 
 					urlEncodedTimeStampString, urlEncodedDomain);
 			sb.append(AMPERSAND+EMAIL_VALIDATION_SIGNATURE_PARAM+EQUALS+URLEncoder.encode(mac, PARAMETER_CHARSET));
 			return sb.toString();
@@ -280,7 +284,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		AliasEnum.USER_EMAIL.validateAlias(email.getEmail());
 		
 		if (domain.equals(DomainType.SYNAPSE)) {
-			String token = createTokenForAdditionalEmail(email.getEmail(), domain, new Date());
+			String token = createTokenForAdditionalEmail(userInfo.getId(), email.getEmail(), domain, new Date());
 			String urlString = portalEndpoint+token;
 			URL url = null;
 			try {
@@ -316,14 +320,17 @@ public class PrincipalManagerImpl implements PrincipalManager {
 
 	// returns the validated email address
 	// note, we pass the current time as a parameter to facilitate testing
-	public static String validateAdditionalEmailToken(String token, Date now) {
+	public static void validateAdditionalEmailToken(String token, Date now) {
+		String userId = null;
 		String email = null;
 		String tokenTimestampString = null;
 		String domain = null;
 		String mac = null;
 		String[] requestParams = token.split(AMPERSAND);
 		for (String param : requestParams) {
-			if (param.startsWith(EMAIL_VALIDATION_EMAIL_PARAM+EQUALS)) {
+			if (param.startsWith(EMAIL_VALIDATION_USER_ID_PARAM+EQUALS)) {
+				userId = param.substring((EMAIL_VALIDATION_USER_ID_PARAM+EQUALS).length());
+			} else if (param.startsWith(EMAIL_VALIDATION_EMAIL_PARAM+EQUALS)) {
 				email = param.substring((EMAIL_VALIDATION_EMAIL_PARAM+EQUALS).length());
 			} else if (param.startsWith(EMAIL_VALIDATION_TIME_STAMP_PARAM+EQUALS)) {
 				tokenTimestampString = param.substring((EMAIL_VALIDATION_TIME_STAMP_PARAM+EQUALS).length());
@@ -333,6 +340,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 				mac = param.substring((EMAIL_VALIDATION_SIGNATURE_PARAM+EQUALS).length());
 			}
 		}
+		if (userId==null) throw new IllegalArgumentException("userId is missing.");
 		if (email==null) throw new IllegalArgumentException("email is missing.");
 		if (tokenTimestampString==null) throw new IllegalArgumentException("time stamp is missing.");
 		if (domain==null) throw new IllegalArgumentException("domain is missing.");
@@ -346,35 +354,49 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		}
 		if (now.getTime()-tokenTimestamp.getTime()>EMAIL_VALIDATION_TIME_LIMIT_MILLIS) 
 			throw new IllegalArgumentException("Email validation link is out of date.");
-		if (!mac.equals(generateSignatureForAdditionalEmail(email, tokenTimestampString, domain)))
+		if (!mac.equals(generateSignatureForAdditionalEmail(userId, email, tokenTimestampString, domain)))
 			throw new IllegalArgumentException("Invalid digital signature.");
-		try {
-			return URLDecoder.decode(email, PARAMETER_CHARSET);
-		} catch (UnsupportedEncodingException e) {
-			throw new RuntimeException(e);
+	}
+	
+	public static String getParameterValueFromToken(String token, String paramName) {
+		String[] requestParams = token.split(AMPERSAND);
+		for (String param : requestParams) {
+			if (param.startsWith(paramName+EQUALS)) {
+				String urlEncodedParamValue = param.substring((paramName+EQUALS).length());
+				try {
+					return URLDecoder.decode(urlEncodedParamValue, PARAMETER_CHARSET);
+				} catch (UnsupportedEncodingException e) {
+					throw new RuntimeException(e);
+				}
+			}
 		}
+		throw new IllegalArgumentException("token does not contain parameter "+paramName);
 	}
 
-	// TODO token should include principal ID and this method should match against userInfo.getId()
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void addEmail(UserInfo userInfo, String emailValidationToken, // TODO wrap in a POJO
-			boolean setAsNotificationEmail) throws NotFoundException {
-		String validatedEmail = validateAdditionalEmailToken(emailValidationToken, new Date());
+	public void addEmail(UserInfo userInfo, AddEmailInfo addEmailInfo,
+			Boolean setAsNotificationEmail) throws NotFoundException {
+		String token = addEmailInfo.getEmailValidationToken();
+		validateAdditionalEmailToken(token, new Date());
+		String validatedEmail = getParameterValueFromToken(token, EMAIL_VALIDATION_EMAIL_PARAM);
+		String originalUserId = getParameterValueFromToken(token, EMAIL_VALIDATION_USER_ID_PARAM);
+		if (!originalUserId.equals(userInfo.getId().toString()))
+			throw new IllegalArgumentException("Invalid token for userId "+userInfo.getId());
 		PrincipalAlias alias = new PrincipalAlias();
 		alias.setAlias(validatedEmail);
 		alias.setPrincipalId(userInfo.getId());
 		alias.setType(AliasType.USER_EMAIL);
 		alias = principalAliasDAO.bindAliasToPrincipal(alias);
-		if (setAsNotificationEmail) notificationEmailDao.update(alias);
+		if (setAsNotificationEmail!=null && setAsNotificationEmail==true) notificationEmailDao.update(alias);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void removeEmail(UserInfo userInfo, String email) throws NotFoundException {
+	public void removeEmail(UserInfo userInfo, Username email) throws NotFoundException {
 		if (email.equals(notificationEmailDao.getNotificationEmailForPrincipal(userInfo.getId())))
 				throw new IllegalArgumentException("To remove this email from your account, first establish a different notification address.");
-		PrincipalAlias emailAlias = findAliasForEmail(userInfo.getId(), email);
+		PrincipalAlias emailAlias = findAliasForEmail(userInfo.getId(), email.getEmail());
 		principalAliasDAO.removeAliasFromPrincipal(userInfo.getId(), emailAlias.getAliasId());
 	}
 	

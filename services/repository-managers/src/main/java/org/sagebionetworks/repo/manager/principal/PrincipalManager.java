@@ -6,6 +6,7 @@ import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.Username;
 import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
+import org.sagebionetworks.repo.model.principal.AddEmailInfo;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -57,9 +58,24 @@ public interface PrincipalManager {
 	 */
 	void additionalEmailValidation(UserInfo userInfo, Username email, String portalEndoint, DomainType domain) throws NotFoundException;
 	
-	void addEmail(UserInfo userInfo, String emailValidationToken, boolean setAsNotificationEmail) throws NotFoundException;
+	/**
+	 * Add a new email address to an existing account.
+	 * 
+	 * @param userInfo
+	 * @param addEmailInfo
+	 * @param setAsNotificationEmail
+	 * @throws NotFoundException
+	 */
+	void addEmail(UserInfo userInfo, AddEmailInfo addEmailInfo, Boolean setAsNotificationEmail) throws NotFoundException;
 	
-	void removeEmail(UserInfo userInfo, String email) throws NotFoundException;
+	/**
+	 * Remove an email address from an existing account.
+	 * 
+	 * @param userInfo
+	 * @param email
+	 * @throws NotFoundException
+	 */
+	void removeEmail(UserInfo userInfo, Username email) throws NotFoundException;
 	
 	/**
 	 * Set the email which is used for notification.
