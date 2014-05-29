@@ -11,7 +11,11 @@
 		},
 		"username": {
 			"type": "string",
-			"description": "The account username"
+			"description": "The requested account user name."
+		},
+		"password": {
+			"type": "string",
+			"description": "The password to be applied to the new account."
 		},
 		"emailValidationToken": {
 			"type": "string",

@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.principal;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.text.DateFormat;
@@ -15,11 +16,16 @@ import java.util.Map;
 
 import org.apache.commons.lang.WordUtils;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.EmailUtils;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.Username;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
 import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
@@ -50,10 +56,20 @@ public class PrincipalManagerImpl implements PrincipalManager {
 	private NotificationEmailDAO notificationEmailDao;
 	
 	@Autowired
+	private UserManager userManager;
+	
+	@Autowired
+	private AuthenticationManager authManager;
+	
+	@Autowired
 	private AmazonSimpleEmailService amazonSESClient;
+	
+	@Autowired
+	private UserProfileDAO userProfileDAO;
 
 	public static final String PARAMETER_CHARSET = Charset.forName("utf-8").name();
 	public static final String EMAIL_VALIDATION_FIRST_NAME_PARAM = "firstname";
+	public static final String EMAIL_VALIDATION_DOMAIN_PARAM = "domain";
 	public static final String EMAIL_VALIDATION_LAST_NAME_PARAM = "lastname";
 	public static final String EMAIL_VALIDATION_EMAIL_PARAM = "email";
 	public static final String EMAIL_VALIDATION_TIME_STAMP_PARAM = "timestamp";
@@ -63,7 +79,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 	public static final String EQUALS = "=";
 	public static final long EMAIL_VALIDATION_TIME_LIMIT_MILLIS = 24*3600*1000L; // 24 hours as milliseconds
 	
-		@Override
+	@Override
 	public boolean isAliasAvailable(String alias) {
 		if(alias == null) throw new IllegalArgumentException("Alias cannot be null");
 		return this.principalAliasDAO.isAliasAvailable(alias);
@@ -92,11 +108,12 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		}
 	}
 	
-	public static String generateSignatureForNewAccount(String firstName, String lastName, String email, String timestamp) {
-		return generateSignature(email+timestamp);
+	public static String generateSignatureForNewAccount(String firstName, String lastName, 
+			String email, String timestamp, String domain) {
+		return generateSignature(firstName+lastName+email+timestamp+domain);
 	}
 	
-	public static String createTokenForNewAccount(NewUser user, Date now) {
+	public static String createTokenForNewAccount(NewUser user, DomainType domain, Date now) {
 		try {
 			StringBuilder sb = new StringBuilder();
 			String urlEncodedFirstName = URLEncoder.encode(user.getFirstName(), PARAMETER_CHARSET);
@@ -109,7 +126,11 @@ public class PrincipalManagerImpl implements PrincipalManager {
 			String timestampString = df.format(now);
 			String urlEncodedTimeStampString = URLEncoder.encode(timestampString, PARAMETER_CHARSET);
 			sb.append(AMPERSAND+EMAIL_VALIDATION_TIME_STAMP_PARAM+EQUALS+urlEncodedTimeStampString);
-			String mac = generateSignatureForNewAccount(urlEncodedFirstName, urlEncodedLastName, urlEncodedEmail, urlEncodedTimeStampString);
+			String urlEncodedDomain = URLEncoder.encode(domain.name(), PARAMETER_CHARSET);
+			sb.append(AMPERSAND+EMAIL_VALIDATION_DOMAIN_PARAM+EQUALS+urlEncodedDomain);
+			String mac = generateSignatureForNewAccount(
+					urlEncodedFirstName, urlEncodedLastName, urlEncodedEmail, 
+					urlEncodedTimeStampString, urlEncodedDomain);
 			sb.append(AMPERSAND+EMAIL_VALIDATION_SIGNATURE_PARAM+EQUALS+URLEncoder.encode(mac, PARAMETER_CHARSET));
 			return sb.toString();
 		} catch (UnsupportedEncodingException e) {
@@ -117,12 +138,14 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		}
 	}
 	
+	// returns the validated email address
 	// note, we pass the current time as a parameter to facilitate testing
-	public static void validateNewAccountToken(String token, Date now) {
+	public static String validateNewAccountToken(String token, Date now) {
 		String firstName = null;
 		String lastName = null;
 		String email = null;
 		String tokenTimestampString = null;
+		String domain = null;
 		String mac = null;
 		String[] requestParams = token.split(AMPERSAND);
 		for (String param : requestParams) {
@@ -134,6 +157,8 @@ public class PrincipalManagerImpl implements PrincipalManager {
 				email = param.substring((EMAIL_VALIDATION_EMAIL_PARAM+EQUALS).length());
 			} else if (param.startsWith(EMAIL_VALIDATION_TIME_STAMP_PARAM+EQUALS)) {
 				tokenTimestampString = param.substring((EMAIL_VALIDATION_TIME_STAMP_PARAM+EQUALS).length());
+			} else if (param.startsWith(EMAIL_VALIDATION_DOMAIN_PARAM+EQUALS)) {
+				domain = param.substring((EMAIL_VALIDATION_DOMAIN_PARAM+EQUALS).length());
 			} else if (param.startsWith(EMAIL_VALIDATION_SIGNATURE_PARAM+EQUALS)) {
 				mac = param.substring((EMAIL_VALIDATION_SIGNATURE_PARAM+EQUALS).length());
 			}
@@ -142,6 +167,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		if (lastName==null) throw new IllegalArgumentException("last name is missing.");
 		if (email==null) throw new IllegalArgumentException("email is missing.");
 		if (tokenTimestampString==null) throw new IllegalArgumentException("time stamp is missing.");
+		if (domain==null) throw new IllegalArgumentException("domain is missing.");
 		if (mac==null) throw new IllegalArgumentException("digital signature is missing.");
 		Date tokenTimestamp = null;
 		DateFormat df = new SimpleDateFormat(DATE_FORMAT_ISO8601);
@@ -152,8 +178,13 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		}
 		if (now.getTime()-tokenTimestamp.getTime()>EMAIL_VALIDATION_TIME_LIMIT_MILLIS) 
 			throw new IllegalArgumentException("Email validation link is out of date.");
-		if (!mac.equals(generateSignatureForNewAccount(firstName, lastName, email, tokenTimestampString)))
+		if (!mac.equals(generateSignatureForNewAccount(firstName, lastName, email, tokenTimestampString, domain)))
 			throw new IllegalArgumentException("Invalid digital signature.");
+		try {
+			return URLDecoder.decode(email, PARAMETER_CHARSET);
+		} catch (UnsupportedEncodingException e) {
+			throw new RuntimeException(e);
+		}
 	}
 	
 	public static void validateSynapsePortalHost(String portalHost) {
@@ -166,12 +197,13 @@ public class PrincipalManagerImpl implements PrincipalManager {
 	
 	// will throw exception for invalid email, invalid endpoint, invalid domain, or an email which is already taken
 	@Override
-	public void newAccountEmailValidation(NewUser user, String portalEndpoint,
-			DomainType domain) {
+	public void newAccountEmailValidation(NewUser user, String portalEndpoint, DomainType domain) {
+		if (user.getFirstName()==null || user.getFirstName().length()==0) throw new IllegalArgumentException("first name required");
+		if (user.getLastName()==null || user.getLastName().length()==0) throw new IllegalArgumentException("last name required");
 		AliasEnum.USER_EMAIL.validateAlias(user.getEmail());
 		
 		if (domain.equals(DomainType.SYNAPSE)) {
-			String token = createTokenForNewAccount(user, new Date());
+			String token = createTokenForNewAccount(user, domain, new Date());
 			String urlString = portalEndpoint+token;
 			URL url = null;
 			try {
@@ -202,26 +234,142 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		}
 	}
 
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public String createNewAccount(AccountSetupInfo accountSetupInfo) {
-		// TODO Auto-generated method stub
-		return null;
-	}
+	public Session createNewAccount(AccountSetupInfo accountSetupInfo, DomainType domain) throws NotFoundException {
+		String validatedEmail = validateNewAccountToken(accountSetupInfo.getEmailValidationToken(), new Date());
 
-	@Override
-	public void additionalEmailValidation(UserInfo userInfo, String email,
-			String portalEndoint, DomainType domain) {
-		// TODO Auto-generated method stub
+		NewUser newUser = new NewUser();
+		newUser.setEmail(validatedEmail);
+		newUser.setFirstName(accountSetupInfo.getFirstName());
+		newUser.setLastName(accountSetupInfo.getLastName());
+		newUser.setUserName(accountSetupInfo.getUsername());
+		long newPrincipalId = userManager.createUser(newUser);
 		
+		authManager.changePassword(newPrincipalId, accountSetupInfo.getPassword());
+		return authManager.authenticate(newPrincipalId, accountSetupInfo.getPassword(), domain);
 	}
 
+	public static String generateSignatureForAdditionalEmail(String email, String timestamp, String domain) {
+		return generateSignature(email+timestamp+domain);
+	}
+	
+	public static String createTokenForAdditionalEmail(String email, DomainType domain, Date now) {
+		try {
+			StringBuilder sb = new StringBuilder();
+			String urlEncodedEmail = URLEncoder.encode(email, PARAMETER_CHARSET);
+			sb.append(EMAIL_VALIDATION_EMAIL_PARAM+EQUALS+urlEncodedEmail);
+			DateFormat df = new SimpleDateFormat(DATE_FORMAT_ISO8601);
+			String timestampString = df.format(now);
+			String urlEncodedTimeStampString = URLEncoder.encode(timestampString, PARAMETER_CHARSET);
+			sb.append(AMPERSAND+EMAIL_VALIDATION_TIME_STAMP_PARAM+EQUALS+urlEncodedTimeStampString);
+			String urlEncodedDomain = URLEncoder.encode(domain.name(), PARAMETER_CHARSET);
+			sb.append(AMPERSAND+EMAIL_VALIDATION_DOMAIN_PARAM+EQUALS+urlEncodedDomain);
+			String mac = generateSignatureForAdditionalEmail(urlEncodedEmail, 
+					urlEncodedTimeStampString, urlEncodedDomain);
+			sb.append(AMPERSAND+EMAIL_VALIDATION_SIGNATURE_PARAM+EQUALS+URLEncoder.encode(mac, PARAMETER_CHARSET));
+			return sb.toString();
+		} catch (UnsupportedEncodingException e) {
+			throw new RuntimeException(e);
+		}
+	}
+	
 	@Override
-	public void addEmail(UserInfo userInfo, String emailValidationToken,
-			boolean setAsNotificationEmail) {
-		// TODO Auto-generated method stub
+	public void additionalEmailValidation(UserInfo userInfo, Username email,
+			String portalEndpoint, DomainType domain) throws NotFoundException {
+		AliasEnum.USER_EMAIL.validateAlias(email.getEmail());
 		
+		if (domain.equals(DomainType.SYNAPSE)) {
+			String token = createTokenForAdditionalEmail(email.getEmail(), domain, new Date());
+			String urlString = portalEndpoint+token;
+			URL url = null;
+			try {
+				url = new URL(urlString);
+			} catch (MalformedURLException e) {
+				throw new IllegalArgumentException("The provided endpoint creates an invalid URL");
+			}
+			validateSynapsePortalHost(url.getHost());
+			// is the email taken?
+			if (!principalAliasDAO.isAliasAvailable(email.getEmail())) {
+				throw new NameConflictException("The email address provided is already used.");
+			}
+			
+			// all requirements are met, so send the email
+			String subject = "Request to add or change new email";
+			Map<String,String> fieldValues = new HashMap<String,String>();
+			UserProfile userProfile = userProfileDAO.get(userInfo.getId().toString());
+			fieldValues.put(EmailUtils.TEMPLATE_KEY_DISPLAY_NAME, 
+					userProfile.getFirstName()+" "+userProfile.getLastName());
+			fieldValues.put(EmailUtils.TEMPLATE_KEY_WEB_LINK, urlString);
+			fieldValues.put(EmailUtils.TEMPLATE_KEY_EMAIL, email.getEmail());
+			fieldValues.put(EmailUtils.TEMPLATE_KEY_ORIGIN_CLIENT, domain.name());
+			fieldValues.put(EmailUtils.TEMPLATE_KEY_USERNAME, userProfile.getUserName());
+			String messageBody = EmailUtils.readMailTemplate("message/AdditionalEmailTemplate.txt", fieldValues);
+			SendEmailRequest sendEmailRequest = EmailUtils.createEmailRequest(email.getEmail(), subject, messageBody, false, null);
+			amazonSESClient.sendEmail(sendEmailRequest);
+		} else if (domain.equals(DomainType.BRIDGE)) {
+			throw new IllegalArgumentException("Account creation for Bridge is not yet supported.");
+		} else {
+			throw new IllegalArgumentException("Unexpected Domain: "+domain);
+		}
 	}
 
+	// returns the validated email address
+	// note, we pass the current time as a parameter to facilitate testing
+	public static String validateAdditionalEmailToken(String token, Date now) {
+		String email = null;
+		String tokenTimestampString = null;
+		String domain = null;
+		String mac = null;
+		String[] requestParams = token.split(AMPERSAND);
+		for (String param : requestParams) {
+			if (param.startsWith(EMAIL_VALIDATION_EMAIL_PARAM+EQUALS)) {
+				email = param.substring((EMAIL_VALIDATION_EMAIL_PARAM+EQUALS).length());
+			} else if (param.startsWith(EMAIL_VALIDATION_TIME_STAMP_PARAM+EQUALS)) {
+				tokenTimestampString = param.substring((EMAIL_VALIDATION_TIME_STAMP_PARAM+EQUALS).length());
+			} else if (param.startsWith(EMAIL_VALIDATION_DOMAIN_PARAM+EQUALS)) {
+				domain = param.substring((EMAIL_VALIDATION_DOMAIN_PARAM+EQUALS).length());
+			} else if (param.startsWith(EMAIL_VALIDATION_SIGNATURE_PARAM+EQUALS)) {
+				mac = param.substring((EMAIL_VALIDATION_SIGNATURE_PARAM+EQUALS).length());
+			}
+		}
+		if (email==null) throw new IllegalArgumentException("email is missing.");
+		if (tokenTimestampString==null) throw new IllegalArgumentException("time stamp is missing.");
+		if (domain==null) throw new IllegalArgumentException("domain is missing.");
+		if (mac==null) throw new IllegalArgumentException("digital signature is missing.");
+		Date tokenTimestamp = null;
+		DateFormat df = new SimpleDateFormat(DATE_FORMAT_ISO8601);
+		try {
+			tokenTimestamp = df.parse(tokenTimestampString);
+		} catch (ParseException e) {
+			throw new RuntimeException(e);
+		}
+		if (now.getTime()-tokenTimestamp.getTime()>EMAIL_VALIDATION_TIME_LIMIT_MILLIS) 
+			throw new IllegalArgumentException("Email validation link is out of date.");
+		if (!mac.equals(generateSignatureForAdditionalEmail(email, tokenTimestampString, domain)))
+			throw new IllegalArgumentException("Invalid digital signature.");
+		try {
+			return URLDecoder.decode(email, PARAMETER_CHARSET);
+		} catch (UnsupportedEncodingException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	// TODO token should include principal ID and this method should match against userInfo.getId()
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public void addEmail(UserInfo userInfo, String emailValidationToken, // TODO wrap in a POJO
+			boolean setAsNotificationEmail) throws NotFoundException {
+		String validatedEmail = validateAdditionalEmailToken(emailValidationToken, new Date());
+		PrincipalAlias alias = new PrincipalAlias();
+		alias.setAlias(validatedEmail);
+		alias.setPrincipalId(userInfo.getId());
+		alias.setType(AliasType.USER_EMAIL);
+		alias = principalAliasDAO.bindAliasToPrincipal(alias);
+		if (setAsNotificationEmail) notificationEmailDao.update(alias);
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void removeEmail(UserInfo userInfo, String email) throws NotFoundException {
 		if (email.equals(notificationEmailDao.getNotificationEmailForPrincipal(userInfo.getId())))

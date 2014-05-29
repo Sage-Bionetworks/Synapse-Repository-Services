@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.principal;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.Username;
 import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
 import org.sagebionetworks.repo.model.principal.AliasType;
@@ -40,9 +41,11 @@ public interface PrincipalManager {
 	/**
 	 * Create a new account, following email validation
 	 * @param accountSetupInfo
-	 * @return session token
+	 * @param domain
+	 * @return session
+	 * @throws NotFoundException 
 	 */
-	String createNewAccount(AccountSetupInfo accountSetupInfo);
+	Session createNewAccount(AccountSetupInfo accountSetupInfo, DomainType domain) throws NotFoundException;
 	
 	/**
 	 * Send an email validation as a precursor to adding a new email address to an existing account.
@@ -50,10 +53,11 @@ public interface PrincipalManager {
 	 * @param email the email which is claimed by the user
 	 * @param portalEndoint the GUI endpoint (is the basis for the link in the email message)
 	 * @param domain Synapse or Bridge
+	 * @throws NotFoundException 
 	 */
-	void additionalEmailValidation(UserInfo userInfo, String email, String portalEndoint, DomainType domain);
+	void additionalEmailValidation(UserInfo userInfo, Username email, String portalEndoint, DomainType domain) throws NotFoundException;
 	
-	void addEmail(UserInfo userInfo, String emailValidationToken, boolean setAsNotificationEmail);
+	void addEmail(UserInfo userInfo, String emailValidationToken, boolean setAsNotificationEmail) throws NotFoundException;
 	
 	void removeEmail(UserInfo userInfo, String email) throws NotFoundException;
 	

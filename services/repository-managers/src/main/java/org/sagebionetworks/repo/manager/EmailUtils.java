@@ -30,6 +30,7 @@ public class EmailUtils {
 	public static final String TEMPLATE_KEY_WEB_LINK = "#link#";
 	public static final String TEMPLATE_KEY_MESSAGE_ID = "#messageid#";
 	public static final String TEMPLATE_KEY_DETAILS = "#details#";
+	public static final String TEMPLATE_KEY_EMAIL = "#email#";
 
 	public static SendEmailRequest createEmailRequest(String recipientEmail, String subject, String body, boolean isHtml, String sender) {
 		// Construct whom the email is from 
