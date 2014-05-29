@@ -49,11 +49,11 @@ public class PrincipalServiceImpl implements PrincipalService {
 	 * Send an email validation message as a precursor to creating a new user account.
 	 * 
 	 * @param user the info for the new user
-	 * @param portalEndoint the GUI endpoint (is the basis for the link in the email message)
+	 * @param portalEndpoint the GUI endpoint (is the basis for the link in the email message)
 	 * @param domain Synapse or Bridge
 	 */
-	public void newAccountEmailValidation(NewUser user, String portalEndoint, DomainType domain) {
-		principalManager.newAccountEmailValidation(user, portalEndoint, domain);
+	public void newAccountEmailValidation(NewUser user, String portalEndpoint, DomainType domain) {
+		principalManager.newAccountEmailValidation(user, portalEndpoint, domain);
 	}
 	
 	/**
@@ -69,21 +69,21 @@ public class PrincipalServiceImpl implements PrincipalService {
 	
 	/**
 	 * Send an email validation as a precursor to adding a new email address to an existing account.
-	 * @param userInfo the authenticated user making the request
+	 * @param userId the authenticated user making the request
 	 * @param email the email which is claimed by the user
-	 * @param portalEndoint the GUI endpoint (is the basis for the link in the email message)
+	 * @param portalEndpoint the GUI endpoint (is the basis for the link in the email message)
 	 * @param domain Synapse or Bridge
 	 * @throws NotFoundException 
 	 */
-	public void additionalEmailValidation(Long userId, Username email, String portalEndoint, DomainType domain) throws NotFoundException {
+	public void additionalEmailValidation(Long userId, Username email, String portalEndpoint, DomainType domain) throws NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		principalManager.additionalEmailValidation(userInfo, email, portalEndoint, domain);
+		principalManager.additionalEmailValidation(userInfo, email, portalEndpoint, domain);
 	}
 	
 	/**
 	 * Add a new email address to an existing account.
 	 * 
-	 * @param userInfo
+	 * @param userId
 	 * @param addEmailInfo
 	 * @param setAsNotificationEmail
 	 * @throws NotFoundException
@@ -96,11 +96,11 @@ public class PrincipalServiceImpl implements PrincipalService {
 	/**
 	 * Remove an email address from an existing account.
 	 * 
-	 * @param userInfo
+	 * @param userId
 	 * @param email
 	 * @throws NotFoundException
 	 */
-	public void removeEmail(Long userId, Username email) throws NotFoundException {
+	public void removeEmail(Long userId, String email) throws NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		principalManager.removeEmail(userInfo, email);
 	}

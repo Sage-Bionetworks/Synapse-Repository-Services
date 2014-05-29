@@ -90,6 +90,11 @@ public class AuthorizationConstants {
 	public static final String PORTAL_ENDPOINT_PARAM = "portalEndpoint";
 	
 	/**
+	 * A request parameter to the 'delete email address' service, specifying the email to delete
+	 */
+	public static final String EMAIL_PARAM = "email";
+	
+	/**
 	 * A request parameter to the 'add email address' service, saying whether the new address should become the
 	 * user's notifiation address.
 	 */

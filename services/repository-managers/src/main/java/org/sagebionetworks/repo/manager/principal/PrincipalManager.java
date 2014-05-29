@@ -34,10 +34,10 @@ public interface PrincipalManager {
 	 * Send an email validation message as a precursor to creating a new user account.
 	 * 
 	 * @param user the info for the new user
-	 * @param portalEndoint the GUI endpoint (is the basis for the link in the email message)
+	 * @param portalEndpoint the GUI endpoint (is the basis for the link in the email message)
 	 * @param domain Synapse or Bridge
 	 */
-	void newAccountEmailValidation(NewUser user, String portalEndoint, DomainType domain);
+	void newAccountEmailValidation(NewUser user, String portalEndpoint, DomainType domain);
 	
 	/**
 	 * Create a new account, following email validation
@@ -52,11 +52,11 @@ public interface PrincipalManager {
 	 * Send an email validation as a precursor to adding a new email address to an existing account.
 	 * @param userInfo the authenticated user making the request
 	 * @param email the email which is claimed by the user
-	 * @param portalEndoint the GUI endpoint (is the basis for the link in the email message)
+	 * @param portalEndpoint the GUI endpoint (is the basis for the link in the email message)
 	 * @param domain Synapse or Bridge
 	 * @throws NotFoundException 
 	 */
-	void additionalEmailValidation(UserInfo userInfo, Username email, String portalEndoint, DomainType domain) throws NotFoundException;
+	void additionalEmailValidation(UserInfo userInfo, Username email, String portalEndpoint, DomainType domain) throws NotFoundException;
 	
 	/**
 	 * Add a new email address to an existing account.
@@ -75,7 +75,7 @@ public interface PrincipalManager {
 	 * @param email
 	 * @throws NotFoundException
 	 */
-	void removeEmail(UserInfo userInfo, Username email) throws NotFoundException;
+	void removeEmail(UserInfo userInfo, String email) throws NotFoundException;
 	
 	/**
 	 * Set the email which is used for notification.

@@ -393,10 +393,10 @@ public class PrincipalManagerImpl implements PrincipalManager {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void removeEmail(UserInfo userInfo, Username email) throws NotFoundException {
+	public void removeEmail(UserInfo userInfo, String email) throws NotFoundException {
 		if (email.equals(notificationEmailDao.getNotificationEmailForPrincipal(userInfo.getId())))
 				throw new IllegalArgumentException("To remove this email from your account, first establish a different notification address.");
-		PrincipalAlias emailAlias = findAliasForEmail(userInfo.getId(), email.getEmail());
+		PrincipalAlias emailAlias = findAliasForEmail(userInfo.getId(), email);
 		principalAliasDAO.removeAliasFromPrincipal(userInfo.getId(), emailAlias.getAliasId());
 	}
 	

@@ -115,7 +115,7 @@ public class PrincipalController extends BaseController {
 	@RequestMapping(value = { UrlHelpers.EMAIL }, method = RequestMethod.POST)
 	public void addEmail(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Boolean setAsNotificationEmail,
+			@RequestParam(value = AuthorizationConstants.SET_AS_NOTIFICATION_EMAIL_PARM) Boolean setAsNotificationEmail,
 			@RequestBody AddEmailInfo addEmailInfo
 
 			) throws NotFoundException {
@@ -126,7 +126,7 @@ public class PrincipalController extends BaseController {
 	@RequestMapping(value = { UrlHelpers.EMAIL }, method = RequestMethod.DELETE)
 	public void removeEmail(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody Username email
+			@RequestParam(value = AuthorizationConstants.EMAIL_PARAM) Boolean email
 			) throws NotFoundException {
 		serviceProvider.getPrincipalService().removeEmail(userId, email);
 	}

@@ -604,6 +604,11 @@ public class SharedClientConnection {
 		signAndDispatchSynapseRequest(endpoint, uri, "DELETE", null, defaultGETDELETEHeaders, userAgent, null, null);
 	}
 	
+	public void deleteUri(String endpoint, String uri, String userAgent, Map<String, String> parameters) throws SynapseException {
+		if (null == uri) throw new IllegalArgumentException("must provide uri");		
+		signAndDispatchSynapseRequest(endpoint, uri, "DELETE", null, defaultGETDELETEHeaders, userAgent, parameters, null);
+	}
+	
 	private void addDigitalSignature(String url, Map<String, String> modHeaders) throws SynapseClientException {
 		String timeStamp = (new DateTime()).toString();
 		String uriRawPath = null; 
