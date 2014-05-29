@@ -29,17 +29,17 @@ public class RowCacheDaoStub implements RowCacheDao {
 		return isEnabled;
 	}
 
-	private String createKey(String tableId, Long rowId, Long versionNumber) {
+	private String createKey(Long tableId, Long rowId, Long versionNumber) {
 		return KeyValueSplitter.createKey(tableId, rowId, versionNumber);
 	}
 
 	@Override
-	public Row getRow(String tableId, Long rowId, Long versionNumber) throws IOException {
+	public Row getRow(Long tableId, Long rowId, Long versionNumber) throws IOException {
 		return rows.get(createKey(tableId, rowId, versionNumber));
 	}
 
 	@Override
-	public Map<Long, Row> getRows(String tableId, Map<Long, Long> rowsToGet) throws IOException {
+	public Map<Long, Row> getRows(Long tableId, Map<Long, Long> rowsToGet) throws IOException {
 		Map<Long, Row> result = Maps.newHashMap();
 		for (Map.Entry<Long, Long> row : rowsToGet.entrySet()) {
 			result.put(row.getKey(), rows.get(createKey(tableId, row.getKey(), row.getValue())));
@@ -48,7 +48,7 @@ public class RowCacheDaoStub implements RowCacheDao {
 	}
 
 	@Override
-	public Map<Long, Row> getRows(String tableId, Long version, Iterable<Long> rowsToGet) throws IOException {
+	public Map<Long, Row> getRows(Long tableId, Long version, Iterable<Long> rowsToGet) throws IOException {
 		Map<Long, Row> result = Maps.newHashMap();
 		for (Long rowId : rowsToGet) {
 			Row row = rows.get(createKey(tableId, rowId, version));
@@ -60,12 +60,12 @@ public class RowCacheDaoStub implements RowCacheDao {
 	}
 
 	@Override
-	public void putRow(String tableId, Row row) throws IOException {
+	public void putRow(Long tableId, Row row) throws IOException {
 		rows.put(createKey(tableId, row.getRowId(), row.getVersionNumber()), row);
 	}
 
 	@Override
-	public void putRows(String tableId, Iterable<Row> rowsToPut) throws IOException {
+	public void putRows(Long tableId, Iterable<Row> rowsToPut) throws IOException {
 		for (Row row : rowsToPut) {
 			rows.put(createKey(tableId, row.getRowId(), row.getVersionNumber()), row);
 		}

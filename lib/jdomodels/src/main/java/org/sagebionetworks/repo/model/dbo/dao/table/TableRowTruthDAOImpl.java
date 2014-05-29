@@ -40,6 +40,7 @@ import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
@@ -49,6 +50,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.S3Object;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -180,7 +183,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		// Are any rows being updated?
 		if (coutToReserver < delta.getRows().size()) {
 			// Validate that this update does not contain any row level conflicts.
-			checkForRowLevelConflict(tableId, delta);
+			checkForRowLevelConflict(tableId, delta, 0);
 		}
 
 		// Now assign the rowIds and set the version number
@@ -230,13 +233,14 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	 * @throws ConflictingUpdateException
 	 *             when a conflict is found
 	 */
-	public void checkForRowLevelConflict(String tableId, RowSet delta) throws IOException {
+	public void checkForRowLevelConflict(String tableId, RowSet delta, long minVersion) throws IOException {
 		if (delta.getEtag() == null)
 			throw new IllegalArgumentException("RowSet.etag cannot be null when rows are being updated.");
 		// Lookup the version number for this update.
 		long versionOfEtag = getVersionForEtag(tableId, delta.getEtag());
+		long firstVersionToCheck = Math.max(minVersion - 1, versionOfEtag);
 		// Check each version greater than the version for the etag
-		List<TableRowChange> changes = listRowSetsKeysForTableGreaterThanVersion(tableId, versionOfEtag);
+		List<TableRowChange> changes = listRowSetsKeysForTableGreaterThanVersion(tableId, firstVersionToCheck);
 		// check for row level conflicts
 		Set<Long> rowIds = TableModelUtils.getDistictValidRowIds(delta.getRows());
 		for (TableRowChange change : changes) {
@@ -527,17 +531,17 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public RowSetAccessor getLatestVersions(String tableId, Set<Long> rowIds, String etag) throws IOException, NotFoundException {
+	@Transactional(readOnly = true, propagation = Propagation.REQUIRED)
+	public RowSetAccessor getLatestVersionsWithRowData(String tableId, Set<Long> rowIds, long minVersion) throws IOException {
 		final Map<Long, RowAccessor> rowIdToRowMap = Maps.newHashMap();
 
-		List<TableRowChange> rowChanges = listRowSetsKeysForTable(tableId);
+		List<TableRowChange> rowChanges = listRowSetsKeysForTableGreaterThanVersion(tableId, minVersion - 1);
 
+		final Set<Long> rowsToFind = Sets.newHashSet(rowIds);
 		// we are scanning backwards through the row changes.
-		final Set<Long> rowIdsToFind = Sets.newHashSet(rowIds);
 		// For each version of the table (starting at the last one)
 		for (final TableRowChange rowChange : Lists.reverse(rowChanges)) {
-			if (rowIdsToFind.isEmpty()) {
+			if (rowsToFind.isEmpty()) {
 				// we found all the rows that we need to find
 				break;
 			}
@@ -547,9 +551,8 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			scanChange(new RowHandler() {
 				@Override
 				public void nextRow(final Row row) {
-					if (rowIdsToFind.contains(row.getRowId())) {
-						// we found it, no longer need to find this one
-						rowIdsToFind.remove(row.getRowId());
+					// if we still needed it, we no longer need to find this one
+					if (rowsToFind.remove(row.getRowId())) {
 						appendRowDataToMap(rowIdToRowMap, rowChangeHeaders, row);
 					}
 				}
@@ -558,10 +561,62 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 
 		return new RowSetAccessor() {
 			@Override
-			protected Map<Long, RowAccessor> getRowIdToRowMap() {
+			public Map<Long, RowAccessor> getRowIdToRowMap() {
 				return rowIdToRowMap;
 			}
 		};
+	}
+
+	@Override
+	@Transactional(readOnly = true, propagation = Propagation.REQUIRED)
+	public Map<Long, Long> getLatestVersions(String tableId, Set<Long> rowIds, long minVersion) throws IOException {
+		final Map<Long, Long> rowVersions = Maps.newHashMap();
+
+		List<TableRowChange> rowChanges = listRowSetsKeysForTableGreaterThanVersion(tableId, minVersion - 1);
+
+		final Set<Long> rowsToFind = Sets.newHashSet(rowIds);
+		// we are scanning backwards through the row changes.
+		// For each version of the table (starting at the last one)
+		for (final TableRowChange rowChange : Lists.reverse(rowChanges)) {
+			if (rowsToFind.isEmpty()) {
+				// we found all the rows that we need to find
+				break;
+			}
+
+			// Scan over the delta
+			scanChange(new RowHandler() {
+				@Override
+				public void nextRow(final Row row) {
+					// if we still needed it, we no longer need to find this one
+					if (rowsToFind.remove(row.getRowId())) {
+						rowVersions.put(row.getRowId(), row.getVersionNumber());
+					}
+				}
+			}, rowChange);
+		}
+
+		return rowVersions;
+	}
+
+	@Override
+	@Transactional(readOnly = true, propagation = Propagation.REQUIRED)
+	public Map<Long, Long> getLatestVersions(String tableId, final long minVersion) throws IOException, NotFoundException {
+		final Map<Long, Long> rowVersions = Maps.newHashMap();
+
+		List<TableRowChange> rowChanges = listRowSetsKeysForTableGreaterThanVersion(tableId, minVersion - 1);
+
+		// scan forward (rowChanges is ordered lowest version first)
+		for (final TableRowChange rowChange : rowChanges) {
+			scanChange(new RowHandler() {
+				@Override
+				public void nextRow(final Row row) {
+					// since we are iterating forward, we can just overwrite previous values here
+					rowVersions.put(row.getRowId(), row.getVersionNumber());
+				}
+			}, rowChange);
+		}
+
+		return rowVersions;
 	}
 
 	protected void appendRowDataToMap(final Map<Long, RowAccessor> rowIdToRowMap, final List<String> rowChangeHeaders, final Row row) {
@@ -599,6 +654,16 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		// Convert and merge all data into the requested form
 		return TableModelUtils.convertToSchemaAndMerge(allSets, restultForm,
 				ref.getTableId());
+	}
+
+	@Override
+	public void updateLatestVersionCache(String tableId, ProgressCallback<Long> progressCallback) throws IOException {
+		// do nothing here, only caching version needs to do anything
+	}
+
+	@Override
+	public void removeLatestVersionCache(String tableId) throws IOException {
+		// do nothing here, only caching version needs to do anything
 	}
 
 	public String getS3Bucket() {

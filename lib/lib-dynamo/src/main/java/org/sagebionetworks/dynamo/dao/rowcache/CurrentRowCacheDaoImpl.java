@@ -27,7 +27,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 public class CurrentRowCacheDaoImpl extends DynamoDaoBaseImpl implements CurrentRowCacheDao {
@@ -55,7 +54,7 @@ public class CurrentRowCacheDaoImpl extends DynamoDaoBaseImpl implements Current
 		statusMapper = new DynamoDBMapper(dynamoClient, DynamoConfig.getDynamoDBMapperConfigFor(DboCurrentRowCacheStatus.class));
 	}
 
-	private DboCurrentRowCache dboCreate(String tableId, Long rowId, Long versionNumber) {
+	private DboCurrentRowCache dboCreate(Long tableId, Long rowId, Long versionNumber) {
 		DboCurrentRowCache currentRow = new DboCurrentRowCache();
 		currentRow.setHashKey(DboCurrentRowCache.createHashKey(tableId));
 		currentRow.setRangeKey(DboCurrentRowCache.createRangeKey(rowId));
@@ -69,7 +68,7 @@ public class CurrentRowCacheDaoImpl extends DynamoDaoBaseImpl implements Current
 	}
 
 	@Override
-	public CurrentRowCacheStatus getLatestCurrentVersionNumber(String tableId) {
+	public CurrentRowCacheStatus getLatestCurrentVersionNumber(Long tableId) {
 		DboCurrentRowCacheStatus status = statusMapper.load(DboCurrentRowCacheStatus.class, DboCurrentRowCacheStatus.createHashKey(tableId));
 		if (status != null) {
 			return new CurrentRowCacheStatus(tableId, status.getLatestVersionNumber(), status.getRecordVersion());
@@ -89,12 +88,12 @@ public class CurrentRowCacheDaoImpl extends DynamoDaoBaseImpl implements Current
 	}
 
 	@Override
-	public void putCurrentVersion(String tableId, Long rowId, Long versionNumber) {
+	public void putCurrentVersion(Long tableId, Long rowId, Long versionNumber) {
 		mapper.save(dboCreate(tableId, rowId, versionNumber));
 	}
 
 	@Override
-	public void putCurrentVersions(final String tableId, Map<Long, Long> rowsAndVersions) {
+	public void putCurrentVersions(final Long tableId, Map<Long, Long> rowsAndVersions) {
 		List<DboCurrentRowCache> toUpdate = Transform.toList(rowsAndVersions.entrySet(),
 				new Function<Map.Entry<Long, Long>, DboCurrentRowCache>() {
 					@Override
@@ -106,7 +105,7 @@ public class CurrentRowCacheDaoImpl extends DynamoDaoBaseImpl implements Current
 	}
 
 	@Override
-	public Long getCurrentVersion(String tableId, Long rowId) {
+	public Long getCurrentVersion(Long tableId, Long rowId) {
 		DboCurrentRowCache currentRow = mapper.load(DboCurrentRowCache.class, DboCurrentRowCache.createHashKey(tableId),
 				DboCurrentRowCache.createRangeKey(rowId));
 		if (currentRow != null) {
@@ -116,9 +115,8 @@ public class CurrentRowCacheDaoImpl extends DynamoDaoBaseImpl implements Current
 		}
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
-	public Map<Long, Long> getCurrentVersions(String tableId, Iterable<Long> rowIds) {
+	public Map<Long, Long> getCurrentVersions(Long tableId, Iterable<Long> rowIds) {
 		final SortedSet<Long> rowIdSet = Sets.newTreeSet(rowIds);
 		if (rowIdSet.isEmpty()) {
 			return Collections.emptyMap();
@@ -162,6 +160,24 @@ public class CurrentRowCacheDaoImpl extends DynamoDaoBaseImpl implements Current
 		});
 	}
 
+	@Override
+	public Map<Long, Long> getCurrentVersions(Long tableId) {
+
+		final String hashKey = DboCurrentRowCache.createHashKey(tableId);
+
+		AttributeValue hashKeyValue = new AttributeValue(hashKey);
+
+		PaginatedQueryList<DboCurrentRowCache> queryResults = mapper.query(DboCurrentRowCache.class,
+				new DynamoDBQueryExpression(hashKeyValue));
+
+		return Transform.toMap(queryResults, new Function<DboCurrentRowCache, TransformEntry<Long, Long>>() {
+			@Override
+			public TransformEntry<Long, Long> apply(DboCurrentRowCache input) {
+				return new TransformEntry<Long, Long>(input.getRowId(), input.getVersion());
+			}
+		});
+	}
+
 	// should we use a range query (we get records we don't care about, but we add up all sizes for total result and
 	// then round up to 4K) or a batch get (we only get the records we care about, but each record is separately
 	// rounded up to 4K)
@@ -170,12 +186,12 @@ public class CurrentRowCacheDaoImpl extends DynamoDaoBaseImpl implements Current
 	}
 
 	@Override
-	public void deleteCurrentVersion(String tableId, Long rowId) {
+	public void deleteCurrentVersion(Long tableId, Long rowId) {
 		mapper.delete(dboCreate(tableId, rowId, null));
 	}
 
 	@Override
-	public void deleteCurrentVersions(final String tableId, Iterable<Long> rowIds) {
+	public void deleteCurrentVersions(final Long tableId, Iterable<Long> rowIds) {
 		List<DboCurrentRowCache> toDelete = Transform.toList(rowIds, new Function<Long, DboCurrentRowCache>() {
 			@Override
 			public DboCurrentRowCache apply(Long rowId) {
@@ -186,7 +202,7 @@ public class CurrentRowCacheDaoImpl extends DynamoDaoBaseImpl implements Current
 	}
 
 	@Override
-	public void deleteCurrentTable(final String tableId) {
+	public void deleteCurrentTable(final Long tableId) {
 		AttributeValue hashKeyValue = new AttributeValue(DboCurrentRowCache.createHashKey(tableId));
 		PaginatedQueryList<DboCurrentRowCache> results = mapper.query(DboCurrentRowCache.class, new DynamoDBQueryExpression(hashKeyValue));
 		mapper.batchDelete(uniqueify(results, CURRENT_ROW_CACHE_COMPARATOR));

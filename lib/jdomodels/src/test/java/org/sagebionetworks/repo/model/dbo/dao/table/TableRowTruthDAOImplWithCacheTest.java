@@ -67,6 +67,7 @@ public class TableRowTruthDAOImplWithCacheTest extends TableRowTruthDAOImplTest 
 		// Append this change set
 		RowReferenceSet refSet = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, models, set, false);
 		assertEquals(0, ((CurrentRowCacheDaoStub) currentRowCacheDao).latestVersionNumbers.size());
+		tableRowTruthDao.updateLatestVersionCache(tableId, null);
 
 		rows = TableModelTestUtils.createRows(models, 1);
 		rows.get(0).setRowId(refSet.getRows().get(0).getRowId());
@@ -77,7 +78,7 @@ public class TableRowTruthDAOImplWithCacheTest extends TableRowTruthDAOImplTest 
 		assertEquals(1, ((CurrentRowCacheDaoStub) currentRowCacheDao).latestVersionNumbers.size());
 		assertEquals(5, Iterables.getOnlyElement(((CurrentRowCacheDaoStub) currentRowCacheDao).latestVersionNumbers.values()).size());
 		
-		tableRowTruthDao.getLatestVersions(tableId, Collections.<Long> emptySet(), "etag");
+		tableRowTruthDao.getLatestVersionsWithRowData(tableId, Collections.<Long> emptySet(), 0L);
 		assertEquals(1, ((CurrentRowCacheDaoStub) currentRowCacheDao).latestVersionNumbers.size());
 		assertEquals(5, Iterables.getOnlyElement(((CurrentRowCacheDaoStub) currentRowCacheDao).latestVersionNumbers.values()).size());
 

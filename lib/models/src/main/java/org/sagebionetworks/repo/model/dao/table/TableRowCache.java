@@ -15,24 +15,28 @@ public interface TableRowCache {
 	
 	public boolean isEnabled();
 
-	public CurrentRowCacheStatus getLatestCurrentVersionNumber(String tableId);
+	public CurrentRowCacheStatus getLatestCurrentVersionNumber(Long tableId);
 
 	public void setLatestCurrentVersionNumber(CurrentRowCacheStatus oldStatus, Long newLastCurrentVersion2)
 			throws ConcurrentModificationException;
 
-	public Map<Long, Long> getCurrentVersionNumbers(String tableId, Iterable<Long> rowIds);
+	public Map<Long, Long> getCurrentVersionNumbers(Long tableId, Iterable<Long> rowIds);
 
-	public void updateCurrentVersionNumbers(String tableId, Map<Long, Long> rowIdVersionNumbers);
+	public Map<Long, Long> getCurrentVersionNumbers(Long tableId);
 
-	public Row getRowFromCache(String tableId, Long rowId, Long versionNumber) throws IOException;
+	public void updateCurrentVersionNumbers(Long tableId, Map<Long, Long> rowIdVersionNumbers);
 
-	public Map<Long, Row> getRowsFromCache(String tableId, Map<Long, Long> rowIdVersionNumbers) throws IOException;
+	public void removeFromCache(Long tableId);
 
-	public Map<Long, Row> getRowsFromCache(String tableId, Long version, Iterable<Long> rowsToGet) throws IOException;
+	public Row getRowFromCache(Long tableId, Long rowId, Long versionNumber) throws IOException;
 
-	public void putRowInCache(String tableId, Row row) throws IOException;
+	public Map<Long, Row> getRowsFromCache(Long tableId, Map<Long, Long> rowIdVersionNumbers) throws IOException;
 
-	public void putRowsInCache(String tableId, Iterable<Row> rows) throws IOException;
+	public Map<Long, Row> getRowsFromCache(Long tableId, Long version, Iterable<Long> rowsToGet) throws IOException;
+
+	public void putRowInCache(Long tableId, Row row) throws IOException;
+
+	public void putRowsInCache(Long tableId, Iterable<Row> rows) throws IOException;
 
 	public void truncateAllData();
 }

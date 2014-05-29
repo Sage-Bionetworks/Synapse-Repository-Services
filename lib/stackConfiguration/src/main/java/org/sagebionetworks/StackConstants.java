@@ -89,6 +89,11 @@ public class StackConstants {
 	public static final String TABLE_CLUSTER_QUEUE_NAME_TEMPLATE = "%1$s-%2$s-table-cluster-queue";
 	
 	/**
+	 * Template used for the name of the AWS SQS where ranges of change messages are pushed.
+	 */
+	public static final String TABLE_CURRENT_CACHE_QUEUE_NAME_TEMPLATE = "%1$s-%2$s-table-current-cache-queue";
+
+	/**
 	 * The bucket containing all table row data.
 	 */
 	public static final String TABLE_ROW_CHANGE_BUCKET = "%1$s.table.row.changes";

@@ -353,11 +353,11 @@ public class TableRowManagerImplTest {
 			}
 		}).when(mockAuthManager).canAccessRawFileHandlesByIds(user, Lists.newArrayList("3333", "5002"), Sets.<String> newHashSet(),
 				Sets.<String> newHashSet());
-		when(mockTruthDao.getLatestVersions(tableId, Sets.newHashSet(2L), "etag")).thenReturn(originalAccessor);
+		when(mockTruthDao.getLatestVersionsWithRowData(tableId, Sets.newHashSet(2L), 0L)).thenReturn(originalAccessor);
 		manager.appendRows(user, tableId, models, replace);
 
 		verify(mockTruthDao).appendRowSetToTable(anyString(), anyString(), anyListOf(ColumnModel.class), any(RowSet.class), anyBoolean());
-		verify(mockTruthDao).getLatestVersions(tableId, Sets.newHashSet(2L), "etag");
+		verify(mockTruthDao).getLatestVersionsWithRowData(tableId, Sets.newHashSet(2L), 0L);
 		verify(mockAuthManager).canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
 		verify(mockAuthManager).canAccessRawFileHandlesByIds(user, Lists.newArrayList("3333", "5002"), Sets.<String> newHashSet("3333"),
 				Sets.<String> newHashSet("5002"));
@@ -434,7 +434,7 @@ public class TableRowManagerImplTest {
 			}
 		}).when(mockAuthManager).canAccessRawFileHandlesByIds(user, Lists.newArrayList("3333"), Sets.<String> newHashSet(),
 				Sets.<String> newHashSet());
-		when(mockTruthDao.getLatestVersions(tableId, Sets.newHashSet(0L), "etag")).thenReturn(originalAccessor);
+		when(mockTruthDao.getLatestVersionsWithRowData(tableId, Sets.newHashSet(0L), 0L)).thenReturn(originalAccessor);
 		manager.appendRows(user, tableId, models, replace);
 	}
 
@@ -472,7 +472,7 @@ public class TableRowManagerImplTest {
 			}
 		}).when(mockAuthManager).canAccessRawFileHandlesByIds(user, Lists.newArrayList("3333"), Sets.<String> newHashSet(),
 				Sets.<String> newHashSet());
-		when(mockTruthDao.getLatestVersions(tableId, Sets.newHashSet(0L), "etag")).thenReturn(originalAccessor);
+		when(mockTruthDao.getLatestVersionsWithRowData(tableId, Sets.newHashSet(0L), 0L)).thenReturn(originalAccessor);
 		manager.appendRows(user, tableId, models, replace);
 	}
 

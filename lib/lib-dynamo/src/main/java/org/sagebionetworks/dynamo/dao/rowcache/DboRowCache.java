@@ -29,8 +29,8 @@ public class DboRowCache implements DynamoTable {
 	private String rangeKey;
 	private byte[] value = null;
 
-	public static String createHashKey(final String tableId) {
-		return tableId;
+	public static String createHashKey(final Long tableId) {
+		return tableId.toString();
 	}
 
 	public static String createRangeKey(final Long rowId, final Long versionNumber) {

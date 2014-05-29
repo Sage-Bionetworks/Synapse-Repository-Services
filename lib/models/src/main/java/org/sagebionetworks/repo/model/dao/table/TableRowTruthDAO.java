@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dao.table;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -13,6 +14,7 @@ import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ProgressCallback;
 
 /**
  * This is the "truth" store for all rows of TableEntites.
@@ -108,12 +110,37 @@ public interface TableRowTruthDAO {
 	 * Get all the latest versions of the rows specified by the rowIds
 	 * 
 	 * @param tableId
-	 * @param rowIds
+	 * @param rowIdsInOut the set of row ids to find
+	 * @param minVersion only check with versions equal or greater than the minVersion
 	 * @return
 	 * @throws IOException
 	 * @throws NotFoundException
 	 */
-	public RowSetAccessor getLatestVersions(String tableId, Set<Long> rowIds, String etag) throws IOException, NotFoundException;
+	public RowSetAccessor getLatestVersionsWithRowData(String tableId, Set<Long> rowIds, long minVersion) throws IOException,
+			NotFoundException;
+
+	/**
+	 * Get all the latest versions of the rows specified by the rowIds
+	 * 
+	 * @param tableId
+	 * @param rowIdsInOut the set of row ids to find
+	 * @param minVersion only check with versions equal or greater than the minVersion
+	 * @return
+	 * @throws IOException
+	 * @throws NotFoundException
+	 */
+	public Map<Long, Long> getLatestVersions(String tableId, Set<Long> rowIds, long minVersion) throws IOException, NotFoundException;
+
+	/**
+	 * Get all the latest versions for this table
+	 * 
+	 * @param tableId
+	 * @param minVersion only return rows that have a version equal or greater than this
+	 * @return
+	 * @throws IOException
+	 * @throws NotFoundException
+	 */
+	public Map<Long, Long> getLatestVersions(String tableId, long minVersion) throws IOException, NotFoundException;
 
 	/**
 	 * List the keys of all change sets applied to a table.
@@ -149,4 +176,18 @@ public interface TableRowTruthDAO {
 	 * 
 	 */
 	public void truncateAllRowData();
+
+	/**
+	 * Update the lastest version cache if supported
+	 * 
+	 * @throws IOException
+	 */
+	public void updateLatestVersionCache(String tableId, ProgressCallback<Long> progressCallback) throws IOException;
+
+	/**
+	 * Remove the latest version cache for the table
+	 * 
+	 * @param tableId
+	 */
+	public void removeLatestVersionCache(String tableId) throws IOException;
 }

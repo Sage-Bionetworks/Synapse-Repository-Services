@@ -30,8 +30,8 @@ public class DboCurrentRowCache implements DynamoTable {
 	/**
 	 * Creates the composite hash key
 	 */
-	public static String createHashKey(final String tableId) {
-		return tableId;
+	public static String createHashKey(final Long tableId) {
+		return tableId.toString();
 	}
 
 	/**
