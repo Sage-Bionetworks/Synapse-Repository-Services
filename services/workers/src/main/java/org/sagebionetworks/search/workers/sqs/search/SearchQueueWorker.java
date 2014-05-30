@@ -66,6 +66,10 @@ public class SearchQueueWorker implements Callable<List<Message>> {
 
 	@Override
 	public List<Message> call() throws Exception {
+		// If the feature is disabled then we simply swallow all messages
+		if (!searchDao.isSearchEnabled()) {
+			return messagesToProcess;
+		}
 		// Process each message
 		for(Message message: messagesToProcess){
 			// Extract the ChangeMessage

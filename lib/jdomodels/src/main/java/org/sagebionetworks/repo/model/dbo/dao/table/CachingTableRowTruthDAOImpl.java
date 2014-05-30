@@ -219,6 +219,7 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 					progressCallback.progressMade(change.getRowVersion());
 				}
 				tableRowCache.setLatestCurrentVersionNumber(currentStatus, change.getRowVersion());
+				currentStatus = tableRowCache.getLatestCurrentVersionNumber(tableId);
 			}
 		}
 	}
