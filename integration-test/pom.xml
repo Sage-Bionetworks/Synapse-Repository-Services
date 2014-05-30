@@ -267,12 +267,6 @@
 
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
-			<artifactId>bccSetup</artifactId>
-			<version>${project.version}</version>
-		</dependency>
-
-		<dependency>
-			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-communicationUtilities</artifactId>
 		</dependency>
 
