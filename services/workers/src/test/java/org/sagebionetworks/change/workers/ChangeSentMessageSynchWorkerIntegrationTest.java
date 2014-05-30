@@ -12,6 +12,8 @@ import org.junit.Ignore;
 import static org.junit.Assert.*;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.message.RepositoryMessagePublisher;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -37,6 +39,8 @@ public class ChangeSentMessageSynchWorkerIntegrationTest {
 	public static final int MAX_PUBLISH_WAIT_MS = 5*1000;
 	
 	@Autowired
+	IdGenerator idGenerator;
+	@Autowired
 	DBOChangeDAO changeDao;
 	@Autowired
 	SemaphoreManager semphoreManager;
@@ -46,6 +50,7 @@ public class ChangeSentMessageSynchWorkerIntegrationTest {
 	RepositoryMessagePublisher repositoryMessagePublisher;
 	
 	private int objectIdSequence;
+	private int batchSize;
 	
 	@Before
 	public void before(){
@@ -55,6 +60,8 @@ public class ChangeSentMessageSynchWorkerIntegrationTest {
 		changeDao.resetLastChangeNumber();
 		semphoreManager.releaseAllLocksAsAdmin(new UserInfo(true));
 		objectIdSequence = 0;
+		batchSize = 3;
+		changeSentMessageSynchWorker.setBatchSize(batchSize);
 	}
 	
 	@Test
@@ -82,6 +89,24 @@ public class ChangeSentMessageSynchWorkerIntegrationTest {
 		// the worker must be able to find this changes and send them.
 		waitForSynchState();
 		assertEquals(changes.get(2).getChangeNumber(), changeDao.getLastSynchedChangeNumber());
+	}
+	
+	@Test
+	public void testPLFM_2814() throws Exception {
+		// At the start the last change number should be -1 after the worker has a chance to run.
+		waitForSynchState();
+		List<ChangeMessage> changes = createList(3, ObjectType.ACTIVITY);
+		// We need to save these change numbers such that their change numbers have gaps larger than the batch size
+		ChangeMessage last = null;
+		for(ChangeMessage change: changes){
+			change = changeDao.replaceChange(change);
+			last = change;
+			// Move the ID generator forward
+			idGenerator.reserveId(change.getChangeNumber()+batchSize+10, TYPE.CHANGE_ID);
+		}
+		// The worker should skip over all gaps and complete the synch.
+		waitForSynchState();
+		assertEquals(last.getChangeNumber(), changeDao.getLastSynchedChangeNumber());
 	}
 	
 	@Ignore // this is a long running test that does not always need to be run.
