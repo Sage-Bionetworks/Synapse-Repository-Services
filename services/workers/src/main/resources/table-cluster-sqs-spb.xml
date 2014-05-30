@@ -26,7 +26,7 @@
 				<value>TABLE</value>
 			</list>
 		</constructor-arg>
-		<constructor-arg index="3" value="true" />
+		<constructor-arg index="3" ref="stackConfiguration.tableEnabled" />
 	</bean>
 
 	<!-- provides table message queue workers -->
