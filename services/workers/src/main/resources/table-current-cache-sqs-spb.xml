@@ -20,8 +20,13 @@
 			class="org.sagebionetworks.asynchronous.workers.sqs.MessageQueueImpl"
 			depends-on="stackConfiguration">
 		<constructor-arg index="0" ref="stackConfiguration.tableCurrentCacheUpdateQueueName" />
-		<constructor-arg index="1" ref="stackConfiguration.repositoryChangeTopicName" />
-		<constructor-arg index="2" ref="stackConfiguration.tableEnabled" />
+		<constructor-arg index="1" ref="stackConfiguration.repositoryChangeTopicPrefix" />
+		<constructor-arg index="2">
+			<list>
+				<value>TABLE</value>
+			</list>
+		</constructor-arg>
+		<constructor-arg index="3" value="true" />
 	</bean>
 
 	<!-- provides table message queue workers -->
