@@ -204,10 +204,7 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 			List<TableRowChange> changes = currentStatus.getLatestCachedVersionNumber() == null ? listRowSetsKeysForTable(tableIdString)
 					: listRowSetsKeysForTableGreaterThanVersion(tableIdString, currentStatus.getLatestCachedVersionNumber());
 
-			long newLastCurrentVersion = -1L;
 			for (TableRowChange change : changes) {
-				newLastCurrentVersion = Math.max(newLastCurrentVersion, change.getRowVersion());
-
 				final Map<Long, Long> rowIdVersionNumbers = Maps.newHashMap();
 				final List<Row> rows = Lists.newArrayListWithCapacity(change.getRowCount().intValue());
 				scanChange(new RowHandler() {
@@ -221,9 +218,7 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 				if (progressCallback != null) {
 					progressCallback.progressMade(change.getRowVersion());
 				}
-			}
-			if (newLastCurrentVersion >= 0) {
-				tableRowCache.setLatestCurrentVersionNumber(currentStatus, newLastCurrentVersion);
+				tableRowCache.setLatestCurrentVersionNumber(currentStatus, change.getRowVersion());
 			}
 		}
 	}
@@ -237,7 +232,6 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public RowSetAccessor getLatestVersionsWithRowData(String tableIdString, Set<Long> rowIds, long minVersion) throws IOException {
 		try {
 			if (tableRowCache.isEnabled()) {
@@ -294,7 +288,6 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public Map<Long, Long> getLatestVersions(String tableIdString, Set<Long> rowIds, long minVersion) throws IOException {
 		try {
 			if (tableRowCache.isEnabled()) {
@@ -319,7 +312,6 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public Map<Long, Long> getLatestVersions(String tableIdString, long minVersion) throws IOException, NotFoundException {
 		try {
 			if (tableRowCache.isEnabled()) {

@@ -531,7 +531,6 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	}
 
 	@Override
-	@Transactional(readOnly = true, propagation = Propagation.REQUIRED)
 	public RowSetAccessor getLatestVersionsWithRowData(String tableId, Set<Long> rowIds, long minVersion) throws IOException {
 		final Map<Long, RowAccessor> rowIdToRowMap = Maps.newHashMap();
 
@@ -568,7 +567,6 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	}
 
 	@Override
-	@Transactional(readOnly = true, propagation = Propagation.REQUIRED)
 	public Map<Long, Long> getLatestVersions(String tableId, Set<Long> rowIds, long minVersion) throws IOException {
 		final Map<Long, Long> rowVersions = Maps.newHashMap();
 
@@ -599,7 +597,6 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	}
 
 	@Override
-	@Transactional(readOnly = true, propagation = Propagation.REQUIRED)
 	public Map<Long, Long> getLatestVersions(String tableId, final long minVersion) throws IOException, NotFoundException {
 		final Map<Long, Long> rowVersions = Maps.newHashMap();
 

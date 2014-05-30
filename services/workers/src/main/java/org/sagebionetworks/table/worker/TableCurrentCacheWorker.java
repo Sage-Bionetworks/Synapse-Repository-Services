@@ -93,18 +93,24 @@ public class TableCurrentCacheWorker implements Callable<List<Message>> {
 	 * @throws IOException
 	 * @throws NotFoundException
 	 */
-	public void updateCurrentVersionCache(final String tableId, final String tableResetToken, final Message message) throws IOException,
-			NotFoundException {
+	public void updateCurrentVersionCache(final String tableId, final String tableResetToken, final Message message) throws IOException {
 		// If the passed token does not match the current token then this
 		// is an old message that should be removed from the queue.
 		// See PLFM-2641. We must check message before we acquire the lock.
-		TableStatus status = tableRowManager.getTableStatus(tableId);
+		TableStatus status;
+		try {
+			status = tableRowManager.getTableStatus(tableId);
+		} catch (NotFoundException e) {
+			// table no longer exists? We shouldn't keep retrying here
+			log.info("Table " + tableId + " no longer exists?" + e);
+			return;
+		}
+
 		// If the reset-tokens do not match this message should be ignored
 		if (!tableResetToken.equals(status.getResetToken())) {
 			// This is an old message so we ignore it
 			return;
 		}
-		// Run with the exclusive lock on the table if we can get it.
 
 		tableRowManager.updateLatestVersionCache(tableId, new ProgressCallback<Long>() {
 			@Override
