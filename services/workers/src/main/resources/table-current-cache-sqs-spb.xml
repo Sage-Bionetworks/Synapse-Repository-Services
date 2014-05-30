@@ -42,7 +42,7 @@
 		<property name="messageQueue" ref="tableCurrentCacheMessageQueue" />
 		<property name="workerFactory" ref="tableCurrentCacheQueueWorkerFactory" />
 		<property name="maxNumberOfWorkerThreads" value="5" />
-		<property name="maxMessagePerWorker" value="2" />
+		<property name="maxMessagePerWorker" value="1" />
 		<property name="visibilityTimeoutSec" value="60" />
 	</bean>
 
