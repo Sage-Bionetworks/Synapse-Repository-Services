@@ -27,6 +27,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 public class CurrentRowCacheDaoImpl extends DynamoDaoBaseImpl implements CurrentRowCacheDao {
@@ -119,7 +120,7 @@ public class CurrentRowCacheDaoImpl extends DynamoDaoBaseImpl implements Current
 	public Map<Long, Long> getCurrentVersions(Long tableId, Iterable<Long> rowIds) {
 		final SortedSet<Long> rowIdSet = Sets.newTreeSet(rowIds);
 		if (rowIdSet.isEmpty()) {
-			return Collections.emptyMap();
+			return Maps.newHashMap();
 		}
 
 		final String hashKey = DboCurrentRowCache.createHashKey(tableId);
