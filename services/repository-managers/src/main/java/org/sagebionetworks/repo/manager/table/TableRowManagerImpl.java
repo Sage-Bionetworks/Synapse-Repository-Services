@@ -49,6 +49,7 @@ import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
+import org.sagebionetworks.util.ProgressCallback;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
@@ -250,6 +251,11 @@ public class TableRowManagerImpl implements TableRowManager {
 	@Override
 	public RowSet getRowSet(String tableId, Long rowVersion) throws IOException, NotFoundException {
 		return tableRowTruthDao.getRowSet(tableId, rowVersion);
+	}
+
+	@Override
+	public Map<Long, Long> getCurrentRowVersions(String tableId) throws IOException, NotFoundException {
+		return tableRowTruthDao.getLatestVersions(tableId, 0);
 	}
 
 	@Override
@@ -499,6 +505,16 @@ public class TableRowManagerImpl implements TableRowManager {
 		return repsonse;
 	}
 	
+	@Override
+	public void updateLatestVersionCache(String tableId, ProgressCallback<Long> progressCallback) throws IOException {
+		tableRowTruthDao.updateLatestVersionCache(tableId, progressCallback);
+	}
+
+	@Override
+	public void removeLatestVersionCache(String tableId) throws IOException {
+		tableRowTruthDao.removeLatestVersionCache(tableId);
+	}
+
 	TableUnavilableException createTableUnavilableException(String tableId){
 		// When this occurs we need to lookup the status of the table and pass that to the caller
 		try {
@@ -644,7 +660,7 @@ public class TableRowManagerImpl implements TableRowManager {
 			return;
 		}
 
-		RowSetAccessor latestVersions = tableRowTruthDao.getLatestVersions(tableId, fileHandlesToCheckAccessor.getRowIds(), etag);
+		RowSetAccessor latestVersions = tableRowTruthDao.getLatestVersionsWithRowData(tableId, fileHandlesToCheckAccessor.getRowIds(), 0);
 
 		// now we need to check if any of the unowned filehandles are changing with this request
 		for (RowAccessor row : fileHandlesToCheckAccessor.getRows()) {

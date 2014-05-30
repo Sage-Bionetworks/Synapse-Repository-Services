@@ -576,7 +576,7 @@ public class TableModelUtils {
 	 * @param rows
 	 * @return
 	 */
-	public static Set<Long> getDistictValidRowIds(List<Row> rows) {
+	public static Set<Long> getDistictValidRowIds(Iterable<Row> rows) {
 		if(rows == null) throw new IllegalArgumentException("rows cannot be null");
 		Set<Long> distictRowIds = new HashSet<Long>();
 		for(Row ref: rows){
@@ -942,7 +942,7 @@ public class TableModelUtils {
 				return rows;
 			}
 
-			protected Map<Long, RowAccessor> getRowIdToRowMap() {
+			public Map<Long, RowAccessor> getRowIdToRowMap() {
 				if (rowIdToRowMap == null) {
 					rowIdToRowMap = Maps.newHashMap();
 					for (final RowAccessor row : getRows()) {

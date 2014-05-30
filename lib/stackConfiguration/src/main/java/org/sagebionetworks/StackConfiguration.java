@@ -900,6 +900,10 @@ public class StackConfiguration {
 				StackConfiguration.getStackInstance());
 	}
 
+	public String getTableCurrentCacheUpdateQueueName() {
+		return String.format(StackConstants.TABLE_CURRENT_CACHE_QUEUE_NAME_TEMPLATE, StackConfiguration.getStack(),
+				StackConfiguration.getStackInstance());
+	}
 	
 	
 	/**

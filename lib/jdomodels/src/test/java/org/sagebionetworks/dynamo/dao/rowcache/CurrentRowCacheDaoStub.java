@@ -17,8 +17,8 @@ public class CurrentRowCacheDaoStub implements CurrentRowCacheDao {
 
 	public boolean isEnabled = false;
 
-	public Map<String, CurrentRowCacheStatus> latestCurrentVersionNumbers = Maps.newHashMap();
-	public Map<String, Map<Long, Long>> latestVersionNumbers = Maps2.createSupplierHashMap(new Supplier<Map<Long, Long>>() {
+	public Map<Long, CurrentRowCacheStatus> latestCurrentVersionNumbers = Maps.newHashMap();
+	public Map<Long, Map<Long, Long>> latestVersionNumbers = Maps2.createSupplierHashMap(new Supplier<Map<Long, Long>>() {
 		@Override
 		public Map<Long, Long> get() {
 			return Maps.newHashMap();
@@ -32,7 +32,7 @@ public class CurrentRowCacheDaoStub implements CurrentRowCacheDao {
 	}
 
 	@Override
-	public CurrentRowCacheStatus getLatestCurrentVersionNumber(String tableId) {
+	public CurrentRowCacheStatus getLatestCurrentVersionNumber(Long tableId) {
 		CurrentRowCacheStatus status = latestCurrentVersionNumbers.get(tableId);
 		if (status == null) {
 			status = new CurrentRowCacheStatus(tableId, null, null);
@@ -54,45 +54,50 @@ public class CurrentRowCacheDaoStub implements CurrentRowCacheDao {
 	}
 
 	@Override
-	public void putCurrentVersion(String tableId, Long rowId, Long versionNumber) {
+	public void putCurrentVersion(Long tableId, Long rowId, Long versionNumber) {
 		latestVersionNumbers.get(tableId).put(rowId, versionNumber);
 	}
 
 	@Override
-	public void putCurrentVersions(String tableId, Map<Long, Long> rowsAndVersions) {
+	public void putCurrentVersions(Long tableId, Map<Long, Long> rowsAndVersions) {
 		latestVersionNumbers.get(tableId).putAll(rowsAndVersions);
 	}
 
 	@Override
-	public Long getCurrentVersion(String tableId, Long rowId) {
+	public Long getCurrentVersion(Long tableId, Long rowId) {
 		return latestVersionNumbers.get(tableId).get(rowId);
 	}
 
 	@Override
-	public Map<Long, Long> getCurrentVersions(String tableId, Iterable<Long> rowIds) {
+	public Map<Long, Long> getCurrentVersions(Long tableId, Iterable<Long> rowIds) {
 		final Set<Long> rowIdSet = Sets.newHashSet(rowIds);
-		return Maps.filterKeys(latestVersionNumbers.get(tableId), new Predicate<Long>() {
+		return Maps.newHashMap(Maps.filterKeys(latestVersionNumbers.get(tableId), new Predicate<Long>() {
 			@Override
 			public boolean apply(Long input) {
 				return rowIdSet.contains(input);
 			}
-		});
+		}));
 	}
 
 	@Override
-	public void deleteCurrentVersion(String tableId, Long rowId) {
+	public Map<Long, Long> getCurrentVersions(Long tableId) {
+		return latestVersionNumbers.get(tableId);
+	}
+
+	@Override
+	public void deleteCurrentVersion(Long tableId, Long rowId) {
 		latestVersionNumbers.get(tableId).remove(rowId);
 	}
 
 	@Override
-	public void deleteCurrentVersions(String tableId, Iterable<Long> rowIds) {
+	public void deleteCurrentVersions(Long tableId, Iterable<Long> rowIds) {
 		for (Long rowId : rowIds) {
 			latestVersionNumbers.get(tableId).remove(rowId);
 		}
 	}
 
 	@Override
-	public void deleteCurrentTable(String tableId) {
+	public void deleteCurrentTable(Long tableId) {
 		latestVersionNumbers.remove(tableId);
 	}
 

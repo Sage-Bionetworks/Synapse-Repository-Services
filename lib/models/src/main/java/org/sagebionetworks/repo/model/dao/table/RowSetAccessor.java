@@ -18,5 +18,5 @@ public abstract class RowSetAccessor {
 		return getRowIdToRowMap().keySet();
 	}
 
-	protected abstract Map<Long, RowAccessor> getRowIdToRowMap();
+	public abstract Map<Long, RowAccessor> getRowIdToRowMap();
 }

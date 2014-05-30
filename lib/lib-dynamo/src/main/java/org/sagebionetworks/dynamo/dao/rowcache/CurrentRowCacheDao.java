@@ -9,23 +9,25 @@ import com.amazonaws.services.dynamodb.model.ConditionalCheckFailedException;
 public interface CurrentRowCacheDao {
 	boolean isEnabled();
 
-	CurrentRowCacheStatus getLatestCurrentVersionNumber(String tableId);
+	CurrentRowCacheStatus getLatestCurrentVersionNumber(Long tableId);
 
 	void setLatestCurrentVersionNumber(CurrentRowCacheStatus oldStatus, Long newLastCurrentVersion) throws ConditionalCheckFailedException;
 
-	void putCurrentVersion(String tableId, Long rowId, Long versionNumber);
+	void putCurrentVersion(Long tableId, Long rowId, Long versionNumber);
 
-	void putCurrentVersions(String tableId, Map<Long, Long> rowsAndVersions);
+	void putCurrentVersions(Long tableId, Map<Long, Long> rowsAndVersions);
 
-	Long getCurrentVersion(String tableId, Long rowId);
+	Long getCurrentVersion(Long tableId, Long rowId);
 
-	Map<Long, Long> getCurrentVersions(String tableId, Iterable<Long> rowIds);
+	Map<Long, Long> getCurrentVersions(Long tableId, Iterable<Long> rowIds);
 
-	void deleteCurrentVersion(String tableId, Long rowId);
+	Map<Long, Long> getCurrentVersions(Long tableId);
 
-	void deleteCurrentVersions(String tableId, Iterable<Long> rowIds);
+	void deleteCurrentVersion(Long tableId, Long rowId);
 
-	void deleteCurrentTable(String tableId);
+	void deleteCurrentVersions(Long tableId, Iterable<Long> rowIds);
+
+	void deleteCurrentTable(Long tableId);
 
 	void truncateAllData();
 }
