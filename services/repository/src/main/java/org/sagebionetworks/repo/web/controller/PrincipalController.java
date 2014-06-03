@@ -74,7 +74,17 @@ public class PrincipalController extends BaseController {
 		return serviceProvider.getPrincipalService().checkAlias(check);
 	}
 	
-	
+	/**
+	 * This service starts the process of creating a new account by sending a 'validation email'
+	 * message to the provided email address.  The email contains a link back to the application
+	 * calling the service which the user follows to complete the account creation process
+	 * @param user the first name, last name and email address for the user
+	 * @param client Synapse or Bridge
+	 * @param portalEndpoint the beginning of the URL included in the email verification message.
+	 * When concatenated with a list of ampersand (&) separated request parameters, must become
+	 * a well formed URL.  The concatenated string must be included with 
+	 * the <a href="${POST.account}">POST /account</a> request.
+	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = { UrlHelpers.ACCOUNT_EMAIL_VALIDATION }, method = RequestMethod.POST)
 	public void newAccountEmailValidation(
@@ -86,6 +96,18 @@ public class PrincipalController extends BaseController {
 		serviceProvider.getPrincipalService().newAccountEmailValidation(user, portalEndpoint, domain);
 	}
 	
+	/**
+	 * This service completes the email validation process for setting up a new account. 
+	 * The client must provide the validation token which was sent by email.  The request
+	 * will be rejected if the validation token is missing or invalid or if the requested
+	 * user name is not available.  After successful account creation the user is logged in
+	 * an a session token returned to the client.
+	 * @param accountSetupInfo user's first name, last name, requested user name, 
+	 * password, and validation token
+	 * @param client Synapse or Bridge
+	 * @return a session token, allowing the client to begin making authenticated requests
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = { UrlHelpers.ACCOUNT }, method = RequestMethod.POST)
 	@ResponseBody
@@ -97,6 +119,23 @@ public class PrincipalController extends BaseController {
 		return serviceProvider.getPrincipalService().createNewAccount(accountSetupInfo, domain);
 	}
 	
+	/**
+	 * This service starts the process of adding a new email address to an existing 
+	 * account by sending a 'validation email' message to the provided email address.  
+	 * The email contains a link back to the application calling the service which 
+	 * the user follows to complete the process
+	 * 
+	 * @param id the ID of the user account to which the email address is to be added.
+	 * Must match the ID of the user making the request.
+	 * @param userId
+	 * @param email the email address to be added to the account
+	 * @param client Synapse or Bridge
+	 * @param portalEndpoint the beginning of the URL included in the email verification message.
+	 * When concatenated with a list of ampersand (&) separated request parameters, must become
+	 * a well formed URL.  The concatenated string must be included with 
+	 * the <a href="${POST.email}">POST /email</a> request.
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = { UrlHelpers.ACCOUNT_ID_EMAIL_VALIDATION }, method = RequestMethod.POST)
 	public void additionalEmailValidation(
@@ -111,6 +150,19 @@ public class PrincipalController extends BaseController {
 		serviceProvider.getPrincipalService().additionalEmailValidation(userId, email, portalEndpoint, domain);
 	}
 	
+	/**
+	 * This service completes the email validation process for adding a new email address to an existing account. 
+	 * The client must provide the validation token which was sent by email.  The request
+	 * will be rejected if the validation token is missing or invalid, if the email
+	 * address is already used or if the user making the request is not the one who initiated
+	 * the email validation process.
+	 * 
+	 * @param userId
+	 * @param setAsNotificationEmail if true then the newly added email address becomes the address
+	 * used by the system for sending messages to the user.
+	 * @param addEmailInfo the validation token sent by email
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = { UrlHelpers.EMAIL }, method = RequestMethod.POST)
 	public void addEmail(
@@ -122,11 +174,20 @@ public class PrincipalController extends BaseController {
 		serviceProvider.getPrincipalService().addEmail(userId, addEmailInfo, setAsNotificationEmail);
 	}
 	
+	/**
+	 * This service removes an email address from an account.  The request is rejected
+	 * if the email address is not currently owned by the user or if the email is
+	 * the <i>notification address</i> for the user.
+	 * 
+	 * @param userId
+	 * @param email the email address to remove
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.EMAIL }, method = RequestMethod.DELETE)
 	public void removeEmail(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestParam(value = AuthorizationConstants.EMAIL_PARAM) Boolean email
+			@RequestParam(value = AuthorizationConstants.EMAIL_PARAM) String email
 			) throws NotFoundException {
 		serviceProvider.getPrincipalService().removeEmail(userId, email);
 	}
