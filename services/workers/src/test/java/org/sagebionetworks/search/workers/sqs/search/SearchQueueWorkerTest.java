@@ -23,7 +23,6 @@ import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.search.SearchDao;
-import org.sagebionetworks.utils.HttpClientHelperException;
 
 import com.amazonaws.services.sqs.model.Message;
 
@@ -42,6 +41,7 @@ public class SearchQueueWorkerTest {
 		mockWikiPageDao = Mockito.mock(V2WikiPageDao.class);
 		messageList = new LinkedList<Message>();
 		mockWorkerLogger = Mockito.mock(WorkerLogger.class);
+		when(mockSearchDao.isSearchEnabled()).thenReturn(true);
 	}
 	
 	@Test

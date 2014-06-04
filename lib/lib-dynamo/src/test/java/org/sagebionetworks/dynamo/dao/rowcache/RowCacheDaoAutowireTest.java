@@ -32,7 +32,7 @@ public class RowCacheDaoAutowireTest {
 	@Autowired
 	private DynamoAdminDao adminDao;
 
-	private String tableName = "t" + new Random().nextLong();
+	private Long tableId = new Random().nextLong();
 
 	@Before
 	public void setup() {
@@ -45,8 +45,8 @@ public class RowCacheDaoAutowireTest {
 	@Test
 	public void testRoundTrip() throws Exception {
 		Row row = TableModelTestUtils.createRow(12L, 1L, "a", "b");
-		rowCacheDao.putRow(tableName, row);
-		Row result = rowCacheDao.getRow(tableName, 12L, 1L);
+		rowCacheDao.putRow(tableId, row);
+		Row result = rowCacheDao.getRow(tableId, 12L, 1L);
 		assertEquals(row, result);
 	}
 
@@ -56,15 +56,15 @@ public class RowCacheDaoAutowireTest {
 		Row row2a = TableModelTestUtils.createRow(12L, 1L, "a", "b");
 		Row row2 = TableModelTestUtils.createRow(12L, 2L, "c", "d");
 		Row row3 = TableModelTestUtils.createRow(13L, 2L, "e", "f");
-		rowCacheDao.putRow(tableName, row1);
-		rowCacheDao.putRow(tableName, row2a);
-		rowCacheDao.putRows(tableName, Lists.newArrayList(row2, row3));
+		rowCacheDao.putRow(tableId, row1);
+		rowCacheDao.putRow(tableId, row2a);
+		rowCacheDao.putRows(tableId, Lists.newArrayList(row2, row3));
 
 		Map<Long, Long> rowsToGet = Maps.newHashMap();
 		rowsToGet.put(11L, 1L);
 		rowsToGet.put(12L, 2L);
 		rowsToGet.put(13L, 2L);
-		Map<Long, Row> result = rowCacheDao.getRows(tableName, rowsToGet);
+		Map<Long, Row> result = rowCacheDao.getRows(tableId, rowsToGet);
 		assertEquals(3, result.size());
 		assertEquals(row1, result.get(11L));
 		assertEquals(row2, result.get(12L));
@@ -73,19 +73,19 @@ public class RowCacheDaoAutowireTest {
 
 	@Test
 	public void testGetNonExistentRow() throws Exception {
-		Row row = rowCacheDao.getRow(tableName, 16L, 18L);
+		Row row = rowCacheDao.getRow(tableId, 16L, 18L);
 		assertNull(row);
 	}
 
 	@Test
 	public void testGetNonExistentRows() throws Exception {
 		Row row1 = TableModelTestUtils.createRow(12L, 1L, "a", "b");
-		rowCacheDao.putRow(tableName, row1);
+		rowCacheDao.putRow(tableId, row1);
 		Map<Long, Long> rowsToGet = Maps.newHashMap();
 		rowsToGet.put(11L, 1L);
 		rowsToGet.put(12L, 1L);
 		rowsToGet.put(13L, 2L);
-		Map<Long, Row> result = rowCacheDao.getRows(tableName, rowsToGet);
+		Map<Long, Row> result = rowCacheDao.getRows(tableId, rowsToGet);
 		assertEquals(1, result.size());
 		assertEquals(row1, Iterables.getOnlyElement(result.entrySet()).getValue());
 	}
@@ -93,10 +93,10 @@ public class RowCacheDaoAutowireTest {
 	@Test
 	public void testUpdateRow() throws Exception {
 		Row row = TableModelTestUtils.createRow(12L, 1L, "a", "b");
-		rowCacheDao.putRow(tableName, row);
+		rowCacheDao.putRow(tableId, row);
 		row.setValues(Lists.newArrayList("d", "b"));
-		rowCacheDao.putRow(tableName, row);
-		Row result = rowCacheDao.getRow(tableName, 12L, 1L);
+		rowCacheDao.putRow(tableId, row);
+		Row result = rowCacheDao.getRow(tableId, 12L, 1L);
 		assertEquals(row, result);
 	}
 
@@ -110,7 +110,7 @@ public class RowCacheDaoAutowireTest {
 		Row row5 = TableModelTestUtils.createRow(15L, 5L, null, null);
 		Row row6 = TableModelTestUtils.createRow(16L, 6L, "b", null);
 		ArrayList<Row> rows = Lists.newArrayList(row1, row2, row3, row4, row5, row6);
-		rowCacheDao.putRows(tableName, rows);
+		rowCacheDao.putRows(tableId, rows);
 
 		Map<Long, Long> rowsToGet = Maps.newHashMap();
 		rowsToGet.put(11L, 1L);
@@ -119,7 +119,7 @@ public class RowCacheDaoAutowireTest {
 		rowsToGet.put(14L, 4L);
 		rowsToGet.put(15L, 5L);
 		rowsToGet.put(16L, 6L);
-		Map<Long, Row> result = rowCacheDao.getRows(tableName, rowsToGet);
+		Map<Long, Row> result = rowCacheDao.getRows(tableId, rowsToGet);
 		assertEquals(6, result.size());
 		for (Row row : rows) {
 			assertEquals(row, result.get(row.getRowId()));

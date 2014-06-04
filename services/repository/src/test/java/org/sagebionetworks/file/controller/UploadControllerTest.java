@@ -2,6 +2,7 @@ package org.sagebionetworks.file.controller;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.net.URL;
 import java.util.Date;
@@ -11,7 +12,6 @@ import java.util.List;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
@@ -20,8 +20,6 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.controller.AbstractAutowiredControllerTestBase;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 public class UploadControllerTest extends AbstractAutowiredControllerTestBase {
 	
@@ -82,13 +80,12 @@ public class UploadControllerTest extends AbstractAutowiredControllerTestBase {
 		URL url = servletTestHelper.getFileHandleUrl(adminUserId, handleOne.getId(), false);
 		assertNotNull(url);
 		String one = url.toString();
+		assertTrue(one.contains(handle.getKey()));
 		// With redirect this time
 		url = servletTestHelper.getFileHandleUrl(adminUserId, handleOne.getId(), true);
 		assertNotNull(url);
-		assertNotNull(url);
 		String two = url.toString();
-		// They should be the same
-		assertEquals(one, two);
+		assertTrue(two.contains(handle.getKey()));
 	}
 	
 	@Test

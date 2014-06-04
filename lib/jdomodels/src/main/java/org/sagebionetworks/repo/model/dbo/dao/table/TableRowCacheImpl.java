@@ -30,7 +30,7 @@ public class TableRowCacheImpl implements TableRowCache {
 	}
 
 	@Override
-	public CurrentRowCacheStatus getLatestCurrentVersionNumber(String tableId) {
+	public CurrentRowCacheStatus getLatestCurrentVersionNumber(Long tableId) {
 		if (!currentRowCacheDao.isEnabled()) {
 			return new CurrentRowCacheStatus(tableId, null, null);
 		}
@@ -51,7 +51,7 @@ public class TableRowCacheImpl implements TableRowCache {
 	}
 
 	@Override
-	public void updateCurrentVersionNumbers(String tableId, Map<Long, Long> rowIdVersionNumbers) {
+	public void updateCurrentVersionNumbers(Long tableId, Map<Long, Long> rowIdVersionNumbers) {
 		if (!currentRowCacheDao.isEnabled()) {
 			throw new IllegalStateException("the current row cache was asked to update versions, but it is disabled");
 		}
@@ -59,7 +59,7 @@ public class TableRowCacheImpl implements TableRowCache {
 	}
 
 	@Override
-	public Map<Long, Long> getCurrentVersionNumbers(String tableId, Iterable<Long> rowIds) {
+	public Map<Long, Long> getCurrentVersionNumbers(Long tableId, Iterable<Long> rowIds) {
 		if (!currentRowCacheDao.isEnabled()) {
 			throw new IllegalStateException("the current row cache was asked for versions, but it is disabled");
 		}
@@ -67,7 +67,23 @@ public class TableRowCacheImpl implements TableRowCache {
 	}
 
 	@Override
-	public Row getRowFromCache(String tableId, Long rowId, Long versionNumber) throws IOException {
+	public Map<Long, Long> getCurrentVersionNumbers(Long tableId) {
+		if (!currentRowCacheDao.isEnabled()) {
+			throw new IllegalStateException("the current row cache was asked for versions, but it is disabled");
+		}
+		return currentRowCacheDao.getCurrentVersions(tableId);
+	}
+
+	@Override
+	public void removeFromCache(Long tableId) {
+		if (!rowCacheDao.isEnabled()) {
+			return;
+		}
+		currentRowCacheDao.deleteCurrentTable(tableId);
+	}
+
+	@Override
+	public Row getRowFromCache(Long tableId, Long rowId, Long versionNumber) throws IOException {
 		if (!rowCacheDao.isEnabled()) {
 			return null;
 		}
@@ -75,7 +91,7 @@ public class TableRowCacheImpl implements TableRowCache {
 	}
 
 	@Override
-	public Map<Long, Row> getRowsFromCache(String tableId, Map<Long, Long> rowIdVersionNumbers) throws IOException {
+	public Map<Long, Row> getRowsFromCache(Long tableId, Map<Long, Long> rowIdVersionNumbers) throws IOException {
 		if (!rowCacheDao.isEnabled()) {
 			return Collections.emptyMap();
 		}
@@ -83,7 +99,7 @@ public class TableRowCacheImpl implements TableRowCache {
 	}
 
 	@Override
-	public Map<Long, Row> getRowsFromCache(String tableId, Long version, Iterable<Long> rowsToGet) throws IOException {
+	public Map<Long, Row> getRowsFromCache(Long tableId, Long version, Iterable<Long> rowsToGet) throws IOException {
 		if (!rowCacheDao.isEnabled()) {
 			return Collections.emptyMap();
 		}
@@ -91,7 +107,7 @@ public class TableRowCacheImpl implements TableRowCache {
 	}
 
 	@Override
-	public void putRowInCache(String tableId, Row row) throws IOException {
+	public void putRowInCache(Long tableId, Row row) throws IOException {
 		if (!rowCacheDao.isEnabled()) {
 			return;
 		}
@@ -99,7 +115,7 @@ public class TableRowCacheImpl implements TableRowCache {
 	}
 
 	@Override
-	public void putRowsInCache(String tableId, Iterable<Row> rows) throws IOException {
+	public void putRowsInCache(Long tableId, Iterable<Row> rows) throws IOException {
 		if (!rowCacheDao.isEnabled()) {
 			return;
 		}

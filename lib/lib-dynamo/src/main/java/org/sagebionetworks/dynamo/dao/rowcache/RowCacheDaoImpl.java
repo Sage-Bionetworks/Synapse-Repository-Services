@@ -39,7 +39,7 @@ public class RowCacheDaoImpl extends DynamoDaoBaseImpl implements RowCacheDao {
 		mapper = new DynamoDBMapper(dynamoClient, DynamoConfig.getDynamoDBMapperConfigFor(DboRowCache.class));
 	}
 
-	private DboRowCache dboCreate(String tableId, Long rowId, Long versionNumber, List<String> value) throws IOException {
+	private DboRowCache dboCreate(Long tableId, Long rowId, Long versionNumber, List<String> value) throws IOException {
 		DboRowCache row = new DboRowCache();
 		row.setHashKey(DboRowCache.createHashKey(tableId));
 		row.setRangeKey(DboRowCache.createRangeKey(rowId, versionNumber));
@@ -67,7 +67,7 @@ public class RowCacheDaoImpl extends DynamoDaoBaseImpl implements RowCacheDao {
 	}
 
 	@Override
-	public Row getRow(String tableId, Long rowId, Long versionNumber) throws IOException {
+	public Row getRow(Long tableId, Long rowId, Long versionNumber) throws IOException {
 		String hashKey = DboRowCache.createHashKey(tableId);
 		String rangeKey = DboRowCache.createRangeKey(rowId, versionNumber);
 		DboRowCache cachedRow = mapper.load(DboRowCache.class, hashKey, rangeKey);
@@ -80,7 +80,7 @@ public class RowCacheDaoImpl extends DynamoDaoBaseImpl implements RowCacheDao {
 	}
 
 	@Override
-	public Map<Long, Row> getRows(final String tableId, Map<Long, Long> rowsToGet) throws IOException {
+	public Map<Long, Row> getRows(final Long tableId, Map<Long, Long> rowsToGet) throws IOException {
 		List<KeyPair> keys = Transform.toList(rowsToGet.entrySet(), new Function<Map.Entry<Long, Long>, KeyPair>() {
 			@Override
 			public KeyPair apply(Map.Entry<Long, Long> ref) {
@@ -92,7 +92,7 @@ public class RowCacheDaoImpl extends DynamoDaoBaseImpl implements RowCacheDao {
 	}
 
 	@Override
-	public Map<Long, Row> getRows(final String tableId, final Long version, Iterable<Long> rowsToGet) throws IOException {
+	public Map<Long, Row> getRows(final Long tableId, final Long version, Iterable<Long> rowsToGet) throws IOException {
 		List<KeyPair> keys = Transform.toList(rowsToGet, new Function<Long, KeyPair>() {
 			@Override
 			public KeyPair apply(Long rowId) {
@@ -127,13 +127,13 @@ public class RowCacheDaoImpl extends DynamoDaoBaseImpl implements RowCacheDao {
 	}
 
 	@Override
-	public void putRow(String tableId, Row row) throws IOException {
+	public void putRow(Long tableId, Row row) throws IOException {
 		DboRowCache rowToCache = dboCreate(tableId, row.getRowId(), row.getVersionNumber(), row.getValues());
 		mapper.save(rowToCache);
 	}
 
 	@Override
-	public void putRows(final String tableId, Iterable<Row> rowsToPut) throws IOException {
+	public void putRows(final Long tableId, Iterable<Row> rowsToPut) throws IOException {
 		List<DboRowCache> toUpdate;
 		try {
 			toUpdate = Transform.toList(rowsToPut, new Function<Row, DboRowCache>() {

@@ -5,8 +5,10 @@ import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.manager.message.RepositoryMessagePublisher;
+import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -43,6 +45,7 @@ public class ChangeSentMessageSynchWorker implements Runnable {
 	DBOChangeDAO changeDao;
 	@Autowired
 	RepositoryMessagePublisher repositoryMessagePublisher;
+	@Autowired StackStatusDao stackStatusDao;
 	// Start with a default batch size of 10K
 	private int batchSize = 10 * 1000;
 
@@ -59,6 +62,14 @@ public class ChangeSentMessageSynchWorker implements Runnable {
 
 	@Override
 	public void run() {
+		// This worker does not run during migration. This avoids any intermediate state
+		// That could resulting in missed row.s
+		if(!StatusEnum.READ_WRITE.equals(stackStatusDao.getCurrentStatus())){
+			if(log.isTraceEnabled()){
+				log.trace("Skipping synchronization since the stack is not in read-write mode");
+			}
+			return;
+		}
 		long maxChangeNumber = changeDao.getCurrentChangeNumber();
 		long minChangeNumber = changeDao.getMinimumChangeNumber();
 		long lastSychedChangeNumberStart = changeDao
@@ -70,24 +81,39 @@ public class ChangeSentMessageSynchWorker implements Runnable {
 		long synchStart = changeDao
 				.getMaxSentChangeNumber(lastSychedChangeNumberStart);
 		synchStart = Math.max(synchStart, minChangeNumber);
-		// List any unsent messages from this start
-		long upperBounds = Math.min(synchStart + batchSize, maxChangeNumber);
-		List<ChangeMessage> toBeSent = changeDao.listUnsentMessages(synchStart,
-				upperBounds);
-		// Send
-		for (ChangeMessage toSend : toBeSent) {
-			repositoryMessagePublisher.publishToTopic(toSend);
+		long upperBounds = synchStart+batchSize;
+		int rowsUpdated = 0;
+		if(log.isTraceEnabled()){
+			log.trace("Starting with synchStart: " + synchStart+" upperBounds: "+upperBounds);
+		}
+		// Keep going until we either reach the end or process a single batch size.
+		while(synchStart < maxChangeNumber && rowsUpdated < batchSize){
+			List<ChangeMessage> toBeSent = changeDao.listUnsentMessages(synchStart,
+					upperBounds);
+			if(log.isTraceEnabled()){
+				log.trace("\t loop synchStart: " + synchStart+" upperBounds: "+upperBounds+" returned: "+toBeSent.size()+" rows");
+			}
+			// Send
+			for (ChangeMessage toSend : toBeSent) {
+				repositoryMessagePublisher.publishToTopic(toSend);
+				rowsUpdated++;
+			}
+			synchStart = upperBounds+1;
+			upperBounds = synchStart+batchSize;
 		}
 		// the new Last synched change number is the max sent change number
 		// that exists that is less than or equal to the upper bounds for this
 		// round.
-		long newLastSynchedChangeNumber = changeDao
-				.getMaxSentChangeNumber(upperBounds);
+		long newLastSynchedChangeNumber = changeDao.getMaxSentChangeNumber(upperBounds);
 
 		// Set the new high-water-mark if it has changed
 		if (newLastSynchedChangeNumber > lastSychedChangeNumberStart) {
 			changeDao.setLastSynchedChangeNunber(lastSychedChangeNumberStart,
 					newLastSynchedChangeNumber);
+			if(log.isTraceEnabled()){
+				log.trace("newLastSynchedChangeNumber: "
+						+ newLastSynchedChangeNumber);
+			}
 		}
 		if (log.isTraceEnabled()) {
 			log.trace("maxChangeNumber: " + maxChangeNumber);
@@ -96,9 +122,7 @@ public class ChangeSentMessageSynchWorker implements Runnable {
 					+ lastSychedChangeNumberStart);
 			log.trace("synchStart: " + synchStart);
 			log.trace("upperBounds: " + upperBounds);
-			log.trace("toBeSent size: " + toBeSent.size());
-			log.trace("newLastSynchedChangeNumber: "
-					+ newLastSynchedChangeNumber);
+			log.trace("rowsUpdated: " + rowsUpdated);
 			log.trace("Run count: " + runCount++);
 		}
 	}

@@ -10,11 +10,15 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.dynamo.dao.rowcache.CurrentRowCacheDao;
+import org.sagebionetworks.dynamo.dao.rowcache.CurrentRowCacheDaoStub;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.dao.table.RowAccessor;
@@ -28,6 +32,7 @@ import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -40,6 +45,9 @@ import com.google.common.collect.Sets;
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class TableRowTruthDAOImplTest {
 	
+	@Autowired
+	CurrentRowCacheDao currentRowCacheDao;
+
 	@Autowired
 	private TableRowTruthDAO tableRowTruthDao;
 		
@@ -349,7 +357,6 @@ public class TableRowTruthDAOImplTest {
 		assertNotNull(refSet);
 		// Now get the second version and validate it is what we expect
 		RowSet updated = tableRowTruthDao.getRowSet(tableId, 1l);
-		System.out.println(updated);
 		assertNotNull(updated);
 		assertNotNull(updated.getRows());
 		assertNotNull(updated.getEtag());
@@ -383,6 +390,18 @@ public class TableRowTruthDAOImplTest {
 		TableModelTestUtils.updateRow(models, toUpdate.getRows().get(0), 15);
 		TableModelTestUtils.updateRow(models, toUpdate.getRows().get(1), 18);
 
+		final AtomicInteger count = new AtomicInteger(0);// abusing atomic integer as a reference to an int
+		tableRowTruthDao.updateLatestVersionCache(tableId, new ProgressCallback<Long>() {
+			@Override
+			public void progressMade(Long message) {
+				assertEquals(0L, message.longValue());
+				count.incrementAndGet();
+			}
+		});
+		if (((CurrentRowCacheDaoStub) currentRowCacheDao).isEnabled) {
+			assertEquals(1, count.get());
+		}
+
 		// create some new rows
 		rows = TableModelTestUtils.createRows(models, 2);
 		// Add them to the update
@@ -392,6 +411,17 @@ public class TableRowTruthDAOImplTest {
 		assertNotNull(refSet);
 		for (RowReference ref : refSet.getRows()) {
 			rowVersions.put(ref.getRowId(), ref.getVersionNumber());
+		}
+
+		tableRowTruthDao.updateLatestVersionCache(tableId, new ProgressCallback<Long>() {
+			@Override
+			public void progressMade(Long message) {
+				assertEquals(1L, message.longValue());
+				count.incrementAndGet();
+			}
+		});
+		if (((CurrentRowCacheDaoStub) currentRowCacheDao).isEnabled) {
+			assertEquals(2, count.get());
 		}
 
 		toUpdate = tableRowTruthDao.getRowSet(tableId, 1l);
@@ -405,8 +435,34 @@ public class TableRowTruthDAOImplTest {
 			rowVersions.put(ref.getRowId(), ref.getVersionNumber());
 		}
 
+		// call all latest versions before cache is up to date
+		Map<Long, Long> latestVersionsMap = tableRowTruthDao.getLatestVersions(tableId, 0);
+		assertEquals(rowVersions, latestVersionsMap);
+
 		assertEquals(7, rowVersions.size());
-		RowSetAccessor latestVersions = tableRowTruthDao.getLatestVersions(tableId, rowVersions.keySet(), toUpdate.getEtag());
+		RowSetAccessor latestVersions = tableRowTruthDao.getLatestVersionsWithRowData(tableId, rowVersions.keySet(), 0L);
+		assertEquals(7, latestVersions.getRows().size());
+		for (RowAccessor row : latestVersions.getRows()) {
+			assertEquals(row.getRow().getVersionNumber(), rowVersions.get(row.getRow().getRowId()));
+		}
+
+		tableRowTruthDao.updateLatestVersionCache(tableId, new ProgressCallback<Long>() {
+			@Override
+			public void progressMade(Long message) {
+				assertEquals(2L, message.longValue());
+				count.incrementAndGet();
+			}
+		});
+		if (((CurrentRowCacheDaoStub) currentRowCacheDao).isEnabled) {
+			assertEquals(3, count.get());
+		}
+
+		// call all latest versions after cache is up to date
+		latestVersionsMap = tableRowTruthDao.getLatestVersions(tableId, 0);
+		assertEquals(rowVersions, latestVersionsMap);
+
+		assertEquals(7, rowVersions.size());
+		latestVersions = tableRowTruthDao.getLatestVersionsWithRowData(tableId, rowVersions.keySet(), 0L);
 		assertEquals(7, latestVersions.getRows().size());
 		for (RowAccessor row : latestVersions.getRows()) {
 			assertEquals(row.getRow().getVersionNumber(), rowVersions.get(row.getRow().getRowId()));
@@ -466,6 +522,7 @@ public class TableRowTruthDAOImplTest {
 		// Append this change set
 		RowReferenceSet refSet = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, models, set, false);
 		assertNotNull(refSet);
+		tableRowTruthDao.updateLatestVersionCache(tableId, null);
 		// Now fetch the rows for an update
 		RowSet toUpdateOne = tableRowTruthDao.getRowSet(tableId, 0l);
 		RowSet toUpdateTwo = tableRowTruthDao.getRowSet(tableId, 0l);
@@ -484,10 +541,13 @@ public class TableRowTruthDAOImplTest {
 		toUpdateTwo.getRows().add(toUpdate);
 		tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, models, toUpdateTwo, false);
 		// update row one again
-		toUpdate = toUpdateThree.getRows().get(0);
-		TableModelTestUtils.updateRow(models, toUpdate, 102);
+		Row toUpdate1 = toUpdateThree.getRows().get(0);
+		TableModelTestUtils.updateRow(models, toUpdate1, 102);
+		Row toUpdate2 = toUpdateThree.getRows().get(2);
+		TableModelTestUtils.updateRow(models, toUpdate2, 103);
 		toUpdateThree.getRows().clear();
-		toUpdateThree.getRows().add(toUpdate);
+		toUpdateThree.getRows().add(toUpdate1);
+		toUpdateThree.getRows().add(toUpdate2);
 		try{
 			// This should trigger a row level conflict with the first update.
 			tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, models, toUpdateThree, false);
@@ -542,7 +602,7 @@ public class TableRowTruthDAOImplTest {
 		toUpdate3.setRows(Lists.newArrayList(deletion));
 		tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, models, toUpdate3, true);
 
-		RowSetAccessor rowSetLatest = tableRowTruthDao.getLatestVersions(tableId, Sets.newHashSet(0L, 1L, 2L, 3L), toUpdate3.getEtag());
+		RowSetAccessor rowSetLatest = tableRowTruthDao.getLatestVersionsWithRowData(tableId, Sets.newHashSet(0L, 1L, 2L, 3L), 0L);
 		RowSet rowSetBefore = tableRowTruthDao.getRowSet(tableId, 0L);
 		RowSet rowSetAfter = tableRowTruthDao.getRowSet(tableId, 1L);
 		RowSet rowSetAfter2 = tableRowTruthDao.getRowSet(tableId, 2L);

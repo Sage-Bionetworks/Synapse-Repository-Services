@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.table;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -22,6 +23,7 @@ import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.SqlQuery;
+import org.sagebionetworks.util.ProgressCallback;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 
 /**
@@ -113,6 +115,16 @@ public interface TableRowManager {
 	 */
 	public RowSet getRowSet(String tableId, Long rowVersion)
 			throws IOException, NotFoundException;
+
+	/**
+	 * Get all the rows and their current versions
+	 * 
+	 * @param tableId
+	 * @return
+	 * @throws IOException
+	 * @throws NotFoundException
+	 */
+	public Map<Long, Long> getCurrentRowVersions(String tableId) throws IOException, NotFoundException;
 
 	/**
 	 * Get the values for a specific row reference and column
@@ -332,4 +344,10 @@ public interface TableRowManager {
 	AsynchDownloadResponseBody runConsistentQueryAsStream(String sql,
 			CSVWriterStream writer, boolean includeRowIdAndVersion) throws TableUnavilableException;
 
+	/**
+	 * Update the current version cache if enabled
+	 */
+	void updateLatestVersionCache(String tableId, ProgressCallback<Long> progressCallback) throws IOException;
+
+	void removeLatestVersionCache(String tableId) throws IOException;
 }
