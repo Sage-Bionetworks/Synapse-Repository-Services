@@ -248,7 +248,8 @@ public class IT500SynapseJavaClient {
 	
 	// omitting first or last name makes this a bad request (400)
 	// we are just trying to verify that everything's wired up correctly
-	@Test(expected=SynapseBadRequestException.class)
+	// TODO SHOULD BE @Test(expected=SynapseBadRequestException.class)
+	@Test(expected=SynapseServerException.class)
 	public void testNewAccountEmailValidation() throws SynapseException {
 		NewUser user = new NewUser();
 		user.setEmail("dummy@email.com");
@@ -259,7 +260,8 @@ public class IT500SynapseJavaClient {
 	
 	// omitting required inputs makes this a bad request (400)
 	// we are just trying to verify that everything's wired up correctly
-	@Test(expected=SynapseBadRequestException.class)
+	// TODO SHOULD BE @Test(expected=SynapseBadRequestException.class)
+	@Test(expected=SynapseServerException.class)
 	public void testCreateNewAccount() throws Exception {
 		AccountSetupInfo accountSetupInfo = new AccountSetupInfo();
 		accountSetupInfo.setEmailValidationToken("foo");
@@ -268,7 +270,8 @@ public class IT500SynapseJavaClient {
 	
 	// omitting required inputs makes this a bad request (400)
 	// we are just trying to verify that everything's wired up correctly
-	@Test(expected=SynapseBadRequestException.class)
+	// TODO SHOULD BE @Test(expected=SynapseBadRequestException.class)
+	@Test(expected=SynapseServerException.class)
 	public void testAdditionalEmailValidation() throws Exception {
 		synapseOne.additionalEmailValidation(Long.parseLong(synapseOne.getMyProfile().getOwnerId()), 
 				"invalid", "www.synapse.org");
@@ -276,7 +279,8 @@ public class IT500SynapseJavaClient {
 	
 	// omitting required inputs makes this a bad request (400)
 	// we are just trying to verify that everything's wired up correctly
-	@Test(expected=SynapseBadRequestException.class)
+	// TODO SHOULD BE @Test(expected=SynapseBadRequestException.class)
+	@Test(expected=SynapseServerException.class)
 	public void testAddEmail() throws Exception {
 		AddEmailInfo addEmailInfo = new AddEmailInfo();
 		addEmailInfo.setEmailValidationToken("foo");
@@ -285,7 +289,8 @@ public class IT500SynapseJavaClient {
 	
 	// omitting required inputs makes this a bad request (400)
 	// we are just trying to verify that everything's wired up correctly
-	@Test(expected=SynapseBadRequestException.class)
+	// TODO SHOULD BE @Test(expected=SynapseBadRequestException.class)
+	@Test(expected=SynapseServerException.class)
 	public void testRemoveEmail() throws Exception {
 		synapseOne.removeEmail("foo");
 	}

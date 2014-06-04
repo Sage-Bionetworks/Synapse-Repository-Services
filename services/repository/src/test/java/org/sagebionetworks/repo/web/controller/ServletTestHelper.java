@@ -4,6 +4,7 @@ import static org.junit.Assert.assertNotNull;
 
 import java.io.StringWriter;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -22,6 +23,7 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.BooleanResult;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
@@ -47,9 +49,9 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
+import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
-import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -1593,6 +1595,25 @@ public class ServletTestHelper {
 				.dispatchRequest(dispatchServlet, request, HttpStatus.CREATED);
 		return objectMapper
 				.readValue(response.getContentAsString(), AliasCheckResponse.class);
+	}
+	
+	/**
+	 * initiate account creation
+	 * @param dispatchServlet
+	 * @param newUser
+	 * @throws Exception
+	 */
+	public void newAcccountEmail(HttpServlet dispatchServlet, NewUser newUser, String portalEndpoint) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
+				HTTPMODE.POST, 
+				UrlHelpers.ACCOUNT_EMAIL_VALIDATION
+				+"?"+
+				AuthorizationConstants.PORTAL_ENDPOINT_PARAM+"="+
+						URLEncoder.encode(portalEndpoint)
+				, 
+				null, newUser);
+		ServletTestHelperUtils
+				.dispatchRequest(dispatchServlet, request, HttpStatus.CREATED);
 	}
 
 	public Team createTeam(HttpServlet dispatchServlet, Long userId,
