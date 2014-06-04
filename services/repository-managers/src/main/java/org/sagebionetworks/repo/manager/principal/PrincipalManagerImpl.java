@@ -42,7 +42,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.amazonaws.services.simpleemail.AmazonSimpleEmailService;
 import com.amazonaws.services.simpleemail.model.SendEmailRequest;
 
 /**
@@ -65,7 +64,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 	private AuthenticationManager authManager;
 	
 	@Autowired
-	private AmazonSimpleEmailService amazonSESClient;
+	private SynapseEmailService sesClient;
 	
 	@Autowired
 	private UserProfileDAO userProfileDAO;
@@ -244,7 +243,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 			fieldValues.put(EmailUtils.TEMPLATE_KEY_WEB_LINK, urlString);
 			String messageBody = EmailUtils.readMailTemplate("message/CreateAccountTemplate.txt", fieldValues);
 			SendEmailRequest sendEmailRequest = EmailUtils.createEmailRequest(user.getEmail(), subject, messageBody, false, null);
-			amazonSESClient.sendEmail(sendEmailRequest);
+			sesClient.sendEmail(sendEmailRequest);
 		} else {
 			throw new IllegalArgumentException("Unexpected Domain: "+domain);
 		}
@@ -330,7 +329,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		try {
 			tokenTimestamp = df.parse(tokenTimestampString);
 		} catch (ParseException e) {
-			throw new RuntimeException(e);
+			throw new IllegalArgumentException(tokenTimestampString+" is not a properly formatted time stamp", e);
 		}
 		if (now.getTime()-tokenTimestamp.getTime()>EMAIL_VALIDATION_TIME_LIMIT_MILLIS) 
 			throw new IllegalArgumentException("Email validation link is out of date.");
@@ -380,7 +379,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 			fieldValues.put(EmailUtils.TEMPLATE_KEY_USERNAME, userProfile.getUserName());
 			String messageBody = EmailUtils.readMailTemplate("message/AdditionalEmailTemplate.txt", fieldValues);
 			SendEmailRequest sendEmailRequest = EmailUtils.createEmailRequest(email.getEmail(), subject, messageBody, false, null);
-			amazonSESClient.sendEmail(sendEmailRequest);
+			sesClient.sendEmail(sendEmailRequest);
 		} else {
 			throw new IllegalArgumentException("Unexpected Domain: "+domain);
 		}
@@ -431,7 +430,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 	private PrincipalAlias findAliasForEmail(Long principalId, String email) throws NotFoundException {
 		List<PrincipalAlias> aliases = principalAliasDAO.listPrincipalAliases(principalId, AliasType.USER_EMAIL);
 		for (PrincipalAlias principalAlias : aliases) {
-			if (!principalAlias.getAlias().equals(email)) return principalAlias;
+			if (principalAlias.getAlias().equals(email)) return principalAlias;
 		}
 		throw new NotFoundException("Cannot find alias for "+principalId+" matching "+email);
 	}

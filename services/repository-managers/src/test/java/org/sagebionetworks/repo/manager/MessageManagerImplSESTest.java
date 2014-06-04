@@ -32,7 +32,6 @@ import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.Settings;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
-import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -166,8 +165,6 @@ public class MessageManagerImplSESTest {
 		mockRecipientPrincipalAlias = new PrincipalAlias();
 		mockRecipientPrincipalAlias.setType(AliasType.USER_EMAIL);
 
-		List<PrincipalAlias> recipientAliases = Collections.singletonList(mockRecipientPrincipalAlias);
-		
 		UserProfile mockSenderUserProfile = new UserProfile();
 		mockSenderUserProfile.setUserName("foo");
 		when(mockUserProfileDAO.get(eq(mockUserIdString))).thenReturn(mockSenderUserProfile);
@@ -175,15 +172,12 @@ public class MessageManagerImplSESTest {
 		PrincipalAlias senderPrincipalAlias = new PrincipalAlias();
 		senderPrincipalAlias.setType(AliasType.USER_EMAIL);
 		senderPrincipalAlias.setAlias("foo@bar.com");
-		List<PrincipalAlias> senderAliases = Collections.singletonList(senderPrincipalAlias);
 		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(mockUserId))
 		.thenReturn(senderPrincipalAlias.getAlias());
 		
 		// Mocks the username supplied to SES
 		mockUserInfo = new UserInfo(false, mockUserId);
 		when(mockUserManager.getUserInfo(eq(mockUserId))).thenReturn(mockUserInfo);
-		
-
 		
 		S3FileHandle plainTextFileHandle = new S3FileHandle();
 		plainTextFileHandle.setId(FILE_HANDLE_ID_PLAIN_TEXT);

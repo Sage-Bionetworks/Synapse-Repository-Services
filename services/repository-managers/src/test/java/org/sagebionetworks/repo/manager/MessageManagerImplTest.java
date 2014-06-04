@@ -13,7 +13,6 @@ import static org.mockito.Mockito.when;
 
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -44,7 +43,6 @@ import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TooManyRequestsException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
@@ -158,7 +156,6 @@ public class MessageManagerImplTest {
 	@Before
 	public void setUp() throws Exception {
 		aliasesToDelete = new ArrayList<PrincipalAlias>();
-		Collection<UserGroup> allIndividuals = userGroupDAO.getAll(true);
 		
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		cleanup = new ArrayList<String>();
