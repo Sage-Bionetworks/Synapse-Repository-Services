@@ -1596,7 +1596,7 @@ public class ServletTestHelper {
 		return objectMapper
 				.readValue(response.getContentAsString(), AliasCheckResponse.class);
 	}
-	
+
 	public Team createTeam(HttpServlet dispatchServlet, Long userId,
 			Team team) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(

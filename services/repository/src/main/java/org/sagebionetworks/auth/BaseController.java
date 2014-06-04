@@ -22,25 +22,6 @@ public class BaseController {
 			.getName());
 
 	/**
-	 * This is an application exception thrown when for example bad parameter
-	 * values were passed
-	 * 
-	 * @param ex
-	 *            the exception to be handled
-	 * @param request
-	 *            the client request
-	 * @return an ErrorResponse object containing the exception reason or some
-	 *         other human-readable response
-	 */
-	@ExceptionHandler(IllegalArgumentException.class)
-	@ResponseStatus(HttpStatus.BAD_REQUEST)
-	public @ResponseBody
-	ErrorResponse handleIllegalArgumentException(IllegalArgumentException ex,
-			HttpServletRequest request) {
-		return handleException(ex, request, false);
-	}
-
-	/**
 	 * This exception is thrown when an entity with a given name already exists.
 	 */
 	@ExceptionHandler(NameConflictException.class)

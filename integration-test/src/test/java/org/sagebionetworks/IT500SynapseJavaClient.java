@@ -257,7 +257,7 @@ public class IT500SynapseJavaClient {
 		synapseOne.newAccountEmailValidation(user, "www.synapse.org");
 	}
 	
-	// omitting required inputs makes this a bad request (400)
+	// using a bogus validation token makes this a bad request (400)
 	// we are just trying to verify that everything's wired up correctly
 	@Test(expected=SynapseBadRequestException.class)
 	public void testCreateNewAccount() throws Exception {
@@ -266,7 +266,7 @@ public class IT500SynapseJavaClient {
 		synapseOne.createNewAccount(accountSetupInfo);
 	}
 	
-	// omitting required inputs makes this a bad request (400)
+	// using a bogus email makes this a bad request (400)
 	// we are just trying to verify that everything's wired up correctly
 	@Test(expected=SynapseBadRequestException.class)
 	public void testAdditionalEmailValidation() throws Exception {
@@ -274,7 +274,7 @@ public class IT500SynapseJavaClient {
 				"invalid", "www.synapse.org");
 	}
 	
-	// omitting required inputs makes this a bad request (400)
+	// using a bogus validation token makes this a bad request (400)
 	// we are just trying to verify that everything's wired up correctly
 	@Test(expected=SynapseBadRequestException.class)
 	public void testAddEmail() throws Exception {
@@ -283,7 +283,7 @@ public class IT500SynapseJavaClient {
 		synapseOne.addEmail(addEmailInfo, false);
 	}
 	
-	// omitting required inputs makes this a bad request (400)
+	// using a bogus email makes this a Not Found (404)
 	// we are just trying to verify that everything's wired up correctly
 	@Test(expected=SynapseNotFoundException.class)
 	public void testRemoveEmail() throws Exception {
