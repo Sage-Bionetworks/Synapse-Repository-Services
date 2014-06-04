@@ -1597,25 +1597,6 @@ public class ServletTestHelper {
 				.readValue(response.getContentAsString(), AliasCheckResponse.class);
 	}
 	
-	/**
-	 * initiate account creation
-	 * @param dispatchServlet
-	 * @param newUser
-	 * @throws Exception
-	 */
-	public void newAcccountEmail(HttpServlet dispatchServlet, NewUser newUser, String portalEndpoint) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, 
-				UrlHelpers.ACCOUNT_EMAIL_VALIDATION
-				+"?"+
-				AuthorizationConstants.PORTAL_ENDPOINT_PARAM+"="+
-						URLEncoder.encode(portalEndpoint)
-				, 
-				null, newUser);
-		ServletTestHelperUtils
-				.dispatchRequest(dispatchServlet, request, HttpStatus.CREATED);
-	}
-
 	public Team createTeam(HttpServlet dispatchServlet, Long userId,
 			Team team) throws Exception {
 		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(

@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.web.controller;
 
-import org.sagebionetworks.auth.BaseController;
 import org.sagebionetworks.auth.DomainTypeUtils;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DomainType;

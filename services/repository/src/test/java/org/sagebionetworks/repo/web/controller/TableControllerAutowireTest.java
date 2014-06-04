@@ -44,7 +44,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.common.collect.Lists;
 
-@Ignore // disabled for build to pass
 public class TableControllerAutowireTest extends AbstractAutowiredControllerTestBase {
 
 	@Autowired
