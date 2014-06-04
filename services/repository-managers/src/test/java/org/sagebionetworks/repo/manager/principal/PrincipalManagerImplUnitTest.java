@@ -36,7 +36,6 @@ import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import com.amazonaws.services.simpleemail.AmazonSimpleEmailService;
 import com.amazonaws.services.simpleemail.model.Message;
 import com.amazonaws.services.simpleemail.model.SendEmailRequest;
 
@@ -77,7 +76,7 @@ public class PrincipalManagerImplUnitTest {
 		ReflectionTestUtils.setField(manager, "principalAliasDAO", mockPrincipalAliasDAO);
 		
 		mockSynapseEmailService = Mockito.mock(SynapseEmailService.class);
-		ReflectionTestUtils.setField(manager, "amazonSESClient", mockSynapseEmailService);
+		ReflectionTestUtils.setField(manager, "sesClient", mockSynapseEmailService);
 		
 		mockUserManager = Mockito.mock(UserManager.class);
 		ReflectionTestUtils.setField(manager, "userManager", mockUserManager);
