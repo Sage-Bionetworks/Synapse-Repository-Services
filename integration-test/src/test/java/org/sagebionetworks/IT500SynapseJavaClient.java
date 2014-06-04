@@ -49,10 +49,53 @@ import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseServerException;
-import org.sagebionetworks.repo.model.*;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AccessRequirement;
+import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.BatchResults;
+import org.sagebionetworks.repo.model.Data;
+import org.sagebionetworks.repo.model.DomainType;
+import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityBundle;
+import org.sagebionetworks.repo.model.EntityBundleCreate;
+import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.Folder;
+import org.sagebionetworks.repo.model.LayerTypeNames;
+import org.sagebionetworks.repo.model.Link;
+import org.sagebionetworks.repo.model.LocationData;
+import org.sagebionetworks.repo.model.LocationTypeNames;
+import org.sagebionetworks.repo.model.MembershipInvitation;
+import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
+import org.sagebionetworks.repo.model.MembershipRequest;
+import org.sagebionetworks.repo.model.MembershipRqstSubmission;
+import org.sagebionetworks.repo.model.NodeConstants;
+import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.Reference;
+import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.Study;
+import org.sagebionetworks.repo.model.Team;
+import org.sagebionetworks.repo.model.TeamMember;
+import org.sagebionetworks.repo.model.TeamMembershipStatus;
+import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
+import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
+import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserGroupHeader;
+import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
+import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.UserSessionData;
+import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
+import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
+import org.sagebionetworks.repo.model.principal.AddEmailInfo;
 import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
 import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
 import org.sagebionetworks.repo.model.principal.AliasType;
@@ -201,6 +244,50 @@ public class IT500SynapseJavaClient {
 		try {
 			adminSynapse.deleteUser(user2ToDelete);
 		} catch (SynapseException e) { }
+	}
+	
+	// omitting first or last name makes this a bad request (400)
+	// we are just trying to verify that everything's wired up correctly
+	@Test(expected=SynapseBadRequestException.class)
+	public void testNewAccountEmailValidation() throws SynapseException {
+		NewUser user = new NewUser();
+		user.setEmail("dummy@email.com");
+		user.setFirstName(null);
+		user.setLastName("lastName");
+		synapseOne.newAccountEmailValidation(user, "www.synapse.org");
+	}
+	
+	// omitting required inputs makes this a bad request (400)
+	// we are just trying to verify that everything's wired up correctly
+	@Test(expected=SynapseBadRequestException.class)
+	public void testCreateNewAccount() throws Exception {
+		AccountSetupInfo accountSetupInfo = new AccountSetupInfo();
+		accountSetupInfo.setEmailValidationToken("foo");
+		synapseOne.createNewAccount(accountSetupInfo);
+	}
+	
+	// omitting required inputs makes this a bad request (400)
+	// we are just trying to verify that everything's wired up correctly
+	@Test(expected=SynapseBadRequestException.class)
+	public void testAdditionalEmailValidation() throws Exception {
+		synapseOne.additionalEmailValidation(Long.parseLong(synapseOne.getMyProfile().getOwnerId()), 
+				"invalid", "www.synapse.org");
+	}
+	
+	// omitting required inputs makes this a bad request (400)
+	// we are just trying to verify that everything's wired up correctly
+	@Test(expected=SynapseBadRequestException.class)
+	public void testAddEmail() throws Exception {
+		AddEmailInfo addEmailInfo = new AddEmailInfo();
+		addEmailInfo.setEmailValidationToken("foo");
+		synapseOne.addEmail(addEmailInfo, false);
+	}
+	
+	// omitting required inputs makes this a bad request (400)
+	// we are just trying to verify that everything's wired up correctly
+	@Test(expected=SynapseBadRequestException.class)
+	public void testRemoveEmail() throws Exception {
+		synapseOne.removeEmail("foo");
 	}
 	
 	@Test
