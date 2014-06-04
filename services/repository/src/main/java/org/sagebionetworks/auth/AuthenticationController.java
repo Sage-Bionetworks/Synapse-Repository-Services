@@ -99,6 +99,7 @@ public class AuthenticationController extends BaseController {
 	 * First, last, and full name are recommended but not required.
 	 * All other fields will be ignored.  
 	 */
+	@Deprecated
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.AUTH_USER, method = RequestMethod.POST)
 	public void createUser(@RequestBody NewUser user,

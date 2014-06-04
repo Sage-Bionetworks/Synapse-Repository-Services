@@ -164,7 +164,9 @@
 	<bean id="amazonSESClient" class="com.amazonaws.services.simpleemail.AmazonSimpleEmailServiceClient">
         <constructor-arg ref="awsCredentials" />
     </bean>
-		
+    
+	<bean id="sesClient" class="org.sagebionetworks.repo.manager.principal.SynapseEmailServiceImpl"/>
+			
 	<bean id="messageManager" class="org.sagebionetworks.repo.manager.MessageManagerImpl" />
 	
 	<bean id="backupDriver" class="org.sagebionetworks.repo.manager.backup.daemon.BackupDriverImpl" scope="singleton"/><bean

@@ -85,6 +85,22 @@ public class AuthorizationConstants {
 	public static final String SESSION_TOKEN_COOKIE_NAME = "org.sagbionetworks.security.user.login.token";
 	
 	/**
+	 * The web endpoint specified by the Portal for email validation
+	 */
+	public static final String PORTAL_ENDPOINT_PARAM = "portalEndpoint";
+	
+	/**
+	 * A request parameter to the 'delete email address' service, specifying the email to delete
+	 */
+	public static final String EMAIL_PARAM = "email";
+	
+	/**
+	 * A request parameter to the 'add email address' service, saying whether the new address should become the
+	 * user's notifiation address.
+	 */
+	public static final String SET_AS_NOTIFICATION_EMAIL_PARM = "setAsNotificationEmail";
+	
+	/**
 	 * Request parameter for an optimistic concurrency control (OCC) eTag.
 	 */
 	@Deprecated

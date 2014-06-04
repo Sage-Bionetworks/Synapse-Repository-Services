@@ -1,7 +1,6 @@
 package org.sagebionetworks.auth.services;
 
 import java.io.IOException;
-import java.util.LinkedList;
 
 import org.openid4java.message.ParameterList;
 import org.sagebionetworks.authutil.OpenIDConsumerUtils;
@@ -9,12 +8,10 @@ import org.sagebionetworks.authutil.OpenIDInfo;
 import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.auth.ChangePasswordRequest;
 import org.sagebionetworks.repo.model.auth.LoginCredentials;
 import org.sagebionetworks.repo.model.auth.NewUser;
@@ -62,7 +59,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 			throw new UnauthorizedException("Domain must be declared");
 		}
 		// Lookup the user.
-		PrincipalAlias pa = lookupUserForAuthenication(credential.getEmail());
+		PrincipalAlias pa = lookupUserForAuthentication(credential.getEmail());
 		if(pa == null) throw new NotFoundException("Did not find a user with alias: "+credential.getEmail());;
 		
 		// Fetch the user's session token
@@ -212,10 +209,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		
 		// First try to lookup the user by their OpenId
 		boolean isOpenIDBound = false;
-		PrincipalAlias alias = lookupUserForAuthenication(info.getIdentifier());
+		PrincipalAlias alias = lookupUserForAuthentication(info.getIdentifier());
 		if(alias == null){
 			// Try to lookup the user by their email if we fail to look them up by OpenId
-			alias = lookupUserForAuthenication(email);
+			alias = lookupUserForAuthentication(email);
 		}else{
 			// This open ID is already bound to this user.
 			isOpenIDBound = true;
@@ -242,7 +239,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	}
 
 	@Override
-	public PrincipalAlias lookupUserForAuthenication(String alias) {
+	public PrincipalAlias lookupUserForAuthentication(String alias) {
 		// Lookup the user
 		PrincipalAlias pa = userManager.lookupPrincipalByAlias(alias);
 		if(pa == null) return null;
@@ -252,14 +249,14 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
 	@Override
 	public Long getUserId(String username) throws NotFoundException {
-		PrincipalAlias pa = lookupUserForAuthenication(username);
+		PrincipalAlias pa = lookupUserForAuthentication(username);
 		if(pa == null) throw new NotFoundException("Did not find a user with alias: "+username);
 		return pa.getPrincipalId();
 	}
 
 	@Override
 	public void sendPasswordEmail(String email, DomainType domain) throws NotFoundException {
-		PrincipalAlias pa = lookupUserForAuthenication(email);
+		PrincipalAlias pa = lookupUserForAuthentication(email);
 		if(pa == null) throw new NotFoundException("Did not find a user with alias: "+email);
 		sendPasswordEmail(pa.getPrincipalId(), domain);
 		

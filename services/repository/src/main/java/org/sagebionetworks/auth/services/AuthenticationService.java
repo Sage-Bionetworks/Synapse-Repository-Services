@@ -91,7 +91,7 @@ public interface AuthenticationService {
 	 * @return Null if the user does not exist.
 	 * @throws {@link UnauthorizedException} If the alias belongs to a team.
 	 */
-	public PrincipalAlias lookupUserForAuthenication(String alias);
+	public PrincipalAlias lookupUserForAuthentication(String alias);
 	/**
 	 * Has the user accepted the terms of use?
 	 */

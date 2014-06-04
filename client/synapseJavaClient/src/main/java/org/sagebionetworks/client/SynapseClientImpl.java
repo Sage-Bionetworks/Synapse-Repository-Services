@@ -13,6 +13,7 @@ import java.net.URLConnection;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -122,6 +123,8 @@ import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
+import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
+import org.sagebionetworks.repo.model.principal.AddEmailInfo;
 import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
 import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
 import org.sagebionetworks.repo.model.provenance.Activity;
@@ -150,6 +153,7 @@ import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -176,6 +180,14 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String DEFAULT_AUTH_ENDPOINT = SharedClientConnection.DEFAULT_AUTH_ENDPOINT;
 	private static final String DEFAULT_FILE_ENDPOINT = "https://repo-prod.prod.sagebase.org/file/v1";
 
+	private static final String ACCOUNT = "/account";
+	private static final String EMAIL_VALIDATION = "/emailValidation";
+	private static final String ACCOUNT_EMAIL_VALIDATION = ACCOUNT+EMAIL_VALIDATION;
+	private static final String EMAIL = "/email";
+	private static final String PORTAL_ENDPOINT_PARAM = "portalEndpoint";
+	private static final String SET_AS_NOTIFICATION_EMAIL_PARAM = "setAsNotificationEmail";
+	private static final String EMAIL_PARAM = "email";
+	
 	private static final String PARAM_GENERATED_BY = "generatedBy";
 
 	private static final String QUERY_URI = "/query?query=";
@@ -588,6 +600,131 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public AliasCheckResponse checkAliasAvailable(AliasCheckRequest request) throws SynapseException {
 		String url = PRINCIPAL_AVAILABLE;
 		return asymmetricalPost(getRepoEndpoint(), url, request, AliasCheckResponse.class, null);
+	}
+	
+	/**
+	 * Send an email validation message as a precursor to creating a new user account.
+	 * 
+	 * @param user the first name, last name and email address for the new user
+	 * @param portalEndpoint the GUI endpoint (is the basis for the link in the email message)
+	 * Must generate a valid email when a set of request parameters is appended to the end.
+	 */
+	@Override
+	public void newAccountEmailValidation(NewUser user, String portalEndpoint) throws SynapseException {
+		if (user == null) throw new IllegalArgumentException("email can not be null.");
+		if (portalEndpoint == null) throw new IllegalArgumentException("portalEndpoint can not be null.");
+
+		String uri = ACCOUNT_EMAIL_VALIDATION;	
+		Map<String,String> paramMap = new HashMap<String,String>();
+		paramMap.put(PORTAL_ENDPOINT_PARAM, portalEndpoint);
+
+		JSONObjectAdapter toUpdateAdapter = new JSONObjectAdapterImpl();
+		try {
+			JSONObject obj = new JSONObject(user.writeToJSONObject(toUpdateAdapter).toJSONString());
+			getSharedClientConnection().postJson(repoEndpoint, uri, obj.toString(), getUserAgent(), paramMap);
+		} catch (JSONException e) {
+			throw new SynapseClientException(e);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}		
+	}
+	
+	/**
+	 * Create a new account, following email validation.  Sets the password and logs the user in, returning a valid session token
+	 * @param accountSetupInfo  Note:  Caller may override the first/last name, but not the email, given in 'newAccountEmailValidation' 
+	 * @return session
+	 * @throws NotFoundException 
+	 */
+	@Override
+	public Session createNewAccount(AccountSetupInfo accountSetupInfo) throws SynapseException {
+		if (accountSetupInfo == null) throw new IllegalArgumentException("accountSetupInfo can not be null.");
+
+		String uri = ACCOUNT;	
+
+		JSONObjectAdapter toUpdateAdapter = new JSONObjectAdapterImpl();
+		try {
+			JSONObject obj = new JSONObject(accountSetupInfo.writeToJSONObject(toUpdateAdapter).toJSONString());
+			getSharedClientConnection().postJson(repoEndpoint, uri, obj.toString(), getUserAgent(), null);
+			return EntityFactory.createEntityFromJSONObject(obj, Session.class);
+		} catch (JSONException e) {
+			throw new SynapseClientException(e);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}		
+	}
+	
+	/**
+	 * Send an email validation as a precursor to adding a new email address to an existing account.
+	 * 
+	 * @param email the email which is claimed by the user
+	 * @param portalEndpoint the GUI endpoint (is the basis for the link in the email message)
+	 * Must generate a valid email when a set of request parameters is appended to the end.
+	 * @throws NotFoundException 
+	 */
+	@Override
+	public void additionalEmailValidation(Long userId, String email, String portalEndpoint) throws SynapseException {
+		if (userId == null) throw new IllegalArgumentException("userId can not be null.");
+		if (email == null) throw new IllegalArgumentException("email can not be null.");
+		if (portalEndpoint == null) throw new IllegalArgumentException("portalEndpoint can not be null.");
+
+		String uri = ACCOUNT+"/"+userId+EMAIL_VALIDATION;	
+		Map<String,String> paramMap = new HashMap<String,String>();
+		paramMap.put(PORTAL_ENDPOINT_PARAM, portalEndpoint);
+
+		JSONObjectAdapter toUpdateAdapter = new JSONObjectAdapterImpl();
+		try {
+			Username emailRequestBody = new Username();
+			emailRequestBody.setEmail(email);
+			JSONObject obj = new JSONObject(emailRequestBody.writeToJSONObject(toUpdateAdapter).toJSONString());
+			getSharedClientConnection().postJson(repoEndpoint, uri, obj.toString(), getUserAgent(), paramMap);
+		} catch (JSONException e) {
+			throw new SynapseClientException(e);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}	
+	}
+	
+	/**
+	 * Add a new email address to an existing account.
+	 * 
+	 * @param addEmailInfo the token sent to the user via email
+	 * @param setAsNotificationEmail if true then set the new email address to be the user's notification address
+	 * @throws NotFoundException
+	 */
+	@Override
+	public void addEmail(AddEmailInfo addEmailInfo, Boolean setAsNotificationEmail) throws SynapseException {
+		if (addEmailInfo == null) throw new IllegalArgumentException("addEmailInfo can not be null.");
+
+		String uri = EMAIL;	
+		Map<String,String> paramMap = new HashMap<String,String>();
+		if (setAsNotificationEmail!=null) paramMap.put(SET_AS_NOTIFICATION_EMAIL_PARAM, setAsNotificationEmail.toString());
+
+		JSONObjectAdapter toUpdateAdapter = new JSONObjectAdapterImpl();
+		try {
+			JSONObject obj = new JSONObject(addEmailInfo.writeToJSONObject(toUpdateAdapter).toJSONString());
+			getSharedClientConnection().postJson(repoEndpoint, uri, obj.toString(), getUserAgent(), paramMap);
+		} catch (JSONException e) {
+			throw new SynapseClientException(e);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}			
+	}
+	
+	/**
+	 * Remove an email address from an existing account.
+	 * 
+	 * @param email the email to remove.  Must be an established email address for the user
+	 * @throws NotFoundException
+	 */
+	@Override
+	public void removeEmail(String email) throws SynapseException {
+		if (email == null) throw new IllegalArgumentException("email can not be null.");
+		
+		String uri = EMAIL;
+		Map<String,String> paramMap = new HashMap<String,String>();
+		paramMap.put(EMAIL_PARAM,  email);
+		getSharedClientConnection().deleteUri(repoEndpoint, uri, getUserAgent(), paramMap);
+		
 	}
 	
 	/**

@@ -67,6 +67,7 @@ import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.auth.Username;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
@@ -86,6 +87,8 @@ import org.sagebionetworks.repo.model.message.MessageSortBy;
 import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
+import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
+import org.sagebionetworks.repo.model.principal.AddEmailInfo;
 import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
 import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
 import org.sagebionetworks.repo.model.provenance.Activity;
@@ -111,6 +114,7 @@ import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
@@ -136,6 +140,51 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException 
 	 */
 	public AliasCheckResponse checkAliasAvailable(AliasCheckRequest request) throws SynapseException;
+	
+	/**
+	 * Send an email validation message as a precursor to creating a new user account.
+	 * 
+	 * @param user the first name, last name and email address for the new user
+	 * @param portalEndpoint the GUI endpoint (is the basis for the link in the email message)
+	 * Must generate a valid email when a set of request parameters is appended to the end.
+	 */
+	void newAccountEmailValidation(NewUser user, String portalEndpoint) throws SynapseException;
+	
+	/**
+	 * Create a new account, following email validation.  Sets the password and logs the user in, returning a valid session token
+	 * @param accountSetupInfo  Note:  Caller may override the first/last name, but not the email, given in 'newAccountEmailValidation' 
+	 * @return session
+	 * @throws NotFoundException 
+	 */
+	Session createNewAccount(AccountSetupInfo accountSetupInfo) throws SynapseException;
+	
+	/**
+	 * Send an email validation as a precursor to adding a new email address to an existing account.
+	 * 
+	 * @param userId the user's principal ID
+	 * @param email the email which is claimed by the user
+	 * @param portalEndpoint the GUI endpoint (is the basis for the link in the email message)
+	 * Must generate a valid email when a set of request parameters is appended to the end.
+	 * @throws NotFoundException 
+	 */
+	void additionalEmailValidation(Long userId, String email, String portalEndpoint) throws SynapseException;
+	
+	/**
+	 * Add a new email address to an existing account.
+	 * 
+	 * @param addEmailInfo the token sent to the user via email
+	 * @param setAsNotificationEmail if true then set the new email address to be the user's notification address
+	 * @throws NotFoundException
+	 */
+	void addEmail(AddEmailInfo addEmailInfo, Boolean setAsNotificationEmail) throws SynapseException;
+	
+	/**
+	 * Remove an email address from an existing account.
+	 * 
+	 * @param email the email to remove.  Must be an established email address for the user
+	 * @throws NotFoundException
+	 */
+	void removeEmail(String email) throws SynapseException;	
 	
 	/**
 	 * This sets the email used for user notifications, i.e. when a Synapse message is
