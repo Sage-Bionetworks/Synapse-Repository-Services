@@ -325,7 +325,8 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 		// grade the submission:  pass or fail?
 		PassingRecord passingRecord = scoreQuizResponse(quizGenerator, response);
 		// store the submission in the RDS
-		quizResponseDao.create(response, passingRecord);
+		QuizResponse created = quizResponseDao.create(response, passingRecord);
+		passingRecord.setResponseId(created.getId());
 		// if pass, add to Certified group
 		if (passingRecord.getPassed()) {
 			groupMembersDao.addMembers(
