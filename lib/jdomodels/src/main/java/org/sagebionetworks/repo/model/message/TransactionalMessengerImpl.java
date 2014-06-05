@@ -13,8 +13,11 @@ import org.sagebionetworks.repo.model.ObservableEntity;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationAdapter;
 
@@ -233,12 +236,13 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 		return new LinkedList<TransactionalMessengerObserver>(observers);
 	}
 
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void registerMessageSent(ChangeMessage message) throws NotFoundException {
+	public void registerMessageSent(ChangeMessage message){
 		try {
 			this.changeDAO.registerMessageSent(message);
-		} catch (DataIntegrityViolationException e) {
-			throw new NotFoundException("Change number: '"+message.getChangeNumber()+"' does not exist");
+		} catch (DataAccessException e) {
+			throw new IllegalArgumentException("Messages was not registered as sent: "+e.getMessage());
 		}
 	}
 
