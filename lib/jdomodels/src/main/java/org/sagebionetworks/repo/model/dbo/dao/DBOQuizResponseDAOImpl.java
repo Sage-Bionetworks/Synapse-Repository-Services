@@ -65,30 +65,13 @@ public class DBOQuizResponseDAOImpl implements QuizResponseDAO {
 	
 	private static final String SELECT_FOR_QUIZ_ID_AND_USER_COUNT = "SELECT COUNT(ID) "+SELECT_FOR_QUIZ_ID_AND_USER_CORE;
 	
-	// select PASSING_RECORD from QUIZ_RESPONSE where CREATED_BY=? and QUIZ_ID=? order by score desc limit 1
-	private static final String SELECT_BEST_RESPONSE_FOR_USER_AND_QUIZ = "SELECT "+
-			COL_QUIZ_RESPONSE_PASSING_RECORD+" "+
+	// select * from QUIZ_RESPONSE where CREATED_BY=? and QUIZ_ID=? order by score desc limit 1
+	private static final String SELECT_BEST_RESPONSE_FOR_USER_AND_QUIZ = "SELECT * "+
 			" FROM "+TABLE_QUIZ_RESPONSE+" WHERE "+
 			COL_QUIZ_RESPONSE_QUIZ_ID+"=:"+COL_QUIZ_RESPONSE_QUIZ_ID+" AND "+
 			COL_QUIZ_RESPONSE_CREATED_BY+"=:"+COL_QUIZ_RESPONSE_CREATED_BY+
 			" ORDER BY "+COL_QUIZ_RESPONSE_SCORE+" DESC LIMIT 1";
 	
-	private static final RowMapper<PassingRecord> PASSING_RECORD_ROW_MAPPER = new RowMapper<PassingRecord>() {
-		@Override
-		public PassingRecord mapRow(ResultSet rs, int arg1) throws SQLException {
-			PassingRecord pr=null;
-			Blob blob = rs.getBlob(SqlConstants.COL_QUIZ_RESPONSE_PASSING_RECORD);
-			if(blob != null) {
-				try {
-					pr = (PassingRecord)JDOSecondaryPropertyUtils.decompressedObject(blob.getBytes(1, (int) blob.length()));
-				} catch (IOException e) {
-					throw new RuntimeException(e);
-				}
-			}
-			return pr;
-		}
-	};
-
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public QuizResponse create(QuizResponse dto, PassingRecord passingRecord) throws DatastoreException {
@@ -179,9 +162,15 @@ public class DBOQuizResponseDAOImpl implements QuizResponseDAO {
 		param.addValue(COL_QUIZ_RESPONSE_QUIZ_ID, quizId);
 		param.addValue(COL_QUIZ_RESPONSE_CREATED_BY, principalId);
 		try {
-			return simpleJdbcTemplate.queryForObject(SELECT_BEST_RESPONSE_FOR_USER_AND_QUIZ, PASSING_RECORD_ROW_MAPPER, param);
+			DBOQuizResponse dbo = simpleJdbcTemplate.queryForObject(SELECT_BEST_RESPONSE_FOR_USER_AND_QUIZ, QUIZ_RESPONSE_ROW_MAPPER, param);
+			byte[] prSerizalized = dbo.getPassingRecord();
+			PassingRecord passingRecord = (PassingRecord)JDOSecondaryPropertyUtils.decompressedObject(prSerizalized);
+			passingRecord.setResponseId(dbo.getId());
+			return passingRecord;
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException("No quiz results for quiz "+quizId+" and user "+principalId, e);
+		} catch (IOException e) {
+			throw new DatastoreException(e);
 		}
 	}
 

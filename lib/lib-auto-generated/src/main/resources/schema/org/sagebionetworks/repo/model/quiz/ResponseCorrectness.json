@@ -1,13 +1,15 @@
 {
 	"type":"object",
-	"description":"The responses given by the user along with whether each is correct.",
+	"description":"A user response and whether it is correct.",
     "properties":{
     	"response":{
     		"type":"object",
-			"$ref":"org.sagebionetworks.repo.model.quiz.QuestionResponse"
+			"$ref":"org.sagebionetworks.repo.model.quiz.QuestionResponse",
+			"description":"The response from the user"
     	},
     	"isCorrect":{
     		"type":"boolean",
+ 			"description":"Is the response correct?"
     	}
 	}
 }

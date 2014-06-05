@@ -48,10 +48,14 @@ public class DBOQuizResponseDAOImplTest {
 		return dto;
 	}
 	
-	private static PassingRecord createPassingRecord(boolean pass, long score) {
+	private static PassingRecord createPassingRecord(String principalId, Long quizId, Long responseId, boolean pass, long score) {
 		PassingRecord pr = new PassingRecord();
 		pr.setPassed(pass);
 		pr.setScore(score);
+		pr.setPassedOn(new Date());
+		pr.setQuizId(quizId);
+		pr.setResponseId(responseId);
+		pr.setUserId(principalId);
 		return pr;
 	}
 	
@@ -64,7 +68,7 @@ public class DBOQuizResponseDAOImplTest {
 	
 	private QuizResponse createDTOAndStore(String principalId, Long quizId, boolean pass, long score) {
 		QuizResponse dto = createDTO(principalId, quizId);
-		PassingRecord passingRecord = createPassingRecord(pass, score);
+		PassingRecord passingRecord = createPassingRecord(principalId, quizId, dto.getId(), pass, score);
 		return storeDTO(dto, passingRecord);
 	}
 	
@@ -88,7 +92,7 @@ public class DBOQuizResponseDAOImplTest {
 	@Test
 	public void testRoundTrip() throws Exception {
 		QuizResponse dto = createDTO(userId, 1L);
-		PassingRecord passingRecord = createPassingRecord(true, 10L);
+		PassingRecord passingRecord = createPassingRecord(userId, 1L, dto.getId(), true, 10L);
 		QuizResponse created = storeDTO(dto, passingRecord);
 		dto.setId(created.getId());
 		assertEquals(dto, created);
