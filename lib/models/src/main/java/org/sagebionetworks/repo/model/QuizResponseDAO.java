@@ -7,7 +7,7 @@ import org.sagebionetworks.repo.model.quiz.QuizResponse;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface QuizResponseDAO {
-	public QuizResponse create(QuizResponse dto) throws DatastoreException;
+	public QuizResponse create(QuizResponse dto, PassingRecord passingRecord) throws DatastoreException;
 
 	public QuizResponse get(String id) throws DatastoreException, NotFoundException;
 

@@ -33,6 +33,7 @@ import org.sagebionetworks.repo.model.quiz.QuestionVariety;
 import org.sagebionetworks.repo.model.quiz.Quiz;
 import org.sagebionetworks.repo.model.quiz.QuizGenerator;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
+import org.sagebionetworks.repo.model.quiz.ResponseCorrectness;
 import org.sagebionetworks.repo.model.quiz.TextFieldQuestion;
 import org.sagebionetworks.repo.model.quiz.TextFieldResponse;
 import org.sagebionetworks.repo.web.ForbiddenException;
@@ -255,12 +256,13 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 	 * @param quiz
 	 * @param response
 	 */
-	public static void scoreQuizResponse(QuizGenerator quizGenerator, QuizResponse quizResponse) {
+	public static PassingRecord scoreQuizResponse(QuizGenerator quizGenerator, QuizResponse quizResponse) {
 		// The key in the following map is the *index* of the *question variety* 
 		// containing the question in the list of question varieties in the QuizGenerator.  
 		// (This allows us to make sure we don't receive multiple answers to a single question variety.)
 		// The value in the map says whether the answer is right or wrong.
 		Map<Integer, Boolean> responseMap = new HashMap<Integer, Boolean>();
+		List<ResponseCorrectness> corrections = new ArrayList<ResponseCorrectness>();
 		if (quizResponse.getQuestionResponses()!=null) {
 			for (QuestionResponse r : quizResponse.getQuestionResponses()) {
 				Integer questionVarietyIndex = null;
@@ -274,7 +276,12 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 							if (responseMap.containsKey(questionVarietyIndex)) {
 								throw new IllegalArgumentException("Response set contains multiple responses for question variety "+questionVarietyIndex);
 							}
-							responseMap.put(questionVarietyIndex, isCorrectResponse(q, r));
+							boolean isCorrect = isCorrectResponse(q, r);
+							responseMap.put(questionVarietyIndex, isCorrect);
+							ResponseCorrectness rc = new ResponseCorrectness();
+							rc.setResponse(r);
+							rc.setIsCorrect(isCorrect);
+							corrections.add(rc);
 						}
 					}
 				}
@@ -289,8 +296,15 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 			if (isCorrect) correctAnswerCount++;
 		}
 		boolean pass = correctAnswerCount >= quizGenerator.getMinimumScore();
-		quizResponse.setPass(pass);
-		quizResponse.setScore((long)correctAnswerCount);
+		PassingRecord passingRecord = new PassingRecord();
+		passingRecord.setCorrections(corrections);
+		passingRecord.setPassed(pass);
+		passingRecord.setPassedOn(quizResponse.getCreatedOn());
+		passingRecord.setQuizId(quizResponse.getQuizId());
+		passingRecord.setResponseId(quizResponse.getId());
+		passingRecord.setScore((long)correctAnswerCount);
+		passingRecord.setUserId(quizResponse.getCreatedBy());		
+		return passingRecord;
 	}
 	
 	public static void fillInResponseValues(QuizResponse response, Long userId, Date createdOn, Long quizId) {
@@ -306,25 +320,19 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 	public PassingRecord submitCertificationQuizResponse(
 			UserInfo userInfo, QuizResponse response) throws NotFoundException {
 		QuizGenerator quizGenerator = retrieveCertificationQuizGenerator();
-		// grade the submission:  pass or fail?
-		scoreQuizResponse(quizGenerator, response);
 		Date now = new Date();
 		fillInResponseValues(response, userInfo.getId(), now, quizGenerator.getId());
+		// grade the submission:  pass or fail?
+		PassingRecord passingRecord = scoreQuizResponse(quizGenerator, response);
 		// store the submission in the RDS
-		QuizResponse created = quizResponseDao.create(response);
+		quizResponseDao.create(response, passingRecord);
 		// if pass, add to Certified group
-		if (created.getPass()) {
+		if (passingRecord.getPassed()) {
 			groupMembersDao.addMembers(
 					AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(), 
 					Collections.singletonList(userInfo.getId().toString()));
 		}
-		PassingRecord passingRecord = new PassingRecord();
-		passingRecord.setPassed(created.getPass());
-		passingRecord.setPassedOn(now);
-		passingRecord.setQuizId(created.getQuizId());
-		passingRecord.setResponseId(created.getId());
-		passingRecord.setScore(created.getScore());
-		passingRecord.setUserId(created.getCreatedBy());
+
 		return passingRecord;
 	}
 

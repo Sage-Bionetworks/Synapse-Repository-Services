@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dbo.persistence;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_GROUP;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
@@ -13,8 +14,10 @@ import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.Table;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
+import org.sagebionetworks.repo.model.quiz.QuizResponse;
 
 @Table(name = SqlConstants.TABLE_QUIZ_RESPONSE)
 public class DBOQuizResponse implements MigratableDatabaseObject<DBOQuizResponse, DBOQuizResponse> {
@@ -41,6 +44,10 @@ public class DBOQuizResponse implements MigratableDatabaseObject<DBOQuizResponse
 	@Field(name = SqlConstants.COL_QUIZ_RESPONSE_SERIALIZED, backupId = false, primary = false, nullable = false, serialized="mediumblob")
 	private byte[] serialized;
 
+	// TODO change 'nullable' to false
+	@Field(name = SqlConstants.COL_QUIZ_RESPONSE_PASSING_RECORD, backupId = false, primary = false, nullable = true, serialized="mediumblob")
+	private byte[] passingRecord;
+
 	private static TableMapping<DBOQuizResponse> tableMapping = AutoTableMapping.create(DBOQuizResponse.class);
 
 	@Override
@@ -60,7 +67,20 @@ public class DBOQuizResponse implements MigratableDatabaseObject<DBOQuizResponse
 
 			@Override
 			public DBOQuizResponse createDatabaseObjectFromBackup(DBOQuizResponse backup) {
+				try {
+				LegacyQuizResponseDTO r = 
+						(LegacyQuizResponseDTO)JDOSecondaryPropertyUtils.decompressedObject(backup.getSerialized());
+				QuizResponse dto = new QuizResponse();
+				dto.setCreatedBy(r.getCreatedBy());
+				dto.setCreatedOn(r.getCreatedOn());
+				dto.setId(id);
+				dto.setQuestionResponses(r.getQuestionResponses());
+				dto.setQuizId(r.getQuizId());
+				backup.setSerialized(JDOSecondaryPropertyUtils.compressObject(dto));
 				return backup;
+				} catch (IOException e) {
+					throw new RuntimeException(e);
+				}
 			}
 
 			@Override
@@ -141,6 +161,14 @@ public class DBOQuizResponse implements MigratableDatabaseObject<DBOQuizResponse
 		this.serialized = serialized;
 	}
 
+	public byte[] getPassingRecord() {
+		return passingRecord;
+	}
+
+	public void setPassingRecord(byte[] passingRecord) {
+		this.passingRecord = passingRecord;
+	}
+
 	public static void setTableMapping(TableMapping<DBOQuizResponse> tableMapping) {
 		DBOQuizResponse.tableMapping = tableMapping;
 	}
@@ -150,11 +178,12 @@ public class DBOQuizResponse implements MigratableDatabaseObject<DBOQuizResponse
 		final int prime = 31;
 		int result = 1;
 		result = prime * result
-				+ ((createdOn == null) ? 0 : createdOn.hashCode());
-		result = prime * result
 				+ ((createdBy == null) ? 0 : createdBy.hashCode());
+		result = prime * result
+				+ ((createdOn == null) ? 0 : createdOn.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + ((passed == null) ? 0 : passed.hashCode());
+		result = prime * result + Arrays.hashCode(passingRecord);
 		result = prime * result + ((quizId == null) ? 0 : quizId.hashCode());
 		result = prime * result + ((score == null) ? 0 : score.hashCode());
 		result = prime * result + Arrays.hashCode(serialized);
@@ -170,15 +199,15 @@ public class DBOQuizResponse implements MigratableDatabaseObject<DBOQuizResponse
 		if (getClass() != obj.getClass())
 			return false;
 		DBOQuizResponse other = (DBOQuizResponse) obj;
-		if (createdOn == null) {
-			if (other.createdOn != null)
-				return false;
-		} else if (!createdOn.equals(other.createdOn))
-			return false;
 		if (createdBy == null) {
 			if (other.createdBy != null)
 				return false;
 		} else if (!createdBy.equals(other.createdBy))
+			return false;
+		if (createdOn == null) {
+			if (other.createdOn != null)
+				return false;
+		} else if (!createdOn.equals(other.createdOn))
 			return false;
 		if (id == null) {
 			if (other.id != null)
@@ -189,6 +218,8 @@ public class DBOQuizResponse implements MigratableDatabaseObject<DBOQuizResponse
 			if (other.passed != null)
 				return false;
 		} else if (!passed.equals(other.passed))
+			return false;
+		if (!Arrays.equals(passingRecord, other.passingRecord))
 			return false;
 		if (quizId == null) {
 			if (other.quizId != null)
@@ -208,9 +239,10 @@ public class DBOQuizResponse implements MigratableDatabaseObject<DBOQuizResponse
 	@Override
 	public String toString() {
 		return "DBOQuizResponse [id=" + id + ", createdBy=" + createdBy
-				+ ", createOn=" + createdOn + ", quizId=" + quizId + ", score="
-				+ score + ", passed=" + passed + ", serialized="
-				+ Arrays.toString(serialized) + "]";
+				+ ", createdOn=" + createdOn + ", quizId=" + quizId
+				+ ", score=" + score + ", passed=" + passed + ", serialized="
+				+ Arrays.toString(serialized) + ", passingRecord="
+				+ Arrays.toString(passingRecord) + "]";
 	}
 	
 	

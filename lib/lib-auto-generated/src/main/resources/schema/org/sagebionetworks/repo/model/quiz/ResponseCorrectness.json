@@ -1,0 +1,13 @@
+{
+	"type":"object",
+	"description":"The responses given by the user along with whether each is correct.",
+    "properties":{
+    	"response":{
+    		"type":"object",
+			"$ref":"org.sagebionetworks.repo.model.quiz.QuestionResponse"
+    	},
+    	"isCorrect":{
+    		"type":"boolean",
+    	}
+	}
+}

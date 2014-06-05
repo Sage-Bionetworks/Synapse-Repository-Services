@@ -34,11 +34,10 @@ public class DBOQuizResponseDAOImplTest {
 	@Autowired
 	private QuizResponseDAO quizResponseDao;
 	
-	private static QuizResponse createDTO(String principalId, Long quizId, boolean pass, long score) {
+	private static QuizResponse createDTO(String principalId, Long quizId) {
 		QuizResponse dto = new QuizResponse();
 		dto.setCreatedBy(principalId);
 		dto.setCreatedOn(new Date());
-		dto.setPass(pass);
 		List<QuestionResponse> questionResponses = new ArrayList<QuestionResponse>();
 		MultichoiceResponse response = new MultichoiceResponse();
 		response.setQuestionIndex(101L);
@@ -46,20 +45,27 @@ public class DBOQuizResponseDAOImplTest {
 		questionResponses.add(response);
 		dto.setQuestionResponses(questionResponses);
 		dto.setQuizId(quizId);
-		dto.setScore(score);
 		return dto;
 	}
 	
-	private QuizResponse storeDTO(QuizResponse dto) {
-		QuizResponse created = quizResponseDao.create(dto);
+	private static PassingRecord createPassingRecord(boolean pass, long score) {
+		PassingRecord pr = new PassingRecord();
+		pr.setPassed(pass);
+		pr.setScore(score);
+		return pr;
+	}
+	
+	private QuizResponse storeDTO(QuizResponse dto, PassingRecord passingRecord) {
+		QuizResponse created = quizResponseDao.create(dto, passingRecord);
 		assertNotNull(created.getId());
 		toDelete.add(created.getId());
 		return created;
 	}
 	
 	private QuizResponse createDTOAndStore(String principalId, Long quizId, boolean pass, long score) {
-		QuizResponse dto = createDTO(principalId, quizId, pass, score);
-		return storeDTO(dto);
+		QuizResponse dto = createDTO(principalId, quizId);
+		PassingRecord passingRecord = createPassingRecord(pass, score);
+		return storeDTO(dto, passingRecord);
 	}
 	
 	private Collection<Long> toDelete;
@@ -81,8 +87,9 @@ public class DBOQuizResponseDAOImplTest {
 
 	@Test
 	public void testRoundTrip() throws Exception {
-		QuizResponse dto = createDTO(userId, 1L, true, 10L);
-		QuizResponse created = storeDTO(dto);
+		QuizResponse dto = createDTO(userId, 1L);
+		PassingRecord passingRecord = createPassingRecord(true, 10L);
+		QuizResponse created = storeDTO(dto, passingRecord);
 		dto.setId(created.getId());
 		assertEquals(dto, created);
 		QuizResponse got = quizResponseDao.get(created.getId().toString());
