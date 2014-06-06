@@ -186,7 +186,8 @@ public class PreviewWorkerTest {
 	public void testEOFError() throws Exception {
 		S3FileHandle meta = new S3FileHandle();
 		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenReturn(meta);
-		Exception expectedException = new EOFException();
+		Exception expectedException = new RuntimeException();
+		expectedException.initCause(new EOFException());
 		when(mockPreveiwManager.generatePreview(meta)).thenThrow(expectedException);
 		// create the worker.
 		PreviewWorker worker = new PreviewWorker(mockPreveiwManager, inputList, mockWorkerLogger);
@@ -196,6 +197,39 @@ public class PreviewWorkerTest {
 		// The msg should not be re-processed
 		assertEquals(1, processedList.size());
 		verify(mockWorkerLogger).logWorkerFailure(PreviewWorker.class, change, expectedException, false);
+	}
+	
+	@Test
+	public void testRuntimeErrorNotEOF() throws Exception {
+		S3FileHandle meta = new S3FileHandle();
+		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenReturn(meta);
+		Exception expectedException = new RuntimeException();
+		expectedException.initCause(new ArithmeticException());
+		when(mockPreveiwManager.generatePreview(meta)).thenThrow(expectedException);
+		// create the worker.
+		PreviewWorker worker = new PreviewWorker(mockPreveiwManager, inputList, mockWorkerLogger);
+		// fire!
+		List<Message> processedList = worker.call();
+		assertNotNull(processedList);
+		// The msg should not be re-processed
+		assertEquals(0, processedList.size());
+		verify(mockWorkerLogger).logWorkerFailure(PreviewWorker.class, change, expectedException, true);
+	}
+	
+	@Test
+	public void testRuntimeErrorNoCause() throws Exception {
+		S3FileHandle meta = new S3FileHandle();
+		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenReturn(meta);
+		Exception expectedException = new RuntimeException();
+		when(mockPreveiwManager.generatePreview(meta)).thenThrow(expectedException);
+		// create the worker.
+		PreviewWorker worker = new PreviewWorker(mockPreveiwManager, inputList, mockWorkerLogger);
+		// fire!
+		List<Message> processedList = worker.call();
+		assertNotNull(processedList);
+		// The msg should be re-processed
+		assertEquals(0, processedList.size());
+		verify(mockWorkerLogger).logWorkerFailure(PreviewWorker.class, change, expectedException, true);
 	}
 	
 	@Test
@@ -214,6 +248,26 @@ public class PreviewWorkerTest {
 		// This message should have been processed and returned.
 		assertTrue("We cannot recover from this type of exception so the message should be returned as processed so it can be deleted from the queue",isMessageOnList(processedList, message));
 		verify(mockWorkerLogger).logWorkerFailure(PreviewWorker.class, change, expectedException, false);
+	}
+	
+	@Test
+	public void testEmptyFile() throws Exception{
+		// We cannot recover from this type of exception so the message should be returned.
+		S3FileHandle meta = new S3FileHandle();
+		meta.setContentSize(0L);
+		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenReturn(meta);
+		when(mockPreveiwManager.generatePreview(meta)).thenReturn(null);
+		// create the worker.
+		PreviewWorker worker = new PreviewWorker(mockPreveiwManager, inputList, mockWorkerLogger);
+		// fire!
+		List<Message> processedList = worker.call();
+		assertNotNull(processedList);
+		assertEquals(1, processedList.size());
+		// This message should have been processed and returned.
+		assertTrue("The message should be returned as processed so it can be deleted from the queue",isMessageOnList(processedList, message));
+		// We should generate 
+		verify(mockPreveiwManager).generatePreview(any(S3FileHandle.class));
+		verify(mockWorkerLogger, never()).logWorkerFailure(eq(PreviewWorker.class), eq(change), any(NotFoundException.class), anyBoolean());
 	}
 	
 	@Test

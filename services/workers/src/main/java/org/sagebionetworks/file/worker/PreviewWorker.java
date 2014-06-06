@@ -101,12 +101,16 @@ public class PreviewWorker implements Callable<List<Message>> {
 				// When this occurs we want the message to go back on the queue, so we can try again later.
 				log.info("Failed to process message: "+message.toString(), e);
 				workerLogger.logWorkerFailure(this.getClass(), changeMessage, e, true);
-			}catch (EOFException e){
-				// We cannot recover from this exception so log the error
-				// and treat the message as processed.
-				processedMessage.add(message);
+			}catch (RuntimeException e){
 				log.error("Failed to process message: "+message.toString(), e);
-				workerLogger.logWorkerFailure(this.getClass(), changeMessage, e, false);
+				// Depending on cause, we may or may not retry
+				Throwable causeEx = e.getCause();
+				if ((causeEx != null) && (causeEx instanceof EOFException)) {
+					processedMessage.add(message);
+					workerLogger.logWorkerFailure(this.getClass(), changeMessage, e, false);
+				} else {
+					workerLogger.logWorkerFailure(this.getClass(), changeMessage, e, true);
+				}
 			}catch (Throwable e){
 				// Failing to process a message should not terminate the rest of the message processing.
 				// For unknown errors we leave the messages on the queue.
