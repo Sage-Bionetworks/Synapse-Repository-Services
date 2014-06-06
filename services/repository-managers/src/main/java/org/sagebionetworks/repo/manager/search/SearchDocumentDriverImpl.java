@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
 import org.sagebionetworks.repo.model.query.jdo.NodeAliasCache;
 import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.DocumentFields;
@@ -431,7 +432,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 			// For each header get the wikipage
 			StringBuilder builder = new StringBuilder();
 			for (V2WikiHeader header : wikiHeaders) {
-				WikiPageKey key = new WikiPageKey(nodeId, ObjectType.ENTITY, header.getId());
+				WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(nodeId, ObjectType.ENTITY, header.getId());
 				V2WikiPage page = wikiPageDao.get(key, null);
 				// Append the title and markdown
 				if (page.getTitle() != null) {

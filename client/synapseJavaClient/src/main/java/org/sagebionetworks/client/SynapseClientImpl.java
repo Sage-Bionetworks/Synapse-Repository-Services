@@ -104,6 +104,7 @@ import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.auth.Username;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
 import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
 import org.sagebionetworks.repo.model.file.ChunkResult;
@@ -2894,7 +2895,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		wiki.setParentWikiId(from.getParentWikiId());
 		wiki.setTitle(from.getTitle());
 		wiki.setAttachmentFileHandleIds(from.getAttachmentFileHandleIds());
-		WikiPageKey key = new WikiPageKey(ownerId, ownerType, wiki.getId());
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, wiki.getId());
 		
 		// We may be returning the most recent version of the V2 Wiki, or another version
 		// Download the correct markdown file

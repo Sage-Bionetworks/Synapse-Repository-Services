@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
@@ -114,7 +115,7 @@ public class AsynchronousMigrationAutowireTest {
 		// Now we should now have a wiki page for this project.
 		wikiPage = wikiManager.getRootWikiPage(adminUserInfo, project.getId(), ObjectType.ENTITY);
 		assertNotNull(wikiPage);
-		WikiPageKey key = new WikiPageKey(project.getId(), ObjectType.ENTITY, wikiPage.getId());
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(project.getId(), ObjectType.ENTITY, wikiPage.getId());
 
 		String markdownString = wikiPageDao.getMarkdown(key, null);
 		

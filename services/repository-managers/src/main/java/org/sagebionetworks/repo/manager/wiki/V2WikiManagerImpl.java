@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
@@ -163,7 +164,7 @@ public class V2WikiManagerImpl implements V2WikiManager {
 	public V2WikiPage getRootWikiPage(UserInfo user, String objectId,	ObjectType objectType) throws NotFoundException, UnauthorizedException {
 		// Look up the root wiki
 		Long rootWikiId = wikiPageDao.getRootWiki(objectId, objectType);
-		WikiPageKey key = new WikiPageKey(objectId, objectType, rootWikiId.toString());
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(objectId, objectType, rootWikiId.toString());
 		// The security check is done in the default method.
 		return getWikiPage(user, key, null);
 	}
@@ -233,9 +234,9 @@ public class V2WikiManagerImpl implements V2WikiManager {
 		Map<String, FileHandle> nameToHandleMap = buildFileNameMap(wikiPage);
 		
 		// Get all the file handles used for this wiki in its history
-		List<Long> allFileHandles = wikiPageDao.getFileHandleReservationForWiki(new WikiPageKey(objectId, objectType, wikiPage.getId()));
+		List<Long> allFileHandles = wikiPageDao.getFileHandleReservationForWiki(WikiPageKeyHelper.createWikiPageKey(objectId, objectType, wikiPage.getId()));
 		Set<Long> existingFileHandleIds = new HashSet<Long>(allFileHandles);
-		List<Long> allMarkdownHandles = wikiPageDao.getMarkdownFileHandleIdsForWiki(new WikiPageKey(objectId, objectType, wikiPage.getId()));
+		List<Long> allMarkdownHandles = wikiPageDao.getMarkdownFileHandleIdsForWiki(WikiPageKeyHelper.createWikiPageKey(objectId, objectType, wikiPage.getId()));
 		for(Long markdownId: allMarkdownHandles) {
 			existingFileHandleIds.add(markdownId);
 		}
@@ -312,7 +313,7 @@ public class V2WikiManagerImpl implements V2WikiManager {
 			throw new UnauthorizedException(String.format(USER_IS_NOT_AUTHORIZED_TEMPLATE, ACCESS_TYPE.UPDATE.name(), objectId, objectType.name()));
 		}
 		
-		WikiPageKey key = new WikiPageKey(objectId, objectType, wikiId);
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(objectId, objectType, wikiId);
 		// Get the most recent version of the wiki page for its etag
 		V2WikiPage wiki = wikiPageDao.get(key, null);
 		

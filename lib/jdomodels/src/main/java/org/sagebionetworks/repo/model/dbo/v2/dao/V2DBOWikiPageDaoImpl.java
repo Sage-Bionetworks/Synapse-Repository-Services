@@ -41,6 +41,7 @@ import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.V2WikiTranslationUtils;
@@ -202,7 +203,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		
 		// Check for parent cycle
 		if(wikiPage.getParentWikiId() != null) {
-			if(checkForParentCycle(new WikiPageKey(ownerId, ownerType, wikiPage.getParentWikiId()), wikiPage.getId())) {
+			if(checkForParentCycle(WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, wikiPage.getParentWikiId()), wikiPage.getId())) {
 				throw new IllegalArgumentException("There will be a cycle if this wiki is updated. Put in valid parentId");
 			}
 		}
@@ -236,7 +237,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		transactionalMessenger.sendMessageAfterCommit(dbo, ChangeType.CREATE);
 		
 		try {
-			return get(new WikiPageKey(ownerId, ownerType, dbo.getId().toString()), null);
+			return get(WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, dbo.getId().toString()), null);
 		} catch (NotFoundException e) {
 			// This should not occur.
 			throw new RuntimeException(e);
@@ -275,7 +276,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		
 		// Check for parent cycle
 		if(wikiPage.getParentWikiId() != null) {
-			if(checkForParentCycle(new WikiPageKey(ownerId, ownerType, wikiPage.getParentWikiId()), wikiPage.getId())) {
+			if(checkForParentCycle(WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, wikiPage.getParentWikiId()), wikiPage.getId())) {
 				throw new IllegalArgumentException("There will be a cycle if this wiki is updated. Put in valid parentId");
 			}
 		}
@@ -314,7 +315,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		// Send the change message
 		transactionalMessenger.sendMessageAfterCommit(newDbo, ChangeType.UPDATE);
 		// Return the results.
-		return get(new WikiPageKey(ownerId, ownerType, wikiPage.getId().toString()), null);
+		return get(WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, wikiPage.getId().toString()), null);
 	}
 
 	private void update(ObjectType ownerType, Long ownerIdLong,
@@ -336,7 +337,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 			if(parent.getParentWikiId() == null) {
 				nextParentKey = null;
 			} else {
-				nextParentKey = new WikiPageKey(parentKey.getOwnerObjectId(), parentKey.getOwnerObjectType(), parent.getParentWikiId());
+				nextParentKey = WikiPageKeyHelper.createWikiPageKey(parentKey.getOwnerObjectId(), parentKey.getOwnerObjectType(), parent.getParentWikiId());
 			}
 			return checkForParentCycle(nextParentKey, childId);
 		}
@@ -670,7 +671,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 						owner = KeyFactory.keyToString(Long.parseLong(owner));
 					}
 					String wikiId = rs.getString(V2_COL_WIKI_ID);
-					return new WikiPageKey(owner, type, wikiId);
+					return WikiPageKeyHelper.createWikiPageKey(owner, type, wikiId);
 				}
 			}, id);
 		}catch(EmptyResultDataAccessException e){

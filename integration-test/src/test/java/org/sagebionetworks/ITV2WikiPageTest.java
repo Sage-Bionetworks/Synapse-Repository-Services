@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
@@ -155,7 +156,7 @@ public class ITV2WikiPageTest {
 		assertNotNull(wiki.getAttachmentFileHandleIds());
 		assertEquals(1, wiki.getAttachmentFileHandleIds().size());
 		assertEquals(fileHandle.getId(), wiki.getAttachmentFileHandleIds().get(0));
-		WikiPageKey key = new WikiPageKey(project.getId(), ObjectType.ENTITY, wiki.getId());
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(project.getId(), ObjectType.ENTITY, wiki.getId());
 		toDelete.add(key);
 		Date firstModifiedOn = wiki.getModifiedOn();
 		
@@ -243,7 +244,7 @@ public class ITV2WikiPageTest {
 		assertNotNull(wiki.getAttachmentFileHandleIds());
 		assertEquals(1, wiki.getAttachmentFileHandleIds().size());
 		assertEquals(fileHandle.getId(), wiki.getAttachmentFileHandleIds().get(0));
-		WikiPageKey key = new WikiPageKey(project.getId(), ObjectType.ENTITY, wiki.getId());
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(project.getId(), ObjectType.ENTITY, wiki.getId());
 		toDelete.add(key);
 		// Store file handle before updating to delete later
 		V2WikiPage wikiV2Clone = synapse.getV2WikiPage(key);
@@ -288,7 +289,7 @@ public class ITV2WikiPageTest {
 		// Create it
 		wiki = synapse.createV2WikiPage(project.getId(), ObjectType.ENTITY, wiki);
 		assertNotNull(wiki);
-		WikiPageKey key = new WikiPageKey(project.getId(), ObjectType.ENTITY, wiki.getId());
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(project.getId(), ObjectType.ENTITY, wiki.getId());
 		toDelete.add(key);
 		
 		// Since we expect the preview file handle to be returned we need to wait for it.

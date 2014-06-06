@@ -15,7 +15,7 @@
 		"reference":{
 			"description":"Information for background reading related to the question.",
 			"type":"object",
-			"$ref":"org.sagebionetworks.repo.model.v2.wiki.WikiPageKey",
+			"$ref":"org.sagebionetworks.repo.model.dao.WikiPageKey",
 			"links": [{"rel": "describedby","href": "http://synapse.sagebase.org/access/public"}]
 		},
 		"concreteType":{

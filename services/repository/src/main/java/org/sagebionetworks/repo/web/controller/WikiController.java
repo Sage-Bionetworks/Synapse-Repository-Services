@@ -11,7 +11,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
@@ -235,7 +235,7 @@ public class WikiController extends BaseController {
 			@PathVariable String ownerId, @PathVariable String wikiId)
 			throws DatastoreException, NotFoundException, IOException {
 		return serviceProvider.getWikiService().getWikiPage(userId,
-				new WikiPageKey(ownerId, ObjectType.ENTITY, wikiId));
+				WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.ENTITY, wikiId));
 	}
 
 	/**
@@ -264,7 +264,7 @@ public class WikiController extends BaseController {
 			@PathVariable String ownerId, @PathVariable String wikiId)
 			throws DatastoreException, NotFoundException, IOException {
 		return serviceProvider.getWikiService().getWikiPage(userId,
-				new WikiPageKey(ownerId, ObjectType.EVALUATION, wikiId));
+				WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.EVALUATION, wikiId));
 	}
 
 	// Update methods.
@@ -400,7 +400,7 @@ public class WikiController extends BaseController {
 			@PathVariable String ownerId, @PathVariable String wikiId)
 			throws DatastoreException, NotFoundException {
 		serviceProvider.getWikiService().deleteWikiPage(userId,
-				new WikiPageKey(ownerId, ObjectType.ENTITY, wikiId));
+				WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.ENTITY, wikiId));
 	}
 
 	/**
@@ -431,7 +431,7 @@ public class WikiController extends BaseController {
 			@PathVariable String ownerId, @PathVariable String wikiId)
 			throws DatastoreException, NotFoundException {
 		serviceProvider.getWikiService().deleteWikiPage(userId,
-				new WikiPageKey(ownerId, ObjectType.EVALUATION, wikiId));
+				WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.EVALUATION, wikiId));
 	}
 
 	// Get Wiki Hierarchy
@@ -544,7 +544,7 @@ public class WikiController extends BaseController {
 			throws DatastoreException, NotFoundException {
 		// Get the redirect url
 		return serviceProvider.getWikiService().getAttachmentFileHandles(
-				userId, new WikiPageKey(ownerId, ObjectType.ENTITY, wikiId));
+				userId, WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.ENTITY, wikiId));
 	}
 
 	/**
@@ -578,7 +578,7 @@ public class WikiController extends BaseController {
 		return serviceProvider
 				.getWikiService()
 				.getAttachmentFileHandles(userId,
-						new WikiPageKey(ownerId, ObjectType.EVALUATION, wikiId));
+						WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.EVALUATION, wikiId));
 	}
 
 	// Files
@@ -625,7 +625,7 @@ public class WikiController extends BaseController {
 		// Get the redirect url
 		URL redirectUrl = serviceProvider.getWikiService()
 				.getAttachmentRedirectURL(userId,
-						new WikiPageKey(ownerId, ObjectType.ENTITY, wikiId),
+						WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.ENTITY, wikiId),
 						fileName);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
@@ -676,7 +676,7 @@ public class WikiController extends BaseController {
 				.getWikiService()
 				.getAttachmentRedirectURL(
 						userId,
-						new WikiPageKey(ownerId, ObjectType.EVALUATION, wikiId),
+						WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.EVALUATION, wikiId),
 						fileName);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
@@ -724,7 +724,7 @@ public class WikiController extends BaseController {
 		// Get the redirect url
 		URL redirectUrl = serviceProvider.getWikiService()
 				.getAttachmentPreviewRedirectURL(userId,
-						new WikiPageKey(ownerId, ObjectType.ENTITY, wikiId),
+						WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.ENTITY, wikiId),
 						fileName);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
@@ -775,7 +775,7 @@ public class WikiController extends BaseController {
 				.getWikiService()
 				.getAttachmentPreviewRedirectURL(
 						userId,
-						new WikiPageKey(ownerId, ObjectType.EVALUATION, wikiId),
+						WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.EVALUATION, wikiId),
 						fileName);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}

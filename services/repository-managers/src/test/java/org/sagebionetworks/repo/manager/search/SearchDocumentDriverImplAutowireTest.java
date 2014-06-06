@@ -45,6 +45,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
 import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -114,13 +115,13 @@ public class SearchDocumentDriverImplAutowireTest {
 		rootPage = createWikiPageWithMarkdown("rootMarkdown");
 		rootPage.setTitle("rootTile");
 		rootPage = wikiPageDao.create(rootPage, new HashMap<String, FileHandle>(), project.getId(), ObjectType.ENTITY, new ArrayList<String>());
-		rootKey = new WikiPageKey(project.getId(), ObjectType.ENTITY, rootPage.getId());
+		rootKey = WikiPageKeyHelper.createWikiPageKey(project.getId(), ObjectType.ENTITY, rootPage.getId());
 		// Add a sub-page;
 		subPage = createWikiPageWithMarkdown("subMarkdown");
 		subPage.setTitle("subTitle");
 		subPage.setParentWikiId(rootPage.getId());
 		subPage = wikiPageDao.create(subPage, new HashMap<String, FileHandle>(), project.getId(), ObjectType.ENTITY, new ArrayList<String>());
-		subPageKey = new WikiPageKey(project.getId(), ObjectType.ENTITY, subPage.getId());
+		subPageKey =WikiPageKeyHelper.createWikiPageKey(project.getId(), ObjectType.ENTITY, subPage.getId());
 	}
 	
 	private V2WikiPage createWikiPageWithMarkdown(String markdown) throws IOException{

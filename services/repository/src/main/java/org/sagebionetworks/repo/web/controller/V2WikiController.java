@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
@@ -234,7 +235,7 @@ public class V2WikiController extends BaseController {
 			@RequestParam(required = false) Long wikiVersion)
 			throws DatastoreException, NotFoundException {
 		return serviceProvider.getV2WikiService().getWikiPage(userId,
-				new WikiPageKey(ownerId, ObjectType.ENTITY, wikiId), wikiVersion);
+				WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.ENTITY, wikiId), wikiVersion);
 	}
 
 	/**
@@ -263,7 +264,7 @@ public class V2WikiController extends BaseController {
 			@RequestParam(required = false) Long wikiVersion)
 			throws DatastoreException, NotFoundException {
 		return serviceProvider.getV2WikiService().getWikiPage(userId,
-				new WikiPageKey(ownerId, ObjectType.EVALUATION, wikiId), wikiVersion);
+				WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.EVALUATION, wikiId), wikiVersion);
 	}
 	
 	// Update methods.
@@ -478,7 +479,7 @@ public class V2WikiController extends BaseController {
 			@PathVariable String ownerId, @PathVariable String wikiId)
 			throws DatastoreException, NotFoundException {
 		serviceProvider.getV2WikiService().deleteWikiPage(userId,
-				new WikiPageKey(ownerId, ObjectType.ENTITY, wikiId));
+				WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.ENTITY, wikiId));
 	}
 
 	/**
@@ -509,7 +510,7 @@ public class V2WikiController extends BaseController {
 			@PathVariable String ownerId, @PathVariable String wikiId)
 			throws DatastoreException, NotFoundException {
 		serviceProvider.getV2WikiService().deleteWikiPage(userId,
-				new WikiPageKey(ownerId, ObjectType.EVALUATION, wikiId));
+				WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.EVALUATION, wikiId));
 	}
 
 	// Get Wiki Hierarchy
@@ -632,7 +633,7 @@ public class V2WikiController extends BaseController {
 			@PathVariable String ownerId) throws DatastoreException,
 			NotFoundException {
 		return serviceProvider.getV2WikiService().getWikiHistory(userId, ownerId, ObjectType.ENTITY, 
-				limit, offset, new WikiPageKey(ownerId, ObjectType.ENTITY, wikiId));
+				limit, offset, WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.ENTITY, wikiId));
 
 	}
 
@@ -676,7 +677,7 @@ public class V2WikiController extends BaseController {
 			@PathVariable String ownerId) throws DatastoreException,
 			NotFoundException {
 		return serviceProvider.getV2WikiService().getWikiHistory(userId, ownerId, ObjectType.EVALUATION, 
-				limit, offset, new WikiPageKey(ownerId, ObjectType.EVALUATION, wikiId));
+				limit, offset, WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.EVALUATION, wikiId));
 
 	}
 	
@@ -711,7 +712,7 @@ public class V2WikiController extends BaseController {
 			throws DatastoreException, NotFoundException {
 		// Get the redirect url
 		return serviceProvider.getV2WikiService().getAttachmentFileHandles(
-				userId, new WikiPageKey(ownerId, ObjectType.ENTITY, wikiId), wikiVersion);
+				userId, WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.ENTITY, wikiId), wikiVersion);
 	}
 
 	/**
@@ -746,7 +747,7 @@ public class V2WikiController extends BaseController {
 		return serviceProvider
 				.getV2WikiService()
 				.getAttachmentFileHandles(userId,
-						new WikiPageKey(ownerId, ObjectType.EVALUATION, wikiId), wikiVersion);
+						WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.EVALUATION, wikiId), wikiVersion);
 	}
 
 	// Files
@@ -794,7 +795,7 @@ public class V2WikiController extends BaseController {
 		// Get the redirect url
 		URL redirectUrl = serviceProvider.getV2WikiService()
 				.getAttachmentRedirectURL(userId,
-						new WikiPageKey(ownerId, ObjectType.ENTITY, wikiId),
+						WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.ENTITY, wikiId),
 						fileName, wikiVersion);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
@@ -846,7 +847,7 @@ public class V2WikiController extends BaseController {
 				.getV2WikiService()
 				.getAttachmentRedirectURL(
 						userId,
-						new WikiPageKey(ownerId, ObjectType.EVALUATION, wikiId),
+						WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.EVALUATION, wikiId),
 						fileName, wikiVersion);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
@@ -895,7 +896,7 @@ public class V2WikiController extends BaseController {
 		// Get the redirect url
 		URL redirectUrl = serviceProvider.getV2WikiService()
 				.getAttachmentPreviewRedirectURL(userId,
-						new WikiPageKey(ownerId, ObjectType.ENTITY, wikiId),
+						WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.ENTITY, wikiId),
 						fileName, wikiVersion);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
@@ -947,7 +948,7 @@ public class V2WikiController extends BaseController {
 				.getV2WikiService()
 				.getAttachmentPreviewRedirectURL(
 						userId,
-						new WikiPageKey(ownerId, ObjectType.EVALUATION, wikiId),
+						WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.EVALUATION, wikiId),
 						fileName, wikiVersion);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
@@ -987,7 +988,7 @@ public class V2WikiController extends BaseController {
 		// Get the redirect url
 		URL redirectUrl = serviceProvider.getV2WikiService()
 				.getMarkdownRedirectURL(userId,
-						new WikiPageKey(ownerId, ObjectType.ENTITY, wikiId), wikiVersion);
+						WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.ENTITY, wikiId), wikiVersion);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
 	
@@ -1026,7 +1027,7 @@ public class V2WikiController extends BaseController {
 		// Get the redirect url
 		URL redirectUrl = serviceProvider.getV2WikiService()
 				.getMarkdownRedirectURL(userId,
-						new WikiPageKey(ownerId, ObjectType.EVALUATION, wikiId), wikiVersion);
+						WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.EVALUATION, wikiId), wikiVersion);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
 }
