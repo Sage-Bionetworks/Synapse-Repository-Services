@@ -268,8 +268,7 @@ public class PreviewWorkerTest {
 		assertTrue("The message should be returned as processed so it can be deleted from the queue",isMessageOnList(processedList, message));
 		// We should generate 
 		verify(mockPreveiwManager).generatePreview(any(S3FileHandle.class));
-		verify(mockWorkerLogger, never()).logWorkerFailure(eq(PreviewWorker.class), eq(change), any(NotFoundException.class), eq(false));
-		verify(mockWorkerLogger, never()).logWorkerFailure(eq(PreviewWorker.class), eq(change), any(NotFoundException.class), eq(true));
+		verify(mockWorkerLogger, never()).logWorkerFailure(eq(PreviewWorker.class), eq(change), any(NotFoundException.class), anyBoolean());
 	}
 	
 	@Test
