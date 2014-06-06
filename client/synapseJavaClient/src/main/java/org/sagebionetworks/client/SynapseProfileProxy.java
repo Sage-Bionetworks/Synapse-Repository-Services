@@ -15,10 +15,13 @@ import org.apache.logging.log4j.Logger;
  *
  */
 public class SynapseProfileProxy {
-	
 	private static Logger log = LogManager.getLogger(SynapseProfileProxy.class);
 	
 	private static String MESSAGE_TEMPALTE = "%1$s in %2$,d ms";
+
+	//if the call takes more than this time (in ms), and tracing is enabled, then send the method and time to the log (using MESSAGE_TEMPALTE)
+	private static final long LOGGING_THRESHOLD_MS = 200; 
+
 	/**
 	 * Create a proxy of the Synapse Java that profiles all calls. 
 	 * @param toProxy
@@ -57,7 +60,7 @@ public class SynapseProfileProxy {
 				throw e.getCause();
 			} finally{
 				long elapse = System.currentTimeMillis()-start;
-				if(log.isTraceEnabled()){
+				if(log.isTraceEnabled() && elapse > LOGGING_THRESHOLD_MS){
 					log.trace(String.format(MESSAGE_TEMPALTE, method.getName(), elapse));
 				}
 			}
