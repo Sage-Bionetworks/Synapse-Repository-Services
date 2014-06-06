@@ -150,7 +150,7 @@ public class SemaphoreGatedRunnerImplTest {
 		when(mockSemaphoreDao.attemptToAcquireLock(semaphoreKey + "-1", timeoutMS)).thenReturn(token);
 		// run
 		Callable<Void> call = Mockito.mock(Callable.class);
-		semaphoreGatedRunner.attemptToRunAllSlots(call);
+		semaphoreGatedRunner.attemptToRunAllSlots(call, null);
 		verify(call).call();
 		verify(mockSemaphoreDao).attemptToAcquireLock(semaphoreKey + "-1", timeoutMS);
 		verify(mockSemaphoreDao).releaseLock(semaphoreKey + "-1", token);
@@ -170,7 +170,7 @@ public class SemaphoreGatedRunnerImplTest {
 		when(mockSemaphoreDao.attemptToAcquireLock(semaphoreKey + "-0", timeoutMS)).thenReturn(token);
 		// run
 		Callable<Void> call = Mockito.mock(Callable.class);
-		semaphoreGatedRunner.attemptToRunAllSlots(call);
+		semaphoreGatedRunner.attemptToRunAllSlots(call, null);
 		verify(call).call();
 		verify(mockSemaphoreDao).attemptToAcquireLock(semaphoreKey + "-1", timeoutMS);
 		verify(mockSemaphoreDao).attemptToAcquireLock(semaphoreKey + "-0", timeoutMS);
@@ -192,7 +192,7 @@ public class SemaphoreGatedRunnerImplTest {
 		// run
 		Callable<Void> call = Mockito.mock(Callable.class);
 		try {
-			semaphoreGatedRunner.attemptToRunAllSlots(call);
+			semaphoreGatedRunner.attemptToRunAllSlots(call, null);
 		} finally {
 			verify(call, never()).call();
 			verify(mockSemaphoreDao).attemptToAcquireLock(semaphoreKey + "-1", timeoutMS);
@@ -200,5 +200,39 @@ public class SemaphoreGatedRunnerImplTest {
 			verify(mockSemaphoreDao, never()).releaseLock(anyString(), anyString());
 			verifyNoMoreInteractions(mockSemaphoreDao);
 		}
+	}
+
+	@Test
+	public void testRunIndependent() throws Exception {
+		// this sequence will basically invert the key set, so 1, then 0
+		Random randomGen = Mockito.mock(Random.class);
+		when(randomGen.nextInt(2)).thenReturn(0);
+		ReflectionTestUtils.setField(semaphoreGatedRunner, "randomGen", randomGen);
+		semaphoreGatedRunner.setMaxNumberRunners(2);
+
+		when(mockSemaphoreDao.attemptToAcquireLock(semaphoreKey + "-yy" + "-0", timeoutMS)).thenReturn(null);
+		when(mockSemaphoreDao.attemptToAcquireLock(semaphoreKey + "-yy" + "-1", timeoutMS)).thenReturn(null);
+		when(mockSemaphoreDao.attemptToAcquireLock(semaphoreKey + "-xx" + "-1", timeoutMS)).thenReturn(null);
+		String token = "someToken";
+		when(mockSemaphoreDao.attemptToAcquireLock(semaphoreKey + "-xx" + "-0", timeoutMS)).thenReturn(token);
+		// run
+		Callable<Void> call1 = Mockito.mock(Callable.class);
+		Callable<Void> call2 = Mockito.mock(Callable.class);
+		semaphoreGatedRunner.attemptToRunAllSlots(call1, "xx");
+		try {
+			semaphoreGatedRunner.attemptToRunAllSlots(call2, "yy");
+			fail("Should have failed");
+		} catch (LockUnavilableException e) {
+		}
+		verify(call1).call();
+		verify(call2, never()).call();
+		verify(mockSemaphoreDao).attemptToAcquireLock(semaphoreKey + "-yy" + "-1", timeoutMS);
+		verify(mockSemaphoreDao).attemptToAcquireLock(semaphoreKey + "-yy" + "-0", timeoutMS);
+		verify(mockSemaphoreDao).attemptToAcquireLock(semaphoreKey + "-xx" + "-1", timeoutMS);
+		verify(mockSemaphoreDao).attemptToAcquireLock(semaphoreKey + "-xx" + "-0", timeoutMS);
+		verify(mockSemaphoreDao).releaseLock(semaphoreKey + "-xx" + "-0", token);
+		verify(mockSemaphoreDao, never()).releaseLock(eq(semaphoreKey + "-xx" + "-1"), anyString());
+		verify(mockSemaphoreDao, never()).releaseLock(eq(semaphoreKey + "-yy" + "-1"), anyString());
+		verifyNoMoreInteractions(mockSemaphoreDao);
 	}
 }
