@@ -256,7 +256,6 @@ public class PreviewWorkerTest {
 		S3FileHandle meta = new S3FileHandle();
 		meta.setContentSize(0L);
 		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenReturn(meta);
-		IllegalArgumentException expectedException = new IllegalArgumentException();
 		when(mockPreveiwManager.generatePreview(meta)).thenReturn(null);
 		// create the worker.
 		PreviewWorker worker = new PreviewWorker(mockPreveiwManager, inputList, mockWorkerLogger);

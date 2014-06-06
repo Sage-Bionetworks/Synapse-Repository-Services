@@ -110,7 +110,7 @@ public class PreviewManagerImpl implements  PreviewManager {
 		if(metadata.getContentType() == null) throw new IllegalArgumentException("metadata.getContentType() cannot be null");
 		if(metadata.getContentSize() == null) throw new IllegalArgumentException("metadata.getContentSize() cannot be null");
 		// there is nothing to do if the file is empty
-		if (metadata.getContentSize() == 0) {
+		if (metadata.getContentSize() == 0L) {
 			log.info("Cannot generate preview of empty file");
 			return null;
 		}
