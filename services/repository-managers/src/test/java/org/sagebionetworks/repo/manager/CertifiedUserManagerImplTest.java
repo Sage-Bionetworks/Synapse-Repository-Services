@@ -40,6 +40,7 @@ import org.sagebionetworks.repo.model.quiz.QuestionVariety;
 import org.sagebionetworks.repo.model.quiz.Quiz;
 import org.sagebionetworks.repo.model.quiz.QuizGenerator;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
+import org.sagebionetworks.repo.model.quiz.ResponseCorrectness;
 import org.sagebionetworks.repo.model.quiz.TextFieldQuestion;
 import org.sagebionetworks.repo.model.quiz.TextFieldResponse;
 import org.sagebionetworks.repo.web.ForbiddenException;
@@ -421,6 +422,12 @@ public class CertifiedUserManagerImplTest {
 		PassingRecord passingRecord = CertifiedUserManagerImpl.scoreQuizResponse(gen, resp);
 		assertTrue(passingRecord.getPassed());
 		assertEquals(new Long(2L), passingRecord.getScore());
+		// make sure all the responses are in the 'passing record'
+		assertEquals(resp.getQuestionResponses().size(), passingRecord.getCorrections().size());
+		for (ResponseCorrectness rc : passingRecord.getCorrections()) {
+			assertTrue(resp.getQuestionResponses().contains(rc.getResponse()));
+			assertTrue(rc.getIsCorrect());
+		}
 	}
 
 	private static QuizResponse createFailingQuizResponse(long quizId) {
@@ -450,6 +457,19 @@ public class CertifiedUserManagerImplTest {
 		PassingRecord passingRecord = CertifiedUserManagerImpl.scoreQuizResponse(gen, resp);
 		assertFalse(passingRecord.getPassed());
 		assertEquals(new Long(1L), passingRecord.getScore());
+		// make sure all the responses are in the 'passing record'
+		assertEquals(resp.getQuestionResponses().size(), passingRecord.getCorrections().size());
+		for (ResponseCorrectness rc : passingRecord.getCorrections()) {
+			assertTrue(resp.getQuestionResponses().contains(rc.getResponse()));
+			Long qi = rc.getResponse().getQuestionIndex();
+			if (qi==1L) {
+				assertTrue(rc.getIsCorrect());
+			} else if (qi==3L) {
+				assertFalse(rc.getIsCorrect());
+			} else {
+				fail("Unexpected question index "+qi);
+			}
+		}
 	}
 	
 	private static QuizResponse createIllegalQuizResponse(long quizId) {
@@ -508,7 +528,7 @@ public class CertifiedUserManagerImplTest {
 		assertEquals(2L, passingRecord.getScore().longValue());
 		assertNotNull(quizResponse.getCreatedOn());
 		verify(quizResponseDao).create(eq(quizResponse), captor.capture());
-		verify(groupMembersDao).addMembers(anyString(), (List<String>)anyObject());
+		verify(groupMembersDao).addMembers(anyString(), (List<String>)any());
 		assertEquals(passingRecord.getPassed(), pr.getPassed());
 		assertNotNull(pr.getPassedOn());
 		assertEquals(created.getQuizId(), pr.getQuizId());
@@ -544,7 +564,7 @@ public class CertifiedUserManagerImplTest {
 		assertEquals(quizGenerator.getId(), quizResponse.getQuizId());
 		assertEquals(1L, passingRecord.getScore().longValue());
 		assertNotNull(quizResponse.getCreatedOn());
-		verify(groupMembersDao, never()).addMembers(anyString(), (List<String>)anyObject());
+		verify(groupMembersDao, never()).addMembers(anyString(), (List<String>)any());
 		assertEquals(passingRecord.getPassed(), pr.getPassed());
 		assertNotNull(pr.getPassedOn());
 		assertEquals(created.getQuizId(), pr.getQuizId());
