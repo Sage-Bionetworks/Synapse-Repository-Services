@@ -78,7 +78,7 @@ public class UserThrottleFilterTest {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		FilterChain filterChain = mock(FilterChain.class);
 
-		when(userThrottleGate.attemptToRunAllSlots(any(Callable.class))).thenAnswer(new Answer<Void>() {
+		when(userThrottleGate.attemptToRunAllSlots(any(Callable.class), eq("111"))).thenAnswer(new Answer<Void>() {
 			@Override
 			public Void answer(InvocationOnMock invocation) throws Throwable {
 				return ((Callable<Void>) invocation.getArguments()[0]).call();
@@ -87,7 +87,7 @@ public class UserThrottleFilterTest {
 		filter.doFilter(request, response, filterChain);
 
 		verify(filterChain).doFilter(request, response);
-		verify(userThrottleGate).attemptToRunAllSlots(any(Callable.class));
+		verify(userThrottleGate).attemptToRunAllSlots(any(Callable.class), eq("111"));
 		verifyNoMoreInteractions(filterChain, userThrottleGate);
 	}
 
@@ -99,11 +99,11 @@ public class UserThrottleFilterTest {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		FilterChain filterChain = mock(FilterChain.class);
 
-		when(userThrottleGate.attemptToRunAllSlots(any(Callable.class))).thenThrow(new Exception());
+		when(userThrottleGate.attemptToRunAllSlots(any(Callable.class), eq("111"))).thenThrow(new Exception());
 		try {
 			filter.doFilter(request, response, filterChain);
 		} finally {
-			verify(userThrottleGate).attemptToRunAllSlots(any(Callable.class));
+			verify(userThrottleGate).attemptToRunAllSlots(any(Callable.class), eq("111"));
 			verifyNoMoreInteractions(filterChain, userThrottleGate);
 		}
 	}
@@ -118,12 +118,12 @@ public class UserThrottleFilterTest {
 		Consumer consumer = mock(Consumer.class);
 		ReflectionTestUtils.setField(filter, "consumer", consumer);
 
-		when(userThrottleGate.attemptToRunAllSlots(any(Callable.class))).thenThrow(new LockUnavilableException());
+		when(userThrottleGate.attemptToRunAllSlots(any(Callable.class), eq("111"))).thenThrow(new LockUnavilableException());
 
 		filter.doFilter(request, response, filterChain);
 		assertEquals(503, response.getStatus());
 
-		verify(userThrottleGate).attemptToRunAllSlots(any(Callable.class));
+		verify(userThrottleGate).attemptToRunAllSlots(any(Callable.class), eq("111"));
 		verify(consumer).addProfileData(any(ProfileData.class));
 		verifyNoMoreInteractions(filterChain, userThrottleGate, consumer);
 	}

@@ -63,7 +63,7 @@ public class UserThrottleFilter implements Filter {
 						chain.doFilter(request, response);
 						return null;
 					}
-				});
+				}, userId);
 			} catch (LockUnavilableException e) {
 				ProfileData lockUnavailableEvent = new ProfileData();
 				lockUnavailableEvent.setNamespace(this.getClass().getName());

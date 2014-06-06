@@ -36,10 +36,10 @@ public interface SemaphoreGatedRunner {
 	 * Note: The implementation does not need to guarantee that if a lock is available, it will be acquired, but the
 	 * method will try each possible slot once
 	 */
-	public <T> T attemptToRunAllSlots(Callable<T> task) throws Exception;
+	public <T> T attemptToRunAllSlots(Callable<T> task, String extraKey) throws Exception;
 
 	/**
 	 * Returns all keys needed to prevent this runner from starting any workers (For testing purposes)
 	 */
-	public List<String> getAllLockKeys();
+	public List<String> getAllLockKeys(String extraKey);
 }
