@@ -2,6 +2,11 @@
 	"type":"object",
 	"description":"A user response and whether it is correct.",
     "properties":{
+    	"question":{
+     		"type":"object",
+			"$ref":"org.sagebionetworks.repo.model.quiz.Question",
+			"description":"The original question answered by the user"   		
+    	},
     	"response":{
     		"type":"object",
 			"$ref":"org.sagebionetworks.repo.model.quiz.QuestionResponse",

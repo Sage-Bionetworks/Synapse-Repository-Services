@@ -251,6 +251,26 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 		}
 	}
 	
+	public static Question cloneAndScrubPrivateFields(Question question) {
+		Question clone;
+		if (question.getConcreteType().equals("org.sagebionetworks.repo.model.quiz.MultichoiceQuestion")) {
+			clone = new MultichoiceQuestion();
+		} else if (question.getConcreteType().equals("org.sagebionetworks.repo.model.quiz.TextFieldQuestion")) {
+			clone = new TextFieldQuestion();
+		} else {
+			throw new IllegalArgumentException("Unexpected type "+question.getConcreteType());
+		}
+		try {
+			JSONObjectAdapter adapter = (new JSONObjectAdapterImpl()).createNew();
+			question.writeToJSONObject(adapter);
+			clone.initializeFromJSONObject(adapter);
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
+		}
+		PrivateFieldUtils.clearPrivateFields(clone);
+		return clone;
+	}
+	
 	/**
 	 * fills in 'pass' and 'score' in the response
 	 * @param quiz
@@ -279,6 +299,7 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 							boolean isCorrect = isCorrectResponse(q, r);
 							responseMap.put(questionVarietyIndex, isCorrect);
 							ResponseCorrectness rc = new ResponseCorrectness();
+							rc.setQuestion(cloneAndScrubPrivateFields(q));
 							rc.setResponse(r);
 							rc.setIsCorrect(isCorrect);
 							corrections.add(rc);

@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
+import org.sagebionetworks.repo.model.quiz.PassingRecord;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
 
 @Table(name = SqlConstants.TABLE_QUIZ_RESPONSE)
@@ -81,7 +82,17 @@ public class DBOQuizResponse implements MigratableDatabaseObject<DBOQuizResponse
 					dto.setQuestionResponses(r.getQuestionResponses());
 					dto.setQuizId(r.getQuizId());
 					backup.setSerialized(JDOSecondaryPropertyUtils.compressObject(dto));
-					return backup;
+					if (backup.getPassingRecord()==null) {
+						PassingRecord pr = new PassingRecord();
+						pr.setPassed(r.getPass());
+						pr.setPassedOn(r.getCreatedOn());
+						pr.setQuizId(r.getQuizId());
+						pr.setResponseId(r.getId());
+						pr.setScore(r.getScore());
+						pr.setUserId(r.getCreatedBy());
+						backup.setPassingRecord(JDOSecondaryPropertyUtils.compressObject(pr));
+					}
+ 					return backup;
 				} catch (IOException e) {
 					throw new RuntimeException(e);
 				}
