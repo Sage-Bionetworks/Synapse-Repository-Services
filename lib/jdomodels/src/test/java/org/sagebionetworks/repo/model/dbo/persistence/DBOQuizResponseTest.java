@@ -1,9 +1,11 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import org.junit.Test;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
+import org.sagebionetworks.repo.model.quiz.PassingRecord;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
 
 public class DBOQuizResponseTest {
@@ -27,6 +29,13 @@ public class DBOQuizResponseTest {
 		assertEquals(backup, dbo);
 		QuizResponse deserialized = (QuizResponse)JDOSecondaryPropertyUtils.decompressedObject(dbo.getSerialized());
 		assertEquals(dto, deserialized);
+		
+		assertNotNull(dbo.getPassingRecord());
+		
+		PassingRecord pr = (PassingRecord)JDOSecondaryPropertyUtils.decompressedObject(dbo.getPassingRecord());
+		assertEquals((long)202L, (long)pr.getQuizId());
+		assertEquals((long)101L, (long)pr.getResponseId());
+		
 	}
 
 }

@@ -16,6 +16,8 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.amazonaws.services.sns.AmazonSNSClient;
 import com.amazonaws.services.sns.model.CreateTopicRequest;
@@ -149,7 +151,12 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 		}
 		// Publish each message to the topic
 		for(ChangeMessage message: currentQueue){
-			publishToTopic(message);
+			try {
+				publishToTopic(message);
+			} catch (Throwable e) {
+				// If one messages fails, we must send the rest.
+				log.error("Failed to publish message.", e);
+			}
 		}
 	}
 	
@@ -188,38 +195,33 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 
 	/**
 	 * Publish the message and recored it as sent.
-	 * 
+	 * Each sent message requires its own transaction.
 	 * @param message
 	 */
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
 	@Override
 	public boolean publishToTopic(ChangeMessage message) {
+		String json;
 		try {
-			String json = EntityFactory.createJSONStringForEntity(message);
-			if(log.isTraceEnabled()){
-				log.info("Publishing a message: "+json);
-			}
-			String topicArn = getTopicInfoLazy(message.getObjectType()).getArn();
-			awsSNSClient.publish(new PublishRequest(topicArn, json));
-			// Register the message was sent
-			this.transactionalMessanger.registerMessageSent(message);
-			return true;
+			json = EntityFactory.createJSONStringForEntity(message);
 		} catch (JSONObjectAdapterException e) {
-			// This should not occur.
-			// If it does we want to log it but continue to send messages
-			// as this is called from a timer and not a web-services.
-			log.error("Failed to parse ChangeMessage:", e);
-			return false;
-		}catch (IllegalArgumentException e){
-			// This can occur when we try to send a message that has already been sent.
-		}catch (NotFoundException e){
-			// This can occur when we try to send a message that has already been deleted.
-		}catch (DataIntegrityViolationException e){
-			// This can occur when we try to send a message that has already been deleted or has already been sent.
-		}catch (Throwable e){
-			// This should never throw an exception.
-			log.error("Unknown failure: "+e.getMessage(),e);
+			// should never occur
+			throw new RuntimeException(e);
 		}
-		return false;
+		if (log.isTraceEnabled()) {
+			log.info("Publishing a message: " + json);
+		}
+		// Register the message was sent within this transaction.
+		// It is important to do this before we actual send the message to the
+		// topic because we do not want to sent out duplicate messages (see
+		// PLFM-2821)
+		this.transactionalMessanger.registerMessageSent(message);
+		String topicArn = getTopicInfoLazy(message.getObjectType()).getArn();
+		// Publish the message to the topic.
+		// NOTE: If this fails the transaction will be rolled back so
+		// the message will not be registered as sent.
+		awsSNSClient.publish(new PublishRequest(topicArn, json));
+		return true;
 	}
 	
 	/**

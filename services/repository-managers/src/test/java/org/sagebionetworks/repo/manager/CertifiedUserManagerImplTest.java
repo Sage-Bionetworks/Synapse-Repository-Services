@@ -3,11 +3,11 @@ package org.sagebionetworks.repo.manager;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.never;
@@ -295,6 +295,36 @@ public class CertifiedUserManagerImplTest {
 		assertNotNull(certifiedUserManager.getCertificationQuiz().getId());
 	}
 	
+	@Test
+	public void testCloneAndScrubPrivateFields() throws Exception {
+		MultichoiceQuestion mcq = new MultichoiceQuestion();
+		mcq.setQuestionIndex(1L);
+		mcq.setPrompt("foo");
+		List<MultichoiceAnswer> mcas = new ArrayList<MultichoiceAnswer>();
+		MultichoiceAnswer mca = new MultichoiceAnswer();
+		mca.setAnswerIndex(1L);
+		mca.setIsCorrect(true);
+		mca.setPrompt("bar");
+		mcas.add(mca);
+		mcq.setAnswers(mcas);
+		MultichoiceQuestion mcqClone = (MultichoiceQuestion)CertifiedUserManagerImpl.cloneAndScrubPrivateFields(mcq);
+		assertEquals(mcq.getPrompt(), mcqClone.getPrompt());
+		assertEquals(mcq.getQuestionIndex(), mcqClone.getQuestionIndex());
+		assertNull(mcqClone.getAnswers().get(0).getIsCorrect());
+		assertTrue(mcq.getAnswers().get(0).getIsCorrect());
+		
+		//now try a textfield question
+		TextFieldQuestion tfq = new TextFieldQuestion();
+		tfq.setQuestionIndex(1L);
+		tfq.setPrompt("foo");
+		tfq.setAnswer("bar");
+		TextFieldQuestion tfqClone = (TextFieldQuestion)CertifiedUserManagerImpl.cloneAndScrubPrivateFields(tfq);
+		assertEquals(tfq.getPrompt(), tfqClone.getPrompt());
+		assertEquals(tfq.getQuestionIndex(), tfqClone.getQuestionIndex());
+		assertNull(tfqClone.getAnswer());
+		assertEquals("bar", tfq.getAnswer());
+	}
+		
 	private static MultichoiceAnswer createMultichoiceAnswer(Boolean isCorrect, Long index) {
 		MultichoiceAnswer ma = new MultichoiceAnswer();
 		ma.setAnswerIndex(index);
@@ -427,6 +457,18 @@ public class CertifiedUserManagerImplTest {
 		for (ResponseCorrectness rc : passingRecord.getCorrections()) {
 			assertTrue(resp.getQuestionResponses().contains(rc.getResponse()));
 			assertTrue(rc.getIsCorrect());
+			assertNotNull(rc.getQuestion());
+			if (rc.getQuestion() instanceof MultichoiceQuestion) {
+				MultichoiceQuestion mcq = (MultichoiceQuestion)rc.getQuestion();
+				for (MultichoiceAnswer ma : mcq.getAnswers()) {
+					assertNull(ma.getIsCorrect());
+				}
+			} else if (rc.getQuestion() instanceof TextFieldQuestion) {
+				TextFieldQuestion tfq = (TextFieldQuestion)rc.getQuestion();
+				assertNull(tfq.getAnswer());
+			} else {
+				fail("Unknown type "+rc.getQuestion().getClass());
+			}
 		}
 	}
 
@@ -468,6 +510,18 @@ public class CertifiedUserManagerImplTest {
 				assertFalse(rc.getIsCorrect());
 			} else {
 				fail("Unexpected question index "+qi);
+			}
+			assertNotNull(rc.getQuestion());
+			if (rc.getQuestion() instanceof MultichoiceQuestion) {
+				MultichoiceQuestion mcq = (MultichoiceQuestion)rc.getQuestion();
+				for (MultichoiceAnswer ma : mcq.getAnswers()) {
+					assertNull(ma.getIsCorrect());
+				}
+			} else if (rc.getQuestion() instanceof TextFieldQuestion) {
+				TextFieldQuestion tfq = (TextFieldQuestion)rc.getQuestion();
+				assertNull(tfq.getAnswer());
+			} else {
+				fail("Unknown type "+rc.getQuestion().getClass());
 			}
 		}
 	}

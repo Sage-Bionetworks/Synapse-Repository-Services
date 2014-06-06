@@ -46,7 +46,12 @@ public class SubmissionStatusAnnotationsAsyncManagerImpl implements SubmissionSt
 
 	private boolean isSubmissionsEtagValid(String evalId, String submissionsEtag) 
 			throws NumberFormatException, NotFoundException {
-		EvaluationSubmissions evalSubs = evaluationSubmissionsDAO.getForEvaluation(Long.parseLong(evalId));
+		EvaluationSubmissions evalSubs;
+		try {
+			evalSubs = evaluationSubmissionsDAO.getForEvaluation(Long.parseLong(evalId));
+		} catch (NotFoundException e) {
+			return false;
+		}
 		if (evalSubs==null) return false;
 		return evalSubs.getEtag()!=null && evalSubs.getEtag().equals(submissionsEtag);
 	}

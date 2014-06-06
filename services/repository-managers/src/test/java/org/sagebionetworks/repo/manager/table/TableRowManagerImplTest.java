@@ -30,12 +30,13 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 
+import org.junit.Assume;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -72,7 +73,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-@Ignore
 public class TableRowManagerImplTest {
 	
 	TableRowTruthDAO mockTruthDao;
@@ -94,6 +94,7 @@ public class TableRowManagerImplTest {
 	
 	@Before
 	public void before() throws Exception {
+		Assume.assumeTrue(StackConfiguration.singleton().getTableEnabled());
 		mockTruthDao = Mockito.mock(TableRowTruthDAO.class);
 		mockAuthManager = Mockito.mock(AuthorizationManager.class);
 		mockTableStatusDAO = Mockito.mock(TableStatusDAO.class);
