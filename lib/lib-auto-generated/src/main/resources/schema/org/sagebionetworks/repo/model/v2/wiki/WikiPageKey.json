@@ -13,7 +13,7 @@
 		},
 		"ownerObjectType": {
 			"type": "object",
-			"$ref": "org.sagebionetworks.repo.model.ObjectType"
+			"$ref": "org.sagebionetworks.repo.model.ObjectType",
 			"description": "The owner of this page.",
 			"links": [{"rel": "describedby","href": "http://synapse.sagebase.org/access/public"}]
 		}
