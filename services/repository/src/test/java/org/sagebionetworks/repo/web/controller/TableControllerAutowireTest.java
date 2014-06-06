@@ -15,9 +15,11 @@ import javax.servlet.ServletException;
 import junit.framework.Assert;
 
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Project;
@@ -49,6 +51,8 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 
 	@Autowired
 	private FileHandleDao fileMetadataDao;
+	@Autowired
+	StackConfiguration config;
 
 	private Entity parent;
 	private Long adminUserId;
@@ -57,6 +61,8 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 	
 	@Before
 	public void before() throws Exception {
+		Assume.assumeTrue(config.getTableEnabled());
+	
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		
 		parent = new Project();
@@ -67,13 +73,15 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 	
 	@After
 	public void after(){
-		if(parent != null){
-			try {
-				servletTestHelper.deleteEntity(dispatchServlet, Project.class, parent.getId(), adminUserId);
-			} catch (Exception e) {} 
-		}
-		for (S3FileHandle handle : handles) {
-			fileMetadataDao.delete(handle.getId());
+		if(config.getTableEnabled()){
+			if(parent != null){
+				try {
+					servletTestHelper.deleteEntity(dispatchServlet, Project.class, parent.getId(), adminUserId);
+				} catch (Exception e) {} 
+			}
+			for (S3FileHandle handle : handles) {
+				fileMetadataDao.delete(handle.getId());
+			}
 		}
 	}
 
