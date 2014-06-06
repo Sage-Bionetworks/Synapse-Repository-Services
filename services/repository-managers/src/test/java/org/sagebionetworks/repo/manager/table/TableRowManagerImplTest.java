@@ -74,7 +74,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-@Ignore
 public class TableRowManagerImplTest {
 	
 	TableRowTruthDAO mockTruthDao;

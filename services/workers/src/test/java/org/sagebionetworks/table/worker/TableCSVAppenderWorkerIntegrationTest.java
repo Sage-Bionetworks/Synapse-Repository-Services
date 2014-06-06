@@ -52,7 +52,6 @@ import au.com.bytecode.opencsv.CSVWriter;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 
-@Ignore // necessary for local build to pass
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class TableCSVAppenderWorkerIntegrationTest {
