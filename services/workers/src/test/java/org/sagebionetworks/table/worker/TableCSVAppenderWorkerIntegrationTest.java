@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -85,6 +86,8 @@ public class TableCSVAppenderWorkerIntegrationTest {
 	
 	@Before
 	public void before() throws NotFoundException{
+		// Only run this test if the table feature is enabled.
+		Assume.assumeTrue(config.getTableEnabled());
 		semphoreManager.releaseAllLocksAsAdmin(new UserInfo(true));
 		// Start with an empty queue.
 		asynchJobStatusManager.emptyAllQueues();
@@ -95,19 +98,21 @@ public class TableCSVAppenderWorkerIntegrationTest {
 	
 	@After
 	public void after(){
-		if(adminUserInfo != null){
-			for(String id: toDelete){
-				try {
-					entityManager.deleteEntity(adminUserInfo, id);
-				} catch (Exception e) {}
+		if(config.getTableEnabled()){
+			if(adminUserInfo != null){
+				for(String id: toDelete){
+					try {
+						entityManager.deleteEntity(adminUserInfo, id);
+					} catch (Exception e) {}
+				}
 			}
-		}
-		if(tempFile != null){
-			tempFile.delete();
-		}
-		if(fileHandle != null){
-			s3Client.deleteObject(fileHandle.getBucketName(), fileHandle.getKey());
-			fileHandleDao.delete(fileHandle.getId());
+			if(tempFile != null){
+				tempFile.delete();
+			}
+			if(fileHandle != null){
+				s3Client.deleteObject(fileHandle.getBucketName(), fileHandle.getKey());
+				fileHandleDao.delete(fileHandle.getId());
+			}
 		}
 	}
 
