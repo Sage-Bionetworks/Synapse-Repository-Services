@@ -69,7 +69,10 @@ public class DBOQuizResponse implements MigratableDatabaseObject<DBOQuizResponse
 			public DBOQuizResponse createDatabaseObjectFromBackup(DBOQuizResponse backup) {
 				try {
 				LegacyQuizResponseDTO r = 
-						(LegacyQuizResponseDTO)JDOSecondaryPropertyUtils.decompressedObject(backup.getSerialized());
+						(LegacyQuizResponseDTO)JDOSecondaryPropertyUtils.
+						decompressedObject(backup.getSerialized(), 
+						QuizResponse.class.getName(), 
+						LegacyQuizResponseDTO.class);
 				QuizResponse dto = new QuizResponse();
 				dto.setCreatedBy(r.getCreatedBy());
 				dto.setCreatedOn(r.getCreatedOn());

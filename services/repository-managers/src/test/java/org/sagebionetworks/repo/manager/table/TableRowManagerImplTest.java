@@ -31,6 +31,7 @@ import java.util.UUID;
 import java.util.concurrent.Callable;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
@@ -71,6 +72,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+@Ignore
 public class TableRowManagerImplTest {
 	
 	TableRowTruthDAO mockTruthDao;
