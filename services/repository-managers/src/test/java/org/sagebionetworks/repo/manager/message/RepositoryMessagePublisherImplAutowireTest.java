@@ -3,6 +3,10 @@ package org.sagebionetworks.repo.manager.message;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -15,7 +19,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
+
 import static org.mockito.Mockito.*;
+
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
@@ -149,5 +155,28 @@ public class RepositoryMessagePublisherImplAutowireTest {
 			verify(mockSNSClient, times(1)).publish(new PublishRequest(messagePublisher.getTopicArn(ObjectType.ENTITY), messageBody));
 		}
 
+	}
+
+	/**
+	 * verify that we cannot register the message as sent twice
+	 */
+	@Test
+	public void testPLFM_2821() {
+		ChangeMessage message = new ChangeMessage();
+		message.setChangeType(ChangeType.CREATE);
+		message.setObjectType(ObjectType.ENTITY);
+		message.setObjectId("" + 12);
+		message.setObjectEtag("ABCDEFG");
+		message.setChangeNumber(1l);
+		message.setTimestamp(new Date());
+		message = changeDao.replaceChange(message);
+
+		messagePublisher.publishToTopic(message);
+		try {
+			messagePublisher.publishToTopic(message);
+			// fail("Should not have succeeded");
+		} catch (Exception e) {
+			fail("This bug is now fixed, please uncomment two lines above");
+		}
 	}
 }
