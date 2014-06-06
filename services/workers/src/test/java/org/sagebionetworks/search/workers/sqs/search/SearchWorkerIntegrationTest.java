@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
 import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.FileHandle;
@@ -202,7 +203,7 @@ public class SearchWorkerIntegrationTest {
 		// Now add a wikpage
 		rootPage = createWikiPage(adminUserInfo);
 		rootPage = wikiPageDao.create(rootPage, new HashMap<String, FileHandle>(), project.getId(), ObjectType.ENTITY, new ArrayList<String>());
-		rootKey = new WikiPageKey(project.getId(), ObjectType.ENTITY, rootPage.getId());
+		rootKey = WikiPageKeyHelper.createWikiPageKey(project.getId(), ObjectType.ENTITY, rootPage.getId());
 		// The only way to know for sure that the wikipage data is included in the project's description is to query for it.
 		Thread.sleep(1000);
 		waitForQuery("q="+uuid);

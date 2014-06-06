@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
@@ -121,7 +122,7 @@ public class IT055WikiPageTest {
 		// Create it
 		wiki = synapse.createWikiPage(project.getId(), ObjectType.ENTITY, wiki);
 		assertNotNull(wiki);
-		WikiPageKey key = new WikiPageKey(project.getId(), ObjectType.ENTITY, wiki.getId());
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(project.getId(), ObjectType.ENTITY, wiki.getId());
 		toDelete.add(key);
 		handlesToDelete.add(synapse.getV2WikiPage(key).getMarkdownFileHandleId());
 		
@@ -168,7 +169,7 @@ public class IT055WikiPageTest {
 		// Create it
 		wiki = synapse.createWikiPage(project.getId(), ObjectType.ENTITY, wiki);
 		assertNotNull(wiki);
-		WikiPageKey key = new WikiPageKey(project.getId(), ObjectType.ENTITY, wiki.getId());
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(project.getId(), ObjectType.ENTITY, wiki.getId());
 		toDelete.add(key);
 		handlesToDelete.add(synapse.getV2WikiPage(key).getMarkdownFileHandleId());
 		

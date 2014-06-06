@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -171,7 +172,7 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 		assertNotNull(wiki);
 		
 		assertNotNull(wiki.getId());
-		WikiPageKey key = new WikiPageKey(ownerId, ownerType, wiki.getId());
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, wiki.getId());
 		toDelete.add(key);
 		assertNotNull(wiki.getEtag());
 		assertNotNull(ownerId, wiki.getModifiedBy());
@@ -291,7 +292,7 @@ public class V2WikiControllerTest extends AbstractAutowiredControllerTestBase {
 		child = entityServletHelper.createV2WikiPage(adminUserId, ownerId, ownerType, child);
 		assertNotNull(child);
 		assertNotNull(child.getId());
-		WikiPageKey childKey = new WikiPageKey(ownerId, ownerType, child.getId());
+		WikiPageKey childKey = WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, child.getId());
 		toDelete.add(childKey);
 		// List the hierarchy
 		PaginatedResults<V2WikiHeader> paginated = entityServletHelper.getV2WikiHeaderTree(adminUserId, ownerId, ownerType);

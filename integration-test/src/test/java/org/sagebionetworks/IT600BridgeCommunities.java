@@ -28,6 +28,7 @@ import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
@@ -150,11 +151,11 @@ public class IT600BridgeCommunities {
 		assertNotNull(newCommunity.getWelcomePageWikiId());
 		assertNotNull(newCommunity.getIndexPageWikiId());
 
-		WikiPageKey key = new WikiPageKey(newCommunity.getId(), ObjectType.ENTITY, newCommunity.getWelcomePageWikiId());
+		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(newCommunity.getId(), ObjectType.ENTITY, newCommunity.getWelcomePageWikiId());
 		V2WikiPage v2WikiPage = createSynapse(bridge).getV2WikiPage(key);
 		assertEquals("Welcome to " + communityName, v2WikiPage.getTitle());
 
-		key = new WikiPageKey(newCommunity.getId(), ObjectType.ENTITY, newCommunity.getIndexPageWikiId());
+		key = WikiPageKeyHelper.createWikiPageKey(newCommunity.getId(), ObjectType.ENTITY, newCommunity.getIndexPageWikiId());
 		v2WikiPage = createSynapse(bridge).getV2WikiPage(key);
 		assertEquals("Index of " + communityName, v2WikiPage.getTitle());
 
