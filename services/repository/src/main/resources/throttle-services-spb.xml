@@ -16,7 +16,7 @@
 		class="org.sagebionetworks.repo.model.dbo.dao.semaphore.SemaphoreGatedRunnerImpl" scope="singleton">
 		<property name="timeoutMS" ref="stackConfiguration.semaphoreGatedLockTimeoutMS" />
 		<property name="maxNumberRunnersAccessor" ref="stackConfiguration.maxConcurrentRepoConnections" />
-		<property name="semaphoreKey" value="userConnectionThrottle" />		
+		<property name="semaphoreKey" value="userThrottle" />		
 	</bean>
 	
 	<bean id="userThrottleFilter" class="org.sagebionetworks.repo.web.filter.UserThrottleFilter">

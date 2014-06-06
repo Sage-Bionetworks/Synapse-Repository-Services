@@ -1655,6 +1655,13 @@ public class IT500SynapseJavaClient {
 		} catch (SynapseServerException e) {
 			assertTrue(e.getMessage().indexOf("Too many concurrent requests") >= 0);
 		}
+
+		// other users should not be throttled
+		UserProfile myProfile = synapseOne.getMyProfile();
+		assertNotNull(myProfile);
+		myProfile = synapseTwo.getMyProfile();
+		assertNotNull(myProfile);
+
 		synapseAnonymous.waitForTesting(true);
 		for (Future<Void> result : results) {
 			result.get();

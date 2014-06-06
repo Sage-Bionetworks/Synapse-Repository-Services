@@ -50,7 +50,7 @@ public class MergeWorkerTest {
 		lockTokens = new HashMap<String, String>();
 		
 		long start = System.currentTimeMillis();
-		for (String key : auditMergeWorkerSemaphoreGatedRunner.getAllLockKeys()) {
+		for (String key : auditMergeWorkerSemaphoreGatedRunner.getAllLockKeys(null)) {
 			lockTokens.put(key, null);
 			while (lockTokens.get(key) == null) {
 				lockTokens.put(key, semaphoreDAO.attemptToAcquireLock(key, MAX_WAIT));
