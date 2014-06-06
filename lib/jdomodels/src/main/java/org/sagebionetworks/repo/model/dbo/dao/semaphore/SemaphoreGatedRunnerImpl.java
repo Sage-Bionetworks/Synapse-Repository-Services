@@ -155,7 +155,7 @@ public class SemaphoreGatedRunnerImpl implements SemaphoreGatedRunner {
 		}
 		// randomly generate a lock number to attempt
 		int lockNumber = randomGen.nextInt(maxNumberRunners.getInteger());
-		String key = generateKeyForLockNumber(lockNumber);
+		String key = generateKeyForLockNumber(lockNumber, null);
 		String token = semaphoreDao.attemptToAcquireLock(key, timeoutMS);
 		if(token != null){
 			try{
@@ -170,7 +170,7 @@ public class SemaphoreGatedRunnerImpl implements SemaphoreGatedRunner {
 	}
 
 	@Override
-	public <T> T attemptToRunAllSlots(Callable<T> task) throws Exception {
+	public <T> T attemptToRunAllSlots(Callable<T> task, String extraKey) throws Exception {
 		if (this.semaphoreKey == null)
 			throw new IllegalArgumentException("semaphoreKey cannot be null");
 		if (this.semaphoreDao == null)
@@ -187,7 +187,7 @@ public class SemaphoreGatedRunnerImpl implements SemaphoreGatedRunner {
 			return null;
 		}
 
-		List<String> allLockKeys = getAllLockKeys();
+		List<String> allLockKeys = getAllLockKeys(extraKey);
 		// randomly shuffle, so not all machines will try in the same order
 		Collections.shuffle(allLockKeys, randomGen);
 
@@ -211,16 +211,17 @@ public class SemaphoreGatedRunnerImpl implements SemaphoreGatedRunner {
 		USED_KEY_SET.clear();
 	}
 	
-	private String generateKeyForLockNumber(int lockNumber) {
-		return semaphoreKey + KEY_NUM_DELIMITER + lockNumber;
+	private String generateKeyForLockNumber(int lockNumber, String extraKey) {
+		return semaphoreKey + (extraKey == null ? "" : KEY_NUM_DELIMITER) + (extraKey == null ? "" : extraKey) + KEY_NUM_DELIMITER
+				+ lockNumber;
 	}
 	
 	@Override
-	public List<String> getAllLockKeys() {
+	public List<String> getAllLockKeys(String extraKey) {
 		int size = maxNumberRunners.getInteger();
 		List<String> keys = Lists.newArrayListWithCapacity(size);
 		for (int i = 0; i < size; i++) {
-			keys.add(generateKeyForLockNumber(i));
+			keys.add(generateKeyForLockNumber(i, extraKey));
 		}
 		return keys;
 	}
