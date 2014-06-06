@@ -1,19 +1,15 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUIZ_RESPONSE_CREATED_BY;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUIZ_RESPONSE_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUIZ_RESPONSE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUIZ_RESPONSE_PASSED;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUIZ_RESPONSE_QUIZ_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_QUIZ_RESPONSE_SCORE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_QUIZ_RESPONSE;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 import org.sagebionetworks.ids.IdGenerator;
@@ -21,6 +17,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.QuizResponseDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOQuizResponse;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -63,38 +60,18 @@ public class DBOQuizResponseDAOImpl implements QuizResponseDAO {
 	private static final String SELECT_FOR_QUIZ_ID_AND_USER_COUNT = "SELECT COUNT(ID) "+SELECT_FOR_QUIZ_ID_AND_USER_CORE;
 	
 	// select * from QUIZ_RESPONSE where CREATED_BY=? and QUIZ_ID=? order by score desc limit 1
-	private static final String SELECT_BEST_RESPONSE_FOR_USER_AND_QUIZ = "SELECT "+
-			COL_QUIZ_RESPONSE_ID+", "+
-			COL_QUIZ_RESPONSE_CREATED_BY+", "+
-			COL_QUIZ_RESPONSE_CREATED_ON+", "+
-			COL_QUIZ_RESPONSE_QUIZ_ID+", "+
-			COL_QUIZ_RESPONSE_SCORE+", "+
-			COL_QUIZ_RESPONSE_PASSED+
+	private static final String SELECT_BEST_RESPONSE_FOR_USER_AND_QUIZ = "SELECT * "+
 			" FROM "+TABLE_QUIZ_RESPONSE+" WHERE "+
 			COL_QUIZ_RESPONSE_QUIZ_ID+"=:"+COL_QUIZ_RESPONSE_QUIZ_ID+" AND "+
 			COL_QUIZ_RESPONSE_CREATED_BY+"=:"+COL_QUIZ_RESPONSE_CREATED_BY+
 			" ORDER BY "+COL_QUIZ_RESPONSE_SCORE+" DESC LIMIT 1";
 	
-	private static final RowMapper<PassingRecord> PASSING_RECORD_ROW_MAPPER = new RowMapper<PassingRecord>() {
-		@Override
-		public PassingRecord mapRow(ResultSet rs, int arg1) throws SQLException {
-			PassingRecord pr = new PassingRecord();
-			pr.setPassed(rs.getBoolean(COL_QUIZ_RESPONSE_PASSED));
-			pr.setPassedOn(new Date(rs.getLong(COL_QUIZ_RESPONSE_CREATED_ON)));
-			pr.setQuizId(rs.getLong(COL_QUIZ_RESPONSE_QUIZ_ID));
-			pr.setResponseId(rs.getLong(COL_QUIZ_RESPONSE_ID));
-			pr.setScore(rs.getLong(COL_QUIZ_RESPONSE_SCORE));
-			pr.setUserId(rs.getString(COL_QUIZ_RESPONSE_CREATED_BY));
-			return pr;
-		}
-	};
-
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public QuizResponse create(QuizResponse dto) throws DatastoreException {
+	public QuizResponse create(QuizResponse dto, PassingRecord passingRecord) throws DatastoreException {
 		
 		DBOQuizResponse dbo = new DBOQuizResponse();
-		QuizResponseUtils.copyDtoToDbo(dto, dbo);
+		QuizResponseUtils.copyDtoToDbo(dto, passingRecord, dbo);
 		if (dbo.getId() == null) {
 			dbo.setId(idGenerator.generateNewId());
 		}
@@ -179,9 +156,15 @@ public class DBOQuizResponseDAOImpl implements QuizResponseDAO {
 		param.addValue(COL_QUIZ_RESPONSE_QUIZ_ID, quizId);
 		param.addValue(COL_QUIZ_RESPONSE_CREATED_BY, principalId);
 		try {
-			return simpleJdbcTemplate.queryForObject(SELECT_BEST_RESPONSE_FOR_USER_AND_QUIZ, PASSING_RECORD_ROW_MAPPER, param);
+			DBOQuizResponse dbo = simpleJdbcTemplate.queryForObject(SELECT_BEST_RESPONSE_FOR_USER_AND_QUIZ, QUIZ_RESPONSE_ROW_MAPPER, param);
+			byte[] prSerizalized = dbo.getPassingRecord();
+			PassingRecord passingRecord = (PassingRecord)JDOSecondaryPropertyUtils.decompressedObject(prSerizalized);
+			passingRecord.setResponseId(dbo.getId());
+			return passingRecord;
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException("No quiz results for quiz "+quizId+" and user "+principalId, e);
+		} catch (IOException e) {
+			throw new DatastoreException(e);
 		}
 	}
 

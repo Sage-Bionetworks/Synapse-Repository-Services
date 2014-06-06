@@ -674,6 +674,7 @@ public class SqlConstants {
 	public static final String COL_QUIZ_RESPONSE_SCORE = "SCORE";
 	public static final String COL_QUIZ_RESPONSE_PASSED = "PASSED";
 	public static final String COL_QUIZ_RESPONSE_SERIALIZED = "SERIALIZED";
+	public static final String COL_QUIZ_RESPONSE_PASSING_RECORD = "PASSING_RECORD";
 	
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";

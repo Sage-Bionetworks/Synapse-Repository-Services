@@ -3,10 +3,11 @@ package org.sagebionetworks.repo.manager;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
-import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.never;
@@ -24,6 +25,7 @@ import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.QuizResponseDAO;
@@ -38,6 +40,7 @@ import org.sagebionetworks.repo.model.quiz.QuestionVariety;
 import org.sagebionetworks.repo.model.quiz.Quiz;
 import org.sagebionetworks.repo.model.quiz.QuizGenerator;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
+import org.sagebionetworks.repo.model.quiz.ResponseCorrectness;
 import org.sagebionetworks.repo.model.quiz.TextFieldQuestion;
 import org.sagebionetworks.repo.model.quiz.TextFieldResponse;
 import org.sagebionetworks.repo.web.ForbiddenException;
@@ -292,6 +295,36 @@ public class CertifiedUserManagerImplTest {
 		assertNotNull(certifiedUserManager.getCertificationQuiz().getId());
 	}
 	
+	@Test
+	public void testCloneAndScrubPrivateFields() throws Exception {
+		MultichoiceQuestion mcq = new MultichoiceQuestion();
+		mcq.setQuestionIndex(1L);
+		mcq.setPrompt("foo");
+		List<MultichoiceAnswer> mcas = new ArrayList<MultichoiceAnswer>();
+		MultichoiceAnswer mca = new MultichoiceAnswer();
+		mca.setAnswerIndex(1L);
+		mca.setIsCorrect(true);
+		mca.setPrompt("bar");
+		mcas.add(mca);
+		mcq.setAnswers(mcas);
+		MultichoiceQuestion mcqClone = (MultichoiceQuestion)CertifiedUserManagerImpl.cloneAndScrubPrivateFields(mcq);
+		assertEquals(mcq.getPrompt(), mcqClone.getPrompt());
+		assertEquals(mcq.getQuestionIndex(), mcqClone.getQuestionIndex());
+		assertNull(mcqClone.getAnswers().get(0).getIsCorrect());
+		assertTrue(mcq.getAnswers().get(0).getIsCorrect());
+		
+		//now try a textfield question
+		TextFieldQuestion tfq = new TextFieldQuestion();
+		tfq.setQuestionIndex(1L);
+		tfq.setPrompt("foo");
+		tfq.setAnswer("bar");
+		TextFieldQuestion tfqClone = (TextFieldQuestion)CertifiedUserManagerImpl.cloneAndScrubPrivateFields(tfq);
+		assertEquals(tfq.getPrompt(), tfqClone.getPrompt());
+		assertEquals(tfq.getQuestionIndex(), tfqClone.getQuestionIndex());
+		assertNull(tfqClone.getAnswer());
+		assertEquals("bar", tfq.getAnswer());
+	}
+		
 	private static MultichoiceAnswer createMultichoiceAnswer(Boolean isCorrect, Long index) {
 		MultichoiceAnswer ma = new MultichoiceAnswer();
 		ma.setAnswerIndex(index);
@@ -416,9 +449,27 @@ public class CertifiedUserManagerImplTest {
 	public void testScoreQuizResponseHappyCase() throws Exception {
 		QuizGenerator gen = createQuizGenerator();
 		QuizResponse resp = createPassingQuizResponse(gen.getId());
-		CertifiedUserManagerImpl.scoreQuizResponse(gen, resp);
-		assertTrue(resp.getPass());
-		assertEquals(new Long(2L), resp.getScore());
+		PassingRecord passingRecord = CertifiedUserManagerImpl.scoreQuizResponse(gen, resp);
+		assertTrue(passingRecord.getPassed());
+		assertEquals(new Long(2L), passingRecord.getScore());
+		// make sure all the responses are in the 'passing record'
+		assertEquals(resp.getQuestionResponses().size(), passingRecord.getCorrections().size());
+		for (ResponseCorrectness rc : passingRecord.getCorrections()) {
+			assertTrue(resp.getQuestionResponses().contains(rc.getResponse()));
+			assertTrue(rc.getIsCorrect());
+			assertNotNull(rc.getQuestion());
+			if (rc.getQuestion() instanceof MultichoiceQuestion) {
+				MultichoiceQuestion mcq = (MultichoiceQuestion)rc.getQuestion();
+				for (MultichoiceAnswer ma : mcq.getAnswers()) {
+					assertNull(ma.getIsCorrect());
+				}
+			} else if (rc.getQuestion() instanceof TextFieldQuestion) {
+				TextFieldQuestion tfq = (TextFieldQuestion)rc.getQuestion();
+				assertNull(tfq.getAnswer());
+			} else {
+				fail("Unknown type "+rc.getQuestion().getClass());
+			}
+		}
 	}
 
 	private static QuizResponse createFailingQuizResponse(long quizId) {
@@ -445,9 +496,34 @@ public class CertifiedUserManagerImplTest {
 	public void testScoreQuizResponseWrongAnswer() throws Exception {
 		QuizGenerator gen = createQuizGenerator();
 		QuizResponse resp = createFailingQuizResponse(gen.getId());
-		CertifiedUserManagerImpl.scoreQuizResponse(gen, resp);
-		assertFalse(resp.getPass());
-		assertEquals(new Long(1L), resp.getScore());
+		PassingRecord passingRecord = CertifiedUserManagerImpl.scoreQuizResponse(gen, resp);
+		assertFalse(passingRecord.getPassed());
+		assertEquals(new Long(1L), passingRecord.getScore());
+		// make sure all the responses are in the 'passing record'
+		assertEquals(resp.getQuestionResponses().size(), passingRecord.getCorrections().size());
+		for (ResponseCorrectness rc : passingRecord.getCorrections()) {
+			assertTrue(resp.getQuestionResponses().contains(rc.getResponse()));
+			Long qi = rc.getResponse().getQuestionIndex();
+			if (qi==1L) {
+				assertTrue(rc.getIsCorrect());
+			} else if (qi==3L) {
+				assertFalse(rc.getIsCorrect());
+			} else {
+				fail("Unexpected question index "+qi);
+			}
+			assertNotNull(rc.getQuestion());
+			if (rc.getQuestion() instanceof MultichoiceQuestion) {
+				MultichoiceQuestion mcq = (MultichoiceQuestion)rc.getQuestion();
+				for (MultichoiceAnswer ma : mcq.getAnswers()) {
+					assertNull(ma.getIsCorrect());
+				}
+			} else if (rc.getQuestion() instanceof TextFieldQuestion) {
+				TextFieldQuestion tfq = (TextFieldQuestion)rc.getQuestion();
+				assertNull(tfq.getAnswer());
+			} else {
+				fail("Unknown type "+rc.getQuestion().getClass());
+			}
+		}
 	}
 	
 	private static QuizResponse createIllegalQuizResponse(long quizId) {
@@ -495,23 +571,23 @@ public class CertifiedUserManagerImplTest {
 		created.setCreatedBy(userInfo.getId().toString());
 		created.setCreatedOn(new Date());
 		created.setId(10101L);
-		created.setPass(true);
-		created.setScore(2L);
-		when(quizResponseDao.create(quizResponse)).thenReturn(created);
+		ArgumentCaptor<PassingRecord> captor = ArgumentCaptor.forClass(PassingRecord.class);
+		when(quizResponseDao.create(eq(quizResponse), captor.capture())).thenReturn(created);
 		PassingRecord pr = certifiedUserManager.submitCertificationQuizResponse(userInfo, quizResponse);
 		// check that 5 fields are filled in quizResponse
 		assertEquals(userInfo.getId().toString(), quizResponse.getCreatedBy());
-		assertEquals(true, quizResponse.getPass());
+		PassingRecord passingRecord = captor.getValue();
+		assertEquals(true, passingRecord.getPassed());
 		assertEquals(quizGenerator.getId(), quizResponse.getQuizId());
-		assertEquals(2L, quizResponse.getScore().longValue());
+		assertEquals(2L, passingRecord.getScore().longValue());
 		assertNotNull(quizResponse.getCreatedOn());
-		Mockito.verify(quizResponseDao).create(quizResponse);
-		Mockito.verify(groupMembersDao).addMembers(anyString(), (List<String>)anyObject());
-		assertEquals(created.getPass(), pr.getPassed());
+		verify(quizResponseDao).create(eq(quizResponse), captor.capture());
+		verify(groupMembersDao).addMembers(anyString(), (List<String>)any());
+		assertEquals(passingRecord.getPassed(), pr.getPassed());
 		assertNotNull(pr.getPassedOn());
 		assertEquals(created.getQuizId(), pr.getQuizId());
 		assertEquals(created.getId(), pr.getResponseId());
-		assertEquals(created.getScore(), pr.getScore());
+		assertEquals(passingRecord.getScore(), pr.getScore());
 		assertEquals(created.getCreatedBy(), pr.getUserId());
 	}
 	
@@ -531,23 +607,23 @@ public class CertifiedUserManagerImplTest {
 		created.setCreatedBy(userInfo.getId().toString());
 		created.setCreatedOn(new Date());
 		created.setId(10101L);
-		created.setPass(false);
-		created.setScore(1L);
-		when(quizResponseDao.create(quizResponse)).thenReturn(created);
+		ArgumentCaptor<PassingRecord> captor = ArgumentCaptor.forClass(PassingRecord.class);
+		when(quizResponseDao.create(eq(quizResponse), captor.capture())).thenReturn(created);
 		PassingRecord pr = certifiedUserManager.submitCertificationQuizResponse(userInfo, quizResponse);
+		verify(quizResponseDao).create(eq(quizResponse), captor.capture());
+		PassingRecord passingRecord = captor.getValue();
 		// check that 5 fields are filled in quizResponse
 		assertEquals(userInfo.getId().toString(), quizResponse.getCreatedBy());
-		assertEquals(false, quizResponse.getPass());
+		assertEquals(false, passingRecord.getPassed());
 		assertEquals(quizGenerator.getId(), quizResponse.getQuizId());
-		assertEquals(1L, quizResponse.getScore().longValue());
+		assertEquals(1L, passingRecord.getScore().longValue());
 		assertNotNull(quizResponse.getCreatedOn());
-		verify(quizResponseDao).create(quizResponse);
-		verify(groupMembersDao, never()).addMembers(anyString(), (List<String>)anyObject());
-		assertEquals(created.getPass(), pr.getPassed());
+		verify(groupMembersDao, never()).addMembers(anyString(), (List<String>)any());
+		assertEquals(passingRecord.getPassed(), pr.getPassed());
 		assertNotNull(pr.getPassedOn());
 		assertEquals(created.getQuizId(), pr.getQuizId());
 		assertEquals(created.getId(), pr.getResponseId());
-		assertEquals(created.getScore(), pr.getScore());
+		assertEquals(passingRecord.getScore(), pr.getScore());
 		assertEquals(created.getCreatedBy(), pr.getUserId());
 	}
 	

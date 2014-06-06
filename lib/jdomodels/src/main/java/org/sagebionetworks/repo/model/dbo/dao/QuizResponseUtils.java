@@ -3,20 +3,26 @@ package org.sagebionetworks.repo.model.dbo.dao;
 import java.io.IOException;
 import java.util.Date;
 
-import org.sagebionetworks.repo.model.quiz.QuizResponse;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOQuizResponse;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
+import org.sagebionetworks.repo.model.quiz.PassingRecord;
+import org.sagebionetworks.repo.model.quiz.QuizResponse;
 
 public class QuizResponseUtils {
-	public static void copyDtoToDbo(QuizResponse dto, DBOQuizResponse dbo) {
+	public static void copyDtoToDbo(QuizResponse dto, PassingRecord passingRecord, DBOQuizResponse dbo) {
 		dbo.setId(dto.getId());
 		if (dto.getCreatedBy()!=null) dbo.setCreatedBy(Long.parseLong(dto.getCreatedBy()));
 		if (dto.getCreatedOn()!=null) dbo.setCreatedOn(new Long(dto.getCreatedOn().getTime()));
-		dbo.setPassed(dto.getPass());
 		dbo.setQuizId(dto.getQuizId());
-		dbo.setScore(dto.getScore());
-		copyToSerializedField(dto, dbo);
+		dbo.setPassed(passingRecord.getPassed());
+		dbo.setScore(passingRecord.getScore());
+		try {
+			dbo.setPassingRecord(JDOSecondaryPropertyUtils.compressObject(passingRecord));
+			dbo.setSerialized(JDOSecondaryPropertyUtils.compressObject(dto));
+		} catch (IOException e) {
+			throw new DatastoreException(e);
+		}
 	}
 	
 	public static QuizResponse copyDboToDto(DBOQuizResponse dbo) {
@@ -24,19 +30,10 @@ public class QuizResponseUtils {
 		dto.setId(dbo.getId());
 		dto.setCreatedBy(dbo.getCreatedBy().toString());
 		dto.setCreatedOn(new Date(dbo.getCreatedOn()));
-		dto.setPass(dbo.getPassed());
 		dto.setQuizId(dbo.getQuizId());
-		dto.setScore(dbo.getScore());
-;		return dto;
+		return dto;
 	}
-	
-	public static void copyToSerializedField(QuizResponse dto, DBOQuizResponse dbo) throws DatastoreException {
-		try {
-			dbo.setSerialized(JDOSecondaryPropertyUtils.compressObject(dto));
-		} catch (IOException e) {
-			throw new DatastoreException(e);
-		}
-	}
+
 	
 	public static QuizResponse copyFromSerializedField(DBOQuizResponse dbo) throws DatastoreException {
 		try {

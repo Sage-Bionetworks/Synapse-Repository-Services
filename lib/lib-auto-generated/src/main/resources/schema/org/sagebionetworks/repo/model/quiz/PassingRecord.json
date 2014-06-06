@@ -26,6 +26,15 @@
 			"type": "string",
 			"format":"date-time",
 			"description":"Date/time when the user passed the test (omitted if the user has not passed)"
+		},
+		"corrections":{
+			"description":"For each response, whether it was correct",
+			"type": "array",
+			"items": {
+				"type":"object",
+				"$ref":"org.sagebionetworks.repo.model.quiz.ResponseCorrectness"
+			}
 		}
+		
 	}	
 }

@@ -80,6 +80,7 @@ import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.model.provenance.Activity;
+import org.sagebionetworks.repo.model.quiz.PassingRecord;
 import org.sagebionetworks.repo.model.quiz.QuizResponse;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.Row;
@@ -269,13 +270,18 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	
 	private void createQuizResponse() {
 		QuizResponse dto = new QuizResponse();
+		PassingRecord passingRecord = new PassingRecord();
+		passingRecord.setPassed(true);
+		passingRecord.setPassedOn(new Date());
+		passingRecord.setQuizId(101L);
+		passingRecord.setResponseId(222L);
+		passingRecord.setScore(7L);
+		passingRecord.setUserId(adminUserId.toString());
 		adminUserId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
 		dto.setCreatedBy(adminUserId.toString());
 		dto.setCreatedOn(new Date());
-		dto.setPass(true);
 		dto.setQuizId(101L);
-		dto.setScore(7L);
-		quizResponseDAO.create(dto);
+		quizResponseDAO.create(dto, passingRecord);
 	}
 
 	private void createColumnModel() throws DatastoreException, NotFoundException, IOException {
