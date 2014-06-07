@@ -24,10 +24,6 @@
 		<logger name="org.sagebionetworks" level="info" additivity="true">
 			<appender-ref ref="workers" />
 		</logger>
-		<!-- Currently debugging this worker.  Will remove when done. -->
-		<logger name="org.sagebionetworks.change.workers.ChangeSentMessageSynchWorker" level="info" additivity="true">
-			<appender-ref ref="workers" />
-		</logger>
 		<root level="error">
 			<appender-ref ref="Console" />
 		</root>
