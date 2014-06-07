@@ -113,9 +113,9 @@ public class StubDBOChangeDAO implements DBOChangeDAO {
 	}
 
 	@Override
-	public void registerMessageSent(ChangeMessage message) {
+	public boolean registerMessageSent(ChangeMessage message) {
 		// TODO Auto-generated method stub
-		
+		return false;
 	}
 
 	@Override

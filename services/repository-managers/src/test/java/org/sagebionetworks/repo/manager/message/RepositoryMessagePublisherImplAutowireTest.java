@@ -164,12 +164,7 @@ public class RepositoryMessagePublisherImplAutowireTest {
 		
 		messagePublisher.publishToTopic(message);
 		// Calling it again should not send out the message again.
-		try {
-			messagePublisher.publishToTopic(message);
-			fail("Calling this twice with the same message should have failed");
-		} catch (IllegalArgumentException e) {
-			// This is expected
-		}
+		messagePublisher.publishToTopic(message);
 		// Even though we attempted to send the same message twice it should only go out once.
 		verify(mockSNSClient, times(1)).publish(any(PublishRequest.class));
 	}

@@ -363,13 +363,8 @@ public class DBOChangeDAOImplAutowiredTest {
 		List<ChangeMessage> unSent = changeDAO.listUnsentMessages(3); 
 		assertEquals(batch, unSent);
 		// Now register one
-		changeDAO.registerMessageSent(batch.get(1));
-		try {
-			changeDAO.registerMessageSent(batch.get(1));
-			fail("Should have failed.");
-		} catch (IllegalArgumentException e) {
-			// expected
-		}
+		assertTrue(changeDAO.registerMessageSent(batch.get(1)));
+		assertFalse("Registering the same change twice should not result in an update",changeDAO.registerMessageSent(batch.get(1)));
 		unSent = changeDAO.listUnsentMessages(3);
 		assertNotNull(unSent);
 		assertEquals(1, unSent.size());
