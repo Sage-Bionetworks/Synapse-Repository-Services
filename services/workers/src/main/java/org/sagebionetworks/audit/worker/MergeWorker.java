@@ -124,8 +124,15 @@ public class MergeWorker {
 					// Load the data from each file to merge
 					List<AccessRecord> mergedBatches = new LinkedList<AccessRecord>();
 					for(String key: data.mergedKeys){
-						List<AccessRecord> subBatch = accessRecordDAO.getBatch(key);
-						mergedBatches.addAll(subBatch);
+						List<AccessRecord> subBatch;
+						try {
+							subBatch = accessRecordDAO.getBatch(key);
+							mergedBatches.addAll(subBatch);
+						} catch (Exception e) {
+							// We need to continue even if one file is bad.
+							log.error("Failed to read: "+key, e);
+						}
+
 					}
 					// Use the time stamp from the first record as the time stamp for the new batch.
 					long timestamp = mergedBatches.get(0).getTimestamp();
