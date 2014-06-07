@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.message;
 
+import java.sql.Timestamp;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -93,7 +94,7 @@ public class StubDBOChangeDAO implements DBOChangeDAO {
 
 	@Override
 	public List<ChangeMessage> listUnsentMessages(long lowerBound,
-			long upperBound) {
+			long upperBound, Timestamp time) {
 		// TODO Auto-generated method stub
 		return null;
 	}

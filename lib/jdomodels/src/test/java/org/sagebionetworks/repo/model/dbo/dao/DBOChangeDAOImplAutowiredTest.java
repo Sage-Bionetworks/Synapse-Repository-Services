@@ -1,11 +1,8 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.*;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -367,8 +364,12 @@ public class DBOChangeDAOImplAutowiredTest {
 		assertEquals(batch, unSent);
 		// Now register one
 		changeDAO.registerMessageSent(batch.get(1));
-		// Need to be able to set the same message twice
-		changeDAO.registerMessageSent(batch.get(1));
+		try {
+			changeDAO.registerMessageSent(batch.get(1));
+			fail("Should have failed.");
+		} catch (IllegalArgumentException e) {
+			// expected
+		}
 		unSent = changeDAO.listUnsentMessages(3);
 		assertNotNull(unSent);
 		assertEquals(1, unSent.size());
@@ -379,6 +380,20 @@ public class DBOChangeDAOImplAutowiredTest {
 		assertNotNull(unSent);
 		assertEquals(0, unSent.size());
 	}
+	
+	@Test
+	public void testReplaceDeleteSent(){
+		List<ChangeMessage> batch = createList(1, ObjectType.ENTITY);
+		// Pass the batch.
+		batch  = changeDAO.replaceChange(batch);
+		// Send the batch
+		changeDAO.registerMessageSent(batch.get(0));
+		// Replace the batch again
+		batch  = changeDAO.replaceChange(batch);
+		// This will fail if we did not delete the sent message.
+		changeDAO.registerMessageSent(batch.get(0));
+	}
+	
 	
 	@Test
 	public void testGetMaxSentChangeNumber(){
@@ -404,10 +419,10 @@ public class DBOChangeDAOImplAutowiredTest {
 		List<ChangeMessage> batch = createList(2, ObjectType.ENTITY);
 		ChangeMessage zero = batch.get(0);
 		zero.setObjectId("123");
-		zero.setObjectType(ObjectType.ENTITY);
+		zero.setObjectType(ObjectType.TABLE);
 		ChangeMessage one = batch.get(1);
 		one.setObjectId("123");
-		one.setObjectType(ObjectType.TABLE);
+		one.setObjectType(ObjectType.ENTITY);
 		// Pass the batch.
 		batch  = changeDAO.replaceChange(batch);
 		// Register as sent
@@ -467,7 +482,7 @@ public class DBOChangeDAOImplAutowiredTest {
 		long max = changeDAO.getCurrentChangeNumber();
 		
 		// Get everything
-		List<ChangeMessage> unSent = changeDAO.listUnsentMessages(min, max); 
+		List<ChangeMessage> unSent = changeDAO.listUnsentMessages(min, max, new Timestamp(System.currentTimeMillis())); 
 		assertEquals(batch, unSent);
 		
 		// Shrink the range and check each iteration for correctness
@@ -479,7 +494,7 @@ public class DBOChangeDAOImplAutowiredTest {
 				ChangeMessage removed = batch.remove(batch.size() - 1);
 				max = removed.getChangeNumber() - 1;
 			}
-			unSent = changeDAO.listUnsentMessages(min, max); 
+			unSent = changeDAO.listUnsentMessages(min, max, new Timestamp(System.currentTimeMillis())); 
 			assertEquals(batch, unSent);
 		}
 	}

@@ -1,8 +1,12 @@
 package org.sagebionetworks.change.workers;
 
+import java.sql.Timestamp;
+
 import org.junit.Before;
 import org.junit.Test;
+
 import static org.mockito.Mockito.*;
+
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.message.RepositoryMessagePublisher;
 import org.sagebionetworks.repo.model.StackStatusDao;
@@ -44,7 +48,7 @@ public class ChangeSentMessageSynchWorkerUnitTest {
 		when(mockChangeDao.getMaxSentChangeNumber(lastSychedChangeNumberStart)).thenReturn(lastSychedChangeNumberStart);
 		when(mockChangeDao.getMaxSentChangeNumber(upperBounds)).thenReturn(upperBounds);
 		worker.run();
-		verify(mockChangeDao, never()).listUnsentMessages(anyLong(), anyLong());
+		verify(mockChangeDao, never()).listUnsentMessages(anyLong(), anyLong(), any(Timestamp.class));
 		verify(mockChangeDao, never()).setLastSynchedChangeNunber(anyLong(), anyLong());
 	}
 	
@@ -53,7 +57,7 @@ public class ChangeSentMessageSynchWorkerUnitTest {
 		when(mockStatusDao.getCurrentStatus()).thenReturn(StatusEnum.DOWN);
 		worker.run();
 		verify(mockChangeDao, never()).getMinimumChangeNumber();
-		verify(mockChangeDao, never()).listUnsentMessages(anyLong(), anyLong());
+		verify(mockChangeDao, never()).listUnsentMessages(anyLong(), anyLong(), any(Timestamp.class));
 		verify(mockChangeDao, never()).setLastSynchedChangeNunber(anyLong(), anyLong());
 	}
 	
@@ -62,7 +66,7 @@ public class ChangeSentMessageSynchWorkerUnitTest {
 		when(mockStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_ONLY);
 		worker.run();
 		verify(mockChangeDao, never()).getMinimumChangeNumber();
-		verify(mockChangeDao, never()).listUnsentMessages(anyLong(), anyLong());
+		verify(mockChangeDao, never()).listUnsentMessages(anyLong(), anyLong(),  any(Timestamp.class));
 		verify(mockChangeDao, never()).setLastSynchedChangeNunber(anyLong(), anyLong());
 	}
 

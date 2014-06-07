@@ -1,24 +1,9 @@
 package org.sagebionetworks.util;
 
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 public class Clock {
-	public interface ClockProvider {
-		public long currentTimeMillis();
-
-		public void sleep(long millis) throws InterruptedException;
-	}
-
-	private static ClockProvider systemProvider = new ClockProvider() {
-		public long currentTimeMillis() {
-			return System.currentTimeMillis();
-		}
-
-		public void sleep(long millis) throws InterruptedException {
-			Thread.sleep(millis);
-		}
-	};
+	private static ClockProvider systemProvider = new DefaultClockProvider();
 
 	private static ClockProvider provider = systemProvider;
 
