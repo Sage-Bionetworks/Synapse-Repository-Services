@@ -60,6 +60,15 @@ public interface PrincipalAliasDAO {
 	public List<PrincipalAlias> listPrincipalAliases(Long principalId, AliasType type);
 	
 	/**
+	 * Get all aliases for a principal, type and display value.
+	 * @param principalId
+	 * @param type
+	 * @param displayAlias
+	 * @return
+	 */
+	public List<PrincipalAlias> listPrincipalAliases(Long principalId, AliasType type, String displayAlias);
+	
+	/**
 	 * List all aliases for a given type.
 	 * @param type
 	 * @return

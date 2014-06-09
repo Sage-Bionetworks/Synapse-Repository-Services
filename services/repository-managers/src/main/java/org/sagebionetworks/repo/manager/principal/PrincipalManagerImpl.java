@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -428,11 +429,14 @@ public class PrincipalManagerImpl implements PrincipalManager {
 	}
 	
 	private PrincipalAlias findAliasForEmail(Long principalId, String email) throws NotFoundException {
-		List<PrincipalAlias> aliases = principalAliasDAO.listPrincipalAliases(principalId, AliasType.USER_EMAIL);
-		for (PrincipalAlias principalAlias : aliases) {
-			if (principalAlias.getAlias().equals(email)) return principalAlias;
+		List<PrincipalAlias> aliases = principalAliasDAO.listPrincipalAliases(principalId, AliasType.USER_EMAIL, email);
+		if (aliases.size()==0) {
+			throw new NotFoundException("Cannot find alias for "+principalId+" matching "+email);			
+		} else if (aliases.size()==1) {
+			return aliases.get(0);
+		} else {
+			throw new DatastoreException("Expected 0-1 results but found "+aliases.size());
 		}
-		throw new NotFoundException("Cannot find alias for "+principalId+" matching "+email);
 	}
 
 	/**
