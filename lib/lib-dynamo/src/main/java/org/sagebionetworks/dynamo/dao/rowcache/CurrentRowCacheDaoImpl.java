@@ -36,7 +36,7 @@ import com.google.common.collect.Sets;
 
 public class CurrentRowCacheDaoImpl extends DynamoDaoBaseImpl implements CurrentRowCacheDao {
 
-	ExtendedDynamoDBMapper mapper;
+	DynamoDBMapper mapper;
 	DynamoDBMapper statusMapper;
 
 	private static final Comparator<DboCurrentRowCache> CURRENT_ROW_CACHE_COMPARATOR = new Comparator<DboCurrentRowCache>() {
@@ -55,7 +55,7 @@ public class CurrentRowCacheDaoImpl extends DynamoDaoBaseImpl implements Current
 
 	public CurrentRowCacheDaoImpl(AmazonDynamoDB dynamoClient) {
 		super(dynamoClient);
-		mapper = new ExtendedDynamoDBMapper(dynamoClient, DynamoConfig.getDynamoDBMapperConfigFor(DboCurrentRowCache.class));
+		mapper = new DynamoDBMapper(dynamoClient, DynamoConfig.getDynamoDBMapperConfigFor(DboCurrentRowCache.class));
 		statusMapper = new DynamoDBMapper(dynamoClient, DynamoConfig.getDynamoDBMapperConfigFor(DboCurrentRowCacheStatus.class));
 	}
 
