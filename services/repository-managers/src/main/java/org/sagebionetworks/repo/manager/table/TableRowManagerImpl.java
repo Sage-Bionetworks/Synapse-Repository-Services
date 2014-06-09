@@ -50,6 +50,7 @@ import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.sagebionetworks.util.ProgressCallback;
+import org.sagebionetworks.util.Ranges2;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
@@ -57,12 +58,16 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Range;
+import com.google.common.collect.Ranges;
 import com.google.common.collect.Sets;
 
 public class TableRowManagerImpl implements TableRowManager {
 	
 	static private Log log = LogFactory.getLog(TableRowManagerImpl.class);
 	
+	public static final long MAX_BLOCK_SIZE = 16000;
+
 	@Autowired
 	AuthorizationManager authorizationManager;
 	@Autowired
@@ -249,13 +254,57 @@ public class TableRowManagerImpl implements TableRowManager {
 	}
 
 	@Override
-	public RowSet getRowSet(String tableId, Long rowVersion) throws IOException, NotFoundException {
-		return tableRowTruthDao.getRowSet(tableId, rowVersion);
+	public RowSet getRowSet(String tableId, Long rowVersion, Set<Long> rowsToGet) throws IOException, NotFoundException {
+		return tableRowTruthDao.getRowSet(tableId, rowVersion, rowsToGet);
 	}
 
 	@Override
-	public Map<Long, Long> getCurrentRowVersions(String tableId) throws IOException, NotFoundException {
-		return tableRowTruthDao.getLatestVersions(tableId, 0);
+	public Iterable<Map<Long, Long>> getCurrentRowVersions(final String tableId, final Long minVersion) throws IOException, NotFoundException {
+		long maxCurrentRowId = tableRowTruthDao.getMaxRowId(tableId);
+		Iterable<Range<Long>> ranges = Ranges2.rangeIteratable(Ranges.closed(0L, maxCurrentRowId), MAX_BLOCK_SIZE);
+		final Iterator<Range<Long>> rangeIterator = ranges.iterator();
+		if (!rangeIterator.hasNext()) {
+			return Collections.emptyList();
+		}
+
+		// get the first entry here, so most exceptions will be thrown immediately, rather than during iteration,
+		// wrapped in a RuntimeException
+		final Map<Long, Long> firstEntry = tableRowTruthDao.getLatestVersions(tableId, minVersion, rangeIterator.next());
+
+		return new Iterable<Map<Long, Long>>() {
+			@Override
+			public Iterator<Map<Long, Long>> iterator() {
+				return new Iterator<Map<Long, Long>>() {
+					Map<Long, Long> prefetchedEntry = firstEntry;
+
+					@Override
+					public Map<Long, Long> next() {
+						Map<Long, Long> result;
+						if (prefetchedEntry != null) {
+							result = prefetchedEntry;
+							prefetchedEntry = null;
+						} else {
+							try {
+								result = tableRowTruthDao.getLatestVersions(tableId, minVersion, rangeIterator.next());
+							} catch (Exception e) {
+								throw new RuntimeException(e.getMessage(), e);
+							}
+						}
+						return result;
+					}
+
+					@Override
+					public boolean hasNext() {
+						return prefetchedEntry != null || rangeIterator.hasNext();
+					}
+
+					@Override
+					public void remove() {
+						throw new UnsupportedOperationException("Remove not supported");
+					}
+				};
+			}
+		};
 	}
 
 	@Override

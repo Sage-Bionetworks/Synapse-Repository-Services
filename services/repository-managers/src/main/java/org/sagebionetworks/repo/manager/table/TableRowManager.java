@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -113,18 +114,19 @@ public interface TableRowManager {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
-	public RowSet getRowSet(String tableId, Long rowVersion)
+	public RowSet getRowSet(String tableId, Long rowVersion, Set<Long> rowsToGet)
 			throws IOException, NotFoundException;
 
 	/**
 	 * Get all the rows and their current versions
 	 * 
 	 * @param tableId
+	 * @param minVersion
 	 * @return
 	 * @throws IOException
 	 * @throws NotFoundException
 	 */
-	public Map<Long, Long> getCurrentRowVersions(String tableId) throws IOException, NotFoundException;
+	public Iterable<Map<Long, Long>> getCurrentRowVersions(String tableId, Long minVersion) throws IOException, NotFoundException;
 
 	/**
 	 * Get the values for a specific row reference and column

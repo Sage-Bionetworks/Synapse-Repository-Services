@@ -2,6 +2,7 @@ package org.sagebionetworks.dynamo.dao.rowcache;
 
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
@@ -11,6 +12,7 @@ import org.sagebionetworks.collections.Transform.TransformEntry;
 import org.sagebionetworks.dynamo.config.DynamoConfig;
 import org.sagebionetworks.dynamo.dao.DynamoDaoBaseImpl;
 import org.sagebionetworks.repo.model.table.CurrentRowCacheStatus;
+import org.sagebionetworks.util.TimeUtils;
 
 import com.amazonaws.services.dynamodb.AmazonDynamoDB;
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMapper;
@@ -25,14 +27,16 @@ import com.amazonaws.services.dynamodb.model.Condition;
 import com.amazonaws.services.dynamodb.model.ConditionalCheckFailedException;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+import com.google.common.collect.BoundType;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Range;
 import com.google.common.collect.Sets;
 
 public class CurrentRowCacheDaoImpl extends DynamoDaoBaseImpl implements CurrentRowCacheDao {
 
-	DynamoDBMapper mapper;
+	ExtendedDynamoDBMapper mapper;
 	DynamoDBMapper statusMapper;
 
 	private static final Comparator<DboCurrentRowCache> CURRENT_ROW_CACHE_COMPARATOR = new Comparator<DboCurrentRowCache>() {
@@ -51,7 +55,7 @@ public class CurrentRowCacheDaoImpl extends DynamoDaoBaseImpl implements Current
 
 	public CurrentRowCacheDaoImpl(AmazonDynamoDB dynamoClient) {
 		super(dynamoClient);
-		mapper = new DynamoDBMapper(dynamoClient, DynamoConfig.getDynamoDBMapperConfigFor(DboCurrentRowCache.class));
+		mapper = new ExtendedDynamoDBMapper(dynamoClient, DynamoConfig.getDynamoDBMapperConfigFor(DboCurrentRowCache.class));
 		statusMapper = new DynamoDBMapper(dynamoClient, DynamoConfig.getDynamoDBMapperConfigFor(DboCurrentRowCacheStatus.class));
 	}
 
@@ -162,15 +166,28 @@ public class CurrentRowCacheDaoImpl extends DynamoDaoBaseImpl implements Current
 	}
 
 	@Override
-	public Map<Long, Long> getCurrentVersions(Long tableId) {
+	public Map<Long, Long> getCurrentVersions(Long tableId, final Range<Long> rowIdRange) {
 
 		final String hashKey = DboCurrentRowCache.createHashKey(tableId);
 
 		AttributeValue hashKeyValue = new AttributeValue(hashKey);
 
-		PaginatedQueryList<DboCurrentRowCache> queryResults = mapper.query(DboCurrentRowCache.class,
-				new DynamoDBQueryExpression(hashKeyValue));
+		// limit the query to the range of rowIds
+		// DynamoDB between operator is inclusive, so make sure we handle that correctly
+		long rangeMin = rowIdRange.lowerEndpoint();
+		if (rowIdRange.lowerBoundType() == BoundType.OPEN) {
+			rangeMin += 1;
+		}
+		long rangeMax = rowIdRange.upperEndpoint();
+		if (rowIdRange.upperBoundType() == BoundType.OPEN) {
+			rangeMax -= 1;
+		}
+		AttributeValue min = new AttributeValue().withN(Long.toString(rangeMin));
+		AttributeValue max = new AttributeValue().withN(Long.toString(rangeMax));
+		Condition condition = new Condition().withComparisonOperator(ComparisonOperator.BETWEEN).withAttributeValueList(min, max);
 
+		PaginatedQueryList<DboCurrentRowCache> queryResults = mapper.query(DboCurrentRowCache.class,
+				new DynamoDBQueryExpression(hashKeyValue).withRangeKeyCondition(condition));
 		return Transform.toMap(queryResults, new Function<DboCurrentRowCache, TransformEntry<Long, Long>>() {
 			@Override
 			public TransformEntry<Long, Long> apply(DboCurrentRowCache input) {
@@ -211,10 +228,13 @@ public class CurrentRowCacheDaoImpl extends DynamoDaoBaseImpl implements Current
 
 	@Override
 	public void truncateAllData() {
-		DynamoDBScanExpression scanExpression = new DynamoDBScanExpression();
-		PaginatedScanList<DboCurrentRowCache> scanResult = mapper.scan(DboCurrentRowCache.class, scanExpression);
-		mapper.batchDelete(uniqueify(scanResult, CURRENT_ROW_CACHE_COMPARATOR));
-		PaginatedScanList<DboCurrentRowCacheStatus> scanResult2 = statusMapper.scan(DboCurrentRowCacheStatus.class, scanExpression);
-		statusMapper.batchDelete(uniqueify(scanResult2, CURRENT_ROW_CACHE_STATUS_COMPARATOR));
+		// scans are eventually consistent, so retry a few times for 3 seconds
+		for (long t : TimeUtils.timedIterable(3000, 500)) {
+			DynamoDBScanExpression scanExpression = new DynamoDBScanExpression();
+			PaginatedScanList<DboCurrentRowCache> scanResult = mapper.scan(DboCurrentRowCache.class, scanExpression);
+			mapper.batchDelete(uniqueify(scanResult, CURRENT_ROW_CACHE_COMPARATOR));
+			PaginatedScanList<DboCurrentRowCacheStatus> scanResult2 = statusMapper.scan(DboCurrentRowCacheStatus.class, scanExpression);
+			statusMapper.batchDelete(uniqueify(scanResult2, CURRENT_ROW_CACHE_STATUS_COMPARATOR));
+		}
 	}
 }

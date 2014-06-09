@@ -1,16 +1,23 @@
 package org.sagebionetworks.dynamo.dao.rowcache;
 
+import java.util.Collections;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.commons.lang.ObjectUtils;
 import org.sagebionetworks.collections.Maps2;
+import org.sagebionetworks.collections.Transform;
+import org.sagebionetworks.collections.Transform.TransformEntry;
 import org.sagebionetworks.repo.model.table.CurrentRowCacheStatus;
 
 import com.amazonaws.services.dynamodb.model.ConditionalCheckFailedException;
+import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Supplier;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Range;
 import com.google.common.collect.Sets;
 
 public class CurrentRowCacheDaoStub implements CurrentRowCacheDao {
@@ -80,8 +87,20 @@ public class CurrentRowCacheDaoStub implements CurrentRowCacheDao {
 	}
 
 	@Override
-	public Map<Long, Long> getCurrentVersions(Long tableId) {
-		return latestVersionNumbers.get(tableId);
+	public Map<Long, Long> getCurrentVersions(Long tableId, final Range<Long> rowIdRange) {
+		Map<Long, Long> versions = latestVersionNumbers.get(tableId);
+		Iterable<Entry<Long, Long>> versionsInRange = Iterables.filter(versions.entrySet(), new Predicate<Entry<Long, Long>>() {
+			@Override
+			public boolean apply(Entry<Long, Long> input) {
+				return rowIdRange.contains(input.getKey());
+			}
+		});
+		return Transform.toMap(versionsInRange, new Function<Map.Entry<Long, Long>, Transform.TransformEntry<Long, Long>>() {
+			@Override
+			public TransformEntry<Long, Long> apply(Entry<Long, Long> input) {
+				return new TransformEntry<Long, Long>(input.getKey(), input.getValue());
+			}
+		});
 	}
 
 	@Override

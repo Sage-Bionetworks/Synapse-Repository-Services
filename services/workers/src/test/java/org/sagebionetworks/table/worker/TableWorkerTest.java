@@ -5,13 +5,10 @@ import static org.junit.Assert.assertNotNull;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.stub;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.*;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
 
@@ -26,8 +23,10 @@ import org.sagebionetworks.asynchronous.workers.sqs.WorkerProgress;
 import org.sagebionetworks.repo.manager.table.TableRowManager;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.exception.LockUnavilableException;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
@@ -162,6 +161,12 @@ public class TableWorkerTest {
 		TableStatus status = new TableStatus();
 		status.setResetToken(resetToken);
 		when(mockTableRowManager.getTableStatus(tableId)).thenReturn(status);
+		when(mockTableIndexDAO.getMaxVersionForTable(tableId)).thenReturn(-1L);
+		when(mockTableRowManager.getCurrentRowVersions(tableId, 0L)).thenReturn(Collections.singletonList(Collections.singletonMap(0L, 0L)));
+		RowSet rowSet = new RowSet();
+		rowSet.setEtag("etag");
+		rowSet.setRows(Collections.singletonList(TableModelTestUtils.createRow(0L, 0L, "2")));
+		when(mockTableRowManager.getRowSet(tableId, 0L, Collections.singleton(0L))).thenReturn(rowSet);
 		Message two = MessageUtils.buildMessage(ChangeType.UPDATE, tableId, ObjectType.TABLE, resetToken);
 		List<Message> messages = Arrays.asList(two);
 		// Create the worker
@@ -173,7 +178,7 @@ public class TableWorkerTest {
 		// The connection factory should be called
 		verify(mockTableConnectionFactory, times(1)).getConnection(anyString());
 		// The status should get set to available
-		verify(mockTableRowManager, times(1)).attemptToSetTableStatusToAvailable(tableId, resetToken, null);
+		verify(mockTableRowManager, times(1)).attemptToSetTableStatusToAvailable(tableId, resetToken, "etag");
 	}
 	
 	/**

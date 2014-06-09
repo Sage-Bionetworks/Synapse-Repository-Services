@@ -16,6 +16,8 @@ import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ProgressCallback;
 
+import com.google.common.collect.Range;
+
 /**
  * This is the "truth" store for all rows of TableEntites.
  * 
@@ -43,24 +45,34 @@ public interface TableRowTruthDAO {
 	public long getVersionForEtag(String tableIdString, String etag);
 	
 	/**
+	 * Get the highest row ID in this table
+	 * 
+	 * @return
+	 */
+	public long getMaxRowId(String tableId);
+
+	/**
 	 * Append a RowSet to a table.
+	 * 
 	 * @param tableId
 	 * @param models
 	 * @param delta
 	 * @return
-	 * @throws IOException 
+	 * @throws IOException
 	 */
 	public RowReferenceSet appendRowSetToTable(String userId, String tableId, List<ColumnModel> models, RowSet delta, boolean isDelete)
 			throws IOException;
 		
 	/**
-	 * Fetch a change set for a given table and 
+	 * Fetch a change set for a given table and
+	 * 
+	 * @param rowsToGet
 	 * @param key
 	 * @return
-	 * @throws IOException 
-	 * @throws NotFoundException 
+	 * @throws IOException
+	 * @throws NotFoundException
 	 */
-	public RowSet getRowSet(String tableId, long rowVersion) throws IOException, NotFoundException;
+	public RowSet getRowSet(String tableId, long rowVersion, Set<Long> rowsToGet) throws IOException, NotFoundException;
 	
 	/**
 	 * Use this method to scan over an entire RowSet without loading the set into memory.  For each row found in the 
@@ -140,7 +152,8 @@ public interface TableRowTruthDAO {
 	 * @throws IOException
 	 * @throws NotFoundException
 	 */
-	public Map<Long, Long> getLatestVersions(String tableId, long minVersion) throws IOException, NotFoundException;
+	public Map<Long, Long> getLatestVersions(String tableId, long minVersion, Range<Long> rowIdRange) throws IOException,
+			NotFoundException;
 
 	/**
 	 * List the keys of all change sets applied to a table.

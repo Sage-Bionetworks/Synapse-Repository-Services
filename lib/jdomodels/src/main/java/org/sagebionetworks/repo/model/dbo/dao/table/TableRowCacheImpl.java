@@ -16,6 +16,7 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.dynamodb.model.ConditionalCheckFailedException;
+import com.google.common.collect.Range;
 
 public class TableRowCacheImpl implements TableRowCache {
 	@Autowired
@@ -67,11 +68,11 @@ public class TableRowCacheImpl implements TableRowCache {
 	}
 
 	@Override
-	public Map<Long, Long> getCurrentVersionNumbers(Long tableId) {
+	public Map<Long, Long> getCurrentVersionNumbers(Long tableId, Range<Long> rowIdRange) {
 		if (!currentRowCacheDao.isEnabled()) {
 			throw new IllegalStateException("the current row cache was asked for versions, but it is disabled");
 		}
-		return currentRowCacheDao.getCurrentVersions(tableId);
+		return currentRowCacheDao.getCurrentVersions(tableId, rowIdRange);
 	}
 
 	@Override

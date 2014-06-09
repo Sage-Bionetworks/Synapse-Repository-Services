@@ -3,8 +3,12 @@ package org.sagebionetworks.table.worker;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.Map.Entry;
 import java.util.concurrent.Callable;
 
 import org.apache.logging.log4j.LogManager;
@@ -16,10 +20,12 @@ import org.sagebionetworks.repo.manager.table.TableRowManager;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.exception.LockUnavilableException;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableStatus;
@@ -28,6 +34,7 @@ import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 
 import com.amazonaws.services.sqs.model.Message;
+import com.google.common.collect.SetMultimap;
 
 /**
  * This worker updates the index used to support the tables features. It will
@@ -241,37 +248,37 @@ public class TableWorker implements Callable<List<Message>> {
 		// Now determine which changes need to be applied to the table
 		Long maxVersion = indexDao.getMaxVersionForTable(tableId);
 		// List all of the changes
-		tableRowManager.attemptToUpdateTableProgress(tableId, resetToken, "Listing table changes ", 0L, 100L);
-		List<TableRowChange> changes = tableRowManager
-				.listRowSetsKeysForTable(tableId);
-		if(changes == null || changes.isEmpty()){
-			// If there are no changes for this table then the last etag will be null
-			// and there is nothing else to do.
-			return null;
-		}
-		// Calculate the total work to perform
-		long totalProgress = 1;
-		for (TableRowChange change : changes) {
-			totalProgress += change.getRowCount();
-		}
-		// Apply any change that has a version number greater than the max
-		// version already in the index
-		String lastEtag = null;
+		tableRowManager.attemptToUpdateTableProgress(tableId, resetToken, "Getting current table row versions ", 0L, 100L);
+
+		long highestVersion = -1;
+		String highestEtag = null;
+
 		long currentProgress = 0;
-		for (TableRowChange change : changes) {
-			lastEtag = change.getEtag();
-			if (change.getRowVersion() > maxVersion) {
+		Iterable<Map<Long, Long>> currentRowVersionsIterable = tableRowManager.getCurrentRowVersions(tableId, maxVersion + 1);
+		for (Map<Long, Long> currentRowVersions : currentRowVersionsIterable) {
+			// gather rows by version
+			SetMultimap<Long, Long> versionToRowsMap = TableModelUtils.createVersionToRowsMap(currentRowVersions);
+			for (Entry<Long, Collection<Long>> versionWithRows : versionToRowsMap.asMap().entrySet()) {
+				Set<Long> rowsToGet = (Set<Long>) versionWithRows.getValue();
+				Long version = versionWithRows.getKey();
+
 				// Keep this message invisible
 				workerProgress.progressMadeForMessage(message);
-				// This is a change that we must apply.
-				RowSet rowSet = tableRowManager.getRowSet(tableId,	change.getRowVersion());
 
-				tableRowManager.attemptToUpdateTableProgress(tableId,	resetToken, "Applying rows " + rowSet.getRows().size()	+ " to version: " + change.getRowVersion(), currentProgress, totalProgress);
+				// This is a change that we must apply.
+				RowSet rowSet = tableRowManager.getRowSet(tableId, version, rowsToGet);
+				if (version > highestVersion) {
+					highestVersion = version;
+					highestEtag = rowSet.getEtag();
+				}
+
+				tableRowManager.attemptToUpdateTableProgress(tableId, resetToken, "Applying rows " + rowSet.getRows().size()
+						+ " to version: " + version, currentProgress, currentProgress);
 				// apply the change to the table
 				indexDao.createOrUpdateOrDeleteRows(rowSet, currentSchema);
+				currentProgress += rowsToGet.size();
 			}
-			currentProgress += change.getRowCount();
 		}
-		return lastEtag;
+		return highestEtag;
 	}
 }

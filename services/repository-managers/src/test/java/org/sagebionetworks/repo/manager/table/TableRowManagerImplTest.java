@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.table;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -23,6 +24,7 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -68,9 +70,13 @@ import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.query.ParseException;
+import org.sagebionetworks.util.Ranges2;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Range;
+import com.google.common.collect.Ranges;
 import com.google.common.collect.Sets;
 
 public class TableRowManagerImplTest {
@@ -713,4 +719,68 @@ public class TableRowManagerImplTest {
 		}
 	}
 
+	@Test
+	public void testGetCurrentRowVersionsOneBatch() throws Exception {
+		when(mockTruthDao.getMaxRowId(tableId)).thenReturn(10L);
+		Map<Long, Long> map1 = Collections.singletonMap(1L, 1L);
+		when(mockTruthDao.getLatestVersions(tableId, 0L, Ranges.closedOpen(0L, 10L))).thenReturn(map1);
+		Iterable<Map<Long, Long>> currentRowVersions = manager.getCurrentRowVersions(tableId, 0L);
+		Iterator<Map<Long, Long>> iterator = currentRowVersions.iterator();
+		assertTrue(iterator.hasNext());
+		assertTrue(iterator.hasNext());
+		assertEquals(map1, iterator.next());
+		assertFalse(iterator.hasNext());
+		assertFalse(iterator.hasNext());
+	}
+
+	@Test
+	public void testGetCurrentRowVersionsOneBatchAfterVersion() throws Exception {
+		when(mockTruthDao.getMaxRowId(tableId)).thenReturn(10L);
+		Map<Long, Long> map1 = Collections.singletonMap(1L, 1L);
+		when(mockTruthDao.getLatestVersions(tableId, 4L, Ranges.closedOpen(0L, 10L))).thenReturn(map1);
+		Iterable<Map<Long, Long>> currentRowVersions = manager.getCurrentRowVersions(tableId, 4L);
+		Iterator<Map<Long, Long>> iterator = currentRowVersions.iterator();
+		assertTrue(iterator.hasNext());
+		assertTrue(iterator.hasNext());
+		assertEquals(map1, iterator.next());
+		assertFalse(iterator.hasNext());
+		assertFalse(iterator.hasNext());
+	}
+
+	@Test
+	public void testGetCurrentRowVersionsZeroEntries() throws Exception {
+		when(mockTruthDao.getMaxRowId(tableId)).thenReturn(10L);
+		Map<Long, Long> map1 = Collections.emptyMap();
+		when(mockTruthDao.getLatestVersions(tableId, 0L, Ranges.closedOpen(0L, 10L))).thenReturn(map1);
+		Iterable<Map<Long, Long>> currentRowVersions = manager.getCurrentRowVersions(tableId, 0L);
+		Iterator<Map<Long, Long>> iterator = currentRowVersions.iterator();
+		assertTrue(iterator.hasNext());
+		assertTrue(iterator.hasNext());
+		assertEquals(map1, iterator.next());
+		assertFalse(iterator.hasNext());
+		assertFalse(iterator.hasNext());
+	}
+
+	@Test
+	public void testGetCurrentRowVersionsTwoBatches() throws Exception {
+		when(mockTruthDao.getMaxRowId(tableId)).thenReturn(TableRowManagerImpl.MAX_BLOCK_SIZE + 1);
+		Map<Long, Long> map1 = Collections.singletonMap(1L, 1L);
+		Map<Long, Long> map2 = Collections.singletonMap(2L, 2L);
+		when(mockTruthDao.getLatestVersions(tableId, 0L, Ranges.closedOpen(0L, TableRowManagerImpl.MAX_BLOCK_SIZE / 2 + 1)))
+				.thenReturn(map1);
+		when(
+				mockTruthDao.getLatestVersions(tableId, 0L,
+						Ranges.closedOpen(TableRowManagerImpl.MAX_BLOCK_SIZE / 2 + 1, TableRowManagerImpl.MAX_BLOCK_SIZE + 1))).thenReturn(
+				map2);
+		Iterable<Map<Long, Long>> currentRowVersions = manager.getCurrentRowVersions(tableId, 0L);
+		Iterator<Map<Long, Long>> iterator = currentRowVersions.iterator();
+		assertTrue(iterator.hasNext());
+		assertTrue(iterator.hasNext());
+		assertEquals(map1, iterator.next());
+		assertTrue(iterator.hasNext());
+		assertTrue(iterator.hasNext());
+		assertEquals(map2, iterator.next());
+		assertFalse(iterator.hasNext());
+		assertFalse(iterator.hasNext());
+	}
 }

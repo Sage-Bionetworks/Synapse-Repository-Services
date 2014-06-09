@@ -8,6 +8,9 @@ import java.util.Set;
 import org.sagebionetworks.repo.model.table.CurrentRowCacheStatus;
 import org.sagebionetworks.repo.model.table.Row;
 
+import com.google.common.collect.Range;
+import com.google.common.collect.Ranges;
+
 /**
  * This is an interface to the row cache.
  */
@@ -22,7 +25,7 @@ public interface TableRowCache {
 
 	public Map<Long, Long> getCurrentVersionNumbers(Long tableId, Iterable<Long> rowIds);
 
-	public Map<Long, Long> getCurrentVersionNumbers(Long tableId);
+	public Map<Long, Long> getCurrentVersionNumbers(Long tableId, Range<Long> rowIdRange);
 
 	public void updateCurrentVersionNumbers(Long tableId, Map<Long, Long> rowIdVersionNumbers);
 

@@ -70,6 +70,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Ranges;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -159,7 +160,7 @@ public class TableCurrentCacheWorkerIntegrationTest {
 		rowSet.setHeaders(headers);
 		rowSet.setTableId(tableId);
 
-		assertEquals(0, tableRowCache.getCurrentVersionNumbers(KeyFactory.stringToKey(tableId)).size());
+		assertEquals(0, tableRowCache.getCurrentVersionNumbers(KeyFactory.stringToKey(tableId), Ranges.closedOpen(0L, 1000L)).size());
 
 		referenceSet = tableRowManager.appendRows(adminUserInfo, tableId, schema, rowSet);
 
@@ -171,7 +172,15 @@ public class TableCurrentCacheWorkerIntegrationTest {
 			}
 		}));
 		ImmutableMap<Long, Long> expected = ImmutableMap.<Long, Long>builder().put(0L, 0L).put(1L, 0L).put(2L, 0L).put(3L, 0L).put(4L, 0L).put(5L, 0L).build();
-		Map<Long, Long> actual = tableRowCache.getCurrentVersionNumbers(KeyFactory.stringToKey(tableId));
+		Map<Long, Long> actual = tableRowCache.getCurrentVersionNumbers(KeyFactory.stringToKey(tableId), Ranges.closedOpen(0L, 1000L));
+		assertEquals(expected, actual);
+
+		expected = ImmutableMap.<Long, Long> builder().put(0L, 0L).put(1L, 0L).put(2L, 0L).put(3L, 0L).build();
+		actual = tableRowCache.getCurrentVersionNumbers(KeyFactory.stringToKey(tableId), Ranges.closedOpen(0L, 4L));
+		assertEquals(expected, actual);
+
+		expected = ImmutableMap.<Long, Long> builder().put(4L, 0L).put(5L, 0L).build();
+		actual = tableRowCache.getCurrentVersionNumbers(KeyFactory.stringToKey(tableId), Ranges.closed(4L, 5L));
 		assertEquals(expected, actual);
 	}
 
@@ -232,7 +241,9 @@ public class TableCurrentCacheWorkerIntegrationTest {
 			}
 		}));
 		ImmutableMap<Long, Long> expected = ImmutableMap.<Long, Long> builder().put(0L, 1L).put(1L, 2L).put(2L, 1L).put(3L, 2L).build();
-		Map<Long, Long> actual = tableRowCache.getCurrentVersionNumbers(KeyFactory.stringToKey(tableId));
+		Map<Long, Long> actual = tableRowCache.getCurrentVersionNumbers(KeyFactory.stringToKey(tableId), Ranges.closedOpen(0L, 100L));
 		assertEquals(expected, actual);
+		assertEquals(2L, tableRowCache.getLatestCurrentVersionNumber(KeyFactory.stringToKey(tableId)).getLatestCachedVersionNumber()
+				.longValue());
 	}
 }

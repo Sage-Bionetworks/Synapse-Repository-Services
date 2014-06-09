@@ -1,6 +1,9 @@
 package org.sagebionetworks.table.worker;
 
 import static org.junit.Assert.*;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.io.StringReader;
@@ -13,6 +16,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.TimeZone;
 import java.util.UUID;
 
@@ -169,7 +173,10 @@ public class TableWorkerIntegrationTest {
 		assertEquals("The etag for the last applied change set should be set for the status and the results",referenceSet.getEtag(), rowSet.getEtag());
 		assertEquals("The etag should also match the rereferenceSet.etag",referenceSet.getEtag(), rowSet.getEtag());
 
-		RowSet expectedRowSet = tableRowManager.getRowSet(tableId, referenceSet.getRows().get(0).getVersionNumber());
+		@SuppressWarnings("unchecked")
+		Set<Long> all = mock(Set.class);
+		when(all.contains(any())).thenReturn(true);
+		RowSet expectedRowSet = tableRowManager.getRowSet(tableId, referenceSet.getRows().get(0).getVersionNumber(), all);
 		assertEquals(expectedRowSet, rowSet);
 	}
 

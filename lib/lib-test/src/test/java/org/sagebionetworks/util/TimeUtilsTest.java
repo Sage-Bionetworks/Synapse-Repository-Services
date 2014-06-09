@@ -98,9 +98,11 @@ public class TimeUtilsTest {
 	
 	@Test
 	public void testExponentialMaxRetry() throws Exception{
+		TestClock.useTestClockProvider();
+		long start = Clock.currentTimeMillis();
 		final int maxRetry = 3;
 		final AtomicInteger count = new AtomicInteger(0);
-		Boolean result = TimeUtils.waitForExponentialMaxRetry(maxRetry, 100, new Callable<Boolean>() {
+		Boolean result = TimeUtils.waitForExponentialMaxRetry(maxRetry, 1000, new Callable<Boolean>() {
 			@Override
 			public Boolean call() throws Exception {
 				if (count.incrementAndGet() < maxRetry)
@@ -111,14 +113,17 @@ public class TimeUtilsTest {
 
 		assertTrue(result);
 		assertEquals(maxRetry, count.get());
+		assertEquals(start + 1000 * 2.2, Clock.currentTimeMillis(), 100);
 	}
 	
 	@Test
 	public void testExponentialMaxRetryFail() {
+		TestClock.useTestClockProvider();
+		long start = Clock.currentTimeMillis();
 		final int maxRetry = 3;
 		final AtomicInteger count = new AtomicInteger(0);
 		try {
-			Boolean result = TimeUtils.waitForExponentialMaxRetry(maxRetry, 100, new Callable<Boolean>() {
+			TimeUtils.waitForExponentialMaxRetry(maxRetry, 1000, new Callable<Boolean>() {
 				@Override
 				public Boolean call() throws Exception {
 					if (count.incrementAndGet() <= maxRetry)
@@ -133,5 +138,19 @@ public class TimeUtilsTest {
 		
 		//should have called apply maxRetry times, no more.
 		assertEquals(maxRetry, count.get());
+		assertEquals(start + 1000 * 2.2, Clock.currentTimeMillis(), 100);
+	}
+
+	@Test
+	public void testTimedIterable() {
+		TestClock.useTestClockProvider();
+		long start = Clock.currentTimeMillis();
+
+		int count = 0;
+		for (long l : TimeUtils.timedIterable(1000, 300)) {
+			count++;
+		}
+		assertEquals(5, count);
+		assertEquals(start + 1200, Clock.currentTimeMillis());
 	}
 }
