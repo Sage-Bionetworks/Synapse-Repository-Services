@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.manager.message.RepositoryMessagePublisher;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.status.StatusEnum;
+import org.sagebionetworks.util.DefaultClockProvider;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class ChangeSentMessageSynchWorkerUnitTest {
@@ -31,6 +32,7 @@ public class ChangeSentMessageSynchWorkerUnitTest {
 		ReflectionTestUtils.setField(worker, "changeDao", mockChangeDao);
 		ReflectionTestUtils.setField(worker, "repositoryMessagePublisher", mockRepositoryMessagePublisher);
 		ReflectionTestUtils.setField(worker, "stackStatusDao", mockStatusDao);
+		ReflectionTestUtils.setField(worker, "clockProvider", new DefaultClockProvider());
 		when(mockStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_WRITE);
 		batchSize = 10;
 		worker.setBatchSize(10);
