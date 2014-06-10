@@ -7,13 +7,11 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
@@ -93,15 +91,8 @@ import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
-import org.sagebionetworks.repo.model.auth.NewUser;
-import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
-import org.sagebionetworks.repo.model.principal.AddEmailInfo;
-import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
-import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
-import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
 import org.sagebionetworks.repo.model.quiz.QuestionResponse;
 import org.sagebionetworks.repo.model.quiz.Quiz;
@@ -249,94 +240,7 @@ public class IT500SynapseJavaClient {
 		} catch (SynapseException e) { }
 	}
 	
-	public static String readFile(File file) throws IOException {
-		ByteArrayOutputStream content = new ByteArrayOutputStream();
-		InputStream fis = new FileInputStream(file);
-		try {
-			while (true) {
-				int c = fis.read();
-				if (c<=0) break;
-				content.write(c);
-			}
-			return content.toString();
-		} finally {
-			fis.close();
-		}
-	}
-	
-	public static String getTokenFromEmail(String email, String endpoint) throws IOException {
-		// the email is written to a local file.  Read it and extract the link
-		String homeDir = System.getProperty("user.home");
-		String body = readFile(new File(homeDir, email+".json"));
-		int endpointIndex = body.indexOf(endpoint);
-		int tokenStart = endpointIndex+endpoint.length();
-		assertTrue(tokenStart>=0);
-		int tokenEnd = body.indexOf("\n", tokenStart);
-		assertTrue(tokenEnd>=0);
-		String token = body.substring(tokenStart, tokenEnd);
-		return token;
-	}
-	
-	@Test
-	public void testCreateNewAccount() throws Exception {
-		String email = UUID.randomUUID().toString()+"@foo.com";
-		NewUser user = new NewUser();
-		user.setEmail(email);
-		user.setFirstName("firstName");
-		user.setLastName("lastName");
-		String endpoint = "https://www.synapse.org?";
-		synapseOne.newAccountEmailValidation(user, endpoint);
-		String token = getTokenFromEmail(email, endpoint);
-		AccountSetupInfo accountSetupInfo = new AccountSetupInfo();
-		accountSetupInfo.setEmailValidationToken(token);
-		Session session = synapseOne.createNewAccount(accountSetupInfo);
-		assertNotNull(session.getSessionToken());
-	}
-	
-	@Test
-	public void testAddEmail() throws Exception {
-		// start the email validation process
-		String email = UUID.randomUUID().toString()+"@foo.com";
-		String endpoint = "https://www.synapse.org?";
-		synapseOne.additionalEmailValidation(
-				Long.parseLong(synapseOne.getMyProfile().getOwnerId()), 
-				email, endpoint);
-		
-		// complete the email addition
-		String token = getTokenFromEmail(email, endpoint);
-		AddEmailInfo addEmailInfo = new AddEmailInfo();
-		addEmailInfo.setEmailValidationToken(token);
-		// we are _not_ setting it to be the notification email
-		synapseOne.addEmail(addEmailInfo, false);
-		
-		// now remove the email
-		synapseOne.removeEmail(email);
-	}
-	
-	@Test
-	public void testNotificationEmail() throws SynapseException {
-		UserProfile up = synapseOne.getMyProfile();
-		assertEquals(1, up.getEmails().size());
-		String myEmail = up.getEmails().get(0);
-		String notificationEmail = synapseOne.getNotificationEmail();
-		// the current notification email is the one/only email that I have
-		assertEquals(myEmail, notificationEmail);
-		// no-op, just checking that everything's wired up right
-		synapseOne.setNotificationEmail(myEmail);
-	}
-	
-	@Test
-	public void testCheckAliasAvailable() throws SynapseException{
-		AliasCheckRequest request = new AliasCheckRequest();
-		// This is valid but already in use
-		request.setAlias("public");
-		request.setType(AliasType.TEAM_NAME);
-		AliasCheckResponse response = synapseOne.checkAliasAvailable(request);
-		assertNotNull(response);
-		assertTrue(response.getValid());
-		assertFalse("The 'public' group name should already have this alias so it cannot be available!",response.getAvailable());
-	}
-	
+
 	@Test
 	public void testJavaClientGetADataset() throws Exception {
 		JSONObject results = synapseOne.query("select * from dataset limit 10");

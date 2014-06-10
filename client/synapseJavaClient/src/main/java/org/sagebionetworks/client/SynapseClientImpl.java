@@ -645,8 +645,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		JSONObjectAdapter toUpdateAdapter = new JSONObjectAdapterImpl();
 		try {
 			JSONObject obj = new JSONObject(accountSetupInfo.writeToJSONObject(toUpdateAdapter).toJSONString());
-			getSharedClientConnection().postJson(repoEndpoint, uri, obj.toString(), getUserAgent(), null);
-			return EntityFactory.createEntityFromJSONObject(obj, Session.class);
+			JSONObject result = getSharedClientConnection().postJson(repoEndpoint, uri, obj.toString(), getUserAgent(), null);
+			return EntityFactory.createEntityFromJSONObject(result, Session.class);
 		} catch (JSONException e) {
 			throw new SynapseClientException(e);
 		} catch (JSONObjectAdapterException e) {

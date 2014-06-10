@@ -1,10 +1,13 @@
 package org.sagebionetworks.repo.manager.principal;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.util.Collections;
 
+import org.junit.After;
 import org.junit.Test;
-import static org.junit.Assert.*;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -20,16 +23,27 @@ import com.amazonaws.services.simpleemail.model.SendEmailRequest;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class SynapseEmailServiceImplTest {
+	
+	private File fileToDelete = null;
 
 	@Autowired
 	private SynapseEmailService sesClient;
+	
+	@After
+	public void after() throws Exception {
+		if (fileToDelete!=null) {
+			fileToDelete.delete();
+			fileToDelete = null;
+		}
+	}
 
 	@Test
 	public void testWriteToFile() {
 		
 		String to = "you@foo.bar";
-		String tempDir = System.getProperty("java.io.tmpdir");
-		File file = new File(tempDir, to+".json");
+		String homeDir = System.getProperty("user.home");
+		File file = new File(homeDir, to+".json");
+		fileToDelete = file;
 		assertFalse(file.exists());
 		SendEmailRequest emailRequest = new SendEmailRequest();
 		Destination destination = new Destination();
