@@ -38,11 +38,6 @@ public class SynapseEmailServiceImpl implements SynapseEmailService {
 		}
 	}
 	
-	public static void main(String[] args) throws Exception {
-		String tempDir = System.getProperty("java.io.tmpdir");
-		System.out.println(tempDir);
-	}
-	
 	public static void writeToFile(SendEmailRequest emailRequest) {
 		String to = emailRequest.getDestination().getToAddresses().get(0);
 		String homeDir = System.getProperty("user.home");
