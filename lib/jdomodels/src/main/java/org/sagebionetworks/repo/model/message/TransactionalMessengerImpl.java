@@ -238,9 +238,9 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void registerMessageSent(ChangeMessage message){
+	public boolean registerMessageSent(ChangeMessage message){
 		try {
-			this.changeDAO.registerMessageSent(message);
+			return this.changeDAO.registerMessageSent(message);
 		} catch (DataAccessException e) {
 			throw new IllegalArgumentException("Messages was not registered as sent: "+e.getMessage());
 		}
