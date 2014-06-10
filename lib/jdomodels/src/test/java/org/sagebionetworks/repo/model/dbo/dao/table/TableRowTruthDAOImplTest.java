@@ -14,7 +14,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.dynamo.dao.rowcache.CurrentRowCacheDao;
@@ -363,7 +362,6 @@ public class TableRowTruthDAOImplTest {
 		assertEquals(4, updated.getRows().size());
 	}
 	
-	@Ignore
 	@Test
 	public void testAppendRowsUpdateAndGetLatest() throws IOException, NotFoundException {
 		Map<Long, Long> rowVersions = Maps.newHashMap();
