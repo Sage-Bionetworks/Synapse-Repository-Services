@@ -7,11 +7,13 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
@@ -92,6 +94,7 @@ import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.auth.NewUser;
+import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
@@ -246,48 +249,68 @@ public class IT500SynapseJavaClient {
 		} catch (SynapseException e) { }
 	}
 	
-	// omitting first or last name makes this a bad request (400)
-	// we are just trying to verify that everything's wired up correctly
-	@Test(expected=SynapseBadRequestException.class)
-	public void testNewAccountEmailValidation() throws SynapseException {
-		NewUser user = new NewUser();
-		user.setEmail("dummy@email.com");
-		user.setFirstName(null);
-		user.setLastName("lastName");
-		synapseOne.newAccountEmailValidation(user, "www.synapse.org");
+	public static String readFile(File file) throws IOException {
+		ByteArrayOutputStream content = new ByteArrayOutputStream();
+		InputStream fis = new FileInputStream(file);
+		try {
+			while (true) {
+				int c = fis.read();
+				if (c<=0) break;
+				content.write(c);
+			}
+			return content.toString();
+		} finally {
+			fis.close();
+		}
 	}
 	
-	// using a bogus validation token makes this a bad request (400)
-	// we are just trying to verify that everything's wired up correctly
-	@Test(expected=SynapseBadRequestException.class)
+	public static String getTokenFromEmail(String email, String endpoint) throws IOException {
+		// the email is written to a local file.  Read it and extract the link
+		String homeDir = System.getProperty("user.home");
+		String body = readFile(new File(homeDir, email+".json"));
+		int endpointIndex = body.indexOf(endpoint);
+		int tokenStart = endpointIndex+endpoint.length();
+		assertTrue(tokenStart>=0);
+		int tokenEnd = body.indexOf("\n", tokenStart);
+		assertTrue(tokenEnd>=0);
+		String token = body.substring(tokenStart, tokenEnd);
+		return token;
+	}
+	
+	@Test
 	public void testCreateNewAccount() throws Exception {
+		String email = UUID.randomUUID().toString()+"@foo.com";
+		NewUser user = new NewUser();
+		user.setEmail(email);
+		user.setFirstName("firstName");
+		user.setLastName("lastName");
+		String endpoint = "https://www.synapse.org?";
+		synapseOne.newAccountEmailValidation(user, endpoint);
+		String token = getTokenFromEmail(email, endpoint);
 		AccountSetupInfo accountSetupInfo = new AccountSetupInfo();
-		accountSetupInfo.setEmailValidationToken("foo");
-		synapseOne.createNewAccount(accountSetupInfo);
+		accountSetupInfo.setEmailValidationToken(token);
+		Session session = synapseOne.createNewAccount(accountSetupInfo);
+		assertNotNull(session.getSessionToken());
 	}
 	
-	// using a bogus email makes this a bad request (400)
-	// we are just trying to verify that everything's wired up correctly
-	@Test(expected=SynapseBadRequestException.class)
-	public void testAdditionalEmailValidation() throws Exception {
-		synapseOne.additionalEmailValidation(Long.parseLong(synapseOne.getMyProfile().getOwnerId()), 
-				"invalid", "www.synapse.org");
-	}
-	
-	// using a bogus validation token makes this a bad request (400)
-	// we are just trying to verify that everything's wired up correctly
-	@Test(expected=SynapseBadRequestException.class)
+	@Test
 	public void testAddEmail() throws Exception {
+		// start the email validation process
+		String email = UUID.randomUUID().toString()+"@foo.com";
+		String endpoint = "https://www.synapse.org?";
+		synapseOne.additionalEmailValidation(
+				Long.parseLong(synapseOne.getMyProfile().getOwnerId()), 
+				email, endpoint);
+		
+		// complete the email addition
+		String token = getTokenFromEmail(email, endpoint);
 		AddEmailInfo addEmailInfo = new AddEmailInfo();
-		addEmailInfo.setEmailValidationToken("foo");
+		addEmailInfo.setEmailValidationToken(token);
+		// we are _not_ setting it to be the notification email
 		synapseOne.addEmail(addEmailInfo, false);
-	}
-	
-	// using a bogus email makes this a Not Found (404)
-	// we are just trying to verify that everything's wired up correctly
-	@Test(expected=SynapseNotFoundException.class)
-	public void testRemoveEmail() throws Exception {
-		synapseOne.removeEmail("foo");
+		
+		// now remove the email
+		synapseOne.removeEmail(email);
 	}
 	
 	@Test
