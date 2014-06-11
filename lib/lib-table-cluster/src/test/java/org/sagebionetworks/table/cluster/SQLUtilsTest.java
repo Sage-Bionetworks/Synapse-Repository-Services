@@ -461,8 +461,8 @@ public class SQLUtilsTest {
 	
 	@Test
 	public void testGetMaxVersionSQL(){
-		String expected = "SELECT MAX(ROW_VERSION) FROM T123";
-		String result = SQLUtils.getMaxVersionSQL("123");
+		String expected = "SELECT ROW_VERSION FROM T123S";
+		String result = SQLUtils.getStatusMaxVersionSQL("123");
 		assertEquals(expected, result);
 	}
 	

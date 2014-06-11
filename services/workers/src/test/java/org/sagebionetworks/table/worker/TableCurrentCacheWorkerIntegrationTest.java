@@ -1,26 +1,17 @@
 package org.sagebionetworks.table.worker;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
-import java.io.StringReader;
-import java.io.StringWriter;
-import java.sql.Time;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.TimeZone;
 import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
@@ -32,44 +23,30 @@ import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableRowManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dbo.dao.table.CSVToRowIterator;
 import org.sagebionetworks.repo.model.dao.table.TableRowCache;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.table.AsynchDownloadResponseBody;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.CurrentRowCacheStatus;
 import org.sagebionetworks.repo.model.table.Row;
-import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
-import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableEntity;
-import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
-import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.util.TimeUtils;
-import org.sagebionetworks.util.csv.CSVWriterStream;
-import org.sagebionetworks.util.csv.CSVWriterStreamProxy;
-import org.sagebionetworks.util.csv.CsvNullReader;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import au.com.bytecode.opencsv.CSVWriter;
-
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -159,7 +136,7 @@ public class TableCurrentCacheWorkerIntegrationTest {
 		rowSet.setHeaders(headers);
 		rowSet.setTableId(tableId);
 
-		assertEquals(0, tableRowCache.getCurrentVersionNumbers(KeyFactory.stringToKey(tableId)).size());
+		assertEquals(0, tableRowCache.getCurrentVersionNumbers(KeyFactory.stringToKey(tableId), 0L, 1000L).size());
 
 		referenceSet = tableRowManager.appendRows(adminUserInfo, tableId, schema, rowSet);
 
@@ -171,7 +148,15 @@ public class TableCurrentCacheWorkerIntegrationTest {
 			}
 		}));
 		ImmutableMap<Long, Long> expected = ImmutableMap.<Long, Long>builder().put(0L, 0L).put(1L, 0L).put(2L, 0L).put(3L, 0L).put(4L, 0L).put(5L, 0L).build();
-		Map<Long, Long> actual = tableRowCache.getCurrentVersionNumbers(KeyFactory.stringToKey(tableId));
+		Map<Long, Long> actual = tableRowCache.getCurrentVersionNumbers(KeyFactory.stringToKey(tableId), 0L, 1000L);
+		assertEquals(expected, actual);
+
+		expected = ImmutableMap.<Long, Long> builder().put(0L, 0L).put(1L, 0L).put(2L, 0L).put(3L, 0L).build();
+		actual = tableRowCache.getCurrentVersionNumbers(KeyFactory.stringToKey(tableId), 0L, 4L);
+		assertEquals(expected, actual);
+
+		expected = ImmutableMap.<Long, Long> builder().put(4L, 0L).put(5L, 0L).build();
+		actual = tableRowCache.getCurrentVersionNumbers(KeyFactory.stringToKey(tableId), 4L, 2L);
 		assertEquals(expected, actual);
 	}
 
@@ -232,7 +217,9 @@ public class TableCurrentCacheWorkerIntegrationTest {
 			}
 		}));
 		ImmutableMap<Long, Long> expected = ImmutableMap.<Long, Long> builder().put(0L, 1L).put(1L, 2L).put(2L, 1L).put(3L, 2L).build();
-		Map<Long, Long> actual = tableRowCache.getCurrentVersionNumbers(KeyFactory.stringToKey(tableId));
+		Map<Long, Long> actual = tableRowCache.getCurrentVersionNumbers(KeyFactory.stringToKey(tableId), 0L, 100L);
 		assertEquals(expected, actual);
+		assertEquals(2L, tableRowCache.getLatestCurrentVersionNumber(KeyFactory.stringToKey(tableId)).getLatestCachedVersionNumber()
+				.longValue());
 	}
 }

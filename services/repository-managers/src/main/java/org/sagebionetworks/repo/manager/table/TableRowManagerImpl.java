@@ -249,13 +249,24 @@ public class TableRowManagerImpl implements TableRowManager {
 	}
 
 	@Override
-	public RowSet getRowSet(String tableId, Long rowVersion) throws IOException, NotFoundException {
-		return tableRowTruthDao.getRowSet(tableId, rowVersion);
+	public RowSet getRowSet(String tableId, Long rowVersion, Set<Long> rowsToGet) throws IOException, NotFoundException {
+		return tableRowTruthDao.getRowSet(tableId, rowVersion, rowsToGet);
 	}
 
 	@Override
-	public Map<Long, Long> getCurrentRowVersions(String tableId) throws IOException, NotFoundException {
-		return tableRowTruthDao.getLatestVersions(tableId, 0);
+	public Map<Long, Long> getCurrentRowVersions(String tableId, Long minVersion, long rowIdOffset, long limit) throws IOException,
+			NotFoundException {
+		return tableRowTruthDao.getLatestVersions(tableId, minVersion, rowIdOffset, limit);
+	}
+
+	@Override
+	public TableRowChange getLastTableRowChange(String tableId) throws IOException, NotFoundException {
+		return tableRowTruthDao.getLastTableRowChange(tableId);
+	}
+
+	@Override
+	public long getMaxRowId(String tableId) throws IOException, NotFoundException {
+		return tableRowTruthDao.getMaxRowId(tableId);
 	}
 
 	@Override
