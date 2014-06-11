@@ -105,10 +105,13 @@ public class PreviewWorker implements Callable<List<Message>> {
 				log.error("Failed to process message: "+message.toString(), e);
 				// Depending on cause, we may or may not retry
 				Throwable causeEx = e.getCause();
-				if ((causeEx != null) && (causeEx instanceof EOFException)) {
+				if ((causeEx != null)
+						&& ((causeEx instanceof EOFException)
+								|| (causeEx instanceof IllegalArgumentException)
+								|| (causeEx instanceof ArrayIndexOutOfBoundsException))) {
 					processedMessage.add(message);
 					workerLogger.logWorkerFailure(this.getClass(), changeMessage, e, false);
-				} else {
+				}  else {
 					workerLogger.logWorkerFailure(this.getClass(), changeMessage, e, true);
 				}
 			}catch (Throwable e){
