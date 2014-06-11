@@ -1,5 +1,6 @@
 package org.sagebionetworks.change.workers;
 
+import java.sql.Timestamp;
 import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
@@ -9,6 +10,7 @@ import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.status.StatusEnum;
+import org.sagebionetworks.util.ClockProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -38,6 +40,11 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 public class ChangeSentMessageSynchWorker implements Runnable {
 
+	/**
+	 * This worker will ignore any message that is newer than this time.
+	 */
+	private static long MINIMUMN_MESSAGE_AGE = 1000*60;
+	
 	static private Logger log = LogManager
 			.getLogger(ChangeSentMessageSynchWorker.class);
 
@@ -45,7 +52,10 @@ public class ChangeSentMessageSynchWorker implements Runnable {
 	DBOChangeDAO changeDao;
 	@Autowired
 	RepositoryMessagePublisher repositoryMessagePublisher;
-	@Autowired StackStatusDao stackStatusDao;
+	@Autowired 
+	StackStatusDao stackStatusDao;
+	@Autowired
+	ClockProvider clockProvider;
 	// Start with a default batch size of 10K
 	private int batchSize = 10 * 1000;
 
@@ -86,10 +96,12 @@ public class ChangeSentMessageSynchWorker implements Runnable {
 		if(log.isTraceEnabled()){
 			log.trace("Starting with synchStart: " + synchStart+" upperBounds: "+upperBounds);
 		}
+		// We only want to look at change messages that are older than this.
+		Timestamp olderThan = new Timestamp(clockProvider.currentTimeMillis() - MINIMUMN_MESSAGE_AGE);
 		// Keep going until we either reach the end or process a single batch size.
 		while(synchStart < maxChangeNumber && rowsUpdated < batchSize){
 			List<ChangeMessage> toBeSent = changeDao.listUnsentMessages(synchStart,
-					upperBounds);
+					upperBounds, olderThan);
 			if(log.isTraceEnabled()){
 				log.trace("\t loop synchStart: " + synchStart+" upperBounds: "+upperBounds+" returned: "+toBeSent.size()+" rows");
 			}

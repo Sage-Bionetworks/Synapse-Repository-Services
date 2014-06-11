@@ -25,12 +25,12 @@
 		},
 		"score": {
 			"type": "number",
-			"description": "The numerical score for this Submission.",
+			"description": "This field is deprecated and should not be used. Use the 'annotations' field instead.",
 			"transient": true
 		},
 		"report": {
 			"type": "string",
-			"description": "A text report describing this Submission. May contain additional scoring information, error logs, etc.",
+			"description": "This field is deprecated and should not be used. Use the 'annotations' field instead.",
 			"transient": true
 		},
 		"annotations": {

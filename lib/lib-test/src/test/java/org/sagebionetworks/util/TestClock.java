@@ -1,6 +1,5 @@
 package org.sagebionetworks.util;
 
-import org.sagebionetworks.util.Clock.ClockProvider;
 
 public class TestClock {
 

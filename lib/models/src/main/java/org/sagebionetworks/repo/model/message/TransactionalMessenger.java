@@ -60,7 +60,7 @@ public interface TransactionalMessenger {
 	 * 
 	 * @param changeNumber
 	 */
-	public void registerMessageSent(ChangeMessage message);
+	public boolean registerMessageSent(ChangeMessage message);
 	
 	/**
 	 * List messages that have been created but not registered as sent (see {@link #registerMessageSent(long)}).

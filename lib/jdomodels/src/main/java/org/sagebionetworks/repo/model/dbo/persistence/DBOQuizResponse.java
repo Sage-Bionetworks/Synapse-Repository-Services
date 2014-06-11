@@ -45,8 +45,7 @@ public class DBOQuizResponse implements MigratableDatabaseObject<DBOQuizResponse
 	@Field(name = SqlConstants.COL_QUIZ_RESPONSE_SERIALIZED, backupId = false, primary = false, nullable = false, serialized="mediumblob")
 	private byte[] serialized;
 
-	// TODO change 'nullable' to false
-	@Field(name = SqlConstants.COL_QUIZ_RESPONSE_PASSING_RECORD, backupId = false, primary = false, nullable = true, serialized="mediumblob")
+	@Field(name = SqlConstants.COL_QUIZ_RESPONSE_PASSING_RECORD, backupId = false, primary = false, nullable = false, serialized="mediumblob")
 	private byte[] passingRecord;
 
 	private static TableMapping<DBOQuizResponse> tableMapping = AutoTableMapping.create(DBOQuizResponse.class);
@@ -68,34 +67,7 @@ public class DBOQuizResponse implements MigratableDatabaseObject<DBOQuizResponse
 
 			@Override
 			public DBOQuizResponse createDatabaseObjectFromBackup(DBOQuizResponse backup) {
-				try {
-					String embeddedClassName = QuizResponse.class.getName();
-					LegacyQuizResponseDTO r = 
-							(LegacyQuizResponseDTO)JDOSecondaryPropertyUtils.
-							decompressedObject(backup.getSerialized(), 
-							embeddedClassName, 
-							LegacyQuizResponseDTO.class);
-					QuizResponse dto = new QuizResponse();
-					dto.setCreatedBy(r.getCreatedBy());
-					dto.setCreatedOn(r.getCreatedOn());
-					dto.setId(id);
-					dto.setQuestionResponses(r.getQuestionResponses());
-					dto.setQuizId(r.getQuizId());
-					backup.setSerialized(JDOSecondaryPropertyUtils.compressObject(dto));
-					if (backup.getPassingRecord()==null) {
-						PassingRecord pr = new PassingRecord();
-						pr.setPassed(r.getPass());
-						pr.setPassedOn(r.getCreatedOn());
-						pr.setQuizId(r.getQuizId());
-						pr.setResponseId(r.getId());
-						pr.setScore(r.getScore());
-						pr.setUserId(r.getCreatedBy());
-						backup.setPassingRecord(JDOSecondaryPropertyUtils.compressObject(pr));
-					}
- 					return backup;
-				} catch (IOException e) {
-					throw new RuntimeException(e);
-				}
+				return backup;
 			}
 
 			@Override
