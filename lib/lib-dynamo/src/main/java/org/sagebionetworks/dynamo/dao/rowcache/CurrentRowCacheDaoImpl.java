@@ -2,7 +2,6 @@ package org.sagebionetworks.dynamo.dao.rowcache;
 
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
@@ -12,6 +11,7 @@ import org.sagebionetworks.collections.Transform.TransformEntry;
 import org.sagebionetworks.dynamo.config.DynamoConfig;
 import org.sagebionetworks.dynamo.dao.DynamoDaoBaseImpl;
 import org.sagebionetworks.repo.model.table.CurrentRowCacheStatus;
+import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.TimeUtils;
 
 import com.amazonaws.services.dynamodb.AmazonDynamoDB;
@@ -27,11 +27,9 @@ import com.amazonaws.services.dynamodb.model.Condition;
 import com.amazonaws.services.dynamodb.model.ConditionalCheckFailedException;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
-import com.google.common.collect.BoundType;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Range;
 import com.google.common.collect.Sets;
 
 public class CurrentRowCacheDaoImpl extends DynamoDaoBaseImpl implements CurrentRowCacheDao {
@@ -166,24 +164,20 @@ public class CurrentRowCacheDaoImpl extends DynamoDaoBaseImpl implements Current
 	}
 
 	@Override
-	public Map<Long, Long> getCurrentVersions(Long tableId, final Range<Long> rowIdRange) {
+	public Map<Long, Long> getCurrentVersions(Long tableId, final long rowIdOffset, long limit) {
 
 		final String hashKey = DboCurrentRowCache.createHashKey(tableId);
 
 		AttributeValue hashKeyValue = new AttributeValue(hashKey);
 
+		if (limit < 1) {
+			throw new IllegalArgumentException("limit should be >= 1");
+		}
+
 		// limit the query to the range of rowIds
 		// DynamoDB between operator is inclusive, so make sure we handle that correctly
-		long rangeMin = rowIdRange.lowerEndpoint();
-		if (rowIdRange.lowerBoundType() == BoundType.OPEN) {
-			rangeMin += 1;
-		}
-		long rangeMax = rowIdRange.upperEndpoint();
-		if (rowIdRange.upperBoundType() == BoundType.OPEN) {
-			rangeMax -= 1;
-		}
-		AttributeValue min = new AttributeValue().withN(Long.toString(rangeMin));
-		AttributeValue max = new AttributeValue().withN(Long.toString(rangeMax));
+		AttributeValue min = new AttributeValue().withN(Long.toString(rowIdOffset));
+		AttributeValue max = new AttributeValue().withN(Long.toString(rowIdOffset + limit - 1L));
 		Condition condition = new Condition().withComparisonOperator(ComparisonOperator.BETWEEN).withAttributeValueList(min, max);
 
 		PaginatedQueryList<DboCurrentRowCache> queryResults = mapper.query(DboCurrentRowCache.class,
@@ -229,7 +223,7 @@ public class CurrentRowCacheDaoImpl extends DynamoDaoBaseImpl implements Current
 	@Override
 	public void truncateAllData() {
 		// scans are eventually consistent, so retry a few times for 3 seconds
-		for (long t : TimeUtils.timedIterable(3000, 500)) {
+		for (long start = Clock.currentTimeMillis(); start + 3000 > Clock.currentTimeMillis(); Clock.sleepNoInterrupt(500)) {
 			DynamoDBScanExpression scanExpression = new DynamoDBScanExpression();
 			PaginatedScanList<DboCurrentRowCache> scanResult = mapper.scan(DboCurrentRowCache.class, scanExpression);
 			mapper.batchDelete(uniqueify(scanResult, CURRENT_ROW_CACHE_COMPARATOR));

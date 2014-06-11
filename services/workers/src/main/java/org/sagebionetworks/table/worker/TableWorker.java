@@ -7,8 +7,8 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.Callable;
 
 import org.apache.logging.log4j.LogManager;
@@ -25,7 +25,6 @@ import org.sagebionetworks.repo.model.exception.LockUnavilableException;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableStatus;
@@ -49,6 +48,8 @@ public class TableWorker implements Callable<List<Message>> {
 	enum State {
 		SUCCESS, UNRECOVERABLE_FAILURE, RECOVERABLE_FAILURE,
 	}
+
+	private static final long BATCH_SIZE = 16000;
 
 	static private Logger log = LogManager.getLogger(TableWorker.class);
 	List<Message> messages;
@@ -252,8 +253,11 @@ public class TableWorker implements Callable<List<Message>> {
 		TableRowChange lastTableRowChange = tableRowManager.getLastTableRowChange(tableId);
 
 		long currentProgress = 0;
-		Iterable<Map<Long, Long>> currentRowVersionsIterable = tableRowManager.getCurrentRowVersions(tableId, maxCurrentCompleteVersion + 1);
-		for (Map<Long, Long> currentRowVersions : currentRowVersionsIterable) {
+		long maxRowId = tableRowManager.getMaxRowId(tableId);
+		for (long rowId = 0; rowId <= maxRowId; rowId += BATCH_SIZE) {
+			Map<Long, Long> currentRowVersions = tableRowManager.getCurrentRowVersions(tableId, maxCurrentCompleteVersion + 1, rowId,
+					BATCH_SIZE);
+
 			// gather rows by version
 			SetMultimap<Long, Long> versionToRowsMap = TableModelUtils.createVersionToRowsMap(currentRowVersions);
 			for (Entry<Long, Collection<Long>> versionWithRows : versionToRowsMap.asMap().entrySet()) {

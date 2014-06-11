@@ -79,43 +79,6 @@ public class TimeUtils {
 		}
 		return true;
 	}
-	
-	/**
-	 * Iterate over time for a max of maxTimeMillis with steps of checkIntervalMillis
-	 * 
-	 * @param maxTimeMillis
-	 * @param checkIntervalMillis
-	 * @return
-	 */
-	public static Iterable<Long> timedIterable(final long maxTimeMillis, final long checkIntervalMillis) {
-		return new Iterable<Long>() {
-			@Override
-			public Iterator<Long> iterator() {
-				return new Iterator<Long>() {
-					long start = Clock.currentTimeMillis();
-					boolean first = true;
-					@Override
-					public boolean hasNext() {
-						return Clock.currentTimeMillis() - start < maxTimeMillis;
-					}
-
-					@Override
-					public Long next() {
-						if (!first) {
-							Clock.sleepNoInterrupt(checkIntervalMillis);
-						}
-						first = false;
-						return Clock.currentTimeMillis();
-					}
-
-					@Override
-					public void remove() {
-						throw new UnsupportedOperationException("Cannot call remove");
-					}
-				};
-			}
-		};
-	}
 
 	/**
 	 * Wait for at most maxRetryCount for condition to return true. Recheck every checkIntervalMillis with exponential

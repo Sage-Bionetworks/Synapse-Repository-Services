@@ -42,7 +42,6 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Ranges;
 import com.google.common.collect.Sets;
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -465,7 +464,7 @@ public class TableRowTruthDAOImplTest {
 		}
 
 		// call all latest versions before cache is up to date
-		Map<Long, Long> latestVersionsMap = tableRowTruthDao.getLatestVersions(tableId, 0, Ranges.closedOpen(0L, 1000L));
+		Map<Long, Long> latestVersionsMap = tableRowTruthDao.getLatestVersions(tableId, 0, 0L, 1000L);
 		assertEquals(rowVersions, latestVersionsMap);
 
 		assertEquals(7, rowVersions.size());
@@ -487,7 +486,7 @@ public class TableRowTruthDAOImplTest {
 		}
 
 		// call all latest versions after cache is up to date
-		latestVersionsMap = tableRowTruthDao.getLatestVersions(tableId, 0, Ranges.closedOpen(0L, 1000L));
+		latestVersionsMap = tableRowTruthDao.getLatestVersions(tableId, 0, 0L, 1000L);
 		assertEquals(rowVersions, latestVersionsMap);
 
 		assertEquals(7, rowVersions.size());

@@ -126,7 +126,8 @@ public interface TableRowManager {
 	 * @throws IOException
 	 * @throws NotFoundException
 	 */
-	public Iterable<Map<Long, Long>> getCurrentRowVersions(String tableId, Long minVersion) throws IOException, NotFoundException;
+	public Map<Long, Long> getCurrentRowVersions(String tableId, Long minVersion, long rowIdOffset, long limit) throws IOException,
+			NotFoundException;
 
 	/**
 	 * Get the last table row change
@@ -137,6 +138,16 @@ public interface TableRowManager {
 	 * @throws NotFoundException
 	 */
 	public TableRowChange getLastTableRowChange(String tableId) throws IOException, NotFoundException;
+
+	/**
+	 * Get the highest possible row id in this table
+	 * 
+	 * @param tableId
+	 * @return the highest possible row id
+	 * @throws IOException
+	 * @throws NotFoundException
+	 */
+	public long getMaxRowId(String tableId) throws IOException, NotFoundException;;
 
 	/**
 	 * Get the values for a specific row reference and column

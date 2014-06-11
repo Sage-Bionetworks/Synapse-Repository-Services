@@ -168,7 +168,7 @@ public class TableWorkerTest {
 		when(mockTableRowManager.getColumnModelsForTable(tableId)).thenReturn(currentSchema);
 		when(mockTableRowManager.getTableStatus(tableId)).thenReturn(status);
 		when(mockTableIndexDAO.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(-1L);
-		when(mockTableRowManager.getCurrentRowVersions(tableId, 0L)).thenReturn(Collections.singletonList(Collections.singletonMap(0L, 0L)));
+		when(mockTableRowManager.getCurrentRowVersions(tableId, 0L, 0L, 16000L)).thenReturn(Collections.singletonMap(0L, 0L));
 		TableRowChange trc = new TableRowChange();
 		trc.setEtag("etag");
 		trc.setRowVersion(0L);
@@ -208,7 +208,7 @@ public class TableWorkerTest {
 		when(mockTableRowManager.getColumnModelsForTable(tableId)).thenReturn(currentSchema);
 		when(mockTableRowManager.getTableStatus(tableId)).thenReturn(status);
 		when(mockTableIndexDAO.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(2L);
-		when(mockTableRowManager.getCurrentRowVersions(tableId, 3L)).thenReturn(Collections.singletonList(Collections.singletonMap(0L, 3L)));
+		when(mockTableRowManager.getCurrentRowVersions(tableId, 3L, 0L, 16000L)).thenReturn(Collections.singletonMap(0L, 3L));
 		TableRowChange trc = new TableRowChange();
 		trc.setEtag("etag");
 		trc.setRowVersion(3L);
@@ -402,7 +402,7 @@ public class TableWorkerTest {
 		// simulate the ConflictingUpdateException
 		doThrow(new ConflictingUpdateException("Cannot get a lock at this time")).when(mockTableRowManager).attemptToSetTableStatusToAvailable(anyString(), anyString(), anyString());
 		when(mockTableRowManager.getTableStatus(tableId)).thenReturn(status);
-		when(mockTableRowManager.getCurrentRowVersions(tableId, 1L)).thenReturn(Collections.<Map<Long, Long>> emptyList());
+		when(mockTableRowManager.getCurrentRowVersions(tableId, 1L, 0L, 16000L)).thenReturn(Collections.<Long, Long> emptyMap());
 		
 		Message two = MessageUtils.buildMessage(ChangeType.UPDATE, tableId, ObjectType.TABLE, resetToken);
 		List<Message> messages = Arrays.asList(two);

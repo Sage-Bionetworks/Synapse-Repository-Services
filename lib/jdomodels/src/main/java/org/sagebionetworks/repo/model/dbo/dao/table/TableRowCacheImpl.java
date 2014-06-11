@@ -3,11 +3,8 @@ package org.sagebionetworks.repo.model.dbo.dao.table;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.ConcurrentModificationException;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
-import org.apache.commons.lang.NotImplementedException;
 import org.sagebionetworks.dynamo.dao.rowcache.CurrentRowCacheDao;
 import org.sagebionetworks.dynamo.dao.rowcache.RowCacheDao;
 import org.sagebionetworks.repo.model.dao.table.TableRowCache;
@@ -16,7 +13,6 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.dynamodb.model.ConditionalCheckFailedException;
-import com.google.common.collect.Range;
 
 public class TableRowCacheImpl implements TableRowCache {
 	@Autowired
@@ -68,11 +64,11 @@ public class TableRowCacheImpl implements TableRowCache {
 	}
 
 	@Override
-	public Map<Long, Long> getCurrentVersionNumbers(Long tableId, Range<Long> rowIdRange) {
+	public Map<Long, Long> getCurrentVersionNumbers(Long tableId, long rowIdOffset, long limit) {
 		if (!currentRowCacheDao.isEnabled()) {
 			throw new IllegalStateException("the current row cache was asked for versions, but it is disabled");
 		}
-		return currentRowCacheDao.getCurrentVersions(tableId, rowIdRange);
+		return currentRowCacheDao.getCurrentVersions(tableId, rowIdOffset, limit);
 	}
 
 	@Override

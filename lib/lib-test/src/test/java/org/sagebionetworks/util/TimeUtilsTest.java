@@ -140,17 +140,4 @@ public class TimeUtilsTest {
 		assertEquals(maxRetry, count.get());
 		assertEquals(start + 1000 * 2.2, Clock.currentTimeMillis(), 100);
 	}
-
-	@Test
-	public void testTimedIterable() {
-		TestClock.useTestClockProvider();
-		long start = Clock.currentTimeMillis();
-
-		int count = 0;
-		for (long l : TimeUtils.timedIterable(1000, 300)) {
-			count++;
-		}
-		assertEquals(5, count);
-		assertEquals(start + 1200, Clock.currentTimeMillis());
-	}
 }

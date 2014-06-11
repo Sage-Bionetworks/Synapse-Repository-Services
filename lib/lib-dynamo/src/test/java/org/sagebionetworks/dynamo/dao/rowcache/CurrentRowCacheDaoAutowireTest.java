@@ -1,10 +1,10 @@
 package org.sagebionetworks.dynamo.dao.rowcache;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Random;
 
@@ -24,7 +24,6 @@ import com.amazonaws.services.dynamodb.model.ConditionalCheckFailedException;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Ranges;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:dynamo-dao-spb.xml" })
@@ -113,32 +112,23 @@ public class CurrentRowCacheDaoAutowireTest {
 		map.put(15L, 155L);
 		currentRowCacheDao.putCurrentVersions(tableId, map);
 
-		Map<Long, Long> result = currentRowCacheDao.getCurrentVersions(tableId, Ranges.closedOpen(0L, 100L));
+		Map<Long, Long> result = currentRowCacheDao.getCurrentVersions(tableId, 0L, 100L);
 		assertEquals(map, result);
 
-		result = currentRowCacheDao.getCurrentVersions(tableId, Ranges.closed(13L, 15L));
+		result = currentRowCacheDao.getCurrentVersions(tableId, 13L, 3L);
 		assertEquals(map, result);
 
 		ImmutableMap<Long, Long> firstTwo = ImmutableMap.<Long, Long> builder().put(13L, 144L).put(14L, 144L).build();
 
-		result = currentRowCacheDao.getCurrentVersions(tableId, Ranges.closedOpen(1L, 15L));
+		result = currentRowCacheDao.getCurrentVersions(tableId, 1L, 14L);
 		assertEquals(firstTwo, result);
 
-		result = currentRowCacheDao.getCurrentVersions(tableId, Ranges.closed(1L, 14L));
-		assertEquals(firstTwo, result);
-
-		result = currentRowCacheDao.getCurrentVersions(tableId, Ranges.closed(13L, 14L));
-		assertEquals(firstTwo, result);
-
-		result = currentRowCacheDao.getCurrentVersions(tableId, Ranges.openClosed(12L, 14L));
-		assertEquals(firstTwo, result);
-
-		result = currentRowCacheDao.getCurrentVersions(tableId, Ranges.closed(15L, 100L));
+		result = currentRowCacheDao.getCurrentVersions(tableId, 15L, 100L);
 		assertEquals(Collections.singletonMap(15L, 155L), result);
 
 		currentRowCacheDao.deleteCurrentVersion(tableId, 13L);
 		map.remove(13L);
-		result = currentRowCacheDao.getCurrentVersions(tableId, Ranges.closedOpen(0L, 100L));
+		result = currentRowCacheDao.getCurrentVersions(tableId, 0L, 100L);
 		assertEquals(map, result);
 	}
 

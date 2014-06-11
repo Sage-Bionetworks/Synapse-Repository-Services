@@ -1,6 +1,5 @@
 package org.sagebionetworks.dynamo.dao.rowcache;
 
-import java.util.Collections;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -17,7 +16,6 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Supplier;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Range;
 import com.google.common.collect.Sets;
 
 public class CurrentRowCacheDaoStub implements CurrentRowCacheDao {
@@ -87,12 +85,12 @@ public class CurrentRowCacheDaoStub implements CurrentRowCacheDao {
 	}
 
 	@Override
-	public Map<Long, Long> getCurrentVersions(Long tableId, final Range<Long> rowIdRange) {
+	public Map<Long, Long> getCurrentVersions(Long tableId, final long rowIdOffset, final long limit) {
 		Map<Long, Long> versions = latestVersionNumbers.get(tableId);
 		Iterable<Entry<Long, Long>> versionsInRange = Iterables.filter(versions.entrySet(), new Predicate<Entry<Long, Long>>() {
 			@Override
 			public boolean apply(Entry<Long, Long> input) {
-				return rowIdRange.contains(input.getKey());
+				return input.getKey() >= rowIdOffset && input.getKey() < rowIdOffset + limit;
 			}
 		});
 		return Transform.toMap(versionsInRange, new Function<Map.Entry<Long, Long>, Transform.TransformEntry<Long, Long>>() {

@@ -31,7 +31,6 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Range;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 
@@ -311,7 +310,7 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 	}
 
 	@Override
-	public Map<Long, Long> getLatestVersions(String tableIdString, long minVersion, Range<Long> rowIdRange) throws IOException,
+	public Map<Long, Long> getLatestVersions(String tableIdString, long minVersion, long rowIdOffset, long limit) throws IOException,
 			NotFoundException {
 		try {
 			if (tableRowCache.isEnabled()) {
@@ -322,8 +321,8 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 				long lastCachedVersion = currentStatus.getLatestCachedVersionNumber() == null ? -1 : currentStatus
 						.getLatestCachedVersionNumber();
 
-				Map<Long, Long> lastestVersionsFromS3 = super.getLatestVersions(tableIdString, lastCachedVersion + 1, rowIdRange);
-				Map<Long, Long> lastestVersionsFromCache = tableRowCache.getCurrentVersionNumbers(tableId, rowIdRange);
+				Map<Long, Long> lastestVersionsFromS3 = super.getLatestVersions(tableIdString, lastCachedVersion + 1, rowIdOffset, limit);
+				Map<Long, Long> lastestVersionsFromCache = tableRowCache.getCurrentVersionNumbers(tableId, rowIdOffset, limit);
 
 				// merge the two by overwriting the cached versions with the ones from S3
 				lastestVersionsFromCache.putAll(lastestVersionsFromS3);
@@ -332,6 +331,6 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 		} catch (Exception e) {
 			log.error("Error getting latest from cache: " + e.getMessage(), e);
 		}
-		return super.getLatestVersions(tableIdString, minVersion, rowIdRange);
+		return super.getLatestVersions(tableIdString, minVersion, rowIdOffset, limit);
 	}
 }

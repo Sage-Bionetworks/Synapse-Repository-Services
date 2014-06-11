@@ -5,7 +5,6 @@ import java.util.Map;
 import org.sagebionetworks.repo.model.table.CurrentRowCacheStatus;
 
 import com.amazonaws.services.dynamodb.model.ConditionalCheckFailedException;
-import com.google.common.collect.Range;
 
 public interface CurrentRowCacheDao {
 	boolean isEnabled();
@@ -22,7 +21,7 @@ public interface CurrentRowCacheDao {
 
 	Map<Long, Long> getCurrentVersions(Long tableId, Iterable<Long> rowIds);
 
-	Map<Long, Long> getCurrentVersions(Long tableId, Range<Long> rowIdRange);
+	Map<Long, Long> getCurrentVersions(Long tableId, long rowIdOffset, long limit);
 
 	void deleteCurrentVersion(Long tableId, Long rowId);
 
