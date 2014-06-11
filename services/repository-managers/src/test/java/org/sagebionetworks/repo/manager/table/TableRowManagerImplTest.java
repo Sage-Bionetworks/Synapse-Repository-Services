@@ -723,7 +723,7 @@ public class TableRowManagerImplTest {
 	public void testGetCurrentRowVersionsOneBatch() throws Exception {
 		when(mockTruthDao.getMaxRowId(tableId)).thenReturn(10L);
 		Map<Long, Long> map1 = Collections.singletonMap(1L, 1L);
-		when(mockTruthDao.getLatestVersions(tableId, 0L, Ranges.closedOpen(0L, 10L))).thenReturn(map1);
+		when(mockTruthDao.getLatestVersions(tableId, 0L, Ranges.closedOpen(0L, 11L))).thenReturn(map1);
 		Iterable<Map<Long, Long>> currentRowVersions = manager.getCurrentRowVersions(tableId, 0L);
 		Iterator<Map<Long, Long>> iterator = currentRowVersions.iterator();
 		assertTrue(iterator.hasNext());
@@ -737,7 +737,7 @@ public class TableRowManagerImplTest {
 	public void testGetCurrentRowVersionsOneBatchAfterVersion() throws Exception {
 		when(mockTruthDao.getMaxRowId(tableId)).thenReturn(10L);
 		Map<Long, Long> map1 = Collections.singletonMap(1L, 1L);
-		when(mockTruthDao.getLatestVersions(tableId, 4L, Ranges.closedOpen(0L, 10L))).thenReturn(map1);
+		when(mockTruthDao.getLatestVersions(tableId, 4L, Ranges.closedOpen(0L, 11L))).thenReturn(map1);
 		Iterable<Map<Long, Long>> currentRowVersions = manager.getCurrentRowVersions(tableId, 4L);
 		Iterator<Map<Long, Long>> iterator = currentRowVersions.iterator();
 		assertTrue(iterator.hasNext());
@@ -763,14 +763,14 @@ public class TableRowManagerImplTest {
 
 	@Test
 	public void testGetCurrentRowVersionsTwoBatches() throws Exception {
-		when(mockTruthDao.getMaxRowId(tableId)).thenReturn(TableRowManagerImpl.MAX_BLOCK_SIZE + 1);
+		when(mockTruthDao.getMaxRowId(tableId)).thenReturn(TableRowManagerImpl.MAX_BLOCK_SIZE + 2);
 		Map<Long, Long> map1 = Collections.singletonMap(1L, 1L);
 		Map<Long, Long> map2 = Collections.singletonMap(2L, 2L);
-		when(mockTruthDao.getLatestVersions(tableId, 0L, Ranges.closedOpen(0L, TableRowManagerImpl.MAX_BLOCK_SIZE / 2 + 1)))
+		when(mockTruthDao.getLatestVersions(tableId, 0L, Ranges.closedOpen(0L, TableRowManagerImpl.MAX_BLOCK_SIZE / 2 + 2)))
 				.thenReturn(map1);
 		when(
 				mockTruthDao.getLatestVersions(tableId, 0L,
-						Ranges.closedOpen(TableRowManagerImpl.MAX_BLOCK_SIZE / 2 + 1, TableRowManagerImpl.MAX_BLOCK_SIZE + 1))).thenReturn(
+						Ranges.closedOpen(TableRowManagerImpl.MAX_BLOCK_SIZE / 2 + 2, TableRowManagerImpl.MAX_BLOCK_SIZE + 3))).thenReturn(
 				map2);
 		Iterable<Map<Long, Long>> currentRowVersions = manager.getCurrentRowVersions(tableId, 0L);
 		Iterator<Map<Long, Long>> iterator = currentRowVersions.iterator();

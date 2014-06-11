@@ -10,6 +10,7 @@ import static org.mockito.Mockito.*;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 
 import org.junit.Before;
@@ -28,6 +29,7 @@ import org.sagebionetworks.repo.model.exception.LockUnavilableException;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
@@ -167,8 +169,11 @@ public class TableWorkerTest {
 		when(mockTableRowManager.getTableStatus(tableId)).thenReturn(status);
 		when(mockTableIndexDAO.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(-1L);
 		when(mockTableRowManager.getCurrentRowVersions(tableId, 0L)).thenReturn(Collections.singletonList(Collections.singletonMap(0L, 0L)));
+		TableRowChange trc = new TableRowChange();
+		trc.setEtag("etag");
+		trc.setRowVersion(0L);
+		when(mockTableRowManager.getLastTableRowChange(tableId)).thenReturn(trc);
 		RowSet rowSet = new RowSet();
-		rowSet.setEtag("etag");
 		rowSet.setRows(Collections.singletonList(TableModelTestUtils.createRow(0L, 0L, "2")));
 		when(mockTableRowManager.getRowSet(tableId, 0L, Collections.singleton(0L))).thenReturn(rowSet);
 		Message two = MessageUtils.buildMessage(ChangeType.UPDATE, tableId, ObjectType.TABLE, resetToken);
@@ -204,8 +209,11 @@ public class TableWorkerTest {
 		when(mockTableRowManager.getTableStatus(tableId)).thenReturn(status);
 		when(mockTableIndexDAO.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(2L);
 		when(mockTableRowManager.getCurrentRowVersions(tableId, 3L)).thenReturn(Collections.singletonList(Collections.singletonMap(0L, 3L)));
+		TableRowChange trc = new TableRowChange();
+		trc.setEtag("etag");
+		trc.setRowVersion(3L);
+		when(mockTableRowManager.getLastTableRowChange(tableId)).thenReturn(trc);
 		RowSet rowSet = new RowSet();
-		rowSet.setEtag("etag");
 		rowSet.setRows(Collections.singletonList(TableModelTestUtils.createRow(0L, 3L, "2")));
 		when(mockTableRowManager.getRowSet(tableId, 3L, Collections.singleton(0L))).thenReturn(rowSet);
 		Message two = MessageUtils.buildMessage(ChangeType.UPDATE, tableId, ObjectType.TABLE, resetToken);
@@ -393,6 +401,8 @@ public class TableWorkerTest {
 		status.setResetToken(resetToken);
 		// simulate the ConflictingUpdateException
 		doThrow(new ConflictingUpdateException("Cannot get a lock at this time")).when(mockTableRowManager).attemptToSetTableStatusToAvailable(anyString(), anyString(), anyString());
+		when(mockTableRowManager.getTableStatus(tableId)).thenReturn(status);
+		when(mockTableRowManager.getCurrentRowVersions(tableId, 1L)).thenReturn(Collections.<Map<Long, Long>> emptyList());
 		
 		Message two = MessageUtils.buildMessage(ChangeType.UPDATE, tableId, ObjectType.TABLE, resetToken);
 		List<Message> messages = Arrays.asList(two);
@@ -403,7 +413,6 @@ public class TableWorkerTest {
 		assertNotNull(results);
 		assertEquals("An old message should get returned so it can be removed from the queue",messages, results);
 		// The connection factory should never be called
-		verify(mockTableConnectionFactory, never()).getConnection(anyString());
+		verify(mockTableRowManager).attemptToSetTableStatusToAvailable(anyString(), anyString(), anyString());
 	}
-	
 }
