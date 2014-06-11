@@ -79,12 +79,28 @@ public interface TableIndexDAO {
 	public Long getRowCountForTable(String tableId);
 	
 	/**
-	 * Get the max version we currently have for this table.
+	 * Get the max complete version we currently have for this table.
 	 * 
 	 * @param tableId
-	 * @return The max version of the table. If the table does not exist then null.
+	 * @param version the max complete version to remember
+	 * @return The max complete version of the table. If the table does not exist then -1L.
 	 */
-	public Long getMaxVersionForTable(String tableId);
+	public Long getMaxCurrentCompleteVersionForTable(String tableId);
+
+	/**
+	 * Set the max complete version for this table
+	 * 
+	 * @param tableId
+	 * @param highestVersion
+	 */
+	public void setMaxCurrentCompleteVersionForTable(String tableId, Long highestVersion);
+
+	/**
+	 * Delete the status table for this table if it exists
+	 * 
+	 * @param tableId
+	 */
+	public void deleteStatusTable(String tableId);
 	
 	/**
 	 * Get the connection

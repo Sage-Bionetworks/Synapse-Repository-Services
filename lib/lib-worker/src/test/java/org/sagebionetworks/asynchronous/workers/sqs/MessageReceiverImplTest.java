@@ -199,7 +199,9 @@ public class MessageReceiverImplTest {
 		// Setup workers that will take longer than the half-life of the timeout
 		// which should trigger a reset of the visibility timeout.
 		long visibilityTimeoutMS = visibilityTimeoutSecs*1000;
-		long sleepTime = visibilityTimeoutMS;
+		// make sure workers are done between when the message reset happens (visibilityTimeoutSecs / 2) and when the
+		// next reset would happen (visibilityTimeoutSecs)
+		long sleepTime = visibilityTimeoutMS * 3 / 4;
 		for(int i=0; i<maxNumberOfWorkerThreads; i++){
 			workerStack.push(new StubWorker(sleepTime, 2, null));
 		}

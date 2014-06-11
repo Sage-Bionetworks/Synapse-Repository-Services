@@ -187,32 +187,24 @@ public class TableIndexDAOImplTest {
 	
 	@Test
 	public void testGetMaxVersionForTable(){
-		// Before the table exists the max version should be null
-		Long maxVersion = tableIndexDAO.getMaxVersionForTable(tableId);
-		assertEquals("The max version should be null when the table does not exist",null, maxVersion);
-		// Create the table
-		List<ColumnModel> allTypes = TableModelTestUtils.createOneOfEachType();
-		tableIndexDAO.createOrUpdateTable(allTypes, tableId);
-		// The max version should now be -1
-		maxVersion = tableIndexDAO.getMaxVersionForTable(tableId);
-		assertEquals("The max version should be -1 when the table is empty", new Long(-1), maxVersion);
-		// Now add some data
-		List<Row> rows = TableModelTestUtils.createRows(allTypes, 2);
-		RowSet set = new RowSet();
-		set.setRows(rows);
-		set.setHeaders(TableModelUtils.getHeaders(allTypes));
-		set.setTableId(tableId);
-		IdRange range = new IdRange();
-		range.setMinimumId(100L);
-		range.setMaximumId(200L);
-		range.setVersionNumber(3L);
-		TableModelUtils.assignRowIdsAndVersionNumbers(set, range);
-		// Now fill the table with data
-		tableIndexDAO.createOrUpdateOrDeleteRows(set, allTypes);
-		// Check again
-		maxVersion = tableIndexDAO.getMaxVersionForTable(tableId);
-		assertEquals(new Long(3), maxVersion);
+		// Before the table exists the max version should be -1L
+		Long maxVersion = tableIndexDAO.getMaxCurrentCompleteVersionForTable(tableId);
+		assertEquals(-1L, maxVersion.longValue());
 
+		// Create the table
+		tableIndexDAO.setMaxCurrentCompleteVersionForTable(tableId, 2L);
+
+		maxVersion = tableIndexDAO.getMaxCurrentCompleteVersionForTable(tableId);
+		assertEquals(2L, maxVersion.longValue());
+
+		tableIndexDAO.setMaxCurrentCompleteVersionForTable(tableId, 4L);
+
+		maxVersion = tableIndexDAO.getMaxCurrentCompleteVersionForTable(tableId);
+		assertEquals(4L, maxVersion.longValue());
+
+		tableIndexDAO.deleteStatusTable(tableId);
+		maxVersion = tableIndexDAO.getMaxCurrentCompleteVersionForTable(tableId);
+		assertEquals(-1L, maxVersion.longValue());
 	}
 	
 	@Test

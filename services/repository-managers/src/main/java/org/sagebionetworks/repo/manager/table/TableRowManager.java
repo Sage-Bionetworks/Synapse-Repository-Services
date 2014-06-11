@@ -129,6 +129,16 @@ public interface TableRowManager {
 	public Iterable<Map<Long, Long>> getCurrentRowVersions(String tableId, Long minVersion) throws IOException, NotFoundException;
 
 	/**
+	 * Get the last table row change
+	 * 
+	 * @param tableId
+	 * @return
+	 * @throws IOException
+	 * @throws NotFoundException
+	 */
+	public TableRowChange getLastTableRowChange(String tableId) throws IOException, NotFoundException;
+
+	/**
 	 * Get the values for a specific row reference and column
 	 * 
 	 * @param userInfo

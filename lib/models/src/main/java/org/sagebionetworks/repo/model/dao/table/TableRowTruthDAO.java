@@ -52,6 +52,13 @@ public interface TableRowTruthDAO {
 	public long getMaxRowId(String tableId);
 
 	/**
+	 * Get the highest current version for this table
+	 * 
+	 * @return
+	 */
+	public TableRowChange getLastTableRowChange(String tableId);
+
+	/**
 	 * Append a RowSet to a table.
 	 * 
 	 * @param tableId

@@ -360,6 +360,10 @@ public class TableRowTruthDAOImplTest {
 		// Append this change set
 		RowReferenceSet refSet = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, models, set, false);
 		assertNotNull(refSet);
+
+		assertEquals(0L, tableRowTruthDao.getLastTableRowChange(tableId).getRowVersion().longValue());
+		assertEquals(4L, tableRowTruthDao.getMaxRowId(tableId));
+
 		// Now fetch the rows for an update
 		RowSet toUpdate = tableRowTruthDao.getRowSet(tableId, 0l, ALL_SET);
 		// remove a few rows
@@ -383,6 +387,9 @@ public class TableRowTruthDAOImplTest {
 		assertNotNull(updated.getRows());
 		assertNotNull(updated.getEtag());
 		assertEquals(4, updated.getRows().size());
+
+		assertEquals(1L, tableRowTruthDao.getLastTableRowChange(tableId).getRowVersion().longValue());
+		assertEquals(6L, tableRowTruthDao.getMaxRowId(tableId));
 	}
 	
 	@Test

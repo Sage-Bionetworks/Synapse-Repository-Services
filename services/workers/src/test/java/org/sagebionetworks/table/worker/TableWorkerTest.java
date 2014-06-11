@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.exception.LockUnavilableException;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -35,6 +36,7 @@ import org.sagebionetworks.table.worker.TableWorker.State;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 
 import com.amazonaws.services.sqs.model.Message;
+import com.google.common.collect.Lists;
 
 public class TableWorkerTest {
 	
@@ -160,8 +162,10 @@ public class TableWorkerTest {
 		String resetToken = "reset-token";
 		TableStatus status = new TableStatus();
 		status.setResetToken(resetToken);
+		List<ColumnModel> currentSchema = Lists.newArrayList();
+		when(mockTableRowManager.getColumnModelsForTable(tableId)).thenReturn(currentSchema);
 		when(mockTableRowManager.getTableStatus(tableId)).thenReturn(status);
-		when(mockTableIndexDAO.getMaxVersionForTable(tableId)).thenReturn(-1L);
+		when(mockTableIndexDAO.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(-1L);
 		when(mockTableRowManager.getCurrentRowVersions(tableId, 0L)).thenReturn(Collections.singletonList(Collections.singletonMap(0L, 0L)));
 		RowSet rowSet = new RowSet();
 		rowSet.setEtag("etag");
@@ -179,6 +183,45 @@ public class TableWorkerTest {
 		verify(mockTableConnectionFactory, times(1)).getConnection(anyString());
 		// The status should get set to available
 		verify(mockTableRowManager, times(1)).attemptToSetTableStatusToAvailable(tableId, resetToken, "etag");
+		verify(mockTableIndexDAO).createOrUpdateOrDeleteRows(rowSet, currentSchema);
+		verify(mockTableIndexDAO).setMaxCurrentCompleteVersionForTable(tableId, 0L);
+	}
+
+	/**
+	 * When everything works well, the message should be removed from the queue and the table status should be set to
+	 * AVAILABLE.
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void testHappyUpdateCase() throws Exception {
+		String tableId = "456";
+		String resetToken = "reset-token";
+		TableStatus status = new TableStatus();
+		status.setResetToken(resetToken);
+		List<ColumnModel> currentSchema = Lists.newArrayList();
+		when(mockTableRowManager.getColumnModelsForTable(tableId)).thenReturn(currentSchema);
+		when(mockTableRowManager.getTableStatus(tableId)).thenReturn(status);
+		when(mockTableIndexDAO.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(2L);
+		when(mockTableRowManager.getCurrentRowVersions(tableId, 3L)).thenReturn(Collections.singletonList(Collections.singletonMap(0L, 3L)));
+		RowSet rowSet = new RowSet();
+		rowSet.setEtag("etag");
+		rowSet.setRows(Collections.singletonList(TableModelTestUtils.createRow(0L, 3L, "2")));
+		when(mockTableRowManager.getRowSet(tableId, 3L, Collections.singleton(0L))).thenReturn(rowSet);
+		Message two = MessageUtils.buildMessage(ChangeType.UPDATE, tableId, ObjectType.TABLE, resetToken);
+		List<Message> messages = Arrays.asList(two);
+		// Create the worker
+		TableWorker worker = createNewWorker(messages);
+		// Make the call
+		List<Message> results = worker.call();
+		assertNotNull(results);
+		assertEquals(messages, results);
+		// The connection factory should be called
+		verify(mockTableConnectionFactory, times(1)).getConnection(anyString());
+		// The status should get set to available
+		verify(mockTableRowManager, times(1)).attemptToSetTableStatusToAvailable(tableId, resetToken, "etag");
+		verify(mockTableIndexDAO).createOrUpdateOrDeleteRows(rowSet, currentSchema);
+		verify(mockTableIndexDAO).setMaxCurrentCompleteVersionForTable(tableId, 3L);
 	}
 	
 	/**

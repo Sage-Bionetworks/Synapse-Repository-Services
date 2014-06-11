@@ -14,6 +14,7 @@ import java.util.Map;
 import javax.sql.DataSource;
 
 import org.sagebionetworks.repo.model.dao.table.RowAndHeaderHandler;
+import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.Row;
@@ -160,23 +161,32 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	}
 
 	@Override
-	public Long getMaxVersionForTable(String tableId) {
-		// First we need to know if the table exists and is not empty
-		Long count = getRowCountForTable(tableId);
-		if (count == null) {
-			// the table does not exist so we return null for the max
-			return null;
-		}
-		if (count < 1) {
-			// the table is empty we return -1 for the max
-			return -1L;
-		}
-		String sql = SQLUtils.getMaxVersionSQL(tableId);
+	public Long getMaxCurrentCompleteVersionForTable(String tableId) {
+		String sql = SQLUtils.getStatusMaxVersionSQL(tableId);
 		try {
 			return template.queryForObject(sql, new SingleColumnRowMapper<Long>());
 		} catch (BadSqlGrammarException e) {
-			// Spring throws this when the table does not
-			return null;
+			// Spring throws this when the table does not exist
+			return -1L;
+		}
+	}
+
+	@Override
+	public void setMaxCurrentCompleteVersionForTable(String tableId, Long version) {
+		String createStatusTableSql = SQLUtils.createStatusTableSQL(tableId);
+		template.update(createStatusTableSql);
+
+		String createOrUpdateStatusSql = SQLUtils.buildCreateOrUpdateStatusSQL(tableId);
+		template.update(createOrUpdateStatusSql, version);
+	}
+
+	@Override
+	public void deleteStatusTable(String tableId) {
+		String dropStatusTableDML = SQLUtils.dropStatusTableSQL(tableId);
+		try {
+			template.update(dropStatusTableDML);
+		} catch (BadSqlGrammarException e) {
+			// This is thrown when the table does not exist
 		}
 	}
 

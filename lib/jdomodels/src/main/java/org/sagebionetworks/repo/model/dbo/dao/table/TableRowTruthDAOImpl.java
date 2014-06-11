@@ -73,6 +73,8 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			+ " = ? ";
 	private static final String SQL_SELECT_MAX_ROWID = "SELECT " + COL_ID_SEQUENCE + " FROM " + TABLE_TABLE_ID_SEQUENCE + " WHERE "
 			+ COL_ID_SEQUENCE_TABLE_ID + " = ?";
+	private static final String SQL_SELECT_LAST_ROW_CHANGE_FOR_TABLE = "SELECT * FROM " + TABLE_ROW_CHANGE + " WHERE "
+			+ COL_TABLE_ROW_TABLE_ID + " = ? ORDER BY " + COL_TABLE_ROW_VERSION + " DESC LIMIT 1";
 	private static final String SQL_SELECT_ROW_CHANGE_FOR_TABLE_AND_VERSION = "SELECT * FROM "
 			+ TABLE_ROW_CHANGE
 			+ " WHERE "
@@ -307,6 +309,20 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		} catch (EmptyResultDataAccessException e) {
 			// presumably, no rows have been added yet
 			return 0L;
+		}
+	}
+
+	@Override
+	public TableRowChange getLastTableRowChange(String tableIdString) {
+		if (tableIdString == null)
+			throw new IllegalArgumentException("TableId cannot be null");
+		long tableId = KeyFactory.stringToKey(tableIdString);
+		try {
+			DBOTableRowChange dbo = simpleJdbcTemplate.queryForObject(SQL_SELECT_LAST_ROW_CHANGE_FOR_TABLE, rowChangeMapper, tableId);
+			return TableModelUtils.ceateDTOFromDBO(dbo);
+		} catch (EmptyResultDataAccessException e) {
+			// presumably, no rows have been added yet
+			return null;
 		}
 	}
 

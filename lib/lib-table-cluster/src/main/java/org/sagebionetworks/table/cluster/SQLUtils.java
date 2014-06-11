@@ -38,8 +38,7 @@ public class SQLUtils {
 	public static final String DEFAULT = "DEFAULT";
 	public static final String TABLE_PREFIX = "T";
 	public static final String COLUMN_PREFIX = "C";
-	public static final Integer TRUE_INT = new Integer(1);
-	public static final Integer FALSE_INT = new Integer(0);
+	public static final String TABLE_STATUS_POSTFIX = "S";
 	
 	/**
 	 * Generate the SQL need to create or alter a table from one schema to
@@ -101,6 +100,24 @@ public class SQLUtils {
 		StringBuilder builder = new StringBuilder();
 		builder.append("CREATE TABLE IF NOT EXISTS `").append(getTableNameForId(tableId)).append("` ");
 		appendColumnDefinitionsToCreate(builder, newSchema);
+		return builder.toString();
+	}
+
+	/**
+	 * Given a new schema generate the create table DDL.
+	 * 
+	 * @param newSchema
+	 * @return
+	 */
+	public static String createStatusTableSQL(String tableId) {
+		if (tableId == null)
+			throw new IllegalArgumentException("TableId cannot be null");
+		StringBuilder builder = new StringBuilder();
+		builder.append("CREATE TABLE IF NOT EXISTS `").append(getStatusTableNameForId(tableId)).append("` ");
+		builder.append("( ");
+		builder.append("single_key ENUM('') NOT NULL PRIMARY KEY,");
+		builder.append(ROW_VERSION).append(" bigint(20) NOT NULL");
+		builder.append(" )");
 		return builder.toString();
 	}
 
@@ -343,6 +360,18 @@ public class SQLUtils {
 	}
 
 	/**
+	 * Get the status Table Name for a given table ID.
+	 * 
+	 * @param tableId
+	 * @return
+	 */
+	public static String getStatusTableNameForId(String tableId) {
+		if (tableId == null)
+			throw new IllegalArgumentException("Table ID cannot be null");
+		return TABLE_PREFIX + KeyFactory.stringToKey(tableId) + TABLE_STATUS_POSTFIX;
+	}
+
+	/**
 	 * Get a table ID from a TableName
 	 * 
 	 * @param tableName
@@ -402,9 +431,21 @@ public class SQLUtils {
 	}
 	
 	/**
-	 * Convert a list of column names to a list of column IDs.
-	 * Note: Any column that is not derived from a ColumnModel will not be
-	 * included in the results.
+	 * Create the DROP table SQL.
+	 * 
+	 * @param tableId
+	 * @return
+	 */
+	public static String dropStatusTableSQL(String tableId) {
+		String tableName = getStatusTableNameForId(tableId);
+		StringBuilder builder = new StringBuilder();
+		builder.append("DROP TABLE ").append(tableName);
+		return builder.toString();
+	}
+
+	/**
+	 * Convert a list of column names to a list of column IDs. Note: Any column that is not derived from a ColumnModel
+	 * will not be included in the results.
 	 * 
 	 * @param names
 	 * @return
@@ -454,6 +495,25 @@ public class SQLUtils {
 			builder.append(name);
 			builder.append(" = :").append(name);
 		}
+		return builder.toString();
+	}
+
+	/**
+	 * Build the create or update statement for inserting rows into a table.
+	 * 
+	 * @param schema
+	 * @param tableId
+	 * @return
+	 */
+	public static String buildCreateOrUpdateStatusSQL(String tableId) {
+		if (tableId == null)
+			throw new IllegalArgumentException("TableID cannot be null");
+		StringBuilder builder = new StringBuilder();
+		builder.append("REPLACE INTO ");
+		builder.append(getStatusTableNameForId(tableId));
+		builder.append(" ( ");
+		builder.append(ROW_VERSION);
+		builder.append(" ) VALUES ( ? )");
 		return builder.toString();
 	}
 
@@ -560,9 +620,7 @@ public class SQLUtils {
 	 * Create the SQL used to get the max version number from a table.
 	 * @return
 	 */
-	public static String getMaxVersionSQL(String tableId){
-		StringBuilder builder = new StringBuilder();
-		builder.append("SELECT MAX(").append(ROW_VERSION).append(") FROM ").append(getTableNameForId(tableId));
-		return builder.toString();
+	public static String getStatusMaxVersionSQL(String tableId) {
+		return "SELECT " + ROW_VERSION + " FROM " + getStatusTableNameForId(tableId);
 	}
 }

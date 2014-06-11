@@ -234,8 +234,7 @@ public class TableWorker implements Callable<List<Message>> {
 			IOException {
 		// The first task is to get the table schema in-synch.
 		// Get the current schema of the table.
-		List<ColumnModel> currentSchema = tableRowManager
-				.getColumnModelsForTable(tableId);
+		List<ColumnModel> currentSchema = tableRowManager.getColumnModelsForTable(tableId);
 		// Create or update the table with this schema.
 		tableRowManager.attemptToUpdateTableProgress(tableId, resetToken, "Creating table ", 0L, 100L);
 		if(currentSchema.isEmpty()){
@@ -246,15 +245,14 @@ public class TableWorker implements Callable<List<Message>> {
 			indexDao.createOrUpdateTable(currentSchema, tableId);
 		}
 		// Now determine which changes need to be applied to the table
-		Long maxVersion = indexDao.getMaxVersionForTable(tableId);
+		Long maxCurrentCompleteVersion = indexDao.getMaxCurrentCompleteVersionForTable(tableId);
 		// List all of the changes
 		tableRowManager.attemptToUpdateTableProgress(tableId, resetToken, "Getting current table row versions ", 0L, 100L);
 
-		long highestVersion = -1;
-		String highestEtag = null;
+		TableRowChange lastTableRowChange = tableRowManager.getLastTableRowChange(tableId);
 
 		long currentProgress = 0;
-		Iterable<Map<Long, Long>> currentRowVersionsIterable = tableRowManager.getCurrentRowVersions(tableId, maxVersion + 1);
+		Iterable<Map<Long, Long>> currentRowVersionsIterable = tableRowManager.getCurrentRowVersions(tableId, maxCurrentCompleteVersion + 1);
 		for (Map<Long, Long> currentRowVersions : currentRowVersionsIterable) {
 			// gather rows by version
 			SetMultimap<Long, Long> versionToRowsMap = TableModelUtils.createVersionToRowsMap(currentRowVersions);
@@ -267,10 +265,6 @@ public class TableWorker implements Callable<List<Message>> {
 
 				// This is a change that we must apply.
 				RowSet rowSet = tableRowManager.getRowSet(tableId, version, rowsToGet);
-				if (version > highestVersion) {
-					highestVersion = version;
-					highestEtag = rowSet.getEtag();
-				}
 
 				tableRowManager.attemptToUpdateTableProgress(tableId, resetToken, "Applying rows " + rowSet.getRows().size()
 						+ " to version: " + version, currentProgress, currentProgress);
@@ -279,6 +273,14 @@ public class TableWorker implements Callable<List<Message>> {
 				currentProgress += rowsToGet.size();
 			}
 		}
-		return highestEtag;
+
+		// If we successfully updated the table and got here, then all we know is that we are at least at the version
+		// the table was at when we started. It is still possible that a newer version came in and the we applied
+		// partial updates from that version to the index. A subsequent update will make things consistent again.
+		if (lastTableRowChange != null) {
+			indexDao.setMaxCurrentCompleteVersionForTable(tableId, lastTableRowChange.getRowVersion());
+		}
+
+		return lastTableRowChange == null ? null : lastTableRowChange.getEtag();
 	}
 }

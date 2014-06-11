@@ -308,6 +308,11 @@ public class TableRowManagerImpl implements TableRowManager {
 	}
 
 	@Override
+	public TableRowChange getLastTableRowChange(String tableId) throws IOException, NotFoundException {
+		return tableRowTruthDao.getLastTableRowChange(tableId);
+	}
+
+	@Override
 	public String getCellValue(UserInfo userInfo, String tableId, RowReference rowRef, ColumnModel column) throws IOException,
 			NotFoundException {
 		if (!authorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)) {

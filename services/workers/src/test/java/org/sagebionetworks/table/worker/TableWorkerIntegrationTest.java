@@ -1,6 +1,11 @@
 package org.sagebionetworks.table.worker;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -8,7 +13,6 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
-import java.sql.Time;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -38,15 +42,14 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dbo.dao.table.CSVToRowIterator;
 import org.sagebionetworks.repo.model.dao.table.TableRowCache;
+import org.sagebionetworks.repo.model.dbo.dao.table.CSVToRowIterator;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.table.AsynchDownloadResponseBody;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Row;
-import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
@@ -56,7 +59,7 @@ import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
-import org.sagebionetworks.table.cluster.TableIndexDAO;
+import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.util.csv.CSVWriterStreamProxy;
 import org.sagebionetworks.util.csv.CsvNullReader;
@@ -66,6 +69,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import au.com.bytecode.opencsv.CSVWriter;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -371,6 +375,75 @@ public class TableWorkerIntegrationTest {
 		assertEquals("updatestring555", rowSet.getRows().get(1).getValues().get(0));
 	}
 
+	@Test
+	public void testBreakAndFixRoundTrip() throws NotFoundException, InterruptedException, DatastoreException, TableUnavilableException,
+			IOException {
+		schema = new LinkedList<ColumnModel>();
+		ColumnModel cm = new ColumnModel();
+		cm.setColumnType(ColumnType.LONG);
+		cm.setName("col1");
+		cm = columnManager.createColumnModel(adminUserInfo, cm);
+		schema.add(cm);
+
+		List<String> headers = TableModelUtils.getHeaders(schema);
+		// Create the table.
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		table.setColumnIds(headers);
+		tableId = entityManager.createEntity(adminUserInfo, table, null);
+		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
+		columnManager.bindColumnToObject(adminUserInfo, headers, tableId, true);
+
+		// Now add valid data
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(Lists.newArrayList(TableModelTestUtils.createRow(null, null, "123")));
+		rowSet.setHeaders(headers);
+		rowSet.setTableId(tableId);
+
+		// cheat by passing in a different column model that will allow us to insert an invalid value
+		List<ColumnModel> invalidSchema = new LinkedList<ColumnModel>();
+		ColumnModel cheatingColumnModel = new ColumnModel();
+		cheatingColumnModel.setColumnType(ColumnType.STRING);
+		cheatingColumnModel.setMaximumSize(100L);
+		cheatingColumnModel.setName("col1");
+		cheatingColumnModel.setId(cm.getId());
+		invalidSchema.add(cheatingColumnModel);
+
+		referenceSet = tableRowManager.appendRows(adminUserInfo, tableId, schema, rowSet);
+
+		String sql = "select * from " + tableId + " limit 100";
+		rowSet = waitForConsistentQuery(adminUserInfo, sql);
+		assertEquals("TableId: " + tableId, 1, rowSet.getRows().size());
+
+		// Now add invalid data using the invalid schema
+		rowSet = new RowSet();
+		rowSet.setRows(Lists.newArrayList(TableModelTestUtils.createRow(null, null, Long.toString(Long.MAX_VALUE) + "234")));
+		rowSet.setHeaders(headers);
+		rowSet.setTableId(tableId);
+		referenceSet = tableRowManager.appendRows(adminUserInfo, tableId, invalidSchema, rowSet);
+
+		waitForConsistentQueryError(adminUserInfo, sql);
+		try {
+			// should fail immediately
+			tableRowManager.query(adminUserInfo, sql, true, false);
+			fail("should not have succeeded");
+		} catch (TableUnavilableException e) {
+			assertNotNull(e.getStatus().getErrorMessage());
+		}
+
+		// Now fix the error
+		rowSet = new RowSet();
+		rowSet.setRows(Lists.newArrayList(TableModelTestUtils.createRow(referenceSet.getRows().get(0).getRowId(),
+				referenceSet.getRows().get(0).getVersionNumber(), "456")));
+		rowSet.setHeaders(headers);
+		rowSet.setTableId(tableId);
+		rowSet.setEtag(referenceSet.getEtag());
+		referenceSet = tableRowManager.appendRows(adminUserInfo, tableId, schema, rowSet);
+
+		rowSet = waitForConsistentQuery(adminUserInfo, sql);
+		assertEquals("TableId: " + tableId, 2, rowSet.getRows().size());
+	}
+
 	@Ignore // This is a very slow test that pushes massive amounts of data so it is disabled.
 	@Test
 	public void testAppendRowsAtScale() throws NotFoundException, InterruptedException, DatastoreException, TableUnavilableException, IOException{
@@ -628,6 +701,25 @@ public class TableWorkerIntegrationTest {
 		}
 	}
 	
+	private void waitForConsistentQueryError(UserInfo user, String sql) {
+		assertTrue(TimeUtils.waitFor(MAX_WAIT_MS, 250, sql, new Predicate<String>() {
+			@Override
+			public boolean apply(String sql) {
+				try {
+					tableRowManager.query(adminUserInfo, sql, true, false);
+					fail("should not have succeeded");
+				} catch (TableUnavilableException e) {
+					if (e.getStatus().getErrorMessage() != null) {
+						return true;
+					}
+				} catch (Exception e) {
+					fail("unexpected exception " + e.getMessage());
+				}
+				return false;
+			}
+		}));
+	}
+
 	/**
 	 * Attempt to run a query as a stream.  If the table is unavailable, it will continue to try until successful or the timeout is exceeded.
 	 * @param sql
