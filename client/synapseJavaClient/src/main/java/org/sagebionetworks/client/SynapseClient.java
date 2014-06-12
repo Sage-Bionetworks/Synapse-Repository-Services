@@ -103,6 +103,7 @@ import org.sagebionetworks.repo.model.storage.StorageUsageDimension;
 import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
+import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
@@ -1106,7 +1107,8 @@ public interface SynapseClient extends BaseClient {
 			throws SynapseException;
 	
 	/**
-	 * Append rows to table entity.
+	 * Append or update rows to table entity.
+	 * 
 	 * @param toAppend
 	 * @return
 	 * @throws SynapseException
@@ -1114,6 +1116,16 @@ public interface SynapseClient extends BaseClient {
 	 */
 	public RowReferenceSet appendRowsToTable(RowSet toAppend) throws SynapseException, SynapseTableUnavailableException;
 	
+	/**
+	 * Append or update partial rows to table entity.
+	 * 
+	 * @param toAppend
+	 * @return
+	 * @throws SynapseException
+	 * @throws SynapseTableUnavailableException
+	 */
+	public RowReferenceSet appendPartialRowsToTable(PartialRowSet toAppend) throws SynapseException, SynapseTableUnavailableException;
+
 	/**
 	 * Delete rows from table entity.
 	 * 

@@ -141,6 +141,7 @@ import org.sagebionetworks.repo.model.storage.StorageUsageDimension;
 import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
+import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
@@ -272,6 +273,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	protected static final String ROW_ID = "/row";
 	protected static final String ROW_VERSION = "/version";
 	protected static final String TABLE_QUERY = TABLE+"/query";
+	protected static final String TABLE_PARITAL = TABLE + "/partial";
 	
 	protected static final  String ASYNCHRONOUS_JOB = "/asynchronous/job";
 
@@ -5071,6 +5073,16 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		if(toAppend == null) throw new IllegalArgumentException("RowSet cannot be null");
 		if(toAppend.getTableId() == null) throw new IllegalArgumentException("RowSet.tableId cannot be null");
 		String url = ENTITY + "/" + toAppend.getTableId() + TABLE;
+		return asymmetricalPost(getRepoEndpoint(), url, toAppend, RowReferenceSet.class, null);
+	}
+
+	@Override
+	public RowReferenceSet appendPartialRowsToTable(PartialRowSet toAppend) throws SynapseException, SynapseTableUnavailableException {
+		if (toAppend == null)
+			throw new IllegalArgumentException("RowSet cannot be null");
+		if (toAppend.getTableId() == null)
+			throw new IllegalArgumentException("RowSet.tableId cannot be null");
+		String url = ENTITY + "/" + toAppend.getTableId() + TABLE_PARITAL;
 		return asymmetricalPost(getRepoEndpoint(), url, toAppend, RowReferenceSet.class, null);
 	}
 
