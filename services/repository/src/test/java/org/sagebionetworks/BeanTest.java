@@ -43,7 +43,9 @@ public class BeanTest implements ApplicationContextAware {
 				foundBeans.add(beanName);
 			}
 		}
-		assertEquals("Found beans without name/id. Either give the bean a name/id or add to exceptions in the test", "",
+		assertEquals(
+				"Found beans without name/id. Either give the bean a name/id or add to exceptions in the test, otherwise Spring will not guarantee that the bean is a singleton",
+				"",
 				StringUtils.join(foundBeans, ","));
 	}
 }
