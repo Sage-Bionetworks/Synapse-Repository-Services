@@ -1,0 +1,49 @@
+package org.sagebionetworks;
+
+import static org.junit.Assert.assertEquals;
+
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import org.apache.commons.lang.StringUtils;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.beans.BeansException;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import com.google.common.collect.Lists;
+
+@RunWith(SpringJUnit4ClassRunner.class)
+@ContextConfiguration(locations = { "classpath:test-context.xml" })
+public class BeanTest implements ApplicationContextAware {
+
+	ApplicationContext applicationContext;
+
+	@Override
+	public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+		this.applicationContext = applicationContext;
+	}
+
+	private static final List<String> EXCEPTIONS = Lists.newArrayList(
+			"org.springframework.transaction.annotation.AnnotationTransactionAttributeSource",
+			"org.springframework.transaction.interceptor.TransactionInterceptor",
+			"org.springframework.aop.support.DefaultBeanFactoryPointcutAdvisor");
+	private static final Pattern UNNAMED_BEAN_PATTERN = Pattern.compile("^(.*)#[0-9]+$");
+
+	@Test
+	public void testNoUnnamedBeans() {
+		List<String> foundBeans = Lists.newLinkedList();
+		for (String beanName : applicationContext.getBeanDefinitionNames()) {
+			Matcher matcher = UNNAMED_BEAN_PATTERN.matcher(beanName);
+			if (matcher.matches() && !EXCEPTIONS.contains(matcher.group(1))) {
+				foundBeans.add(beanName);
+			}
+		}
+		assertEquals("Found beans without name/id. Either give the bean a name/id or add to exceptions in the test", "",
+				StringUtils.join(foundBeans, ","));
+	}
+}
