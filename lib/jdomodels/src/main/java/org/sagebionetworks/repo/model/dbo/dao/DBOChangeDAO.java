@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
+import java.sql.Timestamp;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.ObjectType;
@@ -73,7 +74,7 @@ public interface DBOChangeDAO extends ProcessedMessageDAO {
 	 * 
 	 * @param changeNumber
 	 */
-	public void registerMessageSent(ChangeMessage message);
+	public boolean registerMessageSent(ChangeMessage message);
 
 	
 	/**
@@ -89,8 +90,11 @@ public interface DBOChangeDAO extends ProcessedMessageDAO {
 	 * List messages that have been created but not registered as sent (see {@link #registerMessageSent(long)}).
 	 * Limits results to change numbers between (inclusive) the specified bounds.
 	 * This is used to detect messages that need to be sent either for the first time or re-sent on a new stacks.
+	 * @param lowerBound lower change number (inclusive)
+	 * @param upperBound upper change number (inclusive)
+	 * @param Timestamp Only list changes that have a timestamp older than this value.
 	 */
-	public List<ChangeMessage> listUnsentMessages(long lowerBound, long upperBound);
+	public List<ChangeMessage> listUnsentMessages(long lowerBound, long upperBound, Timestamp olderThan);
 	
 	/**
 	 * For a given range of change number, does the change number check-sum match for both both changes and sent.

@@ -3,6 +3,7 @@ package org.sagebionetworks.change.workers;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -10,6 +11,7 @@ import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -24,10 +26,13 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.util.ClockProvider;
+import org.sagebionetworks.util.DefaultClockProvider;
 import org.sagebionetworks.util.TimeUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.base.Predicate;
 
@@ -67,6 +72,25 @@ public class ChangeSentMessageSynchWorkerIntegrationTest {
 		Random mockRandom = Mockito.mock(Random.class);
 		when(mockRandom.nextInt()).thenReturn(new Integer(0));
 		changeSentMessageSynchWorker.setRandom(mockRandom);
+		ReflectionTestUtils.setField(changeSentMessageSynchWorker, "clockProvider", new ClockProvider() {
+			@Override
+			public void sleep(long millis) throws InterruptedException {
+				throw new UnsupportedOperationException();
+			}
+			
+			@Override
+			public long currentTimeMillis() {
+				// always way in the future.
+				return Long.MAX_VALUE;
+			}
+		});
+	}
+	
+	@After
+	public void after(){
+		if(changeSentMessageSynchWorker != null){
+			ReflectionTestUtils.setField(changeSentMessageSynchWorker, "clockProvider", new DefaultClockProvider());
+		}
 	}
 	
 	@Test
@@ -86,7 +110,6 @@ public class ChangeSentMessageSynchWorkerIntegrationTest {
 
 		// By replacing changes the LastSynchedChangeNumber will no longer exist in the sent table.
 		changes = changeDao.replaceChange(changes);
-		changeDao.registerMessageSent(changes.get(2));
 		// At this point the LastSynchedChangeNumber will not longer exist in the sent table.
 		// There are also two changes that have not been sent that have change numbers less than the max sent change number
 		// the worker must be able to find this changes and send them.
@@ -128,7 +151,7 @@ public class ChangeSentMessageSynchWorkerIntegrationTest {
 		boolean passed = TimeUtils.waitFor(MAX_PUBLISH_WAIT_MS, 1000, null, new Predicate<Void>() {
 			@Override
 			public boolean apply(Void input) {
-				List<ChangeMessage> notSynchded = changeDao.listUnsentMessages(0, Long.MAX_VALUE);
+				List<ChangeMessage> notSynchded = changeDao.listUnsentMessages(0, Long.MAX_VALUE, new Timestamp(System.currentTimeMillis()));
 				return notSynchded.isEmpty();
 			}
 		});

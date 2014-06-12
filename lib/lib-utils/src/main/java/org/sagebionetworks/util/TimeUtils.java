@@ -1,5 +1,6 @@
 package org.sagebionetworks.util;
 
+import java.util.Iterator;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -78,17 +79,17 @@ public class TimeUtils {
 		}
 		return true;
 	}
-	
+
 	/**
 	 * Wait for at most maxRetryCount for condition to return true. Recheck every checkIntervalMillis with exponential
-	 * back off
-	 * Throws retry exception if the max number of retries is exceeded. That RetryException will have the same cause as the retry exception thrown from the callable
+	 * back off Throws retry exception if the max number of retries is exceeded. That RetryException will have the same
+	 * cause as the retry exception thrown from the callable
 	 * 
 	 * @param maxRetryCount
 	 * @param initialCheckIntervalMillis check at this interval and back of by 1.2x
 	 * @param condition
 	 * @param input
-	 * @return false if condition returned false 
+	 * @return false if condition returned false
 	 */
 	public static <T> T waitForExponentialMaxRetry(int maxRetryCount, long initialCheckIntervalMillis, Callable<T> callable) throws Exception {
 		return waitForInternalMaxRetry(maxRetryCount, initialCheckIntervalMillis, callable, true);
@@ -111,5 +112,4 @@ public class TimeUtils {
 			} 
 		}
 	}
-
 }
