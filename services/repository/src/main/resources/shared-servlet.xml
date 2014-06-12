@@ -23,7 +23,7 @@
 	<bean id="controllerAuditAspect" class="org.sagebionetworks.repo.web.ControllerAuditAspect" />
 
 	<!-- To enable @RequestMapping process on type level and method level -->
-	<bean
+	<bean id="jsonDefaultAnnotationHandler"
 		class="org.springframework.web.servlet.mvc.annotation.DefaultAnnotationHandlerMapping">
 		<property name="interceptors">
 			<list>
@@ -37,7 +37,7 @@
 		class="org.sagebionetworks.repo.web.controller.ObjectTypeSerializerImpl" />
 
 	<!-- Setup our own JSON processing. -->
-	<bean
+	<bean id="jsonAnnotationHandler"
 		class="org.springframework.web.servlet.mvc.annotation.AnnotationMethodHandlerAdapter">
 		<property name="messageConverters">
 			<list>
@@ -51,7 +51,7 @@
 		</property>
 	</bean>
 	<!-- Setup our own JSON processing. -->
-	<bean
+	<bean id="jsonAnnotationExceptionHandler"
 		class="org.springframework.web.servlet.mvc.annotation.AnnotationMethodHandlerExceptionResolver">
 		<property name="messageConverters">
 			<list>
