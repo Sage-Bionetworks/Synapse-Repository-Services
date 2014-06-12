@@ -17,7 +17,7 @@
 	<import resource="classpath:stack-reload-trigger.spb.xml" />
 	
 	<!-- This is a shared  Scheduler-->
-	<bean class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
+	<bean id="repositoryManagerScheduler" class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
 		<property name="triggers">
 			<list>
 				<ref bean="messagePublisherTrigger" />
