@@ -26,7 +26,7 @@ public class DBOSentMessage implements DatabaseObject<DBOSentMessage> {
 	
 	private static TableMapping<DBOSentMessage> tableMapping = AutoTableMapping.create(DBOSentMessage.class);
 	
-	@Field(name = COL_SENT_MESSAGES_CHANGE_NUM, nullable = false, primary=false, backupId = true)
+	@Field(name = COL_SENT_MESSAGES_CHANGE_NUM, nullable = true, primary=false, backupId = true)
 	private Long changeNumber;
 	
 	@Field(name = COL_SENT_MESSAGES_TIME_STAMP, sql="DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP")
