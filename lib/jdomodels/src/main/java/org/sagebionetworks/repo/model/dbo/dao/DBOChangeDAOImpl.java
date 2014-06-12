@@ -141,6 +141,12 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 		dbo.setTimeStamp(new Timestamp(nowMs));
 		// Now insert the row with the current value
 		dbo = basicDao.createOrUpdate(dbo);
+		// Setup and clear the sent message
+		DBOSentMessage sentDBO = new DBOSentMessage();
+		sentDBO.setChangeNumber(-1L);
+		sentDBO.setObjectId(dbo.getObjectId());
+		sentDBO.setObjectType(dbo.getObjectType());
+		basicDao.createOrUpdate(sentDBO);
 		return ChangeMessageUtils.createDTO(dbo);
 	}
 
@@ -224,23 +230,17 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 		sent.setChangeNumber(message.getChangeNumber());
 		sent.setObjectId(KeyFactory.stringToKey(message.getObjectId()));
 		sent.setObjectType(message.getObjectType());
+		// Determine what the current change number is.
 		Long currentChangeNumber = selectSentChangeNumberForUpdate(sent);
-		if(currentChangeNumber == null){
-			try {
-				this.basicDao.createNew(sent);
-			} catch (Exception e) {
-				/* Create new can fail with several errors depending on the exact condition of the failure.
-				 * When two separate transaction try to insert the same row at the same time a Deadlock exception can occur.
-				 * If one thread commits before the other thread starts, a duplicate key exception can occur.
-				 * In all cases it means this thread did not succeed in setting the row, so false is returned.
-				 */
-				log.warn("Failed to create a new sent-message for change: "+message.toString()+" message: "+e.getMessage());
-				return false;
-			}
+		// If they are the same do nothing
+		if(sent.getChangeNumber().equals(currentChangeNumber)){
+			// Not a change.
+			return false;
 		}else{
-			this.basicDao.update(sent);
+			// This was a change.
+			this.basicDao.createOrUpdate(sent);
+			return true;
 		}
-		return !sent.getChangeNumber().equals(currentChangeNumber);
 	}
 
 
