@@ -143,7 +143,7 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 		dbo = basicDao.createOrUpdate(dbo);
 		// Setup and clear the sent message
 		DBOSentMessage sentDBO = new DBOSentMessage();
-		sentDBO.setChangeNumber(-1L);
+		sentDBO.setChangeNumber(null);
 		sentDBO.setObjectId(dbo.getObjectId());
 		sentDBO.setObjectType(dbo.getObjectType());
 		basicDao.createOrUpdate(sentDBO);
