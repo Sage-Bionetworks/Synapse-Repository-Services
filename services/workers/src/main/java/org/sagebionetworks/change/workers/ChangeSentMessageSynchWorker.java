@@ -88,7 +88,7 @@ public class ChangeSentMessageSynchWorker implements Runnable {
 		 */
 		int pageSize = minimumPageSize + random.nextInt(pageSizeVarriance);
 		// Setup the run
-		for(long lowerBounds=minChangeNumber; lowerBounds < maxChangeNumber; lowerBounds=+ pageSize){
+		for(long lowerBounds=minChangeNumber; lowerBounds <= maxChangeNumber; lowerBounds=+ pageSize){
 			long upperBounds = lowerBounds+pageSize;
 			// Could the tables be out-of-synch for this range?
 			if(!changeDao.checkUnsentMessageByCheckSumForRange(lowerBounds, upperBounds)){
