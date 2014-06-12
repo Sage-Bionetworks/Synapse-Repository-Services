@@ -11,37 +11,32 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SENT_MES
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SENT_MESSAGES_OBJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SENT_MESSAGES_OBJECT_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SENT_MESSAGES_TIME_STAMP;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SENT_MESSAGE_SYCH_CHANGED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SENT_MESSAGE_SYCH_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SENT_MESSAGE_SYCH_LAST_CHANGE_NUMBER;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_CHANGES;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PROCESSED_MESSAGES;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_SENT_MESSAGES;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_SENT_MESSAGES_SYNCH;
 
+import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOChange;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOSentMessage;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOSentMessageSynch;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeMessageUtils;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -57,11 +52,11 @@ import org.springframework.transaction.annotation.Transactional;
  */
 public class DBOChangeDAOImpl implements DBOChangeDAO {
 	
+	private static final String SQL_CHANGE_CHECK_SUM_FOR_RANGE = "SELECT SUM(CRC32("+COL_CHANGES_CHANGE_NUM+")) FROM "+TABLE_CHANGES+" WHERE "+COL_CHANGES_CHANGE_NUM+" >= ? AND "+COL_CHANGES_CHANGE_NUM+" <= ?";
+
+	private static final String SQL_SENT_CHECK_SUM_FOR_RANGE = "SELECT SUM(CRC32("+COL_SENT_MESSAGES_CHANGE_NUM+")) FROM "+TABLE_SENT_MESSAGES+" WHERE "+COL_SENT_MESSAGES_CHANGE_NUM+" >= ? AND "+COL_SENT_MESSAGES_CHANGE_NUM+" <= ?";
+
 	private static final String SQL_SELECT_MAX_SENT_CHANGE_NUMBER_LESS_THAN_OR_EQUAL = "SELECT MAX("+COL_SENT_MESSAGES_CHANGE_NUM+") FROM "+TABLE_SENT_MESSAGES+" WHERE "+COL_SENT_MESSAGES_CHANGE_NUM+" <= ?";
-
-	private static final String SQL_REPLACE_LAST_SYCH_CHANGE_NUMBER = "UPDATE "+TABLE_SENT_MESSAGES_SYNCH+" SET "+COL_SENT_MESSAGE_SYCH_LAST_CHANGE_NUMBER+" = ?, "+COL_SENT_MESSAGE_SYCH_CHANGED_ON+" = ? WHERE "+COL_SENT_MESSAGE_SYCH_LAST_CHANGE_NUMBER+" = ? AND "+COL_SENT_MESSAGE_SYCH_ID+" = ?";
-
-	private static final String SQL_SELECT_LAST_SYNCHED_CHANGE_NUMBER = "SELECT "+COL_SENT_MESSAGE_SYCH_LAST_CHANGE_NUMBER+" FROM "+TABLE_SENT_MESSAGES_SYNCH+" WHERE "+COL_SENT_MESSAGE_SYCH_ID+" = ?";
 
 	static private Logger log = LogManager.getLogger(DBOChangeDAOImpl.class);
 	
@@ -231,7 +226,17 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 		sent.setObjectType(message.getObjectType());
 		Long currentChangeNumber = selectSentChangeNumberForUpdate(sent);
 		if(currentChangeNumber == null){
-			this.basicDao.createNew(sent);
+			try {
+				this.basicDao.createNew(sent);
+			} catch (Exception e) {
+				/* Create new can fail with several errors depending on the exact condition of the failure.
+				 * When two separate transaction try to insert the same row at the same time a Deadlock exception can occur.
+				 * If one thread commits before the other thread starts, a duplicate key exception can occur.
+				 * In all cases it means this thread did not succeed in setting the row, so false is returned.
+				 */
+				log.warn("Failed to create a new sent-message for change: "+message.toString()+" message: "+e.getMessage());
+				return false;
+			}
 		}else{
 			this.basicDao.update(sent);
 		}
@@ -279,42 +284,6 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 		return ChangeMessageUtils.createDTOList(l);
 	}
 
-
-	// This is Transactional because it can call reset when empty
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	@Override
-	public Long getLastSynchedChangeNumber() {
-		try{
-			return jdbcTemplate.queryForObject(SQL_SELECT_LAST_SYNCHED_CHANGE_NUMBER, new SingleColumnRowMapper<Long>(), DBOSentMessageSynch.THE_ID);
-		}catch(EmptyResultDataAccessException e){
-			// This just means the row does not exist yet.
-			return resetLastChangeNumber();
-		}
-	}
-
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	@Override
-	public boolean setLastSynchedChangeNunber(Long oldLastChangeNumber,
-			Long lastChangeNumber) {
-		// Update the last change number
-		int count = jdbcTemplate.update(SQL_REPLACE_LAST_SYCH_CHANGE_NUMBER, lastChangeNumber,System.currentTimeMillis(), oldLastChangeNumber, DBOSentMessageSynch.THE_ID);
-		return count > 0;
-	}
-
-
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	@Override
-	public Long resetLastChangeNumber() {
-		// Reset back to the factory settings.
-		DBOSentMessageSynch dbo = new DBOSentMessageSynch();
-		dbo.setId(DBOSentMessageSynch.THE_ID);
-		dbo.setLastChangeNumber(DBOSentMessageSynch.DEFAULT_START_CHANGE_NUMBER);
-		dbo.setUpdatedOn(new Date());
-		this.basicDao.createOrUpdate(dbo);
-		return getLastSynchedChangeNumber();
-	}
-
-
 	@Override
 	public Long getMaxSentChangeNumber(Long lessThanOrEqual) {
 		Long max = jdbcTemplate.queryForObject(SQL_SELECT_MAX_SENT_CHANGE_NUMBER_LESS_THAN_OR_EQUAL, new SingleColumnRowMapper<Long>(), lessThanOrEqual);
@@ -322,6 +291,22 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 			max = new Long(-1);
 		}
 		return max;
+	}
+
+
+	@Override
+	public boolean checkUnsentMessageByCheckSumForRange(long lowerBound,
+			long upperBound) {
+		BigDecimal sentCheckSum = jdbcTemplate.queryForObject(SQL_SENT_CHECK_SUM_FOR_RANGE,new SingleColumnRowMapper<BigDecimal>(), lowerBound, upperBound);
+		BigDecimal changeCheckSum = jdbcTemplate.queryForObject(SQL_CHANGE_CHECK_SUM_FOR_RANGE,new SingleColumnRowMapper<BigDecimal>(), lowerBound, upperBound);
+		if(sentCheckSum == null){
+			if(changeCheckSum == null){
+				return true;
+			}else{
+				return false;
+			}
+		}
+		return sentCheckSum.equals(changeCheckSum);
 	}
 
 }
