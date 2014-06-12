@@ -3,10 +3,13 @@ package org.sagebionetworks.repo.model.dbo.dao;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHANGES_CHANGE_NUM;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHANGES_OBJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHANGES_OBJECT_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHANGES_TIME_STAMP;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROCESSED_MESSAGES_CHANGE_NUM;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROCESSED_MESSAGES_QUEUE_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PROCESSED_MESSAGES_TIME_STAMP;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SENT_MESSAGES_CHANGE_NUM;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SENT_MESSAGES_OBJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SENT_MESSAGES_OBJECT_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SENT_MESSAGES_TIME_STAMP;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_CHANGES;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PROCESSED_MESSAGES;
@@ -23,6 +26,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
@@ -33,6 +37,7 @@ import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeMessageUtils;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
@@ -70,7 +75,9 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 	private static final String SQL_SELECT_CHANGES_NOT_SENT_IN_RANGE = 
 			SQL_CHANGES_NOT_SENT_PREFIX+
 			" AND C."+COL_SENT_MESSAGES_CHANGE_NUM+" >= ?"+
-			" AND C."+COL_SENT_MESSAGES_CHANGE_NUM+" <= ? ORDER BY "+COL_SENT_MESSAGES_CHANGE_NUM;
+			" AND C."+COL_SENT_MESSAGES_CHANGE_NUM+" <= ?"+
+			" AND C."+COL_CHANGES_TIME_STAMP+" <= ?"+
+			" ORDER BY "+COL_SENT_MESSAGES_CHANGE_NUM;
 	
 	private static final String SELECT_CHANGE_NUMBER_FOR_OBJECT_ID_AND_TYPE = 
 			"SELECT "+COL_CHANGES_CHANGE_NUM+" FROM "+TABLE_CHANGES+
@@ -101,6 +108,9 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 
 	private static final String SQL_SELECT_CHANGES_NOT_PROCESSED =
 			"select c.* from " + TABLE_CHANGES + " c join " + TABLE_SENT_MESSAGES + " s on s." + COL_SENT_MESSAGES_CHANGE_NUM + " = c." + COL_CHANGES_CHANGE_NUM + " left join (select * from " + TABLE_PROCESSED_MESSAGES + " where " + COL_PROCESSED_MESSAGES_QUEUE_NAME + " = ?) p on p." + COL_PROCESSED_MESSAGES_CHANGE_NUM + " = s." + COL_SENT_MESSAGES_CHANGE_NUM + " where p." + COL_PROCESSED_MESSAGES_CHANGE_NUM + " is null limit ?";
+	
+	private static final String SQL_SENT_CHANGE_NUMBER_FOR_UPDATE = "SELECT "+COL_SENT_MESSAGES_CHANGE_NUM+" FROM "+TABLE_SENT_MESSAGES+" WHERE "+COL_SENT_MESSAGES_OBJECT_ID+" = ? AND "+COL_SENT_MESSAGES_OBJECT_TYPE+" = ? FOR UPDATE";
+	private static final String CREATE_OR_UPDATE_SENT_MESSAGE = "INSERT INTO "+TABLE_SENT_MESSAGES+"("+COL_SENT_MESSAGES_CHANGE_NUM+", "+COL_SENT_MESSAGES_OBJECT_ID+", "+COL_SENT_MESSAGES_OBJECT_TYPE+") VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE "+COL_SENT_MESSAGES_CHANGE_NUM+" = ?";
 
 	@Autowired
 	private DBOBasicDao basicDao;
@@ -131,6 +141,12 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 		dbo.setTimeStamp(new Timestamp(nowMs));
 		// Now insert the row with the current value
 		dbo = basicDao.createOrUpdate(dbo);
+		// Setup and clear the sent message
+		DBOSentMessage sentDBO = new DBOSentMessage();
+		sentDBO.setChangeNumber(null);
+		sentDBO.setObjectId(dbo.getObjectId());
+		sentDBO.setObjectType(dbo.getObjectType());
+		basicDao.createOrUpdate(sentDBO);
 		return ChangeMessageUtils.createDTO(dbo);
 	}
 
@@ -207,14 +223,38 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 	}
 
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void registerMessageSent(ChangeMessage message) {
+	public boolean registerMessageSent(ChangeMessage message) {
 		DBOSentMessage sent = new DBOSentMessage();
 		sent.setChangeNumber(message.getChangeNumber());
 		sent.setObjectId(KeyFactory.stringToKey(message.getObjectId()));
 		sent.setObjectType(message.getObjectType());
-		basicDao.createOrUpdate(sent);
+		// Determine what the current change number is.
+		Long currentChangeNumber = selectSentChangeNumberForUpdate(sent);
+		// If they are the same do nothing
+		if(sent.getChangeNumber().equals(currentChangeNumber)){
+			// Not a change.
+			return false;
+		}else{
+			// This was a change.
+			this.basicDao.createOrUpdate(sent);
+			return true;
+		}
+	}
+
+
+	/**
+	 * Select the current change number of a sent message for update.
+	 * @param sent
+	 * @return
+	 */
+	public Long selectSentChangeNumberForUpdate(DBOSentMessage sent) {
+		try {
+			return this.jdbcTemplate.queryForObject(SQL_SENT_CHANGE_NUMBER_FOR_UPDATE, new SingleColumnRowMapper<Long>(), sent.getObjectId(), sent.getObjectType().name());
+		} catch (EmptyResultDataAccessException e) {
+			return null;
+		}
 	}
 
 	
@@ -227,8 +267,8 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 
 	@Override
 	public List<ChangeMessage> listUnsentMessages(long lowerBound,
-			long upperBound) {
-		List<DBOChange> dboList = jdbcTemplate.query(SQL_SELECT_CHANGES_NOT_SENT_IN_RANGE, rowMapper, lowerBound, upperBound);
+			long upperBound, Timestamp olderThan) {
+		List<DBOChange> dboList = jdbcTemplate.query(SQL_SELECT_CHANGES_NOT_SENT_IN_RANGE, rowMapper, lowerBound, upperBound, olderThan);
 		return ChangeMessageUtils.createDTOList(dboList);
 	}
 

@@ -1,5 +1,6 @@
 package org.sagebionetworks.change.workers;
 
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.Random;
 
@@ -10,6 +11,7 @@ import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.status.StatusEnum;
+import org.sagebionetworks.util.ClockProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -27,6 +29,11 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 public class ChangeSentMessageSynchWorker implements Runnable {
 
+	/**
+	 * This worker will ignore any message that is newer than this time.
+	 */
+	private static long MINIMUMN_MESSAGE_AGE = 1000*60;
+	
 	static private Logger log = LogManager
 			.getLogger(ChangeSentMessageSynchWorker.class);
 
@@ -34,8 +41,10 @@ public class ChangeSentMessageSynchWorker implements Runnable {
 	DBOChangeDAO changeDao;
 	@Autowired
 	RepositoryMessagePublisher repositoryMessagePublisher;
-	@Autowired
+	@Autowired 
 	StackStatusDao stackStatusDao;
+	@Autowired
+	ClockProvider clockProvider;
 
 	int pageSizeVarriance = 5000;
 	int minimumPageSize = 25 * 1000;
@@ -69,6 +78,8 @@ public class ChangeSentMessageSynchWorker implements Runnable {
 		}
 		long maxChangeNumber = changeDao.getCurrentChangeNumber();
 		long minChangeNumber = changeDao.getMinimumChangeNumber();
+		// We only want to look at change messages that are older than this.
+		Timestamp olderThan = new Timestamp(clockProvider.currentTimeMillis() - MINIMUMN_MESSAGE_AGE);
 		/*
 		 * It is possible, but unlikely, that check-sums could match yet the
 		 * tables are still be out-of-synch giving a false-negative. To deal
@@ -77,12 +88,12 @@ public class ChangeSentMessageSynchWorker implements Runnable {
 		 */
 		int pageSize = minimumPageSize + random.nextInt(pageSizeVarriance);
 		// Setup the run
-		for(long lowerBounds=minChangeNumber; lowerBounds < maxChangeNumber; lowerBounds=+ pageSize){
+		for(long lowerBounds=minChangeNumber; lowerBounds <= maxChangeNumber; lowerBounds=+ pageSize){
 			long upperBounds = lowerBounds+pageSize;
 			// Could the tables be out-of-synch for this range?
 			if(!changeDao.checkUnsentMessageByCheckSumForRange(lowerBounds, upperBounds)){
 				// We are out-of-synch
-				List<ChangeMessage> toSend = changeDao.listUnsentMessages(lowerBounds, upperBounds);
+				List<ChangeMessage> toSend = changeDao.listUnsentMessages(lowerBounds, upperBounds, olderThan);
 				for(ChangeMessage send: toSend){
 					try {
 						changeDao.registerMessageSent(send);
