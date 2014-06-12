@@ -1,10 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.*;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -26,7 +22,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ProcessedMessageDAO;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOSentMessageSynch;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeMessageUtils;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -49,7 +44,6 @@ public class DBOChangeDAOImplAutowiredTest {
 	public void before(){
 		if(changeDAO != null){
 			changeDAO.deleteAllChanges();
-			changeDAO.resetLastChangeNumber();
 		}
 	}
 	
@@ -515,23 +509,17 @@ public class DBOChangeDAOImplAutowiredTest {
 	}
 	
 	@Test
-	public void testGetLastSynchedChangeNumberCRUD(){
-		// Get the start value
-		Long start = changeDAO.getLastSynchedChangeNumber();
-		assertNotNull(start);
-		assertEquals(DBOSentMessageSynch.DEFAULT_START_CHANGE_NUMBER, start);
-		// Now update it
-		Long next = 101L;
-		assertTrue("Should not have failed to set the value",changeDAO.setLastSynchedChangeNunber(start, next));
-		// Now get it again
-		Long current = changeDAO.getLastSynchedChangeNumber();
-		assertEquals(next, current);
-		// Update should fail if we give it the wrong start
-		assertFalse("Update should fail when the wrong old value is given.",changeDAO.setLastSynchedChangeNunber(333L, 444L));
-		// Rest should put it back
-		changeDAO.resetLastChangeNumber();
-		current = changeDAO.getLastSynchedChangeNumber();
-		assertEquals(DBOSentMessageSynch.DEFAULT_START_CHANGE_NUMBER, current);
+	public void testCheckUnsentMessageByCheckSumForRange(){
+		List<ChangeMessage> starting = createList(5, ObjectType.PRINCIPAL);
+		starting = changeDAO.replaceChange(starting);
+		assertFalse("The check-sums should not match",changeDAO.checkUnsentMessageByCheckSumForRange(0L, Long.MAX_VALUE));
+		// Send each
+		for(ChangeMessage toSend: starting){
+			assertFalse("The check-sums should not match",changeDAO.checkUnsentMessageByCheckSumForRange(0L, Long.MAX_VALUE));
+			changeDAO.registerMessageSent(toSend);
+		}
+		// The should match now that all are sent
+		assertTrue("Change and sent are in-synch so their check-sums should match",changeDAO.checkUnsentMessageByCheckSumForRange(0L, Long.MAX_VALUE));
 	}
 	
 	/**

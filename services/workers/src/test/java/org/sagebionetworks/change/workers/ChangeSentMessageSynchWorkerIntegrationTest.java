@@ -1,17 +1,20 @@
 package org.sagebionetworks.change.workers;
 
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.when;
+
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.Before;
 import org.junit.Ignore;
-
-import static org.junit.Assert.*;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mockito;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
@@ -57,11 +60,13 @@ public class ChangeSentMessageSynchWorkerIntegrationTest {
 		// If there are any pending messages make sure they are sent before we start this test
 		repositoryMessagePublisher.timerFired();
 		changeDao.deleteAllChanges();
-		changeDao.resetLastChangeNumber();
 		semphoreManager.releaseAllLocksAsAdmin(new UserInfo(true));
 		objectIdSequence = 0;
 		batchSize = 3;
-		changeSentMessageSynchWorker.setBatchSize(batchSize);
+		// We want this test to be deterministic
+		Random mockRandom = Mockito.mock(Random.class);
+		when(mockRandom.nextInt()).thenReturn(new Integer(0));
+		changeSentMessageSynchWorker.setRandom(mockRandom);
 	}
 	
 	@Test
@@ -73,13 +78,11 @@ public class ChangeSentMessageSynchWorkerIntegrationTest {
 		// set the changes
 		changes = changeDao.replaceChange(changes);
 		waitForSynchState();
-		assertEquals(changes.get(2).getChangeNumber(), changeDao.getLastSynchedChangeNumber());
 		
 		// create more changes
 		changes = createList(3, ObjectType.ACTIVITY);
 		changes = changeDao.replaceChange(changes);
 		waitForSynchState();
-		assertEquals(changes.get(2).getChangeNumber(), changeDao.getLastSynchedChangeNumber());
 
 		// By replacing changes the LastSynchedChangeNumber will no longer exist in the sent table.
 		changes = changeDao.replaceChange(changes);
@@ -88,7 +91,6 @@ public class ChangeSentMessageSynchWorkerIntegrationTest {
 		// There are also two changes that have not been sent that have change numbers less than the max sent change number
 		// the worker must be able to find this changes and send them.
 		waitForSynchState();
-		assertEquals(changes.get(2).getChangeNumber(), changeDao.getLastSynchedChangeNumber());
 	}
 	
 	@Test
@@ -106,7 +108,6 @@ public class ChangeSentMessageSynchWorkerIntegrationTest {
 		}
 		// The worker should skip over all gaps and complete the synch.
 		waitForSynchState();
-		assertEquals(last.getChangeNumber(), changeDao.getLastSynchedChangeNumber());
 	}
 	
 	@Ignore // this is a long running test that does not always need to be run.
