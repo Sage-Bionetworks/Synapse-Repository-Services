@@ -58,6 +58,7 @@ public class TableIndexDAOImplTest {
 		// Drop the table
 		if(tableId != null && tableIndexDAO != null){
 			tableIndexDAO.deleteTable(tableId);
+			tableIndexDAO.deleteStatusTable(tableId);
 		}
 	}
 	

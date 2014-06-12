@@ -103,6 +103,7 @@ public class TableWorker implements Callable<List<Message>> {
 							.getConnection(change.getObjectId());
 					if (indexDao != null) {
 						indexDao.deleteTable(change.getObjectId());
+						indexDao.deleteStatusTable(change.getObjectId());
 					}
 					processedMessages.add(message);
 				} else {
@@ -251,6 +252,10 @@ public class TableWorker implements Callable<List<Message>> {
 		tableRowManager.attemptToUpdateTableProgress(tableId, resetToken, "Getting current table row versions ", 0L, 100L);
 
 		TableRowChange lastTableRowChange = tableRowManager.getLastTableRowChange(tableId);
+		if (lastTableRowChange == null) {
+			// nothing to do, move along
+			return null;
+		}
 
 		long currentProgress = 0;
 		long maxRowId = tableRowManager.getMaxRowId(tableId);
@@ -281,10 +286,8 @@ public class TableWorker implements Callable<List<Message>> {
 		// If we successfully updated the table and got here, then all we know is that we are at least at the version
 		// the table was at when we started. It is still possible that a newer version came in and the we applied
 		// partial updates from that version to the index. A subsequent update will make things consistent again.
-		if (lastTableRowChange != null) {
-			indexDao.setMaxCurrentCompleteVersionForTable(tableId, lastTableRowChange.getRowVersion());
-		}
+		indexDao.setMaxCurrentCompleteVersionForTable(tableId, lastTableRowChange.getRowVersion());
 
-		return lastTableRowChange == null ? null : lastTableRowChange.getEtag();
+		return lastTableRowChange.getEtag();
 	}
 }
