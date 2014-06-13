@@ -137,12 +137,17 @@ public class TableRowManagerImpl implements TableRowManager {
 		validateRequestSize(models, rowsToAppendOrUpdate.getRows().size());
 		// For this case we want to capture the resulting RowReferenceSet
 		RowReferenceSet results = new RowReferenceSet();
-		RowSet fullRowsToAppendOrUpdate = getFullRows(tableId, rowsToAppendOrUpdate, models);
+		RowSet fullRowsToAppendOrUpdate = mergeWithLastVersion(tableId, rowsToAppendOrUpdate, models);
 		appendRowsAsStream(user, tableId, models, fullRowsToAppendOrUpdate.getRows().iterator(), fullRowsToAppendOrUpdate.getEtag(), results);
 		return results;
 	}
 
-	private RowSet getFullRows(String tableId, PartialRowSet rowsToAppendOrUpdate, List<ColumnModel> models) throws IOException,
+	/**
+	 * This method merges the partial row with the most current version of the row as it exists on S3. For updates, this
+	 * will find the most current version, and any column not present as a key in the map will be replaced with the most
+	 * recent value. For inserts, this will replace null cell values with their defaults.
+	 */
+	private RowSet mergeWithLastVersion(String tableId, PartialRowSet rowsToAppendOrUpdate, List<ColumnModel> models) throws IOException,
 			NotFoundException {
 		RowSet result = new RowSet();
 		TableRowChange lastTableRowChange = tableRowTruthDao.getLastTableRowChange(tableId);
