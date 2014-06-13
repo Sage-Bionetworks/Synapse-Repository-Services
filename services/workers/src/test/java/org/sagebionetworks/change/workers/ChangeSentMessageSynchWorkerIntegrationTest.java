@@ -17,6 +17,9 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
+import org.sagebionetworks.ImmutablePropertyAccessor;
+import org.sagebionetworks.PropertyAccessor;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
@@ -56,6 +59,8 @@ public class ChangeSentMessageSynchWorkerIntegrationTest {
 	ChangeSentMessageSynchWorker changeSentMessageSynchWorker;
 	@Autowired
 	RepositoryMessagePublisher repositoryMessagePublisher;
+	@Autowired
+	StackConfiguration configuration;
 	
 	private int objectIdSequence;
 	
@@ -69,12 +74,15 @@ public class ChangeSentMessageSynchWorkerIntegrationTest {
 		// We want this test to be deterministic
 		Random mockRandom = Mockito.mock(Random.class);
 		when(mockRandom.nextInt()).thenReturn(new Integer(0));
-		changeSentMessageSynchWorker.setRandom(mockRandom);
-		ReflectionTestUtils.setField(changeSentMessageSynchWorker, "minimumPageSize", 10);
+		StackConfiguration mockConfiguration = Mockito.mock(StackConfiguration.class);
+		when(mockConfiguration.getChangeSynchWorkerMinPageSize()).thenReturn(new ImmutablePropertyAccessor(10));
+		when(mockConfiguration.getChangeSynchWorkerSleepTimeMS()).thenReturn(new ImmutablePropertyAccessor(0L));
+		ReflectionTestUtils.setField(changeSentMessageSynchWorker, "configuration", mockConfiguration);
+		ReflectionTestUtils.setField(changeSentMessageSynchWorker, "random", mockRandom);
 		ReflectionTestUtils.setField(changeSentMessageSynchWorker, "clockProvider", new ClockProvider() {
 			@Override
 			public void sleep(long millis) throws InterruptedException {
-				throw new UnsupportedOperationException();
+				// Do not really sleep here
 			}
 			
 			@Override
@@ -89,6 +97,8 @@ public class ChangeSentMessageSynchWorkerIntegrationTest {
 	public void after(){
 		if(changeSentMessageSynchWorker != null){
 			ReflectionTestUtils.setField(changeSentMessageSynchWorker, "clockProvider", new DefaultClockProvider());
+			ReflectionTestUtils.setField(changeSentMessageSynchWorker, "configuration", configuration);
+			ReflectionTestUtils.setField(changeSentMessageSynchWorker, "random", new Random());
 		}
 	}
 	
@@ -138,6 +148,18 @@ public class ChangeSentMessageSynchWorkerIntegrationTest {
 			System.out.println("Run: "+i);
 			testMissing();
 		}
+	}
+	
+	@Test
+	public void testGetChangeSynchWorkerSleepTimeMS(){
+		long sleepMS = configuration.getChangeSynchWorkerSleepTimeMS().getLong();
+		assertTrue(sleepMS > 500);
+	}
+	
+	@Test
+	public void testGetChangeSynchWorkerMinPageSize(){
+		int pageSize = configuration.getChangeSynchWorkerMinPageSize().getInteger();
+		assertTrue(pageSize > 5000);
 	}
 	
 	/**

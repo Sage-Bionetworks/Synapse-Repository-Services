@@ -13,5 +13,11 @@ public interface WorkerLogger {
 	
 	public void logWorkerFailure(Class<? extends Object> workerClass, ChangeMessage changeMessage, Throwable cause, boolean willRetry);
 	
+	/**
+	 * Log a custom metric
+	 * @param pd
+	 */
+	public void logCustomMetric(ProfileData pd);
+	
 	public void setConsumer(Consumer consumer);
 }

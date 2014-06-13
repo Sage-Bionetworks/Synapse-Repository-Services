@@ -80,7 +80,7 @@ public class WorkerLoggerImpl implements WorkerLogger {
 		return nextPD;
 	}
 	
-	private static final String WORKER_NAMESPACE = "Asynchronous Workers";
+	public static final String WORKER_NAMESPACE = "Asynchronous Workers";
 	private static final String WILL_RETRY_KEY = "willRetry";
 	private static final String CHANGE_TYPE_KEY = "changeType";
 	private static final String OBJECT_TYPE_KEY = "objectType";
@@ -113,5 +113,11 @@ public class WorkerLoggerImpl implements WorkerLogger {
 	 */
 	public Consumer getConsumer() {
 		return this.consumer;
+	}
+
+	@Override
+	public void logCustomMetric(ProfileData profileData) {
+		if (!shouldProfile) return;
+		consumer.addProfileData(profileData);
 	}
 }
