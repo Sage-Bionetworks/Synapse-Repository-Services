@@ -44,7 +44,7 @@ public class ChangeSentMessageSynchWorkerIntegrationTest {
 	/**
 	 * The max amount of time we wait for the worker to complete the task.
 	 */
-	public static final int MAX_PUBLISH_WAIT_MS = 5*1000;
+	public static final int MAX_PUBLISH_WAIT_MS = 50*1000;
 	
 	@Autowired
 	IdGenerator idGenerator;
