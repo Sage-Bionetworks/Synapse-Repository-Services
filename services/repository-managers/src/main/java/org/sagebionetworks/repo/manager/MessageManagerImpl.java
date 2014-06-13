@@ -50,6 +50,9 @@ import org.sagebionetworks.repo.model.message.MessageStatus;
 import org.sagebionetworks.repo.model.message.MessageStatusType;
 import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.Settings;
+import org.sagebionetworks.repo.model.principal.AliasType;
+import org.sagebionetworks.repo.model.principal.PrincipalAlias;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
@@ -112,6 +115,9 @@ public class MessageManagerImpl implements MessageManager {
 	private NotificationEmailDAO notificationEmailDao;
 	
 	@Autowired
+	private PrincipalAliasDAO principalAliasDAO;
+	
+	@Autowired
 	private AuthorizationManager authorizationManager;
 	
 	@Autowired
@@ -138,6 +144,7 @@ public class MessageManagerImpl implements MessageManager {
 			GroupMembersDAO groupMembersDAO, UserManager userManager,
 			UserProfileDAO userProfileDAO,
 			NotificationEmailDAO notificationEmailDao,
+			PrincipalAliasDAO principalAliasDAO,
 			AuthorizationManager authorizationManager,
 			AmazonSimpleEmailService amazonSESClient,
 			FileHandleManager fileHandleManager, NodeDAO nodeDAO,
@@ -149,6 +156,7 @@ public class MessageManagerImpl implements MessageManager {
 		this.userManager = userManager;
 		this.userProfileDAO = userProfileDAO;
 		this.notificationEmailDao = notificationEmailDao;
+		this.principalAliasDAO = principalAliasDAO;
 		this.authorizationManager = authorizationManager;
 		this.amazonSESClient = amazonSESClient;
 		this.fileHandleManager = fileHandleManager;
@@ -415,8 +423,7 @@ public class MessageManagerImpl implements MessageManager {
 
 		UserInfo userInfo = userManager.getUserInfo(Long.parseLong(dto.getCreatedBy()));
 		
-		UserProfile senderProfile = userProfileDAO.get(""+userInfo.getId());
-		String senderUserName = senderProfile.getUserName();
+		String senderUserName = getUserName(userInfo.getId());
 		
 		// Get the individual recipients
 		Set<String> recipients = expandRecipientSet(userInfo, dto.getRecipients(), errors);
@@ -607,13 +614,8 @@ public class MessageManagerImpl implements MessageManager {
 		Map<String,String> fieldValues = new HashMap<String,String>();
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_ORIGIN_CLIENT, domainString);
 		
-		UserProfile profile = this.userProfileDAO.get(recipientId.toString());
-		
-		//TODO use the Alias here
-		String alias = profile.getUserName();
-		if (alias == null) {
-			alias = "";
-		}
+		String alias = getUserName(recipientId);
+
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_DISPLAY_NAME, alias);
 		
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_USERNAME, alias);
@@ -638,18 +640,12 @@ public class MessageManagerImpl implements MessageManager {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void sendWelcomeEmail(Long recipientId, DomainType domain) throws NotFoundException {
 		// Build the subject and body of the message
-		UserInfo recipient = userManager.getUserInfo(recipientId);
 		String domainString = WordUtils.capitalizeFully(domain.name());
 		String subject = "Welcome to " + domain + "!";
 		Map<String,String> fieldValues = new HashMap<String,String>();
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_ORIGIN_CLIENT, domainString);
 		
-		//TODO use the Alias here
-		UserProfile profile = this.userProfileDAO.get(recipientId.toString());
-		String alias = profile.getUserName();
-		if (alias == null) {
-			alias = "";
-		}
+		String alias = getUserName(recipientId);
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_DISPLAY_NAME, alias);
 		
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_USERNAME, alias);
@@ -666,12 +662,8 @@ public class MessageManagerImpl implements MessageManager {
 		UserInfo sender = userManager.getUserInfo(Long.parseLong(dto.getCreatedBy()));
 		String subject = "Message " + messageId + " Delivery Failure(s)";
 		
-		//TODO use the Alias here
-		UserProfile profile = this.userProfileDAO.get(sender.getId().toString());
-		String alias = profile.getUserName();
-		if (alias == null) {
-			alias = "";
-		}
+		String alias = getUserName(sender.getId());
+
 		Map<String,String> fieldValues = new HashMap<String,String>();
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_DISPLAY_NAME, alias);
 		
@@ -685,6 +677,13 @@ public class MessageManagerImpl implements MessageManager {
 	
 	private String getEmailForUser(Long principalId) throws NotFoundException {
 		return notificationEmailDao.getNotificationEmailForPrincipal(principalId);
+	}
+	
+	private String getUserName(Long principalId) throws NotFoundException {
+		List<PrincipalAlias> aliases = principalAliasDAO.listPrincipalAliases(principalId, AliasType.USER_NAME);
+		if (aliases.isEmpty()) throw new NotFoundException("No user name for "+principalId);
+		if (aliases.size()>1) throw new IllegalStateException("Expected one user name but found "+aliases.size()+" for "+principalId);
+		return aliases.get(0).getAlias();
 	}
 	
 
