@@ -8,7 +8,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -126,27 +125,86 @@ public class PrincipalManagerImplUnitTest {
 	
 	@Test
 	public void testGenerateSignature() {
-		// just check that it returns some signature
-		assertTrue(PrincipalManagerImpl.generateSignature("my dog has fleas").length()>0);
+		String token1 = PrincipalManagerImpl.
+				generateSignature("my dog has fleas");
+		assertTrue(token1.length()>0);
+		// same inputs, same result
+		String token2 = PrincipalManagerImpl.
+				generateSignature("my dog has fleas");
+		assertEquals(token1, token2);
+		// different inputs, different token
+		String token3 = PrincipalManagerImpl.
+				generateSignature("my dog has gnats");
+		assertTrue(token3.length()>0);
+		assertFalse(token1.equals(token3));
 	}
 	
 	@Test
 	public void testGenerateSignatureForNewAccount() {
-		// just check that it returns some signature
-		assertTrue(PrincipalManagerImpl.
+		String token1 = PrincipalManagerImpl.
 				generateSignatureForNewAccount("Foo", "Bar", 
-				"foo@bar.com", "2014-Jun-02", "synapse").length()>0);
+				"foo@bar.com", "2014-Jun-02", "synapse");
+		assertTrue(token1.length()>0);
+		// same inputs, same result
+		String token2 = PrincipalManagerImpl.
+				generateSignatureForNewAccount("Foo", "Bar", 
+				"foo@bar.com", "2014-Jun-02", "synapse");
+		assertEquals(token1, token2);
+		// different inputs, different token
+		String token3 = PrincipalManagerImpl.
+				generateSignatureForNewAccount("Foo", "Bas", 
+				"foo@bar.com", "2014-Jun-02", "synapse");
+		assertTrue(token3.length()>0);
+		assertFalse(token1.equals(token3));
 	}
 	
 	@Test
 	public void testCreateTokenForNewAccount() {
-		// just check that it returns some signature
-		assertTrue(PrincipalManagerImpl.
-				createTokenForNewAccount(user, domain, now).length()>0);
+		String token1 = PrincipalManagerImpl.
+				createTokenForNewAccount(user, domain, now);
+		assertTrue(token1.length()>0);
+		// same inputs, same result
+		String token2 = PrincipalManagerImpl.
+				createTokenForNewAccount(user, domain, now);
+		assertEquals(token1, token2);
+		// different inputs, different token
+		Date otherDate = new Date(now.getTime()+1L);
+		String token3 = PrincipalManagerImpl.
+				createTokenForNewAccount(user, domain, otherDate);
+		assertTrue(token3.length()>0);
+		assertFalse(token1.equals(token3));
+	}
+	
+	@Test
+	public void testCreateTokenForNewAccountNoName() {
+		user.setFirstName("");
+		user.setLastName("");
+		String token1 = PrincipalManagerImpl.
+				createTokenForNewAccount(user, domain, now);
+		assertTrue(token1.length()>0);
+		// same inputs, same result
+		String token2 = PrincipalManagerImpl.
+				createTokenForNewAccount(user, domain, now);
+		assertEquals(token1, token2);
+		// different inputs, different token
+		Date otherDate = new Date(now.getTime()+1L);
+		String token3 = PrincipalManagerImpl.
+				createTokenForNewAccount(user, domain, otherDate);
+		assertTrue(token3.length()>0);
+		assertFalse(token1.equals(token3));
 	}
 	
 	@Test
 	public void testValidateNewAccountToken() {
+		String token = PrincipalManagerImpl.createTokenForNewAccount(user, domain, now);
+		String extractedEmail = PrincipalManagerImpl.validateNewAccountToken(token, now);
+		assertEquals(EMAIL, extractedEmail);
+	}
+	
+	@Test
+	public void testValidateNewAccountTokenNoName() {
+		user.setFirstName("");
+		user.setLastName("");
 		String token = PrincipalManagerImpl.createTokenForNewAccount(user, domain, now);
 		String extractedEmail = PrincipalManagerImpl.validateNewAccountToken(token, now);
 		assertEquals(EMAIL, extractedEmail);
@@ -328,9 +386,18 @@ public class PrincipalManagerImplUnitTest {
 	
 	@Test
 	public void testCreateTokenForAdditionalEmail() {
-		// just check that it returns some signature
-		assertTrue(PrincipalManagerImpl.
-				createTokenForAdditionalEmail(111L, EMAIL, domain, now).length()>0);
+		String token1 = PrincipalManagerImpl.
+				createTokenForAdditionalEmail(111L, EMAIL, domain, now);
+		assertTrue(token1.length()>0);
+		// same inputs, same result
+		String token2 = PrincipalManagerImpl.
+				createTokenForAdditionalEmail(111L, EMAIL, domain, now);
+		assertEquals(token1, token2);
+		// different inputs, different token
+		String token3 = PrincipalManagerImpl.
+				createTokenForAdditionalEmail(111L, "someother@email.com", domain, now);
+		assertTrue(token3.length()>0);
+		assertFalse(token1.equals(token3));
 	}
 	
 	@Test
@@ -566,20 +633,20 @@ public class PrincipalManagerImplUnitTest {
 		currentNotificationAlias.setPrincipalId(principalId);
 		currentNotificationAlias.setType(AliasType.USER_EMAIL);
 		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(principalId)).thenReturn(currentNotificationAlias.getAlias());
-		List<PrincipalAlias> aliases = new ArrayList<PrincipalAlias>();
-		aliases.add(currentNotificationAlias);
 		PrincipalAlias alternateEmailAlias = new PrincipalAlias();
 		currentNotificationAlias.setAlias(EMAIL);
 		alternateEmailAlias.setAliasId(2L);
 		alternateEmailAlias.setPrincipalId(principalId);
 		alternateEmailAlias.setType(AliasType.USER_EMAIL);
-		aliases.add(alternateEmailAlias);
 		
-		when(mockPrincipalAliasDAO.listPrincipalAliases(principalId, AliasType.USER_EMAIL)).thenReturn(aliases);
+		when(mockPrincipalAliasDAO.listPrincipalAliases(principalId, AliasType.USER_EMAIL, "notification@mail.com")).
+			thenReturn(Collections.singletonList(currentNotificationAlias));
+		when(mockPrincipalAliasDAO.listPrincipalAliases(principalId, AliasType.USER_EMAIL,EMAIL)).
+			thenReturn(Collections.singletonList(alternateEmailAlias));
 
 		manager.removeEmail(userInfo, EMAIL);
 		verify(mockNotificationEmailDao).getNotificationEmailForPrincipal(principalId);
-		verify(mockPrincipalAliasDAO).removeAliasFromPrincipal(principalId, aliasId);
+		verify(mockPrincipalAliasDAO).removeAliasFromPrincipal(principalId, 2L);
 	}
 
 	@Test(expected=IllegalArgumentException.class)
@@ -594,7 +661,7 @@ public class PrincipalManagerImplUnitTest {
 		currentNotificationAlias.setType(AliasType.USER_EMAIL);
 		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(principalId)).thenReturn(currentNotificationAlias.getAlias());
 		List<PrincipalAlias> aliases = Collections.singletonList(currentNotificationAlias);
-		when(mockPrincipalAliasDAO.listPrincipalAliases(principalId, AliasType.USER_EMAIL)).thenReturn(aliases);
+		when(mockPrincipalAliasDAO.listPrincipalAliases(principalId, AliasType.USER_EMAIL, EMAIL)).thenReturn(aliases);
 
 		manager.removeEmail(userInfo, EMAIL);
 	}
@@ -611,7 +678,7 @@ public class PrincipalManagerImplUnitTest {
 		currentNotificationAlias.setType(AliasType.USER_EMAIL);
 		when(mockNotificationEmailDao.getNotificationEmailForPrincipal(principalId)).thenReturn(currentNotificationAlias.getAlias());
 		List<PrincipalAlias> aliases = Collections.singletonList(currentNotificationAlias);
-		when(mockPrincipalAliasDAO.listPrincipalAliases(principalId, AliasType.USER_EMAIL)).thenReturn(aliases);
+		when(mockPrincipalAliasDAO.listPrincipalAliases(principalId, AliasType.USER_EMAIL, "notification@mail.com")).thenReturn(aliases);
 
 		manager.removeEmail(userInfo, "bogus@email.com");
 	}
