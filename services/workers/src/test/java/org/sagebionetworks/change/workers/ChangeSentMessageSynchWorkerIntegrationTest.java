@@ -28,6 +28,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.google.common.base.Predicate;
 
+@Ignore
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class ChangeSentMessageSynchWorkerIntegrationTest {
@@ -91,7 +92,6 @@ public class ChangeSentMessageSynchWorkerIntegrationTest {
 		assertEquals(changes.get(2).getChangeNumber(), changeDao.getLastSynchedChangeNumber());
 	}
 	
-	@Ignore
 	@Test
 	public void testPLFM_2814() throws Exception {
 		// At the start the last change number should be -1 after the worker has a chance to run.
