@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.table;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -32,6 +33,8 @@ import org.sagebionetworks.repo.model.exception.LockUnavilableException;
 import org.sagebionetworks.repo.model.table.AsynchDownloadResponseBody;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.PartialRow;
+import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
@@ -49,6 +52,7 @@ import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.QuerySpecification;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
+import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.ProgressCallback;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -57,6 +61,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 public class TableRowManagerImpl implements TableRowManager {
@@ -121,6 +126,87 @@ public class TableRowManagerImpl implements TableRowManager {
 		return results;
 	}
 	
+	@Override
+	public RowReferenceSet appendPartialRows(UserInfo user, String tableId, List<ColumnModel> models, PartialRowSet rowsToAppendOrUpdate)
+			throws DatastoreException, NotFoundException, IOException {
+		Validate.required(user, "User");
+		Validate.required(tableId, "TableId");
+		Validate.required(models, "Models");
+		Validate.required(rowsToAppendOrUpdate, "RowsToAppendOrUpdate");
+		// Validate the request is under the max bytes per requested
+		validateRequestSize(models, rowsToAppendOrUpdate.getRows().size());
+		// For this case we want to capture the resulting RowReferenceSet
+		RowReferenceSet results = new RowReferenceSet();
+		RowSet fullRowsToAppendOrUpdate = getFullRows(tableId, rowsToAppendOrUpdate, models);
+		appendRowsAsStream(user, tableId, models, fullRowsToAppendOrUpdate.getRows().iterator(), fullRowsToAppendOrUpdate.getEtag(), results);
+		return results;
+	}
+
+	private RowSet getFullRows(String tableId, PartialRowSet rowsToAppendOrUpdate, List<ColumnModel> models) throws IOException,
+			NotFoundException {
+		RowSet result = new RowSet();
+		TableRowChange lastTableRowChange = tableRowTruthDao.getLastTableRowChange(tableId);
+		result.setEtag(lastTableRowChange == null ? null : lastTableRowChange.getEtag());
+		result.setHeaders(TableModelUtils.getHeaders(models));
+		result.setTableId(tableId);
+		List<Row> rows = Lists.newArrayListWithCapacity(rowsToAppendOrUpdate.getRows().size());
+		Map<Long, Pair<PartialRow, Row>> rowsToUpdate = Maps.newHashMap();
+		for (PartialRow partialRow : rowsToAppendOrUpdate.getRows()) {
+			Row row;
+			if (partialRow.getRowId() != null) {
+				row = new Row();
+				row.setRowId(partialRow.getRowId());
+				rowsToUpdate.put(partialRow.getRowId(), Pair.create(partialRow, row));
+			} else {
+				row = resolveInsertValues(partialRow, models);
+			}
+			rows.add(row);
+		}
+		resolveUpdateValues(tableId, rowsToUpdate, models);
+		result.setRows(rows);
+		return result;
+	}
+
+	private Row resolveInsertValues(PartialRow partialRow, List<ColumnModel> models) {
+		List<String> values = Lists.newArrayListWithCapacity(models.size());
+		for (ColumnModel model : models) {
+			String value = partialRow.getValues().get(model.getId());
+			if (value == null) {
+				value = model.getDefaultValue();
+			}
+			values.add(value);
+		}
+		Row row = new Row();
+		row.setValues(values);
+		return row;
+	}
+
+	private void resolveUpdateValues(String tableId, Map<Long, Pair<PartialRow, Row>> rowsToUpdate, List<ColumnModel> models)
+			throws IOException, NotFoundException {
+		RowSetAccessor currentRowData = tableRowTruthDao.getLatestVersionsWithRowData(tableId, rowsToUpdate.keySet(), 0L);
+		for (Map.Entry<Long, Pair<PartialRow, Row>> rowToUpdate : rowsToUpdate.entrySet()) {
+			Long rowId = rowToUpdate.getKey();
+			PartialRow partialRow = rowToUpdate.getValue().getFirst();
+			Row row = rowToUpdate.getValue().getSecond();
+			RowAccessor currentRow = currentRowData.getRow(rowId);
+
+			List<String> values = Lists.newArrayListWithCapacity(models.size());
+			for (ColumnModel model : models) {
+				String value;
+				if (partialRow.getValues().containsKey(model.getId())) {
+					value = partialRow.getValues().get(model.getId());
+				} else {
+					value = currentRow.getCell(model.getId());
+				}
+				if (value == null) {
+					value = model.getDefaultValue();
+				}
+				values.add(value);
+			}
+			row.setValues(values);
+		}
+	}
+
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public RowReferenceSet deleteRows(UserInfo user, String tableId, List<ColumnModel> models, RowSelection rowsToDelete)
@@ -161,7 +247,8 @@ public class TableRowManagerImpl implements TableRowManager {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public String appendRowsAsStream(UserInfo user, String tableId, List<ColumnModel> models, Iterator<Row> rowStream, String etag, RowReferenceSet results) throws DatastoreException, NotFoundException, IOException {
+	public String appendRowsAsStream(UserInfo user, String tableId, List<ColumnModel> models, Iterator<Row> rowStream, String etag,
+			RowReferenceSet results) throws DatastoreException, NotFoundException, IOException {
 		if(user == null) throw new IllegalArgumentException("User cannot be null");
 		if(tableId == null) throw new IllegalArgumentException("TableId cannot be null");
 		if(models == null) throw new IllegalArgumentException("Models cannot be null");
@@ -213,6 +300,7 @@ public class TableRowManagerImpl implements TableRowManager {
 
 	/**
 	 * Append a batch of rows to a table.
+	 * 
 	 * @param tableId
 	 * @param models
 	 * @param etag
@@ -222,7 +310,8 @@ public class TableRowManagerImpl implements TableRowManager {
 	 * @return
 	 * @throws IOException
 	 */
-	private String appendBatchOfRowsToTable(UserInfo user,	List<ColumnModel> models, RowSet delta, RowReferenceSet results) throws IOException {
+	private String appendBatchOfRowsToTable(UserInfo user, List<ColumnModel> models, RowSet delta, RowReferenceSet results)
+			throws IOException {
 		RowReferenceSet rrs = tableRowTruthDao.appendRowSetToTable(user.getId().toString(), delta.getTableId(), models, delta, false);
 		if(results != null){
 			results.setEtag(rrs.getEtag());

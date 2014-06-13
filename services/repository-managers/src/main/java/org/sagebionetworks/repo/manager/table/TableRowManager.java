@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.dao.table.RowAndHeaderHandler;
 import org.sagebionetworks.repo.model.exception.LockUnavilableException;
 import org.sagebionetworks.repo.model.table.AsynchDownloadResponseBody;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
@@ -48,6 +49,21 @@ public interface TableRowManager {
 	public RowReferenceSet appendRows(UserInfo user, String tableId,
 			List<ColumnModel> models, RowSet delta) throws DatastoreException,
 			NotFoundException, IOException;
+
+	/**
+	 * Append or update a set of partial rows to a table.
+	 * 
+	 * @param user
+	 * @param tableId
+	 * @param models
+	 * @param rowsToAppendOrUpdate
+	 * @return
+	 * @throws IOException
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	public RowReferenceSet appendPartialRows(UserInfo user, String tableId, List<ColumnModel> models, PartialRowSet rowsToAppendOrUpdate)
+			throws DatastoreException, NotFoundException, IOException;
 
 	/**
 	 * Delete a set of rows from a table.

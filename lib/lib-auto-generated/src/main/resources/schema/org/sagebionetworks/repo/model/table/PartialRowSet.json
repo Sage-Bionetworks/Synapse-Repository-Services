@@ -1,0 +1,16 @@
+{
+    "description":"Represents a set of row of a TablEntity",
+    "properties":{
+		"tableId":{
+			"description":"The ID of the TableEntity than owns these rows",
+			"type": "string"
+		},
+		"rows": {
+		    "description":"The rows of this set.  The index of each row value aligns with the index of each header.",
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.table.PartialRow"
+			}
+		}
+    }
+}

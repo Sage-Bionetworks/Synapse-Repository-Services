@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
+import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
@@ -90,6 +91,16 @@ public class TableServicesImpl implements TableServices {
 		UserInfo user = userManager.getUserInfo(userId);
 		List<ColumnModel> models = getCurrentColumnsForTable(user, rows.getTableId());
 		return tableRowManager.appendRows(user, rows.getTableId(), models, rows);
+	}
+
+	@Override
+	public RowReferenceSet appendPartialRows(Long userId, PartialRowSet rowsToAppendOrUpdate) throws NotFoundException, DatastoreException,
+			IOException {
+		Validate.required(rowsToAppendOrUpdate, "rowsToAppendOrUpdate");
+		Validate.required(rowsToAppendOrUpdate.getTableId(), "rowsToAppendOrUpdate.tableId");
+		UserInfo user = userManager.getUserInfo(userId);
+		List<ColumnModel> models = getCurrentColumnsForTable(user, rowsToAppendOrUpdate.getTableId());
+		return tableRowManager.appendPartialRows(user, rowsToAppendOrUpdate.getTableId(), models, rowsToAppendOrUpdate);
 	}
 
 	@Override
