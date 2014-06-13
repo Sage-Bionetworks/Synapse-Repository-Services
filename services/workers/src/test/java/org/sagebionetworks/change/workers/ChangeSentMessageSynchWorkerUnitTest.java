@@ -34,25 +34,8 @@ public class ChangeSentMessageSynchWorkerUnitTest {
 		ReflectionTestUtils.setField(worker, "stackStatusDao", mockStatusDao);
 		ReflectionTestUtils.setField(worker, "clockProvider", new DefaultClockProvider());
 		when(mockStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_WRITE);
-		batchSize = 10;
-		worker.setBatchSize(10);
 	}
 	
-	@Test
-	public void testDone(){
-		long minChangeNumber = batchSize*2;
-		long currentChangeNum = minChangeNumber+batchSize*2;
-		long lastSychedChangeNumberStart = currentChangeNum;
-		long upperBounds = currentChangeNum;
-		when(mockChangeDao.getMinimumChangeNumber()).thenReturn(minChangeNumber);
-		when(mockChangeDao.getCurrentChangeNumber()).thenReturn(currentChangeNum);
-		when(mockChangeDao.getLastSynchedChangeNumber()).thenReturn(lastSychedChangeNumberStart);
-		when(mockChangeDao.getMaxSentChangeNumber(lastSychedChangeNumberStart)).thenReturn(lastSychedChangeNumberStart);
-		when(mockChangeDao.getMaxSentChangeNumber(upperBounds)).thenReturn(upperBounds);
-		worker.run();
-		verify(mockChangeDao, never()).listUnsentMessages(anyLong(), anyLong(), any(Timestamp.class));
-		verify(mockChangeDao, never()).setLastSynchedChangeNunber(anyLong(), anyLong());
-	}
 	
 	@Test
 	public void testStackDown(){
@@ -60,7 +43,6 @@ public class ChangeSentMessageSynchWorkerUnitTest {
 		worker.run();
 		verify(mockChangeDao, never()).getMinimumChangeNumber();
 		verify(mockChangeDao, never()).listUnsentMessages(anyLong(), anyLong(), any(Timestamp.class));
-		verify(mockChangeDao, never()).setLastSynchedChangeNunber(anyLong(), anyLong());
 	}
 	
 	@Test
@@ -69,7 +51,6 @@ public class ChangeSentMessageSynchWorkerUnitTest {
 		worker.run();
 		verify(mockChangeDao, never()).getMinimumChangeNumber();
 		verify(mockChangeDao, never()).listUnsentMessages(anyLong(), anyLong(),  any(Timestamp.class));
-		verify(mockChangeDao, never()).setLastSynchedChangeNunber(anyLong(), anyLong());
 	}
 
 }
