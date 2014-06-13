@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ID_SEQUENCE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ID_SEQUENCE_TABLE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_KEY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_TABLE_ETAG;
@@ -50,8 +51,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.S3Object;
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -69,6 +68,10 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			+ COL_TABLE_ROW_VERSION + " FROM " + TABLE_ROW_CHANGE + " WHERE "
 			+ COL_TABLE_ROW_TABLE_ID + " = ? AND " + COL_TABLE_ROW_TABLE_ETAG
 			+ " = ? ";
+	private static final String SQL_SELECT_MAX_ROWID = "SELECT " + COL_ID_SEQUENCE + " FROM " + TABLE_TABLE_ID_SEQUENCE + " WHERE "
+			+ COL_ID_SEQUENCE_TABLE_ID + " = ?";
+	private static final String SQL_SELECT_LAST_ROW_CHANGE_FOR_TABLE = "SELECT * FROM " + TABLE_ROW_CHANGE + " WHERE "
+			+ COL_TABLE_ROW_TABLE_ID + " = ? ORDER BY " + COL_TABLE_ROW_VERSION + " DESC LIMIT 1";
 	private static final String SQL_SELECT_ROW_CHANGE_FOR_TABLE_AND_VERSION = "SELECT * FROM "
 			+ TABLE_ROW_CHANGE
 			+ " WHERE "
@@ -293,6 +296,33 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		}
 	}
 
+	@Override
+	public long getMaxRowId(String tableIdString) {
+		if (tableIdString == null)
+			throw new IllegalArgumentException("TableId cannot be null");
+		long tableId = KeyFactory.stringToKey(tableIdString);
+		try {
+			return simpleJdbcTemplate.queryForLong(SQL_SELECT_MAX_ROWID, tableId);
+		} catch (EmptyResultDataAccessException e) {
+			// presumably, no rows have been added yet
+			return 0L;
+		}
+	}
+
+	@Override
+	public TableRowChange getLastTableRowChange(String tableIdString) {
+		if (tableIdString == null)
+			throw new IllegalArgumentException("TableId cannot be null");
+		long tableId = KeyFactory.stringToKey(tableIdString);
+		try {
+			DBOTableRowChange dbo = simpleJdbcTemplate.queryForObject(SQL_SELECT_LAST_ROW_CHANGE_FOR_TABLE, rowChangeMapper, tableId);
+			return TableModelUtils.ceateDTOFromDBO(dbo);
+		} catch (EmptyResultDataAccessException e) {
+			// presumably, no rows have been added yet
+			return null;
+		}
+	}
+
 	/**
 	 * Save a change to S3
 	 * 
@@ -375,15 +405,14 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	 * @throws NotFoundException
 	 */
 	@Override
-	public RowSet getRowSet(String tableId, long rowVersion)
+	public RowSet getRowSet(String tableId, long rowVersion, Set<Long> rowsToGet)
 			throws IOException, NotFoundException {
 		TableRowChange dto = getTableRowChange(tableId, rowVersion);
 		// Downlaod the file from S3
 		S3Object object = s3Client.getObject(dto.getBucket(), dto.getKey());
 		try {
 			RowSet set = new RowSet();
-			List<Row> rows = TableModelUtils.readFromCSVgzStream(object
-					.getObjectContent());
+			List<Row> rows = TableModelUtils.readFromCSVgzStream(object.getObjectContent(), rowsToGet);
 			set.setTableId(tableId);
 			set.setHeaders(dto.getHeaders());
 			set.setRows(rows);
@@ -597,7 +626,8 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	}
 
 	@Override
-	public Map<Long, Long> getLatestVersions(String tableId, final long minVersion) throws IOException, NotFoundException {
+	public Map<Long, Long> getLatestVersions(String tableId, final long minVersion, final long rowIdOffset, final long limit)
+			throws IOException, NotFoundException {
 		final Map<Long, Long> rowVersions = Maps.newHashMap();
 
 		List<TableRowChange> rowChanges = listRowSetsKeysForTableGreaterThanVersion(tableId, minVersion - 1);
@@ -607,8 +637,10 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			scanChange(new RowHandler() {
 				@Override
 				public void nextRow(final Row row) {
-					// since we are iterating forward, we can just overwrite previous values here
-					rowVersions.put(row.getRowId(), row.getVersionNumber());
+					if (row.getRowId() >= rowIdOffset && row.getRowId() < rowIdOffset + limit) {
+						// since we are iterating forward, we can just overwrite previous values here
+						rowVersions.put(row.getRowId(), row.getVersionNumber());
+					}
 				}
 			}, rowChange);
 		}

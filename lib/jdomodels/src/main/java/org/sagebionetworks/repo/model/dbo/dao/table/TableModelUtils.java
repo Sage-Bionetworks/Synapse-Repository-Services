@@ -13,6 +13,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
@@ -35,8 +36,10 @@ import org.sagebionetworks.util.csv.CsvNullReader;
 
 import au.com.bytecode.opencsv.CSVWriter;
 
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.SetMultimap;
 
 /**
  * Utilities for working with Tables and Row data.
@@ -357,26 +360,29 @@ public class TableModelUtils {
 
 	/**
 	 * Read the passed CSV into a RowSet.
+	 * 
 	 * @param reader
+	 * @param rowsToGet
 	 * @return
 	 * @throws IOException
 	 */
-	public static List<Row> readFromCSV(CsvNullReader reader) throws IOException {
+	public static List<Row> readFromCSV(CsvNullReader reader, final Set<Long> rowsToGet) throws IOException {
 		if (reader == null)
 			throw new IllegalArgumentException("CsvNullReader cannot be null");
 		final List<Row> rows = new LinkedList<Row>();
 		// Scan the data.
-		scanFromCSV(reader,new RowHandler() {
-			
+		scanFromCSV(reader, new RowHandler() {
+
 			@Override
 			public void nextRow(Row row) {
-				// Add this to the rows
-				rows.add(row);
+				if (rowsToGet.contains(row.getRowId())) {
+					// Add this to the rows
+					rows.add(row);
+				}
 			}
 		});
 		return rows;
 	}
-	
 	
 	/**
 	 * Read the passed CSV into a RowSet.
@@ -407,11 +413,13 @@ public class TableModelUtils {
 	
 	/**
 	 * Read the passed Gzip CSV into a RowSet.
+	 * 
 	 * @param zippedStream
+	 * @param rowsToGet
 	 * @return
-	 * @throws IOException 
+	 * @throws IOException
 	 */
-	public static List<Row> readFromCSVgzStream(InputStream zippedStream) throws IOException{
+	public static List<Row> readFromCSVgzStream(InputStream zippedStream, Set<Long> rowsToGet) throws IOException {
 		GZIPInputStream zipIn = null;
 		InputStreamReader isr = null;
 		CsvNullReader csvReader = null;
@@ -419,7 +427,7 @@ public class TableModelUtils {
 			zipIn = new GZIPInputStream(zippedStream);
 			isr = new InputStreamReader(zipIn);
 			csvReader = new CsvNullReader(isr);
-			return readFromCSV(csvReader);
+			return readFromCSV(csvReader, rowsToGet);
 		}finally{
 			if(csvReader != null){
 				csvReader.close();
@@ -962,5 +970,25 @@ public class TableModelUtils {
 				return columnIdToIndexMap;
 			}
 		};
+	}
+
+
+	public static SetMultimap<Long, Long> createVersionToRowsMap(Map<Long, Long> currentVersionNumbers) {
+		// create a map from version to set of row ids map
+		SetMultimap<Long, Long> versions = HashMultimap.create();
+		for (Entry<Long, Long> rowVersion : currentVersionNumbers.entrySet()) {
+			versions.put(rowVersion.getValue(), rowVersion.getKey());
+		}
+		return versions;
+	}
+
+
+	public static SetMultimap<Long, Long> createVersionToRowsMap(Iterable<RowReference> refs) {
+		// create a map from version to set of row ids map
+		SetMultimap<Long, Long> versions = HashMultimap.create();
+		for (RowReference ref : refs) {
+			versions.put(ref.getVersionNumber(), ref.getRowId());
+		}
+		return versions;
 	}
 }

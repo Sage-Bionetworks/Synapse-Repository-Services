@@ -26,11 +26,8 @@ import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 
 import com.google.common.base.Predicate;
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -122,7 +119,7 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 		if (!tableRowCache.isEnabled()) {
 			return null;
 		}
-		SetMultimap<Long, Long> versions = createVersionToRowsMap(ref.getRows());
+		SetMultimap<Long, Long> versions = TableModelUtils.createVersionToRowsMap(ref.getRows());
 
 		List<RowSet> results = new LinkedList<RowSet>();
 		for (Entry<Long, Collection<Long>> versionWithRows : versions.asMap().entrySet()) {
@@ -269,7 +266,7 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 
 		Map<Long, Long> currentVersionNumbers = tableRowCache.getCurrentVersionNumbers(tableId, rowIdsInOut);
 
-		SetMultimap<Long, Long> versions = createVersionToRowsMap(currentVersionNumbers);
+		SetMultimap<Long, Long> versions = TableModelUtils.createVersionToRowsMap(currentVersionNumbers);
 
 		Map<Long, RowAccessor> rowIdToRowMap = Maps.newHashMap();
 		for (Entry<Long, Collection<Long>> versionWithRows : versions.asMap().entrySet()) {
@@ -313,7 +310,8 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 	}
 
 	@Override
-	public Map<Long, Long> getLatestVersions(String tableIdString, long minVersion) throws IOException, NotFoundException {
+	public Map<Long, Long> getLatestVersions(String tableIdString, long minVersion, long rowIdOffset, long limit) throws IOException,
+			NotFoundException {
 		try {
 			if (tableRowCache.isEnabled()) {
 				Long tableId = KeyFactory.stringToKey(tableIdString);
@@ -323,33 +321,16 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 				long lastCachedVersion = currentStatus.getLatestCachedVersionNumber() == null ? -1 : currentStatus
 						.getLatestCachedVersionNumber();
 
-				Map<Long, Long> lastestVersionsFromS3 = super.getLatestVersions(tableIdString, lastCachedVersion + 1);
+				Map<Long, Long> lastestVersionsFromS3 = super.getLatestVersions(tableIdString, lastCachedVersion + 1, rowIdOffset, limit);
+				Map<Long, Long> lastestVersionsFromCache = tableRowCache.getCurrentVersionNumbers(tableId, rowIdOffset, limit);
 
-				Map<Long, Long> lastestVersionsFromCache = tableRowCache.getCurrentVersionNumbers(tableId);
+				// merge the two by overwriting the cached versions with the ones from S3
 				lastestVersionsFromCache.putAll(lastestVersionsFromS3);
 				return lastestVersionsFromCache;
 			}
 		} catch (Exception e) {
 			log.error("Error getting latest from cache: " + e.getMessage(), e);
 		}
-		return super.getLatestVersions(tableIdString, minVersion);
-	}
-
-	private SetMultimap<Long, Long> createVersionToRowsMap(Map<Long, Long> currentVersionNumbers) {
-		// create a map from version to set of row ids map
-		SetMultimap<Long, Long> versions = HashMultimap.create();
-		for (Entry<Long, Long> rowVersion : currentVersionNumbers.entrySet()) {
-			versions.put(rowVersion.getValue(), rowVersion.getKey());
-		}
-		return versions;
-	}
-
-	private SetMultimap<Long, Long> createVersionToRowsMap(Iterable<RowReference> refs) {
-		// create a map from version to set of row ids map
-		SetMultimap<Long, Long> versions = HashMultimap.create();
-		for (RowReference ref : refs) {
-			versions.put(ref.getVersionNumber(), ref.getRowId());
-		}
-		return versions;
+		return super.getLatestVersions(tableIdString, minVersion, rowIdOffset, limit);
 	}
 }

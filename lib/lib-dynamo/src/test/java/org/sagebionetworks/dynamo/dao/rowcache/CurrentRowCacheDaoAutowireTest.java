@@ -21,6 +21,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.amazonaws.services.dynamodb.model.ConditionalCheckFailedException;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -111,12 +112,23 @@ public class CurrentRowCacheDaoAutowireTest {
 		map.put(15L, 155L);
 		currentRowCacheDao.putCurrentVersions(tableId, map);
 
-		Map<Long, Long> result = currentRowCacheDao.getCurrentVersions(tableId);
+		Map<Long, Long> result = currentRowCacheDao.getCurrentVersions(tableId, 0L, 100L);
 		assertEquals(map, result);
+
+		result = currentRowCacheDao.getCurrentVersions(tableId, 13L, 3L);
+		assertEquals(map, result);
+
+		ImmutableMap<Long, Long> firstTwo = ImmutableMap.<Long, Long> builder().put(13L, 144L).put(14L, 144L).build();
+
+		result = currentRowCacheDao.getCurrentVersions(tableId, 1L, 14L);
+		assertEquals(firstTwo, result);
+
+		result = currentRowCacheDao.getCurrentVersions(tableId, 15L, 100L);
+		assertEquals(Collections.singletonMap(15L, 155L), result);
 
 		currentRowCacheDao.deleteCurrentVersion(tableId, 13L);
 		map.remove(13L);
-		result = currentRowCacheDao.getCurrentVersions(tableId);
+		result = currentRowCacheDao.getCurrentVersions(tableId, 0L, 100L);
 		assertEquals(map, result);
 	}
 
