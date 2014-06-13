@@ -36,7 +36,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.base.Predicate;
 
-@Ignore
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class ChangeSentMessageSynchWorkerIntegrationTest {
