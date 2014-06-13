@@ -58,7 +58,6 @@ public class ChangeSentMessageSynchWorkerIntegrationTest {
 	RepositoryMessagePublisher repositoryMessagePublisher;
 	
 	private int objectIdSequence;
-	private int batchSize;
 	
 	@Before
 	public void before(){
@@ -67,11 +66,11 @@ public class ChangeSentMessageSynchWorkerIntegrationTest {
 		changeDao.deleteAllChanges();
 		semphoreManager.releaseAllLocksAsAdmin(new UserInfo(true));
 		objectIdSequence = 0;
-		batchSize = 3;
 		// We want this test to be deterministic
 		Random mockRandom = Mockito.mock(Random.class);
 		when(mockRandom.nextInt()).thenReturn(new Integer(0));
 		changeSentMessageSynchWorker.setRandom(mockRandom);
+		ReflectionTestUtils.setField(changeSentMessageSynchWorker, "minimumPageSize", 10);
 		ReflectionTestUtils.setField(changeSentMessageSynchWorker, "clockProvider", new ClockProvider() {
 			@Override
 			public void sleep(long millis) throws InterruptedException {
@@ -117,17 +116,15 @@ public class ChangeSentMessageSynchWorkerIntegrationTest {
 	}
 	
 	@Test
-	public void testPLFM_2814() throws Exception {
+	public void testPLFM_2844() throws Exception {
 		// At the start the last change number should be -1 after the worker has a chance to run.
 		waitForSynchState();
 		List<ChangeMessage> changes = createList(3, ObjectType.ACTIVITY);
-		// We need to save these change numbers such that their change numbers have gaps larger than the batch size
-		ChangeMessage last = null;
+		// We need to save these change numbers such that their change numbers have gaps larger than the page size
 		for(ChangeMessage change: changes){
 			change = changeDao.replaceChange(change);
-			last = change;
 			// Move the ID generator forward
-			idGenerator.reserveId(change.getChangeNumber()+batchSize+10, TYPE.CHANGE_ID);
+			idGenerator.reserveId(change.getChangeNumber()+changeSentMessageSynchWorker.getMinimumPageSize()+10, TYPE.CHANGE_ID);
 		}
 		// The worker should skip over all gaps and complete the synch.
 		waitForSynchState();
