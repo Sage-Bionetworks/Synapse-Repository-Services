@@ -277,28 +277,30 @@ public class TableController extends BaseController {
 
 	/**
 	 * <p>
-	 * This method is used to both add and update rows to a TableEntity. The passed RowSet will contain all data for the
-	 * rows to be added or updated. The RowSet.rows is a list of Rows, one of each row to add or update. If the
-	 * Row.rowId is null, then a row will be added for that request, if a rowId is provided then the row with that ID
-	 * will be updated (a 400 will be returned if a row ID is provided that does not actually exist). The Row.values
-	 * list should contain a value for each column of the row. The RowSet.headers identifies the columns (by ID) that
-	 * are to be updated by this request. Each Row.value list must be the same size as the RowSet.headers, as each value
-	 * is mapped to a column by the index of these two arrays. When a row is added it will be issued both a rowId and a
-	 * version number. When a row is updated it will be issued a new version number (each row version is immutable). The
-	 * resulting TableRowReference will enumerate all rowIds and versionNumbers for this update. The resulting
-	 * RowReferecnes will be listed in the same order as the passed result set. A single POST to this services will be
-	 * treated as a single transaction, meaning either all of the rows will be added/updated or none of the rows will be
-	 * added/updated. If this web-services fails for any reason all changes will be "rolled back".
+	 * This method is used to both add and update rows to a TableEntity. The passed PartialRowSet will contain some or
+	 * all data for the rows to be added or updated. The PartialRowSet.rows is a list of PartialRows, one of each row to
+	 * add or update. If the PartialRow.rowId is null, then a row will be added for that request, if a rowId is provided
+	 * then the row with that ID will be updated (a 400 will be returned if a row ID is provided that does not actually
+	 * exist). For inserts, the PartialRow.values should contain all the values the user wants to set explicitly. A null
+	 * value will be replaced with the default value if appropriate. For updates, only the columns represented in
+	 * PartialRow.values will be updated. Updates will always overwrite the current value of the cell. A null value for
+	 * a column that has a default value, will be changed to the default value. A PartialRow.values identifies the
+	 * column by ID in the key. When a row is added it will be issued both a rowId and a version number. When a row is
+	 * updated it will be issued a new version number (each row version is immutable). The resulting TableRowReference
+	 * will enumerate all rowIds and versionNumbers for this update. The resulting RowReferecnes will be listed in the
+	 * same order as the passed result set. A single POST to this services will be treated as a single transaction,
+	 * meaning either all of the rows will be added/updated or none of the rows will be added/updated. If this
+	 * web-services fails for any reason all changes will be "rolled back".
 	 * </p>
 	 * <p>
-	 * There is a limit to the size of a RowSet that can be passed in a single web-services call. Currently, that limit
-	 * is set to a maximum size of 2 MB per call. The maximum size is calculated based on the maximum possible size of a
-	 * the ColumModel definition, NOT on the size of the actual passed data. For example, the maximum size of an integer
-	 * column is 20 characters. Since each integer is represented as a UTF-8 string (not a binary representation) with 1
-	 * byte per character (for numbers), a single integer has a maximum size of 20 bytes (20 chars * 1 bytes/char).
-	 * Since the page size limits are based on the maximum size and not the actual size of the data it will be
-	 * consistent from page to page. This means a valid page size will work for a all pages even if some pages have more
-	 * data that others.
+	 * There is a limit to the size of a partialRowSet that can be passed in a single web-services call. Currently, that
+	 * limit is set to a maximum size of 2 MB per call. The maximum size is calculated based on the maximum possible
+	 * size of a the ColumModel definition, NOT on the size of the actual passed data. For example, the maximum size of
+	 * an integer column is 20 characters. Since each integer is represented as a UTF-8 string (not a binary
+	 * representation) with 1 byte per character (for numbers), a single integer has a maximum size of 20 bytes (20
+	 * chars * 1 bytes/char). Since the page size limits are based on the maximum size and not the actual size of the
+	 * data it will be consistent from page to page. This means a valid page size will work for a all pages even if some
+	 * pages have more data that others.
 	 * </p>
 	 * <p>
 	 * Note: The caller must have the <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}" >ACCESS_TYPE.UPDATE</a>
@@ -314,14 +316,14 @@ public class TableController extends BaseController {
 	 * @throws IOException
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = UrlHelpers.ENTITY_TABLE, method = RequestMethod.POST)
+	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_PARTIAL, method = RequestMethod.POST)
 	public @ResponseBody
-	RowReferenceSet appendPartiakRows(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String id,
+	RowReferenceSet appendPartialRows(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String id,
 			@RequestBody PartialRowSet rows) throws DatastoreException, NotFoundException, IOException {
 		if (id == null)
 			throw new IllegalArgumentException("{id} cannot be null");
 		rows.setTableId(id);
-		return serviceProvider.getTableServices().appendRows(userId, null);
+		return serviceProvider.getTableServices().appendPartialRows(userId, rows);
 	}
 
 	/**

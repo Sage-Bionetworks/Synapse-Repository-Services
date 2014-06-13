@@ -7,10 +7,12 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.TimeZone;
 
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.util.csv.CsvNullReader;
@@ -18,6 +20,7 @@ import org.sagebionetworks.util.csv.CsvNullReader;
 import au.com.bytecode.opencsv.CSVWriter;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 /**
  * Utilities for working with Tables and Row data.
@@ -30,9 +33,15 @@ public class TableModelTestUtils {
 	/**
 	 * Create one column of each type.
 	 * 
+	 * @param hasDefaults
+	 * 
 	 * @return
 	 */
 	public static List<ColumnModel> createOneOfEachType() {
+		return createOneOfEachType(false);
+	}
+
+	public static List<ColumnModel> createOneOfEachType(boolean hasDefaults) {
 		List<ColumnModel> results = new LinkedList<ColumnModel>();
 		for (int i = 0; i < ColumnType.values().length; i++) {
 			ColumnType type = ColumnType.values()[i];
@@ -42,6 +51,32 @@ public class TableModelTestUtils {
 			cm.setId("" + i);
 			if (ColumnType.STRING == type) {
 				cm.setMaximumSize(47L);
+			}
+			if (hasDefaults) {
+				String defaultValue;
+				switch (type) {
+				case BOOLEAN:
+					defaultValue = "true";
+					break;
+				case DATE:
+					defaultValue = "978307200000";
+					break;
+				case DOUBLE:
+					defaultValue = "1.3";
+					break;
+				case FILEHANDLEID:
+					defaultValue = "0";
+					break;
+				case LONG:
+					defaultValue = "-10000000000000";
+					break;
+				case STRING:
+					defaultValue = "defaultString";
+					break;
+				default:
+					throw new IllegalStateException("huh? missing enum");
+				}
+				cm.setDefaultValue(defaultValue);
 			}
 			results.add(cm);
 		}
@@ -57,6 +92,28 @@ public class TableModelTestUtils {
 	 */
 	public static List<Row> createRows(List<ColumnModel> cms, int count) {
 		return createRows(cms, count, true);
+	}
+
+	public static List<PartialRow> createPartialRows(List<ColumnModel> cms, int count) {
+		List<PartialRow> rows = new LinkedList<PartialRow>();
+		for (int i = 0; i < count; i++) {
+			PartialRow row = new PartialRow();
+			// Add a value for each column
+			createPartialRow(cms, row, i, false);
+			rows.add(row);
+		}
+		return rows;
+	}
+
+	public static List<Row> createExpectedFullRows(List<ColumnModel> cms, int count) {
+		List<Row> rows = new LinkedList<Row>();
+		for (int i = 0; i < count; i++) {
+			Row row = new Row();
+			// Add a value for each column
+			updateExpectedPartialRow(cms, row, i, false, true);
+			rows.add(row);
+		}
+		return rows;
 	}
 
 	public static List<Row> createRows(List<ColumnModel> cms, int count, boolean useDateStrings) {
@@ -116,6 +173,10 @@ public class TableModelTestUtils {
 		updateRow(cms, toUpdate, i, true, false);
 	}
 
+	public static PartialRow updatePartialRow(List<ColumnModel> schema, Row row, int i) {
+		return updatePartialRow(schema, row, i, false);
+	}
+
 	private static final SimpleDateFormat gmtDateFormatter;
 	static {
 		gmtDateFormatter = new SimpleDateFormat("yy-M-d H:m:s.SSS");
@@ -126,39 +187,86 @@ public class TableModelTestUtils {
 		// Add a value for each column
 		List<String> values = new LinkedList<String>();
 		for (ColumnModel cm : cms) {
-			if (cm.getColumnType() == null)
-				throw new IllegalArgumentException("ColumnType cannot be null");
-			switch (cm.getColumnType()) {
-			case STRING:
-				values.add((isUpdate ? "updatestring" : "string") + i);
-				continue;
-			case LONG:
-				values.add("" + (i + 3000));
-				continue;
-			case DATE:
-				if (useDateStrings && i % 2 == 0) {
-					values.add(gmtDateFormatter.format(new Date(i + 4000)));
-				} else {
-					values.add("" + (i + 4000));
-				}
-				continue;
-			case FILEHANDLEID:
-				values.add("" + (i + 5000));
-				continue;
-			case BOOLEAN:
-				if (i % 2 > 0) {
-					values.add(Boolean.TRUE.toString());
-				} else {
-					values.add(Boolean.FALSE.toString());
-				}
-				continue;
-			case DOUBLE:
-				values.add("" + (i * 3.41 + 3.12));
-				continue;
-			}
-			throw new IllegalArgumentException("Unknown ColumnType: " + cm.getColumnType());
+			values.add(getValue(cm, i, isUpdate, useDateStrings, false));
 		}
 		toUpdate.setValues(values);
+	}
+
+	private static void createPartialRow(List<ColumnModel> cms, PartialRow toUpdate, int i, boolean useDateStrings) {
+		// Add a value for each column
+		Map<String, String> values = Maps.newHashMap();
+		int cmIndex = 0;
+		for (ColumnModel cm : cms) {
+			if (cm.getColumnType() == null)
+				throw new IllegalArgumentException("ColumnType cannot be null");
+			if ((i + cmIndex) % 3 != 0) {
+				values.put(cm.getId(), getValue(cm, i, false, useDateStrings, false));
+			}
+		}
+		toUpdate.setValues(values);
+	}
+
+	private static PartialRow updatePartialRow(List<ColumnModel> cms, Row toUpdate, int i, boolean useDateStrings) {
+		// Add a value for each column
+		Map<String, String> values = Maps.newHashMap();
+		for (int cmIndex = 0; cmIndex < cms.size(); cmIndex++) {
+			ColumnModel cm = cms.get(cmIndex);
+			if (cm.getColumnType() == null)
+				throw new IllegalArgumentException("ColumnType cannot be null");
+			if ((i + cmIndex) % 3 != 0) {
+				String value = getValue(cm, i, true, useDateStrings, false);
+				values.put(cm.getId(), value);
+				toUpdate.getValues().set(cmIndex, value);
+			}
+		}
+		PartialRow partialRow = new PartialRow();
+		partialRow.setRowId(toUpdate.getRowId());
+		partialRow.setValues(values);
+		return partialRow;
+	}
+
+	private static void updateExpectedPartialRow(List<ColumnModel> cms, Row toUpdate, int i, boolean isUpdate, boolean useDateStrings) {
+		// Add a value for each column
+		List<String> values = new LinkedList<String>();
+		int cmIndex = 0;
+		for (ColumnModel cm : cms) {
+			if (cm.getColumnType() == null)
+				throw new IllegalArgumentException("ColumnType cannot be null");
+			if ((i + cmIndex) % 3 != 0) {
+				values.add(getValue(cm, i, isUpdate, useDateStrings, true));
+			} else {
+				values.add(cm.getDefaultValue());
+			}
+		}
+		toUpdate.setValues(values);
+	}
+
+	private static String getValue(ColumnModel cm, int i, boolean isUpdate, boolean useDateStrings, boolean isExpected) {
+		if (cm.getColumnType() == null)
+			throw new IllegalArgumentException("ColumnType cannot be null");
+		switch (cm.getColumnType()) {
+		case STRING:
+			return (isUpdate ? "updatestring" : "string") + i;
+		case LONG:
+			return "" + (i + 3000);
+		case DATE:
+			if (!isExpected && useDateStrings && i % 2 == 0) {
+				return gmtDateFormatter.format(new Date(i + 4000 + (isUpdate ? 10000 : 0)));
+			} else {
+				return "" + (i + 4000 + (isUpdate ? 10000 : 0));
+			}
+		case FILEHANDLEID:
+			return "" + (i + 5000 + (isUpdate ? 10000 : 0));
+		case BOOLEAN:
+			if (i % 2 > 0 ^ isUpdate) {
+				return Boolean.TRUE.toString();
+			} else {
+				return Boolean.FALSE.toString();
+			}
+		case DOUBLE:
+			return "" + (i * 3.41 + 3.12 + (isUpdate ? 10000 : 0));
+		}
+		throw new IllegalArgumentException("Unknown ColumnType: " + cm.getColumnType());
 	}
 
 	public static Row createRow(Long rowId, Long rowVersion, String... values) {
