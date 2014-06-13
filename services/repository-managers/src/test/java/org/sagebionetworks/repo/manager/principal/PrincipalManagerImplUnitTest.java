@@ -8,7 +8,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -177,7 +176,35 @@ public class PrincipalManagerImplUnitTest {
 	}
 	
 	@Test
+	public void testCreateTokenForNewAccountNoName() {
+		user.setFirstName("");
+		user.setLastName("");
+		String token1 = PrincipalManagerImpl.
+				createTokenForNewAccount(user, domain, now);
+		assertTrue(token1.length()>0);
+		// same inputs, same result
+		String token2 = PrincipalManagerImpl.
+				createTokenForNewAccount(user, domain, now);
+		assertEquals(token1, token2);
+		// different inputs, different token
+		Date otherDate = new Date(now.getTime()+1L);
+		String token3 = PrincipalManagerImpl.
+				createTokenForNewAccount(user, domain, otherDate);
+		assertTrue(token3.length()>0);
+		assertFalse(token1.equals(token3));
+	}
+	
+	@Test
 	public void testValidateNewAccountToken() {
+		String token = PrincipalManagerImpl.createTokenForNewAccount(user, domain, now);
+		String extractedEmail = PrincipalManagerImpl.validateNewAccountToken(token, now);
+		assertEquals(EMAIL, extractedEmail);
+	}
+	
+	@Test
+	public void testValidateNewAccountTokenNoName() {
+		user.setFirstName("");
+		user.setLastName("");
 		String token = PrincipalManagerImpl.createTokenForNewAccount(user, domain, now);
 		String extractedEmail = PrincipalManagerImpl.validateNewAccountToken(token, now);
 		assertEquals(EMAIL, extractedEmail);

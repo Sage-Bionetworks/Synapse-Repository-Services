@@ -216,8 +216,8 @@ public class PrincipalManagerImpl implements PrincipalManager {
 	// will throw exception for invalid email, invalid endpoint, invalid domain, or an email which is already taken
 	@Override
 	public void newAccountEmailValidation(NewUser user, String portalEndpoint, DomainType domain) {
-		if (user.getFirstName()==null || user.getFirstName().length()==0) throw new IllegalArgumentException("first name required");
-		if (user.getLastName()==null || user.getLastName().length()==0) throw new IllegalArgumentException("last name required");
+		if (user.getFirstName()==null) user.setFirstName("");
+		if (user.getLastName()==null) user.setLastName("");
 		AliasEnum.USER_EMAIL.validateAlias(user.getEmail());
 		
 		if (domain.equals(DomainType.SYNAPSE) || domain.equals(DomainType.BRIDGE)) {
@@ -239,7 +239,11 @@ public class PrincipalManagerImpl implements PrincipalManager {
 			String domainString = WordUtils.capitalizeFully(domain.name());
 			String subject = "Welcome to " + domain + "!";
 			Map<String,String> fieldValues = new HashMap<String,String>();
-			fieldValues.put(EmailUtils.TEMPLATE_KEY_DISPLAY_NAME, user.getFirstName()+" "+user.getLastName());
+			if (user.getFirstName().length()>0 || user.getLastName().length()>0) {
+				fieldValues.put(EmailUtils.TEMPLATE_KEY_DISPLAY_NAME, user.getFirstName()+" "+user.getLastName());
+			} else {
+				fieldValues.put(EmailUtils.TEMPLATE_KEY_DISPLAY_NAME, "");
+			}
 			fieldValues.put(EmailUtils.TEMPLATE_KEY_ORIGIN_CLIENT, domainString);
 			fieldValues.put(EmailUtils.TEMPLATE_KEY_WEB_LINK, urlString);
 			String messageBody = EmailUtils.readMailTemplate("message/CreateAccountTemplate.txt", fieldValues);
