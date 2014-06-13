@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
+import static org.junit.Assert.assertNull;
+
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.text.SimpleDateFormat;
@@ -274,6 +276,17 @@ public class TableModelTestUtils {
 		row.setRowId(rowId);
 		row.setVersionNumber(rowVersion);
 		row.setValues(Lists.newArrayList(values));
+		return row;
+	}
+
+	public static PartialRow createPartialRow(Long rowId, String... keysAndValues) {
+		PartialRow row = new PartialRow();
+		row.setRowId(rowId);
+		Map<String,String> values = Maps.newHashMap();
+		for(int i = 0; i < keysAndValues.length; i+=2){
+			assertNull("duplicate key", values.put(keysAndValues[i], keysAndValues[i + 1]));
+		}
+		row.setValues(values);
 		return row;
 	}
 
