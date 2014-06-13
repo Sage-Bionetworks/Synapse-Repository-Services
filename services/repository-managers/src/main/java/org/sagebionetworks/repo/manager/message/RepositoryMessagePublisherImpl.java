@@ -215,12 +215,14 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 		// It is important to do this before we actual send the message to the
 		// topic because we do not want to sent out duplicate messages (see
 		// PLFM-2821)
-		this.transactionalMessanger.registerMessageSent(message);
-		String topicArn = getTopicInfoLazy(message.getObjectType()).getArn();
-		// Publish the message to the topic.
-		// NOTE: If this fails the transaction will be rolled back so
-		// the message will not be registered as sent.
-		awsSNSClient.publish(new PublishRequest(topicArn, json));
+		boolean isChange = this.transactionalMessanger.registerMessageSent(message);
+		if(isChange){
+			String topicArn = getTopicInfoLazy(message.getObjectType()).getArn();
+			// Publish the message to the topic.
+			// NOTE: If this fails the transaction will be rolled back so
+			// the message will not be registered as sent.
+			awsSNSClient.publish(new PublishRequest(topicArn, json));
+		}
 		return true;
 	}
 	

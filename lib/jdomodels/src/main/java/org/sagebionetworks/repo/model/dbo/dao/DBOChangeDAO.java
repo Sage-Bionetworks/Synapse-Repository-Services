@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
+import java.sql.Timestamp;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.ObjectType;
@@ -73,7 +74,7 @@ public interface DBOChangeDAO extends ProcessedMessageDAO {
 	 * 
 	 * @param changeNumber
 	 */
-	public void registerMessageSent(ChangeMessage message);
+	public boolean registerMessageSent(ChangeMessage message);
 
 	
 	/**
@@ -89,30 +90,24 @@ public interface DBOChangeDAO extends ProcessedMessageDAO {
 	 * List messages that have been created but not registered as sent (see {@link #registerMessageSent(long)}).
 	 * Limits results to change numbers between (inclusive) the specified bounds.
 	 * This is used to detect messages that need to be sent either for the first time or re-sent on a new stacks.
+	 * @param lowerBound lower change number (inclusive)
+	 * @param upperBound upper change number (inclusive)
+	 * @param Timestamp Only list changes that have a timestamp older than this value.
 	 */
-	public List<ChangeMessage> listUnsentMessages(long lowerBound, long upperBound);
+	public List<ChangeMessage> listUnsentMessages(long lowerBound, long upperBound, Timestamp olderThan);
 	
 	/**
-	 * Get the last change number that was synchronized between the changes and sent message table.
-	 * This is used as a high-water-mark for the synchronization process that reconciles changes with sent messages.
-	 * @return
+	 * For a given range of change number, does the change number check-sum match for both both changes and sent.
+	 * If the check-sums do match than then changes and sent tables are likely synchronized for that range.
+	 * This is a relatively cheap way to detect when the two tables are out-of-synch, as opposed to listing
+	 * all of the unsent messages for a range which is very expensive in terms of database resources.
+	 * 
+	 * @param lowerBound The minimum change number to include in the check (inclusive).
+	 * @param upperBound The maximum change number to include in the check (inclusive).
+	 * 
+	 * @return False indicates that the changes and sent are not synchronized for the given range.
 	 */
-	public Long getLastSynchedChangeNumber();
-	
-	
-	/**
-	 * Replace the current last change number with a new value.  The old value must be provided to actually apply the change
-	 * to reduce the chance of a concurrent update.
-	 * @param oldLastChangeNumber
-	 * @param lastChangeNumber
-	 * @return
-	 */
-	public boolean setLastSynchedChangeNunber(Long oldLastChangeNumber, Long lastChangeNumber);
-
-	/**
-	 * Rest the last change number that was  synchronized between the changes and sent message table to -1
-	 */
-	public Long resetLastChangeNumber();
+	public boolean checkUnsentMessageByCheckSumForRange(long lowerBound, long upperBound);
 	
 	/**
 	 * Get the maximum sent change number that is less than or equal to a given value.

@@ -3,8 +3,12 @@ package org.sagebionetworks.table.worker;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.Callable;
 
 import org.apache.logging.log4j.LogManager;
@@ -16,6 +20,7 @@ import org.sagebionetworks.repo.manager.table.TableRowManager;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.exception.LockUnavilableException;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -28,6 +33,7 @@ import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 
 import com.amazonaws.services.sqs.model.Message;
+import com.google.common.collect.SetMultimap;
 
 /**
  * This worker updates the index used to support the tables features. It will
@@ -42,6 +48,8 @@ public class TableWorker implements Callable<List<Message>> {
 	enum State {
 		SUCCESS, UNRECOVERABLE_FAILURE, RECOVERABLE_FAILURE,
 	}
+
+	private static final long BATCH_SIZE = 16000;
 
 	static private Logger log = LogManager.getLogger(TableWorker.class);
 	List<Message> messages;
@@ -95,6 +103,7 @@ public class TableWorker implements Callable<List<Message>> {
 							.getConnection(change.getObjectId());
 					if (indexDao != null) {
 						indexDao.deleteTable(change.getObjectId());
+						indexDao.deleteStatusTable(change.getObjectId());
 					}
 					processedMessages.add(message);
 				} else {
@@ -227,8 +236,7 @@ public class TableWorker implements Callable<List<Message>> {
 			IOException {
 		// The first task is to get the table schema in-synch.
 		// Get the current schema of the table.
-		List<ColumnModel> currentSchema = tableRowManager
-				.getColumnModelsForTable(tableId);
+		List<ColumnModel> currentSchema = tableRowManager.getColumnModelsForTable(tableId);
 		// Create or update the table with this schema.
 		tableRowManager.attemptToUpdateTableProgress(tableId, resetToken, "Creating table ", 0L, 100L);
 		if(currentSchema.isEmpty()){
@@ -239,39 +247,47 @@ public class TableWorker implements Callable<List<Message>> {
 			indexDao.createOrUpdateTable(currentSchema, tableId);
 		}
 		// Now determine which changes need to be applied to the table
-		Long maxVersion = indexDao.getMaxVersionForTable(tableId);
+		Long maxCurrentCompleteVersion = indexDao.getMaxCurrentCompleteVersionForTable(tableId);
 		// List all of the changes
-		tableRowManager.attemptToUpdateTableProgress(tableId, resetToken, "Listing table changes ", 0L, 100L);
-		List<TableRowChange> changes = tableRowManager
-				.listRowSetsKeysForTable(tableId);
-		if(changes == null || changes.isEmpty()){
-			// If there are no changes for this table then the last etag will be null
-			// and there is nothing else to do.
+		tableRowManager.attemptToUpdateTableProgress(tableId, resetToken, "Getting current table row versions ", 0L, 100L);
+
+		TableRowChange lastTableRowChange = tableRowManager.getLastTableRowChange(tableId);
+		if (lastTableRowChange == null) {
+			// nothing to do, move along
 			return null;
 		}
-		// Calculate the total work to perform
-		long totalProgress = 1;
-		for (TableRowChange change : changes) {
-			totalProgress += change.getRowCount();
-		}
-		// Apply any change that has a version number greater than the max
-		// version already in the index
-		String lastEtag = null;
+
 		long currentProgress = 0;
-		for (TableRowChange change : changes) {
-			lastEtag = change.getEtag();
-			if (change.getRowVersion() > maxVersion) {
+		long maxRowId = tableRowManager.getMaxRowId(tableId);
+		for (long rowId = 0; rowId <= maxRowId; rowId += BATCH_SIZE) {
+			Map<Long, Long> currentRowVersions = tableRowManager.getCurrentRowVersions(tableId, maxCurrentCompleteVersion + 1, rowId,
+					BATCH_SIZE);
+
+			// gather rows by version
+			SetMultimap<Long, Long> versionToRowsMap = TableModelUtils.createVersionToRowsMap(currentRowVersions);
+			for (Entry<Long, Collection<Long>> versionWithRows : versionToRowsMap.asMap().entrySet()) {
+				Set<Long> rowsToGet = (Set<Long>) versionWithRows.getValue();
+				Long version = versionWithRows.getKey();
+
 				// Keep this message invisible
 				workerProgress.progressMadeForMessage(message);
-				// This is a change that we must apply.
-				RowSet rowSet = tableRowManager.getRowSet(tableId,	change.getRowVersion());
 
-				tableRowManager.attemptToUpdateTableProgress(tableId,	resetToken, "Applying rows " + rowSet.getRows().size()	+ " to version: " + change.getRowVersion(), currentProgress, totalProgress);
+				// This is a change that we must apply.
+				RowSet rowSet = tableRowManager.getRowSet(tableId, version, rowsToGet);
+
+				tableRowManager.attemptToUpdateTableProgress(tableId, resetToken, "Applying rows " + rowSet.getRows().size()
+						+ " to version: " + version, currentProgress, currentProgress);
 				// apply the change to the table
 				indexDao.createOrUpdateOrDeleteRows(rowSet, currentSchema);
+				currentProgress += rowsToGet.size();
 			}
-			currentProgress += change.getRowCount();
 		}
-		return lastEtag;
+
+		// If we successfully updated the table and got here, then all we know is that we are at least at the version
+		// the table was at when we started. It is still possible that a newer version came in and the we applied
+		// partial updates from that version to the index. A subsequent update will make things consistent again.
+		indexDao.setMaxCurrentCompleteVersionForTable(tableId, lastTableRowChange.getRowVersion());
+
+		return lastTableRowChange.getEtag();
 	}
 }

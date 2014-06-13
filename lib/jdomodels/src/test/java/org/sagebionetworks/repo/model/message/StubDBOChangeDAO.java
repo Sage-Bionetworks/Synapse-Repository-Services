@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.message;
 
+import java.sql.Timestamp;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -93,7 +94,7 @@ public class StubDBOChangeDAO implements DBOChangeDAO {
 
 	@Override
 	public List<ChangeMessage> listUnsentMessages(long lowerBound,
-			long upperBound) {
+			long upperBound, Timestamp time) {
 		// TODO Auto-generated method stub
 		return null;
 	}
@@ -112,33 +113,22 @@ public class StubDBOChangeDAO implements DBOChangeDAO {
 	}
 
 	@Override
-	public void registerMessageSent(ChangeMessage message) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public Long getLastSynchedChangeNumber() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public boolean setLastSynchedChangeNunber(Long oldLastChangeNumber,
-			Long lastChangeNumber) {
+	public boolean registerMessageSent(ChangeMessage message) {
 		// TODO Auto-generated method stub
 		return false;
-	}
-
-	@Override
-	public Long resetLastChangeNumber() {
-		return null;
 	}
 
 	@Override
 	public Long getMaxSentChangeNumber(Long lessThanOrEqual) {
 		// TODO Auto-generated method stub
 		return null;
+	}
+
+	@Override
+	public boolean checkUnsentMessageByCheckSumForRange(long lowerBound,
+			long upperBound) {
+		// TODO Auto-generated method stub
+		return false;
 	}
 
 

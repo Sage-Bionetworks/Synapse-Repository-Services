@@ -1,11 +1,8 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.*;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -26,7 +23,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ProcessedMessageDAO;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOSentMessageSynch;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeMessageUtils;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -49,7 +45,6 @@ public class DBOChangeDAOImplAutowiredTest {
 	public void before(){
 		if(changeDAO != null){
 			changeDAO.deleteAllChanges();
-			changeDAO.resetLastChangeNumber();
 		}
 	}
 	
@@ -366,9 +361,8 @@ public class DBOChangeDAOImplAutowiredTest {
 		List<ChangeMessage> unSent = changeDAO.listUnsentMessages(3); 
 		assertEquals(batch, unSent);
 		// Now register one
-		changeDAO.registerMessageSent(batch.get(1));
-		// Need to be able to set the same message twice
-		changeDAO.registerMessageSent(batch.get(1));
+		assertTrue(changeDAO.registerMessageSent(batch.get(1)));
+		assertFalse("Registering the same change twice should not result in an update",changeDAO.registerMessageSent(batch.get(1)));
 		unSent = changeDAO.listUnsentMessages(3);
 		assertNotNull(unSent);
 		assertEquals(1, unSent.size());
@@ -379,6 +373,20 @@ public class DBOChangeDAOImplAutowiredTest {
 		assertNotNull(unSent);
 		assertEquals(0, unSent.size());
 	}
+	
+	@Test
+	public void testReplaceDeleteSent(){
+		List<ChangeMessage> batch = createList(1, ObjectType.ENTITY);
+		// Pass the batch.
+		batch  = changeDAO.replaceChange(batch);
+		// Send the batch
+		changeDAO.registerMessageSent(batch.get(0));
+		// Replace the batch again
+		batch  = changeDAO.replaceChange(batch);
+		// This will fail if we did not delete the sent message.
+		changeDAO.registerMessageSent(batch.get(0));
+	}
+	
 	
 	@Test
 	public void testGetMaxSentChangeNumber(){
@@ -404,10 +412,10 @@ public class DBOChangeDAOImplAutowiredTest {
 		List<ChangeMessage> batch = createList(2, ObjectType.ENTITY);
 		ChangeMessage zero = batch.get(0);
 		zero.setObjectId("123");
-		zero.setObjectType(ObjectType.ENTITY);
+		zero.setObjectType(ObjectType.TABLE);
 		ChangeMessage one = batch.get(1);
 		one.setObjectId("123");
-		one.setObjectType(ObjectType.TABLE);
+		one.setObjectType(ObjectType.ENTITY);
 		// Pass the batch.
 		batch  = changeDAO.replaceChange(batch);
 		// Register as sent
@@ -467,7 +475,7 @@ public class DBOChangeDAOImplAutowiredTest {
 		long max = changeDAO.getCurrentChangeNumber();
 		
 		// Get everything
-		List<ChangeMessage> unSent = changeDAO.listUnsentMessages(min, max); 
+		List<ChangeMessage> unSent = changeDAO.listUnsentMessages(min, max, new Timestamp(System.currentTimeMillis())); 
 		assertEquals(batch, unSent);
 		
 		// Shrink the range and check each iteration for correctness
@@ -479,7 +487,7 @@ public class DBOChangeDAOImplAutowiredTest {
 				ChangeMessage removed = batch.remove(batch.size() - 1);
 				max = removed.getChangeNumber() - 1;
 			}
-			unSent = changeDAO.listUnsentMessages(min, max); 
+			unSent = changeDAO.listUnsentMessages(min, max, new Timestamp(System.currentTimeMillis())); 
 			assertEquals(batch, unSent);
 		}
 	}
@@ -515,23 +523,17 @@ public class DBOChangeDAOImplAutowiredTest {
 	}
 	
 	@Test
-	public void testGetLastSynchedChangeNumberCRUD(){
-		// Get the start value
-		Long start = changeDAO.getLastSynchedChangeNumber();
-		assertNotNull(start);
-		assertEquals(DBOSentMessageSynch.DEFAULT_START_CHANGE_NUMBER, start);
-		// Now update it
-		Long next = 101L;
-		assertTrue("Should not have failed to set the value",changeDAO.setLastSynchedChangeNunber(start, next));
-		// Now get it again
-		Long current = changeDAO.getLastSynchedChangeNumber();
-		assertEquals(next, current);
-		// Update should fail if we give it the wrong start
-		assertFalse("Update should fail when the wrong old value is given.",changeDAO.setLastSynchedChangeNunber(333L, 444L));
-		// Rest should put it back
-		changeDAO.resetLastChangeNumber();
-		current = changeDAO.getLastSynchedChangeNumber();
-		assertEquals(DBOSentMessageSynch.DEFAULT_START_CHANGE_NUMBER, current);
+	public void testCheckUnsentMessageByCheckSumForRange(){
+		List<ChangeMessage> starting = createList(5, ObjectType.PRINCIPAL);
+		starting = changeDAO.replaceChange(starting);
+		assertFalse("The check-sums should not match",changeDAO.checkUnsentMessageByCheckSumForRange(0L, Long.MAX_VALUE));
+		// Send each
+		for(ChangeMessage toSend: starting){
+			assertFalse("The check-sums should not match",changeDAO.checkUnsentMessageByCheckSumForRange(0L, Long.MAX_VALUE));
+			changeDAO.registerMessageSent(toSend);
+		}
+		// The should match now that all are sent
+		assertTrue("Change and sent are in-synch so their check-sums should match",changeDAO.checkUnsentMessageByCheckSumForRange(0L, Long.MAX_VALUE));
 	}
 	
 	/**

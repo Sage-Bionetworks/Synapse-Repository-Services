@@ -1,6 +1,8 @@
 package org.sagebionetworks.change.workers;
 
+import java.sql.Timestamp;
 import java.util.List;
+import java.util.Random;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -9,35 +11,29 @@ import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.status.StatusEnum;
+import org.sagebionetworks.util.ClockProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * This worker will synchronize the changes table with the sent message table.
  * 
  * It will find all messages that have not been sent and send them. This worker
- * will persist a high-water mark to avoid re-synchronizing change numbers that
- * have already been synchronized.
- * 
- * If the last synched change number (high-water marke) no longer exists in the
- * sent table then one of two events could have occurred:
- * <ol>
- * <li>Migration deleted changes for events that occurred on staging that did
- * not occur in production.</li>
- * <li>The object associated with a change message changed again and was issued
- * a new, larger, change number.</li>
- * </ol>
- * The second case would not cause this process to miss a messages that still
- * needs to be sent, but the first could. Therefore, whenever the last synched
- * message no longer exists we assume the worst case scenario and use the
- * maximum change number that still exists and is less than or equal to the
- * lastSynchedChangeNumber as the starting point for the synchronization
- * process.
+ * scans for ranges where the changes and sent table are out-of-synch by
+ * comparing the check-sums of the change numbers of both tables for that range.
+ * It is possible, but unlikely, that check-sums could match yet the tables are
+ * still be out-of-synch giving a false-negative. To deal with this possibility
+ * the page size used for each check-sum varies pseudo-randomly from run to run.
  * 
  * @author jmhill
  * 
  */
 public class ChangeSentMessageSynchWorker implements Runnable {
 
+	/**
+	 * This worker will ignore any message that is newer than this time.
+	 */
+	private static long MINIMUMN_MESSAGE_AGE = 1000*60;
+	
 	static private Logger log = LogManager
 			.getLogger(ChangeSentMessageSynchWorker.class);
 
@@ -45,86 +41,76 @@ public class ChangeSentMessageSynchWorker implements Runnable {
 	DBOChangeDAO changeDao;
 	@Autowired
 	RepositoryMessagePublisher repositoryMessagePublisher;
-	@Autowired StackStatusDao stackStatusDao;
-	// Start with a default batch size of 10K
-	private int batchSize = 10 * 1000;
+	@Autowired 
+	StackStatusDao stackStatusDao;
+	@Autowired
+	ClockProvider clockProvider;
 
-	private int runCount = 0;
+	int pageSizeVarriance = 5000;
+	int minimumPageSize = 25 * 1000;
+	/**
+	 * By default use a nondeterministic pseudo-random generator
+	 */
+	Random random = new Random(System.currentTimeMillis());
 
 	/**
-	 * Override the batch size.
+	 * Override the default random.
 	 * 
 	 * @param batchSize
 	 */
-	public void setBatchSize(int batchSize) {
-		this.batchSize = batchSize;
+	public void setRandom(Random random) {
+		if (random == null) {
+			throw new IllegalArgumentException("Random cannot be set to null");
+		}
+		this.random = random;
+	}
+	
+	/**
+	 * The minimum page size used for scanning.
+	 * @return
+	 */
+	public int getMinimumPageSize(){
+		return minimumPageSize;
 	}
 
 	@Override
 	public void run() {
-		// This worker does not run during migration. This avoids any intermediate state
+		// This worker does not run during migration. This avoids any
+		// intermediate state
 		// That could resulting in missed row.s
-		if(!StatusEnum.READ_WRITE.equals(stackStatusDao.getCurrentStatus())){
-			if(log.isTraceEnabled()){
+		if (!StatusEnum.READ_WRITE.equals(stackStatusDao.getCurrentStatus())) {
+			if (log.isTraceEnabled()) {
 				log.trace("Skipping synchronization since the stack is not in read-write mode");
 			}
 			return;
 		}
 		long maxChangeNumber = changeDao.getCurrentChangeNumber();
 		long minChangeNumber = changeDao.getMinimumChangeNumber();
-		long lastSychedChangeNumberStart = changeDao
-				.getLastSynchedChangeNumber();
-		// Use the max sent change number that still exits that is less than
-		// or equal to the last sent change message as the starting point for
-		// this synchronization run. This ensures we never miss a message that
-		// still needs to be sent.
-		long synchStart = changeDao
-				.getMaxSentChangeNumber(lastSychedChangeNumberStart);
-		synchStart = Math.max(synchStart, minChangeNumber);
-		long upperBounds = synchStart+batchSize;
-		int rowsUpdated = 0;
-		if(log.isTraceEnabled()){
-			log.trace("Starting with synchStart: " + synchStart+" upperBounds: "+upperBounds);
-		}
-		// Keep going until we either reach the end or process a single batch size.
-		while(synchStart < maxChangeNumber && rowsUpdated < batchSize){
-			List<ChangeMessage> toBeSent = changeDao.listUnsentMessages(synchStart,
-					upperBounds);
-			if(log.isTraceEnabled()){
-				log.trace("\t loop synchStart: " + synchStart+" upperBounds: "+upperBounds+" returned: "+toBeSent.size()+" rows");
+		// We only want to look at change messages that are older than this.
+		Timestamp olderThan = new Timestamp(clockProvider.currentTimeMillis() - MINIMUMN_MESSAGE_AGE);
+		/*
+		 * It is possible, but unlikely, that check-sums could match yet the
+		 * tables are still be out-of-synch giving a false-negative. To deal
+		 * with this possibility the page size used for each check-sum varies
+		 * pseudo-randomly from run to run.
+		 */
+		int pageSize = minimumPageSize + random.nextInt(pageSizeVarriance);
+		// Setup the run
+		for(long lowerBounds=minChangeNumber; lowerBounds <= maxChangeNumber; lowerBounds+= pageSize){
+			long upperBounds = lowerBounds+pageSize;
+			// Could the tables be out-of-synch for this range?
+			if(!changeDao.checkUnsentMessageByCheckSumForRange(lowerBounds, upperBounds)){
+				// We are out-of-synch
+				List<ChangeMessage> toSend = changeDao.listUnsentMessages(lowerBounds, upperBounds, olderThan);
+				for(ChangeMessage send: toSend){
+					try {
+						changeDao.registerMessageSent(send);
+					} catch (Exception e) {
+						// Failing to send one messages should not stop sending the rest.
+						log.warn("Failed to register a send: "+send+" message: "+e.getMessage());
+					}
+				}
 			}
-			// Send
-			for (ChangeMessage toSend : toBeSent) {
-				repositoryMessagePublisher.publishToTopic(toSend);
-				rowsUpdated++;
-			}
-			synchStart = upperBounds+1;
-			upperBounds = synchStart+batchSize;
-		}
-		// the new Last synched change number is the max sent change number
-		// that exists that is less than or equal to the upper bounds for this
-		// round.
-		long newLastSynchedChangeNumber = changeDao.getMaxSentChangeNumber(upperBounds);
-
-		// Set the new high-water-mark if it has changed
-		if (newLastSynchedChangeNumber > lastSychedChangeNumberStart) {
-			changeDao.setLastSynchedChangeNunber(lastSychedChangeNumberStart,
-					newLastSynchedChangeNumber);
-			if(log.isTraceEnabled()){
-				log.trace("newLastSynchedChangeNumber: "
-						+ newLastSynchedChangeNumber);
-			}
-		}
-		if (log.isTraceEnabled()) {
-			log.trace("maxChangeNumber: " + maxChangeNumber);
-			log.trace("minChangeNumber: " + minChangeNumber);
-			log.trace("lastSychedChangeNumberStart: "
-					+ lastSychedChangeNumberStart);
-			log.trace("synchStart: " + synchStart);
-			log.trace("upperBounds: " + upperBounds);
-			log.trace("rowsUpdated: " + rowsUpdated);
-			log.trace("Run count: " + runCount++);
 		}
 	}
-
 }

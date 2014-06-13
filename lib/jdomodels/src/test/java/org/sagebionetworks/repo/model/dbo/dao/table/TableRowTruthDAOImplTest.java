@@ -5,11 +5,15 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.After;
@@ -44,6 +48,8 @@ import com.google.common.collect.Sets;
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class TableRowTruthDAOImplTest {
 	
+	private Set<Long> ALL_SET;
+
 	@Autowired
 	CurrentRowCacheDao currentRowCacheDao;
 
@@ -52,8 +58,11 @@ public class TableRowTruthDAOImplTest {
 		
 	protected String creatorUserGroupId;
 
+	@SuppressWarnings("unchecked")
 	@Before
 	public void before(){
+		ALL_SET = mock(Set.class);
+		when(ALL_SET.contains(any())).thenReturn(true);
 		creatorUserGroupId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId().toString();
 		assertNotNull(creatorUserGroupId);
 	}
@@ -235,7 +244,7 @@ public class TableRowTruthDAOImplTest {
 		RowReferenceSet refSet = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, models, set, false);
 		assertNotNull(refSet);
 		// Get the rows back
-		RowSet fetched = tableRowTruthDao.getRowSet(tableId, 0l);
+		RowSet fetched = tableRowTruthDao.getRowSet(tableId, 0l, ALL_SET);
 		assertNotNull(fetched);
 		assertEquals(set.getHeaders(), fetched.getHeaders());
 		assertEquals(tableId, fetched.getTableId());
@@ -261,9 +270,22 @@ public class TableRowTruthDAOImplTest {
 			assertEquals(expectedValues, row.getValues());
 			expectedId++;
 		}
+
+		// Get partial rows back
+		fetched = tableRowTruthDao.getRowSet(tableId, 0l,
+				Sets.newHashSet(rows.get(0).getRowId(), rows.get(2).getRowId(), rows.get(4).getRowId()));
+		assertNotNull(fetched);
+		assertEquals(set.getHeaders(), fetched.getHeaders());
+		assertEquals(tableId, fetched.getTableId());
+		assertNotNull(fetched.getEtag());
+		assertEquals(3, fetched.getRows().size());
+		assertEquals(0L, fetched.getRows().get(0).getRowId().longValue());
+		assertEquals(2L, fetched.getRows().get(1).getRowId().longValue());
+		assertEquals(4L, fetched.getRows().get(2).getRowId().longValue());
+
 		// Version two does not exists so a not found should be thrown
 		try{
-			tableRowTruthDao.getRowSet(tableId, 1l);
+			tableRowTruthDao.getRowSet(tableId, 1l, ALL_SET);
 			fail("Should have failed");
 		}catch (NotFoundException e){
 			// expected;
@@ -337,8 +359,12 @@ public class TableRowTruthDAOImplTest {
 		// Append this change set
 		RowReferenceSet refSet = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, models, set, false);
 		assertNotNull(refSet);
+
+		assertEquals(0L, tableRowTruthDao.getLastTableRowChange(tableId).getRowVersion().longValue());
+		assertEquals(4L, tableRowTruthDao.getMaxRowId(tableId));
+
 		// Now fetch the rows for an update
-		RowSet toUpdate = tableRowTruthDao.getRowSet(tableId, 0l);
+		RowSet toUpdate = tableRowTruthDao.getRowSet(tableId, 0l, ALL_SET);
 		// remove a few rows
 		toUpdate.getRows().remove(0);
 		toUpdate.getRows().remove(1);
@@ -355,11 +381,14 @@ public class TableRowTruthDAOImplTest {
 		refSet = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, models, toUpdate, false);
 		assertNotNull(refSet);
 		// Now get the second version and validate it is what we expect
-		RowSet updated = tableRowTruthDao.getRowSet(tableId, 1l);
+		RowSet updated = tableRowTruthDao.getRowSet(tableId, 1l, ALL_SET);
 		assertNotNull(updated);
 		assertNotNull(updated.getRows());
 		assertNotNull(updated.getEtag());
 		assertEquals(4, updated.getRows().size());
+
+		assertEquals(1L, tableRowTruthDao.getLastTableRowChange(tableId).getRowVersion().longValue());
+		assertEquals(6L, tableRowTruthDao.getMaxRowId(tableId));
 	}
 	
 	@Test
@@ -382,7 +411,7 @@ public class TableRowTruthDAOImplTest {
 		}
 
 		// Now fetch the rows for an update
-		RowSet toUpdate = tableRowTruthDao.getRowSet(tableId, 0l);
+		RowSet toUpdate = tableRowTruthDao.getRowSet(tableId, 0l, ALL_SET);
 		// remove a few rows
 		toUpdate.getRows().remove(0);
 		toUpdate.getRows().remove(1);
@@ -423,7 +452,7 @@ public class TableRowTruthDAOImplTest {
 			assertEquals(2, count.get());
 		}
 
-		toUpdate = tableRowTruthDao.getRowSet(tableId, 1l);
+		toUpdate = tableRowTruthDao.getRowSet(tableId, 1l, ALL_SET);
 		// remove a few rows
 		TableModelTestUtils.updateRow(models, toUpdate.getRows().get(0), 19);
 		TableModelTestUtils.updateRow(models, toUpdate.getRows().get(1), 21);
@@ -435,7 +464,7 @@ public class TableRowTruthDAOImplTest {
 		}
 
 		// call all latest versions before cache is up to date
-		Map<Long, Long> latestVersionsMap = tableRowTruthDao.getLatestVersions(tableId, 0);
+		Map<Long, Long> latestVersionsMap = tableRowTruthDao.getLatestVersions(tableId, 0, 0L, 1000L);
 		assertEquals(rowVersions, latestVersionsMap);
 
 		assertEquals(7, rowVersions.size());
@@ -457,7 +486,7 @@ public class TableRowTruthDAOImplTest {
 		}
 
 		// call all latest versions after cache is up to date
-		latestVersionsMap = tableRowTruthDao.getLatestVersions(tableId, 0);
+		latestVersionsMap = tableRowTruthDao.getLatestVersions(tableId, 0, 0L, 1000L);
 		assertEquals(rowVersions, latestVersionsMap);
 
 		assertEquals(7, rowVersions.size());
@@ -483,9 +512,9 @@ public class TableRowTruthDAOImplTest {
 		RowReferenceSet refSet = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, models, set, false);
 		assertNotNull(refSet);
 		// Now fetch the rows for an update
-		RowSet toUpdateOne = tableRowTruthDao.getRowSet(tableId, 0l);
-		RowSet toUpdateTwo = tableRowTruthDao.getRowSet(tableId, 0l);
-		RowSet toUpdateThree = tableRowTruthDao.getRowSet(tableId, 0l);
+		RowSet toUpdateOne = tableRowTruthDao.getRowSet(tableId, 0l, ALL_SET);
+		RowSet toUpdateTwo = tableRowTruthDao.getRowSet(tableId, 0l, ALL_SET);
+		RowSet toUpdateThree = tableRowTruthDao.getRowSet(tableId, 0l, ALL_SET);
 		// For this case each update will change a different row so there is no conflict.
 		// update row one
 		Row toUpdate = toUpdateOne.getRows().get(0);
@@ -523,9 +552,9 @@ public class TableRowTruthDAOImplTest {
 		assertNotNull(refSet);
 		tableRowTruthDao.updateLatestVersionCache(tableId, null);
 		// Now fetch the rows for an update
-		RowSet toUpdateOne = tableRowTruthDao.getRowSet(tableId, 0l);
-		RowSet toUpdateTwo = tableRowTruthDao.getRowSet(tableId, 0l);
-		RowSet toUpdateThree = tableRowTruthDao.getRowSet(tableId, 0l);
+		RowSet toUpdateOne = tableRowTruthDao.getRowSet(tableId, 0l, ALL_SET);
+		RowSet toUpdateTwo = tableRowTruthDao.getRowSet(tableId, 0l, ALL_SET);
+		RowSet toUpdateThree = tableRowTruthDao.getRowSet(tableId, 0l, ALL_SET);
 		// For this case each update will change a different row so there is no conflict.
 		// update row one
 		Row toUpdate = toUpdateOne.getRows().get(0);
@@ -574,7 +603,7 @@ public class TableRowTruthDAOImplTest {
 		assertNotNull(refSet);
 
 		// Now fetch the rows for an update
-		RowSet toUpdate1 = tableRowTruthDao.getRowSet(tableId, 0l);
+		RowSet toUpdate1 = tableRowTruthDao.getRowSet(tableId, 0l, ALL_SET);
 		// For this case each update will change a different row so there is no conflict.
 		// delete second row and update all others
 		TableModelTestUtils.updateRow(models, toUpdate1.getRows().get(0), 100);
@@ -584,7 +613,7 @@ public class TableRowTruthDAOImplTest {
 		tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, models, toUpdate1, false);
 
 		// Now fetch the rows for an update
-		RowSet toUpdate2 = tableRowTruthDao.getRowSet(tableId, 0l);
+		RowSet toUpdate2 = tableRowTruthDao.getRowSet(tableId, 0l, ALL_SET);
 		// delete second (was third) row and update only that one
 		Row deletion = new Row();
 		deletion.setRowId(toUpdate2.getRows().get(1).getRowId());
@@ -593,7 +622,7 @@ public class TableRowTruthDAOImplTest {
 		tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, models, toUpdate2, true);
 
 		// Now fetch the rows for an update
-		RowSet toUpdate3 = tableRowTruthDao.getRowSet(tableId, 1l);
+		RowSet toUpdate3 = tableRowTruthDao.getRowSet(tableId, 1l, ALL_SET);
 		// delete second (was third) row and update only that one
 		deletion = new Row();
 		deletion.setRowId(toUpdate3.getRows().get(2).getRowId());
@@ -602,10 +631,10 @@ public class TableRowTruthDAOImplTest {
 		tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, models, toUpdate3, true);
 
 		RowSetAccessor rowSetLatest = tableRowTruthDao.getLatestVersionsWithRowData(tableId, Sets.newHashSet(0L, 1L, 2L, 3L), 0L);
-		RowSet rowSetBefore = tableRowTruthDao.getRowSet(tableId, 0L);
-		RowSet rowSetAfter = tableRowTruthDao.getRowSet(tableId, 1L);
-		RowSet rowSetAfter2 = tableRowTruthDao.getRowSet(tableId, 2L);
-		RowSet rowSetAfter3 = tableRowTruthDao.getRowSet(tableId, 3L);
+		RowSet rowSetBefore = tableRowTruthDao.getRowSet(tableId, 0L, ALL_SET);
+		RowSet rowSetAfter = tableRowTruthDao.getRowSet(tableId, 1L, ALL_SET);
+		RowSet rowSetAfter2 = tableRowTruthDao.getRowSet(tableId, 2L, ALL_SET);
+		RowSet rowSetAfter3 = tableRowTruthDao.getRowSet(tableId, 3L, ALL_SET);
 
 		assertEquals(2, rowSetLatest.getRows().size());
 		assertEquals(4, rowSetBefore.getRows().size());
@@ -629,7 +658,7 @@ public class TableRowTruthDAOImplTest {
 		set.setTableId(tableId);
 		tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, models, set, false);
 		// get the rows back
-		RowSet toUpdateOne = tableRowTruthDao.getRowSet(tableId, 0l);
+		RowSet toUpdateOne = tableRowTruthDao.getRowSet(tableId, 0l, ALL_SET);
 		// Create a row with an ID that is beyond the current max ID for the table
 		Row toAdd = TableModelTestUtils.createRows(models, 1).get(0);
 		toAdd.setRowId(toUpdateOne.getRows().get(0).getRowId()+1);

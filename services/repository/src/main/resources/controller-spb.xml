@@ -252,7 +252,7 @@
 	    <property name="misfireInstructionName" value="MISFIRE_INSTRUCTION_FIRE_NOW" />
 	</bean>
 	
-	<bean class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
+	<bean id="controllerScheduler" class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
 	    <property name="triggers">
 	        <list>
 	            <ref bean="refreshUserGroupCacheTrigger" />

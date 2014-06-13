@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.model.dao.table;
 import java.io.IOException;
 import java.util.ConcurrentModificationException;
 import java.util.Map;
-import java.util.Set;
 
 import org.sagebionetworks.repo.model.table.CurrentRowCacheStatus;
 import org.sagebionetworks.repo.model.table.Row;
@@ -22,7 +21,7 @@ public interface TableRowCache {
 
 	public Map<Long, Long> getCurrentVersionNumbers(Long tableId, Iterable<Long> rowIds);
 
-	public Map<Long, Long> getCurrentVersionNumbers(Long tableId);
+	public Map<Long, Long> getCurrentVersionNumbers(Long tableId, long rowIdOffset, long limit);
 
 	public void updateCurrentVersionNumbers(Long tableId, Map<Long, Long> rowIdVersionNumbers);
 
