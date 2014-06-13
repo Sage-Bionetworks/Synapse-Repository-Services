@@ -33,8 +33,10 @@ import org.sagebionetworks.repo.model.principal.AliasType;
 
 public class IT502SynapseJavaClientAccountTest {
 	private static SynapseAdminClient adminSynapse;
+	private static SynapseAdminClient synapseAnonymous;
 	private static SynapseClient synapseOne;
 	private static Long user1ToDelete;
+	private Long user2ToDelete;
 	
 	@BeforeClass
 	public static void beforeClass() throws Exception {
@@ -45,6 +47,8 @@ public class IT502SynapseJavaClientAccountTest {
 		adminSynapse.clearAllLocks();
 		synapseOne = new SynapseClientImpl();
 		user1ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseOne);
+		synapseAnonymous = new SynapseAdminClientImpl();
+		SynapseClientHelper.setEndpoints(synapseAnonymous);
 	}
 	
 	private File fileToDelete;
@@ -60,7 +64,11 @@ public class IT502SynapseJavaClientAccountTest {
 			fileToDelete.delete();
 			fileToDelete=null;
 		}
-
+		if (user2ToDelete!=null) {
+			try {
+				adminSynapse.deleteUser(user2ToDelete);
+			} catch (SynapseException e) { }
+		}
 	}
 	
 	@AfterClass
@@ -112,16 +120,25 @@ public class IT502SynapseJavaClientAccountTest {
 		user.setFirstName("firstName");
 		user.setLastName("lastName");
 		String endpoint = "https://www.synapse.org?";
-		synapseOne.newAccountEmailValidation(user, endpoint);
+		synapseAnonymous.newAccountEmailValidation(user, endpoint);
 		String token = getTokenFromFile(fileToDelete, endpoint);
 		AccountSetupInfo accountSetupInfo = new AccountSetupInfo();
 		accountSetupInfo.setEmailValidationToken(token);
 		accountSetupInfo.setFirstName("firstName");
 		accountSetupInfo.setLastName("lastName");
 		accountSetupInfo.setPassword(UUID.randomUUID().toString());
-		accountSetupInfo.setUsername(UUID.randomUUID().toString());
-		Session session = synapseOne.createNewAccount(accountSetupInfo);
+		String username = UUID.randomUUID().toString();
+		accountSetupInfo.setUsername(username);
+		Session session = synapseAnonymous.createNewAccount(accountSetupInfo);
 		assertNotNull(session.getSessionToken());
+		// need to get the ID of the new user to delete it
+		SynapseClientImpl sc = new SynapseClientImpl();
+		sc.setSessionToken(session.getSessionToken());
+		SynapseClientHelper.setEndpoints(sc);
+		sc.setUserName(username);
+		sc.signTermsOfUse(session.getSessionToken(), true);
+		UserProfile up = sc.getMyProfile();
+		user2ToDelete = Long.parseLong(up.getOwnerId());
 	}
 	
 	@Test

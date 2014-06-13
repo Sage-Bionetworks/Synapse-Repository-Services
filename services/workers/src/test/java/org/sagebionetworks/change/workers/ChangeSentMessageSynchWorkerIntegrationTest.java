@@ -91,6 +91,7 @@ public class ChangeSentMessageSynchWorkerIntegrationTest {
 		assertEquals(changes.get(2).getChangeNumber(), changeDao.getLastSynchedChangeNumber());
 	}
 	
+	@Ignore
 	@Test
 	public void testPLFM_2814() throws Exception {
 		// At the start the last change number should be -1 after the worker has a chance to run.
