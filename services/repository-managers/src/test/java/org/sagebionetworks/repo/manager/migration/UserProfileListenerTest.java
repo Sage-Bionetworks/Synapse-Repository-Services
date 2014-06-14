@@ -77,7 +77,7 @@ public class UserProfileListenerTest {
 		expectedAlias.setPrincipalId(PRINCIPAL_ID);
 		expectedAlias.setType(AliasType.USER_NAME);
 		when(principalAliasDAO.listPrincipalAliases(PRINCIPAL_ID, AliasType.USER_NAME)).
-			thenReturn(new ArrayList<PrincipalAlias>());
+			thenReturn(Collections.singletonList(expectedAlias));
 		// call the listener
 		userProfileListener.afterCreateOrUpdate(MigrationType.USER_PROFILE, delta);
 		// in this case we DON'T set the alias

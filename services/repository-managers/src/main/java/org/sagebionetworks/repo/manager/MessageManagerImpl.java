@@ -423,7 +423,13 @@ public class MessageManagerImpl implements MessageManager {
 
 		UserInfo userInfo = userManager.getUserInfo(Long.parseLong(dto.getCreatedBy()));
 		
-		String senderUserName = principalAliasDAO.getUserName(userInfo.getId());
+		// in practice there is always a user name, but strictly speaking it is allowed to be missing
+		String senderUserName = null;
+		try {
+			senderUserName = principalAliasDAO.getUserName(userInfo.getId());
+		} catch (NotFoundException e) {
+			senderUserName = null;
+		}
 		
 		// Get the individual recipients
 		Set<String> recipients = expandRecipientSet(userInfo, dto.getRecipients(), errors);
