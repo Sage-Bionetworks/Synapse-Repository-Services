@@ -33,6 +33,8 @@ public class UserProfileListener implements MigrationTypeListener {
 		this.principalAliasDAO = principalAliasDAO;
 		this.userProfileDAO = userProfileDAO;
 	}
+	
+	public UserProfileListener() {}
 
 	@Override
 	public <D extends DatabaseObject<?>> void afterCreateOrUpdate(
