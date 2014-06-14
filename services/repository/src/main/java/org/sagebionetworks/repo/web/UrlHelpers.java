@@ -656,6 +656,7 @@ public class UrlHelpers {
 	public static final String COLUMN_ID = COLUMN+"/{columnId}";
 	public static final String ENTITY_COLUMNS = ENTITY_ID+COLUMN;
 	public static final String ENTITY_TABLE = ENTITY_ID+TABLE;
+	public static final String ENTITY_TABLE_PARTIAL = ENTITY_TABLE + "/partial";
 	public static final String ENTITY_TABLE_DELETE_ROWS = ENTITY_ID + TABLE + "/deleteRows";
 	public static final String ENTITY_TABLE_GET_ROWS = ENTITY_ID + TABLE + "/getRows";
 	public static final String ENTITY_TABLE_FILE_HANDLES = ENTITY_TABLE + FILE_HANDLE;

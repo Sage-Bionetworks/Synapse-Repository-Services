@@ -91,14 +91,8 @@ import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
-import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
-import org.sagebionetworks.repo.model.principal.AddEmailInfo;
-import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
-import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
-import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
 import org.sagebionetworks.repo.model.quiz.QuestionResponse;
 import org.sagebionetworks.repo.model.quiz.Quiz;
@@ -246,74 +240,7 @@ public class IT500SynapseJavaClient {
 		} catch (SynapseException e) { }
 	}
 	
-	// omitting first or last name makes this a bad request (400)
-	// we are just trying to verify that everything's wired up correctly
-	@Test(expected=SynapseBadRequestException.class)
-	public void testNewAccountEmailValidation() throws SynapseException {
-		NewUser user = new NewUser();
-		user.setEmail("dummy@email.com");
-		user.setFirstName(null);
-		user.setLastName("lastName");
-		synapseOne.newAccountEmailValidation(user, "www.synapse.org");
-	}
-	
-	// using a bogus validation token makes this a bad request (400)
-	// we are just trying to verify that everything's wired up correctly
-	@Test(expected=SynapseBadRequestException.class)
-	public void testCreateNewAccount() throws Exception {
-		AccountSetupInfo accountSetupInfo = new AccountSetupInfo();
-		accountSetupInfo.setEmailValidationToken("foo");
-		synapseOne.createNewAccount(accountSetupInfo);
-	}
-	
-	// using a bogus email makes this a bad request (400)
-	// we are just trying to verify that everything's wired up correctly
-	@Test(expected=SynapseBadRequestException.class)
-	public void testAdditionalEmailValidation() throws Exception {
-		synapseOne.additionalEmailValidation(Long.parseLong(synapseOne.getMyProfile().getOwnerId()), 
-				"invalid", "www.synapse.org");
-	}
-	
-	// using a bogus validation token makes this a bad request (400)
-	// we are just trying to verify that everything's wired up correctly
-	@Test(expected=SynapseBadRequestException.class)
-	public void testAddEmail() throws Exception {
-		AddEmailInfo addEmailInfo = new AddEmailInfo();
-		addEmailInfo.setEmailValidationToken("foo");
-		synapseOne.addEmail(addEmailInfo, false);
-	}
-	
-	// using a bogus email makes this a Not Found (404)
-	// we are just trying to verify that everything's wired up correctly
-	@Test(expected=SynapseNotFoundException.class)
-	public void testRemoveEmail() throws Exception {
-		synapseOne.removeEmail("foo");
-	}
-	
-	@Test
-	public void testNotificationEmail() throws SynapseException {
-		UserProfile up = synapseOne.getMyProfile();
-		assertEquals(1, up.getEmails().size());
-		String myEmail = up.getEmails().get(0);
-		String notificationEmail = synapseOne.getNotificationEmail();
-		// the current notification email is the one/only email that I have
-		assertEquals(myEmail, notificationEmail);
-		// no-op, just checking that everything's wired up right
-		synapseOne.setNotificationEmail(myEmail);
-	}
-	
-	@Test
-	public void testCheckAliasAvailable() throws SynapseException{
-		AliasCheckRequest request = new AliasCheckRequest();
-		// This is valid but already in use
-		request.setAlias("public");
-		request.setType(AliasType.TEAM_NAME);
-		AliasCheckResponse response = synapseOne.checkAliasAvailable(request);
-		assertNotNull(response);
-		assertTrue(response.getValid());
-		assertFalse("The 'public' group name should already have this alias so it cannot be available!",response.getAvailable());
-	}
-	
+
 	@Test
 	public void testJavaClientGetADataset() throws Exception {
 		JSONObject results = synapseOne.query("select * from dataset limit 10");

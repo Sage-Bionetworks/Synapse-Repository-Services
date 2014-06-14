@@ -7,6 +7,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
+import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.Query;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
@@ -79,6 +80,19 @@ public interface TableServices {
 	 * @throws IOException
 	 */
 	public RowReferenceSet appendRows(Long userId, RowSet rowsToAppend) throws DatastoreException, NotFoundException, IOException;
+
+	/**
+	 * Append rows to a table.
+	 * 
+	 * @param userId
+	 * @param rowsToAppendOrUpdate
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws IOException
+	 */
+	public RowReferenceSet appendPartialRows(Long userId, PartialRowSet rowsToAppendOrUpdate) throws NotFoundException, DatastoreException,
+			IOException;
 
 	/**
 	 * Delete rows in a table.

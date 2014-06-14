@@ -20,6 +20,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.UUID;
@@ -49,6 +50,8 @@ import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.table.AsynchDownloadResponseBody;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.PartialRow;
+import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
@@ -70,7 +73,9 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import au.com.bytecode.opencsv.CSVWriter;
 
 import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -181,6 +186,72 @@ public class TableWorkerIntegrationTest {
 		Set<Long> all = mock(Set.class);
 		when(all.contains(any())).thenReturn(true);
 		RowSet expectedRowSet = tableRowManager.getRowSet(tableId, referenceSet.getRows().get(0).getVersionNumber(), all);
+		assertEquals(expectedRowSet, rowSet);
+	}
+
+	@Test
+	public void testPartialUpdateRoundTrip() throws NotFoundException, InterruptedException, DatastoreException, TableUnavilableException,
+			IOException {
+		// Create one column of each type
+		List<ColumnModel> columnModels = TableModelTestUtils.createOneOfEachType(true);
+		schema = new LinkedList<ColumnModel>();
+		for (ColumnModel cm : columnModels) {
+			cm = columnManager.createColumnModel(adminUserInfo, cm);
+			schema.add(cm);
+		}
+		List<String> headers = TableModelUtils.getHeaders(schema);
+		// Create the table.
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		table.setColumnIds(headers);
+		tableId = entityManager.createEntity(adminUserInfo, table, null);
+		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
+		columnManager.bindColumnToObject(adminUserInfo, headers, tableId, true);
+		// Now add some data
+		List<Row> rows = TableModelTestUtils.createRows(schema, 10);
+		// Add null rows
+		rows.addAll(TableModelTestUtils.createNullRows(schema, 3));
+		// Add empty rows
+		rows.addAll(TableModelTestUtils.createEmptyRows(schema, 3));
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(rows);
+		rowSet.setHeaders(headers);
+		rowSet.setTableId(tableId);
+		referenceSet = tableRowManager.appendRows(adminUserInfo, tableId, schema, rowSet);
+
+		// Wait for the table to become available
+		String sql = "select * from " + tableId + " order by row_id limit 100";
+		rowSet = waitForConsistentQuery(adminUserInfo, sql);
+		assertEquals(16, rowSet.getRows().size());
+
+		@SuppressWarnings("unchecked")
+		Set<Long> all = mock(Set.class);
+		when(all.contains(any())).thenReturn(true);
+		RowSet expectedRowSet = tableRowManager.getRowSet(tableId, referenceSet.getRows().get(0).getVersionNumber(), all);
+
+		// apply updates to expected and actual
+		List<PartialRow> partialRows = Lists.newArrayList(); 
+		for(int i = 0; i < 16; i++){
+			partialRows.add(TableModelTestUtils.updatePartialRow(schema, expectedRowSet.getRows().get(i), i));
+			expectedRowSet.getRows().get(i).setVersionNumber(1L);
+		}
+		rows = TableModelTestUtils.createExpectedFullRows(schema, 5);
+		for (int i = 0; i < rows.size(); i++) {
+			rows.get(i).setRowId(16L + i);
+			rows.get(i).setVersionNumber(1L);
+		}
+		expectedRowSet.getRows().addAll(rows);
+		partialRows.addAll(TableModelTestUtils.createPartialRows(schema, 5));
+
+		PartialRowSet partialRowSet = new PartialRowSet();
+		partialRowSet.setRows(partialRows);
+		partialRowSet.setTableId(tableId);
+		tableRowManager.appendPartialRows(adminUserInfo, tableId, schema, partialRowSet);
+
+		rowSet = waitForConsistentQuery(adminUserInfo, sql);
+		// we couldn't know the etag in advance
+		expectedRowSet.setEtag(rowSet.getEtag());
+		assertEquals(expectedRowSet.toString(), rowSet.toString());
 		assertEquals(expectedRowSet, rowSet);
 	}
 
@@ -442,6 +513,102 @@ public class TableWorkerIntegrationTest {
 
 		rowSet = waitForConsistentQuery(adminUserInfo, sql);
 		assertEquals("TableId: " + tableId, 2, rowSet.getRows().size());
+	}
+
+	@Test
+	public void testPartialUpdate() throws NotFoundException, InterruptedException, DatastoreException, TableUnavilableException,
+			IOException {
+		// four columns, two with default value
+		schema = new LinkedList<ColumnModel>();
+		ColumnModel cm = new ColumnModel();
+		cm.setName("col1");
+		cm.setColumnType(ColumnType.STRING);
+		schema.add(columnManager.createColumnModel(adminUserInfo, cm));
+		cm.setName("col2");
+		schema.add(columnManager.createColumnModel(adminUserInfo, cm));
+		cm.setDefaultValue("default");
+		cm.setName("col3");
+		schema.add(columnManager.createColumnModel(adminUserInfo, cm));
+		cm.setName("col4");
+		schema.add(columnManager.createColumnModel(adminUserInfo, cm));
+		List<String> headers = TableModelUtils.getHeaders(schema);
+		// Create the table.
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		table.setColumnIds(headers);
+		tableId = entityManager.createEntity(adminUserInfo, table, null);
+		columnManager.bindColumnToObject(adminUserInfo, headers, tableId, true);
+
+		// Now add some data
+		List<Row> rows = Lists.newArrayList();
+		for (int i = 0; i < 4; i++) {
+			rows.add(TableModelTestUtils.createRow(null, null, "something", null, "something", null));
+		}
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(rows);
+		rowSet.setHeaders(headers);
+		rowSet.setTableId(tableId);
+		referenceSet = tableRowManager.appendRows(adminUserInfo, tableId, schema, rowSet);
+
+		// Wait for the table to become available
+		String sql = "select * from " + tableId + " order by row_id limit 20";
+		rowSet = waitForConsistentQuery(adminUserInfo, sql);
+		assertEquals(4, rowSet.getRows().size());
+		for (int i = 0; i < 4; i++) {
+			assertEquals(Lists.newArrayList("something", null, "something", "default"), rowSet.getRows().get(i).getValues());
+		}
+
+		// append
+		PartialRow partialRowAppend = new PartialRow();
+		partialRowAppend.setRowId(null);
+		partialRowAppend.setValues(ImmutableMap.<String, String> builder().put(schema.get(0).getId(), "something")
+				.put(schema.get(2).getId(), "something").build());
+
+		// update null columns
+		PartialRow partialRowUpdateNull = new PartialRow();
+		partialRowUpdateNull.setRowId(rowSet.getRows().get(0).getRowId());
+		partialRowUpdateNull.setValues(ImmutableMap.<String, String> builder().put(schema.get(1).getId(), "other")
+				.put(schema.get(3).getId(), "other").build());
+
+		// update non null columns
+		PartialRow partialRowUpdateNonNull = new PartialRow();
+		partialRowUpdateNonNull.setRowId(rowSet.getRows().get(1).getRowId());
+		partialRowUpdateNonNull.setValues(ImmutableMap.<String, String> builder().put(schema.get(0).getId(), "other")
+				.put(schema.get(2).getId(), "other").build());
+
+		// update nothing
+		PartialRow partialRowUpdateNothing = new PartialRow();
+		partialRowUpdateNothing.setRowId(rowSet.getRows().get(2).getRowId());
+		partialRowUpdateNothing.setValues(ImmutableMap.<String, String> builder().build());
+
+		// update with nulls
+		PartialRow partialRowUpdateNulls = new PartialRow();
+		partialRowUpdateNulls.setRowId(rowSet.getRows().get(3).getRowId());
+		Map<String, String> values = Maps.newHashMap();
+		values.put(schema.get(0).getId(), null);
+		values.put(schema.get(1).getId(), null);
+		values.put(schema.get(2).getId(), null);
+		values.put(schema.get(3).getId(), null);
+		partialRowUpdateNulls.setValues(values);
+
+		PartialRowSet partialRowSet = new PartialRowSet();
+		partialRowSet.setTableId(tableId);
+		partialRowSet.setRows(Lists.newArrayList(partialRowAppend, partialRowUpdateNull, partialRowUpdateNonNull, partialRowUpdateNothing,
+				partialRowUpdateNulls));
+		tableRowManager.appendPartialRows(adminUserInfo, tableId, schema, partialRowSet);
+
+		rowSet = waitForConsistentQuery(adminUserInfo, sql);
+		assertEquals(5, rowSet.getRows().size());
+		// update null columns
+		assertEquals(Lists.newArrayList("something", "other", "something", "other"), rowSet.getRows().get(0).getValues());
+		// update non null columns
+		assertEquals(Lists.newArrayList("other", null, "other", "default"), rowSet.getRows().get(1).getValues());
+		// update nothing
+		assertEquals(Lists.newArrayList("something", null, "something", "default"), rowSet.getRows().get(2).getValues());
+		// update with nulls
+		assertEquals(Lists.newArrayList(null, null, "default", "default"), rowSet.getRows().get(3).getValues());
+		// append
+		assertEquals(Lists.newArrayList("something", null, "something", "default"), rowSet.getRows().get(4).getValues());
 	}
 
 	@Ignore // This is a very slow test that pushes massive amounts of data so it is disabled.

@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -215,8 +216,8 @@ public class PrincipalManagerImpl implements PrincipalManager {
 	// will throw exception for invalid email, invalid endpoint, invalid domain, or an email which is already taken
 	@Override
 	public void newAccountEmailValidation(NewUser user, String portalEndpoint, DomainType domain) {
-		if (user.getFirstName()==null || user.getFirstName().length()==0) throw new IllegalArgumentException("first name required");
-		if (user.getLastName()==null || user.getLastName().length()==0) throw new IllegalArgumentException("last name required");
+		if (user.getFirstName()==null) user.setFirstName("");
+		if (user.getLastName()==null) user.setLastName("");
 		AliasEnum.USER_EMAIL.validateAlias(user.getEmail());
 		
 		if (domain.equals(DomainType.SYNAPSE) || domain.equals(DomainType.BRIDGE)) {
@@ -238,7 +239,11 @@ public class PrincipalManagerImpl implements PrincipalManager {
 			String domainString = WordUtils.capitalizeFully(domain.name());
 			String subject = "Welcome to " + domain + "!";
 			Map<String,String> fieldValues = new HashMap<String,String>();
-			fieldValues.put(EmailUtils.TEMPLATE_KEY_DISPLAY_NAME, user.getFirstName()+" "+user.getLastName());
+			if (user.getFirstName().length()>0 || user.getLastName().length()>0) {
+				fieldValues.put(EmailUtils.TEMPLATE_KEY_DISPLAY_NAME, user.getFirstName()+" "+user.getLastName());
+			} else {
+				fieldValues.put(EmailUtils.TEMPLATE_KEY_DISPLAY_NAME, "");
+			}
 			fieldValues.put(EmailUtils.TEMPLATE_KEY_ORIGIN_CLIENT, domainString);
 			fieldValues.put(EmailUtils.TEMPLATE_KEY_WEB_LINK, urlString);
 			String messageBody = EmailUtils.readMailTemplate("message/CreateAccountTemplate.txt", fieldValues);
@@ -428,11 +433,14 @@ public class PrincipalManagerImpl implements PrincipalManager {
 	}
 	
 	private PrincipalAlias findAliasForEmail(Long principalId, String email) throws NotFoundException {
-		List<PrincipalAlias> aliases = principalAliasDAO.listPrincipalAliases(principalId, AliasType.USER_EMAIL);
-		for (PrincipalAlias principalAlias : aliases) {
-			if (principalAlias.getAlias().equals(email)) return principalAlias;
+		List<PrincipalAlias> aliases = principalAliasDAO.listPrincipalAliases(principalId, AliasType.USER_EMAIL, email);
+		if (aliases.size()==0) {
+			throw new NotFoundException("Cannot find alias for "+principalId+" matching "+email);			
+		} else if (aliases.size()==1) {
+			return aliases.get(0);
+		} else {
+			throw new DatastoreException("Expected 0-1 results but found "+aliases.size());
 		}
-		throw new NotFoundException("Cannot find alias for "+principalId+" matching "+email);
 	}
 
 	/**

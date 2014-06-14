@@ -55,11 +55,14 @@ import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.exception.LockUnavilableException;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.PartialRow;
+import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
@@ -87,6 +90,8 @@ public class TableRowManagerImplTest {
 	UserInfo user;
 	String tableId;
 	RowSet set;
+	PartialRowSet partialSet;
+	RowSet expectedRows;
 	RowSet tooBigSet;
 	RowReferenceSet refSet;
 	long rowIdSequence;
@@ -122,14 +127,25 @@ public class TableRowManagerImplTest {
 		manager.setMaxBytesPerRequest(maxBytesPerRequest);
 		manager.setMaxBytesPerChangeSet(1000000000);
 		user = new UserInfo(false, 7L);
-		models = TableModelTestUtils.createOneOfEachType();
+		models = TableModelTestUtils.createOneOfEachType(true);
 		tableId = "syn123";
 		List<Row> rows = TableModelTestUtils.createRows(models, 10);
 		set = new RowSet();
 		set.setTableId(tableId);
 		set.setHeaders(TableModelUtils.getHeaders(models));
 		set.setRows(rows);
+
+		List<PartialRow> partialRows = TableModelTestUtils.createPartialRows(models, 10);
+		partialSet = new PartialRowSet();
+		partialSet.setTableId(tableId);
+		partialSet.setRows(partialRows);
 		
+		rows = TableModelTestUtils.createExpectedFullRows(models, 10);
+		expectedRows = new RowSet();
+		expectedRows.setTableId(tableId);
+		expectedRows.setHeaders(TableModelUtils.getHeaders(models));
+		expectedRows.setRows(rows);
+
 		// What is the row size for the model?
 		int rowSizeBytes = TableModelUtils.calculateMaxRowSize(models);
 		// Create a rowSet that is too big
@@ -226,6 +242,17 @@ public class TableRowManagerImplTest {
 		verify(mockTableStatusDAO, times(1)).resetTableStatusToProcessing(tableId);
 	}
 	
+	@Test
+	public void testAppendPartialRowsHappy() throws DatastoreException, NotFoundException, IOException {
+		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(true);
+		when(mockAuthManager.canAccessRawFileHandleById(eq(user), anyString())).thenReturn(true);
+		when(mockTruthDao.appendRowSetToTable(user.getId().toString(), tableId, models, expectedRows, false)).thenReturn(refSet);
+		RowReferenceSet results = manager.appendPartialRows(user, tableId, models, partialSet);
+		assertEquals(refSet, results);
+		// verify the table status was set
+		verify(mockTableStatusDAO, times(1)).resetTableStatusToProcessing(tableId);
+	}
+
 	@Test
 	public void testAppendRowsAsStreamHappy() throws DatastoreException, NotFoundException, IOException{
 		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(true);

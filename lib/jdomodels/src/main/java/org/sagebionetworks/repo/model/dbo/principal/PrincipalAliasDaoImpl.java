@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.principal;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_ALIAS_DISPLAY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_TYPE;
@@ -46,6 +47,8 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 	private static final String SQL_DELETE_ALIAS_BY_PRINCIPAL_AND_ALIAS_ID = "DELETE FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID+" = ? AND  "+COL_PRINCIPAL_ALIAS_ID+" = ?";
 	private static final String SQL_LIST_ALIASES_BY_ID = "SELECT * FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID+" = ? ORDER BY "+COL_PRINCIPAL_ALIAS_ID;
 	private static final String SQL_LIST_ALIASES_BY_ID_AND_TYPE = "SELECT * FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID+" = ? AND "+COL_PRINCIPAL_ALIAS_TYPE+" = ? ORDER BY "+COL_PRINCIPAL_ALIAS_ID;
+	
+	private static final String SQL_LIST_ALIASES_BY_ID_TYPE_AND_DISPLAY = "SELECT * FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID+" = ? AND "+COL_PRINCIPAL_ALIAS_TYPE+" = ? AND "+COL_BOUND_ALIAS_DISPLAY+" = ? ORDER BY "+COL_PRINCIPAL_ALIAS_ID;
 	private static final String SQL_LIST_ALIASES_BY_TYPE = "SELECT * FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_TYPE+" = ? ORDER BY "+COL_PRINCIPAL_ALIAS_ID;
 	private static final String SQL_GET_ALIAS = "SELECT * FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_ID+" = ?";
 	private static final String SQL_FIND_PRINCIPAL_WITH_ALIAS = "SELECT * FROM "+TABLE_PRINCIPAL_ALIAS+" WHERE "+COL_PRINCIPAL_ALIAS_UNIQUE+" = ?";
@@ -180,6 +183,16 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 		if(principalId == null) throw new IllegalArgumentException("PrincipalId cannot be null");
 		if(type == null) throw new IllegalArgumentException("AliasType cannot be null");
 		List<DBOPrincipalAlias> results = this.simpleJdbcTemplate.query(SQL_LIST_ALIASES_BY_ID_AND_TYPE, principalAliasMapper, principalId, type.name());
+		return AliasUtils.createDTOFromDBO(results);
+	}
+	
+	@Override
+	public List<PrincipalAlias> listPrincipalAliases(Long principalId,
+			AliasType type, String displayAlias) {
+		if(principalId == null) throw new IllegalArgumentException("PrincipalId cannot be null");
+		if(type == null) throw new IllegalArgumentException("AliasType cannot be null");
+		if(displayAlias == null) throw new IllegalArgumentException("displayAlias cannot be null");
+		List<DBOPrincipalAlias> results = this.simpleJdbcTemplate.query(SQL_LIST_ALIASES_BY_ID_TYPE_AND_DISPLAY, principalAliasMapper, principalId, type.name(), displayAlias);
 		return AliasUtils.createDTOFromDBO(results);
 	}
 	

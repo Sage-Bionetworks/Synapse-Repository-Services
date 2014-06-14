@@ -168,7 +168,7 @@ public class PrincipalAliasDaoImplTest {
     
 	@Test
 	public void testList() throws NotFoundException{
-		int stratingCount = principalAliasDao.listPrincipalAliases(AliasType.USER_EMAIL).size();
+		int startingCount = principalAliasDao.listPrincipalAliases(AliasType.USER_EMAIL).size();
 		PrincipalAlias alias = new PrincipalAlias();
 		// Use to upper as the alias
 		alias.setAlias("james.bond@Spy.org");
@@ -204,6 +204,7 @@ public class PrincipalAliasDaoImplTest {
 		assertEquals(2, list.size());
 		assertEquals(emailOne, list.get(0));
 		assertEquals(emailTwo, list.get(1));
+		
 		// username only
 		list = principalAliasDao.listPrincipalAliases(principalId, AliasType.USER_NAME);
 		assertNotNull(list);
@@ -212,7 +213,15 @@ public class PrincipalAliasDaoImplTest {
 		
 		// Test listing all by type
 		list = principalAliasDao.listPrincipalAliases(AliasType.USER_EMAIL);
-		assertTrue(stratingCount < list.size());
+		assertTrue(startingCount < list.size());
+		
+		list = principalAliasDao.listPrincipalAliases(principalId, AliasType.USER_EMAIL, "james.bond@Spy.org");
+		assertNotNull(list);
+		assertEquals(1, list.size());
+		assertEquals(emailOne, list.get(0));
+		list = principalAliasDao.listPrincipalAliases(principalId, AliasType.USER_EMAIL, "foo");
+		assertNotNull(list);
+		assertTrue(list.isEmpty());
 	}
 	
 	@Test

@@ -1403,6 +1403,21 @@ public class StackConfiguration {
 	public String getLogBucketName() {
 		return String.format(StackConstants.STACK_LOG_BUCKET, StackConfiguration.getStack());
 	}
+	
+	/**
+	 * @return for dev stacks, this controls whether emails are delivered or sent to a file (the default)
+	 */
+	public static boolean getDeliverEmail() {
+		String emailDeliveredString = null;
+		try {
+			emailDeliveredString = configuration.getProperty("org.sagebionetworks.email.delivered");
+		} catch (NullPointerException e) {
+			emailDeliveredString = null;
+		}
+		if (emailDeliveredString==null || emailDeliveredString.length()==0) return false;
+		return Boolean.parseBoolean(emailDeliveredString);
+	}
+
 
 	private static StackConfiguration singleton = new StackConfiguration();
 	/**

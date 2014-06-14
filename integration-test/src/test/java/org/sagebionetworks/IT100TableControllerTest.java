@@ -1,11 +1,6 @@
 package org.sagebionetworks;
 
 import static org.junit.Assert.*;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -42,6 +37,8 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
+import org.sagebionetworks.repo.model.table.PartialRow;
+import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
@@ -440,4 +437,79 @@ public class IT100TableControllerTest {
 		}
 	}
 	
+	@Test
+	public void testUpdate() throws Exception {
+		// Create a column to add to a table entity
+		ColumnModel one = new ColumnModel();
+		one.setName("one");
+		one.setColumnType(ColumnType.STRING);
+		one = synapse.createColumnModel(one);
+		List<ColumnModel> columns = Arrays.asList(one);
+		// Create a project to contain it all
+		Project project = new Project();
+		project.setName(UUID.randomUUID().toString());
+		project = synapse.createEntity(project);
+		entitiesToDelete.add(project);
+
+		// now create a table entity
+		TableEntity table = new TableEntity();
+		table.setName("Table");
+		List<String> idList = Lists.newArrayList(one.getId());
+		table.setColumnIds(idList);
+		table.setParentId(project.getId());
+		table = synapse.createEntity(table);
+		tablesToDelete.add(table);
+
+		RowSet set = new RowSet();
+		List<Row> rows = Lists.newArrayList(TableModelTestUtils.createRow(null, null, "test"),
+				TableModelTestUtils.createRow(null, null, "test"));
+		set.setRows(rows);
+		set.setHeaders(TableModelUtils.getHeaders(columns));
+		set.setTableId(table.getId());
+		synapse.appendRowsToTable(set);
+
+		PartialRowSet partialSet = new PartialRowSet();
+		List<PartialRow> partialRows = Lists.newArrayList(TableModelTestUtils.createPartialRow(null, one.getId(), "test"),
+				TableModelTestUtils.createPartialRow(null, one.getId(), "test"));
+		partialSet.setRows(partialRows);
+		partialSet.setTableId(table.getId());
+		synapse.appendPartialRowsToTable(partialSet);
+
+		// Query for the results
+		boolean isConsistent = true;
+		boolean countOnly = false;
+		RowSet queryResults = waitForQueryResults("select * from " + table.getId() + " order by row_id asc limit 2 offset 0", isConsistent,
+				countOnly);
+		// Change the data
+		for (Row row : queryResults.getRows()) {
+			String oldValue = row.getValues().get(0);
+			row.setValues(Arrays.asList(oldValue + " changed"));
+		}
+		// Apply the changes
+		synapse.appendRowsToTable(queryResults);
+
+		queryResults = waitForQueryResults("select * from " + table.getId() + " order by row_id asc limit 2 offset 2", isConsistent,
+				countOnly);
+		// Change the data
+		partialRows = Lists.newArrayList();
+		for (int i = 0; i < 2; i++) {
+			PartialRow partialRow = new PartialRow();
+			partialRow.setRowId(queryResults.getRows().get(i).getRowId());
+			partialRow.setValues(Collections.singletonMap(one.getId(), queryResults.getRows().get(i).getValues().get(0) + " changed"));
+			partialRows.add(partialRow);
+		}
+		// Apply the changes using partial
+		partialSet.setRows(partialRows);
+		partialSet.setTableId(table.getId());
+		synapse.appendPartialRowsToTable(partialSet);
+
+		queryResults = waitForQueryResults("select * from " + table.getId() + " order by row_id asc limit 200", isConsistent,
+				countOnly);
+		// Check that the changed data is there
+		assertEquals(4, queryResults.getRows().size());
+		for (Row row : queryResults.getRows()) {
+			String value = row.getValues().get(0);
+			assertEquals("test changed", value);
+		}
+	}
 }
