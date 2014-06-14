@@ -33,6 +33,9 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
+import org.sagebionetworks.repo.model.principal.AliasType;
+import org.sagebionetworks.repo.model.principal.PrincipalAlias;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -54,6 +57,9 @@ public class DBOTeamDAOImplTest {
 	private UserProfileDAO userProfileDAO;
 	
 	@Autowired
+	private PrincipalAliasDAO principalAliasDAO;
+	
+	@Autowired
 	private AccessControlListDAO aclDAO;
 	
 	private String teamToDelete;
@@ -68,10 +74,10 @@ public class DBOTeamDAOImplTest {
 		if (userToDelete!=null) userGroupDAO.delete(userToDelete);
 	}
 	
-	private static UserGroupHeader createUserGroupHeaderFromUserProfile(UserProfile up) {
+	private static UserGroupHeader createUserGroupHeaderFromUserProfile(UserProfile up, String userName) {
 		UserGroupHeader ugh = new UserGroupHeader();
 		ugh.setOwnerId(up.getOwnerId());
-		ugh.setUserName(up.getUserName());
+		ugh.setUserName(userName);
 		ugh.setIsIndividual(true);
 		ugh.setFirstName(up.getFirstName());
 		ugh.setLastName(up.getLastName());
@@ -132,6 +138,12 @@ public class DBOTeamDAOImplTest {
 		user.setId(userGroupDAO.create(user).toString());
 		userToDelete = user.getId();
 		
+		PrincipalAlias alias = new PrincipalAlias();
+		alias.setAlias("user-name");
+		alias.setPrincipalId(Long.parseLong(user.getId()));
+		alias.setType(AliasType.USER_NAME);
+		principalAliasDAO.bindAliasToPrincipal(alias);
+		
 		UserProfile profile = new UserProfile();
 		profile.setOwnerId(user.getId());
 		userProfileDAO.create(profile);
@@ -142,8 +154,9 @@ public class DBOTeamDAOImplTest {
 		assertEquals(1, teamDAO.getCountForMember(user.getId()));
 		
 		UserProfile up = userProfileDAO.get(user.getId());
+		String userName = principalAliasDAO.getUserName(Long.parseLong(user.getId()));
 		Map<Team,Collection<TeamMember>> expectedAllTeamsAndMembers = new HashMap<Team,Collection<TeamMember>>();
-		UserGroupHeader ugh = createUserGroupHeaderFromUserProfile(up);
+		UserGroupHeader ugh = createUserGroupHeaderFromUserProfile(up, userName);
 		TeamMember tm = new TeamMember();
 		tm.setIsAdmin(false);
 		tm.setMember(ugh);
