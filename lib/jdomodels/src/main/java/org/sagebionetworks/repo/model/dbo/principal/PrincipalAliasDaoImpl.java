@@ -246,4 +246,12 @@ public class PrincipalAliasDaoImpl implements PrincipalAliasDAO {
 		idGenerator.reserveId(boot.getAliasId(), TYPE.PRINCIPAL_ALIAS_ID);
 	}
 
+	@Override
+	public String getUserName(Long principalId) throws NotFoundException {
+		List<PrincipalAlias> aliases = listPrincipalAliases(principalId, AliasType.USER_NAME);
+		if (aliases.isEmpty()) throw new NotFoundException("No user name for "+principalId);
+		if (aliases.size()>1) throw new IllegalStateException("Expected one user name but found "+aliases.size()+" for "+principalId);
+		return aliases.get(0).getAlias();
+	}
+
 }

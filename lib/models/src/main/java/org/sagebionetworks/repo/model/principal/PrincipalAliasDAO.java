@@ -86,4 +86,12 @@ public interface PrincipalAliasDAO {
 	 * @return
 	 */
 	public boolean removeAllAliasFromPrincipal(Long principalId);
+	
+	/**
+	 * There must be exactly one user name
+	 * @param principalId
+	 * @return
+	 * @throw NotFoundException if no user name
+	 */
+	public String getUserName(Long principalId) throws NotFoundException;
 }

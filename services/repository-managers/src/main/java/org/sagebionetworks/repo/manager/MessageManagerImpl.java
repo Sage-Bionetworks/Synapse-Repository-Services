@@ -423,7 +423,7 @@ public class MessageManagerImpl implements MessageManager {
 
 		UserInfo userInfo = userManager.getUserInfo(Long.parseLong(dto.getCreatedBy()));
 		
-		String senderUserName = getUserName(userInfo.getId());
+		String senderUserName = principalAliasDAO.getUserName(userInfo.getId());
 		
 		// Get the individual recipients
 		Set<String> recipients = expandRecipientSet(userInfo, dto.getRecipients(), errors);
@@ -614,7 +614,7 @@ public class MessageManagerImpl implements MessageManager {
 		Map<String,String> fieldValues = new HashMap<String,String>();
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_ORIGIN_CLIENT, domainString);
 		
-		String alias = getUserName(recipientId);
+		String alias = principalAliasDAO.getUserName(recipientId);
 
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_DISPLAY_NAME, alias);
 		
@@ -645,7 +645,7 @@ public class MessageManagerImpl implements MessageManager {
 		Map<String,String> fieldValues = new HashMap<String,String>();
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_ORIGIN_CLIENT, domainString);
 		
-		String alias = getUserName(recipientId);
+		String alias = principalAliasDAO.getUserName(recipientId);
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_DISPLAY_NAME, alias);
 		
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_USERNAME, alias);
@@ -662,7 +662,7 @@ public class MessageManagerImpl implements MessageManager {
 		UserInfo sender = userManager.getUserInfo(Long.parseLong(dto.getCreatedBy()));
 		String subject = "Message " + messageId + " Delivery Failure(s)";
 		
-		String alias = getUserName(sender.getId());
+		String alias = principalAliasDAO.getUserName(sender.getId());
 
 		Map<String,String> fieldValues = new HashMap<String,String>();
 		fieldValues.put(EmailUtils.TEMPLATE_KEY_DISPLAY_NAME, alias);
@@ -678,13 +678,5 @@ public class MessageManagerImpl implements MessageManager {
 	private String getEmailForUser(Long principalId) throws NotFoundException {
 		return notificationEmailDao.getNotificationEmailForPrincipal(principalId);
 	}
-	
-	private String getUserName(Long principalId) throws NotFoundException {
-		List<PrincipalAlias> aliases = principalAliasDAO.listPrincipalAliases(principalId, AliasType.USER_NAME);
-		if (aliases.isEmpty()) throw new NotFoundException("No user name for "+principalId);
-		if (aliases.size()>1) throw new IllegalStateException("Expected one user name but found "+aliases.size()+" for "+principalId);
-		return aliases.get(0).getAlias();
-	}
-	
 
 }
