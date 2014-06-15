@@ -1387,6 +1387,22 @@ public class StackConfiguration {
 	}
 
 	/**
+	 * The amount of time (MS) the ChangeSentMessageSynchWorker sleeps between pages.
+	 * @return
+	 */
+	public PropertyAccessor getChangeSynchWorkerSleepTimeMS(){
+		return new StackConfigurationPropertyAccessor("org.sagebionetworks.worker.change.synch.sleep.ms");
+	}
+	
+	/**
+	 * The minium page size used by ChangeSentMessageSynchWorker.
+	 * @return
+	 */
+	public PropertyAccessor getChangeSynchWorkerMinPageSize(){
+		return new StackConfigurationPropertyAccessor("org.sagebionetworks.worker.change.synch.min.page.size");
+	}
+	
+	/**
 	 * Get the name of the audit record bucket.
 	 * 
 	 * @return
