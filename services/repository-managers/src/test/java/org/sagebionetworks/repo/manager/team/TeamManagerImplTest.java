@@ -286,7 +286,9 @@ public class TeamManagerImplTest {
 		when(mockPrincipalAliasDAO.findPrincipalWithAlias(any(String.class))).thenReturn(null);
 		when(mockPrincipalAliasDAO.bindAliasToPrincipal(any(PrincipalAlias.class))).thenReturn(new PrincipalAlias());
 		when(mockPrincipalManager.isAliasValid(any(String.class), eq(AliasType.TEAM_NAME))).thenReturn(true);
-		when(mockTeamDAO.create(any(Team.class))).thenReturn(null); // again we don't care
+		Team mockTeam = new Team();
+		mockTeam.setId("101");
+		when(mockTeamDAO.create(any(Team.class))).thenReturn(mockTeam);
 		
 		List<BootstrapTeam> toBootstrap = Lists.newArrayList();
 		toBootstrap.add(createBootstrapTeam("32","Bootstrap Team 1"));
@@ -300,6 +302,7 @@ public class TeamManagerImplTest {
 		verify(mockPrincipalAliasDAO, times(2)).bindAliasToPrincipal(any(PrincipalAlias.class));
 		verify(mockPrincipalManager, times(2)).isAliasValid(any(String.class), eq(AliasType.TEAM_NAME));
 		verify(mockTeamDAO, times(2)).create(any(Team.class));
+		verify(mockAclDAO, times(2)).create(any(AccessControlList.class), eq(ObjectType.TEAM));
 	}
 	
 	@Test
@@ -316,6 +319,7 @@ public class TeamManagerImplTest {
 		Mockito.verifyZeroInteractions(mockTeamDAO);
 		Mockito.verifyZeroInteractions(mockBasicDAO);
 		Mockito.verifyZeroInteractions(mockPrincipalAliasDAO);
+		Mockito.verifyZeroInteractions(mockAclDAO);
 
 		teamManagerImpl.setTeamsToBootstrap(toBootstrap);
 		teamManagerImpl.bootstrapTeams();

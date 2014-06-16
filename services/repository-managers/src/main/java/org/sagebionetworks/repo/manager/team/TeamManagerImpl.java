@@ -174,31 +174,41 @@ public class TeamManagerImpl implements TeamManager {
 		return ra;
 	}
 
-	public static AccessControlList createInitialAcl(
-			final UserInfo creator, 
+	// This is the ACL used by the bootstrap process, when there is no user who is the creator
+	public static AccessControlList createInitialAcl( 
 			final String teamId, 
 			final Date creationDate) {
 		Set<ResourceAccess> raSet = new HashSet<ResourceAccess>();
-		ResourceAccess adminRa = createResourceAccess(
-				Long.parseLong(creator.getId().toString()),
-				ADMIN_TEAM_PERMISSIONS
-				);
-		raSet.add(adminRa);
 		
 		ResourceAccess teamRa = createResourceAccess(
 				Long.parseLong(teamId),
-				NON_ADMIN_TEAM_PERMISSIONS
-		);
+				NON_ADMIN_TEAM_PERMISSIONS);
 		raSet.add(teamRa);
 
 		AccessControlList acl = new AccessControlList();
 		acl.setId(teamId);
-		acl.setCreatedBy(creator.getId().toString());
 		acl.setCreationDate(creationDate);
-		acl.setModifiedBy(creator.getId().toString());
 		acl.setModifiedOn(creationDate);
 		acl.setResourceAccess(raSet);
 
+		return acl;
+	}
+	
+	// This is the ACL used for Teams created by a user (the "creator")
+	public static AccessControlList createInitialAcl(
+			final UserInfo creator, 
+			final String teamId, 
+			final Date creationDate) {
+		AccessControlList acl = createInitialAcl(teamId, creationDate);
+		if (creator!=null) {
+			ResourceAccess adminRa = createResourceAccess(
+				Long.parseLong(creator.getId().toString()),
+				ADMIN_TEAM_PERMISSIONS
+				);
+			acl.getResourceAccess().add(adminRa);
+		}
+		acl.setCreatedBy(creator.getId().toString());
+		acl.setModifiedBy(creator.getId().toString());
 		return acl;
 	}
 	
@@ -589,6 +599,7 @@ public class TeamManagerImpl implements TeamManager {
 		return tms;
 	}
 
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void bootstrapTeams() throws NotFoundException {
 		if (this.teamsToBootstrap == null) {
 			throw new IllegalArgumentException("bootstrapTeams cannot be null");
@@ -613,6 +624,9 @@ public class TeamManagerImpl implements TeamManager {
 				if (null!=team.getInitialMembers()) {
 					groupMembersDAO.addMembers(newTeam.getId(), team.getInitialMembers());
 				}
+				// create ACL
+				AccessControlList acl = createInitialAcl(newTeam.getId(), new Date());
+				aclDAO.create(acl, ObjectType.TEAM);
 			}
 		}
 	}
