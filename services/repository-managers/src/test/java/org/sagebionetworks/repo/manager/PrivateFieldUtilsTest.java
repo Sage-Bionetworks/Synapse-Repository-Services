@@ -9,8 +9,10 @@ import java.util.Collections;
 import java.util.List;
 
 import org.junit.Test;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
+import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.quiz.MultichoiceAnswer;
 import org.sagebionetworks.repo.model.quiz.MultichoiceQuestion;
 import org.sagebionetworks.repo.model.quiz.QuizGenerator;
@@ -82,6 +84,21 @@ public class PrivateFieldUtilsTest {
 			assertNotNull(a.getPrompt());
 			assertNotNull(a.getAnswerIndex());
 		}
+	}
+	
+	@Test
+	public void testNoScrubReference() throws Exception {
+		MultichoiceQuestion q = new MultichoiceQuestion();
+		WikiPageKey key = new WikiPageKey();
+		key.setOwnerObjectId("101");
+		key.setOwnerObjectType(ObjectType.ENTITY);
+		key.setWikiPageId("102");
+		q.setReference(key);
+		PrivateFieldUtils.clearPrivateFields(q);
+		assertNotNull(q.getReference());
+		assertNotNull(q.getReference().getOwnerObjectId());
+		assertNotNull(q.getReference().getOwnerObjectType());
+		assertNotNull(q.getReference().getWikiPageId());		
 	}
 
 }

@@ -1,5 +1,6 @@
 {
 	"description": "Reference to a WikiPage",
+	"links": [{"rel": "describedby","href": "http://synapse.sagebase.org/access/public"}],
 	"properties": {
 		"wikiPageId": {
 			"type": "string",
