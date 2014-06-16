@@ -17,7 +17,6 @@ import java.util.concurrent.Callable;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreDao;
@@ -234,5 +233,28 @@ public class SemaphoreGatedRunnerImplTest {
 		verify(mockSemaphoreDao, never()).releaseLock(eq(semaphoreKey + "-xx" + "-1"), anyString());
 		verify(mockSemaphoreDao, never()).releaseLock(eq(semaphoreKey + "-yy" + "-1"), anyString());
 		verifyNoMoreInteractions(mockSemaphoreDao);
+	}
+	
+	@Test
+	public void testProgressingRunnder(){
+		String key = semaphoreKey+"-0";
+		String token = "someToken";
+		when(mockSemaphoreDao.attemptToAcquireLock(key, timeoutMS)).thenReturn(token);
+		// run
+		semaphoreGatedRunner.setRunner(new ProgressingRunner() {
+			@Override
+			public void run(ProgressCallback callback) throws Exception {
+				callback.progressMade();
+			}
+		});
+		semaphoreGatedRunner.attemptToRun();
+		verify(mockSemaphoreDao, times(1)).attemptToAcquireLock(key, timeoutMS);
+		verify(mockSemaphoreDao, times(1)).releaseLock(key, token);
+		verify(mockSemaphoreDao, times(1)).refreshLockTimeout(key, token, timeoutMS);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testSetBadRunnder(){
+		semaphoreGatedRunner.setRunner(new Object());
 	}
 }
