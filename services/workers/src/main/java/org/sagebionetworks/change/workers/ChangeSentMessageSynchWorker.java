@@ -97,11 +97,11 @@ public class ChangeSentMessageSynchWorker implements ProgressingRunner {
 		 * pseudo-randomly from run to run.
 		 */
 		int pageSize = getMinimumPageSize() + random.nextInt(pageSizeVarriance);
-		long countSuccess = 0;
-		long countFailures = 0;
 		// Setup the run
 		for(long lowerBounds=minChangeNumber; lowerBounds <= maxChangeNumber; lowerBounds+= pageSize){
 			long startTime = System.currentTimeMillis();
+			long countSuccess = 0;
+			long countFailures = 0;
 			long upperBounds = lowerBounds-1+pageSize;
 			// Could the tables be out-of-synch for this range?
 			if(!changeDao.checkUnsentMessageByCheckSumForRange(lowerBounds, upperBounds)){
