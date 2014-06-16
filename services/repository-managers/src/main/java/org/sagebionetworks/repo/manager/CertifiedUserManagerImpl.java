@@ -176,6 +176,10 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 
 	}
 	
+	/**
+	 * Note:  The returned value can be freely modified by the caller.
+	 * @return
+	 */
 	public QuizGenerator retrieveCertificationQuizGenerator() {
 		if ((System.currentTimeMillis() - quizGeneratorCacheLastUpdated < QUIZ_GENERATOR_CACHE_TIMEOUT_MILLIS) 
 				&& quizGeneratorCache!=null) {
