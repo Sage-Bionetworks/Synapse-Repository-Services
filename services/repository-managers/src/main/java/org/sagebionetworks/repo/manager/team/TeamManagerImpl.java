@@ -6,6 +6,7 @@ package org.sagebionetworks.repo.manager.team;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -26,8 +27,10 @@ import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmissionDAO;
 import org.sagebionetworks.repo.model.MembershipRqstSubmissionDAO;
+import org.sagebionetworks.repo.model.MessageDAO;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
@@ -43,6 +46,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.dao.AuthorizationUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
+import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.BootstrapTeam;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
@@ -85,6 +89,8 @@ public class TeamManagerImpl implements TeamManager {
 	private PrincipalManager principalManager;
 	@Autowired
 	private DBOBasicDao basicDao;
+	@Autowired
+	private MessageDAO messageDAO;
 
 	private List<BootstrapTeam> teamsToBootstrap;
 	
@@ -464,7 +470,33 @@ public class TeamManagerImpl implements TeamManager {
 		membershipInvtnSubmissionDAO.deleteByTeamAndUser(Long.parseLong(teamId), principalUserInfo.getId());
 		// clean up and membership requests
 		membershipRqstSubmissionDAO.deleteByTeamAndRequester(Long.parseLong(teamId), principalUserInfo.getId());
-		
+		// send confirmation message
+		Set<String> inviters = getInviters(Long.parseLong(teamId), principalUserInfo.getId());
+		if (!inviters.isEmpty()) sendConfirmationMessage(inviters, principalId);
+	}
+	
+	private Set<String> getInviters(Long teamId, Long inviteeId) {
+		List<MembershipInvtnSubmission> misList = 
+		membershipInvtnSubmissionDAO.
+			getOpenSubmissionsByTeamAndUserInRange(teamId, inviteeId, System.currentTimeMillis(), Long.MAX_VALUE, 0);
+		Set<String> result = new HashSet<String>();
+		for (MembershipInvtnSubmission mis : misList) {
+			result.add(mis.getCreatedBy());
+		}
+		return result;
+	}
+	
+	private static final String JOIN_TEAM_CONFIRMATION_MESSAGE_SUBJECT="membership invitation accepted.";
+	
+	private void sendConfirmationMessage(Set<String> inviterPrincipalIds, String invitee) {
+		MessageToUser message = new MessageToUser();
+		message.setCreatedBy(invitee);
+		message.setCreatedOn(new Date());
+		String fileHandleId = null; // TODO create the message and upload to file handle
+		message.setFileHandleId(fileHandleId);
+		message.setRecipients(inviterPrincipalIds);
+		message.setSubject(JOIN_TEAM_CONFIRMATION_MESSAGE_SUBJECT);
+		messageDAO.createMessage(message);
 	}
 	
 	/**
