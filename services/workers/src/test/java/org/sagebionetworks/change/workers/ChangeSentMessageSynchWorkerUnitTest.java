@@ -12,6 +12,7 @@ import static org.mockito.Mockito.*;
 import org.mockito.Mockito;
 import org.sagebionetworks.ImmutablePropertyAccessor;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.repo.manager.message.RepositoryMessagePublisher;
 import org.sagebionetworks.repo.model.StackStatusDao;
@@ -89,6 +90,7 @@ public class ChangeSentMessageSynchWorkerUnitTest {
 		// Progress should be made for each page.
 		verify(mockCallback, times(3)).progressMade();
 		verify(mockRepositoryMessagePublisher, times(2)).publishToTopic(any(ChangeMessage.class));
+		verify(mockLogger, times(9)).logCustomMetric(any(ProfileData.class));
 	}
 
 }
