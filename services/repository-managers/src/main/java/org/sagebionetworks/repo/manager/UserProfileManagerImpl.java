@@ -217,6 +217,7 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	}
 	
 	private void clearAliasFields(UserProfile profile) {
+		profile.setUserName(null);
 		profile.setEmail(null);
 		profile.setEmails(null);
 		profile.setOpenIds(null);

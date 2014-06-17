@@ -76,7 +76,7 @@ public class PrincipalController extends BaseController {
 	/**
 	 * This service starts the process of creating a new account by sending a 'validation email'
 	 * message to the provided email address.  The email contains a link back to the application
-	 * calling the service which the user follows to complete the account creation process
+	 * calling the service which the user follows to complete the account creation process.
 	 * @param user the first name, last name and email address for the user
 	 * @param client Synapse or Bridge
 	 * @param portalEndpoint the beginning of the URL included in the email verification message.
@@ -100,7 +100,7 @@ public class PrincipalController extends BaseController {
 	 * The client must provide the validation token which was sent by email.  The request
 	 * will be rejected if the validation token is missing or invalid or if the requested
 	 * user name is not available.  After successful account creation the user is logged in
-	 * an a session token returned to the client.
+	 * and a session token returned to the client.
 	 * @param accountSetupInfo user's first name, last name, requested user name, 
 	 * password, and validation token
 	 * @param client Synapse or Bridge

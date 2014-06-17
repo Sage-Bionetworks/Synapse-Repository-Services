@@ -495,8 +495,8 @@ public class PrincipalManagerImplUnitTest {
 		UserProfile profile = new UserProfile();
 		profile.setFirstName(FIRST_NAME);
 		profile.setLastName(LAST_NAME);
-		profile.setUserName(USER_NAME);
 		when(mockUserProfileDAO.get(principalId.toString())).thenReturn(profile);
+		when(mockPrincipalAliasDAO.getUserName(principalId)).thenReturn(USER_NAME);
 		
 		manager.additionalEmailValidation(userInfo, email, portalEndpoint, domain);
 		ArgumentCaptor<SendEmailRequest> argument = ArgumentCaptor.forClass(SendEmailRequest.class);
@@ -517,7 +517,6 @@ public class PrincipalManagerImplUnitTest {
 		// check that token appears
 		assertTrue(body.indexOf("https://www.synapse.org?")>=0); 
 		assertTrue(body.indexOf("userid=111&email=foo%40bar.com&timestamp=")>=0);
-		
 	}
 
 	@Test(expected=NameConflictException.class)

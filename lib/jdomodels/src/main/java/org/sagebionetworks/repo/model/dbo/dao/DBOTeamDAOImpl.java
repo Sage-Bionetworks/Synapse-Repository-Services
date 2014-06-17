@@ -5,9 +5,12 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_OWNER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_ALIAS_DISPLAY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_GROUP_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_GROUP_MEMBERS_MEMBER_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OWNER_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_PRINCIPAL_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_PRINCIPAL_ALIAS_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_GROUP_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_OWNER;
@@ -21,6 +24,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_CONTROL_LIST;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_GROUP_MEMBERS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_PRINCIPAL_ALIAS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_RESOURCE_ACCESS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_RESOURCE_ACCESS_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TEAM;
@@ -48,6 +52,7 @@ import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTeam;
+import org.sagebionetworks.repo.model.principal.AliasEnum;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -92,12 +97,6 @@ public class DBOTeamDAOImpl implements TeamDAO {
 
 	private static final String USER_PROFILE_PROPERTIES_COLUMN_LABEL = "USER_PROFILE_PROPERTIES";
 
-	private static final String SELECT_ALL_TEAMS_AND_MEMBERS =
-			"SELECT t.*, up."+COL_USER_PROFILE_PROPS_BLOB+" as "+USER_PROFILE_PROPERTIES_COLUMN_LABEL+", up."+COL_USER_PROFILE_ID+
-			" FROM "+TABLE_TEAM+" t, "+TABLE_GROUP_MEMBERS+" gm LEFT OUTER JOIN "+
-			TABLE_USER_PROFILE+" up ON (gm."+COL_GROUP_MEMBERS_MEMBER_ID+"=up."+COL_USER_PROFILE_ID+") "+
-			" WHERE t."+COL_TEAM_ID+"=gm."+COL_GROUP_MEMBERS_GROUP_ID;
-	
 	private static final String SELECT_ALL_TEAMS_AND_ADMIN_MEMBERS_CORE =
 			" FROM "+
 				TABLE_TEAM+" t, "+
@@ -117,11 +116,28 @@ public class DBOTeamDAOImpl implements TeamDAO {
 				"SELECT t."+COL_TEAM_ID+", gm."+COL_GROUP_MEMBERS_MEMBER_ID+
 				SELECT_ALL_TEAMS_AND_ADMIN_MEMBERS_CORE;
 	
+	private static final String SELECT_ALL_TEAMS_AND_MEMBERS =
+			"SELECT t.*, up."+COL_USER_PROFILE_PROPS_BLOB+" as "+USER_PROFILE_PROPERTIES_COLUMN_LABEL+
+			", up."+COL_USER_PROFILE_ID+
+			", pa."+COL_BOUND_ALIAS_DISPLAY+
+			" FROM "+TABLE_TEAM+" t, "+TABLE_GROUP_MEMBERS+" gm LEFT OUTER JOIN "+
+			TABLE_USER_PROFILE+" up ON (gm."+COL_GROUP_MEMBERS_MEMBER_ID+"=up."+COL_USER_PROFILE_ID+") "+
+			"LEFT OUTER JOIN "+TABLE_PRINCIPAL_ALIAS+" pa ON (gm."+
+			COL_GROUP_MEMBERS_MEMBER_ID+"=pa."+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID+" AND pa."+
+					COL_PRINCIPAL_ALIAS_TYPE+"='"+AliasEnum.USER_NAME.name()+"'"+") "+
+			" WHERE t."+COL_TEAM_ID+"=gm."+COL_GROUP_MEMBERS_GROUP_ID;
+	
 	private static final String SELECT_MEMBERS_OF_TEAM_CORE =
 			"SELECT up."+COL_USER_PROFILE_PROPS_BLOB+" as "+USER_PROFILE_PROPERTIES_COLUMN_LABEL+
 			", up."+COL_USER_PROFILE_ID+
 			", gm."+COL_GROUP_MEMBERS_GROUP_ID+
-			" FROM "+TABLE_GROUP_MEMBERS+" gm, "+TABLE_USER_PROFILE+" up "+
+			", pa."+COL_BOUND_ALIAS_DISPLAY+
+			" FROM "+TABLE_GROUP_MEMBERS+" gm "+
+			"LEFT OUTER JOIN "+TABLE_PRINCIPAL_ALIAS+" pa ON (gm."+
+			COL_GROUP_MEMBERS_MEMBER_ID+"=pa."+COL_PRINCIPAL_ALIAS_PRINCIPAL_ID+" AND pa."+
+					COL_PRINCIPAL_ALIAS_TYPE+"='"+
+					AliasEnum.USER_NAME.name()+"'"+") "+
+			", "+TABLE_USER_PROFILE+" up "+
 			" WHERE gm."+COL_GROUP_MEMBERS_MEMBER_ID+"=up."+COL_USER_PROFILE_ID+" "+
 			" and gm."+COL_GROUP_MEMBERS_GROUP_ID+"=:"+COL_GROUP_MEMBERS_GROUP_ID;
 	
@@ -303,6 +319,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 			}
 			team.setId(rs.getString(COL_TEAM_ID));
 			tmp.setTeam(team);
+			String userName = rs.getString(COL_BOUND_ALIAS_DISPLAY);
 			{
 				UserGroupHeader ugh = new UserGroupHeader();
 				TeamMember tm = new TeamMember();
@@ -314,7 +331,7 @@ public class DBOTeamDAOImpl implements TeamDAO {
 				if (upProperties!=null) {
 					ugh.setIsIndividual(true);
 					ugh.setOwnerId(rs.getString(COL_USER_PROFILE_ID));
-					fillUserGroupHeaderFromUserProfileBlob(upProperties, ugh);
+					fillUserGroupHeaderFromUserProfileBlob(upProperties, userName, ugh);
 				} else {
 					ugh.setIsIndividual(false);
 				}
@@ -323,12 +340,12 @@ public class DBOTeamDAOImpl implements TeamDAO {
 		}
 	};
 	
-	private static void fillUserGroupHeaderFromUserProfileBlob(Blob upProperties, UserGroupHeader ugh) throws SQLException {
+	private static void fillUserGroupHeaderFromUserProfileBlob(Blob upProperties, String userName, UserGroupHeader ugh) throws SQLException {
 		UserProfile up = UserProfileUtils.deserialize(upProperties.getBytes(1, (int) upProperties.length()));
 		ugh.setFirstName(up.getFirstName());
 		ugh.setLastName(up.getLastName());
 		ugh.setPic(up.getPic());
-		ugh.setUserName(up.getUserName());
+		ugh.setUserName(userName);
 	}
 	
 	public static class TeamMemberId {
@@ -407,9 +424,10 @@ public class DBOTeamDAOImpl implements TeamDAO {
 			tm.setIsAdmin(false);
 			Blob upProperties = rs.getBlob(USER_PROFILE_PROPERTIES_COLUMN_LABEL);
 			ugh.setOwnerId(rs.getString(COL_USER_PROFILE_ID));
+			String userName = rs.getString(COL_BOUND_ALIAS_DISPLAY);
 			if (upProperties!=null) {
 				ugh.setIsIndividual(true);
-				fillUserGroupHeaderFromUserProfileBlob(upProperties, ugh);
+				fillUserGroupHeaderFromUserProfileBlob(upProperties, userName, ugh);
 			} else {
 				ugh.setIsIndividual(false);
 			}
