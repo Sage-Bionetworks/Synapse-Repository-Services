@@ -44,6 +44,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.dao.AuthorizationUtils;
@@ -485,7 +486,7 @@ public class TeamManagerImpl implements TeamManager {
 		membershipRqstSubmissionDAO.deleteByTeamAndRequester(Long.parseLong(teamId), principalUserInfo.getId());
 		// send confirmation message
 		Set<String> inviters = getInviters(Long.parseLong(teamId), principalUserInfo.getId());
-		if (!inviters.isEmpty()) sendConfirmationMessage(inviters, principalUserInfo);
+		if (!inviters.isEmpty()) sendJoinedTeamMessage(inviters, principalUserInfo, teamId);
 	}
 	
 	private Set<String> getInviters(Long teamId, Long inviteeId) {
@@ -499,18 +500,66 @@ public class TeamManagerImpl implements TeamManager {
 		return result;
 	}
 	
-	private static final String INVITATATION_ACCEPTED_MESSAGE_FILE_NAME = "userHasJoinedTeamTemplate.txt";
-	private static final String JOIN_TEAM_CONFIRMATION_MESSAGE_SUBJECT="membership invitation accepted.";
+	private static final String USER_HAS_JOINED_TEAM_TEMPLATE = "userHasJoinedTeamTemplate.txt";
+	private static final String TEAM_MEMBERSHIP_INVITATION_EXTENDED_TEMPLATE = "teamMembershipInvitationExtendedTemplate.txt";
+	private static final String TEAM_MEMBERSHIP_REQUEST_CREATED_TEMPLATE = "teamMembershipRequestCreatedTemplate.txt";
+	private static final String JOIN_TEAM_CONFIRMATION_MESSAGE_SUBJECT = "new member has joined team";
+	private static final String TREAM_MEMBERSHIP_REQUEST_MESSAGE_SUBJECT = "someone has requested to join your team";
+	private static final String TEAM_MEMBERSHIP_INVITATION_MESSAGE_SUBJECT = "you have been invited to join a team";
 	private static final String TEXT_PLAIN_MIME_TYPE = "text/plain";
 	
-	private void sendConfirmationMessage(Set<String> inviterPrincipalIds, UserInfo invitee, String teamId) throws NotFoundException {
+	private String getDisplayName(Long principalId) throws NotFoundException {
+		String inviteeUserName = principalAliasDAO.getUserName(principalId);
+		UserProfile userProfile = userProfileDAO.get(principalId.toString());
+		String inviteeFirstName = userProfile.getFirstName() ;
+		String inviteeLastName = userProfile.getLastName() ;
+		String displayName;
+		if (inviteeFirstName!=null || inviteeLastName!=null) {
+			displayName = inviteeFirstName+" "+inviteeLastName+" ("+inviteeUserName+")";
+		} else {
+			displayName = inviteeUserName;
+		}
+		return displayName;
+	}
+	
+	// TODO message is to be sent to admin
+	private void sendMembershipRequestMessage(Set<String> inviterPrincipalIds, UserInfo requester, String teamId) throws NotFoundException {
 		Map<String,String> fieldValues = new HashMap<String,String>();
-		principalAliasDAO.getUser
-		fieldValues.put("#userName#", teamId);
-		fieldValues.put("#teamName#", teamId);
+		fieldValues.put("#userName#", getDisplayName(requester.getId()));
+		fieldValues.put("#teamName#", teamDAO.get(teamId).getName());
 		fieldValues.put("#teamId#", teamId);
-		String messageContent = EmailUtils.readMailTemplate(INVITATATION_ACCEPTED_MESSAGE_FILE_NAME, fieldValues);
-
+		String messageContent = EmailUtils.readMailTemplate(TEAM_MEMBERSHIP_REQUEST_CREATED_TEMPLATE, fieldValues);
+		
+		notificationManager.sendNotification(
+				requester, 
+				inviterPrincipalIds, 
+				TREAM_MEMBERSHIP_REQUEST_MESSAGE_SUBJECT, 
+				messageContent, 
+				TEXT_PLAIN_MIME_TYPE);
+	}
+	
+	// TODO message is to be sent to invitee
+	private void sendMembershipInvitationMessage(Set<String> inviterPrincipalIds, UserInfo inviter, String teamId) throws NotFoundException {
+		Map<String,String> fieldValues = new HashMap<String,String>();
+		fieldValues.put("#userName#", getDisplayName(inviter.getId()));
+		fieldValues.put("#teamName#", teamDAO.get(teamId).getName());
+		fieldValues.put("#teamId#", teamId);
+		String messageContent = EmailUtils.readMailTemplate(TEAM_MEMBERSHIP_INVITATION_EXTENDED_TEMPLATE, fieldValues);
+		
+		notificationManager.sendNotification(
+				inviter, 
+				inviterPrincipalIds, 
+				TEAM_MEMBERSHIP_INVITATION_MESSAGE_SUBJECT, 
+				messageContent, 
+				TEXT_PLAIN_MIME_TYPE);
+	}
+	
+	private void sendJoinedTeamMessage(Set<String> inviterPrincipalIds, UserInfo invitee, String teamId) throws NotFoundException {
+		Map<String,String> fieldValues = new HashMap<String,String>();
+		fieldValues.put("#userName#", getDisplayName(invitee.getId()));
+		fieldValues.put("#teamName#", teamDAO.get(teamId).getName());
+		fieldValues.put("#teamId#", teamId);
+		String messageContent = EmailUtils.readMailTemplate(USER_HAS_JOINED_TEAM_TEMPLATE, fieldValues);
 		
 		notificationManager.sendNotification(
 				invitee, 
