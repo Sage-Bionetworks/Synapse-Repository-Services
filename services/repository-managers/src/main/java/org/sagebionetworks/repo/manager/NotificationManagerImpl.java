@@ -2,8 +2,6 @@ package org.sagebionetworks.repo.manager;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.fileupload.FileItemStream;
@@ -25,6 +23,15 @@ public class NotificationManagerImpl implements NotificationManager {
 	private MessageManager messageManager;
 
 	private static final Charset DEFAULT_CHARSET = Charset.defaultCharset();
+	
+	public NotificationManagerImpl() {}
+	
+	public NotificationManagerImpl(
+			FileHandleManager fileHandleManager, 
+			MessageManager messageManager) {
+		this.fileHandleManager = fileHandleManager;
+		this.messageManager = messageManager;
+	}
 	
 	@Override
 	public void sendNotification(UserInfo userInfo, Set<String> to, String subject,
