@@ -1,0 +1,4 @@
+Hello,
+#userName# has now joined team #teamName#.  For further information please visit https://www.synapse.org/#!Team:#teamId#.
+Sincerely,
+Synapse Administration

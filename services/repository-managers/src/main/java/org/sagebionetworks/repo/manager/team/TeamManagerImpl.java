@@ -6,8 +6,8 @@ package org.sagebionetworks.repo.manager.team;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -17,6 +17,8 @@ import java.util.UUID;
 import org.sagebionetworks.manager.util.Validate;
 import org.sagebionetworks.repo.manager.AccessRequirementUtil;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.EmailUtils;
+import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.principal.PrincipalManager;
@@ -30,7 +32,6 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmissionDAO;
 import org.sagebionetworks.repo.model.MembershipRqstSubmissionDAO;
-import org.sagebionetworks.repo.model.MessageDAO;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
@@ -43,10 +44,10 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.dao.AuthorizationUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
-import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.BootstrapTeam;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
@@ -90,7 +91,9 @@ public class TeamManagerImpl implements TeamManager {
 	@Autowired
 	private DBOBasicDao basicDao;
 	@Autowired
-	private MessageDAO messageDAO;
+	private NotificationManager notificationManager;
+	@Autowired
+	private UserProfileDAO userProfileDAO;
 
 	private List<BootstrapTeam> teamsToBootstrap;
 	
@@ -472,7 +475,7 @@ public class TeamManagerImpl implements TeamManager {
 		membershipRqstSubmissionDAO.deleteByTeamAndRequester(Long.parseLong(teamId), principalUserInfo.getId());
 		// send confirmation message
 		Set<String> inviters = getInviters(Long.parseLong(teamId), principalUserInfo.getId());
-		if (!inviters.isEmpty()) sendConfirmationMessage(inviters, principalId);
+		if (!inviters.isEmpty()) sendConfirmationMessage(inviters, principalUserInfo);
 	}
 	
 	private Set<String> getInviters(Long teamId, Long inviteeId) {
@@ -486,17 +489,25 @@ public class TeamManagerImpl implements TeamManager {
 		return result;
 	}
 	
+	private static final String INVITATATION_ACCEPTED_MESSAGE_FILE_NAME = "userHasJoinedTeamTemplate.txt";
 	private static final String JOIN_TEAM_CONFIRMATION_MESSAGE_SUBJECT="membership invitation accepted.";
+	private static final String TEXT_PLAIN_MIME_TYPE = "text/plain";
 	
-	private void sendConfirmationMessage(Set<String> inviterPrincipalIds, String invitee) {
-		MessageToUser message = new MessageToUser();
-		message.setCreatedBy(invitee);
-		message.setCreatedOn(new Date());
-		String fileHandleId = null; // TODO create the message and upload to file handle
-		message.setFileHandleId(fileHandleId);
-		message.setRecipients(inviterPrincipalIds);
-		message.setSubject(JOIN_TEAM_CONFIRMATION_MESSAGE_SUBJECT);
-		messageDAO.createMessage(message);
+	private void sendConfirmationMessage(Set<String> inviterPrincipalIds, UserInfo invitee, String teamId) throws NotFoundException {
+		Map<String,String> fieldValues = new HashMap<String,String>();
+		principalAliasDAO.getUser
+		fieldValues.put("#userName#", teamId);
+		fieldValues.put("#teamName#", teamId);
+		fieldValues.put("#teamId#", teamId);
+		String messageContent = EmailUtils.readMailTemplate(INVITATATION_ACCEPTED_MESSAGE_FILE_NAME, fieldValues);
+
+		
+		notificationManager.sendNotification(
+				invitee, 
+				inviterPrincipalIds, 
+				JOIN_TEAM_CONFIRMATION_MESSAGE_SUBJECT, 
+				messageContent, 
+				TEXT_PLAIN_MIME_TYPE);
 	}
 	
 	/**
