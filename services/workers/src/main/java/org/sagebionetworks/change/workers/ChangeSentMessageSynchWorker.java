@@ -2,21 +2,19 @@ package org.sagebionetworks.change.workers;
 
 import java.sql.Timestamp;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 
-import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
-import org.sagebionetworks.cloudwatch.WorkerLoggerImpl;
 import org.sagebionetworks.repo.manager.message.RepositoryMessagePublisher;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
+import org.sagebionetworks.repo.model.dbo.dao.semaphore.ProgressCallback;
+import org.sagebionetworks.repo.model.dbo.dao.semaphore.ProgressingRunner;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.util.ClockProvider;
@@ -37,7 +35,7 @@ import com.amazonaws.services.cloudwatch.model.StandardUnit;
  * @author jmhill
  * 
  */
-public class ChangeSentMessageSynchWorker implements Runnable {
+public class ChangeSentMessageSynchWorker implements ProgressingRunner {
 
 	private static final String SENT_COUNT = "sent count";
 
@@ -73,7 +71,7 @@ public class ChangeSentMessageSynchWorker implements Runnable {
 	Random random = new Random(System.currentTimeMillis());
 
 	@Override
-	public void run() {
+	public void run(ProgressCallback callback) {
 		// This worker does not run during migration. This avoids any
 		// intermediate state
 		// That could resulting in missed row.s
@@ -83,7 +81,7 @@ public class ChangeSentMessageSynchWorker implements Runnable {
 			}
 			return;
 		}
-		long startTime = System.currentTimeMillis();
+
 		long maxChangeNumber = changeDao.getCurrentChangeNumber();
 		long minChangeNumber = changeDao.getMinimumChangeNumber();
 		// We only want to look at change messages that are older than this.
@@ -95,18 +93,22 @@ public class ChangeSentMessageSynchWorker implements Runnable {
 		 * pseudo-randomly from run to run.
 		 */
 		int pageSize = getMinimumPageSize() + random.nextInt(pageSizeVarriance);
-		long countSuccess = 0;
-		long countFailures = 0;
 		// Setup the run
 		for(long lowerBounds=minChangeNumber; lowerBounds <= maxChangeNumber; lowerBounds+= pageSize){
-			long upperBounds = lowerBounds+pageSize;
+			long startTime = System.currentTimeMillis();
+			long countSuccess = 0;
+			long countFailures = 0;
+			long upperBounds = lowerBounds-1+pageSize;
 			// Could the tables be out-of-synch for this range?
 			if(!changeDao.checkUnsentMessageByCheckSumForRange(lowerBounds, upperBounds)){
 				// We are out-of-synch
 				List<ChangeMessage> toSend = changeDao.listUnsentMessages(lowerBounds, upperBounds, olderThan);
 				for(ChangeMessage send: toSend){
 					try {
-						changeDao.registerMessageSent(send);
+						// For each message make progress
+						callback.progressMade();
+						// publish the message.
+						repositoryMessagePublisher.publishToTopic(send);
 						countSuccess++;
 					} catch (Exception e) {
 						countFailures++;
@@ -122,12 +124,15 @@ public class ChangeSentMessageSynchWorker implements Runnable {
 				// Stopping
 				throw new RuntimeException(e);
 			}
+			// Extend the timeout for this worker by calling the callback
+			callback.progressMade();
+			// Create some metrics
+			long elapse = System.currentTimeMillis()-startTime;
+			workerLogger.logCustomMetric(createElapseProfileData(elapse));
+			workerLogger.logCustomMetric(createSentCount(countSuccess));
+			workerLogger.logCustomMetric(createFailureCount(countFailures));
 		}
-		// Create the metrics
-		long elapse = System.currentTimeMillis()-startTime;
-		workerLogger.logCustomMetric(createElapseProfileData(elapse));
-		workerLogger.logCustomMetric(createSentCount(countSuccess));
-		workerLogger.logCustomMetric(createFailureCount(countFailures));
+
 	}
 	
 	/**

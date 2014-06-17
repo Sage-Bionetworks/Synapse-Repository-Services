@@ -183,11 +183,12 @@ public class DBOUserProfile implements MigratableDatabaseObject<DBOUserProfile, 
 			@Override
 			public DBOUserProfile createDatabaseObjectFromBackup(
 					DBOUserProfile backup) {
-				// ensure that emails are not stored in the user profile
+				// ensure that aliases are not stored in the user profile
 				UserProfile up = UserProfileUtils.deserialize(backup.getProperties());
 				up.setEmail(null);
 				up.setEmails(null);
 				up.setOpenIds(null);
+				up.setUserName(null);
 				try {
 					backup.setProperties(JDOSecondaryPropertyUtils.compressObject(up));
 				} catch (IOException e) {

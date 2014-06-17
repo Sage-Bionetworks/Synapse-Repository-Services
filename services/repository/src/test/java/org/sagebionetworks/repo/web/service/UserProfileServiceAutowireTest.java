@@ -110,7 +110,7 @@ public class UserProfileServiceAutowireTest extends AbstractAutowiredControllerT
 		assertEquals("This is deprecated and should always be null",null, profile.getEmail());
 		assertEquals("One user should not be able to see the Emails of another user.",null, profile.getEmails());
 		assertEquals("One user should not be able to see the OpenIds of another user.",null, profile.getOpenIds());
-		assertEquals("One user should be able to see the OpenIds of another user.","random", profile.getUserName());
+		assertEquals("One user should be able to see the username of another user.","random", profile.getUserName());
 		// We should be able see our own data
 		profile =userProfileService.getUserProfileByOwnerId(principalTwo, principalTwo.toString());
 		assertNotNull(profile);

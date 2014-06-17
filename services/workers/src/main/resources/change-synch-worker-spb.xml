@@ -23,7 +23,7 @@
 	<!-- This gate ensures we never run more than the max number or runners across the entire cluster for this worker  -->
 	<bean id="changeSentMessageSynchSemaphoreGatedRunner"
 		class="org.sagebionetworks.repo.model.dbo.dao.semaphore.SemaphoreGatedRunnerImpl" scope="singleton">
-		<property name="timeoutMS" ref="stackConfiguration.semaphoreGatedLockTimeoutMS" />
+		<property name="timeoutMS" value="600000" />
 		<property name="maxNumberRunners" value="1" />
 		<property name="semaphoreKey" value="changeSentMessageSynch" />		
 		<property name="runner" ref="changeSentMessageSynchWorker" />

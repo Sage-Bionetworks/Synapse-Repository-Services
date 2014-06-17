@@ -7,7 +7,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.net.URL;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -32,6 +31,7 @@ import org.sagebionetworks.repo.model.message.MessageToUser;
 import org.sagebionetworks.repo.model.message.Settings;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -70,6 +70,7 @@ public class MessageManagerImplSESTest {
 	private UserManager mockUserManager;
 	private UserProfileDAO mockUserProfileDAO;
 	private NotificationEmailDAO mockNotificationEmailDao;
+	private PrincipalAliasDAO mockPrincipalAliasDAO;
 	private AuthorizationManager mockAuthorizationManager;
 	private FileHandleManager mockFileHandleManager;
 	private NodeDAO mockNodeDAO;
@@ -108,6 +109,7 @@ public class MessageManagerImplSESTest {
 		mockUserManager = mock(UserManager.class);
 		mockUserProfileDAO = mock(UserProfileDAO.class);
 		mockNotificationEmailDao = mock(NotificationEmailDAO.class);
+		mockPrincipalAliasDAO = mock(PrincipalAliasDAO.class);
 		mockAuthorizationManager = mock(AuthorizationManager.class);
 		mockFileHandleManager = mock(FileHandleManager.class);
 		mockNodeDAO = mock(NodeDAO.class);
@@ -119,7 +121,8 @@ public class MessageManagerImplSESTest {
 
 		messageManager = new MessageManagerImpl(mockMessageDAO,
 				mockUserGroupDAO, mockGroupMembersDAO, mockUserManager,
-				mockUserProfileDAO, mockNotificationEmailDao, mockAuthorizationManager, amazonSESClient,
+				mockUserProfileDAO, mockNotificationEmailDao, mockPrincipalAliasDAO, 
+				mockAuthorizationManager, amazonSESClient,
 				mockFileHandleManager, mockNodeDAO, mockEntityPermissionsManager,
 				mockFileHandleDao);
 		
