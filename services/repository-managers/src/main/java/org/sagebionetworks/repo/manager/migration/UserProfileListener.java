@@ -51,10 +51,13 @@ public class UserProfileListener implements MigrationTypeListener {
 			if (aliases.size()>1) throw new IllegalStateException("Expected 0-1 but found "+aliases.size()+
 					" user names for "+principalId);
 			if (aliases.size()==1) {
-				String userNameFromAlias = aliases.get(0).getAlias();
-				if (!userNameFromAlias.equals(userNameFromProfile)) 
-					throw new IllegalStateException("For user "+principalId+" user profile has user name "+userNameFromProfile+
-							" but PrincipalAlias table has "+userNameFromAlias);
+				// don't throw an exception if different:  stack-46 database has these differences:
+				// For id: 1, alias: migrationAdmin but up username: TEMPORARY-1 
+				// For id: 273950, alias: anonymous but up username: TEMPORARY-273950 
+//				String userNameFromAlias = aliases.get(0).getAlias();
+//				if (!userNameFromAlias.equals(userNameFromProfile)) 
+//					throw new IllegalStateException("For user "+principalId+" user profile has user name "+userNameFromProfile+
+//							" but PrincipalAlias table has "+userNameFromAlias);
 			} else { // aliases.size()==0
 				PrincipalAlias alias = new PrincipalAlias();
 				alias.setAlias(userNameFromProfile);
