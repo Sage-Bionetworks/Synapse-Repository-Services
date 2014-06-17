@@ -19,8 +19,11 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreDao;
 import org.sagebionetworks.repo.model.exception.LockUnavilableException;
+import org.sagebionetworks.util.ClockProvider;
 import org.springframework.test.util.ReflectionTestUtils;
 
 /**
@@ -30,17 +33,19 @@ import org.springframework.test.util.ReflectionTestUtils;
 public class SemaphoreGatedRunnerImplTest {
 	
 	SemaphoreDao mockSemaphoreDao;
+	ClockProvider mockClock;
 	String semaphoreKey;
 	int maxNumberRunners;
 	Runnable mockRunner;
 	long timeoutMS;
-	
+	long currentTime;
 	SemaphoreGatedRunnerImpl semaphoreGatedRunner;
 	
 	@Before
 	public void before(){
 		mockSemaphoreDao = Mockito.mock(SemaphoreDao.class);
 		mockRunner = Mockito.mock(Runnable.class);
+		mockClock = Mockito.mock(ClockProvider.class);
 		semaphoreKey = "someKey";
 		maxNumberRunners = 1;
 		timeoutMS = 10*1000+1;
@@ -49,6 +54,7 @@ public class SemaphoreGatedRunnerImplTest {
 		semaphoreGatedRunner.setSemaphoreKey(semaphoreKey);
 		semaphoreGatedRunner.setMaxNumberRunners(maxNumberRunners);
 		semaphoreGatedRunner.setTimeoutMS(timeoutMS);
+		semaphoreGatedRunner.setClockProvider(mockClock);
 	}
 	
 	@After
@@ -240,17 +246,32 @@ public class SemaphoreGatedRunnerImplTest {
 		String key = semaphoreKey+"-0";
 		String token = "someToken";
 		when(mockSemaphoreDao.attemptToAcquireLock(key, timeoutMS)).thenReturn(token);
+		// Each time the clock is called half of the timeout expires.
+		when(mockClock.currentTimeMillis()).thenAnswer(new Answer<Long>() {
+			@Override
+			public Long answer(InvocationOnMock invocation) throws Throwable {
+				return currentTime+=timeoutMS/3L;
+			}
+		});
 		// run
 		semaphoreGatedRunner.setRunner(new ProgressingRunner() {
 			@Override
 			public void run(ProgressCallback callback) throws Exception {
+				// Not every call should result in a lock-refresh, only if enough time has expired
+				callback.progressMade();
+				callback.progressMade();
+				// This should trigger a refresh
+				callback.progressMade();
+				callback.progressMade();
+				// This should trigger a refresh
 				callback.progressMade();
 			}
 		});
 		semaphoreGatedRunner.attemptToRun();
 		verify(mockSemaphoreDao, times(1)).attemptToAcquireLock(key, timeoutMS);
 		verify(mockSemaphoreDao, times(1)).releaseLock(key, token);
-		verify(mockSemaphoreDao, times(1)).refreshLockTimeout(key, token, timeoutMS);
+		// The lock should only be refreshed 2 times even though callback.progressMade() was call more than that.
+		verify(mockSemaphoreDao, times(2)).refreshLockTimeout(key, token, timeoutMS);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
