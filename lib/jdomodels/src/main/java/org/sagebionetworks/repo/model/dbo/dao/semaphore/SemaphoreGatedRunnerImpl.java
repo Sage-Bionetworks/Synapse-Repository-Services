@@ -15,6 +15,8 @@ import org.sagebionetworks.collections.Maps2;
 import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreDao;
 import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreGatedRunner;
 import org.sagebionetworks.repo.model.exception.LockUnavilableException;
+import org.sagebionetworks.util.ClockProvider;
+import org.sagebionetworks.util.DefaultClockProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.common.base.Supplier;
@@ -69,6 +71,7 @@ public class SemaphoreGatedRunnerImpl implements SemaphoreGatedRunner {
 	private Object runner;
 	private Random randomGen = new Random(System.currentTimeMillis());;
 	private long timeoutMS;
+	private ClockProvider clockProvider = new DefaultClockProvider();
 	
 	/**
 	 * Used for mock testing.
@@ -164,13 +167,7 @@ public class SemaphoreGatedRunnerImpl implements SemaphoreGatedRunner {
 				}else if(runner instanceof ProgressingRunner){
 					// This type of runner allows the lock timeout to be refreshed.
 					ProgressingRunner progressingRunner = (ProgressingRunner) runner;
-					progressingRunner.run(new ProgressCallback() {
-						@Override
-						public void progressMade() {
-							// Refresh the timeout on the lock.
-							semaphoreDao.refreshLockTimeout(key,token, timeoutMS);
-						}
-					});
+					progressingRunner.run(new HalfLifeProgressCallback(key, token));
 				}else{
 					throw new RuntimeException("Unknown runner type: "+runner.getClass().getName());
 				}
@@ -238,5 +235,49 @@ public class SemaphoreGatedRunnerImpl implements SemaphoreGatedRunner {
 			keys.add(generateKeyForLockNumber(i, extraKey));
 		}
 		return keys;
+	}
+
+	public void setClockProvider(ClockProvider provider) {
+		this.clockProvider = provider;
+	}
+	
+	/**
+	 * This callback will refresh the lock if half of the lock's timeout has 
+	 * expired since the last rest.
+	 * @author jmhill
+	 *
+	 */
+	private class HalfLifeProgressCallback implements ProgressCallback{
+		String key;
+		String token;
+		long halfExpirationTime;
+		
+		public HalfLifeProgressCallback(String key, String token) {
+			super();
+			this.key = key;
+			this.token = token;
+			resetHalfExpirationTime();
+		}
+
+		@Override
+		public void progressMade() {
+			// If past the half expired, then reset the timeout
+			long now = clockProvider.currentTimeMillis();
+			if(now > halfExpirationTime){
+				// Refresh the timer
+				semaphoreDao.refreshLockTimeout(key,token, timeoutMS);
+				// Reset the local expiration time.
+				resetHalfExpirationTime();
+			}
+			
+		}
+		
+		/**
+		 * The half-expiration time is now + timeout/2
+		 */
+		private void resetHalfExpirationTime(){
+			halfExpirationTime = clockProvider.currentTimeMillis()+timeoutMS/2L;
+		}
+		
 	}
 }

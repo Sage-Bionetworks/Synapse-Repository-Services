@@ -2,18 +2,14 @@ package org.sagebionetworks.change.workers;
 
 import java.sql.Timestamp;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 
-import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
-import org.sagebionetworks.cloudwatch.WorkerLoggerImpl;
 import org.sagebionetworks.repo.manager.message.RepositoryMessagePublisher;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
@@ -109,6 +105,9 @@ public class ChangeSentMessageSynchWorker implements ProgressingRunner {
 				List<ChangeMessage> toSend = changeDao.listUnsentMessages(lowerBounds, upperBounds, olderThan);
 				for(ChangeMessage send: toSend){
 					try {
+						// For each message make progress
+						callback.progressMade();
+						// publish the message.
 						repositoryMessagePublisher.publishToTopic(send);
 						countSuccess++;
 					} catch (Exception e) {

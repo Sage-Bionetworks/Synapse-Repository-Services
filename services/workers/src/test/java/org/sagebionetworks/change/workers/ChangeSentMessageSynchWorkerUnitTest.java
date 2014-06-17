@@ -88,7 +88,7 @@ public class ChangeSentMessageSynchWorkerUnitTest {
 		// run
 		worker.run(mockCallback);
 		// Progress should be made for each page.
-		verify(mockCallback, times(3)).progressMade();
+		verify(mockCallback, times(5)).progressMade();
 		verify(mockRepositoryMessagePublisher, times(2)).publishToTopic(any(ChangeMessage.class));
 		verify(mockLogger, times(9)).logCustomMetric(any(ProfileData.class));
 	}
