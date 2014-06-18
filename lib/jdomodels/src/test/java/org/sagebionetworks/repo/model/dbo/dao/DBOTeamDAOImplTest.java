@@ -186,6 +186,7 @@ public class DBOTeamDAOImplTest {
 		assertFalse(m.getIsAdmin());
 		assertEquals(user.getId(), m.getMember().getOwnerId());
 		assertEquals(updated.getId(), m.getTeamId());
+		assertTrue(teamDAO.getAdminTeamMembers(updated.getId()).isEmpty());
 		
 		// check pagination
 		assertEquals(0L, teamDAO.getMembersInRange(updated.getId(), 1, 2).size());
@@ -207,6 +208,8 @@ public class DBOTeamDAOImplTest {
 		member = teamDAO.getMember(updated.getId(), user.getId());
 		assertEquals(updated.getId(), member.getTeamId());
 		assertTrue(member.getIsAdmin());
+		assertEquals(1, teamDAO.getAdminTeamMembers(updated.getId()).size());
+		assertEquals(user.getId(), teamDAO.getAdminTeamMembers(updated.getId()).get(0));
 		ugh = member.getMember();
 		assertTrue(ugh.getIsIndividual());
 		assertEquals(user.getId(), ugh.getOwnerId());

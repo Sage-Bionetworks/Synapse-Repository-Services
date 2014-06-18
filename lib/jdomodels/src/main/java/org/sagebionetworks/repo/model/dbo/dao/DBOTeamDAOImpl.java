@@ -462,6 +462,20 @@ public class DBOTeamDAOImpl implements TeamDAO {
 	
 	
 	@Override
+	public List<String> getAdminTeamMembers(String teamId)
+			throws NotFoundException {
+		MapSqlParameterSource param = new MapSqlParameterSource();	
+		param.addValue(COL_GROUP_MEMBERS_GROUP_ID, teamId);
+		List<TeamMemberId> adminTeamMembers = simpleJdbcTemplate.query(SELECT_ADMIN_MEMBERS_OF_TEAM, teamMemberIdRowMapper, param);
+		List<String> results = new ArrayList<String>();
+		for (TeamMemberId id : adminTeamMembers) {
+			results.add(id.getMemberId().toString());
+		}
+		return results;
+	}
+	
+	
+	@Override
 	@Transactional(readOnly = true, propagation = Propagation.REQUIRED)
 	public TeamMember getMember(String teamId, String principalId) throws NotFoundException, DatastoreException {
 		MapSqlParameterSource param = new MapSqlParameterSource();	

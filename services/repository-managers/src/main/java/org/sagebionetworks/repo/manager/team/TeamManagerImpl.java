@@ -96,6 +96,9 @@ public class TeamManagerImpl implements TeamManager {
 	@Autowired
 	private UserProfileDAO userProfileDAO;
 
+	private static final String USER_HAS_JOINED_TEAM_TEMPLATE = "message/userHasJoinedTeamTemplate.txt";
+	private static final String JOIN_TEAM_CONFIRMATION_MESSAGE_SUBJECT = "new member has joined team";
+	
 	private List<BootstrapTeam> teamsToBootstrap;
 	
 	public void setTeamsToBootstrap(List<BootstrapTeam> teamsToBootstrap) {
@@ -118,7 +121,9 @@ public class TeamManagerImpl implements TeamManager {
 			UserManager userManager,
 			AccessRequirementDAO accessRequirementDAO,
 			PrincipalAliasDAO principalAliasDAO,
-			PrincipalManager principalManager
+			PrincipalManager principalManager,
+			NotificationManager notificationManager,
+			UserProfileDAO userProfileDAO
 			) {
 		this.authorizationManager = authorizationManager;
 		this.teamDAO = teamDAO;
@@ -134,6 +139,8 @@ public class TeamManagerImpl implements TeamManager {
 		this.accessRequirementDAO = accessRequirementDAO;
 		this.principalAliasDAO = principalAliasDAO;
 		this.principalManager = principalManager;
+		this.notificationManager = notificationManager;
+		this.userProfileDAO = userProfileDAO;
 	}
 	
 	public static void validateForCreate(Team team) {
@@ -500,63 +507,12 @@ public class TeamManagerImpl implements TeamManager {
 		return result;
 	}
 	
-	private static final String USER_HAS_JOINED_TEAM_TEMPLATE = "userHasJoinedTeamTemplate.txt";
-	private static final String TEAM_MEMBERSHIP_INVITATION_EXTENDED_TEMPLATE = "teamMembershipInvitationExtendedTemplate.txt";
-	private static final String TEAM_MEMBERSHIP_REQUEST_CREATED_TEMPLATE = "teamMembershipRequestCreatedTemplate.txt";
-	private static final String JOIN_TEAM_CONFIRMATION_MESSAGE_SUBJECT = "new member has joined team";
-	private static final String TREAM_MEMBERSHIP_REQUEST_MESSAGE_SUBJECT = "someone has requested to join your team";
-	private static final String TEAM_MEMBERSHIP_INVITATION_MESSAGE_SUBJECT = "you have been invited to join a team";
-	private static final String TEXT_PLAIN_MIME_TYPE = "text/plain";
-	
-	private String getDisplayName(Long principalId) throws NotFoundException {
-		String inviteeUserName = principalAliasDAO.getUserName(principalId);
-		UserProfile userProfile = userProfileDAO.get(principalId.toString());
-		String inviteeFirstName = userProfile.getFirstName() ;
-		String inviteeLastName = userProfile.getLastName() ;
-		String displayName;
-		if (inviteeFirstName!=null || inviteeLastName!=null) {
-			displayName = inviteeFirstName+" "+inviteeLastName+" ("+inviteeUserName+")";
-		} else {
-			displayName = inviteeUserName;
-		}
-		return displayName;
-	}
-	
-	// TODO message is to be sent to admin
-	private void sendMembershipRequestMessage(Set<String> inviterPrincipalIds, UserInfo requester, String teamId) throws NotFoundException {
-		Map<String,String> fieldValues = new HashMap<String,String>();
-		fieldValues.put("#userName#", getDisplayName(requester.getId()));
-		fieldValues.put("#teamName#", teamDAO.get(teamId).getName());
-		fieldValues.put("#teamId#", teamId);
-		String messageContent = EmailUtils.readMailTemplate(TEAM_MEMBERSHIP_REQUEST_CREATED_TEMPLATE, fieldValues);
-		
-		notificationManager.sendNotification(
-				requester, 
-				inviterPrincipalIds, 
-				TREAM_MEMBERSHIP_REQUEST_MESSAGE_SUBJECT, 
-				messageContent, 
-				TEXT_PLAIN_MIME_TYPE);
-	}
-	
-	// TODO message is to be sent to invitee
-	private void sendMembershipInvitationMessage(Set<String> inviterPrincipalIds, UserInfo inviter, String teamId) throws NotFoundException {
-		Map<String,String> fieldValues = new HashMap<String,String>();
-		fieldValues.put("#userName#", getDisplayName(inviter.getId()));
-		fieldValues.put("#teamName#", teamDAO.get(teamId).getName());
-		fieldValues.put("#teamId#", teamId);
-		String messageContent = EmailUtils.readMailTemplate(TEAM_MEMBERSHIP_INVITATION_EXTENDED_TEMPLATE, fieldValues);
-		
-		notificationManager.sendNotification(
-				inviter, 
-				inviterPrincipalIds, 
-				TEAM_MEMBERSHIP_INVITATION_MESSAGE_SUBJECT, 
-				messageContent, 
-				TEXT_PLAIN_MIME_TYPE);
-	}
-	
 	private void sendJoinedTeamMessage(Set<String> inviterPrincipalIds, UserInfo invitee, String teamId) throws NotFoundException {
+		String inviteeUserName = principalAliasDAO.getUserName(invitee.getId());
+		UserProfile userProfile = userProfileDAO.get(invitee.getId().toString());
+		String displayName = EmailUtils.getDisplayName(inviteeUserName, userProfile);
 		Map<String,String> fieldValues = new HashMap<String,String>();
-		fieldValues.put("#userName#", getDisplayName(invitee.getId()));
+		fieldValues.put("#userName#", displayName);
 		fieldValues.put("#teamName#", teamDAO.get(teamId).getName());
 		fieldValues.put("#teamId#", teamId);
 		String messageContent = EmailUtils.readMailTemplate(USER_HAS_JOINED_TEAM_TEMPLATE, fieldValues);
@@ -566,7 +522,7 @@ public class TeamManagerImpl implements TeamManager {
 				inviterPrincipalIds, 
 				JOIN_TEAM_CONFIRMATION_MESSAGE_SUBJECT, 
 				messageContent, 
-				TEXT_PLAIN_MIME_TYPE);
+				NotificationManager.TEXT_PLAIN_MIME_TYPE);
 	}
 	
 	/**

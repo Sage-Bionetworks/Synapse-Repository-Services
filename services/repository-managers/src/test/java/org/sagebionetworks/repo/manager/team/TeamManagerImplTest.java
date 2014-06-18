@@ -7,7 +7,9 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -22,8 +24,10 @@ import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.principal.PrincipalManager;
@@ -33,6 +37,7 @@ import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmissionDAO;
 import org.sagebionetworks.repo.model.MembershipRqstSubmissionDAO;
 import org.sagebionetworks.repo.model.NameConflictException;
@@ -50,6 +55,8 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
 import org.sagebionetworks.repo.model.principal.AliasType;
@@ -75,6 +82,8 @@ public class TeamManagerImplTest {
 	private AccessRequirementDAO mockAccessRequirementDAO;
 	private PrincipalAliasDAO mockPrincipalAliasDAO;
 	private PrincipalManager mockPrincipalManager;
+	private NotificationManager mockNotificationManager;
+	private UserProfileDAO mockUserProfileDAO;
 	
 	private UserInfo userInfo;
 	private UserInfo adminInfo;
@@ -97,6 +106,8 @@ public class TeamManagerImplTest {
 		mockAccessRequirementDAO = Mockito.mock(AccessRequirementDAO.class);
 		mockPrincipalAliasDAO = Mockito.mock(PrincipalAliasDAO.class);
 		mockPrincipalManager = Mockito.mock(PrincipalManager.class);
+		mockNotificationManager = Mockito.mock(NotificationManager.class);
+		mockUserProfileDAO = Mockito.mock(UserProfileDAO.class);
 		teamManagerImpl = new TeamManagerImpl(
 				mockAuthorizationManager,
 				mockTeamDAO,
@@ -110,7 +121,9 @@ public class TeamManagerImplTest {
 				mockUserManager,
 				mockAccessRequirementDAO,
 				mockPrincipalAliasDAO,
-				mockPrincipalManager);
+				mockPrincipalManager,
+				mockNotificationManager,
+				mockUserProfileDAO);
 		userInfo = createUserInfo(false, MEMBER_PRINCIPAL_ID);
 		adminInfo = createUserInfo(true, "-1");
 	}
@@ -538,7 +551,7 @@ public class TeamManagerImplTest {
 	}
 	
 	@Test
-	public void testAddMember() throws Exception {
+	public void testAddRequestingMember() throws Exception {
 		// 'userInfo' is a team admin and there is a membership request from 987
 		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(true);
 		String principalId = "987";
@@ -550,6 +563,55 @@ public class TeamManagerImplTest {
 		verify(mockGroupMembersDAO).addMembers(TEAM_ID, Arrays.asList(new String[]{principalId}));
 		verify(mockMembershipInvtnSubmissionDAO).deleteByTeamAndUser(Long.parseLong(TEAM_ID), Long.parseLong(principalId));
 		verify(mockMembershipRqstSubmissionDAO).deleteByTeamAndRequester(Long.parseLong(TEAM_ID), Long.parseLong(principalId));
+
+		// since there are no inviters there is no acknowledgement message
+		verify(mockTeamDAO, never()).get(TEAM_ID);
+		verify(mockUserProfileDAO, never()).get(principalId);
+		verify(mockNotificationManager, never()).sendNotification(
+				any(UserInfo.class), any(Set.class), anyString(), anyString(), anyString());
+	}
+	
+	@Test
+	public void testAddInvitedMember() throws Exception {
+		// 'userInfo' is a team admin and there is a membership request from 987
+		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(true);
+		String principalId = "987";
+		UserInfo principalUserInfo = createUserInfo(false, principalId);
+		UserProfile profile = new UserProfile();
+		when(mockUserProfileDAO.get(principalId)).thenReturn(profile);
+		when(mockPrincipalAliasDAO.getUserName(Long.parseLong(principalId))).thenReturn("userName987");
+		when(mockMembershipInvtnSubmissionDAO.
+				getOpenByTeamAndUserCount(eq(Long.parseLong(TEAM_ID)), eq(Long.parseLong(principalId)), anyLong())).thenReturn(1L);
+		MembershipInvtnSubmission mis = new MembershipInvtnSubmission();
+		mis.setCreatedBy(userInfo.getId().toString());
+		when(mockMembershipInvtnSubmissionDAO.
+				getOpenSubmissionsByTeamAndUserInRange(eq(Long.parseLong(TEAM_ID)), eq(Long.parseLong(principalId)), anyLong(), anyLong(), anyLong())).
+				thenReturn(Collections.singletonList(mis));
+		when(mockAclDAO.get(TEAM_ID, ObjectType.TEAM)).
+			thenReturn(TeamManagerImpl.createInitialAcl(userInfo, TEAM_ID, new Date()));
+		when(mockTeamDAO.get(TEAM_ID)).thenReturn(createTeam(TEAM_ID, "team-name", "description", null, "101", null, null, null, null));
+		teamManagerImpl.addMember(principalUserInfo, TEAM_ID, principalUserInfo);
+		verify(mockGroupMembersDAO).addMembers(TEAM_ID, Arrays.asList(new String[]{principalId}));
+		verify(mockMembershipInvtnSubmissionDAO).deleteByTeamAndUser(Long.parseLong(TEAM_ID), Long.parseLong(principalId));
+		verify(mockMembershipRqstSubmissionDAO).deleteByTeamAndRequester(Long.parseLong(TEAM_ID), Long.parseLong(principalId));
+
+		verify(mockTeamDAO, times(2)).get(TEAM_ID);
+		verify(mockUserProfileDAO).get(principalId);
+		ArgumentCaptor<String> messageCaptor = ArgumentCaptor.forClass(String.class);
+		verify(mockNotificationManager).sendNotification(
+				eq(principalUserInfo), 
+				eq(Collections.singleton(userInfo.getId().toString())), 
+				anyString(), 
+				messageCaptor.capture(), 
+				eq("text/plain"));
+		String messageContent = messageCaptor.getValue();
+		// make sure fields have been filled in
+		assertTrue(messageContent, messageContent.indexOf("#teamName#")<0);
+		assertTrue(messageContent, messageContent.indexOf("#teamId#")<0);
+		assertTrue(messageContent, messageContent.indexOf("#userName#")<0);
+		assertTrue(messageContent, messageContent.indexOf("team-name")>=0);
+		assertTrue(messageContent, messageContent.indexOf(TEAM_ID)>=0);
+		assertTrue(messageContent, messageContent.indexOf("userName987")>=0);
 	}
 	
 	@Test
@@ -565,10 +627,16 @@ public class TeamManagerImplTest {
 		ug.setId(principalId);
 		when(mockGroupMembersDAO.getMembers(TEAM_ID)).thenReturn(Arrays.asList(new UserGroup[]{ug}));
 		teamManagerImpl.addMember(userInfo, TEAM_ID, principalUserInfo);
-		verify(mockGroupMembersDAO, times(0)).addMembers(TEAM_ID, Arrays.asList(new String[]{principalId}));
+		verify(mockGroupMembersDAO, never()).addMembers(TEAM_ID, Arrays.asList(new String[]{principalId}));
 		verify(mockMembershipInvtnSubmissionDAO).deleteByTeamAndUser(Long.parseLong(TEAM_ID), Long.parseLong(principalId));
 		verify(mockMembershipRqstSubmissionDAO).deleteByTeamAndRequester(Long.parseLong(TEAM_ID), Long.parseLong(principalId));
-	}
+
+		// since there is no member addition there is no acknowledgement message
+		verify(mockTeamDAO, never()).get(TEAM_ID);
+		verify(mockUserProfileDAO, never()).get(principalId);
+		verify(mockNotificationManager, never()).sendNotification(
+				any(UserInfo.class), any(Set.class), anyString(), anyString(), anyString());
+}
 	
 	private static List<UserGroup> ugList(String[] pids) {
 		List<UserGroup> ans = new ArrayList<UserGroup>();

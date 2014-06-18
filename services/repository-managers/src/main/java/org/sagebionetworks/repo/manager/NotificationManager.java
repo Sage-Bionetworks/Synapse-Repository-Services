@@ -24,4 +24,7 @@ public interface NotificationManager {
 	 */
 	public void sendNotification(UserInfo userInfo, Set<String> to, String subject, String message, String contentType) throws NotFoundException;
 	
+	
+	public static final String TEXT_PLAIN_MIME_TYPE = "text/plain";
+
 }

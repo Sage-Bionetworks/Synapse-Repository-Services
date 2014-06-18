@@ -3,10 +3,15 @@
  */
 package org.sagebionetworks.repo.manager.team;
 
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.EmailUtils;
+import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -15,10 +20,14 @@ import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmissionDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * @author brucehoff
@@ -31,16 +40,29 @@ public class MembershipInvitationManagerImpl implements
 	private AuthorizationManager authorizationManager;
 	@Autowired 
 	private MembershipInvtnSubmissionDAO membershipInvtnSubmissionDAO;
+	@Autowired
+	private NotificationManager notificationManager;
+	@Autowired
+	private UserProfileDAO userProfileDAO;
+	@Autowired
+	private TeamDAO teamDAO;
 	
+	private static final String TEAM_MEMBERSHIP_INVITATION_EXTENDED_TEMPLATE = "message/teamMembershipInvitationExtendedTemplate.txt";
+	private static final String TEAM_MEMBERSHIP_INVITATION_MESSAGE_SUBJECT = "you have been invited to join a team";
+
 	public MembershipInvitationManagerImpl() {}
 	
 	// for testing
 	public MembershipInvitationManagerImpl(
 			AuthorizationManager authorizationManager,
-			MembershipInvtnSubmissionDAO membershipInvtnSubmissionDAO
+			MembershipInvtnSubmissionDAO membershipInvtnSubmissionDAO,
+			NotificationManager notificationManager,
+			TeamDAO teamDAO
 			) {
 		this.authorizationManager = authorizationManager;
 		this.membershipInvtnSubmissionDAO = membershipInvtnSubmissionDAO;
+		this.notificationManager = notificationManager;
+		this.teamDAO=teamDAO;
 	}
 	
 	public static void validateForCreate(MembershipInvtnSubmission mis) {
@@ -59,6 +81,7 @@ public class MembershipInvitationManagerImpl implements
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.team.MembershipInvitationManager#create(org.sagebionetworks.repo.model.UserInfo, org.sagebionetworks.repo.model.MembershipInvtnSubmission)
 	 */
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public MembershipInvtnSubmission create(UserInfo userInfo,
 			MembershipInvtnSubmission mis) throws DatastoreException,
@@ -67,9 +90,25 @@ public class MembershipInvitationManagerImpl implements
 		if (!authorizationManager.canAccess(userInfo, mis.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)) throw new UnauthorizedException("Cannot create membership invitation.");
 		Date now = new Date();
 		populateCreationFields(userInfo, mis, now);
-		return membershipInvtnSubmissionDAO.create(mis);
+		MembershipInvtnSubmission created = membershipInvtnSubmissionDAO.create(mis);
+		sendMembershipInvitationMessage(userInfo, created.getInviteeId(), created.getTeamId());
+		return created;
 	}
 
+	private void sendMembershipInvitationMessage(UserInfo inviter, String inviteeId, String teamId) throws NotFoundException {
+		Map<String,String> fieldValues = new HashMap<String,String>();
+		fieldValues.put("#teamName#", teamDAO.get(teamId).getName());
+		fieldValues.put("#teamId#", teamId);
+		String messageContent = EmailUtils.readMailTemplate(TEAM_MEMBERSHIP_INVITATION_EXTENDED_TEMPLATE, fieldValues);
+		
+		notificationManager.sendNotification(
+				inviter, 
+				Collections.singleton(inviteeId), 
+				TEAM_MEMBERSHIP_INVITATION_MESSAGE_SUBJECT, 
+				messageContent, 
+				NotificationManager.TEXT_PLAIN_MIME_TYPE);
+	}
+	
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.team.MembershipInvitationManager#get(org.sagebionetworks.repo.model.UserInfo, java.lang.String)
 	 */

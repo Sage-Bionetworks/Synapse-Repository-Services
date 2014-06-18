@@ -4,9 +4,15 @@
 package org.sagebionetworks.repo.manager.team;
 
 import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.EmailUtils;
+import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -15,9 +21,13 @@ import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.MembershipRqstSubmissionDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.dbo.dao.AuthorizationUtils;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -31,18 +41,36 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 	private AuthorizationManager authorizationManager;
 	@Autowired 
 	private MembershipRqstSubmissionDAO membershipRqstSubmissionDAO;
+	@Autowired
+	private NotificationManager notificationManager;
+	@Autowired
+	private UserProfileDAO userProfileDAO;
+	@Autowired
+	private PrincipalAliasDAO principalAliasDAO;
+	@Autowired
+	private TeamDAO teamDAO;
+	
 	
 	public MembershipRequestManagerImpl() {}
 	
 	// for testing
 	public MembershipRequestManagerImpl(
 			AuthorizationManager authorizationManager,
-			MembershipRqstSubmissionDAO membershipRqstSubmissionDAO
+			MembershipRqstSubmissionDAO membershipRqstSubmissionDAO,
+			NotificationManager notificationManager,
+			PrincipalAliasDAO principalAliasDAO,
+			TeamDAO teamDAO
 			) {
 		this.authorizationManager=authorizationManager;
 		this.membershipRqstSubmissionDAO=membershipRqstSubmissionDAO;
+		this.notificationManager = notificationManager;
+		this.principalAliasDAO = principalAliasDAO;
+		this.teamDAO=teamDAO;
 	}
 	
+	private static final String TEAM_MEMBERSHIP_REQUEST_CREATED_TEMPLATE = "message/teamMembershipRequestCreatedTemplate.txt";
+	private static final String TREAM_MEMBERSHIP_REQUEST_MESSAGE_SUBJECT = "someone has requested to join your team";
+
 	public static void validateForCreate(MembershipRqstSubmission mrs, UserInfo userInfo) {
 		if (mrs.getCreatedBy()!=null) throw new InvalidModelException("'createdBy' field is not user specifiable.");
 		if (mrs.getCreatedOn()!=null) throw new InvalidModelException("'createdOn' field is not user specifiable.");
@@ -64,15 +92,36 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 	@Override
 	public MembershipRqstSubmission create(UserInfo userInfo,
 			MembershipRqstSubmission mrs) throws DatastoreException,
-			InvalidModelException, UnauthorizedException {
+			InvalidModelException, UnauthorizedException, NotFoundException {
 		if (AuthorizationUtils.isUserAnonymous(userInfo)) 
 			throw new UnauthorizedException("anonymous user cannot create membership request.");
 		validateForCreate(mrs, userInfo);
 		Date now = new Date();
 		populateCreationFields(userInfo, mrs, now);
-		return membershipRqstSubmissionDAO.create(mrs);
+		MembershipRqstSubmission created = membershipRqstSubmissionDAO.create(mrs);
+		Set<String> teamAdmins = new HashSet<String>(teamDAO.getAdminTeamMembers(mrs.getTeamId()));
+		sendMembershipRequestMessage(userInfo, teamAdmins, mrs.getTeamId());
+		return created;
 	}
 
+	private void sendMembershipRequestMessage(UserInfo requester, Set<String> adminPrincipalIds, String teamId) throws NotFoundException {
+		String requesterUserName = principalAliasDAO.getUserName(requester.getId());
+		UserProfile userProfile = userProfileDAO.get(requester.getId().toString());
+		String displayName = EmailUtils.getDisplayName(requesterUserName, userProfile);
+		Map<String,String> fieldValues = new HashMap<String,String>();
+		fieldValues.put("#userName#", displayName);
+		fieldValues.put("#teamName#", teamDAO.get(teamId).getName());
+		fieldValues.put("#teamId#", teamId);
+		String messageContent = EmailUtils.readMailTemplate(TEAM_MEMBERSHIP_REQUEST_CREATED_TEMPLATE, fieldValues);
+		
+		notificationManager.sendNotification(
+				requester, 
+				adminPrincipalIds, 
+				TREAM_MEMBERSHIP_REQUEST_MESSAGE_SUBJECT, 
+				messageContent, 
+				NotificationManager.TEXT_PLAIN_MIME_TYPE);
+	}
+	
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.team.MembershipRequestManager#get(org.sagebionetworks.repo.model.UserInfo, java.lang.String)
 	 */

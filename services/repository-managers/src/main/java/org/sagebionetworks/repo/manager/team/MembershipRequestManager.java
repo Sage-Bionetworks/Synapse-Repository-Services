@@ -19,8 +19,9 @@ public interface MembershipRequestManager {
 	 * @throws DatastoreException
 	 * @throws InvalidModelException
 	 * @throws UnauthorizedException
+	 * @throws NotFoundException 
 	 */
-	public MembershipRqstSubmission create(UserInfo userInfo, MembershipRqstSubmission mrs) throws  DatastoreException, InvalidModelException, UnauthorizedException;
+	public MembershipRqstSubmission create(UserInfo userInfo, MembershipRqstSubmission mrs) throws  DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException;
 	
 	/**
 	 * Retrieve an request by its ID
