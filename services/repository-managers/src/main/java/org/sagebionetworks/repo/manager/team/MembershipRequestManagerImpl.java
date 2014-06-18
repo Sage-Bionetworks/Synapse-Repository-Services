@@ -30,6 +30,8 @@ import org.sagebionetworks.repo.model.dbo.dao.AuthorizationUtils;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * @author brucehoff
@@ -90,6 +92,7 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 	 * @see org.sagebionetworks.repo.manager.team.MembershipRequestManager#create(org.sagebionetworks.repo.model.UserInfo, org.sagebionetworks.repo.model.MembershipRqstSubmission)
 	 */
 	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public MembershipRqstSubmission create(UserInfo userInfo,
 			MembershipRqstSubmission mrs) throws DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException {
@@ -100,7 +103,7 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 		populateCreationFields(userInfo, mrs, now);
 		MembershipRqstSubmission created = membershipRqstSubmissionDAO.create(mrs);
 		Set<String> teamAdmins = new HashSet<String>(teamDAO.getAdminTeamMembers(mrs.getTeamId()));
-		sendMembershipRequestMessage(userInfo, teamAdmins, mrs.getTeamId());
+		if (!teamAdmins.isEmpty()) sendMembershipRequestMessage(userInfo, teamAdmins, mrs.getTeamId());
 		return created;
 	}
 
