@@ -62,7 +62,6 @@ import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
-import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
@@ -92,7 +91,6 @@ public class TableRowManagerImplTest {
 	RowSet set;
 	PartialRowSet partialSet;
 	RowSet expectedRows;
-	RowSet tooBigSet;
 	RowReferenceSet refSet;
 	long rowIdSequence;
 	long rowVersionSequence;
@@ -146,16 +144,6 @@ public class TableRowManagerImplTest {
 		expectedRows.setTableId(tableId);
 		expectedRows.setHeaders(TableModelUtils.getHeaders(models));
 		expectedRows.setRows(rows);
-
-		// What is the row size for the model?
-		int rowSizeBytes = TableModelUtils.calculateMaxRowSize(models);
-		// Create a rowSet that is too big
-		int tooManyRows = maxBytesPerRequest/rowSizeBytes+1;
-		rows = TableModelTestUtils.createRows(models, tooManyRows);
-		tooBigSet = new RowSet();
-		tooBigSet.setTableId(tableId);
-		tooBigSet.setHeaders(TableModelUtils.getHeaders(models));
-		tooBigSet.setRows(rows);
 		
 		refSet = new RowReferenceSet();
 		refSet.setTableId(tableId);
@@ -270,6 +258,17 @@ public class TableRowManagerImplTest {
 	
 	@Test
 	public void testAppendRowsTooLarge() throws DatastoreException, NotFoundException, IOException{
+		// What is the row size for the model?
+		int rowSizeBytes = TableModelUtils.calculateMaxRowSize(models);
+		// Create a rowSet that is too big
+		maxBytesPerRequest = 1000;
+		manager.setMaxBytesPerRequest(maxBytesPerRequest);
+		int tooManyRows = maxBytesPerRequest/rowSizeBytes+1;
+		List<Row> rows = TableModelTestUtils.createRows(models, tooManyRows);
+		RowSet tooBigSet = new RowSet();
+		tooBigSet.setTableId(tableId);
+		tooBigSet.setHeaders(TableModelUtils.getHeaders(models));
+		tooBigSet.setRows(rows);
 		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(true);
 		when(mockTruthDao.appendRowSetToTable(user.getId().toString(), tableId, models, set, false)).thenReturn(refSet);
 		try {
