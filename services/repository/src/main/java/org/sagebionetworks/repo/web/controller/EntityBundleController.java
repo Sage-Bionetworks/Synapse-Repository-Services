@@ -49,6 +49,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * <li> Access Requirements <i>(List&lt;AccessRequirement&gt;)</i> = 0x200 </li>
  * <li> Unmet Access Requirements <i>(List&lt;AccessRequirement&gt;)</i> = 0x400 </li>
  * <li> File Handles <i>(List&lt;FileHandle&gt;)</i> = 0x800 </li>
+ * <li> TableEntity Metadata <i>(TableBundle)</i> = 0x1000</li>
  * </ul>
  * </p>
  * <p>
