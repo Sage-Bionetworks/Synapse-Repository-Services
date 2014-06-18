@@ -10,6 +10,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -32,8 +33,11 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.service.table.TableServices;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 public class EntityBundleServiceImplTest {
@@ -44,6 +48,7 @@ public class EntityBundleServiceImplTest {
 	
 	private ServiceProvider mockServiceProvider;
 	private EntityService mockEntityService;
+	private TableServices mockTableService;
 	
 	private Project project;
 	private Study study;
@@ -67,6 +72,8 @@ public class EntityBundleServiceImplTest {
 		mockEntityService = mock(EntityService.class);
 		
 		entityBundleService = new EntityBundleServiceImpl(mockServiceProvider);
+		mockTableService = mock(TableServices.class);
+		when(mockServiceProvider.getTableServices()).thenReturn(mockTableService);
 		
 		// Entities
 		project = new Project();
@@ -185,6 +192,23 @@ public class EntityBundleServiceImplTest {
 		verify(mockEntityService).updateEntity(eq(TEST_USER1), eq(study), eq(false), eq(activityId), any(HttpServletRequest.class));
 		verify(mockEntityService).updateEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID), eq(annos), any(HttpServletRequest.class));
 		verify(mockEntityService).createOrUpdateEntityACL(eq(TEST_USER1), eq(acl), anyString(), any(HttpServletRequest.class));
+	}
+	
+	@Test
+	public void testTableData() throws Exception {
+		String entityId = "syn123";
+		PaginatedColumnModels page = new PaginatedColumnModels();
+		ColumnModel cm = new ColumnModel();
+		cm.setId("9999");
+		page.setResults(Arrays.asList(cm));
+		when(mockTableService.getColumnModelsForTableEntity(TEST_USER1, entityId)).thenReturn(page);
+		when(mockTableService.getMaxRowsPerPage(page.getResults())).thenReturn(12345L);
+		int mask = EntityBundle.TABLE_DATA;
+		EntityBundle bundle = entityBundleService.getEntityBundle(TEST_USER1, entityId, mask, null);
+		assertNotNull(bundle);
+		assertNotNull(bundle.getTableBundle());
+		assertEquals(page.getResults(), bundle.getTableBundle().getColumnModels());
+		assertEquals(new Long(12345), bundle.getTableBundle().getMaxRowsPerPage());
 	}
 	
 }

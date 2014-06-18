@@ -162,4 +162,12 @@ public interface TableServices {
 	 * @throws DatastoreException 
 	 */
 	public RowSet query(Long userId, Query query, boolean isConsistent, boolean countOnly) throws NotFoundException, DatastoreException, TableUnavilableException;
+
+
+	/**
+	 * Get the max number of rows allowed for a page (get, post, or query) for the given column models.
+	 * @param models
+	 * @return
+	 */
+	public Long getMaxRowsPerPage(List<ColumnModel> models);
 }

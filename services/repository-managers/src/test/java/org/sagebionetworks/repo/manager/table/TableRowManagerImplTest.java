@@ -96,6 +96,7 @@ public class TableRowManagerImplTest {
 	RowReferenceSet refSet;
 	long rowIdSequence;
 	long rowVersionSequence;
+	int maxBytesPerRequest;
 	
 	@Before
 	public void before() throws Exception {
@@ -123,7 +124,7 @@ public class TableRowManagerImplTest {
 		});
 		
 		manager = new TableRowManagerImpl();
-		int maxBytesPerRequest = 10000000;
+		maxBytesPerRequest = 10000000;
 		manager.setMaxBytesPerRequest(maxBytesPerRequest);
 		manager.setMaxBytesPerChangeSet(1000000000);
 		user = new UserInfo(false, 7L);
@@ -770,5 +771,19 @@ public class TableRowManagerImplTest {
 		when(mockTruthDao.getLatestVersions(tableId, 0L, 16000L, 16000L)).thenReturn(map2);
 		Map<Long, Long> currentRowVersions = manager.getCurrentRowVersions(tableId, 0L, 16000L, 16000L);
 		assertEquals(map2, currentRowVersions);
+	}
+	
+	@Test
+	public void testGetMaxRowsPerPage(){
+		Long maxRows = this.manager.getMaxRowsPerPage(models);
+		int maxRowSize = TableModelUtils.calculateMaxRowSize(models);
+		Long expected = (long) (this.maxBytesPerRequest/maxRowSize);
+		assertEquals(expected, maxRows);
+	}
+	
+	@Test
+	public void testGetMaxRowsPerPageEmpty(){
+		Long maxRows = this.manager.getMaxRowsPerPage(new LinkedList<ColumnModel>());
+		assertEquals(null, maxRows);
 	}
 }

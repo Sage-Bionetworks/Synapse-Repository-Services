@@ -222,5 +222,10 @@ public class TableServicesImpl implements TableServices {
 		UserInfo user = userManager.getUserInfo(userId);
 		return tableRowManager.query(user, query.getSql(), isConsisitent, countOnly);
 	}
+
+	@Override
+	public Long getMaxRowsPerPage(List<ColumnModel> models) {
+		return tableRowManager.getMaxRowsPerPage(models);
+	}
 	
 }
