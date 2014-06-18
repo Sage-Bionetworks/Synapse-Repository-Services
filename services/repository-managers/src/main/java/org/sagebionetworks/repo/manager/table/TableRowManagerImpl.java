@@ -733,4 +733,12 @@ public class TableRowManagerImpl implements TableRowManager {
 			throw new IllegalStateException("This method cannot be called when the table feature is disabled.");
 		}
 	}
+
+	@Override
+	public Long getMaxRowsPerPage(List<ColumnModel> models) {
+		// Calculate the size
+		int maxRowSizeBytes = TableModelUtils.calculateMaxRowSize(models);
+		if(maxRowSizeBytes < 1) return null;
+		return (long) (this.maxBytesPerRequest/maxRowSizeBytes);
+	}
 }
