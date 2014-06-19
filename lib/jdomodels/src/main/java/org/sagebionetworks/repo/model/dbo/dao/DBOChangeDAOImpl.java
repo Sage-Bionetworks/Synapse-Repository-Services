@@ -60,10 +60,6 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 
 	static private Logger log = LogManager.getLogger(DBOChangeDAOImpl.class);
 	
-	private static final String SQL_INSERT_SENT_ON_DUPLICATE_UPDATE = 
-			"INSERT INTO "+TABLE_SENT_MESSAGES+" ( "+COL_SENT_MESSAGES_CHANGE_NUM+", "+COL_SENT_MESSAGES_TIME_STAMP+")"+
-			" VALUES ( ?, ?) ON DUPLICATE KEY UPDATE "+COL_SENT_MESSAGES_TIME_STAMP+" = ?";
-	
 	private static final String SQL_CHANGES_NOT_SENT_PREFIX = 
 			"SELECT C.* FROM "+TABLE_CHANGES+
 			" C LEFT OUTER JOIN "+TABLE_SENT_MESSAGES+" S ON (C."+COL_CHANGES_CHANGE_NUM+" = S."+COL_SENT_MESSAGES_CHANGE_NUM+")"+
@@ -110,7 +106,6 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 			"select c.* from " + TABLE_CHANGES + " c join " + TABLE_SENT_MESSAGES + " s on s." + COL_SENT_MESSAGES_CHANGE_NUM + " = c." + COL_CHANGES_CHANGE_NUM + " left join (select * from " + TABLE_PROCESSED_MESSAGES + " where " + COL_PROCESSED_MESSAGES_QUEUE_NAME + " = ?) p on p." + COL_PROCESSED_MESSAGES_CHANGE_NUM + " = s." + COL_SENT_MESSAGES_CHANGE_NUM + " where p." + COL_PROCESSED_MESSAGES_CHANGE_NUM + " is null limit ?";
 	
 	private static final String SQL_SENT_CHANGE_NUMBER_FOR_UPDATE = "SELECT "+COL_SENT_MESSAGES_CHANGE_NUM+" FROM "+TABLE_SENT_MESSAGES+" WHERE "+COL_SENT_MESSAGES_OBJECT_ID+" = ? AND "+COL_SENT_MESSAGES_OBJECT_TYPE+" = ? FOR UPDATE";
-	private static final String CREATE_OR_UPDATE_SENT_MESSAGE = "INSERT INTO "+TABLE_SENT_MESSAGES+"("+COL_SENT_MESSAGES_CHANGE_NUM+", "+COL_SENT_MESSAGES_OBJECT_ID+", "+COL_SENT_MESSAGES_OBJECT_TYPE+") VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE "+COL_SENT_MESSAGES_CHANGE_NUM+" = ?";
 
 	@Autowired
 	private DBOBasicDao basicDao;
@@ -132,22 +127,28 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 		if(change.getObjectType() == null) throw new IllegalArgumentException("change.getObjectTypeEnum() cannot be null");
 		if(ChangeType.CREATE == change.getChangeType() && change.getObjectEtag() == null) throw new IllegalArgumentException("Etag cannot be null for ChangeType: "+change.getChangeType());
 		if(ChangeType.UPDATE == change.getChangeType() && change.getObjectEtag() == null) throw new IllegalArgumentException("Etag cannot be null for ChangeType: "+change.getChangeType());
-		DBOChange dbo = ChangeMessageUtils.createDBO(change);
+		DBOChange changeDbo = ChangeMessageUtils.createDBO(change);
 		// Clear the time stamp so that we get a new one automatically.
 		// Note: Mysql TIMESTAMP only keeps seconds (not MS) so for consistency we only write second accuracy.
 		// We are using (System.currentTimeMillis()/1000)*1000; to convert all MS to zeros.
 		long nowMs = (System.currentTimeMillis()/1000)*1000;
-		dbo.setChangeNumber(idGenerator.generateNewId(TYPE.CHANGE_ID));
-		dbo.setTimeStamp(new Timestamp(nowMs));
-		// Now insert the row with the current value
-		dbo = basicDao.createOrUpdate(dbo);
-		// Setup and clear the sent message
+		changeDbo.setChangeNumber(idGenerator.generateNewId(TYPE.CHANGE_ID));
+		changeDbo.setTimeStamp(new Timestamp(nowMs));
+
+		// first lock the sent_messages table for update to avoid deadlocks with the registerMessageSent() method that
+		// also tries to change the sent_messages table and in the process needs to lock the index to the changes table
+		// due to the foreign key
 		DBOSentMessage sentDBO = new DBOSentMessage();
 		sentDBO.setChangeNumber(null);
-		sentDBO.setObjectId(dbo.getObjectId());
-		sentDBO.setObjectType(dbo.getObjectType());
+		sentDBO.setObjectId(changeDbo.getObjectId());
+		sentDBO.setObjectType(changeDbo.getObjectType());
+		selectSentChangeNumberForUpdate(sentDBO);
+
+		// Now insert the row with the current value
+		changeDbo = basicDao.createOrUpdate(changeDbo);
+		// Setup and clear the sent message
 		basicDao.createOrUpdate(sentDBO);
-		return ChangeMessageUtils.createDTO(dbo);
+		return ChangeMessageUtils.createDTO(changeDbo);
 	}
 
 	
@@ -231,6 +232,7 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 		sent.setObjectId(KeyFactory.stringToKey(message.getObjectId()));
 		sent.setObjectType(message.getObjectType());
 		// Determine what the current change number is.
+		// see replaceChange() method for story on parallel select for update
 		Long currentChangeNumber = selectSentChangeNumberForUpdate(sent);
 		// If they are the same do nothing
 		if(sent.getChangeNumber().equals(currentChangeNumber)){
