@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dbo.dao.migration;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
+import java.math.BigDecimal;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -120,6 +121,10 @@ public class MigratableTableDAOImplAutowireTest {
 		assertEquals(preview2.getId(), ""+row.getId());
 		assertEquals(preview2.getEtag(), row.getEtag());
 		assertEquals(null, row.getParentId());
+		
+		// Get checksums
+		BigDecimal checkSum = migratableTableDAO.getChecksumForIdRange(MigrationType.FILE_HANDLE, Long.parseLong(withPreview.getId()), Long.parseLong(preview2.getId()));
+		assertNotNull(checkSum);
 		
 		// Get the full back object
 		List<Long> idsToBackup1 = new LinkedList<Long>();

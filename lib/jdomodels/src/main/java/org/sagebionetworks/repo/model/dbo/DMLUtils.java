@@ -286,8 +286,8 @@ public class DMLUtils {
 		builder.append(mapping.getTableName());
 		builder.append(" where `");
 		builder.append(idColName);
-		builder.append("` between ( :" + BIND_VAR_ID_RANGE_MIN);
-		builder.append(" and :" + BIND_VAR_ID_RANGE_MAX + " )");
+		builder.append("` between :" + BIND_VAR_ID_RANGE_MIN);
+		builder.append(" and :" + BIND_VAR_ID_RANGE_MAX);
 		return builder.toString();
 	}
 	

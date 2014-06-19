@@ -274,7 +274,7 @@ public class DMLUtilsTest {
 	
 	@Test
 	public void testcreateSelectSumCrc32ByIdRangeStatementWithEtag() {
-		String expectedSql = "select sum(crc32(`ETAG`)) from SOME_TABLE where `ID` between ( :BVIDRMIN and :BVIDRMAX )";
+		String expectedSql = "select sum(crc32(`ETAG`)) from SOME_TABLE where `ID` between :BVIDRMIN and :BVIDRMAX";
 		String sql = DMLUtils.createSelectSumCrc32ByIdRangeStatement(migrateableMappingEtagAndId);
 		assertNotNull(sql);
 		System.out.println(sql);
@@ -283,7 +283,7 @@ public class DMLUtilsTest {
 	
 	@Test
 	public void testcreateSelectSumCrc32ByIdRangeStatementWithoutEtag() {
-		String expectedSql = "select sum(crc32(`ID`)) from SOME_TABLE where `ID` between ( :BVIDRMIN and :BVIDRMAX )";
+		String expectedSql = "select sum(crc32(`ID`)) from SOME_TABLE where `ID` between :BVIDRMIN and :BVIDRMAX";
 		String sql = DMLUtils.createSelectSumCrc32ByIdRangeStatement(migrateableMappingNoEtag);
 		assertNotNull(sql);
 		System.out.println(sql);
