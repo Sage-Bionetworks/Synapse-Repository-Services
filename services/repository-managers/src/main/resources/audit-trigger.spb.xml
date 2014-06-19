@@ -11,9 +11,6 @@
 	<!-- Turn on Spring's auotproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
-	<!-- Information need to connect to AWS -->
-	<import resource="audit-managers.spb.xml" />
-
 	<!-- This trigger pushes audit data to S3 -->
 	<bean id="accessRecorderTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean">
 		<property name="jobDetail">

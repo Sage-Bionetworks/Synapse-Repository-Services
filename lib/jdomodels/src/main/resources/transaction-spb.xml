@@ -10,9 +10,6 @@
 	<!-- Trun on Spring's auotproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
-	<!-- Import the stack configuration -->
-	<import resource="stack-configuration.spb.xml" />
-
 	<!-- This is serving as the JDBC connection pool -->
 	<bean id="dataSourcePool" class="org.apache.commons.dbcp.BasicDataSource"
 		destroy-method="close" depends-on="stackConfiguration">

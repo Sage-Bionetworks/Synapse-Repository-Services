@@ -26,7 +26,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:dynamo-dao-spb.xml" })
+@ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class CurrentRowCacheDaoAutowireTest {
 
 	@Autowired
