@@ -465,7 +465,7 @@ public class TableRowManagerImpl implements TableRowManager {
 			throw new UnauthorizedException("User does not have READ permission on: "+query.getTableId());
 		}
 		// Does this table exist?
-		if(query.getTableSchema() == null | query.getTableSchema().isEmpty()){
+		if(query.getTableSchema() == null || query.getTableSchema().isEmpty()){
 			// there are no columns for this table so the table does not actually exist.
 			// for this case the caller expects an empty result set.  See PLFM-2636
 			RowSet emptyResults = new RowSet();

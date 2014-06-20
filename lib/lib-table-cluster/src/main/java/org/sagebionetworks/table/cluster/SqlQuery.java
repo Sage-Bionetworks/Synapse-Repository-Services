@@ -95,6 +95,7 @@ public class SqlQuery {
 	public void init(QuerySpecification model, List<ColumnModel> tableSchema) {
 		if (tableSchema == null)
 			throw new IllegalArgumentException("TableSchema cannot be null");
+		this.tableSchema = tableSchema;
 		this.model = model;
 		this.tableId = SqlElementUntils.getTableId(model);
 		// This string builder is used to build up the output SQL.
