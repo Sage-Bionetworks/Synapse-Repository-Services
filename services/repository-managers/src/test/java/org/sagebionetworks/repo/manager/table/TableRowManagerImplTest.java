@@ -660,11 +660,10 @@ public class TableRowManagerImplTest {
 		bar.setId("222");
 		bar.setName("bar");
 		List<ColumnModel> models = Arrays.asList(foo, bar);
-		Map<String, ColumnModel> nameToModelMap = TableModelUtils.createColumnNameToModelMap(models);
-		SqlQuery query = new SqlQuery("select count(foo) from syn123", nameToModelMap);
+		SqlQuery query = new SqlQuery("select count(foo) from syn123", models);
 		
 		// Aggregate queries are always small enough to run. 
-		TableRowManagerImpl.validateQuerySize(query, models, 1);
+		TableRowManagerImpl.validateQuerySize(query, 1);
 	}
 	
 	@Test
@@ -679,12 +678,11 @@ public class TableRowManagerImplTest {
 		bar.setName("bar");
 		bar.setMaximumSize(1L);
 		List<ColumnModel> models = Arrays.asList(foo, bar);
-		Map<String, ColumnModel> nameToModelMap = TableModelUtils.createColumnNameToModelMap(models);
-		SqlQuery query = new SqlQuery("select foo, bar from syn123", nameToModelMap);
+		SqlQuery query = new SqlQuery("select foo, bar from syn123", models);
 		
 		int maxBytesPerRow = TableModelUtils.calculateMaxRowSize(models);
 		try{
-			TableRowManagerImpl.validateQuerySize(query, models, maxBytesPerRow*1000);
+			TableRowManagerImpl.validateQuerySize(query, maxBytesPerRow*1000);
 			fail("There is no limit on this query so it should have failed.");
 		}catch (IllegalArgumentException e){
 			// expected
@@ -704,12 +702,11 @@ public class TableRowManagerImplTest {
 		bar.setName("bar");
 		bar.setMaximumSize(2L);
 		List<ColumnModel> models = Arrays.asList(foo, bar);
-		Map<String, ColumnModel> nameToModelMap = TableModelUtils.createColumnNameToModelMap(models);
-		SqlQuery query = new SqlQuery("select foo, bar from syn123 limit 2", nameToModelMap);
+		SqlQuery query = new SqlQuery("select foo, bar from syn123 limit 2", models);
 		
 		int maxBytesPerRow = TableModelUtils.calculateMaxRowSize(models);
 		// this is under the limit
-		TableRowManagerImpl.validateQuerySize(query, models, maxBytesPerRow*2+1);
+		TableRowManagerImpl.validateQuerySize(query, maxBytesPerRow*2+1);
 	}
 	
 	@Test 
@@ -724,15 +721,14 @@ public class TableRowManagerImplTest {
 		bar.setName("bar");
 		bar.setMaximumSize(3L);
 		List<ColumnModel> models = Arrays.asList(foo, bar);
-		Map<String, ColumnModel> nameToModelMap = TableModelUtils.createColumnNameToModelMap(models);
-		SqlQuery query = new SqlQuery("select foo, bar from syn123 limit 2", nameToModelMap);
+		SqlQuery query = new SqlQuery("select foo, bar from syn123 limit 2", models);
 		
 		int maxBytesPerRow = TableModelUtils.calculateMaxRowSize(models);
 		// Set too small for this query
 		int testMaxBytesPerRow = maxBytesPerRow*2-1;
 		// this is under the limit
 		try{
-			TableRowManagerImpl.validateQuerySize(query, models, testMaxBytesPerRow);
+			TableRowManagerImpl.validateQuerySize(query, testMaxBytesPerRow);
 			fail("There is no limit on this query so it should have failed.");
 		}catch (IllegalArgumentException e){
 			// expected
@@ -784,5 +780,15 @@ public class TableRowManagerImplTest {
 	public void testGetMaxRowsPerPageEmpty(){
 		Long maxRows = this.manager.getMaxRowsPerPage(new LinkedList<ColumnModel>());
 		assertEquals(null, maxRows);
+	}
+	
+	@Test
+	public void testGetColumnsForHeaders() throws DatastoreException, NotFoundException{
+		// Headers can be a mix of column ids and aggregate functions.  The non-column model id headers should be ignored.
+		List<String> headers = Arrays.asList("1","2","count(2)","3");
+		when(mockColumnModelDAO.getColumnModel(Arrays.asList("1","2","3"), true)).thenReturn(Arrays.asList(models.get(1),models.get(2), models.get(3)));
+		List<ColumnModel> models = manager.getColumnsForHeaders(headers);
+		assertNotNull(models);
+		assertEquals(3, models.size());
 	}
 }

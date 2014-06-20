@@ -39,6 +39,7 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
+import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
@@ -234,6 +235,21 @@ public class IT100TableControllerTest {
 		assertNotNull(onlyRow.getValues());
 		assertEquals(1, onlyRow.getValues().size());
 		assertEquals("There should be 3 rows in this table", "3", onlyRow.getValues().get(0));
+		
+		// run a bundled query
+		isConsistent = true;
+		int mask = 0x1 | 0x2 | 0x4 | 0x8;
+		QueryResultBundle bundle = waitForBundleQueryResults("select * from " + table.getId() + " limit 2", isConsistent, mask);
+		assertNotNull(bundle);
+		assertNotNull(bundle.getQueryResults());
+		assertNotNull(bundle.getQueryResults().getEtag());
+		assertEquals(table.getId(), bundle.getQueryResults().getTableId());
+		assertNotNull(bundle.getQueryResults().getRows());
+		assertEquals(1, bundle.getQueryResults().getRows().size());
+		assertEquals("There should be 3 rows in this table", new Long(3), bundle.getQueryCount());
+		assertEquals(expected, bundle.getSelectColumns());
+		assertNotNull(bundle.getMaxRowsPerPage());
+		assertTrue(bundle.getMaxRowsPerPage() > 0);
 	}
 
 	/**
@@ -249,6 +265,30 @@ public class IT100TableControllerTest {
 		while(true){
 			try {
 				RowSet queryResutls = synapse.queryTableEntity(sql, isConsistent, countOnly);
+				return queryResutls;
+			} catch (SynapseTableUnavailableException e) {
+				// The table is not ready yet
+				assertFalse("Table processing failed: "+e.getStatus().getErrorMessage(), TableState.PROCESSING_FAILED.equals(e.getStatus().getState()));
+				System.out.println("Waiting for table index to be available: "+e.getStatus());
+				Thread.sleep(2000);
+				assertTrue("Timed out waiting for query results for sql: "+sql,System.currentTimeMillis()-start < MAX_QUERY_TIMEOUT_MS);
+			}
+		}
+	}
+	
+	/**
+	 * Wait for a consistent query results.
+	 * 
+	 * @param sql
+	 * @return
+	 * @throws InterruptedException
+	 * @throws SynapseException
+	 */
+	public QueryResultBundle waitForBundleQueryResults(String sql, boolean isConsistent, int partsMask) throws InterruptedException, SynapseException{
+		long start = System.currentTimeMillis();
+		while(true){
+			try {
+				QueryResultBundle queryResutls = synapse.queryTableEntityBundle(sql, isConsistent, partsMask);
 				return queryResutls;
 			} catch (SynapseTableUnavailableException e) {
 				// The table is not ready yet
