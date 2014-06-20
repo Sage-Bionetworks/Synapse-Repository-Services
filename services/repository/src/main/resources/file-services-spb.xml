@@ -11,8 +11,6 @@
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 	
-	<import resource="classpath:managers-spb.xml" />
-		
 	<bean id="fileService" class="org.sagebionetworks.file.services.FileUploadServiceImpl" />
 	
 </beans>

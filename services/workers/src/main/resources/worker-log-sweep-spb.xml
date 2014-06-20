@@ -11,8 +11,6 @@
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
-	<import resource="classpath:log-sweeper.spb.xml" />
-
 	<bean id="workersLogSweeperFactory" class="org.sagebionetworks.logging.s3.LogSweeperFactoryImpl"
 		scope="singleton">
 		<property name="lockExpiresMs" value="300000" />

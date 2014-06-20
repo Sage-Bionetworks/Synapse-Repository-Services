@@ -10,8 +10,6 @@
 
 	<aop:aspectj-autoproxy />
 
-	<import resource="classpath:dao-beans.spb.xml" />
-
 	<bean id="trashWorkerFactory" class="org.sagebionetworks.trash.worker.TrashWorkerFactory"/>
 
 	<!-- This gate ensures we never run more than the max number of runners

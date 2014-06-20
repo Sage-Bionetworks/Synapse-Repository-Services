@@ -11,8 +11,6 @@
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
-	<!-- Import the stack configuration -->
-	<import resource="transaction-spb.xml" />
 
 	<bean id="ddlUtils" class="org.sagebionetworks.repo.model.dbo.DDLUtilsImpl" />
 

@@ -11,9 +11,6 @@
 	<!-- Turn on Spring's auotproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
-	<!-- Information need to connect to AWS -->
-	<import resource="audit-dao.spb.xml" />
-
 	<bean id="accessRecordManager"
 		class="org.sagebionetworks.repo.manager.audit.AccessRecordManagerImpl" />
 

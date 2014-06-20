@@ -12,8 +12,6 @@
 
 	<aop:aspectj-autoproxy />
 
-	<import resource="stack-configuration.spb.xml" />
-
 	<bean id="userID" class="org.sagebionetworks.StackConfiguration" factory-method="getIAMUserId" />
 	<bean id="userKey" class="org.sagebionetworks.StackConfiguration" factory-method="getIAMUserKey" />
 
