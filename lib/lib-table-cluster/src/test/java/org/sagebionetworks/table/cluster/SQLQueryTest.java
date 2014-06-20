@@ -6,19 +6,14 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TimeZone;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.sagebionetworks.collections.Transform;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -26,9 +21,6 @@ import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.model.ColumnReference;
 import org.sagebionetworks.table.query.model.Predicate;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
-
-import com.google.common.base.Function;
-import com.google.common.collect.Lists;
 
 public class SQLQueryTest {
 	
@@ -135,9 +127,7 @@ public class SQLQueryTest {
 		SqlQuery translator = new SqlQuery("select foo from syn123", tableSchema);
 		assertEquals("SELECT C111, ROW_ID, ROW_VERSION FROM T123", translator.getOutputSQL());
 		assertFalse(translator.isAggregatedResult());
-		ColumnModel cm = new ColumnModel();
-		cm.setId("111");
-		List<ColumnModel> expectedSelect = Arrays.asList(cm);
+		List<ColumnModel> expectedSelect = Arrays.asList(columnNameToModelMap.get("foo"));
 		assertEquals(expectedSelect, translator.getSelectColumnModels());
 	}
 	
@@ -146,11 +136,7 @@ public class SQLQueryTest {
 		SqlQuery translator = new SqlQuery("select foo, bar from syn123", tableSchema);
 		assertEquals("SELECT C111, C333, ROW_ID, ROW_VERSION FROM T123", translator.getOutputSQL());
 		assertFalse(translator.isAggregatedResult());
-		ColumnModel cm111 = new ColumnModel();
-		cm111.setId("111");
-		ColumnModel cm333 = new ColumnModel();
-		cm333.setId("333");
-		List<ColumnModel> expectedSelect = Arrays.asList(cm111, cm333);
+		List<ColumnModel> expectedSelect = Arrays.asList(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar"));
 		assertEquals(expectedSelect, translator.getSelectColumnModels());
 	}
 	
@@ -159,11 +145,7 @@ public class SQLQueryTest {
 		SqlQuery translator = new SqlQuery("select distinct foo, bar from syn123", tableSchema);
 		assertEquals("SELECT DISTINCT C111, C333, ROW_ID, ROW_VERSION FROM T123", translator.getOutputSQL());
 		assertFalse(translator.isAggregatedResult());
-		ColumnModel cm111 = new ColumnModel();
-		cm111.setId("111");
-		ColumnModel cm333 = new ColumnModel();
-		cm333.setId("333");
-		List<ColumnModel> expectedSelect = Arrays.asList(cm111, cm333);
+		List<ColumnModel> expectedSelect = Arrays.asList(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar"));
 		assertEquals(expectedSelect, translator.getSelectColumnModels());
 	}
 	
