@@ -9,6 +9,7 @@
         "DELETE",
         "CHANGE_PERMISSIONS",
 	 	"DOWNLOAD",
+	 	"UPLOAD",
 	 	"PARTICIPATE",
 	 	"SUBMIT",
 	 	"READ_PRIVATE_SUBMISSION",

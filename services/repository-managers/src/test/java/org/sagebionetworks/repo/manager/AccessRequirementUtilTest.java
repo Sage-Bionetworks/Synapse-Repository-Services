@@ -73,7 +73,7 @@ public class AccessRequirementUtilTest {
 	@Test
 	public void testOwnerEntityRequest() throws Exception {
 		//current user requesting is the owner of the entity
-		List<Long> unmetARs = AccessRequirementUtil.unmetAccessRequirementIdsForEntity(userInfo, NODE_ID, new ArrayList<String>(), mockNodeDAO, mockAccessRequirementDAO);
+		List<Long> unmetARs = AccessRequirementUtil.unmetDownloadAccessRequirementIdsForEntity(userInfo, NODE_ID, new ArrayList<String>(), mockNodeDAO, mockAccessRequirementDAO);
 		assertTrue(unmetARs.size() == 0);
 	}
 	
@@ -81,7 +81,7 @@ public class AccessRequirementUtilTest {
 	public void testEntityRequest() throws Exception {
 		//current user did not create the target node, should return unmet download ARs 
 		testEntityNode.setCreatedByPrincipalId(42l);
-		List<Long> unmetARs = AccessRequirementUtil.unmetAccessRequirementIdsForEntity(userInfo, NODE_ID, new ArrayList<String>(), mockNodeDAO, mockAccessRequirementDAO);
+		List<Long> unmetARs = AccessRequirementUtil.unmetDownloadAccessRequirementIdsForEntity(userInfo, NODE_ID, new ArrayList<String>(), mockNodeDAO, mockAccessRequirementDAO);
 		assertEquals(unmetARsDownload, unmetARs);
 	}
 	

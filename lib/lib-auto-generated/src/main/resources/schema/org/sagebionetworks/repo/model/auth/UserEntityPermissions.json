@@ -26,6 +26,10 @@
 			"type": "boolean",
 			"description": "Can the user download this entity?"
 		},
+		"canUpload": {
+			"type": "boolean",
+			"description": "Can the user upload into this entity (folder or project)?"
+		},
 		"canEnableInheritance": {
 			"type": "boolean",
 			"description": "Can the user delete the entity's access control list (so it inherits settings from an ancestor)?"
