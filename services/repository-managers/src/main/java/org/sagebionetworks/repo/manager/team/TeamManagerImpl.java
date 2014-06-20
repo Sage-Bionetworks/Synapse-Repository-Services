@@ -512,7 +512,7 @@ public class TeamManagerImpl implements TeamManager {
 		UserProfile userProfile = userProfileDAO.get(invitee.getId().toString());
 		String displayName = EmailUtils.getDisplayName(inviteeUserName, userProfile);
 		Map<String,String> fieldValues = new HashMap<String,String>();
-		fieldValues.put("#userName#", displayName);
+		fieldValues.put("#displayName#", displayName);
 		fieldValues.put("#teamName#", teamDAO.get(teamId).getName());
 		fieldValues.put("#teamId#", teamId);
 		String messageContent = EmailUtils.readMailTemplate(USER_HAS_JOINED_TEAM_TEMPLATE, fieldValues);

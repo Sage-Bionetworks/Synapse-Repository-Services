@@ -16,6 +16,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.NotificationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -24,14 +25,20 @@ import org.sagebionetworks.repo.model.MembershipRqstSubmission;
 import org.sagebionetworks.repo.model.MembershipRqstSubmissionDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 
 public class MembershipRequestManagerImplTest {
 	
 	private AuthorizationManager mockAuthorizationManager = null;
 	private MembershipRequestManagerImpl membershipRequestManagerImpl = null;
 	private MembershipRqstSubmissionDAO mockMembershipRqstSubmissionDAO = null;
+	private NotificationManager mockNotificationManager;
+	private PrincipalAliasDAO mockPrincipalAliasDAO;
+	private TeamDAO mockTeamDAO;
+
 	
 	private UserInfo userInfo = null;
 	private UserInfo adminInfo = null;
@@ -41,9 +48,14 @@ public class MembershipRequestManagerImplTest {
 	public void setUp() throws Exception {
 		mockAuthorizationManager = Mockito.mock(AuthorizationManager.class);
 		mockMembershipRqstSubmissionDAO = Mockito.mock(MembershipRqstSubmissionDAO.class);
+		mockNotificationManager = Mockito.mock(NotificationManager.class);
+		mockPrincipalAliasDAO = Mockito.mock(PrincipalAliasDAO.class);
 		membershipRequestManagerImpl = new MembershipRequestManagerImpl(
 				mockAuthorizationManager,
-				mockMembershipRqstSubmissionDAO
+				mockMembershipRqstSubmissionDAO,
+				mockNotificationManager,
+				mockPrincipalAliasDAO,
+				mockTeamDAO
 				);
 		userInfo = new UserInfo(false);
 		userInfo.setId(Long.parseLong(MEMBER_PRINCIPAL_ID));

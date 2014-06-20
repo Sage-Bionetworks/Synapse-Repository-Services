@@ -112,7 +112,7 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 		UserProfile userProfile = userProfileDAO.get(requester.getId().toString());
 		String displayName = EmailUtils.getDisplayName(requesterUserName, userProfile);
 		Map<String,String> fieldValues = new HashMap<String,String>();
-		fieldValues.put("#userName#", displayName);
+		fieldValues.put("#displayName#", displayName);
 		fieldValues.put("#teamName#", teamDAO.get(teamId).getName());
 		fieldValues.put("#teamId#", teamId);
 		String messageContent = EmailUtils.readMailTemplate(TEAM_MEMBERSHIP_REQUEST_CREATED_TEMPLATE, fieldValues);

@@ -14,6 +14,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.NotificationManager;
+import org.sagebionetworks.repo.manager.NotificationManagerImpl;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.MembershipInvitation;
@@ -21,6 +23,7 @@ import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
 import org.sagebionetworks.repo.model.MembershipInvtnSubmissionDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.TeamDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 
@@ -29,6 +32,8 @@ public class MembershipInvitationManagerImplTest {
 	private MembershipInvitationManagerImpl membershipInvitationManagerImpl = null;
 	private AuthorizationManager mockAuthorizationManager = null;
 	private MembershipInvtnSubmissionDAO mockMembershipInvtnSubmissionDAO = null;
+	private NotificationManager mockNotificationManager = null;
+	private TeamDAO mockTeamDAO = null;
 	
 	private UserInfo userInfo = null;
 	private UserInfo adminInfo = null;
@@ -56,9 +61,12 @@ public class MembershipInvitationManagerImplTest {
 	public void setUp() throws Exception {
 		mockAuthorizationManager = Mockito.mock(AuthorizationManager.class);
 		mockMembershipInvtnSubmissionDAO = Mockito.mock(MembershipInvtnSubmissionDAO.class);
+		mockNotificationManager = Mockito.mock(NotificationManager.class);
 		membershipInvitationManagerImpl = new MembershipInvitationManagerImpl(
 				mockAuthorizationManager,
-				mockMembershipInvtnSubmissionDAO
+				mockMembershipInvtnSubmissionDAO,
+				mockNotificationManager,
+				mockTeamDAO
 				);
 		userInfo = new UserInfo(false, MEMBER_PRINCIPAL_ID);
 		adminInfo = new UserInfo(true, -1l);
