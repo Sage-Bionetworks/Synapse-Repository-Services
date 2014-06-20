@@ -164,9 +164,14 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		List<Long> unmetIds = null;
 		if (RestrictableObjectType.ENTITY==subjectId.getType()) {
 			List<String> nodeAncestorIds = AccessRequirementUtil.getNodeAncestorIds(nodeDao, subjectId.getId(), false);
+			subjectIds.addAll(nodeAncestorIds);
 			unmetIds = AccessRequirementUtil.unmetDownloadAccessRequirementIdsForEntity(
 				userInfo, subjectId.getId(), nodeAncestorIds, nodeDao, accessRequirementDAO);
-			subjectIds.addAll(nodeAncestorIds);
+			List<String> entityAndAncestorIds = new ArrayList<String>(nodeAncestorIds);
+			entityAndAncestorIds.add(subjectId.getId());
+			unmetIds.addAll(AccessRequirementUtil.
+					unmetUploadAccessRequirementIdsForEntity(userInfo, 
+							entityAndAncestorIds, nodeDao, accessRequirementDAO));
 		} else if (RestrictableObjectType.EVALUATION==subjectId.getType()) {
 			unmetIds = AccessRequirementUtil.unmetAccessRequirementIdsForEvaluation(
 					userInfo, subjectId.getId(), accessRequirementDAO);
