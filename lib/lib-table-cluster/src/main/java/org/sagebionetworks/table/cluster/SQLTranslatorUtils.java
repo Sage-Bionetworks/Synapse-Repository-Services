@@ -3,6 +3,7 @@ package org.sagebionetworks.table.cluster;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -902,26 +903,26 @@ public class SQLTranslatorUtils {
 	 * @param selectList
 	 * @return
 	 */
-	public static List<Long> getSelectColumns(SelectList selectList, Map<String, ColumnModel> columnNameToModelMap) {
+	public static List<ColumnModel> getSelectColumns(SelectList selectList, Map<String, ColumnModel> columnNameToModelMap) {
 		if (columnNameToModelMap == null)
 			throw new IllegalArgumentException("All columns cannot be null");
 		if(selectList == null) throw new IllegalArgumentException();
 		if(selectList.getAsterisk() != null){
 			// All of the columns will be returned.
-			return Transform.toList(columnNameToModelMap.values(), MODEL_TO_ID);
+			return new ArrayList<ColumnModel>(columnNameToModelMap.values());
 		}else{
-			List<Long> selectIds = new LinkedList<Long>();
+			List<ColumnModel> selectColumnModels = new LinkedList<ColumnModel>();
 			for(DerivedColumn dc: selectList.getColumns()){
 				ValueExpressionPrimary primary = getValueExpressionPrimary(dc.getValueExpression());
 				if(primary.getColumnReference() != null){
 					String key = getStringValueOf(primary.getColumnReference().getNameLHS());
 					ColumnModel column = columnNameToModelMap.get(key);
 					if (column != null) {
-						selectIds.add(MODEL_TO_ID.apply(column));
+						selectColumnModels.add(column);
 					}
 				}
 			}
-			return selectIds;
+			return selectColumnModels;
 		}
 	}
 }

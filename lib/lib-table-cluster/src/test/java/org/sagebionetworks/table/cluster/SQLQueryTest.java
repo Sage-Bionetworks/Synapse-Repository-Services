@@ -8,6 +8,7 @@ import static org.junit.Assert.fail;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
@@ -38,6 +39,7 @@ public class SQLQueryTest {
 	private static final String DATE2 = "11-02-22";
 
 	Map<String, ColumnModel> columnNameToModelMap;
+	List<ColumnModel> tableSchema;
 	
 	@Before
 	public void before(){
@@ -48,6 +50,7 @@ public class SQLQueryTest {
 		columnNameToModelMap.put("foobar", TableModelTestUtils.createColumn(444L, "foobar", ColumnType.STRING));
 		columnNameToModelMap.put("Foo", TableModelTestUtils.createColumn(555L, "Foo", ColumnType.STRING));
 		columnNameToModelMap.put("datetype", TableModelTestUtils.createColumn(666L, "datetype", ColumnType.DATE));
+		tableSchema = new ArrayList<ColumnModel>(columnNameToModelMap.values());
 	}
 	
 	@Test
@@ -120,76 +123,80 @@ public class SQLQueryTest {
 	
 	@Test
 	public void testSelectStar() throws ParseException{
-		SqlQuery translator = new SqlQuery("select * from syn123", columnNameToModelMap);
+		SqlQuery translator = new SqlQuery("select * from syn123", tableSchema);
 		assertEquals("SELECT * FROM T123", translator.getOutputSQL());
 		assertFalse(translator.isAggregatedResult());
-		assertNotNull(translator.getSelectColumnIds());
-		assertEquals(translator.getSelectColumnIds().size(), 6);
-		assertTrue(translator.getSelectColumnIds().containsAll(
-				Transform.toList(columnNameToModelMap.values(), new Function<ColumnModel, Long>() {
-					@Override
-					public Long apply(ColumnModel input) {
-						return Long.parseLong(input.getId());
-					}
-				})));
+		assertNotNull(translator.getSelectColumnModels());
+		assertEquals(translator.getSelectColumnModels().size(), 6);
+		assertTrue(translator.getSelectColumnModels().containsAll(this.tableSchema));
 	}
 	@Test
 	public void testSelectSingColumns() throws ParseException{
-		SqlQuery translator = new SqlQuery("select foo from syn123", columnNameToModelMap);
+		SqlQuery translator = new SqlQuery("select foo from syn123", tableSchema);
 		assertEquals("SELECT C111, ROW_ID, ROW_VERSION FROM T123", translator.getOutputSQL());
 		assertFalse(translator.isAggregatedResult());
-		List<Long> expectedSelect = Arrays.asList(111L);
-		assertEquals(expectedSelect, translator.getSelectColumnIds());
+		ColumnModel cm = new ColumnModel();
+		cm.setId("111");
+		List<ColumnModel> expectedSelect = Arrays.asList(cm);
+		assertEquals(expectedSelect, translator.getSelectColumnModels());
 	}
 	
 	@Test
 	public void testSelectMultipleColumns() throws ParseException{
-		SqlQuery translator = new SqlQuery("select foo, bar from syn123", columnNameToModelMap);
+		SqlQuery translator = new SqlQuery("select foo, bar from syn123", tableSchema);
 		assertEquals("SELECT C111, C333, ROW_ID, ROW_VERSION FROM T123", translator.getOutputSQL());
 		assertFalse(translator.isAggregatedResult());
-		List<Long> expectedSelect = Arrays.asList(111L, 333L);
-		assertEquals(expectedSelect, translator.getSelectColumnIds());
+		ColumnModel cm111 = new ColumnModel();
+		cm111.setId("111");
+		ColumnModel cm333 = new ColumnModel();
+		cm333.setId("333");
+		List<ColumnModel> expectedSelect = Arrays.asList(cm111, cm333);
+		assertEquals(expectedSelect, translator.getSelectColumnModels());
 	}
 	
 	@Test
 	public void testSelectDistinct() throws ParseException{
-		SqlQuery translator = new SqlQuery("select distinct foo, bar from syn123", columnNameToModelMap);
+		SqlQuery translator = new SqlQuery("select distinct foo, bar from syn123", tableSchema);
 		assertEquals("SELECT DISTINCT C111, C333, ROW_ID, ROW_VERSION FROM T123", translator.getOutputSQL());
 		assertFalse(translator.isAggregatedResult());
-		List<Long> expectedSelect = Arrays.asList(111L, 333L);
-		assertEquals(expectedSelect, translator.getSelectColumnIds());
+		ColumnModel cm111 = new ColumnModel();
+		cm111.setId("111");
+		ColumnModel cm333 = new ColumnModel();
+		cm333.setId("333");
+		List<ColumnModel> expectedSelect = Arrays.asList(cm111, cm333);
+		assertEquals(expectedSelect, translator.getSelectColumnModels());
 	}
 	
 	@Test
 	public void testSelectCountStar() throws ParseException{
-		SqlQuery translator = new SqlQuery("select count(*) from syn123", columnNameToModelMap);
+		SqlQuery translator = new SqlQuery("select count(*) from syn123", tableSchema);
 		assertEquals("SELECT COUNT(*) FROM T123", translator.getOutputSQL());
 		assertTrue(translator.isAggregatedResult());
-		assertTrue(translator.getSelectColumnIds().isEmpty());
+		assertTrue(translator.getSelectColumnModels().isEmpty());
 	}
 	
 	@Test
 	public void testSelectAggregate() throws ParseException{
-		SqlQuery translator = new SqlQuery("select avg(foo) from syn123", columnNameToModelMap);
+		SqlQuery translator = new SqlQuery("select avg(foo) from syn123", tableSchema);
 		assertEquals("SELECT AVG(C111) FROM T123", translator.getOutputSQL());
 		assertTrue(translator.isAggregatedResult());
-		assertTrue(translator.getSelectColumnIds().isEmpty());
+		assertTrue(translator.getSelectColumnModels().isEmpty());
 	}
 	
 	@Test
 	public void testSelectAggregateMultiple() throws ParseException{
-		SqlQuery translator = new SqlQuery("select avg(foo), max(bar) from syn123", columnNameToModelMap);
+		SqlQuery translator = new SqlQuery("select avg(foo), max(bar) from syn123", tableSchema);
 		assertEquals("SELECT AVG(C111), MAX(C333) FROM T123", translator.getOutputSQL());
 		assertTrue(translator.isAggregatedResult());
-		assertTrue(translator.getSelectColumnIds().isEmpty());
+		assertTrue(translator.getSelectColumnModels().isEmpty());
 	}
 	
 	@Test
 	public void testSelectDistinctAggregate() throws ParseException{
-		SqlQuery translator = new SqlQuery("select count(distinct foo) from syn123", columnNameToModelMap);
+		SqlQuery translator = new SqlQuery("select count(distinct foo) from syn123", tableSchema);
 		assertEquals("SELECT COUNT(DISTINCT C111) FROM T123", translator.getOutputSQL());
 		assertTrue(translator.isAggregatedResult());
-		assertTrue(translator.getSelectColumnIds().isEmpty());
+		assertTrue(translator.getSelectColumnModels().isEmpty());
 	}
 	
 	@Test
@@ -391,7 +398,7 @@ public class SQLQueryTest {
 	
 	@Test
 	public void testWhereSimple() throws ParseException{
-		SqlQuery translator = new SqlQuery("select * from syn123 where foo = 1", columnNameToModelMap);
+		SqlQuery translator = new SqlQuery("select * from syn123 where foo = 1", tableSchema);
 		// The value should be bound in the SQL
 		assertEquals("SELECT * FROM T123 WHERE C111 = :b0", translator.getOutputSQL());
 		// The value should be in the parameters map.
@@ -400,7 +407,7 @@ public class SQLQueryTest {
 	
 	@Test
 	public void testWhereOr() throws ParseException{
-		SqlQuery translator = new SqlQuery("select * from syn123 where foo = 1 or bar = 2", columnNameToModelMap);
+		SqlQuery translator = new SqlQuery("select * from syn123 where foo = 1 or bar = 2", tableSchema);
 		// The value should be bound in the SQL
 		assertEquals("SELECT * FROM T123 WHERE C111 = :b0 OR C333 = :b1", translator.getOutputSQL());
 		// The value should be in the parameters map.
@@ -411,7 +418,7 @@ public class SQLQueryTest {
 	
 	@Test
 	public void testWhereAnd() throws ParseException{
-		SqlQuery translator = new SqlQuery("select * from syn123 where foo = 1 and bar = 2", columnNameToModelMap);
+		SqlQuery translator = new SqlQuery("select * from syn123 where foo = 1 and bar = 2", tableSchema);
 		// The value should be bound in the SQL
 		assertEquals("SELECT * FROM T123 WHERE C111 = :b0 AND C333 = :b1", translator.getOutputSQL());
 		// The value should be in the parameters map.
@@ -421,7 +428,7 @@ public class SQLQueryTest {
 	
 	@Test
 	public void testWhereNested() throws ParseException{
-		SqlQuery translator = new SqlQuery("select * from syn123 where (foo = 1 and bar = 2) or foobar = 3", columnNameToModelMap);
+		SqlQuery translator = new SqlQuery("select * from syn123 where (foo = 1 and bar = 2) or foobar = 3", tableSchema);
 		// The value should be bound in the SQL
 		assertEquals("SELECT * FROM T123 WHERE (C111 = :b0 AND C333 = :b1) OR C444 = :b2", translator.getOutputSQL());
 		// The value should be in the parameters map.
@@ -432,28 +439,28 @@ public class SQLQueryTest {
 	
 	@Test
 	public void testGroupByOne() throws ParseException{
-		SqlQuery translator = new SqlQuery("select * from syn123 group by foo", columnNameToModelMap);
+		SqlQuery translator = new SqlQuery("select * from syn123 group by foo", tableSchema);
 		// The value should be bound in the SQL
 		assertEquals("SELECT * FROM T123 GROUP BY C111", translator.getOutputSQL());
 	}
 	
 	@Test
 	public void testGroupByMultiple() throws ParseException{
-		SqlQuery translator = new SqlQuery("select * from syn123 group by foo, bar", columnNameToModelMap);
+		SqlQuery translator = new SqlQuery("select * from syn123 group by foo, bar", tableSchema);
 		// The value should be bound in the SQL
 		assertEquals("SELECT * FROM T123 GROUP BY C111, C333", translator.getOutputSQL());
 	}
 	
 	@Test
 	public void testOrderByOneNoSpec() throws ParseException{
-		SqlQuery translator = new SqlQuery("select * from syn123 order by foo", columnNameToModelMap);
+		SqlQuery translator = new SqlQuery("select * from syn123 order by foo", tableSchema);
 		// The value should be bound in the SQL
 		assertEquals("SELECT * FROM T123 ORDER BY C111", translator.getOutputSQL());
 	}
 	
 	@Test
 	public void testOrderByOneWithSpec() throws ParseException{
-		SqlQuery translator = new SqlQuery("select * from syn123 order by foo desc", columnNameToModelMap);
+		SqlQuery translator = new SqlQuery("select * from syn123 order by foo desc", tableSchema);
 		// The value should be bound in the SQL
 		assertEquals("SELECT * FROM T123 ORDER BY C111 DESC", translator.getOutputSQL());
 	}
@@ -461,21 +468,21 @@ public class SQLQueryTest {
 	
 	@Test
 	public void testOrderByMultipleNoSpec() throws ParseException{
-		SqlQuery translator = new SqlQuery("select * from syn123 order by foo, bar", columnNameToModelMap);
+		SqlQuery translator = new SqlQuery("select * from syn123 order by foo, bar", tableSchema);
 		// The value should be bound in the SQL
 		assertEquals("SELECT * FROM T123 ORDER BY C111, C333", translator.getOutputSQL());
 	}
 	
 	@Test
 	public void testOrderByMultipeWithSpec() throws ParseException{
-		SqlQuery translator = new SqlQuery("select * from syn123 order by foo asc, bar desc", columnNameToModelMap);
+		SqlQuery translator = new SqlQuery("select * from syn123 order by foo asc, bar desc", tableSchema);
 		// The value should be bound in the SQL
 		assertEquals("SELECT * FROM T123 ORDER BY C111 ASC, C333 DESC", translator.getOutputSQL());
 	}
 	
 	@Test
 	public void testLimit() throws ParseException{
-		SqlQuery translator = new SqlQuery("select * from syn123 limit 100", columnNameToModelMap);
+		SqlQuery translator = new SqlQuery("select * from syn123 limit 100", tableSchema);
 		// The value should be bound in the SQL
 		assertEquals("SELECT * FROM T123 LIMIT :b0", translator.getOutputSQL());
 		assertEquals(100L,translator.getParameters().get("b0"));
@@ -483,7 +490,7 @@ public class SQLQueryTest {
 	
 	@Test
 	public void testLimitAndOffset() throws ParseException{
-		SqlQuery translator = new SqlQuery("select * from syn123 limit 100 offset 2", columnNameToModelMap);
+		SqlQuery translator = new SqlQuery("select * from syn123 limit 100 offset 2", tableSchema);
 		// The value should be bound in the SQL
 		assertEquals("SELECT * FROM T123 LIMIT :b0 OFFSET :b1", translator.getOutputSQL());
 		assertEquals(100L,translator.getParameters().get("b0"));
@@ -493,7 +500,7 @@ public class SQLQueryTest {
 	@Test
 	public void testAllParts() throws ParseException{
 		SqlQuery translator = new SqlQuery(
-				"select foo, bar from syn123 where foobar >= 1.89e4 group by foo order by bar desc limit 10 offset 0", columnNameToModelMap);
+				"select foo, bar from syn123 where foobar >= 1.89e4 group by foo order by bar desc limit 10 offset 0", tableSchema);
 		// The value should be bound in the SQL
 		assertEquals("SELECT C111, C333, ROW_ID, ROW_VERSION FROM T123 WHERE C444 >= :b0 GROUP BY C111 ORDER BY C333 DESC LIMIT :b1 OFFSET :b2", translator.getOutputSQL());
 		assertEquals("1.89e4",translator.getParameters().get("b0"));

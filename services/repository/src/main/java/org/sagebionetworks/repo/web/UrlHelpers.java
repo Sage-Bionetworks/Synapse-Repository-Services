@@ -663,6 +663,7 @@ public class UrlHelpers {
 	public static final String ENTITY_TABLE_FILE = ENTITY_TABLE + COLUMN_ID + ROW_ID + ROW_VERSION + FILE;
 	public static final String ENTITY_TABLE_FILE_PREVIEW = ENTITY_TABLE + COLUMN_ID + ROW_ID + ROW_VERSION + FILE_PREVIEW;
 	public static final String TABLE_QUERY = TABLE+"/query";
+	public static final String TABLE_QUERY_BUNDLE = TABLE_QUERY+"/bundle";
 	
 	// Asynchronous jobs
 	public static final String ASYNCHRONOUS_JOB = "/asynchronous/job";
