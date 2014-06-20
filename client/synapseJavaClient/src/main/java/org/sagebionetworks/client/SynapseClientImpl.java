@@ -230,7 +230,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String ATTACHMENT_FILE_PREVIEW = "/attachmentpreview";
 	private static final String FILE_NAME_PARAMETER = "?fileName=";
 	private static final String REDIRECT_PARAMETER = "redirect=";
-	private static final String OFFSET_PARAMETER = "?offset=";
+	private static final String OFFSET_PARAMETER = "offset=";
 	private static final String LIMIT_PARAMETER = "limit=";
 	private static final String VERSION_PARAMETER = "?wikiVersion=";
 	private static final String AND_VERSION_PARAMETER = "&wikiVersion=";
@@ -1134,10 +1134,19 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		sb.deleteCharAt(sb.length() - 1);
 		return sb.toString();
 	}
+	
 	@Override
 	public UserGroupHeaderResponsePage getUserGroupHeadersByPrefix(String prefix) throws SynapseException, UnsupportedEncodingException {
 		String encodedPrefix = URLEncoder.encode(prefix, "UTF-8");
 		JSONObject json = getEntity(USER_GROUP_HEADER_PREFIX_PATH+encodedPrefix);
+		return initializeFromJSONObject(json, UserGroupHeaderResponsePage.class);
+	}
+	
+	@Override
+	public UserGroupHeaderResponsePage getUserGroupHeadersByPrefix(String prefix, long limit, long offset) throws SynapseException, UnsupportedEncodingException {
+		String encodedPrefix = URLEncoder.encode(prefix, "UTF-8");
+		JSONObject json = getEntity(USER_GROUP_HEADER_PREFIX_PATH+encodedPrefix+
+				"&"+LIMIT_PARAMETER+limit+"&"+OFFSET_PARAMETER+offset);
 		return initializeFromJSONObject(json, UserGroupHeaderResponsePage.class);
 	}
 	
@@ -2822,7 +2831,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public PaginatedResults<V2WikiHistorySnapshot> getV2WikiHistory(WikiPageKey key, Long limit, Long offset)
 		throws JSONObjectAdapterException, SynapseException {
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
-		String uri = createV2WikiURL(key) + WIKI_HISTORY_V2 + OFFSET_PARAMETER + offset + AND_LIMIT_PARAMETER + limit;
+		String uri = createV2WikiURL(key) + WIKI_HISTORY_V2 + "?"+ OFFSET_PARAMETER + offset + AND_LIMIT_PARAMETER + limit;
 		JSONObject object = getSharedClientConnection().getJson(repoEndpoint, uri, getUserAgent());
 		PaginatedResults<V2WikiHistorySnapshot> paginated = new PaginatedResults<V2WikiHistorySnapshot>(V2WikiHistorySnapshot.class);
 		paginated.initializeFromJSONObject(new JSONObjectAdapterImpl(object));

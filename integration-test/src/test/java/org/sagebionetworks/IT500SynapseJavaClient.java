@@ -724,6 +724,19 @@ public class IT500SynapseJavaClient {
 			if (up.getOwnerId().equals(myPrincipalId)) foundSelf=true;
 		}
 		assertTrue("Didn't find self, only found "+allDisplayNames, foundSelf);
+		
+	}
+	
+	@Test
+	public void testGetUserGroupHeaders() throws Exception {
+		UserProfile adminProfile = adminSynapse.getMyProfile();
+		assertNotNull(adminProfile);
+		// here we are just trying to check that the URI and request parameters are 'wired up' right
+		UserGroupHeaderResponsePage page = synapseOne.getUserGroupHeadersByPrefix(adminProfile.getUserName());
+		assertTrue(page.getTotalNumberOfResults()>0);
+		page = synapseOne.getUserGroupHeadersByPrefix(adminProfile.getUserName(), 5, 0);
+		assertTrue(page.getTotalNumberOfResults()>0);
+		
 	}
 
 	@Test

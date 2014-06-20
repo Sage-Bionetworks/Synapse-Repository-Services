@@ -383,7 +383,27 @@ public interface SynapseClient extends BaseClient {
 	public UserGroupHeaderResponsePage getUserGroupHeadersByIds(List<String> ids)
 			throws SynapseException;
 
+	/**
+	 * 
+	 * uses the default pagination as determined by the server
+	 * @param prefix
+	 * @return the users whose first, last or user name matches the given prefix
+	 * @throws SynapseException
+	 * @throws UnsupportedEncodingException
+	 */
 	public UserGroupHeaderResponsePage getUserGroupHeadersByPrefix(String prefix)
+			throws SynapseException, UnsupportedEncodingException;
+
+	/**
+	 * 
+	 * @param prefix
+	 * @param limit page size
+	 * @param offset page start
+	 * @return the users whose first, last or user name matches the given prefix
+	 * @throws SynapseException
+	 * @throws UnsupportedEncodingException
+	 */
+	public UserGroupHeaderResponsePage getUserGroupHeadersByPrefix(String prefix, long limit, long offset)
 			throws SynapseException, UnsupportedEncodingException;
 
 	public AccessControlList updateACL(AccessControlList acl) throws SynapseException;
