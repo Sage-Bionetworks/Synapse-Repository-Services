@@ -10,8 +10,6 @@
                            http://www.springframework.org/schema/context/spring-context-3.0.xsd
                            http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.0.xsd">
 
-	<import resource="classpath:managers-spb.xml" />
-
 	<!--This bean will intercept all HTTP calls and check the status -->
 	<bean id="stackStatusInterceptor" class="org.sagebionetworks.repo.web.StackStatusInterceptor" />
 

@@ -337,6 +337,19 @@ public interface TableRowManager {
 	public RowSet query(UserInfo user, String sql, boolean isConsistent,
 			boolean countOnly) throws DatastoreException, NotFoundException,
 			TableUnavilableException;
+	
+	/**
+	 * Execute a table query.
+	 * @param user
+	 * @param query
+	 * @param isConsistent
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws TableUnavilableException
+	 */
+	public RowSet query(UserInfo user, SqlQuery query, boolean isConsistent) throws DatastoreException, NotFoundException,
+			TableUnavilableException;
 
 	/**
 	 * Create an query object for the given SQL.
@@ -396,4 +409,15 @@ public interface TableRowManager {
 	 * @return
 	 */
 	public Long getMaxRowsPerPage(List<ColumnModel> models);
+
+	/**
+	 * Get the columns Models for a list of headers.  Only headers that are column models ID will have a column model in the result.
+	 * None column model id headers will be ignored.
+	 * 
+	 * @param headers
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public List<ColumnModel> getColumnsForHeaders(List<String> headers) throws DatastoreException, NotFoundException;
 }

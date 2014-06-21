@@ -11,8 +11,6 @@
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 	
-	<import resource="classpath:managers-spb.xml" />
-		
 	<bean id="authenticationService" class="org.sagebionetworks.auth.services.AuthenticationServiceImpl" />
 	
 	<bean id="authFilter" class="org.sagebionetworks.auth.AuthenticationFilter" />

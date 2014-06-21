@@ -12,9 +12,16 @@
   
   <!-- Load the authFilter -->
   <import resource="classpath:authentication-services-spb.xml" />
+  <!-- Load file services -->
+  <import resource="classpath:file-services-spb.xml" />
   <!-- Load the single cloudwatch consumer -->
   <import resource="classpath:cloudwatch-spb.xml" />
   <!-- Load the userThrottleFilter -->
   <import resource="classpath:throttle-services-spb.xml" />
-  
+  <!-- Load the managers -->
+  <import resource="classpath:managers-spb.xml" />
+  <!-- Load the schedulers -->
+  <import resource="classpath:managers-scheduler-spb.xml" />
+  <import resource="classpath:stack-reload-scheduler.spb.xml" />
+
 </beans>

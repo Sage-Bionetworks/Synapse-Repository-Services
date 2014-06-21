@@ -39,8 +39,10 @@ import com.amazonaws.services.sns.model.PublishRequest;
  * @author John
  *
  */
+// Cannot use test-context.xml which disables messages
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:shared-scheduler-spb.xml", "classpath:dynamo-dao-spb.xml" })
+@ContextConfiguration(locations = { "classpath:jdomodels.spb.xml", "classpath:audit-dao.spb.xml", "classpath:aws-spb.xml",
+		"classpath:dynamo-dao-spb.xml", "classpath:audit-managers.spb.xml", "classpath:managers-scheduler-spb.xml" })
 public class RepositoryMessagePublisherImplAutowireTest {
 	
 	@Autowired

@@ -143,6 +143,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.Query;
+import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
@@ -273,6 +274,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	protected static final String ROW_ID = "/row";
 	protected static final String ROW_VERSION = "/version";
 	protected static final String TABLE_QUERY = TABLE+"/query";
+	protected static final String TABLE_QUERY_BUNDLE = TABLE_QUERY+"/bundle";
 	protected static final String TABLE_PARITAL = TABLE + "/partial";
 	
 	protected static final  String ASYNCHRONOUS_JOB = "/asynchronous/job";
@@ -5180,6 +5182,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		boolean countOnly = false;
 		return queryTableEntity(sql, isConsistent, countOnly);
 	}
+	
 	@Override
 	public RowSet queryTableEntity(String sql, boolean isConsistent, boolean countOnly) throws SynapseException, SynapseTableUnavailableException{
 		String url = TABLE_QUERY + "?isConsistent=" + isConsistent + "&countOnly=" + countOnly;
@@ -5200,6 +5203,26 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		});
 	}
 
+	@Override
+	public QueryResultBundle queryTableEntityBundle(String sql, boolean isConsistent, int partsMask) throws SynapseException, SynapseTableUnavailableException{
+		String url = TABLE_QUERY_BUNDLE + "?isConsistent=" + isConsistent + "&partsMask=" + partsMask;
+		Query query = new Query();
+		query.setSql(sql);
+		return asymmetricalPost(getRepoEndpoint(), url, query, QueryResultBundle.class, new SharedClientConnection.ErrorHandler() {
+			@Override
+			public void handleError(int code, String responseBody) throws SynapseException {
+				if (code == 202) {
+					try {
+						TableStatus status = EntityFactory.createEntityFromJSONString(responseBody, TableStatus.class);
+						throw new SynapseTableUnavailableException(status);
+					} catch (JSONObjectAdapterException e) {
+						throw new SynapseClientException(e.getMessage(), e);
+					}
+				}
+			}
+		});
+	}
+	
 	@Override
 	public ColumnModel createColumnModel(ColumnModel model) throws SynapseException {
 		if(model == null) throw new IllegalArgumentException("ColumnModel cannot be null");

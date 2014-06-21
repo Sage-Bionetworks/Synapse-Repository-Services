@@ -338,6 +338,27 @@ public class TableRowManagerImpl implements TableRowManager {
 	}
 
 	@Override
+	public List<ColumnModel> getColumnsForHeaders(List<String> headers) throws DatastoreException, NotFoundException {
+		// Not all of the headers are columns so filter out those that are not.
+		List<String> columnIds = new LinkedList<String>();
+		for(String header: headers){
+			// Is this a columns ID
+			try {
+				Long id = Long.parseLong(header);
+				// This header is a columnId so include it
+				columnIds.add(id.toString());
+			} catch (NumberFormatException e) {
+				// expected, this just means a header was not a columnModel id so we skip it.
+			}
+		}
+		// If the columnIds is null, then none of the headers were actual column model ids.
+		if(columnIds.isEmpty()){
+			return new ArrayList<ColumnModel>(0);
+		}
+		return columnModelDAO.getColumnModel(columnIds, true);
+	}
+	
+	@Override
 	public List<TableRowChange> listRowSetsKeysForTable(String tableId) {
 		return tableRowTruthDao.listRowSetsKeysForTable(tableId);
 	}
@@ -423,7 +444,7 @@ public class TableRowManagerImpl implements TableRowManager {
 			throws ConflictingUpdateException, NotFoundException {
 		tableStatusDAO.attemptToUpdateTableProgress(tableId, resetToken, progressMessage, currentProgress, totalProgress);
 	}
-
+	
 	@Override
 	public RowSet query(UserInfo user, String sql, boolean isConsistent, boolean countOnly) throws DatastoreException, NotFoundException, TableUnavilableException {
 		if(user == null) throw new IllegalArgumentException("UserInfo cannot be null");
@@ -431,15 +452,20 @@ public class TableRowManagerImpl implements TableRowManager {
 		validateFeatureEnabled();
 		// First parse the SQL
 		final SqlQuery query = createQuery(sql, countOnly);
+		return query(user, query, isConsistent);
+	}
+	
+	@Override
+	public RowSet query(UserInfo user, SqlQuery query, boolean isConsistent) throws DatastoreException, NotFoundException, TableUnavilableException {
+		if(user == null) throw new IllegalArgumentException("UserInfo cannot be null");
+		if(query == null) throw new IllegalArgumentException("SqlQuery cannot be null");
+		validateFeatureEnabled();
 		// Validate the user has read access on this object
 		if(!authorizationManager.canAccess(user, query.getTableId(), ObjectType.ENTITY, ACCESS_TYPE.READ)){
 			throw new UnauthorizedException("User does not have READ permission on: "+query.getTableId());
 		}
-		// Lookup the column models for this table
-		List<ColumnModel> columnModels = columnModelDAO.getColumnModelsForObject(query.getTableId());
-
 		// Does this table exist?
-		if(columnModels == null | columnModels.isEmpty()){
+		if(query.getTableSchema() == null || query.getTableSchema().isEmpty()){
 			// there are no columns for this table so the table does not actually exist.
 			// for this case the caller expects an empty result set.  See PLFM-2636
 			RowSet emptyResults = new RowSet();
@@ -447,7 +473,7 @@ public class TableRowManagerImpl implements TableRowManager {
 			return emptyResults;
 		}
 		// validate the size
-		validateQuerySize(query, columnModels, this.maxBytesPerRequest);
+		validateQuerySize(query, this.maxBytesPerRequest);
 		// If this is a consistent read then we need a read lock
 		if(isConsistent){
 			// A consistent query is only run if the table index is available and up-to-date
@@ -461,7 +487,7 @@ public class TableRowManagerImpl implements TableRowManager {
 	}
 	
 	@Override
-	public SqlQuery createQuery(String sql,boolean countOnly){
+	public SqlQuery createQuery(String sql, boolean countOnly){
 		// First parse the SQL
 		QuerySpecification model = parserQuery(sql);
 		// Do they want use to convert it to a count query?
@@ -471,8 +497,7 @@ public class TableRowManagerImpl implements TableRowManager {
 		String tableId = SqlElementUntils.getTableId(model);
 		// Lookup the column models for this table
 		List<ColumnModel> columnModels = columnModelDAO.getColumnModelsForObject(tableId);
-		Map<String, ColumnModel> columnNameToModelMap = TableModelUtils.createColumnNameToModelMap(columnModels);
-		return new SqlQuery(model, columnNameToModelMap);
+		return new SqlQuery(model, columnModels);
 	}
 
 	/**
@@ -482,26 +507,20 @@ public class TableRowManagerImpl implements TableRowManager {
 	 * @param columnModels
 	 * @param maxBytePerRequest
 	 */
-	public static void validateQuerySize(SqlQuery query, List<ColumnModel> columnModels, int maxBytePerRequest){
+	public static void validateQuerySize(SqlQuery query, int maxBytePerRequest){
 		Long limit = null;
 		if(query.getModel().getTableExpression().getPagination() != null){
 			limit = query.getModel().getTableExpression().getPagination().getLimit();
 		}
-		Map<Long, ColumnModel> columIdToModelMap = TableModelUtils.createIDtoColumnModelMap(columnModels);
 		// What are the select columns?
-		List<Long> selectColumns = query.getSelectColumnIds();
+		List<ColumnModel> selectColumns = query.getSelectColumnModels();
 		if(!selectColumns.isEmpty()){
-			List<ColumnModel> seletModels = new LinkedList<ColumnModel>();
-			for(Long id: selectColumns){
-				ColumnModel cm = columIdToModelMap.get(id);
-				seletModels.add(cm);
-			}
 			// First make sure we have a limit
 			if(limit == null){
 				throw new IllegalArgumentException("Request exceed the maximum number of bytes per request because a LIMIT was not included in the query.");
 			}
 			// Validate the request is under the max bytes per requested
-			if(!TableModelUtils.isRequestWithinMaxBytePerRequest(seletModels, limit.intValue(), maxBytePerRequest)){
+			if(!TableModelUtils.isRequestWithinMaxBytePerRequest(selectColumns, limit.intValue(), maxBytePerRequest)){
 				throw new IllegalArgumentException("Request exceed the maximum number of bytes per request.  Maximum : "+maxBytePerRequest+" bytes");
 			}
 		}

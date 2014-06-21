@@ -12,15 +12,8 @@
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
-	<!-- Import the stack configuration -->
-	<import resource="dbo-beans.spb.xml" />
-	<import resource="bootstrap-entites-spb.xml" />
-
-	<!-- Import the ID-generator -->
-	<import resource="id-generator.spb.xml" />
 
 	<bean id="clockProvider" class="org.sagebionetworks.util.DefaultClockProvider"/>
-	
 	<bean id="transactionSynchronizationManager"
 		class="org.sagebionetworks.repo.model.message.TransactionSynchronizationProxyImpl" />
 	<!-- Transactional Messenger -->

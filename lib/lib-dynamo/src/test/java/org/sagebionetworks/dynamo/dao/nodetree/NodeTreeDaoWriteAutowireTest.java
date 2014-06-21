@@ -31,7 +31,7 @@ import com.amazonaws.services.dynamodb.datamodeling.DynamoDBQueryExpression;
 import com.amazonaws.services.dynamodb.model.AttributeValue;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = {"classpath:dynamo-dao-spb.xml" })
+@ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class NodeTreeDaoWriteAutowireTest {
 
 	@Autowired private AmazonDynamoDB dynamoClient;

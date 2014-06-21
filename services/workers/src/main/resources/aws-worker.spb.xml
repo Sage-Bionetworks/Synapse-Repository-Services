@@ -13,8 +13,6 @@
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 	
-	<import resource="classpath:aws-spb.xml" />
-	
 	<!-- The AmazonSQSClient -->
 	<bean id="awsSQSClient" class="com.amazonaws.services.sqs.AmazonSQSClient"
 		scope="singleton">

@@ -188,8 +188,7 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 		table = servletTestHelper.createEntity(dispatchServlet, table, adminUserId);
 		assertNotNull(table);
 		assertNotNull(table.getId());
-		TableEntity clone = servletTestHelper
-.getEntity(dispatchServlet, TableEntity.class, table.getId(), adminUserId);
+		TableEntity clone = servletTestHelper.getEntity(dispatchServlet, TableEntity.class, table.getId(), adminUserId);
 		assertNotNull(clone);
 		assertEquals(table, clone);
 		// Now make sure we can get the list of columns for this entity
@@ -604,8 +603,7 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 		table = servletTestHelper.createEntity(dispatchServlet, table, adminUserId);
 		assertNotNull(table);
 		assertNotNull(table.getId());
-		TableEntity clone = servletTestHelper
-.getEntity(dispatchServlet, TableEntity.class, table.getId(), adminUserId);
+		TableEntity clone = servletTestHelper.getEntity(dispatchServlet, TableEntity.class, table.getId(), adminUserId);
 		assertNotNull(clone);
 		assertEquals(table, clone);
 		// Now make sure we can get the list of columns for this entity
