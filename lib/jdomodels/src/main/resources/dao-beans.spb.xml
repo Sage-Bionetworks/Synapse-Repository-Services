@@ -19,6 +19,8 @@
 	<!-- Import the ID-generator -->
 	<import resource="id-generator.spb.xml" />
 
+	<bean id="clockProvider" class="org.sagebionetworks.util.DefaultClockProvider"/>
+	
 	<bean id="transactionSynchronizationManager"
 		class="org.sagebionetworks.repo.model.message.TransactionSynchronizationProxyImpl" />
 	<!-- Transactional Messenger -->

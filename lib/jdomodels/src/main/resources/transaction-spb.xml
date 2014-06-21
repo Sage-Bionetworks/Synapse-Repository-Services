@@ -53,6 +53,13 @@
 		<tx:attributes>
 			<tx:method name="*" rollback-for="Throwable"
 				no-rollback-for="org.sagebionetworks.repo.web.NotFoundException" />
+			<!-- To avoid rollback on  DeadlockLoserDataAccessException, the method
+			name must contain 'NoDeadlockRollback' and the annotation must include 
+			@Transactional annotation must include
+			 noRollbackFor= DeadlockLoserDataAccessException.class 
+			 See: PLFM-2860 -->
+			<tx:method name="*NoDeadlockRollback*" rollback-for="Throwable"
+				no-rollback-for="NotFoundException, DeadlockLoserDataAccessException" />	
 		</tx:attributes>
 	</tx:advice>
 

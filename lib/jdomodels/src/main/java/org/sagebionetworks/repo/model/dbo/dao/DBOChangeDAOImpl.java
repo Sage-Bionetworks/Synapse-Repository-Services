@@ -36,11 +36,14 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeMessageUtils;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.util.ClockProvider;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DeadlockLoserDataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
+import org.springframework.transaction.UnexpectedRollbackException;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -106,6 +109,7 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 			"select c.* from " + TABLE_CHANGES + " c join " + TABLE_SENT_MESSAGES + " s on s." + COL_SENT_MESSAGES_CHANGE_NUM + " = c." + COL_CHANGES_CHANGE_NUM + " left join (select * from " + TABLE_PROCESSED_MESSAGES + " where " + COL_PROCESSED_MESSAGES_QUEUE_NAME + " = ?) p on p." + COL_PROCESSED_MESSAGES_CHANGE_NUM + " = s." + COL_SENT_MESSAGES_CHANGE_NUM + " where p." + COL_PROCESSED_MESSAGES_CHANGE_NUM + " is null limit ?";
 	
 	private static final String SQL_SENT_CHANGE_NUMBER_FOR_UPDATE = "SELECT "+COL_SENT_MESSAGES_CHANGE_NUM+" FROM "+TABLE_SENT_MESSAGES+" WHERE "+COL_SENT_MESSAGES_OBJECT_ID+" = ? AND "+COL_SENT_MESSAGES_OBJECT_TYPE+" = ? FOR UPDATE";
+	private static final String SQL_CHANGE_NUMBER_FOR_UPDATE = "SELECT "+COL_CHANGES_CHANGE_NUM+" FROM "+TABLE_CHANGES+" WHERE "+COL_CHANGES_OBJECT_ID+" = ? AND "+COL_CHANGES_OBJECT_TYPE+" = ? FOR UPDATE";
 
 	@Autowired
 	private DBOBasicDao basicDao;
@@ -116,9 +120,12 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 	@Autowired
 	private IdGenerator idGenerator;
 	
+	@Autowired
+	ClockProvider clockProvider;
+	
 	private TableMapping<DBOChange> rowMapper = new DBOChange().getTableMapping();
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED, noRollbackFor=DeadlockLoserDataAccessException.class)
 	@Override
 	public ChangeMessage replaceChange(ChangeMessage change) {
 		if(change == null) throw new IllegalArgumentException("DBOChange cannot be null");
@@ -127,29 +134,65 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 		if(change.getObjectType() == null) throw new IllegalArgumentException("change.getObjectTypeEnum() cannot be null");
 		if(ChangeType.CREATE == change.getChangeType() && change.getObjectEtag() == null) throw new IllegalArgumentException("Etag cannot be null for ChangeType: "+change.getChangeType());
 		if(ChangeType.UPDATE == change.getChangeType() && change.getObjectEtag() == null) throw new IllegalArgumentException("Etag cannot be null for ChangeType: "+change.getChangeType());
+		int maxTries = 3;
+		for(int count=1; count<maxTries+1; count++){
+			try {
+				return attemptReplaceChange(change);
+			} catch (DeadlockLoserDataAccessException e) {
+				// This is the only error allowed.
+				try {
+					clockProvider.sleep(500*count);
+				} catch (InterruptedException e2) {
+					throw new RuntimeException(e2);
+				}
+			} catch( Throwable e){
+				e.printStackTrace();
+			}
+		}
+		throw new IllegalStateException("Failed with deadlock more than: "+maxTries+" while attempting to create a change.");
+	}
+
+
+
+	/**
+	 * @param change
+	 * @return
+	 */
+	public ChangeMessage attemptReplaceChange(ChangeMessage change) {
 		DBOChange changeDbo = ChangeMessageUtils.createDBO(change);
-		// Clear the time stamp so that we get a new one automatically.
-		// Note: Mysql TIMESTAMP only keeps seconds (not MS) so for consistency we only write second accuracy.
-		// We are using (System.currentTimeMillis()/1000)*1000; to convert all MS to zeros.
-		long nowMs = (System.currentTimeMillis()/1000)*1000;
+		/*
+		 * Clear the time stamp so that we get a new one automatically. Note:
+		 * Mysql TIMESTAMP only keeps seconds (not MS) so for consistency we
+		 * only write second accuracy. We are using
+		 * (System.currentTimeMillis()/1000)*1000; to convert all MS to zeros.
+		 */
+		long nowMs = (System.currentTimeMillis() / 1000) * 1000;
 		changeDbo.setChangeNumber(idGenerator.generateNewId(TYPE.CHANGE_ID));
 		changeDbo.setTimeStamp(new Timestamp(nowMs));
 
-		// first lock the sent_messages table for update to avoid deadlocks with the registerMessageSent() method that
-		// also tries to change the sent_messages table and in the process needs to lock the index to the changes table
-		// due to the foreign key
+		/*
+		 * Before we start we grab a lock on the row in the changes table. This
+		 * ensures that the original change number cannot change until this
+		 * method completes.
+		 */
+		Long changeNumber = selectChangeNumberForUpdate(changeDbo.getObjectId(), changeDbo.getObjectType());
+		if(changeNumber == null){
+			// This occurs when there is a new object.
+			// Use create or update as two threads could try to create this change at the same time.
+			basicDao.createNewNoDeadlockRollback(changeDbo);
+		}else{
+			// Update the row.
+			basicDao.update(changeDbo);
+		}
+		// Setup and clear the sent message
 		DBOSentMessage sentDBO = new DBOSentMessage();
 		sentDBO.setChangeNumber(null);
 		sentDBO.setObjectId(changeDbo.getObjectId());
 		sentDBO.setObjectType(changeDbo.getObjectType());
-		selectSentChangeNumberForUpdate(sentDBO);
-
-		// Now insert the row with the current value
-		changeDbo = basicDao.createOrUpdate(changeDbo);
-		// Setup and clear the sent message
 		basicDao.createOrUpdate(sentDBO);
 		return ChangeMessageUtils.createDTO(changeDbo);
 	}
+
 
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -227,18 +270,34 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public boolean registerMessageSent(ChangeMessage message) {
+		if(message == null) throw new IllegalArgumentException("Change cannot be null");
+		if(message.getChangeNumber() == null) throw new IllegalArgumentException("Change.changeNumber cannot be null");
 		DBOSentMessage sent = new DBOSentMessage();
 		sent.setChangeNumber(message.getChangeNumber());
 		sent.setObjectId(KeyFactory.stringToKey(message.getObjectId()));
 		sent.setObjectType(message.getObjectType());
-		// Determine what the current change number is.
-		// see replaceChange() method for story on parallel select for update
-		Long currentChangeNumber = selectSentChangeNumberForUpdate(sent);
+		/*
+		 * Before we start we grab a lock on the row in the changes table. This
+		 * ensures that the original change number cannot change until this
+		 * method completes.
+		 */
+		Long changeNumber = selectChangeNumberForUpdate(sent.getObjectId(),	sent.getObjectType());
+		// Check that this change number matches what was passed.
+		if (!message.getChangeNumber().equals(changeNumber)) {
+			/*
+			 * Since the current change number for this object does not match
+			 * what was passed, it cannot be registered as sent.
+			 * Returning false to indicate it was not registered.
+			 */
+			return false;
+		}
+		// Get the current change number for the sent message for this object.
+		Long currentSentChangeNumber = selectSentChangeNumberForUpdate(sent.getObjectId(), sent.getObjectType());
 		// If they are the same do nothing
-		if(sent.getChangeNumber().equals(currentChangeNumber)){
+		if (sent.getChangeNumber().equals(currentSentChangeNumber)) {
 			// Not a change.
 			return false;
-		}else{
+		} else {
 			// This was a change.
 			this.basicDao.createOrUpdate(sent);
 			return true;
@@ -251,9 +310,21 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 	 * @param sent
 	 * @return
 	 */
-	public Long selectSentChangeNumberForUpdate(DBOSentMessage sent) {
+	public Long selectSentChangeNumberForUpdate(Long objectId, ObjectType type) {
 		try {
-			return this.jdbcTemplate.queryForObject(SQL_SENT_CHANGE_NUMBER_FOR_UPDATE, new SingleColumnRowMapper<Long>(), sent.getObjectId(), sent.getObjectType().name());
+			return this.jdbcTemplate.queryForObject(SQL_SENT_CHANGE_NUMBER_FOR_UPDATE, new SingleColumnRowMapper<Long>(),  objectId, type.name());
+		} catch (EmptyResultDataAccessException e) {
+			return null;
+		}
+	}
+	/**
+	 * Select the current change number from changes for update.
+	 * @param sent
+	 * @return
+	 */
+	public Long selectChangeNumberForUpdate(Long objectId, ObjectType type) {
+		try {
+			return this.jdbcTemplate.queryForObject(SQL_CHANGE_NUMBER_FOR_UPDATE, new SingleColumnRowMapper<Long>(), objectId, type.name());
 		} catch (EmptyResultDataAccessException e) {
 			return null;
 		}
