@@ -597,7 +597,7 @@ public class DBOChangeDAOImplAutowiredTest {
 		// Send the list of changes to a pool of threads
 		ExecutorService exe = Executors.newFixedThreadPool(numOfThreads);
 		try {
-			List<Future<Boolean>> results = exe.invokeAll(taskList, 6000000, TimeUnit.SECONDS);
+			List<Future<Boolean>> results = exe.invokeAll(taskList, 60, TimeUnit.SECONDS);
 			for (Future<Boolean> future : results) {
 				if (!future.get()) {
 					Assert.fail("Deadlock detected.");

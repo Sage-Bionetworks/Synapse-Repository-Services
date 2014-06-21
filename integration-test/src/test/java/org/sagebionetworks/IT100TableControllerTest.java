@@ -245,7 +245,7 @@ public class IT100TableControllerTest {
 		assertNotNull(bundle.getQueryResults().getEtag());
 		assertEquals(table.getId(), bundle.getQueryResults().getTableId());
 		assertNotNull(bundle.getQueryResults().getRows());
-		assertEquals(1, bundle.getQueryResults().getRows().size());
+		assertEquals(2, bundle.getQueryResults().getRows().size());
 		assertEquals("There should be 3 rows in this table", new Long(3), bundle.getQueryCount());
 		assertEquals(expected, bundle.getSelectColumns());
 		assertNotNull(bundle.getMaxRowsPerPage());
