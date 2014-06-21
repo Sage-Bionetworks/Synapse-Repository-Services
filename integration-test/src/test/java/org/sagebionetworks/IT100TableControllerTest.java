@@ -239,7 +239,7 @@ public class IT100TableControllerTest {
 		// run a bundled query
 		isConsistent = true;
 		int mask = 0x1 | 0x2 | 0x4 | 0x8;
-		QueryResultBundle bundle = waitForBundleQueryResults("select * from " + table.getId() + " limit 2", isConsistent, mask);
+		QueryResultBundle bundle = waitForBundleQueryResults("select one from " + table.getId() + " limit 2", isConsistent, mask);
 		assertNotNull(bundle);
 		assertNotNull(bundle.getQueryResults());
 		assertNotNull(bundle.getQueryResults().getEtag());
@@ -247,7 +247,7 @@ public class IT100TableControllerTest {
 		assertNotNull(bundle.getQueryResults().getRows());
 		assertEquals(2, bundle.getQueryResults().getRows().size());
 		assertEquals("There should be 3 rows in this table", new Long(3), bundle.getQueryCount());
-		assertEquals(expected, bundle.getSelectColumns());
+		assertEquals(Arrays.asList(one), bundle.getSelectColumns());
 		assertNotNull(bundle.getMaxRowsPerPage());
 		assertTrue(bundle.getMaxRowsPerPage() > 0);
 	}
