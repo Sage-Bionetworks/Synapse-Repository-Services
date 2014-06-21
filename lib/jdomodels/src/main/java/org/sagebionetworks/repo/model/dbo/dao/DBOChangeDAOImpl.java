@@ -145,8 +145,6 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 				} catch (InterruptedException e2) {
 					throw new RuntimeException(e2);
 				}
-			} catch( Throwable e){
-				e.printStackTrace();
 			}
 		}
 		throw new IllegalStateException("Failed with deadlock more than: "+maxTries+" while attempting to create a change.");
