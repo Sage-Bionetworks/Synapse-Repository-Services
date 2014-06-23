@@ -54,11 +54,13 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	// for testing 
 	public AccessRequirementManagerImpl(
 			AccessRequirementDAO accessRequirementDAO,
+			NodeDAO nodeDao,
 			AuthorizationManager authorizationManager,
 			JiraClient jiraClient,
 			NotificationEmailDAO notificationEmailDao
 	) {
 		this.accessRequirementDAO=accessRequirementDAO;
+		this.nodeDao=nodeDao;
 		this.authorizationManager=authorizationManager;
 		this.jiraClient=jiraClient;
 		this.notificationEmailDao=notificationEmailDao;
