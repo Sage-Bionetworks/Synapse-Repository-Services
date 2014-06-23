@@ -16,6 +16,8 @@
   <import resource="classpath:file-services-spb.xml" />
   <!-- Load the single cloudwatch consumer -->
   <import resource="classpath:cloudwatch-spb.xml" />
+  <!-- Load the profiler -->
+  <import resource="classpath:profiler-spb.xml" />
   <!-- Load the userThrottleFilter -->
   <import resource="classpath:throttle-services-spb.xml" />
   <!-- Load the managers -->
