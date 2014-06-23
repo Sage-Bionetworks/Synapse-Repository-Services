@@ -180,6 +180,71 @@ public class NodeManagerImplUnitTest {
 		assertNotNull(processedNode.getModifiedOn());
 		assertNotNull(processedNode.getModifiedByPrincipalId());
 	}
+	
+	@Test(expected=UnauthorizedException.class)
+	public void testCreateNodeNoUpload() throws Exception {
+		// Test creating a new node with nothing but the name and type set
+		Node newNode = new Node();
+		newNode.setName("testCreateNode");
+		newNode.setNodeType(EntityType.layer.name());  // in reality it would be a 'FileEntity'
+		String fileHandleId = "123";
+		newNode.setFileHandleId(fileHandleId);
+		String parentId = "202";
+		newNode.setParentId(parentId);
+		when(mockEntityBootstrapper.getChildAclSchemeForPath("/root")).thenReturn(ACL_SCHEME.INHERIT_FROM_PARENT);
+		
+		// make sure the mock is ready
+		ArgumentCaptor<Node> argument = ArgumentCaptor.forClass(Node.class);
+		when(mockNodeDao.createNew(argument.capture())).thenReturn("101");
+		UserInfo userInfo = anonUserInfo;
+		when(mockAuthManager.canCreate(eq(userInfo), (Node)any())).thenReturn(true);
+		when(mockAuthManager.canAccessRawFileHandleById(userInfo, fileHandleId)).thenReturn(true);
+		when(mockAuthManager.canAccess(userInfo, parentId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD)).thenReturn(true);
+		// OK to upload to parentId
+		nodeManager.createNewNode(newNode, userInfo);
+		when(mockAuthManager.canAccess(userInfo, parentId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD)).thenReturn(false);
+		// NOT OK to upload
+		nodeManager.createNewNode(newNode, userInfo);
+	}
+
+	@Test//(expected=UnauthorizedException.class)
+	public void testUpdateNoUpload() throws Exception {
+		String nodeId = "101";
+		String parentId = "202";
+		String fileHandleId = "123";
+		// Test creating a new node with nothing but the name and type set
+		Node newNode = new Node();
+		newNode.setName("testCreateNode");
+		newNode.setNodeType(EntityType.layer.name());  // in reality it would be a 'FileEntity'
+		newNode.setFileHandleId(fileHandleId);
+		newNode.setParentId(parentId);
+		when(mockEntityBootstrapper.getChildAclSchemeForPath("/root")).thenReturn(ACL_SCHEME.INHERIT_FROM_PARENT);
+		
+		// make sure the mock is ready
+		ArgumentCaptor<Node> argument = ArgumentCaptor.forClass(Node.class);
+		when(mockNodeDao.createNew(argument.capture())).thenReturn(nodeId);
+		UserInfo userInfo = anonUserInfo;
+		when(mockAuthManager.canCreate(eq(userInfo), (Node)any())).thenReturn(true);
+		when(mockAuthManager.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(true);
+		when(mockAuthManager.canAccess(userInfo, nodeId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(true);
+		when(mockAuthManager.canAccessRawFileHandleById(userInfo, fileHandleId)).thenReturn(true);
+		when(mockAuthManager.canAccess(userInfo, parentId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD)).thenReturn(true);
+		// Make the actual call
+		assertEquals(nodeId, nodeManager.createNewNode(newNode, userInfo));
+		newNode.setId(nodeId);
+		
+		when(mockNodeDao.getParentId(nodeId)).thenReturn(parentId);
+		when(mockAuthManager.canUserMoveRestrictedEntity(userInfo, parentId, parentId)).thenReturn(true);
+		nodeManager.update(userInfo, newNode);
+		
+		when(mockAuthManager.canAccess(userInfo, parentId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD)).thenReturn(false);
+		try {
+			nodeManager.update(userInfo, newNode);
+			fail("expected UnauthorizedException");
+		} catch (UnauthorizedException e) {
+			// as expected
+		}
+	}
 
 	@Test
 	public void testCreateNodeActivity404() throws Exception {
