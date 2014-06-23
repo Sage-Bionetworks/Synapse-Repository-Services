@@ -24,7 +24,7 @@ public class AccessRequirementUtil {
 	
 	private static final String FILE_TYPE_NAME = EntityType.getNodeTypeForClass(FileEntity.class).name();
 	
-	public static List<Long> unmetAccessRequirementIdsForEntity(
+	public static List<Long> unmetDownloadAccessRequirementIdsForEntity(
 			UserInfo userInfo, 
 			String entityId,
 			List<String> entityAncestorIds,
@@ -50,6 +50,22 @@ public class AccessRequirementUtil {
 		}
 		
 		return accessRequirementDAO.unmetAccessRequirements(entityIds, RestrictableObjectType.ENTITY, principalIds, accessTypes);
+	}
+
+	public static List<Long> unmetUploadAccessRequirementIdsForEntity(
+			UserInfo userInfo, 
+			List<String> entityAndAncestorIds,
+			NodeDAO nodeDao, 
+			AccessRequirementDAO accessRequirementDAO
+			) throws NotFoundException {
+		List<ACCESS_TYPE> accessTypes = Collections.singletonList(ACCESS_TYPE.UPLOAD);
+
+		Set<Long> principalIds = new HashSet<Long>();
+		for (Long ug : userInfo.getGroups()) {
+			principalIds.add(ug);
+		}
+		
+		return accessRequirementDAO.unmetAccessRequirements(entityAndAncestorIds, RestrictableObjectType.ENTITY, principalIds, accessTypes);
 	}
 
 	public static List<Long> unmetAccessRequirementIdsForEvaluation(
