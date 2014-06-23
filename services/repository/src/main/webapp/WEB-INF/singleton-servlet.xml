@@ -15,7 +15,6 @@
 
 
 	<!-- Import the manager beans -->
-  	<import resource="classpath:profiler-spb.xml" />
 	<import resource="classpath:shared-servlet.xml" />
 	<import resource="classpath:controller-spb.xml" />
 	<import resource="classpath:bridge-controller-spb.xml" />
