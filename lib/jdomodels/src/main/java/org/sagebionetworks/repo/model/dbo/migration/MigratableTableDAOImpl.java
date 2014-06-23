@@ -446,14 +446,19 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 	}
 	
 	@Override
-	public BigDecimal getChecksumForIdRange(MigrationType type, long minId, long maxId) {
+	public String getChecksumForIdRange(MigrationType type, long minId, long maxId) {
 		String sql = this.sumCrc32SqlMap.get(type);
 		if (sql == null) {
 			throw new IllegalArgumentException("Cannot find the checksum SQL for type" + type);
 		}
+		if (minId > maxId) {
+			throw new IllegalArgumentException("MaxId must be greater than minId");
+		}
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(DMLUtils.BIND_VAR_ID_RANGE_MIN, minId);
 		params.addValue(DMLUtils.BIND_VAR_ID_RANGE_MAX, maxId);
-		return simpleJdbcTemplate.queryForObject(sql, new SingleColumnRowMapper<BigDecimal>(), params);
+		BigDecimal cs = simpleJdbcTemplate.queryForObject(sql, new SingleColumnRowMapper<BigDecimal>(), params);
+		return cs.toString();
 	}
+	
 }

@@ -107,4 +107,15 @@ public class MigrationServiceImpl implements MigrationService {
 		return mtl;
 	}
 
+	@Override
+	public String getChecksumForIdRange(Long userId, MigrationType type,
+			long minId, long maxId) throws NotFoundException {
+		if (userId == null) {
+			throw new IllegalArgumentException("userId cannot be null");
+		}
+		UserInfo user = userManager.getUserInfo(userId);
+		String chksum = migrationManager.getChecksumForIdRange(user, type, minId, maxId);
+		return chksum;
+	}
+
 }

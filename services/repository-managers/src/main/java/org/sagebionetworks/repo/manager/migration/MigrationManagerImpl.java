@@ -355,4 +355,17 @@ public class MigrationManagerImpl implements MigrationManager {
 		this.migrationListeners = migrationListeners;
 	}
 
+	@Override
+	public long getMinId(UserInfo user, MigrationType type) {
+		validateUser(user);
+		return migratableTableDao.getMinId(type);
+	}
+
+	@Override
+	public String getChecksumForIdRange(UserInfo user, MigrationType type,
+			long minId, long maxId) {
+		validateUser(user);
+		return migratableTableDao.getChecksumForIdRange(type, minId, maxId);
+	}
+
 }

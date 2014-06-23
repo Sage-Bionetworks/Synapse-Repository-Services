@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.migration;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.math.BigDecimal;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.UserInfo;
@@ -27,6 +28,17 @@ public interface MigrationManager {
 	 * @return
 	 */
 	public long getMaxId(UserInfo user, MigrationType type);
+	
+	/**
+	 * The min(id) of the table
+	 * @return
+	 */
+	public long getMinId(UserInfo user, MigrationType type);
+	
+	/**
+	 * The checksum for a range of Ids in a table
+	 */
+	public String getChecksumForIdRange(UserInfo user, MigrationType type, long minId, long maxId);
 	
 	/**
 	 * List all row metadata in a paginated format. All rows will be migrated in the order listed by this method.

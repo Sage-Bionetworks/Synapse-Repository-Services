@@ -10,6 +10,7 @@ import java.util.List;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
@@ -123,7 +124,7 @@ public class MigratableTableDAOImplAutowireTest {
 		assertEquals(null, row.getParentId());
 		
 		// Get checksums
-		BigDecimal checkSum = migratableTableDAO.getChecksumForIdRange(MigrationType.FILE_HANDLE, Long.parseLong(withPreview.getId()), Long.parseLong(preview2.getId()));
+		String checkSum = migratableTableDAO.getChecksumForIdRange(MigrationType.FILE_HANDLE, Long.parseLong(withPreview.getId()), Long.parseLong(preview2.getId()));
 		assertNotNull(checkSum);
 		
 		// Get the full back object
@@ -269,4 +270,10 @@ public class MigratableTableDAOImplAutowireTest {
 		System.out.println(primary);
 		assertEquals(expectedPrimaryTypes, primary);
 	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void testGetChecksumForIdRangeInvalidRange() {
+		migratableTableDAO.getChecksumForIdRange(MigrationType.FILE_HANDLE, 10, 9);
+	}
+	
 }

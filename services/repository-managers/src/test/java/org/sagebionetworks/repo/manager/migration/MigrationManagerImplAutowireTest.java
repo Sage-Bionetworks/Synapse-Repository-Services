@@ -5,6 +5,7 @@ import static org.junit.Assert.assertNotNull;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.math.BigDecimal;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -98,6 +99,12 @@ public class MigrationManagerImplAutowireTest {
 	public void testGetMaxId() {
 		long mx = migrationManager.getMaxId(adminUser, MigrationType.FILE_HANDLE);
 		assertEquals(Long.parseLong(preview.getId()), mx);
+	}
+	
+	@Test
+	public void testGetChecksumForIdRange() {
+		String d = migrationManager.getChecksumForIdRange(adminUser, MigrationType.FILE_HANDLE, Long.parseLong(withPreview.getId()), Long.parseLong(preview.getId()));
+		assertNotNull(d);
 	}
 	
 	@Test

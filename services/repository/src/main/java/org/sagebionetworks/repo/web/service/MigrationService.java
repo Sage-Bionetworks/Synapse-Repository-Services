@@ -102,5 +102,11 @@ public interface MigrationService {
 	 * @throws DatastoreException 
 	 */
 	MigrationTypeList getPrimaryTypes(Long userId) throws DatastoreException, NotFoundException;
+	
+	/**
+	 * A checksum for a range of ids and a migration type
+	 * @throws NotFoundException 
+	 */
+	String getChecksumForIdRange(Long userId, MigrationType type, long minId, long maxId) throws NotFoundException;
 
 }

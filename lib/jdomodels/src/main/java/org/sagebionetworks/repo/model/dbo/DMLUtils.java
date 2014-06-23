@@ -291,7 +291,6 @@ public class DMLUtils {
 		return builder.toString();
 	}
 	
-	
 	/**
 	 * 'ID' IN ( :BVIDLIST )
 	 * @param builder

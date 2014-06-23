@@ -38,7 +38,7 @@ public interface MigratableTableDAO {
 	/**
 	 * A checksum on etag or id for a range of ids
 	 */
-	public BigDecimal getChecksumForIdRange(MigrationType type, long minId, long maxId);
+	public String getChecksumForIdRange(MigrationType type, long minId, long maxId);
 	
 	/**
 	 * List all row metadata in a paginated format. All rows will be migrated in the order listed by this method.
