@@ -62,6 +62,7 @@ import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
@@ -570,7 +571,7 @@ public class TableRowManagerImplTest {
 		verify(mockTableStatusDAO, never()).getTableStatus(tableId);
 	}
 	
-	@Test 
+	@Test
 	public void testQueryHappyCaseIsConsistentTrue() throws Exception {
 		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(true);
 		TableStatus status = new TableStatus();
@@ -622,12 +623,39 @@ public class TableRowManagerImplTest {
 			// expected
 			assertEquals(status, e.getStatus());
 		}
+		verify(mockTableStatusDAO, times(1)).getTableStatus(tableId);
 	}
 	
 	/**
-	 * Test for a consistent query when the table index worker is holding a write-lock-precursor
-	 * on the index.  For this case the tryRunWithSharedLock() will throw a LockUnavilableException(),
-	 * which should then be translated into a TableUnavilableException that contains the Table's status.
+	 * Test for a consistent query when the table index is not available and not yet being build
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void testQueryIsConsistentTrueNotFound() throws Exception {
+		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(true);
+		TableStatus status = new TableStatus();
+		status.setTableId(tableId);
+		status.setState(TableState.PROCESSING);
+		when(mockTableStatusDAO.getTableStatus(tableId)).thenThrow(new NotFoundException("fake")).thenReturn(status);
+		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(new TableRowChange());
+		try{
+			manager.query(user, "select * from "+tableId+" limit 1", true, false);
+			fail("should have failed");
+		}catch(TableUnavilableException e){
+			// expected
+			assertEquals(status, e.getStatus());
+		}
+		verify(mockTableStatusDAO, times(2)).getTableStatus(tableId);
+		verify(mockTableStatusDAO).resetTableStatusToProcessing(tableId);
+
+	}
+
+	/**
+	 * Test for a consistent query when the table index worker is holding a write-lock-precursor on the index. For this
+	 * case the tryRunWithSharedLock() will throw a LockUnavilableException(), which should then be translated into a
+	 * TableUnavilableException that contains the Table's status.
+	 * 
 	 * @throws Exception
 	 */
 	@Test

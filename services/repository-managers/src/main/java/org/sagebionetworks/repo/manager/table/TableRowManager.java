@@ -258,12 +258,14 @@ public interface TableRowManager {
 			Exception;
 
 	/**
-	 * Get the table status
+	 * Get the table status. If the status does not exist (table never indexed after a migration), then a status is
+	 * created, a change message is generated and the new processing status is returned
 	 * 
 	 * @param tableId
-	 * @return
+	 * @return the status
+	 * @throws NotFoundException if the table does not exist
 	 */
-	public TableStatus getTableStatus(String tableId) throws NotFoundException;
+	public TableStatus getTableStatusOrCreateIfNotExists(String tableId) throws NotFoundException;
 
 	/**
 	 * Attempt to set the table status to AVIALABLE. The state will be changed
@@ -361,40 +363,42 @@ public interface TableRowManager {
 	SqlQuery createQuery(String sql, boolean countOnly);
 
 	/**
-	 * Run a query while holding a non-exclusive lock (read lock) on the table.  This method will load all 
-	 * resulting rows into memory at on time an should only be used if there is a limit to the number of rows read.
+	 * Run a query while holding a non-exclusive lock (read lock) on the table. This method will load all resulting rows
+	 * into memory at on time an should only be used if there is a limit to the number of rows read.
 	 * 
 	 * @param query
 	 * @return
 	 * @throws TableUnavilableException
+	 * @throws NotFoundException
 	 */
-	RowSet runConsistentQuery(SqlQuery query) throws TableUnavilableException;
+	RowSet runConsistentQuery(SqlQuery query) throws TableUnavilableException, NotFoundException;
 
 	/**
-	 * Run a query while holding a non-exclusive lock (read lock) on the table.
-	 * This method will stream over the rows and will not keep the row data in memory.
-	 * This method can be used to stream over results sets that are larger than the available system memory,
-	 * as long as the caller does not hold the resulting rows in memory.
+	 * Run a query while holding a non-exclusive lock (read lock) on the table. This method will stream over the rows
+	 * and will not keep the row data in memory. This method can be used to stream over results sets that are larger
+	 * than the available system memory, as long as the caller does not hold the resulting rows in memory.
+	 * 
 	 * @param query
 	 * @param handler
 	 * @return The etag of the last change set applied to the table index.
 	 * @throws TableUnavilableException
+	 * @throws NotFoundException
 	 */
-	String runConsistentQueryAsStream(SqlQuery query,
-			RowAndHeaderHandler handler) throws TableUnavilableException;
+	String runConsistentQueryAsStream(SqlQuery query, RowAndHeaderHandler handler) throws TableUnavilableException, NotFoundException;
 
 	/**
-	 * Run the provided SQL query string and stream the results to the passed CSVWriter.
-	 * This method will stream over the rows and will not keep the row data in memory.
-	 * This method can be used to stream over results sets that are larger than the available system memory,
-	 * as long as the caller does not hold the resulting rows in memory.
+	 * Run the provided SQL query string and stream the results to the passed CSVWriter. This method will stream over
+	 * the rows and will not keep the row data in memory. This method can be used to stream over results sets that are
+	 * larger than the available system memory, as long as the caller does not hold the resulting rows in memory.
+	 * 
 	 * @param sql
 	 * @param writer
 	 * @return
 	 * @throws TableUnavilableException
+	 * @throws NotFoundException
 	 */
-	AsynchDownloadResponseBody runConsistentQueryAsStream(String sql,
-			CSVWriterStream writer, boolean includeRowIdAndVersion) throws TableUnavilableException;
+	AsynchDownloadResponseBody runConsistentQueryAsStream(String sql, CSVWriterStream writer, boolean includeRowIdAndVersion)
+			throws TableUnavilableException, NotFoundException;
 
 	/**
 	 * Update the current version cache if enabled

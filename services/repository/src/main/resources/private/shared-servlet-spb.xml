@@ -31,9 +31,6 @@
 		</property>
 	</bean>
 
-	<bean id="objectTypeSerializer"
-		class="org.sagebionetworks.repo.web.controller.ObjectTypeSerializerImpl" />
-
 	<!-- Setup our own JSON processing. -->
 	<bean id="jsonAnnotationHandler"
 		class="org.springframework.web.servlet.mvc.annotation.AnnotationMethodHandlerAdapter">

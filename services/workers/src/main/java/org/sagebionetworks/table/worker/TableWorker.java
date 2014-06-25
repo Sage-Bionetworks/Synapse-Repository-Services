@@ -140,7 +140,7 @@ public class TableWorker implements Callable<List<Message>> {
 			// If the passed token does not match the current token then this 
 			// is an old message that should be removed from the queue.
 			// See PLFM-2641.  We must check message before we acquire the lock.
-			 TableStatus status = tableRowManager.getTableStatus(tableId);
+			TableStatus status = tableRowManager.getTableStatusOrCreateIfNotExists(tableId);
 			// If the reset-tokens do not match this message should be ignored
 			if (!tableResetToken.equals(status.getResetToken())) {
 				// This is an old message so we ignore it
