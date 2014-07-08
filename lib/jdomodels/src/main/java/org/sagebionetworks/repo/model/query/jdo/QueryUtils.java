@@ -83,7 +83,7 @@ public class QueryUtils {
 		Set<Long> groups = userInfo.getGroups();
 		if(groups == null) throw new IllegalArgumentException("User's groups cannot be null");
 		if(groups.size() < 1) throw new IllegalArgumentException("User must belong to at least one group");
-		String sql = AuthorizationSqlUtil.authorizationSQL(groups.size());
+		String sql = AuthorizationSqlUtil.authorizationSQL(groups.size(), true);
 		// Bind the variables
 		parameters.put(AuthorizationSqlUtil.ACCESS_TYPE_BIND_VAR, ACCESS_TYPE.READ.name());
 		// Bind each group
@@ -103,6 +103,46 @@ public class QueryUtils {
 		buildJoinOn(builder, SqlConstants.NODE_ALIAS,
 				SqlConstants.COL_NODE_BENEFACTOR_ID, SqlConstants.AUTH_FILTER_ALIAS, SqlConstants.COL_ACL_ID);
 		return builder.toString();
+	}
+
+	/**
+	 * Build up the authorization filter
+	 * 
+	 * @param userInfo
+	 * @param parameters a mutable parameter list
+	 * @param nodeAlias TODO
+	 * @return
+	 * @throws DatastoreException
+	 */
+	public static String buildAuthorizationFilterAsInClause(UserInfo userInfo, Map<String, Object> parameters, String nodeAlias) throws DatastoreException {
+		if (userInfo == null)
+			throw new IllegalArgumentException("UserInfo cannot be null");
+		if (parameters == null)
+			throw new IllegalArgumentException("Parameters cannot be null");
+		// First off, if the user is an administrator then there is no filter
+		if (userInfo.isAdmin()) {
+			return "";
+		}
+		// For all other cases we build up a filter
+		Set<Long> groups = userInfo.getGroups();
+		if (groups == null)
+			throw new IllegalArgumentException("User's groups cannot be null");
+		if (groups.size() < 1)
+			throw new IllegalArgumentException("User must belong to at least one group");
+		String sql = AuthorizationSqlUtil.authorizationSQL(groups.size(), false);
+		// Bind the variables
+		parameters.put(AuthorizationSqlUtil.ACCESS_TYPE_BIND_VAR, ACCESS_TYPE.READ.name());
+		// Bind each group
+		Iterator<Long> it = groups.iterator();
+		int index = 0;
+		while (it.hasNext()) {
+			Long ug = it.next();
+			if (ug == null)
+				throw new IllegalArgumentException("UserGroup was null");
+			parameters.put(AuthorizationSqlUtil.BIND_VAR_PREFIX + index, ug);
+			index++;
+		}
+		return nodeAlias + "." + SqlConstants.COL_NODE_BENEFACTOR_ID + " in (" + sql + ")";
 	}
 
 	/**
