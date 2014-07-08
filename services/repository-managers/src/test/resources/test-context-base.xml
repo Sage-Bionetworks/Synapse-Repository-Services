@@ -10,13 +10,15 @@
 
 	<context:annotation-config />
 
-	<import resource="classpath:test-context-base.xml" />
+	<import resource="classpath:managers-import.xml" />
+	<import resource="classpath:managers-topic-publisher-import.xml" />
+	<import resource="classpath:jdomodels-import.xml" />
+	<import resource="classpath:dynamo-import.xml" />
+	<import resource="classpath:audit-dao.spb.xml" />
+	<import resource="classpath:id-generator.spb.xml" />
+	<import resource="classpath:concept-dao-beans.spb.xml" />
+	<import resource="classpath:table-cluster-spb.xml" />
 
-	<!-- We do not want to publish to the repository change topic while running tests so we turn it off -->
-	<bean id="stackConfiguration.shouldMessagesBePublishedToTopic" class="java.lang.Boolean">
-		<constructor-arg value="false" />
-	</bean>
-	
 	<!-- We don't want to send emails during testing, so we stub out Amazon SES -->
 	<bean id="amazonSESClient" class="org.sagebionetworks.repo.manager.StubAmazonSimpleEmailServiceClient" />	
 	

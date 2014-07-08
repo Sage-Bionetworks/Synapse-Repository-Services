@@ -12,13 +12,7 @@
 
 	<import resource="classpath:test-context-base.xml" />
 
-	<!-- We do not want to publish to the repository change topic while running tests so we turn it off -->
 	<bean id="stackConfiguration.shouldMessagesBePublishedToTopic" class="java.lang.Boolean">
-		<constructor-arg value="false" />
+		<constructor-arg value="true" />
 	</bean>
-	
-	<!-- We don't want to send emails during testing, so we stub out Amazon SES -->
-	<bean id="amazonSESClient" class="org.sagebionetworks.repo.manager.StubAmazonSimpleEmailServiceClient" />	
-	
-	<bean id="jiraClient" class="org.sagebionetworks.repo.manager.TestJiraClient" />
 </beans>

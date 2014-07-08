@@ -16,9 +16,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-// cannot use test-context because that startsup a quartz task that interferes witht this test
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:audit-dao.spb.xml", "classpath:audit-managers.spb.xml" })
+@ContextConfiguration(locations = { "classpath:test-context-enabled.xml" })
 public class S3AccessRecorderTest {
 	
 	@Autowired

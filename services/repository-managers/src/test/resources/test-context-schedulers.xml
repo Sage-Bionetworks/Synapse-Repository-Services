@@ -10,15 +10,8 @@
 
 	<context:annotation-config />
 
-	<import resource="classpath:managers-import.xml" />
-	<import resource="classpath:managers-topic-publisher-import.xml" />
+	<import resource="classpath:test-context-base.xml" />
 	<import resource="classpath:managers-topic-publisher-triggers-import.xml" />
-	<import resource="classpath:jdomodels-import.xml" />
-	<import resource="classpath:dynamo-import.xml" />
-	<import resource="classpath:audit-dao.spb.xml" />
-	<import resource="classpath:id-generator.spb.xml" />
-	<import resource="classpath:concept-dao-beans.spb.xml" />
-	<import resource="classpath:table-cluster-spb.xml" />
 
 	<!-- This is a shared scheduler-->
 	<bean id="stackConfigurationReloadScheduler" class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
