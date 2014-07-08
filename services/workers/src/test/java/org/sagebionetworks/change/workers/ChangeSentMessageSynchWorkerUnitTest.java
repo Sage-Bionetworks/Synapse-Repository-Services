@@ -7,6 +7,7 @@ import java.util.Random;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
 import org.mockito.Mockito;
@@ -20,7 +21,8 @@ import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.dbo.dao.semaphore.ProgressCallback;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.status.StatusEnum;
-import org.sagebionetworks.util.DefaultClockProvider;
+import org.sagebionetworks.util.DefaultClock;
+import org.sagebionetworks.util.TestClock;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class ChangeSentMessageSynchWorkerUnitTest {
@@ -34,6 +36,7 @@ public class ChangeSentMessageSynchWorkerUnitTest {
 	WorkerLogger mockLogger;
 	Random mockRandom;
 	int pageSize = 10;
+	TestClock testClock;
 	
 	@Before
 	public void before(){
@@ -44,17 +47,18 @@ public class ChangeSentMessageSynchWorkerUnitTest {
 		mockConfiguration = Mockito.mock(StackConfiguration.class);
 		mockLogger = Mockito.mock(WorkerLogger.class);
 		mockRandom = Mockito.mock(Random.class);
+		testClock = new TestClock();
 		worker = new ChangeSentMessageSynchWorker();
 		ReflectionTestUtils.setField(worker, "changeDao", mockChangeDao);
 		ReflectionTestUtils.setField(worker, "repositoryMessagePublisher", mockRepositoryMessagePublisher);
 		ReflectionTestUtils.setField(worker, "stackStatusDao", mockStatusDao);
-		ReflectionTestUtils.setField(worker, "clockProvider", new DefaultClockProvider());
+		ReflectionTestUtils.setField(worker, "clock", testClock);
 		ReflectionTestUtils.setField(worker, "configuration", mockConfiguration);
 		ReflectionTestUtils.setField(worker, "workerLogger", mockLogger);
 		ReflectionTestUtils.setField(worker, "random", mockRandom);
 		when(mockStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_WRITE);
 		when(mockConfiguration.getChangeSynchWorkerMinPageSize()).thenReturn(new ImmutablePropertyAccessor(pageSize));
-		when(mockConfiguration.getChangeSynchWorkerSleepTimeMS()).thenReturn(new ImmutablePropertyAccessor(0L));
+		when(mockConfiguration.getChangeSynchWorkerSleepTimeMS()).thenReturn(new ImmutablePropertyAccessor(1000L));
 		when(mockRandom.nextInt(anyInt())).thenReturn(1);
 	}
 	
@@ -86,11 +90,13 @@ public class ChangeSentMessageSynchWorkerUnitTest {
 		when(mockChangeDao.checkUnsentMessageByCheckSumForRange(23L, 33L)).thenReturn(false);
 		when(mockChangeDao.listUnsentMessages(anyLong(), anyLong(), any(Timestamp.class))).thenReturn(Arrays.asList(new ChangeMessage(), new ChangeMessage()));
 		// run
+		long start = testClock.currentTimeMillis();
 		worker.run(mockCallback);
 		// Progress should be made for each page.
 		verify(mockCallback, times(5)).progressMade();
 		verify(mockRepositoryMessagePublisher, times(2)).publishToTopic(any(ChangeMessage.class));
 		verify(mockLogger, times(9)).logCustomMetric(any(ProfileData.class));
+		assertEquals(start + 3000, testClock.currentTimeMillis());
 	}
 
 }

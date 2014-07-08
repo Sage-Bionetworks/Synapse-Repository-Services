@@ -36,7 +36,7 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeMessageUtils;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.util.ClockProvider;
+import org.sagebionetworks.util.Clock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DeadlockLoserDataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -121,7 +121,7 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 	private IdGenerator idGenerator;
 	
 	@Autowired
-	ClockProvider clockProvider;
+	Clock clock;
 	
 	private TableMapping<DBOChange> rowMapper = new DBOChange().getTableMapping();
 
@@ -141,7 +141,7 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 			} catch (DeadlockLoserDataAccessException e) {
 				// This is the only error allowed.
 				try {
-					clockProvider.sleep(500*count);
+					clock.sleep(500 * count);
 				} catch (InterruptedException e2) {
 					throw new RuntimeException(e2);
 				}

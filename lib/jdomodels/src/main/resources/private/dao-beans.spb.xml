@@ -13,7 +13,8 @@
 	<aop:aspectj-autoproxy />
 
 
-	<bean id="clockProvider" class="org.sagebionetworks.util.DefaultClockProvider"/>
+	<bean id="clock" class="org.sagebionetworks.util.DefaultClock" />
+
 	<bean id="transactionSynchronizationManager"
 		class="org.sagebionetworks.repo.model.message.TransactionSynchronizationProxyImpl" />
 	<!-- Transactional Messenger -->
