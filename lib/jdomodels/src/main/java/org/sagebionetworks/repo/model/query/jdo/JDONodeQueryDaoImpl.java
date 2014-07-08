@@ -182,7 +182,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 		parameters.put(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, ObjectType.ENTITY.name());
 
 		// Build the authorization filter
-		String authorizationFilter = QueryUtils.buildAuthorizationFilterAsInClause(userInfo, parameters, SqlConstants.NODE_ALIAS);
+		String authorizationFilter = QueryUtils.buildAuthorizationFilter(userInfo, parameters, SqlConstants.NODE_ALIAS);
 
 		try {
 			// Build the from
