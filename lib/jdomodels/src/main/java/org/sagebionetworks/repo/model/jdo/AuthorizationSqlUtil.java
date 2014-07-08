@@ -10,8 +10,10 @@ public class AuthorizationSqlUtil {
 	 * ra.oid_id=acl.id and ra.groupId in :groups and at.oid_id=ra.id and at.type=:type
 	 */
 
-	private static final String AUTHORIZATION_SQL_SELECT = 
-			"select distinct acl."+SqlConstants.COL_ACL_OWNER_ID+" "+SqlConstants.COL_ACL_ID;
+	private static final String AUTHORIZATION_SQL_SELECT = "select acl." + SqlConstants.COL_ACL_OWNER_ID + " " + SqlConstants.COL_ACL_ID;
+
+	private static final String AUTHORIZATION_SQL_SELECT_DISTINCT = "select distinct acl." + SqlConstants.COL_ACL_OWNER_ID + " "
+			+ SqlConstants.COL_ACL_ID;
 	
 	public static final String AUTHORIZATION_SQL_FROM = " from "+
 			SqlConstants.TABLE_ACCESS_CONTROL_LIST+" acl, "+
@@ -64,8 +66,8 @@ public class AuthorizationSqlUtil {
 	 * @return the SQL to find the root-accessible nodes that a specified user-group list can access
 	 * using a specified access type
 	 */
-	public static String authorizationSQL(int n) {
-		StringBuilder sb = new StringBuilder(AUTHORIZATION_SQL_SELECT);
+	public static String authorizationSQL(int n, boolean distinct) {
+		StringBuilder sb = new StringBuilder(distinct ? AUTHORIZATION_SQL_SELECT_DISTINCT : AUTHORIZATION_SQL_SELECT);
 		sb.append(AUTHORIZATION_SQL_FROM);
 		sb.append(authorizationSQLWhere(n));
 		return sb.toString();
