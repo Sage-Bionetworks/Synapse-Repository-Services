@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.lang.StringUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
@@ -54,19 +55,18 @@ public class DBOReferenceDaoImpl implements DBOReferenceDao {
 	private static final String SELECT_SQL = "SELECT "+COL_REFERENCE_GROUP_NAME+", "+COL_REFERENCE_TARGET_NODE+", "+COL_REFERENCE_TARGET_REVISION_NUMBER+" FROM "+TABLE_REFERENCE+" WHERE "+COL_REFERENCE_OWNER_NODE+" = ?";
 	private static final String REFERENCE_TARGET_NODE_BIND_VAR = "rtn";
 	private static final String REFERENCE_TARGET_REVISION_NO_BIND_VAR = "rtrn";	
-	private static final String REFERRER_SELECT_SQL_HEAD = 	
-					"SELECT "+
+	private static final String REFERRER_SELECT_SQL_COLUMNS =
 					TABLE_NODE+"."+COL_NODE_ID+", "+
 					TABLE_NODE+"."+COL_NODE_NAME+", "+
 					TABLE_NODE+"."+COL_NODE_TYPE+", "+
 					TABLE_NODE+"."+COL_NODE_BENEFACTOR_ID+", "+
 					TABLE_REFERENCE+"."+COL_REFERENCE_OWNER_NODE;
-	private static final String REFERRER_SELECT_SQL_TAIL = 
-			" FROM "+TABLE_REFERENCE+", "+TABLE_NODE+
-			" WHERE "+TABLE_NODE+"."+COL_NODE_ID+" = "+TABLE_REFERENCE+"."+COL_REFERENCE_OWNER_NODE+" AND "+
-				TABLE_REFERENCE+"."+COL_REFERENCE_TARGET_NODE+" = :"+REFERENCE_TARGET_NODE_BIND_VAR+" ";
-	private static final String REFERRER_SELECT_SQL_WITH_REVISION_TAIL = REFERRER_SELECT_SQL_TAIL+
-			"AND "+TABLE_REFERENCE+"."+COL_REFERENCE_TARGET_REVISION_NUMBER+" = :"+REFERENCE_TARGET_REVISION_NO_BIND_VAR+" ";	
+	private static final String REFERRER_SELECT_SQL_FROM_TABLE = TABLE_REFERENCE + ", " + TABLE_NODE;
+	private static final String REFERRER_SELECT_SQL_DEFAULT_WHERE = TABLE_NODE + "." + COL_NODE_ID + " = " + TABLE_REFERENCE + "."
+			+ COL_REFERENCE_OWNER_NODE + " AND " + TABLE_REFERENCE + "." + COL_REFERENCE_TARGET_NODE + " = :"
+			+ REFERENCE_TARGET_NODE_BIND_VAR;
+	private static final String REFERRER_SELECT_SQL_WHERE_WITH_REVISION = " AND " + TABLE_REFERENCE + "."
+			+ COL_REFERENCE_TARGET_REVISION_NUMBER + " = :" + REFERENCE_TARGET_REVISION_NO_BIND_VAR;
 	
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
@@ -127,31 +127,38 @@ public class DBOReferenceDaoImpl implements DBOReferenceDao {
 	@Override
 	public QueryResults<EntityHeader> getReferrers(Long targetId, Integer targetVersion, UserInfo userInfo, Integer offset, Integer limit) throws DatastoreException {
 		if(targetId == null) throw new IllegalArgumentException("targetId cannot be null");
+
+		StringBuilder whereClause = new StringBuilder(1000);
 		// Build up the results from the DB.
 		final List<EntityHeader> results = new ArrayList<EntityHeader>();
 		Map<String, Object> baseParameters = new HashMap<String, Object>();
 		baseParameters.put(REFERENCE_TARGET_NODE_BIND_VAR, targetId);
-		if (null!=targetVersion) baseParameters.put(REFERENCE_TARGET_REVISION_NO_BIND_VAR, targetVersion);
-		String queryTail = null;
-		if (null==targetVersion) {
-			queryTail = REFERRER_SELECT_SQL_TAIL;
-		} else {
-			queryTail = REFERRER_SELECT_SQL_WITH_REVISION_TAIL;
+
+		whereClause.append(REFERRER_SELECT_SQL_DEFAULT_WHERE);
+
+		// if target version is supplied, add it
+		if (targetVersion != null) {
+			baseParameters.put(REFERENCE_TARGET_REVISION_NO_BIND_VAR, targetVersion);
+			whereClause.append(REFERRER_SELECT_SQL_WHERE_WITH_REVISION);
 		}
+
 		baseParameters.put(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, ObjectType.ENTITY.name());
-		String authorizationFilter = QueryUtils.buildAuthorizationFilter(userInfo, baseParameters);
-		String fullQuery = null;
-		if (authorizationFilter.length()>0) {
-			queryTail = " FROM ("+REFERRER_SELECT_SQL_HEAD+queryTail+") " + SqlConstants.NODE_ALIAS + " "+authorizationFilter;
-			fullQuery = "SELECT * "+queryTail;
-		} else {
-			fullQuery = REFERRER_SELECT_SQL_HEAD+queryTail;
+		String authorizationInClause = QueryUtils.buildAuthorizationFilter(userInfo, baseParameters, SqlConstants.TABLE_NODE);
+		if (!StringUtils.isBlank(authorizationInClause)) {
+			whereClause.append(" AND ");
+			whereClause.append(authorizationInClause);
 		}
-		
+
+		String paging = "";
 		Map<String, Object> fullParameters = new HashMap<String, Object>(baseParameters);
-		if (offset!=null && limit!=null) {
-			fullQuery += QueryUtils.buildPaging(offset, limit, fullParameters);
+		if (offset != null && limit != null) {
+			paging = " " + QueryUtils.buildPaging(offset, limit, fullParameters);
 		}
+
+		String fullQuery = "SELECT " + REFERRER_SELECT_SQL_COLUMNS + " FROM " + REFERRER_SELECT_SQL_FROM_TABLE + " WHERE "
+				+ whereClause.toString() + paging;
+		String countQuery = "SELECT COUNT(*) FROM " + REFERRER_SELECT_SQL_FROM_TABLE + " WHERE " + whereClause.toString();
+		
 		simpleJdbcTemplate.query(fullQuery, new RowMapper<EntityHeader>() {
 			@Override
 			public EntityHeader mapRow(ResultSet rs, int rowNum) throws SQLException {
@@ -165,7 +172,6 @@ public class DBOReferenceDaoImpl implements DBOReferenceDao {
 		}, fullParameters);
 		QueryResults<EntityHeader> ehqr = new QueryResults<EntityHeader>();
 		ehqr.setResults(results);
-		String countQuery = "SELECT COUNT(*) "+queryTail;
 		ehqr.setTotalNumberOfResults(simpleJdbcTemplate.queryForLong(countQuery, baseParameters));
 		return ehqr;
 	}
