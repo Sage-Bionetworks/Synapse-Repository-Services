@@ -40,6 +40,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -81,6 +82,7 @@ public class TableRowManagerImplTest {
 	TableRowTruthDAO mockTruthDao;
 	AuthorizationManager mockAuthManager;
 	TableStatusDAO mockTableStatusDAO;
+	NodeDAO mockNodeDAO;
 	TableRowManagerImpl manager;
 	ColumnModelDAO mockColumnModelDAO;
 	ConnectionFactory mockTableConnectionFactory;
@@ -103,6 +105,7 @@ public class TableRowManagerImplTest {
 		mockTruthDao = Mockito.mock(TableRowTruthDAO.class);
 		mockAuthManager = Mockito.mock(AuthorizationManager.class);
 		mockTableStatusDAO = Mockito.mock(TableStatusDAO.class);
+		mockNodeDAO = Mockito.mock(NodeDAO.class);
 		mockColumnModelDAO = Mockito.mock(ColumnModelDAO.class);
 		mockTableConnectionFactory = Mockito.mock(ConnectionFactory.class);
 		mockTableIndexDAO = Mockito.mock(TableIndexDAO.class);
@@ -171,6 +174,7 @@ public class TableRowManagerImplTest {
 		ReflectionTestUtils.setField(manager, "tableRowTruthDao", mockTruthDao);
 		ReflectionTestUtils.setField(manager, "authorizationManager", mockAuthManager);
 		ReflectionTestUtils.setField(manager, "tableStatusDAO", mockTableStatusDAO);
+		ReflectionTestUtils.setField(manager, "nodeDao", mockNodeDAO);
 		ReflectionTestUtils.setField(manager, "columnModelDAO", mockColumnModelDAO);
 		ReflectionTestUtils.setField(manager, "tableConnectionFactory", mockTableConnectionFactory);
 		ReflectionTestUtils.setField(manager, "exclusiveOrSharedSemaphoreRunner", mockExclusiveOrSharedSemaphoreRunner);
@@ -639,6 +643,7 @@ public class TableRowManagerImplTest {
 		status.setState(TableState.PROCESSING);
 		when(mockTableStatusDAO.getTableStatus(tableId)).thenThrow(new NotFoundException("fake")).thenReturn(status);
 		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(new TableRowChange());
+		when(mockNodeDAO.doesNodeExist(123L)).thenReturn(true);
 		try{
 			manager.query(user, "select * from "+tableId+" limit 1", true, false);
 			fail("should have failed");
@@ -648,6 +653,7 @@ public class TableRowManagerImplTest {
 		}
 		verify(mockTableStatusDAO, times(2)).getTableStatus(tableId);
 		verify(mockTableStatusDAO).resetTableStatusToProcessing(tableId);
+		verify(mockNodeDAO).doesNodeExist(123L);
 
 	}
 
