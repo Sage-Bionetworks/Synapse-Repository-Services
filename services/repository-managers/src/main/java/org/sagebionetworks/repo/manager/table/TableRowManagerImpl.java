@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -30,6 +31,7 @@ import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.exception.LockUnavilableException;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.AsynchDownloadResponseBody;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -80,6 +82,8 @@ public class TableRowManagerImpl implements TableRowManager {
 	ExclusiveOrSharedSemaphoreRunner exclusiveOrSharedSemaphoreRunner;
 	@Autowired
 	ConnectionFactory tableConnectionFactory;
+	@Autowired
+	NodeDAO nodeDao;
 	/**
 	 * Injected via Spring.
 	 */
@@ -425,7 +429,7 @@ public class TableRowManagerImpl implements TableRowManager {
 			return tableStatusDAO.getTableStatus(tableId);
 		} catch (NotFoundException e) {
 			// make sure the table exists
-			if (tableRowTruthDao.getLastTableRowChange(tableId) == null) {
+			if (!nodeDao.doesNodeExist(KeyFactory.stringToKey(tableId))) {
 				throw new NotFoundException("Table " + tableId + " not found");
 			}
 			// we get here, if the index for this table is not (yet?) being build. We need to kick off the
