@@ -420,8 +420,20 @@ public class TableRowManagerImpl implements TableRowManager {
 	}
 
 	@Override
-	public TableStatus getTableStatus(String tableId) throws NotFoundException {
-		return tableStatusDAO.getTableStatus(tableId);
+	public TableStatus getTableStatusOrCreateIfNotExists(String tableId) throws NotFoundException {
+		try {
+			return tableStatusDAO.getTableStatus(tableId);
+		} catch (NotFoundException e) {
+			// make sure the table exists
+			if (tableRowTruthDao.getLastTableRowChange(tableId) == null) {
+				throw new NotFoundException("Table " + tableId + " not found");
+			}
+			// we get here, if the index for this table is not (yet?) being build. We need to kick off the
+			// building of the index and report the table as unavailable
+			tableStatusDAO.resetTableStatusToProcessing(tableId);
+			// status should exist now
+			return tableStatusDAO.getTableStatus(tableId);
+		}
 	}
 
 	@Override
@@ -527,14 +539,16 @@ public class TableRowManagerImpl implements TableRowManager {
 	}
 	
 	/**
-	 * Run a consistent query.  All resulting rows will be loading into memory at one time with this method.
+	 * Run a consistent query. All resulting rows will be loading into memory at one time with this method.
+	 * 
 	 * @param tableId
 	 * @param query
 	 * @return
 	 * @throws TableUnavilableException
+	 * @throws NotFoundException
 	 */
 	@Override
-	public RowSet runConsistentQuery(final SqlQuery query) throws TableUnavilableException{
+	public RowSet runConsistentQuery(final SqlQuery query) throws TableUnavilableException, NotFoundException {
 		final RowSet results = new RowSet();
 		final List<Row> rows = new LinkedList<Row>();
 		results.setRows(rows);
@@ -557,27 +571,30 @@ public class TableRowManagerImpl implements TableRowManager {
 	}
 	
 	/**
-	 * Run a consistent query and stream the results.  Use this method to avoid loading all rows into memory at one time.
+	 * Run a consistent query and stream the results. Use this method to avoid loading all rows into memory at one time.
+	 * 
 	 * @param query
 	 * @param handler
 	 * @return
 	 * @throws TableUnavilableException
+	 * @throws NotFoundException
 	 */
 	@Override
-	public String runConsistentQueryAsStream(final SqlQuery query, final RowAndHeaderHandler handler) throws TableUnavilableException{
+	public String runConsistentQueryAsStream(final SqlQuery query, final RowAndHeaderHandler handler) throws TableUnavilableException,
+			NotFoundException {
 		try {
 			// Run with a read lock.
 			return tryRunWithTableNonexclusiveLock(query.getTableId(), tableReadTimeoutMS, new Callable<String>() {
 				@Override
 				public String call() throws Exception {
-					// We can only run this query if the table  is available.
-					TableStatus status = getTableStatus(query.getTableId());
-					if(!TableState.AVAILABLE.equals(status.getState())){
-						// When the table is not available, we communicate the current status of the 
+					// We can only run this query if the table is available.
+					TableStatus status = getTableStatusOrCreateIfNotExists(query.getTableId());
+					if (!TableState.AVAILABLE.equals(status.getState())) {
+						// When the table is not available, we communicate the current status of the
 						// table in this exception.
 						throw new TableUnavilableException(status);
 					}
-					// We can only run this 
+					// We can only run this
 					queryAsStream(query, handler);
 					return status.getLastTableChangeEtag();
 				}
@@ -586,6 +603,8 @@ public class TableRowManagerImpl implements TableRowManager {
 			TableUnavilableException e1 = createTableUnavilableException(query.getTableId());
 			throw e1;
 		} catch(TableUnavilableException e){
+			throw e;
+		} catch (NotFoundException e) {
 			throw e;
 		} catch (Exception e) {
 			// All other exception are converted to generic datastore.
@@ -599,9 +618,10 @@ public class TableRowManagerImpl implements TableRowManager {
 	 * @param writer
 	 * @return The resulting RowSet will not contain any 
 	 * @throws TableUnavilableException
+	 * @throws NotFoundException 
 	 */
 	@Override
-	public AsynchDownloadResponseBody runConsistentQueryAsStream(String sql, final CSVWriterStream writer, final boolean includeRowIdAndVersion) throws TableUnavilableException{
+	public AsynchDownloadResponseBody runConsistentQueryAsStream(String sql, final CSVWriterStream writer, final boolean includeRowIdAndVersion) throws TableUnavilableException, NotFoundException{
 		// Convert to a query.
 		final SqlQuery query = createQuery(sql, false);
 		if(includeRowIdAndVersion && query.isAggregatedResult()){
@@ -642,7 +662,7 @@ public class TableRowManagerImpl implements TableRowManager {
 	TableUnavilableException createTableUnavilableException(String tableId){
 		// When this occurs we need to lookup the status of the table and pass that to the caller
 		try {
-			TableStatus status = this.getTableStatus(tableId);
+			TableStatus status = tableStatusDAO.getTableStatus(tableId);
 			return new TableUnavilableException(status);
 		} catch (NotFoundException e1) {
 			throw new RuntimeException(e1);

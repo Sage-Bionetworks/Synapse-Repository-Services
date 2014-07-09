@@ -11,9 +11,9 @@
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
-	<import resource="classpath:search-dao.spb.xml" />
-	<import resource="classpath:main-logging-scheduler-spb.xml" />
-	<import resource="classpath:repo-log-sweep-spb.xml" />
+	<!-- slighlty misplaced here, as it is under the controller package, but services use it -->
+	<bean id="objectTypeSerializer"
+		class="org.sagebionetworks.repo.web.controller.ObjectTypeSerializerImpl" />
 
 	<!-- Make sure we can watch for deadlock on all methods of the Generic Entity 
 		Controller -->
@@ -202,50 +202,5 @@
 			</map>
 		</property>
 	</bean>
-
-	<!-- controllerProfiler that collects latency information in the form of CloudWatch objects -->
-	<bean id="controllerProfiler" class="org.sagebionetworks.cloudwatch.ControllerProfiler">
-		<property name="shouldProfile" ref="stackConfiguration.cloudWatchOnOff" />
-	</bean>
-
-	<bean id="refreshUserGroupCache" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
-		<property name="targetObject" ref="userProfileService" />
-		<property name="targetMethod" value="refreshCache" />		
-	    <property name="concurrent" value="false" />
-	</bean>
-
-	<bean id="refreshUserGroupCacheTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean">
-	    <property name="jobDetail" ref="refreshUserGroupCache" />
-	    <!-- build cache immediately -->
-    	<property name="startDelay" value="0" />
-	    <!-- repeat every 5 minutes -->
-	    <property name="repeatInterval" value="300000" />
-	    <property name="misfireInstructionName" value="MISFIRE_INSTRUCTION_FIRE_NOW" />
-	</bean>
-	
-	<bean id="refreshTeamMemberCache" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
-		<property name="targetObject" ref="teamService" />
-		<property name="targetMethod" value="refreshCache" />		
-	    <property name="concurrent" value="false" />
-	</bean>
-
-	<bean id="refreshTeamMemberCacheTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean">
-	    <property name="jobDetail" ref="refreshTeamMemberCache" />
-	    <!-- build cache immediately -->
-    	<property name="startDelay" value="0" />
-	    <!-- repeat every 5 minutes -->
-	    <property name="repeatInterval" value="300000" />
-	    <property name="misfireInstructionName" value="MISFIRE_INSTRUCTION_FIRE_NOW" />
-	</bean>
-	
-	<bean id="controllerScheduler" class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
-	    <property name="triggers">
-	        <list>
-	            <ref bean="refreshUserGroupCacheTrigger" />
-	            <ref bean="refreshTeamMemberCacheTrigger" />
-	           	<ref bean="repoLogSweeperTrigger" />
-	        </list>
-	    </property>
-    </bean>
 
 </beans>

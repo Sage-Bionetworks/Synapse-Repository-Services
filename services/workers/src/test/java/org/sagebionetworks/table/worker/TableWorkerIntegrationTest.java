@@ -33,20 +33,29 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageReceiver;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.message.RepositoryMessagePublisher;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableRowManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.TableRowCache;
+import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
+import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.CSVToRowIterator;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.AsynchDownloadResponseBody;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -62,6 +71,7 @@ import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
+import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.sagebionetworks.util.csv.CSVWriterStreamProxy;
@@ -84,7 +94,7 @@ public class TableWorkerIntegrationTest {
 	/**
 	 * 
 	 */
-	public static final int MAX_WAIT_MS = 1000*60;
+	public static final int MAX_WAIT_MS = 1000 * 60 * 100;
 	
 	@Autowired
 	StackConfiguration config;
@@ -106,6 +116,15 @@ public class TableWorkerIntegrationTest {
 	@Autowired
 	SemaphoreManager semphoreManager;
 	
+	@Autowired
+	TableStatusDAO tableStatusDAO;
+	@Autowired
+	DBOChangeDAO changeDAO;
+	@Autowired
+	RepositoryMessagePublisher repositoryMessagePublisher;
+	@Autowired
+	private IdGenerator idGenerator;
+
 	private UserInfo adminUserInfo;
 	RowReferenceSet referenceSet;
 	List<ColumnModel> schema;
@@ -187,6 +206,106 @@ public class TableWorkerIntegrationTest {
 		when(all.contains(any())).thenReturn(true);
 		RowSet expectedRowSet = tableRowManager.getRowSet(tableId, referenceSet.getRows().get(0).getVersionNumber(), all);
 		assertEquals(expectedRowSet, rowSet);
+	}
+
+	/**
+	 * Test if things work if the table index is not being build, which can happen for example after a migration
+	 */
+	@Test
+	public void testRoundTripAfterMigrate() throws NotFoundException, InterruptedException, DatastoreException, TableUnavilableException,
+			IOException {
+		schema = new LinkedList<ColumnModel>();
+		for (ColumnModel cm : TableModelTestUtils.createOneOfEachType()) {
+			cm = columnManager.createColumnModel(adminUserInfo, cm);
+			schema.add(cm);
+		}
+		List<String> headers = TableModelUtils.getHeaders(schema);
+		// Create the table.
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		table.setColumnIds(headers);
+		tableId = entityManager.createEntity(adminUserInfo, table, null);
+		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
+		columnManager.bindColumnToObject(adminUserInfo, headers, tableId, true);
+		// Now add some data
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(TableModelTestUtils.createRows(schema, 2));
+		rowSet.setHeaders(headers);
+		rowSet.setTableId(tableId);
+		tableRowManager.appendRows(adminUserInfo, tableId, schema, rowSet);
+		// Wait for the table to become available
+		String sql = "select * from " + tableId + " order by row_id limit 8";
+		rowSet = waitForConsistentQuery(adminUserInfo, sql);
+		assertEquals(2, rowSet.getRows().size());
+
+		// reset table index
+		tableStatusDAO.clearAllTableState();
+		tableConnectionFactory.dropAllTablesForAllConnections();
+
+		// now we still should get the index taken care of
+		rowSet = waitForConsistentQuery(adminUserInfo, sql);
+		assertEquals(2, rowSet.getRows().size());
+	}
+
+	/**
+	 * Test if things work after a migration where there is no table status, but the index and current index have to be
+	 * built
+	 */
+	@Test
+	public void testAfterMigrate() throws NotFoundException, InterruptedException, DatastoreException, TableUnavilableException, IOException {
+		schema = new LinkedList<ColumnModel>();
+		for (ColumnModel cm : TableModelTestUtils.createOneOfEachType()) {
+			cm = columnManager.createColumnModel(adminUserInfo, cm);
+			schema.add(cm);
+		}
+		List<String> headers = TableModelUtils.getHeaders(schema);
+		// Create the table.
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		table.setColumnIds(headers);
+		tableId = entityManager.createEntity(adminUserInfo, table, null);
+		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
+		columnManager.bindColumnToObject(adminUserInfo, headers, tableId, true);
+		// Now add some data
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(TableModelTestUtils.createRows(schema, 2));
+		rowSet.setHeaders(headers);
+		rowSet.setTableId(tableId);
+		tableRowManager.appendRows(adminUserInfo, tableId, schema, rowSet);
+		// Wait for the table to become available
+		String sql = "select * from " + tableId + " order by row_id limit 8";
+		rowSet = waitForConsistentQuery(adminUserInfo, sql);
+		assertEquals(2, rowSet.getRows().size());
+
+		// reset table index
+		tableStatusDAO.clearAllTableState();
+		tableConnectionFactory.dropAllTablesForAllConnections();
+		ChangeMessage message = new ChangeMessage();
+		message.setChangeType(ChangeType.CREATE);
+		message.setObjectType(ObjectType.TABLE);
+		message.setObjectId(KeyFactory.stringToKey(tableId).toString());
+		message.setObjectEtag(UUID.randomUUID().toString());
+		message = changeDAO.replaceChange(message);
+		// and pretend we just created it
+		repositoryMessagePublisher.publishToTopic(message);
+
+		final TableIndexDAO tableIndexDAO = tableConnectionFactory.getConnection(tableId);
+		assertTrue("Index table was not created", TimeUtils.waitFor(20000, 500, null, new Predicate<Void>() {
+			@Override
+			public boolean apply(Void input) {
+				return tableIndexDAO.getRowCountForTable(tableId) != null;
+			}
+		}));
+		assertTrue("Current index was not created", TimeUtils.waitFor(20000, 500, null, new Predicate<Void>() {
+			@Override
+			public boolean apply(Void input) {
+				return tableRowCache.getCurrentVersionNumbers(KeyFactory.stringToKey(tableId), 0, 1000).size() == 2;
+			}
+		}));
+
+		// now we still should get the index taken care of
+		rowSet = waitForConsistentQuery(adminUserInfo, sql);
+		assertEquals(2, rowSet.getRows().size());
 	}
 
 	@Test

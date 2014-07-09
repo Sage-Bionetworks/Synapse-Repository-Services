@@ -41,18 +41,4 @@
 	<bean id="messageSyndication"
 		class="org.sagebionetworks.repo.manager.message.MessageSyndicationImpl" />
 
-	<!-- This trigger will fire changes messages pushed to the queue -->
-	<bean id="messagePublisherTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean">
-		<property name="jobDetail">
-			<bean
-				class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
-				<property name="targetObject" ref="messagePublisher" />
-				<property name="targetMethod" value="timerFired" />
-				<property name="concurrent" value="false" />
-			</bean>
-		</property>
-		<property name="startDelay" value="0" />
-		<property name="repeatInterval" value="1000" />
-	</bean>
-
 </beans>
