@@ -378,7 +378,7 @@ public class SQLUtilsTest {
 	public void testBuildCreateOrUpdateRowSQL(){
 		List<ColumnModel> newSchema = helperCreateColumnsWithIds("0","2","4");
 		String result = SQLUtils.buildCreateOrUpdateRowSQL(newSchema, "syn123");
-		String expected = "INSERT INTO T123 (ROW_ID, ROW_VERSION, C0, C2, C4) VALUES ( :bRI, :bRV, :C0, :C2, :C4) ON DUPLICATE KEY UPDATE ROW_VERSION = :bRV, C0 = :C0, C2 = :C2, C4 = :C4";
+		String expected = "INSERT INTO T123 (ROW_ID, ROW_VERSION, C0, C2, C4) VALUES ( :bRI, :bRV, :C0, :C2, :C4) ON DUPLICATE KEY UPDATE ROW_VERSION = VALUES(ROW_VERSION), C0 = VALUES(C0), C2 = VALUES(C2), C4 = VALUES(C4)";
 		assertEquals(expected, result);
 	}
 	
