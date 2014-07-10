@@ -12,6 +12,8 @@
 
 	<aop:aspectj-autoproxy />
 
+	<bean id="clock" class="org.sagebionetworks.util.DefaultClock" />
+
 	<bean id="userID" class="org.sagebionetworks.StackConfiguration" factory-method="getIAMUserId" />
 	<bean id="userKey" class="org.sagebionetworks.StackConfiguration" factory-method="getIAMUserKey" />
 
