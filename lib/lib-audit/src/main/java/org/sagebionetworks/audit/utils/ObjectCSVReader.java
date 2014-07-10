@@ -120,7 +120,7 @@ public class ObjectCSVReader<T> {
 		try {
 			T newObject = clazz.newInstance();
 			// Fill in each fields from the buffer
-			for (int i = 0; i < fields.length & i <buffer.length; i++) {
+			for (int i = 0; i < fields.length && i <buffer.length; i++) {
 				String value = buffer[i];
 				if (value == null)
 					continue;
