@@ -77,6 +77,8 @@
 				<!-- others -->
                 <ref bean="changeSentMessageSynchTrigger" />
 				<ref bean="stackConfigurationReloadTrigger" />
+				<!-- workers publish messages too -->
+				<ref bean="messagePublisherTrigger" />
 			</list>
 		</property>
 	</bean>
