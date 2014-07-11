@@ -488,12 +488,12 @@ public class SQLUtils {
 			builder.append(", :");
 			builder.append(getColumnNameForId(cm.getId()));
 		}
-		builder.append(") ON DUPLICATE KEY UPDATE ROW_VERSION = :").append(ROW_VERSION_BIND);
+		builder.append(") ON DUPLICATE KEY UPDATE ROW_VERSION = VALUES(ROW_VERSION)");
 		for(ColumnModel cm: schema){
 			builder.append(", ");
 			String name = getColumnNameForId(cm.getId());
 			builder.append(name);
-			builder.append(" = :").append(name);
+			builder.append(" = VALUES(").append(name).append(")");
 		}
 		return builder.toString();
 	}
