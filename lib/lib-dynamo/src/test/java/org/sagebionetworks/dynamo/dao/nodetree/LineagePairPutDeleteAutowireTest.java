@@ -19,7 +19,7 @@ import com.amazonaws.services.dynamodb.AmazonDynamoDB;
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMapper;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = {"classpath:dynamo-dao-spb.xml" })
+@ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class LineagePairPutDeleteAutowireTest {
 
 	@Autowired

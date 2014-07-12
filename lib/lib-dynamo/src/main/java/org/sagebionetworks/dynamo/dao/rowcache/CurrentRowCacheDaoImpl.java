@@ -12,7 +12,9 @@ import org.sagebionetworks.dynamo.config.DynamoConfig;
 import org.sagebionetworks.dynamo.dao.DynamoDaoBaseImpl;
 import org.sagebionetworks.repo.model.table.CurrentRowCacheStatus;
 import org.sagebionetworks.util.Clock;
+import org.sagebionetworks.util.DefaultClock;
 import org.sagebionetworks.util.TimeUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.dynamodb.AmazonDynamoDB;
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMapper;
@@ -36,6 +38,9 @@ public class CurrentRowCacheDaoImpl extends DynamoDaoBaseImpl implements Current
 
 	DynamoDBMapper mapper;
 	DynamoDBMapper statusMapper;
+
+	@Autowired
+	private Clock clock;
 
 	private static final Comparator<DboCurrentRowCache> CURRENT_ROW_CACHE_COMPARATOR = new Comparator<DboCurrentRowCache>() {
 		@Override
@@ -223,7 +228,7 @@ public class CurrentRowCacheDaoImpl extends DynamoDaoBaseImpl implements Current
 	@Override
 	public void truncateAllData() {
 		// scans are eventually consistent, so retry a few times for 3 seconds
-		for (long start = Clock.currentTimeMillis(); start + 3000 > Clock.currentTimeMillis(); Clock.sleepNoInterrupt(500)) {
+		for (long start = clock.currentTimeMillis(); start + 3000 > clock.currentTimeMillis(); clock.sleepNoInterrupt(500)) {
 			DynamoDBScanExpression scanExpression = new DynamoDBScanExpression();
 			PaginatedScanList<DboCurrentRowCache> scanResult = mapper.scan(DboCurrentRowCache.class, scanExpression);
 			mapper.batchDelete(uniqueify(scanResult, CURRENT_ROW_CACHE_COMPARATOR));

@@ -353,7 +353,7 @@ public class DBOReferenceDaoImplTest {
 		}
 		
 		// only the first node refers to revision 1
-		ehqr = dboReferenceDao.getReferrers(123L, 1, userInfo, null, null);
+		ehqr = dboReferenceDao.getReferrers(123L, 1, userInfo, 0, 1000);
 		count = ehqr.getTotalNumberOfResults();
 		referrers = ehqr.getResults();
 		expected = new HashSet<String>(); 
@@ -473,7 +473,7 @@ public class DBOReferenceDaoImplTest {
 			// Now save to the DB
 			dboReferenceDao.replaceReferences(node1.getId(), references);
 		}
-		ehqr = dboReferenceDao.getReferrers(123L, 1, userInfo, null, null);
+		ehqr = dboReferenceDao.getReferrers(123L, 1, userInfo, 0, 1000);
 		count = ehqr.getTotalNumberOfResults();
 		referrers = ehqr.getResults();
 		assertEquals(expected, justIds(referrers));

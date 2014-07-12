@@ -40,6 +40,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -62,6 +63,7 @@ import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
@@ -80,6 +82,7 @@ public class TableRowManagerImplTest {
 	TableRowTruthDAO mockTruthDao;
 	AuthorizationManager mockAuthManager;
 	TableStatusDAO mockTableStatusDAO;
+	NodeDAO mockNodeDAO;
 	TableRowManagerImpl manager;
 	ColumnModelDAO mockColumnModelDAO;
 	ConnectionFactory mockTableConnectionFactory;
@@ -102,6 +105,7 @@ public class TableRowManagerImplTest {
 		mockTruthDao = Mockito.mock(TableRowTruthDAO.class);
 		mockAuthManager = Mockito.mock(AuthorizationManager.class);
 		mockTableStatusDAO = Mockito.mock(TableStatusDAO.class);
+		mockNodeDAO = Mockito.mock(NodeDAO.class);
 		mockColumnModelDAO = Mockito.mock(ColumnModelDAO.class);
 		mockTableConnectionFactory = Mockito.mock(ConnectionFactory.class);
 		mockTableIndexDAO = Mockito.mock(TableIndexDAO.class);
@@ -170,6 +174,7 @@ public class TableRowManagerImplTest {
 		ReflectionTestUtils.setField(manager, "tableRowTruthDao", mockTruthDao);
 		ReflectionTestUtils.setField(manager, "authorizationManager", mockAuthManager);
 		ReflectionTestUtils.setField(manager, "tableStatusDAO", mockTableStatusDAO);
+		ReflectionTestUtils.setField(manager, "nodeDao", mockNodeDAO);
 		ReflectionTestUtils.setField(manager, "columnModelDAO", mockColumnModelDAO);
 		ReflectionTestUtils.setField(manager, "tableConnectionFactory", mockTableConnectionFactory);
 		ReflectionTestUtils.setField(manager, "exclusiveOrSharedSemaphoreRunner", mockExclusiveOrSharedSemaphoreRunner);
@@ -570,7 +575,7 @@ public class TableRowManagerImplTest {
 		verify(mockTableStatusDAO, never()).getTableStatus(tableId);
 	}
 	
-	@Test 
+	@Test
 	public void testQueryHappyCaseIsConsistentTrue() throws Exception {
 		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(true);
 		TableStatus status = new TableStatus();
@@ -622,12 +627,41 @@ public class TableRowManagerImplTest {
 			// expected
 			assertEquals(status, e.getStatus());
 		}
+		verify(mockTableStatusDAO, times(1)).getTableStatus(tableId);
 	}
 	
 	/**
-	 * Test for a consistent query when the table index worker is holding a write-lock-precursor
-	 * on the index.  For this case the tryRunWithSharedLock() will throw a LockUnavilableException(),
-	 * which should then be translated into a TableUnavilableException that contains the Table's status.
+	 * Test for a consistent query when the table index is not available and not yet being build
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void testQueryIsConsistentTrueNotFound() throws Exception {
+		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(true);
+		TableStatus status = new TableStatus();
+		status.setTableId(tableId);
+		status.setState(TableState.PROCESSING);
+		when(mockTableStatusDAO.getTableStatus(tableId)).thenThrow(new NotFoundException("fake")).thenReturn(status);
+		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(new TableRowChange());
+		when(mockNodeDAO.doesNodeExist(123L)).thenReturn(true);
+		try{
+			manager.query(user, "select * from "+tableId+" limit 1", true, false);
+			fail("should have failed");
+		}catch(TableUnavilableException e){
+			// expected
+			assertEquals(status, e.getStatus());
+		}
+		verify(mockTableStatusDAO, times(2)).getTableStatus(tableId);
+		verify(mockTableStatusDAO).resetTableStatusToProcessing(tableId);
+		verify(mockNodeDAO).doesNodeExist(123L);
+
+	}
+
+	/**
+	 * Test for a consistent query when the table index worker is holding a write-lock-precursor on the index. For this
+	 * case the tryRunWithSharedLock() will throw a LockUnavilableException(), which should then be translated into a
+	 * TableUnavilableException that contains the Table's status.
+	 * 
 	 * @throws Exception
 	 */
 	@Test
@@ -660,11 +694,10 @@ public class TableRowManagerImplTest {
 		bar.setId("222");
 		bar.setName("bar");
 		List<ColumnModel> models = Arrays.asList(foo, bar);
-		Map<String, ColumnModel> nameToModelMap = TableModelUtils.createColumnNameToModelMap(models);
-		SqlQuery query = new SqlQuery("select count(foo) from syn123", nameToModelMap);
+		SqlQuery query = new SqlQuery("select count(foo) from syn123", models);
 		
 		// Aggregate queries are always small enough to run. 
-		TableRowManagerImpl.validateQuerySize(query, models, 1);
+		TableRowManagerImpl.validateQuerySize(query, 1);
 	}
 	
 	@Test
@@ -679,12 +712,11 @@ public class TableRowManagerImplTest {
 		bar.setName("bar");
 		bar.setMaximumSize(1L);
 		List<ColumnModel> models = Arrays.asList(foo, bar);
-		Map<String, ColumnModel> nameToModelMap = TableModelUtils.createColumnNameToModelMap(models);
-		SqlQuery query = new SqlQuery("select foo, bar from syn123", nameToModelMap);
+		SqlQuery query = new SqlQuery("select foo, bar from syn123", models);
 		
 		int maxBytesPerRow = TableModelUtils.calculateMaxRowSize(models);
 		try{
-			TableRowManagerImpl.validateQuerySize(query, models, maxBytesPerRow*1000);
+			TableRowManagerImpl.validateQuerySize(query, maxBytesPerRow*1000);
 			fail("There is no limit on this query so it should have failed.");
 		}catch (IllegalArgumentException e){
 			// expected
@@ -704,12 +736,11 @@ public class TableRowManagerImplTest {
 		bar.setName("bar");
 		bar.setMaximumSize(2L);
 		List<ColumnModel> models = Arrays.asList(foo, bar);
-		Map<String, ColumnModel> nameToModelMap = TableModelUtils.createColumnNameToModelMap(models);
-		SqlQuery query = new SqlQuery("select foo, bar from syn123 limit 2", nameToModelMap);
+		SqlQuery query = new SqlQuery("select foo, bar from syn123 limit 2", models);
 		
 		int maxBytesPerRow = TableModelUtils.calculateMaxRowSize(models);
 		// this is under the limit
-		TableRowManagerImpl.validateQuerySize(query, models, maxBytesPerRow*2+1);
+		TableRowManagerImpl.validateQuerySize(query, maxBytesPerRow*2+1);
 	}
 	
 	@Test 
@@ -724,15 +755,14 @@ public class TableRowManagerImplTest {
 		bar.setName("bar");
 		bar.setMaximumSize(3L);
 		List<ColumnModel> models = Arrays.asList(foo, bar);
-		Map<String, ColumnModel> nameToModelMap = TableModelUtils.createColumnNameToModelMap(models);
-		SqlQuery query = new SqlQuery("select foo, bar from syn123 limit 2", nameToModelMap);
+		SqlQuery query = new SqlQuery("select foo, bar from syn123 limit 2", models);
 		
 		int maxBytesPerRow = TableModelUtils.calculateMaxRowSize(models);
 		// Set too small for this query
 		int testMaxBytesPerRow = maxBytesPerRow*2-1;
 		// this is under the limit
 		try{
-			TableRowManagerImpl.validateQuerySize(query, models, testMaxBytesPerRow);
+			TableRowManagerImpl.validateQuerySize(query, testMaxBytesPerRow);
 			fail("There is no limit on this query so it should have failed.");
 		}catch (IllegalArgumentException e){
 			// expected
@@ -784,5 +814,15 @@ public class TableRowManagerImplTest {
 	public void testGetMaxRowsPerPageEmpty(){
 		Long maxRows = this.manager.getMaxRowsPerPage(new LinkedList<ColumnModel>());
 		assertEquals(null, maxRows);
+	}
+	
+	@Test
+	public void testGetColumnsForHeaders() throws DatastoreException, NotFoundException{
+		// Headers can be a mix of column ids and aggregate functions.  The non-column model id headers should be ignored.
+		List<String> headers = Arrays.asList("1","2","count(2)","3");
+		when(mockColumnModelDAO.getColumnModel(Arrays.asList("1","2","3"), true)).thenReturn(Arrays.asList(models.get(1),models.get(2), models.get(3)));
+		List<ColumnModel> models = manager.getColumnsForHeaders(headers);
+		assertNotNull(models);
+		assertEquals(3, models.size());
 	}
 }

@@ -11,8 +11,6 @@
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
-	<import resource="classpath:audit-dao.spb.xml" />
-
 	<bean id="auditMergeWorkerFactory" class="org.sagebionetworks.audit.worker.MergeWorkerFactory"/>
 
 	<!-- This gate ensures we never run more than the max number or runners across the entire cluster for this worker  -->

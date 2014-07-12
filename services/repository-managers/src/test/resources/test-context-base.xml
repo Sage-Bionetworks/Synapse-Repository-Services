@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+	   xsi:schemaLocation="
+		                   http://www.springframework.org/schema/beans
+		                   http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+                           http://www.springframework.org/schema/context
+                           http://www.springframework.org/schema/context/spring-context-3.0.xsd">
+
+	<context:annotation-config />
+
+	<import resource="classpath:managers-import.xml" />
+	<import resource="classpath:managers-topic-publisher-import.xml" />
+	<import resource="classpath:jdomodels-import.xml" />
+	<import resource="classpath:dynamo-import.xml" />
+	<import resource="classpath:audit-dao.spb.xml" />
+	<import resource="classpath:id-generator.spb.xml" />
+	<import resource="classpath:concept-dao-beans.spb.xml" />
+	<import resource="classpath:table-cluster-spb.xml" />
+
+	<!-- We don't want to send emails during testing, so we stub out Amazon SES -->
+	<bean id="amazonSESClient" class="org.sagebionetworks.repo.manager.StubAmazonSimpleEmailServiceClient" />	
+	
+	<bean id="jiraClient" class="org.sagebionetworks.repo.manager.TestJiraClient" />
+</beans>

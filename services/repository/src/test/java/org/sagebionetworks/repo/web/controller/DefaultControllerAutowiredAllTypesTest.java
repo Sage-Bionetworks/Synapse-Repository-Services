@@ -800,6 +800,7 @@ public class DefaultControllerAutowiredAllTypesTest extends AbstractAutowiredCon
 			UserEntityPermissions uep = servletTestHelper.getUserEntityPermissions(dispatchServlet, entity.getId(), userId);
 			assertNotNull(uep);
 			assertEquals(true, uep.getCanDownload());
+			assertEquals(true, uep.getCanUpload());
 			assertEquals(true, uep.getCanEdit());
 			assertEquals(true, uep.getCanChangePermissions());
 			assertEquals(true, uep.getCanDelete());

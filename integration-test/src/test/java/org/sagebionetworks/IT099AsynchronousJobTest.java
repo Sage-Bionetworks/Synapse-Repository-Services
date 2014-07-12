@@ -42,6 +42,8 @@ import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.util.csv.CsvNullReader;
 
+import com.google.common.collect.Lists;
+
 import au.com.bytecode.opencsv.CSVWriter;
 
 public class IT099AsynchronousJobTest {
@@ -78,7 +80,7 @@ public class IT099AsynchronousJobTest {
 	
 	@After
 	public void after() throws Exception {
-		for (Entity entity : entitiesToDelete) {
+		for (Entity entity : Lists.reverse(entitiesToDelete)) {
 			try {
 				adminSynapse.deleteAndPurgeEntity(entity);
 			} catch (Exception e) {}
@@ -176,6 +178,8 @@ public class IT099AsynchronousJobTest {
 			// Wait for the table to be ready
 			String sql = "select * from "+table.getId();
 			RowSet results = waitForQueryResults(sql+" limit 100", true, false);
+
+			assertEquals(rowCount, Integer.parseInt(waitForQueryResults(sql + " limit 100", true, true).getRows().get(0).getValues().get(0)));
 			// Now start a download job
 			AsynchDownloadRequestBody downloadBody = new AsynchDownloadRequestBody();
 			downloadBody.setSql(sql);

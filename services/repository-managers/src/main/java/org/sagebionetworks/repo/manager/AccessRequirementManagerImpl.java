@@ -54,11 +54,13 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	// for testing 
 	public AccessRequirementManagerImpl(
 			AccessRequirementDAO accessRequirementDAO,
+			NodeDAO nodeDao,
 			AuthorizationManager authorizationManager,
 			JiraClient jiraClient,
 			NotificationEmailDAO notificationEmailDao
 	) {
 		this.accessRequirementDAO=accessRequirementDAO;
+		this.nodeDao=nodeDao;
 		this.authorizationManager=authorizationManager;
 		this.jiraClient=jiraClient;
 		this.notificationEmailDao=notificationEmailDao;
@@ -161,17 +163,23 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		// first check if there *are* any unmet requirements.  (If not, no further queries will be executed.)
 		List<String> subjectIds = new ArrayList<String>();
 		subjectIds.add(subjectId.getId());
-		List<Long> unmetIds = null;
+		List<Long> unmetARIds = null;
 		if (RestrictableObjectType.ENTITY==subjectId.getType()) {
 			List<String> nodeAncestorIds = AccessRequirementUtil.getNodeAncestorIds(nodeDao, subjectId.getId(), false);
-			unmetIds = AccessRequirementUtil.unmetAccessRequirementIdsForEntity(
-				userInfo, subjectId.getId(), nodeAncestorIds, nodeDao, accessRequirementDAO);
 			subjectIds.addAll(nodeAncestorIds);
+			unmetARIds = new ArrayList<Long>();
+			unmetARIds.addAll(AccessRequirementUtil.unmetDownloadAccessRequirementIdsForEntity(
+						userInfo, subjectId.getId(), nodeAncestorIds, nodeDao, accessRequirementDAO));
+			List<String> entityAndAncestorIds = new ArrayList<String>(nodeAncestorIds);
+			entityAndAncestorIds.add(subjectId.getId());
+			unmetARIds.addAll(AccessRequirementUtil.
+					unmetUploadAccessRequirementIdsForEntity(userInfo, 
+							entityAndAncestorIds, nodeDao, accessRequirementDAO));
 		} else if (RestrictableObjectType.EVALUATION==subjectId.getType()) {
-			unmetIds = AccessRequirementUtil.unmetAccessRequirementIdsForEvaluation(
+			unmetARIds = AccessRequirementUtil.unmetAccessRequirementIdsForEvaluation(
 					userInfo, subjectId.getId(), accessRequirementDAO);
 		} else if (RestrictableObjectType.TEAM==subjectId.getType()) {
-			unmetIds = AccessRequirementUtil.unmetAccessRequirementIdsForTeam(
+			unmetARIds = AccessRequirementUtil.unmetAccessRequirementIdsForTeam(
 					userInfo, subjectId.getId(), accessRequirementDAO);
 		} else {
 			throw new InvalidModelException("Unexpected object type "+subjectId.getType());
@@ -179,9 +187,9 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		
 		List<AccessRequirement> unmetRequirements = new ArrayList<AccessRequirement>();
 		// if there are any unmet requirements, retrieve the object(s)
-		if (!unmetIds.isEmpty()) {
+		if (!unmetARIds.isEmpty()) {
 			List<AccessRequirement> allRequirementsForSubject = accessRequirementDAO.getForSubject(subjectIds, subjectId.getType());
-			for (Long unmetId : unmetIds) { // typically there will be just one id here
+			for (Long unmetId : unmetARIds) { // typically there will be just one id here
 				for (AccessRequirement ar : allRequirementsForSubject) { // typically there will be just one id here
 					if (ar.getId().equals(unmetId)) unmetRequirements.add(ar);
 				}

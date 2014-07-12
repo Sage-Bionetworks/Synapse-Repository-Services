@@ -136,7 +136,7 @@ public class TableCurrentCacheWorkerTest {
 		String resetToken = "reset-token";
 		TableStatus status = new TableStatus();
 		status.setResetToken(resetToken);
-		when(mockTableRowManager.getTableStatus(tableId)).thenReturn(status);
+		when(mockTableRowManager.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
 		Message two = MessageUtils.buildMessage(ChangeType.UPDATE, tableId, ObjectType.TABLE, resetToken);
 		List<Message> messages = Arrays.asList(two);
 		// Create the worker
@@ -159,7 +159,7 @@ public class TableCurrentCacheWorkerTest {
 		String resetToken = "reset-token";
 		TableStatus status = new TableStatus();
 		status.setResetToken(resetToken);
-		when(mockTableRowManager.getTableStatus(tableId)).thenReturn(status);
+		when(mockTableRowManager.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
 		// This should trigger a failure
 		doThrow(new IOException("mock")).when(mockTableRowManager).updateLatestVersionCache(eq(tableId), any(ProgressCallback.class));
 		Message two = MessageUtils.buildMessage(ChangeType.UPDATE, tableId, ObjectType.TABLE, resetToken);
@@ -184,7 +184,7 @@ public class TableCurrentCacheWorkerTest {
 		TableStatus status = new TableStatus();
 		// Set the current token to be different than the token in the message
 		status.setResetToken(resetToken2);
-		when(mockTableRowManager.getTableStatus(tableId)).thenReturn(status);
+		when(mockTableRowManager.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
 		Message two = MessageUtils.buildMessage(ChangeType.UPDATE, tableId, ObjectType.TABLE, resetToken1);
 		List<Message> messages = Arrays.asList(two);
 		// Create the worker
@@ -193,7 +193,7 @@ public class TableCurrentCacheWorkerTest {
 		List<Message> results = worker.call();
 		assertNotNull(results);
 		assertEquals("An old message should get returned so it can be removed from the queue", messages, results);
-		verify(mockTableRowManager).getTableStatus(tableId);
+		verify(mockTableRowManager).getTableStatusOrCreateIfNotExists(tableId);
 		verifyNoMoreInteractions(mockTableRowManager);
 	}
 }

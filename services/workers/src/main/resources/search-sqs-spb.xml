@@ -11,10 +11,6 @@
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
-	<import resource="aws-worker.spb.xml"/>
-	<import resource="classpath:search-dao.spb.xml" />
-	<import resource="classpath:managers-spb.xml" />
-
 	<!-- Setups the search message queue. -->
 	<bean id="searchMessageQueue"
 			class="org.sagebionetworks.asynchronous.workers.sqs.MessageQueueImpl"

@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
@@ -23,6 +24,11 @@ public class SqlQuery {
 	 * 
 	 */
 	QuerySpecification model;
+	
+	/**
+	 * The full list of all of the columns of this table
+	 */
+	List<ColumnModel> tableSchema;
 	
 	/**
 	 * This map will contain all of the bind variable values for the translated query.
@@ -52,9 +58,9 @@ public class SqlQuery {
 	boolean isAggregatedResult;
 	
 	/**
-	 * The list of all column ID referenced in the select column.
+	 * The list of all columns referenced in the select column.
 	 */
-	List<Long> selectColumnIds;
+	List<ColumnModel> selectColumnModels;
 	
 	
 	/**
@@ -64,9 +70,9 @@ public class SqlQuery {
 	 * @param columnNameToModelMap
 	 * @throws ParseException
 	 */
-	public SqlQuery(String sql, Map<String, ColumnModel> columnNameToModelMap) throws ParseException {
+	public SqlQuery(String sql, List<ColumnModel> tableSchema) throws ParseException {
 		if(sql == null) throw new IllegalArgumentException("The input SQL cannot be null");
-		init(TableQueryParser.parserQuery(sql), columnNameToModelMap);
+		init(TableQueryParser.parserQuery(sql), tableSchema);
 	}
 	
 	/**
@@ -76,9 +82,9 @@ public class SqlQuery {
 	 * @param columnNameToModelMap
 	 * @throws ParseException
 	 */
-	public SqlQuery(QuerySpecification model, Map<String, ColumnModel> columnNameToModelMap) {
+	public SqlQuery(QuerySpecification model, List<ColumnModel> tableSchema) {
 		if(model == null) throw new IllegalArgumentException("The input model cannot be null");
-		init(model, columnNameToModelMap);
+		init(model, tableSchema);
 	}
 
 	/**
@@ -86,19 +92,20 @@ public class SqlQuery {
 	 * @param columnNameToModelMap
 	 * @throws ParseException
 	 */
-	public void init(QuerySpecification model, Map<String, ColumnModel> columnNameToModelMap) {
-		if (columnNameToModelMap == null)
-			throw new IllegalArgumentException("columnNameToModelMap cannot be null");
+	public void init(QuerySpecification model, List<ColumnModel> tableSchema) {
+		if (tableSchema == null)
+			throw new IllegalArgumentException("TableSchema cannot be null");
+		this.tableSchema = tableSchema;
 		this.model = model;
 		this.tableId = SqlElementUntils.getTableId(model);
 		// This string builder is used to build up the output SQL.
 		StringBuilder outputBuilder = new StringBuilder();
 		// This map will contain all of the 
 		this.parameters = new HashMap<String, Object>();	
-		this.columnNameToModelMap = columnNameToModelMap;
+		this.columnNameToModelMap = TableModelUtils.createColumnNameToModelMap(tableSchema);
 		isAggregatedResult = SQLTranslatorUtils.translate(this.model, outputBuilder, this.parameters, this.columnNameToModelMap);
 		this.outputSQL = outputBuilder.toString();
-		this.selectColumnIds = SQLTranslatorUtils.getSelectColumns(this.model.getSelectList(), columnNameToModelMap);
+		this.selectColumnModels = SQLTranslatorUtils.getSelectColumns(this.model.getSelectList(), columnNameToModelMap);
 	}
 
 
@@ -157,11 +164,27 @@ public class SqlQuery {
 	}
 
 	/**
-	 * The list of column IDs from the select clause.
+	 * The list of column models from the select clause.
 	 * @return
 	 */
-	public List<Long> getSelectColumnIds() {
-		return selectColumnIds;
+	public List<ColumnModel> getSelectColumnModels() {
+		return selectColumnModels;
+	}
+
+	/**
+	 * All of the Columns of the table.
+	 * @return
+	 */
+	public List<ColumnModel> getTableSchema() {
+		return tableSchema;
+	}
+
+	/**
+	 * Map of the column names to ColumnModel.
+	 * @return
+	 */
+	public Map<String, ColumnModel> getColumnNameToModelMap() {
+		return columnNameToModelMap;
 	}
 	
 	

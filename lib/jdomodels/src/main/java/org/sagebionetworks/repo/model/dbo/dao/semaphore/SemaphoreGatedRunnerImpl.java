@@ -15,8 +15,7 @@ import org.sagebionetworks.collections.Maps2;
 import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreDao;
 import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreGatedRunner;
 import org.sagebionetworks.repo.model.exception.LockUnavilableException;
-import org.sagebionetworks.util.ClockProvider;
-import org.sagebionetworks.util.DefaultClockProvider;
+import org.sagebionetworks.util.Clock;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.common.base.Supplier;
@@ -71,7 +70,9 @@ public class SemaphoreGatedRunnerImpl implements SemaphoreGatedRunner {
 	private Object runner;
 	private Random randomGen = new Random(System.currentTimeMillis());;
 	private long timeoutMS;
-	private ClockProvider clockProvider = new DefaultClockProvider();
+
+	@Autowired
+	private Clock clock;
 	
 	/**
 	 * Used for mock testing.
@@ -237,10 +238,6 @@ public class SemaphoreGatedRunnerImpl implements SemaphoreGatedRunner {
 		return keys;
 	}
 
-	public void setClockProvider(ClockProvider provider) {
-		this.clockProvider = provider;
-	}
-	
 	/**
 	 * This callback will refresh the lock if half of the lock's timeout has 
 	 * expired since the last rest.
@@ -262,7 +259,7 @@ public class SemaphoreGatedRunnerImpl implements SemaphoreGatedRunner {
 		@Override
 		public void progressMade() {
 			// If past the half expired, then reset the timeout
-			long now = clockProvider.currentTimeMillis();
+			long now = clock.currentTimeMillis();
 			if(now > halfExpirationTime){
 				// Refresh the timer
 				semaphoreDao.refreshLockTimeout(key,token, timeoutMS);
@@ -276,7 +273,7 @@ public class SemaphoreGatedRunnerImpl implements SemaphoreGatedRunner {
 		 * The half-expiration time is now + timeout/2
 		 */
 		private void resetHalfExpirationTime(){
-			halfExpirationTime = clockProvider.currentTimeMillis()+timeoutMS/2L;
+			halfExpirationTime = clock.currentTimeMillis() + timeoutMS / 2L;
 		}
 		
 	}

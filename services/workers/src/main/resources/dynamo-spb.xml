@@ -12,11 +12,6 @@
 
 	<aop:aspectj-autoproxy />
 
-	<import resource="classpath:cloudwatch-spb.xml" />
-	<import resource="classpath:dynamo-dao-spb.xml" />
-	<import resource="classpath:dao-beans.spb.xml" />
-	<import resource="aws-worker.spb.xml"/>
-
 	<bean id="dynamoMessageQueue"
 			class="org.sagebionetworks.asynchronous.workers.sqs.MessageQueueImpl"
 			depends-on="stackConfiguration">
