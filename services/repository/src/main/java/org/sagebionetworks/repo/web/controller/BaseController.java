@@ -19,7 +19,9 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ErrorResponse;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NameConflictException;
+import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.TooManyRequestsException;
+import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
@@ -206,6 +208,19 @@ public abstract class BaseController {
 	public @ResponseBody
 	ErrorResponse handleUnauthorizedException(UnauthorizedException ex,
 			HttpServletRequest request) {
+		return handleException(ex, request, false);
+	}
+	
+	/**
+	 * This is thrown when there are problems authenticating the user.
+	 * The user is usually advised to correct their credentials and try again.  
+	 */
+	@ExceptionHandler(UnauthenticatedException.class)
+	@ResponseStatus(HttpStatus.UNAUTHORIZED)
+	public @ResponseBody
+	ErrorResponse handleUnauthenticatedException(UnauthenticatedException ex,
+			HttpServletRequest request,
+			HttpServletResponse response) {
 		return handleException(ex, request, false);
 	}
 	
@@ -692,4 +707,19 @@ public abstract class BaseController {
 		response.setStatus(429);
 		return handleException(ex, request, false);
 	}
+	
+	
+	/**
+	 * This is thrown when the user has not accepted the terms of use
+	 */
+	@ExceptionHandler(TermsOfUseException.class)
+	@ResponseStatus(HttpStatus.FORBIDDEN)
+	public @ResponseBody
+	ErrorResponse handleTermsOfUseException(TermsOfUseException ex,
+			HttpServletRequest request,
+			HttpServletResponse response) {
+		return handleException(ex, request, false);
+	}
+
+
 }

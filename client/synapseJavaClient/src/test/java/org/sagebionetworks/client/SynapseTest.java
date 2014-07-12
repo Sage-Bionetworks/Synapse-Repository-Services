@@ -7,6 +7,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -19,7 +20,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 
 import junit.framework.Assert;
 
@@ -87,6 +87,9 @@ public class SynapseTest {
 		mockResponse = Mockito.mock(HttpResponse.class);
 		when(mockProvider.performRequest(any(String.class),any(String.class),any(String.class),(Map<String,String>)anyObject())).thenReturn(mockResponse);
 		synapse = new SynapseClientImpl(new SharedClientConnection(mockProvider), mockUploader);
+		// mock the session token returned when logging in
+		configureMockHttpResponse(201, "{\"sessionToken\":\"some-session-token\"}");
+		synapse.login("foo", "bar");
 	}
 	
 	@Test
@@ -448,7 +451,7 @@ public class SynapseTest {
 		String id = "123";
 		configureMockHttpResponse(204, "");
 		synapse.deleteActivity(id);		
-		verify(mockResponse).getEntity();
+		verify(mockResponse, times(2)).getEntity();
 	}		
 	
 	@Test

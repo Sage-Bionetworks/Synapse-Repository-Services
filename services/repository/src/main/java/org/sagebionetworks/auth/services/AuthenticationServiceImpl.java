@@ -10,7 +10,7 @@ import org.sagebionetworks.repo.manager.MessageManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DomainType;
-import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.ChangePasswordRequest;
 import org.sagebionetworks.repo.model.auth.LoginCredentials;
@@ -50,13 +50,13 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public Session authenticate(LoginCredentials credential, DomainType domain) throws NotFoundException {
 		if (credential.getEmail() == null) {
-			throw new UnauthorizedException("Username may not be null");
+			throw new UnauthenticatedException("Username may not be null");
 		}
 		if (credential.getPassword() == null) {
-			throw new UnauthorizedException("Password may not be null");
+			throw new UnauthenticatedException("Password may not be null");
 		}
 		if (domain == null) {
-			throw new UnauthorizedException("Domain must be declared");
+			throw new UnauthenticatedException("Domain must be declared");
 		}
 		// Lookup the user.
 		PrincipalAlias pa = lookupUserForAuthentication(credential.getEmail());
@@ -184,7 +184,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 			throw new RuntimeException(e);
 		}
 		if (openIDInfo == null) {
-			throw new UnauthorizedException("OpenID is not valid");
+			throw new UnauthenticatedException("OpenID is not valid");
 		}
 			
 		String domainParam = parameters.getParameterValue(OpenIDInfo.ORIGINATING_CLIENT_PARAM_NAME);
@@ -201,7 +201,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		// Get some info about the user
 		String email = info.getEmail();
 		if (email == null) {
-			throw new UnauthorizedException("An email must be returned from the OpenID provider");
+			throw new UnauthenticatedException("An email must be returned from the OpenID provider");
 		}
 		if (domain == null) {
 			throw new IllegalArgumentException("DomainType may not be null");
@@ -243,7 +243,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 		// Lookup the user
 		PrincipalAlias pa = userManager.lookupPrincipalByAlias(alias);
 		if(pa == null) return null;
-		if(AliasType.TEAM_NAME.equals(pa.getType())) throw new UnauthorizedException("Cannot authenticate as team. Only users can authenticate");
+		if(AliasType.TEAM_NAME.equals(pa.getType())) throw new UnauthenticatedException("Cannot authenticate as team. Only users can authenticate");
 		return pa;
 	}
 

@@ -17,7 +17,7 @@ import org.junit.Test;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.TermsOfUseException;
-import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.auth.Session;
@@ -111,7 +111,7 @@ public class AuthenticationManagerImplUnitTest {
 		try {
 			authManager.checkSessionToken(synapseSessionToken, DomainType.SYNAPSE, true).toString();
 			fail();
-		} catch (UnauthorizedException e) {
+		} catch (UnauthenticatedException e) {
 			assertTrue(e.getMessage().contains("invalid"));
 		}
 		
@@ -120,7 +120,7 @@ public class AuthenticationManagerImplUnitTest {
 		try {
 			authManager.checkSessionToken(synapseSessionToken, DomainType.SYNAPSE, true).toString();
 			fail();
-		} catch (UnauthorizedException e) {
+		} catch (UnauthenticatedException e) {
 			assertTrue(e.getMessage().contains("expired"));
 		}
 	}

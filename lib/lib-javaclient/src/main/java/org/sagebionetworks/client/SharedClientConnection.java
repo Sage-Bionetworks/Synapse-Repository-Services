@@ -240,7 +240,10 @@ public class SharedClientConnection {
 	
 	public boolean revalidateSession(String userAgent) throws SynapseException {
 		Session session = new Session();
-		session.setSessionToken(getCurrentSessionToken());
+		String currentSessionToken = getCurrentSessionToken();
+		if (currentSessionToken==null) throw new 
+			SynapseClientException("You must log in before revalidating the session.");
+		session.setSessionToken(currentSessionToken);
 		try {
 			putAuthEntity("/session", EntityFactory.createJSONObjectForEntity(session), userAgent);
 		} catch (SynapseForbiddenException e) {
