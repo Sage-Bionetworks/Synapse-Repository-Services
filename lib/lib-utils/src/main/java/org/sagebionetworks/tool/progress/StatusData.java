@@ -1,4 +1,4 @@
-package org.sagebionetworks.tool.migration.Progress;
+package org.sagebionetworks.tool.progress;
 
 /**
  * A class that takes a snapshot of a progress object and prints a meaningful string.

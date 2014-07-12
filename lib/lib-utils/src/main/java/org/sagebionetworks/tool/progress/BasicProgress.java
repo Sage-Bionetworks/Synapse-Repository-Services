@@ -1,6 +1,5 @@
-package org.sagebionetworks.tool.migration.Progress;
+package org.sagebionetworks.tool.progress;
 
-import org.sagebionetworks.tool.migration.Constants;
 
 /**
  * Keeps track of of basic progress.
@@ -10,6 +9,7 @@ import org.sagebionetworks.tool.migration.Constants;
  */
 public class BasicProgress implements Progress{
 	
+	public static long NANO_SECS_PER_MIL_SEC = 1000000;
 
 	/**
 	 * These are volatile because they are updated from one thread and read by another.
@@ -48,14 +48,14 @@ public class BasicProgress implements Progress{
 	@Override
 	public long getElapseTimeMS() {
 		if(!done){
-			return (System.nanoTime()-startNano)/Constants.NANO_SECS_PER_MIL_SEC;
+			return (System.nanoTime()-startNano)/NANO_SECS_PER_MIL_SEC;
 		}else{
 			return elapse;
 		}
 	}
 	
 	private long calulcateElapse(){
-		return (System.nanoTime()-startNano)/Constants.NANO_SECS_PER_MIL_SEC;
+		return (System.nanoTime()-startNano)/NANO_SECS_PER_MIL_SEC;
 	}
 	@Override
 	public StatusData getCurrentStatus() {
