@@ -1,10 +1,8 @@
-package org.sagebionetworks.tool.migration.Progress;
+package org.sagebionetworks.tool.progress;
 
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-
-import org.sagebionetworks.tool.migration.Constants;
 
 /**
  * Represents the sum of multiple progress objects.
@@ -14,6 +12,8 @@ import org.sagebionetworks.tool.migration.Constants;
  */
 public class AggregateProgress implements Progress {
 
+	public static long NANO_SECS_PER_MIL_SEC = 1000000;
+	
 	/**
 	 * This object is an aggregation of these parts.
 	 */
@@ -63,7 +63,7 @@ public class AggregateProgress implements Progress {
 
 	@Override
 	public long getElapseTimeMS() {
-		return (System.nanoTime() - startNano)/ Constants.NANO_SECS_PER_MIL_SEC;
+		return (System.nanoTime() - startNano)/ NANO_SECS_PER_MIL_SEC;
 	}
 
 	@Override

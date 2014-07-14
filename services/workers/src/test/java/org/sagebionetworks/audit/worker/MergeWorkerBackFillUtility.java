@@ -24,11 +24,16 @@ public class MergeWorkerBackFillUtility {
 		AmazonS3Client client = new AmazonS3Client(new BasicAWSCredentials(args[0],args[1]));
 		AccessRecordDAOImpl dao = new AccessRecordDAOImpl();
 		ReflectionTestUtils.setField(dao, "s3Client", client);
-		dao.setStackInstanceNumber(Integer.parseInt(args[2]));
+		int stackNumber = Integer.parseInt(args[2]);
+		dao.setStackInstanceNumber(stackNumber);
 		dao.setAuditRecordBucketName("prod.access.record.sagebase.org");
 		dao.initialize();
+		System.out.println("Merging files for stack: "+stackNumber);
 		MergeWorker worker = new MergeWorker(dao);
-		worker.mergeOneBatch();
+		while(worker.mergeOneBatch()){
+			System.out.println("Merged a batch...");
+		};
+		System.out.println("Finished merging files for stack: "+stackNumber);
 	}
 
 }

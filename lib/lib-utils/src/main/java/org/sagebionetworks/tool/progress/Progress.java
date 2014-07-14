@@ -1,4 +1,4 @@
-package org.sagebionetworks.tool.migration.Progress;
+package org.sagebionetworks.tool.progress;
 
 public interface Progress {
 	
