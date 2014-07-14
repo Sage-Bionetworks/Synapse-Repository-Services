@@ -29,7 +29,7 @@ public class StackConfiguration {
 
 		@Override
 		public String getString() {
-			return dynamicConfiguration.getProperty(this.name);
+			return dynamicConfiguration.getPropertyRepeatedly(this.name);
 		}
 
 		@Override
@@ -644,8 +644,7 @@ public class StackConfiguration {
 	 * @return
 	 */
 	public boolean getTableEnabled(){
-		return Boolean.parseBoolean(configuration
-				.getProperty("org.sagebionetworks.table.enabled"));
+		return Boolean.parseBoolean(configuration.getPropertyRepeatedly("org.sagebionetworks.table.enabled"));
 	}
 
 	/**
