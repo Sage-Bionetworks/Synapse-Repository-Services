@@ -33,12 +33,13 @@
 	<!-- Pull messages off the search queue, create works, deletes successfully 
 		processed messages -->
 	<bean id="tableQueueMessageReveiver"
-		class="org.sagebionetworks.asynchronous.workers.sqs.MessageReceiverImpl"
+		class="org.sagebionetworks.asynchronous.workers.sqs.MessagePollingReceiverImpl"
+		depends-on="stackConfiguration"
 		scope="singleton">
 		<property name="messageQueue" ref="tableMessageQueue" />
 		<property name="workerFactory" ref="tableQueueWorkerFactory" />
 		<property name="maxNumberOfWorkerThreads" value="5" />
-		<property name="maxMessagePerWorker" value="2" />
+		<property name="maxMessagePerWorker" value="1" />
 		<property name="visibilityTimeoutSec" value="60" />
 	</bean>
 
