@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertArrayEquals;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -21,6 +20,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DomainType;
+import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -112,17 +112,17 @@ public class DBOAuthenticationDAOImplTest {
 		try {
 			authDAO.checkUserCredentials(userId, "Blargle");
 			fail("That combination should not have succeeded");
-		} catch (UnauthorizedException e) { }
+		} catch (UnauthenticatedException e) { }
 		
 		try {
 			authDAO.checkUserCredentials(-99, credential.getPassHash());
 			fail("That combination should not have succeeded");
-		} catch (UnauthorizedException e) { }
+		} catch (UnauthenticatedException e) { }
 		
 		try {
 			authDAO.checkUserCredentials(-100, "Blargle");
 			fail("That combination should not have succeeded");
-		} catch (UnauthorizedException e) { }
+		} catch (UnauthenticatedException e) { }
 	}
 	
 	@Test
@@ -240,7 +240,7 @@ public class DBOAuthenticationDAOImplTest {
 		assertEquals(sessionToken.getSessionToken(), session.getSessionToken());
 	}
 	
-	@Test(expected=UnauthorizedException.class)
+	@Test(expected=UnauthenticatedException.class)
 	public void testChangePassword() throws Exception {
 		// The original credentials should authenticate correctly
 		Long principalId = authDAO.checkUserCredentials(userId, credential.getPassHash());
