@@ -260,8 +260,6 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	private Submission submission;
 
 	private HttpServletRequest mockRequest;
-	
-	private UserGroup sampleGroup;
 
 	@Before
 	public void before() throws Exception {
@@ -285,7 +283,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		createV2WikiPages();
 		createDoi();
 		createStorageQuota();
-		sampleGroup = createUserGroups(1);
+		UserGroup sampleGroup = createUserGroups(1);
 		createTeamsRequestsAndInvitations(sampleGroup);
 		createCredentials(sampleGroup);
 		createSessionToken(sampleGroup);
@@ -725,11 +723,11 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	
 	// test that if we create a group with members, back it up, 
 	// add members, and restore, the extra members are removed
+	// (This was broken in PLFM-2757)
 	@Test
-	public void testGroupMembers() throws Exception {
-		assertNotNull(sampleGroup);
-		List<UserGroup> members = groupMembersDAO.getMembers(sampleGroup.getId());
-		assertTrue(members.size()>0);
+	public void testCertifiedUsersGroupMigration() throws Exception {
+		String groupId = BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString();
+		List<UserGroup> members = groupMembersDAO.getMembers(groupId);
 		
 		List<BackupInfo> backupList = backupAllOfType(MigrationType.PRINCIPAL);
 		
@@ -737,10 +735,10 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		UserGroup yetAnotherUser = new UserGroup();
 		yetAnotherUser.setIsIndividual(true);
 		yetAnotherUser.setId(userGroupDAO.create(yetAnotherUser).toString());
-		groupMembersDAO.addMembers(sampleGroup.getId(), Collections.singletonList(yetAnotherUser.getId()));
+		groupMembersDAO.addMembers(groupId, Collections.singletonList(yetAnotherUser.getId()));
 
 		// membership is different because new user has been added
-		assertFalse(members.equals(groupMembersDAO.getMembers(sampleGroup.getId())));
+		assertFalse(members.equals(groupMembersDAO.getMembers(groupId)));
 		
 		// Now restore all of the data
 		for (BackupInfo info : backupList) {
@@ -750,7 +748,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		}
 		
 		// should be back to normal
-		assertEquals(members, groupMembersDAO.getMembers(sampleGroup.getId()));
+		assertEquals(members, groupMembersDAO.getMembers(groupId));
 	}
 
 	/**
@@ -792,9 +790,9 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 
 			// Special cases for the not-deleted migration admin
 			if (afterDelete.getType() == MigrationType.PRINCIPAL) {
-				assertEquals("There should be 6 UserGroups remaining after the delete: " + BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER + ", "
+				assertEquals("There should be 4 UserGroups remaining after the delete: " + BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER + ", "
 						+ "Administrators" + ", " + BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP + ", and "
-						+ BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP, new Long(6), afterDelete.getCount());
+						+ BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP, new Long(4), afterDelete.getCount());
 			} else if (afterDelete.getType() == MigrationType.GROUP_MEMBERS || afterDelete.getType() == MigrationType.CREDENTIAL) {
 				assertEquals("Counts do not match for: " + afterDelete.getType().name(), new Long(1), afterDelete.getCount());
 
