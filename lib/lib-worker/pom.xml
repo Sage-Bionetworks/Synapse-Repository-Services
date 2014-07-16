@@ -88,22 +88,5 @@
 			<artifactId>quartz</artifactId>
 		</dependency>
 
-		<dependency>
-						<groupId>com.google.guava</groupId>
-						<artifactId>guava</artifactId>
-		</dependency>
-		<dependency>
-						<groupId>com.google.guava</groupId>
-						<artifactId>guava</artifactId>
-		</dependency>
-		<dependency>
-						<groupId>com.google.guava</groupId>
-						<artifactId>guava</artifactId>
-		</dependency>
-		<dependency>
-						<groupId>org.spockframework</groupId>
-						<artifactId>spock-core</artifactId>
-						<version>0.7-groovy-2.0</version>
-		</dependency>
 	</dependencies>
 </project>

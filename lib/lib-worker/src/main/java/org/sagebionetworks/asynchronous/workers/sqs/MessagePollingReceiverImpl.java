@@ -28,10 +28,7 @@ import com.amazonaws.services.sqs.model.Message;
 import com.google.common.collect.Lists;
 
 /**
- * A basic implementation of the MessageReceiver.
- * 
- * @author John
- * 
+ * A basic implementation of a long polling message receiver.
  */
 public class MessagePollingReceiverImpl implements MessageReceiver {
 
