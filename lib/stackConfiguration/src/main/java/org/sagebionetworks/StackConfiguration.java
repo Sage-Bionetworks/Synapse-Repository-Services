@@ -29,7 +29,7 @@ public class StackConfiguration {
 
 		@Override
 		public String get() {
-			return dynamicConfiguration.getProperty(this.name);
+			return dynamicConfiguration.getPropertyRepeatedly(this.name);
 		}
 	}
 
@@ -42,7 +42,7 @@ public class StackConfiguration {
 
 		@Override
 		public Long get() {
-			return Long.parseLong(dynamicConfiguration.getProperty(this.name));
+			return Long.parseLong(dynamicConfiguration.getPropertyRepeatedly(this.name));
 		}
 	}
 
@@ -55,7 +55,7 @@ public class StackConfiguration {
 
 		@Override
 		public Integer get() {
-			return Integer.parseInt(dynamicConfiguration.getProperty(this.name));
+			return Integer.parseInt(dynamicConfiguration.getPropertyRepeatedly(this.name));
 		}
 	}
 
@@ -68,7 +68,7 @@ public class StackConfiguration {
 
 		@Override
 		public Double get() {
-			return Double.parseDouble(dynamicConfiguration.getProperty(this.name));
+			return Double.parseDouble(dynamicConfiguration.getPropertyRepeatedly(this.name));
 		}
 	}
 
@@ -81,7 +81,7 @@ public class StackConfiguration {
 
 		@Override
 		public Boolean get() {
-			return Boolean.parseBoolean(dynamicConfiguration.getProperty(this.name));
+			return Boolean.parseBoolean(dynamicConfiguration.getPropertyRepeatedly(this.name));
 		}
 	}
 
@@ -676,8 +676,7 @@ public class StackConfiguration {
 	 * @return
 	 */
 	public boolean getTableEnabled(){
-		return Boolean.parseBoolean(configuration
-				.getProperty("org.sagebionetworks.table.enabled"));
+		return Boolean.parseBoolean(configuration.getPropertyRepeatedly("org.sagebionetworks.table.enabled"));
 	}
 
 	/**
