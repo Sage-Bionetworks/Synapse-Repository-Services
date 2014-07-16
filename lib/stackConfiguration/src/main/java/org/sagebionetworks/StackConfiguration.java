@@ -20,36 +20,68 @@ import org.apache.logging.log4j.Logger;
  */
 public class StackConfiguration {
 
-	public class StackConfigurationPropertyAccessor implements PropertyAccessor {
-		String name;
+	private class StackConfigurationStringPropertyAccessor implements PropertyAccessor<String> {
+		private final String name;
 
-		private StackConfigurationPropertyAccessor(String name) {
+		private StackConfigurationStringPropertyAccessor(String name) {
 			this.name = name;
 		}
 
 		@Override
-		public String getString() {
+		public String get() {
 			return dynamicConfiguration.getPropertyRepeatedly(this.name);
 		}
+	}
 
-		@Override
-		public long getLong() {
-			return Long.parseLong(getString());
+	private class StackConfigurationLongPropertyAccessor implements PropertyAccessor<Long> {
+		private final String name;
+
+		private StackConfigurationLongPropertyAccessor(String name) {
+			this.name = name;
 		}
 
 		@Override
-		public int getInteger() {
-			return Integer.parseInt(getString());
+		public Long get() {
+			return Long.parseLong(dynamicConfiguration.getPropertyRepeatedly(this.name));
+		}
+	}
+
+	private class StackConfigurationIntegerPropertyAccessor implements PropertyAccessor<Integer> {
+		private final String name;
+
+		private StackConfigurationIntegerPropertyAccessor(String name) {
+			this.name = name;
 		}
 
 		@Override
-		public boolean getBoolean() {
-			return Boolean.parseBoolean(getString());
+		public Integer get() {
+			return Integer.parseInt(dynamicConfiguration.getPropertyRepeatedly(this.name));
+		}
+	}
+
+	private class StackConfigurationDoublePropertyAccessor implements PropertyAccessor<Double> {
+		private final String name;
+
+		private StackConfigurationDoublePropertyAccessor(String name) {
+			this.name = name;
 		}
 
 		@Override
-		public double getDouble() {
-			return Double.parseDouble(getString());
+		public Double get() {
+			return Double.parseDouble(dynamicConfiguration.getPropertyRepeatedly(this.name));
+		}
+	}
+
+	private class StackConfigurationBooleanPropertyAccessor implements PropertyAccessor<Boolean> {
+		private final String name;
+
+		private StackConfigurationBooleanPropertyAccessor(String name) {
+			this.name = name;
+		}
+
+		@Override
+		public Boolean get() {
+			return Boolean.parseBoolean(dynamicConfiguration.getPropertyRepeatedly(this.name));
 		}
 	}
 
@@ -1381,24 +1413,24 @@ public class StackConfiguration {
 				.getProperty("org.sagebionetworks.table.read.timeout.ms"));
 	}
 
-	public PropertyAccessor getMaxConcurrentRepoConnections() {
-		return new StackConfigurationPropertyAccessor("org.sagebionetworks.max.concurrent.repo.connections");
+	public PropertyAccessor<Integer> getMaxConcurrentRepoConnections() {
+		return new StackConfigurationIntegerPropertyAccessor("org.sagebionetworks.max.concurrent.repo.connections");
 	}
 
 	/**
 	 * The amount of time (MS) the ChangeSentMessageSynchWorker sleeps between pages.
 	 * @return
 	 */
-	public PropertyAccessor getChangeSynchWorkerSleepTimeMS(){
-		return new StackConfigurationPropertyAccessor("org.sagebionetworks.worker.change.synch.sleep.ms");
+	public PropertyAccessor<Long> getChangeSynchWorkerSleepTimeMS() {
+		return new StackConfigurationLongPropertyAccessor("org.sagebionetworks.worker.change.synch.sleep.ms");
 	}
 	
 	/**
 	 * The minium page size used by ChangeSentMessageSynchWorker.
 	 * @return
 	 */
-	public PropertyAccessor getChangeSynchWorkerMinPageSize(){
-		return new StackConfigurationPropertyAccessor("org.sagebionetworks.worker.change.synch.min.page.size");
+	public PropertyAccessor<Integer> getChangeSynchWorkerMinPageSize() {
+		return new StackConfigurationIntegerPropertyAccessor("org.sagebionetworks.worker.change.synch.min.page.size");
 	}
 	
 	/**

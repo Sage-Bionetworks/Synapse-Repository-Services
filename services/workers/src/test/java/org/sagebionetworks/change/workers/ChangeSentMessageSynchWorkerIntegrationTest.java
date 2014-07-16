@@ -151,13 +151,13 @@ public class ChangeSentMessageSynchWorkerIntegrationTest {
 	
 	@Test
 	public void testGetChangeSynchWorkerSleepTimeMS(){
-		long sleepMS = configuration.getChangeSynchWorkerSleepTimeMS().getLong();
+		long sleepMS = configuration.getChangeSynchWorkerSleepTimeMS().get();
 		assertTrue(sleepMS > 500);
 	}
 	
 	@Test
 	public void testGetChangeSynchWorkerMinPageSize(){
-		int pageSize = configuration.getChangeSynchWorkerMinPageSize().getInteger();
+		int pageSize = configuration.getChangeSynchWorkerMinPageSize().get();
 		assertTrue(pageSize > 5000);
 	}
 	
