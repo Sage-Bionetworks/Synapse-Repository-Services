@@ -530,6 +530,13 @@ public class SqlConstants {
 	public static final String COL_SHARED_SEMAPHORE_LOCK_TOKEN		= "LOCK_TOKEN";
 	public static final String COL_SHARED_SEMAPHORE_EXPIRES			= "EXPIRATION";
 
+	// Counting Semaphore
+	public static final String TABLE_COUNTING_SEMAPHORE 			= "COUNTING_SEMAPHORE";
+	public static final String COL_COUNTING_SEMAPHORE_PROCESS_ID	= "PROCESS_ID";
+	public static final String COL_COUNTING_SEMAPHORE_KEY			= "KEY";
+	public static final String COL_COUNTING_SEMAPHORE_COUNT			= "COUNT";
+	public static final String COL_COUNTING_SEMAPHORE_LASTUPDATED	= "LASTUPDATED";
+
 	// Upload status
 	public static final String TABLE_UPLOAD_STATUS					= "UPLOAD_STATUS";
 	public static final String COL_UPLOAD_STATUS_ID					= "ID";
