@@ -95,6 +95,8 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOSemaphore" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOExclusiveLock" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOSharedLock" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOLockMaster" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOCountingSemaphore" />
 								
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOUploadDaemonStatus" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOQuizResponse" />

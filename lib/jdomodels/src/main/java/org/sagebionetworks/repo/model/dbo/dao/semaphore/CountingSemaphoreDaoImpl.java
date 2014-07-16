@@ -1,11 +1,11 @@
 package org.sagebionetworks.repo.model.dbo.dao.semaphore;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_EXCLUSIVE_SEMAPHORE_KEY;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SHARED_SEMAPHORE_EXPIRES;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SHARED_SEMAPHORE_KEY;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SHARED_SEMAPHORE_LOCK_TOKEN;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_EXCLUSIVE_SEMAPHORE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_SHARED_SEMAPHORE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_COUNTING_SEMAPHORE_EXPIRES;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_COUNTING_SEMAPHORE_KEY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_COUNTING_SEMAPHORE_LOCK_TOKEN;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_LOCK_MASTER_KEY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_COUNTING_SEMAPHORE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_LOCK_MASTER;
 
 import java.util.UUID;
 
@@ -16,11 +16,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.model.dao.semaphore.CountingSemaphoreDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOExclusiveLock;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOSharedLock;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOCountingSemaphore;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOLockMaster;
 import org.sagebionetworks.repo.model.exception.LockReleaseFailedException;
 import org.springframework.beans.factory.BeanNameAware;
-import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Required;
 import org.springframework.dao.DuplicateKeyException;
@@ -35,16 +34,16 @@ import org.springframework.transaction.annotation.Transactional;
  */
 public class CountingSemaphoreDaoImpl implements CountingSemaphoreDao, BeanNameAware {
 
-	private static final String SQL_COUNT_LOCKS = "SELECT COUNT(*) FROM " + TABLE_SHARED_SEMAPHORE + " WHERE " + COL_SHARED_SEMAPHORE_KEY
+	private static final String SQL_COUNT_LOCKS = "SELECT COUNT(*) FROM " + TABLE_COUNTING_SEMAPHORE + " WHERE " + COL_COUNTING_SEMAPHORE_KEY
 			+ " = ?";
-	private static final String SQL_FORCE_RELEASE_EXPIRED_LOCKS = "DELETE FROM " + TABLE_SHARED_SEMAPHORE + " WHERE "
-			+ COL_SHARED_SEMAPHORE_KEY + " = ? AND " + COL_SHARED_SEMAPHORE_EXPIRES + " < ?";
-	private static final String SQL_DELETE_ALL_LOCKS = "DELETE FROM " + TABLE_SHARED_SEMAPHORE + " WHERE " + COL_SHARED_SEMAPHORE_KEY
+	private static final String SQL_FORCE_RELEASE_EXPIRED_LOCKS = "DELETE FROM " + TABLE_COUNTING_SEMAPHORE + " WHERE "
+			+ COL_COUNTING_SEMAPHORE_KEY + " = ? AND " + COL_COUNTING_SEMAPHORE_EXPIRES + " < ?";
+	private static final String SQL_DELETE_ALL_LOCKS = "DELETE FROM " + TABLE_COUNTING_SEMAPHORE + " WHERE " + COL_COUNTING_SEMAPHORE_KEY
 			+ " IS NOT NULL";
-	private static final String SQL_SELECT_EXCLUSIVE_FOR_UPDATE = "SELECT " + COL_EXCLUSIVE_SEMAPHORE_KEY + " FROM "
-			+ TABLE_EXCLUSIVE_SEMAPHORE + " WHERE " + COL_EXCLUSIVE_SEMAPHORE_KEY + " = ? FOR UPDATE";
-	private static final String SQL_RELEASE_LOCK = "DELETE FROM " + TABLE_SHARED_SEMAPHORE + " WHERE " + COL_SHARED_SEMAPHORE_KEY
-			+ " = ? AND " + COL_SHARED_SEMAPHORE_LOCK_TOKEN + " = ?";
+	private static final String SQL_SELECT_EXCLUSIVE_FOR_UPDATE = "SELECT " + COL_LOCK_MASTER_KEY + " FROM " + TABLE_LOCK_MASTER + " WHERE "
+			+ COL_LOCK_MASTER_KEY + " = ? FOR UPDATE";
+	private static final String SQL_RELEASE_LOCK = "DELETE FROM " + TABLE_COUNTING_SEMAPHORE + " WHERE " + COL_COUNTING_SEMAPHORE_KEY
+			+ " = ? AND " + COL_COUNTING_SEMAPHORE_LOCK_TOKEN + " = ?";
 
 	static private Logger log = LogManager.getLogger(CountingSemaphoreDaoImpl.class);
 
@@ -67,7 +66,7 @@ public class CountingSemaphoreDaoImpl implements CountingSemaphoreDao, BeanNameA
 	@Required
 	public void setLockTimeoutMS(long lockTimeoutMS) {
 		if (lockTimeoutMS < 300) {
-			throw new IllegalArgumentException("lockTimeoutMS should be greater than 300ms");
+			throw new IllegalArgumentException("lockTimeoutMS should be greater than 300 ms");
 		}
 		this.lockTimeoutMS = lockTimeoutMS;
 	}
@@ -94,11 +93,11 @@ public class CountingSemaphoreDaoImpl implements CountingSemaphoreDao, BeanNameA
 			throw new IllegalArgumentException("bean name should be set");
 		}
 		// create the exclusive lock entry
-		DBOExclusiveLock exclusiveLock = new DBOExclusiveLock();
-		exclusiveLock.setKey(key);
+		DBOLockMaster lockMaster = new DBOLockMaster();
+		lockMaster.setKey(key);
 		try {
 			log.info("Creating counting semaphore " + key);
-			basicDao.createNew(exclusiveLock);
+			basicDao.createNew(lockMaster);
 		} catch (IllegalArgumentException e) {
 			if (e.getCause() != null && e.getCause().getClass() != DuplicateKeyException.class) {
 				// we expect this one to happen on restart or during testing
@@ -127,10 +126,10 @@ public class CountingSemaphoreDaoImpl implements CountingSemaphoreDao, BeanNameA
 		}
 
 		// insert a new lock entry
-		DBOSharedLock shared = new DBOSharedLock();
+		DBOCountingSemaphore shared = new DBOCountingSemaphore();
 		shared.setKey(key);
 		shared.setToken(UUID.randomUUID().toString());
-		shared.setExpiration(System.currentTimeMillis() + lockTimeoutMS);
+		shared.setExpires(System.currentTimeMillis() + lockTimeoutMS);
 		basicDao.createNew(shared);
 		return shared.getToken();
 	}

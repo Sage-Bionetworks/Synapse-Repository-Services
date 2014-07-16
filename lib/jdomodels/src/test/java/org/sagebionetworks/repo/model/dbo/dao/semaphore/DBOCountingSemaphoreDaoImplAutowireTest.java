@@ -41,7 +41,6 @@ public class DBOCountingSemaphoreDaoImplAutowireTest {
 		// get all available locks
 		String[] tokens = new String[maxCount - 1];
 		for (int i = 0; i < tokens.length; i++) {
-			// Get the lock and hold it for .5 seconds
 			tokens[i] = countingSemaphoreDao.attemptToAcquireLock();
 			assertNotNull("could not aqcuire token " + i, tokens[i]);
 		}
@@ -67,7 +66,6 @@ public class DBOCountingSemaphoreDaoImplAutowireTest {
 		}
 
 		for (int i = 0; i < tokens.length; i++) {
-			// Get the lock and hold it for .5 seconds
 			tokens[i] = countingSemaphoreDao.attemptToAcquireLock();
 			assertNotNull("could not reaqcuire tokens " + i, tokens[i]);
 		}
@@ -88,7 +86,7 @@ public class DBOCountingSemaphoreDaoImplAutowireTest {
 		((CountingSemaphoreDaoImpl) getTargetObject(countingSemaphoreDao)).setLockTimeoutMS(500);
 		((CountingSemaphoreDaoImpl) getTargetObject(countingSemaphoreDao)).setMaxCount(1);
 
-		// Get the lock and hold it for .5 seconds
+		// Get the lock and hold it for 1 second
 		String originalToken = countingSemaphoreDao.attemptToAcquireLock();
 		assertNotNull(originalToken);
 
