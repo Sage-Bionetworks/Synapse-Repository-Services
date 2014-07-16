@@ -23,24 +23,7 @@
 
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
-			<artifactId>lib-models</artifactId>
-		</dependency>
-
-		<dependency>
-			<groupId>org.sagebionetworks</groupId>
-			<artifactId>lib-utils</artifactId>
-		</dependency>
-
-		<dependency>
-			<groupId>org.sagebionetworks</groupId>
 			<artifactId>schema-to-pojo-org-json</artifactId>
-		</dependency>
-
-		<dependency>
-			<groupId>org.sagebionetworks</groupId>
-			<artifactId>lib-test</artifactId>
-			<type>test-jar</type>
-			<scope>test</scope>
 		</dependency>
 
 		<dependency>
@@ -88,22 +71,5 @@
 			<artifactId>quartz</artifactId>
 		</dependency>
 
-		<dependency>
-						<groupId>com.google.guava</groupId>
-						<artifactId>guava</artifactId>
-		</dependency>
-		<dependency>
-						<groupId>com.google.guava</groupId>
-						<artifactId>guava</artifactId>
-		</dependency>
-		<dependency>
-						<groupId>com.google.guava</groupId>
-						<artifactId>guava</artifactId>
-		</dependency>
-		<dependency>
-						<groupId>org.spockframework</groupId>
-						<artifactId>spock-core</artifactId>
-						<version>0.7-groovy-2.0</version>
-		</dependency>
 	</dependencies>
 </project>

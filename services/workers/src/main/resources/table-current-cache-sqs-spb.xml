@@ -30,10 +30,11 @@
 		class="org.sagebionetworks.table.worker.TableCurrentCacheWorkerFactory"
 		scope="singleton" />
 
+	<!-- Pull messages off the search queue, create works, deletes successfully 
+		processed messages -->
 	<bean id="tableCurrentCacheQueueMessageReveiver"
-			class="org.sagebionetworks.asynchronous.workers.sqs.MessagePollingReceiverImpl"
-			depends-on="stackConfiguration"
-			scope="singleton">
+		class="org.sagebionetworks.asynchronous.workers.sqs.MessageReceiverImpl"
+		scope="singleton">
 		<property name="messageQueue" ref="tableCurrentCacheMessageQueue" />
 		<property name="workerFactory" ref="tableCurrentCacheQueueWorkerFactory" />
 		<property name="maxNumberOfWorkerThreads" value="5" />
