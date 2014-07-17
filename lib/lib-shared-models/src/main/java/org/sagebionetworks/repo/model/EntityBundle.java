@@ -3,9 +3,9 @@ package org.sagebionetworks.repo.model;
 import java.util.ArrayList;
 import java.util.List;
 
-
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.table.TableBundle;
 import org.sagebionetworks.schema.adapter.JSONArrayAdapter;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
@@ -31,6 +31,7 @@ public class EntityBundle implements JSONEntity {
 	public static int ACCESS_REQUIREMENTS		= 0x200;
 	public static int UNMET_ACCESS_REQUIREMENTS	= 0x400;
 	public static int FILE_HANDLES				= 0x800;
+	public static int TABLE_DATA				= 0x1000;
 	
 	private static AutoGenFactory autoGenFactory = new AutoGenFactory();
 	
@@ -46,6 +47,7 @@ public class EntityBundle implements JSONEntity {
 	public static final String JSON_ACCESS_REQUIREMENTS = "accessRequirements";
 	public static final String JSON_UNMET_ACCESS_REQUIREMENTS = "unmetAccessRequirements";
 	public static final String JSON_FILE_HANDLES = "fileHandles";
+	public static final String JSON_TABLE_DATA = "tableBundle";
 	private Entity entity;
 	private String entityType;
 	private Annotations annotations;
@@ -57,6 +59,7 @@ public class EntityBundle implements JSONEntity {
 	private List<AccessRequirement> accessRequirements;
 	private List<AccessRequirement> unmetAccessRequirements;
 	private List<FileHandle> fileHandles;
+	private TableBundle tableBundle;
 	
 	/**
 	 * Create a new EntityBundle
@@ -150,6 +153,12 @@ public class EntityBundle implements JSONEntity {
 				fileHandles.add(handle);
 			}
 		}
+		if(toInitFrom.has(JSON_TABLE_DATA)){
+			JSONObjectAdapter joa = (JSONObjectAdapter) toInitFrom.getJSONObject(JSON_TABLE_DATA);
+			if (tableBundle == null)
+				tableBundle = (TableBundle) autoGenFactory.newInstance(TableBundle.class.getName());
+			tableBundle.initializeFromJSONObject(joa);
+		}
 		return toInitFrom;
 	}
 
@@ -223,6 +232,11 @@ public class EntityBundle implements JSONEntity {
 				arArray.put(i, joa);	
 			}
 			writeTo.put(JSON_FILE_HANDLES, arArray);
+		}
+		if(tableBundle != null){
+			JSONObjectAdapter joa = writeTo.createNew();
+			tableBundle.writeToJSONObject(joa);
+			writeTo.put(JSON_TABLE_DATA, joa);
 		}
 		return writeTo;
 	}
@@ -365,6 +379,14 @@ public class EntityBundle implements JSONEntity {
 		this.fileHandles = fileHandles;
 	}
 
+	public TableBundle getTableBundle() {
+		return tableBundle;
+	}
+
+	public void setTableBundle(TableBundle tableBundle) {
+		this.tableBundle = tableBundle;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -388,6 +410,8 @@ public class EntityBundle implements JSONEntity {
 				+ ((permissions == null) ? 0 : permissions.hashCode());
 		result = prime * result
 				+ ((referencedBy == null) ? 0 : referencedBy.hashCode());
+		result = prime * result
+				+ ((tableBundle == null) ? 0 : tableBundle.hashCode());
 		result = prime
 				* result
 				+ ((unmetAccessRequirements == null) ? 0
@@ -454,6 +478,11 @@ public class EntityBundle implements JSONEntity {
 				return false;
 		} else if (!referencedBy.equals(other.referencedBy))
 			return false;
+		if (tableBundle == null) {
+			if (other.tableBundle != null)
+				return false;
+		} else if (!tableBundle.equals(other.tableBundle))
+			return false;
 		if (unmetAccessRequirements == null) {
 			if (other.unmetAccessRequirements != null)
 				return false;
@@ -470,8 +499,9 @@ public class EntityBundle implements JSONEntity {
 				+ permissions + ", path=" + path + ", referencedBy="
 				+ referencedBy + ", hasChildren=" + hasChildren + ", acl="
 				+ acl + ", accessRequirements=" + accessRequirements
-				+ ", unmetAccessRequirements=" + unmetAccessRequirements + "]";
+				+ ", unmetAccessRequirements=" + unmetAccessRequirements
+				+ ", fileHandles=" + fileHandles + ", tableBundle="
+				+ tableBundle + "]";
 	}
-
 
 }

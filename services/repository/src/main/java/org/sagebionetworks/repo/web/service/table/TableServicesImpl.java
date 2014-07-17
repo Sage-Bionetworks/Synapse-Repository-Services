@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.Query;
+import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
@@ -28,6 +29,7 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.table.cluster.SqlQuery;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.common.collect.Lists;
@@ -39,6 +41,11 @@ import com.google.common.collect.Lists;
  *
  */
 public class TableServicesImpl implements TableServices {
+	
+	public static final int BUNDLE_MASK_QUERY_RESULTS = 0x1;
+	public static final int BUNDLE_MASK_QUERY_COUNT = 0x2;
+	public static final int BUNDLE_MASK_QUERY_SELECT_COLUMNS = 0x4;
+	public static final int BUNDLE_MASK_QUERY_MAX_ROWS_PER_PAGE = 0x8;
 	
 	@Autowired
 	UserManager userManager;
@@ -221,6 +228,49 @@ public class TableServicesImpl implements TableServices {
 	public RowSet query(Long userId, Query query, boolean isConsisitent, boolean countOnly) throws NotFoundException, DatastoreException, TableUnavilableException {
 		UserInfo user = userManager.getUserInfo(userId);
 		return tableRowManager.query(user, query.getSql(), isConsisitent, countOnly);
+	}
+
+	@Override
+	public QueryResultBundle queryBundle(Long userId, Query query,
+			boolean isConsistent, int partMask) throws NotFoundException,
+			DatastoreException, TableUnavilableException {
+		UserInfo user = userManager.getUserInfo(userId);
+		QueryResultBundle bundle = new QueryResultBundle();
+		// The SQL query is need for the actual query, select columns, and max rows per page.
+		SqlQuery sqlQuery = null;
+		if((partMask & BUNDLE_MASK_QUERY_RESULTS) > 0
+				|| (partMask & BUNDLE_MASK_QUERY_SELECT_COLUMNS) > 0
+				|| (partMask & BUNDLE_MASK_QUERY_MAX_ROWS_PER_PAGE) > 0){
+			// This will parse the query, and build up all of the metadata needed to execute the query.
+			sqlQuery = tableRowManager.createQuery(query.getSql(), false);
+		}
+		// query
+		if((partMask & BUNDLE_MASK_QUERY_RESULTS) > 0){
+			// Run a non-count query
+			RowSet rowSet = tableRowManager.query(user, sqlQuery, isConsistent);
+			bundle.setQueryResults(rowSet);
+		}
+		// count
+		if((partMask & BUNDLE_MASK_QUERY_COUNT) > 0){
+			// Run a count query
+			RowSet rowSet = tableRowManager.query(user, query.getSql(), isConsistent, true);
+			bundle.setQueryCount(Long.parseLong(rowSet.getRows().get(0).getValues().get(0)));
+		}
+		// select columns must be fetched for for the select columns or max rows per page.
+		if((partMask & BUNDLE_MASK_QUERY_SELECT_COLUMNS) > 0){
+			bundle.setSelectColumns(sqlQuery.getSelectColumnModels());
+		}
+		// Max rows per column
+		if((partMask & BUNDLE_MASK_QUERY_MAX_ROWS_PER_PAGE) > 0){
+			Long maxRowsPerPage = getMaxRowsPerPage(sqlQuery.getSelectColumnModels());
+			bundle.setMaxRowsPerPage(maxRowsPerPage);
+		}
+		return bundle;
+	}
+	
+	@Override
+	public Long getMaxRowsPerPage(List<ColumnModel> models) {
+		return tableRowManager.getMaxRowsPerPage(models);
 	}
 	
 }

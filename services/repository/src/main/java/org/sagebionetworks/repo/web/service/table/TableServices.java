@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.Query;
+import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
@@ -162,4 +163,27 @@ public interface TableServices {
 	 * @throws DatastoreException 
 	 */
 	public RowSet query(Long userId, Query query, boolean isConsistent, boolean countOnly) throws NotFoundException, DatastoreException, TableUnavilableException;
+	
+	
+	/**
+	 * Run a query and bundle additional information.
+	 * 
+	 * @param userId
+	 * @param query
+	 * @param isConsistent
+	 * @param partMask
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws TableUnavilableException
+	 */
+	public QueryResultBundle queryBundle(Long userId, Query query, boolean isConsistent, int partMask) throws NotFoundException, DatastoreException, TableUnavilableException;
+
+
+	/**
+	 * Get the max number of rows allowed for a page (get, post, or query) for the given column models.
+	 * @param models
+	 * @return
+	 */
+	public Long getMaxRowsPerPage(List<ColumnModel> models);
 }

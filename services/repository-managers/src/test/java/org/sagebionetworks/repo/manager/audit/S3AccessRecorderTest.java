@@ -17,7 +17,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:audit-managers.spb.xml" })
+@ContextConfiguration(locations = { "classpath:test-context-enabled.xml" })
 public class S3AccessRecorderTest {
 	
 	@Autowired
@@ -26,11 +26,6 @@ public class S3AccessRecorderTest {
 	@Autowired
 	private AccessRecordManager accessManager;
 	
-	@Before
-	public void before(){
-
-	}
-
 	@Test
 	public void testSaveAndFire() throws IOException{
 		List<AccessRecord> toTest = AuditTestUtils.createList(5, 100);

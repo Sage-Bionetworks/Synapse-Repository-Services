@@ -62,7 +62,6 @@ public class StubWorker implements Callable<List<Message>>{
 	
 	public StubWorker withProgress(WorkerProgress progress){
 		this.progress = progress;
-		System.out.println("Worker passed: "+messages.size()+" messages");
 		return this;
 	}
 	

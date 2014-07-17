@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.DeadlockLoserDataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.namedparam.BeanPropertySqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
@@ -101,9 +102,27 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 		return insert(toCreate, insertSQl);
 	}
 	
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED, noRollbackFor= DeadlockLoserDataAccessException.class)
+	@Override
+	public <T extends DatabaseObject<T>> T createNewNoDeadlockRollback(
+			T toCreate) throws DatastoreException {
+		if(toCreate == null) throw new IllegalArgumentException("The object to create cannot be null");
+		// Lookup the insert SQL
+		String insertSQl = getInsertSQL(toCreate.getClass());
+		return insert(toCreate, insertSQl);
+	}
+	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)	
 	@Override
 	public <T extends DatabaseObject<T>> T createOrUpdate(T toCreate) throws DatastoreException {
+		// Lookup the insert SQL
+		String insertOrUpdateSQl = getInsertOnDuplicateUpdateSQL(toCreate.getClass());
+		return insert(toCreate, insertOrUpdateSQl);
+	}
+	
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED, noRollbackFor= DeadlockLoserDataAccessException.class)	
+	@Override
+	public <T extends DatabaseObject<T>> T createOrUpdateNoDeadlockRollback(T toCreate) throws DatastoreException {
 		// Lookup the insert SQL
 		String insertOrUpdateSQl = getInsertOnDuplicateUpdateSQL(toCreate.getClass());
 		return insert(toCreate, insertOrUpdateSQl);
@@ -342,4 +361,6 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 		if(sql == null) throw new IllegalArgumentException("Cannot find the update SQL for class: "+clazz+".  Please register this class by adding it to the 'databaseObjectRegister' bean");
 		return sql;
 	}
+
+
 }

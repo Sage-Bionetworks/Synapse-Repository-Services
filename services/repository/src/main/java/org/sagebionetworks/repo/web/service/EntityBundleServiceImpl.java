@@ -23,6 +23,10 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
+import org.sagebionetworks.repo.model.table.TableBundle;
+import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -118,6 +122,13 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 				// If the user does not have permission to see the handles then set them to be an empty list.
 				eb.setFileHandles(new LinkedList<FileHandle>());
 			}
+		}
+		if((mask & EntityBundle.TABLE_DATA) > 0 ){
+			PaginatedColumnModels paginated = serviceProvider.getTableServices().getColumnModelsForTableEntity(userId, entityId);
+			TableBundle tableBundle = new TableBundle();
+			tableBundle.setColumnModels(paginated.getResults());
+			tableBundle.setMaxRowsPerPage(serviceProvider.getTableServices().getMaxRowsPerPage(paginated.getResults()));
+			eb.setTableBundle(tableBundle);
 		}
 		return eb;
 	}	

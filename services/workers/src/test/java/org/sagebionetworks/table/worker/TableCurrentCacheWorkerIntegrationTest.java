@@ -15,6 +15,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.asynchronous.workers.sqs.MessagePollingReceiverImpl;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageReceiver;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
@@ -69,7 +70,7 @@ public class TableCurrentCacheWorkerIntegrationTest {
 	@Autowired
 	UserManager userManager;
 	@Autowired
-	MessageReceiver tableCurrentCacheQueueMessageReveiver;
+	MessagePollingReceiverImpl tableCurrentCacheQueueMessageReveiver;
 	@Autowired
 	TableRowCache tableRowCache;
 	@Autowired

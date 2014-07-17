@@ -143,6 +143,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.Query;
+import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
@@ -230,7 +231,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String ATTACHMENT_FILE_PREVIEW = "/attachmentpreview";
 	private static final String FILE_NAME_PARAMETER = "?fileName=";
 	private static final String REDIRECT_PARAMETER = "redirect=";
-	private static final String OFFSET_PARAMETER = "?offset=";
+	private static final String OFFSET_PARAMETER = "offset=";
 	private static final String LIMIT_PARAMETER = "limit=";
 	private static final String VERSION_PARAMETER = "?wikiVersion=";
 	private static final String AND_VERSION_PARAMETER = "&wikiVersion=";
@@ -273,6 +274,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	protected static final String ROW_ID = "/row";
 	protected static final String ROW_VERSION = "/version";
 	protected static final String TABLE_QUERY = TABLE+"/query";
+	protected static final String TABLE_QUERY_BUNDLE = TABLE_QUERY+"/bundle";
 	protected static final String TABLE_PARITAL = TABLE + "/partial";
 	
 	protected static final  String ASYNCHRONOUS_JOB = "/asynchronous/job";
@@ -1134,10 +1136,19 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		sb.deleteCharAt(sb.length() - 1);
 		return sb.toString();
 	}
+	
 	@Override
 	public UserGroupHeaderResponsePage getUserGroupHeadersByPrefix(String prefix) throws SynapseException, UnsupportedEncodingException {
 		String encodedPrefix = URLEncoder.encode(prefix, "UTF-8");
 		JSONObject json = getEntity(USER_GROUP_HEADER_PREFIX_PATH+encodedPrefix);
+		return initializeFromJSONObject(json, UserGroupHeaderResponsePage.class);
+	}
+	
+	@Override
+	public UserGroupHeaderResponsePage getUserGroupHeadersByPrefix(String prefix, long limit, long offset) throws SynapseException, UnsupportedEncodingException {
+		String encodedPrefix = URLEncoder.encode(prefix, "UTF-8");
+		JSONObject json = getEntity(USER_GROUP_HEADER_PREFIX_PATH+encodedPrefix+
+				"&"+LIMIT_PARAMETER+limit+"&"+OFFSET_PARAMETER+offset);
 		return initializeFromJSONObject(json, UserGroupHeaderResponsePage.class);
 	}
 	
@@ -2822,7 +2833,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public PaginatedResults<V2WikiHistorySnapshot> getV2WikiHistory(WikiPageKey key, Long limit, Long offset)
 		throws JSONObjectAdapterException, SynapseException {
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
-		String uri = createV2WikiURL(key) + WIKI_HISTORY_V2 + OFFSET_PARAMETER + offset + AND_LIMIT_PARAMETER + limit;
+		String uri = createV2WikiURL(key) + WIKI_HISTORY_V2 + "?"+ OFFSET_PARAMETER + offset + AND_LIMIT_PARAMETER + limit;
 		JSONObject object = getSharedClientConnection().getJson(repoEndpoint, uri, getUserAgent());
 		PaginatedResults<V2WikiHistorySnapshot> paginated = new PaginatedResults<V2WikiHistorySnapshot>(V2WikiHistorySnapshot.class);
 		paginated.initializeFromJSONObject(new JSONObjectAdapterImpl(object));
@@ -5171,6 +5182,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		boolean countOnly = false;
 		return queryTableEntity(sql, isConsistent, countOnly);
 	}
+	
 	@Override
 	public RowSet queryTableEntity(String sql, boolean isConsistent, boolean countOnly) throws SynapseException, SynapseTableUnavailableException{
 		String url = TABLE_QUERY + "?isConsistent=" + isConsistent + "&countOnly=" + countOnly;
@@ -5191,6 +5203,26 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		});
 	}
 
+	@Override
+	public QueryResultBundle queryTableEntityBundle(String sql, boolean isConsistent, int partsMask) throws SynapseException, SynapseTableUnavailableException{
+		String url = TABLE_QUERY_BUNDLE + "?isConsistent=" + isConsistent + "&partsMask=" + partsMask;
+		Query query = new Query();
+		query.setSql(sql);
+		return asymmetricalPost(getRepoEndpoint(), url, query, QueryResultBundle.class, new SharedClientConnection.ErrorHandler() {
+			@Override
+			public void handleError(int code, String responseBody) throws SynapseException {
+				if (code == 202) {
+					try {
+						TableStatus status = EntityFactory.createEntityFromJSONString(responseBody, TableStatus.class);
+						throw new SynapseTableUnavailableException(status);
+					} catch (JSONObjectAdapterException e) {
+						throw new SynapseClientException(e.getMessage(), e);
+					}
+				}
+			}
+		});
+	}
+	
 	@Override
 	public ColumnModel createColumnModel(ColumnModel model) throws SynapseException {
 		if(model == null) throw new IllegalArgumentException("ColumnModel cannot be null");

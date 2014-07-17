@@ -55,7 +55,16 @@
 		<!-- This is a slow worker and does not need to be run more than once every 1 hour. -->
 		<property name="repeatInterval" value="3000" />
 	</bean>
-	
+
+	<!-- This is a shared  Scheduler-->
+	<bean id="repositoryManagerTestScheduler" class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
+		<property name="triggers">
+			<list>
+				<ref bean="messagePublisherTrigger" />
+			</list>
+		</property>
+	</bean>
+
 	<!-- We don't want to send emails during testing, so we stub out Amazon SES -->
 	<bean id="amazonSESClient" class="org.sagebionetworks.repo.manager.StubAmazonSimpleEmailServiceClient" />
 

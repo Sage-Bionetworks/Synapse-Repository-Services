@@ -1,5 +1,6 @@
 package org.sagebionetworks.dynamo.config;
 
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -17,7 +18,10 @@ import org.sagebionetworks.dynamo.DynamoTimeoutException;
 import org.sagebionetworks.dynamo.config.DynamoTableConfig.DynamoKey;
 import org.sagebionetworks.dynamo.config.DynamoTableConfig.DynamoKeySchema;
 import org.sagebionetworks.dynamo.config.DynamoTableConfig.DynamoThroughput;
+import org.sagebionetworks.util.DefaultClock;
+import org.sagebionetworks.util.ReflectionStaticTestUtils;
 import org.sagebionetworks.util.TestClock;
+import org.sagebionetworks.util.TimeUtils;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.services.dynamodb.AmazonDynamoDB;
@@ -39,6 +43,7 @@ public class DynamoSetupImplTest {
 
 	private AmazonDynamoDB mockDynamoClient;
 	private DynamoSetupImpl dynamoSetup;
+	private TestClock testClock = new TestClock();
 
 	@Before
 	public void before() {
@@ -46,11 +51,13 @@ public class DynamoSetupImplTest {
 		this.dynamoSetup = new DynamoSetupImpl();
 		dynamoSetup.setDynamoEnabled(true);
 		ReflectionTestUtils.setField(this.dynamoSetup, "dynamoClient", this.mockDynamoClient);
+		ReflectionStaticTestUtils.setStaticField(TimeUtils.class, "clock", testClock);
+
 	}
 
 	@After
-	public void after() {
-		TestClock.resetClockProvider();
+	public void after() throws Exception {
+		ReflectionStaticTestUtils.setStaticField(TimeUtils.class, "clock", new DefaultClock());
 	}
 
 	@Test
@@ -234,8 +241,6 @@ public class DynamoSetupImplTest {
 	@Test(expected = DynamoTimeoutException.class)
 	public void testSetupDynamoDiffernetTableExistsException() {
 
-		TestClock.useTestClockProvider();
-
 		String tableName = "tableOfDiffKeySchema";
 		String stackPrefix = StackConfiguration.getStack() + "-" + StackConfiguration.getStackInstance() + "-";
 
@@ -273,13 +278,17 @@ public class DynamoSetupImplTest {
 		when(config.listTables()).thenReturn(tablesFromConfig);
 		when(mockDynamoClient.createTable(any(CreateTableRequest.class))).thenReturn(null);
 
-		this.dynamoSetup.setup(config);
+		long before = testClock.currentTimeMillis();
+		try {
+			this.dynamoSetup.setup(config);
+		} finally {
+			assertTrue("Should timeout after " + (before + DynamoSetup.TIMEOUT_IN_MILLIS) + " but was " + testClock.currentTimeMillis(),
+					before + DynamoSetup.TIMEOUT_IN_MILLIS < testClock.currentTimeMillis());
+		}
 	}
 
 	@Test
 	public void testSetupDynamoDiffernetTableExists() {
-
-		TestClock.useTestClockProvider();
 
 		String tableName = "tableOfDiffKeySchema";
 		String stackPrefix = StackConfiguration.getStack() + "-" + StackConfiguration.getStackInstance() + "-";
@@ -312,7 +321,10 @@ public class DynamoSetupImplTest {
 		when(mockDynamoClient.describeTable(dtRequest)).thenReturn(dtResult, dtResult, dtResult).thenThrow(new ResourceNotFoundException(""))
 				.thenReturn(dtResult);
 
+		long before = testClock.currentTimeMillis();
 		this.dynamoSetup.setup(config);
+		assertTrue("Should have retried for at least 2 seconds but was " + testClock.currentTimeMillis(),
+				before + 2000 <= testClock.currentTimeMillis());
 	}
 
 	@Test(expected=DynamoTableExistsException.class)
@@ -366,8 +378,6 @@ public class DynamoSetupImplTest {
 	@Test(expected=DynamoTimeoutException.class)
 	public void testSetupDynamoTimeoutException() throws Exception {
 
-		TestClock.useTestClockProvider();
-
 		String tableName = "testSetupDynamoTimeoutException";
 		String stackPrefix = StackConfiguration.getStack() + "-" + StackConfiguration.getStackInstance() + "-";
 
@@ -395,7 +405,12 @@ public class DynamoSetupImplTest {
 		DynamoConfig config = mock(DynamoConfig.class);
 		when(config.listTables()).thenReturn(tablesFromConfig);
 
-		this.dynamoSetup.setup(true, 1000, config);
+		long before = testClock.currentTimeMillis();
+		try {
+			this.dynamoSetup.setup(true, 1000, config);
+		} finally {
+			assertTrue("Should timeout after " + (before + 1000) + " but was " + testClock.currentTimeMillis(),
+					before + 1000 <= testClock.currentTimeMillis());
+		}
 	}
-	
 }

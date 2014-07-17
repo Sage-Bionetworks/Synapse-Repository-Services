@@ -99,10 +99,9 @@ public class TableCurrentCacheWorker implements Callable<List<Message>> {
 		// See PLFM-2641. We must check message before we acquire the lock.
 		TableStatus status;
 		try {
-			status = tableRowManager.getTableStatus(tableId);
+			status = tableRowManager.getTableStatusOrCreateIfNotExists(tableId);
 		} catch (NotFoundException e) {
-			// table no longer exists? We shouldn't keep retrying here
-			log.info("Table " + tableId + " no longer exists?" + e);
+			// if the table doesn't exist, we assume the message was old and we consider it handled
 			return;
 		}
 

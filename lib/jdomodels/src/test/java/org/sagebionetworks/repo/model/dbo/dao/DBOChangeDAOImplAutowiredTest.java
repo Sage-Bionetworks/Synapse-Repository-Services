@@ -1,6 +1,10 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -18,7 +22,6 @@ import java.util.concurrent.TimeUnit;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -387,6 +390,31 @@ public class DBOChangeDAOImplAutowiredTest {
 		changeDAO.registerMessageSent(batch.get(0));
 	}
 	
+	@Test
+	public void testRegisterMessageSent(){
+		ChangeMessage change = createList(1, ObjectType.ENTITY).get(0);
+		// Pass the batch.
+		change  = changeDAO.replaceChange(change);
+		// Send the batch
+		assertTrue(changeDAO.registerMessageSent(change));
+		// Calling it again should return false since it was already sent
+		assertFalse("The messages should already be marked as sent", changeDAO.registerMessageSent(change));
+		// Now if we replace the change we should be able to register it sent again
+		change  = changeDAO.replaceChange(change);
+		assertTrue(changeDAO.registerMessageSent(change));
+	}
+	
+	@Test
+	public void testRegisterMessageSentOldChange(){
+		ChangeMessage change = createList(1, ObjectType.ENTITY).get(0);
+		// Pass the batch.
+		change  = changeDAO.replaceChange(change);
+		// use an older change number
+		change.setChangeNumber(change.getChangeNumber()-1);
+		// Send the batch
+		assertFalse("Since the passed change number doe snot match the current state of the change, the sent registration should not have happened.", changeDAO.registerMessageSent(change));
+	}
+	
 	
 	@Test
 	public void testGetMaxSentChangeNumber(){
@@ -546,9 +574,12 @@ public class DBOChangeDAOImplAutowiredTest {
 		return starting.get(0).getChangeNumber();
 	}
 
-	// TODO: PLFM-1631 for a load test framework outside this package
-	// TODO: PLFM-1659 the test is failing occasionally for deadlocks on the primary index
-	@Ignore
+	/**
+	 *  Do not ignore this test.  If it starts to fail then that means it is broken even
+	 *  if the failures are sporadic.
+	 *  See: PLFM-1659, PLFM-1631, and PLFM-2860.
+	 */
+	@Test
 	public void testForDeadlocks() throws Exception {
 		final int numOfTasks = 1000;
 		final int numOfThreads = 10;
@@ -608,7 +639,9 @@ public class DBOChangeDAOImplAutowiredTest {
 		@Override
 		public Boolean call() throws Exception {
 			try {
-				changeDAO.replaceChange(change);
+				ChangeMessage result = changeDAO.replaceChange(change);
+				change.setChangeNumber(result.getChangeNumber());
+				changeDAO.registerMessageSent(change);
 				return Boolean.TRUE;
 			} catch (DeadlockLoserDataAccessException e) {
 				return Boolean.FALSE;

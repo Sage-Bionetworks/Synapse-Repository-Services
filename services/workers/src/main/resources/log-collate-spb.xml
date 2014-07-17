@@ -11,8 +11,6 @@
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
-	<import resource="classpath:log-sweeper.spb.xml" />
-	
 	<!-- This factory creates and executes the workers that do the log collation. -->
 	<bean id="logCollateWorkerFactory" class="org.sagebionetworks.log.worker.LogCollateWorkerFactory"/>
 

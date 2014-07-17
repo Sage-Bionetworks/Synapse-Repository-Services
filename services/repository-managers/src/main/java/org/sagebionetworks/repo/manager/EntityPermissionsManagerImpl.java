@@ -6,6 +6,7 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.DELETE;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.DOWNLOAD;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.READ;
 import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
+import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPLOAD;
 
 import java.util.List;
 
@@ -204,6 +205,10 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		if (accessType == DOWNLOAD) {
 			return canDownload(userInfo, entityId);
 		}
+		// Can upload
+		if (accessType == UPLOAD) {
+			return canUpload(userInfo, entityId);
+		}
 		// Anonymous can at most READ
 		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
 			if (accessType != ACCESS_TYPE.READ) {
@@ -238,6 +243,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		permissions.setCanEdit(hasAccess(benefactor, UPDATE, userInfo));
 		permissions.setCanView(hasAccess(benefactor, READ, userInfo));
 		permissions.setCanDownload(canDownload(userInfo, entityId));
+		permissions.setCanUpload(canUpload(userInfo, entityId));
 
 		Node node = nodeDao.getNode(entityId);
 		permissions.setOwnerPrincipalId(node.getCreatedByPrincipalId());
@@ -273,8 +279,21 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		// if there are any unmet access requirements return false
 		List<String> nodeAncestorIds = AccessRequirementUtil.getNodeAncestorIds(nodeDao, nodeId, false);
 
-		List<Long> accessRequirementIds = AccessRequirementUtil.unmetAccessRequirementIdsForEntity(
+		List<Long> accessRequirementIds = AccessRequirementUtil.unmetDownloadAccessRequirementIdsForEntity(
 				userInfo, nodeId, nodeAncestorIds, nodeDao, accessRequirementDAO);
+		return accessRequirementIds.isEmpty();
+	}
+
+	private boolean canUpload(UserInfo userInfo, final String parentId)
+			throws DatastoreException, NotFoundException {
+		if (userInfo.isAdmin()) return true;
+		if (!agreesToTermsOfUse(userInfo)) return false;
+		
+		// if there are any unmet access requirements return false
+		List<String> nodeAncestorIds = AccessRequirementUtil.getNodeAncestorIds(nodeDao, parentId, true);
+
+		List<Long> accessRequirementIds = AccessRequirementUtil.unmetUploadAccessRequirementIdsForEntity(
+				userInfo, nodeAncestorIds, nodeDao, accessRequirementDAO);
 		return accessRequirementIds.isEmpty();
 	}
 

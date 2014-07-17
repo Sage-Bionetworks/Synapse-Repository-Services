@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.Query;
+import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
@@ -277,39 +278,54 @@ public class TableController extends BaseController {
 
 	/**
 	 * <p>
-	 * This method is used to both add and update rows to a TableEntity. The passed PartialRowSet will contain some or
-	 * all data for the rows to be added or updated. The PartialRowSet.rows is a list of PartialRows, one of each row to
-	 * add or update. If the PartialRow.rowId is null, then a row will be added for that request, if a rowId is provided
-	 * then the row with that ID will be updated (a 400 will be returned if a row ID is provided that does not actually
-	 * exist). For inserts, the PartialRow.values should contain all the values the user wants to set explicitly. A null
-	 * value will be replaced with the default value if appropriate. For updates, only the columns represented in
-	 * PartialRow.values will be updated. Updates will always overwrite the current value of the cell. A null value for
-	 * a column that has a default value, will be changed to the default value. A PartialRow.values identifies the
-	 * column by ID in the key. When a row is added it will be issued both a rowId and a version number. When a row is
-	 * updated it will be issued a new version number (each row version is immutable). The resulting TableRowReference
-	 * will enumerate all rowIds and versionNumbers for this update. The resulting RowReferecnes will be listed in the
-	 * same order as the passed result set. A single POST to this services will be treated as a single transaction,
-	 * meaning either all of the rows will be added/updated or none of the rows will be added/updated. If this
-	 * web-services fails for any reason all changes will be "rolled back".
+	 * This method is used to both add and update rows to a TableEntity. The
+	 * passed PartialRowSet will contain some or all data for the rows to be
+	 * added or updated. The PartialRowSet.rows is a list of PartialRows, one of
+	 * each row to add or update. If the PartialRow.rowId is null, then a row
+	 * will be added for that request, if a rowId is provided then the row with
+	 * that ID will be updated (a 400 will be returned if a row ID is provided
+	 * that does not actually exist). For inserts, the PartialRow.values should
+	 * contain all the values the user wants to set explicitly. A null value
+	 * will be replaced with the default value if appropriate. For updates, only
+	 * the columns represented in PartialRow.values will be updated. Updates
+	 * will always overwrite the current value of the cell. A null value for a
+	 * column that has a default value, will be changed to the default value. A
+	 * PartialRow.values identifies the column by ID in the key. When a row is
+	 * added it will be issued both a rowId and a version number. When a row is
+	 * updated it will be issued a new version number (each row version is
+	 * immutable). The resulting TableRowReference will enumerate all rowIds and
+	 * versionNumbers for this update. The resulting RowReferecnes will be
+	 * listed in the same order as the passed result set. A single POST to this
+	 * services will be treated as a single transaction, meaning either all of
+	 * the rows will be added/updated or none of the rows will be added/updated.
+	 * If this web-services fails for any reason all changes will be
+	 * "rolled back".
 	 * </p>
 	 * <p>
-	 * There is a limit to the size of a partialRowSet that can be passed in a single web-services call. Currently, that
-	 * limit is set to a maximum size of 2 MB per call. The maximum size is calculated based on the maximum possible
-	 * size of a the ColumModel definition, NOT on the size of the actual passed data. For example, the maximum size of
-	 * an integer column is 20 characters. Since each integer is represented as a UTF-8 string (not a binary
-	 * representation) with 1 byte per character (for numbers), a single integer has a maximum size of 20 bytes (20
-	 * chars * 1 bytes/char). Since the page size limits are based on the maximum size and not the actual size of the
-	 * data it will be consistent from page to page. This means a valid page size will work for a all pages even if some
-	 * pages have more data that others.
+	 * There is a limit to the size of a partialRowSet that can be passed in a
+	 * single web-services call. Currently, that limit is set to a maximum size
+	 * of 2 MB per call. The maximum size is calculated based on the maximum
+	 * possible size of a the ColumModel definition, NOT on the size of the
+	 * actual passed data. For example, the maximum size of an integer column is
+	 * 20 characters. Since each integer is represented as a UTF-8 string (not a
+	 * binary representation) with 1 byte per character (for numbers), a single
+	 * integer has a maximum size of 20 bytes (20 chars * 1 bytes/char). Since
+	 * the page size limits are based on the maximum size and not the actual
+	 * size of the data it will be consistent from page to page. This means a
+	 * valid page size will work for a all pages even if some pages have more
+	 * data that others.
 	 * </p>
 	 * <p>
-	 * Note: The caller must have the <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}" >ACCESS_TYPE.UPDATE</a>
-	 * permission on the TableEntity to make this call.
+	 * Note: The caller must have the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.UPDATE</a> permission on the TableEntity to make this call.
 	 * </p>
 	 * 
 	 * @param userId
-	 * @param id The ID of the TableEntity to append rows to.
-	 * @param rows The set of rows to add/update.
+	 * @param id
+	 *            The ID of the TableEntity to append rows to.
+	 * @param rows
+	 *            The set of rows to add/update.
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
@@ -318,29 +334,38 @@ public class TableController extends BaseController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_PARTIAL, method = RequestMethod.POST)
 	public @ResponseBody
-	RowReferenceSet appendPartialRows(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String id,
-			@RequestBody PartialRowSet rows) throws DatastoreException, NotFoundException, IOException {
+	RowReferenceSet appendPartialRows(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String id, @RequestBody PartialRowSet rows)
+			throws DatastoreException, NotFoundException, IOException {
 		if (id == null)
 			throw new IllegalArgumentException("{id} cannot be null");
 		rows.setTableId(id);
-		return serviceProvider.getTableServices().appendPartialRows(userId, rows);
+		return serviceProvider.getTableServices().appendPartialRows(userId,
+				rows);
 	}
 
 	/**
 	 * <p>
-	 * This method is used to delete rows in a TableEntity. The rows in the passed in RowReferenceSet will be deleted if
-	 * they exists (a 400 will be returned if a row ID is provided that does not actually exist). A single POST to this
-	 * services will be treated as a single transaction, meaning either all of the rows will be deleted or none of the
-	 * rows will be deleted. If this web-services fails for any reason all changes will be "rolled back".
+	 * This method is used to delete rows in a TableEntity. The rows in the
+	 * passed in RowReferenceSet will be deleted if they exists (a 400 will be
+	 * returned if a row ID is provided that does not actually exist). A single
+	 * POST to this services will be treated as a single transaction, meaning
+	 * either all of the rows will be deleted or none of the rows will be
+	 * deleted. If this web-services fails for any reason all changes will be
+	 * "rolled back".
 	 * </p>
 	 * <p>
-	 * Note: The caller must have the <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}" >ACCESS_TYPE.UPDATE</a>
-	 * permission on the TableEntity to make this call.
+	 * Note: The caller must have the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.UPDATE</a> permission on the TableEntity to make this call.
 	 * </p>
 	 * 
 	 * @param userId
-	 * @param id The ID of the TableEntity to append rows to.
-	 * @param rows The set of rows to delete.
+	 * @param id
+	 *            The ID of the TableEntity to append rows to.
+	 * @param rows
+	 *            The set of rows to delete.
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 * @throws IOException
@@ -348,27 +373,34 @@ public class TableController extends BaseController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_DELETE_ROWS, method = RequestMethod.POST)
 	public @ResponseBody
-	RowReferenceSet deleteRows(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String id,
-			@RequestBody RowSelection rowsToDelete) throws DatastoreException, NotFoundException, IOException {
+	RowReferenceSet deleteRows(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String id, @RequestBody RowSelection rowsToDelete)
+			throws DatastoreException, NotFoundException, IOException {
 		if (id == null)
 			throw new IllegalArgumentException("{id} cannot be null");
 		rowsToDelete.setTableId(id);
-		return serviceProvider.getTableServices().deleteRows(userId, rowsToDelete);
+		return serviceProvider.getTableServices().deleteRows(userId,
+				rowsToDelete);
 	}
 
 	/**
 	 * <p>
-	 * This method is used to get specific versions of rows in a TableEntity. The rows are in the passed in as a
-	 * RowReferenceSet. (a 400 will be returned if a row ID is provided that does not actually exist).
+	 * This method is used to get specific versions of rows in a TableEntity.
+	 * The rows are in the passed in as a RowReferenceSet. (a 400 will be
+	 * returned if a row ID is provided that does not actually exist).
 	 * </p>
 	 * <p>
-	 * Note: The caller must have the <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}" >ACCESS_TYPE.READ</a>
-	 * permission on the TableEntity to make this call.
+	 * Note: The caller must have the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.READ</a> permission on the TableEntity to make this call.
 	 * </p>
 	 * 
 	 * @param userId
-	 * @param id The ID of the TableEntity to append rows to.
-	 * @param rows The set of rows to get.
+	 * @param id
+	 *            The ID of the TableEntity to append rows to.
+	 * @param rows
+	 *            The set of rows to get.
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 * @throws IOException
@@ -376,30 +408,39 @@ public class TableController extends BaseController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_GET_ROWS, method = RequestMethod.POST)
 	public @ResponseBody
-	RowSet getRows(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String id,
-			@RequestBody RowReferenceSet rowsToGet) throws DatastoreException, NotFoundException, IOException {
+	RowSet getRows(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String id, @RequestBody RowReferenceSet rowsToGet)
+			throws DatastoreException, NotFoundException, IOException {
 		if (id == null)
 			throw new IllegalArgumentException("{id} cannot be null");
 		rowsToGet.setTableId(id);
-		return serviceProvider.getTableServices().getReferenceSet(userId, rowsToGet);
+		return serviceProvider.getTableServices().getReferenceSet(userId,
+				rowsToGet);
 	}
 
 	/**
 	 * <p>
-	 * This method is used to get file handle information for rows in a TableEntity. The columns in the passed in
-	 * RowReferenceSet need to be FILEHANDLEID columns and the rows in the passed in RowReferenceSet need to exists (a
-	 * 400 will be returned if a row ID is provided that does not actually exist). The order of the returned rows of
-	 * file handles is the same as the order of the rows requested, and the order of the file handles in each row is the
-	 * same as the order of the columns requested.
+	 * This method is used to get file handle information for rows in a
+	 * TableEntity. The columns in the passed in RowReferenceSet need to be
+	 * FILEHANDLEID columns and the rows in the passed in RowReferenceSet need
+	 * to exists (a 400 will be returned if a row ID is provided that does not
+	 * actually exist). The order of the returned rows of file handles is the
+	 * same as the order of the rows requested, and the order of the file
+	 * handles in each row is the same as the order of the columns requested.
 	 * </p>
 	 * <p>
-	 * Note: The caller must have the <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}" >ACCESS_TYPE.READ</a>
-	 * permission on the TableEntity to make this call.
+	 * Note: The caller must have the <a
+	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
+	 * >ACCESS_TYPE.READ</a> permission on the TableEntity to make this call.
 	 * </p>
 	 * 
 	 * @param userId
-	 * @param id The ID of the TableEntity to append rows to.
-	 * @param rows The set of rows and columns for which to return the file handles.
+	 * @param id
+	 *            The ID of the TableEntity to append rows to.
+	 * @param rows
+	 *            The set of rows and columns for which to return the file
+	 *            handles.
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 * @throws IOException
@@ -407,27 +448,35 @@ public class TableController extends BaseController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_FILE_HANDLES, method = RequestMethod.POST)
 	public @ResponseBody
-	TableFileHandleResults getFileHandles(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String id,
-			@RequestBody RowReferenceSet fileHandlesToFind) throws DatastoreException, NotFoundException, IOException {
+	TableFileHandleResults getFileHandles(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String id,
+			@RequestBody RowReferenceSet fileHandlesToFind)
+			throws DatastoreException, NotFoundException, IOException {
 		if (id == null)
 			throw new IllegalArgumentException("{id} cannot be null");
 		fileHandlesToFind.setTableId(id);
-		return serviceProvider.getTableServices().getFileHandles(userId, fileHandlesToFind);
+		return serviceProvider.getTableServices().getFileHandles(userId,
+				fileHandlesToFind);
 	}
 
 	/**
-	 * Get the actual URL of the file associated with a specific version of a row and file handle column.
+	 * Get the actual URL of the file associated with a specific version of a
+	 * row and file handle column.
 	 * <p>
-	 * Note: This call will result in a HTTP temporary redirect (307), to the actual file URL if the caller meets all of
-	 * the download requirements.
+	 * Note: This call will result in a HTTP temporary redirect (307), to the
+	 * actual file URL if the caller meets all of the download requirements.
 	 * </p>
 	 * 
 	 * @param userId
-	 * @param id The ID of the FileEntity to get.
+	 * @param id
+	 *            The ID of the FileEntity to get.
 	 * @param columnId
 	 * @param rowId
 	 * @param versionNumber
-	 * @param redirect When set to false, the URL will be returned as text/plain instead of redirecting.
+	 * @param redirect
+	 *            When set to false, the URL will be returned as text/plain
+	 *            instead of redirecting.
 	 * @param response
 	 * @throws DatastoreException
 	 * @throws NotFoundException
@@ -435,31 +484,39 @@ public class TableController extends BaseController {
 	 */
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_FILE, method = RequestMethod.GET)
 	public @ResponseBody
-	void fileRedirectURLForRow(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String id,
-			@PathVariable String columnId, @PathVariable Long rowId, @PathVariable Long versionNumber,
-			@RequestParam(required = false) Boolean redirect, HttpServletResponse response) throws DatastoreException, NotFoundException,
-			IOException {
+	void fileRedirectURLForRow(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String id, @PathVariable String columnId,
+			@PathVariable Long rowId, @PathVariable Long versionNumber,
+			@RequestParam(required = false) Boolean redirect,
+			HttpServletResponse response) throws DatastoreException,
+			NotFoundException, IOException {
 		// Get the redirect url
 		RowReference ref = new RowReference();
 		ref.setRowId(rowId);
 		ref.setVersionNumber(versionNumber);
-		URL redirectUrl = serviceProvider.getTableServices().getFileRedirectURL(userId, id, ref, columnId);
+		URL redirectUrl = serviceProvider.getTableServices()
+				.getFileRedirectURL(userId, id, ref, columnId);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
 
 	/**
-	 * Get the preview URL of the file associated with a specific version of a row and file handle column.
+	 * Get the preview URL of the file associated with a specific version of a
+	 * row and file handle column.
 	 * <p>
-	 * Note: This call will result in a HTTP temporary redirect (307), to the actual file URL if the caller meets all of
-	 * the download requirements.
+	 * Note: This call will result in a HTTP temporary redirect (307), to the
+	 * actual file URL if the caller meets all of the download requirements.
 	 * </p>
 	 * 
 	 * @param userId
-	 * @param id The ID of the FileEntity to get.
+	 * @param id
+	 *            The ID of the FileEntity to get.
 	 * @param columnId
 	 * @param rowId
 	 * @param versionNumber
-	 * @param redirect When set to false, the URL will be returned as text/plain instead of redirecting.
+	 * @param redirect
+	 *            When set to false, the URL will be returned as text/plain
+	 *            instead of redirecting.
 	 * @param response
 	 * @throws DatastoreException
 	 * @throws NotFoundException
@@ -467,17 +524,22 @@ public class TableController extends BaseController {
 	 */
 	@RequestMapping(value = UrlHelpers.ENTITY_TABLE_FILE_PREVIEW, method = RequestMethod.GET)
 	public @ResponseBody
-	void filePreviewRedirectURLForRow(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String id,
-			@PathVariable String columnId, @PathVariable Long rowId, @PathVariable Long versionNumber,
-			@RequestParam(required = false) Boolean redirect, HttpServletResponse response) throws DatastoreException, NotFoundException,
-			IOException {
+	void filePreviewRedirectURLForRow(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String id, @PathVariable String columnId,
+			@PathVariable Long rowId, @PathVariable Long versionNumber,
+			@RequestParam(required = false) Boolean redirect,
+			HttpServletResponse response) throws DatastoreException,
+			NotFoundException, IOException {
 		// Get the redirect url
 		RowReference ref = new RowReference();
 		ref.setRowId(rowId);
 		ref.setVersionNumber(versionNumber);
-		URL redirectUrl = serviceProvider.getTableServices().getFilePreviewRedirectURL(userId, id, ref, columnId);
+		URL redirectUrl = serviceProvider.getTableServices()
+				.getFilePreviewRedirectURL(userId, id, ref, columnId);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
+
 	/**
 	 * <p>
 	 * Using a 'SQL like' syntax, query the current version of the rows in a
@@ -562,6 +624,68 @@ public class TableController extends BaseController {
 		}
 		return serviceProvider.getTableServices().query(userId, query,
 				isConsistentValue, countOnlyValue);
+	}
+
+	/**
+	 * <p>
+	 * This method executes table queries exactly like <a
+	 * href="${POST.table.query}">POST /table/query</a> with the addition of the
+	 * extra parameter 'partsMask'. The mask allows for the request of
+	 * additional information about the executed query in a single service call.
+	 * The query results and all of the requested parts are returned in a single
+	 * bundle.
+	 * </p>
+	 * <p>
+	 * The 'partMask' is an integer "mask" that can be combined into to request
+	 * any desired part. As of this writing, the mask is defined as follows:
+	 * <ul>
+	 * <li>Query Results <i>(queryResults)</i> = 0x1</li>
+	 * <li>Query Count <i>(queryCount)</i> = 0x2</li>
+	 * <li>Select Columns <i>(selectColumns)</i> = 0x4</li>
+	 * <li>Max Rows Per Page <i>(maxRowsPerPage)</i> = 0x8</li>
+	 * </ul>
+	 * </p>
+	 * <p>
+	 * For example, to request all parts, the request mask value should be: <br>
+	 * 0x1 OR 0x2 OR 0x4 OR 0x8 = 0x15.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param query
+	 * @param isConsistent
+	 *            Defaults to true. When true, a query will be run only if the
+	 *            index is up-to-date with all changes to the table and a
+	 *            read-lock is successfully acquired on the index. When set to
+	 *            false, the query will be run against the index regardless of
+	 *            the state of the index and without attempting to acquire a
+	 *            read-lock. When isConsistent is set to false the query results
+	 *            will not contain an etag so the results cannot be used as
+	 *            input to a table update.
+	 * @param mask
+	 * 
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 * @throws TableUnavilableException
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.TABLE_QUERY_BUNDLE, method = RequestMethod.POST)
+	public @ResponseBody
+	QueryResultBundle queryBundle(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody Query query,
+			@RequestParam(value = ServiceConstants.IS_CONSISTENT, required = false) Boolean isConsistent,
+			@RequestParam(value = ServiceConstants.PARTS_MASK, required = false) Integer partMask)
+			throws DatastoreException, NotFoundException, IOException,
+			TableUnavilableException {
+		// By default isConsistent is true.
+		boolean isConsistentValue = true;
+		if (isConsistent != null) {
+			isConsistentValue = isConsistent;
+		}
+		return serviceProvider.getTableServices().queryBundle(userId, query,
+				isConsistentValue, partMask);
 	}
 
 }

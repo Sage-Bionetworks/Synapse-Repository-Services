@@ -12,8 +12,9 @@
 
 	<context:annotation-config />
 
-
-	<import resource="classpath:dbo-beans.spb.xml" />
+	<import resource="classpath:stack-configuration.spb.xml" />
+	<import resource="classpath:private/transaction-spb.xml" />
+	<import resource="classpath:private/dbo-beans.spb.xml" />
 
 	<bean id="dboBasicDao" class="org.sagebionetworks.repo.model.dbo.DBOBasicDaoImpl">
 		<property name="databaseObjectRegister">

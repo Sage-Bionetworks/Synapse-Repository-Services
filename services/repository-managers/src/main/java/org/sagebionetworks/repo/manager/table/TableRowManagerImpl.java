@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -30,6 +31,7 @@ import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.exception.LockUnavilableException;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.AsynchDownloadResponseBody;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -80,6 +82,8 @@ public class TableRowManagerImpl implements TableRowManager {
 	ExclusiveOrSharedSemaphoreRunner exclusiveOrSharedSemaphoreRunner;
 	@Autowired
 	ConnectionFactory tableConnectionFactory;
+	@Autowired
+	NodeDAO nodeDao;
 	/**
 	 * Injected via Spring.
 	 */
@@ -338,6 +342,27 @@ public class TableRowManagerImpl implements TableRowManager {
 	}
 
 	@Override
+	public List<ColumnModel> getColumnsForHeaders(List<String> headers) throws DatastoreException, NotFoundException {
+		// Not all of the headers are columns so filter out those that are not.
+		List<String> columnIds = new LinkedList<String>();
+		for(String header: headers){
+			// Is this a columns ID
+			try {
+				Long id = Long.parseLong(header);
+				// This header is a columnId so include it
+				columnIds.add(id.toString());
+			} catch (NumberFormatException e) {
+				// expected, this just means a header was not a columnModel id so we skip it.
+			}
+		}
+		// If the columnIds is null, then none of the headers were actual column model ids.
+		if(columnIds.isEmpty()){
+			return new ArrayList<ColumnModel>(0);
+		}
+		return columnModelDAO.getColumnModel(columnIds, true);
+	}
+	
+	@Override
 	public List<TableRowChange> listRowSetsKeysForTable(String tableId) {
 		return tableRowTruthDao.listRowSetsKeysForTable(tableId);
 	}
@@ -399,8 +424,20 @@ public class TableRowManagerImpl implements TableRowManager {
 	}
 
 	@Override
-	public TableStatus getTableStatus(String tableId) throws NotFoundException {
-		return tableStatusDAO.getTableStatus(tableId);
+	public TableStatus getTableStatusOrCreateIfNotExists(String tableId) throws NotFoundException {
+		try {
+			return tableStatusDAO.getTableStatus(tableId);
+		} catch (NotFoundException e) {
+			// make sure the table exists
+			if (!nodeDao.doesNodeExist(KeyFactory.stringToKey(tableId))) {
+				throw new NotFoundException("Table " + tableId + " not found");
+			}
+			// we get here, if the index for this table is not (yet?) being build. We need to kick off the
+			// building of the index and report the table as unavailable
+			tableStatusDAO.resetTableStatusToProcessing(tableId);
+			// status should exist now
+			return tableStatusDAO.getTableStatus(tableId);
+		}
 	}
 
 	@Override
@@ -423,7 +460,7 @@ public class TableRowManagerImpl implements TableRowManager {
 			throws ConflictingUpdateException, NotFoundException {
 		tableStatusDAO.attemptToUpdateTableProgress(tableId, resetToken, progressMessage, currentProgress, totalProgress);
 	}
-
+	
 	@Override
 	public RowSet query(UserInfo user, String sql, boolean isConsistent, boolean countOnly) throws DatastoreException, NotFoundException, TableUnavilableException {
 		if(user == null) throw new IllegalArgumentException("UserInfo cannot be null");
@@ -431,15 +468,20 @@ public class TableRowManagerImpl implements TableRowManager {
 		validateFeatureEnabled();
 		// First parse the SQL
 		final SqlQuery query = createQuery(sql, countOnly);
+		return query(user, query, isConsistent);
+	}
+	
+	@Override
+	public RowSet query(UserInfo user, SqlQuery query, boolean isConsistent) throws DatastoreException, NotFoundException, TableUnavilableException {
+		if(user == null) throw new IllegalArgumentException("UserInfo cannot be null");
+		if(query == null) throw new IllegalArgumentException("SqlQuery cannot be null");
+		validateFeatureEnabled();
 		// Validate the user has read access on this object
 		if(!authorizationManager.canAccess(user, query.getTableId(), ObjectType.ENTITY, ACCESS_TYPE.READ)){
 			throw new UnauthorizedException("User does not have READ permission on: "+query.getTableId());
 		}
-		// Lookup the column models for this table
-		List<ColumnModel> columnModels = columnModelDAO.getColumnModelsForObject(query.getTableId());
-
 		// Does this table exist?
-		if(columnModels == null | columnModels.isEmpty()){
+		if(query.getTableSchema() == null || query.getTableSchema().isEmpty()){
 			// there are no columns for this table so the table does not actually exist.
 			// for this case the caller expects an empty result set.  See PLFM-2636
 			RowSet emptyResults = new RowSet();
@@ -447,7 +489,7 @@ public class TableRowManagerImpl implements TableRowManager {
 			return emptyResults;
 		}
 		// validate the size
-		validateQuerySize(query, columnModels, this.maxBytesPerRequest);
+		validateQuerySize(query, this.maxBytesPerRequest);
 		// If this is a consistent read then we need a read lock
 		if(isConsistent){
 			// A consistent query is only run if the table index is available and up-to-date
@@ -461,7 +503,7 @@ public class TableRowManagerImpl implements TableRowManager {
 	}
 	
 	@Override
-	public SqlQuery createQuery(String sql,boolean countOnly){
+	public SqlQuery createQuery(String sql, boolean countOnly){
 		// First parse the SQL
 		QuerySpecification model = parserQuery(sql);
 		// Do they want use to convert it to a count query?
@@ -471,8 +513,7 @@ public class TableRowManagerImpl implements TableRowManager {
 		String tableId = SqlElementUntils.getTableId(model);
 		// Lookup the column models for this table
 		List<ColumnModel> columnModels = columnModelDAO.getColumnModelsForObject(tableId);
-		Map<String, ColumnModel> columnNameToModelMap = TableModelUtils.createColumnNameToModelMap(columnModels);
-		return new SqlQuery(model, columnNameToModelMap);
+		return new SqlQuery(model, columnModels);
 	}
 
 	/**
@@ -482,40 +523,36 @@ public class TableRowManagerImpl implements TableRowManager {
 	 * @param columnModels
 	 * @param maxBytePerRequest
 	 */
-	public static void validateQuerySize(SqlQuery query, List<ColumnModel> columnModels, int maxBytePerRequest){
+	public static void validateQuerySize(SqlQuery query, int maxBytePerRequest){
 		Long limit = null;
 		if(query.getModel().getTableExpression().getPagination() != null){
 			limit = query.getModel().getTableExpression().getPagination().getLimit();
 		}
-		Map<Long, ColumnModel> columIdToModelMap = TableModelUtils.createIDtoColumnModelMap(columnModels);
 		// What are the select columns?
-		List<Long> selectColumns = query.getSelectColumnIds();
+		List<ColumnModel> selectColumns = query.getSelectColumnModels();
 		if(!selectColumns.isEmpty()){
-			List<ColumnModel> seletModels = new LinkedList<ColumnModel>();
-			for(Long id: selectColumns){
-				ColumnModel cm = columIdToModelMap.get(id);
-				seletModels.add(cm);
-			}
 			// First make sure we have a limit
 			if(limit == null){
 				throw new IllegalArgumentException("Request exceed the maximum number of bytes per request because a LIMIT was not included in the query.");
 			}
 			// Validate the request is under the max bytes per requested
-			if(!TableModelUtils.isRequestWithinMaxBytePerRequest(seletModels, limit.intValue(), maxBytePerRequest)){
+			if(!TableModelUtils.isRequestWithinMaxBytePerRequest(selectColumns, limit.intValue(), maxBytePerRequest)){
 				throw new IllegalArgumentException("Request exceed the maximum number of bytes per request.  Maximum : "+maxBytePerRequest+" bytes");
 			}
 		}
 	}
 	
 	/**
-	 * Run a consistent query.  All resulting rows will be loading into memory at one time with this method.
+	 * Run a consistent query. All resulting rows will be loading into memory at one time with this method.
+	 * 
 	 * @param tableId
 	 * @param query
 	 * @return
 	 * @throws TableUnavilableException
+	 * @throws NotFoundException
 	 */
 	@Override
-	public RowSet runConsistentQuery(final SqlQuery query) throws TableUnavilableException{
+	public RowSet runConsistentQuery(final SqlQuery query) throws TableUnavilableException, NotFoundException {
 		final RowSet results = new RowSet();
 		final List<Row> rows = new LinkedList<Row>();
 		results.setRows(rows);
@@ -538,27 +575,30 @@ public class TableRowManagerImpl implements TableRowManager {
 	}
 	
 	/**
-	 * Run a consistent query and stream the results.  Use this method to avoid loading all rows into memory at one time.
+	 * Run a consistent query and stream the results. Use this method to avoid loading all rows into memory at one time.
+	 * 
 	 * @param query
 	 * @param handler
 	 * @return
 	 * @throws TableUnavilableException
+	 * @throws NotFoundException
 	 */
 	@Override
-	public String runConsistentQueryAsStream(final SqlQuery query, final RowAndHeaderHandler handler) throws TableUnavilableException{
+	public String runConsistentQueryAsStream(final SqlQuery query, final RowAndHeaderHandler handler) throws TableUnavilableException,
+			NotFoundException {
 		try {
 			// Run with a read lock.
 			return tryRunWithTableNonexclusiveLock(query.getTableId(), tableReadTimeoutMS, new Callable<String>() {
 				@Override
 				public String call() throws Exception {
-					// We can only run this query if the table  is available.
-					TableStatus status = getTableStatus(query.getTableId());
-					if(!TableState.AVAILABLE.equals(status.getState())){
-						// When the table is not available, we communicate the current status of the 
+					// We can only run this query if the table is available.
+					TableStatus status = getTableStatusOrCreateIfNotExists(query.getTableId());
+					if (!TableState.AVAILABLE.equals(status.getState())) {
+						// When the table is not available, we communicate the current status of the
 						// table in this exception.
 						throw new TableUnavilableException(status);
 					}
-					// We can only run this 
+					// We can only run this
 					queryAsStream(query, handler);
 					return status.getLastTableChangeEtag();
 				}
@@ -567,6 +607,8 @@ public class TableRowManagerImpl implements TableRowManager {
 			TableUnavilableException e1 = createTableUnavilableException(query.getTableId());
 			throw e1;
 		} catch(TableUnavilableException e){
+			throw e;
+		} catch (NotFoundException e) {
 			throw e;
 		} catch (Exception e) {
 			// All other exception are converted to generic datastore.
@@ -580,9 +622,10 @@ public class TableRowManagerImpl implements TableRowManager {
 	 * @param writer
 	 * @return The resulting RowSet will not contain any 
 	 * @throws TableUnavilableException
+	 * @throws NotFoundException 
 	 */
 	@Override
-	public AsynchDownloadResponseBody runConsistentQueryAsStream(String sql, final CSVWriterStream writer, final boolean includeRowIdAndVersion) throws TableUnavilableException{
+	public AsynchDownloadResponseBody runConsistentQueryAsStream(String sql, final CSVWriterStream writer, final boolean includeRowIdAndVersion) throws TableUnavilableException, NotFoundException{
 		// Convert to a query.
 		final SqlQuery query = createQuery(sql, false);
 		if(includeRowIdAndVersion && query.isAggregatedResult()){
@@ -623,7 +666,7 @@ public class TableRowManagerImpl implements TableRowManager {
 	TableUnavilableException createTableUnavilableException(String tableId){
 		// When this occurs we need to lookup the status of the table and pass that to the caller
 		try {
-			TableStatus status = this.getTableStatus(tableId);
+			TableStatus status = tableStatusDAO.getTableStatus(tableId);
 			return new TableUnavilableException(status);
 		} catch (NotFoundException e1) {
 			throw new RuntimeException(e1);
@@ -826,5 +869,13 @@ public class TableRowManagerImpl implements TableRowManager {
 		if(!StackConfiguration.singleton().getTableEnabled()){
 			throw new IllegalStateException("This method cannot be called when the table feature is disabled.");
 		}
+	}
+
+	@Override
+	public Long getMaxRowsPerPage(List<ColumnModel> models) {
+		// Calculate the size
+		int maxRowSizeBytes = TableModelUtils.calculateMaxRowSize(models);
+		if(maxRowSizeBytes < 1) return null;
+		return (long) (this.maxBytesPerRequest/maxRowSizeBytes);
 	}
 }

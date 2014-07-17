@@ -608,4 +608,23 @@ public class EntityPermissionsManagerImplTest {
 		// again, we can't download
 		assertFalse(entityPermissionsManager.hasAccess(childNode.getId(), ACCESS_TYPE.DOWNLOAD, otherUserInfo));
 	}
+	
+	@Test
+	public void testCanUpload() throws Exception {
+		// baseline:  there is no restriction against uploading to this project
+		assertTrue(entityPermissionsManager.hasAccess(project.getId(), ACCESS_TYPE.UPLOAD, otherUserInfo));
+		// now create an access requirement on project and child
+		TermsOfUseAccessRequirement ar = new TermsOfUseAccessRequirement();
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId(project.getId());
+		rod.setType(RestrictableObjectType.ENTITY);
+		ar.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod}));
+		ar.setEntityType(ar.getClass().getName());
+		ar.setAccessType(ACCESS_TYPE.UPLOAD);
+		ar.setTermsOfUse("foo");
+		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
+		arId = ""+ar.getId();
+		// now we can't upload
+		assertFalse(entityPermissionsManager.hasAccess(project.getId(), ACCESS_TYPE.UPLOAD, otherUserInfo));
+	}
 }

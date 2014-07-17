@@ -8,9 +8,12 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.sagebionetworks.repo.model.ACCESS_TYPE.DOWNLOAD;
+import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPLOAD;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import org.junit.Before;
@@ -21,15 +24,20 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
+import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.FileEntity;
+import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.NotificationEmailDAO;
-import org.sagebionetworks.repo.model.principal.AliasType;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
-import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
 import org.sagebionetworks.repo.util.jrjc.JiraClient;
 
 import com.atlassian.jira.rest.client.api.OptionalIterable;
@@ -47,6 +55,7 @@ public class AccessRequirementManagerImplUnitTest {
 	private static final String TEST_ENTITY_ID = "syn98786543";
 	
 	private AccessRequirementDAO accessRequirementDAO;
+	private NodeDAO nodeDao;
 	private AuthorizationManager authorizationManager;
 	private AccessRequirementManagerImpl arm;
 	private UserInfo userInfo;
@@ -56,15 +65,14 @@ public class AccessRequirementManagerImplUnitTest {
 	@Before
 	public void setUp() throws Exception {
 		accessRequirementDAO = Mockito.mock(AccessRequirementDAO.class);
-		when(accessRequirementDAO.create((AccessRequirement)any())).thenReturn(null);
+		nodeDao = Mockito.mock(NodeDAO.class);
 		authorizationManager = Mockito.mock(AuthorizationManager.class);
 		notificationEmailDao = Mockito.mock(NotificationEmailDAO.class);
-		List<PrincipalAlias> aliases = new ArrayList<PrincipalAlias>();
 		PrincipalAlias alias = new PrincipalAlias();
 		alias.setAlias("foo@bar.com");
 		when(notificationEmailDao.getNotificationEmailForPrincipal(anyLong())).thenReturn(alias.getAlias());
 		jiraClient = Mockito.mock(JiraClient.class);
-		arm = new AccessRequirementManagerImpl(accessRequirementDAO, authorizationManager, jiraClient, notificationEmailDao);
+		arm = new AccessRequirementManagerImpl(accessRequirementDAO, nodeDao, authorizationManager, jiraClient, notificationEmailDao);
 		userInfo = new UserInfo(false, TEST_PRINCIPAL_ID);
 		Project sgProject;
 		sgProject = Mockito.mock(Project.class);
@@ -139,5 +147,41 @@ public class AccessRequirementManagerImplUnitTest {
 		// this should throw the illegal argument exception
 		arm.createLockAccessRequirement(userInfo, TEST_ENTITY_ID);
 		
+	}
+	
+	@Test
+	public void testUnmetForEntity() throws Exception {
+		Long mockDownloadARId = 1L;
+		Long mockUploadARId = 2L;
+		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
+		subjectId.setId(TEST_ENTITY_ID);
+		subjectId.setType(RestrictableObjectType.ENTITY);
+		when(nodeDao.getEntityPath(TEST_ENTITY_ID)).thenReturn(new ArrayList<EntityHeader>()); // an empty list, i.e. this is a top-level object
+		Node mockNode = new Node();
+		mockNode.setId(KeyFactory.stringToKey(TEST_ENTITY_ID).toString());
+		mockNode.setCreatedByPrincipalId(999L); // someone other than TEST_PRINCIPAL_ID
+		mockNode.setNodeType(EntityType.getNodeTypeForClass(FileEntity.class).name());
+		when(nodeDao.getNode(TEST_ENTITY_ID)).thenReturn(mockNode);
+		when(accessRequirementDAO.unmetAccessRequirements(
+				Collections.singletonList(TEST_ENTITY_ID), 
+				RestrictableObjectType.ENTITY, 
+				Collections.singleton(userInfo.getId()), 
+				Collections.singletonList(DOWNLOAD))).
+				thenReturn(Collections.singletonList(mockDownloadARId));
+		when(accessRequirementDAO.unmetAccessRequirements(
+				Collections.singletonList(TEST_ENTITY_ID), 
+				RestrictableObjectType.ENTITY, 
+				Collections.singleton(userInfo.getId()), 
+				Collections.singletonList(UPLOAD))).
+				thenReturn(Collections.singletonList(mockUploadARId));
+		AccessRequirement downloadAR = new TermsOfUseAccessRequirement();
+		downloadAR.setId(mockDownloadARId);
+		AccessRequirement uploadAR = new TermsOfUseAccessRequirement();
+		uploadAR.setId(mockUploadARId);
+		List<AccessRequirement> arList = Arrays.asList(new AccessRequirement[]{downloadAR, uploadAR});
+		when(accessRequirementDAO.getForSubject(Collections.singletonList(TEST_ENTITY_ID), RestrictableObjectType.ENTITY)).
+			thenReturn(arList);
+		List<AccessRequirement> result = arm.getUnmetAccessRequirements(userInfo, subjectId).getResults();
+		assertEquals(arList, result);
 	}
 }

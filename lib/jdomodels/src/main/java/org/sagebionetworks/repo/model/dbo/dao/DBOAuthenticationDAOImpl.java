@@ -1,8 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SESSION_TOKEN_PRINCIPAL_ID;
-
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SESSION_TOKEN_DOMAIN;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SESSION_TOKEN_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SESSION_TOKEN_SESSION_TOKEN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SESSION_TOKEN_VALIDATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TERMS_OF_USE_AGREEMENT_AGREEMENT;
@@ -20,7 +19,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DomainType;
-import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -158,7 +157,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 		try {
 			return simpleJdbcTemplate.queryForLong(SELECT_ID_BY_EMAIL_AND_PASSWORD, param);
 		} catch (EmptyResultDataAccessException e) {
-			throw new UnauthorizedException("The provided username/password combination is incorrect");
+			throw new UnauthenticatedException("The provided username/password combination is incorrect");
 		}
 	}
 	
@@ -166,7 +165,7 @@ public class DBOAuthenticationDAOImpl implements AuthenticationDAO {
 	@Transactional(readOnly=false, propagation=Propagation.REQUIRED)
 	public void revalidateSessionToken(long principalId, DomainType domain) {
 		if (domain == null) {
-			throw new UnauthorizedException("Domain must be declared to revalidate session token");
+			throw new UnauthenticatedException("Domain must be declared to revalidate session token");
 		}
 		userGroupDAO.touch(principalId);
 		

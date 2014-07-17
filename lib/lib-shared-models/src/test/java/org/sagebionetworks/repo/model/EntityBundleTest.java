@@ -14,6 +14,8 @@ import org.junit.Test;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.TableBundle;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 
@@ -156,6 +158,14 @@ public class EntityBundleTest {
 		fileHandle.setId("00000");
 		List<FileHandle> fileHandleList = new LinkedList<FileHandle>();
 		fileHandleList.add(fileHandle);
+		
+		TableBundle tableBundle = new  TableBundle();
+		tableBundle.setMaxRowsPerPage(123L);
+		ColumnModel cm1 = new ColumnModel();
+		cm1.setId("456");
+		ColumnModel cm2 = new ColumnModel();
+		cm2.setId("890");
+		tableBundle.setColumnModels(Arrays.asList(cm1, cm2));
 
 		EntityBundle entityBundle = new EntityBundle();
 		entityBundle.setEntity(project);
@@ -167,6 +177,7 @@ public class EntityBundleTest {
 		entityBundle.setAccessRequirements(accessRequirements);
 		entityBundle.setUnmetAccessRequirements(accessRequirements);
 		entityBundle.setFileHandles(fileHandleList);
+		entityBundle.setTableBundle(tableBundle);
 		
 		return entityBundle;
 	}

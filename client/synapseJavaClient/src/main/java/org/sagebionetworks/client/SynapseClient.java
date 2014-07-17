@@ -104,6 +104,7 @@ import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
+import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
@@ -383,7 +384,27 @@ public interface SynapseClient extends BaseClient {
 	public UserGroupHeaderResponsePage getUserGroupHeadersByIds(List<String> ids)
 			throws SynapseException;
 
+	/**
+	 * 
+	 * uses the default pagination as determined by the server
+	 * @param prefix
+	 * @return the users whose first, last or user name matches the given prefix
+	 * @throws SynapseException
+	 * @throws UnsupportedEncodingException
+	 */
 	public UserGroupHeaderResponsePage getUserGroupHeadersByPrefix(String prefix)
+			throws SynapseException, UnsupportedEncodingException;
+
+	/**
+	 * 
+	 * @param prefix
+	 * @param limit page size
+	 * @param offset page start
+	 * @return the users whose first, last or user name matches the given prefix
+	 * @throws SynapseException
+	 * @throws UnsupportedEncodingException
+	 */
+	public UserGroupHeaderResponsePage getUserGroupHeadersByPrefix(String prefix, long limit, long offset)
 			throws SynapseException, UnsupportedEncodingException;
 
 	public AccessControlList updateACL(AccessControlList acl) throws SynapseException;
@@ -1226,6 +1247,36 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseTableUnavailableException Thrown when the table index is not ready for query.  The exception will contain the status of the table.
 	 */
 	public RowSet queryTableEntity(String sql, boolean isConsistent, boolean countOnly) throws SynapseException;
+	
+	/**
+	 * Query for data in a table entity.  The bundled version of the query returns more information than just the query result.
+	 * The parts included in the bundle are determined by the passed mask.
+	 * 
+	 * <p>
+	 * The 'partMask' is an integer "mask" that can be combined into to request
+	 * any desired part. As of this writing, the mask is defined as follows:
+	 * <ul>
+	 * <li>Query Results <i>(queryResults)</i> = 0x1</li>
+	 * <li>Query Count <i>(queryCount)</i> = 0x2</li>
+	 * <li>Select Columns <i>(selectColumns)</i> = 0x4</li>
+	 * <li>Max Rows Per Page <i>(maxRowsPerPage)</i> = 0x8</li>
+	 * </ul>
+	 * </p>
+	 * <p>
+	 * For example, to request all parts, the request mask value should be: <br>
+	 * 0x1 OR 0x2 OR 0x4 OR 0x8 = 0x15.
+	 * </p>
+	 * @param sql
+	 * @param isConsistent
+	 * @param partMask
+	 * @return
+	 * @throws SynapseException
+	 * @throws SynapseTableUnavailableException
+	 */
+	public QueryResultBundle queryTableEntityBundle(String sql, boolean isConsistent,
+			int partMask) throws SynapseException,
+			SynapseTableUnavailableException;
+	
 	/**
 	 * Create a new ColumnModel. If a column already exists with the same parameters,
 	 * that column will be returned.
@@ -1618,4 +1669,6 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	void downloadFromFileHandleTemporaryUrl(String fileHandleId, File destinationFile) throws SynapseException;
+
+
 }

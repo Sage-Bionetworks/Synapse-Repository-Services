@@ -3,7 +3,7 @@ package org.sagebionetworks.repo.manager;
 import org.sagebionetworks.repo.model.AuthenticationDAO;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.TermsOfUseException;
-import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.auth.Session;
@@ -48,7 +48,7 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 	public Long getPrincipalId(String sessionToken) {
 		Long principalId = authDAO.getPrincipal(sessionToken);
 		if (principalId == null) {
-			throw new UnauthorizedException("The session token (" + sessionToken + ") has expired");
+			throw new UnauthenticatedException("The session token (" + sessionToken + ") has expired");
 		}
 		return principalId;
 	}
@@ -61,9 +61,9 @@ public class AuthenticationManagerImpl implements AuthenticationManager {
 			// Check to see why the token is invalid
 			Long userId = authDAO.getPrincipal(sessionToken);
 			if (userId == null) {
-				throw new UnauthorizedException("The session token (" + sessionToken + ") is invalid");
+				throw new UnauthenticatedException("The session token (" + sessionToken + ") is invalid");
 			}
-			throw new UnauthorizedException("The session token (" + sessionToken + ") has expired");
+			throw new UnauthenticatedException("The session token (" + sessionToken + ") has expired");
 		}
 		// Check the terms of use
 		if (checkToU && !authDAO.hasUserAcceptedToU(principalId, domain)) {
