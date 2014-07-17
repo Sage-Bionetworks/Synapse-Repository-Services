@@ -206,7 +206,7 @@ public class JSONEntityHttpMessageConverter implements	HttpMessageConverter<JSON
 					contentType = MediaType.APPLICATION_JSON;
 				}
 			}
-			// we must have an explicte character set.  If not, Java will use UTF-8
+			// we must have an explicit character set.  If not, Java will use UTF-8
 			// and the missing char set in the Response's Content-Type will imply ISO-8859-1,
 			// causing some characters to be interpreted wrong by the client.
 			if (contentType.getCharSet()==null) {

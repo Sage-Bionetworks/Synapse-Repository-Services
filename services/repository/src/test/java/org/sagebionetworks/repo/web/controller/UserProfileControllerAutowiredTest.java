@@ -7,7 +7,6 @@ import static org.junit.Assert.fail;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -15,15 +14,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -40,8 +35,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.service.EntityService;
 import org.sagebionetworks.repo.web.service.UserProfileService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 public class UserProfileControllerAutowiredTest extends AbstractAutowiredControllerTestBase {
 	
@@ -99,12 +92,10 @@ public class UserProfileControllerAutowiredTest extends AbstractAutowiredControl
 	@Test
 	public void testSpecialCharacters() throws Exception {
 		String location = "Zürich";
-		System.out.println(location+" length of byte array: "+location.getBytes().length);
 		UserProfile userProfile = servletTestHelper.getUserProfile(dispatchServlet, adminUserId);
 		userProfile.setLocation(location);
 		servletTestHelper.updateUserProfile(adminUserId, userProfile);
 		userProfile = servletTestHelper.getUserProfile(dispatchServlet, adminUserId);
-		System.out.println(userProfile.getLocation()+" length of byte array: "+userProfile.getLocation().getBytes().length);
 		assertEquals(location, userProfile.getLocation());
 	}
 	
