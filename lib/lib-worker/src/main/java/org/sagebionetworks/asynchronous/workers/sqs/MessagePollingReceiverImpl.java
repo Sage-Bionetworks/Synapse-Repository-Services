@@ -219,10 +219,10 @@ public class MessagePollingReceiverImpl implements MessageReceiver {
 				public Integer call() throws Exception {
 					int totalCount = 0;
 					while (!cancelled) {
+						String lockToken = null;
 						try {
 							List<Message> toBeProcessed = null;
 							// we only ever want one thread per machine to long poll sqs
-							String lockToken;
 							synchronized (queuePollAccess) {
 								if (cancelled) {
 									break;
@@ -252,7 +252,6 @@ public class MessagePollingReceiverImpl implements MessageReceiver {
 							if (toBeProcessed.size() > 0) {
 								totalCount += handleMessages(toBeProcessed);
 							}
-							workerSemaphore.releaseLock(lockToken);
 						} catch (InterruptedException e) {
 							// normally, we should only get here if we're trying to shutdown, in which case cancelled
 							// should already be true
@@ -265,6 +264,10 @@ public class MessagePollingReceiverImpl implements MessageReceiver {
 							// we got an unexpected error. Sleep for a bit, so we won't flood the logs if this is a
 							// persistent error
 							clock.sleep(1000);
+						} finally {
+							if (lockToken != null) {
+								workerSemaphore.releaseLock(lockToken);
+							}
 						}
 					}
 					return totalCount;
