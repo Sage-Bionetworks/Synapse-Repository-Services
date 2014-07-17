@@ -87,7 +87,12 @@ public class JSONEntityHttpMessageConverter implements	HttpMessageConverter<JSON
 	public JSONEntity read(Class<? extends JSONEntity> clazz, HttpInputMessage inputMessage) throws IOException,
 			HttpMessageNotReadableException {
 		// First read the string
-		String jsonString = JSONEntityHttpMessageConverter.readToString(inputMessage.getBody(), inputMessage.getHeaders().getContentType().getCharSet());
+		Charset charset = inputMessage.getHeaders().getContentType().getCharSet();
+		if (charset==null) {
+			// HTTP 1.1 says that the default is ISO-8859-1
+			charset = Charset.forName("ISO-8859-1");
+		}
+		String jsonString = JSONEntityHttpMessageConverter.readToString(inputMessage.getBody(), charset);
 		try {
 			return EntityFactory.createEntityFromJSONString(jsonString, clazz);
 		} catch (JSONObjectAdapterException e) {
@@ -170,7 +175,7 @@ public class JSONEntityHttpMessageConverter implements	HttpMessageConverter<JSON
 	 * @param charSet
 	 * @throws IOException
 	 */
-	public static long writeToStream(String toWrite, OutputStream out,	Charset charSet) throws IOException {
+	public static long writeToStream(String toWrite, OutputStream out,Charset charSet) throws IOException {
 		try {
 			if(charSet == null){
 				charSet = Charset.defaultCharset();
@@ -192,14 +197,27 @@ public class JSONEntityHttpMessageConverter implements	HttpMessageConverter<JSON
 		// First write the entity to a JSON string
 		try {
 			HttpHeaders headers = outputMessage.getHeaders();
-			if (headers.getContentType() == null) {
+			// the content type is that given by the Content-Type header, unless missing,
+			// in which case is comes from the contentType parameter
+			if (headers.getContentType() != null) {
+				contentType = headers.getContentType();
+			} else {
 				if (contentType == null || contentType.isWildcardType() || contentType.isWildcardSubtype()) {
 					contentType = MediaType.APPLICATION_JSON;
 				}
-				if (contentType != null) {
-					headers.setContentType(contentType);
-				}
 			}
+			// we must have an explicte character set.  If not, Java will use UTF-8
+			// and the missing char set in the Response's Content-Type will imply ISO-8859-1,
+			// causing some characters to be interpreted wrong by the client.
+			if (contentType.getCharSet()==null) {
+				contentType = new MediaType(
+						contentType.getType(),
+						contentType.getSubtype(),
+						Charset.defaultCharset()
+				);
+			}
+			// make sure that the Content-Type header matches the contentType we've settled on
+			headers.setContentType(contentType);
 			String jsonString = EntityFactory.createJSONStringForEntity(entity);
 			long length = JSONEntityHttpMessageConverter.writeToStream(jsonString, outputMessage.getBody(), contentType.getCharSet());
 			if (headers.getContentLength() == -1) {

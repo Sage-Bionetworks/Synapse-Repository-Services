@@ -7,6 +7,7 @@ import static org.junit.Assert.fail;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -93,6 +94,18 @@ public class UserProfileControllerAutowiredTest extends AbstractAutowiredControl
 				}
 			}
 		}		
+	}
+	
+	@Test
+	public void testSpecialCharacters() throws Exception {
+		String location = "Zürich";
+		System.out.println(location+" length of byte array: "+location.getBytes().length);
+		UserProfile userProfile = servletTestHelper.getUserProfile(dispatchServlet, adminUserId);
+		userProfile.setLocation(location);
+		servletTestHelper.updateUserProfile(adminUserId, userProfile);
+		userProfile = servletTestHelper.getUserProfile(dispatchServlet, adminUserId);
+		System.out.println(userProfile.getLocation()+" length of byte array: "+userProfile.getLocation().getBytes().length);
+		assertEquals(location, userProfile.getLocation());
 	}
 	
 	
