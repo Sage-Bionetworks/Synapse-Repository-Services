@@ -3,6 +3,7 @@ package org.sagebionetworks.util;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.Collections;
@@ -39,10 +40,21 @@ public class ThreadTestUtils {
 	}
 	
 	public static void doAfter(){
+		if (threadCountBefore == -1) {
+			fail("Forgot to call doBefore()?");
+		}
 		Thread.setDefaultUncaughtExceptionHandler(null);
 		int numThrown = exceptions.size();
 		exceptions.clear();
 		assertEquals("Unhandled exceptions were thrown in other threads", 0, numThrown);
+		// if there are left over threads, wait a little bit for any dying threads to finish
+		if (threadCountBefore != Thread.activeCount()) {
+			try {
+				Thread.sleep(100);
+			} catch (InterruptedException e) {
+				fail("InterruptedException should never happen");
+			}
+		}
 		assertEquals("Left over threads from test", threadCountBefore, Thread.activeCount());
 	}
 }

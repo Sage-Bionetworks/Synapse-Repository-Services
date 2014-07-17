@@ -27,4 +27,9 @@
 	<bean id="CurrentRowCacheDao" class="org.sagebionetworks.dynamo.dao.rowcache.CurrentRowCacheDaoStub"/>
 	<bean id="RowCacheDao" class="org.sagebionetworks.dynamo.dao.rowcache.RowCacheDaoStub"/>
 
+	<bean id="testCountingSemaphore" class="org.sagebionetworks.repo.model.dbo.dao.semaphore.CountingSemaphoreDaoImpl">
+		<property name="lockTimeoutMS" value="1000"/>
+		<property name="maxCount" value="10"/>
+	</bean>
+
 </beans>
