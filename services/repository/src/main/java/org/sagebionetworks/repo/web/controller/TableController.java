@@ -43,7 +43,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * model object represents the metadata of a table. Each TableEntity is defined
  * by a list of <a
  * href="${org.sagebionetworks.repo.model.table.ColumnModel}">ColumnModel</a>
- * IDs. Use <a href="${POST.column}">POST /column</a> to create new ColumnModle
+ * IDs. Use <a href="${POST.column}">POST /column</a> to create new ColumnModel
  * objects. Each ColumnModel object is immutable, so to change a column of a
  * table a new column must be added and the old column must be removed.
  * TableEntities can be created, updated, read and deleted like any other
@@ -348,7 +348,7 @@ public class TableController extends BaseController {
 	/**
 	 * <p>
 	 * This method is used to delete rows in a TableEntity. The rows in the
-	 * passed in RowReferenceSet will be deleted if they exists (a 400 will be
+	 * passed in RowReferenceSet will be deleted if they exist (a 400 will be
 	 * returned if a row ID is provided that does not actually exist). A single
 	 * POST to this services will be treated as a single transaction, meaning
 	 * either all of the rows will be deleted or none of the rows will be
