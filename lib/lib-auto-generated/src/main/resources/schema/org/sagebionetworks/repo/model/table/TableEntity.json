@@ -1,6 +1,6 @@
 {
     "title":"Table",
-    "description":"A TableEntity represent the metadata of a table.",
+    "description":"A TableEntity represents the metadata of a table.",
     "implements":[
         {
             "$ref":"org.sagebionetworks.repo.model.Versionable"
