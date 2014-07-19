@@ -87,7 +87,12 @@ public class JSONEntityHttpMessageConverter implements	HttpMessageConverter<JSON
 	public JSONEntity read(Class<? extends JSONEntity> clazz, HttpInputMessage inputMessage) throws IOException,
 			HttpMessageNotReadableException {
 		// First read the string
-		String jsonString = JSONEntityHttpMessageConverter.readToString(inputMessage.getBody(), inputMessage.getHeaders().getContentType().getCharSet());
+		Charset charset = inputMessage.getHeaders().getContentType().getCharSet();
+		if (charset==null) {
+			// HTTP 1.1 says that the default is ISO-8859-1
+			charset = Charset.forName("ISO-8859-1");
+		}
+		String jsonString = JSONEntityHttpMessageConverter.readToString(inputMessage.getBody(), charset);
 		try {
 			return EntityFactory.createEntityFromJSONString(jsonString, clazz);
 		} catch (JSONObjectAdapterException e) {
@@ -186,22 +191,17 @@ public class JSONEntityHttpMessageConverter implements	HttpMessageConverter<JSON
 	}
 
 	@Override
-	public void write(JSONEntity entity, MediaType contentType,
+	public void write(JSONEntity entity, final MediaType contentType,
 			HttpOutputMessage outputMessage) throws IOException,
 			HttpMessageNotWritableException {
 		// First write the entity to a JSON string
 		try {
 			HttpHeaders headers = outputMessage.getHeaders();
-			if (headers.getContentType() == null) {
-				if (contentType == null || contentType.isWildcardType() || contentType.isWildcardSubtype()) {
-					contentType = MediaType.APPLICATION_JSON;
-				}
-				if (contentType != null) {
-					headers.setContentType(contentType);
-				}
-			}
+			headers.setContentType(contentType);
 			String jsonString = EntityFactory.createJSONStringForEntity(entity);
-			long length = JSONEntityHttpMessageConverter.writeToStream(jsonString, outputMessage.getBody(), contentType.getCharSet());
+			Charset charsetForSerializingBody = contentType.getCharSet();
+			if (charsetForSerializingBody==null) charsetForSerializingBody = Charset.forName("ISO-8859-1");
+			long length = JSONEntityHttpMessageConverter.writeToStream(jsonString, outputMessage.getBody(), charsetForSerializingBody);
 			if (headers.getContentLength() == -1) {
 				headers.setContentLength(length);
 			}
