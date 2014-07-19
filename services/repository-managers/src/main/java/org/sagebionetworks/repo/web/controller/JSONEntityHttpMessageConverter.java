@@ -83,6 +83,7 @@ public class JSONEntityHttpMessageConverter implements	HttpMessageConverter<JSON
 		return supportedMedia;
 	}
 	
+	// This is specified by HTTP 1.1
 	private static final Charset HTTP_1_1_DEFAULT_CHARSET = Charset.forName("ISO-8859-1");
 
 	@Override
@@ -198,15 +199,22 @@ public class JSONEntityHttpMessageConverter implements	HttpMessageConverter<JSON
 			HttpMessageNotWritableException {
 		// First write the entity to a JSON string
 		try {
-			HttpHeaders headers = outputMessage.getHeaders();
-			headers.setContentType(contentType);
-			String jsonString = EntityFactory.createJSONStringForEntity(entity);
-			Charset charsetForSerializingBody = contentType.getCharSet();
+			MediaType contentTypeForResponseHeader = contentType;
+			Charset charsetForSerializingBody = contentTypeForResponseHeader.getCharSet();
 			if (charsetForSerializingBody==null) {
 				// HTTP 1.1 says that the default is ISO-8859-1
 				charsetForSerializingBody = HTTP_1_1_DEFAULT_CHARSET;
+				// Let's make it explicit in the response header
+				contentTypeForResponseHeader = new MediaType(
+						contentTypeForResponseHeader.getType(),
+						contentTypeForResponseHeader.getSubtype(),
+						charsetForSerializingBody
+				);
 			}
+			String jsonString = EntityFactory.createJSONStringForEntity(entity);
 			long length = JSONEntityHttpMessageConverter.writeToStream(jsonString, outputMessage.getBody(), charsetForSerializingBody);
+			HttpHeaders headers = outputMessage.getHeaders();
+			headers.setContentType(contentTypeForResponseHeader);
 			if (headers.getContentLength() == -1) {
 				headers.setContentLength(length);
 			}
