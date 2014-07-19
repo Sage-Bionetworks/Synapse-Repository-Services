@@ -2,6 +2,7 @@ package org.sagebionetworks.search;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -42,7 +43,7 @@ public class CloudSearchClient {
 	public void sendDocuments(String documents) throws ClientProtocolException,
 			IOException, HttpClientHelperException {
 		HttpClientHelper.postContent(httpClient, documentServiceEndpoint,
-				documents, SEND_DOCUMENTS_REQUEST_HEADERS);
+				documents, Charset.forName("UTF-8"), SEND_DOCUMENTS_REQUEST_HEADERS);
 	}
 
 	public void sendDocuments(InputStream stream, long length) throws ClientProtocolException, IOException, HttpClientHelperException {

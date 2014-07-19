@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -39,6 +40,7 @@ import org.apache.http.conn.scheme.SchemeRegistry;
 import org.apache.http.conn.scheme.SchemeSocketFactory;
 import org.apache.http.conn.ssl.SSLSocketFactory;
 import org.apache.http.conn.ssl.X509HostnameVerifier;
+import org.apache.http.entity.ContentType;
 import org.apache.http.entity.FileEntity;
 import org.apache.http.entity.InputStreamEntity;
 import org.apache.http.entity.StringEntity;
@@ -300,13 +302,13 @@ public class HttpClientHelper {
 	 * @throws IOException
 	 */
 	public static HttpResponse performRequest(HttpClient client,
-			String requestUrl, String requestMethod, String requestContent,
+			String requestUrl, String requestMethod, String requestContent, Charset charset,
 			Map<String, String> requestHeaders) throws ClientProtocolException,
 			IOException {
 
 		HttpEntity requestEntity = null;
 		if (null != requestContent) {
-			requestEntity = new StringEntity(requestContent);
+			requestEntity = new StringEntity(requestContent, charset.name());
 		}
 
 		return performEntityRequest(client, requestUrl, requestMethod,
@@ -381,7 +383,7 @@ public class HttpClientHelper {
 		String responseContent = null;
 
 		HttpResponse response = HttpClientHelper.performRequest(client,
-				requestUrl, "GET", null, null);
+				requestUrl, "GET", null, null, null);
 		convertHttpStatusToException(response);
 		HttpEntity entity = response.getEntity();
 		if (null != entity) {
@@ -431,7 +433,7 @@ public class HttpClientHelper {
 		}
 
 		HttpResponse response = HttpClientHelper.performRequest(client,
-				requestUrl, "GET", null, null);
+				requestUrl, "GET", null, null, null);
 		convertHttpStatusToException(response);
 		HttpEntity fileEntity = response.getEntity();
 		if (null != fileEntity) {
@@ -457,14 +459,14 @@ public class HttpClientHelper {
 	 * @throws HttpClientHelperException
 	 */
 	public static String postContent(final HttpClient client,
-			final String requestUrl, final String requestContent,
+			final String requestUrl, final String requestContent, Charset charset,
 			Map<String, String> requestHeaders) throws ClientProtocolException,
 			IOException, HttpClientHelperException {
 
 		String responseContent = null;
 
 		HttpResponse response = HttpClientHelper.performRequest(client,
-				requestUrl, "POST", requestContent, requestHeaders);
+				requestUrl, "POST", requestContent, charset, requestHeaders);
 		convertHttpStatusToException(response);
 		HttpEntity entity = response.getEntity();
 		if (null != entity) {
@@ -579,7 +581,7 @@ public class HttpClientHelper {
 			HttpClientHelperException {
 
 		HttpResponse response = HttpClientHelper.performRequest(client,
-				requestUrl, "GET", null, headers);
+				requestUrl, "GET", null, null, headers);
 		convertHttpStatusToException(response);
 		HttpEntity fileEntity = response.getEntity();
 		if (null != fileEntity) {

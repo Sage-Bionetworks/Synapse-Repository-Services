@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.sagebionetworks.repo.util.JSONEntityUtil;
@@ -30,7 +31,6 @@ public class ObjectTypeSerializerImpl implements ObjectTypeSerializer{
 	MappingJacksonHttpMessageConverter jacksonConverter = new MappingJacksonHttpMessageConverter();
 	JSONEntityHttpMessageConverter jsonEntityConverter = new JSONEntityHttpMessageConverter();
 	
-
 	/**
 	 * Deserialize the body of an HttpRequest entity from an http call.
 	 * 

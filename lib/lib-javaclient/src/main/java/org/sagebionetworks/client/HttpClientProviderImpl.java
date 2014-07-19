@@ -3,6 +3,7 @@ package org.sagebionetworks.client;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.Map;
 
 import org.apache.http.HttpResponse;
@@ -32,8 +33,8 @@ public class HttpClientProviderImpl implements HttpClientProvider {
 
 	@Override
 	public HttpResponse performRequest(String requestUrl, String requestMethod,
-			String requestContent, Map<String, String> requestHeaders) throws ClientProtocolException, IOException {
-		return HttpClientHelper.performRequest(DefaultHttpClientSingleton.getInstance(), requestUrl, requestMethod, requestContent, requestHeaders);
+			String requestContent, Charset charset, Map<String, String> requestHeaders) throws ClientProtocolException, IOException {
+		return HttpClientHelper.performRequest(DefaultHttpClientSingleton.getInstance(), requestUrl, requestMethod, requestContent, charset, requestHeaders);
 	}
 
 	@Override

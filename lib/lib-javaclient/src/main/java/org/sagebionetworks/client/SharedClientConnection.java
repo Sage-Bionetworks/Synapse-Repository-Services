@@ -7,6 +7,7 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -48,6 +49,7 @@ import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.securitytools.HMACUtils;
 import org.sagebionetworks.util.RetryException;
 import org.sagebionetworks.util.TimeUtils;
+import org.sagebionetworks.utils.HttpClientHelper;
 import org.sagebionetworks.utils.HttpClientHelperException;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 
@@ -55,6 +57,8 @@ import org.sagebionetworks.utils.MD5ChecksumHelper;
  * Low-level Java Client API for Synapse REST APIs
  */
 public class SharedClientConnection {
+	
+	private static final Charset STRING_ENCODING_CHARSET = Charset.forName("UTF-8");
 
 	public static interface ErrorHandler {
 		void handleError(int code, String responseBody) throws SynapseException;
@@ -482,7 +486,7 @@ public class SharedClientConnection {
 			throw new IllegalArgumentException("must provide uri");
 		}
 		try {
-			HttpResponse response = clientProvider.performRequest(endpoint + uri, "GET", null, null);
+			HttpResponse response = clientProvider.performRequest(endpoint + uri, "GET", null, null, null);
 			int statusCode = response.getStatusLine().getStatusCode();
 			if (statusCode!=HttpStatus.SC_OK) throw new SynapseServerException(statusCode);
 			return EntityUtils.toString(response.getEntity());
@@ -502,7 +506,7 @@ public class SharedClientConnection {
 		try {
 			HttpPost post = new HttpPost(builder.toString());
 			setHeaders(post, defaultPOSTPUTHeaders, userAgent);
-			StringEntity stringEntity = new StringEntity(data);
+			StringEntity stringEntity = new StringEntity(data, STRING_ENCODING_CHARSET.name());
 			post.setEntity(stringEntity);
 			HttpResponse response = clientProvider.execute(post);
 			String responseBody = (null != response.getEntity()) ? EntityUtils.toString(response.getEntity()) : null;
@@ -739,7 +743,7 @@ public class SharedClientConnection {
 	}
 
 	public HttpResponse performRequest(String requestUrl, String requestMethod, String requestContent, Map<String, String> requestHeaders) throws ClientProtocolException, IOException {
-		return clientProvider.performRequest(requestUrl, requestMethod, requestContent, requestHeaders);
+		return clientProvider.performRequest(requestUrl, requestMethod, requestContent, STRING_ENCODING_CHARSET, requestHeaders);
 	}
 	
 	public HttpResponse performRequestWithRetry(final String requestUrl, final String requestMethod, final String requestContent, final Map<String, String> requestHeaders) throws Exception {
@@ -747,7 +751,7 @@ public class SharedClientConnection {
 			return TimeUtils.waitForExponentialMaxRetry(MAX_RETRY_SERVICE_UNAVAILABLE_COUNT, 1000, new Callable<HttpResponse>() {
 				@Override
 				public HttpResponse call() throws Exception {
-					HttpResponse response = clientProvider.performRequest(requestUrl, requestMethod, requestContent, requestHeaders);
+					HttpResponse response = clientProvider.performRequest(requestUrl, requestMethod, requestContent, STRING_ENCODING_CHARSET, requestHeaders);
 					//if 503, then we can retry
 					int statusCode = response.getStatusLine().getStatusCode();
 					if (statusCode == HttpStatus.SC_SERVICE_UNAVAILABLE) {

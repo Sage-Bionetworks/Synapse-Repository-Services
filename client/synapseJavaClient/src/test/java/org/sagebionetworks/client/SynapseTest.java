@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -85,7 +86,7 @@ public class SynapseTest {
 		mockProvider = Mockito.mock(HttpClientProvider.class);
 		mockUploader = Mockito.mock(DataUploaderMultipartImpl.class);
 		mockResponse = Mockito.mock(HttpResponse.class);
-		when(mockProvider.performRequest(any(String.class),any(String.class),any(String.class),(Map<String,String>)anyObject())).thenReturn(mockResponse);
+		when(mockProvider.performRequest(any(String.class),any(String.class),any(String.class),any(Charset.class),(Map<String,String>)anyObject())).thenReturn(mockResponse);
 		synapse = new SynapseClientImpl(new SharedClientConnection(mockProvider), mockUploader);
 		// mock the session token returned when logging in
 		configureMockHttpResponse(201, "{\"sessionToken\":\"some-session-token\"}");
@@ -591,7 +592,7 @@ public class SynapseTest {
 	@SuppressWarnings("unchecked")
 	@Test
 	public void testBuildOpenIDUrl() throws Exception {
-		when(mockProvider.performRequest(any(String.class), any(String.class), any(String.class), (Map<String,String>)anyObject())).thenAnswer(new Answer<HttpResponse>() {
+		when(mockProvider.performRequest(any(String.class), any(String.class), any(String.class),any(Charset.class), (Map<String,String>)anyObject())).thenAnswer(new Answer<HttpResponse>() {
 
 			@Override
 			public HttpResponse answer(

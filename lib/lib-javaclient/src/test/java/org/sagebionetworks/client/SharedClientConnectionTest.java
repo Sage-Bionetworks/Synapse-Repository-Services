@@ -1,6 +1,8 @@
 package org.sagebionetworks.client;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyMap;
 import static org.mockito.Matchers.anyObject;
@@ -13,6 +15,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.Charset;
 import java.util.Map;
 
 import org.apache.http.Header;
@@ -27,13 +30,10 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
-import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseServerException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
-
-import com.google.common.util.concurrent.UncheckedExecutionException;
 
 public class SharedClientConnectionTest {
 	
@@ -90,7 +90,7 @@ public class SharedClientConnectionTest {
 		mockClientProvider = Mockito.mock(HttpClientProvider.class);
 		sharedClientConnection = new SharedClientConnection(mockClientProvider);
 		mockResponse = Mockito.mock(HttpResponse.class);
-		when(mockClientProvider.performRequest(any(String.class),any(String.class),any(String.class),(Map<String,String>)anyObject())).thenReturn(mockResponse);
+		when(mockClientProvider.performRequest(any(String.class),any(String.class),any(String.class),any(Charset.class),(Map<String,String>)anyObject())).thenReturn(mockResponse);
 		when(mockClientProvider.execute(any(HttpUriRequest.class))).thenReturn(mockResponse);
 		sharedClientConnection.setRetryRequestIfServiceUnavailable(false);
 	}
@@ -121,7 +121,7 @@ public class SharedClientConnectionTest {
 			fail("expected exception");
 		} catch (SynapseBadRequestException e) {
 			//verify does not retry with BAD_REQUEST
-			verify(mockClientProvider, times(1)).performRequest(anyString(), anyString(), anyString(), anyMap());
+			verify(mockClientProvider, times(1)).performRequest(anyString(), anyString(), anyString() ,any(Charset.class), anyMap());
 			assertEquals("user message", e.getMessage());
 		}
 	}
@@ -136,7 +136,7 @@ public class SharedClientConnectionTest {
 			fail("expected exception");
 		} catch (SynapseServerException e) {
 			//verify retried with SERVICE_UNAVAILABLE
-			verify(mockClientProvider, times(SharedClientConnection.MAX_RETRY_SERVICE_UNAVAILABLE_COUNT)).performRequest(anyString(), anyString(), anyString(), anyMap());
+			verify(mockClientProvider, times(SharedClientConnection.MAX_RETRY_SERVICE_UNAVAILABLE_COUNT)).performRequest(anyString(), anyString(), anyString(),any(Charset.class), anyMap());
 			assertTrue(e.getMessage().contains("throttled"));
 		}
 	}
