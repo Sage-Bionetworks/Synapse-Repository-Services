@@ -211,10 +211,10 @@ public class JSONEntityHttpMessageConverter implements	HttpMessageConverter<JSON
 						charsetForSerializingBody
 				);
 			}
-			String jsonString = EntityFactory.createJSONStringForEntity(entity);
-			long length = JSONEntityHttpMessageConverter.writeToStream(jsonString, outputMessage.getBody(), charsetForSerializingBody);
 			HttpHeaders headers = outputMessage.getHeaders();
 			headers.setContentType(contentTypeForResponseHeader);
+			String jsonString = EntityFactory.createJSONStringForEntity(entity);
+			long length = JSONEntityHttpMessageConverter.writeToStream(jsonString, outputMessage.getBody(), charsetForSerializingBody);
 			if (headers.getContentLength() == -1) {
 				headers.setContentLength(length);
 			}
