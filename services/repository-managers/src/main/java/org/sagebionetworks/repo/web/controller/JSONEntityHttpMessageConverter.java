@@ -82,17 +82,19 @@ public class JSONEntityHttpMessageConverter implements	HttpMessageConverter<JSON
 	public List<MediaType> getSupportedMediaTypes() {
 		return supportedMedia;
 	}
+	
+	private static final Charset HTTP_1_1_DEFAULT_CHARSET = Charset.forName("ISO-8859-1");
 
 	@Override
 	public JSONEntity read(Class<? extends JSONEntity> clazz, HttpInputMessage inputMessage) throws IOException,
 			HttpMessageNotReadableException {
 		// First read the string
-		Charset charset = inputMessage.getHeaders().getContentType().getCharSet();
-		if (charset==null) {
+		Charset charsetForDeSerializingBody = inputMessage.getHeaders().getContentType().getCharSet();
+		if (charsetForDeSerializingBody==null) {
 			// HTTP 1.1 says that the default is ISO-8859-1
-			charset = Charset.forName("ISO-8859-1");
+			charsetForDeSerializingBody = HTTP_1_1_DEFAULT_CHARSET;
 		}
-		String jsonString = JSONEntityHttpMessageConverter.readToString(inputMessage.getBody(), charset);
+		String jsonString = JSONEntityHttpMessageConverter.readToString(inputMessage.getBody(), charsetForDeSerializingBody);
 		try {
 			return EntityFactory.createEntityFromJSONString(jsonString, clazz);
 		} catch (JSONObjectAdapterException e) {
@@ -200,7 +202,10 @@ public class JSONEntityHttpMessageConverter implements	HttpMessageConverter<JSON
 			headers.setContentType(contentType);
 			String jsonString = EntityFactory.createJSONStringForEntity(entity);
 			Charset charsetForSerializingBody = contentType.getCharSet();
-			if (charsetForSerializingBody==null) charsetForSerializingBody = Charset.forName("ISO-8859-1");
+			if (charsetForSerializingBody==null) {
+				// HTTP 1.1 says that the default is ISO-8859-1
+				charsetForSerializingBody = HTTP_1_1_DEFAULT_CHARSET;
+			}
 			long length = JSONEntityHttpMessageConverter.writeToStream(jsonString, outputMessage.getBody(), charsetForSerializingBody);
 			if (headers.getContentLength() == -1) {
 				headers.setContentLength(length);
