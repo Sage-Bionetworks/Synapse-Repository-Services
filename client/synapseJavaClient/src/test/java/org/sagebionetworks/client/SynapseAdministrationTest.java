@@ -6,7 +6,6 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Mockito.when;
 
-import java.nio.charset.Charset;
 import java.util.Map;
 
 import org.apache.http.HttpResponse;
@@ -15,8 +14,8 @@ import org.apache.http.entity.StringEntity;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
 

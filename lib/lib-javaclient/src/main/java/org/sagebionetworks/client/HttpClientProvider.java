@@ -2,7 +2,6 @@ package org.sagebionetworks.client;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.Map;
 
 import org.apache.http.HttpResponse;

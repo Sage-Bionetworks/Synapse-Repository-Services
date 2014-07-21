@@ -592,7 +592,7 @@ public class SynapseTest {
 	@SuppressWarnings("unchecked")
 	@Test
 	public void testBuildOpenIDUrl() throws Exception {
-		when(mockProvider.performRequest(any(String.class), any(String.class), any(String.class),(Map<String,String>)anyObject())).thenAnswer(new Answer<HttpResponse>() {
+		when(mockProvider.performRequest(any(String.class), any(String.class), any(String.class), (Map<String,String>)anyObject())).thenAnswer(new Answer<HttpResponse>() {
 
 			@Override
 			public HttpResponse answer(

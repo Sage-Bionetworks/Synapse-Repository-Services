@@ -303,7 +303,7 @@ public class HttpClientHelper {
 	 * @throws IOException
 	 */
 	public static HttpResponse performRequest(HttpClient client,
-			String requestUrl, String requestMethod, String requestContent, 
+			String requestUrl, String requestMethod, String requestContent,
 			Map<String, String> requestHeaders) throws ClientProtocolException,
 			IOException {
 
@@ -442,7 +442,7 @@ public class HttpClientHelper {
 		}
 
 		HttpResponse response = HttpClientHelper.performRequest(client,
-				requestUrl, "GET", null,null);
+				requestUrl, "GET", null, null);
 		convertHttpStatusToException(response);
 		HttpEntity fileEntity = response.getEntity();
 		if (null != fileEntity) {
@@ -468,7 +468,7 @@ public class HttpClientHelper {
 	 * @throws HttpClientHelperException
 	 */
 	public static String postContent(final HttpClient client,
-			final String requestUrl, final String requestContent, 
+			final String requestUrl, final String requestContent,
 			Map<String, String> requestHeaders) throws ClientProtocolException,
 			IOException, HttpClientHelperException {
 

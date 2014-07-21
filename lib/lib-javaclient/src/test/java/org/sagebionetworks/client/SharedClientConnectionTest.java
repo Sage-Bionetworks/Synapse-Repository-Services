@@ -15,7 +15,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.charset.Charset;
 import java.util.Map;
 
 import org.apache.http.Header;
@@ -121,7 +120,7 @@ public class SharedClientConnectionTest {
 			fail("expected exception");
 		} catch (SynapseBadRequestException e) {
 			//verify does not retry with BAD_REQUEST
-			verify(mockClientProvider, times(1)).performRequest(anyString(), anyString(), anyString(),anyMap());
+			verify(mockClientProvider, times(1)).performRequest(anyString(), anyString(), anyString(), anyMap());
 			assertEquals("user message", e.getMessage());
 		}
 	}
@@ -136,7 +135,7 @@ public class SharedClientConnectionTest {
 			fail("expected exception");
 		} catch (SynapseServerException e) {
 			//verify retried with SERVICE_UNAVAILABLE
-			verify(mockClientProvider, times(SharedClientConnection.MAX_RETRY_SERVICE_UNAVAILABLE_COUNT)).performRequest(anyString(), anyString(), anyString(),anyMap());
+			verify(mockClientProvider, times(SharedClientConnection.MAX_RETRY_SERVICE_UNAVAILABLE_COUNT)).performRequest(anyString(), anyString(), anyString(), anyMap());
 			assertTrue(e.getMessage().contains("throttled"));
 		}
 	}
