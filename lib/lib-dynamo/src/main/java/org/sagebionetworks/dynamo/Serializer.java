@@ -4,12 +4,19 @@ import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
+import java.nio.charset.Charset;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
+
+import org.sagebionetworks.util.Closer;
 
 import com.thoughtworks.xstream.XStream;
 
 public class Serializer {
+
+	public static final Charset UTF8 = Charset.forName("UTF-8");
 
 	public static byte[] compressObject(Object objectToSerialize) throws IOException {
 		if (objectToSerialize == null)
@@ -17,15 +24,14 @@ public class Serializer {
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		BufferedOutputStream buff = new BufferedOutputStream(out);
 		GZIPOutputStream zipper = new GZIPOutputStream(buff);
+		Writer zipWriter = new OutputStreamWriter(zipper, UTF8);
 		try {
 			XStream xstream = new XStream();
-			xstream.toXML(objectToSerialize, zipper);
-			zipper.flush();
-			zipper.close();
-			return out.toByteArray();
+			xstream.toXML(objectToSerialize, zipWriter);
 		} finally {
-			zipper.close();
+			Closer.closeQuietly(zipWriter, zipper, buff, out);
 		}
+		return out.toByteArray();
 	}
 
 	public static Object decompressedObject(byte[] zippedBytes) throws IOException {

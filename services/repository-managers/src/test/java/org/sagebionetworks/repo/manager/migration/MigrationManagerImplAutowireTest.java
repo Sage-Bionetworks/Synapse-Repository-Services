@@ -5,6 +5,8 @@ import static org.junit.Assert.assertNotNull;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -129,11 +131,15 @@ public class MigrationManagerImplAutowireTest {
 		ids2.add(Long.parseLong(withPreview.getId()));
 		// Write the backup data
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		migrationManager.writeBackupBatch(adminUser, MigrationType.FILE_HANDLE, ids1, out);
+		Writer writer = new OutputStreamWriter(out, "UTF-8");
+		migrationManager.writeBackupBatch(adminUser, MigrationType.FILE_HANDLE, ids1, writer);
+		writer.flush();
 		String xml1 = new String(out.toByteArray(), "UTF-8");
 		System.out.println(xml1);
 		out = new ByteArrayOutputStream();
-		migrationManager.writeBackupBatch(adminUser, MigrationType.FILE_HANDLE, ids2, out);
+		writer = new OutputStreamWriter(out, "UTF-8");
+		migrationManager.writeBackupBatch(adminUser, MigrationType.FILE_HANDLE, ids2, writer);
+		writer.flush();
 		String xml2 = new String(out.toByteArray(), "UTF-8");
 		System.out.println(xml2);
 		// Now delete the rows

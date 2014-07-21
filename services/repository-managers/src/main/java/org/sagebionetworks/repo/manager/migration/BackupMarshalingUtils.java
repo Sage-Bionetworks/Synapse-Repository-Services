@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.migration;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.Writer;
 import java.util.List;
 
 import com.thoughtworks.xstream.XStream;
@@ -21,13 +22,14 @@ public class BackupMarshalingUtils {
 	 * @param clazz
 	 * @param list
 	 * @param alias
-	 * @param out
+	 * @param writer
 	 */
-	public static <B> void writeBackupToStream(List<B> list, String alias, OutputStream out){
-		if(list == null || list.size() < 1) return;
+	public static <B> void writeBackupToWriter(List<B> list, String alias, Writer writer) {
+		if (list == null || list.size() < 1)
+			return;
 		XStream xstream = new XStream();
 		xstream.alias(alias, list.get(0).getClass());
-		xstream.toXML(list, out);
+		xstream.toXML(list, writer);
 	}
 	
 	/**
