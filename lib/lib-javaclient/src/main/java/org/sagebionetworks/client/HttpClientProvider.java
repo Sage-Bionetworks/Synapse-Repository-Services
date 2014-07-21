@@ -65,7 +65,7 @@ public interface HttpClientProvider {
 	 * @throws IOException
 	 * @throws HttpClientHelperException
 	 */
-	public HttpResponse performRequest(String string, String requestMethod,	String requestContent, Charset charset, Map<String, String> requestHeaders) throws ClientProtocolException, IOException;
+	public HttpResponse performRequest(String string, String requestMethod,	String requestContent, Map<String, String> requestHeaders) throws ClientProtocolException, IOException;
 	
 	/**
 	 * The strait pass through.

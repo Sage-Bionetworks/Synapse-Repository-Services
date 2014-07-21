@@ -7,11 +7,11 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
 
+import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
@@ -22,6 +22,7 @@ import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.entity.ByteArrayEntity;
+import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.util.EntityUtils;
 import org.apache.logging.log4j.LogManager;
@@ -58,7 +59,7 @@ import org.sagebionetworks.utils.MD5ChecksumHelper;
  */
 public class SharedClientConnection {
 	
-	private static final Charset STRING_ENCODING_CHARSET = Charset.forName("UTF-8");
+	private static final String SYNAPSE_ENCODING_CHARSET = "UTF-8";
 
 	public static interface ErrorHandler {
 		void handleError(int code, String responseBody) throws SynapseException;
@@ -110,11 +111,11 @@ public class SharedClientConnection {
 		setAuthEndpoint(DEFAULT_AUTH_ENDPOINT);
 
 		defaultGETDELETEHeaders = new HashMap<String, String>();
-		defaultGETDELETEHeaders.put("Accept", "application/json; charset="+STRING_ENCODING_CHARSET);
+		defaultGETDELETEHeaders.put("Accept", "application/json; charset="+SYNAPSE_ENCODING_CHARSET);
 
 		defaultPOSTPUTHeaders = new HashMap<String, String>();
 		defaultPOSTPUTHeaders.putAll(defaultGETDELETEHeaders);
-		defaultPOSTPUTHeaders.put("Content-Type", "application/json; charset="+STRING_ENCODING_CHARSET);
+		defaultPOSTPUTHeaders.put("Content-Type", "application/json; charset="+SYNAPSE_ENCODING_CHARSET);
 		
 		this.clientProvider = clientProvider;
 		clientProvider.setGlobalConnectionTimeout(ServiceConstants.DEFAULT_CONNECT_TIMEOUT_MSEC);
@@ -486,13 +487,20 @@ public class SharedClientConnection {
 			throw new IllegalArgumentException("must provide uri");
 		}
 		try {
-			HttpResponse response = clientProvider.performRequest(endpoint + uri, "GET", null, null, null);
+			HttpResponse response = clientProvider.performRequest(endpoint + uri, "GET", null, null);
 			int statusCode = response.getStatusLine().getStatusCode();
 			if (statusCode!=HttpStatus.SC_OK) throw new SynapseServerException(statusCode);
 			return EntityUtils.toString(response.getEntity());
 		} catch (IOException e) {
 			throw new SynapseClientException(e);
 		}
+	}
+	
+	public static String getCharacterSetFromRequest(HttpRequestBase request) {
+		Header contentTypeHeader = request.getFirstHeader("Content-Type");
+		if (contentTypeHeader==null) return null;
+		ContentType contentType = ContentType.parse(contentTypeHeader.getValue());
+		return contentType.getCharset().name();
 	}
 
 	public String postStringDirect(String endpoint, String uri, String data, String userAgent) throws SynapseException {
@@ -506,7 +514,7 @@ public class SharedClientConnection {
 		try {
 			HttpPost post = new HttpPost(builder.toString());
 			setHeaders(post, defaultPOSTPUTHeaders, userAgent);
-			StringEntity stringEntity = new StringEntity(data, STRING_ENCODING_CHARSET.name());
+			StringEntity stringEntity = new StringEntity(data, getCharacterSetFromRequest(post));
 			post.setEntity(stringEntity);
 			HttpResponse response = clientProvider.execute(post);
 			String responseBody = (null != response.getEntity()) ? EntityUtils.toString(response.getEntity()) : null;
@@ -743,7 +751,7 @@ public class SharedClientConnection {
 	}
 
 	public HttpResponse performRequest(String requestUrl, String requestMethod, String requestContent, Map<String, String> requestHeaders) throws ClientProtocolException, IOException {
-		return clientProvider.performRequest(requestUrl, requestMethod, requestContent, STRING_ENCODING_CHARSET, requestHeaders);
+		return clientProvider.performRequest(requestUrl, requestMethod, requestContent, requestHeaders);
 	}
 	
 	public HttpResponse performRequestWithRetry(final String requestUrl, final String requestMethod, final String requestContent, final Map<String, String> requestHeaders) throws Exception {
@@ -751,7 +759,7 @@ public class SharedClientConnection {
 			return TimeUtils.waitForExponentialMaxRetry(MAX_RETRY_SERVICE_UNAVAILABLE_COUNT, 1000, new Callable<HttpResponse>() {
 				@Override
 				public HttpResponse call() throws Exception {
-					HttpResponse response = clientProvider.performRequest(requestUrl, requestMethod, requestContent, STRING_ENCODING_CHARSET, requestHeaders);
+					HttpResponse response = clientProvider.performRequest(requestUrl, requestMethod, requestContent, requestHeaders);
 					//if 503, then we can retry
 					int statusCode = response.getStatusLine().getStatusCode();
 					if (statusCode == HttpStatus.SC_SERVICE_UNAVAILABLE) {
