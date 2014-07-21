@@ -33,7 +33,7 @@ public class SynapseAdministrationTest {
 		mockProvider = Mockito.mock(HttpClientProvider.class);
 		mockUploader = Mockito.mock(DataUploaderMultipartImpl.class);
 		mockResponse = Mockito.mock(HttpResponse.class);
-		when(mockProvider.performRequest(any(String.class),any(String.class),any(String.class),any(Charset.class),(Map<String,String>)anyObject())).thenReturn(mockResponse);
+		when(mockProvider.performRequest(any(String.class),any(String.class),any(String.class),(Map<String,String>)anyObject())).thenReturn(mockResponse);
 		synapse = new SynapseAdminClientImpl(mockProvider, mockUploader);
 	}
 	
