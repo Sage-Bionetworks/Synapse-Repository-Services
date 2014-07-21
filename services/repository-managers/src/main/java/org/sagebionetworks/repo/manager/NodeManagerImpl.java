@@ -538,6 +538,17 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	}
 
 	@Override
+	public String getChildIdByName(UserInfo userInfo, String parentId, String name) throws NotFoundException, DatastoreException,
+			UnauthorizedException {
+		UserInfo.validateUserInfo(userInfo);
+		String userName = userInfo.getId().toString();
+		if (!authorizationManager.canAccess(userInfo, parentId, ObjectType.ENTITY, ACCESS_TYPE.READ)) {
+			throw new UnauthorizedException(userName + " lacks read access to the requested object.");
+		}
+		return nodeDao.getChildIdByName(parentId, name);
+	}
+
+	@Override
 	public EntityType getNodeType(UserInfo userInfo, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException {
 		Node node = get(userInfo, nodeId);
 		return EntityType.valueOf(node.getNodeType());

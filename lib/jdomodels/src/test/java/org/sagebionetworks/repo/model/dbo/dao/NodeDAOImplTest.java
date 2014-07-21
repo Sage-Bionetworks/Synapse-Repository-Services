@@ -59,6 +59,8 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.transaction.IllegalTransactionStateException;
 import org.springframework.transaction.UnexpectedRollbackException;
 
+import com.google.common.collect.Lists;
+
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class NodeDAOImplTest {
@@ -1073,6 +1075,7 @@ public class NodeDAOImplTest {
 			node.setNodeType(EntityType.dataset.name());
 			node.setParentId(parentId);
 			String id = nodeDao.createNew(node);
+			toDelete.add(id);
 			childIds.add(id);
 		}
 		// Now get the list of children
@@ -1081,6 +1084,37 @@ public class NodeDAOImplTest {
 		assertEquals(childIds, fromDao);
 	}
 	
+	@Test
+	public void testGetChildIdByName() throws Exception {
+		Node node = privateCreateNew("parent");
+		node.setNodeType(EntityType.project.name());
+		String parentId = nodeDao.createNew(node);
+		toDelete.add(parentId);
+		assertNotNull(parentId);
+
+		// Create a few children
+		List<String> childIds = new ArrayList<String>();
+		for (int i = 0; i < 4; i++) {
+			node = privateCreateNew("child" + i);
+			node.setNodeType(EntityType.dataset.name());
+			node.setParentId(parentId);
+			String id = nodeDao.createNew(node);
+			toDelete.add(id);
+			childIds.add(id);
+		}
+		// Now get known names
+		for (int i = 0; i < 4; i++) {
+			String childId = nodeDao.getChildIdByName(parentId, "child" + i);
+			assertEquals(childIds.get(i), childId);
+		}
+		// get unknown name
+		try{
+			nodeDao.getChildIdByName(parentId, "child-not");
+			fail("Should not have found this child");
+		} catch (NotFoundException e) {
+		}
+	}
+
 	@Test (expected=NotFoundException.class)
 	public void testGetRefrenceDoesNotExist() throws DatastoreException, InvalidModelException, NotFoundException{
 		// This should throw a not found exception.

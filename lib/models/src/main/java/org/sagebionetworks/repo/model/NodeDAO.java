@@ -242,7 +242,19 @@ public interface NodeDAO {
 	public List<String> getChildrenIdsAsList(String id) throws DatastoreException;
 
 	/**
+	 * Get the child node id from a parent by name
+	 * 
+	 * @param parentId
+	 * @param name
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	public String getChildIdByName(String parentId, String name) throws DatastoreException, NotFoundException;
+
+	/**
 	 * Does this revision already exist?
+	 * 
 	 * @param nodeId
 	 * @param revNumber
 	 * @return whether or not the revision exists

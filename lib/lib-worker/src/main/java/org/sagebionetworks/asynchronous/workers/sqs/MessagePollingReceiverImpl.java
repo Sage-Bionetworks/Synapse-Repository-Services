@@ -1,5 +1,6 @@
 package org.sagebionetworks.asynchronous.workers.sqs;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -98,6 +99,11 @@ public class MessagePollingReceiverImpl implements MessageReceiver {
 		public void progressMadeForMessage(Message messag) {
 			// Add this message to the
 			progressingMessagesQueue.add(messag);
+		}
+
+		@Override
+		public void retryMessage(Message message, int retryTimeoutInSeconds) {
+			sqsDao.resetMessageVisibility(messageQueue.getQueueUrl(), retryTimeoutInSeconds, Collections.singletonList(message));
 		}
 	};
 
