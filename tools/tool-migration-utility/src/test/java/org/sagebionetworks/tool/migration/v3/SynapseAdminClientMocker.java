@@ -380,7 +380,7 @@ public class SynapseAdminClientMocker {
 		try {
 			out = new FileOutputStream(temp);
 			XStream xstream = new XStream();
-			zipWriter = new OutputStreamWriter(out, "UTF-8:");
+			zipWriter = new OutputStreamWriter(out, "UTF-8");
 			xstream.toXML(backupList, zipWriter);
 		} finally {
 			Closer.closeQuietly(zipWriter, out);
