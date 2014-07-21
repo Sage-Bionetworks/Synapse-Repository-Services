@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.manager.migration;
 
 import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.Writer;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.UserInfo;
@@ -56,7 +56,7 @@ public interface MigrationManager {
 	 * @param rowIds
 	 * @return
 	 */
-	public void writeBackupBatch(UserInfo user, MigrationType type, List<Long> rowIds, OutputStream out);
+	public void writeBackupBatch(UserInfo user, MigrationType type, List<Long> rowIds, Writer out);
 
 	/**
 	 * Create or update a batch.

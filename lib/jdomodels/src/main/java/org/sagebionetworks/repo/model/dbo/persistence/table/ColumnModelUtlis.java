@@ -3,6 +3,9 @@ package org.sagebionetworks.repo.model.dbo.persistence.table;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
+import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Collections;
@@ -16,6 +19,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.util.Closer;
 
 import com.thoughtworks.xstream.XStream;
 
@@ -36,6 +40,8 @@ public class ColumnModelUtlis {
 	 */
 	public static Long MAX_ALLOWED_STRING_SIZE = 1000L;
 
+	public static final Charset UTF8 = Charset.forName("UTF-8");
+
 	/**
 	 * Translate from a DTO to DBO.
 	 * @param dto
@@ -47,13 +53,12 @@ public class ColumnModelUtlis {
 			ColumnModel normal = createNormalizedClone(dto);
 			String hash = calculateHash(normal);
 			// Create the bytes
-			ByteArrayOutputStream out = new ByteArrayOutputStream();
-			GZIPOutputStream zip;
-			zip = new GZIPOutputStream(out);
+			ByteArrayOutputStream out = new ByteArrayOutputStream(200);
+			GZIPOutputStream zip = new GZIPOutputStream(out);
+			Writer zipWriter = new OutputStreamWriter(zip, UTF8);
 			XStream xstream = createXStream();
-			xstream.toXML(normal, zip);
-			zip.flush();
-			zip.close();
+			xstream.toXML(normal, zipWriter);
+			Closer.closeQuietly(zipWriter, zip, out);
 			DBOColumnModel dbo = new DBOColumnModel();
 			dbo.setBytes(out.toByteArray());
 			dbo.setName(normal.getName());
