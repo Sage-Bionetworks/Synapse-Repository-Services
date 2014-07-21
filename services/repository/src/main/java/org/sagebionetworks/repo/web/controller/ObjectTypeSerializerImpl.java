@@ -30,7 +30,7 @@ public class ObjectTypeSerializerImpl implements ObjectTypeSerializer{
 	MappingJacksonHttpMessageConverter jacksonConverter = new MappingJacksonHttpMessageConverter();
 	JSONEntityHttpMessageConverter jsonEntityConverter = new JSONEntityHttpMessageConverter();
 	
-	
+
 	/**
 	 * Deserialize the body of an HttpRequest entity from an http call.
 	 * 
