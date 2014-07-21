@@ -54,9 +54,9 @@ public class AcceptAllCertificateHttpClientProvider implements HttpClientProvide
 
 	@Override
 	public HttpResponse performRequest(String requestUrl, String requestMethod,
-			String requestContent, Charset charset, Map<String, String> requestHeaders)
+			String requestContent, Map<String, String> requestHeaders)
 			throws ClientProtocolException, IOException {
-		return HttpClientHelper.performRequest(getSingleton(), requestUrl, requestMethod, requestContent, charset, requestHeaders);
+		return HttpClientHelper.performRequest(getSingleton(), requestUrl, requestMethod, requestContent, requestHeaders);
 	}
 
 

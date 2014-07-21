@@ -25,7 +25,7 @@ public class CloudSearchClient {
 	private static final Map<String, String> SEND_DOCUMENTS_REQUEST_HEADERS;
 	static {
 		Map<String, String> requestHeaders = new HashMap<String, String>();
-		requestHeaders.put("Content-Type", "application/json");
+		requestHeaders.put("Content-Type", "application/json;charset=UTF-8");
 		SEND_DOCUMENTS_REQUEST_HEADERS = Collections.unmodifiableMap(requestHeaders);
 	}
 
@@ -43,7 +43,7 @@ public class CloudSearchClient {
 	public void sendDocuments(String documents) throws ClientProtocolException,
 			IOException, HttpClientHelperException {
 		HttpClientHelper.postContent(httpClient, documentServiceEndpoint,
-				documents, Charset.forName("UTF-8"), SEND_DOCUMENTS_REQUEST_HEADERS);
+				documents, SEND_DOCUMENTS_REQUEST_HEADERS);
 	}
 
 	public void sendDocuments(InputStream stream, long length) throws ClientProtocolException, IOException, HttpClientHelperException {
