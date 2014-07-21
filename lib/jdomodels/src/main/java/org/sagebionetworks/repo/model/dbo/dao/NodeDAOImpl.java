@@ -65,6 +65,7 @@ import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONodeType;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONodeTypeAlias;
@@ -105,6 +106,8 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String UPDATE_ETAG_SQL = "UPDATE "+TABLE_NODE+" SET "+COL_NODE_ETAG+" = ? WHERE "+COL_NODE_ID+" = ?";
 	private static final String SQL_SELECT_PARENT_TYPE_NAME = "SELECT "+COL_NODE_ID+", "+COL_NODE_PARENT_ID+", "+COL_NODE_TYPE+", "+COL_NODE_NAME+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
 	private static final String SQL_GET_ALL_CHILDREN_IDS = "SELECT "+COL_NODE_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" = ? ORDER BY "+COL_NODE_ID;
+	private static final String SQL_GET_CHILD_ID_BY_NAME = "SELECT " + COL_NODE_ID + " FROM " + TABLE_NODE + " WHERE " + COL_NODE_PARENT_ID
+			+ " = ? AND " + COL_NODE_NAME + " = ?";
 	private static final String SQL_SELECT_VERSION_LABEL = "SELECT "+COL_REVISION_LABEL+" FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE+" = ? AND "+ COL_REVISION_NUMBER +" = ?";
 	private static final String NODE_IDS_LIST_PARAM_NAME = "NODE_IDS";
 	private static final String SQL_GET_CURRENT_VERSIONS = "SELECT "+COL_NODE_ID+","+COL_CURRENT_REV+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" IN ( :"+NODE_IDS_LIST_PARAM_NAME + " )";
@@ -143,6 +146,8 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			+ " WHERE R." + COL_REVISION_FILE_HANDLE_ID + " = F." + COL_FILES_ID
 			+ " AND F." + COL_FILES_CONTENT_MD5 + " = :" + COL_FILES_CONTENT_MD5
 			+ " LIMIT " + (NODE_VERSION_LIMIT_BY_FILE_MD5 + 1);
+
+	private static final TableMapping<DBONode> NODE_TABLE_MAPPING = new DBONode().getTableMapping();
 
 	// This is better suited for simple JDBC query.
 	@Autowired
@@ -1109,6 +1114,16 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			list.add(KeyFactory.keyToString(childId));
 		}
 		return list;
+	}
+
+	@Override
+	public String getChildIdByName(String parentId, String name) throws DatastoreException, NotFoundException {
+		try {
+			Long id = simpleJdbcTemplate.queryForLong(SQL_GET_CHILD_ID_BY_NAME, KeyFactory.stringToKey(parentId), name);
+			return KeyFactory.keyToString(id);
+		} catch (EmptyResultDataAccessException e) {
+			throw new NotFoundException(ERROR_RESOURCE_NOT_FOUND);
+		}
 	}
 
 	@Override

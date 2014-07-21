@@ -33,6 +33,14 @@
 		"lineEnd": {
 			"type": "string",
 			"description": "The line feed terminator to be used for the resulting file.  The default value of '\\n' will be used if this is not provided by the caller."
+		},
+		"fileName": {
+			"type": "string",
+			"description": "The optional file name (if fileName is specified, fileParentId must also be supplied). When specified, a file entity will be created or updated to point to the results"
+		},
+		"fileParentId": {
+			"type": "string",
+			"description": "The parent id for the file entity to be created (see fileName)."
 		}
 	}
 }

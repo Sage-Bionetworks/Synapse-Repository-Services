@@ -181,13 +181,27 @@ public interface NodeManager {
 	public Set<Node> getChildren(UserInfo userInfo, String parentId) throws NotFoundException, DatastoreException, UnauthorizedException;
 	
 	/**
+	 * Get the children of a node
+	 * 
+	 * @param userId
+	 * @param parentId
+	 * @return
+	 * @throws NotFoundException
+	 * @throws UnauthorizedException
+	 * @throws DatastoreException
+	 */
+	public String getChildIdByName(UserInfo userInfo, String parentId, String name) throws NotFoundException, DatastoreException,
+			UnauthorizedException;
+
+	/**
 	 * Get a list of all of the version numbers for a node.
+	 * 
 	 * @param userInfo
 	 * @param nodeId
 	 * @return
 	 * @throws NotFoundException
-	 * @throws UnauthorizedException 
-	 * @throws DatastoreException 
+	 * @throws UnauthorizedException
+	 * @throws DatastoreException
 	 */
 	public List<Long> getAllVersionNumbersForNode(UserInfo userInfo, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException;
 
