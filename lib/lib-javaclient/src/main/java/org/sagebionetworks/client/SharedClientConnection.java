@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
 
+import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
@@ -21,6 +22,7 @@ import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.entity.ByteArrayEntity;
+import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.util.EntityUtils;
 import org.apache.logging.log4j.LogManager;
@@ -48,6 +50,7 @@ import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.securitytools.HMACUtils;
 import org.sagebionetworks.util.RetryException;
 import org.sagebionetworks.util.TimeUtils;
+import org.sagebionetworks.utils.HttpClientHelper;
 import org.sagebionetworks.utils.HttpClientHelperException;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 
@@ -55,6 +58,8 @@ import org.sagebionetworks.utils.MD5ChecksumHelper;
  * Low-level Java Client API for Synapse REST APIs
  */
 public class SharedClientConnection {
+	
+	private static final String SYNAPSE_ENCODING_CHARSET = "UTF-8";
 
 	public static interface ErrorHandler {
 		void handleError(int code, String responseBody) throws SynapseException;
@@ -106,11 +111,11 @@ public class SharedClientConnection {
 		setAuthEndpoint(DEFAULT_AUTH_ENDPOINT);
 
 		defaultGETDELETEHeaders = new HashMap<String, String>();
-		defaultGETDELETEHeaders.put("Accept", "application/json");
+		defaultGETDELETEHeaders.put("Accept", "application/json; charset="+SYNAPSE_ENCODING_CHARSET);
 
 		defaultPOSTPUTHeaders = new HashMap<String, String>();
 		defaultPOSTPUTHeaders.putAll(defaultGETDELETEHeaders);
-		defaultPOSTPUTHeaders.put("Content-Type", "application/json");
+		defaultPOSTPUTHeaders.put("Content-Type", "application/json; charset="+SYNAPSE_ENCODING_CHARSET);
 		
 		this.clientProvider = clientProvider;
 		clientProvider.setGlobalConnectionTimeout(ServiceConstants.DEFAULT_CONNECT_TIMEOUT_MSEC);
@@ -490,6 +495,13 @@ public class SharedClientConnection {
 			throw new SynapseClientException(e);
 		}
 	}
+	
+	public static String getCharacterSetFromRequest(HttpRequestBase request) {
+		Header contentTypeHeader = request.getFirstHeader("Content-Type");
+		if (contentTypeHeader==null) return null;
+		ContentType contentType = ContentType.parse(contentTypeHeader.getValue());
+		return contentType.getCharset().name();
+	}
 
 	public String postStringDirect(String endpoint, String uri, String data, String userAgent) throws SynapseException {
 		URIBuilder builder = null;
@@ -502,7 +514,7 @@ public class SharedClientConnection {
 		try {
 			HttpPost post = new HttpPost(builder.toString());
 			setHeaders(post, defaultPOSTPUTHeaders, userAgent);
-			StringEntity stringEntity = new StringEntity(data);
+			StringEntity stringEntity = new StringEntity(data, getCharacterSetFromRequest(post));
 			post.setEntity(stringEntity);
 			HttpResponse response = clientProvider.execute(post);
 			String responseBody = (null != response.getEntity()) ? EntityUtils.toString(response.getEntity()) : null;

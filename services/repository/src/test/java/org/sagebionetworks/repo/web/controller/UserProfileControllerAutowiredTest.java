@@ -91,12 +91,15 @@ public class UserProfileControllerAutowiredTest extends AbstractAutowiredControl
 	
 	@Test
 	public void testSpecialCharacters() throws Exception {
-		String location = "Zürich";
+		String location = "Zürich"; 
+		String firstName = "Sławomir";
 		UserProfile userProfile = servletTestHelper.getUserProfile(dispatchServlet, adminUserId);
 		userProfile.setLocation(location);
+		userProfile.setFirstName(firstName);
 		servletTestHelper.updateUserProfile(adminUserId, userProfile);
 		userProfile = servletTestHelper.getUserProfile(dispatchServlet, adminUserId);
 		assertEquals(location, userProfile.getLocation());
+		assertEquals(firstName, userProfile.getFirstName());
 	}
 	
 	
