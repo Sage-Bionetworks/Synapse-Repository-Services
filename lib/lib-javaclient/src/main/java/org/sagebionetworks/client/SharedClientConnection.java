@@ -110,11 +110,11 @@ public class SharedClientConnection {
 		setAuthEndpoint(DEFAULT_AUTH_ENDPOINT);
 
 		defaultGETDELETEHeaders = new HashMap<String, String>();
-		defaultGETDELETEHeaders.put("Accept", "application/json");
+		defaultGETDELETEHeaders.put("Accept", "application/json; charset="+STRING_ENCODING_CHARSET);
 
 		defaultPOSTPUTHeaders = new HashMap<String, String>();
 		defaultPOSTPUTHeaders.putAll(defaultGETDELETEHeaders);
-		defaultPOSTPUTHeaders.put("Content-Type", "application/json");
+		defaultPOSTPUTHeaders.put("Content-Type", "application/json; charset="+STRING_ENCODING_CHARSET);
 		
 		this.clientProvider = clientProvider;
 		clientProvider.setGlobalConnectionTimeout(ServiceConstants.DEFAULT_CONNECT_TIMEOUT_MSEC);

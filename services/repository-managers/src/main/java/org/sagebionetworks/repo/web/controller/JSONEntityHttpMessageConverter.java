@@ -204,7 +204,6 @@ public class JSONEntityHttpMessageConverter implements	HttpMessageConverter<JSON
 				contentTypeForResponseHeader = MediaType.APPLICATION_JSON;
 			}
 			Charset charsetForSerializingBody = contentTypeForResponseHeader.getCharSet();
-			// TODO we need to ensure that the character set is UTF-8
 			if (charsetForSerializingBody==null) {
 				// HTTP 1.1 says that the default is ISO-8859-1
 				charsetForSerializingBody = HTTP_1_1_DEFAULT_CHARSET;

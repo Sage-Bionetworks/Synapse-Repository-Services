@@ -68,7 +68,7 @@ public class ServletTestHelperUtils {
 			throws Exception {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		request.setMethod(mode.name());
-		request.addHeader("Accept", "application/json");
+		request.addHeader("Accept", "application/json; charset="+RESPONSE_ENCODING_CHARSET);
 		request.addHeader("Accept-Encoding", RESPONSE_ENCODING_CHARSET);
 		request.addHeader("Content-Type", "application/json; charset="+REQUEST_ENCODING_CHARSET);
 		request.setRequestURI(path+requestURI);
