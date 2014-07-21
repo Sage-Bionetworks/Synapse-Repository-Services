@@ -200,6 +200,9 @@ public class JSONEntityHttpMessageConverter implements	HttpMessageConverter<JSON
 		// First write the entity to a JSON string
 		try {
 			MediaType contentTypeForResponseHeader = contentType;
+			if (contentTypeForResponseHeader.isWildcardType() || contentTypeForResponseHeader.isWildcardSubtype()) {
+				contentTypeForResponseHeader = MediaType.APPLICATION_JSON;
+			}
 			Charset charsetForSerializingBody = contentTypeForResponseHeader.getCharSet();
 			// TODO we need to ensure that the character set is UTF-8
 			if (charsetForSerializingBody==null) {
