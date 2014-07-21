@@ -3,18 +3,32 @@ package org.sagebionetworks.repo.model.dbo.dao.semaphore;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.doCallRealMethod;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.dao.semaphore.CountingSemaphoreDao;
 import org.springframework.aop.framework.Advised;
 import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.BeanWrapperImpl;
 import org.springframework.beans.PropertyValue;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DeadlockLoserDataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.mock.web.MockJspWriter;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -25,9 +39,20 @@ public class DBOCountingSemaphoreDaoImplAutowireTest {
 
 	final int maxCount = 5;
 
+	private JdbcTemplate originalJdbcTemplate;
+
 	@Before
 	public void before() throws Exception {
 		((CountingSemaphoreDaoImpl) getTargetObject(countingSemaphoreDao)).forceReleaseAllLocks();
+		originalJdbcTemplate = (JdbcTemplate) ReflectionTestUtils.getField(
+				((CountingSemaphoreDaoImpl) getTargetObject(countingSemaphoreDao)), "jdbcTemplate");
+	}
+
+	@After
+	public void after() throws Exception {
+		((CountingSemaphoreDaoImpl) getTargetObject(countingSemaphoreDao)).forceReleaseAllLocks();
+		ReflectionTestUtils
+				.setField(((CountingSemaphoreDaoImpl) getTargetObject(countingSemaphoreDao)), "jdbcTemplate", originalJdbcTemplate);
 	}
 
 	@Test
@@ -107,6 +132,48 @@ public class DBOCountingSemaphoreDaoImplAutowireTest {
 		String thirdToken = countingSemaphoreDao.attemptToAcquireLock();
 		assertNotNull("Failed to acquire after the second lock expired ", thirdToken);
 		assertFalse("The third token should not equal the original token", thirdToken.equals(originalToken));
+	}
+
+	@SuppressWarnings("unchecked")
+	@Test
+	public void testHandleDeadLock() throws Exception {
+		// For this test we want to acquire a lock, let it expire. Once expired, we should be able to
+		// acquire the lock even though it has not been released.
+		((CountingSemaphoreDaoImpl) getTargetObject(countingSemaphoreDao)).setLockTimeoutMS(500);
+		((CountingSemaphoreDaoImpl) getTargetObject(countingSemaphoreDao)).setMaxCount(1);
+		JdbcTemplate mockJdbcTemplate = Mockito.spy(originalJdbcTemplate);
+		doThrow(new DeadlockLoserDataAccessException("dummy", null)).when(mockJdbcTemplate).queryForObject(anyString(), any(Class.class),
+				any());
+		doCallRealMethod().when(mockJdbcTemplate).queryForObject(anyString(), any(Class.class), any());
+		ReflectionTestUtils.setField(((CountingSemaphoreDaoImpl) getTargetObject(countingSemaphoreDao)), "jdbcTemplate", mockJdbcTemplate);
+
+		// Get the lock and hold it for 1 second
+		String originalToken = countingSemaphoreDao.attemptToAcquireLock();
+		assertNotNull(originalToken);
+
+		countingSemaphoreDao.releaseLock(originalToken);
+		verify(mockJdbcTemplate, times(2)).queryForObject(anyString(), any(Class.class), any());
+	}
+
+	@SuppressWarnings("unchecked")
+	@Test
+	public void testHandleTooManyDeadLocks() throws Exception {
+		// For this test we want to acquire a lock, let it expire. Once expired, we should be able to
+		// acquire the lock even though it has not been released.
+		((CountingSemaphoreDaoImpl) getTargetObject(countingSemaphoreDao)).setLockTimeoutMS(500);
+		((CountingSemaphoreDaoImpl) getTargetObject(countingSemaphoreDao)).setMaxCount(1);
+		JdbcTemplate originalJdbcTemplate = (JdbcTemplate) ReflectionTestUtils.getField(
+				((CountingSemaphoreDaoImpl) getTargetObject(countingSemaphoreDao)), "jdbcTemplate");
+		JdbcTemplate mockJdbcTemplate = Mockito.spy(originalJdbcTemplate);
+		doThrow(new DeadlockLoserDataAccessException("dummy", null)).when(mockJdbcTemplate).queryForObject(anyString(), any(Class.class),
+				any());
+		ReflectionTestUtils.setField(((CountingSemaphoreDaoImpl) getTargetObject(countingSemaphoreDao)), "jdbcTemplate", mockJdbcTemplate);
+
+		// Get the lock and hold it for 1 second
+		String originalToken = countingSemaphoreDao.attemptToAcquireLock();
+		assertNull(originalToken);
+		verify(mockJdbcTemplate, times(3)).queryForObject(anyString(), any(Class.class), any());
+		verifyNoMoreInteractions(mockJdbcTemplate);
 	}
 
 	@SuppressWarnings("unchecked")
