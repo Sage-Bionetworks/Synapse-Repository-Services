@@ -74,7 +74,7 @@ public class BackupDriverImpl implements BackupDriver {
 			zos.putNextEntry(entry);
 			Writer zipWriter = new OutputStreamWriter(zos, "UTF-8");
 			migrationManager.writeBackupBatch(user, type, idsToBackup, zipWriter);
-			zipWriter.close();
+			zipWriter.flush();
 			progress.incrementProgress();
 			// If this type has secondary types then add them to the zip as well.
 			List<MigrationType> secondaryTypes = migrationManager.getSecondaryTypes(type);
@@ -86,10 +86,11 @@ public class BackupDriverImpl implements BackupDriver {
 					zos.putNextEntry(entry);
 					zipWriter = new OutputStreamWriter(zos, "UTF-8");
 					migrationManager.writeBackupBatch(user, secondary, idsToBackup, zipWriter);
-					zipWriter.close();
+					zipWriter.flush();
 					progress.incrementProgress();
 				}
 			}
+			zipWriter.close();
 			zos.close();
 			progress.appendLog("Finished processing");
 		} finally {
