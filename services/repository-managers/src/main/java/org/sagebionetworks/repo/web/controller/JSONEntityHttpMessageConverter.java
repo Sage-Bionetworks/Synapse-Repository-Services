@@ -200,6 +200,9 @@ public class JSONEntityHttpMessageConverter implements	HttpMessageConverter<JSON
 		// First write the entity to a JSON string
 		try {
 			MediaType contentTypeForResponseHeader = contentType;
+			if (contentTypeForResponseHeader.isWildcardType() || contentTypeForResponseHeader.isWildcardSubtype()) {
+				contentTypeForResponseHeader = MediaType.APPLICATION_JSON;
+			}
 			Charset charsetForSerializingBody = contentTypeForResponseHeader.getCharSet();
 			if (charsetForSerializingBody==null) {
 				// HTTP 1.1 says that the default is ISO-8859-1
