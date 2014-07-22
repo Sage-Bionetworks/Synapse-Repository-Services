@@ -57,6 +57,10 @@ public class TableCurrentCacheWorkerTest {
 		return new TableCurrentCacheWorker(messages, mockTableRowManager, mockConfiguration, new WorkerProgress() {
 			@Override
 			public void progressMadeForMessage(Message message) {
+			}
+
+			@Override
+			public void retryMessage(Message message, int retryTimeoutInSeconds) {
 				// TODO Auto-generated method stub
 
 			}

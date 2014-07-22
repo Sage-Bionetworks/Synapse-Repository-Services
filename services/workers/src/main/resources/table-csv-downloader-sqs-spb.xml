@@ -12,9 +12,9 @@
 	<aop:aspectj-autoproxy />
 
 	<!-- provides table message queue workers -->
-	<bean id="tableCSVDownloadWorkerFactory"
-		class="org.sagebionetworks.table.worker.TableCSVDownloadWorkerFactory"
-		scope="singleton" />
+	<bean id="tableCSVDownloadWorkerFactory" class="org.sagebionetworks.asynchronous.workers.sqs.BeanCreatingMessageWorkerFactory" scope="singleton">
+		<property name="worker" value="org.sagebionetworks.table.worker.TableCSVDownloadWorker" />
+	</bean>
 	
 	<bean id="tableCSVDownloaderQueue"
 			class="org.sagebionetworks.asynchronous.workers.sqs.MessageQueueSimpleImpl"
