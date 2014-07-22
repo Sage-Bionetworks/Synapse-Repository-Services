@@ -22,7 +22,7 @@
 			"enum": [
 				"STRING",
 				"DOUBLE",
-				"LONG",
+				"INTEGER",
 				"BOOLEAN",
 				"DATE",
 				"FILEHANDLEID"

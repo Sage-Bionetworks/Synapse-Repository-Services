@@ -387,7 +387,7 @@ public class TableIndexDAOImplTest {
 		foo.setId("111");
 		foo.setMaximumSize(10L);
 		ColumnModel bar = new ColumnModel();
-		bar.setColumnType(ColumnType.LONG);
+		bar.setColumnType(ColumnType.INTEGER);
 		bar.setId("222");
 		bar.setName("bar");
 		List<ColumnModel> schema = new LinkedList<ColumnModel>();
@@ -436,7 +436,7 @@ public class TableIndexDAOImplTest {
 		foo.setId("111");
 		foo.setMaximumSize(10L);
 		ColumnModel bar = new ColumnModel();
-		bar.setColumnType(ColumnType.LONG);
+		bar.setColumnType(ColumnType.INTEGER);
 		bar.setId("222");
 		bar.setName("bar");
 		List<ColumnModel> schema = new LinkedList<ColumnModel>();
