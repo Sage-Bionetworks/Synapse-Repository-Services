@@ -91,7 +91,6 @@ public class TableCSVDownloadWorkerIntegrationTest {
 	private List<String> toDelete;
 	private File tempFile;
 	S3FileHandle fileHandle;
-	S3FileHandle fileHandle2;
 	
 	@Before
 	public void before() throws NotFoundException{
@@ -119,10 +118,6 @@ public class TableCSVDownloadWorkerIntegrationTest {
 				tempFile.delete();
 			}
 			if(fileHandle != null){
-				s3Client.deleteObject(fileHandle.getBucketName(), fileHandle.getKey());
-				fileHandleDao.delete(fileHandle.getId());
-			}
-			if (fileHandle2 != null) {
 				s3Client.deleteObject(fileHandle.getBucketName(), fileHandle.getKey());
 				fileHandleDao.delete(fileHandle.getId());
 			}
