@@ -1073,6 +1073,7 @@ public class NodeDAOImplTest {
 			node.setNodeType(EntityType.dataset.name());
 			node.setParentId(parentId);
 			String id = nodeDao.createNew(node);
+			toDelete.add(id);
 			childIds.add(id);
 		}
 		// Now get the list of children
