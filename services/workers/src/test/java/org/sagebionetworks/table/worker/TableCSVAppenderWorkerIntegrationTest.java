@@ -134,7 +134,7 @@ public class TableCSVAppenderWorkerIntegrationTest {
 		this.schema.add(cm);
 		// integer
 		cm = new ColumnModel();
-		cm.setColumnType(ColumnType.LONG);
+		cm.setColumnType(ColumnType.INTEGER);
 		cm.setName("someinteger");
 		cm = columnManager.createColumnModel(adminUserInfo, cm);
 		schema.add(cm);

@@ -205,7 +205,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		// Create one column of each type
 		List<ColumnModel> temp = new LinkedList<ColumnModel>();
 		temp.add(TableModelTestUtils.createColumn(0L, "a", ColumnType.STRING));
-		temp.add(TableModelTestUtils.createColumn(0L, "b", ColumnType.LONG));
+		temp.add(TableModelTestUtils.createColumn(0L, "b", ColumnType.INTEGER));
 		temp.add(TableModelTestUtils.createColumn(0L, "c", ColumnType.DOUBLE));
 		schema = new LinkedList<ColumnModel>();
 		for (ColumnModel cm : temp) {

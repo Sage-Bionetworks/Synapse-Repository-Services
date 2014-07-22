@@ -105,7 +105,7 @@ public class IT099AsynchronousJobTest {
 		try{
 			// Create a table with some columns
 			ColumnModel cm1 = new ColumnModel();
-			cm1.setColumnType(ColumnType.LONG);
+			cm1.setColumnType(ColumnType.INTEGER);
 			cm1.setName("sampleLong");
 			cm1 = synapse.createColumnModel(cm1);
 			// String

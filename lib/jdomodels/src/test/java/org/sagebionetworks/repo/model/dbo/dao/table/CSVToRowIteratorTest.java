@@ -41,7 +41,7 @@ public class CSVToRowIteratorTest {
 		List<ColumnModel> columns = TableModelTestUtils.createColumsWithNames(
 				"a", "b", "c");
 		columns.get(0).setColumnType(ColumnType.STRING);
-		columns.get(1).setColumnType(ColumnType.LONG);
+		columns.get(1).setColumnType(ColumnType.INTEGER);
 		columns.get(2).setColumnType(ColumnType.BOOLEAN);
 		// Create the iterator.
 		Iterator<Row> iterator = new CSVToRowIterator(columns, reader);
@@ -79,7 +79,7 @@ public class CSVToRowIteratorTest {
 		List<ColumnModel> columns = TableModelTestUtils.createColumsWithNames(
 				"a", "b", "c");
 		columns.get(0).setColumnType(ColumnType.STRING);
-		columns.get(1).setColumnType(ColumnType.LONG);
+		columns.get(1).setColumnType(ColumnType.INTEGER);
 		columns.get(2).setColumnType(ColumnType.BOOLEAN);
 		// Create the iterator.
 		Iterator<Row> iterator = new CSVToRowIterator(columns, reader);
@@ -117,7 +117,7 @@ public class CSVToRowIteratorTest {
 		List<ColumnModel> columns = TableModelTestUtils.createColumsWithNames(
 				"c", "b", "a");
 		columns.get(0).setColumnType(ColumnType.BOOLEAN);
-		columns.get(1).setColumnType(ColumnType.LONG);
+		columns.get(1).setColumnType(ColumnType.INTEGER);
 		columns.get(2).setColumnType(ColumnType.STRING);
 		// Create the iterator.
 		Iterator<Row> iterator = new CSVToRowIterator(columns, reader);
@@ -157,7 +157,7 @@ public class CSVToRowIteratorTest {
 		List<ColumnModel> columns = TableModelTestUtils.createColumsWithNames(
 				"c", "b", "a");
 		columns.get(0).setColumnType(ColumnType.BOOLEAN);
-		columns.get(1).setColumnType(ColumnType.LONG);
+		columns.get(1).setColumnType(ColumnType.INTEGER);
 		columns.get(2).setColumnType(ColumnType.STRING);
 		// Create the iterator.
 		Iterator<Row> iterator = new CSVToRowIterator(columns, reader);

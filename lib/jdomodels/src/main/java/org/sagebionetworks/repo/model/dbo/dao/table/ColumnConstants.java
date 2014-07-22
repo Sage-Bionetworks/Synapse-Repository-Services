@@ -26,12 +26,12 @@ public class ColumnConstants {
 		}
 	}
 	/**
-	 * The maximum number of bytes of a long when represented as a string.
+	 * The maximum number of bytes of a integer (a long in java terms) when represented as a string.
 	 */
-	public static final int MAX_LONG_BYTES_AS_STRING;
+	public static final int MAX_INTEGER_BYTES_AS_STRING;
 	static{
 		try {
-			MAX_LONG_BYTES_AS_STRING = Long.toString(-Long.MAX_VALUE).getBytes("UTF-8").length;
+			MAX_INTEGER_BYTES_AS_STRING = Long.toString(-Long.MAX_VALUE).getBytes("UTF-8").length;
 		} catch (UnsupportedEncodingException e) {
 			throw new RuntimeException(e);
 		}
@@ -50,5 +50,5 @@ public class ColumnConstants {
 	/**
 	 * The maximum number of bytes of a FileHandle ID when represented as a string (same as long).
 	 */
-	public static final int MAX_FILE_HANDLE_ID_BYTES_AS_STRING = MAX_LONG_BYTES_AS_STRING;
+	public static final int MAX_FILE_HANDLE_ID_BYTES_AS_STRING = MAX_INTEGER_BYTES_AS_STRING;
 }
