@@ -136,11 +136,20 @@ public class TrashManagerImpl implements TrashManager {
 		if (nodeId == null) {
 			throw new IllegalArgumentException("Node ID cannot be null");
 		}
-
+		
 		// Make sure the node is in the trash can
 		final TrashedEntity trash = trashCanDao.getTrashedEntity(nodeId);
 		if (trash == null) {
 			throw new NotFoundException("The node " + nodeId + " is not in the trash can.");
+		}
+		
+		// Restore to its original parent if a new parent is not given
+		if (newParentId == null) {
+			newParentId = trash.getOriginalParentId();
+		}
+		
+		if (trashCanDao.getTrashedEntity(newParentId) != null) {
+			throw new EntityInTrashCanException("The parent " + newParentId + " is in the trash can and cannot be restored to.");
 		}
 
 		// Make sure the node was indeed deleted by the user
@@ -152,10 +161,7 @@ public class TrashManagerImpl implements TrashManager {
 					+ nodeId + ". The node was deleted by a different user.");
 		}
 
-		// Restore to its original parent if a new parent is not given
-		if (newParentId == null) {
-			newParentId = trash.getOriginalParentId();
-		}
+		
 
 		// Authorize on the new parent
 		String userName = currentUser.getId().toString();
