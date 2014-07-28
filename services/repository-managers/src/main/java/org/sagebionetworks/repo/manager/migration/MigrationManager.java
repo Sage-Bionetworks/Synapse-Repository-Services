@@ -102,5 +102,10 @@ public interface MigrationManager {
 	 */
 	public boolean isMigrationTypeUsed(UserInfo user, MigrationType mt);
 	
+	public long getMinId(UserInfo user, MigrationType type);
+	
+	public String getChecksumForIdRange(UserInfo user, MigrationType type,
+			long minId, long maxId);
+	
 	
 }

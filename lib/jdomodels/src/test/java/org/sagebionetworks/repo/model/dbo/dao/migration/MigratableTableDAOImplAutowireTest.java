@@ -271,9 +271,4 @@ public class MigratableTableDAOImplAutowireTest {
 		assertEquals(expectedPrimaryTypes, primary);
 	}
 	
-	@Test(expected=IllegalArgumentException.class)
-	public void testGetChecksumForIdRangeInvalidRange() {
-		migratableTableDAO.getChecksumForIdRange(MigrationType.FILE_HANDLE, 10, 9);
-	}
-	
 }
