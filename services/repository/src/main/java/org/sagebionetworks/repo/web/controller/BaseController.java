@@ -13,6 +13,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
+import org.sagebionetworks.repo.manager.trash.ParentInTrashCanException;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -690,6 +691,24 @@ public abstract class BaseController {
 	@ResponseStatus(HttpStatus.NOT_FOUND)
 	public @ResponseBody
 	ErrorResponse handleEntityInTrashCanException(EntityInTrashCanException ex,
+			HttpServletRequest request) {
+		return handleException(ex, request, true);
+	}
+	
+	/**
+	 * When an entity's parent is in the trash can.
+	 *
+	 * @param ex
+	 *            the exception to be handled
+	 * @param request
+	 *            the client request
+	 * @return an ErrorResponse object containing the exception reason or some
+	 *         other human-readable response
+	 */
+	@ExceptionHandler(ParentInTrashCanException.class)
+	@ResponseStatus(HttpStatus.NOT_FOUND)
+	public @ResponseBody
+	ErrorResponse handleParentInTrashCanException(ParentInTrashCanException ex,
 			HttpServletRequest request) {
 		return handleException(ex, request, true);
 	}
