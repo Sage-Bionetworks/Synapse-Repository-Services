@@ -585,7 +585,7 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 		// one
 		ColumnModel one = new ColumnModel();
 		one.setName("foo");
-		one.setColumnType(ColumnType.LONG);
+		one.setColumnType(ColumnType.INTEGER);
 		one = servletTestHelper.createColumnModel(dispatchServlet, one, adminUserId);
 		// two
 		ColumnModel two = new ColumnModel();

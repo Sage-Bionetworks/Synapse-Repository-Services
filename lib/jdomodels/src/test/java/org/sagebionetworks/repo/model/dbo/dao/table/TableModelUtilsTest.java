@@ -64,7 +64,7 @@ public class TableModelUtilsTest {
 		cm = new ColumnModel();
 		cm.setName("two");
 		cm.setId("2");
-		cm.setColumnType(ColumnType.LONG);
+		cm.setColumnType(ColumnType.INTEGER);
 		validModel.add(cm);
 		
 		validRowSet = new RowSet();
@@ -298,13 +298,13 @@ public class TableModelUtilsTest {
 	@Test
 	public void testValidateLong(){
 		ColumnModel cm = new ColumnModel();
-		cm.setColumnType(ColumnType.LONG);
+		cm.setColumnType(ColumnType.INTEGER);
 		assertEquals("123", TableModelUtils.validateRowValue("123", cm, 0, 0));
 		try {
 			TableModelUtils.validateRowValue("true", cm, 1, 3);
 			fail("should have failed");
 		} catch (IllegalArgumentException e) {
-			assertEquals("Value at [1,3] was not a valid LONG. For input string: \"true\"", e.getMessage());
+			assertEquals("Value at [1,3] was not a valid INTEGER. For input string: \"true\"", e.getMessage());
 		}
 		assertEquals(null, TableModelUtils.validateRowValue(null, cm, 2, 2));
 		// Set the default to boolean
@@ -796,7 +796,7 @@ public class TableModelUtilsTest {
 	@Test
 	public void testCalculateMaxSizeForTypeLong() throws UnsupportedEncodingException{
 		int expected  = new String(Long.toString(-1111111111111111111l)).getBytes("UTF-8").length;
-		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.LONG, null));
+		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.INTEGER, null));
 	}
 
 	@Test

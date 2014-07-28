@@ -5,7 +5,8 @@ import static org.junit.Assert.assertNotNull;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.math.BigDecimal;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -102,12 +103,6 @@ public class MigrationManagerImplAutowireTest {
 	}
 	
 	@Test
-	public void testGetChecksumForIdRange() {
-		String d = migrationManager.getChecksumForIdRange(adminUser, MigrationType.FILE_HANDLE, Long.parseLong(withPreview.getId()), Long.parseLong(preview.getId()));
-		assertNotNull(d);
-	}
-	
-	@Test
 	public void testListRowMetadata(){
 		RowMetadataResult result = migrationManager.getRowMetadaForType(adminUser, MigrationType.FILE_HANDLE, Long.MAX_VALUE, startCount);
 		assertNotNull(result);
@@ -136,11 +131,15 @@ public class MigrationManagerImplAutowireTest {
 		ids2.add(Long.parseLong(withPreview.getId()));
 		// Write the backup data
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		migrationManager.writeBackupBatch(adminUser, MigrationType.FILE_HANDLE, ids1, out);
+		Writer writer = new OutputStreamWriter(out, "UTF-8");
+		migrationManager.writeBackupBatch(adminUser, MigrationType.FILE_HANDLE, ids1, writer);
+		writer.flush();
 		String xml1 = new String(out.toByteArray(), "UTF-8");
 		System.out.println(xml1);
 		out = new ByteArrayOutputStream();
-		migrationManager.writeBackupBatch(adminUser, MigrationType.FILE_HANDLE, ids2, out);
+		writer = new OutputStreamWriter(out, "UTF-8");
+		migrationManager.writeBackupBatch(adminUser, MigrationType.FILE_HANDLE, ids2, writer);
+		writer.flush();
 		String xml2 = new String(out.toByteArray(), "UTF-8");
 		System.out.println(xml2);
 		// Now delete the rows

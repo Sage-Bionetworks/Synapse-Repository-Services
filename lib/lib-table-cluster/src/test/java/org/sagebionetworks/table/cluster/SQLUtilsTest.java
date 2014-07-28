@@ -32,7 +32,7 @@ public class SQLUtilsTest {
 	public void before(){
 		simpleSchema = new LinkedList<ColumnModel>();
 		ColumnModel col = new ColumnModel();
-		col.setColumnType(ColumnType.LONG);
+		col.setColumnType(ColumnType.INTEGER);
 		col.setDefaultValue(null);
 		col.setId("456");
 		simpleSchema.add(col);
@@ -78,7 +78,7 @@ public class SQLUtilsTest {
 	@Test
 	public void testGetSQLTypeForColumnTypeLong(){
 		String expected = "bigint(20)";
-		String sql = SQLUtils.getSQLTypeForColumnType(ColumnType.LONG, null);
+		String sql = SQLUtils.getSQLTypeForColumnType(ColumnType.INTEGER, null);
 		assertEquals(expected, sql);
 	}
 	
@@ -126,7 +126,7 @@ public class SQLUtilsTest {
 	@Test
 	public void testparseValueForDBLong(){
 		Long expected = new Long(123);
-		Object objectValue = SQLUtils.parseValueForDB(ColumnType.LONG, "123");
+		Object objectValue = SQLUtils.parseValueForDB(ColumnType.INTEGER, "123");
 		assertEquals(expected, objectValue);
 	}
 	
@@ -176,7 +176,7 @@ public class SQLUtilsTest {
 	@Test
 	public void testGetSQLDefaultsForLong(){
 		String expected = "DEFAULT 123";
-		String sql = SQLUtils.getSQLDefaultForColumnType(ColumnType.LONG, "123");
+		String sql = SQLUtils.getSQLDefaultForColumnType(ColumnType.INTEGER, "123");
 		assertEquals(expected, sql);
 	}
 	
@@ -478,7 +478,7 @@ public class SQLUtilsTest {
 			for(String value: values){
 				ColumnModel cm = new ColumnModel();
 				cm.setId(value);
-				cm.setColumnType(ColumnType.LONG);
+				cm.setColumnType(ColumnType.INTEGER);
 				list.add(cm);
 			}
 		}

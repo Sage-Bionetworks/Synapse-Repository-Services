@@ -7,6 +7,8 @@ import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -67,6 +69,7 @@ public class MigrationManagerImplTest {
 	@Test
 	public void testSubjectAccessRequirementRoundTrip() throws Exception {
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		Writer writer = new OutputStreamWriter(out, "UTF-8");
 		DBOSubjectAccessRequirement sar1 = new DBOSubjectAccessRequirement();
 		sar1.setAccessRequirementId(101L);
 		sar1.setSubjectId(987L);
@@ -84,8 +87,8 @@ public class MigrationManagerImplTest {
 			// we use the table name as the Alias
 			String alias = sar1.getTableMapping().getTableName();
 			// Now write the backup to the stream
-			BackupMarshalingUtils.writeBackupToStream(backupList, alias, out);
-			out.close();
+			BackupMarshalingUtils.writeBackupToWriter(backupList, alias, writer);
+			writer.close();
 		}
 		
 		// now read back in
@@ -117,6 +120,7 @@ public class MigrationManagerImplTest {
 	@Test
 	public void testNodeAccessRequirementDeserialization() throws Exception {
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		Writer writer = new OutputStreamWriter(out, "UTF-8");
 		DBONodeAccessRequirement nar = new DBONodeAccessRequirement();
 		nar.setAccessRequirementId(101L);
 		nar.setNodeId(987L);
@@ -133,8 +137,8 @@ public class MigrationManagerImplTest {
 			// we use the table name as the Alias
 			String alias = nar.getTableMapping().getTableName();
 			// Now write the backup to the stream
-			BackupMarshalingUtils.writeBackupToStream(backupList, alias, out);
-			out.close();
+			BackupMarshalingUtils.writeBackupToWriter(backupList, alias, writer);
+			writer.close();
 		}
 		
 		// now read back in

@@ -1,5 +1,6 @@
 package org.sagebionetworks.asynchronous.workers.sqs;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -98,6 +99,11 @@ public class MessagePollingReceiverImpl implements MessageReceiver {
 		public void progressMadeForMessage(Message messag) {
 			// Add this message to the
 			progressingMessagesQueue.add(messag);
+		}
+
+		@Override
+		public void retryMessage(Message message, int retryTimeoutInSeconds) {
+			sqsDao.resetMessageVisibility(messageQueue.getQueueUrl(), retryTimeoutInSeconds, Collections.singletonList(message));
 		}
 	};
 
@@ -219,40 +225,47 @@ public class MessagePollingReceiverImpl implements MessageReceiver {
 				public Integer call() throws Exception {
 					int totalCount = 0;
 					while (!cancelled) {
+						String lockToken = null;
 						try {
-							List<Message> toBeProcessed = null;
-							// we only ever want one thread per machine to long poll sqs
-							String lockToken;
-							synchronized (queuePollAccess) {
-								if (cancelled) {
-									break;
-								}
-								lockToken = workerSemaphore.attemptToAcquireLock();
-								if (lockToken == null) {
-									// could not acquire a lock, sleep a while (while holding the queue lock, so other
-									// threads don't try to get the lock immediately) and try again
-									clock.sleep(500);
-									continue;
-								}
-								long backoffTime = INITIAL_BACKOFF_TIME_MSEC;
-								while (toBeProcessed == null) {
-									try {
-										toBeProcessed = sqsDao.receiveMessagesLongPoll(messageQueue.getQueueUrl(), visibilityTimeoutSec,
-												maxMessagePerWorker);
-									} catch (AmazonClientException e) {
-										// Something went wrong. Most likely, sqs unreachable or we are being throttled.
-										// Use exponential backoff
-										clock.sleep(backoffTime + RandomUtils.nextInt((int) INITIAL_BACKOFF_TIME_MSEC / 4));
-										if (backoffTime < MAX_BACKOFF_TIME_MSEC) {
-											backoffTime *= BACKOFF_MULTIPLIER;
+							try {
+								List<Message> toBeProcessed = null;
+								// we only ever want one thread per machine to long poll sqs
+								synchronized (queuePollAccess) {
+									if (cancelled) {
+										break;
+									}
+									lockToken = workerSemaphore.attemptToAcquireLock();
+									if (lockToken == null) {
+										// could not acquire a lock, sleep a while (while holding the queue lock, so
+										// other
+										// threads don't try to get the lock immediately) and try again
+										clock.sleep(500);
+										continue;
+									}
+									long backoffTime = INITIAL_BACKOFF_TIME_MSEC;
+									while (toBeProcessed == null) {
+										try {
+											toBeProcessed = sqsDao.receiveMessagesLongPoll(messageQueue.getQueueUrl(), visibilityTimeoutSec,
+													maxMessagePerWorker);
+										} catch (AmazonClientException e) {
+											// Something went wrong. Most likely, sqs unreachable or we are being
+											// throttled.
+											// Use exponential backoff
+											clock.sleep(backoffTime + RandomUtils.nextInt((int) INITIAL_BACKOFF_TIME_MSEC / 4));
+											if (backoffTime < MAX_BACKOFF_TIME_MSEC) {
+												backoffTime *= BACKOFF_MULTIPLIER;
+											}
 										}
 									}
 								}
+								if (toBeProcessed.size() > 0) {
+									totalCount += handleMessages(toBeProcessed);
+								}
+							} finally {
+								if (lockToken != null) {
+									workerSemaphore.releaseLock(lockToken);
+								}
 							}
-							if (toBeProcessed.size() > 0) {
-								totalCount += handleMessages(toBeProcessed);
-							}
-							workerSemaphore.releaseLock(lockToken);
 						} catch (InterruptedException e) {
 							// normally, we should only get here if we're trying to shutdown, in which case cancelled
 							// should already be true

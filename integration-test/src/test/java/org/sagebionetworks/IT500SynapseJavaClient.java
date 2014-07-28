@@ -517,6 +517,19 @@ public class IT500SynapseJavaClient {
 		assertEquals("Unexpected unmet-ARs in the EntityBundle", 
 				0, entityBundle.getUnmetAccessRequirements().size());
 	}
+	
+	@Test
+	public void testSpecialCharacters() throws SynapseException {
+		UserProfile myProfile = synapseOne.getMyProfile();
+		String location = "Zürich"; // this string is encoded differently in UTF-8 than ISO-8859-1
+		String firstName = "Sławomir"; // this string can't be encoded in ISO-8859-1
+		myProfile.setLocation(location);
+		myProfile.setFirstName(firstName);
+		synapseOne.updateMyProfile(myProfile);
+		myProfile = synapseOne.getMyProfile();
+		assertEquals(location, myProfile.getLocation());
+		assertEquals(firstName, myProfile.getFirstName());
+	}
 
 	@Test
 	public void testJavaClientCreateUpdateEntityBundle() throws SynapseException {

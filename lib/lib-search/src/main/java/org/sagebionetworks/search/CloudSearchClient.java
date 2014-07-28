@@ -24,7 +24,7 @@ public class CloudSearchClient {
 	private static final Map<String, String> SEND_DOCUMENTS_REQUEST_HEADERS;
 	static {
 		Map<String, String> requestHeaders = new HashMap<String, String>();
-		requestHeaders.put("Content-Type", "application/json");
+		requestHeaders.put("Content-Type", "application/json;charset=UTF-8");
 		SEND_DOCUMENTS_REQUEST_HEADERS = Collections.unmodifiableMap(requestHeaders);
 	}
 

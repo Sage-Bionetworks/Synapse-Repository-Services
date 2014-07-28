@@ -41,12 +41,6 @@ import com.amazonaws.AmazonClientException;
 import com.amazonaws.services.sqs.model.Message;
 import com.google.common.collect.Lists;
 
-/**
- * Unit test for the MessageReceiverImpl.
- * 
- * @author John
- * 
- */
 public class MessagePollingReceiverImplTest {
 
 	MessagePollingReceiverImpl messageReceiver;
