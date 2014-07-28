@@ -910,7 +910,7 @@ public class TrashManagerImplAutowiredTest {
 		assertFalse(nodeDAO.doesNodeExist(KeyFactory.stringToKey(nodeIdC1)));
 	}
 	
-	@Test(expected=EntityInTrashCanException.class)
+	@Test(expected=ParentInTrashCanException.class)
 	public void testRestoreToParentThatIsInTrashCan() throws Exception {
 		// A --> Parent
 		final Node nodeA = new Node();
