@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.migration;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -23,6 +24,7 @@ import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -102,6 +104,34 @@ public class MigrationManagerImplAutowireTest {
 		assertEquals(Long.parseLong(preview.getId()), mx);
 	}
 	
+	@Test
+	public void testGetMinId() {
+		long min = migrationManager.getMinId(adminUser, MigrationType.FILE_HANDLE);
+		long max = migrationManager.getMaxId(adminUser, MigrationType.FILE_HANDLE);
+		RowMetadataResult rmr =	migrationManager.getRowMetadaForType(adminUser, MigrationType.FILE_HANDLE, 100, 0);
+		long m = Long.MAX_VALUE;
+		for (RowMetadata rm: rmr.getList()) {
+			Long id = rm.getId();
+			if (id < m) {
+				m = id;
+			}
+		}
+		assertTrue(m < Long.MAX_VALUE);
+		assertEquals(m, min);
+		assertTrue(min <= max);
+	}
+	
+	@Test
+	public void testGetChecksumForIdRange() {
+		long max = migrationManager.getMaxId(adminUser, MigrationType.FILE_HANDLE);
+		MigrationTypeChecksum checksum = migrationManager.getChecksumForIdRange(adminUser, MigrationType.FILE_HANDLE, 0L, max);
+		assertNotNull(checksum);
+		assertEquals(MigrationType.FILE_HANDLE, checksum.getType());
+		assertEquals(0L, checksum.getMinid().longValue());
+		assertEquals(max, checksum.getMaxid().longValue());
+		assertNotNull(checksum.getChecksum());
+	}
+ 	
 	@Test
 	public void testListRowMetadata(){
 		RowMetadataResult result = migrationManager.getRowMetadaForType(adminUser, MigrationType.FILE_HANDLE, Long.MAX_VALUE, startCount);

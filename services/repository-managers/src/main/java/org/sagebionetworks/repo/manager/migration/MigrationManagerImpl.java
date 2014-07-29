@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.dbo.migration.MigratableTableDAO;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.migration.ListBucketProvider;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationUtils;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
@@ -78,6 +79,12 @@ public class MigrationManagerImpl implements MigrationManager {
 	public long getMaxId(UserInfo user, MigrationType type) {
 		validateUser(user);
 		return migratableTableDao.getMaxId(type);
+	}
+	
+	@Override
+	public long getMinId(UserInfo user, MigrationType type) {
+		validateUser(user);
+		return migratableTableDao.getMinId(type);
 	}
 
 	@Override
@@ -358,16 +365,16 @@ public class MigrationManagerImpl implements MigrationManager {
 	}
 
 	@Override
-	public long getMinId(UserInfo user, MigrationType type) {
-		validateUser(user);
-		return migratableTableDao.getMinId(type);
-	}
-
-	@Override
-	public String getChecksumForIdRange(UserInfo user, MigrationType type,
+	public MigrationTypeChecksum getChecksumForIdRange(UserInfo user, MigrationType type,
 			long minId, long maxId) {
 		validateUser(user);
-		return migratableTableDao.getChecksumForIdRange(type, minId, maxId);
+		String checksum = migratableTableDao.getChecksumForIdRange(type, minId, maxId);
+		MigrationTypeChecksum mts = new MigrationTypeChecksum();
+		mts.setType(type);
+		mts.setChecksum(checksum);
+		mts.setMinid(minId);
+		mts.setMaxid(maxId);
+		return mts;
 	}
 
 }

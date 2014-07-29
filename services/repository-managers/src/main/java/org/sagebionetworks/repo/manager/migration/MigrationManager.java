@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 
 /**
@@ -104,7 +105,7 @@ public interface MigrationManager {
 	
 	public long getMinId(UserInfo user, MigrationType type);
 	
-	public String getChecksumForIdRange(UserInfo user, MigrationType type,
+	public MigrationTypeChecksum getChecksumForIdRange(UserInfo user, MigrationType type,
 			long minId, long maxId);
 	
 	

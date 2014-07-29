@@ -5,6 +5,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
@@ -107,6 +108,6 @@ public interface MigrationService {
 	 * A checksum for a range of ids and a migration type
 	 * @throws NotFoundException 
 	 */
-	String getChecksumForIdRange(Long userId, MigrationType type, long minId, long maxId) throws NotFoundException;
+	MigrationTypeChecksum getChecksumForIdRange(Long userId, MigrationType type, long minId, long maxId) throws NotFoundException;
 
 }

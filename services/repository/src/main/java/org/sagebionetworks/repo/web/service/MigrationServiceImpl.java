@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
@@ -108,13 +109,13 @@ public class MigrationServiceImpl implements MigrationService {
 	}
 
 	@Override
-	public String getChecksumForIdRange(Long userId, MigrationType type,
+	public MigrationTypeChecksum getChecksumForIdRange(Long userId, MigrationType type,
 			long minId, long maxId) throws NotFoundException {
 		if (userId == null) {
 			throw new IllegalArgumentException("userId cannot be null");
 		}
 		UserInfo user = userManager.getUserInfo(userId);
-		String chksum = migrationManager.getChecksumForIdRange(user, type, minId, maxId);
+		MigrationTypeChecksum chksum = migrationManager.getChecksumForIdRange(user, type, minId, maxId);
 		return chksum;
 	}
 
