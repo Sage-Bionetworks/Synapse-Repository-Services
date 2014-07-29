@@ -706,7 +706,7 @@ public abstract class BaseController {
 	 *         other human-readable response
 	 */
 	@ExceptionHandler(ParentInTrashCanException.class)
-	@ResponseStatus(HttpStatus.NOT_FOUND)
+	@ResponseStatus(HttpStatus.FORBIDDEN)
 	public @ResponseBody
 	ErrorResponse handleParentInTrashCanException(ParentInTrashCanException ex,
 			HttpServletRequest request) {

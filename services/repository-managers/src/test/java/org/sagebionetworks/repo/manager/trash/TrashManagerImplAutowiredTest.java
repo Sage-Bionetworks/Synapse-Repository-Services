@@ -914,7 +914,7 @@ public class TrashManagerImplAutowiredTest {
 	public void testRestoreToParentThatIsInTrashCan() throws Exception {
 		// A --> Parent
 		final Node nodeA = new Node();
-		final String nodeNameA = "TrashManagerImplAutowiredTest.testPurge() A";
+		final String nodeNameA = "TrashManagerImplAutowiredTest.testRestoreToParentThatIsInTrashCan() A";
 		nodeA.setName(nodeNameA);
 		nodeA.setNodeType(EntityType.project.name());
 		final String nodeIdA = nodeManager.createNewNode(nodeA, testUserInfo);
@@ -923,7 +923,7 @@ public class TrashManagerImplAutowiredTest {
 		
 		// B --> Child
 		final Node nodeB = new Node();
-		final String nodeNameB = "TrashManagerImplAutowiredTest.testPurge() B";
+		final String nodeNameB = "TrashManagerImplAutowiredTest.testRestoreToParentThatIsInTrashCan() B";
 		nodeB.setName(nodeNameB);
 		nodeB.setNodeType(EntityType.folder.name());
 		nodeB.setParentId(nodeIdA);
