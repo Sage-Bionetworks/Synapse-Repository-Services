@@ -79,14 +79,14 @@ public class IT503PythonClientFilter {
 	@Test
 	public void testPythonClientFilter() throws Exception {
 		// user synapseOne to create a Project
-		Project p = new Project();
-		p.setName("TestPythonClientFilter_"+rand.nextInt(1000));
-		synapseOne.createEntity(p);
+		project = new Project();
+		project.setName("TestPythonClientFilter_"+rand.nextInt(1000));
+		project = synapseOne.createEntity(project);
 		
 		// get the underlying SharedClientConnection so we can 'roll our own' request
 		SharedClientConnection conn = synapseOne.getSharedClientConnection();
 		String endpoint = StackConfiguration.getRepositoryServiceEndpoint();
-		String uri = "/entity/"+p.getId();
+		String uri = "/entity/"+project.getId();
 		Map<String, String> requestHeaders = new HashMap<String, String>();
 		requestHeaders.put("Accept", "application/json");
 		// before issuing the request, set the User-Agent to indicate the affected Python client
@@ -101,7 +101,12 @@ public class IT503PythonClientFilter {
 		assertEquals(200, statusCode);
 		// check that the response header does not have a character encoding
 		Header contentTypeHeader = responseEntity.getContentType();
-		ContentType contentType = ContentType.parse(contentTypeHeader.getValue());
+		String contentTypeString = contentTypeHeader.getValue();
+		ContentType contentType = ContentType.parse(contentTypeString);
+//		byte[] bytes = new byte[(int)responseEntity.getContentLength()];
+//		responseEntity.getContent().read(bytes);
+//		System.out.println("Response body: "+new String(bytes, contentType.getCharset()));
+		System.out.println("Content-Type: "+contentTypeString);
 		assertNull(contentType.getCharset());
 	}
 
