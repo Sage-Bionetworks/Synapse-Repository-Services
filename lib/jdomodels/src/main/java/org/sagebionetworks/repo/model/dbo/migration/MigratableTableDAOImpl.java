@@ -458,7 +458,11 @@ public class MigratableTableDAOImpl implements MigratableTableDAO {
 		params.addValue(DMLUtils.BIND_VAR_ID_RANGE_MIN, minId);
 		params.addValue(DMLUtils.BIND_VAR_ID_RANGE_MAX, maxId);
 		BigDecimal cs = simpleJdbcTemplate.queryForObject(sql, new SingleColumnRowMapper<BigDecimal>(), params);
-		return cs.toString();
+		if (cs == null) {
+			return null;
+		} else {
+			return cs.toString();
+		}
 	}
 	
 }

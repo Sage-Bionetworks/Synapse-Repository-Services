@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.IdList;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.repo.model.migration.MigrationTypeChecksum;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
@@ -111,6 +112,13 @@ public class IT102MigrationTest {
 			System.out.println(mtc.getType().name() + ":" + mtc.getCount());
 			countByMigrationType.put(mtc.getType(), mtc.getCount());
 		}
+		// Checksums per type
+		System.out.println("Checksums by type");
+		for (MigrationType mt: migrationTypes) {
+			MigrationTypeChecksum mtc = adminSynapse.getChecksumForIdRange(mt, 0L, Long.MAX_VALUE);
+			System.out.println(mt.name() + ":" + mtc);			
+		}
+		
 		// Round trip
 		System.out.println("Backup/restore");
 		IdList idList = new IdList();
