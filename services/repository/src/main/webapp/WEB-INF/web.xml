@@ -42,6 +42,22 @@
 		<listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
 	</listener>
 
+	<!-- Python Client Filter -->
+	
+	<filter>
+		<filter-name>pythonClientFilter</filter-name>
+		<filter-class>org.sagebionetworks.repo.web.filter.PythonClientFilter</filter-class>
+	</filter>
+
+	<filter-mapping>
+		<filter-name>pythonClientFilter</filter-name>
+		<url-pattern>/auth/v1/*</url-pattern>
+		<url-pattern>/repo/v1/*</url-pattern>
+	    <url-pattern>/file/v1/*</url-pattern>
+	</filter-mapping>
+	
+	<!-- END Python Client Filter -->	
+
 	<!-- Some browsers do not support PUT and DELETE methods, this filter will 
 		examine the form field parameter _method -->
 	<filter>
@@ -119,22 +135,6 @@
 		<url-pattern>/bridge/v1/*</url-pattern>
 	</filter-mapping>
 	
-	<!-- Python Client Filter -->
-	
-	<filter>
-		<filter-name>pythonClientFilter</filter-name>
-		<filter-class>org.sagebionetworks.repo.web.filter.PythonClientFilter</filter-class>
-	</filter>
-
-	<filter-mapping>
-		<filter-name>pythonClientFilter</filter-name>
-		<url-pattern>/auth/v1/*</url-pattern>
-		<url-pattern>/repo/v1/*</url-pattern>
-	    <url-pattern>/file/v1/*</url-pattern>
-	</filter-mapping>
-	
-	<!-- END Python Client Filter -->	
-
 	<filter>
 		<filter-name>jsonpCallbackFilter</filter-name>
 		<!-- This filter allows JSONP to be returned for methods that are already 

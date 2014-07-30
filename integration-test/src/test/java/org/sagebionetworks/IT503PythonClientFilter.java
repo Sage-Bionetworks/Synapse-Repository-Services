@@ -103,11 +103,7 @@ public class IT503PythonClientFilter {
 		Header contentTypeHeader = responseEntity.getContentType();
 		String contentTypeString = contentTypeHeader.getValue();
 		ContentType contentType = ContentType.parse(contentTypeString);
-//		byte[] bytes = new byte[(int)responseEntity.getContentLength()];
-//		responseEntity.getContent().read(bytes);
-//		System.out.println("Response body: "+new String(bytes, contentType.getCharset()));
-		System.out.println("Content-Type: "+contentTypeString);
-		assertNull(contentType.getCharset());
+		assertNull("Content-Type: "+contentTypeString, contentType.getCharset());
 	}
 
 }

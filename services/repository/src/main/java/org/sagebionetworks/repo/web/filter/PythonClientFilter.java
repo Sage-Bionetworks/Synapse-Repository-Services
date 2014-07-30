@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.web.filter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.Charset;
+import java.util.Collection;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -93,7 +94,7 @@ public class PythonClientFilter implements Filter {
 		}
 	}
 	
-	private static final Charset HTTP_1_1_DEFAULT_CHARACTER_ENCODING = Charset.forName("ISO-8859-1");
+	private static final String HTTP_1_1_DEFAULT_CHARACTER_ENCODING = Charset.forName("ISO-8859-1").name();
 
 	@Override
 	public void doFilter(ServletRequest request, ServletResponse response,
@@ -102,36 +103,35 @@ public class PythonClientFilter implements Filter {
 		HttpServletResponse httpResponse = ((HttpServletResponse)response);
 		String header = httpRequest.getHeader("User-Agent");
 		if (isAffectedPythonClient(header)) {
-			OutputStream out = httpResponse.getOutputStream();
-			GenericResponseWrapper wrapper = new GenericResponseWrapper(httpResponse);
+			PythonClientResponseWrapper wrapper = new PythonClientResponseWrapper(httpResponse);
 			// Pass it along.
 			chain.doFilter(request, wrapper);
-
+			
 			// now translate the character set and adjust the header accordingly 
 			String responseContentTypeString = wrapper.getContentType();
 			ContentType responseContentType = responseContentTypeString==null?null:ContentType.parse(responseContentTypeString);
-			Charset responseCharacterEncoding = responseContentType==null?null:responseContentType.getCharset();
-			if (responseCharacterEncoding!=null && !responseCharacterEncoding.equals(HTTP_1_1_DEFAULT_CHARACTER_ENCODING)) {
-				// we have to change the character encoding to ISO-8895-1
-				String responseContentAsString = new String(wrapper.getData(), responseCharacterEncoding);
-				try {
-					out.write(responseContentAsString.getBytes(HTTP_1_1_DEFAULT_CHARACTER_ENCODING));
-				} finally {
-					out.close();
-				}
-				// we change the response header to specify the mime type but not the character set
+			String responseCharacterEncoding = wrapper.getCharacterEncoding();
+			// ensure that the content-type omits the character set
+			if (responseContentType!=null) {
 				// it implicitly now specifies ISO-8895-1
-				httpResponse.setContentType(responseContentType.getMimeType());
-			} else {
-				// no need to change the encoding, just write out the body of the response
-				try {
-					out.write(wrapper.getData());
-				} finally {
-					out.close();
-				}
-				
+				String charsetFreeContentType = responseContentType.getMimeType();
+				httpResponse.setContentType(charsetFreeContentType);
 			}
-		} else {
+			// ensure the body is written in ISO-8895-1
+			OutputStream out = httpResponse.getOutputStream();
+			try {
+				if (responseCharacterEncoding!=null && !responseCharacterEncoding.equals(HTTP_1_1_DEFAULT_CHARACTER_ENCODING)) {
+					// we have to change the character encoding to ISO-8895-1
+					String responseContentAsString = new String(wrapper.getData(), responseCharacterEncoding);
+					out.write(responseContentAsString.getBytes(HTTP_1_1_DEFAULT_CHARACTER_ENCODING));
+				} else {
+					// no need to change the encoding, just write out the body of the response
+					out.write(wrapper.getData());
+				}
+			} finally {
+				out.close();
+			}
+		} else { // request is not from affected Python client
 			chain.doFilter(request, response);
 		}
 	}

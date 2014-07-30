@@ -1,9 +1,25 @@
 package org.sagebionetworks.repo.web.filter;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
+import java.io.IOException;
+
+import javax.servlet.FilterChain;
+import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.http.entity.ContentType;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
 
 public class PythonClientFilterTest {
 
@@ -65,6 +81,28 @@ public class PythonClientFilterTest {
 		assertFalse(PythonClientFilter.isAffectedPythonClient("synapseclient/1.0.2 python-requests/2.1.0 cpython/2.7.3 linux/3.2.0-54-virtual"));
 		assertFalse(PythonClientFilter.isAffectedPythonClient("synapseclient/1.0.1 cpython/2.7.3 linux/3.2.0-54-virtual"));
 
+	}
+	
+	@Test
+	public void testFilter() throws Exception {
+		PythonClientFilter filter = new PythonClientFilter();
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		request.addHeader("User-Agent", "python-request/foo");
+		HttpServletResponse response = new MockHttpServletResponse();
+		FilterChain filterChain = new FilterChain() {
+			@Override
+			public void doFilter(ServletRequest request,
+					ServletResponse response) throws IOException,
+					ServletException {
+				response.setContentType("application/json; charset=ISO-8859-1");
+				//response.addHeader("Content-Type", "application/json; charset=ISO-8859-1");
+			}};
+		filter.doFilter(request, response, filterChain);
+		ContentType responseContentType = ContentType.parse(response.getContentType());
+		assertNull(responseContentType.getCharset());
+
+		String contentTypeHeader = response.getHeader("Content-Type");
+		assertEquals("application/json", contentTypeHeader);
 	}
 
 }
