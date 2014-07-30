@@ -1,5 +1,5 @@
 {
-    "description":"Represents a selection of rows of a TablEntity",
+    "description":"Represents a selection of rows of a TableEntity",
     "properties":{
 		"tableId":{
 			"description":"The ID of the TableEntity than owns these rows",

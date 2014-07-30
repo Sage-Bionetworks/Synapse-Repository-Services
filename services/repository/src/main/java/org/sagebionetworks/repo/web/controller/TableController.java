@@ -225,17 +225,17 @@ public class TableController extends BaseController {
 	 * RowSet.headers, as each value is mapped to a column by the index of these
 	 * two arrays. When a row is added it will be issued both a rowId and a
 	 * version number. When a row is updated it will be issued a new version
-	 * number (each row version is immutable). The resulting TableRowReference
+	 * number (each row version is immutable). The resulting RowReferenceSet
 	 * will enumerate all rowIds and versionNumbers for this update. The
-	 * resulting RowReferecnes will be listed in the same order as the passed
-	 * result set. A single POST to this services will be treated as a single
+	 * resulting RowReferences will be listed in the same order as the passed
+	 * result set. A single POST to this service will be treated as a single
 	 * transaction, meaning either all of the rows will be added/updated or none
 	 * of the rows will be added/updated. If this web-services fails for any
 	 * reason all changes will be "rolled back".
 	 * </p>
 	 * <p>
 	 * There is a limit to the size of a RowSet that can be passed in a single
-	 * web-services call. Currently, that limit is set to a maximum size of 2 MB
+	 * web-service call. Currently, that limit is set to a maximum size of 2 MB
 	 * per call. The maximum size is calculated based on the maximum possible
 	 * size of a the ColumModel definition, NOT on the size of the actual passed
 	 * data. For example, the maximum size of an integer column is 20
@@ -293,8 +293,8 @@ public class TableController extends BaseController {
 	 * PartialRow.values identifies the column by ID in the key. When a row is
 	 * added it will be issued both a rowId and a version number. When a row is
 	 * updated it will be issued a new version number (each row version is
-	 * immutable). The resulting TableRowReference will enumerate all rowIds and
-	 * versionNumbers for this update. The resulting RowReferecnes will be
+	 * immutable). The resulting RowReferenceSet will enumerate all rowIds and
+	 * versionNumbers for this update. The resulting RowReferences will be
 	 * listed in the same order as the passed result set. A single POST to this
 	 * services will be treated as a single transaction, meaning either all of
 	 * the rows will be added/updated or none of the rows will be added/updated.
@@ -350,7 +350,7 @@ public class TableController extends BaseController {
 	 * This method is used to delete rows in a TableEntity. The rows in the
 	 * passed in RowReferenceSet will be deleted if they exist (a 400 will be
 	 * returned if a row ID is provided that does not actually exist). A single
-	 * POST to this services will be treated as a single transaction, meaning
+	 * POST to this service will be treated as a single transaction, meaning
 	 * either all of the rows will be deleted or none of the rows will be
 	 * deleted. If this web-services fails for any reason all changes will be
 	 * "rolled back".
