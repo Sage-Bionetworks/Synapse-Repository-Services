@@ -10,11 +10,15 @@ import java.util.concurrent.Callable;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
+import org.sagebionetworks.asynchronous.workers.sqs.Worker;
 import org.sagebionetworks.asynchronous.workers.sqs.WorkerProgress;
+import org.sagebionetworks.repo.manager.EntityManager;
+import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.table.TableRowManager;
+import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -22,7 +26,10 @@ import org.sagebionetworks.repo.model.table.AsynchDownloadRequestBody;
 import org.sagebionetworks.repo.model.table.AsynchDownloadResponseBody;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.StringUtils;
 
 import au.com.bytecode.opencsv.CSVWriter;
 
@@ -35,37 +42,36 @@ import com.amazonaws.services.sqs.model.Message;
  * @author jmhill
  *
  */
-public class TableCSVDownloadWorker implements Callable<List<Message>>{
+public class TableCSVDownloadWorker implements Worker {
 
 	private static final String TEXT_CSV = "text/csv";
 	static private Logger log = LogManager.getLogger(TableCSVDownloadWorker.class);
 	private List<Message> messages;
-	private AsynchJobStatusManager asynchJobStatusManager;
-	private TableRowManager tableRowManager;
-	private UserManager userManger;
-	private FileHandleManager fileHandleManager;
 	private WorkerProgress workerProgress;
-	
-	/**
-	 * Create a new worker for each use.
-	 * @param messages
-	 * @param asynchJobStatusManager
-	 * @param tableRowManager
-	 * @param userManger
-	 * @param fileHandleManager
-	 * @param workerProgress
-	 */
-	public TableCSVDownloadWorker(List<Message> messages,
-			AsynchJobStatusManager asynchJobStatusManager,
-			TableRowManager tableRowManager, UserManager userManger,
-			FileHandleManager fileHandleManager, WorkerProgress workerProgress) {
-		super();
+
+	@Autowired
+	private AsynchJobStatusManager asynchJobStatusManager;
+	@Autowired
+	private TableRowManager tableRowManager;
+	@Autowired
+	private UserManager userManger;
+	@Autowired
+	private FileHandleManager fileHandleManager;
+
+	private int retryTimeoutOnTableUnavailableInSeconds = 5;
+
+	@Override
+	public void setMessages(List<Message> messages) {
 		this.messages = messages;
-		this.asynchJobStatusManager = asynchJobStatusManager;
-		this.tableRowManager = tableRowManager;
-		this.userManger = userManger;
-		this.fileHandleManager = fileHandleManager;
+	}
+
+	@Override
+	public void setWorkerProgress(WorkerProgress workerProgress) {
 		this.workerProgress = workerProgress;
+	}
+
+	public void setRetryTimeoutOnTableUnavailableInSeconds(int retryTimeoutOnTableUnavailableInSeconds) {
+		this.retryTimeoutOnTableUnavailableInSeconds = retryTimeoutOnTableUnavailableInSeconds;
 	}
 
 	@Override
@@ -134,6 +140,8 @@ public class TableCSVDownloadWorker implements Callable<List<Message>>{
 			// This just means we cannot do this right now.  We can try again later.
 			asynchJobStatusManager.updateJobProgress(status.getJobId(), 0L, 100L, "Waiting for the table index to become available...");
 			// do not return the message because we do not want it to be deleted.
+			// but we don't want to wait too long, so set the visibility timeout to something smaller
+			workerProgress.retryMessage(message, retryTimeoutOnTableUnavailableInSeconds);
 			return null;
 		}catch(Throwable e){
 			// The job failed

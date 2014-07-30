@@ -686,7 +686,7 @@ public class TableRowManagerImplTest {
 	@Test
 	public void testValidateQuerySizeAggregation() throws ParseException{
 		ColumnModel foo = new ColumnModel();
-		foo.setColumnType(ColumnType.LONG);
+		foo.setColumnType(ColumnType.INTEGER);
 		foo.setId("111");
 		foo.setName("foo");
 		ColumnModel bar = new ColumnModel();
@@ -703,7 +703,7 @@ public class TableRowManagerImplTest {
 	@Test
 	public void testValidateQuerySizeMissingLimit() throws ParseException{
 		ColumnModel foo = new ColumnModel();
-		foo.setColumnType(ColumnType.LONG);
+		foo.setColumnType(ColumnType.INTEGER);
 		foo.setId("111");
 		foo.setName("foo");
 		ColumnModel bar = new ColumnModel();
@@ -727,7 +727,7 @@ public class TableRowManagerImplTest {
 	@Test
 	public void testValidateQuerySizeUnderLimit() throws ParseException{
 		ColumnModel foo = new ColumnModel();
-		foo.setColumnType(ColumnType.LONG);
+		foo.setColumnType(ColumnType.INTEGER);
 		foo.setId("111");
 		foo.setName("foo");
 		ColumnModel bar = new ColumnModel();
@@ -746,7 +746,7 @@ public class TableRowManagerImplTest {
 	@Test 
 	public void testValidateQuerySizeOverLimit() throws ParseException{
 		ColumnModel foo = new ColumnModel();
-		foo.setColumnType(ColumnType.LONG);
+		foo.setColumnType(ColumnType.INTEGER);
 		foo.setId("111");
 		foo.setName("foo");
 		ColumnModel bar = new ColumnModel();

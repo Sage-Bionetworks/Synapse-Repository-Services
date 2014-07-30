@@ -1,5 +1,5 @@
 {
-    "description":"Represents a set of RowReferences of a TablEntity",
+    "description":"Represents a set of RowReferences of a TableEntity",
     "properties":{
 		"tableId":{
 			"description":"The ID of the TableEntity than owns these rows",

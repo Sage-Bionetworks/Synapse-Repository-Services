@@ -69,7 +69,7 @@ public class TableModelTestUtils {
 				case FILEHANDLEID:
 					defaultValue = "0";
 					break;
-				case LONG:
+				case INTEGER:
 					defaultValue = "-10000000000000";
 					break;
 				case STRING:
@@ -249,7 +249,7 @@ public class TableModelTestUtils {
 		switch (cm.getColumnType()) {
 		case STRING:
 			return (isUpdate ? "updatestring" : "string") + i;
-		case LONG:
+		case INTEGER:
 			return "" + (i + 3000);
 		case DATE:
 			if (!isExpected && useDateStrings && i % 2 == 0) {

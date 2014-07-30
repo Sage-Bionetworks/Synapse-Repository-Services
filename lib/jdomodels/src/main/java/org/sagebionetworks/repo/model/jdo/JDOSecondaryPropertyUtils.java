@@ -4,8 +4,11 @@ import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.io.Writer;
+import java.nio.charset.Charset;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -21,6 +24,7 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
+import org.sagebionetworks.util.Closer;
 
 import com.thoughtworks.xstream.XStream;
 
@@ -32,6 +36,7 @@ import com.thoughtworks.xstream.XStream;
  */
 public class JDOSecondaryPropertyUtils {
 	
+	public static final Charset UTF8 = Charset.forName("UTF-8");
 
 	/**
 	 * Merge all of the annotations in the map into a single set.
@@ -177,16 +182,14 @@ public class JDOSecondaryPropertyUtils {
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		BufferedOutputStream buff = new BufferedOutputStream(out);
 		GZIPOutputStream zipper = new GZIPOutputStream(buff);
+		Writer zipWriter = new OutputStreamWriter(zipper, UTF8);
 		try{
 			XStream xstream = createXStream();
-			xstream.toXML(dto, zipper);
-			zipper.flush();
-			zipper.close();
-			return out.toByteArray();
+			xstream.toXML(dto, zipWriter);
 		}finally{
-			zipper.flush();
-			zipper.close();
+			Closer.closeQuietly(zipWriter, zipper, buff, out);
 		}
+		return out.toByteArray();
 	}
 	
 	public static byte[] compressObject(Object dto, String classAlias) throws IOException{
@@ -194,17 +197,15 @@ public class JDOSecondaryPropertyUtils {
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		BufferedOutputStream buff = new BufferedOutputStream(out);
 		GZIPOutputStream zipper = new GZIPOutputStream(buff);
+		Writer zipWriter = new OutputStreamWriter(zipper, UTF8);
 		try{
 			XStream xstream = createXStream();
 			xstream.alias(classAlias, dto.getClass());
-			xstream.toXML(dto, zipper);
-			zipper.flush();
-			zipper.close();
-			return out.toByteArray();
+			xstream.toXML(dto, zipWriter);
 		}finally{
-			zipper.flush();
-			zipper.close();
+			Closer.closeQuietly(zipWriter, zipper, buff, out);
 		}
+		return out.toByteArray();
 	}
 	
 	/**
@@ -218,16 +219,14 @@ public class JDOSecondaryPropertyUtils {
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		BufferedOutputStream buff = new BufferedOutputStream(out);
 		GZIPOutputStream zipper = new GZIPOutputStream(buff);
+		Writer zipWriter = new OutputStreamWriter(zipper, UTF8);
 		try{
 			XStream xstream = createXStream();
-			xstream.toXML(dto, zipper);
-			zipper.flush();
-			zipper.close();
-			return out.toByteArray();
+			xstream.toXML(dto, zipWriter);
 		}finally{
-			zipper.flush();
-			zipper.close();
+			Closer.closeQuietly(zipWriter, zipper, buff, out);
 		}
+		return out.toByteArray();
 	}
 
 	public static String toXml(NamedAnnotations dto) throws IOException{

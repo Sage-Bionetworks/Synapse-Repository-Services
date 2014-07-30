@@ -524,10 +524,13 @@ public class IT500SynapseJavaClient {
 	public void testSpecialCharacters() throws SynapseException {
 		UserProfile myProfile = synapseOne.getMyProfile();
 		String location = "Zürich"; // this string is encoded differently in UTF-8 than ISO-8859-1
+		String firstName = "Sławomir"; // this string can't be encoded in ISO-8859-1
 		myProfile.setLocation(location);
+		myProfile.setFirstName(firstName);
 		synapseOne.updateMyProfile(myProfile);
 		myProfile = synapseOne.getMyProfile();
 		assertEquals(location, myProfile.getLocation());
+		assertEquals(firstName, myProfile.getFirstName());
 	}
 
 	@Test

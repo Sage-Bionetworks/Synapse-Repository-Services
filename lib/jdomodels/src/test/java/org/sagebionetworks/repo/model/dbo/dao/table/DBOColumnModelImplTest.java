@@ -385,7 +385,7 @@ public class DBOColumnModelImplTest {
 		// The second has the same name but different type.
 		ColumnModel second = new ColumnModel();
 		second.setName(first.getName());
-		second.setColumnType(ColumnType.LONG);
+		second.setColumnType(ColumnType.INTEGER);
 		second = columnModelDao.createColumnModel(second);
 		// They should not have the same id
 		assertFalse("Two columns with the same name but different type should not have the same ID",first.getId().equals(second.getId()));

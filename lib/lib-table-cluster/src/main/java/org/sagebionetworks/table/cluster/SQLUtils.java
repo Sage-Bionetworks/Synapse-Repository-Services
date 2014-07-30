@@ -165,7 +165,7 @@ public class SQLUtils {
 			throw new IllegalArgumentException("ColumnType cannot be null");
 		}
 		switch (type) {
-		case LONG:
+		case INTEGER:
 		case FILEHANDLEID:
 		case DATE:
 			return "bigint(20)";
@@ -197,7 +197,7 @@ public class SQLUtils {
 				return value;
 			case DOUBLE:
 				return Double.parseDouble(value);
-			case LONG:
+			case INTEGER:
 			case FILEHANDLEID:
 				return Long.parseLong(value);
 			case DATE:
