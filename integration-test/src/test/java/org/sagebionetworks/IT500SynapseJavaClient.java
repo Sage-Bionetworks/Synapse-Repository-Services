@@ -160,9 +160,11 @@ public class IT500SynapseJavaClient {
 		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
 		adminSynapse.clearAllLocks();
 		synapseOne = new SynapseClientImpl();
+		SynapseClientHelper.setEndpoints(synapseOne);
 		user1ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseOne);
 		
 		synapseTwo = new SynapseClientImpl();
+		SynapseClientHelper.setEndpoints(synapseTwo);
 		user2ToDelete = SynapseClientHelper.createUser(adminSynapse, synapseTwo);
 		
 		synapseAnonymous = new SynapseAdminClientImpl();
