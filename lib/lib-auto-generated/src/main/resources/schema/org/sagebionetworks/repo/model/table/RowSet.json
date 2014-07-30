@@ -1,5 +1,5 @@
 {
-    "description":"Represents a set of row of a TablEntity",
+    "description":"Represents a set of row of a TableEntity",
     "properties":{
 		"tableId":{
 			"description":"The ID of the TableEntity than owns these rows",
