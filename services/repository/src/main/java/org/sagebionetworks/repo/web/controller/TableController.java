@@ -628,16 +628,14 @@ public class TableController extends BaseController {
 
 	/**
 	 * <p>
-	 * This method executes table queries exactly like <a
-	 * href="${POST.table.query}">POST /table/query</a> with the addition of the
-	 * extra parameter 'partsMask'. The mask allows for the request of
-	 * additional information about the executed query in a single service call.
-	 * The query results and all of the requested parts are returned in a single
-	 * bundle.
+	 * This method executes table queries exactly like <a href="${POST.table.query}">POST /table/query</a> with the
+	 * addition of the extra parameter 'partsMask'. The mask allows for the request of additional information about the
+	 * executed query in a single service call. The query results and all of the requested parts are returned in a
+	 * single bundle.
 	 * </p>
 	 * <p>
-	 * The 'partMask' is an integer "mask" that can be combined into to request
-	 * any desired part. As of this writing, the mask is defined as follows:
+	 * The 'partsMask' is an integer "mask" that can be combined into to request any desired part. As of this writing,
+	 * the mask is defined as follows:
 	 * <ul>
 	 * <li>Query Results <i>(queryResults)</i> = 0x1</li>
 	 * <li>Query Count <i>(queryCount)</i> = 0x2</li>
@@ -652,16 +650,12 @@ public class TableController extends BaseController {
 	 * 
 	 * @param userId
 	 * @param query
-	 * @param isConsistent
-	 *            Defaults to true. When true, a query will be run only if the
-	 *            index is up-to-date with all changes to the table and a
-	 *            read-lock is successfully acquired on the index. When set to
-	 *            false, the query will be run against the index regardless of
-	 *            the state of the index and without attempting to acquire a
-	 *            read-lock. When isConsistent is set to false the query results
-	 *            will not contain an etag so the results cannot be used as
-	 *            input to a table update.
-	 * @param mask
+	 * @param isConsistent Defaults to true. When true, a query will be run only if the index is up-to-date with all
+	 *        changes to the table and a read-lock is successfully acquired on the index. When set to false, the query
+	 *        will be run against the index regardless of the state of the index and without attempting to acquire a
+	 *        read-lock. When isConsistent is set to false the query results will not contain an etag so the results
+	 *        cannot be used as input to a table update.
+	 * @param partsMask
 	 * 
 	 * @return
 	 * @throws DatastoreException
@@ -676,16 +670,17 @@ public class TableController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody Query query,
 			@RequestParam(value = ServiceConstants.IS_CONSISTENT, required = false) Boolean isConsistent,
-			@RequestParam(value = ServiceConstants.PARTS_MASK, required = false) Integer partMask)
+			@RequestParam(value = ServiceConstants.PARTS_MASK, required = false) Integer partsMask)
 			throws DatastoreException, NotFoundException, IOException,
 			TableUnavilableException {
 		// By default isConsistent is true.
-		boolean isConsistentValue = true;
-		if (isConsistent != null) {
-			isConsistentValue = isConsistent;
+		if (isConsistent == null) {
+			isConsistent = true;
 		}
-		return serviceProvider.getTableServices().queryBundle(userId, query,
-				isConsistentValue, partMask);
+		if (partsMask == null) {
+			partsMask = -1;
+		}
+		return serviceProvider.getTableServices().queryBundle(userId, query, isConsistent, partsMask);
 	}
 
 }
