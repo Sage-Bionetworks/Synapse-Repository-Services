@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
@@ -54,16 +55,14 @@ public class SearchController extends BaseController {
 	 * @throws HttpClientHelperException
 	 * @throws DatastoreException
 	 * @throws NotFoundException
+	 * @throws ServiceUnavailableException
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = { "/search" }, method = RequestMethod.POST)
 	public @ResponseBody
-	SearchResults proxySearch(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody SearchQuery searchQuery,
-			HttpServletRequest request) throws ClientProtocolException,
-			IOException, HttpClientHelperException,
-			DatastoreException, NotFoundException {
+	SearchResults proxySearch(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @RequestBody SearchQuery searchQuery,
+			HttpServletRequest request) throws ClientProtocolException, IOException, HttpClientHelperException, DatastoreException,
+			NotFoundException, ServiceUnavailableException {
 		return serviceProvider.getSearchService().proxySearch(userId, searchQuery);
 	}
 
@@ -78,15 +77,13 @@ public class SearchController extends BaseController {
 	 * @throws JSONException
 	 * @throws DatastoreException
 	 * @throws NotFoundException
+	 * @throws ServiceUnavailableException
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { "/searchRaw" }, method = RequestMethod.GET)
-	public ModelAndView proxyRawSearch(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestParam(value = "q", required = false) String searchQuery,
-			HttpServletRequest request) throws ClientProtocolException,
-			IOException, HttpClientHelperException, JSONException,
-			DatastoreException, NotFoundException {
+	public ModelAndView proxyRawSearch(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(value = "q", required = false) String searchQuery, HttpServletRequest request) throws ClientProtocolException,
+			IOException, HttpClientHelperException, JSONException, DatastoreException, NotFoundException, ServiceUnavailableException {
 		return serviceProvider.getSearchService().proxyRawSearch(userId, searchQuery, request);
 	}
 }

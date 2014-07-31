@@ -25,6 +25,11 @@
 
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
+			<artifactId>lib-models</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
 			<artifactId>schema-to-pojo-org-json</artifactId>
 		</dependency>
 

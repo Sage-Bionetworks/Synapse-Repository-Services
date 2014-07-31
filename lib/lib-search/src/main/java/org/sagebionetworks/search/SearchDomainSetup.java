@@ -1,6 +1,5 @@
 package org.sagebionetworks.search;
 
-import java.net.UnknownHostException;
 import java.util.List;
 
 import com.amazonaws.services.cloudsearch.model.AccessPoliciesStatus;
@@ -8,16 +7,18 @@ import com.amazonaws.services.cloudsearch.model.DomainStatus;
 import com.amazonaws.services.cloudsearch.model.IndexFieldStatus;
 
 public interface SearchDomainSetup {
-
-	/**
-	 * Spring will call this method when the bean is first initialize.
-	 * @throws InterruptedException 
-	 * @throws UnknownHostException 
-	 */
-	public void initialize() throws InterruptedException, UnknownHostException;
 	
 	/**
+	 * Called by initializing worker. This method should check, initalize where necessary and return relatively quickly
+	 * (i.e. no long waits)
+	 * 
+	 * @return true when post initialization is done
+	 */
+	public boolean postInitialize() throws Exception;
+
+	/**
 	 * The name of of the search domain.
+	 * 
 	 * @return
 	 */
 	String getSearchDomainName();

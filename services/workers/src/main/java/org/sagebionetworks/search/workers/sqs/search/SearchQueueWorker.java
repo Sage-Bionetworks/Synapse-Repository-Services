@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.v2.dao.V2WikiPageDao;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.search.SearchDao;
 import org.sagebionetworks.utils.HttpClientHelperException;
 
@@ -163,13 +164,16 @@ public class SearchQueueWorker implements Callable<List<Message>> {
 
 	/**
 	 * Send the documents to search.
+	 * 
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 * @throws ClientProtocolException
 	 * @throws IOException
 	 * @throws HttpClientHelperException
+	 * @throws ServiceUnavailableException
 	 */
-	private void processCreateUpdateBatch() throws DatastoreException, ClientProtocolException, IOException, HttpClientHelperException {
+	private void processCreateUpdateBatch() throws DatastoreException, ClientProtocolException, IOException, HttpClientHelperException,
+			ServiceUnavailableException {
 		if(createOrUpdateMessages != null){
 			log.debug("Processing "+createOrUpdateMessages.size()+" create/update messages");
 			// Prepare a batch of documents
