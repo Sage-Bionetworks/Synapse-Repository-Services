@@ -29,7 +29,7 @@ public class PythonClientFilter implements Filter {
 		// intentionally left blank
 	}
 	
-	private static final String PYTHON_REQUEST_STRING = "python-request";
+	private static final String PYTHON_REQUEST_STRING = "python-requests";
 	private static final String SYNAPSE_CLIENT_STRING = "synapseclient";
 	
 	/**
@@ -113,15 +113,15 @@ public class PythonClientFilter implements Filter {
 			String responseCharacterEncoding = wrapper.getCharacterEncoding();
 			// ensure that the content-type omits the character set
 			if (responseContentType!=null) {
-				// it implicitly now specifies ISO-8895-1
+				// it implicitly now specifies ISO-8859-1
 				String charsetFreeContentType = responseContentType.getMimeType();
 				httpResponse.setContentType(charsetFreeContentType);
 			}
-			// ensure the body is written in ISO-8895-1
+			// ensure the body is written in ISO-8859-1
 			OutputStream out = httpResponse.getOutputStream();
 			try {
 				if (responseCharacterEncoding!=null && !responseCharacterEncoding.equals(HTTP_1_1_DEFAULT_CHARACTER_ENCODING)) {
-					// we have to change the character encoding to ISO-8895-1
+					// we have to change the character encoding to ISO-8859-1
 					String responseContentAsString = new String(wrapper.getData(), responseCharacterEncoding);
 					out.write(responseContentAsString.getBytes(HTTP_1_1_DEFAULT_CHARACTER_ENCODING));
 				} else {
