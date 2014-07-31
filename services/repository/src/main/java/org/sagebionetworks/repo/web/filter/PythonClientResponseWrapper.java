@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.web.filter;
 
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 
 import javax.servlet.http.HttpServletResponse;
@@ -66,7 +68,13 @@ public class PythonClientResponseWrapper extends GenericResponseWrapper {
 	}
 	
 	public PrintWriter getWriter() {
-		throw new UnsupportedOperationException("Use getOutputStream instead.");
+		try {
+			String charsetName = getCharacterEncoding();
+			if (charsetName==null) charsetName= "ISO-8859-1";
+			return new PrintWriter(new OutputStreamWriter(getOutputStream(), charsetName));
+		} catch (UnsupportedEncodingException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 }
