@@ -26,6 +26,7 @@ import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
+import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseConflictingUpdateException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseTableUnavailableException;
@@ -184,6 +185,13 @@ public class IT100TableControllerTest {
 		assertEquals(table.getId(), queryResults.getTableId());
 		assertNotNull(queryResults.getRows());
 		assertEquals(2, queryResults.getRows().size());
+
+		try {
+			waitForQueryResults("select * from " + table.getId() + " where one = 'x'", isConsistent,
+					countOnly);
+			fail("Should have failed die to missing LIMIT");
+		} catch (SynapseBadRequestException e) {
+		}
 
 		// get the rows direct
 		RowSet directResults = synapse.getRowsFromTable(results1);

@@ -523,7 +523,7 @@ public class TableRowManagerImpl implements TableRowManager {
 	 * @param columnModels
 	 * @param maxBytePerRequest
 	 */
-	public static void validateQuerySize(SqlQuery query, int maxBytePerRequest){
+	public void validateQuerySize(SqlQuery query, int maxBytePerRequest) {
 		Long limit = null;
 		if(query.getModel().getTableExpression().getPagination() != null){
 			limit = query.getModel().getTableExpression().getPagination().getLimit();
@@ -533,7 +533,8 @@ public class TableRowManagerImpl implements TableRowManager {
 		if(!selectColumns.isEmpty()){
 			// First make sure we have a limit
 			if(limit == null){
-				throw new IllegalArgumentException("Request exceed the maximum number of bytes per request because a LIMIT was not included in the query.");
+				Long maxRowsPerPage = getMaxRowsPerPage(selectColumns);
+				throw new IllegalArgumentException("LIMIT clause is required (between 1 and " + maxRowsPerPage + ")");
 			}
 			// Validate the request is under the max bytes per requested
 			if(!TableModelUtils.isRequestWithinMaxBytePerRequest(selectColumns, limit.intValue(), maxBytePerRequest)){
