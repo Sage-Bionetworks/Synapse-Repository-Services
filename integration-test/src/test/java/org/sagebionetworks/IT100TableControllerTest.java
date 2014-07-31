@@ -189,7 +189,7 @@ public class IT100TableControllerTest {
 		try {
 			waitForQueryResults("select * from " + table.getId() + " where one = 'x'", isConsistent,
 					countOnly);
-			fail("Should have failed die to missing LIMIT");
+			fail("Should have failed due to missing LIMIT");
 		} catch (SynapseBadRequestException e) {
 		}
 
