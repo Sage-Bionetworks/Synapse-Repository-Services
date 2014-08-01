@@ -1,6 +1,5 @@
 package org.sagebionetworks.search;
 
-import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -8,6 +7,7 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.cloudsearch.AmazonCloudSearchClient;
@@ -27,7 +27,7 @@ import com.amazonaws.services.cloudsearch.model.IndexField;
 import com.amazonaws.services.cloudsearch.model.IndexFieldStatus;
 import com.amazonaws.services.cloudsearch.model.UpdateServiceAccessPoliciesRequest;
 
-public class SearchDomainSetupImpl implements SearchDomainSetup {
+public class SearchDomainSetupImpl implements SearchDomainSetup, InitializingBean {
 
 	private static final String POLICY_TEMPLATE = "{\"Statement\": [{\"Effect\":\"Allow\", \"Action\": \"*\", \"Resource\": \"%1$s\", \"Condition\": { \"IpAddress\": { \"aws:SourceIp\": [\"%3$s\"] } }}, {\"Effect\":\"Allow\", \"Action\": \"*\", \"Resource\": \"%2$s\", \"Condition\": { \"IpAddress\": { \"aws:SourceIp\": [\"%3$s\"] } }} ] }";
 
@@ -38,12 +38,7 @@ public class SearchDomainSetupImpl implements SearchDomainSetup {
 
 	private static final String SEARCH_DOMAIN_NAME = String.format(SEARCH_DOMAIN_NAME_TEMPLATE, StackConfiguration.getStack(),	StackConfiguration.getStackInstance());
 
-	static private Logger log = LogManager.getLogger(SearchDaoImpl.class);
-	
-	/**
-	 * Used to ensure we only setup the search index once.
-	 */
-	private static volatile Boolean INITIALZED = null;
+	static private Logger log = LogManager.getLogger(SearchDomainSetupImpl.class);
 
 	@Autowired
 	AmazonCloudSearchClient awsSearchClient;
@@ -63,49 +58,46 @@ public class SearchDomainSetupImpl implements SearchDomainSetup {
 		this.isSearchEnabled = isSearchEnabled;
 	}
 
-	/**
-	 * Spring will call this method when the bean is first initialize.
-	 * 
-	 * @throws InterruptedException
-	 * @throws UnknownHostException
-	 */
-	public void initialize() throws InterruptedException, UnknownHostException {
+	@Override
+	public void afterPropertiesSet() throws Exception {
 		if(!isSearchEnabled()){
 			log.info("Search is disabled");
 			return;
 		}
-		log.info("initialize...");
-		long start = System.currentTimeMillis();
 		// Do we have a search index?
 		String domainName = getSearchDomainName();
 		log.info("Search domain name: " + domainName);
-		// If the domain is currently processing then wait for it.
-		// Note: We need to wait when the search domain is deleted before we can
-		// re-create it.
-		waitForDomainProcessing(domainName);
-		oneTimeOnlyInitailze(domainName);
-		long elapse = System.currentTimeMillis() - start;
-		log.info(String.format("Finished initializing search index: Elapse time: %1$tM:%1$tS:%1$tL (Min:Sec:MS)",	elapse));
 	}
 
-	/**
-	 * @param domainName
-	 * @throws InterruptedException
-	 */
-	public void oneTimeOnlyInitailze(String domainName)	throws InterruptedException {
-		if(INITIALZED == null){
-			// Create the domain it it does not already exist.
-			createDomainIfNeeded(domainName);
-			// Set the policy.
-			setPolicyIfNeeded(domainName);
-			// Define the schema
-			defineAndValidateSchema(domainName);
-			// Run indexing if needed
-			runIndexIfNeeded(domainName);
-			// Now wait for the domain if needed
-			waitForDomainProcessing(domainName);
-			INITIALZED = new Boolean(true);
+	@Override
+	public boolean postInitialize() throws Exception {
+		if (!isSearchEnabled()) {
+			log.info("Search is disabled");
+			return true;
 		}
+
+		String domainName = getSearchDomainName();
+		if (domainIsProcessing(domainName)) {
+			return false;
+		}
+
+		// Create the domain it it does not already exist.
+		createDomainIfNeeded(domainName);
+		// Set the policy.
+		setPolicyIfNeeded(domainName);
+		// Define the schema
+		defineAndValidateSchema(domainName);
+
+		// Run indexing if needed
+		runIndexIfNeeded(domainName);
+
+		// if we get here, and the domain is not processing, that means we are all done
+		if (!domainIsProcessing(domainName)) {
+			return true;
+		}
+
+		// we have to keep waiting
+		return false;
 	}
 
 	/**
@@ -269,6 +261,29 @@ public class SearchDomainSetupImpl implements SearchDomainSetup {
 			status = getDomainStatus(domainName);
 		}
 		log.info("Search domain is ready: " + status.toString());
+	}
+
+	/**
+	 * Wait for a domain
+	 * 
+	 * @param domainName
+	 * @throws InterruptedException
+	 */
+	private boolean domainIsProcessing(String domainName) {
+		DomainStatus status = getDomainStatus(domainName);
+		if (status == null) {
+			// The domain does not exist, so isn't processing
+			return false;
+		}
+		if (!status.isProcessing()) {
+			return false;
+		}
+		// it is processing, but if it is deleted, it doesn't matter
+		if (status.isDeleted()) {
+			log.warn("Search domain: " + domainName + " has been deleted!");
+			return false;
+		}
+		return true;
 	}
 
 	/**

@@ -27,6 +27,7 @@
 				<ref bean="messagePublisherTrigger" />
 	            <ref bean="refreshUserGroupCacheTrigger" />
 	            <ref bean="refreshTeamMemberCacheTrigger" />
+	            <ref bean="cloudSearchInitializerTrigger" />
 			</list>
 		</property>
 	</bean>

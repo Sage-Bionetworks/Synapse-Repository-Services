@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.search.Hit;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.search.SearchConstants;
 import org.sagebionetworks.search.SearchDao;
 import org.sagebionetworks.utils.HttpClientHelperException;
@@ -75,7 +76,7 @@ public class SearchServiceImpl implements SearchService {
 	public @ResponseBody
 	SearchResults proxySearch(Long userId, SearchQuery searchQuery) 
 			throws ClientProtocolException,	IOException, HttpClientHelperException,
-			DatastoreException, NotFoundException {
+			DatastoreException, NotFoundException, ServiceUnavailableException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return proxySearch(userInfo, searchQuery);
 	}
@@ -88,9 +89,10 @@ public class SearchServiceImpl implements SearchService {
 	 * @throws ClientProtocolException
 	 * @throws IOException
 	 * @throws HttpClientHelperException
+	 * @throws ServiceUnavailableException
 	 */
-	public SearchResults proxySearch(UserInfo userInfo, SearchQuery searchQuery)	throws UnsupportedEncodingException, ClientProtocolException,
-			IOException, HttpClientHelperException {
+	public SearchResults proxySearch(UserInfo userInfo, SearchQuery searchQuery) throws UnsupportedEncodingException,
+			ClientProtocolException, IOException, HttpClientHelperException, ServiceUnavailableException {
 		boolean includePath = false;
 		if(searchQuery.getReturnFields() != null && searchQuery.getReturnFields().contains(SearchConstants.FIELD_PATH)){
 			includePath = true;
@@ -169,10 +171,8 @@ public class SearchServiceImpl implements SearchService {
 	 * @see org.sagebionetworks.repo.web.service.SearchService#proxyRawSearch(java.lang.String, java.lang.String, javax.servlet.http.HttpServletRequest)
 	 */
 	@Override
-	public ModelAndView proxyRawSearch(Long userId, String searchQuery,
-			HttpServletRequest request) throws ClientProtocolException,
-			IOException, HttpClientHelperException, JSONException,
-			DatastoreException, NotFoundException {
+	public ModelAndView proxyRawSearch(Long userId, String searchQuery, HttpServletRequest request) throws ClientProtocolException,
+			IOException, HttpClientHelperException, JSONException, DatastoreException, NotFoundException, ServiceUnavailableException {
 
 		log.debug("Got raw query " + searchQuery);
 
@@ -188,10 +188,11 @@ public class SearchServiceImpl implements SearchService {
 	 * @throws ClientProtocolException
 	 * @throws IOException
 	 * @throws HttpClientHelperException
+	 * @throws ServiceUnavailableException
 	 */
 	public ModelAndView proxyRawSearch(String searchQuery, UserInfo userInfo)
 			throws UnsupportedEncodingException, ClientProtocolException,
-			IOException, HttpClientHelperException {
+			IOException, HttpClientHelperException, ServiceUnavailableException {
 		searchQuery = filterSeachForAuthorization(userInfo, searchQuery);
 
 		// Merge boolean queries as needed and escape them

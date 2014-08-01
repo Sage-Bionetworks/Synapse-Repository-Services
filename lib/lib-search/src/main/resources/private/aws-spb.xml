@@ -13,8 +13,6 @@
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 	
-	<import resource="stack-configuration.spb.xml" />
-
 	<bean id="userID" class="org.sagebionetworks.StackConfiguration" factory-method="getIAMUserId"/>
 	<bean id="userKey" class="org.sagebionetworks.StackConfiguration" factory-method="getIAMUserKey"/>
 	
