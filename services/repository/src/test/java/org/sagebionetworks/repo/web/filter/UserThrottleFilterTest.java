@@ -1,45 +1,22 @@
 package org.sagebionetworks.repo.web.filter;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.Callable;
-
 import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
 
-import org.joda.time.DateTime;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.dao.semaphore.SemaphoreGatedRunner;
-import org.sagebionetworks.repo.model.exception.LockUnavilableException;
-import org.sagebionetworks.repo.model.DomainType;
-import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.securitytools.HMACUtils;
-import org.springframework.mock.web.MockFilterChain;
+import org.sagebionetworks.repo.model.dao.semaphore.CountingSemaphoreDao;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -48,11 +25,11 @@ public class UserThrottleFilterTest {
 
 	private UserThrottleFilter filter;
 
-	private SemaphoreGatedRunner userThrottleGate;
+	private CountingSemaphoreDao userThrottleGate;
 
 	@Before
 	public void setupFilter() throws Exception {
-		userThrottleGate = mock(SemaphoreGatedRunner.class);
+		userThrottleGate = mock(CountingSemaphoreDao.class);
 		filter = new UserThrottleFilter();
 		filter.setUserThrottleGate(userThrottleGate);
 	}
@@ -70,7 +47,6 @@ public class UserThrottleFilterTest {
 		verifyNoMoreInteractions(filterChain, userThrottleGate);
 	}
 
-	@SuppressWarnings("unchecked")
 	@Test
 	public void testNotAnonymous() throws Exception {
 		MockHttpServletRequest request = new MockHttpServletRequest();
@@ -78,20 +54,15 @@ public class UserThrottleFilterTest {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		FilterChain filterChain = mock(FilterChain.class);
 
-		when(userThrottleGate.attemptToRunAllSlots(any(Callable.class), eq("111"))).thenAnswer(new Answer<Void>() {
-			@Override
-			public Void answer(InvocationOnMock invocation) throws Throwable {
-				return ((Callable<Void>) invocation.getArguments()[0]).call();
-			}
-		});
+		when(userThrottleGate.attemptToAcquireLock("111")).thenReturn("token");
 		filter.doFilter(request, response, filterChain);
 
 		verify(filterChain).doFilter(request, response);
-		verify(userThrottleGate).attemptToRunAllSlots(any(Callable.class), eq("111"));
+		verify(userThrottleGate).attemptToAcquireLock("111");
+		verify(userThrottleGate).releaseLock("token", "111");
 		verifyNoMoreInteractions(filterChain, userThrottleGate);
 	}
 
-	@SuppressWarnings("unchecked")
 	@Test(expected = ServletException.class)
 	public void testException() throws Exception {
 		MockHttpServletRequest request = new MockHttpServletRequest();
@@ -99,16 +70,15 @@ public class UserThrottleFilterTest {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		FilterChain filterChain = mock(FilterChain.class);
 
-		when(userThrottleGate.attemptToRunAllSlots(any(Callable.class), eq("111"))).thenThrow(new Exception());
+		when(userThrottleGate.attemptToAcquireLock("111")).thenThrow(new RuntimeException());
 		try {
 			filter.doFilter(request, response, filterChain);
 		} finally {
-			verify(userThrottleGate).attemptToRunAllSlots(any(Callable.class), eq("111"));
+			verify(userThrottleGate).attemptToAcquireLock("111");
 			verifyNoMoreInteractions(filterChain, userThrottleGate);
 		}
 	}
 
-	@SuppressWarnings("unchecked")
 	@Test
 	public void testNoEmptySlots() throws Exception {
 		MockHttpServletRequest request = new MockHttpServletRequest();
@@ -118,12 +88,12 @@ public class UserThrottleFilterTest {
 		Consumer consumer = mock(Consumer.class);
 		ReflectionTestUtils.setField(filter, "consumer", consumer);
 
-		when(userThrottleGate.attemptToRunAllSlots(any(Callable.class), eq("111"))).thenThrow(new LockUnavilableException());
+		when(userThrottleGate.attemptToAcquireLock("111")).thenReturn(null);
 
 		filter.doFilter(request, response, filterChain);
 		assertEquals(503, response.getStatus());
 
-		verify(userThrottleGate).attemptToRunAllSlots(any(Callable.class), eq("111"));
+		verify(userThrottleGate).attemptToAcquireLock("111");
 		verify(consumer).addProfileData(any(ProfileData.class));
 		verifyNoMoreInteractions(filterChain, userThrottleGate, consumer);
 	}
