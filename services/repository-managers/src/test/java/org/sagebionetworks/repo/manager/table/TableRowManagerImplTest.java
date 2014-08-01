@@ -99,6 +99,7 @@ public class TableRowManagerImplTest {
 	long rowVersionSequence;
 	int maxBytesPerRequest;
 	
+	@SuppressWarnings("unchecked")
 	@Before
 	public void before() throws Exception {
 		Assume.assumeTrue(StackConfiguration.singleton().getTableEnabled());
@@ -192,6 +193,7 @@ public class TableRowManagerImplTest {
 				RowReferenceSet results = new RowReferenceSet();
 				String tableId = (String) invocation.getArguments()[1];
 				List<String> columnModels = (List<String>) invocation.getArguments()[2];
+				assertNotNull(columnModels);
 				RowSet rowset = (RowSet) invocation.getArguments()[3];
 				results.setTableId(tableId);
 				results.setEtag("etag"+rowVersionSequence);
@@ -199,7 +201,7 @@ public class TableRowManagerImplTest {
 				results.setRows(resultsRefs);
 				if(rowset != null){
 					// Set the id an version for each row
-					for(Row row: rowset.getRows()){
+					for(@SuppressWarnings("unused") Row row: rowset.getRows()){
 						RowReference ref = new RowReference();
 						ref.setRowId(rowIdSequence);
 						ref.setVersionNumber(rowVersionSequence);
@@ -251,8 +253,9 @@ public class TableRowManagerImplTest {
 	public void testAppendRowsAsStreamHappy() throws DatastoreException, NotFoundException, IOException{
 		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(true);
 		when(mockAuthManager.canAccessRawFileHandleById(eq(user), anyString())).thenReturn(true);
-		when(mockTruthDao.appendRowSetToTable(any(String.class), any(String.class), any(List.class), any(RowSet.class), anyBoolean()))
-				.thenReturn(refSet);
+		when(
+				mockTruthDao.appendRowSetToTable(any(String.class), any(String.class), anyListOf(ColumnModel.class), any(RowSet.class),
+						anyBoolean())).thenReturn(refSet);
 		RowReferenceSet results = new RowReferenceSet();
 		String etag = manager.appendRowsAsStream(user, tableId, models, set.getRows().iterator(), "etag", results);
 		assertEquals(refSet, results);
@@ -664,6 +667,7 @@ public class TableRowManagerImplTest {
 	 * 
 	 * @throws Exception
 	 */
+	@SuppressWarnings("unchecked")
 	@Test
 	public void testQueryIsConsistentTrueLockUnavilableException() throws Exception {
 		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(true);
@@ -686,7 +690,7 @@ public class TableRowManagerImplTest {
 	@Test
 	public void testValidateQuerySizeAggregation() throws ParseException{
 		ColumnModel foo = new ColumnModel();
-		foo.setColumnType(ColumnType.LONG);
+		foo.setColumnType(ColumnType.INTEGER);
 		foo.setId("111");
 		foo.setName("foo");
 		ColumnModel bar = new ColumnModel();
@@ -697,13 +701,13 @@ public class TableRowManagerImplTest {
 		SqlQuery query = new SqlQuery("select count(foo) from syn123", models);
 		
 		// Aggregate queries are always small enough to run. 
-		TableRowManagerImpl.validateQuerySize(query, 1);
+		manager.validateQuerySize(query, 1);
 	}
 	
 	@Test
 	public void testValidateQuerySizeMissingLimit() throws ParseException{
 		ColumnModel foo = new ColumnModel();
-		foo.setColumnType(ColumnType.LONG);
+		foo.setColumnType(ColumnType.INTEGER);
 		foo.setId("111");
 		foo.setName("foo");
 		ColumnModel bar = new ColumnModel();
@@ -716,18 +720,18 @@ public class TableRowManagerImplTest {
 		
 		int maxBytesPerRow = TableModelUtils.calculateMaxRowSize(models);
 		try{
-			TableRowManagerImpl.validateQuerySize(query, maxBytesPerRow*1000);
+			manager.validateQuerySize(query, maxBytesPerRow * 1000);
 			fail("There is no limit on this query so it should have failed.");
 		}catch (IllegalArgumentException e){
 			// expected
-			assertTrue(e.getMessage().contains("LIMIT"));
+			assertTrue(e.getMessage().contains("LIMIT") && e.getMessage().contains("between 1 and 434782"));
 		}
 	}
 	
 	@Test
 	public void testValidateQuerySizeUnderLimit() throws ParseException{
 		ColumnModel foo = new ColumnModel();
-		foo.setColumnType(ColumnType.LONG);
+		foo.setColumnType(ColumnType.INTEGER);
 		foo.setId("111");
 		foo.setName("foo");
 		ColumnModel bar = new ColumnModel();
@@ -740,13 +744,13 @@ public class TableRowManagerImplTest {
 		
 		int maxBytesPerRow = TableModelUtils.calculateMaxRowSize(models);
 		// this is under the limit
-		TableRowManagerImpl.validateQuerySize(query, maxBytesPerRow*2+1);
+		manager.validateQuerySize(query, maxBytesPerRow * 2 + 1);
 	}
 	
 	@Test 
 	public void testValidateQuerySizeOverLimit() throws ParseException{
 		ColumnModel foo = new ColumnModel();
-		foo.setColumnType(ColumnType.LONG);
+		foo.setColumnType(ColumnType.INTEGER);
 		foo.setId("111");
 		foo.setName("foo");
 		ColumnModel bar = new ColumnModel();
@@ -762,7 +766,7 @@ public class TableRowManagerImplTest {
 		int testMaxBytesPerRow = maxBytesPerRow*2-1;
 		// this is under the limit
 		try{
-			TableRowManagerImpl.validateQuerySize(query, testMaxBytesPerRow);
+			manager.validateQuerySize(query, testMaxBytesPerRow);
 			fail("There is no limit on this query so it should have failed.");
 		}catch (IllegalArgumentException e){
 			// expected

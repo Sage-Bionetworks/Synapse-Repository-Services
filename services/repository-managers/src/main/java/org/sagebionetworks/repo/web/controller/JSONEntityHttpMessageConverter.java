@@ -85,6 +85,9 @@ public class JSONEntityHttpMessageConverter implements	HttpMessageConverter<JSON
 	
 	// This is specified by HTTP 1.1
 	private static final Charset HTTP_1_1_DEFAULT_CHARSET = Charset.forName("ISO-8859-1");
+	
+	// This is the character set used by Synapse if the client does not specify one
+	private static final Charset SYNAPSE_DEFAULT_CHARSET = Charset.forName("UTF-8");
 
 	@Override
 	public JSONEntity read(Class<? extends JSONEntity> clazz, HttpInputMessage inputMessage) throws IOException,
@@ -201,12 +204,12 @@ public class JSONEntityHttpMessageConverter implements	HttpMessageConverter<JSON
 		try {
 			MediaType contentTypeForResponseHeader = contentType;
 			if (contentTypeForResponseHeader.isWildcardType() || contentTypeForResponseHeader.isWildcardSubtype()) {
+				// this will leave the character set unspecified, but we fill that in below
 				contentTypeForResponseHeader = MediaType.APPLICATION_JSON;
 			}
 			Charset charsetForSerializingBody = contentTypeForResponseHeader.getCharSet();
 			if (charsetForSerializingBody==null) {
-				// HTTP 1.1 says that the default is ISO-8859-1
-				charsetForSerializingBody = HTTP_1_1_DEFAULT_CHARSET;
+				charsetForSerializingBody = SYNAPSE_DEFAULT_CHARSET;
 				// Let's make it explicit in the response header
 				contentTypeForResponseHeader = new MediaType(
 						contentTypeForResponseHeader.getType(),

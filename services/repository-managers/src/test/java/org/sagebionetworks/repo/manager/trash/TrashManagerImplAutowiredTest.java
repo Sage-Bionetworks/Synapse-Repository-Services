@@ -909,6 +909,34 @@ public class TrashManagerImplAutowiredTest {
 		assertTrue(nodeDAO.doesNodeExist(KeyFactory.stringToKey(nodeIdB2)));
 		assertFalse(nodeDAO.doesNodeExist(KeyFactory.stringToKey(nodeIdC1)));
 	}
+	
+	@Test(expected=ParentInTrashCanException.class)
+	public void testRestoreToParentThatIsInTrashCan() throws Exception {
+		// A --> Parent
+		final Node nodeA = new Node();
+		final String nodeNameA = "TrashManagerImplAutowiredTest.testRestoreToParentThatIsInTrashCan() A";
+		nodeA.setName(nodeNameA);
+		nodeA.setNodeType(EntityType.project.name());
+		final String nodeIdA = nodeManager.createNewNode(nodeA, testUserInfo);
+		assertNotNull(nodeIdA);
+		toClearList.add(nodeIdA);
+		
+		// B --> Child
+		final Node nodeB = new Node();
+		final String nodeNameB = "TrashManagerImplAutowiredTest.testRestoreToParentThatIsInTrashCan() B";
+		nodeB.setName(nodeNameB);
+		nodeB.setNodeType(EntityType.folder.name());
+		nodeB.setParentId(nodeIdA);
+		final String nodeIdB = nodeManager.createNewNode(nodeB, testUserInfo);
+		assertNotNull(nodeIdB);
+		toClearList.add(nodeIdB);
+		
+		// Move both to trash.
+		trashManager.moveToTrash(testUserInfo, nodeIdA);
+		
+		// Restore B from trash.
+		trashManager.restoreFromTrash(testUserInfo, nodeIdB, nodeIdA);
+	}
 
 	@Test(expected=EntityInTrashCanException.class)
 	public void testCanDownload() throws Exception {

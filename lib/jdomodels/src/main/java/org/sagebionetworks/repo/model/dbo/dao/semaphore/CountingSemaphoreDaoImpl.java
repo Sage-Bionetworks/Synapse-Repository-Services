@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.exception.LockReleaseFailedException;
 import org.springframework.beans.factory.BeanNameAware;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Required;
+import org.springframework.dao.DeadlockLoserDataAccessException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -46,12 +47,6 @@ public class CountingSemaphoreDaoImpl implements CountingSemaphoreDao, BeanNameA
 			+ " = ? AND " + COL_COUNTING_SEMAPHORE_LOCK_TOKEN + " = ?";
 
 	static private Logger log = LogManager.getLogger(CountingSemaphoreDaoImpl.class);
-
-	/**
-	 * Write-lock-precursor cannot be held for more than this time. Note: Each time the precursor token is used to
-	 * attempt to acquire the write-lock the time is reset.
-	 */
-	public static final long WRITE_LOCK_PRECURSOR_TIMEOUT = 5000;// 5 SECDONS
 
 	@Autowired
 	private DBOBasicDao basicDao;
@@ -106,32 +101,39 @@ public class CountingSemaphoreDaoImpl implements CountingSemaphoreDao, BeanNameA
 		}
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW, noRollbackFor = DeadlockLoserDataAccessException.class)
 	@Override
 	public String attemptToAcquireLock() {
-		// First lock on the exclusive table entry
-		try {
-			jdbcTemplate.queryForObject(SQL_SELECT_EXCLUSIVE_FOR_UPDATE, String.class, key);
-		} catch (EmptyResultDataAccessException e) {
-			// if the semaphore was removed from the table due to testing, recreate it here and retry
-			init();
-			jdbcTemplate.queryForObject(SQL_SELECT_EXCLUSIVE_FOR_UPDATE, String.class, key);
-		}
+		// insert a new lock entry, retry on contention
+		for (int i = 0; i < 3; i++) {
+			try {
+				// First lock on the exclusive table entry
+				try {
+					jdbcTemplate.queryForObject(SQL_SELECT_EXCLUSIVE_FOR_UPDATE, String.class, key);
+				} catch (EmptyResultDataAccessException e) {
+					// if the semaphore was removed from the table due to testing, recreate it here and retry
+					init();
+					jdbcTemplate.queryForObject(SQL_SELECT_EXCLUSIVE_FOR_UPDATE, String.class, key);
+				}
 
-		// Count the number of current locks
-		long count = countOutstandingNonExpiredLocks();
-		if (count >= this.maxCount) {
-			// all locks taken!
-			return null;
-		}
+				// Count the number of current locks
+				long count = countOutstandingNonExpiredLocks();
+				if (count >= this.maxCount) {
+					// all locks taken!
+					return null;
+				}
 
-		// insert a new lock entry
-		DBOCountingSemaphore shared = new DBOCountingSemaphore();
-		shared.setKey(key);
-		shared.setToken(UUID.randomUUID().toString());
-		shared.setExpires(System.currentTimeMillis() + lockTimeoutMS);
-		basicDao.createNew(shared);
-		return shared.getToken();
+				DBOCountingSemaphore shared = new DBOCountingSemaphore();
+				shared.setKey(key);
+				shared.setToken(UUID.randomUUID().toString());
+				shared.setExpires(System.currentTimeMillis() + lockTimeoutMS);
+				basicDao.createNew(shared);
+				return shared.getToken();
+			} catch (DeadlockLoserDataAccessException e) {
+			}
+		}
+		// could not acquire due to too many deadlocks
+		return null;
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)

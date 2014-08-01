@@ -228,7 +228,7 @@ public class TableModelUtils {
 								+ "'");
 					}
 					return Boolean.toString(boolValue);
-				case LONG:
+				case INTEGER:
 				case FILEHANDLEID:
 					long lv = Long.parseLong(value);
 					return Long.toString(lv);
@@ -700,9 +700,9 @@ public class TableModelUtils {
 			return (int) (ColumnConstants.MAX_BYTES_PER_CHAR_UTF_8 * maxSize);
 		case BOOLEAN:
 			return ColumnConstants.MAX_BOOLEAN_BYTES_AS_STRING;
-		case LONG:
+		case INTEGER:
 		case DATE:
-			return ColumnConstants.MAX_LONG_BYTES_AS_STRING;
+			return ColumnConstants.MAX_INTEGER_BYTES_AS_STRING;
 		case DOUBLE:
 			return ColumnConstants.MAX_DOUBLE_BYTES_AS_STRING;
 		case FILEHANDLEID:

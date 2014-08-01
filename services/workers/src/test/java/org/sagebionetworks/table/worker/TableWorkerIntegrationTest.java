@@ -570,7 +570,7 @@ public class TableWorkerIntegrationTest {
 			IOException {
 		schema = new LinkedList<ColumnModel>();
 		ColumnModel cm = new ColumnModel();
-		cm.setColumnType(ColumnType.LONG);
+		cm.setColumnType(ColumnType.INTEGER);
 		cm.setName("col1");
 		cm = columnManager.createColumnModel(adminUserInfo, cm);
 		schema.add(cm);
@@ -889,7 +889,7 @@ public class TableWorkerIntegrationTest {
 		// Create one column of each type
 		List<ColumnModel> temp = new LinkedList<ColumnModel>();
 		temp.add(TableModelTestUtils.createColumn(0L, "a", ColumnType.STRING));
-		temp.add(TableModelTestUtils.createColumn(0L, "b", ColumnType.LONG));
+		temp.add(TableModelTestUtils.createColumn(0L, "b", ColumnType.INTEGER));
 		temp.add(TableModelTestUtils.createColumn(0L, "c", ColumnType.DOUBLE));
 		schema = new LinkedList<ColumnModel>();
 		for(ColumnModel cm: temp){

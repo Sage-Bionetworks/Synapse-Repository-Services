@@ -45,6 +45,7 @@ public class UserProfileControllerAutowiredTest extends AbstractAutowiredControl
 	private EntityService entityService;
 
 	private Long adminUserId;
+	String oldLocation;
 
 	private List<String> favoritesToDelete;
 	private List<String> entityIdsToDelete;
@@ -61,10 +62,12 @@ public class UserProfileControllerAutowiredTest extends AbstractAutowiredControl
 		
 		mockRequest = Mockito.mock(HttpServletRequest.class);
 		when(mockRequest.getServletPath()).thenReturn("/repo/v1");
+
+		oldLocation = servletTestHelper.getUserProfile(dispatchServlet, adminUserId).getLocation();
 	}
 	
 	@After
-	public void after() throws UnauthorizedException {
+	public void after() throws Exception {
 		if (userProfileService != null && favoritesToDelete != null) {
 			for (String entityId : favoritesToDelete) {
 				try {
@@ -87,16 +90,22 @@ public class UserProfileControllerAutowiredTest extends AbstractAutowiredControl
 				}
 			}
 		}		
+		UserProfile userProfile = servletTestHelper.getUserProfile(dispatchServlet, adminUserId);
+		userProfile.setLocation(oldLocation);
+		servletTestHelper.updateUserProfile(adminUserId, userProfile);
 	}
 	
 	@Test
 	public void testSpecialCharacters() throws Exception {
-		String location = "Zürich";
+		String location = "Zürich"; 
+		String firstName = "Sławomir";
 		UserProfile userProfile = servletTestHelper.getUserProfile(dispatchServlet, adminUserId);
 		userProfile.setLocation(location);
+		userProfile.setFirstName(firstName);
 		servletTestHelper.updateUserProfile(adminUserId, userProfile);
 		userProfile = servletTestHelper.getUserProfile(dispatchServlet, adminUserId);
 		assertEquals(location, userProfile.getLocation());
+		assertEquals(firstName, userProfile.getFirstName());
 	}
 	
 	
