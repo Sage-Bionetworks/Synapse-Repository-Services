@@ -2,8 +2,8 @@ package org.sagebionetworks.repo.web.filter;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.PrintWriter;
 import java.nio.charset.Charset;
-import java.util.Collection;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -119,6 +119,9 @@ public class PythonClientFilter implements Filter {
 			}
 			// ensure the body is written in ISO-8859-1
 			OutputStream out = httpResponse.getOutputStream();
+			PrintWriter pw = wrapper.getWriter();
+			pw.flush();
+			pw.close();
 			try {
 				if (responseCharacterEncoding!=null && !responseCharacterEncoding.equals(HTTP_1_1_DEFAULT_CHARACTER_ENCODING)) {
 					// we have to change the character encoding to ISO-8859-1

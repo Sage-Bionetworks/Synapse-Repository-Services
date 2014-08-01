@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -99,7 +100,7 @@ public class IT503PythonClientFilter {
 		requestHeaders.put("Accept", "application/json");
 		// before issuing the request, set the User-Agent to indicate the affected Python client
 		// Per Chris, if there's 'python-request' in the string and no 'synapseclient' then it's python client <0.5 and affected
-		requestHeaders.put("User-Agent", "python-request/foo");
+		requestHeaders.put("User-Agent", "python-requests/foo");
 		UserSessionData userSessionData = synapseOne.getUserSessionData();
 		String sessionToken = userSessionData.getSession().getSessionToken();
 		requestHeaders.put("sessionToken", sessionToken);
@@ -115,9 +116,7 @@ public class IT503PythonClientFilter {
 		Header contentTypeHeader = responseEntity.getContentType();
 		String contentTypeString = contentTypeHeader.getValue();
 		ContentType contentType = ContentType.parse(contentTypeString);
-		byte[] bytes = new byte[(int)responseEntity.getContentLength()];
-		responseEntity.getContent().read(bytes);
-		String responseBody = new String(bytes, "ISO-8859-1");
+		String responseBody = IOUtils.toString(responseEntity.getContent(), "ISO-8859-1");
 		System.out.println(responseBody);
 		assertEquals(expectedStatus, statusCode);
 		assertNull("Content-Type: "+contentTypeString, contentType.getCharset());
@@ -134,7 +133,7 @@ public class IT503PythonClientFilter {
 		requestHeaders.put("Accept", "application/json");
 		// before issuing the request, set the User-Agent to indicate the affected Python client
 		// Per Chris, if there's 'python-request' in the string and no 'synapseclient' then it's python client <0.5 and affected
-		requestHeaders.put("User-Agent", "python-request/foo");
+		requestHeaders.put("User-Agent", "python-requests/foo");
 		UserSessionData userSessionData = synapseOne.getUserSessionData();
 		String sessionToken = userSessionData.getSession().getSessionToken();
 		requestHeaders.put("sessionToken", sessionToken);
@@ -167,7 +166,8 @@ public class IT503PythonClientFilter {
 		requestBody = EntityFactory.createJSONStringForEntity(chunkRequest);
 		uri = "/createChunkedFileUploadChunkURL";
 		response = conn.performRequest(endpoint+uri, "POST", requestBody, requestHeaders);
-		checkNoCharEncoding(response, 201);
+		body = checkNoCharEncoding(response, 201);
+		assertTrue(body.length()>0);
 	}
 
 }
