@@ -14,6 +14,8 @@ import javax.annotation.PostConstruct;
 import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.ImmutablePropertyAccessor;
+import org.sagebionetworks.PropertyAccessor;
 import org.sagebionetworks.repo.model.dao.semaphore.CountingSemaphoreDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCountingSemaphore;
@@ -56,7 +58,7 @@ public class CountingSemaphoreDaoImpl implements CountingSemaphoreDao, BeanNameA
 
 	private long lockTimeoutMS;
 	private String key;
-	private int maxCount;
+	private PropertyAccessor<Integer> maxCount = null;
 
 	@Required
 	public void setLockTimeoutMS(long lockTimeoutMS) {
@@ -74,57 +76,75 @@ public class CountingSemaphoreDaoImpl implements CountingSemaphoreDao, BeanNameA
 		this.key = key;
 	}
 
-	@Required
 	public void setMaxCount(int maxCount) {
 		if (maxCount < 1) {
 			throw new IllegalArgumentException("maxCount should be 1 or more, but was: " + maxCount);
 		}
+		this.maxCount = ImmutablePropertyAccessor.create(maxCount);
+	}
+
+	public void setMaxCountAccessor(PropertyAccessor<Integer> maxCount) {
 		this.maxCount = maxCount;
 	}
 
 	@PostConstruct
 	public void init() {
+		if (maxCount == null) {
+			throw new IllegalArgumentException("either maxCount or maxCountAccessor is required");
+		}
 		if (StringUtils.isBlank(key)) {
 			throw new IllegalArgumentException("bean name should be set");
 		}
-		// create the exclusive lock entry
-		DBOLockMaster lockMaster = new DBOLockMaster();
-		lockMaster.setKey(key);
-		try {
-			log.info("Creating counting semaphore " + key);
-			basicDao.createNew(lockMaster);
-		} catch (IllegalArgumentException e) {
-			if (e.getCause() != null && e.getCause().getClass() != DuplicateKeyException.class) {
-				// we expect this one to happen on restart or during testing
-				throw e;
-			}
-		}
+		createMaster(key);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW, noRollbackFor = DeadlockLoserDataAccessException.class)
 	@Override
 	public String attemptToAcquireLock() {
-		// insert a new lock entry, retry on contention
+		return doAttemptToAcquireLock(null);
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW, noRollbackFor = DeadlockLoserDataAccessException.class)
+	@Override
+	public String attemptToAcquireLock(String extraKey) {
+		return doAttemptToAcquireLock(extraKey);
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
+	@Override
+	public void releaseLock(String token) {
+		doReleaseLock(token, null);
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
+	@Override
+	public void releaseLock(String token, String extraKey) {
+		doReleaseLock(token, extraKey);
+	}
+
+	private String doAttemptToAcquireLock(String extraKey) {
+		String keyName = getKeyName(extraKey);
 		for (int i = 0; i < 3; i++) {
 			try {
 				// First lock on the exclusive table entry
 				try {
-					jdbcTemplate.queryForObject(SQL_SELECT_EXCLUSIVE_FOR_UPDATE, String.class, key);
+					jdbcTemplate.queryForObject(SQL_SELECT_EXCLUSIVE_FOR_UPDATE, String.class, keyName);
 				} catch (EmptyResultDataAccessException e) {
-					// if the semaphore was removed from the table due to testing, recreate it here and retry
-					init();
-					jdbcTemplate.queryForObject(SQL_SELECT_EXCLUSIVE_FOR_UPDATE, String.class, key);
+					// if the semaphore was removed from the table due to testing or the extraKey is a new one, recreate
+					// the master here and retry
+					createMaster(keyName);
+					jdbcTemplate.queryForObject(SQL_SELECT_EXCLUSIVE_FOR_UPDATE, String.class, keyName);
 				}
 
 				// Count the number of current locks
-				long count = countOutstandingNonExpiredLocks();
-				if (count >= this.maxCount) {
+				long count = countOutstandingNonExpiredLocks(keyName);
+				if (count >= this.maxCount.get()) {
 					// all locks taken!
 					return null;
 				}
 
 				DBOCountingSemaphore shared = new DBOCountingSemaphore();
-				shared.setKey(key);
+				shared.setKey(keyName);
 				shared.setToken(UUID.randomUUID().toString());
 				shared.setExpires(System.currentTimeMillis() + lockTimeoutMS);
 				basicDao.createNew(shared);
@@ -136,21 +156,46 @@ public class CountingSemaphoreDaoImpl implements CountingSemaphoreDao, BeanNameA
 		return null;
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
-	@Override
-	public void releaseLock(String token) {
-		int update = jdbcTemplate.update(SQL_RELEASE_LOCK, key, token);
+	private void doReleaseLock(String token, String extraKey) {
+		String keyName = getKeyName(extraKey);
+		int update = jdbcTemplate.update(SQL_RELEASE_LOCK, keyName, token);
 		if (update < 1) {
-			throw new LockReleaseFailedException("Failed to release the lock for key: " + key + " and token: " + token
+			throw new LockReleaseFailedException("Failed to release the lock for key: " + keyName + " and token: " + token
 					+ ".  Expired locks can be forcibly removed.");
 		}
 	}
 
-	private long countOutstandingNonExpiredLocks() {
+	private String getKeyName(String extraKey) {
+		String keyName = key;
+		if (extraKey != null) {
+			keyName = key + ":" + extraKey;
+			if (keyName.length() >= DBOCountingSemaphore.KEY_NAME_LENGTH) {
+				throw new IllegalArgumentException("key too long: " + keyName);
+			}
+		}
+		return keyName;
+	}
+
+	private void createMaster(String keyName) {
+		// create the exclusive lock entry
+		DBOLockMaster lockMaster = new DBOLockMaster();
+		lockMaster.setKey(keyName);
+		try {
+			log.info("Creating counting semaphore " + keyName);
+			basicDao.createNew(lockMaster);
+		} catch (IllegalArgumentException e) {
+			if (e.getCause() != null && e.getCause().getClass() != DuplicateKeyException.class) {
+				// we expect this one to happen on restart or during testing
+				throw e;
+			}
+		}
+	}
+
+	private long countOutstandingNonExpiredLocks(String keyName) {
 		// First delete all expired shared locks for this resource.
-		this.jdbcTemplate.update(SQL_FORCE_RELEASE_EXPIRED_LOCKS, key, System.currentTimeMillis());
+		this.jdbcTemplate.update(SQL_FORCE_RELEASE_EXPIRED_LOCKS, keyName, System.currentTimeMillis());
 		// Now count the remaining locks
-		return this.jdbcTemplate.queryForObject(SQL_COUNT_LOCKS, Long.class, key);
+		return this.jdbcTemplate.queryForObject(SQL_COUNT_LOCKS, Long.class, keyName);
 	}
 
 	public void forceReleaseAllLocks() {

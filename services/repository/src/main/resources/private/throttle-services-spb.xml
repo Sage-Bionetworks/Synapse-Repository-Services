@@ -11,16 +11,14 @@
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
-	<!-- This gate ensures we never run more than the max number or runners across the entire cluster for this worker  -->
-	<bean id="userThrottleGate"
-		class="org.sagebionetworks.repo.model.dbo.dao.semaphore.SemaphoreGatedRunnerImpl" scope="singleton">
-		<property name="timeoutMS" ref="stackConfiguration.semaphoreGatedLockTimeoutMS" />
-		<property name="maxNumberRunnersAccessor" ref="stackConfiguration.maxConcurrentRepoConnections" />
-		<property name="semaphoreKey" value="userThrottle" />		
-	</bean>
-	
 	<bean id="userThrottleFilter" class="org.sagebionetworks.repo.web.filter.UserThrottleFilter">
-		<property name="userThrottleGate" ref="userThrottleGate"/>
+		<!-- This gate ensures we never run more than the max number requests this user -->
+		<property name="userThrottleGate">
+			<bean name="userThrottle" class="org.sagebionetworks.repo.model.dbo.dao.semaphore.CountingSemaphoreDaoImpl">
+				<property name="lockTimeoutMS" value="300000" />
+				<property name="maxCountAccessor" ref="stackConfiguration.maxConcurrentRepoConnections" />
+			</bean>
+		</property>
 	</bean>
 	
 </beans>

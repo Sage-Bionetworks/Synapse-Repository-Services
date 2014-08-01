@@ -27,6 +27,18 @@ public class DelayedInitializerAutowireTest {
 		@Override
 		public void releaseLock(String token) {
 		}
+
+		@Override
+		public String attemptToAcquireLock(String extraKey) {
+			// TODO Auto-generated method stub
+			return null;
+		}
+
+		@Override
+		public void releaseLock(String token, String extraKey) {
+			// TODO Auto-generated method stub
+
+		}
 	}
 
 	public static boolean postInitialize() {
