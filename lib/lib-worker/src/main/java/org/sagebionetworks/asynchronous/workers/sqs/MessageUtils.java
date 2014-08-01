@@ -24,6 +24,24 @@ import com.amazonaws.services.sqs.model.Message;
  */
 public class MessageUtils {
 	
+	public static class MessageBundle {
+		private final Message message;
+		private final ChangeMessage changeMessage;
+
+		public MessageBundle(Message message, ChangeMessage changeMessage) {
+			this.message = message;
+			this.changeMessage = changeMessage;
+		}
+
+		public Message getMessage() {
+			return message;
+		}
+
+		public ChangeMessage getChangeMessage() {
+			return changeMessage;
+		}
+	}
+
 	public static int SQS_MAX_REQUEST_SIZE = 10;
 	
 	/**
@@ -54,6 +72,38 @@ public class MessageUtils {
 		}
 	}
 	
+	/**
+	 * Extract a ChangeMessage from an Amazon Message
+	 * 
+	 * @param message
+	 * @return
+	 */
+	public static MessageBundle extractMessageBundle(Message message) {
+		if (message == null)
+			throw new IllegalArgumentException("Message cannot be null");
+		try {
+			JSONObject object = new JSONObject(message.getBody());
+			ChangeMessage changeMessage;
+			if (object.has("objectId")) {
+				// This is a message pushed directly to a queue
+				JSONObjectAdapterImpl adapter = new JSONObjectAdapterImpl(object);
+				changeMessage = new ChangeMessage(adapter);
+			} else if (object.has("TopicArn") && object.has("Message")) {
+				// This is a message that was pushed to a topic then forwarded to a queue.
+				JSONObject innerObject = new JSONObject(object.getString("Message"));
+				JSONObjectAdapterImpl adapter = new JSONObjectAdapterImpl(innerObject);
+				changeMessage = new ChangeMessage(adapter);
+			} else {
+				throw new IllegalArgumentException("Unknown message type: " + message.getBody());
+			}
+			return new MessageBundle(message, changeMessage);
+		} catch (JSONException e) {
+			throw new RuntimeException(e);
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
 	/**
 	 * Extracts a UnsentMessageRange from an Amazon Message
 	 */
