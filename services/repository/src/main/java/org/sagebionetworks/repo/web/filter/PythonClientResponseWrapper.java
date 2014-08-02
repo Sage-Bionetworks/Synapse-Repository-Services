@@ -1,11 +1,14 @@
 package org.sagebionetworks.repo.web.filter;
 
+import java.io.ByteArrayOutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 
+import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpServletResponseWrapper;
 
 import org.apache.http.entity.ContentType;
 
@@ -18,12 +21,14 @@ import org.apache.http.entity.ContentType;
  * @author brucehoff
  *
  */
-public class PythonClientResponseWrapper extends GenericResponseWrapper {
+public class PythonClientResponseWrapper extends HttpServletResponseWrapper {
 	private String characterEncoding;
 	private String contentType;
+	private ByteArrayOutputStream output;
 
 	public PythonClientResponseWrapper(HttpServletResponse response) {
 		super(response);
+		output = new ByteArrayOutputStream();
 	}
 	
 	private void setContentTypeAndEncodingFromContentTypeString(String value) {
@@ -67,11 +72,23 @@ public class PythonClientResponseWrapper extends GenericResponseWrapper {
 		}
 	}
 	
+	public byte[] getData() {
+		return output.toByteArray();
+	}
+
+	public ServletOutputStream getOutputStream() {
+		return new FilterServletOutputStream(output);
+	}
+	
+	private PrintWriter writer = null;
+
 	public PrintWriter getWriter() {
+		if (writer!=null) return writer;
 		try {
 			String charsetName = getCharacterEncoding();
 			if (charsetName==null) charsetName= "ISO-8859-1";
-			return new PrintWriter(new OutputStreamWriter(getOutputStream(), charsetName));
+			writer = new PrintWriter(new OutputStreamWriter(output, charsetName), true);
+			return writer;
 		} catch (UnsupportedEncodingException e) {
 			throw new RuntimeException(e);
 		}

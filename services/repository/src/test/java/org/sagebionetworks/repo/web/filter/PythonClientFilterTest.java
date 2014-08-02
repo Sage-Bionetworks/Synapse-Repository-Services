@@ -87,7 +87,7 @@ public class PythonClientFilterTest {
 	public void testFilter() throws Exception {
 		PythonClientFilter filter = new PythonClientFilter();
 		MockHttpServletRequest request = new MockHttpServletRequest();
-		request.addHeader("User-Agent", "python-request/foo");
+		request.addHeader("User-Agent", "python-requests/foo");
 		HttpServletResponse response = new MockHttpServletResponse();
 		FilterChain filterChain = new FilterChain() {
 			@Override
