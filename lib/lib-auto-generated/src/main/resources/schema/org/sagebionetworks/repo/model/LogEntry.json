@@ -2,15 +2,9 @@
     "title":"LogEntry",
     "description":"JSON schema for a log entry",
     "properties":{
-        "level":{
+        "label":{
             "type":"string",
-            "description":"The message level to log.",
-            "name":"Level",
-			"enum": [
-				"INFO",
-				"WARN",
-				"ERROR"
-			]
+            "description":"The label for the message to log, which determines grouping in cloudwatch."
         },
         "message":{
             "type":"string",

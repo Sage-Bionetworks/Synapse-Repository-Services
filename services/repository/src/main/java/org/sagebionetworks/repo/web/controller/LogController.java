@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -42,7 +43,7 @@ public class LogController extends BaseController {
 	@RequestMapping(value = UrlHelpers.LOG, method = RequestMethod.POST)
 	public @ResponseBody
 	void log(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @RequestBody LogEntry logEntry,
-			HttpServletRequest request) {
-		serviceProvider.getLogService().log(logEntry);
+			HttpServletRequest request, @RequestHeader("User-Agent") String userAgent) {
+		serviceProvider.getLogService().log(logEntry, userAgent);
 	}
 }

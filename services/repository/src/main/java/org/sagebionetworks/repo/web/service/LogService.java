@@ -13,5 +13,5 @@ public interface LogService {
 	/**
 	 * Log an entry
 	 */
-	void log(LogEntry logEntry);
+	void log(LogEntry logEntry, String userAgent);
 }
