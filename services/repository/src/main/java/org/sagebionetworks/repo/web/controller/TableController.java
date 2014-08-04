@@ -552,7 +552,7 @@ public class TableController extends BaseController {
 	 * </p>
 	 * SELECT <br>
 	 * [ALL | DISTINCT] select_expr [, select_expr ...] <br>
-	 * FROM table_references <br>
+	 * FROM synapse_table_id <br>
 	 * [WHERE where_condition] <br>
 	 * [GROUP BY {col_name [, [col_name * ...] } <br>
 	 * [ORDER BY {col_name [ [ASC | DESC] [, col_name [ [ASC | DESC]]}<br>
