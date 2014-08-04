@@ -40,7 +40,8 @@ public class AsynchronousJobController extends BaseController {
 	 * </p>
 	 * The following are the currently supported job types:
 	 * <ul>
-	 * <li><a href="${org.sagebionetworks.repo.model.table.AsynchUploadRequestBody}">AsynchUploadJobBody</a></li>
+	 * <li><a href="${org.sagebionetworks.repo.model.table.AsynchUploadToTableRequestBody}">AsynchUploadToTableJobBody</a></li>
+	 * <li><a href="${org.sagebionetworks.repo.model.table.AsynchDownloadFromTableRequestBody}">AsynchDownloadFromTableJobBody</a></li>
 	 * </ul>
 	 * <p>
 	 * Note: Each job types has different access requirements.

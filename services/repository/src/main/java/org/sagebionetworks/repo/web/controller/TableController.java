@@ -84,6 +84,11 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * query can be modified and returned to update the rows of a table using <a
  * href="${POST.entity.id.table}">POST /entity/{id}/table</a>.
  * </p>
+ * <p>
+ * There is also an <a href="${org.sagebionetworks.repo.web.controller.AsynchronousJobController}">asynchronous
+ * service</a> to <a href="${org.sagebionetworks.repo.model.table.AsynchUploadToTableRequestBody}">upload</a> 
+ * and <a href="${org.sagebionetworks.repo.model.table.AsynchDownloadFromTableRequestBody}">download</a> csv files, 
+ * suitable for large datasets.
  */
 @ControllerInfo(displayName = "Table Services", path = "repo/v1")
 @Controller

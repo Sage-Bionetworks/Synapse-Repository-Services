@@ -32,7 +32,7 @@ import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.exception.LockUnavilableException;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.table.AsynchDownloadResponseBody;
+import org.sagebionetworks.repo.model.table.AsynchDownloadFromTableResponseBody;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.PartialRow;
@@ -626,13 +626,13 @@ public class TableRowManagerImpl implements TableRowManager {
 	 * @throws NotFoundException 
 	 */
 	@Override
-	public AsynchDownloadResponseBody runConsistentQueryAsStream(String sql, final CSVWriterStream writer, final boolean includeRowIdAndVersion) throws TableUnavilableException, NotFoundException{
+	public AsynchDownloadFromTableResponseBody runConsistentQueryAsStream(String sql, final CSVWriterStream writer, final boolean includeRowIdAndVersion) throws TableUnavilableException, NotFoundException{
 		// Convert to a query.
 		final SqlQuery query = createQuery(sql, false);
 		if(includeRowIdAndVersion && query.isAggregatedResult()){
 			throw new IllegalArgumentException("Cannot include ROW_ID and ROW_VERSION for aggregate queries");
 		}
-		final AsynchDownloadResponseBody repsonse = new AsynchDownloadResponseBody();
+		final AsynchDownloadFromTableResponseBody repsonse = new AsynchDownloadFromTableResponseBody();
 		String etag = runConsistentQueryAsStream(query, new RowAndHeaderHandler() {
 			
 			@Override
