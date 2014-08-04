@@ -35,24 +35,25 @@ public class LogServiceImpl implements LogService {
 		log.error(logEntry.getLabel() + " - " + userAgent + ": " + logEntry.getMessage()
 				+ (logEntry.getStacktrace() == null ? "" : (System.lineSeparator() + logEntry.getStacktrace())));
 
+		Date now = new Date();
+
 		// log twice, once with just the label
 		ProfileData logEvent = new ProfileData();
 		logEvent.setNamespace(LogService.class.getName());
-		logEvent.setName("error");
+		logEvent.setName(logEntry.getLabel());
 		logEvent.setValue(1.0);
 		logEvent.setUnit("Count");
-		logEvent.setTimestamp(new Date());
-		logEvent.setDimension(Collections.singletonMap("Label", logEntry.getLabel()));
+		logEvent.setTimestamp(now);
 		consumer.addProfileData(logEvent);
 
 		// once with the label and the user agent
 		logEvent = new ProfileData();
 		logEvent.setNamespace(LogService.class.getName());
-		logEvent.setName("error");
+		logEvent.setName(logEntry.getLabel());
 		logEvent.setValue(1.0);
 		logEvent.setUnit("Count");
-		logEvent.setTimestamp(new Date());
-		logEvent.setDimension(ImmutableMap.<String, String> builder().put("Label", logEntry.getLabel()).put("UserAgent", userAgent).build());
+		logEvent.setTimestamp(now);
+		logEvent.setDimension(Collections.singletonMap("UserAgent", userAgent));
 		consumer.addProfileData(logEvent);
 	}
 }
