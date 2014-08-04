@@ -49,36 +49,7 @@ import org.sagebionetworks.evaluation.model.SubmissionStatusBatch;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.evaluation.model.UserEvaluationState;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.ACTAccessRequirement;
-import org.sagebionetworks.repo.model.AccessApproval;
-import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.AccessRequirement;
-import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.AutoGenFactory;
-import org.sagebionetworks.repo.model.BatchResults;
-import org.sagebionetworks.repo.model.DomainType;
-import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityBundle;
-import org.sagebionetworks.repo.model.EntityBundleCreate;
-import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.EntityIdList;
-import org.sagebionetworks.repo.model.EntityPath;
-import org.sagebionetworks.repo.model.LocationData;
-import org.sagebionetworks.repo.model.LocationTypeNames;
-import org.sagebionetworks.repo.model.Locationable;
-import org.sagebionetworks.repo.model.MembershipInvitation;
-import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
-import org.sagebionetworks.repo.model.MembershipRequest;
-import org.sagebionetworks.repo.model.MembershipRqstSubmission;
-import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.PaginatedResults;
-import org.sagebionetworks.repo.model.Reference;
-import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
-import org.sagebionetworks.repo.model.RestrictableObjectType;
-import org.sagebionetworks.repo.model.S3Token;
-import org.sagebionetworks.repo.model.ServiceConstants;
+import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
 import org.sagebionetworks.repo.model.Team;
 import org.sagebionetworks.repo.model.TeamMember;
@@ -312,6 +283,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String TRASHCAN_RESTORE = "/trashcan/restore";
 	private static final String TRASHCAN_VIEW = "/trashcan/view";
 	private static final String TRASHCAN_PURGE = "/trashcan/purge";
+
+	private static final String LOG = "/log";
 
 	private static final String DOI = "/doi";
 	
@@ -4523,7 +4496,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		}
 	}
 	
-	
+
 	public BatchUploadResponse updateSubmissionStatusBatch(String evaluationId, SubmissionStatusBatch batch)
 			throws SynapseException {
 		if (evaluationId==null) {
@@ -4869,6 +4842,16 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		getSharedClientConnection().putJson(repoEndpoint, TRASHCAN_PURGE, null, getUserAgent());
 	}
 	
+	@Override
+	public void logError(LogEntry logEntry) throws SynapseException {
+		try {
+			JSONObject jsonObject = EntityFactory.createJSONObjectForEntity(logEntry);
+			jsonObject = createJSONObject(LOG, jsonObject);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+
 	/**
 	 * Add the entity to this user's Favorites list
 	 * @param entityId
