@@ -321,7 +321,9 @@ public class HttpClientHelper {
 		String contentTypeHeader = requestHeaders.get("Content-Type");
 		if (contentTypeHeader==null) return null;
 		ContentType contentType = ContentType.parse(contentTypeHeader);
-		return contentType.getCharset().name();
+		Charset charset = contentType.getCharset();
+		if (charset==null) return null;
+		return charset.name();
 	}
 
 	/**
