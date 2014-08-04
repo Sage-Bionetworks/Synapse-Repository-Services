@@ -6,7 +6,7 @@
 			"type": "string"
 		},
 		"etag": {
-		    "description":"When a RowReferencesRow is returned from a table update, this will be set to the current etag of the table.",
+		    "description":"This should be set to the current etag of the table.",
 			"type": "string"
 		},
 		"rowIds": {
