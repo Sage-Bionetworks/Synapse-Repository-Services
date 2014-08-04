@@ -56,7 +56,7 @@ import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.table.AsynchDownloadResponseBody;
+import org.sagebionetworks.repo.model.table.AsynchDownloadFromTableResponseBody;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.PartialRow;
@@ -925,7 +925,7 @@ public class TableWorkerIntegrationTest {
 		CSVWriterStreamProxy proxy = new CSVWriterStreamProxy(csvWriter);
 		// Downlaod the data to a csv
 		boolean includeRowIdAndVersion = true;
-		AsynchDownloadResponseBody response = waitForConsistentStreamQuery("select * from "+tableId, proxy, includeRowIdAndVersion);
+		AsynchDownloadFromTableResponseBody response = waitForConsistentStreamQuery("select * from "+tableId, proxy, includeRowIdAndVersion);
 		assertNotNull(response);
 		assertNotNull(response.getEtag());
 		// Read the results
@@ -1016,7 +1016,7 @@ public class TableWorkerIntegrationTest {
 	 * @throws NotFoundException
 	 * @throws InterruptedException
 	 */
-	private AsynchDownloadResponseBody waitForConsistentStreamQuery(String sql, CSVWriterStream writer, boolean includeRowIdAndVersion) throws DatastoreException, NotFoundException, InterruptedException{
+	private AsynchDownloadFromTableResponseBody waitForConsistentStreamQuery(String sql, CSVWriterStream writer, boolean includeRowIdAndVersion) throws DatastoreException, NotFoundException, InterruptedException{
 		long start = System.currentTimeMillis();
 		while(true){
 			try {

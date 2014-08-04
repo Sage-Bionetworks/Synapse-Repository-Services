@@ -12,7 +12,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.table.RowAndHeaderHandler;
 import org.sagebionetworks.repo.model.exception.LockUnavilableException;
-import org.sagebionetworks.repo.model.table.AsynchDownloadResponseBody;
+import org.sagebionetworks.repo.model.table.AsynchDownloadFromTableResponseBody;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.Row;
@@ -397,7 +397,7 @@ public interface TableRowManager {
 	 * @throws TableUnavilableException
 	 * @throws NotFoundException
 	 */
-	AsynchDownloadResponseBody runConsistentQueryAsStream(String sql, CSVWriterStream writer, boolean includeRowIdAndVersion)
+	AsynchDownloadFromTableResponseBody runConsistentQueryAsStream(String sql, CSVWriterStream writer, boolean includeRowIdAndVersion)
 			throws TableUnavilableException, NotFoundException;
 
 	/**

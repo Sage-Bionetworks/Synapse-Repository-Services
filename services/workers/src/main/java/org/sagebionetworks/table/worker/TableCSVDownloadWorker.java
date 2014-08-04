@@ -22,8 +22,8 @@ import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.table.AsynchDownloadRequestBody;
-import org.sagebionetworks.repo.model.table.AsynchDownloadResponseBody;
+import org.sagebionetworks.repo.model.table.AsynchDownloadFromTableRequestBody;
+import org.sagebionetworks.repo.model.table.AsynchDownloadFromTableResponseBody;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -99,7 +99,7 @@ public class TableCSVDownloadWorker implements Worker {
 		CSVWriter writer = null;
 		try{
 			UserInfo user = userManger.getUserInfo(status.getStartedByUserId());
-			AsynchDownloadRequestBody request = (AsynchDownloadRequestBody) status.getRequestBody();
+			AsynchDownloadFromTableRequestBody request = (AsynchDownloadFromTableRequestBody) status.getRequestBody();
 			// Before we start determine how many rows there are.
 			RowSet countSet = tableRowManager.query(user, request.getSql(), true, true);
 			long rowCount = Long.parseLong(countSet.getRows().get(0).getValues().get(0));
@@ -117,7 +117,7 @@ public class TableCSVDownloadWorker implements Worker {
 				includeRowIdAndVersion = request.getIncludeRowIdAndRowVersion();
 			}
 			// Execute the actual query and stream the results to the file.
-			AsynchDownloadResponseBody response = null;
+			AsynchDownloadFromTableResponseBody response = null;
 			try{
 				response = tableRowManager.runConsistentQueryAsStream(request.getSql(), stream, includeRowIdAndVersion);
 			}finally{
@@ -174,8 +174,8 @@ public class TableCSVDownloadWorker implements Worker {
 		if(status.getRequestBody() == null){
 			throw new IllegalArgumentException("Job body cannot be null");
 		}
-		if(!(status.getRequestBody() instanceof AsynchDownloadRequestBody)){
-			throw new IllegalArgumentException("Expected a job body of type: "+AsynchDownloadRequestBody.class.getName()+" but received: "+status.getRequestBody().getClass().getName());
+		if(!(status.getRequestBody() instanceof AsynchDownloadFromTableRequestBody)){
+			throw new IllegalArgumentException("Expected a job body of type: "+AsynchDownloadFromTableRequestBody.class.getName()+" but received: "+status.getRequestBody().getClass().getName());
 		}
 		return status;
 	}
@@ -186,7 +186,7 @@ public class TableCSVDownloadWorker implements Worker {
 	 * @param request
 	 * @return
 	 */
-	public static CSVWriter createCSVWriter(Writer writer, AsynchDownloadRequestBody request){
+	public static CSVWriter createCSVWriter(Writer writer, AsynchDownloadFromTableRequestBody request){
 		if(request == null) throw new IllegalArgumentException("AsynchDownloadRequestBody cannot be null");
 		char separator = CSVWriter.DEFAULT_SEPARATOR;
 		char quotechar = CSVWriter.DEFAULT_QUOTE_CHARACTER;

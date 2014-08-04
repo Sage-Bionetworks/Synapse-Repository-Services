@@ -17,8 +17,8 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.dao.asynch.AsynchronousJobStatusDAO;
-import org.sagebionetworks.repo.model.table.AsynchUploadRequestBody;
-import org.sagebionetworks.repo.model.table.AsynchUploadResponseBody;
+import org.sagebionetworks.repo.model.table.AsynchUploadToTableRequestBody;
+import org.sagebionetworks.repo.model.table.AsynchUploadToTableResponseBody;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -46,7 +46,7 @@ public class AsynchJobStatusDaoImplTest {
 	
 	@Test
 	public void testUploadCreateGet() throws DatastoreException, NotFoundException{
-		AsynchUploadRequestBody body = new AsynchUploadRequestBody();
+		AsynchUploadToTableRequestBody body = new AsynchUploadToTableRequestBody();
 		body.setTableId("syn456");
 		body.setUploadFileHandleId("123");
 		AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body);
@@ -72,7 +72,7 @@ public class AsynchJobStatusDaoImplTest {
 	
 	@Test
 	public void testUpdateProgress() throws DatastoreException, NotFoundException{
-		AsynchUploadRequestBody body = new AsynchUploadRequestBody();
+		AsynchUploadToTableRequestBody body = new AsynchUploadToTableRequestBody();
 		body.setTableId("syn456");
 		body.setUploadFileHandleId("123");
 		AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body);
@@ -94,7 +94,7 @@ public class AsynchJobStatusDaoImplTest {
 	
 	@Test
 	public void testUpdateProgressTooBig() throws DatastoreException, NotFoundException{
-		AsynchUploadRequestBody body = new AsynchUploadRequestBody();
+		AsynchUploadToTableRequestBody body = new AsynchUploadToTableRequestBody();
 		body.setTableId("syn456");
 		body.setUploadFileHandleId("123");
 		AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body);
@@ -118,7 +118,7 @@ public class AsynchJobStatusDaoImplTest {
 	
 	@Test
 	public void testSetFailed() throws DatastoreException, NotFoundException{
-		AsynchUploadRequestBody body = new AsynchUploadRequestBody();
+		AsynchUploadToTableRequestBody body = new AsynchUploadToTableRequestBody();
 		body.setTableId("syn456");
 		body.setUploadFileHandleId("123");
 		AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body);
@@ -144,7 +144,7 @@ public class AsynchJobStatusDaoImplTest {
 	
 	@Test
 	public void testSetComplete() throws DatastoreException, NotFoundException, InterruptedException{
-		AsynchUploadRequestBody body = new AsynchUploadRequestBody();
+		AsynchUploadToTableRequestBody body = new AsynchUploadToTableRequestBody();
 		body.setTableId("syn456");
 		body.setUploadFileHandleId("123");
 		AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body);
@@ -156,7 +156,7 @@ public class AsynchJobStatusDaoImplTest {
 		// Now set it complete
 		// Make sure at at least some time has passed before me set it complete
 		Thread.sleep(10);
-		AsynchUploadResponseBody response = new AsynchUploadResponseBody();
+		AsynchUploadToTableResponseBody response = new AsynchUploadToTableResponseBody();
 		response.setRowsProcessed(7L);
 		String newEtag = asynchJobStatusDao.setComplete(status.getJobId(), response);
 		assertNotNull(newEtag);
