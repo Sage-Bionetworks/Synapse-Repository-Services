@@ -1,0 +1,24 @@
+{
+    "title":"LogEntry",
+    "description":"JSON schema for a log entry",
+    "properties":{
+        "level":{
+            "type":"string",
+            "description":"The message level to log.",
+            "name":"Level",
+			"enum": [
+				"INFO",
+				"WARN",
+				"ERROR"
+			]
+        },
+        "message":{
+            "type":"string",
+            "description":"The message to log."
+        },
+        "stacktrace": {
+            "type":"string",
+            "description":"The optional stacktrace to log."
+        }
+    }
+}
