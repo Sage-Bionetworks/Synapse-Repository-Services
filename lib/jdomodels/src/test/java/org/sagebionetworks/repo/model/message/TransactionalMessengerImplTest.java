@@ -134,7 +134,7 @@ public class TransactionalMessengerImplTest {
 		// Change the etag of the second
 		second.setObjectEtag("etagtwo");
 		
-		// Send the message first message
+		// Send the first message
 		messenger.sendMessageAfterCommit(first);
 		messenger.sendMessageAfterCommit(second);
 		assertNotNull(stubProxy.getSynchronizations());
@@ -147,7 +147,7 @@ public class TransactionalMessengerImplTest {
 		verify(mockChangeDAO, times(1)).replaceChange(list);
 		list = new ArrayList<ChangeMessage>();
 		list.add(first);
-		verify(mockChangeDAO, never()).replaceChange(list);
+		verify(mockChangeDAO, times(1)).replaceChange(list);
 		// Simulate the after commit
 		stubProxy.getSynchronizations().get(0).afterCommit();
 		// The second message should get sent but not the first
