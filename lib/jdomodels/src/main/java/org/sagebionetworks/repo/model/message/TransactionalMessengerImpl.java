@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.message;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -11,10 +12,8 @@ import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ObservableEntity;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
-import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -115,8 +114,24 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 		// If we already have a message going out for this object then we needs replace it with the latest.
 		// If an object's etag changes multiple times, only the final etag should be in the message.
 		currentMessages.put(new ChangeMessageKey(message), message);
+		updateMessagesInChangesTable(currentMessages);
 		// Register a handler if needed
 		registerHandlerIfNeeded();
+	}
+	
+	private void updateMessagesInChangesTable(Map<ChangeMessageKey, ChangeMessage> currentMessages) {
+		// write the changes to the database
+		Collection<ChangeMessage> collection = currentMessages.values();
+		List<ChangeMessage> list = new LinkedList<ChangeMessage>(collection);
+		// Create the list of DBOS
+		List<String> idList = new ArrayList<String>();
+		List<ChangeMessage> updatedList = changeDAO.replaceChange(list);
+		// Now replace each entry on the map with the update message
+		for(ChangeMessage message: updatedList){
+			idList.add(message.getObjectId());
+			currentMessages.put(new ChangeMessageKey(message), message);
+		}
+
 	}
 	
 	
@@ -192,20 +207,6 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 			}
 			// Clear the list
 			currentMessages.clear();
-		}
-
-		@Override
-		public void beforeCommit(boolean readOnly) {
-			// write the changes to the database
-			Map<ChangeMessageKey, ChangeMessage> currentMessages = getCurrentBoundMessages();
-			Collection<ChangeMessage> collection = currentMessages.values();
-			List<ChangeMessage> list = new LinkedList<ChangeMessage>(collection);
-			// Create the list of DBOS
-			List<ChangeMessage> updatedList = changeDAO.replaceChange(list);
-			// Now replace each entry on the map with the update message
-			for(ChangeMessage message: updatedList){
-				currentMessages.put(new ChangeMessageKey(message), message);
-			}
 		}
 		
 	}
