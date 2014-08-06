@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.DeadlockLoserDataAccessException;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -119,7 +120,7 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 		registerHandlerIfNeeded();
 	}
 	
-	
+
 	/**
 	 * Get the messages that are currently bound to this transaction.
 	 * @return
@@ -200,10 +201,30 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 			Map<ChangeMessageKey, ChangeMessage> currentMessages = getCurrentBoundMessages();
 			Collection<ChangeMessage> collection = currentMessages.values();
 			List<ChangeMessage> list = new LinkedList<ChangeMessage>(collection);
+
 			// Create the list of DBOS
-			List<ChangeMessage> updatedList = changeDAO.replaceChange(list);
+			List<ChangeMessage> updatedList;
+			final int maxTries = 3;
+			int count = 0;
+			for (;;) {
+				try {
+					updatedList = changeDAO.replaceChange(list);
+					break;
+				} catch (DeadlockLoserDataAccessException e) {
+					// This is the only error allowed.
+					try {
+						Thread.sleep(500 * count);
+					} catch (InterruptedException e2) {
+						throw new RuntimeException(e2);
+					}
+					if (++count > maxTries) {
+						throw new IllegalStateException("Failed with deadlock more than: " + maxTries
+								+ " while attempting to create a change.");
+					}
+				}
+			}
 			// Now replace each entry on the map with the update message
-			for(ChangeMessage message: updatedList){
+			for (ChangeMessage message : updatedList) {
 				currentMessages.put(new ChangeMessageKey(message), message);
 			}
 		}
