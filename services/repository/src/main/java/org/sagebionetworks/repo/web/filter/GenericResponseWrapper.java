@@ -27,6 +27,7 @@ public class GenericResponseWrapper extends HttpServletResponseWrapper {
 	}
 
 	public byte[] getData() {
+		if (writer!=null) writer.flush();
 		return output.toByteArray();
 	}
 
