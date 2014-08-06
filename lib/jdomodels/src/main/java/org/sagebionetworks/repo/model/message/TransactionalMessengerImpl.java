@@ -213,8 +213,6 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 				} catch (DeadlockLoserDataAccessException e) {
 					// This is the only error allowed.
 					try {
-						e.printStackTrace();
-						System.err.println("retrying");
 						Thread.sleep(500 * count);
 					} catch (InterruptedException e2) {
 						throw new RuntimeException(e2);
