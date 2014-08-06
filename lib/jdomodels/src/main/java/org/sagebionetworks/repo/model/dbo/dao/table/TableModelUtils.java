@@ -18,6 +18,7 @@ import java.util.Set;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
+import org.apache.commons.lang.StringUtils;
 import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dao.table.RowSetAccessor;
@@ -216,47 +217,7 @@ public class TableModelUtils {
 		// Validate non-null values
 		if (value != null) {	
 			try {
-				switch (cm.getColumnType()) {
-				case BOOLEAN:
-					boolean boolValue;
-					if (value.equalsIgnoreCase("true")) {
-						boolValue = true;
-					} else if (value.equalsIgnoreCase("false")) {
-						boolValue = false;
-					} else {
-						throw new IllegalArgumentException("A value in a boolean column must be null, 'true' or 'false', but was '" + value
-								+ "'");
-					}
-					return Boolean.toString(boolValue);
-				case INTEGER:
-				case FILEHANDLEID:
-					long lv = Long.parseLong(value);
-					return Long.toString(lv);
-				case DATE:
-					// value can be either a number (in which case it is milliseconds since blah) or not a number (in
-					// which
-					// case it is date string)
-					long time;
-					try {
-						time = Long.parseLong(value);
-					} catch (NumberFormatException e) {
-						time = TimeUtils.parseSqlDate(value);
-					}
-					return Long.toString(time);
-				case DOUBLE:
-					double dv = Double.parseDouble(value);
-					return Double.toString(dv);
-				case STRING:
-					if (cm.getMaximumSize() == null)
-						throw new IllegalArgumentException("String columns must have a maximum size");
-					if (value.length() > cm.getMaximumSize())
-						throw new IllegalArgumentException(
-								"String exceeds the maximum length of "
-										+ cm.getMaximumSize()
-										+ " characters. Consider using a FileHandle to store large strings.");
-					return value;
-				}
-				throw new IllegalArgumentException("Unknown ColumModel type: " + cm.getColumnType());
+				return validateValue(value, cm);
 			} catch (Exception e) {
 				throw new IllegalArgumentException(String.format(
 						INVALID_VALUE_TEMPLATE, rowIndex, columnIndex,
@@ -269,6 +230,49 @@ public class TableModelUtils {
 			}
 			return value;
 		}
+	}
+
+
+	public static String validateValue(String value, ColumnModel cm) {
+		switch (cm.getColumnType()) {
+		case BOOLEAN:
+			boolean boolValue;
+			if (value.equalsIgnoreCase("true")) {
+				boolValue = true;
+			} else if (value.equalsIgnoreCase("false")) {
+				boolValue = false;
+			} else {
+				throw new IllegalArgumentException("A value in a boolean column must be null, 'true' or 'false', but was '" + value
+						+ "'");
+			}
+			return Boolean.toString(boolValue);
+		case INTEGER:
+		case FILEHANDLEID:
+			long lv = Long.parseLong(value);
+			return Long.toString(lv);
+		case DATE:
+			// value can be either a number (in which case it is milliseconds since blah) or not a number (in
+			// which case it is date string)
+			long time;
+			try {
+				time = Long.parseLong(value);
+			} catch (NumberFormatException e) {
+				time = TimeUtils.parseSqlDate(value);
+			}
+			return Long.toString(time);
+		case DOUBLE:
+			double dv = Double.parseDouble(value);
+			return Double.toString(dv);
+		case STRING:
+			if (cm.getMaximumSize() == null)
+				throw new IllegalArgumentException("String columns must have a maximum size");
+			if (value.length() > cm.getMaximumSize()) {
+				throw new IllegalArgumentException("String '" + value + "' exceeds the maximum length of " + cm.getMaximumSize()
+						+ " characters. Consider using a FileHandle to store large strings.");
+			}
+			return value;
+		}
+		throw new IllegalArgumentException("Unknown ColumModel type: " + cm.getColumnType());
 	}
 
 	/**
@@ -990,5 +994,21 @@ public class TableModelUtils {
 			versions.put(ref.getVersionNumber(), ref.getRowId());
 		}
 		return versions;
+	}
+
+	public static String normalizeDefaultValue(String defaultValue, ColumnModel columnModel) {
+		if (defaultValue == null) {
+			// no default value, nothing to do here
+			return null;
+		}
+		if (defaultValue.isEmpty()) {
+			// for anything but a string, an empty string is interpreted as no default
+			if (columnModel.getColumnType() == ColumnType.STRING) {
+				return defaultValue;
+			} else {
+				return null;
+			}
+		}
+		return validateValue(defaultValue, columnModel);
 	}
 }

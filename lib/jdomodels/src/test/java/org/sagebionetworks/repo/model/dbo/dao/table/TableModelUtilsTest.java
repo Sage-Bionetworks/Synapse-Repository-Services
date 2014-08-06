@@ -369,13 +369,14 @@ public class TableModelUtilsTest {
 		cm.setColumnType(ColumnType.STRING);
 		cm.setMaximumSize(555L);
 		assertEquals("some string", TableModelUtils.validateRowValue("some string", cm, 0, 0));
+		char[] tooLarge = new char[(int) (cm.getMaximumSize() + 1)];
+		Arrays.fill(tooLarge, 'b');
 		try {
-			char[] tooLarge = new char[(int) (cm.getMaximumSize()+1)];
-			Arrays.fill(tooLarge, 'b');
 			TableModelUtils.validateRowValue(new String(tooLarge), cm, 1, 4);
 			fail("should have failed");
 		} catch (IllegalArgumentException e) {
-			assertEquals("Value at [1,4] was not a valid STRING. String exceeds the maximum length of 555 characters. Consider using a FileHandle to store large strings.", e.getMessage());
+			assertEquals("Value at [1,4] was not a valid STRING. String '" + new String(tooLarge)
+					+ "' exceeds the maximum length of 555 characters. Consider using a FileHandle to store large strings.", e.getMessage());
 		}
 		assertEquals(null, TableModelUtils.validateRowValue(null, cm, 2, 2));
 		// Set the default to boolean

@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
+import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -113,13 +114,12 @@ public class ColumnModelUtlis {
 	 * @param dbo
 	 * @return
 	 */
-	public static String calculateHash(ColumnModel model){
-		if(model == null) throw new IllegalArgumentException("ColumnModel cannot be null");
+	static String calculateHash(ColumnModel normalizedModel) {
+		if (normalizedModel == null)
+			throw new IllegalArgumentException("ColumnModel cannot be null");
 		try {
-			// First normalize the model
-			ColumnModel normal = createNormalizedClone(model);
 			// To JSON
-			byte[] jsonBytes = EntityFactory.createJSONStringForEntity(normal).getBytes("UTF-8");
+			byte[] jsonBytes = EntityFactory.createJSONStringForEntity(normalizedModel).getBytes("UTF-8");
 			return calculateSha256(jsonBytes);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
@@ -166,6 +166,9 @@ public class ColumnModelUtlis {
 				}else if(clone.getMaximumSize() > MAX_ALLOWED_STRING_SIZE){
 					// The max is beyond the allowed size
 					throw new IllegalArgumentException("ColumnModel.maxSize for a STRING cannot exceed: "+MAX_ALLOWED_STRING_SIZE);
+				} else if (clone.getMaximumSize() < 1) {
+					// The max is beyond the allowed size
+					throw new IllegalArgumentException("ColumnModel.maxSize for a STRING must be greater than 0");
 				}
 			}
 			// The ID is not part of the normalized form.
@@ -174,15 +177,28 @@ public class ColumnModelUtlis {
 			clone.setName(clone.getName().trim());
 			// Default to lower.
 			if(clone.getDefaultValue() != null){
-				clone.setDefaultValue(clone.getDefaultValue().trim());
+				// normalize the default value
+				clone.setDefaultValue(TableModelUtils.normalizeDefaultValue(clone.getDefaultValue().trim(), clone));
 			}
 			if(clone.getEnumValues() != null){
 				List<String> newList = new LinkedList<String>();
 				for(String enumValue: clone.getEnumValues()){
-					newList.add(enumValue.trim());
+					enumValue = enumValue.trim();
+					if (enumValue.isEmpty()) {
+						if (clone.getColumnType() == ColumnType.STRING) {
+							newList.add(enumValue);
+						}
+					} else {
+						enumValue = TableModelUtils.validateValue(enumValue, clone);
+						newList.add(enumValue);
+					}
 				}
-				Collections.sort(newList);
-				clone.setEnumValues(newList);
+				if (!newList.isEmpty()) {
+					Collections.sort(newList);
+					clone.setEnumValues(newList);
+				} else {
+					clone.setEnumValues(null);
+				}
 			}
 			return clone;
 		} catch (JSONObjectAdapterException e) {
