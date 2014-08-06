@@ -1,16 +1,17 @@
 package org.sagebionetworks.repo.model.dbo.dao.semaphore;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.After;
 import org.junit.Before;
@@ -142,9 +143,8 @@ public class DBOCountingSemaphoreDaoImplAutowireTest {
 		((CountingSemaphoreDaoImpl) getTargetObject(countingSemaphoreDao)).setLockTimeoutMS(500);
 		((CountingSemaphoreDaoImpl) getTargetObject(countingSemaphoreDao)).setMaxCount(1);
 		JdbcTemplate mockJdbcTemplate = Mockito.spy(originalJdbcTemplate);
-		doThrow(new DeadlockLoserDataAccessException("dummy", null)).when(mockJdbcTemplate).queryForObject(anyString(), any(Class.class),
-				any());
-		doCallRealMethod().when(mockJdbcTemplate).queryForObject(anyString(), any(Class.class), any());
+		doThrow(new DeadlockLoserDataAccessException("dummy", null)).doCallRealMethod().when(mockJdbcTemplate)
+				.queryForObject(anyString(), any(Class.class), any());
 		ReflectionTestUtils.setField(((CountingSemaphoreDaoImpl) getTargetObject(countingSemaphoreDao)), "jdbcTemplate", mockJdbcTemplate);
 
 		// Get the lock and hold it for 1 second
@@ -152,7 +152,8 @@ public class DBOCountingSemaphoreDaoImplAutowireTest {
 		assertNotNull(originalToken);
 
 		countingSemaphoreDao.releaseLock(originalToken);
-		verify(mockJdbcTemplate, times(2)).queryForObject(anyString(), any(Class.class), any());
+		verify(mockJdbcTemplate, times(2)).queryForObject(anyString(), eq(String.class), any());
+		verify(mockJdbcTemplate).queryForObject(anyString(), eq(Long.class), any());
 	}
 
 	@SuppressWarnings("unchecked")
@@ -172,7 +173,7 @@ public class DBOCountingSemaphoreDaoImplAutowireTest {
 		// Get the lock and hold it for 1 second
 		String originalToken = countingSemaphoreDao.attemptToAcquireLock();
 		assertNull(originalToken);
-		verify(mockJdbcTemplate, times(3)).queryForObject(anyString(), any(Class.class), any());
+		verify(mockJdbcTemplate, times(3)).queryForObject(anyString(), eq(String.class), any());
 		verifyNoMoreInteractions(mockJdbcTemplate);
 	}
 
