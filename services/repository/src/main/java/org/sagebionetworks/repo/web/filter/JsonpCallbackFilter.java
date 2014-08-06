@@ -56,7 +56,7 @@ public class JsonpCallbackFilter implements Filter {
 			out.write(new String(parms.get(UrlHelpers.REQUEST_CALLBACK_JSONP)[0] + "(").getBytes(CHARACTER_ENCODING));
 			
 			String wrapperCharacterEncoding = wrapper.getCharacterEncoding();
-			if (wrapperCharacterEncoding==null) wrapperCharacterEncoding="ISO-8895-1";
+			if (wrapperCharacterEncoding==null) wrapperCharacterEncoding="ISO-8859-1";
 			byte[] wrapperBytes = wrapper.getData();
 			String wrapperString = new String(wrapperBytes, wrapperCharacterEncoding);
 			out.write(wrapperString.getBytes(CHARACTER_ENCODING));
