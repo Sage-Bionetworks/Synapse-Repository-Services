@@ -1,7 +1,9 @@
 package org.sagebionetworks.repo.web.filter;
 
 import java.io.ByteArrayOutputStream;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletResponse;
@@ -25,6 +27,7 @@ public class GenericResponseWrapper extends HttpServletResponseWrapper {
 	}
 
 	public byte[] getData() {
+		if (writer!=null) writer.flush();
 		return output.toByteArray();
 	}
 
@@ -32,9 +35,19 @@ public class GenericResponseWrapper extends HttpServletResponseWrapper {
 		return new FilterServletOutputStream(output);
 	}
 
+	private PrintWriter writer = null;
+	
 	public PrintWriter getWriter() {
-		return new PrintWriter(getOutputStream(), true);
-	}
+		if (writer!=null) return writer;
+		try {
+			String charsetName = getCharacterEncoding();
+			if (charsetName==null) charsetName= "ISO-8859-1";
+			writer = new PrintWriter(new OutputStreamWriter(output, charsetName), true);
+			return writer;
+		} catch (UnsupportedEncodingException e) {
+			throw new RuntimeException(e);
+		}
+	}	
 
 	public void setContentLength(int length) {
 		this.contentLength = length;
