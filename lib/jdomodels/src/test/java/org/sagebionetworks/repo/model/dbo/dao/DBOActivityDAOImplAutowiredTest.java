@@ -12,6 +12,12 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import org.junit.After;
 import org.junit.Before;
@@ -36,6 +42,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.transaction.IllegalTransactionStateException;
+
+import com.google.common.collect.Lists;
 
 /**
  * This test of the DBOActivityDAOImpl is only for DB function and DB enforced 
@@ -101,22 +109,56 @@ public class DBOActivityDAOImplAutowiredTest {
 		}
 
 	}
-		
-	@Test 
-	public void testCreate() throws Exception{
+
+	@Test
+	public void testCreate() throws Exception {
 		long initialCount = activityDao.getCount();
-		Activity toCreate = newTestActivity(idGenerator.generateNewId().toString());
-		String id = activityDao.create(toCreate);				
-		assertEquals(1+initialCount, activityDao.getCount()); 
+		exerciseCreate();
+		assertEquals(1 + initialCount, activityDao.getCount());
+	}
+
+	private void exerciseCreate() throws Exception {
+		Activity toCreate = newTestActivity(idGenerator.generateNewId().toString(), altUserGroupId);
+		String id = activityDao.create(toCreate);
 		toDelete.add(id);
 		assertNotNull(id);
-		
-		// This activity should exist & make sure we can fetch it		
+
+		// This activity should exist & make sure we can fetch it
 		Activity loaded = activityDao.get(id);
 		assertEquals(id, loaded.getId().toString());
-		assertNotNull(loaded.getEtag());			
+		assertNotNull(loaded.getEtag());
 	}
-	
+
+	private static final int PARALLEL_THREAD_COUNT = 4;
+	private volatile boolean done = false;
+
+	// PLFM-2923 Try making multiple activities at the same time
+	@Test
+	public void testMultipleCreate() throws Exception {
+		List<Future<Void>> futures = new ArrayList<Future<Void>>();
+		ExecutorService executor = Executors.newFixedThreadPool(PARALLEL_THREAD_COUNT);
+
+		for (int i = 0; i < PARALLEL_THREAD_COUNT; i++) {
+			Future<Void> future = executor.submit(new Callable<Void>() {
+				@Override
+				public Void call() throws Exception {
+					while (!done) {
+						exerciseCreate();
+					}
+					return null;
+				}
+			});
+			futures.add(future);
+		}
+		Thread.sleep(5 * 1000);
+		done = true;
+		for (Future<Void> future : futures) {
+			future.get();
+		}
+		executor.shutdownNow();
+		executor.awaitTermination(20, TimeUnit.SECONDS);
+	}
+
 	@Test(expected=IllegalArgumentException.class)
 	public void testCreateWithExistingId() throws Exception{
 		String sameId = idGenerator.generateNewId().toString();
@@ -296,13 +338,17 @@ public class DBOActivityDAOImplAutowiredTest {
 	 * Private Methods
 	 */
 	private Activity newTestActivity(String id) {		
+		return newTestActivity(id, altUserGroupId);
+	}
+
+	private static Activity newTestActivity(String id, Long userId) {
 		Activity act = new Activity();
 		act.setId(id);
 		act.setEtag("0");	
 		act.setDescription("description");
-		act.setCreatedBy(altUserGroupId.toString());
+		act.setCreatedBy(userId.toString());
 		act.setCreatedOn(new Date());
-		act.setModifiedBy(altUserGroupId.toString());
+		act.setModifiedBy(userId.toString());
 		act.setModifiedOn(new Date());
 		UsedEntity usedEnt = new UsedEntity();
 		Reference ref = new Reference();

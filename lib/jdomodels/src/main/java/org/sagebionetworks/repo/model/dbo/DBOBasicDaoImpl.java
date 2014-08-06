@@ -102,16 +102,6 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 		return insert(toCreate, insertSQl);
 	}
 	
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED, noRollbackFor= DeadlockLoserDataAccessException.class)
-	@Override
-	public <T extends DatabaseObject<T>> T createNewNoDeadlockRollback(
-			T toCreate) throws DatastoreException {
-		if(toCreate == null) throw new IllegalArgumentException("The object to create cannot be null");
-		// Lookup the insert SQL
-		String insertSQl = getInsertSQL(toCreate.getClass());
-		return insert(toCreate, insertSQl);
-	}
-	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)	
 	@Override
 	public <T extends DatabaseObject<T>> T createOrUpdate(T toCreate) throws DatastoreException {
@@ -120,14 +110,6 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 		return insert(toCreate, insertOrUpdateSQl);
 	}
 	
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED, noRollbackFor= DeadlockLoserDataAccessException.class)	
-	@Override
-	public <T extends DatabaseObject<T>> T createOrUpdateNoDeadlockRollback(T toCreate) throws DatastoreException {
-		// Lookup the insert SQL
-		String insertOrUpdateSQl = getInsertOnDuplicateUpdateSQL(toCreate.getClass());
-		return insert(toCreate, insertOrUpdateSQl);
-	}
-
 	private <T> T insert(T toCreate, String insertSQl) {
 		@SuppressWarnings("unchecked")
 		TableMapping<T> mapping = classToMapping.get(toCreate.getClass());
