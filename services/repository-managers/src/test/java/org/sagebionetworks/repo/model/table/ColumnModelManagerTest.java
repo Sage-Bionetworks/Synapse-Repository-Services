@@ -158,47 +158,6 @@ public class ColumnModelManagerTest {
 		}
 	}
 
-	@Test
-	public void testCreateColumnModelInvalidDefaults() throws Exception {
-		Map<ColumnType, String[]> testCases = Maps.newHashMap();
-		testCases.put(ColumnType.BOOLEAN, new String[] { "not-true", "falseish" });
-		testCases.put(ColumnType.STRING, new String[] { "string too long" });
-		testCases.put(ColumnType.DOUBLE, new String[] { "-", "not a number", "0,0" });
-		testCases.put(ColumnType.INTEGER, new String[] { "-", "not a number", "1.1" });
-		testCases.put(ColumnType.DATE, new String[] { "not a date" });
-		testCases.put(ColumnType.FILEHANDLEID, new String[] { "not a number" });
-
-		int index = 0;
-		for (ColumnType type : ColumnType.values()) {
-			assertTrue("type " + type + " not handled in this test", testCases.containsKey(type));
-			for (String testCase : testCases.get(type)) {
-				ColumnModel columnModel = new ColumnModel();
-				columnModel.setName("tst" + index++);
-				columnModel.setColumnType(type);
-				columnModel.setMaximumSize(5L);
-				columnModel.setDefaultValue(testCase);
-				try {
-					columnModelManager.createColumnModel(user, columnModel);
-					fail("For type " + type + " default value '" + testCase + "' should fail");
-				} catch (IllegalArgumentException e) {
-				}
-			}
-		}
-
-		// enum case
-		ColumnModel columnModel = new ColumnModel();
-		columnModel.setName("tst" + index++);
-		columnModel.setColumnType(ColumnType.STRING);
-		columnModel.setMaximumSize(5L);
-		columnModel.setEnumValues(Lists.newArrayList("one", "two", "three"));
-		columnModel.setDefaultValue("not");
-		try {
-			columnModelManager.createColumnModel(user, columnModel);
-			fail("For enum type, default value not in enum should fail");
-		} catch (IllegalArgumentException e) {
-		}
-	}
-
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetColumnsNullUser() throws DatastoreException, NotFoundException{
 		List<String> ids = new LinkedList<String>();
