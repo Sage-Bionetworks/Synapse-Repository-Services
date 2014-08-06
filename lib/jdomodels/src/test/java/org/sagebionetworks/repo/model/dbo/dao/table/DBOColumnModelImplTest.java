@@ -72,7 +72,7 @@ public class DBOColumnModelImplTest {
 		ColumnModel model = new ColumnModel();
 		model.setName("column model dao test");
 		model.setColumnType(ColumnType.STRING);
-		model.setMaximumSize(13L);
+		model.setMaximumSize(16L);
 		model.setDefaultValue("someDefaultValue");
 		model.setEnumValues(new LinkedList<String>());
 		model.getEnumValues().add("xyz");
@@ -84,7 +84,7 @@ public class DBOColumnModelImplTest {
 		assertEquals("column model dao test", result.getName());
 		assertEquals(ColumnType.STRING, result.getColumnType());
 		assertEquals(ColumnType.STRING, result.getColumnType());
-		assertEquals(new Long(13), result.getMaximumSize());
+		assertEquals(new Long(16), result.getMaximumSize());
 		assertNotNull(result.getEnumValues());
 		assertEquals(2, result.getEnumValues().size());
 		assertEquals("abc", result.getEnumValues().get(0));
