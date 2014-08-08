@@ -330,6 +330,24 @@ public class TableModelUtilsTest {
 	}
 	
 	@Test
+	public void testValidateEntityId() {
+		ColumnModel cm = new ColumnModel();
+		cm.setColumnType(ColumnType.ENTITYID);
+		assertEquals("syn123.33", TableModelUtils.validateRowValue("syn123.33", cm, 0, 0));
+		assertEquals("syn123", TableModelUtils.validateRowValue("syn123", cm, 0, 0));
+		try {
+			TableModelUtils.validateRowValue("true", cm, 1, 3);
+			fail("should have failed");
+		} catch (IllegalArgumentException e) {
+			assertEquals("Value at [1,3] was not a valid ENTITYID. Malformed entity ID (should be syn123 or syn 123.4): true", e.getMessage());
+		}
+		assertEquals(null, TableModelUtils.validateRowValue(null, cm, 2, 2));
+		// Set the default to boolean
+		cm.setDefaultValue("syn345.6");
+		assertEquals("syn345.6", TableModelUtils.validateRowValue(null, cm, 2, 3));
+	}
+
+	@Test
 	public void testValidateDate() {
 		ColumnModel cm = new ColumnModel();
 		cm.setColumnType(ColumnType.DATE);
@@ -820,6 +838,13 @@ public class TableModelUtilsTest {
 	}
 	
 	@Test
+	public void testCalculateMaxSizeForTypeEntityId() throws UnsupportedEncodingException {
+		int expected = new String("syn" + Long.toString(-1111111111111111111l) + "." + Long.toString(-1111111111111111111l))
+				.getBytes("UTF-8").length;
+		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.ENTITYID, null));
+	}
+
+	@Test
 	public void testCalculateMaxSizeForTypeAll() throws UnsupportedEncodingException{
 		// The should be a size for each type.
 		for(ColumnType ct:ColumnType.values()){
@@ -835,7 +860,7 @@ public class TableModelUtilsTest {
 	public void testCalculateMaxRowSize(){
 		List<ColumnModel> all = TableModelTestUtils.createOneOfEachType();
 		int allBytes = TableModelUtils.calculateMaxRowSize(all);
-		assertEquals(229, allBytes);
+		assertEquals(273, allBytes);
 	}
 	
 	@Test

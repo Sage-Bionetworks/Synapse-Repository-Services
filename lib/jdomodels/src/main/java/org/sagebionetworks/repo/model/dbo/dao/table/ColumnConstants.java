@@ -51,4 +51,8 @@ public class ColumnConstants {
 	 * The maximum number of bytes of a FileHandle ID when represented as a string (same as long).
 	 */
 	public static final int MAX_FILE_HANDLE_ID_BYTES_AS_STRING = MAX_INTEGER_BYTES_AS_STRING;
+	/**
+	 * The maximum number of bytes of an entity ID when represented as a string (syn<id>[.<version>)
+	 */
+	public static final int MAX_ENTITY_ID_BYTES_AS_STRING = 3 + MAX_INTEGER_BYTES_AS_STRING + 1 + MAX_INTEGER_BYTES_AS_STRING;
 }

@@ -69,6 +69,9 @@ public class TableModelTestUtils {
 				case FILEHANDLEID:
 					defaultValue = "0";
 					break;
+				case ENTITYID:
+					defaultValue = "syn5.2";
+					break;
 				case INTEGER:
 					defaultValue = "-10000000000000";
 					break;
@@ -259,6 +262,8 @@ public class TableModelTestUtils {
 			}
 		case FILEHANDLEID:
 			return "" + (i + 5000 + (isUpdate ? 10000 : 0));
+		case ENTITYID:
+			return "syn" + (i + 6000 + (isUpdate ? 10000 : 0)) + "." + (i + 7000 + (isUpdate ? 10000 : 0));
 		case BOOLEAN:
 			if (i % 2 > 0 ^ isUpdate) {
 				return Boolean.TRUE.toString();

@@ -138,6 +138,13 @@ public class SQLUtilsTest {
 	}
 	
 	@Test
+	public void testparseValueForDBEntityId() {
+		String expected = "syn123.3";
+		Object objectValue = SQLUtils.parseValueForDB(ColumnType.ENTITYID, "syn123.3");
+		assertEquals(expected, objectValue);
+	}
+
+	@Test
 	public void testparseValueForDBDate() {
 		Long expected = new Long(123);
 		Object objectValue = SQLUtils.parseValueForDB(ColumnType.DATE, "123");
@@ -187,6 +194,13 @@ public class SQLUtilsTest {
 		assertEquals(expected, sql);
 	}
 	
+	@Test
+	public void testGetSQLDefaultsForEntityId() {
+		String expected = "DEFAULT 'syn123.3'";
+		String sql = SQLUtils.getSQLDefaultForColumnType(ColumnType.ENTITYID, "syn123.3");
+		assertEquals(expected, sql);
+	}
+
 	@Test
 	public void testGetSQLDefaultsForDATE() {
 		String expected = "DEFAULT 123";
