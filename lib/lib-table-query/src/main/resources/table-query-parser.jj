@@ -232,8 +232,9 @@ void period(StringBuilder builder):
 void exactNumericLiteral(StringBuilder builder):
 {}
 {
-	( unsignedInteger(builder) period(builder) unsignedInteger(builder) )
-	| (  period(builder) unsignedInteger(builder) )
+	[ sign(builder) ]
+		( unsignedInteger(builder) period(builder) unsignedInteger(builder) )
+		| ( period(builder) unsignedInteger(builder) )
 }
 void exponent(StringBuilder builder):
 {
@@ -245,8 +246,9 @@ void exponent(StringBuilder builder):
 void approximateNumericLiteral(StringBuilder builder):
 {}
 {
-	(  period(builder) exponent(builder) )
-	| ( unsignedInteger(builder) period(builder) exponent(builder) )
+  	[ sign(builder) ]
+		(  period(builder) exponent(builder) )
+		| ( unsignedInteger(builder) period(builder) exponent(builder) )
 }
 void unsignedNumericLiteral(StringBuilder builder):
 {}
@@ -287,27 +289,27 @@ void characterStringLiteral(StringBuilder builder):
 }
 ValueExpressionPrimary valueExpressionPrimary():
 {
-	UnsignedValueSpecification unsignedValueSpecification = null;
+	SignedValueSpecification signedValueSpecification = null;
 	ColumnReference columnReference = null;
 	SetFunctionSpecification setFunctionSpecification = null;
 }
 {
 	setFunctionSpecification = setFunctionSpecification() { return new ValueExpressionPrimary(setFunctionSpecification);}
 	| columnReference = columnReference() { return new ValueExpressionPrimary(columnReference);}
-	| unsignedValueSpecification = unsignedValueSpecification() { return new ValueExpressionPrimary(unsignedValueSpecification); }
+	| signedValueSpecification = signedValueSpecification() { return new ValueExpressionPrimary(signedValueSpecification); }
 }
-UnsignedValueSpecification unsignedValueSpecification():
+SignedValueSpecification signedValueSpecification():
 {
-	UnsignedLiteral unsignedLiteral;
+	SignedLiteral signedLiteral;
 }
 {
-	unsignedLiteral = unsignedLiteral() { return new UnsignedValueSpecification(unsignedLiteral); }
+	signedLiteral = signedLiteral() { return new SignedValueSpecification(signedLiteral); }
 }
-UnsignedLiteral unsignedLiteral():
+SignedLiteral signedLiteral():
 { StringBuilder builder = new StringBuilder(); }
 {
-	unsignedNumericLiteral(builder) { return new UnsignedLiteral(builder.toString(), null); }
-	| generalLiteral(builder) { return new UnsignedLiteral(null, builder.toString()); }
+	signedNumericLiteral(builder) { return new SignedLiteral(builder.toString(), null); }
+	| generalLiteral(builder) { return new SignedLiteral(null, builder.toString()); }
 }
 Identifier identifier():
 {
