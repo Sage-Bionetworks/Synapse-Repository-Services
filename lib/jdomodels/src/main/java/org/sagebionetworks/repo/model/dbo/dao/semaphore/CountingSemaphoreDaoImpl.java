@@ -7,11 +7,14 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_LOCK_MAS
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_COUNTING_SEMAPHORE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_LOCK_MASTER;
 
+import java.sql.Connection;
 import java.util.UUID;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.Resource;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.math.RandomUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.ImmutablePropertyAccessor;
@@ -21,6 +24,7 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCountingSemaphore;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOLockMaster;
 import org.sagebionetworks.repo.model.exception.LockReleaseFailedException;
+import org.sagebionetworks.util.Clock;
 import org.springframework.beans.factory.BeanNameAware;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Required;
@@ -28,8 +32,14 @@ import org.springframework.dao.DeadlockLoserDataAccessException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.DefaultTransactionDefinition;
+import org.springframework.transaction.support.TransactionCallback;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * Basic database backed implementation of the CountingSemaphoreDao.
@@ -56,9 +66,16 @@ public class CountingSemaphoreDaoImpl implements CountingSemaphoreDao, BeanNameA
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
 
+	@Autowired
+	private Clock clock;
+
+	@Resource(name = "txManager")
+	private PlatformTransactionManager transactionManager;
+
 	private long lockTimeoutMS;
 	private String key;
 	private PropertyAccessor<Integer> maxCount = null;
+	private TransactionTemplate transactionTemplate;
 
 	@Required
 	public void setLockTimeoutMS(long lockTimeoutMS) {
@@ -96,15 +113,20 @@ public class CountingSemaphoreDaoImpl implements CountingSemaphoreDao, BeanNameA
 			throw new IllegalArgumentException("bean name should be set");
 		}
 		createMaster(key);
+
+		DefaultTransactionDefinition transactionDef = new DefaultTransactionDefinition();
+		transactionDef.setReadOnly(false);
+		transactionDef.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+		transactionDef.setName("CountingSemaphoreDao");
+		// This will manage transactions for calls that need it.
+		transactionTemplate = new TransactionTemplate(this.transactionManager, transactionDef);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW, noRollbackFor = DeadlockLoserDataAccessException.class)
 	@Override
 	public String attemptToAcquireLock() {
 		return doAttemptToAcquireLock(null);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW, noRollbackFor = DeadlockLoserDataAccessException.class)
 	@Override
 	public String attemptToAcquireLock(String extraKey) {
 		return doAttemptToAcquireLock(extraKey);
@@ -123,33 +145,40 @@ public class CountingSemaphoreDaoImpl implements CountingSemaphoreDao, BeanNameA
 	}
 
 	private String doAttemptToAcquireLock(String extraKey) {
-		String keyName = getKeyName(extraKey);
+		final String keyName = getKeyName(extraKey);
 		for (int i = 0; i < 3; i++) {
 			try {
-				// First lock on the exclusive table entry
-				try {
-					jdbcTemplate.queryForObject(SQL_SELECT_EXCLUSIVE_FOR_UPDATE, String.class, keyName);
-				} catch (EmptyResultDataAccessException e) {
-					// if the semaphore was removed from the table due to testing or the extraKey is a new one, recreate
-					// the master here and retry
-					createMaster(keyName);
-					jdbcTemplate.queryForObject(SQL_SELECT_EXCLUSIVE_FOR_UPDATE, String.class, keyName);
-				}
+				return this.transactionTemplate.execute(new TransactionCallback<String>() {
+					@Override
+					public String doInTransaction(TransactionStatus status) {
+						// First lock on the exclusive table entry
+						try {
+							jdbcTemplate.queryForObject(SQL_SELECT_EXCLUSIVE_FOR_UPDATE, String.class, keyName);
+						} catch (EmptyResultDataAccessException e) {
+							// if the semaphore was removed from the table due to testing or the extraKey is a new one,
+							// recreate the master here and retry
+							createMaster(keyName);
+							jdbcTemplate.queryForObject(SQL_SELECT_EXCLUSIVE_FOR_UPDATE, String.class, keyName);
+						}
 
-				// Count the number of current locks
-				long count = countOutstandingNonExpiredLocks(keyName);
-				if (count >= this.maxCount.get()) {
-					// all locks taken!
-					return null;
-				}
+						// Count the number of current locks
+						long count = countOutstandingNonExpiredLocks(keyName);
+						if (count >= maxCount.get()) {
+							// all locks taken!
+							return null;
+						}
 
-				DBOCountingSemaphore shared = new DBOCountingSemaphore();
-				shared.setKey(keyName);
-				shared.setToken(UUID.randomUUID().toString());
-				shared.setExpires(System.currentTimeMillis() + lockTimeoutMS);
-				basicDao.createNew(shared);
-				return shared.getToken();
+						DBOCountingSemaphore shared = new DBOCountingSemaphore();
+						shared.setKey(keyName);
+						shared.setToken(UUID.randomUUID().toString());
+						shared.setExpires(System.currentTimeMillis() + lockTimeoutMS);
+						basicDao.createNew(shared);
+						return shared.getToken();
+					}
+				});
 			} catch (DeadlockLoserDataAccessException e) {
+				// sleep a bit with some random time, to avoid pounding the db
+				clock.sleepNoInterrupt(50 + RandomUtils.nextInt(25));
 			}
 		}
 		// could not acquire due to too many deadlocks

@@ -216,6 +216,27 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 	}
 
 	@Test(expected = IllegalArgumentException.class)
+	public void testColumnNameDuplicateId() throws Exception {
+		// create two columns that differ only by case.
+		ColumnModel one = new ColumnModel();
+		one.setName("Abc");
+		one.setColumnType(ColumnType.STRING);
+		one = servletTestHelper.createColumnModel(dispatchServlet, one, adminUserId);
+		// two
+		ColumnModel two = new ColumnModel();
+		two.setName("aBC");
+		two.setColumnType(ColumnType.STRING);
+		two = servletTestHelper.createColumnModel(dispatchServlet, two, adminUserId);
+		// Now create a TableEntity with these Columns
+		TableEntity table = new TableEntity();
+		table.setName("TableEntity");
+		table.setParentId(parent.getId());
+		List<String> idList = Lists.newArrayList(one.getId(), two.getId(), one.getId());
+		table.setColumnIds(idList);
+		table = servletTestHelper.createEntity(dispatchServlet, table, adminUserId);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
 	public void testDuplicateRowUpdateFails() throws Exception {
 		// Create a few columns to add to a table entity
 		ColumnModel one = new ColumnModel();

@@ -11,14 +11,24 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.commons.lang.math.RandomUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.dao.semaphore.CountingSemaphoreDao;
+import org.sagebionetworks.util.Clock;
+import org.sagebionetworks.util.DefaultClock;
 import org.springframework.aop.framework.Advised;
 import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.BeanWrapperImpl;
@@ -41,12 +51,14 @@ public class DBOCountingSemaphoreDaoImplAutowireTest {
 	final int maxCount = 5;
 
 	private JdbcTemplate originalJdbcTemplate;
+	private Clock originalClock;
 
 	@Before
 	public void before() throws Exception {
 		((CountingSemaphoreDaoImpl) getTargetObject(countingSemaphoreDao)).forceReleaseAllLocks();
 		originalJdbcTemplate = (JdbcTemplate) ReflectionTestUtils.getField(
 				((CountingSemaphoreDaoImpl) getTargetObject(countingSemaphoreDao)), "jdbcTemplate");
+		originalClock = (Clock) ReflectionTestUtils.getField(((CountingSemaphoreDaoImpl) getTargetObject(countingSemaphoreDao)), "clock");
 	}
 
 	@After
@@ -54,6 +66,7 @@ public class DBOCountingSemaphoreDaoImplAutowireTest {
 		((CountingSemaphoreDaoImpl) getTargetObject(countingSemaphoreDao)).forceReleaseAllLocks();
 		ReflectionTestUtils
 				.setField(((CountingSemaphoreDaoImpl) getTargetObject(countingSemaphoreDao)), "jdbcTemplate", originalJdbcTemplate);
+		ReflectionTestUtils.setField((CountingSemaphoreDaoImpl) getTargetObject(countingSemaphoreDao), "clock", originalClock);
 	}
 
 	@Test
@@ -175,6 +188,51 @@ public class DBOCountingSemaphoreDaoImplAutowireTest {
 		assertNull(originalToken);
 		verify(mockJdbcTemplate, times(3)).queryForObject(anyString(), eq(String.class), any());
 		verifyNoMoreInteractions(mockJdbcTemplate);
+	}
+
+	private static final int PARALLEL_THREAD_COUNT = 4;
+	private volatile boolean done = false;
+
+	@Test
+	public void testMultipleLockers() throws Exception {
+		((CountingSemaphoreDaoImpl) getTargetObject(countingSemaphoreDao)).setLockTimeoutMS(50000);
+		((CountingSemaphoreDaoImpl) getTargetObject(countingSemaphoreDao)).setMaxCount(PARALLEL_THREAD_COUNT + 1);
+
+		// for this test, all we need to do is wait for a deadlock. When that happens, the semaphore code calls
+		// sleepNoInterrupt, so we know that a deadlock happened if that method is called
+		Clock clock = new DefaultClock() {
+			@Override
+			public void sleepNoInterrupt(long millis) {
+				super.sleepNoInterrupt(millis);
+				done = true;
+			}
+		};
+		ReflectionTestUtils.setField((CountingSemaphoreDaoImpl) getTargetObject(countingSemaphoreDao), "clock", clock);
+
+		List<Future<Void>> futures = new ArrayList<Future<Void>>();
+		ExecutorService executor = Executors.newFixedThreadPool(PARALLEL_THREAD_COUNT);
+
+		for (int i = 0; i < PARALLEL_THREAD_COUNT; i++) {
+			final String user = "user" + i;
+			Future<Void> future = executor.submit(new Callable<Void>() {
+				@Override
+				public Void call() throws Exception {
+					while (!done) {
+						String token = countingSemaphoreDao.attemptToAcquireLock(user);
+						if (token != null) {
+							countingSemaphoreDao.releaseLock(token, user);
+						}
+					}
+					return null;
+				}
+			});
+			futures.add(future);
+		}
+		for (Future<Void> future : futures) {
+			future.get(30L, TimeUnit.SECONDS);
+		}
+		executor.shutdownNow();
+		executor.awaitTermination(20, TimeUnit.SECONDS);
 	}
 
 	@SuppressWarnings("unchecked")
