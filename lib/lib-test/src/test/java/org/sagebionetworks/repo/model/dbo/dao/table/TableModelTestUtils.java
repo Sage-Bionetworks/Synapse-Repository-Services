@@ -67,10 +67,10 @@ public class TableModelTestUtils {
 					defaultValue = "1.3";
 					break;
 				case FILEHANDLEID:
-					defaultValue = "0";
+					defaultValue = null;
 					break;
 				case ENTITYID:
-					defaultValue = "syn5.2";
+					defaultValue = null;
 					break;
 				case INTEGER:
 					defaultValue = "-10000000000000";
