@@ -34,7 +34,6 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageReceiver;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -812,6 +811,33 @@ public class TableWorkerIntegrationTest {
 		assertNotNull(rowSet.getRows());
 		assertEquals(2, rowSet.getRows().size());
 		assertNotNull(rowSet.getEtag());
+
+		try {
+			rowSet = waitForConsistentQuery(adminUserInfo, "select A, Has Space from " + tableId + " limit 100");
+			fail("not acceptible sql");
+		} catch (IllegalArgumentException e) {
+		}
+		try {
+			rowSet = waitForConsistentQuery(adminUserInfo, "select A, 'Has Space' from " + tableId + " limit 100");
+			fail("not acceptible sql");
+		} catch (Exception e) {
+		}
+
+		rowSet = waitForConsistentQuery(adminUserInfo, "select A, \"Has Space\" from " + tableId + " limit 100");
+		assertNotNull(rowSet);
+		assertEquals(2, rowSet.getHeaders().size());
+		assertEquals(headers.get(0), rowSet.getHeaders().get(1));
+		assertEquals(headers.get(2), rowSet.getHeaders().get(0));
+		assertEquals("string200000", rowSet.getRows().get(0).getValues().get(0));
+		assertEquals("string0", rowSet.getRows().get(0).getValues().get(1));
+
+			rowSet = waitForConsistentQuery(adminUserInfo, "select A, \"Has Space\" as HasSpace from " + tableId + " limit 100");
+		assertNotNull(rowSet);
+		assertEquals(2, rowSet.getHeaders().size());
+		assertEquals(headers.get(0), rowSet.getHeaders().get(1));
+		assertEquals(headers.get(2), rowSet.getHeaders().get(0));
+		assertEquals("string200000", rowSet.getRows().get(0).getValues().get(0));
+		assertEquals("string0", rowSet.getRows().get(0).getValues().get(1));
 	}
 	
 	/**

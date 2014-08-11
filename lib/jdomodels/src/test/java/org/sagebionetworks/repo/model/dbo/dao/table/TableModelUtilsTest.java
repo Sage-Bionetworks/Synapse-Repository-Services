@@ -774,27 +774,27 @@ public class TableModelUtilsTest {
 		Row row = new Row();
 		row.setRowId(0l);
 		row.setVersionNumber(0l);
-		row.setValues(Arrays.asList(new String[]{"default4", "string0", null}));
+		row.setValues(Arrays.asList(new String[] { "default4", "string0", null }));
 		expectedRows.add(row);
 		// two
 		row = new Row();
 		row.setRowId(1l);
 		row.setVersionNumber(0l);
-		row.setValues(Arrays.asList(new String[]{"default4", "string1", null}));
+		row.setValues(Arrays.asList(new String[] { "default4", "string1", null }));
 		expectedRows.add(row);
 		// three
 		row = new Row();
 		row.setRowId(2l);
 		row.setVersionNumber(1l);
-		row.setValues(Arrays.asList(new String[]{"string0", "string0", "false"}));
+		row.setValues(Arrays.asList(new String[] { "string200000", "string0", "false" }));
 		expectedRows.add(row);
 		// four
 		row = new Row();
 		row.setRowId(3l);
 		row.setVersionNumber(1l);
-		row.setValues(Arrays.asList(new String[]{"string1", "string1", "true"}));
+		row.setValues(Arrays.asList(new String[] { "string200001", "string1", "true" }));
 		expectedRows.add(row);
-		assertEquals(expected, converted);
+		assertEquals(expected.toString(), converted.toString());
 	}
 	
 	@Test
