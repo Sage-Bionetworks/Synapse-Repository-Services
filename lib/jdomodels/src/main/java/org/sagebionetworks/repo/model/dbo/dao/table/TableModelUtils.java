@@ -15,6 +15,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -58,6 +60,17 @@ public class TableModelUtils {
 	 */
 	public static final String COLUMN_MODEL_ID_STRING_DELIMITER = ",";
 	
+	public static final Pattern ENTITYID_PATTERN = Pattern.compile("syn(\\d+)(\\.(\\d+))?");
+
+	public static class NodeIdAndVersion {
+		public final Long id;
+		public final Long version;
+
+		public NodeIdAndVersion(Long id, Long version) {
+			this.id = id;
+			this.version = version;
+		}
+	}
 
 	/**
 	 * This utility will validate and convert the passed RowSet to an output CSV written to a GZip stream.
@@ -250,6 +263,11 @@ public class TableModelUtils {
 		case FILEHANDLEID:
 			long lv = Long.parseLong(value);
 			return Long.toString(lv);
+		case ENTITYID:
+			if (!ENTITYID_PATTERN.matcher(value).matches()) {
+				throw new IllegalArgumentException("Malformed entity ID (should be syn123 or syn 123.4): " + value);
+			}
+			return value;
 		case DATE:
 			// value can be either a number (in which case it is milliseconds since blah) or not a number (in
 			// which case it is date string)
@@ -711,6 +729,8 @@ public class TableModelUtils {
 			return ColumnConstants.MAX_DOUBLE_BYTES_AS_STRING;
 		case FILEHANDLEID:
 			return ColumnConstants.MAX_FILE_HANDLE_ID_BYTES_AS_STRING;
+		case ENTITYID:
+			return ColumnConstants.MAX_ENTITY_ID_BYTES_AS_STRING;
 		}
 		throw new IllegalArgumentException("Unknown ColumnType: " + type);
 	}
@@ -996,19 +1016,20 @@ public class TableModelUtils {
 		return versions;
 	}
 
-	public static String normalizeDefaultValue(String defaultValue, ColumnModel columnModel) {
-		if (defaultValue == null) {
-			// no default value, nothing to do here
+	public static NodeIdAndVersion parseEntityIdValue(String entityId) {
+		Matcher m = ENTITYID_PATTERN.matcher(entityId);
+		if (!m.matches()) {
 			return null;
 		}
-		if (defaultValue.isEmpty()) {
-			// for anything but a string, an empty string is interpreted as no default
-			if (columnModel.getColumnType() == ColumnType.STRING) {
-				return defaultValue;
-			} else {
-				return null;
-			}
+		Long id = Long.parseLong(m.group(1));
+		String versionString = null;
+		if (m.groupCount() == 3) {
+			versionString = m.group(3);
 		}
-		return validateValue(defaultValue, columnModel);
+		Long version = null;
+		if (versionString != null) {
+			version = Long.parseLong(versionString);
+		}
+		return new NodeIdAndVersion(id, version);
 	}
 }

@@ -379,17 +379,17 @@ public class TableRowManagerImplTest {
 		RowSetAccessor originalAccessor = mock(RowSetAccessor.class);
 		RowAccessor row2Accessor = mock(RowAccessor.class);
 		when(originalAccessor.getRow(2L)).thenReturn(row2Accessor);
-		when(row2Accessor.getCell(models.get(ColumnType.FILEHANDLEID.ordinal()).getId())).thenReturn("5002");
+		when(row2Accessor.getCell(models.get(ColumnType.FILEHANDLEID.ordinal()).getId())).thenReturn("505002");
 
 		doAnswer(new Answer<Void>() {
 			@SuppressWarnings("unchecked")
 			@Override
 			public Void answer(InvocationOnMock invocation) throws Throwable {
 				((Set<String>) invocation.getArguments()[2]).add("3333");
-				((Set<String>) invocation.getArguments()[3]).add("5002");
+				((Set<String>) invocation.getArguments()[3]).add("505002");
 				return null;
 			}
-		}).when(mockAuthManager).canAccessRawFileHandlesByIds(user, Lists.newArrayList("3333", "5002"), Sets.<String> newHashSet(),
+		}).when(mockAuthManager).canAccessRawFileHandlesByIds(user, Lists.newArrayList("3333", "505002"), Sets.<String> newHashSet(),
 				Sets.<String> newHashSet());
 		when(mockTruthDao.getLatestVersionsWithRowData(tableId, Sets.newHashSet(2L), 0L)).thenReturn(originalAccessor);
 		manager.appendRows(user, tableId, models, replace);
@@ -397,8 +397,8 @@ public class TableRowManagerImplTest {
 		verify(mockTruthDao).appendRowSetToTable(anyString(), anyString(), anyListOf(ColumnModel.class), any(RowSet.class), anyBoolean());
 		verify(mockTruthDao).getLatestVersionsWithRowData(tableId, Sets.newHashSet(2L), 0L);
 		verify(mockAuthManager).canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
-		verify(mockAuthManager).canAccessRawFileHandlesByIds(user, Lists.newArrayList("3333", "5002"), Sets.<String> newHashSet("3333"),
-				Sets.<String> newHashSet("5002"));
+		verify(mockAuthManager).canAccessRawFileHandlesByIds(user, Lists.newArrayList("3333", "505002"), Sets.<String> newHashSet("3333"),
+				Sets.<String> newHashSet("505002"));
 		verifyNoMoreInteractions(mockAuthManager, mockTruthDao);
 	}
 

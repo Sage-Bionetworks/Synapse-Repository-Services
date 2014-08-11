@@ -138,6 +138,13 @@ public class SQLUtilsTest {
 	}
 	
 	@Test
+	public void testparseValueForDBEntityId() {
+		String expected = "syn123.3";
+		Object objectValue = SQLUtils.parseValueForDB(ColumnType.ENTITYID, "syn123.3");
+		assertEquals(expected, objectValue);
+	}
+
+	@Test
 	public void testparseValueForDBDate() {
 		Long expected = new Long(123);
 		Object objectValue = SQLUtils.parseValueForDB(ColumnType.DATE, "123");
@@ -187,6 +194,13 @@ public class SQLUtilsTest {
 		assertEquals(expected, sql);
 	}
 	
+	@Test
+	public void testGetSQLDefaultsForEntityId() {
+		String expected = "DEFAULT 'syn123.3'";
+		String sql = SQLUtils.getSQLDefaultForColumnType(ColumnType.ENTITYID, "syn123.3");
+		assertEquals(expected, sql);
+	}
+
 	@Test
 	public void testGetSQLDefaultsForDATE() {
 		String expected = "DEFAULT 123";
@@ -437,19 +451,19 @@ public class SQLUtilsTest {
 		// First row
 		assertEquals(new Long(100), results[0].getValue(SQLUtils.ROW_ID_BIND));
 		assertEquals(new Long(3), results[0].getValue(SQLUtils.ROW_VERSION_BIND));
-		assertEquals(new Double(3.12), results[0].getValue("C1"));
-		assertEquals(new Long(3000), results[0].getValue("C2"));
+		assertEquals(new Double(341003.12), results[0].getValue("C1"));
+		assertEquals(new Long(203000), results[0].getValue("C2"));
 		assertEquals(new Boolean(false), results[0].getValue("C3"));
-		assertEquals(new Long(4000), results[0].getValue("C4"));
-		assertEquals(new Long(5000), results[0].getValue("C5"));
+		assertEquals(new Long(404000), results[0].getValue("C4"));
+		assertEquals(new Long(505000), results[0].getValue("C5"));
 		// second
 		assertEquals(new Long(101), results[1].getValue(SQLUtils.ROW_ID_BIND));
 		assertEquals(new Long(3), results[1].getValue(SQLUtils.ROW_VERSION_BIND));
-		assertEquals(new Double(6.53), results[1].getValue("C1"));
-		assertEquals(new Long(3001), results[1].getValue("C2"));
+		assertEquals(new Double(341006.53), results[1].getValue("C1"));
+		assertEquals(new Long(203001), results[1].getValue("C2"));
 		assertEquals(new Boolean(true), results[1].getValue("C3"));
-		assertEquals(new Long(4001), results[1].getValue("C4"));
-		assertEquals(new Long(5001), results[1].getValue("C5"));
+		assertEquals(new Long(404001), results[1].getValue("C4"));
+		assertEquals(new Long(505001), results[1].getValue("C5"));
 	}
 	
 	@Test

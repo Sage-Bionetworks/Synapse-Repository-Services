@@ -25,7 +25,8 @@
 				"INTEGER",
 				"BOOLEAN",
 				"DATE",
-				"FILEHANDLEID"
+				"FILEHANDLEID",
+				"ENTITYID"
 			]
 		},
         "maximumSize":{
