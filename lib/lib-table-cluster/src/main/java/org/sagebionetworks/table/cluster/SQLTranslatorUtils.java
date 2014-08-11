@@ -833,10 +833,10 @@ public class SQLTranslatorUtils {
 		if(primary == null) throw new IllegalArgumentException("ValueExpression cannot be null");
 		// The bind key is used in the SQL and parameter map.
 		String bindKey = "b"+parameters.size();
-		String value = getStringValueOf(primary.getUnsignedValueSpecification());
+		String value = getStringValueOf(primary.getSignedValueSpecification());
 		switch (lhsColumnModel == null ? ColumnType.STRING : lhsColumnModel.getColumnType()) {
 		case DATE:
-			if (!isNumber(primary.getUnsignedValueSpecification())) {
+			if (!isNumber(primary.getSignedValueSpecification())) {
 				value = Long.toString(TimeUtils.parseSqlDate(value));
 			}
 			break;
@@ -848,48 +848,53 @@ public class SQLTranslatorUtils {
 	}
 
 	/**
-	 * Get the string value from UnsignedValueSpecification
-	 * @param unsignedValueSpecification
+	 * Get the string value from SignedValueSpecification
+	 * 
+	 * @param signedValueSpecification
 	 * @return
 	 */
-	public static String getStringValueOf(UnsignedValueSpecification unsignedValueSpecification) {
-		if(unsignedValueSpecification == null) throw new IllegalArgumentException("UnsignedValueSpecification cannot be null");
-		return getStringValueOf(unsignedValueSpecification.getUnsignedLiteral());
+	public static String getStringValueOf(SignedValueSpecification signedValueSpecification) {
+		if (signedValueSpecification == null)
+			throw new IllegalArgumentException("SignedValueSpecification cannot be null");
+		return getStringValueOf(signedValueSpecification.getSignedLiteral());
 	}
 
 	/**
-	 * Get the string value from UnsignedLiteral
-	 * @param unsignedLiteral
+	 * Get the string value from SignedLiteral
+	 * 
+	 * @param signedLiteral
 	 * @return
 	 */
-	public static String getStringValueOf(UnsignedLiteral unsignedLiteral) {
-		if(unsignedLiteral.getGeneralLiteral() != null) return unsignedLiteral.getGeneralLiteral();
-		if(unsignedLiteral.getUnsignedNumericLiteral() != null) return unsignedLiteral.getUnsignedNumericLiteral();
-		throw new IllegalArgumentException("UnsignedLiteral must have either a GeneralLiteral or UnsignedNumericLiteral");
+	public static String getStringValueOf(SignedLiteral signedLiteral) {
+		if (signedLiteral.getGeneralLiteral() != null)
+			return signedLiteral.getGeneralLiteral();
+		if (signedLiteral.getSignedNumericLiteral() != null)
+			return signedLiteral.getSignedNumericLiteral();
+		throw new IllegalArgumentException("SignedLiteral must have either a GeneralLiteral or SignedNumericLiteral");
 	}
 	
 	/**
-	 * Is the UnsignedValueSpecification a number
+	 * Is the SignedValueSpecification a number
 	 * 
-	 * @param unsignedValueSpecification
+	 * @param signedValueSpecification
 	 * @return
 	 */
-	public static boolean isNumber(UnsignedValueSpecification unsignedValueSpecification) {
-		if (unsignedValueSpecification == null)
-			throw new IllegalArgumentException("UnsignedValueSpecification cannot be null");
-		return isNumber(unsignedValueSpecification.getUnsignedLiteral());
+	public static boolean isNumber(SignedValueSpecification signedValueSpecification) {
+		if (signedValueSpecification == null)
+			throw new IllegalArgumentException("SignedValueSpecification cannot be null");
+		return isNumber(signedValueSpecification.getSignedLiteral());
 	}
 
 	/**
-	 * Is the UnsignedValueSpecification a number
+	 * Is the SignedValueSpecification a number
 	 * 
-	 * @param unsignedLiteral
+	 * @param signedLiteral
 	 * @return
 	 */
-	public static boolean isNumber(UnsignedLiteral unsignedLiteral) {
-		if (unsignedLiteral.getUnsignedNumericLiteral() != null) {
-			if (unsignedLiteral.getGeneralLiteral() != null) {
-				throw new IllegalArgumentException("UnsignedLiteral must have either a GeneralLiteral or UnsignedNumericLiteral but not both");
+	public static boolean isNumber(SignedLiteral signedLiteral) {
+		if (signedLiteral.getSignedNumericLiteral() != null) {
+			if (signedLiteral.getGeneralLiteral() != null) {
+				throw new IllegalArgumentException("SignedLiteral must have either a GeneralLiteral or SignedNumericLiteral but not both");
 			}
 			return true;
 		}

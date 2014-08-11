@@ -5,14 +5,14 @@ package org.sagebionetworks.table.query.model;
  */
 public class ValueExpressionPrimary implements SQLElement {
 
-	UnsignedValueSpecification unsignedValueSpecification;
+	SignedValueSpecification signedValueSpecification;
 	ColumnReference columnReference;
 	SetFunctionSpecification setFunctionSpecification;
 	
 	public ValueExpressionPrimary(
-			UnsignedValueSpecification unsignedValueSpecification) {
+SignedValueSpecification signedValueSpecification) {
 		super();
-		this.unsignedValueSpecification = unsignedValueSpecification;
+		this.signedValueSpecification = signedValueSpecification;
 	}
 	
 	public ValueExpressionPrimary(ColumnReference columnReference) {
@@ -26,8 +26,8 @@ public class ValueExpressionPrimary implements SQLElement {
 		this.setFunctionSpecification = setFunctionSpecification;
 	}
 
-	public UnsignedValueSpecification getUnsignedValueSpecification() {
-		return unsignedValueSpecification;
+	public SignedValueSpecification getSignedValueSpecification() {
+		return signedValueSpecification;
 	}
 	public ColumnReference getColumnReference() {
 		return columnReference;
@@ -39,8 +39,8 @@ public class ValueExpressionPrimary implements SQLElement {
 	@Override
 	public void toSQL(StringBuilder builder) {
 		// only one element at a time will be no null
-		if(unsignedValueSpecification != null){
-			unsignedValueSpecification.toSQL(builder);
+		if (signedValueSpecification != null) {
+			signedValueSpecification.toSQL(builder);
 		}else if(columnReference != null){
 			columnReference.toSQL(builder);
 		}else{
