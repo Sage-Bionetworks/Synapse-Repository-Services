@@ -204,25 +204,7 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 
 			// Create the list of DBOS
 			List<ChangeMessage> updatedList;
-			final int maxTries = 3;
-			int count = 0;
-			for (;;) {
-				try {
-					updatedList = changeDAO.replaceChange(list);
-					break;
-				} catch (DeadlockLoserDataAccessException e) {
-					// This is the only error allowed.
-					try {
-						Thread.sleep(500 * count);
-					} catch (InterruptedException e2) {
-						throw new RuntimeException(e2);
-					}
-					if (++count > maxTries) {
-						throw new IllegalStateException("Failed with deadlock more than: " + maxTries
-								+ " while attempting to create a change.");
-					}
-				}
-			}
+			updatedList = changeDAO.replaceChange(list);
 			// Now replace each entry on the map with the update message
 			for (ChangeMessage message : updatedList) {
 				currentMessages.put(new ChangeMessageKey(message), message);
