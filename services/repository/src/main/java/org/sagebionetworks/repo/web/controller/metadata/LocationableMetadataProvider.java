@@ -35,8 +35,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
  * @author jmhill
  * 
  */
-public class LocationableMetadataProvider implements
-		TypeSpecificMetadataProvider<Entity> {
+public class LocationableMetadataProvider implements TypeSpecificMetadataProvider<Entity>, EntityValidator<Entity> {
 
 	public static Log log = LogFactory.getLog(LocationableMetadataProvider.class);
 
@@ -188,10 +187,4 @@ public class LocationableMetadataProvider implements
 			}
 		}
 	}
-
-	@Override
-	public void entityDeleted(Entity deleted) {
-	}
-
-
 }

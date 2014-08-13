@@ -23,7 +23,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
  *
  * @param <T>
  */
-public interface TypeSpecificMetadataProvider<T extends Entity> extends EntityValidator<T> {
+public interface TypeSpecificMetadataProvider<T extends Entity> extends EntityProvider<T> {
 	
 	/**
 	 * This method will be called before the given entity is returned to the client.
@@ -37,11 +37,4 @@ public interface TypeSpecificMetadataProvider<T extends Entity> extends EntityVa
 	 * @throws UnauthorizedException 
 	 */
 	public void addTypeSpecificMetadata(T entity, HttpServletRequest request, UserInfo user, EventType eventType) throws DatastoreException, NotFoundException, UnauthorizedException;
-	
-	/**
-	 * Called when an entity is deleted.
-	 * @param deleted 
-	 */
-	public void entityDeleted(T deleted);
-
 }

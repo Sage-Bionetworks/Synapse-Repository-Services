@@ -210,13 +210,14 @@ public class LocationableMetadataProviderTest extends AbstractAutowiredControlle
 	private void validateEntityHelper(Entity entity)
 			throws InvalidModelException, NotFoundException,
 			DatastoreException, UnauthorizedException {
-		List<TypeSpecificMetadataProvider<Entity>> providers = metadataProviderFactory
+		List<EntityProvider<Entity>> providers = metadataProviderFactory
 				.getMetadataProvider(EntityType.getNodeTypeForClass(entity
 						.getClass()));
 
-		for (TypeSpecificMetadataProvider<Entity> provider : providers) {
-			provider.validateEntity(entity, new EntityEvent(EventType.CREATE,
-					null, null));
+		for (EntityProvider<Entity> provider : providers) {
+			if (provider instanceof EntityValidator) {
+				((EntityValidator) provider).validateEntity(entity, new EntityEvent(EventType.CREATE, null, null));
+			}
 		}
 	}
 }

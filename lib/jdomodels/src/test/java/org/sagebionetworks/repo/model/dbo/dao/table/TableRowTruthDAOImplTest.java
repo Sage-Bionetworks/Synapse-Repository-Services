@@ -671,4 +671,32 @@ public class TableRowTruthDAOImplTest {
 		}
 	}
 	
+	@Test
+	public void testTableRowsDelete() throws IOException, NotFoundException {
+		// Create some test column models
+		List<ColumnModel> models = TableModelTestUtils.createOneOfEachType();
+		// create some test rows.
+		String tableId = "syn123";
+		final int COUNT = 2;
+		for (int i = 0; i < COUNT; i++) {
+			RowSet set = new RowSet();
+			set.setHeaders(TableModelUtils.getHeaders(models));
+			set.setRows(TableModelTestUtils.createRows(models, 5));
+			set.setTableId(tableId);
+			tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, models, set, false);
+		}
+		for (int i = 0; i < COUNT; i++) {
+			tableRowTruthDao.getRowSet(tableId, i, ALL_SET);
+		}
+
+		tableRowTruthDao.deleteAllRowDataForTable(tableId);
+
+		for (int i = 0; i < COUNT; i++) {
+			try {
+				tableRowTruthDao.getRowSet(tableId, i, ALL_SET);
+				fail("Should not exist anymore");
+			} catch (NotFoundException e) {
+			}
+		}
+	}
 }

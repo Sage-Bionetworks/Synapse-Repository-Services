@@ -187,6 +187,13 @@ public interface TableRowTruthDAO {
 	 * @throws NotFoundException 
 	 */
 	public TableRowChange getTableRowChange(String tableId, long rowVersion) throws NotFoundException;
+
+	/**
+	 * This should only be called after the table entity has been deleted
+	 * 
+	 * @param tableId
+	 */
+	public void deleteAllRowDataForTable(String tableId);
 	
 	/**
 	 * This should never be called in a production setting.

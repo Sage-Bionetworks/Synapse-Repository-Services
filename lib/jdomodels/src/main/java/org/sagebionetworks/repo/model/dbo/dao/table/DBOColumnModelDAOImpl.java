@@ -16,6 +16,7 @@ import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
 import org.sagebionetworks.repo.model.dbo.persistence.table.ColumnModelUtlis;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOBoundColumn;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOBoundColumnOrdinal;
@@ -31,6 +32,7 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -151,6 +153,12 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 		// Now replace the current current ordinal binding for this object.
 		jdbcTemplate.update(SQL_DELETE_BOUND_ORDINAL, objectId);
 		return jdbcTemplate.update(SQL_DELETE_BOUND_COLUMNS, objectId);
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public void deleteOwner(String objectId) {
+		basicDao.deleteObjectByPrimaryKey(DBOBoundColumnOwner.class, new SinglePrimaryKeySqlParameterSource(KeyFactory.stringToKey(objectId)));
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
