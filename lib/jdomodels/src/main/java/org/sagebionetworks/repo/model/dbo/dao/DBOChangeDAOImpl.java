@@ -177,7 +177,7 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 	}
 
 	
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public List<ChangeMessage> replaceChange(List<ChangeMessage> batchDTO) throws DeadlockLoserDataAccessException {
 		if(batchDTO == null) throw new IllegalArgumentException("Batch cannot be null");
