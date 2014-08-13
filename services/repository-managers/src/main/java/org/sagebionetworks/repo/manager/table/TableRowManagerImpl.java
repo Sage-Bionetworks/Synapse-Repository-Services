@@ -256,6 +256,13 @@ public class TableRowManagerImpl implements TableRowManager {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
+	public void deleteAllRows(String tableId) {
+		Validate.required(tableId, "tableId");
+		tableRowTruthDao.deleteAllRowDataForTable(tableId);
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
 	public String appendRowsAsStream(UserInfo user, String tableId, List<ColumnModel> models, Iterator<Row> rowStream, String etag,
 			RowReferenceSet results) throws DatastoreException, NotFoundException, IOException {
 		if(user == null) throw new IllegalArgumentException("User cannot be null");

@@ -28,12 +28,6 @@ public class ProjectMetadataProviderTest {
 		
 	}
 	
-	@Test
-	public void testValidate(){
-		ProjectMetadataProvider provider = new ProjectMetadataProvider();
-		// Add more here.
-		provider.validateEntity(mockProject,  new EntityEvent(EventType.GET, null, null));
-	}
 	// No projec specific metadata anymore
 	@Ignore
 	@Test

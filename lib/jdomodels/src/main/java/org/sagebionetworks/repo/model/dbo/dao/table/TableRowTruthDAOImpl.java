@@ -44,8 +44,8 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -79,6 +79,8 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			+ " = ? AND " + COL_TABLE_ROW_VERSION + " = ?";
 	private static final String SQL_LIST_ALL_KEYS = "SELECT "
 			+ COL_TABLE_ROW_KEY + " FROM " + TABLE_ROW_CHANGE;
+	private static final String SQL_LIST_ALL_KEYS_FOR_TABLE = "SELECT " + COL_TABLE_ROW_KEY + " FROM " + TABLE_ROW_CHANGE + " WHERE "
+			+ COL_TABLE_ROW_TABLE_ID + " = ?";
 	private static final String SQL_SELECT_ALL_ROW_CHANGES_FOR_TABLE = "SELECT * FROM "
 			+ TABLE_ROW_CHANGE
 			+ " WHERE "
@@ -92,6 +94,8 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			+ COL_TABLE_ROW_VERSION
 			+ " > ? ORDER BY "
 			+ COL_TABLE_ROW_VERSION + " ASC";
+	private static final String SQL_DELETE_ROW_DATA_FOR_TABLE = "DELETE FROM " + TABLE_ROW_CHANGE + " WHERE " + COL_TABLE_ROW_TABLE_ID
+			+ " = ?";
 	private static final String KEY_TEMPLATE = "%1$s.csv.gz";
 	private static final String SQL_TRUNCATE_SEQUENCE_TABLE = "DELETE FROM "
 			+ TABLE_TABLE_ID_SEQUENCE + " WHERE " + COL_ID_SEQUENCE_TABLE_ID
@@ -104,7 +108,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	@Autowired
 	private DBOBasicDao basicDao;
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTemplate;
+	private JdbcTemplate jdbcTemplate;
 	@Autowired
 	private AmazonS3Client s3Client;
 
@@ -130,8 +134,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		Long currentVersion;
 		try {
 			// First lock row for this table
-			dbo = simpleJdbcTemplate.queryForObject(
-					SQL_SELECT_SEQUENCE_FOR_UPDATE, sequenceRowMapper, tableId);
+			dbo = jdbcTemplate.queryForObject(SQL_SELECT_SEQUENCE_FOR_UPDATE, sequenceRowMapper, tableId);
 			currentSequence = dbo.getSequence();
 			currentVersion = dbo.getVersionNumber();
 			exists = true;
@@ -283,7 +286,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			throw new IllegalArgumentException("TableId cannot be null");
 		long tableId = KeyFactory.stringToKey(tableIdString);
 		try {
-			return simpleJdbcTemplate.queryForObject(
+			return jdbcTemplate.queryForObject(
 					SQL_SELECT_VERSION_FOR_ETAG, new RowMapper<Long>() {
 						@Override
 						public Long mapRow(ResultSet rs, int rowNum)
@@ -302,7 +305,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			throw new IllegalArgumentException("TableId cannot be null");
 		long tableId = KeyFactory.stringToKey(tableIdString);
 		try {
-			return simpleJdbcTemplate.queryForLong(SQL_SELECT_MAX_ROWID, tableId);
+			return jdbcTemplate.queryForObject(SQL_SELECT_MAX_ROWID, Long.class, tableId);
 		} catch (EmptyResultDataAccessException e) {
 			// presumably, no rows have been added yet
 			return 0L;
@@ -315,7 +318,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			throw new IllegalArgumentException("TableId cannot be null");
 		long tableId = KeyFactory.stringToKey(tableIdString);
 		try {
-			DBOTableRowChange dbo = simpleJdbcTemplate.queryForObject(SQL_SELECT_LAST_ROW_CHANGE_FOR_TABLE, rowChangeMapper, tableId);
+			DBOTableRowChange dbo = jdbcTemplate.queryForObject(SQL_SELECT_LAST_ROW_CHANGE_FOR_TABLE, rowChangeMapper, tableId);
 			return TableModelUtils.ceateDTOFromDBO(dbo);
 		} catch (EmptyResultDataAccessException e) {
 			// presumably, no rows have been added yet
@@ -364,7 +367,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		if (tableIdString == null)
 			throw new IllegalArgumentException("TableId cannot be null");
 		long tableId = KeyFactory.stringToKey(tableIdString);
-		List<DBOTableRowChange> dboList = simpleJdbcTemplate.query(
+		List<DBOTableRowChange> dboList = jdbcTemplate.query(
 				SQL_SELECT_ALL_ROW_CHANGES_FOR_TABLE, rowChangeMapper, tableId);
 		return TableModelUtils.ceateDTOFromDBO(dboList);
 	}
@@ -375,7 +378,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		if (tableIdString == null)
 			throw new IllegalArgumentException("TableId cannot be null");
 		long tableId = KeyFactory.stringToKey(tableIdString);
-		List<DBOTableRowChange> dboList = simpleJdbcTemplate.query(
+		List<DBOTableRowChange> dboList = jdbcTemplate.query(
 				SQL_SELECT_ALL_ROW_CHANGES_FOR_TABLE_GREATER_VERSION,
 				rowChangeMapper, tableId, versionNumber);
 		return TableModelUtils.ceateDTOFromDBO(dboList);
@@ -388,7 +391,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			throw new IllegalArgumentException("TableID cannot be null");
 		long tableId = KeyFactory.stringToKey(tableIdString);
 		try {
-			DBOTableRowChange dbo = simpleJdbcTemplate.queryForObject(
+			DBOTableRowChange dbo = jdbcTemplate.queryForObject(
 					SQL_SELECT_ROW_CHANGE_FOR_TABLE_AND_VERSION,
 					rowChangeMapper, tableId, rowVersion);
 			return TableModelUtils.ceateDTOFromDBO(dbo);
@@ -452,6 +455,17 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	}
 
 	@Override
+	public void deleteAllRowDataForTable(String tableId) {
+		// List key so we can delete them
+		List<String> keysToDelete = listAllKeysForTable(tableId);
+		// Delete each object from S3
+		for (String key : keysToDelete) {
+			s3Client.deleteObject(s3Bucket, key);
+		}
+		jdbcTemplate.update(SQL_DELETE_ROW_DATA_FOR_TABLE, KeyFactory.stringToKey(tableId));
+	}
+
+	@Override
 	public void truncateAllRowData() {
 		// List key so we can delete them
 		List<String> keysToDelete = listAllKeys();
@@ -459,7 +473,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		for (String key : keysToDelete) {
 			s3Client.deleteObject(s3Bucket, key);
 		}
-		simpleJdbcTemplate.update(SQL_TRUNCATE_SEQUENCE_TABLE);
+		jdbcTemplate.update(SQL_TRUNCATE_SEQUENCE_TABLE);
 	}
 
 	/**
@@ -468,7 +482,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	 * @return
 	 */
 	private List<String> listAllKeys() {
-		return simpleJdbcTemplate.query(SQL_LIST_ALL_KEYS,
+		return jdbcTemplate.query(SQL_LIST_ALL_KEYS,
 				new RowMapper<String>() {
 					@Override
 					public String mapRow(ResultSet rs, int rowNum)
@@ -476,6 +490,20 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 						return rs.getString(COL_TABLE_ROW_KEY);
 					}
 				});
+	}
+
+	/**
+	 * List all of the S3 Keys for a table
+	 * 
+	 * @return
+	 */
+	private List<String> listAllKeysForTable(String tableId) {
+		return jdbcTemplate.query(SQL_LIST_ALL_KEYS_FOR_TABLE, new RowMapper<String>() {
+			@Override
+			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
+				return rs.getString(COL_TABLE_ROW_KEY);
+			}
+		}, KeyFactory.stringToKey(tableId));
 	}
 
 	/**

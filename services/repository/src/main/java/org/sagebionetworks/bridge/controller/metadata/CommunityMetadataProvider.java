@@ -1,24 +1,21 @@
 package org.sagebionetworks.bridge.controller.metadata;
 
-import javax.servlet.http.HttpServletRequest;
-
 import org.sagebionetworks.bridge.model.Community;
 import org.sagebionetworks.repo.manager.team.TeamManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.controller.metadata.EntityEvent;
+import org.sagebionetworks.repo.web.controller.metadata.EntityValidator;
 import org.sagebionetworks.repo.web.controller.metadata.EventType;
-import org.sagebionetworks.repo.web.controller.metadata.TypeSpecificMetadataProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * Validation for TableEntities.
  *
  */
-public class CommunityMetadataProvider implements TypeSpecificMetadataProvider<Community>{
+public class CommunityMetadataProvider implements EntityValidator<Community> {
 	
 	@Autowired
 	TeamManager teamManager;
@@ -36,21 +33,4 @@ public class CommunityMetadataProvider implements TypeSpecificMetadataProvider<C
 			teamManager.get(community.getTeamId());
 		}	
 	}
-	
-	@Override
-	public void addTypeSpecificMetadata(Community community,
-			HttpServletRequest request, UserInfo user, EventType eventType)
-			throws DatastoreException, NotFoundException, UnauthorizedException {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void entityDeleted(Community deleted) {
-		// TODO Auto-generated method stub
-
-	}
-	
-	
-
 }

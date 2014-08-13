@@ -74,9 +74,16 @@ public interface ColumnModelManager {
 	 */
 	public boolean bindColumnToObject(UserInfo user, List<String> columnIds, String objectId, boolean isNew) throws DatastoreException, NotFoundException;
 	
-	
+	/**
+	 * Remove all column bindings for an object
+	 * 
+	 * @param objectId
+	 */
+	public void unbindAllColumnsAndOwnerFromObject(String objectId);
+
 	/**
 	 * List all of the objects that are bound to the given column IDs.
+	 * 
 	 * @param user
 	 * @param columnIds
 	 * @param currentOnly
@@ -91,6 +98,5 @@ public interface ColumnModelManager {
 	 * @param user
 	 */
 	public boolean truncateAllColumnData(UserInfo user);
-
 }
 

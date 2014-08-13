@@ -30,11 +30,6 @@ public class PreviewMetadataProvider implements
 		}
 	}
 
-	@Override
-	public void validateEntity(Preview entity, EntityEvent event) {
-		// Clear the string and set the blob
-	}
-
 	/**
 	 * Given a preview build the header and map.
 	 * @param preview
@@ -73,11 +68,4 @@ public class PreviewMetadataProvider implements
 		}
 		preview.setRows(results);
 	}
-	
-	@Override
-	public void entityDeleted(Preview deleted) {
-		// TODO Auto-generated method stub
-		
-	}
-
 }

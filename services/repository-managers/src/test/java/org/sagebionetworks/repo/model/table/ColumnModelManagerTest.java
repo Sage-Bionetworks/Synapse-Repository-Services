@@ -254,6 +254,14 @@ public class ColumnModelManagerTest {
 		assertEquals(new Long(1), page.getTotalNumberOfResults());
 	}
 	
+	@Test
+	public void testUnbindColumnFromObject() throws DatastoreException, NotFoundException {
+		String objectId = "syn123";
+		columnModelManager.unbindAllColumnsAndOwnerFromObject(objectId);
+		verify(mockColumnModelDAO).unbindAllColumnsFromObject(objectId);
+		verify(mockColumnModelDAO).deleteOwner(objectId);
+	}
+
 	@Test (expected=UnauthorizedException.class)
 	public void testTruncateAllDataUnauthroized(){
 		UserInfo user = new UserInfo(false);

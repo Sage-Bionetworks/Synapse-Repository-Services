@@ -2,13 +2,12 @@ package org.sagebionetworks.repo.web.controller.metadata;
 
 import java.util.List;
 
-import javax.servlet.http.HttpServletRequest;
-
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
+import org.sagebionetworks.repo.manager.table.TableRowManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,10 +18,13 @@ import org.springframework.beans.factory.annotation.Autowired;
  * @author John
  *
  */
-public class TableEntityMetadataProvider implements TypeSpecificMetadataProvider<TableEntity>{
+public class TableEntityMetadataProvider implements EntityValidator<TableEntity>, TypeSpecificDeleteProvider<TableEntity> {
 	
 	@Autowired
 	ColumnModelManager columnModelManager;
+
+	@Autowired
+	TableRowManager tableRowManager;
 
 	@Override
 	public void validateEntity(TableEntity entity, EntityEvent event) throws InvalidModelException, NotFoundException,
@@ -38,21 +40,10 @@ public class TableEntityMetadataProvider implements TypeSpecificMetadataProvider
 			columnModelManager.bindColumnToObject(event.getUserInfo(), columnIds, entity.getId(), isNew);
 		}	
 	}
-	
-	@Override
-	public void addTypeSpecificMetadata(TableEntity entity,
-			HttpServletRequest request, UserInfo user, EventType eventType)
-			throws DatastoreException, NotFoundException, UnauthorizedException {
-		// TODO Auto-generated method stub
-		
-	}
 
 	@Override
 	public void entityDeleted(TableEntity deleted) {
-		// TODO Auto-generated method stub
-		
+		tableRowManager.deleteAllRows(deleted.getId());
+		columnModelManager.unbindAllColumnsAndOwnerFromObject(deleted.getId());
 	}
-	
-	
-
 }

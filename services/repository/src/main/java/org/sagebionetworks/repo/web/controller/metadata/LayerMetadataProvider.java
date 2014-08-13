@@ -27,8 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
  * @author jmhill
  * 
  */
-public class LayerMetadataProvider implements
-		TypeSpecificMetadataProvider<Data> {
+public class LayerMetadataProvider implements TypeSpecificMetadataProvider<Data>, EntityValidator<Data> {
 
 	private static final Logger log = Logger
 			.getLogger(LayerMetadataProvider.class.getName());
@@ -57,10 +56,6 @@ public class LayerMetadataProvider implements
 		if (entity.getParentId() == null) {
 			throw new IllegalArgumentException("Layer.parentId cannot be null");
 		}
-	}
-
-	@Override
-	public void entityDeleted(Data entity) {
 	}
 
 	/**

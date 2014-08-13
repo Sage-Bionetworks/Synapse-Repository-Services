@@ -15,16 +15,4 @@ public class ProjectMetadataProvider implements TypeSpecificMetadataProvider<Pro
 		if(entity == null) throw new IllegalArgumentException("Entity cannot be null");
 		if(entity.getId() == null) throw new IllegalArgumentException("Entity.id cannot be null");
 	}
-
-	@Override
-	public void validateEntity(Project entity, EntityEvent event) {
-
-	}
-
-	@Override
-	public void entityDeleted(Project deleted) {
-		// TODO Auto-generated method stub
-		
-	}
-
 }

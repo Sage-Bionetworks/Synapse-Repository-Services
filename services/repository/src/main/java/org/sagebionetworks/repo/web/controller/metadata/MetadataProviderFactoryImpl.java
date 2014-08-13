@@ -14,27 +14,26 @@ import org.springframework.beans.factory.InitializingBean;
 public class MetadataProviderFactoryImpl implements MetadataProviderFactory,
 		InitializingBean {
 
-	private Map<String, TypeSpecificMetadataProvider<Entity>> metadataProviderMap;
-	private Map<String, List<TypeSpecificMetadataProvider<Entity>>> metadataProviders;
-	private TypeSpecificMetadataProvider<Entity> locationableProvider;
+	private Map<String, EntityProvider<Entity>> metadataProviderMap;
+	private Map<String, List<EntityProvider<Entity>>> metadataProviders;
+	private EntityProvider<Entity> locationableProvider;
 
 	/**
 	 * @param metadataProviderMap
 	 *            the metadataProviderMap to set
 	 */
-	public void setMetadataProviderMap(
-			Map<String, TypeSpecificMetadataProvider<Entity>> metadataProviderMap) {
+	public void setMetadataProviderMap(Map<String, EntityProvider<Entity>> metadataProviderMap) {
 		this.metadataProviderMap = metadataProviderMap;
 	}
 
 	@Override
-	public List<TypeSpecificMetadataProvider<Entity>> getMetadataProvider(
+	public List<EntityProvider<Entity>> getMetadataProvider(
 			EntityType type) {
 
-		List<TypeSpecificMetadataProvider<Entity>> providers = metadataProviders.get(type.name());
+		List<EntityProvider<Entity>> providers = metadataProviders.get(type.name());
 		if (null == providers) {
 			if (Locationable.class.isAssignableFrom(type.getClassForType())) {
-				providers = new LinkedList<TypeSpecificMetadataProvider<Entity>>();
+				providers = new LinkedList<EntityProvider<Entity>>();
 				providers.add(locationableProvider);
 				metadataProviders.put(type.name(), providers);
 			}
@@ -45,17 +44,17 @@ public class MetadataProviderFactoryImpl implements MetadataProviderFactory,
 
 	@Override
 	public void afterPropertiesSet() throws Exception {
-		metadataProviders = new HashMap<String, List<TypeSpecificMetadataProvider<Entity>>>();
+		metadataProviders = new HashMap<String, List<EntityProvider<Entity>>>();
 
 		locationableProvider = this.metadataProviderMap.get("locationable");
 
-		for (Entry<String, TypeSpecificMetadataProvider<Entity>> providerEntry : metadataProviderMap
+		for (Entry<String, EntityProvider<Entity>> providerEntry : metadataProviderMap
 				.entrySet()) {
 			if (providerEntry.getValue() == locationableProvider) {
 				continue;
 			}
 
-			List<TypeSpecificMetadataProvider<Entity>> allProvidersForType = new LinkedList<TypeSpecificMetadataProvider<Entity>>();
+			List<EntityProvider<Entity>> allProvidersForType = new LinkedList<EntityProvider<Entity>>();
 			allProvidersForType.add(providerEntry.getValue());
 
 			EntityType type = EntityType.valueOf(providerEntry.getKey());
