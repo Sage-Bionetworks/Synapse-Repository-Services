@@ -544,10 +544,19 @@ public class DBOChangeDAOImplAutowiredTest {
 		// Submit again
 		Future<Integer> two = pool.submit(callable);
 		// There should be no errors
-		Integer oneResult = one.get();
-		assertEquals(new Integer(timesToRun), oneResult);
-		Integer twoResult = two.get();
-		assertEquals(new Integer(timesToRun), twoResult);
+		;
+		try {
+			Integer oneResult = one.get();
+			assertEquals(new Integer(timesToRun), oneResult);
+		} catch (DeadlockLoserDataAccessException e) {
+			// We now expect deadlock to occur occasionally. See PLFM-2923
+		}
+		try {
+			Integer twoResult = two.get();
+			assertEquals(new Integer(timesToRun), twoResult);
+		} catch (DeadlockLoserDataAccessException e) {
+			// We now expect deadlock to occur occasionally. See PLFM-2923
+		}
 	}
 	
 	@Test

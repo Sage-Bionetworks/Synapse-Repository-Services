@@ -17,7 +17,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import org.junit.After;
 import org.junit.Before;
@@ -39,11 +38,10 @@ import org.sagebionetworks.repo.model.provenance.UsedEntity;
 import org.sagebionetworks.repo.model.provenance.UsedURL;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DeadlockLoserDataAccessException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.transaction.IllegalTransactionStateException;
-
-import com.google.common.collect.Lists;
 
 /**
  * This test of the DBOActivityDAOImpl is only for DB function and DB enforced 
@@ -117,9 +115,25 @@ public class DBOActivityDAOImplAutowiredTest {
 		assertEquals(1 + initialCount, activityDao.getCount());
 	}
 
-	private void exerciseCreate() throws Exception {
+	/**
+	 * 
+	 * @return True if a new activity was created. False if deadlock was encountered multiple times
+	 * @throws Exception
+	 */
+	private boolean exerciseCreate() throws Exception {
 		Activity toCreate = newTestActivity(idGenerator.generateNewId().toString(), altUserGroupId);
-		String id = activityDao.create(toCreate);
+		String id;
+		try {
+			id = activityDao.create(toCreate);
+		} catch (DeadlockLoserDataAccessException e) {
+			// Try again
+			try {
+				id = activityDao.create(toCreate);
+			} catch (DeadlockLoserDataAccessException e1) {
+				// This is now allowed to happen
+				return false;
+			}
+		}
 		toDelete.add(id);
 		assertNotNull(id);
 
@@ -127,6 +141,7 @@ public class DBOActivityDAOImplAutowiredTest {
 		Activity loaded = activityDao.get(id);
 		assertEquals(id, loaded.getId().toString());
 		assertNotNull(loaded.getEtag());
+		return true;
 	}
 
 	private static final int PARALLEL_THREAD_COUNT = 4;
@@ -137,7 +152,6 @@ public class DBOActivityDAOImplAutowiredTest {
 	public void testMultipleCreate() throws Exception {
 		List<Future<Void>> futures = new ArrayList<Future<Void>>();
 		ExecutorService executor = Executors.newFixedThreadPool(PARALLEL_THREAD_COUNT);
-
 		for (int i = 0; i < PARALLEL_THREAD_COUNT; i++) {
 			Future<Void> future = executor.submit(new Callable<Void>() {
 				@Override
