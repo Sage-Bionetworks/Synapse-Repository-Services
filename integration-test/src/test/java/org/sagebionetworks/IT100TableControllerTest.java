@@ -91,6 +91,9 @@ public class IT100TableControllerTest {
 	
 	@After
 	public void after() throws Exception {
+		for (Entity entity : tablesToDelete) {
+			adminSynapse.deleteAndPurgeEntity(entity);
+		}
 		for (Entity entity : entitiesToDelete) {
 			adminSynapse.deleteAndPurgeEntity(entity);
 		}
@@ -258,6 +261,60 @@ public class IT100TableControllerTest {
 		assertEquals(Arrays.asList(one), bundle.getSelectColumns());
 		assertNotNull(bundle.getMaxRowsPerPage());
 		assertTrue(bundle.getMaxRowsPerPage() > 0);
+	}
+
+	@Test
+	public void testQueryDoubles() throws SynapseException, InterruptedException {
+		// Create a few columns to add to a table entity
+		ColumnModel one = new ColumnModel();
+		one.setName("one");
+		one.setColumnType(ColumnType.DOUBLE);
+		one = synapse.createColumnModel(one);
+
+		// Create a project to contain it all
+		Project project = new Project();
+		project.setName(UUID.randomUUID().toString());
+		project = synapse.createEntity(project);
+		assertNotNull(project);
+		entitiesToDelete.add(project);
+
+		// now create a table entity
+		TableEntity table = new TableEntity();
+		table.setName("Table");
+		table.setColumnIds(Lists.newArrayList(one.getId()));
+		table.setParentId(project.getId());
+		table = synapse.createEntity(table);
+		tablesToDelete.add(table);
+
+		List<ColumnModel> columns = synapse.getColumnModelsForTableEntity(table.getId());
+
+		// Append some rows
+		RowSet set = new RowSet();
+		List<Row> rows = Lists.newArrayList(TableModelTestUtils.createRow(null, null, "-1.2"),
+				TableModelTestUtils.createRow(null, null, "-.2"), TableModelTestUtils.createRow(null, null, ".2"),
+				TableModelTestUtils.createRow(null, null, "1.2"));
+		set.setRows(rows);
+		set.setHeaders(TableModelUtils.getHeaders(columns));
+		set.setTableId(table.getId());
+		synapse.appendRowsToTable(set);
+
+		// Now attempt to query for the table results
+		boolean isConsistent = true;
+		boolean countOnly = true;
+		RowSet queryResults = waitForQueryResults("select * from " + table.getId() + " where one > -2.2 limit 100", isConsistent, countOnly);
+		assertEquals("4", queryResults.getRows().get(0).getValues().get(0));
+		queryResults = waitForQueryResults("select * from " + table.getId() + " where one > -1.3 limit 100", isConsistent, countOnly);
+		assertEquals("4", queryResults.getRows().get(0).getValues().get(0));
+		queryResults = waitForQueryResults("select * from " + table.getId() + " where one > -.3 limit 100", isConsistent, countOnly);
+		assertEquals("3", queryResults.getRows().get(0).getValues().get(0));
+		queryResults = waitForQueryResults("select * from " + table.getId() + " where one > -.1 limit 100", isConsistent, countOnly);
+		assertEquals("2", queryResults.getRows().get(0).getValues().get(0));
+		queryResults = waitForQueryResults("select * from " + table.getId() + " where one > .1 limit 100", isConsistent, countOnly);
+		assertEquals("2", queryResults.getRows().get(0).getValues().get(0));
+		queryResults = waitForQueryResults("select * from " + table.getId() + " where one > .3 limit 100", isConsistent, countOnly);
+		assertEquals("1", queryResults.getRows().get(0).getValues().get(0));
+		queryResults = waitForQueryResults("select * from " + table.getId() + " where one > 1.3 limit 100", isConsistent, countOnly);
+		assertEquals("0", queryResults.getRows().get(0).getValues().get(0));
 	}
 
 	/**
