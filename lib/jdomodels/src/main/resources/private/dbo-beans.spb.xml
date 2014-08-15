@@ -155,8 +155,8 @@
 				<bean class="org.sagebionetworks.bridge.model.dbo.persistence.DBOParticipantData" />
 				<bean class="org.sagebionetworks.bridge.model.dbo.persistence.DBOParticipantDataStatus" />
 				
-				<bean class="org.sagebionetworks.repo.model.dbo.persistence.table.DBOBoundColumnOwner" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.table.DBOColumnModel" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.table.DBOBoundColumnOwner" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableIdSequence" />
 								
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOStorageQuota" />
