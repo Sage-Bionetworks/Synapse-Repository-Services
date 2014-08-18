@@ -33,7 +33,7 @@ public class LogServiceImpl implements LogService {
 	@Override
 	public void log(final LogEntry logEntry, String userAgent) {
 		log.error(logEntry.getLabel() + " - " + userAgent + ": " + logEntry.getMessage()
-				+ (logEntry.getStacktrace() == null ? "" : (System.lineSeparator() + logEntry.getStacktrace())));
+				+ (logEntry.getStacktrace() == null ? "" : ("\n" + logEntry.getStacktrace())));
 
 		Date now = new Date();
 
