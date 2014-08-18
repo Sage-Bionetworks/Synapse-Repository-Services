@@ -48,7 +48,11 @@ public class IT970UserProfileController {
 	@After
 	public void after() throws Exception {
 		for(String id : entitiesToDelete) {
-			synapse.deleteAndPurgeEntityById(id);
+			try {
+				synapse.deleteAndPurgeEntityById(id);
+			} catch (Exception e) {
+				synapse.purgeTrashForUser(id);
+			}
 		}
 	}
 	
@@ -93,4 +97,27 @@ public class IT970UserProfileController {
 		assertEquals(0, favs.getResults().size());
 	}
 
+	@Test
+	public void testMyProjects() throws Exception {
+		Project entity = new Project();
+		entity.setEntityType(Project.class.getName());
+		entity = synapse.createEntity(entity);
+		entitiesToDelete.add(entity.getId());
+
+		Project entity2 = new Project();
+		entity2.setEntityType(Project.class.getName());
+		entity2 = synapse.createEntity(entity2);
+		entitiesToDelete.add(entity2.getId());
+
+		// retrieve
+		PaginatedResults<EntityHeader> projects = synapse.getProjects(Integer.MAX_VALUE, 0);
+		assertEquals(2, projects.getTotalNumberOfResults());
+		assertEquals(2, projects.getResults().size());
+
+		// ignore trashed projects
+		synapse.deleteEntity(entity);
+		projects = synapse.getProjects(Integer.MAX_VALUE, 0);
+		assertEquals(1, projects.getTotalNumberOfResults());
+		assertEquals(1, projects.getResults().size());
+	}
 }

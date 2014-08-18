@@ -193,7 +193,20 @@ public interface UserProfileService {
 	 */
 	public PaginatedResults<EntityHeader> getFavorites(Long userId, int limit, int offset) throws DatastoreException, InvalidModelException, NotFoundException;
 
+	/**
+	 * Retrieve sorted list of the users projects, paginated
+	 * 
+	 * @param userId
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 * @throws NotFoundException
+	 */
+	public PaginatedResults<EntityHeader> getProjects(Long userId, int limit, int offset) throws DatastoreException, InvalidModelException,
+			NotFoundException;
+
 	public void setPrincipalAlaisDAO(PrincipalAliasDAO mockPrincipalAlaisDAO);
 
-	
 }

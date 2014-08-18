@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.FavoriteDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -44,6 +45,9 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	@Autowired
 	private FavoriteDAO favoriteDAO;
 	
+	@Autowired
+	private NodeDAO nodeDao;
+
 	@Autowired
 	private PrincipalAliasDAO principalAliasDAO;
 	
@@ -181,6 +185,12 @@ public class UserProfileManagerImpl implements UserProfileManager {
 			int limit, int offset) throws DatastoreException,
 			InvalidModelException, NotFoundException {
 		return favoriteDAO.getFavoritesEntityHeader(userInfo.getId().toString(), limit, offset);
+	}
+
+	@Override
+	public PaginatedResults<EntityHeader> getProjects(UserInfo userInfo, int limit, int offset) throws DatastoreException,
+			InvalidModelException, NotFoundException {
+		return nodeDao.getProjectEntityHeaders(userInfo.getId().toString(), limit, offset);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)

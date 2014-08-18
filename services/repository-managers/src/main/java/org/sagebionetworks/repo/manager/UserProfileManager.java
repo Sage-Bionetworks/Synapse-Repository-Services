@@ -77,4 +77,10 @@ public interface UserProfileManager {
 	public PaginatedResults<EntityHeader> getFavorites(UserInfo userInfo,
 			int limit, int offset) throws DatastoreException,
 			InvalidModelException, NotFoundException;
+
+	/**
+	 * Retrieve users list of projects, paginated
+	 */
+	public PaginatedResults<EntityHeader> getProjects(UserInfo userInfo, int limit, int offset) throws DatastoreException,
+			InvalidModelException, NotFoundException;
 }

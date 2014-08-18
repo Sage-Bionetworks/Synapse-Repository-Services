@@ -262,4 +262,23 @@ public class UserProfileController extends BaseController {
 		return serviceProvider.getUserProfileService().getFavorites(userId, limit, offset);
 	}
 
+	/**
+	 * Get a paginated result that contains the caller's <a
+	 * href="${org.sagebionetworks.repo.model.Project}">projects</a>. The list is ordered by most recent interacted with
+	 * project first
+	 * 
+	 * @param offset The offset index determines where this page will start from. An index of 0 is the first item.
+	 *        <i>Default is 0</i>
+	 * @param limit Limits the number of items that will be fetched for this page. <i>Default is 10</i>
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.PROJECT }, method = RequestMethod.GET)
+	public @ResponseBody
+	PaginatedResults<EntityHeader> getProjects(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit)
+			throws NotFoundException, DatastoreException, UnauthorizedException {
+		return serviceProvider.getUserProfileService().getProjects(userId, limit, offset);
+	}
 }

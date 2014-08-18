@@ -183,6 +183,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String ACTIVITY_URI_PATH = "/activity";
 	private static final String GENERATED_PATH = "/generated";
 	private static final String FAVORITE_URI_PATH = "/favorite";
+	private static final String PROJECT_URI_PATH = "/project";
 	
 	public static final String PRINCIPAL = "/principal";
 	public static final String PRINCIPAL_AVAILABLE = PRINCIPAL+"/available";
@@ -4907,8 +4908,31 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	/**
-	 * Creates a DOI for the specified entity. The DOI will always be associated with
-	 * the current version of the entity.
+	 * Retrieve this user's Projects list
+	 * 
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws SynapseException
+	 */
+	@Override
+	public PaginatedResults<EntityHeader> getProjects(Integer limit, Integer offset) throws SynapseException {
+		String url = PROJECT_URI_PATH + "?" + OFFSET + "=" + offset + "&limit=" + limit;
+		JSONObject jsonObj = getEntity(url);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedResults<EntityHeader> results = new PaginatedResults<EntityHeader>(EntityHeader.class);
+
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+
+	}
+
+	/**
+	 * Creates a DOI for the specified entity. The DOI will always be associated with the current version of the entity.
 	 */
 	@Override
 	public void createEntityDoi(String entityId) throws SynapseException {

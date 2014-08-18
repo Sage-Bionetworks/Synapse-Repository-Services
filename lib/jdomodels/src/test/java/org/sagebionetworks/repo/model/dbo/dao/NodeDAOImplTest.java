@@ -23,28 +23,10 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.AccessControlListDAO;
-import org.sagebionetworks.repo.model.ActivityDAO;
-import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.NamedAnnotations;
-import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.NodeConstants;
-import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.NodeInheritanceDAO;
-import org.sagebionetworks.repo.model.NodeParentRelation;
-import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.QueryResults;
-import org.sagebionetworks.repo.model.Reference;
-import org.sagebionetworks.repo.model.ResourceAccess;
-import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -58,6 +40,10 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.transaction.IllegalTransactionStateException;
 import org.springframework.transaction.UnexpectedRollbackException;
+
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -82,11 +68,18 @@ public class NodeDAOImplTest {
 	
 	@Autowired
 	private FileHandleDao fileHandleDao;
-	
+
+	@Autowired
+	private UserGroupDAO userGroupDAO;
+
+	@Autowired
+	private GroupMembersDAO groupMembersDAO;
+
 	// the datasets that must be deleted at the end of each test.
 	List<String> toDelete = new ArrayList<String>();
 	List<String> activitiesToDelete = new ArrayList<String>();
 	List<String> fileHandlesToDelete = new ArrayList<String>();
+	private List<String> userGroupsToDelete = Lists.newArrayList();
 	
 	private Long creatorUserGroupId;	
 	private Long altUserGroupId;
@@ -95,7 +88,11 @@ public class NodeDAOImplTest {
 	
 	private S3FileHandle fileHandle = null;
 	private S3FileHandle fileHandle2 = null;
-	
+
+	private String user1;
+	private String user2;
+	private String group;
+
 	@Before
 	public void before() throws Exception {
 		creatorUserGroupId = BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId();
@@ -111,6 +108,20 @@ public class NodeDAOImplTest {
 		// Create file handles that can be used in tests
 		fileHandle = createTestFileHandle("One", creatorUserGroupId.toString());
 		fileHandle2 = createTestFileHandle("Two", creatorUserGroupId.toString());
+
+		UserGroup user = new UserGroup();
+		user.setIsIndividual(true);
+		user1 = userGroupDAO.create(user).toString();
+		userGroupsToDelete.add(user1);
+
+		user2 = userGroupDAO.create(user).toString();
+		userGroupsToDelete.add(user2);
+
+		user.setIsIndividual(false);
+		group = userGroupDAO.create(user).toString();
+		userGroupsToDelete.add(group);
+
+		groupMembersDAO.addMembers(group, Lists.newArrayList(user1));
 	}
 	
 	@After
@@ -134,6 +145,9 @@ public class NodeDAOImplTest {
 			for(String id : fileHandlesToDelete) {
 				fileHandleDao.delete(id);
 			}
+		}
+		for (String todelete : Lists.reverse(userGroupsToDelete)) {
+			userGroupDAO.delete(todelete);
 		}
 	}
 	
@@ -1980,6 +1994,89 @@ public class NodeDAOImplTest {
 		assertEquals(1, results.size());
 		assertEquals(id2, results.get(0).getId());
 		assertEquals(Long.valueOf(2L), results.get(0).getVersionNumber());
+	}
+
+	@Test
+	public void testGetProjectEntityHeaders() throws Exception {
+		Node ownedProject = NodeTestUtils.createNew("testGetProjectEntityHeaders.name1", Long.parseLong(user1));
+		ownedProject.setParentId(StackConfiguration.getRootFolderEntityIdStatic());
+		String owned = this.nodeDao.createNew(ownedProject);
+		toDelete.add(owned);
+		ownedProject = nodeDao.getNode(owned);
+		ownedProject.setVersionLabel("2nd");
+		// create 2nd version
+		nodeDao.createNewVersion(ownedProject);
+		ownedProject = nodeDao.getNode(owned);
+
+		Node participateProject = NodeTestUtils.createNew("testGetProjectEntityHeaders.name2", Long.parseLong(user2));
+		participateProject.setParentId(StackConfiguration.getRootFolderEntityIdStatic());
+		String participate = this.nodeDao.createNew(participateProject);
+		toDelete.add(participate);
+		participateProject = nodeDao.getNode(participate);
+
+		// now add ACL for the user
+		AccessControlList acl = new AccessControlList();
+		Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
+		ResourceAccess ra = new ResourceAccess();
+		ra.setAccessType(Sets.newHashSet(ACCESS_TYPE.READ));
+		ra.setPrincipalId(Long.parseLong(user1));
+		ras.add(ra);
+		acl.setResourceAccess(ras);
+		acl.setId(participate);
+		acl.setCreationDate(new Date());
+		accessControlListDAO.create(acl, ObjectType.ENTITY);
+
+		Node groupParticipateProject = NodeTestUtils.createNew("testGetProjectEntityHeaders.name3", Long.parseLong(user2));
+		groupParticipateProject.setParentId(StackConfiguration.getRootFolderEntityIdStatic());
+		String groupParticipate = this.nodeDao.createNew(groupParticipateProject);
+		toDelete.add(groupParticipate);
+		groupParticipateProject = nodeDao.getNode(groupParticipate);
+
+		// now add ACL for the group
+		acl = new AccessControlList();
+		ras = new HashSet<ResourceAccess>();
+		ra = new ResourceAccess();
+		ra.setAccessType(Sets.newHashSet(ACCESS_TYPE.READ));
+		ra.setPrincipalId(Long.parseLong(group));
+		ras.add(ra);
+		acl.setResourceAccess(ras);
+		acl.setId(groupParticipate);
+		acl.setCreationDate(new Date());
+		accessControlListDAO.create(acl, ObjectType.ENTITY);
+
+		Node notMyProject = NodeTestUtils.createNew("testGetProjectEntityHeaders.name4", Long.parseLong(user2));
+		notMyProject.setParentId(StackConfiguration.getRootFolderEntityIdStatic());
+		String neither = this.nodeDao.createNew(notMyProject);
+		toDelete.add(neither);
+		notMyProject = nodeDao.getNode(neither);
+
+		Node myTrashedProject = NodeTestUtils.createNew("testGetProjectEntityHeaders.name4", Long.parseLong(user2));
+		myTrashedProject.setParentId(StackConfiguration.getTrashFolderEntityIdStatic());
+		String trashed = this.nodeDao.createNew(myTrashedProject);
+		toDelete.add(trashed);
+		myTrashedProject = nodeDao.getNode(trashed);
+
+		PaginatedResults<EntityHeader> projectEntityHeaders = nodeDao.getProjectEntityHeaders(user1, 100, 0);
+		assertEquals(3L, projectEntityHeaders.getTotalNumberOfResults());
+		assertEquals(3L, projectEntityHeaders.getTotalNumberOfResults());
+		List<String> projectIds = Lists.transform(projectEntityHeaders.getResults(), new Function<EntityHeader, String>() {
+			@Override
+			public String apply(EntityHeader input) {
+				return input.getId();
+			}
+		});
+		assertTrue(projectIds.contains(owned));
+		assertTrue(projectIds.contains(participate));
+		assertTrue(projectIds.contains(groupParticipate));
+
+		List<String> projectIds2 = Lists.newArrayList();
+		for (int i = 0; i < 3; i++) {
+			projectEntityHeaders = nodeDao.getProjectEntityHeaders(user1, 1, i);
+			assertEquals(1L, projectEntityHeaders.getResults().size());
+			assertEquals(3L, projectEntityHeaders.getTotalNumberOfResults());
+			projectIds2.add(projectEntityHeaders.getResults().get(0).getId());
+		}
+		assertEquals(projectIds, projectIds2);
 	}
 
 	/*

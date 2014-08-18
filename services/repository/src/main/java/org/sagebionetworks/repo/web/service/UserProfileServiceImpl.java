@@ -300,6 +300,12 @@ public class UserProfileServiceImpl implements UserProfileService {
 		return userProfileManager.getFavorites(userInfo, limit, offset);
 	}
 	
+	@Override
+	public PaginatedResults<EntityHeader> getProjects(Long userId, int limit, int offset) throws DatastoreException, InvalidModelException,
+			NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return userProfileManager.getProjects(userInfo, limit, offset);
+	}
 	
 	/*
 	 * Private Methods
