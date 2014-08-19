@@ -31,6 +31,7 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.ProjectHeader;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroupHeader;
@@ -301,10 +302,14 @@ public class UserProfileServiceImpl implements UserProfileService {
 	}
 	
 	@Override
-	public PaginatedResults<EntityHeader> getProjects(Long userId, int limit, int offset) throws DatastoreException, InvalidModelException,
-			NotFoundException {
+	public PaginatedResults<ProjectHeader> getProjects(Long userId, Long userIdToFetch, int limit, int offset) throws DatastoreException,
+			InvalidModelException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return userProfileManager.getProjects(userInfo, limit, offset);
+		UserInfo userToFetch = null;
+		if (userIdToFetch != null) {
+			userToFetch = userManager.getUserInfo(userIdToFetch);
+		}
+		return userProfileManager.getProjects(userInfo, userToFetch, limit, offset);
 	}
 	
 	/*

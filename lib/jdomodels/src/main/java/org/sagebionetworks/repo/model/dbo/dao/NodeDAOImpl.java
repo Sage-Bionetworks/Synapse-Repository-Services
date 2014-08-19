@@ -34,6 +34,7 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeParentRelation;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.ProjectHeader;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.VersionInfo;
@@ -1253,32 +1254,31 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	}
 
 	@Override
-	public PaginatedResults<EntityHeader> getProjectEntityHeaders(String principalId, int limit, int offset) {
+	public PaginatedResults<ProjectHeader> getProjectHeaders(String principalId, int limit, int offset) {
 		if (principalId == null)
 			throw new IllegalArgumentException("Principal id can not be null");
 		if (limit < 0 || offset < 0)
 			throw new IllegalArgumentException("limit and offset must be greater than 0");
-		// get one page of favorites
+		// get one page of projects
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(USER_ID_PARAM_NAME, principalId);
 		params.addValue(OFFSET_PARAM_NAME, offset);
 		params.addValue(LIMIT_PARAM_NAME, limit);
 
-		List<EntityHeader> favoritesHeaders = namedParameterJdbcTemplate.query(SELECT_PROJECT_HEADERS_SQL, params,
-				new RowMapper<EntityHeader>() {
+		List<ProjectHeader> projectsHeaders = namedParameterJdbcTemplate.query(SELECT_PROJECT_HEADERS_SQL, params,
+				new RowMapper<ProjectHeader>() {
 					@Override
-					public EntityHeader mapRow(ResultSet rs, int rowNum) throws SQLException {
-						EntityHeader header = new EntityHeader();
+					public ProjectHeader mapRow(ResultSet rs, int rowNum) throws SQLException {
+						ProjectHeader header = new ProjectHeader();
 						header.setId(KeyFactory.keyToString(rs.getLong(COL_NODE_ID)));
 						header.setName(rs.getString(COL_NODE_NAME));
-						header.setType(EntityType.getTypeForId(rs.getShort(COL_NODE_TYPE)).getEntityType());
 						return header;
 					}
 				});
 
 		// return the page of objects, along with the total result count
-		PaginatedResults<EntityHeader> queryResults = new PaginatedResults<EntityHeader>();
-		queryResults.setResults(favoritesHeaders);
+		PaginatedResults<ProjectHeader> queryResults = new PaginatedResults<ProjectHeader>();
+		queryResults.setResults(projectsHeaders);
 		long totalCount = 0;
 		try {
 			totalCount = namedParameterJdbcTemplate.queryForObject(COUNT_PROJECT_HEADERS_SQL, params, Long.class);

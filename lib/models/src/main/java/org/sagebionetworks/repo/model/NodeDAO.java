@@ -391,12 +391,12 @@ public interface NodeDAO {
 	/**
 	 * Get the list of projects the user has an interest in
 	 * 
-	 * @param string
+	 * @param principalId user to get listing for
 	 * @param limit
 	 * @param offset
 	 * @return
 	 */
-	public PaginatedResults<EntityHeader> getProjectEntityHeaders(String principalId, int limit, int offset);
+	public PaginatedResults<ProjectHeader> getProjectHeaders(String principalId, int limit, int offset);
 
 	long getCount();
 }

@@ -18,6 +18,7 @@ import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.ProjectHeader;
 import org.sagebionetworks.repo.model.UserProfile;
 
 public class IT970UserProfileController {
@@ -109,15 +110,20 @@ public class IT970UserProfileController {
 		entity2 = synapse.createEntity(entity2);
 		entitiesToDelete.add(entity2.getId());
 
-		// retrieve
-		PaginatedResults<EntityHeader> projects = synapse.getProjects(Integer.MAX_VALUE, 0);
+		// retrieve my projects
+		PaginatedResults<ProjectHeader> projects = synapse.getMyProjects(Integer.MAX_VALUE, 0);
 		assertEquals(2, projects.getTotalNumberOfResults());
 		assertEquals(2, projects.getResults().size());
 
+		// retrieve someone elses projects
+		PaginatedResults<ProjectHeader> projects2 = adminSynapse.getProjectsFromUser(userToDelete, Integer.MAX_VALUE, 0);
+		assertEquals(projects2, projects);
+
 		// ignore trashed projects
 		synapse.deleteEntity(entity);
-		projects = synapse.getProjects(Integer.MAX_VALUE, 0);
+		projects = synapse.getMyProjects(Integer.MAX_VALUE, 0);
 		assertEquals(1, projects.getTotalNumberOfResults());
 		assertEquals(1, projects.getResults().size());
+		assertEquals(entity2.getId(), projects.getResults().get(0).getId());
 	}
 }

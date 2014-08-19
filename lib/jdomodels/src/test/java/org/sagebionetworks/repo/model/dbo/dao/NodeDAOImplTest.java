@@ -1997,8 +1997,8 @@ public class NodeDAOImplTest {
 	}
 
 	@Test
-	public void testGetProjectEntityHeaders() throws Exception {
-		Node ownedProject = NodeTestUtils.createNew("testGetProjectEntityHeaders.name1", Long.parseLong(user1));
+	public void testGetProjectHeaders() throws Exception {
+		Node ownedProject = NodeTestUtils.createNew("testGetProjectHeaders.name1", Long.parseLong(user1));
 		ownedProject.setParentId(StackConfiguration.getRootFolderEntityIdStatic());
 		String owned = this.nodeDao.createNew(ownedProject);
 		toDelete.add(owned);
@@ -2008,7 +2008,7 @@ public class NodeDAOImplTest {
 		nodeDao.createNewVersion(ownedProject);
 		ownedProject = nodeDao.getNode(owned);
 
-		Node participateProject = NodeTestUtils.createNew("testGetProjectEntityHeaders.name2", Long.parseLong(user2));
+		Node participateProject = NodeTestUtils.createNew("testGetProjectHeaders.name2", Long.parseLong(user2));
 		participateProject.setParentId(StackConfiguration.getRootFolderEntityIdStatic());
 		String participate = this.nodeDao.createNew(participateProject);
 		toDelete.add(participate);
@@ -2026,7 +2026,7 @@ public class NodeDAOImplTest {
 		acl.setCreationDate(new Date());
 		accessControlListDAO.create(acl, ObjectType.ENTITY);
 
-		Node groupParticipateProject = NodeTestUtils.createNew("testGetProjectEntityHeaders.name3", Long.parseLong(user2));
+		Node groupParticipateProject = NodeTestUtils.createNew("testGetProjectHeaders.name3", Long.parseLong(user2));
 		groupParticipateProject.setParentId(StackConfiguration.getRootFolderEntityIdStatic());
 		String groupParticipate = this.nodeDao.createNew(groupParticipateProject);
 		toDelete.add(groupParticipate);
@@ -2044,24 +2044,24 @@ public class NodeDAOImplTest {
 		acl.setCreationDate(new Date());
 		accessControlListDAO.create(acl, ObjectType.ENTITY);
 
-		Node notMyProject = NodeTestUtils.createNew("testGetProjectEntityHeaders.name4", Long.parseLong(user2));
+		Node notMyProject = NodeTestUtils.createNew("testGetProjectHeaders.name4", Long.parseLong(user2));
 		notMyProject.setParentId(StackConfiguration.getRootFolderEntityIdStatic());
 		String neither = this.nodeDao.createNew(notMyProject);
 		toDelete.add(neither);
 		notMyProject = nodeDao.getNode(neither);
 
-		Node myTrashedProject = NodeTestUtils.createNew("testGetProjectEntityHeaders.name4", Long.parseLong(user2));
+		Node myTrashedProject = NodeTestUtils.createNew("testGetProjectHeaders.name4", Long.parseLong(user2));
 		myTrashedProject.setParentId(StackConfiguration.getTrashFolderEntityIdStatic());
 		String trashed = this.nodeDao.createNew(myTrashedProject);
 		toDelete.add(trashed);
 		myTrashedProject = nodeDao.getNode(trashed);
 
-		PaginatedResults<EntityHeader> projectEntityHeaders = nodeDao.getProjectEntityHeaders(user1, 100, 0);
-		assertEquals(3L, projectEntityHeaders.getTotalNumberOfResults());
-		assertEquals(3L, projectEntityHeaders.getTotalNumberOfResults());
-		List<String> projectIds = Lists.transform(projectEntityHeaders.getResults(), new Function<EntityHeader, String>() {
+		PaginatedResults<ProjectHeader> projectHeaders = nodeDao.getProjectHeaders(user1, 100, 0);
+		assertEquals(3L, projectHeaders.getTotalNumberOfResults());
+		assertEquals(3L, projectHeaders.getTotalNumberOfResults());
+		List<String> projectIds = Lists.transform(projectHeaders.getResults(), new Function<ProjectHeader, String>() {
 			@Override
-			public String apply(EntityHeader input) {
+			public String apply(ProjectHeader input) {
 				return input.getId();
 			}
 		});
@@ -2071,10 +2071,10 @@ public class NodeDAOImplTest {
 
 		List<String> projectIds2 = Lists.newArrayList();
 		for (int i = 0; i < 3; i++) {
-			projectEntityHeaders = nodeDao.getProjectEntityHeaders(user1, 1, i);
-			assertEquals(1L, projectEntityHeaders.getResults().size());
-			assertEquals(3L, projectEntityHeaders.getTotalNumberOfResults());
-			projectIds2.add(projectEntityHeaders.getResults().get(0).getId());
+			projectHeaders = nodeDao.getProjectHeaders(user1, 1, i);
+			assertEquals(1L, projectHeaders.getResults().size());
+			assertEquals(3L, projectHeaders.getTotalNumberOfResults());
+			projectIds2.add(projectHeaders.getResults().get(0).getId());
 		}
 		assertEquals(projectIds, projectIds2);
 	}

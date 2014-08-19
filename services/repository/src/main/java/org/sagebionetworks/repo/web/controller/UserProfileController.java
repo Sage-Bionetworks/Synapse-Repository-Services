@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.ProjectHeader;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
@@ -272,13 +273,33 @@ public class UserProfileController extends BaseController {
 	 * @param limit Limits the number of items that will be fetched for this page. <i>Default is 10</i>
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = { UrlHelpers.PROJECT }, method = RequestMethod.GET)
+	@RequestMapping(value = { UrlHelpers.MY_PROJECTS }, method = RequestMethod.GET)
 	public @ResponseBody
-	PaginatedResults<EntityHeader> getProjects(
+	PaginatedResults<ProjectHeader> getMyProjects(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
-		return serviceProvider.getUserProfileService().getProjects(userId, limit, offset);
+		return serviceProvider.getUserProfileService().getProjects(userId, null, limit, offset);
+	}
+
+	/**
+	 * Get a paginated result that contains the <a href="${org.sagebionetworks.repo.model.Project}">projects</a> from a
+	 * user. The list is ordered by most recent interacted with project first
+	 * 
+	 * @param offset The offset index determines where this page will start from. An index of 0 is the first item.
+	 *        <i>Default is 0</i>
+	 * @param limit Limits the number of items that will be fetched for this page. <i>Default is 10</i>
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.PROJECTS_FOR_USER }, method = RequestMethod.GET)
+	public @ResponseBody
+	PaginatedResults<ProjectHeader> getProjectsForUser(
+			@PathVariable Long principalId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit)
+			throws NotFoundException, DatastoreException, UnauthorizedException {
+		return serviceProvider.getUserProfileService().getProjects(userId, principalId, limit, offset);
 	}
 }

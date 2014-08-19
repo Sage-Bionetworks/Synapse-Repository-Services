@@ -156,7 +156,6 @@ public class UrlHelpers {
 	public static final String VERSIONINFO = PrefixConst.VERSIONINFO;
 	public static final String ACTIVITY    = PrefixConst.ACTIVITY;
 	public static final String FAVORITE    = PrefixConst.FAVORITE;
-	public static final String PROJECT = PrefixConst.PROJECT;
 	
 	
 	public static final String PRINCIPAL = "/principal";
@@ -207,7 +206,7 @@ public class UrlHelpers {
 	 * Favorite URLs
 	 */
 	public static final String FAVORITE_ID = FAVORITE+ID;
-	
+
 	/**
 	 * Used to get an entity attachment token
 	 */
@@ -415,7 +414,13 @@ public class UrlHelpers {
 	 */
 	public static final String RESOURCES = "/resources";
 	
-		/**
+	/*
+	 * Project URLs
+	 */
+	public static final String MY_PROJECTS = PrefixConst.PROJECT;
+	public static final String PROJECTS_FOR_USER = PrefixConst.PROJECT + USER + "/{principalId}";
+
+	/**
 	 * URL prefix for User mirroring service
 	 * 
 	 */

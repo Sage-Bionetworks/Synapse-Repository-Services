@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.ProjectHeader;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
@@ -197,6 +198,7 @@ public interface UserProfileService {
 	 * Retrieve sorted list of the users projects, paginated
 	 * 
 	 * @param userId
+	 * @param userIdToFetch
 	 * @param limit
 	 * @param offset
 	 * @return
@@ -204,8 +206,8 @@ public interface UserProfileService {
 	 * @throws InvalidModelException
 	 * @throws NotFoundException
 	 */
-	public PaginatedResults<EntityHeader> getProjects(Long userId, int limit, int offset) throws DatastoreException, InvalidModelException,
-			NotFoundException;
+	public PaginatedResults<ProjectHeader> getProjects(Long userId, Long userIdToFetch, int limit, int offset) throws DatastoreException,
+			InvalidModelException, NotFoundException;
 
 	public void setPrincipalAlaisDAO(PrincipalAliasDAO mockPrincipalAlaisDAO);
 
