@@ -50,7 +50,7 @@ public class LoggingIntegrationTest extends AbstractAutowiredControllerTestBase 
 	@After
 	public void after(){
 		// Clear the stack
-		ThreadContext.clear();
+		ThreadContext.clearAll();
 	}
 	
 	@Ignore

@@ -58,7 +58,7 @@ public class WorkerLoggingIntegrationTest {
 	@After
 	public void after(){
 		// Clear the stack
-		ThreadContext.clear();
+		ThreadContext.clearAll();
 	}
 	
 	@Test
