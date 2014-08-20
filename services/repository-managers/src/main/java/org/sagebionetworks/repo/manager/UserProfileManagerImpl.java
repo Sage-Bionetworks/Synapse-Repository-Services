@@ -12,7 +12,9 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.FavoriteDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.ProjectHeader;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -45,8 +47,14 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	private FavoriteDAO favoriteDAO;
 	
 	@Autowired
+	private NodeDAO nodeDao;
+
+	@Autowired
 	private PrincipalAliasDAO principalAliasDAO;
 	
+	@Autowired
+	private AuthorizationManager authorizationManager;
+
 	public UserProfileManagerImpl() {
 	}
 
@@ -181,6 +189,19 @@ public class UserProfileManagerImpl implements UserProfileManager {
 			int limit, int offset) throws DatastoreException,
 			InvalidModelException, NotFoundException {
 		return favoriteDAO.getFavoritesEntityHeader(userInfo.getId().toString(), limit, offset);
+	}
+
+	@Override
+	public PaginatedResults<ProjectHeader> getProjects(UserInfo userInfo, UserInfo userToFetch, int limit, int offset)
+			throws DatastoreException, InvalidModelException, NotFoundException {
+		String userIdToGetProjectsFor;
+		if (userToFetch == null) {
+			userIdToGetProjectsFor = userInfo.getId().toString();
+		} else {
+			userIdToGetProjectsFor = userToFetch.getId().toString();
+		}
+		PaginatedResults<ProjectHeader> projectHeaders = nodeDao.getProjectHeaders(userIdToGetProjectsFor, limit, offset);
+		return projectHeaders;
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)

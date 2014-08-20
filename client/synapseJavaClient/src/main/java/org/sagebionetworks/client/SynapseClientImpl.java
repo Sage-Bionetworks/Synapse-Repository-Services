@@ -28,6 +28,7 @@ import java.util.concurrent.Future;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.client.utils.URIUtils;
 import org.apache.http.entity.ContentType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -51,16 +52,6 @@ import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.evaluation.model.UserEvaluationState;
 import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
-import org.sagebionetworks.repo.model.Team;
-import org.sagebionetworks.repo.model.TeamMember;
-import org.sagebionetworks.repo.model.TeamMembershipStatus;
-import org.sagebionetworks.repo.model.TrashedEntity;
-import org.sagebionetworks.repo.model.UserGroup;
-import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
-import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.UserSessionData;
-import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
-import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.annotation.AnnotationsUtils;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
@@ -183,6 +174,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String ACTIVITY_URI_PATH = "/activity";
 	private static final String GENERATED_PATH = "/generated";
 	private static final String FAVORITE_URI_PATH = "/favorite";
+	private static final String PROJECT_URI_PATH = "/project";
 	
 	public static final String PRINCIPAL = "/principal";
 	public static final String PRINCIPAL_AVAILABLE = PRINCIPAL+"/available";
@@ -331,7 +323,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String CERTIFIED_USER_TEST = "/certifiedUserTest";
 	private static final String CERTIFIED_USER_TEST_RESPONSE = "/certifiedUserTestResponse";
 	private static final String CERTIFIED_USER_PASSING_RECORD = "/certifiedUserPassingRecord";
-	private static final String CERTIFIED_USER_PRINCIPAL_ID_REQUEST_PARAM = "principalId";
+
+	private static final String PRINCIPAL_ID_REQUEST_PARAM = "principalId";
 
 	protected String repoEndpoint;
 	protected String authEndpoint;
@@ -4907,8 +4900,49 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	/**
-	 * Creates a DOI for the specified entity. The DOI will always be associated with
-	 * the current version of the entity.
+	 * Retrieve this user's Projects list
+	 * 
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws SynapseException
+	 */
+	@Override
+	public PaginatedResults<ProjectHeader> getMyProjects(Integer limit, Integer offset) throws SynapseException {
+		return getProjectsFromUser(null, limit, offset);
+	}
+
+	/**
+	 * Retrieve another user's Projects list
+	 * 
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws SynapseException
+	 */
+	@Override
+	public PaginatedResults<ProjectHeader> getProjectsFromUser(Long userId, Integer limit, Integer offset) throws SynapseException {
+		String url;
+		if (userId == null) {
+			url = PROJECT_URI_PATH;
+		} else {
+			url = PROJECT_URI_PATH + USER + '/' + userId;
+		}
+		url += '?' + OFFSET_PARAMETER + offset + '&' + LIMIT_PARAMETER + limit;
+		JSONObject jsonObj = getEntity(url);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedResults<ProjectHeader> results = new PaginatedResults<ProjectHeader>(ProjectHeader.class);
+
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+
+	/**
+	 * Creates a DOI for the specified entity. The DOI will always be associated with the current version of the entity.
 	 */
 	@Override
 	public void createEntityDoi(String entityId) throws SynapseException {
@@ -5777,7 +5811,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		if (principalId==null) {
 			uri = CERTIFIED_USER_TEST_RESPONSE+"?"+OFFSET+"="+offset+"&"+LIMIT+"="+limit;
 		} else {
-			uri = CERTIFIED_USER_TEST_RESPONSE+"?"+CERTIFIED_USER_PRINCIPAL_ID_REQUEST_PARAM+"="+principalId+"&"+OFFSET+"="+offset+"&"+LIMIT+"="+limit;
+			uri = CERTIFIED_USER_TEST_RESPONSE+"?"+PRINCIPAL_ID_REQUEST_PARAM+"="+principalId+"&"+OFFSET+"="+offset+"&"+LIMIT+"="+limit;
 		}
 		JSONObject jsonObj = getEntity(uri);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
@@ -5808,6 +5842,5 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throw new SynapseClientException(e);
 		}
 	}
-	
 }
 

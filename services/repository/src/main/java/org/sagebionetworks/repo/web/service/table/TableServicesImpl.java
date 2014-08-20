@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableRowManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -96,7 +97,7 @@ public class TableServicesImpl implements TableServices {
 		if(rows == null) throw new IllegalArgumentException("Rows cannot be null");
 		if(rows.getTableId() == null) throw new IllegalArgumentException("RowSet.tableId cannot be null");
 		UserInfo user = userManager.getUserInfo(userId);
-		List<ColumnModel> models = getCurrentColumnsForTable(user, rows.getTableId());
+		List<ColumnModel> models = getCurrentColumnsForRowSet(user, rows.getTableId(), rows.getHeaders());
 		return tableRowManager.appendRows(user, rows.getTableId(), models, rows);
 	}
 
@@ -124,7 +125,7 @@ public class TableServicesImpl implements TableServices {
 		Validate.required(rowsToGet, "rowsToGet");
 		Validate.required(rowsToGet.getTableId(), "rowsToGet.tableId");
 		UserInfo user = userManager.getUserInfo(userId);
-		List<ColumnModel> models = getCurrentColumnsForTable(user, rowsToGet.getTableId());
+		List<ColumnModel> models = getCurrentColumnsForRowSet(user, rowsToGet.getTableId(), rowsToGet.getHeaders());
 
 		return tableRowManager.getCellValues(user, rowsToGet.getTableId(), rowsToGet, models);
 	}
@@ -213,6 +214,22 @@ public class TableServicesImpl implements TableServices {
 
 	private List<ColumnModel> getCurrentColumnsForTable(UserInfo user, String tableId) throws DatastoreException, NotFoundException{
 		return columnModelManager.getColumnModelsForTable(user, tableId);
+	}
+
+	private List<ColumnModel> getCurrentColumnsForRowSet(UserInfo user, String tableId, List<String> headers) throws DatastoreException,
+			NotFoundException {
+		List<ColumnModel> columns = columnModelManager.getColumnModelsForTable(user, tableId);
+		Map<Long, ColumnModel> columnNameToIdMap = TableModelUtils.createIDtoColumnModelMap(columns);
+		List<ColumnModel> result = Lists.newArrayListWithCapacity(headers.size());
+		for (String header : headers) {
+			Long columnId = Long.parseLong(header);
+			ColumnModel cm = columnNameToIdMap.get(columnId);
+			if (cm == null) {
+				throw new IllegalArgumentException("column header " + header + " is not a valid column for this table");
+			}
+			result.add(cm);
+		}
+		return result;
 	}
 
 	private ColumnModel getColumnForTable(UserInfo user, String tableId, String columnId) throws DatastoreException, NotFoundException {

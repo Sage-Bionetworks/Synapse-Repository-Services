@@ -18,6 +18,7 @@ import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.ProjectHeader;
 import org.sagebionetworks.repo.model.UserProfile;
 
 public class IT970UserProfileController {
@@ -48,7 +49,11 @@ public class IT970UserProfileController {
 	@After
 	public void after() throws Exception {
 		for(String id : entitiesToDelete) {
-			synapse.deleteAndPurgeEntityById(id);
+			try {
+				synapse.deleteAndPurgeEntityById(id);
+			} catch (Exception e) {
+				synapse.purgeTrashForUser(id);
+			}
 		}
 	}
 	
@@ -93,4 +98,32 @@ public class IT970UserProfileController {
 		assertEquals(0, favs.getResults().size());
 	}
 
+	@Test
+	public void testMyProjects() throws Exception {
+		Project entity = new Project();
+		entity.setEntityType(Project.class.getName());
+		entity = synapse.createEntity(entity);
+		entitiesToDelete.add(entity.getId());
+
+		Project entity2 = new Project();
+		entity2.setEntityType(Project.class.getName());
+		entity2 = synapse.createEntity(entity2);
+		entitiesToDelete.add(entity2.getId());
+
+		// retrieve my projects
+		PaginatedResults<ProjectHeader> projects = synapse.getMyProjects(Integer.MAX_VALUE, 0);
+		assertEquals(2, projects.getTotalNumberOfResults());
+		assertEquals(2, projects.getResults().size());
+
+		// retrieve someone elses projects
+		PaginatedResults<ProjectHeader> projects2 = adminSynapse.getProjectsFromUser(userToDelete, Integer.MAX_VALUE, 0);
+		// assertEquals(projects2, projects);
+
+		// ignore trashed projects
+		synapse.deleteEntity(entity);
+		projects = synapse.getMyProjects(Integer.MAX_VALUE, 0);
+		assertEquals(1, projects.getTotalNumberOfResults());
+		assertEquals(1, projects.getResults().size());
+		assertEquals(entity2.getId(), projects.getResults().get(0).getId());
+	}
 }
