@@ -388,6 +388,15 @@ public interface NodeDAO {
 	 */
 	public String lockNode(Long longId);
 
-	long getCount();
+	/**
+	 * Get the list of projects the user has an interest in
+	 * 
+	 * @param principalId user to get listing for
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	public PaginatedResults<ProjectHeader> getProjectHeaders(String principalId, int limit, int offset);
 
+	long getCount();
 }

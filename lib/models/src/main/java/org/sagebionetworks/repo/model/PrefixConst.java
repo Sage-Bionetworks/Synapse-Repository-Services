@@ -14,6 +14,7 @@ public class PrefixConst {
 	public final static String VERSIONINFO = "/version";	
 	public static final String ACTIVITY = "/activity";
 	public static final String FAVORITE = "/favorite";
+	public static final String PROJECT = "/project";
 	// Default means a default parent will be chosen.
 	public final static String DEFAULT =		"DEFAULT";
 
