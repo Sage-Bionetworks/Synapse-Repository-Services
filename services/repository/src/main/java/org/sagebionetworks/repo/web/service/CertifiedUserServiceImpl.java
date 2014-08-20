@@ -49,4 +49,11 @@ public class CertifiedUserServiceImpl implements CertifiedUserService {
 		return certifiedUserManager.getPassingRecord(userInfo, principalId);
 	}
 
+	@Override
+	public PaginatedResults<PassingRecord> getPassingRecords(
+	        Long userId, Long principalId, long limit, long offset) throws NotFoundException {
+
+	    UserInfo userInfo = userManager.getUserInfo(userId);
+        return certifiedUserManager.getPassingRecords(userInfo, principalId, limit, offset);
+    }
 }
