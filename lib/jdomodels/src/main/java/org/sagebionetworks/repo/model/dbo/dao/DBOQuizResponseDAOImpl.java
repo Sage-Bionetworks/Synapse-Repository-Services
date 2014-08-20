@@ -59,14 +59,21 @@ public class DBOQuizResponseDAOImpl implements QuizResponseDAO {
 	
 	private static final String SELECT_FOR_QUIZ_ID_AND_USER_COUNT = "SELECT COUNT(ID) "+SELECT_FOR_QUIZ_ID_AND_USER_CORE;
 	
+    private static final String SELECT_RESPONSES_FOR_USER_AND_QUIZ_CORE = " FROM "+TABLE_QUIZ_RESPONSE+" WHERE "+
+            COL_QUIZ_RESPONSE_QUIZ_ID+"=:"+COL_QUIZ_RESPONSE_QUIZ_ID+" AND "+
+            COL_QUIZ_RESPONSE_CREATED_BY+"=:"+COL_QUIZ_RESPONSE_CREATED_BY;
+
 	// select * from QUIZ_RESPONSE where CREATED_BY=? and QUIZ_ID=? order by score desc limit 1
 	private static final String SELECT_BEST_RESPONSE_FOR_USER_AND_QUIZ = "SELECT * "+
-			" FROM "+TABLE_QUIZ_RESPONSE+" WHERE "+
-			COL_QUIZ_RESPONSE_QUIZ_ID+"=:"+COL_QUIZ_RESPONSE_QUIZ_ID+" AND "+
-			COL_QUIZ_RESPONSE_CREATED_BY+"=:"+COL_QUIZ_RESPONSE_CREATED_BY+
+	        SELECT_RESPONSES_FOR_USER_AND_QUIZ_CORE+
 			" ORDER BY "+COL_QUIZ_RESPONSE_SCORE+" DESC LIMIT 1";
-	
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+
+    private static final String SELECT_RESPONSES_FOR_USER_AND_QUIZ_PAGINATED = "SELECT * "+
+            SELECT_RESPONSES_FOR_USER_AND_QUIZ_CORE+" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
+
+    private static final String SELECT_RESPONSES_FOR_USER_AND_QUIZ_COUNT = "SELECT COUNT(ID) "+SELECT_RESPONSES_FOR_USER_AND_QUIZ_CORE;
+
+    @Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public QuizResponse create(QuizResponse dto, PassingRecord passingRecord) throws DatastoreException {
 		
@@ -168,4 +175,33 @@ public class DBOQuizResponseDAOImpl implements QuizResponseDAO {
 		}
 	}
 
+	public List<PassingRecord> getAllPassingRecords(Long quizId, Long principalId, Long limit, Long offset) throws DatastoreException, NotFoundException {
+	    List<PassingRecord>  dtos = new ArrayList<PassingRecord>();
+        MapSqlParameterSource param = new MapSqlParameterSource();
+        param.addValue(COL_QUIZ_RESPONSE_QUIZ_ID, quizId);
+        param.addValue(COL_QUIZ_RESPONSE_CREATED_BY, principalId);
+        param.addValue(LIMIT_PARAM_NAME, limit);
+        param.addValue(OFFSET_PARAM_NAME, offset);
+        try {
+            List<DBOQuizResponse> dbos = simpleJdbcTemplate.query(SELECT_RESPONSES_FOR_USER_AND_QUIZ_PAGINATED, QUIZ_RESPONSE_ROW_MAPPER, param);
+            for (DBOQuizResponse dbo : dbos) {
+                byte[] prSerizalized = dbo.getPassingRecord();
+                PassingRecord passingRecord = (PassingRecord)JDOSecondaryPropertyUtils.decompressedObject(prSerizalized);
+                passingRecord.setResponseId(dbo.getId());
+                dtos.add(passingRecord);
+            }
+            return dtos;
+        } catch (EmptyResultDataAccessException e) {
+            throw new NotFoundException("No quiz results for quiz "+quizId+" and user "+principalId, e);
+        } catch (IOException e) {
+            throw new DatastoreException(e);
+        }
+	}
+
+    public long getAllPassingRecordsCount(Long quizId, Long principalId) throws DatastoreException {
+        MapSqlParameterSource param = new MapSqlParameterSource();
+        param.addValue(COL_QUIZ_RESPONSE_QUIZ_ID, quizId);
+        param.addValue(COL_QUIZ_RESPONSE_CREATED_BY, principalId);
+        return simpleJdbcTemplate.queryForLong(SELECT_RESPONSES_FOR_USER_AND_QUIZ_COUNT, param);
+    }
 }
