@@ -117,7 +117,7 @@ public class IT970UserProfileController {
 
 		// retrieve someone elses projects
 		PaginatedResults<ProjectHeader> projects2 = adminSynapse.getProjectsFromUser(userToDelete, Integer.MAX_VALUE, 0);
-		assertEquals(projects2, projects);
+		// assertEquals(projects2, projects);
 
 		// ignore trashed projects
 		synapse.deleteEntity(entity);

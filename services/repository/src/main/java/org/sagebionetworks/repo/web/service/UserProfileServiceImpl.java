@@ -306,9 +306,9 @@ public class UserProfileServiceImpl implements UserProfileService {
 			InvalidModelException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		UserInfo userToFetch = null;
-		if (userIdToFetch != null) {
-			userToFetch = userManager.getUserInfo(userIdToFetch);
-		}
+		// if (userIdToFetch != null) {
+		// userToFetch = userManager.getUserInfo(userIdToFetch);
+		// }
 		return userProfileManager.getProjects(userInfo, userToFetch, limit, offset);
 	}
 	
