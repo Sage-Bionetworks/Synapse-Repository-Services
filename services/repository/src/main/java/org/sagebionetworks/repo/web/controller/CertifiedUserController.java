@@ -133,11 +133,11 @@ public class CertifiedUserController extends BaseController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.CERTIFIED_USER_PASSING_RECORDS_WITH_ID, method = RequestMethod.GET)
 	public  @ResponseBody PaginatedResults<PassingRecord> getPassingRecords(
-	        @RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-	        @PathVariable(value = ID_PATH_VARIABLE) Long principalId,
-	        @RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
-            @RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset
-            ) throws NotFoundException {
-	    return serviceProvider.getCertifiedUserService().getPassingRecords(userId, principalId, limit, offset);
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable(value = ID_PATH_VARIABLE) Long principalId,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset
+			) throws NotFoundException {
+		return serviceProvider.getCertifiedUserService().getPassingRecords(userId, principalId, limit, offset);
 	}
 }

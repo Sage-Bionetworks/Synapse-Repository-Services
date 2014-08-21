@@ -59,12 +59,12 @@ public interface CertifiedUserService {
 	/**
 	 * Get all Passing Records for a given user.
 	 * Must be a Synapse admin to make this call
-     * @param userId
-     * @param questionnaireId
-     * @param principalId
-     * @param limit
-     * @param offset
-     * @throws NotFoundException 
+	 * @param userId
+	 * @param questionnaireId
+	 * @param principalId
+	 * @param limit
+	 * @param offset
+	 * @throws NotFoundException 
 	 */
 	public PaginatedResults<PassingRecord> getPassingRecords(Long userId, Long principalId, long limit, long offset) throws NotFoundException;
 }
