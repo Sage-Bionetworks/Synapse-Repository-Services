@@ -125,10 +125,10 @@ public class CertifiedUserController extends BaseController {
 	 * Retrieve all the Passing Record on the User Certification test for the given user.
 	 * Note:  This service is available to Synapse administrators only.
 	 * @param userId
-     * @param principalId
-     * @param limit
-     * @param offset
-     * @throws NotFoundException
+	 * @param principalId
+	 * @param limit
+	 * @param offset
+	 * @throws NotFoundException
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.CERTIFIED_USER_PASSING_RECORDS_WITH_ID, method = RequestMethod.GET)
