@@ -66,13 +66,7 @@ public interface CertifiedUserManager {
 
 	/**
 	 * Get all Passing Records for a given user.
-	 * Must be a Synapse admin to make this call
-	 * @param userId
-	 * @param principalId
-	 * @param limit
-	 * @param offset
-	 * @throws NotFoundException
-	 * @throws DatastoreException 
+	 * Must be a Synapse admin to make this call.
 	 */
 	public PaginatedResults<PassingRecord> getPassingRecords(UserInfo userInfo, Long principalId, long limit, long offset) throws DatastoreException, NotFoundException;
 }

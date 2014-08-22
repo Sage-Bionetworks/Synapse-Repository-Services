@@ -401,7 +401,8 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 
 	@Override
 	public PaginatedResults<PassingRecord> getPassingRecords(UserInfo userInfo, Long principalId, long limit, long offset) throws DatastoreException, NotFoundException {
-		if (!userInfo.isAdmin()) throw new ForbiddenException("Only Synapse administrators may make this request.");
+		if (!userInfo.isAdmin()) 
+			throw new ForbiddenException("Only Synapse administrators may make this request.");
 		QuizGenerator quizGenerator = retrieveCertificationQuizGenerator();
 		long quizId = quizGenerator.getId();
 		PaginatedResults<PassingRecord> result = new PaginatedResults<PassingRecord>();
