@@ -1606,7 +1606,7 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * Get all Passing Records on the Certified User test for the given user
 	 */
-	public PaginatedResults<PassingRecord> getCertifiedUserPassingRecords(String principalId) throws SynapseException;
+	public PaginatedResults<PassingRecord> getCertifiedUserPassingRecords(long offset, long limit, String principalId) throws SynapseException;
 	
 	/**
 	 * Start a new Asynchronous Job

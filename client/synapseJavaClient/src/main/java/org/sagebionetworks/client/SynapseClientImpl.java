@@ -5845,9 +5845,10 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public PaginatedResults<PassingRecord> getCertifiedUserPassingRecords(String principalId) throws SynapseException {
+	public PaginatedResults<PassingRecord> getCertifiedUserPassingRecords(long offset, long limit, String principalId) throws SynapseException {
 		if (principalId==null) throw new IllegalArgumentException("principalId may not be null.");
-		JSONObject jsonObj = getEntity(USER+"/"+principalId+CERTIFIED_USER_PASSING_RECORDS);
+		String uri = USER+"/"+principalId+CERTIFIED_USER_PASSING_RECORDS+"?"+OFFSET+"="+offset+"&"+LIMIT+"="+limit;
+		JSONObject jsonObj = getEntity(uri);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
 		PaginatedResults<PassingRecord> results = new PaginatedResults<PassingRecord>(PassingRecord.class);
 		try {

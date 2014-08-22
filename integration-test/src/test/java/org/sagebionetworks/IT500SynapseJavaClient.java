@@ -1621,6 +1621,10 @@ public class IT500SynapseJavaClient {
 		assertEquals(1, qrs.getResults().size());
 		assertEquals(pr.getResponseId(), qrs.getResults().iterator().next().getId());
 
+		PaginatedResults<PassingRecord> prs = synapseOne.getCertifiedUserPassingRecords(0L, 2L, myId);
+		assertEquals(1, prs.getResults().size());
+		assertEquals(pr, prs.getResults().iterator().next());
+
 		adminSynapse.deleteCertifiedUserTestResponse(pr.getResponseId().toString());
 	}
 
