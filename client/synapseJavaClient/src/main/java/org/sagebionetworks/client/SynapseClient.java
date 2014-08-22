@@ -1603,6 +1603,10 @@ public interface SynapseClient extends BaseClient {
 	 */
 	public PassingRecord getCertifiedUserPassingRecord(String principalId) throws SynapseException;
 
+	/**
+	 * Get all Passing Records on the Certified User test for the given user
+	 */
+	public PaginatedResults<PassingRecord> getCertifiedUserPassingRecords(String principalId) throws SynapseException;
 	
 	/**
 	 * Start a new Asynchronous Job

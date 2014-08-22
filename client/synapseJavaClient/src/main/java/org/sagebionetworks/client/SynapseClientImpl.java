@@ -323,6 +323,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String CERTIFIED_USER_TEST = "/certifiedUserTest";
 	private static final String CERTIFIED_USER_TEST_RESPONSE = "/certifiedUserTestResponse";
 	private static final String CERTIFIED_USER_PASSING_RECORD = "/certifiedUserPassingRecord";
+	private static final String CERTIFIED_USER_PASSING_RECORDS = "/certifiedUserPassingRecords";
 
 	private static final String PRINCIPAL_ID_REQUEST_PARAM = "principalId";
 
@@ -5835,6 +5836,20 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		JSONObject jsonObj = getEntity(USER+"/"+principalId+CERTIFIED_USER_PASSING_RECORD);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
 		PassingRecord results = new PassingRecord();
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+
+	@Override
+	public PaginatedResults<PassingRecord> getCertifiedUserPassingRecords(String principalId) throws SynapseException {
+		if (principalId==null) throw new IllegalArgumentException("principalId may not be null.");
+		JSONObject jsonObj = getEntity(USER+"/"+principalId+CERTIFIED_USER_PASSING_RECORDS);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedResults<PassingRecord> results = new PaginatedResults<PassingRecord>(PassingRecord.class);
 		try {
 			results.initializeFromJSONObject(adapter);
 			return results;
