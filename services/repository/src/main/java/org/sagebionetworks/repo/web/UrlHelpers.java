@@ -723,7 +723,8 @@ public class UrlHelpers {
 	public static final String CERTIFIED_USER_TEST_RESPONSE = "/certifiedUserTestResponse";
 	public static final String CERTIFIED_USER_TEST_RESPONSE_WITH_ID = "/certifiedUserTestResponse"+ID;
 	public static final String CERTIFIED_USER_PASSING_RECORD_WITH_ID = USER+ID+"/certifiedUserPassingRecord";
-	
+	public static final String CERTIFIED_USER_PASSING_RECORDS_WITH_ID = USER+ID+"/certifiedUserPassingRecords";
+
 	/**
 	 * APIs for DynamoDB related operations.
 	 */
