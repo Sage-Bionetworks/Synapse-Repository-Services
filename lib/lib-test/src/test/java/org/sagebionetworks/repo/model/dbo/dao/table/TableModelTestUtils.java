@@ -67,7 +67,10 @@ public class TableModelTestUtils {
 					defaultValue = "1.3";
 					break;
 				case FILEHANDLEID:
-					defaultValue = "0";
+					defaultValue = null;
+					break;
+				case ENTITYID:
+					defaultValue = null;
 					break;
 				case INTEGER:
 					defaultValue = "-10000000000000";
@@ -188,8 +191,9 @@ public class TableModelTestUtils {
 	private static void updateRow(List<ColumnModel> cms, Row toUpdate, int i, boolean isUpdate, boolean useDateStrings) {
 		// Add a value for each column
 		List<String> values = new LinkedList<String>();
+		int cmIndex = 0;
 		for (ColumnModel cm : cms) {
-			values.add(getValue(cm, i, isUpdate, useDateStrings, false));
+			values.add(getValue(cm, i, isUpdate, useDateStrings, false, cmIndex++));
 		}
 		toUpdate.setValues(values);
 	}
@@ -202,8 +206,9 @@ public class TableModelTestUtils {
 			if (cm.getColumnType() == null)
 				throw new IllegalArgumentException("ColumnType cannot be null");
 			if ((i + cmIndex) % 3 != 0) {
-				values.put(cm.getId(), getValue(cm, i, false, useDateStrings, false));
+				values.put(cm.getId(), getValue(cm, i, false, useDateStrings, false, cmIndex));
 			}
+			cmIndex++;
 		}
 		toUpdate.setValues(values);
 	}
@@ -216,7 +221,7 @@ public class TableModelTestUtils {
 			if (cm.getColumnType() == null)
 				throw new IllegalArgumentException("ColumnType cannot be null");
 			if ((i + cmIndex) % 3 != 0) {
-				String value = getValue(cm, i, true, useDateStrings, false);
+				String value = getValue(cm, i, true, useDateStrings, false, cmIndex);
 				values.put(cm.getId(), value);
 				toUpdate.getValues().set(cmIndex, value);
 			}
@@ -235,15 +240,17 @@ public class TableModelTestUtils {
 			if (cm.getColumnType() == null)
 				throw new IllegalArgumentException("ColumnType cannot be null");
 			if ((i + cmIndex) % 3 != 0) {
-				values.add(getValue(cm, i, isUpdate, useDateStrings, true));
+				values.add(getValue(cm, i, isUpdate, useDateStrings, true, cmIndex));
 			} else {
 				values.add(cm.getDefaultValue());
 			}
+			cmIndex++;
 		}
 		toUpdate.setValues(values);
 	}
 
-	private static String getValue(ColumnModel cm, int i, boolean isUpdate, boolean useDateStrings, boolean isExpected) {
+	private static String getValue(ColumnModel cm, int i, boolean isUpdate, boolean useDateStrings, boolean isExpected, int colIndex) {
+		i = i + 100000 * colIndex;
 		if (cm.getColumnType() == null)
 			throw new IllegalArgumentException("ColumnType cannot be null");
 		switch (cm.getColumnType()) {
@@ -259,6 +266,8 @@ public class TableModelTestUtils {
 			}
 		case FILEHANDLEID:
 			return "" + (i + 5000 + (isUpdate ? 10000 : 0));
+		case ENTITYID:
+			return "syn" + (i + 6000 + (isUpdate ? 10000 : 0)) + "." + (i + 7000 + (isUpdate ? 10000 : 0));
 		case BOOLEAN:
 			if (i % 2 > 0 ^ isUpdate) {
 				return Boolean.TRUE.toString();

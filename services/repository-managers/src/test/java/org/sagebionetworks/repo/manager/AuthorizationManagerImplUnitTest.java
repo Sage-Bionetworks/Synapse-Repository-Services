@@ -46,8 +46,8 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.provenance.Activity;
-import org.sagebionetworks.repo.model.table.AsynchDownloadRequestBody;
-import org.sagebionetworks.repo.model.table.AsynchUploadRequestBody;
+import org.sagebionetworks.repo.model.table.AsynchDownloadFromTableRequestBody;
+import org.sagebionetworks.repo.model.table.AsynchUploadToTableRequestBody;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -462,7 +462,7 @@ public class AuthorizationManagerImplUnitTest {
 	
 	@Test
 	public void testCanUserStartJobUploadJobHappyCase() throws DatastoreException, NotFoundException{
-		AsynchUploadRequestBody body = new AsynchUploadRequestBody();
+		AsynchUploadToTableRequestBody body = new AsynchUploadToTableRequestBody();
 		body.setTableId("syn123");
 		body.setUploadFileHandleId("456");
 		// the user can update the entity
@@ -474,7 +474,7 @@ public class AuthorizationManagerImplUnitTest {
 	
 	@Test
 	public void testCanUserStartJobUploadJobNoTableUpdate() throws DatastoreException, NotFoundException{
-		AsynchUploadRequestBody body = new AsynchUploadRequestBody();
+		AsynchUploadToTableRequestBody body = new AsynchUploadToTableRequestBody();
 		body.setTableId("syn123");
 		body.setUploadFileHandleId("456");
 		// the user cannot update the entity
@@ -486,7 +486,7 @@ public class AuthorizationManagerImplUnitTest {
 	
 	@Test
 	public void testCanUserStartJobUploadJobNotFileHandleOwner() throws DatastoreException, NotFoundException{
-		AsynchUploadRequestBody body = new AsynchUploadRequestBody();
+		AsynchUploadToTableRequestBody body = new AsynchUploadToTableRequestBody();
 		body.setTableId("syn123");
 		body.setUploadFileHandleId("456");
 		// the user can update the entity
@@ -500,7 +500,7 @@ public class AuthorizationManagerImplUnitTest {
 	
 	@Test
 	public void testCanUserStartJobUploadJobAnonymous() throws DatastoreException, NotFoundException{
-		AsynchUploadRequestBody body = new AsynchUploadRequestBody();
+		AsynchUploadToTableRequestBody body = new AsynchUploadToTableRequestBody();
 		body.setTableId("syn123");
 		body.setUploadFileHandleId("456");
 		userInfo.setId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
@@ -513,7 +513,7 @@ public class AuthorizationManagerImplUnitTest {
 	
 	@Test
 	public void testCanUserStartJobDownloadJobAnonymous() throws DatastoreException, NotFoundException{
-		AsynchDownloadRequestBody body = new AsynchDownloadRequestBody();
+		AsynchDownloadFromTableRequestBody body = new AsynchDownloadFromTableRequestBody();
 		String tableId = "syn123";
 		body.setSql("select * from "+tableId);
 		userInfo.setId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
@@ -525,7 +525,7 @@ public class AuthorizationManagerImplUnitTest {
 	
 	@Test
 	public void testCanUserStartJobDownloadJobNoRead() throws DatastoreException, NotFoundException{
-		AsynchDownloadRequestBody body = new AsynchDownloadRequestBody();
+		AsynchDownloadFromTableRequestBody body = new AsynchDownloadFromTableRequestBody();
 		String tableId = "syn123";
 		body.setSql("select * from "+tableId);
 		// the user can update the entity
@@ -536,7 +536,7 @@ public class AuthorizationManagerImplUnitTest {
 	
 	@Test
 	public void testCanUserStartJobDownloadJobCanRead() throws DatastoreException, NotFoundException{
-		AsynchDownloadRequestBody body = new AsynchDownloadRequestBody();
+		AsynchDownloadFromTableRequestBody body = new AsynchDownloadFromTableRequestBody();
 		String tableId = "syn123";
 		body.setSql("select * from "+tableId);
 		// the user can update the entity

@@ -379,6 +379,12 @@ public class UrlHelpers {
 	public static final String QUERY = "/query";
 
 	/**
+	 * URL path for log controller
+	 * 
+	 */
+	public static final String LOG = "/log";
+
+	/**
 	 * URL prefix for Users in the system
 	 * 
 	 */

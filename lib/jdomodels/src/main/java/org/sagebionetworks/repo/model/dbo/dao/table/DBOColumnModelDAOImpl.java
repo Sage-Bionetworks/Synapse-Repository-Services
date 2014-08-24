@@ -1,16 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_CM_OBJECT_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_CM_ORD_COLUMN_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_CM_ORD_OBJECT_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_CM_ORD_ORDINAL;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CM_HASH;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CM_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CM_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_BOUND_COLUMN;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_BOUND_COLUMN_ORDINAL;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_COLUMN_MODEL;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -26,6 +16,7 @@ import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dao.table.ColumnModelDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
 import org.sagebionetworks.repo.model.dbo.persistence.table.ColumnModelUtlis;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOBoundColumn;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOBoundColumnOrdinal;
@@ -41,9 +32,12 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.SingleColumnRowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.google.common.collect.Sets;
 
 /**
  * Database implementation of the ColumnModelDAO interface.
@@ -163,6 +157,12 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
+	public void deleteOwner(String objectId) {
+		basicDao.deleteObjectByPrimaryKey(DBOBoundColumnOwner.class, new SinglePrimaryKeySqlParameterSource(KeyFactory.stringToKey(objectId)));
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
 	public int bindColumnToObject(List<String> newCurrentColumnIds, String objectIdString) throws NotFoundException {
 		if(objectIdString == null) throw new IllegalArgumentException("objectId cannot be null");
 		if(newCurrentColumnIds == null || newCurrentColumnIds.isEmpty()){
@@ -230,6 +230,13 @@ public class DBOColumnModelDAOImpl implements ColumnModelDAO {
 		// Convert to DTOs
 		List<ColumnModel> results = ColumnModelUtlis.createDTOFromDBO(dbos);
 		if(results.size() < ids.size()){
+			// this could be a case of duplicate ids, in which case we want to throw a more specific error
+			Set<String> idSet = Sets.newHashSet();
+			for (String id : ids) {
+				if (!idSet.add(id)) {
+					throw new IllegalArgumentException("Duplicate id in the list of column ids: " + id);
+				}
+			}
 			throw new NotFoundException("One or more of the following ColumnModel IDs does not exist: "+ids.toString());
 		}
 		return results;

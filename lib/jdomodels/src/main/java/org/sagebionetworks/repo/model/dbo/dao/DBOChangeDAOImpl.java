@@ -125,7 +125,7 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 	
 	private TableMapping<DBOChange> rowMapper = new DBOChange().getTableMapping();
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED, noRollbackFor=DeadlockLoserDataAccessException.class)
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public ChangeMessage replaceChange(ChangeMessage change) {
 		if(change == null) throw new IllegalArgumentException("DBOChange cannot be null");
@@ -134,23 +134,8 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 		if(change.getObjectType() == null) throw new IllegalArgumentException("change.getObjectTypeEnum() cannot be null");
 		if(ChangeType.CREATE == change.getChangeType() && change.getObjectEtag() == null) throw new IllegalArgumentException("Etag cannot be null for ChangeType: "+change.getChangeType());
 		if(ChangeType.UPDATE == change.getChangeType() && change.getObjectEtag() == null) throw new IllegalArgumentException("Etag cannot be null for ChangeType: "+change.getChangeType());
-		int maxTries = 3;
-		for(int count=1; count<maxTries+1; count++){
-			try {
-				return attemptReplaceChange(change);
-			} catch (DeadlockLoserDataAccessException e) {
-				// This is the only error allowed.
-				try {
-					clock.sleep(500 * count);
-				} catch (InterruptedException e2) {
-					throw new RuntimeException(e2);
-				}
-			}
-		}
-		throw new IllegalStateException("Failed with deadlock more than: "+maxTries+" while attempting to create a change.");
+		return attemptReplaceChange(change);
 	}
-
-
 
 	/**
 	 * @param change
@@ -177,7 +162,7 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 		if(changeNumber == null){
 			// This occurs when there is a new object.
 			// Use create or update as two threads could try to create this change at the same time.
-			basicDao.createNewNoDeadlockRollback(changeDbo);
+			basicDao.createNew(changeDbo);
 		}else{
 			// Update the row.
 			basicDao.update(changeDbo);
@@ -191,11 +176,10 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 		return ChangeMessageUtils.createDTO(changeDbo);
 	}
 
-
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public List<ChangeMessage> replaceChange(List<ChangeMessage> batchDTO) {
+	public List<ChangeMessage> replaceChange(List<ChangeMessage> batchDTO) throws DeadlockLoserDataAccessException {
 		if(batchDTO == null) throw new IllegalArgumentException("Batch cannot be null");
 		// To prevent deadlock we sort by object id to guarantee a consistent update order.
 		batchDTO = ChangeMessageUtils.sortByObjectId(batchDTO);

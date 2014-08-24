@@ -10,6 +10,7 @@ import java.util.Set;
 
 import org.apache.commons.lang.StringEscapeUtils;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
+import org.sagebionetworks.repo.model.dbo.dao.table.ColumnConstants;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -169,6 +170,8 @@ public class SQLUtils {
 		case FILEHANDLEID:
 		case DATE:
 			return "bigint(20)";
+		case ENTITYID:
+			return "varchar(" + ColumnConstants.MAX_ENTITY_ID_BYTES_AS_STRING + ") CHARACTER SET utf8 COLLATE utf8_general_ci";
 		case STRING:
 			// Strings must have a size
 			if (maxSize == null)
@@ -194,6 +197,7 @@ public class SQLUtils {
 		try {
 			switch (type) {
 			case STRING:
+			case ENTITYID:
 				return value;
 			case DOUBLE:
 				return Double.parseDouble(value);
@@ -234,11 +238,11 @@ public class SQLUtils {
 		Object objectValue = parseValueForDB(type, defaultString);
 		StringBuilder builder = new StringBuilder();
 		builder.append(DEFAULT).append(" ");
-		if(ColumnType.STRING.equals(type)){
+		if (type == ColumnType.STRING || type == ColumnType.ENTITYID) {
 			builder.append("'");
 		}
 		builder.append(objectValue.toString());
-		if(ColumnType.STRING.equals(type)){
+		if (type == ColumnType.STRING || type == ColumnType.ENTITYID) {
 			builder.append("'");
 		}
 		return builder.toString();

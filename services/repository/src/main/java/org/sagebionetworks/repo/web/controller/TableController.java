@@ -84,6 +84,11 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * query can be modified and returned to update the rows of a table using <a
  * href="${POST.entity.id.table}">POST /entity/{id}/table</a>.
  * </p>
+ * <p>
+ * There is also an <a href="${org.sagebionetworks.repo.web.controller.AsynchronousJobController}">asynchronous
+ * service</a> to <a href="${org.sagebionetworks.repo.model.table.AsynchUploadToTableRequestBody}">upload</a> 
+ * and <a href="${org.sagebionetworks.repo.model.table.AsynchDownloadFromTableRequestBody}">download</a> csv files, 
+ * suitable for large datasets.
  */
 @ControllerInfo(displayName = "Table Services", path = "repo/v1")
 @Controller
@@ -225,17 +230,17 @@ public class TableController extends BaseController {
 	 * RowSet.headers, as each value is mapped to a column by the index of these
 	 * two arrays. When a row is added it will be issued both a rowId and a
 	 * version number. When a row is updated it will be issued a new version
-	 * number (each row version is immutable). The resulting TableRowReference
+	 * number (each row version is immutable). The resulting RowReferenceSet
 	 * will enumerate all rowIds and versionNumbers for this update. The
-	 * resulting RowReferecnes will be listed in the same order as the passed
-	 * result set. A single POST to this services will be treated as a single
+	 * resulting RowReferences will be listed in the same order as the passed
+	 * result set. A single POST to this service will be treated as a single
 	 * transaction, meaning either all of the rows will be added/updated or none
 	 * of the rows will be added/updated. If this web-services fails for any
 	 * reason all changes will be "rolled back".
 	 * </p>
 	 * <p>
 	 * There is a limit to the size of a RowSet that can be passed in a single
-	 * web-services call. Currently, that limit is set to a maximum size of 2 MB
+	 * web-service call. Currently, that limit is set to a maximum size of 2 MB
 	 * per call. The maximum size is calculated based on the maximum possible
 	 * size of a the ColumModel definition, NOT on the size of the actual passed
 	 * data. For example, the maximum size of an integer column is 20
@@ -293,8 +298,8 @@ public class TableController extends BaseController {
 	 * PartialRow.values identifies the column by ID in the key. When a row is
 	 * added it will be issued both a rowId and a version number. When a row is
 	 * updated it will be issued a new version number (each row version is
-	 * immutable). The resulting TableRowReference will enumerate all rowIds and
-	 * versionNumbers for this update. The resulting RowReferecnes will be
+	 * immutable). The resulting RowReferenceSet will enumerate all rowIds and
+	 * versionNumbers for this update. The resulting RowReferences will be
 	 * listed in the same order as the passed result set. A single POST to this
 	 * services will be treated as a single transaction, meaning either all of
 	 * the rows will be added/updated or none of the rows will be added/updated.
@@ -350,7 +355,7 @@ public class TableController extends BaseController {
 	 * This method is used to delete rows in a TableEntity. The rows in the
 	 * passed in RowReferenceSet will be deleted if they exist (a 400 will be
 	 * returned if a row ID is provided that does not actually exist). A single
-	 * POST to this services will be treated as a single transaction, meaning
+	 * POST to this service will be treated as a single transaction, meaning
 	 * either all of the rows will be deleted or none of the rows will be
 	 * deleted. If this web-services fails for any reason all changes will be
 	 * "rolled back".
@@ -547,7 +552,7 @@ public class TableController extends BaseController {
 	 * </p>
 	 * SELECT <br>
 	 * [ALL | DISTINCT] select_expr [, select_expr ...] <br>
-	 * FROM table_references <br>
+	 * FROM synapse_table_id <br>
 	 * [WHERE where_condition] <br>
 	 * [GROUP BY {col_name [, [col_name * ...] } <br>
 	 * [ORDER BY {col_name [ [ASC | DESC] [, col_name [ [ASC | DESC]]}<br>
@@ -628,16 +633,14 @@ public class TableController extends BaseController {
 
 	/**
 	 * <p>
-	 * This method executes table queries exactly like <a
-	 * href="${POST.table.query}">POST /table/query</a> with the addition of the
-	 * extra parameter 'partsMask'. The mask allows for the request of
-	 * additional information about the executed query in a single service call.
-	 * The query results and all of the requested parts are returned in a single
-	 * bundle.
+	 * This method executes table queries exactly like <a href="${POST.table.query}">POST /table/query</a> with the
+	 * addition of the extra parameter 'partsMask'. The mask allows for the request of additional information about the
+	 * executed query in a single service call. The query results and all of the requested parts are returned in a
+	 * single bundle.
 	 * </p>
 	 * <p>
-	 * The 'partMask' is an integer "mask" that can be combined into to request
-	 * any desired part. As of this writing, the mask is defined as follows:
+	 * The 'partsMask' is an integer "mask" that can be combined into to request any desired part. As of this writing,
+	 * the mask is defined as follows:
 	 * <ul>
 	 * <li>Query Results <i>(queryResults)</i> = 0x1</li>
 	 * <li>Query Count <i>(queryCount)</i> = 0x2</li>
@@ -652,16 +655,12 @@ public class TableController extends BaseController {
 	 * 
 	 * @param userId
 	 * @param query
-	 * @param isConsistent
-	 *            Defaults to true. When true, a query will be run only if the
-	 *            index is up-to-date with all changes to the table and a
-	 *            read-lock is successfully acquired on the index. When set to
-	 *            false, the query will be run against the index regardless of
-	 *            the state of the index and without attempting to acquire a
-	 *            read-lock. When isConsistent is set to false the query results
-	 *            will not contain an etag so the results cannot be used as
-	 *            input to a table update.
-	 * @param mask
+	 * @param isConsistent Defaults to true. When true, a query will be run only if the index is up-to-date with all
+	 *        changes to the table and a read-lock is successfully acquired on the index. When set to false, the query
+	 *        will be run against the index regardless of the state of the index and without attempting to acquire a
+	 *        read-lock. When isConsistent is set to false the query results will not contain an etag so the results
+	 *        cannot be used as input to a table update.
+	 * @param partsMask
 	 * 
 	 * @return
 	 * @throws DatastoreException
@@ -676,16 +675,17 @@ public class TableController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody Query query,
 			@RequestParam(value = ServiceConstants.IS_CONSISTENT, required = false) Boolean isConsistent,
-			@RequestParam(value = ServiceConstants.PARTS_MASK, required = false) Integer partMask)
+			@RequestParam(value = ServiceConstants.PARTS_MASK, required = false) Integer partsMask)
 			throws DatastoreException, NotFoundException, IOException,
 			TableUnavilableException {
 		// By default isConsistent is true.
-		boolean isConsistentValue = true;
-		if (isConsistent != null) {
-			isConsistentValue = isConsistent;
+		if (isConsistent == null) {
+			isConsistent = true;
 		}
-		return serviceProvider.getTableServices().queryBundle(userId, query,
-				isConsistentValue, partMask);
+		if (partsMask == null) {
+			partsMask = -1;
+		}
+		return serviceProvider.getTableServices().queryBundle(userId, query, isConsistent, partsMask);
 	}
 
 }

@@ -82,9 +82,6 @@ public class StepMetadataProviderTest {
 		
 		provider.validateEntity(step, new EntityEvent(EventType.CREATE, null, null));
 		assertNotNull(step.getEnvironmentDescriptors());
-		
-		provider.addTypeSpecificMetadata(step, null, null, null);
-		assertNotNull(step.getEnvironmentDescriptors());
 		assertEquals(4, step.getEnvironmentDescriptors().size());
 	}
 

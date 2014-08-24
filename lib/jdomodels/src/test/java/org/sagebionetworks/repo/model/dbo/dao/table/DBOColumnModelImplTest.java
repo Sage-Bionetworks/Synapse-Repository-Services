@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -72,7 +73,7 @@ public class DBOColumnModelImplTest {
 		ColumnModel model = new ColumnModel();
 		model.setName("column model dao test");
 		model.setColumnType(ColumnType.STRING);
-		model.setMaximumSize(13L);
+		model.setMaximumSize(16L);
 		model.setDefaultValue("someDefaultValue");
 		model.setEnumValues(new LinkedList<String>());
 		model.getEnumValues().add("xyz");
@@ -84,7 +85,7 @@ public class DBOColumnModelImplTest {
 		assertEquals("column model dao test", result.getName());
 		assertEquals(ColumnType.STRING, result.getColumnType());
 		assertEquals(ColumnType.STRING, result.getColumnType());
-		assertEquals(new Long(13), result.getMaximumSize());
+		assertEquals(new Long(16), result.getMaximumSize());
 		assertNotNull(result.getEnumValues());
 		assertEquals(2, result.getEnumValues().size());
 		assertEquals("abc", result.getEnumValues().get(0));
@@ -160,7 +161,7 @@ public class DBOColumnModelImplTest {
 		String fakeId = "999999999999";
 		toBind.add(fakeId);
 		try{
-			int count = columnModelDao.bindColumnToObject(toBind, "syn123");
+			columnModelDao.bindColumnToObject(toBind, "syn123");
 			fail("Should have thrown an exception");
 		}catch(NotFoundException e){
 			System.out.println(e.getMessage());
@@ -168,6 +169,26 @@ public class DBOColumnModelImplTest {
 		}
 	}
 	
+	@Test
+	public void testUnbindColumnsAndDeleteOwner() throws DatastoreException, NotFoundException {
+		// Now bind one column
+		List<String> toBind = new LinkedList<String>();
+		toBind.add(one.getId());
+		toBind.add(two.getId());
+		int count = columnModelDao.bindColumnToObject(toBind, "syn123");
+		assertTrue(count > 0);
+		columnModelDao.lockOnOwner("syn123");
+		columnModelDao.unbindAllColumnsFromObject("syn123");
+		columnModelDao.deleteOwner("syn123");
+		try {
+			columnModelDao.lockOnOwner("syn123");
+			fail("owner should no longer exist");
+		} catch (EmptyResultDataAccessException e) {
+		}
+		List<ColumnModel> columnModelsForObject = columnModelDao.getColumnModelsForObject("syn123");
+		assertEquals(0, columnModelsForObject.size());
+	}
+
 	@Test
 	public void testlistObjectsBoundToColumn() throws DatastoreException, NotFoundException{
 		// bind two columns to two objects

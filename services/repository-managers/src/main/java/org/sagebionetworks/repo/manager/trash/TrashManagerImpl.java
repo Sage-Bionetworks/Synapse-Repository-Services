@@ -136,7 +136,7 @@ public class TrashManagerImpl implements TrashManager {
 		if (nodeId == null) {
 			throw new IllegalArgumentException("Node ID cannot be null");
 		}
-
+		
 		// Make sure the node is in the trash can
 		final TrashedEntity trash = trashCanDao.getTrashedEntity(nodeId);
 		if (trash == null) {
@@ -155,6 +155,11 @@ public class TrashManagerImpl implements TrashManager {
 		// Restore to its original parent if a new parent is not given
 		if (newParentId == null) {
 			newParentId = trash.getOriginalParentId();
+		}
+		
+		// Make sure new parent is not in trash can.
+		if (trashCanDao.getTrashedEntity(newParentId) != null) {
+			throw new ParentInTrashCanException("The new parent " + newParentId + " is in the trash can and cannot be restored to.");
 		}
 
 		// Authorize on the new parent

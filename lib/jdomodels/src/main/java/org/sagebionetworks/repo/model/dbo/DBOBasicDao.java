@@ -25,13 +25,6 @@ public interface DBOBasicDao {
 	public <T extends DatabaseObject<T>> T createNew(T toCreate) throws DatastoreException;
 	
 	/**
-	 * Creates a new object and will not trigger a transaction roll-back for deadlock.
-	 * @param toCreate
-	 * @return
-	 * @throws DatastoreException
-	 */
-	public <T extends DatabaseObject<T>> T createNewNoDeadlockRollback(T toCreate) throws DatastoreException;
-	/**
 	 * Create an object if it does not exist, otherwise update the object.
 	 * This uses 'INSERT...ON DUPLICATE KEY UPDATE' with only one database call.
 	 * @param toCreate
@@ -39,15 +32,6 @@ public interface DBOBasicDao {
 	 * @throws DatastoreException
 	 */
 	public <T extends DatabaseObject<T>> T createOrUpdate(T toCreate) throws DatastoreException;
-	
-	/**
-	 * Create an object if it does not exist, otherwise update the object.
-	 * This uses 'INSERT...ON DUPLICATE KEY UPDATE' with only one database call.
-	 * @param toCreate
-	 * @return
-	 * @throws DatastoreException
-	 */
-	public <T extends DatabaseObject<T>> T createOrUpdateNoDeadlockRollback(T toCreate) throws DatastoreException;
 	
 	/**
 	 * Do a batch create.

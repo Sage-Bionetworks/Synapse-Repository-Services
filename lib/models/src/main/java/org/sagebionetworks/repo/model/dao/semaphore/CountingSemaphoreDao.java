@@ -13,10 +13,18 @@ public interface CountingSemaphoreDao {
 	 * Attempt to acquire at lock of a given type. This call is non-blocking, so if the lock cannot be acquired it will
 	 * return without waiting for the lock.
 	 * 
-	 * @param key - The key of the lock to acquire.
 	 * @return null if the lock was not acquired the lock token otherwise
 	 */
 	public String attemptToAcquireLock();
+
+	/**
+	 * Attempt to acquire at lock of a given type. This call is non-blocking, so if the lock cannot be acquired it will
+	 * return without waiting for the lock.
+	 * 
+	 * @param extraKey - The key to append to the lock name of the lock to acquire.
+	 * @return null if the lock was not acquired the lock token otherwise
+	 */
+	public String attemptToAcquireLock(String extraKey);
 
 	/**
 	 * When the process is finished it should release the lock. This method should only be called by a process that
@@ -25,4 +33,13 @@ public interface CountingSemaphoreDao {
 	 * @param token - The token we got from attemptToAcquireLock.
 	 */
 	public void releaseLock(String token);
+
+	/**
+	 * When the process is finished it should release the lock. This method should only be called by a process that
+	 * received the lock from {@link #attemptToAcquireLock()}
+	 * 
+	 * @param extraKey - The key to append to the lock name of the lock to release.
+	 * @param token - The token we got from attemptToAcquireLock.
+	 */
+	public void releaseLock(String token, String extraKey);
 }

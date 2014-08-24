@@ -129,15 +129,15 @@ public class TableIndexDAOImplTest {
 		// Row zero
 		Map<String, Object> row = result.get(0);
 		assertEquals(100l, row.get(ROW_ID));
-		assertEquals(4000l, row.get("C4"));
+		assertEquals(404000l, row.get("C4"));
 		// row four
 		row = result.get(4);
 		assertEquals(104l, row.get(ROW_ID));
-		assertEquals(16.76, row.get("C1"));
-		assertEquals(4004l, row.get("C4"));
+		assertEquals(341016.76, row.get("C1"));
+		assertEquals(404004l, row.get("C4"));
 		
 		// We should be able to update all of the rows
-		rows.get(4).setValues(Arrays.asList("update", "99.99", "3", "false", "123", "123"));
+		rows.get(4).setValues(Arrays.asList("update", "99.99", "3", "false", "123", "123", "syn123.3"));
 		rows.get(4).setVersionNumber(5L);
 		// This should not fail
 		tableIndexDAO.createOrUpdateOrDeleteRows(set, allTypes);
@@ -155,6 +155,8 @@ public class TableIndexDAOImplTest {
 		assertEquals(3L, row.get("C2"));
 		assertEquals(Boolean.FALSE, row.get("C3"));
 		assertEquals(123L, row.get("C4"));
+		assertEquals(123L, row.get("C5"));
+		assertEquals("syn123.3", row.get("C6"));
 	}
 	
 	@Test
@@ -242,14 +244,14 @@ public class TableIndexDAOImplTest {
 		assertNotNull(row);
 		assertEquals(new Long(100), row.getRowId());
 		assertEquals(new Long(3), row.getVersionNumber());
-		List<String> expectedValues = Arrays.asList("string0", "3.12", "3000", "false", "4000", "5000");
+		List<String> expectedValues = Arrays.asList("string0", "341003.12", "203000", "false", "404000", "505000", "syn606000.607000");
 		assertEquals(expectedValues, row.getValues());
 		// Second row
 		row = results.getRows().get(1);
 		assertNotNull(row);
 		assertEquals(new Long(101), row.getRowId());
 		assertEquals(new Long(3), row.getVersionNumber());
-		expectedValues = Arrays.asList("string1", "6.53", "3001", "true", "4001", "5001");
+		expectedValues = Arrays.asList("string1", "341006.53", "203001", "true", "404001", "505001", "syn606001.607001");
 		assertEquals(expectedValues, row.getValues());
 		
 
@@ -330,14 +332,14 @@ public class TableIndexDAOImplTest {
 		assertNotNull(row);
 		assertEquals(new Long(100), row.getRowId());
 		assertEquals(new Long(3), row.getVersionNumber());
-		List<String> expectedValues = Arrays.asList(null, null, null, null, null, null);
+		List<String> expectedValues = Arrays.asList(null, null, null, null, null, null, null);
 		assertEquals(expectedValues, row.getValues());
 		// Second row
 		row = results.getRows().get(1);
 		assertNotNull(row);
 		assertEquals(new Long(101), row.getRowId());
 		assertEquals(new Long(3), row.getVersionNumber());
-		expectedValues = Arrays.asList(null, null, null, null, null, null);
+		expectedValues = Arrays.asList(null, null, null, null, null, null, null);
 		assertEquals(expectedValues, row.getValues());
 	}
 
@@ -424,7 +426,7 @@ public class TableIndexDAOImplTest {
 		assertNotNull(row);
 		assertEquals(new Long(199), row.getRowId());
 		assertEquals(new Long(4), row.getVersionNumber());
-		List<String> expectedValues = Arrays.asList("string99", "3099");
+		List<String> expectedValues = Arrays.asList("string99", "103099");
 		assertEquals(expectedValues, row.getValues());
 	}
 	
@@ -472,7 +474,7 @@ public class TableIndexDAOImplTest {
 		assertNotNull(row);
 		assertEquals(new Long(104), row.getRowId());
 		assertEquals(new Long(4), row.getVersionNumber());
-		List<String> expectedValues = Arrays.asList("string4", "3004");
+		List<String> expectedValues = Arrays.asList("string4", "103004");
 		assertEquals(expectedValues, row.getValues());
 	}
 }

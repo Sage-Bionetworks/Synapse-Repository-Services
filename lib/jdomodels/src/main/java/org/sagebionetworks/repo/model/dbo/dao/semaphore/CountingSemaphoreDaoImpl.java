@@ -7,18 +7,24 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_LOCK_MAS
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_COUNTING_SEMAPHORE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_LOCK_MASTER;
 
+import java.sql.Connection;
 import java.util.UUID;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.Resource;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.math.RandomUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.ImmutablePropertyAccessor;
+import org.sagebionetworks.PropertyAccessor;
 import org.sagebionetworks.repo.model.dao.semaphore.CountingSemaphoreDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCountingSemaphore;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOLockMaster;
 import org.sagebionetworks.repo.model.exception.LockReleaseFailedException;
+import org.sagebionetworks.util.Clock;
 import org.springframework.beans.factory.BeanNameAware;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Required;
@@ -26,8 +32,14 @@ import org.springframework.dao.DeadlockLoserDataAccessException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.DefaultTransactionDefinition;
+import org.springframework.transaction.support.TransactionCallback;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * Basic database backed implementation of the CountingSemaphoreDao.
@@ -54,9 +66,16 @@ public class CountingSemaphoreDaoImpl implements CountingSemaphoreDao, BeanNameA
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
 
+	@Autowired
+	private Clock clock;
+
+	@Resource(name = "txManager")
+	private PlatformTransactionManager transactionManager;
+
 	private long lockTimeoutMS;
 	private String key;
-	private int maxCount;
+	private PropertyAccessor<Integer> maxCount = null;
+	private TransactionTemplate transactionTemplate;
 
 	@Required
 	public void setLockTimeoutMS(long lockTimeoutMS) {
@@ -74,24 +93,124 @@ public class CountingSemaphoreDaoImpl implements CountingSemaphoreDao, BeanNameA
 		this.key = key;
 	}
 
-	@Required
 	public void setMaxCount(int maxCount) {
 		if (maxCount < 1) {
 			throw new IllegalArgumentException("maxCount should be 1 or more, but was: " + maxCount);
 		}
+		this.maxCount = ImmutablePropertyAccessor.create(maxCount);
+	}
+
+	public void setMaxCountAccessor(PropertyAccessor<Integer> maxCount) {
 		this.maxCount = maxCount;
 	}
 
 	@PostConstruct
 	public void init() {
+		if (maxCount == null) {
+			throw new IllegalArgumentException("either maxCount or maxCountAccessor is required");
+		}
 		if (StringUtils.isBlank(key)) {
 			throw new IllegalArgumentException("bean name should be set");
 		}
+		createMaster(key);
+
+		DefaultTransactionDefinition transactionDef = new DefaultTransactionDefinition();
+		transactionDef.setReadOnly(false);
+		transactionDef.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+		transactionDef.setName("CountingSemaphoreDao");
+		// This will manage transactions for calls that need it.
+		transactionTemplate = new TransactionTemplate(this.transactionManager, transactionDef);
+	}
+
+	@Override
+	public String attemptToAcquireLock() {
+		return doAttemptToAcquireLock(null);
+	}
+
+	@Override
+	public String attemptToAcquireLock(String extraKey) {
+		return doAttemptToAcquireLock(extraKey);
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
+	@Override
+	public void releaseLock(String token) {
+		doReleaseLock(token, null);
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
+	@Override
+	public void releaseLock(String token, String extraKey) {
+		doReleaseLock(token, extraKey);
+	}
+
+	private String doAttemptToAcquireLock(String extraKey) {
+		final String keyName = getKeyName(extraKey);
+		for (int i = 0; i < 3; i++) {
+			try {
+				return this.transactionTemplate.execute(new TransactionCallback<String>() {
+					@Override
+					public String doInTransaction(TransactionStatus status) {
+						// First lock on the exclusive table entry
+						try {
+							jdbcTemplate.queryForObject(SQL_SELECT_EXCLUSIVE_FOR_UPDATE, String.class, keyName);
+						} catch (EmptyResultDataAccessException e) {
+							// if the semaphore was removed from the table due to testing or the extraKey is a new one,
+							// recreate the master here and retry
+							createMaster(keyName);
+							jdbcTemplate.queryForObject(SQL_SELECT_EXCLUSIVE_FOR_UPDATE, String.class, keyName);
+						}
+
+						// Count the number of current locks
+						long count = countOutstandingNonExpiredLocks(keyName);
+						if (count >= maxCount.get()) {
+							// all locks taken!
+							return null;
+						}
+
+						DBOCountingSemaphore shared = new DBOCountingSemaphore();
+						shared.setKey(keyName);
+						shared.setToken(UUID.randomUUID().toString());
+						shared.setExpires(System.currentTimeMillis() + lockTimeoutMS);
+						basicDao.createNew(shared);
+						return shared.getToken();
+					}
+				});
+			} catch (DeadlockLoserDataAccessException e) {
+				// sleep a bit with some random time, to avoid pounding the db
+				clock.sleepNoInterrupt(50 + RandomUtils.nextInt(25));
+			}
+		}
+		// could not acquire due to too many deadlocks
+		return null;
+	}
+
+	private void doReleaseLock(String token, String extraKey) {
+		String keyName = getKeyName(extraKey);
+		int update = jdbcTemplate.update(SQL_RELEASE_LOCK, keyName, token);
+		if (update < 1) {
+			throw new LockReleaseFailedException("Failed to release the lock for key: " + keyName + " and token: " + token
+					+ ".  Expired locks can be forcibly removed.");
+		}
+	}
+
+	private String getKeyName(String extraKey) {
+		String keyName = key;
+		if (extraKey != null) {
+			keyName = key + ":" + extraKey;
+			if (keyName.length() >= DBOCountingSemaphore.KEY_NAME_LENGTH) {
+				throw new IllegalArgumentException("key too long: " + keyName);
+			}
+		}
+		return keyName;
+	}
+
+	private void createMaster(String keyName) {
 		// create the exclusive lock entry
 		DBOLockMaster lockMaster = new DBOLockMaster();
-		lockMaster.setKey(key);
+		lockMaster.setKey(keyName);
 		try {
-			log.info("Creating counting semaphore " + key);
+			log.info("Creating counting semaphore " + keyName);
 			basicDao.createNew(lockMaster);
 		} catch (IllegalArgumentException e) {
 			if (e.getCause() != null && e.getCause().getClass() != DuplicateKeyException.class) {
@@ -101,56 +220,11 @@ public class CountingSemaphoreDaoImpl implements CountingSemaphoreDao, BeanNameA
 		}
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW, noRollbackFor = DeadlockLoserDataAccessException.class)
-	@Override
-	public String attemptToAcquireLock() {
-		// insert a new lock entry, retry on contention
-		for (int i = 0; i < 3; i++) {
-			try {
-				// First lock on the exclusive table entry
-				try {
-					jdbcTemplate.queryForObject(SQL_SELECT_EXCLUSIVE_FOR_UPDATE, String.class, key);
-				} catch (EmptyResultDataAccessException e) {
-					// if the semaphore was removed from the table due to testing, recreate it here and retry
-					init();
-					jdbcTemplate.queryForObject(SQL_SELECT_EXCLUSIVE_FOR_UPDATE, String.class, key);
-				}
-
-				// Count the number of current locks
-				long count = countOutstandingNonExpiredLocks();
-				if (count >= this.maxCount) {
-					// all locks taken!
-					return null;
-				}
-
-				DBOCountingSemaphore shared = new DBOCountingSemaphore();
-				shared.setKey(key);
-				shared.setToken(UUID.randomUUID().toString());
-				shared.setExpires(System.currentTimeMillis() + lockTimeoutMS);
-				basicDao.createNew(shared);
-				return shared.getToken();
-			} catch (DeadlockLoserDataAccessException e) {
-			}
-		}
-		// could not acquire due to too many deadlocks
-		return null;
-	}
-
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
-	@Override
-	public void releaseLock(String token) {
-		int update = jdbcTemplate.update(SQL_RELEASE_LOCK, key, token);
-		if (update < 1) {
-			throw new LockReleaseFailedException("Failed to release the lock for key: " + key + " and token: " + token
-					+ ".  Expired locks can be forcibly removed.");
-		}
-	}
-
-	private long countOutstandingNonExpiredLocks() {
+	private long countOutstandingNonExpiredLocks(String keyName) {
 		// First delete all expired shared locks for this resource.
-		this.jdbcTemplate.update(SQL_FORCE_RELEASE_EXPIRED_LOCKS, key, System.currentTimeMillis());
+		this.jdbcTemplate.update(SQL_FORCE_RELEASE_EXPIRED_LOCKS, keyName, System.currentTimeMillis());
 		// Now count the remaining locks
-		return this.jdbcTemplate.queryForObject(SQL_COUNT_LOCKS, Long.class, key);
+		return this.jdbcTemplate.queryForObject(SQL_COUNT_LOCKS, Long.class, keyName);
 	}
 
 	public void forceReleaseAllLocks() {
