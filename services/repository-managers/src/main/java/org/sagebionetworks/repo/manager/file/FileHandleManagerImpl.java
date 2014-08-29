@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -17,10 +18,12 @@ import org.apache.commons.fileupload.FileItemIterator;
 import org.apache.commons.fileupload.FileItemStream;
 import org.apache.commons.fileupload.FileUploadException;
 import org.apache.commons.fileupload.util.Streams;
+import org.apache.commons.lang.BooleanUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.file.transfer.FileTransferStrategy;
 import org.sagebionetworks.repo.manager.file.transfer.TransferRequest;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -35,13 +38,21 @@ import org.sagebionetworks.repo.model.file.CompleteAllChunksRequest;
 import org.sagebionetworks.repo.model.file.CompleteChunkedFileRequest;
 import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
+import org.sagebionetworks.repo.model.file.ExternalUploadDestination;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.HasPreviewId;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandleInterface;
+import org.sagebionetworks.repo.model.file.S3UploadDestination;
 import org.sagebionetworks.repo.model.file.State;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
+import org.sagebionetworks.repo.model.file.UploadDestination;
+import org.sagebionetworks.repo.model.file.UploadType;
+import org.sagebionetworks.repo.model.project.ExternalUploadDestinationSetting;
+import org.sagebionetworks.repo.model.project.S3UploadDestinationSetting;
+import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
+import org.sagebionetworks.repo.model.project.UploadDestinationSetting;
 import org.sagebionetworks.repo.model.util.ContentTypeUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
@@ -53,8 +64,9 @@ import com.amazonaws.HttpMethod;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
 import com.amazonaws.services.s3.model.CORSRule;
-import com.amazonaws.services.s3.model.ProgressListener;
 import com.amazonaws.services.s3.model.CORSRule.AllowedMethods;
+import com.amazonaws.services.s3.model.ProgressListener;
+import com.google.common.collect.Lists;
 
 /**
  * Basic implementation of the file upload manager.
@@ -92,7 +104,10 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	
 	@Autowired
 	MultipartManager multipartManager;
-	
+
+	@Autowired
+	ProjectSettingsManager projectSettingsManager;
+
 	/**
 	 * This is the first strategy we try to use.
 	 */
@@ -571,4 +586,63 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		return getURLForFileHandle(handle);
 	}
 
+	@Override
+	public List<UploadDestination> getUploadDestinations(UserInfo userInfo, String parentId) throws DatastoreException,
+			UnauthorizedException, NotFoundException {
+		UploadDestinationListSetting uploadDestinationsSettings = projectSettingsManager.getProjectSettingForParent(userInfo, parentId,
+				"upload", UploadDestinationListSetting.class);
+
+		// make sure there is always one entry
+		if (uploadDestinationsSettings == null || uploadDestinationsSettings.getDestinations() == null
+				|| uploadDestinationsSettings.getDestinations().isEmpty()) {
+			uploadDestinationsSettings = new UploadDestinationListSetting();
+			S3UploadDestinationSetting s3UploadDestinationSetting = new S3UploadDestinationSetting();
+			s3UploadDestinationSetting.setUploadType(UploadType.S3);
+			uploadDestinationsSettings.setDestinations(Collections.<UploadDestinationSetting> singletonList(s3UploadDestinationSetting));
+		}
+
+		List<UploadDestination> destinations = Lists.newArrayListWithExpectedSize(4);
+
+		// generate random file name
+		String filename = UUID.randomUUID().toString();
+		for (UploadDestinationSetting uploadDestinationSetting : uploadDestinationsSettings.getDestinations()) {
+			UploadDestination uploadDestination;
+
+			switch (uploadDestinationSetting.getUploadType()) {
+			case HTTPS:
+			case SFTP:
+				uploadDestination = createExternalUploadDestination(uploadDestinationSetting, filename);
+				break;
+			default:
+			case S3:
+				uploadDestination = createS3UploadDestination(uploadDestinationSetting);
+				break;
+			}
+
+			uploadDestination.setUploadType(uploadDestinationSetting.getUploadType());
+			uploadDestination.setBanner(uploadDestinationSetting.getBanner());
+			destinations.add(uploadDestination);
+		}
+
+		return destinations;
+	}
+
+	private UploadDestination createS3UploadDestination(UploadDestinationSetting uploadDestinationSetting) {
+		S3UploadDestinationSetting s3UploadDestinationSetting = (S3UploadDestinationSetting) uploadDestinationSetting;
+		S3UploadDestination s3UploadDestination = new S3UploadDestination();
+		return s3UploadDestination;
+	}
+
+	private UploadDestination createExternalUploadDestination(UploadDestinationSetting uploadDestinationSetting, String filename) {
+		ExternalUploadDestinationSetting externalUploadDestinationSetting = (ExternalUploadDestinationSetting) uploadDestinationSetting;
+		StringBuilder url = new StringBuilder(externalUploadDestinationSetting.getUrl());
+		ExternalUploadDestination externalUploadDestination = new ExternalUploadDestination();
+		// need to add subfolders here if supported
+		if (BooleanUtils.isTrue(externalUploadDestinationSetting.getSupportsSubfolders())) {
+			// create subfolders here somehow
+		}
+		url.append('/').append(filename);
+		externalUploadDestination.setUrl(url.toString());
+		return externalUploadDestination;
+	}
 }

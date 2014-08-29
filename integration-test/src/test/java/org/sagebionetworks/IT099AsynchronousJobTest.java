@@ -34,6 +34,7 @@ import org.sagebionetworks.repo.model.table.AsynchDownloadFromTableRequestBody;
 import org.sagebionetworks.repo.model.table.AsynchDownloadFromTableResponseBody;
 import org.sagebionetworks.repo.model.table.AsynchUploadToTableRequestBody;
 import org.sagebionetworks.repo.model.table.AsynchUploadToTableResponseBody;
+import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Row;
@@ -42,9 +43,9 @@ import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.util.csv.CsvNullReader;
 
-import com.google.common.collect.Lists;
-
 import au.com.bytecode.opencsv.CSVWriter;
+
+import com.google.common.collect.Lists;
 
 public class IT099AsynchronousJobTest {
 
@@ -54,7 +55,7 @@ public class IT099AsynchronousJobTest {
 	private static Long userToDelete;
 
 	private List<Entity> entitiesToDelete;
-	private List<S3FileHandle> filesToDelete;
+	private List<FileHandle> filesToDelete;
 	
 	private static long MAX_WAIT_MS = 1000*60*5;
 	
@@ -75,7 +76,7 @@ public class IT099AsynchronousJobTest {
 	@Before
 	public void before(){
 		entitiesToDelete = new LinkedList<Entity>();
-		filesToDelete = new LinkedList<S3FileHandle>();
+		filesToDelete = Lists.newArrayList();
 	}
 	
 	@After
@@ -136,7 +137,7 @@ public class IT099AsynchronousJobTest {
 			
 			// Now create a CSV
 			CSVWriter csv = new CSVWriter(new FileWriter(temp));
-			int rowCount = 2;
+			final long rowCount = 2;
 			try{
 				// Write the header
 				csv.writeNext(new String[]{cm1.getName(), cm2.getName()});
@@ -149,7 +150,7 @@ public class IT099AsynchronousJobTest {
 				csv.close();
 			}
 			// Now upload this CSV as a file handle
-			S3FileHandle fileHandle = synapse.createFileHandle(temp, "text/csv");
+			FileHandle fileHandle = synapse.createFileHandle(temp, "text/csv", project.getId());
 			filesToDelete.add(fileHandle);
 			// We now have enough to apply the data to the table
 			AsynchUploadToTableRequestBody body = new AsynchUploadToTableRequestBody();

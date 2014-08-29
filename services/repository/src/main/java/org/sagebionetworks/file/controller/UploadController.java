@@ -2,6 +2,7 @@ package org.sagebionetworks.file.controller;
 
 import java.io.IOException;
 import java.net.URL;
+import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -13,6 +14,7 @@ import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.file.services.FileUploadService;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
@@ -26,6 +28,7 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
+import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -471,19 +474,37 @@ public class UploadController extends BaseController {
 	}
 	
 	/**
+	 * Get the status of a daemon started with <a href="${POST.startCompleteUploadDaemon}">POST
+	 * /startCompleteUploadDaemon</a>.
+	 * 
+	 * @param userId
+	 * @param daemonId The ID of the daemon (UploadDaemonStatus.id).
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = "/uploadDestinations/{parentId}", method = RequestMethod.GET)
+	public @ResponseBody
+	ListWrapper<UploadDestination> getUploadDestinations(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String parentId) throws DatastoreException, NotFoundException {
+		List<UploadDestination> uploadDestinations = fileService.getUploadDestinations(userId, parentId);
+		return ListWrapper.wrap(uploadDestinations, UploadDestination.class);
+	}
+
+	/**
 	 * Get a URL that can be used to download a file of a FileHandle.
 	 * <p>
-	 * Note: This call will result in a HTTP temporary redirect (307), to the
-	 * actual file URL if the caller meets all of the download requirements.
+	 * Note: This call will result in a HTTP temporary redirect (307), to the actual file URL if the caller meets all of
+	 * the download requirements.
 	 * </p>
 	 * <p>
 	 * Note: Only the user that created the FileHandle can use this method for download.
 	 * </p>
+	 * 
 	 * @param userId
 	 * @param fileHandleId The ID of the FileHandle to download.
-	 * @param redirect
-	 *            When set to false, the URL will be returned as text/plain
-	 *            instead of redirecting.
+	 * @param redirect When set to false, the URL will be returned as text/plain instead of redirecting.
 	 * @param response
 	 * @param wikiVersion
 	 * @throws DatastoreException

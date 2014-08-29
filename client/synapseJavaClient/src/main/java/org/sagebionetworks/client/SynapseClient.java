@@ -48,6 +48,7 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
+import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageRecipientSet;
 import org.sagebionetworks.repo.model.message.MessageSortBy;
@@ -58,6 +59,7 @@ import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
 import org.sagebionetworks.repo.model.principal.AddEmailInfo;
 import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
 import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
+import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.query.QueryTableResults;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
@@ -467,12 +469,14 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * Upload each file to Synapse creating a file handle for each.
 	 */
+	@Deprecated
 	public FileHandleResults createFileHandles(List<File> files)
 			throws SynapseException;
 
 	/**
 	 * The high-level API for uploading a file to Synapse.
 	 */
+	@Deprecated
 	public S3FileHandle createFileHandle(File temp, String contentType)
 			throws SynapseException, IOException;
 
@@ -480,8 +484,29 @@ public interface SynapseClient extends BaseClient {
 	 * See {@link #createFileHandle(File, String)}
 	 * @param shouldPreviewBeCreated Default true
 	 */
+	@Deprecated
 	public S3FileHandle createFileHandle(File temp, String contentType, Boolean shouldPreviewBeCreated)
 			throws SynapseException, IOException;
+
+	/**
+	 * Upload each file to Synapse creating a file handle for each.
+	 */
+	public FileHandleResults createFileHandles(List<File> files, String parentEntityId) throws SynapseException;
+
+	/**
+	 * The high-level API for uploading a file to Synapse.
+	 */
+	public FileHandle createFileHandle(File temp, String contentType, String parentEntityId) throws SynapseException, IOException;
+
+	/**
+	 * See {@link #createFileHandle(File, String)}
+	 * 
+	 * @param shouldPreviewBeCreated Default true
+	 */
+	public FileHandle createFileHandle(File temp, String contentType, Boolean shouldPreviewBeCreated, String parentEntityId)
+			throws SynapseException, IOException;
+
+	public List<UploadDestination> getUploadDestinations(String parentEntityId) throws SynapseException;
 
 	public ChunkedFileToken createChunkedFileUploadToken(
 			CreateChunkedFileTokenRequest ccftr) throws SynapseException;
@@ -795,16 +820,19 @@ public interface SynapseClient extends BaseClient {
 	public String getTermsOfUse(DomainType domain) throws SynapseException;
 	
 	/**
-	 * Uploads a String to S3 using the chunked file upload service
-	 * Note:  Strings in memory should not be large, so we limit the length
-	 * of the byte array for the passed in string to be the size of one 'chunk'
+	 * Uploads a String to the default upload location, if S3 using the chunked file upload service Note: Strings in
+	 * memory should not be large, so we limit the length of the byte array for the passed in string to be the size of
+	 * one 'chunk'
 	 * 
 	 * @param content the byte array to upload.
 	 * 
-	 * @param contentType This will become the contentType field of the resulting S3FileHandle
-	 * if not specified, this method uses "text/plain"
+	 * @param contentType This will become the contentType field of the resulting S3FileHandle if not specified, this
+	 *        method uses "text/plain"
 	 * 
 	 */ 
+	public String uploadToFileHandle(byte[] content, ContentType contentType, String parentEntityId) throws SynapseException;
+
+	@Deprecated
 	public String uploadToFileHandle(byte[] content, ContentType contentType) throws SynapseException;
 
 	/**
@@ -1652,4 +1680,13 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	void logError(LogEntry logEntry) throws SynapseException;
+
+	/**
+	 * create a project setting
+	 * 
+	 * @param projectId
+	 * @param projectSetting
+	 * @throws SynapseException
+	 */
+	ProjectSetting createProjectSetting(ProjectSetting projectSetting) throws SynapseException;
 }

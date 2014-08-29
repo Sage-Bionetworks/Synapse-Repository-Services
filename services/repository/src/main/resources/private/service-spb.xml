@@ -76,6 +76,8 @@
 
 	<bean id="logService" class="org.sagebionetworks.repo.web.service.LogServiceImpl" />
 
+	<bean id="projectSettingsService" class="org.sagebionetworks.repo.web.service.ProjectSettingsServiceImpl" />
+
 	<!-- The V2 Wiki Service -->
 	<bean id="v2WikiService" class="org.sagebionetworks.repo.web.service.V2WikiServiceImpl" depends-on="wikiModelTranslationHelper"/>
 	

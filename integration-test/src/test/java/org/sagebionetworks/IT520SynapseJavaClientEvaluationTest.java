@@ -46,6 +46,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.PaginatedResults;
@@ -61,6 +62,7 @@ import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
 import org.sagebionetworks.repo.model.annotation.Annotations;
 import org.sagebionetworks.repo.model.annotation.StringAnnotation;
+import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.query.QueryTableResults;
@@ -140,7 +142,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 			FileWriter writer = new FileWriter(dataSourceFile);
 			writer.write("Hello world!");
 			writer.close();
-			S3FileHandle fileHandle = synapseOne.createFileHandle(dataSourceFile, "text/plain");
+			FileHandle fileHandle = synapseOne.createFileHandle(dataSourceFile, "text/plain", project.getId());
 			fileEntity = new FileEntity();
 			fileEntity.setParentId(project.getId());
 			fileEntity.setDataFileHandleId(fileHandle.getId());
@@ -678,7 +680,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		assertNotNull(eval1.getId());
 		evaluationsToDelete.add(eval1.getId());
 		
-		FileEntity file = createTestFileEntity();		
+		FileEntity file = createTestFileEntity(project);
 		
 		// create Submission
 		String entityId = file.getId();
@@ -700,7 +702,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		assertEquals("invalid URL returned", expected, actual);
 	}
 
-	private FileEntity createTestFileEntity() throws SynapseException {
+	private FileEntity createTestFileEntity(Entity parent) throws SynapseException {
 		// create a FileHandle
 		URL url = IT054FileEntityTest.class.getClassLoader().getResource("images/"+FILE_NAME);
 		File imageFile = new File(url.getFile().replaceAll("%20", " "));
@@ -708,7 +710,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		assertTrue(imageFile.exists());
 		List<File> list = new LinkedList<File>();
 		list.add(imageFile);
-		FileHandleResults results = synapseOne.createFileHandles(list);
+		FileHandleResults results = synapseOne.createFileHandles(list, parent.getId());
 		assertNotNull(results);
 		assertNotNull(results.getList());
 		assertEquals(1, results.getList().size());

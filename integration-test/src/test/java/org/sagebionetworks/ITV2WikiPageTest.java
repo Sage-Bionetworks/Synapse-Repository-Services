@@ -93,21 +93,22 @@ public class ITV2WikiPageTest {
 		assertNotNull(markdownFile);
 		assertTrue(markdownFile.exists());
 		
+		// Create a project, this will own the wiki page.
+		project = new Project();
+		project = synapse.createEntity(project);
+
 		// Create the file handles
 		List<File> list = new LinkedList<File>();
 		list.add(imageFile);
 		list.add(imageFileTwo);
 		list.add(markdownFile);
-		FileHandleResults results = synapse.createFileHandles(list);
+		FileHandleResults results = synapse.createFileHandles(list, project.getId());
 		assertNotNull(results);
 		assertNotNull(results.getList());
 		assertEquals(3, results.getList().size());
 		fileHandle = (S3FileHandle) results.getList().get(0);
 		fileHandleTwo = (S3FileHandle) results.getList().get(1);
 		markdownHandle = (S3FileHandle) results.getList().get(2);
-		// Create a project, this will own the wiki page.
-		project = new Project();
-		project = synapse.createEntity(project);
 	}
 	
 	@After
