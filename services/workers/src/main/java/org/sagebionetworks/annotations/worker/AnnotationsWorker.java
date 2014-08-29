@@ -10,10 +10,9 @@ import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.cloudwatch.WorkerLogger;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.SubmissionStatusAnnotationsAsyncManager;
-import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.springframework.dao.DeadlockLoserDataAccessException;
+import org.springframework.dao.TransientDataAccessException;
 
 import com.amazonaws.services.sqs.model.Message;
 
@@ -64,7 +63,7 @@ public class AnnotationsWorker implements Callable<List<Message>> {
 					}
 					// This message was processed.
 					processedMessages.add(message);
-				} catch (DeadlockLoserDataAccessException e) {
+				} catch (TransientDataAccessException e) {
 					log.info("Intermittent error in AnnotationsWorker: "+e.getMessage()+". Will retry");
 					workerLogger.logWorkerFailure(this.getClass(), change, e, true);
 				} catch (Throwable e) {

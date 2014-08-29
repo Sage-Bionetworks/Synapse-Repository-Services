@@ -7,7 +7,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_LOCK_MAS
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_COUNTING_SEMAPHORE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_LOCK_MASTER;
 
-import java.sql.Connection;
 import java.util.UUID;
 
 import javax.annotation.PostConstruct;
@@ -28,9 +27,9 @@ import org.sagebionetworks.util.Clock;
 import org.springframework.beans.factory.BeanNameAware;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Required;
-import org.springframework.dao.DeadlockLoserDataAccessException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.dao.TransientDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
@@ -176,7 +175,7 @@ public class CountingSemaphoreDaoImpl implements CountingSemaphoreDao, BeanNameA
 						return shared.getToken();
 					}
 				});
-			} catch (DeadlockLoserDataAccessException e) {
+			} catch (TransientDataAccessException e) {
 				// sleep a bit with some random time, to avoid pounding the db
 				clock.sleepNoInterrupt(50 + RandomUtils.nextInt(25));
 			}

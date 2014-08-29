@@ -5,7 +5,7 @@ import org.apache.commons.logging.LogFactory;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
-import org.springframework.dao.DeadlockLoserDataAccessException;
+import org.springframework.dao.TransientDataAccessException;
 
 /**
  * This aspect is used to detect Deadlock and make another attempt.
@@ -38,7 +38,7 @@ public class DeadlockWatcher {
 		try{
 			// Let all methods proceed as expected.
 			return pjp.proceed();
-		}catch(DeadlockLoserDataAccessException e){
+		} catch (TransientDataAccessException e) {
 			log.debug(String.format(START_MESSAGE, e.getMessage()));
 			// When deadlock occurs, we wait and try one more time
 			int attempt = 2;
@@ -48,7 +48,7 @@ public class DeadlockWatcher {
 				Thread.sleep(wait);
 				try{
 					return pjp.proceed();
-				}catch(DeadlockLoserDataAccessException e2){
+				} catch (TransientDataAccessException e2) {
 					// We might get another shot.
 				}
 				log.debug(String.format(FAILED_ATTEMPT, attempt, wait));
