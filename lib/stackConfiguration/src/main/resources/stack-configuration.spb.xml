@@ -14,9 +14,11 @@
 	<bean id="stackConfiguration" class="org.sagebionetworks.StackConfiguration"/>
 	
 	<bean id="stackConfiguration.stackAndStackInstancePrefix" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	<bean id="stackConfiguration.tableCSVUploadQueueName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-	<bean id="stackConfiguration.tableCSVDownloadQueueName" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
-		
+	<bean name="stackConfiguration.asyncQueueName[UPLOAD_CSV_TO_TABLE]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean name="stackConfiguration.asyncQueueName[DOWNLOAD_CSV_FROM_TABLE]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean name="stackConfiguration.asyncQueueName[QUERY]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	<bean name="stackConfiguration.asyncQueueName[QUERY_NEXT_PAGE]" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+
 	<!-- Define each value that we want to be able to inject in other beans. -->
 	<bean id="stackConfiguration.idGeneratorDatabaseDriver" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.idGeneratorDatabaseConnectionUrl" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />

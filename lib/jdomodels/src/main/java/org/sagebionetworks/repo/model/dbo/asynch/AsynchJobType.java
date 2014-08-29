@@ -3,10 +3,14 @@ package org.sagebionetworks.repo.model.dbo.asynch;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
-import org.sagebionetworks.repo.model.table.AsynchDownloadFromTableRequestBody;
-import org.sagebionetworks.repo.model.table.AsynchDownloadFromTableResponseBody;
-import org.sagebionetworks.repo.model.table.AsynchUploadToTableRequestBody;
-import org.sagebionetworks.repo.model.table.AsynchUploadToTableResponseBody;
+import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
+import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
+import org.sagebionetworks.repo.model.table.QueryBundleRequest;
+import org.sagebionetworks.repo.model.table.QueryNextPageToken;
+import org.sagebionetworks.repo.model.table.QueryResult;
+import org.sagebionetworks.repo.model.table.QueryResultBundle;
+import org.sagebionetworks.repo.model.table.UploadToTableRequest;
+import org.sagebionetworks.repo.model.table.UploadToTableResult;
 
 /**
  * This enum maps types to classes.
@@ -15,18 +19,22 @@ import org.sagebionetworks.repo.model.table.AsynchUploadToTableResponseBody;
  *
  */
 public enum AsynchJobType {
-	
-	UPLOAD_CSV_TO_TABLE(AsynchUploadToTableRequestBody.class, AsynchUploadToTableResponseBody.class,  StackConfiguration.singleton().getTableCSVUploadQueueName()),
-	DOWNLOAD_CSV_FROM_TABLE(AsynchDownloadFromTableRequestBody.class, AsynchDownloadFromTableResponseBody.class,  StackConfiguration.singleton().getTableCSVDownloadQueueName());
-	
+
+	UPLOAD_CSV_TO_TABLE(UploadToTableRequest.class, UploadToTableResult.class),
+
+	DOWNLOAD_CSV_FROM_TABLE(DownloadFromTableRequest.class, DownloadFromTableResult.class),
+
+	QUERY(QueryBundleRequest.class, QueryResultBundle.class),
+
+	QUERY_NEXT_PAGE(QueryNextPageToken.class, QueryResult.class);
+
+
 	private Class<? extends AsynchronousRequestBody> requestClass;
 	private Class<? extends AsynchronousResponseBody> responseClass;
-	private String queueName;
 	
-	AsynchJobType(Class<? extends AsynchronousRequestBody> requestClass, Class<? extends AsynchronousResponseBody> responseClass, String queueName){
+	AsynchJobType(Class<? extends AsynchronousRequestBody> requestClass, Class<? extends AsynchronousResponseBody> responseClass) {
 		this.requestClass = requestClass;
 		this.responseClass = responseClass;
-		this.queueName = queueName;
 	}
 	
 	/**
@@ -59,6 +67,6 @@ public enum AsynchJobType {
 	 * @return
 	 */
 	public String getQueueName(){
-		return this.queueName;
+		return StackConfiguration.singleton().getAsyncQueueName(this.name());
 	}
 }

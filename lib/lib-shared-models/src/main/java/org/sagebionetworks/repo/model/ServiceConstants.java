@@ -260,9 +260,5 @@ public class ServiceConstants {
 	 */
 	public static final String SKIP_TRASH_CAN_PARAM = "skipTrashCan";
 	
-	public static final String COUNT_ONLY = "countOnly";
-	public static final String IS_CONSISTENT = "isConsistent";
-	public static final String PARTS_MASK = "partsMask";
-	
 	public static final String PRINCIPAL_ID = "principalId";
 }

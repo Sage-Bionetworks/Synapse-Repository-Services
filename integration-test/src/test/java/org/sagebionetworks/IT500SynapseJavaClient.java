@@ -7,13 +7,11 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
@@ -34,6 +32,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import javax.servlet.ServletException;
+
 import org.apache.http.entity.ContentType;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -48,6 +48,7 @@ import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
+import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
@@ -55,7 +56,7 @@ import org.sagebionetworks.client.exceptions.SynapseServerException;
 import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
-import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
 import org.sagebionetworks.repo.model.quiz.QuestionResponse;
 import org.sagebionetworks.repo.model.quiz.Quiz;
@@ -1213,7 +1214,7 @@ public class IT500SynapseJavaClient {
 		} finally {
 			if (pw!=null) pw.close();
 		}
-		S3FileHandle fileHandle = synapseOne.createFileHandle(file, "text/plain");
+		FileHandle fileHandle = synapseOne.createFileHandle(file, "text/plain", createdTeam.getId());
 		handlesToDelete.add(fileHandle.getId());
 		
 		// update the Team with the icon
@@ -1677,6 +1678,50 @@ public class IT500SynapseJavaClient {
 		}
 		executor.shutdown();
 		assertTrue(executor.awaitTermination(20, TimeUnit.SECONDS));
+	}
+
+	private volatile boolean allDone = false;
+	private volatile boolean hitTestGoal = false;
+
+	@Test
+	public void testDeadlockHandling() throws Exception {
+		final SynapseAdminClientImpl nonWaitingAdminSynapse = new SynapseAdminClientImpl();
+		SynapseClientHelper.setEndpoints(nonWaitingAdminSynapse);
+		nonWaitingAdminSynapse.setUserName(StackConfiguration.getMigrationAdminUsername());
+		nonWaitingAdminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
+		nonWaitingAdminSynapse.clearAllLocks();
+		nonWaitingAdminSynapse.getSharedClientConnection().setRetryRequestIfServiceUnavailable(false);
+		int max = StackConfiguration.singleton().getMaxConcurrentRepoConnections().get();
+		ExecutorService executor = Executors.newFixedThreadPool(max + 1);
+		List<Future<Void>> results = Lists.newArrayList();
+		for (int i = 0; i < max; i++) {
+			results.add(executor.submit(new Callable<Void>() {
+				@Override
+				public Void call() throws Exception {
+					try {
+						for (int i = 0; !allDone && i < 100; i++) {
+							try {
+								adminSynapse.getVersionInfo();
+							} catch (SynapseServerException e) {
+								assertEquals(503, e.getStatusCode());
+								hitTestGoal = true;
+								break;
+							}
+						}
+					} finally {
+						allDone = true;
+					}
+				}
+			}));
+		}
+		for (Future<Void> result : results) {
+			result.get();
+		}
+		executor.shutdown();
+		assertTrue(executor.awaitTermination(20, TimeUnit.SECONDS));
+		if (!hitTestGoal) {
+			System.out.println("testDeadlockHandling did not hit test goal");
+		}
 	}
 
 	@Test

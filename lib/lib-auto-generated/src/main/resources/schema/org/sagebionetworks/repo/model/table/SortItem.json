@@ -1,0 +1,13 @@
+{
+    "title":"SortItem",
+    "properties":{
+        "column":{
+            "type":"string",
+            "description":"The column to sort on."
+        },
+		"direction":{
+            "type":"string",
+            "description":"Optional sort direction, ASC or DESC. Default is default mysql sort direction."
+		}
+    }
+}

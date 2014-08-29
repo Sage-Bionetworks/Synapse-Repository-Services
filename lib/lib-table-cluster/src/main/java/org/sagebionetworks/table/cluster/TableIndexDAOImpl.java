@@ -212,7 +212,11 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			@Override
 			public void setHeaderColumnIds(List<String> headers) {
 				rowSet.setHeaders(headers);
-				
+			}
+
+			@Override
+			public void setEtag(String etag) {
+				rowSet.setEtag(etag);
 			}
 		});
 		rowSet.setTableId(query.getTableId());

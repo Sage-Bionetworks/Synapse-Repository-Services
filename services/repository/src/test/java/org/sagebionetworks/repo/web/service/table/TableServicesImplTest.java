@@ -14,15 +14,19 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableRowManager;
+import org.sagebionetworks.repo.manager.table.TableRowManagerImpl;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.Query;
+import org.sagebionetworks.repo.model.table.QueryBundleRequest;
+import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.table.cluster.SqlQuery;
+import org.sagebionetworks.util.Pair;
 import org.springframework.test.util.ReflectionTestUtils;
 
 /**
@@ -41,11 +45,11 @@ public class TableServicesImplTest {
 	TableServicesImpl tableService;
 	Long userId;
 	UserInfo userInfo;
-	Query query;
+	QueryBundleRequest queryBundle;
 	List<ColumnModel> models;
 	List<String> headers;
 	RowSet selectStar;
-	RowSet selectCountStar;
+	QueryResult selectStarResult;
 	String tableId;
 	SqlQuery sqlQuery;
 
@@ -75,66 +79,10 @@ public class TableServicesImplTest {
 		selectStar.setHeaders(headers);
 		selectStar.setTableId(tableId);
 		selectStar.setRows(TableModelTestUtils.createRows(models, 4));
+		selectStarResult = new QueryResult();
+		selectStarResult.setNextPageToken(null);
+		selectStarResult.setQueryResults(selectStar);
 
-		selectCountStar = new RowSet();
-		selectCountStar.setEtag(null);
-		selectCountStar.setTableId(tableId);
-		selectCountStar.setHeaders(Arrays.asList("count(*)"));
-		Row countRow = new Row();
-		countRow.setValues(Arrays.asList("4"));
-		selectCountStar.setRows(Arrays.asList(countRow));
-		
 		sqlQuery = new SqlQuery("select * from "+tableId, models);
-	}
-	
-	@Test
-	public void testQueryBundle() throws Exception {
-		query = new Query();
-		query.setSql("select * from myTable");
-		when(mockTableRowManager.createQuery(query.getSql(), false)).thenReturn(sqlQuery);
-		when(mockTableRowManager.query(userInfo, sqlQuery, true)).thenReturn(selectStar);
-		when(mockTableRowManager.query(userInfo, query.getSql(), true, true)).thenReturn(selectCountStar);
-		Long maxRowsPerPage = new Long(7);
-		when(mockTableRowManager.getMaxRowsPerPage(sqlQuery.getSelectColumnModels())).thenReturn(maxRowsPerPage);
-		
-		// Request query only
-		QueryResultBundle bundle = tableService.queryBundle(userId, query, true, TableServicesImpl.BUNDLE_MASK_QUERY_RESULTS);
-		assertEquals(selectStar, bundle.getQueryResults());
-		assertEquals(null, bundle.getQueryCount());
-		assertEquals(null, bundle.getSelectColumns());
-		assertEquals(null, bundle.getMaxRowsPerPage());
-		
-		// Count only
-		bundle = tableService.queryBundle(userId, query, true, TableServicesImpl.BUNDLE_MASK_QUERY_COUNT);
-		assertEquals(null, bundle.getQueryResults());
-		assertEquals(new Long(4), bundle.getQueryCount());
-		assertEquals(null, bundle.getSelectColumns());
-		assertEquals(null, bundle.getMaxRowsPerPage());
-		
-		// select columns
-		bundle = tableService.queryBundle(userId, query, true, TableServicesImpl.BUNDLE_MASK_QUERY_SELECT_COLUMNS);
-		assertEquals(null, bundle.getQueryResults());
-		assertEquals(null, bundle.getQueryCount());
-		assertEquals(sqlQuery.getSelectColumnModels(), bundle.getSelectColumns());
-		assertEquals(null, bundle.getMaxRowsPerPage());
-		
-		// max rows per page
-		bundle = tableService.queryBundle(userId, query, true, TableServicesImpl.BUNDLE_MASK_QUERY_MAX_ROWS_PER_PAGE);
-		assertEquals(null, bundle.getQueryResults());
-		assertEquals(null, bundle.getQueryCount());
-		assertEquals(null, bundle.getSelectColumns());
-		assertEquals(maxRowsPerPage, bundle.getMaxRowsPerPage());
-		
-		// now combine them all
-		bundle = tableService.queryBundle(userId, query, true, 
-				(TableServicesImpl.BUNDLE_MASK_QUERY_RESULTS
-				| TableServicesImpl.BUNDLE_MASK_QUERY_COUNT
-				| TableServicesImpl.BUNDLE_MASK_QUERY_SELECT_COLUMNS
-				|TableServicesImpl.BUNDLE_MASK_QUERY_MAX_ROWS_PER_PAGE));
-		assertEquals(selectStar, bundle.getQueryResults());
-		assertEquals(new Long(4), bundle.getQueryCount());
-		assertEquals(sqlQuery.getSelectColumnModels(), bundle.getSelectColumns());
-		assertEquals(maxRowsPerPage, bundle.getMaxRowsPerPage());
-		
 	}
 }

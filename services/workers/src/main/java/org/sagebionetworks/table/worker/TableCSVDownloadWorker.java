@@ -5,31 +5,26 @@ import java.io.FileWriter;
 import java.io.Writer;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.Callable;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.asynchronous.workers.sqs.Worker;
 import org.sagebionetworks.asynchronous.workers.sqs.WorkerProgress;
-import org.sagebionetworks.repo.manager.EntityManager;
-import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.table.TableRowManager;
-import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.table.AsynchDownloadFromTableRequestBody;
-import org.sagebionetworks.repo.model.table.AsynchDownloadFromTableResponseBody;
-import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
+import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
+import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
-import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.util.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.util.StringUtils;
 
 import au.com.bytecode.opencsv.CSVWriter;
 
@@ -99,10 +94,10 @@ public class TableCSVDownloadWorker implements Worker {
 		CSVWriter writer = null;
 		try{
 			UserInfo user = userManger.getUserInfo(status.getStartedByUserId());
-			AsynchDownloadFromTableRequestBody request = (AsynchDownloadFromTableRequestBody) status.getRequestBody();
+			DownloadFromTableRequest request = (DownloadFromTableRequest) status.getRequestBody();
 			// Before we start determine how many rows there are.
-			RowSet countSet = tableRowManager.query(user, request.getSql(), true, true);
-			long rowCount = Long.parseLong(countSet.getRows().get(0).getValues().get(0));
+			Pair<QueryResult, Long> queryResult = tableRowManager.query(user, request.getSql(), null, null, false, true, true);
+			long rowCount = queryResult.getSecond();
 			// Since each row must first be read from the database then uploaded to S3
 			// The total amount of progress is two times the number of rows.
 			long totalProgress = rowCount*2;
@@ -117,9 +112,9 @@ public class TableCSVDownloadWorker implements Worker {
 				includeRowIdAndVersion = request.getIncludeRowIdAndRowVersion();
 			}
 			// Execute the actual query and stream the results to the file.
-			AsynchDownloadFromTableResponseBody response = null;
+			DownloadFromTableResult result = null;
 			try{
-				response = tableRowManager.runConsistentQueryAsStream(request.getSql(), stream, includeRowIdAndVersion);
+				result = tableRowManager.runConsistentQueryAsStream(request.getSql(), stream, includeRowIdAndVersion);
 			}finally{
 				writer.close();
 			}
@@ -131,10 +126,10 @@ public class TableCSVDownloadWorker implements Worker {
 			// This will keep the progress updated as the file is uploaded.
 			UploadProgressListener uploadListener = new UploadProgressListener(workerProgress, message, startProgress, bytesPerRow, totalProgress, asynchJobStatusManager, status.getJobId());
 			S3FileHandle fileHandle = fileHandleManager.multipartUploadLocalFile(user, temp, TEXT_CSV, uploadListener);
-			response.setResultsFileHandleId(fileHandle.getId());
+			result.setResultsFileHandleId(fileHandle.getId());
 			// Create the file
 			// Now upload the file as a filehandle
-			asynchJobStatusManager.setComplete(status.getJobId(), response);
+			asynchJobStatusManager.setComplete(status.getJobId(), result);
 			return message;
 		}catch (TableUnavilableException e){
 			// This just means we cannot do this right now.  We can try again later.
@@ -174,8 +169,9 @@ public class TableCSVDownloadWorker implements Worker {
 		if(status.getRequestBody() == null){
 			throw new IllegalArgumentException("Job body cannot be null");
 		}
-		if(!(status.getRequestBody() instanceof AsynchDownloadFromTableRequestBody)){
-			throw new IllegalArgumentException("Expected a job body of type: "+AsynchDownloadFromTableRequestBody.class.getName()+" but received: "+status.getRequestBody().getClass().getName());
+		if (!(status.getRequestBody() instanceof DownloadFromTableRequest)) {
+			throw new IllegalArgumentException("Expected a job body of type: " + DownloadFromTableRequest.class.getName() + " but received: "
+					+ status.getRequestBody().getClass().getName());
 		}
 		return status;
 	}
@@ -186,32 +182,35 @@ public class TableCSVDownloadWorker implements Worker {
 	 * @param request
 	 * @return
 	 */
-	public static CSVWriter createCSVWriter(Writer writer, AsynchDownloadFromTableRequestBody request){
-		if(request == null) throw new IllegalArgumentException("AsynchDownloadRequestBody cannot be null");
+	public static CSVWriter createCSVWriter(Writer writer, DownloadFromTableRequest request) {
+		if (request == null)
+			throw new IllegalArgumentException("DownloadFromTableRequest cannot be null");
 		char separator = CSVWriter.DEFAULT_SEPARATOR;
 		char quotechar = CSVWriter.DEFAULT_QUOTE_CHARACTER;
 		char escape = CSVWriter.DEFAULT_ESCAPE_CHARACTER;
 		String lineEnd = CSVWriter.DEFAULT_LINE_END;
-		if(request.getSeparator() != null){
-			if(request.getSeparator().length() != 1){
-				throw new IllegalArgumentException("AsynchDownloadRequestBody.separator must be exactly one character.");
+		if (request.getCsvTableDescriptor() != null) {
+			if (request.getCsvTableDescriptor().getSeparator() != null) {
+				if (request.getCsvTableDescriptor().getSeparator().length() != 1) {
+					throw new IllegalArgumentException("CsvTableDescriptor.separator must be exactly one character.");
+				}
+				separator = request.getCsvTableDescriptor().getSeparator().charAt(0);
 			}
-			separator = request.getSeparator().charAt(0);
-		}
-		if(request.getQuoteCharacter() != null){
-			if(request.getQuoteCharacter().length() != 1){
-				throw new IllegalArgumentException("AsynchDownloadRequestBody.quoteCharacter must be exactly one character.");
+			if (request.getCsvTableDescriptor().getQuoteCharacter() != null) {
+				if (request.getCsvTableDescriptor().getQuoteCharacter().length() != 1) {
+					throw new IllegalArgumentException("CsvTableDescriptor.quoteCharacter must be exactly one character.");
+				}
+				quotechar = request.getCsvTableDescriptor().getQuoteCharacter().charAt(0);
 			}
-			quotechar = request.getQuoteCharacter().charAt(0);
-		}
-		if(request.getEscapeCharacter() != null){
-			if(request.getEscapeCharacter().length() != 1){
-				throw new IllegalArgumentException("AsynchDownloadRequestBody.escapeCharacter must be exactly one character.");
+			if (request.getCsvTableDescriptor().getEscapeCharacter() != null) {
+				if (request.getCsvTableDescriptor().getEscapeCharacter().length() != 1) {
+					throw new IllegalArgumentException("CsvTableDescriptor.escapeCharacter must be exactly one character.");
+				}
+				escape = request.getCsvTableDescriptor().getEscapeCharacter().charAt(0);
 			}
-			escape = request.getEscapeCharacter().charAt(0);
-		}
-		if(request.getLineEnd() != null){
-			lineEnd = request.getLineEnd();
+			if (request.getCsvTableDescriptor().getLineEnd() != null) {
+				lineEnd = request.getCsvTableDescriptor().getLineEnd();
+			}
 		}
 		// Create the reader.
 		return new CSVWriter(writer, separator, quotechar, escape, lineEnd);

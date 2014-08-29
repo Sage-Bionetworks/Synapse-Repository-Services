@@ -477,4 +477,23 @@ public class SqlElementUntils {
 		return new QuerySpecification(null, count, tableExpression);
 	}
 	
+	/**
+	 * Convert the passed query into a count query.
+	 * 
+	 * @param model
+	 * @return
+	 * @throws ParseException
+	 */
+	public static QuerySpecification convertToPaginatedQuery(QuerySpecification model, Long offset, Long limit) throws ParseException {
+		if (model == null)
+			throw new IllegalArgumentException("QuerySpecification cannot be null");
+		TableExpression currentTableExpression = model.getTableExpression();
+		if (currentTableExpression == null)
+			throw new IllegalArgumentException("TableExpression cannot be null");
+		// add pagination
+		TableExpression tableExpression = new TableExpression(currentTableExpression.getFromClause(),
+				currentTableExpression.getWhereClause(), currentTableExpression.getGroupByClause(),
+				currentTableExpression.getOrderByClause(), new Pagination(limit, offset));
+		return new QuerySpecification(model.getSetQuantifier(), model.getSelectList(), tableExpression);
+	}
 }

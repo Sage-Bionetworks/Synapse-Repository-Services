@@ -2,18 +2,22 @@ package org.sagebionetworks.repo.web.controller;
 
 import java.io.IOException;
 import java.net.URL;
-import java.util.Collections;
-import java.util.List;
 
 import javax.servlet.http.HttpServletResponse;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ServiceConstants;
+import org.sagebionetworks.repo.model.asynch.AsyncJobId;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
+import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.Query;
+import org.sagebionetworks.repo.model.table.QueryBundleRequest;
+import org.sagebionetworks.repo.model.table.QueryNextPageToken;
+import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
@@ -21,6 +25,8 @@ import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
+import org.sagebionetworks.repo.model.table.UploadToTableRequest;
+import org.sagebionetworks.repo.model.table.UploadToTableResult;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
@@ -547,8 +553,8 @@ public class TableController extends BaseController {
 
 	/**
 	 * <p>
-	 * Using a 'SQL like' syntax, query the current version of the rows in a
-	 * single table. The following pseudo-syntax is the basic supported format:
+	 * Using a 'SQL like' syntax, query the current version of the rows in a single table. The following pseudo-syntax
+	 * is the basic supported format:
 	 * </p>
 	 * SELECT <br>
 	 * [ALL | DISTINCT] select_expr [, select_expr ...] <br>
@@ -558,85 +564,27 @@ public class TableController extends BaseController {
 	 * [ORDER BY {col_name [ [ASC | DESC] [, col_name [ [ASC | DESC]]}<br>
 	 * [LIMIT row_count [ OFFSET offset ]]<br>
 	 * <p>
-	 * Please see the following for samples: <a
-	 * href="${org.sagebionetworks.repo.web.controller.TableExamples}">Table SQL
-	 * Examples</a>
+	 * Please see the following for samples: <a href="${org.sagebionetworks.repo.web.controller.TableExamples}">Table
+	 * SQL Examples</a>
 	 * </p>
 	 * <p>
 	 * Note: Sub-queries and joining tables is not supported.
 	 * </p>
 	 * <p>
-	 * This services depends on an index that is created/update asynchronously
-	 * from table creation and update events. This means there could be short
-	 * window of time when the index is inconsistent with the true state of the
-	 * table. When a query is run with the isConsistent parameter set to true
-	 * (the default) and the index is out-of-sych, then a status code of 202
-	 * (ACCEPTED) will be returned and the response body will be a <a
-	 * href="${org.sagebionetworks.repo.model.table.TableStatus}"
-	 * >TableStatus</a> object. The TableStatus will indicates the current
-	 * status of the index including how much work is remaining until the index
-	 * is consistent with the truth of the table.
+	 * This services depends on an index that is created/update asynchronously from table creation and update events.
+	 * This means there could be short window of time when the index is inconsistent with the true state of the table.
+	 * When a query is run with the isConsistent parameter set to true (the default) and the index is out-of-sych, then
+	 * a status code of 202 (ACCEPTED) will be returned and the response body will be a <a
+	 * href="${org.sagebionetworks.repo.model.table.TableStatus}" >TableStatus</a> object. The TableStatus will
+	 * indicates the current status of the index including how much work is remaining until the index is consistent with
+	 * the truth of the table.
 	 * </p>
 	 * <p>
-	 * Note: The caller must have the <a
-	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
-	 * >ACCESS_TYPE.READ</a> permission on the TableEntity to make this call.
-	 * </p>
-	 * 
-	 * @param userId
-	 * @param query
-	 * @param isConsistent
-	 *            Defaults to true. When true, a query will be run only if the
-	 *            index is up-to-date with all changes to the table and a
-	 *            read-lock is successfully acquired on the index. When set to
-	 *            false, the query will be run against the index regardless of
-	 *            the state of the index and without attempting to acquire a
-	 *            read-lock. When isConsistent is set to false the query results
-	 *            will not contain an etag so the results cannot be used as
-	 *            input to a table update.
-	 * @param countOnly
-	 *            When this parameter is included and set to 'true', the passed
-	 *            query will be converted into a count query. This means the
-	 *            passed select clause will be replaced with 'count(*)' and
-	 *            pagination, order by, and group by will all be ignored. This
-	 *            can be used to to setup client-side paging.
-	 * 
-	 * @return
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 * @throws IOException
-	 * @throws TableUnavilableException
-	 */
-	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = UrlHelpers.TABLE_QUERY, method = RequestMethod.POST)
-	public @ResponseBody
-	RowSet query(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody Query query,
-			@RequestParam(value = ServiceConstants.IS_CONSISTENT, required = false) Boolean isConsistent,
-			@RequestParam(value = ServiceConstants.COUNT_ONLY, required = false) Boolean countOnly)
-			throws DatastoreException, NotFoundException, IOException,
-			TableUnavilableException {
-		// By default isConsistent is true.
-		boolean isConsistentValue = true;
-		if (isConsistent != null) {
-			isConsistentValue = isConsistent;
-		}
-		// Count only is false by default
-		boolean countOnlyValue = false;
-		if (countOnly != null) {
-			countOnlyValue = countOnly;
-		}
-		return serviceProvider.getTableServices().query(userId, query,
-				isConsistentValue, countOnlyValue);
-	}
-
-	/**
-	 * <p>
-	 * This method executes table queries exactly like <a href="${POST.table.query}">POST /table/query</a> with the
-	 * addition of the extra parameter 'partsMask'. The mask allows for the request of additional information about the
-	 * executed query in a single service call. The query results and all of the requested parts are returned in a
-	 * single bundle.
+	 * isConsistent Defaults to true. When true, a query will be run only if the index is up-to-date with all changes to
+	 * the table and a read-lock is successfully acquired on the index. When set to false, the query will be run against
+	 * the index regardless of the state of the index and without attempting to acquire a read-lock. When isConsistent
+	 * is set to false the query results will not contain an etag so the results cannot be used as input to a table
+	 * update.
 	 * </p>
 	 * <p>
 	 * The 'partsMask' is an integer "mask" that can be combined into to request any desired part. As of this writing,
@@ -652,6 +600,10 @@ public class TableController extends BaseController {
 	 * For example, to request all parts, the request mask value should be: <br>
 	 * 0x1 OR 0x2 OR 0x4 OR 0x8 = 0x15.
 	 * </p>
+	 * <p>
+	 * Note: The caller must have the <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}" >ACCESS_TYPE.READ</a>
+	 * permission on the TableEntity to make this call.
+	 * </p>
 	 * 
 	 * @param userId
 	 * @param query
@@ -660,7 +612,9 @@ public class TableController extends BaseController {
 	 *        will be run against the index regardless of the state of the index and without attempting to acquire a
 	 *        read-lock. When isConsistent is set to false the query results will not contain an etag so the results
 	 *        cannot be used as input to a table update.
-	 * @param partsMask
+	 * @param countOnly When this parameter is included and set to 'true', the passed query will be converted into a
+	 *        count query. This means the passed select clause will be replaced with 'count(*)' and pagination, order
+	 *        by, and group by will all be ignored. This can be used to to setup client-side paging.
 	 * 
 	 * @return
 	 * @throws DatastoreException
@@ -669,23 +623,96 @@ public class TableController extends BaseController {
 	 * @throws TableUnavilableException
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = UrlHelpers.TABLE_QUERY_BUNDLE, method = RequestMethod.POST)
+	@RequestMapping(value = UrlHelpers.TABLE_QUERY, method = RequestMethod.POST)
 	public @ResponseBody
-	QueryResultBundle queryBundle(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody Query query,
-			@RequestParam(value = ServiceConstants.IS_CONSISTENT, required = false) Boolean isConsistent,
-			@RequestParam(value = ServiceConstants.PARTS_MASK, required = false) Integer partsMask)
-			throws DatastoreException, NotFoundException, IOException,
-			TableUnavilableException {
-		// By default isConsistent is true.
-		if (isConsistent == null) {
-			isConsistent = true;
-		}
-		if (partsMask == null) {
-			partsMask = -1;
-		}
-		return serviceProvider.getTableServices().queryBundle(userId, query, isConsistent, partsMask);
+	QueryResultBundle query(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @RequestBody QueryBundleRequest query)
+			throws DatastoreException, NotFoundException, IOException, TableUnavilableException {
+		return serviceProvider.getTableServices().queryBundle(userId, query);
 	}
 
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.TABLE_QUERY_ASYNC_START, method = RequestMethod.POST)
+	public @ResponseBody
+	AsyncJobId queryAsyncStart(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @RequestBody Query query)
+			throws DatastoreException, NotFoundException, IOException {
+		return null;
+	}
+
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.TABLE_QUERY_ASYNC_GET, method = RequestMethod.GET)
+	public @ResponseBody
+	QueryResultBundle queryAsyncGet(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String asyncToken)
+			throws DatastoreException, NotFoundException, IOException {
+		return null;
+	}
+
+	/**
+	 * Get the next page of results for the query. The page token comes from the query result of a <a
+	 * href="${POST.table.query}">POST /table/query</a>.
+	 * 
+	 * @param userId
+	 * @param queryPageToken
+	 * 
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 * @throws TableUnavilableException
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.TABLE_QUERY_NEXT_PAGE, method = RequestMethod.POST)
+	public @ResponseBody
+	QueryResult queryNextPage(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody QueryNextPageToken nextPageToken) throws DatastoreException, NotFoundException, IOException,
+			TableUnavilableException {
+		return serviceProvider.getTableServices().queryNextPage(userId, nextPageToken);
+	}
+
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.TABLE_QUERY_NEXT_PAGE_ASYNC_START, method = RequestMethod.POST)
+	public @ResponseBody
+	AsyncJobId queryNextPageAsyncStart(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody QueryNextPageToken nextPageToken) throws DatastoreException, NotFoundException, IOException {
+		return null;
+	}
+
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.TABLE_QUERY_NEXT_PAGE_ASYNC_GET, method = RequestMethod.GET)
+	public @ResponseBody
+	QueryResult queryNextPageAsyncGet(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String asyncToken)
+			throws DatastoreException, NotFoundException, IOException {
+		return null;
+	}
+
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.TABLE_DOWNLOAD_CSV_ASYNC_START, method = RequestMethod.POST)
+	public @ResponseBody
+	AsyncJobId csvDownloadAsyncStart(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody DownloadFromTableRequest downloadRequest) throws DatastoreException, NotFoundException, IOException {
+		return null;
+	}
+
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.TABLE_DOWNLOAD_CSV_ASYNC_GET, method = RequestMethod.GET)
+	public @ResponseBody
+	DownloadFromTableResult csvDownloadAsyncGet(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String asyncToken) throws DatastoreException, NotFoundException, IOException {
+		return null;
+	}
+
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.TABLE_UPLOAD_CSV_ASYNC_START, method = RequestMethod.POST)
+	public @ResponseBody
+	AsyncJobId csvUploadAsyncStart(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody UploadToTableRequest uploadRequest) throws DatastoreException, NotFoundException, IOException {
+		return null;
+	}
+
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.TABLE_UPLOAD_CSV_ASYNC_GET, method = RequestMethod.GET)
+	public @ResponseBody
+	UploadToTableResult csvUploadAsyncGet(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String asyncToken) throws DatastoreException, NotFoundException, IOException {
+		return null;
+	}
 }

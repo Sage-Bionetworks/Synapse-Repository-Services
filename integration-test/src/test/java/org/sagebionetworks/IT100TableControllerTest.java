@@ -1,6 +1,11 @@
 package org.sagebionetworks;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -26,7 +31,6 @@ import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
-import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseConflictingUpdateException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseTableUnavailableException;
@@ -180,22 +184,13 @@ public class IT100TableControllerTest {
 		assertEquals(TableModelUtils.getHeaders(columns), results1.getHeaders());
 		
 		// Now attempt to query for the table results
-		boolean isConsistent = true;
-		boolean countOnly = false;
-		RowSet queryResults = waitForQueryResults("select * from "+table.getId()+" limit 100", isConsistent, countOnly);
+		RowSet queryResults = waitForQueryResults("select * from " + table.getId(), null, null);
 		assertNotNull(queryResults);
 		assertNotNull(queryResults.getEtag());
 		assertEquals(results1.getEtag(), queryResults.getEtag());
 		assertEquals(table.getId(), queryResults.getTableId());
 		assertNotNull(queryResults.getRows());
 		assertEquals(2, queryResults.getRows().size());
-
-		try {
-			waitForQueryResults("select * from " + table.getId() + " where one = 'x'", isConsistent,
-					countOnly);
-			fail("Should have failed due to missing LIMIT");
-		} catch (SynapseBadRequestException e) {
-		}
 
 		// get the rows direct
 		RowSet directResults = synapse.getRowsFromTable(results1);
@@ -212,18 +207,9 @@ public class IT100TableControllerTest {
 		assertNotNull(results2);
 		assertNotNull(results2.getRows());
 		// run the query again, but this time get the counts
-		countOnly = true;
-		queryResults = waitForQueryResults("select * from "+table.getId()+" limit 2", isConsistent, countOnly);
-		assertNotNull(queryResults);
-		assertNotNull(queryResults.getEtag());
-		assertEquals(results2.getEtag(), queryResults.getEtag());
-		assertEquals(table.getId(), queryResults.getTableId());
-		assertNotNull(queryResults.getRows());
-		assertEquals(1, queryResults.getRows().size());
-		Row onlyRow = queryResults.getRows().get(0);
-		assertNotNull(onlyRow.getValues());
-		assertEquals(1, onlyRow.getValues().size());
-		assertEquals("There should be 4 rows in this table", "4", onlyRow.getValues().get(0));
+		Long count = waitForCountResults("select * from " + table.getId());
+		assertNotNull(count);
+		assertEquals("There should be 4 rows in this table", 4L, count.longValue());
 
 		// Now use these results to delete a row using the row delete api
 		RowSelection toDelete = new RowSelection();
@@ -236,28 +222,30 @@ public class IT100TableControllerTest {
 		assertEquals(1, results4.getRows().size());
 
 		// run the query again, to get the counts
-		countOnly = true;
-		queryResults = waitForQueryResults("select * from " + table.getId() + " limit 2", isConsistent, countOnly);
-		assertNotNull(queryResults);
-		assertNotNull(queryResults.getEtag());
-		assertEquals(table.getId(), queryResults.getTableId());
-		assertNotNull(queryResults.getRows());
-		assertEquals(1, queryResults.getRows().size());
-		onlyRow = queryResults.getRows().get(0);
-		assertNotNull(onlyRow.getValues());
-		assertEquals(1, onlyRow.getValues().size());
-		assertEquals("There should be 3 rows in this table", "3", onlyRow.getValues().get(0));
+		count = waitForCountResults("select * from " + table.getId());
+		assertEquals("There should be 3 rows in this table", 3L, count.longValue());
 		
 		// run a bundled query
-		isConsistent = true;
 		int mask = 0x1 | 0x2 | 0x4 | 0x8;
-		QueryResultBundle bundle = waitForBundleQueryResults("select one from " + table.getId() + " limit 2", isConsistent, mask);
+		QueryResultBundle bundle = waitForBundleQueryResults("select one from " + table.getId(), 0L, 2L, mask);
 		assertNotNull(bundle);
-		assertNotNull(bundle.getQueryResults());
-		assertNotNull(bundle.getQueryResults().getEtag());
-		assertEquals(table.getId(), bundle.getQueryResults().getTableId());
-		assertNotNull(bundle.getQueryResults().getRows());
-		assertEquals(2, bundle.getQueryResults().getRows().size());
+		assertNotNull(bundle.getQueryResult().getQueryResults());
+		assertNotNull(bundle.getQueryResult().getQueryResults().getEtag());
+		assertEquals(table.getId(), bundle.getQueryResult().getQueryResults().getTableId());
+		assertNotNull(bundle.getQueryResult().getQueryResults().getRows());
+		assertEquals(2, bundle.getQueryResult().getQueryResults().getRows().size());
+		assertEquals("There should be 3 rows in this table", new Long(3), bundle.getQueryCount());
+		assertEquals(Arrays.asList(one), bundle.getSelectColumns());
+		assertNotNull(bundle.getMaxRowsPerPage());
+		assertTrue(bundle.getMaxRowsPerPage() > 0);
+
+		bundle = waitForBundleQueryResults("select one from " + table.getId(), 2L, 2L, mask);
+		assertNotNull(bundle);
+		assertNotNull(bundle.getQueryResult().getQueryResults());
+		assertNotNull(bundle.getQueryResult().getQueryResults().getEtag());
+		assertEquals(table.getId(), bundle.getQueryResult().getQueryResults().getTableId());
+		assertNotNull(bundle.getQueryResult().getQueryResults().getRows());
+		assertEquals(1, bundle.getQueryResult().getQueryResults().getRows().size());
 		assertEquals("There should be 3 rows in this table", new Long(3), bundle.getQueryCount());
 		assertEquals(Arrays.asList(one), bundle.getSelectColumns());
 		assertNotNull(bundle.getMaxRowsPerPage());
@@ -406,44 +394,70 @@ public class IT100TableControllerTest {
 		synapse.appendRowsToTable(set);
 
 		// Now attempt to query for the table results
-		boolean isConsistent = true;
-		boolean countOnly = true;
-		RowSet queryResults = waitForQueryResults("select * from " + table.getId() + " where one > -2.2 limit 100", isConsistent, countOnly);
-		assertEquals("4", queryResults.getRows().get(0).getValues().get(0));
-		queryResults = waitForQueryResults("select * from " + table.getId() + " where one > -1.3 limit 100", isConsistent, countOnly);
-		assertEquals("4", queryResults.getRows().get(0).getValues().get(0));
-		queryResults = waitForQueryResults("select * from " + table.getId() + " where one > -.3 limit 100", isConsistent, countOnly);
-		assertEquals("3", queryResults.getRows().get(0).getValues().get(0));
-		queryResults = waitForQueryResults("select * from " + table.getId() + " where one > -.1 limit 100", isConsistent, countOnly);
-		assertEquals("2", queryResults.getRows().get(0).getValues().get(0));
-		queryResults = waitForQueryResults("select * from " + table.getId() + " where one > .1 limit 100", isConsistent, countOnly);
-		assertEquals("2", queryResults.getRows().get(0).getValues().get(0));
-		queryResults = waitForQueryResults("select * from " + table.getId() + " where one > .3 limit 100", isConsistent, countOnly);
-		assertEquals("1", queryResults.getRows().get(0).getValues().get(0));
-		queryResults = waitForQueryResults("select * from " + table.getId() + " where one > 1.3 limit 100", isConsistent, countOnly);
-		assertEquals("0", queryResults.getRows().get(0).getValues().get(0));
+		Long count = waitForCountResults("select * from " + table.getId() + " where one > -2.2");
+		assertEquals(4L, count.longValue());
+		count = waitForCountResults("select * from " + table.getId() + " where one > -1.3");
+		assertEquals(4L, count.longValue());
+		count = waitForCountResults("select * from " + table.getId() + " where one > -.3");
+		assertEquals(3L, count.longValue());
+		count = waitForCountResults("select * from " + table.getId() + " where one > -.1");
+		assertEquals(2L, count.longValue());
+		count = waitForCountResults("select * from " + table.getId() + " where one > .1");
+		assertEquals(2L, count.longValue());
+		count = waitForCountResults("select * from " + table.getId() + " where one > .3");
+		assertEquals(1L, count.longValue());
+		count = waitForCountResults("select * from " + table.getId() + " where one > 1.3");
+		assertEquals(0L, count.longValue());
 	}
 
 	/**
-	 * Wait for a consistent query results.
+	 * Wait for a query results.
 	 * 
 	 * @param sql
 	 * @return
 	 * @throws InterruptedException
 	 * @throws SynapseException
 	 */
-	public RowSet waitForQueryResults(String sql, boolean isConsistent, boolean countOnly) throws InterruptedException, SynapseException{
+	public RowSet waitForQueryResults(String sql, Long offset, Long limit)
+			throws InterruptedException, SynapseException {
 		long start = System.currentTimeMillis();
-		while(true){
+		while (true) {
 			try {
-				RowSet queryResutls = synapse.queryTableEntity(sql, isConsistent, countOnly);
-				return queryResutls;
+				QueryResultBundle queryResults = synapse.queryTableEntityBundle(sql, offset, limit, true, SynapseClient.QUERY_PARTMASK);
+				return queryResults.getQueryResult().getQueryResults();
 			} catch (SynapseTableUnavailableException e) {
 				// The table is not ready yet
-				assertFalse("Table processing failed: "+e.getStatus().getErrorMessage(), TableState.PROCESSING_FAILED.equals(e.getStatus().getState()));
-				System.out.println("Waiting for table index to be available: "+e.getStatus());
-				Thread.sleep(2000);
-				assertTrue("Timed out waiting for query results for sql: "+sql,System.currentTimeMillis()-start < MAX_QUERY_TIMEOUT_MS);
+				assertFalse("Table processing failed: " + e.getStatus().getErrorMessage(),
+						TableState.PROCESSING_FAILED.equals(e.getStatus().getState()));
+				System.out.println("Waiting for table index to be available: " + e.getStatus());
+				Thread.sleep(1000);
+				assertTrue("Timed out waiting for query results for sql: " + sql, System.currentTimeMillis() - start < MAX_QUERY_TIMEOUT_MS);
+			}
+		}
+	}
+
+	/**
+	 * Wait for a count results.
+	 * 
+	 * @param sql
+	 * @return
+	 * @throws InterruptedException
+	 * @throws SynapseException
+	 */
+	public long waitForCountResults(String sql)
+			throws InterruptedException, SynapseException {
+		long start = System.currentTimeMillis();
+		while (true) {
+			try {
+				QueryResultBundle queryResults = synapse.queryTableEntityBundle(sql, null, null, true, SynapseClient.COUNT_PARTMASK);
+				return queryResults.getQueryCount();
+			} catch (SynapseTableUnavailableException e) {
+				// The table is not ready yet
+				assertFalse("Table processing failed: " + e.getStatus().getErrorMessage(),
+						TableState.PROCESSING_FAILED.equals(e.getStatus().getState()));
+				System.out.println("Waiting for table index to be available: " + e.getStatus());
+				Thread.sleep(1000);
+				assertTrue("Timed out waiting for query results for sql: " + sql, System.currentTimeMillis() - start < MAX_QUERY_TIMEOUT_MS);
 			}
 		}
 	}
@@ -456,11 +470,12 @@ public class IT100TableControllerTest {
 	 * @throws InterruptedException
 	 * @throws SynapseException
 	 */
-	public QueryResultBundle waitForBundleQueryResults(String sql, boolean isConsistent, int partsMask) throws InterruptedException, SynapseException{
+	public QueryResultBundle waitForBundleQueryResults(String sql, Long offset, Long limit, int partsMask) throws InterruptedException,
+			SynapseException {
 		long start = System.currentTimeMillis();
 		while(true){
 			try {
-				QueryResultBundle queryResutls = synapse.queryTableEntityBundle(sql, isConsistent, partsMask);
+				QueryResultBundle queryResutls = synapse.queryTableEntityBundle(sql, offset, limit, true, partsMask);
 				return queryResutls;
 			} catch (SynapseTableUnavailableException e) {
 				// The table is not ready yet
@@ -586,10 +601,8 @@ public class IT100TableControllerTest {
 		table = synapse.createEntity(table);
 		tablesToDelete.add(table);
 		// Now attempt to query for the table results
-		boolean isConsistent = true;
-		boolean countOnly = false;
 		// This table has no rows and no columns
-		RowSet queryResults = waitForQueryResults("select * from "+table.getId()+" limit 2", isConsistent, countOnly);
+		RowSet queryResults = waitForQueryResults("select * from " + table.getId(), 0L, 2L);
 		assertNotNull(queryResults);
 		assertNull(queryResults.getEtag());
 		assertEquals(table.getId(), queryResults.getTableId());
@@ -627,9 +640,7 @@ public class IT100TableControllerTest {
 		set.setTableId(table.getId());
 		synapse.appendRowsToTable(set);
 		// Query for the results
-		boolean isConsistent = true;
-		boolean countOnly = false;
-		RowSet queryResults = waitForQueryResults("select * from "+table.getId()+" limit 2", isConsistent, countOnly);
+		RowSet queryResults = waitForQueryResults("select * from " + table.getId(), 0L, 2L);
 		// Change the data
 		for(Row row: queryResults.getRows()){
 			String oldValue = row.getValues().get(0);
@@ -689,10 +700,7 @@ public class IT100TableControllerTest {
 		synapse.appendPartialRowsToTable(partialSet);
 
 		// Query for the results
-		boolean isConsistent = true;
-		boolean countOnly = false;
-		RowSet queryResults = waitForQueryResults("select * from " + table.getId() + " order by row_id asc limit 2 offset 0", isConsistent,
-				countOnly);
+		RowSet queryResults = waitForQueryResults("select * from " + table.getId() + " order by row_id asc", 0L, 2L);
 		// Change the data
 		for (Row row : queryResults.getRows()) {
 			String oldValue = row.getValues().get(0);
@@ -701,8 +709,7 @@ public class IT100TableControllerTest {
 		// Apply the changes
 		synapse.appendRowsToTable(queryResults);
 
-		queryResults = waitForQueryResults("select * from " + table.getId() + " order by row_id asc limit 2 offset 2", isConsistent,
-				countOnly);
+		queryResults = waitForQueryResults("select * from " + table.getId() + " order by row_id asc", 2L, 2L);
 		// Change the data
 		partialRows = Lists.newArrayList();
 		for (int i = 0; i < 2; i++) {
@@ -716,8 +723,7 @@ public class IT100TableControllerTest {
 		partialSet.setTableId(table.getId());
 		synapse.appendPartialRowsToTable(partialSet);
 
-		queryResults = waitForQueryResults("select * from " + table.getId() + " order by row_id asc limit 200", isConsistent,
-				countOnly);
+		queryResults = waitForQueryResults("select * from " + table.getId() + " order by row_id asc", null, null);
 		// Check that the changed data is there
 		assertEquals(4, queryResults.getRows().size());
 		for (Row row : queryResults.getRows()) {

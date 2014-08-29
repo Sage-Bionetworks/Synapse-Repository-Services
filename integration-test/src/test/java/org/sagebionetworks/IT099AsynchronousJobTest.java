@@ -12,6 +12,7 @@ import java.net.URL;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 
 import org.junit.After;
 import org.junit.AfterClass;
@@ -24,23 +25,23 @@ import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
 import org.sagebionetworks.client.exceptions.SynapseTableUnavailableException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
-import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.table.AsynchDownloadFromTableRequestBody;
-import org.sagebionetworks.repo.model.table.AsynchDownloadFromTableResponseBody;
-import org.sagebionetworks.repo.model.table.AsynchUploadToTableRequestBody;
-import org.sagebionetworks.repo.model.table.AsynchUploadToTableResponseBody;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
+import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableState;
+import org.sagebionetworks.repo.model.table.UploadToTableResult;
+import org.sagebionetworks.util.Pair;
+import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.util.csv.CsvNullReader;
 
 import au.com.bytecode.opencsv.CSVWriter;
@@ -86,7 +87,7 @@ public class IT099AsynchronousJobTest {
 				adminSynapse.deleteAndPurgeEntity(entity);
 			} catch (Exception e) {}
 		}
-		for(S3FileHandle fh: filesToDelete){
+		for (FileHandle fh : filesToDelete) {
 			try {
 				adminSynapse.deleteFileHandle(fh.getId());
 			} catch (Exception e) {}
@@ -153,74 +154,92 @@ public class IT099AsynchronousJobTest {
 			FileHandle fileHandle = synapse.createFileHandle(temp, "text/csv", project.getId());
 			filesToDelete.add(fileHandle);
 			// We now have enough to apply the data to the table
-			AsynchUploadToTableRequestBody body = new AsynchUploadToTableRequestBody();
-			body.setTableId(table.getId());
-			body.setUploadFileHandleId(fileHandle.getId());
-			AsynchronousJobStatus status = synapse.startAsynchronousJob(body);
-			assertNotNull(status);
-			assertNotNull(status.getJobId());
-			assertEquals(body, status.getRequestBody());
+			final String uploadToken = synapse.uploadCsvToTableAsyncStart(table.getId(), fileHandle.getId(), null, null, null);
+			try {
+				synapse.uploadCsvToTableAsyncGet(uploadToken);
+			} catch (SynapseResultNotReadyException e) {
+				AsynchronousJobStatus status = e.getJobStatus();
+				assertNotNull(status);
+				assertNotNull(status.getJobId());
+			}
 			// Now make sure we can get the status
-			status = synapse.getAsynchronousJobStatus(status.getJobId());
+			AsynchronousJobStatus status = synapse.getAsynchronousJobStatus(uploadToken);
 			assertNotNull(status);
 			assertNotNull(status.getJobId());
-			assertEquals(body, status.getRequestBody());
-			
+
 			// Wait for the job to finish
-			status = waitForStatus(status);
-			assertNotNull(status);
-			assertNotNull(status.getJobId());
-			assertEquals(body, status.getRequestBody());
-			assertNotNull(status.getResponseBody());
-			assertTrue(status.getResponseBody() instanceof AsynchUploadToTableResponseBody);
-			AsynchUploadToTableResponseBody response = (AsynchUploadToTableResponseBody) status.getResponseBody();
-			assertNotNull(response.getEtag());
-			assertEquals(new Long(rowCount), response.getRowsProcessed());
+			UploadToTableResult uploadResult = TimeUtils.waitFor(MAX_WAIT_MS, 500L, new Callable<Pair<Boolean, UploadToTableResult>>() {
+				@Override
+				public Pair<Boolean, UploadToTableResult> call() throws Exception {
+					try {
+						UploadToTableResult uploadResult = synapse.uploadCsvToTableAsyncGet(uploadToken);
+						return Pair.create(true, uploadResult);
+					} catch (SynapseResultNotReadyException e) {
+						return Pair.create(false, null);
+					}
+				}
+			});
+			assertNotNull(uploadResult.getEtag());
+			assertEquals(rowCount, uploadResult.getRowsProcessed().longValue());
+
 			// Wait for the table to be ready
 			String sql = "select * from "+table.getId();
-			RowSet results = waitForQueryResults(sql+" limit 100", true, false);
+			final RowSet results = waitForQuery(sql);
+			assertEquals(rowCount, results.getRows().size());
 
-			assertEquals(rowCount, Integer.parseInt(waitForQueryResults(sql + " limit 100", true, true).getRows().get(0).getValues().get(0)));
+			assertEquals(rowCount, waitForCount(sql).longValue());
+
 			// Now start a download job
-			AsynchDownloadFromTableRequestBody downloadBody = new AsynchDownloadFromTableRequestBody();
-			downloadBody.setSql(sql);
-			downloadBody.setIncludeRowIdAndRowVersion(true);
-			downloadBody.setWriteHeader(true);
-			status = synapse.startAsynchronousJob(downloadBody);
-			// Wait for it to finish
-			status = waitForStatus(status);
-			assertNotNull(status);
-			assertNotNull(status.getJobId());
-			assertNotNull(status.getResponseBody());
-			assertTrue(status.getResponseBody() instanceof AsynchDownloadFromTableResponseBody);
-			AsynchDownloadFromTableResponseBody downLoadresponse = (AsynchDownloadFromTableResponseBody) status.getResponseBody();
+			final String downloadToken = synapse.downloadCsvFromTableAsyncStart(table.getId(), true, true, null);
+			try {
+				synapse.downloadCsvFromTableAsyncGet(downloadToken);
+			} catch (SynapseResultNotReadyException e) {
+				status = e.getJobStatus();
+				assertNotNull(status);
+				assertNotNull(status.getJobId());
+			}
+
+			// Wait for the job to finish
+			DownloadFromTableResult downloadResult = TimeUtils.waitFor(MAX_WAIT_MS, 500L,
+					new Callable<Pair<Boolean, DownloadFromTableResult>>() {
+						@Override
+						public Pair<Boolean, DownloadFromTableResult> call() throws Exception {
+							try {
+								DownloadFromTableResult downloadResult = synapse.downloadCsvFromTableAsyncGet(downloadToken);
+								return Pair.create(true, downloadResult);
+							} catch (SynapseResultNotReadyException e) {
+								return Pair.create(false, null);
+							}
+						}
+					});
+
 			// Now download the file
-			URL url = synapse.getFileHandleTemporaryUrl(downLoadresponse.getResultsFileHandleId());
+			URL url = synapse.getFileHandleTemporaryUrl(downloadResult.getResultsFileHandleId());
 			assertNotNull(url);
-			File temp2= File.createTempFile("downloadTemp", ".csv");
+			File temp2 = File.createTempFile("downloadTemp", ".csv");
 			CsvNullReader reader = null;
 			List<String[]> downloadCSV = null;
-			try{
-				synapse.downloadFromFileHandleTemporaryUrl(downLoadresponse.getResultsFileHandleId(), temp2);
+			try {
+				synapse.downloadFromFileHandleTemporaryUrl(downloadResult.getResultsFileHandleId(), temp2);
 				reader = new CsvNullReader(new FileReader(temp2));
 				downloadCSV = reader.readAll();
-			}finally{
-				if(reader != null){
+			} finally {
+				if (reader != null) {
 					reader.close();
 				}
 				temp2.delete();
 			}
 			assertNotNull(downloadCSV);
 			// Should match the data from the results.
-			assertEquals(results.getRows().size()+1, downloadCSV.size());
+			assertEquals(results.getRows().size() + 1, downloadCSV.size());
 			// Check the ids
-			for(int i=0; i<results.getRows().size(); i++){
+			for (int i = 0; i < results.getRows().size(); i++) {
 				Row row = results.getRows().get(i);
-				String[] row2 = downloadCSV.get(i+1);
+				String[] row2 = downloadCSV.get(i + 1);
 				assertEquals(row.getRowId().toString(), row2[0]);
 				assertEquals(row.getVersionNumber().toString(), row2[1]);
 				// The CSV includes two extra columns (rowId and version)
-				assertEquals(row.getValues().size(), row2.length-2);
+				assertEquals(row.getValues().size(), row2.length - 2);
 				// Check the first column
 				assertEquals(row.getValues().get(0), row2[2]);
 			}
@@ -229,25 +248,12 @@ public class IT099AsynchronousJobTest {
 		}
 	}
 	
-	private AsynchronousJobStatus waitForStatus(AsynchronousJobStatus status) throws Exception{
-		long start = System.currentTimeMillis();
-		while(!AsynchJobState.COMPLETE.equals(status.getJobState())){
-			assertFalse("Job Failed: "+status.getErrorDetails(), AsynchJobState.FAILED.equals(status.getJobState()));
-			System.out.println("Waiting for job to complete: Message: "+status.getProgressMessage()+" progress: "+status.getProgressCurrent()+"/"+status.getProgressTotal());
-			assertTrue("Timed out waiting for table status",(System.currentTimeMillis()-start) < MAX_WAIT_MS);
-			Thread.sleep(1000);
-			// Get the status again 
-			status = synapse.getAsynchronousJobStatus(status.getJobId());
-		}
-		return status;
-	}
-	
-	public RowSet waitForQueryResults(String sql, boolean isConsistent, boolean countOnly) throws InterruptedException, SynapseException{
+	public RowSet waitForQuery(String sql) throws InterruptedException, SynapseException {
 		long start = System.currentTimeMillis();
 		while(true){
 			try {
-				RowSet queryResutls = synapse.queryTableEntity(sql, isConsistent, countOnly);
-				return queryResutls;
+				QueryResultBundle queryResultsBundle = synapse.queryTableEntityBundle(sql, null, null, true, SynapseClient.QUERY_PARTMASK);
+				return queryResultsBundle.getQueryResult().getQueryResults();
 			} catch (SynapseTableUnavailableException e) {
 				// The table is not ready yet
 				assertFalse("Table processing failed: "+e.getStatus().getErrorMessage(), TableState.PROCESSING_FAILED.equals(e.getStatus().getState()));
@@ -257,5 +263,22 @@ public class IT099AsynchronousJobTest {
 			}
 		}
 	}
+
 	
+	public Long waitForCount(String sql) throws InterruptedException, SynapseException {
+		long start = System.currentTimeMillis();
+		while (true) {
+			try {
+				QueryResultBundle queryResultsBundle = synapse.queryTableEntityBundle(sql, null, null, true, SynapseClient.COUNT_PARTMASK);
+				return queryResultsBundle.getQueryCount();
+			} catch (SynapseTableUnavailableException e) {
+				// The table is not ready yet
+				assertFalse("Table processing failed: " + e.getStatus().getErrorMessage(),
+						TableState.PROCESSING_FAILED.equals(e.getStatus().getState()));
+				System.out.println("Waiting for table index to be available: " + e.getStatus());
+				Thread.sleep(2000);
+				assertTrue("Timed out waiting for query results for sql: " + sql, System.currentTimeMillis() - start < MAX_WAIT_MS);
+			}
+		}
+	}
 }

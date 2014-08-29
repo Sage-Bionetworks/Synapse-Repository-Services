@@ -1,14 +1,19 @@
 {
     "description":"A bundle of information about a query result.",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody"
+		}
+	],
     "properties":{
-		"queryResults":{
+		"queryResult":{
 			"description":"The total number of rows that match the query. Use mask = 0x1 to include in the bundle.",
-			"$ref": "org.sagebionetworks.repo.model.table.RowSet"
-		},     
+			"$ref": "org.sagebionetworks.repo.model.table.QueryResult"
+		},
 		"queryCount":{
 			"description":"The total number of rows that match the query. Use mask = 0x2 to include in the bundle.",
 			"type": "integer"
-		},    
+		},
 		"selectColumns": {
 		    "description":"The list of ColumnModels from the select clause. Use mask = 0x4 to include in the bundle.",
 			"type": "array",

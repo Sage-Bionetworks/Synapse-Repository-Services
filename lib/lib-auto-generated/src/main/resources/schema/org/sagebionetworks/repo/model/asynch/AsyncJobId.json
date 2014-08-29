@@ -1,0 +1,8 @@
+{
+	"description": "Object used to track the status of an asynchronous job.",
+	"properties": {
+		"token": {
+			"type": "string"
+		}
+	}
+}

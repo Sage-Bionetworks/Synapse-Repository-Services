@@ -29,7 +29,6 @@ import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableRowManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
@@ -38,10 +37,10 @@ import org.sagebionetworks.repo.model.dbo.dao.table.CSVToRowIterator;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.table.AsynchDownloadFromTableRequestBody;
-import org.sagebionetworks.repo.model.table.AsynchDownloadFromTableResponseBody;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
+import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableEntity;
@@ -55,7 +54,6 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.GetObjectRequest;
-import com.google.common.collect.Lists;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -130,10 +128,10 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		
 		String sql = "select * from "+tableId;
 		// Wait for the table to be ready
-		RowSet result = waitForConsistentQuery(adminUserInfo, sql+" limit 100");
+		RowSet result = waitForConsistentQuery(adminUserInfo, sql);
 		assertNotNull(result);
 		// Now download the data from this table as a csv
-		AsynchDownloadFromTableRequestBody request = new AsynchDownloadFromTableRequestBody();
+		DownloadFromTableRequest request = new DownloadFromTableRequest();
 		request.setSql(sql);
 		request.setWriteHeader(true);
 		request.setIncludeRowIdAndRowVersion(false);
@@ -142,8 +140,8 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		status = waitForStatus(status);
 		assertNotNull(status);
 		assertNotNull(status.getResponseBody());
-		assertTrue(status.getResponseBody() instanceof AsynchDownloadFromTableResponseBody);
-		AsynchDownloadFromTableResponseBody response = (AsynchDownloadFromTableResponseBody) status.getResponseBody();
+		assertTrue(status.getResponseBody() instanceof DownloadFromTableResult);
+		DownloadFromTableResult response = (DownloadFromTableResult) status.getResponseBody();
 		assertNotNull(response.getEtag());
 		assertNotNull(response.getResultsFileHandleId());
 		assertEquals(tableId, response.getTableId());
@@ -158,7 +156,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 
 		String sql = "select * from " + tableId;
 		// download the data from this table as a csv
-		AsynchDownloadFromTableRequestBody request = new AsynchDownloadFromTableRequestBody();
+		DownloadFromTableRequest request = new DownloadFromTableRequest();
 		request.setSql(sql);
 		request.setWriteHeader(true);
 		request.setIncludeRowIdAndRowVersion(false);
@@ -167,8 +165,8 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		status = waitForStatus(status);
 		assertNotNull(status);
 		assertNotNull(status.getResponseBody());
-		assertTrue(status.getResponseBody() instanceof AsynchDownloadFromTableResponseBody);
-		AsynchDownloadFromTableResponseBody response = (AsynchDownloadFromTableResponseBody) status.getResponseBody();
+		assertTrue(status.getResponseBody() instanceof DownloadFromTableResult);
+		DownloadFromTableResult response = (DownloadFromTableResult) status.getResponseBody();
 		assertNotNull(response.getEtag());
 		assertNotNull(response.getResultsFileHandleId());
 		assertEquals(tableId, response.getTableId());
@@ -239,7 +237,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		long start = System.currentTimeMillis();
 		while(true){
 			try {
-				return  tableRowManager.query(adminUserInfo, sql, true, false);
+				return tableRowManager.query(adminUserInfo, sql, 0L, 100L, true, false, true).getFirst().getQueryResults();
 			} catch (TableUnavilableException e) {
 				assertTrue("Timed out waiting for table index worker to make the table available.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
 				assertNotNull(e.getStatus());

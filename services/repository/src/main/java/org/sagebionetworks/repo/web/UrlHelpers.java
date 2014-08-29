@@ -664,6 +664,12 @@ public class UrlHelpers {
 	public static final String EVALUATION_WIKI_ID_AND_VERSION_V2 = EVALUATION_OWNER_ID_V2+WIKI_WITH_ID_V2+WIKI_VERSION_V2;
 	public static final String EVALUATION_WIKI_ID_MARKDOWN_FILE_V2 = EVALUATION_OWNER_ID_V2 + WIKI_WITH_ID_V2 + MARKDOWN_V2;
 	
+	// Asynchronous jobs
+	public static final String ASYNC_START_REQUEST = "/async/start";
+	public static final String ASYNC_GET_REQUEST = "/async/get/{asyncToken}";
+	public static final String ASYNCHRONOUS_JOB = "/asynchronous/job";
+	public static final String ASYNCHRONOUS_JOB_ID = ASYNCHRONOUS_JOB + "/{jobId}";
+
 	// Tables
 	public static final String COLUMN = "/column";
 	public static final String ROW_ID = "/row/{rowId}";
@@ -679,12 +685,18 @@ public class UrlHelpers {
 	public static final String ENTITY_TABLE_FILE = ENTITY_TABLE + COLUMN_ID + ROW_ID + ROW_VERSION + FILE;
 	public static final String ENTITY_TABLE_FILE_PREVIEW = ENTITY_TABLE + COLUMN_ID + ROW_ID + ROW_VERSION + FILE_PREVIEW;
 	public static final String TABLE_QUERY = TABLE+"/query";
-	public static final String TABLE_QUERY_BUNDLE = TABLE_QUERY+"/bundle";
-	
-	// Asynchronous jobs
-	public static final String ASYNCHRONOUS_JOB = "/asynchronous/job";
-	public static final String ASYNCHRONOUS_JOB_ID = ASYNCHRONOUS_JOB+"/{jobId}";
-	
+	public static final String TABLE_QUERY_ASYNC_START = TABLE_QUERY + ASYNC_START_REQUEST;
+	public static final String TABLE_QUERY_ASYNC_GET = TABLE_QUERY + ASYNC_GET_REQUEST;
+	public static final String TABLE_QUERY_NEXT_PAGE = TABLE_QUERY + "/nextPage";
+	public static final String TABLE_QUERY_NEXT_PAGE_ASYNC_START = TABLE_QUERY_NEXT_PAGE + ASYNC_START_REQUEST;
+	public static final String TABLE_QUERY_NEXT_PAGE_ASYNC_GET = TABLE_QUERY_NEXT_PAGE + ASYNC_GET_REQUEST;
+	public static final String TABLE_DOWNLOAD_CSV = TABLE + "/download/csv";
+	public static final String TABLE_DOWNLOAD_CSV_ASYNC_START = TABLE_DOWNLOAD_CSV + ASYNC_START_REQUEST;
+	public static final String TABLE_DOWNLOAD_CSV_ASYNC_GET = TABLE_DOWNLOAD_CSV + ASYNC_GET_REQUEST;
+	public static final String TABLE_UPLOAD_CSV = TABLE + "/upload/csv";
+	public static final String TABLE_UPLOAD_CSV_ASYNC_START = TABLE_UPLOAD_CSV + ASYNC_START_REQUEST;
+	public static final String TABLE_UPLOAD_CSV_ASYNC_GET = TABLE_UPLOAD_CSV + ASYNC_GET_REQUEST;
+
 	// Team
 	public static final String TEAM = "/team";
 	public static final String TEAM_ID = TEAM+ID;

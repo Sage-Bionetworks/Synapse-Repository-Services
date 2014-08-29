@@ -58,6 +58,10 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
+import org.sagebionetworks.repo.model.table.Query;
+import org.sagebionetworks.repo.model.table.QueryBundleRequest;
+import org.sagebionetworks.repo.model.table.QueryResult;
+import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
@@ -72,6 +76,7 @@ import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.query.ParseException;
+import org.sagebionetworks.util.Pair;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
@@ -162,11 +167,24 @@ public class TableRowManagerImplTest {
 		stub(mockTableIndexDAO.queryAsStream(any(SqlQuery.class), any(RowAndHeaderHandler.class))).toAnswer(new Answer<Boolean>() {
 			@Override
 			public Boolean answer(InvocationOnMock invocation) throws Throwable {
+				SqlQuery query = (SqlQuery) invocation.getArguments()[0];
 				RowAndHeaderHandler handler =  (RowAndHeaderHandler) invocation.getArguments()[1];
-				handler.setHeaderColumnIds(set.getHeaders());
-				// Pass all rows to the handler
-				for(Row row: set.getRows()){
-					handler.nextRow(row);
+				boolean isCount = false;
+				if (query.getModel().getSelectList().getColumns() != null) {
+					StringBuilder builder = new StringBuilder();
+					query.getModel().getSelectList().getColumns().get(0).toSQL(builder);
+					if (builder.toString().equals("COUNT(*)")) {
+						isCount = true;
+					}
+				}
+				if (isCount) {
+					handler.nextRow(TableModelTestUtils.createRow(null, null, "10"));
+				} else {
+					handler.setHeaderColumnIds(set.getHeaders());
+					// Pass all rows to the handler
+					for (Row row : set.getRows()) {
+						handler.nextRow(row);
+					}
 				}
 				return true;
 			}
@@ -561,7 +579,7 @@ public class TableRowManagerImplTest {
 	@Test (expected = UnauthorizedException.class)
 	public void testQueryUnauthroized() throws Exception {
 		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(false);
-		manager.query(user, "select * from "+tableId, true, false);
+		manager.query(user, "select * from " + tableId, null, null, true, false, true);
 	}
 	
 	@Test 
@@ -570,10 +588,11 @@ public class TableRowManagerImplTest {
 		RowSet expected = new RowSet();
 		expected.setTableId(tableId);
 		when(mockTableIndexDAO.query(any(SqlQuery.class))).thenReturn(expected);
-		RowSet results = manager.query(user, "select * from "+tableId+" limit 1", false, false);
+		Pair<QueryResult, Long> results = manager.query(user, "select * from " + tableId + " limit 1", null, null, true, false, false);
 		// The etag should be null for this case
-		assertEquals("The etag must be null for non-consistent query results.  These results cannot be used for a table update.", null, results.getEtag());
-		assertEquals(expected, results);
+		assertEquals("The etag must be null for non-consistent query results.  These results cannot be used for a table update.", null,
+				results.getFirst().getQueryResults().getEtag());
+		assertEquals(expected, results.getFirst().getQueryResults());
 		// The table status should not be checked for this case
 		verify(mockTableStatusDAO, never()).getTableStatus(tableId);
 	}
@@ -586,14 +605,47 @@ public class TableRowManagerImplTest {
 		status.setState(TableState.AVAILABLE);
 		status.setLastTableChangeEtag(UUID.randomUUID().toString());
 		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
-		RowSet results = manager.query(user, "select * from "+tableId+" limit 1", true, false);
+		Pair<QueryResult, Long> results = manager.query(user, "select * from " + tableId + " limit 1", null, null, true, false, true);
 		// The etag should be set
-		assertEquals(status.getLastTableChangeEtag(), results.getEtag());
+		assertEquals(status.getLastTableChangeEtag(), results.getFirst().getQueryResults().getEtag());
 		// Clear the etag for the test
-		results.setEtag(null);
-		assertEquals(set, results);
+		results.getFirst().getQueryResults().setEtag(null);
+		assertEquals(set, results.getFirst().getQueryResults());
 	}
 	
+	@Test
+	public void testQueryCountHappyCaseIsConsistentTrue() throws Exception {
+		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(true);
+		TableStatus status = new TableStatus();
+		status.setTableId(tableId);
+		status.setState(TableState.AVAILABLE);
+		status.setLastTableChangeEtag(UUID.randomUUID().toString());
+		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
+		Pair<QueryResult, Long> results = manager.query(user, "select * from " + tableId + " limit 1", null, null, true, true, true);
+		// The etag should be set
+		assertEquals(status.getLastTableChangeEtag(), results.getFirst().getQueryResults().getEtag());
+		// Clear the etag for the test
+		results.getFirst().getQueryResults().setEtag(null);
+		assertEquals(set, results.getFirst().getQueryResults());
+		assertEquals(10L, results.getSecond().longValue());
+	}
+
+	@Test
+	public void testQueryAndCountHappyCaseIsConsistentTrue() throws Exception {
+		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(true);
+		TableStatus status = new TableStatus();
+		status.setTableId(tableId);
+		status.setState(TableState.AVAILABLE);
+		status.setLastTableChangeEtag(UUID.randomUUID().toString());
+		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
+		Pair<QueryResult, Long> results = manager.query(user, "select * from " + tableId + " limit 1", null, null, true, false, true);
+		// The etag should be set
+		assertEquals(status.getLastTableChangeEtag(), results.getFirst().getQueryResults().getEtag());
+		// Clear the etag for the test
+		results.getFirst().getQueryResults().setEtag(null);
+		assertEquals(set, results.getFirst().getQueryResults());
+	}
+
 	@Test 
 	public void testQueryNoColumns() throws Exception {
 		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(true);
@@ -604,12 +656,12 @@ public class TableRowManagerImplTest {
 		status.setState(TableState.AVAILABLE);
 		status.setLastTableChangeEtag(UUID.randomUUID().toString());
 		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
-		RowSet results = manager.query(user, "select * from "+tableId+" limit 1", true, false);
+		Pair<QueryResult, Long> results = manager.query(user, "select * from " + tableId + " limit 1", null, null, true, false, true);
 		assertNotNull(results);
-		assertEquals(tableId, results.getTableId());
-		assertNull(results.getEtag());
-		assertNull(results.getHeaders());
-		assertNull(results.getRows());
+		assertEquals(tableId, results.getFirst().getQueryResults().getTableId());
+		assertNull(results.getFirst().getQueryResults().getEtag());
+		assertNull(results.getFirst().getQueryResults().getHeaders());
+		assertNull(results.getFirst().getQueryResults().getRows());
 	}
 	
 	/**
@@ -624,7 +676,7 @@ public class TableRowManagerImplTest {
 		status.setState(TableState.PROCESSING);
 		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
 		try{
-			manager.query(user, "select * from "+tableId+" limit 1", true, false);
+			manager.query(user, "select * from " + tableId + " limit 1", null, null, true, false, true);
 			fail("should have failed");
 		}catch(TableUnavilableException e){
 			// expected
@@ -648,7 +700,7 @@ public class TableRowManagerImplTest {
 		when(mockTruthDao.getLastTableRowChange(tableId)).thenReturn(new TableRowChange());
 		when(mockNodeDAO.doesNodeExist(123L)).thenReturn(true);
 		try{
-			manager.query(user, "select * from "+tableId+" limit 1", true, false);
+			manager.query(user, "select * from " + tableId + " limit 1", null, null, true, false, true);
 			fail("should have failed");
 		}catch(TableUnavilableException e){
 			// expected
@@ -679,14 +731,82 @@ public class TableRowManagerImplTest {
 		// Throw a lock LockUnavilableException
 		when(mockExclusiveOrSharedSemaphoreRunner.tryRunWithSharedLock(anyString(), anyLong(), any(Callable.class))).thenThrow(new LockUnavilableException());
 		try{
-			manager.query(user, "select * from "+tableId+" limit 1", true, false);
+			manager.query(user, "select * from " + tableId + " limit 1", null, null, true, false, true);
 			fail("should have failed");
 		}catch(TableUnavilableException e){
 			// expected
 			assertEquals(status, e.getStatus());
 		}
 	}
-	
+
+	@Test
+	public void testQueryBundle() throws Exception {
+		Query query = new Query();
+		query.setSql("select * from " + tableId);
+		query.setIsConsistent(true);
+		query.setOffset(0L);
+		query.setLimit(Long.MAX_VALUE);
+		QueryBundleRequest queryBundle = new QueryBundleRequest();
+		queryBundle.setQuery(query);
+
+		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(true);
+		TableStatus status = new TableStatus();
+		status.setTableId(tableId);
+		status.setState(TableState.AVAILABLE);
+		status.setLastTableChangeEtag("etag");
+		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
+
+		RowSet selectStar = new RowSet();
+		selectStar.setEtag("etag");
+		selectStar.setHeaders(TableModelUtils.getHeaders(models));
+		selectStar.setTableId(tableId);
+		selectStar.setRows(TableModelTestUtils.createRows(models, 10));
+		QueryResult selectStarResult = new QueryResult();
+		selectStarResult.setNextPageToken(null);
+		selectStarResult.setQueryResults(selectStar);
+
+		// Request query only
+		queryBundle.setPartMask(TableRowManagerImpl.BUNDLE_MASK_QUERY_RESULTS);
+		QueryResultBundle bundle = manager.queryBundle(user, queryBundle);
+		assertEquals(selectStar, bundle.getQueryResult().getQueryResults());
+		assertEquals(null, bundle.getQueryCount());
+		assertEquals(null, bundle.getSelectColumns());
+		assertEquals(null, bundle.getMaxRowsPerPage());
+
+		// Count only
+		queryBundle.setPartMask(TableRowManagerImpl.BUNDLE_MASK_QUERY_COUNT);
+		bundle = manager.queryBundle(user, queryBundle);
+		assertEquals(null, bundle.getQueryResult());
+		assertEquals(new Long(10), bundle.getQueryCount());
+		assertEquals(null, bundle.getSelectColumns());
+		assertEquals(null, bundle.getMaxRowsPerPage());
+
+		// select columns
+		queryBundle.setPartMask(TableRowManagerImpl.BUNDLE_MASK_QUERY_SELECT_COLUMNS);
+		bundle = manager.queryBundle(user, queryBundle);
+		assertEquals(null, bundle.getQueryResult());
+		assertEquals(null, bundle.getQueryCount());
+		assertEquals(models.toString(), bundle.getSelectColumns().toString());
+		assertEquals(null, bundle.getMaxRowsPerPage());
+
+		// max rows per page
+		queryBundle.setPartMask(TableRowManagerImpl.BUNDLE_MASK_QUERY_MAX_ROWS_PER_PAGE);
+		bundle = manager.queryBundle(user, queryBundle);
+		assertEquals(null, bundle.getQueryResult());
+		assertEquals(null, bundle.getQueryCount());
+		assertEquals(null, bundle.getSelectColumns());
+		assertEquals(36630L, bundle.getMaxRowsPerPage().longValue());
+
+		// now combine them all
+		queryBundle.setPartMask(TableRowManagerImpl.BUNDLE_MASK_QUERY_RESULTS | TableRowManagerImpl.BUNDLE_MASK_QUERY_COUNT
+				| TableRowManagerImpl.BUNDLE_MASK_QUERY_SELECT_COLUMNS | TableRowManagerImpl.BUNDLE_MASK_QUERY_MAX_ROWS_PER_PAGE);
+		bundle = manager.queryBundle(user, queryBundle);
+		assertEquals(selectStar, bundle.getQueryResult().getQueryResults());
+		assertEquals(new Long(10), bundle.getQueryCount());
+		assertEquals(models, bundle.getSelectColumns());
+		assertEquals(36630L, bundle.getMaxRowsPerPage().longValue());
+	}
+
 	@Test
 	public void testValidateQuerySizeAggregation() throws ParseException{
 		ColumnModel foo = new ColumnModel();

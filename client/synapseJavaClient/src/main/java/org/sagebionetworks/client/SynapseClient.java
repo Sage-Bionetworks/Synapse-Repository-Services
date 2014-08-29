@@ -13,6 +13,7 @@ import org.apache.http.client.ClientProtocolException;
 import org.apache.http.entity.ContentType;
 import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
 import org.sagebionetworks.client.exceptions.SynapseTableUnavailableException;
 import org.sagebionetworks.evaluation.model.BatchUploadResponse;
 import org.sagebionetworks.evaluation.model.Evaluation;
@@ -34,7 +35,6 @@ import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
-import org.sagebionetworks.repo.model.auth.Username;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
@@ -71,14 +71,18 @@ import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.storage.StorageUsageDimension;
 import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
+import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
+import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
+import org.sagebionetworks.repo.model.table.UploadToTableResult;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
@@ -1233,19 +1237,7 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 * @throws SynapseTableUnavailableException Thrown when the table index is not ready for query.  The exception will contain the status of the table.
 	 */
-	public RowSet queryTableEntity(String sql) throws SynapseException, SynapseTableUnavailableException;
-	
-	/**
-	 * Query for data in a table entity.
-	 * 
-	 * @param sql
-	 * @param isConsistent 
-	 * @param countOnly
-	 * @return
-	 * @throws SynapseException 
-	 * @throws SynapseTableUnavailableException Thrown when the table index is not ready for query.  The exception will contain the status of the table.
-	 */
-	public RowSet queryTableEntity(String sql, boolean isConsistent, boolean countOnly) throws SynapseException;
+	public QueryResult queryTableEntity(String sql) throws SynapseException, SynapseTableUnavailableException;
 	
 	/**
 	 * Query for data in a table entity.  The bundled version of the query returns more information than just the query result.
@@ -1272,10 +1264,120 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 * @throws SynapseTableUnavailableException
 	 */
-	public QueryResultBundle queryTableEntityBundle(String sql, boolean isConsistent,
-			int partMask) throws SynapseException,
-			SynapseTableUnavailableException;
-	
+	public static final int QUERY_PARTMASK = 0x1;
+	public static final int COUNT_PARTMASK = 0x2;
+	public static final int COLUMNS_PARTMASK = 0x4;
+	public static final int MAXROWS_PARTMASK = 0x8;
+
+	public QueryResultBundle queryTableEntityBundle(String sql, Long offset, Long limit, boolean isConsistent, int partMask)
+			throws SynapseException, SynapseTableUnavailableException;
+
+	/**
+	 * Start an asynchronous version of queryTableEntityBundle
+	 * 
+	 * @param sql
+	 * @param offset
+	 * @param limit
+	 * @param isConsistent
+	 * @param partMask
+	 * @return a token to get the result with
+	 * @throws SynapseException
+	 * @throws SynapseTableUnavailableException
+	 */
+	public String queryTableEntityBundleAsyncStart(String sql, Long offset, Long limit, boolean isConsistent, int partMask)
+			throws SynapseException;
+
+	/**
+	 * Get the result of an asynchronous queryTableEntityBundle
+	 * 
+	 * @param asyncJobToken
+	 * @return
+	 * @throws SynapseException
+	 * @throws SynapseTableUnavailableException
+	 */
+	public QueryResultBundle queryTableEntityBundleAsyncGet(String asyncJobToken) throws SynapseException, SynapseResultNotReadyException;
+
+	/**
+	 * Query for data in a table entity.
+	 * 
+	 * @param sql
+	 * @return
+	 * @throws SynapseException
+	 * @throws SynapseTableUnavailableException Thrown when the table index is not ready for query. The exception will
+	 *         contain the status of the table.
+	 */
+	public QueryResult queryTableEntityNextPage(String nextPageToken) throws SynapseException;
+
+	/**
+	 * Start an asynchronous version of queryTableEntityNextPage
+	 * 
+	 * @param nextPageToken
+	 * @return a token to get the result with
+	 * @throws SynapseException
+	 * @throws SynapseTableUnavailableException
+	 */
+	public String queryTableEntityNextPageAsyncStart(String nextPageToken) throws SynapseException, SynapseResultNotReadyException;
+
+	/**
+	 * Get the result of an asynchronous queryTableEntityNextPage
+	 * 
+	 * @param asyncJobToken
+	 * @return
+	 * @throws SynapseException
+	 * @throws SynapseTableUnavailableException
+	 */
+	public QueryResult queryTableEntityNextPageAsyncGet(String asyncJobToken) throws SynapseException;
+
+	/**
+	 * upload a csv into an existing table
+	 * 
+	 * @param tableId the table to upload into
+	 * @param fileHandleId the filehandle of the csv
+	 * @param etag when updating rows, the etag of the last table change must be provided
+	 * @param linesToSkip The number of lines to skip from the start of the file (default 0)
+	 * @param csvDescriptor The optional descriptor of the csv (default comma separators, double quotes for quoting, new
+	 *        lines and backslashes for escaping)
+	 * @return a token to get the result with
+	 * @throws SynapseException
+	 * @throws SynapseTableUnavailableException
+	 */
+	public String uploadCsvToTableAsyncStart(String tableId, String fileHandleId, String etag, Long linesToSkip,
+			CsvTableDescriptor csvDescriptor) throws SynapseException;
+
+	/**
+	 * get the result of a csv upload
+	 * 
+	 * @param asyncJobToken
+	 * @return
+	 * @throws SynapseException
+	 * @throws SynapseTableUnavailableException
+	 */
+	public UploadToTableResult uploadCsvToTableAsyncGet(String asyncJobToken) throws SynapseException, SynapseResultNotReadyException;
+
+	/**
+	 * download the result of a query into a csv
+	 * 
+	 * @param sql the query to run
+	 * @param writeHeader should the csv contain the column header as row 1
+	 * @param includeRowIdAndRowVersion should the row id and row version be included as the first 2 columns
+	 * @param csvDescriptor the optional descriptor of the csv (default comma separators, double quotes for quoting, new
+	 *        lines and backslashes for escaping)
+	 * @return a token to get the result with
+	 * @throws SynapseException
+	 */
+	public String downloadCsvFromTableAsyncStart(String sql, boolean writeHeader, boolean includeRowIdAndRowVersion,
+			CsvTableDescriptor csvDescriptor) throws SynapseException;
+
+	/**
+	 * get the results of the csv download
+	 * 
+	 * @param asyncJobToken
+	 * @return
+	 * @throws SynapseException
+	 * @throws SynapseResultNotReadyException
+	 */
+	public DownloadFromTableResult downloadCsvFromTableAsyncGet(String asyncJobToken) throws SynapseException, SynapseResultNotReadyException;
+
 	/**
 	 * Create a new ColumnModel. If a column already exists with the same parameters,
 	 * that column will be returned.

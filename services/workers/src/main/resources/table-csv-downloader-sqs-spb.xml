@@ -19,7 +19,7 @@
 	<bean id="tableCSVDownloaderQueue"
 			class="org.sagebionetworks.asynchronous.workers.sqs.MessageQueueSimpleImpl"
 			depends-on="stackConfiguration">
-		<constructor-arg index="0" ref="stackConfiguration.tableCSVDownloadQueueName" />
+		<constructor-arg index="0" ref="stackConfiguration.asyncQueueName[DOWNLOAD_CSV_FROM_TABLE]" />
 	</bean>
 
 	<bean id="tableCSVDownloaderMessageReveiver"

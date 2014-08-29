@@ -33,9 +33,7 @@ public class StackConstants {
 	
 	public static final String STACK_AND_INSTANCE = "%1$s-%2$s";
 		
-	public static final String TABLE_CSV_UPLOAD_QUEUE_TEMPLATE = "%1$s-%2$s-table-csv-upload-queue";
-	
-	public static final String TABLE_CSV_DOWNLOAD_QUEUE_TEMPLATE = "%1$s-%2$s-table-csv-download-queue";
+	public static final String ASYNC_QUEUE_TEMPLATE = "%1$s-%2$s-%3$s-async-queue";
 	
 	/**
 	 * Template used the name of the AWS topic where repository changes messages are published.

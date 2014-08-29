@@ -34,8 +34,8 @@ import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.dao.AuthorizationUtils;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.provenance.Activity;
-import org.sagebionetworks.repo.model.table.AsynchDownloadFromTableRequestBody;
-import org.sagebionetworks.repo.model.table.AsynchUploadToTableRequestBody;
+import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
+import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
@@ -289,8 +289,8 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		if(AuthorizationUtils.isUserAnonymous(userInfo)) {
 			return false;
 		}
-		if(bodyIntf instanceof AsynchUploadToTableRequestBody){
-			AsynchUploadToTableRequestBody body = (AsynchUploadToTableRequestBody) bodyIntf;
+		if (bodyIntf instanceof UploadToTableRequest) {
+			UploadToTableRequest body = (UploadToTableRequest) bodyIntf;
 			if(body.getTableId() == null) throw new IllegalArgumentException("TableId cannot be null");
 			if(body.getUploadFileHandleId() == null) throw new IllegalArgumentException("FileHandle.id cannot be null");
 			// the user must have update on the table
@@ -300,8 +300,8 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 			}
 			// The user must have access to the file handle
 			return this.canAccessRawFileHandleById(userInfo, body.getUploadFileHandleId());
-		}else if(bodyIntf instanceof AsynchDownloadFromTableRequestBody){
-			AsynchDownloadFromTableRequestBody body = (AsynchDownloadFromTableRequestBody)bodyIntf;
+		} else if (bodyIntf instanceof DownloadFromTableRequest) {
+			DownloadFromTableRequest body = (DownloadFromTableRequest) bodyIntf;
 			String tableId = getTableIDFromSQL(body.getSql());
 			// The user must have read permission to perform this action.
 			return this.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ);
