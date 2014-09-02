@@ -578,15 +578,6 @@ public interface EntityService {
 			String entityId) throws NotFoundException, DatastoreException;
 
 	/**
-	 * Used to test deadlock.
-	 * 
-	 * @param param
-	 * @return
-	 */
-	public String throwDeadlockException(
-			DeadlockLoserDataAccessException toThrow);
-
-	/**
 	 * Create a S3 token for an entity attachment.
 	 * 
 	 * @param userId

@@ -38,7 +38,7 @@ import org.sagebionetworks.repo.model.provenance.UsedEntity;
 import org.sagebionetworks.repo.model.provenance.UsedURL;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DeadlockLoserDataAccessException;
+import org.springframework.dao.TransientDataAccessException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.transaction.IllegalTransactionStateException;
@@ -125,11 +125,11 @@ public class DBOActivityDAOImplAutowiredTest {
 		String id;
 		try {
 			id = activityDao.create(toCreate);
-		} catch (DeadlockLoserDataAccessException e) {
+		} catch (TransientDataAccessException e) {
 			// Try again
 			try {
 				id = activityDao.create(toCreate);
-			} catch (DeadlockLoserDataAccessException e1) {
+			} catch (TransientDataAccessException e1) {
 				// This is now allowed to happen
 				return false;
 			}
