@@ -1213,7 +1213,7 @@ public class IT500SynapseJavaClient {
 		} finally {
 			if (pw!=null) pw.close();
 		}
-		FileHandle fileHandle = synapseOne.createFileHandle(file, "text/plain", createdTeam.getId());
+		FileHandle fileHandle = synapseOne.createFileHandle(file, "text/plain");
 		handlesToDelete.add(fileHandle.getId());
 		
 		// update the Team with the icon
