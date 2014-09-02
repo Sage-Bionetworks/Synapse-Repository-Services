@@ -10,6 +10,7 @@ import org.junit.Test;
 import org.sagebionetworks.repo.model.ErrorResponse;
 import org.sagebionetworks.utils.HttpClientHelperException;
 import org.springframework.dao.DeadlockLoserDataAccessException;
+import org.springframework.dao.TransientDataAccessException;
 import org.springframework.mock.web.MockHttpServletRequest;
 
 /**
@@ -27,6 +28,15 @@ public class BaseControllerTest {
 		assertEquals(BaseController.SERVICE_TEMPORARILY_UNAVAIABLE_PLEASE_TRY_AGAIN_LATER, response.getReason());
 	}
 	
+	@Test
+	public void testTransientError() {
+		EntityController controller = new EntityController();
+		HttpServletRequest request = new MockHttpServletRequest();
+		ErrorResponse response = controller.handleDeadlockExceptions(new TransientDataAccessException("Message", new BatchUpdateException()) {
+			private static final long serialVersionUID = 1L;
+		}, request);
+		assertEquals(BaseController.SERVICE_TEMPORARILY_UNAVAIABLE_PLEASE_TRY_AGAIN_LATER, response.getReason());
+	}
 
 	/**
 	 * 

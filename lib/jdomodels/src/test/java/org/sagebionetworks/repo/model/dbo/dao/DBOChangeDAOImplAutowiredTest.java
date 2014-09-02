@@ -30,7 +30,7 @@ import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeMessageUtils;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DeadlockLoserDataAccessException;
+import org.springframework.dao.TransientDataAccessException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -548,13 +548,13 @@ public class DBOChangeDAOImplAutowiredTest {
 		try {
 			Integer oneResult = one.get();
 			assertEquals(new Integer(timesToRun), oneResult);
-		} catch (DeadlockLoserDataAccessException e) {
+		} catch (TransientDataAccessException e) {
 			// We now expect deadlock to occur occasionally. See PLFM-2923
 		}
 		try {
 			Integer twoResult = two.get();
 			assertEquals(new Integer(timesToRun), twoResult);
-		} catch (DeadlockLoserDataAccessException e) {
+		} catch (TransientDataAccessException e) {
 			// We now expect deadlock to occur occasionally. See PLFM-2923
 		}
 	}
