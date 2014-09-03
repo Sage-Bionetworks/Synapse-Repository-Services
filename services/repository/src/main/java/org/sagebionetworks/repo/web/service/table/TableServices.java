@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -167,9 +168,10 @@ public interface TableServices {
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 * @throws TableUnavilableException
+	 * @throws TableFailedException
 	 */
 	public QueryResultBundle queryBundle(Long userId, QueryBundleRequest query) throws NotFoundException, DatastoreException,
-			TableUnavilableException;
+			TableUnavilableException, TableFailedException;
 
 	/**
 	 * Get the next page of a query
@@ -180,9 +182,10 @@ public interface TableServices {
 	 * @throws TableUnavilableException
 	 * @throws NotFoundException
 	 * @throws DatastoreException
+	 * @throws TableFailedException
 	 */
 	public QueryResult queryNextPage(Long userId, QueryNextPageToken nextPageToken) throws DatastoreException, NotFoundException,
-			TableUnavilableException;
+			TableUnavilableException, TableFailedException;
 
 	/**
 	 * Get the max number of rows allowed for a page (get, post, or query) for the given column models.

@@ -10,7 +10,6 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.text.DateFormat;
@@ -166,7 +165,7 @@ public class TableWorkerIntegrationTest {
 	}
 
 	@Test
-	public void testRoundTrip() throws NotFoundException, InterruptedException, DatastoreException, TableUnavilableException, IOException{
+	public void testRoundTrip() throws Exception {
 		// Create one column of each type
 		List<ColumnModel> columnModels = TableModelTestUtils.createOneOfEachType();
 		schema = new LinkedList<ColumnModel>();
@@ -335,8 +334,7 @@ public class TableWorkerIntegrationTest {
 	 * Test if things work if the table index is not being build, which can happen for example after a migration
 	 */
 	@Test
-	public void testRoundTripAfterMigrate() throws NotFoundException, InterruptedException, DatastoreException, TableUnavilableException,
-			IOException {
+	public void testRoundTripAfterMigrate() throws Exception {
 		schema = new LinkedList<ColumnModel>();
 		for (ColumnModel cm : TableModelTestUtils.createOneOfEachType()) {
 			cm = columnManager.createColumnModel(adminUserInfo, cm);
@@ -375,7 +373,7 @@ public class TableWorkerIntegrationTest {
 	 * built
 	 */
 	@Test
-	public void testAfterMigrate() throws NotFoundException, InterruptedException, DatastoreException, TableUnavilableException, IOException {
+	public void testAfterMigrate() throws Exception {
 		schema = new LinkedList<ColumnModel>();
 		for (ColumnModel cm : TableModelTestUtils.createOneOfEachType()) {
 			cm = columnManager.createColumnModel(adminUserInfo, cm);
@@ -432,8 +430,7 @@ public class TableWorkerIntegrationTest {
 	}
 
 	@Test
-	public void testPartialUpdateRoundTrip() throws NotFoundException, InterruptedException, DatastoreException, TableUnavilableException,
-			IOException {
+	public void testPartialUpdateRoundTrip() throws Exception {
 		// Create one column of each type
 		List<ColumnModel> columnModels = TableModelTestUtils.createOneOfEachType(true);
 		schema = new LinkedList<ColumnModel>();
@@ -632,8 +629,7 @@ public class TableWorkerIntegrationTest {
 	}
 
 	@Test
-	public void testReplaceAndDeleteRoundTrip() throws NotFoundException, InterruptedException, DatastoreException, TableUnavilableException,
-			IOException {
+	public void testReplaceAndDeleteRoundTrip() throws Exception {
 		// Create one column of each type
 		schema = new LinkedList<ColumnModel>();
 		ColumnModel cm = new ColumnModel();
@@ -691,8 +687,7 @@ public class TableWorkerIntegrationTest {
 	}
 
 	@Test
-	public void testBreakAndFixRoundTrip() throws NotFoundException, InterruptedException, DatastoreException, TableUnavilableException,
-			IOException {
+	public void testBreakAndFixRoundTrip() throws Exception {
 		schema = new LinkedList<ColumnModel>();
 		ColumnModel cm = new ColumnModel();
 		cm.setColumnType(ColumnType.INTEGER);
@@ -760,8 +755,7 @@ public class TableWorkerIntegrationTest {
 	}
 
 	@Test
-	public void testPartialUpdate() throws NotFoundException, InterruptedException, DatastoreException, TableUnavilableException,
-			IOException {
+	public void testPartialUpdate() throws Exception {
 		// four columns, two with default value
 		schema = new LinkedList<ColumnModel>();
 		ColumnModel cm = new ColumnModel();
@@ -861,7 +855,7 @@ public class TableWorkerIntegrationTest {
 
 	@Ignore // This is a very slow test that pushes massive amounts of data so it is disabled.
 	@Test
-	public void testAppendRowsAtScale() throws NotFoundException, InterruptedException, DatastoreException, TableUnavilableException, IOException{
+	public void testAppendRowsAtScale() throws Exception {
 		// Create one column of each type
 		List<ColumnModel> temp = TableModelTestUtils.createOneOfEachType();
 		schema = new LinkedList<ColumnModel>();
@@ -902,7 +896,7 @@ public class TableWorkerIntegrationTest {
 	}
 
 	@Test
-	public void testColumnNameRange() throws NotFoundException, InterruptedException, DatastoreException, TableUnavilableException, IOException{
+	public void testColumnNameRange() throws Exception {
 		// Create one column of each type
 		String specialChars = "Specialchars~!@#$%^^&*()_+|}{:?></.,;'[]\'";
 		List<ColumnModel> temp = TableModelTestUtils.createColumsWithNames("Has Space", "a", "A", specialChars);
@@ -1131,8 +1125,7 @@ public class TableWorkerIntegrationTest {
 	 * @throws NotFoundException
 	 * @throws InterruptedException
 	 */
-	private QueryResult waitForConsistentQuery(UserInfo user, String sql, Long limit) throws DatastoreException, NotFoundException,
-			InterruptedException {
+	private QueryResult waitForConsistentQuery(UserInfo user, String sql, Long limit) throws Exception {
 		long start = System.currentTimeMillis();
 		while(true){
 			try {
@@ -1178,7 +1171,7 @@ public class TableWorkerIntegrationTest {
 	 * @throws InterruptedException
 	 */
 	private DownloadFromTableResult waitForConsistentStreamQuery(String sql, CSVWriterStream writer, boolean includeRowIdAndVersion)
-			throws DatastoreException, NotFoundException, InterruptedException {
+			throws Exception {
 		long start = System.currentTimeMillis();
 		while(true){
 			try {

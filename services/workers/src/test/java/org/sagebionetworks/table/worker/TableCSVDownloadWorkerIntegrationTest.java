@@ -233,7 +233,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		return input;
 	}
 
-	private RowSet waitForConsistentQuery(UserInfo user, String sql) throws DatastoreException, NotFoundException, InterruptedException{
+	private RowSet waitForConsistentQuery(UserInfo user, String sql) throws Exception {
 		long start = System.currentTimeMillis();
 		while(true){
 			try {

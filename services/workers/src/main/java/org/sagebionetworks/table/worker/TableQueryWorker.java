@@ -16,6 +16,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
+import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -93,6 +94,10 @@ public class TableQueryWorker implements Worker {
 			// but we don't want to wait too long, so set the visibility timeout to something smaller
 			workerProgress.retryMessage(message, retryTimeoutOnTableUnavailableInSeconds);
 			return null;
+		} catch (TableFailedException e) {
+			// This means we cannot use this table
+			asynchJobStatusManager.setJobFailed(status.getJobId(), e);
+			return message;
 		}catch(Throwable e){
 			// The job failed
 			asynchJobStatusManager.setJobFailed(status.getJobId(), e);

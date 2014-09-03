@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.QueryResult;
+import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.util.Pair;
@@ -138,6 +139,10 @@ public class TableCSVDownloadWorker implements Worker {
 			// but we don't want to wait too long, so set the visibility timeout to something smaller
 			workerProgress.retryMessage(message, retryTimeoutOnTableUnavailableInSeconds);
 			return null;
+		} catch (TableFailedException e) {
+			// This means we cannot use this table
+			asynchJobStatusManager.setJobFailed(status.getJobId(), e);
+			return message;
 		}catch(Throwable e){
 			// The job failed
 			asynchJobStatusManager.setJobFailed(status.getJobId(), e);

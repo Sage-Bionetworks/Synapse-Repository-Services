@@ -25,6 +25,7 @@ import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
@@ -623,12 +624,13 @@ public class TableController extends BaseController {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 * @throws TableUnavilableException
+	 * @throws TableFailedException
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.TABLE_QUERY, method = RequestMethod.POST)
 	public @ResponseBody
 	QueryResultBundle query(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @RequestBody QueryBundleRequest query)
-			throws DatastoreException, NotFoundException, IOException, TableUnavilableException {
+			throws DatastoreException, NotFoundException, IOException, TableUnavilableException, TableFailedException {
 		return serviceProvider.getTableServices().queryBundle(userId, query);
 	}
 
@@ -686,13 +688,14 @@ public class TableController extends BaseController {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 * @throws TableUnavilableException
+	 * @throws TableFailedException
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.TABLE_QUERY_NEXT_PAGE, method = RequestMethod.POST)
 	public @ResponseBody
 	QueryResult queryNextPage(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			@RequestBody QueryNextPageToken nextPageToken) throws DatastoreException, NotFoundException, IOException,
-			TableUnavilableException {
+			TableUnavilableException, TableFailedException {
 		return serviceProvider.getTableServices().queryNextPage(userId, nextPageToken);
 	}
 

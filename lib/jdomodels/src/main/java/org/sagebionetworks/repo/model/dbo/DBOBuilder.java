@@ -32,7 +32,7 @@ public class DBOBuilder<T> {
 	public interface ParamTypeMapper {
 		public Object convert(Object result);
 
-		public int getSqlType();
+		public Integer getSqlType();
 	}
 
 	private static abstract class BaseRowMapper implements RowMapper {
@@ -275,7 +275,7 @@ public class DBOBuilder<T> {
 					}
 
 					@Override
-					public int getSqlType() {
+					public Integer getSqlType() {
 						return Types.VARCHAR;
 					}
 				});
@@ -293,7 +293,7 @@ public class DBOBuilder<T> {
 					}
 
 					@Override
-					public int getSqlType() {
+					public Integer getSqlType() {
 						return Types.BLOB;
 					}
 				});
@@ -307,8 +307,30 @@ public class DBOBuilder<T> {
 					}
 
 					@Override
-					public int getSqlType() {
+					public Integer getSqlType() {
 						return Types.NUMERIC;
+					}
+				});
+			}
+
+			if (fieldEntry.annotation.truncatable() && fieldEntry.field.getType() == String.class) {
+				final int maxSize = (fieldEntry.annotation.varchar() > 0) ? fieldEntry.annotation.varchar() : ((fieldEntry.annotation
+						.fixedchar() > 0) ? fieldEntry.annotation.fixedchar() : Integer.MAX_VALUE);
+				mappers.put(fieldEntry.field.getName(), new ParamTypeMapper() {
+					@Override
+					public Object convert(Object result) {
+						if (result instanceof String) {
+							String stringResult = (String) result;
+							if (stringResult.length() > maxSize) {
+								result = stringResult.substring(0, maxSize);
+							}
+						}
+						return result;
+					}
+
+					@Override
+					public Integer getSqlType() {
+						return null;
 					}
 				});
 			}

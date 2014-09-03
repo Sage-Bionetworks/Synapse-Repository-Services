@@ -36,25 +36,7 @@ import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.exception.LockUnavilableException;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
-import org.sagebionetworks.repo.model.table.PartialRow;
-import org.sagebionetworks.repo.model.table.PartialRowSet;
-import org.sagebionetworks.repo.model.table.Query;
-import org.sagebionetworks.repo.model.table.QueryBundleRequest;
-import org.sagebionetworks.repo.model.table.QueryNextPageToken;
-import org.sagebionetworks.repo.model.table.QueryResult;
-import org.sagebionetworks.repo.model.table.QueryResultBundle;
-import org.sagebionetworks.repo.model.table.Row;
-import org.sagebionetworks.repo.model.table.RowReference;
-import org.sagebionetworks.repo.model.table.RowReferenceSet;
-import org.sagebionetworks.repo.model.table.RowSelection;
-import org.sagebionetworks.repo.model.table.RowSet;
-import org.sagebionetworks.repo.model.table.TableRowChange;
-import org.sagebionetworks.repo.model.table.TableState;
-import org.sagebionetworks.repo.model.table.TableStatus;
-import org.sagebionetworks.repo.model.table.TableUnavilableException;
+import org.sagebionetworks.repo.model.table.*;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.SqlQuery;
@@ -487,13 +469,13 @@ public class TableRowManagerImpl implements TableRowManager {
 
 	@Override
 	public Pair<QueryResult, Long> query(UserInfo user, String query, Long offset, Long limit, boolean runQuery, boolean runCount,
-			boolean isConsistent) throws DatastoreException, NotFoundException, TableUnavilableException {
+			boolean isConsistent) throws DatastoreException, NotFoundException, TableUnavilableException, TableFailedException {
 		return query(user, createQuery(query, false), offset, limit, runQuery, runCount, isConsistent);
 	}
 
 	@Override
-	public Pair<QueryResult, Long> query(UserInfo user, SqlQuery query, Long offset, Long limit, boolean runQuery, boolean runCount, boolean isConsistent)
-			throws DatastoreException, NotFoundException, TableUnavilableException {
+	public Pair<QueryResult, Long> query(UserInfo user, SqlQuery query, Long offset, Long limit, boolean runQuery, boolean runCount,
+			boolean isConsistent) throws DatastoreException, NotFoundException, TableUnavilableException, TableFailedException {
 		if(user == null) throw new IllegalArgumentException("UserInfo cannot be null");
 		if(query == null) throw new IllegalArgumentException("SqlQuery cannot be null");
 		validateFeatureEnabled();
@@ -595,7 +577,7 @@ public class TableRowManagerImpl implements TableRowManager {
 			if (oneRowWasAdded) {
 				if (rowSet.getRows().size() > maxRowsPerPage) {
 					// we need to limit the rowSet to maxRowsPerPage and set the next page token
-					rowSet.setRows(rowSet.getRows().subList(0, maxRowsPerPage.intValue()));
+					rowSet.setRows(Lists.newArrayList(rowSet.getRows().subList(0, maxRowsPerPage.intValue())));
 					nextPageToken = createNextPageToken(query, (offset == null ? 0 : offset) + maxRowsPerPage, limit, isConsistent);
 				}
 			}
@@ -609,7 +591,7 @@ public class TableRowManagerImpl implements TableRowManager {
 	
 	@Override
 	public QueryResult queryNextPage(UserInfo user, QueryNextPageToken nextPageToken) throws DatastoreException, NotFoundException,
-			TableUnavilableException {
+			TableUnavilableException, TableFailedException {
 		Query query = createQueryFromNextPageToken(nextPageToken);
 		Pair<QueryResult, Long> queryResult = query(user, query.getSql(), query.getOffset(), query.getLimit(), true,
 				false, query.getIsConsistent());
@@ -618,7 +600,7 @@ public class TableRowManagerImpl implements TableRowManager {
 
 	@Override
 	public QueryResultBundle queryBundle(UserInfo user, QueryBundleRequest queryBundle) throws DatastoreException, NotFoundException,
-			TableUnavilableException {
+			TableUnavilableException, TableFailedException {
 		QueryResultBundle bundle = new QueryResultBundle();
 		// The SQL query is need for the actual query, select columns, and max rows per page.
 		SqlQuery sqlQuery = createQuery(queryBundle.getQuery().getSql(), false);
@@ -744,10 +726,11 @@ public class TableRowManagerImpl implements TableRowManager {
 	 * @return
 	 * @throws TableUnavilableException
 	 * @throws NotFoundException
+	 * @throws TableFailedException
 	 */
 	@Override
 	public Pair<RowSet, Long> runConsistentQuery(final SqlQuery query, final SqlQuery countQuery) throws TableUnavilableException,
-			NotFoundException {
+			NotFoundException, TableFailedException {
 		List<QueryHandler> queryHandlers = Lists.newArrayList();
 		final Object[] output = { null, null };
 		if (query != null) {
@@ -809,10 +792,11 @@ public class TableRowManagerImpl implements TableRowManager {
 	 * @return
 	 * @throws TableUnavilableException
 	 * @throws NotFoundException
+	 * @throws TableFailedException
 	 */
 	@Override
-	public void runConsistentQueryAsStream(final List<QueryHandler> queryHandlers) throws TableUnavilableException,
-			NotFoundException {
+	public void runConsistentQueryAsStream(final List<QueryHandler> queryHandlers) throws TableUnavilableException, NotFoundException,
+			TableFailedException {
 		if (queryHandlers.isEmpty()) {
 			return;
 		}
@@ -825,10 +809,18 @@ public class TableRowManagerImpl implements TableRowManager {
 				public String call() throws Exception {
 					// We can only run this query if the table is available.
 					TableStatus status = getTableStatusOrCreateIfNotExists(tableId);
-					if (!TableState.AVAILABLE.equals(status.getState())) {
+					switch(status.getState()){
+					case AVAILABLE:
+						break;
+					case PROCESSING:
 						// When the table is not available, we communicate the current status of the
 						// table in this exception.
 						throw new TableUnavilableException(status);
+					default:
+					case PROCESSING_FAILED:
+						// When the table is in a failed state, we communicate the current status of the
+						// table in this exception.
+						throw new TableFailedException(status);
 					}
 					// We can only run this
 					for (QueryHandler queryHandler : queryHandlers) {
@@ -847,6 +839,8 @@ public class TableRowManagerImpl implements TableRowManager {
 			throw e1;
 		} catch(TableUnavilableException e){
 			throw e;
+		} catch (TableFailedException e) {
+			throw e;
 		} catch (NotFoundException e) {
 			throw e;
 		} catch (Exception e) {
@@ -859,13 +853,14 @@ public class TableRowManagerImpl implements TableRowManager {
 	 * 
 	 * @param sql
 	 * @param writer
-	 * @return The resulting RowSet will not contain any 
+	 * @return The resulting RowSet will not contain any
 	 * @throws TableUnavilableException
-	 * @throws NotFoundException 
+	 * @throws NotFoundException
+	 * @throws TableFailedException
 	 */
 	@Override
 	public DownloadFromTableResult runConsistentQueryAsStream(String sql, final CSVWriterStream writer, final boolean includeRowIdAndVersion)
-			throws TableUnavilableException, NotFoundException {
+			throws TableUnavilableException, NotFoundException, TableFailedException {
 		// Convert to a query.
 		final SqlQuery query = createQuery(sql, false);
 		if(includeRowIdAndVersion && query.isAggregatedResult()){

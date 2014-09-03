@@ -16,6 +16,7 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryNextPageToken;
 import org.sagebionetworks.repo.model.table.QueryResult;
+import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -91,6 +92,10 @@ public class TableQueryNextPageWorker implements Worker {
 			// but we don't want to wait too long, so set the visibility timeout to something smaller
 			workerProgress.retryMessage(message, retryTimeoutOnTableUnavailableInSeconds);
 			return null;
+		} catch (TableFailedException e) {
+			// This means we cannot use this table
+			asynchJobStatusManager.setJobFailed(status.getJobId(), e);
+			return message;
 		}catch(Throwable e){
 			// The job failed
 			asynchJobStatusManager.setJobFailed(status.getJobId(), e);
@@ -113,8 +118,8 @@ public class TableQueryNextPageWorker implements Worker {
 		if(status.getRequestBody() == null){
 			throw new IllegalArgumentException("Job body cannot be null");
 		}
-		if (!(status.getRequestBody() instanceof QueryBundleRequest)) {
-			throw new IllegalArgumentException("Expected a job body of type: " + QueryBundleRequest.class.getName() + " but received: "
+		if (!(status.getRequestBody() instanceof QueryNextPageToken)) {
+			throw new IllegalArgumentException("Expected a job body of type: " + QueryNextPageToken.class.getName() + " but received: "
 					+ status.getRequestBody().getClass().getName());
 		}
 		return status;

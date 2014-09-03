@@ -31,6 +31,7 @@ import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -244,7 +245,7 @@ public class TableServicesImpl implements TableServices {
 
 	@Override
 	public QueryResultBundle queryBundle(Long userId, QueryBundleRequest queryBundle) throws NotFoundException, DatastoreException,
-			TableUnavilableException {
+			TableUnavilableException, TableFailedException {
 		UserInfo user = userManager.getUserInfo(userId);
 
 		return tableRowManager.queryBundle(user, queryBundle);
@@ -252,7 +253,7 @@ public class TableServicesImpl implements TableServices {
 
 	@Override
 	public QueryResult queryNextPage(Long userId, QueryNextPageToken nextPageToken) throws DatastoreException, NotFoundException,
-			TableUnavilableException {
+			TableUnavilableException, TableFailedException {
 		UserInfo user = userManager.getUserInfo(userId);
 		QueryResult queryResult = tableRowManager.queryNextPage(user, nextPageToken);
 		return queryResult;

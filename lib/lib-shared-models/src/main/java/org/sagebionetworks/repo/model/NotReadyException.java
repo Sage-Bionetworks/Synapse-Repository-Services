@@ -12,7 +12,7 @@ public class NotReadyException extends Exception {
 	private AsynchronousJobStatus status;
 
 	/**
-	 * Create a TableUnavilableException always wraps a TableStatus
+	 * Create a NotReadyException always wraps an AsynchronousJobStatus
 	 * 
 	 * @param status
 	 */

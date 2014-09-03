@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
@@ -357,6 +358,7 @@ public interface TableRowManager {
 
 	/**
 	 * Execute a table query.
+	 * 
 	 * @param user
 	 * @param query
 	 * @param isConsistent
@@ -364,9 +366,10 @@ public interface TableRowManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 * @throws TableUnavilableException
+	 * @throws TableFailedException
 	 */
 	public Pair<QueryResult, Long> query(UserInfo user, String query, Long offset, Long limit, boolean runQuery, boolean runCount,
-			boolean isConsistent) throws DatastoreException, NotFoundException, TableUnavilableException;
+			boolean isConsistent) throws DatastoreException, NotFoundException, TableUnavilableException, TableFailedException;
 
 	/**
 	 * Execute a table query.
@@ -378,9 +381,10 @@ public interface TableRowManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 * @throws TableUnavilableException
+	 * @throws TableFailedException
 	 */
 	public Pair<QueryResult, Long> query(UserInfo user, SqlQuery query, Long offset, Long limit, boolean runQuery, boolean runCount,
-			boolean isConsistent) throws DatastoreException, NotFoundException, TableUnavilableException;
+			boolean isConsistent) throws DatastoreException, NotFoundException, TableUnavilableException, TableFailedException;
 
 	/**
 	 * get the next page of a query
@@ -391,9 +395,10 @@ public interface TableRowManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 * @throws TableUnavilableException
+	 * @throws TableFailedException
 	 */
 	public QueryResult queryNextPage(UserInfo user, QueryNextPageToken nextPageToken) throws DatastoreException, NotFoundException,
-			TableUnavilableException;
+			TableUnavilableException, TableFailedException;
 
 	/**
 	 * Get a query bundle result
@@ -404,9 +409,10 @@ public interface TableRowManager {
 	 * @throws TableUnavilableException
 	 * @throws NotFoundException
 	 * @throws DatastoreException
+	 * @throws TableFailedException
 	 */
 	public QueryResultBundle queryBundle(UserInfo user, QueryBundleRequest queryBundle) throws DatastoreException, NotFoundException,
-			TableUnavilableException;
+			TableUnavilableException, TableFailedException;
 
 	/**
 	 * Create an query object for the given SQL.
@@ -426,8 +432,10 @@ public interface TableRowManager {
 	 * @return
 	 * @throws TableUnavilableException
 	 * @throws NotFoundException
+	 * @throws TableFailedException
 	 */
-	Pair<RowSet, Long> runConsistentQuery(SqlQuery query, SqlQuery countQuery) throws TableUnavilableException, NotFoundException;
+	Pair<RowSet, Long> runConsistentQuery(SqlQuery query, SqlQuery countQuery) throws TableUnavilableException, NotFoundException,
+			TableFailedException;
 
 	/**
 	 * Runs queries while holding a non-exclusive lock (read lock) on the table. This method will stream over the rows
@@ -437,8 +445,9 @@ public interface TableRowManager {
 	 * @param queries
 	 * @throws TableUnavilableException
 	 * @throws NotFoundException
+	 * @throws TableFailedException
 	 */
-	void runConsistentQueryAsStream(List<QueryHandler> queries) throws TableUnavilableException, NotFoundException;
+	void runConsistentQueryAsStream(List<QueryHandler> queries) throws TableUnavilableException, NotFoundException, TableFailedException;
 
 	/**
 	 * Run the provided SQL query string and stream the results to the passed CSVWriter. This method will stream over
@@ -450,9 +459,10 @@ public interface TableRowManager {
 	 * @return
 	 * @throws TableUnavilableException
 	 * @throws NotFoundException
+	 * @throws TableFailedException
 	 */
 	DownloadFromTableResult runConsistentQueryAsStream(String sql, CSVWriterStream writer, boolean includeRowIdAndVersion)
-			throws TableUnavilableException, NotFoundException;
+			throws TableUnavilableException, NotFoundException, TableFailedException;
 
 	/**
 	 * Update the current version cache if enabled

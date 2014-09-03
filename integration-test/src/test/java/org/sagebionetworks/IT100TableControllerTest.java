@@ -47,6 +47,7 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
+import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
@@ -738,11 +739,20 @@ public class IT100TableControllerTest {
 
 	@Test
 	public void testQueryAsync() throws Exception {
+		int columnCount = 20;
+		int stringSize = 1000;
+		int rowsNeeded = 40;
+
 		// Create a few columns to add to a table entity
-		ColumnModel one = new ColumnModel();
-		one.setName("one");
-		one.setColumnType(ColumnType.DOUBLE);
-		one = synapse.createColumnModel(one);
+		List<String> columnIds = Lists.newArrayList();
+		for (int i = 0; i < columnCount; i++) {
+			ColumnModel one = new ColumnModel();
+			one.setName("col" + i);
+			one.setColumnType(ColumnType.STRING);
+			one.setMaximumSize((long) stringSize);
+			one = synapse.createColumnModel(one);
+			columnIds.add(one.getId());
+		}
 
 		// Create a project to contain it all
 		Project project = new Project();
@@ -753,21 +763,29 @@ public class IT100TableControllerTest {
 		// now create a table entity
 		TableEntity table = new TableEntity();
 		table.setName("Table");
-		table.setColumnIds(Lists.newArrayList(one.getId()));
+		table.setColumnIds(columnIds);
 		table.setParentId(project.getId());
 		table = synapse.createEntity(table);
 		tablesToDelete.add(table);
 
 		List<ColumnModel> columns = synapse.getColumnModelsForTableEntity(table.getId());
 
+		String[] data = new String[columnCount];
+		for (int i = 0; i < columnCount; i++) {
+			data[i] = "x";
+		}
 		// Append some rows
 		RowSet set = new RowSet();
-		List<Row> rows = Lists.newArrayList(TableModelTestUtils.createRow(null, null, "1.0"),
-				TableModelTestUtils.createRow(null, null, "2.0"));
-		set.setRows(rows);
-		set.setHeaders(TableModelUtils.getHeaders(columns));
-		set.setTableId(table.getId());
-		synapse.appendRowsToTable(set);
+		List<Row> rows = Lists.newArrayList();
+		for (int i = 0; i < 10; i++) {
+			rows.add(TableModelTestUtils.createRow(null, null, data));
+		}
+		for (int i = 0; i < rowsNeeded; i += rows.size()) {
+			set.setRows(rows);
+			set.setHeaders(TableModelUtils.getHeaders(columns));
+			set.setTableId(table.getId());
+			synapse.appendRowsToTable(set);
+		}
 
 		final String asyncToken = synapse.queryTableEntityBundleAsyncStart("select * from " + table.getId(), null, null, true, 0xff);
 		QueryResultBundle result = waitForAsync(new Callable<QueryResultBundle>() {
@@ -776,9 +794,20 @@ public class IT100TableControllerTest {
 				return synapse.queryTableEntityBundleAsyncGet(asyncToken);
 			}
 		});
-		assertEquals(2, result.getQueryResult().getQueryResults().getRows().size());
-		assertEquals(2L, result.getQueryCount().longValue());
-	}
+		assertEquals(result.getMaxRowsPerPage().intValue(), result.getQueryResult().getQueryResults().getRows().size());
+		assertEquals(rowsNeeded, result.getQueryCount().intValue());
+		assertNotNull(result.getQueryResult().getNextPageToken());
+
+		final String nextPageAsyncToken = synapse.queryTableEntityNextPageAsyncStart(result.getQueryResult().getNextPageToken().getToken());
+		QueryResult nextPageResult = waitForAsync(new Callable<QueryResult>() {
+			@Override
+			public QueryResult call() throws Exception {
+				return synapse.queryTableEntityNextPageAsyncGet(nextPageAsyncToken);
+			}
+		});
+		assertEquals(rowsNeeded - result.getMaxRowsPerPage().intValue(), nextPageResult.getQueryResults().getRows().size());
+		assertNull(nextPageResult.getNextPageToken());
+}
 
 	private <T> T waitForAsync(final Callable<T> callable) throws Exception {
 		return TimeUtils.waitFor(30000, 500, new Callable<Pair<Boolean, T>>() {
