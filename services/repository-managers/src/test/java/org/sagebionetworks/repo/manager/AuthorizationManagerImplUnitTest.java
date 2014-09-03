@@ -473,32 +473,6 @@ public class AuthorizationManagerImplUnitTest {
 	}
 	
 	@Test
-	public void testCanUserStartJobUploadJobNoTableUpdate() throws DatastoreException, NotFoundException{
-		UploadToTableRequest body = new UploadToTableRequest();
-		body.setTableId("syn123");
-		body.setUploadFileHandleId("456");
-		// the user cannot update the entity
-		when(mockEntityPermissionsManager.hasAccess(body.getTableId(), ACCESS_TYPE.UPDATE, userInfo)).thenReturn(false);
-		when(mockFileHandleDao.getHandleCreator(body.getUploadFileHandleId())).thenReturn(userInfo.getId().toString());
-		// make the call
-		assertFalse(this.authorizationManager.canUserStartJob(userInfo, body));
-	}
-	
-	@Test
-	public void testCanUserStartJobUploadJobNotFileHandleOwner() throws DatastoreException, NotFoundException{
-		UploadToTableRequest body = new UploadToTableRequest();
-		body.setTableId("syn123");
-		body.setUploadFileHandleId("456");
-		// the user can update the entity
-		when(mockEntityPermissionsManager.hasAccess(body.getTableId(), ACCESS_TYPE.UPDATE, userInfo)).thenReturn(true);
-		// Set the owner to someone else
-		when(mockFileHandleDao.getHandleCreator(body.getUploadFileHandleId())).thenReturn("-9999");
-		// make the call
-		assertFalse(this.authorizationManager.canUserStartJob(userInfo, body));
-	}
-	
-	
-	@Test
 	public void testCanUserStartJobUploadJobAnonymous() throws DatastoreException, NotFoundException{
 		UploadToTableRequest body = new UploadToTableRequest();
 		body.setTableId("syn123");
@@ -519,17 +493,6 @@ public class AuthorizationManagerImplUnitTest {
 		userInfo.setId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		// the user can update the entity
 		when(mockEntityPermissionsManager.hasAccess(tableId, ACCESS_TYPE.READ, userInfo)).thenReturn(true);
-		// make the call
-		assertFalse(this.authorizationManager.canUserStartJob(userInfo, body));
-	}
-	
-	@Test
-	public void testCanUserStartJobDownloadJobNoRead() throws DatastoreException, NotFoundException{
-		DownloadFromTableRequest body = new DownloadFromTableRequest();
-		String tableId = "syn123";
-		body.setSql("select * from "+tableId);
-		// the user can update the entity
-		when(mockEntityPermissionsManager.hasAccess(tableId, ACCESS_TYPE.READ, userInfo)).thenReturn(false);
 		// make the call
 		assertFalse(this.authorizationManager.canUserStartJob(userInfo, body));
 	}

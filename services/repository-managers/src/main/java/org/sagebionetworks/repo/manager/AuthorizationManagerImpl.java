@@ -289,25 +289,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		if(AuthorizationUtils.isUserAnonymous(userInfo)) {
 			return false;
 		}
-		if (bodyIntf instanceof UploadToTableRequest) {
-			UploadToTableRequest body = (UploadToTableRequest) bodyIntf;
-			if(body.getTableId() == null) throw new IllegalArgumentException("TableId cannot be null");
-			if(body.getUploadFileHandleId() == null) throw new IllegalArgumentException("FileHandle.id cannot be null");
-			// the user must have update on the table
-			if(!this.canAccess(userInfo, body.getTableId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE)){
-				// they cannot update the entity
-				return false;
-			}
-			// The user must have access to the file handle
-			return this.canAccessRawFileHandleById(userInfo, body.getUploadFileHandleId());
-		} else if (bodyIntf instanceof DownloadFromTableRequest) {
-			DownloadFromTableRequest body = (DownloadFromTableRequest) bodyIntf;
-			String tableId = getTableIDFromSQL(body.getSql());
-			// The user must have read permission to perform this action.
-			return this.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ);
-		}else {
-			throw new IllegalArgumentException("Unknown AsynchronousJobBody: "+bodyIntf.getClass().getName());
-		}
+		return true;
 	}
 	
 	/**

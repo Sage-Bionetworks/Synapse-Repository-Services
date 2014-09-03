@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.web.controller;
 
+import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.NotReadyException;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -62,17 +64,20 @@ public class AsynchronousJobController extends BaseController {
 	
 	/**
 	 * Once a job is launched its progress can be monitored by getting its status with this method.
+	 * 
 	 * @param userId
-	 * @param jobId The jobId issued to a job that has been launched with <a href="${POST.asynchronous.job}">POST /asynchronous/job</a>
+	 * @param jobId The jobId issued to a job that has been launched with <a href="${POST.asynchronous.job}">POST
+	 *        /asynchronous/job</a>
 	 * @return
-	 * @throws NotFoundException 
+	 * @throws NotFoundException
+	 * @throws NotReadyException
+	 * @throws AsynchJobFailedException
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ASYNCHRONOUS_JOB_ID, method = RequestMethod.GET)
 	public @ResponseBody
-	AsynchronousJobStatus launchNewJob(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String jobId) throws NotFoundException {
+	AsynchronousJobStatus getJobStatus(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String jobId)
+			throws NotFoundException, AsynchJobFailedException, NotReadyException {
 		return serviceProvider.getAsynchronousJobServices().getJobStatus(userId, jobId);
 	}
 

@@ -22,23 +22,24 @@
 		<constructor-arg index="0" ref="stackConfiguration.asyncQueueName[QUERY]" />
 	</bean>
 
-	<bean id="tableQueryMessageReveiver"
-		class="org.sagebionetworks.asynchronous.workers.sqs.MessageReceiverImpl"
-		scope="singleton">
-		<property name="messageQueue" ref="tableQueryQueue" />
-		<property name="workerFactory" ref="tableQueryWorkerFactory" />
-		<property name="maxNumberOfWorkerThreads" value="1" />
-		<property name="maxMessagePerWorker" value="1" />
-		<property name="visibilityTimeoutSec" value="60" />
+	<!-- This gate ensures we never run more than the max number or runners across the entire cluster for this worker  -->
+	<bean id="tableQuerySemaphore"
+			class="org.sagebionetworks.repo.model.dbo.dao.semaphore.CountingSemaphoreDaoImpl"
+			scope="singleton">
+		<property name="lockTimeoutMS" value="60000" />
+		<property name="maxCount" value="4" />
 	</bean>
 
-	<!-- This gate ensures we never run more than the max number or runners across the entire cluster for this worker  -->
-	<bean id="tableQuerySemaphoreGatedRunner"
-		class="org.sagebionetworks.repo.model.dbo.dao.semaphore.SemaphoreGatedRunnerImpl" scope="singleton">
-		<property name="timeoutMS" value="60000" />
-		<property name="maxNumberRunners" value="4" />
-		<property name="semaphoreKey" value="tableQuery" />		
-		<property name="runner" ref="tableQueryMessageReveiver" />
+	<bean id="tableQueryQueueMessageReveiver"
+			class="org.sagebionetworks.asynchronous.workers.sqs.MessagePollingReceiverImpl"
+			depends-on="stackConfiguration"
+			scope="singleton">
+		<property name="messageQueue" ref="tableQueryQueue" />
+		<property name="workerFactory" ref="tableQueryWorkerFactory" />
+		<property name="workerSemaphore" ref="tableQuerySemaphore" />
+		<property name="maxNumberOfWorkerThreads" value="3" />
+		<property name="maxMessagePerWorker" value="1" />
+		<property name="visibilityTimeoutSec" value="60" />
 	</bean>
 
 	<!-- This trigger is used to process messages from the search queue. -->
@@ -47,8 +48,8 @@
 		<property name="jobDetail">
 			<bean
 				class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
-				<property name="targetObject" ref="tableQuerySemaphoreGatedRunner" />
-				<property name="targetMethod" value="attemptToRun" />
+				<property name="targetObject" ref="tableQueryQueueMessageReveiver" />
+				<property name="targetMethod" value="triggerFired" />
 				<property name="concurrent" value="false" />
 			</bean>
 		</property>

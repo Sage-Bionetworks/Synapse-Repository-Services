@@ -32,8 +32,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-import javax.servlet.ServletException;
-
 import org.apache.http.entity.ContentType;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -1214,7 +1212,7 @@ public class IT500SynapseJavaClient {
 		} finally {
 			if (pw!=null) pw.close();
 		}
-		FileHandle fileHandle = synapseOne.createFileHandle(file, "text/plain", createdTeam.getId());
+		FileHandle fileHandle = synapseOne.createFileHandle(file, "text/plain");
 		handlesToDelete.add(fileHandle.getId());
 		
 		// update the Team with the icon
@@ -1678,50 +1676,6 @@ public class IT500SynapseJavaClient {
 		}
 		executor.shutdown();
 		assertTrue(executor.awaitTermination(20, TimeUnit.SECONDS));
-	}
-
-	private volatile boolean allDone = false;
-	private volatile boolean hitTestGoal = false;
-
-	@Test
-	public void testDeadlockHandling() throws Exception {
-		final SynapseAdminClientImpl nonWaitingAdminSynapse = new SynapseAdminClientImpl();
-		SynapseClientHelper.setEndpoints(nonWaitingAdminSynapse);
-		nonWaitingAdminSynapse.setUserName(StackConfiguration.getMigrationAdminUsername());
-		nonWaitingAdminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
-		nonWaitingAdminSynapse.clearAllLocks();
-		nonWaitingAdminSynapse.getSharedClientConnection().setRetryRequestIfServiceUnavailable(false);
-		int max = StackConfiguration.singleton().getMaxConcurrentRepoConnections().get();
-		ExecutorService executor = Executors.newFixedThreadPool(max + 1);
-		List<Future<Void>> results = Lists.newArrayList();
-		for (int i = 0; i < max; i++) {
-			results.add(executor.submit(new Callable<Void>() {
-				@Override
-				public Void call() throws Exception {
-					try {
-						for (int i = 0; !allDone && i < 100; i++) {
-							try {
-								adminSynapse.getVersionInfo();
-							} catch (SynapseServerException e) {
-								assertEquals(503, e.getStatusCode());
-								hitTestGoal = true;
-								break;
-							}
-						}
-					} finally {
-						allDone = true;
-					}
-				}
-			}));
-		}
-		for (Future<Void> result : results) {
-			result.get();
-		}
-		executor.shutdown();
-		assertTrue(executor.awaitTermination(20, TimeUnit.SECONDS));
-		if (!hitTestGoal) {
-			System.out.println("testDeadlockHandling did not hit test goal");
-		}
 	}
 
 	@Test

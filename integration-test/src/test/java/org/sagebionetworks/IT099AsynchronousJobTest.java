@@ -190,7 +190,7 @@ public class IT099AsynchronousJobTest {
 			assertEquals(rowCount, waitForCount(sql).longValue());
 
 			// Now start a download job
-			final String downloadToken = synapse.downloadCsvFromTableAsyncStart(table.getId(), true, true, null);
+			final String downloadToken = synapse.downloadCsvFromTableAsyncStart("select * from " + table.getId(), true, true, null);
 			try {
 				synapse.downloadCsvFromTableAsyncGet(downloadToken);
 			} catch (SynapseResultNotReadyException e) {

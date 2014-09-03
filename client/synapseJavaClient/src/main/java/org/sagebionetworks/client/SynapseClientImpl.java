@@ -114,6 +114,7 @@ import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.Query;
+import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryNextPageToken;
 import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
@@ -5380,7 +5381,10 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		query.setIsConsistent(isConsistent);
 		query.setOffset(offset);
 		query.setLimit(limit);
-		return asymmetricalPost(getRepoEndpoint(), url, query, QueryResultBundle.class, new SharedClientConnection.ErrorHandler() {
+		QueryBundleRequest bundleRequest = new QueryBundleRequest();
+		bundleRequest.setQuery(query);
+		bundleRequest.setPartMask((long) partsMask);
+		return asymmetricalPost(getRepoEndpoint(), url, bundleRequest, QueryResultBundle.class, new SharedClientConnection.ErrorHandler() {
 			@Override
 			public void handleError(int code, String responseBody) throws SynapseException {
 				if (code == HttpStatus.SC_ACCEPTED) {
@@ -5404,7 +5408,10 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		query.setIsConsistent(isConsistent);
 		query.setOffset(offset);
 		query.setLimit(limit);
-		AsyncJobId jobId = asymmetricalPost(getRepoEndpoint(), url, query, AsyncJobId.class, null);
+		QueryBundleRequest bundleRequest = new QueryBundleRequest();
+		bundleRequest.setQuery(query);
+		bundleRequest.setPartMask((long) partsMask);
+		AsyncJobId jobId = asymmetricalPost(getRepoEndpoint(), url, bundleRequest, AsyncJobId.class, null);
 		return jobId.getToken();
 	}
 

@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 
 import org.junit.After;
 import org.junit.AfterClass;
@@ -33,6 +34,7 @@ import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseConflictingUpdateException;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
 import org.sagebionetworks.client.exceptions.SynapseTableUnavailableException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Project;
@@ -53,6 +55,8 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.table.TableState;
+import org.sagebionetworks.util.Pair;
+import org.sagebionetworks.util.TimeUtils;
 
 import com.google.common.collect.Lists;
 
@@ -730,5 +734,63 @@ public class IT100TableControllerTest {
 			String value = row.getValues().get(0);
 			assertEquals("test changed", value);
 		}
+	}
+
+	@Test
+	public void testQueryAsync() throws Exception {
+		// Create a few columns to add to a table entity
+		ColumnModel one = new ColumnModel();
+		one.setName("one");
+		one.setColumnType(ColumnType.DOUBLE);
+		one = synapse.createColumnModel(one);
+
+		// Create a project to contain it all
+		Project project = new Project();
+		project.setName(UUID.randomUUID().toString());
+		project = synapse.createEntity(project);
+		entitiesToDelete.add(project);
+
+		// now create a table entity
+		TableEntity table = new TableEntity();
+		table.setName("Table");
+		table.setColumnIds(Lists.newArrayList(one.getId()));
+		table.setParentId(project.getId());
+		table = synapse.createEntity(table);
+		tablesToDelete.add(table);
+
+		List<ColumnModel> columns = synapse.getColumnModelsForTableEntity(table.getId());
+
+		// Append some rows
+		RowSet set = new RowSet();
+		List<Row> rows = Lists.newArrayList(TableModelTestUtils.createRow(null, null, "1.0"),
+				TableModelTestUtils.createRow(null, null, "2.0"));
+		set.setRows(rows);
+		set.setHeaders(TableModelUtils.getHeaders(columns));
+		set.setTableId(table.getId());
+		synapse.appendRowsToTable(set);
+
+		final String asyncToken = synapse.queryTableEntityBundleAsyncStart("select * from " + table.getId(), null, null, true, 0xff);
+		QueryResultBundle result = waitForAsync(new Callable<QueryResultBundle>() {
+			@Override
+			public QueryResultBundle call() throws Exception {
+				return synapse.queryTableEntityBundleAsyncGet(asyncToken);
+			}
+		});
+		assertEquals(2, result.getQueryResult().getQueryResults().getRows().size());
+		assertEquals(2L, result.getQueryCount().longValue());
+	}
+
+	private <T> T waitForAsync(final Callable<T> callable) throws Exception {
+		return TimeUtils.waitFor(30000, 500, new Callable<Pair<Boolean, T>>() {
+			@Override
+			public Pair<Boolean, T> call() throws Exception {
+				try {
+					T result = callable.call();
+					return Pair.create(true, result);
+				} catch (SynapseResultNotReadyException e) {
+					return Pair.<Boolean, T> create(false, null);
+				}
+			}
+		});
 	}
 }
