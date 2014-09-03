@@ -25,7 +25,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import org.apache.commons.lang.NotImplementedException;
 import org.apache.commons.lang.StringUtils;
+import org.apache.http.HttpStatus;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.client.utils.URIUtils;
@@ -78,8 +80,10 @@ import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.file.S3UploadDestination;
 import org.sagebionetworks.repo.model.file.State;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
+import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageRecipientSet;
 import org.sagebionetworks.repo.model.message.MessageSortBy;
@@ -90,6 +94,7 @@ import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
 import org.sagebionetworks.repo.model.principal.AddEmailInfo;
 import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
 import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
+import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.query.QueryTableResults;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
@@ -1728,6 +1733,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 	
 	@Override
+	@Deprecated
 	public FileHandleResults createFileHandles(List<File> files) throws SynapseException{
 		if(files == null) throw new IllegalArgumentException("File list cannot be null");
 		try {
@@ -1746,10 +1752,25 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throw new SynapseClientException(e);
 		}	
 	}
-	
+
 	@Override
-	public S3FileHandle createFileHandle(File temp, String contentType) throws SynapseException, IOException{
-		return createFileHandle(temp, contentType, null);
+	public FileHandleResults createFileHandles(List<File> files, String parentEntityId) throws SynapseException {
+		if (files == null)
+			throw new IllegalArgumentException("File list cannot be null");
+		try {
+			List<FileHandle> list = new LinkedList<FileHandle>();
+			for (File file : files) {
+				// We need to determine the content type of the file
+				String contentType = guessContentTypeFromStream(file);
+				FileHandle handle = createFileHandle(file, contentType, parentEntityId);
+				list.add(handle);
+			}
+			FileHandleResults results = new FileHandleResults();
+			results.setList(list);
+			return results;
+		} catch (IOException e) {
+			throw new SynapseClientException(e);
+		}
 	}
 	
 	@Override
@@ -1757,19 +1778,57 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		String uri = getFileHandleTemporaryURI(fileHandleId, false);
 		return getUrl(getFileEndpoint(), uri);
 	}
-	private String getFileHandleTemporaryURI(String fileHandleId, boolean redirect){
-		return FILE_HANDLE + "/" +fileHandleId+"/url"+ QUERY_REDIRECT_PARAMETER + redirect;
+
+	private String getFileHandleTemporaryURI(String fileHandleId, boolean redirect) {
+		return FILE_HANDLE + "/" + fileHandleId + "/url" + QUERY_REDIRECT_PARAMETER + redirect;
 	}
+
 	@Override
-	public void downloadFromFileHandleTemporaryUrl(String fileHandleId, File destinationFile)
-			throws SynapseException {
-		String uri = getFileEndpoint()+getFileHandleTemporaryURI(fileHandleId, true);
+	public void downloadFromFileHandleTemporaryUrl(String fileHandleId, File destinationFile) throws SynapseException {
+		String uri = getFileEndpoint() + getFileHandleTemporaryURI(fileHandleId, true);
 		getSharedClientConnection().downloadFromSynapse(uri, null, destinationFile, getUserAgent());
 	}
 
 	@Override
-	public S3FileHandle createFileHandle(File temp, String contentType, Boolean shouldPreviewBeCreated)
+	@Deprecated
+	public S3FileHandle createFileHandle(File temp, String contentType) throws SynapseException, IOException {
+		return createFileHandleS3(temp, contentType, null, null);
+	}
+
+	@Override
+	@Deprecated
+	public S3FileHandle createFileHandle(File temp, String contentType, Boolean shouldPreviewBeCreated) throws SynapseException, IOException {
+		return createFileHandleS3(temp, contentType, shouldPreviewBeCreated, null);
+	}
+
+	@Override
+	public FileHandle createFileHandle(File temp, String contentType, String parentEntityId) throws SynapseException, IOException {
+		return createFileHandle(temp, contentType, null, parentEntityId);
+	}
+
+	@Override
+	public FileHandle createFileHandle(File temp, String contentType, Boolean shouldPreviewBeCreated, String parentEntityId)
 			throws SynapseException, IOException {
+		List<UploadDestination> uploadDestinations = getUploadDestinations(parentEntityId);
+		if (uploadDestinations.isEmpty()) {
+			// default to S3
+			return createFileHandleS3(temp, contentType, shouldPreviewBeCreated, null);
+		}
+
+		UploadDestination uploadDestination = uploadDestinations.get(0);
+		switch (uploadDestination.getUploadType()) {
+		case HTTPS:
+		case SFTP:
+			throw new NotImplementedException("SFTP and HTTPS uploads not implemented yet");
+		case S3:
+			return createFileHandleS3(temp, contentType, shouldPreviewBeCreated, (S3UploadDestination) uploadDestination);
+		default:
+			throw new NotImplementedException(uploadDestination.getUploadType().name() + " uploads not implemented yet");
+		}
+	}
+
+	private S3FileHandle createFileHandleS3(File temp, String contentType, Boolean shouldPreviewBeCreated,
+			S3UploadDestination s3UploadDestination) throws SynapseException, IOException {
 		if (temp == null) {
 			throw new IllegalArgumentException("File cannot be null");
 		}
@@ -1778,6 +1837,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		}
 		
 		CreateChunkedFileTokenRequest ccftr = new CreateChunkedFileTokenRequest();
+		ccftr.setS3UploadDestination(s3UploadDestination);
 		ccftr.setContentType(contentType);
 		ccftr.setFileName(temp.getName());
 		// Calculate the MD5
@@ -1860,7 +1920,20 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throw new SynapseClientException(e);
 		} 
 	}
-	
+
+	public List<UploadDestination> getUploadDestinations(String parentEntityId) throws SynapseException {
+		// Get the json for this entity as a list wrapper
+		String url = "/uploadDestinations/" + parentEntityId;
+		JSONObject json = getSynapseEntity(getFileEndpoint(), url);
+		try {
+			@SuppressWarnings("unchecked")
+			ListWrapper<UploadDestination> result = EntityFactory.createEntityFromJSONObject(json, ListWrapper.class);
+			return result.getList();
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
 	/**
 	 * <P>
 	 * This is a low-level API call for uploading large files. We recomend using the high-level
@@ -3707,11 +3780,51 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @param contentType should include the character encoding, e.g. "text/plain; charset=utf-8"
 	 */
 	@Override
+	public String uploadToFileHandle(byte[] content, ContentType contentType, String parentEntityId) throws SynapseException {
+		List<UploadDestination> uploadDestinations = getUploadDestinations(parentEntityId);
+		if (uploadDestinations.isEmpty()) {
+			// default to S3
+			return uploadToS3FileHandle(content, contentType, null);
+		}
+
+		UploadDestination uploadDestination = uploadDestinations.get(0);
+		switch (uploadDestination.getUploadType()) {
+		case HTTPS:
+		case SFTP:
+			throw new NotImplementedException("SFTP and HTTPS uploads not implemented yet");
+		case S3:
+			return uploadToS3FileHandle(content, contentType, (S3UploadDestination) uploadDestination);
+		default:
+			throw new NotImplementedException(uploadDestination.getUploadType().name() + " uploads not implemented yet");
+		}
+	}
+
+	/**
+	 * uploads a String to S3 using the chunked file upload service
+	 * 
+	 * @param content the content to upload. Strings in memory should not be large, so we limit to the size of one
+	 *        'chunk'
+	 * @param contentType should include the character encoding, e.g. "text/plain; charset=utf-8"
+	 */
+	@Override
     public String uploadToFileHandle(byte[] content, ContentType contentType) throws SynapseException {
+		return uploadToS3FileHandle(content, contentType, null);
+	}
+
+	/**
+	 * uploads a String to S3 using the chunked file upload service
+	 * 
+	 * @param content the content to upload. Strings in memory should not be large, so we limit to the size of one
+	 *        'chunk'
+	 * @param contentType should include the character encoding, e.g. "text/plain; charset=utf-8"
+	 */
+	private String uploadToS3FileHandle(byte[] content, ContentType contentType, S3UploadDestination s3UploadDestination)
+			throws SynapseClientException, SynapseException {
     	if (content==null || content.length==0) throw new IllegalArgumentException("Missing content.");
 		
     	if (content.length>=MINIMUM_CHUNK_SIZE_BYTES) 
     		throw new IllegalArgumentException("String must be less than "+MINIMUM_CHUNK_SIZE_BYTES+" bytes.");
+
 		String contentMD5 = null;
 		try {
 			contentMD5 = MD5ChecksumHelper.getMD5ChecksumForByteArray(content);
@@ -3723,6 +3836,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		ccftr.setFileName("content");
 		ccftr.setContentType(contentType.toString());
 		ccftr.setContentMD5(contentMD5);
+		ccftr.setS3UploadDestination(s3UploadDestination);
 		// Start the upload
 		ChunkedFileToken token = createChunkedFileUploadToken(ccftr);
 		
@@ -4841,6 +4955,25 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		try {
 			JSONObject jsonObject = EntityFactory.createJSONObjectForEntity(logEntry);
 			jsonObject = createJSONObject(LOG, jsonObject);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+
+	@Override
+	public ProjectSetting createProjectSetting(ProjectSetting projectSetting) throws SynapseException {
+		try {
+			JSONObject jsonObject = EntityFactory.createJSONObjectForEntity(projectSetting);
+			jsonObject = createJSONObject("/projectSettings", jsonObject);
+			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObject);
+			ProjectSetting obj = (ProjectSetting) autoGenFactory.newInstance(projectSetting.getConcreteType());
+			Iterator<String> it = adapter.keys();
+			while (it.hasNext()) {
+				String s = it.next();
+				log.trace(s);
+			}
+			obj.initializeFromJSONObject(adapter);
+			return obj;
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseClientException(e);
 		}

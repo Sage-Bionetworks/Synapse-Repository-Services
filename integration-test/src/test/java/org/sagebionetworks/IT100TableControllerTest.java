@@ -34,6 +34,7 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
+import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -501,7 +502,8 @@ public class IT100TableControllerTest {
 		writer.write("a temporary string");
 		writer.close();
 
-		S3FileHandle fileHandle = synapse.createFileHandle(tempFile, "text/plain");
+		FileHandle fileHandle = synapse.createFileHandle(tempFile, "text/plain", table.getId());
+		assertTrue(fileHandle instanceof S3FileHandle);
 
 		// Append some rows
 		RowSet set = new RowSet();
@@ -516,7 +518,7 @@ public class IT100TableControllerTest {
 
 		URL url = synapse.getTableFileHandleTemporaryUrl(table.getId(), results.getRows().get(0), one.getId());
 		assertTrue("The temporary URL did not contain the expected file handle key",
-				url.toString().indexOf(URLEncoder.encode(fileHandle.getKey(), "UTF-8")) > 0);
+				url.toString().indexOf(URLEncoder.encode(((S3FileHandle) fileHandle).getKey(), "UTF-8")) > 0);
 
 		File tempFile2 = File.createTempFile("temp", ".txt");
 		tempFiles.add(tempFile2);

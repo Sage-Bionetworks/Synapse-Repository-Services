@@ -55,7 +55,7 @@ import org.sagebionetworks.client.exceptions.SynapseServerException;
 import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
-import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
 import org.sagebionetworks.repo.model.quiz.QuestionResponse;
 import org.sagebionetworks.repo.model.quiz.Quiz;
@@ -1213,7 +1213,7 @@ public class IT500SynapseJavaClient {
 		} finally {
 			if (pw!=null) pw.close();
 		}
-		S3FileHandle fileHandle = synapseOne.createFileHandle(file, "text/plain");
+		FileHandle fileHandle = synapseOne.createFileHandle(file, "text/plain");
 		handlesToDelete.add(fileHandle.getId());
 		
 		// update the Team with the icon

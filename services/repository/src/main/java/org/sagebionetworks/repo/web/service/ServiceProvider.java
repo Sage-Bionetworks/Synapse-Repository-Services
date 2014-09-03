@@ -65,5 +65,7 @@ public interface ServiceProvider {
 	public AsynchronousJobServices getAsynchronousJobServices();
 
 	public LogService getLogService();
+
+	public ProjectSettingsService getProjectSettingsService();
 	
 }

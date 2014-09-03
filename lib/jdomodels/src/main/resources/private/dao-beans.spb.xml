@@ -121,6 +121,9 @@
 		init-method="bootstrapProfiles" >
 	</bean>
 	
+	<bean id="projectSettingsDAO"
+		class="org.sagebionetworks.repo.model.dbo.dao.DBOProjectSettingsDAOImpl"/>
+	
 	<bean id="groupMembersDAO"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOGroupMembersDAOImpl"
 		depends-on="userGroupDAO" 

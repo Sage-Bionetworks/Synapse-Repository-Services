@@ -9,9 +9,11 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.apache.commons.lang.NotImplementedException;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -21,14 +23,19 @@ import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
+import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
-import org.sagebionetworks.client.exceptions.SynapseClientException;
+import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.file.UploadType;
+import org.sagebionetworks.repo.model.project.ExternalUploadDestinationSetting;
+import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
+import org.sagebionetworks.repo.model.project.UploadDestinationSetting;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 
@@ -44,7 +51,8 @@ public class IT049FileHandleTest {
 
 	private List<FileHandle> toDelete = null;
 	private File imageFile;
-	
+	private Project project;
+
 	@BeforeClass
 	public static void beforeClass() throws Exception {
 		// Create a user
@@ -64,6 +72,8 @@ public class IT049FileHandleTest {
 		// Get the image file from the classpath.
 		URL url = IT049FileHandleTest.class.getClassLoader().getResource("images/"+FILE_NAME);
 		imageFile = new File(url.getFile().replaceAll("%20", " "));
+		project = new Project();
+		project = synapse.createEntity(project);
 	}
 
 	@After
@@ -74,6 +84,7 @@ public class IT049FileHandleTest {
 			} catch (SynapseNotFoundException e) {
 			} catch (SynapseClientException e) { }
 		}
+		synapse.deleteEntity(project, true);
 	}
 	
 	@AfterClass
@@ -91,7 +102,7 @@ public class IT049FileHandleTest {
 		// Create the image
 		List<File> list = new LinkedList<File>();
 		list.add(imageFile);
-		FileHandleResults results = synapse.createFileHandles(list);
+		FileHandleResults results = synapse.createFileHandles(list, project.getId());
 		assertNotNull(results);
 		// We should have one image on the list
 		assertNotNull(results.getList());
@@ -155,7 +166,7 @@ public class IT049FileHandleTest {
 		String expectedMD5 = MD5ChecksumHelper.getMD5Checksum(imageFile);
 		// Create the image
 		String myContentType = "test/content-type";
-		FileHandle result = synapse.createFileHandle(imageFile, myContentType);
+		FileHandle result = synapse.createFileHandle(imageFile, myContentType, project.getId());
 		assertNotNull(result);
 		S3FileHandle handle = (S3FileHandle) result;
 		toDelete.add(handle);
@@ -178,6 +189,36 @@ public class IT049FileHandleTest {
 		}
 	}
 	
+	@Test
+	public void testSingleFileDeprecatedRoundTrip() throws SynapseException, IOException, InterruptedException {
+		assertNotNull(imageFile);
+		assertTrue(imageFile.exists());
+		String expectedMD5 = MD5ChecksumHelper.getMD5Checksum(imageFile);
+		// Create the image
+		String myContentType = "test/content-type";
+		@SuppressWarnings("deprecation")
+		FileHandle result = synapse.createFileHandle(imageFile, myContentType);
+		assertNotNull(result);
+		S3FileHandle handle = (S3FileHandle) result;
+		toDelete.add(handle);
+		System.out.println(handle);
+		assertEquals(myContentType, handle.getContentType());
+		assertEquals(FILE_NAME, handle.getFileName());
+		assertEquals(new Long(imageFile.length()), handle.getContentSize());
+		assertEquals(expectedMD5, handle.getContentMd5());
+
+		// preview will not be created for our test content type
+
+		// Now delete the root file handle.
+		synapse.deleteFileHandle(handle.getId());
+		// The main handle and the preview should get deleted.
+		try {
+			synapse.getRawFileHandle(handle.getId());
+			fail("The handle should be deleted.");
+		} catch (SynapseNotFoundException e) {
+			// expected.
+		}
+	}
 	
 	@Test
 	public void testExternalRoundTrip() throws JSONObjectAdapterException, SynapseException{
@@ -218,6 +259,46 @@ public class IT049FileHandleTest {
 		assertEquals("NOT_SET", clone.getContentType());
 	}
 	
+	@Test(expected = NotImplementedException.class)
+	public void testExternalUploadDestinationSingleFileRoundTrip() throws SynapseException, IOException, InterruptedException {
+		// create an project setting
+		UploadDestinationListSetting projectSetting = new UploadDestinationListSetting();
+		projectSetting.setProjectId(project.getId());
+		projectSetting.setSettingsType("upload");
+		ExternalUploadDestinationSetting destination = new ExternalUploadDestinationSetting();
+		destination.setUploadType(UploadType.HTTPS);
+		destination.setUrl("https://not-valid");
+		projectSetting.setDestinations(Collections.<UploadDestinationSetting> singletonList(destination));
+		synapse.createProjectSetting(projectSetting);
+
+		assertNotNull(imageFile);
+		assertTrue(imageFile.exists());
+		String expectedMD5 = MD5ChecksumHelper.getMD5Checksum(imageFile);
+		// Create the image
+		String myContentType = "test/content-type";
+		FileHandle result = synapse.createFileHandle(imageFile, myContentType, project.getId());
+		// assertNotNull(result);
+		// S3FileHandle handle = (S3FileHandle) result;
+		// toDelete.add(handle);
+		// System.out.println(handle);
+		// assertEquals(myContentType, handle.getContentType());
+		// assertEquals(FILE_NAME, handle.getFileName());
+		// assertEquals(new Long(imageFile.length()), handle.getContentSize());
+		// assertEquals(expectedMD5, handle.getContentMd5());
+		//
+		// // preview will not be created for our test content type
+		//
+		// // Now delete the root file handle.
+		// synapse.deleteFileHandle(handle.getId());
+		// // The main handle and the preview should get deleted.
+		// try {
+		// synapse.getRawFileHandle(handle.getId());
+		// fail("The handle should be deleted.");
+		// } catch (SynapseNotFoundException e) {
+		// // expected.
+		// }
+	}
+
 	/**
 	 * This test uploads files that are too large to include in the build.
 	 * To run this test, set the property to point to a large file: org.sagebionetworks.test.large.file.path=<path to large file>
@@ -238,7 +319,7 @@ public class IT049FileHandleTest {
 			System.out.println(String.format("Attempting to upload file: %1$s of size %2$.2f",  largeFile.getName(), fileSizeMB));
 			String contentType = SynapseClientImpl.guessContentTypeFromStream(largeFile);
 			long start = System.currentTimeMillis();
-			S3FileHandle handle = synapse.createFileHandle(largeFile, contentType);
+			FileHandle handle = synapse.createFileHandle(largeFile, contentType, project.getId());
 			long elapse = System.currentTimeMillis()-start;
 			float elapseSecs = elapse/1000;
 			float mbPerSec = fileSizeMB/elapseSecs;
