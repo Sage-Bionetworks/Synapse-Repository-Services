@@ -7,7 +7,7 @@
 	],
     "properties":{
 		"queryResult":{
-			"description":"The total number of rows that match the query. Use mask = 0x1 to include in the bundle.",
+			"description":"The results that match the query. Use mask = 0x1 to include in the bundle.",
 			"$ref": "org.sagebionetworks.repo.model.table.QueryResult"
 		},
 		"queryCount":{

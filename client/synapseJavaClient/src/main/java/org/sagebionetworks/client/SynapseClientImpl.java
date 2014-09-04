@@ -123,7 +123,6 @@ import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
-import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
@@ -5366,40 +5365,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public QueryResult queryTableEntity(String sql) throws SynapseException, SynapseTableUnavailableException {
-		boolean isConsistent = true;
-		QueryResultBundle bundle = queryTableEntityBundle(sql, null, null, isConsistent, 0x1);
-		return bundle.getQueryResult();
-	}
-	
-	@Override
-	public QueryResultBundle queryTableEntityBundle(String sql, Long offset, Long limit, boolean isConsistent, int partsMask)
-			throws SynapseException, SynapseTableUnavailableException {
-		String url = TABLE_QUERY + "?partsMask=" + partsMask;
-		Query query = new Query();
-		query.setSql(sql);
-		query.setIsConsistent(isConsistent);
-		query.setOffset(offset);
-		query.setLimit(limit);
-		QueryBundleRequest bundleRequest = new QueryBundleRequest();
-		bundleRequest.setQuery(query);
-		bundleRequest.setPartMask((long) partsMask);
-		return asymmetricalPost(getRepoEndpoint(), url, bundleRequest, QueryResultBundle.class, new SharedClientConnection.ErrorHandler() {
-			@Override
-			public void handleError(int code, String responseBody) throws SynapseException {
-				if (code == HttpStatus.SC_ACCEPTED) {
-					try {
-						TableStatus status = EntityFactory.createEntityFromJSONString(responseBody, TableStatus.class);
-						throw new SynapseTableUnavailableException(status);
-					} catch (JSONObjectAdapterException e) {
-						throw new SynapseClientException(e.getMessage(), e);
-					}
-				}
-			}
-		});
-	}
-
-	@Override
 	public String queryTableEntityBundleAsyncStart(String sql, Long offset, Long limit, boolean isConsistent, int partsMask)
 			throws SynapseException {
 		String url = TABLE_QUERY + ASYNC_START + "?partsMask=" + partsMask;
@@ -5419,13 +5384,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public QueryResultBundle queryTableEntityBundleAsyncGet(String asyncJobToken) throws SynapseException, SynapseResultNotReadyException {
 		String url = TABLE_QUERY + ASYNC_GET + asyncJobToken;
 		return getAsyncResult(url, QueryResultBundle.class);
-	}
-
-	@Override
-	public QueryResult queryTableEntityNextPage(String nextPageToken) throws SynapseException {
-		QueryNextPageToken queryNextPageToken = new QueryNextPageToken();
-		queryNextPageToken.setToken(nextPageToken);
-		return asymmetricalPost(getRepoEndpoint(), TABLE_QUERY_NEXTPAGE, queryNextPageToken, QueryResult.class, null);
 	}
 
 	@Override

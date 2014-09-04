@@ -4,6 +4,10 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * Map that returns a calculated result for every key. Used for having spring bean keys of the form "something[string]"
+ * where "string" is the key that is used to calculate a value
+ */
 public abstract class DynamicMap<K, V> implements Map<K, V> {
 
 	protected abstract V create(Object key);

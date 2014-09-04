@@ -1,7 +1,6 @@
 package org.sagebionetworks;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -35,7 +34,6 @@ import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseConflictingUpdateException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
-import org.sagebionetworks.client.exceptions.SynapseTableUnavailableException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
@@ -55,7 +53,6 @@ import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
-import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.TimeUtils;
 
@@ -135,7 +132,7 @@ public class IT100TableControllerTest {
 	}
 	
 	@Test
-	public void testCreateTableEntity() throws SynapseException, InterruptedException{
+	public void testCreateTableEntity() throws Exception {
 		// Create a few columns to add to a table entity
 		ColumnModel one = new ColumnModel();
 		one.setName("one");
@@ -364,7 +361,7 @@ public class IT100TableControllerTest {
 	}
 
 	@Test
-	public void testQueryDoubles() throws SynapseException, InterruptedException {
+	public void testQueryDoubles() throws Exception {
 		// Create a few columns to add to a table entity
 		ColumnModel one = new ColumnModel();
 		one.setName("one");
@@ -420,25 +417,10 @@ public class IT100TableControllerTest {
 	 * 
 	 * @param sql
 	 * @return
-	 * @throws InterruptedException
-	 * @throws SynapseException
+	 * @throws Exception
 	 */
-	public RowSet waitForQueryResults(String sql, Long offset, Long limit)
-			throws InterruptedException, SynapseException {
-		long start = System.currentTimeMillis();
-		while (true) {
-			try {
-				QueryResultBundle queryResults = synapse.queryTableEntityBundle(sql, offset, limit, true, SynapseClient.QUERY_PARTMASK);
-				return queryResults.getQueryResult().getQueryResults();
-			} catch (SynapseTableUnavailableException e) {
-				// The table is not ready yet
-				assertFalse("Table processing failed: " + e.getStatus().getErrorMessage(),
-						TableState.PROCESSING_FAILED.equals(e.getStatus().getState()));
-				System.out.println("Waiting for table index to be available: " + e.getStatus());
-				Thread.sleep(1000);
-				assertTrue("Timed out waiting for query results for sql: " + sql, System.currentTimeMillis() - start < MAX_QUERY_TIMEOUT_MS);
-			}
-		}
+	public RowSet waitForQueryResults(String sql, Long offset, Long limit) throws Exception {
+		return waitForBundleQueryResults(sql, offset, limit, SynapseClient.QUERY_PARTMASK).getQueryResult().getQueryResults();
 	}
 
 	/**
@@ -449,22 +431,8 @@ public class IT100TableControllerTest {
 	 * @throws InterruptedException
 	 * @throws SynapseException
 	 */
-	public long waitForCountResults(String sql)
-			throws InterruptedException, SynapseException {
-		long start = System.currentTimeMillis();
-		while (true) {
-			try {
-				QueryResultBundle queryResults = synapse.queryTableEntityBundle(sql, null, null, true, SynapseClient.COUNT_PARTMASK);
-				return queryResults.getQueryCount();
-			} catch (SynapseTableUnavailableException e) {
-				// The table is not ready yet
-				assertFalse("Table processing failed: " + e.getStatus().getErrorMessage(),
-						TableState.PROCESSING_FAILED.equals(e.getStatus().getState()));
-				System.out.println("Waiting for table index to be available: " + e.getStatus());
-				Thread.sleep(1000);
-				assertTrue("Timed out waiting for query results for sql: " + sql, System.currentTimeMillis() - start < MAX_QUERY_TIMEOUT_MS);
-			}
-		}
+	public long waitForCountResults(String sql) throws Exception {
+		return waitForBundleQueryResults(sql, null, null, SynapseClient.COUNT_PARTMASK).getQueryCount();
 	}
 	
 	/**
@@ -475,21 +443,19 @@ public class IT100TableControllerTest {
 	 * @throws InterruptedException
 	 * @throws SynapseException
 	 */
-	public QueryResultBundle waitForBundleQueryResults(String sql, Long offset, Long limit, int partsMask) throws InterruptedException,
-			SynapseException {
-		long start = System.currentTimeMillis();
-		while(true){
-			try {
-				QueryResultBundle queryResutls = synapse.queryTableEntityBundle(sql, offset, limit, true, partsMask);
-				return queryResutls;
-			} catch (SynapseTableUnavailableException e) {
-				// The table is not ready yet
-				assertFalse("Table processing failed: "+e.getStatus().getErrorMessage(), TableState.PROCESSING_FAILED.equals(e.getStatus().getState()));
-				System.out.println("Waiting for table index to be available: "+e.getStatus());
-				Thread.sleep(2000);
-				assertTrue("Timed out waiting for query results for sql: "+sql,System.currentTimeMillis()-start < MAX_QUERY_TIMEOUT_MS);
+	public QueryResultBundle waitForBundleQueryResults(String sql, Long offset, Long limit, int partsMask) throws Exception {
+		final String asyncToken = synapse.queryTableEntityBundleAsyncStart(sql, offset, limit, true, partsMask);
+		return TimeUtils.waitFor(MAX_QUERY_TIMEOUT_MS, 500L, new Callable<Pair<Boolean, QueryResultBundle>>() {
+			@Override
+			public Pair<Boolean, QueryResultBundle> call() throws Exception {
+				try {
+					QueryResultBundle result = synapse.queryTableEntityBundleAsyncGet(asyncToken);
+					return Pair.create(true, result);
+				} catch (SynapseResultNotReadyException e) {
+					return Pair.create(false, null);
+				}
 			}
-		}
+		});
 	}
 
 	@Test
@@ -591,7 +557,7 @@ public class IT100TableControllerTest {
 	}
 	
 	@Test
-	public void testEmtpyTableRoundTrip() throws SynapseException, InterruptedException{
+	public void testEmtpyTableRoundTrip() throws Exception {
 		// Create a project to contain it all
 		Project project = new Project();
 		project.setName(UUID.randomUUID().toString());
@@ -616,7 +582,7 @@ public class IT100TableControllerTest {
 	}
 	
 	@Test
-	public void testConflictingResultS() throws SynapseException, InterruptedException{
+	public void testConflictingResultS() throws Exception {
 		// Create a few columns to add to a table entity
 		ColumnModel one = new ColumnModel();
 		one.setName("one");
