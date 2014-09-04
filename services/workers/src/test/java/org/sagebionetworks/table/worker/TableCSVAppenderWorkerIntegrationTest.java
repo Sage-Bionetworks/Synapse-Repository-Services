@@ -35,13 +35,13 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.table.AsynchUploadToTableRequestBody;
-import org.sagebionetworks.repo.model.table.AsynchUploadToTableResponseBody;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableRowChange;
+import org.sagebionetworks.repo.model.table.UploadToTableRequest;
+import org.sagebionetworks.repo.model.table.UploadToTableResult;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -174,7 +174,7 @@ public class TableCSVAppenderWorkerIntegrationTest {
 		// Upload the file to S3.
 		s3Client.putObject(fileHandle.getBucketName(), fileHandle.getKey(), this.tempFile);
 		// We are now ready to start the job
-		AsynchUploadToTableRequestBody body = new AsynchUploadToTableRequestBody();
+		UploadToTableRequest body = new UploadToTableRequest();
 		body.setTableId(tableId);
 		body.setUploadFileHandleId(fileHandle.getId());
 		AsynchronousJobStatus status = asynchJobStatusManager.startJob(adminUserInfo, body);
@@ -182,8 +182,8 @@ public class TableCSVAppenderWorkerIntegrationTest {
 		status = waitForStatus(status);
 		assertNotNull(status);
 		assertNotNull(status.getResponseBody());
-		assertTrue(status.getResponseBody() instanceof AsynchUploadToTableResponseBody);
-		AsynchUploadToTableResponseBody response = (AsynchUploadToTableResponseBody) status.getResponseBody();
+		assertTrue(status.getResponseBody() instanceof UploadToTableResult);
+		UploadToTableResult response = (UploadToTableResult) status.getResponseBody();
 		assertNotNull(response.getEtag());
 		assertEquals(new Long(rowCount), response.getRowsProcessed());
 		// There should be one change set applied to the table

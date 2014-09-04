@@ -133,14 +133,15 @@ public interface AuthorizationManager {
 	 * @throws NotFoundException 
 	 */
 	public boolean canUserMoveRestrictedEntity(UserInfo userInfo, String sourceParentId, String destParentId) throws NotFoundException;
-	
+
 	/**
 	 * Check if the user can start a given Asynchronous job
+	 * 
 	 * @param userInfo
 	 * @param body
 	 * @return
-	 * @throws NotFoundException 
-	 * @throws DatastoreException 
+	 * @throws NotFoundException
+	 * @throws DatastoreException
 	 */
 	public boolean canUserStartJob(UserInfo userInfo, AsynchronousRequestBody body) throws DatastoreException, NotFoundException;
 }

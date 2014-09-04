@@ -30,7 +30,6 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.utils.URIBuilder;
-import org.apache.http.client.utils.URIUtils;
 import org.apache.http.entity.ContentType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -38,6 +37,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
 import org.sagebionetworks.client.exceptions.SynapseTableUnavailableException;
 import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
 import org.sagebionetworks.downloadtools.FileUtils;
@@ -55,6 +55,7 @@ import org.sagebionetworks.evaluation.model.UserEvaluationState;
 import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
 import org.sagebionetworks.repo.model.annotation.AnnotationsUtils;
+import org.sagebionetworks.repo.model.asynch.AsyncJobId;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
@@ -107,9 +108,15 @@ import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.storage.StorageUsageDimension;
 import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
+import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
+import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.Query;
+import org.sagebionetworks.repo.model.table.QueryBundleRequest;
+import org.sagebionetworks.repo.model.table.QueryNextPageToken;
+import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
@@ -117,6 +124,8 @@ import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.table.TableStatus;
+import org.sagebionetworks.repo.model.table.UploadToTableRequest;
+import org.sagebionetworks.repo.model.table.UploadToTableResult;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
@@ -237,13 +246,18 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	
 	private static final String STORAGE_SUMMARY_PATH = "/storageSummary";
 	
+	private static final String ASYNC_START = "/async/start";
+	private static final String ASYNC_GET = "/async/get/";
+
 	protected static final String COLUMN = "/column";
 	protected static final String TABLE = "/table";
 	protected static final String ROW_ID = "/row";
 	protected static final String ROW_VERSION = "/version";
 	protected static final String TABLE_QUERY = TABLE+"/query";
-	protected static final String TABLE_QUERY_BUNDLE = TABLE_QUERY+"/bundle";
+	protected static final String TABLE_QUERY_NEXTPAGE = TABLE_QUERY + "/nextPage";
 	protected static final String TABLE_PARITAL = TABLE + "/partial";
+	protected static final String TABLE_DOWNLOAD_CSV = TABLE + "/download/csv";
+	protected static final String TABLE_UPLOAD_CSV = TABLE + "/upload/csv";
 	
 	protected static final  String ASYNCHRONOUS_JOB = "/asynchronous/job";
 
@@ -3617,6 +3631,30 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return getSharedClientConnection().getJson(endpoint, uri, getUserAgent());
 	}
 
+	private <T extends JSONEntity> T getAsyncResult(String url, Class<? extends T> returnClass) throws SynapseException,
+			SynapseClientException, SynapseResultNotReadyException {
+		try {
+			JSONObject responseBody = getSharedClientConnection().getJson(getRepoEndpoint(), url, getUserAgent(),
+					new SharedClientConnection.ErrorHandler() {
+						@Override
+						public void handleError(int code, String responseBody) throws SynapseException {
+							if (code == HttpStatus.SC_ACCEPTED) {
+								try {
+									AsynchronousJobStatus status = EntityFactory.createEntityFromJSONString(responseBody,
+											AsynchronousJobStatus.class);
+									throw new SynapseResultNotReadyException(status);
+								} catch (JSONObjectAdapterException e) {
+									throw new SynapseClientException(e.getMessage(), e);
+								}
+							}
+						}
+					});
+			return EntityFactory.createEntityFromJSONObject(responseBody, returnClass);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+
 	/**
 	 * Update a dataset, layer, preview, annotations, etc...
 	 * 
@@ -5328,21 +5366,28 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public RowSet queryTableEntity(String sql) throws SynapseException, SynapseTableUnavailableException{
+	public QueryResult queryTableEntity(String sql) throws SynapseException, SynapseTableUnavailableException {
 		boolean isConsistent = true;
-		boolean countOnly = false;
-		return queryTableEntity(sql, isConsistent, countOnly);
+		QueryResultBundle bundle = queryTableEntityBundle(sql, null, null, isConsistent, 0x1);
+		return bundle.getQueryResult();
 	}
 	
 	@Override
-	public RowSet queryTableEntity(String sql, boolean isConsistent, boolean countOnly) throws SynapseException, SynapseTableUnavailableException{
-		String url = TABLE_QUERY + "?isConsistent=" + isConsistent + "&countOnly=" + countOnly;
+	public QueryResultBundle queryTableEntityBundle(String sql, Long offset, Long limit, boolean isConsistent, int partsMask)
+			throws SynapseException, SynapseTableUnavailableException {
+		String url = TABLE_QUERY + "?partsMask=" + partsMask;
 		Query query = new Query();
 		query.setSql(sql);
-		return asymmetricalPost(getRepoEndpoint(), url, query, RowSet.class, new SharedClientConnection.ErrorHandler() {
+		query.setIsConsistent(isConsistent);
+		query.setOffset(offset);
+		query.setLimit(limit);
+		QueryBundleRequest bundleRequest = new QueryBundleRequest();
+		bundleRequest.setQuery(query);
+		bundleRequest.setPartMask((long) partsMask);
+		return asymmetricalPost(getRepoEndpoint(), url, bundleRequest, QueryResultBundle.class, new SharedClientConnection.ErrorHandler() {
 			@Override
 			public void handleError(int code, String responseBody) throws SynapseException {
-				if (code == 202) {
+				if (code == HttpStatus.SC_ACCEPTED) {
 					try {
 						TableStatus status = EntityFactory.createEntityFromJSONString(responseBody, TableStatus.class);
 						throw new SynapseTableUnavailableException(status);
@@ -5355,25 +5400,86 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public QueryResultBundle queryTableEntityBundle(String sql, boolean isConsistent, int partsMask) throws SynapseException, SynapseTableUnavailableException{
-		String url = TABLE_QUERY_BUNDLE + "?isConsistent=" + isConsistent + "&partsMask=" + partsMask;
+	public String queryTableEntityBundleAsyncStart(String sql, Long offset, Long limit, boolean isConsistent, int partsMask)
+			throws SynapseException {
+		String url = TABLE_QUERY + ASYNC_START + "?partsMask=" + partsMask;
 		Query query = new Query();
 		query.setSql(sql);
-		return asymmetricalPost(getRepoEndpoint(), url, query, QueryResultBundle.class, new SharedClientConnection.ErrorHandler() {
-			@Override
-			public void handleError(int code, String responseBody) throws SynapseException {
-				if (code == 202) {
-					try {
-						TableStatus status = EntityFactory.createEntityFromJSONString(responseBody, TableStatus.class);
-						throw new SynapseTableUnavailableException(status);
-					} catch (JSONObjectAdapterException e) {
-						throw new SynapseClientException(e.getMessage(), e);
-					}
-				}
-			}
-		});
+		query.setIsConsistent(isConsistent);
+		query.setOffset(offset);
+		query.setLimit(limit);
+		QueryBundleRequest bundleRequest = new QueryBundleRequest();
+		bundleRequest.setQuery(query);
+		bundleRequest.setPartMask((long) partsMask);
+		AsyncJobId jobId = asymmetricalPost(getRepoEndpoint(), url, bundleRequest, AsyncJobId.class, null);
+		return jobId.getToken();
 	}
-	
+
+	@Override
+	public QueryResultBundle queryTableEntityBundleAsyncGet(String asyncJobToken) throws SynapseException, SynapseResultNotReadyException {
+		String url = TABLE_QUERY + ASYNC_GET + asyncJobToken;
+		return getAsyncResult(url, QueryResultBundle.class);
+	}
+
+	@Override
+	public QueryResult queryTableEntityNextPage(String nextPageToken) throws SynapseException {
+		QueryNextPageToken queryNextPageToken = new QueryNextPageToken();
+		queryNextPageToken.setToken(nextPageToken);
+		return asymmetricalPost(getRepoEndpoint(), TABLE_QUERY_NEXTPAGE, queryNextPageToken, QueryResult.class, null);
+	}
+
+	@Override
+	public String queryTableEntityNextPageAsyncStart(String nextPageToken) throws SynapseException {
+		QueryNextPageToken queryNextPageToken = new QueryNextPageToken();
+		queryNextPageToken.setToken(nextPageToken);
+		AsyncJobId asyncJobId = asymmetricalPost(getRepoEndpoint(), TABLE_QUERY_NEXTPAGE + ASYNC_START, queryNextPageToken, AsyncJobId.class,
+				null);
+		return asyncJobId.getToken();
+	}
+
+	@Override
+	public QueryResult queryTableEntityNextPageAsyncGet(String asyncJobToken) throws SynapseException, SynapseResultNotReadyException {
+		String url = TABLE_QUERY_NEXTPAGE + ASYNC_GET + asyncJobToken;
+		return getAsyncResult(url, QueryResult.class);
+	}
+
+	@Override
+	public String downloadCsvFromTableAsyncStart(String sql, boolean writeHeader, boolean includeRowIdAndRowVersion,
+			CsvTableDescriptor csvDescriptor) throws SynapseException {
+		DownloadFromTableRequest downloadRequest = new DownloadFromTableRequest();
+		downloadRequest.setSql(sql);
+		downloadRequest.setWriteHeader(writeHeader);
+		downloadRequest.setIncludeRowIdAndRowVersion(includeRowIdAndRowVersion);
+		downloadRequest.setCsvTableDescriptor(csvDescriptor);
+		AsyncJobId asyncJobId = asymmetricalPost(getRepoEndpoint(), TABLE_DOWNLOAD_CSV + ASYNC_START, downloadRequest, AsyncJobId.class, null);
+		return asyncJobId.getToken();
+	}
+
+	@Override
+	public DownloadFromTableResult downloadCsvFromTableAsyncGet(String asyncJobToken) throws SynapseException, SynapseResultNotReadyException {
+		String url = TABLE_DOWNLOAD_CSV + ASYNC_GET + asyncJobToken;
+		return getAsyncResult(url, DownloadFromTableResult.class);
+	}
+
+	@Override
+	public String uploadCsvToTableAsyncStart(String tableId, String fileHandleId, String etag, Long linesToSkip,
+			CsvTableDescriptor csvDescriptor) throws SynapseException {
+		UploadToTableRequest uploadRequest = new UploadToTableRequest();
+		uploadRequest.setTableId(tableId);
+		uploadRequest.setUploadFileHandleId(fileHandleId);
+		uploadRequest.setUpdateEtag(etag);
+		uploadRequest.setLinesToSkip(linesToSkip);
+		uploadRequest.setCsvTableDescriptor(csvDescriptor);
+		AsyncJobId asyncJobId = asymmetricalPost(getRepoEndpoint(), TABLE_UPLOAD_CSV + ASYNC_START, uploadRequest, AsyncJobId.class, null);
+		return asyncJobId.getToken();
+	}
+
+	@Override
+	public UploadToTableResult uploadCsvToTableAsyncGet(String asyncJobToken) throws SynapseException, SynapseResultNotReadyException {
+		String url = TABLE_UPLOAD_CSV + ASYNC_GET + asyncJobToken;
+		return getAsyncResult(url, UploadToTableResult.class);
+	}
+
 	@Override
 	public ColumnModel createColumnModel(ColumnModel model) throws SynapseException {
 		if(model == null) throw new IllegalArgumentException("ColumnModel cannot be null");

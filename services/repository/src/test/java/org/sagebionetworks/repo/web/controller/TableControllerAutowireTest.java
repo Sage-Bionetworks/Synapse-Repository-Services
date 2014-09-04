@@ -29,6 +29,8 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.Query;
+import org.sagebionetworks.repo.model.table.QueryBundleRequest;
+import org.sagebionetworks.repo.model.table.QueryNextPageToken;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
@@ -665,7 +667,9 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 		try{
 			Query query = new Query();
 			query.setSql("select * from "+table.getId()+" limit 2");
-			servletTestHelper.tableQuery(dispatchServlet, adminUserId, query);
+			QueryBundleRequest queryBundleRequest = new QueryBundleRequest();
+			queryBundleRequest.setQuery(query);
+			servletTestHelper.tableQuery(dispatchServlet, adminUserId, queryBundleRequest);
 			fail("This should have failed");
 		}catch(TableUnavilableException e){
 			TableStatus status = e.getStatus();
@@ -676,6 +680,13 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 			System.out.println(e.getStatus());
 		}
 		
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testInvalidNextPage() throws ServletException, Exception {
+		QueryNextPageToken token = new QueryNextPageToken();
+		token.setToken("invalid");
+		servletTestHelper.tableQueryNextPage(dispatchServlet, adminUserId, token);
 	}
 
 	@Test

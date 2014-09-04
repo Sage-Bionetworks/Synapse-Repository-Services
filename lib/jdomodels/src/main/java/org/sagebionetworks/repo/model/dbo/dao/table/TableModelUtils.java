@@ -780,7 +780,7 @@ public class TableModelUtils {
 	 * @return
 	 */
 	public static Map<String, ColumnModel> createColumnNameToModelMap(List<ColumnModel> columns) {
-		HashMap<String, ColumnModel> map = new HashMap<String, ColumnModel>();
+		Map<String, ColumnModel> map = Maps.newLinkedHashMap();
 		for (ColumnModel cm : columns) {
 			map.put(cm.getName(), cm);
 		}

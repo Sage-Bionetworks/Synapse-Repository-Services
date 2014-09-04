@@ -15,15 +15,18 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.manager.trash.ParentInTrashCanException;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
+import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ErrorResponse;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NameConflictException;
+import org.sagebionetworks.repo.model.NotReadyException;
 import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.TooManyRequestsException;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.queryparser.ParseException;
@@ -118,6 +121,21 @@ public abstract class BaseController {
 		return ex.getStatus();
 	}
 	
+	/**
+	 * When a NotReadyException occurs we need to communicate the async status to the caller with a 202 ACCEPTED,
+	 * indicating we accepted they call but the resource is not ready yet.
+	 * 
+	 * @param ex
+	 * @param request
+	 * @return
+	 */
+	@ExceptionHandler(NotReadyException.class)
+	@ResponseStatus(HttpStatus.ACCEPTED)
+	public @ResponseBody
+	AsynchronousJobStatus handleResultNotReadyException(NotReadyException ex, HttpServletRequest request) {
+		return ex.getStatus();
+	}
+
 	@ExceptionHandler(MissingServletRequestParameterException.class)
 	@ResponseStatus(HttpStatus.BAD_REQUEST)
 	public @ResponseBody
@@ -235,6 +253,20 @@ public abstract class BaseController {
 	@ResponseStatus(HttpStatus.CONFLICT)
 	public @ResponseBody
 	ErrorResponse handleNameConflictException(NameConflictException ex,
+			HttpServletRequest request) {
+		return handleException(ex, request, false);
+	}
+
+	/**
+	 * This exception is thrown when an async job fails.
+	 * @param ex
+	 * @param request
+	 * @return
+	 */
+	@ExceptionHandler(AsynchJobFailedException.class)
+	@ResponseStatus(HttpStatus.BAD_REQUEST)
+	public @ResponseBody
+	ErrorResponse handleAsynchJobFailedException(AsynchJobFailedException ex,
 			HttpServletRequest request) {
 		return handleException(ex, request, false);
 	}

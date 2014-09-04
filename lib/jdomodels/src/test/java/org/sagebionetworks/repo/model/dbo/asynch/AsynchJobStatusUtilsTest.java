@@ -9,8 +9,8 @@ import java.util.Date;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
-import org.sagebionetworks.repo.model.table.AsynchUploadToTableRequestBody;
-import org.sagebionetworks.repo.model.table.AsynchUploadToTableResponseBody;
+import org.sagebionetworks.repo.model.table.UploadToTableRequest;
+import org.sagebionetworks.repo.model.table.UploadToTableResult;
 
 public class AsynchJobStatusUtilsTest {
 	
@@ -25,12 +25,12 @@ public class AsynchJobStatusUtilsTest {
 		status.setStartedByUserId(999L);
 		status.setStartedOn(new Date(900000));
 		// request
-		AsynchUploadToTableRequestBody requestBody = new AsynchUploadToTableRequestBody();
+		UploadToTableRequest requestBody = new UploadToTableRequest();
 		requestBody.setTableId("syn123");
 		requestBody.setUploadFileHandleId("55555");
 		status.setRequestBody(requestBody);
 		// response
-		AsynchUploadToTableResponseBody responseBody = new AsynchUploadToTableResponseBody();
+		UploadToTableResult responseBody = new UploadToTableResult();
 		responseBody.setRowsProcessed(1001L);
 		
 		// to DBO
@@ -50,7 +50,7 @@ public class AsynchJobStatusUtilsTest {
 		status.setStartedByUserId(999L);
 		status.setStartedOn(new Date(900000));
 		// request
-		AsynchUploadToTableRequestBody requestBody = new AsynchUploadToTableRequestBody();
+		UploadToTableRequest requestBody = new UploadToTableRequest();
 		requestBody.setTableId("syn123");
 		requestBody.setUploadFileHandleId("55555");
 		status.setRequestBody(requestBody);
@@ -98,7 +98,7 @@ public class AsynchJobStatusUtilsTest {
 		status.setStartedByUserId(999L);
 		status.setStartedOn(new Date(900000));
 		status.setRuntimeMS(333L);
-		AsynchUploadToTableRequestBody body = new AsynchUploadToTableRequestBody();
+		UploadToTableRequest body = new UploadToTableRequest();
 		body.setTableId("syn123");
 		body.setUploadFileHandleId("55555");
 		status.setRequestBody(body);

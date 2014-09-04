@@ -86,4 +86,9 @@ public @interface Field {
 	 * Additional sql, always appended to column definition
 	 */
 	String sql() default "";
+
+	/**
+	 * Can this column be truncated if necessary before inserts and updates
+	 */
+	boolean truncatable() default false;
 }

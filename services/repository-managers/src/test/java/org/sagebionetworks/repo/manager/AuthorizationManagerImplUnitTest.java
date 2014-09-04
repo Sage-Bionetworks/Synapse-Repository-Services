@@ -46,8 +46,8 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.provenance.Activity;
-import org.sagebionetworks.repo.model.table.AsynchDownloadFromTableRequestBody;
-import org.sagebionetworks.repo.model.table.AsynchUploadToTableRequestBody;
+import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
+import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -462,7 +462,7 @@ public class AuthorizationManagerImplUnitTest {
 	
 	@Test
 	public void testCanUserStartJobUploadJobHappyCase() throws DatastoreException, NotFoundException{
-		AsynchUploadToTableRequestBody body = new AsynchUploadToTableRequestBody();
+		UploadToTableRequest body = new UploadToTableRequest();
 		body.setTableId("syn123");
 		body.setUploadFileHandleId("456");
 		// the user can update the entity
@@ -473,34 +473,8 @@ public class AuthorizationManagerImplUnitTest {
 	}
 	
 	@Test
-	public void testCanUserStartJobUploadJobNoTableUpdate() throws DatastoreException, NotFoundException{
-		AsynchUploadToTableRequestBody body = new AsynchUploadToTableRequestBody();
-		body.setTableId("syn123");
-		body.setUploadFileHandleId("456");
-		// the user cannot update the entity
-		when(mockEntityPermissionsManager.hasAccess(body.getTableId(), ACCESS_TYPE.UPDATE, userInfo)).thenReturn(false);
-		when(mockFileHandleDao.getHandleCreator(body.getUploadFileHandleId())).thenReturn(userInfo.getId().toString());
-		// make the call
-		assertFalse(this.authorizationManager.canUserStartJob(userInfo, body));
-	}
-	
-	@Test
-	public void testCanUserStartJobUploadJobNotFileHandleOwner() throws DatastoreException, NotFoundException{
-		AsynchUploadToTableRequestBody body = new AsynchUploadToTableRequestBody();
-		body.setTableId("syn123");
-		body.setUploadFileHandleId("456");
-		// the user can update the entity
-		when(mockEntityPermissionsManager.hasAccess(body.getTableId(), ACCESS_TYPE.UPDATE, userInfo)).thenReturn(true);
-		// Set the owner to someone else
-		when(mockFileHandleDao.getHandleCreator(body.getUploadFileHandleId())).thenReturn("-9999");
-		// make the call
-		assertFalse(this.authorizationManager.canUserStartJob(userInfo, body));
-	}
-	
-	
-	@Test
 	public void testCanUserStartJobUploadJobAnonymous() throws DatastoreException, NotFoundException{
-		AsynchUploadToTableRequestBody body = new AsynchUploadToTableRequestBody();
+		UploadToTableRequest body = new UploadToTableRequest();
 		body.setTableId("syn123");
 		body.setUploadFileHandleId("456");
 		userInfo.setId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
@@ -513,7 +487,7 @@ public class AuthorizationManagerImplUnitTest {
 	
 	@Test
 	public void testCanUserStartJobDownloadJobAnonymous() throws DatastoreException, NotFoundException{
-		AsynchDownloadFromTableRequestBody body = new AsynchDownloadFromTableRequestBody();
+		DownloadFromTableRequest body = new DownloadFromTableRequest();
 		String tableId = "syn123";
 		body.setSql("select * from "+tableId);
 		userInfo.setId(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
@@ -524,19 +498,8 @@ public class AuthorizationManagerImplUnitTest {
 	}
 	
 	@Test
-	public void testCanUserStartJobDownloadJobNoRead() throws DatastoreException, NotFoundException{
-		AsynchDownloadFromTableRequestBody body = new AsynchDownloadFromTableRequestBody();
-		String tableId = "syn123";
-		body.setSql("select * from "+tableId);
-		// the user can update the entity
-		when(mockEntityPermissionsManager.hasAccess(tableId, ACCESS_TYPE.READ, userInfo)).thenReturn(false);
-		// make the call
-		assertFalse(this.authorizationManager.canUserStartJob(userInfo, body));
-	}
-	
-	@Test
 	public void testCanUserStartJobDownloadJobCanRead() throws DatastoreException, NotFoundException{
-		AsynchDownloadFromTableRequestBody body = new AsynchDownloadFromTableRequestBody();
+		DownloadFromTableRequest body = new DownloadFromTableRequest();
 		String tableId = "syn123";
 		body.setSql("select * from "+tableId);
 		// the user can update the entity

@@ -71,6 +71,10 @@ import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.Query;
+import org.sagebionetworks.repo.model.table.QueryBundleRequest;
+import org.sagebionetworks.repo.model.table.QueryNextPageToken;
+import org.sagebionetworks.repo.model.table.QueryResult;
+import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
@@ -1429,17 +1433,14 @@ public class ServletTestHelper {
 		return pcm.getResults();
 	}
 	
-	public RowSet tableQuery(
-			DispatcherServlet instance, Long userId, Query query)
-			throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(
-				HTTPMODE.POST, UrlHelpers.TABLE_QUERY, userId, query);
+	public QueryResultBundle tableQuery(DispatcherServlet instance, Long userId, QueryBundleRequest queryBundle) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.POST, UrlHelpers.TABLE_QUERY, userId, queryBundle);
 		
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		instance.service(request, response);
 		String reponseString = response.getContentAsString();
 		if(response.getStatus() == 201){
-			return EntityFactory.createEntityFromJSONString(reponseString, RowSet.class);
+			return EntityFactory.createEntityFromJSONString(reponseString, QueryResultBundle.class);
 		}else if(response.getStatus() == 202){
 			TableStatus status = EntityFactory.createEntityFromJSONString(reponseString, TableStatus.class);
 			throw new TableUnavilableException(status);
@@ -1449,6 +1450,24 @@ public class ServletTestHelper {
 		}
 	}
 	
+	public QueryResult tableQueryNextPage(DispatcherServlet instance, Long userId, QueryNextPageToken nextPageToken) throws Exception {
+		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.POST, UrlHelpers.TABLE_QUERY_NEXT_PAGE, userId,
+				nextPageToken);
+
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		instance.service(request, response);
+		String reponseString = response.getContentAsString();
+		if (response.getStatus() == 201) {
+			return EntityFactory.createEntityFromJSONString(reponseString, QueryResult.class);
+		} else if (response.getStatus() == 202) {
+			TableStatus status = EntityFactory.createEntityFromJSONString(reponseString, TableStatus.class);
+			throw new TableUnavilableException(status);
+		} else {
+			ServletTestHelperUtils.handleException(response.getStatus(), response.getContentAsString());
+			return null;
+		}
+	}
+
 	/**
 	 * Start a new Asynchronous Job.
 	 * 
