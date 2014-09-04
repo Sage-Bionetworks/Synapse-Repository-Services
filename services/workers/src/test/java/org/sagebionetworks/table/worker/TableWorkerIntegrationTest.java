@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 
 import org.junit.After;
 import org.junit.Assume;
@@ -67,6 +68,7 @@ import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.TableEntity;
+import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -737,7 +739,7 @@ public class TableWorkerIntegrationTest {
 			// should fail immediately
 			tableRowManager.query(adminUserInfo, sql, 0L, 100L, true, false, true);
 			fail("should not have succeeded");
-		} catch (TableUnavilableException e) {
+		} catch (TableFailedException e) {
 			assertNotNull(e.getStatus().getErrorMessage());
 		}
 
@@ -1141,23 +1143,21 @@ public class TableWorkerIntegrationTest {
 		}
 	}
 	
-	private void waitForConsistentQueryError(UserInfo user, String sql) {
-		assertTrue(TimeUtils.waitFor(MAX_WAIT_MS, 250, sql, new Predicate<String>() {
+	private void waitForConsistentQueryError(UserInfo user, final String sql) throws Exception {
+		TimeUtils.waitFor(MAX_WAIT_MS, 250, new Callable<Pair<Boolean, Void>>() {
 			@Override
-			public boolean apply(String sql) {
+			public Pair<Boolean, Void> call() throws Exception {
 				try {
 					tableRowManager.query(adminUserInfo, sql, 0L, 100L, true, false, true);
 					fail("should not have succeeded");
 				} catch (TableUnavilableException e) {
-					if (e.getStatus().getErrorMessage() != null) {
-						return true;
-					}
-				} catch (Exception e) {
-					fail("unexpected exception " + e.getMessage());
+					return Pair.create(false, null);
+				} catch (TableFailedException e) {
+					return Pair.create(true, null);
 				}
-				return false;
+				return Pair.create(false, null);
 			}
-		}));
+		});
 	}
 
 	/**
