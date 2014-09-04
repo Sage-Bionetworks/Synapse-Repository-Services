@@ -75,11 +75,12 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * the row's rowId in the passed <a href="${org.sagebionetworks.repo.model.table.RowSet}">RowSet</a>. Any row without a
  * rowId will be treated as a new row. When a row is updated a new versionNumber will automatically be assigned the Row.
  * While previous versions of any row are kept, only the current version of any row will appear in the table index used
- * to support the query service: <a href="${POST.table.query}">POST /table/query</a> </p>
+ * to support the query service: <a href="${POST.table.query.async.start}">POST /table/query/async/start</a> </p>
  * <p>
- * Use the <a href="${POST.table.query}">POST /table/query</a> services to query for the current rows of a table. The
- * returned <a href="${org.sagebionetworks.repo.model.table.RowSet}">RowSet</a> of the table query can be modified and
- * returned to update the rows of a table using <a href="${POST.entity.id.table}">POST /entity/{id}/table</a>.
+ * Use the <a href="${POST.table.query.async.start}">POST /table/query/async/start</a> services to query for the current
+ * rows of a table. The returned <a href="${org.sagebionetworks.repo.model.table.RowSet}">RowSet</a> of the table query
+ * can be modified and returned to update the rows of a table using <a href="${POST.entity.id.table}">POST
+ * /entity/{id}/table</a>.
  * </p>
  * <p>
  * There is also an <a href="${org.sagebionetworks.repo.web.controller.AsynchronousJobController}">asynchronous
@@ -543,6 +544,8 @@ public class TableController extends BaseController {
 	}
 
 	/**
+	 * Asynchronously start a query. Use the returned job id and <a href="${GET.table.query.async.get.asyncToken}">GET
+	 * /table/query/async/get</a> to get the results of the query
 	 * <p>
 	 * Using a 'SQL like' syntax, query the current version of the rows in a single table. The following pseudo-syntax
 	 * is the basic supported format:
@@ -623,8 +626,6 @@ public class TableController extends BaseController {
 	}
 
 	/**
-	 * Asynchronously start a query. Use the returned job id and href="${GET.table.query.async.get}">POST
-	 * /table/query/async/get</a> to get the results of the query
 	 * 
 	 * @param userId
 	 * @param query
@@ -688,9 +689,10 @@ public class TableController extends BaseController {
 	}
 
 	/**
-	 * Asynchronously get a next page of aquery. Use the returned job id and
-	 * href="${POST.table.query.nextPage.async.get}">POST /table/query/nextPage/async/get</a> to get the results of the
-	 * query
+	 * Asynchronously get a next page of a query. Use the returned job id and
+	 * href="${POST.table.query.nextPage.async.start}">POST /table/query/nextPage/async/start</a> to get the results of
+	 * the query. The page token comes from the query result of a <a href="${GET.table.query.async.get.asyncToken}">GET
+	 * /table/query/async/get</a>.
 	 * 
 	 * @param userId
 	 * @param nextPageToken
@@ -733,8 +735,9 @@ public class TableController extends BaseController {
 	}
 
 	/**
-	 * Asynchronously start a csv download. Use the returned job id and href="${POST.table.download.csv.async.get}">POST
-	 * /table/download/csv/async/get</a> to get the results of the query
+	 * Asynchronously start a csv download. Use the returned job id and
+	 * href="${GET.table.download.csv.async.get.asyncToken}">GET /table/download/csv/async/get</a> to get the results of
+	 * the query
 	 * 
 	 * @param userId
 	 * @param downloadRequest
@@ -778,8 +781,9 @@ public class TableController extends BaseController {
 	}
 
 	/**
-	 * /** Asynchronously start a csv upload. Use the returned job id and href="${POST.table.upload.csv.async.get}">POST
-	 * /table/upload/csv/async/get</a> to get the results of the query
+	 * /** Asynchronously start a csv upload. Use the returned job id and
+	 * href="${GET.table.upload.csv.async.get.asyncToken}">GET /table/upload/csv/async/get</a> to get the results of the
+	 * query
 	 * 
 	 * @param userId
 	 * @param uploadRequest
