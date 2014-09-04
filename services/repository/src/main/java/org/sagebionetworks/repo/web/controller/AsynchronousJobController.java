@@ -37,21 +37,23 @@ public class AsynchronousJobController extends BaseController {
 
 	/**
 	 * <p>
-	 * This method is used to launch new jobs.  The type of job that will be launched
-	 * is determined by the passed AsynchronousJobBody.
+	 * This method is used to launch new jobs. The type of job that will be launched is determined by the passed
+	 * AsynchronousJobBody.
 	 * </p>
 	 * The following are the currently supported job types:
 	 * <ul>
-	 * <li><a href="${org.sagebionetworks.repo.model.table.AsynchUploadToTableRequestBody}">AsynchUploadToTableJobBody</a></li>
-	 * <li><a href="${org.sagebionetworks.repo.model.table.AsynchDownloadFromTableRequestBody}">AsynchDownloadFromTableJobBody</a></li>
+	 * <li><a href="${org.sagebionetworks.repo.model.table.UploadToTableRequest}">UploadToTableRequest</a></li>
+	 * <li><a href="${org.sagebionetworks.repo.model.table.DownloadFromTableRequest}">DownloadFromTableRequest</a></li>
 	 * </ul>
 	 * <p>
 	 * Note: Each job types has different access requirements.
 	 * </p>
+	 * 
 	 * @param userId
-	 * @param body There is a AsynchronousJobBody implementation for each job type.  This body determines the type of job that will be launched.
-	 * @return Each new job launched will have a unique jobId that can be use to monitor the status of the job with 
-	 * @throws NotFoundException 
+	 * @param body There is a AsynchronousJobBody implementation for each job type. This body determines the type of job
+	 *        that will be launched.
+	 * @return Each new job launched will have a unique jobId that can be use to monitor the status of the job with
+	 * @throws NotFoundException
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ASYNCHRONOUS_JOB, method = RequestMethod.POST)

@@ -47,16 +47,12 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
  * <p>
- * A Synapse <a
- * href="${org.sagebionetworks.repo.model.table.TableEntity}">TableEntity</a>
- * model object represents the metadata of a table. Each TableEntity is defined
- * by a list of <a
- * href="${org.sagebionetworks.repo.model.table.ColumnModel}">ColumnModel</a>
- * IDs. Use <a href="${POST.column}">POST /column</a> to create new ColumnModel
- * objects. Each ColumnModel object is immutable, so to change a column of a
- * table a new column must be added and the old column must be removed.
- * TableEntities can be created, updated, read and deleted like any other
- * entity:
+ * A Synapse <a href="${org.sagebionetworks.repo.model.table.TableEntity}">TableEntity</a> model object represents the
+ * metadata of a table. Each TableEntity is defined by a list of <a
+ * href="${org.sagebionetworks.repo.model.table.ColumnModel}">ColumnModel</a> IDs. Use <a href="${POST.column}">POST
+ * /column</a> to create new ColumnModel objects. Each ColumnModel object is immutable, so to change a column of a table
+ * a new column must be added and the old column must be removed. TableEntities can be created, updated, read and
+ * deleted like any other entity:
  * <ul>
  * <li><a href="${POST.entity}">POST /entity</a></li>
  * <li><a href="${GET.entity.id}">GET /entity/{id}</a></li>
@@ -66,38 +62,30 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * </p>
  * <p>
  * <p>
- * All ColumnModel objects are publicly viewable and usable. Since each
- * ColumnModel is immutable it is safe to re-use ColumModels created by other
- * users. Use the <a href="${GET.column}">GET /column</a> services to list all
- * of the existing ColumnModels that are currently in use.
+ * All ColumnModel objects are publicly viewable and usable. Since each ColumnModel is immutable it is safe to re-use
+ * ColumModels created by other users. Use the <a href="${GET.column}">GET /column</a> services to list all of the
+ * existing ColumnModels that are currently in use.
  * </p>
  * 
- * Once the columns for a TableEntity have been created and assigned to the
- * TableEntity, rows can be added to the table using <a
- * href="${POST.entity.id.table}">POST /entity/{id}/table</a>. Each <a
- * href="${org.sagebionetworks.repo.model.table.Row}">Row</a> appended to the
- * table will automatically be assigned a rowId and a versionNumber and can be
- * found in the resulting <a
- * href="${org.sagebionetworks.repo.model.table.RowReferenceSet}"
- * >RowReferenceSet</a>. To update a row, simply include the row's rowId in the
- * passed <a href="${org.sagebionetworks.repo.model.table.RowSet}">RowSet</a>.
- * Any row without a rowId will be treated as a new row. When a row is updated a
- * new versionNumber will automatically be assigned the Row. While previous
- * versions of any row are kept, only the current version of any row will appear
- * in the table index used to support the query service: <a
- * href="${POST.table.query}">POST /table/query</a> </p>
+ * Once the columns for a TableEntity have been created and assigned to the TableEntity, rows can be added to the table
+ * using <a href="${POST.entity.id.table}">POST /entity/{id}/table</a>. Each <a
+ * href="${org.sagebionetworks.repo.model.table.Row}">Row</a> appended to the table will automatically be assigned a
+ * rowId and a versionNumber and can be found in the resulting <a
+ * href="${org.sagebionetworks.repo.model.table.RowReferenceSet}" >RowReferenceSet</a>. To update a row, simply include
+ * the row's rowId in the passed <a href="${org.sagebionetworks.repo.model.table.RowSet}">RowSet</a>. Any row without a
+ * rowId will be treated as a new row. When a row is updated a new versionNumber will automatically be assigned the Row.
+ * While previous versions of any row are kept, only the current version of any row will appear in the table index used
+ * to support the query service: <a href="${POST.table.query}">POST /table/query</a> </p>
  * <p>
- * Use the <a href="${POST.table.query}">POST /table/query</a> services to query
- * for the current rows of a table. The returned <a
- * href="${org.sagebionetworks.repo.model.table.RowSet}">RowSet</a> of the table
- * query can be modified and returned to update the rows of a table using <a
- * href="${POST.entity.id.table}">POST /entity/{id}/table</a>.
+ * Use the <a href="${POST.table.query}">POST /table/query</a> services to query for the current rows of a table. The
+ * returned <a href="${org.sagebionetworks.repo.model.table.RowSet}">RowSet</a> of the table query can be modified and
+ * returned to update the rows of a table using <a href="${POST.entity.id.table}">POST /entity/{id}/table</a>.
  * </p>
  * <p>
  * There is also an <a href="${org.sagebionetworks.repo.web.controller.AsynchronousJobController}">asynchronous
- * service</a> to <a href="${org.sagebionetworks.repo.model.table.AsynchUploadToTableRequestBody}">upload</a> 
- * and <a href="${org.sagebionetworks.repo.model.table.AsynchDownloadFromTableRequestBody}">download</a> csv files, 
- * suitable for large datasets.
+ * service</a> to <a href="${org.sagebionetworks.repo.model.table.UploadToTableRequest}">upload</a> and <a
+ * href="${org.sagebionetworks.repo.model.table.DownloadFromTableRequest}">download</a> csv files, suitable for large
+ * datasets.
  */
 @ControllerInfo(displayName = "Table Services", path = "repo/v1")
 @Controller
@@ -555,6 +543,9 @@ public class TableController extends BaseController {
 	}
 
 	/**
+	 * Asynchronously start a query. Use the returned job id and href="${POST.table.query.async.get}">POST
+	 * /table/query/async/get</a> to get the results of the query
+	 * 
 	 * <p>
 	 * Using a 'SQL like' syntax, query the current version of the rows in a single table. The following pseudo-syntax
 	 * is the basic supported format:
@@ -627,25 +618,6 @@ public class TableController extends BaseController {
 	 * @throws TableFailedException
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = UrlHelpers.TABLE_QUERY, method = RequestMethod.POST)
-	public @ResponseBody
-	QueryResultBundle query(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @RequestBody QueryBundleRequest query)
-			throws DatastoreException, NotFoundException, IOException, TableUnavilableException, TableFailedException {
-		return serviceProvider.getTableServices().queryBundle(userId, query);
-	}
-
-	/**
-	 * Asynchronously start a query. Use the returned job id and href="${POST.table.query.async.get}">POST
-	 * /table/query/async/get</a> to get the results of the query
-	 * 
-	 * @param userId
-	 * @param query
-	 * @return
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 * @throws IOException
-	 */
-	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.TABLE_QUERY_ASYNC_START, method = RequestMethod.POST)
 	public @ResponseBody
 	AsyncJobId queryAsyncStart(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @RequestBody QueryBundleRequest query)
@@ -678,7 +650,7 @@ public class TableController extends BaseController {
 
 	/**
 	 * Get the next page of results for the query. The page token comes from the query result of a <a
-	 * href="${POST.table.query}">POST /table/query</a>.
+	 * href="${POST.table.query}">POST /table/query/async/start</a>.
 	 * 
 	 * @param userId
 	 * @param queryPageToken
@@ -700,7 +672,7 @@ public class TableController extends BaseController {
 	}
 
 	/**
-	 * Asynchronously get a next page of aquery. Use the returned job id and
+	 * Asynchronously get a next page of a query. Use the returned job id and
 	 * href="${POST.table.query.nextPage.async.get}">POST /table/query/nextPage/async/get</a> to get the results of the
 	 * query
 	 * 
