@@ -618,23 +618,6 @@ public class TableController extends BaseController {
 	 * @throws TableFailedException
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = UrlHelpers.TABLE_QUERY, method = RequestMethod.POST)
-	public @ResponseBody
-	QueryResultBundle query(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @RequestBody QueryBundleRequest query)
-			throws DatastoreException, NotFoundException, IOException, TableUnavilableException, TableFailedException {
-		return serviceProvider.getTableServices().queryBundle(userId, query);
-	}
-
-	/**
-	 * 
-	 * @param userId
-	 * @param query
-	 * @return
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 * @throws IOException
-	 */
-	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.TABLE_QUERY_ASYNC_START, method = RequestMethod.POST)
 	public @ResponseBody
 	AsyncJobId queryAsyncStart(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @RequestBody QueryBundleRequest query)
@@ -647,7 +630,10 @@ public class TableController extends BaseController {
 
 	/**
 	 * Asynchronously get the results of a query started with href="${POST.table.query.async.start}">POST
-	 * /table/query/async/start</a>
+	 * /table/query/async/start</a>.
+	 * 
+	 * When the result is not ready yet, this methog will return a status code of 202 (ACCEPTED) and the response body
+	 * will be a <a href="${org.sagebionetworks.repo.model.table.TableStatus}" >TableStatus</a> object.
 	 * 
 	 * @param userId
 	 * @param asyncToken
@@ -663,29 +649,6 @@ public class TableController extends BaseController {
 			throws NotReadyException, NotFoundException, AsynchJobFailedException {
 		AsynchronousJobStatus jobStatus = serviceProvider.getAsynchronousJobServices().getJobStatusAndThrow(userId, asyncToken);
 		return (QueryResultBundle) jobStatus.getResponseBody();
-	}
-
-	/**
-	 * Get the next page of results for the query. The page token comes from the query result of a <a
-	 * href="${POST.table.query}">POST /table/query</a>.
-	 * 
-	 * @param userId
-	 * @param queryPageToken
-	 * 
-	 * @return
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 * @throws IOException
-	 * @throws TableUnavilableException
-	 * @throws TableFailedException
-	 */
-	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = UrlHelpers.TABLE_QUERY_NEXT_PAGE, method = RequestMethod.POST)
-	public @ResponseBody
-	QueryResult queryNextPage(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody QueryNextPageToken nextPageToken) throws DatastoreException, NotFoundException, IOException,
-			TableUnavilableException, TableFailedException {
-		return serviceProvider.getTableServices().queryNextPage(userId, nextPageToken);
 	}
 
 	/**
@@ -715,6 +678,9 @@ public class TableController extends BaseController {
 	/**
 	 * Asynchronously get the results of a nextPage query started with
 	 * href="${POST.table.query.nextPage.async.start}">POST /table/query/nextPage/async/start</a>
+	 * 
+	 * When the result is not ready yet, this methog will return a status code of 202 (ACCEPTED) and the response body
+	 * will be a <a href="${org.sagebionetworks.repo.model.table.TableStatus}" >TableStatus</a> object.
 	 * 
 	 * @param userId
 	 * @param asyncToken
@@ -761,6 +727,9 @@ public class TableController extends BaseController {
 	 * Asynchronously get the results of a csv download started with href="${POST.table.download.csv.async.start}">POST
 	 * /table/download/csv/async/start</a>
 	 * 
+	 * When the result is not ready yet, this methog will return a status code of 202 (ACCEPTED) and the response body
+	 * will be a <a href="${org.sagebionetworks.repo.model.table.TableStatus}" >TableStatus</a> object.
+	 * 
 	 * @param userId
 	 * @param asyncToken
 	 * @return
@@ -806,6 +775,9 @@ public class TableController extends BaseController {
 	/**
 	 * Asynchronously get the results of a csv upload started with href="${POST.table.upload.csv.async.start}">POST
 	 * /table/upload/csv/async/start</a>
+	 * 
+	 * When the result is not ready yet, this methog will return a status code of 202 (ACCEPTED) and the response body
+	 * will be a <a href="${org.sagebionetworks.repo.model.table.TableStatus}" >TableStatus</a> object.
 	 * 
 	 * @param userId
 	 * @param asyncToken

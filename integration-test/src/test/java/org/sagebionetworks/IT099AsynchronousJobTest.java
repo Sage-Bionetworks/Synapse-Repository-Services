@@ -248,37 +248,33 @@ public class IT099AsynchronousJobTest {
 		}
 	}
 	
-	public RowSet waitForQuery(String sql) throws InterruptedException, SynapseException {
-		long start = System.currentTimeMillis();
-		while(true){
-			try {
-				QueryResultBundle queryResultsBundle = synapse.queryTableEntityBundle(sql, null, null, true, SynapseClient.QUERY_PARTMASK);
-				return queryResultsBundle.getQueryResult().getQueryResults();
-			} catch (SynapseTableUnavailableException e) {
-				// The table is not ready yet
-				assertFalse("Table processing failed: "+e.getStatus().getErrorMessage(), TableState.PROCESSING_FAILED.equals(e.getStatus().getState()));
-				System.out.println("Waiting for table index to be available: "+e.getStatus());
-				Thread.sleep(2000);
-				assertTrue("Timed out waiting for query results for sql: "+sql,System.currentTimeMillis()-start < MAX_WAIT_MS);
+	public RowSet waitForQuery(String sql) throws Exception {
+		final String asyncToken = synapse.queryTableEntityBundleAsyncStart(sql, null, null, true, SynapseClient.QUERY_PARTMASK);
+		return TimeUtils.waitFor(MAX_WAIT_MS, 500L, new Callable<Pair<Boolean, RowSet>>() {
+			@Override
+			public Pair<Boolean, RowSet> call() throws Exception {
+				try {
+					QueryResultBundle result = synapse.queryTableEntityBundleAsyncGet(asyncToken);
+					return Pair.create(true, result.getQueryResult().getQueryResults());
+				} catch (SynapseResultNotReadyException e) {
+					return Pair.create(false, null);
+				}
 			}
-		}
+		});
 	}
 
-	
-	public Long waitForCount(String sql) throws InterruptedException, SynapseException {
-		long start = System.currentTimeMillis();
-		while (true) {
-			try {
-				QueryResultBundle queryResultsBundle = synapse.queryTableEntityBundle(sql, null, null, true, SynapseClient.COUNT_PARTMASK);
-				return queryResultsBundle.getQueryCount();
-			} catch (SynapseTableUnavailableException e) {
-				// The table is not ready yet
-				assertFalse("Table processing failed: " + e.getStatus().getErrorMessage(),
-						TableState.PROCESSING_FAILED.equals(e.getStatus().getState()));
-				System.out.println("Waiting for table index to be available: " + e.getStatus());
-				Thread.sleep(2000);
-				assertTrue("Timed out waiting for query results for sql: " + sql, System.currentTimeMillis() - start < MAX_WAIT_MS);
+	public Long waitForCount(String sql) throws Exception {
+		final String asyncToken = synapse.queryTableEntityBundleAsyncStart(sql, null, null, true, SynapseClient.COUNT_PARTMASK);
+		return TimeUtils.waitFor(MAX_WAIT_MS, 500L, new Callable<Pair<Boolean, Long>>() {
+			@Override
+			public Pair<Boolean, Long> call() throws Exception {
+				try {
+					QueryResultBundle result = synapse.queryTableEntityBundleAsyncGet(asyncToken);
+					return Pair.create(true, result.getQueryCount());
+				} catch (SynapseResultNotReadyException e) {
+					return Pair.create(false, null);
+				}
 			}
-		}
+		});
 	}
 }

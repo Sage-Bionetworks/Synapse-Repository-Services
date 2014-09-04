@@ -26,9 +26,6 @@ import com.amazonaws.services.sqs.model.Message;
 /**
  * This worker will stream the results of a table SQL query to a local CSV file and upload the file
  * to S3 as a FileHandle.
- * 
- * @author jmhill
- *
  */
 public class TableQueryNextPageWorker implements Worker {
 

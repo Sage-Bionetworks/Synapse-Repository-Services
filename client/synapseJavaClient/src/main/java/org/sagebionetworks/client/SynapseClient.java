@@ -1231,21 +1231,12 @@ public interface SynapseClient extends BaseClient {
 			throws SynapseException;
 
 	/**
-	 * Query for data in a table entity.
-	 * @param sql
-	 * @return
-	 * @throws SynapseException
-	 * @throws SynapseTableUnavailableException Thrown when the table index is not ready for query.  The exception will contain the status of the table.
-	 */
-	public QueryResult queryTableEntity(String sql) throws SynapseException, SynapseTableUnavailableException;
-	
-	/**
-	 * Query for data in a table entity.  The bundled version of the query returns more information than just the query result.
-	 * The parts included in the bundle are determined by the passed mask.
+	 * Query for data in a table entity asynchronously. The bundled version of the query returns more information than
+	 * just the query result. The parts included in the bundle are determined by the passed mask.
 	 * 
 	 * <p>
-	 * The 'partMask' is an integer "mask" that can be combined into to request
-	 * any desired part. As of this writing, the mask is defined as follows:
+	 * The 'partMask' is an integer "mask" that can be combined into to request any desired part. As of this writing,
+	 * the mask is defined as follows:
 	 * <ul>
 	 * <li>Query Results <i>(queryResults)</i> = 0x1</li>
 	 * <li>Query Count <i>(queryCount)</i> = 0x2</li>
@@ -1257,6 +1248,7 @@ public interface SynapseClient extends BaseClient {
 	 * For example, to request all parts, the request mask value should be: <br>
 	 * 0x1 OR 0x2 OR 0x4 OR 0x8 = 0x15.
 	 * </p>
+	 * 
 	 * @param sql
 	 * @param isConsistent
 	 * @param partMask
@@ -1269,21 +1261,6 @@ public interface SynapseClient extends BaseClient {
 	public static final int COLUMNS_PARTMASK = 0x4;
 	public static final int MAXROWS_PARTMASK = 0x8;
 
-	public QueryResultBundle queryTableEntityBundle(String sql, Long offset, Long limit, boolean isConsistent, int partMask)
-			throws SynapseException, SynapseTableUnavailableException;
-
-	/**
-	 * Start an asynchronous version of queryTableEntityBundle
-	 * 
-	 * @param sql
-	 * @param offset
-	 * @param limit
-	 * @param isConsistent
-	 * @param partMask
-	 * @return a token to get the result with
-	 * @throws SynapseException
-	 * @throws SynapseTableUnavailableException
-	 */
 	public String queryTableEntityBundleAsyncStart(String sql, Long offset, Long limit, boolean isConsistent, int partMask)
 			throws SynapseException;
 
@@ -1298,18 +1275,7 @@ public interface SynapseClient extends BaseClient {
 	public QueryResultBundle queryTableEntityBundleAsyncGet(String asyncJobToken) throws SynapseException, SynapseResultNotReadyException;
 
 	/**
-	 * Query for data in a table entity.
-	 * 
-	 * @param sql
-	 * @return
-	 * @throws SynapseException
-	 * @throws SynapseTableUnavailableException Thrown when the table index is not ready for query. The exception will
-	 *         contain the status of the table.
-	 */
-	public QueryResult queryTableEntityNextPage(String nextPageToken) throws SynapseException;
-
-	/**
-	 * Start an asynchronous version of queryTableEntityNextPage
+	 * Query for data in a table entity. Start an asynchronous version of queryTableEntityNextPage
 	 * 
 	 * @param nextPageToken
 	 * @return a token to get the result with
