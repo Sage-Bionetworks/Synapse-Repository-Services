@@ -543,9 +543,6 @@ public class TableController extends BaseController {
 	}
 
 	/**
-	 * Asynchronously start a query. Use the returned job id and href="${POST.table.query.async.get}">POST
-	 * /table/query/async/get</a> to get the results of the query
-	 * 
 	 * <p>
 	 * Using a 'SQL like' syntax, query the current version of the rows in a single table. The following pseudo-syntax
 	 * is the basic supported format:
@@ -618,6 +615,25 @@ public class TableController extends BaseController {
 	 * @throws TableFailedException
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.TABLE_QUERY, method = RequestMethod.POST)
+	public @ResponseBody
+	QueryResultBundle query(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @RequestBody QueryBundleRequest query)
+			throws DatastoreException, NotFoundException, IOException, TableUnavilableException, TableFailedException {
+		return serviceProvider.getTableServices().queryBundle(userId, query);
+	}
+
+	/**
+	 * Asynchronously start a query. Use the returned job id and href="${POST.table.query.async.get}">POST
+	 * /table/query/async/get</a> to get the results of the query
+	 * 
+	 * @param userId
+	 * @param query
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.TABLE_QUERY_ASYNC_START, method = RequestMethod.POST)
 	public @ResponseBody
 	AsyncJobId queryAsyncStart(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @RequestBody QueryBundleRequest query)
@@ -650,7 +666,7 @@ public class TableController extends BaseController {
 
 	/**
 	 * Get the next page of results for the query. The page token comes from the query result of a <a
-	 * href="${POST.table.query}">POST /table/query/async/start</a>.
+	 * href="${POST.table.query}">POST /table/query</a>.
 	 * 
 	 * @param userId
 	 * @param queryPageToken
@@ -672,7 +688,7 @@ public class TableController extends BaseController {
 	}
 
 	/**
-	 * Asynchronously get a next page of a query. Use the returned job id and
+	 * Asynchronously get a next page of aquery. Use the returned job id and
 	 * href="${POST.table.query.nextPage.async.get}">POST /table/query/nextPage/async/get</a> to get the results of the
 	 * query
 	 * 
