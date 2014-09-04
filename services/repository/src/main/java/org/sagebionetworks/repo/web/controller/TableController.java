@@ -623,7 +623,7 @@ public class TableController extends BaseController {
 	}
 
 	/**
-	 * Asynchronously start a query. Use the returned job id and href="${POST.table.query.async.get}">POST
+	 * Asynchronously start a query. Use the returned job id and href="${GET.table.query.async.get}">POST
 	 * /table/query/async/get</a> to get the results of the query
 	 * 
 	 * @param userId
