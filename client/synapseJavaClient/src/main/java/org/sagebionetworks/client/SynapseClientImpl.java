@@ -58,6 +58,7 @@ import org.sagebionetworks.repo.model.annotation.AnnotationsUtils;
 import org.sagebionetworks.repo.model.asynch.AsyncJobId;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
+import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
@@ -245,8 +246,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	
 	private static final String STORAGE_SUMMARY_PATH = "/storageSummary";
 	
-	private static final String ASYNC_START = "/async/start";
-	private static final String ASYNC_GET = "/async/get/";
+	protected static final String ASYNC_START = "/async/start";
+	protected static final String ASYNC_GET = "/async/get/";
 
 	protected static final String COLUMN = "/column";
 	protected static final String TABLE = "/table";
@@ -3630,10 +3631,19 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return getSharedClientConnection().getJson(endpoint, uri, getUserAgent());
 	}
 
-	private <T extends JSONEntity> T getAsyncResult(String url, Class<? extends T> returnClass) throws SynapseException,
+	
+	@Override
+	public String startAsynchJob(AsynchJobType type,
+			AsynchronousRequestBody request) throws SynapseException {
+		AsyncJobId jobId = asymmetricalPost(getRepoEndpoint(), type.getStartUrl(), request, AsyncJobId.class, null);
+		return jobId.getToken();
+	}
+	
+	@Override
+	public AsynchronousResponseBody getAsyncResult(AsynchJobType type,	String jobId) throws SynapseException,
 			SynapseClientException, SynapseResultNotReadyException {
 		try {
-			JSONObject responseBody = getSharedClientConnection().getJson(getRepoEndpoint(), url, getUserAgent(),
+			JSONObject responseBody = getSharedClientConnection().getJson(getRepoEndpoint(), type.getResultUrl(jobId), getUserAgent(),
 					new SharedClientConnection.ErrorHandler() {
 						@Override
 						public void handleError(int code, String responseBody) throws SynapseException {
@@ -3648,7 +3658,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 							}
 						}
 					});
-			return EntityFactory.createEntityFromJSONObject(responseBody, returnClass);
+			return EntityFactory.createEntityFromJSONObject(responseBody, type.getReponseClass());
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseClientException(e);
 		}
@@ -5367,7 +5377,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	@Override
 	public String queryTableEntityBundleAsyncStart(String sql, Long offset, Long limit, boolean isConsistent, int partsMask)
 			throws SynapseException {
-		String url = TABLE_QUERY + ASYNC_START + "?partsMask=" + partsMask;
 		Query query = new Query();
 		query.setSql(sql);
 		query.setIsConsistent(isConsistent);
@@ -5376,29 +5385,24 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		QueryBundleRequest bundleRequest = new QueryBundleRequest();
 		bundleRequest.setQuery(query);
 		bundleRequest.setPartMask((long) partsMask);
-		AsyncJobId jobId = asymmetricalPost(getRepoEndpoint(), url, bundleRequest, AsyncJobId.class, null);
-		return jobId.getToken();
+		return startAsynchJob(AsynchJobType.TableQuery, bundleRequest);
 	}
 
 	@Override
 	public QueryResultBundle queryTableEntityBundleAsyncGet(String asyncJobToken) throws SynapseException, SynapseResultNotReadyException {
-		String url = TABLE_QUERY + ASYNC_GET + asyncJobToken;
-		return getAsyncResult(url, QueryResultBundle.class);
+		return (QueryResultBundle) getAsyncResult(AsynchJobType.TableQuery, asyncJobToken);
 	}
 
 	@Override
 	public String queryTableEntityNextPageAsyncStart(String nextPageToken) throws SynapseException {
 		QueryNextPageToken queryNextPageToken = new QueryNextPageToken();
 		queryNextPageToken.setToken(nextPageToken);
-		AsyncJobId asyncJobId = asymmetricalPost(getRepoEndpoint(), TABLE_QUERY_NEXTPAGE + ASYNC_START, queryNextPageToken, AsyncJobId.class,
-				null);
-		return asyncJobId.getToken();
+		return startAsynchJob(AsynchJobType.TableQueryNextPage, queryNextPageToken);
 	}
 
 	@Override
 	public QueryResult queryTableEntityNextPageAsyncGet(String asyncJobToken) throws SynapseException, SynapseResultNotReadyException {
-		String url = TABLE_QUERY_NEXTPAGE + ASYNC_GET + asyncJobToken;
-		return getAsyncResult(url, QueryResult.class);
+		return (QueryResult) getAsyncResult(AsynchJobType.TableQueryNextPage, asyncJobToken);
 	}
 
 	@Override
@@ -5409,14 +5413,12 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		downloadRequest.setWriteHeader(writeHeader);
 		downloadRequest.setIncludeRowIdAndRowVersion(includeRowIdAndRowVersion);
 		downloadRequest.setCsvTableDescriptor(csvDescriptor);
-		AsyncJobId asyncJobId = asymmetricalPost(getRepoEndpoint(), TABLE_DOWNLOAD_CSV + ASYNC_START, downloadRequest, AsyncJobId.class, null);
-		return asyncJobId.getToken();
+		return startAsynchJob(AsynchJobType.TableCSVDownload, downloadRequest);
 	}
 
 	@Override
 	public DownloadFromTableResult downloadCsvFromTableAsyncGet(String asyncJobToken) throws SynapseException, SynapseResultNotReadyException {
-		String url = TABLE_DOWNLOAD_CSV + ASYNC_GET + asyncJobToken;
-		return getAsyncResult(url, DownloadFromTableResult.class);
+		return (DownloadFromTableResult) getAsyncResult(AsynchJobType.TableCSVDownload, asyncJobToken);
 	}
 
 	@Override
@@ -5428,14 +5430,12 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		uploadRequest.setUpdateEtag(etag);
 		uploadRequest.setLinesToSkip(linesToSkip);
 		uploadRequest.setCsvTableDescriptor(csvDescriptor);
-		AsyncJobId asyncJobId = asymmetricalPost(getRepoEndpoint(), TABLE_UPLOAD_CSV + ASYNC_START, uploadRequest, AsyncJobId.class, null);
-		return asyncJobId.getToken();
+		return startAsynchJob(AsynchJobType.TableCSVUpload, uploadRequest);
 	}
 
 	@Override
 	public UploadToTableResult uploadCsvToTableAsyncGet(String asyncJobToken) throws SynapseException, SynapseResultNotReadyException {
-		String url = TABLE_UPLOAD_CSV + ASYNC_GET + asyncJobToken;
-		return getAsyncResult(url, UploadToTableResult.class);
+		return (UploadToTableResult) getAsyncResult(AsynchJobType.TableCSVUpload, asyncJobToken);
 	}
 
 	@Override
@@ -6055,5 +6055,6 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throw new SynapseClientException(e);
 		}
 	}
+
 }
 

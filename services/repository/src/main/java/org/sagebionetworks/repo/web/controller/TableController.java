@@ -632,8 +632,8 @@ public class TableController extends BaseController {
 	 * Asynchronously get the results of a query started with href="${POST.table.query.async.start}">POST
 	 * /table/query/async/start</a>.
 	 * 
-	 * When the result is not ready yet, this methog will return a status code of 202 (ACCEPTED) and the response body
-	 * will be a <a href="${org.sagebionetworks.repo.model.table.TableStatus}" >TableStatus</a> object.
+	 * When the result is not ready yet, this method will return a status code of 202 (ACCEPTED) and the response body
+	 * will be a <a href="${org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus}" >AsynchronousJobStatus</a> object.
 	 * 
 	 * @param userId
 	 * @param asyncToken
@@ -679,8 +679,8 @@ public class TableController extends BaseController {
 	 * Asynchronously get the results of a nextPage query started with
 	 * href="${POST.table.query.nextPage.async.start}">POST /table/query/nextPage/async/start</a>
 	 * 
-	 * When the result is not ready yet, this methog will return a status code of 202 (ACCEPTED) and the response body
-	 * will be a <a href="${org.sagebionetworks.repo.model.table.TableStatus}" >TableStatus</a> object.
+	 * When the result is not ready yet, this method will return a status code of 202 (ACCEPTED) and the response body
+	 * will be a <a href="${org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus}" >AsynchronousJobStatus</a> object.
 	 * 
 	 * @param userId
 	 * @param asyncToken
@@ -727,8 +727,8 @@ public class TableController extends BaseController {
 	 * Asynchronously get the results of a csv download started with href="${POST.table.download.csv.async.start}">POST
 	 * /table/download/csv/async/start</a>
 	 * 
-	 * When the result is not ready yet, this methog will return a status code of 202 (ACCEPTED) and the response body
-	 * will be a <a href="${org.sagebionetworks.repo.model.table.TableStatus}" >TableStatus</a> object.
+	 * When the result is not ready yet, this method will return a status code of 202 (ACCEPTED) and the response body
+	 * will be a <a href="${org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus}" >AsynchronousJobStatus</a> object.
 	 * 
 	 * @param userId
 	 * @param asyncToken
@@ -776,8 +776,8 @@ public class TableController extends BaseController {
 	 * Asynchronously get the results of a csv upload started with href="${POST.table.upload.csv.async.start}">POST
 	 * /table/upload/csv/async/start</a>
 	 * 
-	 * When the result is not ready yet, this methog will return a status code of 202 (ACCEPTED) and the response body
-	 * will be a <a href="${org.sagebionetworks.repo.model.table.TableStatus}" >TableStatus</a> object.
+	 * When the result is not ready yet, this method will return a status code of 202 (ACCEPTED) and the response body
+	 * will be a <a href="${org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus}" >AsynchronousJobStatus</a> object.
 	 * 
 	 * @param userId
 	 * @param asyncToken
