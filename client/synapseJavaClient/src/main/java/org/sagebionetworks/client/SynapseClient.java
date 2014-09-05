@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
+import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
@@ -1283,6 +1284,23 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseTableUnavailableException
 	 */
 	public String queryTableEntityNextPageAsyncStart(String nextPageToken) throws SynapseException, SynapseResultNotReadyException;
+	
+	/**
+	 * Start an Asynchronous job of the given type.
+	 * @param type The type of job.
+	 * @param request The request body.
+	 * @return The jobId is used to get the job results.
+	 */
+	public String startAsynchJob(AsynchJobType type, AsynchronousRequestBody request) throws SynapseException;
+	
+	/**
+	 * Get the results of an Asynchronous job.
+	 * @param type The type of job.
+	 * @param jobId The JobId.
+	 * @throws SynapseResultNotReadyException if the job is not ready.
+	 * @return
+	 */
+	public AsynchronousResponseBody getAsyncResult(AsynchJobType type, String jobId) throws SynapseException, SynapseResultNotReadyException;
 
 	/**
 	 * Get the result of an asynchronous queryTableEntityNextPage
