@@ -33,7 +33,7 @@ public enum AsynchJobType {
 	 * Get the URL used to start this job type.
 	 */
 	public  String getStartUrl(){
-		return prefix+SynapseClientImpl.ASYNC_START;
+		return prefix+ASYNC_START;
 	}
 
 	/**
@@ -42,7 +42,7 @@ public enum AsynchJobType {
 	 * @return
 	 */
 	public String getResultUrl(String token){
-		return prefix+SynapseClientImpl.ASYNC_GET + token;
+		return prefix+ASYNC_GET + token;
 	}
 	
 	/**
