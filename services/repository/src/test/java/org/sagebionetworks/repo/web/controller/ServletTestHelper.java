@@ -16,33 +16,9 @@ import org.apache.commons.lang.StringUtils;
 import org.json.JSONObject;
 import org.junit.Assert;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.model.ACLInheritanceException;
-import org.sagebionetworks.repo.model.AccessApproval;
-import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.AccessRequirement;
-import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.BooleanResult;
-import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.EntityId;
-import org.sagebionetworks.repo.model.EntityIdList;
-import org.sagebionetworks.repo.model.EntityPath;
-import org.sagebionetworks.repo.model.MembershipInvtnSubmission;
-import org.sagebionetworks.repo.model.PaginatedResults;
-import org.sagebionetworks.repo.model.QueryResults;
-import org.sagebionetworks.repo.model.Reference;
-import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
-import org.sagebionetworks.repo.model.Team;
-import org.sagebionetworks.repo.model.TrashedEntity;
-import org.sagebionetworks.repo.model.UserGroup;
-import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
-import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.VersionInfo;
-import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
@@ -70,18 +46,11 @@ import org.sagebionetworks.repo.model.storage.StorageUsage;
 import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
-import org.sagebionetworks.repo.model.table.Query;
-import org.sagebionetworks.repo.model.table.QueryBundleRequest;
-import org.sagebionetworks.repo.model.table.QueryNextPageToken;
-import org.sagebionetworks.repo.model.table.QueryResult;
-import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
-import org.sagebionetworks.repo.model.table.TableStatus;
-import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -1433,41 +1402,6 @@ public class ServletTestHelper {
 		return pcm.getResults();
 	}
 	
-	public QueryResultBundle tableQuery(DispatcherServlet instance, Long userId, QueryBundleRequest queryBundle) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.POST, UrlHelpers.TABLE_QUERY, userId, queryBundle);
-		
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		instance.service(request, response);
-		String reponseString = response.getContentAsString();
-		if(response.getStatus() == 201){
-			return EntityFactory.createEntityFromJSONString(reponseString, QueryResultBundle.class);
-		}else if(response.getStatus() == 202){
-			TableStatus status = EntityFactory.createEntityFromJSONString(reponseString, TableStatus.class);
-			throw new TableUnavilableException(status);
-		}else{
-			ServletTestHelperUtils.handleException(response.getStatus(), response.getContentAsString());
-			return null;
-		}
-	}
-	
-	public QueryResult tableQueryNextPage(DispatcherServlet instance, Long userId, QueryNextPageToken nextPageToken) throws Exception {
-		MockHttpServletRequest request = ServletTestHelperUtils.initRequest(HTTPMODE.POST, UrlHelpers.TABLE_QUERY_NEXT_PAGE, userId,
-				nextPageToken);
-
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		instance.service(request, response);
-		String reponseString = response.getContentAsString();
-		if (response.getStatus() == 201) {
-			return EntityFactory.createEntityFromJSONString(reponseString, QueryResult.class);
-		} else if (response.getStatus() == 202) {
-			TableStatus status = EntityFactory.createEntityFromJSONString(reponseString, TableStatus.class);
-			throw new TableUnavilableException(status);
-		} else {
-			ServletTestHelperUtils.handleException(response.getStatus(), response.getContentAsString());
-			return null;
-		}
-	}
-
 	/**
 	 * Start a new Asynchronous Job.
 	 * 
