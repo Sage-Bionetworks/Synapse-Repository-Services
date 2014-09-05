@@ -1,6 +1,19 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_CM_OBJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_CM_ORD_OBJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_OWNER_OBJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_BUCKET;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_KEY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_ROW_TABLE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_BOUND_COLUMN;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_BOUND_COLUMN_ORDINAL;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_BOUND_COLUMN_OWNER;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ROW_CHANGE;
 
 import java.util.Collections;
 import java.util.Date;
@@ -28,9 +41,6 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
-import org.sagebionetworks.repo.model.table.Query;
-import org.sagebionetworks.repo.model.table.QueryBundleRequest;
-import org.sagebionetworks.repo.model.table.QueryNextPageToken;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
@@ -38,17 +48,12 @@ import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
-import org.sagebionetworks.repo.model.table.TableState;
-import org.sagebionetworks.repo.model.table.TableStatus;
-import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.google.common.collect.Lists;
-
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
 public class TableControllerAutowireTest extends AbstractAutowiredControllerTestBase {
 
@@ -622,73 +627,6 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 		assertEquals(expected, pcm.getResults());
 	}
 	
-	@Test
-	public void testTableQueryTableUnavailable() throws ServletException, Exception{
-		// Create a table with two ColumnModels
-		// one
-		ColumnModel one = new ColumnModel();
-		one.setName("foo");
-		one.setColumnType(ColumnType.INTEGER);
-		one = servletTestHelper.createColumnModel(dispatchServlet, one, adminUserId);
-		// two
-		ColumnModel two = new ColumnModel();
-		two.setName("bar");
-		two.setColumnType(ColumnType.STRING);
-		two = servletTestHelper.createColumnModel(dispatchServlet, two, adminUserId);
-		// Now create a TableEntity with these Columns
-		TableEntity table = new TableEntity();
-		table.setName("TableEntity2");
-		table.setParentId(parent.getId());
-		List<String> idList = new LinkedList<String>();
-		idList.add(one.getId());
-		idList.add(two.getId());
-		table.setColumnIds(idList);
-		table = servletTestHelper.createEntity(dispatchServlet, table, adminUserId);
-		entitiesToDelete.add(table.getId());
-		assertNotNull(table);
-		assertNotNull(table.getId());
-		TableEntity clone = servletTestHelper.getEntity(dispatchServlet, TableEntity.class, table.getId(), adminUserId);
-		assertNotNull(clone);
-		assertEquals(table, clone);
-		// Now make sure we can get the list of columns for this entity
-		List<ColumnModel> cols = servletTestHelper.getColumnModelsForTableEntity(dispatchServlet, table.getId(),
-				adminUserId);
-		assertNotNull(cols);
-		
-		// Add some rows to the table.
-		RowSet set = new RowSet();
-		List<Row> rows = TableModelTestUtils.createRows(cols, 2);
-		set.setRows(rows);
-		set.setHeaders(TableModelUtils.getHeaders(cols));
-		set.setTableId(table.getId());
-		servletTestHelper.appendTableRows(dispatchServlet, set, adminUserId);
-		
-		// Since the worker is not working on the table, this should fail
-		try{
-			Query query = new Query();
-			query.setSql("select * from "+table.getId()+" limit 2");
-			QueryBundleRequest queryBundleRequest = new QueryBundleRequest();
-			queryBundleRequest.setQuery(query);
-			servletTestHelper.tableQuery(dispatchServlet, adminUserId, queryBundleRequest);
-			fail("This should have failed");
-		}catch(TableUnavilableException e){
-			TableStatus status = e.getStatus();
-			assertNotNull(status);
-			assertEquals(TableState.PROCESSING, status.getState());
-			assertEquals(KeyFactory.stringToKey(table.getId()).toString(), status.getTableId());
-			// expected
-			System.out.println(e.getStatus());
-		}
-		
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testInvalidNextPage() throws ServletException, Exception {
-		QueryNextPageToken token = new QueryNextPageToken();
-		token.setToken("invalid");
-		servletTestHelper.tableQueryNextPage(dispatchServlet, adminUserId, token);
-	}
-
 	@Test
 	public void testDeleteTableEntity() throws Exception {
 		ColumnModel one = new ColumnModel();
