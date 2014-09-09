@@ -126,7 +126,7 @@ public class TableCSVAppenderWorker implements Worker {
 			CSVToRowIterator iterator = new CSVToRowIterator(tableSchema, reader);
 			ProgressingIteratorProxy iteratorProxy = new  ProgressingIteratorProxy(iterator, progressReporter);
 			// Append the data to the table
-			String etag = tableRowManager.appendRowsAsStream(user, body.getTableId(), tableSchema, iteratorProxy, null, null);
+			String etag = tableRowManager.appendRowsAsStream(user, body.getTableId(), tableSchema, iteratorProxy, body.getUpdateEtag(), null);
 			// Done
 			UploadToTableResult result = new UploadToTableResult();
 			result.setRowsProcessed(new Long(progressReporter.getRowNumber() + 1));
