@@ -370,10 +370,12 @@ public class SharedClientConnection {
 	private static void convertHttpResponseToException(int statusCode, JSONObject responseBody) throws SynapseException {
 		if (isOKStatusCode(statusCode)) return;
 		String reasonStr = null;
-		try {
-			reasonStr = responseBody.getString(ERROR_REASON_TAG);
-		} catch (JSONException e) {
-			throw new SynapseClientException(e);
+		if (responseBody!=null) {
+			try {
+				reasonStr = responseBody.getString(ERROR_REASON_TAG);
+			} catch (JSONException e) {
+				throw new SynapseClientException(e);
+			}
 		}
 		if (statusCode == HttpStatus.SC_UNAUTHORIZED) {
 			throw new SynapseUnauthorizedException(reasonStr);
