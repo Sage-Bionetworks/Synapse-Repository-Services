@@ -3,7 +3,6 @@ package org.sagebionetworks;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.FileReader;
@@ -24,9 +23,8 @@ import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
-import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
-import org.sagebionetworks.client.exceptions.SynapseTableUnavailableException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
@@ -38,7 +36,6 @@ import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableEntity;
-import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.TimeUtils;
@@ -69,7 +66,11 @@ public class IT099AsynchronousJobTest {
 		SynapseClientHelper.setEndpoints(adminSynapse);
 		adminSynapse.setUserName(StackConfiguration.getMigrationAdminUsername());
 		adminSynapse.setApiKey(StackConfiguration.getMigrationAdminAPIKey());
-		adminSynapse.clearAllLocks();
+		try {
+			adminSynapse.clearAllLocks();
+		} catch (SynapseNotFoundException nfe) {
+			// if not found, then just continue
+		}
 		synapse = new SynapseClientImpl();
 		userToDelete = SynapseClientHelper.createUser(adminSynapse, synapse);
 	}
@@ -104,6 +105,7 @@ public class IT099AsynchronousJobTest {
 	@Test
 	public void testUploadCSVToTable() throws Exception{
 		File temp = File.createTempFile("UploadCSVTest", ".csv");
+		File tempUpdate = File.createTempFile("UpdateCSVTest", ".csv");
 		try{
 			// Create a table with some columns
 			ColumnModel cm1 = new ColumnModel();
@@ -188,7 +190,7 @@ public class IT099AsynchronousJobTest {
 			assertEquals(rowCount, results.getRows().size());
 
 			assertEquals(rowCount, waitForCount(sql).longValue());
-
+			
 			// Now start a download job
 			final String downloadToken = synapse.downloadCsvFromTableAsyncStart("select * from " + table.getId(), true, true, null);
 			try {
@@ -243,8 +245,77 @@ public class IT099AsynchronousJobTest {
 				// Check the first column
 				assertEquals(row.getValues().get(0), row2[2]);
 			}
-		}finally{
+			
+			// In PLFM-2979, updating a table by uploading a CSV file fails
+			// So here we add an integration test.
+			// Now create a CSV
+			csv = new CSVWriter(new FileWriter(tempUpdate));
+			try{
+				// this duplicates the first file upload but adds the row id
+				// Write the header
+				csv.writeNext(new String[]{"ROW_ID", cm1.getName(), cm2.getName()}); // TODO add ROW_VERSION???
+				// Write some rows
+				for(int i=0; i<rowCount; i++){
+					Row row = results.getRows().get(i);
+					long j = rowCount-i;
+					csv.writeNext(new String[]{row.getRowId().toString(), ""+j, "data"+j});
+				}
+			}finally{
+				csv.flush();
+				csv.close();
+			}
+			
+			// Now upload this CSV as a file handle
+			fileHandle = synapse.createFileHandle(tempUpdate, "text/csv", project.getId());
+			filesToDelete.add(fileHandle);
+			// We now have enough to apply the data to the table
+			final String updateUploadToken = synapse.uploadCsvToTableAsyncStart(table.getId(), fileHandle.getId(), 
+					downloadResult.getEtag(), null, null);
+			try {
+				synapse.uploadCsvToTableAsyncGet(updateUploadToken);
+			} catch (SynapseResultNotReadyException e) {
+				status = e.getJobStatus();
+				assertNotNull(status);
+				assertNotNull(status.getJobId());
+			}
+			
+			// Now make sure we can get the status
+			status = synapse.getAsynchronousJobStatus(updateUploadToken);
+			assertNotNull(status);
+			assertNotNull(status.getJobId());
+
+			// Wait for the job to finish
+			uploadResult = TimeUtils.waitFor(MAX_WAIT_MS, 500L, new Callable<Pair<Boolean, UploadToTableResult>>() {
+				@Override
+				public Pair<Boolean, UploadToTableResult> call() throws Exception {
+					try {
+						UploadToTableResult uploadResult = synapse.uploadCsvToTableAsyncGet(updateUploadToken);
+						return Pair.create(true, uploadResult);
+					} catch (SynapseResultNotReadyException e) {
+						return Pair.create(false, null);
+					}
+				}
+			});
+			assertNotNull(uploadResult.getEtag());
+			assertEquals(rowCount, uploadResult.getRowsProcessed().longValue());
+
+			// Wait for the table to be ready
+			final RowSet updateResults = waitForQuery(sql);
+			assertEquals(rowCount, updateResults.getRows().size());
+
+			assertEquals(rowCount, waitForCount(sql).longValue());
+			
+			// since we updated the table this result should be different
+			assertFalse(updateResults.getRows().equals(results.getRows()));
+			assertFalse(results.getEtag().equals(updateResults.getEtag()));
+			for (Row row : updateResults.getRows()) {
+				Long rowId = row.getRowId();
+				List<String> rowValues = row.getValues();
+			}
+			
+		} finally{
 			temp.delete();
+			tempUpdate.delete();
 		}
 	}
 	
