@@ -1,0 +1,28 @@
+{
+	"description": "Resulting preview of a CSV upload to a Table.",
+	"implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody"
+        }
+    ],
+	"properties": {
+		"headerColumns": {
+		    "description":"The list of ColumnModels that are compatible with the CSV file. If a tableId was provided in the request an attempt will be made to match the existing columns.  Any ColumnModel that matches the current table schema will have an ID.  Any column that does not have an ID must be added to the table before the upload will be successful",
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.table.ColumnModel"
+			}
+		},
+		"sampleRows": {
+		    "description":"A sampling of the first few rows applied to the table.",
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.table.Row"
+			}
+		},
+		"rowCount":{
+			"description":"The total number of rows found the CSV file",
+			"type": "integer"
+		}
+	}
+}

@@ -16,6 +16,10 @@
 		"lineEnd": {
 			"type": "string",
 			"description": "The line feed terminator to be used for the resulting file.  The default value of '\\n' will be used if this is not provided by the caller."
+		},
+		"isFirstLineHeader": {
+			"type": "boolean",
+			"description": "Is the first line a header?  The default value of 'true' will be used if this is not provided by the caller."
 		}
 	}
 }

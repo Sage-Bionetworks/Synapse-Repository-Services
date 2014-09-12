@@ -75,6 +75,7 @@
 				<ref bean="tableCurrentCacheQueueMessageReveiverTrigger" />
 				<ref bean="cloudwatchTrigger" />
 				<ref bean="tableCSVAppenderQueueMessageReveiverTrigger" />
+				<ref bean="tableCSVAppenderPreviewQueueMessageReveiverTrigger" />
 				<ref bean="tableCSVDownloaderQueueMessageReveiverTrigger" />
 				<ref bean="tableQueryQueueMessageReveiverTrigger" />
 				<ref bean="tableQueryNextPageQueueMessageReveiverTrigger" />

@@ -28,6 +28,7 @@ public class CSVToRowIterator implements Iterator<Row> {
 	Integer rowIdIndex;
 	Integer rowVersionIndex;
 	int[] indexMapping;
+	boolean isFirstLineHeader;
 
 	/**
 	 * Create a new object for each use.
@@ -41,9 +42,10 @@ public class CSVToRowIterator implements Iterator<Row> {
 	 * @param progressReporter
 	 * @throws IOException
 	 */
-	public CSVToRowIterator(List<ColumnModel> resultSchema, CsvNullReader reader)
+	public CSVToRowIterator(List<ColumnModel> resultSchema, CsvNullReader reader, boolean isFirstLineHeader)
 			throws IOException {
 		super();
+		this.isFirstLineHeader = isFirstLineHeader;
 		this.resultSchema = resultSchema;
 		this.reader = reader;
 		this.headers = TableModelUtils.getHeaders(resultSchema);
@@ -53,6 +55,9 @@ public class CSVToRowIterator implements Iterator<Row> {
 		// We need a map of column ID to index.
 		idToIndexMap = TableModelUtils.createColumnIdToIndexMapFromFirstRow(
 				lastRow, resultSchema);
+		if(idToIndexMap == null && this.isFirstLineHeader){
+			throw new IllegalArgumentException("The first line was expected to be a header but the values did not match the names of of the columns of the table. Header row: "+lastRow);
+		}
 		if (idToIndexMap != null) {
 			// Since the first row was a header, we need to next row to start.
 			lastRow = reader.readNext();

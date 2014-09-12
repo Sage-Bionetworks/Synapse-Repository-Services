@@ -1,0 +1,25 @@
+{
+	"description": "Request for a preview of an upload to a Table. ",
+	"implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody"
+        }
+    ],
+	"properties": {
+		"tableId": {
+			"type": "string",
+			"description": "This is an optional parameter.  If provided the current schema of the table will be evaluated and compared to the headers in the CSV."
+		},
+		"uploadFileHandleId": {
+			"type": "string",
+			"description": "The ID of the file handle for a type of UPLOAD"
+		},
+		"linesToSkip": {
+			"type": "integer",
+			"description": "The number of lines to skip from the start of the file.  The default value of 0 will be used if this is not provided by the caller."
+		},
+		"csvTableDescriptor": {
+			"$ref":"org.sagebionetworks.repo.model.table.CsvTableDescriptor"
+		}
+	}
+}
