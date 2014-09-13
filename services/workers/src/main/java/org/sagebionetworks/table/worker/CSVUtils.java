@@ -1,12 +1,12 @@
 package org.sagebionetworks.table.worker;
 
 import java.io.Reader;
-import java.util.List;
 
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
+import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.util.csv.CsvNullReader;
 
 public class CSVUtils {
@@ -72,6 +72,21 @@ public class CSVUtils {
 		}
 		// default to true
 		return true;
+	}
+	
+	/**
+	 * Do a full scan?  If null then false.
+	 * 
+	 * @param request
+	 * @return
+	 */
+	public static boolean doFullScan(UploadToTablePreviewRequest request){
+		if(request != null){
+			if(request.getDoFullFileScan() != null){
+				return request.getDoFullFileScan();
+			}
+		}
+		return false;
 	}
 	
 	/**
