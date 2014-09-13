@@ -1,6 +1,7 @@
 package org.sagebionetworks.table.worker;
 
 import java.io.Reader;
+import java.util.List;
 
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -74,10 +75,26 @@ public class CSVUtils {
 	}
 	
 	/**
+	 * Check the types for each column.
+	 * @param cells
+	 * @param currentTypes
+	 */
+	public static void checkTypes(String[] cells, ColumnModel[] currentTypes){
+		// Check the type of each column
+		for(int i=0; i<cells.length; i++){
+			currentTypes[i] = checkType(cells[i], currentTypes[i]);
+		}
+	}
+	
+	/**
 	 * Check the type of the given value.  If the current type is null then determine the type.
 	 * If the type does not match then return a type that does match.
 	 */
 	public static ColumnModel checkType(String value, ColumnModel currentType){
+		// We can tell nothing from null or empty cells.
+		if(value == null || "".equals(value.trim())){
+			return currentType;
+		}
 		if(currentType != null){
 			try {
 				TableModelUtils.validateValue(value, currentType);

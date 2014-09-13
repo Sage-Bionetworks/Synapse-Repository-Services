@@ -6,10 +6,6 @@
         }
     ],
 	"properties": {
-		"tableId": {
-			"type": "string",
-			"description": "This is an optional parameter.  If provided the current schema of the table will be evaluated and compared to the headers in the CSV."
-		},
 		"uploadFileHandleId": {
 			"type": "string",
 			"description": "The ID of the file handle for a type of UPLOAD"
@@ -20,6 +16,10 @@
 		},
 		"csvTableDescriptor": {
 			"$ref":"org.sagebionetworks.repo.model.table.CsvTableDescriptor"
+		},
+		"doFullFileScan": {
+			"type": "boolean",
+			"description": "When set to true the full file will be scanned for a schema suggestions.  A full scan is more accurate but can take more time.  When set to false only a sub-set of the first rows will be scanned, which can be faster but is less accurate. The default value is false."
 		}
 	}
 }

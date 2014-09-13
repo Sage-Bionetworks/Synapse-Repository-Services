@@ -15,11 +15,13 @@ import static org.mockito.Mockito.*;
 
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
+import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
 import org.sagebionetworks.util.csv.CsvNullReader;
 
 public class UploadPreviewBuilderTest {
 	
+	UploadToTablePreviewRequest request;
 	CsvTableDescriptor descriptor;
 	ProgressReporter mockReporter;
 	String eachTypeCSV;
@@ -34,13 +36,15 @@ public class UploadPreviewBuilderTest {
 		eachTypeCSV = TableModelTestUtils.createCSVString(input);
 		descriptor = new CsvTableDescriptor();
 		descriptor.setIsFirstLineHeader(true);
+		request = new UploadToTablePreviewRequest();
+		request.setCsvTableDescriptor(descriptor);
 	}
 	
 	@Test
 	public void testNullCurrentAlltypes() throws IOException{
 		StringReader sReader = new StringReader(eachTypeCSV);
 		CsvNullReader reader = new CsvNullReader(sReader);
-		UploadPreviewBuilder builder = new UploadPreviewBuilder(reader, null, mockReporter, descriptor);
+		UploadPreviewBuilder builder = new UploadPreviewBuilder(reader, mockReporter, request);
 		UploadToTablePreviewResult result = builder.buildResult();
 		assertNotNull(result);
 		assertEquals(new Long(3), result.getRowCount());

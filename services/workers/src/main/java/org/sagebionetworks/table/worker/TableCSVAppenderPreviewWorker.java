@@ -107,11 +107,6 @@ public class TableCSVAppenderPreviewWorker implements Worker {
 			UploadToTablePreviewRequest body = (UploadToTablePreviewRequest) status.getRequestBody();
 			// Get the filehandle
 			S3FileHandle fileHandle = (S3FileHandle) fileHandleManager.getRawFileHandle(user, body.getUploadFileHandleId());
-			// Get the schema for the table
-			List<ColumnModel> tableSchema = null;
-			if(body.getTableId() != null){
-				tableSchema= tableRowManager.getColumnModelsForTable(body.getTableId());
-			}
 			// Get the metadat for this file
 			ObjectMetadata fileMetadata = s3Client.getObjectMetadata(fileHandle.getBucketName(), fileHandle.getKey());
 			long progressCurrent = 0L;
@@ -130,7 +125,7 @@ public class TableCSVAppenderPreviewWorker implements Worker {
 			long progressIntervalMs = 2000;
 			ProgressReporter progressReporter = new IntervalProgressReporter(status.getJobId(),fileMetadata.getContentLength(), countingInputStream, asynchJobStatusManager, progressIntervalMs);
 			// This builder does the work of building an actual preview.
-			UploadPreviewBuilder builder = new UploadPreviewBuilder(reader, tableSchema, progressReporter, body.getCsvTableDescriptor());
+			UploadPreviewBuilder builder = new UploadPreviewBuilder(reader, progressReporter, body);
 			UploadToTablePreviewResult result = builder.buildResult();
 			asynchJobStatusManager.setComplete(status.getJobId(), result);
 		}catch(Throwable e){

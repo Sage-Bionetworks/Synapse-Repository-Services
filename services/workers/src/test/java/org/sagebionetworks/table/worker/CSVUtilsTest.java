@@ -1,12 +1,17 @@
 package org.sagebionetworks.table.worker;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
+import java.util.Arrays;
+import java.util.List;
 
 import org.junit.Test;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
-import org.sagebionetworks.util.TimeUtils;
 
 public class CSVUtilsTest {
 	
@@ -46,6 +51,7 @@ public class CSVUtilsTest {
 		ColumnModel back = CSVUtils.checkType(in, cm);
 		assertEquals(cm, back);
 	}
+	
 
 	@Test
 	public void testCheckTypeBooleanFalse(){
@@ -156,4 +162,67 @@ public class CSVUtilsTest {
 		assertEquals(cm, back);
 	}
 	
+	@Test
+	public void checkTypeNull(){
+		String in = null;
+		ColumnModel cm = CSVUtils.checkType(in, null);
+		assertEquals(null, cm);
+	}
+	
+	@Test
+	public void checkTypeNullWithExisting(){
+		String in = "123";
+		ColumnModel cm = CSVUtils.checkType(in, null);
+		assertNotNull(cm);
+		assertEquals(ColumnType.INTEGER, cm.getColumnType());
+		// Now if we pass an null value the type should not change
+		cm = CSVUtils.checkType(null, cm);
+		assertNotNull(cm);
+		assertEquals(ColumnType.INTEGER, cm.getColumnType());
+	}
+	
+	@Test
+	public void checkTypeEmpty(){
+		String in = "   ";
+		ColumnModel cm = CSVUtils.checkType(in, null);
+		assertEquals(null, cm);
+	}
+	
+	@Test
+	public void checkTypeEmptyWithExisting(){
+		String in = "123";
+		ColumnModel cm = CSVUtils.checkType(in, null);
+		assertNotNull(cm);
+		assertEquals(ColumnType.INTEGER, cm.getColumnType());
+		// Now if we pass an empty value the type should not change
+		cm = CSVUtils.checkType("\n", cm);
+		assertNotNull(cm);
+		assertEquals(ColumnType.INTEGER, cm.getColumnType());
+	}
+	
+	@Test
+	public void checkTypeRow(){
+		String[] row = new String[] {"string","123.3","123","true","syn123"};
+		ColumnModel[] start = new ColumnModel[row.length];
+		CSVUtils.checkTypes(row, start);
+		// expected
+		ColumnType[] expected = new ColumnType[]{ColumnType.STRING, ColumnType.DOUBLE, ColumnType.INTEGER, ColumnType.BOOLEAN, ColumnType.ENTITYID};
+		valiateExpectedTyeps(expected, start);
+	}
+	
+	/**
+	 * Validate the expected types.
+	 * @param expected
+	 * @param cm
+	 */
+	public void valiateExpectedTyeps(ColumnType[] expected, ColumnModel[] cm){
+		assertNotNull(expected);
+		assertNotNull(cm);
+		assertEquals(expected.length, cm.length);
+		for(int i=0; i< expected.length; i++){
+			assertNotNull(expected[i]);
+			assertNotNull(cm[i]);
+			assertEquals(expected[i], cm[i].getColumnType());
+		}
+	}
 }
