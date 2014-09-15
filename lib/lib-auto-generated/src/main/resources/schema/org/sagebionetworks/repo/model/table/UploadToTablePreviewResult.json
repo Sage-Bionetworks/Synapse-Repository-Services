@@ -6,8 +6,8 @@
         }
     ],
 	"properties": {
-		"headerColumns": {
-		    "description":"The list of ColumnModels that are compatible with the CSV file.",
+		"suggestedColumns": {
+		    "description":"The list of ColumnModels that are compatible with the CSV file.  This is more accurate for a full scan than a partial scan.",
 			"type": "array",
 			"items": {
 				"$ref": "org.sagebionetworks.repo.model.table.ColumnModel"
@@ -20,8 +20,8 @@
 				"$ref": "org.sagebionetworks.repo.model.table.Row"
 			}
 		},
-		"rowCount":{
-			"description":"The total number of rows found the CSV file",
+		"rowsScanned":{
+			"description":"The total number of rows scanned to generate the preview.",
 			"type": "integer"
 		}
 	}

@@ -31,11 +31,14 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableEntity;
+import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
+import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.TimeUtils;
@@ -155,6 +158,31 @@ public class IT099AsynchronousJobTest {
 			// Now upload this CSV as a file handle
 			FileHandle fileHandle = synapse.createFileHandle(temp, "text/csv", project.getId());
 			filesToDelete.add(fileHandle);
+			// Get a file preview
+			UploadToTablePreviewRequest previewRequest = new UploadToTablePreviewRequest();
+			previewRequest.setUploadFileHandleId(fileHandle.getId());
+			
+			final String uploadPreviewToken = synapse.uploadCsvTablePreviewAsyncStart(previewRequest);
+			// Wait for the job to finish
+			UploadToTablePreviewResult uploadPreviewResult = TimeUtils.waitFor(MAX_WAIT_MS, 500L, new Callable<Pair<Boolean, UploadToTablePreviewResult>>() {
+				@Override
+				public Pair<Boolean, UploadToTablePreviewResult> call() throws Exception {
+					try {
+						UploadToTablePreviewResult uploadResult = synapse.uploadCsvToTablePreviewAsyncGet(uploadPreviewToken);
+						return Pair.create(true, uploadResult);
+					} catch (SynapseResultNotReadyException e) {
+						return Pair.create(false, null);
+					}
+				}
+			});
+			assertNotNull(uploadPreviewResult);
+			assertNotNull(uploadPreviewResult.getSuggestedColumns());
+			assertNotNull(uploadPreviewResult.getSampleRows());
+			assertNotNull(uploadPreviewResult.getRowsScanned());
+			assertEquals(table.getColumnIds().size(), uploadPreviewResult.getSuggestedColumns().size());
+			assertEquals(rowCount, uploadPreviewResult.getSampleRows().size());
+			assertEquals(new Long(rowCount), uploadPreviewResult.getRowsScanned());
+			
 			// We now have enough to apply the data to the table
 			final String uploadToken = synapse.uploadCsvToTableAsyncStart(table.getId(), fileHandle.getId(), null, null, null);
 			try {

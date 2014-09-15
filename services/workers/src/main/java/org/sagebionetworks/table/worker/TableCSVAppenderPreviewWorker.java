@@ -2,7 +2,6 @@ package org.sagebionetworks.table.worker;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.Reader;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -18,14 +17,9 @@ import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.table.TableRowManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
-import org.sagebionetworks.repo.model.dbo.dao.table.CSVToRowIterator;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
-import org.sagebionetworks.repo.model.table.UploadToTableRequest;
-import org.sagebionetworks.repo.model.table.UploadToTableResult;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.util.csv.CsvNullReader;
 import org.springframework.beans.factory.annotation.Autowired;

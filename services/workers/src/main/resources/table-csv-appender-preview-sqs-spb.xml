@@ -13,7 +13,7 @@
 
 	<!-- provides table message queue workers -->
 	<bean id="tableCSVAppenderPreviewWorkerFactory" class="org.sagebionetworks.asynchronous.workers.sqs.BeanCreatingMessageWorkerFactory" scope="singleton">
-		<property name="worker" value="org.sagebionetworks.table.worker.tableCSVAppenderPreviewWorker" />
+		<property name="worker" value="org.sagebionetworks.table.worker.TableCSVAppenderPreviewWorker" />
 	</bean>
 	
 	<bean id="tableCSVAppenderPreviewQueue"
