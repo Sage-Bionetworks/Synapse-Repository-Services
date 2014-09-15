@@ -19,7 +19,7 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.table.AsynchUploadRequestBody;
+import org.sagebionetworks.repo.model.table.AsynchUploadToTableRequestBody;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
@@ -76,7 +76,7 @@ public class AsynchronousJobControllerTest extends AbstractAutowiredControllerTe
 	
 	@Test
 	public void testStartUploadJob() throws ServletException, Exception{
-		AsynchUploadRequestBody body = new AsynchUploadRequestBody();
+		AsynchUploadToTableRequestBody body = new AsynchUploadToTableRequestBody();
 		body.setTableId(table.getId());
 		body.setUploadFileHandleId(fileHandle.getId());
 		// Start the job

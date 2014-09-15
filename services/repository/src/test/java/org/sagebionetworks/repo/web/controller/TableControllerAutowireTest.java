@@ -1,10 +1,8 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
+import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
@@ -42,8 +40,13 @@ import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 
+import com.amazonaws.AmazonClientException;
+import com.amazonaws.services.s3.AmazonS3Client;
 import com.google.common.collect.Lists;
+
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
 public class TableControllerAutowireTest extends AbstractAutowiredControllerTestBase {
 
@@ -51,11 +54,16 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 	private FileHandleDao fileMetadataDao;
 	@Autowired
 	StackConfiguration config;
+	@Autowired
+	private JdbcTemplate jdbcTemplate;
+	@Autowired
+	private AmazonS3Client s3Client;
 
 	private Entity parent;
 	private Long adminUserId;
 
 	private List<S3FileHandle> handles = Lists.newArrayList();
+	private List<String> entitiesToDelete = Lists.newArrayList();
 	
 	@Before
 	public void before() throws Exception {
@@ -67,15 +75,19 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 		parent.setName(UUID.randomUUID().toString());
 		parent = servletTestHelper.createEntity(dispatchServlet, parent, adminUserId);
 		Assert.assertNotNull(parent);
+
+		entitiesToDelete.add(parent.getId());
 	}
 	
 	@After
 	public void after(){
-		if(config.getTableEnabled()){
-			if(parent != null){
+		if (config.getTableEnabled()) {
+			for (String entity : entitiesToDelete) {
 				try {
-					servletTestHelper.deleteEntity(dispatchServlet, Project.class, parent.getId(), adminUserId);
-				} catch (Exception e) {} 
+					servletTestHelper.deleteEntity(dispatchServlet, null, entity, adminUserId);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
 			}
 			for (S3FileHandle handle : handles) {
 				fileMetadataDao.delete(handle.getId());
@@ -119,6 +131,7 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 		idList.add(two.getId());
 		table.setColumnIds(idList);
 		table = servletTestHelper.createEntity(dispatchServlet, table, adminUserId);
+		entitiesToDelete.add(table.getId());
 		assertNotNull(table);
 		assertNotNull(table.getId());
 		TableEntity clone = servletTestHelper.getEntity(dispatchServlet, TableEntity.class, table.getId(), adminUserId);
@@ -186,6 +199,7 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 		idList.add(two.getId());
 		table.setColumnIds(idList);
 		table = servletTestHelper.createEntity(dispatchServlet, table, adminUserId);
+		entitiesToDelete.add(table.getId());
 		assertNotNull(table);
 		assertNotNull(table.getId());
 		TableEntity clone = servletTestHelper.getEntity(dispatchServlet, TableEntity.class, table.getId(), adminUserId);
@@ -216,6 +230,27 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 	}
 
 	@Test(expected = IllegalArgumentException.class)
+	public void testColumnNameDuplicateId() throws Exception {
+		// create two columns that differ only by case.
+		ColumnModel one = new ColumnModel();
+		one.setName("Abc");
+		one.setColumnType(ColumnType.STRING);
+		one = servletTestHelper.createColumnModel(dispatchServlet, one, adminUserId);
+		// two
+		ColumnModel two = new ColumnModel();
+		two.setName("aBC");
+		two.setColumnType(ColumnType.STRING);
+		two = servletTestHelper.createColumnModel(dispatchServlet, two, adminUserId);
+		// Now create a TableEntity with these Columns
+		TableEntity table = new TableEntity();
+		table.setName("TableEntity");
+		table.setParentId(parent.getId());
+		List<String> idList = Lists.newArrayList(one.getId(), two.getId(), one.getId());
+		table.setColumnIds(idList);
+		servletTestHelper.createEntity(dispatchServlet, table, adminUserId);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
 	public void testDuplicateRowUpdateFails() throws Exception {
 		// Create a few columns to add to a table entity
 		ColumnModel one = new ColumnModel();
@@ -229,6 +264,7 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 		table.setColumnIds(Lists.newArrayList(one.getId()));
 		table.setParentId(parent.getId());
 		table = servletTestHelper.createEntity(dispatchServlet, table, adminUserId);
+		entitiesToDelete.add(table.getId());
 		List<ColumnModel> columns = servletTestHelper.getColumnModelsForTableEntity(dispatchServlet, table.getId(),
 				adminUserId);
 
@@ -267,6 +303,7 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 		table.setColumnIds(Lists.newArrayList(one.getId()));
 		table.setParentId(parent.getId());
 		table = servletTestHelper.createEntity(dispatchServlet, table, adminUserId);
+		entitiesToDelete.add(table.getId());
 		List<ColumnModel> columns = servletTestHelper.getColumnModelsForTableEntity(dispatchServlet, table.getId(),
 				adminUserId);
 
@@ -305,6 +342,7 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 		table.setColumnIds(Lists.newArrayList(one.getId()));
 		table.setParentId(parent.getId());
 		table = servletTestHelper.createEntity(dispatchServlet, table, adminUserId);
+		entitiesToDelete.add(table.getId());
 		List<ColumnModel> columns = servletTestHelper.getColumnModelsForTableEntity(dispatchServlet, table.getId(),
 				adminUserId);
 
@@ -373,6 +411,7 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 		idList.add(two.getId());
 		table.setColumnIds(idList);
 		table = servletTestHelper.createEntity(dispatchServlet, table, adminUserId);
+		entitiesToDelete.add(table.getId());
 
 		// Add some rows to the table.
 		List<ColumnModel> cols = servletTestHelper.getColumnModelsForTableEntity(dispatchServlet, table.getId(),
@@ -443,6 +482,7 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 		List<String> idList = Lists.newArrayList(one.getId());
 		table.setColumnIds(idList);
 		table = servletTestHelper.createEntity(dispatchServlet, table, adminUserId);
+		entitiesToDelete.add(table.getId());
 
 		// Add a rows to the table.
 		List<ColumnModel> cols = servletTestHelper.getColumnModelsForTableEntity(dispatchServlet, table.getId(),
@@ -501,6 +541,7 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 		table.setParentId(parent.getId());
 		table.setColumnIds(Lists.newArrayList(one.getId(), two.getId(), three.getId()));
 		table = servletTestHelper.createEntity(dispatchServlet, table, adminUserId);
+		entitiesToDelete.add(table.getId());
 
 		// Add some rows to the table.
 		List<ColumnModel> cols = servletTestHelper.getColumnModelsForTableEntity(dispatchServlet, table.getId(),
@@ -601,6 +642,7 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 		idList.add(two.getId());
 		table.setColumnIds(idList);
 		table = servletTestHelper.createEntity(dispatchServlet, table, adminUserId);
+		entitiesToDelete.add(table.getId());
 		assertNotNull(table);
 		assertNotNull(table.getId());
 		TableEntity clone = servletTestHelper.getEntity(dispatchServlet, TableEntity.class, table.getId(), adminUserId);
@@ -634,5 +676,71 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 			System.out.println(e.getStatus());
 		}
 		
+	}
+
+	@Test
+	public void testDeleteTableEntity() throws Exception {
+		ColumnModel one = new ColumnModel();
+		one.setName("one");
+		one.setColumnType(ColumnType.STRING);
+		one = servletTestHelper.createColumnModel(dispatchServlet, one, adminUserId);
+		ColumnModel two = new ColumnModel();
+		two.setName("two");
+		two.setColumnType(ColumnType.STRING);
+		two = servletTestHelper.createColumnModel(dispatchServlet, two, adminUserId);
+		// Now create a TableEntity with these Columns
+		TableEntity table = new TableEntity();
+		table.setName("TableEntity");
+		table.setParentId(parent.getId());
+		table.setColumnIds(Lists.newArrayList(one.getId(), two.getId()));
+		table = servletTestHelper.createEntity(dispatchServlet, table, adminUserId);
+		List<ColumnModel> cols = servletTestHelper.getColumnModelsForTableEntity(dispatchServlet, table.getId(), adminUserId);
+		// Add some rows to the table.
+		RowSet set = new RowSet();
+		List<Row> rows = TableModelTestUtils.createRows(cols, 3);
+		set.setRows(rows);
+		set.setHeaders(TableModelUtils.getHeaders(cols));
+		set.setTableId(table.getId());
+		servletTestHelper.appendTableRows(dispatchServlet, set, adminUserId);
+		set = new RowSet();
+		rows = TableModelTestUtils.createRows(cols, 3);
+		set.setRows(rows);
+		set.setHeaders(TableModelUtils.getHeaders(cols));
+		set.setTableId(table.getId());
+		servletTestHelper.appendTableRows(dispatchServlet, set, adminUserId);
+
+		Long tableId = KeyFactory.stringToKey(table.getId());
+		// find the s3 bucket and keys
+		String s3Bucket = jdbcTemplate.queryForObject("select distinct " + COL_TABLE_ROW_BUCKET + " from " + TABLE_ROW_CHANGE + " where "
+				+ COL_TABLE_ROW_TABLE_ID + " = ?", String.class, tableId);
+		List<String> s3Keys = jdbcTemplate.queryForList("select " + COL_TABLE_ROW_KEY + " from " + TABLE_ROW_CHANGE + " where "
+				+ COL_TABLE_ROW_TABLE_ID + " = ?", String.class, tableId);
+		for (String s3Key : s3Keys) {
+			s3Client.getObjectMetadata(s3Bucket, s3Key);
+		}
+
+		checkCount(2L, "select count(*) from " + TABLE_ROW_CHANGE + " where " + COL_TABLE_ROW_TABLE_ID + " = ?", tableId);
+		checkCount(2L, "select count(*) from " + TABLE_BOUND_COLUMN + " where " + COL_BOUND_CM_OBJECT_ID + " = ?", tableId);
+		checkCount(2L, "select count(*) from " + TABLE_BOUND_COLUMN_ORDINAL + " where " + COL_BOUND_CM_ORD_OBJECT_ID + " = ?", tableId);
+		checkCount(1L, "select count(*) from " + TABLE_BOUND_COLUMN_OWNER + " where " + COL_BOUND_OWNER_OBJECT_ID + " = ?", tableId);
+
+		servletTestHelper.deleteEntity(dispatchServlet, TableEntity.class, table.getId(), adminUserId,
+				Collections.singletonMap("skipTrashCan", "true"));
+
+		checkCount(0L, "select count(*) from " + TABLE_ROW_CHANGE + " where " + COL_TABLE_ROW_TABLE_ID + " = ?", tableId);
+		checkCount(0L, "select count(*) from " + TABLE_BOUND_COLUMN + " where " + COL_BOUND_CM_OBJECT_ID + " = ?", tableId);
+		checkCount(0L, "select count(*) from " + TABLE_BOUND_COLUMN_ORDINAL + " where " + COL_BOUND_CM_ORD_OBJECT_ID + " = ?", tableId);
+		checkCount(0L, "select count(*) from " + TABLE_BOUND_COLUMN_OWNER + " where " + COL_BOUND_OWNER_OBJECT_ID + " = ?", tableId);
+		for (String s3Key : s3Keys) {
+			try {
+				s3Client.getObjectMetadata(s3Bucket, s3Key);
+				fail("s3 object " + s3Key + " should no longer exist");
+			} catch (AmazonClientException e) {
+			}
+		}
+	}
+
+	private void checkCount(long expected, String sql, Object... args) {
+		assertEquals(expected, jdbcTemplate.queryForObject(sql, Long.class, args).longValue());
 	}
 }

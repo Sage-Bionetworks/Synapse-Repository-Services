@@ -2,13 +2,10 @@ package org.sagebionetworks.repo.web.controller.metadata;
 
 import java.util.Date;
 
-import javax.servlet.http.HttpServletRequest;
-
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Step;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.util.ReferenceUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,16 +13,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 /**
  *
  */
-public class StepMetadataProvider implements TypeSpecificMetadataProvider<Step> {
+public class StepMetadataProvider implements EntityValidator<Step> {
 	
 	@Autowired
 	ReferenceUtil referenceUtil;
-
-	@Override
-	public void addTypeSpecificMetadata(Step entity,
-			HttpServletRequest request, UserInfo userInfo, EventType eventType)
-			throws NotFoundException, DatastoreException, UnauthorizedException {
-	}
 
 	@Override
 	public void validateEntity(Step entity, EntityEvent event)
@@ -47,10 +38,5 @@ public class StepMetadataProvider implements TypeSpecificMetadataProvider<Step> 
 			referenceUtil.replaceNullVersionNumbersWithCurrent(entity.getOutput());
 		}
 		
-	}
-
-	@Override
-	public void entityDeleted(Step deleted) {
-		// TODO Auto-generated method stub
 	}
 }

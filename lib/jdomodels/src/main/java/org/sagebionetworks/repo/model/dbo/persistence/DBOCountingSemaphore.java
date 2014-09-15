@@ -12,10 +12,12 @@ import org.sagebionetworks.repo.model.dbo.TableMapping;
 @Table(name = TABLE_COUNTING_SEMAPHORE)
 public class DBOCountingSemaphore implements DatabaseObject<DBOCountingSemaphore> {
 
+	public static final int KEY_NAME_LENGTH = 100;
+
 	private static TableMapping<DBOCountingSemaphore> tableMapping = AutoTableMapping.create(DBOCountingSemaphore.class);
 
 	@ForeignKey(table = TABLE_LOCK_MASTER, field = COL_LOCK_MASTER_KEY, cascadeDelete = true)
-	@Field(name = COL_COUNTING_SEMAPHORE_KEY, nullable = false, primary = true, fixedchar = 100)
+	@Field(name = COL_COUNTING_SEMAPHORE_KEY, nullable = false, primary = true, fixedchar = KEY_NAME_LENGTH)
 	private String key;
 
 	@Field(name = COL_COUNTING_SEMAPHORE_LOCK_TOKEN, nullable = false, primary = true, fixedchar = 100)

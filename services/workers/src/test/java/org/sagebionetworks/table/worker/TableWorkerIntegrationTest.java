@@ -34,7 +34,6 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageReceiver;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -56,7 +55,7 @@ import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.table.AsynchDownloadResponseBody;
+import org.sagebionetworks.repo.model.table.AsynchDownloadFromTableResponseBody;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.PartialRow;
@@ -812,6 +811,33 @@ public class TableWorkerIntegrationTest {
 		assertNotNull(rowSet.getRows());
 		assertEquals(2, rowSet.getRows().size());
 		assertNotNull(rowSet.getEtag());
+
+		try {
+			rowSet = waitForConsistentQuery(adminUserInfo, "select A, Has Space from " + tableId + " limit 100");
+			fail("not acceptible sql");
+		} catch (IllegalArgumentException e) {
+		}
+		try {
+			rowSet = waitForConsistentQuery(adminUserInfo, "select A, 'Has Space' from " + tableId + " limit 100");
+			fail("not acceptible sql");
+		} catch (Exception e) {
+		}
+
+		rowSet = waitForConsistentQuery(adminUserInfo, "select A, \"Has Space\" from " + tableId + " limit 100");
+		assertNotNull(rowSet);
+		assertEquals(2, rowSet.getHeaders().size());
+		assertEquals(headers.get(0), rowSet.getHeaders().get(1));
+		assertEquals(headers.get(2), rowSet.getHeaders().get(0));
+		assertEquals("string200000", rowSet.getRows().get(0).getValues().get(0));
+		assertEquals("string0", rowSet.getRows().get(0).getValues().get(1));
+
+			rowSet = waitForConsistentQuery(adminUserInfo, "select A, \"Has Space\" as HasSpace from " + tableId + " limit 100");
+		assertNotNull(rowSet);
+		assertEquals(2, rowSet.getHeaders().size());
+		assertEquals(headers.get(0), rowSet.getHeaders().get(1));
+		assertEquals(headers.get(2), rowSet.getHeaders().get(0));
+		assertEquals("string200000", rowSet.getRows().get(0).getValues().get(0));
+		assertEquals("string0", rowSet.getRows().get(0).getValues().get(1));
 	}
 	
 	/**
@@ -925,7 +951,7 @@ public class TableWorkerIntegrationTest {
 		CSVWriterStreamProxy proxy = new CSVWriterStreamProxy(csvWriter);
 		// Downlaod the data to a csv
 		boolean includeRowIdAndVersion = true;
-		AsynchDownloadResponseBody response = waitForConsistentStreamQuery("select * from "+tableId, proxy, includeRowIdAndVersion);
+		AsynchDownloadFromTableResponseBody response = waitForConsistentStreamQuery("select * from "+tableId, proxy, includeRowIdAndVersion);
 		assertNotNull(response);
 		assertNotNull(response.getEtag());
 		// Read the results
@@ -1016,7 +1042,7 @@ public class TableWorkerIntegrationTest {
 	 * @throws NotFoundException
 	 * @throws InterruptedException
 	 */
-	private AsynchDownloadResponseBody waitForConsistentStreamQuery(String sql, CSVWriterStream writer, boolean includeRowIdAndVersion) throws DatastoreException, NotFoundException, InterruptedException{
+	private AsynchDownloadFromTableResponseBody waitForConsistentStreamQuery(String sql, CSVWriterStream writer, boolean includeRowIdAndVersion) throws DatastoreException, NotFoundException, InterruptedException{
 		long start = System.currentTimeMillis();
 		while(true){
 			try {

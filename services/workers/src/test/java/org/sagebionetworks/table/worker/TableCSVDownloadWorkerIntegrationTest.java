@@ -38,8 +38,8 @@ import org.sagebionetworks.repo.model.dbo.dao.table.CSVToRowIterator;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.table.AsynchDownloadRequestBody;
-import org.sagebionetworks.repo.model.table.AsynchDownloadResponseBody;
+import org.sagebionetworks.repo.model.table.AsynchDownloadFromTableRequestBody;
+import org.sagebionetworks.repo.model.table.AsynchDownloadFromTableResponseBody;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
@@ -133,7 +133,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		RowSet result = waitForConsistentQuery(adminUserInfo, sql+" limit 100");
 		assertNotNull(result);
 		// Now download the data from this table as a csv
-		AsynchDownloadRequestBody request = new AsynchDownloadRequestBody();
+		AsynchDownloadFromTableRequestBody request = new AsynchDownloadFromTableRequestBody();
 		request.setSql(sql);
 		request.setWriteHeader(true);
 		request.setIncludeRowIdAndRowVersion(false);
@@ -142,8 +142,8 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		status = waitForStatus(status);
 		assertNotNull(status);
 		assertNotNull(status.getResponseBody());
-		assertTrue(status.getResponseBody() instanceof AsynchDownloadResponseBody);
-		AsynchDownloadResponseBody response = (AsynchDownloadResponseBody) status.getResponseBody();
+		assertTrue(status.getResponseBody() instanceof AsynchDownloadFromTableResponseBody);
+		AsynchDownloadFromTableResponseBody response = (AsynchDownloadFromTableResponseBody) status.getResponseBody();
 		assertNotNull(response.getEtag());
 		assertNotNull(response.getResultsFileHandleId());
 		assertEquals(tableId, response.getTableId());
@@ -158,7 +158,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 
 		String sql = "select * from " + tableId;
 		// download the data from this table as a csv
-		AsynchDownloadRequestBody request = new AsynchDownloadRequestBody();
+		AsynchDownloadFromTableRequestBody request = new AsynchDownloadFromTableRequestBody();
 		request.setSql(sql);
 		request.setWriteHeader(true);
 		request.setIncludeRowIdAndRowVersion(false);
@@ -167,8 +167,8 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		status = waitForStatus(status);
 		assertNotNull(status);
 		assertNotNull(status.getResponseBody());
-		assertTrue(status.getResponseBody() instanceof AsynchDownloadResponseBody);
-		AsynchDownloadResponseBody response = (AsynchDownloadResponseBody) status.getResponseBody();
+		assertTrue(status.getResponseBody() instanceof AsynchDownloadFromTableResponseBody);
+		AsynchDownloadFromTableResponseBody response = (AsynchDownloadFromTableResponseBody) status.getResponseBody();
 		assertNotNull(response.getEtag());
 		assertNotNull(response.getResultsFileHandleId());
 		assertEquals(tableId, response.getTableId());

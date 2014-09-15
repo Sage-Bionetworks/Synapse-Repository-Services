@@ -6,7 +6,7 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.NotFoundException;
 
-public interface EntityValidator<T extends Entity> {
+public interface EntityValidator<T extends Entity> extends EntityProvider<T> {
 	
 	/**
 	 * Validate an entity before it is created or updated.

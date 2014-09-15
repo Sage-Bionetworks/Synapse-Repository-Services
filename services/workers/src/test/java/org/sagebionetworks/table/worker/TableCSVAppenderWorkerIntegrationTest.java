@@ -35,8 +35,8 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.table.AsynchUploadRequestBody;
-import org.sagebionetworks.repo.model.table.AsynchUploadResponseBody;
+import org.sagebionetworks.repo.model.table.AsynchUploadToTableRequestBody;
+import org.sagebionetworks.repo.model.table.AsynchUploadToTableResponseBody;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
@@ -174,7 +174,7 @@ public class TableCSVAppenderWorkerIntegrationTest {
 		// Upload the file to S3.
 		s3Client.putObject(fileHandle.getBucketName(), fileHandle.getKey(), this.tempFile);
 		// We are now ready to start the job
-		AsynchUploadRequestBody body = new AsynchUploadRequestBody();
+		AsynchUploadToTableRequestBody body = new AsynchUploadToTableRequestBody();
 		body.setTableId(tableId);
 		body.setUploadFileHandleId(fileHandle.getId());
 		AsynchronousJobStatus status = asynchJobStatusManager.startJob(adminUserInfo, body);
@@ -182,8 +182,8 @@ public class TableCSVAppenderWorkerIntegrationTest {
 		status = waitForStatus(status);
 		assertNotNull(status);
 		assertNotNull(status.getResponseBody());
-		assertTrue(status.getResponseBody() instanceof AsynchUploadResponseBody);
-		AsynchUploadResponseBody response = (AsynchUploadResponseBody) status.getResponseBody();
+		assertTrue(status.getResponseBody() instanceof AsynchUploadToTableResponseBody);
+		AsynchUploadToTableResponseBody response = (AsynchUploadToTableResponseBody) status.getResponseBody();
 		assertNotNull(response.getEtag());
 		assertEquals(new Long(rowCount), response.getRowsProcessed());
 		// There should be one change set applied to the table

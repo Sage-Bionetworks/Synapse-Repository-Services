@@ -44,9 +44,13 @@ import org.sagebionetworks.repo.web.QueryUtils;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.controller.metadata.AllTypesValidator;
 import org.sagebionetworks.repo.web.controller.metadata.EntityEvent;
+import org.sagebionetworks.repo.web.controller.metadata.EntityProvider;
+import org.sagebionetworks.repo.web.controller.metadata.EntityValidator;
 import org.sagebionetworks.repo.web.controller.metadata.EventType;
 import org.sagebionetworks.repo.web.controller.metadata.MetadataProviderFactory;
+import org.sagebionetworks.repo.web.controller.metadata.TypeSpecificDeleteProvider;
 import org.sagebionetworks.repo.web.controller.metadata.TypeSpecificMetadataProvider;
+import org.sagebionetworks.repo.web.controller.metadata.TypeSpecificVersionDeleteProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DeadlockLoserDataAccessException;
 import org.springframework.transaction.annotation.Propagation;
@@ -180,14 +184,16 @@ public class EntityServiceImpl implements EntityService {
 	 */
 	private <T extends Entity> void doAddServiceSpecificMetadata(UserInfo info, T entity, EntityType type, HttpServletRequest request, EventType eventType) throws DatastoreException, NotFoundException, UnauthorizedException{
 		// Fetch the provider that will validate this entity.
-		List<TypeSpecificMetadataProvider<Entity>> providers = metadataProviderFactory.getMetadataProvider(type);
+		List<EntityProvider<Entity>> providers = metadataProviderFactory.getMetadataProvider(type);
 
 		// Add the type specific metadata that is common to all objects.
 		addServiceSpecificMetadata(entity, request);
 		// Add the type specific metadata
 		if(providers != null) {
-			for(TypeSpecificMetadataProvider<Entity> provider : providers) {
-				provider.addTypeSpecificMetadata(entity, request, info, eventType);
+			for (EntityProvider<Entity> provider : providers) {
+				if (provider instanceof TypeSpecificMetadataProvider) {
+					((TypeSpecificMetadataProvider) provider).addTypeSpecificMetadata(entity, request, info, eventType);
+				}
 			}
 		}
 	}
@@ -271,11 +277,13 @@ public class EntityServiceImpl implements EntityService {
 		// First apply validation that is common to all types.
 		allTypesValidator.validateEntity(entity, event);
 		// Now validate for a specific type.
-		List<TypeSpecificMetadataProvider<Entity>> providers = metadataProviderFactory.getMetadataProvider(type);
+		List<EntityProvider<Entity>> providers = metadataProviderFactory.getMetadataProvider(type);
 		// Validate the entity
 		if(providers != null) {
-			for(TypeSpecificMetadataProvider<Entity> provider : providers) {
-				provider.validateEntity(entity, event);
+			for (EntityProvider<Entity> provider : providers) {
+				if (provider instanceof EntityValidator) {
+					((EntityValidator) provider).validateEntity(entity, event);
+				}
 			}
 		}
 	}
@@ -327,13 +335,15 @@ public class EntityServiceImpl implements EntityService {
 		// First get the entity we are deleting
 		EntityType type = EntityType.getNodeTypeForClass(clazz);
 		// Fetch the provider that will validate this entity.
-		List<TypeSpecificMetadataProvider<Entity>> providers = metadataProviderFactory.getMetadataProvider(type);
+		List<EntityProvider<Entity>> providers = metadataProviderFactory.getMetadataProvider(type);
 		T entity = entityManager.getEntity(userInfo, entityId, clazz);
 		entityManager.deleteEntity(userInfo, entityId);
 		// Do extra cleanup as needed.
 		if(providers != null) {
-			for(TypeSpecificMetadataProvider<Entity> provider : providers) {
-				provider.entityDeleted(entity);
+			for(EntityProvider<Entity> provider : providers) {
+				if (provider instanceof TypeSpecificDeleteProvider) {
+					((TypeSpecificDeleteProvider) provider).entityDeleted(entity);
+				}
 			}
 		}
 		return;
@@ -359,17 +369,18 @@ public class EntityServiceImpl implements EntityService {
 		// First get the entity we are deleting
 		EntityType type = EntityType.getNodeTypeForClass(classForType);
 		// Fetch the provider that will validate this entity.
-		List<TypeSpecificMetadataProvider<Entity>> providers = metadataProviderFactory.getMetadataProvider(type);
+		List<EntityProvider<Entity>> providers = metadataProviderFactory.getMetadataProvider(type);
 		T entity = (T) entityManager.getEntity(userInfo, id, classForType);
 		entityManager.deleteEntityVersion(userInfo, id, versionNumber);
 		// Do extra cleanup as needed.
 		if(providers != null) {
-			for(TypeSpecificMetadataProvider<Entity> provider : providers) {
-				provider.entityDeleted(entity);
+			for (EntityProvider<Entity> provider : providers) {
+				if (provider instanceof TypeSpecificVersionDeleteProvider) {
+					((TypeSpecificVersionDeleteProvider) provider).entityVersionDeleted(entity, versionNumber);
+				}
 			}
 		}
 	}
-
 
 	private <T extends Entity> void addServiceSpecificMetadata(T entity, HttpServletRequest request) {
 		UrlHelpers.setAllUrlsForEntity(entity, request);

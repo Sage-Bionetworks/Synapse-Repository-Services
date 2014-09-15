@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.DeadlockLoserDataAccessException;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -119,7 +120,7 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 		registerHandlerIfNeeded();
 	}
 	
-	
+
 	/**
 	 * Get the messages that are currently bound to this transaction.
 	 * @return
@@ -200,10 +201,12 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 			Map<ChangeMessageKey, ChangeMessage> currentMessages = getCurrentBoundMessages();
 			Collection<ChangeMessage> collection = currentMessages.values();
 			List<ChangeMessage> list = new LinkedList<ChangeMessage>(collection);
+
 			// Create the list of DBOS
-			List<ChangeMessage> updatedList = changeDAO.replaceChange(list);
+			List<ChangeMessage> updatedList;
+			updatedList = changeDAO.replaceChange(list);
 			// Now replace each entry on the map with the update message
-			for(ChangeMessage message: updatedList){
+			for (ChangeMessage message : updatedList) {
 				currentMessages.put(new ChangeMessageKey(message), message);
 			}
 		}

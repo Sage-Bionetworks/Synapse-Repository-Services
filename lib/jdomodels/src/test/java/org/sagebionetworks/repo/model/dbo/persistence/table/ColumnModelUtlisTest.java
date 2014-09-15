@@ -1,11 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.persistence.table;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 import java.util.Collections;
 import java.util.LinkedList;
@@ -15,6 +10,8 @@ import org.junit.Test;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+
+import com.google.common.collect.Lists;
 
 public class ColumnModelUtlisTest {
 	
@@ -27,7 +24,7 @@ public class ColumnModelUtlisTest {
 		original.setName("Name ");
 		original.setDefaultValue(" DefaultValue");
 		original.setMaximumSize(444l);
-		original.setColumnType(ColumnType.FILEHANDLEID);
+		original.setColumnType(ColumnType.STRING);
 		original.setEnumValues(new LinkedList<String>());
 		original.getEnumValues().add(" Fox");
 		original.getEnumValues().add("Trot ");
@@ -41,7 +38,7 @@ public class ColumnModelUtlisTest {
 		expected.setId(null);
 		expected.setName("Name");
 		expected.setDefaultValue("DefaultValue");
-		expected.setColumnType(ColumnType.FILEHANDLEID);
+		expected.setColumnType(ColumnType.STRING);
 		expected.setEnumValues(new LinkedList<String>());
 		expected.getEnumValues().add("Alpha");
 		expected.getEnumValues().add("Fox");
@@ -51,8 +48,8 @@ public class ColumnModelUtlisTest {
 		// Normalize
 		ColumnModel normlaized = ColumnModelUtlis.createNormalizedClone(original);
 		assertNotNull(normlaized);
-		assertNotSame("A new object should have been created", normlaized == original);
-		assertEquals(expected, normlaized);
+		assertNotSame("A new object should have been created", normlaized, original);
+		assertEquals(expected.toString(), normlaized.toString());
 	}
 	
 	@Test
@@ -72,7 +69,7 @@ public class ColumnModelUtlisTest {
 		original.setMaximumSize(null);
 		ColumnModel normlaized = ColumnModelUtlis.createNormalizedClone(original);
 		assertNotNull(normlaized);
-		assertNotSame("A new object should have been created", normlaized == original);
+		assertNotSame("A new object should have been created", normlaized, original);
 		assertEquals(expected, normlaized);
 	}
 	
@@ -107,11 +104,90 @@ public class ColumnModelUtlisTest {
 		original.setMaximumSize(ColumnModelUtlis.DEFAULT_MAX_STRING_SIZE-1);
 		ColumnModel normlaized = ColumnModelUtlis.createNormalizedClone(original);
 		assertNotNull(normlaized);
-		assertNotSame("A new object should have been created", normlaized == original);
+		assertNotSame("A new object should have been created", normlaized, original);
 		assertEquals(expected, normlaized);
 	}
 	
-	
+	@Test
+	public void testNormalizedEmptyEnum() {
+		original.setName("name");
+		original.setColumnType(ColumnType.STRING);
+		original.setEnumValues(Lists.<String> newArrayList());
+		original.setDefaultValue("123");
+		original.setMaximumSize(12L);
+
+		ColumnModel normalized = ColumnModelUtlis.createNormalizedClone(original);
+		assertNull(normalized.getEnumValues());
+	}
+
+	@Test
+	public void testNormalizedEmptyDoubleEnum() {
+		original.setName("name");
+		original.setColumnType(ColumnType.DOUBLE);
+		original.setEnumValues(Lists.<String> newArrayList("", "  "));
+		original.setDefaultValue("123");
+
+		ColumnModel normalized = ColumnModelUtlis.createNormalizedClone(original);
+		assertNull(normalized.getEnumValues());
+	}
+
+	@Test
+	public void testNormalizedTrimmerEnum() {
+		original.setName("name");
+		original.setColumnType(ColumnType.STRING);
+		original.setEnumValues(Lists.<String> newArrayList(" aa ", "bb ", "  "));
+		original.setDefaultValue("123");
+		original.setMaximumSize(12L);
+
+		ColumnModel normalized = ColumnModelUtlis.createNormalizedClone(original);
+		assertEquals(Lists.newArrayList("", "aa", "bb"), normalized.getEnumValues());
+	}
+
+	@Test
+	public void testNormalizedDoubleEnum() {
+		original.setName("name");
+		original.setColumnType(ColumnType.DOUBLE);
+		original.setEnumValues(Lists.<String> newArrayList(" 234 ", "1.123 ", "  "));
+		original.setDefaultValue("123");
+		original.setMaximumSize(12L);
+
+		ColumnModel normalized = ColumnModelUtlis.createNormalizedClone(original);
+		assertEquals(Lists.newArrayList("1.123", "234.0"), normalized.getEnumValues());
+	}
+
+	@Test(expected = NumberFormatException.class)
+	public void testIncompatibleEnum() {
+		original.setName("name");
+		original.setColumnType(ColumnType.DOUBLE);
+		original.setEnumValues(Lists.<String> newArrayList("1.0", "not a number", "  "));
+		original.setDefaultValue("123");
+		original.setMaximumSize(12L);
+
+		ColumnModelUtlis.createNormalizedClone(original);
+	}
+
+	@Test(expected = NumberFormatException.class)
+	public void testIncompatibleIntegerEnum() {
+		original.setName("name");
+		original.setColumnType(ColumnType.INTEGER);
+		original.setEnumValues(Lists.<String> newArrayList(" 234 ", "1.123 "));
+		original.setDefaultValue("123");
+		original.setMaximumSize(12L);
+
+		ColumnModelUtlis.createNormalizedClone(original);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testIncompatibleStringEnum() {
+		original.setName("name");
+		original.setColumnType(ColumnType.STRING);
+		original.setEnumValues(Lists.<String> newArrayList(" string too long "));
+		original.setDefaultValue("123");
+		original.setMaximumSize(5L);
+
+		ColumnModelUtlis.createNormalizedClone(original);
+	}
+
 	@Test
 	public void testCalculateHash() throws JSONObjectAdapterException{
 		// Create two copies of the original
@@ -120,30 +196,28 @@ public class ColumnModelUtlisTest {
 		clone.setName(clone.getName());
 		Collections.shuffle(clone.getEnumValues());
 		// The clone and the original should produce the same hash.
-		String originalHash = ColumnModelUtlis.calculateHash(original);
-		String cloneHash = ColumnModelUtlis.calculateHash(clone);
-		System.out.println(cloneHash);
+		String originalHash = ColumnModelUtlis.calculateHash(ColumnModelUtlis.createNormalizedClone(original));
+		String cloneHash = ColumnModelUtlis.calculateHash(ColumnModelUtlis.createNormalizedClone(clone));
 		assertEquals("The two objects have the same normalized from so they should have the same hash.",originalHash, cloneHash);
 		// Now changing anything should give a new hash
 		clone.setDefaultValue("newDefaultValueForTheClone");
-		String cloneHash2 = ColumnModelUtlis.calculateHash(clone);
-		System.out.println(cloneHash2);
+		String cloneHash2 = ColumnModelUtlis.calculateHash(ColumnModelUtlis.createNormalizedClone(clone));
 		assertFalse(cloneHash2.equals(cloneHash));
 	}
 	
 	@Test
 	public void testRoundTrip() {
 		// first calculate the hash of the original object
-		String originalHash = ColumnModelUtlis.calculateHash(original);
-		ColumnModel normlaized = ColumnModelUtlis.createNormalizedClone(original);
-		normlaized.setId("123");
+		ColumnModel normalized = ColumnModelUtlis.createNormalizedClone(original);
+		String originalHash = ColumnModelUtlis.calculateHash(normalized);
+		normalized.setId("123");
 		// Now write to DTO
 		DBOColumnModel dbo = ColumnModelUtlis.createDBOFromDTO(original);
 		assertEquals(new Long(123), dbo.getId());
 		assertEquals(originalHash, dbo.getHash());
 		// Now make a clone
 		ColumnModel clone = ColumnModelUtlis.createDTOFromDBO(dbo);
-		assertEquals(normlaized, clone);
+		assertEquals(normalized, clone);
 	}
 	
 

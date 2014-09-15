@@ -35,7 +35,7 @@ public class TableEntityMetadataProviderTest extends AbstractAutowiredController
 	
 	@Autowired
 	private MetadataProviderFactory metadataProviderFactory;
-	private TypeSpecificMetadataProvider<Entity> tableEntityMetadataProvider;
+	private EntityValidator<Entity> tableEntityMetadataProvider;
 	
 	@Autowired
 	private ColumnModelManager columnModelManager;
@@ -50,9 +50,9 @@ public class TableEntityMetadataProviderTest extends AbstractAutowiredController
 	public void before() throws Exception {
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		
-		List<TypeSpecificMetadataProvider<Entity>> types = metadataProviderFactory.getMetadataProvider(EntityType.getNodeTypeForClass(TableEntity.class));
+		List<EntityProvider<Entity>> types = metadataProviderFactory.getMetadataProvider(EntityType.getNodeTypeForClass(TableEntity.class));
 		assertNotNull(types);
-		tableEntityMetadataProvider = types.get(0);
+		tableEntityMetadataProvider = (EntityValidator) types.get(0);
 		// Create some columns
 		one = new ColumnModel();
 		one.setName("TableEntityMetadataProviderTest");

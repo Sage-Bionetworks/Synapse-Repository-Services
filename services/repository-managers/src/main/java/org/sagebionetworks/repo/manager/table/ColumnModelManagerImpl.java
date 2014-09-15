@@ -107,6 +107,13 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 		}
 	}
 
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public void unbindAllColumnsAndOwnerFromObject(String objectId) {
+		columnModelDao.unbindAllColumnsFromObject(objectId);
+		columnModelDao.deleteOwner(objectId);
+	}
+
 	@Override
 	public PaginatedIds listObjectsBoundToColumn(UserInfo user,	Set<String> columnIds, boolean currentOnly, long limit, long offset) {
 		if(user == null) throw new IllegalArgumentException("User cannot be null");

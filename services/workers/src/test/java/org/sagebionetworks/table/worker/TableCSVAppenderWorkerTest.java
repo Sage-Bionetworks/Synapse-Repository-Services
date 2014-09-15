@@ -27,7 +27,7 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.table.AsynchUploadRequestBody;
+import org.sagebionetworks.repo.model.table.AsynchUploadToTableRequestBody;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.csv.CsvNullReader;
@@ -78,7 +78,7 @@ public class TableCSVAppenderWorkerTest {
 		status.setChangedOn(new Date());
 		status.setJobId("123");
 		status.setStartedByUserId(user.getId());
-		AsynchUploadRequestBody body = new AsynchUploadRequestBody();
+		AsynchUploadToTableRequestBody body = new AsynchUploadToTableRequestBody();
 		body.setTableId("syn456");
 		body.setUploadFileHandleId("789");
 		status.setRequestBody(body);
@@ -144,7 +144,7 @@ public class TableCSVAppenderWorkerTest {
 	@Test
 	public void testCreateCSVReaderAllDefaults(){
 		// an empty body should result in all of the default values.
-		AsynchUploadRequestBody body = new AsynchUploadRequestBody();
+		AsynchUploadToTableRequestBody body = new AsynchUploadToTableRequestBody();
 		StringReader reader = new StringReader("1,2,3");
 		CsvNullReader csvReader = TableCSVAppenderWorker.createCSVReader(reader, body);
 		assertNotNull(csvReader);
@@ -157,7 +157,7 @@ public class TableCSVAppenderWorkerTest {
 	@Test
 	public void testCreateCSVReaderTabSeperator(){
 		// an empty body should result in all of the default values.
-		AsynchUploadRequestBody body = new AsynchUploadRequestBody();
+		AsynchUploadToTableRequestBody body = new AsynchUploadToTableRequestBody();
 		body.setSeparator("\t");
 		StringReader reader = new StringReader("1,2,3");
 		CsvNullReader csvReader = TableCSVAppenderWorker.createCSVReader(reader, body);
@@ -171,7 +171,7 @@ public class TableCSVAppenderWorkerTest {
 	@Test
 	public void testCreateCSVReaderEscapse(){
 		// an empty body should result in all of the default values.
-		AsynchUploadRequestBody body = new AsynchUploadRequestBody();
+		AsynchUploadToTableRequestBody body = new AsynchUploadToTableRequestBody();
 		body.setEscapeCharacter("\n");
 		StringReader reader = new StringReader("1,2,3");
 		CsvNullReader csvReader = TableCSVAppenderWorker.createCSVReader(reader, body);
@@ -185,7 +185,7 @@ public class TableCSVAppenderWorkerTest {
 	@Test
 	public void testCreateCSVReaderQuote(){
 		// an empty body should result in all of the default values.
-		AsynchUploadRequestBody body = new AsynchUploadRequestBody();
+		AsynchUploadToTableRequestBody body = new AsynchUploadToTableRequestBody();
 		body.setQuoteCharacter("'");
 		StringReader reader = new StringReader("1,2,3");
 		CsvNullReader csvReader = TableCSVAppenderWorker.createCSVReader(reader, body);
@@ -199,7 +199,7 @@ public class TableCSVAppenderWorkerTest {
 	@Test
 	public void testCreateCSVReaderSkipLine(){
 		// an empty body should result in all of the default values.
-		AsynchUploadRequestBody body = new AsynchUploadRequestBody();
+		AsynchUploadToTableRequestBody body = new AsynchUploadToTableRequestBody();
 		body.setLinesToSkip(101L);
 		StringReader reader = new StringReader("1,2,3");
 		CsvNullReader csvReader = TableCSVAppenderWorker.createCSVReader(reader, body);
@@ -213,7 +213,7 @@ public class TableCSVAppenderWorkerTest {
 	@Test
 	public void testCreateCSVReaderAllOverride(){
 		// an empty body should result in all of the default values.
-		AsynchUploadRequestBody body = new AsynchUploadRequestBody();
+		AsynchUploadToTableRequestBody body = new AsynchUploadToTableRequestBody();
 		body.setSeparator("-");
 		body.setEscapeCharacter("?");
 		body.setQuoteCharacter(":");

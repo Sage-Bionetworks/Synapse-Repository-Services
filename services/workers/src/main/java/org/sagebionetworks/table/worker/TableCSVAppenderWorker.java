@@ -19,8 +19,8 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.dbo.dao.table.CSVToRowIterator;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.table.AsynchUploadRequestBody;
-import org.sagebionetworks.repo.model.table.AsynchUploadResponseBody;
+import org.sagebionetworks.repo.model.table.AsynchUploadToTableRequestBody;
+import org.sagebionetworks.repo.model.table.AsynchUploadToTableResponseBody;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.util.csv.CsvNullReader;
@@ -97,7 +97,7 @@ public class TableCSVAppenderWorker implements Callable<List<Message>> {
 		CsvNullReader reader = null;
 		try{
 			UserInfo user = userManger.getUserInfo(status.getStartedByUserId());
-			AsynchUploadRequestBody body = (AsynchUploadRequestBody) status.getRequestBody();
+			AsynchUploadToTableRequestBody body = (AsynchUploadToTableRequestBody) status.getRequestBody();
 			// Get the filehandle
 			S3FileHandle fileHandle = (S3FileHandle) fileHandleManger.getRawFileHandle(user, body.getUploadFileHandleId());
 			// Get the schema for the table
@@ -124,7 +124,7 @@ public class TableCSVAppenderWorker implements Callable<List<Message>> {
 			// Append the data to the table
 			String etag = tableRowManager.appendRowsAsStream(user, body.getTableId(), tableSchema, iteratorProxy, null, null);
 			// Done
-			AsynchUploadResponseBody response = new AsynchUploadResponseBody();
+			AsynchUploadToTableResponseBody response = new AsynchUploadToTableResponseBody();
 			response.setRowsProcessed(new Long(progressReporter.getRowNumber()+1));
 			response.setEtag(etag);
 			asynchJobStatusManager.setComplete(status.getJobId(), response);
@@ -157,8 +157,8 @@ public class TableCSVAppenderWorker implements Callable<List<Message>> {
 		if(status.getRequestBody() == null){
 			throw new IllegalArgumentException("Job body cannot be null");
 		}
-		if(!(status.getRequestBody() instanceof AsynchUploadRequestBody)){
-			throw new IllegalArgumentException("Expected a job body of type: "+AsynchUploadRequestBody.class.getName()+" but received: "+status.getRequestBody().getClass().getName());
+		if(!(status.getRequestBody() instanceof AsynchUploadToTableRequestBody)){
+			throw new IllegalArgumentException("Expected a job body of type: "+AsynchUploadToTableRequestBody.class.getName()+" but received: "+status.getRequestBody().getClass().getName());
 		}
 		return status;
 	}
@@ -170,7 +170,7 @@ public class TableCSVAppenderWorker implements Callable<List<Message>> {
 	 * @param contentType
 	 * @return
 	 */
-	public static CsvNullReader createCSVReader(Reader reader, AsynchUploadRequestBody body){
+	public static CsvNullReader createCSVReader(Reader reader, AsynchUploadToTableRequestBody body){
 		if(body == null) throw new IllegalArgumentException("AsynchUploadRequestBody cannot be null");
 		char separator = CsvNullReader.DEFAULT_SEPARATOR;
 		char quotechar = CsvNullReader.DEFAULT_QUOTE_CHARACTER;

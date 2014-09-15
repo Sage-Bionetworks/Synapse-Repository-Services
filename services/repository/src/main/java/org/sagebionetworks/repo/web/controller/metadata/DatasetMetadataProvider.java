@@ -22,17 +22,4 @@ public class DatasetMetadataProvider implements TypeSpecificMetadataProvider<Stu
 		if(entity == null) throw new IllegalArgumentException("Entity cannot be null");
 		if(entity.getId() == null) throw new IllegalArgumentException("Entity.id cannot be null");
 	}
-	
-	/**
-	 * Make sure version is not null
-	 */
-	@Override
-	public void validateEntity(Study entity, EntityEvent event) {
-		//Nothing to do
-	}
-
-	@Override
-	public void entityDeleted(Study entity) {
-	}
-
 }

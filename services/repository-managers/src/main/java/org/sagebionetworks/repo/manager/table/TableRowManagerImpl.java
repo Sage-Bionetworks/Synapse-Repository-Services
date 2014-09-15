@@ -32,7 +32,7 @@ import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.exception.LockUnavilableException;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.table.AsynchDownloadResponseBody;
+import org.sagebionetworks.repo.model.table.AsynchDownloadFromTableResponseBody;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.PartialRow;
@@ -252,6 +252,13 @@ public class TableRowManagerImpl implements TableRowManager {
 		// The table has change so we must reset the state.
 		tableStatusDAO.resetTableStatusToProcessing(tableId);
 		return result;
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public void deleteAllRows(String tableId) {
+		Validate.required(tableId, "tableId");
+		tableRowTruthDao.deleteAllRowDataForTable(tableId);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -523,7 +530,7 @@ public class TableRowManagerImpl implements TableRowManager {
 	 * @param columnModels
 	 * @param maxBytePerRequest
 	 */
-	public static void validateQuerySize(SqlQuery query, int maxBytePerRequest){
+	public void validateQuerySize(SqlQuery query, int maxBytePerRequest) {
 		Long limit = null;
 		if(query.getModel().getTableExpression().getPagination() != null){
 			limit = query.getModel().getTableExpression().getPagination().getLimit();
@@ -533,7 +540,8 @@ public class TableRowManagerImpl implements TableRowManager {
 		if(!selectColumns.isEmpty()){
 			// First make sure we have a limit
 			if(limit == null){
-				throw new IllegalArgumentException("Request exceed the maximum number of bytes per request because a LIMIT was not included in the query.");
+				Long maxRowsPerPage = getMaxRowsPerPage(selectColumns);
+				throw new IllegalArgumentException("LIMIT clause is required (between 1 and " + maxRowsPerPage + ")");
 			}
 			// Validate the request is under the max bytes per requested
 			if(!TableModelUtils.isRequestWithinMaxBytePerRequest(selectColumns, limit.intValue(), maxBytePerRequest)){
@@ -625,13 +633,13 @@ public class TableRowManagerImpl implements TableRowManager {
 	 * @throws NotFoundException 
 	 */
 	@Override
-	public AsynchDownloadResponseBody runConsistentQueryAsStream(String sql, final CSVWriterStream writer, final boolean includeRowIdAndVersion) throws TableUnavilableException, NotFoundException{
+	public AsynchDownloadFromTableResponseBody runConsistentQueryAsStream(String sql, final CSVWriterStream writer, final boolean includeRowIdAndVersion) throws TableUnavilableException, NotFoundException{
 		// Convert to a query.
 		final SqlQuery query = createQuery(sql, false);
 		if(includeRowIdAndVersion && query.isAggregatedResult()){
 			throw new IllegalArgumentException("Cannot include ROW_ID and ROW_VERSION for aggregate queries");
 		}
-		final AsynchDownloadResponseBody repsonse = new AsynchDownloadResponseBody();
+		final AsynchDownloadFromTableResponseBody repsonse = new AsynchDownloadFromTableResponseBody();
 		String etag = runConsistentQueryAsStream(query, new RowAndHeaderHandler() {
 			
 			@Override

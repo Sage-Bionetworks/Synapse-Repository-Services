@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.DocumentFields;
 import org.sagebionetworks.repo.model.search.Hit;
 import org.sagebionetworks.repo.model.search.SearchResults;
+import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.utils.HttpClientHelperException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -31,6 +32,7 @@ import com.amazonaws.services.cloudsearch.model.DomainStatus;
 import com.amazonaws.services.cloudsearch.model.IndexField;
 import com.amazonaws.services.cloudsearch.model.IndexFieldStatus;
 import com.amazonaws.services.cloudsearch.model.OptionState;
+import com.google.common.base.Predicate;
 
 /**
  * This is an integration test for the SearchDaoImpl
@@ -39,7 +41,7 @@ import com.amazonaws.services.cloudsearch.model.OptionState;
  *
  */
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:search-dao.spb.xml" })
+@ContextConfiguration(locations = { "classpath:search-import.xml" })
 public class SearchDaoImplAutowireTest {
 	
 	public static final long MAX_WAIT_TIME = 60*1000*10; // ten minute
@@ -55,6 +57,16 @@ public class SearchDaoImplAutowireTest {
 	public void before(){
 		// Only run these tests if search is enabled
 		org.junit.Assume.assumeTrue(searchDomainSetup.isSearchEnabled());
+		assertTrue(TimeUtils.waitFor(20000, 500, null, new Predicate<Void>() {
+			@Override
+			public boolean apply(Void input) {
+				try {
+					return searchDao.postInitialize();
+				} catch (Exception e) {
+					throw new RuntimeException(e);
+				}
+			}
+		}));
 	}
 	
 	@After
@@ -121,7 +133,7 @@ public class SearchDaoImplAutowireTest {
 	
 	@Ignore
 	@Test
-	public void testCRUD() throws ClientProtocolException, IOException, HttpClientHelperException, InterruptedException{
+	public void testCRUD() throws Exception {
 		// Before we start this test delete all data in the search index
 		searchDao.deleteAllDocuments();
 		// create a document, search for it, then delete it.
@@ -194,7 +206,7 @@ public class SearchDaoImplAutowireTest {
 
 	@Ignore
 	@Test
-	public void testListSearchDocuments() throws ClientProtocolException, IOException, HttpClientHelperException, InterruptedException{
+	public void testListSearchDocuments() throws Exception {
 		// Before we start this test delete all data in the search index
 		searchDao.deleteAllDocuments();
 		// For this test we are creating a set of documents, waiting for them then 
@@ -242,7 +254,7 @@ public class SearchDaoImplAutowireTest {
 	 * @throws HttpClientHelperException
 	 * @throws InterruptedException
 	 */
-	private void waitForSearchCreateOrUpdate(String id, String etag) throws ClientProtocolException, IOException, HttpClientHelperException, InterruptedException{
+	private void waitForSearchCreateOrUpdate(String id, String etag) throws Exception {
 		long start = System.currentTimeMillis();
 		while(!searchDao.doesDocumentExist(id, etag)){
 			System.out.println(String.format("Waiting for Search document create, id: %1$s etag: %2$s", id, etag));
@@ -261,7 +273,7 @@ public class SearchDaoImplAutowireTest {
 	 * @throws HttpClientHelperException
 	 * @throws InterruptedException
 	 */
-	private void waitForSearchDelete(String id, String etag) throws ClientProtocolException, IOException, HttpClientHelperException, InterruptedException{
+	private void waitForSearchDelete(String id, String etag) throws Exception {
 		long start = System.currentTimeMillis();
 		while(searchDao.doesDocumentExist(id, etag)){
 			System.out.println(String.format("Waiting for Search document delete, id: %1$s etag: %2$s", id, etag));

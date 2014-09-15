@@ -26,8 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
  * 
  * 
  */
-public class CodeMetadataProvider implements
-		TypeSpecificMetadataProvider<Code> {
+public class CodeMetadataProvider implements TypeSpecificMetadataProvider<Code>, EntityValidator<Code>, TypeSpecificDeleteProvider<Code> {
 
 	private static final Logger log = Logger
 			.getLogger(CodeMetadataProvider.class.getName());

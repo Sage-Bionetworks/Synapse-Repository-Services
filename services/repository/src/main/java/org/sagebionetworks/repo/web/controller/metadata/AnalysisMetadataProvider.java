@@ -46,17 +46,6 @@ public class AnalysisMetadataProvider implements
 				userInfo, eventType);
 	}
 
-	@Override
-	public void validateEntity(Analysis entity, EntityEvent event)
-			throws InvalidModelException, NotFoundException,
-			DatastoreException, UnauthorizedException {
-	}
-
-	@Override
-	public void entityDeleted(Analysis deleted) {
-		// TODO Auto-generated method stub
-	}
-
 	/**
 	 * Helper for updating a provenance record as a side effect of CRUD on an
 	 * analysis

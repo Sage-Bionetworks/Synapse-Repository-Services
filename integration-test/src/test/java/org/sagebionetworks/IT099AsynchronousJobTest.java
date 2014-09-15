@@ -30,10 +30,10 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.table.AsynchDownloadRequestBody;
-import org.sagebionetworks.repo.model.table.AsynchDownloadResponseBody;
-import org.sagebionetworks.repo.model.table.AsynchUploadRequestBody;
-import org.sagebionetworks.repo.model.table.AsynchUploadResponseBody;
+import org.sagebionetworks.repo.model.table.AsynchDownloadFromTableRequestBody;
+import org.sagebionetworks.repo.model.table.AsynchDownloadFromTableResponseBody;
+import org.sagebionetworks.repo.model.table.AsynchUploadToTableRequestBody;
+import org.sagebionetworks.repo.model.table.AsynchUploadToTableResponseBody;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Row;
@@ -152,7 +152,7 @@ public class IT099AsynchronousJobTest {
 			S3FileHandle fileHandle = synapse.createFileHandle(temp, "text/csv");
 			filesToDelete.add(fileHandle);
 			// We now have enough to apply the data to the table
-			AsynchUploadRequestBody body = new AsynchUploadRequestBody();
+			AsynchUploadToTableRequestBody body = new AsynchUploadToTableRequestBody();
 			body.setTableId(table.getId());
 			body.setUploadFileHandleId(fileHandle.getId());
 			AsynchronousJobStatus status = synapse.startAsynchronousJob(body);
@@ -171,8 +171,8 @@ public class IT099AsynchronousJobTest {
 			assertNotNull(status.getJobId());
 			assertEquals(body, status.getRequestBody());
 			assertNotNull(status.getResponseBody());
-			assertTrue(status.getResponseBody() instanceof AsynchUploadResponseBody);
-			AsynchUploadResponseBody response = (AsynchUploadResponseBody) status.getResponseBody();
+			assertTrue(status.getResponseBody() instanceof AsynchUploadToTableResponseBody);
+			AsynchUploadToTableResponseBody response = (AsynchUploadToTableResponseBody) status.getResponseBody();
 			assertNotNull(response.getEtag());
 			assertEquals(new Long(rowCount), response.getRowsProcessed());
 			// Wait for the table to be ready
@@ -181,7 +181,7 @@ public class IT099AsynchronousJobTest {
 
 			assertEquals(rowCount, Integer.parseInt(waitForQueryResults(sql + " limit 100", true, true).getRows().get(0).getValues().get(0)));
 			// Now start a download job
-			AsynchDownloadRequestBody downloadBody = new AsynchDownloadRequestBody();
+			AsynchDownloadFromTableRequestBody downloadBody = new AsynchDownloadFromTableRequestBody();
 			downloadBody.setSql(sql);
 			downloadBody.setIncludeRowIdAndRowVersion(true);
 			downloadBody.setWriteHeader(true);
@@ -191,8 +191,8 @@ public class IT099AsynchronousJobTest {
 			assertNotNull(status);
 			assertNotNull(status.getJobId());
 			assertNotNull(status.getResponseBody());
-			assertTrue(status.getResponseBody() instanceof AsynchDownloadResponseBody);
-			AsynchDownloadResponseBody downLoadresponse = (AsynchDownloadResponseBody) status.getResponseBody();
+			assertTrue(status.getResponseBody() instanceof AsynchDownloadFromTableResponseBody);
+			AsynchDownloadFromTableResponseBody downLoadresponse = (AsynchDownloadFromTableResponseBody) status.getResponseBody();
 			// Now download the file
 			URL url = synapse.getFileHandleTemporaryUrl(downLoadresponse.getResultsFileHandleId());
 			assertNotNull(url);

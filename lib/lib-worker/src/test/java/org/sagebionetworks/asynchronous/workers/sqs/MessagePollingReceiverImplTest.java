@@ -168,22 +168,25 @@ public class MessagePollingReceiverImplTest {
 
 	@Test
 	public void testTriggerFiredOneFailureMulitipleSuccess() throws Exception {
-		// Setup a worker stack
-		Stack<StubWorker> workerStack = new Stack<StubWorker>();
-		// Setup workers that will not timeout or throw exceptions
-		for (int i = 0; i < maxNumberOfWorkerThreads - 1; i++) {
-			workerStack.push(new StubWorker(0, 0, null));
-		}
-		// Make the first worker wait and then throw an exception
-		workerStack.push(new StubWorker(500, 0, new Exception("Simulated a failure")));
-		StubWorkerFactory factory = new StubWorkerFactory(workerStack);
+		MessageWorkerFactory factory = new MessageWorkerFactory() {
+			@Override
+			public Callable<List<Message>> createWorker(List<Message> messages, WorkerProgress workerProgress) {
+				StubWorker worker;
+				if (messages.equals(messageList.subList(0, 3))) {
+					worker = new StubWorker(500, 0, new Exception("Simulated a failure"));
+				} else {
+					worker = new StubWorker(0, 0, null);
+				}
+				return worker.withMessage(messages).withProgress(workerProgress);
+			}
+		};
 		messageReceiver.setWorkerFactory(factory);
 
 		// now trigger
 		triggerFired.start();
-		Thread.sleep(1000);
 
 		// and wait for everything to happen
+		verify(mockSQSDao, timeout(5000).times(4)).deleteMessages(anyString(), anyListOf(Message.class));
 		verify(mockSQSDao).deleteMessages(queueUrl, messageList.subList(3, 6));
 		verify(mockSQSDao).deleteMessages(queueUrl, messageList.subList(6, 9));
 		verify(mockSQSDao).deleteMessages(queueUrl, messageList.subList(9, 12));

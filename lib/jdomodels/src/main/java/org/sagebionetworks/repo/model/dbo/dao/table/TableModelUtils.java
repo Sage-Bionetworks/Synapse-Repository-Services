@@ -15,9 +15,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
+import org.apache.commons.lang.StringUtils;
 import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dao.table.RowSetAccessor;
@@ -57,6 +60,17 @@ public class TableModelUtils {
 	 */
 	public static final String COLUMN_MODEL_ID_STRING_DELIMITER = ",";
 	
+	public static final Pattern ENTITYID_PATTERN = Pattern.compile("syn(\\d+)(\\.(\\d+))?");
+
+	public static class NodeIdAndVersion {
+		public final Long id;
+		public final Long version;
+
+		public NodeIdAndVersion(Long id, Long version) {
+			this.id = id;
+			this.version = version;
+		}
+	}
 
 	/**
 	 * This utility will validate and convert the passed RowSet to an output CSV written to a GZip stream.
@@ -216,47 +230,7 @@ public class TableModelUtils {
 		// Validate non-null values
 		if (value != null) {	
 			try {
-				switch (cm.getColumnType()) {
-				case BOOLEAN:
-					boolean boolValue;
-					if (value.equalsIgnoreCase("true")) {
-						boolValue = true;
-					} else if (value.equalsIgnoreCase("false")) {
-						boolValue = false;
-					} else {
-						throw new IllegalArgumentException("A value in a boolean column must be null, 'true' or 'false', but was '" + value
-								+ "'");
-					}
-					return Boolean.toString(boolValue);
-				case INTEGER:
-				case FILEHANDLEID:
-					long lv = Long.parseLong(value);
-					return Long.toString(lv);
-				case DATE:
-					// value can be either a number (in which case it is milliseconds since blah) or not a number (in
-					// which
-					// case it is date string)
-					long time;
-					try {
-						time = Long.parseLong(value);
-					} catch (NumberFormatException e) {
-						time = TimeUtils.parseSqlDate(value);
-					}
-					return Long.toString(time);
-				case DOUBLE:
-					double dv = Double.parseDouble(value);
-					return Double.toString(dv);
-				case STRING:
-					if (cm.getMaximumSize() == null)
-						throw new IllegalArgumentException("String columns must have a maximum size");
-					if (value.length() > cm.getMaximumSize())
-						throw new IllegalArgumentException(
-								"String exceeds the maximum length of "
-										+ cm.getMaximumSize()
-										+ " characters. Consider using a FileHandle to store large strings.");
-					return value;
-				}
-				throw new IllegalArgumentException("Unknown ColumModel type: " + cm.getColumnType());
+				return validateValue(value, cm);
 			} catch (Exception e) {
 				throw new IllegalArgumentException(String.format(
 						INVALID_VALUE_TEMPLATE, rowIndex, columnIndex,
@@ -269,6 +243,54 @@ public class TableModelUtils {
 			}
 			return value;
 		}
+	}
+
+
+	public static String validateValue(String value, ColumnModel cm) {
+		switch (cm.getColumnType()) {
+		case BOOLEAN:
+			boolean boolValue;
+			if (value.equalsIgnoreCase("true")) {
+				boolValue = true;
+			} else if (value.equalsIgnoreCase("false")) {
+				boolValue = false;
+			} else {
+				throw new IllegalArgumentException("A value in a boolean column must be null, 'true' or 'false', but was '" + value
+						+ "'");
+			}
+			return Boolean.toString(boolValue);
+		case INTEGER:
+		case FILEHANDLEID:
+			long lv = Long.parseLong(value);
+			return Long.toString(lv);
+		case ENTITYID:
+			if (!ENTITYID_PATTERN.matcher(value).matches()) {
+				throw new IllegalArgumentException("Malformed entity ID (should be syn123 or syn 123.4): " + value);
+			}
+			return value;
+		case DATE:
+			// value can be either a number (in which case it is milliseconds since blah) or not a number (in
+			// which case it is date string)
+			long time;
+			try {
+				time = Long.parseLong(value);
+			} catch (NumberFormatException e) {
+				time = TimeUtils.parseSqlDate(value);
+			}
+			return Long.toString(time);
+		case DOUBLE:
+			double dv = Double.parseDouble(value);
+			return Double.toString(dv);
+		case STRING:
+			if (cm.getMaximumSize() == null)
+				throw new IllegalArgumentException("String columns must have a maximum size");
+			if (value.length() > cm.getMaximumSize()) {
+				throw new IllegalArgumentException("String '" + value + "' exceeds the maximum length of " + cm.getMaximumSize()
+						+ " characters. Consider using a FileHandle to store large strings.");
+			}
+			return value;
+		}
+		throw new IllegalArgumentException("Unknown ColumModel type: " + cm.getColumnType());
 	}
 
 	/**
@@ -707,6 +729,8 @@ public class TableModelUtils {
 			return ColumnConstants.MAX_DOUBLE_BYTES_AS_STRING;
 		case FILEHANDLEID:
 			return ColumnConstants.MAX_FILE_HANDLE_ID_BYTES_AS_STRING;
+		case ENTITYID:
+			return ColumnConstants.MAX_ENTITY_ID_BYTES_AS_STRING;
 		}
 		throw new IllegalArgumentException("Unknown ColumnType: " + type);
 	}
@@ -990,5 +1014,22 @@ public class TableModelUtils {
 			versions.put(ref.getVersionNumber(), ref.getRowId());
 		}
 		return versions;
+	}
+
+	public static NodeIdAndVersion parseEntityIdValue(String entityId) {
+		Matcher m = ENTITYID_PATTERN.matcher(entityId);
+		if (!m.matches()) {
+			return null;
+		}
+		Long id = Long.parseLong(m.group(1));
+		String versionString = null;
+		if (m.groupCount() == 3) {
+			versionString = m.group(3);
+		}
+		Long version = null;
+		if (versionString != null) {
+			version = Long.parseLong(versionString);
+		}
+		return new NodeIdAndVersion(id, version);
 	}
 }

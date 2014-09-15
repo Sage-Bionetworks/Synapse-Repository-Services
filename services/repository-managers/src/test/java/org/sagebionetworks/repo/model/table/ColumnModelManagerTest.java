@@ -1,14 +1,12 @@
 package org.sagebionetworks.repo.model.table;
 
 import static org.junit.Assert.*;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.junit.Before;
@@ -29,6 +27,9 @@ import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.util.ReflectionTestUtils;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 /**
  * Unit test for the ColumnManager.
@@ -156,7 +157,7 @@ public class ColumnModelManagerTest {
 			assertTrue(e.getMessage().contains("SQL key word"));
 		}
 	}
-	
+
 	@Test (expected = IllegalArgumentException.class)
 	public void testGetColumnsNullUser() throws DatastoreException, NotFoundException{
 		List<String> ids = new LinkedList<String>();
@@ -253,6 +254,14 @@ public class ColumnModelManagerTest {
 		assertEquals(new Long(1), page.getTotalNumberOfResults());
 	}
 	
+	@Test
+	public void testUnbindColumnFromObject() throws DatastoreException, NotFoundException {
+		String objectId = "syn123";
+		columnModelManager.unbindAllColumnsAndOwnerFromObject(objectId);
+		verify(mockColumnModelDAO).unbindAllColumnsFromObject(objectId);
+		verify(mockColumnModelDAO).deleteOwner(objectId);
+	}
+
 	@Test (expected=UnauthorizedException.class)
 	public void testTruncateAllDataUnauthroized(){
 		UserInfo user = new UserInfo(false);
