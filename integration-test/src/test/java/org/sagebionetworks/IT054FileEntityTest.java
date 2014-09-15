@@ -59,6 +59,9 @@ public class IT054FileEntityTest {
 	
 	@Before
 	public void before() throws SynapseException {
+		// Create a project, this will own the file entity
+		project = new Project();
+		project = synapse.createEntity(project);
 		// Get the image file from the classpath.
 		URL url = IT054FileEntityTest.class.getClassLoader().getResource("images/"+FILE_NAME);
 		imageFile = new File(url.getFile().replaceAll("%20", " "));
@@ -67,14 +70,11 @@ public class IT054FileEntityTest {
 		// Create the image file handle
 		List<File> list = new LinkedList<File>();
 		list.add(imageFile);
-		FileHandleResults results = synapse.createFileHandles(list);
+		FileHandleResults results = synapse.createFileHandles(list, project.getId());
 		assertNotNull(results);
 		assertNotNull(results.getList());
 		assertEquals(1, results.getList().size());
 		fileHandle = (S3FileHandle) results.getList().get(0);
-		// Create a project, this will own the file entity
-		project = new Project();
-		project = synapse.createEntity(project);
 	}
 
 	@After

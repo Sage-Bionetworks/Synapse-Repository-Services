@@ -52,7 +52,6 @@ import org.sagebionetworks.repo.web.controller.metadata.TypeSpecificDeleteProvid
 import org.sagebionetworks.repo.web.controller.metadata.TypeSpecificMetadataProvider;
 import org.sagebionetworks.repo.web.controller.metadata.TypeSpecificVersionDeleteProvider;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DeadlockLoserDataAccessException;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -558,11 +557,6 @@ public class EntityServiceImpl implements EntityService {
 		return entityPermissionsManager.getUserPermissionsForEntity(userInfo, entityId);
 	}
 	
-	@Override
-	public String throwDeadlockException(DeadlockLoserDataAccessException toThrow) {
-		throw toThrow;
-	}
-
 	@Override
 	public S3AttachmentToken createS3AttachmentToken(Long userId, String entityId,
 			S3AttachmentToken token) throws UnauthorizedException, NotFoundException, DatastoreException, InvalidModelException {

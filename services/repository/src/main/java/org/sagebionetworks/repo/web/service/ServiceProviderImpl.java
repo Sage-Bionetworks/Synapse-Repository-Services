@@ -69,6 +69,8 @@ public class ServiceProviderImpl implements ServiceProvider {
 	private AsynchronousJobServices asynchronousJobServices;
 	@Autowired
 	private LogService logService;
+	@Autowired
+	private ProjectSettingsService projectSettingsService;
 	
 	public AccessApprovalService getAccessApprovalService() {
 		return accessApprovalService;
@@ -177,4 +179,8 @@ public class ServiceProviderImpl implements ServiceProvider {
 		return logService;
 	}
 
+	@Override
+	public ProjectSettingsService getProjectSettingsService() {
+		return projectSettingsService;
+	}
 }

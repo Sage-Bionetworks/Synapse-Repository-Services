@@ -15,15 +15,18 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.manager.trash.ParentInTrashCanException;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
+import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ErrorResponse;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NameConflictException;
+import org.sagebionetworks.repo.model.NotReadyException;
 import org.sagebionetworks.repo.model.TermsOfUseException;
 import org.sagebionetworks.repo.model.TooManyRequestsException;
 import org.sagebionetworks.repo.model.UnauthenticatedException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.table.TableStatus;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.queryparser.ParseException;
@@ -33,7 +36,7 @@ import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.utils.HttpClientHelperException;
 import org.springframework.beans.TypeMismatchException;
-import org.springframework.dao.DeadlockLoserDataAccessException;
+import org.springframework.dao.TransientDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.HttpMediaTypeNotAcceptableException;
@@ -118,6 +121,21 @@ public abstract class BaseController {
 		return ex.getStatus();
 	}
 	
+	/**
+	 * When a NotReadyException occurs we need to communicate the async status to the caller with a 202 ACCEPTED,
+	 * indicating we accepted they call but the resource is not ready yet.
+	 * 
+	 * @param ex
+	 * @param request
+	 * @return
+	 */
+	@ExceptionHandler(NotReadyException.class)
+	@ResponseStatus(HttpStatus.ACCEPTED)
+	public @ResponseBody
+	AsynchronousJobStatus handleResultNotReadyException(NotReadyException ex, HttpServletRequest request) {
+		return ex.getStatus();
+	}
+
 	@ExceptionHandler(MissingServletRequestParameterException.class)
 	@ResponseStatus(HttpStatus.BAD_REQUEST)
 	public @ResponseBody
@@ -235,6 +253,20 @@ public abstract class BaseController {
 	@ResponseStatus(HttpStatus.CONFLICT)
 	public @ResponseBody
 	ErrorResponse handleNameConflictException(NameConflictException ex,
+			HttpServletRequest request) {
+		return handleException(ex, request, false);
+	}
+
+	/**
+	 * This exception is thrown when an async job fails.
+	 * @param ex
+	 * @param request
+	 * @return
+	 */
+	@ExceptionHandler(AsynchJobFailedException.class)
+	@ResponseStatus(HttpStatus.BAD_REQUEST)
+	public @ResponseBody
+	ErrorResponse handleAsynchJobFailedException(AsynchJobFailedException ex,
 			HttpServletRequest request) {
 		return handleException(ex, request, false);
 	}
@@ -599,10 +631,10 @@ public abstract class BaseController {
 	 * @param request
 	 * @return
 	 */
-	@ExceptionHandler(DeadlockLoserDataAccessException.class)
+	@ExceptionHandler(TransientDataAccessException.class)
 	@ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
 	public @ResponseBody
-	ErrorResponse handleDeadlockExceptions(DeadlockLoserDataAccessException ex,
+	ErrorResponse handleDeadlockExceptions(TransientDataAccessException ex,
 			HttpServletRequest request) {
 		log.error("Handling " + request.toString(), ex);
 		ErrorResponse er = new ErrorResponse();

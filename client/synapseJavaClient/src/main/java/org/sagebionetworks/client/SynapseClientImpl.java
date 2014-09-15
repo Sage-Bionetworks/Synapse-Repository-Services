@@ -25,7 +25,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import org.apache.commons.lang.NotImplementedException;
 import org.apache.commons.lang.StringUtils;
+import org.apache.http.HttpStatus;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.entity.ContentType;
@@ -35,6 +37,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
 import org.sagebionetworks.client.exceptions.SynapseTableUnavailableException;
 import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
 import org.sagebionetworks.downloadtools.FileUtils;
@@ -51,19 +54,11 @@ import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.evaluation.model.UserEvaluationState;
 import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
-import org.sagebionetworks.repo.model.Team;
-import org.sagebionetworks.repo.model.TeamMember;
-import org.sagebionetworks.repo.model.TeamMembershipStatus;
-import org.sagebionetworks.repo.model.TrashedEntity;
-import org.sagebionetworks.repo.model.UserGroup;
-import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
-import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.model.UserSessionData;
-import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
-import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.annotation.AnnotationsUtils;
+import org.sagebionetworks.repo.model.asynch.AsyncJobId;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
+import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
@@ -87,8 +82,10 @@ import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.file.S3UploadDestination;
 import org.sagebionetworks.repo.model.file.State;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
+import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageRecipientSet;
 import org.sagebionetworks.repo.model.message.MessageSortBy;
@@ -99,6 +96,7 @@ import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
 import org.sagebionetworks.repo.model.principal.AddEmailInfo;
 import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
 import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
+import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.query.QueryTableResults;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
@@ -111,16 +109,23 @@ import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.storage.StorageUsageDimension;
 import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
+import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
+import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.Query;
+import org.sagebionetworks.repo.model.table.QueryBundleRequest;
+import org.sagebionetworks.repo.model.table.QueryNextPageToken;
+import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
-import org.sagebionetworks.repo.model.table.TableStatus;
+import org.sagebionetworks.repo.model.table.UploadToTableRequest;
+import org.sagebionetworks.repo.model.table.UploadToTableResult;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
@@ -183,6 +188,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String ACTIVITY_URI_PATH = "/activity";
 	private static final String GENERATED_PATH = "/generated";
 	private static final String FAVORITE_URI_PATH = "/favorite";
+	private static final String PROJECT_URI_PATH = "/project";
 	
 	public static final String PRINCIPAL = "/principal";
 	public static final String PRINCIPAL_AVAILABLE = PRINCIPAL+"/available";
@@ -240,13 +246,18 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	
 	private static final String STORAGE_SUMMARY_PATH = "/storageSummary";
 	
+	protected static final String ASYNC_START = "/async/start";
+	protected static final String ASYNC_GET = "/async/get/";
+
 	protected static final String COLUMN = "/column";
 	protected static final String TABLE = "/table";
 	protected static final String ROW_ID = "/row";
 	protected static final String ROW_VERSION = "/version";
 	protected static final String TABLE_QUERY = TABLE+"/query";
-	protected static final String TABLE_QUERY_BUNDLE = TABLE_QUERY+"/bundle";
+	protected static final String TABLE_QUERY_NEXTPAGE = TABLE_QUERY + "/nextPage";
 	protected static final String TABLE_PARITAL = TABLE + "/partial";
+	protected static final String TABLE_DOWNLOAD_CSV = TABLE + "/download/csv";
+	protected static final String TABLE_UPLOAD_CSV = TABLE + "/upload/csv";
 	
 	protected static final  String ASYNCHRONOUS_JOB = "/asynchronous/job";
 
@@ -331,7 +342,9 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String CERTIFIED_USER_TEST = "/certifiedUserTest";
 	private static final String CERTIFIED_USER_TEST_RESPONSE = "/certifiedUserTestResponse";
 	private static final String CERTIFIED_USER_PASSING_RECORD = "/certifiedUserPassingRecord";
-	private static final String CERTIFIED_USER_PRINCIPAL_ID_REQUEST_PARAM = "principalId";
+	private static final String CERTIFIED_USER_PASSING_RECORDS = "/certifiedUserPassingRecords";
+
+	private static final String PRINCIPAL_ID_REQUEST_PARAM = "principalId";
 
 	protected String repoEndpoint;
 	protected String authEndpoint;
@@ -1734,6 +1747,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 	
 	@Override
+	@Deprecated
 	public FileHandleResults createFileHandles(List<File> files) throws SynapseException{
 		if(files == null) throw new IllegalArgumentException("File list cannot be null");
 		try {
@@ -1752,10 +1766,25 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throw new SynapseClientException(e);
 		}	
 	}
-	
+
 	@Override
-	public S3FileHandle createFileHandle(File temp, String contentType) throws SynapseException, IOException{
-		return createFileHandle(temp, contentType, null);
+	public FileHandleResults createFileHandles(List<File> files, String parentEntityId) throws SynapseException {
+		if (files == null)
+			throw new IllegalArgumentException("File list cannot be null");
+		try {
+			List<FileHandle> list = new LinkedList<FileHandle>();
+			for (File file : files) {
+				// We need to determine the content type of the file
+				String contentType = guessContentTypeFromStream(file);
+				FileHandle handle = createFileHandle(file, contentType, parentEntityId);
+				list.add(handle);
+			}
+			FileHandleResults results = new FileHandleResults();
+			results.setList(list);
+			return results;
+		} catch (IOException e) {
+			throw new SynapseClientException(e);
+		}
 	}
 	
 	@Override
@@ -1763,19 +1792,57 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		String uri = getFileHandleTemporaryURI(fileHandleId, false);
 		return getUrl(getFileEndpoint(), uri);
 	}
-	private String getFileHandleTemporaryURI(String fileHandleId, boolean redirect){
-		return FILE_HANDLE + "/" +fileHandleId+"/url"+ QUERY_REDIRECT_PARAMETER + redirect;
+
+	private String getFileHandleTemporaryURI(String fileHandleId, boolean redirect) {
+		return FILE_HANDLE + "/" + fileHandleId + "/url" + QUERY_REDIRECT_PARAMETER + redirect;
 	}
+
 	@Override
-	public void downloadFromFileHandleTemporaryUrl(String fileHandleId, File destinationFile)
-			throws SynapseException {
-		String uri = getFileEndpoint()+getFileHandleTemporaryURI(fileHandleId, true);
+	public void downloadFromFileHandleTemporaryUrl(String fileHandleId, File destinationFile) throws SynapseException {
+		String uri = getFileEndpoint() + getFileHandleTemporaryURI(fileHandleId, true);
 		getSharedClientConnection().downloadFromSynapse(uri, null, destinationFile, getUserAgent());
 	}
 
 	@Override
-	public S3FileHandle createFileHandle(File temp, String contentType, Boolean shouldPreviewBeCreated)
+	@Deprecated
+	public S3FileHandle createFileHandle(File temp, String contentType) throws SynapseException, IOException {
+		return createFileHandleS3(temp, contentType, null, null);
+	}
+
+	@Override
+	@Deprecated
+	public S3FileHandle createFileHandle(File temp, String contentType, Boolean shouldPreviewBeCreated) throws SynapseException, IOException {
+		return createFileHandleS3(temp, contentType, shouldPreviewBeCreated, null);
+	}
+
+	@Override
+	public FileHandle createFileHandle(File temp, String contentType, String parentEntityId) throws SynapseException, IOException {
+		return createFileHandle(temp, contentType, null, parentEntityId);
+	}
+
+	@Override
+	public FileHandle createFileHandle(File temp, String contentType, Boolean shouldPreviewBeCreated, String parentEntityId)
 			throws SynapseException, IOException {
+		List<UploadDestination> uploadDestinations = getUploadDestinations(parentEntityId);
+		if (uploadDestinations.isEmpty()) {
+			// default to S3
+			return createFileHandleS3(temp, contentType, shouldPreviewBeCreated, null);
+		}
+
+		UploadDestination uploadDestination = uploadDestinations.get(0);
+		switch (uploadDestination.getUploadType()) {
+		case HTTPS:
+		case SFTP:
+			throw new NotImplementedException("SFTP and HTTPS uploads not implemented yet");
+		case S3:
+			return createFileHandleS3(temp, contentType, shouldPreviewBeCreated, (S3UploadDestination) uploadDestination);
+		default:
+			throw new NotImplementedException(uploadDestination.getUploadType().name() + " uploads not implemented yet");
+		}
+	}
+
+	private S3FileHandle createFileHandleS3(File temp, String contentType, Boolean shouldPreviewBeCreated,
+			S3UploadDestination s3UploadDestination) throws SynapseException, IOException {
 		if (temp == null) {
 			throw new IllegalArgumentException("File cannot be null");
 		}
@@ -1784,6 +1851,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		}
 		
 		CreateChunkedFileTokenRequest ccftr = new CreateChunkedFileTokenRequest();
+		ccftr.setS3UploadDestination(s3UploadDestination);
 		ccftr.setContentType(contentType);
 		ccftr.setFileName(temp.getName());
 		// Calculate the MD5
@@ -1866,7 +1934,20 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throw new SynapseClientException(e);
 		} 
 	}
-	
+
+	public List<UploadDestination> getUploadDestinations(String parentEntityId) throws SynapseException {
+		// Get the json for this entity as a list wrapper
+		String url = "/uploadDestinations/" + parentEntityId;
+		JSONObject json = getSynapseEntity(getFileEndpoint(), url);
+		try {
+			@SuppressWarnings("unchecked")
+			ListWrapper<UploadDestination> result = EntityFactory.createEntityFromJSONObject(json, ListWrapper.class);
+			return result.getList();
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
 	/**
 	 * <P>
 	 * This is a low-level API call for uploading large files. We recomend using the high-level
@@ -3550,6 +3631,39 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return getSharedClientConnection().getJson(endpoint, uri, getUserAgent());
 	}
 
+	
+	@Override
+	public String startAsynchJob(AsynchJobType type,
+			AsynchronousRequestBody request) throws SynapseException {
+		AsyncJobId jobId = asymmetricalPost(getRepoEndpoint(), type.getStartUrl(), request, AsyncJobId.class, null);
+		return jobId.getToken();
+	}
+	
+	@Override
+	public AsynchronousResponseBody getAsyncResult(AsynchJobType type,	String jobId) throws SynapseException,
+			SynapseClientException, SynapseResultNotReadyException {
+		try {
+			JSONObject responseBody = getSharedClientConnection().getJson(getRepoEndpoint(), type.getResultUrl(jobId), getUserAgent(),
+					new SharedClientConnection.ErrorHandler() {
+						@Override
+						public void handleError(int code, String responseBody) throws SynapseException {
+							if (code == HttpStatus.SC_ACCEPTED) {
+								try {
+									AsynchronousJobStatus status = EntityFactory.createEntityFromJSONString(responseBody,
+											AsynchronousJobStatus.class);
+									throw new SynapseResultNotReadyException(status);
+								} catch (JSONObjectAdapterException e) {
+									throw new SynapseClientException(e.getMessage(), e);
+								}
+							}
+						}
+					});
+			return EntityFactory.createEntityFromJSONObject(responseBody, type.getReponseClass());
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+
 	/**
 	 * Update a dataset, layer, preview, annotations, etc...
 	 * 
@@ -3713,11 +3827,51 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 * @param contentType should include the character encoding, e.g. "text/plain; charset=utf-8"
 	 */
 	@Override
+	public String uploadToFileHandle(byte[] content, ContentType contentType, String parentEntityId) throws SynapseException {
+		List<UploadDestination> uploadDestinations = getUploadDestinations(parentEntityId);
+		if (uploadDestinations.isEmpty()) {
+			// default to S3
+			return uploadToS3FileHandle(content, contentType, null);
+		}
+
+		UploadDestination uploadDestination = uploadDestinations.get(0);
+		switch (uploadDestination.getUploadType()) {
+		case HTTPS:
+		case SFTP:
+			throw new NotImplementedException("SFTP and HTTPS uploads not implemented yet");
+		case S3:
+			return uploadToS3FileHandle(content, contentType, (S3UploadDestination) uploadDestination);
+		default:
+			throw new NotImplementedException(uploadDestination.getUploadType().name() + " uploads not implemented yet");
+		}
+	}
+
+	/**
+	 * uploads a String to S3 using the chunked file upload service
+	 * 
+	 * @param content the content to upload. Strings in memory should not be large, so we limit to the size of one
+	 *        'chunk'
+	 * @param contentType should include the character encoding, e.g. "text/plain; charset=utf-8"
+	 */
+	@Override
     public String uploadToFileHandle(byte[] content, ContentType contentType) throws SynapseException {
+		return uploadToS3FileHandle(content, contentType, null);
+	}
+
+	/**
+	 * uploads a String to S3 using the chunked file upload service
+	 * 
+	 * @param content the content to upload. Strings in memory should not be large, so we limit to the size of one
+	 *        'chunk'
+	 * @param contentType should include the character encoding, e.g. "text/plain; charset=utf-8"
+	 */
+	private String uploadToS3FileHandle(byte[] content, ContentType contentType, S3UploadDestination s3UploadDestination)
+			throws SynapseClientException, SynapseException {
     	if (content==null || content.length==0) throw new IllegalArgumentException("Missing content.");
 		
     	if (content.length>=MINIMUM_CHUNK_SIZE_BYTES) 
     		throw new IllegalArgumentException("String must be less than "+MINIMUM_CHUNK_SIZE_BYTES+" bytes.");
+
 		String contentMD5 = null;
 		try {
 			contentMD5 = MD5ChecksumHelper.getMD5ChecksumForByteArray(content);
@@ -3729,6 +3883,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		ccftr.setFileName("content");
 		ccftr.setContentType(contentType.toString());
 		ccftr.setContentMD5(contentMD5);
+		ccftr.setS3UploadDestination(s3UploadDestination);
 		// Start the upload
 		ChunkedFileToken token = createChunkedFileUploadToken(ccftr);
 		
@@ -4852,6 +5007,25 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		}
 	}
 
+	@Override
+	public ProjectSetting createProjectSetting(ProjectSetting projectSetting) throws SynapseException {
+		try {
+			JSONObject jsonObject = EntityFactory.createJSONObjectForEntity(projectSetting);
+			jsonObject = createJSONObject("/projectSettings", jsonObject);
+			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObject);
+			ProjectSetting obj = (ProjectSetting) autoGenFactory.newInstance(projectSetting.getConcreteType());
+			Iterator<String> it = adapter.keys();
+			while (it.hasNext()) {
+				String s = it.next();
+				log.trace(s);
+			}
+			obj.initializeFromJSONObject(adapter);
+			return obj;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+
 	/**
 	 * Add the entity to this user's Favorites list
 	 * @param entityId
@@ -4907,8 +5081,49 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	/**
-	 * Creates a DOI for the specified entity. The DOI will always be associated with
-	 * the current version of the entity.
+	 * Retrieve this user's Projects list
+	 * 
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws SynapseException
+	 */
+	@Override
+	public PaginatedResults<ProjectHeader> getMyProjects(Integer limit, Integer offset) throws SynapseException {
+		return getProjectsFromUser(null, limit, offset);
+	}
+
+	/**
+	 * Retrieve another user's Projects list
+	 * 
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws SynapseException
+	 */
+	@Override
+	public PaginatedResults<ProjectHeader> getProjectsFromUser(Long userId, Integer limit, Integer offset) throws SynapseException {
+		String url;
+		if (userId == null) {
+			url = PROJECT_URI_PATH;
+		} else {
+			url = PROJECT_URI_PATH + USER + '/' + userId;
+		}
+		url += '?' + OFFSET_PARAMETER + offset + '&' + LIMIT_PARAMETER + limit;
+		JSONObject jsonObj = getEntity(url);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedResults<ProjectHeader> results = new PaginatedResults<ProjectHeader>(ProjectHeader.class);
+
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+
+	/**
+	 * Creates a DOI for the specified entity. The DOI will always be associated with the current version of the entity.
 	 */
 	@Override
 	public void createEntityDoi(String entityId) throws SynapseException {
@@ -5160,52 +5375,69 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public RowSet queryTableEntity(String sql) throws SynapseException, SynapseTableUnavailableException{
-		boolean isConsistent = true;
-		boolean countOnly = false;
-		return queryTableEntity(sql, isConsistent, countOnly);
-	}
-	
-	@Override
-	public RowSet queryTableEntity(String sql, boolean isConsistent, boolean countOnly) throws SynapseException, SynapseTableUnavailableException{
-		String url = TABLE_QUERY + "?isConsistent=" + isConsistent + "&countOnly=" + countOnly;
+	public String queryTableEntityBundleAsyncStart(String sql, Long offset, Long limit, boolean isConsistent, int partsMask)
+			throws SynapseException {
 		Query query = new Query();
 		query.setSql(sql);
-		return asymmetricalPost(getRepoEndpoint(), url, query, RowSet.class, new SharedClientConnection.ErrorHandler() {
-			@Override
-			public void handleError(int code, String responseBody) throws SynapseException {
-				if (code == 202) {
-					try {
-						TableStatus status = EntityFactory.createEntityFromJSONString(responseBody, TableStatus.class);
-						throw new SynapseTableUnavailableException(status);
-					} catch (JSONObjectAdapterException e) {
-						throw new SynapseClientException(e.getMessage(), e);
-					}
-				}
-			}
-		});
+		query.setIsConsistent(isConsistent);
+		query.setOffset(offset);
+		query.setLimit(limit);
+		QueryBundleRequest bundleRequest = new QueryBundleRequest();
+		bundleRequest.setQuery(query);
+		bundleRequest.setPartMask((long) partsMask);
+		return startAsynchJob(AsynchJobType.TableQuery, bundleRequest);
 	}
 
 	@Override
-	public QueryResultBundle queryTableEntityBundle(String sql, boolean isConsistent, int partsMask) throws SynapseException, SynapseTableUnavailableException{
-		String url = TABLE_QUERY_BUNDLE + "?isConsistent=" + isConsistent + "&partsMask=" + partsMask;
-		Query query = new Query();
-		query.setSql(sql);
-		return asymmetricalPost(getRepoEndpoint(), url, query, QueryResultBundle.class, new SharedClientConnection.ErrorHandler() {
-			@Override
-			public void handleError(int code, String responseBody) throws SynapseException {
-				if (code == 202) {
-					try {
-						TableStatus status = EntityFactory.createEntityFromJSONString(responseBody, TableStatus.class);
-						throw new SynapseTableUnavailableException(status);
-					} catch (JSONObjectAdapterException e) {
-						throw new SynapseClientException(e.getMessage(), e);
-					}
-				}
-			}
-		});
+	public QueryResultBundle queryTableEntityBundleAsyncGet(String asyncJobToken) throws SynapseException, SynapseResultNotReadyException {
+		return (QueryResultBundle) getAsyncResult(AsynchJobType.TableQuery, asyncJobToken);
 	}
-	
+
+	@Override
+	public String queryTableEntityNextPageAsyncStart(String nextPageToken) throws SynapseException {
+		QueryNextPageToken queryNextPageToken = new QueryNextPageToken();
+		queryNextPageToken.setToken(nextPageToken);
+		return startAsynchJob(AsynchJobType.TableQueryNextPage, queryNextPageToken);
+	}
+
+	@Override
+	public QueryResult queryTableEntityNextPageAsyncGet(String asyncJobToken) throws SynapseException, SynapseResultNotReadyException {
+		return (QueryResult) getAsyncResult(AsynchJobType.TableQueryNextPage, asyncJobToken);
+	}
+
+	@Override
+	public String downloadCsvFromTableAsyncStart(String sql, boolean writeHeader, boolean includeRowIdAndRowVersion,
+			CsvTableDescriptor csvDescriptor) throws SynapseException {
+		DownloadFromTableRequest downloadRequest = new DownloadFromTableRequest();
+		downloadRequest.setSql(sql);
+		downloadRequest.setWriteHeader(writeHeader);
+		downloadRequest.setIncludeRowIdAndRowVersion(includeRowIdAndRowVersion);
+		downloadRequest.setCsvTableDescriptor(csvDescriptor);
+		return startAsynchJob(AsynchJobType.TableCSVDownload, downloadRequest);
+	}
+
+	@Override
+	public DownloadFromTableResult downloadCsvFromTableAsyncGet(String asyncJobToken) throws SynapseException, SynapseResultNotReadyException {
+		return (DownloadFromTableResult) getAsyncResult(AsynchJobType.TableCSVDownload, asyncJobToken);
+	}
+
+	@Override
+	public String uploadCsvToTableAsyncStart(String tableId, String fileHandleId, String etag, Long linesToSkip,
+			CsvTableDescriptor csvDescriptor) throws SynapseException {
+		UploadToTableRequest uploadRequest = new UploadToTableRequest();
+		uploadRequest.setTableId(tableId);
+		uploadRequest.setUploadFileHandleId(fileHandleId);
+		uploadRequest.setUpdateEtag(etag);
+		uploadRequest.setLinesToSkip(linesToSkip);
+		uploadRequest.setCsvTableDescriptor(csvDescriptor);
+		return startAsynchJob(AsynchJobType.TableCSVUpload, uploadRequest);
+	}
+
+	@Override
+	public UploadToTableResult uploadCsvToTableAsyncGet(String asyncJobToken) throws SynapseException, SynapseResultNotReadyException {
+		return (UploadToTableResult) getAsyncResult(AsynchJobType.TableCSVUpload, asyncJobToken);
+	}
+
 	@Override
 	public ColumnModel createColumnModel(ColumnModel model) throws SynapseException {
 		if(model == null) throw new IllegalArgumentException("ColumnModel cannot be null");
@@ -5777,7 +6009,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		if (principalId==null) {
 			uri = CERTIFIED_USER_TEST_RESPONSE+"?"+OFFSET+"="+offset+"&"+LIMIT+"="+limit;
 		} else {
-			uri = CERTIFIED_USER_TEST_RESPONSE+"?"+CERTIFIED_USER_PRINCIPAL_ID_REQUEST_PARAM+"="+principalId+"&"+OFFSET+"="+offset+"&"+LIMIT+"="+limit;
+			uri = CERTIFIED_USER_TEST_RESPONSE+"?"+PRINCIPAL_ID_REQUEST_PARAM+"="+principalId+"&"+OFFSET+"="+offset+"&"+LIMIT+"="+limit;
 		}
 		JSONObject jsonObj = getEntity(uri);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
@@ -5808,6 +6040,21 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throw new SynapseClientException(e);
 		}
 	}
-	
+
+	@Override
+	public PaginatedResults<PassingRecord> getCertifiedUserPassingRecords(long offset, long limit, String principalId) throws SynapseException {
+		if (principalId==null) throw new IllegalArgumentException("principalId may not be null.");
+		String uri = USER+"/"+principalId+CERTIFIED_USER_PASSING_RECORDS+"?"+OFFSET+"="+offset+"&"+LIMIT+"="+limit;
+		JSONObject jsonObj = getEntity(uri);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedResults<PassingRecord> results = new PaginatedResults<PassingRecord>(PassingRecord.class);
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+
 }
 

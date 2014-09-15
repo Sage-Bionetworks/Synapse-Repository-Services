@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.springframework.dao.InvalidDataAccessResourceUsageException;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowCallbackHandler;
@@ -79,7 +80,16 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 		if (dml == null)
 			return false;
 		// Execute the DML
+		try {
 		template.update(dml);
+		} catch (BadSqlGrammarException e) {
+			if (e.getCause() != null && e.getCause().getMessage() != null && e.getCause().getMessage().startsWith("Row size too large")) {
+				throw new InvalidDataAccessResourceUsageException(
+						"Too much data per column. The maximum size for a row is about 65000 bytes", e.getCause());
+			} else {
+				throw e;
+			}
+		}
 		return true;
 	}
 
@@ -212,7 +222,11 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			@Override
 			public void setHeaderColumnIds(List<String> headers) {
 				rowSet.setHeaders(headers);
-				
+			}
+
+			@Override
+			public void setEtag(String etag) {
+				rowSet.setEtag(etag);
 			}
 		});
 		rowSet.setTableId(query.getTableId());

@@ -3,8 +3,11 @@ package org.sagebionetworks;
 import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -812,28 +815,31 @@ public class StackConfiguration {
 	}
 	
 	/**
-	 * The name of the queue used used to upload CSV files to tables.
+	 * The name of the async queue
+	 * 
 	 * @return
 	 */
-	public String getTableCSVUploadQueueName(){
-		return String.format(StackConstants.TABLE_CSV_UPLOAD_QUEUE_TEMPLATE,
-				StackConfiguration.getStack(),
-				StackConfiguration.getStackInstance());
-	}
-	
-	/**
-	 * The name of the queue used used to download CSV files from tables.
-	 * @return
-	 */
-	public String getTableCSVDownloadQueueName(){
-		return String.format(StackConstants.TABLE_CSV_DOWNLOAD_QUEUE_TEMPLATE,
-				StackConfiguration.getStack(),
-				StackConfiguration.getStackInstance());
+	public String getAsyncQueueName(String baseName) {
+		return String.format(StackConstants.ASYNC_QUEUE_TEMPLATE, StackConfiguration.getStack(), StackConfiguration.getStackInstance(),
+				baseName);
 	}
 
 	/**
-	 * The name of the AWS topic where repository changes messages are
-	 * published.
+	 * The name of the async queue
+	 * 
+	 * @return
+	 */
+	public Map<String,String> getAsyncQueueName() {
+		return new DynamicMap<String, String>() {
+			@Override
+			protected String create(Object key) {
+				return getAsyncQueueName(key.toString());
+			}
+		};
+	}
+
+	/**
+	 * The name of the AWS topic where repository changes messages are published.
 	 * 
 	 * @return
 	 */

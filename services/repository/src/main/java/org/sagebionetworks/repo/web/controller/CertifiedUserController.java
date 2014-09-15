@@ -120,4 +120,19 @@ public class CertifiedUserController extends BaseController {
 			) throws NotFoundException {
 		return serviceProvider.getCertifiedUserService().getPassingRecord(userId, principalId);
 	}
+
+	/**
+	 * Retrieve all the Passing Record on the User Certification test for the given user.
+	 * Note:  This service is available to Synapse administrators only.
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.CERTIFIED_USER_PASSING_RECORDS_WITH_ID, method = RequestMethod.GET)
+	public  @ResponseBody PaginatedResults<PassingRecord> getPassingRecords(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable(value = ID_PATH_VARIABLE) Long principalId,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset
+			) throws NotFoundException {
+		return serviceProvider.getCertifiedUserService().getPassingRecords(userId, principalId, limit, offset);
+	}
 }

@@ -1,6 +1,6 @@
 {
     "title":"File",
-    "description":"JSON schema for Folder POJO",
+    "description":"JSON schema for File POJO",
     "implements":[
         {
             "$ref":"org.sagebionetworks.repo.model.Versionable"

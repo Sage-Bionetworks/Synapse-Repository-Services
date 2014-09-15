@@ -302,6 +302,7 @@ public class PrincipalManagerImplUnitTest {
 	public void testValidateSynapsePortalHostOK() throws Exception {
 		PrincipalManagerImpl.validateSynapsePortalHost("www.synapse.org");
 		PrincipalManagerImpl.validateSynapsePortalHost("localhost");
+		PrincipalManagerImpl.validateSynapsePortalHost("127.0.0.1");
 		PrincipalManagerImpl.validateSynapsePortalHost("synapse-staging.sagebase.org");
 	}
 

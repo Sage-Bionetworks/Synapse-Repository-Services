@@ -1,6 +1,7 @@
 package org.sagebionetworks.util;
 
 import java.util.concurrent.Callable;
+import java.util.concurrent.TimeoutException;
 
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormatter;
@@ -50,6 +51,20 @@ public class TimeUtils {
 	}
 
 	/**
+	 * Wait for at most maxTimeMillis for condition to return true. Recheck every checkIntervalMillis
+	 * 
+	 * @param maxTimeMillis
+	 * @param checkIntervalMillis interval check time
+	 * @param condition
+	 * @param input
+	 * @return false if timed out
+	 * @throws Exception
+	 */
+	public static <T> T waitFor(long maxTimeMillis, long checkIntervalMillis, Callable<Pair<Boolean, T>> condition) throws Exception {
+		return waitForInternal(maxTimeMillis, checkIntervalMillis, condition, false);
+	}
+
+	/**
 	 * Wait for at most maxTimeMillis for condition to return true. Recheck every checkIntervalMillis with exponential
 	 * back off
 	 * 
@@ -77,6 +92,25 @@ public class TimeUtils {
 			}
 		}
 		return true;
+	}
+
+	private static <T> T waitForInternal(long maxTimeMillis, long initialCheckIntervalMillis, Callable<Pair<Boolean, T>> condition,
+			boolean exponential) throws Exception {
+		long startTimeMillis = clock.currentTimeMillis();
+		for (;;) {
+			Pair<Boolean, T> call = condition.call();
+			if (call.getFirst().booleanValue() == true) {
+				return call.getSecond();
+			}
+			long nowMillis = clock.currentTimeMillis();
+			if (nowMillis - startTimeMillis >= maxTimeMillis) {
+				throw new TimeoutException("Waited " + (nowMillis - startTimeMillis) + " milliseconds");
+			}
+			clock.sleepNoInterrupt(initialCheckIntervalMillis);
+			if (exponential) {
+				initialCheckIntervalMillis *= 1.2;
+			}
+		}
 	}
 
 	/**

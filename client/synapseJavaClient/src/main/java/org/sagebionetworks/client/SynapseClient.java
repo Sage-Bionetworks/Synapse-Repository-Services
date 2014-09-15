@@ -13,6 +13,7 @@ import org.apache.http.client.ClientProtocolException;
 import org.apache.http.entity.ContentType;
 import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseResultNotReadyException;
 import org.sagebionetworks.client.exceptions.SynapseTableUnavailableException;
 import org.sagebionetworks.evaluation.model.BatchUploadResponse;
 import org.sagebionetworks.evaluation.model.Evaluation;
@@ -28,13 +29,13 @@ import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
+import org.sagebionetworks.repo.model.asynch.AsynchronousResponseBody;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
-import org.sagebionetworks.repo.model.auth.Username;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
@@ -48,6 +49,7 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadDaemonStatus;
+import org.sagebionetworks.repo.model.file.UploadDestination;
 import org.sagebionetworks.repo.model.message.MessageBundle;
 import org.sagebionetworks.repo.model.message.MessageRecipientSet;
 import org.sagebionetworks.repo.model.message.MessageSortBy;
@@ -58,6 +60,7 @@ import org.sagebionetworks.repo.model.principal.AccountSetupInfo;
 import org.sagebionetworks.repo.model.principal.AddEmailInfo;
 import org.sagebionetworks.repo.model.principal.AliasCheckRequest;
 import org.sagebionetworks.repo.model.principal.AliasCheckResponse;
+import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.query.QueryTableResults;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
@@ -69,14 +72,18 @@ import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.storage.StorageUsageDimension;
 import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.CsvTableDescriptor;
+import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
+import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
+import org.sagebionetworks.repo.model.table.UploadToTableResult;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiPage;
@@ -467,12 +474,14 @@ public interface SynapseClient extends BaseClient {
 	/**
 	 * Upload each file to Synapse creating a file handle for each.
 	 */
+	@Deprecated
 	public FileHandleResults createFileHandles(List<File> files)
 			throws SynapseException;
 
 	/**
 	 * The high-level API for uploading a file to Synapse.
 	 */
+	@Deprecated
 	public S3FileHandle createFileHandle(File temp, String contentType)
 			throws SynapseException, IOException;
 
@@ -480,8 +489,29 @@ public interface SynapseClient extends BaseClient {
 	 * See {@link #createFileHandle(File, String)}
 	 * @param shouldPreviewBeCreated Default true
 	 */
+	@Deprecated
 	public S3FileHandle createFileHandle(File temp, String contentType, Boolean shouldPreviewBeCreated)
 			throws SynapseException, IOException;
+
+	/**
+	 * Upload each file to Synapse creating a file handle for each.
+	 */
+	public FileHandleResults createFileHandles(List<File> files, String parentEntityId) throws SynapseException;
+
+	/**
+	 * The high-level API for uploading a file to Synapse.
+	 */
+	public FileHandle createFileHandle(File temp, String contentType, String parentEntityId) throws SynapseException, IOException;
+
+	/**
+	 * See {@link #createFileHandle(File, String)}
+	 * 
+	 * @param shouldPreviewBeCreated Default true
+	 */
+	public FileHandle createFileHandle(File temp, String contentType, Boolean shouldPreviewBeCreated, String parentEntityId)
+			throws SynapseException, IOException;
+
+	public List<UploadDestination> getUploadDestinations(String parentEntityId) throws SynapseException;
 
 	public ChunkedFileToken createChunkedFileUploadToken(
 			CreateChunkedFileTokenRequest ccftr) throws SynapseException;
@@ -795,16 +825,19 @@ public interface SynapseClient extends BaseClient {
 	public String getTermsOfUse(DomainType domain) throws SynapseException;
 	
 	/**
-	 * Uploads a String to S3 using the chunked file upload service
-	 * Note:  Strings in memory should not be large, so we limit the length
-	 * of the byte array for the passed in string to be the size of one 'chunk'
+	 * Uploads a String to the default upload location, if S3 using the chunked file upload service Note: Strings in
+	 * memory should not be large, so we limit the length of the byte array for the passed in string to be the size of
+	 * one 'chunk'
 	 * 
 	 * @param content the byte array to upload.
 	 * 
-	 * @param contentType This will become the contentType field of the resulting S3FileHandle
-	 * if not specified, this method uses "text/plain"
+	 * @param contentType This will become the contentType field of the resulting S3FileHandle if not specified, this
+	 *        method uses "text/plain"
 	 * 
 	 */ 
+	public String uploadToFileHandle(byte[] content, ContentType contentType, String parentEntityId) throws SynapseException;
+
+	@Deprecated
 	public String uploadToFileHandle(byte[] content, ContentType contentType) throws SynapseException;
 
 	/**
@@ -1071,6 +1104,10 @@ public interface SynapseClient extends BaseClient {
 	public PaginatedResults<EntityHeader> getFavorites(Integer limit, Integer offset)
 			throws SynapseException;
 
+	public PaginatedResults<ProjectHeader> getMyProjects(Integer limit, Integer offset) throws SynapseException;
+
+	public PaginatedResults<ProjectHeader> getProjectsFromUser(Long userId, Integer limit, Integer offset) throws SynapseException;
+
 	public void createEntityDoi(String entityId) throws SynapseException;
 
 	public void createEntityDoi(String entityId, Long entityVersion)
@@ -1195,33 +1232,12 @@ public interface SynapseClient extends BaseClient {
 			throws SynapseException;
 
 	/**
-	 * Query for data in a table entity.
-	 * @param sql
-	 * @return
-	 * @throws SynapseException
-	 * @throws SynapseTableUnavailableException Thrown when the table index is not ready for query.  The exception will contain the status of the table.
-	 */
-	public RowSet queryTableEntity(String sql) throws SynapseException, SynapseTableUnavailableException;
-	
-	/**
-	 * Query for data in a table entity.
-	 * 
-	 * @param sql
-	 * @param isConsistent 
-	 * @param countOnly
-	 * @return
-	 * @throws SynapseException 
-	 * @throws SynapseTableUnavailableException Thrown when the table index is not ready for query.  The exception will contain the status of the table.
-	 */
-	public RowSet queryTableEntity(String sql, boolean isConsistent, boolean countOnly) throws SynapseException;
-	
-	/**
-	 * Query for data in a table entity.  The bundled version of the query returns more information than just the query result.
-	 * The parts included in the bundle are determined by the passed mask.
+	 * Query for data in a table entity asynchronously. The bundled version of the query returns more information than
+	 * just the query result. The parts included in the bundle are determined by the passed mask.
 	 * 
 	 * <p>
-	 * The 'partMask' is an integer "mask" that can be combined into to request
-	 * any desired part. As of this writing, the mask is defined as follows:
+	 * The 'partMask' is an integer "mask" that can be combined into to request any desired part. As of this writing,
+	 * the mask is defined as follows:
 	 * <ul>
 	 * <li>Query Results <i>(queryResults)</i> = 0x1</li>
 	 * <li>Query Count <i>(queryCount)</i> = 0x2</li>
@@ -1233,6 +1249,7 @@ public interface SynapseClient extends BaseClient {
 	 * For example, to request all parts, the request mask value should be: <br>
 	 * 0x1 OR 0x2 OR 0x4 OR 0x8 = 0x15.
 	 * </p>
+	 * 
 	 * @param sql
 	 * @param isConsistent
 	 * @param partMask
@@ -1240,10 +1257,111 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 * @throws SynapseTableUnavailableException
 	 */
-	public QueryResultBundle queryTableEntityBundle(String sql, boolean isConsistent,
-			int partMask) throws SynapseException,
-			SynapseTableUnavailableException;
+	public static final int QUERY_PARTMASK = 0x1;
+	public static final int COUNT_PARTMASK = 0x2;
+	public static final int COLUMNS_PARTMASK = 0x4;
+	public static final int MAXROWS_PARTMASK = 0x8;
+
+	public String queryTableEntityBundleAsyncStart(String sql, Long offset, Long limit, boolean isConsistent, int partMask)
+			throws SynapseException;
+
+	/**
+	 * Get the result of an asynchronous queryTableEntityBundle
+	 * 
+	 * @param asyncJobToken
+	 * @return
+	 * @throws SynapseException
+	 * @throws SynapseTableUnavailableException
+	 */
+	public QueryResultBundle queryTableEntityBundleAsyncGet(String asyncJobToken) throws SynapseException, SynapseResultNotReadyException;
+
+	/**
+	 * Query for data in a table entity. Start an asynchronous version of queryTableEntityNextPage
+	 * 
+	 * @param nextPageToken
+	 * @return a token to get the result with
+	 * @throws SynapseException
+	 * @throws SynapseTableUnavailableException
+	 */
+	public String queryTableEntityNextPageAsyncStart(String nextPageToken) throws SynapseException, SynapseResultNotReadyException;
 	
+	/**
+	 * Start an Asynchronous job of the given type.
+	 * @param type The type of job.
+	 * @param request The request body.
+	 * @return The jobId is used to get the job results.
+	 */
+	public String startAsynchJob(AsynchJobType type, AsynchronousRequestBody request) throws SynapseException;
+	
+	/**
+	 * Get the results of an Asynchronous job.
+	 * @param type The type of job.
+	 * @param jobId The JobId.
+	 * @throws SynapseResultNotReadyException if the job is not ready.
+	 * @return
+	 */
+	public AsynchronousResponseBody getAsyncResult(AsynchJobType type, String jobId) throws SynapseException, SynapseResultNotReadyException;
+
+	/**
+	 * Get the result of an asynchronous queryTableEntityNextPage
+	 * 
+	 * @param asyncJobToken
+	 * @return
+	 * @throws SynapseException
+	 * @throws SynapseTableUnavailableException
+	 */
+	public QueryResult queryTableEntityNextPageAsyncGet(String asyncJobToken) throws SynapseException;
+
+	/**
+	 * upload a csv into an existing table
+	 * 
+	 * @param tableId the table to upload into
+	 * @param fileHandleId the filehandle of the csv
+	 * @param etag when updating rows, the etag of the last table change must be provided
+	 * @param linesToSkip The number of lines to skip from the start of the file (default 0)
+	 * @param csvDescriptor The optional descriptor of the csv (default comma separators, double quotes for quoting, new
+	 *        lines and backslashes for escaping)
+	 * @return a token to get the result with
+	 * @throws SynapseException
+	 * @throws SynapseTableUnavailableException
+	 */
+	public String uploadCsvToTableAsyncStart(String tableId, String fileHandleId, String etag, Long linesToSkip,
+			CsvTableDescriptor csvDescriptor) throws SynapseException;
+
+	/**
+	 * get the result of a csv upload
+	 * 
+	 * @param asyncJobToken
+	 * @return
+	 * @throws SynapseException
+	 * @throws SynapseTableUnavailableException
+	 */
+	public UploadToTableResult uploadCsvToTableAsyncGet(String asyncJobToken) throws SynapseException, SynapseResultNotReadyException;
+
+	/**
+	 * download the result of a query into a csv
+	 * 
+	 * @param sql the query to run
+	 * @param writeHeader should the csv contain the column header as row 1
+	 * @param includeRowIdAndRowVersion should the row id and row version be included as the first 2 columns
+	 * @param csvDescriptor the optional descriptor of the csv (default comma separators, double quotes for quoting, new
+	 *        lines and backslashes for escaping)
+	 * @return a token to get the result with
+	 * @throws SynapseException
+	 */
+	public String downloadCsvFromTableAsyncStart(String sql, boolean writeHeader, boolean includeRowIdAndRowVersion,
+			CsvTableDescriptor csvDescriptor) throws SynapseException;
+
+	/**
+	 * get the results of the csv download
+	 * 
+	 * @param asyncJobToken
+	 * @return
+	 * @throws SynapseException
+	 * @throws SynapseResultNotReadyException
+	 */
+	public DownloadFromTableResult downloadCsvFromTableAsyncGet(String asyncJobToken) throws SynapseException, SynapseResultNotReadyException;
+
 	/**
 	 * Create a new ColumnModel. If a column already exists with the same parameters,
 	 * that column will be returned.
@@ -1599,6 +1717,10 @@ public interface SynapseClient extends BaseClient {
 	 */
 	public PassingRecord getCertifiedUserPassingRecord(String principalId) throws SynapseException;
 
+	/**
+	 * Get all Passing Records on the Certified User test for the given user
+	 */
+	public PaginatedResults<PassingRecord> getCertifiedUserPassingRecords(long offset, long limit, String principalId) throws SynapseException;
 	
 	/**
 	 * Start a new Asynchronous Job
@@ -1644,4 +1766,13 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	void logError(LogEntry logEntry) throws SynapseException;
+
+	/**
+	 * create a project setting
+	 * 
+	 * @param projectId
+	 * @param projectSetting
+	 * @throws SynapseException
+	 */
+	ProjectSetting createProjectSetting(ProjectSetting projectSetting) throws SynapseException;
 }

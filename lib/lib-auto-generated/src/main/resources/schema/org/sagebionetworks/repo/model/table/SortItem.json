@@ -1,0 +1,19 @@
+{
+    "title":"SortItem",
+    "properties":{
+        "column":{
+            "type":"string",
+            "description":"The column to sort on."
+        },
+		"direction":{
+            "type":"string",
+            "description":"Optional sort direction. Default is the default mysql sort direction for that type.",
+			"name": "SortDirection",
+			"id": "org.sagebionetworks.repo.model.table.SortDirection",
+			"enum": [
+				"ASC",
+				"DESC"
+			]
+		}
+    }
+}

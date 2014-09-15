@@ -17,10 +17,12 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.asynch.AsynchJobState;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.dao.asynch.AsynchronousJobStatusDAO;
-import org.sagebionetworks.repo.model.table.AsynchUploadToTableRequestBody;
-import org.sagebionetworks.repo.model.table.AsynchUploadToTableResponseBody;
+import org.sagebionetworks.repo.model.table.UploadToTableRequest;
+import org.sagebionetworks.repo.model.table.UploadToTableResult;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -45,8 +47,20 @@ public class AsynchJobStatusDaoImplTest {
 	}
 	
 	@Test
+	public void testQueueNameBeans() {
+		ClassPathXmlApplicationContext appContext = new ClassPathXmlApplicationContext(new String[] { "stack-configuration.spb.xml" });
+		// of course, an ApplicationContext is just a BeanFactory
+		BeanFactory factory = (BeanFactory) appContext;
+
+		for (AsynchJobType asynchJobType : AsynchJobType.values()) {
+			assertEquals(asynchJobType.getQueueName(), factory.getBean("stackConfiguration.asyncQueueName[" + asynchJobType.name() + "]"));
+		}
+		appContext.close();
+	}
+
+	@Test
 	public void testUploadCreateGet() throws DatastoreException, NotFoundException{
-		AsynchUploadToTableRequestBody body = new AsynchUploadToTableRequestBody();
+		UploadToTableRequest body = new UploadToTableRequest();
 		body.setTableId("syn456");
 		body.setUploadFileHandleId("123");
 		AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body);
@@ -72,7 +86,7 @@ public class AsynchJobStatusDaoImplTest {
 	
 	@Test
 	public void testUpdateProgress() throws DatastoreException, NotFoundException{
-		AsynchUploadToTableRequestBody body = new AsynchUploadToTableRequestBody();
+		UploadToTableRequest body = new UploadToTableRequest();
 		body.setTableId("syn456");
 		body.setUploadFileHandleId("123");
 		AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body);
@@ -94,7 +108,7 @@ public class AsynchJobStatusDaoImplTest {
 	
 	@Test
 	public void testUpdateProgressTooBig() throws DatastoreException, NotFoundException{
-		AsynchUploadToTableRequestBody body = new AsynchUploadToTableRequestBody();
+		UploadToTableRequest body = new UploadToTableRequest();
 		body.setTableId("syn456");
 		body.setUploadFileHandleId("123");
 		AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body);
@@ -118,7 +132,7 @@ public class AsynchJobStatusDaoImplTest {
 	
 	@Test
 	public void testSetFailed() throws DatastoreException, NotFoundException{
-		AsynchUploadToTableRequestBody body = new AsynchUploadToTableRequestBody();
+		UploadToTableRequest body = new UploadToTableRequest();
 		body.setTableId("syn456");
 		body.setUploadFileHandleId("123");
 		AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body);
@@ -144,7 +158,7 @@ public class AsynchJobStatusDaoImplTest {
 	
 	@Test
 	public void testSetComplete() throws DatastoreException, NotFoundException, InterruptedException{
-		AsynchUploadToTableRequestBody body = new AsynchUploadToTableRequestBody();
+		UploadToTableRequest body = new UploadToTableRequest();
 		body.setTableId("syn456");
 		body.setUploadFileHandleId("123");
 		AsynchronousJobStatus status = asynchJobStatusDao.startJob(creatorUserGroupId, body);
@@ -156,7 +170,7 @@ public class AsynchJobStatusDaoImplTest {
 		// Now set it complete
 		// Make sure at at least some time has passed before me set it complete
 		Thread.sleep(10);
-		AsynchUploadToTableResponseBody response = new AsynchUploadToTableResponseBody();
+		UploadToTableResult response = new UploadToTableResult();
 		response.setRowsProcessed(7L);
 		String newEtag = asynchJobStatusDao.setComplete(status.getJobId(), response);
 		assertNotNull(newEtag);

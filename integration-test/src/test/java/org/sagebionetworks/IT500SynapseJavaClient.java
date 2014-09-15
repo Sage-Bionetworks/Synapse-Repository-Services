@@ -7,13 +7,11 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
@@ -48,6 +46,7 @@ import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
+import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
@@ -55,7 +54,7 @@ import org.sagebionetworks.client.exceptions.SynapseServerException;
 import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
-import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
 import org.sagebionetworks.repo.model.quiz.QuestionResponse;
 import org.sagebionetworks.repo.model.quiz.Quiz;
@@ -1213,7 +1212,7 @@ public class IT500SynapseJavaClient {
 		} finally {
 			if (pw!=null) pw.close();
 		}
-		S3FileHandle fileHandle = synapseOne.createFileHandle(file, "text/plain");
+		FileHandle fileHandle = synapseOne.createFileHandle(file, "text/plain");
 		handlesToDelete.add(fileHandle.getId());
 		
 		// update the Team with the icon
@@ -1620,6 +1619,10 @@ public class IT500SynapseJavaClient {
 		qrs = adminSynapse.getCertifiedUserTestResponses(0L, 2L, null);
 		assertEquals(1, qrs.getResults().size());
 		assertEquals(pr.getResponseId(), qrs.getResults().iterator().next().getId());
+
+		PaginatedResults<PassingRecord> prs = adminSynapse.getCertifiedUserPassingRecords(0L, 2L, myId);
+		assertEquals(1, prs.getResults().size());
+		assertEquals(pr, prs.getResults().iterator().next());
 
 		adminSynapse.deleteCertifiedUserTestResponse(pr.getResponseId().toString());
 	}

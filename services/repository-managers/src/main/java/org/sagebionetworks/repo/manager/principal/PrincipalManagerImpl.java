@@ -209,7 +209,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 		portalHost = portalHost.toLowerCase().trim();
 		if (portalHost.endsWith("synapse.org")) return;
 		if (portalHost.endsWith("sagebase.org")) return;
-		if (portalHost.equals("localhost")) return;
+		if (portalHost.equals("localhost") || portalHost.equals("127.0.0.1")) return;
 		throw new IllegalArgumentException("The provided parameter is not a valid Synapse endpoint.");
 	}
 	

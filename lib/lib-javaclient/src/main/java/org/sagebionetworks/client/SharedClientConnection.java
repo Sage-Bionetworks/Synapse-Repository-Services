@@ -370,10 +370,12 @@ public class SharedClientConnection {
 	private static void convertHttpResponseToException(int statusCode, JSONObject responseBody) throws SynapseException {
 		if (isOKStatusCode(statusCode)) return;
 		String reasonStr = null;
-		try {
-			reasonStr = responseBody.getString(ERROR_REASON_TAG);
-		} catch (JSONException e) {
-			throw new SynapseClientException(e);
+		if (responseBody!=null) {
+			try {
+				reasonStr = responseBody.getString(ERROR_REASON_TAG);
+			} catch (JSONException e) {
+				throw new SynapseClientException(e);
+			}
 		}
 		if (statusCode == HttpStatus.SC_UNAUTHORIZED) {
 			throw new SynapseUnauthorizedException(reasonStr);
@@ -591,13 +593,23 @@ public class SharedClientConnection {
 	 * @param userAgent 
 	 */
 	protected JSONObject getJson(String endpoint, String uri, String userAgent) throws SynapseException {
+		return getJson(endpoint, uri, userAgent, null);
+	}
+
+	/**
+	 * Get a JSONEntity
+	 * 
+	 * @param userAgent
+	 */
+	protected JSONObject getJson(String endpoint, String uri, String userAgent, ErrorHandler errorHandler) throws SynapseException {
 		if (null == endpoint) {
 			throw new IllegalArgumentException("must provide endpoint");
 		}
 		if (null == uri) {
 			throw new IllegalArgumentException("must provide uri");
 		}
-		JSONObject jsonObject = signAndDispatchSynapseRequest(endpoint, uri, "GET", null, defaultGETDELETEHeaders, userAgent, null, null);
+		JSONObject jsonObject = signAndDispatchSynapseRequest(endpoint, uri, "GET", null, defaultGETDELETEHeaders, userAgent, null,
+				errorHandler);
 		return jsonObject;
 	}
 

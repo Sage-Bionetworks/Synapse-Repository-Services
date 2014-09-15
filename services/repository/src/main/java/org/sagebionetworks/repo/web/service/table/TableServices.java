@@ -9,11 +9,15 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.Query;
+import org.sagebionetworks.repo.model.table.QueryBundleRequest;
+import org.sagebionetworks.repo.model.table.QueryNextPageToken;
+import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -154,18 +158,6 @@ public interface TableServices {
 			NotFoundException;
 
 	/**
-	 * Run a query for a user.
-	 * @param userId
-	 * @param query
-	 * @return
-	 * @throws NotFoundException 
-	 * @throws TableUnavilableException 
-	 * @throws DatastoreException 
-	 */
-	public RowSet query(Long userId, Query query, boolean isConsistent, boolean countOnly) throws NotFoundException, DatastoreException, TableUnavilableException;
-	
-	
-	/**
 	 * Run a query and bundle additional information.
 	 * 
 	 * @param userId
@@ -176,9 +168,24 @@ public interface TableServices {
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 * @throws TableUnavilableException
+	 * @throws TableFailedException
 	 */
-	public QueryResultBundle queryBundle(Long userId, Query query, boolean isConsistent, int partMask) throws NotFoundException, DatastoreException, TableUnavilableException;
+	public QueryResultBundle queryBundle(Long userId, QueryBundleRequest query) throws NotFoundException, DatastoreException,
+			TableUnavilableException, TableFailedException;
 
+	/**
+	 * Get the next page of a query
+	 * 
+	 * @param userId
+	 * @param queryPageToken
+	 * @return
+	 * @throws TableUnavilableException
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws TableFailedException
+	 */
+	public QueryResult queryNextPage(Long userId, QueryNextPageToken nextPageToken) throws DatastoreException, NotFoundException,
+			TableUnavilableException, TableFailedException;
 
 	/**
 	 * Get the max number of rows allowed for a page (get, post, or query) for the given column models.

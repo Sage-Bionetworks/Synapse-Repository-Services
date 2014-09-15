@@ -1,16 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao.table;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_STATUS_ERROR_DETAILS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_STATUS_ERROR_MESSAGE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_STATUS_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_STATUS_PROGRESS_CURRENT;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_STATUS_PROGRESS_MESSAGE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_STATUS_RESET_TOKEN;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_STATUS_RUNTIME_MS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_STATUS_STARTED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TABLE_STATUS_STATE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_STATUS;
 
 import java.util.UUID;
 
@@ -21,6 +11,7 @@ import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.persistence.table.DBOTableStatus;
+import org.sagebionetworks.repo.model.dbo.persistence.table.TableStateEnum;
 import org.sagebionetworks.repo.model.dbo.persistence.table.TableStatusUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -130,7 +121,14 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 		// Set the progress current to be the same as the progress total.
 		Long progressCurrent = current.getProgressTotal();
 		byte[] errorDetailsBytes = TableStatusUtils.createErrorDetails(errorDetails);
-		jdbcTemplate.update(SQL_UPDATE_END_STATE, state.name(), now, progressMessage, progressCurrent, errorMessage, errorDetailsBytes, runtimeMS,tableChangeEtag, tableId);
+		current.setState(TableStateEnum.valueOf(state.name()));
+		current.setChangedOn(now);
+		current.setProgressCurrent(progressCurrent);
+		current.setErrorMessage(errorMessage);
+		current.setErrorDetails(errorDetailsBytes);
+		current.setTotalRunTimeMS(runtimeMS);
+		current.setLastTableChangeEtag(tableChangeEtag);
+		basicDao.update(current);
  	}
 	
 	/**

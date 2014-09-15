@@ -73,6 +73,14 @@ public class SqlConstants {
 	public static final String COL_USER_PROFILE_PROPS_BLOB		= "PROPERTIES";
 	public static final String DDL_FILE_USER_PROFILE			= "schema/UserProfile-ddl.sql";
 
+	// The Project Settings table
+	public static final String TABLE_PROJECT_SETTING			= "PROJECT_SETTING";
+	public static final String COL_PROJECT_SETTING_ID			= "ID";
+	public static final String COL_PROJECT_SETTING_PROJECT_ID	= "PROJECT_ID";
+	public static final String COL_PROJECT_SETTING_ETAG			= "ETAG";
+	public static final String COL_PROJECT_SETTING_TYPE			= "TYPE";
+	public static final String COL_PROJECT_SETTING_DATA			= "DATA";
+
 	// The ACCESS_REQUIREMENT table
 	public static final String TABLE_ACCESS_REQUIREMENT				= "ACCESS_REQUIREMENT";
 	public static final String COL_ACCESS_REQUIREMENT_ID			= "ID";

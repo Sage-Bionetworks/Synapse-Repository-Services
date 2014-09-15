@@ -5,12 +5,13 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.Callable;
 
 import org.apache.commons.io.input.CountingInputStream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
+import org.sagebionetworks.asynchronous.workers.sqs.Worker;
+import org.sagebionetworks.asynchronous.workers.sqs.WorkerProgress;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.asynch.AsynchJobStatusManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
@@ -19,11 +20,12 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.dbo.dao.table.CSVToRowIterator;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.table.AsynchUploadToTableRequestBody;
-import org.sagebionetworks.repo.model.table.AsynchUploadToTableResponseBody;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.UploadToTableRequest;
+import org.sagebionetworks.repo.model.table.UploadToTableResult;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.util.csv.CsvNullReader;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.ObjectMetadata;
@@ -35,29 +37,31 @@ import com.amazonaws.services.sqs.model.Message;
  * @author jmhill
  *
  */
-public class TableCSVAppenderWorker implements Callable<List<Message>> {
+public class TableCSVAppenderWorker implements Worker {
 
 	static private Logger log = LogManager.getLogger(TableCSVAppenderWorker.class);
-
-	private AsynchJobStatusManager asynchJobStatusManager;
-	private TableRowManager tableRowManager;
-	private FileHandleManager fileHandleManger;
-	private UserManager userManger;
-	private AmazonS3Client s3Client;
 	private List<Message> messages;
+	private WorkerProgress workerProgress;
 
-	public TableCSVAppenderWorker(
-			AsynchJobStatusManager asynchJobStatusManager,
-			TableRowManager tableRowManager,
-			FileHandleManager fileHandleManger, UserManager userManger,
-			AmazonS3Client s3Client, List<Message> messages) {
-		super();
-		this.asynchJobStatusManager = asynchJobStatusManager;
-		this.tableRowManager = tableRowManager;
-		this.fileHandleManger = fileHandleManger;
-		this.userManger = userManger;
-		this.s3Client = s3Client;
+	@Autowired
+	private AsynchJobStatusManager asynchJobStatusManager;
+	@Autowired
+	private TableRowManager tableRowManager;
+	@Autowired
+	private UserManager userManger;
+	@Autowired
+	private FileHandleManager fileHandleManager;
+	@Autowired
+	private AmazonS3Client s3Client;
+
+	@Override
+	public void setMessages(List<Message> messages) {
 		this.messages = messages;
+	}
+
+	@Override
+	public void setWorkerProgress(WorkerProgress workerProgress) {
+		this.workerProgress = workerProgress;
 	}
 
 	@Override
@@ -97,9 +101,9 @@ public class TableCSVAppenderWorker implements Callable<List<Message>> {
 		CsvNullReader reader = null;
 		try{
 			UserInfo user = userManger.getUserInfo(status.getStartedByUserId());
-			AsynchUploadToTableRequestBody body = (AsynchUploadToTableRequestBody) status.getRequestBody();
+			UploadToTableRequest body = (UploadToTableRequest) status.getRequestBody();
 			// Get the filehandle
-			S3FileHandle fileHandle = (S3FileHandle) fileHandleManger.getRawFileHandle(user, body.getUploadFileHandleId());
+			S3FileHandle fileHandle = (S3FileHandle) fileHandleManager.getRawFileHandle(user, body.getUploadFileHandleId());
 			// Get the schema for the table
 			List<ColumnModel> tableSchema = tableRowManager.getColumnModelsForTable(body.getTableId());
 			// Get the metadat for this file
@@ -122,12 +126,12 @@ public class TableCSVAppenderWorker implements Callable<List<Message>> {
 			CSVToRowIterator iterator = new CSVToRowIterator(tableSchema, reader);
 			ProgressingIteratorProxy iteratorProxy = new  ProgressingIteratorProxy(iterator, progressReporter);
 			// Append the data to the table
-			String etag = tableRowManager.appendRowsAsStream(user, body.getTableId(), tableSchema, iteratorProxy, null, null);
+			String etag = tableRowManager.appendRowsAsStream(user, body.getTableId(), tableSchema, iteratorProxy, body.getUpdateEtag(), null);
 			// Done
-			AsynchUploadToTableResponseBody response = new AsynchUploadToTableResponseBody();
-			response.setRowsProcessed(new Long(progressReporter.getRowNumber()+1));
-			response.setEtag(etag);
-			asynchJobStatusManager.setComplete(status.getJobId(), response);
+			UploadToTableResult result = new UploadToTableResult();
+			result.setRowsProcessed(new Long(progressReporter.getRowNumber() + 1));
+			result.setEtag(etag);
+			asynchJobStatusManager.setComplete(status.getJobId(), result);
 		}catch(Throwable e){
 			// Record the error
 			asynchJobStatusManager.setJobFailed(status.getJobId(), e);
@@ -157,8 +161,9 @@ public class TableCSVAppenderWorker implements Callable<List<Message>> {
 		if(status.getRequestBody() == null){
 			throw new IllegalArgumentException("Job body cannot be null");
 		}
-		if(!(status.getRequestBody() instanceof AsynchUploadToTableRequestBody)){
-			throw new IllegalArgumentException("Expected a job body of type: "+AsynchUploadToTableRequestBody.class.getName()+" but received: "+status.getRequestBody().getClass().getName());
+		if (!(status.getRequestBody() instanceof UploadToTableRequest)) {
+			throw new IllegalArgumentException("Expected a job body of type: " + UploadToTableRequest.class.getName() + " but received: "
+					+ status.getRequestBody().getClass().getName());
 		}
 		return status;
 	}
@@ -170,31 +175,33 @@ public class TableCSVAppenderWorker implements Callable<List<Message>> {
 	 * @param contentType
 	 * @return
 	 */
-	public static CsvNullReader createCSVReader(Reader reader, AsynchUploadToTableRequestBody body){
+	public static CsvNullReader createCSVReader(Reader reader, UploadToTableRequest body) {
 		if(body == null) throw new IllegalArgumentException("AsynchUploadRequestBody cannot be null");
 		char separator = CsvNullReader.DEFAULT_SEPARATOR;
 		char quotechar = CsvNullReader.DEFAULT_QUOTE_CHARACTER;
 		char escape = CsvNullReader.DEFAULT_ESCAPE_CHARACTER;
 		int skipLines = CsvNullReader.DEFAULT_SKIP_LINES;
-		if(body.getSeparator() != null){
-			if(body.getSeparator().length() != 1){
-				throw new IllegalArgumentException("AsynchUploadRequestBody.separator must be exactly one character.");
+		if (body.getCsvTableDescriptor() != null) {
+			if (body.getCsvTableDescriptor().getSeparator() != null) {
+				if (body.getCsvTableDescriptor().getSeparator().length() != 1) {
+					throw new IllegalArgumentException("CsvTableDescriptor.separator must be exactly one character.");
+				}
+				separator = body.getCsvTableDescriptor().getSeparator().charAt(0);
 			}
-			separator = body.getSeparator().charAt(0);
-		}
-		if(body.getQuoteCharacter() != null){
-			if(body.getQuoteCharacter().length() != 1){
-				throw new IllegalArgumentException("AsynchUploadRequestBody.quoteCharacter must be exactly one character.");
+			if (body.getCsvTableDescriptor().getQuoteCharacter() != null) {
+				if (body.getCsvTableDescriptor().getQuoteCharacter().length() != 1) {
+					throw new IllegalArgumentException("CsvTableDescriptor.quoteCharacter must be exactly one character.");
+				}
+				quotechar = body.getCsvTableDescriptor().getQuoteCharacter().charAt(0);
 			}
-			quotechar = body.getQuoteCharacter().charAt(0);
-		}
-		if(body.getEscapeCharacter() != null){
-			if(body.getEscapeCharacter().length() != 1){
-				throw new IllegalArgumentException("AsynchUploadRequestBody.escapeCharacter must be exactly one character.");
+			if (body.getCsvTableDescriptor().getEscapeCharacter() != null) {
+				if (body.getCsvTableDescriptor().getEscapeCharacter().length() != 1) {
+					throw new IllegalArgumentException("CsvTableDescriptor.escapeCharacter must be exactly one character.");
+				}
+				escape = body.getCsvTableDescriptor().getEscapeCharacter().charAt(0);
 			}
-			escape = body.getEscapeCharacter().charAt(0);
 		}
-		if(body.getLinesToSkip() != null){
+		if (body.getLinesToSkip() != null) {
 			skipLines = body.getLinesToSkip().intValue();
 		}
 		// Create the reader.

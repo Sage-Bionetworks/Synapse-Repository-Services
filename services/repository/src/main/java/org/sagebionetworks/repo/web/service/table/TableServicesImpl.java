@@ -5,6 +5,7 @@ import java.net.URL;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang.BooleanUtils;
 import org.sagebionetworks.manager.util.Validate;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -13,6 +14,7 @@ import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableRowManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -20,19 +22,25 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
 import org.sagebionetworks.repo.model.table.Query;
+import org.sagebionetworks.repo.model.table.QueryBundleRequest;
+import org.sagebionetworks.repo.model.table.QueryNextPageToken;
+import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.SqlQuery;
+import org.sagebionetworks.util.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.common.collect.Lists;
+import com.google.common.primitives.Longs;
 
 /**
  * Basic implementation of the TableServices.
@@ -41,11 +49,6 @@ import com.google.common.collect.Lists;
  *
  */
 public class TableServicesImpl implements TableServices {
-	
-	public static final int BUNDLE_MASK_QUERY_RESULTS = 0x1;
-	public static final int BUNDLE_MASK_QUERY_COUNT = 0x2;
-	public static final int BUNDLE_MASK_QUERY_SELECT_COLUMNS = 0x4;
-	public static final int BUNDLE_MASK_QUERY_MAX_ROWS_PER_PAGE = 0x8;
 	
 	@Autowired
 	UserManager userManager;
@@ -96,7 +99,7 @@ public class TableServicesImpl implements TableServices {
 		if(rows == null) throw new IllegalArgumentException("Rows cannot be null");
 		if(rows.getTableId() == null) throw new IllegalArgumentException("RowSet.tableId cannot be null");
 		UserInfo user = userManager.getUserInfo(userId);
-		List<ColumnModel> models = getCurrentColumnsForTable(user, rows.getTableId());
+		List<ColumnModel> models = getCurrentColumnsForRowSet(user, rows.getTableId(), rows.getHeaders());
 		return tableRowManager.appendRows(user, rows.getTableId(), models, rows);
 	}
 
@@ -124,7 +127,7 @@ public class TableServicesImpl implements TableServices {
 		Validate.required(rowsToGet, "rowsToGet");
 		Validate.required(rowsToGet.getTableId(), "rowsToGet.tableId");
 		UserInfo user = userManager.getUserInfo(userId);
-		List<ColumnModel> models = getCurrentColumnsForTable(user, rowsToGet.getTableId());
+		List<ColumnModel> models = getCurrentColumnsForRowSet(user, rowsToGet.getTableId(), rowsToGet.getHeaders());
 
 		return tableRowManager.getCellValues(user, rowsToGet.getTableId(), rowsToGet, models);
 	}
@@ -215,6 +218,22 @@ public class TableServicesImpl implements TableServices {
 		return columnModelManager.getColumnModelsForTable(user, tableId);
 	}
 
+	private List<ColumnModel> getCurrentColumnsForRowSet(UserInfo user, String tableId, List<String> headers) throws DatastoreException,
+			NotFoundException {
+		List<ColumnModel> columns = columnModelManager.getColumnModelsForTable(user, tableId);
+		Map<Long, ColumnModel> columnNameToIdMap = TableModelUtils.createIDtoColumnModelMap(columns);
+		List<ColumnModel> result = Lists.newArrayListWithCapacity(headers.size());
+		for (String header : headers) {
+			Long columnId = Long.parseLong(header);
+			ColumnModel cm = columnNameToIdMap.get(columnId);
+			if (cm == null) {
+				throw new IllegalArgumentException("column header " + header + " is not a valid column for this table");
+			}
+			result.add(cm);
+		}
+		return result;
+	}
+
 	private ColumnModel getColumnForTable(UserInfo user, String tableId, String columnId) throws DatastoreException, NotFoundException {
 		return columnModelManager.getColumnModel(user, columnId);
 	}
@@ -225,49 +244,21 @@ public class TableServicesImpl implements TableServices {
 	}
 
 	@Override
-	public RowSet query(Long userId, Query query, boolean isConsisitent, boolean countOnly) throws NotFoundException, DatastoreException, TableUnavilableException {
+	public QueryResultBundle queryBundle(Long userId, QueryBundleRequest queryBundle) throws NotFoundException, DatastoreException,
+			TableUnavilableException, TableFailedException {
 		UserInfo user = userManager.getUserInfo(userId);
-		return tableRowManager.query(user, query.getSql(), isConsisitent, countOnly);
+
+		return tableRowManager.queryBundle(user, queryBundle);
 	}
 
 	@Override
-	public QueryResultBundle queryBundle(Long userId, Query query,
-			boolean isConsistent, int partMask) throws NotFoundException,
-			DatastoreException, TableUnavilableException {
+	public QueryResult queryNextPage(Long userId, QueryNextPageToken nextPageToken) throws DatastoreException, NotFoundException,
+			TableUnavilableException, TableFailedException {
 		UserInfo user = userManager.getUserInfo(userId);
-		QueryResultBundle bundle = new QueryResultBundle();
-		// The SQL query is need for the actual query, select columns, and max rows per page.
-		SqlQuery sqlQuery = null;
-		if((partMask & BUNDLE_MASK_QUERY_RESULTS) > 0
-				|| (partMask & BUNDLE_MASK_QUERY_SELECT_COLUMNS) > 0
-				|| (partMask & BUNDLE_MASK_QUERY_MAX_ROWS_PER_PAGE) > 0){
-			// This will parse the query, and build up all of the metadata needed to execute the query.
-			sqlQuery = tableRowManager.createQuery(query.getSql(), false);
-		}
-		// query
-		if((partMask & BUNDLE_MASK_QUERY_RESULTS) > 0){
-			// Run a non-count query
-			RowSet rowSet = tableRowManager.query(user, sqlQuery, isConsistent);
-			bundle.setQueryResults(rowSet);
-		}
-		// count
-		if((partMask & BUNDLE_MASK_QUERY_COUNT) > 0){
-			// Run a count query
-			RowSet rowSet = tableRowManager.query(user, query.getSql(), isConsistent, true);
-			bundle.setQueryCount(Long.parseLong(rowSet.getRows().get(0).getValues().get(0)));
-		}
-		// select columns must be fetched for for the select columns or max rows per page.
-		if((partMask & BUNDLE_MASK_QUERY_SELECT_COLUMNS) > 0){
-			bundle.setSelectColumns(sqlQuery.getSelectColumnModels());
-		}
-		// Max rows per column
-		if((partMask & BUNDLE_MASK_QUERY_MAX_ROWS_PER_PAGE) > 0){
-			Long maxRowsPerPage = getMaxRowsPerPage(sqlQuery.getSelectColumnModels());
-			bundle.setMaxRowsPerPage(maxRowsPerPage);
-		}
-		return bundle;
+		QueryResult queryResult = tableRowManager.queryNextPage(user, nextPageToken);
+		return queryResult;
 	}
-	
+
 	@Override
 	public Long getMaxRowsPerPage(List<ColumnModel> models) {
 		return tableRowManager.getMaxRowsPerPage(models);

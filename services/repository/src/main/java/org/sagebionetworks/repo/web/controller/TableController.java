@@ -2,25 +2,34 @@ package org.sagebionetworks.repo.web.controller;
 
 import java.io.IOException;
 import java.net.URL;
-import java.util.Collections;
-import java.util.List;
 
 import javax.servlet.http.HttpServletResponse;
 
+import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.NotReadyException;
 import org.sagebionetworks.repo.model.ServiceConstants;
+import org.sagebionetworks.repo.model.asynch.AsyncJobId;
+import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
+import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.PaginatedColumnModels;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
-import org.sagebionetworks.repo.model.table.Query;
+import org.sagebionetworks.repo.model.table.QueryBundleRequest;
+import org.sagebionetworks.repo.model.table.QueryNextPageToken;
+import org.sagebionetworks.repo.model.table.QueryResult;
 import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
+import org.sagebionetworks.repo.model.table.UploadToTableRequest;
+import org.sagebionetworks.repo.model.table.UploadToTableResult;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.rest.doc.ControllerInfo;
@@ -38,16 +47,12 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
  * <p>
- * A Synapse <a
- * href="${org.sagebionetworks.repo.model.table.TableEntity}">TableEntity</a>
- * model object represents the metadata of a table. Each TableEntity is defined
- * by a list of <a
- * href="${org.sagebionetworks.repo.model.table.ColumnModel}">ColumnModel</a>
- * IDs. Use <a href="${POST.column}">POST /column</a> to create new ColumnModel
- * objects. Each ColumnModel object is immutable, so to change a column of a
- * table a new column must be added and the old column must be removed.
- * TableEntities can be created, updated, read and deleted like any other
- * entity:
+ * A Synapse <a href="${org.sagebionetworks.repo.model.table.TableEntity}">TableEntity</a> model object represents the
+ * metadata of a table. Each TableEntity is defined by a list of <a
+ * href="${org.sagebionetworks.repo.model.table.ColumnModel}">ColumnModel</a> IDs. Use <a href="${POST.column}">POST
+ * /column</a> to create new ColumnModel objects. Each ColumnModel object is immutable, so to change a column of a table
+ * a new column must be added and the old column must be removed. TableEntities can be created, updated, read and
+ * deleted like any other entity:
  * <ul>
  * <li><a href="${POST.entity}">POST /entity</a></li>
  * <li><a href="${GET.entity.id}">GET /entity/{id}</a></li>
@@ -57,38 +62,31 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * </p>
  * <p>
  * <p>
- * All ColumnModel objects are publicly viewable and usable. Since each
- * ColumnModel is immutable it is safe to re-use ColumModels created by other
- * users. Use the <a href="${GET.column}">GET /column</a> services to list all
- * of the existing ColumnModels that are currently in use.
+ * All ColumnModel objects are publicly viewable and usable. Since each ColumnModel is immutable it is safe to re-use
+ * ColumModels created by other users. Use the <a href="${GET.column}">GET /column</a> services to list all of the
+ * existing ColumnModels that are currently in use.
  * </p>
  * 
- * Once the columns for a TableEntity have been created and assigned to the
- * TableEntity, rows can be added to the table using <a
- * href="${POST.entity.id.table}">POST /entity/{id}/table</a>. Each <a
- * href="${org.sagebionetworks.repo.model.table.Row}">Row</a> appended to the
- * table will automatically be assigned a rowId and a versionNumber and can be
- * found in the resulting <a
- * href="${org.sagebionetworks.repo.model.table.RowReferenceSet}"
- * >RowReferenceSet</a>. To update a row, simply include the row's rowId in the
- * passed <a href="${org.sagebionetworks.repo.model.table.RowSet}">RowSet</a>.
- * Any row without a rowId will be treated as a new row. When a row is updated a
- * new versionNumber will automatically be assigned the Row. While previous
- * versions of any row are kept, only the current version of any row will appear
- * in the table index used to support the query service: <a
- * href="${POST.table.query}">POST /table/query</a> </p>
+ * Once the columns for a TableEntity have been created and assigned to the TableEntity, rows can be added to the table
+ * using <a href="${POST.entity.id.table}">POST /entity/{id}/table</a>. Each <a
+ * href="${org.sagebionetworks.repo.model.table.Row}">Row</a> appended to the table will automatically be assigned a
+ * rowId and a versionNumber and can be found in the resulting <a
+ * href="${org.sagebionetworks.repo.model.table.RowReferenceSet}" >RowReferenceSet</a>. To update a row, simply include
+ * the row's rowId in the passed <a href="${org.sagebionetworks.repo.model.table.RowSet}">RowSet</a>. Any row without a
+ * rowId will be treated as a new row. When a row is updated a new versionNumber will automatically be assigned the Row.
+ * While previous versions of any row are kept, only the current version of any row will appear in the table index used
+ * to support the query service: <a href="${POST.table.query.async.start}">POST /table/query/async/start</a> </p>
  * <p>
- * Use the <a href="${POST.table.query}">POST /table/query</a> services to query
- * for the current rows of a table. The returned <a
- * href="${org.sagebionetworks.repo.model.table.RowSet}">RowSet</a> of the table
- * query can be modified and returned to update the rows of a table using <a
- * href="${POST.entity.id.table}">POST /entity/{id}/table</a>.
+ * Use the <a href="${POST.table.query.async.start}">POST /table/query/async/start</a> services to query for the current
+ * rows of a table. The returned <a href="${org.sagebionetworks.repo.model.table.RowSet}">RowSet</a> of the table query
+ * can be modified and returned to update the rows of a table using <a href="${POST.entity.id.table}">POST
+ * /entity/{id}/table</a>.
  * </p>
  * <p>
  * There is also an <a href="${org.sagebionetworks.repo.web.controller.AsynchronousJobController}">asynchronous
- * service</a> to <a href="${org.sagebionetworks.repo.model.table.AsynchUploadToTableRequestBody}">upload</a> 
- * and <a href="${org.sagebionetworks.repo.model.table.AsynchDownloadFromTableRequestBody}">download</a> csv files, 
- * suitable for large datasets.
+ * service</a> to <a href="${org.sagebionetworks.repo.model.table.UploadToTableRequest}">upload</a> and <a
+ * href="${org.sagebionetworks.repo.model.table.DownloadFromTableRequest}">download</a> csv files, suitable for large
+ * datasets.
  */
 @ControllerInfo(displayName = "Table Services", path = "repo/v1")
 @Controller
@@ -546,9 +544,11 @@ public class TableController extends BaseController {
 	}
 
 	/**
+	 * Asynchronously start a query. Use the returned job id and <a href="${GET.table.query.async.get.asyncToken}">GET
+	 * /table/query/async/get</a> to get the results of the query
 	 * <p>
-	 * Using a 'SQL like' syntax, query the current version of the rows in a
-	 * single table. The following pseudo-syntax is the basic supported format:
+	 * Using a 'SQL like' syntax, query the current version of the rows in a single table. The following pseudo-syntax
+	 * is the basic supported format:
 	 * </p>
 	 * SELECT <br>
 	 * [ALL | DISTINCT] select_expr [, select_expr ...] <br>
@@ -558,85 +558,27 @@ public class TableController extends BaseController {
 	 * [ORDER BY {col_name [ [ASC | DESC] [, col_name [ [ASC | DESC]]}<br>
 	 * [LIMIT row_count [ OFFSET offset ]]<br>
 	 * <p>
-	 * Please see the following for samples: <a
-	 * href="${org.sagebionetworks.repo.web.controller.TableExamples}">Table SQL
-	 * Examples</a>
+	 * Please see the following for samples: <a href="${org.sagebionetworks.repo.web.controller.TableExamples}">Table
+	 * SQL Examples</a>
 	 * </p>
 	 * <p>
 	 * Note: Sub-queries and joining tables is not supported.
 	 * </p>
 	 * <p>
-	 * This services depends on an index that is created/update asynchronously
-	 * from table creation and update events. This means there could be short
-	 * window of time when the index is inconsistent with the true state of the
-	 * table. When a query is run with the isConsistent parameter set to true
-	 * (the default) and the index is out-of-sych, then a status code of 202
-	 * (ACCEPTED) will be returned and the response body will be a <a
-	 * href="${org.sagebionetworks.repo.model.table.TableStatus}"
-	 * >TableStatus</a> object. The TableStatus will indicates the current
-	 * status of the index including how much work is remaining until the index
-	 * is consistent with the truth of the table.
+	 * This services depends on an index that is created/update asynchronously from table creation and update events.
+	 * This means there could be short window of time when the index is inconsistent with the true state of the table.
+	 * When a query is run with the isConsistent parameter set to true (the default) and the index is out-of-sych, then
+	 * a status code of 202 (ACCEPTED) will be returned and the response body will be a <a
+	 * href="${org.sagebionetworks.repo.model.table.TableStatus}" >TableStatus</a> object. The TableStatus will
+	 * indicates the current status of the index including how much work is remaining until the index is consistent with
+	 * the truth of the table.
 	 * </p>
 	 * <p>
-	 * Note: The caller must have the <a
-	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
-	 * >ACCESS_TYPE.READ</a> permission on the TableEntity to make this call.
-	 * </p>
-	 * 
-	 * @param userId
-	 * @param query
-	 * @param isConsistent
-	 *            Defaults to true. When true, a query will be run only if the
-	 *            index is up-to-date with all changes to the table and a
-	 *            read-lock is successfully acquired on the index. When set to
-	 *            false, the query will be run against the index regardless of
-	 *            the state of the index and without attempting to acquire a
-	 *            read-lock. When isConsistent is set to false the query results
-	 *            will not contain an etag so the results cannot be used as
-	 *            input to a table update.
-	 * @param countOnly
-	 *            When this parameter is included and set to 'true', the passed
-	 *            query will be converted into a count query. This means the
-	 *            passed select clause will be replaced with 'count(*)' and
-	 *            pagination, order by, and group by will all be ignored. This
-	 *            can be used to to setup client-side paging.
-	 * 
-	 * @return
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 * @throws IOException
-	 * @throws TableUnavilableException
-	 */
-	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = UrlHelpers.TABLE_QUERY, method = RequestMethod.POST)
-	public @ResponseBody
-	RowSet query(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody Query query,
-			@RequestParam(value = ServiceConstants.IS_CONSISTENT, required = false) Boolean isConsistent,
-			@RequestParam(value = ServiceConstants.COUNT_ONLY, required = false) Boolean countOnly)
-			throws DatastoreException, NotFoundException, IOException,
-			TableUnavilableException {
-		// By default isConsistent is true.
-		boolean isConsistentValue = true;
-		if (isConsistent != null) {
-			isConsistentValue = isConsistent;
-		}
-		// Count only is false by default
-		boolean countOnlyValue = false;
-		if (countOnly != null) {
-			countOnlyValue = countOnly;
-		}
-		return serviceProvider.getTableServices().query(userId, query,
-				isConsistentValue, countOnlyValue);
-	}
-
-	/**
-	 * <p>
-	 * This method executes table queries exactly like <a href="${POST.table.query}">POST /table/query</a> with the
-	 * addition of the extra parameter 'partsMask'. The mask allows for the request of additional information about the
-	 * executed query in a single service call. The query results and all of the requested parts are returned in a
-	 * single bundle.
+	 * isConsistent Defaults to true. When true, a query will be run only if the index is up-to-date with all changes to
+	 * the table and a read-lock is successfully acquired on the index. When set to false, the query will be run against
+	 * the index regardless of the state of the index and without attempting to acquire a read-lock. When isConsistent
+	 * is set to false the query results will not contain an etag so the results cannot be used as input to a table
+	 * update.
 	 * </p>
 	 * <p>
 	 * The 'partsMask' is an integer "mask" that can be combined into to request any desired part. As of this writing,
@@ -652,6 +594,10 @@ public class TableController extends BaseController {
 	 * For example, to request all parts, the request mask value should be: <br>
 	 * 0x1 OR 0x2 OR 0x4 OR 0x8 = 0x15.
 	 * </p>
+	 * <p>
+	 * Note: The caller must have the <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}" >ACCESS_TYPE.READ</a>
+	 * permission on the TableEntity to make this call.
+	 * </p>
 	 * 
 	 * @param userId
 	 * @param query
@@ -660,32 +606,195 @@ public class TableController extends BaseController {
 	 *        will be run against the index regardless of the state of the index and without attempting to acquire a
 	 *        read-lock. When isConsistent is set to false the query results will not contain an etag so the results
 	 *        cannot be used as input to a table update.
-	 * @param partsMask
+	 * @param countOnly When this parameter is included and set to 'true', the passed query will be converted into a
+	 *        count query. This means the passed select clause will be replaced with 'count(*)' and pagination, order
+	 *        by, and group by will all be ignored. This can be used to to setup client-side paging.
 	 * 
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 * @throws IOException
 	 * @throws TableUnavilableException
+	 * @throws TableFailedException
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = UrlHelpers.TABLE_QUERY_BUNDLE, method = RequestMethod.POST)
+	@RequestMapping(value = UrlHelpers.TABLE_QUERY_ASYNC_START, method = RequestMethod.POST)
 	public @ResponseBody
-	QueryResultBundle queryBundle(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@RequestBody Query query,
-			@RequestParam(value = ServiceConstants.IS_CONSISTENT, required = false) Boolean isConsistent,
-			@RequestParam(value = ServiceConstants.PARTS_MASK, required = false) Integer partsMask)
-			throws DatastoreException, NotFoundException, IOException,
-			TableUnavilableException {
-		// By default isConsistent is true.
-		if (isConsistent == null) {
-			isConsistent = true;
-		}
-		if (partsMask == null) {
-			partsMask = -1;
-		}
-		return serviceProvider.getTableServices().queryBundle(userId, query, isConsistent, partsMask);
+	AsyncJobId queryAsyncStart(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @RequestBody QueryBundleRequest query)
+			throws DatastoreException, NotFoundException, IOException {
+		AsynchronousJobStatus job = serviceProvider.getAsynchronousJobServices().startJob(userId, query);
+		AsyncJobId asyncJobId = new AsyncJobId();
+		asyncJobId.setToken(job.getJobId());
+		return asyncJobId;
 	}
 
+	/**
+	 * Asynchronously get the results of a query started with href="${POST.table.query.async.start}">POST
+	 * /table/query/async/start</a>.
+	 * 
+	 * When the result is not ready yet, this method will return a status code of 202 (ACCEPTED) and the response body
+	 * will be a <a href="${org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus}" >AsynchronousJobStatus</a> object.
+	 * 
+	 * @param userId
+	 * @param asyncToken
+	 * @return
+	 * @throws NotReadyException when the result is not ready yet
+	 * @throws NotFoundException
+	 * @throws AsynchJobFailedException when the asynchronous job failed
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.TABLE_QUERY_ASYNC_GET, method = RequestMethod.GET)
+	public @ResponseBody
+	QueryResultBundle queryAsyncGet(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String asyncToken)
+			throws NotReadyException, NotFoundException, AsynchJobFailedException {
+		AsynchronousJobStatus jobStatus = serviceProvider.getAsynchronousJobServices().getJobStatusAndThrow(userId, asyncToken);
+		return (QueryResultBundle) jobStatus.getResponseBody();
+	}
+
+	/**
+	 * Asynchronously get a next page of a query. Use the returned job id and
+	 * href="${POST.table.query.nextPage.async.start}">POST /table/query/nextPage/async/start</a> to get the results of
+	 * the query. The page token comes from the query result of a <a href="${GET.table.query.async.get.asyncToken}">GET
+	 * /table/query/async/get</a>.
+	 * 
+	 * @param userId
+	 * @param nextPageToken
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.TABLE_QUERY_NEXT_PAGE_ASYNC_START, method = RequestMethod.POST)
+	public @ResponseBody
+	AsyncJobId queryNextPageAsyncStart(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody QueryNextPageToken nextPageToken) throws DatastoreException, NotFoundException, IOException {
+		AsynchronousJobStatus job = serviceProvider.getAsynchronousJobServices().startJob(userId, nextPageToken);
+		AsyncJobId asyncJobId = new AsyncJobId();
+		asyncJobId.setToken(job.getJobId());
+		return asyncJobId;
+	}
+
+	/**
+	 * Asynchronously get the results of a nextPage query started with
+	 * href="${POST.table.query.nextPage.async.start}">POST /table/query/nextPage/async/start</a>
+	 * 
+	 * When the result is not ready yet, this method will return a status code of 202 (ACCEPTED) and the response body
+	 * will be a <a href="${org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus}" >AsynchronousJobStatus</a> object.
+	 * 
+	 * @param userId
+	 * @param asyncToken
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 * @throws AsynchJobFailedException
+	 * @throws NotReadyException
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.TABLE_QUERY_NEXT_PAGE_ASYNC_GET, method = RequestMethod.GET)
+	public @ResponseBody
+	QueryResult queryNextPageAsyncGet(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId, @PathVariable String asyncToken)
+			throws DatastoreException, NotFoundException, IOException, AsynchJobFailedException, NotReadyException {
+		AsynchronousJobStatus jobStatus = serviceProvider.getAsynchronousJobServices().getJobStatusAndThrow(userId, asyncToken);
+		return (QueryResult) jobStatus.getResponseBody();
+	}
+
+	/**
+	 * Asynchronously start a csv download. Use the returned job id and
+	 * href="${GET.table.download.csv.async.get.asyncToken}">GET /table/download/csv/async/get</a> to get the results of
+	 * the query
+	 * 
+	 * @param userId
+	 * @param downloadRequest
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.TABLE_DOWNLOAD_CSV_ASYNC_START, method = RequestMethod.POST)
+	public @ResponseBody
+	AsyncJobId csvDownloadAsyncStart(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody DownloadFromTableRequest downloadRequest) throws DatastoreException, NotFoundException, IOException {
+		AsynchronousJobStatus job = serviceProvider.getAsynchronousJobServices().startJob(userId, downloadRequest);
+		AsyncJobId asyncJobId = new AsyncJobId();
+		asyncJobId.setToken(job.getJobId());
+		return asyncJobId;
+	}
+
+	/**
+	 * Asynchronously get the results of a csv download started with href="${POST.table.download.csv.async.start}">POST
+	 * /table/download/csv/async/start</a>
+	 * 
+	 * When the result is not ready yet, this method will return a status code of 202 (ACCEPTED) and the response body
+	 * will be a <a href="${org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus}" >AsynchronousJobStatus</a> object.
+	 * 
+	 * @param userId
+	 * @param asyncToken
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 * @throws AsynchJobFailedException
+	 * @throws NotReadyException
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.TABLE_DOWNLOAD_CSV_ASYNC_GET, method = RequestMethod.GET)
+	public @ResponseBody
+	DownloadFromTableResult csvDownloadAsyncGet(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String asyncToken) throws DatastoreException, NotFoundException, IOException, AsynchJobFailedException,
+			NotReadyException {
+		AsynchronousJobStatus jobStatus = serviceProvider.getAsynchronousJobServices().getJobStatusAndThrow(userId, asyncToken);
+		return (DownloadFromTableResult) jobStatus.getResponseBody();
+	}
+
+	/**
+	 * /** Asynchronously start a csv upload. Use the returned job id and
+	 * href="${GET.table.upload.csv.async.get.asyncToken}">GET /table/upload/csv/async/get</a> to get the results of the
+	 * query
+	 * 
+	 * @param userId
+	 * @param uploadRequest
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.TABLE_UPLOAD_CSV_ASYNC_START, method = RequestMethod.POST)
+	public @ResponseBody
+	AsyncJobId csvUploadAsyncStart(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody UploadToTableRequest uploadRequest) throws DatastoreException, NotFoundException, IOException {
+		AsynchronousJobStatus job = serviceProvider.getAsynchronousJobServices().startJob(userId, uploadRequest);
+		AsyncJobId asyncJobId = new AsyncJobId();
+		asyncJobId.setToken(job.getJobId());
+		return asyncJobId;
+	}
+
+	/**
+	 * Asynchronously get the results of a csv upload started with href="${POST.table.upload.csv.async.start}">POST
+	 * /table/upload/csv/async/start</a>
+	 * 
+	 * When the result is not ready yet, this method will return a status code of 202 (ACCEPTED) and the response body
+	 * will be a <a href="${org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus}" >AsynchronousJobStatus</a> object.
+	 * 
+	 * @param userId
+	 * @param asyncToken
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 * @throws AsynchJobFailedException
+	 * @throws NotReadyException
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.TABLE_UPLOAD_CSV_ASYNC_GET, method = RequestMethod.GET)
+	public @ResponseBody
+	UploadToTableResult csvUploadAsyncGet(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String asyncToken) throws DatastoreException, NotFoundException, IOException, AsynchJobFailedException,
+			NotReadyException {
+		AsynchronousJobStatus jobStatus = serviceProvider.getAsynchronousJobServices().getJobStatusAndThrow(userId, asyncToken);
+		return (UploadToTableResult) jobStatus.getResponseBody();
+	}
 }

@@ -1,15 +1,15 @@
 package org.sagebionetworks.repo.model.dbo.dao.semaphore;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,9 +18,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.commons.lang.math.RandomUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -31,12 +29,9 @@ import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.DefaultClock;
 import org.springframework.aop.framework.Advised;
 import org.springframework.aop.support.AopUtils;
-import org.springframework.beans.BeanWrapperImpl;
-import org.springframework.beans.PropertyValue;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DeadlockLoserDataAccessException;
+import org.springframework.dao.TransientDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.mock.web.MockJspWriter;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -156,7 +151,9 @@ public class DBOCountingSemaphoreDaoImplAutowireTest {
 		((CountingSemaphoreDaoImpl) getTargetObject(countingSemaphoreDao)).setLockTimeoutMS(500);
 		((CountingSemaphoreDaoImpl) getTargetObject(countingSemaphoreDao)).setMaxCount(1);
 		JdbcTemplate mockJdbcTemplate = Mockito.spy(originalJdbcTemplate);
-		doThrow(new DeadlockLoserDataAccessException("dummy", null)).doCallRealMethod().when(mockJdbcTemplate)
+		doThrow(new TransientDataAccessException("dummy", null) {
+			private static final long serialVersionUID = 1L;
+		}).doCallRealMethod().when(mockJdbcTemplate)
 				.queryForObject(anyString(), any(Class.class), any());
 		ReflectionTestUtils.setField(((CountingSemaphoreDaoImpl) getTargetObject(countingSemaphoreDao)), "jdbcTemplate", mockJdbcTemplate);
 
@@ -179,7 +176,9 @@ public class DBOCountingSemaphoreDaoImplAutowireTest {
 		JdbcTemplate originalJdbcTemplate = (JdbcTemplate) ReflectionTestUtils.getField(
 				((CountingSemaphoreDaoImpl) getTargetObject(countingSemaphoreDao)), "jdbcTemplate");
 		JdbcTemplate mockJdbcTemplate = Mockito.spy(originalJdbcTemplate);
-		doThrow(new DeadlockLoserDataAccessException("dummy", null)).when(mockJdbcTemplate).queryForObject(anyString(), any(Class.class),
+		doThrow(new TransientDataAccessException("dummy", null) {
+			private static final long serialVersionUID = 1L;
+		}).when(mockJdbcTemplate).queryForObject(anyString(), any(Class.class),
 				any());
 		ReflectionTestUtils.setField(((CountingSemaphoreDaoImpl) getTargetObject(countingSemaphoreDao)), "jdbcTemplate", mockJdbcTemplate);
 

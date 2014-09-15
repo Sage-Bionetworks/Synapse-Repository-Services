@@ -14,4 +14,6 @@ public interface RowAndHeaderHandler extends RowHandler {
 	 * @param headers
 	 */
 	public void setHeaderColumnIds(List<String> headers);
+
+	public void setEtag(String etag);
 }

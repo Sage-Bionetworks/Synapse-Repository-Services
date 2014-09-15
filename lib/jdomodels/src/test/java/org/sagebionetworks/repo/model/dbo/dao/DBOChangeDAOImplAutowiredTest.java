@@ -31,9 +31,11 @@ import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeMessageUtils;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DeadlockLoserDataAccessException;
+import org.springframework.dao.TransientDataAccessException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import com.mysql.jdbc.exceptions.MySQLTransactionRollbackException;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -535,7 +537,11 @@ public class DBOChangeDAOImplAutowiredTest {
 			@Override
 			public Integer call() throws Exception {
 				for(int i=0; i<timesToRun; i++){
-					changeDAO.replaceChange(toSpam);
+					try {
+						changeDAO.replaceChange(toSpam);
+					} catch (TransientDataAccessException e) {
+						// this type of exception is allowed.
+					}
 				}
 				return timesToRun;
 		}};
@@ -546,19 +552,10 @@ public class DBOChangeDAOImplAutowiredTest {
 		// Submit again
 		Future<Integer> two = pool.submit(callable);
 		// There should be no errors
-		;
-		try {
-			Integer oneResult = one.get();
-			assertEquals(new Integer(timesToRun), oneResult);
-		} catch (DeadlockLoserDataAccessException e) {
-			// We now expect deadlock to occur occasionally. See PLFM-2923
-		}
-		try {
-			Integer twoResult = two.get();
-			assertEquals(new Integer(timesToRun), twoResult);
-		} catch (DeadlockLoserDataAccessException e) {
-			// We now expect deadlock to occur occasionally. See PLFM-2923
-		}
+		Integer oneResult = one.get();
+		assertEquals(new Integer(timesToRun), oneResult);
+		Integer twoResult = two.get();
+		assertEquals(new Integer(timesToRun), twoResult);
 	}
 	
 	@Test

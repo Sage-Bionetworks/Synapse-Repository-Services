@@ -1,5 +1,5 @@
 {
-	"description": "The body of an asynchronous CSV table upload job.",
+	"description": "A CSV table upload request.",
 	"implements":[
         {
             "$ref":"org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody"
@@ -18,21 +18,12 @@
 			"type": "string",
 			"description": "Any RowSet returned from Synapse will contain the current etag of the change set.  To update any rows from a RowSet the etag must be provided with the POST."
 		},
-		"separator": {
-			"type": "string",
-			"description": "The delimiter to used for separating entries in the provided file. The default character ',' will be used if this is not provided by the caller.  For tab-separated values use '\\t'"
-		},
-		"quoteCharacter": {
-			"type": "string",
-			"description": "The character to used for quoted elements in the provided file.  The default character '\"' will be used if this is not provided by the caller."
-		},
-		"escapeCharacter": {
-			"type": "string",
-			"description": "The escape character used for escaping a separator or quote. The default character '\\\\' will be used if this is not provided by the caller."
-		},
 		"linesToSkip": {
 			"type": "integer",
 			"description": "The number of lines to skip from the start of the file.  The default value of 0 will be used if this is not provided by the caller."
+		},
+		"csvTableDescriptor": {
+			"$ref":"org.sagebionetworks.repo.model.table.CsvTableDescriptor"
 		}
 	}
 }
