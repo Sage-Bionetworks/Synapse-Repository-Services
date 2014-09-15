@@ -24,33 +24,34 @@ public class CSVUtils {
 	 * @return
 	 */
 	public static CsvNullReader createCSVReader(Reader reader, CsvTableDescriptor descriptor, Long linesToSkip) {
-		if(descriptor == null) throw new IllegalArgumentException("CsvTableDescriptor cannot be null");
 		char separator = CsvNullReader.DEFAULT_SEPARATOR;
 		char quotechar = CsvNullReader.DEFAULT_QUOTE_CHARACTER;
 		char escape = CsvNullReader.DEFAULT_ESCAPE_CHARACTER;
 		int skipLines = CsvNullReader.DEFAULT_SKIP_LINES;
-		if (descriptor.getSeparator() != null) {
-			if (descriptor.getSeparator().length() != 1) {
-				throw new IllegalArgumentException(
-						"CsvTableDescriptor.separator must be exactly one character.");
+		if(descriptor != null){
+			if (descriptor.getSeparator() != null) {
+				if (descriptor.getSeparator().length() != 1) {
+					throw new IllegalArgumentException(
+							"CsvTableDescriptor.separator must be exactly one character.");
+				}
+				separator = descriptor.getSeparator().charAt(0);
 			}
-			separator = descriptor.getSeparator().charAt(0);
-		}
-		if (descriptor.getQuoteCharacter() != null) {
-			if (descriptor.getQuoteCharacter().length() != 1) {
-				throw new IllegalArgumentException(
-						"CsvTableDescriptor.quoteCharacter must be exactly one character.");
+			if (descriptor.getQuoteCharacter() != null) {
+				if (descriptor.getQuoteCharacter().length() != 1) {
+					throw new IllegalArgumentException(
+							"CsvTableDescriptor.quoteCharacter must be exactly one character.");
+				}
+				quotechar = descriptor.getQuoteCharacter()
+						.charAt(0);
 			}
-			quotechar = descriptor.getQuoteCharacter()
-					.charAt(0);
-		}
-		if (descriptor.getEscapeCharacter() != null) {
-			if (descriptor.getEscapeCharacter().length() != 1) {
-				throw new IllegalArgumentException(
-						"CsvTableDescriptor.escapeCharacter must be exactly one character.");
-			}
-			escape = descriptor.getEscapeCharacter()
-					.charAt(0);
+			if (descriptor.getEscapeCharacter() != null) {
+				if (descriptor.getEscapeCharacter().length() != 1) {
+					throw new IllegalArgumentException(
+							"CsvTableDescriptor.escapeCharacter must be exactly one character.");
+				}
+				escape = descriptor.getEscapeCharacter()
+						.charAt(0);
+			}			
 		}
 		if (linesToSkip != null) {
 			skipLines = linesToSkip.intValue();
