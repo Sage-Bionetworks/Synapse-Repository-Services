@@ -543,6 +543,10 @@ public class StackConfiguration {
 		return configuration
 				.getProperty("org.sagebionetworks.notification.email.address");
 	}
+	
+	public static String getSynapseOpsEmailAddress() {
+		return configuration.getProperty("org.sagebionetworks.synapseops.email.address");
+	}
 
 	/**
 	 * @return the name of the S3 Bucket where logs are stored each stack (dev,
