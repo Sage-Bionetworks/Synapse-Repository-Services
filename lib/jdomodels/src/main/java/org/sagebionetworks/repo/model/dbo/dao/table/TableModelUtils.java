@@ -43,6 +43,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
+import com.google.common.collect.Sets;
 
 /**
  * Utilities for working with Tables and Row data.
@@ -586,14 +587,14 @@ public class TableModelUtils {
 
 
 	/**
-	 * Get the distinct version from the the rows
+	 * Get the distinct version from the the rows ordered by version
 	 * 
 	 * @param rows
 	 * @return
 	 */
 	public static Set<Long> getDistictVersions(List<RowReference> rows) {
 		if(rows == null) throw new IllegalArgumentException("rows cannot be null");
-		Set<Long> distictVersions = new HashSet<Long>();
+		Set<Long> distictVersions = Sets.newTreeSet();
 		for(RowReference ref: rows){
 			distictVersions.add(ref.getVersionNumber());
 		}
@@ -626,12 +627,13 @@ public class TableModelUtils {
 	 * @param resultSchema
 	 * @return
 	 */
-	public static RowSet convertToSchemaAndMerge(List<RowSet> sets, List<ColumnModel> resultSchema, String tableId){
+	public static RowSet convertToSchemaAndMerge(List<RowSet> sets, List<ColumnModel> resultSchema, String tableId, String etag) {
 		// Prepare the final set
 		RowSet out = new RowSet();
 		out.setTableId(tableId);
 		out.setRows(new LinkedList<Row>());
 		out.setHeaders(getHeaders(resultSchema));
+		out.setEtag(etag);
 		// Transform each
 		for(RowSet set: sets){
 			// Transform each and merge the results
