@@ -28,6 +28,8 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
+import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
+import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -592,7 +594,7 @@ public class TableController extends BaseController {
 	 * </p>
 	 * <p>
 	 * For example, to request all parts, the request mask value should be: <br>
-	 * 0x1 OR 0x2 OR 0x4 OR 0x8 = 0x15.
+	 * 0x1 OR 0x2 OR 0x4 OR 0x8 = 0xF.
 	 * </p>
 	 * <p>
 	 * Note: The caller must have the <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}" >ACCESS_TYPE.READ</a>
@@ -629,11 +631,13 @@ public class TableController extends BaseController {
 	}
 
 	/**
-	 * Asynchronously get the results of a query started with href="${POST.table.query.async.start}">POST
+	 * Asynchronously get the results of a query started with <a href="${POST.table.query.async.start}">POST
 	 * /table/query/async/start</a>.
 	 * 
-	 * When the result is not ready yet, this method will return a status code of 202 (ACCEPTED) and the response body
+	 * <p>
+	 * Note: When the result is not ready yet, this method will return a status code of 202 (ACCEPTED) and the response body
 	 * will be a <a href="${org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus}" >AsynchronousJobStatus</a> object.
+	 * </p>
 	 * 
 	 * @param userId
 	 * @param asyncToken
@@ -653,7 +657,7 @@ public class TableController extends BaseController {
 
 	/**
 	 * Asynchronously get a next page of a query. Use the returned job id and
-	 * href="${POST.table.query.nextPage.async.start}">POST /table/query/nextPage/async/start</a> to get the results of
+	 * <a href="${POST.table.query.nextPage.async.start}">POST /table/query/nextPage/async/start</a> to get the results of
 	 * the query. The page token comes from the query result of a <a href="${GET.table.query.async.get.asyncToken}">GET
 	 * /table/query/async/get</a>.
 	 * 
@@ -677,10 +681,12 @@ public class TableController extends BaseController {
 
 	/**
 	 * Asynchronously get the results of a nextPage query started with
-	 * href="${POST.table.query.nextPage.async.start}">POST /table/query/nextPage/async/start</a>
+	 * <a href="${POST.table.query.nextPage.async.start}">POST /table/query/nextPage/async/start</a>
 	 * 
-	 * When the result is not ready yet, this method will return a status code of 202 (ACCEPTED) and the response body
+	 * <p>
+	 * Note: When the result is not ready yet, this method will return a status code of 202 (ACCEPTED) and the response body
 	 * will be a <a href="${org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus}" >AsynchronousJobStatus</a> object.
+	 * </p>
 	 * 
 	 * @param userId
 	 * @param asyncToken
@@ -702,7 +708,7 @@ public class TableController extends BaseController {
 
 	/**
 	 * Asynchronously start a csv download. Use the returned job id and
-	 * href="${GET.table.download.csv.async.get.asyncToken}">GET /table/download/csv/async/get</a> to get the results of
+	 * <a href="${GET.table.download.csv.async.get.asyncToken}">GET /table/download/csv/async/get</a> to get the results of
 	 * the query
 	 * 
 	 * @param userId
@@ -724,11 +730,13 @@ public class TableController extends BaseController {
 	}
 
 	/**
-	 * Asynchronously get the results of a csv download started with href="${POST.table.download.csv.async.start}">POST
+	 * Asynchronously get the results of a csv download started with <a href="${POST.table.download.csv.async.start}">POST
 	 * /table/download/csv/async/start</a>
 	 * 
-	 * When the result is not ready yet, this method will return a status code of 202 (ACCEPTED) and the response body
+	 * <p>
+	 * Note: When the result is not ready yet, this method will return a status code of 202 (ACCEPTED) and the response body
 	 * will be a <a href="${org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus}" >AsynchronousJobStatus</a> object.
+	 * </p>
 	 * 
 	 * @param userId
 	 * @param asyncToken
@@ -749,9 +757,66 @@ public class TableController extends BaseController {
 		return (DownloadFromTableResult) jobStatus.getResponseBody();
 	}
 
+	
 	/**
-	 * /** Asynchronously start a csv upload. Use the returned job id and
-	 * href="${GET.table.upload.csv.async.get.asyncToken}">GET /table/upload/csv/async/get</a> to get the results of the
+	 * <p>
+	 * The method can be used to test both the parameters for reading an upload
+	 * CSV file and the required table schema. The caller can then adjust both
+	 * parameters and schema before applying the CSV to that table.
+	 * </p>
+	 * Asynchronously start a csv upload preview. Use the returned job id and <a
+	 * href="${GET.table.upload.csv.preview.async.get.asyncToken}">GET
+	 * /table/upload/csv/preview/async/get/{asyncToken}</a> to get the results.
+	 * 
+	 * @param userId
+	 * @param uploadRequest
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.TABLE_UPLOAD_CSV_PREVIEW_ASYNC_START, method = RequestMethod.POST)
+	public @ResponseBody
+	AsyncJobId csvUploadPreviewAsyncStart(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody UploadToTablePreviewRequest uploadRequest) throws DatastoreException, NotFoundException, IOException {
+		AsynchronousJobStatus job = serviceProvider.getAsynchronousJobServices().startJob(userId, uploadRequest);
+		AsyncJobId asyncJobId = new AsyncJobId();
+		asyncJobId.setToken(job.getJobId());
+		return asyncJobId;
+	}
+	
+	/**
+	 * Asynchronously get the results of a csv upload preview started with <a href="${POST.table.upload.csv.preview.async.start}">POST
+	 * /table/upload/csv/async/start</a>
+	 * 
+	 * <p>
+	 * Note: When the result is not ready yet, this method will return a status code of 202 (ACCEPTED) and the response body
+	 * will be a <a href="${org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus}" >AsynchronousJobStatus</a> object.
+	 * </p>
+	 * 
+	 * @param userId
+	 * @param asyncToken
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 * @throws AsynchJobFailedException
+	 * @throws NotReadyException
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.TABLE_UPLOAD_CSV_PREVIEW_ASYNC_GET, method = RequestMethod.GET)
+	public @ResponseBody
+	UploadToTablePreviewResult csvUploadPreviewAsyncGet(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String asyncToken) throws DatastoreException, NotFoundException, IOException, AsynchJobFailedException,
+			NotReadyException {
+		AsynchronousJobStatus jobStatus = serviceProvider.getAsynchronousJobServices().getJobStatusAndThrow(userId, asyncToken);
+		return (UploadToTablePreviewResult) jobStatus.getResponseBody();
+	}
+	
+	/**
+	 * Asynchronously start a csv upload. Use the returned job id and
+	 * <a href="${GET.table.upload.csv.async.get.asyncToken}">GET /table/upload/csv/async/get</a> to get the results of the
 	 * query
 	 * 
 	 * @param userId
@@ -771,13 +836,15 @@ public class TableController extends BaseController {
 		asyncJobId.setToken(job.getJobId());
 		return asyncJobId;
 	}
-
+	
 	/**
-	 * Asynchronously get the results of a csv upload started with href="${POST.table.upload.csv.async.start}">POST
+	 * Asynchronously get the results of a csv upload started with <a href="${POST.table.upload.csv.async.start}">POST
 	 * /table/upload/csv/async/start</a>
 	 * 
-	 * When the result is not ready yet, this method will return a status code of 202 (ACCEPTED) and the response body
+	 * <p>
+	 * Note: When the result is not ready yet, this method will return a status code of 202 (ACCEPTED) and the response body
 	 * will be a <a href="${org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus}" >AsynchronousJobStatus</a> object.
+	 * </p>
 	 * 
 	 * @param userId
 	 * @param asyncToken

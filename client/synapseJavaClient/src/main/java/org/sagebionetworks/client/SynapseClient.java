@@ -83,6 +83,8 @@ import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
+import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
+import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHistorySnapshot;
@@ -1775,4 +1777,25 @@ public interface SynapseClient extends BaseClient {
 	 * @throws SynapseException
 	 */
 	ProjectSetting createProjectSetting(ProjectSetting projectSetting) throws SynapseException;
+
+	/**
+	 * Start a job to generate a preivew for an upload CSV to Table.
+	 * Get the results using {@link #uploadCsvToTablePreviewAsyncGet(String)}
+	 * @param request
+	 * @return
+	 * @throws SynapseException
+	 */
+	String uploadCsvTablePreviewAsyncStart(UploadToTablePreviewRequest request)
+			throws SynapseException;
+
+	/**
+	 * Get the resulting preview from the job started with {@link #uploadCsvTablePreviewAsyncStart(UploadToTablePreviewRequest)}
+	 * @param asyncJobToken
+	 * @return
+	 * @throws SynapseException
+	 * @throws SynapseResultNotReadyException
+	 */
+	UploadToTablePreviewResult uploadCsvToTablePreviewAsyncGet(
+			String asyncJobToken) throws SynapseException,
+			SynapseResultNotReadyException;
 }
