@@ -4,6 +4,8 @@ import java.io.EOFException;
 import java.util.LinkedList;
 import java.util.List;
 
+import javax.imageio.IIOException;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -238,6 +240,24 @@ public class PreviewWorkerTest {
 		S3FileHandle meta = new S3FileHandle();
 		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenReturn(meta);
 		IllegalArgumentException expectedException = new IllegalArgumentException();
+		when(mockPreveiwManager.generatePreview(meta)).thenThrow(expectedException);
+		// create the worker.
+		PreviewWorker worker = new PreviewWorker(mockPreveiwManager, inputList, mockWorkerLogger);
+		// fire!
+		List<Message> processedList = worker.call();
+		assertNotNull(processedList);
+		assertEquals(1, processedList.size());
+		// This message should have been processed and returned.
+		assertTrue("We cannot recover from this type of exception so the message should be returned as processed so it can be deleted from the queue",isMessageOnList(processedList, message));
+		verify(mockWorkerLogger).logWorkerFailure(PreviewWorker.class, change, expectedException, false);
+	}
+	
+	@Test
+	public void testErrorReadingPNG() throws Exception{
+		// We cannot recover from this type of exception so the message should be returned.
+		S3FileHandle meta = new S3FileHandle();
+		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenReturn(meta);
+		IIOException expectedException = new javax.imageio.IIOException("Error reading PNG image data");
 		when(mockPreveiwManager.generatePreview(meta)).thenThrow(expectedException);
 		// create the worker.
 		PreviewWorker worker = new PreviewWorker(mockPreveiwManager, inputList, mockWorkerLogger);
