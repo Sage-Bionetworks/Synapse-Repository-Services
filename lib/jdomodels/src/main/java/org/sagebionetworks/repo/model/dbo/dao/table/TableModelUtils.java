@@ -596,6 +596,9 @@ public class TableModelUtils {
 		if(rows == null) throw new IllegalArgumentException("rows cannot be null");
 		Set<Long> distictVersions = Sets.newTreeSet();
 		for(RowReference ref: rows){
+			if (ref.getVersionNumber() == null) {
+				throw new IllegalArgumentException("version cannot be null (row " + ref.getRowId() + ")");
+			}
 			distictVersions.add(ref.getVersionNumber());
 		}
 		return distictVersions;
@@ -1013,6 +1016,9 @@ public class TableModelUtils {
 		// create a map from version to set of row ids map
 		SetMultimap<Long, Long> versions = HashMultimap.create();
 		for (RowReference ref : refs) {
+			if (ref.getVersionNumber() == null) {
+				throw new IllegalArgumentException("version cannot be null (row " + ref.getRowId() + ")");
+			}
 			versions.put(ref.getVersionNumber(), ref.getRowId());
 		}
 		return versions;

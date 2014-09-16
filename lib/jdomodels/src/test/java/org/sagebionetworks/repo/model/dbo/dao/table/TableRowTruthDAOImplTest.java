@@ -176,6 +176,24 @@ public class TableRowTruthDAOImplTest {
 		assertEquals(Arrays.asList("", null, null, null, null, null, null), results.getRows().get(0).getValues());
 	}
 
+	@Test(expected = IllegalArgumentException.class)
+	public void testGetNullVersions() throws Exception {
+		// Create some test column models
+		List<ColumnModel> models = TableModelTestUtils.createOneOfEachType();
+		// create some test rows.
+		List<Row> rows = TableModelTestUtils.createNullRows(models, 1);
+
+		String tableId = "syn123";
+		RowSet set = new RowSet();
+		set.setHeaders(TableModelUtils.getHeaders(models));
+		set.setRows(rows);
+		set.setTableId(tableId);
+		// Append this change set
+		RowReferenceSet refSet = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, models, set, false);
+		refSet.getRows().get(0).setVersionNumber(null);
+		tableRowTruthDao.getRowSet(refSet, models);
+	}
+
 	@Test
 	public void testListRowSetsForTable() throws IOException{
 		List<ColumnModel> models = TableModelTestUtils.createOneOfEachType();
