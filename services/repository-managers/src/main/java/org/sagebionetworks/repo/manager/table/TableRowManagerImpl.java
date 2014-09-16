@@ -49,6 +49,7 @@ import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.sagebionetworks.util.Closer;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.ProgressCallback;
+import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
@@ -601,6 +602,9 @@ public class TableRowManagerImpl implements TableRowManager {
 	@Override
 	public QueryResultBundle queryBundle(UserInfo user, QueryBundleRequest queryBundle) throws DatastoreException, NotFoundException,
 			TableUnavilableException, TableFailedException {
+		ValidateArgument.notNull(queryBundle.getQuery(), "query");
+		ValidateArgument.notNull(queryBundle.getQuery().getSql(), "query.sql");
+
 		QueryResultBundle bundle = new QueryResultBundle();
 		// The SQL query is need for the actual query, select columns, and max rows per page.
 		SqlQuery sqlQuery = createQuery(queryBundle.getQuery().getSql(), false);
