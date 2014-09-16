@@ -124,6 +124,8 @@ import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
+import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
+import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
@@ -258,6 +260,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	protected static final String TABLE_PARITAL = TABLE + "/partial";
 	protected static final String TABLE_DOWNLOAD_CSV = TABLE + "/download/csv";
 	protected static final String TABLE_UPLOAD_CSV = TABLE + "/upload/csv";
+	protected static final String TABLE_UPLOAD_CSV_PREVIEW = TABLE + "/upload/csv/preview";
 	
 	protected static final  String ASYNCHRONOUS_JOB = "/asynchronous/job";
 
@@ -5438,6 +5441,16 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		return (UploadToTableResult) getAsyncResult(AsynchJobType.TableCSVUpload, asyncJobToken);
 	}
 
+	@Override
+	public String uploadCsvTablePreviewAsyncStart(UploadToTablePreviewRequest request) throws SynapseException {
+		return startAsynchJob(AsynchJobType.TableCSVUploadPreview, request);
+	}
+
+	@Override
+	public UploadToTablePreviewResult uploadCsvToTablePreviewAsyncGet(String asyncJobToken) throws SynapseException, SynapseResultNotReadyException {
+		return (UploadToTablePreviewResult) getAsyncResult(AsynchJobType.TableCSVUploadPreview, asyncJobToken);
+	}
+	
 	@Override
 	public ColumnModel createColumnModel(ColumnModel model) throws SynapseException {
 		if(model == null) throw new IllegalArgumentException("ColumnModel cannot be null");

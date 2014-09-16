@@ -1069,7 +1069,7 @@ public class TableWorkerIntegrationTest {
 		// This is the starting input stream
 		CsvNullReader reader = TableModelTestUtils.createReader(input);
 		// Write the CSV to the table
-		CSVToRowIterator iterator = new CSVToRowIterator(schema, reader);
+		CSVToRowIterator iterator = new CSVToRowIterator(schema, reader, true);
 		tableRowManager.appendRowsAsStream(adminUserInfo, tableId, schema, iterator, null, null);
 		// Now wait for the table index to be ready
 		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, "select * from " + tableId, 100L);
@@ -1099,7 +1099,7 @@ public class TableWorkerIntegrationTest {
 		copy.get(3)[2] = "FFF";
 		reader = TableModelTestUtils.createReader(copy);
 		// Use the data to update the table
-		iterator = new CSVToRowIterator(schema, reader);
+		iterator = new CSVToRowIterator(schema, reader, true);
 		tableRowManager.appendRowsAsStream(adminUserInfo, tableId, schema, iterator, response.getEtag(), null);
 		// Fetch the results again but this time without row id and version so it can be used to create a new table.
 		stringWriter = new StringWriter();

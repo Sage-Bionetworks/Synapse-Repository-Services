@@ -2,7 +2,6 @@ package org.sagebionetworks.table.worker;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.Reader;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -18,11 +17,9 @@ import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.table.TableRowManager;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
-import org.sagebionetworks.repo.model.dbo.dao.table.CSVToRowIterator;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.UploadToTableRequest;
-import org.sagebionetworks.repo.model.table.UploadToTableResult;
+import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
+import org.sagebionetworks.repo.model.table.UploadToTablePreviewResult;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.util.csv.CsvNullReader;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,9 +34,9 @@ import com.amazonaws.services.sqs.model.Message;
  * @author jmhill
  *
  */
-public class TableCSVAppenderWorker implements Worker {
+public class TableCSVAppenderPreviewWorker implements Worker {
 
-	static private Logger log = LogManager.getLogger(TableCSVAppenderWorker.class);
+	static private Logger log = LogManager.getLogger(TableCSVAppenderPreviewWorker.class);
 	private List<Message> messages;
 	private WorkerProgress workerProgress;
 
@@ -101,11 +98,9 @@ public class TableCSVAppenderWorker implements Worker {
 		CsvNullReader reader = null;
 		try{
 			UserInfo user = userManger.getUserInfo(status.getStartedByUserId());
-			UploadToTableRequest body = (UploadToTableRequest) status.getRequestBody();
+			UploadToTablePreviewRequest body = (UploadToTablePreviewRequest) status.getRequestBody();
 			// Get the filehandle
 			S3FileHandle fileHandle = (S3FileHandle) fileHandleManager.getRawFileHandle(user, body.getUploadFileHandleId());
-			// Get the schema for the table
-			List<ColumnModel> tableSchema = tableRowManager.getColumnModelsForTable(body.getTableId());
 			// Get the metadat for this file
 			ObjectMetadata fileMetadata = s3Client.getObjectMetadata(fileHandle.getBucketName(), fileHandle.getKey());
 			long progressCurrent = 0L;
@@ -118,20 +113,14 @@ public class TableCSVAppenderWorker implements Worker {
 			CountingInputStream countingInputStream = new CountingInputStream(s3Object.getObjectContent());
 			// Create a reader from the passed parameters
 			reader = CSVUtils.createCSVReader(new InputStreamReader(countingInputStream, "UTF-8"), body.getCsvTableDescriptor(), body.getLinesToSkip());
+			// Done
 			// Reports progress back the caller.
 			// Report progress every 2 seconds.
 			long progressIntervalMs = 2000;
 			ProgressReporter progressReporter = new IntervalProgressReporter(status.getJobId(),fileMetadata.getContentLength(), countingInputStream, asynchJobStatusManager, progressIntervalMs);
-			// Create the iterator
-			boolean isFirstLineHeader = CSVUtils.isFirstRowHeader(body.getCsvTableDescriptor());
-			CSVToRowIterator iterator = new CSVToRowIterator(tableSchema, reader, isFirstLineHeader);
-			ProgressingIteratorProxy iteratorProxy = new  ProgressingIteratorProxy(iterator, progressReporter);
-			// Append the data to the table
-			String etag = tableRowManager.appendRowsAsStream(user, body.getTableId(), tableSchema, iteratorProxy, body.getUpdateEtag(), null);
-			// Done
-			UploadToTableResult result = new UploadToTableResult();
-			result.setRowsProcessed(new Long(progressReporter.getRowNumber() + 1));
-			result.setEtag(etag);
+			// This builder does the work of building an actual preview.
+			UploadPreviewBuilder builder = new UploadPreviewBuilder(reader, progressReporter, body);
+			UploadToTablePreviewResult result = builder.buildResult();
 			asynchJobStatusManager.setComplete(status.getJobId(), result);
 		}catch(Throwable e){
 			// Record the error
@@ -162,8 +151,8 @@ public class TableCSVAppenderWorker implements Worker {
 		if(status.getRequestBody() == null){
 			throw new IllegalArgumentException("Job body cannot be null");
 		}
-		if (!(status.getRequestBody() instanceof UploadToTableRequest)) {
-			throw new IllegalArgumentException("Expected a job body of type: " + UploadToTableRequest.class.getName() + " but received: "
+		if (!(status.getRequestBody() instanceof UploadToTablePreviewRequest)) {
+			throw new IllegalArgumentException("Expected a job body of type: " + UploadToTablePreviewRequest.class.getName() + " but received: "
 					+ status.getRequestBody().getClass().getName());
 		}
 		return status;
