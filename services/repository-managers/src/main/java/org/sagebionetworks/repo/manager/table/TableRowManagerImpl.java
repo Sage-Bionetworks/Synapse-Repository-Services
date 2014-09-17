@@ -602,8 +602,8 @@ public class TableRowManagerImpl implements TableRowManager {
 	@Override
 	public QueryResultBundle queryBundle(UserInfo user, QueryBundleRequest queryBundle) throws DatastoreException, NotFoundException,
 			TableUnavilableException, TableFailedException {
-		ValidateArgument.notNull(queryBundle.getQuery(), "query");
-		ValidateArgument.notNull(queryBundle.getQuery().getSql(), "query.sql");
+		ValidateArgument.required(queryBundle.getQuery(), "query");
+		ValidateArgument.required(queryBundle.getQuery().getSql(), "query.sql");
 
 		QueryResultBundle bundle = new QueryResultBundle();
 		// The SQL query is need for the actual query, select columns, and max rows per page.
