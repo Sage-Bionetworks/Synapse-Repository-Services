@@ -169,7 +169,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		rod.setType(RestrictableObjectType.ENTITY);
 		ar.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod}));
 
-		ar.setEntityType(ar.getClass().getName());
+		ar.setConcreteType(ar.getClass().getName());
 		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		ar.setTermsOfUse(TERMS_OF_USE);
 		return ar;
@@ -178,7 +178,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 	private static TermsOfUseAccessApproval newToUAccessApproval(Long requirementId, String accessorId) {
 		TermsOfUseAccessApproval aa = new TermsOfUseAccessApproval();
 		aa.setAccessorId(accessorId);
-		aa.setEntityType(TermsOfUseAccessApproval.class.getName());
+		aa.setConcreteType(TermsOfUseAccessApproval.class.getName());
 		aa.setRequirementId(requirementId);
 		return aa;
 	}
@@ -191,7 +191,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		rod.setType(RestrictableObjectType.ENTITY);
 		ar.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod}));
 
-		ar.setEntityType(ar.getClass().getName());
+		ar.setConcreteType(ar.getClass().getName());
 		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		ar.setActContactInfo("send a message in a bottle");
 		return ar;
@@ -200,7 +200,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 	private static ACTAccessApproval newACTAccessApproval(Long requirementId, String accessorId) {
 		ACTAccessApproval aa = new ACTAccessApproval();
 		aa.setAccessorId(accessorId);
-		aa.setEntityType(aa.getClass().getName());
+		aa.setConcreteType(aa.getClass().getName());
 		aa.setRequirementId(requirementId);
 		aa.setApprovalStatus(ACTApprovalStatus.APPROVED);
 		return aa;
@@ -217,7 +217,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		assertNotNull(aa.getModifiedOn());
 		assertEquals(adminUserInfo.getId().toString(), aa.getAccessorId());
 		assertEquals(ar.getId(), aa.getRequirementId());
-		assertEquals(TermsOfUseAccessApproval.class.getName(), aa.getEntityType());
+		assertEquals(TermsOfUseAccessApproval.class.getName(), aa.getConcreteType());
 	}
 	
 	// since the user is not an admin they can't delete
@@ -265,7 +265,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 	@Test(expected=InvalidModelException.class)
 	public void testCreateAccessApprovalBadParam3() throws Exception {
 		TermsOfUseAccessApproval aa = newToUAccessApproval(ar.getId(), adminUserInfo.getId().toString());
-		aa.setEntityType(ACTAccessApproval.class.getName());
+		aa.setConcreteType(ACTAccessApproval.class.getName());
 		aa = accessApprovalManager.createAccessApproval(adminUserInfo, aa);
 	}
 	

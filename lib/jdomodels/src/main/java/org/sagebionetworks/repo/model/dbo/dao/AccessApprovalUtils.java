@@ -23,7 +23,6 @@ public class AccessApprovalUtils {
 		dbo.setModifiedOn(dto.getModifiedOn().getTime());
 		dbo.setRequirementId(dto.getRequirementId());
 		dbo.setAccessorId(Long.parseLong(dto.getAccessorId()));
-		dbo.setEntityType(dto.getEntityType());
 		copyToSerializedField(dto, dbo);
 	}
 
@@ -37,7 +36,6 @@ public class AccessApprovalUtils {
 		dto.setModifiedOn(new Date(dbo.getModifiedOn()));
 		dto.setRequirementId(dbo.getRequirementId());
 		dto.setAccessorId(dbo.getAccessorId().toString());
-		dto.setEntityType(dbo.getEntityType());
 		return dto;
 	}
 

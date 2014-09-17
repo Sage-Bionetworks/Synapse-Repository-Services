@@ -1,0 +1,15 @@
+{
+	"title": "Post Message Content Access Requirement",
+	"description": "JSON schema for Post Message Content Access Requirement",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.SelfSignAccessRequirement"
+		}
+	],
+	"properties": {
+		"tbd": {
+			"type": "string",
+			"description": "TBD"
+		}
+	}
+}

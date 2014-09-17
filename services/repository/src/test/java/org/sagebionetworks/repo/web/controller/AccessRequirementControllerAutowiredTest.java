@@ -123,7 +123,7 @@ public class AccessRequirementControllerAutowiredTest extends AbstractAutowiredC
 
 	private static AccessRequirement newAccessRequirement(ACCESS_TYPE accessType) {
 		TermsOfUseAccessRequirement dto = new TermsOfUseAccessRequirement();
-		dto.setEntityType(dto.getClass().getName());
+		dto.setConcreteType(dto.getClass().getName());
 		dto.setAccessType(accessType);
 		dto.setTermsOfUse("foo");
 		return dto;

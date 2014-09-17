@@ -23,7 +23,7 @@ public class AccessApprovalUtilsTest {
 		dto.setModifiedBy("666");
 		dto.setModifiedOn(new Date());	
 		dto.setAccessorId("777");
-		dto.setEntityType("org.sagebionetworks.repo.model.TermsOfUseAccessApproval");
+		dto.setConcreteType("org.sagebionetworks.repo.model.TermsOfUseAccessApproval");
 		dto.setRequirementId(888L);
 		return dto;
 	}
