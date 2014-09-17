@@ -1,8 +1,10 @@
 package org.sagebionetworks.javadoc.velocity.schema;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
@@ -34,7 +36,7 @@ public class SchemaUtilsTest {
 		assertEquals(wp.getJSONSchema(), schema);
 		// Another where it should not
 		schema = SchemaUtils.getEffectiveSchema("not.a.real.Object");
-		assertEquals(null, schema);
+		assertNull(schema);
 	}
 	
 	@Test
@@ -100,15 +102,15 @@ public class SchemaUtilsTest {
 		assertNotNull(field);
 		assertEquals(name, field.getName());
 		assertEquals(description, field.getDescription());
-		assertEquals(new TypeReference(false, false, TYPE.STRING.name(), null), field.getType());
+		assertEquals(new TypeReference(false, false, false, new String[] { TYPE.STRING.name() }, new String[] { null }), field.getType());
 	}
 	
 	@Test
 	public void testTypeToLinkStringString(){
 		ObjectSchema schema = new ObjectSchema(TYPE.STRING);
 		TypeReference result = SchemaUtils.typeToLinkString(schema);
-		assertEquals(TYPE.STRING.name(), result.getDisplay());
-		assertEquals(null, result.getHref());
+		assertArrayEquals(new String[] { TYPE.STRING.name() }, result.getDisplay());
+		assertArrayEquals(new String[] { null }, result.getHref());
 		assertFalse(result.getIsArray());
 		assertFalse(result.getIsUnique());
 	}
@@ -117,8 +119,8 @@ public class SchemaUtilsTest {
 	public void testTypeToLinkStringBoolean(){
 		ObjectSchema schema = new ObjectSchema(TYPE.BOOLEAN);
 		TypeReference result = SchemaUtils.typeToLinkString(schema);
-		assertEquals(TYPE.BOOLEAN.name(), result.getDisplay());
-		assertEquals(null, result.getHref());
+		assertArrayEquals(new String[] { TYPE.BOOLEAN.name() }, result.getDisplay());
+		assertArrayEquals(new String[] { null }, result.getHref());
 		assertFalse(result.getIsArray());
 		assertFalse(result.getIsUnique());
 	}
@@ -127,8 +129,8 @@ public class SchemaUtilsTest {
 	public void testTypeToLinkStringNumber(){
 		ObjectSchema schema = new ObjectSchema(TYPE.NUMBER);
 		TypeReference result = SchemaUtils.typeToLinkString(schema);
-		assertEquals(TYPE.NUMBER.name(), result.getDisplay());
-		assertEquals(null, result.getHref());
+		assertArrayEquals(new String[] { TYPE.NUMBER.name() }, result.getDisplay());
+		assertArrayEquals(new String[] { null }, result.getHref());
 		assertFalse(result.getIsArray());
 		assertFalse(result.getIsUnique());
 	}
@@ -137,8 +139,8 @@ public class SchemaUtilsTest {
 	public void testTypeToLinkStringInteger(){
 		ObjectSchema schema = new ObjectSchema(TYPE.INTEGER);
 		TypeReference result = SchemaUtils.typeToLinkString(schema);
-		assertEquals(TYPE.INTEGER.name(), result.getDisplay());
-		assertEquals(null, result.getHref());
+		assertArrayEquals(new String[] { TYPE.INTEGER.name() }, result.getDisplay());
+		assertArrayEquals(new String[] { null }, result.getHref());
 		assertFalse(result.getIsArray());
 		assertFalse(result.getIsUnique());
 	}
@@ -151,8 +153,8 @@ public class SchemaUtilsTest {
 		schema.setId(id);
 		schema.setName("Example");
 		TypeReference result = SchemaUtils.typeToLinkString(schema);
-		assertEquals(name, result.getDisplay());
-		assertEquals("${"+id+"}", result.getHref());
+		assertArrayEquals(new String[] { name }, result.getDisplay());
+		assertArrayEquals(new String[] { "${" + id + "}" }, result.getHref());
 		assertFalse(result.getIsArray());
 		assertFalse(result.getIsUnique());
 	}
@@ -161,14 +163,14 @@ public class SchemaUtilsTest {
 	public void testTypeToLinkStringObjectNullId(){
 		ObjectSchema schema = new ObjectSchema(TYPE.OBJECT);
 		schema.setId(null);
-		TypeReference result = SchemaUtils.typeToLinkString(schema);
+		SchemaUtils.typeToLinkString(schema);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testTypeToLinkStringArrayNullItems(){
 		ObjectSchema schema = new ObjectSchema(TYPE.ARRAY);
 		schema.setItems(null);
-		TypeReference result = SchemaUtils.typeToLinkString(schema);
+		SchemaUtils.typeToLinkString(schema);
 	}
 	
 	@Test
@@ -176,8 +178,8 @@ public class SchemaUtilsTest {
 		ObjectSchema schema = new ObjectSchema(TYPE.ARRAY);
 		schema.setItems(new ObjectSchema(TYPE.STRING));
 		TypeReference result = SchemaUtils.typeToLinkString(schema);
-		assertEquals(TYPE.STRING.name(), result.getDisplay());
-		assertEquals(null, result.getHref());
+		assertArrayEquals(new String[] { TYPE.STRING.name() }, result.getDisplay());
+		assertArrayEquals(new String[] { null }, result.getHref());
 		assertTrue(result.getIsArray());
 		assertFalse(result.getIsUnique());
 	}
@@ -191,12 +193,46 @@ public class SchemaUtilsTest {
 		schema.getItems().setId(id);
 		schema.getItems().setName(name);
 		TypeReference result = SchemaUtils.typeToLinkString(schema);
-		assertEquals(name, result.getDisplay());
-		assertEquals("${"+id+"}", result.getHref());
+		assertArrayEquals(new String[] { name }, result.getDisplay());
+		assertArrayEquals(new String[] { "${" + id + "}" }, result.getHref());
 		assertTrue(result.getIsArray());
 		assertFalse(result.getIsUnique());
 	}
 	
+	@Test
+	public void testTypeToLinkStringMapPrimitives() {
+		ObjectSchema schema = new ObjectSchema(TYPE.MAP);
+		schema.setKey(new ObjectSchema(TYPE.STRING));
+		schema.setValue(new ObjectSchema(TYPE.STRING));
+		TypeReference result = SchemaUtils.typeToLinkString(schema);
+		assertArrayEquals(new String[] { TYPE.STRING.name(), TYPE.STRING.name() }, result.getDisplay());
+		assertArrayEquals(new String[] { null, null }, result.getHref());
+		assertFalse(result.getIsArray());
+		assertFalse(result.getIsUnique());
+		assertTrue(result.getIsMap());
+	}
+
+	@Test
+	public void testTypeToLinkStringMapObjects() {
+		ObjectSchema schema = new ObjectSchema(TYPE.MAP);
+		schema.setKey(new ObjectSchema(TYPE.OBJECT));
+		schema.setValue(new ObjectSchema(TYPE.OBJECT));
+		String name1 = "Example1";
+		String name2 = "Example2";
+		String id1 = "org.sagebionetworks.test." + name1;
+		String id2 = "org.sagebionetworks.test." + name2;
+		schema.getKey().setId(id1);
+		schema.getKey().setName(name1);
+		schema.getValue().setId(id2);
+		schema.getValue().setName(name2);
+		TypeReference result = SchemaUtils.typeToLinkString(schema);
+		assertArrayEquals(new String[] { name1, name2 }, result.getDisplay());
+		assertArrayEquals(new String[] { "${" + id1 + "}", "${" + id2 + "}" }, result.getHref());
+		assertFalse(result.getIsArray());
+		assertFalse(result.getIsUnique());
+		assertTrue(result.getIsMap());
+	}
+
 	@Test
 	public void testTranslateToModel(){
 		String description = "top level description";
@@ -240,7 +276,9 @@ public class SchemaUtilsTest {
 		assertEquals(effective, model.getEffectiveSchema());
 		assertNotNull(model.getFields());
 		assertEquals(2, model.getFields().size());
-		assertEquals(new SchemaFields(new TypeReference(false, false,TYPE.STRING.name() , null), "someString", null), model.getFields().get(0));
-		assertEquals(new SchemaFields(new TypeReference(false, false,TYPE.BOOLEAN.name() , null), "someBoolean", null), model.getFields().get(1));
+		assertEquals(new SchemaFields(new TypeReference(false, false, false, new String[] { TYPE.STRING.name() }, new String[] { null }),
+				"someString", null), model.getFields().get(0));
+		assertEquals(new SchemaFields(new TypeReference(false, false, false, new String[] { TYPE.BOOLEAN.name() }, new String[] { null }),
+				"someBoolean", null), model.getFields().get(1));
 	}
 }

@@ -279,14 +279,17 @@ public class SchemaUtils {
 	 */
 	public static TypeReference typeToLinkString(ObjectSchema type){
 		boolean isArray = false;
+		boolean isMap = false;
 		boolean isUnique = false;
-		String display = getTypeDisplay(type);
-		String href = getTypeHref(type);
+		String[] display = getTypeDisplay(type);
+		String[] href = getTypeHref(type);
 		if(TYPE.ARRAY == type.getType()){
 			isArray = true;
 			isUnique = type.getUniqueItems();
+		} else if (TYPE.MAP == type.getType()) {
+			isMap = true;
 		}
-		return new  TypeReference(isArray, isUnique, display, href);
+		return new TypeReference(isArray, isUnique, isMap, display, href);
 	}
 	
 	/**
@@ -294,34 +297,72 @@ public class SchemaUtils {
 	 * @param type
 	 * @return
 	 */
-	public static String getTypeHref(ObjectSchema type){
+	public static String[] getTypeHref(ObjectSchema type) {
 		if(TYPE.OBJECT == type.getType() || TYPE.INTERFACE == type.getType()){
 			if(type.getId() == null) throw new IllegalArgumentException("ObjectSchema.id cannot be null for TYPE.OBJECT");
 			StringBuilder builder = new StringBuilder();
 			builder.append("${").append(type.getId()).append("}");
-			return builder.toString();
+			return new String[] { builder.toString() };
 		} if(TYPE.ARRAY == type.getType()){
 			if(type.getItems() == null) throw new IllegalArgumentException("ObjectSchema.items cannot be null for TYPE.ARRAY");
 			return getTypeHref(type.getItems());
+		}
+		if (TYPE.MAP == type.getType()) {
+			ObjectSchema keySchema = type.getKey();
+			ObjectSchema valueSchema = type.getValue();
+			if (keySchema == null) {
+				throw new IllegalArgumentException("ObjectSchema.key cannot be null for TYPE.MAP");
+			}
+			if (valueSchema == null) {
+				throw new IllegalArgumentException("ObjectSchema.value cannot be null for TYPE.MAP");
+			}
+			String[] keyHref = getTypeHref(keySchema);
+			String[] valueHref = getTypeHref(valueSchema);
+			if (keyHref.length != 1) {
+				throw new IllegalArgumentException("ObjectSchema.key not a single type");
+			}
+			if (valueHref.length != 1) {
+				throw new IllegalArgumentException("ObjectSchema.key not a single type");
+			}
+			return new String[] { keyHref[0], valueHref[0] };
 		} else if (type.getType() == TYPE.STRING && type.getEnum() != null && type.getId() != null) {
 			String typeName = type.getId();
-			return "${" + typeName + "}";
+			return new String[] { "${" + typeName + "}" };
 		}else{
 			// primitives do not have links
-			return null;
+			return new String[] { null };
 		}
 	}
 	
-	public static String getTypeDisplay(ObjectSchema type){
+	public static String[] getTypeDisplay(ObjectSchema type) {
 		if(TYPE.OBJECT == type.getType() || TYPE.INTERFACE == type.getType()){
-			return type.getName();
+			return new String[] { type.getName() };
 		} if(TYPE.ARRAY == type.getType()){
 			if(type.getItems() == null) throw new IllegalArgumentException("ObjectSchema.items cannot be null for TYPE.ARRAY");
 			return getTypeDisplay(type.getItems());
+		}
+		if (TYPE.MAP == type.getType()) {
+			ObjectSchema keySchema = type.getKey();
+			ObjectSchema valueSchema = type.getValue();
+			if (keySchema == null) {
+				throw new IllegalArgumentException("ObjectSchema.key cannot be null for TYPE.MAP");
+			}
+			if (valueSchema == null) {
+				throw new IllegalArgumentException("ObjectSchema.value cannot be null for TYPE.MAP");
+			}
+			String[] keyDisplay = getTypeDisplay(keySchema);
+			String[] valueDisplay = getTypeDisplay(valueSchema);
+			if (keyDisplay.length != 1) {
+				throw new IllegalArgumentException("ObjectSchema.key not a single type");
+			}
+			if (valueDisplay.length != 1) {
+				throw new IllegalArgumentException("ObjectSchema.key not a single type");
+			}
+			return new String[] { keyDisplay[0], valueDisplay[0] };
 		} else if (type.getType() == TYPE.STRING && type.getEnum() != null && type.getId() != null) {
-			return type.getName();
+			return new String[] { type.getName() };
 		}else{
-			return type.getType().toString();
+			return new String[] { type.getType().toString() };
 		}
 	}
 }
