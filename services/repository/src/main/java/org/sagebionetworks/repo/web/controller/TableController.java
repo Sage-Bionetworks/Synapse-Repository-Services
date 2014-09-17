@@ -352,25 +352,19 @@ public class TableController extends BaseController {
 
 	/**
 	 * <p>
-	 * This method is used to delete rows in a TableEntity. The rows in the
-	 * passed in RowReferenceSet will be deleted if they exist (a 400 will be
-	 * returned if a row ID is provided that does not actually exist). A single
-	 * POST to this service will be treated as a single transaction, meaning
-	 * either all of the rows will be deleted or none of the rows will be
-	 * deleted. If this web-services fails for any reason all changes will be
-	 * "rolled back".
+	 * This method is used to delete rows in a TableEntity. The rows in the passed in RowSelection will be deleted if
+	 * they exist (a 400 will be returned if a row ID is provided that does not actually exist). A single POST to this
+	 * service will be treated as a single transaction, meaning either all of the rows will be deleted or none of the
+	 * rows will be deleted. If this web-services fails for any reason all changes will be "rolled back".
 	 * </p>
 	 * <p>
-	 * Note: The caller must have the <a
-	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
-	 * >ACCESS_TYPE.UPDATE</a> permission on the TableEntity to make this call.
+	 * Note: The caller must have the <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}" >ACCESS_TYPE.UPDATE</a>
+	 * permission on the TableEntity to make this call.
 	 * </p>
 	 * 
 	 * @param userId
-	 * @param id
-	 *            The ID of the TableEntity to append rows to.
-	 * @param rows
-	 *            The set of rows to delete.
+	 * @param id The ID of the TableEntity from which to delete rows.
+	 * @param rows The set of rows to delete.
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 * @throws IOException
@@ -391,21 +385,17 @@ public class TableController extends BaseController {
 
 	/**
 	 * <p>
-	 * This method is used to get specific versions of rows in a TableEntity.
-	 * The rows are in the passed in as a RowReferenceSet. (a 400 will be
-	 * returned if a row ID is provided that does not actually exist).
+	 * This method is used to get specific versions of rows in a TableEntity. The rows are passed in as a
+	 * RowReferenceSet (a 400 will be returned if a row ID is provided that does not actually exist).
 	 * </p>
 	 * <p>
-	 * Note: The caller must have the <a
-	 * href="${org.sagebionetworks.repo.model.ACCESS_TYPE}"
-	 * >ACCESS_TYPE.READ</a> permission on the TableEntity to make this call.
+	 * Note: The caller must have the <a href="${org.sagebionetworks.repo.model.ACCESS_TYPE}" >ACCESS_TYPE.READ</a>
+	 * permission on the TableEntity to make this call.
 	 * </p>
 	 * 
 	 * @param userId
-	 * @param id
-	 *            The ID of the TableEntity to append rows to.
-	 * @param rows
-	 *            The set of rows to get.
+	 * @param id The ID of the TableEntity to append rows to.
+	 * @param rows The set of rows to get.
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 * @throws IOException

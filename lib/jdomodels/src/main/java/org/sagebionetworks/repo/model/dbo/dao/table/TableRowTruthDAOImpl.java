@@ -708,9 +708,14 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			throws IOException, NotFoundException {
 		// Get all of the data in the raw form.
 		List<RowSet> allSets = getRowSetOriginals(ref);
+		// the list of rowsets is sorted by version number. The highest version (last rowset) is the most recent for all
+		// rows. We return that as the etag
+		String etag = null;
+		if (!allSets.isEmpty()) {
+			etag = allSets.get(allSets.size() - 1).getEtag();
+		}
 		// Convert and merge all data into the requested form
-		return TableModelUtils.convertToSchemaAndMerge(allSets, restultForm,
-				ref.getTableId());
+		return TableModelUtils.convertToSchemaAndMerge(allSets, restultForm, ref.getTableId(), etag);
 	}
 
 	@Override
