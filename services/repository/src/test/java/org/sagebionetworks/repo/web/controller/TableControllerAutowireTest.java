@@ -182,6 +182,7 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 		set.getRows().get(0).setVersionNumber(results.getRows().get(0).getVersionNumber());
 		set.getRows().get(1).setRowId(results.getRows().get(1).getRowId());
 		set.getRows().get(1).setVersionNumber(results.getRows().get(1).getVersionNumber());
+		set.setEtag(results.getEtag());
 		assertEquals(set, rowsAfter);
 	}
 	
