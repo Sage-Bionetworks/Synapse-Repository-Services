@@ -762,7 +762,7 @@ public class TableModelUtilsTest {
 		all.add(v1Set);
 		all.add(v2Set);
 		// Now get a single result set that contains all data in this new form
-		RowSet converted = TableModelUtils.convertToSchemaAndMerge(all, newOrder, "syn123");
+		RowSet converted = TableModelUtils.convertToSchemaAndMerge(all, newOrder, "syn123", null);
 //		System.out.println(converted.toString());
 		// This is what we expect to come back
 		RowSet expected = new RowSet();

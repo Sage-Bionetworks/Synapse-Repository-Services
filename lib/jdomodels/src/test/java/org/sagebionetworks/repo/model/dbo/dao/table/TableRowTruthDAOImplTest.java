@@ -134,6 +134,7 @@ public class TableRowTruthDAOImplTest {
 			assertEquals(version, ref.getVersionNumber());
 			expectedId++;
 		}
+		set.setEtag(refSet.getEtag());
 		assertEquals(set, tableRowTruthDao.getRowSet(refSet, models));
 	}
 	
@@ -151,6 +152,7 @@ public class TableRowTruthDAOImplTest {
 		set.setTableId(tableId);
 		// Append this change set
 		RowReferenceSet refSet = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, models, set, false);
+		set.setEtag(refSet.getEtag());
 		assertEquals(set, tableRowTruthDao.getRowSet(refSet, models));
 	}
 	
@@ -172,6 +174,24 @@ public class TableRowTruthDAOImplTest {
 		assertEquals(5, results.getRows().size());
 		// The first value should be an empty string, the rest of the columns should be null
 		assertEquals(Arrays.asList("", null, null, null, null, null, null), results.getRows().get(0).getValues());
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testGetNullVersions() throws Exception {
+		// Create some test column models
+		List<ColumnModel> models = TableModelTestUtils.createOneOfEachType();
+		// create some test rows.
+		List<Row> rows = TableModelTestUtils.createNullRows(models, 1);
+
+		String tableId = "syn123";
+		RowSet set = new RowSet();
+		set.setHeaders(TableModelUtils.getHeaders(models));
+		set.setRows(rows);
+		set.setTableId(tableId);
+		// Append this change set
+		RowReferenceSet refSet = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, models, set, false);
+		refSet.getRows().get(0).setVersionNumber(null);
+		tableRowTruthDao.getRowSet(refSet, models);
 	}
 
 	@Test
@@ -314,6 +334,7 @@ public class TableRowTruthDAOImplTest {
 		assertEquals(tableId, back.getTableId());
 		assertNotNull(back.getRows());;
 		assertEquals(set.getRows().size(), back.getRows().size());
+		assertEquals(refSet.getEtag(), back.getEtag());
 		// The order should match the request
 		for(int i=0; i<refSet.getRows().size(); i++){
 			RowReference ref = refSet.getRows().get(i);
@@ -323,6 +344,43 @@ public class TableRowTruthDAOImplTest {
 		}
 	}
 	
+	@Test
+	public void testGetRowSetOriginalsMultiple() throws IOException, NotFoundException {
+		// Create some test column models
+		List<ColumnModel> models = TableModelTestUtils.createOneOfEachType();
+		// create some test rows.
+		List<Row> rows = TableModelTestUtils.createRows(models, 3);
+		String tableId = "syn123";
+		RowSet set = new RowSet();
+		set.setHeaders(TableModelUtils.getHeaders(models));
+		set.setRows(rows);
+		set.setTableId(tableId);
+		// Append this change set
+		tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, models, set, false);
+
+		// add row
+		set.setRows(TableModelTestUtils.createRows(models, 1));
+		tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, models, set, false);
+
+		// update row
+		RowSet toUpdateOne = tableRowTruthDao.getRowSet(tableId, 0l, ALL_SET);
+		Row toUpdate = toUpdateOne.getRows().get(0);
+		TableModelTestUtils.updateRow(models, toUpdate, 100);
+		toUpdateOne.getRows().clear();
+		toUpdateOne.getRows().add(toUpdate);
+		RowReferenceSet refSet3 = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, models, toUpdateOne, false);
+
+		// combine
+		RowReferenceSet ref = new RowReferenceSet();
+		ref.setTableId(tableId);
+		ref.setHeaders(TableModelUtils.getHeaders(models));
+		ref.setRows(Lists.newArrayList(TableModelTestUtils.createRowReference(0L, 2L), TableModelTestUtils.createRowReference(1L, 0L),
+				TableModelTestUtils.createRowReference(2L, 0L), TableModelTestUtils.createRowReference(3L, 1L)));
+		RowSet combined = tableRowTruthDao.getRowSet(ref, models);
+		assertEquals(4, combined.getRows().size());
+		assertEquals(refSet3.getEtag(), combined.getEtag());
+	}
+
 	@Test
 	public void testGetRowOriginal() throws IOException, NotFoundException {
 		List<ColumnModel> models = TableModelTestUtils.createOneOfEachType();

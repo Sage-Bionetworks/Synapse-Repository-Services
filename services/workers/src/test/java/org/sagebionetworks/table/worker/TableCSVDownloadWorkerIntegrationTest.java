@@ -228,7 +228,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		// This is the starting input stream
 		CsvNullReader reader = TableModelTestUtils.createReader(input);
 		// Write the CSV to the table
-		CSVToRowIterator iterator = new CSVToRowIterator(schema, reader);
+		CSVToRowIterator iterator = new CSVToRowIterator(schema, reader, true);
 		tableRowManager.appendRowsAsStream(adminUserInfo, tableId, schema, iterator, null, null);
 		return input;
 	}

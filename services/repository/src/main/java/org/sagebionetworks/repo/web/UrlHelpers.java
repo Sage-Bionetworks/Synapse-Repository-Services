@@ -697,6 +697,9 @@ public class UrlHelpers {
 	public static final String TABLE_UPLOAD_CSV = TABLE + "/upload/csv";
 	public static final String TABLE_UPLOAD_CSV_ASYNC_START = TABLE_UPLOAD_CSV + ASYNC_START_REQUEST;
 	public static final String TABLE_UPLOAD_CSV_ASYNC_GET = TABLE_UPLOAD_CSV + ASYNC_GET_REQUEST;
+	public static final String TABLE_UPLOAD_CSV_PREVIEW = TABLE + "/upload/csv/preview";
+	public static final String TABLE_UPLOAD_CSV_PREVIEW_ASYNC_START = TABLE_UPLOAD_CSV_PREVIEW + ASYNC_START_REQUEST;
+	public static final String TABLE_UPLOAD_CSV_PREVIEW_ASYNC_GET = TABLE_UPLOAD_CSV_PREVIEW + ASYNC_GET_REQUEST;
 
 	// Team
 	public static final String TEAM = "/team";

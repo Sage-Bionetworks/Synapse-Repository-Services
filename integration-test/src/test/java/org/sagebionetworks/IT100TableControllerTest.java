@@ -196,8 +196,6 @@ public class IT100TableControllerTest {
 
 		// get the rows direct
 		RowSet directResults = synapse.getRowsFromTable(results1);
-		// etag not set in direct case
-		directResults.setEtag(queryResults.getEtag());
 		assertEquals(queryResults, directResults);
 
 		// Now use these results to update the table. By setting the row IDs to null, they should be treated as additions

@@ -79,6 +79,7 @@ public class TableServicesImpl implements TableServices {
 		List<ColumnModel> models = getCurrentColumnsForTable(user, entityId);
 		PaginatedColumnModels pcm = new PaginatedColumnModels();
 		pcm.setResults(models);
+		pcm.setTotalNumberOfResults((long) models.size());
 		return pcm;
 	}
 
