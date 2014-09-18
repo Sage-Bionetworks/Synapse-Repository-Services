@@ -22,12 +22,9 @@ public class MergeWorkerFactory implements ProgressingRunner {
 	@Override
 	public void run(ProgressCallback callback) {
 		// Create a worker with IoC
-		MergeWorker worker = new MergeWorker(accessRecordDAO);
+		MergeWorker worker = new MergeWorker(accessRecordDAO, callback);
 
-		while (worker.mergeOneBatch()) {
-			callback.progressMade();
-			// Sleep?
-		}
+		worker.mergeOneBatch();
 	}
 	
 }
