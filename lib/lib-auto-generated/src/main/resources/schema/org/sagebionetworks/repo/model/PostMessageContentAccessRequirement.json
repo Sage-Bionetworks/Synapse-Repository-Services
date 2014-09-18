@@ -7,9 +7,9 @@
 		}
 	],
 	"properties": {
-		"tbd": {
+		"url": {
 			"type": "string",
-			"description": "TBD"
+			"description": "The URL of the IFrame to be displayed for the user."
 		}
 	}
 }

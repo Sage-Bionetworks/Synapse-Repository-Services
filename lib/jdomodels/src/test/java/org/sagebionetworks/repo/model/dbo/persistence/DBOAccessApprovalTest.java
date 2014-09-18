@@ -106,7 +106,6 @@ public class DBOAccessApprovalTest {
 		accessApproval.seteTag("10");
 		accessApproval.setAccessorId(Long.parseLong(principal.getId()));
 		accessApproval.setRequirementId(ar.getId());
-		accessApproval.setEntityType("com.sagebionetworks.repo.model.TermsOfUseAccessApproval");
 		accessApproval.setSerializedEntity("my dog has fleas".getBytes());
 		accessApproval.setId(id);
 		return accessApproval;
