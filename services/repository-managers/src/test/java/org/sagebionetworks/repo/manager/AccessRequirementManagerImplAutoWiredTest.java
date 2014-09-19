@@ -288,13 +288,6 @@ public class AccessRequirementManagerImplAutoWiredTest {
 	@Test(expected=InvalidModelException.class)
 	public void testCreateAccessRequirementBadParam2() throws Exception {
 		ar = newEntityAccessRequirement(entityId);
-		ar.setConcreteType(ACTAccessRequirement.class.getName());
-		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
-	}
-	
-	@Test(expected=InvalidModelException.class)
-	public void testCreateAccessRequirementBadParam3() throws Exception {
-		ar = newEntityAccessRequirement(entityId);
 		ar.setAccessType(null);
 		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
 	}

@@ -262,23 +262,16 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		aa = accessApprovalManager.createAccessApproval(adminUserInfo, aa);
 	}
 	
-	@Test(expected=InvalidModelException.class)
-	public void testCreateAccessApprovalBadParam3() throws Exception {
-		TermsOfUseAccessApproval aa = newToUAccessApproval(ar.getId(), adminUserInfo.getId().toString());
-		aa.setConcreteType(ACTAccessApproval.class.getName());
-		aa = accessApprovalManager.createAccessApproval(adminUserInfo, aa);
-	}
-	
 	// can't apply an ACTAccessApproval to a TermsOfUse requirement
 	@Test(expected=InvalidModelException.class)
-	public void testCreateAccessApprovalBadParam4() throws Exception {
+	public void testCreateAccessApprovalBadParam3() throws Exception {
 		ACTAccessApproval aa = newACTAccessApproval(ar.getId(), adminUserInfo.getId().toString());
 		aa = accessApprovalManager.createAccessApproval(adminUserInfo, aa);
 	}
 	
 	// can't apply a TermsOfUseApproval to an ACT requirement
 	@Test(expected=InvalidModelException.class)
-	public void testCreateAccessApprovalBadParam5() throws Exception {
+	public void testCreateAccessApprovalBadParam4() throws Exception {
 		actAr = newACTAccessRequirement(nodeAId);
 		actAr = accessRequirementManager.createAccessRequirement(adminUserInfo, actAr);
 		TermsOfUseAccessApproval aa = newToUAccessApproval(actAr.getId(), adminUserInfo.getId().toString());
