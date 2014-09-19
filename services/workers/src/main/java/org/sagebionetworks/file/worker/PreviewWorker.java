@@ -108,19 +108,14 @@ public class PreviewWorker implements Callable<List<Message>> {
 				if ((causeEx != null)
 						&& ((causeEx instanceof EOFException)
 								|| (causeEx instanceof IllegalArgumentException)
-								|| (causeEx instanceof ArrayIndexOutOfBoundsException))) {
+								|| (causeEx instanceof ArrayIndexOutOfBoundsException)
+								|| (causeEx instanceof javax.imageio.IIOException))) {
 					processedMessage.add(message);
 					workerLogger.logWorkerFailure(this.getClass(), changeMessage, e, false);
 				}  else {
 					workerLogger.logWorkerFailure(this.getClass(), changeMessage, e, true);
 				}
-			} catch (javax.imageio.IIOException e) {
-				// We cannot recover from this exception so log the error
-				// and treat the message as processed.
-				processedMessage.add(message);
-				log.error("Failed to process message: "+message.toString(), e);
-				workerLogger.logWorkerFailure(this.getClass(), changeMessage, e, false);
-			}catch (Throwable e){
+			} catch (Throwable e){
 				// Failing to process a message should not terminate the rest of the message processing.
 				// For unknown errors we leave the messages on the queue.
 				log.error("Failed to process message: "+message.toString(), e);

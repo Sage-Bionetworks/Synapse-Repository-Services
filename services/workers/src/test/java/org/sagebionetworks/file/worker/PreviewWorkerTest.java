@@ -257,7 +257,8 @@ public class PreviewWorkerTest {
 		// We cannot recover from this type of exception so the message should be returned.
 		S3FileHandle meta = new S3FileHandle();
 		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenReturn(meta);
-		IIOException expectedException = new javax.imageio.IIOException("Error reading PNG image data");
+		IIOException causeException = new javax.imageio.IIOException("Error reading PNG image data");
+		RuntimeException expectedException = new RuntimeException(causeException);
 		when(mockPreveiwManager.generatePreview(meta)).thenThrow(expectedException);
 		// create the worker.
 		PreviewWorker worker = new PreviewWorker(mockPreveiwManager, inputList, mockWorkerLogger);
