@@ -151,7 +151,7 @@ public class JSONEntityHttpMessageConverterTest {
 	@Test (expected=IllegalArgumentException.class)
 	public void testCreateEntityFromeAdapterClassNotFound() throws JSONObjectAdapterException{
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
-		adapter.put("concreteType", "org.sagebionetworks.FakeClass");
+		adapter.put("entityType", "org.sagebionetworks.FakeClass");
 		JSONEntityHttpMessageConverter.createEntityFromeAdapter(adapter);
 	}
 
