@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,12 +22,12 @@ import org.sagebionetworks.repo.model.entity.query.EntityFieldName;
 import org.sagebionetworks.repo.model.entity.query.EntityQuery;
 import org.sagebionetworks.repo.model.entity.query.EntityQueryResult;
 import org.sagebionetworks.repo.model.entity.query.EntityQueryResults;
+import org.sagebionetworks.repo.model.entity.query.EntityQueryUtils;
 import org.sagebionetworks.repo.model.entity.query.EntityType;
 import org.sagebionetworks.repo.model.entity.query.Operator;
 import org.sagebionetworks.repo.model.entity.query.Sort;
 import org.sagebionetworks.repo.model.entity.query.SortDirection;
-import org.sagebionetworks.repo.model.entity.query.StringValue;
-import org.sagebionetworks.repo.model.entity.query.Value;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -88,14 +90,7 @@ public class EntityQueryManagerImplAutowireTest {
 		table = entityManager.getEntity(adminUserInfo, id, TableEntity.class);
 		
 		// ParentId condition
-		parentIdCondition = new EntityFieldCondition();
-		parentIdCondition.setLeftHandSide(EntityFieldName.parentId);
-		parentIdCondition.setOperator(Operator.EQUALS);
-		StringValue value = new StringValue();
-		value.setValue(project.getId());
-		List<Value> values = new ArrayList<Value>(1);
-		values.add(value);
-		parentIdCondition.setRightHandSide(values);
+		parentIdCondition = EntityQueryUtils.buildCondition(EntityFieldName.parentId, Operator.EQUALS, project.getId());
 		// query
 		query = new EntityQuery();
 		List<Condition> conditions = new ArrayList<Condition>(1);
@@ -194,5 +189,64 @@ public class EntityQueryManagerImplAutowireTest {
 		assertEquals(folder.getId(), folderResult.getId());
 		assertEquals(folder.getName(), folderResult.getName());
 		assertEquals(folder.getEtag(), folderResult.getEtag());
+	}
+	
+	@Test
+	public void testQueryInClause(){
+		// Test the in clause
+		EntityFieldCondition inCondition = EntityQueryUtils.buildCondition(EntityFieldName.name, Operator.IN, folder.getName(), table.getName());
+		// clear the other condition
+		query.getConditions().clear();
+		query.getConditions().add(inCondition);
+		EntityQueryResults results = entityQueryManger.executeQuery(query, adminUserInfo);
+		assertNotNull(results);
+		assertNotNull(results.getEntities());
+		assertEquals(2, results.getEntities().size());
+		// there should be only two.
+		assertTrue(results.getTotalEntityCount() == 2);
+		// Table validate
+		EntityQueryResult tableResult = results.getEntities().get(0);
+		assertEquals(table.getId(), tableResult.getId());
+		EntityQueryResult folderResult = results.getEntities().get(1);
+		assertEquals(folder.getId(), folderResult.getId());
+	}
+	
+	@Test
+	public void testQueryDateConditionValue(){
+		// The folder and table should have a createdOn greater than or equal to folder.createOn.
+		EntityFieldCondition condition = EntityQueryUtils.buildCondition(EntityFieldName.createdOn, Operator.GREATER_THAN_OR_EQUALS, folder.getCreatedOn());
+		// add this condition
+		query.getConditions().add(condition);
+		EntityQueryResults results = entityQueryManger.executeQuery(query, adminUserInfo);
+		assertNotNull(results);
+		assertNotNull(results.getEntities());
+		assertEquals(2, results.getEntities().size());
+		// there should be only two.
+		assertTrue(results.getTotalEntityCount() == 2);
+		// Table validate
+		EntityQueryResult tableResult = results.getEntities().get(0);
+		assertEquals(table.getId(), tableResult.getId());
+		EntityQueryResult folderResult = results.getEntities().get(1);
+		assertEquals(folder.getId(), folderResult.getId());
+	}
+	
+	@Test
+	public void testQueryIntegerConditionValue(){
+		// The folder and table should have an id greater than or equal to folder.id
+		EntityFieldCondition condition = EntityQueryUtils.buildCondition(EntityFieldName.id, Operator.GREATER_THAN_OR_EQUALS, KeyFactory.stringToKey(folder.getId()));
+		// add this condition
+		query.getConditions().add(condition);
+		System.out.println(query.toString());
+		EntityQueryResults results = entityQueryManger.executeQuery(query, adminUserInfo);
+		assertNotNull(results);
+		assertNotNull(results.getEntities());
+		assertEquals(2, results.getEntities().size());
+		// there should be only two.
+		assertTrue(results.getTotalEntityCount() == 2);
+		// Table validate
+		EntityQueryResult tableResult = results.getEntities().get(0);
+		assertEquals(table.getId(), tableResult.getId());
+		EntityQueryResult folderResult = results.getEntities().get(1);
+		assertEquals(folder.getId(), folderResult.getId());
 	}
 }

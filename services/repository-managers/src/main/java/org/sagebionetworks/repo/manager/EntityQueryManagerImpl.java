@@ -79,6 +79,7 @@ public class EntityQueryManagerImpl implements EntityQueryManager {
 			from = query.getFilterByType().name();
 		}
 		translated.setFrom(from);
+		// The filter
 		translated.setFilters(translateConditions(query.getConditions()));
 		// limit
 		if(query.getLimit() != null){
@@ -118,6 +119,15 @@ public class EntityQueryManagerImpl implements EntityQueryManager {
 	 * @return
 	 */
 	public Expression translateCondition(Condition condition){
+		if(condition == null){
+			throw new IllegalArgumentException("Condition cannot be null");
+		}
+		if(condition.getOperator() == null){
+			throw new IllegalArgumentException("Condition.operator cannot be null");
+		}
+		if(condition.getRightHandSide() == null){
+			throw new IllegalArgumentException("Condition.rightHandSide() cannot be null");
+		}
 		Object rhs = translateValue(condition.getRightHandSide());
 		Comparator comp = Comparator.valueOf(condition.getOperator().name());
 		if(condition instanceof EntityFieldCondition){

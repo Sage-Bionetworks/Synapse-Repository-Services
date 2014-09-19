@@ -54,6 +54,17 @@ import org.sagebionetworks.client.exceptions.SynapseServerException;
 import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.entity.query.Condition;
+import org.sagebionetworks.repo.model.entity.query.EntityFieldCondition;
+import org.sagebionetworks.repo.model.entity.query.EntityFieldName;
+import org.sagebionetworks.repo.model.entity.query.EntityQuery;
+import org.sagebionetworks.repo.model.entity.query.EntityQueryResult;
+import org.sagebionetworks.repo.model.entity.query.EntityQueryResults;
+import org.sagebionetworks.repo.model.entity.query.EntityQueryUtils;
+import org.sagebionetworks.repo.model.entity.query.EntityType;
+import org.sagebionetworks.repo.model.entity.query.Operator;
+import org.sagebionetworks.repo.model.entity.query.StringValue;
+import org.sagebionetworks.repo.model.entity.query.Value;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.quiz.PassingRecord;
 import org.sagebionetworks.repo.model.quiz.QuestionResponse;
@@ -1697,5 +1708,21 @@ public class IT500SynapseJavaClient {
 		pw.flush();
 		logEntry.setStacktrace(sw.toString());
 		synapseOne.logError(logEntry);
+	}
+	
+	@Test
+	public void testStructuredQuery() throws SynapseException{
+		// setup a query to find the project by ID.
+		EntityQuery query = new EntityQuery();
+		query.setFilterByType(EntityType.project);
+		query.setConditions(new ArrayList<Condition>(1));
+		query.getConditions().add(EntityQueryUtils.buildCondition(EntityFieldName.id, Operator.EQUALS, project.getId()));
+		// Run the query
+		EntityQueryResults rsults = synapseOne.entityQuery(query);
+		assertNotNull(rsults);
+		assertNotNull(rsults.getEntities());
+		assertEquals(1, rsults.getEntities());
+		EntityQueryResult projectResult = rsults.getEntities().get(0);
+		assertEquals(project.getId(), projectResult.getId());
 	}
 }
