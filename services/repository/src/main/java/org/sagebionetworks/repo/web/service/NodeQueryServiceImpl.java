@@ -11,6 +11,7 @@ import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.sagebionetworks.repo.manager.EntityQueryManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NodeQueryDao;
@@ -18,6 +19,9 @@ import org.sagebionetworks.repo.model.NodeQueryResults;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.entity.query.EntityQuery;
+import org.sagebionetworks.repo.model.entity.query.EntityQueryResult;
+import org.sagebionetworks.repo.model.entity.query.EntityQueryResults;
 import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.util.QueryTranslator;
@@ -51,6 +55,8 @@ public class NodeQueryServiceImpl implements NodeQueryService {
 	private NodeQueryDao nodeQueryDao;
 	@Autowired
 	private UserManager userManager;
+	@Autowired
+	private EntityQueryManager entityQueryManager;
 
 	@Override
 	public QueryResults query(Long userId, String query, HttpServletRequest request)
@@ -93,5 +99,11 @@ public class NodeQueryServiceImpl implements NodeQueryService {
 			}
 		}
 		return result;
+	}
+
+	@Override
+	public EntityQueryResults structuredQuery(Long userId, EntityQuery query) throws NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return entityQueryManager.executeQuery(query, userInfo);
 	}
 }

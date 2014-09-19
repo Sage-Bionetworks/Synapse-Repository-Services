@@ -38,6 +38,8 @@ import org.sagebionetworks.repo.model.auth.Session;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.doi.Doi;
+import org.sagebionetworks.repo.model.entity.query.EntityQuery;
+import org.sagebionetworks.repo.model.entity.query.EntityQueryResults;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
 import org.sagebionetworks.repo.model.file.ChunkResult;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
@@ -1798,4 +1800,12 @@ public interface SynapseClient extends BaseClient {
 	UploadToTablePreviewResult uploadCsvToTablePreviewAsyncGet(
 			String asyncJobToken) throws SynapseException,
 			SynapseResultNotReadyException;
+	
+	/**
+	 * Execute a query to find entities that meet the conditions provided query.
+	 * @param query
+	 * @return
+	 * @throws SynapseException 
+	 */
+	EntityQueryResults entityQuery(EntityQuery query) throws SynapseException;
 }

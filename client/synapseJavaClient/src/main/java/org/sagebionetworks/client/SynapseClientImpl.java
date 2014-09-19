@@ -72,6 +72,8 @@ import org.sagebionetworks.repo.model.auth.Username;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
 import org.sagebionetworks.repo.model.doi.Doi;
+import org.sagebionetworks.repo.model.entity.query.EntityQuery;
+import org.sagebionetworks.repo.model.entity.query.EntityQueryResults;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
 import org.sagebionetworks.repo.model.file.ChunkResult;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
@@ -171,7 +173,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	
 	private static final String PARAM_GENERATED_BY = "generatedBy";
 
-	private static final String QUERY_URI = "/query?query=";
+	private static final String QUERY = "/query";
+	private static final String QUERY_URI = QUERY+"?query=";
 	private static final String REPO_SUFFIX_VERSION = "/version";
 	private static final String ANNOTATION_URI_SUFFIX = "annotations";
 	protected static final String ADMIN = "/admin";
@@ -3740,6 +3743,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		}
 	}
 	
+	
+	
 	/**
 	 * @return status
 	 * @throws SynapseException
@@ -6067,6 +6072,11 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseClientException(e);
 		}
+	}
+
+	@Override
+	public EntityQueryResults entityQuery(EntityQuery query) throws SynapseException {
+		return asymmetricalPost(getRepoEndpoint(), QUERY, query, EntityQueryResults.class, null);
 	}
 
 }
