@@ -15,6 +15,6 @@
         "concreteType":{
             "type":"string",
             "description":"Indicates the concrete type of this condition.  It must be: org.sagebionetworks.repo.model.entity.query.AnnotationCondition, or org.sagebionetworks.repo.model.entity.query.EntityCondition."
-        },
+        }
     }
 }
