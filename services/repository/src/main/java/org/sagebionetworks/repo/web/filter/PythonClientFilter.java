@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.nio.charset.Charset;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -15,6 +17,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.http.entity.ContentType;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Per PLFM-2903  This filter ensures that the Content-Type field of the HTTP response 
@@ -24,6 +28,8 @@ import org.apache.http.entity.ContentType;
  */
 public class PythonClientFilter implements Filter {
 
+	private static Logger log = LogManager.getLogger(PythonClientFilter.class);
+
 	@Override
 	public void init(FilterConfig filterConfig) throws ServletException {
 		// intentionally left blank
@@ -31,23 +37,33 @@ public class PythonClientFilter implements Filter {
 	
 	private static final String PYTHON_REQUEST_STRING = "python-requests";
 	private static final String SYNAPSE_CLIENT_STRING = "synapseclient";
+	private static final Pattern version_pattern = Pattern.compile("(\\d+(?:\\.\\d+){0,2})(?:\\.dev(\\d+))?", Pattern.CASE_INSENSITIVE);
+	static final int DEV = -3000;
+
 	
 	/**
-	 * convert a string of the form "1.2.3" to an integer array, e.g. {1,2,3}
+	 * Convert a string of the form "1.2.3" to an integer array, e.g. {1,2,3,0,0}.
+	 * Also supports an optional "dev" tag, for example "1.2.3.dev4" yields {1,2,3,-3000,4}
 	 * @param s
 	 * @return
 	 */
 	public static int[] versionToTuple(String s) {
-		String[] fields = s.split("\\.");
-		if (fields.length<1 || fields.length>3) throw new IllegalArgumentException("Expected version string but found "+s);
-		int[] ans = new int[3];
-		for (int i=0; i<ans.length; i++) {
-			if (i>=fields.length) {
-				ans[i]=0;
-			} else {
+		int[] ans = new int[5];  // initialized to all zeros
+
+		Matcher m = version_pattern.matcher(s);
+		if (m.matches()) {
+			String[] fields = m.group(1).split("\\.");
+			for (int i=0; i<fields.length; i++) {
 				ans[i] = Integer.parseInt(fields[i]);
 			}
+			if (m.group(2)!=null) {
+				ans[3] = DEV;
+				ans[4] = Integer.parseInt(m.group(2));
+			}
+		} else {
+			throw new IllegalArgumentException("Expected version string but found "+s);
 		}
+
 		return ans;
 	}
 	
@@ -75,23 +91,27 @@ public class PythonClientFilter implements Filter {
 	
 	public static boolean isAffectedPythonClient(String userAgent) {
 		if (userAgent==null) return false;
-		if (userAgent.indexOf(PYTHON_REQUEST_STRING)>=0) {
-			// if there's 'python-request' in the string and no 'synapseclient' then it's python client <0.5 and affected
-			int scIndex = userAgent.indexOf(SYNAPSE_CLIENT_STRING);
-			if (scIndex<0) return true;
-			// if there's a 'python-request' and there IS a synapseclient entry and it's <=1.0.1 (latest affected release) then it's affected
-			String foo = userAgent.substring(scIndex+SYNAPSE_CLIENT_STRING.length()+1);
-			int scEnd = foo.indexOf(" ");
-			String version;
-			if (scEnd<0) {
-				version = foo;
-			} else {
-				version = foo.substring(0, scEnd);
+		try {
+			if (userAgent.indexOf(PYTHON_REQUEST_STRING)>=0) {
+				// if there's 'python-request' in the string and no 'synapseclient' then it's python client <0.5 and affected
+				int scIndex = userAgent.indexOf(SYNAPSE_CLIENT_STRING);
+				if (scIndex<0) return true;
+				// if there's a 'python-request' and there IS a synapseclient entry and it's <=1.0.1 (latest affected release) then it's affected
+				String foo = userAgent.substring(scIndex+SYNAPSE_CLIENT_STRING.length()+1);
+				int scEnd = foo.indexOf(" ");
+				String version;
+				if (scEnd<0) {
+					version = foo;
+				} else {
+					version = foo.substring(0, scEnd);
+				}
+				return(compareVersions(version, "1.0.1")<1);
 			}
-			return(compareVersions(version, "1.0.1")<1);
-		} else {
-			return false;
+		} catch (IllegalArgumentException exception) {
+			// if we can't parse the version string, we assume it's not an affected version of the python client
+			log.warn("PythonClientFilter unable to parse user agent string \""+userAgent+"\".", exception);
 		}
+		return false;
 	}
 	
 	private static final String HTTP_1_1_DEFAULT_CHARACTER_ENCODING = Charset.forName("ISO-8859-1").name();
