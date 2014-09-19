@@ -14,6 +14,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_R
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_ACCESS_REQUIREMENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_REQUIREMENT;
 
+import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -22,19 +23,21 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.AccessRequirement;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
 /**
  * @author brucehoff
  *
  */
-public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessRequirement, DBOAccessRequirement> {
+public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessRequirement, DBOAccessRequirementBackup> {
 	private Long id;
 	private String eTag;
 	private Long createdBy;
@@ -268,26 +271,70 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 	}
 
 	@Override
-	public MigratableTableTranslation<DBOAccessRequirement, DBOAccessRequirement> getTranslator() {
-		return new MigratableTableTranslation<DBOAccessRequirement, DBOAccessRequirement>(){
+	public MigratableTableTranslation<DBOAccessRequirement, DBOAccessRequirementBackup> getTranslator() {
+		return new MigratableTableTranslation<DBOAccessRequirement, DBOAccessRequirementBackup>(){
 
 			@Override
 			public DBOAccessRequirement createDatabaseObjectFromBackup(
-					DBOAccessRequirement backup) {
-				return backup;
+					DBOAccessRequirementBackup backup) {
+				DBOAccessRequirement dbo = new DBOAccessRequirement();
+				dbo.setId(backup.getId());
+				dbo.seteTag(backup.geteTag());
+				dbo.setCreatedBy(backup.getCreatedBy());
+				dbo.setCreatedOn(backup.getCreatedOn());
+				dbo.setModifiedBy(backup.getModifiedBy());
+				dbo.setModifiedOn(backup.getModifiedOn());
+				dbo.setAccessType(backup.getAccessType());
+				byte[] serialized = backup.getSerializedEntity();
+				AccessRequirement origDto = null;
+				try {
+					origDto = (AccessRequirement)JDOSecondaryPropertyUtils.decompressedObject(serialized);
+				} catch (IOException e) {
+					throw new DatastoreException(e);
+				}
+				// convert old dto to new dto
+				AccessRequirement newDto = null; // TODO make a new instance somehow
+				newDto.setAccessType(origDto.getAccessType());
+				newDto.setConcreteType(origDto.getConcreteType());
+				newDto.setCreatedBy(origDto.getCreatedBy());
+				newDto.setCreatedOn(origDto.getCreatedOn());
+				newDto.setEtag(origDto.getEtag());
+				newDto.setId(origDto.getId());
+				newDto.setModifiedBy(origDto.getModifiedBy());
+				newDto.setModifiedOn(origDto.getModifiedOn());
+				newDto.setSubjectIds(origDto.getSubjectIds());
+				// TODO there are other fields
+				byte[] newSerialized = null;
+				try {
+					newSerialized = JDOSecondaryPropertyUtils.compressObject(newDto);
+				} catch (IOException e) {
+					throw new DatastoreException(e);
+				}
+				dbo.setSerializedEntity(newSerialized);
+				dbo.setSerializedEntity(backup.getSerializedEntity());
+			
+				return dbo;
 			}
 
 			@Override
-			public DBOAccessRequirement createBackupFromDatabaseObject(
+			public DBOAccessRequirementBackup createBackupFromDatabaseObject(
 					DBOAccessRequirement dbo) {
-				return dbo;
+				DBOAccessRequirementBackup backup = new DBOAccessRequirementBackup();
+				backup.setAccessType(dbo.getAccessType());
+				backup.setCreatedBy(dbo.getCreatedBy());
+				backup.setCreatedOn(dbo.getCreatedOn());
+				backup.seteTag(dbo.geteTag());
+				backup.setId(dbo.getId());
+				backup.setModifiedBy(dbo.getModifiedBy());
+				backup.setModifiedOn(dbo.getModifiedOn());
+				backup.setSerializedEntity(dbo.getSerializedEntity());
+				return backup;
 			}};
 	}
 
-
 	@Override
-	public Class<? extends DBOAccessRequirement> getBackupClass() {
-		return DBOAccessRequirement.class;
+	public Class<? extends DBOAccessRequirementBackup> getBackupClass() {
+		return DBOAccessRequirementBackup.class;
 	}
 
 
