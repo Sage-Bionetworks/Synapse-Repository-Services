@@ -107,6 +107,17 @@ public class IT503PythonClientFilter {
 		HttpResponse response = conn.performRequest(endpoint+uri, "GET", null, requestHeaders);
 		String body = checkNoCharEncoding(response, 200);
 		assertTrue(body.length()>0);
+
+		// test user agent string with dev tag
+		requestHeaders.put("User-Agent", "synapseclient/1.0.dev1 python-requests/2.4.0 cpython/2.7.6");
+		response = conn.performRequest(endpoint+uri, "GET", null, requestHeaders);
+		body = checkNoCharEncoding(response, 200);
+		assertTrue(body.length()>0);
+
+		// test unparsable synapse client version number
+		requestHeaders.put("User-Agent", "synapseclient/1.unparsable.junk python-requests/2.4.0 cpython/2.7.6");
+		response = conn.performRequest(endpoint+uri, "GET", null, requestHeaders);
+		assertEquals(200, response.getStatusLine().getStatusCode());
 	}
 	
 	private String checkNoCharEncoding(HttpResponse response, int expectedStatus) throws Exception {
