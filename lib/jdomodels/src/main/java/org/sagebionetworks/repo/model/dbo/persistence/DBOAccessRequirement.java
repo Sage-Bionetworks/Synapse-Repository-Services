@@ -323,7 +323,7 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 					List<Pair<String,Class>> aliases = new ArrayList<Pair<String,Class>>();
 					aliases.add(Pair.create("org.sagebionetworks.repo.model.TermsOfUseAccessRequirement", (Class)TermsOfUseAccessRequirementLegacy.class));
 					aliases.add(Pair.create("org.sagebionetworks.repo.model.ACTAccessRequirement", (Class)ACTAccessRequirementLegacy.class));
-					Object origDto = (AccessRequirement)JDOSecondaryPropertyUtils.decompressedObject(serialized, aliases);
+					Object origDto = JDOSecondaryPropertyUtils.decompressedObject(serialized, aliases);
 					// convert old dto to new dto
 					if (origDto instanceof TermsOfUseAccessRequirementLegacy) {
 						TermsOfUseAccessRequirement newDto = translateDto((TermsOfUseAccessRequirementLegacy)origDto);

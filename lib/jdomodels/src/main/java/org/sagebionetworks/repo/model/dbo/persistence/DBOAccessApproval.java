@@ -331,7 +331,7 @@ public class DBOAccessApproval implements MigratableDatabaseObject<DBOAccessAppr
 					List<Pair<String,Class>> aliases = new ArrayList<Pair<String,Class>>();
 					aliases.add(Pair.create("org.sagebionetworks.repo.model.TermsOfUseAccessApproval", (Class)TermsOfUseAccessApprovalLegacy.class));
 					aliases.add(Pair.create("org.sagebionetworks.repo.model.ACTAccessApproval", (Class)ACTAccessApprovalLegacy.class));
-					Object origDto = (AccessApproval)JDOSecondaryPropertyUtils.decompressedObject(serialized, aliases);
+					Object origDto = JDOSecondaryPropertyUtils.decompressedObject(serialized, aliases);
 					// convert old dto to new dto
 					if (origDto instanceof TermsOfUseAccessApprovalLegacy) {
 						TermsOfUseAccessApproval newDto = translateDto((TermsOfUseAccessApprovalLegacy)origDto);
