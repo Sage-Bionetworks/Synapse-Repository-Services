@@ -131,16 +131,14 @@ public class MergeWorker {
 						try {
 							subBatch = accessRecordDAO.getBatch(key);
 							mergedBatches.addAll(subBatch);
+							if (this.callback != null) {
+								this.callback.progressMade();
+							}
 						} catch (Exception e) {
 							// We need to continue even if one file is bad.
 							log.error("Failed to read: "+key, e);
 						}
 
-					}
-					
-					// Extend semaphore timeout after reading rolling files
-					if (this.callback != null) {
-						this.callback.progressMade();
 					}
 					
 					// Use the time stamp from the first record as the time stamp for the new batch.

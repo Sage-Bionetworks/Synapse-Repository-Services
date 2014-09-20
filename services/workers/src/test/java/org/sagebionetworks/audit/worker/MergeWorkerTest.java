@@ -114,7 +114,7 @@ public class MergeWorkerTest {
 			long elapse = System.currentTimeMillis()-start;
 			assertTrue("Timed out waiting for merge worker to finish",elapse < MAX_WAIT);
 		}
-		verify(mockProgressCallback, times(6)).progressMade();
+		verify(mockProgressCallback, times(18)).progressMade();
 		
 		// Now list the files for each day.
 		ObjectListing listing = accessRecordDAO.listBatchKeys(null);
