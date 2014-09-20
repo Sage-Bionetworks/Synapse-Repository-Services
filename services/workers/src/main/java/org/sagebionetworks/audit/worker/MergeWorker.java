@@ -10,6 +10,7 @@ import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.audit.dao.AccessRecordDAO;
 import org.sagebionetworks.audit.utils.KeyGeneratorUtil;
 import org.sagebionetworks.repo.model.audit.AccessRecord;
+import org.sagebionetworks.repo.model.dbo.dao.semaphore.ProgressCallback;
 
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
@@ -24,15 +25,17 @@ public class MergeWorker {
 		
 	static private Log log = LogFactory.getLog(MergeWorker.class);
 	private AccessRecordDAO accessRecordDAO;
+	private ProgressCallback callback;
 
 	/**
 	 * All dependencies are provide at construction time.
 	 * @param accessRecordDAO
 	 * @param minFileSize
 	 */
-	public MergeWorker(AccessRecordDAO accessRecordDAO) {
+	public MergeWorker(AccessRecordDAO accessRecordDAO, ProgressCallback callback) {
 		super();
 		this.accessRecordDAO = accessRecordDAO;
+		this.callback = callback;
 	}
 
 	/**
@@ -128,12 +131,16 @@ public class MergeWorker {
 						try {
 							subBatch = accessRecordDAO.getBatch(key);
 							mergedBatches.addAll(subBatch);
+							if (this.callback != null) {
+								this.callback.progressMade();
+							}
 						} catch (Exception e) {
 							// We need to continue even if one file is bad.
 							log.error("Failed to read: "+key, e);
 						}
 
 					}
+					
 					// Use the time stamp from the first record as the time stamp for the new batch.
 					long timestamp = mergedBatches.get(0).getTimestamp();
 					// Save the merged batches
@@ -146,6 +153,12 @@ public class MergeWorker {
 					long elapse = System.currentTimeMillis()-data.startMs;
 					long msPerfile = elapse/data.mergedKeys.size();
 					log.info("Merged: "+data.mergedKeys.size()+" files into new file: "+newfileKey+" in "+elapse+" ms rate of: "+msPerfile+" ms/file");
+					
+					// Extend semaphore timeout after writing collated log file
+					if (this.callback != null) {
+						this.callback.progressMade();
+					}
+					
 					// We merged this batch successfully
 					return true;
 				} catch (IOException e) {
