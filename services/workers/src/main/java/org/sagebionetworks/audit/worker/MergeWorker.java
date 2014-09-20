@@ -37,11 +37,6 @@ public class MergeWorker {
 		this.accessRecordDAO = accessRecordDAO;
 		this.callback = callback;
 	}
-	public MergeWorker(AccessRecordDAO accessRecordDAO) {
-		super();
-		this.accessRecordDAO = accessRecordDAO;
-		this.callback = null;
-	}
 
 	/**
 	 * Merge one batch of files.

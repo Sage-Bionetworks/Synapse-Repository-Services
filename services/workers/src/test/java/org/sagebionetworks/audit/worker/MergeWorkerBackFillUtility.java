@@ -29,7 +29,7 @@ public class MergeWorkerBackFillUtility {
 		dao.setAuditRecordBucketName("prod.access.record.sagebase.org");
 		dao.initialize();
 		System.out.println("Merging files for stack: "+stackNumber);
-		MergeWorker worker = new MergeWorker(dao);
+		MergeWorker worker = new MergeWorker(dao, null);
 		while(worker.mergeOneBatch()){
 			System.out.println("Merged a batch...");
 		};
