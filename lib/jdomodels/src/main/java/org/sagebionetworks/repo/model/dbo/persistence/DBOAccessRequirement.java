@@ -22,16 +22,19 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.util.Pair;
 
 /**
  * @author brucehoff
@@ -270,6 +273,36 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 		}	
 	}
 
+	public static TermsOfUseAccessRequirement translateDto(TermsOfUseAccessRequirementLegacy origDto) {
+		TermsOfUseAccessRequirement newDto = new TermsOfUseAccessRequirement();
+		newDto.setAccessType(origDto.getAccessType());
+		newDto.setConcreteType(origDto.getConcreteType());
+		newDto.setCreatedBy(origDto.getCreatedBy());
+		newDto.setCreatedOn(origDto.getCreatedOn());
+		newDto.setEtag(origDto.getEtag());
+		newDto.setId(origDto.getId());
+		newDto.setModifiedBy(origDto.getModifiedBy());
+		newDto.setModifiedOn(origDto.getModifiedOn());
+		newDto.setSubjectIds(origDto.getSubjectIds());
+		newDto.setTermsOfUse(origDto.getTermsOfUse());
+		return newDto;
+	}
+
+	public static ACTAccessRequirement translateDto(ACTAccessRequirementLegacy origDto) {
+		ACTAccessRequirement newDto = new ACTAccessRequirement();
+		newDto.setAccessType(origDto.getAccessType());
+		newDto.setConcreteType(origDto.getConcreteType());
+		newDto.setCreatedBy(origDto.getCreatedBy());
+		newDto.setCreatedOn(origDto.getCreatedOn());
+		newDto.setEtag(origDto.getEtag());
+		newDto.setId(origDto.getId());
+		newDto.setModifiedBy(origDto.getModifiedBy());
+		newDto.setModifiedOn(origDto.getModifiedOn());
+		newDto.setSubjectIds(origDto.getSubjectIds());
+		newDto.setActContactInfo(origDto.getActContactInfo());
+		return newDto;
+	}
+
 	@Override
 	public MigratableTableTranslation<DBOAccessRequirement, DBOAccessRequirementBackup> getTranslator() {
 		return new MigratableTableTranslation<DBOAccessRequirement, DBOAccessRequirementBackup>(){
@@ -285,37 +318,29 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 				dbo.setModifiedBy(backup.getModifiedBy());
 				dbo.setModifiedOn(backup.getModifiedOn());
 				dbo.setAccessType(backup.getAccessType());
-				byte[] serialized = backup.getSerializedEntity();
-				AccessRequirement origDto = null;
 				try {
-					origDto = (AccessRequirement)JDOSecondaryPropertyUtils.decompressedObject(serialized);
+					byte[] serialized = backup.getSerializedEntity();
+					List<Pair<String,Class>> aliases = new ArrayList<Pair<String,Class>>();
+					aliases.add(Pair.create("org.sagebionetworks.repo.model.TermsOfUseAccessRequirement", (Class)TermsOfUseAccessRequirementLegacy.class));
+					aliases.add(Pair.create("org.sagebionetworks.repo.model.ACTAccessRequirement", (Class)ACTAccessRequirementLegacy.class));
+					Object origDto = (AccessRequirement)JDOSecondaryPropertyUtils.decompressedObject(serialized, aliases);
+					// convert old dto to new dto
+					if (origDto instanceof TermsOfUseAccessRequirementLegacy) {
+						TermsOfUseAccessRequirement newDto = translateDto((TermsOfUseAccessRequirementLegacy)origDto);
+						dbo.setSerializedEntity(JDOSecondaryPropertyUtils.compressObject(newDto));
+					} else if (origDto instanceof ACTAccessRequirementLegacy) {
+						ACTAccessRequirement newDto = translateDto((ACTAccessRequirementLegacy)origDto);
+						dbo.setSerializedEntity(JDOSecondaryPropertyUtils.compressObject(newDto));
+					} else {
+						// nothing to translate
+						dbo.setSerializedEntity(serialized);
+					}
 				} catch (IOException e) {
 					throw new DatastoreException(e);
 				}
-				// convert old dto to new dto
-				AccessRequirement newDto = null; // TODO make a new instance somehow
-				newDto.setAccessType(origDto.getAccessType());
-				newDto.setConcreteType(origDto.getConcreteType());
-				newDto.setCreatedBy(origDto.getCreatedBy());
-				newDto.setCreatedOn(origDto.getCreatedOn());
-				newDto.setEtag(origDto.getEtag());
-				newDto.setId(origDto.getId());
-				newDto.setModifiedBy(origDto.getModifiedBy());
-				newDto.setModifiedOn(origDto.getModifiedOn());
-				newDto.setSubjectIds(origDto.getSubjectIds());
-				// TODO there are other fields
-				byte[] newSerialized = null;
-				try {
-					newSerialized = JDOSecondaryPropertyUtils.compressObject(newDto);
-				} catch (IOException e) {
-					throw new DatastoreException(e);
-				}
-				dbo.setSerializedEntity(newSerialized);
-				dbo.setSerializedEntity(backup.getSerializedEntity());
-			
 				return dbo;
 			}
-
+			
 			@Override
 			public DBOAccessRequirementBackup createBackupFromDatabaseObject(
 					DBOAccessRequirement dbo) {
