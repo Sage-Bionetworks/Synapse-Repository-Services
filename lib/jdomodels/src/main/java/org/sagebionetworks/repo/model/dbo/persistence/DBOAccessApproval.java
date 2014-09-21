@@ -23,7 +23,6 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.ACTAccessApproval;
-import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
