@@ -16,6 +16,8 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.PostMessageContentAccessApproval;
+import org.sagebionetworks.repo.model.PostMessageContentAccessRequirement;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
@@ -48,15 +50,14 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 	// check an incoming object (i.e. during 'create' and 'update')
 	private void validateAccessApproval(UserInfo userInfo, AccessApproval a) throws 
 	InvalidModelException, UnauthorizedException, DatastoreException, NotFoundException {
-		if (a.getAccessorId()==null || a.getEntityType()==null || a.getRequirementId()==null) throw new InvalidModelException();
+		if (a.getAccessorId()==null || a.getRequirementId()==null) throw new InvalidModelException();
 
-		if (!a.getEntityType().equals(a.getClass().getName())) throw new InvalidModelException("entity type differs from class");
-		
 		// make sure the approval matches the requirement
 		AccessRequirement ar = accessRequirementDAO.get(a.getRequirementId().toString());
 		if (((ar instanceof TermsOfUseAccessRequirement) && !(a instanceof TermsOfUseAccessApproval))
-				|| ((ar instanceof ACTAccessRequirement) && !(a instanceof ACTAccessApproval))) {
-			throw new InvalidModelException("Cannot apply an approval of type "+a.getEntityType()+" to an access requirement of type "+ar.getEntityType());
+			|| ((ar instanceof PostMessageContentAccessRequirement) && !(a instanceof PostMessageContentAccessApproval))
+			|| ((ar instanceof ACTAccessRequirement) && !(a instanceof ACTAccessApproval))) {
+			throw new InvalidModelException("Cannot apply an approval of type "+a.getClass().getSimpleName()+" to an access requirement of type "+ar.getClass().getSimpleName());
 		}
 		
 	}

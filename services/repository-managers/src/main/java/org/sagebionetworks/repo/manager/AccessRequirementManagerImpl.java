@@ -67,11 +67,8 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	}
 	
 	public static void validateAccessRequirement(AccessRequirement a) throws InvalidModelException {
-		if (a.getEntityType()==null ||
-				a.getAccessType()==null ||
+		if (a.getAccessType()==null ||
 				a.getSubjectIds()==null) throw new InvalidModelException();
-		
-		if (!a.getEntityType().equals(a.getClass().getName())) throw new InvalidModelException("entity type differs from class");
 	}
 	
 	public static void populateCreationFields(UserInfo userInfo, AccessRequirement a) {
@@ -107,7 +104,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		subjectId.setType(RestrictableObjectType.ENTITY);
 		// create the 'lock down' access requirement'
 		ACTAccessRequirement accessRequirement = new ACTAccessRequirement();
-		accessRequirement.setEntityType("org.sagebionetworks.repo.model.ACTAccessRequirement");
+		accessRequirement.setConcreteType("org.sagebionetworks.repo.model.ACTAccessRequirement");
 		accessRequirement.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		accessRequirement.setActContactInfo("Access restricted pending review by Synapse Access and Compliance Team.");
 		accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{subjectId}));

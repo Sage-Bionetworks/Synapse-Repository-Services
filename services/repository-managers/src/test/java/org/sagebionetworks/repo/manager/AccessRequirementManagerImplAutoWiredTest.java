@@ -212,7 +212,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		rod.setId(entityId);
 		rod.setType(RestrictableObjectType.ENTITY);
 		ar.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod}));
-		ar.setEntityType(ar.getClass().getName());
+		ar.setConcreteType(ar.getClass().getName());
 		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		ar.setTermsOfUse(TERMS_OF_USE);
 		return ar;
@@ -224,7 +224,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		rod.setId(evaluationId);
 		rod.setType(RestrictableObjectType.EVALUATION);
 		ar.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod}));
-		ar.setEntityType(ar.getClass().getName());
+		ar.setConcreteType(ar.getClass().getName());
 		ar.setAccessType(ACCESS_TYPE.PARTICIPATE);
 		ar.setTermsOfUse(TERMS_OF_USE);
 		return ar;
@@ -236,7 +236,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		rod.setId(teamId);
 		rod.setType(RestrictableObjectType.TEAM);
 		ar.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod}));
-		ar.setEntityType(ar.getClass().getName());
+		ar.setConcreteType(ar.getClass().getName());
 		ar.setAccessType(ACCESS_TYPE.PARTICIPATE);
 		ar.setTermsOfUse(TERMS_OF_USE);
 		return ar;
@@ -287,13 +287,6 @@ public class AccessRequirementManagerImplAutoWiredTest {
 	
 	@Test(expected=InvalidModelException.class)
 	public void testCreateAccessRequirementBadParam2() throws Exception {
-		ar = newEntityAccessRequirement(entityId);
-		ar.setEntityType(ACTAccessRequirement.class.getName());
-		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
-	}
-	
-	@Test(expected=InvalidModelException.class)
-	public void testCreateAccessRequirementBadParam3() throws Exception {
 		ar = newEntityAccessRequirement(entityId);
 		ar.setAccessType(null);
 		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);

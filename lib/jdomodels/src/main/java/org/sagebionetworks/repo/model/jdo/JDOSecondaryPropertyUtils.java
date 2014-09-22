@@ -9,6 +9,8 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.nio.charset.Charset;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -25,6 +27,7 @@ import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.util.Closer;
+import org.sagebionetworks.util.Pair;
 
 import com.thoughtworks.xstream.XStream;
 
@@ -285,13 +288,15 @@ public class JDOSecondaryPropertyUtils {
 		return null;
 	}
 
-	public static Object decompressedObject(byte[] zippedByes, String classAlias, Class aliasedClass) throws IOException{
+	public static Object decompressedObject(byte[] zippedByes, List<Pair<String,Class>> aliases) throws IOException{
 		if(zippedByes != null){
 			ByteArrayInputStream in = new ByteArrayInputStream(zippedByes);
 			GZIPInputStream unZipper = new GZIPInputStream(in);
 			try{
 				XStream xstream = createXStream();
-				xstream.alias(classAlias, aliasedClass);
+				for (Pair<String,Class> pair : aliases) {
+					xstream.alias(pair.getFirst(), pair.getSecond());
+				}
 				if(zippedByes != null){
 					return xstream.fromXML(unZipper);
 				}
@@ -300,6 +305,11 @@ public class JDOSecondaryPropertyUtils {
 			}			
 		}
 		return null;
+	}
+
+	public static Object decompressedObject(byte[] zippedByes, String classAlias, Class aliasedClass) throws IOException{
+		Pair<String,Class> pair = new Pair<String,Class>(classAlias, aliasedClass);
+		return decompressedObject(zippedByes, Collections.singletonList(pair));
 	}
 
 	/**

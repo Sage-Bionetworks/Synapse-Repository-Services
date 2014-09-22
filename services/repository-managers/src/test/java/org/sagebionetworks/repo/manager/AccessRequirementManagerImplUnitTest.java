@@ -103,7 +103,7 @@ public class AccessRequirementManagerImplUnitTest {
 		subjectId.setId(TEST_ENTITY_ID);
 		subjectId.setType(RestrictableObjectType.ENTITY);
 		expectedAR.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{subjectId}));
-		expectedAR.setEntityType("org.sagebionetworks.repo.model.ACTAccessRequirement");;
+		expectedAR.setConcreteType("org.sagebionetworks.repo.model.ACTAccessRequirement");;
 		AccessRequirementManagerImpl.populateCreationFields(userInfo, expectedAR);
 		return 	expectedAR;
 	}
@@ -120,7 +120,7 @@ public class AccessRequirementManagerImplUnitTest {
 		// can't just call equals on the objects, because the time stamps are slightly different
 		assertEquals(expectedAR.getAccessType(), argument.getValue().getAccessType());
 		assertEquals(expectedAR.getCreatedBy(), argument.getValue().getCreatedBy());
-		assertEquals(expectedAR.getEntityType(), argument.getValue().getEntityType());
+		assertEquals(expectedAR.getConcreteType(), argument.getValue().getConcreteType());
 		assertEquals(expectedAR.getModifiedBy(), argument.getValue().getModifiedBy());
 		assertEquals(expectedAR.getSubjectIds(), argument.getValue().getSubjectIds());
 

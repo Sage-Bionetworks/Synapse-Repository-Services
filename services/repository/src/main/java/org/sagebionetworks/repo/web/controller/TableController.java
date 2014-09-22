@@ -65,7 +65,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * <p>
  * <p>
  * All ColumnModel objects are publicly viewable and usable. Since each ColumnModel is immutable it is safe to re-use
- * ColumModels created by other users. Use the <a href="${GET.column}">GET /column</a> services to list all of the
+ * ColumnModels created by other users. Use the <a href="${GET.column}">GET /column</a> services to list all of the
  * existing ColumnModels that are currently in use.
  * </p>
  * 
@@ -184,7 +184,7 @@ public class TableController extends BaseController {
 	 * href="${org.sagebionetworks.repo.model.table.ColumnModel}"
 	 * >ColumnModels</a> that have been created in Synapse.
 	 * </p>
-	 * Since each ColumnModel is immutable it is safe to re-use ColumModels
+	 * Since each ColumnModel is immutable it is safe to re-use ColumnModels
 	 * created by other users.
 	 * 
 	 * @param userId
@@ -242,7 +242,7 @@ public class TableController extends BaseController {
 	 * There is a limit to the size of a RowSet that can be passed in a single
 	 * web-service call. Currently, that limit is set to a maximum size of 2 MB
 	 * per call. The maximum size is calculated based on the maximum possible
-	 * size of a the ColumModel definition, NOT on the size of the actual passed
+	 * size of a the ColumnModel definition, NOT on the size of the actual passed
 	 * data. For example, the maximum size of an integer column is 20
 	 * characters. Since each integer is represented as a UTF-8 string (not a
 	 * binary representation) with 1 byte per character (for numbers), a single
@@ -310,7 +310,7 @@ public class TableController extends BaseController {
 	 * There is a limit to the size of a partialRowSet that can be passed in a
 	 * single web-services call. Currently, that limit is set to a maximum size
 	 * of 2 MB per call. The maximum size is calculated based on the maximum
-	 * possible size of a the ColumModel definition, NOT on the size of the
+	 * possible size of the ColumnModel definition, NOT on the size of the
 	 * actual passed data. For example, the maximum size of an integer column is
 	 * 20 characters. Since each integer is represented as a UTF-8 string (not a
 	 * binary representation) with 1 byte per character (for numbers), a single

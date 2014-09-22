@@ -37,7 +37,7 @@ public class AccessRequirementUtilsTest {
 		dto.setCreatedOn(new Date());
 		dto.setModifiedBy("666");
 		dto.setModifiedOn(new Date());
-		dto.setEntityType("org.sagebionetworks.repo.model.TermsOfUseAcessRequirement");
+		dto.setConcreteType("org.sagebionetworks.repo.model.TermsOfUseAcessRequirement");
 		dto.setAccessType(ACCESS_TYPE.DOWNLOAD);	
 		dto.setTermsOfUse("foo");
 		return dto;

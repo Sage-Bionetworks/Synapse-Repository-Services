@@ -90,7 +90,6 @@ public class SqlConstants {
 	public static final String COL_ACCESS_REQUIREMENT_MODIFIED_BY	= "MODIFIED_BY";
 	public static final String COL_ACCESS_REQUIREMENT_MODIFIED_ON	= "MODIFIED_ON";
 	public static final String COL_ACCESS_REQUIREMENT_ACCESS_TYPE	= "ACCESS_TYPE";
-	public static final String COL_ACCESS_REQUIREMENT_ENTITY_TYPE	= "ENTITY_TYPE";
 	public static final String COL_ACCESS_REQUIREMENT_SERIALIZED_ENTITY	= "SERIALIZED_ENTITY";
 	public static final String DDL_FILE_ACCESS_REQUIREMENT			= "schema/AccessRequirement-ddl.sql";
 
@@ -121,7 +120,6 @@ public class SqlConstants {
 	public static final String COL_ACCESS_APPROVAL_MODIFIED_ON		= "MODIFIED_ON";
 	public static final String COL_ACCESS_APPROVAL_REQUIREMENT_ID	= "REQUIREMENT_ID";
 	public static final String COL_ACCESS_APPROVAL_ACCESSOR_ID		= "ACCESSOR_ID";
-	public static final String COL_ACCESS_APPROVAL_ENTITY_TYPE		= "ENTITY_TYPE";
 	public static final String COL_ACCESS_APPROVAL_SERIALIZED_ENTITY= "SERIALIZED_ENTITY";
 	public static final String DDL_FILE_ACCESS_APPROVAL				= "schema/AccessApproval-ddl.sql";
 	

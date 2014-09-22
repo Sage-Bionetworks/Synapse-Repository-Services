@@ -386,7 +386,6 @@ public class IT500SynapseJavaClient {
 		rod.setType(RestrictableObjectType.ENTITY);
 		ar.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod}));
 
-		ar.setEntityType(ar.getClass().getName());
 		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		ar.setTermsOfUse("play nice");
 		ar = adminSynapse.createAccessRequirement(ar);
@@ -407,7 +406,6 @@ public class IT500SynapseJavaClient {
 		// now add the ToU approval
 		TermsOfUseAccessApproval aa = new TermsOfUseAccessApproval();
 		aa.setAccessorId(otherProfile.getOwnerId());
-		aa.setEntityType(TermsOfUseAccessApproval.class.getName());
 		aa.setRequirementId(ar.getId());
 		
 		synapseTwo.createAccessApproval(aa);
@@ -837,7 +835,7 @@ public class IT500SynapseJavaClient {
 		assertEquals(1, ars.getTotalNumberOfResults());
 		assertEquals(1, ars.getResults().size());
 		AccessRequirement clone = ars.getResults().get(0);
-		assertEquals(r.getEntityType(), clone.getEntityType());
+		assertEquals(r.getConcreteType(), clone.getConcreteType());
 		assertTrue(clone instanceof TermsOfUseAccessRequirement);
 		assertEquals(r.getTermsOfUse(), ((TermsOfUseAccessRequirement)clone).getTermsOfUse());
 		
