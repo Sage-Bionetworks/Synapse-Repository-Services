@@ -251,13 +251,6 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		assertEquals(TermsOfUseAccessApproval.class.getName(), aa.getConcreteType());
 	}
 	
-	@Test
-	public void testCreatePCMAccessApproval() throws Exception {
-		pmcAr = newPostMessageContentAccessRequirement(nodeAId);
-		pmcAr = accessRequirementManager.createAccessRequirement(adminUserInfo, pmcAr);
-		PostMessageContentAccessApproval aa = newPMCAccessApproval(pmcAr.getId(), adminUserInfo.getId().toString());
-	}
-	
 	// since the user is not an admin they can't delete
 	@Test(expected=UnauthorizedException.class)
 	public void testCreateAccessApprovalForbidden() throws Exception {
