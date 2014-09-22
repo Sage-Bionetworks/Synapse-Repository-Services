@@ -75,7 +75,6 @@ public class SpringMVCDocletTest {
 		assertEquals(outputDirectory.getAbsolutePath()+File.separator+"testing123", result.getAbsolutePath());
 	}
 
-	@Ignore
 	@Test
 	public void testMain(){
 		// Run a sample javadoc
