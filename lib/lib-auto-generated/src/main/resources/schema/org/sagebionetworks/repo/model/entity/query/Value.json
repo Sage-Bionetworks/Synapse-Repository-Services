@@ -4,7 +4,7 @@
 	 "properties":{
         "concreteType":{
             "type":"string",
-            "description":"Indicates the concrete type of this value.  It must be: org.sagebionetworks.repo.model.entity.query.StringValue,  org.sagebionetworks.repo.model.entity.query.DateValue,  or org.sagebionetworks.repo.model.entity.query.DateValue."
+            "description":"Indicates the concrete type of this value."
         }
     }
 }

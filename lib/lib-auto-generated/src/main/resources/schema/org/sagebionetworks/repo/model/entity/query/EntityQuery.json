@@ -31,7 +31,7 @@
         },
         "offset":{
             "type":"integer",
-            "description":"A pagination parameter that determines the index of the first result of the requested page.  The the index of the first result is zero.  This is a required parameter."
+            "description":"A pagination parameter that determines the index of the first result of the requested page.  The index of the first result is zero.  This is a required parameter."
         }
     }
 }

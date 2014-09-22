@@ -35,7 +35,7 @@ public class EntityQueryUtils {
 	public static List<Value> buildValue(Object...values){
 		List<Value> result = new ArrayList<Value>(values.length);
 		for(Object value: values){
-			result.add(bulidSingelValue(value));
+			result.add(buildSingleValue(value));
 		}
 		return result;
 	}
@@ -45,7 +45,7 @@ public class EntityQueryUtils {
 	 * @param value
 	 * @return
 	 */
-	public static Value bulidSingelValue(Object value){
+	public static Value buildSingleValue(Object value){
 		if(value instanceof String){
 			StringValue sv = new StringValue();
 			sv.setValue((String) value);
