@@ -6,7 +6,7 @@
             "$ref":"org.sagebionetworks.repo.model.entity.query.Operator"
         },
 		"rightHandSide": {
-		    "description":"While this is a list, most condition require a single value, with the exception of the 'IN' which takes a list.",
+		    "description":"While this is a list, most conditions require a single value, with the exception of the 'IN' which takes a list.",
 			"type": "array",
 			"items": {
 				"$ref": "org.sagebionetworks.repo.model.entity.query.Value"
@@ -14,7 +14,7 @@
 		},
         "concreteType":{
             "type":"string",
-            "description":"Indicates the concrete type of this condition.  It must be: org.sagebionetworks.repo.model.entity.query.AnnotationCondition, or org.sagebionetworks.repo.model.entity.query.EntityCondition."
+            "description":"Indicates the concrete type of this condition."
         }
     }
 }
