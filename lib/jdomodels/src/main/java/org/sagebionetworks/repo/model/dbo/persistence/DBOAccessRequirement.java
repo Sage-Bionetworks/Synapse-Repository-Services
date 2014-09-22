@@ -276,7 +276,7 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 	public static TermsOfUseAccessRequirement translateDto(TermsOfUseAccessRequirementLegacy origDto) {
 		TermsOfUseAccessRequirement newDto = new TermsOfUseAccessRequirement();
 		newDto.setAccessType(origDto.getAccessType());
-		newDto.setConcreteType(origDto.getConcreteType());
+		newDto.setConcreteType(TermsOfUseAccessRequirement.class.getName());
 		newDto.setCreatedBy(origDto.getCreatedBy());
 		newDto.setCreatedOn(origDto.getCreatedOn());
 		newDto.setEtag(origDto.getEtag());
@@ -291,7 +291,7 @@ public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessR
 	public static ACTAccessRequirement translateDto(ACTAccessRequirementLegacy origDto) {
 		ACTAccessRequirement newDto = new ACTAccessRequirement();
 		newDto.setAccessType(origDto.getAccessType());
-		newDto.setConcreteType(origDto.getConcreteType());
+		newDto.setConcreteType(ACTAccessRequirement.class.getName());
 		newDto.setCreatedBy(origDto.getCreatedBy());
 		newDto.setCreatedOn(origDto.getCreatedOn());
 		newDto.setEtag(origDto.getEtag());

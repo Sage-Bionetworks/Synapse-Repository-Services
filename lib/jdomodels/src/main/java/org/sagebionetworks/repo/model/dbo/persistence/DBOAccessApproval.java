@@ -283,7 +283,7 @@ public class DBOAccessApproval implements MigratableDatabaseObject<DBOAccessAppr
 	public static TermsOfUseAccessApproval translateDto(TermsOfUseAccessApprovalLegacy origDto) {
 		TermsOfUseAccessApproval newDto = new TermsOfUseAccessApproval();
 		newDto.setAccessorId(origDto.getAccessorId());
-		newDto.setConcreteType(origDto.getConcreteType());
+		newDto.setConcreteType(TermsOfUseAccessApproval.class.getName());
 		newDto.setCreatedBy(origDto.getCreatedBy());
 		newDto.setCreatedOn(origDto.getCreatedOn());
 		newDto.setEtag(origDto.getEtag());
@@ -297,7 +297,7 @@ public class DBOAccessApproval implements MigratableDatabaseObject<DBOAccessAppr
 	public static ACTAccessApproval translateDto(ACTAccessApprovalLegacy origDto) {
 		ACTAccessApproval newDto = new ACTAccessApproval();
 		newDto.setAccessorId(origDto.getAccessorId());
-		newDto.setConcreteType(origDto.getConcreteType());
+		newDto.setConcreteType(ACTAccessApproval.class.getName());
 		newDto.setCreatedBy(origDto.getCreatedBy());
 		newDto.setCreatedOn(origDto.getCreatedOn());
 		newDto.setEtag(origDto.getEtag());
