@@ -4,19 +4,25 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.repo.model.ACTAccessApproval;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -135,7 +141,118 @@ public class DBOAccessApprovalTest {
 		// Delete it
 		boolean result = dboBasicDao.deleteObjectByPrimaryKey(DBOAccessApproval.class,  params);
 		assertTrue("Failed to delete the type created", result);
+	}
+	
+	@Test
+	public void testMigratableTableTranslationToU() throws Exception {
+		DBOAccessApproval ar = new DBOAccessApproval();
+		MigratableTableTranslation<DBOAccessApproval, DBOAccessApprovalBackup> translator = ar.getTranslator();
+		DBOAccessApprovalBackup dbobackup = new DBOAccessApprovalBackup();
+		dbobackup.setAccessorId(11111L);
+		dbobackup.setRequirementId(22222L);
+		dbobackup.setCreatedBy(101L);
+		long now = (new Date()).getTime();
+		dbobackup.setCreatedOn(now);
+		dbobackup.setEntityType("aa");
+		dbobackup.seteTag("abcd");
+		dbobackup.setId(987L);
+		dbobackup.setModifiedBy(202L);
+		dbobackup.setModifiedOn(now+10);
+		TermsOfUseAccessApprovalLegacy touLegacy = new TermsOfUseAccessApprovalLegacy();
+		touLegacy.setConcreteType(TermsOfUseAccessApproval.class.getName());
+		touLegacy.setCreatedBy("101");
+		touLegacy.setCreatedOn(new Date(now));
+		touLegacy.setEntityType(TermsOfUseAccessApproval.class.getName());
+		touLegacy.setEtag("abcd");
+		touLegacy.setId(987L);
+		touLegacy.setModifiedBy("202");
+		touLegacy.setModifiedOn(new Date(now+10L));
+		touLegacy.setUri("/my/uri");
+		touLegacy.setAccessorId("11111");
+		touLegacy.setRequirementId(22222L);
 		
+		byte[] ser = JDOSecondaryPropertyUtils.compressObject(touLegacy, TermsOfUseAccessApproval.class.getName());
+		dbobackup.setSerializedEntity(ser);
+		
+		DBOAccessApproval dbo = translator.createDatabaseObjectFromBackup(dbobackup);
+		DBOAccessApprovalBackup backup2 = translator.createBackupFromDatabaseObject(dbo);
+		
+		assertEquals(new Long(11111L), backup2.getAccessorId());
+		assertEquals(new Long(22222L), backup2.getRequirementId());
+		assertEquals(new Long(101L), backup2.getCreatedBy());
+		assertEquals(now, backup2.getCreatedOn());
+		assertEquals(null, backup2.getEntityType());
+		assertEquals("abcd", backup2.geteTag());
+		assertEquals(new Long(987L), backup2.getId());
+		assertEquals(new Long(202L), backup2.getModifiedBy());
+		assertEquals(now+10, backup2.getModifiedOn());
+		byte[] ser2 = backup2.getSerializedEntity();
+		TermsOfUseAccessApproval touAA = (TermsOfUseAccessApproval)JDOSecondaryPropertyUtils.decompressedObject(ser2);
+		assertEquals(TermsOfUseAccessApproval.class.getName(), touAA.getConcreteType());
+		assertEquals("101", touAA.getCreatedBy());
+		assertEquals(new Date(now), touAA.getCreatedOn());
+		assertEquals("abcd", touAA.getEtag());
+		assertEquals(new Long(987L), touAA.getId());
+		assertEquals("202", touAA.getModifiedBy());
+		assertEquals(new Date(now+10), touAA.getModifiedOn());
+		assertEquals("11111", touAA.getAccessorId());
+		assertEquals(new Long(22222L), touAA.getRequirementId());
 	}
 
+	
+	@Test
+	public void testMigratableTableTranslationACT() throws Exception {
+		DBOAccessApproval ar = new DBOAccessApproval();
+		MigratableTableTranslation<DBOAccessApproval, DBOAccessApprovalBackup> translator = ar.getTranslator();
+		DBOAccessApprovalBackup dbobackup = new DBOAccessApprovalBackup();
+		dbobackup.setAccessorId(11111L);
+		dbobackup.setRequirementId(22222L);
+		dbobackup.setCreatedBy(101L);
+		long now = (new Date()).getTime();
+		dbobackup.setCreatedOn(now);
+		dbobackup.setEntityType("aa");
+		dbobackup.seteTag("abcd");
+		dbobackup.setId(987L);
+		dbobackup.setModifiedBy(202L);
+		dbobackup.setModifiedOn(now+10);
+		ACTAccessApprovalLegacy touLegacy = new ACTAccessApprovalLegacy();
+		touLegacy.setConcreteType(ACTAccessApproval.class.getName());
+		touLegacy.setCreatedBy("101");
+		touLegacy.setCreatedOn(new Date(now));
+		touLegacy.setEntityType(ACTAccessApproval.class.getName());
+		touLegacy.setEtag("abcd");
+		touLegacy.setId(987L);
+		touLegacy.setModifiedBy("202");
+		touLegacy.setModifiedOn(new Date(now+10L));
+		touLegacy.setUri("/my/uri");
+		touLegacy.setAccessorId("11111");
+		touLegacy.setRequirementId(22222L);
+		
+		byte[] ser = JDOSecondaryPropertyUtils.compressObject(touLegacy, ACTAccessApproval.class.getName());
+		dbobackup.setSerializedEntity(ser);
+		
+		DBOAccessApproval dbo = translator.createDatabaseObjectFromBackup(dbobackup);
+		DBOAccessApprovalBackup backup2 = translator.createBackupFromDatabaseObject(dbo);
+		
+		assertEquals(new Long(11111L), backup2.getAccessorId());
+		assertEquals(new Long(22222L), backup2.getRequirementId());
+		assertEquals(new Long(101L), backup2.getCreatedBy());
+		assertEquals(now, backup2.getCreatedOn());
+		assertEquals(null, backup2.getEntityType());
+		assertEquals("abcd", backup2.geteTag());
+		assertEquals(new Long(987L), backup2.getId());
+		assertEquals(new Long(202L), backup2.getModifiedBy());
+		assertEquals(now+10, backup2.getModifiedOn());
+		byte[] ser2 = backup2.getSerializedEntity();
+		ACTAccessApproval touAA = (ACTAccessApproval)JDOSecondaryPropertyUtils.decompressedObject(ser2);
+		assertEquals(ACTAccessApproval.class.getName(), touAA.getConcreteType());
+		assertEquals("101", touAA.getCreatedBy());
+		assertEquals(new Date(now), touAA.getCreatedOn());
+		assertEquals("abcd", touAA.getEtag());
+		assertEquals(new Long(987L), touAA.getId());
+		assertEquals("202", touAA.getModifiedBy());
+		assertEquals(new Date(now+10), touAA.getModifiedOn());
+		assertEquals("11111", touAA.getAccessorId());
+		assertEquals(new Long(22222L), touAA.getRequirementId());
+	}
 }
