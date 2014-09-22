@@ -28,6 +28,8 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.PostMessageContentAccessApproval;
+import org.sagebionetworks.repo.model.PostMessageContentAccessRequirement;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
@@ -82,6 +84,7 @@ public class AccessApprovalManagerImplAutoWiredTest {
 	
 	private TermsOfUseAccessRequirement ar;
 	private ACTAccessRequirement actAr;
+	private PostMessageContentAccessRequirement pmcAr;
 	
 	private TermsOfUseAccessRequirement arB;
 
@@ -157,6 +160,10 @@ public class AccessApprovalManagerImplAutoWiredTest {
 				accessRequirementManager.deleteAccessRequirement(adminUserInfo, actAr.getId().toString());
 				actAr=null;
 			}
+			if (pmcAr!=null && pmcAr.getId()!=null) {
+				accessRequirementManager.deleteAccessRequirement(adminUserInfo, pmcAr.getId().toString());
+				pmcAr=null;
+			}
 		}
 		userManager.deletePrincipal(adminUserInfo, testUserInfo.getId());
 	}
@@ -175,6 +182,20 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		return ar;
 	}
 	
+	private static PostMessageContentAccessRequirement newPostMessageContentAccessRequirement(String entityId) {
+		PostMessageContentAccessRequirement ar = new PostMessageContentAccessRequirement();
+		
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId(entityId);
+		rod.setType(RestrictableObjectType.ENTITY);
+		ar.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod}));
+
+		ar.setConcreteType(ar.getClass().getName());
+		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		ar.setUrl("http://foo.com");
+		return ar;
+	}
+	
 	private static TermsOfUseAccessApproval newToUAccessApproval(Long requirementId, String accessorId) {
 		TermsOfUseAccessApproval aa = new TermsOfUseAccessApproval();
 		aa.setAccessorId(accessorId);
@@ -182,6 +203,16 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		aa.setRequirementId(requirementId);
 		return aa;
 	}
+	
+	
+	private static PostMessageContentAccessApproval newPMCAccessApproval(Long requirementId, String accessorId) {
+		PostMessageContentAccessApproval aa = new PostMessageContentAccessApproval();
+		aa.setAccessorId(accessorId);
+		aa.setConcreteType(PostMessageContentAccessApproval.class.getName());
+		aa.setRequirementId(requirementId);
+		return aa;
+	}
+	
 	
 	private static ACTAccessRequirement newACTAccessRequirement(String entityId) {
 		ACTAccessRequirement ar = new ACTAccessRequirement();
@@ -218,6 +249,13 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		assertEquals(adminUserInfo.getId().toString(), aa.getAccessorId());
 		assertEquals(ar.getId(), aa.getRequirementId());
 		assertEquals(TermsOfUseAccessApproval.class.getName(), aa.getConcreteType());
+	}
+	
+	@Test
+	public void testCreatePCMAccessApproval() throws Exception {
+		pmcAr = newPostMessageContentAccessRequirement(nodeAId);
+		pmcAr = accessRequirementManager.createAccessRequirement(adminUserInfo, pmcAr);
+		PostMessageContentAccessApproval aa = newPMCAccessApproval(pmcAr.getId(), adminUserInfo.getId().toString());
 	}
 	
 	// since the user is not an admin they can't delete
@@ -275,6 +313,33 @@ public class AccessApprovalManagerImplAutoWiredTest {
 		actAr = newACTAccessRequirement(nodeAId);
 		actAr = accessRequirementManager.createAccessRequirement(adminUserInfo, actAr);
 		TermsOfUseAccessApproval aa = newToUAccessApproval(actAr.getId(), adminUserInfo.getId().toString());
+		aa = accessApprovalManager.createAccessApproval(adminUserInfo, aa);
+	}
+	
+	// can apply a PostContentMessage approval to a PostContentMessage requirement..
+	@Test
+	public void testCreateAccessApprovalPMC() throws Exception {
+		pmcAr = newPostMessageContentAccessRequirement(nodeAId);
+		pmcAr = accessRequirementManager.createAccessRequirement(adminUserInfo, pmcAr);
+		PostMessageContentAccessApproval aa = newPMCAccessApproval(pmcAr.getId(), adminUserInfo.getId().toString());
+		aa = accessApprovalManager.createAccessApproval(adminUserInfo, aa);
+	}
+	
+	// ... but can't apply a TermsOfUseApproval to a PostContentMessage requirement
+	@Test(expected=InvalidModelException.class)
+	public void testCreateAccessApprovalBadParam5() throws Exception {
+		pmcAr = newPostMessageContentAccessRequirement(nodeAId);
+		pmcAr = accessRequirementManager.createAccessRequirement(adminUserInfo, pmcAr);
+		TermsOfUseAccessApproval aa = newToUAccessApproval(pmcAr.getId(), adminUserInfo.getId().toString());
+		aa = accessApprovalManager.createAccessApproval(adminUserInfo, aa);
+	}
+	
+	// ... or a PMC Approval to a TOU requirement
+	@Test(expected=InvalidModelException.class)
+	public void testCreateAccessApprovalBadParam6() throws Exception {
+		ar = newToUAccessRequirement(nodeAId);
+		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
+		PostMessageContentAccessApproval aa = newPMCAccessApproval(ar.getId(), adminUserInfo.getId().toString());
 		aa = accessApprovalManager.createAccessApproval(adminUserInfo, aa);
 	}
 	

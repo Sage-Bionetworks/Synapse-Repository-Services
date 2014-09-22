@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.PostMessageContentAccessRequirement;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
@@ -191,6 +192,7 @@ public class DBOAccessRequirementTest {
 		assertEquals(rods, touAr.getSubjectIds());
 		assertEquals("foo", touAr.getTermsOfUse());
 	}
+	
 	@Test
 	public void testMigratableTableTranslationACT() throws Exception {
 		DBOAccessRequirement ar = new DBOAccessRequirement();
@@ -250,5 +252,62 @@ public class DBOAccessRequirementTest {
 		assertEquals("foo", actAr.getActContactInfo());
 	}
 	
+	
+	@Test
+	public void testMigratableTableTranslationPostMessageContent() throws Exception {
+		DBOAccessRequirement ar = new DBOAccessRequirement();
+		MigratableTableTranslation<DBOAccessRequirement, DBOAccessRequirementBackup> translator = ar.getTranslator();
+		DBOAccessRequirementBackup dbobackup = new DBOAccessRequirementBackup();
+		dbobackup.setAccessType("DOWNLOAD");
+		dbobackup.setCreatedBy(101L);
+		long now = (new Date()).getTime();
+		dbobackup.setCreatedOn(now);
+		dbobackup.setEntityType("ar");
+		dbobackup.seteTag("abcd");
+		dbobackup.setId(987L);
+		dbobackup.setModifiedBy(202L);
+		dbobackup.setModifiedOn(now+10);
+		PostMessageContentAccessRequirement pmcar = new PostMessageContentAccessRequirement();
+		pmcar.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		pmcar.setConcreteType(PostMessageContentAccessRequirement.class.getName());
+		pmcar.setCreatedBy("101");
+		pmcar.setCreatedOn(new Date(now));
+		pmcar.setEtag("abcd");
+		pmcar.setId(987L);
+		pmcar.setModifiedBy("202");
+		pmcar.setModifiedOn(new Date(now+10L));
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId("111");
+		rod.setType(RestrictableObjectType.ENTITY);
+		List<RestrictableObjectDescriptor> rods = Collections.singletonList(rod);
+		pmcar.setSubjectIds(rods);
+		pmcar.setUrl("http://foo.bar.com");
+		byte[] ser = JDOSecondaryPropertyUtils.compressObject(pmcar);
+		dbobackup.setSerializedEntity(ser);
+		
+		DBOAccessRequirement dbo = translator.createDatabaseObjectFromBackup(dbobackup);
+		DBOAccessRequirementBackup backup2 = translator.createBackupFromDatabaseObject(dbo);
+		
+		assertEquals("DOWNLOAD", backup2.getAccessType());
+		assertEquals(new Long(101L), backup2.getCreatedBy());
+		assertEquals(now, backup2.getCreatedOn());
+		assertEquals(null, backup2.getEntityType());
+		assertEquals("abcd", backup2.geteTag());
+		assertEquals(new Long(987L), backup2.getId());
+		assertEquals(new Long(202L), backup2.getModifiedBy());
+		assertEquals(now+10, backup2.getModifiedOn());
+		byte[] ser2 = backup2.getSerializedEntity();
+		PostMessageContentAccessRequirement pmcAr = (PostMessageContentAccessRequirement)JDOSecondaryPropertyUtils.decompressedObject(ser2);
+		assertEquals(ACCESS_TYPE.DOWNLOAD, pmcAr.getAccessType());
+		assertEquals(PostMessageContentAccessRequirement.class.getName(), pmcAr.getConcreteType());
+		assertEquals("101", pmcAr.getCreatedBy());
+		assertEquals(new Date(now), pmcAr.getCreatedOn());
+		assertEquals("abcd", pmcAr.getEtag());
+		assertEquals(new Long(987L), pmcAr.getId());
+		assertEquals("202", pmcAr.getModifiedBy());
+		assertEquals(new Date(now+10), pmcAr.getModifiedOn());
+		assertEquals(rods, pmcAr.getSubjectIds());
+		assertEquals("http://foo.bar.com", pmcAr.getUrl());
+	}
 
 }
