@@ -34,7 +34,9 @@ public class StackConstants {
 	public static final String STACK_AND_INSTANCE = "%1$s-%2$s";
 		
 	public static final String ASYNC_QUEUE_TEMPLATE = "%1$s-%2$s-%3$s-async-queue";
-	
+
+	public static final String WORKER_QUEUE_TEMPLATE = "%1$s-%2$s-%3$s-worker-queue";
+
 	/**
 	 * Template used the name of the AWS topic where repository changes messages are published.
 	 */

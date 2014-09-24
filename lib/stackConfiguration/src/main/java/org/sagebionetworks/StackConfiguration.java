@@ -839,6 +839,30 @@ public class StackConfiguration {
 	}
 
 	/**
+	 * The name of the async queue
+	 * 
+	 * @return
+	 */
+	public String getWorkerQueueName(String baseName) {
+		return String.format(StackConstants.WORKER_QUEUE_TEMPLATE, StackConfiguration.getStack(), StackConfiguration.getStackInstance(),
+				baseName);
+	}
+
+	/**
+	 * The name of the async queue
+	 * 
+	 * @return
+	 */
+	public Map<String, String> getWorkerQueueName() {
+		return new DynamicMap<String, String>() {
+			@Override
+			protected String create(Object key) {
+				return getWorkerQueueName(key.toString());
+			}
+		};
+	}
+
+	/**
 	 * The name of the AWS topic where repository changes messages are published.
 	 * 
 	 * @return
