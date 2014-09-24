@@ -15,10 +15,15 @@ import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.util.Clock;
+import org.sagebionetworks.util.TestClock;
+import org.sagebionetworks.util.ThreadLocalProvider;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 
 /**
@@ -33,6 +38,7 @@ public class TransactionalMessengerImplTest {
 	TransactionSynchronizationProxy stubProxy;
 	TransactionalMessengerObserver mockObserver;
 	private TransactionalMessengerImpl messenger;
+	private TestClock testClock = new TestClock();
 	
 	@Before
 	public void before(){
@@ -40,8 +46,9 @@ public class TransactionalMessengerImplTest {
 		mockChangeDAO = Mockito.mock(DBOChangeDAO.class);
 		stubProxy = new TransactionSynchronizationProxyStub();
 		mockObserver = Mockito.mock(TransactionalMessengerObserver.class);
-		messenger = new TransactionalMessengerImpl(mockTxManager, mockChangeDAO, stubProxy);
+		messenger = new TransactionalMessengerImpl(mockTxManager, mockChangeDAO, stubProxy, testClock);
 		messenger.registerObserver(mockObserver);
+		ThreadLocalProvider.getInstance(AuthorizationConstants.USER_ID_PARAM, Long.class).set(null);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -199,7 +206,7 @@ public class TransactionalMessengerImplTest {
 		mockChangeDAO = Mockito.mock(DBOChangeDAO.class);
 		stubProxy = new TransactionSynchronizationProxyStub();
 		mockObserver = Mockito.mock(TransactionalMessengerObserver.class);
-		messenger = new TransactionalMessengerImpl(mockTxManager, stubChangeDao, stubProxy);
+		messenger = new TransactionalMessengerImpl(mockTxManager, stubChangeDao, stubProxy, testClock);
 		messenger.registerObserver(mockObserver);
 		
 		ChangeMessage message = new ChangeMessage();
@@ -223,5 +230,146 @@ public class TransactionalMessengerImplTest {
 		// It should only be called once total!
 		verify(mockObserver, times(1)).fireChangeMessage(any(ChangeMessage.class));
 		
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testModificationMessageKeyNull() {
+		new ModificationMessageKey(null);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testModificationMessageKeyNullId() {
+		new ModificationMessageKey(new ModificationMessage());
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testModificationMessageKeyNullUser() {
+		ModificationMessage message = new ModificationMessage();
+		message.setUserId(null);
+		message.setProjectId(0L);
+		message.setEntityId(null);
+		new ModificationMessageKey(message);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testModificationMessageKeyDuplicateIds() {
+		ModificationMessage message = new ModificationMessage();
+		message.setUserId(0L);
+		message.setProjectId(0L);
+		message.setEntityId("0L");
+		new ModificationMessageKey(message);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testModificationMessageKeyNoIds() {
+		ModificationMessage message = new ModificationMessage();
+		message.setUserId(0L);
+		message.setProjectId(null);
+		message.setEntityId(null);
+		new ModificationMessageKey(message);
+	}
+
+	@Test
+	public void testModificationMessageKeyEquals() {
+		ModificationMessage message = new ModificationMessage();
+		message.setProjectId(123L);
+		message.setUserId(100L);
+		message.setEntityId(null);
+		// Create the first key
+		ModificationMessageKey one = new ModificationMessageKey(message);
+		// Create the second key
+		message = new ModificationMessage();
+		message.setProjectId(123L);
+		message.setUserId(100L);
+		message.setEntityId(null);
+		ModificationMessageKey two = new ModificationMessageKey(message);
+		assertEquals(one, two);
+		// Third is not equals
+		message = new ModificationMessage();
+		message.setProjectId(456L);
+		message.setUserId(100L);
+		message.setEntityId(null);
+		ModificationMessageKey thrid = new ModificationMessageKey(message);
+		assertFalse(thrid.equals(two));
+		assertFalse(two.equals(thrid));
+
+		// fourth is not equals
+		message = new ModificationMessage();
+		message.setProjectId(456L);
+		message.setUserId(200L);
+		message.setEntityId(null);
+		ModificationMessageKey forth = new ModificationMessageKey(message);
+		assertFalse(forth.equals(two));
+		assertFalse(two.equals(forth));
+	}
+
+	@Test
+	public void testSendModificationMessageNothingHappensWithoutId() {
+		// Send the message
+		messenger.sendModificationMessageAfterCommit(123L, null);
+		assertNotNull(stubProxy.getSynchronizations());
+		assertEquals(0, stubProxy.getSynchronizations().size());
+	}
+
+	@Test
+	public void testSendModificationMessageNothingHappensWithAnonymous() {
+		ThreadLocalProvider.getInstance(AuthorizationConstants.USER_ID_PARAM, Long.class).set(
+				BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		// Send the message
+		messenger.sendModificationMessageAfterCommit(123L, null);
+		assertNotNull(stubProxy.getSynchronizations());
+		assertEquals(0, stubProxy.getSynchronizations().size());
+	}
+
+	@Test
+	public void testSendModificationMessage() {
+		ThreadLocalProvider.getInstance(AuthorizationConstants.USER_ID_PARAM, Long.class).set(100L);
+		// Send the message
+		messenger.sendModificationMessageAfterCommit(123L, null);
+		assertNotNull(stubProxy.getSynchronizations());
+		assertEquals(1, stubProxy.getSynchronizations().size());
+		// Simulate the before commit
+		stubProxy.getSynchronizations().get(0).beforeCommit(true);
+		ModificationMessage message = new ModificationMessage();
+		message.setProjectId(123L);
+		message.setUserId(100L);
+		message.setTimestamp(testClock.now());
+		// Simulate the after commit
+		stubProxy.getSynchronizations().get(0).afterCommit();
+		// Verify that the one message was fired.
+		verify(mockObserver, times(1)).fireModificationMessage(message);
+		// It should only be called once total!
+		verify(mockObserver, times(1)).fireModificationMessage(any(ModificationMessage.class));
+	}
+
+	@Test
+	public void testSendModificationMessageTwice() throws JSONObjectAdapterException {
+		ThreadLocalProvider.getInstance(AuthorizationConstants.USER_ID_PARAM, Long.class).set(100L);
+
+		ModificationMessage first = new ModificationMessage();
+		first.setProjectId(123L);
+		first.setUserId(100L);
+		first.setTimestamp(testClock.now());
+
+		// Send the message first message
+		messenger.sendModificationMessageAfterCommit(123L, null);
+		testClock.warpForward(1000);
+		messenger.sendModificationMessageAfterCommit(123L, null);
+
+		assertNotNull(stubProxy.getSynchronizations());
+		assertEquals(1, stubProxy.getSynchronizations().size());
+
+		ModificationMessage second = new ModificationMessage();
+		second.setProjectId(123L);
+		second.setUserId(100L);
+		second.setTimestamp(testClock.now());
+
+		// Simulate the before commit
+		stubProxy.getSynchronizations().get(0).beforeCommit(true);
+		// Simulate the after commit
+		stubProxy.getSynchronizations().get(0).afterCommit();
+		// The second message should get sent but not the first
+		verify(mockObserver, times(1)).fireModificationMessage(second);
+		verify(mockObserver, never()).fireModificationMessage(first);
 	}
 }

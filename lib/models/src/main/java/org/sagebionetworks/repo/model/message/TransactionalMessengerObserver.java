@@ -17,4 +17,12 @@ public interface TransactionalMessengerObserver {
 	 */
 	public void fireChangeMessage(ChangeMessage message);
 
+	/**
+	 * This method will be called for every message in the queue after the current transaction is committed. If the
+	 * transaction is rolled back then no message will be fired.
+	 * 
+	 * @param message
+	 */
+	public void fireModificationMessage(ModificationMessage message);
+
 }

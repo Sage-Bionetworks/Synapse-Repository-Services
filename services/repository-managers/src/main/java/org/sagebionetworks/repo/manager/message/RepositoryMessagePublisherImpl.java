@@ -10,12 +10,13 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.message.ModificationMessage;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
-import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +24,7 @@ import com.amazonaws.services.sns.AmazonSNSClient;
 import com.amazonaws.services.sns.model.CreateTopicRequest;
 import com.amazonaws.services.sns.model.CreateTopicResult;
 import com.amazonaws.services.sns.model.PublishRequest;
+import com.google.common.collect.Lists;
 
 /**
  * The basic implementation of the RepositoryMessagePublisher.  This implementation will publish all messages to an AWS topic
@@ -43,12 +45,18 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 	AmazonSNSClient awsSNSClient;
 	
 	private boolean shouldMessagesBePublishedToTopic;
+
+	// The prefix applied to each topic.
+	private final String topicPrefix;
+
+	// The name for the modification topic.
+	private final String modificationTopicName;
 	
 	// Maps each object type to its topic
 	Map<ObjectType, TopicInfo> typeToTopicMap = new HashMap<ObjectType, TopicInfo>();;
-	// The prefix applied to each topic.
-	String topicPrefix;
-	
+
+	private TopicInfo modificationTopic;
+
 	/**
 	 * This is injected from spring.
 	 * 
@@ -60,13 +68,6 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 	}
 
 	/**
-	 * Default.
-	 */
-	public RepositoryMessagePublisherImpl(){
-		super();
-	}
-
-	/**
 	 * IoC constructor.
 	 * @param transactionalMessanger
 	 * @param awsSNSClient
@@ -74,9 +75,10 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 	 * @param topicName
 	 * @param messageQueue
 	 */
-	public RepositoryMessagePublisherImpl(TransactionalMessenger transactionalMessanger,
+	public RepositoryMessagePublisherImpl(String topicPrefix, String modificationTopicName, TransactionalMessenger transactionalMessanger,
 			AmazonSNSClient awsSNSClient) {
-		super();
+		this.topicPrefix = topicPrefix;
+		this.modificationTopicName = modificationTopicName;
 		this.transactionalMessanger = transactionalMessanger;
 		this.awsSNSClient = awsSNSClient;
 	}
@@ -91,12 +93,13 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 
 
 	private ConcurrentLinkedQueue<ChangeMessage> messageQueue = new ConcurrentLinkedQueue<ChangeMessage>();
+	private ConcurrentLinkedQueue<ModificationMessage> modificationMessageQueue = new ConcurrentLinkedQueue<ModificationMessage>();
 
-	public RepositoryMessagePublisherImpl(final String topicPrefix) {
-		if (topicPrefix == null) {
-			throw new IllegalArgumentException("topicPrefix cannot be null");
-		}
+	public RepositoryMessagePublisherImpl(final String topicPrefix, final String modificationTopicName) {
+		ValidateArgument.required(modificationTopicName, "modificationTopicName");
+		ValidateArgument.required(topicPrefix, "topicPrefix");
 		this.topicPrefix = topicPrefix;
+		this.modificationTopicName = modificationTopicName;
 	}
 
 	/**
@@ -125,6 +128,20 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 		messageQueue.add(message);
 	}
 
+	/**
+	 * This is the method that the TransactionalMessenger will call after a transaction is committed. This is our chance
+	 * to push these messages to our AWS topic.
+	 */
+	@Override
+	public void fireModificationMessage(ModificationMessage message) {
+		ValidateArgument.required(message, "ModificationMessage");
+		ValidateArgument.required(message.getUserId(), "ModificationMessage.userId");
+		ValidateArgument.requiredOneOf("modificationMessage.projectId or modificationMessage.entityId", message.getProjectId(),
+				message.getEntityId());
+		// Add the message to a queue
+		modificationMessageQueue.add(message);
+	}
+
 	@Override
 	public String getTopicName(ObjectType type){
 		return getTopicInfoLazy(type).getName();
@@ -142,6 +159,7 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 	public void timerFired(){
 		// Poll all data from the queue.
 		List<ChangeMessage> currentQueue = pollListFromQueue();
+		List<ModificationMessage> currentModificationQueue = pollListFromModificationQueue();
 		if(!shouldMessagesBePublishedToTopic){
 			// The messages should not be broadcast
 			if(log.isDebugEnabled() && currentQueue.size() > 0){
@@ -151,6 +169,16 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 		}
 		// Publish each message to the topic
 		for(ChangeMessage message: currentQueue){
+			try {
+				publishToTopic(message);
+			} catch (Throwable e) {
+				// If one messages fails, we must send the rest.
+				log.error("Failed to publish message.", e);
+			}
+		}
+
+		// Publish each modification message to the topic
+		for (ModificationMessage message : currentModificationQueue) {
 			try {
 				publishToTopic(message);
 			} catch (Throwable e) {
@@ -172,8 +200,24 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 		}
 		return list;
 	}
+
+	/**
+	 * Poll all data currently on the queue and add it to a list.
+	 * 
+	 * @return
+	 */
+	private List<ModificationMessage> pollListFromModificationQueue() {
+		List<ModificationMessage> list = Lists.newLinkedList();
+		for (ModificationMessage cm = this.modificationMessageQueue.poll(); cm != null; cm = this.modificationMessageQueue.poll()) {
+			// Add to the list
+			list.add(cm);
+		}
+		return list;
+	}
+
 	/**
 	 * Get the topic info for a given type (lazy loaded).
+	 * 
 	 * @param type
 	 * @return
 	 */
@@ -194,23 +238,28 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 	}
 
 	/**
-	 * Publish the message and recored it as sent.
-	 * Each sent message requires its own transaction.
+	 * Get the topic info for modifications (lazy loaded).
+	 * 
+	 * @param type
+	 * @return
+	 */
+	private TopicInfo getModificationTopicInfoLazy() {
+		if (this.modificationTopic == null) {
+			CreateTopicResult result = awsSNSClient.createTopic(new CreateTopicRequest(this.modificationTopicName));
+			String arn = result.getTopicArn();
+			this.modificationTopic = new TopicInfo(this.modificationTopicName, arn);
+		}
+		return this.modificationTopic;
+	}
+
+	/**
+	 * Publish the message and recored it as sent. Each sent message requires its own transaction.
+	 * 
 	 * @param message
 	 */
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
 	@Override
 	public boolean publishToTopic(ChangeMessage message) {
-		String json;
-		try {
-			json = EntityFactory.createJSONStringForEntity(message);
-		} catch (JSONObjectAdapterException e) {
-			// should never occur
-			throw new RuntimeException(e);
-		}
-		if (log.isTraceEnabled()) {
-			log.info("Publishing a message: " + json);
-		}
 		// Register the message was sent within this transaction.
 		// It is important to do this before we actual send the message to the
 		// topic because we do not want to sent out duplicate messages (see
@@ -221,9 +270,34 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 			// Publish the message to the topic.
 			// NOTE: If this fails the transaction will be rolled back so
 			// the message will not be registered as sent.
-			awsSNSClient.publish(new PublishRequest(topicArn, json));
+			publish(message, topicArn);
 		}
 		return true;
+	}
+	
+	/**
+	 * Publish the message.
+	 * @param message
+	 */
+	@Override
+	public void publishToTopic(ModificationMessage message) {
+		String topicArn = getModificationTopicInfoLazy().getArn();
+		publish(message, topicArn);
+	}
+
+	private void publish(JSONEntity message, String topicArn) {
+		String json;
+		try {
+			json = EntityFactory.createJSONStringForEntity(message);
+		} catch (JSONObjectAdapterException e) {
+			// should never occur
+			throw new RuntimeException(e);
+		}
+		if (log.isTraceEnabled()) {
+			log.info("Publishing a message: " + json);
+		}
+		// Publish the message to the topic.
+		awsSNSClient.publish(new PublishRequest(topicArn, json));
 	}
 	
 	/**

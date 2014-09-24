@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.message;
 import java.util.List;
 import java.util.Map;
 
+import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
@@ -20,14 +21,13 @@ public class TransactionSynchronizationProxyImpl implements TransactionSynchroni
 	}
 
 	@Override
-	public void bindResource(String key, Map<ChangeMessageKey, ChangeMessage> value) {
+	public void bindResource(String key, Map<?, ?> value) {
 		TransactionSynchronizationManager.bindResource(key, value);
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
-	public Map<ChangeMessageKey, ChangeMessage> getResource(String key) {
-		return (Map<ChangeMessageKey, ChangeMessage>) TransactionSynchronizationManager.getResource(key);
+	public Map<?, ?> getResource(String key) {
+		return (Map<?, ?>) TransactionSynchronizationManager.getResource(key);
 	}
 
 	@Override

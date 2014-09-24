@@ -1,6 +1,7 @@
 package org.sagebionetworks.asynchronous.workers.sqs;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 
@@ -9,11 +10,14 @@ import org.json.JSONObject;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.UnsentMessageRange;
+import org.sagebionetworks.repo.model.project.ProjectSetting;
+import org.sagebionetworks.repo.model.AutoGenFactory;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
+import org.sagebionetworks.util.ValidateArgument;
 
 import com.amazonaws.services.sqs.model.Message;
 
@@ -43,7 +47,37 @@ public class MessageUtils {
 	}
 
 	public static int SQS_MAX_REQUEST_SIZE = 10;
-	
+
+	public static <T extends JSONEntity> T extractMessageBody(Message message, Class<T> clazz) {
+		ValidateArgument.required(message, "message");
+		try {
+			JSONObject object = new JSONObject(message.getBody());
+			JSONObjectAdapterImpl adapter;
+			if (object.has("objectId")) {
+				// This is a message pushed directly to a queue
+				adapter = new JSONObjectAdapterImpl(object);
+			}
+			if (object.has("TopicArn") && object.has("Message")) {
+				// This is a message that was pushed to a topic then forwarded to a queue.
+				JSONObject innerObject = new JSONObject(object.getString("Message"));
+				adapter = new JSONObjectAdapterImpl(innerObject);
+			} else {
+				throw new IllegalArgumentException("Unknown message type: " + message.getBody());
+			}
+			T result = clazz.newInstance();
+			result.initializeFromJSONObject(adapter);
+			return result;
+		} catch (JSONException e) {
+			throw new RuntimeException(e);
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
+		} catch (InstantiationException e) {
+			throw new RuntimeException(e);
+		} catch (IllegalAccessException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
 	/**
 	 * Extract a ChangeMessage from an Amazon Message
 	 * @param message
@@ -81,27 +115,8 @@ public class MessageUtils {
 	public static MessageBundle extractMessageBundle(Message message) {
 		if (message == null)
 			throw new IllegalArgumentException("Message cannot be null");
-		try {
-			JSONObject object = new JSONObject(message.getBody());
-			ChangeMessage changeMessage;
-			if (object.has("objectId")) {
-				// This is a message pushed directly to a queue
-				JSONObjectAdapterImpl adapter = new JSONObjectAdapterImpl(object);
-				changeMessage = new ChangeMessage(adapter);
-			} else if (object.has("TopicArn") && object.has("Message")) {
-				// This is a message that was pushed to a topic then forwarded to a queue.
-				JSONObject innerObject = new JSONObject(object.getString("Message"));
-				JSONObjectAdapterImpl adapter = new JSONObjectAdapterImpl(innerObject);
-				changeMessage = new ChangeMessage(adapter);
-			} else {
-				throw new IllegalArgumentException("Unknown message type: " + message.getBody());
-			}
-			return new MessageBundle(message, changeMessage);
-		} catch (JSONException e) {
-			throw new RuntimeException(e);
-		} catch (JSONObjectAdapterException e) {
-			throw new RuntimeException(e);
-		}
+		ChangeMessage changeMessage = extractMessageBody(message);
+		return new MessageBundle(message, changeMessage);
 	}
 
 	/**
