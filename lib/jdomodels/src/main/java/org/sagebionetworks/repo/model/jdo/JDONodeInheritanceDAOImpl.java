@@ -95,6 +95,7 @@ public class JDONodeInheritanceDAOImpl implements NodeInheritanceDAO {
 			beneficiary.seteTag(UUID.randomUUID().toString());
 		}
 		transactionalMessenger.sendMessageAfterCommit(beneficiary, ChangeType.UPDATE);
+		transactionalMessenger.sendModificationMessageAfterCommit(null, toBenefactorId);
 		dboBasicDao.update(beneficiary);
 	}
 

@@ -123,6 +123,7 @@ public class TrashManagerImpl implements TrashManager {
 			String etag = nodeDao.peekCurrentEtag(descendantId);
 			transactionalMessenger.sendMessageAfterCommit(descendantId, ObjectType.ENTITY, etag, parentId, ChangeType.DELETE);
 		}
+		transactionalMessenger.sendModificationMessageAfterCommit(null, nodeId);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -192,6 +193,7 @@ public class TrashManagerImpl implements TrashManager {
 			String etag = nodeDao.peekCurrentEtag(descendantId);
 			transactionalMessenger.sendMessageAfterCommit(descendantId, ObjectType.ENTITY, etag, parentId, ChangeType.CREATE);
 		}
+		transactionalMessenger.sendModificationMessageAfterCommit(null, nodeId);
 	}
 
 	@Override
