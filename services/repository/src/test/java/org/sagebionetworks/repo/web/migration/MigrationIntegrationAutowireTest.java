@@ -205,6 +205,9 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 	@Autowired
 	private ProjectSettingsDAO projectSettingsDAO;
 
+	@Autowired
+	private ProjectStatsDAO projectStatsDAO;
+
 	private Long adminUserId;
 	private String adminUserIdString;
 	private UserInfo adminUserInfo;
@@ -256,6 +259,7 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		createEntities();
 		createFavorite();
 		createProjectSetting();
+		createProjectStat();
 		createEvaluation();
 		createAccessRequirement();
 		createAccessApproval();
@@ -283,6 +287,11 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		destination.setUploadType(UploadType.S3);
 		settings.setDestinations(Collections.<UploadDestinationSetting> singletonList(destination));
 		projectSettingsDAO.create(settings);
+	}
+
+	private void createProjectStat() {
+		ProjectStat projectStat = new ProjectStat(KeyFactory.stringToKey(project.getId()), adminUserId, new Date());
+		projectStatsDAO.update(projectStat);
 	}
 
 	private void createQuizResponse() {
