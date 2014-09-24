@@ -1,5 +1,7 @@
 package org.sagebionetworks.util;
 
+import java.util.Date;
+
 public class TestClock extends DefaultClock {
 
 	private long currentTime = 100000L;
@@ -29,6 +31,11 @@ public class TestClock extends DefaultClock {
 		} else {
 			currentTime += millis;
 		}
+	}
+
+	@Override
+	public Date now() {
+		return new Date(currentTime);
 	}
 
 	public void waitForSleepers(int expectedSleeperCount) {

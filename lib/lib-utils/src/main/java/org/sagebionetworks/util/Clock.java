@@ -1,5 +1,7 @@
 package org.sagebionetworks.util;
 
+import java.util.Date;
+
 public interface Clock {
 
 	public abstract long currentTimeMillis();
@@ -8,4 +10,5 @@ public interface Clock {
 
 	public abstract void sleepNoInterrupt(long millis);
 
+	public abstract Date now();
 }
