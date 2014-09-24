@@ -75,6 +75,9 @@ public class NodeDAOImplTest {
 	@Autowired
 	private GroupMembersDAO groupMembersDAO;
 
+	@Autowired
+	private ProjectStatsDAO projectStatsDAO;
+
 	// the datasets that must be deleted at the end of each test.
 	List<String> toDelete = new ArrayList<String>();
 	List<String> activitiesToDelete = new ArrayList<String>();
@@ -2008,6 +2011,7 @@ public class NodeDAOImplTest {
 		nodeDao.createNewVersion(ownedProject);
 		ownedProject = nodeDao.getNode(owned);
 
+		Thread.sleep(2); // ensure ordering by creation date
 		Node participateProject = NodeTestUtils.createNew("testGetProjectHeaders.name2", Long.parseLong(user2));
 		participateProject.setParentId(StackConfiguration.getRootFolderEntityIdStatic());
 		String participate = this.nodeDao.createNew(participateProject);
@@ -2026,6 +2030,7 @@ public class NodeDAOImplTest {
 		acl.setCreationDate(new Date());
 		accessControlListDAO.create(acl, ObjectType.ENTITY);
 
+		Thread.sleep(2); // ensure ordering by creation date
 		Node groupParticipateProject = NodeTestUtils.createNew("testGetProjectHeaders.name3", Long.parseLong(user2));
 		groupParticipateProject.setParentId(StackConfiguration.getRootFolderEntityIdStatic());
 		String groupParticipate = this.nodeDao.createNew(groupParticipateProject);
@@ -2044,12 +2049,14 @@ public class NodeDAOImplTest {
 		acl.setCreationDate(new Date());
 		accessControlListDAO.create(acl, ObjectType.ENTITY);
 
+		Thread.sleep(2); // ensure ordering by creation date
 		Node notMyProject = NodeTestUtils.createNew("testGetProjectHeaders.name4", Long.parseLong(user2));
 		notMyProject.setParentId(StackConfiguration.getRootFolderEntityIdStatic());
 		String neither = this.nodeDao.createNew(notMyProject);
 		toDelete.add(neither);
 		notMyProject = nodeDao.getNode(neither);
 
+		Thread.sleep(2); // ensure ordering by creation date
 		Node myTrashedProject = NodeTestUtils.createNew("testGetProjectHeaders.name4", Long.parseLong(user2));
 		myTrashedProject.setParentId(StackConfiguration.getTrashFolderEntityIdStatic());
 		String trashed = this.nodeDao.createNew(myTrashedProject);
@@ -2077,6 +2084,20 @@ public class NodeDAOImplTest {
 			projectIds2.add(projectHeaders.getResults().get(0).getId());
 		}
 		assertEquals(projectIds, projectIds2);
+
+		// change sorting by touching project stats
+		ProjectStat projectStat = new ProjectStat(KeyFactory.stringToKey(projectIds.get(1)), KeyFactory.stringToKey(user1), new Date(1000));
+		projectStatsDAO.update(projectStat);
+		projectStat = new ProjectStat(KeyFactory.stringToKey(projectIds.get(2)), KeyFactory.stringToKey(user1), new Date(1001));
+		projectStatsDAO.update(projectStat);
+		// project stat for other user should not matter
+		projectStat = new ProjectStat(KeyFactory.stringToKey(projectIds.get(2)), KeyFactory.stringToKey(user2), new Date(2000));
+		projectStatsDAO.update(projectStat);
+
+		projectHeaders = nodeDao.getProjectHeaders(user1, 100, 0);
+		assertEquals(projectIds.get(2), projectHeaders.getResults().get(0).getId());
+		assertEquals(projectIds.get(1), projectHeaders.getResults().get(1).getId());
+		assertEquals(projectIds.get(0), projectHeaders.getResults().get(2).getId());
 	}
 
 	/*

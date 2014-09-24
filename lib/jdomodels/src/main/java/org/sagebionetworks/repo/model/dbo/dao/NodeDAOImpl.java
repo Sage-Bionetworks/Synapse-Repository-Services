@@ -16,6 +16,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import javax.annotation.PostConstruct;
+
 import org.joda.time.DateTime;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.IdGenerator;
@@ -34,6 +36,7 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeParentRelation;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ProjectHeader;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
@@ -71,6 +74,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String TRASH_FOLDER_ID = StackConfiguration.getTrashFolderEntityIdStatic();
 
 	private static final String USER_ID_PARAM_NAME = "user_id_param";
+	private static final String PROJECT_TYPE_PARAM_NAME = "project_type_param";
 
 	private static final String SQL_SELECT_REV_FILE_HANDLE_ID = "SELECT "+COL_REVISION_FILE_HANDLE_ID+" FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE+" = ? AND "+COL_REVISION_NUMBER+" = ?";
 	private static final String SELECT_REVISIONS_ONLY = "SELECT R."+COL_REVISION_REFS_BLOB+" FROM  "+TABLE_NODE+" N, "+TABLE_REVISION+" R WHERE N."+COL_NODE_ID+" = ? AND R."+COL_REVISION_OWNER_NODE+" = N."+COL_NODE_ID+" AND R."+COL_REVISION_NUMBER+" = N."+COL_CURRENT_REV;
@@ -92,19 +96,26 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	// selecting and counting the projects a user owns
 	private static final String SELECT_PROJECTS_FIELDS = "n." + COL_NODE_ID + ", n." + COL_NODE_NAME + ", n." + COL_NODE_TYPE;
 	private static final String FROM_PROJECTS_CREATED_BY = TABLE_NODE + " n " + " where n." + COL_NODE_CREATED_BY + " = :"
-			+ USER_ID_PARAM_NAME + " and n." + COL_NODE_TYPE + " = 2" + " and n." + COL_NODE_PARENT_ID + " <> " + TRASH_FOLDER_ID;
+			+ USER_ID_PARAM_NAME + " and n." + COL_NODE_TYPE + " = :" + PROJECT_TYPE_PARAM_NAME + " and n." + COL_NODE_PARENT_ID + " <> "
+			+ TRASH_FOLDER_ID;
 	private static final String USER_OR_GROUP_CLAUSE = "ra." + COL_RESOURCE_ACCESS_GROUP_ID + " = :" + USER_ID_PARAM_NAME + " or ra."
 			+ COL_RESOURCE_ACCESS_GROUP_ID + " in (" + "select " + COL_GROUP_MEMBERS_GROUP_ID + " from " + TABLE_GROUP_MEMBERS + " where "
 			+ COL_GROUP_MEMBERS_MEMBER_ID + " = :" + USER_ID_PARAM_NAME + ")";
 	private static final String FROM_PROJECTS_USER_IN_ACL = TABLE_RESOURCE_ACCESS + " ra" + " join " + TABLE_ACCESS_CONTROL_LIST
 			+ " acl on acl.ID = ra." + COL_RESOURCE_ACCESS_OWNER + " join " + TABLE_NODE + " n on acl." + "OWNER_ID" + " = n." + COL_NODE_ID
 			+ " join " + TABLE_RESOURCE_ACCESS_TYPE + " raa on ra." + COL_RESOURCE_ACCESS_OWNER + " = raa." + COL_RESOURCE_ACCESS_TYPE_OWNER
-			+ " where " + USER_OR_GROUP_CLAUSE + " and n." + COL_NODE_TYPE + " = 2" + " and n." + COL_NODE_PARENT_ID + " <> "
-			+ TRASH_FOLDER_ID;
+			+ " where " + USER_OR_GROUP_CLAUSE + " and n." + COL_NODE_TYPE + " = :" + PROJECT_TYPE_PARAM_NAME + " and n."
+			+ COL_NODE_PARENT_ID + " <> " + TRASH_FOLDER_ID;
 
-	private static final String SELECT_PROJECT_HEADERS_SQL = "select " + SELECT_PROJECTS_FIELDS + " from " + FROM_PROJECTS_CREATED_BY
-			+ " union distinct select " + SELECT_PROJECTS_FIELDS + " from " + FROM_PROJECTS_USER_IN_ACL + " LIMIT :" + LIMIT_PARAM_NAME
-			+ " OFFSET :" + OFFSET_PARAM_NAME;
+	private static final String SELECT_PROJECT_HEADERS_SQL = "select " + SELECT_PROJECTS_FIELDS + ",n." + COL_NODE_CREATED_ON + " from "
+			+ FROM_PROJECTS_CREATED_BY + " union distinct select " + SELECT_PROJECTS_FIELDS + ", n." + COL_NODE_CREATED_ON + " from "
+			+ FROM_PROJECTS_USER_IN_ACL;
+	private static final String SELECT_PROJECT_HEADERS_SORTED_SQL = "select " + SELECT_PROJECTS_FIELDS + " from ("
+			+ SELECT_PROJECT_HEADERS_SQL + ") n left join " + TABLE_PROJECT_STAT + " ps on n." + COL_NODE_ID + " = ps."
+			+ COL_PROJECT_STAT_PROJECT_ID + " and ps." + COL_PROJECT_STAT_USER_ID + " = :" + USER_ID_PARAM_NAME + " ORDER BY ps."
+			+ COL_PROJECT_STAT_LAST_ACCESSED + " DESC, n." + COL_NODE_CREATED_ON + " DESC LIMIT :" + LIMIT_PARAM_NAME + " OFFSET :"
+			+ OFFSET_PARAM_NAME;
+
 	private static final String COUNT_PROJECT_HEADERS_SQL = "select count(*) from (select n." + COL_NODE_ID + " from "
 			+ FROM_PROJECTS_CREATED_BY + " union distinct select n." + COL_NODE_ID + " from " + FROM_PROJECTS_USER_IN_ACL + ") a";
 
@@ -158,6 +169,8 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	@Autowired
 	private DBOBasicDao dboBasicDao;
 
+	private EntityType PROJECT_ENTITY_TYPE;
+
 	private static String BIND_ID_KEY = "bindId";
 	private static String SQL_ETAG_WITHOUT_LOCK = "SELECT "+COL_NODE_ETAG+" FROM "+TABLE_NODE+" WHERE ID = ?";
 	private static String SQL_ETAG_FOR_UPDATE = SQL_ETAG_WITHOUT_LOCK+" FOR UPDATE";
@@ -172,6 +185,11 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static String SQL_COUNT_REVISONS = "SELECT COUNT("
 			+ COL_REVISION_NUMBER+ ") FROM " + TABLE_REVISION + " WHERE "
 			+ COL_REVISION_OWNER_NODE + " = ?";
+
+	@PostConstruct
+	private void getProjectEntityType() {
+		PROJECT_ENTITY_TYPE = EntityType.getNodeTypeForClass(Project.class);
+	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
@@ -223,6 +241,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		// Start it with a new e-tag
 		node.seteTag(UUID.randomUUID().toString());
 		transactionalMessenger.sendMessageAfterCommit(node, ChangeType.CREATE);
+		transactionalMessenger.sendModificationMessageAfterCommit(null, KeyFactory.keyToString(node.getId()));
 
 		// Now create the revision
 		rev.setOwner(node.getId());
@@ -301,9 +320,11 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	@Override
 	public boolean delete(String id) throws NotFoundException, DatastoreException {
 		if(id == null) throw new IllegalArgumentException("NodeId cannot be null");
-		MapSqlParameterSource prams = getNodeParameters(KeyFactory.stringToKey(id));
+		Long longId = KeyFactory.stringToKey(id);
+		MapSqlParameterSource prams = getNodeParameters(longId);
 		// Send a delete message
 		transactionalMessenger.sendMessageAfterCommit(id, ObjectType.ENTITY, ChangeType.DELETE);
+		transactionalMessenger.sendModificationMessageAfterCommit(null, id);
 		return dboBasicDao.deleteObjectByPrimaryKey(DBONode.class, prams);
 	}
 	
@@ -1262,10 +1283,11 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		// get one page of projects
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(USER_ID_PARAM_NAME, principalId);
+		params.addValue(PROJECT_TYPE_PARAM_NAME, PROJECT_ENTITY_TYPE.getId());
 		params.addValue(OFFSET_PARAM_NAME, offset);
 		params.addValue(LIMIT_PARAM_NAME, limit);
 
-		List<ProjectHeader> projectsHeaders = namedParameterJdbcTemplate.query(SELECT_PROJECT_HEADERS_SQL, params,
+		List<ProjectHeader> projectsHeaders = namedParameterJdbcTemplate.query(SELECT_PROJECT_HEADERS_SORTED_SQL, params,
 				new RowMapper<ProjectHeader>() {
 					@Override
 					public ProjectHeader mapRow(ResultSet rs, int rowNum) throws SQLException {
