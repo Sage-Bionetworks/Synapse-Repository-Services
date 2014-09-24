@@ -22,9 +22,11 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.PostMessageContentAccessApproval;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.SelfSignAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -34,11 +36,8 @@ import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.dao.AuthorizationUtils;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.provenance.Activity;
-import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
-import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.query.ParseException;
-import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -261,12 +260,16 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	@Override
 	public boolean canCreateAccessApproval(UserInfo userInfo,
 			AccessApproval accessApproval) {
-		if ((accessApproval instanceof ACTAccessApproval)) {
+		if (accessApproval instanceof ACTAccessApproval) {
 			return isACTTeamMemberOrAdmin(userInfo);
+		} else if (accessApproval instanceof SelfSignAccessApproval) {
+			return true;
 		} else if (accessApproval instanceof TermsOfUseAccessApproval) {
 			return true;
+		} else if (accessApproval instanceof PostMessageContentAccessApproval) {
+			return true;
 		} else {
-			throw new IllegalArgumentException("Unrecognized type: "+accessApproval.getEntityType());
+			throw new IllegalArgumentException("Unrecognized type: "+accessApproval.getClass().getName());
 		}
 	}
 

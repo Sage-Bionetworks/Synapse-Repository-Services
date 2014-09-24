@@ -147,7 +147,7 @@ public class EntityBundleTest {
 		RestrictableObjectDescriptor rod1 = new RestrictableObjectDescriptor(); rod1.setId("101"); rod1.setType(RestrictableObjectType.EVALUATION);
 		RestrictableObjectDescriptor rod2 = new RestrictableObjectDescriptor(); rod1.setId("102"); rod1.setType(RestrictableObjectType.EVALUATION);
 		ar.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod1, rod2}));
-		ar.setEntityType(TermsOfUseAccessRequirement.class.getName());
+		ar.setConcreteType(TermsOfUseAccessRequirement.class.getName());
 		ar.setTermsOfUse("foo");
 		accessRequirements.add(ar);
 		

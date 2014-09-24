@@ -185,7 +185,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		ar.setCreatedOn(new Date());
 		ar.setModifiedBy(userInfo.getId().toString());
 		ar.setModifiedOn(new Date());
-		ar.setEntityType(TermsOfUseAccessRequirement.class.getName());
+		ar.setConcreteType(TermsOfUseAccessRequirement.class.getName());
 		ar.setTermsOfUse("foo");
 		ar = accessRequirementDAO.create(ar);
 		accessRestrictionsToDelete.add(ar.getId().toString());
@@ -485,7 +485,7 @@ public class EvaluationPermissionsManagerImplAutowiredTest {
 		accessRequirement.setAccessType(ACCESS_TYPE.SUBMIT);
 		RestrictableObjectDescriptor erod = createRestrictableObjectDescriptor(evaluationId, RestrictableObjectType.EVALUATION);
 		accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{erod}));
-		accessRequirement.setEntityType("com.sagebionetworks.repo.model.TermsOfUseAccessRequirement");
+		accessRequirement.setConcreteType("com.sagebionetworks.repo.model.TermsOfUseAccessRequirement");
 		accessRequirement.setTermsOfUse("foo");
 		return accessRequirement;
 	}

@@ -507,4 +507,10 @@ public class AuthorizationManagerImplUnitTest {
 		// make the call
 		assertTrue(this.authorizationManager.canUserStartJob(userInfo, body));
 	}
+	
+	@Test
+	public void testCanCreateToUAccessApproval() throws Exception {
+		TermsOfUseAccessApproval accessApproval = new TermsOfUseAccessApproval();
+		this.authorizationManager.canCreateAccessApproval(userInfo, accessApproval);
+	}
 }

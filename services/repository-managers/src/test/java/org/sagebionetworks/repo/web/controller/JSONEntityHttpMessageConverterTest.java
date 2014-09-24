@@ -134,7 +134,7 @@ public class JSONEntityHttpMessageConverterTest {
 		ExampleEntity entity = new ExampleEntity();
 		entity.setName("name");
 		// this version requires a class name fo the entity type.
-		entity.setEntityType(null);
+		entity.setConcreteType(null);
 		entity.setDoubleList(new ArrayList<Double>());
 		entity.getDoubleList().add(123.45);
 		entity.getDoubleList().add(4.56);
@@ -151,7 +151,7 @@ public class JSONEntityHttpMessageConverterTest {
 	@Test (expected=IllegalArgumentException.class)
 	public void testCreateEntityFromeAdapterClassNotFound() throws JSONObjectAdapterException{
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
-		adapter.put("entityType", "org.sagebionetworks.FakeClass");
+		adapter.put("concreteType", "org.sagebionetworks.FakeClass");
 		JSONEntityHttpMessageConverter.createEntityFromeAdapter(adapter);
 	}
 

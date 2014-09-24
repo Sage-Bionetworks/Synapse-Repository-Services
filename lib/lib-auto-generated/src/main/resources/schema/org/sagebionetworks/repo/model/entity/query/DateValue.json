@@ -1,0 +1,15 @@
+{
+	"description": "Use for Date values.",
+	"type": "object",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.entity.query.Value"
+		}
+	],
+	"properties":{
+        "value": {
+			"type": "string",
+			"format": "date-time"
+		}
+    }
+}

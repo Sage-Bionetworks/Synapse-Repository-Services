@@ -72,6 +72,8 @@ import org.sagebionetworks.repo.model.auth.Username;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
 import org.sagebionetworks.repo.model.doi.Doi;
+import org.sagebionetworks.repo.model.entity.query.EntityQuery;
+import org.sagebionetworks.repo.model.entity.query.EntityQueryResults;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
 import org.sagebionetworks.repo.model.file.ChunkResult;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
@@ -171,7 +173,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	
 	private static final String PARAM_GENERATED_BY = "generatedBy";
 
-	private static final String QUERY_URI = "/query?query=";
+	private static final String QUERY = "/query";
+	private static final String QUERY_URI = QUERY+"?query=";
 	private static final String REPO_SUFFIX_VERSION = "/version";
 	private static final String ANNOTATION_URI_SUFFIX = "annotations";
 	protected static final String ADMIN = "/admin";
@@ -809,7 +812,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throws SynapseException {
 		if (entity == null)
 			throw new IllegalArgumentException("Entity cannot be null");
-		entity.setEntityType(entity.getClass().getName());
+		entity.setConcreteType(entity.getClass().getName());
 		String uri = ENTITY_URI_PATH;
 		if(activityId != null) 
 			uri += "?" + PARAM_GENERATED_BY + "=" + activityId;		
@@ -1333,7 +1336,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public <T extends AccessRequirement> T createAccessRequirement(T ar) throws SynapseException {
 		
 		if (ar==null) throw new IllegalArgumentException("AccessRequirement cannot be null");
-		ar.setEntityType(ar.getClass().getName());
+		ar.setConcreteType(ar.getClass().getName());
 		// Get the json for this entity
 		JSONObject jsonObject;
 		try {
@@ -1341,7 +1344,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			// Create the entity
 			jsonObject = createJSONObject(ACCESS_REQUIREMENT, jsonObject);
 			// Now convert to Object to an entity
-			return (T)initializeFromJSONObject(jsonObject, getAccessRequirementClassFromType(ar.getEntityType()));
+			return (T)initializeFromJSONObject(jsonObject, getAccessRequirementClassFromType(ar.getConcreteType()));
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseClientException(e);
 		}
@@ -1356,7 +1359,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		try {
 			JSONObject toUpdateJsonObject = EntityFactory.createJSONObjectForEntity(ar);
 			JSONObject updatedJsonObject = getSharedClientConnection().putJson(repoEndpoint, url, toUpdateJsonObject.toString(), getUserAgent());
-			return (T)initializeFromJSONObject(updatedJsonObject, getAccessRequirementClassFromType(ar.getEntityType()));
+			return (T)initializeFromJSONObject(updatedJsonObject, getAccessRequirementClassFromType(ar.getConcreteType()));
 		} catch (JSONObjectAdapterException e1) {
 			throw new RuntimeException(e1);
 		}		
@@ -1434,7 +1437,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	public <T extends AccessApproval> T createAccessApproval(T aa) throws SynapseException {
 		
 		if (aa==null) throw new IllegalArgumentException("AccessApproval cannot be null");		
-		aa.setEntityType(aa.getClass().getName());
+		aa.setConcreteType(aa.getClass().getName());
 		// Get the json for this entity
 		JSONObject jsonObject;
 		try {
@@ -1442,7 +1445,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			// Create the entity
 			jsonObject = createJSONObject(ACCESS_APPROVAL, jsonObject);
 			// Now convert to Object to an entity
-			return (T)initializeFromJSONObject(jsonObject, getAccessApprovalClassFromType(aa.getEntityType()));
+			return (T)initializeFromJSONObject(jsonObject, getAccessApprovalClassFromType(aa.getConcreteType()));
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseClientException(e);
 		}
@@ -3739,6 +3742,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throw new SynapseClientException(e);
 		}
 	}
+	
+	
 	
 	/**
 	 * @return status
@@ -6067,6 +6072,11 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseClientException(e);
 		}
+	}
+
+	@Override
+	public EntityQueryResults entityQuery(EntityQuery query) throws SynapseException {
+		return asymmetricalPost(getRepoEndpoint(), QUERY, query, EntityQueryResults.class, null);
 	}
 
 }

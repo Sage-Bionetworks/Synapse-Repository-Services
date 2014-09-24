@@ -167,7 +167,7 @@ public class DBOAccessApprovalDAOImplTest {
 		accessApproval.setEtag("10");
 		accessApproval.setAccessorId(principal.getId());
 		accessApproval.setRequirementId(ar.getId());
-		accessApproval.setEntityType("com.sagebionetworks.repo.model.TermsOfUseAccessApproval");
+		accessApproval.setConcreteType("com.sagebionetworks.repo.model.TermsOfUseAccessApproval");
 		return accessApproval;
 	}
 	
@@ -280,7 +280,7 @@ public class DBOAccessApprovalDAOImplTest {
 		// update it
 		clone = ars.iterator().next();
 		AccessApproval updatedAA = accessApprovalDAO.update(clone);
-		assertEquals(((TermsOfUseAccessApproval)clone).getEntityType(), ((TermsOfUseAccessApproval)updatedAA).getEntityType());
+		assertEquals(((TermsOfUseAccessApproval)clone).getConcreteType(), ((TermsOfUseAccessApproval)updatedAA).getConcreteType());
 		assertTrue("etags should be different after an update", !clone.getEtag().equals(updatedAA.getEtag()));
 
 		try {

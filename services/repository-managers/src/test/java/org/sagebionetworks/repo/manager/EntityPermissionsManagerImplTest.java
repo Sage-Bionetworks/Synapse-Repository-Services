@@ -586,7 +586,7 @@ public class EntityPermissionsManagerImplTest {
 		rod.setId(project.getId());
 		rod.setType(RestrictableObjectType.ENTITY);
 		ar.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod}));
-		ar.setEntityType(ar.getClass().getName());
+		ar.setConcreteType(ar.getClass().getName());
 		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		ar.setTermsOfUse("foo");
 		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
@@ -619,7 +619,7 @@ public class EntityPermissionsManagerImplTest {
 		rod.setId(project.getId());
 		rod.setType(RestrictableObjectType.ENTITY);
 		ar.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod}));
-		ar.setEntityType(ar.getClass().getName());
+		ar.setConcreteType(ar.getClass().getName());
 		ar.setAccessType(ACCESS_TYPE.UPLOAD);
 		ar.setTermsOfUse("foo");
 		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);

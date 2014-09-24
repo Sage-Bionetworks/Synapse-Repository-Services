@@ -184,9 +184,9 @@ public class UserProfileController extends BaseController {
 	}
 
 	/**
-	 * Get Users and Groups by name or email.
+	 * Get Users and Groups by name.
 	 * 
-	 * @param prefixFilter The name or email to search for.
+	 * @param prefixFilter The name to search for.
 	 * @param offset
 	 *         The offset index determines where this page will start from. An index of 0 is the first item. <p><i>Default is 0</i></p> 
 	 * @param limit
