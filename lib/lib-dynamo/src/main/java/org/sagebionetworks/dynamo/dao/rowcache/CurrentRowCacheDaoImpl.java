@@ -5,6 +5,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedSet;
+import java.util.concurrent.ThreadLocalRandom;
 
 import org.sagebionetworks.collections.Transform;
 import org.sagebionetworks.collections.Transform.TransformEntry;
@@ -12,8 +13,6 @@ import org.sagebionetworks.dynamo.config.DynamoConfig;
 import org.sagebionetworks.dynamo.dao.DynamoDaoBaseImpl;
 import org.sagebionetworks.repo.model.table.CurrentRowCacheStatus;
 import org.sagebionetworks.util.Clock;
-import org.sagebionetworks.util.DefaultClock;
-import org.sagebionetworks.util.TimeUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.dynamodb.AmazonDynamoDB;
@@ -27,17 +26,22 @@ import com.amazonaws.services.dynamodb.model.AttributeValue;
 import com.amazonaws.services.dynamodb.model.ComparisonOperator;
 import com.amazonaws.services.dynamodb.model.Condition;
 import com.amazonaws.services.dynamodb.model.ConditionalCheckFailedException;
+import com.amazonaws.services.dynamodb.model.ProvisionedThroughputExceededException;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 public class CurrentRowCacheDaoImpl extends DynamoDaoBaseImpl implements CurrentRowCacheDao {
 
-	DynamoDBMapper mapper;
-	DynamoDBMapper statusMapper;
+	private static final int MAX_RETRIES = 5;
+	private static final long BACK_OFF_MS = 10000;
+	
+	private final DynamoDBMapper mapper;
+	private final DynamoDBMapper statusMapper;
 
 	@Autowired
 	private Clock clock;
@@ -55,7 +59,6 @@ public class CurrentRowCacheDaoImpl extends DynamoDaoBaseImpl implements Current
 			return ComparisonChain.start().compare(o1.getHashKey(), o2.getHashKey()).result();
 		}
 	};
-
 	public CurrentRowCacheDaoImpl(AmazonDynamoDB dynamoClient) {
 		super(dynamoClient);
 		mapper = new DynamoDBMapper(dynamoClient, DynamoConfig.getDynamoDBMapperConfigFor(DboCurrentRowCache.class));
@@ -109,7 +112,23 @@ public class CurrentRowCacheDaoImpl extends DynamoDaoBaseImpl implements Current
 						return dboCreate(tableId, entry.getKey(), entry.getValue());
 					}
 				});
-		mapper.batchSave(toUpdate);
+		// we are seeing problems with using batch save directly. There is no backoff between the (hardcoded) 25 rows
+		// updates. We add a simple backoff at this level.
+		int retries = 0;
+		for (List<DboCurrentRowCache> batch : Lists.partition(toUpdate, 25)) {
+			for (;;) {
+				try {
+					mapper.batchSave(batch);
+					break;
+				} catch (ProvisionedThroughputExceededException e) {
+					if (retries > MAX_RETRIES) {
+						throw e;
+					}
+					retries++;
+					clock.sleepNoInterrupt(BACK_OFF_MS * retries + ThreadLocalRandom.current().nextLong((BACK_OFF_MS * retries) / 2));
+				}
+			}
+		}
 	}
 
 	@Override
