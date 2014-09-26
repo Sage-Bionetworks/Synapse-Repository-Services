@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableStatus;
+import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
@@ -205,6 +206,11 @@ public class TableWorker implements Callable<List<Message>> {
 			// We are finished set the status
 			tableRowManager.attemptToSetTableStatusToAvailable(tableId,	tableResetToken, lastEtag);
 			return State.SUCCESS;
+		} catch (TableUnavilableException e) {
+			// recoverable
+			tableRowManager.attemptToUpdateTableProgress(tableId, tableResetToken, e.getStatus().getProgressMessage(), e.getStatus()
+					.getProgressCurrent(), e.getStatus().getProgressTotal());
+			return State.RECOVERABLE_FAILURE;
 		} catch (Exception e) {
 			// Failed.
 			// Get the stack trace.
@@ -230,10 +236,10 @@ public class TableWorker implements Callable<List<Message>> {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 * @throws IOException
+	 * @throws TableUnavilableException
 	 */
-	String synchIndexWithTable(TableIndexDAO indexDao,
-			String tableId, String resetToken, Message message) throws DatastoreException, NotFoundException,
-			IOException {
+	String synchIndexWithTable(TableIndexDAO indexDao, String tableId, String resetToken, Message message) throws DatastoreException,
+			NotFoundException, IOException, TableUnavilableException {
 		// The first task is to get the table schema in-synch.
 		// Get the current schema of the table.
 		List<ColumnModel> currentSchema = tableRowManager.getColumnModelsForTable(tableId);
