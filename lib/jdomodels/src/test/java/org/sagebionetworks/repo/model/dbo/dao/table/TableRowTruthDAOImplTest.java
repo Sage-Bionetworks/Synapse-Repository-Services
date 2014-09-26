@@ -450,7 +450,7 @@ public class TableRowTruthDAOImplTest {
 	}
 	
 	@Test
-	public void testAppendRowsUpdateAndGetLatest() throws IOException, NotFoundException {
+	public void testAppendRowsUpdateAndGetLatest() throws Exception {
 		Map<Long, Long> rowVersions = Maps.newHashMap();
 		// Create some test column models
 		List<ColumnModel> models = TableModelTestUtils.createOneOfEachType();
@@ -553,6 +553,30 @@ public class TableRowTruthDAOImplTest {
 		for (RowAccessor row : latestVersions.getRows()) {
 			assertEquals(row.getRow().getVersionNumber(), rowVersions.get(row.getRow().getRowId()));
 		}
+	}
+
+	@Test
+	public void testCacheBehindCheck() throws Exception {
+		Map<Long, Long> rowVersions = Maps.newHashMap();
+		// Create some test column models
+		List<ColumnModel> models = TableModelTestUtils.createOneOfEachType();
+		// create some test rows.
+		String tableId = "syn123";
+		// Append this change set
+		for (int i = 0; i < 3; i++) {
+			RowSet set = new RowSet();
+			set.setHeaders(TableModelUtils.getHeaders(models));
+			set.setRows(TableModelTestUtils.createRows(models, 5));
+			set.setTableId(tableId);
+			RowReferenceSet refSet = tableRowTruthDao.appendRowSetToTable(creatorUserGroupId, tableId, models, set, false);
+			for (RowReference ref : refSet.getRows()) {
+				rowVersions.put(ref.getRowId(), ref.getVersionNumber());
+			}
+		}
+
+		// call all latest versions before cache is up to date
+		Map<Long, Long> latestVersionsMap = tableRowTruthDao.getLatestVersions(tableId, 0, 0L, 1000L);
+		assertEquals(rowVersions, latestVersionsMap);
 	}
 
 	@Test

@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -86,4 +87,10 @@ public class TableRowTruthDAOImplWithCacheTest extends TableRowTruthDAOImplTest 
 		tableRowTruthDao.getRowSetOriginals(refs);
 		assertEquals(1, ((RowCacheDaoStub) rowCacheDao).rows.values().size());
 	}
+
+	@Test(expected = TableUnavilableException.class)
+	public void testCacheBehindCheck() throws Exception {
+		super.testCacheBehindCheck();
+	}
+
 }

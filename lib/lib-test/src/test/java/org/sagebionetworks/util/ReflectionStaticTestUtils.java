@@ -2,6 +2,8 @@ package org.sagebionetworks.util;
 
 import java.lang.reflect.Field;
 
+import org.springframework.aop.framework.Advised;
+import org.springframework.aop.support.AopUtils;
 import org.springframework.util.ReflectionUtils;
 
 public class ReflectionStaticTestUtils {
@@ -15,5 +17,14 @@ public class ReflectionStaticTestUtils {
 		}
 		ReflectionUtils.makeAccessible(field);
 		ReflectionUtils.setField(field, null, value);
+	}
+
+	@SuppressWarnings("unchecked")
+	public static <T> T getTargetObject(T proxy) throws Exception {
+		if (AopUtils.isJdkDynamicProxy(proxy)) {
+			return (T) ((Advised) proxy).getTargetSource().getTarget();
+		} else {
+			return proxy;
+		}
 	}
 }
