@@ -40,8 +40,10 @@ import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
+import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ProgressCallback;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -86,7 +88,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			+ " WHERE "
 			+ COL_TABLE_ROW_TABLE_ID
 			+ " = ? ORDER BY " + COL_TABLE_ROW_VERSION + " ASC";
-	private static final String SQL_SELECT_ALL_ROW_CHANGES_FOR_TABLE_GREATER_VERSION = "SELECT * FROM "
+	private static final String SQL_ALL_ROW_CHANGES_FOR_TABLE_GREATER_VERSION_BASE = "FROM "
 			+ TABLE_ROW_CHANGE
 			+ " WHERE "
 			+ COL_TABLE_ROW_TABLE_ID
@@ -94,6 +96,10 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			+ COL_TABLE_ROW_VERSION
 			+ " > ? ORDER BY "
 			+ COL_TABLE_ROW_VERSION + " ASC";
+	private static final String SQL_SELECT_ALL_ROW_CHANGES_FOR_TABLE_GREATER_VERSION = "SELECT * "
+			+ SQL_ALL_ROW_CHANGES_FOR_TABLE_GREATER_VERSION_BASE;
+	private static final String SQL_COUNT_ALL_ROW_CHANGES_FOR_TABLE_GREATER_VERSION = "SELECT COUNT(*) "
+			+ SQL_ALL_ROW_CHANGES_FOR_TABLE_GREATER_VERSION_BASE;
 	private static final String SQL_DELETE_ROW_DATA_FOR_TABLE = "DELETE FROM " + TABLE_ROW_CHANGE + " WHERE " + COL_TABLE_ROW_TABLE_ID
 			+ " = ?";
 	private static final String KEY_TEMPLATE = "%1$s.csv.gz";
@@ -385,6 +391,14 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	}
 
 	@Override
+	public int countRowSetsForTableGreaterThanVersion(String tableIdString, long versionNumber) {
+		ValidateArgument.required(tableIdString, "TableId");
+		long tableId = KeyFactory.stringToKey(tableIdString);
+		int count = jdbcTemplate.queryForObject(SQL_COUNT_ALL_ROW_CHANGES_FOR_TABLE_GREATER_VERSION, Integer.class, tableId, versionNumber);
+		return count;
+	}
+
+	@Override
 	public TableRowChange getTableRowChange(String tableIdString,
 			long rowVersion) throws NotFoundException {
 		if (tableIdString == null)
@@ -655,7 +669,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 
 	@Override
 	public Map<Long, Long> getLatestVersions(String tableId, final long minVersion, final long rowIdOffset, final long limit)
-			throws IOException, NotFoundException {
+			throws IOException, NotFoundException, TableUnavilableException {
 		final Map<Long, Long> rowVersions = Maps.newHashMap();
 
 		List<TableRowChange> rowChanges = listRowSetsKeysForTableGreaterThanVersion(tableId, minVersion - 1);

@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
+import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ProgressCallback;
 
@@ -155,9 +156,10 @@ public interface TableRowTruthDAO {
 	 * @return
 	 * @throws IOException
 	 * @throws NotFoundException
+	 * @throws TableUnavilableException
 	 */
 	public Map<Long, Long> getLatestVersions(String tableId, long minVersion, long rowIdOffset, long limit) throws IOException,
-			NotFoundException;
+			NotFoundException, TableUnavilableException;
 
 	/**
 	 * List the keys of all change sets applied to a table.
@@ -174,17 +176,26 @@ public interface TableRowTruthDAO {
 	 * 
 	 * @param tableId
 	 * @param version
-	 * @param ascending
 	 * @return
 	 */
 	public List<TableRowChange> listRowSetsKeysForTableGreaterThanVersion(String tableId, long version);
 	
 	/**
+	 * Count all changes for a table with a version number greater than the given value (exclusive).
+	 * 
+	 * @param tableId
+	 * @param version
+	 * @return
+	 */
+	public int countRowSetsForTableGreaterThanVersion(String tableId, long version);
+
+	/**
 	 * Get the TableRowChange for a given tableId and row version number.
+	 * 
 	 * @param tableId
 	 * @param rowVersion
 	 * @return
-	 * @throws NotFoundException 
+	 * @throws NotFoundException
 	 */
 	public TableRowChange getTableRowChange(String tableId, long rowVersion) throws NotFoundException;
 

@@ -172,9 +172,10 @@ public interface TableRowManager {
 	 * @return
 	 * @throws IOException
 	 * @throws NotFoundException
+	 * @throws TableUnavilableException
 	 */
 	public Map<Long, Long> getCurrentRowVersions(String tableId, Long minVersion, long rowIdOffset, long limit) throws IOException,
-			NotFoundException;
+			NotFoundException, TableUnavilableException;
 
 	/**
 	 * Get the last table row change

@@ -372,7 +372,47 @@ public class TableWorkerTest {
 	}
 	
 	/**
+	 * When a lock cannot be acquired, the message should remain on the queue as this is a recoverable failure.
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void testCacheBehindException() throws Exception {
+		String tableId = "456";
+		String resetToken = "reset-token";
+		TableStatus status = new TableStatus();
+		status.setResetToken(resetToken);
+		List<ColumnModel> currentSchema = Lists.newArrayList();
+		when(mockTableRowManager.getColumnModelsForTable(tableId)).thenReturn(currentSchema);
+		when(mockTableRowManager.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
+		when(mockTableIndexDAO.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(-1L);
+		when(mockTableRowManager.getCurrentRowVersions(tableId, 0L, 0L, 16000L)).thenReturn(Collections.singletonMap(0L, 0L));
+		TableRowChange trc = new TableRowChange();
+		trc.setEtag("etag");
+		trc.setRowVersion(0L);
+		when(mockTableRowManager.getLastTableRowChange(tableId)).thenReturn(trc);
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(Collections.singletonList(TableModelTestUtils.createRow(0L, 0L, "2")));
+		when(mockTableRowManager.getRowSet(tableId, 0L, Collections.singleton(0L))).thenReturn(rowSet);
+		Message two = MessageUtils.buildMessage(ChangeType.UPDATE, tableId, ObjectType.TABLE, resetToken);
+		List<Message> messages = Arrays.asList(two);
+		// Create the worker
+		TableWorker worker = createNewWorker(messages);
+		// Make the call
+		List<Message> results = worker.call();
+		assertNotNull(results);
+		assertEquals("The message should not have been returned since this is a recoverable failure", 0, results.size());
+		// The connection factory should be called
+		verify(mockTableConnectionFactory, times(1)).getConnection(anyString());
+		// The status should get set to available
+		verify(mockTableRowManager, times(1)).attemptToSetTableStatusToAvailable(tableId, resetToken, "etag");
+		verify(mockTableIndexDAO).createOrUpdateOrDeleteRows(rowSet, currentSchema);
+		verify(mockTableIndexDAO).setMaxCurrentCompleteVersionForTable(tableId, 0L);
+	}
+
+	/**
 	 * An InterruptedException thrown while waiting for lock should be treated asn a recoverable exception.
+	 * 
 	 * @throws Exception
 	 */
 	@Test

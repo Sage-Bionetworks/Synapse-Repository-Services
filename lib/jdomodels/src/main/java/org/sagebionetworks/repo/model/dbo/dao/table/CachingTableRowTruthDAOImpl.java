@@ -23,6 +23,8 @@ import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
+import org.sagebionetworks.repo.model.table.TableStatus;
+import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,6 +43,8 @@ import com.google.common.collect.Sets;
  * 
  */
 public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
+	private static final int MAX_CACHE_BEHIND = 2;
+
 	private static Logger log = LogManager.getLogger(CachingTableRowTruthDAOImpl.class);
 
 	@Autowired
@@ -229,6 +233,30 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 		}
 	}
 
+	/**
+	 * The current cache is uptodate enough if we are only a few row sets behind. Reasoning: too far behind, means we
+	 * need to read too many S3 files and potentially run make it a very expensive operation. We don't want to wait
+	 * until we are fully uptodate, because then we might never get there if the table is consistently being updated.
+	 * This way, at most MAX_CACHE_BEHIND S3 files will be read twice, but we can use the table even when the cache is a
+	 * bit behind
+	 */
+	private void verifyCurrentCacheUptodateEnough(String tableIdString) throws TableUnavilableException {
+		if (tableRowCache.isEnabled()) {
+			Long tableId = KeyFactory.stringToKey(tableIdString);
+			CurrentRowCacheStatus currentStatus = tableRowCache.getLatestCurrentVersionNumber(tableId);
+			long lastCachedVersion = currentStatus.getLatestCachedVersionNumber() == null ? -1 : currentStatus.getLatestCachedVersionNumber();
+			// this number represents the number of rowsets that the cache is behind on the current stata
+			int rowSetsBehind = super.countRowSetsForTableGreaterThanVersion(tableIdString, lastCachedVersion);
+			if (rowSetsBehind > MAX_CACHE_BEHIND) {
+				TableStatus status = new TableStatus();
+				status.setProgressMessage("Still caching current versions for " + rowSetsBehind + " rows");
+				status.setProgressCurrent((long) rowSetsBehind);
+				status.setProgressTotal(0L);
+				throw new TableUnavilableException(status);
+			}
+		}
+	}
+
 	@Override
 	public RowSetAccessor getLatestVersionsWithRowData(String tableIdString, Set<Long> rowIds, long minVersion) throws IOException {
 		try {
@@ -311,9 +339,11 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 
 	@Override
 	public Map<Long, Long> getLatestVersions(String tableIdString, long minVersion, long rowIdOffset, long limit) throws IOException,
-			NotFoundException {
+			NotFoundException, TableUnavilableException {
 		try {
 			if (tableRowCache.isEnabled()) {
+				verifyCurrentCacheUptodateEnough(tableIdString);
+
 				Long tableId = KeyFactory.stringToKey(tableIdString);
 				// Lookup the version number for this update.
 				CurrentRowCacheStatus currentStatus = tableRowCache.getLatestCurrentVersionNumber(tableId);
@@ -328,6 +358,8 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 				lastestVersionsFromCache.putAll(lastestVersionsFromS3);
 				return lastestVersionsFromCache;
 			}
+		} catch (TableUnavilableException e) {
+			throw e;
 		} catch (Exception e) {
 			log.error("Error getting latest from cache: " + e.getMessage(), e);
 		}

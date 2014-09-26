@@ -381,7 +381,7 @@ public class TableRowManagerImpl implements TableRowManager {
 
 	@Override
 	public Map<Long, Long> getCurrentRowVersions(String tableId, Long minVersion, long rowIdOffset, long limit) throws IOException,
-			NotFoundException {
+			NotFoundException, TableUnavilableException {
 		return tableRowTruthDao.getLatestVersions(tableId, minVersion, rowIdOffset, limit);
 	}
 
