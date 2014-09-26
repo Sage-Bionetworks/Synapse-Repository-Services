@@ -35,6 +35,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableStatus;
+import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
@@ -382,11 +383,14 @@ public class TableWorkerTest {
 		String resetToken = "reset-token";
 		TableStatus status = new TableStatus();
 		status.setResetToken(resetToken);
+		status.setProgressMessage("going");
+		status.setProgressCurrent(2L);
+		status.setProgressTotal(3L);
 		List<ColumnModel> currentSchema = Lists.newArrayList();
 		when(mockTableRowManager.getColumnModelsForTable(tableId)).thenReturn(currentSchema);
 		when(mockTableRowManager.getTableStatusOrCreateIfNotExists(tableId)).thenReturn(status);
 		when(mockTableIndexDAO.getMaxCurrentCompleteVersionForTable(tableId)).thenReturn(-1L);
-		when(mockTableRowManager.getCurrentRowVersions(tableId, 0L, 0L, 16000L)).thenReturn(Collections.singletonMap(0L, 0L));
+		when(mockTableRowManager.getCurrentRowVersions(tableId, 0L, 0L, 16000L)).thenThrow(new TableUnavilableException(status));
 		TableRowChange trc = new TableRowChange();
 		trc.setEtag("etag");
 		trc.setRowVersion(0L);
@@ -405,9 +409,7 @@ public class TableWorkerTest {
 		// The connection factory should be called
 		verify(mockTableConnectionFactory, times(1)).getConnection(anyString());
 		// The status should get set to available
-		verify(mockTableRowManager, times(1)).attemptToSetTableStatusToAvailable(tableId, resetToken, "etag");
-		verify(mockTableIndexDAO).createOrUpdateOrDeleteRows(rowSet, currentSchema);
-		verify(mockTableIndexDAO).setMaxCurrentCompleteVersionForTable(tableId, 0L);
+		verify(mockTableRowManager, times(1)).attemptToUpdateTableProgress(tableId, resetToken, "going", 2L, 3L);
 	}
 
 	/**
