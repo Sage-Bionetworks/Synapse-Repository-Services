@@ -37,6 +37,14 @@
 				"UPDATE",
 				"DELETE"
 			]
+		},
+		"isModification": {
+			"type": "boolean",
+			"description": "true, if this message is for a modification only"
+		},
+		"modificationInfo": {
+			"$ref": "org.sagebionetworks.repo.model.message.ModificationInfo",
+			"description": "optional info for modifications"
 		}
 	}
 }

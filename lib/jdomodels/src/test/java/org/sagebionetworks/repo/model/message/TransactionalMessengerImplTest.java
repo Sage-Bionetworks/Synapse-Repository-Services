@@ -232,81 +232,10 @@ public class TransactionalMessengerImplTest {
 		
 	}
 
-	@Test(expected = IllegalArgumentException.class)
-	public void testModificationMessageKeyNull() {
-		new ModificationMessageKey(null);
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testModificationMessageKeyNullId() {
-		new ModificationMessageKey(new ModificationMessage());
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testModificationMessageKeyNullUser() {
-		ModificationMessage message = new ModificationMessage();
-		message.setUserId(null);
-		message.setProjectId(0L);
-		message.setEntityId(null);
-		new ModificationMessageKey(message);
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testModificationMessageKeyDuplicateIds() {
-		ModificationMessage message = new ModificationMessage();
-		message.setUserId(0L);
-		message.setProjectId(0L);
-		message.setEntityId("0L");
-		new ModificationMessageKey(message);
-	}
-
-	@Test(expected = IllegalArgumentException.class)
-	public void testModificationMessageKeyNoIds() {
-		ModificationMessage message = new ModificationMessage();
-		message.setUserId(0L);
-		message.setProjectId(null);
-		message.setEntityId(null);
-		new ModificationMessageKey(message);
-	}
-
-	@Test
-	public void testModificationMessageKeyEquals() {
-		ModificationMessage message = new ModificationMessage();
-		message.setProjectId(123L);
-		message.setUserId(100L);
-		message.setEntityId(null);
-		// Create the first key
-		ModificationMessageKey one = new ModificationMessageKey(message);
-		// Create the second key
-		message = new ModificationMessage();
-		message.setProjectId(123L);
-		message.setUserId(100L);
-		message.setEntityId(null);
-		ModificationMessageKey two = new ModificationMessageKey(message);
-		assertEquals(one, two);
-		// Third is not equals
-		message = new ModificationMessage();
-		message.setProjectId(456L);
-		message.setUserId(100L);
-		message.setEntityId(null);
-		ModificationMessageKey thrid = new ModificationMessageKey(message);
-		assertFalse(thrid.equals(two));
-		assertFalse(two.equals(thrid));
-
-		// fourth is not equals
-		message = new ModificationMessage();
-		message.setProjectId(456L);
-		message.setUserId(200L);
-		message.setEntityId(null);
-		ModificationMessageKey forth = new ModificationMessageKey(message);
-		assertFalse(forth.equals(two));
-		assertFalse(two.equals(forth));
-	}
-
 	@Test
 	public void testSendModificationMessageNothingHappensWithoutId() {
 		// Send the message
-		messenger.sendModificationMessageAfterCommit(123L, null);
+		messenger.sendModificationMessageAfterCommit("123", ObjectType.ENTITY);
 		assertNotNull(stubProxy.getSynchronizations());
 		assertEquals(0, stubProxy.getSynchronizations().size());
 	}
@@ -316,7 +245,7 @@ public class TransactionalMessengerImplTest {
 		ThreadLocalProvider.getInstance(AuthorizationConstants.USER_ID_PARAM, Long.class).set(
 				BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		// Send the message
-		messenger.sendModificationMessageAfterCommit(123L, null);
+		messenger.sendModificationMessageAfterCommit("123", ObjectType.ENTITY);
 		assertNotNull(stubProxy.getSynchronizations());
 		assertEquals(0, stubProxy.getSynchronizations().size());
 	}
@@ -325,51 +254,24 @@ public class TransactionalMessengerImplTest {
 	public void testSendModificationMessage() {
 		ThreadLocalProvider.getInstance(AuthorizationConstants.USER_ID_PARAM, Long.class).set(100L);
 		// Send the message
-		messenger.sendModificationMessageAfterCommit(123L, null);
+		messenger.sendModificationMessageAfterCommit("123", ObjectType.ENTITY);
 		assertNotNull(stubProxy.getSynchronizations());
 		assertEquals(1, stubProxy.getSynchronizations().size());
 		// Simulate the before commit
 		stubProxy.getSynchronizations().get(0).beforeCommit(true);
-		ModificationMessage message = new ModificationMessage();
-		message.setProjectId(123L);
-		message.setUserId(100L);
+		ChangeMessage message = new ChangeMessage();
+		message.setObjectId("123");
+		message.setObjectType(ObjectType.ENTITY);
 		message.setTimestamp(testClock.now());
+		message.setIsModification(true);
+		ModificationInfo modificationInfo = new ModificationInfo();
+		modificationInfo.setUserId(100L);
+		message.setModificationInfo(modificationInfo);
 		// Simulate the after commit
 		stubProxy.getSynchronizations().get(0).afterCommit();
 		// Verify that the one message was fired.
 		verify(mockObserver, times(1)).fireModificationMessage(message);
 		// It should only be called once total!
-		verify(mockObserver, times(1)).fireModificationMessage(any(ModificationMessage.class));
-	}
-
-	@Test
-	public void testSendModificationMessageTwice() throws JSONObjectAdapterException {
-		ThreadLocalProvider.getInstance(AuthorizationConstants.USER_ID_PARAM, Long.class).set(100L);
-
-		ModificationMessage first = new ModificationMessage();
-		first.setProjectId(123L);
-		first.setUserId(100L);
-		first.setTimestamp(testClock.now());
-
-		// Send the message first message
-		messenger.sendModificationMessageAfterCommit(123L, null);
-		testClock.warpForward(1000);
-		messenger.sendModificationMessageAfterCommit(123L, null);
-
-		assertNotNull(stubProxy.getSynchronizations());
-		assertEquals(1, stubProxy.getSynchronizations().size());
-
-		ModificationMessage second = new ModificationMessage();
-		second.setProjectId(123L);
-		second.setUserId(100L);
-		second.setTimestamp(testClock.now());
-
-		// Simulate the before commit
-		stubProxy.getSynchronizations().get(0).beforeCommit(true);
-		// Simulate the after commit
-		stubProxy.getSynchronizations().get(0).afterCommit();
-		// The second message should get sent but not the first
-		verify(mockObserver, times(1)).fireModificationMessage(second);
-		verify(mockObserver, never()).fireModificationMessage(first);
+		verify(mockObserver, times(1)).fireModificationMessage(any(ChangeMessage.class));
 	}
 }

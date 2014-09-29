@@ -241,7 +241,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		// Start it with a new e-tag
 		node.seteTag(UUID.randomUUID().toString());
 		transactionalMessenger.sendMessageAfterCommit(node, ChangeType.CREATE);
-		transactionalMessenger.sendModificationMessageAfterCommit(null, KeyFactory.keyToString(node.getId()));
+		transactionalMessenger.sendModificationMessageAfterCommit(KeyFactory.keyToString(node.getId()), ObjectType.ENTITY);
 
 		// Now create the revision
 		rev.setOwner(node.getId());
@@ -324,7 +324,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		MapSqlParameterSource prams = getNodeParameters(longId);
 		// Send a delete message
 		transactionalMessenger.sendMessageAfterCommit(id, ObjectType.ENTITY, ChangeType.DELETE);
-		transactionalMessenger.sendModificationMessageAfterCommit(null, id);
+		transactionalMessenger.sendModificationMessageAfterCommit(id, ObjectType.ENTITY);
 		return dboBasicDao.deleteObjectByPrimaryKey(DBONode.class, prams);
 	}
 	

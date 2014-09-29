@@ -36,7 +36,7 @@ public interface TransactionalMessenger {
 	/**
 	 * Send a modification message after the current transaction commits
 	 */
-	public void sendModificationMessageAfterCommit(Long projectId, String entityId);
+	public void sendModificationMessageAfterCommit(String objectId, ObjectType objectType);
 
 	/**
 	 * Register an observer that will be notified when there is a message after a commit.

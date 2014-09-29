@@ -3,15 +3,12 @@ package org.sagebionetworks.projectstats.worker;
 import java.util.LinkedList;
 import java.util.List;
 
-import javax.annotation.PostConstruct;
-
+import org.apache.commons.lang.BooleanUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.asynchronous.workers.sqs.Worker;
 import org.sagebionetworks.asynchronous.workers.sqs.WorkerProgress;
-import org.sagebionetworks.repo.manager.NodeManager;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
@@ -20,9 +17,8 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ProjectStat;
 import org.sagebionetworks.repo.model.ProjectStatsDAO;
-import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.message.ModificationMessage;
+import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.util.ValidateArgument;
@@ -79,19 +75,20 @@ public class ProjectStatsWorker implements Worker {
 
 	private Message processMessage(Message message) throws Throwable {
 		try {
-			ModificationMessage modificationMessage = extractStatus(message);
+			ChangeMessage changeMessage = extractStatus(message);
 
 			Long projectId = null;
-			if (modificationMessage.getProjectId() != null) {
-				projectId = modificationMessage.getProjectId();
-			} else if (modificationMessage.getEntityId() != null) {
-				projectId = getProjectIdFromEntityId(modificationMessage.getEntityId());
+			if (changeMessage.getObjectType() == ObjectType.ENTITY) {
+				projectId = getProjectIdFromEntityId(changeMessage.getObjectId());
 			} else {
-				throw new IllegalArgumentException("neither project id not entity id is specified");
+				throw new IllegalArgumentException("cannot handle tyep " + changeMessage.getObjectType());
 			}
 
-			ProjectStat projectStat = new ProjectStat(projectId, modificationMessage.getUserId(), modificationMessage.getTimestamp());
-			projectStatsDao.update(projectStat);
+			if (projectId != null) {
+				ProjectStat projectStat = new ProjectStat(projectId, changeMessage.getModificationInfo().getUserId(),
+						changeMessage.getTimestamp());
+				projectStatsDao.update(projectStat);
+			}
 			return message;
 		} catch (TransientDataAccessException e) {
 			return null;
@@ -120,16 +117,19 @@ public class ProjectStatsWorker implements Worker {
 	 * @return
 	 * @throws JSONObjectAdapterException
 	 */
-	ModificationMessage extractStatus(Message message) throws JSONObjectAdapterException {
+	ChangeMessage extractStatus(Message message) throws JSONObjectAdapterException {
 		ValidateArgument.required(message, "message");
 
-		ModificationMessage modificationMessage = MessageUtils.extractMessageBody(message, ModificationMessage.class);
+		ChangeMessage changeMessage = MessageUtils.extractMessageBody(message, ChangeMessage.class);
 
-		ValidateArgument.requiredOneOf("modificationMessage.projectId or modificationMessage.entityId", modificationMessage.getProjectId(),
-				modificationMessage.getEntityId());
-		ValidateArgument.required(modificationMessage.getUserId(), "modificationMessage.userId");
-		ValidateArgument.required(modificationMessage.getTimestamp(), "modificationMessage.timestamp");
+		ValidateArgument.required(changeMessage.getModificationInfo(), "changeMessage.modificationInfo");
+		ValidateArgument.required(changeMessage.getModificationInfo().getUserId(), "changeMessage.modificationInfo.userId");
+		ValidateArgument.required(changeMessage.getTimestamp(), "changeMessage.timestamp");
 
-		return modificationMessage;
+		if (!BooleanUtils.isTrue(changeMessage.getIsModification())) {
+			throw new IllegalArgumentException("ChangeMessage is not a modification: " + changeMessage);
+		}
+
+		return changeMessage;
 	}
 }

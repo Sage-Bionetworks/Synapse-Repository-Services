@@ -1,19 +1,16 @@
 package org.sagebionetworks.repo.model.message;
 
-import java.util.Collection;
-import java.util.Date;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang.BooleanUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ObservableEntity;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.ThreadLocalProvider;
@@ -25,6 +22,11 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationAdapter;
+
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 
 /**
@@ -41,7 +43,6 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 	static private Logger log = LogManager.getLogger(TransactionalMessengerImpl.class);
 	
 	private static final String TRANSACTIONAL_MESSANGER_IMPL_CHANGE_MESSAGES = "TransactionalMessangerImpl.ChangeMessages";
-	private static final String TRANSACTIONAL_MESSANGER_IMPL_MODIFICATION_MESSAGES = "TransactionalMessangerImpl.ModificationMessages";
 
 	private static final ThreadLocal<Long> currentUserId = ThreadLocalProvider.getInstance(AuthorizationConstants.USER_ID_PARAM, Long.class);
 
@@ -116,8 +117,33 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 	@Override
 	public void sendMessageAfterCommit(ChangeMessage message) {
 		if(message == null) throw new IllegalArgumentException("Message cannot be null");
+		appendToBoundMessages(message);
+	}
+	
+	@Override
+	public void sendModificationMessageAfterCommit(String objectId, ObjectType objectType) {
+		ValidateArgument.required(objectId, "objectId");
+		ValidateArgument.required(objectType, "objectType");
+
+		Long userId = currentUserId.get();
+		if (userId != null && userId.longValue() != BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().longValue()) {
+			ChangeMessage message = new ChangeMessage();
+			message.setIsModification(true);
+			message.setObjectId(objectId);
+			message.setObjectType(objectType);
+			message.setTimestamp(clock.now());
+			ModificationInfo modificationInfo = new ModificationInfo();
+			modificationInfo.setUserId(userId);
+			message.setModificationInfo(modificationInfo);
+
+			appendToBoundMessages(message);
+		}
+	}
+
+	private void appendToBoundMessages(ChangeMessage message) {
 		// Make sure we are in a transaction.
-		if(!transactionSynchronizationManager.isSynchronizationActive()) throw new IllegalStateException("Cannot send a transactional message becasue there is no transaction");
+		if (!transactionSynchronizationManager.isSynchronizationActive())
+			throw new IllegalStateException("Cannot send a transactional message becasue there is no transaction");
 		// Bind this message to the transaction
 		// Get the bound list of messages if it already exists.
 		Map<ChangeMessageKey, ChangeMessage> currentMessages = getCurrentBoundChangeMessages();
@@ -127,31 +153,6 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 		// Register a handler if needed
 		registerHandlerIfNeeded();
 	}
-	
-	@Override
-	public void sendModificationMessageAfterCommit(Long projectId, String entityId) {
-		ValidateArgument.requiredOneOf("projectId or entityId", projectId, entityId);
-
-		Long userId = currentUserId.get();
-		if (userId != null && userId.longValue() != BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().longValue()) {
-			ModificationMessage message = new ModificationMessage();
-			message.setProjectId(projectId);
-			message.setEntityId(entityId);
-			message.setUserId(userId);
-			message.setTimestamp(clock.now());
-
-			// Make sure we are in a transaction.
-			if (!transactionSynchronizationManager.isSynchronizationActive())
-				throw new IllegalStateException("Cannot send a transactional message becasue there is no transaction");
-			// Bind this message to the transaction
-			// Get the bound list of messages if it already exists.
-			Map<ModificationMessageKey, ModificationMessage> currentMessages = getCurrentBoundModificationMessages();
-			// If we already have a message going out for this user and project then we can replace it with the latest.
-			ModificationMessage put = currentMessages.put(new ModificationMessageKey(message), message);
-			// Register a handler if needed
-			registerHandlerIfNeeded();
-		}
-	}
 
 	/**
 	 * Get the change messages that are currently bound to this transaction.
@@ -160,27 +161,14 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 	 */
 	@SuppressWarnings("unchecked")
 	private Map<ChangeMessageKey, ChangeMessage> getCurrentBoundChangeMessages() {
-		return (Map<ChangeMessageKey, ChangeMessage>) getCurrentBoundMessages(TRANSACTIONAL_MESSANGER_IMPL_CHANGE_MESSAGES);
-	}
-
-	/**
-	 * Get the modification messages that are currently bound to this transaction.
-	 * 
-	 * @return
-	 */
-	@SuppressWarnings("unchecked")
-	private Map<ModificationMessageKey, ModificationMessage> getCurrentBoundModificationMessages() {
-		return (Map<ModificationMessageKey, ModificationMessage>) getCurrentBoundMessages(TRANSACTIONAL_MESSANGER_IMPL_MODIFICATION_MESSAGES);
-	}
-
-	@SuppressWarnings("rawtypes")
-	private Map<?, ?> getCurrentBoundMessages(String key) {
-		Map<?, ?> currentMessages = transactionSynchronizationManager.getResource(key);
+		String queueKey = TRANSACTIONAL_MESSANGER_IMPL_CHANGE_MESSAGES;
+		Map<ChangeMessageKey, ChangeMessage> currentMessages = (Map<ChangeMessageKey, ChangeMessage>) transactionSynchronizationManager
+				.getResource(queueKey);
 		if(currentMessages == null){
 			// This is the first time it is called for this thread.
-			currentMessages = new HashMap();
+			currentMessages = Maps.newHashMap();
 			// Bind this list to the transaction.
-			transactionSynchronizationManager.bindResource(key, currentMessages);
+			transactionSynchronizationManager.bindResource(queueKey, currentMessages);
 		}
 		return currentMessages;
 	}
@@ -223,43 +211,43 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 			}
 			// Unbind any messages from this transaction.
 			transactionSynchronizationManager.unbindResourceIfPossible(TRANSACTIONAL_MESSANGER_IMPL_CHANGE_MESSAGES);
-			transactionSynchronizationManager.unbindResourceIfPossible(TRANSACTIONAL_MESSANGER_IMPL_MODIFICATION_MESSAGES);
 		}
 
 		@Override
 		public void afterCommit() {
 			// Log the messages
 			Map<ChangeMessageKey, ChangeMessage> currentMessages = getCurrentBoundChangeMessages();
-			Map<ModificationMessageKey, ModificationMessage> modificationMessages = getCurrentBoundModificationMessages();
 			// For each observer fire the message.
 			for(TransactionalMessengerObserver observer: observers){
 				// Fire each message.
 				for (ChangeMessage message : currentMessages.values()) {
-					observer.fireChangeMessage(message);
-					if(log.isTraceEnabled()){
-						log.trace("Firing a change event: "+message+" for observer: "+observer);
+					if (BooleanUtils.isTrue(message.getIsModification())) {
+						observer.fireModificationMessage(message);
+					} else {
+						observer.fireChangeMessage(message);
 					}
-				}
-
-				// Fire each modification message.
-				for (ModificationMessage message : modificationMessages.values()) {
-					observer.fireModificationMessage(message);
 					if (log.isTraceEnabled()) {
-						log.trace("Firing a modification event: " + message + " for observer: " + observer);
+						log.trace("Firing a change event: " + message + " for observer: " + observer);
 					}
 				}
 			}
 			// Clear the lists
 			currentMessages.clear();
-			modificationMessages.clear();
 		}
 
 		@Override
 		public void beforeCommit(boolean readOnly) {
 			// write the changes to the database
 			Map<ChangeMessageKey, ChangeMessage> currentMessages = getCurrentBoundChangeMessages();
-			Collection<ChangeMessage> collection = currentMessages.values();
-			List<ChangeMessage> list = new LinkedList<ChangeMessage>(collection);
+
+			// filter out modification message, since this only applies to the non-modifcation only messages
+			List<ChangeMessage> list = Lists.newArrayList(Iterators.filter(currentMessages.values().iterator(),
+					new Predicate<ChangeMessage>() {
+						@Override
+						public boolean apply(ChangeMessage input) {
+							return BooleanUtils.isNotTrue(input.getIsModification());
+						}
+					}));
 
 			// Create the list of DBOS
 			List<ChangeMessage> updatedList;
