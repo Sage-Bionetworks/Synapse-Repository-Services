@@ -108,6 +108,7 @@ public class ProjectStatsWorkerIntegrationTest {
 		user.setUserName(UUID.randomUUID().toString());
 		user.setEmail(user.getUserName() + "@xx.com");
 		userId = userManager.createUser(user);
+		currentUserId.set(null);
 	}
 
 	@After

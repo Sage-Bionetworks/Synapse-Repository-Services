@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -21,7 +22,6 @@ import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
-import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.TestClock;
 import org.sagebionetworks.util.ThreadLocalProvider;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
@@ -48,6 +48,11 @@ public class TransactionalMessengerImplTest {
 		mockObserver = Mockito.mock(TransactionalMessengerObserver.class);
 		messenger = new TransactionalMessengerImpl(mockTxManager, mockChangeDAO, stubProxy, testClock);
 		messenger.registerObserver(mockObserver);
+		ThreadLocalProvider.getInstance(AuthorizationConstants.USER_ID_PARAM, Long.class).set(null);
+	}
+
+	@After
+	public void after() {
 		ThreadLocalProvider.getInstance(AuthorizationConstants.USER_ID_PARAM, Long.class).set(null);
 	}
 	
