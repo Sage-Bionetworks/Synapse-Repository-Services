@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang.BooleanUtils;
-import org.apache.commons.logging.LogFactory;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -13,7 +12,6 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ObservableEntity;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
-import org.sagebionetworks.repo.model.dbo.dao.NodeDAOImpl;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.ThreadLocalProvider;
 import org.sagebionetworks.util.ValidateArgument;
@@ -143,7 +141,6 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 	}
 
 	private void appendToBoundMessages(ChangeMessage message) {
-		LogFactory.getLog(TransactionalMessengerImpl.class).error("sending message: " + message);
 		// Make sure we are in a transaction.
 		if (!transactionSynchronizationManager.isSynchronizationActive())
 			throw new IllegalStateException("Cannot send a transactional message becasue there is no transaction");
@@ -224,7 +221,6 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 			for(TransactionalMessengerObserver observer: observers){
 				// Fire each message.
 				for (ChangeMessage message : currentMessages.values()) {
-					LogFactory.getLog(TransactionalMessengerImpl.class).error("Firing message: " + message);
 					if (BooleanUtils.isTrue(message.getIsModification())) {
 						observer.fireModificationMessage(message);
 					} else {
