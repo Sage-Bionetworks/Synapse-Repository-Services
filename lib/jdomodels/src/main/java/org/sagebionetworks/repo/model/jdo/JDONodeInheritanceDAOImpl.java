@@ -13,6 +13,7 @@ import java.util.UUID;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -95,6 +96,7 @@ public class JDONodeInheritanceDAOImpl implements NodeInheritanceDAO {
 			beneficiary.seteTag(UUID.randomUUID().toString());
 		}
 		transactionalMessenger.sendMessageAfterCommit(beneficiary, ChangeType.UPDATE);
+		transactionalMessenger.sendModificationMessageAfterCommit(toBenefactorId, ObjectType.ENTITY);
 		dboBasicDao.update(beneficiary);
 	}
 

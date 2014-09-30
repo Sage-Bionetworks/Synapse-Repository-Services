@@ -15,10 +15,15 @@ import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.util.Clock;
+import org.sagebionetworks.util.TestClock;
+import org.sagebionetworks.util.ThreadLocalProvider;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 
 /**
@@ -33,6 +38,7 @@ public class TransactionalMessengerImplTest {
 	TransactionSynchronizationProxy stubProxy;
 	TransactionalMessengerObserver mockObserver;
 	private TransactionalMessengerImpl messenger;
+	private TestClock testClock = new TestClock();
 	
 	@Before
 	public void before(){
@@ -40,8 +46,9 @@ public class TransactionalMessengerImplTest {
 		mockChangeDAO = Mockito.mock(DBOChangeDAO.class);
 		stubProxy = new TransactionSynchronizationProxyStub();
 		mockObserver = Mockito.mock(TransactionalMessengerObserver.class);
-		messenger = new TransactionalMessengerImpl(mockTxManager, mockChangeDAO, stubProxy);
+		messenger = new TransactionalMessengerImpl(mockTxManager, mockChangeDAO, stubProxy, testClock);
 		messenger.registerObserver(mockObserver);
+		ThreadLocalProvider.getInstance(AuthorizationConstants.USER_ID_PARAM, Long.class).set(null);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -199,7 +206,7 @@ public class TransactionalMessengerImplTest {
 		mockChangeDAO = Mockito.mock(DBOChangeDAO.class);
 		stubProxy = new TransactionSynchronizationProxyStub();
 		mockObserver = Mockito.mock(TransactionalMessengerObserver.class);
-		messenger = new TransactionalMessengerImpl(mockTxManager, stubChangeDao, stubProxy);
+		messenger = new TransactionalMessengerImpl(mockTxManager, stubChangeDao, stubProxy, testClock);
 		messenger.registerObserver(mockObserver);
 		
 		ChangeMessage message = new ChangeMessage();
@@ -223,5 +230,48 @@ public class TransactionalMessengerImplTest {
 		// It should only be called once total!
 		verify(mockObserver, times(1)).fireChangeMessage(any(ChangeMessage.class));
 		
+	}
+
+	@Test
+	public void testSendModificationMessageNothingHappensWithoutId() {
+		// Send the message
+		messenger.sendModificationMessageAfterCommit("123", ObjectType.ENTITY);
+		assertNotNull(stubProxy.getSynchronizations());
+		assertEquals(0, stubProxy.getSynchronizations().size());
+	}
+
+	@Test
+	public void testSendModificationMessageNothingHappensWithAnonymous() {
+		ThreadLocalProvider.getInstance(AuthorizationConstants.USER_ID_PARAM, Long.class).set(
+				BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
+		// Send the message
+		messenger.sendModificationMessageAfterCommit("123", ObjectType.ENTITY);
+		assertNotNull(stubProxy.getSynchronizations());
+		assertEquals(0, stubProxy.getSynchronizations().size());
+	}
+
+	@Test
+	public void testSendModificationMessage() {
+		ThreadLocalProvider.getInstance(AuthorizationConstants.USER_ID_PARAM, Long.class).set(100L);
+		// Send the message
+		messenger.sendModificationMessageAfterCommit("123", ObjectType.ENTITY);
+		assertNotNull(stubProxy.getSynchronizations());
+		assertEquals(1, stubProxy.getSynchronizations().size());
+		// Simulate the before commit
+		stubProxy.getSynchronizations().get(0).beforeCommit(true);
+		ChangeMessage message = new ChangeMessage();
+		message.setObjectId("123");
+		message.setObjectType(ObjectType.ENTITY);
+		message.setTimestamp(testClock.now());
+		message.setIsModification(true);
+		ModificationInfo modificationInfo = new ModificationInfo();
+		modificationInfo.setUserId(100L);
+		message.setModificationInfo(modificationInfo);
+		// Simulate the after commit
+		stubProxy.getSynchronizations().get(0).afterCommit();
+		// Verify that the one message was fired.
+		verify(mockObserver, times(1)).fireModificationMessage(message);
+		// It should only be called once total!
+		verify(mockObserver, times(1)).fireModificationMessage(any(ChangeMessage.class));
 	}
 }

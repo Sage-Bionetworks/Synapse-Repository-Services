@@ -33,7 +33,7 @@ import com.amazonaws.services.sqs.model.SendMessageBatchResultEntry;
  */
 public class MessageSyndicationImpl implements MessageSyndication {
 	
-	static private Log log = LogFactory.getLog(RepositoryMessagePublisherImpl.class);
+	static private Log log = LogFactory.getLog(MessageSyndicationImpl.class);
 	
 	public static final Long DEFAULT_LIMIT = new Long(10);
 	

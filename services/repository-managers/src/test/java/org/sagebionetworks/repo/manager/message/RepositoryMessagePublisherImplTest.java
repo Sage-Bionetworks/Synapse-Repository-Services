@@ -41,7 +41,7 @@ public class RepositoryMessagePublisherImplTest {
 		message.setChangeType(ChangeType.CREATE);
 		message.setObjectId("syn456");
 		message.setObjectType(ObjectType.ENTITY);
-		messagePublisher = new RepositoryMessagePublisherImpl(mockTransactionalMessanger, mockAwsSNSClient);
+		messagePublisher = new RepositoryMessagePublisherImpl("prefix", "name", mockTransactionalMessanger, mockAwsSNSClient);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)

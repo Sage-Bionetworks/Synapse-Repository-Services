@@ -105,6 +105,8 @@ public class IT970UserProfileController {
 		entity = synapse.createEntity(entity);
 		entitiesToDelete.add(entity.getId());
 
+		// ensure time ordering
+		Thread.sleep(400);
 		Project entity2 = new Project();
 		entity2.setEntityType(Project.class.getName());
 		entity2 = synapse.createEntity(entity2);
@@ -117,7 +119,7 @@ public class IT970UserProfileController {
 
 		// retrieve someone elses projects
 		PaginatedResults<ProjectHeader> projects2 = adminSynapse.getProjectsFromUser(userToDelete, Integer.MAX_VALUE, 0);
-		// assertEquals(projects2, projects);
+		assertEquals(projects, projects2);
 
 		// ignore trashed projects
 		synapse.deleteEntity(entity);

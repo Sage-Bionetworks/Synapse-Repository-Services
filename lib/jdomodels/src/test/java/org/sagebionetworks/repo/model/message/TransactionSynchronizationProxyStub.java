@@ -7,6 +7,8 @@ import java.util.Map;
 
 import org.springframework.transaction.support.TransactionSynchronization;
 
+import com.google.common.collect.Maps;
+
 /**
  * A simple stub implementation of TransactionSynchronizationProxy for testing.
  * @author jmhill
@@ -14,7 +16,7 @@ import org.springframework.transaction.support.TransactionSynchronization;
  */
 public class TransactionSynchronizationProxyStub implements TransactionSynchronizationProxy {
 	
-	 Map<String, Map<ChangeMessageKey, ChangeMessage>> map = new HashMap<String, Map<ChangeMessageKey,ChangeMessage>>();
+	Map<String, Map<?, ?>> map = Maps.newHashMap();
 	 List<TransactionSynchronization> list = new ArrayList<TransactionSynchronization>();
 
 	@Override
@@ -23,12 +25,12 @@ public class TransactionSynchronizationProxyStub implements TransactionSynchroni
 	}
 
 	@Override
-	public void bindResource(String key, Map<ChangeMessageKey, ChangeMessage> value) {
+	public void bindResource(String key, Map<?, ?> value) {
 		map.put(key, value);
 	}
 
 	@Override
-	public Map<ChangeMessageKey, ChangeMessage> getResource(String key) {
+	public Map<?, ?> getResource(String key) {
 		return map.get(key);
 	}
 

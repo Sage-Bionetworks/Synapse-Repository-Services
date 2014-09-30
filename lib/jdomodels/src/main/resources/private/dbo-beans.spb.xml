@@ -48,6 +48,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOResourceAccessType" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOUserProfile" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOProjectSetting" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOProjectStat" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirement" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOSubjectAccessRequirement" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAccessApproval" />
@@ -133,6 +134,7 @@
 				<bean class="org.sagebionetworks.evaluation.dbo.SubmissionDBO" />
 				<bean class="org.sagebionetworks.evaluation.dbo.SubmissionStatusDBO" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOProjectSetting" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOProjectStat" />
 				
 				<!-- Team-related beans -->
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOTeam" />
