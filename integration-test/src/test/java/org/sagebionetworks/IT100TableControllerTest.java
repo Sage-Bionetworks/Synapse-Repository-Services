@@ -99,9 +99,11 @@ public class IT100TableControllerTest {
 	@After
 	public void after() throws Exception {
 		for (Entity entity : tablesToDelete) {
+			System.out.println("deleteing table " + entity.getId());
 			adminSynapse.deleteAndPurgeEntity(entity);
 		}
 		for (Entity entity : entitiesToDelete) {
+			System.out.println("deleteing entity " + entity.getId());
 			adminSynapse.deleteAndPurgeEntity(entity);
 		}
 		for (File tempFile : tempFiles) {
@@ -115,7 +117,9 @@ public class IT100TableControllerTest {
 		// This means proper cleanup was not done by the test 
 		try {
 			adminSynapse.deleteUser(userToDelete);
-		} catch (Exception e) { }
+		} catch (Exception e) {
+			System.out.println(e);
+		}
 	}
 
 	@Test
@@ -147,6 +151,7 @@ public class IT100TableControllerTest {
 		Project project = new Project();
 		project.setName(UUID.randomUUID().toString());
 		project = synapse.createEntity(project);
+		System.out.println("create project " + project.getId());
 		assertNotNull(project);
 		entitiesToDelete.add(project);
 		
@@ -159,6 +164,7 @@ public class IT100TableControllerTest {
 		table.setColumnIds(idList);
 		table.setParentId(project.getId());
 		table = synapse.createEntity(table);
+		System.out.println("create table " + table.getId());
 		tablesToDelete.add(table);
 		
 		assertNotNull(table);
@@ -270,6 +276,7 @@ public class IT100TableControllerTest {
 		Project project = new Project();
 		project.setName(UUID.randomUUID().toString());
 		project = synapse.createEntity(project);
+		System.out.println("create project " + project.getId());
 		assertNotNull(project);
 		entitiesToDelete.add(project);
 
@@ -279,6 +286,7 @@ public class IT100TableControllerTest {
 		table.setColumnIds(idList);
 		table.setParentId(project.getId());
 		table = synapse.createEntity(table);
+		System.out.println("create table " + table.getId());
 		tablesToDelete.add(table);
 
 		// Append some rows
@@ -370,6 +378,7 @@ public class IT100TableControllerTest {
 		Project project = new Project();
 		project.setName(UUID.randomUUID().toString());
 		project = synapse.createEntity(project);
+		System.out.println("create project " + project.getId());
 		assertNotNull(project);
 		entitiesToDelete.add(project);
 
@@ -379,6 +388,7 @@ public class IT100TableControllerTest {
 		table.setColumnIds(Lists.newArrayList(one.getId()));
 		table.setParentId(project.getId());
 		table = synapse.createEntity(table);
+		System.out.println("create table " + table.getId());
 		tablesToDelete.add(table);
 
 		List<ColumnModel> columns = synapse.getColumnModelsForTableEntity(table.getId());
@@ -467,6 +477,7 @@ public class IT100TableControllerTest {
 		Project project = new Project();
 		project.setName(UUID.randomUUID().toString());
 		project = synapse.createEntity(project);
+		System.out.println("create project " + project.getId());
 		entitiesToDelete.add(project);
 
 		// now create a table entity
@@ -476,6 +487,7 @@ public class IT100TableControllerTest {
 		table.setColumnIds(idList);
 		table.setParentId(project.getId());
 		table = synapse.createEntity(table);
+		System.out.println("create table " + table.getId());
 		tablesToDelete.add(table);
 
 		List<ColumnModel> columns = synapse.getColumnModelsForTableEntity(table.getId());
@@ -560,6 +572,7 @@ public class IT100TableControllerTest {
 		Project project = new Project();
 		project.setName(UUID.randomUUID().toString());
 		project = synapse.createEntity(project);
+		System.out.println("create project " + project.getId());
 		assertNotNull(project);
 		entitiesToDelete.add(project);
 		// now create a table entity
@@ -568,6 +581,7 @@ public class IT100TableControllerTest {
 		table.setColumnIds(null);
 		table.setParentId(project.getId());
 		table = synapse.createEntity(table);
+		System.out.println("create table " + table.getId());
 		tablesToDelete.add(table);
 		// Now attempt to query for the table results
 		// This table has no rows and no columns
@@ -591,6 +605,7 @@ public class IT100TableControllerTest {
 		Project project = new Project();
 		project.setName(UUID.randomUUID().toString());
 		project = synapse.createEntity(project);
+		System.out.println("create project " + project.getId());
 		entitiesToDelete.add(project);
 
 		// now create a table entity
@@ -600,6 +615,7 @@ public class IT100TableControllerTest {
 		table.setColumnIds(idList);
 		table.setParentId(project.getId());
 		table = synapse.createEntity(table);
+		System.out.println("create table " + table.getId());
 		tablesToDelete.add(table);
 		
 		RowSet set = new RowSet();
@@ -626,7 +642,7 @@ public class IT100TableControllerTest {
 			// expected
 			System.out.println(e.getMessage());
 			assertTrue(e.getMessage().contains("Row id:"));
-			assertTrue(e.getMessage().contains("has been changes"));
+			assertTrue(e.getMessage().contains("has been changed"));
 		}
 	}
 	
@@ -642,6 +658,7 @@ public class IT100TableControllerTest {
 		Project project = new Project();
 		project.setName(UUID.randomUUID().toString());
 		project = synapse.createEntity(project);
+		System.out.println("create project " + project.getId());
 		entitiesToDelete.add(project);
 
 		// now create a table entity
@@ -651,6 +668,7 @@ public class IT100TableControllerTest {
 		table.setColumnIds(idList);
 		table.setParentId(project.getId());
 		table = synapse.createEntity(table);
+		System.out.println("create table " + table.getId());
 		tablesToDelete.add(table);
 
 		RowSet set = new RowSet();
@@ -722,6 +740,7 @@ public class IT100TableControllerTest {
 		Project project = new Project();
 		project.setName(UUID.randomUUID().toString());
 		project = synapse.createEntity(project);
+		System.out.println("create project " + project.getId());
 		entitiesToDelete.add(project);
 
 		// now create a table entity
@@ -730,6 +749,7 @@ public class IT100TableControllerTest {
 		table.setColumnIds(columnIds);
 		table.setParentId(project.getId());
 		table = synapse.createEntity(table);
+		System.out.println("create table " + table.getId());
 		tablesToDelete.add(table);
 
 		List<ColumnModel> columns = synapse.getColumnModelsForTableEntity(table.getId());
@@ -774,7 +794,7 @@ public class IT100TableControllerTest {
 }
 
 	private <T> T waitForAsync(final Callable<T> callable) throws Exception {
-		return TimeUtils.waitFor(30000, 500, new Callable<Pair<Boolean, T>>() {
+		return TimeUtils.waitFor(60000, 500, new Callable<Pair<Boolean, T>>() {
 			@Override
 			public Pair<Boolean, T> call() throws Exception {
 				try {
