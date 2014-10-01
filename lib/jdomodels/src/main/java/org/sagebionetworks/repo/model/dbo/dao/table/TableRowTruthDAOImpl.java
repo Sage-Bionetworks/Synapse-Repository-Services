@@ -738,7 +738,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	}
 
 	@Override
-	public void removeLatestVersionCache(String tableId) throws IOException {
+	public void removeCaches(Long tableId) throws IOException {
 		// do nothing here, only caching version needs to do anything
 	}
 

@@ -40,6 +40,8 @@ public class AuthenticationFilter implements Filter {
 	
 	private static final Log log = LogFactory.getLog(AuthenticationFilter.class);
 	
+	private static final ThreadLocal<Long> currentUserIdThreadLocal = ThreadLocalProvider.getInstance(AuthorizationConstants.USER_ID_PARAM, Long.class);
+
 	@Autowired
 	private AuthenticationService authenticationService;
 	
@@ -150,12 +152,18 @@ public class AuthenticationFilter implements Filter {
 			userId = BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
 		}
 
-		// Pass along, including the user ID
-		@SuppressWarnings("unchecked")
-		Map<String, String[]> modParams = new HashMap<String, String[]>(req.getParameterMap());
-		modParams.put(AuthorizationConstants.USER_ID_PARAM, new String[] { userId.toString() });
-		HttpServletRequest modRqst = new ModParamHttpServletRequest(req, modParams);
-		filterChain.doFilter(modRqst, servletResponse);
+		// Put the userId on thread local, so this thread always knows who is calling
+		currentUserIdThreadLocal.set(userId);
+		try {
+			// Pass along, including the user ID
+			Map<String, String[]> modParams = new HashMap<String, String[]>(req.getParameterMap());
+			modParams.put(AuthorizationConstants.USER_ID_PARAM, new String[] { userId.toString() });
+			HttpServletRequest modRqst = new ModParamHttpServletRequest(req, modParams);
+			filterChain.doFilter(modRqst, servletResponse);
+		} finally {
+			// not strictly necessary, but just in case
+			currentUserIdThreadLocal.set(null);
+		}
 	}
 
 	/**
