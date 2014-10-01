@@ -4,8 +4,8 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.SortedSet;
-import java.util.concurrent.ThreadLocalRandom;
 
 import org.sagebionetworks.collections.Transform;
 import org.sagebionetworks.collections.Transform.TransformEntry;
@@ -42,6 +42,8 @@ public class CurrentRowCacheDaoImpl extends DynamoDaoBaseImpl implements Current
 	
 	private final DynamoDBMapper mapper;
 	private final DynamoDBMapper statusMapper;
+
+	private final Random random = new Random();
 
 	@Autowired
 	private Clock clock;
@@ -125,7 +127,7 @@ public class CurrentRowCacheDaoImpl extends DynamoDaoBaseImpl implements Current
 						throw e;
 					}
 					retries++;
-					clock.sleepNoInterrupt(BACK_OFF_MS * retries + ThreadLocalRandom.current().nextLong((BACK_OFF_MS * retries) / 2));
+					clock.sleepNoInterrupt(BACK_OFF_MS * retries + random.nextInt((int) (BACK_OFF_MS * retries) / 2));
 				}
 			}
 		}

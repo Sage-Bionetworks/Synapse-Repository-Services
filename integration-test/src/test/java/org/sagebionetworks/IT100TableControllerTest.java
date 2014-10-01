@@ -774,7 +774,7 @@ public class IT100TableControllerTest {
 }
 
 	private <T> T waitForAsync(final Callable<T> callable) throws Exception {
-		return TimeUtils.waitFor(30000, 500, new Callable<Pair<Boolean, T>>() {
+		return TimeUtils.waitFor(60000, 500, new Callable<Pair<Boolean, T>>() {
 			@Override
 			public Pair<Boolean, T> call() throws Exception {
 				try {
