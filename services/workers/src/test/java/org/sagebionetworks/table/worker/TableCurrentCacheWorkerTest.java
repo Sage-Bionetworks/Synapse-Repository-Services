@@ -125,7 +125,7 @@ public class TableCurrentCacheWorkerTest {
 		List<Message> results = worker.call();
 		assertNotNull(results);
 		assertEquals(messages, results);
-		verify(mockTableRowManager).removeLatestVersionCache(tableId);
+		verify(mockTableRowManager).removeCaches(tableId);
 	}
 
 	/**

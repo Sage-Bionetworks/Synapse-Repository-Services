@@ -33,7 +33,10 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 	
 	static private Logger log = LogManager.getLogger(TransactionalMessengerImpl.class);
 	
-	private static final String TRANSACTIONAL_MESSANGER_IMPL_MESSAGES = "TransactionalMessangerImpl.Messages";
+	private static final String TRANSACTIONAL_MESSANGER_IMPL_CHANGE_MESSAGES = "TransactionalMessangerImpl.ChangeMessages";
+
+	private static final ThreadLocal<Long> currentUserIdThreadLocal = ThreadLocalProvider.getInstance(AuthorizationConstants.USER_ID_PARAM, Long.class);
+
 	@Autowired
 	DataSourceTransactionManager txManager;
 	@Autowired
@@ -105,8 +108,33 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 	@Override
 	public void sendMessageAfterCommit(ChangeMessage message) {
 		if(message == null) throw new IllegalArgumentException("Message cannot be null");
+		appendToBoundMessages(message);
+	}
+	
+	@Override
+	public void sendModificationMessageAfterCommit(String objectId, ObjectType objectType) {
+		ValidateArgument.required(objectId, "objectId");
+		ValidateArgument.required(objectType, "objectType");
+
+		Long userId = currentUserIdThreadLocal.get();
+		if (userId != null && userId.longValue() != BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().longValue()) {
+			ChangeMessage message = new ChangeMessage();
+			message.setIsModification(true);
+			message.setObjectId(objectId);
+			message.setObjectType(objectType);
+			message.setTimestamp(clock.now());
+			ModificationInfo modificationInfo = new ModificationInfo();
+			modificationInfo.setUserId(userId);
+			message.setModificationInfo(modificationInfo);
+
+			appendToBoundMessages(message);
+		}
+	}
+
+	private void appendToBoundMessages(ChangeMessage message) {
 		// Make sure we are in a transaction.
-		if(!transactionSynchronizationManager.isSynchronizationActive()) throw new IllegalStateException("Cannot send a transactional message becasue there is no transaction");
+		if (!transactionSynchronizationManager.isSynchronizationActive())
+			throw new IllegalStateException("Cannot send a transactional message becasue there is no transaction");
 		// Bind this message to the transaction
 		// Get the bound list of messages if it already exists.
 		Map<ChangeMessageKey, ChangeMessage> currentMessages = getCurrentBoundMessages();

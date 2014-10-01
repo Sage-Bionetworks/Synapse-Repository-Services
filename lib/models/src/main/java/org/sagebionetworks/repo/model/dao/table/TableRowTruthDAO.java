@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dao.table;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -220,9 +221,9 @@ public interface TableRowTruthDAO {
 	public void updateLatestVersionCache(String tableId, ProgressCallback<Long> progressCallback) throws IOException;
 
 	/**
-	 * Remove the latest version cache for the table
+	 * Remove the latest version cache and row cache for the table
 	 * 
 	 * @param tableId
 	 */
-	public void removeLatestVersionCache(String tableId) throws IOException;
+	public void removeCaches(Long tableId) throws IOException;
 }

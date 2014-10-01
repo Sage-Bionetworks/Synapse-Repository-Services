@@ -68,7 +68,7 @@ public class TableCurrentCacheWorker implements Callable<List<Message>> {
 				String tableId = change.getObjectId();
 				if (ChangeType.DELETE.equals(change.getChangeType())) {
 					// Delete the cache for this table
-					tableRowManager.removeLatestVersionCache(tableId);
+					tableRowManager.removeCaches(tableId);
 					processedMessages.add(message);
 				} else {
 					// Create or update.

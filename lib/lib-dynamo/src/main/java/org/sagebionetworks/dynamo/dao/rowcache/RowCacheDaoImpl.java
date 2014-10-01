@@ -16,9 +16,14 @@ import org.sagebionetworks.repo.model.table.Row;
 
 import com.amazonaws.services.dynamodb.AmazonDynamoDB;
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMapper;
+import com.amazonaws.services.dynamodb.datamodeling.DynamoDBQueryExpression;
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBScanExpression;
 import com.amazonaws.services.dynamodb.datamodeling.KeyPair;
+import com.amazonaws.services.dynamodb.datamodeling.PaginatedQueryList;
 import com.amazonaws.services.dynamodb.datamodeling.PaginatedScanList;
+import com.amazonaws.services.dynamodb.model.AttributeValue;
+import com.amazonaws.services.dynamodb.model.ComparisonOperator;
+import com.amazonaws.services.dynamodb.model.Condition;
 import com.google.common.base.Function;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.Iterables;
@@ -151,6 +156,13 @@ public class RowCacheDaoImpl extends DynamoDaoBaseImpl implements RowCacheDao {
 			throw (IOException) e.getCause();
 		}
 		mapper.batchSave(toUpdate);
+	}
+
+	@Override
+	public void deleteEntriesForTable(Long tableId) {
+		AttributeValue hashKeyValue = new AttributeValue(DboRowCache.createHashKey(tableId));
+		PaginatedQueryList<DboRowCache> results = mapper.query(DboRowCache.class, new DynamoDBQueryExpression(hashKeyValue));
+		mapper.batchDelete(uniqueify(results, ROW_CACHE_COMPARATOR));
 	}
 
 	@Override
