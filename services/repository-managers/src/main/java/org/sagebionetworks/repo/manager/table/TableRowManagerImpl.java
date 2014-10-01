@@ -902,8 +902,8 @@ public class TableRowManagerImpl implements TableRowManager {
 	}
 
 	@Override
-	public void removeLatestVersionCache(String tableId) throws IOException {
-		tableRowTruthDao.removeLatestVersionCache(tableId);
+	public void removeCaches(String tableId) throws IOException {
+		tableRowTruthDao.removeCaches(KeyFactory.stringToKey(tableId));
 	}
 
 	TableUnavilableException createTableUnavilableException(String tableId){

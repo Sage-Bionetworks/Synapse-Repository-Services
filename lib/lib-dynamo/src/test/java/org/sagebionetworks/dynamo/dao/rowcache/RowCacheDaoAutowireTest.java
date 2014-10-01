@@ -33,6 +33,7 @@ public class RowCacheDaoAutowireTest {
 	private DynamoAdminDao adminDao;
 
 	private Long tableId = new Random().nextLong();
+	private Long tableId2 = new Random().nextLong();
 
 	@Before
 	public void setup() {
@@ -124,5 +125,30 @@ public class RowCacheDaoAutowireTest {
 		for (Row row : rows) {
 			assertEquals(row, result.get(row.getRowId()));
 		}
+	}
+
+	@Test
+	public void testDeleteTable() throws Exception {
+		Row row1 = TableModelTestUtils.createRow(11L, 1L, "a", "b");
+		Row row2 = TableModelTestUtils.createRow(12L, 2L, "c", "d");
+		Row row3 = TableModelTestUtils.createRow(13L, 2L, "e", "f");
+		rowCacheDao.putRows(tableId, Lists.newArrayList(row1, row2, row3));
+		rowCacheDao.putRows(tableId2, Lists.newArrayList(row1, row2, row3));
+
+		rowCacheDao.deleteEntriesForTable(tableId);
+
+		Map<Long, Long> rowsToGet = Maps.newHashMap();
+		rowsToGet.put(11L, 1L);
+		rowsToGet.put(12L, 2L);
+		rowsToGet.put(13L, 2L);
+
+		Map<Long, Row> result = rowCacheDao.getRows(tableId, rowsToGet);
+		assertEquals(0, result.size());
+
+		result = rowCacheDao.getRows(tableId2, rowsToGet);
+		assertEquals(3, result.size());
+		assertEquals(row1, result.get(11L));
+		assertEquals(row2, result.get(12L));
+		assertEquals(row3, result.get(13L));
 	}
 }

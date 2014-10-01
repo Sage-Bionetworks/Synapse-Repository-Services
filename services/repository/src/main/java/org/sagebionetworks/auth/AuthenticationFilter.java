@@ -41,7 +41,7 @@ public class AuthenticationFilter implements Filter {
 	
 	private static final Log log = LogFactory.getLog(AuthenticationFilter.class);
 	
-	private static final ThreadLocal<Long> currentUserId = ThreadLocalProvider.getInstance(AuthorizationConstants.USER_ID_PARAM, Long.class);
+	private static final ThreadLocal<Long> currentUserIdThreadLocal = ThreadLocalProvider.getInstance(AuthorizationConstants.USER_ID_PARAM, Long.class);
 
 	@Autowired
 	private AuthenticationService authenticationService;
@@ -154,7 +154,7 @@ public class AuthenticationFilter implements Filter {
 		}
 
 		// Put the userId on thread local, so this thread always knows who is calling
-		currentUserId.set(userId);
+		currentUserIdThreadLocal.set(userId);
 		try {
 			// Pass along, including the user ID
 			Map<String, String[]> modParams = new HashMap<String, String[]>(req.getParameterMap());
@@ -163,7 +163,7 @@ public class AuthenticationFilter implements Filter {
 			filterChain.doFilter(modRqst, servletResponse);
 		} finally {
 			// not strictly necessary, but just in case
-			currentUserId.set(null);
+			currentUserIdThreadLocal.set(null);
 		}
 	}
 

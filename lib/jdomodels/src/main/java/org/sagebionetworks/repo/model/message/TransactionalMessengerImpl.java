@@ -44,7 +44,7 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 	
 	private static final String TRANSACTIONAL_MESSANGER_IMPL_CHANGE_MESSAGES = "TransactionalMessangerImpl.ChangeMessages";
 
-	private static final ThreadLocal<Long> currentUserId = ThreadLocalProvider.getInstance(AuthorizationConstants.USER_ID_PARAM, Long.class);
+	private static final ThreadLocal<Long> currentUserIdThreadLocal = ThreadLocalProvider.getInstance(AuthorizationConstants.USER_ID_PARAM, Long.class);
 
 	@Autowired
 	DataSourceTransactionManager txManager;
@@ -125,7 +125,7 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 		ValidateArgument.required(objectId, "objectId");
 		ValidateArgument.required(objectType, "objectType");
 
-		Long userId = currentUserId.get();
+		Long userId = currentUserIdThreadLocal.get();
 		if (userId != null && userId.longValue() != BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().longValue()) {
 			ChangeMessage message = new ChangeMessage();
 			message.setIsModification(true);
