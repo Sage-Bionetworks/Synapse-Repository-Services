@@ -322,7 +322,13 @@ public class SynapseAdminClientImpl extends SynapseClientImpl implements Synapse
 		String url = ADMIN_USER + "/" + id; 
 		getSharedClientConnection().deleteUri(repoEndpoint, url, getUserAgent());
 	}
-	
+
+	@Override
+	public void rebuildTableCacheAndIndex(String tableId) throws SynapseException, JSONObjectAdapterException {
+		String url = ADMIN + "/entity/" + tableId + "/table/rebuild";
+		getSharedClientConnection().getJson(repoEndpoint, url, getUserAgent(), null);
+	}
+
 	@Override
 	public void clearAllLocks() throws SynapseException{
 		getSharedClientConnection().deleteUri(repoEndpoint, ADMIN_CLEAR_LOCKS, getUserAgent());
