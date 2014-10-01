@@ -1,8 +1,10 @@
 package org.sagebionetworks.dynamo.dao.rowcache;
 
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.commons.lang.ObjectUtils;
@@ -68,6 +70,17 @@ public class RowCacheDaoStub implements RowCacheDao {
 	public void putRows(Long tableId, Iterable<Row> rowsToPut) throws IOException {
 		for (Row row : rowsToPut) {
 			rows.put(createKey(tableId, row.getRowId(), row.getVersionNumber()), row);
+		}
+	}
+
+	@Override
+	public void deleteEntriesForTable(Long tableId) {
+		String prefix = tableId.toString() + KeyValueSplitter.SEPARATOR;
+		for (Iterator<Entry<String, Row>> iterator = rows.entrySet().iterator(); iterator.hasNext();) {
+			Entry<String, Row> entry = iterator.next();
+			if (entry.getKey().startsWith(prefix)) {
+				iterator.remove();
+			}
 		}
 	}
 

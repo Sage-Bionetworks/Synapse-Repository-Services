@@ -73,10 +73,12 @@ public class TableRowCacheImpl implements TableRowCache {
 
 	@Override
 	public void removeFromCache(Long tableId) {
-		if (!rowCacheDao.isEnabled()) {
-			return;
+		if (rowCacheDao.isEnabled()) {
+			rowCacheDao.deleteEntriesForTable(tableId);
 		}
-		currentRowCacheDao.deleteCurrentTable(tableId);
+		if (currentRowCacheDao.isEnabled()) {
+			currentRowCacheDao.deleteCurrentTable(tableId);
+		}
 	}
 
 	@Override

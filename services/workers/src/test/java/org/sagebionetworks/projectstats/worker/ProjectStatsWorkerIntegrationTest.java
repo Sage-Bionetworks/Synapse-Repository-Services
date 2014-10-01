@@ -91,7 +91,7 @@ public class ProjectStatsWorkerIntegrationTest {
 	@Autowired
 	private V2WikiPageDao v2wikiPageDAO;
 
-	private static final ThreadLocal<Long> currentUserId = ThreadLocalProvider.getInstance(AuthorizationConstants.USER_ID_PARAM, Long.class);
+	private static final ThreadLocal<Long> currentUserIdThreadLocal = ThreadLocalProvider.getInstance(AuthorizationConstants.USER_ID_PARAM, Long.class);
 
 	private UserInfo adminUserInfo;
 	private List<String> toDelete = Lists.newArrayList();
@@ -108,12 +108,12 @@ public class ProjectStatsWorkerIntegrationTest {
 		user.setUserName(UUID.randomUUID().toString());
 		user.setEmail(user.getUserName() + "@xx.com");
 		userId = userManager.createUser(user);
-		currentUserId.set(null);
+		currentUserIdThreadLocal.set(null);
 	}
 
 	@After
 	public void after() throws Exception {
-		currentUserId.set(null);
+		currentUserIdThreadLocal.set(null);
 		if (adminUserInfo != null) {
 			for (String id : toDelete) {
 				try {
@@ -142,7 +142,7 @@ public class ProjectStatsWorkerIntegrationTest {
 		// Create a project
 		assertEquals(0, projectStatsDAO.getProjectStatsForUser(userId).size());
 
-		currentUserId.set(userId);
+		currentUserIdThreadLocal.set(userId);
 
 		Project project = new Project();
 		project.setName(UUID.randomUUID().toString());
@@ -257,7 +257,7 @@ public class ProjectStatsWorkerIntegrationTest {
 		// Create a project
 		assertEquals(0, projectStatsDAO.getProjectStatsForUser(userId).size());
 
-		currentUserId.set(userId);
+		currentUserIdThreadLocal.set(userId);
 
 		Project project = new Project();
 		project.setName(UUID.randomUUID().toString());

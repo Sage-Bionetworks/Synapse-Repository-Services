@@ -470,7 +470,7 @@ public interface TableRowManager {
 	 */
 	void updateLatestVersionCache(String tableId, ProgressCallback<Long> progressCallback) throws IOException;
 
-	void removeLatestVersionCache(String tableId) throws IOException;
+	void removeCaches(String tableId) throws IOException;
 
 	/**
 	 * Get the maximum number of rows allowed for a single page (get, put, or query) for the given columns.
