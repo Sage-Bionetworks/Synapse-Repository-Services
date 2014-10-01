@@ -64,6 +64,9 @@ public class ProjectStatsWorker implements Worker {
 				if (returned != null) {
 					toDelete.add(returned);
 				}
+			}catch(NotFoundException e){
+				// entity no longer exists. Common case, so no reason to log an error
+				toDelete.add(message);
 			} catch (Throwable e) {
 				// Treat unknown errors as unrecoverable and return them
 				toDelete.add(message);
@@ -81,7 +84,7 @@ public class ProjectStatsWorker implements Worker {
 			if (changeMessage.getObjectType() == ObjectType.ENTITY) {
 				projectId = getProjectIdFromEntityId(changeMessage.getObjectId());
 			} else {
-				throw new IllegalArgumentException("cannot handle tyep " + changeMessage.getObjectType());
+				throw new IllegalArgumentException("cannot handle type " + changeMessage.getObjectType());
 			}
 
 			if (projectId != null) {
@@ -107,7 +110,9 @@ public class ProjectStatsWorker implements Worker {
 				return KeyFactory.stringToKey(node.getId());
 			}
 		}
-		throw new IllegalArgumentException("entityId " + entityId + " is not contained in a project");
+		// Entity is not in a project. This happens if the worker catches an entity during deletion. Just ignore and
+		// move on
+		return null;
 	}
 
 	/**

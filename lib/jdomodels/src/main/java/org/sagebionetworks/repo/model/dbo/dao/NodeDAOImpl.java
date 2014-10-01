@@ -221,10 +221,11 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		if(dto.getNodeType() == null) throw new IllegalArgumentException("Node type cannot be null");
 		node.setNodeType(EntityType.valueOf(dto.getNodeType()).getId());
 
+		DBONode parent = null;
 		// Set the parent and benefactor
 		if(dto.getParentId() != null){
 			// Get the parent
-			DBONode parent = getNodeById(KeyFactory.stringToKey(dto.getParentId()));
+			parent = getNodeById(KeyFactory.stringToKey(dto.getParentId()));
 			node.setParentId(parent.getId());
 			// By default a node should inherit from the same 
 			// benefactor as its parent
@@ -232,10 +233,23 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		}
 		if(node.getBenefactorId() == null){
 			// For nodes that have no parent, they are
-			// their own benefactor. We have to wait until
-			// after the makePersistent() call to set a node to point 
-			// to itself.
+			// their own benefactor.
 			node.setBenefactorId(node.getId());
+		}
+		if (node.getProjectId() == null) {
+			// we need to find the project id for this node if possible
+			if (node.getNodeType().equals(PROJECT_ENTITY_TYPE.getEntityType())) {
+				// we are our own project
+				node.setProjectId(node.getId());
+			} else if (parent != null) {
+				// just copy from parent if we have the parent anyway
+				node.setProjectId(parent.getProjectId());
+			} else if (node.getParentId() != null) {
+				String projectId = getProjectIdForNode(node.getIdString());
+				if (projectId != null) {
+					node.setProjectId(KeyFactory.stringToKey(projectId));
+				}
+			}
 		}
 
 		// Start it with a new e-tag
@@ -324,7 +338,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		MapSqlParameterSource prams = getNodeParameters(longId);
 		// Send a delete message
 		transactionalMessenger.sendMessageAfterCommit(id, ObjectType.ENTITY, ChangeType.DELETE);
-		transactionalMessenger.sendModificationMessageAfterCommit(id, ObjectType.ENTITY);
 		return dboBasicDao.deleteObjectByPrimaryKey(DBONode.class, prams);
 	}
 	
@@ -1138,6 +1151,8 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		DBONode newParentNode = getNodeById(KeyFactory.stringToKey(newParentId));
 		//make the update 
 		node.setParentId(newParentNode.getId());
+		// also update the project, since that might have changed too
+		node.setProjectId(newParentNode.getProjectId());
 		dboBasicDao.update(node);
 		return true;
 	}
@@ -1309,5 +1324,18 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		}
 		queryResults.setTotalNumberOfResults(totalCount);
 		return queryResults;
+	}
+
+	private String getProjectIdForNode(String nodeId) throws DatastoreException, NotFoundException {
+		List<EntityHeader> nodePath = getEntityPath(nodeId);
+		// walk the path from the top (the top is probably root and the next one should be project)
+		String projectId = null;
+		for (EntityHeader node : nodePath) {
+			if (node.getType().equals(PROJECT_ENTITY_TYPE.getEntityType())) {
+				projectId = node.getId();
+				return projectId;
+			}
+		}
+		return null;
 	}
 }
