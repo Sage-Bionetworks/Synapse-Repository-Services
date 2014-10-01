@@ -270,6 +270,13 @@ public class AdministrationController extends BaseController {
 		serviceProvider.getAdministrationService().deleteUser(userId, id);
 	}
 	
+	@RequestMapping(value = { UrlHelpers.ADMIN_TABLE_REBUILD }, method = RequestMethod.GET)
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	public void rebuildTable(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable(value = "id") String tableId) throws NotFoundException, IOException {
+		serviceProvider.getAdministrationService().rebuildTable(userId, tableId);
+	}
+	
 	@RequestMapping(value = {UrlHelpers.ADMIN_CLEAR_LOCKS}, method = RequestMethod.DELETE)
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void clearLocks(

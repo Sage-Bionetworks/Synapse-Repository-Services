@@ -229,6 +229,8 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 	public void removeCaches(Long tableId) throws IOException {
 		if (tableRowCache.isEnabled()) {
 			tableRowCache.removeFromCache(tableId);
+			CurrentRowCacheStatus currentStatus = tableRowCache.getLatestCurrentVersionNumber(tableId);
+			tableRowCache.setLatestCurrentVersionNumber(currentStatus, -1L);
 		}
 	}
 

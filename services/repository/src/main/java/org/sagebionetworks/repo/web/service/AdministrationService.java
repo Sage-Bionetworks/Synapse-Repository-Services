@@ -155,6 +155,15 @@ public interface AdministrationService {
 	public void deleteUser(Long userId, String id) throws NotFoundException;
 
 	/**
+	 * Rebuild a table's index and caches
+	 * 
+	 * @param userId
+	 * @param tableId
+	 * @throws IOException
+	 */
+	public void rebuildTable(Long userId, String tableId) throws NotFoundException, IOException;
+
+	/**
 	 * Clear all locks.
 	 * 
 	 * @param userId
