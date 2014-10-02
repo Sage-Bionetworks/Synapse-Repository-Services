@@ -8,9 +8,11 @@ import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ObservableEntity;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
+import org.sagebionetworks.util.ThreadLocalProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
@@ -111,26 +113,6 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 		appendToBoundMessages(message);
 	}
 	
-	@Override
-	public void sendModificationMessageAfterCommit(String objectId, ObjectType objectType) {
-		ValidateArgument.required(objectId, "objectId");
-		ValidateArgument.required(objectType, "objectType");
-
-		Long userId = currentUserIdThreadLocal.get();
-		if (userId != null && userId.longValue() != BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().longValue()) {
-			ChangeMessage message = new ChangeMessage();
-			message.setIsModification(true);
-			message.setObjectId(objectId);
-			message.setObjectType(objectType);
-			message.setTimestamp(clock.now());
-			ModificationInfo modificationInfo = new ModificationInfo();
-			modificationInfo.setUserId(userId);
-			message.setModificationInfo(modificationInfo);
-
-			appendToBoundMessages(message);
-		}
-	}
-
 	private void appendToBoundMessages(ChangeMessage message) {
 		// Make sure we are in a transaction.
 		if (!transactionSynchronizationManager.isSynchronizationActive())
@@ -151,12 +133,13 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 	 * @return
 	 */
 	private Map<ChangeMessageKey, ChangeMessage> getCurrentBoundMessages(){
-		Map<ChangeMessageKey, ChangeMessage> currentMessages = (Map<ChangeMessageKey, ChangeMessage>) transactionSynchronizationManager.getResource(TRANSACTIONAL_MESSANGER_IMPL_MESSAGES);
+		Map<ChangeMessageKey, ChangeMessage> currentMessages = (Map<ChangeMessageKey, ChangeMessage>) transactionSynchronizationManager
+				.getResource(TRANSACTIONAL_MESSANGER_IMPL_CHANGE_MESSAGES);
 		if(currentMessages == null){
 			// This is the first time it is called for this thread.
 			currentMessages = new HashMap<ChangeMessageKey, ChangeMessage>();
 			// Bind this list to the transaction.
-			transactionSynchronizationManager.bindResource(TRANSACTIONAL_MESSANGER_IMPL_MESSAGES, currentMessages);
+			transactionSynchronizationManager.bindResource(TRANSACTIONAL_MESSANGER_IMPL_CHANGE_MESSAGES, currentMessages);
 		}
 		return currentMessages;
 	}
@@ -198,7 +181,7 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 				log.trace("Unbinding resources");
 			}
 			// Unbind any messages from this transaction.
-			transactionSynchronizationManager.unbindResourceIfPossible(TRANSACTIONAL_MESSANGER_IMPL_MESSAGES);
+			transactionSynchronizationManager.unbindResourceIfPossible(TRANSACTIONAL_MESSANGER_IMPL_CHANGE_MESSAGES);
 		}
 
 		@Override
