@@ -100,7 +100,8 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			+ SQL_ALL_ROW_CHANGES_FOR_TABLE_GREATER_VERSION_BASE;
 	private static final String SQL_COUNT_ALL_ROW_CHANGES_FOR_TABLE_GREATER_VERSION = "SELECT COUNT(*) "
 			+ SQL_ALL_ROW_CHANGES_FOR_TABLE_GREATER_VERSION_BASE;
-	private static final String SQL_DELETE_ROW_DATA_FOR_TABLE = "DELETE FROM " + TABLE_ROW_CHANGE + " WHERE " + COL_TABLE_ROW_TABLE_ID
+	private static final String SQL_DELETE_ROW_DATA_FOR_TABLE = "DELETE FROM " + TABLE_TABLE_ID_SEQUENCE + " WHERE "
+			+ COL_ID_SEQUENCE_TABLE_ID
 			+ " = ?";
 	private static final String KEY_TEMPLATE = "%1$s.csv.gz";
 	private static final String SQL_TRUNCATE_SEQUENCE_TABLE = "DELETE FROM "
@@ -280,7 +281,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 					throw new ConflictingUpdateException(
 							"Row id: "
 									+ row.getRowId()
-									+ " has been changes since last read.  Please get the latest value for this row and then attempt to update it again.");
+									+ " has been changed since last read.  Please get the latest value for this row and then attempt to update it again.");
 				}
 			}
 		}, change);
@@ -476,6 +477,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		for (String key : keysToDelete) {
 			s3Client.deleteObject(s3Bucket, key);
 		}
+		// let cascade delete take care of deleting the row changes
 		jdbcTemplate.update(SQL_DELETE_ROW_DATA_FOR_TABLE, KeyFactory.stringToKey(tableId));
 	}
 

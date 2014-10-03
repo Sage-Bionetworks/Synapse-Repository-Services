@@ -272,7 +272,7 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 			throw new RuntimeException(e);
 		}
 		if (log.isTraceEnabled()) {
-			log.info("Publishing a message: " + json);
+			log.trace("Publishing a message: " + json);
 		}
 		// Publish the message to the topic.
 		awsSNSClient.publish(new PublishRequest(topicArn, json));

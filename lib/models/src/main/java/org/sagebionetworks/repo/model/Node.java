@@ -26,6 +26,7 @@ public class Node {
 	private String versionComment;
 	private String versionLabel;
 	private String benefactorId;
+	private String projectId;
 	private Map<String, Set<Reference>> references;
 	private String activityId;
 	private String fileHandleId;
@@ -161,6 +162,13 @@ public class Node {
 		this.benefactorId = benefactorId;
 	}
 
+	public String getProjectId() {
+		return projectId;
+	}
+	public void setProjectId(String projectId) {
+		this.projectId = projectId;
+	}
+
 	public String getActivityId() {
 		return activityId;
 	}
@@ -189,6 +197,8 @@ public class Node {
 				+ ((activityId == null) ? 0 : activityId.hashCode());
 		result = prime * result
 				+ ((benefactorId == null) ? 0 : benefactorId.hashCode());
+		result = prime * result
+				+ ((projectId == null) ? 0 : projectId.hashCode());
 		result = prime * result
 				+ ((columnModelIds == null) ? 0 : columnModelIds.hashCode());
 		result = prime
@@ -242,6 +252,11 @@ public class Node {
 			if (other.benefactorId != null)
 				return false;
 		} else if (!benefactorId.equals(other.benefactorId))
+			return false;
+		if (projectId == null) {
+			if (other.projectId != null)
+				return false;
+		} else if (!projectId.equals(other.projectId))
 			return false;
 		if (columnModelIds == null) {
 			if (other.columnModelIds != null)
@@ -325,7 +340,7 @@ public class Node {
 			return false;
 		return true;
 	}
-	
+
 	@Override
 	public String toString() {
 		return "Node [id=" + id + ", name=" + name + ", description="
@@ -336,7 +351,7 @@ public class Node {
 				+ ", nodeType=" + nodeType + ", eTag=" + eTag
 				+ ", versionNumber=" + versionNumber + ", versionComment="
 				+ versionComment + ", versionLabel=" + versionLabel
-				+ ", benefactorId=" + benefactorId + ", references="
+				+ ", benefactorId=" + benefactorId + ", projectId=" + projectId + ", references="
 				+ references + ", activityId=" + activityId + ", fileHandleId="
 				+ fileHandleId + "]";
 	}

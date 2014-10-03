@@ -1386,8 +1386,71 @@ public class NodeDAOImplTest {
 	}
 	
 	/**
-	 * Tests that changeNodeParent correctly throws a IllegalArgumentException
-	 * when the JDONode's parentId is null
+	 * Tests that changeNodeParent correctly sets a node's parent to reference the parentNode sent as a parameter.
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void testChangeNodeParentAndProject() throws Exception {
+		// make a parent project
+		Node node = privateCreateNew("parentProject");
+		node.setNodeType(EntityType.project.name());
+		String parentProjectId = nodeDao.createNew(node);
+		toDelete.add(parentProjectId);
+		assertNotNull(parentProjectId);
+
+		// add a child to the parent
+		node = privateCreateNew("child");
+		node.setNodeType(EntityType.dataset.name());
+		node.setParentId(parentProjectId);
+		String childId = nodeDao.createNew(node);
+		toDelete.add(childId);
+		assertNotNull(childId);
+
+		String[] childChilds = new String[4];
+		// add children to child
+		for (int i = 0; i < childChilds.length; i++) {
+			node = privateCreateNew("child" + i);
+			node.setNodeType(EntityType.dataset.name());
+			node.setParentId(childId);
+			childChilds[i] = nodeDao.createNew(node);
+			toDelete.add(childChilds[i]);
+			assertNotNull(childChilds[i]);
+		}
+
+		// make sure all project ids are set
+		assertEquals(parentProjectId, nodeDao.getNode(parentProjectId).getProjectId());
+		assertEquals(parentProjectId, nodeDao.getNode(childId).getProjectId());
+		for (int i = 0; i < childChilds.length; i++) {
+			assertEquals(parentProjectId, nodeDao.getNode(childChilds[i]).getProjectId());
+		}
+
+		// make a second project
+		node = privateCreateNew("newParent");
+		node.setNodeType(EntityType.project.name());
+		String newParentId = nodeDao.createNew(node);
+		toDelete.add(newParentId);
+		assertNotNull(newParentId);
+
+		// check state of child node before the change
+		Node oldNode = nodeDao.getNode(childId);
+		assertNotNull(oldNode);
+		assertEquals(parentProjectId, oldNode.getParentId());
+
+		// change child's parent to newProject
+		boolean changeReturn = nodeDao.changeNodeParent(childId, newParentId);
+		assertTrue(changeReturn);
+
+		// make sure all project ids are set to new project
+		assertEquals(newParentId, nodeDao.getNode(childId).getProjectId());
+		for (int i = 0; i < childChilds.length; i++) {
+			assertEquals(newParentId, nodeDao.getNode(childChilds[i]).getProjectId());
+		}
+	}
+
+	/**
+	 * Tests that changeNodeParent correctly throws a IllegalArgumentException when the JDONode's parentId is null
+	 * 
 	 * @throws Exception
 	 */
 	@Test(expected = IllegalArgumentException.class)

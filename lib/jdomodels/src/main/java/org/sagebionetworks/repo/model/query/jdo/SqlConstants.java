@@ -20,6 +20,7 @@ public class SqlConstants {
 	public static final String COL_NODE_ID				= "ID";
 	public static final String COL_NODE_PARENT_ID		= "PARENT_ID";
 	public static final String COL_NODE_BENEFACTOR_ID	= "BENEFACTOR_ID";
+	public static final String COL_NODE_PROJECT_ID		= "PROJECT_ID";
 	public static final String COL_NODE_NAME			= "NAME";
 	public static final String COL_NODE_ANNOATIONS		= "ANNOTATIONS_ID_OID";
 	public static final String COL_NODE_DESCRIPTION 	= "DESCRIPTION";

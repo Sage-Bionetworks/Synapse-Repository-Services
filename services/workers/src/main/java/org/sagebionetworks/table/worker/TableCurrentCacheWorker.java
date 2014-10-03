@@ -73,6 +73,7 @@ public class TableCurrentCacheWorker implements Callable<List<Message>> {
 				} else {
 					// Create or update.
 					// this method does the real work.
+					log.info("Updating current versions for " + tableId);
 					updateCurrentVersionCache(tableId, change.getObjectEtag(), message);
 					processedMessages.add(message);
 				}
@@ -102,6 +103,7 @@ public class TableCurrentCacheWorker implements Callable<List<Message>> {
 			status = tableRowManager.getTableStatusOrCreateIfNotExists(tableId);
 		} catch (NotFoundException e) {
 			// if the table doesn't exist, we assume the message was old and we consider it handled
+			log.info("Updating current versions for " + tableId + " aborted because table does not exist");
 			return;
 		}
 
@@ -117,5 +119,6 @@ public class TableCurrentCacheWorker implements Callable<List<Message>> {
 				workerProgress.progressMadeForMessage(message);
 			}
 		});
+		log.info("Updating current versions for " + tableId + " done");
 	}
 }
