@@ -69,6 +69,9 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	@Autowired
 	private AccessControlListDAO aclDAO;
 	
+	// does not change during the lifetime of a Synapse stack, but is mutuable to support testing
+	private  boolean certifiedUserRestrictionEnforced = false;
+	
 	@Override
 	public boolean canAccess(UserInfo userInfo, String objectId, ObjectType objectType, ACCESS_TYPE accessType)
 			throws DatastoreException, NotFoundException {
@@ -316,7 +319,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	 * @return
 	 */
 	public boolean isCertifiedUser(UserInfo userInfo) {
-		return userInfo.getGroups().contains(
+		return !certifiedUserRestrictionEnforced || userInfo.getGroups().contains(
 				AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
 	}
 }

@@ -35,8 +35,10 @@ import org.sagebionetworks.repo.model.jdo.FieldTypeCache;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.provenance.Activity;
+import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
@@ -52,6 +54,8 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	private static final String FILE_HANDLE_UNAUTHORIZED_TEMPLATE = "Only the creator of a FileHandle can assign it to an Entity.  FileHandleId = '%1$s', UserId = '%2$s'";
 
 	static private Log log = LogFactory.getLog(NodeManagerImpl.class);	
+	
+	private static final String TABLE_NODE_TYPE = EntityType.getNodeTypeForClass((Class<? extends JSONEntity>)TableEntity.class).name();
 	
 	@Autowired
 	NodeDAO nodeDao;	
@@ -130,18 +134,24 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		if (!authorizationManager.canCreate(userInfo, newNode)) {
 			throw new UnauthorizedException(userInfo.getId().toString()+" is not allowed to create items within container "+newNode.getParentId());
 		}
+		
+		boolean isCertifiedUser = authorizationManager.isCertifiedUser(userInfo);
+		
 		// Handle permission around file handles.
 		if(newNode.getFileHandleId() != null){
 			// To set the file handle on a create the caller must have permission 
 			if(!authorizationManager.canAccessRawFileHandleById(userInfo, newNode.getFileHandleId())){
 				throw new UnauthorizedException(createFileHandleUnauthorizedMessage(newNode.getFileHandleId(), userInfo));
 			}
-			if (!authorizationManager.isCertifiedUser(userInfo)) {
+			if (!isCertifiedUser) {
 				throw new UnauthorizedException("Must be a Certified User to create a File.");
 			}
 			if (!authorizationManager.canAccess(userInfo, newNode.getParentId(), ObjectType.ENTITY, ACCESS_TYPE.UPLOAD)) {
 				throw new UnauthorizedException(userInfo.getId().toString()+" is not allowed to upload a file into the chosen folder.");
 			}
+		}
+		if (newNode.getNodeType().equals(TABLE_NODE_TYPE) && !isCertifiedUser) {
+			throw new UnauthorizedException("Must be a Certified User to create a Table.");
 		}
 
 		// check whether the user is allowed to connect to the specified activity

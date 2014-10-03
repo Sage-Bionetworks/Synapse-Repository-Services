@@ -273,6 +273,10 @@ public class TableRowManagerImpl implements TableRowManager {
 		if(!authorizationManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)){
 			throw new UnauthorizedException("User does not have permission to update TableEntity: "+tableId);
 		}
+		if (!authorizationManager.isCertifiedUser(user)) {
+			throw new UnauthorizedException("Must be a Certified User to add rows to a Table.");
+		}	
+
 		// To prevent race conditions on concurrency checking we apply all changes to a single table
 		// serially by locking on the table's Id.
 		columnModelDAO.lockOnOwner(tableId);
