@@ -16,6 +16,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.dynamo.dao.rowcache.CurrentRowCacheDao;
 import org.sagebionetworks.dynamo.dao.rowcache.CurrentRowCacheDaoImpl;
 import org.sagebionetworks.dynamo.dao.rowcache.RowCacheDao;
@@ -120,26 +121,29 @@ public class MigrationManagerImplAutowireTest {
 		// The etag should have changed
 		withPreview = (S3FileHandle) fileHandleDao.get(withPreview.getId());
 
-		// create columns
-		LinkedList<ColumnModel> schema = new LinkedList<ColumnModel>();
-		for (ColumnModel cm : TableModelTestUtils.createOneOfEachType()) {
-			cm = columnManager.createColumnModel(adminUser, cm);
-			schema.add(cm);
-		}
-		List<String> headers = TableModelUtils.getHeaders(schema);
-		// Create the table.
-		TableEntity table = new TableEntity();
-		table.setName(UUID.randomUUID().toString());
-		table.setColumnIds(headers);
-		tableId = entityManager.createEntity(adminUser, table, null);
-		columnManager.bindColumnToObject(adminUser, headers, tableId, true);
+		// Do this only if table enabled
+		if (StackConfiguration.singleton().getTableEnabled()) {
+			// create columns
+			LinkedList<ColumnModel> schema = new LinkedList<ColumnModel>();
+			for (ColumnModel cm : TableModelTestUtils.createOneOfEachType()) {
+				cm = columnManager.createColumnModel(adminUser, cm);
+				schema.add(cm);
+			}
+			List<String> headers = TableModelUtils.getHeaders(schema);
+			// Create the table.
+			TableEntity table = new TableEntity();
+			table.setName(UUID.randomUUID().toString());
+			table.setColumnIds(headers);
+			tableId = entityManager.createEntity(adminUser, table, null);
+			columnManager.bindColumnToObject(adminUser, headers, tableId, true);
 
-		// Now add some data
-		RowSet rowSet = new RowSet();
-		rowSet.setRows(TableModelTestUtils.createRows(schema, 2));
-		rowSet.setHeaders(headers);
-		rowSet.setTableId(tableId);
-		tableRowManager.appendRows(adminUser, tableId, schema, rowSet);
+			// Now add some data
+			RowSet rowSet = new RowSet();
+			rowSet.setRows(TableModelTestUtils.createRows(schema, 2));
+			rowSet.setHeaders(headers);
+			rowSet.setTableId(tableId);
+			tableRowManager.appendRows(adminUser, tableId, schema, rowSet);
+		}
 	}
 	
 	@After
@@ -231,31 +235,34 @@ public class MigrationManagerImplAutowireTest {
 		assertNotNull(result);
 		assertEquals(result.getList(), afterResult.getList());
 
-		// pretend to be worker and generate caches and index
-		List<ColumnModel> currentSchema = tableRowManager.getColumnModelsForTable(tableId);
-		TableIndexDAO indexDao = tableConnectionFactory.getConnection(tableId);
-		indexDao.createOrUpdateTable(currentSchema, tableId);
-		tableRowManager.updateLatestVersionCache(tableId, new ProgressCallback<Long>() {
-			@Override
-			public void progressMade(Long version) {
-			}
-		});
-		List<ColumnModel> models = columnManager.getColumnModelsForTable(adminUser, tableId);
-		RowReferenceSet rowRefs = new RowReferenceSet();
-		rowRefs.setRows(Collections.singletonList(TableModelTestUtils.createRowReference(0L, 0L)));
-		rowRefs.setTableId(tableId);
-		rowRefs.setHeaders(TableModelUtils.getHeaders(models));
-		tableRowManager.getCellValues(adminUser, tableId, rowRefs, models);
+		// Do this only if table enabled
+		if (StackConfiguration.singleton().getTableEnabled()) {
+			// pretend to be worker and generate caches and index
+			List<ColumnModel> currentSchema = tableRowManager.getColumnModelsForTable(tableId);
+			TableIndexDAO indexDao = tableConnectionFactory.getConnection(tableId);
+			indexDao.createOrUpdateTable(currentSchema, tableId);
+			tableRowManager.updateLatestVersionCache(tableId, new ProgressCallback<Long>() {
+				@Override
+				public void progressMade(Long version) {
+				}
+			});
+			List<ColumnModel> models = columnManager.getColumnModelsForTable(adminUser, tableId);
+			RowReferenceSet rowRefs = new RowReferenceSet();
+			rowRefs.setRows(Collections.singletonList(TableModelTestUtils.createRowReference(0L, 0L)));
+			rowRefs.setTableId(tableId);
+			rowRefs.setHeaders(TableModelUtils.getHeaders(models));
+			tableRowManager.getCellValues(adminUser, tableId, rowRefs, models);
 
-		assertEquals(0, indexDao.getRowCountForTable(tableId).intValue());
-		assertEquals(2, currentRowCacheDao.getCurrentVersions(KeyFactory.stringToKey(tableId), 0L, 10L).size());
-		assertNotNull(rowCacheDao.getRow(KeyFactory.stringToKey(tableId), 0L, 0L));
+			assertEquals(0, indexDao.getRowCountForTable(tableId).intValue());
+			assertEquals(2, currentRowCacheDao.getCurrentVersions(KeyFactory.stringToKey(tableId), 0L, 10L).size());
+			assertNotNull(rowCacheDao.getRow(KeyFactory.stringToKey(tableId), 0L, 0L));
 
-		migrationManager.deleteObjectsById(adminUser, MigrationType.TABLE_SEQUENCE, Lists.newArrayList(KeyFactory.stringToKey(tableId)));
+			migrationManager.deleteObjectsById(adminUser, MigrationType.TABLE_SEQUENCE, Lists.newArrayList(KeyFactory.stringToKey(tableId)));
 
-		assertNull(indexDao.getRowCountForTable(tableId));
-		assertEquals(0, currentRowCacheDao.getCurrentVersions(KeyFactory.stringToKey(tableId), 0L, 10L).size());
-		assertNull(rowCacheDao.getRow(KeyFactory.stringToKey(tableId), 0L, 0L));
+			assertNull(indexDao.getRowCountForTable(tableId));
+			assertEquals(0, currentRowCacheDao.getCurrentVersions(KeyFactory.stringToKey(tableId), 0L, 10L).size());
+			assertNull(rowCacheDao.getRow(KeyFactory.stringToKey(tableId), 0L, 0L));
+		}
 	}
 	
 	@Test

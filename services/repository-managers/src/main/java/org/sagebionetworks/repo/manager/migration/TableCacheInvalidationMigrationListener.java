@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.migration;
 import java.io.IOException;
 import java.util.List;
 
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -28,6 +29,10 @@ public class TableCacheInvalidationMigrationListener implements MigrationTypeLis
 	public void beforeDeleteBatch(MigrationType type, List<Long> idsToDelete) {
 		// we only deal with table change sets here
 		if (type != MigrationType.TABLE_CHANGE) {
+			return;
+		}
+
+		if (!StackConfiguration.singleton().getTableEnabled()) {
 			return;
 		}
 
