@@ -56,7 +56,7 @@ public class NodeWithProjectIdMigrationListener implements MigrationTypeListener
 				continue;
 			}
 
-			if (node.getNodeType().equals(PROJECT_ENTITY_TYPE.getEntityType())) {
+			if (node.getNodeType().equals(PROJECT_ENTITY_TYPE.getId())) {
 				// project nodes have themselves as the project
 				jdbcTemplate.update(UPDATE_PROJECT_SQL, node.getId(), node.getId());
 			} else {

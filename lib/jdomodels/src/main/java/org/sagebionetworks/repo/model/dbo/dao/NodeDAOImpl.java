@@ -18,6 +18,7 @@ import java.util.UUID;
 
 import javax.annotation.PostConstruct;
 
+import org.apache.commons.lang.ObjectUtils;
 import org.joda.time.DateTime;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.IdGenerator;
@@ -56,12 +57,16 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.BadSqlGrammarException;
+import org.springframework.jdbc.config.JdbcNamespaceHandler;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.google.common.collect.Lists;
+import com.google.common.primitives.Longs;
 
 /**
  * This is a basic implementation of the NodeDAO.
@@ -74,7 +79,9 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String TRASH_FOLDER_ID = StackConfiguration.getTrashFolderEntityIdStatic();
 
 	private static final String USER_ID_PARAM_NAME = "user_id_param";
+	private static final String IDS_PARAM_NAME = "ids_param";
 	private static final String PROJECT_TYPE_PARAM_NAME = "project_type_param";
+	private static final String PROJECT_ID_PARAM_NAME = "project_id_param";
 
 	private static final String SQL_SELECT_REV_FILE_HANDLE_ID = "SELECT "+COL_REVISION_FILE_HANDLE_ID+" FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE+" = ? AND "+COL_REVISION_NUMBER+" = ?";
 	private static final String SELECT_REVISIONS_ONLY = "SELECT R."+COL_REVISION_REFS_BLOB+" FROM  "+TABLE_NODE+" N, "+TABLE_REVISION+" R WHERE N."+COL_NODE_ID+" = ? AND R."+COL_REVISION_OWNER_NODE+" = N."+COL_NODE_ID+" AND R."+COL_REVISION_NUMBER+" = N."+COL_CURRENT_REV;
@@ -152,6 +159,9 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			+ " WHERE R." + COL_REVISION_FILE_HANDLE_ID + " = F." + COL_FILES_ID
 			+ " AND F." + COL_FILES_CONTENT_MD5 + " = :" + COL_FILES_CONTENT_MD5
 			+ " LIMIT " + (NODE_VERSION_LIMIT_BY_FILE_MD5 + 1);
+
+	private static final String UPDATE_PROJECT_IDS = "UPDATE " + TABLE_NODE + " SET " + COL_NODE_PROJECT_ID + " = :" + PROJECT_ID_PARAM_NAME
+			+ " WHERE " + COL_NODE_ID + " IN (:" + IDS_PARAM_NAME + ")";
 
 	// This is better suited for JDBC query.
 	@Autowired
@@ -238,7 +248,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		}
 		if (node.getProjectId() == null) {
 			// we need to find the project id for this node if possible
-			if (node.getNodeType().equals(PROJECT_ENTITY_TYPE.getEntityType())) {
+			if (node.getNodeType().equals(PROJECT_ENTITY_TYPE.getId())) {
 				// we are our own project
 				node.setProjectId(node.getId());
 			} else if (parent != null) {
@@ -994,7 +1004,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	}
 	
 	public static final int BATCH_PATH_DEPTH = 5;
-	
+
 	/**
 	 * A recursive method to build up the full path of of an entity, recursing in batch rather than one 
 	 * node at a time.
@@ -1152,11 +1162,35 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		//make the update 
 		node.setParentId(newParentNode.getId());
 		// also update the project, since that might have changed too
-		node.setProjectId(newParentNode.getProjectId());
+		if (!ObjectUtils.equals(node.getProjectId(), newParentNode.getProjectId())) {
+			node.setProjectId(newParentNode.getProjectId());
+			// this means we need to update all the children also
+			updateProjectForAllChildren(node, newParentNode.getProjectId());
+		}
 		dboBasicDao.update(node);
 		return true;
 	}
 	
+	private int updateProjectForAllChildren(DBONode node, Long projectId) {
+		List<Long> allChildren = Lists.newLinkedList();
+		getChildrenIdsRecursive(node.getId(), allChildren);
+		// batch the updates, so we don't overwhelm the in clause
+		int count = 0;
+		for (List<Long> batch : Lists.partition(allChildren, 500)) {
+			count += namedParameterJdbcTemplate.update(UPDATE_PROJECT_IDS,
+					new MapSqlParameterSource().addValue(IDS_PARAM_NAME, batch).addValue(PROJECT_ID_PARAM_NAME, projectId));
+		}
+		return count;
+	}
+
+	private void getChildrenIdsRecursive(Long id, List<Long> result) {
+		List<Long> children = jdbcTemplate.queryForList(SQL_GET_ALL_CHILDREN_IDS, Long.class, id);
+		result.addAll(children);
+		for (Long child : children) {
+			getChildrenIdsRecursive(child, result);
+		}
+	}
+		
 	@Override
 	public Long getCurrentRevisionNumber(String nodeId) throws NotFoundException, DatastoreException{
 		if(nodeId == null) throw new IllegalArgumentException("Node Id cannot be null");
