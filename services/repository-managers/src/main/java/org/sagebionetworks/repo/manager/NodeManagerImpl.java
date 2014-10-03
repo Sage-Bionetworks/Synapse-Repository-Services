@@ -136,6 +136,9 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 			if(!authorizationManager.canAccessRawFileHandleById(userInfo, newNode.getFileHandleId())){
 				throw new UnauthorizedException(createFileHandleUnauthorizedMessage(newNode.getFileHandleId(), userInfo));
 			}
+			if (!authorizationManager.isCertifiedUser(userInfo)) {
+				throw new UnauthorizedException("Must be a Certified User to create a File.");
+			}
 			if (!authorizationManager.canAccess(userInfo, newNode.getParentId(), ObjectType.ENTITY, ACCESS_TYPE.UPLOAD)) {
 				throw new UnauthorizedException(userInfo.getId().toString()+" is not allowed to upload a file into the chosen folder.");
 			}
@@ -333,6 +336,9 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 				// This is a change so the user must be the creator of the new file handle
 				if(!authorizationManager.canAccessRawFileHandleById(userInfo, updatedNode.getFileHandleId())){
 					throw new UnauthorizedException(createFileHandleUnauthorizedMessage(updatedNode.getFileHandleId(), userInfo));
+				}
+				if (!authorizationManager.isCertifiedUser(userInfo)) {
+					throw new UnauthorizedException("Must be a Certified User to change a File.");
 				}
 				if (!authorizationManager.canAccess(userInfo, updatedNode.getParentId(), ObjectType.ENTITY, ACCESS_TYPE.UPLOAD)) {
 					throw new UnauthorizedException(userInfo.getId().toString()+" is not allowed to upload a file into the chosen folder.");

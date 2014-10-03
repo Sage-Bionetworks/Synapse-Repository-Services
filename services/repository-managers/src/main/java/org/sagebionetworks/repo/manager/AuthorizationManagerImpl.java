@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ActivityDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -307,5 +308,15 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		} catch (ParseException e) {
 			throw new IllegalArgumentException(e);
 		}
+	}
+	
+	/**
+	 * returns true iff the user is a certified user
+	 * @param userInfo
+	 * @return
+	 */
+	public boolean isCertifiedUser(UserInfo userInfo) {
+		return userInfo.getGroups().contains(
+				AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
 	}
 }
