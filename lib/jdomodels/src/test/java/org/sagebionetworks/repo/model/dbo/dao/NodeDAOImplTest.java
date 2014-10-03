@@ -32,6 +32,7 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.principal.BootstrapAlias;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -94,6 +95,7 @@ public class NodeDAOImplTest {
 
 	private String user1;
 	private String user2;
+	private String user3;
 	private String group;
 
 	@Before
@@ -120,11 +122,15 @@ public class NodeDAOImplTest {
 		user2 = userGroupDAO.create(user).toString();
 		userGroupsToDelete.add(user2);
 
+		user3 = userGroupDAO.create(user).toString();
+		userGroupsToDelete.add(user3);
+
 		user.setIsIndividual(false);
 		group = userGroupDAO.create(user).toString();
 		userGroupsToDelete.add(group);
 
 		groupMembersDAO.addMembers(group, Lists.newArrayList(user1));
+		groupMembersDAO.addMembers(group, Lists.newArrayList(user3));
 	}
 	
 	@After
@@ -1446,6 +1452,23 @@ public class NodeDAOImplTest {
 		for (int i = 0; i < childChilds.length; i++) {
 			assertEquals(newParentId, nodeDao.getNode(childChilds[i]).getProjectId());
 		}
+
+		// change to trash (no project) and back
+		nodeDao.changeNodeParent(childId, StackConfiguration.getTrashFolderEntityIdStatic());
+
+		// make sure all project ids are set to new project
+		assertNull(nodeDao.getNode(childId).getProjectId());
+		for (int i = 0; i < childChilds.length; i++) {
+			assertNull(nodeDao.getNode(childChilds[i]).getProjectId());
+		}
+
+		nodeDao.changeNodeParent(childId, newParentId);
+
+		// make sure all project ids are set to new project
+		assertEquals(newParentId, nodeDao.getNode(childId).getProjectId());
+		for (int i = 0; i < childChilds.length; i++) {
+			assertEquals(newParentId, nodeDao.getNode(childChilds[i]).getProjectId());
+		}
 	}
 
 	/**
@@ -2120,47 +2143,68 @@ public class NodeDAOImplTest {
 		notMyProject = nodeDao.getNode(neither);
 
 		Thread.sleep(2); // ensure ordering by creation date
-		Node myTrashedProject = NodeTestUtils.createNew("testGetProjectHeaders.name4", Long.parseLong(user2));
+		Node notMyProjectButTouchedFolder = NodeTestUtils.createNew("testGetProjectHeaders.name5", Long.parseLong(user2));
+		notMyProjectButTouchedFolder.setParentId(StackConfiguration.getRootFolderEntityIdStatic());
+		String subFolderProject = this.nodeDao.createNew(notMyProjectButTouchedFolder);
+		toDelete.add(subFolderProject);
+		notMyProjectButTouchedFolder = nodeDao.getNode(neither);
+
+		Node folder = NodeTestUtils.createNew("testGetProjectHeaders.folder1", Long.parseLong(user1));
+		folder.setParentId(subFolderProject);
+		folder.setNodeType(EntityType.folder.name());
+		String ownerFolder = this.nodeDao.createNew(folder);
+		toDelete.add(ownerFolder);
+
+		Thread.sleep(2); // ensure ordering by creation date
+		Node myTrashedProject = NodeTestUtils.createNew("testGetProjectHeaders.name6", Long.parseLong(user2));
 		myTrashedProject.setParentId(StackConfiguration.getTrashFolderEntityIdStatic());
 		String trashed = this.nodeDao.createNew(myTrashedProject);
 		toDelete.add(trashed);
 		myTrashedProject = nodeDao.getNode(trashed);
 
-		PaginatedResults<ProjectHeader> projectHeaders = nodeDao.getProjectHeaders(user1, 100, 0);
-		assertEquals(3L, projectHeaders.getTotalNumberOfResults());
-		assertEquals(3L, projectHeaders.getTotalNumberOfResults());
+		PaginatedResults<ProjectHeader> projectHeaders = nodeDao.getProjectHeaders(user1, null, 100, 0);
+		assertEquals(4L, projectHeaders.getTotalNumberOfResults());
 		List<String> projectIds = Lists.transform(projectHeaders.getResults(), new Function<ProjectHeader, String>() {
 			@Override
 			public String apply(ProjectHeader input) {
 				return input.getId();
 			}
 		});
-		assertTrue(projectIds.contains(owned));
-		assertTrue(projectIds.contains(participate));
-		assertTrue(projectIds.contains(groupParticipate));
+		assertEquals(subFolderProject, projectIds.get(0));
+		assertEquals(groupParticipate, projectIds.get(1));
+		assertEquals(participate, projectIds.get(2));
+		assertEquals(owned, projectIds.get(3));
 
 		List<String> projectIds2 = Lists.newArrayList();
-		for (int i = 0; i < 3; i++) {
-			projectHeaders = nodeDao.getProjectHeaders(user1, 1, i);
+		for (int i = 0; i < 4; i++) {
+			projectHeaders = nodeDao.getProjectHeaders(user1, null, 1, i);
 			assertEquals(1L, projectHeaders.getResults().size());
-			assertEquals(3L, projectHeaders.getTotalNumberOfResults());
+			assertEquals(4L, projectHeaders.getTotalNumberOfResults());
 			projectIds2.add(projectHeaders.getResults().get(0).getId());
 		}
 		assertEquals(projectIds, projectIds2);
 
 		// change sorting by touching project stats
-		ProjectStat projectStat = new ProjectStat(KeyFactory.stringToKey(projectIds.get(1)), KeyFactory.stringToKey(user1), new Date(1000));
+		ProjectStat projectStat = new ProjectStat(KeyFactory.stringToKey(participate), KeyFactory.stringToKey(user1), new Date());
 		projectStatsDAO.update(projectStat);
-		projectStat = new ProjectStat(KeyFactory.stringToKey(projectIds.get(2)), KeyFactory.stringToKey(user1), new Date(1001));
+		Thread.sleep(2);
+		projectStat = new ProjectStat(KeyFactory.stringToKey(owned), KeyFactory.stringToKey(user1), new Date());
 		projectStatsDAO.update(projectStat);
 		// project stat for other user should not matter
-		projectStat = new ProjectStat(KeyFactory.stringToKey(projectIds.get(2)), KeyFactory.stringToKey(user2), new Date(2000));
+		Thread.sleep(2);
+		projectStat = new ProjectStat(KeyFactory.stringToKey(groupParticipate), KeyFactory.stringToKey(user2), new Date(2000));
 		projectStatsDAO.update(projectStat);
 
-		projectHeaders = nodeDao.getProjectHeaders(user1, 100, 0);
-		assertEquals(projectIds.get(2), projectHeaders.getResults().get(0).getId());
-		assertEquals(projectIds.get(1), projectHeaders.getResults().get(1).getId());
-		assertEquals(projectIds.get(0), projectHeaders.getResults().get(2).getId());
+		projectHeaders = nodeDao.getProjectHeaders(user1, null, 100, 0);
+		assertEquals(owned, projectHeaders.getResults().get(0).getId());
+		assertEquals(participate, projectHeaders.getResults().get(1).getId());
+		assertEquals(subFolderProject, projectHeaders.getResults().get(2).getId());
+		assertEquals(groupParticipate, projectHeaders.getResults().get(3).getId());
+
+		// user3 only has access to group project
+		projectHeaders = nodeDao.getProjectHeaders(user1, user3, 100, 0);
+		assertEquals(1, projectHeaders.getResults().size());
+		assertEquals(groupParticipate, projectHeaders.getResults().get(0).getId());
 	}
 
 	/*
