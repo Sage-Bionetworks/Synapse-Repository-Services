@@ -51,7 +51,7 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
 	@Autowired
-	TransactionalMessenger transactionalMessanger;
+	TransactionalMessenger transactionalMessenger;
 	
 	@Override
 	public TableStatus getTableStatus(String tableIdString) throws DatastoreException, NotFoundException {
@@ -73,7 +73,8 @@ public class TableStatusDAOImpl implements TableStatusDAO {
 		// We are not unconditionally replacing this row.  Instead we are only setting the columns that we wish to change.
 		jdbcTemplate.update(SQL_RESET_TO_PENDING, tableId, state,resetToken, now, now, state, resetToken, now, now);
 		// Fire a change event
-		transactionalMessanger.sendMessageAfterCommit(tableId.toString(), ObjectType.TABLE, resetToken, ChangeType.UPDATE);
+		transactionalMessenger.sendMessageAfterCommit(tableId.toString(), ObjectType.TABLE, resetToken, ChangeType.UPDATE);
+		transactionalMessenger.sendModificationMessageAfterCommit(tableIdString, ObjectType.ENTITY);
 		return resetToken;
 	}
 

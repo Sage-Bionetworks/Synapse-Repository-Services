@@ -124,6 +124,9 @@
 	<bean id="projectSettingsDAO"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOProjectSettingsDAOImpl"/>
 	
+	<bean id="projectStatsDAO"
+		class="org.sagebionetworks.repo.model.dbo.dao.DBOProjectStatsDAOImpl"/>
+	
 	<bean id="groupMembersDAO"
 		class="org.sagebionetworks.repo.model.dbo.dao.DBOGroupMembersDAOImpl"
 		depends-on="userGroupDAO" 

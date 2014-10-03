@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.message;
 import java.util.List;
 import java.util.Map;
 
+import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.springframework.transaction.support.TransactionSynchronization;
 
 /**
@@ -25,14 +26,14 @@ public interface TransactionSynchronizationProxy {
 	 * @param key
 	 * @param value
 	 */
-	void bindResource(String key, Map<ChangeMessageKey, ChangeMessage> value);
+	void bindResource(String key, Map<?, ?> value);
 
 	/**
 	 * @See http://static.springsource.org/spring/docs/3.0.x/javadoc-api/org/springframework/transaction/support/TransactionSynchronizationManager.html#getResource(java.lang.Object)
 	 * @param key
 	 * @return
 	 */
-	Map<ChangeMessageKey, ChangeMessage> getResource(String key);
+	Map<?, ?> getResource(String key);
 
 	/**
 	 * @see http://static.springsource.org/spring/docs/3.0.x/javadoc-api/org/springframework/transaction/support/TransactionSynchronizationManager.html#getSynchronizations()

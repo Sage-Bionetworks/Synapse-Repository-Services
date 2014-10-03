@@ -75,6 +75,9 @@ public class NodeDAOImplTest {
 	@Autowired
 	private GroupMembersDAO groupMembersDAO;
 
+	@Autowired
+	private ProjectStatsDAO projectStatsDAO;
+
 	// the datasets that must be deleted at the end of each test.
 	List<String> toDelete = new ArrayList<String>();
 	List<String> activitiesToDelete = new ArrayList<String>();
@@ -1383,8 +1386,71 @@ public class NodeDAOImplTest {
 	}
 	
 	/**
-	 * Tests that changeNodeParent correctly throws a IllegalArgumentException
-	 * when the JDONode's parentId is null
+	 * Tests that changeNodeParent correctly sets a node's parent to reference the parentNode sent as a parameter.
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void testChangeNodeParentAndProject() throws Exception {
+		// make a parent project
+		Node node = privateCreateNew("parentProject");
+		node.setNodeType(EntityType.project.name());
+		String parentProjectId = nodeDao.createNew(node);
+		toDelete.add(parentProjectId);
+		assertNotNull(parentProjectId);
+
+		// add a child to the parent
+		node = privateCreateNew("child");
+		node.setNodeType(EntityType.dataset.name());
+		node.setParentId(parentProjectId);
+		String childId = nodeDao.createNew(node);
+		toDelete.add(childId);
+		assertNotNull(childId);
+
+		String[] childChilds = new String[4];
+		// add children to child
+		for (int i = 0; i < childChilds.length; i++) {
+			node = privateCreateNew("child" + i);
+			node.setNodeType(EntityType.dataset.name());
+			node.setParentId(childId);
+			childChilds[i] = nodeDao.createNew(node);
+			toDelete.add(childChilds[i]);
+			assertNotNull(childChilds[i]);
+		}
+
+		// make sure all project ids are set
+		assertEquals(parentProjectId, nodeDao.getNode(parentProjectId).getProjectId());
+		assertEquals(parentProjectId, nodeDao.getNode(childId).getProjectId());
+		for (int i = 0; i < childChilds.length; i++) {
+			assertEquals(parentProjectId, nodeDao.getNode(childChilds[i]).getProjectId());
+		}
+
+		// make a second project
+		node = privateCreateNew("newParent");
+		node.setNodeType(EntityType.project.name());
+		String newParentId = nodeDao.createNew(node);
+		toDelete.add(newParentId);
+		assertNotNull(newParentId);
+
+		// check state of child node before the change
+		Node oldNode = nodeDao.getNode(childId);
+		assertNotNull(oldNode);
+		assertEquals(parentProjectId, oldNode.getParentId());
+
+		// change child's parent to newProject
+		boolean changeReturn = nodeDao.changeNodeParent(childId, newParentId);
+		assertTrue(changeReturn);
+
+		// make sure all project ids are set to new project
+		assertEquals(newParentId, nodeDao.getNode(childId).getProjectId());
+		for (int i = 0; i < childChilds.length; i++) {
+			assertEquals(newParentId, nodeDao.getNode(childChilds[i]).getProjectId());
+		}
+	}
+
+	/**
+	 * Tests that changeNodeParent correctly throws a IllegalArgumentException when the JDONode's parentId is null
+	 * 
 	 * @throws Exception
 	 */
 	@Test(expected = IllegalArgumentException.class)
@@ -2008,6 +2074,7 @@ public class NodeDAOImplTest {
 		nodeDao.createNewVersion(ownedProject);
 		ownedProject = nodeDao.getNode(owned);
 
+		Thread.sleep(2); // ensure ordering by creation date
 		Node participateProject = NodeTestUtils.createNew("testGetProjectHeaders.name2", Long.parseLong(user2));
 		participateProject.setParentId(StackConfiguration.getRootFolderEntityIdStatic());
 		String participate = this.nodeDao.createNew(participateProject);
@@ -2026,6 +2093,7 @@ public class NodeDAOImplTest {
 		acl.setCreationDate(new Date());
 		accessControlListDAO.create(acl, ObjectType.ENTITY);
 
+		Thread.sleep(2); // ensure ordering by creation date
 		Node groupParticipateProject = NodeTestUtils.createNew("testGetProjectHeaders.name3", Long.parseLong(user2));
 		groupParticipateProject.setParentId(StackConfiguration.getRootFolderEntityIdStatic());
 		String groupParticipate = this.nodeDao.createNew(groupParticipateProject);
@@ -2044,12 +2112,14 @@ public class NodeDAOImplTest {
 		acl.setCreationDate(new Date());
 		accessControlListDAO.create(acl, ObjectType.ENTITY);
 
+		Thread.sleep(2); // ensure ordering by creation date
 		Node notMyProject = NodeTestUtils.createNew("testGetProjectHeaders.name4", Long.parseLong(user2));
 		notMyProject.setParentId(StackConfiguration.getRootFolderEntityIdStatic());
 		String neither = this.nodeDao.createNew(notMyProject);
 		toDelete.add(neither);
 		notMyProject = nodeDao.getNode(neither);
 
+		Thread.sleep(2); // ensure ordering by creation date
 		Node myTrashedProject = NodeTestUtils.createNew("testGetProjectHeaders.name4", Long.parseLong(user2));
 		myTrashedProject.setParentId(StackConfiguration.getTrashFolderEntityIdStatic());
 		String trashed = this.nodeDao.createNew(myTrashedProject);
@@ -2077,6 +2147,20 @@ public class NodeDAOImplTest {
 			projectIds2.add(projectHeaders.getResults().get(0).getId());
 		}
 		assertEquals(projectIds, projectIds2);
+
+		// change sorting by touching project stats
+		ProjectStat projectStat = new ProjectStat(KeyFactory.stringToKey(projectIds.get(1)), KeyFactory.stringToKey(user1), new Date(1000));
+		projectStatsDAO.update(projectStat);
+		projectStat = new ProjectStat(KeyFactory.stringToKey(projectIds.get(2)), KeyFactory.stringToKey(user1), new Date(1001));
+		projectStatsDAO.update(projectStat);
+		// project stat for other user should not matter
+		projectStat = new ProjectStat(KeyFactory.stringToKey(projectIds.get(2)), KeyFactory.stringToKey(user2), new Date(2000));
+		projectStatsDAO.update(projectStat);
+
+		projectHeaders = nodeDao.getProjectHeaders(user1, 100, 0);
+		assertEquals(projectIds.get(2), projectHeaders.getResults().get(0).getId());
+		assertEquals(projectIds.get(1), projectHeaders.getResults().get(1).getId());
+		assertEquals(projectIds.get(0), projectHeaders.getResults().get(2).getId());
 	}
 
 	/*

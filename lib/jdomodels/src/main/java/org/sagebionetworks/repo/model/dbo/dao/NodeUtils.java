@@ -193,6 +193,9 @@ class NodeUtils {
 		if(jdo.getParentId() != null){
 			dto.setParentId(KeyFactory.keyToString(jdo.getParentId()));
 		}
+		if (jdo.getProjectId() != null) {
+			dto.setProjectId(KeyFactory.keyToString(jdo.getProjectId()));
+		}
 		if(jdo.getEtag() != null){
 			dto.setETag(jdo.getEtag());
 		}

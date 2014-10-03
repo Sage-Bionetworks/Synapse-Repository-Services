@@ -147,6 +147,7 @@ public class TableWorker implements Callable<List<Message>> {
 				// This is an old message so we ignore it
 				return State.SUCCESS;
 			}
+			log.info("Get creat index lock " + tableId);
 			// Run with the exclusive lock on the table if we can get it.
 			return tableRowManager.tryRunWithTableExclusiveLock(tableId,
 					timeoutMS, new Callable<State>() {
@@ -192,6 +193,7 @@ public class TableWorker implements Callable<List<Message>> {
 	private State createOrUpdateWhileHoldingLock(String tableId,
 			String tableResetToken, Message message) throws ConflictingUpdateException, NotFoundException {
 		// Start the real work
+		log.info("Create index " + tableId);
 		try {
 			// Save the status before we start
 			// Try to get a connection.
@@ -204,12 +206,14 @@ public class TableWorker implements Callable<List<Message>> {
 			// This method will do the rest of the work.
 			String lastEtag = synchIndexWithTable(indexDAO, tableId, tableResetToken, message);
 			// We are finished set the status
+			log.info("Create index " + tableId + " done");
 			tableRowManager.attemptToSetTableStatusToAvailable(tableId,	tableResetToken, lastEtag);
 			return State.SUCCESS;
 		} catch (TableUnavilableException e) {
 			// recoverable
 			tableRowManager.attemptToUpdateTableProgress(tableId, tableResetToken, e.getStatus().getProgressMessage(), e.getStatus()
 					.getProgressCurrent(), e.getStatus().getProgressTotal());
+			log.info("Create index " + tableId + " aborted, unavailable");
 			return State.RECOVERABLE_FAILURE;
 		} catch (Exception e) {
 			// Failed.
@@ -219,6 +223,7 @@ public class TableWorker implements Callable<List<Message>> {
 			// Attempt to set the status to failed.
 			tableRowManager.attemptToSetTableStatusToFailed(tableId, tableResetToken, e.getMessage(), writer.toString());
 			// This is not an error we can recover from.
+			log.info("Create index " + tableId + " aborted, unrecoverable");
 			return State.UNRECOVERABLE_FAILURE;
 		}
 	}

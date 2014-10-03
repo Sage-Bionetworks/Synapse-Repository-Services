@@ -20,6 +20,7 @@ public class SqlConstants {
 	public static final String COL_NODE_ID				= "ID";
 	public static final String COL_NODE_PARENT_ID		= "PARENT_ID";
 	public static final String COL_NODE_BENEFACTOR_ID	= "BENEFACTOR_ID";
+	public static final String COL_NODE_PROJECT_ID		= "PROJECT_ID";
 	public static final String COL_NODE_NAME			= "NAME";
 	public static final String COL_NODE_ANNOATIONS		= "ANNOTATIONS_ID_OID";
 	public static final String COL_NODE_DESCRIPTION 	= "DESCRIPTION";
@@ -80,6 +81,13 @@ public class SqlConstants {
 	public static final String COL_PROJECT_SETTING_ETAG			= "ETAG";
 	public static final String COL_PROJECT_SETTING_TYPE			= "TYPE";
 	public static final String COL_PROJECT_SETTING_DATA			= "DATA";
+
+	// The Project Stats table
+	public static final String TABLE_PROJECT_STAT				= "PROJECT_STAT";
+	public static final String COL_PROJECT_STAT_ID				= "ID";
+	public static final String COL_PROJECT_STAT_PROJECT_ID		= "PROJECT_ID";
+	public static final String COL_PROJECT_STAT_USER_ID			= "USER_ID";
+	public static final String COL_PROJECT_STAT_LAST_ACCESSED	= "LAST_ACCESSED";
 
 	// The ACCESS_REQUIREMENT table
 	public static final String TABLE_ACCESS_REQUIREMENT				= "ACCESS_REQUIREMENT";

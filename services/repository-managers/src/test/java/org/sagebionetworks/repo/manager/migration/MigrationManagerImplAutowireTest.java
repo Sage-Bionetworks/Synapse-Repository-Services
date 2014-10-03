@@ -1,33 +1,58 @@
 package org.sagebionetworks.repo.manager.migration;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.*;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Random;
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.dynamo.dao.rowcache.CurrentRowCacheDao;
+import org.sagebionetworks.dynamo.dao.rowcache.CurrentRowCacheDaoImpl;
+import org.sagebionetworks.dynamo.dao.rowcache.RowCacheDao;
+import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.table.ColumnModelManager;
+import org.sagebionetworks.repo.manager.table.TableRowManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
+import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.RowReferenceSet;
+import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.TableEntity;
+import org.sagebionetworks.repo.model.table.TableStatus;
+import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.table.cluster.ConnectionFactory;
+import org.sagebionetworks.table.cluster.TableIndexDAO;
+import org.sagebionetworks.util.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import com.google.common.collect.Lists;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -45,12 +70,31 @@ public class MigrationManagerImplAutowireTest {
 	@Autowired
 	private EntityBootstrapper entityBootstrapper;
 	
+	@Autowired
+	ConnectionFactory tableConnectionFactory;
+
+	@Autowired
+	TableRowManager tableRowManager;
+
+	@Autowired
+	EntityManager entityManager;
+
+	@Autowired
+	ColumnModelManager columnManager;
+
+	@Autowired
+	CurrentRowCacheDao currentRowCacheDao;
+
+	@Autowired
+	RowCacheDao rowCacheDao;
+
 	private List<String> toDelete;
 	private UserInfo adminUser;
 	private String creatorUserGroupId;
 	private S3FileHandle withPreview;
 	private PreviewFileHandle preview;
 	private long startCount;
+	private String tableId;
 	
 	@Before
 	public void before() throws Exception {
@@ -76,6 +120,30 @@ public class MigrationManagerImplAutowireTest {
 		fileHandleDao.setPreviewId(withPreview.getId(), preview.getId());
 		// The etag should have changed
 		withPreview = (S3FileHandle) fileHandleDao.get(withPreview.getId());
+
+		// Do this only if table enabled
+		if (StackConfiguration.singleton().getTableEnabled()) {
+			// create columns
+			LinkedList<ColumnModel> schema = new LinkedList<ColumnModel>();
+			for (ColumnModel cm : TableModelTestUtils.createOneOfEachType()) {
+				cm = columnManager.createColumnModel(adminUser, cm);
+				schema.add(cm);
+			}
+			List<String> headers = TableModelUtils.getHeaders(schema);
+			// Create the table.
+			TableEntity table = new TableEntity();
+			table.setName(UUID.randomUUID().toString());
+			table.setColumnIds(headers);
+			tableId = entityManager.createEntity(adminUser, table, null);
+			columnManager.bindColumnToObject(adminUser, headers, tableId, true);
+
+			// Now add some data
+			RowSet rowSet = new RowSet();
+			rowSet.setRows(TableModelTestUtils.createRows(schema, 2));
+			rowSet.setHeaders(headers);
+			rowSet.setTableId(tableId);
+			tableRowManager.appendRows(adminUser, tableId, schema, rowSet);
+		}
 	}
 	
 	@After
@@ -87,6 +155,10 @@ public class MigrationManagerImplAutowireTest {
 			for(String id: toDelete){
 				fileHandleDao.delete(id);
 			}
+		}
+		try {
+			entityManager.deleteEntity(adminUser, tableId);
+		} catch (Exception e) {
 		}
 	}
 	
@@ -162,6 +234,35 @@ public class MigrationManagerImplAutowireTest {
 		RowMetadataResult afterResult = migrationManager.getRowMetadaForType(adminUser, MigrationType.FILE_HANDLE, Long.MAX_VALUE, startCount);
 		assertNotNull(result);
 		assertEquals(result.getList(), afterResult.getList());
+
+		// Do this only if table enabled
+		if (StackConfiguration.singleton().getTableEnabled()) {
+			// pretend to be worker and generate caches and index
+			List<ColumnModel> currentSchema = tableRowManager.getColumnModelsForTable(tableId);
+			TableIndexDAO indexDao = tableConnectionFactory.getConnection(tableId);
+			indexDao.createOrUpdateTable(currentSchema, tableId);
+			tableRowManager.updateLatestVersionCache(tableId, new ProgressCallback<Long>() {
+				@Override
+				public void progressMade(Long version) {
+				}
+			});
+			List<ColumnModel> models = columnManager.getColumnModelsForTable(adminUser, tableId);
+			RowReferenceSet rowRefs = new RowReferenceSet();
+			rowRefs.setRows(Collections.singletonList(TableModelTestUtils.createRowReference(0L, 0L)));
+			rowRefs.setTableId(tableId);
+			rowRefs.setHeaders(TableModelUtils.getHeaders(models));
+			tableRowManager.getCellValues(adminUser, tableId, rowRefs, models);
+
+			assertEquals(0, indexDao.getRowCountForTable(tableId).intValue());
+			assertEquals(2, currentRowCacheDao.getCurrentVersions(KeyFactory.stringToKey(tableId), 0L, 10L).size());
+			assertNotNull(rowCacheDao.getRow(KeyFactory.stringToKey(tableId), 0L, 0L));
+
+			migrationManager.deleteObjectsById(adminUser, MigrationType.TABLE_SEQUENCE, Lists.newArrayList(KeyFactory.stringToKey(tableId)));
+
+			assertNull(indexDao.getRowCountForTable(tableId));
+			assertEquals(0, currentRowCacheDao.getCurrentVersions(KeyFactory.stringToKey(tableId), 0L, 10L).size());
+			assertNull(rowCacheDao.getRow(KeyFactory.stringToKey(tableId), 0L, 0L));
+		}
 	}
 	
 	@Test

@@ -175,6 +175,8 @@
             ref="stackConfiguration.migrationBackupBatchMax" />
         <property name="migrationListeners" >
             <list>
+				<bean id="tableCacheInvalidationMigrationListener" class="org.sagebionetworks.repo.manager.migration.TableCacheInvalidationMigrationListener" />
+				<bean id="nodeWithProjectIdMigrationListener" class="org.sagebionetworks.repo.manager.migration.NodeWithProjectIdMigrationListener" />
             </list>
         </property>
     </bean>

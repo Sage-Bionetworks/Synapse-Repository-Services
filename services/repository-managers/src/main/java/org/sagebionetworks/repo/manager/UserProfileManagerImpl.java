@@ -3,17 +3,21 @@ package org.sagebionetworks.repo.manager;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.FavoriteDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.PaginatedResultsUtil;
 import org.sagebionetworks.repo.model.ProjectHeader;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -30,6 +34,10 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterators;
+import com.google.common.collect.Lists;
 
 public class UserProfileManagerImpl implements UserProfileManager {
 	
@@ -192,16 +200,32 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	}
 
 	@Override
-	public PaginatedResults<ProjectHeader> getProjects(UserInfo userInfo, UserInfo userToFetch, int limit, int offset)
+	public PaginatedResults<ProjectHeader> getProjects(final UserInfo userInfo, UserInfo userToFetch, int limit, int offset)
 			throws DatastoreException, InvalidModelException, NotFoundException {
-		String userIdToGetProjectsFor;
 		if (userToFetch == null) {
-			userIdToGetProjectsFor = userInfo.getId().toString();
+			PaginatedResults<ProjectHeader> projectHeaders = nodeDao.getProjectHeaders(userInfo.getId().toString(), limit, offset);
+			return projectHeaders;
 		} else {
-			userIdToGetProjectsFor = userToFetch.getId().toString();
+			PaginatedResults<ProjectHeader> projectHeaders = nodeDao.getProjectHeaders(userToFetch.getId().toString(), 10000, 0);
+
+			// we must filter out projects we don't have access to
+			List<ProjectHeader> headers = Lists.newArrayList(Iterators.filter(projectHeaders.getResults().iterator(),
+					new Predicate<ProjectHeader>() {
+						@Override
+						public boolean apply(ProjectHeader header) {
+							try {
+								return authorizationManager.canAccess(userInfo, header.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ);
+							} catch (DatastoreException e) {
+								return false;
+							} catch (NotFoundException e) {
+								return false;
+							}
+						}
+					}));
+			PaginatedResults<ProjectHeader> paginatedResults = PaginatedResultsUtil.createPaginatedResults(headers, limit, offset);
+			paginatedResults.setTotalNumberOfResults(projectHeaders.getTotalNumberOfResults());
+			return projectHeaders;
 		}
-		PaginatedResults<ProjectHeader> projectHeaders = nodeDao.getProjectHeaders(userIdToGetProjectsFor, limit, offset);
-		return projectHeaders;
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)

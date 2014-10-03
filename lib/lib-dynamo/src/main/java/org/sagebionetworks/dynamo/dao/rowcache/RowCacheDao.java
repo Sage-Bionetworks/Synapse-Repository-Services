@@ -18,5 +18,7 @@ public interface RowCacheDao {
 
 	Map<Long, Row> getRows(Long tableId, Long version, Iterable<Long> rowsToGet) throws IOException;
 
+	void deleteEntriesForTable(Long tableId);
+
 	void truncateAllData();
 }

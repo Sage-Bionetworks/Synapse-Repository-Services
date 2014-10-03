@@ -78,7 +78,7 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 		for (Map.Entry<Long, Long> entry : rowIdVersions.entrySet()) {
 			if (entry.getValue().longValue() > versionOfEtag) {
 				throw new ConflictingUpdateException("Row id: " + entry.getKey()
-						+ " has been changes since last read.  Please get the latest value for this row and then attempt to update it again.");
+						+ " has been changed since last read.  Please get the latest value for this row and then attempt to update it again.");
 			}
 		}
 	}
@@ -226,10 +226,11 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 	}
 
 	@Override
-	public void removeLatestVersionCache(String tableIdString) throws IOException {
+	public void removeCaches(Long tableId) throws IOException {
 		if (tableRowCache.isEnabled()) {
-			Long tableId = KeyFactory.stringToKey(tableIdString);
 			tableRowCache.removeFromCache(tableId);
+			CurrentRowCacheStatus currentStatus = tableRowCache.getLatestCurrentVersionNumber(tableId);
+			tableRowCache.setLatestCurrentVersionNumber(currentStatus, -1L);
 		}
 	}
 

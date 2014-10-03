@@ -33,6 +33,9 @@
 		<constructor-arg type="java.lang.String">
 			<ref bean="stackConfiguration.repositoryChangeTopicPrefix" />
 		</constructor-arg>
+		<constructor-arg type="java.lang.String">
+			<ref bean="stackConfiguration.repositoryModificationTopicName" />
+		</constructor-arg>
 		<property name="shouldMessagesBePublishedToTopic"
 			ref="stackConfiguration.shouldMessagesBePublishedToTopic"></property>
 	</bean>
