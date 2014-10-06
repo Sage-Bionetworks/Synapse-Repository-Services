@@ -11,6 +11,7 @@ import org.sagebionetworks.evaluation.util.EvaluationUtils;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -26,7 +27,6 @@ import org.sagebionetworks.repo.model.jdo.EntityNameValidation;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.util.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -89,10 +89,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	public Evaluation getEvaluation(UserInfo userInfo, String id)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
 		EvaluationUtils.ensureNotNull(id, "Evaluation ID");
-		Pair<Boolean,String> authCheck = evaluationPermissionsManager.hasAccess(userInfo, id, ACCESS_TYPE.READ);
-		if (!authCheck.getFirst()) {
-			throw new UnauthorizedException(authCheck.getSecond());
-		}
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(evaluationPermissionsManager.hasAccess(userInfo, id, ACCESS_TYPE.READ));
 		return evaluationDAO.get(id);
 	}
 	
@@ -210,10 +207,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		UserInfo.validateUserInfo(userInfo);
 		Evaluation eval = evaluationDAO.get(id);
 		if (eval == null) throw new NotFoundException("No Evaluation found with id " + id);
-		Pair<Boolean,String> authCheck = evaluationPermissionsManager.hasAccess(userInfo, id, ACCESS_TYPE.DELETE);
-		if (!authCheck.getFirst()) {
-			throw new UnauthorizedException(authCheck.getSecond());
-		}
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(evaluationPermissionsManager.hasAccess(userInfo, id, ACCESS_TYPE.DELETE));
 		evaluationPermissionsManager.deleteAcl(userInfo, id);
 		// lock out multi-submission access (e.g. batch updates)
 		evaluationSubmissionsDAO.deleteForEvaluation(Long.parseLong(id));

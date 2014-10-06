@@ -6,10 +6,6 @@ import org.sagebionetworks.util.Pair;
 public class AuthorizationManagerUtil {
 
 	public static final Pair<Boolean,String> AUTHORIZED = new Pair<Boolean,String>(true, "");
-
-	public AuthorizationManagerUtil() {
-		// TODO Auto-generated constructor stub
-	}
 	
 	public static void checkAuthorizationAndThrowException(Pair<Boolean,String> auth) throws UnauthorizedException {
 		if (!auth.getFirst()) throw new UnauthorizedException(auth.getSecond());

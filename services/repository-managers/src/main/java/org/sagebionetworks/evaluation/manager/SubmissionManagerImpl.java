@@ -15,6 +15,7 @@ import org.sagebionetworks.evaluation.model.SubmissionStatusBatch;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.util.EvaluationUtils;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
@@ -42,7 +43,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
-import org.sagebionetworks.util.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -368,10 +368,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	 */
 	private void validateEvaluationAccess(UserInfo userInfo, String evalId, ACCESS_TYPE accessType)
 			throws NotFoundException {
-		Pair<Boolean,String> authCheck = evaluationPermissionsManager.hasAccess(userInfo, evalId, accessType);
-		if (!authCheck.getFirst()) {
-			throw new UnauthorizedException(authCheck.getSecond());
-		}
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(evaluationPermissionsManager.hasAccess(userInfo, evalId, accessType));
 	}
 
 	/**

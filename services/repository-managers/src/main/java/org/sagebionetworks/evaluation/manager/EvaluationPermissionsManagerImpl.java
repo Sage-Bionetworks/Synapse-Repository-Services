@@ -98,10 +98,7 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 		}
 
 		final Evaluation eval = getEvaluation(evalId);
-		Pair<Boolean,String> authCheck = hasAccess(userInfo, evalId, CHANGE_PERMISSIONS);
-		if (!authCheck.getFirst()) {
-			throw new UnauthorizedException(authCheck.getSecond());
-		}
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(hasAccess(userInfo, evalId, CHANGE_PERMISSIONS));
 
 		final Long evalOwnerId = KeyFactory.stringToKey(eval.getOwnerId());
 		PermissionsManagerUtils.validateACLContent(acl, userInfo, evalOwnerId);
