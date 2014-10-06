@@ -8,6 +8,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -251,7 +252,7 @@ public class CurrentRowCacheDaoAutowireTest {
 	}
 
 	@Test
-	public void testBatchingProgress() throws Exception {
+	public void testBatchingProgressSuccess() throws Exception {
 		DynamoDBMapper mockMapper = mock(DynamoDBMapper.class);
 		ReflectionTestUtils.setField(((CurrentRowCacheDaoImpl) ReflectionStaticTestUtils.getTargetObject(currentRowCacheDao)), "mapper",
 				mockMapper);
@@ -259,15 +260,44 @@ public class CurrentRowCacheDaoAutowireTest {
 		for (long i = 0; i < 51; i++) {
 			map.put(i, 1000 + i);
 		}
-		final AtomicLong messageRef = new AtomicLong(0);
+		final AtomicLong count = new AtomicLong(0);
 		currentRowCacheDao.putCurrentVersions(tableId, map, new ProgressCallback<Long>() {
 			@Override
 			public void progressMade(Long message) {
-				messageRef.set(message);
+				count.incrementAndGet();
 			}
 		});
 		verify(mockMapper, times(3)).batchSave(anyListOf(Object.class));
-		assertEquals(51L, messageRef.get());
+		assertEquals(3L, count.get());
+	}
+
+	@Test
+	public void testBatchingProgressRetry() throws Exception {
+		DynamoDBMapper mockMapper = mock(DynamoDBMapper.class);
+		ReflectionTestUtils.setField(((CurrentRowCacheDaoImpl) ReflectionStaticTestUtils.getTargetObject(currentRowCacheDao)), "mapper",
+				mockMapper);
+		TestClock testClock = new TestClock();
+		ReflectionTestUtils.setField(((CurrentRowCacheDaoImpl) ReflectionStaticTestUtils.getTargetObject(currentRowCacheDao)), "clock",
+				testClock);
+		Random mockRandom = mock(Random.class);
+		when(mockRandom.nextInt(30000)).thenReturn(20000);
+		when(mockRandom.nextInt(120000)).thenReturn(80000);
+		ReflectionTestUtils.setField(((CurrentRowCacheDaoImpl) ReflectionStaticTestUtils.getTargetObject(currentRowCacheDao)), "random",
+				mockRandom);
+		doThrow(new ProvisionedThroughputExceededException("dummy")).doThrow(new ProvisionedThroughputExceededException("dummy"))
+				.doThrow(new ProvisionedThroughputExceededException("dummy")).doNothing().when(mockMapper).batchSave(anyListOf(Object.class));
+		Map<Long, Long> map = Maps.newHashMap();
+		map.put(13L, 133L);
+		map.put(14L, 144L);
+		final AtomicLong count = new AtomicLong(0);
+		currentRowCacheDao.putCurrentVersions(tableId, map, new ProgressCallback<Long>() {
+			@Override
+			public void progressMade(Long message) {
+				count.incrementAndGet();
+			}
+		});
+		verify(mockMapper, times(4)).batchSave(anyListOf(Object.class));
+		assertEquals(33L, count.get());
 	}
 
 	@Test
@@ -288,7 +318,6 @@ public class CurrentRowCacheDaoAutowireTest {
 		currentRowCacheDao.putCurrentVersions(tableId, map, null);
 		verify(mockMapper, times(6)).batchSave(anyListOf(Object.class));
 		assertTrue(testClock.currentTimeMillis() > start + 55 * 60000);
-		System.out.println((testClock.currentTimeMillis() - start) / 60000);
 		assertTrue(testClock.currentTimeMillis() < start + (55 * 1.5) * 60000);
 	}
 }

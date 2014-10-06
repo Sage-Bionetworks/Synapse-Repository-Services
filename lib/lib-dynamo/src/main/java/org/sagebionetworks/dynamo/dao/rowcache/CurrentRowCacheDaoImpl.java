@@ -138,14 +138,7 @@ public class CurrentRowCacheDaoImpl extends DynamoDaoBaseImpl implements Current
 					overallBackoff += OVERALL_BACK_OFF_MS;
 					long backoff = BACK_OFF_MS * retries * retries;
 					backoff = backoff + random.nextInt((int) backoff / 2);
-					// divide into 30 second sleeps, so we can still relay progress
-					final long interval = 30000;
-					for (long i = backoff; i > 0; i -= interval) {
-						clock.sleepNoInterrupt(Math.min(interval, i));
-						if (progressCallback != null) {
-							progressCallback.progressMade(count);
-						}
-					}
+					clock.sleepWithFrequentCallback(backoff, 30000, progressCallback);
 				}
 			}
 			clock.sleepNoInterrupt(overallBackoff);
