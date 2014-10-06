@@ -19,11 +19,13 @@ import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ActivityDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.PostMessageContentAccessApproval;
+import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
@@ -38,6 +40,7 @@ import org.sagebionetworks.repo.model.dbo.dao.AuthorizationUtils;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -68,10 +71,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	private FileHandleDao fileHandleDao;
 	@Autowired
 	private AccessControlListDAO aclDAO;
-	
-	// does not change during the lifetime of a Synapse stack, but is mutuable to support testing
-	private  boolean certifiedUserRestrictionEnforced = false;
-	
+
 	@Override
 	public boolean canAccess(UserInfo userInfo, String objectId, ObjectType objectType, ACCESS_TYPE accessType)
 			throws DatastoreException, NotFoundException {
@@ -109,10 +109,8 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		}
 	}
 
-	private static boolean isEvalOwner(UserInfo userInfo, Evaluation evaluation) {
-		return evaluation.getOwnerId().equals(userInfo.getId().toString());
-	}
-
+	private static final String PROJECT_NODE_TYPE = EntityType.getNodeTypeForClass((Class<? extends JSONEntity>)Project.class).name();
+	
 	@Override
 	public boolean canCreate(UserInfo userInfo, final Node node) 
 		throws NotFoundException, DatastoreException {
@@ -123,6 +121,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		if (parentId == null) {
 			return false;
 		}
+		if (!isCertifiedUser(userInfo) && !node.getNodeType().equals(PROJECT_NODE_TYPE)) return false;
 		return canAccess(userInfo, parentId, ObjectType.ENTITY, ACCESS_TYPE.CREATE);
 	}
 
@@ -319,7 +318,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	 * @return
 	 */
 	public boolean isCertifiedUser(UserInfo userInfo) {
-		return !certifiedUserRestrictionEnforced || userInfo.getGroups().contains(
+		return userInfo.getGroups().contains(
 				AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
 	}
 }
