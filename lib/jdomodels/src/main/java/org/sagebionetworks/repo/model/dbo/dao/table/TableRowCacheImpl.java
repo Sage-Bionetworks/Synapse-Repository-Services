@@ -10,6 +10,7 @@ import org.sagebionetworks.dynamo.dao.rowcache.RowCacheDao;
 import org.sagebionetworks.repo.model.dao.table.TableRowCache;
 import org.sagebionetworks.repo.model.table.CurrentRowCacheStatus;
 import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.util.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.dynamodb.model.ConditionalCheckFailedException;
@@ -48,11 +49,11 @@ public class TableRowCacheImpl implements TableRowCache {
 	}
 
 	@Override
-	public void updateCurrentVersionNumbers(Long tableId, Map<Long, Long> rowIdVersionNumbers) {
+	public void updateCurrentVersionNumbers(Long tableId, Map<Long, Long> rowIdVersionNumbers, ProgressCallback<Long> progressCallback) {
 		if (!currentRowCacheDao.isEnabled()) {
 			throw new IllegalStateException("the current row cache was asked to update versions, but it is disabled");
 		}
-		currentRowCacheDao.putCurrentVersions(tableId, rowIdVersionNumbers);
+		currentRowCacheDao.putCurrentVersions(tableId, rowIdVersionNumbers, progressCallback);
 	}
 
 	@Override

@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.junit.After;
 import org.junit.Assume;
@@ -22,6 +23,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.table.CurrentRowCacheStatus;
+import org.sagebionetworks.util.ProgressCallback;
 import org.sagebionetworks.util.ReflectionStaticTestUtils;
 import org.sagebionetworks.util.TestClock;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -86,7 +88,7 @@ public class CurrentRowCacheDaoAutowireTest {
 		Map<Long, Long> map = Maps.newHashMap();
 		map.put(14L, 144L);
 		map.put(15L, 155L);
-		currentRowCacheDao.putCurrentVersions(tableId, map);
+		currentRowCacheDao.putCurrentVersions(tableId, map, null);
 
 		Map<Long, Long> result = currentRowCacheDao.getCurrentVersions(tableId, Lists.newArrayList(12L, 13L, 14L, 15L));
 		map.put(12L, 1L);
@@ -99,7 +101,7 @@ public class CurrentRowCacheDaoAutowireTest {
 		map.put(13L, 144L);
 		map.put(14L, 144L);
 		map.put(15L, 155L);
-		currentRowCacheDao.putCurrentVersions(tableId, map);
+		currentRowCacheDao.putCurrentVersions(tableId, map, null);
 
 		// uses range query
 		Map<Long, Long> result = currentRowCacheDao.getCurrentVersions(tableId, Lists.newArrayList(12L, 13L, 14L, 15L, 16L));
@@ -133,7 +135,7 @@ public class CurrentRowCacheDaoAutowireTest {
 		map.put(13L, 144L);
 		map.put(14L, 144L);
 		map.put(15L, 155L);
-		currentRowCacheDao.putCurrentVersions(tableId, map);
+		currentRowCacheDao.putCurrentVersions(tableId, map, null);
 
 		Map<Long, Long> result = currentRowCacheDao.getCurrentVersions(tableId, 0L, 100L);
 		assertEquals(map, result);
@@ -177,7 +179,7 @@ public class CurrentRowCacheDaoAutowireTest {
 		map.put(15L, 155L);
 		map.put(16L, 166L);
 		map.put(17L, 177L);
-		currentRowCacheDao.putCurrentVersions(tableId, map);
+		currentRowCacheDao.putCurrentVersions(tableId, map, null);
 		ArrayList<Long> allRowIdsAndMore = Lists.newArrayList(12L, 13L, 14L, 15L, 16L, 17L, 18L);
 		assertEquals(map, currentRowCacheDao.getCurrentVersions(tableId, allRowIdsAndMore));
 		currentRowCacheDao.deleteCurrentVersion(tableId, 12L);
@@ -198,10 +200,10 @@ public class CurrentRowCacheDaoAutowireTest {
 		Map<Long, Long> map = Maps.newHashMap();
 		map.put(13L, 133L);
 		map.put(14L, 144L);
-		currentRowCacheDao.putCurrentVersions(tableId, map);
-		currentRowCacheDao.putCurrentVersions(tableId + 2, map);
+		currentRowCacheDao.putCurrentVersions(tableId, map, null);
+		currentRowCacheDao.putCurrentVersions(tableId + 2, map, null);
 		map.put(14L, 155L);
-		currentRowCacheDao.putCurrentVersions(tableId, map);
+		currentRowCacheDao.putCurrentVersions(tableId, map, null);
 		ArrayList<Long> allRowIdsAndMore = Lists.newArrayList(12L, 13L, 14L, 15L, 16L, 17L, 18L);
 		assertEquals(2, currentRowCacheDao.getCurrentVersions(tableId, allRowIdsAndMore).size());
 		assertEquals(2, currentRowCacheDao.getCurrentVersions(tableId + 2, allRowIdsAndMore).size());
@@ -244,8 +246,28 @@ public class CurrentRowCacheDaoAutowireTest {
 		for (long i = 0; i < 51; i++) {
 			map.put(i, 1000 + i);
 		}
-		currentRowCacheDao.putCurrentVersions(tableId, map);
+		currentRowCacheDao.putCurrentVersions(tableId, map, null);
 		verify(mockMapper, times(3)).batchSave(anyListOf(Object.class));
+	}
+
+	@Test
+	public void testBatchingProgress() throws Exception {
+		DynamoDBMapper mockMapper = mock(DynamoDBMapper.class);
+		ReflectionTestUtils.setField(((CurrentRowCacheDaoImpl) ReflectionStaticTestUtils.getTargetObject(currentRowCacheDao)), "mapper",
+				mockMapper);
+		Map<Long, Long> map = Maps.newHashMap();
+		for (long i = 0; i < 51; i++) {
+			map.put(i, 1000 + i);
+		}
+		final AtomicLong messageRef = new AtomicLong(0);
+		currentRowCacheDao.putCurrentVersions(tableId, map, new ProgressCallback<Long>() {
+			@Override
+			public void progressMade(Long message) {
+				messageRef.set(message);
+			}
+		});
+		verify(mockMapper, times(3)).batchSave(anyListOf(Object.class));
+		assertEquals(51L, messageRef.get());
 	}
 
 	@Test
@@ -263,8 +285,10 @@ public class CurrentRowCacheDaoAutowireTest {
 		Map<Long, Long> map = Maps.newHashMap();
 		map.put(13L, 133L);
 		map.put(14L, 144L);
-		currentRowCacheDao.putCurrentVersions(tableId, map);
+		currentRowCacheDao.putCurrentVersions(tableId, map, null);
 		verify(mockMapper, times(6)).batchSave(anyListOf(Object.class));
-		assertTrue(testClock.currentTimeMillis() > start + 15 * 10000);
+		assertTrue(testClock.currentTimeMillis() > start + 55 * 60000);
+		System.out.println((testClock.currentTimeMillis() - start) / 60000);
+		assertTrue(testClock.currentTimeMillis() < start + (55 * 1.5) * 60000);
 	}
 }
