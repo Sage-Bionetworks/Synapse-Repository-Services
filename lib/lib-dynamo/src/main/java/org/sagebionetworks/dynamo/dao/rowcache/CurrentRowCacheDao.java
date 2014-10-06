@@ -3,6 +3,7 @@ package org.sagebionetworks.dynamo.dao.rowcache;
 import java.util.Map;
 
 import org.sagebionetworks.repo.model.table.CurrentRowCacheStatus;
+import org.sagebionetworks.util.ProgressCallback;
 
 import com.amazonaws.services.dynamodb.model.ConditionalCheckFailedException;
 
@@ -15,7 +16,7 @@ public interface CurrentRowCacheDao {
 
 	void putCurrentVersion(Long tableId, Long rowId, Long versionNumber);
 
-	void putCurrentVersions(Long tableId, Map<Long, Long> rowsAndVersions);
+	void putCurrentVersions(Long tableId, Map<Long, Long> rowsAndVersions, ProgressCallback<Long> progressCallback);
 
 	Long getCurrentVersion(Long tableId, Long rowId);
 
