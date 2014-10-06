@@ -42,6 +42,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
+import org.sagebionetworks.util.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -87,7 +88,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		validateEvaluationAccess(userInfo, sub.getEvaluationId(), ACCESS_TYPE.READ);
 		// only authorized users can view private Annotations 
 		boolean includePrivateAnnos = evaluationPermissionsManager.hasAccess(
-				userInfo, sub.getEvaluationId(), ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
+				userInfo, sub.getEvaluationId(), ACCESS_TYPE.READ_PRIVATE_SUBMISSION).getFirst();
 		return submissionToSubmissionStatus(sub, includePrivateAnnos);
 	}
 
@@ -296,7 +297,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		validateEvaluationAccess(userInfo, evalId, ACCESS_TYPE.READ);
 		// only authorized users can view private Annotations
 		boolean includePrivateAnnos = evaluationPermissionsManager.hasAccess(
-				userInfo, evalId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
+				userInfo, evalId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION).getFirst();
 		QueryResults<Submission> submissions = 
 				getAllSubmissionsPrivate(evalId, status, limit, offset);
 		return submissionsToSubmissionStatuses(submissions, includePrivateAnnos);
@@ -327,7 +328,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 			UserInfo userInfo, String evalId, long limit, long offset)
 			throws DatastoreException, NotFoundException {
 		QueryResults<Submission> submissions = getMyOwnSubmissionsByEvaluation(userInfo, evalId, limit, offset);
-		boolean haveReadPrivateAccess = evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
+		boolean haveReadPrivateAccess = evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION).getFirst();
 		return submissionsToSubmissionBundles(submissions, haveReadPrivateAccess);
 	}
 		
@@ -367,8 +368,9 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	 */
 	private void validateEvaluationAccess(UserInfo userInfo, String evalId, ACCESS_TYPE accessType)
 			throws NotFoundException {
-		if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, accessType)) {
-			throw new UnauthorizedException("You lack " + accessType + " rights for Evaluation " + evalId);
+		Pair<Boolean,String> authCheck = evaluationPermissionsManager.hasAccess(userInfo, evalId, accessType);
+		if (!authCheck.getFirst()) {
+			throw new UnauthorizedException(authCheck.getSecond());
 		}
 	}
 

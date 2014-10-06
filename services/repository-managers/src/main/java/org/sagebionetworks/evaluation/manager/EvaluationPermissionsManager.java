@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.Pair;
 
 /**
  * Manages evaluation permissions.
@@ -45,14 +46,14 @@ public interface EvaluationPermissionsManager {
 	/**
 	 * Whether the user has the access to the specified evaluation.
 	 */
-	public boolean hasAccess(UserInfo userInfo, String evalId, ACCESS_TYPE accessType)
+	public Pair<Boolean,String> hasAccess(UserInfo userInfo, String evalId, ACCESS_TYPE accessType)
 			throws NotFoundException, DatastoreException;
 
 	/**
 	 * Whether the user has the access to the specified evaluation.
 	 * Has the same logic as 'hasAccess' but throws informative exception if the answer is false.
 	 */
-	public void validateHasAccess(UserInfo userInfo, String evalId, ACCESS_TYPE accessType)
+	public Pair<Boolean,String> validateHasAccess(UserInfo userInfo, String evalId, ACCESS_TYPE accessType)
 			throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
