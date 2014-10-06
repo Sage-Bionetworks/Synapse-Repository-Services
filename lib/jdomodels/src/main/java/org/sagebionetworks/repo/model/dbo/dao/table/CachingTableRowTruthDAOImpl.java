@@ -215,7 +215,7 @@ public class CachingTableRowTruthDAOImpl extends TableRowTruthDAOImpl {
 						rows.add(row);
 					}
 				}, change);
-				tableRowCache.updateCurrentVersionNumbers(tableId, rowIdVersionNumbers);
+				tableRowCache.updateCurrentVersionNumbers(tableId, rowIdVersionNumbers, progressCallback);
 				if (progressCallback != null) {
 					progressCallback.progressMade(change.getRowVersion());
 				}

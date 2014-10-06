@@ -76,11 +76,9 @@ import com.google.common.primitives.Longs;
  */
 public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
-	private static final String TRASH_FOLDER_ID = StackConfiguration.getTrashFolderEntityIdStatic();
-
 	private static final String USER_ID_PARAM_NAME = "user_id_param";
+	private static final String CURRENT_USER_ID_PARAM_NAME = "current_user_id_param";
 	private static final String IDS_PARAM_NAME = "ids_param";
-	private static final String PROJECT_TYPE_PARAM_NAME = "project_type_param";
 	private static final String PROJECT_ID_PARAM_NAME = "project_id_param";
 
 	private static final String SQL_SELECT_REV_FILE_HANDLE_ID = "SELECT "+COL_REVISION_FILE_HANDLE_ID+" FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE+" = ? AND "+COL_REVISION_NUMBER+" = ?";
@@ -99,32 +97,61 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String NODE_IDS_LIST_PARAM_NAME = "NODE_IDS";
 	private static final String SQL_GET_CURRENT_VERSIONS = "SELECT "+COL_NODE_ID+","+COL_CURRENT_REV+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" IN ( :"+NODE_IDS_LIST_PARAM_NAME + " )";
 	private static final String OWNER_ID_PARAM_NAME = "OWNER_ID";
-	
 	// selecting and counting the projects a user owns
+
 	private static final String SELECT_PROJECTS_FIELDS = "n." + COL_NODE_ID + ", n." + COL_NODE_NAME + ", n." + COL_NODE_TYPE;
-	private static final String FROM_PROJECTS_CREATED_BY = TABLE_NODE + " n " + " where n." + COL_NODE_CREATED_BY + " = :"
-			+ USER_ID_PARAM_NAME + " and n." + COL_NODE_TYPE + " = :" + PROJECT_TYPE_PARAM_NAME + " and n." + COL_NODE_PARENT_ID + " <> "
-			+ TRASH_FOLDER_ID;
-	private static final String USER_OR_GROUP_CLAUSE = "ra." + COL_RESOURCE_ACCESS_GROUP_ID + " = :" + USER_ID_PARAM_NAME + " or ra."
-			+ COL_RESOURCE_ACCESS_GROUP_ID + " in (" + "select " + COL_GROUP_MEMBERS_GROUP_ID + " from " + TABLE_GROUP_MEMBERS + " where "
-			+ COL_GROUP_MEMBERS_MEMBER_ID + " = :" + USER_ID_PARAM_NAME + ")";
-	private static final String FROM_PROJECTS_USER_IN_ACL = TABLE_RESOURCE_ACCESS + " ra" + " join " + TABLE_ACCESS_CONTROL_LIST
-			+ " acl on acl.ID = ra." + COL_RESOURCE_ACCESS_OWNER + " join " + TABLE_NODE + " n on acl." + "OWNER_ID" + " = n." + COL_NODE_ID
-			+ " join " + TABLE_RESOURCE_ACCESS_TYPE + " raa on ra." + COL_RESOURCE_ACCESS_OWNER + " = raa." + COL_RESOURCE_ACCESS_TYPE_OWNER
-			+ " where " + USER_OR_GROUP_CLAUSE + " and n." + COL_NODE_TYPE + " = :" + PROJECT_TYPE_PARAM_NAME + " and n."
-			+ COL_NODE_PARENT_ID + " <> " + TRASH_FOLDER_ID;
+	private static final String FROM_PROJECTS_CREATED_BY = 
+			" from " + TABLE_NODE + " n " + 
+			" where n." + COL_NODE_CREATED_BY + " = :" + USER_ID_PARAM_NAME + 
+				" and n." + COL_NODE_PROJECT_ID + " is not null";
+	private static final String USER_OR_GROUP_CLAUSE = 
+			"ra." + COL_RESOURCE_ACCESS_GROUP_ID + " = :" + USER_ID_PARAM_NAME + 
+			" or ra." + COL_RESOURCE_ACCESS_GROUP_ID + " in (" + 
+				"select " + COL_GROUP_MEMBERS_GROUP_ID + " from " + TABLE_GROUP_MEMBERS + 
+				" where " + COL_GROUP_MEMBERS_MEMBER_ID + " = :" + USER_ID_PARAM_NAME + 
+			")";
+	private static final String FROM_PROJECTS_USER_IN_ACL = 
+			" from " + TABLE_RESOURCE_ACCESS + " ra" +
+				" join " + TABLE_ACCESS_CONTROL_LIST + " acl on acl." + COL_ACL_ID + " = ra." + COL_RESOURCE_ACCESS_OWNER + 
+				" join " + TABLE_NODE + " n on acl." + COL_ACL_OWNER_ID + " = n." + COL_NODE_ID + 
+				" join " + TABLE_RESOURCE_ACCESS_TYPE + " raa on ra." + COL_RESOURCE_ACCESS_OWNER + " = raa." + COL_RESOURCE_ACCESS_TYPE_OWNER + 
+			" where " + USER_OR_GROUP_CLAUSE + 
+				" and n." + COL_NODE_PROJECT_ID + " is not null";
 
-	private static final String SELECT_PROJECT_HEADERS_SQL = "select " + SELECT_PROJECTS_FIELDS + ",n." + COL_NODE_CREATED_ON + " from "
-			+ FROM_PROJECTS_CREATED_BY + " union distinct select " + SELECT_PROJECTS_FIELDS + ", n." + COL_NODE_CREATED_ON + " from "
-			+ FROM_PROJECTS_USER_IN_ACL;
-	private static final String SELECT_PROJECT_HEADERS_SORTED_SQL = "select " + SELECT_PROJECTS_FIELDS + " from ("
-			+ SELECT_PROJECT_HEADERS_SQL + ") n left join " + TABLE_PROJECT_STAT + " ps on n." + COL_NODE_ID + " = ps."
-			+ COL_PROJECT_STAT_PROJECT_ID + " and ps." + COL_PROJECT_STAT_USER_ID + " = :" + USER_ID_PARAM_NAME + " ORDER BY ps."
-			+ COL_PROJECT_STAT_LAST_ACCESSED + " DESC, n." + COL_NODE_CREATED_ON + " DESC LIMIT :" + LIMIT_PARAM_NAME + " OFFSET :"
-			+ OFFSET_PARAM_NAME;
+	private static final String SELECT_PROJECT_IDS_SQL = 
+			"select distinct n." + COL_NODE_PROJECT_ID + FROM_PROJECTS_CREATED_BY +
+			" union distinct " +
+			" select distinct n." + COL_NODE_PROJECT_ID + FROM_PROJECTS_USER_IN_ACL;
 
-	private static final String COUNT_PROJECT_HEADERS_SQL = "select count(*) from (select n." + COL_NODE_ID + " from "
-			+ FROM_PROJECTS_CREATED_BY + " union distinct select n." + COL_NODE_ID + " from " + FROM_PROJECTS_USER_IN_ACL + ") a";
+	private static final String PROJECT_IN_ACL_SQL = 
+			" where n." + COL_NODE_PROJECT_ID + " in (" + 
+				" select acl." + COL_ACL_OWNER_ID + 
+				" from " + TABLE_ACCESS_CONTROL_LIST + " acl " +
+				" join " + TABLE_RESOURCE_ACCESS + " ra ON acl." + COL_ACL_ID + " = ra." + COL_RESOURCE_ACCESS_OWNER + 
+				" join " + TABLE_RESOURCE_ACCESS_TYPE + " raa ON ra." + COL_RESOURCE_ACCESS_OWNER + " = raa." + COL_RESOURCE_ACCESS_TYPE_OWNER + 
+				" where ra." + COL_RESOURCE_ACCESS_GROUP_ID + " = :" + CURRENT_USER_ID_PARAM_NAME + 
+				" 	or ra." + COL_RESOURCE_ACCESS_GROUP_ID + " in (" + 
+						"select " + COL_GROUP_MEMBERS_GROUP_ID + " from " + TABLE_GROUP_MEMBERS + 
+						" where " + COL_GROUP_MEMBERS_MEMBER_ID + " = :" + CURRENT_USER_ID_PARAM_NAME + 
+					")" +
+			")";
+
+	private static final String PROJECT_FROM_SQL = 
+			" from (" + SELECT_PROJECT_IDS_SQL + ") pids" +
+				" join " + TABLE_NODE + " n on n." + COL_NODE_ID + " = pids." + COL_NODE_PROJECT_ID + 
+				" left join " + TABLE_PROJECT_STAT + " ps on n." + COL_NODE_ID + " = ps." + COL_PROJECT_STAT_PROJECT_ID + " and ps." + COL_PROJECT_STAT_USER_ID + " = :" + USER_ID_PARAM_NAME;
+
+	private static final String SELECT_PROJECT_HEADERS_SORTED_SQL_1 = 
+			"select " + SELECT_PROJECTS_FIELDS + PROJECT_FROM_SQL;
+	private static final String SELECT_PROJECT_HEADERS_SORTED_SQL_2 = 
+			" order by coalesce(ps." + COL_PROJECT_STAT_LAST_ACCESSED + ", n." + COL_NODE_CREATED_ON + ") DESC" +
+			" limit :" + LIMIT_PARAM_NAME + " offset :" + OFFSET_PARAM_NAME;
+	private static final String SELECT_PROJECT_HEADERS_SORTED_SQL = SELECT_PROJECT_HEADERS_SORTED_SQL_1 + SELECT_PROJECT_HEADERS_SORTED_SQL_2;
+	private static final String SELECT_PROJECT_HEADERS_SORTED_WHERE_SQL = SELECT_PROJECT_HEADERS_SORTED_SQL_1 + PROJECT_IN_ACL_SQL + SELECT_PROJECT_HEADERS_SORTED_SQL_2;
+	private static final String COUNT_PROJECT_HEADERS_SQL = 
+			"select count(*) " + PROJECT_FROM_SQL;
+	private static final String COUNT_PROJECT_HEADERS_WHERE_SQL = 
+			"select count(*) " + PROJECT_FROM_SQL + PROJECT_IN_ACL_SQL;
 
 	/**
 	 * To determine if a node has children we fetch the first child ID.
@@ -254,11 +281,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 			} else if (parent != null) {
 				// just copy from parent if we have the parent anyway
 				node.setProjectId(parent.getProjectId());
-			} else if (node.getParentId() != null) {
-				String projectId = getProjectIdForNode(node.getIdString());
-				if (projectId != null) {
-					node.setProjectId(KeyFactory.stringToKey(projectId));
-				}
 			}
 		}
 
@@ -591,6 +613,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		DBONode node = getNodeById(longId);
 		node.seteTag(UUID.randomUUID().toString());
 		transactionalMessenger.sendMessageAfterCommit(node, changeType);
+		transactionalMessenger.sendModificationMessageAfterCommit(KeyFactory.keyToString(node.getId()), ObjectType.ENTITY);
 		currentTag = node.getEtag();
 		// Update the e-tag
 		int updated = jdbcTemplate.update(UPDATE_ETAG_SQL, currentTag, longId);
@@ -1324,19 +1347,21 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	}
 
 	@Override
-	public PaginatedResults<ProjectHeader> getProjectHeaders(String principalId, int limit, int offset) {
-		if (principalId == null)
-			throw new IllegalArgumentException("Principal id can not be null");
+	public PaginatedResults<ProjectHeader> getProjectHeaders(String userToLookupId, String currentUserId, int limit, int offset) {
+		if (userToLookupId == null)
+			throw new IllegalArgumentException("userToLookupId id can not be null");
 		if (limit < 0 || offset < 0)
 			throw new IllegalArgumentException("limit and offset must be greater than 0");
 		// get one page of projects
 		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue(USER_ID_PARAM_NAME, principalId);
-		params.addValue(PROJECT_TYPE_PARAM_NAME, PROJECT_ENTITY_TYPE.getId());
+		params.addValue(USER_ID_PARAM_NAME, userToLookupId);
+		params.addValue(CURRENT_USER_ID_PARAM_NAME, currentUserId);
 		params.addValue(OFFSET_PARAM_NAME, offset);
 		params.addValue(LIMIT_PARAM_NAME, limit);
 
-		List<ProjectHeader> projectsHeaders = namedParameterJdbcTemplate.query(SELECT_PROJECT_HEADERS_SORTED_SQL, params,
+		String selectSQL = currentUserId == null ? SELECT_PROJECT_HEADERS_SORTED_SQL : SELECT_PROJECT_HEADERS_SORTED_WHERE_SQL;
+		String countSQL = currentUserId == null ? COUNT_PROJECT_HEADERS_SQL : COUNT_PROJECT_HEADERS_WHERE_SQL;
+		List<ProjectHeader> projectsHeaders = namedParameterJdbcTemplate.query(selectSQL, params,
 				new RowMapper<ProjectHeader>() {
 					@Override
 					public ProjectHeader mapRow(ResultSet rs, int rowNum) throws SQLException {
@@ -1352,24 +1377,11 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		queryResults.setResults(projectsHeaders);
 		long totalCount = 0;
 		try {
-			totalCount = namedParameterJdbcTemplate.queryForObject(COUNT_PROJECT_HEADERS_SQL, params, Long.class);
+			totalCount = namedParameterJdbcTemplate.queryForObject(countSQL, params, Long.class);
 		} catch (EmptyResultDataAccessException e) {
 			// count = 0
 		}
 		queryResults.setTotalNumberOfResults(totalCount);
 		return queryResults;
-	}
-
-	private String getProjectIdForNode(String nodeId) throws DatastoreException, NotFoundException {
-		List<EntityHeader> nodePath = getEntityPath(nodeId);
-		// walk the path from the top (the top is probably root and the next one should be project)
-		String projectId = null;
-		for (EntityHeader node : nodePath) {
-			if (node.getType().equals(PROJECT_ENTITY_TYPE.getEntityType())) {
-				projectId = node.getId();
-				return projectId;
-			}
-		}
-		return null;
 	}
 }

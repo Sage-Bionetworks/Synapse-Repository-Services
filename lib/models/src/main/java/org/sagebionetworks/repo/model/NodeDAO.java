@@ -391,12 +391,13 @@ public interface NodeDAO {
 	/**
 	 * Get the list of projects the user has an interest in
 	 * 
-	 * @param principalId user to get listing for
+	 * @param userToLookupId user to get listing for
+	 * @param currentUserId optional current user that is doing the lookup for another user
 	 * @param limit
 	 * @param offset
 	 * @return
 	 */
-	public PaginatedResults<ProjectHeader> getProjectHeaders(String principalId, int limit, int offset);
+	public PaginatedResults<ProjectHeader> getProjectHeaders(String userToLookupId, String currentUserId, int limit, int offset);
 
 	long getCount();
 }
