@@ -58,7 +58,10 @@ public class IT970UserProfileController {
 			try {
 				synapse.deleteAndPurgeEntityById(id);
 			} catch (Exception e) {
-				synapse.purgeTrashForUser(id);
+				try {
+					synapse.purgeTrashForUser(id);
+				} catch (Exception e2) {
+				}
 			}
 		}
 	}
@@ -129,10 +132,6 @@ public class IT970UserProfileController {
 		PaginatedResults<ProjectHeader> projects = synapse.getMyProjects(Integer.MAX_VALUE, 0);
 		assertEquals(2, projects.getTotalNumberOfResults());
 		assertEquals(2, projects.getResults().size());
-
-		// retrieve someone elses projects
-		PaginatedResults<ProjectHeader> projects2 = adminSynapse.getProjectsFromUser(userToDelete, Integer.MAX_VALUE, 0);
-		assertEquals(projects, projects2);
 
 		// change order
 		folder.setName("folder1-renamed");
