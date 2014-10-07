@@ -2097,6 +2097,18 @@ public class NodeDAOImplTest {
 		nodeDao.createNewVersion(ownedProject);
 		ownedProject = nodeDao.getNode(owned);
 
+		// now add ACL for the user
+		AccessControlList acl = new AccessControlList();
+		Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
+		ResourceAccess ra = new ResourceAccess();
+		ra.setAccessType(Sets.newHashSet(ACCESS_TYPE.READ));
+		ra.setPrincipalId(Long.parseLong(user1));
+		ras.add(ra);
+		acl.setResourceAccess(ras);
+		acl.setId(owned);
+		acl.setCreationDate(new Date());
+		accessControlListDAO.create(acl, ObjectType.ENTITY);
+
 		Thread.sleep(2); // ensure ordering by creation date
 		Node participateProject = NodeTestUtils.createNew("testGetProjectHeaders.name2", Long.parseLong(user2));
 		participateProject.setParentId(StackConfiguration.getRootFolderEntityIdStatic());
@@ -2105,9 +2117,9 @@ public class NodeDAOImplTest {
 		participateProject = nodeDao.getNode(participate);
 
 		// now add ACL for the user
-		AccessControlList acl = new AccessControlList();
-		Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
-		ResourceAccess ra = new ResourceAccess();
+		acl = new AccessControlList();
+		ras = new HashSet<ResourceAccess>();
+		ra = new ResourceAccess();
 		ra.setAccessType(Sets.newHashSet(ACCESS_TYPE.READ));
 		ra.setPrincipalId(Long.parseLong(user1));
 		ras.add(ra);
@@ -2154,6 +2166,17 @@ public class NodeDAOImplTest {
 		folder.setNodeType(EntityType.folder.name());
 		String ownerFolder = this.nodeDao.createNew(folder);
 		toDelete.add(ownerFolder);
+
+		acl = new AccessControlList();
+		ras = new HashSet<ResourceAccess>();
+		ra = new ResourceAccess();
+		ra.setAccessType(Sets.newHashSet(ACCESS_TYPE.READ));
+		ra.setPrincipalId(Long.parseLong(group));
+		ras.add(ra);
+		acl.setResourceAccess(ras);
+		acl.setId(ownerFolder);
+		acl.setCreationDate(new Date());
+		accessControlListDAO.create(acl, ObjectType.ENTITY);
 
 		Thread.sleep(2); // ensure ordering by creation date
 		Node myTrashedProject = NodeTestUtils.createNew("testGetProjectHeaders.name6", Long.parseLong(user2));
