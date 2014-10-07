@@ -172,7 +172,7 @@ public class NodeManagerImplAutoWiredTest {
 				// Make sure the user can do everything
 				ACCESS_TYPE[] acessTypes = ACCESS_TYPE.values();
 				for(ACCESS_TYPE accessType : acessTypes){
-					assertTrue(authorizationManager.canAccess(userInfo, id, ObjectType.ENTITY, accessType));
+					assertTrue(authorizationManager.canAccess(userInfo, id, ObjectType.ENTITY, accessType).getFirst());
 				}
 			}else{
 				throw new IllegalStateException("Unknown ACL_SCHEME type: "+expectedSchem);
