@@ -471,7 +471,7 @@ public class TableRowManagerImpl implements TableRowManager {
 	@Override
 	public Pair<QueryResult, Long> query(UserInfo user, String query, Long offset, Long limit, boolean runQuery, boolean runCount,
 			boolean isConsistent) throws DatastoreException, NotFoundException, TableUnavilableException, TableFailedException {
-		return query(user, createQuery(query, false), offset, limit, runQuery, runCount, isConsistent);
+		return query(user, createQuery(query), offset, limit, runQuery, runCount, isConsistent);
 	}
 
 	@Override
@@ -535,7 +535,7 @@ public class TableRowManagerImpl implements TableRowManager {
 			long paginatedOffset = offsetFromQuery + offsetFromRequest;
 			// adjust the limit from the query based on the additional offset (assume Long.MAX_VALUE - offset is still
 			// always large enough)
-			limitFromQuery -= offsetFromRequest;
+			limitFromQuery = Math.max(0, limitFromQuery - offsetFromRequest);
 
 			long paginatedLimit = Math.min(limitFromRequest, limitFromQuery);
 			if (paginatedLimit > maxRowsPerPage) {
@@ -572,6 +572,8 @@ public class TableRowManagerImpl implements TableRowManager {
 				}
 			}
 		}
+
+		// post processing for query result
 		QueryResult queryResult = null;
 		if (rowSet != null) {
 			QueryNextPageToken nextPageToken = null;
@@ -587,6 +589,24 @@ public class TableRowManagerImpl implements TableRowManager {
 			queryResult.setQueryResults(rowSet);
 			queryResult.setNextPageToken(nextPageToken);
 		}
+
+		// post processing for count. When a limit and/or offset is specified in a query, count(*) just ignores those,
+		// since it assumes the limit & offset apply to the one row count(*) returns. In actuality, we want to apply
+		// that limit & offset to the count itself. We do that here manually.
+		if (runCount && count != null) {
+			Pagination pagination = query.getModel().getTableExpression().getPagination();
+			if (pagination != null) {
+				if (pagination.getOffset() != null) {
+					long offsetForCount = pagination.getOffset();
+					count = Math.max(0, count - offsetForCount);
+				}
+				if (pagination.getLimit() != null) {
+					long limitForCount = pagination.getLimit();
+					count = Math.min(limitForCount, count);
+				}
+			}
+		}
+
 		return Pair.create(queryResult, count);
 	}
 	
@@ -607,7 +627,7 @@ public class TableRowManagerImpl implements TableRowManager {
 
 		QueryResultBundle bundle = new QueryResultBundle();
 		// The SQL query is need for the actual query, select columns, and max rows per page.
-		SqlQuery sqlQuery = createQuery(queryBundle.getQuery().getSql(), false);
+		SqlQuery sqlQuery = createQuery(queryBundle.getQuery().getSql());
 
 		// query
 		long partMask = -1L; // default all
@@ -668,14 +688,9 @@ public class TableRowManagerImpl implements TableRowManager {
 		}
 	}
 
-	@Override
-	public SqlQuery createQuery(String sql, boolean countOnly){
+	private SqlQuery createQuery(String sql) {
 		// First parse the SQL
 		QuerySpecification model = parserQuery(sql);
-		// Do they want use to convert it to a count query?
-		if(countOnly){
-			model = convertToCountQuery(model);
-		}
 		String tableId = SqlElementUntils.getTableId(model);
 		// Lookup the column models for this table
 		List<ColumnModel> columnModels = columnModelDAO.getColumnModelsForObject(tableId);
@@ -866,7 +881,7 @@ public class TableRowManagerImpl implements TableRowManager {
 	public DownloadFromTableResult runConsistentQueryAsStream(String sql, final CSVWriterStream writer, final boolean includeRowIdAndVersion)
 			throws TableUnavilableException, NotFoundException, TableFailedException {
 		// Convert to a query.
-		final SqlQuery query = createQuery(sql, false);
+		final SqlQuery query = createQuery(sql);
 		if(includeRowIdAndVersion && query.isAggregatedResult()){
 			throw new IllegalArgumentException("Cannot include ROW_ID and ROW_VERSION for aggregate queries");
 		}

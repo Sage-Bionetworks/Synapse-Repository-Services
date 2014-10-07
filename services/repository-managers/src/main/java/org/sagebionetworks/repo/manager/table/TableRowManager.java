@@ -416,15 +416,6 @@ public interface TableRowManager {
 			TableUnavilableException, TableFailedException;
 
 	/**
-	 * Create an query object for the given SQL.
-	 * 
-	 * @param sql
-	 * @param countOnly
-	 * @return
-	 */
-	SqlQuery createQuery(String sql, boolean countOnly);
-
-	/**
 	 * Run queries while holding a non-exclusive lock (read lock) on the table. This method will load all resulting rows
 	 * into memory at on time an should only be used if there is a limit to the number of rows read. It will also run
 	 * the count query under the same lock. If one of the queries is null, the result for it will be null
