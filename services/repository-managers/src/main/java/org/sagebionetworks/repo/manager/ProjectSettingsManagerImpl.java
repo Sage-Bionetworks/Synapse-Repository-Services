@@ -51,7 +51,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	public ProjectSetting getProjectSetting(UserInfo userInfo, String id) throws DatastoreException, NotFoundException {
 		ProjectSetting projectSetting = projectSettingsDao.get(id);
 		if (projectSetting != null
-				&& !authorizationManager.canAccess(userInfo, projectSetting.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ)) {
+				&& !authorizationManager.canAccess(userInfo, projectSetting.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.READ).getFirst()) {
 			throw new UnauthorizedException("Cannot read information from this project");
 		}
 		return projectSetting;
@@ -77,7 +77,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		if (projectId == null) {
 			throw new IllegalArgumentException("This parentId is not contained in a project");
 		}
-		if (!authorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ)) {
+		if (!authorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ).getFirst()) {
 			throw new UnauthorizedException("Cannot read information from this project");
 		}
 		ProjectSetting projectSetting = projectSettingsDao.get(projectId, type);
@@ -95,7 +95,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		if (nodeType.getClassForType() != Project.class) {
 			throw new IllegalArgumentException("The id is not the id of a project entity");
 		}
-		if (!authorizationManager.canAccess(userInfo, projectSetting.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.CREATE)) {
+		if (!authorizationManager.canAccess(userInfo, projectSetting.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.CREATE).getFirst()) {
 			throw new UnauthorizedException("Cannot create settings for this project");
 		}
 		String id = projectSettingsDao.create(projectSetting);
@@ -105,7 +105,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void updateProjectSetting(UserInfo userInfo, ProjectSetting projectSetting) throws DatastoreException, NotFoundException {
-		if (!authorizationManager.canAccess(userInfo, projectSetting.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE)) {
+		if (!authorizationManager.canAccess(userInfo, projectSetting.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.UPDATE).getFirst()) {
 			throw new UnauthorizedException("Cannot update settings on this project");
 		}
 		projectSettingsDao.update(projectSetting);
@@ -116,7 +116,7 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 	public void deleteProjectSetting(UserInfo userInfo, String id) throws DatastoreException, NotFoundException {
 		ProjectSetting projectSetting = projectSettingsDao.get(id);
 		if (projectSetting != null
-				&& !authorizationManager.canAccess(userInfo, projectSetting.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.DELETE)) {
+				&& !authorizationManager.canAccess(userInfo, projectSetting.getProjectId(), ObjectType.ENTITY, ACCESS_TYPE.DELETE).getFirst()) {
 			throw new UnauthorizedException("Cannot delete settings from this project");
 		}
 		projectSettingsDao.delete(id);

@@ -46,6 +46,8 @@ import com.google.common.collect.Multimap;
 
 public class AuthorizationManagerImpl implements AuthorizationManager {
 
+	private static final String FILE_HANDLE_UNAUTHORIZED_TEMPLATE = "Only the creator of a FileHandle can assign it to an Entity.  FileHandleId = '%1$s', UserId = '%2$s'";
+
 	@Autowired
 	private NodeDAO nodeDao;
 	@Autowired
@@ -104,7 +106,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 				if (teamAccessPermission) {
 					return AuthorizationManagerUtil.AUTHORIZED;
 				} else {
-					return AuthorizationManagerUtil.accessDenied("Unauthorized to access Team "+objectId);
+					return AuthorizationManagerUtil.accessDenied("Unauthorized to access Team "+objectId+" for "+accessType);
 				}
 			default:
 				throw new IllegalArgumentException("Unknown ObjectType: "+objectType);
@@ -169,13 +171,26 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	}
 
 	@Override
-	public Pair<Boolean,String> canAccessRawFileHandleByCreator(UserInfo userInfo, String creator) {
+	public Pair<Boolean,String> canAccessRawFileHandleByCreator(UserInfo userInfo, String fileHandleId, String creator) {
 		if( isUserCreatorOrAdmin(userInfo, creator)) {
 			return AuthorizationManagerUtil.AUTHORIZED;
 		} else {
-			return AuthorizationManagerUtil.accessDenied("Only the creator of a file handle may access it.");
+			return AuthorizationManagerUtil.accessDenied(createFileHandleUnauthorizedMessage(fileHandleId, userInfo));
 		}
 	}
+	
+	/**
+	 * Create an unauthorized message for file handles.
+	 * 
+	 * @param fileHandleId
+	 * @param userInfo
+	 * @return
+	 */
+	private String createFileHandleUnauthorizedMessage(String fileHandleId,	UserInfo userInfo) {
+		return String.format(FILE_HANDLE_UNAUTHORIZED_TEMPLATE, fileHandleId, userInfo.getId().toString());
+	}
+	
+
 
 	@Override
 	public Pair<Boolean,String> canAccessRawFileHandleById(UserInfo userInfo, String fileHandleId) throws NotFoundException {
@@ -184,7 +199,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		// Lookup the creator by
 		String creator  = fileHandleDao.getHandleCreator(fileHandleId);
 		// Call the other methods
-		return canAccessRawFileHandleByCreator(userInfo, creator);
+		return canAccessRawFileHandleByCreator(userInfo, fileHandleId, creator);
 	}
 
 	@Override
@@ -205,7 +220,8 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		Multimap<String, String> creatorMap = fileHandleDao.getHandleCreators(fileHandleIds);
 		for (Entry<String, Collection<String>> entry : creatorMap.asMap().entrySet()) {
 			String creator = entry.getKey();
-			if (canAccessRawFileHandleByCreator(userInfo, creator).getFirst()) {
+			String fileHandleIdCollectionAsString = entry.getValue().toString();
+			if (canAccessRawFileHandleByCreator(userInfo, fileHandleIdCollectionAsString, creator).getFirst()) {
 				allowed.addAll(entry.getValue());
 			} else {
 				disallowed.addAll(entry.getValue());

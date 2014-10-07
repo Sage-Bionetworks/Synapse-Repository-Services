@@ -240,7 +240,7 @@ public class MessageManagerImpl implements MessageManager {
 			}
 		}
 		
-		if (!authorizationManager.canAccessRawFileHandleById(userInfo, dto.getFileHandleId())
+		if (!authorizationManager.canAccessRawFileHandleById(userInfo, dto.getFileHandleId()).getFirst()
 				&& !messageDAO.canSeeMessagesUsingFileHandle(userInfo.getGroups(), dto.getFileHandleId())) {
 			throw new UnauthorizedException("Invalid file handle given");
 		}
@@ -518,7 +518,7 @@ public class MessageManagerImpl implements MessageManager {
 			// Check permissions to send to non-individuals
 			if (!userIsTrustedMessageSender &&
 					!ug.getIsIndividual() &&
-					!authorizationManager.canAccess(userInfo, principalId, ObjectType.TEAM, ACCESS_TYPE.SEND_MESSAGE)) {
+					!authorizationManager.canAccess(userInfo, principalId, ObjectType.TEAM, ACCESS_TYPE.SEND_MESSAGE).getFirst()) {
 				errors.add(userInfo.getId()
 						+ " may not send messages to the group (" + principalId + ")");
 				continue;

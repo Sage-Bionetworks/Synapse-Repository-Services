@@ -214,7 +214,7 @@ public class UserProfileManagerImpl implements UserProfileManager {
 						@Override
 						public boolean apply(ProjectHeader header) {
 							try {
-								return authorizationManager.canAccess(userInfo, header.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ);
+								return authorizationManager.canAccess(userInfo, header.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ).getFirst();
 							} catch (DatastoreException e) {
 								return false;
 							} catch (NotFoundException e) {

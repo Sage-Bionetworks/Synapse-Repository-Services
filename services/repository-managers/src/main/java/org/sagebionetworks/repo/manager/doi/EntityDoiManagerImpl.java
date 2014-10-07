@@ -13,6 +13,7 @@ import org.sagebionetworks.doi.EzidConstants;
 import org.sagebionetworks.doi.EzidDoi;
 import org.sagebionetworks.doi.EzidMetadata;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -62,9 +63,8 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 		// Authorize
 		UserInfo currentUser = userManager.getUserInfo(userId);
 		UserInfo.validateUserInfo(currentUser);
-		if (!authorizationManager.canAccess(currentUser, entityId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)) {
-			throw new UnauthorizedException(userId + " lacks change access to the requested object.");
-		}
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				authorizationManager.canAccess(currentUser, entityId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE));
 
 		// If it already exists with no error, no need to create again.
 		Doi doiDto = null;
@@ -186,10 +186,8 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 
 		UserInfo currentUser = userManager.getUserInfo(userId);
 		UserInfo.validateUserInfo(currentUser);
-		if (!authorizationManager.canAccess(currentUser, entityId, ObjectType.ENTITY, ACCESS_TYPE.READ)) {
-			throw new UnauthorizedException(userId + " lacks change access to the requested object.");
-		}
-
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				authorizationManager.canAccess(currentUser, entityId, ObjectType.ENTITY, ACCESS_TYPE.READ));
 		return doiDao.getDoi(entityId, ObjectType.ENTITY, versionNumber);
 	}
 

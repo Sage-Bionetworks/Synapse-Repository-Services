@@ -74,10 +74,11 @@ public interface AuthorizationManager {
 	/**
 	 * The raw FileHandle can only be accessed by the user that created it.
 	 * @param userInfo
+	 * @param fileHandleId
 	 * @param creator
 	 * @return whether access is granted and, if not, a String giving the reason why
 	 */
-	public Pair<Boolean,String> canAccessRawFileHandleByCreator(UserInfo userInfo, String creator);
+	public Pair<Boolean,String> canAccessRawFileHandleByCreator(UserInfo userInfo, String fileHandleId, String creator);
 	
 	/**
 	 * Is the user the creator or are they an admin
