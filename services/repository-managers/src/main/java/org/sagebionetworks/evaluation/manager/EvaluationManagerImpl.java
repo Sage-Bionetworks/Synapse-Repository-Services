@@ -11,6 +11,7 @@ import org.sagebionetworks.evaluation.util.EvaluationUtils;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -62,7 +63,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 			throw new IllegalArgumentException("Evaluation " + eval.getId() +
 					" is missing content source (are you sure there is Synapse entity for it?).");
 		}
-		if (!authorizationManager.canAccess(userInfo, nodeId, ObjectType. ENTITY, ACCESS_TYPE.CREATE)) {
+		if (!authorizationManager.canAccess(userInfo, nodeId, ObjectType. ENTITY, ACCESS_TYPE.CREATE).getAuthorized()) {
 			throw new UnauthorizedException("User " + userInfo.getId().toString() +
 					" must have " + ACCESS_TYPE.CREATE.name() + " right on the entity " +
 					nodeId + " in order to create a evaluation based on it.");
@@ -88,10 +89,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	public Evaluation getEvaluation(UserInfo userInfo, String id)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
 		EvaluationUtils.ensureNotNull(id, "Evaluation ID");
-		if (!evaluationPermissionsManager.hasAccess(userInfo, id, ACCESS_TYPE.READ)) {
-			throw new UnauthorizedException("User " + userInfo.getId().toString() +
-					" not allowed to read evaluation " + id);
-		}
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(evaluationPermissionsManager.hasAccess(userInfo, id, ACCESS_TYPE.READ));
 		return evaluationDAO.get(id);
 	}
 	
@@ -106,7 +104,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		List<Evaluation> evalList = evaluationDAO.getByContentSource(id, limit, offset);
 		List<Evaluation> evaluations = new ArrayList<Evaluation>();
 		for (Evaluation eval : evalList) {
-			if (evaluationPermissionsManager.hasAccess(userInfo, eval.getId(), ACCESS_TYPE.READ)) {
+			if (evaluationPermissionsManager.hasAccess(userInfo, eval.getId(), ACCESS_TYPE.READ).getAuthorized()) {
 				evaluations.add(eval);
 			}
 		}
@@ -121,7 +119,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		List<Evaluation> evalList = evaluationDAO.getInRange(limit, offset);
 		List<Evaluation> evaluations = new ArrayList<Evaluation>();
 		for (Evaluation eval : evalList) {
-			if (evaluationPermissionsManager.hasAccess(userInfo, eval.getId(), ACCESS_TYPE.READ)) {
+			if (evaluationPermissionsManager.hasAccess(userInfo, eval.getId(), ACCESS_TYPE.READ).getAuthorized()) {
 				evaluations.add(eval);
 			}
 		}
@@ -158,7 +156,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		EvaluationUtils.ensureNotNull(name, "Name");
 		String evalId = evaluationDAO.lookupByName(name);
 		Evaluation eval = evaluationDAO.get(evalId);
-		if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ)) {
+		if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ).getAuthorized()) {
 			eval = null;
 		}
 		if (eval == null) {
@@ -177,7 +175,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		final String evalId = eval.getId();
 		
 		// validate permissions
-		if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.UPDATE)) {
+		if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.UPDATE).getAuthorized()) {
 			throw new UnauthorizedException("User " + userInfo.getId().toString() +
 					" is not authorized to update evaluation " + evalId +
 					" (" + eval.getName() + ")");
@@ -209,11 +207,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		UserInfo.validateUserInfo(userInfo);
 		Evaluation eval = evaluationDAO.get(id);
 		if (eval == null) throw new NotFoundException("No Evaluation found with id " + id);
-		if (!evaluationPermissionsManager.hasAccess(userInfo, id, ACCESS_TYPE.DELETE)) {
-			throw new UnauthorizedException("User " + userInfo.getId().toString() +
-					" is not authorized to update evaluation " + id +
-					" (" + eval.getName() + ")");
-		}
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(evaluationPermissionsManager.hasAccess(userInfo, id, ACCESS_TYPE.DELETE));
 		evaluationPermissionsManager.deleteAcl(userInfo, id);
 		// lock out multi-submission access (e.g. batch updates)
 		evaluationSubmissionsDAO.deleteForEvaluation(Long.parseLong(id));

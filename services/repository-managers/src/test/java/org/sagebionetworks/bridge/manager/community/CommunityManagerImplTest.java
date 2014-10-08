@@ -16,6 +16,7 @@ import org.mockito.Mock;
 import org.sagebionetworks.bridge.model.Community;
 import org.sagebionetworks.bridge.model.CommunityTeamDAO;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -201,7 +202,7 @@ public class CommunityManagerImplTest extends MockitoTestBase {
 
 	@Test
 	public void testGet() throws Exception {
-		when(authorizationManager.canAccess(validUser, COMMUNITY_ID, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(true);
+		when(authorizationManager.canAccess(validUser, COMMUNITY_ID, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(entityManager.getEntity(validUser, COMMUNITY_ID, Community.class)).thenReturn(testCommunity);
 
 		Community community = communityManager.get(validUser, COMMUNITY_ID);
@@ -213,7 +214,7 @@ public class CommunityManagerImplTest extends MockitoTestBase {
 
 	@Test(expected = UnauthorizedException.class)
 	public void testGetNotAuthorized() throws Throwable {
-		when(authorizationManager.canAccess(validUser, COMMUNITY_ID, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(false);
+		when(authorizationManager.canAccess(validUser, COMMUNITY_ID, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		try {
 			communityManager.get(validUser, COMMUNITY_ID);
 
@@ -225,7 +226,7 @@ public class CommunityManagerImplTest extends MockitoTestBase {
 
 	@Test
 	public void testPut() throws Exception {
-		when(authorizationManager.canAccess(validUser, COMMUNITY_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(true);
+		when(authorizationManager.canAccess(validUser, COMMUNITY_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(entityManager.getEntity(validUser, COMMUNITY_ID, Community.class)).thenReturn(testCommunity);
 
 		Community community = communityManager.update(validUser, testCommunity);
@@ -238,7 +239,7 @@ public class CommunityManagerImplTest extends MockitoTestBase {
 
 	@Test(expected = UnauthorizedException.class)
 	public void testPutNotAuthorized() throws Throwable {
-		when(authorizationManager.canAccess(validUser, COMMUNITY_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(false);
+		when(authorizationManager.canAccess(validUser, COMMUNITY_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		try {
 			communityManager.update(validUser, testCommunity);
 
@@ -250,7 +251,7 @@ public class CommunityManagerImplTest extends MockitoTestBase {
 
 	@Test
 	public void testDelete() throws Exception {
-		when(authorizationManager.canAccess(validUser, COMMUNITY_ID, ObjectType.ENTITY, ACCESS_TYPE.DELETE)).thenReturn(true);
+		when(authorizationManager.canAccess(validUser, COMMUNITY_ID, ObjectType.ENTITY, ACCESS_TYPE.DELETE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(entityManager.getEntity(validUser, COMMUNITY_ID, Community.class)).thenReturn(testCommunity);
 
 		communityManager.delete(validUser, COMMUNITY_ID);
@@ -263,7 +264,7 @@ public class CommunityManagerImplTest extends MockitoTestBase {
 
 	@Test(expected = UnauthorizedException.class)
 	public void testDeleteNotAuthorized() throws Throwable {
-		when(authorizationManager.canAccess(validUser, COMMUNITY_ID, ObjectType.ENTITY, ACCESS_TYPE.DELETE)).thenReturn(false);
+		when(authorizationManager.canAccess(validUser, COMMUNITY_ID, ObjectType.ENTITY, ACCESS_TYPE.DELETE)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		try {
 			communityManager.delete(validUser, COMMUNITY_ID);
 
@@ -275,7 +276,7 @@ public class CommunityManagerImplTest extends MockitoTestBase {
 
 	@Test
 	public void testJoin() throws Throwable {
-		when(authorizationManager.canAccess(validUser, COMMUNITY_ID, ObjectType.ENTITY, ACCESS_TYPE.PARTICIPATE)).thenReturn(true);
+		when(authorizationManager.canAccess(validUser, COMMUNITY_ID, ObjectType.ENTITY, ACCESS_TYPE.PARTICIPATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(entityManager.getEntity(validUser, COMMUNITY_ID, Community.class)).thenReturn(testCommunity);
 
 		communityManager.join(validUser, COMMUNITY_ID);
@@ -337,7 +338,7 @@ public class CommunityManagerImplTest extends MockitoTestBase {
 		when(entityManager.getEntity(validUser, COMMUNITY_ID, Community.class)).thenReturn(community);
 		when(userManager.getUserInfo(Long.parseLong(USER_ID2))).thenReturn(otherUser);
 		when(teamManager.getTeamMembershipStatus(validUser, TEAM_ID, otherUser)).thenReturn(membershipIsMember);
-		when(authorizationManager.canAccess(validUser, COMMUNITY_ID, ObjectType.ENTITY, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(true);
+		when(authorizationManager.canAccess(validUser, COMMUNITY_ID, ObjectType.ENTITY, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(aclDAO.get(COMMUNITY_ID, ObjectType.ENTITY)).thenReturn(aclBefore);
 
 		communityManager.addAdmin(validUser, COMMUNITY_ID, USER_ID2);
@@ -363,7 +364,7 @@ public class CommunityManagerImplTest extends MockitoTestBase {
 		when(userManager.getUserInfo(Long.parseLong(USER_ID2))).thenReturn(otherUser);
 		when(teamManager.getTeamMembershipStatus(validUser, TEAM_ID, otherUser)).thenReturn(membershipIsMember);
 		when(authorizationManager.canAccess(validUser, COMMUNITY_ID, ObjectType.ENTITY, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE))
-				.thenReturn(false);
+				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		try {
 			communityManager.addAdmin(validUser, COMMUNITY_ID, USER_ID2);
 		} finally {
@@ -417,7 +418,7 @@ public class CommunityManagerImplTest extends MockitoTestBase {
 
 		when(entityManager.getEntity(validUser, COMMUNITY_ID, Community.class)).thenReturn(community);
 		when(userManager.getUserInfo(Long.parseLong(USER_ID2))).thenReturn(otherUser);
-		when(authorizationManager.canAccess(validUser, COMMUNITY_ID, ObjectType.ENTITY, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(true);
+		when(authorizationManager.canAccess(validUser, COMMUNITY_ID, ObjectType.ENTITY, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(aclDAO.get(COMMUNITY_ID, ObjectType.ENTITY)).thenReturn(aclBefore);
 
 		communityManager.removeAdmin(validUser, COMMUNITY_ID, USER_ID2);

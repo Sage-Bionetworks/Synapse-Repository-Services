@@ -91,8 +91,8 @@ public class AccessRequirementManagerImplUnitTest {
 		when(jiraClient.createIssue((IssueInput)anyObject())).thenReturn(new BasicIssue(null, "SG-101", 101L));
 		
 		// by default the user is authorized to create, edit.  individual tests may override these settings
-		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(true);
-		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(true);
+		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 	}
 	
 	private AccessRequirement createExpectedAR() {
@@ -131,8 +131,8 @@ public class AccessRequirementManagerImplUnitTest {
 	
 	@Test(expected=UnauthorizedException.class)
 	public void testCreateLockAccessRequirementNoAuthority() throws Exception {
-		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(false);
-		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(false);
+		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		// this should throw the unauthorized exception
 		arm.createLockAccessRequirement(userInfo, TEST_ENTITY_ID);
 	}

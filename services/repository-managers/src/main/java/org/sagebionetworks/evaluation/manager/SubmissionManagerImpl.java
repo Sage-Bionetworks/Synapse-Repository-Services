@@ -15,6 +15,7 @@ import org.sagebionetworks.evaluation.model.SubmissionStatusBatch;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.util.EvaluationUtils;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.file.FileHandleManager;
@@ -87,7 +88,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		validateEvaluationAccess(userInfo, sub.getEvaluationId(), ACCESS_TYPE.READ);
 		// only authorized users can view private Annotations 
 		boolean includePrivateAnnos = evaluationPermissionsManager.hasAccess(
-				userInfo, sub.getEvaluationId(), ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
+				userInfo, sub.getEvaluationId(), ACCESS_TYPE.READ_PRIVATE_SUBMISSION).getAuthorized();
 		return submissionToSubmissionStatus(sub, includePrivateAnnos);
 	}
 
@@ -104,7 +105,8 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		submission.setUserId(principalId);
 		
 		// validate permissions
-		evaluationPermissionsManager.validateHasAccess(userInfo, evalId, ACCESS_TYPE.SUBMIT);
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.SUBMIT));
 		
 		// validate eTag
 		String entityId = submission.getEntityId();
@@ -296,7 +298,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		validateEvaluationAccess(userInfo, evalId, ACCESS_TYPE.READ);
 		// only authorized users can view private Annotations
 		boolean includePrivateAnnos = evaluationPermissionsManager.hasAccess(
-				userInfo, evalId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
+				userInfo, evalId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION).getAuthorized();
 		QueryResults<Submission> submissions = 
 				getAllSubmissionsPrivate(evalId, status, limit, offset);
 		return submissionsToSubmissionStatuses(submissions, includePrivateAnnos);
@@ -327,7 +329,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 			UserInfo userInfo, String evalId, long limit, long offset)
 			throws DatastoreException, NotFoundException {
 		QueryResults<Submission> submissions = getMyOwnSubmissionsByEvaluation(userInfo, evalId, limit, offset);
-		boolean haveReadPrivateAccess = evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION);
+		boolean haveReadPrivateAccess = evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ_PRIVATE_SUBMISSION).getAuthorized();
 		return submissionsToSubmissionBundles(submissions, haveReadPrivateAccess);
 	}
 		
@@ -367,9 +369,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	 */
 	private void validateEvaluationAccess(UserInfo userInfo, String evalId, ACCESS_TYPE accessType)
 			throws NotFoundException {
-		if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, accessType)) {
-			throw new UnauthorizedException("You lack " + accessType + " rights for Evaluation " + evalId);
-		}
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(evaluationPermissionsManager.hasAccess(userInfo, evalId, accessType));
 	}
 
 	/**
