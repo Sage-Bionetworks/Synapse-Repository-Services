@@ -16,6 +16,7 @@ import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
 import org.sagebionetworks.repo.manager.AccessRequirementUtil;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
+import org.sagebionetworks.repo.manager.AuthorizationStatus;
 import org.sagebionetworks.repo.manager.PermissionsManagerUtils;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -117,7 +118,7 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 		if (evalId == null || evalId.isEmpty()) {
 			throw new IllegalArgumentException("Evaluation Id cannot be null or empty.");
 		}
-		if (!hasAccess(userInfo, evalId, CHANGE_PERMISSIONS).getFirst()) {
+		if (!hasAccess(userInfo, evalId, CHANGE_PERMISSIONS).getAuthorized()) {
 			throw new UnauthorizedException("User " + userInfo.getId().toString()
 					+ " not authorized to change permissions on evaluation " + evalId);
 		}
@@ -139,7 +140,7 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 	}
 
 	@Override
-	public Pair<Boolean,String> hasAccess(UserInfo userInfo, String evalId, ACCESS_TYPE accessType)
+	public AuthorizationStatus hasAccess(UserInfo userInfo, String evalId, ACCESS_TYPE accessType)
 			throws NotFoundException, DatastoreException {
 		return validateHasAccess(userInfo, evalId, accessType);
 	}
@@ -149,7 +150,7 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 	 * Has the same logic as 'hasAccess' but throws informative exception if the answer is false.
 	 */
 	@Override
-	public Pair<Boolean,String> validateHasAccess(UserInfo userInfo, String evalId, ACCESS_TYPE accessType)
+	public AuthorizationStatus validateHasAccess(UserInfo userInfo, String evalId, ACCESS_TYPE accessType)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		if (userInfo == null) {
 			throw new IllegalArgumentException("User info cannot be null.");
@@ -163,13 +164,13 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 		if (userInfo.isAdmin()) return AuthorizationManagerUtil.AUTHORIZED;
 
 		if (isAnonymousWithNonReadAccess(userInfo, accessType))
-			return new Pair<Boolean,String>(false, "Anonymous user is not allowed to access Evaluation.");
+			return AuthorizationManagerUtil.accessDenied("Anonymous user is not allowed to access Evaluation.");
 		
 		if (!aclDAO.canAccess(userInfo.getGroups(), evalId, ObjectType.EVALUATION, accessType))
-			return new Pair<Boolean,String>(false, "User lacks "+accessType+" access to Evaluation "+evalId);
+			return AuthorizationManagerUtil.accessDenied("User lacks "+accessType+" access to Evaluation "+evalId);
 		
 		if (hasUnmetAccessRequirements(userInfo, evalId, accessType))
-			return new Pair<Boolean,String>(false, "User has unmet access restrictions for Evaluation "+evalId);
+			return AuthorizationManagerUtil.accessDenied("User has unmet access restrictions for Evaluation "+evalId);
 		
 		return AuthorizationManagerUtil.AUTHORIZED;
 	}
@@ -192,18 +193,18 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 
 		// Public read
 		UserInfo anonymousUser = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
-		permission.setCanPublicRead(hasAccess(anonymousUser, evalId, READ).getFirst());
+		permission.setCanPublicRead(hasAccess(anonymousUser, evalId, READ).getAuthorized());
 
 		// Other permissions
-		permission.setCanView(hasAccess(userInfo, evalId, READ).getFirst());
-		permission.setCanEdit(hasAccess(userInfo, evalId, UPDATE).getFirst());
-		permission.setCanDelete(hasAccess(userInfo, evalId, DELETE).getFirst());
-		permission.setCanChangePermissions(hasAccess(userInfo, evalId, CHANGE_PERMISSIONS).getFirst());
-		permission.setCanParticipate(hasAccess(userInfo, evalId, PARTICIPATE).getFirst());
-		permission.setCanSubmit(hasAccess(userInfo, evalId, SUBMIT).getFirst());
-		permission.setCanViewPrivateSubmissionStatusAnnotations(hasAccess(userInfo, evalId, READ_PRIVATE_SUBMISSION).getFirst());
-		permission.setCanEditSubmissionStatuses(hasAccess(userInfo, evalId, UPDATE_SUBMISSION).getFirst());
-		permission.setCanDeleteSubmissions(hasAccess(userInfo, evalId, DELETE_SUBMISSION).getFirst());
+		permission.setCanView(hasAccess(userInfo, evalId, READ).getAuthorized());
+		permission.setCanEdit(hasAccess(userInfo, evalId, UPDATE).getAuthorized());
+		permission.setCanDelete(hasAccess(userInfo, evalId, DELETE).getAuthorized());
+		permission.setCanChangePermissions(hasAccess(userInfo, evalId, CHANGE_PERMISSIONS).getAuthorized());
+		permission.setCanParticipate(hasAccess(userInfo, evalId, PARTICIPATE).getAuthorized());
+		permission.setCanSubmit(hasAccess(userInfo, evalId, SUBMIT).getAuthorized());
+		permission.setCanViewPrivateSubmissionStatusAnnotations(hasAccess(userInfo, evalId, READ_PRIVATE_SUBMISSION).getAuthorized());
+		permission.setCanEditSubmissionStatuses(hasAccess(userInfo, evalId, UPDATE_SUBMISSION).getAuthorized());
+		permission.setCanDeleteSubmissions(hasAccess(userInfo, evalId, DELETE_SUBMISSION).getAuthorized());
 
 		return permission;
 	}

@@ -133,7 +133,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 			AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 					authorizationManager.canAccessRawFileHandleById(userInfo, newNode.getFileHandleId()));
 			
-			if (!authorizationManager.canAccess(userInfo, newNode.getParentId(), ObjectType.ENTITY, ACCESS_TYPE.UPLOAD).getFirst()) {
+			if (!authorizationManager.canAccess(userInfo, newNode.getParentId(), ObjectType.ENTITY, ACCESS_TYPE.UPLOAD).getAuthorized()) {
 				throw new UnauthorizedException(userInfo.getId().toString()+" is not allowed to upload a file into the chosen folder.");
 			}
 		}
@@ -313,7 +313,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 				// This is a change so the user must be the creator of the new file handle
 				AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 						authorizationManager.canAccessRawFileHandleById(userInfo, updatedNode.getFileHandleId()));
-				if (!authorizationManager.canAccess(userInfo, updatedNode.getParentId(), ObjectType.ENTITY, ACCESS_TYPE.UPLOAD).getFirst()) {
+				if (!authorizationManager.canAccess(userInfo, updatedNode.getParentId(), ObjectType.ENTITY, ACCESS_TYPE.UPLOAD).getAuthorized()) {
 					throw new UnauthorizedException(userInfo.getId().toString()+" is not allowed to upload a file into the chosen folder.");
 				}
 			}
@@ -585,7 +585,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		List<EntityHeader> results = new ArrayList<EntityHeader>(entityHeaderList.size());
 		for (EntityHeader entityHeader: entityHeaderList) {
 			try {
-				if (authorizationManager.canAccess(userInfo, entityHeader.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ).getFirst()) {
+				if (authorizationManager.canAccess(userInfo, entityHeader.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ).getAuthorized()) {
 					results.add(entityHeader);
 				}
 			} catch (EntityInTrashCanException e) {

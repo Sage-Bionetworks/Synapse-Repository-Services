@@ -1,18 +1,17 @@
 package org.sagebionetworks.repo.manager;
 
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.util.Pair;
 
 public class AuthorizationManagerUtil {
 
-	public static final Pair<Boolean,String> AUTHORIZED = new Pair<Boolean,String>(true, "");
+	public static final AuthorizationStatus AUTHORIZED = new AuthorizationStatus(true, "");
 	
-	public static void checkAuthorizationAndThrowException(Pair<Boolean,String> auth) throws UnauthorizedException {
-		if (!auth.getFirst()) throw new UnauthorizedException(auth.getSecond());
+	public static void checkAuthorizationAndThrowException(AuthorizationStatus auth) throws UnauthorizedException {
+		if (!auth.getAuthorized()) throw new UnauthorizedException(auth.getReason());
 	}
 
-	public static Pair<Boolean,String> accessDenied(String reason) {
-		return new Pair<Boolean,String>(false, reason);
+	public static AuthorizationStatus accessDenied(String reason) {
+		return new AuthorizationStatus(false, reason);
 	}
 
 }

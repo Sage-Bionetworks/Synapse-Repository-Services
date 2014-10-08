@@ -364,7 +364,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		// Get the file handle
 		FileHandle handle = fileHandleDao.get(handleId);
 		// Is the user authorized?
-		if(!authorizationManager.canAccessRawFileHandleByCreator(userInfo, handleId, handle.getCreatedBy()).getFirst()){
+		if(!authorizationManager.canAccessRawFileHandleByCreator(userInfo, handleId, handle.getCreatedBy()).getAuthorized()){
 			throw new UnauthorizedException("Only the creator of a FileHandle can clear the preview");
 		}
 		

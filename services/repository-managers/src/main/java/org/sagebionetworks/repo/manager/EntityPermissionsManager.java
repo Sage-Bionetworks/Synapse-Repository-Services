@@ -10,7 +10,6 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.util.Pair;
 
 public interface EntityPermissionsManager {
 	/**
@@ -95,7 +94,7 @@ public interface EntityPermissionsManager {
 	 * @param accessType
 	 * @return
 	 */
-	public Pair<Boolean,String> hasAccess(String resourceId, ACCESS_TYPE  accessType, UserInfo userInfo) throws NotFoundException, DatastoreException;
+	public AuthorizationStatus hasAccess(String resourceId, ACCESS_TYPE  accessType, UserInfo userInfo) throws NotFoundException, DatastoreException;
 
 	/**
 	 * Get the user permission for an entity.

@@ -32,7 +32,6 @@ import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dbo.dao.AuthorizationUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.util.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -163,7 +162,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 			// recursively apply to children
 			applyInheritanceToChildrenHelper(idToChange, benefactorId, userInfo);
 			// must be authorized to modify permissions
-			if (hasAccess(idToChange, CHANGE_PERMISSIONS, userInfo).getFirst()) {
+			if (hasAccess(idToChange, CHANGE_PERMISSIONS, userInfo).getAuthorized()) {
 				// delete child ACL, if present
 				if (hasLocalACL(idToChange)) {
 					// Before we can update the ACL we must grab the lock on the node.
@@ -188,7 +187,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	 * @return
 	 */
 	@Override
-	public Pair<Boolean,String> hasAccess(String entityId, ACCESS_TYPE accessType, UserInfo userInfo)
+	public AuthorizationStatus hasAccess(String entityId, ACCESS_TYPE accessType, UserInfo userInfo)
 			throws NotFoundException, DatastoreException  {
 		// In the case of the trash can, throw the EntityInTrashCanException
 		// The only operations allowed over the trash can is CREATE (i.e. moving
@@ -241,19 +240,19 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 
 		final String benefactor = nodeInheritanceManager.getBenefactor(entityId);
 		UserEntityPermissions permissions = new UserEntityPermissions();
-		permissions.setCanAddChild(hasAccess(benefactor, CREATE, userInfo).getFirst());
-		permissions.setCanChangePermissions(hasAccess(benefactor, CHANGE_PERMISSIONS, userInfo).getFirst());
-		permissions.setCanDelete(hasAccess(benefactor, DELETE, userInfo).getFirst());
-		permissions.setCanEdit(hasAccess(benefactor, UPDATE, userInfo).getFirst());
-		permissions.setCanView(hasAccess(benefactor, READ, userInfo).getFirst());
-		permissions.setCanDownload(canDownload(userInfo, entityId).getFirst());
-		permissions.setCanUpload(canUpload(userInfo, entityId).getFirst());
+		permissions.setCanAddChild(hasAccess(benefactor, CREATE, userInfo).getAuthorized());
+		permissions.setCanChangePermissions(hasAccess(benefactor, CHANGE_PERMISSIONS, userInfo).getAuthorized());
+		permissions.setCanDelete(hasAccess(benefactor, DELETE, userInfo).getAuthorized());
+		permissions.setCanEdit(hasAccess(benefactor, UPDATE, userInfo).getAuthorized());
+		permissions.setCanView(hasAccess(benefactor, READ, userInfo).getAuthorized());
+		permissions.setCanDownload(canDownload(userInfo, entityId).getAuthorized());
+		permissions.setCanUpload(canUpload(userInfo, entityId).getAuthorized());
 
 		Node node = nodeDao.getNode(entityId);
 		permissions.setOwnerPrincipalId(node.getCreatedByPrincipalId());
 
 		UserInfo anonymousUser = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
-		permissions.setCanPublicRead(hasAccess(benefactor, READ, anonymousUser).getFirst());
+		permissions.setCanPublicRead(hasAccess(benefactor, READ, anonymousUser).getAuthorized());
 
 		final boolean parentIsRoot = nodeDao.isNodesParentRoot(entityId);
 		if (userInfo.isAdmin()) {
@@ -275,7 +274,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		}
 	}
 
-	private Pair<Boolean,String> canDownload(UserInfo userInfo, final String nodeId)
+	private AuthorizationStatus canDownload(UserInfo userInfo, final String nodeId)
 			throws DatastoreException, NotFoundException {
 		if (userInfo.isAdmin()) return AuthorizationManagerUtil.AUTHORIZED;
 		if (!agreesToTermsOfUse(userInfo)) return AuthorizationManagerUtil.
@@ -294,11 +293,11 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		}
 	}
 
-	private Pair<Boolean,String> canUpload(UserInfo userInfo, final String parentId)
+	private AuthorizationStatus canUpload(UserInfo userInfo, final String parentId)
 			throws DatastoreException, NotFoundException {
 		if (userInfo.isAdmin()) return AuthorizationManagerUtil.AUTHORIZED;
 		if (!agreesToTermsOfUse(userInfo)) return AuthorizationManagerUtil.
-				accessDenied("You have not yet agreed to the Synapse Terms of Use.");;
+				accessDenied("You have not yet agreed to the Synapse Terms of Use.");
 		
 		// if there are any unmet access requirements return false
 		List<String> nodeAncestorIds = AccessRequirementUtil.getNodeAncestorIds(nodeDao, parentId, true);

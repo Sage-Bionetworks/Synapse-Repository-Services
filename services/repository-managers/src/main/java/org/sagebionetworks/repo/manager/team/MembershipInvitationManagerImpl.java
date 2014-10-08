@@ -65,7 +65,7 @@ public class MembershipInvitationManagerImpl implements
 			InvalidModelException, UnauthorizedException, NotFoundException {
 		validateForCreate(mis);
 		if (!authorizationManager.canAccess(
-				userInfo, mis.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE).getFirst()) 
+				userInfo, mis.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE).getAuthorized()) 
 			throw new UnauthorizedException("Cannot create membership invitation.");
 		Date now = new Date();
 		populateCreationFields(userInfo, mis, now);
@@ -80,7 +80,7 @@ public class MembershipInvitationManagerImpl implements
 			throws DatastoreException, NotFoundException {
 		MembershipInvtnSubmission mis = membershipInvtnSubmissionDAO.get(id);
 		if (!authorizationManager.canAccess(
-				userInfo, mis.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE).getFirst()) 
+				userInfo, mis.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE).getAuthorized()) 
 			throw new UnauthorizedException("Cannot retrieve membership invitation.");
 		return mis;
 	}
@@ -98,7 +98,7 @@ public class MembershipInvitationManagerImpl implements
 			return;
 		}
 		if (!authorizationManager.canAccess(
-				userInfo, mis.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE).getFirst()) 
+				userInfo, mis.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE).getAuthorized()) 
 			throw new UnauthorizedException("Cannot delete membership invitation.");
 		membershipInvtnSubmissionDAO.delete(id);
 	}
@@ -142,7 +142,7 @@ public class MembershipInvitationManagerImpl implements
 	public PaginatedResults<MembershipInvtnSubmission> getOpenSubmissionsForTeamInRange(
 			UserInfo userInfo, String teamId, long limit, long offset) throws NotFoundException {
 		if (!authorizationManager.canAccess(
-				userInfo, teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE).getFirst()) 
+				userInfo, teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE).getAuthorized()) 
 			throw new UnauthorizedException("Cannot retrieve membership invitations for team "+teamId+".");
 		Date now = new Date();
 		long teamIdAsLong = Long.parseLong(teamId);
@@ -159,7 +159,7 @@ public class MembershipInvitationManagerImpl implements
 			UserInfo userInfo, String inviteeId, String teamId, long limit,
 			long offset) throws DatastoreException, NotFoundException {
 		if (!authorizationManager.canAccess(
-				userInfo, teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE).getFirst()) 
+				userInfo, teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE).getAuthorized()) 
 			throw new UnauthorizedException("Cannot retrieve membership invitations for team "+teamId+".");
 		Date now = new Date();
 		long teamIdAsLong = Long.parseLong(teamId);

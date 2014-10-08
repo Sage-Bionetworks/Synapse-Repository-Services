@@ -13,7 +13,6 @@ import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.util.Pair;
 
 public interface AuthorizationManager {
 	
@@ -28,7 +27,7 @@ public interface AuthorizationManager {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public Pair<Boolean,String> canAccess(UserInfo userInfo, String objectId, ObjectType objectType, ACCESS_TYPE accessType) throws DatastoreException, NotFoundException;
+	public AuthorizationStatus canAccess(UserInfo userInfo, String objectId, ObjectType objectType, ACCESS_TYPE accessType) throws DatastoreException, NotFoundException;
 
 	/**
      * Checks whether the given user can create the given node.
@@ -42,7 +41,7 @@ public interface AuthorizationManager {
 	 * @exception NotFoundException if the group or node is invalid
 	 * 
 	 */
-	public Pair<Boolean,String> canCreate(UserInfo userInfo, final Node node) throws NotFoundException, DatastoreException ;
+	public AuthorizationStatus canCreate(UserInfo userInfo, final Node node) throws NotFoundException, DatastoreException ;
 	
 	/**
 	 * Checks whether the given user can create the given access requirement
@@ -52,7 +51,7 @@ public interface AuthorizationManager {
 	 * @return whether access is granted and, if not, a String giving the reason why
 	 * @throws NotFoundException 
 	 */
-	public Pair<Boolean,String> canCreateAccessRequirement(UserInfo userInfo, AccessRequirement accessRequirement) throws NotFoundException;
+	public AuthorizationStatus canCreateAccessRequirement(UserInfo userInfo, AccessRequirement accessRequirement) throws NotFoundException;
 
 	/**
 	 * Checks whether the given user can create the given access approval
@@ -61,7 +60,7 @@ public interface AuthorizationManager {
 	 * @param accessRequirement
 	 * @return whether access is granted and, if not, a String giving the reason why
 	 */
-	public Pair<Boolean,String> canCreateAccessApproval(UserInfo userInfo, AccessApproval accessApproval);
+	public AuthorizationStatus canCreateAccessApproval(UserInfo userInfo, AccessApproval accessApproval);
 
 	/**
 	 * 
@@ -69,7 +68,7 @@ public interface AuthorizationManager {
 	 * @param activityId activity that generated the entities
 	 * @return Returns true if the specified user can read at least one entity with the specified activity Id.  Returns whether access is granted and, if not, a String giving the reason why
 	 */
-	public Pair<Boolean,String> canAccessActivity(UserInfo userInfo, String activityId) throws NotFoundException;
+	public AuthorizationStatus canAccessActivity(UserInfo userInfo, String activityId) throws NotFoundException;
 	
 	/**
 	 * The raw FileHandle can only be accessed by the user that created it.
@@ -78,7 +77,7 @@ public interface AuthorizationManager {
 	 * @param creator
 	 * @return whether access is granted and, if not, a String giving the reason why
 	 */
-	public Pair<Boolean,String> canAccessRawFileHandleByCreator(UserInfo userInfo, String fileHandleId, String creator);
+	public AuthorizationStatus canAccessRawFileHandleByCreator(UserInfo userInfo, String fileHandleId, String creator);
 	
 	/**
 	 * Is the user the creator or are they an admin
@@ -95,7 +94,7 @@ public interface AuthorizationManager {
 	 * @return whether access is granted and, if not, a String giving the reason why
 	 * @throws NotFoundException 
 	 */
-	public Pair<Boolean,String> canAccessRawFileHandleById(UserInfo userInfo, String fileHandleId) throws NotFoundException;
+	public AuthorizationStatus canAccessRawFileHandleById(UserInfo userInfo, String fileHandleId) throws NotFoundException;
 
 	/**
 	 * 
@@ -115,7 +114,7 @@ public interface AuthorizationManager {
 	 * @return whether access is granted and, if not, a String giving the reason why
 	 * @throws NotFoundException
 	 */
-	public Pair<Boolean,String> canAccessAccessApprovalsForSubject(UserInfo userInfo, RestrictableObjectDescriptor subjectId, ACCESS_TYPE accessType) throws NotFoundException;
+	public AuthorizationStatus canAccessAccessApprovalsForSubject(UserInfo userInfo, RestrictableObjectDescriptor subjectId, ACCESS_TYPE accessType) throws NotFoundException;
 	
 	/**
 	 * Is this the AnonymousUser?
@@ -134,7 +133,7 @@ public interface AuthorizationManager {
 	 * @return whether access is granted and, if not, a String giving the reason why
 	 * @throws NotFoundException 
 	 */
-	public Pair<Boolean,String> canUserMoveRestrictedEntity(UserInfo userInfo, String sourceParentId, String destParentId) throws NotFoundException;
+	public AuthorizationStatus canUserMoveRestrictedEntity(UserInfo userInfo, String sourceParentId, String destParentId) throws NotFoundException;
 
 	/**
 	 * Check if the user can start a given Asynchronous job
@@ -145,5 +144,5 @@ public interface AuthorizationManager {
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
-	public Pair<Boolean,String> canUserStartJob(UserInfo userInfo, AsynchronousRequestBody body) throws DatastoreException, NotFoundException;
+	public AuthorizationStatus canUserStartJob(UserInfo userInfo, AsynchronousRequestBody body) throws DatastoreException, NotFoundException;
 }

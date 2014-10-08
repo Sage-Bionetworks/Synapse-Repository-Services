@@ -39,7 +39,6 @@ import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
-import org.sagebionetworks.util.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.common.collect.Multimap;
@@ -72,7 +71,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	private AccessControlListDAO aclDAO;
 	
 	@Override
-	public Pair<Boolean,String> canAccess(UserInfo userInfo, String objectId, ObjectType objectType, ACCESS_TYPE accessType)
+	public AuthorizationStatus canAccess(UserInfo userInfo, String objectId, ObjectType objectType, ACCESS_TYPE accessType)
 			throws DatastoreException, NotFoundException {
 
 		// anonymous can at most READ
@@ -118,7 +117,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	}
 
 	@Override
-	public Pair<Boolean,String> canCreate(UserInfo userInfo, final Node node) 
+	public AuthorizationStatus canCreate(UserInfo userInfo, final Node node) 
 		throws NotFoundException, DatastoreException {
 		if (userInfo.isAdmin()) {
 			return AuthorizationManagerUtil.AUTHORIZED;
@@ -131,7 +130,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	}
 
 	@Override
-	public Pair<Boolean,String> canAccessActivity(UserInfo userInfo, String activityId) throws DatastoreException, NotFoundException {
+	public AuthorizationStatus canAccessActivity(UserInfo userInfo, String activityId) throws DatastoreException, NotFoundException {
 		if(userInfo.isAdmin()) return AuthorizationManagerUtil.AUTHORIZED;
 		
 		// check if owner
@@ -149,7 +148,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 			for(Reference ref : generatedBy.getResults()) {
 				String nodeId = ref.getTargetId();
 				try {
-					if(canAccess(userInfo, nodeId, ObjectType. ENTITY, ACCESS_TYPE.READ).getFirst()) {
+					if(canAccess(userInfo, nodeId, ObjectType. ENTITY, ACCESS_TYPE.READ).getAuthorized()) {
 						return AuthorizationManagerUtil.AUTHORIZED;
 					}
 				} catch (Exception e) {
@@ -171,7 +170,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	}
 
 	@Override
-	public Pair<Boolean,String> canAccessRawFileHandleByCreator(UserInfo userInfo, String fileHandleId, String creator) {
+	public AuthorizationStatus canAccessRawFileHandleByCreator(UserInfo userInfo, String fileHandleId, String creator) {
 		if( isUserCreatorOrAdmin(userInfo, creator)) {
 			return AuthorizationManagerUtil.AUTHORIZED;
 		} else {
@@ -193,7 +192,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 
 
 	@Override
-	public Pair<Boolean,String> canAccessRawFileHandleById(UserInfo userInfo, String fileHandleId) throws NotFoundException {
+	public AuthorizationStatus canAccessRawFileHandleById(UserInfo userInfo, String fileHandleId) throws NotFoundException {
 		// Admins can do anything
 		if(userInfo.isAdmin()) return AuthorizationManagerUtil.AUTHORIZED;
 		// Lookup the creator by
@@ -221,7 +220,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		for (Entry<String, Collection<String>> entry : creatorMap.asMap().entrySet()) {
 			String creator = entry.getKey();
 			String fileHandleIdCollectionAsString = entry.getValue().toString();
-			if (canAccessRawFileHandleByCreator(userInfo, fileHandleIdCollectionAsString, creator).getFirst()) {
+			if (canAccessRawFileHandleByCreator(userInfo, fileHandleIdCollectionAsString, creator).getAuthorized()) {
 				allowed.addAll(entry.getValue());
 			} else {
 				disallowed.addAll(entry.getValue());
@@ -230,7 +229,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	}
 
 	@Override
-	public Pair<Boolean,String> canCreateAccessRequirement(UserInfo userInfo,
+	public AuthorizationStatus canCreateAccessRequirement(UserInfo userInfo,
 			AccessRequirement accessRequirement) throws NotFoundException {
 		if (isACTTeamMemberOrAdmin(userInfo)) {
 			return AuthorizationManagerUtil.AUTHORIZED;
@@ -251,7 +250,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	 * @param accessRequirement
 	 * @throws NotFoundException
 	 */
-	private Pair<Boolean,String> canAdminAccessRequirement(UserInfo userInfo, AccessRequirement accessRequirement) throws NotFoundException {
+	private AuthorizationStatus canAdminAccessRequirement(UserInfo userInfo, AccessRequirement accessRequirement) throws NotFoundException {
 		if (isACTTeamMemberOrAdmin(userInfo)) {
 			return AuthorizationManagerUtil.AUTHORIZED;
 		} else {
@@ -269,7 +268,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	 * @return
 	 */
 	@Override
-	public Pair<Boolean,String> canUserMoveRestrictedEntity(UserInfo userInfo, String sourceParentId, String destParentId) throws NotFoundException {
+	public AuthorizationStatus canUserMoveRestrictedEntity(UserInfo userInfo, String sourceParentId, String destParentId) throws NotFoundException {
 		if (isACTTeamMemberOrAdmin(userInfo)) return AuthorizationManagerUtil.AUTHORIZED;
 		if (sourceParentId.equals(destParentId)) return AuthorizationManagerUtil.AUTHORIZED;
 		List<String> sourceParentAncestorIds = AccessRequirementUtil.getNodeAncestorIds(nodeDao, sourceParentId, true);
@@ -285,19 +284,19 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		}
 	}
 	
-	private Pair<Boolean,String> canAdminAccessApproval(UserInfo userInfo, AccessApproval accessApproval) throws NotFoundException {
+	private AuthorizationStatus canAdminAccessApproval(UserInfo userInfo, AccessApproval accessApproval) throws NotFoundException {
 		AccessRequirement accessRequirement = accessRequirementDAO.get(accessApproval.getRequirementId().toString());
 		return canAdminAccessRequirement(userInfo, accessRequirement);
 	}
 
 	@Override
-	public Pair<Boolean,String> canCreateAccessApproval(UserInfo userInfo,
+	public AuthorizationStatus canCreateAccessApproval(UserInfo userInfo,
 			AccessApproval accessApproval) {
 		if (accessApproval instanceof ACTAccessApproval) {
 			if (isACTTeamMemberOrAdmin(userInfo)) {
 				return AuthorizationManagerUtil.AUTHORIZED;
 			} else {
-				return new Pair<Boolean,String>(false, "User is not an ACT Member.");
+				return new AuthorizationStatus(false, "User is not an ACT Member.");
 			}
 		} else if (accessApproval instanceof SelfSignAccessApproval) {
 			return AuthorizationManagerUtil.AUTHORIZED;
@@ -311,12 +310,12 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	}
 
 	@Override
-	public Pair<Boolean, String> canAccessAccessApprovalsForSubject(UserInfo userInfo,
+	public AuthorizationStatus canAccessAccessApprovalsForSubject(UserInfo userInfo,
 			RestrictableObjectDescriptor subjectId, ACCESS_TYPE accessType) throws NotFoundException {
 		if (isACTTeamMemberOrAdmin(userInfo)) {
 			return AuthorizationManagerUtil.AUTHORIZED;
 		} else {
-			return new Pair<Boolean,String>(false,"You are not allowed to retrieve access approvals for this subject.");
+			return new AuthorizationStatus(false,"You are not allowed to retrieve access approvals for this subject.");
 		}
 	}
 
@@ -327,11 +326,11 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	}
 
 	@Override
-	public Pair<Boolean,String> canUserStartJob(UserInfo userInfo, AsynchronousRequestBody bodyIntf) throws DatastoreException, NotFoundException {
+	public AuthorizationStatus canUserStartJob(UserInfo userInfo, AsynchronousRequestBody bodyIntf) throws DatastoreException, NotFoundException {
 		if(bodyIntf == null) throw new IllegalArgumentException("Body cannot be null");
 		// Anonymous cannot start a job
 		if(AuthorizationUtils.isUserAnonymous(userInfo)) {
-			return new Pair<Boolean,String>(false, "Anonymous user may not start job.");
+			return AuthorizationManagerUtil.accessDenied("Anonymous user may not start job.");
 		}
 		return AuthorizationManagerUtil.AUTHORIZED;
 	}

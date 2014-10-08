@@ -63,7 +63,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 			throw new IllegalArgumentException("Evaluation " + eval.getId() +
 					" is missing content source (are you sure there is Synapse entity for it?).");
 		}
-		if (!authorizationManager.canAccess(userInfo, nodeId, ObjectType. ENTITY, ACCESS_TYPE.CREATE).getFirst()) {
+		if (!authorizationManager.canAccess(userInfo, nodeId, ObjectType. ENTITY, ACCESS_TYPE.CREATE).getAuthorized()) {
 			throw new UnauthorizedException("User " + userInfo.getId().toString() +
 					" must have " + ACCESS_TYPE.CREATE.name() + " right on the entity " +
 					nodeId + " in order to create a evaluation based on it.");
@@ -104,7 +104,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		List<Evaluation> evalList = evaluationDAO.getByContentSource(id, limit, offset);
 		List<Evaluation> evaluations = new ArrayList<Evaluation>();
 		for (Evaluation eval : evalList) {
-			if (evaluationPermissionsManager.hasAccess(userInfo, eval.getId(), ACCESS_TYPE.READ).getFirst()) {
+			if (evaluationPermissionsManager.hasAccess(userInfo, eval.getId(), ACCESS_TYPE.READ).getAuthorized()) {
 				evaluations.add(eval);
 			}
 		}
@@ -119,7 +119,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		List<Evaluation> evalList = evaluationDAO.getInRange(limit, offset);
 		List<Evaluation> evaluations = new ArrayList<Evaluation>();
 		for (Evaluation eval : evalList) {
-			if (evaluationPermissionsManager.hasAccess(userInfo, eval.getId(), ACCESS_TYPE.READ).getFirst()) {
+			if (evaluationPermissionsManager.hasAccess(userInfo, eval.getId(), ACCESS_TYPE.READ).getAuthorized()) {
 				evaluations.add(eval);
 			}
 		}
@@ -156,7 +156,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		EvaluationUtils.ensureNotNull(name, "Name");
 		String evalId = evaluationDAO.lookupByName(name);
 		Evaluation eval = evaluationDAO.get(evalId);
-		if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ).getFirst()) {
+		if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.READ).getAuthorized()) {
 			eval = null;
 		}
 		if (eval == null) {
@@ -175,7 +175,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		final String evalId = eval.getId();
 		
 		// validate permissions
-		if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.UPDATE).getFirst()) {
+		if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, ACCESS_TYPE.UPDATE).getAuthorized()) {
 			throw new UnauthorizedException("User " + userInfo.getId().toString() +
 					" is not authorized to update evaluation " + evalId +
 					" (" + eval.getName() + ")");

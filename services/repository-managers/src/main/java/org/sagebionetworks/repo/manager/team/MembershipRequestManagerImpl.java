@@ -110,7 +110,7 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 			String teamId, long limit, long offset)
 			throws DatastoreException, NotFoundException {
 		if (!authorizationManager.canAccess(
-				userInfo, teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE).getFirst()) 
+				userInfo, teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE).getAuthorized()) 
 			throw new UnauthorizedException("Cannot retrieve membership requests.");
 		Date now = new Date();
 		long teamIdAsLong = Long.parseLong(teamId);
@@ -130,7 +130,7 @@ public class MembershipRequestManagerImpl implements MembershipRequestManager {
 			String teamId, String requestorId, long limit, long offset)
 			throws DatastoreException, NotFoundException {
 		if (!authorizationManager.canAccess(
-				userInfo, teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE).getFirst()) 
+				userInfo, teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE).getAuthorized()) 
 			throw new UnauthorizedException("Cannot retrieve membership requests.");
 		Date now = new Date();
 		long teamIdAsLong = Long.parseLong(teamId);
