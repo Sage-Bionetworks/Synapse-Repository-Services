@@ -290,7 +290,7 @@ public class ColumnModelManagerTest {
 	public void testGetColumnModelsForTableUnauthorized() throws DatastoreException, NotFoundException{
 		String objectId = "syn123";
 		List<ColumnModel> expected = TableModelTestUtils.createOneOfEachType();
-		when(mockauthorizationManager.canAccess(user, objectId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.accessDenied(""));
+		when(mockauthorizationManager.canAccess(user, objectId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		when(mockColumnModelDAO.getColumnModelsForObject(objectId)).thenReturn(expected);
 		List<ColumnModel> resutls = columnModelManager.getColumnModelsForTable(user, objectId);
 	}

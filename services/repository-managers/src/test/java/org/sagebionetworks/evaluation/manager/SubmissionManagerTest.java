@@ -222,6 +222,9 @@ public class SubmissionManagerTest {
     	when(mockFileHandleManager.getRedirectURLForFileHandle(eq(HANDLE_ID_1))).thenReturn(new URL(TEST_URL));
     	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.SUBMIT))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
        	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+       	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.READ_PRIVATE_SUBMISSION))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+       	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.UPDATE_SUBMISSION))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+       	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.DELETE_SUBMISSION))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
     	when(mockEvalPermissionsManager.hasAccess(eq(ownerInfo), eq(EVAL_ID), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
     	when(mockSubmissionStatusDAO.getEvaluationIdForBatch((List<SubmissionStatus>)anyObject())).thenReturn(Long.parseLong(EVAL_ID));
     	// Submission Manager
@@ -262,7 +265,7 @@ public class SubmissionManagerTest {
 		assertNull(sub.getId());
 		assertNotNull(subWithId.getId());
 		when(mockEvalPermissionsManager.hasAccess(
-				eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.SUBMIT))).thenReturn(AuthorizationManagerUtil.accessDenied(""));
+				eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.SUBMIT))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		doThrow(new UnauthorizedException()).when(mockEvalPermissionsManager).validateHasAccess(
 				eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.SUBMIT));
 		submissionManager.createSubmission(userInfo, sub, ETAG, bundle);		
@@ -338,6 +341,7 @@ public class SubmissionManagerTest {
 	
 	@Test(expected = UnauthorizedException.class)
 	public void testGetAllSubmissionsUnauthorized() throws DatastoreException, UnauthorizedException, NotFoundException {
+    	when(mockEvalPermissionsManager.hasAccess(eq(ownerInfo), eq(USER_ID), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		submissionManager.getAllSubmissions(ownerInfo, USER_ID, null, 10, 0);
 	}
 	
@@ -406,13 +410,13 @@ public class SubmissionManagerTest {
 	
 	@Test(expected=UnauthorizedException.class)
 	public void testGetSubmissionStatusNoREADAccess() throws Exception {
-    	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationManagerUtil.accessDenied(""));
+    	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		submissionManager.getSubmissionStatus(userInfo, SUB_ID);
 	}
 	
 	@Test(expected=UnauthorizedException.class)
 	public void testGetALLSubmissionStatusNoREADAccess() throws Exception {
-    	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationManagerUtil.accessDenied(""));
+    	when(mockEvalPermissionsManager.hasAccess(eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		submissionManager.getAllSubmissionStatuses(userInfo, EVAL_ID, null, 100L, 0L);
 	}
 	

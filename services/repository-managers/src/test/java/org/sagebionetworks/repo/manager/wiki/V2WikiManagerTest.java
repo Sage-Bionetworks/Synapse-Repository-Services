@@ -4,6 +4,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -69,7 +71,7 @@ public class V2WikiManagerTest {
 	@Test (expected=UnauthorizedException.class)
 	public void testCreateUnauthorized() throws DatastoreException, NotFoundException{
 		// setup deny
-		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.accessDenied(""));
+		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		wikiManager.createWikiPage(new UserInfo(false), "123", ObjectType.ENTITY, new V2WikiPage());
 	}
 	
@@ -119,7 +121,7 @@ public class V2WikiManagerTest {
 		
 		// Allow one but deny the other.
 		when(mockAuthManager.canAccessRawFileHandleByCreator(user, one.getId(), user.getId().toString())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		when(mockAuthManager.canAccessRawFileHandleByCreator(user, one.getId(), "007")).thenReturn(AuthorizationManagerUtil.accessDenied(""));
+		when(mockAuthManager.canAccessRawFileHandleByCreator(user, one.getId(), "007")).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		// Allow access to the owner.
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		wikiManager.createWikiPage(user, "syn123", ObjectType.ENTITY, page);
@@ -152,7 +154,7 @@ public class V2WikiManagerTest {
 	@Test (expected=UnauthorizedException.class)
 	public void testUpdateUnauthorized() throws DatastoreException, NotFoundException{
 		// setup deny
-		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.accessDenied(""));
+		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		wikiManager.updateWikiPage(user, "123", ObjectType.ENTITY, new V2WikiPage());
 	}
 	
@@ -230,7 +232,9 @@ public class V2WikiManagerTest {
 		allMarkdownFileHandleIds.add(new Long(markdown.getId()));
 		when(mockWikiDao.getMarkdownFileHandleIdsForWiki(key)).thenReturn(allMarkdownFileHandleIds);
 		
-		when(mockAuthManager.canAccessRawFileHandleByCreator(user, one.getId(), user.getId().toString())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockAuthManager.canAccessRawFileHandleByCreator(eq(user), anyString(), eq(user.getId().toString()))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockAuthManager.canAccessRawFileHandleByCreator(eq(user), anyString(), eq(markdown.getCreatedBy()))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		when(mockAuthManager.canAccessRawFileHandleByCreator(eq(user), anyString(), eq(ownerId))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		
 	    wikiManager.updateWikiPage(user, ownerId, ownerType, page);
@@ -243,14 +247,14 @@ public class V2WikiManagerTest {
 	@Test (expected=UnauthorizedException.class)
 	public void testGetUnauthorized() throws DatastoreException, NotFoundException{
 		// setup deny
-		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.accessDenied(""));
+		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		wikiManager.getWikiPage(new UserInfo(false), WikiPageKeyHelper.createWikiPageKey("123", ObjectType.EVALUATION, "345"), null);
 	}
 	
 	@Test (expected=UnauthorizedException.class)
 	public void testGetRootUnauthorized() throws DatastoreException, NotFoundException{
 		// setup deny
-		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.accessDenied(""));
+		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		when(mockWikiDao.getRootWiki("123",  ObjectType.EVALUATION)).thenReturn(345l);
 		wikiManager.getRootWikiPage(new UserInfo(false), "123",ObjectType.EVALUATION);
 	}
@@ -266,7 +270,7 @@ public class V2WikiManagerTest {
 	
 	@Test (expected=UnauthorizedException.class)
 	public void testGetVersionUnauthorized() throws DatastoreException, NotFoundException {
-		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.accessDenied(""));
+		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		wikiManager.getWikiPage(new UserInfo(false), WikiPageKeyHelper.createWikiPageKey("123", ObjectType.EVALUATION, "345"), new Long(0));
 	}
 	
@@ -282,7 +286,7 @@ public class V2WikiManagerTest {
 	@Test (expected=UnauthorizedException.class)
 	public void testFileHandleIdForFileNameUnauthorized() throws DatastoreException, NotFoundException{
 		// setup deny
-		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.accessDenied(""));
+		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		wikiManager.getFileHandleIdForFileName(new UserInfo(false), WikiPageKeyHelper.createWikiPageKey("123", ObjectType.EVALUATION, "345"), "fileName", null);
 	}
 	
@@ -298,7 +302,7 @@ public class V2WikiManagerTest {
 	// Same test for getMarkdownFileHandleId()
 	@Test (expected=UnauthorizedException.class)
 	public void testMarkdownFileHandleIdForVersionUnauthorized() throws DatastoreException, NotFoundException {
-		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.accessDenied(""));
+		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		wikiManager.getMarkdownFileHandleId(new UserInfo(false), WikiPageKeyHelper.createWikiPageKey("123", ObjectType.EVALUATION, "345"), new Long(0));
 	}
 	
@@ -314,7 +318,7 @@ public class V2WikiManagerTest {
 	@Test (expected=UnauthorizedException.class)
 	public void testGetTreeUnauthorized() throws DatastoreException, NotFoundException{
 		// setup deny
-		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.accessDenied(""));
+		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		wikiManager.getWikiHeaderTree(new UserInfo(false), "123", ObjectType.EVALUATION, null, null);
 	}
 	
@@ -329,7 +333,7 @@ public class V2WikiManagerTest {
 	@Test (expected=UnauthorizedException.class)
 	public void testDeleteUnauthorized() throws DatastoreException, NotFoundException{
 		// setup deny
-		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.accessDenied(""));
+		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		wikiManager.deleteWiki(new UserInfo(false), WikiPageKeyHelper.createWikiPageKey("123", ObjectType.EVALUATION, "345"));
 	}
 	
@@ -345,7 +349,7 @@ public class V2WikiManagerTest {
 	@Test (expected=UnauthorizedException.class)
 	public void testGetAttachmentFileHandlesUnauthroized() throws DatastoreException, NotFoundException{
 		// deny
-		when(mockAuthManager.canAccess(user, key.getOwnerObjectId(), key.getOwnerObjectType(), ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.accessDenied(""));
+		when(mockAuthManager.canAccess(user, key.getOwnerObjectId(), key.getOwnerObjectType(), ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		// Ready to make the call
 		wikiManager.getAttachmentFileHandles(user, key, null);
 	}
@@ -412,7 +416,7 @@ public class V2WikiManagerTest {
 	@Test (expected=UnauthorizedException.class)
 	public void testGetAttachmentFileHandlesForVersionUnauthroized() throws DatastoreException, NotFoundException{
 		// deny
-		when(mockAuthManager.canAccess(user, key.getOwnerObjectId(), key.getOwnerObjectType(), ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.accessDenied(""));
+		when(mockAuthManager.canAccess(user, key.getOwnerObjectId(), key.getOwnerObjectType(), ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		// Ready to make the call
 		wikiManager.getAttachmentFileHandles(user, key, new Long(0));
 	}
@@ -510,7 +514,7 @@ public class V2WikiManagerTest {
 		
 		// Allow one but deny the other.
 		when(mockAuthManager.canAccessRawFileHandleByCreator(user, one.getId(), user.getId().toString())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		when(mockAuthManager.canAccessRawFileHandleByCreator(user, one.getId(), "007")).thenReturn(AuthorizationManagerUtil.accessDenied(""));
+		when(mockAuthManager.canAccessRawFileHandleByCreator(user, one.getId(), "007")).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		// Allow access to the owner.
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		wikiManager.createWikiPage(user, "syn123", ObjectType.ENTITY, page);
@@ -564,8 +568,8 @@ public class V2WikiManagerTest {
 		newFileHandleIds.add(two.getId());
 		
 		// Allow one but deny the other.
-		when(mockAuthManager.canAccessRawFileHandleByCreator(user, markdown.getId(), user.getId().toString())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		when(mockAuthManager.canAccessRawFileHandleByCreator(user, markdown.getId(), "007")).thenReturn(AuthorizationManagerUtil.accessDenied(""));
+		when(mockAuthManager.canAccessRawFileHandleByCreator(eq(user), anyString(), eq(user.getId().toString()))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockAuthManager.canAccessRawFileHandleByCreator(eq(user), anyString(), eq("007"))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		// Allow access to the owner.
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		wikiManager.createWikiPage(user, "syn123", ObjectType.ENTITY, page);
@@ -621,8 +625,8 @@ public class V2WikiManagerTest {
 		when(mockWikiDao.getMarkdownFileHandleIdsForWiki(key)).thenReturn(allMarkdownFileHandleIds);
 		
 		// Allow one but deny the other.
-		when(mockAuthManager.canAccessRawFileHandleByCreator(user, one.getId(), user.getId().toString())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		when(mockAuthManager.canAccessRawFileHandleByCreator(user, one.getId(), "007")).thenReturn(AuthorizationManagerUtil.accessDenied(""));
+		when(mockAuthManager.canAccessRawFileHandleByCreator(eq(user), anyString(), eq(user.getId().toString()))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockAuthManager.canAccessRawFileHandleByCreator(eq(user), anyString(), eq("007"))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		// Allow access to the owner.
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		wikiManager.updateWikiPage(user, ownerId, ownerType, page);
@@ -690,8 +694,8 @@ public class V2WikiManagerTest {
 		
 		when(mockWikiDao.lockForUpdate(wikiId)).thenReturn("etag");
 		// Allow one but deny the other.
-		when(mockAuthManager.canAccessRawFileHandleByCreator(user, one.getId(), user.getId().toString())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		when(mockAuthManager.canAccessRawFileHandleByCreator(user, one.getId(), "007")).thenReturn(AuthorizationManagerUtil.accessDenied(""));
+		when(mockAuthManager.canAccessRawFileHandleByCreator(eq(user), anyString(), eq(user.getId().toString()))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockAuthManager.canAccessRawFileHandleByCreator(eq(user), anyString(), eq("007"))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		// Allow access to the owner.
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		wikiManager.updateWikiPage(user, ownerId, ownerType, page);
@@ -708,7 +712,7 @@ public class V2WikiManagerTest {
 		ObjectType ownerType = ObjectType.ENTITY;
 		String wikiId = "0";
 		WikiPageKey key = WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, wikiId);
-		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.accessDenied(""));
+		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		wikiManager.getWikiHistory(user, ownerId, ownerType, key, new Long(10), new Long(0));
 	}
 	
@@ -730,7 +734,7 @@ public class V2WikiManagerTest {
 		String ownerId = "111";
 		ObjectType ownerType = ObjectType.ENTITY;
 		String wikiId = "123";
-		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.accessDenied(""));
+		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		wikiManager.restoreWikiPage(user, ownerId, ownerType, new Long(0), wikiId);
 	}
 	
@@ -745,7 +749,7 @@ public class V2WikiManagerTest {
 		S3FileHandle markdown = new S3FileHandle();
 		markdown.setId("1");
 		markdown.setCreatedBy(user.getId().toString());
-		when(mockAuthManager.canAccessRawFileHandleByCreator(any(UserInfo.class), markdown.getId(), any(String.class))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockAuthManager.canAccessRawFileHandleByCreator(any(UserInfo.class), eq(markdown.getId()), any(String.class))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mockFileDao.get(markdown.getId())).thenReturn(markdown);
 		
 		// Set up what will be returned in the restore method
@@ -847,7 +851,7 @@ public class V2WikiManagerTest {
 		
 		// None of these should be checked since all the attachments already exist in the reservation
 		when(mockAuthManager.canAccessRawFileHandleByCreator(user, one.getId(), user.getId().toString())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		when(mockAuthManager.canAccessRawFileHandleByCreator(user, one.getId(), "007")).thenReturn(AuthorizationManagerUtil.accessDenied(""));
+		when(mockAuthManager.canAccessRawFileHandleByCreator(user, one.getId(), "007")).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mockWikiDao.lockForUpdate(wikiId)).thenReturn("etag");
 		

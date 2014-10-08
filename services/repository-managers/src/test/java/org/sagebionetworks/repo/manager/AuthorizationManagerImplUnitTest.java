@@ -251,7 +251,7 @@ public class AuthorizationManagerImplUnitTest {
 	@Test
 	public void testCanAccessWithObjectTypeEntityDeny() throws DatastoreException, NotFoundException{
 		String entityId = "syn123";
-		when(mockEntityPermissionsManager.hasAccess(any(String.class), any(ACCESS_TYPE.class), eq(userInfo))).thenReturn(AuthorizationManagerUtil.accessDenied(""));
+		when(mockEntityPermissionsManager.hasAccess(any(String.class), any(ACCESS_TYPE.class), eq(userInfo))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		assertFalse("User should not have acces to do anything with this entity", authorizationManager.canAccess(userInfo, entityId, ObjectType.ENTITY, ACCESS_TYPE.DELETE).getAuthorized());
 	}
 

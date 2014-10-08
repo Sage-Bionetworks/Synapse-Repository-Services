@@ -236,13 +236,13 @@ public class TableRowManagerImplTest {
 	
 	@Test (expected=UnauthorizedException.class)
 	public void testAppendRowsUnauthroized() throws DatastoreException, NotFoundException, IOException{
-		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.accessDenied(""));
+		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		manager.appendRows(user, tableId, models, set);
 	}
 	
 	@Test (expected=UnauthorizedException.class)
 	public void testAppendRowsAsStreamUnauthroized() throws DatastoreException, NotFoundException, IOException{
-		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.accessDenied(""));
+		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		manager.appendRowsAsStream(user, tableId, models, set.getRows().iterator(), "etag", null);
 	}
 	
@@ -555,7 +555,7 @@ public class TableRowManagerImplTest {
 
 	@Test(expected = UnauthorizedException.class)
 	public void testGetCellValuesFailNoAccess() throws DatastoreException, NotFoundException, IOException {
-		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.accessDenied(""));
+		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		manager.getCellValues(user, tableId, null, null);
 	}
 
@@ -573,13 +573,13 @@ public class TableRowManagerImplTest {
 
 	@Test(expected = UnauthorizedException.class)
 	public void testGetColumnValuesFailReadAccess() throws Exception {
-		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.accessDenied(""));
+		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		manager.getCellValue(user, tableId, null, null);
 	}
 
 	@Test (expected = UnauthorizedException.class)
 	public void testQueryUnauthroized() throws Exception {
-		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.accessDenied(""));
+		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		manager.query(user, "select * from " + tableId, null, null, true, false, true);
 	}
 	

@@ -54,10 +54,10 @@ public class NodeTreeQueryManagerImplTest {
 		when(userMan.getUserInfo(adminUserId)).thenReturn(adminUserInfo);
 
 		AuthorizationManager auMan = mock(AuthorizationManager.class);
-		when(auMan.canAccess(userInfo, nodeRoot, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.accessDenied(""));
+		when(auMan.canAccess(userInfo, nodeRoot, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		when(auMan.canAccess(userInfo, nodeCanAccessX, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(auMan.canAccess(userInfo, nodeCanAccessY, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		when(auMan.canAccess(userInfo, nodeCannotAccess, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.accessDenied(""));
+		when(auMan.canAccess(userInfo, nodeCannotAccess, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 
 		NodeTreeQueryDao ntDao = mock(NodeTreeQueryDao.class);
 		when(ntDao.isRoot(KeyFactory.stringToKey(nodeRoot).toString())).thenReturn(true);

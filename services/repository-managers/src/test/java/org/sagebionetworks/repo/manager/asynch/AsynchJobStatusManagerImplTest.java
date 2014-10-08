@@ -105,7 +105,7 @@ public class AsynchJobStatusManagerImplTest {
 		UploadToTableRequest body = new UploadToTableRequest();
 		body.setTableId("syn123");
 		body.setUploadFileHandleId("456");
-		when(mockAuthorizationManager.canUserStartJob(user, body)).thenReturn(AuthorizationManagerUtil.accessDenied(""));
+		when(mockAuthorizationManager.canUserStartJob(user, body)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		manager.startJob(user, body);
 	}
 	

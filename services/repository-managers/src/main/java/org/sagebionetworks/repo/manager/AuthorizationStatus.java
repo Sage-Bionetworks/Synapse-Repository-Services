@@ -13,7 +13,6 @@ public class AuthorizationStatus {
 	
 	
 	public AuthorizationStatus(boolean authorized, String reason) {
-		super();
 		this.authorized = authorized;
 		this.reason = reason;
 	}

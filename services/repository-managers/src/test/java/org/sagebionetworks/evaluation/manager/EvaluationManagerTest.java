@@ -124,6 +124,8 @@ public class EvaluationManagerTest {
     	when(mockAuthorizationManager.canAccess(eq(ownerInfo), eq(KeyFactory.SYN_ROOT_ID), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.CREATE))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
     	when(mockPermissionsManager.hasAccess(eq(ownerInfo), anyString(), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
     	when(mockPermissionsManager.hasAccess(eq(ownerInfo), anyString(), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+    	when(mockPermissionsManager.hasAccess(eq(userInfo), anyString(), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+    	when(mockPermissionsManager.hasAccess(eq(userInfo), anyString(), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
     }
 
 	@Test
@@ -178,7 +180,7 @@ public class EvaluationManagerTest {
 	@Test
 	public void testGetAvailableInRange() throws Exception {
 		// availability is based on SUBMIT access, not READ
-    	when(mockPermissionsManager.hasAccess(eq(ownerInfo), anyString(), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationManagerUtil.accessDenied(""));
+    	when(mockPermissionsManager.hasAccess(eq(ownerInfo), anyString(), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		QueryResults<Evaluation> qr = evaluationManager.getAvailableInRange(ownerInfo, 10L, 0L, null);
 		assertEquals(evaluations, qr.getResults());
 		assertEquals(1L, qr.getTotalNumberOfResults());

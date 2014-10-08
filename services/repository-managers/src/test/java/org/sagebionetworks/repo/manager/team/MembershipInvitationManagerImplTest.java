@@ -133,7 +133,7 @@ public class MembershipInvitationManagerImplTest {
 	@Test(expected=UnauthorizedException.class)
 	public void testNonAdminCreate() throws Exception {
 		MembershipInvtnSubmission mis = createMembershipInvtnSubmission(null);
-		when(mockAuthorizationManager.canAccess(userInfo, mis.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(AuthorizationManagerUtil.accessDenied(""));
+		when(mockAuthorizationManager.canAccess(userInfo, mis.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		membershipInvitationManagerImpl.create(userInfo, mis);
 	}
 	
@@ -148,7 +148,7 @@ public class MembershipInvitationManagerImplTest {
 	@Test(expected=UnauthorizedException.class)
 	public void testNonAdminGet() throws Exception {
 		MembershipInvtnSubmission mis = createMembershipInvtnSubmission(MIS_ID);
-		when(mockAuthorizationManager.canAccess(userInfo, mis.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(AuthorizationManagerUtil.accessDenied(""));
+		when(mockAuthorizationManager.canAccess(userInfo, mis.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		when(mockMembershipInvtnSubmissionDAO.get(MIS_ID)).thenReturn(mis);
 		membershipInvitationManagerImpl.get(userInfo, MIS_ID);
 	}
@@ -164,7 +164,7 @@ public class MembershipInvitationManagerImplTest {
 	@Test(expected=UnauthorizedException.class)
 	public void testNonAdminDelete() throws Exception {
 		MembershipInvtnSubmission mis = createMembershipInvtnSubmission(MIS_ID);
-		when(mockAuthorizationManager.canAccess(userInfo, mis.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(AuthorizationManagerUtil.accessDenied(""));
+		when(mockAuthorizationManager.canAccess(userInfo, mis.getTeamId(), ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		when(mockMembershipInvtnSubmissionDAO.get(MIS_ID)).thenReturn(mis);
 		membershipInvitationManagerImpl.delete(userInfo, MIS_ID);
 	}
@@ -218,7 +218,7 @@ public class MembershipInvitationManagerImplTest {
 	
 	@Test(expected=UnauthorizedException.class)
 	public void testGetOpenSubmissionsForTeamInRangeUnauthorized() throws Exception {
-		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(AuthorizationManagerUtil.accessDenied(""));
+		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		membershipInvitationManagerImpl.getOpenSubmissionsForTeamInRange(userInfo, TEAM_ID,1,0);
 	}
 	
@@ -238,7 +238,7 @@ public class MembershipInvitationManagerImplTest {
 
 	@Test(expected=UnauthorizedException.class)
 	public void testGetOpenSubmissionsForTeamAndRequesterInRangeUnauthorized() throws Exception {
-		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(AuthorizationManagerUtil.accessDenied(""));
+		when(mockAuthorizationManager.canAccess(userInfo, TEAM_ID, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		membershipInvitationManagerImpl.getOpenSubmissionsForUserAndTeamInRange(userInfo, MEMBER_PRINCIPAL_ID, TEAM_ID,1,0);
 	}
 

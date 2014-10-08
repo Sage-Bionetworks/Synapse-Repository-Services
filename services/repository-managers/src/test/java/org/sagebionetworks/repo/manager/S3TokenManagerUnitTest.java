@@ -89,7 +89,7 @@ public class S3TokenManagerUnitTest {
 		// return the mock user.
 		when(mockUuserManager.getUserInfo(userId)).thenReturn(mockUser);
 		// Say now to this
-		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.UPDATE, mockUser)).thenReturn(AuthorizationManagerUtil.accessDenied(""));
+		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.UPDATE, mockUser)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, mockUser)).thenThrow(new IllegalArgumentException("Update and not read should have been checked"));
 		manager.validateUpdateAccess(mockUser, entityId);
 		

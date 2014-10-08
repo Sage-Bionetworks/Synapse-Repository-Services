@@ -130,7 +130,7 @@ public class ParticipantManagerTest {
     
     @Test(expected=UnauthorizedException.class)
     public void testCRDAsUser_NotAbleToParticipate() throws DatastoreException, NotFoundException {
-    	when(mockEvalPermissionsManager.hasAccess(any(UserInfo.class), eq(evalId), eq(ACCESS_TYPE.PARTICIPATE))).thenReturn(AuthorizationManagerUtil.accessDenied(""));
+    	when(mockEvalPermissionsManager.hasAccess(any(UserInfo.class), eq(evalId), eq(ACCESS_TYPE.PARTICIPATE))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
     	participantManager.addParticipant(userInfo, evalId);
     }
 

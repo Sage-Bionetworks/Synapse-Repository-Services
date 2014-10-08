@@ -214,7 +214,7 @@ public class CommunityManagerImplTest extends MockitoTestBase {
 
 	@Test(expected = UnauthorizedException.class)
 	public void testGetNotAuthorized() throws Throwable {
-		when(authorizationManager.canAccess(validUser, COMMUNITY_ID, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.accessDenied(""));
+		when(authorizationManager.canAccess(validUser, COMMUNITY_ID, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		try {
 			communityManager.get(validUser, COMMUNITY_ID);
 
@@ -239,7 +239,7 @@ public class CommunityManagerImplTest extends MockitoTestBase {
 
 	@Test(expected = UnauthorizedException.class)
 	public void testPutNotAuthorized() throws Throwable {
-		when(authorizationManager.canAccess(validUser, COMMUNITY_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.accessDenied(""));
+		when(authorizationManager.canAccess(validUser, COMMUNITY_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		try {
 			communityManager.update(validUser, testCommunity);
 
@@ -264,7 +264,7 @@ public class CommunityManagerImplTest extends MockitoTestBase {
 
 	@Test(expected = UnauthorizedException.class)
 	public void testDeleteNotAuthorized() throws Throwable {
-		when(authorizationManager.canAccess(validUser, COMMUNITY_ID, ObjectType.ENTITY, ACCESS_TYPE.DELETE)).thenReturn(AuthorizationManagerUtil.accessDenied(""));
+		when(authorizationManager.canAccess(validUser, COMMUNITY_ID, ObjectType.ENTITY, ACCESS_TYPE.DELETE)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		try {
 			communityManager.delete(validUser, COMMUNITY_ID);
 
@@ -364,7 +364,7 @@ public class CommunityManagerImplTest extends MockitoTestBase {
 		when(userManager.getUserInfo(Long.parseLong(USER_ID2))).thenReturn(otherUser);
 		when(teamManager.getTeamMembershipStatus(validUser, TEAM_ID, otherUser)).thenReturn(membershipIsMember);
 		when(authorizationManager.canAccess(validUser, COMMUNITY_ID, ObjectType.ENTITY, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE))
-				.thenReturn(AuthorizationManagerUtil.accessDenied(""));
+				.thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		try {
 			communityManager.addAdmin(validUser, COMMUNITY_ID, USER_ID2);
 		} finally {

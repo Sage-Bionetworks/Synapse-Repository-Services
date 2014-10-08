@@ -131,8 +131,8 @@ public class AccessRequirementManagerImplUnitTest {
 	
 	@Test(expected=UnauthorizedException.class)
 	public void testCreateLockAccessRequirementNoAuthority() throws Exception {
-		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(AuthorizationManagerUtil.accessDenied(""));
-		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.accessDenied(""));
+		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.CREATE)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+		when(authorizationManager.canAccess(userInfo, TEST_ENTITY_ID, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		// this should throw the unauthorized exception
 		arm.createLockAccessRequirement(userInfo, TEST_ENTITY_ID);
 	}

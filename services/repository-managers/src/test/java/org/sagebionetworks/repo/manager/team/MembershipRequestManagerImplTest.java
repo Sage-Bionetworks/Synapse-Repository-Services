@@ -211,7 +211,7 @@ public class MembershipRequestManagerImplTest {
 	@Test(expected=UnauthorizedException.class)
 	public void testGetOpenByTeamUnauthorized() throws Exception {
 		long teamId = 101L;
-		when(mockAuthorizationManager.canAccess(userInfo, ""+teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(AuthorizationManagerUtil.accessDenied(""));
+		when(mockAuthorizationManager.canAccess(userInfo, ""+teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		membershipRequestManagerImpl.getOpenByTeamInRange(userInfo, ""+teamId,1,0);
 	}
 	
@@ -236,7 +236,7 @@ public class MembershipRequestManagerImplTest {
 	public void testGetOpenByTeamAndRequesterUnauthorized() throws Exception {
 		long userId = 333L;
 		long teamId = 101L;
-		when(mockAuthorizationManager.canAccess(userInfo, ""+teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(AuthorizationManagerUtil.accessDenied(""));
+		when(mockAuthorizationManager.canAccess(userInfo, ""+teamId, ObjectType.TEAM, ACCESS_TYPE.TEAM_MEMBERSHIP_UPDATE)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		membershipRequestManagerImpl.getOpenByTeamAndRequesterInRange(userInfo, ""+teamId,""+userId,1,0);
 	}
 

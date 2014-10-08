@@ -251,7 +251,7 @@ public class FileHandleManagerImplTest {
 		String handleId = "123";
 		when(mockfileMetadataDao.get(handleId)).thenReturn(validResults);
 		// denied!
-		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, anyString(), validResults.getCreatedBy())).thenReturn(AuthorizationManagerUtil.accessDenied(""));
+		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, handleId, validResults.getCreatedBy())).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		manager.getRawFileHandle(mockUser, handleId);
 	}
 	
@@ -261,7 +261,7 @@ public class FileHandleManagerImplTest {
 		String handleId = "123";
 		when(mockfileMetadataDao.get(handleId)).thenReturn(validResults);
 		// allow
-		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, anyString(), validResults.getCreatedBy())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, handleId, validResults.getCreatedBy())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		FileHandle handle = manager.getRawFileHandle(mockUser, handleId);
 		assertEquals("failed to get the handle", handle, validResults);
 	}
@@ -280,7 +280,7 @@ public class FileHandleManagerImplTest {
 		String handleId = "123";
 		when(mockfileMetadataDao.get(handleId)).thenReturn(validResults);
 		// denied!
-		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, anyString(), validResults.getCreatedBy())).thenReturn(AuthorizationManagerUtil.accessDenied(""));
+		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, handleId, validResults.getCreatedBy())).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		manager.deleteFileHandle(mockUser, handleId);
 	}
 	
@@ -290,7 +290,7 @@ public class FileHandleManagerImplTest {
 		String handleId = "123";
 		when(mockfileMetadataDao.get(handleId)).thenReturn(validResults);
 		// allow!
-		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, anyString(), validResults.getCreatedBy())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, handleId, validResults.getCreatedBy())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		manager.deleteFileHandle(mockUser, handleId);
 		// The S3 file should get deleted.
 		verify(mockS3Client, times(1)).deleteObject(validResults.getBucketName(), validResults.getKey());
@@ -303,7 +303,7 @@ public class FileHandleManagerImplTest {
 		// Deleting a file handle that has previews disabled should not StackOverflow :)
 		validResults.setPreviewId(validResults.getId());
 		when(mockfileMetadataDao.get(validResults.getId())).thenReturn(validResults);
-		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, anyString(), validResults.getCreatedBy())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, validResults.getId(), validResults.getCreatedBy())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		manager.deleteFileHandle(mockUser, validResults.getId());
 	}
 	
@@ -313,7 +313,7 @@ public class FileHandleManagerImplTest {
 		String handleId = "123";
 		when(mockfileMetadataDao.get(handleId)).thenReturn(validResults);
 		// denied!
-		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, handleId, validResults.getCreatedBy())).thenReturn(AuthorizationManagerUtil.accessDenied(""));
+		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, handleId, validResults.getCreatedBy())).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		manager.clearPreview(mockUser, handleId);
 	}
 	
@@ -323,7 +323,7 @@ public class FileHandleManagerImplTest {
 		String handleId = "123";
 		when(mockfileMetadataDao.get(handleId)).thenReturn(validResults);
 		// allow!
-		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, anyString(), validResults.getCreatedBy())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, handleId, validResults.getCreatedBy())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		manager.clearPreview(mockUser, handleId);
 		// The database reference to the preview handle should be cleared
 		verify(mockfileMetadataDao, times(1)).setPreviewId(eq(handleId), eq((String)null));

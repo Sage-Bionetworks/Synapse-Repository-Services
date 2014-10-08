@@ -282,7 +282,7 @@ public class ActivityManagerImplTest {
 		act.setModifiedBy(normalUserInfo.getId().toString());
 		act.setDescription(firstDesc);
 		when(mockActivityDAO.get(anyString())).thenReturn(act);
-		when(mockAuthorizationManager.canAccessActivity(normalUserInfo, id)).thenReturn(AuthorizationManagerUtil.accessDenied(""));
+		when(mockAuthorizationManager.canAccessActivity(normalUserInfo, id)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 
 		activityManager.getEntitiesGeneratedBy(normalUserInfo, id, Integer.MAX_VALUE, 0);
 	}
