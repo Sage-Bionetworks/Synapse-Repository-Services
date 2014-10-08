@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.model.dao.table;
 
 import java.io.IOException;
-import java.util.ConcurrentModificationException;
 import java.util.Map;
 
 import org.sagebionetworks.repo.model.table.CurrentRowCacheStatus;
@@ -17,8 +16,7 @@ public interface TableRowCache {
 
 	public CurrentRowCacheStatus getLatestCurrentVersionNumber(Long tableId);
 
-	public void setLatestCurrentVersionNumber(CurrentRowCacheStatus oldStatus, Long newLastCurrentVersion2)
-			throws ConcurrentModificationException;
+	public void setLatestCurrentVersionNumber(CurrentRowCacheStatus oldStatus, Long newLastCurrentVersion);
 
 	public Map<Long, Long> getCurrentVersionNumbers(Long tableId, Iterable<Long> rowIds);
 

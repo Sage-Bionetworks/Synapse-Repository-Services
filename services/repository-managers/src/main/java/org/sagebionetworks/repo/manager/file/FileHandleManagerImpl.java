@@ -24,10 +24,12 @@ import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
+import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.ProjectSettingsManager;
 import org.sagebionetworks.repo.manager.file.transfer.FileTransferStrategy;
 import org.sagebionetworks.repo.manager.file.transfer.TransferRequest;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
@@ -108,6 +110,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 
 	@Autowired
 	ProjectSettingsManager projectSettingsManager;
+
+	@Autowired
+	NodeManager nodeManager;
 
 	/**
 	 * This is the first strategy we try to use.
@@ -610,7 +615,8 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			switch (uploadDestinationSetting.getUploadType()) {
 			case HTTPS:
 			case SFTP:
-				uploadDestination = createExternalUploadDestination(uploadDestinationSetting, filename);
+				List<EntityHeader> nodePath = nodeManager.getNodePath(userInfo, parentId);
+				uploadDestination = createExternalUploadDestination(uploadDestinationSetting, nodePath, filename);
 				break;
 			default:
 			case S3:
@@ -632,15 +638,24 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		return s3UploadDestination;
 	}
 
-	private UploadDestination createExternalUploadDestination(UploadDestinationSetting uploadDestinationSetting, String filename) {
+	private UploadDestination createExternalUploadDestination(UploadDestinationSetting uploadDestinationSetting, List<EntityHeader> nodePath,
+			String filename) {
 		ExternalUploadDestinationSetting externalUploadDestinationSetting = (ExternalUploadDestinationSetting) uploadDestinationSetting;
 		StringBuilder url = new StringBuilder(externalUploadDestinationSetting.getUrl());
-		ExternalUploadDestination externalUploadDestination = new ExternalUploadDestination();
+		if (url.length() == 0) {
+			throw new IllegalArgumentException("The url for the external upload destination setting is empty");
+		}
+		if (url.charAt(url.length() - 1) != '/') {
+			url.append('/');
+		}
 		// need to add subfolders here if supported
 		if (BooleanUtils.isTrue(externalUploadDestinationSetting.getSupportsSubfolders())) {
-			// create subfolders here somehow
+			for (EntityHeader node : nodePath) {
+				url.append(node.getName()).append('/');
+			}
 		}
-		url.append('/').append(filename);
+		url.append(filename);
+		ExternalUploadDestination externalUploadDestination = new ExternalUploadDestination();
 		externalUploadDestination.setUrl(url.toString());
 		return externalUploadDestination;
 	}

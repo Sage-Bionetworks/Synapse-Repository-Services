@@ -208,7 +208,7 @@ public class StepControllerTest extends AbstractAutowiredControllerTestBase {
 			fail("expected exception");
 		}
 		catch (UnauthorizedException e) {
-			Assert.assertTrue(e.getMessage().contains(" lacks read access to the requested object."));
+			Assert.assertTrue("actual message"+e.getMessage(), e.getMessage().contains("You do not have READ permission for the requested entity."));
 		}
 		
 		// Add a public read ACL to the project object

@@ -2,11 +2,11 @@ package org.sagebionetworks.repo.model.dbo.dao.table;
 
 import java.io.IOException;
 import java.util.Collections;
-import java.util.ConcurrentModificationException;
 import java.util.Map;
 
 import org.sagebionetworks.dynamo.dao.rowcache.CurrentRowCacheDao;
 import org.sagebionetworks.dynamo.dao.rowcache.RowCacheDao;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.dao.table.TableRowCache;
 import org.sagebionetworks.repo.model.table.CurrentRowCacheStatus;
 import org.sagebionetworks.repo.model.table.Row;
@@ -36,15 +36,14 @@ public class TableRowCacheImpl implements TableRowCache {
 	}
 
 	@Override
-	public void setLatestCurrentVersionNumber(CurrentRowCacheStatus oldStatus, Long newLastCurrentVersion)
-			throws ConcurrentModificationException {
+	public void setLatestCurrentVersionNumber(CurrentRowCacheStatus oldStatus, Long newLastCurrentVersion) {
 		if (!currentRowCacheDao.isEnabled()) {
 			throw new IllegalStateException("the current row cache was asked to set latest version, but it is disabled");
 		}
 		try {
 			currentRowCacheDao.setLatestCurrentVersionNumber(oldStatus, newLastCurrentVersion);
 		} catch (ConditionalCheckFailedException e) {
-			throw new ConcurrentModificationException("Latest current version number was updated by someone else: " + e.getMessage(), e);
+			throw new ConflictingUpdateException("Latest current version number was updated by someone else: " + e.getMessage());
 		}
 	}
 
