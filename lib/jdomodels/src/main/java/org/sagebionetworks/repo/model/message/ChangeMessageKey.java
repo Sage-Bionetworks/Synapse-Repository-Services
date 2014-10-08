@@ -12,6 +12,7 @@ class ChangeMessageKey {
 	
 	private ObjectType type;
 	private String objectId;
+	private Boolean isModification;
 	
 	public ChangeMessageKey(ChangeMessage message) {
 		if(message == null) throw new IllegalArgumentException("ChangeMessage cannot be null");
@@ -19,16 +20,19 @@ class ChangeMessageKey {
 		if(message.getObjectType()== null) throw new IllegalArgumentException("ChangeMessage.getObjectType() cannot be null");
 		this.type = message.getObjectType();
 		this.objectId = message.getObjectId();
+		this.isModification = message.getIsModification();
 	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result
-				+ ((objectId == null) ? 0 : objectId.hashCode());
+		result = prime * result + ((isModification == null) ? 0 : isModification.hashCode());
+		result = prime * result + ((objectId == null) ? 0 : objectId.hashCode());
 		result = prime * result + ((type == null) ? 0 : type.hashCode());
 		return result;
 	}
+
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj)
@@ -38,6 +42,11 @@ class ChangeMessageKey {
 		if (getClass() != obj.getClass())
 			return false;
 		ChangeMessageKey other = (ChangeMessageKey) obj;
+		if (isModification == null) {
+			if (other.isModification != null)
+				return false;
+		} else if (!isModification.equals(other.isModification))
+			return false;
 		if (objectId == null) {
 			if (other.objectId != null)
 				return false;
@@ -47,5 +56,9 @@ class ChangeMessageKey {
 			return false;
 		return true;
 	}
-	
+
+	@Override
+	public String toString() {
+		return "ChangeMessageKey [type=" + type + ", objectId=" + objectId + ", isModification=" + isModification + "]";
+	}
 }
