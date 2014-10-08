@@ -628,7 +628,7 @@ public class TableRowManagerImplTest {
 		// Clear the etag for the test
 		results.getFirst().getQueryResults().setEtag(null);
 		assertEquals(set, results.getFirst().getQueryResults());
-		assertEquals(10L, results.getSecond().longValue());
+		assertEquals(1L, results.getSecond().longValue());
 	}
 
 	@Test
