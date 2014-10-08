@@ -90,9 +90,8 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		
 		validateAccessApproval(userInfo, accessApproval);
 
-		if (!authorizationManager.canCreateAccessApproval(userInfo, accessApproval)) {
-			throw new UnauthorizedException("You are not allowed to create this approval.");
-		}
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(authorizationManager.canCreateAccessApproval(userInfo, accessApproval));
+
 		
 		populateCreationFields(userInfo, accessApproval);
 		return accessApprovalDAO.create(accessApproval);
@@ -103,9 +102,8 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 			UserInfo userInfo, RestrictableObjectDescriptor subjectId) throws DatastoreException,
 			NotFoundException, UnauthorizedException {
 		
-		if (!authorizationManager.canAccessAccessApprovalsForSubject(userInfo, subjectId, ACCESS_TYPE.READ)) {
-			throw new UnauthorizedException("You are not allowed to retrieve access approvals for this subject.");
-		}
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(authorizationManager.canAccessAccessApprovalsForSubject(userInfo, subjectId, ACCESS_TYPE.READ));
+		
 
 		List<String> subjectIds = new ArrayList<String>();
 		if (RestrictableObjectType.ENTITY==subjectId.getType()) {
@@ -134,9 +132,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		}
 		
 		validateAccessApproval(userInfo, accessApproval);
-		if (!authorizationManager.canAccess(userInfo, accessApproval.getId().toString(), ObjectType.ACCESS_APPROVAL, ACCESS_TYPE.UPDATE)) {
-			throw new UnauthorizedException("You are unauthorized to update this Access Approval");
-		}
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(authorizationManager.canAccess(userInfo, accessApproval.getId().toString(), ObjectType.ACCESS_APPROVAL, ACCESS_TYPE.UPDATE));
 		populateModifiedFields(userInfo, accessApproval);
 		return accessApprovalDAO.update(accessApproval);
 	}
@@ -146,9 +142,10 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 	public void deleteAccessApproval(UserInfo userInfo, String accessApprovalId)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		AccessApproval accessApproval = accessApprovalDAO.get(accessApprovalId);
-		if (!authorizationManager.canAccess(userInfo, accessApproval.getId().toString(), ObjectType.ACCESS_APPROVAL, ACCESS_TYPE.DELETE)) {
-			throw new UnauthorizedException("You are unauthorized to update this Access Approval");
-		}
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				authorizationManager.canAccess(userInfo, accessApproval.getId().toString(), 
+						ObjectType.ACCESS_APPROVAL, ACCESS_TYPE.DELETE));
+			
 		accessApprovalDAO.delete(accessApproval.getId().toString());
 	}
 

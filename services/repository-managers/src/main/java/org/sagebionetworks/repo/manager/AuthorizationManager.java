@@ -23,11 +23,11 @@ public interface AuthorizationManager {
 	 * @param objectId
 	 * @param objectType
 	 * @param accessType
-	 * @return
+	 * @return whether access is granted and, if not, a String giving the reason why
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public boolean canAccess(UserInfo userInfo, String objectId, ObjectType objectType, ACCESS_TYPE accessType) throws DatastoreException, NotFoundException;
+	public AuthorizationStatus canAccess(UserInfo userInfo, String objectId, ObjectType objectType, ACCESS_TYPE accessType) throws DatastoreException, NotFoundException;
 
 	/**
      * Checks whether the given user can create the given node.
@@ -36,47 +36,48 @@ public interface AuthorizationManager {
 	 * @param accessType
 	 * 
 	 * @return true iff either (1) the user has 'add child' access to the parent or (2) parent is null
-	 * and user is admin
+	 * and user is admin returns whether access is granted and, if not, a String giving the reason why
 	 * 
 	 * @exception NotFoundException if the group or node is invalid
 	 * 
 	 */
-	public boolean canCreate(UserInfo userInfo, final Node node) throws NotFoundException, DatastoreException ;
+	public AuthorizationStatus canCreate(UserInfo userInfo, final Node node) throws NotFoundException, DatastoreException ;
 	
 	/**
 	 * Checks whether the given user can create the given access requirement
 	 * 
 	 * @param userInfo
 	 * @param accessRequirement
-	 * @return
+	 * @return whether access is granted and, if not, a String giving the reason why
 	 * @throws NotFoundException 
 	 */
-	public boolean canCreateAccessRequirement(UserInfo userInfo, AccessRequirement accessRequirement) throws NotFoundException;
+	public AuthorizationStatus canCreateAccessRequirement(UserInfo userInfo, AccessRequirement accessRequirement) throws NotFoundException;
 
 	/**
 	 * Checks whether the given user can create the given access approval
 	 * 
 	 * @param userInfo
 	 * @param accessRequirement
-	 * @return
+	 * @return whether access is granted and, if not, a String giving the reason why
 	 */
-	public boolean canCreateAccessApproval(UserInfo userInfo, AccessApproval accessApproval);
+	public AuthorizationStatus canCreateAccessApproval(UserInfo userInfo, AccessApproval accessApproval);
 
 	/**
 	 * 
 	 * @param userInfo UserInfo of the user in question
 	 * @param activityId activity that generated the entities
-	 * @return Returns true if the specified user can read at least one entity with the specified activity Id
+	 * @return Returns true if the specified user can read at least one entity with the specified activity Id.  Returns whether access is granted and, if not, a String giving the reason why
 	 */
-	public boolean canAccessActivity(UserInfo userInfo, String activityId);
+	public AuthorizationStatus canAccessActivity(UserInfo userInfo, String activityId) throws NotFoundException;
 	
 	/**
 	 * The raw FileHandle can only be accessed by the user that created it.
 	 * @param userInfo
+	 * @param fileHandleId
 	 * @param creator
-	 * @return
+	 * @return whether access is granted and, if not, a String giving the reason why
 	 */
-	public boolean canAccessRawFileHandleByCreator(UserInfo userInfo, String creator);
+	public AuthorizationStatus canAccessRawFileHandleByCreator(UserInfo userInfo, String fileHandleId, String creator);
 	
 	/**
 	 * Is the user the creator or are they an admin
@@ -90,16 +91,16 @@ public interface AuthorizationManager {
 	 * 
 	 * @param userInfo
 	 * @param fileHandleId
-	 * @return
+	 * @return whether access is granted and, if not, a String giving the reason why
 	 * @throws NotFoundException 
 	 */
-	public boolean canAccessRawFileHandleById(UserInfo userInfo, String fileHandleId) throws NotFoundException;
+	public AuthorizationStatus canAccessRawFileHandleById(UserInfo userInfo, String fileHandleId) throws NotFoundException;
 
 	/**
 	 * 
 	 * @param userInfo
 	 * @param fileHandleId
-	 * @return
+	 * @return whether access is granted and, if not, a String giving the reason why
 	 * @throws NotFoundException
 	 */
 	public void canAccessRawFileHandlesByIds(UserInfo userInfo, List<String> fileHandleId, Set<String> allowed, Set<String> disallowed)
@@ -110,10 +111,10 @@ public interface AuthorizationManager {
 	 * @param userInfo
 	 * @param subjectId
 	 * @param accessType
-	 * @return
+	 * @return whether access is granted and, if not, a String giving the reason why
 	 * @throws NotFoundException
 	 */
-	public boolean canAccessAccessApprovalsForSubject(UserInfo userInfo, RestrictableObjectDescriptor subjectId, ACCESS_TYPE accessType) throws NotFoundException;
+	public AuthorizationStatus canAccessAccessApprovalsForSubject(UserInfo userInfo, RestrictableObjectDescriptor subjectId, ACCESS_TYPE accessType) throws NotFoundException;
 	
 	/**
 	 * Is this the AnonymousUser?
@@ -129,20 +130,21 @@ public interface AuthorizationManager {
 	 * @param userInfo
 	 * @param sourceParentId
 	 * @param destParentId
-	 * @return
+	 * @return whether access is granted and, if not, a String giving the reason why
 	 * @throws NotFoundException 
 	 */
-	public boolean canUserMoveRestrictedEntity(UserInfo userInfo, String sourceParentId, String destParentId) throws NotFoundException;
+	public AuthorizationStatus canUserMoveRestrictedEntity(UserInfo userInfo, String sourceParentId, String destParentId) throws NotFoundException;
 
 	/**
 	 * Check if the user can start a given Asynchronous job
 	 * 
 	 * @param userInfo
 	 * @param body
-	 * @return
+	 * @return whether access is granted and, if not, a String giving the reason why
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
+<<<<<<< HEAD
 	public boolean canUserStartJob(UserInfo userInfo, AsynchronousRequestBody body) throws DatastoreException, NotFoundException;
 
 	/**
@@ -151,4 +153,7 @@ public interface AuthorizationManager {
 	 * @return
 	 */
 	public boolean isCertifiedUser(UserInfo userInfo);
+=======
+	public AuthorizationStatus canUserStartJob(UserInfo userInfo, AsynchronousRequestBody body) throws DatastoreException, NotFoundException;
+>>>>>>> PLFM-3027
 }

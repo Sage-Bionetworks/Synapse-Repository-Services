@@ -16,6 +16,7 @@ import org.mockito.Mockito;
 import static org.mockito.Mockito.*;
 
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.table.ColumnModelManagerImpl;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -200,7 +201,7 @@ public class ColumnModelManagerTest {
 	@Test
 	public void testBindColumnToObjectHappy() throws DatastoreException, NotFoundException{
 		String objectId = "syn123";
-		when(mockauthorizationManager.canAccess(user, objectId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(true);
+		when(mockauthorizationManager.canAccess(user, objectId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		List<String> ids = new LinkedList<String>();
 		ids.add("123");
 		when(mockColumnModelDAO.bindColumnToObject(ids, objectId)).thenReturn(1);
@@ -218,7 +219,7 @@ public class ColumnModelManagerTest {
 	@Test
 	public void testBindColumnNull() throws DatastoreException, NotFoundException{
 		String objectId = "syn123";
-		when(mockauthorizationManager.canAccess(user, objectId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(true);
+		when(mockauthorizationManager.canAccess(user, objectId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		List<String> ids = new LinkedList<String>();
 		ids.add("123");
 		when(mockColumnModelDAO.bindColumnToObject(ids, objectId)).thenReturn(0);
@@ -279,7 +280,7 @@ public class ColumnModelManagerTest {
 	public void testGetColumnModelsForTableAuthorized() throws DatastoreException, NotFoundException{
 		String objectId = "syn123";
 		List<ColumnModel> expected = TableModelTestUtils.createOneOfEachType();
-		when(mockauthorizationManager.canAccess(user, objectId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(true);
+		when(mockauthorizationManager.canAccess(user, objectId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mockColumnModelDAO.getColumnModelsForObject(objectId)).thenReturn(expected);
 		List<ColumnModel> resutls = columnModelManager.getColumnModelsForTable(user, objectId);
 		assertEquals(expected, resutls);
@@ -289,7 +290,7 @@ public class ColumnModelManagerTest {
 	public void testGetColumnModelsForTableUnauthorized() throws DatastoreException, NotFoundException{
 		String objectId = "syn123";
 		List<ColumnModel> expected = TableModelTestUtils.createOneOfEachType();
-		when(mockauthorizationManager.canAccess(user, objectId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(false);
+		when(mockauthorizationManager.canAccess(user, objectId, ObjectType.ENTITY, ACCESS_TYPE.READ)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		when(mockColumnModelDAO.getColumnModelsForObject(objectId)).thenReturn(expected);
 		List<ColumnModel> resutls = columnModelManager.getColumnModelsForTable(user, objectId);
 	}

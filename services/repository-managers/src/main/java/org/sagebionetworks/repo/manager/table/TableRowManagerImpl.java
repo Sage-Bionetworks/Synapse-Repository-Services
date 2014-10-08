@@ -19,6 +19,7 @@ import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.manager.util.Validate;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -225,9 +226,8 @@ public class TableRowManagerImpl implements TableRowManager {
 		Validate.required(rowsToDelete, "rowsToDelete");
 
 		// Validate the user has permission to edit the table
-		if (!authorizationManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)) {
-			throw new UnauthorizedException("User does not have permission to update TableEntity: " + tableId);
-		}
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				authorizationManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE));
 
 		final List<String> headers = TableModelUtils.getHeaders(models);
 
@@ -270,6 +270,7 @@ public class TableRowManagerImpl implements TableRowManager {
 		if(models == null) throw new IllegalArgumentException("Models cannot be null");
 		validateFeatureEnabled();
 		// Validate the user has permission to edit the table
+<<<<<<< HEAD
 		if(!authorizationManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)){
 			throw new UnauthorizedException("User does not have permission to update TableEntity: "+tableId);
 		}
@@ -277,6 +278,10 @@ public class TableRowManagerImpl implements TableRowManager {
 			throw new UnauthorizedException("Must be a Certified User to add rows to a Table.");
 		}	
 
+=======
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				authorizationManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE));
+>>>>>>> PLFM-3027
 		// To prevent race conditions on concurrency checking we apply all changes to a single table
 		// serially by locking on the table's Id.
 		columnModelDAO.lockOnOwner(tableId);
@@ -402,9 +407,8 @@ public class TableRowManagerImpl implements TableRowManager {
 	@Override
 	public String getCellValue(UserInfo userInfo, String tableId, RowReference rowRef, ColumnModel column) throws IOException,
 			NotFoundException {
-		if (!authorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)) {
-			throw new UnauthorizedException("User does not have permission to read values from TableEntity: " + tableId);
-		}
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				authorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ));
 		Row row = tableRowTruthDao.getRowOriginal(tableId, rowRef, Collections.singletonList(column));
 		return row.getValues().get(0);
 	}
@@ -412,9 +416,8 @@ public class TableRowManagerImpl implements TableRowManager {
 	@Override
 	public RowSet getCellValues(UserInfo userInfo, String tableId, RowReferenceSet rowRefs, List<ColumnModel> columns) throws IOException,
 			NotFoundException {
-		if (!authorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)) {
-			throw new UnauthorizedException("User does not have permission to read values from TableEntity: " + tableId);
-		}
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				authorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ));
 		return tableRowTruthDao.getRowSet(rowRefs, columns);
 	}
 
@@ -485,9 +488,8 @@ public class TableRowManagerImpl implements TableRowManager {
 		if(query == null) throw new IllegalArgumentException("SqlQuery cannot be null");
 		validateFeatureEnabled();
 		// Validate the user has read access on this object
-		if(!authorizationManager.canAccess(user, query.getTableId(), ObjectType.ENTITY, ACCESS_TYPE.READ)){
-			throw new UnauthorizedException("User does not have READ permission on: "+query.getTableId());
-		}
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				authorizationManager.canAccess(user, query.getTableId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
 		// Does this table exist?
 		if(query.getTableSchema() == null || query.getTableSchema().isEmpty()){
 			// there are no columns for this table so the table does not actually exist.

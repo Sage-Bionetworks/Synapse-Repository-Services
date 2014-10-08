@@ -1,6 +1,7 @@
 package org.sagebionetworks.evaluation.manager;
 
 import org.sagebionetworks.evaluation.model.UserEvaluationPermissions;
+import org.sagebionetworks.repo.manager.AuthorizationStatus;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -45,14 +46,14 @@ public interface EvaluationPermissionsManager {
 	/**
 	 * Whether the user has the access to the specified evaluation.
 	 */
-	public boolean hasAccess(UserInfo userInfo, String evalId, ACCESS_TYPE accessType)
+	public AuthorizationStatus hasAccess(UserInfo userInfo, String evalId, ACCESS_TYPE accessType)
 			throws NotFoundException, DatastoreException;
 
 	/**
 	 * Whether the user has the access to the specified evaluation.
 	 * Has the same logic as 'hasAccess' but throws informative exception if the answer is false.
 	 */
-	public void validateHasAccess(UserInfo userInfo, String evalId, ACCESS_TYPE accessType)
+	public AuthorizationStatus validateHasAccess(UserInfo userInfo, String evalId, ACCESS_TYPE accessType)
 			throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**

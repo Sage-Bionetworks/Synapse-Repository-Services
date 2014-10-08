@@ -24,6 +24,7 @@ import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -120,9 +121,11 @@ public class EvaluationManagerTest {
     	when(mockEvaluationDAO.getCountByContentSource(eq(EVALUATION_CONTENT_SOURCE))).thenReturn(1L);
     	when(mockEvaluationDAO.getAvailableInRange((List<Long>)any(), anyLong(), anyLong(), any(List.class))).thenReturn(evaluations);
     	when(mockEvaluationDAO.getAvailableCount((List<Long>)any(), any(List.class))).thenReturn(1L);
-    	when(mockAuthorizationManager.canAccess(eq(ownerInfo), eq(KeyFactory.SYN_ROOT_ID), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.CREATE))).thenReturn(true);
-    	when(mockPermissionsManager.hasAccess(eq(ownerInfo), anyString(), eq(ACCESS_TYPE.UPDATE))).thenReturn(true);
-    	when(mockPermissionsManager.hasAccess(eq(ownerInfo), anyString(), eq(ACCESS_TYPE.READ))).thenReturn(true);
+    	when(mockAuthorizationManager.canAccess(eq(ownerInfo), eq(KeyFactory.SYN_ROOT_ID), eq(ObjectType.ENTITY), eq(ACCESS_TYPE.CREATE))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+    	when(mockPermissionsManager.hasAccess(eq(ownerInfo), anyString(), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+    	when(mockPermissionsManager.hasAccess(eq(ownerInfo), anyString(), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+    	when(mockPermissionsManager.hasAccess(eq(userInfo), anyString(), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
+    	when(mockPermissionsManager.hasAccess(eq(userInfo), anyString(), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
     }
 
 	@Test
@@ -177,7 +180,7 @@ public class EvaluationManagerTest {
 	@Test
 	public void testGetAvailableInRange() throws Exception {
 		// availability is based on SUBMIT access, not READ
-    	when(mockPermissionsManager.hasAccess(eq(ownerInfo), anyString(), eq(ACCESS_TYPE.READ))).thenReturn(false);
+    	when(mockPermissionsManager.hasAccess(eq(ownerInfo), anyString(), eq(ACCESS_TYPE.READ))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		QueryResults<Evaluation> qr = evaluationManager.getAvailableInRange(ownerInfo, 10L, 0L, null);
 		assertEquals(evaluations, qr.getResults());
 		assertEquals(1L, qr.getTotalNumberOfResults());

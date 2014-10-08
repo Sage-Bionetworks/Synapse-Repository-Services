@@ -154,7 +154,7 @@ public class LocationableMetadataProvider implements TypeSpecificMetadataProvide
 
 		Locationable locationable = (Locationable) entity;
 
-		if (!authorizationManager.canAccess(user, entity.getId(), ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)) {
+		if (!authorizationManager.canAccess(user, entity.getId(), ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD).getAuthorized()) {
 			// We used to throw an exception, now we just change a field in
 			// the Locationable and null out the locations
 			locationable.setLocations(null);

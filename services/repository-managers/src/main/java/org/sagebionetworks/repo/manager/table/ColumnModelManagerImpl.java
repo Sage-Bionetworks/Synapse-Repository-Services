@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
@@ -138,9 +139,8 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 	public List<ColumnModel> getColumnModelsForTable(UserInfo user,
 			String tableId) throws DatastoreException, NotFoundException {
 		// The user must be granted read permission on the table to get the columns.
-		if(!authorizationManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ)){
-			throw new UnauthorizedException("You must have "+ACCESS_TYPE.READ+" permission on "+tableId+" to perform that operation.");
-		}
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				authorizationManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ));
 		return columnModelDao.getColumnModelsForObject(tableId);
 	}
 	
