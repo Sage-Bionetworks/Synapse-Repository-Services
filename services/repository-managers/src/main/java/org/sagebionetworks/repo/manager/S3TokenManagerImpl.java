@@ -175,7 +175,7 @@ public class S3TokenManagerImpl implements S3TokenManager {
 	void validateUpdateAccess(UserInfo userInfo, String entityId)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
 		if (!entityPermissionsManager.hasAccess(entityId,
-				ACCESS_TYPE.UPDATE, userInfo)) {
+				ACCESS_TYPE.UPDATE, userInfo).getAuthorized()) {
 			throw new UnauthorizedException(
 					"update access is required to obtain an S3Token for entity "
 							+ entityId);

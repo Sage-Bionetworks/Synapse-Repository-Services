@@ -12,6 +12,7 @@ import java.util.Set;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeQueryDao;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.NodeInheritanceManager;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -78,9 +79,8 @@ public class TrashManagerImpl implements TrashManager {
 		// Authorize
 		UserInfo.validateUserInfo(currentUser);
 		String userName = currentUser.getId().toString();
-		if (!authorizationManager.canAccess(currentUser, nodeId, ObjectType.ENTITY, ACCESS_TYPE.DELETE)) {
-			throw new UnauthorizedException(userName + " lacks change access to the requested object.");
-		}
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				authorizationManager.canAccess(currentUser, nodeId, ObjectType.ENTITY, ACCESS_TYPE.DELETE));
 
 		// Whether it is too big for the trash can
 		if (stackConfig.getDynamoEnabled()) {
@@ -165,13 +165,11 @@ public class TrashManagerImpl implements TrashManager {
 
 		// Authorize on the new parent
 		String userName = currentUser.getId().toString();
-		if (!authorizationManager.canAccess(currentUser, newParentId, ObjectType.ENTITY, ACCESS_TYPE.CREATE)) {
-			throw new UnauthorizedException(userName + " lacks change access to the requested object.");
-		}
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				authorizationManager.canAccess(currentUser, newParentId, ObjectType.ENTITY, ACCESS_TYPE.CREATE));
 		Node node = nodeDao.getNode(nodeId);
-		if (!authorizationManager.canUserMoveRestrictedEntity(currentUser, trash.getOriginalParentId(), newParentId)) {
-			throw new UnauthorizedException(currentUser.getId()+ " is not authorized to restore the entity due to access restrictions.");
-		}
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				authorizationManager.canUserMoveRestrictedEntity(currentUser, trash.getOriginalParentId(), newParentId));
 
 		// Now restore
 		node.setName(trash.getEntityName());

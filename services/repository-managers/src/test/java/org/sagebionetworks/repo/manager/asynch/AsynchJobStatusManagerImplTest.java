@@ -16,6 +16,7 @@ import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -104,7 +105,7 @@ public class AsynchJobStatusManagerImplTest {
 		UploadToTableRequest body = new UploadToTableRequest();
 		body.setTableId("syn123");
 		body.setUploadFileHandleId("456");
-		when(mockAuthorizationManager.canUserStartJob(user, body)).thenReturn(false);
+		when(mockAuthorizationManager.canUserStartJob(user, body)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
 		manager.startJob(user, body);
 	}
 	
@@ -113,7 +114,7 @@ public class AsynchJobStatusManagerImplTest {
 		UploadToTableRequest body = new UploadToTableRequest();
 		body.setTableId("syn123");
 		body.setUploadFileHandleId("456");
-		when(mockAuthorizationManager.canUserStartJob(user, body)).thenReturn(true);
+		when(mockAuthorizationManager.canUserStartJob(user, body)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		AsynchronousJobStatus status = manager.startJob(user, body);
 		assertNotNull(status);
 		assertEquals(body, status.getRequestBody());

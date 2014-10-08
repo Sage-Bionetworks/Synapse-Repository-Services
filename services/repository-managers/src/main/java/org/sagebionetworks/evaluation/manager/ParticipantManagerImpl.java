@@ -51,7 +51,7 @@ public class ParticipantManagerImpl implements ParticipantManager {
 
 		String userId = userInfo.getId().toString();
 		if (!userId.equals(participantId)) {
-			if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, UPDATE)) {
+			if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, UPDATE).getAuthorized()) {
 				throw new UnauthorizedException("User " + userId +
 						" not allowed to read participant " + participantId);
 			}
@@ -65,7 +65,7 @@ public class ParticipantManagerImpl implements ParticipantManager {
 	public Participant addParticipant(UserInfo userInfo, String evalId) throws NotFoundException {
 		EvaluationUtils.ensureNotNull(evalId, "Evaluation ID");
 
-		if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, PARTICIPATE)) {
+		if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, PARTICIPATE).getAuthorized()) {
 			throw new UnauthorizedException("User " + userInfo.getId().toString() +
 					" is not allowed to join evaluation " + evalId);
 		}
@@ -103,7 +103,7 @@ public class ParticipantManagerImpl implements ParticipantManager {
 		String principalId = userInfo.getId().toString();
 
 		// verify permissions
-		if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, DELETE)) {
+		if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, DELETE).getAuthorized()) {
 			EvaluationUtils.ensureEvaluationIsOpen(evaluationDAO.get(evalId));
 			throw new UnauthorizedException("User Principal ID: " + principalId +
 					" is not authorized to remove other users from Evaluation ID: " + evalId);
@@ -144,7 +144,7 @@ public class ParticipantManagerImpl implements ParticipantManager {
 			throw new IllegalArgumentException("Evaluation ID cannot be null or empty.");
 		}
 
-		if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, UPDATE)) {
+		if (!evaluationPermissionsManager.hasAccess(userInfo, evalId, UPDATE).getAuthorized()) {
 			throw new UnauthorizedException("User " + userInfo.getId().toString() +
 						" not allowed to get participants for evaluation " + evalId);
 		}

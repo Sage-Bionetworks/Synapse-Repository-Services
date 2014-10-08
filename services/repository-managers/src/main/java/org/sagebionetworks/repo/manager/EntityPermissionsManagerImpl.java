@@ -75,9 +75,8 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		String benefactor = nodeInheritanceManager.getBenefactor(rId);
 		if (!benefactor.equals(rId)) throw new UnauthorizedException("Cannot update ACL for a resource which inherits its permissions.");
 		// check permissions of user to change permissions for the resource
-		if (!hasAccess(rId, CHANGE_PERMISSIONS, userInfo)) {
-			throw new UnauthorizedException("Not authorized.");
-		}
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				hasAccess(rId, CHANGE_PERMISSIONS, userInfo));
 		// validate content
 		Long ownerId = nodeDao.getCreatedBy(acl.getId());
 		PermissionsManagerUtils.validateACLContent(acl, userInfo, ownerId);
@@ -93,9 +92,9 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		String benefactor = nodeInheritanceManager.getBenefactor(rId);
 		if (benefactor.equals(rId)) throw new UnauthorizedException("Resource already has an ACL.");
 		// check permissions of user to change permissions for the resource
-		if (!hasAccess(benefactor, CHANGE_PERMISSIONS, userInfo)) {
-			throw new UnauthorizedException("Not authorized.");
-		}
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				hasAccess(benefactor, CHANGE_PERMISSIONS, userInfo));
+		
 		// validate content
 		Long ownerId = nodeDao.getCreatedBy(acl.getId());
 		PermissionsManagerUtils.validateACLContent(acl, userInfo, ownerId);
@@ -114,9 +113,8 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	@Override
 	public AccessControlList restoreInheritance(String rId, UserInfo userInfo) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException {
 		// check permissions of user to change permissions for the resource
-		if (!hasAccess(rId, CHANGE_PERMISSIONS, userInfo)) {
-			throw new UnauthorizedException("Not authorized.");
-		}
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				hasAccess(rId, CHANGE_PERMISSIONS, userInfo));
 		String benefactor = nodeInheritanceManager.getBenefactor(rId);
 		if (!benefactor.equals(rId)) throw new UnauthorizedException("Resource already inherits its permissions.");	
 
@@ -141,9 +139,8 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	@Override
 	public AccessControlList applyInheritanceToChildren(String parentId, UserInfo userInfo) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException {
 		// check permissions of user to change permissions for the resource
-		if (!hasAccess(parentId,CHANGE_PERMISSIONS, userInfo)) {
-			throw new UnauthorizedException("Not authorized.");
-		}
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				hasAccess(parentId,CHANGE_PERMISSIONS, userInfo));
 		
 		// Before we can update the ACL we must grab the lock on the node.
 		Node node = nodeDao.getNode(parentId);
@@ -165,7 +162,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 			// recursively apply to children
 			applyInheritanceToChildrenHelper(idToChange, benefactorId, userInfo);
 			// must be authorized to modify permissions
-			if (hasAccess(idToChange, CHANGE_PERMISSIONS, userInfo)) {
+			if (hasAccess(idToChange, CHANGE_PERMISSIONS, userInfo).getAuthorized()) {
 				// delete child ACL, if present
 				if (hasLocalACL(idToChange)) {
 					// Before we can update the ACL we must grab the lock on the node.
@@ -190,7 +187,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	 * @return
 	 */
 	@Override
-	public boolean hasAccess(String entityId, ACCESS_TYPE accessType, UserInfo userInfo)
+	public AuthorizationStatus hasAccess(String entityId, ACCESS_TYPE accessType, UserInfo userInfo)
 			throws NotFoundException, DatastoreException  {
 		// In the case of the trash can, throw the EntityInTrashCanException
 		// The only operations allowed over the trash can is CREATE (i.e. moving
@@ -212,14 +209,20 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		// Anonymous can at most READ
 		if (AuthorizationUtils.isUserAnonymous(userInfo)) {
 			if (accessType != ACCESS_TYPE.READ) {
-				return false;
+				return AuthorizationManagerUtil.
+						accessDenied("Anonymous users have only READ access permission.");
 			}
 		}
 		// Admin
 		if (userInfo.isAdmin()) {
-			return true;
+			return AuthorizationManagerUtil.AUTHORIZED;
 		}
-		return aclDAO.canAccess(userInfo.getGroups(), benefactor, ObjectType.ENTITY, accessType);
+		if (aclDAO.canAccess(userInfo.getGroups(), benefactor, ObjectType.ENTITY, accessType)) {
+			return AuthorizationManagerUtil.AUTHORIZED;
+		} else {
+			return AuthorizationManagerUtil.
+					accessDenied("You do not have "+accessType+" permission for the requested entity.");
+		}
 	}
 
 	/**
@@ -237,19 +240,19 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 
 		final String benefactor = nodeInheritanceManager.getBenefactor(entityId);
 		UserEntityPermissions permissions = new UserEntityPermissions();
-		permissions.setCanAddChild(hasAccess(benefactor, CREATE, userInfo));
-		permissions.setCanChangePermissions(hasAccess(benefactor, CHANGE_PERMISSIONS, userInfo));
-		permissions.setCanDelete(hasAccess(benefactor, DELETE, userInfo));
-		permissions.setCanEdit(hasAccess(benefactor, UPDATE, userInfo));
-		permissions.setCanView(hasAccess(benefactor, READ, userInfo));
-		permissions.setCanDownload(canDownload(userInfo, entityId));
-		permissions.setCanUpload(canUpload(userInfo, entityId));
+		permissions.setCanAddChild(hasAccess(benefactor, CREATE, userInfo).getAuthorized());
+		permissions.setCanChangePermissions(hasAccess(benefactor, CHANGE_PERMISSIONS, userInfo).getAuthorized());
+		permissions.setCanDelete(hasAccess(benefactor, DELETE, userInfo).getAuthorized());
+		permissions.setCanEdit(hasAccess(benefactor, UPDATE, userInfo).getAuthorized());
+		permissions.setCanView(hasAccess(benefactor, READ, userInfo).getAuthorized());
+		permissions.setCanDownload(canDownload(userInfo, entityId).getAuthorized());
+		permissions.setCanUpload(canUpload(userInfo, entityId).getAuthorized());
 
 		Node node = nodeDao.getNode(entityId);
 		permissions.setOwnerPrincipalId(node.getCreatedByPrincipalId());
 
 		UserInfo anonymousUser = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
-		permissions.setCanPublicRead(hasAccess(benefactor, READ, anonymousUser));
+		permissions.setCanPublicRead(hasAccess(benefactor, READ, anonymousUser).getAuthorized());
 
 		final boolean parentIsRoot = nodeDao.isNodesParentRoot(entityId);
 		if (userInfo.isAdmin()) {
@@ -271,30 +274,42 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		}
 	}
 
-	private boolean canDownload(UserInfo userInfo, final String nodeId)
+	private AuthorizationStatus canDownload(UserInfo userInfo, final String nodeId)
 			throws DatastoreException, NotFoundException {
-		if (userInfo.isAdmin()) return true;
-		if (!agreesToTermsOfUse(userInfo)) return false;
+		if (userInfo.isAdmin()) return AuthorizationManagerUtil.AUTHORIZED;
+		if (!agreesToTermsOfUse(userInfo)) return AuthorizationManagerUtil.
+					accessDenied("You have not yet agreed to the Synapse Terms of Use.");
 		
 		// if there are any unmet access requirements return false
 		List<String> nodeAncestorIds = AccessRequirementUtil.getNodeAncestorIds(nodeDao, nodeId, false);
 
 		List<Long> accessRequirementIds = AccessRequirementUtil.unmetDownloadAccessRequirementIdsForEntity(
 				userInfo, nodeId, nodeAncestorIds, nodeDao, accessRequirementDAO);
-		return accessRequirementIds.isEmpty();
+		if (accessRequirementIds.isEmpty()) {
+			return AuthorizationManagerUtil.AUTHORIZED;
+		} else {
+			return AuthorizationManagerUtil.
+					accessDenied("There are unmet access requirements.");
+		}
 	}
 
-	private boolean canUpload(UserInfo userInfo, final String parentId)
+	private AuthorizationStatus canUpload(UserInfo userInfo, final String parentId)
 			throws DatastoreException, NotFoundException {
-		if (userInfo.isAdmin()) return true;
-		if (!agreesToTermsOfUse(userInfo)) return false;
+		if (userInfo.isAdmin()) return AuthorizationManagerUtil.AUTHORIZED;
+		if (!agreesToTermsOfUse(userInfo)) return AuthorizationManagerUtil.
+				accessDenied("You have not yet agreed to the Synapse Terms of Use.");
 		
 		// if there are any unmet access requirements return false
 		List<String> nodeAncestorIds = AccessRequirementUtil.getNodeAncestorIds(nodeDao, parentId, true);
 
 		List<Long> accessRequirementIds = AccessRequirementUtil.unmetUploadAccessRequirementIdsForEntity(
 				userInfo, nodeAncestorIds, nodeDao, accessRequirementDAO);
-		return accessRequirementIds.isEmpty();
+		if (accessRequirementIds.isEmpty()) {
+			return AuthorizationManagerUtil.AUTHORIZED;
+		} else {
+			return AuthorizationManagerUtil.
+					accessDenied("There are unmet access requirements.");
+		}
 	}
 
 	private boolean agreesToTermsOfUse(UserInfo userInfo) throws NotFoundException {

@@ -14,6 +14,7 @@ import java.util.UUID;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -85,7 +86,7 @@ public class V2WikiManagerImpl implements V2WikiManager {
 		if(objectType == null) throw new IllegalArgumentException("objectType cannot be null");
 		if(wikiPage == null) throw new IllegalArgumentException("wikiPage cannot be null");
 		// Check that the user is allowed to perform this action
-		if(!authorizationManager.canAccess(user, objectId,	objectType, ACCESS_TYPE.CREATE)){
+		if(!authorizationManager.canAccess(user, objectId,	objectType, ACCESS_TYPE.CREATE).getAuthorized()){
 			throw new UnauthorizedException(String.format(USER_IS_NOT_AUTHORIZED_TEMPLATE, ACCESS_TYPE.CREATE.name(), objectId, objectType.name()));
 		}
 		
@@ -117,9 +118,8 @@ public class V2WikiManagerImpl implements V2WikiManager {
 		// Validate that the user can assign all file handles
 		for(FileHandle handle: fileHandlesToCheck){
 			// the user must have access to the raw FileHandle to assign it to an object.
-			if(!authorizationManager.canAccessRawFileHandleByCreator(user, handle.getCreatedBy())){
-				throw new UnauthorizedException(String.format(USER_IS_NOT_AUTHORIZED_FILE_HANDLE_TEMPLATE, handle.getId()));
-			}
+			AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+					authorizationManager.canAccessRawFileHandleByCreator(user, handle.getId(), handle.getCreatedBy()));
 		}
 		// pass to the DAO
 		return wikiPageDao.create(wikiPage, nameToHandleMap, objectId, objectType, newFileHandlesToInsert);
@@ -188,7 +188,7 @@ public class V2WikiManagerImpl implements V2WikiManager {
 		if(user == null) throw new IllegalArgumentException("UserInfo cannot be null");
 		if(key == null) throw new IllegalArgumentException("WikiPageKey cannot be null");
 		// Check that the user is allowed to perform this action
-		if(!authorizationManager.canAccess(user, key.getOwnerObjectId(), key.getOwnerObjectType(), ACCESS_TYPE.READ)){
+		if(!authorizationManager.canAccess(user, key.getOwnerObjectId(), key.getOwnerObjectType(), ACCESS_TYPE.READ).getAuthorized()){
 			throw new UnauthorizedException(String.format(USER_IS_NOT_AUTHORIZED_TEMPLATE, ACCESS_TYPE.READ.name(), key.getOwnerObjectId(), key.getOwnerObjectType().name()));
 		}
 	}
@@ -200,7 +200,7 @@ public class V2WikiManagerImpl implements V2WikiManager {
 		if(key == null) throw new IllegalArgumentException("WikiPageKey cannot be null");
 		// Check that the user is allowed to perform this action
 		try {
-			if(!authorizationManager.canAccess(user, key.getOwnerObjectId(), key.getOwnerObjectType(), ACCESS_TYPE.DELETE)){
+			if(!authorizationManager.canAccess(user, key.getOwnerObjectId(), key.getOwnerObjectType(), ACCESS_TYPE.DELETE).getAuthorized()){
 				throw new UnauthorizedException(String.format(USER_IS_NOT_AUTHORIZED_TEMPLATE, ACCESS_TYPE.DELETE.name(), key.getOwnerObjectId(), key.getOwnerObjectType().name()));
 			}
 		} catch (NotFoundException e) {
@@ -219,7 +219,7 @@ public class V2WikiManagerImpl implements V2WikiManager {
 		if(objectType == null) throw new IllegalArgumentException("ObjectType cannot be null");
 		if(wikiPage == null) throw new IllegalArgumentException("wikiPage cannot be null");
 		// Check that the user is allowed to perform this action
-		if(!authorizationManager.canAccess(user, objectId,	objectType, ACCESS_TYPE.UPDATE)){
+		if(!authorizationManager.canAccess(user, objectId,	objectType, ACCESS_TYPE.UPDATE).getAuthorized()){
 			throw new UnauthorizedException(String.format(USER_IS_NOT_AUTHORIZED_TEMPLATE, ACCESS_TYPE.UPDATE.name(), objectId, objectType.name()));
 		}
 		// Before we can update the Wiki we need to lock.
@@ -256,9 +256,8 @@ public class V2WikiManagerImpl implements V2WikiManager {
 			// If this file handle is not in the wiki's reservation of attachments, check permissions
 			if(!existingFileHandleIds.contains(Long.valueOf(handle.getId()))){
 				// the user must have access to the raw FileHandle to assign it to an object.
-				if(!authorizationManager.canAccessRawFileHandleByCreator(user, handle.getCreatedBy())){
-					throw new UnauthorizedException(String.format(USER_IS_NOT_AUTHORIZED_FILE_HANDLE_TEMPLATE, handle.getId()));
-				}
+				AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+						authorizationManager.canAccessRawFileHandleByCreator(user, handle.getId(), handle.getCreatedBy()));
 				// Add this to the list of file handles to insert for this update
 				newFileHandlesToInsert.add(handle.getId());
 			}
@@ -275,7 +274,7 @@ public class V2WikiManagerImpl implements V2WikiManager {
 		if(ownerId == null) throw new IllegalArgumentException("ownerId cannot be null");
 		if(type == null) throw new IllegalArgumentException("ownerId cannot be null");
 		// Check that the user is allowed to perform this action
-		if(!authorizationManager.canAccess(user,ownerId, type, ACCESS_TYPE.READ)){
+		if(!authorizationManager.canAccess(user,ownerId, type, ACCESS_TYPE.READ).getAuthorized()){
 			throw new UnauthorizedException(String.format(USER_IS_NOT_AUTHORIZED_TEMPLATE, ACCESS_TYPE.READ.name(), ownerId, type.name()));
 		}
 		// Limit and offset are currently ignored.
@@ -309,7 +308,7 @@ public class V2WikiManagerImpl implements V2WikiManager {
 		if(objectType == null) throw new IllegalArgumentException("ObjectType cannot be null");
 		if(wikiId == null) throw new IllegalArgumentException("Wiki id cannot be null");
 		// Check that the user is allowed to perform this action
-		if(!authorizationManager.canAccess(user, objectId, objectType, ACCESS_TYPE.UPDATE)){
+		if(!authorizationManager.canAccess(user, objectId, objectType, ACCESS_TYPE.UPDATE).getAuthorized()){
 			throw new UnauthorizedException(String.format(USER_IS_NOT_AUTHORIZED_TEMPLATE, ACCESS_TYPE.UPDATE.name(), objectId, objectType.name()));
 		}
 		
@@ -345,7 +344,7 @@ public class V2WikiManagerImpl implements V2WikiManager {
 		if(limit == null) throw new IllegalArgumentException("limit cannot be null");
 		if(offset == null) throw new IllegalArgumentException("offset cannot be null");
 		// Check that the user is allowed to perform this action
-		if(!authorizationManager.canAccess(user,ownerId, type, ACCESS_TYPE.READ)){
+		if(!authorizationManager.canAccess(user,ownerId, type, ACCESS_TYPE.READ).getAuthorized()){
 			throw new UnauthorizedException(String.format(USER_IS_NOT_AUTHORIZED_TEMPLATE, ACCESS_TYPE.READ.name(), ownerId, type.name()));
 		}
 		List<V2WikiHistorySnapshot> snapshots = wikiPageDao.getWikiHistory(wikiPageKey, limit, offset);
