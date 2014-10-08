@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.asynch;
 
 import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -51,9 +52,8 @@ public class AsynchJobStatusManagerImpl implements AsynchJobStatusManager {
 	public AsynchronousJobStatus startJob(UserInfo user, AsynchronousRequestBody body) throws DatastoreException, NotFoundException {
 		if(user == null) throw new IllegalArgumentException("UserInfo cannot be null");
 		if(body == null) throw new IllegalArgumentException("Body cannot be null");
-		if(!authorizationManager.canUserStartJob(user, body)){
-			throw new UnauthorizedException("The user is not authorized to start the job.");
-		}
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+				authorizationManager.canUserStartJob(user, body));
 		// Dao does the rest.
 		AsynchronousJobStatus status = asynchJobStatusDao.startJob(user.getId(), body);
 		// publish a message to get the work started

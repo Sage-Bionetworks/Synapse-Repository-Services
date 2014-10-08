@@ -2,12 +2,14 @@ package org.sagebionetworks.repo.web.controller;
 
 import java.io.IOException;
 import java.net.URL;
+import java.util.List;
 
 import javax.servlet.http.HttpServletResponse;
 
 import org.sagebionetworks.repo.model.AsynchJobFailedException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.ListWrapper;
 import org.sagebionetworks.repo.model.NotReadyException;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.asynch.AsyncJobId;
@@ -131,13 +133,34 @@ public class TableController extends BaseController {
 	}
 
 	/**
-	 * Get a <a
-	 * href="${org.sagebionetworks.repo.model.table.ColumnModel}">ColumnModel
-	 * </a> using its ID.
+	 * Create a batch of <a href="${org.sagebionetworks.repo.model.table.ColumnModel}">ColumnModel </a> that can be used
+	 * as columns of a <a href="${org.sagebionetworks.repo.model.table.TableEntity}" >TableEntity</a>. Unlike other
+	 * objects in Synapse ColumnModels are immutable and reusable and do not have an "owner" or "creator". This method
+	 * is idempotent, so if the same ColumnModel is passed multiple time a new ColumnModel will not be created. Instead
+	 * the existing ColumnModel will be returned. This also means if two users create identical ColumnModels for their
+	 * tables they will both receive the same ColumnModel.
+	 * 
+	 * This call will either create all column models or create none
+	 * 
+	 * @param userId The user's id.
+	 * @param toCreate The ColumnModel to create.
+	 * @return -
+	 * @throws DatastoreException - Synapse error.
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = UrlHelpers.COLUMN_BATCH, method = RequestMethod.POST)
+	public @ResponseBody
+	ListWrapper<ColumnModel> createColumnModels(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@RequestBody ListWrapper<ColumnModel> toCreate) throws DatastoreException, NotFoundException {
+		List<ColumnModel> results = serviceProvider.getTableServices().createColumnModels(userId, toCreate.getList());
+		return ListWrapper.wrap(results, ColumnModel.class);
+	}
+
+	/**
+	 * Get a <a href="${org.sagebionetworks.repo.model.table.ColumnModel}">ColumnModel </a> using its ID.
 	 * 
 	 * @param userId
-	 * @param columnId
-	 *            The ID of the ColumnModel to get.
+	 * @param columnId The ID of the ColumnModel to get.
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException

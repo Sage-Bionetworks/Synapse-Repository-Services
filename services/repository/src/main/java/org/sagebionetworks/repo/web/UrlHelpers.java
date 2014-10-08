@@ -672,6 +672,7 @@ public class UrlHelpers {
 
 	// Tables
 	public static final String COLUMN = "/column";
+	public static final String COLUMN_BATCH = COLUMN + "/batch";
 	public static final String ROW_ID = "/row/{rowId}";
 	public static final String ROW_VERSION = "/version/{versionNumber}";
 	public static final String TABLE = "/table";

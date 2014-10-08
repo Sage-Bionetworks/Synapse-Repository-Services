@@ -132,6 +132,27 @@ public class IT100TableControllerTest {
 	}
 	
 	@Test
+	public void testCreateGetColumns() throws SynapseException {
+		List<ColumnModel> cms = Lists.newArrayList();
+		for (int i = 0; i < 2; i++) {
+			ColumnModel cm = new ColumnModel();
+			cm.setName("ExampleColumn" + i);
+			cm.setColumnType(ColumnType.STRING);
+			cms.add(cm);
+		}
+		List<ColumnModel> results = synapse.createColumnModels(cms);
+		assertNotNull(results);
+		assertEquals(2, results.size());
+		for (int i = 0; i < 2; i++) {
+			assertNotNull(results.get(i).getId());
+			ColumnModel clone = synapse.getColumnModel(results.get(i).getId());
+			assertNotNull(clone);
+			assertEquals(results.get(i), clone);
+			assertEquals(cms.get(i).getName(), clone.getName());
+		}
+	}
+
+	@Test
 	public void testCreateTableEntity() throws Exception {
 		// Create a few columns to add to a table entity
 		ColumnModel one = new ColumnModel();

@@ -14,6 +14,7 @@ import org.junit.Test;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Participant;
+import org.sagebionetworks.repo.manager.AuthorizationManagerUtil;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -79,9 +80,9 @@ public class ParticipantManagerTest {
     	when(mockParticipantDAO.get(eq(userId), eq(evalId))).thenReturn(part);
     	when(mockEvaluationManager.getEvaluation(any(UserInfo.class), eq(evalId))).thenReturn(eval);
     	mockEvalPermissionsManager = mock(EvaluationPermissionsManager.class);
-    	when(mockEvalPermissionsManager.hasAccess(any(UserInfo.class), eq(evalId), eq(ACCESS_TYPE.DELETE))).thenReturn(true);
-    	when(mockEvalPermissionsManager.hasAccess(any(UserInfo.class), eq(evalId), eq(ACCESS_TYPE.UPDATE))).thenReturn(true);
-    	when(mockEvalPermissionsManager.hasAccess(any(UserInfo.class), eq(evalId), eq(ACCESS_TYPE.PARTICIPATE))).thenReturn(true);
+    	when(mockEvalPermissionsManager.hasAccess(any(UserInfo.class), eq(evalId), eq(ACCESS_TYPE.DELETE))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+    	when(mockEvalPermissionsManager.hasAccess(any(UserInfo.class), eq(evalId), eq(ACCESS_TYPE.UPDATE))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+    	when(mockEvalPermissionsManager.hasAccess(any(UserInfo.class), eq(evalId), eq(ACCESS_TYPE.PARTICIPATE))).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 
         // Participant Manager
     	participantManager = new ParticipantManagerImpl();
@@ -129,7 +130,7 @@ public class ParticipantManagerTest {
     
     @Test(expected=UnauthorizedException.class)
     public void testCRDAsUser_NotAbleToParticipate() throws DatastoreException, NotFoundException {
-    	when(mockEvalPermissionsManager.hasAccess(any(UserInfo.class), eq(evalId), eq(ACCESS_TYPE.PARTICIPATE))).thenReturn(false);
+    	when(mockEvalPermissionsManager.hasAccess(any(UserInfo.class), eq(evalId), eq(ACCESS_TYPE.PARTICIPATE))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
     	participantManager.addParticipant(userInfo, evalId);
     }
 

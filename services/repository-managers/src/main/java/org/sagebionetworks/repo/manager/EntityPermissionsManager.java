@@ -94,7 +94,7 @@ public interface EntityPermissionsManager {
 	 * @param accessType
 	 * @return
 	 */
-	public boolean hasAccess(String resourceId, ACCESS_TYPE  accessType, UserInfo userInfo) throws NotFoundException, DatastoreException;
+	public AuthorizationStatus hasAccess(String resourceId, ACCESS_TYPE  accessType, UserInfo userInfo) throws NotFoundException, DatastoreException;
 
 	/**
 	 * Get the user permission for an entity.
