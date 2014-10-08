@@ -60,8 +60,11 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.PartialRow;
 import org.sagebionetworks.repo.model.table.PartialRowSet;
+import org.sagebionetworks.repo.model.table.Query;
+import org.sagebionetworks.repo.model.table.QueryBundleRequest;
 import org.sagebionetworks.repo.model.table.QueryNextPageToken;
 import org.sagebionetworks.repo.model.table.QueryResult;
+import org.sagebionetworks.repo.model.table.QueryResultBundle;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
@@ -330,6 +333,76 @@ public class TableWorkerIntegrationTest {
 		QueryNextPageToken token = new QueryNextPageToken();
 		token.setToken("<invalid/>");
 		tableRowManager.queryNextPage(adminUserInfo, token);
+	}
+
+	@Test
+	public void testLimitWithCountQueries() throws Exception {
+		// Create one column of each type
+		schema = new LinkedList<ColumnModel>();
+		for (ColumnModel cm : TableModelTestUtils.createOneOfEachType()) {
+			cm = columnManager.createColumnModel(adminUserInfo, cm);
+			schema.add(cm);
+		}
+		List<String> headers = TableModelUtils.getHeaders(schema);
+		// Create the table.
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		table.setColumnIds(headers);
+		tableId = entityManager.createEntity(adminUserInfo, table, null);
+		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
+		columnManager.bindColumnToObject(adminUserInfo, headers, tableId, true);
+		// Now add some data
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(TableModelTestUtils.createRows(schema, 10));
+		rowSet.setHeaders(headers);
+		rowSet.setTableId(tableId);
+		referenceSet = tableRowManager.appendRows(adminUserInfo, tableId, schema, rowSet);
+
+		// Wait for the table to become available
+		String sql = "select * from " + tableId + " limit 5";
+		QueryResultBundle queryResultBundle = waitForConsistentQueryBundle(adminUserInfo, sql, null, null);
+		assertEquals(5, queryResultBundle.getQueryResult().getQueryResults().getRows().size());
+		assertEquals(5L, queryResultBundle.getQueryCount().longValue());
+
+		sql = "select * from " + tableId + " limit 3 offset 1";
+		queryResultBundle = waitForConsistentQueryBundle(adminUserInfo, sql, null, null);
+		assertEquals(3, queryResultBundle.getQueryResult().getQueryResults().getRows().size());
+		assertEquals(3L, queryResultBundle.getQueryCount().longValue());
+
+		sql = "select * from " + tableId + " limit 5 offset 3";
+		queryResultBundle = waitForConsistentQueryBundle(adminUserInfo, sql, null, null);
+		assertEquals(5, queryResultBundle.getQueryResult().getQueryResults().getRows().size());
+		assertEquals(5L, queryResultBundle.getQueryCount().longValue());
+
+		sql = "select * from " + tableId + " limit 5 offset 8";
+		queryResultBundle = waitForConsistentQueryBundle(adminUserInfo, sql, null, null);
+		assertEquals(2, queryResultBundle.getQueryResult().getQueryResults().getRows().size());
+		assertEquals(2L, queryResultBundle.getQueryCount().longValue());
+
+		sql = "select * from " + tableId + " limit 5";
+		queryResultBundle = waitForConsistentQueryBundle(adminUserInfo, sql, 0L, 3L);
+		assertEquals(3, queryResultBundle.getQueryResult().getQueryResults().getRows().size());
+		assertEquals(5L, queryResultBundle.getQueryCount().longValue());
+
+		sql = "select * from " + tableId + " limit 3 offset 1";
+		queryResultBundle = waitForConsistentQueryBundle(adminUserInfo, sql, 2L, 1L);
+		assertEquals(1, queryResultBundle.getQueryResult().getQueryResults().getRows().size());
+		assertEquals(3L, queryResultBundle.getQueryCount().longValue());
+
+		sql = "select * from " + tableId + " limit 5 offset 3";
+		queryResultBundle = waitForConsistentQueryBundle(adminUserInfo, sql, 6L, 3L);
+		assertEquals(0, queryResultBundle.getQueryResult().getQueryResults().getRows().size());
+		assertEquals(5L, queryResultBundle.getQueryCount().longValue());
+
+		sql = "select * from " + tableId + " limit 5 offset 8";
+		queryResultBundle = waitForConsistentQueryBundle(adminUserInfo, sql, null, 1L);
+		assertEquals(1, queryResultBundle.getQueryResult().getQueryResults().getRows().size());
+		assertEquals(2L, queryResultBundle.getQueryCount().longValue());
+
+		sql = "select * from " + tableId + " limit 8 offset 12";
+		queryResultBundle = waitForConsistentQueryBundle(adminUserInfo, sql, null, 1L);
+		assertEquals(0, queryResultBundle.getQueryResult().getQueryResults().getRows().size());
+		assertEquals(0L, queryResultBundle.getQueryCount().longValue());
 	}
 
 	/**
@@ -1143,6 +1216,31 @@ public class TableWorkerIntegrationTest {
 		}
 	}
 	
+	private QueryResultBundle waitForConsistentQueryBundle(UserInfo user, String sql, Long offset, Long limit) throws Exception {
+		long start = System.currentTimeMillis();
+		while (true) {
+			try {
+				QueryBundleRequest queryBundleRequest = new QueryBundleRequest();
+				queryBundleRequest.setPartMask(-1L);
+				Query query = new Query();
+				query.setIsConsistent(true);
+				query.setSql(sql);
+				query.setOffset(offset);
+				query.setLimit(limit);
+				queryBundleRequest.setQuery(query);
+				QueryResultBundle queryResult = tableRowManager.queryBundle(adminUserInfo, queryBundleRequest);
+				return queryResult;
+			} catch (TableUnavilableException e) {
+				assertTrue("Timed out waiting for table index worker to make the table available.",
+						(System.currentTimeMillis() - start) < MAX_WAIT_MS);
+				assertNotNull(e.getStatus());
+				assertFalse("Failed: " + e.getStatus().getErrorMessage(), TableState.PROCESSING_FAILED.equals(e.getStatus().getState()));
+				System.out.println("Waiting for table index worker to build table. Status: " + e.getStatus());
+				Thread.sleep(1000);
+			}
+		}
+	}
+
 	private void waitForConsistentQueryError(UserInfo user, final String sql) throws Exception {
 		TimeUtils.waitFor(MAX_WAIT_MS, 250, new Callable<Pair<Boolean, Void>>() {
 			@Override
