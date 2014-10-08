@@ -126,15 +126,8 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		
 		// TODO the error message doesn't let the client know why it failed
 		// check whether the user is allowed to create this type of node
-<<<<<<< HEAD
-		if (!authorizationManager.canCreate(userInfo, newNode)) {
-			throw new UnauthorizedException(userInfo.getId().toString()+" may not create this item");
-		}
-		
-=======
-		
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(authorizationManager.canCreate(userInfo, newNode));
->>>>>>> PLFM-3027
+
 		// Handle permission around file handles.
 		if(newNode.getFileHandleId() != null){
 			// To set the file handle on a create the caller must have permission 
@@ -320,6 +313,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 			if(!updatedNode.getFileHandleId().equals(currentHandleId)){
 				// This is a change so the user must be the creator of the new file handle
 <<<<<<< HEAD
+<<<<<<< HEAD
 				if(!authorizationManager.canAccessRawFileHandleById(userInfo, updatedNode.getFileHandleId())){
 					throw new UnauthorizedException(createFileHandleUnauthorizedMessage(updatedNode.getFileHandleId(), userInfo));
 				}
@@ -327,6 +321,11 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 					throw new UnauthorizedException("Must be a Certified User to change a File.");
 				}
 				if (!authorizationManager.canAccess(userInfo, updatedNode.getParentId(), ObjectType.ENTITY, ACCESS_TYPE.UPLOAD)) {
+=======
+				AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+						authorizationManager.canAccessRawFileHandleById(userInfo, updatedNode.getFileHandleId()));
+				if (!authorizationManager.canAccess(userInfo, updatedNode.getParentId(), ObjectType.ENTITY, ACCESS_TYPE.UPLOAD).getAuthorized()) {
+>>>>>>> PLFM-3027
 =======
 				AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 						authorizationManager.canAccessRawFileHandleById(userInfo, updatedNode.getFileHandleId()));

@@ -270,18 +270,14 @@ public class TableRowManagerImpl implements TableRowManager {
 		if(models == null) throw new IllegalArgumentException("Models cannot be null");
 		validateFeatureEnabled();
 		// Validate the user has permission to edit the table
-<<<<<<< HEAD
-		if(!authorizationManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)){
-			throw new UnauthorizedException("User does not have permission to update TableEntity: "+tableId);
-		}
+
 		if (!authorizationManager.isCertifiedUser(user)) {
 			throw new UnauthorizedException("Must be a Certified User to add rows to a Table.");
 		}	
 
-=======
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 				authorizationManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE));
->>>>>>> PLFM-3027
+
 		// To prevent race conditions on concurrency checking we apply all changes to a single table
 		// serially by locking on the table's Id.
 		columnModelDAO.lockOnOwner(tableId);
