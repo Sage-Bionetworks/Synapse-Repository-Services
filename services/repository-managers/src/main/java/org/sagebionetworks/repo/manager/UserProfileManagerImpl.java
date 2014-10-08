@@ -203,27 +203,11 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	public PaginatedResults<ProjectHeader> getProjects(final UserInfo userInfo, UserInfo userToFetch, int limit, int offset)
 			throws DatastoreException, InvalidModelException, NotFoundException {
 		if (userToFetch == null) {
-			PaginatedResults<ProjectHeader> projectHeaders = nodeDao.getProjectHeaders(userInfo.getId().toString(), limit, offset);
+			PaginatedResults<ProjectHeader> projectHeaders = nodeDao.getProjectHeaders(userInfo.getId().toString(), null, limit, offset);
 			return projectHeaders;
 		} else {
-			PaginatedResults<ProjectHeader> projectHeaders = nodeDao.getProjectHeaders(userToFetch.getId().toString(), 10000, 0);
-
-			// we must filter out projects we don't have access to
-			List<ProjectHeader> headers = Lists.newArrayList(Iterators.filter(projectHeaders.getResults().iterator(),
-					new Predicate<ProjectHeader>() {
-						@Override
-						public boolean apply(ProjectHeader header) {
-							try {
-								return authorizationManager.canAccess(userInfo, header.getId(), ObjectType.ENTITY, ACCESS_TYPE.READ).getFirst();
-							} catch (DatastoreException e) {
-								return false;
-							} catch (NotFoundException e) {
-								return false;
-							}
-						}
-					}));
-			PaginatedResults<ProjectHeader> paginatedResults = PaginatedResultsUtil.createPaginatedResults(headers, limit, offset);
-			paginatedResults.setTotalNumberOfResults(projectHeaders.getTotalNumberOfResults());
+			PaginatedResults<ProjectHeader> projectHeaders = nodeDao.getProjectHeaders(userToFetch.getId().toString(), userInfo.getId()
+					.toString(), limit, offset);
 			return projectHeaders;
 		}
 	}
