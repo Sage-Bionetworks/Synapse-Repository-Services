@@ -1376,6 +1376,15 @@ public interface SynapseClient extends BaseClient {
 	ColumnModel createColumnModel(ColumnModel model) throws SynapseException;
 	
 	/**
+	 * Create new ColumnModels. If a column already exists with the same parameters, that column will be returned.
+	 * 
+	 * @param model
+	 * @return
+	 * @throws SynapseException
+	 */
+	List<ColumnModel> createColumnModels(List<ColumnModel> models) throws SynapseException;
+
+	/**
 	 * Get a ColumnModel from its ID.
 	 * 
 	 * @param columnId
