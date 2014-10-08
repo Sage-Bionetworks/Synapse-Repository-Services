@@ -128,7 +128,8 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		if (parentId == null) {
 			return AuthorizationManagerUtil.accessDenied("Cannot create a entity having no parent.");
 		}
-		if (!isCertifiedUser(userInfo) && !node.getNodeType().equals(PROJECT_NODE_TYPE)) return false;
+		if (!isCertifiedUser(userInfo) && !node.getNodeType().equals(PROJECT_NODE_TYPE)) 
+			return AuthorizationManagerUtil.accessDenied("Only certified users may create content in Synapse.");
 		return canAccess(userInfo, parentId, ObjectType.ENTITY, ACCESS_TYPE.CREATE);
 	}
 
