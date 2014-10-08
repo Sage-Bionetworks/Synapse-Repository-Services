@@ -124,7 +124,6 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 			aclSchem = entityBootstrapper.getChildAclSchemeForPath(defaultPath);
 		}
 		
-		// TODO the error message doesn't let the client know why it failed
 		// check whether the user is allowed to create this type of node
 		AuthorizationManagerUtil.checkAuthorizationAndThrowException(authorizationManager.canCreate(userInfo, newNode));
 
