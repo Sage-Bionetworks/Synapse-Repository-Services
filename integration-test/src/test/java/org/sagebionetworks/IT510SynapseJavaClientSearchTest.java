@@ -58,7 +58,6 @@ public class IT510SynapseJavaClientSearchTest {
 	
 	@BeforeClass
 	public static void beforeClass() throws Exception {
-		Assume.assumeTrue(false);
 		StackConfiguration config = new StackConfiguration();
 		// Only run this test if search is enabled.
 		Assume.assumeTrue(config.getSearchEnabled());
