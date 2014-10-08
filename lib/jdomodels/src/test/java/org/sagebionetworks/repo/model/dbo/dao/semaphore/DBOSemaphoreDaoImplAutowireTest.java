@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.dao.semaphore;
 
 import static org.junit.Assert.*;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -22,6 +23,11 @@ public class DBOSemaphoreDaoImplAutowireTest {
 		semaphoreDao.forceReleaseAllLocks();
 	}
 	
+	@After
+	public void after() {
+		semaphoreDao.forceReleaseAllLocks();
+	}
+
 	@Test
 	public void testLockAndUnlock(){
 		String key = "UNSENT_MESSAGE_WORKER";
@@ -92,24 +98,20 @@ public class DBOSemaphoreDaoImplAutowireTest {
 	}
 	
 	@Test
-	public void testRefefrshLockHappy(){
+	public void testRefefrshLockHappy() throws Exception {
 		String key = "UNSENT_MESSAGE_WORKER";
 		// Get the lock and hold it for 1 second
-		long lockTimeout = 1000;
-		long originalExpires = System.currentTimeMillis()+lockTimeout;
+		long lockTimeout = 3000;
 		String token = semaphoreDao.attemptToAcquireLock(key, lockTimeout);
 		assertNotNull(token);
 		// We should not be able to acquire it yet
 		String secondToken = semaphoreDao.attemptToAcquireLock(key, lockTimeout);
 		assertEquals("We should not be able to get the lock while another is holding it.",null, secondToken);
 		// Now refresh the lock until the original time expires
-		int count = 0;
-		while(originalExpires > System.currentTimeMillis()){
-			// Keep refreshing the timeout.
+		for (int i = 0; i < lockTimeout / 1000 + 1; i++) {
+			Thread.sleep(1000L);
 			semaphoreDao.refreshLockTimeout(key, token, lockTimeout);
-			count++;
 		}
-		assertTrue("Should have refreshed the lock but did not",count > 0);
 		// The original lock would now be timed-out if we had not refreshed it.
 		// To prove we are still holding attempt to acquire it again.
 		secondToken = semaphoreDao.attemptToAcquireLock(key, lockTimeout);

@@ -266,8 +266,6 @@ public class SubmissionManagerTest {
 		assertNotNull(subWithId.getId());
 		when(mockEvalPermissionsManager.hasAccess(
 				eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.SUBMIT))).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
-		doThrow(new UnauthorizedException()).when(mockEvalPermissionsManager).validateHasAccess(
-				eq(userInfo), eq(EVAL_ID), eq(ACCESS_TYPE.SUBMIT));
 		submissionManager.createSubmission(userInfo, sub, ETAG, bundle);		
 	}
 	

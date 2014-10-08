@@ -34,6 +34,17 @@ public interface ColumnModelManager {
 	 * @throws UnauthorizedException 
 	 */
 	public ColumnModel createColumnModel(UserInfo user, ColumnModel columnModel) throws UnauthorizedException, DatastoreException, NotFoundException;
+
+	/**
+	 * Create new immutable ColumnModel objects
+	 * 
+	 * @param user
+	 * @param columnModels
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	public List<ColumnModel> createColumnModels(UserInfo user, List<ColumnModel> columnModels) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Get a list of column models for the given list of IDs

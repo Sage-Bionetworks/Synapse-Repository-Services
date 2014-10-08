@@ -50,13 +50,6 @@ public interface EvaluationPermissionsManager {
 			throws NotFoundException, DatastoreException;
 
 	/**
-	 * Whether the user has the access to the specified evaluation.
-	 * Has the same logic as 'hasAccess' but throws informative exception if the answer is false.
-	 */
-	public AuthorizationStatus validateHasAccess(UserInfo userInfo, String evalId, ACCESS_TYPE accessType)
-			throws NotFoundException, DatastoreException, UnauthorizedException;
-
-	/**
 	 * Gets the user permissions for an evaluation.
 	 */
 	public UserEvaluationPermissions getUserPermissionsForEvaluation(UserInfo userInfo, String evalId)

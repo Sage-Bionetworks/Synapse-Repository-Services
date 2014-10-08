@@ -42,13 +42,24 @@ public interface TableServices {
 	public ColumnModel createColumnModel(Long userId, ColumnModel model) throws DatastoreException, NotFoundException;
 
 	/**
+	 * Create new ColumnModels
+	 * 
+	 * @param userId
+	 * @param list
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	public List<ColumnModel> createColumnModels(Long userId, List<ColumnModel> columnModels) throws DatastoreException, NotFoundException;
+
+	/**
 	 * Get a ColumnModel for a given ID
 	 * 
 	 * @param userId
 	 * @param columnId
 	 * @return
-	 * @throws NotFoundException 
-	 * @throws DatastoreException 
+	 * @throws NotFoundException
+	 * @throws DatastoreException
 	 */
 	public ColumnModel getColumnModel(Long userId, String columnId) throws DatastoreException, NotFoundException;
 	

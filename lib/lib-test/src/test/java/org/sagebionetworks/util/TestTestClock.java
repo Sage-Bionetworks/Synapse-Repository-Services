@@ -64,4 +64,48 @@ public class TestTestClock {
 		// make sure we didn't actually wait that long
 		assertTrue(System.currentTimeMillis() - start < 5000);
 	}
+
+	@Test
+	public void testFrequentCallback() {
+		final TestClock clock = new TestClock();
+
+		long start = System.currentTimeMillis();
+
+		long now = clock.currentTimeMillis();
+
+		final AtomicInteger count = new AtomicInteger(0);
+		ProgressCallback<Long> progressCallback = new ProgressCallback<Long>() {
+			@Override
+			public void progressMade(Long message) {
+				count.incrementAndGet();
+			}
+		};
+
+		clock.sleepWithFrequentCallback(0, 30, progressCallback);
+		assertEquals(now, clock.currentTimeMillis());
+		assertEquals(0, count.get());
+
+		now = clock.currentTimeMillis();
+		clock.sleepWithFrequentCallback(29, 30, progressCallback);
+		assertEquals(now + 29, clock.currentTimeMillis());
+		assertEquals(1, count.get());
+
+		now = clock.currentTimeMillis();
+		count.set(0);
+		clock.sleepWithFrequentCallback(30, 30, progressCallback);
+		assertEquals(now + 30, clock.currentTimeMillis());
+		assertEquals(1, count.get());
+
+		now = clock.currentTimeMillis();
+		count.set(0);
+		clock.sleepWithFrequentCallback(31, 30, progressCallback);
+		assertEquals(now + 31, clock.currentTimeMillis());
+		assertEquals(2, count.get());
+
+		now = clock.currentTimeMillis();
+		count.set(0);
+		clock.sleepWithFrequentCallback(75, 30, progressCallback);
+		assertEquals(now + 75, clock.currentTimeMillis());
+		assertEquals(3, count.get());
+	}
 }

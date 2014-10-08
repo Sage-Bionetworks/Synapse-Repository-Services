@@ -100,10 +100,6 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	// selecting and counting the projects a user owns
 
 	private static final String SELECT_PROJECTS_FIELDS = "n." + COL_NODE_ID + ", n." + COL_NODE_NAME + ", n." + COL_NODE_TYPE;
-	private static final String FROM_PROJECTS_CREATED_BY = 
-			" from " + TABLE_NODE + " n " + 
-			" where n." + COL_NODE_CREATED_BY + " = :" + USER_ID_PARAM_NAME + 
-				" and n." + COL_NODE_PROJECT_ID + " is not null";
 	private static final String USER_OR_GROUP_CLAUSE = 
 			"ra." + COL_RESOURCE_ACCESS_GROUP_ID + " = :" + USER_ID_PARAM_NAME + 
 			" or ra." + COL_RESOURCE_ACCESS_GROUP_ID + " in (" + 
@@ -119,9 +115,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				" and n." + COL_NODE_PROJECT_ID + " is not null";
 
 	private static final String SELECT_PROJECT_IDS_SQL = 
-			"select distinct n." + COL_NODE_PROJECT_ID + FROM_PROJECTS_CREATED_BY +
-			" union distinct " +
-			" select distinct n." + COL_NODE_PROJECT_ID + FROM_PROJECTS_USER_IN_ACL;
+			"select distinct n." + COL_NODE_PROJECT_ID + FROM_PROJECTS_USER_IN_ACL;
 
 	private static final String PROJECT_IN_ACL_SQL = 
 			" where n." + COL_NODE_PROJECT_ID + " in (" + 
