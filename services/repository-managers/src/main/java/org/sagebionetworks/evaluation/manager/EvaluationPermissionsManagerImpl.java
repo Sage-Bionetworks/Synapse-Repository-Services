@@ -139,19 +139,13 @@ public class EvaluationPermissionsManagerImpl implements EvaluationPermissionsMa
 		return acl;
 	}
 
-	@Override
-	public AuthorizationStatus hasAccess(UserInfo userInfo, String evalId, ACCESS_TYPE accessType)
-			throws NotFoundException, DatastoreException {
-		return validateHasAccess(userInfo, evalId, accessType);
-	}
-
 	/**
 	 * Whether the user has the access to the specified evaluation.
 	 * Has the same logic as 'hasAccess' but throws informative exception if the answer is false.
 	 */
 	@Override
-	public AuthorizationStatus validateHasAccess(UserInfo userInfo, String evalId, ACCESS_TYPE accessType)
-			throws NotFoundException, DatastoreException, UnauthorizedException {
+	public AuthorizationStatus hasAccess(UserInfo userInfo, String evalId, ACCESS_TYPE accessType)
+			throws NotFoundException, DatastoreException {
 		if (userInfo == null) {
 			throw new IllegalArgumentException("User info cannot be null.");
 		}
