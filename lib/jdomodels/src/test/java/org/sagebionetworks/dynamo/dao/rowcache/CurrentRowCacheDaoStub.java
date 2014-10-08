@@ -9,6 +9,7 @@ import org.sagebionetworks.collections.Maps2;
 import org.sagebionetworks.collections.Transform;
 import org.sagebionetworks.collections.Transform.TransformEntry;
 import org.sagebionetworks.repo.model.table.CurrentRowCacheStatus;
+import org.sagebionetworks.util.ProgressCallback;
 
 import com.amazonaws.services.dynamodb.model.ConditionalCheckFailedException;
 import com.google.common.base.Function;
@@ -64,7 +65,7 @@ public class CurrentRowCacheDaoStub implements CurrentRowCacheDao {
 	}
 
 	@Override
-	public void putCurrentVersions(Long tableId, Map<Long, Long> rowsAndVersions) {
+	public void putCurrentVersions(Long tableId, Map<Long, Long> rowsAndVersions, ProgressCallback<Long> progressCallback) {
 		latestVersionNumbers.get(tableId).putAll(rowsAndVersions);
 	}
 

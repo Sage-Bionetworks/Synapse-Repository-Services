@@ -12,6 +12,7 @@ import org.sagebionetworks.asynchronous.workers.sqs.WorkerProgress;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.Project;
@@ -99,20 +100,8 @@ public class ProjectStatsWorker implements Worker {
 	}
 
 	private Long getProjectIdFromEntityId(String entityId) throws NotFoundException {
-		List<EntityHeader> nodePath = nodeDao.getEntityPath(entityId);
-		// the root of the node path should be the project
-		if (nodePath.isEmpty()) {
-			throw new DatastoreException("No path for entityId " + entityId + " could be found");
-		}
-		// walk the path from the top (the top is probably root and the next one should be project)
-		for (EntityHeader node : nodePath) {
-			if (node.getType().equals(projectEntityType.getEntityType())) {
-				return KeyFactory.stringToKey(node.getId());
-			}
-		}
-		// Entity is not in a project. This happens if the worker catches an entity during deletion. Just ignore and
-		// move on
-		return null;
+		Node node = nodeDao.getNode(entityId);
+		return node.getProjectId() == null ? null : KeyFactory.stringToKey(node.getProjectId());
 	}
 
 	/**

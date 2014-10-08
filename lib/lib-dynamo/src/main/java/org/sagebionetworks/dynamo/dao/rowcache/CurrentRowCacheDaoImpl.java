@@ -13,6 +13,7 @@ import org.sagebionetworks.dynamo.config.DynamoConfig;
 import org.sagebionetworks.dynamo.dao.DynamoDaoBaseImpl;
 import org.sagebionetworks.repo.model.table.CurrentRowCacheStatus;
 import org.sagebionetworks.util.Clock;
+import org.sagebionetworks.util.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.dynamodb.AmazonDynamoDB;
@@ -38,7 +39,8 @@ import com.google.common.collect.Sets;
 public class CurrentRowCacheDaoImpl extends DynamoDaoBaseImpl implements CurrentRowCacheDao {
 
 	private static final int MAX_RETRIES = 5;
-	private static final long BACK_OFF_MS = 10000;
+	private static final long BACK_OFF_MS = 60 * 1000; // 1 minute per retry squared
+	private static final long OVERALL_BACK_OFF_MS = 10 * 1000; // 10 seconds per retry
 	
 	private final DynamoDBMapper mapper;
 	private final DynamoDBMapper statusMapper;
@@ -106,7 +108,7 @@ public class CurrentRowCacheDaoImpl extends DynamoDaoBaseImpl implements Current
 	}
 
 	@Override
-	public void putCurrentVersions(final Long tableId, Map<Long, Long> rowsAndVersions) {
+	public void putCurrentVersions(final Long tableId, Map<Long, Long> rowsAndVersions, ProgressCallback<Long> progressCallback) {
 		List<DboCurrentRowCache> toUpdate = Transform.toList(rowsAndVersions.entrySet(),
 				new Function<Map.Entry<Long, Long>, DboCurrentRowCache>() {
 					@Override
@@ -116,20 +118,37 @@ public class CurrentRowCacheDaoImpl extends DynamoDaoBaseImpl implements Current
 				});
 		// we are seeing problems with using batch save directly. There is no backoff between the (hardcoded) 25 rows
 		// updates. We add a simple backoff at this level.
-		int retries = 0;
+		long count = 0;
+		long overallBackoff = 0;
 		for (List<DboCurrentRowCache> batch : Lists.partition(toUpdate, 25)) {
+			int retries = 0;
 			for (;;) {
 				try {
 					mapper.batchSave(batch);
+					count += batch.size();
+					if (progressCallback != null) {
+						progressCallback.progressMade(count);
+					}
 					break;
 				} catch (ProvisionedThroughputExceededException e) {
 					if (retries > MAX_RETRIES) {
 						throw e;
 					}
 					retries++;
-					clock.sleepNoInterrupt(BACK_OFF_MS * retries + random.nextInt((int) (BACK_OFF_MS * retries) / 2));
+					overallBackoff += OVERALL_BACK_OFF_MS;
+					long backoff = BACK_OFF_MS * retries * retries;
+					backoff = backoff + random.nextInt((int) backoff / 2);
+					// divide into 30 second sleeps, so we can still relay progress
+					final long interval = 30000;
+					for (long i = backoff; i > 0; i -= interval) {
+						clock.sleepNoInterrupt(Math.min(interval, i));
+						if (progressCallback != null) {
+							progressCallback.progressMade(count);
+						}
+					}
 				}
 			}
+			clock.sleepNoInterrupt(overallBackoff);
 		}
 	}
 
