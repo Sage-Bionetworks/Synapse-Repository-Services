@@ -113,6 +113,26 @@ public class ColumnModelManagerTest {
 		assertEquals(out, results);
 	}
 	
+	@Test
+	public void testCreateColumnModelsHappy() throws DatastoreException, NotFoundException {
+		ColumnModel in1 = new ColumnModel();
+		in1.setName("abb1");
+		ColumnModel in2 = new ColumnModel();
+		in2.setName("abb2");
+		ColumnModel out1 = new ColumnModel();
+		out1.setName("abb1");
+		out1.setId("21");
+		ColumnModel out2 = new ColumnModel();
+		out2.setName("abb2");
+		out2.setId("22");
+		// Setup the anonymous users
+		when(mockauthorizationManager.isAnonymousUser(user)).thenReturn(false);
+		when(mockColumnModelDAO.createColumnModel(in1)).thenReturn(out1);
+		when(mockColumnModelDAO.createColumnModel(in2)).thenReturn(out2);
+		List<ColumnModel> results = columnModelManager.createColumnModels(user, Lists.newArrayList(in1, in2));
+		assertEquals(Lists.newArrayList(out1, out2), results);
+	}
+
 	/**
 	 * Should not be able to create a column with a name that is reserved.
 	 * 
@@ -121,17 +141,26 @@ public class ColumnModelManagerTest {
 	 */
 	@Test
 	public void testCreateColumnModelReservedName() throws DatastoreException, NotFoundException{
-		ColumnModel in = new ColumnModel();
-		in.setName(TableConstants.ROW_ID.toLowerCase());
+		ColumnModel valid = new ColumnModel();
+		valid.setName("abc");
+		ColumnModel invalid = new ColumnModel();
+		invalid.setName(TableConstants.ROW_ID.toLowerCase());
 		// Setup the anonymous users
 		when(mockauthorizationManager.isAnonymousUser(user)).thenReturn(false);
-		when(mockColumnModelDAO.createColumnModel(in)).thenReturn(in);
+		when(mockColumnModelDAO.createColumnModel(invalid)).thenReturn(invalid);
 		try{
-			columnModelManager.createColumnModel(user, in);
+			columnModelManager.createColumnModel(user, invalid);
 			fail("should not be able to create a column model with a reserved column name");
 		}catch(IllegalArgumentException e){
 			// expected
-			assertTrue(e.getMessage().contains(in.getName()));
+			assertTrue(e.getMessage().contains(invalid.getName()));
+		}
+		try {
+			columnModelManager.createColumnModels(user, Lists.newArrayList(valid, invalid));
+			fail("should not be able to create a column model with a reserved column name");
+		} catch (IllegalArgumentException e) {
+			// expected
+			assertTrue(e.getMessage().contains(invalid.getName()));
 		}
 	}
 	
@@ -143,17 +172,27 @@ public class ColumnModelManagerTest {
 	 */
 	@Test
 	public void testCreateColumnModelKeyWordsAsName() throws DatastoreException, NotFoundException{
-		ColumnModel in = new ColumnModel();
-		in.setName("max");
+		ColumnModel valid = new ColumnModel();
+		valid.setName("abc");
+		ColumnModel invalid = new ColumnModel();
+		invalid.setName("max");
 		// Setup the anonymous users
 		when(mockauthorizationManager.isAnonymousUser(user)).thenReturn(false);
-		when(mockColumnModelDAO.createColumnModel(in)).thenReturn(in);
+		when(mockColumnModelDAO.createColumnModel(invalid)).thenReturn(invalid);
 		try{
-			columnModelManager.createColumnModel(user, in);
+			columnModelManager.createColumnModel(user, invalid);
 			fail("should not be able to create a column model with a key word column name");
 		}catch(IllegalArgumentException e){
 			// expected
-			assertTrue(e.getMessage().contains(in.getName()));
+			assertTrue(e.getMessage().contains(invalid.getName()));
+			assertTrue(e.getMessage().contains("SQL key word"));
+		}
+		try {
+			columnModelManager.createColumnModels(user, Lists.newArrayList(valid, invalid));
+			fail("should not be able to create a column model with a reserved column name");
+		} catch (IllegalArgumentException e) {
+			// expected
+			assertTrue(e.getMessage().contains(invalid.getName()));
 			assertTrue(e.getMessage().contains("SQL key word"));
 		}
 	}
