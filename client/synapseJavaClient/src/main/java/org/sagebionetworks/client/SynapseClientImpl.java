@@ -255,6 +255,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	protected static final String ASYNC_GET = "/async/get/";
 
 	protected static final String COLUMN = "/column";
+	protected static final String COLUMN_BATCH = COLUMN + "/batch";
 	protected static final String TABLE = "/table";
 	protected static final String ROW_ID = "/row";
 	protected static final String ROW_VERSION = "/version";
@@ -5461,6 +5462,16 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 		if(model == null) throw new IllegalArgumentException("ColumnModel cannot be null");
 		String url = COLUMN;
 		return createJSONEntity(url, model);
+	}
+
+	@Override
+	public List<ColumnModel> createColumnModels(List<ColumnModel> models) throws SynapseException {
+		if (models == null) {
+			throw new IllegalArgumentException("ColumnModel cannot be null");
+		}
+		String url = COLUMN_BATCH;
+		ListWrapper<ColumnModel> results = createJSONEntity(url, ListWrapper.wrap(models, ColumnModel.class));
+		return results.getList();
 	}
 
 	@Override

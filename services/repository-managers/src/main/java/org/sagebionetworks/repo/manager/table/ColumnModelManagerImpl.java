@@ -21,6 +21,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.google.common.collect.Lists;
+
 /**
  * Basic implementation of the ColumnModelManager.
  * 
@@ -65,18 +67,45 @@ public class ColumnModelManagerImpl implements ColumnModelManager {
 		if(authorizationManager.isAnonymousUser(user)){
 			throw new UnauthorizedException("You must login to create a ColumnModel");
 		}
-		// Validate the name
-		if(TableConstants.isReservedColumnName(columnModel.getName())){
-			throw new IllegalArgumentException("The column name: "+columnModel.getName()+" is a system reserved column name.");
-		}
-		// Is the name a key word?
-		if(TableConstants.isKeyWord(columnModel.getName())){
-			throw new IllegalArgumentException("The name: "+columnModel.getName()+" is a SQL key word and cannot be used as a column name.");
-		}
+		checkColumnNaming(columnModel);
 		// Pass it along to the DAO.
 		return columnModelDao.createColumnModel(columnModel);
 	}
 	
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public List<ColumnModel> createColumnModels(UserInfo user, List<ColumnModel> columnModels) throws DatastoreException, NotFoundException {
+		if (user == null)
+			throw new IllegalArgumentException("User cannot be null");
+		// Must login to create a column model.
+		if (authorizationManager.isAnonymousUser(user)) {
+			throw new UnauthorizedException("You must login to create a ColumnModel");
+		}
+		// first quickly check for naming errors
+		for (ColumnModel columnModel : columnModels) {
+			checkColumnNaming(columnModel);
+		}
+		// the create all column models
+		List<ColumnModel> results = Lists.newArrayListWithCapacity(columnModels.size());
+		for (ColumnModel columnModel : columnModels) {
+			// Pass it along to the DAO.
+			results.add(columnModelDao.createColumnModel(columnModel));
+		}
+		return results;
+	}
+
+	private void checkColumnNaming(ColumnModel columnModel) {
+		// Validate the name
+		if (TableConstants.isReservedColumnName(columnModel.getName())) {
+			throw new IllegalArgumentException("The column name: " + columnModel.getName() + " is a system reserved column name.");
+		}
+		// Is the name a key word?
+		if (TableConstants.isKeyWord(columnModel.getName())) {
+			throw new IllegalArgumentException("The name: " + columnModel.getName()
+					+ " is a SQL key word and cannot be used as a column name.");
+		}
+	}
+
 	@Override
 	public ColumnModel getColumnModel(UserInfo user, String columnId) throws DatastoreException, NotFoundException {
 		if(user == null) throw new IllegalArgumentException("User cannot be null");

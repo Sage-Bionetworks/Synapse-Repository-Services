@@ -6,6 +6,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang.StringUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.TableConstants;
@@ -53,18 +54,19 @@ public class CSVToRowIterator implements Iterator<Row> {
 		// We need to read the first row to determine if it a header
 		lastRow = reader.readNext();
 		// We need a map of column ID to index.
-		idToIndexMap = TableModelUtils.createColumnIdToIndexMapFromFirstRow(
-				lastRow, resultSchema);
-		if(idToIndexMap == null && this.isFirstLineHeader){
-			throw new IllegalArgumentException("The first line was expected to be a header but the values did not match the names of of the columns of the table. Header row: "+lastRow);
-		}
-		if (idToIndexMap != null) {
+		idToIndexMap = null;
+		if (this.isFirstLineHeader) {
+			idToIndexMap = TableModelUtils.createColumnIdToIndexMapFromFirstRow(lastRow, resultSchema);
+			if (idToIndexMap == null) {
+				throw new IllegalArgumentException(
+						"The first line was expected to be a header but the values did not match the names of of the columns of the table. Header row: "
+								+ StringUtils.join(lastRow, ','));
+			}
 			// Since the first row was a header, we need to next row to start.
 			lastRow = reader.readNext();
 		} else {
 			// This means the row is not a header. So just map from the schema
-			idToIndexMap = TableModelUtils
-					.createColumnIdToIndexMap(this.headers);
+			idToIndexMap = TableModelUtils.createColumnIdToIndexMap(this.headers);
 		}
 		// Does contain RowId?
 		rowIdIndex = idToIndexMap.get(TableConstants.ROW_ID);
