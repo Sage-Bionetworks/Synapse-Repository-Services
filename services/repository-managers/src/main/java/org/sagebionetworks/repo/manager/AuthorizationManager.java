@@ -145,12 +145,4 @@ public interface AuthorizationManager {
 	 * @throws DatastoreException
 	 */
 	public AuthorizationStatus canUserStartJob(UserInfo userInfo, AsynchronousRequestBody body) throws DatastoreException, NotFoundException;
-
-	/**
-	 * returns true iff the user is a certified user
-	 * @param userInfo
-	 * @return
-	 */
-	public boolean isCertifiedUser(UserInfo userInfo);
-
 }

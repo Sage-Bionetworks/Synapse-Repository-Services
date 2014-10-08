@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.manager.AuthenticationManager;
 import org.sagebionetworks.repo.manager.EmailUtils;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.NameConflictException;
@@ -353,7 +354,7 @@ public class PrincipalManagerImpl implements PrincipalManager {
 	@Override
 	public void additionalEmailValidation(UserInfo userInfo, Username email,
 			String portalEndpoint, DomainType domain) throws NotFoundException {
-		if (userInfo.getId()==AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId())
+		if (AuthorizationUtils.isUserAnonymous(userInfo.getId()))
 			throw new UnauthorizedException("Anonymous user may not add email address.");
 		AliasEnum.USER_EMAIL.validateAlias(email.getEmail());
 		

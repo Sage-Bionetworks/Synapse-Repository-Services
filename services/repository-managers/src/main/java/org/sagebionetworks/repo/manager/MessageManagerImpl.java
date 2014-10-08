@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
@@ -217,7 +218,7 @@ public class MessageManagerImpl implements MessageManager {
 		
 		if (!userInfo.isAdmin()) {
 			// Can't be anonymous
-			if (userInfo.getId().equals(AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId())) {
+			if (AuthorizationUtils.isUserAnonymous(userInfo)) {
 				throw new UnauthorizedException("Anonymous user may not send messages.");
 			}
 			boolean userIsTrustedMessageSender = userInfo.getGroups().contains(TeamConstants.TRUSTED_MESSAGE_SENDER_TEAM_ID);

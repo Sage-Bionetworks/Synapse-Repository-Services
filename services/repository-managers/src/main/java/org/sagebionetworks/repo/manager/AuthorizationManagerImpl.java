@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ActivityDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
@@ -36,7 +37,6 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
-import org.sagebionetworks.repo.model.dbo.dao.AuthorizationUtils;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -128,7 +128,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		if (parentId == null) {
 			return AuthorizationManagerUtil.accessDenied("Cannot create a entity having no parent.");
 		}
-		if (!isCertifiedUser(userInfo) && !node.getNodeType().equals(PROJECT_NODE_TYPE)) 
+		if (!AuthorizationUtils.isCertifiedUser(userInfo) && !node.getNodeType().equals(PROJECT_NODE_TYPE)) 
 			return AuthorizationManagerUtil.accessDenied("Only certified users may create content in Synapse.");
 		return canAccess(userInfo, parentId, ObjectType.ENTITY, ACCESS_TYPE.CREATE);
 	}
@@ -352,14 +352,5 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 			throw new IllegalArgumentException(e);
 		}
 	}
-	
-	/**
-	 * returns true iff the user is a certified user
-	 * @param userInfo
-	 * @return
-	 */
-	public boolean isCertifiedUser(UserInfo userInfo) {
-		return userInfo.getGroups().contains(
-				AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
-	}
+
 }

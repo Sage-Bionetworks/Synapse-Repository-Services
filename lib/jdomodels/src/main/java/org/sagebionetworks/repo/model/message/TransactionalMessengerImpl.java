@@ -9,6 +9,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ObservableEntity;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
@@ -126,7 +127,7 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 		ValidateArgument.required(objectType, "objectType");
 
 		Long userId = currentUserIdThreadLocal.get();
-		if (userId != null && userId.longValue() != BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().longValue()) {
+		if (userId != null && !AuthorizationUtils.isUserAnonymous(userId.longValue())) {
 			ChangeMessage message = new ChangeMessage();
 			message.setIsModification(true);
 			message.setObjectId(objectId);
