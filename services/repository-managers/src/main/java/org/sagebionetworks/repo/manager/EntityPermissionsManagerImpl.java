@@ -238,13 +238,12 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	public UserEntityPermissions getUserPermissionsForEntity(UserInfo userInfo,	String entityId)
 			throws NotFoundException, DatastoreException {
 
-		final String benefactor = nodeInheritanceManager.getBenefactor(entityId);
 		UserEntityPermissions permissions = new UserEntityPermissions();
-		permissions.setCanAddChild(hasAccess(benefactor, CREATE, userInfo).getAuthorized());
-		permissions.setCanChangePermissions(hasAccess(benefactor, CHANGE_PERMISSIONS, userInfo).getAuthorized());
-		permissions.setCanDelete(hasAccess(benefactor, DELETE, userInfo).getAuthorized());
-		permissions.setCanEdit(hasAccess(benefactor, UPDATE, userInfo).getAuthorized());
-		permissions.setCanView(hasAccess(benefactor, READ, userInfo).getAuthorized());
+		permissions.setCanAddChild(hasAccess(entityId, CREATE, userInfo).getAuthorized());
+		permissions.setCanChangePermissions(hasAccess(entityId, CHANGE_PERMISSIONS, userInfo).getAuthorized());
+		permissions.setCanDelete(hasAccess(entityId, DELETE, userInfo).getAuthorized());
+		permissions.setCanEdit(hasAccess(entityId, UPDATE, userInfo).getAuthorized());
+		permissions.setCanView(hasAccess(entityId, READ, userInfo).getAuthorized());
 		permissions.setCanDownload(canDownload(userInfo, entityId).getAuthorized());
 		permissions.setCanUpload(canUpload(userInfo, entityId).getAuthorized());
 
@@ -252,7 +251,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		permissions.setOwnerPrincipalId(node.getCreatedByPrincipalId());
 
 		UserInfo anonymousUser = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
-		permissions.setCanPublicRead(hasAccess(benefactor, READ, anonymousUser).getAuthorized());
+		permissions.setCanPublicRead(hasAccess(entityId, READ, anonymousUser).getAuthorized());
 
 		final boolean parentIsRoot = nodeDao.isNodesParentRoot(entityId);
 		if (userInfo.isAdmin()) {
