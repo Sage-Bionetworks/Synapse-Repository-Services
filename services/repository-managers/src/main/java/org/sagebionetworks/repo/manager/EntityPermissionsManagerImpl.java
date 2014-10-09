@@ -22,16 +22,19 @@ import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DomainType;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -198,6 +201,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 				&& !DELETE.equals(accessType)) {
 			throw new EntityInTrashCanException("Entity " + entityId + " is in trash can.");
 		}
+		
 		// Can download
 		if (accessType == DOWNLOAD) {
 			return canDownload(userInfo, entityId);
@@ -289,7 +293,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 			return AuthorizationManagerUtil.AUTHORIZED;
 		} else {
 			return AuthorizationManagerUtil.
-					accessDenied("There are unmet access requirements.");
+					accessDenied("There are unmet access requirements that must be met to place content in the requested container.");
 		}
 	}
 

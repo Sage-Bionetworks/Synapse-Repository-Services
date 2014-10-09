@@ -1,5 +1,8 @@
 package org.sagebionetworks.repo.manager;
 
+import static org.sagebionetworks.repo.model.ACCESS_TYPE.CREATE;
+import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
+
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -74,6 +77,8 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	@Autowired
 	private AccessControlListDAO aclDAO;
 
+	private static final String PROJECT_NODE_TYPE = EntityType.getNodeTypeForClass((Class<? extends JSONEntity>)Project.class).name();
+	
 	@Override
 	public AuthorizationStatus canAccess(UserInfo userInfo, String objectId, ObjectType objectType, ACCESS_TYPE accessType)
 			throws DatastoreException, NotFoundException {
@@ -85,6 +90,11 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 
 		switch (objectType) {
 			case ENTITY:
+				if (!AuthorizationUtils.isCertifiedUser(userInfo) && 
+						(accessType==CREATE || accessType==UPDATE) &&
+						!nodeDao.getNode(objectId).getNodeType().equals(PROJECT_NODE_TYPE)) 
+					return AuthorizationManagerUtil.accessDenied("Only certified users may create or update content in Synapse.");
+				
 				return entityPermissionsManager.hasAccess(objectId, accessType, userInfo);
 			case EVALUATION:
 				return evaluationPermissionsManager.hasAccess(userInfo, objectId, accessType);
@@ -116,8 +126,6 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		}
 	}
 
-	private static final String PROJECT_NODE_TYPE = EntityType.getNodeTypeForClass((Class<? extends JSONEntity>)Project.class).name();
-	
 	@Override
 	public AuthorizationStatus canCreate(UserInfo userInfo, final Node node) 
 		throws NotFoundException, DatastoreException {
@@ -128,8 +136,6 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		if (parentId == null) {
 			return AuthorizationManagerUtil.accessDenied("Cannot create a entity having no parent.");
 		}
-		if (!AuthorizationUtils.isCertifiedUser(userInfo) && !node.getNodeType().equals(PROJECT_NODE_TYPE)) 
-			return AuthorizationManagerUtil.accessDenied("Only certified users may create content in Synapse.");
 		return canAccess(userInfo, parentId, ObjectType.ENTITY, ACCESS_TYPE.CREATE);
 	}
 

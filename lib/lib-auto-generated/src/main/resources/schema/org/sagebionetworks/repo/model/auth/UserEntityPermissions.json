@@ -8,11 +8,11 @@
 		},
 		"canEdit": {
 			"type": "boolean",
-			"description": "Can the user edit this entity?"
+			"description": "Can the user edit this entity?  Note:  If the user is not a certified user then although this returns true, the user may not be able to edit the entity."
 		},
 		"canAddChild": {
 			"type": "boolean",
-			"description": "Can the user add a child entity to this entity?"
+			"description": "Can the user add a child entity to this entity?  Note:  If the user is not a certified user then although this returns true, the user may not be able to edit the entity."
 		},
 		"canChangePermissions": {
 			"type": "boolean",

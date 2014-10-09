@@ -309,16 +309,12 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		if(updatedNode.getFileHandleId() != null){
 			// First determine if this is a change
 			String currentHandleId = nodeDao.getFileHandleIdForCurrentVersion(updatedNode.getId());
-			if(!updatedNode.getFileHandleId().equals(currentHandleId)){
-
+			if(!updatedNode.getFileHandleId().equals(currentHandleId)) {
 				// This is a change so the user must be the creator of the new file handle
 				AuthorizationManagerUtil.checkAuthorizationAndThrowException(
 						authorizationManager.canAccessRawFileHandleById(userInfo, updatedNode.getFileHandleId()));
-				
-				// TODO this check should also check whether the user is a certified user
-				if (!authorizationManager.canAccess(userInfo, updatedNode.getParentId(), ObjectType.ENTITY, ACCESS_TYPE.UPLOAD).getAuthorized()) {
-					throw new UnauthorizedException(userInfo.getId().toString()+" is not allowed to upload a file into the chosen folder.");
-				}
+				AuthorizationManagerUtil.checkAuthorizationAndThrowException(
+						authorizationManager.canAccess(userInfo, updatedNode.getParentId(), ObjectType.ENTITY, ACCESS_TYPE.UPLOAD));
 			}
 		}
 		updateNode(userInfo, updatedNode, updatedAnnos, newVersion, true, ChangeType.UPDATE);
