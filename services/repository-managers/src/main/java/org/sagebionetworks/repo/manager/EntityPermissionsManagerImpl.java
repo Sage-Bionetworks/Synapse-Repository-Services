@@ -181,6 +181,8 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		}
 	}
 
+	private static final String PROJECT_NODE_TYPE = EntityType.getNodeTypeForClass((Class<? extends JSONEntity>)Project.class).name();
+	
 	/**
 	 * Use case:  Need to find out if a user can download a resource.
 	 * 
@@ -192,6 +194,17 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	@Override
 	public AuthorizationStatus hasAccess(String entityId, ACCESS_TYPE accessType, UserInfo userInfo)
 			throws NotFoundException, DatastoreException  {
+		
+		if (!AuthorizationUtils.isCertifiedUser(userInfo) && 
+				(accessType==CREATE || accessType==UPDATE) &&
+				!nodeDao.getNode(entityId).getNodeType().equals(PROJECT_NODE_TYPE)) 
+			return AuthorizationManagerUtil.accessDenied("Only certified users may create or update content in Synapse.");
+		
+		return certifiedUserHasAccess(entityId, accessType, userInfo);
+	}
+		
+	public AuthorizationStatus certifiedUserHasAccess(String entityId, ACCESS_TYPE accessType, UserInfo userInfo)
+				throws NotFoundException, DatastoreException  {
 		// In the case of the trash can, throw the EntityInTrashCanException
 		// The only operations allowed over the trash can is CREATE (i.e. moving
 		// items into the trash can) and DELETE (i.e. purging the trash).
@@ -244,9 +257,11 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 
 		UserEntityPermissions permissions = new UserEntityPermissions();
 		permissions.setCanAddChild(hasAccess(entityId, CREATE, userInfo).getAuthorized());
+		permissions.setCanCertifiedUserAddChild(certifiedUserHasAccess(entityId, CREATE, userInfo).getAuthorized());
 		permissions.setCanChangePermissions(hasAccess(entityId, CHANGE_PERMISSIONS, userInfo).getAuthorized());
 		permissions.setCanDelete(hasAccess(entityId, DELETE, userInfo).getAuthorized());
 		permissions.setCanEdit(hasAccess(entityId, UPDATE, userInfo).getAuthorized());
+		permissions.setCanCertifiedUserEdit(certifiedUserHasAccess(entityId, UPDATE, userInfo).getAuthorized());
 		permissions.setCanView(hasAccess(entityId, READ, userInfo).getAuthorized());
 		permissions.setCanDownload(canDownload(userInfo, entityId).getAuthorized());
 		permissions.setCanUpload(canUpload(userInfo, entityId).getAuthorized());

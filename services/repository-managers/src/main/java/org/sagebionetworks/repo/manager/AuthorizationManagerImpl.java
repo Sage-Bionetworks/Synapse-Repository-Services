@@ -77,8 +77,6 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	@Autowired
 	private AccessControlListDAO aclDAO;
 
-	private static final String PROJECT_NODE_TYPE = EntityType.getNodeTypeForClass((Class<? extends JSONEntity>)Project.class).name();
-	
 	@Override
 	public AuthorizationStatus canAccess(UserInfo userInfo, String objectId, ObjectType objectType, ACCESS_TYPE accessType)
 			throws DatastoreException, NotFoundException {
@@ -90,11 +88,6 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 
 		switch (objectType) {
 			case ENTITY:
-				if (!AuthorizationUtils.isCertifiedUser(userInfo) && 
-						(accessType==CREATE || accessType==UPDATE) &&
-						!nodeDao.getNode(objectId).getNodeType().equals(PROJECT_NODE_TYPE)) 
-					return AuthorizationManagerUtil.accessDenied("Only certified users may create or update content in Synapse.");
-				
 				return entityPermissionsManager.hasAccess(objectId, accessType, userInfo);
 			case EVALUATION:
 				return evaluationPermissionsManager.hasAccess(userInfo, objectId, accessType);
