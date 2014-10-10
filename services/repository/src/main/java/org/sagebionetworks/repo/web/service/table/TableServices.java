@@ -154,7 +154,7 @@ public interface TableServices {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
-	public URL getFileRedirectURL(Long userId, String tableId, RowReference rowRef, String columnId) throws IOException, NotFoundException;
+	public String getFileRedirectURL(Long userId, String tableId, RowReference rowRef, String columnId) throws IOException, NotFoundException;
 
 	/**
 	 * get file preview redirect urls for the rows from the column
@@ -165,7 +165,7 @@ public interface TableServices {
 	 * @throws NotFoundException
 	 * @throws IOException
 	 */
-	public URL getFilePreviewRedirectURL(Long userId, String tableId, RowReference rowRef, String columnId) throws IOException,
+	public String getFilePreviewRedirectURL(Long userId, String tableId, RowReference rowRef, String columnId) throws IOException,
 			NotFoundException;
 
 	/**

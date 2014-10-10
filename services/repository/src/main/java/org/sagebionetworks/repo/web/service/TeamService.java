@@ -75,7 +75,7 @@ public interface TeamService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public URL getIconURL(String teamId) throws DatastoreException, NotFoundException;
+	public String getIconURL(String teamId) throws DatastoreException, NotFoundException;
 
 	/**
 	 * 

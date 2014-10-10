@@ -540,7 +540,7 @@ public class TeamManagerImpl implements TeamManager {
 	}
 
 	@Override
-	public URL getIconURL(String teamId) throws NotFoundException {
+	public String getIconURL(String teamId) throws NotFoundException {
 		Team team = teamDAO.get(teamId);
 		String handleId = team.getIcon();
 		if (handleId==null) throw new NotFoundException("Team "+teamId+" has no icon file handle.");

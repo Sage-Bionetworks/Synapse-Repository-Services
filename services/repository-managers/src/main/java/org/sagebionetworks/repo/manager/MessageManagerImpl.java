@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -202,7 +203,7 @@ public class MessageManagerImpl implements MessageManager {
 	}
 	
 	@Override
-	public URL getMessageFileRedirectURL(UserInfo userInfo, String messageId) throws NotFoundException {
+	public String getMessageFileRedirectURL(UserInfo userInfo, String messageId) throws NotFoundException {
 		// If the user can get the message metadata (permission checking by the manager)
 		// then the user can download the file
 		MessageToUser dto = getMessage(userInfo, messageId);
@@ -563,7 +564,12 @@ public class MessageManagerImpl implements MessageManager {
 	 * Note:  The file given by the fileHandleId must be stored with UTF-8 encoding
 	 */
 	private String downloadEmailContentToString(String fileHandleId, Charset charset) throws NotFoundException {
-		URL url = fileHandleManager.getRedirectURLForFileHandle(fileHandleId);
+		URL url;
+		try {
+			url = new URL(fileHandleManager.getRedirectURLForFileHandle(fileHandleId));
+		} catch (MalformedURLException e) {
+			throw new IllegalArgumentException(e.getMessage(), e);
+		}
 		
 		// Read the file
 		try {

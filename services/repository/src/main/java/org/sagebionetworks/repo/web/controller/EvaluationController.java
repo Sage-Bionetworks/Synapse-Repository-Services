@@ -1042,7 +1042,7 @@ public class EvaluationController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
 			HttpServletResponse response
 			) throws DatastoreException, NotFoundException, IOException {
-		URL url = serviceProvider.getEvaluationService().getRedirectURLForFileHandle(userId, subId, fileHandleId);
+		String url = serviceProvider.getEvaluationService().getRedirectURLForFileHandle(userId, subId, fileHandleId);
 		RedirectUtils.handleRedirect(redirect, url, response);
 	}
 	

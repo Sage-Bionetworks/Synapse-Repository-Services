@@ -623,7 +623,7 @@ public class WikiController extends BaseController {
 			HttpServletResponse response) throws DatastoreException,
 			NotFoundException, IOException {
 		// Get the redirect url
-		URL redirectUrl = serviceProvider.getWikiService()
+		String redirectUrl = serviceProvider.getWikiService()
 				.getAttachmentRedirectURL(userId,
 						WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.ENTITY, wikiId),
 						fileName);
@@ -672,7 +672,7 @@ public class WikiController extends BaseController {
 			HttpServletResponse response) throws DatastoreException,
 			NotFoundException, IOException {
 		// Get the redirect url
-		URL redirectUrl = serviceProvider
+		String redirectUrl = serviceProvider
 				.getWikiService()
 				.getAttachmentRedirectURL(
 						userId,
@@ -722,7 +722,7 @@ public class WikiController extends BaseController {
 			HttpServletResponse response) throws DatastoreException,
 			NotFoundException, IOException {
 		// Get the redirect url
-		URL redirectUrl = serviceProvider.getWikiService()
+		String redirectUrl = serviceProvider.getWikiService()
 				.getAttachmentPreviewRedirectURL(userId,
 						WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.ENTITY, wikiId),
 						fileName);
@@ -771,7 +771,7 @@ public class WikiController extends BaseController {
 			HttpServletResponse response) throws DatastoreException,
 			NotFoundException, IOException {
 		// Get the redirect url
-		URL redirectUrl = serviceProvider
+		String redirectUrl = serviceProvider
 				.getWikiService()
 				.getAttachmentPreviewRedirectURL(
 						userId,

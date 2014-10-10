@@ -246,7 +246,7 @@ public class MessageController extends BaseController {
 			@PathVariable("messageId") String messageId,
 			@RequestParam(required = false) Boolean redirect,
 			HttpServletResponse response) throws NotFoundException, IOException {
-		URL redirectUrl = serviceProvider.getMessageService()
+		String redirectUrl = serviceProvider.getMessageService()
 				.getMessageFileRedirectURL(userId, messageId);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}

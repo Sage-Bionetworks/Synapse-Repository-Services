@@ -353,7 +353,7 @@ public class EvaluationServiceImpl implements EvaluationService {
 	}
 
 	@Override
-	public URL getRedirectURLForFileHandle(Long userId, 
+	public String getRedirectURLForFileHandle(Long userId,
 			String submissionId, String fileHandleId) 
 			throws DatastoreException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);

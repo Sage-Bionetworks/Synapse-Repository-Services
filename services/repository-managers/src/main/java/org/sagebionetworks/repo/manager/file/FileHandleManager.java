@@ -115,7 +115,7 @@ public interface FileHandleManager {
 	 * @throws DatastoreException 
 	 * @throws MalformedURLException 
 	 */
-	URL getRedirectURLForFileHandle(String handleId) throws DatastoreException, NotFoundException;
+	String getRedirectURLForFileHandle(String handleId) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get all file handles on the list.
@@ -227,7 +227,7 @@ public interface FileHandleManager {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	URL getRedirectURLForFileHandle(UserInfo userInfo, String fileHandleId) throws DatastoreException, NotFoundException;
+	String getRedirectURLForFileHandle(UserInfo userInfo, String fileHandleId) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get the list of upload destinations for this parent

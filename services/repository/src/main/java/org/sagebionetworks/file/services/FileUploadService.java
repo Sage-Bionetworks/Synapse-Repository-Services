@@ -152,7 +152,7 @@ public interface FileUploadService {
 	 * @return
 	 * @throws NotFoundException 
 	 */
-	URL getPresignedUrlForFileHandle(Long userId, String fileHandleId) throws NotFoundException;
+	String getPresignedUrlForFileHandle(Long userId, String fileHandleId) throws NotFoundException;
 
 	/**
 	 * Get a list of upload destinations for uploading a file with this entity as a parent

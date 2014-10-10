@@ -386,7 +386,7 @@ public interface EvaluationService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public URL getRedirectURLForFileHandle(Long userId, String submissionId,
+	public String getRedirectURLForFileHandle(Long userId, String submissionId,
 			String fileHandleId) throws DatastoreException, NotFoundException;
 
 	////// Methods for managing ACLs //////

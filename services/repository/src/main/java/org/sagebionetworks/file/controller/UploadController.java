@@ -520,7 +520,7 @@ public class UploadController extends BaseController {
 			HttpServletResponse response) throws DatastoreException,
 			NotFoundException, IOException {
 		// Get the redirect url
-		URL redirectUrl = fileService.getPresignedUrlForFileHandle(userId, handleId);
+		String redirectUrl = fileService.getPresignedUrlForFileHandle(userId, handleId);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
 }
