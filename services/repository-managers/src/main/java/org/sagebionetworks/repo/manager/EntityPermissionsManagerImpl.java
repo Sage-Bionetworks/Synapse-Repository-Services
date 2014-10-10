@@ -180,11 +180,27 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 			}
 		}
 	}
+	
+	@Override
+	public AuthorizationStatus canCreate(Node node, UserInfo userInfo) 
+			throws DatastoreException, NotFoundException {
+		if (userInfo.isAdmin()) {
+			return AuthorizationManagerUtil.AUTHORIZED;
+		}
+		String parentId = node.getParentId();
+		if (parentId == null) {
+			return AuthorizationManagerUtil.accessDenied("Cannot create a entity having no parent.");
+		}
+
+		if (!AuthorizationUtils.isCertifiedUser(userInfo) && !node.getNodeType().equals(PROJECT_NODE_TYPE)) 
+			return AuthorizationManagerUtil.accessDenied("Only certified users may create content in Synapse.");
+		
+		return certifiedUserHasAccess(parentId, CREATE, userInfo);
+	}
 
 	private static final String PROJECT_NODE_TYPE = EntityType.getNodeTypeForClass((Class<? extends JSONEntity>)Project.class).name();
 	
 	/**
-	 * Use case:  Need to find out if a user can download a resource.
 	 * 
 	 * @param resource the resource of interest
 	 * @param user
@@ -195,14 +211,29 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	public AuthorizationStatus hasAccess(String entityId, ACCESS_TYPE accessType, UserInfo userInfo)
 			throws NotFoundException, DatastoreException  {
 		
-		if (!AuthorizationUtils.isCertifiedUser(userInfo) && 
-				(accessType==CREATE || accessType==UPDATE) &&
-				!nodeDao.getNode(entityId).getNodeType().equals(PROJECT_NODE_TYPE)) 
+		if (!userInfo.isAdmin() && 
+			!AuthorizationUtils.isCertifiedUser(userInfo) && 
+				(accessType==CREATE ||
+				(accessType==UPDATE && !nodeDao.getNode(entityId).getNodeType().equals(PROJECT_NODE_TYPE))))
 			return AuthorizationManagerUtil.accessDenied("Only certified users may create or update content in Synapse.");
 		
 		return certifiedUserHasAccess(entityId, accessType, userInfo);
 	}
 		
+	/**
+	 * Answers the authorization check  _without_ checking whether the user is a Certified User.
+	 * In other words, says whether the user _would_ be authorized for the requested access
+	 * if they _were_ a Certified User.  This feature is important to the Web Portal which
+	 * enables certain features, though unauthorized for the user at the moment, redirecting them
+	 * to certification before allowing them through.
+	 * 
+	 * @param entityId
+	 * @param accessType
+	 * @param userInfo
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
 	public AuthorizationStatus certifiedUserHasAccess(String entityId, ACCESS_TYPE accessType, UserInfo userInfo)
 				throws NotFoundException, DatastoreException  {
 		// In the case of the trash can, throw the EntityInTrashCanException
@@ -268,6 +299,8 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 
 		Node node = nodeDao.getNode(entityId);
 		permissions.setOwnerPrincipalId(node.getCreatedByPrincipalId());
+		
+		permissions.setIsCertifiedUser(AuthorizationUtils.isCertifiedUser(userInfo));
 
 		UserInfo anonymousUser = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		permissions.setCanPublicRead(hasAccess(entityId, READ, anonymousUser).getAuthorized());

@@ -1,8 +1,5 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.sagebionetworks.repo.model.ACCESS_TYPE.CREATE;
-import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPDATE;
-
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -10,7 +7,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
-import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.repo.manager.team.TeamConstants;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessApproval;
@@ -20,16 +16,13 @@ import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ActivityDAO;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.PostMessageContentAccessApproval;
-import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.RestrictableObjectType;
@@ -43,7 +36,6 @@ import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -122,14 +114,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	@Override
 	public AuthorizationStatus canCreate(UserInfo userInfo, final Node node) 
 		throws NotFoundException, DatastoreException {
-		if (userInfo.isAdmin()) {
-			return AuthorizationManagerUtil.AUTHORIZED;
-		}
-		String parentId = node.getParentId();
-		if (parentId == null) {
-			return AuthorizationManagerUtil.accessDenied("Cannot create a entity having no parent.");
-		}
-		return canAccess(userInfo, parentId, ObjectType.ENTITY, ACCESS_TYPE.CREATE);
+		return entityPermissionsManager.canCreate(node, userInfo);
 	}
 
 	@Override

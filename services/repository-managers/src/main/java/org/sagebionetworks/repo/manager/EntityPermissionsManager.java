@@ -6,6 +6,7 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
@@ -114,4 +115,14 @@ public interface EntityPermissionsManager {
 	 * @return
 	 */
 	public boolean hasLocalACL(String resourceId);
+
+	/**
+	 * 
+	 * @param entityId
+	 * @param userInfo
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	public AuthorizationStatus canCreate(Node node, UserInfo userInfo) throws DatastoreException, NotFoundException;
 }

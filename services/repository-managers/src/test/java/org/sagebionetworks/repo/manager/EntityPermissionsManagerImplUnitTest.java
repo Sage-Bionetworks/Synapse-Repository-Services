@@ -50,7 +50,7 @@ public class EntityPermissionsManagerImplUnitTest {
 		entityPermissionsManager = new EntityPermissionsManagerImpl();
 		userInfo = new UserInfo(false);
 		userInfo.setId(1234567L);
-		userInfo.setGroups(Collections.singleton(77777L));
+		userInfo.setGroups(Collections.singleton(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId()));
 		mockUserGroupDAO = Mockito.mock(UserGroupDAO.class);
     	ReflectionTestUtils.setField(entityPermissionsManager, "userGroupDAO", mockUserGroupDAO);
     	mockNodeDao = Mockito.mock(NodeDAO.class);
@@ -70,6 +70,7 @@ public class EntityPermissionsManagerImplUnitTest {
     	Node node = new Node();
     	node.setId(entityId);
     	node.setCreatedByPrincipalId(111111L);
+    	node.setNodeType("project");
     	when(mockNodeDao.getNode(entityId)).thenReturn(node);
     	
     	UserInfo anonymousUser = new UserInfo(false);

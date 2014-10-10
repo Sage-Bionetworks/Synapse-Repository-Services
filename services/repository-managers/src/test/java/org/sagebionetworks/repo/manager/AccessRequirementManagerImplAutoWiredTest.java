@@ -97,6 +97,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		user.setEmail(UUID.randomUUID().toString() + "@test.com");
 		user.setUserName(UUID.randomUUID().toString());
 		testUserInfo = userManager.getUserInfo(userManager.createUser(user));
+		testUserInfo.getGroups().add(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
 		adminUserInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.THE_ADMIN_USER.getPrincipalId());
 		
 		assertNotNull(nodeManager);
