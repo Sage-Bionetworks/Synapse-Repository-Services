@@ -10,6 +10,7 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPLOAD;
 
 import java.util.List;
 
+import org.sagebionetworks.PropertyAccessor;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -185,8 +186,14 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	}
 	
 	private boolean isCertifiedUserOrFeatureDisabled(UserInfo userInfo) {
-		Boolean b = configuration.getDisableCertifiedUser().get();
-		if (b!=null && b) return true;
+		PropertyAccessor<Boolean> pa = configuration.getDisableCertifiedUser();
+		Boolean featureIsDisabled = false;
+		try {
+			featureIsDisabled = pa.get();
+		} catch (NullPointerException npe) {
+			featureIsDisabled = false;
+		}
+		if (featureIsDisabled) return true;
 		return AuthorizationUtils.isCertifiedUser(userInfo);
 	}
 	
