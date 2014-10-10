@@ -106,4 +106,9 @@ public class AuthorizationConstants {
 	@Deprecated
 	public static final String ETAG_PARAM = "etag";
 	
+	/**
+	 * A request parameter to the setUserCertification service, saying whether to set or clear certification.
+	 */
+	public static final String IS_CERTIFIED = "isCertified";
+	
 }

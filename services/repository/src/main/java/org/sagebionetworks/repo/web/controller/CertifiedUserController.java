@@ -135,4 +135,15 @@ public class CertifiedUserController extends BaseController {
 			) throws NotFoundException {
 		return serviceProvider.getCertifiedUserService().getPassingRecords(userId, principalId, limit, offset);
 	}
+	
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = UrlHelpers.CERTIFIED_USER_STATUS, method = RequestMethod.PUT)
+	public void setUserCertificationStatus(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable(value = ID_PATH_VARIABLE) Long principalId,
+			@RequestParam(value = AuthorizationConstants.IS_CERTIFIED) Boolean isCertified
+			) throws NotFoundException {
+		serviceProvider.getCertifiedUserService().setUserCertificationStatus(userId, principalId, isCertified);
+	}
+
 }

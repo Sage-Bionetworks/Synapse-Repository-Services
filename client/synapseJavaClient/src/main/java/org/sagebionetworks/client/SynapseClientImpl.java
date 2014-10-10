@@ -350,6 +350,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	private static final String CERTIFIED_USER_TEST_RESPONSE = "/certifiedUserTestResponse";
 	private static final String CERTIFIED_USER_PASSING_RECORD = "/certifiedUserPassingRecord";
 	private static final String CERTIFIED_USER_PASSING_RECORDS = "/certifiedUserPassingRecords";
+	private static final String CERTIFIED_USER_STATUS = "/status";
+	
 
 	private static final String PRINCIPAL_ID_REQUEST_PARAM = "principalId";
 
@@ -6029,6 +6031,14 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 			throw new SynapseClientException(e);
 		}
 	}
+	
+	
+	@Override
+	public void setCertifiedUserStatus(String principalId, boolean status) throws SynapseException {
+		String url = USER+"/"+principalId+CERTIFIED_USER_STATUS + "?isCertified="+status;
+		getSharedClientConnection().putJson(repoEndpoint, url, null, getUserAgent());
+	}
+
 	
 	@Override
 	public PaginatedResults<QuizResponse> getCertifiedUserTestResponses(

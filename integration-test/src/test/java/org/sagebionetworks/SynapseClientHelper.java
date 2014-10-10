@@ -45,6 +45,8 @@ public class SynapseClientHelper {
 		nu.setEmail(UUID.randomUUID().toString() + "@sagebase.org");
 		nu.setUsername(username);
 		nu.setPassword("password");
-		return client.createUser(nu);
+		Long principalId = client.createUser(nu);
+		client.setCertifiedUserStatus(principalId.toString(), true);
+		return principalId;
 	}
 }
