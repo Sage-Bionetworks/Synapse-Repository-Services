@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model.dao.semaphore;
 
+import org.sagebionetworks.repo.web.NotFoundException;
+
 /**
  * A very simple Semaphore enforced by a database.
  * 
@@ -42,4 +44,19 @@ public interface CountingSemaphoreDao {
 	 * @param token - The token we got from attemptToAcquireLock.
 	 */
 	public void releaseLock(String token, String extraKey);
+
+	/**
+	 * Extend the lease for this lock with the lock timeout
+	 * 
+	 * @param token
+	 * @throws NotFoundException
+	 */
+	public void extendLockLease(String token) throws NotFoundException;
+
+	/**
+	 * Get the timeout for a lock in milliseconds
+	 * 
+	 * @return the lock timeout
+	 */
+	public long getLockTimeoutMS();
 }

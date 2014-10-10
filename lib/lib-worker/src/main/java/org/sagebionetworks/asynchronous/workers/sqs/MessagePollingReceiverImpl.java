@@ -21,6 +21,7 @@ import org.apache.commons.lang.math.RandomUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.repo.model.dao.semaphore.CountingSemaphoreDao;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.Clock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Required;
@@ -94,7 +95,7 @@ public class MessagePollingReceiverImpl implements MessageReceiver {
 	private CountingSemaphoreDao workerSemaphore;
 
 	private ConcurrentLinkedQueue<Message> progressingMessagesQueue = new ConcurrentLinkedQueue<Message>();
-	private WorkerProgress workerProgresss = new WorkerProgress() {
+	private WorkerProgress workerProgress = new WorkerProgress() {
 		@Override
 		public void progressMadeForMessage(Message messag) {
 			// Add this message to the
@@ -259,7 +260,31 @@ public class MessagePollingReceiverImpl implements MessageReceiver {
 									}
 								}
 								if (toBeProcessed.size() > 0) {
-									totalCount += handleMessages(toBeProcessed);
+									final String lockTokenToExtend = lockToken;
+									totalCount += handleMessages(toBeProcessed, new WorkerProgress(){
+										long lastExtension = clock.currentTimeMillis();
+										@Override
+										public void progressMadeForMessage(Message message) {
+											workerProgress.progressMadeForMessage(message);
+											long elapsed = clock.currentTimeMillis() - lastExtension;
+											if (elapsed > workerSemaphore.getLockTimeoutMS() / 2L) {
+												try {
+													workerSemaphore.extendLockLease(lockTokenToExtend);
+													lastExtension = clock.currentTimeMillis();
+												} catch (NotFoundException e) {
+													// the lock no longer exists. We should abort the work
+													throw new RuntimeException("Abort worker because lock no longer exists: "
+															+ e.getMessage());
+												}
+											}
+										}
+
+										@Override
+										public void retryMessage(Message message, int retryTimeoutInSeconds) {
+											workerProgress.retryMessage(message, retryTimeoutInSeconds);
+										}
+										
+									});
 								}
 							} finally {
 								if (lockToken != null) {
@@ -333,16 +358,16 @@ public class MessagePollingReceiverImpl implements MessageReceiver {
 			if (toBeProcessed.size() == 0) {
 				break;
 			}
-			handleMessages(toBeProcessed);
+			handleMessages(toBeProcessed, workerProgress);
 			if (clock.currentTimeMillis() - start > visibilityTimeoutSec * 1000 * 10) {
 				throw new RuntimeException("Timed-out waiting process all messages that were on the queue.");
 			}
 		}
 	}
 
-	private int handleMessages(List<Message> toBeProcessed) throws InterruptedException {
+	private int handleMessages(List<Message> toBeProcessed, WorkerProgress progress) throws InterruptedException {
 		try {
-			final Callable<List<Message>> worker = workerFactory.createWorker(toBeProcessed, workerProgresss);
+			final Callable<List<Message>> worker = workerFactory.createWorker(toBeProcessed, progress);
 			List<Message> messagesToDelete = worker.call();
 			// all returned messages are to be deleted.
 			if (messagesToDelete.size() > 0) {

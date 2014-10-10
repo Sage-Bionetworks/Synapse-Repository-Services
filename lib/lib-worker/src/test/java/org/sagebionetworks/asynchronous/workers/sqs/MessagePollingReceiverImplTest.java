@@ -32,6 +32,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.mockito.stubbing.OngoingStubbing;
 import org.sagebionetworks.repo.model.dao.semaphore.CountingSemaphoreDao;
+import org.sagebionetworks.util.DefaultClock;
 import org.sagebionetworks.util.SingleThreadRunner;
 import org.sagebionetworks.util.TestClock;
 import org.sagebionetworks.util.ThreadTestUtils;
@@ -77,6 +78,7 @@ public class MessagePollingReceiverImplTest {
 				maxNumberOfWorkerThreads, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>()));
 		ReflectionTestUtils.setField(messageReceiver, "queueUpdateTimer", Executors.newScheduledThreadPool(1));
 		ReflectionTestUtils.setField(messageReceiver, "workerSemaphore", mockCountingSemaphoreDao);
+		ReflectionTestUtils.setField(messageReceiver, "clock", new DefaultClock());
 
 		// Setup a list of messages.
 		int maxMessages = maxNumberOfWorkerThreads * maxMessagePerWorker;

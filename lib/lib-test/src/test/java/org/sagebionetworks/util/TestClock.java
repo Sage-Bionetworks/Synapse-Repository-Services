@@ -64,4 +64,8 @@ public class TestClock extends DefaultClock {
 	public void warpBackward(long millis) {
 		currentTime -= millis;
 	}
+
+	public void setCurrentTime(long millis) {
+		currentTime = millis;
+	}
 }

@@ -3,6 +3,7 @@ package org.sagebionetworks.dynamo.dao.rowcache;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyListOf;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -12,14 +13,20 @@ import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
@@ -32,9 +39,14 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import com.amazonaws.services.dynamodb.AmazonDynamoDB;
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMapper;
 import com.amazonaws.services.dynamodb.model.ConditionalCheckFailedException;
+import com.amazonaws.services.dynamodb.model.DescribeTableRequest;
+import com.amazonaws.services.dynamodb.model.DescribeTableResult;
+import com.amazonaws.services.dynamodb.model.ProvisionedThroughputDescription;
 import com.amazonaws.services.dynamodb.model.ProvisionedThroughputExceededException;
+import com.amazonaws.services.dynamodb.model.TableDescription;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -48,6 +60,7 @@ public class CurrentRowCacheDaoAutowireTest {
 
 	private Object oldClock;
 	private Object oldMapper;
+	private Object oldDynamoClient;
 
 	private Long tableId = new Random().nextLong();
 
@@ -64,15 +77,18 @@ public class CurrentRowCacheDaoAutowireTest {
 				"clock");
 		oldMapper = ReflectionTestUtils.getField(((CurrentRowCacheDaoImpl) ReflectionStaticTestUtils.getTargetObject(currentRowCacheDao)),
 				"mapper");
+		oldDynamoClient = ReflectionTestUtils.getField(
+				((CurrentRowCacheDaoImpl) ReflectionStaticTestUtils.getTargetObject(currentRowCacheDao)), "dynamoClient");
 	}
 
 	@After
 	public void destroy() throws Exception {
-		ReflectionTestUtils
-.setField(((CurrentRowCacheDaoImpl) ReflectionStaticTestUtils.getTargetObject(currentRowCacheDao)), "clock",
+		ReflectionTestUtils.setField(((CurrentRowCacheDaoImpl) ReflectionStaticTestUtils.getTargetObject(currentRowCacheDao)), "clock",
 				oldClock);
 		ReflectionTestUtils.setField(((CurrentRowCacheDaoImpl) ReflectionStaticTestUtils.getTargetObject(currentRowCacheDao)), "mapper",
 				oldMapper);
+		ReflectionTestUtils.setField(((CurrentRowCacheDaoImpl) ReflectionStaticTestUtils.getTargetObject(currentRowCacheDao)),
+				"dynamoClient", oldDynamoClient);
 		currentRowCacheDao.deleteCurrentTable(tableId);
 	}
 
@@ -251,6 +267,22 @@ public class CurrentRowCacheDaoAutowireTest {
 		verify(mockMapper, times(3)).batchSave(anyListOf(Object.class));
 	}
 
+	@Test(expected = ProvisionedThroughputExceededException.class)
+	public void testBatchingFailsEventually() throws Exception {
+		TestClock testClock = new TestClock();
+		ReflectionTestUtils.setField(((CurrentRowCacheDaoImpl) ReflectionStaticTestUtils.getTargetObject(currentRowCacheDao)), "clock",
+				testClock);
+
+		DynamoDBMapper mockMapper = mock(DynamoDBMapper.class);
+		ReflectionTestUtils.setField(((CurrentRowCacheDaoImpl) ReflectionStaticTestUtils.getTargetObject(currentRowCacheDao)), "mapper",
+				mockMapper);
+		doThrow(new ProvisionedThroughputExceededException("dummy")).when(mockMapper).batchSave(anyListOf(Object.class));
+		Map<Long, Long> map = Maps.newHashMap();
+		map.put(13L, 133L);
+		map.put(14L, 144L);
+		currentRowCacheDao.putCurrentVersions(tableId, map, null);
+	}
+
 	@Test
 	public void testBatchingProgressSuccess() throws Exception {
 		DynamoDBMapper mockMapper = mock(DynamoDBMapper.class);
@@ -297,7 +329,7 @@ public class CurrentRowCacheDaoAutowireTest {
 			}
 		});
 		verify(mockMapper, times(4)).batchSave(anyListOf(Object.class));
-		assertEquals(33L, count.get());
+		assertEquals(7L, count.get());
 	}
 
 	@Test
@@ -305,6 +337,14 @@ public class CurrentRowCacheDaoAutowireTest {
 		DynamoDBMapper mockMapper = mock(DynamoDBMapper.class);
 		ReflectionTestUtils.setField(((CurrentRowCacheDaoImpl) ReflectionStaticTestUtils.getTargetObject(currentRowCacheDao)), "mapper",
 				mockMapper);
+		Random mockRandom = mock(Random.class);
+		when(mockRandom.nextInt(5000)).thenReturn(5000);
+		when(mockRandom.nextInt(20000)).thenReturn(15000);
+		when(mockRandom.nextInt(45000)).thenReturn(30000);
+		when(mockRandom.nextInt(80000)).thenReturn(40000);
+		when(mockRandom.nextInt(125000)).thenReturn(150000);
+		ReflectionTestUtils.setField(((CurrentRowCacheDaoImpl) ReflectionStaticTestUtils.getTargetObject(currentRowCacheDao)), "random",
+				mockRandom);
 		TestClock testClock = new TestClock();
 		long start = testClock.currentTimeMillis();
 		ReflectionTestUtils.setField(((CurrentRowCacheDaoImpl) ReflectionStaticTestUtils.getTargetObject(currentRowCacheDao)), "clock",
@@ -317,7 +357,82 @@ public class CurrentRowCacheDaoAutowireTest {
 		map.put(14L, 144L);
 		currentRowCacheDao.putCurrentVersions(tableId, map, null);
 		verify(mockMapper, times(6)).batchSave(anyListOf(Object.class));
-		assertTrue(testClock.currentTimeMillis() > start + 55 * 60000);
-		assertTrue(testClock.currentTimeMillis() < start + (55 * 1.5) * 60000);
+		assertEquals(790000L + 605L, testClock.currentTimeMillis() - start);
+	}
+
+	@Test
+	public void testThroughputUpdating() throws Exception {
+		AmazonDynamoDB mockDynamoClient = mock(AmazonDynamoDB.class);
+		ReflectionTestUtils.setField(((CurrentRowCacheDaoImpl) ReflectionStaticTestUtils.getTargetObject(currentRowCacheDao)),
+				"dynamoClient", mockDynamoClient);
+		when(mockDynamoClient.describeTable(any(DescribeTableRequest.class))).thenReturn(
+				new DescribeTableResult().withTable(new TableDescription().withProvisionedThroughput(new ProvisionedThroughputDescription()
+						.withWriteCapacityUnits(50L))));
+
+		TestClock testClock = new TestClock();
+		// set test clock to current time, because the throughput was updated at bean initialization, and the last
+		// update time was marked at that time
+		testClock.setCurrentTime(System.currentTimeMillis());
+		ReflectionTestUtils.setField(((CurrentRowCacheDaoImpl) ReflectionStaticTestUtils.getTargetObject(currentRowCacheDao)), "clock",
+				testClock);
+		Map<Long, Long> map = Maps.newHashMap();
+		map.put(13L, 133L);
+		map.put(14L, 144L);
+
+		long start = testClock.currentTimeMillis();
+		currentRowCacheDao.putCurrentVersions(tableId, map, null);
+		// should be 1000 / 5 * 3 + 5
+		assertEquals(605L, testClock.currentTimeMillis() - start);
+
+		// check is every 20 minutes
+		testClock.warpForward(1200000);
+		start = testClock.currentTimeMillis();
+		currentRowCacheDao.putCurrentVersions(tableId, map, null);
+		// should be 1000 / 50 * 3 + 5
+		assertEquals(65L, testClock.currentTimeMillis() - start);
+	}
+
+	@Ignore
+	@Test
+	public void loadTest() throws Exception {
+		final int COUNT = 1;
+		final int SIZE = 4000;
+		final int REPEAT = 15;
+		ExecutorService newFixedThreadPool = Executors.newFixedThreadPool(COUNT);
+		List<Future<Long>> tasks = Lists.newArrayList();
+		for(int i = 0; i < COUNT; i++){
+			final int index = i;
+			tasks.add(newFixedThreadPool.submit(new Callable<Long>() {
+				@Override
+				public Long call() throws Exception {
+					Map<Long, Long> map = Maps.newHashMap();
+					for (long i = 0; i < SIZE; i++) {
+						map.put(100000L * index + i, 100000L * index + i + 100000000L);
+					}
+					final AtomicLong maxTime = new AtomicLong(0);
+					for (int i = 0; i < REPEAT; i++) {
+						System.err.println(Thread.currentThread().getId() + " " + i);
+						long start = System.currentTimeMillis();
+						currentRowCacheDao.putCurrentVersions(tableId, map, new ProgressCallback<Long>() {
+							long lastTime = System.currentTimeMillis();
+
+							@Override
+							public void progressMade(Long message) {
+								long diff = System.currentTimeMillis() - lastTime;
+								lastTime = System.currentTimeMillis();
+								maxTime.set(Math.max(maxTime.get(), diff));
+							}
+						});
+						System.out.println("took " + ((System.currentTimeMillis() - start) / 1000) + " seconds");
+					}
+					return maxTime.get();
+				}
+			}));
+		}
+
+		for (Future<Long> task : tasks) {
+			long maxTime = task.get();
+			System.out.println("Maxtime: " + maxTime);
+		}
 	}
 }

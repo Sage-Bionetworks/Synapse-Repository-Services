@@ -7,6 +7,8 @@ import java.util.Map;
 import java.util.Random;
 import java.util.SortedSet;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.collections.Transform;
 import org.sagebionetworks.collections.Transform.TransformEntry;
 import org.sagebionetworks.dynamo.config.DynamoConfig;
@@ -14,6 +16,7 @@ import org.sagebionetworks.dynamo.dao.DynamoDaoBaseImpl;
 import org.sagebionetworks.repo.model.table.CurrentRowCacheStatus;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.ProgressCallback;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.dynamodb.AmazonDynamoDB;
@@ -27,6 +30,8 @@ import com.amazonaws.services.dynamodb.model.AttributeValue;
 import com.amazonaws.services.dynamodb.model.ComparisonOperator;
 import com.amazonaws.services.dynamodb.model.Condition;
 import com.amazonaws.services.dynamodb.model.ConditionalCheckFailedException;
+import com.amazonaws.services.dynamodb.model.DescribeTableRequest;
+import com.amazonaws.services.dynamodb.model.DescribeTableResult;
 import com.amazonaws.services.dynamodb.model.ProvisionedThroughputExceededException;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -36,11 +41,14 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-public class CurrentRowCacheDaoImpl extends DynamoDaoBaseImpl implements CurrentRowCacheDao {
+public class CurrentRowCacheDaoImpl extends DynamoDaoBaseImpl implements CurrentRowCacheDao, InitializingBean {
+	private static Logger log = LogManager.getLogger(CurrentRowCacheDaoImpl.class);
+
+	private static final int THROUGHPUT_CHECK_INTERVAL_MS = 1000 * 60 * 20; // every twenty minutes
 
 	private static final int MAX_RETRIES = 5;
-	private static final long BACK_OFF_MS = 60 * 1000; // 1 minute per retry squared
-	private static final long OVERALL_BACK_OFF_MS = 10 * 1000; // 10 seconds per retry
+	private static final long BACK_OFF_MS = 10 * 1000; // 5 seconds per retry squared
+	private static final long SLEEP_BETWEEN_BATCHES = 1000;
 	
 	private final DynamoDBMapper mapper;
 	private final DynamoDBMapper statusMapper;
@@ -49,6 +57,9 @@ public class CurrentRowCacheDaoImpl extends DynamoDaoBaseImpl implements Current
 
 	@Autowired
 	private Clock clock;
+
+	private long writeThroughPut = 0;
+	private long lastCheckForThroughputChange = 0;
 
 	private static final Comparator<DboCurrentRowCache> CURRENT_ROW_CACHE_COMPARATOR = new Comparator<DboCurrentRowCache>() {
 		@Override
@@ -63,10 +74,16 @@ public class CurrentRowCacheDaoImpl extends DynamoDaoBaseImpl implements Current
 			return ComparisonChain.start().compare(o1.getHashKey(), o2.getHashKey()).result();
 		}
 	};
+
 	public CurrentRowCacheDaoImpl(AmazonDynamoDB dynamoClient) {
 		super(dynamoClient);
 		mapper = new DynamoDBMapper(dynamoClient, DynamoConfig.getDynamoDBMapperConfigFor(DboCurrentRowCache.class));
 		statusMapper = new DynamoDBMapper(dynamoClient, DynamoConfig.getDynamoDBMapperConfigFor(DboCurrentRowCacheStatus.class));
+	}
+
+	@Override
+	public void afterPropertiesSet() throws Exception {
+		tryUpdateThroughput();
 	}
 
 	private DboCurrentRowCache dboCreate(Long tableId, Long rowId, Long versionNumber) {
@@ -109,6 +126,8 @@ public class CurrentRowCacheDaoImpl extends DynamoDaoBaseImpl implements Current
 
 	@Override
 	public void putCurrentVersions(final Long tableId, Map<Long, Long> rowsAndVersions, ProgressCallback<Long> progressCallback) {
+		tryUpdateThroughput();
+
 		List<DboCurrentRowCache> toUpdate = Transform.toList(rowsAndVersions.entrySet(),
 				new Function<Map.Entry<Long, Long>, DboCurrentRowCache>() {
 					@Override
@@ -118,13 +137,21 @@ public class CurrentRowCacheDaoImpl extends DynamoDaoBaseImpl implements Current
 				});
 		// we are seeing problems with using batch save directly. There is no backoff between the (hardcoded) 25 rows
 		// updates. We add a simple backoff at this level.
+		// in this case, one batch of 25 is almost 3K of data, and throughput is calculated in 1K blocks
+		long timeBetweenRequests = 1000 / writeThroughPut * 3 + 5;
+
 		long count = 0;
-		long overallBackoff = 0;
+		int batchingSleepCount = 0;
 		for (List<DboCurrentRowCache> batch : Lists.partition(toUpdate, 25)) {
+			clock.sleepNoInterrupt(timeBetweenRequests);
 			int retries = 0;
 			for (;;) {
 				try {
 					mapper.batchSave(batch);
+					if (batchingSleepCount++ % 10 == 9) {
+						// needed to give DynamoDB a chance to lower the throttle
+						clock.sleepNoInterrupt(SLEEP_BETWEEN_BATCHES);
+					}
 					count += batch.size();
 					if (progressCallback != null) {
 						progressCallback.progressMade(count);
@@ -135,13 +162,11 @@ public class CurrentRowCacheDaoImpl extends DynamoDaoBaseImpl implements Current
 						throw e;
 					}
 					retries++;
-					overallBackoff += OVERALL_BACK_OFF_MS;
 					long backoff = BACK_OFF_MS * retries * retries;
 					backoff = backoff + random.nextInt((int) backoff / 2);
 					clock.sleepWithFrequentCallback(backoff, 30000, progressCallback);
 				}
 			}
-			clock.sleepNoInterrupt(overallBackoff);
 		}
 	}
 
@@ -268,5 +293,24 @@ public class CurrentRowCacheDaoImpl extends DynamoDaoBaseImpl implements Current
 			PaginatedScanList<DboCurrentRowCacheStatus> scanResult2 = statusMapper.scan(DboCurrentRowCacheStatus.class, scanExpression);
 			statusMapper.batchDelete(uniqueify(scanResult2, CURRENT_ROW_CACHE_STATUS_COMPARATOR));
 		}
+	}
+
+	private void tryUpdateThroughput() {
+		if (writeThroughPut != 0 && clock.currentTimeMillis() < lastCheckForThroughputChange + THROUGHPUT_CHECK_INTERVAL_MS) {
+			return;
+		}
+		try {
+			DescribeTableRequest describeTableRequest = new DescribeTableRequest().withTableName(DynamoConfig
+					.getDynamoDBMapperConfigFor(DboCurrentRowCache.class).getTableNameOverride().getTableName());
+			DescribeTableResult describeTable = getDynamoClient().describeTable(describeTableRequest);
+			writeThroughPut = describeTable.getTable().getProvisionedThroughput().getWriteCapacityUnits().longValue();
+		} catch (Throwable t) {
+			log.error("Could not get throughput: " + t.getMessage(), t);
+		}
+		// change to some default if we failed to get a good number
+		if (writeThroughPut == 0) {
+			writeThroughPut = 75L;
+		}
+		lastCheckForThroughputChange = clock.currentTimeMillis();
 	}
 }

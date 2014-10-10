@@ -34,8 +34,8 @@
 	<bean id="tableCurrentCacheSemaphore"
 			class="org.sagebionetworks.repo.model.dbo.dao.semaphore.CountingSemaphoreDaoImpl"
 			scope="singleton">
-		<property name="lockTimeoutMS" value="1800000" />
-		<property name="maxCount" value="5" />
+		<property name="lockTimeoutMS" value="300000" />
+		<property name="maxCount" value="1" />
 	</bean>
 
 	<bean id="tableCurrentCacheQueueMessageReveiver"

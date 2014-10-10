@@ -143,6 +143,39 @@ public class DBOCountingSemaphoreDaoImplAutowireTest {
 		assertFalse("The third token should not equal the original token", thirdToken.equals(originalToken));
 	}
 
+	@Test
+	public void testCannotAcquireExtendedLock() throws Exception {
+		// For this test we want to acquire a lock, let it expire. Once expired, we should be able to
+		// acquire the lock even though it has not been released.
+		((CountingSemaphoreDaoImpl) getTargetObject(countingSemaphoreDao)).setLockTimeoutMS(1000);
+		((CountingSemaphoreDaoImpl) getTargetObject(countingSemaphoreDao)).setMaxCount(1);
+
+		// Get the lock and hold it for 1 second
+		String originalToken = countingSemaphoreDao.attemptToAcquireLock();
+		assertNotNull(originalToken);
+
+		// We should not be able to acquire it yet
+		String secondToken = countingSemaphoreDao.attemptToAcquireLock();
+		assertNull("We should not be able to get another lock.", secondToken);
+
+		// Now wait one and half the exipry time, updating every half expiry
+		Thread.sleep(500);
+		countingSemaphoreDao.extendLockLease(originalToken);
+		Thread.sleep(500);
+		countingSemaphoreDao.extendLockLease(originalToken);
+		Thread.sleep(500);
+
+		// We should now not be able to acquire the lock
+		secondToken = countingSemaphoreDao.attemptToAcquireLock();
+		assertNull("We should not be able to get another lock still.", secondToken);
+
+		// wait for expiry again
+		Thread.sleep(1000);
+		secondToken = countingSemaphoreDao.attemptToAcquireLock();
+		assertNotNull("Failed to acquire after the original lock expired ", secondToken);
+		assertFalse("The second token should not equal the original token", secondToken.equals(originalToken));
+	}
+
 	@SuppressWarnings("unchecked")
 	@Test
 	public void testHandleDeadLock() throws Exception {
