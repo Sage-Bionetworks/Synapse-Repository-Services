@@ -363,7 +363,7 @@ public class FileHandleManagerImplTest {
 		external.setExternalURL("http://google.com");
 		when(mockfileMetadataDao.get(external.getId())).thenReturn(external);
 		// fire!
-		URL redirect = manager.getRedirectURLForFileHandle(external.getId());
+		String redirect = manager.getRedirectURLForFileHandle(external.getId());
 		assertNotNull(redirect);
 		assertEquals(external.getExternalURL(), redirect.toString());
 	}
@@ -378,7 +378,7 @@ public class FileHandleManagerImplTest {
 		String expecedURL = "https://amamzon.com";
 		when(mockS3Client.generatePresignedUrl(any(String.class), any(String.class), any(Date.class), any(HttpMethod.class))).thenReturn(new URL(expecedURL));
 		// fire!
-		URL redirect = manager.getRedirectURLForFileHandle(s3FileHandle.getId());
+		String redirect = manager.getRedirectURLForFileHandle(s3FileHandle.getId());
 		assertNotNull(redirect);
 		assertEquals(expecedURL, redirect.toString());
 	}
@@ -444,8 +444,8 @@ public class FileHandleManagerImplTest {
 		String expecedURL = "https://amamzon.com";
 		when(mockS3Client.generatePresignedUrl(any(String.class), any(String.class), any(Date.class), any(HttpMethod.class))).thenReturn(new URL(expecedURL));
 		when(mockAuthorizationManager.isUserCreatorOrAdmin(mockUser, s3FileHandle.getCreatedBy())).thenReturn(true);
-		URL redirect = manager.getRedirectURLForFileHandle(mockUser, s3FileHandle.getId());
-		assertEquals(expecedURL, redirect.toString());
+		String redirect = manager.getRedirectURLForFileHandle(mockUser, s3FileHandle.getId());
+		assertEquals(expecedURL, redirect);
 	}
 	
 	@Test (expected=UnauthorizedException.class)
@@ -459,8 +459,8 @@ public class FileHandleManagerImplTest {
 		String expecedURL = "https://amamzon.com";
 		when(mockS3Client.generatePresignedUrl(any(String.class), any(String.class), any(Date.class), any(HttpMethod.class))).thenReturn(new URL(expecedURL));
 		when(mockAuthorizationManager.isUserCreatorOrAdmin(mockUser, s3FileHandle.getCreatedBy())).thenReturn(false);
-		URL redirect = manager.getRedirectURLForFileHandle(mockUser, s3FileHandle.getId());
-		assertEquals(expecedURL, redirect.toString());
+		String redirect = manager.getRedirectURLForFileHandle(mockUser, s3FileHandle.getId());
+		assertEquals(expecedURL, redirect);
 	}
 	
 	/**

@@ -513,7 +513,7 @@ public class TableController extends BaseController {
 		RowReference ref = new RowReference();
 		ref.setRowId(rowId);
 		ref.setVersionNumber(versionNumber);
-		URL redirectUrl = serviceProvider.getTableServices()
+		String redirectUrl = serviceProvider.getTableServices()
 				.getFileRedirectURL(userId, id, ref, columnId);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
@@ -553,7 +553,7 @@ public class TableController extends BaseController {
 		RowReference ref = new RowReference();
 		ref.setRowId(rowId);
 		ref.setVersionNumber(versionNumber);
-		URL redirectUrl = serviceProvider.getTableServices()
+		String redirectUrl = serviceProvider.getTableServices()
 				.getFilePreviewRedirectURL(userId, id, ref, columnId);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}

@@ -99,7 +99,7 @@ public class MessageServiceImpl implements MessageService {
 	}
 
 	@Override
-	public URL getMessageFileRedirectURL(Long userId, String messageId) throws NotFoundException {
+	public String getMessageFileRedirectURL(Long userId, String messageId) throws NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return messageManager.getMessageFileRedirectURL(userInfo, messageId);
 	}

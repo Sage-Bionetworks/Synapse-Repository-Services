@@ -123,7 +123,7 @@ public interface V2WikiService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	URL getMarkdownRedirectURL(Long userId, WikiPageKey wikiPageKey, Long version) throws DatastoreException, NotFoundException;
+	String getMarkdownRedirectURL(Long userId, WikiPageKey wikiPageKey, Long version) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get the Redirect URL for a given attachment.
@@ -135,7 +135,8 @@ public interface V2WikiService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	URL getAttachmentRedirectURL(Long userId, WikiPageKey wikiPageKey, String fileName, Long version) throws DatastoreException, NotFoundException;
+	String getAttachmentRedirectURL(Long userId, WikiPageKey wikiPageKey, String fileName, Long version) throws DatastoreException,
+			NotFoundException;
 	
 	/**
 	 * Get the redirect URL for a given Preview.
@@ -147,7 +148,8 @@ public interface V2WikiService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	URL getAttachmentPreviewRedirectURL(Long userId, WikiPageKey wikiPageKey, String fileName, Long version) throws DatastoreException, NotFoundException;
+	String getAttachmentPreviewRedirectURL(Long userId, WikiPageKey wikiPageKey, String fileName, Long version) throws DatastoreException,
+			NotFoundException;
 
 	/**
 	 * Get the root wiki page.

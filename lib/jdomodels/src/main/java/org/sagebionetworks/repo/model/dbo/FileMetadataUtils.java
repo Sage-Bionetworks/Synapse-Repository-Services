@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandleInterface;
+import org.sagebionetworks.util.ValidateArgument;
 
 /**
  * Translates between DBOs and DTOs.
@@ -19,7 +20,7 @@ import org.sagebionetworks.repo.model.file.S3FileHandleInterface;
  *
  */
 public class FileMetadataUtils {
-	
+
 	/**
 	 * Convert abstract DTO to the DBO.
 	 * @param dto
@@ -49,12 +50,7 @@ public class FileMetadataUtils {
 		DBOFileHandle dbo = new DBOFileHandle();
 		dbo.setMetadataType(MetadataType.EXTERNAL);
 		// Validate the URL
-		try {
-			// Make sure it is really a URL.
-			new URL(dto.getExternalURL());
-		} catch (MalformedURLException e) {
-			throw new IllegalArgumentException(e);
-		}
+		ValidateArgument.validUrl(dto.getExternalURL());
 		dbo.setKey(dto.getExternalURL());
 		dbo.setEtag(dto.getEtag());
 		if(dto.getCreatedBy() != null){

@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.web.controller;
 
 import java.io.IOException;
-import java.net.URL;
 
 import javax.servlet.http.HttpServletResponse;
 
@@ -10,7 +9,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
-import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dao.WikiPageKeyHelper;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.v2.wiki.V2WikiHeader;
@@ -793,7 +791,7 @@ public class V2WikiController extends BaseController {
 			@RequestParam(required = false) Long wikiVersion) throws DatastoreException,
 			NotFoundException, IOException {
 		// Get the redirect url
-		URL redirectUrl = serviceProvider.getV2WikiService()
+		String redirectUrl = serviceProvider.getV2WikiService()
 				.getAttachmentRedirectURL(userId,
 						WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.ENTITY, wikiId),
 						fileName, wikiVersion);
@@ -843,7 +841,7 @@ public class V2WikiController extends BaseController {
 			@RequestParam(required = false) Long wikiVersion) throws DatastoreException,
 			NotFoundException, IOException {
 		// Get the redirect url
-		URL redirectUrl = serviceProvider
+		String redirectUrl = serviceProvider
 				.getV2WikiService()
 				.getAttachmentRedirectURL(
 						userId,
@@ -894,7 +892,7 @@ public class V2WikiController extends BaseController {
 			@RequestParam(required = false) Long wikiVersion) throws DatastoreException,
 			NotFoundException, IOException {
 		// Get the redirect url
-		URL redirectUrl = serviceProvider.getV2WikiService()
+		String redirectUrl = serviceProvider.getV2WikiService()
 				.getAttachmentPreviewRedirectURL(userId,
 						WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.ENTITY, wikiId),
 						fileName, wikiVersion);
@@ -944,7 +942,7 @@ public class V2WikiController extends BaseController {
 			@RequestParam(required = false) Long wikiVersion) throws DatastoreException,
 			NotFoundException, IOException {
 		// Get the redirect url
-		URL redirectUrl = serviceProvider
+		String redirectUrl = serviceProvider
 				.getV2WikiService()
 				.getAttachmentPreviewRedirectURL(
 						userId,
@@ -986,7 +984,7 @@ public class V2WikiController extends BaseController {
 			HttpServletResponse response) throws DatastoreException,
 			NotFoundException, IOException {
 		// Get the redirect url
-		URL redirectUrl = serviceProvider.getV2WikiService()
+		String redirectUrl = serviceProvider.getV2WikiService()
 				.getMarkdownRedirectURL(userId,
 						WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.ENTITY, wikiId), wikiVersion);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
@@ -1025,7 +1023,7 @@ public class V2WikiController extends BaseController {
 			HttpServletResponse response) throws DatastoreException,
 			NotFoundException, IOException {
 		// Get the redirect url
-		URL redirectUrl = serviceProvider.getV2WikiService()
+		String redirectUrl = serviceProvider.getV2WikiService()
 				.getMarkdownRedirectURL(userId,
 						WikiPageKeyHelper.createWikiPageKey(ownerId, ObjectType.EVALUATION, wikiId), wikiVersion);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);

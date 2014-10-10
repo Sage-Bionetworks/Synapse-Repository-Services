@@ -152,7 +152,7 @@ public class FileUploadServiceImpl implements FileUploadService {
 	}
 
 	@Override
-	public URL getPresignedUrlForFileHandle(Long userId, String fileHandleId) throws NotFoundException {
+	public String getPresignedUrlForFileHandle(Long userId, String fileHandleId) throws NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return fileUploadManager.getRedirectURLForFileHandle(userInfo, fileHandleId);
 	}

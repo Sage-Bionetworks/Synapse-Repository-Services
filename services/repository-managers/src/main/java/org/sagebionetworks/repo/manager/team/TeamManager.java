@@ -180,5 +180,5 @@ public interface TeamManager {
 	 * @param teamId
 	 * @return
 	 */
-	public URL getIconURL(String teamId) throws NotFoundException;
+	public String getIconURL(String teamId) throws NotFoundException;
 }

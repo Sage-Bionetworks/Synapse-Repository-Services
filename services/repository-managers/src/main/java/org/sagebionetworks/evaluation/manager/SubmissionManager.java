@@ -189,7 +189,7 @@ public interface SubmissionManager {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public URL getRedirectURLForFileHandle(UserInfo userInfo,
+	public String getRedirectURLForFileHandle(UserInfo userInfo,
 			String submissionId, String filehandleId)
 			throws DatastoreException, NotFoundException;
 

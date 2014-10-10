@@ -219,9 +219,9 @@ public class DBOFileHandleDaoImplTest {
 		meta.setCreatedBy(creatorUserGroupId);
 		meta.setFileName("fileName");
 		// Create a URL that is is 700 chars long
-		char[] chars = new char[700-9];
+		char[] chars = new char[700 - 9 - 4];
 		Arrays.fill(chars, 'a');
-		meta.setExternalURL("http://"+new String(chars));
+		meta.setExternalURL("http://" + new String(chars) + ".com");
 		// Save it
 		meta = fileHandleDao.createFile(meta);
 		assertNotNull(meta);
@@ -233,6 +233,17 @@ public class DBOFileHandleDaoImplTest {
 		assertEquals(meta, clone);
 	}
 	
+	@Test(expected = IllegalArgumentException.class)
+	public void testURLWithSpace() throws DatastoreException, NotFoundException {
+		ExternalFileHandle meta = new ExternalFileHandle();
+		meta.setCreatedBy(creatorUserGroupId);
+		meta.setFileName("fileName");
+		// Create a URL that is is 700 chars long
+		meta.setExternalURL("http://synapse.org/some space");
+		// Save it
+		meta = fileHandleDao.createFile(meta);
+	}
+
 	@Test
 	public void testS3FileWithPreview() throws DatastoreException, NotFoundException{
 		// Create the metadata

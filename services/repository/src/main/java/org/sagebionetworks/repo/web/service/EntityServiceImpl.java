@@ -659,7 +659,7 @@ public class EntityServiceImpl implements EntityService {
 	}
 
 	@Override
-	public URL getFileRedirectURLForCurrentVersion(Long userId, String id) throws DatastoreException, NotFoundException {
+	public String getFileRedirectURLForCurrentVersion(Long userId, String id) throws DatastoreException, NotFoundException {
 		if(id == null) throw new IllegalArgumentException("Entity Id cannot be null");
 		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
 		UserInfo userInfo = userManager.getUserInfo(userId);
@@ -670,7 +670,7 @@ public class EntityServiceImpl implements EntityService {
 	}
 	
 	@Override
-	public URL getFilePreviewRedirectURLForCurrentVersion(Long userId, String entityId) throws DatastoreException, NotFoundException {
+	public String getFilePreviewRedirectURLForCurrentVersion(Long userId, String entityId) throws DatastoreException, NotFoundException {
 		if(entityId == null) throw new IllegalArgumentException("Entity Id cannot be null");
 		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
 		UserInfo userInfo = userManager.getUserInfo(userId);
@@ -683,7 +683,7 @@ public class EntityServiceImpl implements EntityService {
 	}
 
 	@Override
-	public URL getFileRedirectURLForVersion(Long userId, String id, Long versionNumber) throws DatastoreException, NotFoundException {
+	public String getFileRedirectURLForVersion(Long userId, String id, Long versionNumber) throws DatastoreException, NotFoundException {
 		if(id == null) throw new IllegalArgumentException("Entity Id cannot be null");
 		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
 		UserInfo userInfo = userManager.getUserInfo(userId);
@@ -695,7 +695,7 @@ public class EntityServiceImpl implements EntityService {
 
 
 	@Override
-	public URL getFilePreviewRedirectURLForVersion(Long userId, String id,
+	public String getFilePreviewRedirectURLForVersion(Long userId, String id,
 			Long versionNumber) throws DatastoreException, NotFoundException {
 		if(id == null) throw new IllegalArgumentException("Entity Id cannot be null");
 		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");

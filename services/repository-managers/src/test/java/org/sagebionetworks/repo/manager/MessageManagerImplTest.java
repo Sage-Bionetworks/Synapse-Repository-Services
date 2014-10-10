@@ -207,7 +207,7 @@ public class MessageManagerImplTest {
 		
 		// Mock out the file handle manager so that the fake file handle won't result in broken downloads
 		mockFileHandleManager = mock(FileHandleManager.class);
-		URL url = MessageManagerImplTest.class.getClassLoader().getResource("images/notAnImage.txt");
+		String url = MessageManagerImplTest.class.getClassLoader().getResource("images/notAnImage.txt").toExternalForm();
 		when(mockFileHandleManager.getRedirectURLForFileHandle(anyString())).thenReturn(url);
 		messageManager.setFileHandleManager(mockFileHandleManager);
 		

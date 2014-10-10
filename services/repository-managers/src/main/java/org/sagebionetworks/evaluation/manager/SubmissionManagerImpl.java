@@ -343,7 +343,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	}
 	
 	@Override
-	public URL getRedirectURLForFileHandle(UserInfo userInfo, 
+	public String getRedirectURLForFileHandle(UserInfo userInfo,
 			String submissionId, String fileHandleId) 
 			throws DatastoreException, NotFoundException {
 		Submission submission = getSubmission(userInfo, submissionId);

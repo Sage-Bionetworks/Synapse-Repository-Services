@@ -214,12 +214,12 @@ public class FileHandleManagerImplAutowireTest {
 			S3FileHandle fromDB = (S3FileHandle) fileHandleDao.get(metaResult.getId());
 			assertEquals(metaResult, fromDB);
 			// Test the Pre-Signed URL
-			URL presigned = fileUploadManager.getRedirectURLForFileHandle(metaResult.getId());
+			String presigned = fileUploadManager.getRedirectURLForFileHandle(metaResult.getId());
 			assertNotNull(presigned);
-			String urlString = presigned.toString();
 			// This was added as a regression test for PLFM-1925.  When we upgraded to AWS client 1.4.3, it changes how the URLs were prepared and broke
 			// both file upload and download.
-			assertTrue("If the presigned url does not start with https://s3.amazonaws.com it will cause SSL failures. See PLFM-1925",urlString.startsWith("https://s3.amazonaws.com", 0));
+			assertTrue("If the presigned url does not start with https://s3.amazonaws.com it will cause SSL failures. See PLFM-1925",
+					presigned.startsWith("https://s3.amazonaws.com", 0));
 		}
 	}
 	

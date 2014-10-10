@@ -145,9 +145,9 @@ public class MessageManagerImplSESTest {
 		
 		// Mocks downloadEmailContent(...)
 		mockFileHandleManager = mock(FileHandleManager.class);
-		URL urlPT = MessageManagerImplSESTest.class.getClassLoader().getResource("images/notAnImage.txt");
+		String urlPT = MessageManagerImplSESTest.class.getClassLoader().getResource("images/notAnImage.txt").toExternalForm();
 		when(mockFileHandleManager.getRedirectURLForFileHandle(FILE_HANDLE_ID_PLAIN_TEXT)).thenReturn(urlPT);
-		URL urlHTML = MessageManagerImplSESTest.class.getClassLoader().getResource("images/notAnImage.html");
+		String urlHTML = MessageManagerImplSESTest.class.getClassLoader().getResource("images/notAnImage.html").toExternalForm();
 		when(mockFileHandleManager.getRedirectURLForFileHandle(FILE_HANDLE_ID_HTML)).thenReturn(urlHTML);
 		messageManager.setFileHandleManager(mockFileHandleManager);
 

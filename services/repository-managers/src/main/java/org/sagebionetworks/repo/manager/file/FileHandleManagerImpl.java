@@ -59,6 +59,7 @@ import org.sagebionetworks.repo.model.project.UploadDestinationSetting;
 import org.sagebionetworks.repo.model.util.ContentTypeUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -329,7 +330,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	}
 
 	@Override
-	public URL getRedirectURLForFileHandle(String handleId) throws DatastoreException, NotFoundException {
+	public String getRedirectURLForFileHandle(String handleId) throws DatastoreException, NotFoundException {
 		// First lookup the file handle
 		FileHandle handle = fileHandleDao.get(handleId);
 		return getURLForFileHandle(handle);
@@ -339,18 +340,15 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	 * @param handle
 	 * @return
 	 */
-	public URL getURLForFileHandle(FileHandle handle) {
+	public String getURLForFileHandle(FileHandle handle) {
 		if(handle instanceof ExternalFileHandle){
 			ExternalFileHandle efh = (ExternalFileHandle) handle;
-			try {
-				return new URL(efh.getExternalURL());
-			} catch (MalformedURLException e) {
-				throw new DatastoreException(e);
-			}
+			return efh.getExternalURL();
 		}else if(handle instanceof S3FileHandleInterface){
 			S3FileHandleInterface s3File = (S3FileHandleInterface) handle;
 			// Create a pre-signed url
-			return s3Client.generatePresignedUrl(s3File.getBucketName(), s3File.getKey(), new Date(System.currentTimeMillis()+PRESIGNED_URL_EXPIRE_TIME_MS), HttpMethod.GET);
+			return s3Client.generatePresignedUrl(s3File.getBucketName(), s3File.getKey(),
+					new Date(System.currentTimeMillis() + PRESIGNED_URL_EXPIRE_TIME_MS), HttpMethod.GET).toExternalForm();
 		}else{
 			throw new IllegalArgumentException("Unknown FileHandle class: "+handle.getClass().getName());
 		}
@@ -400,11 +398,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			fileHandle.setContentType(NOT_SET);
 		}
 		// The URL must be a URL
-		try{
-			URL url = new URL(fileHandle.getExternalURL());
-		}catch(MalformedURLException e){
-			throw new IllegalArgumentException("The ExternalURL is malformed: "+e.getMessage());
-		}
+		ValidateArgument.validUrl(fileHandle.getExternalURL());
 		// set this user as the creator of the file
 		fileHandle.setCreatedBy(getUserId(userInfo));
 		// Save the file metadata to the DB.
@@ -575,7 +569,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	}
 
 	@Override
-	public URL getRedirectURLForFileHandle(UserInfo userInfo, String fileHandleId) throws DatastoreException, NotFoundException {
+	public String getRedirectURLForFileHandle(UserInfo userInfo, String fileHandleId) throws DatastoreException, NotFoundException {
 		if(userInfo == null){
 			throw new IllegalArgumentException("User cannot be null");
 		}
