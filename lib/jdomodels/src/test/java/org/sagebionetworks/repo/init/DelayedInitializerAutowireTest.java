@@ -7,6 +7,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.dao.semaphore.CountingSemaphoreDao;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -38,6 +39,18 @@ public class DelayedInitializerAutowireTest {
 		public void releaseLock(String token, String extraKey) {
 			// TODO Auto-generated method stub
 
+		}
+
+		@Override
+		public void extendLockLease(String token) throws NotFoundException {
+			// TODO Auto-generated method stub
+
+		}
+
+		@Override
+		public long getLockTimeoutMS() {
+			// TODO Auto-generated method stub
+			return 0;
 		}
 	}
 

@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOCountingSemaphore;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOLockMaster;
 import org.sagebionetworks.repo.model.exception.LockReleaseFailedException;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.Clock;
 import org.springframework.beans.factory.BeanNameAware;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,6 +57,8 @@ public class CountingSemaphoreDaoImpl implements CountingSemaphoreDao, BeanNameA
 			+ COL_LOCK_MASTER_KEY + " = ? FOR UPDATE";
 	private static final String SQL_RELEASE_LOCK = "DELETE FROM " + TABLE_COUNTING_SEMAPHORE + " WHERE " + COL_COUNTING_SEMAPHORE_KEY
 			+ " = ? AND " + COL_COUNTING_SEMAPHORE_LOCK_TOKEN + " = ?";
+	private static final String SQL_UPDATE_LOCK_TIMEOUT = "UPDATE " + TABLE_COUNTING_SEMAPHORE + " SET " + COL_COUNTING_SEMAPHORE_EXPIRES
+			+ " = ? WHERE " + COL_COUNTING_SEMAPHORE_LOCK_TOKEN + " = ?";
 
 	static private Logger log = LogManager.getLogger(CountingSemaphoreDaoImpl.class);
 
@@ -143,6 +146,20 @@ public class CountingSemaphoreDaoImpl implements CountingSemaphoreDao, BeanNameA
 		doReleaseLock(token, extraKey);
 	}
 
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
+	@Override
+	public void extendLockLease(String token) throws NotFoundException {
+		int count = jdbcTemplate.update(SQL_UPDATE_LOCK_TIMEOUT, clock.currentTimeMillis() + lockTimeoutMS, token);
+		if (count == 0) {
+			throw new NotFoundException("Lock for token " + token + " not found");
+		}
+	}
+
+	@Override
+	public long getLockTimeoutMS() {
+		return lockTimeoutMS;
+	}
+
 	private String doAttemptToAcquireLock(String extraKey) {
 		final String keyName = getKeyName(extraKey);
 		for (int i = 0; i < 3; i++) {
@@ -170,7 +187,7 @@ public class CountingSemaphoreDaoImpl implements CountingSemaphoreDao, BeanNameA
 						DBOCountingSemaphore shared = new DBOCountingSemaphore();
 						shared.setKey(keyName);
 						shared.setToken(UUID.randomUUID().toString());
-						shared.setExpires(System.currentTimeMillis() + lockTimeoutMS);
+						shared.setExpires(clock.currentTimeMillis() + lockTimeoutMS);
 						basicDao.createNew(shared);
 						return shared.getToken();
 					}
@@ -221,7 +238,7 @@ public class CountingSemaphoreDaoImpl implements CountingSemaphoreDao, BeanNameA
 
 	private long countOutstandingNonExpiredLocks(String keyName) {
 		// First delete all expired shared locks for this resource.
-		this.jdbcTemplate.update(SQL_FORCE_RELEASE_EXPIRED_LOCKS, keyName, System.currentTimeMillis());
+		this.jdbcTemplate.update(SQL_FORCE_RELEASE_EXPIRED_LOCKS, keyName, clock.currentTimeMillis());
 		// Now count the remaining locks
 		return this.jdbcTemplate.queryForObject(SQL_COUNT_LOCKS, Long.class, keyName);
 	}

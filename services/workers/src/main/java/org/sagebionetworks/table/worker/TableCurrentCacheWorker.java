@@ -73,7 +73,6 @@ public class TableCurrentCacheWorker implements Callable<List<Message>> {
 				} else {
 					// Create or update.
 					// this method does the real work.
-					log.info("Updating current versions for " + tableId);
 					updateCurrentVersionCache(tableId, change.getObjectEtag(), message);
 					processedMessages.add(message);
 				}
@@ -113,6 +112,7 @@ public class TableCurrentCacheWorker implements Callable<List<Message>> {
 			return;
 		}
 
+		log.info("Updating current versions for " + tableId);
 		tableRowManager.updateLatestVersionCache(tableId, new ProgressCallback<Long>() {
 			@Override
 			public void progressMade(Long version) {
