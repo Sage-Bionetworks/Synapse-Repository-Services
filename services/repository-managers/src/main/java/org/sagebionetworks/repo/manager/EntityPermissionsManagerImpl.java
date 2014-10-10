@@ -58,6 +58,9 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	private UserManager userManager;
 	@Autowired
 	private AuthenticationManager authenticationManager;
+	@Autowired
+	private StackConfiguration configuration;
+
 
 	@Override
 	public AccessControlList getACL(String nodeId, UserInfo userInfo) throws NotFoundException, DatastoreException, ACLInheritanceException {
@@ -181,6 +184,12 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		}
 	}
 	
+	private boolean isCertifiedUseOrFeatureDisabled(UserInfo userInfo) {
+		Boolean b = configuration.getDisableCertifiedUser().get();
+		if (b!=null && b) return true;
+		return AuthorizationUtils.isCertifiedUser(userInfo);
+	}
+	
 	@Override
 	public AuthorizationStatus canCreate(Node node, UserInfo userInfo) 
 			throws DatastoreException, NotFoundException {
@@ -192,7 +201,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 			return AuthorizationManagerUtil.accessDenied("Cannot create a entity having no parent.");
 		}
 
-		if (!AuthorizationUtils.isCertifiedUser(userInfo) && !node.getNodeType().equals(PROJECT_NODE_TYPE)) 
+		if (!isCertifiedUseOrFeatureDisabled(userInfo) && !node.getNodeType().equals(PROJECT_NODE_TYPE)) 
 			return AuthorizationManagerUtil.accessDenied("Only certified users may create content in Synapse.");
 		
 		return certifiedUserHasAccess(parentId, CREATE, userInfo);
@@ -212,7 +221,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 			throws NotFoundException, DatastoreException  {
 		
 		if (!userInfo.isAdmin() && 
-			!AuthorizationUtils.isCertifiedUser(userInfo) && 
+			!isCertifiedUseOrFeatureDisabled(userInfo) && 
 				(accessType==CREATE ||
 				(accessType==UPDATE && !nodeDao.getNode(entityId).getNodeType().equals(PROJECT_NODE_TYPE))))
 			return AuthorizationManagerUtil.accessDenied("Only certified users may create or update content in Synapse.");

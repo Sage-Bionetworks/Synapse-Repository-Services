@@ -1508,6 +1508,16 @@ public class StackConfiguration {
 		if (emailDeliveredString==null || emailDeliveredString.length()==0) return false;
 		return Boolean.parseBoolean(emailDeliveredString);
 	}
+	
+	/**
+	 * 
+	 * @return if missing or false then certified user restrictions are in effect.  Setting to true disables.
+	 */
+	public PropertyAccessor<Boolean> getDisableCertifiedUser() {
+		return new StackConfigurationIntegerPropertyAccessor("org.sagebionetworks.disable.certified.user");
+	}
+
+
 
 
 	private static StackConfiguration singleton = new StackConfiguration();
