@@ -7,6 +7,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -31,6 +32,7 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.PaginatedResults;
@@ -70,6 +72,9 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 	private SubmissionStatusDAO submissionStatusDAO;
 	
 	@Autowired
+	private GroupMembersDAO groupMembersDAO;
+	
+	@Autowired
 	private NodeDAO nodeDAO;
 	
 	private Long adminUserId;
@@ -105,6 +110,9 @@ public class EvaluationControllerAutowiredTest extends AbstractAutowiredControll
 		user.setEmail(UUID.randomUUID().toString() + "@test.com");
 		user.setUserName(UUID.randomUUID().toString());
 		testUserId = userManager.createUser(user);
+		 groupMembersDAO.addMembers(
+		BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(),
+		 Collections.singletonList(testUserId.toString()));
 		testUserInfo = userManager.getUserInfo(testUserId);
 		
 		// initialize Evaluations

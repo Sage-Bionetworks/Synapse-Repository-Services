@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.web.controller;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -13,6 +14,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Study;
@@ -31,6 +33,9 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerTes
 	@Autowired
 	private UserManager userManager;
 	
+	@Autowired
+	private GroupMembersDAO groupMembersDAO;
+	
 	private Long adminUserId;
 	private UserInfo adminUserInfo;
 	private Long testUserId;
@@ -48,6 +53,9 @@ public class TrashControllerAutowiredTest extends AbstractAutowiredControllerTes
 		user.setEmail(UUID.randomUUID().toString() + "@test.com");
 		user.setUserName(UUID.randomUUID().toString());
 		testUserId = userManager.createUser(user);
+		groupMembersDAO.addMembers(
+				BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(),
+				Collections.singletonList(testUserId.toString()));
 		testUserInfo = userManager.getUserInfo(testUserId);
 		
 		Assert.assertNotNull(this.entityService);
