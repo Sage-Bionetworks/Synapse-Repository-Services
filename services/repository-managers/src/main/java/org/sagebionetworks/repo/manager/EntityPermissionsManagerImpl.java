@@ -10,6 +10,7 @@ import static org.sagebionetworks.repo.model.ACCESS_TYPE.UPLOAD;
 
 import java.util.List;
 
+import org.sagebionetworks.PropertyAccessor;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -18,20 +19,23 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DomainType;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
-import org.sagebionetworks.repo.model.dbo.dao.AuthorizationUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -55,6 +59,9 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	private UserManager userManager;
 	@Autowired
 	private AuthenticationManager authenticationManager;
+	@Autowired
+	private StackConfiguration configuration;
+
 
 	@Override
 	public AccessControlList getACL(String nodeId, UserInfo userInfo) throws NotFoundException, DatastoreException, ACLInheritanceException {
@@ -177,9 +184,39 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 			}
 		}
 	}
+	
+	private boolean isCertifiedUserOrFeatureDisabled(UserInfo userInfo) {
+		PropertyAccessor<Boolean> pa = configuration.getDisableCertifiedUser();
+		Boolean featureIsDisabled = false;
+		try {
+			featureIsDisabled = pa.get();
+		} catch (NullPointerException npe) {
+			featureIsDisabled = false;
+		}
+		if (featureIsDisabled) return true;
+		return AuthorizationUtils.isCertifiedUser(userInfo);
+	}
+	
+	@Override
+	public AuthorizationStatus canCreate(Node node, UserInfo userInfo) 
+			throws DatastoreException, NotFoundException {
+		if (userInfo.isAdmin()) {
+			return AuthorizationManagerUtil.AUTHORIZED;
+		}
+		String parentId = node.getParentId();
+		if (parentId == null) {
+			return AuthorizationManagerUtil.accessDenied("Cannot create a entity having no parent.");
+		}
 
+		if (!isCertifiedUserOrFeatureDisabled(userInfo) && !node.getNodeType().equals(PROJECT_NODE_TYPE)) 
+			return AuthorizationManagerUtil.accessDenied("Only certified users may create content in Synapse.");
+		
+		return certifiedUserHasAccess(parentId, CREATE, userInfo);
+	}
+
+	private static final String PROJECT_NODE_TYPE = EntityType.getNodeTypeForClass((Class<? extends JSONEntity>)Project.class).name();
+	
 	/**
-	 * Use case:  Need to find out if a user can download a resource.
 	 * 
 	 * @param resource the resource of interest
 	 * @param user
@@ -189,6 +226,32 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	@Override
 	public AuthorizationStatus hasAccess(String entityId, ACCESS_TYPE accessType, UserInfo userInfo)
 			throws NotFoundException, DatastoreException  {
+		
+		if (!userInfo.isAdmin() && 
+			!isCertifiedUserOrFeatureDisabled(userInfo) && 
+				(accessType==CREATE ||
+				(accessType==UPDATE && !nodeDao.getNode(entityId).getNodeType().equals(PROJECT_NODE_TYPE))))
+			return AuthorizationManagerUtil.accessDenied("Only certified users may create or update content in Synapse.");
+		
+		return certifiedUserHasAccess(entityId, accessType, userInfo);
+	}
+		
+	/**
+	 * Answers the authorization check  _without_ checking whether the user is a Certified User.
+	 * In other words, says whether the user _would_ be authorized for the requested access
+	 * if they _were_ a Certified User.  This feature is important to the Web Portal which
+	 * enables certain features, though unauthorized for the user at the moment, redirecting them
+	 * to certification before allowing them through.
+	 * 
+	 * @param entityId
+	 * @param accessType
+	 * @param userInfo
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	public AuthorizationStatus certifiedUserHasAccess(String entityId, ACCESS_TYPE accessType, UserInfo userInfo)
+				throws NotFoundException, DatastoreException  {
 		// In the case of the trash can, throw the EntityInTrashCanException
 		// The only operations allowed over the trash can is CREATE (i.e. moving
 		// items into the trash can) and DELETE (i.e. purging the trash).
@@ -198,6 +261,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 				&& !DELETE.equals(accessType)) {
 			throw new EntityInTrashCanException("Entity " + entityId + " is in trash can.");
 		}
+		
 		// Can download
 		if (accessType == DOWNLOAD) {
 			return canDownload(userInfo, entityId);
@@ -240,15 +304,19 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 
 		UserEntityPermissions permissions = new UserEntityPermissions();
 		permissions.setCanAddChild(hasAccess(entityId, CREATE, userInfo).getAuthorized());
+		permissions.setCanCertifiedUserAddChild(certifiedUserHasAccess(entityId, CREATE, userInfo).getAuthorized());
 		permissions.setCanChangePermissions(hasAccess(entityId, CHANGE_PERMISSIONS, userInfo).getAuthorized());
 		permissions.setCanDelete(hasAccess(entityId, DELETE, userInfo).getAuthorized());
 		permissions.setCanEdit(hasAccess(entityId, UPDATE, userInfo).getAuthorized());
+		permissions.setCanCertifiedUserEdit(certifiedUserHasAccess(entityId, UPDATE, userInfo).getAuthorized());
 		permissions.setCanView(hasAccess(entityId, READ, userInfo).getAuthorized());
 		permissions.setCanDownload(canDownload(userInfo, entityId).getAuthorized());
 		permissions.setCanUpload(canUpload(userInfo, entityId).getAuthorized());
 
 		Node node = nodeDao.getNode(entityId);
 		permissions.setOwnerPrincipalId(node.getCreatedByPrincipalId());
+		
+		permissions.setIsCertifiedUser(AuthorizationUtils.isCertifiedUser(userInfo));
 
 		UserInfo anonymousUser = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
 		permissions.setCanPublicRead(hasAccess(entityId, READ, anonymousUser).getAuthorized());
@@ -288,7 +356,7 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 			return AuthorizationManagerUtil.AUTHORIZED;
 		} else {
 			return AuthorizationManagerUtil.
-					accessDenied("There are unmet access requirements.");
+					accessDenied("There are unmet access requirements that must be met to place content in the requested container.");
 		}
 	}
 

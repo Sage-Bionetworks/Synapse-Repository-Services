@@ -69,4 +69,19 @@ public interface CertifiedUserManager {
 	 * Must be a Synapse admin to make this call.
 	 */
 	public PaginatedResults<PassingRecord> getPassingRecords(UserInfo userInfo, Long principalId, long limit, long offset) throws DatastoreException, NotFoundException;
+
+
+	/**
+	 * For integration testing purposes, this sets the 'certified user' status of the 
+	 * user referred to by 'principalId' to the value given by 'isCertified'.  
+	 * Can only be invoked by a Synapse administrator
+	 * @param userInfo
+	 * @param principalId
+	 * @param isCertified
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public void setUserCertificationStatus(UserInfo userInfo, Long principalId, boolean isCertified) throws DatastoreException, NotFoundException;
+
+
 }

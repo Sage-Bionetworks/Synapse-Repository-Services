@@ -7,7 +7,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.sagebionetworks.evaluation.manager.EvaluationPermissionsManager;
-import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.repo.manager.team.TeamConstants;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessApproval;
@@ -17,6 +16,7 @@ import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ActivityDAO;
+import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -33,7 +33,6 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.asynch.AsynchronousRequestBody;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
-import org.sagebionetworks.repo.model.dbo.dao.AuthorizationUtils;
 import org.sagebionetworks.repo.model.evaluation.EvaluationDAO;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -69,7 +68,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	private FileHandleDao fileHandleDao;
 	@Autowired
 	private AccessControlListDAO aclDAO;
-	
+
 	@Override
 	public AuthorizationStatus canAccess(UserInfo userInfo, String objectId, ObjectType objectType, ACCESS_TYPE accessType)
 			throws DatastoreException, NotFoundException {
@@ -112,21 +111,10 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		}
 	}
 
-	private static boolean isEvalOwner(UserInfo userInfo, Evaluation evaluation) {
-		return evaluation.getOwnerId().equals(userInfo.getId().toString());
-	}
-
 	@Override
 	public AuthorizationStatus canCreate(UserInfo userInfo, final Node node) 
 		throws NotFoundException, DatastoreException {
-		if (userInfo.isAdmin()) {
-			return AuthorizationManagerUtil.AUTHORIZED;
-		}
-		String parentId = node.getParentId();
-		if (parentId == null) {
-			return AuthorizationManagerUtil.accessDenied("Cannot create a entity having no parent.");
-		}
-		return canAccess(userInfo, parentId, ObjectType.ENTITY, ACCESS_TYPE.CREATE);
+		return entityPermissionsManager.canCreate(node, userInfo);
 	}
 
 	@Override
@@ -348,4 +336,5 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 			throw new IllegalArgumentException(e);
 		}
 	}
+
 }

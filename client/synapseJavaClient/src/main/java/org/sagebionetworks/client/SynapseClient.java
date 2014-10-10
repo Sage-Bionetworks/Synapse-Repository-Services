@@ -1701,6 +1701,15 @@ public interface SynapseClient extends BaseClient {
 	public PassingRecord submitCertifiedUserTestResponse(QuizResponse response) throws SynapseException;
 	
 	/**
+	 * For integration testing only:  This allows an administrator to set the Certified user status
+	 * of a user.
+	 * @param prinicipalId
+	 * @param status
+	 * @throws SynapseException
+	 */
+	public void setCertifiedUserStatus(String prinicipalId, boolean status) throws SynapseException;
+	
+	/**
 	 * Must be a Synapse admin to make this request
 	 * 
 	 * @param offset

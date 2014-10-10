@@ -17,6 +17,7 @@ import org.sagebionetworks.cloudwatch.Consumer;
 import org.sagebionetworks.cloudwatch.ProfileData;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
+import org.sagebionetworks.repo.model.AuthorizationUtils;
 import org.sagebionetworks.repo.model.dao.semaphore.CountingSemaphoreDao;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -44,7 +45,7 @@ public class UserThrottleFilter implements Filter {
 			ServletException {
 
 		String userId = request.getParameter(AuthorizationConstants.USER_ID_PARAM);
-		if (BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().toString().equals(userId)) {
+		if (AuthorizationUtils.isUserAnonymous(Long.parseLong(userId))) {
 			chain.doFilter(request, response);
 		} else {
 			try {

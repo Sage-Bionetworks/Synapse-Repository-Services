@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.NameConflictException;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
@@ -532,7 +533,7 @@ public class PrincipalManagerImplUnitTest {
 		manager.additionalEmailValidation(userInfo, email, portalEndpoint, domain);
 	}
 	
-	@Test(expected=IllegalArgumentException.class)
+	@Test(expected=UnauthorizedException.class)
 	public void testAdditionalEmailValidationAnonymous() throws Exception {
 		Long principalId = AuthorizationConstants.BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId();
 		UserInfo userInfo = new UserInfo(false, principalId);

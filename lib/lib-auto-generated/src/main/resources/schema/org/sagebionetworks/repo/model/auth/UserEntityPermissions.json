@@ -14,6 +14,17 @@
 			"type": "boolean",
 			"description": "Can the user add a child entity to this entity?"
 		},
+		"canCertifiedUserEdit": {
+			"type": "boolean",
+			"description": "Can the user edit this entity once they become a Certified User?"
+		},
+		"canCertifiedUserAddChild": {
+			"type": "boolean",
+			"description": "Can the user add a child entity to this entity once they become a Certified User?"
+		},
+		"isCertifiedUser": {
+			"type": "boolean"
+		},
 		"canChangePermissions": {
 			"type": "boolean",
 			"description": "Can the user change the permissions of this entity?"
@@ -28,7 +39,7 @@
 		},
 		"canUpload": {
 			"type": "boolean",
-			"description": "Can the user upload into this entity (folder or project)?"
+			"description": "Are there any access requirements precluding the user from uploading into this entity (folder or project)?"
 		},
 		"canEnableInheritance": {
 			"type": "boolean",

@@ -138,6 +138,7 @@ public class AuthorizationManagerImplTest {
 		
 		// Add new user to new group (in the user's info)
 		userInfo.getGroups().add(Long.parseLong(testGroup.getId()));
+		userInfo.getGroups().add(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
 		
 		// Find some existing principals
 		anonInfo = userManager.getUserInfo(BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId());
@@ -278,6 +279,7 @@ public class AuthorizationManagerImplTest {
 		
 		Node childNode = new Node();
 		childNode.setParentId(node.getId());
+		childNode.setNodeType("file");
 		assertFalse(authorizationManager.canCreate(anonInfo, childNode).getAuthorized());
 		
 		UserEntityPermissions uep = entityPermissionsManager.getUserPermissionsForEntity(anonInfo, node.getId());

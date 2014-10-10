@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QuizResponseDAO;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.quiz.MultichoiceAnswer;
 import org.sagebionetworks.repo.model.quiz.MultichoiceQuestion;
@@ -361,6 +362,21 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 
 		return passingRecord;
 	}
+	
+	@Override
+	public void setUserCertificationStatus(UserInfo userInfo, Long principalId, boolean isCertified) throws DatastoreException, NotFoundException {
+		if (!userInfo.isAdmin()) throw new UnauthorizedException("You are not a Synapse Administrator.");
+		if (isCertified) {
+			groupMembersDao.addMembers(
+					AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(), 
+					Collections.singletonList(principalId.toString()));
+		} else {
+			groupMembersDao.removeMembers(
+					AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId().toString(), 
+					Collections.singletonList(principalId.toString()));
+		}
+	}
+	
 
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.manager.CertifiedUserManager#getQuizResponses(org.sagebionetworks.repo.model.UserInfo, java.lang.Long, java.lang.Long, long, long)

@@ -66,6 +66,7 @@ public class QueryControllerAutowireTest extends AbstractAutowiredControllerTest
 		user.setUserName(UUID.randomUUID().toString());
 		testUserId = userManager.createUser(user);
 		testUserInfo = userManager.getUserInfo(testUserId);
+		testUserInfo.getGroups().add(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
 	}
 	
 	@After

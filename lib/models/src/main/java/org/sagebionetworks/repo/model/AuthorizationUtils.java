@@ -1,8 +1,6 @@
-package org.sagebionetworks.repo.model.dbo.dao;
+package org.sagebionetworks.repo.model;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
-import org.sagebionetworks.repo.model.UserGroup;
-import org.sagebionetworks.repo.model.UserInfo;
 
 public class AuthorizationUtils {
 	
@@ -16,5 +14,16 @@ public class AuthorizationUtils {
 	
 	public static boolean isUserAnonymous(Long id) {
 		return BOOTSTRAP_PRINCIPAL.ANONYMOUS_USER.getPrincipalId().equals(id);
+	}
+	
+	
+	/**
+	 * returns true iff the user is a certified user
+	 * @param userInfo
+	 * @return
+	 */
+	public static boolean isCertifiedUser(UserInfo userInfo) {
+		return userInfo.getGroups()!=null && userInfo.getGroups().contains(
+				AuthorizationConstants.BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
 	}
 }
