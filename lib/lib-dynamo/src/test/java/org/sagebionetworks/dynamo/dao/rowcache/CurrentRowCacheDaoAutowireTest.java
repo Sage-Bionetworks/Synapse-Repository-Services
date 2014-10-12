@@ -333,6 +333,26 @@ public class CurrentRowCacheDaoAutowireTest {
 	}
 
 	@Test
+	public void testBatchingProgress() throws Exception {
+		DynamoDBMapper mockMapper = mock(DynamoDBMapper.class);
+		ReflectionTestUtils.setField(((CurrentRowCacheDaoImpl) ReflectionStaticTestUtils.getTargetObject(currentRowCacheDao)), "mapper",
+				mockMapper);
+		Map<Long, Long> map = Maps.newHashMap();
+		for (long i = 0; i < 51; i++) {
+			map.put(i, 1000 + i);
+		}
+		final AtomicLong messageRef = new AtomicLong(0);
+		currentRowCacheDao.putCurrentVersions(tableId, map, new ProgressCallback<Long>() {
+			@Override
+			public void progressMade(Long message) {
+				messageRef.set(message);
+			}
+		});
+		verify(mockMapper, times(3)).batchSave(anyListOf(Object.class));
+		assertEquals(51L, messageRef.get());
+	}
+
+	@Test
 	public void testBackoff() throws Exception {
 		DynamoDBMapper mockMapper = mock(DynamoDBMapper.class);
 		ReflectionTestUtils.setField(((CurrentRowCacheDaoImpl) ReflectionStaticTestUtils.getTargetObject(currentRowCacheDao)), "mapper",
