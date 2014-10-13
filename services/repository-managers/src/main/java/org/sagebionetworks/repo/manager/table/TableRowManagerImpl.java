@@ -25,6 +25,7 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.semaphore.ExclusiveOrSharedSemaphoreRunner;
@@ -36,7 +37,9 @@ import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.exception.LockUnavilableException;
+import org.sagebionetworks.repo.model.exception.ReadOnlyException;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.*;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
@@ -85,6 +88,9 @@ public class TableRowManagerImpl implements TableRowManager {
 	ConnectionFactory tableConnectionFactory;
 	@Autowired
 	NodeDAO nodeDao;
+	@Autowired
+	StackStatusDao stackStatusDao;
+	
 	/**
 	 * Injected via Spring.
 	 */
@@ -127,7 +133,7 @@ public class TableRowManagerImpl implements TableRowManager {
 		validateRequestSize(models, delta.getRows().size());
 		// For this case we want to capture the resulting RowReferenceSet
 		RowReferenceSet results = new RowReferenceSet();
-		appendRowsAsStream(user, tableId, models, delta.getRows().iterator(), delta.getEtag(), results);
+		appendRowsAsStream(user, tableId, models, delta.getRows().iterator(), delta.getEtag(), results, null);
 		return results;
 	}
 	
@@ -143,7 +149,7 @@ public class TableRowManagerImpl implements TableRowManager {
 		// For this case we want to capture the resulting RowReferenceSet
 		RowReferenceSet results = new RowReferenceSet();
 		RowSet fullRowsToAppendOrUpdate = mergeWithLastVersion(tableId, rowsToAppendOrUpdate, models);
-		appendRowsAsStream(user, tableId, models, fullRowsToAppendOrUpdate.getRows().iterator(), fullRowsToAppendOrUpdate.getEtag(), results);
+		appendRowsAsStream(user, tableId, models, fullRowsToAppendOrUpdate.getRows().iterator(), fullRowsToAppendOrUpdate.getEtag(), results, null);
 		return results;
 	}
 
@@ -264,7 +270,7 @@ public class TableRowManagerImpl implements TableRowManager {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public String appendRowsAsStream(UserInfo user, String tableId, List<ColumnModel> models, Iterator<Row> rowStream, String etag,
-			RowReferenceSet results) throws DatastoreException, NotFoundException, IOException {
+			RowReferenceSet results, ProgressCallback<Long> progressCallback) throws DatastoreException, NotFoundException, IOException {
 		if(user == null) throw new IllegalArgumentException("User cannot be null");
 		if(tableId == null) throw new IllegalArgumentException("TableId cannot be null");
 		if(models == null) throw new IllegalArgumentException("Models cannot be null");
@@ -294,7 +300,7 @@ public class TableRowManagerImpl implements TableRowManager {
 				// Validate there aren't any illegal file handle replaces
 				validateFileHandles(user, tableId, models, delta, etag);
 				// Send this batch and keep the etag.
-				etag = appendBatchOfRowsToTable(user, models, delta, results);
+				etag = appendBatchOfRowsToTable(user, models, delta, results, progressCallback);
 				// Clear the batch
 				count += batch.size();
 				batch.clear();
@@ -306,11 +312,23 @@ public class TableRowManagerImpl implements TableRowManager {
 		if(!batch.isEmpty()){
 			// Validate there aren't any illegal file handle replaces
 			validateFileHandles(user, tableId, models, delta, etag);
-			etag = appendBatchOfRowsToTable(user, models, delta, results);
+			etag = appendBatchOfRowsToTable(user, models, delta, results, progressCallback);
 		}
 		// The table has change so we must reset the state.
 		tableStatusDAO.resetTableStatusToProcessing(tableId);
 		return etag;
+	}
+
+	/**
+	 * Check that stack's status is set to READ_WRITE.
+	 * @throws ReadOnlyException Thrown if the stack status is anything other than READ_WRITE.
+	 */
+	private void checkStackWiteStatus() throws ReadOnlyException {
+		StatusEnum status = stackStatusDao.getCurrentStatus();
+		if(!StatusEnum.READ_WRITE.equals(status)){
+			throw new ReadOnlyException("Write operations are not allowed while the stack status is set to: "+status.name());
+		}
+		
 	}
 
 	/**
@@ -324,10 +342,16 @@ public class TableRowManagerImpl implements TableRowManager {
 	 * @param batch
 	 * @return
 	 * @throws IOException
+	 * @throws ReadOnlyException If the stack status is anything other than READ_WRITE
 	 */
-	private String appendBatchOfRowsToTable(UserInfo user, List<ColumnModel> models, RowSet delta, RowReferenceSet results)
-			throws IOException {
+	private String appendBatchOfRowsToTable(UserInfo user, List<ColumnModel> models, RowSet delta, RowReferenceSet results, ProgressCallback<Long> progressCallback)
+			throws IOException, ReadOnlyException {
+		// See PLFM-3041
+		checkStackWiteStatus();
 		RowReferenceSet rrs = tableRowTruthDao.appendRowSetToTable(user.getId().toString(), delta.getTableId(), models, delta, false);
+		if(progressCallback != null){
+			progressCallback.progressMade(new Long(rrs.getRows().size()));
+		}
 		if(results != null){
 			results.setEtag(rrs.getEtag());
 			results.setHeaders(delta.getHeaders());

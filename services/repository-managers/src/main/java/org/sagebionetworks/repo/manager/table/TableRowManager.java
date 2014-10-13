@@ -123,6 +123,7 @@ public interface TableRowManager {
 	 *            with a RowReference for each row appended to the table. This
 	 *            parameter should be null for large change sets to minimize
 	 *            memory usage.
+	 * @param The callback will be called for each batch of rows appended to the table.  Can be null.
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
@@ -130,7 +131,7 @@ public interface TableRowManager {
 	 */
 	String appendRowsAsStream(UserInfo user, String tableId,
 			List<ColumnModel> models, Iterator<Row> rowStream, String etag,
-			RowReferenceSet results) throws DatastoreException,
+			RowReferenceSet results, ProgressCallback<Long> progressCallback) throws DatastoreException,
 			NotFoundException, IOException;
 
 	/**

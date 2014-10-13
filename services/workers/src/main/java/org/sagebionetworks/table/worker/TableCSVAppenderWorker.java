@@ -2,7 +2,6 @@ package org.sagebionetworks.table.worker;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.Reader;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -24,6 +23,7 @@ import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.UploadToTableRequest;
 import org.sagebionetworks.repo.model.table.UploadToTableResult;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.util.ProgressCallback;
 import org.sagebionetworks.util.csv.CsvNullReader;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -89,7 +89,7 @@ public class TableCSVAppenderWorker implements Worker {
 	public Message processMessage(Message message) throws Throwable{
 		// First read the body
 		AsynchronousJobStatus status = extractStatus(message);
-		processStatus(status);
+		processStatus(message, status);
 		return message;
 	}
 
@@ -97,7 +97,7 @@ public class TableCSVAppenderWorker implements Worker {
 	 * @param status
 	 * @throws Throwable 
 	 */
-	public void processStatus(AsynchronousJobStatus status) throws Throwable {
+	public void processStatus(final Message message, AsynchronousJobStatus status) throws Throwable {
 		CsvNullReader reader = null;
 		try{
 			UserInfo user = userManger.getUserInfo(status.getStartedByUserId());
@@ -127,10 +127,17 @@ public class TableCSVAppenderWorker implements Worker {
 			CSVToRowIterator iterator = new CSVToRowIterator(tableSchema, reader, isFirstLineHeader);
 			ProgressingIteratorProxy iteratorProxy = new  ProgressingIteratorProxy(iterator, progressReporter);
 			// Append the data to the table
-			String etag = tableRowManager.appendRowsAsStream(user, body.getTableId(), tableSchema, iteratorProxy, body.getUpdateEtag(), null);
+			String etag = tableRowManager.appendRowsAsStream(user, body.getTableId(), tableSchema, iteratorProxy, body.getUpdateEtag(), null, new ProgressCallback<Long>(){
+
+				@Override
+				public void progressMade(Long count) {
+					if(workerProgress != null){
+						workerProgress.progressMadeForMessage(message);
+					}
+				}});
 			// Done
 			UploadToTableResult result = new UploadToTableResult();
-			result.setRowsProcessed(new Long(progressReporter.getRowNumber() + 1));
+			result.setRowsProcessed(Long.valueOf(progressReporter.getRowNumber() + 1));
 			result.setEtag(etag);
 			asynchJobStatusManager.setComplete(status.getJobId(), result);
 		}catch(Throwable e){
