@@ -43,6 +43,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.semaphore.ExclusiveOrSharedSemaphoreRunner;
@@ -55,6 +56,8 @@ import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.exception.LockUnavilableException;
+import org.sagebionetworks.repo.model.exception.ReadOnlyException;
+import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.PartialRow;
@@ -78,6 +81,7 @@ import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.util.Pair;
+import org.sagebionetworks.util.ProgressCallback;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
@@ -85,6 +89,8 @@ import com.google.common.collect.Sets;
 
 public class TableRowManagerImplTest {
 	
+	ProgressCallback<Long> mockProgressCallback;
+	StackStatusDao mockStackStatusDao;
 	TableRowTruthDAO mockTruthDao;
 	AuthorizationManager mockAuthManager;
 	TableStatusDAO mockTableStatusDAO;
@@ -117,7 +123,9 @@ public class TableRowManagerImplTest {
 		mockTableConnectionFactory = Mockito.mock(ConnectionFactory.class);
 		mockTableIndexDAO = Mockito.mock(TableIndexDAO.class);
 		mockExclusiveOrSharedSemaphoreRunner = Mockito.mock(ExclusiveOrSharedSemaphoreRunner.class);
-		
+		mockStackStatusDao = Mockito.mock(StackStatusDao.class);
+		mockProgressCallback = Mockito.mock(ProgressCallback.class);
+
 		// Just call the caller.
 		stub(mockExclusiveOrSharedSemaphoreRunner.tryRunWithSharedLock(anyString(), anyLong(), any(Callable.class))).toAnswer(new Answer<String>() {
 			@Override
@@ -190,7 +198,7 @@ public class TableRowManagerImplTest {
 				return true;
 			}
 		});	
-		
+		ReflectionTestUtils.setField(manager, "stackStatusDao", mockStackStatusDao);
 		ReflectionTestUtils.setField(manager, "tableRowTruthDao", mockTruthDao);
 		ReflectionTestUtils.setField(manager, "authorizationManager", mockAuthManager);
 		ReflectionTestUtils.setField(manager, "tableStatusDAO", mockTableStatusDAO);
@@ -199,7 +207,8 @@ public class TableRowManagerImplTest {
 		ReflectionTestUtils.setField(manager, "tableConnectionFactory", mockTableConnectionFactory);
 		ReflectionTestUtils.setField(manager, "exclusiveOrSharedSemaphoreRunner", mockExclusiveOrSharedSemaphoreRunner);
 		ReflectionTestUtils.setField(manager, "tableReadTimeoutMS", 5000L);
-		
+		// read-write be default.
+		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_WRITE);
 		rowIdSequence = 0;
 		rowVersionSequence = 0;
 		// Stub the dao 
@@ -243,7 +252,7 @@ public class TableRowManagerImplTest {
 	@Test (expected=UnauthorizedException.class)
 	public void testAppendRowsAsStreamUnauthroized() throws DatastoreException, NotFoundException, IOException{
 		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.ACCESS_DENIED);
-		manager.appendRowsAsStream(user, tableId, models, set.getRows().iterator(), "etag", null);
+		manager.appendRowsAsStream(user, tableId, models, set.getRows().iterator(), "etag", null, mockProgressCallback);
 	}
 	
 	@Test
@@ -276,11 +285,12 @@ public class TableRowManagerImplTest {
 				mockTruthDao.appendRowSetToTable(any(String.class), any(String.class), anyListOf(ColumnModel.class), any(RowSet.class),
 						anyBoolean())).thenReturn(refSet);
 		RowReferenceSet results = new RowReferenceSet();
-		String etag = manager.appendRowsAsStream(user, tableId, models, set.getRows().iterator(), "etag", results);
+		String etag = manager.appendRowsAsStream(user, tableId, models, set.getRows().iterator(), "etag", results, mockProgressCallback);
 		assertEquals(refSet, results);
 		assertEquals(refSet.getEtag(), etag);
 		// verify the table status was set
 		verify(mockTableStatusDAO, times(1)).resetTableStatusToProcessing(tableId);
+		verify(mockProgressCallback).progressMade(anyLong());
 	}
 	
 	@Test
@@ -314,7 +324,7 @@ public class TableRowManagerImplTest {
 		// With a batch size of three, a total of ten rows should end up in 4 batches (3,3,3,1).	
 		manager.setMaxBytesPerChangeSet(maxBytesPerRow*3);
 		RowReferenceSet results = new RowReferenceSet();
-		String etag = manager.appendRowsAsStream(user, tableId, models, set.getRows().iterator(), "etag", results);
+		String etag = manager.appendRowsAsStream(user, tableId, models, set.getRows().iterator(), "etag", results, mockProgressCallback);
 		assertEquals("etag3", etag);
 		assertEquals(tableId, results.getTableId());
 		assertEquals(etag, results.getEtag());
@@ -328,6 +338,7 @@ public class TableRowManagerImplTest {
 		assertEquals(new Long(3), results.getRows().get(9).getVersionNumber());
 		// verify the table status was set
 		verify(mockTableStatusDAO, times(1)).resetTableStatusToProcessing(tableId);
+		verify(mockProgressCallback, times(4)).progressMade(anyLong());
 	}
 
 	@Test(expected = IllegalArgumentException.class)
@@ -949,5 +960,33 @@ public class TableRowManagerImplTest {
 		List<ColumnModel> models = manager.getColumnsForHeaders(headers);
 		assertNotNull(models);
 		assertEquals(3, models.size());
+	}
+	
+	@Test (expected=ReadOnlyException.class)
+	public void testPLFM_3041ReadOnly() throws Exception{
+		// Start in read-write then go to read-only
+		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_WRITE, StatusEnum.READ_WRITE, StatusEnum.READ_ONLY);
+		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockAuthManager.canAccessRawFileHandleById(eq(user), anyString())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		int maxBytesPerRow = TableModelUtils.calculateMaxRowSize(models);
+		// With a batch size of three, a total of ten rows should end up in 4 batches (3,3,3,1).	
+		manager.setMaxBytesPerChangeSet(maxBytesPerRow*3);
+		RowReferenceSet results = new RowReferenceSet();
+		manager.appendRowsAsStream(user, tableId, models, set.getRows().iterator(), "etag", results, mockProgressCallback);
+		verify(mockProgressCallback, times(2)).progressMade(anyLong());
+	}
+	
+	@Test (expected=ReadOnlyException.class)
+	public void testPLFM_3041Down() throws Exception{
+		// Start in read-write then go to down
+		when(mockStackStatusDao.getCurrentStatus()).thenReturn(StatusEnum.READ_WRITE, StatusEnum.READ_WRITE, StatusEnum.DOWN);
+		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockAuthManager.canAccessRawFileHandleById(eq(user), anyString())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		int maxBytesPerRow = TableModelUtils.calculateMaxRowSize(models);
+		// With a batch size of three, a total of ten rows should end up in 4 batches (3,3,3,1).	
+		manager.setMaxBytesPerChangeSet(maxBytesPerRow*3);
+		RowReferenceSet results = new RowReferenceSet();
+		manager.appendRowsAsStream(user, tableId, models, set.getRows().iterator(), "etag", results, mockProgressCallback);
+		verify(mockProgressCallback, times(2)).progressMade(anyLong());
 	}
 }
