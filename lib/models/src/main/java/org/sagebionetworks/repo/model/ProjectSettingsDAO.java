@@ -9,7 +9,7 @@ public interface ProjectSettingsDAO {
 
 	public String create(ProjectSetting settings) throws DatastoreException, InvalidModelException;
 
-	public ProjectSetting get(String id) throws DatastoreException;
+	public ProjectSetting get(String id) throws DatastoreException, NotFoundException;
 
 	public ProjectSetting get(String projectId, String type) throws DatastoreException;
 

@@ -23,6 +23,12 @@ public class ProjectSettingsServiceImpl implements ProjectSettingsService {
 	}
 
 	@Override
+	public ProjectSetting getProjectSettingByProjectAndType(Long userId, String projectId, String type) throws DatastoreException, NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return projectSettingsManager.getProjectSettingByProjectAndType(userInfo, projectId, type);
+	}
+
+	@Override
 	public ProjectSetting createProjectSetting(Long userId, ProjectSetting projectSetting) throws DatastoreException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return projectSettingsManager.createProjectSetting(userInfo, projectSetting);

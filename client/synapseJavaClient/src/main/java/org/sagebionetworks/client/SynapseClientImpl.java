@@ -308,6 +308,8 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	
 	private static final String ETAG = "etag";
 
+	private static final String PROJECT_SETTINGS = "/projectSettings";
+
 	// web request pagination parameters
 	public static final String LIMIT = "limit";
 	public static final String OFFSET = "offset";
@@ -5019,22 +5021,54 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	}
 
 	@Override
-	public ProjectSetting createProjectSetting(ProjectSetting projectSetting) throws SynapseException {
+	public ProjectSetting getProjectSetting(String projectId, String settingsType) throws SynapseException {
 		try {
-			JSONObject jsonObject = EntityFactory.createJSONObjectForEntity(projectSetting);
-			jsonObject = createJSONObject("/projectSettings", jsonObject);
-			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObject);
-			ProjectSetting obj = (ProjectSetting) autoGenFactory.newInstance(projectSetting.getConcreteType());
-			Iterator<String> it = adapter.keys();
-			while (it.hasNext()) {
-				String s = it.next();
-				log.trace(s);
-			}
-			obj.initializeFromJSONObject(adapter);
-			return obj;
+			String uri = PROJECT_SETTINGS + "/" + projectId + "/type/" + settingsType;
+			JSONObject jsonObject = getSharedClientConnection().getJson(repoEndpoint, uri, getUserAgent());
+			return createJsonObjectFromInterface(jsonObject, ProjectSetting.class);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseClientException(e);
 		}
+	}
+
+	@Override
+	public ProjectSetting createProjectSetting(ProjectSetting projectSetting) throws SynapseException {
+		try {
+			JSONObject jsonObject = EntityFactory.createJSONObjectForEntity(projectSetting);
+			jsonObject = getSharedClientConnection().postJson(repoEndpoint, PROJECT_SETTINGS, jsonObject.toString(), getUserAgent(), null);
+			return createJsonObjectFromInterface(jsonObject, ProjectSetting.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+
+	@Override
+	public void updateProjectSetting(ProjectSetting projectSetting) throws SynapseException {
+		try {
+			JSONObject jsonObject = EntityFactory.createJSONObjectForEntity(projectSetting);
+			getSharedClientConnection().putJson(repoEndpoint, PROJECT_SETTINGS, jsonObject.toString(), getUserAgent());
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseClientException(e);
+		}
+	}
+
+	@Override
+	public void deleteProjectSetting(String projectSettingsId) throws SynapseException {
+		String uri = PROJECT_SETTINGS + "/" + projectSettingsId;
+		getSharedClientConnection().deleteUri(repoEndpoint, uri, getUserAgent());
+	}
+
+	@SuppressWarnings("unchecked")
+	private <T extends JSONEntity> T createJsonObjectFromInterface(JSONObject jsonObject, Class<T> expectedType)
+			throws JSONObjectAdapterException {
+		if (jsonObject == null) {
+			return null;
+		}
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObject);
+		String concreteType = adapter.getString("concreteType");
+		JSONEntity obj = autoGenFactory.newInstance(concreteType);
+		obj.initializeFromJSONObject(adapter);
+		return (T) obj;
 	}
 
 	/**

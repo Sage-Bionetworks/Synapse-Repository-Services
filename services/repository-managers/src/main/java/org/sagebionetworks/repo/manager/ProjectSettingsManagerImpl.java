@@ -57,6 +57,16 @@ public class ProjectSettingsManagerImpl implements ProjectSettingsManager {
 		return projectSetting;
 	}
 
+	@Override
+	public ProjectSetting getProjectSettingByProjectAndType(UserInfo userInfo, String projectId, String type) throws DatastoreException,
+			NotFoundException {
+		if (!authorizationManager.canAccess(userInfo, projectId, ObjectType.ENTITY, ACCESS_TYPE.READ).getAuthorized()) {
+			throw new UnauthorizedException("Cannot read information from this project");
+		}
+		ProjectSetting projectSetting = projectSettingsDao.get(projectId, type);
+		return projectSetting;
+	}
+
 	@SuppressWarnings("unchecked")
 	@Override
 	public <T extends ProjectSetting> T getProjectSettingForParent(UserInfo userInfo, String parentId, String type, Class<T> expectedType)

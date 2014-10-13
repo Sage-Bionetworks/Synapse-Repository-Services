@@ -2,6 +2,7 @@ package org.sagebionetworks;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -23,6 +24,7 @@ import org.sagebionetworks.client.SynapseAdminClient;
 import org.sagebionetworks.client.SynapseAdminClientImpl;
 import org.sagebionetworks.client.SynapseClient;
 import org.sagebionetworks.client.SynapseClientImpl;
+import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseClientException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
@@ -34,6 +36,7 @@ import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.project.ExternalUploadDestinationSetting;
+import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationSetting;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -259,6 +262,45 @@ public class IT049FileHandleTest {
 		assertEquals("NOT_SET", clone.getContentType());
 	}
 	
+	@Test
+	public void testProjectSettingsCrud() throws SynapseException, IOException, InterruptedException {
+		// create an project setting
+		UploadDestinationListSetting projectSetting = new UploadDestinationListSetting();
+		projectSetting.setProjectId(project.getId());
+		projectSetting.setSettingsType("upload");
+		ExternalUploadDestinationSetting destination = new ExternalUploadDestinationSetting();
+		destination.setUploadType(UploadType.HTTPS);
+		destination.setUrl("https://not-valid");
+		projectSetting.setDestinations(Collections.<UploadDestinationSetting> singletonList(destination));
+
+		ProjectSetting created = synapse.createProjectSetting(projectSetting);
+		assertEquals(project.getId(), created.getProjectId());
+		assertEquals("upload", created.getSettingsType());
+		assertEquals(UploadDestinationListSetting.class, created.getClass());
+		assertEquals(projectSetting.getDestinations(), ((UploadDestinationListSetting) created).getDestinations());
+
+		ProjectSetting clone = synapse.getProjectSetting(project.getId(), "upload");
+		assertEquals(created, clone);
+
+		try {
+			ProjectSetting clone2 = synapse.getProjectSetting(project.getId(), "upload");
+			clone2.setSettingsType("notupload");
+			synapse.updateProjectSetting(clone2);
+			fail("Should not have succeeded, you cannot change the settings type");
+		} catch (SynapseBadRequestException e) {
+		}
+		((ExternalUploadDestinationSetting) ((UploadDestinationListSetting) clone).getDestinations().get(0)).setUrl("sftp://not-valid");
+		synapse.updateProjectSetting(clone);
+
+		ProjectSetting newClone = synapse.getProjectSetting(project.getId(), "upload");
+		assertEquals("sftp://not-valid",
+				((ExternalUploadDestinationSetting) ((UploadDestinationListSetting) newClone).getDestinations().get(0)).getUrl());
+
+		synapse.deleteProjectSetting(created.getId());
+
+		assertNull(synapse.getProjectSetting(project.getId(), "upload"));
+	}
+
 	@Test(expected = NotImplementedException.class)
 	public void testExternalUploadDestinationSingleFileRoundTrip() throws SynapseException, IOException, InterruptedException {
 		// create an project setting
@@ -297,6 +339,16 @@ public class IT049FileHandleTest {
 		// } catch (SynapseNotFoundException e) {
 		// // expected.
 		// }
+	}
+
+	@Test
+	public void testCreateSFTPExternalFile() throws Exception {
+		ExternalFileHandle efh = new ExternalFileHandle();
+		efh.setContentType(null);
+		efh.setFileName(null);
+		efh.setExternalURL("sftp://somewhere.com");
+		ExternalFileHandle clone = synapse.createExternalFileHandle(efh);
+		toDelete.add(clone);
 	}
 
 	/**

@@ -1799,6 +1799,33 @@ public interface SynapseClient extends BaseClient {
 	ProjectSetting createProjectSetting(ProjectSetting projectSetting) throws SynapseException;
 
 	/**
+	 * create a project setting
+	 * 
+	 * @param projectId
+	 * @param projectSetting
+	 * @throws SynapseException
+	 */
+	ProjectSetting getProjectSetting(String projectId, String settingsType) throws SynapseException;
+
+	/**
+	 * create a project setting
+	 * 
+	 * @param projectId
+	 * @param projectSetting
+	 * @throws SynapseException
+	 */
+	void updateProjectSetting(ProjectSetting projectSetting) throws SynapseException;
+
+	/**
+	 * create a project setting
+	 * 
+	 * @param projectId
+	 * @param projectSetting
+	 * @throws SynapseException
+	 */
+	void deleteProjectSetting(String projectSettingsId) throws SynapseException;
+
+	/**
 	 * Start a job to generate a preivew for an upload CSV to Table.
 	 * Get the results using {@link #uploadCsvToTablePreviewAsyncGet(String)}
 	 * @param request
