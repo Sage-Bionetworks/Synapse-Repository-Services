@@ -484,10 +484,10 @@ public class UploadController extends BaseController {
 	 * @throws NotFoundException
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = "/uploadDestinations/{parentId}", method = RequestMethod.GET)
+	@RequestMapping(value = UrlHelpers.ENTITY_ID + "/uploadDestinations", method = RequestMethod.GET)
 	public @ResponseBody
 	ListWrapper<UploadDestination> getUploadDestinations(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
-			@PathVariable String parentId) throws DatastoreException, NotFoundException {
+			@PathVariable(value = "id") String parentId) throws DatastoreException, NotFoundException {
 		List<UploadDestination> uploadDestinations = fileService.getUploadDestinations(userId, parentId);
 		return ListWrapper.wrap(uploadDestinations, UploadDestination.class);
 	}
