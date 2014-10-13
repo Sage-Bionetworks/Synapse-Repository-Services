@@ -137,7 +137,7 @@ public class TableCSVAppenderWorker implements Worker {
 				}});
 			// Done
 			UploadToTableResult result = new UploadToTableResult();
-			result.setRowsProcessed(new Long(progressReporter.getRowNumber() + 1));
+			result.setRowsProcessed(Long.valueOf(progressReporter.getRowNumber() + 1));
 			result.setEtag(etag);
 			asynchJobStatusManager.setComplete(status.getJobId(), result);
 		}catch(Throwable e){
