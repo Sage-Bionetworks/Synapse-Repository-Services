@@ -20,7 +20,6 @@ import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
-import org.apache.commons.lang.StringUtils;
 import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dao.table.RowSetAccessor;
@@ -40,6 +39,7 @@ import org.sagebionetworks.util.csv.CsvNullReader;
 import au.com.bytecode.opencsv.CSVWriter;
 
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
@@ -111,8 +111,7 @@ public class TableModelUtils {
 	 * @param models
 	 * @param set
 	 */
-	public static void validateAndWriteToCSV(List<ColumnModel> models,
- RowSet set, CSVWriter out, boolean isDeletion) {
+	public static void validateAndWriteToCSV(List<ColumnModel> models, RowSet set, CSVWriter out, boolean isDeletion) {
 		if (models == null)
 			throw new IllegalArgumentException("Models cannot be null");
 		validateRowSet(set);
@@ -867,6 +866,8 @@ public class TableModelUtils {
 			ColumnModel cm = map.get(id);
 			if(cm != null){
 				columnName = cm.getName();
+			} else {
+				columnName = id;
 			}
 			outHeaderList.add(columnName);
 		}
@@ -953,14 +954,20 @@ public class TableModelUtils {
 
 			private Map<String, Integer> columnIdToIndexMap = null;
 			private Map<Long, RowAccessor> rowIdToRowMap = null;
-			private List<RowAccessor> rows = null;
+			private List<RowAccessor> newRows = null;
 
 			@Override
-			public Collection<RowAccessor> getRows() {
-				if (rows == null) {
-					rows = Lists.newArrayListWithCapacity(rowset.getRows().size());
+			public Iterable<RowAccessor> getRows() {
+				Collection<RowAccessor> rows = getRowIdToRowMap().values();
+				return Iterables.concat(newRows, rows);
+			}
+
+			public Map<Long, RowAccessor> getRowIdToRowMap() {
+				if (rowIdToRowMap == null) {
+					rowIdToRowMap = Maps.newHashMap();
+					newRows = Lists.newLinkedList();
 					for (final Row row : rowset.getRows()) {
-						rows.add(new RowAccessor() {
+						RowAccessor rowAccessor = new RowAccessor() {
 							public String getCell(String columnId) {
 								Integer index = getColumnIdToIndexMap().get(columnId);
 								if (row.getValues() == null || index >= row.getValues().size()) {
@@ -973,20 +980,12 @@ public class TableModelUtils {
 							public Row getRow() {
 								return row;
 							}
-						});
-					}
-				}
-				return rows;
-			}
-
-			public Map<Long, RowAccessor> getRowIdToRowMap() {
-				if (rowIdToRowMap == null) {
-					rowIdToRowMap = Maps.newHashMap();
-					for (final RowAccessor row : getRows()) {
-						if (row.getRow().getRowId() == null) {
-							throw new IllegalArgumentException("Cannot handle new rows in RowSetAccessor, access by id");
+						};
+						if (rowAccessor.getRow().getRowId() == null) {
+							newRows.add(rowAccessor);
+						} else {
+							rowIdToRowMap.put(rowAccessor.getRow().getRowId(), rowAccessor);
 						}
-						rowIdToRowMap.put(row.getRow().getRowId(), row);
 					}
 				}
 				return rowIdToRowMap;

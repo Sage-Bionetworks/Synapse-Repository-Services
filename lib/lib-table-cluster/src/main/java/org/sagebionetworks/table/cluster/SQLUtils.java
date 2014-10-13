@@ -7,6 +7,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.lang.StringEscapeUtils;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
@@ -38,8 +40,11 @@ public class SQLUtils {
 	public static final String ROW_VERSION_BIND = "bRV";
 	public static final String DEFAULT = "DEFAULT";
 	public static final String TABLE_PREFIX = "T";
-	public static final String COLUMN_PREFIX = "C";
+	private static final String COLUMN_PREFIX = "_C";
+	private static final String COLUMN_POSTFIX = "_";
 	public static final String TABLE_STATUS_POSTFIX = "S";
+
+	private static final Pattern COLUMN_NAME_PATTERN = Pattern.compile(COLUMN_PREFIX + "(\\d+)" + COLUMN_POSTFIX);
 	
 	/**
 	 * Generate the SQL need to create or alter a table from one schema to
@@ -396,7 +401,11 @@ public class SQLUtils {
 	public static String getColumnNameForId(String columnId) {
 		if (columnId == null)
 			throw new IllegalArgumentException("Column ID cannot be null");
-		return COLUMN_PREFIX + columnId.toString();
+		return COLUMN_PREFIX + columnId.toString() + COLUMN_POSTFIX;
+	}
+
+	public static void appendColumnName(ColumnModel column, StringBuilder builder) {
+		builder.append(COLUMN_PREFIX).append(column.getId()).append(COLUMN_POSTFIX);
 	}
 
 	/**
@@ -408,18 +417,36 @@ public class SQLUtils {
 	public static String getColumnIdForColumnName(String columnName) {
 		if (columnName == null)
 			throw new IllegalArgumentException("Column name cannot be null");
-		return columnName.substring(COLUMN_PREFIX.length());
+		Matcher matcher = COLUMN_NAME_PATTERN.matcher(columnName);
+		if(!matcher.matches()){
+			throw new IllegalArgumentException("name '" + columnName + "' is not a column name");
+		}
+		return matcher.group(1);
 	}
-	
+
+	public static String replaceColumnNames(String name, Map<Long, ColumnModel> columnIdToModelMap) {
+		Matcher matcher = COLUMN_NAME_PATTERN.matcher(name);
+		StringBuffer sb = new StringBuffer();
+		while (matcher.find()) {
+			String columnId = matcher.group(1);
+			ColumnModel columnModel = columnIdToModelMap.get(Long.parseLong(columnId));
+			if (columnModel != null) {
+				matcher.appendReplacement(sb, columnModel.getName());
+			}
+		}
+		matcher.appendTail(sb);
+		return sb.toString();
+	}
+
 	/**
 	 * Does the column name start with the column prefix?
 	 * @param columnName
 	 * @return
 	 */
-	public static boolean hasColumnPrefixe(String columnName){
+	public static boolean isColumnName(String columnName){
 		if (columnName == null)
 			throw new IllegalArgumentException("Column name cannot be null");
-		return columnName.startsWith(COLUMN_PREFIX);
+		return COLUMN_NAME_PATTERN.matcher(columnName).matches();
 	}
 	
 	/**
@@ -458,7 +485,7 @@ public class SQLUtils {
 		List<String> results = new LinkedList<String>();
 		if(names == null) return null;
 		for(String name: names){
-			if(hasColumnPrefixe(name)){
+			if(isColumnName(name)){
 				String columId = getColumnIdForColumnName(name);
 				results.add(columId);
 			}

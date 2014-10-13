@@ -179,7 +179,7 @@ public class SQLTranslatorUtils {
 			// Lookup the ID for this column
 			ColumnModel column = columnNameToModelMap.get(columnName.trim());
 			if(column == null) throw new IllegalArgumentException("Unknown column name: "+columnName);
-			builder.append(SQLUtils.COLUMN_PREFIX).append(column.getId());
+			SQLUtils.appendColumnName(column, builder);
 			if(columnReference.getNameRHS() != null){
 				String subName = getStringValueOf(columnReference.getNameRHS());
 				// Remove double quotes if they are included.

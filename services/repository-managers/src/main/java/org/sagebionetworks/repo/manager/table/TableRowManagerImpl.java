@@ -60,6 +60,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.google.common.base.Function;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -898,28 +899,33 @@ public class TableRowManagerImpl implements TableRowManager {
 	 * @throws TableFailedException
 	 */
 	@Override
-	public DownloadFromTableResult runConsistentQueryAsStream(String sql, final CSVWriterStream writer, final boolean includeRowIdAndVersion)
+	public DownloadFromTableResult runConsistentQueryAsStream(String sql, final CSVWriterStream writer, boolean includeRowIdAndVersion)
 			throws TableUnavilableException, NotFoundException, TableFailedException {
 		// Convert to a query.
 		final SqlQuery query = createQuery(sql);
 		if(includeRowIdAndVersion && query.isAggregatedResult()){
-			throw new IllegalArgumentException("Cannot include ROW_ID and ROW_VERSION for aggregate queries");
+			// PLFM-2993: in the case of an aggregated result, we cannot return row id and row versions. Just don't
+			// return them if it is an aggregated query
+			includeRowIdAndVersion = false;
 		}
 		final DownloadFromTableResult repsonse = new DownloadFromTableResult();
+		final boolean includeRowIdAndVersionFinal = includeRowIdAndVersion;
 		repsonse.setTableId(query.getTableId());
 		runConsistentQueryAsStream(Collections.singletonList(new QueryHandler(query, new RowAndHeaderHandler() {
 
 			@Override
 			public void nextRow(Row row) {
-				String[] array = TableModelUtils.writeRowToStringArray(row, includeRowIdAndVersion);
+				String[] array = TableModelUtils.writeRowToStringArray(row, includeRowIdAndVersionFinal);
 				writer.writeNext(array);
 			}
 			@Override
 			public void setHeaderColumnIds(List<String> headers) {
 				// Capture the headers
 				repsonse.setHeaders(headers);
-				// The headers passed here are the column IDs.  Use the IDs to create a name header
-				String[] header = TableModelUtils.createColumnNameHeader(headers, query.getcolumnNameToModelMap().values(), includeRowIdAndVersion);
+				// The headers passed here can be the column IDs. Use the IDs to create a name header or
+				// return the name itself
+				String[] header = TableModelUtils.createColumnNameHeader(headers, query.getcolumnNameToModelMap().values(),
+						includeRowIdAndVersionFinal);
 				writer.writeNext(header);
 			}
 
@@ -1057,7 +1063,7 @@ public class TableRowManagerImpl implements TableRowManager {
 			}
 		}
 
-		if (fileHandlesToCheckAccessor.getRows().isEmpty()) {
+		if (Iterables.isEmpty(fileHandlesToCheckAccessor.getRows())) {
 			// all new rows and all file handles owned by user or null: success!
 			return;
 		}
@@ -1074,14 +1080,14 @@ public class TableRowManagerImpl implements TableRowManager {
 
 		for (Iterator<RowAccessor> rowIter = fileHandlesToCheckAccessor.getRows().iterator(); rowIter.hasNext();) {
 			RowAccessor row = rowIter.next();
-			String unownedFileHandle = checkRowForUnownedFileHandle(row, fileHandleColumns, ownedFileHandles, unownedFileHandles);
+			String unownedFileHandle = checkRowForUnownedFileHandle(user, row, fileHandleColumns, ownedFileHandles, unownedFileHandles);
 			if (unownedFileHandle == null) {
 				// No unowned file handles, so no need to check previous values
 				rowIter.remove();
 			}
 		}
 
-		if (fileHandlesToCheckAccessor.getRows().isEmpty()) {
+		if (Iterables.isEmpty(fileHandlesToCheckAccessor.getRows())) {
 			// all file handles null or owned by calling user: success!
 			return;
 		}
@@ -1119,8 +1125,8 @@ public class TableRowManagerImpl implements TableRowManager {
 		}
 	}
 
-	private String checkRowForUnownedFileHandle(RowAccessor row, List<String> fileHandleColumns, Set<String> ownedFileHandles,
-			Set<String> unownedFileHandles) {
+	private String checkRowForUnownedFileHandle(UserInfo userInfo, RowAccessor row, List<String> fileHandleColumns,
+			Set<String> ownedFileHandles, Set<String> unownedFileHandles) throws NotFoundException {
 		for (String fileHandleColumn : fileHandleColumns) {
 			String fileHandleId = row.getCell(fileHandleColumn);
 			if (fileHandleId == null) {
@@ -1135,7 +1141,12 @@ public class TableRowManagerImpl implements TableRowManager {
 				// We don't own this one.
 				return fileHandleId;
 			}
-			throw new DatastoreException("File handle was not processed for access");
+			// somehow didn't show up in owned or unowned. Run separate access check
+			if (authorizationManager.canAccessRawFileHandleById(userInfo, fileHandleId).getAuthorized()) {
+				continue;
+			} else {
+				return fileHandleId;
+			}
 		}
 		return null;
 	}

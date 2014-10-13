@@ -40,6 +40,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -527,7 +528,7 @@ public class TableRowTruthDAOImplTest {
 
 		assertEquals(7, rowVersions.size());
 		RowSetAccessor latestVersions = tableRowTruthDao.getLatestVersionsWithRowData(tableId, rowVersions.keySet(), 0L);
-		assertEquals(7, latestVersions.getRows().size());
+		assertEquals(7, Iterables.size(latestVersions.getRows()));
 		for (RowAccessor row : latestVersions.getRows()) {
 			assertEquals(row.getRow().getVersionNumber(), rowVersions.get(row.getRow().getRowId()));
 		}
@@ -549,7 +550,7 @@ public class TableRowTruthDAOImplTest {
 
 		assertEquals(7, rowVersions.size());
 		latestVersions = tableRowTruthDao.getLatestVersionsWithRowData(tableId, rowVersions.keySet(), 0L);
-		assertEquals(7, latestVersions.getRows().size());
+		assertEquals(7, Iterables.size(latestVersions.getRows()));
 		for (RowAccessor row : latestVersions.getRows()) {
 			assertEquals(row.getRow().getVersionNumber(), rowVersions.get(row.getRow().getRowId()));
 		}
@@ -720,7 +721,7 @@ public class TableRowTruthDAOImplTest {
 		RowSet rowSetAfter2 = tableRowTruthDao.getRowSet(tableId, 2L, ALL_SET);
 		RowSet rowSetAfter3 = tableRowTruthDao.getRowSet(tableId, 3L, ALL_SET);
 
-		assertEquals(2, rowSetLatest.getRows().size());
+		assertEquals(2, Iterables.size(rowSetLatest.getRows()));
 		assertEquals(4, rowSetBefore.getRows().size());
 		assertEquals(3, rowSetAfter.getRows().size());
 		assertEquals(1, rowSetAfter2.getRows().size());

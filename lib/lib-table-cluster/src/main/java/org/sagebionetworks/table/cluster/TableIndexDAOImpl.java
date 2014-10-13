@@ -287,7 +287,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 				// We do not include row id or row version in the headers.
 				continue;
 			}
-			if (SQLUtils.hasColumnPrefixe(name) && !name.startsWith("COUNT")) {
+			if (SQLUtils.isColumnName(name)) {
 				// Extract the column ID
 				String columnId = SQLUtils.getColumnIdForColumnName(name);
 				headers.add(columnId);
@@ -298,7 +298,8 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 					}
 				}
 			} else {
-				// Return what was provided unchanged
+				// replace column names where possible
+				name = SQLUtils.replaceColumnNames(name, columnIdToModelMap);
 				headers.add(name);
 			}
 			// This is not a row_id or row_version column.

@@ -1,5 +1,6 @@
 package org.sagebionetworks.table.worker;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -1137,7 +1138,7 @@ public class TableWorkerIntegrationTest {
 		input.add(new String[] { "a", "b", "c" });
 		input.add(new String[] { "AAA", "2", "1.1" });
 		input.add(new String[] { null, "3", "1.2" });
-		input.add(new String[] { "FFF", "4", null });
+		input.add(new String[] { "AAA", "4", null });
 		input.add(new String[] { "ZZZ", null, "1.3" });
 		// This is the starting input stream
 		CsvNullReader reader = TableModelTestUtils.createReader(input);
@@ -1166,6 +1167,26 @@ public class TableWorkerIntegrationTest {
 		assertEquals(Arrays.asList(TableConstants.ROW_ID, TableConstants.ROW_VERSION, "a", "b", "c").toString(), Arrays.toString(copy.get(0)));
 		assertEquals(Arrays.asList("0", "0", "AAA", "2", "1.1").toString(), Arrays.toString(copy.get(1)));
 		assertEquals(Arrays.asList("1", "0",  null, "3", "1.2" ).toString(), Arrays.toString(copy.get(2)));
+
+		// test with aggregate columns
+		stringWriter = new StringWriter();
+		csvWriter = new CSVWriter(stringWriter);
+		proxy = new CSVWriterStreamProxy(csvWriter);
+		includeRowIdAndVersion = false;
+		response = waitForConsistentStreamQuery("select count(a), a from " + tableId + " group by a order by a", proxy,
+				includeRowIdAndVersion);
+		assertNotNull(response);
+		assertNotNull(response.getEtag());
+		// Read the results
+		copyReader = new CsvNullReader(new StringReader(stringWriter.toString()));
+		List<String[]> counts = copyReader.readAll();
+		assertNotNull(counts);
+		// the first two columns should include the rowId can verionNumber
+		assertEquals(Arrays.asList("COUNT(a)", "a").toString(), Arrays.toString(counts.get(0)));
+		assertEquals(Arrays.asList("0", null).toString(), Arrays.toString(counts.get(1)));
+		assertEquals(Arrays.asList("2", "AAA").toString(), Arrays.toString(counts.get(2)));
+		assertEquals(Arrays.asList("1", "ZZZ").toString(), Arrays.toString(counts.get(3)));
+
 		// make some changes
 		copy.get(1)[2] = "DDD";
 		copy.get(2)[2] = "EEE";
@@ -1190,6 +1211,65 @@ public class TableWorkerIntegrationTest {
 		assertEquals(Arrays.asList("1.2","EEE", "3").toString(), Arrays.toString(copy.get(2)));
 	}
 	
+	@Test
+	public void testCSVDownloadAggregateColumn() throws Exception {
+		// Create one column of each type
+		schema = Lists.newArrayList(
+				columnManager.createColumnModel(adminUserInfo, TableModelTestUtils.createColumn(0L, "a", ColumnType.STRING)),
+				columnManager.createColumnModel(adminUserInfo, TableModelTestUtils.createColumn(0L, "b", ColumnType.INTEGER)));
+		List<String> headers = TableModelUtils.getHeaders(schema);
+		// Create the table.
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		table.setColumnIds(headers);
+		tableId = entityManager.createEntity(adminUserInfo, table, null);
+		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
+		columnManager.bindColumnToObject(adminUserInfo, headers, tableId, true);
+		// Create some CSV data
+		String[][] input = { { "a", "b" }, { "A", "1" }, { "A", "2" }, { "C", "4" } };
+		// This is the starting input stream
+		CsvNullReader reader = TableModelTestUtils.createReader(Lists.newArrayList(input));
+		// Write the CSV to the table
+		CSVToRowIterator iterator = new CSVToRowIterator(schema, reader, true);
+		tableRowManager.appendRowsAsStream(adminUserInfo, tableId, schema, iterator, null, null, null);
+		// Now wait for the table index to be ready
+		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, "select * from " + tableId, null);
+		assertNotNull(queryResult.getQueryResults());
+
+		String aggregateSql = "select a, sum(b) from " + tableId + " group by a order by a";
+		// the results should include a header.
+		// the first two columns should include the rowId can verionNumber
+		String[][] expectedResults = { { "a", "SUM(b)" }, { "A", "3" }, { "C", "4" } };
+
+		queryResult = waitForConsistentQuery(adminUserInfo, aggregateSql, null);
+		assertEquals(expectedResults.length - 1, queryResult.getQueryResults().getRows().size());
+		assertEquals(schema.get(0).getId(), queryResult.getQueryResults().getHeaders().get(0));
+		assertEquals(expectedResults[0][1], queryResult.getQueryResults().getHeaders().get(1));
+		for (int i = 1; i < expectedResults.length; i++) {
+			assertArrayEquals(expectedResults[i], queryResult.getQueryResults().getRows().get(i - 1).getValues().toArray(new String[0]));
+		}
+
+		// Now stream the query results to a CSV
+		StringWriter stringWriter = new StringWriter();
+		CSVWriter csvWriter = new CSVWriter(stringWriter);
+		CSVWriterStreamProxy proxy = new CSVWriterStreamProxy(csvWriter);
+		// Downlaod the data to a csv
+		boolean includeRowIdAndVersion = true;
+		DownloadFromTableResult response = waitForConsistentStreamQuery(aggregateSql, proxy,
+				includeRowIdAndVersion);
+		assertNotNull(response);
+		assertNotNull(response.getEtag());
+		// Read the results
+		CsvNullReader copyReader = new CsvNullReader(new StringReader(stringWriter.toString()));
+		List<String[]> copy = copyReader.readAll();
+		copyReader.close();
+		assertNotNull(copy);
+		assertEquals(expectedResults.length, copy.size());
+		for (int i = 0; i < expectedResults.length; i++) {
+			assertArrayEquals(expectedResults[i], copy.get(i));
+		}
+	}
+
 	/**
 	 * Attempt to run a query. If the table is unavailable, it will continue to try until successful or the timeout is exceeded.
 	 * 
