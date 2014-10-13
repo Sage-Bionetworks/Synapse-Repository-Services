@@ -58,6 +58,14 @@ public class ProjectSettingsController extends BaseController {
 		return serviceProvider.getProjectSettingsService().getProjectSetting(userId, id);
 	}
 
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.PROJECT_SETTINGS_BY_PROJECT_ID_AND_TYPE, method = RequestMethod.GET)
+	public @ResponseBody
+	ProjectSetting getProjectSettingByProjectAndType(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) Long userId,
+			@PathVariable String projectId, @PathVariable String type) throws DatastoreException, UnauthorizedException, NotFoundException {
+		return serviceProvider.getProjectSettingsService().getProjectSettingByProjectAndType(userId, projectId, type);
+	}
+
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = { UrlHelpers.PROJECT_SETTINGS }, method = RequestMethod.POST)
 	public @ResponseBody

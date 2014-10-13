@@ -11,6 +11,8 @@ public interface ProjectSettingsManager {
 
 	ProjectSetting getProjectSetting(UserInfo userInfo, String id) throws DatastoreException, NotFoundException;
 
+	ProjectSetting getProjectSettingByProjectAndType(UserInfo userInfo, String projectId, String type) throws DatastoreException, NotFoundException;
+
 	ProjectSetting createProjectSetting(UserInfo userInfo, ProjectSetting projectSetting) throws DatastoreException, NotFoundException;
 
 	void updateProjectSetting(UserInfo userInfo, ProjectSetting projectSetting) throws DatastoreException, NotFoundException;

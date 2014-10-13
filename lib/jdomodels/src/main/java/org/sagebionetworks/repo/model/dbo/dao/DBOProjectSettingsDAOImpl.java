@@ -74,16 +74,11 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 	}
 
 	@Override
-	public ProjectSetting get(String id) throws DatastoreException {
-		try {
-			DBOProjectSetting projectSetting = basicDao.getObjectByPrimaryKey(DBOProjectSetting.class,
-					new SinglePrimaryKeySqlParameterSource(id));
-			ProjectSetting dto = convertDboToDto(projectSetting);
-			return dto;
-		} catch (NotFoundException e) {
-			// not having a setting is normal
-			return null;
-		}
+	public ProjectSetting get(String id) throws DatastoreException, NotFoundException {
+		DBOProjectSetting projectSetting = basicDao
+				.getObjectByPrimaryKey(DBOProjectSetting.class, new SinglePrimaryKeySqlParameterSource(id));
+		ProjectSetting dto = convertDboToDto(projectSetting);
+		return dto;
 	}
 
 	@Override
@@ -110,6 +105,15 @@ public class DBOProjectSettingsDAOImpl implements ProjectSettingsDAO {
 		try {
 			DBOProjectSetting dbo = basicDao.getObjectByPrimaryKey(DBOProjectSetting.class,
 					new SinglePrimaryKeySqlParameterSource(dto.getId()));
+
+			if (!dbo.getProjectId().equals(KeyFactory.stringToKey(dto.getProjectId()).longValue())) {
+				throw new IllegalArgumentException(
+						"You cannot change the project id with the update project settings call. Create a new project settings instead");
+			}
+			if (!dbo.getType().equals(dto.getSettingsType())) {
+				throw new IllegalArgumentException(
+						"You cannot change the settings type with the update project settings call. Create a new project settings instead");
+			}
 
 			// Check dbo's etag against dto's etag
 			// if different rollback and throw a meaningful exception
