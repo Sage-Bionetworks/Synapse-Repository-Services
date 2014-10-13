@@ -229,7 +229,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		CsvNullReader reader = TableModelTestUtils.createReader(input);
 		// Write the CSV to the table
 		CSVToRowIterator iterator = new CSVToRowIterator(schema, reader, true);
-		tableRowManager.appendRowsAsStream(adminUserInfo, tableId, schema, iterator, null, null);
+		tableRowManager.appendRowsAsStream(adminUserInfo, tableId, schema, iterator, null, null, null);
 		return input;
 	}
 
