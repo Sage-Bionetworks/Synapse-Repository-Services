@@ -1948,7 +1948,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 
 	public List<UploadDestination> getUploadDestinations(String parentEntityId) throws SynapseException {
 		// Get the json for this entity as a list wrapper
-		String url = "/uploadDestinations/" + parentEntityId;
+		String url = ENTITY + "/" + parentEntityId + "/uploadDestinations";
 		JSONObject json = getSynapseEntity(getFileEndpoint(), url);
 		try {
 			@SuppressWarnings("unchecked")
