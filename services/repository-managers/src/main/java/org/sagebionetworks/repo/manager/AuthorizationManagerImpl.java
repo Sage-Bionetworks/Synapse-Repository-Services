@@ -337,4 +337,9 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		}
 	}
 
+	@Override
+	public AuthorizationStatus canCreateEntityWiki(UserInfo userInfo, String objectId, ObjectType objectType) throws DatastoreException, NotFoundException {
+		return entityPermissionsManager.canCreateWiki(objectId, userInfo);
+	}
+
 }

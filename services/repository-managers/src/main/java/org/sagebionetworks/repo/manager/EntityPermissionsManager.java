@@ -125,4 +125,14 @@ public interface EntityPermissionsManager {
 	 * @throws DatastoreException 
 	 */
 	public AuthorizationStatus canCreate(Node node, UserInfo userInfo) throws DatastoreException, NotFoundException;
+
+	/**
+	 * 
+	 * @param user
+	 * @param entityId
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	public AuthorizationStatus canCreateWiki(String entityId, UserInfo userInfo) throws DatastoreException, NotFoundException;
 }

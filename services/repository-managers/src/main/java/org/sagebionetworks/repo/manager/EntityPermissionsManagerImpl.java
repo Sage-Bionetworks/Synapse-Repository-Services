@@ -382,4 +382,10 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	private boolean agreesToTermsOfUse(UserInfo userInfo) throws NotFoundException {
 		return authenticationManager.hasUserAcceptedTermsOfUse(userInfo.getId(), DomainType.SYNAPSE);
 	}
+
+	@Override
+	public AuthorizationStatus canCreateWiki(String entityId, UserInfo userInfo) throws DatastoreException, NotFoundException {
+		// this duplicates the current, wrong behavior
+		return hasAccess(entityId, ACCESS_TYPE.CREATE, userInfo);
+	}
 }

@@ -86,7 +86,7 @@ public class V2WikiManagerImpl implements V2WikiManager {
 		if(objectType == null) throw new IllegalArgumentException("objectType cannot be null");
 		if(wikiPage == null) throw new IllegalArgumentException("wikiPage cannot be null");
 		// Check that the user is allowed to perform this action
-		if(!authorizationManager.canAccess(user, objectId,	objectType, ACCESS_TYPE.CREATE).getAuthorized()){
+		if(!authorizationManager.canCreateEntityWiki(user, objectId,objectType).getAuthorized()){
 			throw new UnauthorizedException(String.format(USER_IS_NOT_AUTHORIZED_TEMPLATE, ACCESS_TYPE.CREATE.name(), objectId, objectType.name()));
 		}
 		
