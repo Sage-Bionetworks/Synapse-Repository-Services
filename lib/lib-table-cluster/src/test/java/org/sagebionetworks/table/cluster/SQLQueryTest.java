@@ -50,7 +50,7 @@ public class SQLQueryTest {
 		ColumnReference columnReference = SqlElementUntils.createColumnReference("foo");
 		StringBuilder builder = new StringBuilder();
 		SQLTranslatorUtils.translate(columnReference, builder, columnNameToModelMap);
-		assertEquals("C111", builder.toString());
+		assertEquals("_C111_", builder.toString());
 	}
 	
 	@Test
@@ -58,7 +58,7 @@ public class SQLQueryTest {
 		ColumnReference columnReference = SqlElementUntils.createColumnReference("Foo");
 		StringBuilder builder = new StringBuilder();
 		SQLTranslatorUtils.translate(columnReference, builder, columnNameToModelMap);
-		assertEquals("C555", builder.toString());
+		assertEquals("_C555_", builder.toString());
 	}
 	
 	@Test
@@ -66,7 +66,7 @@ public class SQLQueryTest {
 		ColumnReference columnReference = SqlElementUntils.createColumnReference("Foo ");
 		StringBuilder builder = new StringBuilder();
 		SQLTranslatorUtils.translate(columnReference, builder, columnNameToModelMap);
-		assertEquals("C555", builder.toString());
+		assertEquals("_C555_", builder.toString());
 	}
 	
 	@Test 
@@ -86,7 +86,7 @@ public class SQLQueryTest {
 		ColumnReference columnReference = SqlElementUntils.createColumnReference("foo.bar");
 		StringBuilder builder = new StringBuilder();
 		SQLTranslatorUtils.translate(columnReference, builder, columnNameToModelMap);
-		assertEquals("C111_bar", builder.toString());
+		assertEquals("_C111__bar", builder.toString());
 	}
 	
 	@Test
@@ -94,7 +94,7 @@ public class SQLQueryTest {
 		ColumnReference columnReference = SqlElementUntils.createColumnReference("\"has space\"");
 		StringBuilder builder = new StringBuilder();
 		SQLTranslatorUtils.translate(columnReference, builder, columnNameToModelMap);
-		assertEquals("C222", builder.toString());
+		assertEquals("_C222_", builder.toString());
 	}
 	
 	@Test
@@ -125,7 +125,7 @@ public class SQLQueryTest {
 	@Test
 	public void testSelectSingColumns() throws ParseException{
 		SqlQuery translator = new SqlQuery("select foo from syn123", tableSchema);
-		assertEquals("SELECT C111, ROW_ID, ROW_VERSION FROM T123", translator.getOutputSQL());
+		assertEquals("SELECT _C111_, ROW_ID, ROW_VERSION FROM T123", translator.getOutputSQL());
 		assertFalse(translator.isAggregatedResult());
 		List<ColumnModel> expectedSelect = Arrays.asList(columnNameToModelMap.get("foo"));
 		assertEquals(expectedSelect, translator.getSelectColumnModels());
@@ -134,7 +134,7 @@ public class SQLQueryTest {
 	@Test
 	public void testSelectMultipleColumns() throws ParseException{
 		SqlQuery translator = new SqlQuery("select foo, bar from syn123", tableSchema);
-		assertEquals("SELECT C111, C333, ROW_ID, ROW_VERSION FROM T123", translator.getOutputSQL());
+		assertEquals("SELECT _C111_, _C333_, ROW_ID, ROW_VERSION FROM T123", translator.getOutputSQL());
 		assertFalse(translator.isAggregatedResult());
 		List<ColumnModel> expectedSelect = Arrays.asList(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar"));
 		assertEquals(expectedSelect, translator.getSelectColumnModels());
@@ -143,7 +143,7 @@ public class SQLQueryTest {
 	@Test
 	public void testSelectDistinct() throws ParseException{
 		SqlQuery translator = new SqlQuery("select distinct foo, bar from syn123", tableSchema);
-		assertEquals("SELECT DISTINCT C111, C333, ROW_ID, ROW_VERSION FROM T123", translator.getOutputSQL());
+		assertEquals("SELECT DISTINCT _C111_, _C333_, ROW_ID, ROW_VERSION FROM T123", translator.getOutputSQL());
 		assertFalse(translator.isAggregatedResult());
 		List<ColumnModel> expectedSelect = Arrays.asList(columnNameToModelMap.get("foo"), columnNameToModelMap.get("bar"));
 		assertEquals(expectedSelect, translator.getSelectColumnModels());
@@ -160,7 +160,7 @@ public class SQLQueryTest {
 	@Test
 	public void testSelectAggregate() throws ParseException{
 		SqlQuery translator = new SqlQuery("select avg(foo) from syn123", tableSchema);
-		assertEquals("SELECT AVG(C111) FROM T123", translator.getOutputSQL());
+		assertEquals("SELECT AVG(_C111_) FROM T123", translator.getOutputSQL());
 		assertTrue(translator.isAggregatedResult());
 		assertTrue(translator.getSelectColumnModels().isEmpty());
 	}
@@ -168,7 +168,7 @@ public class SQLQueryTest {
 	@Test
 	public void testSelectAggregateMultiple() throws ParseException{
 		SqlQuery translator = new SqlQuery("select avg(foo), max(bar) from syn123", tableSchema);
-		assertEquals("SELECT AVG(C111), MAX(C333) FROM T123", translator.getOutputSQL());
+		assertEquals("SELECT AVG(_C111_), MAX(_C333_) FROM T123", translator.getOutputSQL());
 		assertTrue(translator.isAggregatedResult());
 		assertTrue(translator.getSelectColumnModels().isEmpty());
 	}
@@ -176,7 +176,7 @@ public class SQLQueryTest {
 	@Test
 	public void testSelectDistinctAggregate() throws ParseException{
 		SqlQuery translator = new SqlQuery("select count(distinct foo) from syn123", tableSchema);
-		assertEquals("SELECT COUNT(DISTINCT C111) FROM T123", translator.getOutputSQL());
+		assertEquals("SELECT COUNT(DISTINCT _C111_) FROM T123", translator.getOutputSQL());
 		assertTrue(translator.isAggregatedResult());
 		assertTrue(translator.getSelectColumnModels().isEmpty());
 	}
@@ -187,7 +187,7 @@ public class SQLQueryTest {
 		StringBuilder builder = new StringBuilder();
 		HashMap<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translate(predicate, builder, parameters, columnNameToModelMap);
-		assertEquals("C111 <> :b0", builder.toString());
+		assertEquals("_C111_ <> :b0", builder.toString());
 		assertEquals("1",parameters.get("b0"));
 	}
 	
@@ -197,7 +197,7 @@ public class SQLQueryTest {
 		StringBuilder builder = new StringBuilder();
 		HashMap<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translate(predicate, builder, parameters, columnNameToModelMap);
-		assertEquals("C111 <> :b0", builder.toString());
+		assertEquals("_C111_ <> :b0", builder.toString());
 		assertEquals("aaa", parameters.get("b0"));
 	}
 
@@ -207,7 +207,7 @@ public class SQLQueryTest {
 		StringBuilder builder = new StringBuilder();
 		HashMap<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translate(predicate, builder, parameters, columnNameToModelMap);
-		assertEquals("C111 = TRUE", builder.toString());
+		assertEquals("_C111_ = TRUE", builder.toString());
 		assertEquals(0, parameters.size());
 	}
 
@@ -217,7 +217,7 @@ public class SQLQueryTest {
 		StringBuilder builder = new StringBuilder();
 		HashMap<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translate(predicate, builder, parameters, columnNameToModelMap);
-		assertEquals("C666 <> :b0", builder.toString());
+		assertEquals("_C666_ <> :b0", builder.toString());
 		assertEquals("1", parameters.get("b0"));
 	}
 
@@ -227,7 +227,7 @@ public class SQLQueryTest {
 		StringBuilder builder = new StringBuilder();
 		HashMap<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translate(predicate, builder, parameters, columnNameToModelMap);
-		assertEquals("C666 <> :b0", builder.toString());
+		assertEquals("_C666_ <> :b0", builder.toString());
 		assertEquals(DATE1TIME, parameters.get("b0"));
 	}
 
@@ -240,7 +240,7 @@ public class SQLQueryTest {
 
 			SQLTranslatorUtils.translate(SqlElementUntils.createPredicate("datetype <> '" + date + "'"), builder, parameters,
 					columnNameToModelMap);
-			assertEquals("C666 <> :b0", builder.toString());
+			assertEquals("_C666_ <> :b0", builder.toString());
 			assertEquals(DATE1TIME, parameters.get("b0"));
 		}
 		for (String date : new String[] { "2001-01-01", "2001-01-01", "2001-1-1", "2001-1-01", "2001-01-1" }) {
@@ -249,7 +249,7 @@ public class SQLQueryTest {
 
 			SQLTranslatorUtils.translate(SqlElementUntils.createPredicate("datetype <> '" + date + "'"), builder, parameters,
 					columnNameToModelMap);
-			assertEquals("C666 <> :b0", builder.toString());
+			assertEquals("_C666_ <> :b0", builder.toString());
 			assertEquals("978307200000", parameters.get("b0"));
 		}
 		for (String date : new String[] { "2011-11-11 01:01:01.001", "2011-11-11 1:01:1.001", "2011-11-11 1:1:1.001" }) {
@@ -258,7 +258,7 @@ public class SQLQueryTest {
 
 			SQLTranslatorUtils.translate(SqlElementUntils.createPredicate("datetype <> '" + date + "'"), builder, parameters,
 					columnNameToModelMap);
-			assertEquals("C666 <> :b0", builder.toString());
+			assertEquals("_C666_ <> :b0", builder.toString());
 			assertEquals("1320973261001", parameters.get("b0"));
 		}
 	}
@@ -269,7 +269,7 @@ public class SQLQueryTest {
 		StringBuilder builder = new StringBuilder();
 		HashMap<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translate(predicate, builder, parameters, columnNameToModelMap);
-		assertEquals("C111 IN (:b0)", builder.toString());
+		assertEquals("_C111_ IN (:b0)", builder.toString());
 		assertEquals("1",parameters.get("b0"));
 	}
 	
@@ -279,7 +279,7 @@ public class SQLQueryTest {
 		StringBuilder builder = new StringBuilder();
 		HashMap<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translate(predicate, builder, parameters, columnNameToModelMap);
-		assertEquals("C111 IN (:b0, :b1, :b2)", builder.toString());
+		assertEquals("_C111_ IN (:b0, :b1, :b2)", builder.toString());
 		assertEquals("1",parameters.get("b0"));
 		assertEquals("2",parameters.get("b1"));
 		assertEquals("3",parameters.get("b2"));
@@ -291,7 +291,7 @@ public class SQLQueryTest {
 		StringBuilder builder = new StringBuilder();
 		HashMap<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translate(predicate, builder, parameters, columnNameToModelMap);
-		assertEquals("C666 IN (:b0, :b1)", builder.toString());
+		assertEquals("_C666_ IN (:b0, :b1)", builder.toString());
 		assertEquals(DATE1TIME, parameters.get("b0"));
 		assertEquals(DATE2TIME, parameters.get("b1"));
 	}
@@ -302,7 +302,7 @@ public class SQLQueryTest {
 		StringBuilder builder = new StringBuilder();
 		HashMap<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translate(predicate, builder, parameters, columnNameToModelMap);
-		assertEquals("C111 BETWEEN :b0 AND :b1", builder.toString());
+		assertEquals("_C111_ BETWEEN :b0 AND :b1", builder.toString());
 		assertEquals("1",parameters.get("b0"));
 		assertEquals("2",parameters.get("b1"));
 	}
@@ -313,7 +313,7 @@ public class SQLQueryTest {
 		StringBuilder builder = new StringBuilder();
 		HashMap<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translate(predicate, builder, parameters, columnNameToModelMap);
-		assertEquals("C666 BETWEEN :b0 AND :b1", builder.toString());
+		assertEquals("_C666_ BETWEEN :b0 AND :b1", builder.toString());
 		assertEquals(DATE1TIME, parameters.get("b0"));
 		assertEquals(DATE2TIME, parameters.get("b1"));
 	}
@@ -324,7 +324,7 @@ public class SQLQueryTest {
 		StringBuilder builder = new StringBuilder();
 		HashMap<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translate(predicate, builder, parameters, columnNameToModelMap);
-		assertEquals("C111 NOT BETWEEN :b0 AND :b1", builder.toString());
+		assertEquals("_C111_ NOT BETWEEN :b0 AND :b1", builder.toString());
 		assertEquals("1",parameters.get("b0"));
 		assertEquals("2",parameters.get("b1"));
 	}
@@ -335,7 +335,7 @@ public class SQLQueryTest {
 		StringBuilder builder = new StringBuilder();
 		HashMap<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translate(predicate, builder, parameters, columnNameToModelMap);
-		assertEquals("C111 LIKE :b0", builder.toString());
+		assertEquals("_C111_ LIKE :b0", builder.toString());
 		assertEquals("bar%",parameters.get("b0"));
 	}
 	
@@ -345,7 +345,7 @@ public class SQLQueryTest {
 		StringBuilder builder = new StringBuilder();
 		HashMap<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translate(predicate, builder, parameters, columnNameToModelMap);
-		assertEquals("C111 LIKE :b0 ESCAPE :b1", builder.toString());
+		assertEquals("_C111_ LIKE :b0 ESCAPE :b1", builder.toString());
 		assertEquals("bar|_",parameters.get("b0"));
 		assertEquals("|",parameters.get("b1"));
 	}
@@ -356,7 +356,7 @@ public class SQLQueryTest {
 		StringBuilder builder = new StringBuilder();
 		HashMap<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translate(predicate, builder, parameters, columnNameToModelMap);
-		assertEquals("C111 NOT LIKE :b0", builder.toString());
+		assertEquals("_C111_ NOT LIKE :b0", builder.toString());
 		assertEquals("bar%",parameters.get("b0"));
 	}
 	
@@ -366,7 +366,7 @@ public class SQLQueryTest {
 		StringBuilder builder = new StringBuilder();
 		HashMap<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translate(predicate, builder, parameters, columnNameToModelMap);
-		assertEquals("C111 IS NULL", builder.toString());
+		assertEquals("_C111_ IS NULL", builder.toString());
 	}
 	
 	@Test
@@ -375,14 +375,14 @@ public class SQLQueryTest {
 		StringBuilder builder = new StringBuilder();
 		HashMap<String, Object> parameters = new HashMap<String, Object>();
 		SQLTranslatorUtils.translate(predicate, builder, parameters, columnNameToModelMap);
-		assertEquals("C111 IS NOT NULL", builder.toString());
+		assertEquals("_C111_ IS NOT NULL", builder.toString());
 	}
 	
 	@Test
 	public void testWhereSimple() throws ParseException{
 		SqlQuery translator = new SqlQuery("select * from syn123 where foo = 1", tableSchema);
 		// The value should be bound in the SQL
-		assertEquals("SELECT * FROM T123 WHERE C111 = :b0", translator.getOutputSQL());
+		assertEquals("SELECT * FROM T123 WHERE _C111_ = :b0", translator.getOutputSQL());
 		// The value should be in the parameters map.
 		assertEquals("1",translator.getParameters().get("b0"));
 	}
@@ -391,7 +391,7 @@ public class SQLQueryTest {
 	public void testWhereOr() throws ParseException{
 		SqlQuery translator = new SqlQuery("select * from syn123 where foo = 1 or bar = 2", tableSchema);
 		// The value should be bound in the SQL
-		assertEquals("SELECT * FROM T123 WHERE C111 = :b0 OR C333 = :b1", translator.getOutputSQL());
+		assertEquals("SELECT * FROM T123 WHERE _C111_ = :b0 OR _C333_ = :b1", translator.getOutputSQL());
 		// The value should be in the parameters map.
 		assertEquals("1",translator.getParameters().get("b0"));
 		assertEquals("2",translator.getParameters().get("b1"));
@@ -402,7 +402,7 @@ public class SQLQueryTest {
 	public void testWhereAnd() throws ParseException{
 		SqlQuery translator = new SqlQuery("select * from syn123 where foo = 1 and bar = 2", tableSchema);
 		// The value should be bound in the SQL
-		assertEquals("SELECT * FROM T123 WHERE C111 = :b0 AND C333 = :b1", translator.getOutputSQL());
+		assertEquals("SELECT * FROM T123 WHERE _C111_ = :b0 AND _C333_ = :b1", translator.getOutputSQL());
 		// The value should be in the parameters map.
 		assertEquals("1",translator.getParameters().get("b0"));
 		assertEquals("2",translator.getParameters().get("b1"));
@@ -412,7 +412,7 @@ public class SQLQueryTest {
 	public void testWhereNested() throws ParseException{
 		SqlQuery translator = new SqlQuery("select * from syn123 where (foo = 1 and bar = 2) or foobar = 3", tableSchema);
 		// The value should be bound in the SQL
-		assertEquals("SELECT * FROM T123 WHERE (C111 = :b0 AND C333 = :b1) OR C444 = :b2", translator.getOutputSQL());
+		assertEquals("SELECT * FROM T123 WHERE (_C111_ = :b0 AND _C333_ = :b1) OR _C444_ = :b2", translator.getOutputSQL());
 		// The value should be in the parameters map.
 		assertEquals("1",translator.getParameters().get("b0"));
 		assertEquals("2",translator.getParameters().get("b1"));
@@ -423,28 +423,28 @@ public class SQLQueryTest {
 	public void testGroupByOne() throws ParseException{
 		SqlQuery translator = new SqlQuery("select * from syn123 group by foo", tableSchema);
 		// The value should be bound in the SQL
-		assertEquals("SELECT * FROM T123 GROUP BY C111", translator.getOutputSQL());
+		assertEquals("SELECT * FROM T123 GROUP BY _C111_", translator.getOutputSQL());
 	}
 	
 	@Test
 	public void testGroupByMultiple() throws ParseException{
 		SqlQuery translator = new SqlQuery("select * from syn123 group by foo, bar", tableSchema);
 		// The value should be bound in the SQL
-		assertEquals("SELECT * FROM T123 GROUP BY C111, C333", translator.getOutputSQL());
+		assertEquals("SELECT * FROM T123 GROUP BY _C111_, _C333_", translator.getOutputSQL());
 	}
 	
 	@Test
 	public void testOrderByOneNoSpec() throws ParseException{
 		SqlQuery translator = new SqlQuery("select * from syn123 order by foo", tableSchema);
 		// The value should be bound in the SQL
-		assertEquals("SELECT * FROM T123 ORDER BY C111", translator.getOutputSQL());
+		assertEquals("SELECT * FROM T123 ORDER BY _C111_", translator.getOutputSQL());
 	}
 	
 	@Test
 	public void testOrderByOneWithSpec() throws ParseException{
 		SqlQuery translator = new SqlQuery("select * from syn123 order by foo desc", tableSchema);
 		// The value should be bound in the SQL
-		assertEquals("SELECT * FROM T123 ORDER BY C111 DESC", translator.getOutputSQL());
+		assertEquals("SELECT * FROM T123 ORDER BY _C111_ DESC", translator.getOutputSQL());
 	}
 	
 	
@@ -452,14 +452,14 @@ public class SQLQueryTest {
 	public void testOrderByMultipleNoSpec() throws ParseException{
 		SqlQuery translator = new SqlQuery("select * from syn123 order by foo, bar", tableSchema);
 		// The value should be bound in the SQL
-		assertEquals("SELECT * FROM T123 ORDER BY C111, C333", translator.getOutputSQL());
+		assertEquals("SELECT * FROM T123 ORDER BY _C111_, _C333_", translator.getOutputSQL());
 	}
 	
 	@Test
 	public void testOrderByMultipeWithSpec() throws ParseException{
 		SqlQuery translator = new SqlQuery("select * from syn123 order by foo asc, bar desc", tableSchema);
 		// The value should be bound in the SQL
-		assertEquals("SELECT * FROM T123 ORDER BY C111 ASC, C333 DESC", translator.getOutputSQL());
+		assertEquals("SELECT * FROM T123 ORDER BY _C111_ ASC, _C333_ DESC", translator.getOutputSQL());
 	}
 	
 	@Test
@@ -484,7 +484,9 @@ public class SQLQueryTest {
 		SqlQuery translator = new SqlQuery(
 				"select foo, bar from syn123 where foobar >= 1.89e4 group by foo order by bar desc limit 10 offset 0", tableSchema);
 		// The value should be bound in the SQL
-		assertEquals("SELECT C111, C333, ROW_ID, ROW_VERSION FROM T123 WHERE C444 >= :b0 GROUP BY C111 ORDER BY C333 DESC LIMIT :b1 OFFSET :b2", translator.getOutputSQL());
+		assertEquals(
+				"SELECT _C111_, _C333_, ROW_ID, ROW_VERSION FROM T123 WHERE _C444_ >= :b0 GROUP BY _C111_ ORDER BY _C333_ DESC LIMIT :b1 OFFSET :b2",
+				translator.getOutputSQL());
 		assertEquals("1.89e4",translator.getParameters().get("b0"));
 		assertEquals(10L,translator.getParameters().get("b1"));
 		assertEquals(0L,translator.getParameters().get("b2"));

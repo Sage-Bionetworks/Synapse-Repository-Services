@@ -63,7 +63,7 @@ public class SQLUtilsTest {
 		String sql = SQLUtils.createTableSQL(simpleSchema, "syn123");
 		assertNotNull(sql);
 		// Validate it contains the expected elements
-		String expected = "CREATE TABLE IF NOT EXISTS `T123` ( ROW_ID bigint(20) NOT NULL, ROW_VERSION bigint(20) NOT NULL, `C456` bigint(20) DEFAULT NULL, PRIMARY KEY (ROW_ID) )";
+		String expected = "CREATE TABLE IF NOT EXISTS `T123` ( ROW_ID bigint(20) NOT NULL, ROW_VERSION bigint(20) NOT NULL, `_C456_` bigint(20) DEFAULT NULL, PRIMARY KEY (ROW_ID) )";
 		System.out.println(sql);
 		assertEquals(expected, sql);
 	}
@@ -347,7 +347,7 @@ public class SQLUtilsTest {
 		// This should drop columns 1 & 3 and then add columns 0 & 4
 		String sql = SQLUtils.alterTableSql(oldSchema, newSchema, "syn999");
 		assertNotNull(sql);
-		String expected = "ALTER TABLE `T999` DROP COLUMN `C1`, DROP COLUMN `C3`, ADD COLUMN `C0` bigint(20) DEFAULT NULL, ADD COLUMN `C4` bigint(20) DEFAULT NULL";
+		String expected = "ALTER TABLE `T999` DROP COLUMN `_C1_`, DROP COLUMN `_C3_`, ADD COLUMN `_C0_` bigint(20) DEFAULT NULL, ADD COLUMN `_C4_` bigint(20) DEFAULT NULL";
 		assertEquals(expected, sql);
 	}
 	
@@ -367,13 +367,13 @@ public class SQLUtilsTest {
 	
 	@Test
 	public void testGetColumnNameForId(){
-		assertEquals("C456", SQLUtils.getColumnNameForId("456"));
+		assertEquals("_C456_", SQLUtils.getColumnNameForId("456"));
 	}
 	
 	@Test
 	public void testConvertColumnNamesToColumnId(){
 		// Start with column
-		List<String> columnNames = Arrays.asList(ROW_ID, ROW_VERSION,"C2","C1");
+		List<String> columnNames = Arrays.asList(ROW_ID, ROW_VERSION, "_C2_", "_C1_");
 		List<String> expected = Arrays.asList("2","1");
 		List<String> results = SQLUtils.convertColumnNamesToColumnId(columnNames);
 		assertEquals(expected, results);
@@ -392,7 +392,7 @@ public class SQLUtilsTest {
 	public void testBuildCreateOrUpdateRowSQL(){
 		List<ColumnModel> newSchema = helperCreateColumnsWithIds("0","2","4");
 		String result = SQLUtils.buildCreateOrUpdateRowSQL(newSchema, "syn123");
-		String expected = "INSERT INTO T123 (ROW_ID, ROW_VERSION, C0, C2, C4) VALUES ( :bRI, :bRV, :C0, :C2, :C4) ON DUPLICATE KEY UPDATE ROW_VERSION = VALUES(ROW_VERSION), C0 = VALUES(C0), C2 = VALUES(C2), C4 = VALUES(C4)";
+		String expected = "INSERT INTO T123 (ROW_ID, ROW_VERSION, _C0_, _C2_, _C4_) VALUES ( :bRI, :bRV, :_C0_, :_C2_, :_C4_) ON DUPLICATE KEY UPDATE ROW_VERSION = VALUES(ROW_VERSION), _C0_ = VALUES(_C0_), _C2_ = VALUES(_C2_), _C4_ = VALUES(_C4_)";
 		assertEquals(expected, result);
 	}
 	
@@ -422,13 +422,13 @@ public class SQLUtilsTest {
 		// First row
 		assertEquals(new Long(0), results[0].getValue(SQLUtils.ROW_ID_BIND));
 		assertEquals(new Long(3), results[0].getValue(SQLUtils.ROW_VERSION_BIND));
-		assertEquals(new Long(456), results[0].getValue("C1"));
-		assertEquals(new Long(2220), results[0].getValue("C2"));
-		assertEquals(null, results[0].getValue("C3"));
+		assertEquals(new Long(456), results[0].getValue("_C1_"));
+		assertEquals(new Long(2220), results[0].getValue("_C2_"));
+		assertEquals(null, results[0].getValue("_C3_"));
 		// second
-		assertEquals(new Long(456), results[1].getValue("C1"));
-		assertEquals(new Long(2221), results[1].getValue("C2"));
-		assertEquals(null, results[1].getValue("C3"));
+		assertEquals(new Long(456), results[1].getValue("_C1_"));
+		assertEquals(new Long(2221), results[1].getValue("_C2_"));
+		assertEquals(null, results[1].getValue("_C3_"));
 	}
 	
 	
@@ -451,19 +451,19 @@ public class SQLUtilsTest {
 		// First row
 		assertEquals(new Long(100), results[0].getValue(SQLUtils.ROW_ID_BIND));
 		assertEquals(new Long(3), results[0].getValue(SQLUtils.ROW_VERSION_BIND));
-		assertEquals(new Double(341003.12), results[0].getValue("C1"));
-		assertEquals(new Long(203000), results[0].getValue("C2"));
-		assertEquals(new Boolean(false), results[0].getValue("C3"));
-		assertEquals(new Long(404000), results[0].getValue("C4"));
-		assertEquals(new Long(505000), results[0].getValue("C5"));
+		assertEquals(new Double(341003.12), results[0].getValue("_C1_"));
+		assertEquals(new Long(203000), results[0].getValue("_C2_"));
+		assertEquals(new Boolean(false), results[0].getValue("_C3_"));
+		assertEquals(new Long(404000), results[0].getValue("_C4_"));
+		assertEquals(new Long(505000), results[0].getValue("_C5_"));
 		// second
 		assertEquals(new Long(101), results[1].getValue(SQLUtils.ROW_ID_BIND));
 		assertEquals(new Long(3), results[1].getValue(SQLUtils.ROW_VERSION_BIND));
-		assertEquals(new Double(341006.53), results[1].getValue("C1"));
-		assertEquals(new Long(203001), results[1].getValue("C2"));
-		assertEquals(new Boolean(true), results[1].getValue("C3"));
-		assertEquals(new Long(404001), results[1].getValue("C4"));
-		assertEquals(new Long(505001), results[1].getValue("C5"));
+		assertEquals(new Double(341006.53), results[1].getValue("_C1_"));
+		assertEquals(new Long(203001), results[1].getValue("_C2_"));
+		assertEquals(new Boolean(true), results[1].getValue("_C3_"));
+		assertEquals(new Long(404001), results[1].getValue("_C4_"));
+		assertEquals(new Long(505001), results[1].getValue("_C5_"));
 	}
 	
 	@Test
