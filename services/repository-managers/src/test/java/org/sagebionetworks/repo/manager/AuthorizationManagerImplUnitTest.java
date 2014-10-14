@@ -513,5 +513,4 @@ public class AuthorizationManagerImplUnitTest {
 		TermsOfUseAccessApproval accessApproval = new TermsOfUseAccessApproval();
 		this.authorizationManager.canCreateAccessApproval(userInfo, accessApproval);
 	}
-	
 }
