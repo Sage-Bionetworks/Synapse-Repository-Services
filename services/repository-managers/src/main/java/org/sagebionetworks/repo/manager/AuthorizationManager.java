@@ -145,4 +145,15 @@ public interface AuthorizationManager {
 	 * @throws DatastoreException
 	 */
 	public AuthorizationStatus canUserStartJob(UserInfo userInfo, AsynchronousRequestBody body) throws DatastoreException, NotFoundException;
+
+	/**
+	 * 
+	 * @param userInfo
+	 * @param objectId
+	 * @param objectType
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public AuthorizationStatus canCreateWiki(UserInfo userInfo, String objectId, ObjectType objectType) throws DatastoreException, NotFoundException;
 }

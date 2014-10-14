@@ -382,4 +382,14 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 	private boolean agreesToTermsOfUse(UserInfo userInfo) throws NotFoundException {
 		return authenticationManager.hasUserAcceptedTermsOfUse(userInfo.getId(), DomainType.SYNAPSE);
 	}
+
+	@Override
+	public AuthorizationStatus canCreateWiki(String entityId, UserInfo userInfo) throws DatastoreException, NotFoundException {
+		if (!userInfo.isAdmin() && 
+			!isCertifiedUserOrFeatureDisabled(userInfo) && 
+				!nodeDao.getNode(entityId).getNodeType().equals(PROJECT_NODE_TYPE))
+			return AuthorizationManagerUtil.accessDenied("Only certified users may create non-project wikis in Synapse.");
+		
+		return certifiedUserHasAccess(entityId, ACCESS_TYPE.CREATE, userInfo);
+	}
 }

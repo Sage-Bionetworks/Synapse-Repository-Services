@@ -146,6 +146,8 @@ public class EntityPermissionsManagerImplUnitTest {
 		assertTrue(uep.getIsCertifiedUser());
 		
 		assertTrue(entityPermissionsManager.canCreate(project, certifiedUserInfo).getAuthorized());
+		
+		assertTrue(entityPermissionsManager.canCreateWiki(projectId, certifiedUserInfo).getAuthorized());
 	}
 	
 	@Test
@@ -167,6 +169,8 @@ public class EntityPermissionsManagerImplUnitTest {
 		assertFalse(uep.getIsCertifiedUser()); // not certified!
 		
 		assertTrue(entityPermissionsManager.canCreate(project, nonCertifiedUserInfo).getAuthorized());
+		
+		assertTrue(entityPermissionsManager.canCreateWiki(projectId, nonCertifiedUserInfo).getAuthorized());
 	}
 
 	@Test
@@ -188,6 +192,8 @@ public class EntityPermissionsManagerImplUnitTest {
 		assertTrue(uep.getIsCertifiedUser());
 		
 		assertTrue(entityPermissionsManager.canCreate(folder, certifiedUserInfo).getAuthorized());
+		
+		assertTrue(entityPermissionsManager.canCreateWiki(folderId, certifiedUserInfo).getAuthorized());
 	}
 	
 	@Test
@@ -209,6 +215,8 @@ public class EntityPermissionsManagerImplUnitTest {
 		assertFalse(uep.getIsCertifiedUser()); // not certified!
 		
 		assertFalse(entityPermissionsManager.canCreate(folder, nonCertifiedUserInfo).getAuthorized());
+		
+		assertFalse(entityPermissionsManager.canCreateWiki(folderId, nonCertifiedUserInfo).getAuthorized());
 	}
 
 }
