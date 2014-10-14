@@ -129,12 +129,12 @@ public class TableIndexDAOImplTest {
 		// Row zero
 		Map<String, Object> row = result.get(0);
 		assertEquals(100l, row.get(ROW_ID));
-		assertEquals(404000l, row.get("C4"));
+		assertEquals(404000l, row.get("_C4_"));
 		// row four
 		row = result.get(4);
 		assertEquals(104l, row.get(ROW_ID));
-		assertEquals(341016.76, row.get("C1"));
-		assertEquals(404004l, row.get("C4"));
+		assertEquals(341016.76, row.get("_C1_"));
+		assertEquals(404004l, row.get("_C4_"));
 		
 		// We should be able to update all of the rows
 		rows.get(4).setValues(Arrays.asList("update", "99.99", "3", "false", "123", "123", "syn123.3"));
@@ -150,13 +150,13 @@ public class TableIndexDAOImplTest {
 		// Check all values on the updated row.
 		assertEquals(104l, row.get(ROW_ID));
 		assertEquals(5L, row.get(ROW_VERSION));
-		assertEquals("update", row.get("C0"));
-		assertEquals(99.99, row.get("C1"));
-		assertEquals(3L, row.get("C2"));
-		assertEquals(Boolean.FALSE, row.get("C3"));
-		assertEquals(123L, row.get("C4"));
-		assertEquals(123L, row.get("C5"));
-		assertEquals("syn123.3", row.get("C6"));
+		assertEquals("update", row.get("_C0_"));
+		assertEquals(99.99, row.get("_C1_"));
+		assertEquals(3L, row.get("_C2_"));
+		assertEquals(Boolean.FALSE, row.get("_C3_"));
+		assertEquals(123L, row.get("_C4_"));
+		assertEquals(123L, row.get("_C5_"));
+		assertEquals("syn123.3", row.get("_C6_"));
 	}
 	
 	@Test
