@@ -148,13 +148,12 @@ public interface AuthorizationManager {
 
 	/**
 	 * 
-	 * @param user
+	 * @param userInfo
 	 * @param objectId
 	 * @param objectType
 	 * @return
-	 * @throws NotFoundException 
-	 * @throws DatastoreException 
+	 * @throws DatastoreException
+	 * @throws NotFoundException
 	 */
-	public AuthorizationStatus canCreateEntityWiki(UserInfo userInfo,
-			String objectId, ObjectType objectType) throws DatastoreException, NotFoundException;
+	public AuthorizationStatus canCreateWiki(UserInfo userInfo, String objectId, ObjectType objectType) throws DatastoreException, NotFoundException;
 }

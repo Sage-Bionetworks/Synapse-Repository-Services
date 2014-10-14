@@ -385,7 +385,12 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 
 	@Override
 	public AuthorizationStatus canCreateWiki(String entityId, UserInfo userInfo) throws DatastoreException, NotFoundException {
-		// this duplicates the current, wrong behavior
-		return hasAccess(entityId, ACCESS_TYPE.CREATE, userInfo);
+		// this is the correct logic
+		if (!userInfo.isAdmin() && 
+			!isCertifiedUserOrFeatureDisabled(userInfo) && 
+				!nodeDao.getNode(entityId).getNodeType().equals(PROJECT_NODE_TYPE))
+			return AuthorizationManagerUtil.accessDenied("Only certified users may create or update content in Synapse.");
+		
+		return certifiedUserHasAccess(entityId, ACCESS_TYPE.CREATE, userInfo);
 	}
 }
