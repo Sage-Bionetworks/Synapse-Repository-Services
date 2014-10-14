@@ -331,11 +331,11 @@ public class MigrationIntegrationAutowireTest extends AbstractAutowiredControlle
 		set.setRows(rows);
 		set.setTableId(tableId);
 		// Append the rows to the table
-		tableRowTruthDao.appendRowSetToTable(adminUserIdString, tableId, models, set, false);
+		tableRowTruthDao.appendRowSetToTable(adminUserIdString, tableId, models, set);
 		// Append some more rows
 		rows = TableModelTestUtils.createRows(models, 6);
 		set.setRows(rows);
-		tableRowTruthDao.appendRowSetToTable(adminUserIdString, tableId, models, set, false);
+		tableRowTruthDao.appendRowSetToTable(adminUserIdString, tableId, models, set);
 	}
 
 	public void createNewUser() throws NotFoundException {

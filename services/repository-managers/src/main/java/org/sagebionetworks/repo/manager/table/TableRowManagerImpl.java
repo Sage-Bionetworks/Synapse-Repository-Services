@@ -139,18 +139,20 @@ public class TableRowManagerImpl implements TableRowManager {
 	}
 	
 	@Override
-	public RowReferenceSet appendPartialRows(UserInfo user, String tableId, List<ColumnModel> models, PartialRowSet rowsToAppendOrUpdate)
+	public RowReferenceSet appendPartialRows(UserInfo user, String tableId, List<ColumnModel> models,
+			PartialRowSet rowsToAppendOrUpdateOrDelete)
 			throws DatastoreException, NotFoundException, IOException {
 		Validate.required(user, "User");
 		Validate.required(tableId, "TableId");
 		Validate.required(models, "Models");
-		Validate.required(rowsToAppendOrUpdate, "RowsToAppendOrUpdate");
+		Validate.required(rowsToAppendOrUpdateOrDelete, "RowsToAppendOrUpdate");
 		// Validate the request is under the max bytes per requested
-		validateRequestSize(models, rowsToAppendOrUpdate.getRows().size());
+		validateRequestSize(models, rowsToAppendOrUpdateOrDelete.getRows().size());
 		// For this case we want to capture the resulting RowReferenceSet
 		RowReferenceSet results = new RowReferenceSet();
-		RowSet fullRowsToAppendOrUpdate = mergeWithLastVersion(tableId, rowsToAppendOrUpdate, models);
-		appendRowsAsStream(user, tableId, models, fullRowsToAppendOrUpdate.getRows().iterator(), fullRowsToAppendOrUpdate.getEtag(), results, null);
+		RowSet fullRowsToAppendOrUpdateOrDelete = mergeWithLastVersion(tableId, rowsToAppendOrUpdateOrDelete, models);
+		appendRowsAsStream(user, tableId, models, fullRowsToAppendOrUpdateOrDelete.getRows().iterator(),
+				fullRowsToAppendOrUpdateOrDelete.getEtag(), results, null);
 		return results;
 	}
 
@@ -159,21 +161,26 @@ public class TableRowManagerImpl implements TableRowManager {
 	 * will find the most current version, and any column not present as a key in the map will be replaced with the most
 	 * recent value. For inserts, this will replace null cell values with their defaults.
 	 */
-	private RowSet mergeWithLastVersion(String tableId, PartialRowSet rowsToAppendOrUpdate, List<ColumnModel> models) throws IOException,
+	private RowSet mergeWithLastVersion(String tableId, PartialRowSet rowsToAppendOrUpdateOrDelete, List<ColumnModel> models)
+			throws IOException,
 			NotFoundException {
 		RowSet result = new RowSet();
 		TableRowChange lastTableRowChange = tableRowTruthDao.getLastTableRowChange(tableId);
 		result.setEtag(lastTableRowChange == null ? null : lastTableRowChange.getEtag());
 		result.setHeaders(TableModelUtils.getHeaders(models));
 		result.setTableId(tableId);
-		List<Row> rows = Lists.newArrayListWithCapacity(rowsToAppendOrUpdate.getRows().size());
+		List<Row> rows = Lists.newArrayListWithCapacity(rowsToAppendOrUpdateOrDelete.getRows().size());
 		Map<Long, Pair<PartialRow, Row>> rowsToUpdate = Maps.newHashMap();
-		for (PartialRow partialRow : rowsToAppendOrUpdate.getRows()) {
+		for (PartialRow partialRow : rowsToAppendOrUpdateOrDelete.getRows()) {
 			Row row;
 			if (partialRow.getRowId() != null) {
 				row = new Row();
 				row.setRowId(partialRow.getRowId());
-				rowsToUpdate.put(partialRow.getRowId(), Pair.create(partialRow, row));
+				if (partialRow.getValues() == null) {
+					// no values specified, this is a row deletion
+				} else {
+					rowsToUpdate.put(partialRow.getRowId(), Pair.create(partialRow, row));
+				}
 			} else {
 				row = resolveInsertValues(partialRow, models);
 			}
@@ -245,7 +252,7 @@ public class TableRowManagerImpl implements TableRowManager {
 				Row row = new Row();
 				row.setRowId(input);
 				row.setVersionNumber(null);
-				row.setValues(Collections.<String> emptyList());
+				row.setValues(null);
 				return row;
 			}
 		});
@@ -255,7 +262,7 @@ public class TableRowManagerImpl implements TableRowManager {
 		rowSetToDelete.setTableId(tableId);
 		// need copy of list here, as appendRowSetToTable changes rows in place
 		rowSetToDelete.setRows(Lists.newArrayList(rows));
-		RowReferenceSet result = tableRowTruthDao.appendRowSetToTable(user.getId().toString(), tableId, models, rowSetToDelete, true);
+		RowReferenceSet result = tableRowTruthDao.appendRowSetToTable(user.getId().toString(), tableId, models, rowSetToDelete);
 		// The table has change so we must reset the state.
 		tableStatusDAO.resetTableStatusToProcessing(tableId);
 		return result;
@@ -349,7 +356,7 @@ public class TableRowManagerImpl implements TableRowManager {
 			throws IOException, ReadOnlyException {
 		// See PLFM-3041
 		checkStackWiteStatus();
-		RowReferenceSet rrs = tableRowTruthDao.appendRowSetToTable(user.getId().toString(), delta.getTableId(), models, delta, false);
+		RowReferenceSet rrs = tableRowTruthDao.appendRowSetToTable(user.getId().toString(), delta.getTableId(), models, delta);
 		if(progressCallback != null){
 			progressCallback.progressMade(new Long(rrs.getRows().size()));
 		}

@@ -288,6 +288,14 @@ public class TableModelTestUtils {
 		return row;
 	}
 
+	public static Row createDeletionRow(Long rowId, Long rowVersion) {
+		Row row = new Row();
+		row.setRowId(rowId);
+		row.setVersionNumber(rowVersion);
+		row.setValues(null);
+		return row;
+	}
+
 	public static PartialRow createPartialRow(Long rowId, String... keysAndValues) {
 		PartialRow row = new PartialRow();
 		row.setRowId(rowId);
