@@ -58,8 +58,8 @@ public class CurrentRowCacheDaoImpl extends DynamoDaoBaseImpl implements Current
 	@Autowired
 	private Clock clock;
 
-	private long writeThroughPut = 0;
-	private long lastCheckForThroughputChange = 0;
+	private Long writeThroughPut = 0L;
+	private Long lastCheckForThroughputChange = 0L;
 
 	private static final Comparator<DboCurrentRowCache> CURRENT_ROW_CACHE_COMPARATOR = new Comparator<DboCurrentRowCache>() {
 		@Override
@@ -296,21 +296,23 @@ public class CurrentRowCacheDaoImpl extends DynamoDaoBaseImpl implements Current
 	}
 
 	private void tryUpdateThroughput() {
-		if (writeThroughPut != 0 && clock.currentTimeMillis() < lastCheckForThroughputChange + THROUGHPUT_CHECK_INTERVAL_MS) {
+		long writeThroughPutCopy = writeThroughPut;
+		if (writeThroughPutCopy != 0 && clock.currentTimeMillis() < lastCheckForThroughputChange + THROUGHPUT_CHECK_INTERVAL_MS) {
 			return;
 		}
 		try {
 			DescribeTableRequest describeTableRequest = new DescribeTableRequest().withTableName(DynamoConfig
 					.getDynamoDBMapperConfigFor(DboCurrentRowCache.class).getTableNameOverride().getTableName());
 			DescribeTableResult describeTable = getDynamoClient().describeTable(describeTableRequest);
-			writeThroughPut = describeTable.getTable().getProvisionedThroughput().getWriteCapacityUnits().longValue();
+			writeThroughPutCopy = describeTable.getTable().getProvisionedThroughput().getWriteCapacityUnits().longValue();
 		} catch (Throwable t) {
 			log.error("Could not get throughput: " + t.getMessage(), t);
 		}
 		// change to some default if we failed to get a good number
-		if (writeThroughPut == 0) {
-			writeThroughPut = 75L;
+		if (writeThroughPutCopy == 0) {
+			writeThroughPutCopy = 75L;
 		}
+		writeThroughPut = writeThroughPutCopy;
 		lastCheckForThroughputChange = clock.currentTimeMillis();
 	}
 }
