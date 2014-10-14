@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.model.dao.table;
 
-import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
@@ -10,7 +9,7 @@ public abstract class RowSetAccessor {
 		return getRowIdToRowMap().get(rowId);
 	}
 
-	public Collection<RowAccessor> getRows() {
+	public Iterable<RowAccessor> getRows() {
 		return getRowIdToRowMap().values();
 	}
 

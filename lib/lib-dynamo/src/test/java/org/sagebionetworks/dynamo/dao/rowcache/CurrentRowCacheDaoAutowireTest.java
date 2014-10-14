@@ -410,6 +410,15 @@ public class CurrentRowCacheDaoAutowireTest {
 		currentRowCacheDao.putCurrentVersions(tableId, map, null);
 		// should be 1000 / 50 * 3 + 5
 		assertEquals(65L, testClock.currentTimeMillis() - start);
+
+		// check is every 20 minutes, reset the write throughput value
+		ReflectionTestUtils.setField(((CurrentRowCacheDaoImpl) ReflectionStaticTestUtils.getTargetObject(currentRowCacheDao)),
+				"dynamoClient", oldDynamoClient);
+		testClock.warpForward(1200000);
+		start = testClock.currentTimeMillis();
+		currentRowCacheDao.putCurrentVersions(tableId, map, null);
+		// should be 1000 / 50 * 3 + 5
+		assertEquals(605L, testClock.currentTimeMillis() - start);
 	}
 
 	@Ignore

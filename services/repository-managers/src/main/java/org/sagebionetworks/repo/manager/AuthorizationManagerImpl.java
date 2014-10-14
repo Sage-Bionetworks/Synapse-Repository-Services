@@ -207,8 +207,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		Multimap<String, String> creatorMap = fileHandleDao.getHandleCreators(fileHandleIds);
 		for (Entry<String, Collection<String>> entry : creatorMap.asMap().entrySet()) {
 			String creator = entry.getKey();
-			String fileHandleIdCollectionAsString = entry.getValue().toString();
-			if (canAccessRawFileHandleByCreator(userInfo, fileHandleIdCollectionAsString, creator).getAuthorized()) {
+			if (canAccessRawFileHandleByCreator(userInfo, "", creator).getAuthorized()) {
 				allowed.addAll(entry.getValue());
 			} else {
 				disallowed.addAll(entry.getValue());
