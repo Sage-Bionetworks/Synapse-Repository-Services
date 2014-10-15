@@ -80,13 +80,13 @@ public class V2WikiManagerImpl implements V2WikiManager {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public V2WikiPage createWikiPage(UserInfo user, String objectId,	ObjectType objectType, V2WikiPage wikiPage) throws NotFoundException, UnauthorizedException{
+	public V2WikiPage createWikiPage(UserInfo user, String objectId, ObjectType objectType, V2WikiPage wikiPage) throws NotFoundException, UnauthorizedException{
 		if(user == null) throw new IllegalArgumentException("user cannot be null");
 		if(objectId == null) throw new IllegalArgumentException("objectId cannot be null");
 		if(objectType == null) throw new IllegalArgumentException("objectType cannot be null");
 		if(wikiPage == null) throw new IllegalArgumentException("wikiPage cannot be null");
 		// Check that the user is allowed to perform this action
-		if(!authorizationManager.canAccess(user, objectId,	objectType, ACCESS_TYPE.CREATE).getAuthorized()){
+		if(!authorizationManager.canCreateWiki(user, objectId, objectType).getAuthorized()){
 			throw new UnauthorizedException(String.format(USER_IS_NOT_AUTHORIZED_TEMPLATE, ACCESS_TYPE.CREATE.name(), objectId, objectType.name()));
 		}
 		
