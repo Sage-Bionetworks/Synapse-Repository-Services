@@ -321,7 +321,10 @@ public class TableController extends BaseController {
 	 * PartialRow.values identifies the column by ID in the key. When a row is
 	 * added it will be issued both a rowId and a version number. When a row is
 	 * updated it will be issued a new version number (each row version is
-	 * immutable). The resulting RowReferenceSet will enumerate all rowIds and
+	 * immutable). If PartialRow.values is null, the corresponding row will be deleted.
+	 * If PartialRow.values is an empty map, then no change will be made to that row.
+	 * 
+	 * The resulting RowReferenceSet will enumerate all rowIds and
 	 * versionNumbers for this update. The resulting RowReferences will be
 	 * listed in the same order as the passed result set. A single POST to this
 	 * services will be treated as a single transaction, meaning either all of

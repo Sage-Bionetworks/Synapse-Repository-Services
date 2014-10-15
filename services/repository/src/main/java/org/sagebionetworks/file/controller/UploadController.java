@@ -474,11 +474,11 @@ public class UploadController extends BaseController {
 	}
 	
 	/**
-	 * Get the status of a daemon started with <a href="${POST.startCompleteUploadDaemon}">POST
-	 * /startCompleteUploadDaemon</a>.
+	 * Get the upload destinations for a file with this parent entity. This will return a list of at least one
+	 * destination. The first destination in the list is always the default destination
 	 * 
 	 * @param userId
-	 * @param daemonId The ID of the daemon (UploadDaemonStatus.id).
+	 * @param parentId
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
