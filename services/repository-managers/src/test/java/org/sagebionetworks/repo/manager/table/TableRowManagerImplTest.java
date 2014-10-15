@@ -212,7 +212,7 @@ public class TableRowManagerImplTest {
 		rowIdSequence = 0;
 		rowVersionSequence = 0;
 		// Stub the dao 
-		stub(mockTruthDao.appendRowSetToTable(any(String.class), any(String.class), any(List.class), any(RowSet.class), anyBoolean()))
+		stub(mockTruthDao.appendRowSetToTable(any(String.class), any(String.class), any(List.class), any(RowSet.class)))
 				.toAnswer(new Answer<RowReferenceSet>() {
 
 			@Override
@@ -259,7 +259,7 @@ public class TableRowManagerImplTest {
 	public void testAppendRowsHappy() throws DatastoreException, NotFoundException, IOException{
 		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mockAuthManager.canAccessRawFileHandleById(eq(user), anyString())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		when(mockTruthDao.appendRowSetToTable(user.getId().toString(), tableId, models, set, false)).thenReturn(refSet);
+		when(mockTruthDao.appendRowSetToTable(user.getId().toString(), tableId, models, set)).thenReturn(refSet);
 		RowReferenceSet results = manager.appendRows(user, tableId, models, set);
 		assertEquals(refSet, results);
 		// verify the table status was set
@@ -270,7 +270,7 @@ public class TableRowManagerImplTest {
 	public void testAppendPartialRowsHappy() throws DatastoreException, NotFoundException, IOException {
 		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mockAuthManager.canAccessRawFileHandleById(eq(user), anyString())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		when(mockTruthDao.appendRowSetToTable(user.getId().toString(), tableId, models, expectedRows, false)).thenReturn(refSet);
+		when(mockTruthDao.appendRowSetToTable(user.getId().toString(), tableId, models, expectedRows)).thenReturn(refSet);
 		RowReferenceSet results = manager.appendPartialRows(user, tableId, models, partialSet);
 		assertEquals(refSet, results);
 		// verify the table status was set
@@ -281,9 +281,8 @@ public class TableRowManagerImplTest {
 	public void testAppendRowsAsStreamHappy() throws DatastoreException, NotFoundException, IOException{
 		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
 		when(mockAuthManager.canAccessRawFileHandleById(eq(user), anyString())).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		when(
-				mockTruthDao.appendRowSetToTable(any(String.class), any(String.class), anyListOf(ColumnModel.class), any(RowSet.class),
-						anyBoolean())).thenReturn(refSet);
+		when(mockTruthDao.appendRowSetToTable(any(String.class), any(String.class), anyListOf(ColumnModel.class), any(RowSet.class)))
+				.thenReturn(refSet);
 		RowReferenceSet results = new RowReferenceSet();
 		String etag = manager.appendRowsAsStream(user, tableId, models, set.getRows().iterator(), "etag", results, mockProgressCallback);
 		assertEquals(refSet, results);
@@ -307,7 +306,7 @@ public class TableRowManagerImplTest {
 		tooBigSet.setHeaders(TableModelUtils.getHeaders(models));
 		tooBigSet.setRows(rows);
 		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		when(mockTruthDao.appendRowSetToTable(user.getId().toString(), tableId, models, set, false)).thenReturn(refSet);
+		when(mockTruthDao.appendRowSetToTable(user.getId().toString(), tableId, models, set)).thenReturn(refSet);
 		try {
 			manager.appendRows(user, tableId, models, tooBigSet);
 			fail("The passed RowSet should have been too large");
@@ -347,7 +346,7 @@ public class TableRowManagerImplTest {
 		emptyValueRow.setValues(null);
 		set.setRows(Collections.singletonList(emptyValueRow));
 		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		when(mockTruthDao.appendRowSetToTable(user.getId().toString(), tableId, models, set, false))
+		when(mockTruthDao.appendRowSetToTable(user.getId().toString(), tableId, models, set))
 				.thenThrow(new IllegalArgumentException());
 		manager.appendRows(user, tableId, models, set);
 	}
@@ -358,15 +357,15 @@ public class TableRowManagerImplTest {
 		emptyValueRow.setValues(Lists.<String> newArrayList());
 		set.setRows(Collections.singletonList(emptyValueRow));
 		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		when(mockTruthDao.appendRowSetToTable(user.getId().toString(), tableId, models, set, false))
+		when(mockTruthDao.appendRowSetToTable(user.getId().toString(), tableId, models, set))
 				.thenThrow(new IllegalArgumentException());
 		manager.appendRows(user, tableId, models, set);
 	}
 
 	@Test
 	public void testDeleteRowsHappy() throws DatastoreException, NotFoundException, IOException{
-		Row row1 = TableModelTestUtils.createRow(1L, null);
-		Row row2 = TableModelTestUtils.createRow(2L, null);
+		Row row1 = TableModelTestUtils.createDeletionRow(1L, null);
+		Row row2 = TableModelTestUtils.createDeletionRow(2L, null);
 		set.setEtag("aa");
 		set.setRows(Lists.newArrayList(row1, row2));
 
@@ -375,12 +374,12 @@ public class TableRowManagerImplTest {
 		rowSelection.setEtag("aa");
 
 		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
-		when(mockTruthDao.appendRowSetToTable(user.getId().toString(), tableId, models, set, true)).thenReturn(refSet);
+		when(mockTruthDao.appendRowSetToTable(user.getId().toString(), tableId, models, set)).thenReturn(refSet);
 
 		manager.deleteRows(user, tableId, models, rowSelection);
 
 		// verify the correct row set was generated
-		verify(mockTruthDao).appendRowSetToTable(user.getId().toString(), tableId, models, set, true);
+		verify(mockTruthDao).appendRowSetToTable(user.getId().toString(), tableId, models, set);
 		// verify the table status was set
 		verify(mockTableStatusDAO, times(1)).resetTableStatusToProcessing(tableId);
 	}
@@ -424,7 +423,7 @@ public class TableRowManagerImplTest {
 		when(mockTruthDao.getLatestVersionsWithRowData(tableId, Sets.newHashSet(2L), 0L)).thenReturn(originalAccessor);
 		manager.appendRows(user, tableId, models, replace);
 
-		verify(mockTruthDao).appendRowSetToTable(anyString(), anyString(), anyListOf(ColumnModel.class), any(RowSet.class), anyBoolean());
+		verify(mockTruthDao).appendRowSetToTable(anyString(), anyString(), anyListOf(ColumnModel.class), any(RowSet.class));
 		verify(mockTruthDao).getLatestVersionsWithRowData(tableId, Sets.newHashSet(2L), 0L);
 		verify(mockAuthManager).canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
 		verify(mockAuthManager).canAccessRawFileHandlesByIds(user, Lists.newArrayList("3333", "505002"), Sets.<String> newHashSet("3333"),
@@ -461,7 +460,7 @@ public class TableRowManagerImplTest {
 				Sets.<String> newHashSet());
 		manager.appendRows(user, tableId, models, replace);
 
-		verify(mockTruthDao).appendRowSetToTable(anyString(), anyString(), anyListOf(ColumnModel.class), any(RowSet.class), anyBoolean());
+		verify(mockTruthDao).appendRowSetToTable(anyString(), anyString(), anyListOf(ColumnModel.class), any(RowSet.class));
 		verify(mockAuthManager).canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
 		verify(mockAuthManager).canAccessRawFileHandlesByIds(user, Lists.newArrayList("3333"), Sets.<String> newHashSet("3333"),
 				Sets.<String> newHashSet());

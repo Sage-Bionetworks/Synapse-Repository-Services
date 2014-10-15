@@ -17,6 +17,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
@@ -855,7 +856,7 @@ public class TableWorkerIntegrationTest {
 
 		// Now add some data
 		List<Row> rows = Lists.newArrayList();
-		for (int i = 0; i < 4; i++) {
+		for (int i = 0; i < 6; i++) {
 			rows.add(TableModelTestUtils.createRow(null, null, "something", null, "something", null));
 		}
 		RowSet rowSet = new RowSet();
@@ -867,8 +868,8 @@ public class TableWorkerIntegrationTest {
 		// Wait for the table to become available
 		String sql = "select * from " + tableId + " order by row_id";
 		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, 100L);
-		assertEquals(4, queryResult.getQueryResults().getRows().size());
-		for (int i = 0; i < 4; i++) {
+		assertEquals(6, queryResult.getQueryResults().getRows().size());
+		for (int i = 0; i < 6; i++) {
 			assertEquals(Lists.newArrayList("something", null, "something", "default"), queryResult.getQueryResults().getRows().get(i)
 					.getValues());
 		}
@@ -906,14 +907,24 @@ public class TableWorkerIntegrationTest {
 		values.put(schema.get(3).getId(), null);
 		partialRowUpdateNulls.setValues(values);
 
+		// append for no change
+		PartialRow partialRowAppendForDelete1 = new PartialRow();
+		partialRowAppendForDelete1.setRowId(queryResult.getQueryResults().getRows().get(4).getRowId());
+		partialRowAppendForDelete1.setValues(Collections.<String, String> emptyMap());
+
+		// append for deletion
+		PartialRow partialRowAppendForDelete2 = new PartialRow();
+		partialRowAppendForDelete2.setRowId(queryResult.getQueryResults().getRows().get(5).getRowId());
+		partialRowAppendForDelete2.setValues(null);
+
 		PartialRowSet partialRowSet = new PartialRowSet();
 		partialRowSet.setTableId(tableId);
-		partialRowSet.setRows(Lists.newArrayList(partialRowAppend, partialRowUpdateNull, partialRowUpdateNonNull, partialRowUpdateNothing,
-				partialRowUpdateNulls));
+		partialRowSet.setRows(Lists.newArrayList(partialRowAppend, partialRowAppendForDelete1, partialRowAppendForDelete2,
+				partialRowUpdateNull, partialRowUpdateNonNull, partialRowUpdateNothing, partialRowUpdateNulls));
 		tableRowManager.appendPartialRows(adminUserInfo, tableId, schema, partialRowSet);
 
 		queryResult = waitForConsistentQuery(adminUserInfo, sql, 100L);
-		assertEquals(5, queryResult.getQueryResults().getRows().size());
+		assertEquals(6, queryResult.getQueryResults().getRows().size());
 		// update null columns
 		assertEquals(Lists.newArrayList("something", "other", "something", "other"), queryResult.getQueryResults().getRows().get(0)
 				.getValues());
@@ -924,8 +935,11 @@ public class TableWorkerIntegrationTest {
 				.getValues());
 		// update with nulls
 		assertEquals(Lists.newArrayList(null, null, "default", "default"), queryResult.getQueryResults().getRows().get(3).getValues());
-		// append
+		// no change
 		assertEquals(Lists.newArrayList("something", null, "something", "default"), queryResult.getQueryResults().getRows().get(4)
+				.getValues());
+		// append
+		assertEquals(Lists.newArrayList("something", null, "something", "default"), queryResult.getQueryResults().getRows().get(5)
 				.getValues());
 	}
 

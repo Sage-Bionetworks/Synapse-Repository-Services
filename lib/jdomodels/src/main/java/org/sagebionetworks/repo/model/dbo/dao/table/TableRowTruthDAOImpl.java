@@ -187,7 +187,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public RowReferenceSet appendRowSetToTable(String userId, String tableId, List<ColumnModel> models, RowSet delta, boolean isDeletion)
+	public RowReferenceSet appendRowSetToTable(String userId, String tableId, List<ColumnModel> models, RowSet delta)
 			throws IOException {
 		// Now set the row version numbers and ID.
 		int coutToReserver = TableModelUtils.countEmptyOrInvalidRowIds(delta);
@@ -202,7 +202,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		// Now assign the rowIds and set the version number
 		TableModelUtils.assignRowIdsAndVersionNumbers(delta, range);
 		// We are ready to convert the file to a CSV and save it to S3.
-		String key = saveCSVToS3(models, delta, isDeletion);
+		String key = saveCSVToS3(models, delta);
 		List<String> headers = TableModelUtils.getHeaders(models);
 		// record the change
 		DBOTableRowChange changeDBO = new DBOTableRowChange();
@@ -343,14 +343,14 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 	 * @throws IOException
 	 * @throws FileNotFoundException
 	 */
-	private String saveCSVToS3(List<ColumnModel> models, RowSet delta, boolean isDeletion)
+	private String saveCSVToS3(List<ColumnModel> models, RowSet delta)
 			throws IOException, FileNotFoundException {
 		File temp = File.createTempFile("rowSet", "csv.gz");
 		FileOutputStream out = null;
 		try {
 			out = new FileOutputStream(temp);
 			// Save this to the the zipped CSV
-			TableModelUtils.validateAnWriteToCSVgz(models, delta, out, isDeletion);
+			TableModelUtils.validateAnWriteToCSVgz(models, delta, out);
 			// upload it to S3.
 			String key = String.format(KEY_TEMPLATE, UUID.randomUUID()
 					.toString());

@@ -298,45 +298,6 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 	}
 
 	@Test(expected = IllegalArgumentException.class)
-	public void testNullRowUpdateFails() throws Exception {
-		// Create a few columns to add to a table entity
-		ColumnModel one = new ColumnModel();
-		one.setName("one");
-		one.setColumnType(ColumnType.STRING);
-		one = servletTestHelper.createColumnModel(dispatchServlet, one, adminUserId);
-
-		// now create a table entity
-		TableEntity table = new TableEntity();
-		table.setName("Table");
-		table.setColumnIds(Lists.newArrayList(one.getId()));
-		table.setParentId(parent.getId());
-		table = servletTestHelper.createEntity(dispatchServlet, table, adminUserId);
-		entitiesToDelete.add(table.getId());
-		List<ColumnModel> columns = servletTestHelper.getColumnModelsForTableEntity(dispatchServlet, table.getId(),
-				adminUserId);
-
-		// Append some rows
-		RowSet set = new RowSet();
-		List<Row> rows = TableModelTestUtils.createRows(columns, 2);
-		set.setRows(rows);
-		set.setHeaders(TableModelUtils.getHeaders(columns));
-		set.setTableId(table.getId());
-		RowReferenceSet results1 = servletTestHelper.appendTableRows(dispatchServlet, set, adminUserId);
-
-		// update one row with null values
-		RowSet update = new RowSet();
-		Row row1 = new Row();
-		row1.setRowId(results1.getRows().get(0).getRowId());
-		row1.setVersionNumber(results1.getRows().get(0).getVersionNumber());
-		row1.setValues(null);
-		update.setRows(Lists.newArrayList(row1));
-		update.setTableId(results1.getTableId());
-		update.setHeaders(results1.getHeaders());
-		update.setEtag(results1.getEtag());
-		servletTestHelper.appendTableRows(dispatchServlet, update, adminUserId);
-	}
-
-	@Test(expected = IllegalArgumentException.class)
 	public void testEmptyRowUpdateFails() throws Exception {
 		// Create a few columns to add to a table entity
 		ColumnModel one = new ColumnModel();

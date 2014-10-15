@@ -82,7 +82,7 @@ public class TableModelUtils {
 	 * @param isDeletion
 	 * @throws IOException
 	 */
-	public static void validateAnWriteToCSVgz(List<ColumnModel> models, RowSet set, OutputStream out, boolean isDeletion) throws IOException {
+	public static void validateAnWriteToCSVgz(List<ColumnModel> models, RowSet set, OutputStream out) throws IOException {
 		GZIPOutputStream zipOut = null;
 		OutputStreamWriter osw = null;
 		CSVWriter csvWriter = null;
@@ -91,7 +91,7 @@ public class TableModelUtils {
 			osw = new OutputStreamWriter(zipOut);
 			csvWriter = new CSVWriter(osw);
 			// Write the data to the the CSV.
-			TableModelUtils.validateAndWriteToCSV(models, set, csvWriter, isDeletion);
+			TableModelUtils.validateAndWriteToCSV(models, set, csvWriter);
 		}finally{
 			if(csvWriter != null){
 				csvWriter.flush();
@@ -111,7 +111,7 @@ public class TableModelUtils {
 	 * @param models
 	 * @param set
 	 */
-	public static void validateAndWriteToCSV(List<ColumnModel> models, RowSet set, CSVWriter out, boolean isDeletion) {
+	public static void validateAndWriteToCSV(List<ColumnModel> models, RowSet set, CSVWriter out) {
 		if (models == null)
 			throw new IllegalArgumentException("Models cannot be null");
 		validateRowSet(set);
@@ -136,14 +136,10 @@ public class TableModelUtils {
 						"Row.versionNumber cannot be null for row number: "
 								+ count);
 			String[] finalRow;
-			if (isDeletion) {
+			if (row.getValues() == null) {
 				// only output rowId and rowVersion
 				finalRow = new String[2];
 			} else {
-				// First convert the values to
-				if (row.getValues() == null)
-					throw new IllegalArgumentException("Row " + count
-							+ " has null list of values");
 				if (row.getValues().size() == 0)
 					throw new IllegalArgumentException("Row " + count + " has empty list of values");
 				if (models.size() != row.getValues().size())
