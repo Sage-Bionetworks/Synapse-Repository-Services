@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.dbo.dao.table;
+package org.sagebionetworks.table.cluster.utils;
 
 import java.io.UnsupportedEncodingException;
 

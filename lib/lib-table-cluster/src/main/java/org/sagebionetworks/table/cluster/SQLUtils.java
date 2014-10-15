@@ -1,5 +1,8 @@
 package org.sagebionetworks.table.cluster;
 
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -11,21 +14,18 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.lang.StringEscapeUtils;
-import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
-import org.sagebionetworks.repo.model.dbo.dao.table.ColumnConstants;
-import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.table.cluster.utils.ColumnConstants;
+import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.TimeUtils;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
 import com.google.common.collect.Lists;
-
-import static org.sagebionetworks.repo.model.table.TableConstants.*;
 
 /**
  * Utilities for generating Table SQL, DML, and DDL.

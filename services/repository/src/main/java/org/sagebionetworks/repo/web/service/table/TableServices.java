@@ -107,8 +107,8 @@ public interface TableServices {
 	 * @throws DatastoreException
 	 * @throws IOException
 	 */
-	public RowReferenceSet appendPartialRows(Long userId, PartialRowSet rowsToAppendOrUpdate) throws NotFoundException, DatastoreException,
-			IOException;
+	public RowReferenceSet appendPartialRows(Long userId, PartialRowSet rowsToAppendOrUpdateOrDelete) throws NotFoundException,
+			DatastoreException, IOException;
 
 	/**
 	 * Delete rows in a table.

@@ -2,7 +2,6 @@ package org.sagebionetworks.dynamo.dao.rowcache;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyListOf;
 import static org.mockito.Mockito.doThrow;
@@ -30,6 +29,8 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.dao.table.CurrentRowCacheDao;
 import org.sagebionetworks.repo.model.table.CurrentRowCacheStatus;
 import org.sagebionetworks.util.ProgressCallback;
 import org.sagebionetworks.util.ReflectionStaticTestUtils;
@@ -41,7 +42,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.services.dynamodb.AmazonDynamoDB;
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMapper;
-import com.amazonaws.services.dynamodb.model.ConditionalCheckFailedException;
 import com.amazonaws.services.dynamodb.model.DescribeTableRequest;
 import com.amazonaws.services.dynamodb.model.DescribeTableResult;
 import com.amazonaws.services.dynamodb.model.ProvisionedThroughputDescription;
@@ -241,7 +241,7 @@ public class CurrentRowCacheDaoAutowireTest {
 		assertEquals(300L, status.getLatestCachedVersionNumber().longValue());
 	}
 
-	@Test(expected = ConditionalCheckFailedException.class)
+	@Test(expected = ConflictingUpdateException.class)
 	public void testLatestVersionFailsOptimisticLock() {
 		CurrentRowCacheStatus status = currentRowCacheDao.getLatestCurrentVersionNumber(tableId);
 		assertNull(status.getLatestCachedVersionNumber());

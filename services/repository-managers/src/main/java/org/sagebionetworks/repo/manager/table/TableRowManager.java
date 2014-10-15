@@ -86,8 +86,8 @@ public interface TableRowManager {
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
-	public RowReferenceSet appendPartialRows(UserInfo user, String tableId, List<ColumnModel> models, PartialRowSet rowsToAppendOrUpdate)
-			throws DatastoreException, NotFoundException, IOException;
+	public RowReferenceSet appendPartialRows(UserInfo user, String tableId, List<ColumnModel> models,
+			PartialRowSet rowsToAppendOrUpdateOrDelete) throws DatastoreException, NotFoundException, IOException;
 
 	/**
 	 * Delete a set of rows from a table.

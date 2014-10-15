@@ -4,16 +4,13 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 
-import org.sagebionetworks.dynamo.dao.rowcache.CurrentRowCacheDao;
 import org.sagebionetworks.dynamo.dao.rowcache.RowCacheDao;
-import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.dao.table.CurrentRowCacheDao;
 import org.sagebionetworks.repo.model.dao.table.TableRowCache;
 import org.sagebionetworks.repo.model.table.CurrentRowCacheStatus;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.util.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import com.amazonaws.services.dynamodb.model.ConditionalCheckFailedException;
 
 public class TableRowCacheImpl implements TableRowCache {
 	@Autowired
@@ -40,11 +37,7 @@ public class TableRowCacheImpl implements TableRowCache {
 		if (!currentRowCacheDao.isEnabled()) {
 			throw new IllegalStateException("the current row cache was asked to set latest version, but it is disabled");
 		}
-		try {
-			currentRowCacheDao.setLatestCurrentVersionNumber(oldStatus, newLastCurrentVersion);
-		} catch (ConditionalCheckFailedException e) {
-			throw new ConflictingUpdateException("Latest current version number was updated by someone else: " + e.getMessage());
-		}
+		currentRowCacheDao.setLatestCurrentVersionNumber(oldStatus, newLastCurrentVersion);
 	}
 
 	@Override

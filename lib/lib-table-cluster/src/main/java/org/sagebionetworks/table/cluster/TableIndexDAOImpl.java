@@ -14,11 +14,10 @@ import java.util.Map;
 import javax.sql.DataSource;
 
 import org.sagebionetworks.repo.model.dao.table.RowAndHeaderHandler;
-import org.sagebionetworks.repo.model.dbo.SinglePrimaryKeySqlParameterSource;
-import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.springframework.dao.InvalidDataAccessResourceUsageException;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.JdbcTemplate;

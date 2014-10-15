@@ -13,6 +13,8 @@ import org.sagebionetworks.collections.Transform;
 import org.sagebionetworks.collections.Transform.TransformEntry;
 import org.sagebionetworks.dynamo.config.DynamoConfig;
 import org.sagebionetworks.dynamo.dao.DynamoDaoBaseImpl;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.dao.table.CurrentRowCacheDao;
 import org.sagebionetworks.repo.model.table.CurrentRowCacheStatus;
 import org.sagebionetworks.util.Clock;
 import org.sagebionetworks.util.ProgressCallback;
@@ -110,13 +112,16 @@ public class CurrentRowCacheDaoImpl extends DynamoDaoBaseImpl implements Current
 	}
 
 	@Override
-	public void setLatestCurrentVersionNumber(CurrentRowCacheStatus oldStatus, Long newLatestVersionNumber)
-			throws ConditionalCheckFailedException {
+	public void setLatestCurrentVersionNumber(CurrentRowCacheStatus oldStatus, Long newLatestVersionNumber) throws ConflictingUpdateException {
 		DboCurrentRowCacheStatus status = new DboCurrentRowCacheStatus();
 		status.setHashKey(DboCurrentRowCacheStatus.createHashKey(oldStatus.getTableId()));
 		status.setRecordVersion(oldStatus.getRecordVersion());
 		status.setLatestVersionNumber(newLatestVersionNumber);
-		statusMapper.save(status);
+		try {
+			statusMapper.save(status);
+		} catch (ConditionalCheckFailedException e) {
+			throw new ConflictingUpdateException("Latest current version number was updated by someone else: " + e.getMessage());
+		}
 	}
 
 	@Override

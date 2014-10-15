@@ -1,18 +1,17 @@
-package org.sagebionetworks.dynamo.dao.rowcache;
+package org.sagebionetworks.repo.model.dao.table;
 
 import java.util.Map;
 
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.table.CurrentRowCacheStatus;
 import org.sagebionetworks.util.ProgressCallback;
-
-import com.amazonaws.services.dynamodb.model.ConditionalCheckFailedException;
 
 public interface CurrentRowCacheDao {
 	boolean isEnabled();
 
 	CurrentRowCacheStatus getLatestCurrentVersionNumber(Long tableId);
 
-	void setLatestCurrentVersionNumber(CurrentRowCacheStatus oldStatus, Long newLastCurrentVersion) throws ConditionalCheckFailedException;
+	void setLatestCurrentVersionNumber(CurrentRowCacheStatus oldStatus, Long newLastCurrentVersion) throws ConflictingUpdateException;
 
 	void putCurrentVersion(Long tableId, Long rowId, Long versionNumber);
 
