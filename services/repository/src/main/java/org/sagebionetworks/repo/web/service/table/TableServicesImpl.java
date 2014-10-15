@@ -12,7 +12,6 @@ import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableRowManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -32,6 +31,7 @@ import org.sagebionetworks.repo.model.table.TableFailedException;
 import org.sagebionetworks.repo.model.table.TableFileHandleResults;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.common.collect.Lists;
@@ -105,13 +105,13 @@ public class TableServicesImpl implements TableServices {
 	}
 
 	@Override
-	public RowReferenceSet appendPartialRows(Long userId, PartialRowSet rowsToAppendOrUpdate) throws NotFoundException, DatastoreException,
-			IOException {
-		Validate.required(rowsToAppendOrUpdate, "rowsToAppendOrUpdate");
-		Validate.required(rowsToAppendOrUpdate.getTableId(), "rowsToAppendOrUpdate.tableId");
+	public RowReferenceSet appendPartialRows(Long userId, PartialRowSet rowsToAppendOrUpdateOrDelete) throws NotFoundException,
+			DatastoreException, IOException {
+		Validate.required(rowsToAppendOrUpdateOrDelete, "rowsToAppendOrUpdateOrDelete");
+		Validate.required(rowsToAppendOrUpdateOrDelete.getTableId(), "rowsToAppendOrUpdateOrDelete.tableId");
 		UserInfo user = userManager.getUserInfo(userId);
-		List<ColumnModel> models = getCurrentColumnsForTable(user, rowsToAppendOrUpdate.getTableId());
-		return tableRowManager.appendPartialRows(user, rowsToAppendOrUpdate.getTableId(), models, rowsToAppendOrUpdate);
+		List<ColumnModel> models = getCurrentColumnsForTable(user, rowsToAppendOrUpdateOrDelete.getTableId());
+		return tableRowManager.appendPartialRows(user, rowsToAppendOrUpdateOrDelete.getTableId(), models, rowsToAppendOrUpdateOrDelete);
 	}
 
 	@Override

@@ -42,6 +42,7 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableRowChange;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.ProgressCallback;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -326,7 +327,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		long tableId = KeyFactory.stringToKey(tableIdString);
 		try {
 			DBOTableRowChange dbo = jdbcTemplate.queryForObject(SQL_SELECT_LAST_ROW_CHANGE_FOR_TABLE, rowChangeMapper, tableId);
-			return TableModelUtils.ceateDTOFromDBO(dbo);
+			return TableRowChangeUtils.ceateDTOFromDBO(dbo);
 		} catch (EmptyResultDataAccessException e) {
 			// presumably, no rows have been added yet
 			return null;
@@ -376,7 +377,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		long tableId = KeyFactory.stringToKey(tableIdString);
 		List<DBOTableRowChange> dboList = jdbcTemplate.query(
 				SQL_SELECT_ALL_ROW_CHANGES_FOR_TABLE, rowChangeMapper, tableId);
-		return TableModelUtils.ceateDTOFromDBO(dboList);
+		return TableRowChangeUtils.ceateDTOFromDBO(dboList);
 	}
 
 	@Override
@@ -388,7 +389,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 		List<DBOTableRowChange> dboList = jdbcTemplate.query(
 				SQL_SELECT_ALL_ROW_CHANGES_FOR_TABLE_GREATER_VERSION,
 				rowChangeMapper, tableId, versionNumber);
-		return TableModelUtils.ceateDTOFromDBO(dboList);
+		return TableRowChangeUtils.ceateDTOFromDBO(dboList);
 	}
 
 	@Override
@@ -409,7 +410,7 @@ public class TableRowTruthDAOImpl implements TableRowTruthDAO {
 			DBOTableRowChange dbo = jdbcTemplate.queryForObject(
 					SQL_SELECT_ROW_CHANGE_FOR_TABLE_AND_VERSION,
 					rowChangeMapper, tableId, rowVersion);
-			return TableModelUtils.ceateDTOFromDBO(dbo);
+			return TableRowChangeUtils.ceateDTOFromDBO(dbo);
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException(
 					"TableRowChange does not exist for tableId: " + tableId

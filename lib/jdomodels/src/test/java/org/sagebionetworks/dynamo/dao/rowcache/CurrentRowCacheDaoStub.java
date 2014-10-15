@@ -8,10 +8,11 @@ import org.apache.commons.lang.ObjectUtils;
 import org.sagebionetworks.collections.Maps2;
 import org.sagebionetworks.collections.Transform;
 import org.sagebionetworks.collections.Transform.TransformEntry;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.dao.table.CurrentRowCacheDao;
 import org.sagebionetworks.repo.model.table.CurrentRowCacheStatus;
 import org.sagebionetworks.util.ProgressCallback;
 
-import com.amazonaws.services.dynamodb.model.ConditionalCheckFailedException;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Supplier;
@@ -52,7 +53,7 @@ public class CurrentRowCacheDaoStub implements CurrentRowCacheDao {
 		CurrentRowCacheStatus currentRowCacheStatus = latestCurrentVersionNumbers.get(oldStatus.getTableId());
 		if (currentRowCacheStatus != null) {
 			if (!ObjectUtils.equals(currentRowCacheStatus.getRecordVersion(), oldStatus.getRecordVersion())) {
-				throw new ConditionalCheckFailedException("concurrent update failure");
+				throw new ConflictingUpdateException("concurrent update failure");
 			}
 		}
 		CurrentRowCacheStatus newStatus = new CurrentRowCacheStatus(oldStatus.getTableId(), versionNumber, oldStatus.getRecordVersion());

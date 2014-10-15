@@ -53,32 +53,14 @@ import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.CSVToRowIterator;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
-import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
-import org.sagebionetworks.repo.model.table.PartialRow;
-import org.sagebionetworks.repo.model.table.PartialRowSet;
-import org.sagebionetworks.repo.model.table.Query;
-import org.sagebionetworks.repo.model.table.QueryBundleRequest;
-import org.sagebionetworks.repo.model.table.QueryNextPageToken;
-import org.sagebionetworks.repo.model.table.QueryResult;
-import org.sagebionetworks.repo.model.table.QueryResultBundle;
-import org.sagebionetworks.repo.model.table.Row;
-import org.sagebionetworks.repo.model.table.RowReferenceSet;
-import org.sagebionetworks.repo.model.table.RowSelection;
-import org.sagebionetworks.repo.model.table.RowSet;
-import org.sagebionetworks.repo.model.table.TableConstants;
-import org.sagebionetworks.repo.model.table.TableEntity;
-import org.sagebionetworks.repo.model.table.TableFailedException;
-import org.sagebionetworks.repo.model.table.TableState;
-import org.sagebionetworks.repo.model.table.TableUnavilableException;
+import org.sagebionetworks.repo.model.table.*;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
+import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.util.csv.CSVWriterStream;
@@ -405,6 +387,68 @@ public class TableWorkerIntegrationTest {
 		queryResultBundle = waitForConsistentQueryBundle(adminUserInfo, sql, null, 1L);
 		assertEquals(0, queryResultBundle.getQueryResult().getQueryResults().getRows().size());
 		assertEquals(0L, queryResultBundle.getQueryCount().longValue());
+	}
+
+	@Test
+	public void testColumnOrderWithQueries() throws Exception {
+		// Create one column of each type
+		schema = new LinkedList<ColumnModel>();
+		for (ColumnModel cm : TableModelTestUtils.createOneOfEachType()) {
+			cm = columnManager.createColumnModel(adminUserInfo, cm);
+			schema.add(cm);
+		}
+		List<String> headers = TableModelUtils.getHeaders(schema);
+		// Create the table.
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		table.setColumnIds(headers);
+		tableId = entityManager.createEntity(adminUserInfo, table, null);
+		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
+		columnManager.bindColumnToObject(adminUserInfo, headers, tableId, true);
+		// Now add some data
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(TableModelTestUtils.createRows(schema, 10));
+		rowSet.setHeaders(headers);
+		rowSet.setTableId(tableId);
+		referenceSet = tableRowManager.appendRows(adminUserInfo, tableId, schema, rowSet);
+
+		// Wait for the table to become available
+		String sql = "select * from " + tableId;
+		QueryResultBundle queryResultBundle = waitForConsistentQueryBundle(adminUserInfo, sql, null, null);
+		for (int i = 0; i < queryResultBundle.getSelectColumns().size(); i++) {
+			assertEquals(schema.get(i), queryResultBundle.getSelectColumns().get(i));
+			assertEquals(schema.get(i).getId(), queryResultBundle.getQueryResult().getQueryResults().getHeaders().get(i));
+		}
+
+		sql = "select i1, i2 from " + tableId;
+		queryResultBundle = waitForConsistentQueryBundle(adminUserInfo, sql, null, null);
+		assertEquals("i1", queryResultBundle.getSelectColumns().get(0).getName());
+		assertEquals("i2", queryResultBundle.getSelectColumns().get(1).getName());
+
+		sql = "select i3, i1 from " + tableId;
+		queryResultBundle = waitForConsistentQueryBundle(adminUserInfo, sql, null, null);
+		assertEquals("i3", queryResultBundle.getSelectColumns().get(0).getName());
+		assertEquals("i1", queryResultBundle.getSelectColumns().get(1).getName());
+
+		PartialRowSet rowsToDelete = new PartialRowSet();
+		rowsToDelete.setTableId(tableId);
+		List<PartialRow> deleteRows = Lists.newArrayList();
+		for (RowReference row : referenceSet.getRows()) {
+			PartialRow partialRow = new PartialRow();
+			partialRow.setRowId(row.getRowId());
+			deleteRows.add(partialRow);
+		}
+		// PLFM-2965 removing all rows means query result headers is not filled out
+		// rowsToDelete.setRows(deleteRows);
+		// tableRowManager.appendPartialRows(adminUserInfo, tableId, schema, rowsToDelete);
+		// sql = "select * from " + tableId;
+		// queryResultBundle = waitForConsistentQueryBundle(adminUserInfo, sql, null, null);
+		// assertEquals(0, queryResultBundle.getQueryResult().getQueryResults().getRows().size());
+		// for (int i = 0; i < queryResultBundle.getSelectColumns().size(); i++) {
+		// assertEquals(schema.get(i), queryResultBundle.getSelectColumns().get(i));
+		// assertEquals(schema.get(i).getId(),
+		// queryResultBundle.getQueryResult().getQueryResults().getHeaders().get(i));
+		// }
 	}
 
 	/**

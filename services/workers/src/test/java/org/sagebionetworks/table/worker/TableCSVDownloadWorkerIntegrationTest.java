@@ -1,5 +1,6 @@
 package org.sagebionetworks.table.worker;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -35,7 +36,6 @@ import org.sagebionetworks.repo.model.asynch.AsynchronousJobStatus;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.dao.table.CSVToRowIterator;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
-import org.sagebionetworks.repo.model.dbo.dao.table.TableModelUtils;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -47,6 +47,7 @@ import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.csv.CsvNullReader;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -134,7 +135,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		DownloadFromTableRequest request = new DownloadFromTableRequest();
 		request.setSql(sql);
 		request.setWriteHeader(true);
-		request.setIncludeRowIdAndRowVersion(false);
+		request.setIncludeRowIdAndRowVersion(true);
 		AsynchronousJobStatus status = asynchJobStatusManager.startJob(adminUserInfo, request);
 		// Wait for the job to complete.
 		status = waitForStatus(status);
@@ -147,7 +148,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		assertEquals(tableId, response.getTableId());
 		// Get the filehandle
 		fileHandle = (S3FileHandle) fileHandleDao.get(response.getResultsFileHandleId());
-		checkResults(fileHandle, input);
+		checkResults(fileHandle, input, true);
 	}
 
 	@Test
@@ -172,10 +173,11 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		assertEquals(tableId, response.getTableId());
 		// Get the filehandle
 		fileHandle = (S3FileHandle) fileHandleDao.get(response.getResultsFileHandleId());
-		checkResults(fileHandle, input);
+		checkResults(fileHandle, input, false);
 	}
 
-	private void checkResults(S3FileHandle fileHandle, List<String[]> input) throws IOException, FileNotFoundException {
+	private void checkResults(S3FileHandle fileHandle, List<String[]> input, boolean includeRowAndVersion) throws IOException,
+			FileNotFoundException {
 		CsvNullReader csvReader;
 		List<String[]> results;
 		assertEquals("text/csv", fileHandle.getContentType());
@@ -195,7 +197,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		assertNotNull(results);
 		assertEquals(input.size(), results.size());
 		for (int i = 0; i < input.size(); i++) {
-			assertEquals(Arrays.toString(input.get(i)), Arrays.toString(results.get(i)));
+			assertArrayEquals(input.get(i), Arrays.copyOfRange(results.get(i), includeRowAndVersion ? 2 : 0, results.get(i).length));
 		}
 	}
 
