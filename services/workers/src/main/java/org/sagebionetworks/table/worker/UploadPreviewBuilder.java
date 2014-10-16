@@ -6,6 +6,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.repo.model.table.UploadToTablePreviewRequest;
@@ -157,10 +158,16 @@ public class UploadPreviewBuilder {
 		// If the headers does not equal null then set the names
 		if(header != null){
 			if(header.length != schema.length){
-				throw new IllegalArgumentException("The header column count of "+header.length+" does not match the number of columns found in the ");
+				throw new IllegalArgumentException("The header column count of "+header.length+" does not match the number of columns found in the file ");
 			}
 			// Set the header names.
 			for(int i=0; i<header.length; i++){
+				// The schema can be null if there is no data in this column.
+				// for such cases we assume a string column.
+				if(schema[i] == null){
+					schema[i] = new ColumnModel();
+					schema[i].setColumnType(ColumnType.STRING);
+				}
 				schema[i].setName(header[i]);
 			}
 		}

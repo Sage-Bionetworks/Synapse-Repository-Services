@@ -2,7 +2,10 @@ package org.sagebionetworks.table.worker;
 
 import static org.junit.Assert.*;
 
+import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -243,4 +246,32 @@ public class UploadPreviewBuilderTest {
 		assertNotNull(result);
 		assertEquals(new Long(2), result.getRowsScanned());
 	}
+	
+	/**
+	 * Test for the case where there is no data in one of the columns.
+	 * @throws IOException
+	 */
+	@Test
+	public void testPLFM_3032() throws IOException{
+		List<String[]> input = new ArrayList<String[]>(4);
+		input.add(new String[] { "A", "B","C"});
+		input.add(new String[] { "CCC", "3", null });
+		input.add(new String[] { "FFF", "4", null });
+		input.add(new String[] { "GGG", "5", null });
+		String eachTypeCSV = TableModelTestUtils.createCSVString(input);
+		CsvTableDescriptor descriptor = new CsvTableDescriptor();
+		descriptor.setIsFirstLineHeader(true);
+		UploadToTablePreviewRequest request = new UploadToTablePreviewRequest();
+		request.setCsvTableDescriptor(descriptor);
+		
+		StringReader sReader = new StringReader(eachTypeCSV);
+		CsvNullReader reader = new CsvNullReader(sReader);
+		UploadPreviewBuilder builder = new UploadPreviewBuilder(reader, mockReporter, request);
+		// Set the max beyond the number of rows we have.
+		builder.setMaxRowsInpartialScan(input.size()-1);
+		UploadToTablePreviewResult result = builder.buildResult();
+		assertNotNull(result);
+		assertEquals(new Long(3), result.getRowsScanned());
+	}
+
 }
