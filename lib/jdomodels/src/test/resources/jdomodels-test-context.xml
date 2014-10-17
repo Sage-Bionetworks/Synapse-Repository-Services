@@ -24,7 +24,7 @@
 		class="org.sagebionetworks.repo.model.jdo.JDONodeLockCheckerImpl"
 		scope="prototype" />
 
-	<bean id="CurrentRowCacheDao" class="org.sagebionetworks.dynamo.dao.rowcache.CurrentRowCacheDaoStub"/>
+	<bean id="ConnectionFactory" class="org.sagebionetworks.repo.model.dbo.dao.table.ConnectionFactoryStub"/>
 	<bean id="RowCacheDao" class="org.sagebionetworks.dynamo.dao.rowcache.RowCacheDaoStub"/>
 
 	<bean id="testCountingSemaphore" class="org.sagebionetworks.repo.model.dbo.dao.semaphore.CountingSemaphoreDaoImpl">

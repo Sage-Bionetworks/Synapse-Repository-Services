@@ -1,16 +1,15 @@
-package org.sagebionetworks.dynamo.dao.rowcache;
+package org.sagebionetworks.repo.model.dbo.dao.table;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.apache.commons.lang.ObjectUtils;
 import org.sagebionetworks.collections.Maps2;
 import org.sagebionetworks.collections.Transform;
 import org.sagebionetworks.collections.Transform.TransformEntry;
-import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.dao.table.CurrentRowCacheDao;
-import org.sagebionetworks.repo.model.table.CurrentRowCacheStatus;
 import org.sagebionetworks.util.ProgressCallback;
 
 import com.google.common.base.Function;
@@ -24,7 +23,6 @@ public class CurrentRowCacheDaoStub implements CurrentRowCacheDao {
 
 	public boolean isEnabled = false;
 
-	public Map<Long, CurrentRowCacheStatus> latestCurrentVersionNumbers = Maps.newHashMap();
 	public Map<Long, Map<Long, Long>> latestVersionNumbers = Maps2.createSupplierHashMap(new Supplier<Map<Long, Long>>() {
 		@Override
 		public Map<Long, Long> get() {
@@ -39,25 +37,13 @@ public class CurrentRowCacheDaoStub implements CurrentRowCacheDao {
 	}
 
 	@Override
-	public CurrentRowCacheStatus getLatestCurrentVersionNumber(Long tableId) {
-		CurrentRowCacheStatus status = latestCurrentVersionNumbers.get(tableId);
-		if (status == null) {
-			status = new CurrentRowCacheStatus(tableId, null, null);
-			latestCurrentVersionNumbers.put(tableId, status);
+	public long getLatestCurrentVersionNumber(Long tableId) {
+		Collection<Long> versions = latestVersionNumbers.get(tableId).values();
+		if (versions.isEmpty()) {
+			return -1;
 		}
-		return status;
-	}
-
-	@Override
-	public void setLatestCurrentVersionNumber(CurrentRowCacheStatus oldStatus, Long versionNumber) {
-		CurrentRowCacheStatus currentRowCacheStatus = latestCurrentVersionNumbers.get(oldStatus.getTableId());
-		if (currentRowCacheStatus != null) {
-			if (!ObjectUtils.equals(currentRowCacheStatus.getRecordVersion(), oldStatus.getRecordVersion())) {
-				throw new ConflictingUpdateException("concurrent update failure");
-			}
-		}
-		CurrentRowCacheStatus newStatus = new CurrentRowCacheStatus(oldStatus.getTableId(), versionNumber, oldStatus.getRecordVersion());
-		latestCurrentVersionNumbers.put(oldStatus.getTableId(), newStatus);
+		Long max = Collections.max(versions);
+		return max;
 	}
 
 	@Override
@@ -122,7 +108,6 @@ public class CurrentRowCacheDaoStub implements CurrentRowCacheDao {
 
 	@Override
 	public void truncateAllData() {
-		latestCurrentVersionNumbers.clear();
 		latestVersionNumbers.clear();
 	}
 }

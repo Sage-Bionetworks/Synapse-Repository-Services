@@ -12,6 +12,12 @@ public class ValidateArgument {
 		}
 	}
 
+	public static void requirement(boolean requirement, String message) {
+		if (!requirement) {
+			throw new IllegalArgumentException(message);
+		}
+	}
+
 	public static void optional(String description, String string) {
 	}
 

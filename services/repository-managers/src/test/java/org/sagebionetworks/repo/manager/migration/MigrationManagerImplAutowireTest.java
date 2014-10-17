@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.manager.migration;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -9,7 +11,6 @@ import java.io.Writer;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Random;
 import java.util.UUID;
 
 import org.junit.After;
@@ -17,7 +18,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.dynamo.dao.rowcache.CurrentRowCacheDaoImpl;
 import org.sagebionetworks.dynamo.dao.rowcache.RowCacheDao;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -28,7 +28,6 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.table.CurrentRowCacheDao;
-import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
@@ -38,12 +37,9 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.repo.model.table.TableEntity;
-import org.sagebionetworks.repo.model.table.TableStatus;
-import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
@@ -83,7 +79,7 @@ public class MigrationManagerImplAutowireTest {
 	ColumnModelManager columnManager;
 
 	@Autowired
-	CurrentRowCacheDao currentRowCacheDao;
+	ConnectionFactory connectionFactory;
 
 	@Autowired
 	RowCacheDao rowCacheDao;
@@ -253,6 +249,7 @@ public class MigrationManagerImplAutowireTest {
 			rowRefs.setHeaders(TableModelUtils.getHeaders(models));
 			tableRowManager.getCellValues(adminUser, tableId, rowRefs, models);
 
+			CurrentRowCacheDao currentRowCacheDao = connectionFactory.getCurrentRowCacheConnection(KeyFactory.stringToKey(tableId));
 			assertEquals(0, indexDao.getRowCountForTable(tableId).intValue());
 			assertEquals(2, currentRowCacheDao.getCurrentVersions(KeyFactory.stringToKey(tableId), 0L, 10L).size());
 			assertNotNull(rowCacheDao.getRow(KeyFactory.stringToKey(tableId), 0L, 0L));
