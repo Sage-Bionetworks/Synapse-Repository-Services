@@ -4,7 +4,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
 import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
@@ -20,6 +19,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
@@ -123,7 +123,8 @@ public class TableIndexDAOImplTest {
 		tableIndexDAO.createOrUpdateTable(allTypes, tableId);
 		// Now fill the table with data
 		tableIndexDAO.createOrUpdateOrDeleteRows(set, allTypes);
-		List<Map<String, Object>> result = tableIndexDAO.getConnection().queryForList("SELECT * FROM "+SQLUtils.getTableNameForId("syn123"));
+		List<Map<String, Object>> result = tableIndexDAO.getConnection().queryForList(
+				"SELECT * FROM " + SQLUtils.getTableNameForId("syn123", TableType.INDEX));
 		assertNotNull(result);
 		assertEquals(5, result.size());
 		// Row zero
@@ -142,7 +143,7 @@ public class TableIndexDAOImplTest {
 		// This should not fail
 		tableIndexDAO.createOrUpdateOrDeleteRows(set, allTypes);
 		// Check the update
-		result = tableIndexDAO.getConnection().queryForList("SELECT * FROM "+SQLUtils.getTableNameForId("syn123"));
+		result = tableIndexDAO.getConnection().queryForList("SELECT * FROM " + SQLUtils.getTableNameForId("syn123", TableType.INDEX));
 		assertNotNull(result);
 		assertEquals(5, result.size());
 		// row four

@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.table.cluster.SQLUtils.TableType;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
@@ -361,7 +362,9 @@ public class SQLUtilsTest {
 	
 	@Test
 	public void testGetTableNameForId(){
-		assertEquals("T123", SQLUtils.getTableNameForId("syn123"));
+		assertEquals("T123", SQLUtils.getTableNameForId("syn123", TableType.INDEX));
+		assertEquals("T123S", SQLUtils.getTableNameForId("syn123", TableType.STATUS));
+		assertEquals("T123CR", SQLUtils.getTableNameForId("syn123", TableType.CURRENT_ROW));
 	}
 	
 	@Test

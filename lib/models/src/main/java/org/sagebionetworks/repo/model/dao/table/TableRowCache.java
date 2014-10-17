@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.model.dao.table;
 import java.io.IOException;
 import java.util.Map;
 
-import org.sagebionetworks.repo.model.table.CurrentRowCacheStatus;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.util.ProgressCallback;
 
@@ -14,9 +13,7 @@ public interface TableRowCache {
 	
 	public boolean isEnabled();
 
-	public CurrentRowCacheStatus getLatestCurrentVersionNumber(Long tableId);
-
-	public void setLatestCurrentVersionNumber(CurrentRowCacheStatus oldStatus, Long newLastCurrentVersion);
+	public long getLatestCurrentVersionNumber(Long tableId);
 
 	public Map<Long, Long> getCurrentVersionNumbers(Long tableId, Iterable<Long> rowIds);
 

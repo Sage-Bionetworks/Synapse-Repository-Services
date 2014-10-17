@@ -94,7 +94,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 
 	@Override
 	public boolean deleteTable(String tableId) {
-		String dropTableDML = SQLUtils.dropTableSQL(tableId);
+		String dropTableDML = SQLUtils.dropTableSQL(tableId, SQLUtils.TableType.INDEX);
 		try {
 			template.update(dropTableDML);
 			return true;
@@ -106,7 +106,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 
 	@Override
 	public List<String> getCurrentTableColumns(String tableId) {
-		String tableName = SQLUtils.getTableNameForId(tableId);
+		String tableName = SQLUtils.getTableNameForId(tableId, SQLUtils.TableType.INDEX);
 		// Bind variables do not seem to work here
 		try {
 			return template.query(SQL_SHOW_COLUMNS + tableName,
@@ -182,7 +182,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 
 	@Override
 	public void setMaxCurrentCompleteVersionForTable(String tableId, Long version) {
-		String createStatusTableSql = SQLUtils.createStatusTableSQL(tableId);
+		String createStatusTableSql = SQLUtils.createTableSQL(tableId, SQLUtils.TableType.STATUS);
 		template.update(createStatusTableSql);
 
 		String createOrUpdateStatusSql = SQLUtils.buildCreateOrUpdateStatusSQL(tableId);
@@ -191,7 +191,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 
 	@Override
 	public void deleteStatusTable(String tableId) {
-		String dropStatusTableDML = SQLUtils.dropStatusTableSQL(tableId);
+		String dropStatusTableDML = SQLUtils.dropTableSQL(tableId, SQLUtils.TableType.STATUS);
 		try {
 			template.update(dropStatusTableDML);
 		} catch (BadSqlGrammarException e) {

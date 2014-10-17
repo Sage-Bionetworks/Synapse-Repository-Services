@@ -4,6 +4,7 @@ import java.lang.reflect.Field;
 
 import org.springframework.aop.framework.Advised;
 import org.springframework.aop.support.AopUtils;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.util.ReflectionUtils;
 
 public class ReflectionStaticTestUtils {
@@ -26,5 +27,15 @@ public class ReflectionStaticTestUtils {
 		} else {
 			return proxy;
 		}
+	}
+
+	public static <T> Object getField(T proxy, String fieldName) throws Exception {
+		T target = getTargetObject(proxy);
+		return ReflectionTestUtils.getField(target, fieldName);
+	}
+
+	public static <T> void setField(T proxy, String fieldName, Object value) throws Exception {
+		T target = getTargetObject(proxy);
+		ReflectionTestUtils.setField(target, fieldName, value);
 	}
 }

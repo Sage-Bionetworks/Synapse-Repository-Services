@@ -1,12 +1,14 @@
 package org.sagebionetworks.table.cluster;
 
 import java.sql.SQLException;
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.commons.dbcp.BasicDataSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.model.dao.table.CurrentRowCacheDao;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
@@ -53,6 +55,16 @@ public class ConnectionFactoryImpl implements ConnectionFactory {
 		return new TableIndexDAOImpl(singleConnectionPool);	
 	}
 	
+	@Override
+	public CurrentRowCacheDao getCurrentRowCacheConnection(Long tableId) {
+		// Create a new DAO for this call.
+		return new CurrentRowCacheSqlDaoImpl(singleConnectionPool);
+	}
+
+	@Override
+	public Iterable<CurrentRowCacheDao> getCurrentRowCacheConnections() {
+		return Collections.<CurrentRowCacheDao> singletonList(new CurrentRowCacheSqlDaoImpl(singleConnectionPool));
+	}
 	/**
 	 * This is called when the Spring bean is initialized.
 	 */

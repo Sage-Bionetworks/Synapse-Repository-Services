@@ -2,16 +2,12 @@ package org.sagebionetworks.repo.model.dao.table;
 
 import java.util.Map;
 
-import org.sagebionetworks.repo.model.ConflictingUpdateException;
-import org.sagebionetworks.repo.model.table.CurrentRowCacheStatus;
 import org.sagebionetworks.util.ProgressCallback;
 
 public interface CurrentRowCacheDao {
 	boolean isEnabled();
 
-	CurrentRowCacheStatus getLatestCurrentVersionNumber(Long tableId);
-
-	void setLatestCurrentVersionNumber(CurrentRowCacheStatus oldStatus, Long newLastCurrentVersion) throws ConflictingUpdateException;
+	long getLatestCurrentVersionNumber(Long tableId);
 
 	void putCurrentVersion(Long tableId, Long rowId, Long versionNumber);
 

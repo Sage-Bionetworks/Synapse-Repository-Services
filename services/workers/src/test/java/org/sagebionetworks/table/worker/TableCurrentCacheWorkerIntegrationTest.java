@@ -16,7 +16,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.asynchronous.workers.sqs.MessagePollingReceiverImpl;
-import org.sagebionetworks.asynchronous.workers.sqs.MessageReceiver;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -30,7 +29,6 @@ import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.CurrentRowCacheStatus;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSelection;
@@ -144,8 +142,8 @@ public class TableCurrentCacheWorkerIntegrationTest {
 		assertTrue(TimeUtils.waitFor(20000, 200, null, new Predicate<String>() {
 			@Override
 			public boolean apply(String input) {
-				CurrentRowCacheStatus status = tableRowCache.getLatestCurrentVersionNumber(KeyFactory.stringToKey(tableId));
-				return status.getLatestCachedVersionNumber() != null && status.getLatestCachedVersionNumber() == 0L;
+				long status = tableRowCache.getLatestCurrentVersionNumber(KeyFactory.stringToKey(tableId));
+				return status == 0;
 			}
 		}));
 		ImmutableMap<Long, Long> expected = ImmutableMap.<Long, Long>builder().put(0L, 0L).put(1L, 0L).put(2L, 0L).put(3L, 0L).put(4L, 0L).put(5L, 0L).build();
@@ -213,14 +211,13 @@ public class TableCurrentCacheWorkerIntegrationTest {
 		assertTrue(TimeUtils.waitFor(20000, 200, null, new Predicate<String>() {
 			@Override
 			public boolean apply(String input) {
-				CurrentRowCacheStatus status = tableRowCache.getLatestCurrentVersionNumber(KeyFactory.stringToKey(tableId));
-				return status.getLatestCachedVersionNumber() != null && status.getLatestCachedVersionNumber() == 2L;
+				long status = tableRowCache.getLatestCurrentVersionNumber(KeyFactory.stringToKey(tableId));
+				return status == 2L;
 			}
 		}));
 		ImmutableMap<Long, Long> expected = ImmutableMap.<Long, Long> builder().put(0L, 1L).put(1L, 2L).put(2L, 1L).put(3L, 2L).build();
 		Map<Long, Long> actual = tableRowCache.getCurrentVersionNumbers(KeyFactory.stringToKey(tableId), 0L, 100L);
 		assertEquals(expected, actual);
-		assertEquals(2L, tableRowCache.getLatestCurrentVersionNumber(KeyFactory.stringToKey(tableId)).getLatestCachedVersionNumber()
-				.longValue());
+		assertEquals(2L, tableRowCache.getLatestCurrentVersionNumber(KeyFactory.stringToKey(tableId)));
 	}
 }

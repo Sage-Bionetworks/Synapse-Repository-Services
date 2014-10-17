@@ -4,44 +4,42 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.dynamo.dao.rowcache.RowCacheDao;
 import org.sagebionetworks.repo.model.dao.table.CurrentRowCacheDao;
 import org.sagebionetworks.repo.model.dao.table.TableRowCache;
-import org.sagebionetworks.repo.model.table.CurrentRowCacheStatus;
 import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.util.ProgressCallback;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class TableRowCacheImpl implements TableRowCache {
 	@Autowired
-	CurrentRowCacheDao currentRowCacheDao;
+	ConnectionFactory connectionFactory;
 
 	@Autowired
 	RowCacheDao rowCacheDao;
 
+	@Autowired
+	StackConfiguration stackConfiguration;
+
 	@Override
 	public boolean isEnabled() {
-		return currentRowCacheDao.isEnabled() && rowCacheDao.isEnabled();
+		return stackConfiguration.getTableEnabled() && rowCacheDao.isEnabled();
 	}
 
 	@Override
-	public CurrentRowCacheStatus getLatestCurrentVersionNumber(Long tableId) {
+	public long getLatestCurrentVersionNumber(Long tableId) {
+		CurrentRowCacheDao currentRowCacheDao = connectionFactory.getCurrentRowCacheConnection(tableId);
 		if (!currentRowCacheDao.isEnabled()) {
-			return new CurrentRowCacheStatus(tableId, null, null);
+			return -1L;
 		}
 		return currentRowCacheDao.getLatestCurrentVersionNumber(tableId);
 	}
 
 	@Override
-	public void setLatestCurrentVersionNumber(CurrentRowCacheStatus oldStatus, Long newLastCurrentVersion) {
-		if (!currentRowCacheDao.isEnabled()) {
-			throw new IllegalStateException("the current row cache was asked to set latest version, but it is disabled");
-		}
-		currentRowCacheDao.setLatestCurrentVersionNumber(oldStatus, newLastCurrentVersion);
-	}
-
-	@Override
 	public void updateCurrentVersionNumbers(Long tableId, Map<Long, Long> rowIdVersionNumbers, ProgressCallback<Long> progressCallback) {
+		CurrentRowCacheDao currentRowCacheDao = connectionFactory.getCurrentRowCacheConnection(tableId);
 		if (!currentRowCacheDao.isEnabled()) {
 			throw new IllegalStateException("the current row cache was asked to update versions, but it is disabled");
 		}
@@ -50,6 +48,7 @@ public class TableRowCacheImpl implements TableRowCache {
 
 	@Override
 	public Map<Long, Long> getCurrentVersionNumbers(Long tableId, Iterable<Long> rowIds) {
+		CurrentRowCacheDao currentRowCacheDao = connectionFactory.getCurrentRowCacheConnection(tableId);
 		if (!currentRowCacheDao.isEnabled()) {
 			throw new IllegalStateException("the current row cache was asked for versions, but it is disabled");
 		}
@@ -58,6 +57,7 @@ public class TableRowCacheImpl implements TableRowCache {
 
 	@Override
 	public Map<Long, Long> getCurrentVersionNumbers(Long tableId, long rowIdOffset, long limit) {
+		CurrentRowCacheDao currentRowCacheDao = connectionFactory.getCurrentRowCacheConnection(tableId);
 		if (!currentRowCacheDao.isEnabled()) {
 			throw new IllegalStateException("the current row cache was asked for versions, but it is disabled");
 		}
@@ -69,6 +69,7 @@ public class TableRowCacheImpl implements TableRowCache {
 		if (rowCacheDao.isEnabled()) {
 			rowCacheDao.deleteEntriesForTable(tableId);
 		}
+		CurrentRowCacheDao currentRowCacheDao = connectionFactory.getCurrentRowCacheConnection(tableId);
 		if (currentRowCacheDao.isEnabled()) {
 			currentRowCacheDao.deleteCurrentTable(tableId);
 		}
@@ -116,8 +117,10 @@ public class TableRowCacheImpl implements TableRowCache {
 
 	@Override
 	public void truncateAllData() {
-		if (currentRowCacheDao.isEnabled()) {
-			currentRowCacheDao.truncateAllData();
+		for (CurrentRowCacheDao currentRowCacheDao : connectionFactory.getCurrentRowCacheConnections()) {
+			if (currentRowCacheDao.isEnabled()) {
+				currentRowCacheDao.truncateAllData();
+			}
 		}
 		if (rowCacheDao.isEnabled()) {
 			rowCacheDao.truncateAllData();

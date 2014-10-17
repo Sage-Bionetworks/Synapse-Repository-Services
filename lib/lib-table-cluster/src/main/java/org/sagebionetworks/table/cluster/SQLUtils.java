@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.table.RowSet;
 import org.sagebionetworks.table.cluster.utils.ColumnConstants;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.TimeUtils;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
@@ -42,9 +43,28 @@ public class SQLUtils {
 	public static final String TABLE_PREFIX = "T";
 	private static final String COLUMN_PREFIX = "_C";
 	private static final String COLUMN_POSTFIX = "_";
-	public static final String TABLE_STATUS_POSTFIX = "S";
 
 	private static final Pattern COLUMN_NAME_PATTERN = Pattern.compile(COLUMN_PREFIX + "(\\d+)" + COLUMN_POSTFIX);
+
+	public enum TableType {
+		INDEX(""), STATUS("S"), CURRENT_ROW("CR");
+
+		private final String tablePostFix;
+		private final Pattern tableNamePattern;
+
+		private TableType(String tablePostFix) {
+			this.tablePostFix = tablePostFix;
+			this.tableNamePattern = Pattern.compile(TABLE_PREFIX + "\\d+" + tablePostFix);
+		}
+
+		public String getTablePostFix() {
+			return tablePostFix;
+		}
+
+		public Pattern getTableNamePattern() {
+			return tableNamePattern;
+		}
+	}
 	
 	/**
 	 * Generate the SQL need to create or alter a table from one schema to
@@ -96,17 +116,11 @@ public class SQLUtils {
 	 */
 	public static String createTableSQL(List<ColumnModel> newSchema,
 			String tableId) {
-		if (newSchema == null)
-			throw new IllegalArgumentException("Table schema cannot be null");
-		if (newSchema.size() < 1)
-			throw new IllegalArgumentException(
-					"Table schema must include at least one column");
-		if (tableId == null)
-			throw new IllegalArgumentException("TableId cannot be null");
-		StringBuilder builder = new StringBuilder();
-		builder.append("CREATE TABLE IF NOT EXISTS `").append(getTableNameForId(tableId)).append("` ");
-		appendColumnDefinitionsToCreate(builder, newSchema);
-		return builder.toString();
+		ValidateArgument.required(newSchema, "Table schema");
+		ValidateArgument.requirement(newSchema.size() >= 1, "Table schema must include at least one column");
+		ValidateArgument.required(tableId, "tableId");
+		String columnDefinitions = getColumnDefinitionsToCreate(newSchema);
+		return createTableSQL(tableId, TableType.INDEX, columnDefinitions);
 	}
 
 	/**
@@ -115,21 +129,35 @@ public class SQLUtils {
 	 * @param newSchema
 	 * @return
 	 */
-	public static String createStatusTableSQL(String tableId) {
-		if (tableId == null)
-			throw new IllegalArgumentException("TableId cannot be null");
-		StringBuilder builder = new StringBuilder();
-		builder.append("CREATE TABLE IF NOT EXISTS `").append(getStatusTableNameForId(tableId)).append("` ");
-		builder.append("( ");
-		builder.append("single_key ENUM('') NOT NULL PRIMARY KEY,");
-		builder.append(ROW_VERSION).append(" bigint(20) NOT NULL");
-		builder.append(" )");
-		return builder.toString();
+	public static String createTableSQL(String tableId, TableType type) {
+		ValidateArgument.required(tableId, "tableId");
+		StringBuilder columnDefinitions = new StringBuilder();
+		switch (type) {
+		case STATUS:
+			columnDefinitions.append("single_key ENUM('') NOT NULL PRIMARY KEY, ");
+			columnDefinitions.append(ROW_VERSION).append(" bigint(20) NOT NULL");
+			break;
+		case CURRENT_ROW:
+			columnDefinitions.append(ROW_ID).append(" bigint(20) NOT NULL PRIMARY KEY, ");
+			columnDefinitions.append(ROW_VERSION).append(" bigint(20) NOT NULL, ");
+			columnDefinitions.append("INDEX `" + getTableNameForId(tableId, type) + "_VERSION_INDEX` (" + ROW_VERSION + ") ");
+			break;
+		default:
+			throw new IllegalArgumentException("Cannot handle type " + type);
+		}
+		return createTableSQL(tableId, type, columnDefinitions.toString());
 	}
 
-	static void appendColumnDefinitionsToCreate(StringBuilder builder,
-			List<ColumnModel> newSchema) {
-		builder.append("( ");
+	public static String createTableSQL(Long tableId, TableType type) {
+		return createTableSQL(tableId.toString(), type);
+	}
+
+	private static String createTableSQL(String tableId, TableType type, String columnDefinitions) {
+		return "CREATE TABLE IF NOT EXISTS `" + getTableNameForId(tableId, type) + "` ( " + columnDefinitions + " )";
+	}
+
+	private static String getColumnDefinitionsToCreate(List<ColumnModel> newSchema) {
+		StringBuilder builder = new StringBuilder();
 		// Every table must have a ROW_ID and ROW_VERSION
 		builder.append(ROW_ID).append(" bigint(20) NOT NULL");
 		builder.append(", ");
@@ -138,8 +166,8 @@ public class SQLUtils {
 			builder.append(", ");
 			appendColumnDefinitionsToBuilder(builder, newSchema.get(i));
 		}
-		builder.append(", PRIMARY KEY (").append(ROW_ID).append(") ");
-		builder.append(")");
+		builder.append(", PRIMARY KEY (").append(ROW_ID).append(")");
+		return builder.toString();
 	}
 
 	/**
@@ -265,7 +293,7 @@ public class SQLUtils {
 			List<String> toDrop, String tableId) {
 		StringBuilder builder = new StringBuilder();
 		builder.append("ALTER TABLE ");
-		builder.append("`").append(getTableNameForId(tableId)).append("`");
+		builder.append("`").append(getTableNameForId(tableId, TableType.INDEX)).append("`");
 		boolean first = true;
 		// Drops first
 		for (String drop : toDrop) {
@@ -362,34 +390,22 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String getTableNameForId(String tableId) {
+	public static String getTableNameForId(String tableId, TableType type) {
 		if (tableId == null)
 			throw new IllegalArgumentException("Table ID cannot be null");
-		return TABLE_PREFIX + KeyFactory.stringToKey(tableId);
+		return TABLE_PREFIX + KeyFactory.stringToKey(tableId) + type.getTablePostFix();
+	}
+
+	public static String getTableNameForId(Long tableId, TableType type) {
+		ValidateArgument.required(tableId, "Table ID");
+		return TABLE_PREFIX + tableId + type.getTablePostFix();
 	}
 
 	/**
-	 * Get the status Table Name for a given table ID.
-	 * 
-	 * @param tableId
-	 * @return
+	 * is the a certain type of table name?
 	 */
-	public static String getStatusTableNameForId(String tableId) {
-		if (tableId == null)
-			throw new IllegalArgumentException("Table ID cannot be null");
-		return TABLE_PREFIX + KeyFactory.stringToKey(tableId) + TABLE_STATUS_POSTFIX;
-	}
-
-	/**
-	 * Get a table ID from a TableName
-	 * 
-	 * @param tableName
-	 * @return
-	 */
-	public static String getTableIdForTableName(String tableName) {
-		if (tableName == null)
-			throw new IllegalArgumentException("TableName cannot be null");
-		return tableName.substring(TABLE_PREFIX.length());
+	public static boolean isTableName(String name, TableType type) {
+		return type.getTableNamePattern().matcher(name).matches();
 	}
 
 	/**
@@ -454,24 +470,36 @@ public class SQLUtils {
 	 * @param tableId
 	 * @return
 	 */
-	public static String dropTableSQL(String tableId){
-		String tableName = getTableNameForId(tableId);
-		StringBuilder builder = new StringBuilder();
-		builder.append("DROP TABLE ").append(tableName);
-		return builder.toString();
+	public static String dropTableSQL(String tableId, TableType type) {
+		String tableName = getTableNameForId(tableId, type);
+		return "DROP TABLE " + tableName;
 	}
-	
+
+	public static String dropTableSQL(Long tableId, TableType type) {
+		String tableName = getTableNameForId(tableId, type);
+		return "DROP TABLE " + tableName;
+	}
+
 	/**
-	 * Create the DROP table SQL.
+	 * Create the delete a batch of row Ids SQL.
 	 * 
 	 * @param tableId
 	 * @return
 	 */
-	public static String dropStatusTableSQL(String tableId) {
-		String tableName = getStatusTableNameForId(tableId);
-		StringBuilder builder = new StringBuilder();
-		builder.append("DROP TABLE ").append(tableName);
-		return builder.toString();
+	public static String deleteBatchFromTableSQL(Long tableId, TableType type) {
+		String tableName = getTableNameForId(tableId, type);
+		return "DELETE FROM " + tableName + " WHERE " + ROW_ID + " IN ( :" + ROW_ID_BIND + " )";
+	}
+
+	/**
+	 * Create the delete a row Ids SQL.
+	 * 
+	 * @param tableId
+	 * @return
+	 */
+	public static String deleteFromTableSQL(Long tableId, TableType type) {
+		String tableName = getTableNameForId(tableId, type);
+		return "DELETE FROM " + tableName + " WHERE " + ROW_ID + " = ?";
 	}
 
 	/**
@@ -492,7 +520,7 @@ public class SQLUtils {
 		}
 		return results;
 	}
-	
+
 	/**
 	 * Build the create or update statement for inserting rows into a table.
 	 * @param schema
@@ -505,7 +533,7 @@ public class SQLUtils {
 		if(tableId == null) throw new IllegalArgumentException("TableID cannot be null");
  		StringBuilder builder = new StringBuilder();
 		builder.append("INSERT INTO ");
-		builder.append(getTableNameForId(tableId));
+		builder.append(getTableNameForId(tableId, TableType.INDEX));
 		builder.append(" (");
 		// Unconditionally set these two columns
 		builder.append(ROW_ID);
@@ -519,7 +547,7 @@ public class SQLUtils {
 			builder.append(", :");
 			builder.append(getColumnNameForId(cm.getId()));
 		}
-		builder.append(") ON DUPLICATE KEY UPDATE ROW_VERSION = VALUES(ROW_VERSION)");
+		builder.append(") ON DUPLICATE KEY UPDATE " + ROW_VERSION + " = VALUES(" + ROW_VERSION + ")");
 		for(ColumnModel cm: schema){
 			builder.append(", ");
 			String name = getColumnNameForId(cm.getId());
@@ -541,10 +569,31 @@ public class SQLUtils {
 			throw new IllegalArgumentException("TableID cannot be null");
 		StringBuilder builder = new StringBuilder();
 		builder.append("REPLACE INTO ");
-		builder.append(getStatusTableNameForId(tableId));
+		builder.append(getTableNameForId(tableId, TableType.STATUS));
 		builder.append(" ( ");
 		builder.append(ROW_VERSION);
 		builder.append(" ) VALUES ( ? )");
+		return builder.toString();
+	}
+
+	/**
+	 * Build the create or update statement for inserting rows into a table.
+	 * 
+	 * @param schema
+	 * @param tableId
+	 * @return
+	 */
+	public static String buildCreateOrUpdateCurrentRowSQL(String tableId) {
+		if (tableId == null)
+			throw new IllegalArgumentException("TableID cannot be null");
+		StringBuilder builder = new StringBuilder();
+		builder.append("REPLACE INTO ");
+		builder.append(getTableNameForId(tableId, TableType.CURRENT_ROW));
+		builder.append(" ( ");
+		builder.append(ROW_ID);
+		builder.append(", ");
+		builder.append(ROW_VERSION);
+		builder.append(" ) VALUES ( ?, ? )");
 		return builder.toString();
 	}
 
@@ -561,7 +610,7 @@ public class SQLUtils {
 		if(tableId == null) throw new IllegalArgumentException("TableID cannot be null");
  		StringBuilder builder = new StringBuilder();
 		builder.append("DELETE FROM ");
-		builder.append(getTableNameForId(tableId));
+		builder.append(getTableNameForId(tableId, TableType.INDEX));
 		builder.append(" WHERE ");
 		builder.append(ROW_ID);
 		builder.append(" IN ( :").append(ROW_ID_BIND).append(" )");
@@ -643,7 +692,7 @@ public class SQLUtils {
 	 */
 	public static String getCountSQL(String tableId){
 		StringBuilder builder = new StringBuilder();
-		builder.append("SELECT COUNT(").append(ROW_ID).append(") FROM ").append(getTableNameForId(tableId));
+		builder.append("SELECT COUNT(").append(ROW_ID).append(") FROM ").append(getTableNameForId(tableId, TableType.INDEX));
 		return builder.toString();
 	}
 	
@@ -652,6 +701,29 @@ public class SQLUtils {
 	 * @return
 	 */
 	public static String getStatusMaxVersionSQL(String tableId) {
-		return "SELECT " + ROW_VERSION + " FROM " + getStatusTableNameForId(tableId);
+		return "SELECT " + ROW_VERSION + " FROM " + getTableNameForId(tableId, TableType.STATUS);
+	}
+
+	public static String selectCurrentRowVersionsForRowRange(Long tableId) {
+		return "SELECT " + ROW_ID + "," + ROW_VERSION + " FROM " + getTableNameForId(tableId, TableType.CURRENT_ROW) + " WHERE " + ROW_ID
+				+ " >= ? AND " + ROW_ID + " < ?";
+	}
+
+	public static String selectCurrentRowVersionsForInRows(Long tableId) {
+		return "SELECT " + ROW_ID + "," + ROW_VERSION + " FROM " + getTableNameForId(tableId, TableType.CURRENT_ROW) + " WHERE " + ROW_ID
+				+ " IN ( :" + ROW_ID_BIND + " )";
+	}
+
+	public static String selectCurrentRowVersionOfRow(Long tableId) {
+		return "SELECT " + ROW_VERSION + " FROM " + getTableNameForId(tableId, TableType.CURRENT_ROW) + " WHERE " + ROW_ID + " = ?";
+	}
+
+	public static String updateCurrentRowSQL(Long tableId) {
+		return "INSERT INTO " + getTableNameForId(tableId, TableType.CURRENT_ROW) + " (" + ROW_ID + ", " + ROW_VERSION
+				+ ") VALUES (?, ?) ON DUPLICATE KEY UPDATE " + ROW_VERSION + " = VALUES(" + ROW_VERSION + ")";
+	}
+
+	public static String selectCurrentRowMaxVersion(Long tableId) {
+		return "SELECT MAX(" + ROW_VERSION + ") FROM " + getTableNameForId(tableId, TableType.CURRENT_ROW);
 	}
 }
