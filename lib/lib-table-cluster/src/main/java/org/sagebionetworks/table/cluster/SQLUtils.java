@@ -47,7 +47,18 @@ public class SQLUtils {
 	private static final Pattern COLUMN_NAME_PATTERN = Pattern.compile(COLUMN_PREFIX + "(\\d+)" + COLUMN_POSTFIX);
 
 	public enum TableType {
-		INDEX(""), STATUS("S"), CURRENT_ROW("CR");
+		/**
+		 * The index tables
+		 */
+		INDEX(""),
+		/**
+		 * The status table that tracks the current state of the index table
+		 */
+		STATUS("S"),
+		/**
+		 * the current row table that holds the current versions for each row in a table
+		 */
+		CURRENT_ROW("CR");
 
 		private final String tablePostFix;
 		private final Pattern tableNamePattern;
