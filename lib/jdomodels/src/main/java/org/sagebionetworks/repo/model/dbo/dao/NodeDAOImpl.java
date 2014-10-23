@@ -23,25 +23,8 @@ import org.joda.time.DateTime;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
-import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.ConflictingUpdateException;
-import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.NameConflictException;
-import org.sagebionetworks.repo.model.NamedAnnotations;
-import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.NodeConstants;
-import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.NodeParentRelation;
-import org.sagebionetworks.repo.model.ObjectType;
-import org.sagebionetworks.repo.model.PaginatedResults;
-import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.repo.model.ProjectHeader;
-import org.sagebionetworks.repo.model.QueryResults;
-import org.sagebionetworks.repo.model.Reference;
-import org.sagebionetworks.repo.model.VersionInfo;
+import org.sagebionetworks.repo.model.*;
+import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONodeType;
@@ -127,7 +110,8 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				" 	or ra." + COL_RESOURCE_ACCESS_GROUP_ID + " in (" + 
 						"select " + COL_GROUP_MEMBERS_GROUP_ID + " from " + TABLE_GROUP_MEMBERS + 
 						" where " + COL_GROUP_MEMBERS_MEMBER_ID + " = :" + CURRENT_USER_ID_PARAM_NAME + 
-					")" +
+					") " +
+					"or ra." + COL_RESOURCE_ACCESS_GROUP_ID + " = " + BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId() +
 			")";
 
 	private static final String PROJECT_FROM_SQL = 

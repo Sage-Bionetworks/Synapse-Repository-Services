@@ -15,6 +15,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 
@@ -107,8 +108,8 @@ public class NodeDAOImplTest {
 		assertNotNull(nodeInheritanceDAO);
 		toDelete = new ArrayList<String>();
 		
-		testActivity = createTestActivity(1L);		
-		testActivity2 = createTestActivity(2L);		
+		testActivity = createTestActivity(new Random().nextLong());
+		testActivity2 = createTestActivity(new Random().nextLong());
 		
 		// Create file handles that can be used in tests
 		fileHandle = createTestFileHandle("One", creatorUserGroupId.toString());
@@ -2087,122 +2088,60 @@ public class NodeDAOImplTest {
 
 	@Test
 	public void testGetProjectHeaders() throws Exception {
-		Node ownedProject = NodeTestUtils.createNew("testGetProjectHeaders.name1", Long.parseLong(user1));
-		ownedProject.setParentId(StackConfiguration.getRootFolderEntityIdStatic());
-		String owned = this.nodeDao.createNew(ownedProject);
+		String owned = createProject("testGetProjectHeaders.name1", user1);
 		toDelete.add(owned);
-		ownedProject = nodeDao.getNode(owned);
+		Node ownedProject = nodeDao.getNode(owned);
 		ownedProject.setVersionLabel("2nd");
 		// create 2nd version
 		nodeDao.createNewVersion(ownedProject);
 		ownedProject = nodeDao.getNode(owned);
-
 		// now add ACL for the user
-		AccessControlList acl = new AccessControlList();
-		Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
-		ResourceAccess ra = new ResourceAccess();
-		ra.setAccessType(Sets.newHashSet(ACCESS_TYPE.READ));
-		ra.setPrincipalId(Long.parseLong(user1));
-		ras.add(ra);
-		acl.setResourceAccess(ras);
-		acl.setId(owned);
-		acl.setCreationDate(new Date());
-		accessControlListDAO.create(acl, ObjectType.ENTITY);
+		addReadAcl(owned, user1);
 
-		Thread.sleep(2); // ensure ordering by creation date
-		Node participateProject = NodeTestUtils.createNew("testGetProjectHeaders.name2", Long.parseLong(user2));
-		participateProject.setParentId(StackConfiguration.getRootFolderEntityIdStatic());
-		String participate = this.nodeDao.createNew(participateProject);
-		toDelete.add(participate);
-		participateProject = nodeDao.getNode(participate);
+		// project with user access
+		String participate = createProject("testGetProjectHeaders.name2", user2);
+		addReadAcl(participate, user1);
 
-		// now add ACL for the user
-		acl = new AccessControlList();
-		ras = new HashSet<ResourceAccess>();
-		ra = new ResourceAccess();
-		ra.setAccessType(Sets.newHashSet(ACCESS_TYPE.READ));
-		ra.setPrincipalId(Long.parseLong(user1));
-		ras.add(ra);
-		acl.setResourceAccess(ras);
-		acl.setId(participate);
-		acl.setCreationDate(new Date());
-		accessControlListDAO.create(acl, ObjectType.ENTITY);
+		// project with access by group for user
+		String groupParticipate = createProject("testGetProjectHeaders.name3", user2);
+		addReadAcl(groupParticipate, group);
 
-		Thread.sleep(2); // ensure ordering by creation date
-		Node groupParticipateProject = NodeTestUtils.createNew("testGetProjectHeaders.name3", Long.parseLong(user2));
-		groupParticipateProject.setParentId(StackConfiguration.getRootFolderEntityIdStatic());
-		String groupParticipate = this.nodeDao.createNew(groupParticipateProject);
-		toDelete.add(groupParticipate);
-		groupParticipateProject = nodeDao.getNode(groupParticipate);
+		// project owned by neither user
+		createProject("testGetProjectHeaders.name4", user2);
 
-		// now add ACL for the group
-		acl = new AccessControlList();
-		ras = new HashSet<ResourceAccess>();
-		ra = new ResourceAccess();
-		ra.setAccessType(Sets.newHashSet(ACCESS_TYPE.READ));
-		ra.setPrincipalId(Long.parseLong(group));
-		ras.add(ra);
-		acl.setResourceAccess(ras);
-		acl.setId(groupParticipate);
-		acl.setCreationDate(new Date());
-		accessControlListDAO.create(acl, ObjectType.ENTITY);
-
-		Thread.sleep(2); // ensure ordering by creation date
-		Node notMyProject = NodeTestUtils.createNew("testGetProjectHeaders.name4", Long.parseLong(user2));
-		notMyProject.setParentId(StackConfiguration.getRootFolderEntityIdStatic());
-		String neither = this.nodeDao.createNew(notMyProject);
-		toDelete.add(neither);
-		notMyProject = nodeDao.getNode(neither);
-
-		Thread.sleep(2); // ensure ordering by creation date
-		Node notMyProjectButTouchedFolder = NodeTestUtils.createNew("testGetProjectHeaders.name5", Long.parseLong(user2));
-		notMyProjectButTouchedFolder.setParentId(StackConfiguration.getRootFolderEntityIdStatic());
-		String subFolderProject = this.nodeDao.createNew(notMyProjectButTouchedFolder);
-		toDelete.add(subFolderProject);
-		notMyProjectButTouchedFolder = nodeDao.getNode(neither);
-
+		// project with owned sub folder
+		String subFolderProject = createProject("testGetProjectHeaders.name5", user2);
 		Node folder = NodeTestUtils.createNew("testGetProjectHeaders.folder1", Long.parseLong(user1));
 		folder.setParentId(subFolderProject);
 		folder.setNodeType(EntityType.folder.name());
 		String ownerFolder = this.nodeDao.createNew(folder);
 		toDelete.add(ownerFolder);
+		addReadAcl(ownerFolder, group);
 
-		acl = new AccessControlList();
-		ras = new HashSet<ResourceAccess>();
-		ra = new ResourceAccess();
-		ra.setAccessType(Sets.newHashSet(ACCESS_TYPE.READ));
-		ra.setPrincipalId(Long.parseLong(group));
-		ras.add(ra);
-		acl.setResourceAccess(ras);
-		acl.setId(ownerFolder);
-		acl.setCreationDate(new Date());
-		accessControlListDAO.create(acl, ObjectType.ENTITY);
+		// project in trash
+		String trashed = createProject("testGetProjectHeaders.name6", user2, StackConfiguration.getTrashFolderEntityIdStatic());
+		// addReadAcl(trashed, user1);
 
-		Thread.sleep(2); // ensure ordering by creation date
-		Node myTrashedProject = NodeTestUtils.createNew("testGetProjectHeaders.name6", Long.parseLong(user2));
-		myTrashedProject.setParentId(StackConfiguration.getTrashFolderEntityIdStatic());
-		String trashed = this.nodeDao.createNew(myTrashedProject);
-		toDelete.add(trashed);
-		myTrashedProject = nodeDao.getNode(trashed);
+		// public project owned by user
+		String publicProject = createProject("testGetProjectHeaders.name7", user1);
+		addReadAcl(publicProject, user1, BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId().toString());
 
-		PaginatedResults<ProjectHeader> projectHeaders = nodeDao.getProjectHeaders(user1, null, 100, 0);
-		assertEquals(4L, projectHeaders.getTotalNumberOfResults());
-		List<String> projectIds = Lists.transform(projectHeaders.getResults(), new Function<ProjectHeader, String>() {
+		Function<ProjectHeader, String> transformToId = new Function<ProjectHeader, String>() {
 			@Override
 			public String apply(ProjectHeader input) {
 				return input.getId();
 			}
-		});
-		assertEquals(subFolderProject, projectIds.get(0));
-		assertEquals(groupParticipate, projectIds.get(1));
-		assertEquals(participate, projectIds.get(2));
-		assertEquals(owned, projectIds.get(3));
+		};
+
+		PaginatedResults<ProjectHeader> projectHeaders = nodeDao.getProjectHeaders(user1, null, 100, 0);
+		List<String> projectIds = Lists.transform(projectHeaders.getResults(), transformToId);
+		assertEquals(Lists.newArrayList(publicProject, subFolderProject, groupParticipate, participate, owned), projectIds);
 
 		List<String> projectIds2 = Lists.newArrayList();
-		for (int i = 0; i < 4; i++) {
+		for (int i = 0; i < 5; i++) {
 			projectHeaders = nodeDao.getProjectHeaders(user1, null, 1, i);
 			assertEquals(1L, projectHeaders.getResults().size());
-			assertEquals(4L, projectHeaders.getTotalNumberOfResults());
+			assertEquals(5L, projectHeaders.getTotalNumberOfResults());
 			projectIds2.add(projectHeaders.getResults().get(0).getId());
 		}
 		assertEquals(projectIds, projectIds2);
@@ -2219,15 +2158,40 @@ public class NodeDAOImplTest {
 		projectStatsDAO.update(projectStat);
 
 		projectHeaders = nodeDao.getProjectHeaders(user1, null, 100, 0);
-		assertEquals(owned, projectHeaders.getResults().get(0).getId());
-		assertEquals(participate, projectHeaders.getResults().get(1).getId());
-		assertEquals(subFolderProject, projectHeaders.getResults().get(2).getId());
-		assertEquals(groupParticipate, projectHeaders.getResults().get(3).getId());
+		assertEquals(Lists.newArrayList(owned, participate, publicProject, subFolderProject, groupParticipate),
+				Lists.transform(projectHeaders.getResults(), transformToId));
 
-		// user3 only has access to group project
+		// user3 only has access to group project and public project
 		projectHeaders = nodeDao.getProjectHeaders(user1, user3, 100, 0);
-		assertEquals(1, projectHeaders.getResults().size());
-		assertEquals(groupParticipate, projectHeaders.getResults().get(0).getId());
+		assertEquals(Lists.newArrayList(publicProject, groupParticipate), Lists.transform(projectHeaders.getResults(), transformToId));
+	}
+
+	private String createProject(String projectName, String user) throws Exception {
+		return createProject(projectName, user, StackConfiguration.getRootFolderEntityIdStatic());
+	}
+
+	private String createProject(String projectName, String user, String parentId) throws Exception {
+		Thread.sleep(2); // ensure ordering by creation date
+		Node project = NodeTestUtils.createNew(projectName + "-" + new Random().nextInt(), Long.parseLong(user));
+		project.setParentId(parentId);
+		String projectId = this.nodeDao.createNew(project);
+		toDelete.add(projectId);
+		return projectId;
+	}
+
+	private void addReadAcl(String entity, String... usersToAdd) throws Exception {
+		Set<ResourceAccess> ras = Sets.newHashSet();
+		for (String userToAdd : usersToAdd) {
+			ResourceAccess ra = new ResourceAccess();
+			ra.setAccessType(Sets.newHashSet(ACCESS_TYPE.READ));
+			ra.setPrincipalId(Long.parseLong(userToAdd));
+			ras.add(ra);
+		}
+		AccessControlList acl = new AccessControlList();
+		acl.setResourceAccess(ras);
+		acl.setId(entity);
+		acl.setCreationDate(new Date());
+		accessControlListDAO.create(acl, ObjectType.ENTITY);
 	}
 
 	/*
