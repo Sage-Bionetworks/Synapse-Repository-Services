@@ -1127,7 +1127,7 @@ public class TableWorkerIntegrationTest {
 		queryResult = waitForConsistentQuery(adminUserInfo, "select A, 'Has Space' from " + tableId, 100L);
 		assertNotNull(queryResult.getQueryResults());
 		assertEquals(2, queryResult.getQueryResults().getHeaders().size());
-		assertEquals(headers.get(0), queryResult.getQueryResults().getHeaders().get(0));
+		assertEquals(headers.get(2), queryResult.getQueryResults().getHeaders().get(0));
 		assertEquals("Has Space", queryResult.getQueryResults().getHeaders().get(1));
 		assertEquals("string200000", queryResult.getQueryResults().getRows().get(0).getValues().get(0));
 		assertEquals("Has Space", queryResult.getQueryResults().getRows().get(0).getValues().get(1));
