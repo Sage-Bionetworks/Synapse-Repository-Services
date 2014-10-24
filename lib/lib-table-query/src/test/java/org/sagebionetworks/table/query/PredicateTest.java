@@ -21,7 +21,7 @@ public class PredicateTest {
 		ComparisonPredicate comparisonPredicate = SqlElementUntils.createComparisonPredicate("foo >= 123.4");
 		Predicate element = new Predicate(comparisonPredicate);
 		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
+		element.toSQL(builder, null);
 		assertEquals("foo >= 123.4", builder.toString());
 	}
 	
@@ -30,7 +30,7 @@ public class PredicateTest {
 		BetweenPredicate betweenPredicate = SqlElementUntils.createBetweenPredicate("bar between 0.0 and 1.0");
 		Predicate element = new Predicate(betweenPredicate);
 		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
+		element.toSQL(builder, null);
 		assertEquals("bar BETWEEN 0.0 AND 1.0", builder.toString());
 	}
 	
@@ -39,7 +39,7 @@ public class PredicateTest {
 		InPredicate inPredicate = SqlElementUntils.createInPredicate("bar in (2,3,5)");
 		Predicate element = new Predicate(inPredicate);
 		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
+		element.toSQL(builder, null);
 		assertEquals("bar IN ( 2, 3, 5 )", builder.toString());
 	}
 	
@@ -48,7 +48,7 @@ public class PredicateTest {
 		LikePredicate likePredicate = SqlElementUntils.createLikePredicate("bar like '%suffix'");
 		Predicate element = new Predicate(likePredicate);
 		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
+		element.toSQL(builder, null);
 		assertEquals("bar LIKE '%suffix'", builder.toString());
 	}
 	
@@ -57,7 +57,7 @@ public class PredicateTest {
 		NullPredicate nullPredicate = SqlElementUntils.createNullPredicate("foo is null");
 		Predicate element = new Predicate(nullPredicate);
 		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
+		element.toSQL(builder, null);
 		assertEquals("foo IS NULL", builder.toString());
 	}
 
@@ -66,7 +66,7 @@ public class PredicateTest {
 		NullPredicate nullPredicate = SqlElementUntils.createNullPredicate("foo is not null");
 		Predicate element = new Predicate(nullPredicate);
 		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
+		element.toSQL(builder, null);
 		assertEquals("foo IS NOT NULL", builder.toString());
 	}
 	
@@ -74,7 +74,7 @@ public class PredicateTest {
 	public void testBooleanTestSQLPrimaryIsBooleanTrue() throws ParseException {
 		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("foo is true");
 		StringBuilder builder = new StringBuilder();
-		booleanPrimary.toSQL(builder);
+		booleanPrimary.toSQL(builder, null);
 		assertEquals("foo IS TRUE", builder.toString());
 	}
 
@@ -82,7 +82,7 @@ public class PredicateTest {
 	public void testBooleanTestSQLPrimaryIsBooleanFalse() throws ParseException {
 		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("foo is fAlse");
 		StringBuilder builder = new StringBuilder();
-		booleanPrimary.toSQL(builder);
+		booleanPrimary.toSQL(builder, null);
 		assertEquals("foo IS FALSE", builder.toString());
 	}
 
@@ -90,7 +90,7 @@ public class PredicateTest {
 	public void testBooleanTestSQLPrimaryIsBooleanNotTrue() throws ParseException {
 		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("foo is not true");
 		StringBuilder builder = new StringBuilder();
-		booleanPrimary.toSQL(builder);
+		booleanPrimary.toSQL(builder, null);
 		assertEquals("foo IS NOT TRUE", builder.toString());
 	}
 
@@ -98,7 +98,7 @@ public class PredicateTest {
 	public void testBooleanTestSQLPrimaryIsBooleanNotFalse() throws ParseException {
 		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("foo is not false");
 		StringBuilder builder = new StringBuilder();
-		booleanPrimary.toSQL(builder);
+		booleanPrimary.toSQL(builder, null);
 		assertEquals("foo IS NOT FALSE", builder.toString());
 	}
 
@@ -106,7 +106,7 @@ public class PredicateTest {
 	public void testBooleanTestSQLPrimaryIsBooleanEqualsTrue() throws ParseException {
 		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("foo = true");
 		StringBuilder builder = new StringBuilder();
-		booleanPrimary.toSQL(builder);
+		booleanPrimary.toSQL(builder, null);
 		assertEquals("foo = TRUE", builder.toString());
 	}
 
@@ -114,7 +114,7 @@ public class PredicateTest {
 	public void testBooleanTestSQLPrimaryIsBooleanEqualsFalse() throws ParseException {
 		BooleanPrimary booleanPrimary = SqlElementUntils.createBooleanPrimary("foo <> fAlse");
 		StringBuilder builder = new StringBuilder();
-		booleanPrimary.toSQL(builder);
+		booleanPrimary.toSQL(builder, null);
 		assertEquals("foo <> FALSE", builder.toString());
 	}
 }

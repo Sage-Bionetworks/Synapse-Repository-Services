@@ -16,7 +16,7 @@ public class SearchConditionTest {
 		List<BooleanTerm> terms = SqlElementUntils.createBooleanTerms("foo=1");
 		SearchCondition element = new SearchCondition(terms);
 		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
+		element.toSQL(builder, null);
 		assertEquals("foo = 1", builder.toString());
 	}
 	
@@ -25,7 +25,7 @@ public class SearchConditionTest {
 		List<BooleanTerm> terms = SqlElementUntils.createBooleanTerms("foo=-1");
 		SearchCondition element = new SearchCondition(terms);
 		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
+		element.toSQL(builder, null);
 		assertEquals("foo = -1", builder.toString());
 	}
 
@@ -34,7 +34,7 @@ public class SearchConditionTest {
 		List<BooleanTerm> terms = SqlElementUntils.createBooleanTerms("foo= True");
 		SearchCondition element = new SearchCondition(terms);
 		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
+		element.toSQL(builder, null);
 		assertEquals("foo = TRUE", builder.toString());
 	}
 
@@ -43,7 +43,7 @@ public class SearchConditionTest {
 		List<BooleanTerm> terms = SqlElementUntils.createBooleanTerms("foo=1", "bar=2");
 		SearchCondition element = new SearchCondition(terms);
 		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
+		element.toSQL(builder, null);
 		assertEquals("foo = 1 OR bar = 2", builder.toString());
 	}
 

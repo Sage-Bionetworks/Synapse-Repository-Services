@@ -14,7 +14,7 @@ public class BooleanFactorTest {
 		BooleanTest booleanTest = SqlElementUntils.createBooleanTest("foo>1");
 		BooleanFactor element = new  BooleanFactor(null , booleanTest);
 		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
+		element.toSQL(builder, null);
 		assertEquals("foo > 1", builder.toString());
 	}
 	
@@ -23,7 +23,7 @@ public class BooleanFactorTest {
 		BooleanTest booleanTest = SqlElementUntils.createBooleanTest("foo>1");
 		BooleanFactor element = new  BooleanFactor(Boolean.TRUE , booleanTest);
 		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
+		element.toSQL(builder, null);
 		assertEquals("NOT foo > 1", builder.toString());
 	}
 	

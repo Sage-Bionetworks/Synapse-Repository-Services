@@ -1,9 +1,10 @@
 package org.sagebionetworks.table.query.model;
 
+
 /**
  * This matches &ltfrom clause&gt   in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
-public class FromClause implements SQLElement {
+public class FromClause extends SQLElement {
 
 	private TableReference tableReference;
 
@@ -17,9 +18,9 @@ public class FromClause implements SQLElement {
 	}
 
 	@Override
-	public void toSQL(StringBuilder builder) {
+	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
 		builder.append("FROM ");
-		tableReference.toSQL(builder);
+		tableReference.toSQL(builder, columnConvertor);
 	}
 	
 	

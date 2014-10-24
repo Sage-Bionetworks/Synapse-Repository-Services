@@ -6,7 +6,7 @@ import java.util.List;
 /**
  * This matches &ltgrouping column reference list&gt   in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
-public class GroupingColumnReferenceList implements SQLElement{
+public class GroupingColumnReferenceList extends SQLElement {
 
 	List<GroupingColumnReference> groupingColumnReferences;
 
@@ -28,13 +28,13 @@ public class GroupingColumnReferenceList implements SQLElement{
 	}
 
 	@Override
-	public void toSQL(StringBuilder builder) {
+	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
 		boolean first = true;
 		for(GroupingColumnReference groupingColumnReference: groupingColumnReferences){
 			if(!first){
 				builder.append(", ");
 			}
-			groupingColumnReference.toSQL(builder);
+			groupingColumnReference.toSQL(builder, columnConvertor);
 			first = false;
 		}
 	}

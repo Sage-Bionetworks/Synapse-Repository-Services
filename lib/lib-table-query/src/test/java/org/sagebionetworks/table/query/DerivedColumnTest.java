@@ -12,7 +12,7 @@ public class DerivedColumnTest {
 	public void testDerivedColumnToSQL() throws ParseException{
 		DerivedColumn element = SqlElementUntils.createDerivedColumn("james");
 		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
+		element.toSQL(builder, null);
 		assertEquals("james", builder.toString());
 	}
 	
@@ -20,7 +20,7 @@ public class DerivedColumnTest {
 	public void testDerivedColumnWithASToSQL() throws ParseException{
 		DerivedColumn element = SqlElementUntils.createDerivedColumn("james as bond");
 		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
+		element.toSQL(builder, null);
 		assertEquals("james AS bond", builder.toString());
 	}
 	
@@ -28,7 +28,7 @@ public class DerivedColumnTest {
 	public void testDerivedColumnWithFunctionToSQL() throws ParseException{
 		DerivedColumn element = SqlElementUntils.createDerivedColumn("min(bar)");
 		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
+		element.toSQL(builder, null);
 		assertEquals("MIN(bar)", builder.toString());
 	}
 

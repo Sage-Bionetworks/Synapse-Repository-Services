@@ -6,7 +6,7 @@ import java.util.List;
 /**
  * This matches &ltsort specification list&gt   in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
-public class SortSpecificationList implements SQLElement {
+public class SortSpecificationList extends SQLElement {
 	
 	List<SortSpecification> sortSpecifications;
 
@@ -28,13 +28,13 @@ public class SortSpecificationList implements SQLElement {
 	}
 
 	@Override
-	public void toSQL(StringBuilder builder) {
+	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
 		boolean first = true;
 		for(SortSpecification sortSpecification: sortSpecifications){
 			if(!first){
 				builder.append(", ");
 			}
-			sortSpecification.toSQL(builder);
+			sortSpecification.toSQL(builder, columnConvertor);
 			first = false;
 		}
 	}

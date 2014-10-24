@@ -14,7 +14,7 @@ public class SqlElementUntilsTest {
 		QuerySpecification converted = SqlElementUntils.convertToCountQuery(model);
 		assertNotNull(converted);
 		StringBuilder builder = new StringBuilder();
-		converted.toSQL(builder);
+		converted.toSQL(builder, null);
 		assertEquals("SELECT COUNT(*) FROM syn123 WHERE foo = 1", builder.toString());
 	}
 
@@ -24,7 +24,7 @@ public class SqlElementUntilsTest {
 		QuerySpecification converted = SqlElementUntils.convertToPaginatedQuery(model, 234L, 567L);
 		assertNotNull(converted);
 		StringBuilder builder = new StringBuilder();
-		converted.toSQL(builder);
+		converted.toSQL(builder, null);
 		assertEquals("SELECT foo, bar FROM syn123 WHERE foo = 1 ORDER BY bar LIMIT 567 OFFSET 234", builder.toString());
 	}
 
@@ -34,7 +34,7 @@ public class SqlElementUntilsTest {
 		QuerySpecification converted = SqlElementUntils.convertToPaginatedQuery(model, 234L, 567L);
 		assertNotNull(converted);
 		StringBuilder builder = new StringBuilder();
-		converted.toSQL(builder);
+		converted.toSQL(builder, null);
 		assertEquals("SELECT foo, bar FROM syn123 WHERE foo = 1 ORDER BY bar LIMIT 567 OFFSET 234", builder.toString());
 	}
 

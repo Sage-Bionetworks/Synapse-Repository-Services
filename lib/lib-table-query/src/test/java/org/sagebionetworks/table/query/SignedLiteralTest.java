@@ -17,7 +17,7 @@ public class SignedLiteralTest {
 	public void testUnsignedToSQL(){
 		StringBuilder builder = new StringBuilder();
 		SignedLiteral ai = new SignedLiteral("123", null);
-		ai.toSQL(builder);
+		ai.toSQL(builder, null);
 		assertEquals("123", builder.toString());
 	}
 	
@@ -25,7 +25,7 @@ public class SignedLiteralTest {
 	public void testSignedToSQL() {
 		StringBuilder builder = new StringBuilder();
 		SignedLiteral ai = new SignedLiteral("-123", null);
-		ai.toSQL(builder);
+		ai.toSQL(builder, null);
 		assertEquals("-123", builder.toString());
 	}
 
@@ -33,7 +33,7 @@ public class SignedLiteralTest {
 	public void testDoubleToSQL() {
 		StringBuilder builder = new StringBuilder();
 		SignedLiteral ai = new SignedLiteral("-123.0", null);
-		ai.toSQL(builder);
+		ai.toSQL(builder, null);
 		assertEquals("-123.0", builder.toString());
 	}
 
@@ -41,7 +41,7 @@ public class SignedLiteralTest {
 	public void testSmallDoubleToSQL() {
 		StringBuilder builder = new StringBuilder();
 		SignedLiteral ai = new SignedLiteral("-.3", null);
-		ai.toSQL(builder);
+		ai.toSQL(builder, null);
 		assertEquals("-.3", builder.toString());
 	}
 
@@ -49,7 +49,7 @@ public class SignedLiteralTest {
 	public void testGeneralToSQL(){
 		StringBuilder builder = new StringBuilder();
 		SignedLiteral ai = new SignedLiteral(null, "has'quote");
-		ai.toSQL(builder);
+		ai.toSQL(builder, null);
 		assertEquals("'has''quote'", builder.toString());
 	}
 

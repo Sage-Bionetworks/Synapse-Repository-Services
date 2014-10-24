@@ -14,7 +14,7 @@ public class RowValueConstructorElementTest {
 		ValueExpression valueExpression = SqlElementUntils.createValueExpression("bar");
 		RowValueConstructorElement element = new RowValueConstructorElement(valueExpression);
 		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
+		element.toSQL(builder, null);
 		assertEquals("bar", builder.toString());
 	}
 	
@@ -22,7 +22,7 @@ public class RowValueConstructorElementTest {
 	public void testRowValueConstructorElementToSQLNull() throws ParseException{
 		RowValueConstructorElement element = new RowValueConstructorElement(Boolean.TRUE, null);
 		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
+		element.toSQL(builder, null);
 		assertEquals("NULL", builder.toString());
 	}
 	
@@ -30,7 +30,7 @@ public class RowValueConstructorElementTest {
 	public void testRowValueConstructorElementToSQLDefault() throws ParseException{
 		RowValueConstructorElement element = new RowValueConstructorElement(null, Boolean.TRUE);
 		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
+		element.toSQL(builder, null);
 		assertEquals("DEFAULT", builder.toString());
 	}
 }

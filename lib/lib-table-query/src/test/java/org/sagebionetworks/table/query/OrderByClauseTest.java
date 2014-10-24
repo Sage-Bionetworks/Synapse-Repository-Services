@@ -14,7 +14,7 @@ public class OrderByClauseTest {
 		SortSpecificationList list = SqlElementUntils.createSortSpecificationList("foo, bar");
 		OrderByClause element= new OrderByClause(list);
 		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
+		element.toSQL(builder, null);
 		assertEquals("ORDER BY foo, bar", builder.toString());
 	}
 

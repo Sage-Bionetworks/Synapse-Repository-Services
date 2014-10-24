@@ -1,9 +1,10 @@
 package org.sagebionetworks.table.query.model;
 
+
 /**
  * This matches &ltpredicate&gt   in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
-public class Predicate implements SQLElement {
+public class Predicate extends SQLElement {
 	
 	ComparisonPredicate comparisonPredicate;
 	BetweenPredicate betweenPredicate;
@@ -48,17 +49,17 @@ public class Predicate implements SQLElement {
 		return isPredicate;
 	}
 	@Override
-	public void toSQL(StringBuilder builder) {
+	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
 		if(comparisonPredicate != null){
-			comparisonPredicate.toSQL(builder);
+			comparisonPredicate.toSQL(builder, columnConvertor);
 		}else if(betweenPredicate != null){
-			betweenPredicate.toSQL(builder);
+			betweenPredicate.toSQL(builder, columnConvertor);
 		}else if(inPredicate != null){
-			inPredicate.toSQL(builder);
+			inPredicate.toSQL(builder, columnConvertor);
 		}else if(likePredicate != null){
-			likePredicate.toSQL(builder);
+			likePredicate.toSQL(builder, columnConvertor);
 		} else {
-			isPredicate.toSQL(builder);
+			isPredicate.toSQL(builder, columnConvertor);
 		}
 	}
 	

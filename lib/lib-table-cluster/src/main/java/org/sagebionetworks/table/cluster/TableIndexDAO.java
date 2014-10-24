@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.ColumnModel;
 import org.sagebionetworks.repo.model.table.RowSet;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.support.TransactionCallback;
 
 /**
  * This is an abstraction for table index CRUD operations.
@@ -107,4 +108,12 @@ public interface TableIndexDAO {
 	 * @return
 	 */
 	public JdbcTemplate getConnection();
+
+	/**
+	 * run calls within a read transaction
+	 * 
+	 * @param callable
+	 * @return
+	 */
+	public <T> T executeInReadTransaction(TransactionCallback<T> callable);
 }

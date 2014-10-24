@@ -6,7 +6,7 @@ import java.util.List;
 /**
  * This matches &ltboolean term&gt   in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
-public class BooleanTerm implements SQLElement {
+public class BooleanTerm extends SQLElement {
 
 	List<BooleanFactor> andBooleanFactors;
 
@@ -27,13 +27,13 @@ public class BooleanTerm implements SQLElement {
 	}
 	
 	@Override
-	public void toSQL(StringBuilder builder) {
+	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
 		boolean isFrist = true;
 		for(BooleanFactor booleanFactor: andBooleanFactors){
 			if(!isFrist){
 				builder.append(" AND ");
 			}
-			booleanFactor.toSQL(builder);
+			booleanFactor.toSQL(builder, columnConvertor);
 			isFrist = false;
 		}
 	}

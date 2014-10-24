@@ -18,7 +18,7 @@ public class ComparisonPredicateTest {
 		RowValueConstructor rowValueConstructorRHS = SqlElementUntils.createRowValueConstructor("1");
 		ComparisonPredicate element = new ComparisonPredicate(columnReferenceLHS, compOp, rowValueConstructorRHS);
 		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
+		element.toSQL(builder, null);
 		assertEquals("foo <> 1", builder.toString());
 	}
 }

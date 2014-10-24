@@ -1,9 +1,10 @@
 package org.sagebionetworks.table.query.model;
 
+
 /**
  * This matches &ltlike predicate&gt  in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
-public class LikePredicate implements SQLElement {
+public class LikePredicate extends SQLElement {
 	
 	ColumnReference columnReferenceLHS;
 	Boolean not;
@@ -34,16 +35,16 @@ public class LikePredicate implements SQLElement {
 	}
 
 	@Override
-	public void toSQL(StringBuilder builder) {
-		columnReferenceLHS.toSQL(builder);
+	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
+		columnReferenceLHS.toSQL(builder, columnConvertor);
 		if(not != null){
 			builder.append(" NOT");
 		}
 		builder.append(" LIKE ");
-		pattern.toSQL(builder);
+		pattern.toSQL(builder, columnConvertor);
 		if(escapeCharacter != null){
 			builder.append(" ESCAPE ");
-			escapeCharacter.toSQL(builder);
+			escapeCharacter.toSQL(builder, columnConvertor);
 		}
 	}
 	

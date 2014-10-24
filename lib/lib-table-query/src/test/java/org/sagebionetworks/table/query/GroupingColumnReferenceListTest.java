@@ -17,7 +17,7 @@ public class GroupingColumnReferenceListTest {
 		List<GroupingColumnReference> list = SqlElementUntils.createGroupingColumnReferences("lhs.rhs");
 		GroupingColumnReferenceList element = new GroupingColumnReferenceList(list);
 		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
+		element.toSQL(builder, null);
 		assertEquals("lhs.rhs", builder.toString());
 	}
 	
@@ -26,7 +26,7 @@ public class GroupingColumnReferenceListTest {
 		List<GroupingColumnReference> list = SqlElementUntils.createGroupingColumnReferences("lhs.rhs","mid","\"last\"");
 		GroupingColumnReferenceList element = new GroupingColumnReferenceList(list);
 		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
+		element.toSQL(builder, null);
 		assertEquals("lhs.rhs, mid, \"last\"", builder.toString());
 	}
 }

@@ -338,6 +338,11 @@ public class TableWorkerIntegrationTest {
 		// Now add some data
 		RowSet rowSet = new RowSet();
 		rowSet.setRows(TableModelTestUtils.createRows(schema, 10));
+		assertEquals(ColumnType.STRING, schema.get(0).getColumnType());
+		// make sure we can order by first column (which should be STRING) to make row 0 come first
+		rowSet.getRows().get(0).getValues().set(0, "!!" + rowSet.getRows().get(0).getValues().get(0));
+		// and make grouping return 9 rows
+		rowSet.getRows().get(4).getValues().set(0, rowSet.getRows().get(0).getValues().get(0));
 		rowSet.setHeaders(headers);
 		rowSet.setTableId(tableId);
 		referenceSet = tableRowManager.appendRows(adminUserInfo, tableId, schema, rowSet);
@@ -387,6 +392,47 @@ public class TableWorkerIntegrationTest {
 		queryResultBundle = waitForConsistentQueryBundle(adminUserInfo, sql, null, 1L);
 		assertEquals(0, queryResultBundle.getQueryResult().getQueryResults().getRows().size());
 		assertEquals(0L, queryResultBundle.getQueryCount().longValue());
+
+		sql = "select count(*) from " + tableId + " limit 100";
+		queryResultBundle = waitForConsistentQueryBundle(adminUserInfo, sql, null, 1L);
+		assertEquals(1, queryResultBundle.getQueryResult().getQueryResults().getRows().size());
+		assertEquals("10", queryResultBundle.getQueryResult().getQueryResults().getRows().get(0).getValues().get(0));
+		assertEquals(1L, queryResultBundle.getQueryCount().longValue());
+
+		sql = "select max(" + schema.get(0).getName() + ") from " + tableId + " limit 100";
+		queryResultBundle = waitForConsistentQueryBundle(adminUserInfo, sql, null, 1L);
+		assertEquals(1, queryResultBundle.getQueryResult().getQueryResults().getRows().size());
+		assertEquals(1L, queryResultBundle.getQueryCount().longValue());
+
+		String groupSql = " group by " + schema.get(0).getName();
+		String orderSql = " order by " + schema.get(0).getName() + " asc";
+
+		sql = "select * from " + tableId + groupSql + orderSql + " limit 100";
+		queryResultBundle = waitForConsistentQueryBundle(adminUserInfo, sql, null, 1L);
+		assertEquals(1, queryResultBundle.getQueryResult().getQueryResults().getRows().size());
+		assertEquals(rowSet.getRows().get(0).getValues().get(0), queryResultBundle.getQueryResult().getQueryResults().getRows().get(0)
+				.getValues().get(0));
+		assertEquals(9L, queryResultBundle.getQueryCount().longValue());
+
+		sql = "select count(" + schema.get(0).getName() + ") from " + tableId + groupSql + orderSql + " limit 100";
+		queryResultBundle = waitForConsistentQueryBundle(adminUserInfo, sql, null, 2L);
+		assertEquals(2, queryResultBundle.getQueryResult().getQueryResults().getRows().size());
+		assertEquals("2", queryResultBundle.getQueryResult().getQueryResults().getRows().get(0).getValues().get(0));
+		assertEquals("1", queryResultBundle.getQueryResult().getQueryResults().getRows().get(1).getValues().get(0));
+		assertEquals(9L, queryResultBundle.getQueryCount().longValue());
+
+		sql = "select count(*) as c from " + tableId + groupSql + " order by c desc limit 100";
+		queryResultBundle = waitForConsistentQueryBundle(adminUserInfo, sql, null, 2L);
+		assertEquals(2, queryResultBundle.getQueryResult().getQueryResults().getRows().size());
+		assertEquals("2", queryResultBundle.getQueryResult().getQueryResults().getRows().get(0).getValues().get(0));
+		assertEquals("1", queryResultBundle.getQueryResult().getQueryResults().getRows().get(1).getValues().get(0));
+		assertEquals(9L, queryResultBundle.getQueryCount().longValue());
+
+		sql = "select count(*) as c from " + tableId + groupSql + " order by c desc limit 1";
+		queryResultBundle = waitForConsistentQueryBundle(adminUserInfo, sql, null, 2L);
+		assertEquals(1, queryResultBundle.getQueryResult().getQueryResults().getRows().size());
+		assertEquals("2", queryResultBundle.getQueryResult().getQueryResults().getRows().get(0).getValues().get(0));
+		assertEquals(1L, queryResultBundle.getQueryCount().longValue());
 	}
 
 	@Test
@@ -1076,11 +1122,15 @@ public class TableWorkerIntegrationTest {
 			fail("not acceptible sql");
 		} catch (IllegalArgumentException e) {
 		}
-		try {
-			waitForConsistentQuery(adminUserInfo, "select A, 'Has Space' from " + tableId, 100L);
-			fail("not acceptible sql");
-		} catch (Exception e) {
-		}
+
+		// select a string literal
+		queryResult = waitForConsistentQuery(adminUserInfo, "select A, 'Has Space' from " + tableId, 100L);
+		assertNotNull(queryResult.getQueryResults());
+		assertEquals(2, queryResult.getQueryResults().getHeaders().size());
+		assertEquals(headers.get(0), queryResult.getQueryResults().getHeaders().get(0));
+		assertEquals("Has Space", queryResult.getQueryResults().getHeaders().get(1));
+		assertEquals("string200000", queryResult.getQueryResults().getRows().get(0).getValues().get(0));
+		assertEquals("Has Space", queryResult.getQueryResults().getRows().get(0).getValues().get(1));
 
 		queryResult = waitForConsistentQuery(adminUserInfo, "select A, \"Has Space\" from " + tableId, 100L);
 		assertNotNull(queryResult.getQueryResults());

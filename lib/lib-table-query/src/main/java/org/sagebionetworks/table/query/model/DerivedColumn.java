@@ -1,9 +1,10 @@
 package org.sagebionetworks.table.query.model;
 
+
 /**
  * This matches &ltderived column&gt   in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
-public class DerivedColumn implements SQLElement {
+public class DerivedColumn extends SQLElement {
 
 	ValueExpression valueExpression;
 	AsClause asClause;
@@ -12,6 +13,10 @@ public class DerivedColumn implements SQLElement {
 		super();
 		this.valueExpression = valueExpression;
 		this.asClause = asClause;
+	}
+
+	public boolean isAggregate() {
+		return valueExpression.isAggregate();
 	}
 
 	public ValueExpression getValueExpression() {
@@ -23,11 +28,11 @@ public class DerivedColumn implements SQLElement {
 	}
 
 	@Override
-	public void toSQL(StringBuilder builder) {
-		valueExpression.toSQL(builder);
+	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
+		valueExpression.toSQL(builder, columnConvertor);
 		if(asClause!= null){
 			builder.append(" ");
-			asClause.toSQL(builder);
+			asClause.toSQL(builder, columnConvertor);
 		}
 	}
 	
