@@ -16,7 +16,7 @@ public class SelectListTest {
 	public void testStar(){
 		StringBuilder builder = new StringBuilder();
 		SelectList element = new SelectList(Boolean.TRUE);
-		element.toSQL(builder);
+		element.toSQL(builder, null);
 		assertEquals("*", builder.toString());
 	}
 
@@ -27,7 +27,7 @@ public class SelectListTest {
 		assertNotNull(columns);
 		assertEquals(2, columns.size());
 		SelectList element = new SelectList(columns);
-		element.toSQL(builder);
+		element.toSQL(builder, null);
 		assertEquals("foo, bar AS \"new name\"", builder.toString());
 	}
 	
@@ -38,7 +38,7 @@ public class SelectListTest {
 		assertNotNull(columns);
 		assertEquals(2, columns.size());
 		SelectList element = new SelectList(columns);
-		element.toSQL(builder);
+		element.toSQL(builder, null);
 		assertEquals("MAX(foo), MIN(bar)", builder.toString());
 	}
 	

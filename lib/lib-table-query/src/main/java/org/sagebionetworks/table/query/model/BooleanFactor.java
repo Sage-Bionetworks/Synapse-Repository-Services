@@ -1,9 +1,10 @@
 package org.sagebionetworks.table.query.model;
 
+
 /**
  * This matches &ltboolean factor&gt   in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
-public class BooleanFactor implements SQLElement {
+public class BooleanFactor extends SQLElement {
 
 	Boolean not;
 	BooleanTest booleanTest;
@@ -20,11 +21,11 @@ public class BooleanFactor implements SQLElement {
 		return booleanTest;
 	}
 	@Override
-	public void toSQL(StringBuilder builder) {
+	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
 		if(not != null){
 			builder.append("NOT ");
 		}
-		booleanTest.toSQL(builder);
+		booleanTest.toSQL(builder, columnConvertor);
 	}
 	
 }

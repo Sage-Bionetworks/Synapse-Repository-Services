@@ -16,7 +16,7 @@ public class SortSpecificationListTest {
 		List<SortSpecification> list = SqlElementUntils.createSortSpecifications("foo asc");
 		SortSpecificationList element= new SortSpecificationList(list);
 		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
+		element.toSQL(builder, null);
 		assertEquals("foo ASC", builder.toString());
 	}
 	
@@ -25,7 +25,7 @@ public class SortSpecificationListTest {
 		List<SortSpecification> list = SqlElementUntils.createSortSpecifications("foo asc","bar desc");
 		SortSpecificationList element= new SortSpecificationList(list);
 		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
+		element.toSQL(builder, null);
 		assertEquals("foo ASC, bar DESC", builder.toString());
 	}
 
@@ -35,7 +35,7 @@ public class SortSpecificationListTest {
 		List<SortSpecification> list = SqlElementUntils.createSortSpecifications("foo","bar");
 		SortSpecificationList element= new SortSpecificationList(list);
 		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
+		element.toSQL(builder, null);
 		assertEquals("foo, bar", builder.toString());
 	}
 }

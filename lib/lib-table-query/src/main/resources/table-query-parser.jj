@@ -155,6 +155,7 @@ TOKEN [IGNORE_CASE]: {
 | < _true: "TRUE">
 | < where: "WHERE">
 | < unknown: "UNKNOWN">
+| < found_rows: "FOUND_ROWS">
 }
 
 TOKEN [IGNORE_CASE]: {
@@ -341,12 +342,12 @@ void delimitedIentifier(StringBuilder builder):
 }
 ColumnReference columnReference():
 {
-	ColumnName nameLHS = null;
+	ColumnName nameLHSOrRHS = null;
 	ColumnName nameRHS = null;
 }
 {
-	nameLHS = columnName() [ <period> nameRHS = columnName() ]
-	{ return new ColumnReference(nameLHS, nameRHS); }
+	nameLHSOrRHS = columnName() [ <period> nameRHS = columnName() ]
+	{ return new ColumnReference(nameLHSOrRHS, nameRHS); }
 }
 QuerySpecification querySpecification():
 {
@@ -690,10 +691,53 @@ IsPredicate isPredicate(ColumnReference leftHandSide):
 }
 ValueExpression valueExpression():
 {
+  	NumericValueExpression numericValueExpression = null;
 	StringValueExpression stringValueExpression = null;
 }
 {
 	stringValueExpression = stringValueExpression() { return new ValueExpression(stringValueExpression); }
+	| numericValueExpression = numericValueExpression() { return new ValueExpression(numericValueExpression); }
+}
+NumericValueExpression numericValueExpression():
+{
+	Term term = null;
+}
+{
+	term = term() { return new NumericValueExpression(term); }
+}
+Term term():
+{
+	Factor factor = null;
+}
+{
+	factor = factor() { return new Term(factor); }
+}
+Factor factor():
+{
+	NumericPrimary numericPrimary = null;
+}
+{
+	numericPrimary = numericPrimary() { return new Factor(numericPrimary); }
+}
+NumericPrimary numericPrimary():
+{
+	ValueExpressionPrimary valueExpressionPrimary = null;
+	NumericValueFunction numericValueFunction = null;
+}
+{
+	valueExpressionPrimary = valueExpressionPrimary() { return new NumericPrimary(valueExpressionPrimary); }
+	| numericValueFunction = numericValueFunction() { return new NumericPrimary(numericValueFunction); }}
+NumericValueFunction numericValueFunction():
+{
+	MysqlFunction mysqlFunction = null;
+}
+{
+	mysqlFunction = mysqlFunction() <left_paren> <right_paren> { return new NumericValueFunction(mysqlFunction); }
+}
+MysqlFunction mysqlFunction():
+{}
+{
+	<found_rows> { return MysqlFunction.FOUND_ROWS; }
 }
 StringValueExpression stringValueExpression():
 {

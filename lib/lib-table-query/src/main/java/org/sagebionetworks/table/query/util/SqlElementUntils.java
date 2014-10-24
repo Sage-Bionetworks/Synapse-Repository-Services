@@ -6,6 +6,7 @@ import java.util.List;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
 import org.sagebionetworks.table.query.model.*;
+import org.sagebionetworks.util.ValidateArgument;
 
 /**
  * Utilities for creating SQL elements
@@ -466,15 +467,21 @@ public class SqlElementUntils {
 	 * @return
 	 * @throws ParseException 
 	 */
-	public static QuerySpecification convertToCountQuery(QuerySpecification model) throws ParseException{
-		if(model == null) throw new IllegalArgumentException("QuerySpecification cannot be null");
+	public static QuerySpecification convertToCountQuery(QuerySpecification model) {
+		ValidateArgument.required(model, "QuerySpecification");
 		TableExpression currentTableExpression = model.getTableExpression();
-		if(currentTableExpression == null) throw new IllegalArgumentException("TableExpression cannot be null");
+		ValidateArgument.required(currentTableExpression, "TableExpression");
+
 		// Clear the select list
-		SelectList count = new SelectList(createDerivedColumns("count(*)"));
+		SelectList count;
+		try {
+			count = new SelectList(createDerivedColumns("count(*)"));
+		} catch (ParseException e) {
+			throw new IllegalArgumentException(e);
+		}
 		TableExpression tableExpression = new TableExpression(currentTableExpression.getFromClause(),
 				currentTableExpression.getWhereClause(), currentTableExpression.getGroupByClause(), null, null);
-		return new QuerySpecification(null, count, tableExpression);
+		return new QuerySpecification(null, null, count, tableExpression);
 	}
 	
 	/**
@@ -495,5 +502,10 @@ public class SqlElementUntils {
 				currentTableExpression.getWhereClause(), currentTableExpression.getGroupByClause(),
 				currentTableExpression.getOrderByClause(), new Pagination(limit, offset));
 		return new QuerySpecification(model.getSetQuantifier(), model.getSelectList(), tableExpression);
+	}
+
+	public static TableExpression removeOrderByClause(TableExpression tableExpression) {
+		return new TableExpression(tableExpression.getFromClause(), tableExpression.getWhereClause(), tableExpression.getGroupByClause(),
+				null, tableExpression.getPagination());
 	}
 }

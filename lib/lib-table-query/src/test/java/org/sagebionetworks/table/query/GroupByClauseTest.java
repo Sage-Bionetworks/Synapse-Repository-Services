@@ -14,7 +14,7 @@ public class GroupByClauseTest {
 		GroupingColumnReferenceList list = SqlElementUntils.createGroupingColumnReferenceList("one, two");
 		GroupByClause element = new GroupByClause(list);
 		StringBuilder builder = new StringBuilder();
-		element.toSQL(builder);
+		element.toSQL(builder, null);
 		assertEquals("GROUP BY one, two", builder.toString());
 	}
 

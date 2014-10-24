@@ -1,9 +1,10 @@
 package org.sagebionetworks.table.query.model;
 
+
 /**
  * This matches &lttable expression&gt   in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
-public class TableExpression implements SQLElement {
+public class TableExpression extends SQLElement {
 
 	FromClause fromClause;
 	WhereClause whereClause;
@@ -41,23 +42,23 @@ public class TableExpression implements SQLElement {
 	}
 
 	@Override
-	public void toSQL(StringBuilder builder) {
-		fromClause.toSQL(builder);
+	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
+		fromClause.toSQL(builder, columnConvertor);
 		if(whereClause != null){
 			builder.append(" ");
-			whereClause.toSQL(builder);
+			whereClause.toSQL(builder, columnConvertor);
 		}
 		if(groupByClause != null){
 			builder.append(" ");
-			groupByClause.toSQL(builder);
+			groupByClause.toSQL(builder, columnConvertor);
 		}
 		if(orderByClause != null){
 			builder.append(" ");
-			orderByClause.toSQL(builder);
+			orderByClause.toSQL(builder, columnConvertor);
 		}
 		if(pagination != null){
 			builder.append(" ");
-			pagination.toSQL(builder);
+			pagination.toSQL(builder, columnConvertor);
 		}
 	}
 

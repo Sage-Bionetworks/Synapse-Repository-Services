@@ -425,8 +425,9 @@ public class TableIndexDAOImplTest {
 		// first and only row.
 		Row row = results.getRows().get(0);
 		assertNotNull(row);
-		assertEquals(new Long(199), row.getRowId());
-		assertEquals(new Long(4), row.getVersionNumber());
+		// is aggregate, so no row id and version
+		assertEquals(null, row.getRowId());
+		assertEquals(null, row.getVersionNumber());
 		List<String> expectedValues = Arrays.asList("string99", "103099");
 		assertEquals(expectedValues, row.getValues());
 	}

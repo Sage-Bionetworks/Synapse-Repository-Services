@@ -1,9 +1,10 @@
 package org.sagebionetworks.table.query.model;
 
+
 /**
  * This matches &ltrow value constructor element&gt  in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
-public class RowValueConstructorElement implements SQLElement {
+public class RowValueConstructorElement extends SQLElement {
 	
 	ValueExpression valueExpression = null;
 	Boolean nullSpecification = null;
@@ -37,9 +38,9 @@ public class RowValueConstructorElement implements SQLElement {
 		return truthSpecification;
 	}
 	@Override
-	public void toSQL(StringBuilder builder) {
+	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
 		if(valueExpression != null){
-			valueExpression.toSQL(builder);
+			valueExpression.toSQL(builder, columnConvertor);
 		}else if(nullSpecification != null){
 			builder.append("NULL");
 		} else if (truthSpecification != null) {

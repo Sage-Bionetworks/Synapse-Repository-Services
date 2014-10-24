@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.web.controller;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BOUND_CM_OBJECT_ID;
@@ -186,6 +187,26 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 		assertEquals(set, rowsAfter);
 	}
 	
+	@Test
+	public void testDeleteAllColumns() throws Exception {
+		// Create a table with two ColumnModels
+		ColumnModel one = servletTestHelper.createColumnModel(dispatchServlet, TableModelTestUtils.createColumn(0, "one", ColumnType.STRING),
+				adminUserId);
+		ColumnModel two = servletTestHelper.createColumnModel(dispatchServlet, TableModelTestUtils.createColumn(0, "two", ColumnType.STRING),
+				adminUserId);
+		// Now create a TableEntity with these Columns
+		TableEntity table = new TableEntity();
+		table.setName("TableEntity");
+		table.setParentId(parent.getId());
+		table.setColumnIds(Lists.newArrayList(one.getId(), two.getId()));
+		table = servletTestHelper.createEntity(dispatchServlet, table, adminUserId);
+		entitiesToDelete.add(table.getId());
+
+		table.setColumnIds(Lists.<String>newArrayList());
+		table = servletTestHelper.updateEntity(dispatchServlet, table, adminUserId);
+		assertEquals(0, table.getColumnIds().size());
+	}
+
 	@Test
 	public void testColumnNameCaseSensitiveCreateTableEntity() throws Exception{
 		// create two columns that differ only by case.

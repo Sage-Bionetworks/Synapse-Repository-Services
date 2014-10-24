@@ -1,9 +1,10 @@
 package org.sagebionetworks.table.query.model;
 
+
 /**
  * This matches &ltin predicate value&gt  in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
-public class InPredicateValue implements SQLElement{
+public class InPredicateValue extends SQLElement {
 
 	InValueList inValueList;
 	
@@ -17,8 +18,8 @@ public class InPredicateValue implements SQLElement{
 	}
 
 	@Override
-	public void toSQL(StringBuilder builder) {
-		inValueList.toSQL(builder);
+	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
+		inValueList.toSQL(builder, columnConvertor);
 		
 	}
 	

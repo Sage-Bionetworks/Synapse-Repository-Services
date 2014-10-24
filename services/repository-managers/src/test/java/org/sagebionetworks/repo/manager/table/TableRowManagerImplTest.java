@@ -83,6 +83,7 @@ import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.util.Pair;
 import org.sagebionetworks.util.ProgressCallback;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.transaction.support.TransactionCallback;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -132,11 +133,11 @@ public class TableRowManagerImplTest {
 			public String answer(InvocationOnMock invocation) throws Throwable {
 				if(invocation == null) return null;
 				Callable<String> callable = (Callable<String>) invocation.getArguments()[2];
-				if(callable != null){
-					return callable.call();
-				}else{
-					return null;
-				}
+						if (callable != null) {
+							return callable.call();
+						} else {
+							return null;
+						}
 			}
 		});
 		
@@ -181,7 +182,7 @@ public class TableRowManagerImplTest {
 				boolean isCount = false;
 				if (query.getModel().getSelectList().getColumns() != null) {
 					StringBuilder builder = new StringBuilder();
-					query.getModel().getSelectList().getColumns().get(0).toSQL(builder);
+					query.getModel().getSelectList().getColumns().get(0).toSQL(builder, null);
 					if (builder.toString().equals("COUNT(*)")) {
 						isCount = true;
 					}
@@ -198,6 +199,16 @@ public class TableRowManagerImplTest {
 				return true;
 			}
 		});	
+		// Just call the caller.
+		stub(mockTableIndexDAO.executeInReadTransaction(any(TransactionCallback.class))).toAnswer(new Answer<Void>() {
+			@Override
+			public Void answer(InvocationOnMock invocation) throws Throwable {
+				if (invocation == null)
+					return null;
+				TransactionCallback<Void> callable = (TransactionCallback<Void>) invocation.getArguments()[0];
+				return callable.doInTransaction(null);
+			}
+		});
 		ReflectionTestUtils.setField(manager, "stackStatusDao", mockStackStatusDao);
 		ReflectionTestUtils.setField(manager, "tableRowTruthDao", mockTruthDao);
 		ReflectionTestUtils.setField(manager, "authorizationManager", mockAuthManager);

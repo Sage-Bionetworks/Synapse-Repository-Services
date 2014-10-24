@@ -10,6 +10,7 @@ import java.sql.SQLException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
 
 import javax.sql.DataSource;
 
@@ -41,9 +42,10 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	private static final String FIELD = "Field";
 	private static final String SQL_SHOW_COLUMNS = "SHOW COLUMNS FROM ";
 
-	DataSourceTransactionManager transactionManager;
-	TransactionTemplate transactionTemplate;
-	JdbcTemplate template;
+	private final DataSourceTransactionManager transactionManager;
+	private final TransactionTemplate writeTransactionTemplate;
+	private final TransactionTemplate readTransactionTemplate;
+	private final JdbcTemplate template;
 
 	/**
 	 * The IoC constructor.
@@ -54,15 +56,21 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	public TableIndexDAOImpl(DataSource dataSource) {
 		super();
 		this.transactionManager = new DataSourceTransactionManager(dataSource);
+		// This will manage transactions for calls that need it.
+		this.writeTransactionTemplate = createTransactionTemplate(this.transactionManager, false);
+		this.readTransactionTemplate = createTransactionTemplate(this.transactionManager, true);
+		this.template = new JdbcTemplate(dataSource);
+	}
+
+	private static TransactionTemplate createTransactionTemplate(DataSourceTransactionManager transactionManager, boolean readOnly) {
 		// This will define how transaction are run for this instance.
-		DefaultTransactionDefinition transactionDef = new DefaultTransactionDefinition();
+		DefaultTransactionDefinition transactionDef;
+		transactionDef = new DefaultTransactionDefinition();
 		transactionDef.setIsolationLevel(Connection.TRANSACTION_READ_COMMITTED);
-		transactionDef.setReadOnly(false);
+		transactionDef.setReadOnly(readOnly);
 		transactionDef.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRED);
 		transactionDef.setName("TableIndexDAOImpl");
-		// This will manage transactions for calls that need it.
-		this.transactionTemplate = new TransactionTemplate(this.transactionManager, transactionDef);
-		this.template = new JdbcTemplate(dataSource);
+		return new TransactionTemplate(transactionManager, transactionDef);
 	}
 
 	@Override
@@ -132,7 +140,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			throw new IllegalArgumentException("Current schema cannot be null");
 
 		// Execute this within a transaction
-		this.transactionTemplate.execute(new TransactionCallback<Void>() {
+		this.writeTransactionTemplate.execute(new TransactionCallback<Void>() {
 			@Override
 			public Void doInTransaction(TransactionStatus status) {
 				// Within a transaction
@@ -271,6 +279,11 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			}
 		});
 		return true;
+	}
+
+	@Override
+	public <T> T executeInReadTransaction(TransactionCallback<T> callable) {
+		return readTransactionTemplate.execute(callable);
 	}
 
 	static void populateHeadersFromResultsSet(List<String> headers, List<Integer> nonMetadataColumnIndicies, SqlQuery query,

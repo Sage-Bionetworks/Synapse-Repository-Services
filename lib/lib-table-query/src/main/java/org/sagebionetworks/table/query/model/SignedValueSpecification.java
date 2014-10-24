@@ -1,9 +1,10 @@
 package org.sagebionetworks.table.query.model;
 
+
 /**
  * This matches &lt;signed value specification&gt; in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
  */
-public class SignedValueSpecification implements SQLElement {
+public class SignedValueSpecification extends SQLElement {
 
 	SignedLiteral signedLiteral;
 
@@ -17,8 +18,8 @@ public class SignedValueSpecification implements SQLElement {
 	}
 
 	@Override
-	public void toSQL(StringBuilder builder) {
-		this.signedLiteral.toSQL(builder);
+	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
+		this.signedLiteral.toSQL(builder, columnConvertor);
 	}
 	
 }

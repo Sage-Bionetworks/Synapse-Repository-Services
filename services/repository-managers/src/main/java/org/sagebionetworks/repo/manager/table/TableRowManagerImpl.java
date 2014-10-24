@@ -42,13 +42,14 @@ import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.repo.model.table.*;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
+import org.sagebionetworks.table.cluster.SQLTranslatorUtils;
+import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
-import org.sagebionetworks.table.query.model.Pagination;
-import org.sagebionetworks.table.query.model.QuerySpecification;
+import org.sagebionetworks.table.query.model.*;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.sagebionetworks.util.Closer;
 import org.sagebionetworks.util.Pair;
@@ -56,8 +57,10 @@ import org.sagebionetworks.util.ProgressCallback;
 import org.sagebionetworks.util.ValidateArgument;
 import org.sagebionetworks.util.csv.CSVWriterStream;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionCallback;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;
@@ -523,33 +526,25 @@ public class TableRowManagerImpl implements TableRowManager {
 			return Pair.create(runQuery ? result : null, runCount ? 0L : null);
 		}
 
-		SqlQuery countQuery = null;
-		if (runCount) {
-			QuerySpecification model = convertToCountQuery(query.getModel());
-			// Lookup the column models for this table
-			List<ColumnModel> columnModels = columnModelDAO.getColumnModelsForObject(query.getTableId());
-			countQuery = new SqlQuery(model, columnModels);
-		}
-
 		SqlQuery paginatedQuery = null;
 		Long maxRowsPerPage = null;
 		boolean oneRowWasAdded = false;
 		if (runQuery) {
 			maxRowsPerPage = getMaxRowsPerPage(query.getSelectColumnModels());
 			if (maxRowsPerPage == null || maxRowsPerPage == 0) {
-				maxRowsPerPage = 1L;
+				maxRowsPerPage = 100L;
 			}
-
+			
 			// limits are a bit complicated. We want to get the minimum of maxRowsPerPage and limit in query, but
 			// if we use maxRowsPerPage, we want to add 1 row, which we later remove and use as a marker to see if there
 			// are more results
-
+			
 			long limitFromRequest = (limit != null) ? limit : Long.MAX_VALUE;
 			long offsetFromRequest = (offset != null) ? offset : 0L;
-
+			
 			long limitFromQuery = Long.MAX_VALUE;
 			long offsetFromQuery = 0L;
-
+			
 			Pagination pagination = query.getModel().getTableExpression().getPagination();
 			if (pagination != null) {
 				if (pagination.getLimit() != null) {
@@ -559,19 +554,55 @@ public class TableRowManagerImpl implements TableRowManager {
 					offsetFromQuery = pagination.getOffset();
 				}
 			}
-
+			
 			long paginatedOffset = offsetFromQuery + offsetFromRequest;
 			// adjust the limit from the query based on the additional offset (assume Long.MAX_VALUE - offset is still
 			// always large enough)
 			limitFromQuery = Math.max(0, limitFromQuery - offsetFromRequest);
-
+			
 			long paginatedLimit = Math.min(limitFromRequest, limitFromQuery);
 			if (paginatedLimit > maxRowsPerPage) {
 				paginatedLimit = maxRowsPerPage + 1;
 				oneRowWasAdded = true;
 			}
-
+			
 			paginatedQuery = createPaginatedQuery(query, paginatedOffset, paginatedLimit);
+		}
+
+		SqlQuery countQuery = null;
+		if (runCount) {
+			// there are two ways of getting counts. One is to replace the select clause with count(*) and another is to
+			// use SQL_CALC_FOUND_ROWS & FOUND_ROWS()
+			// the count(*) is usually more efficient, but it is almost impossible to get that right if the query to
+			// count is an aggregate itself.
+			// So, we use count(*) if there is no aggregate and SQL_CALC_FOUND_ROWS if there is
+			if (query.isAggregatedResult()) {
+				// add the SQL_CALC_FOUND_ROWS to the query
+				SelectList paginatedSelectList = paginatedQuery.getModel().getSelectList();
+				if (BooleanUtils.isTrue(paginatedQuery.getModel().getSelectList().getAsterisk())) {
+					// bug in mysql, SQL_CALC_FOUND_ROWS does not work when the select is '*'. Expand to the known
+					// columns
+					paginatedSelectList = new SelectList(Lists.transform(paginatedQuery.getSelectColumnModels(),
+							new Function<ColumnModel, DerivedColumn>() {
+								@Override
+								public DerivedColumn apply(ColumnModel input) {
+									return SQLTranslatorUtils.createDerivedColumn(input.getName());
+								}
+							}));
+				}
+				QuerySpecification paginatedModel = new QuerySpecification(SqlDirective.SQL_CALC_FOUND_ROWS, paginatedQuery.getModel()
+						.getSetQuantifier(), paginatedSelectList, paginatedQuery.getModel().getTableExpression());
+				paginatedQuery = new SqlQuery(paginatedModel, paginatedQuery.getTableSchema());
+				// and make the count query "SELECT FOUND_ROWS()"
+				SelectList selectList = new SelectList(Lists.newArrayList(SQLTranslatorUtils.createDerivedColumn(MysqlFunction.FOUND_ROWS)));
+				TableExpression tableExpression = SqlElementUntils.removeOrderByClause(paginatedQuery.getModel().getTableExpression());
+				countQuery = new SqlQuery(new QuerySpecification(null, null, selectList, tableExpression), paginatedQuery.getTableSchema());
+			} else {
+				QuerySpecification model = SqlElementUntils.convertToCountQuery(query.getModel());
+				// Lookup the column models for this table
+				List<ColumnModel> columnModels = columnModelDAO.getColumnModelsForObject(query.getTableId());
+				countQuery = new SqlQuery(model, columnModels);
+			}
 		}
 
 		RowSet rowSet = null;
@@ -686,7 +717,7 @@ public class TableRowManagerImpl implements TableRowManager {
 	private QueryNextPageToken createNextPageToken(SqlQuery sql, Long nextOffset, Long limit, boolean isConsistent) {
 		Query query = new Query();
 		StringBuilder sb = new StringBuilder(200);
-		sql.getModel().toSQL(sb);
+		sql.getModel().toSQL(sb, null);
 		query.setSql(sb.toString());
 		query.setOffset(nextOffset);
 		query.setLimit(limit);
@@ -855,7 +886,7 @@ public class TableRowManagerImpl implements TableRowManager {
 				@Override
 				public String call() throws Exception {
 					// We can only run this query if the table is available.
-					TableStatus status = getTableStatusOrCreateIfNotExists(tableId);
+					final TableStatus status = getTableStatusOrCreateIfNotExists(tableId);
 					switch(status.getState()){
 					case AVAILABLE:
 						break;
@@ -870,14 +901,21 @@ public class TableRowManagerImpl implements TableRowManager {
 						throw new TableFailedException(status);
 					}
 					// We can only run this
-					for (QueryHandler queryHandler : queryHandlers) {
-						if (!queryHandler.getQuery().getTableId().equals(tableId)) {
-							throw new IllegalArgumentException("All queries should be on the same table, but " + tableId + " and "
-									+ queryHandler.getQuery().getTableId());
+					final TableIndexDAO indexDao = tableConnectionFactory.getConnection(tableId);
+					indexDao.executeInReadTransaction(new TransactionCallback<Void>() {
+						@Override
+						public Void doInTransaction(TransactionStatus transactionStatus) {
+							for (QueryHandler queryHandler : queryHandlers) {
+								if (!queryHandler.getQuery().getTableId().equals(tableId)) {
+									throw new IllegalArgumentException("All queries should be on the same table, but " + tableId + " and "
+											+ queryHandler.getQuery().getTableId());
+								}
+								indexDao.queryAsStream(queryHandler.getQuery(), queryHandler.getHandler());
+								queryHandler.getHandler().setEtag(status.getLastTableChangeEtag());
+							}
+							return null;
 						}
-						queryAsStream(queryHandler.getQuery(), queryHandler.getHandler());
-						queryHandler.getHandler().setEtag(status.getLastTableChangeEtag());
-					}
+					});
 					return null;
 				}
 			});
@@ -976,16 +1014,6 @@ public class TableRowManagerImpl implements TableRowManager {
 	}
 	
 	/**
-	 * Query a query and stream the results.
-	 * @param query
-	 * @param handler
-	 */
-	private void queryAsStream(SqlQuery query, RowAndHeaderHandler handler){
-		TableIndexDAO indexDao = tableConnectionFactory.getConnection(query.getTableId());
-		indexDao.queryAsStream(query, handler);
-	}
-	
-	/**
 	 * Parser a query and convert ParseExceptions to IllegalArgumentExceptions
 	 * 
 	 * @param sql
@@ -998,20 +1026,6 @@ public class TableRowManagerImpl implements TableRowManager {
 			throw new IllegalArgumentException(e);
 		}
 	}
-	
-	/**
-	 * Convert a query to a count query.
-	 * @param model
-	 * @return
-	 */
-	private QuerySpecification convertToCountQuery(QuerySpecification model){
-		try {
-			return SqlElementUntils.convertToCountQuery(model);
-		} catch (ParseException e) {
-			throw new IllegalArgumentException(e);
-		}
-	}
-	
 	
 	private void validateRequestSize(List<ColumnModel> models, int rowCount){
 		// Validate the request is under the max bytes per requested
