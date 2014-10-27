@@ -1461,7 +1461,7 @@ public class TableWorkerIntegrationTest {
 		long start = System.currentTimeMillis();
 		while(true){
 			try {
-				return  tableRowManager.runConsistentQueryAsStream(sql, writer, includeRowIdAndVersion);
+				return tableRowManager.runConsistentQueryAsStream(adminUserInfo, sql, writer, includeRowIdAndVersion);
 			} catch (TableUnavilableException e) {
 				assertTrue("Timed out waiting for table index worker to make the table available.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
 				assertNotNull(e.getStatus());
