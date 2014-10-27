@@ -122,7 +122,7 @@ public class IT970UserProfileController {
 		entitiesToDelete.add(folder.getId());
 
 		// ensure time ordering
-		Thread.sleep(500);
+		Thread.sleep(1000);
 		Project entity2 = new Project();
 		entity2.setEntityType(Project.class.getName());
 		entity2 = synapse.createEntity(entity2);

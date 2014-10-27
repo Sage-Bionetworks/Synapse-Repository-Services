@@ -55,9 +55,7 @@ public class SetFunctionSpecification extends SQLElement {
 				builder.append(setQuantifier.name());
 				builder.append(" ");
 			}
-			if (this.valueExpression != null) {
-				this.valueExpression.toSQL(builder, columnConvertor);
-			}
+			this.valueExpression.toSQL(builder, columnConvertor);
 			builder.append(")");
 		}
 	}
