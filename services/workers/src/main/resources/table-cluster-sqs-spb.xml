@@ -26,9 +26,9 @@
 	</bean>
 
 	<!-- provides table message queue workers -->
-	<bean id="tableQueueWorkerFactory"
-		class="org.sagebionetworks.table.worker.TableWorkerFactory"
-		scope="singleton" />
+	<bean id="tableQueueWorkerFactory" class="org.sagebionetworks.asynchronous.workers.sqs.BeanCreatingMessageWorkerFactory" scope="singleton">
+		<property name="worker" value="org.sagebionetworks.table.worker.TableWorker" />
+	</bean>
 
 	<!-- This gate ensures we never run more than the max number or runners across the entire cluster for this worker  -->
 	<bean id="tableWorkerSemaphore"
