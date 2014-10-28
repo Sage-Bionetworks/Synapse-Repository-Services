@@ -148,8 +148,8 @@ public class TableWorkerIntegrationTest {
 			columnManager.truncateAllColumnData(adminUserInfo);
 			// Drop all data in the index database
 			this.tableConnectionFactory.dropAllTablesForAllConnections();
+			tableRowCache.truncateAllData();
 		}
-		tableRowCache.truncateAllData();
 		ReflectionTestUtils.setField(getTargetObject(tableRowManager), "maxBytesPerRequest", oldMaxBytesPerRequest);
 	}
 
