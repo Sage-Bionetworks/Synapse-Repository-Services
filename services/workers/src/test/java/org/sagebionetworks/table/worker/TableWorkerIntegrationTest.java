@@ -36,18 +36,34 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageReceiver;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.repo.manager.AccessApprovalManager;
+import org.sagebionetworks.repo.manager.AccessRequirementManager;
+import org.sagebionetworks.repo.manager.AuthenticationManager;
+import org.sagebionetworks.repo.manager.CertifiedUserManager;
 import org.sagebionetworks.repo.manager.EntityManager;
+import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.message.RepositoryMessagePublisher;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableRowManager;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessApproval;
+import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.DomainType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ObjectType;
+import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
+import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
+import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.NewUser;
 import org.sagebionetworks.repo.model.dao.table.TableRowCache;
 import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
@@ -79,6 +95,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -100,6 +117,16 @@ public class TableWorkerIntegrationTest {
 	ColumnModelManager columnManager;
 	@Autowired
 	UserManager userManager;
+	@Autowired
+	CertifiedUserManager certifiedUserManager;
+	@Autowired
+	AuthenticationManager authenticationManager;
+	@Autowired
+	AccessRequirementManager accessRequirementManager;
+	@Autowired
+	AccessApprovalManager accessApprovalManager;
+	@Autowired
+	EntityPermissionsManager entityPermissionsManager;
 	@Autowired
 	MessageReceiver tableQueueMessageReveiver;
 	@Autowired
@@ -125,6 +152,10 @@ public class TableWorkerIntegrationTest {
 	
 	private int oldMaxBytesPerRequest;
 
+	private List<UserInfo> users = Lists.newArrayList();
+
+	private String projectId;
+
 	@Before
 	public void before() throws Exception {
 		// Only run this test if the table feature is enabled.
@@ -144,13 +175,22 @@ public class TableWorkerIntegrationTest {
 	@After
 	public void after() throws Exception {
 		if(config.getTableEnabled()){
-			// cleanup
-			columnManager.truncateAllColumnData(adminUserInfo);
-			// Drop all data in the index database
-			this.tableConnectionFactory.dropAllTablesForAllConnections();
-		}
+		tableRowManager.deleteAllRows(tableId);
+		columnManager.unbindAllColumnsAndOwnerFromObject(tableId);
+
+		// cleanup
 		tableRowCache.truncateAllData();
+		columnManager.truncateAllColumnData(adminUserInfo);
+		// Drop all data in the index database
+		this.tableConnectionFactory.dropAllTablesForAllConnections();
 		ReflectionTestUtils.setField(getTargetObject(tableRowManager), "maxBytesPerRequest", oldMaxBytesPerRequest);
+		entityManager.deleteEntity(adminUserInfo, tableId);
+		if (projectId != null) {
+			entityManager.deleteEntity(adminUserInfo, projectId);
+		}
+		for (UserInfo user : users) {
+			userManager.deletePrincipal(adminUserInfo, user.getId());
+		}}
 	}
 
 	@Test
@@ -515,11 +555,7 @@ public class TableWorkerIntegrationTest {
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
 		columnManager.bindColumnToObject(adminUserInfo, headers, tableId, true);
-		// Now add some data
-		RowSet rowSet = new RowSet();
-		rowSet.setRows(TableModelTestUtils.createRows(schema, 2));
-		rowSet.setHeaders(headers);
-		rowSet.setTableId(tableId);
+		RowSet rowSet = createRowSet(headers);
 		tableRowManager.appendRows(adminUserInfo, tableId, schema, rowSet);
 		// Wait for the table to become available
 		String sql = "select * from " + tableId + " order by row_id";
@@ -554,11 +590,7 @@ public class TableWorkerIntegrationTest {
 		tableId = entityManager.createEntity(adminUserInfo, table, null);
 		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
 		columnManager.bindColumnToObject(adminUserInfo, headers, tableId, true);
-		// Now add some data
-		RowSet rowSet = new RowSet();
-		rowSet.setRows(TableModelTestUtils.createRows(schema, 2));
-		rowSet.setHeaders(headers);
-		rowSet.setTableId(tableId);
+		RowSet rowSet = createRowSet(headers);
 		tableRowManager.appendRows(adminUserInfo, tableId, schema, rowSet);
 		// Wait for the table to become available
 		String sql = "select * from " + tableId + " order by row_id";
@@ -1378,6 +1410,130 @@ public class TableWorkerIntegrationTest {
 		}
 	}
 
+	@Test
+	public void testPermissions() throws Exception {
+		NewUser user = new NewUser();
+		user.setEmail(UUID.randomUUID().toString() + "@test.com");
+		user.setUserName(UUID.randomUUID().toString());
+		long userId = userManager.createUser(user);
+		certifiedUserManager.setUserCertificationStatus(adminUserInfo, userId, true);
+		authenticationManager.setTermsOfUseAcceptance(userId, DomainType.SYNAPSE, true);
+		UserInfo owner = userManager.getUserInfo(userId);
+		users.add(owner);
+
+		user = new NewUser();
+		user.setEmail(UUID.randomUUID().toString() + "@test.com");
+		user.setUserName(UUID.randomUUID().toString());
+		userId = userManager.createUser(user);
+		certifiedUserManager.setUserCertificationStatus(adminUserInfo, userId, true);
+		authenticationManager.setTermsOfUseAcceptance(userId, DomainType.SYNAPSE, true);
+		UserInfo notOwner = userManager.getUserInfo(userId);
+		users.add(notOwner);
+
+		// Create one column of each type
+		List<ColumnModel> columnModels = TableModelTestUtils.createOneOfEachType();
+		schema = new LinkedList<ColumnModel>();
+		for (ColumnModel cm : columnModels) {
+			cm = columnManager.createColumnModel(adminUserInfo, cm);
+			schema.add(cm);
+		}
+		Project project = new Project();
+		project.setName("Proj-" + UUID.randomUUID().toString());
+		projectId = entityManager.createEntity(owner, project, null);
+
+		List<String> headers = TableModelUtils.getHeaders(schema);
+		// Create the table.
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		table.setColumnIds(headers);
+		table.setParentId(projectId);
+		tableId = entityManager.createEntity(owner, table, null);
+		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
+		columnManager.bindColumnToObject(owner, headers, tableId, true);
+		tableRowManager.appendRows(owner, tableId, schema, createRowSet(headers));
+
+		try {
+			tableRowManager.appendRows(notOwner, tableId, schema, createRowSet(headers));
+			fail("no update permissions");
+		} catch (UnauthorizedException e) {
+		}
+
+		// Wait for the table to become available
+		String sql = "select * from " + tableId + " order by row_id";
+		waitForConsistentQuery(owner, sql, 8L);
+		try {
+			waitForConsistentQuery(notOwner, sql, 8L);
+			fail("no read permissions");
+		} catch (UnauthorizedException e) {
+		}
+
+		// add users to acl
+		AccessControlList acl = entityPermissionsManager.getACL(projectId, adminUserInfo);
+		acl.setId(tableId);
+		entityPermissionsManager.overrideInheritance(acl, adminUserInfo);
+		acl = entityPermissionsManager.getACL(tableId, adminUserInfo);
+		ResourceAccess ra = new ResourceAccess();
+		ra.setPrincipalId(notOwner.getId());
+		ra.setAccessType(Sets.newHashSet(ACCESS_TYPE.READ, ACCESS_TYPE.UPDATE));
+		acl.getResourceAccess().add(ra);
+		acl = entityPermissionsManager.updateACL(acl, adminUserInfo);
+
+		tableRowManager.appendRows(notOwner, tableId, schema, createRowSet(headers));
+		waitForConsistentQuery(notOwner, sql, 8L);
+
+		// add access restriction
+		TermsOfUseAccessRequirement ar = new TermsOfUseAccessRequirement();
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId(tableId);
+		rod.setType(RestrictableObjectType.ENTITY);
+		ar.setSubjectIds(Collections.singletonList(rod));
+		ar.setConcreteType(ar.getClass().getName());
+		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		ar.setTermsOfUse("foo");
+		TermsOfUseAccessRequirement downloadAR = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
+		ar.setAccessType(ACCESS_TYPE.UPLOAD);
+		TermsOfUseAccessRequirement uploadAR = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
+
+		try {
+			waitForConsistentQuery(notOwner, sql, 8L);
+			fail();
+		} catch (UnauthorizedException e) {
+		}
+		try {
+			tableRowManager.appendRows(notOwner, tableId, schema, createRowSet(headers));
+			fail();
+		} catch (UnauthorizedException e) {
+		}
+
+		TermsOfUseAccessApproval aa = new TermsOfUseAccessApproval();
+		aa.setAccessorId(notOwner.getId().toString());
+		aa.setRequirementId(downloadAR.getId());
+		accessApprovalManager.createAccessApproval(notOwner, aa);
+
+		waitForConsistentQuery(notOwner, sql, 8L);
+		try {
+			tableRowManager.appendRows(notOwner, tableId, schema, createRowSet(headers));
+			fail();
+		} catch (UnauthorizedException e) {
+		}
+
+		aa = new TermsOfUseAccessApproval();
+		aa.setAccessorId(notOwner.getId().toString());
+		aa.setRequirementId(uploadAR.getId());
+		accessApprovalManager.createAccessApproval(notOwner, aa);
+
+		waitForConsistentQuery(notOwner, sql, 8L);
+		tableRowManager.appendRows(notOwner, tableId, schema, createRowSet(headers));
+	}
+
+	private RowSet createRowSet(List<String> headers) {
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(TableModelTestUtils.createRows(schema, 2));
+		rowSet.setHeaders(headers);
+		rowSet.setTableId(tableId);
+		return rowSet;
+	}
+
 	/**
 	 * Attempt to run a query. If the table is unavailable, it will continue to try until successful or the timeout is exceeded.
 	 * 
@@ -1392,7 +1548,7 @@ public class TableWorkerIntegrationTest {
 		long start = System.currentTimeMillis();
 		while(true){
 			try {
-				Pair<QueryResult, Long> queryResult = tableRowManager.query(adminUserInfo, sql, 0L, limit, true, false, true);
+				Pair<QueryResult, Long> queryResult = tableRowManager.query(user, sql, 0L, limit, true, false, true);
 				return queryResult.getFirst();
 			} catch (TableUnavilableException e) {
 				assertTrue("Timed out waiting for table index worker to make the table available.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
@@ -1416,7 +1572,7 @@ public class TableWorkerIntegrationTest {
 				query.setOffset(offset);
 				query.setLimit(limit);
 				queryBundleRequest.setQuery(query);
-				QueryResultBundle queryResult = tableRowManager.queryBundle(adminUserInfo, queryBundleRequest);
+				QueryResultBundle queryResult = tableRowManager.queryBundle(user, queryBundleRequest);
 				return queryResult;
 			} catch (TableUnavilableException e) {
 				assertTrue("Timed out waiting for table index worker to make the table available.",
@@ -1429,12 +1585,12 @@ public class TableWorkerIntegrationTest {
 		}
 	}
 
-	private void waitForConsistentQueryError(UserInfo user, final String sql) throws Exception {
+	private void waitForConsistentQueryError(final UserInfo user, final String sql) throws Exception {
 		TimeUtils.waitFor(MAX_WAIT_MS, 250, new Callable<Pair<Boolean, Void>>() {
 			@Override
 			public Pair<Boolean, Void> call() throws Exception {
 				try {
-					tableRowManager.query(adminUserInfo, sql, 0L, 100L, true, false, true);
+					tableRowManager.query(user, sql, 0L, 100L, true, false, true);
 					fail("should not have succeeded");
 				} catch (TableUnavilableException e) {
 					return Pair.create(false, null);
