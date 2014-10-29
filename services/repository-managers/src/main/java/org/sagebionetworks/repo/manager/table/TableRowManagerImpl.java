@@ -39,17 +39,40 @@ import org.sagebionetworks.repo.model.exception.LockUnavilableException;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.status.StatusEnum;
-import org.sagebionetworks.repo.model.table.*;
+import org.sagebionetworks.repo.model.table.ColumnModel;
+import org.sagebionetworks.repo.model.table.ColumnType;
+import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
+import org.sagebionetworks.repo.model.table.PartialRow;
+import org.sagebionetworks.repo.model.table.PartialRowSet;
+import org.sagebionetworks.repo.model.table.Query;
+import org.sagebionetworks.repo.model.table.QueryBundleRequest;
+import org.sagebionetworks.repo.model.table.QueryNextPageToken;
+import org.sagebionetworks.repo.model.table.QueryResult;
+import org.sagebionetworks.repo.model.table.QueryResultBundle;
+import org.sagebionetworks.repo.model.table.Row;
+import org.sagebionetworks.repo.model.table.RowReference;
+import org.sagebionetworks.repo.model.table.RowReferenceSet;
+import org.sagebionetworks.repo.model.table.RowSelection;
+import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.TableFailedException;
+import org.sagebionetworks.repo.model.table.TableRowChange;
+import org.sagebionetworks.repo.model.table.TableStatus;
+import org.sagebionetworks.repo.model.table.TableUnavilableException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.SQLTranslatorUtils;
-import org.sagebionetworks.table.cluster.SQLUtils;
 import org.sagebionetworks.table.cluster.SqlQuery;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.table.query.ParseException;
 import org.sagebionetworks.table.query.TableQueryParser;
-import org.sagebionetworks.table.query.model.*;
+import org.sagebionetworks.table.query.model.DerivedColumn;
+import org.sagebionetworks.table.query.model.MysqlFunction;
+import org.sagebionetworks.table.query.model.Pagination;
+import org.sagebionetworks.table.query.model.QuerySpecification;
+import org.sagebionetworks.table.query.model.SelectList;
+import org.sagebionetworks.table.query.model.SqlDirective;
+import org.sagebionetworks.table.query.model.TableExpression;
 import org.sagebionetworks.table.query.util.SqlElementUntils;
 import org.sagebionetworks.util.Closer;
 import org.sagebionetworks.util.Pair;
@@ -243,8 +266,7 @@ public class TableRowManagerImpl implements TableRowManager {
 		Validate.required(rowsToDelete, "rowsToDelete");
 
 		// Validate the user has permission to edit the table
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE));
+		validateTableWriteAccess(user, tableId);
 
 		final List<String> headers = TableModelUtils.getHeaders(models);
 
@@ -286,9 +308,10 @@ public class TableRowManagerImpl implements TableRowManager {
 		if(tableId == null) throw new IllegalArgumentException("TableId cannot be null");
 		if(models == null) throw new IllegalArgumentException("Models cannot be null");
 		validateFeatureEnabled();
+
 		// Validate the user has permission to edit the table
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE));
+		validateTableWriteAccess(user, tableId);
+
 		// To prevent race conditions on concurrency checking we apply all changes to a single table
 		// serially by locking on the table's Id.
 		columnModelDAO.lockOnOwner(tableId);
@@ -432,8 +455,7 @@ public class TableRowManagerImpl implements TableRowManager {
 	@Override
 	public String getCellValue(UserInfo userInfo, String tableId, RowReference rowRef, ColumnModel column) throws IOException,
 			NotFoundException {
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ));
+		validateTableReadAccess(userInfo, tableId);
 		Row row = tableRowTruthDao.getRowOriginal(tableId, rowRef, Collections.singletonList(column));
 		return row.getValues().get(0);
 	}
@@ -441,8 +463,7 @@ public class TableRowManagerImpl implements TableRowManager {
 	@Override
 	public RowSet getCellValues(UserInfo userInfo, String tableId, RowReferenceSet rowRefs, List<ColumnModel> columns) throws IOException,
 			NotFoundException {
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ));
+		validateTableReadAccess(userInfo, tableId);
 		return tableRowTruthDao.getRowSet(rowRefs, columns);
 	}
 
@@ -513,8 +534,7 @@ public class TableRowManagerImpl implements TableRowManager {
 		if(query == null) throw new IllegalArgumentException("SqlQuery cannot be null");
 		validateFeatureEnabled();
 		// Validate the user has read access on this object
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(
-				authorizationManager.canAccess(user, query.getTableId(), ObjectType.ENTITY, ACCESS_TYPE.READ));
+		validateTableReadAccess(user, query.getTableId());
 		// Does this table exist?
 		if(query.getTableSchema() == null || query.getTableSchema().isEmpty()){
 			// there are no columns for this table so the table does not actually exist.
@@ -806,8 +826,7 @@ public class TableRowManagerImpl implements TableRowManager {
 	 * @throws NotFoundException
 	 * @throws TableFailedException
 	 */
-	@Override
-	public Pair<RowSet, Long> runConsistentQuery(final SqlQuery query, final SqlQuery countQuery) throws TableUnavilableException,
+	private Pair<RowSet, Long> runConsistentQuery(final SqlQuery query, final SqlQuery countQuery) throws TableUnavilableException,
 			NotFoundException, TableFailedException {
 		List<QueryHandler> queryHandlers = Lists.newArrayList();
 		final Object[] output = { null, null };
@@ -872,8 +891,7 @@ public class TableRowManagerImpl implements TableRowManager {
 	 * @throws NotFoundException
 	 * @throws TableFailedException
 	 */
-	@Override
-	public void runConsistentQueryAsStream(final List<QueryHandler> queryHandlers) throws TableUnavilableException, NotFoundException,
+	private void runConsistentQueryAsStream(final List<QueryHandler> queryHandlers) throws TableUnavilableException, NotFoundException,
 			TableFailedException {
 		if (queryHandlers.isEmpty()) {
 			return;
@@ -944,10 +962,14 @@ public class TableRowManagerImpl implements TableRowManager {
 	 * @throws TableFailedException
 	 */
 	@Override
-	public DownloadFromTableResult runConsistentQueryAsStream(String sql, final CSVWriterStream writer, boolean includeRowIdAndVersion)
-			throws TableUnavilableException, NotFoundException, TableFailedException {
+	public DownloadFromTableResult runConsistentQueryAsStream(UserInfo user, String sql, final CSVWriterStream writer,
+			boolean includeRowIdAndVersion) throws TableUnavilableException, NotFoundException, TableFailedException {
 		// Convert to a query.
 		final SqlQuery query = createQuery(sql);
+
+		// Validate the user has read access on this object
+		validateTableReadAccess(user, query.getTableId());
+
 		if(includeRowIdAndVersion && query.isAggregatedResult()){
 			// PLFM-2993: in the case of an aggregated result, we cannot return row id and row versions. Just don't
 			// return them if it is an aggregated query
@@ -1187,5 +1209,25 @@ public class TableRowManagerImpl implements TableRowManager {
 		int maxRowSizeBytes = TableModelUtils.calculateMaxRowSize(models);
 		if(maxRowSizeBytes < 1) return null;
 		return (long) (this.maxBytesPerRequest/maxRowSizeBytes);
+	}
+
+	private void validateTableReadAccess(UserInfo userInfo, String tableId) throws UnauthorizedException, DatastoreException,
+			NotFoundException {
+		// They must have read permission to access table content.
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(authorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY,
+				ACCESS_TYPE.READ));
+		// And they must have download permission to access table content.
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(authorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY,
+				ACCESS_TYPE.DOWNLOAD));
+	}
+
+	private void validateTableWriteAccess(UserInfo userInfo, String tableId) throws UnauthorizedException, DatastoreException,
+			NotFoundException {
+		// They must have update permission to change table content
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(authorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY,
+				ACCESS_TYPE.UPDATE));
+		// And they must have upload permission to change table content.
+		AuthorizationManagerUtil.checkAuthorizationAndThrowException(authorizationManager.canAccess(userInfo, tableId, ObjectType.ENTITY,
+				ACCESS_TYPE.UPLOAD));
 	}
 }
