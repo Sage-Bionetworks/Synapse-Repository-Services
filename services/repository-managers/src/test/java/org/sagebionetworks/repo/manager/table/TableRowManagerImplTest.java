@@ -209,6 +209,9 @@ public class TableRowManagerImplTest {
 				return callable.doInTransaction(null);
 			}
 		});
+		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD)).thenReturn(AuthorizationManagerUtil.AUTHORIZED);
+		when(mockAuthManager.canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD)).thenReturn(
+				AuthorizationManagerUtil.AUTHORIZED);
 		ReflectionTestUtils.setField(manager, "stackStatusDao", mockStackStatusDao);
 		ReflectionTestUtils.setField(manager, "tableRowTruthDao", mockTruthDao);
 		ReflectionTestUtils.setField(manager, "authorizationManager", mockAuthManager);
@@ -437,6 +440,7 @@ public class TableRowManagerImplTest {
 		verify(mockTruthDao).appendRowSetToTable(anyString(), anyString(), anyListOf(ColumnModel.class), any(RowSet.class));
 		verify(mockTruthDao).getLatestVersionsWithRowData(tableId, Sets.newHashSet(2L), 0L);
 		verify(mockAuthManager).canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
+		verify(mockAuthManager).canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD);
 		verify(mockAuthManager).canAccessRawFileHandlesByIds(user, Lists.newArrayList("3333", "505002"), Sets.<String> newHashSet("3333"),
 				Sets.<String> newHashSet("505002"));
 		verifyNoMoreInteractions(mockAuthManager, mockTruthDao);
@@ -473,6 +477,7 @@ public class TableRowManagerImplTest {
 
 		verify(mockTruthDao).appendRowSetToTable(anyString(), anyString(), anyListOf(ColumnModel.class), any(RowSet.class));
 		verify(mockAuthManager).canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPDATE);
+		verify(mockAuthManager).canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.UPLOAD);
 		verify(mockAuthManager).canAccessRawFileHandlesByIds(user, Lists.newArrayList("3333"), Sets.<String> newHashSet("3333"),
 				Sets.<String> newHashSet());
 		verifyNoMoreInteractions(mockAuthManager, mockTruthDao);
@@ -570,6 +575,7 @@ public class TableRowManagerImplTest {
 		assertTrue(result == returnValue);
 
 		verify(mockAuthManager).canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.READ);
+		verify(mockAuthManager).canAccess(user, tableId, ObjectType.ENTITY, ACCESS_TYPE.DOWNLOAD);
 		verify(mockTruthDao).getRowSet(rows, models);
 		verifyNoMoreInteractions(mockAuthManager, mockTruthDao);
 	}
