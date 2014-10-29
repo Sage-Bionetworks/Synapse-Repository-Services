@@ -21,6 +21,7 @@ import org.sagebionetworks.util.csv.CsvNullReader;
 
 import au.com.bytecode.opencsv.CSVWriter;
 
+import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -42,6 +43,13 @@ public class TableModelTestUtils {
 	public static List<ColumnModel> createOneOfEachType() {
 		return createOneOfEachType(false);
 	}
+
+	public static final Function<ColumnModel, String> convertToNameFunction = new Function<ColumnModel, String>() {
+		@Override
+		public String apply(ColumnModel input) {
+			return input.getName();
+		}
+	};
 
 	public static List<ColumnModel> createOneOfEachType(boolean hasDefaults) {
 		List<ColumnModel> results = new LinkedList<ColumnModel>();
