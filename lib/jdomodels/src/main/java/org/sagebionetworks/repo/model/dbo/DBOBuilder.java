@@ -368,7 +368,7 @@ public class DBOBuilder<T> {
 		}
 
 		StringBuilder sb = new StringBuilder(1000);
-		sb.append("CREATE TABLE " + escapeName(tableName) + " (\n\t");
+		sb.append("CREATE TABLE IF NOT EXISTS " + escapeName(tableName) + " (\n\t");
 		sb.append(StringUtils.join(lines, ",\n\t"));
 		sb.append("\n)\n");
 
