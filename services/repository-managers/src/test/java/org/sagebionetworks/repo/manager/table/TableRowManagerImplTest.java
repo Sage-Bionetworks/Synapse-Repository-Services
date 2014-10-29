@@ -6,7 +6,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyListOf;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
@@ -30,6 +29,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 
+import org.apache.commons.lang.StringUtils;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
@@ -184,6 +184,8 @@ public class TableRowManagerImplTest {
 					StringBuilder builder = new StringBuilder();
 					query.getModel().getSelectList().getColumns().get(0).toSQL(builder, null);
 					if (builder.toString().equals("COUNT(*)")) {
+						isCount = true;
+					} else if (builder.toString().contains("FOUND_ROWS()")) {
 						isCount = true;
 					}
 				}
@@ -769,8 +771,51 @@ public class TableRowManagerImplTest {
 
 	@Test
 	public void testQueryBundle() throws Exception {
+		RowSet selectStar = new RowSet();
+		selectStar.setEtag("etag");
+		selectStar.setHeaders(TableModelUtils.getHeaders(models));
+		selectStar.setTableId(tableId);
+		selectStar.setRows(TableModelTestUtils.createRows(models, 10));
+		QueryResult selectStarResult = new QueryResult();
+		selectStarResult.setNextPageToken(null);
+		selectStarResult.setQueryResults(selectStar);
+
+		runQueryBundleTest("select * from " + tableId, selectStar, 10L, models.toString(), 36630L);
+	}
+
+	@Test
+	public void testQueryBundleColumnsExpanded() throws Exception {
+		RowSet selectStar = new RowSet();
+		selectStar.setEtag("etag");
+		selectStar.setHeaders(TableModelUtils.getHeaders(models));
+		selectStar.setTableId(tableId);
+		selectStar.setRows(TableModelTestUtils.createRows(models, 10));
+		QueryResult selectStarResult = new QueryResult();
+		selectStarResult.setNextPageToken(null);
+		selectStarResult.setQueryResults(selectStar);
+
+		runQueryBundleTest("select " + StringUtils.join(Lists.transform(models, TableModelTestUtils.convertToNameFunction), ",") + " from "
+				+ tableId, selectStar, 10L, models.toString(), 36630L);
+	}
+
+	@Test
+	public void testQueryBundleWithAggregate() throws Exception {
+		RowSet totals = new RowSet();
+		totals.setEtag("etag");
+		totals.setHeaders(null);
+		totals.setTableId(tableId);
+		totals.setRows(Lists.newArrayList(TableModelTestUtils.createRow(null, null, "10")));
+		QueryResult selectStarResult = new QueryResult();
+		selectStarResult.setNextPageToken(null);
+		selectStarResult.setQueryResults(totals);
+
+		runQueryBundleTest("select count(*) from " + tableId, totals, 10L, "[]", null);
+	}
+
+	private void runQueryBundleTest(String sql, RowSet selectResult, Long countResult, String selectColumns, Long maxRowsPerPage)
+			throws Exception {
 		Query query = new Query();
-		query.setSql("select * from " + tableId);
+		query.setSql(sql);
 		query.setIsConsistent(true);
 		query.setOffset(0L);
 		query.setLimit(Long.MAX_VALUE);
@@ -784,19 +829,10 @@ public class TableRowManagerImplTest {
 		status.setLastTableChangeEtag("etag");
 		when(mockTableStatusDAO.getTableStatus(tableId)).thenReturn(status);
 
-		RowSet selectStar = new RowSet();
-		selectStar.setEtag("etag");
-		selectStar.setHeaders(TableModelUtils.getHeaders(models));
-		selectStar.setTableId(tableId);
-		selectStar.setRows(TableModelTestUtils.createRows(models, 10));
-		QueryResult selectStarResult = new QueryResult();
-		selectStarResult.setNextPageToken(null);
-		selectStarResult.setQueryResults(selectStar);
-
 		// Request query only
 		queryBundle.setPartMask(TableRowManagerImpl.BUNDLE_MASK_QUERY_RESULTS);
 		QueryResultBundle bundle = manager.queryBundle(user, queryBundle);
-		assertEquals(selectStar, bundle.getQueryResult().getQueryResults());
+		assertEquals(selectResult, bundle.getQueryResult().getQueryResults());
 		assertEquals(null, bundle.getQueryCount());
 		assertEquals(null, bundle.getSelectColumns());
 		assertEquals(null, bundle.getMaxRowsPerPage());
@@ -805,7 +841,7 @@ public class TableRowManagerImplTest {
 		queryBundle.setPartMask(TableRowManagerImpl.BUNDLE_MASK_QUERY_COUNT);
 		bundle = manager.queryBundle(user, queryBundle);
 		assertEquals(null, bundle.getQueryResult());
-		assertEquals(new Long(10), bundle.getQueryCount());
+		assertEquals(countResult, bundle.getQueryCount());
 		assertEquals(null, bundle.getSelectColumns());
 		assertEquals(null, bundle.getMaxRowsPerPage());
 
@@ -814,7 +850,7 @@ public class TableRowManagerImplTest {
 		bundle = manager.queryBundle(user, queryBundle);
 		assertEquals(null, bundle.getQueryResult());
 		assertEquals(null, bundle.getQueryCount());
-		assertEquals(models.toString(), bundle.getSelectColumns().toString());
+		assertEquals(selectColumns, bundle.getSelectColumns().toString());
 		assertEquals(null, bundle.getMaxRowsPerPage());
 
 		// max rows per page
@@ -823,16 +859,16 @@ public class TableRowManagerImplTest {
 		assertEquals(null, bundle.getQueryResult());
 		assertEquals(null, bundle.getQueryCount());
 		assertEquals(null, bundle.getSelectColumns());
-		assertEquals(36630L, bundle.getMaxRowsPerPage().longValue());
+		assertEquals(maxRowsPerPage, bundle.getMaxRowsPerPage());
 
 		// now combine them all
 		queryBundle.setPartMask(TableRowManagerImpl.BUNDLE_MASK_QUERY_RESULTS | TableRowManagerImpl.BUNDLE_MASK_QUERY_COUNT
 				| TableRowManagerImpl.BUNDLE_MASK_QUERY_SELECT_COLUMNS | TableRowManagerImpl.BUNDLE_MASK_QUERY_MAX_ROWS_PER_PAGE);
 		bundle = manager.queryBundle(user, queryBundle);
-		assertEquals(selectStar, bundle.getQueryResult().getQueryResults());
-		assertEquals(new Long(10), bundle.getQueryCount());
-		assertEquals(models, bundle.getSelectColumns());
-		assertEquals(36630L, bundle.getMaxRowsPerPage().longValue());
+		assertEquals(selectResult, bundle.getQueryResult().getQueryResults());
+		assertEquals(countResult, bundle.getQueryCount());
+		assertEquals(selectColumns, bundle.getSelectColumns().toString());
+		assertEquals(maxRowsPerPage, bundle.getMaxRowsPerPage());
 	}
 
 	@Test

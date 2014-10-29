@@ -549,7 +549,7 @@ public class TableRowManagerImpl implements TableRowManager {
 		SqlQuery paginatedQuery = null;
 		Long maxRowsPerPage = null;
 		boolean oneRowWasAdded = false;
-		if (runQuery) {
+		if (runQuery || (runCount && query.isAggregatedResult())) {
 			maxRowsPerPage = getMaxRowsPerPage(query.getSelectColumnModels());
 			if (maxRowsPerPage == null || maxRowsPerPage == 0) {
 				maxRowsPerPage = 100L;
@@ -654,7 +654,7 @@ public class TableRowManagerImpl implements TableRowManager {
 
 		// post processing for query result
 		QueryResult queryResult = null;
-		if (rowSet != null) {
+		if (runQuery && rowSet != null) {
 			QueryNextPageToken nextPageToken = null;
 			if (oneRowWasAdded) {
 				if (rowSet.getRows().size() > maxRowsPerPage) {
