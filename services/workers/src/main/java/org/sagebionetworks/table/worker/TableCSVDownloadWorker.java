@@ -115,7 +115,7 @@ public class TableCSVDownloadWorker implements Worker {
 			// Execute the actual query and stream the results to the file.
 			DownloadFromTableResult result = null;
 			try{
-				result = tableRowManager.runConsistentQueryAsStream(request.getSql(), stream, includeRowIdAndVersion);
+				result = tableRowManager.runConsistentQueryAsStream(user, request.getSql(), stream, includeRowIdAndVersion);
 			}finally{
 				writer.close();
 			}

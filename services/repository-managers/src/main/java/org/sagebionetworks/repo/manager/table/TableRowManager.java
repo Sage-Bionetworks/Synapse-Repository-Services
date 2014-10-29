@@ -417,35 +417,11 @@ public interface TableRowManager {
 			TableUnavilableException, TableFailedException;
 
 	/**
-	 * Run queries while holding a non-exclusive lock (read lock) on the table. This method will load all resulting rows
-	 * into memory at on time an should only be used if there is a limit to the number of rows read. It will also run
-	 * the count query under the same lock. If one of the queries is null, the result for it will be null
-	 * 
-	 * @param query
-	 * @return
-	 * @throws TableUnavilableException
-	 * @throws NotFoundException
-	 * @throws TableFailedException
-	 */
-	Pair<RowSet, Long> runConsistentQuery(SqlQuery query, SqlQuery countQuery) throws TableUnavilableException, NotFoundException,
-			TableFailedException;
-
-	/**
-	 * Runs queries while holding a non-exclusive lock (read lock) on the table. This method will stream over the rows
-	 * and will not keep the row data in memory. This method can be used to stream over results sets that are larger
-	 * than the available system memory, as long as the caller does not hold the resulting rows in memory.
-	 * 
-	 * @param queries
-	 * @throws TableUnavilableException
-	 * @throws NotFoundException
-	 * @throws TableFailedException
-	 */
-	void runConsistentQueryAsStream(List<QueryHandler> queries) throws TableUnavilableException, NotFoundException, TableFailedException;
-
-	/**
 	 * Run the provided SQL query string and stream the results to the passed CSVWriter. This method will stream over
 	 * the rows and will not keep the row data in memory. This method can be used to stream over results sets that are
 	 * larger than the available system memory, as long as the caller does not hold the resulting rows in memory.
+	 * 
+	 * @param user
 	 * 
 	 * @param sql
 	 * @param writer
@@ -454,7 +430,7 @@ public interface TableRowManager {
 	 * @throws NotFoundException
 	 * @throws TableFailedException
 	 */
-	DownloadFromTableResult runConsistentQueryAsStream(String sql, CSVWriterStream writer, boolean includeRowIdAndVersion)
+	DownloadFromTableResult runConsistentQueryAsStream(UserInfo user, String sql, CSVWriterStream writer, boolean includeRowIdAndVersion)
 			throws TableUnavilableException, NotFoundException, TableFailedException;
 
 	/**
