@@ -174,23 +174,28 @@ public class TableWorkerIntegrationTest {
 	
 	@After
 	public void after() throws Exception {
-		if(config.getTableEnabled()){
-		tableRowManager.deleteAllRows(tableId);
-		columnManager.unbindAllColumnsAndOwnerFromObject(tableId);
-
-		// cleanup
-		tableRowCache.truncateAllData();
-		columnManager.truncateAllColumnData(adminUserInfo);
-		// Drop all data in the index database
-		this.tableConnectionFactory.dropAllTablesForAllConnections();
-		ReflectionTestUtils.setField(getTargetObject(tableRowManager), "maxBytesPerRequest", oldMaxBytesPerRequest);
-		entityManager.deleteEntity(adminUserInfo, tableId);
-		if (projectId != null) {
-			entityManager.deleteEntity(adminUserInfo, projectId);
+		if (config.getTableEnabled()) {
+			if (tableId != null) {
+				tableRowManager.deleteAllRows(tableId);
+				columnManager.unbindAllColumnsAndOwnerFromObject(tableId);
+				entityManager.deleteEntity(adminUserInfo, tableId);
+			}
+			if (projectId != null) {
+				entityManager.deleteEntity(adminUserInfo, projectId);
+			}
+			// cleanup
+			tableRowCache.truncateAllData();
+			columnManager.truncateAllColumnData(adminUserInfo);
+			// Drop all data in the index database
+			this.tableConnectionFactory.dropAllTablesForAllConnections();
+			ReflectionTestUtils.setField(getTargetObject(tableRowManager), "maxBytesPerRequest", oldMaxBytesPerRequest);
+			for (UserInfo user : users) {
+				try {
+					userManager.deletePrincipal(adminUserInfo, user.getId());
+				} catch (Exception e) {
+				}
+			}
 		}
-		for (UserInfo user : users) {
-			userManager.deletePrincipal(adminUserInfo, user.getId());
-		}}
 	}
 
 	@Test
