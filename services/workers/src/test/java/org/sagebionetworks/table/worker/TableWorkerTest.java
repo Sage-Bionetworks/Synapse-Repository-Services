@@ -6,10 +6,12 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.stub;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
@@ -25,8 +27,10 @@ import org.mockito.stubbing.Answer;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.asynchronous.workers.sqs.WorkerProgress;
+import org.sagebionetworks.repo.manager.NodeInheritanceManager;
 import org.sagebionetworks.repo.manager.table.TableRowManager;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
 import org.sagebionetworks.repo.model.exception.LockUnavilableException;
@@ -41,6 +45,7 @@ import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.worker.TableWorker.State;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.services.sqs.model.Message;
 import com.google.common.collect.Lists;
@@ -52,6 +57,7 @@ public class TableWorkerTest {
 	TableIndexDAO mockTableIndexDAO;
 	StackConfiguration mockConfiguration;
 	SimpleJdbcTemplate mockConnection;
+	NodeInheritanceManager mockNodeInheritanceManager;
 
 
 	@Before
@@ -60,11 +66,13 @@ public class TableWorkerTest {
 		mockTableRowManager = Mockito.mock(TableRowManager.class);
 		mockTableIndexDAO = Mockito.mock(TableIndexDAO.class);
 		mockConfiguration = Mockito.mock(StackConfiguration.class);
+		mockNodeInheritanceManager = mock(NodeInheritanceManager.class);
 		mockConnection = Mockito.mock(SimpleJdbcTemplate.class);
 		// Turn on the feature by default
 		when(mockConfiguration.getTableEnabled()).thenReturn(true);
 		// return a connection by default
 		when(mockTableConnectionFactory.getConnection(anyString())).thenReturn(mockTableIndexDAO);
+		when(mockNodeInheritanceManager.isNodeInTrash(anyString())).thenReturn(false);
 		
 		// By default we want to the manager to just call the passed callable.
 		stub(mockTableRowManager.tryRunWithTableExclusiveLock(anyString(), anyLong(), any(Callable.class))).toAnswer(new Answer<TableWorker.State>() {
@@ -86,7 +94,9 @@ public class TableWorkerTest {
 	 * @return
 	 */
 	public TableWorker createNewWorker(List<Message> messages){
-		return new TableWorker(messages, mockTableConnectionFactory, mockTableRowManager, mockConfiguration, new WorkerProgress() {
+		TableWorker tableWorker = new TableWorker(mockTableConnectionFactory, mockTableRowManager, mockConfiguration,
+				mockNodeInheritanceManager);
+		tableWorker.setWorkerProgress(new WorkerProgress() {
 			@Override
 			public void progressMadeForMessage(Message message) {
 			}
@@ -97,6 +107,8 @@ public class TableWorkerTest {
 				
 			}
 		});
+		tableWorker.setMessages(messages);
+		return tableWorker;
 	}
 	
 	/**
@@ -464,5 +476,21 @@ public class TableWorkerTest {
 		assertEquals("An old message should get returned so it can be removed from the queue",messages, results);
 		// The connection factory should never be called
 		verify(mockTableRowManager).attemptToSetTableStatusToAvailable(anyString(), anyString(), anyString());
+	}
+
+	@Test
+	public void testDoNotCreateTrashedTables() throws Exception {
+		String tableId = "456";
+		when(mockNodeInheritanceManager.isNodeInTrash(tableId)).thenReturn(true);
+		String resetToken = "reset-token";
+		Message two = MessageUtils.buildMessage(ChangeType.UPDATE, tableId, ObjectType.TABLE, resetToken);
+		List<Message> messages = Arrays.asList(two);
+		// Create the worker
+		TableWorker worker = createNewWorker(messages);
+		// Make the call
+		List<Message> results = worker.call();
+		assertEquals(messages, results);
+		// The connection factory should not be called
+		verifyZeroInteractions(mockTableConnectionFactory);
 	}
 }

@@ -1,5 +1,8 @@
 package org.sagebionetworks.table.worker;
 
+import static org.sagebionetworks.repo.model.ACCESS_TYPE.CREATE;
+import static org.sagebionetworks.repo.model.ACCESS_TYPE.DELETE;
+
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -15,12 +18,16 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
+import org.sagebionetworks.asynchronous.workers.sqs.Worker;
 import org.sagebionetworks.asynchronous.workers.sqs.WorkerProgress;
+import org.sagebionetworks.repo.manager.NodeInheritanceManager;
 import org.sagebionetworks.repo.manager.table.TableRowManager;
+import org.sagebionetworks.repo.manager.trash.EntityInTrashCanException;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.exception.LockUnavilableException;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.table.ColumnModel;
@@ -32,6 +39,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.sqs.model.Message;
 import com.google.common.collect.SetMultimap;
@@ -44,7 +52,9 @@ import com.google.common.collect.SetMultimap;
  * @author John
  * 
  */
-public class TableWorker implements Callable<List<Message>> {
+public class TableWorker implements Worker {
+
+	private static final Long TRASH_FOLDER_ID = Long.parseLong(StackConfiguration.getTrashFolderEntityIdStatic());
 
 	enum State {
 		SUCCESS, UNRECOVERABLE_FAILURE, RECOVERABLE_FAILURE,
@@ -53,35 +63,38 @@ public class TableWorker implements Callable<List<Message>> {
 	private static final long BATCH_SIZE = 16000;
 
 	static private Logger log = LogManager.getLogger(TableWorker.class);
-	List<Message> messages;
+
+	@Autowired
 	ConnectionFactory tableConnectionFactory;
+	@Autowired
 	TableRowManager tableRowManager;
-	boolean featureEnabled;
-	long timeoutMS;
+	@Autowired
+	StackConfiguration configuration;
+	@Autowired
+	NodeInheritanceManager nodeInheritanceManager;
+
+	List<Message> messages;
 	WorkerProgress workerProgress;
 
-	/**
-	 * This worker has many dependencies.
-	 * 
-	 * @param messages
-	 * @param tableConnectionFactory
-	 * @param tableTruthDAO
-	 * @param columnModelDAO
-	 * @param tableIndexDAO
-	 * @param semaphoreDao
-	 * @param tableStatusDAO
-	 * @param configuration
-	 * @param timeoutMS
-	 */
-	public TableWorker(List<Message> messages,
-			ConnectionFactory tableConnectionFactory,
-			TableRowManager tableRowManager, StackConfiguration configuration, WorkerProgress workerProgress) {
-		super();
-		this.messages = messages;
+	public TableWorker() {
+	}
+
+	// unit testing only
+	TableWorker(ConnectionFactory tableConnectionFactory, TableRowManager tableRowManager, StackConfiguration configuration,
+			NodeInheritanceManager nodeInheritanceManager) {
 		this.tableConnectionFactory = tableConnectionFactory;
 		this.tableRowManager = tableRowManager;
-		this.featureEnabled = configuration.getTableEnabled();
-		this.timeoutMS = configuration.getTableWorkerTimeoutMS();
+		this.configuration = configuration;
+		this.nodeInheritanceManager = nodeInheritanceManager;
+	}
+
+	@Override
+	public void setMessages(List<Message> messages) {
+		this.messages = messages;
+	}
+
+	@Override
+	public void setWorkerProgress(WorkerProgress workerProgress) {
 		this.workerProgress = workerProgress;
 	}
 
@@ -89,7 +102,7 @@ public class TableWorker implements Callable<List<Message>> {
 	public List<Message> call() throws Exception {
 		List<Message> processedMessages = new LinkedList<Message>();
 		// If the feature is disabled then we simply swallow all messages
-		if (!featureEnabled) {
+		if (!configuration.getTableEnabled()) {
 			return messages;
 		}
 		// process each message
@@ -110,6 +123,11 @@ public class TableWorker implements Callable<List<Message>> {
 				} else {
 					// Create or update.
 					String tableId = change.getObjectId();
+					// make sure the table is not in the trash
+					if (nodeInheritanceManager.isNodeInTrash(tableId)) {
+						processedMessages.add(message);
+						continue;
+					}
 					// this method does the real work.
 					State state = createOrUpdateTable(tableId,
 							change.getObjectEtag(), message);
@@ -149,15 +167,13 @@ public class TableWorker implements Callable<List<Message>> {
 			}
 			log.info("Get creat index lock " + tableId);
 			// Run with the exclusive lock on the table if we can get it.
-			return tableRowManager.tryRunWithTableExclusiveLock(tableId,
-					timeoutMS, new Callable<State>() {
-						@Override
-						public State call() throws Exception {
-							// This method does the real work.
-							return createOrUpdateWhileHoldingLock(tableId,
-									tableResetToken, message);
-						}
-					});
+			return tableRowManager.tryRunWithTableExclusiveLock(tableId, configuration.getTableWorkerTimeoutMS(), new Callable<State>() {
+				@Override
+				public State call() throws Exception {
+					// This method does the real work.
+					return createOrUpdateWhileHoldingLock(tableId, tableResetToken, message);
+				}
+			});
 		} catch (LockUnavilableException e) {
 			// We did not get the lock on this table.
 			// This is a recoverable failure as we can try again later.
