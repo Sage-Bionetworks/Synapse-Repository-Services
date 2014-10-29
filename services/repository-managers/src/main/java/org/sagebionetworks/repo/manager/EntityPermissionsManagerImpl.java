@@ -355,27 +355,27 @@ public class EntityPermissionsManagerImpl implements EntityPermissionsManager {
 		if (accessRequirementIds.isEmpty()) {
 			return AuthorizationManagerUtil.AUTHORIZED;
 		} else {
-			return AuthorizationManagerUtil.
-					accessDenied("There are unmet access requirements that must be met to place content in the requested container.");
+			return AuthorizationManagerUtil
+					.accessDenied("There are unmet access requirements that must be met to read content in the requested container.");
 		}
 	}
 
-	private AuthorizationStatus canUpload(UserInfo userInfo, final String parentId)
+	private AuthorizationStatus canUpload(UserInfo userInfo, final String parentOrNodeId)
 			throws DatastoreException, NotFoundException {
 		if (userInfo.isAdmin()) return AuthorizationManagerUtil.AUTHORIZED;
 		if (!agreesToTermsOfUse(userInfo)) return AuthorizationManagerUtil.
 				accessDenied("You have not yet agreed to the Synapse Terms of Use.");
 		
 		// if there are any unmet access requirements return false
-		List<String> nodeAncestorIds = AccessRequirementUtil.getNodeAncestorIds(nodeDao, parentId, true);
+		List<String> nodeAncestorIds = AccessRequirementUtil.getNodeAncestorIds(nodeDao, parentOrNodeId, true);
 
 		List<Long> accessRequirementIds = AccessRequirementUtil.unmetUploadAccessRequirementIdsForEntity(
 				userInfo, nodeAncestorIds, nodeDao, accessRequirementDAO);
 		if (accessRequirementIds.isEmpty()) {
 			return AuthorizationManagerUtil.AUTHORIZED;
 		} else {
-			return AuthorizationManagerUtil.
-					accessDenied("There are unmet access requirements.");
+			return AuthorizationManagerUtil
+					.accessDenied("There are unmet access requirements that must be met to place content in the requested container.");
 		}
 	}
 
