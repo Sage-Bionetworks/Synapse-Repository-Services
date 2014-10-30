@@ -403,6 +403,27 @@ public class TableModelUtilsTest {
 	}
 	
 	@Test
+	public void testValidateEnum() {
+		ColumnModel cm = new ColumnModel();
+		cm.setColumnType(ColumnType.STRING);
+		cm.setMaximumSize(555L);
+		cm.setEnumValues(Lists.newArrayList("aa", "bb", "cc"));
+		assertEquals("aa", TableModelUtils.validateRowValue("aa", cm, 0, 0));
+		assertEquals("bb", TableModelUtils.validateRowValue("bb", cm, 0, 0));
+		assertEquals("cc", TableModelUtils.validateRowValue("cc", cm, 0, 0));
+		try {
+			TableModelUtils.validateRowValue("dd", cm, 1, 4);
+			fail("should have failed");
+		} catch (IllegalArgumentException e) {
+			assertEquals("Value at [1,4] was not a valid STRING. 'dd' is not a valid value for this column. Valid values are: aa, bb, cc.",
+					e.getMessage());
+		}
+		assertEquals(null, TableModelUtils.validateRowValue(null, cm, 2, 2));
+		cm.setDefaultValue("aa");
+		assertEquals("aa", TableModelUtils.validateRowValue(null, cm, 2, 3));
+	}
+
+	@Test
 	public void testValidateStringColumnEmptyString() {
 		ColumnModel cm = new ColumnModel();
 		cm.setColumnType(ColumnType.STRING);
