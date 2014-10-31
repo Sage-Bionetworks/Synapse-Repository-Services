@@ -23,6 +23,7 @@ import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.Closer;
 
+import com.google.common.collect.Lists;
 import com.thoughtworks.xstream.XStream;
 
 /**
@@ -49,10 +50,10 @@ public class ColumnModelUtlis {
 	 * @param dto
 	 * @return
 	 */
-	public static DBOColumnModel createDBOFromDTO(ColumnModel dto){
+	public static DBOColumnModel createDBOFromDTO(ColumnModel dto, int maxEnumValues) {
 		try {
 			// First normalize the DTO
-			ColumnModel normal = createNormalizedClone(dto);
+			ColumnModel normal = createNormalizedClone(dto, maxEnumValues);
 			String hash = calculateHash(normal);
 			// Create the bytes
 			ByteArrayOutputStream out = new ByteArrayOutputStream(200);
@@ -151,7 +152,7 @@ public class ColumnModelUtlis {
 	 * @return
 	 * @throws JSONObjectAdapterException
 	 */
-	public static ColumnModel createNormalizedClone(ColumnModel toClone) {
+	public static ColumnModel createNormalizedClone(ColumnModel toClone, int maxEnumValues) {
 		if(toClone == null) throw new IllegalArgumentException("ColumnModel cannot be null");
 		if(toClone.getName() == null) throw new IllegalArgumentException("ColumnModel.name cannot be null");
 		if(toClone.getColumnType() == null) throw new IllegalArgumentException("ColumnModel.columnType cannot be null");
@@ -196,17 +197,18 @@ public class ColumnModelUtlis {
 			clone.setId(null);
 			// to lower on the name
 			clone.setName(clone.getName().trim());
-			// Default to lower.
-			if (defaultValue != null) {
-				// normalize the default value
-				clone.setDefaultValue(TableModelUtils.validateValue(defaultValue, clone));
-			} else {
-				clone.setDefaultValue(null);
-			}
 
+			// normalize enum values
 			if(clone.getEnumValues() != null){
-				List<String> newList = new LinkedList<String>();
-				for(String enumValue: clone.getEnumValues()){
+				if (clone.getEnumValues().size() > maxEnumValues) {
+					throw new IllegalArgumentException("Maximum allowed enum values is " + maxEnumValues + ". This enum has "
+							+ clone.getEnumValues().size() + " values");
+				}
+				List<String> oldList = clone.getEnumValues();
+				// set enums temporary to null, so we can check the individual enum values themselves
+				clone.setEnumValues(null);
+				List<String> newList = Lists.newArrayListWithCapacity(oldList.size());
+				for (String enumValue : oldList) {
 					enumValue = enumValue.trim();
 					if (enumValue.isEmpty()) {
 						if (clone.getColumnType() == ColumnType.STRING) {
@@ -220,10 +222,17 @@ public class ColumnModelUtlis {
 				if (!newList.isEmpty()) {
 					Collections.sort(newList);
 					clone.setEnumValues(newList);
-				} else {
-					clone.setEnumValues(null);
 				}
 			}
+
+			// Default to lower.
+			if (defaultValue != null) {
+				// normalize the default value
+				clone.setDefaultValue(TableModelUtils.validateValue(defaultValue, clone));
+			} else {
+				clone.setDefaultValue(null);
+			}
+
 			return clone;
 		} catch (JSONObjectAdapterException e) {
 			throw new RuntimeException(e);

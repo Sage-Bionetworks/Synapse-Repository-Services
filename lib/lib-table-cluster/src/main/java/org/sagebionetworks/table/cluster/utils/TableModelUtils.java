@@ -19,6 +19,7 @@ import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
+import org.apache.commons.lang.StringUtils;
 import org.sagebionetworks.repo.model.dao.table.RowAccessor;
 import org.sagebionetworks.repo.model.dao.table.RowHandler;
 import org.sagebionetworks.repo.model.dao.table.RowSetAccessor;
@@ -281,6 +282,17 @@ public class TableModelUtils {
 			if (value.length() > cm.getMaximumSize()) {
 				throw new IllegalArgumentException("String '" + value + "' exceeds the maximum length of " + cm.getMaximumSize()
 						+ " characters. Consider using a FileHandle to store large strings.");
+			}
+			if (cm.getEnumValues() != null) {
+				if (!cm.getEnumValues().contains(value)) {
+					if (cm.getEnumValues().size() > 10) {
+						throw new IllegalArgumentException("'" + value
+								+ "' is not a valid value for this column. See column definition for valid values.");
+					} else {
+						throw new IllegalArgumentException("'" + value + "' is not a valid value for this column. Valid values are: "
+								+ StringUtils.join(cm.getEnumValues(), ", ") + ".");
+					}
+				}
 			}
 			return value;
 		}

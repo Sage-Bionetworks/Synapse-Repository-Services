@@ -903,15 +903,6 @@ public class NodeInheritanceManagerImplAutowireTest {
 		nodeToCheck = null;
 	}
 
-	/**
-	 * Tests that when a folder's parentId is changed the resulting hierarchy is in left in the correct state. The tree
-	 * we are building consists of a rootFolder. Below rootFolder is folderTwo. Below folderTwo is folderThree.
-	 * FolderThree has two folders below it named folderFour and folderFive. FolderFour inherits from itself and all
-	 * other folders inherit from rootFolder. folderTwo changes it's id to a newFolder and test checks to make sure
-	 * state is correct for all folders after the parentId change update.
-	 * 
-	 * @throws Exception
-	 */
 	@Test
 	public void testTrashedFolderIsIdentified() throws Exception {
 		Node nextNode = new Node();
