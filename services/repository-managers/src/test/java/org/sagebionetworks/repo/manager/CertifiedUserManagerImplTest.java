@@ -491,8 +491,9 @@ public class CertifiedUserManagerImplTest {
 		for (int i=0; i<100; i++) {
 			CertifiedUserManagerImpl.selectQuiz(quizGenerator);
 		}
-		// this should throw no exception
-		CertifiedUserManagerImpl.validateQuizGenerator(quizGenerator);
+		// this should return no errors
+		List<String> errorMessages = CertifiedUserManagerImpl.validateQuizGenerator(quizGenerator);
+		assertTrue(errorMessages.toString(), errorMessages.isEmpty());
 	}
 
 	private static QuizResponse createFailingQuizResponse(long quizId) {
