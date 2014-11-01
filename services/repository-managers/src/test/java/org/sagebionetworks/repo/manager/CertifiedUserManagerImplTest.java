@@ -48,6 +48,8 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 
+import com.thoughtworks.xstream.XStream;
+
 public class CertifiedUserManagerImplTest {
 	
 	private CertifiedUserManagerImpl certifiedUserManager;
@@ -68,7 +70,7 @@ public class CertifiedUserManagerImplTest {
 	}
 	
 	private static String getDefaultQuizGeneratorAsString() {
-		InputStream is = MessageManagerImpl.class.getClassLoader().getResourceAsStream(CertifiedUserManagerImpl.QUESTIONNAIRE_PROPERTIES_FILE);
+		InputStream is = CertifiedUserManagerImplTest.class.getClassLoader().getResourceAsStream(CertifiedUserManagerImpl.QUESTIONNAIRE_PROPERTIES_FILE);
 		return IOTestUtil.readFromInputStream(is, "utf-8");
 	}
 
@@ -251,14 +253,12 @@ public class CertifiedUserManagerImplTest {
 	
 	@Test
 	public void testRetrieveCertificationQuizGenerator() throws Exception {
-		certifiedUserManager.expireQuizGeneratorCache();
 		when(s3Utility.doesExist(CertifiedUserManagerImpl.S3_QUESTIONNAIRE_KEY)).thenReturn(false);
 		QuizGenerator q = certifiedUserManager.retrieveCertificationQuizGenerator();
 		assertNotNull(q); // we check the content elsewhere, so here we just check we get a result
 		
 		when(s3Utility.doesExist(CertifiedUserManagerImpl.S3_QUESTIONNAIRE_KEY)).thenReturn(true);
 		when(s3Utility.downloadFromS3ToString(anyString())).thenReturn(getDefaultQuizGeneratorAsString());
-		certifiedUserManager.expireQuizGeneratorCache();
 		assertEquals(getDefaultQuizGenerator(), certifiedUserManager.retrieveCertificationQuizGenerator());
 	}
 	
@@ -285,6 +285,18 @@ public class CertifiedUserManagerImplTest {
 			}
 			assertTrue("None of "+quiz.getQuestions().size()+
 					" questions came from this variety of size "+vs.getQuestionOptions().size(), foundOne);
+		}
+		// test that the quiz answers have been scrubbed
+		for (Question q : quiz.getQuestions()) {
+			if (q instanceof MultichoiceQuestion) {
+				MultichoiceQuestion mq = (MultichoiceQuestion)q;
+				for (MultichoiceAnswer a : mq.getAnswers()) {
+					assertNull(a.getIsCorrect());
+				}
+			} else if (q instanceof TextFieldQuestion) {
+				TextFieldQuestion tq  = (TextFieldQuestion)q;
+				assertNull(tq.getAnswer());
+			}
 		}
 	}
 	
@@ -471,6 +483,43 @@ public class CertifiedUserManagerImplTest {
 			}
 		}
 	}
+	
+	@Test
+	public void testPLFM3080() throws Exception {
+		InputStream is = null;
+		InputStream is2 = null;
+		ClassLoader classLoader = CertifiedUserManagerImplTest.class.getClassLoader();
+		try {
+			is = classLoader.getResourceAsStream("CertifiedUserQuizResponse.xml");
+			assertNotNull(is);
+			XStream xstream = new XStream();
+			QuizResponse resp = (QuizResponse)xstream.fromXML(is);
+			is2 = classLoader.getResourceAsStream("CertifiedUserQuizGenerator.json");
+			assertNotNull(is2);
+			JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
+			adapter = adapter.createNew(IOTestUtil.readFromInputStream(is2, "utf-8"));
+			QuizGenerator gen = new QuizGenerator();
+			// if the resource file does not contain a valid Quiz, this will fail
+			gen.initializeFromJSONObject(adapter);
+			
+			// this should not affect the QuizGenerator (but the fact that it DID caused PLFM-3080)
+			for (int i=0; i<100; i++) {
+				CertifiedUserManagerImpl.selectQuiz(gen);
+			}
+			
+			PassingRecord passingRecord = CertifiedUserManagerImpl.scoreQuizResponse(gen, resp);
+    		for (ResponseCorrectness rc : passingRecord.getCorrections()) {
+    			MultichoiceResponse r = (MultichoiceResponse)rc.getResponse();
+    			boolean isCorrect = rc.getIsCorrect();
+    			Question q = rc.getQuestion();
+    			assertTrue(isCorrect);
+    		}
+			
+		} finally {
+			if (is!=null) is.close();
+			if (is2!=null) is2.close();
+		}
+	}
 
 	private static QuizResponse createFailingQuizResponse(long quizId) {
 		QuizResponse resp = new QuizResponse();
@@ -557,7 +606,6 @@ public class CertifiedUserManagerImplTest {
 
 	@Test
 	public void testSubmitCertificationQuizPASSINGResponse() throws Exception {
-		certifiedUserManager.expireQuizGeneratorCache();
 		when(s3Utility.doesExist(CertifiedUserManagerImpl.S3_QUESTIONNAIRE_KEY)).thenReturn(true);
 		QuizGenerator quizGenerator = createQuizGenerator();
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
@@ -593,7 +641,6 @@ public class CertifiedUserManagerImplTest {
 	
 	@Test
 	public void testSubmitCertificationQuizFAILINGResponse() throws Exception {
-		certifiedUserManager.expireQuizGeneratorCache();
 		when(s3Utility.doesExist(CertifiedUserManagerImpl.S3_QUESTIONNAIRE_KEY)).thenReturn(true);
 		QuizGenerator quizGenerator = createQuizGenerator();
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
