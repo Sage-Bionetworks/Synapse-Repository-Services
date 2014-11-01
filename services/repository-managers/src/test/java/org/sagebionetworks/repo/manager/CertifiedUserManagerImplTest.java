@@ -48,8 +48,6 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 
-import com.thoughtworks.xstream.XStream;
-
 public class CertifiedUserManagerImplTest {
 	
 	private CertifiedUserManagerImpl certifiedUserManager;
