@@ -486,39 +486,13 @@ public class CertifiedUserManagerImplTest {
 	
 	@Test
 	public void testPLFM3080() throws Exception {
-		InputStream is = null;
-		InputStream is2 = null;
-		ClassLoader classLoader = CertifiedUserManagerImplTest.class.getClassLoader();
-		try {
-			is = classLoader.getResourceAsStream("CertifiedUserQuizResponse.xml");
-			assertNotNull(is);
-			XStream xstream = new XStream();
-			QuizResponse resp = (QuizResponse)xstream.fromXML(is);
-			is2 = classLoader.getResourceAsStream("CertifiedUserQuizGenerator.json");
-			assertNotNull(is2);
-			JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
-			adapter = adapter.createNew(IOTestUtil.readFromInputStream(is2, "utf-8"));
-			QuizGenerator gen = new QuizGenerator();
-			// if the resource file does not contain a valid Quiz, this will fail
-			gen.initializeFromJSONObject(adapter);
-			
-			// this should not affect the QuizGenerator (but the fact that it DID caused PLFM-3080)
-			for (int i=0; i<100; i++) {
-				CertifiedUserManagerImpl.selectQuiz(gen);
-			}
-			
-			PassingRecord passingRecord = CertifiedUserManagerImpl.scoreQuizResponse(gen, resp);
-    		for (ResponseCorrectness rc : passingRecord.getCorrections()) {
-    			MultichoiceResponse r = (MultichoiceResponse)rc.getResponse();
-    			boolean isCorrect = rc.getIsCorrect();
-    			Question q = rc.getQuestion();
-    			assertTrue(isCorrect);
-    		}
-			
-		} finally {
-			if (is!=null) is.close();
-			if (is2!=null) is2.close();
+		QuizGenerator quizGenerator = getDefaultQuizGenerator();
+		// this should not affect the QuizGenerator (but the fact that it DID caused PLFM-3080)
+		for (int i=0; i<100; i++) {
+			CertifiedUserManagerImpl.selectQuiz(quizGenerator);
 		}
+		// this should throw no exception
+		CertifiedUserManagerImpl.validateQuizGenerator(quizGenerator);
 	}
 
 	private static QuizResponse createFailingQuizResponse(long quizId) {

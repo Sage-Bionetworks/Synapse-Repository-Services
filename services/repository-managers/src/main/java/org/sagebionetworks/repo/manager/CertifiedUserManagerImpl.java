@@ -203,11 +203,15 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 		for (QuestionVariety v : quizGenerator.getQuestions()) {
 			List<Question> questionOptions = v.getQuestionOptions();
 			// pick a random question from the variety of questions in the QuizGenerator
-			questions.add(cloneAndScrubPrivateFields(
+//			questions.add(cloneAndScrubPrivateFields(
+//					questionOptions.get(
+//							random.nextInt(questionOptions.size()))));
+			questions.add(
 					questionOptions.get(
-							random.nextInt(questionOptions.size()))));
+							random.nextInt(questionOptions.size())));
 		}
 		quiz.setQuestions(questions);
+		PrivateFieldUtils.clearPrivateFields(quiz);
 		return quiz;
 	}
 	
