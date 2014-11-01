@@ -202,7 +202,7 @@ public class CertifiedUserManagerImpl implements CertifiedUserManager {
 		List<Question> questions = new ArrayList<Question>();
 		for (QuestionVariety v : quizGenerator.getQuestions()) {
 			List<Question> questionOptions = v.getQuestionOptions();
-//			 pick a random question from the variety of questions in the QuizGenerator
+			// pick a random question from the variety of questions in the QuizGenerator
 			questions.add(cloneAndScrubPrivateFields(
 					questionOptions.get(
 							random.nextInt(questionOptions.size()))));

@@ -488,9 +488,7 @@ public class CertifiedUserManagerImplTest {
 	public void testPLFM3080() throws Exception {
 		QuizGenerator quizGenerator = getDefaultQuizGenerator();
 		// this should not affect the QuizGenerator (but the fact that it DID caused PLFM-3080)
-		for (int i=0; i<100; i++) {
-			CertifiedUserManagerImpl.selectQuiz(quizGenerator);
-		}
+		CertifiedUserManagerImpl.selectQuiz(quizGenerator);
 		// this should return no errors
 		List<String> errorMessages = CertifiedUserManagerImpl.validateQuizGenerator(quizGenerator);
 		assertTrue(errorMessages.toString(), errorMessages.isEmpty());
