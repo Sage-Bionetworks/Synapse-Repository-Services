@@ -77,18 +77,15 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 	public boolean createOrUpdateTable(List<ColumnModel> newSchema,
 			String tableId) {
 		// First determine if we have any columns for this table yet
-		List<String> columns = getCurrentTableColumns(tableId);
-		// Convert the names to columnIDs
-		List<String> oldSchema = SQLUtils.convertColumnNamesToColumnId(columns);
+		List<String> oldColumns = getCurrentTableColumns(tableId);
 		// Build the SQL to create or update the table
-		String dml = SQLUtils.creatOrAlterTableSQL(oldSchema, newSchema,
-				tableId);
+		String dml = SQLUtils.creatOrAlterTableSQL(oldColumns, newSchema, tableId);
 		// If there is nothing to apply then do nothing
 		if (dml == null)
 			return false;
 		// Execute the DML
 		try {
-		template.update(dml);
+			template.update(dml);
 		} catch (BadSqlGrammarException e) {
 			if (e.getCause() != null && e.getCause().getMessage() != null && e.getCause().getMessage().startsWith("Row size too large")) {
 				throw new InvalidDataAccessResourceUsageException(
@@ -165,7 +162,7 @@ public class TableIndexDAOImpl implements TableIndexDAO {
 			}
 		});
 	}
-
+	
 	@Override
 	public Long getRowCountForTable(String tableId) {
 		String sql = SQLUtils.getCountSQL(tableId);

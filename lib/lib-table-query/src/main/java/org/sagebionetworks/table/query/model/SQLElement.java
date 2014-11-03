@@ -10,6 +10,11 @@ package org.sagebionetworks.table.query.model;
 public abstract class SQLElement {
 
 	public interface ColumnConvertor {
+
+		enum SQLClause {
+			SELECT, ORDER_BY, GROUP_BY
+		};
+
 		/**
 		 * Convert table name from sql to actual table name in index
 		 * 
@@ -64,6 +69,14 @@ public abstract class SQLElement {
 		 * @param builder
 		 */
 		void convertParam(String signedNumericLiteral, StringBuilder builder);
+
+		/**
+		 * Indicates that columns are now interpreted as part of specific clause/ Always set back to null when clause
+		 * goes out of scope
+		 * 
+		 * @param currentClause
+		 */
+		void setCurrentClause(SQLClause clause);
 	}
 
 	/**

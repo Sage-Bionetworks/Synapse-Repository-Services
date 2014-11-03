@@ -16,11 +16,13 @@ import java.util.Map;
 import java.util.Set;
 
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.GroupMembersDAO;
 import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.ResourceAccess;
@@ -36,6 +38,7 @@ import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.principal.AliasType;
 import org.sagebionetworks.repo.model.principal.PrincipalAlias;
 import org.sagebionetworks.repo.model.principal.PrincipalAliasDAO;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -65,7 +68,15 @@ public class DBOTeamDAOImplTest {
 	private String teamToDelete;
 	private String aclToDelete;
 	private String userToDelete;
-	
+
+	@Before
+	public void setup() throws Exception {
+		List<Team> teams = teamDAO.getInRange(1000, 0);
+		for (Team team : teams) {
+			teamDAO.delete(team.getId());
+		}
+	}
+
 	@After
 	public void tearDown() throws Exception {
 		if (aclToDelete!=null) aclDAO.delete(aclToDelete, ObjectType.TEAM);
@@ -91,7 +102,7 @@ public class DBOTeamDAOImplTest {
 		group.setIsIndividual(false);
 		group.setId(userGroupDAO.create(group).toString());
 		teamToDelete = group.getId();
-		
+
 		// create a team
 		Team team = new Team();
 		Long id = Long.parseLong(group.getId());

@@ -44,11 +44,11 @@ import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.EntityPermissionsManager;
 import org.sagebionetworks.repo.manager.SemaphoreManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.message.RepositoryMessagePublisher;
 import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableRowManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -69,6 +69,7 @@ import org.sagebionetworks.repo.model.dao.table.TableStatusDAO;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.dbo.dao.table.CSVToRowIterator;
 import org.sagebionetworks.repo.model.dbo.dao.table.TableModelTestUtils;
+import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -135,6 +136,8 @@ public class TableWorkerIntegrationTest {
 	ConnectionFactory tableConnectionFactory;
 	@Autowired
 	SemaphoreManager semphoreManager;
+	@Autowired
+	FileHandleManager fileHandleManager;
 	
 	@Autowired
 	TableStatusDAO tableStatusDAO;
@@ -744,6 +747,45 @@ public class TableWorkerIntegrationTest {
 	}
 
 	@Test
+	public void testDoubles() throws Exception {
+		schema = Lists.newArrayList(columnManager.createColumnModel(adminUserInfo,
+				TableModelTestUtils.createColumn(0L, "coldouble", ColumnType.DOUBLE)));
+		List<String> headers = TableModelUtils.getHeaders(schema);
+		// Create the table.
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		table.setColumnIds(headers);
+		tableId = entityManager.createEntity(adminUserInfo, table, null);
+		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
+		columnManager.bindColumnToObject(adminUserInfo, headers, tableId, true);
+		Double[] doubles = { Double.NaN, null, Double.NEGATIVE_INFINITY, -Double.MAX_VALUE, -1.0, 0.0, 1.0, 3e42, Double.MAX_VALUE,
+				Double.POSITIVE_INFINITY };
+		String[] expected = { "NaN", null, "-Infinity", "-1.7976931348623157e308", "-1", "0", "1", "3e42", "1.7976931348623157e308",
+				"Infinity" };
+		assertEquals(doubles.length, expected.length);
+		// Now add some data
+		List<Row> rows = TableModelTestUtils.createRows(schema, doubles.length);
+		for (int i = 0; i < doubles.length; i++) {
+			rows.get(i).getValues().set(0, doubles[i] == null ? null : doubles[i].toString());
+		}
+
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(rows);
+		rowSet.setHeaders(headers);
+		rowSet.setTableId(tableId);
+		referenceSet = tableRowManager.appendRows(adminUserInfo, tableId, schema, rowSet);
+
+		// Wait for the table to become available
+		String sql = "select * from " + tableId + " order by coldouble ASC";
+		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, null);
+		assertNotNull(queryResult.getQueryResults());
+		assertEquals(doubles.length, queryResult.getQueryResults().getRows().size());
+		for (int i = 0; i < doubles.length; i++) {
+			assertEquals(expected[i], queryResult.getQueryResults().getRows().get(i).getValues().get(0));
+		}
+	}
+
+	@Test
 	public void testBooleans() throws Exception {
 		schema = Lists.newArrayList(columnManager.createColumnModel(adminUserInfo,
 				TableModelTestUtils.createColumn(0L, "colbool", ColumnType.BOOLEAN)));
@@ -1068,6 +1110,90 @@ public class TableWorkerIntegrationTest {
 		// append
 		assertEquals(Lists.newArrayList("something", null, "something", "default"), queryResult.getQueryResults().getRows().get(5)
 				.getValues());
+	}
+
+	@Test
+	public void testUpdateFilehandles() throws Exception {
+		// four columns, two with default value
+		schema = new LinkedList<ColumnModel>();
+		for (int i = 0; i < 5; i++) {
+			ColumnModel cm = new ColumnModel();
+			cm.setColumnType(ColumnType.FILEHANDLEID);
+			cm.setName("col" + i);
+			schema.add(columnManager.createColumnModel(adminUserInfo, cm));
+		}
+		List<String> headers = TableModelUtils.getHeaders(schema);
+		// Create the table.
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		table.setColumnIds(headers);
+		tableId = entityManager.createEntity(adminUserInfo, table, null);
+		columnManager.bindColumnToObject(adminUserInfo, headers, tableId, true);
+
+		// Now add a file handle
+		ExternalFileHandle fileHandle1 = new ExternalFileHandle();
+		fileHandle1.setFileName("file1");
+		fileHandle1.setExternalURL("http://not.com/file1");
+		fileHandle1 = fileHandleManager.createExternalFileHandle(adminUserInfo, fileHandle1);
+		ExternalFileHandle fileHandle2 = new ExternalFileHandle();
+		fileHandle2.setFileName("file2");
+		fileHandle2.setExternalURL("http://not.com/file2");
+		fileHandle2 = fileHandleManager.createExternalFileHandle(adminUserInfo, fileHandle2);
+
+		List<Row> rows = Lists.newArrayList(TableModelTestUtils.createRow(null, null, fileHandle1.getId(), fileHandle1.getId(),
+				fileHandle1.getId(), null, null));
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(rows);
+		rowSet.setHeaders(headers);
+		rowSet.setTableId(tableId);
+		referenceSet = tableRowManager.appendRows(adminUserInfo, tableId, schema, rowSet);
+
+		// Wait for the table to become available
+		String sql = "select * from " + tableId + " order by row_id";
+		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, 100L);
+		assertEquals(1, queryResult.getQueryResults().getRows().size());
+		assertEquals(Lists.newArrayList(fileHandle1.getId(), fileHandle1.getId(), fileHandle1.getId(), null, null), queryResult
+				.getQueryResults().getRows().get(0).getValues());
+
+		// append
+		PartialRow partialRowAppend = new PartialRow();
+		partialRowAppend.setRowId(referenceSet.getRows().get(0).getRowId());
+		partialRowAppend.setValues(buildMap(schema.get(0).getId(), fileHandle2.getId(), schema.get(1).getId(), fileHandle1.getId(), schema
+				.get(2).getId(), null, schema.get(3).getId(), fileHandle2.getId()));
+
+		PartialRowSet partialRowSet = new PartialRowSet();
+		partialRowSet.setTableId(tableId);
+		partialRowSet.setRows(Lists.newArrayList(partialRowAppend));
+		tableRowManager.appendPartialRows(adminUserInfo, tableId, schema, partialRowSet);
+
+		queryResult = waitForConsistentQuery(adminUserInfo, sql, 100L);
+		assertEquals(1, queryResult.getQueryResults().getRows().size());
+		assertEquals(Lists.newArrayList(fileHandle2.getId(), fileHandle1.getId(), null, fileHandle2.getId(), null), queryResult
+				.getQueryResults().getRows().get(0).getValues());
+
+		// append
+		partialRowAppend = new PartialRow();
+		partialRowAppend.setRowId(referenceSet.getRows().get(0).getRowId());
+		partialRowAppend.setValues(buildMap(schema.get(0).getId(), fileHandle1.getId(), schema.get(1).getId(), fileHandle1.getId(), schema
+				.get(2).getId(), fileHandle1.getId(), schema.get(3).getId(), fileHandle1.getId()));
+
+		partialRowSet = new PartialRowSet();
+		partialRowSet.setTableId(tableId);
+		partialRowSet.setRows(Lists.newArrayList(partialRowAppend));
+		tableRowManager.appendPartialRows(adminUserInfo, tableId, schema, partialRowSet);
+
+		queryResult = waitForConsistentQuery(adminUserInfo, sql, 100L);
+		assertEquals(1, queryResult.getQueryResults().getRows().size());
+		assertEquals(Lists.newArrayList(fileHandle1.getId(), fileHandle1.getId(), fileHandle1.getId(), fileHandle1.getId(), null),
+				queryResult.getQueryResults().getRows().get(0).getValues());
+	}
+
+	Map<String, String> buildMap(String... keyValues) {
+		Map<String, String> map = Maps.newHashMap();
+		for (int i = 0; i < keyValues.length; i += 2) {
+			map.put(keyValues[i], keyValues[i + 1]);
+		}
+		return map;
 	}
 
 	@Ignore // This is a very slow test that pushes massive amounts of data so it is disabled.
