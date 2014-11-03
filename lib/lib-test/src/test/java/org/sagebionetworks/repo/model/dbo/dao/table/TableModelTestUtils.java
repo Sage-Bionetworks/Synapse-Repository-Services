@@ -346,6 +346,9 @@ public class TableModelTestUtils {
 		cm.setId("" + id);
 		cm.setName(name);
 		cm.setColumnType(type);
+		if (type == ColumnType.STRING) {
+			cm.setMaximumSize(50L);
+		}
 		return cm;
 	}
 

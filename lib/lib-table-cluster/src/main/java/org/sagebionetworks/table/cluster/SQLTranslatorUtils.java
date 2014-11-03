@@ -10,23 +10,15 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang.BooleanUtils;
-import org.joda.time.DateTime;
-import org.joda.time.format.DateTimeFormatter;
-import org.joda.time.format.DateTimeFormatterBuilder;
-import org.sagebionetworks.collections.Transform;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.ColumnType;
 import org.sagebionetworks.repo.model.table.TableConstants;
 import org.sagebionetworks.table.query.model.*;
 import org.sagebionetworks.util.TimeUtils;
 import org.sagebionetworks.util.ValidateArgument;
-import org.springframework.beans.FatalBeanException;
 
 import com.google.common.base.Function;
-import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 /**
@@ -78,11 +70,14 @@ public class SQLTranslatorUtils {
 		SQLElement.ColumnConvertor columnConvertor = new SQLElement.ColumnConvertor() {
 			private ColumnModel columnModelLHS = null;
 			private Set<String> asColumns = Sets.newHashSet();
+			private String currentTableName = null;
+			private SQLClause currentClause = null;
 
 			@Override
 			public void convertTableName(String tableName, StringBuilder builder) {
 				Long tableId = KeyFactory.stringToKey(tableName);
-				builder.append(SQLUtils.TABLE_PREFIX).append(tableId);
+				currentTableName = SQLUtils.TABLE_PREFIX + tableId;
+				builder.append(currentTableName);
 			}
 			
 			@Override
@@ -104,13 +99,21 @@ public class SQLTranslatorUtils {
 							throw new IllegalArgumentException("Unknown column name: " + columnName);
 						}
 					} else {
+						String subName = "";
 						if (columnReference.getNameLHS() != null) {
-							String subName = getStringValueOf(columnReference.getNameLHS());
+							subName = getStringValueOf(columnReference.getNameLHS());
 							// Remove double quotes if they are included.
-							subName = subName.replaceAll("\"", "");
-							builder.append(subName).append("_");
+							subName = subName.replaceAll("\"", "") + "_";
 						}
-						SQLUtils.appendColumnName(column, builder);
+						switch ( column.getColumnType()){
+						case DOUBLE:
+							SQLUtils.appendDoubleCase(column, subName, currentTableName, currentClause == SQLClause.SELECT, builder);
+							break;
+						default:
+							builder.append(subName);
+							SQLUtils.appendColumnName(column, builder);
+							break;
+						}
 					}
 				}
 			}
@@ -165,6 +168,14 @@ public class SQLTranslatorUtils {
 				String bindKey = "b" + parameters.size();
 				builder.append(":").append(bindKey);
 				parameters.put(bindKey, value);
+			}
+
+			@Override
+			public void setCurrentClause(SQLClause clause) {
+				if (clause != null && currentClause != null) {
+					throw new IllegalStateException("Clauses cannot be nested");
+				}
+				currentClause = clause;
 			}
 		};
 		return columnConvertor;

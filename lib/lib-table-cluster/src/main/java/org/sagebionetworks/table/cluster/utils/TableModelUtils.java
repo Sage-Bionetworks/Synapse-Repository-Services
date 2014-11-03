@@ -274,7 +274,22 @@ public class TableModelUtils {
 			}
 			return Long.toString(time);
 		case DOUBLE:
-			double dv = Double.parseDouble(value);
+			double dv;
+			try {
+				dv = Double.parseDouble(value);
+			} catch (NumberFormatException e) {
+				value = value.toLowerCase();
+				if (value.equals("nan")) {
+					dv = Double.NaN;
+				} else if (value.equals("-inf") || value.equals("-infinity") || value.equals("-\u221E")) {
+					dv = Double.NEGATIVE_INFINITY;
+				} else if (value.equals("+inf") || value.equals("+infinity") || value.equals("+\u221E") || value.equals("inf")
+						|| value.equals("infinity") || value.equals("\u221E")) {
+					dv = Double.POSITIVE_INFINITY;
+				} else {
+					throw e;
+				}
+			}
 			return Double.toString(dv);
 		case STRING:
 			if (cm.getMaximumSize() == null)
@@ -284,6 +299,8 @@ public class TableModelUtils {
 						+ " characters. Consider using a FileHandle to store large strings.");
 			}
 			if (cm.getEnumValues() != null) {
+				// doing a contains directly on the list. With 100 values or less, making this a set is not making much
+				// of a difference and isn't east to do. When/if we allow many more values, we might have to revisit
 				if (!cm.getEnumValues().contains(value)) {
 					if (cm.getEnumValues().size() > 10) {
 						throw new IllegalArgumentException("'" + value

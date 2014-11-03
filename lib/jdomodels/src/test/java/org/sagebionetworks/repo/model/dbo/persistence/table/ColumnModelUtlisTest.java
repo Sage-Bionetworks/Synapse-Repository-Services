@@ -200,11 +200,22 @@ public class ColumnModelUtlisTest {
 		ColumnModelUtlis.createNormalizedClone(original, StackConfiguration.singleton().getTableMaxEnumValues());
 	}
 
+	@Test
+	public void testMaxEnums() {
+		original.setName("name");
+		original.setColumnType(ColumnType.STRING);
+		original.setEnumValues(Collections.nCopies(StackConfiguration.singleton().getTableMaxEnumValues(), "aaa"));
+		original.setDefaultValue(null);
+		original.setMaximumSize(5L);
+
+		ColumnModelUtlis.createNormalizedClone(original, StackConfiguration.singleton().getTableMaxEnumValues());
+	}
+
 	@Test(expected = IllegalArgumentException.class)
 	public void testTooManyEnums() {
 		original.setName("name");
 		original.setColumnType(ColumnType.STRING);
-		original.setEnumValues(Collections.nCopies(101, "aaa"));
+		original.setEnumValues(Collections.nCopies(StackConfiguration.singleton().getTableMaxEnumValues() + 1, "aaa"));
 		original.setDefaultValue(null);
 		original.setMaximumSize(5L);
 

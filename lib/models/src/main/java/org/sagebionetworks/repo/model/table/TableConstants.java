@@ -23,6 +23,11 @@ public class TableConstants {
 			Arrays.asList(ROW_ID, ROW_VERSION));
 
 	/**
+	 * The column name prefix for extra doubles column.
+	 */
+	public static final String DOUBLE_PREFIX = "_DBL";
+
+	/**
 	 * The set of key words that are defined in SQL.
 	 */
 	private static final Set<String> KEY_WORDS = new HashSet<String>(
