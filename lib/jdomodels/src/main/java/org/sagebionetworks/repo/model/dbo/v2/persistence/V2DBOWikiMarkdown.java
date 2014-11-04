@@ -65,10 +65,10 @@ public class V2DBOWikiMarkdown implements MigratableDatabaseObject<V2DBOWikiMark
 	@Field(name = V2_COL_WIKI_MARKDOWN_MODIFIED_BY, nullable = false)
 	private Long modifiedBy;
 	
-	@Field(name = V2_COL_WIKI_MARKDOWN_TITLE, sql = "SET latin1 COLLATE latin1_bin DEFAULT NULL")	// TODO: default null
+	@Field(name = V2_COL_WIKI_MARKDOWN_TITLE, varchar = 256)//, sql = "SET latin1 COLLATE latin1_bin DEFAULT NULL")	// TODO: default null
 	private String title;
 	
-	@Field(name = V2_COL_WIKI_MARKDOWN_ATTACHMENT_ID_LIST, defaultNull = true)	// TODO: default null
+	@Field(name = V2_COL_WIKI_MARKDOWN_ATTACHMENT_ID_LIST, type = "mediumblob", defaultNull = true)	// TODO: default null
 	private byte[] attachmentIdList;
 
 	private static TableMapping<V2DBOWikiMarkdown> tableMapping = AutoTableMapping.create(V2DBOWikiMarkdown.class);

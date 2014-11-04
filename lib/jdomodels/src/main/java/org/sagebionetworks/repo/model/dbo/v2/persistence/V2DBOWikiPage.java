@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.dbo.Field;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.ForeignKey;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
+import org.sagebionetworks.repo.model.dbo.Table;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOProjectStat;
@@ -39,14 +40,15 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
  * @author hso
  *
  */
+@Table(name = V2_TABLE_WIKI_PAGE)
 public class V2DBOWikiPage implements MigratableDatabaseObject<V2DBOWikiPage, V2DBOWikiPage>, ObservableEntity {
 	@Field(name = V2_COL_WIKI_ID, primary = true, nullable = false, backupId = true)	// TODO: size 20
 	private Long id;
 	
-	@Field(name = V2_COL_WIKI_ETAG, nullable = false, varchar = 36, etag = true)	// TODO: Constrain length to 36?
+	@Field(name = V2_COL_WIKI_ETAG, nullable = false, varchar = 36, etag = true)
 	private String etag;
 	
-	@Field(name = V2_COL_WIKI_TITLE, varchar = 256, sql = "CHARACTER SET latin1 COLLATE latin1_bin DEFAULT NULL")
+	@Field(name = V2_COL_WIKI_TITLE, varchar = 256, defaultNull = true)//, sql = "CHARACTER SET latin1 COLLATE latin1_bin")
 	private String title;
 	
 	@Field(name = V2_COL_WIKI_CREATED_BY, nullable = false)	// TODO: size 20
@@ -63,7 +65,7 @@ public class V2DBOWikiPage implements MigratableDatabaseObject<V2DBOWikiPage, V2
 	@Field(name = V2_COL_WIKI_MODIFIED_ON, nullable = false)	// TODO: size 20
 	private Long modifiedOn;
 	
-	@Field(name = V2_COL_WIKI_PARENT_ID, nullable = false)	// TODO: size 20
+	@Field(name = V2_COL_WIKI_PARENT_ID, defaultNull = true, nullable = true)	// TODO: size 20
 	@ForeignKey(name = "V2_WIKI_PARENT_FK", table = V2_TABLE_WIKI_PAGE, field = V2_COL_WIKI_ID, cascadeDelete = true)
 	private Long parentId;
 	
@@ -71,7 +73,7 @@ public class V2DBOWikiPage implements MigratableDatabaseObject<V2DBOWikiPage, V2
 	@ForeignKey(name = "V2_WIKI_ROOT_FK", table = V2_TABLE_WIKI_PAGE, field = V2_COL_WIKI_ID, cascadeDelete = true)
 	private Long rootId;
 	
-	@Field(name = V2_COL_WIKI_PARENT_ID, nullable = false)	// TODO: size 20
+	@Field(name = V2_COL_WIKI_MARKDOWN_VERSION, nullable = false)	// TODO: size 20
 	private Long markdownVersion;
 	
 	private static TableMapping<V2DBOWikiPage> tableMapping = AutoTableMapping.create(V2DBOWikiPage.class);
