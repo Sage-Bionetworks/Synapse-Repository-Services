@@ -40,13 +40,13 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
  *
  */
 public class V2DBOWikiPage implements MigratableDatabaseObject<V2DBOWikiPage, V2DBOWikiPage>, ObservableEntity {
-	@Field(name = V2_COL_WIKI_ID, primary = true, nullable = false)	// TODO: size 20
+	@Field(name = V2_COL_WIKI_ID, primary = true, nullable = false, backupId = true)	// TODO: size 20
 	private Long id;
 	
-	@Field(name = V2_COL_WIKI_ETAG, nullable = false)	// TODO: Constrain length to 36?
+	@Field(name = V2_COL_WIKI_ETAG, nullable = false, varchar = 36, etag = true)	// TODO: Constrain length to 36?
 	private String etag;
 	
-	@Field(name = V2_COL_WIKI_TITLE)	// TODO: length 256, CHARACTER SET latin1 COLLATE latin1_bin DEFAULT NULL
+	@Field(name = V2_COL_WIKI_TITLE, varchar = 256, sql = "CHARACTER SET latin1 COLLATE latin1_bin DEFAULT NULL")
 	private String title;
 	
 	@Field(name = V2_COL_WIKI_CREATED_BY, nullable = false)	// TODO: size 20

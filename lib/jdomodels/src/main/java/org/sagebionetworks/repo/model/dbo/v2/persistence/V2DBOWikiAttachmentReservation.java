@@ -1,5 +1,12 @@
 package org.sagebionetworks.repo.model.dbo.v2.persistence;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHANGES_CHANGE_NUM;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHANGES_OBJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHANGES_OBJECT_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SENT_MESSAGES_OBJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_SENT_MESSAGES_OBJECT_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_CHANGES;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_SENT_MESSAGES;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ATTACHMENT_RESERVATION_FILE_HANDLE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ATTACHMENT_RESERVATION_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ATTACHMENT_RESERVATION_TIMESTAMP;
@@ -20,11 +27,12 @@ import org.sagebionetworks.repo.model.dbo.Field;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.ForeignKey;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
+import org.sagebionetworks.repo.model.dbo.Table;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOProjectStat;
 import org.sagebionetworks.repo.model.migration.MigrationType;
-
+@Table(name = V2_TABLE_WIKI_ATTACHMENT_RESERVATION, constraints={"UNIQUE KEY `V2_WIKI_UNIQUE_FILE_HANDLE_ID` (`"+V2_COL_WIKI_ATTACHMENT_RESERVATION_ID+"`, '" + V2_COL_WIKI_ATTACHMENT_RESERVATION_FILE_HANDLE_ID + "')"})
 public class V2DBOWikiAttachmentReservation implements MigratableDatabaseObject<V2DBOWikiAttachmentReservation, V2DBOWikiAttachmentReservation> {
 //	private static final FieldColumn[] FIELDS = new FieldColumn[] {
 //		new FieldColumn("wikiId", V2_COL_WIKI_ATTACHMENT_RESERVATION_ID, true).withIsBackupId(true),

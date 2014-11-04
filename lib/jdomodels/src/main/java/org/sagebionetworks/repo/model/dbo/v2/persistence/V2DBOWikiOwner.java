@@ -26,7 +26,7 @@ import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOProjectStat;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 
-@Table(name = V2_TABLE_WIKI_OWNERS)	// TODO: Properly set uniqueness constraints (V2_WIKI_ID)??
+@Table(name = V2_TABLE_WIKI_OWNERS, constraints = {"UNIQUE INDEX (`" + V2_COL_WIKI_ONWERS_ROOT_WIKI_ID + "`)"})
 public class V2DBOWikiOwner implements MigratableDatabaseObject<V2DBOWikiOwner, V2DBOWikiOwner> {
 	
 	@Field(name = V2_COL_WIKI_ONWERS_OWNER_ID, nullable = false)

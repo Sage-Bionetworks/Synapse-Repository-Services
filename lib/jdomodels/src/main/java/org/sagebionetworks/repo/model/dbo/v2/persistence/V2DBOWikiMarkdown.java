@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.dbo.Field;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.ForeignKey;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
+import org.sagebionetworks.repo.model.dbo.Table;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOProjectStat;
@@ -34,6 +35,7 @@ import org.sagebionetworks.repo.model.migration.MigrationType;
  * @author hso
  *
  */
+@Table(name = V2_TABLE_WIKI_MARKDOWN, constraints = {"UNIQUE KEY `V2_WIKI_UNIQUE_MARKDOWN_VERSION` (`" + V2_COL_WIKI_MARKDOWN_ID + "`,`" + V2_COL_WIKI_MARKDOWN_VERSION_NUM + "`)"})
 public class V2DBOWikiMarkdown implements MigratableDatabaseObject<V2DBOWikiMarkdown, V2DBOWikiMarkdown> {
 	
 //	private static final FieldColumn[] FIELDS = new FieldColumn[] {
@@ -63,10 +65,10 @@ public class V2DBOWikiMarkdown implements MigratableDatabaseObject<V2DBOWikiMark
 	@Field(name = V2_COL_WIKI_MARKDOWN_MODIFIED_BY, nullable = false)
 	private Long modifiedBy;
 	
-	@Field(name = V2_COL_WIKI_MARKDOWN_TITLE)	// TODO: default null
+	@Field(name = V2_COL_WIKI_MARKDOWN_TITLE, sql = "SET latin1 COLLATE latin1_bin DEFAULT NULL")	// TODO: default null
 	private String title;
 	
-	@Field(name = V2_COL_WIKI_MARKDOWN_ATTACHMENT_ID_LIST)	// TODO: default null
+	@Field(name = V2_COL_WIKI_MARKDOWN_ATTACHMENT_ID_LIST, defaultNull = true)	// TODO: default null
 	private byte[] attachmentIdList;
 
 	private static TableMapping<V2DBOWikiMarkdown> tableMapping = AutoTableMapping.create(V2DBOWikiMarkdown.class);
