@@ -20,7 +20,6 @@ import javax.annotation.PostConstruct;
 
 import org.apache.commons.lang.ObjectUtils;
 import org.joda.time.DateTime;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.*;
@@ -36,20 +35,19 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.BadSqlGrammarException;
-import org.springframework.jdbc.config.JdbcNamespaceHandler;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.google.common.collect.Lists;
-import com.google.common.primitives.Longs;
 
 /**
  * This is a basic implementation of the NodeDAO.
@@ -94,11 +92,10 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				" join " + TABLE_ACCESS_CONTROL_LIST + " acl on acl." + COL_ACL_ID + " = ra." + COL_RESOURCE_ACCESS_OWNER + 
 				" join " + TABLE_NODE + " n on acl." + COL_ACL_OWNER_ID + " = n." + COL_NODE_ID + 
 				" join " + TABLE_RESOURCE_ACCESS_TYPE + " raa on ra." + COL_RESOURCE_ACCESS_OWNER + " = raa." + COL_RESOURCE_ACCESS_TYPE_OWNER + 
-			" where " + USER_OR_GROUP_CLAUSE + 
-				" and n." + COL_NODE_PROJECT_ID + " is not null";
+			" where n." + COL_NODE_PROJECT_ID + " is not null and ";
 
 	private static final String SELECT_PROJECT_IDS_SQL = 
-			"select distinct n." + COL_NODE_PROJECT_ID + FROM_PROJECTS_USER_IN_ACL;
+			"select distinct n." + COL_NODE_PROJECT_ID + FROM_PROJECTS_USER_IN_ACL + USER_OR_GROUP_CLAUSE;
 
 	private static final String PROJECT_IN_ACL_SQL = 
 			" where n." + COL_NODE_PROJECT_ID + " in (" + 
@@ -119,16 +116,31 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 				" join " + TABLE_NODE + " n on n." + COL_NODE_ID + " = pids." + COL_NODE_PROJECT_ID + 
 				" left join " + TABLE_PROJECT_STAT + " ps on n." + COL_NODE_ID + " = ps." + COL_PROJECT_STAT_PROJECT_ID + " and ps." + COL_PROJECT_STAT_USER_ID + " = :" + USER_ID_PARAM_NAME;
 
+	private static final String SELECT_TEAM_PROJECT_IDS_SQL = 
+			"select distinct n." + COL_NODE_PROJECT_ID + FROM_PROJECTS_USER_IN_ACL + "ra." + COL_RESOURCE_ACCESS_GROUP_ID + " = :" + USER_ID_PARAM_NAME;
+
+	private static final String PROJECT_FROM_TEAM_SQL = 
+			" from (" + SELECT_TEAM_PROJECT_IDS_SQL + ") pids" +
+				" join " + TABLE_NODE + " n on n." + COL_NODE_ID + " = pids." + COL_NODE_PROJECT_ID;
+
+	private static final String LIMIT_CLAUSE =
+			" limit :" + LIMIT_PARAM_NAME + " offset :" + OFFSET_PARAM_NAME;
 	private static final String SELECT_PROJECT_HEADERS_SORTED_SQL_1 = 
 			"select " + SELECT_PROJECTS_FIELDS + PROJECT_FROM_SQL;
 	private static final String SELECT_PROJECT_HEADERS_SORTED_SQL_2 = 
-			" order by coalesce(ps." + COL_PROJECT_STAT_LAST_ACCESSED + ", n." + COL_NODE_CREATED_ON + ") DESC" +
-			" limit :" + LIMIT_PARAM_NAME + " offset :" + OFFSET_PARAM_NAME;
+			" order by coalesce(ps." + COL_PROJECT_STAT_LAST_ACCESSED + ", n." + COL_NODE_CREATED_ON + ") DESC" + LIMIT_CLAUSE;
+	private static final String SELECT_PROJECT_HEADERS_FOR_TEAM_SQL_1 = 
+			"select " + SELECT_PROJECTS_FIELDS + PROJECT_FROM_TEAM_SQL;
+	private static final String SELECT_PROJECT_HEADERS_FOR_TEAM_SQL_2 = 
+			" order by n." + COL_NODE_NAME + " ASC" + LIMIT_CLAUSE;
 	private static final String SELECT_PROJECT_HEADERS_SORTED_SQL = SELECT_PROJECT_HEADERS_SORTED_SQL_1 + SELECT_PROJECT_HEADERS_SORTED_SQL_2;
 	private static final String SELECT_PROJECT_HEADERS_SORTED_WHERE_SQL = SELECT_PROJECT_HEADERS_SORTED_SQL_1 + PROJECT_IN_ACL_SQL + SELECT_PROJECT_HEADERS_SORTED_SQL_2;
+	private static final String SELECT_PROJECT_HEADERS_SORTED_WHERE_TEAM_SQL = SELECT_PROJECT_HEADERS_FOR_TEAM_SQL_1 + PROJECT_IN_ACL_SQL + SELECT_PROJECT_HEADERS_FOR_TEAM_SQL_2;
 	private static final String COUNT_PROJECT_HEADERS_SQL = 
 			"select count(*) " + PROJECT_FROM_SQL;
 	private static final String COUNT_PROJECT_HEADERS_WHERE_SQL = 
+			"select count(*) " + PROJECT_FROM_SQL + PROJECT_IN_ACL_SQL;
+	private static final String COUNT_PROJECT_HEADERS_WHERE_TEAM_SQL = 
 			"select count(*) " + PROJECT_FROM_SQL + PROJECT_IN_ACL_SQL;
 
 	/**
@@ -1325,11 +1337,23 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	}
 
 	@Override
-	public PaginatedResults<ProjectHeader> getProjectHeaders(String userToLookupId, String currentUserId, int limit, int offset) {
-		if (userToLookupId == null)
-			throw new IllegalArgumentException("userToLookupId id can not be null");
-		if (limit < 0 || offset < 0)
-			throw new IllegalArgumentException("limit and offset must be greater than 0");
+	public PaginatedResults<ProjectHeader> getMyProjectHeaders(String currentUserId, int limit, int offset) {
+		ValidateArgument.requirement(limit >= 0 && offset >= 0, "limit and offset must be greater than 0");
+		// get one page of projects
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(USER_ID_PARAM_NAME, currentUserId);
+		params.addValue(OFFSET_PARAM_NAME, offset);
+		params.addValue(LIMIT_PARAM_NAME, limit);
+
+		String selectSql = SELECT_PROJECT_HEADERS_SORTED_SQL;
+		String countSql = COUNT_PROJECT_HEADERS_SQL;
+		return getProjectHeaders(params, selectSql, countSql);
+	}
+
+	@Override
+	public PaginatedResults<ProjectHeader> getProjectHeadersForUser(String userToLookupId, String currentUserId, int limit, int offset) {
+		ValidateArgument.required(userToLookupId, "userToLookupId");
+		ValidateArgument.requirement(limit >= 0 && offset >= 0, "limit and offset must be greater than 0");
 		// get one page of projects
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(USER_ID_PARAM_NAME, userToLookupId);
@@ -1337,9 +1361,29 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		params.addValue(OFFSET_PARAM_NAME, offset);
 		params.addValue(LIMIT_PARAM_NAME, limit);
 
-		String selectSQL = currentUserId == null ? SELECT_PROJECT_HEADERS_SORTED_SQL : SELECT_PROJECT_HEADERS_SORTED_WHERE_SQL;
-		String countSQL = currentUserId == null ? COUNT_PROJECT_HEADERS_SQL : COUNT_PROJECT_HEADERS_WHERE_SQL;
-		List<ProjectHeader> projectsHeaders = namedParameterJdbcTemplate.query(selectSQL, params,
+		String selectSql = SELECT_PROJECT_HEADERS_SORTED_WHERE_SQL;
+		String countSql = COUNT_PROJECT_HEADERS_WHERE_SQL;
+		return getProjectHeaders(params, selectSql, countSql);
+	}
+
+	@Override
+	public PaginatedResults<ProjectHeader> getProjectHeadersForTeam(String teamToLookupId, String currentUserId, int limit, int offset) {
+		ValidateArgument.required(teamToLookupId, "teamToLookupId");
+		ValidateArgument.requirement(limit >= 0 && offset >= 0, "limit and offset must be greater than 0");
+		// get one page of projects
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(USER_ID_PARAM_NAME, teamToLookupId);
+		params.addValue(CURRENT_USER_ID_PARAM_NAME, currentUserId);
+		params.addValue(OFFSET_PARAM_NAME, offset);
+		params.addValue(LIMIT_PARAM_NAME, limit);
+
+		String selectSql = SELECT_PROJECT_HEADERS_SORTED_WHERE_TEAM_SQL;
+		String countSql = COUNT_PROJECT_HEADERS_WHERE_TEAM_SQL;
+		return getProjectHeaders(params, selectSql, countSql);
+	}
+
+	private PaginatedResults<ProjectHeader> getProjectHeaders(MapSqlParameterSource params, String selectSql, String countSql) {
+		List<ProjectHeader> projectsHeaders = namedParameterJdbcTemplate.query(selectSql, params,
 				new RowMapper<ProjectHeader>() {
 					@Override
 					public ProjectHeader mapRow(ResultSet rs, int rowNum) throws SQLException {
@@ -1355,7 +1399,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		queryResults.setResults(projectsHeaders);
 		long totalCount = 0;
 		try {
-			totalCount = namedParameterJdbcTemplate.queryForObject(countSQL, params, Long.class);
+			totalCount = namedParameterJdbcTemplate.queryForObject(countSql, params, Long.class);
 		} catch (EmptyResultDataAccessException e) {
 			// count = 0
 		}

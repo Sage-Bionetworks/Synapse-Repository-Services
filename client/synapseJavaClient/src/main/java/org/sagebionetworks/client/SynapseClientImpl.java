@@ -5135,7 +5135,7 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 */
 	@Override
 	public PaginatedResults<ProjectHeader> getMyProjects(Integer limit, Integer offset) throws SynapseException {
-		return getProjectsFromUser(null, limit, offset);
+		return getProjects(null, null, limit, offset);
 	}
 
 	/**
@@ -5148,11 +5148,29 @@ public class SynapseClientImpl extends BaseClientImpl implements SynapseClient {
 	 */
 	@Override
 	public PaginatedResults<ProjectHeader> getProjectsFromUser(Long userId, Integer limit, Integer offset) throws SynapseException {
-		String url;
-		if (userId == null) {
-			url = PROJECT_URI_PATH;
-		} else {
-			url = PROJECT_URI_PATH + USER + '/' + userId;
+		return getProjects(userId, null, limit, offset);
+	}
+
+	/**
+	 * Retrieve another user's Projects list
+	 * 
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws SynapseException
+	 */
+	@Override
+	public PaginatedResults<ProjectHeader> getProjectsForTeam(Long teamId, Integer limit, Integer offset) throws SynapseException {
+		return getProjects(null, teamId, limit, offset);
+	}
+
+	private PaginatedResults<ProjectHeader> getProjects(Long userId, Long teamId, Integer limit, Integer offset) throws SynapseException,
+			SynapseClientException {
+		String url = PROJECT_URI_PATH;
+		if (userId != null) {
+			url += USER + '/' + userId;
+		} else if (teamId != null) {
+			url += TEAM + '/' + teamId;
 		}
 		url += '?' + OFFSET_PARAMETER + offset + '&' + LIMIT_PARAMETER + limit;
 		JSONObject jsonObj = getEntity(url);

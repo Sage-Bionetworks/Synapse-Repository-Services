@@ -2133,13 +2133,13 @@ public class NodeDAOImplTest {
 			}
 		};
 
-		PaginatedResults<ProjectHeader> projectHeaders = nodeDao.getProjectHeaders(user1, null, 100, 0);
+		PaginatedResults<ProjectHeader> projectHeaders = nodeDao.getMyProjectHeaders(user1, 100, 0);
 		List<String> projectIds = Lists.transform(projectHeaders.getResults(), transformToId);
 		assertEquals(Lists.newArrayList(publicProject, subFolderProject, groupParticipate, participate, owned), projectIds);
 
 		List<String> projectIds2 = Lists.newArrayList();
 		for (int i = 0; i < 5; i++) {
-			projectHeaders = nodeDao.getProjectHeaders(user1, null, 1, i);
+			projectHeaders = nodeDao.getMyProjectHeaders(user1, 1, i);
 			assertEquals(1L, projectHeaders.getResults().size());
 			assertEquals(5L, projectHeaders.getTotalNumberOfResults());
 			projectIds2.add(projectHeaders.getResults().get(0).getId());
@@ -2157,13 +2157,17 @@ public class NodeDAOImplTest {
 		projectStat = new ProjectStat(KeyFactory.stringToKey(groupParticipate), KeyFactory.stringToKey(user2), new Date(2000));
 		projectStatsDAO.update(projectStat);
 
-		projectHeaders = nodeDao.getProjectHeaders(user1, null, 100, 0);
+		projectHeaders = nodeDao.getMyProjectHeaders(user1, 100, 0);
 		assertEquals(Lists.newArrayList(owned, participate, publicProject, subFolderProject, groupParticipate),
 				Lists.transform(projectHeaders.getResults(), transformToId));
 
-		// user3 only has access to group project and public project
-		projectHeaders = nodeDao.getProjectHeaders(user1, user3, 100, 0);
+		// user3 only has access to group project
+		projectHeaders = nodeDao.getProjectHeadersForUser(user1, user3, 100, 0);
 		assertEquals(Lists.newArrayList(publicProject, groupParticipate), Lists.transform(projectHeaders.getResults(), transformToId));
+
+		// group only has access to group project
+		projectHeaders = nodeDao.getProjectHeadersForTeam(group, user1, 100, 0);
+		assertEquals(Lists.newArrayList(groupParticipate), Lists.transform(projectHeaders.getResults(), transformToId));
 	}
 
 	private String createProject(String projectName, String user) throws Exception {
