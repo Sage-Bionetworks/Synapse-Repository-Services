@@ -3,6 +3,9 @@ package org.sagebionetworks.repo.manager.migration;
 import java.io.IOException;
 import java.util.List;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.sagebionetworks.S3PropertyFileLoader;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
@@ -13,6 +16,8 @@ import org.sagebionetworks.table.cluster.TableIndexDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class TableCacheInvalidationMigrationListener implements MigrationTypeListener {
+
+	private static final Logger log = LogManager.getLogger(TableCacheInvalidationMigrationListener.class);
 
 	@Autowired
 	TableRowTruthDAO tableRowTruthDAO;
@@ -39,6 +44,7 @@ public class TableCacheInvalidationMigrationListener implements MigrationTypeLis
 		try {
 			// the idsToDelete is a list of table ids for this type
 			for (Long tableId : idsToDelete) {
+				log.info("Deleting table " + tableId + " from index due to migration");
 				String tableIdString = KeyFactory.keyToString(tableId);
 				TableIndexDAO indexDAO = tableConnectionFactory.getConnection(tableIdString);
 				tableRowTruthDAO.removeCaches(tableId);
