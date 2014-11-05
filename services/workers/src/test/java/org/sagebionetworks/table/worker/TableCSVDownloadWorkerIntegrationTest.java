@@ -55,6 +55,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.GetObjectRequest;
+import com.google.common.collect.Lists;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -149,6 +150,34 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		// Get the filehandle
 		fileHandle = (S3FileHandle) fileHandleDao.get(response.getResultsFileHandleId());
 		checkResults(fileHandle, input, true);
+	}
+
+	@Test
+	public void testRoundTripWithZeroResults() throws Exception {
+		createTable();
+
+		String sql = "select * from " + tableId + " where a = 'xxxxxx'";
+		// Wait for the table to be ready
+		RowSet result = waitForConsistentQuery(adminUserInfo, sql);
+		assertNotNull(result);
+		// Now download the data from this table as a csv
+		DownloadFromTableRequest request = new DownloadFromTableRequest();
+		request.setSql(sql);
+		request.setWriteHeader(true);
+		request.setIncludeRowIdAndRowVersion(true);
+		AsynchronousJobStatus status = asynchJobStatusManager.startJob(adminUserInfo, request);
+		// Wait for the job to complete.
+		status = waitForStatus(status);
+		assertNotNull(status);
+		assertNotNull(status.getResponseBody());
+		assertTrue(status.getResponseBody() instanceof DownloadFromTableResult);
+		DownloadFromTableResult response = (DownloadFromTableResult) status.getResponseBody();
+		assertNotNull(response.getEtag());
+		assertNotNull(response.getResultsFileHandleId());
+		assertEquals(tableId, response.getTableId());
+		// Get the filehandle
+		fileHandle = (S3FileHandle) fileHandleDao.get(response.getResultsFileHandleId());
+		checkResults(fileHandle, Lists.<String[]> newArrayList(), true);
 	}
 
 	@Test
