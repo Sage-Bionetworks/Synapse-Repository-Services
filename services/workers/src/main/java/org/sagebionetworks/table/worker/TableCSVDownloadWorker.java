@@ -123,7 +123,7 @@ public class TableCSVDownloadWorker implements Worker {
 			// At this point we have the entire CSV written to a local file.
 			// Upload the file to S3 can create the filehandle.
 			long startProgress = totalProgress/2; // we are half done at this point
-			double bytesPerRow = temp.length()/rowCount;
+			double bytesPerRow = rowCount == 0 ? 1 : temp.length() / rowCount;
 			// This will keep the progress updated as the file is uploaded.
 			UploadProgressListener uploadListener = new UploadProgressListener(workerProgress, message, startProgress, bytesPerRow, totalProgress, asynchJobStatusManager, status.getJobId());
 			S3FileHandle fileHandle = fileHandleManager.multipartUploadLocalFile(user, temp, TEXT_CSV, uploadListener);
