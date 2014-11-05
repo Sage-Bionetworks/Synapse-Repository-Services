@@ -397,7 +397,29 @@ public interface NodeDAO {
 	 * @param offset
 	 * @return
 	 */
-	public PaginatedResults<ProjectHeader> getProjectHeaders(String userToLookupId, String currentUserId, int limit, int offset);
+	public PaginatedResults<ProjectHeader> getMyProjectHeaders(String currentUserId, int limit, int offset);
+
+	/**
+	 * Get the list of projects another user has an interest in
+	 * 
+	 * @param userToLookupId user to get listing for
+	 * @param currentUserId optional current user that is doing the lookup for another user
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	public PaginatedResults<ProjectHeader> getProjectHeadersForUser(String userToLookupId, String currentUserId, int limit, int offset);
+
+	/**
+	 * Get the list of projects a team has an interest in
+	 * 
+	 * @param userToLookupId user to get listing for
+	 * @param currentUserId optional current user that is doing the lookup for another user
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	public PaginatedResults<ProjectHeader> getProjectHeadersForTeam(String teamToLookupId, String currentUserId, int limit, int offset);
 
 	long getCount();
 }
