@@ -71,30 +71,30 @@ public class QueryUtils {
 	 * @param userInfo
 	 * @param parameters a mutable parameter list
 	 * @param nodeAlias TODO
+	 * @param groupIndexToStartFrom
 	 * @return
 	 * @throws DatastoreException
 	 */
-	public static String buildAuthorizationFilter(UserInfo userInfo, Map<String, Object> parameters, String nodeAlias) throws DatastoreException {
-		if (userInfo == null)
-			throw new IllegalArgumentException("UserInfo cannot be null");
+	public static String buildAuthorizationFilter(boolean isAdmin, Set<Long> groups, Map<String, Object> parameters, String nodeAlias,
+			int groupIndexToStartFrom)
+			throws DatastoreException {
 		if (parameters == null)
 			throw new IllegalArgumentException("Parameters cannot be null");
 		// First off, if the user is an administrator then there is no filter
-		if (userInfo.isAdmin()) {
+		if (isAdmin) {
 			return "";
 		}
 		// For all other cases we build up a filter
-		Set<Long> groups = userInfo.getGroups();
 		if (groups == null)
 			throw new IllegalArgumentException("User's groups cannot be null");
 		if (groups.size() < 1)
 			throw new IllegalArgumentException("User must belong to at least one group");
-		String sql = AuthorizationSqlUtil.authorizationSQL(groups.size());
+		String sql = AuthorizationSqlUtil.authorizationSQL(groups.size(), groupIndexToStartFrom);
 		// Bind the variables
 		parameters.put(AuthorizationSqlUtil.ACCESS_TYPE_BIND_VAR, ACCESS_TYPE.READ.name());
 		// Bind each group
 		Iterator<Long> it = groups.iterator();
-		int index = 0;
+		int index = groupIndexToStartFrom;
 		while (it.hasNext()) {
 			Long ug = it.next();
 			if (ug == null)
