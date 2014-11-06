@@ -32,20 +32,14 @@ import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOProjectStat;
 import org.sagebionetworks.repo.model.migration.MigrationType;
-@Table(name = V2_TABLE_WIKI_ATTACHMENT_RESERVATION)//, constraints={"UNIQUE KEY `V2_WIKI_UNIQUE_FILE_HANDLE_ID` (`"+V2_COL_WIKI_ATTACHMENT_RESERVATION_ID+"`, '" + V2_COL_WIKI_ATTACHMENT_RESERVATION_FILE_HANDLE_ID + "')"}) // TODO
+@Table(name = V2_TABLE_WIKI_ATTACHMENT_RESERVATION, constraints={"UNIQUE KEY `V2_WIKI_UNIQUE_FILE_HANDLE_ID` (`"+V2_COL_WIKI_ATTACHMENT_RESERVATION_ID+"`, `" + V2_COL_WIKI_ATTACHMENT_RESERVATION_FILE_HANDLE_ID + "`)"}) // TODO
 public class V2DBOWikiAttachmentReservation implements MigratableDatabaseObject<V2DBOWikiAttachmentReservation, V2DBOWikiAttachmentReservation> {
-//	private static final FieldColumn[] FIELDS = new FieldColumn[] {
-//		new FieldColumn("wikiId", V2_COL_WIKI_ATTACHMENT_RESERVATION_ID, true).withIsBackupId(true),
-//		new FieldColumn("fileHandleId", V2_COL_WIKI_ATTACHMENT_RESERVATION_FILE_HANDLE_ID, true),
-//		new FieldColumn("timeStamp", V2_COL_WIKI_ATTACHMENT_RESERVATION_TIMESTAMP),
-//	};
 
 	@Field(name = V2_COL_WIKI_ATTACHMENT_RESERVATION_ID, primary = true, backupId = true, nullable = false)	// TODO: size 20?
 	@ForeignKey(name = "V2_WIKI_ATTACH_RESERVE_FK", table = V2_TABLE_WIKI_PAGE, field = V2_COL_WIKI_ID, cascadeDelete = true)
 	private Long wikiId;
 	
-	// TODO: Size 20?
-	@Field(name = V2_COL_WIKI_ATTACHMENT_RESERVATION_FILE_HANDLE_ID, primary = true, nullable = false)	// TODO: UNIQUE KEY `V2_WIKI_UNIQUE_FILE_HANDLE_ID` (`WIKI_ID`,`FILE_HANDLE_ID`)
+	@Field(name = V2_COL_WIKI_ATTACHMENT_RESERVATION_FILE_HANDLE_ID, primary = true, nullable = false)
 	@ForeignKey(name = "V2_WIKI_FILE_HAND_RESERVE_FK", table = TABLE_FILES, field = COL_FILES_ID, cascadeDelete = true)
 	private Long fileHandleId;
 	

@@ -48,7 +48,7 @@ public class V2DBOWikiPage implements MigratableDatabaseObject<V2DBOWikiPage, V2
 	@Field(name = V2_COL_WIKI_ETAG, nullable = false, varchar = 36, etag = true)
 	private String etag;
 	
-	@Field(name = V2_COL_WIKI_TITLE, varchar = 256, defaultNull = true)//, sql = "CHARACTER SET latin1 COLLATE latin1_bin")
+	@Field(name = V2_COL_WIKI_TITLE, varchar = 256, defaultNull = true)
 	private String title;
 	
 	@Field(name = V2_COL_WIKI_CREATED_BY, nullable = false)	// TODO: size 20

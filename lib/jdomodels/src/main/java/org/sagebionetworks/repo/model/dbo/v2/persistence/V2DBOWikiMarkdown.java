@@ -56,7 +56,7 @@ public class V2DBOWikiMarkdown implements MigratableDatabaseObject<V2DBOWikiMark
 	@ForeignKey(name = "V2_WIKI_MARKDOWN_FILE_HAND_FK", table = TABLE_FILES, field = COL_FILES_ID, cascadeDelete = true)
 	private Long fileHandleId;
 	
-	@Field(name = V2_COL_WIKI_MARKDOWN_VERSION_NUM, primary = true, nullable = false)	// TODO: UNIQUE KEY `V2_WIKI_UNIQUE_MARKDOWN_VERSION` (`WIKI_ID`,`MARKDOWN_VERSION`)
+	@Field(name = V2_COL_WIKI_MARKDOWN_VERSION_NUM, primary = true, nullable = false)
 	private Long markdownVersion;
 	
 	@Field(name = V2_COL_WIKI_MARKDOWN_MODIFIED_ON, nullable = false)
@@ -65,7 +65,7 @@ public class V2DBOWikiMarkdown implements MigratableDatabaseObject<V2DBOWikiMark
 	@Field(name = V2_COL_WIKI_MARKDOWN_MODIFIED_BY, nullable = false)
 	private Long modifiedBy;
 	
-	@Field(name = V2_COL_WIKI_MARKDOWN_TITLE, varchar = 256)//, sql = "SET latin1 COLLATE latin1_bin DEFAULT NULL")	// TODO: default null
+	@Field(name = V2_COL_WIKI_MARKDOWN_TITLE, varchar = 256)
 	private String title;
 	
 	@Field(name = V2_COL_WIKI_MARKDOWN_ATTACHMENT_ID_LIST, type = "mediumblob", defaultNull = true)	// TODO: default null
