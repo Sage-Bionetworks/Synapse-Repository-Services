@@ -4,7 +4,9 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_MARKDOWN_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_MARKDOWN_VERSION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_MARKDOWN_VERSION_NUM;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_MODIFIED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_MODIFIED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_PARENT_ID;
@@ -45,7 +47,7 @@ public class V2DBOWikiPage implements MigratableDatabaseObject<V2DBOWikiPage, V2
 	@Field(name = V2_COL_WIKI_ID, primary = true, nullable = false, backupId = true)	// TODO: size 20
 	private Long id;
 	
-	@Field(name = V2_COL_WIKI_ETAG, nullable = false, varchar = 36, etag = true)
+	@Field(name = V2_COL_WIKI_ETAG, nullable = false, etag = true)
 	private String etag;
 	
 	@Field(name = V2_COL_WIKI_TITLE, varchar = 256, defaultNull = true)
@@ -217,6 +219,97 @@ public class V2DBOWikiPage implements MigratableDatabaseObject<V2DBOWikiPage, V2
 		return list;
 	}
 	
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result
+				+ ((createdBy == null) ? 0 : createdBy.hashCode());
+		result = prime * result
+				+ ((createdOn == null) ? 0 : createdOn.hashCode());
+		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
+		result = prime * result + ((id == null) ? 0 : id.hashCode());
+		result = prime * result + ((markdownVersion == null) ? 0 : markdownVersion.hashCode());
+		result = prime * result
+				+ ((modifiedBy == null) ? 0 : modifiedBy.hashCode());
+		result = prime * result
+				+ ((modifiedOn == null) ? 0 : modifiedOn.hashCode());
+		result = prime * result
+				+ ((parentId == null) ? 0 : parentId.hashCode());
+		result = prime * result + ((rootId == null) ? 0 : rootId.hashCode());
+		result = prime * result + ((title == null) ? 0 : title.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		V2DBOWikiPage other = (V2DBOWikiPage) obj;
+		if (createdBy == null) {
+			if (other.createdBy != null)
+				return false;
+		} else if (!createdBy.equals(other.createdBy))
+			return false;
+		if (createdOn == null) {
+			if (other.createdOn != null)
+				return false;
+		} else if (!createdOn.equals(other.createdOn))
+			return false;
+		if (etag == null) {
+			if (other.etag != null)
+				return false;
+		} else if (!etag.equals(other.etag))
+			return false;
+		if (id == null) {
+			if (other.id != null)
+				return false;
+		} else if (!id.equals(other.id))
+			return false;
+		if (markdownVersion == null) {
+			if (other.markdownVersion != null)
+				return false;
+		} else if (!markdownVersion.equals(other.markdownVersion))
+			return false;
+		if (modifiedBy == null) {
+			if (other.modifiedBy != null)
+				return false;
+		} else if (!modifiedBy.equals(other.modifiedBy))
+			return false;
+		if (modifiedOn == null) {
+			if (other.modifiedOn != null)
+				return false;
+		} else if (!modifiedOn.equals(other.modifiedOn))
+			return false;
+		if (parentId == null) {
+			if (other.parentId != null)
+				return false;
+		} else if (!parentId.equals(other.parentId))
+			return false;
+		if (rootId == null) {
+			if (other.rootId != null)
+				return false;
+		} else if (!rootId.equals(other.rootId))
+			return false;
+		if (title == null) {
+			if (other.title != null)
+				return false;
+		} else if (!title.equals(other.title))
+			return false;
+		return true;
+	}
+
+	@Override
+	public String toString() {
+		return "DBOWikiPage [id=" + id + ", etag=" + etag + ", title=" + title
+				+ ", createdBy=" + createdBy + ", createdOn=" + createdOn
+				+ ", modifiedBy=" + modifiedBy + ", modifiedOn=" + modifiedOn
+				+ ", parentId=" + parentId + ", markdownVersion=" + markdownVersion + "]";
+	}
 	
 }
 
