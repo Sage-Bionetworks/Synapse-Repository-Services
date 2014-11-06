@@ -124,7 +124,13 @@ public class TableWorker implements Worker {
 					// Create or update.
 					String tableId = change.getObjectId();
 					// make sure the table is not in the trash
-					if (nodeInheritanceManager.isNodeInTrash(tableId)) {
+					try {
+						if (nodeInheritanceManager.isNodeInTrash(tableId)) {
+							processedMessages.add(message);
+							continue;
+						}
+					} catch (NotFoundException e) {
+						// if the table no longer exists, we want to stop trying
 						processedMessages.add(message);
 						continue;
 					}
