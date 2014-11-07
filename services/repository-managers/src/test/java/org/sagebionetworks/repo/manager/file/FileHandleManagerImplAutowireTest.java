@@ -402,7 +402,7 @@ public class FileHandleManagerImplAutowireTest {
 		ExternalUploadDestination externalUploadDestination = (ExternalUploadDestination) uploadDestinations.get(0);
 		assertEquals(UploadType.SFTP, externalUploadDestination.getUploadType());
 		assertEquals("upload here", externalUploadDestination.getBanner());
-		String expectedStart = URL + "/root/" + projectName + "/child/child2%20%20a_-nd.%2Bmore%28%29/";
+		String expectedStart = URL + "/" + projectName + "/child/child2%20%20a_-nd.%2Bmore%28%29/";
 		assertEquals(expectedStart, externalUploadDestination.getUrl().substring(0, expectedStart.length()));
 	}
 

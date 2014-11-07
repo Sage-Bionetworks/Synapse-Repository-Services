@@ -645,6 +645,10 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		}
 		// need to add subfolders here if supported
 		if (BooleanUtils.isTrue(externalUploadDestinationSetting.getSupportsSubfolders())) {
+			if (nodePath.size() > 0) {
+				// the first path in the node path is always "root". We don't want that to show up in the file path
+				nodePath = nodePath.subList(1, nodePath.size());
+			}
 			for (EntityHeader node : nodePath) {
 				try {
 					// we need to url encode, but r client does not like '+' for space. So encode with java encoder and
