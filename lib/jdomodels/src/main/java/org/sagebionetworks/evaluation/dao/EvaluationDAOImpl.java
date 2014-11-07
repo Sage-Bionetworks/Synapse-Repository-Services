@@ -419,7 +419,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		param.addValue(LIMIT_PARAM_NAME, limit);	
 		param.addValue(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, ObjectType.EVALUATION.name());
 		StringBuilder sql = new StringBuilder(SELECT_AVAILABLE_EVALUATIONS_PAGINATED_PREFIX);
-		sql.append(AuthorizationSqlUtil.authorizationSQLWhere(principalIds.size()));
+		sql.append(AuthorizationSqlUtil.authorizationSQLWhere(principalIds.size(), 0));
 		if (evaluationIds==null || evaluationIds.isEmpty()) {
 			sql.append(SELECT_AVAILABLE_EVALUATIONS_PAGINATED_SUFFIX);
 		} else {
@@ -446,7 +446,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		param.addValue(AuthorizationSqlUtil.ACCESS_TYPE_BIND_VAR, ACCESS_TYPE.SUBMIT.name());
 		param.addValue(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, ObjectType.EVALUATION.name());
 		StringBuilder sql = new StringBuilder(SELECT_AVAILABLE_EVALUATIONS_COUNT_PREFIX);
-		sql.append(AuthorizationSqlUtil.authorizationSQLWhere(principalIds.size())); 
+		sql.append(AuthorizationSqlUtil.authorizationSQLWhere(principalIds.size(), 0));
 		if (evaluationIds==null || evaluationIds.isEmpty()) {
 			sql.append(SELECT_AVAILABLE_EVALUATIONS_COUNT_SUFFIX);
 		} else {
