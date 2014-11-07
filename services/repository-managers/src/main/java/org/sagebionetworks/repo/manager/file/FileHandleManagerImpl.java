@@ -3,8 +3,9 @@ package org.sagebionetworks.repo.manager.file;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.MalformedURLException;
+import java.io.UnsupportedEncodingException;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
@@ -645,7 +646,14 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		// need to add subfolders here if supported
 		if (BooleanUtils.isTrue(externalUploadDestinationSetting.getSupportsSubfolders())) {
 			for (EntityHeader node : nodePath) {
-				url.append(node.getName()).append('/');
+				try {
+					// we need to url encode, but r client does not like '+' for space. So encode with java encoder and
+					// then replace '+' with %20
+					url.append(URLEncoder.encode(node.getName(), "UTF-8").replace("+", "%20")).append('/');
+				} catch (UnsupportedEncodingException e) {
+					// shouldn't happen
+					throw new IllegalArgumentException(e.getMessage(), e);
+				}
 			}
 		}
 		url.append(filename);
