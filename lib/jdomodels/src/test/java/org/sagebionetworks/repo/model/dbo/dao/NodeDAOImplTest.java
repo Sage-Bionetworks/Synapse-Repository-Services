@@ -33,7 +33,6 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.model.message.ChangeType;
-import org.sagebionetworks.repo.model.principal.BootstrapAlias;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -76,6 +75,9 @@ public class NodeDAOImplTest {
 
 	@Autowired
 	private GroupMembersDAO groupMembersDAO;
+
+	@Autowired
+	private TeamDAO teamDAO;
 
 	@Autowired
 	private ProjectStatsDAO projectStatsDAO;
@@ -129,6 +131,10 @@ public class NodeDAOImplTest {
 		user.setIsIndividual(false);
 		group = userGroupDAO.create(user).toString();
 		userGroupsToDelete.add(group);
+		Team team = new Team();
+		team.setName("team-" + new Random().nextInt());
+		team.setId(group);
+		teamDAO.create(team);
 
 		groupMembersDAO.addMembers(group, Lists.newArrayList(user1));
 		groupMembersDAO.addMembers(group, Lists.newArrayList(user3));
@@ -136,6 +142,9 @@ public class NodeDAOImplTest {
 	
 	@After
 	public void after() throws Exception {
+		if (group != null) {
+			teamDAO.delete(group);
+		}
 		if(toDelete != null && nodeDao != null){
 			for(String id:  toDelete){
 				// Delete each
@@ -2088,6 +2097,10 @@ public class NodeDAOImplTest {
 
 	@Test
 	public void testGetProjectHeaders() throws Exception {
+		UserInfo user1Info = createUserInfo(user1);
+		UserInfo user2Info = createUserInfo(user2);
+		UserInfo user3Info = createUserInfo(user3);
+
 		String owned = createProject("testGetProjectHeaders.name1", user1);
 		toDelete.add(owned);
 		Node ownedProject = nodeDao.getNode(owned);
@@ -2133,13 +2146,13 @@ public class NodeDAOImplTest {
 			}
 		};
 
-		PaginatedResults<ProjectHeader> projectHeaders = nodeDao.getMyProjectHeaders(user1, 100, 0);
+		PaginatedResults<ProjectHeader> projectHeaders = nodeDao.getMyProjectHeaders(user1Info, 100, 0);
 		List<String> projectIds = Lists.transform(projectHeaders.getResults(), transformToId);
 		assertEquals(Lists.newArrayList(publicProject, subFolderProject, groupParticipate, participate, owned), projectIds);
 
 		List<String> projectIds2 = Lists.newArrayList();
 		for (int i = 0; i < 5; i++) {
-			projectHeaders = nodeDao.getMyProjectHeaders(user1, 1, i);
+			projectHeaders = nodeDao.getMyProjectHeaders(user1Info, 1, i);
 			assertEquals(1L, projectHeaders.getResults().size());
 			assertEquals(5L, projectHeaders.getTotalNumberOfResults());
 			projectIds2.add(projectHeaders.getResults().get(0).getId());
@@ -2157,17 +2170,32 @@ public class NodeDAOImplTest {
 		projectStat = new ProjectStat(KeyFactory.stringToKey(groupParticipate), KeyFactory.stringToKey(user2), new Date(2000));
 		projectStatsDAO.update(projectStat);
 
-		projectHeaders = nodeDao.getMyProjectHeaders(user1, 100, 0);
+		projectHeaders = nodeDao.getMyProjectHeaders(user1Info, 100, 0);
 		assertEquals(Lists.newArrayList(owned, participate, publicProject, subFolderProject, groupParticipate),
 				Lists.transform(projectHeaders.getResults(), transformToId));
 
 		// user3 only has access to group project
-		projectHeaders = nodeDao.getProjectHeadersForUser(user1, user3, 100, 0);
+		projectHeaders = nodeDao.getProjectHeadersForUser(user1Info, user3Info, 100, 0);
 		assertEquals(Lists.newArrayList(publicProject, groupParticipate), Lists.transform(projectHeaders.getResults(), transformToId));
 
 		// group only has access to group project
-		projectHeaders = nodeDao.getProjectHeadersForTeam(group, user1, 100, 0);
+		projectHeaders = nodeDao.getProjectHeadersForTeam(teamDAO.get(group), user1Info, 100, 0);
 		assertEquals(Lists.newArrayList(groupParticipate), Lists.transform(projectHeaders.getResults(), transformToId));
+	}
+
+	private UserInfo createUserInfo(String user) throws NotFoundException {
+		UserInfo userInfo = new UserInfo(false, Long.parseLong(user));
+		Set<Long> groups = new HashSet<Long>();
+		groups.add(BOOTSTRAP_PRINCIPAL.AUTHENTICATED_USERS_GROUP.getPrincipalId());
+		groups.add(Long.parseLong(user));
+		groups.add(BOOTSTRAP_PRINCIPAL.PUBLIC_GROUP.getPrincipalId());
+		// Add all groups the user belongs to
+		List<UserGroup> groupFromDAO = groupMembersDAO.getUsersGroups(user);
+		for (UserGroup ug : groupFromDAO) {
+			groups.add(Long.parseLong(ug.getId()));
+		}
+		userInfo.setGroups(groups);
+		return userInfo;
 	}
 
 	private String createProject(String projectName, String user) throws Exception {
@@ -2177,9 +2205,11 @@ public class NodeDAOImplTest {
 	private String createProject(String projectName, String user, String parentId) throws Exception {
 		Thread.sleep(2); // ensure ordering by creation date
 		Node project = NodeTestUtils.createNew(projectName + "-" + new Random().nextInt(), Long.parseLong(user));
+		project.setId(KeyFactory.keyToString(idGenerator.generateNewId()));
 		project.setParentId(parentId);
 		String projectId = this.nodeDao.createNew(project);
 		toDelete.add(projectId);
+		nodeInheritanceDAO.addBeneficiary(projectId, projectId);
 		return projectId;
 	}
 
@@ -2196,7 +2226,9 @@ public class NodeDAOImplTest {
 		acl.setId(entity);
 		acl.setCreationDate(new Date());
 		accessControlListDAO.create(acl, ObjectType.ENTITY);
+		nodeInheritanceDAO.addBeneficiary(entity, entity);
 	}
+
 
 	/*
 	 * Private Methods
