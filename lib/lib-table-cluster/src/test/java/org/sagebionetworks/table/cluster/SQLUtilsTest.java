@@ -77,6 +77,13 @@ public class SQLUtilsTest {
 	}
 	
 	@Test
+	public void testGetSQLTypeForColumnTypeLink() {
+		String expected = "varchar(13) CHARACTER SET utf8 COLLATE utf8_general_ci";
+		String sql = SQLUtils.getSQLTypeForColumnType(ColumnType.LINK, 13L);
+		assertEquals(expected, sql);
+	}
+
+	@Test
 	public void testGetSQLTypeForColumnTypeLong(){
 		String expected = "bigint(20)";
 		String sql = SQLUtils.getSQLTypeForColumnType(ColumnType.INTEGER, null);
@@ -118,6 +125,8 @@ public class SQLUtilsTest {
 			Long size = null;
 			if(ColumnType.STRING == type){
 				size = 100L;
+			} else if (type == ColumnType.LINK) {
+				size = 135L;
 			}
 			String sql = SQLUtils.getSQLTypeForColumnType(type, size);
 			assertNotNull(sql);
@@ -216,6 +225,13 @@ public class SQLUtilsTest {
 		assertEquals(expected, sql);
 	}
 	
+	@Test
+	public void testGetSQLDefaultsForLink() {
+		String expected = "DEFAULT 'a link'";
+		String sql = SQLUtils.getSQLDefaultForColumnType(ColumnType.LINK, "a link");
+		assertEquals(expected, sql);
+	}
+
 	@Test
 	public void testGetSQLDefaultsForDouble(){
 		String expected = "DEFAULT 1.3888998E-13";

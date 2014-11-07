@@ -166,6 +166,7 @@ public class ColumnModelUtlis {
 			}
 			switch (clone.getColumnType()) {
 			case STRING:
+			case LINK:
 				if(clone.getMaximumSize() == null){
 					// Use the default value
 					clone.setMaximumSize(DEFAULT_MAX_STRING_SIZE);

@@ -780,7 +780,7 @@ public class TableRowManagerImplTest {
 		selectStarResult.setNextPageToken(null);
 		selectStarResult.setQueryResults(selectStar);
 
-		runQueryBundleTest("select * from " + tableId, selectStar, 10L, models.toString(), 36630L);
+		runQueryBundleTest("select * from " + tableId, selectStar, 10L, models.toString(), 24154L);
 	}
 
 	@Test
@@ -795,7 +795,7 @@ public class TableRowManagerImplTest {
 		selectStarResult.setQueryResults(selectStar);
 
 		runQueryBundleTest("select " + StringUtils.join(Lists.transform(models, TableModelTestUtils.convertToNameFunction), ",") + " from "
-				+ tableId, selectStar, 10L, models.toString(), 36630L);
+				+ tableId, selectStar, 10L, models.toString(), 24154L);
 	}
 
 	@Test

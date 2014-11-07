@@ -59,7 +59,7 @@ public class TableModelTestUtils {
 			cm.setColumnType(type);
 			cm.setName("i" + i);
 			cm.setId("" + i);
-			if (ColumnType.STRING == type) {
+			if (type == ColumnType.STRING || type == ColumnType.LINK) {
 				cm.setMaximumSize(47L);
 			}
 			if (hasDefaults) {
@@ -85,6 +85,9 @@ public class TableModelTestUtils {
 					break;
 				case STRING:
 					defaultValue = "defaultString";
+					break;
+				case LINK:
+					defaultValue = "defaultLink";
 					break;
 				default:
 					throw new IllegalStateException("huh? missing enum");
@@ -284,6 +287,8 @@ public class TableModelTestUtils {
 			}
 		case DOUBLE:
 			return "" + (i * 3.41 + 3.12 + (isUpdate ? 10000 : 0));
+		case LINK:
+			return (isUpdate ? "updatelink" : "link") + (8000 + i);
 		}
 		throw new IllegalArgumentException("Unknown ColumnType: " + cm.getColumnType());
 	}

@@ -144,7 +144,7 @@ public class TableIndexDAOImplTest {
 		assertEquals(404004l, row.get("_C4_"));
 		
 		// We should be able to update all of the rows
-		rows.get(4).setValues(Arrays.asList("update", "99.99", "3", "false", "123", "123", "syn123.3"));
+		rows.get(4).setValues(Arrays.asList("update", "99.99", "3", "false", "123", "123", "syn123.3", "link2"));
 		rows.get(4).setVersionNumber(5L);
 		// This should not fail
 		tableIndexDAO.createOrUpdateOrDeleteRows(set, allTypes);
@@ -251,14 +251,15 @@ public class TableIndexDAOImplTest {
 		assertNotNull(row);
 		assertEquals(new Long(100), row.getRowId());
 		assertEquals(new Long(3), row.getVersionNumber());
-		List<String> expectedValues = Arrays.asList("string0", "341003.12", "203000", "false", "404000", "505000", "syn606000.607000");
+		List<String> expectedValues = Arrays.asList("string0", "341003.12", "203000", "false", "404000", "505000", "syn606000.607000",
+				"link708000");
 		assertEquals(expectedValues, row.getValues());
 		// Second row
 		row = results.getRows().get(1);
 		assertNotNull(row);
 		assertEquals(new Long(101), row.getRowId());
 		assertEquals(new Long(3), row.getVersionNumber());
-		expectedValues = Arrays.asList("string1", "341006.53", "203001", "true", "404001", "505001", "syn606001.607001");
+		expectedValues = Arrays.asList("string1", "341006.53", "203001", "true", "404001", "505001", "syn606001.607001", "link708001");
 		assertEquals(expectedValues, row.getValues());
 	}
 
@@ -378,14 +379,14 @@ public class TableIndexDAOImplTest {
 		assertNotNull(row);
 		assertEquals(new Long(100), row.getRowId());
 		assertEquals(new Long(3), row.getVersionNumber());
-		List<String> expectedValues = Arrays.asList(null, null, null, null, null, null, null);
+		List<String> expectedValues = Arrays.asList(null, null, null, null, null, null, null, null);
 		assertEquals(expectedValues, row.getValues());
 		// Second row
 		row = results.getRows().get(1);
 		assertNotNull(row);
 		assertEquals(new Long(101), row.getRowId());
 		assertEquals(new Long(3), row.getVersionNumber());
-		expectedValues = Arrays.asList(null, null, null, null, null, null, null);
+		expectedValues = Arrays.asList(null, null, null, null, null, null, null, null);
 		assertEquals(expectedValues, row.getValues());
 	}
 
