@@ -132,7 +132,7 @@ public class FileHandleManagerImplAutowireTest {
 		String childId = entityManager.createEntity(userInfo, child, null);
 		entitiesToDelete.add(childId);
 		Folder child2 = new Folder();
-		child2.setName("child2  and.+more");
+		child2.setName("child2  a_-nd.+more()");
 		child2.setParentId(childId);
 		uploadFolder = entityManager.createEntity(userInfo, child2, null);
 		entitiesToDelete.add(uploadFolder);
@@ -402,7 +402,7 @@ public class FileHandleManagerImplAutowireTest {
 		ExternalUploadDestination externalUploadDestination = (ExternalUploadDestination) uploadDestinations.get(0);
 		assertEquals(UploadType.SFTP, externalUploadDestination.getUploadType());
 		assertEquals("upload here", externalUploadDestination.getBanner());
-		String expectedStart = URL + "/root/" + projectName + "/child/child2++and.%2Bmore/";
+		String expectedStart = URL + "/root/" + projectName + "/child/child2%20%20a_-nd.%2Bmore%28%29/";
 		assertEquals(expectedStart, externalUploadDestination.getUrl().substring(0, expectedStart.length()));
 	}
 
