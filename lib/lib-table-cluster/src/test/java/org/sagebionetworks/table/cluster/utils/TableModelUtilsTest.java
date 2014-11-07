@@ -427,6 +427,27 @@ public class TableModelUtilsTest {
 	}
 	
 	@Test
+	public void testValidateLink() {
+		ColumnModel cm = new ColumnModel();
+		cm.setColumnType(ColumnType.LINK);
+		cm.setMaximumSize(555L);
+		assertEquals("some link", TableModelUtils.validateRowValue("some link", cm, 0, 0));
+		char[] tooLarge = new char[(int) (cm.getMaximumSize() + 1)];
+		Arrays.fill(tooLarge, 'b');
+		try {
+			TableModelUtils.validateRowValue(new String(tooLarge), cm, 1, 4);
+			fail("should have failed");
+		} catch (IllegalArgumentException e) {
+			assertEquals("Value at [1,4] was not a valid LINK. Link '" + new String(tooLarge)
+					+ "' exceeds the maximum length of 555 characters.", e.getMessage());
+		}
+		assertEquals(null, TableModelUtils.validateRowValue(null, cm, 2, 2));
+		// Set the default to boolean
+		cm.setDefaultValue("-89.3e12");
+		assertEquals("-89.3e12", TableModelUtils.validateRowValue(null, cm, 2, 3));
+	}
+
+	@Test
 	public void testValidateEnum() {
 		ColumnModel cm = new ColumnModel();
 		cm.setColumnType(ColumnType.STRING);
@@ -456,11 +477,21 @@ public class TableModelUtilsTest {
 	}
 
 	@Test
+	public void testValidateStringColumnEmptyLink() {
+		ColumnModel cm = new ColumnModel();
+		cm.setColumnType(ColumnType.LINK);
+		cm.setMaximumSize(555L);
+		assertEquals("", TableModelUtils.validateRowValue("", cm, 0, 0));
+	}
+
+	@Test
 	public void testValidateNonColumnEmptyString() {
 		for (ColumnType type : ColumnType.values()) {
 			ColumnModel cm = new ColumnModel();
 			// String are allowed to be empty
 			if (ColumnType.STRING.equals(type))
+				continue;
+			if (ColumnType.LINK.equals(type))
 				continue;
 			cm.setColumnType(type);
 			cm.setMaximumSize(555L);
@@ -830,6 +861,15 @@ public class TableModelUtilsTest {
 	}
 	
 	@Test
+	public void testCalculateMaxSizeForTypeLink() throws UnsupportedEncodingException {
+		long maxSize = 444;
+		char[] array = new char[(int) maxSize];
+		Arrays.fill(array, Character.MAX_VALUE);
+		int expected = new String(array).getBytes("UTF-8").length;
+		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.LINK, maxSize));
+	}
+	
+	@Test
 	public void testCalculateMaxSizeForTypeBoolean() throws UnsupportedEncodingException {
 		int expected = new String("false").getBytes("UTF-8").length;
 		assertEquals(expected, TableModelUtils.calculateMaxSizeForType(ColumnType.BOOLEAN, null));
@@ -875,6 +915,9 @@ public class TableModelUtilsTest {
 			if (ColumnType.STRING == ct) {
 				maxSize = 14L;
 			}
+			if (ColumnType.LINK == ct) {
+				maxSize = 32L;
+			}
 			TableModelUtils.calculateMaxSizeForType(ct, maxSize);
 		}
 	}
@@ -883,7 +926,7 @@ public class TableModelUtilsTest {
 	public void testCalculateMaxRowSize() {
 		List<ColumnModel> all = TableModelTestUtils.createOneOfEachType();
 		int allBytes = TableModelUtils.calculateMaxRowSize(all);
-		assertEquals(273, allBytes);
+		assertEquals(414, allBytes);
 	}
 
 	@Test
