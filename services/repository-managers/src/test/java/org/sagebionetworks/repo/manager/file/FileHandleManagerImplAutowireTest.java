@@ -14,6 +14,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Random;
 import java.util.UUID;
 
 import org.apache.commons.fileupload.FileItemIterator;
@@ -109,6 +110,8 @@ public class FileHandleManagerImplAutowireTest {
 
 	private String projectId;
 	private String uploadFolder;
+
+	private String projectName;
 	
 	@Before
 	public void before() throws Exception{
@@ -119,7 +122,8 @@ public class FileHandleManagerImplAutowireTest {
 		userInfo.getGroups().add(BOOTSTRAP_PRINCIPAL.CERTIFIED_USERS.getPrincipalId());
 		
 		Project project = new Project();
-		project.setName("project");
+		projectName = "project" + new Random().nextInt();
+		project.setName(projectName);
 		projectId = entityManager.createEntity(userInfo, project, null);
 		entitiesToDelete.add(projectId);
 		Folder child = new Folder();
@@ -128,7 +132,7 @@ public class FileHandleManagerImplAutowireTest {
 		String childId = entityManager.createEntity(userInfo, child, null);
 		entitiesToDelete.add(childId);
 		Folder child2 = new Folder();
-		child2.setName("child2");
+		child2.setName("child2  and.+more");
 		child2.setParentId(childId);
 		uploadFolder = entityManager.createEntity(userInfo, child2, null);
 		entitiesToDelete.add(uploadFolder);
@@ -398,7 +402,8 @@ public class FileHandleManagerImplAutowireTest {
 		ExternalUploadDestination externalUploadDestination = (ExternalUploadDestination) uploadDestinations.get(0);
 		assertEquals(UploadType.SFTP, externalUploadDestination.getUploadType());
 		assertEquals("upload here", externalUploadDestination.getBanner());
-		assertTrue(externalUploadDestination.getUrl().startsWith(URL + "/root/project/child/child2/"));
+		String expectedStart = URL + "/root/" + projectName + "/child/child2++and.%2Bmore/";
+		assertEquals(expectedStart, externalUploadDestination.getUrl().substring(0, expectedStart.length()));
 	}
 
 	/**

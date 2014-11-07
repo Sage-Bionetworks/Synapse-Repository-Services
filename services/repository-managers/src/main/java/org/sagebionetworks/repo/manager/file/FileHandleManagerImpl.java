@@ -3,8 +3,10 @@ package org.sagebionetworks.repo.manager.file;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
@@ -19,6 +21,7 @@ import org.apache.commons.fileupload.FileItemStream;
 import org.apache.commons.fileupload.FileUploadException;
 import org.apache.commons.fileupload.util.Streams;
 import org.apache.commons.lang.BooleanUtils;
+import org.apache.commons.lang.CharSet;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.StackConfiguration;
@@ -645,7 +648,12 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		// need to add subfolders here if supported
 		if (BooleanUtils.isTrue(externalUploadDestinationSetting.getSupportsSubfolders())) {
 			for (EntityHeader node : nodePath) {
-				url.append(node.getName()).append('/');
+				try {
+					url.append(URLEncoder.encode(node.getName(), "UTF-8")).append('/');
+				} catch (UnsupportedEncodingException e) {
+					// shouldn't happen
+					throw new IllegalArgumentException(e.getMessage(), e);
+				}
 			}
 		}
 		url.append(filename);
