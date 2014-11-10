@@ -39,6 +39,11 @@ public class V2DBOWikiOwner implements MigratableDatabaseObject<V2DBOWikiOwner, 
 	@ForeignKey(name = "V2_WIKI_OWNER_FK", table = V2_TABLE_WIKI_PAGE, field = V2_COL_WIKI_ID, cascadeDelete = true)
 	private Long rootWikiId;
 	
+	@Field(name = "ORDER_HINT",varchar = 256, defaultNull = true)
+	private String orderHint;
+	public void setOrderHint(String orderHint)	{	this.orderHint = orderHint;	}
+	public String getOrderHint()				{	return orderHint;			}
+	
 	private static TableMapping<V2DBOWikiOwner> tableMapping = AutoTableMapping.create(V2DBOWikiOwner.class);
 	
 	@Override
