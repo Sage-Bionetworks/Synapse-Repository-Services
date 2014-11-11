@@ -78,12 +78,17 @@ public class QueryUtils {
 	public static String buildAuthorizationFilter(boolean isAdmin, Set<Long> groups, Map<String, Object> parameters, String nodeAlias,
 			int groupIndexToStartFrom)
 			throws DatastoreException {
-		if (parameters == null)
-			throw new IllegalArgumentException("Parameters cannot be null");
 		// First off, if the user is an administrator then there is no filter
 		if (isAdmin) {
 			return "";
 		}
+		String sql = buildAuthorizationSelect(groups, parameters, groupIndexToStartFrom);
+		return nodeAlias + "." + SqlConstants.COL_NODE_BENEFACTOR_ID + " in (" + sql + ")";
+	}
+
+	public static String buildAuthorizationSelect(Set<Long> groups, Map<String, Object> parameters, int groupIndexToStartFrom) {
+		if (parameters == null)
+			throw new IllegalArgumentException("Parameters cannot be null");
 		// For all other cases we build up a filter
 		if (groups == null)
 			throw new IllegalArgumentException("User's groups cannot be null");
@@ -102,7 +107,7 @@ public class QueryUtils {
 			parameters.put(AuthorizationSqlUtil.BIND_VAR_PREFIX + index, ug);
 			index++;
 		}
-		return nodeAlias + "." + SqlConstants.COL_NODE_BENEFACTOR_ID + " in (" + sql + ")";
+		return sql;
 	}
 
 	/**
