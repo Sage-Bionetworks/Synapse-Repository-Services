@@ -13,7 +13,6 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 
@@ -24,7 +23,6 @@ import org.joda.time.DateTime;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.*;
-import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONodeType;
@@ -37,6 +35,7 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.query.jdo.QueryUtils;
+import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.util.ValidateArgument;
 import org.springframework.beans.factory.InitializingBean;
@@ -63,7 +62,6 @@ import com.google.common.collect.Sets;
 public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
 	private static final String USER_ID_PARAM_NAME = "user_id_param";
-	private static final String CURRENT_USER_ID_PARAM_NAME = "current_user_id_param";
 	private static final String IDS_PARAM_NAME = "ids_param";
 	private static final String PROJECT_ID_PARAM_NAME = "project_id_param";
 
@@ -85,14 +83,17 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 	private static final String OWNER_ID_PARAM_NAME = "OWNER_ID";
 	// selecting and counting the projects a user owns
 
-	private static final String COUNT_PROJECTS_SQL1 = "select count(*) from (" + " select distinct n." + COL_NODE_PROJECT_ID + " from "
-			+ TABLE_NODE + " n where ";
+	private static final String COUNT_PROJECTS_SQL1 = 
+		"select count(*) from (" + 
+			" select distinct n." + COL_NODE_PROJECT_ID + " from (";
 	private static final String SELECT_PROJECTS_SQL1 =
 		"select n." + COL_NODE_ID + ", n." + COL_NODE_NAME + ", n." + COL_NODE_TYPE + " from (" +
 			" select distinct n." + COL_NODE_PROJECT_ID +
-			" from " + TABLE_NODE + " n where ";
+			" from ( ";
 	private static final String SELECT_PROJECTS_SQL2 =
-			" and n.PROJECT_ID is not null" +
+			" ) acls" +
+			" join " + TABLE_NODE + " n on n." + COL_NODE_BENEFACTOR_ID + " = acls." + COL_ACL_ID +
+			" where n." + COL_NODE_PROJECT_ID + " is not null" +
 		" ) pids" +
 		" join " + TABLE_NODE + " n on n." + COL_NODE_ID + " = pids." + COL_NODE_PROJECT_ID;
 	private static final String SELECT_PROJECTS_SQL_JOIN_STATS =
@@ -1306,7 +1307,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
 		Map<String, Object> parameters = Maps.newHashMap();
 		parameters.put(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, ObjectType.ENTITY.name());
-		String authForLookup = QueryUtils.buildAuthorizationFilter(false, userInfo.getGroups(), parameters, "n", 0);
+		String authForLookup = QueryUtils.buildAuthorizationSelect(userInfo.getGroups(), parameters, 0);
 
 		String pagingSql = QueryUtils.buildPaging(offset, limit, parameters);
 
@@ -1316,6 +1317,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 		String countSql = COUNT_PROJECTS_SQL1 + authForLookup + SELECT_PROJECTS_SQL2;
 		return getProjectHeaders(params, selectSql, countSql);
 	}
+			
 
 	@Override
 	public PaginatedResults<ProjectHeader> getProjectHeadersForUser(UserInfo userToLookup, UserInfo currentUser, int limit, int offset) {
@@ -1327,7 +1329,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
 		Map<String, Object> parameters = Maps.newHashMap();
 		parameters.put(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, ObjectType.ENTITY.name());
-		String authForLookup = QueryUtils.buildAuthorizationFilter(false, userToLookup.getGroups(), parameters, "n", 0);
+		String authForLookup = QueryUtils.buildAuthorizationSelect(userToLookup.getGroups(), parameters, 0);
 
 		parameters.put(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, ObjectType.ENTITY.name());
 		String auth2 = QueryUtils.buildAuthorizationFilter(currentUser.isAdmin(), currentUser.getGroups(), parameters, "n", userToLookup
@@ -1354,7 +1356,7 @@ public class NodeDAOImpl implements NodeDAO, InitializingBean {
 
 		Map<String, Object> parameters = Maps.newHashMap();
 		parameters.put(AuthorizationSqlUtil.RESOURCE_TYPE_BIND_VAR, ObjectType.ENTITY.name());
-		String authForLookup = QueryUtils.buildAuthorizationFilter(false, Sets.newHashSet(teamId), parameters, "n", 0);
+		String authForLookup = QueryUtils.buildAuthorizationSelect(Sets.newHashSet(teamId), parameters, 0);
 
 		String auth2 = QueryUtils.buildAuthorizationFilter(currentUser.isAdmin(), currentUser.getGroups(), parameters, "n", 1);
 
