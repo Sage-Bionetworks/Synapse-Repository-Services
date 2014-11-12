@@ -208,7 +208,7 @@
 				</executions>
 				<configuration>
 					<excludePackageNames>
-						org.sagebionetworks.repo.web.controller.metadata.*
+						org.sagebionetworks.repo.web.service.metadata.*
 						:org.sagebionetworks.repo.web.filter.*
 						:org.sagebionetworks.repo.web.service.*
 						:org.sagebionetworks.sweeper.log4j.*
