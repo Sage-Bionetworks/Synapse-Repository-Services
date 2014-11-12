@@ -266,7 +266,7 @@ public class TableIndexDAOImplTest {
 	@Test
 	public void testDoubleQuery() throws ParseException {
 		// Create the table
-		List<ColumnModel> doubleColumn = Lists.newArrayList(TableModelTestUtils.createColumn(1, "col1", ColumnType.DOUBLE));
+		List<ColumnModel> doubleColumn = Lists.newArrayList(TableModelTestUtils.createColumn(1L, "col1", ColumnType.DOUBLE));
 		tableIndexDAO.createOrUpdateTable(doubleColumn, tableId);
 		// Now add some data
 		List<Row> rows = TableModelTestUtils.createRows(doubleColumn, 5);

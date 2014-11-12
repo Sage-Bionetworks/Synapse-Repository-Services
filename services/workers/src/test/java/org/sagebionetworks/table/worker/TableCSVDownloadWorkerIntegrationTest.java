@@ -43,6 +43,8 @@ import org.sagebionetworks.repo.model.table.DownloadFromTableRequest;
 import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
 import org.sagebionetworks.repo.model.table.RowReferenceSet;
 import org.sagebionetworks.repo.model.table.RowSet;
+import org.sagebionetworks.repo.model.table.SortDirection;
+import org.sagebionetworks.repo.model.table.SortItem;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.model.table.TableState;
 import org.sagebionetworks.repo.model.table.TableUnavilableException;
@@ -149,6 +151,39 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		assertEquals(tableId, response.getTableId());
 		// Get the filehandle
 		fileHandle = (S3FileHandle) fileHandleDao.get(response.getResultsFileHandleId());
+		checkResults(fileHandle, input, true);
+	}
+
+	@Test
+	public void testRoundTripSorted() throws Exception{
+		List<String[]> input = createTable();
+		
+		String sql = "select * from "+tableId;
+		// Wait for the table to be ready
+		RowSet result = waitForConsistentQuery(adminUserInfo, sql);
+		assertNotNull(result);
+		// Now download the data from this table as a csv
+		DownloadFromTableRequest request = new DownloadFromTableRequest();
+		request.setSql(sql);
+		request.setWriteHeader(true);
+		request.setIncludeRowIdAndRowVersion(true);
+		SortItem sortItem = new SortItem();
+		sortItem.setColumn("c");
+		sortItem.setDirection(SortDirection.DESC);
+		request.setSort(Lists.newArrayList(sortItem));
+		AsynchronousJobStatus status = asynchJobStatusManager.startJob(adminUserInfo, request);
+		// Wait for the job to complete.
+		status = waitForStatus(status);
+		assertNotNull(status);
+		assertNotNull(status.getResponseBody());
+		assertTrue(status.getResponseBody() instanceof DownloadFromTableResult);
+		DownloadFromTableResult response = (DownloadFromTableResult) status.getResponseBody();
+		assertNotNull(response.getEtag());
+		assertNotNull(response.getResultsFileHandleId());
+		assertEquals(tableId, response.getTableId());
+		// Get the filehandle
+		fileHandle = (S3FileHandle) fileHandleDao.get(response.getResultsFileHandleId());
+		input = Lists.newArrayList(input.get(0), input.get(4), input.get(2), input.get(1), input.get(3));
 		checkResults(fileHandle, input, true);
 	}
 
@@ -268,7 +303,7 @@ public class TableCSVDownloadWorkerIntegrationTest {
 		long start = System.currentTimeMillis();
 		while(true){
 			try {
-				return tableRowManager.query(adminUserInfo, sql, 0L, 100L, true, false, true).getFirst().getQueryResults();
+				return tableRowManager.query(adminUserInfo, sql, null, 0L, 100L, true, false, true).getFirst().getQueryResults();
 			} catch (TableUnavilableException e) {
 				assertTrue("Timed out waiting for table index worker to make the table available.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
 				assertNotNull(e.getStatus());

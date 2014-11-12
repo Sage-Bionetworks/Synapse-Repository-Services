@@ -417,7 +417,7 @@ public class SQLUtilsTest {
 		List<ColumnModel> models = Lists.newArrayList();
 		for (int i = 0; i < types.length; i++) {
 			ColumnType columnType = types[i];
-			models.add(TableModelTestUtils.createColumn(i, "x", columnType));
+			models.add(TableModelTestUtils.createColumn((long) i, "x", columnType));
 		}
 		return StringUtils.join(Lists.newArrayList(SQLUtils.getColumnNames(models)), ",");
 	}

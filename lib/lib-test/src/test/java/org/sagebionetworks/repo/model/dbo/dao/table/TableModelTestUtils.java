@@ -336,8 +336,8 @@ public class TableModelTestUtils {
 	 */
 	public static List<ColumnModel> createColumsWithNames(String...names){
 		List<ColumnModel> results = new ArrayList<ColumnModel>(names.length);
-		for(int i=0; i<names.length; i++){
-			results.add(createColumn(i, names[i], ColumnType.STRING));
+		for (int i = 0; i < names.length; i++) {
+			results.add(createColumn((long) i, names[i], ColumnType.STRING));
 		}
 		return results;
 	}
@@ -346,9 +346,11 @@ public class TableModelTestUtils {
 		return createColumn(id, "col_" + id, ColumnType.STRING);
 	}
 
-	public static ColumnModel createColumn(long id, String name, ColumnType type) {
+	public static ColumnModel createColumn(Long id, String name, ColumnType type) {
 		ColumnModel cm = new ColumnModel();
-		cm.setId("" + id);
+		if (id != null) {
+			cm.setId(id.toString());
+		}
 		cm.setName(name);
 		cm.setColumnType(type);
 		if (type == ColumnType.STRING) {
