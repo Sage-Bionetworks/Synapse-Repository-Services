@@ -7,6 +7,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_ID;
+import static org.sagebionetworks.repo.model.table.TableConstants.ROW_VERSION;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -17,7 +19,6 @@ import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -33,11 +34,6 @@ import org.sagebionetworks.repo.model.table.IdRange;
 import org.sagebionetworks.repo.model.table.Row;
 import org.sagebionetworks.repo.model.table.RowReference;
 import org.sagebionetworks.repo.model.table.RowSet;
-
-import static org.sagebionetworks.repo.model.table.TableConstants.*;
-
-import org.sagebionetworks.repo.model.table.TableRowChange;
-import org.sagebionetworks.table.cluster.utils.TableModelUtils;
 import org.sagebionetworks.util.csv.CsvNullReader;
 
 import au.com.bytecode.opencsv.CSVWriter;
@@ -981,9 +977,9 @@ public class TableModelUtilsTest {
 	@Test
 	public void testCreateColumnNameHeaderWithoutRowId() {
 		List<ColumnModel> schema = new ArrayList<ColumnModel>();
-		schema.add(TableModelTestUtils.createColumn(123, "one", ColumnType.STRING));
-		schema.add(TableModelTestUtils.createColumn(345, "two", ColumnType.STRING));
-		schema.add(TableModelTestUtils.createColumn(567, "three", ColumnType.STRING));
+		schema.add(TableModelTestUtils.createColumn(123L, "one", ColumnType.STRING));
+		schema.add(TableModelTestUtils.createColumn(345L, "two", ColumnType.STRING));
+		schema.add(TableModelTestUtils.createColumn(567L, "three", ColumnType.STRING));
 		List<String> idList = Arrays.asList("567", "345");
 		boolean includeRowIdAndVersion = false;
 		String[] results = TableModelUtils.createColumnNameHeader(idList, schema, includeRowIdAndVersion);
@@ -994,9 +990,9 @@ public class TableModelUtilsTest {
 	@Test
 	public void testCreateColumnNameHeaderWithRowId() {
 		List<ColumnModel> schema = new ArrayList<ColumnModel>();
-		schema.add(TableModelTestUtils.createColumn(123, "one", ColumnType.STRING));
-		schema.add(TableModelTestUtils.createColumn(345, "two", ColumnType.STRING));
-		schema.add(TableModelTestUtils.createColumn(567, "three", ColumnType.STRING));
+		schema.add(TableModelTestUtils.createColumn(123L, "one", ColumnType.STRING));
+		schema.add(TableModelTestUtils.createColumn(345L, "two", ColumnType.STRING));
+		schema.add(TableModelTestUtils.createColumn(567L, "three", ColumnType.STRING));
 		List<String> idList = Arrays.asList("567", "123");
 		boolean includeRowIdAndVersion = true;
 		String[] results = TableModelUtils.createColumnNameHeader(idList, schema, includeRowIdAndVersion);
@@ -1030,18 +1026,18 @@ public class TableModelUtilsTest {
 
 	@Test
 	public void testTranslateFromQuery() {
-		assertEquals("false", TableModelUtils.translateRowValueFromQuery("0", TableModelTestUtils.createColumn(0, "", ColumnType.BOOLEAN)));
-		assertEquals("true", TableModelUtils.translateRowValueFromQuery("1", TableModelTestUtils.createColumn(0, "", ColumnType.BOOLEAN)));
+		assertEquals("false", TableModelUtils.translateRowValueFromQuery("0", TableModelTestUtils.createColumn(0L, "", ColumnType.BOOLEAN)));
+		assertEquals("true", TableModelUtils.translateRowValueFromQuery("1", TableModelTestUtils.createColumn(0L, "", ColumnType.BOOLEAN)));
 		assertEquals("something else",
-				TableModelUtils.translateRowValueFromQuery("something else", TableModelTestUtils.createColumn(0, "", ColumnType.BOOLEAN)));
-		assertEquals("0", TableModelUtils.translateRowValueFromQuery("0", TableModelTestUtils.createColumn(0, "", null)));
+				TableModelUtils.translateRowValueFromQuery("something else", TableModelTestUtils.createColumn(0L, "", ColumnType.BOOLEAN)));
+		assertEquals("0", TableModelUtils.translateRowValueFromQuery("0", TableModelTestUtils.createColumn(0L, "", null)));
 
 		// for all other types
 		for (ColumnType type : ColumnType.values()) {
 			if (type == ColumnType.BOOLEAN) {
 				continue;
 			}
-			assertEquals("anything", TableModelUtils.translateRowValueFromQuery("anything", TableModelTestUtils.createColumn(0, "", type)));
+			assertEquals("anything", TableModelUtils.translateRowValueFromQuery("anything", TableModelTestUtils.createColumn(0L, "", type)));
 		}
 	}
 

@@ -82,15 +82,17 @@ public class DBOResourceAccess implements MigratableDatabaseObject<DBOResourceAc
 	public void setUserGroupId(Long userGroupId) {
 		this.userGroupId = userGroupId;
 	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + ((owner == null) ? 0 : owner.hashCode());
-		result = prime * result + (int) (userGroupId ^ (userGroupId >>> 32));
+		result = prime * result + ((userGroupId == null) ? 0 : userGroupId.hashCode());
 		return result;
 	}
+
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj)
@@ -110,10 +112,14 @@ public class DBOResourceAccess implements MigratableDatabaseObject<DBOResourceAc
 				return false;
 		} else if (!owner.equals(other.owner))
 			return false;
-		if (userGroupId != other.userGroupId)
+		if (userGroupId == null) {
+			if (other.userGroupId != null)
+				return false;
+		} else if (!userGroupId.equals(other.userGroupId))
 			return false;
 		return true;
 	}
+
 	@Override
 	public String toString() {
 		return "DBOResourceAccess [id=" + id + ", owner=" + owner

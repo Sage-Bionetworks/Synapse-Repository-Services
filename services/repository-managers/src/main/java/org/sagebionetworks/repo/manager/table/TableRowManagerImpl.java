@@ -39,25 +39,7 @@ import org.sagebionetworks.repo.model.exception.LockUnavilableException;
 import org.sagebionetworks.repo.model.exception.ReadOnlyException;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.status.StatusEnum;
-import org.sagebionetworks.repo.model.table.ColumnModel;
-import org.sagebionetworks.repo.model.table.ColumnType;
-import org.sagebionetworks.repo.model.table.DownloadFromTableResult;
-import org.sagebionetworks.repo.model.table.PartialRow;
-import org.sagebionetworks.repo.model.table.PartialRowSet;
-import org.sagebionetworks.repo.model.table.Query;
-import org.sagebionetworks.repo.model.table.QueryBundleRequest;
-import org.sagebionetworks.repo.model.table.QueryNextPageToken;
-import org.sagebionetworks.repo.model.table.QueryResult;
-import org.sagebionetworks.repo.model.table.QueryResultBundle;
-import org.sagebionetworks.repo.model.table.Row;
-import org.sagebionetworks.repo.model.table.RowReference;
-import org.sagebionetworks.repo.model.table.RowReferenceSet;
-import org.sagebionetworks.repo.model.table.RowSelection;
-import org.sagebionetworks.repo.model.table.RowSet;
-import org.sagebionetworks.repo.model.table.TableFailedException;
-import org.sagebionetworks.repo.model.table.TableRowChange;
-import org.sagebionetworks.repo.model.table.TableStatus;
-import org.sagebionetworks.repo.model.table.TableUnavilableException;
+import org.sagebionetworks.repo.model.table.*;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.table.cluster.ConnectionFactory;
 import org.sagebionetworks.table.cluster.SQLTranslatorUtils;
@@ -522,14 +504,16 @@ public class TableRowManagerImpl implements TableRowManager {
 	}
 
 	@Override
-	public Pair<QueryResult, Long> query(UserInfo user, String query, Long offset, Long limit, boolean runQuery, boolean runCount,
-			boolean isConsistent) throws DatastoreException, NotFoundException, TableUnavilableException, TableFailedException {
-		return query(user, createQuery(query), offset, limit, runQuery, runCount, isConsistent);
+	public Pair<QueryResult, Long> query(UserInfo user, String query, List<SortItem> sortList, Long offset, Long limit, boolean runQuery,
+			boolean runCount, boolean isConsistent) throws DatastoreException, NotFoundException, TableUnavilableException,
+			TableFailedException {
+		return query(user, createQuery(query, sortList), offset, limit, runQuery, runCount, isConsistent);
 	}
 
 	@Override
-	public Pair<QueryResult, Long> query(UserInfo user, SqlQuery query, Long offset, Long limit, boolean runQuery, boolean runCount,
-			boolean isConsistent) throws DatastoreException, NotFoundException, TableUnavilableException, TableFailedException {
+	public Pair<QueryResult, Long> query(UserInfo user, SqlQuery query, Long offset, Long limit, boolean runQuery,
+			boolean runCount, boolean isConsistent) throws DatastoreException, NotFoundException, TableUnavilableException,
+			TableFailedException {
 		if(user == null) throw new IllegalArgumentException("UserInfo cannot be null");
 		if(query == null) throw new IllegalArgumentException("SqlQuery cannot be null");
 		validateFeatureEnabled();
@@ -693,7 +677,7 @@ public class TableRowManagerImpl implements TableRowManager {
 	public QueryResult queryNextPage(UserInfo user, QueryNextPageToken nextPageToken) throws DatastoreException, NotFoundException,
 			TableUnavilableException, TableFailedException {
 		Query query = createQueryFromNextPageToken(nextPageToken);
-		Pair<QueryResult, Long> queryResult = query(user, query.getSql(), query.getOffset(), query.getLimit(), true,
+		Pair<QueryResult, Long> queryResult = query(user, query.getSql(), null, query.getOffset(), query.getLimit(), true,
 				false, query.getIsConsistent());
 		return queryResult.getFirst();
 	}
@@ -706,7 +690,7 @@ public class TableRowManagerImpl implements TableRowManager {
 
 		QueryResultBundle bundle = new QueryResultBundle();
 		// The SQL query is need for the actual query, select columns, and max rows per page.
-		SqlQuery sqlQuery = createQuery(queryBundle.getQuery().getSql());
+		SqlQuery sqlQuery = createQuery(queryBundle.getQuery().getSql(), queryBundle.getQuery().getSort());
 
 		// query
 		long partMask = -1L; // default all
@@ -767,9 +751,14 @@ public class TableRowManagerImpl implements TableRowManager {
 		}
 	}
 
-	private SqlQuery createQuery(String sql) {
+	private SqlQuery createQuery(String sql, List<SortItem> sortList) {
 		// First parse the SQL
 		QuerySpecification model = parserQuery(sql);
+		if (sortList != null && !sortList.isEmpty()) {
+			// change the query to use the sort list
+			model = SqlElementUntils.convertToSortedQuery(model, sortList);
+		}
+
 		String tableId = SqlElementUntils.getTableId(model);
 		// Lookup the column models for this table
 		List<ColumnModel> columnModels = columnModelDAO.getColumnModelsForObject(tableId);
@@ -962,10 +951,11 @@ public class TableRowManagerImpl implements TableRowManager {
 	 * @throws TableFailedException
 	 */
 	@Override
-	public DownloadFromTableResult runConsistentQueryAsStream(UserInfo user, String sql, final CSVWriterStream writer,
-			boolean includeRowIdAndVersion) throws TableUnavilableException, NotFoundException, TableFailedException {
+	public DownloadFromTableResult runConsistentQueryAsStream(UserInfo user, String sql, List<SortItem> sortList,
+			final CSVWriterStream writer, boolean includeRowIdAndVersion) throws TableUnavilableException, NotFoundException,
+			TableFailedException {
 		// Convert to a query.
-		final SqlQuery query = createQuery(sql);
+		final SqlQuery query = createQuery(sql, sortList);
 
 		// Validate the user has read access on this object
 		validateTableReadAccess(user, query.getTableId());

@@ -233,7 +233,7 @@ public class TableWorkerIntegrationTest {
 		System.out.println("Appended "+rowSet.getRows().size()+" rows in: "+(System.currentTimeMillis()-start)+" MS");
 		// Wait for the table to become available
 		String sql = "select * from " + tableId + " order by row_id";
-		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, 8L);
+		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 8L);
 		System.out.println("testRoundTrip");
 		System.out.println(queryResult);
 		assertNotNull(queryResult);
@@ -280,51 +280,51 @@ public class TableWorkerIntegrationTest {
 		rowSet = tableRowManager.getCellValues(adminUserInfo, tableId, referenceSet, schema);
 		// Wait for the table to become available
 		String sql = "select * from " + tableId + " order by row_id";
-		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, 7L);
+		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 7L);
 		assertEquals(6, queryResult.getQueryResults().getRows().size());
 		assertNull(queryResult.getNextPageToken());
 		compareValues(rowSet, 0, 6, queryResult.getQueryResults());
 
-		queryResult = waitForConsistentQuery(adminUserInfo, sql, 6L);
+		queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 6L);
 		assertEquals(6, queryResult.getQueryResults().getRows().size());
 		assertNull(queryResult.getNextPageToken());
 		compareValues(rowSet, 0, 6, queryResult.getQueryResults());
 
-		queryResult = waitForConsistentQuery(adminUserInfo, sql, 5L);
+		queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 5L);
 		assertEquals(5, queryResult.getQueryResults().getRows().size());
 		assertNull(queryResult.getNextPageToken());
 		compareValues(rowSet, 0, 5, queryResult.getQueryResults());
 
-		queryResult = tableRowManager.query(adminUserInfo, sql, 5L, 1L, true, false, true).getFirst();
+		queryResult = tableRowManager.query(adminUserInfo, sql, null, 5L, 1L, true, false, true).getFirst();
 		assertEquals(1, queryResult.getQueryResults().getRows().size());
 		assertNull(queryResult.getNextPageToken());
 		compareValues(rowSet, 5, 1, queryResult.getQueryResults());
 
-		queryResult = tableRowManager.query(adminUserInfo, sql, 5L, 2L, true, false, true).getFirst();
+		queryResult = tableRowManager.query(adminUserInfo, sql, null, 5L, 2L, true, false, true).getFirst();
 		assertEquals(1, queryResult.getQueryResults().getRows().size());
 		assertNull(queryResult.getNextPageToken());
 		compareValues(rowSet, 5, 1, queryResult.getQueryResults());
 
-		queryResult = tableRowManager.query(adminUserInfo, sql + " limit 2 offset 3", 0L, 8L, true,
+		queryResult = tableRowManager.query(adminUserInfo, sql + " limit 2 offset 3", null, 0L, 8L, true,
 				false, true).getFirst();
 		assertEquals(2, queryResult.getQueryResults().getRows().size());
 		assertNull(queryResult.getNextPageToken());
 		compareValues(rowSet, 3, 2, queryResult.getQueryResults());
 
-		queryResult = tableRowManager.query(adminUserInfo, sql + " limit 8 offset 2", 2L, 2L, true,
+		queryResult = tableRowManager.query(adminUserInfo, sql + " limit 8 offset 2", null, 2L, 2L, true,
 				false, true).getFirst();
 		assertEquals(2, queryResult.getQueryResults().getRows().size());
 		assertNull(queryResult.getNextPageToken());
 		compareValues(rowSet, 4, 2, queryResult.getQueryResults());
 
-		queryResult = tableRowManager.query(adminUserInfo, sql + " limit 8 offset 3", 2L, 2L, true,
+		queryResult = tableRowManager.query(adminUserInfo, sql + " limit 8 offset 3", null, 2L, 2L, true,
 				false, true).getFirst();
 		assertEquals(1, queryResult.getQueryResults().getRows().size());
 		assertNull(queryResult.getNextPageToken());
 		compareValues(rowSet, 5, 1, queryResult.getQueryResults());
 
 		ReflectionTestUtils.setField(getTargetObject(tableRowManager), "maxBytesPerRequest", TableModelUtils.calculateMaxRowSize(schema) * 2);
-		queryResult = tableRowManager.query(adminUserInfo, sql, 0L, 5L, true, false, true).getFirst();
+		queryResult = tableRowManager.query(adminUserInfo, sql, null, 0L, 5L, true, false, true).getFirst();
 		assertEquals(2, queryResult.getQueryResults().getRows().size());
 		assertNotNull(queryResult.getNextPageToken());
 		compareValues(rowSet, 0, 2, queryResult.getQueryResults());
@@ -339,7 +339,7 @@ public class TableWorkerIntegrationTest {
 		assertNull(queryResult.getNextPageToken());
 		compareValues(rowSet, 4, 2, queryResult.getQueryResults());
 
-		queryResult = tableRowManager.query(adminUserInfo, sql + " limit 3", 0L, 100L, true, false, true).getFirst();
+		queryResult = tableRowManager.query(adminUserInfo, sql + " limit 3", null, 0L, 100L, true, false, true).getFirst();
 		assertEquals(2, queryResult.getQueryResults().getRows().size());
 		assertNotNull(queryResult.getNextPageToken());
 		compareValues(rowSet, 0, 2, queryResult.getQueryResults());
@@ -348,6 +348,53 @@ public class TableWorkerIntegrationTest {
 		assertEquals(1, queryResult.getQueryResults().getRows().size());
 		assertNull(queryResult.getNextPageToken());
 		compareValues(rowSet, 2, 1, queryResult.getQueryResults());
+	}
+
+	@Test
+	public void testSorting() throws Exception {
+		// Create one column of each type
+		schema = Lists.newArrayList(
+				columnManager.createColumnModel(adminUserInfo, TableModelTestUtils.createColumn(null, "name", ColumnType.STRING)),
+				columnManager.createColumnModel(adminUserInfo, TableModelTestUtils.createColumn(null, "col1", ColumnType.INTEGER)),
+				columnManager.createColumnModel(adminUserInfo, TableModelTestUtils.createColumn(null, "col2", ColumnType.INTEGER)),
+				columnManager.createColumnModel(adminUserInfo, TableModelTestUtils.createColumn(null, "col3", ColumnType.INTEGER)));
+		List<String> headers = TableModelUtils.getHeaders(schema);
+		// Create the table.
+		TableEntity table = new TableEntity();
+		table.setName(UUID.randomUUID().toString());
+		table.setColumnIds(headers);
+		tableId = entityManager.createEntity(adminUserInfo, table, null);
+		// Bind the columns. This is normally done at the service layer but the workers cannot depend on that layer.
+		columnManager.bindColumnToObject(adminUserInfo, headers, tableId, true);
+		// Now add some data
+		RowSet rowSet = new RowSet();
+		rowSet.setRows(Lists.newArrayList(TableModelTestUtils.createRow(null, null, "a", "1", "10", "3"),
+				TableModelTestUtils.createRow(null, null, "b", "2", "11", "1"),
+				TableModelTestUtils.createRow(null, null, "c", "3", "11", "2")));
+		rowSet.setHeaders(headers);
+		rowSet.setTableId(tableId);
+		referenceSet = tableRowManager.appendRows(adminUserInfo, tableId, schema, rowSet);
+
+		// Wait for the table to become available
+		String sql = "select name from " + tableId + " order by col1";
+		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, null, null);
+		compareValues(new String[] { "a", "b", "c" }, queryResult.getQueryResults());
+
+		SortItem sort1 = new SortItem();
+		sort1.setColumn("col1");
+		sort1.setDirection(SortDirection.DESC);
+		SortItem sort2 = new SortItem();
+		sort2.setColumn("col2");
+		sort2.setDirection(SortDirection.DESC);
+
+		queryResult = waitForConsistentQuery(adminUserInfo, sql, Lists.newArrayList(sort2), null);
+		compareValues(new String[] { "b", "c", "a" }, queryResult.getQueryResults());
+
+		queryResult = waitForConsistentQuery(adminUserInfo, sql, Lists.newArrayList(sort2, sort1), null);
+		compareValues(new String[] { "c", "b", "a" }, queryResult.getQueryResults());
+
+		queryResult = waitForConsistentQuery(adminUserInfo, sql, Lists.newArrayList(sort1), null);
+		compareValues(new String[] { "c", "b", "a" }, queryResult.getQueryResults());
 	}
 
 	@Test(expected = IllegalArgumentException.class)
@@ -567,7 +614,7 @@ public class TableWorkerIntegrationTest {
 		tableRowManager.appendRows(adminUserInfo, tableId, schema, rowSet);
 		// Wait for the table to become available
 		String sql = "select * from " + tableId + " order by row_id";
-		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, 8L);
+		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 8L);
 		assertEquals(2, queryResult.getQueryResults().getRows().size());
 
 		// reset table index
@@ -575,7 +622,7 @@ public class TableWorkerIntegrationTest {
 		tableConnectionFactory.dropAllTablesForAllConnections();
 
 		// now we still should get the index taken care of
-		queryResult = waitForConsistentQuery(adminUserInfo, sql, 8L);
+		queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 8L);
 		assertEquals(2, queryResult.getQueryResults().getRows().size());
 	}
 
@@ -602,7 +649,7 @@ public class TableWorkerIntegrationTest {
 		tableRowManager.appendRows(adminUserInfo, tableId, schema, rowSet);
 		// Wait for the table to become available
 		String sql = "select * from " + tableId + " order by row_id";
-		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, 8L);
+		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 8L);
 		assertEquals(2, queryResult.getQueryResults().getRows().size());
 
 		// reset table index
@@ -632,7 +679,7 @@ public class TableWorkerIntegrationTest {
 		}));
 
 		// now we still should get the index taken care of
-		queryResult = waitForConsistentQuery(adminUserInfo, sql, 8L);
+		queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 8L);
 		assertEquals(2, queryResult.getQueryResults().getRows().size());
 	}
 
@@ -667,7 +714,7 @@ public class TableWorkerIntegrationTest {
 
 		// Wait for the table to become available
 		String sql = "select * from " + tableId + " order by row_id";
-		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, 100L);
+		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 100L);
 		assertEquals(16, queryResult.getQueryResults().getRows().size());
 
 		@SuppressWarnings("unchecked")
@@ -694,7 +741,7 @@ public class TableWorkerIntegrationTest {
 		partialRowSet.setTableId(tableId);
 		tableRowManager.appendPartialRows(adminUserInfo, tableId, schema, partialRowSet);
 
-		queryResult = waitForConsistentQuery(adminUserInfo, sql, 100L);
+		queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 100L);
 		// we couldn't know the etag in advance
 		expectedRowSet.setEtag(queryResult.getQueryResults().getEtag());
 		assertEquals(expectedRowSet.toString(), queryResult.getQueryResults().toString());
@@ -731,7 +778,7 @@ public class TableWorkerIntegrationTest {
 
 		// Wait for the table to become available
 		String sql = "select * from " + tableId + " where coldate between '2014-2-3 3:00' and '2016-1-1' order by coldate asc";
-		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, 8L);
+		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 8L);
 		assertNotNull(queryResult.getQueryResults());
 		assertEquals(2, queryResult.getQueryResults().getRows().size());
 		assertEquals("2014-2-3 3:41",
@@ -742,7 +789,7 @@ public class TableWorkerIntegrationTest {
 		// Again, but now with longs
 		sql = "select * from " + tableId + " where coldate between " + dateTimeInstance.parse("2014-2-3 3:00").getTime() + " and "
 				+ dateTimeInstance.parse("2016-1-1 0:00").getTime() + " order by coldate asc";
-		QueryResult queryResult2 = waitForConsistentQuery(adminUserInfo, sql, 8L);
+		QueryResult queryResult2 = waitForConsistentQuery(adminUserInfo, sql, null, 8L);
 		assertEquals(queryResult, queryResult2);
 	}
 
@@ -777,7 +824,7 @@ public class TableWorkerIntegrationTest {
 
 		// Wait for the table to become available
 		String sql = "select * from " + tableId + " order by coldouble ASC";
-		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, null);
+		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, null, null);
 		assertNotNull(queryResult.getQueryResults());
 		assertEquals(doubles.length, queryResult.getQueryResults().getRows().size());
 		for (int i = 0; i < doubles.length; i++) {
@@ -834,7 +881,7 @@ public class TableWorkerIntegrationTest {
 
 		// Wait for the table to become available
 		String sql = "select * from " + tableId + " order by row_id asc";
-		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, 20L);
+		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 20L);
 		assertNotNull(queryResult.getQueryResults());
 		assertEquals(expectedOut.length, queryResult.getQueryResults().getRows().size());
 		for (int i = 0; i < expectedOut.length; i++) {
@@ -842,35 +889,35 @@ public class TableWorkerIntegrationTest {
 		}
 
 		sql = "select * from " + tableId + " where colbool is true order by row_id asc";
-		queryResult = waitForConsistentQuery(adminUserInfo, sql, 20L);
+		queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 20L);
 		assertEquals(expectedTrueCount, queryResult.getQueryResults().getRows().size());
 
 		sql = "select * from " + tableId + " where colbool is false order by row_id asc";
-		queryResult = waitForConsistentQuery(adminUserInfo, sql, 20L);
+		queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 20L);
 		assertEquals(expectedFalseCount, queryResult.getQueryResults().getRows().size());
 
 		sql = "select * from " + tableId + " where colbool is not true order by row_id asc";
-		queryResult = waitForConsistentQuery(adminUserInfo, sql, 20L);
+		queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 20L);
 		assertEquals(expectedFalseCount + expectedNullCount, queryResult.getQueryResults().getRows().size());
 
 		sql = "select * from " + tableId + " where colbool is not false order by row_id asc";
-		queryResult = waitForConsistentQuery(adminUserInfo, sql, 20L);
+		queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 20L);
 		assertEquals(expectedTrueCount + expectedNullCount, queryResult.getQueryResults().getRows().size());
 
 		sql = "select * from " + tableId + " where colbool = true order by row_id asc";
-		queryResult = waitForConsistentQuery(adminUserInfo, sql, 20L);
+		queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 20L);
 		assertEquals(expectedTrueCount, queryResult.getQueryResults().getRows().size());
 
 		sql = "select * from " + tableId + " where colbool = false order by row_id asc";
-		queryResult = waitForConsistentQuery(adminUserInfo, sql, 20L);
+		queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 20L);
 		assertEquals(expectedFalseCount, queryResult.getQueryResults().getRows().size());
 
 		sql = "select * from " + tableId + " where colbool <> true order by row_id asc";
-		queryResult = waitForConsistentQuery(adminUserInfo, sql, 20L);
+		queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 20L);
 		assertEquals(expectedFalseCount, queryResult.getQueryResults().getRows().size());
 
 		sql = "select * from " + tableId + " where colbool <> false order by row_id asc";
-		queryResult = waitForConsistentQuery(adminUserInfo, sql, 20L);
+		queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 20L);
 		assertEquals(expectedTrueCount, queryResult.getQueryResults().getRows().size());
 	}
 
@@ -926,7 +973,7 @@ public class TableWorkerIntegrationTest {
 
 		// Wait for the table to become available
 		String sql = "select * from " + tableId;
-		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, 100L);
+		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 100L);
 		assertEquals("TableId: " + tableId, 2, queryResult.getQueryResults().getRows().size());
 		assertEquals("updatestring333", queryResult.getQueryResults().getRows().get(0).getValues().get(0));
 		assertEquals("updatestring555", queryResult.getQueryResults().getRows().get(1).getValues().get(0));
@@ -968,7 +1015,7 @@ public class TableWorkerIntegrationTest {
 		referenceSet = tableRowManager.appendRows(adminUserInfo, tableId, schema, rowSet);
 
 		String sql = "select * from " + tableId;
-		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, 100L);
+		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 100L);
 		assertEquals("TableId: " + tableId, 1, queryResult.getQueryResults().getRows().size());
 
 		// Now add invalid data using the invalid schema
@@ -981,7 +1028,7 @@ public class TableWorkerIntegrationTest {
 		waitForConsistentQueryError(adminUserInfo, sql);
 		try {
 			// should fail immediately
-			tableRowManager.query(adminUserInfo, sql, 0L, 100L, true, false, true);
+			tableRowManager.query(adminUserInfo, sql, null, 0L, 100L, true, false, true);
 			fail("should not have succeeded");
 		} catch (TableFailedException e) {
 			assertNotNull(e.getStatus().getErrorMessage());
@@ -996,7 +1043,7 @@ public class TableWorkerIntegrationTest {
 		rowSet.setEtag(referenceSet.getEtag());
 		referenceSet = tableRowManager.appendRows(adminUserInfo, tableId, schema, rowSet);
 
-		queryResult = waitForConsistentQuery(adminUserInfo, sql, 100L);
+		queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 100L);
 		assertEquals("TableId: " + tableId, 2, queryResult.getQueryResults().getRows().size());
 	}
 
@@ -1036,7 +1083,7 @@ public class TableWorkerIntegrationTest {
 
 		// Wait for the table to become available
 		String sql = "select * from " + tableId + " order by row_id";
-		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, 100L);
+		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 100L);
 		assertEquals(6, queryResult.getQueryResults().getRows().size());
 		for (int i = 0; i < 6; i++) {
 			assertEquals(Lists.newArrayList("something", null, "something", "default"), queryResult.getQueryResults().getRows().get(i)
@@ -1092,7 +1139,7 @@ public class TableWorkerIntegrationTest {
 				partialRowUpdateNull, partialRowUpdateNonNull, partialRowUpdateNothing, partialRowUpdateNulls));
 		tableRowManager.appendPartialRows(adminUserInfo, tableId, schema, partialRowSet);
 
-		queryResult = waitForConsistentQuery(adminUserInfo, sql, 100L);
+		queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 100L);
 		assertEquals(6, queryResult.getQueryResults().getRows().size());
 		// update null columns
 		assertEquals(Lists.newArrayList("something", "other", "something", "other"), queryResult.getQueryResults().getRows().get(0)
@@ -1150,7 +1197,7 @@ public class TableWorkerIntegrationTest {
 
 		// Wait for the table to become available
 		String sql = "select * from " + tableId + " order by row_id";
-		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, 100L);
+		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 100L);
 		assertEquals(1, queryResult.getQueryResults().getRows().size());
 		assertEquals(Lists.newArrayList(fileHandle1.getId(), fileHandle1.getId(), fileHandle1.getId(), null, null), queryResult
 				.getQueryResults().getRows().get(0).getValues());
@@ -1166,7 +1213,7 @@ public class TableWorkerIntegrationTest {
 		partialRowSet.setRows(Lists.newArrayList(partialRowAppend));
 		tableRowManager.appendPartialRows(adminUserInfo, tableId, schema, partialRowSet);
 
-		queryResult = waitForConsistentQuery(adminUserInfo, sql, 100L);
+		queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 100L);
 		assertEquals(1, queryResult.getQueryResults().getRows().size());
 		assertEquals(Lists.newArrayList(fileHandle2.getId(), fileHandle1.getId(), null, fileHandle2.getId(), null), queryResult
 				.getQueryResults().getRows().get(0).getValues());
@@ -1182,7 +1229,7 @@ public class TableWorkerIntegrationTest {
 		partialRowSet.setRows(Lists.newArrayList(partialRowAppend));
 		tableRowManager.appendPartialRows(adminUserInfo, tableId, schema, partialRowSet);
 
-		queryResult = waitForConsistentQuery(adminUserInfo, sql, 100L);
+		queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 100L);
 		assertEquals(1, queryResult.getQueryResults().getRows().size());
 		assertEquals(Lists.newArrayList(fileHandle1.getId(), fileHandle1.getId(), fileHandle1.getId(), fileHandle1.getId(), null),
 				queryResult.getQueryResults().getRows().get(0).getValues());
@@ -1225,7 +1272,7 @@ public class TableWorkerIntegrationTest {
 		System.out.println("Appended "+rowSet.getRows().size()+" rows in: "+(System.currentTimeMillis()-start)+" MS");
 		// Wait for the table to become available
 		String sql = "select * from " + tableId + "";
-		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, 2L);
+		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 2L);
 		assertNotNull(queryResult.getQueryResults());
 		assertEquals(tableId, queryResult.getQueryResults().getTableId());
 		assertNotNull(queryResult.getQueryResults().getHeaders());
@@ -1267,7 +1314,7 @@ public class TableWorkerIntegrationTest {
 		System.out.println("Appended "+rowSet.getRows().size()+" rows in: "+(System.currentTimeMillis()-start)+" MS");
 		// Query for the results
 		String sql = "select A, a, \"Has Space\",\"" + specialChars + "\" from " + tableId + "";
-		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, 2L);
+		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 2L);
 		assertNotNull(queryResult.getQueryResults());
 		assertEquals(tableId, queryResult.getQueryResults().getTableId());
 		assertNotNull(queryResult.getQueryResults().getHeaders());
@@ -1281,13 +1328,13 @@ public class TableWorkerIntegrationTest {
 		assertNotNull(queryResult.getQueryResults().getEtag());
 
 		try {
-			waitForConsistentQuery(adminUserInfo, "select A, Has Space from " + tableId, 100L);
+			waitForConsistentQuery(adminUserInfo, "select A, Has Space from " + tableId, null, 100L);
 			fail("not acceptible sql");
 		} catch (IllegalArgumentException e) {
 		}
 
 		// select a string literal
-		queryResult = waitForConsistentQuery(adminUserInfo, "select A, 'Has Space' from " + tableId, 100L);
+		queryResult = waitForConsistentQuery(adminUserInfo, "select A, 'Has Space' from " + tableId, null, 100L);
 		assertNotNull(queryResult.getQueryResults());
 		assertEquals(2, queryResult.getQueryResults().getHeaders().size());
 		assertEquals(headers.get(2), queryResult.getQueryResults().getHeaders().get(0));
@@ -1295,7 +1342,7 @@ public class TableWorkerIntegrationTest {
 		assertEquals("string200000", queryResult.getQueryResults().getRows().get(0).getValues().get(0));
 		assertEquals("Has Space", queryResult.getQueryResults().getRows().get(0).getValues().get(1));
 
-		queryResult = waitForConsistentQuery(adminUserInfo, "select A, \"Has Space\" from " + tableId, 100L);
+		queryResult = waitForConsistentQuery(adminUserInfo, "select A, \"Has Space\" from " + tableId, null, 100L);
 		assertNotNull(queryResult.getQueryResults());
 		assertEquals(2, queryResult.getQueryResults().getHeaders().size());
 		assertEquals(headers.get(0), queryResult.getQueryResults().getHeaders().get(1));
@@ -1303,7 +1350,7 @@ public class TableWorkerIntegrationTest {
 		assertEquals("string200000", queryResult.getQueryResults().getRows().get(0).getValues().get(0));
 		assertEquals("string0", queryResult.getQueryResults().getRows().get(0).getValues().get(1));
 
-		queryResult = waitForConsistentQuery(adminUserInfo, "select A, \"Has Space\" as HasSpace from " + tableId, 100L);
+		queryResult = waitForConsistentQuery(adminUserInfo, "select A, \"Has Space\" as HasSpace from " + tableId, null, 100L);
 		assertNotNull(queryResult.getQueryResults());
 		assertEquals(2, queryResult.getQueryResults().getHeaders().size());
 		assertEquals(headers.get(0), queryResult.getQueryResults().getHeaders().get(1));
@@ -1330,7 +1377,7 @@ public class TableWorkerIntegrationTest {
 		columnManager.bindColumnToObject(adminUserInfo, null, tableId, true);
 		// We should be able to query
 		String sql = "select * from " + tableId;
-		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, 1L);
+		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 1L);
 		assertNotNull(queryResult.getQueryResults());
 		assertNull(queryResult.getQueryResults().getEtag());
 		assertEquals(tableId, queryResult.getQueryResults().getTableId());
@@ -1364,7 +1411,7 @@ public class TableWorkerIntegrationTest {
 		columnManager.bindColumnToObject(adminUserInfo, headers, tableId, true);
 		// We should be able to query
 		String sql = "select * from " + tableId;
-		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, 1L);
+		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, sql, null, 1L);
 		System.out.println("testNoRows");
 		System.out.println(queryResult.getQueryResults());
 		assertNotNull(queryResult.getQueryResults());
@@ -1417,7 +1464,7 @@ public class TableWorkerIntegrationTest {
 		CSVToRowIterator iterator = new CSVToRowIterator(schema, reader, true);
 		tableRowManager.appendRowsAsStream(adminUserInfo, tableId, schema, iterator, null, null, null);
 		// Now wait for the table index to be ready
-		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, "select * from " + tableId, 100L);
+		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, "select * from " + tableId, null, 100L);
 		assertNotNull(queryResult.getQueryResults());
 		// Now stream the query results to a CSV
 		StringWriter stringWriter = new StringWriter();
@@ -1504,7 +1551,7 @@ public class TableWorkerIntegrationTest {
 		CSVToRowIterator iterator = new CSVToRowIterator(schema, reader, true);
 		tableRowManager.appendRowsAsStream(adminUserInfo, tableId, schema, iterator, null, null, null);
 		// Now wait for the table index to be ready
-		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, "select * from " + tableId, null);
+		QueryResult queryResult = waitForConsistentQuery(adminUserInfo, "select * from " + tableId, null, null);
 		assertNotNull(queryResult.getQueryResults());
 
 		String aggregateSql = "select a, sum(b) from " + tableId + " group by a order by a";
@@ -1512,7 +1559,7 @@ public class TableWorkerIntegrationTest {
 		// the first two columns should include the rowId can verionNumber
 		String[][] expectedResults = { { "a", "SUM(b)" }, { "A", "3" }, { "C", "4" } };
 
-		queryResult = waitForConsistentQuery(adminUserInfo, aggregateSql, null);
+		queryResult = waitForConsistentQuery(adminUserInfo, aggregateSql, null, null);
 		assertEquals(expectedResults.length - 1, queryResult.getQueryResults().getRows().size());
 		assertEquals(schema.get(0).getId(), queryResult.getQueryResults().getHeaders().get(0));
 		assertEquals(expectedResults[0][1], queryResult.getQueryResults().getHeaders().get(1));
@@ -1591,9 +1638,9 @@ public class TableWorkerIntegrationTest {
 
 		// Wait for the table to become available
 		String sql = "select * from " + tableId + " order by row_id";
-		waitForConsistentQuery(owner, sql, 8L);
+		waitForConsistentQuery(owner, sql, null, 8L);
 		try {
-			waitForConsistentQuery(notOwner, sql, 8L);
+			waitForConsistentQuery(notOwner, sql, null, 8L);
 			fail("no read permissions");
 		} catch (UnauthorizedException e) {
 		}
@@ -1610,7 +1657,7 @@ public class TableWorkerIntegrationTest {
 		acl = entityPermissionsManager.updateACL(acl, adminUserInfo);
 
 		tableRowManager.appendRows(notOwner, tableId, schema, createRowSet(headers));
-		waitForConsistentQuery(notOwner, sql, 8L);
+		waitForConsistentQuery(notOwner, sql, null, 8L);
 
 		// add access restriction
 		TermsOfUseAccessRequirement ar = new TermsOfUseAccessRequirement();
@@ -1626,7 +1673,7 @@ public class TableWorkerIntegrationTest {
 		TermsOfUseAccessRequirement uploadAR = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
 
 		try {
-			waitForConsistentQuery(notOwner, sql, 8L);
+			waitForConsistentQuery(notOwner, sql, null, 8L);
 			fail();
 		} catch (UnauthorizedException e) {
 		}
@@ -1641,7 +1688,7 @@ public class TableWorkerIntegrationTest {
 		aa.setRequirementId(downloadAR.getId());
 		accessApprovalManager.createAccessApproval(notOwner, aa);
 
-		waitForConsistentQuery(notOwner, sql, 8L);
+		waitForConsistentQuery(notOwner, sql, null, 8L);
 		try {
 			tableRowManager.appendRows(notOwner, tableId, schema, createRowSet(headers));
 			fail();
@@ -1653,7 +1700,7 @@ public class TableWorkerIntegrationTest {
 		aa.setRequirementId(uploadAR.getId());
 		accessApprovalManager.createAccessApproval(notOwner, aa);
 
-		waitForConsistentQuery(notOwner, sql, 8L);
+		waitForConsistentQuery(notOwner, sql, null, 8L);
 		tableRowManager.appendRows(notOwner, tableId, schema, createRowSet(headers));
 	}
 
@@ -1675,11 +1722,11 @@ public class TableWorkerIntegrationTest {
 	 * @throws NotFoundException
 	 * @throws InterruptedException
 	 */
-	private QueryResult waitForConsistentQuery(UserInfo user, String sql, Long limit) throws Exception {
+	private QueryResult waitForConsistentQuery(UserInfo user, String sql, List<SortItem> sortItems, Long limit) throws Exception {
 		long start = System.currentTimeMillis();
 		while(true){
 			try {
-				Pair<QueryResult, Long> queryResult = tableRowManager.query(user, sql, 0L, limit, true, false, true);
+				Pair<QueryResult, Long> queryResult = tableRowManager.query(user, sql, sortItems, 0L, limit, true, false, true);
 				return queryResult.getFirst();
 			} catch (TableUnavilableException e) {
 				assertTrue("Timed out waiting for table index worker to make the table available.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
@@ -1721,7 +1768,7 @@ public class TableWorkerIntegrationTest {
 			@Override
 			public Pair<Boolean, Void> call() throws Exception {
 				try {
-					tableRowManager.query(user, sql, 0L, 100L, true, false, true);
+					tableRowManager.query(user, sql, null, 0L, 100L, true, false, true);
 					fail("should not have succeeded");
 				} catch (TableUnavilableException e) {
 					return Pair.create(false, null);
@@ -1748,7 +1795,7 @@ public class TableWorkerIntegrationTest {
 		long start = System.currentTimeMillis();
 		while(true){
 			try {
-				return tableRowManager.runConsistentQueryAsStream(adminUserInfo, sql, writer, includeRowIdAndVersion);
+				return tableRowManager.runConsistentQueryAsStream(adminUserInfo, sql, null, writer, includeRowIdAndVersion);
 			} catch (TableUnavilableException e) {
 				assertTrue("Timed out waiting for table index worker to make the table available.", (System.currentTimeMillis()-start) <  MAX_WAIT_MS);
 				assertNotNull(e.getStatus());
@@ -1766,6 +1813,15 @@ public class TableWorkerIntegrationTest {
 		for (int i = 0; i < count; i++, expectedIndex++, actualIndex++) {
 			assertEquals("Row " + i, expected.getRows().get(expectedIndex).getValues().toString(), actual.getRows().get(actualIndex)
 					.getValues().toString());
+		}
+	}
+
+	private void compareValues(String[] expected, RowSet actual) {
+		assertEquals(expected.length, actual.getRows().size());
+		for (int i = 0; i < expected.length; i++) {
+			List<String> values = actual.getRows().get(i).getValues();
+			assertEquals(1, values.size());
+			assertEquals(expected[i], values.get(0));
 		}
 	}
 

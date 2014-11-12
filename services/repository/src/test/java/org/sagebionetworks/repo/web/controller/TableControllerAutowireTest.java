@@ -190,9 +190,11 @@ public class TableControllerAutowireTest extends AbstractAutowiredControllerTest
 	@Test
 	public void testDeleteAllColumns() throws Exception {
 		// Create a table with two ColumnModels
-		ColumnModel one = servletTestHelper.createColumnModel(dispatchServlet, TableModelTestUtils.createColumn(0, "one", ColumnType.STRING),
+		ColumnModel one = servletTestHelper.createColumnModel(dispatchServlet,
+				TableModelTestUtils.createColumn(0L, "one", ColumnType.STRING),
 				adminUserId);
-		ColumnModel two = servletTestHelper.createColumnModel(dispatchServlet, TableModelTestUtils.createColumn(0, "two", ColumnType.STRING),
+		ColumnModel two = servletTestHelper.createColumnModel(dispatchServlet,
+				TableModelTestUtils.createColumn(0L, "two", ColumnType.STRING),
 				adminUserId);
 		// Now create a TableEntity with these Columns
 		TableEntity table = new TableEntity();

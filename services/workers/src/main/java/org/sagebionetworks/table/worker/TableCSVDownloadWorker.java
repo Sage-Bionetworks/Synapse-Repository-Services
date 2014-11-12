@@ -97,7 +97,8 @@ public class TableCSVDownloadWorker implements Worker {
 			UserInfo user = userManger.getUserInfo(status.getStartedByUserId());
 			DownloadFromTableRequest request = (DownloadFromTableRequest) status.getRequestBody();
 			// Before we start determine how many rows there are.
-			Pair<QueryResult, Long> queryResult = tableRowManager.query(user, request.getSql(), null, null, false, true, true);
+			Pair<QueryResult, Long> queryResult = tableRowManager.query(user, request.getSql(), request.getSort(), null, null, false, true,
+					true);
 			long rowCount = queryResult.getSecond();
 			// Since each row must first be read from the database then uploaded to S3
 			// The total amount of progress is two times the number of rows.
@@ -115,7 +116,8 @@ public class TableCSVDownloadWorker implements Worker {
 			// Execute the actual query and stream the results to the file.
 			DownloadFromTableResult result = null;
 			try{
-				result = tableRowManager.runConsistentQueryAsStream(user, request.getSql(), stream, includeRowIdAndVersion);
+				result = tableRowManager
+						.runConsistentQueryAsStream(user, request.getSql(), request.getSort(), stream, includeRowIdAndVersion);
 			}finally{
 				writer.close();
 			}

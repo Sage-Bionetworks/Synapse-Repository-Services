@@ -200,8 +200,8 @@ public class TableRowTruthDAOImplTest {
 
 	@Test
 	public void testDoubles() throws IOException, NotFoundException {
-		List<ColumnModel> models = Lists.newArrayList(TableModelTestUtils.createColumn(0, "col1", ColumnType.DOUBLE),
-				TableModelTestUtils.createColumn(1, "col2", ColumnType.STRING));
+		List<ColumnModel> models = Lists.newArrayList(TableModelTestUtils.createColumn(0L, "col1", ColumnType.DOUBLE),
+				TableModelTestUtils.createColumn(1L, "col2", ColumnType.STRING));
 		// create some test rows.
 		String tableId = "syn123";
 		RowSet rowSet = new RowSet();
