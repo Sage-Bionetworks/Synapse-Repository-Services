@@ -4,6 +4,8 @@ import static org.junit.Assert.*;
 
 import java.util.Collections;
 import java.util.LinkedList;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -220,6 +222,14 @@ public class ColumnModelUtlisTest {
 		original.setMaximumSize(5L);
 
 		ColumnModelUtlis.createNormalizedClone(original, StackConfiguration.singleton().getTableMaxEnumValues());
+	}
+
+	@Test
+	public void testEnumMaxCountDocumentation() {
+		// make sure the documentation is in agreement with the stack configuration
+		Matcher m = Pattern.compile("maximum number of entries for an enum is (\\d+)\"").matcher(ColumnModel.EFFECTIVE_SCHEMA);
+		assertTrue(m.find());
+		assertEquals("" + StackConfiguration.singleton().getTableMaxEnumValues(), m.group(1));
 	}
 
 	@Test
