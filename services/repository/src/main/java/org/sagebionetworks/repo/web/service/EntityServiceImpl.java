@@ -335,13 +335,12 @@ public class EntityServiceImpl implements EntityService {
 		EntityType type = EntityType.getNodeTypeForClass(clazz);
 		// Fetch the provider that will validate this entity.
 		List<EntityProvider<Entity>> providers = metadataProviderFactory.getMetadataProvider(type);
-		T entity = entityManager.getEntity(userInfo, entityId, clazz);
 		entityManager.deleteEntity(userInfo, entityId);
 		// Do extra cleanup as needed.
 		if(providers != null) {
 			for(EntityProvider<Entity> provider : providers) {
 				if (provider instanceof TypeSpecificDeleteProvider) {
-					((TypeSpecificDeleteProvider) provider).entityDeleted(entity);
+					((TypeSpecificDeleteProvider) provider).entityDeleted(entityId);
 				}
 			}
 		}
@@ -369,13 +368,12 @@ public class EntityServiceImpl implements EntityService {
 		EntityType type = EntityType.getNodeTypeForClass(classForType);
 		// Fetch the provider that will validate this entity.
 		List<EntityProvider<Entity>> providers = metadataProviderFactory.getMetadataProvider(type);
-		T entity = (T) entityManager.getEntity(userInfo, id, classForType);
 		entityManager.deleteEntityVersion(userInfo, id, versionNumber);
 		// Do extra cleanup as needed.
 		if(providers != null) {
 			for (EntityProvider<Entity> provider : providers) {
 				if (provider instanceof TypeSpecificVersionDeleteProvider) {
-					((TypeSpecificVersionDeleteProvider) provider).entityVersionDeleted(entity, versionNumber);
+					((TypeSpecificVersionDeleteProvider) provider).entityVersionDeleted(id, versionNumber);
 				}
 			}
 		}

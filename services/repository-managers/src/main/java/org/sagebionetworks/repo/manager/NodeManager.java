@@ -203,7 +203,21 @@ public interface NodeManager {
 	public EntityType getNodeType(UserInfo userInfo, String entityId) throws NotFoundException, DatastoreException, UnauthorizedException;
 	
 	/**
+	 * Get the node type of an entity for deletion (is allowed when in the trash)
+	 * 
+	 * @param userInfo
+	 * @param entityId
+	 * @return
+	 * @throws UnauthorizedException
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public EntityType getNodeTypeForDeletion(UserInfo userInfo, String entityId) throws NotFoundException, DatastoreException,
+			UnauthorizedException;
+
+	/**
 	 * Get a full header for an entity.
+	 * 
 	 * @param userInfo
 	 * @param entityId
 	 * @param versionNumber

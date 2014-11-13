@@ -10,8 +10,6 @@ import java.util.List;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.manager.AttachmentManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
@@ -22,32 +20,31 @@ import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.controller.AbstractAutowiredControllerTestBase;
+import org.sagebionetworks.util.ReflectionStaticTestUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.sagebionetworks.repo.web.service.metadata.AllTypesValidator;
 import org.sagebionetworks.repo.web.service.metadata.EntityEvent;
 import org.sagebionetworks.repo.web.service.metadata.EventType;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.test.util.ReflectionTestUtils;
 
 public class AllTypesValidatorTest extends AbstractAutowiredControllerTestBase {
 
 	@Autowired
 	AllTypesValidator allTypesValidator;
 
-	@Autowired
-	NodeDAO nodeDAO;
-
 	NodeDAO mockNodeDAO;
+
+	private Object oldNodeDao;
 	
 	@Before
-	public void setUp() {
+	public void setUp() throws Exception {
+		oldNodeDao = ReflectionStaticTestUtils.getField(allTypesValidator, "nodeDAO");
 		mockNodeDAO = mock(NodeDAO.class);
 	}
 
 	@After
-	public void tearDown() {
-		allTypesValidator.setNodeDAO(nodeDAO);
+	public void tearDown() throws Exception {
+		ReflectionStaticTestUtils.setField(allTypesValidator, "nodeDAO", oldNodeDao);
 	}
 
 	@Test (expected=IllegalArgumentException.class)
@@ -75,9 +72,9 @@ public class AllTypesValidatorTest extends AbstractAutowiredControllerTestBase {
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
-	public void testProjectWithProjectParent() throws InvalidModelException, NotFoundException, DatastoreException, UnauthorizedException{
+	public void testProjectWithProjectParent() throws Exception {
 		when(mockNodeDAO.isNodeRoot(eq("123"))).thenReturn(false);
-		allTypesValidator.setNodeDAO(mockNodeDAO);
+		ReflectionStaticTestUtils.setField(allTypesValidator, "nodeDAO", mockNodeDAO);
 		
 		String parentId = "123";
 		String childId = "456";
@@ -97,9 +94,9 @@ public class AllTypesValidatorTest extends AbstractAutowiredControllerTestBase {
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
-	public void testProjectWithDatasetParent() throws InvalidModelException, NotFoundException, DatastoreException, UnauthorizedException{
+	public void testProjectWithDatasetParent() throws Exception {
 		when(mockNodeDAO.isNodeRoot(eq("123"))).thenReturn(false);
-		allTypesValidator.setNodeDAO(mockNodeDAO);
+		ReflectionStaticTestUtils.setField(allTypesValidator, "nodeDAO", mockNodeDAO);
 		
 		String parentId = "123";
 		String childId = "456";
@@ -119,9 +116,9 @@ public class AllTypesValidatorTest extends AbstractAutowiredControllerTestBase {
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
-	public void testFolderWithSelfParent() throws InvalidModelException, NotFoundException, DatastoreException, UnauthorizedException{
+	public void testFolderWithSelfParent() throws Exception {
 		when(mockNodeDAO.isNodeRoot(eq("123"))).thenReturn(false);
-		allTypesValidator.setNodeDAO(mockNodeDAO);
+		ReflectionStaticTestUtils.setField(allTypesValidator, "nodeDAO", mockNodeDAO);
 		String parentId = "123";
 		// This is our parent header
 		EntityHeader parentHeader = new EntityHeader();
@@ -139,9 +136,9 @@ public class AllTypesValidatorTest extends AbstractAutowiredControllerTestBase {
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
-	public void testFolderWithSelfAncestor() throws InvalidModelException, NotFoundException, DatastoreException, UnauthorizedException{
+	public void testFolderWithSelfAncestor() throws Exception {
 		when(mockNodeDAO.isNodeRoot(eq("123"))).thenReturn(false);
-		allTypesValidator.setNodeDAO(mockNodeDAO);
+		ReflectionStaticTestUtils.setField(allTypesValidator, "nodeDAO", mockNodeDAO);
 		String grandparentId = "123";
 		String parentId = "456";
 		

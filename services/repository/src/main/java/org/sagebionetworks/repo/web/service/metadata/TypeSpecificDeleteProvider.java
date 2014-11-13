@@ -13,6 +13,6 @@ public interface TypeSpecificDeleteProvider<T extends Entity> extends EntityProv
 	 * Called when an entity is deleted.
 	 * @param deleted 
 	 */
-	public void entityDeleted(T deleted);
+	public void entityDeleted(String deletedId);
 
 }

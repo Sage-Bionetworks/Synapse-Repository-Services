@@ -6,8 +6,12 @@ import org.sagebionetworks.repo.manager.table.ColumnModelManager;
 import org.sagebionetworks.repo.manager.table.TableRowManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.ObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.dao.table.TableRowTruthDAO;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.model.table.TableEntity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +30,9 @@ public class TableEntityMetadataProvider implements EntityValidator<TableEntity>
 	@Autowired
 	TableRowManager tableRowManager;
 
+	@Autowired
+	private TransactionalMessenger transactionalMessenger;
+
 	@Override
 	public void validateEntity(TableEntity entity, EntityEvent event) throws InvalidModelException, NotFoundException,
 			DatastoreException, UnauthorizedException {
@@ -42,8 +49,9 @@ public class TableEntityMetadataProvider implements EntityValidator<TableEntity>
 	}
 
 	@Override
-	public void entityDeleted(TableEntity deleted) {
-		tableRowManager.deleteAllRows(deleted.getId());
-		columnModelManager.unbindAllColumnsAndOwnerFromObject(deleted.getId());
+	public void entityDeleted(String deletedId) {
+		transactionalMessenger.sendMessageAfterCommit(KeyFactory.stringToKey(deletedId).toString(), ObjectType.TABLE, ChangeType.DELETE);
+		tableRowManager.deleteAllRows(deletedId);
+		columnModelManager.unbindAllColumnsAndOwnerFromObject(deletedId);
 	}
 }
