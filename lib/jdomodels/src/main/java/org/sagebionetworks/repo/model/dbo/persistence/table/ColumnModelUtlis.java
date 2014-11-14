@@ -197,7 +197,7 @@ public class ColumnModelUtlis {
 			// The ID is not part of the normalized form.
 			clone.setId(null);
 			// to lower on the name
-			clone.setName(clone.getName().trim().toLowerCase());
+			clone.setName(clone.getName().trim());
 
 			// normalize enum values
 			if(clone.getEnumValues() != null){
