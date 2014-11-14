@@ -86,9 +86,4 @@ public class AllTypesValidatorImpl implements AllTypesValidator{
 			}
 		}
 	}
-	
-	@Override
-	public void setNodeDAO(NodeDAO nodeDAO) {
-		this.nodeDAO = nodeDAO;
-	}
 }

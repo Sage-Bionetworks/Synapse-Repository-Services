@@ -26,7 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
  * 
  * 
  */
-public class CodeMetadataProvider implements TypeSpecificMetadataProvider<Code>, EntityValidator<Code>, TypeSpecificDeleteProvider<Code> {
+public class CodeMetadataProvider implements TypeSpecificMetadataProvider<Code>, EntityValidator<Code> {
 
 	private static final Logger log = Logger
 			.getLogger(CodeMetadataProvider.class.getName());
@@ -62,12 +62,6 @@ public class CodeMetadataProvider implements TypeSpecificMetadataProvider<Code>,
 		if (entity.getParentId() == null) {
 			throw new IllegalArgumentException("Code.parentId cannot be null");
 		}
-	}
-
-	@Override
-	public void entityDeleted(Code entity) {
-		// Clear the counts for this entity.
-//		clearCountsForLayer(entity);
 	}
 
 	/**

@@ -37,14 +37,14 @@ public class DBOTrashCanDaoImplAutowiredTest {
 
 		clear();
 
-		List<TrashedEntity> trashList = trashCanDao.getInRange(0L, Long.MAX_VALUE);
+		List<TrashedEntity> trashList = trashCanDao.getInRange(false, 0L, Long.MAX_VALUE);
 		assertTrue(trashList.size() == 0);
 	}
 
 	@After
 	public void after() throws Exception {
 		clear();
-		List<TrashedEntity> trashList = trashCanDao.getInRange(0L, Long.MAX_VALUE);
+		List<TrashedEntity> trashList = trashCanDao.getInRange(false, 0L, Long.MAX_VALUE);
 		assertTrue(trashList.size() == 0);
 	}
 
@@ -55,10 +55,10 @@ public class DBOTrashCanDaoImplAutowiredTest {
 		assertEquals(0, count);
 		count = trashCanDao.getCount(userId);
 		assertEquals(0, count);
-		List<TrashedEntity> trashList = trashCanDao.getInRange(0L, 100L);
+		List<TrashedEntity> trashList = trashCanDao.getInRange(false, 0L, 100L);
 		assertNotNull(trashList);
 		assertEquals(0, trashList.size());
-		trashList = trashCanDao.getInRangeForUser(userId, 0L, 100L);
+		trashList = trashCanDao.getInRangeForUser(userId, false, 0L, 100L);
 		assertNotNull(trashList);
 		assertEquals(0, trashList.size());
 
@@ -76,11 +76,11 @@ public class DBOTrashCanDaoImplAutowiredTest {
 		count = trashCanDao.getCount(userId);
 		assertEquals(1, count);
 
-		trashList = trashCanDao.getInRange(0L, 100L);
+		trashList = trashCanDao.getInRange(false, 0L, 100L);
 		assertNotNull(trashList);
 		assertEquals(1, trashList.size());
 
-		trashList = trashCanDao.getInRangeForUser(userId, 0L, 100L);
+		trashList = trashCanDao.getInRangeForUser(userId, false, 0L, 100L);
 		assertNotNull(trashList);
 		assertEquals(1, trashList.size());
 		trash = trashList.get(0);
@@ -136,10 +136,10 @@ public class DBOTrashCanDaoImplAutowiredTest {
 		final String parentId2 = KeyFactory.keyToString(6L);
 		trashCanDao.create(userId, nodeId2, nodeName2, parentId2);
 
-		trashList = trashCanDao.getInRangeForUser(userId, 0L, 100L);
+		trashList = trashCanDao.getInRangeForUser(userId, false, 0L, 100L);
 		assertNotNull(trashList);
 		assertEquals(2, trashList.size());
-		trashList = trashCanDao.getInRange(0L, 100L);
+		trashList = trashCanDao.getInRange(false, 0L, 100L);
 		assertNotNull(trashList);
 		assertEquals(2, trashList.size());
 		count = trashCanDao.getCount(userId);
@@ -160,10 +160,10 @@ public class DBOTrashCanDaoImplAutowiredTest {
 		assertEquals(2, trashList.size());
 
 		trashCanDao.delete(userId, nodeId1);
-		trashList = trashCanDao.getInRange(0L, 100L);
+		trashList = trashCanDao.getInRange(false, 0L, 100L);
 		assertNotNull(trashList);
 		assertEquals(1, trashList.size());
-		trashList = trashCanDao.getInRangeForUser(userId, 0L, 100L);
+		trashList = trashCanDao.getInRangeForUser(userId, false, 0L, 100L);
 		assertNotNull(trashList);
 		assertEquals(1, trashList.size());
 		trash = trashCanDao.getTrashedEntity(userId, nodeId1);
@@ -190,10 +190,10 @@ public class DBOTrashCanDaoImplAutowiredTest {
 		assertFalse(exists);
 
 		trashCanDao.delete(userId, nodeId2);
-		trashList = trashCanDao.getInRange(0L, 100L);
+		trashList = trashCanDao.getInRange(false, 0L, 100L);
 		assertNotNull(trashList);
 		assertEquals(0, trashList.size());
-		trashList = trashCanDao.getInRangeForUser(userId, 0L, 100L);
+		trashList = trashCanDao.getInRangeForUser(userId, false, 0L, 100L);
 		assertNotNull(trashList);
 		assertEquals(0, trashList.size());
 		count = trashCanDao.getCount();
@@ -209,7 +209,7 @@ public class DBOTrashCanDaoImplAutowiredTest {
 	}
 
 	private void clear() throws Exception {
-		List<TrashedEntity> trashList = trashCanDao.getInRangeForUser(userId, 0L, Long.MAX_VALUE);
+		List<TrashedEntity> trashList = trashCanDao.getInRangeForUser(userId, false, 0L, Long.MAX_VALUE);
 		for (TrashedEntity trash : trashList) {
 			trashCanDao.delete(userId, trash.getEntityId());
 		}

@@ -11,7 +11,8 @@ public interface TypeSpecificVersionDeleteProvider<T extends Entity> extends Ent
 	
 	/**
 	 * Called when an entity is deleted.
-	 * @param deleted 
+	 * 
+	 * @param deletedId
 	 */
-	public void entityVersionDeleted(T deleted, Long version);
+	public void entityVersionDeleted(String deletedId, Long version);
 }
