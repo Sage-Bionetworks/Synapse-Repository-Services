@@ -282,11 +282,17 @@ public class TrashManagerImpl implements TrashManager {
 		nodeDao.delete(nodeId);
 		aclDAO.delete(nodeId, ObjectType.ENTITY);
 		trashCanDao.delete(userGroupId, nodeId);
-		for (String desc : descendants) {
-			trashCanDao.delete(userGroupId, desc);
-		}
 		if (purgeCallback != null) {
 			purgeCallback.endPurge();
+		}
+		for (String desc : descendants) {
+			if (purgeCallback != null) {
+				purgeCallback.startPurge(nodeId);
+			}
+			trashCanDao.delete(userGroupId, desc);
+			if (purgeCallback != null) {
+				purgeCallback.endPurge();
+			}
 		}
 	}
 

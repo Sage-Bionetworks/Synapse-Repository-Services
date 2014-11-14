@@ -87,16 +87,15 @@ public interface EntityManager {
 	public EntityType getEntityType(UserInfo userInfo, String entityId) throws NotFoundException, DatastoreException, UnauthorizedException;
 	
 	/**
-	 * Get the type of an entity for purposes of a delete action (allowed when entity in the trash)
+	 * Get the type of an entity for purposes of a delete action
 	 * 
-	 * @param userInfo
 	 * @param entityId
 	 * @return
 	 * @throws UnauthorizedException
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public EntityType getEntityTypeForDeletion(UserInfo userInfo, String entityId) throws NotFoundException, DatastoreException,
+	public EntityType getEntityTypeForDeletion(String entityId) throws NotFoundException, DatastoreException,
 			UnauthorizedException;
 
 	/**

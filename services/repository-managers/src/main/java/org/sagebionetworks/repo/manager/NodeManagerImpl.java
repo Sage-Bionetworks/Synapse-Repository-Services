@@ -517,12 +517,8 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	}
 	
 	@Override
-	public EntityType getNodeTypeForDeletion(UserInfo userInfo, String nodeId) throws NotFoundException, DatastoreException,
+	public EntityType getNodeTypeForDeletion(String nodeId) throws NotFoundException, DatastoreException,
 			UnauthorizedException {
-		UserInfo.validateUserInfo(userInfo);
-		AuthorizationManagerUtil.checkAuthorizationAndThrowException(authorizationManager.canAccess(userInfo, nodeId, ObjectType.ENTITY,
-				ACCESS_TYPE.DELETE));
-
 		Node node = nodeDao.getNode(nodeId);
 		return EntityType.valueOf(node.getNodeType());
 	}
