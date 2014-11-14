@@ -560,6 +560,42 @@ public class SQLUtils {
 		}
 	}
 
+
+		/**
+	 * Compare doubles to NaN
+	 * 
+	 * <pre>
+	 * _DBL_C1_ = 'NaN'
+	 * </pre>
+	 * 
+	 * 
+	 * @param column
+	 * @param subName
+	 * @param builder
+	 */
+	public static void appendIsNan(ColumnModel column, String subName, StringBuilder builder) {
+		builder.append(TableConstants.DOUBLE_PREFIX).append(subName);
+		appendColumnName(column, builder);
+		builder.append(" = '").append(DOUBLE_NAN).append("'");
+	}
+
+	/**
+	 * Compare doubles to infinity
+	 * 
+	 * <pre>
+	 * _DBL_C1_ IN ('Infinity', '-Infinity')
+	 * </pre>
+	 * 
+	 * @param column
+	 * @param subName
+	 * @param builder
+	 */
+	public static void appendIsInfinity(ColumnModel column, String subName, StringBuilder builder) {
+		builder.append(TableConstants.DOUBLE_PREFIX).append(subName);
+		appendColumnName(column, builder);
+		builder.append(" IN ('").append(DOUBLE_NEGATIVE_INFINITY).append("', '").append(DOUBLE_POSITIVE_INFINITY).append("')");
+	}
+
 	/**
 	 * Get the
 	 * 

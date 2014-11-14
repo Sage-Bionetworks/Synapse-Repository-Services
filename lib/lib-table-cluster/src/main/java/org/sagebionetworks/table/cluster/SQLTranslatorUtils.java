@@ -117,6 +117,46 @@ public class SQLTranslatorUtils {
 					}
 				}
 			}
+			
+			@Override
+			public void handleFunction(BooleanFunction booleanFunction, ColumnReference columnReference, StringBuilder builder) {
+				String columnName = getStringValueOf(columnReference.getNameRHS());
+				// Is this a reserved column name like ROW_ID or ROW_VERSION?
+				if (TableConstants.isReservedColumnName(columnName)) {
+					throw new IllegalArgumentException("Cannot apply "+booleanFunction+ " on reserved column "+columnName);
+				}
+
+				// Not a reserved column name.
+				// Lookup the ID for this column
+				columnName = columnName.trim().toLowerCase();
+				ColumnModel column = columnNameToModelMap.get(columnName);
+				if (column == null) {
+					throw new IllegalArgumentException("You can only apply "+booleanFunction+" on a column directly. "+columnName +" is not a column");
+				}
+
+				String subName = "";
+				if (columnReference.getNameLHS() != null) {
+					subName = getStringValueOf(columnReference.getNameLHS());
+					// Remove double quotes if they are included.
+					subName = subName.replaceAll("\"", "") + "_";
+				}
+				switch (column.getColumnType()) {
+				case DOUBLE:
+					switch (booleanFunction) {
+					case ISNAN:
+						SQLUtils.appendIsNan(column, subName, builder);
+						break;
+					case ISINFINITY:
+						SQLUtils.appendIsInfinity(column, subName, builder);
+						break;
+					default:
+						throw new IllegalArgumentException("function " + booleanFunction + " not yet supported");
+					}
+					break;
+				default:
+					throw new IllegalArgumentException("Cannot apply " + booleanFunction + " on a column of type " + column.getColumnType());
+				}
+			}
 
 			@Override
 			public void addAsColumn(ColumnName columnName) {
