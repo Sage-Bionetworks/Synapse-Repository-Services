@@ -102,10 +102,8 @@ public class TrashServiceImpl implements TrashService {
 	private class TrashPurgeCallback implements PurgeCallback {
 		private List<EntityProvider<Entity>> providers = null;
 		private String entityId = null;
-		private final UserInfo userId;
 
-		public TrashPurgeCallback(UserInfo userId) {
-			this.userId = userId;
+		public TrashPurgeCallback() {
 		}
 
 		@Override
@@ -113,7 +111,7 @@ public class TrashServiceImpl implements TrashService {
 			this.entityId = entityId;
 			providers = null;
 			try {
-				EntityType type = entityManager.getEntityTypeForDeletion(userId, entityId);
+				EntityType type = entityManager.getEntityTypeForDeletion(entityId);
 
 				// Fetch the provider that will validate this entity.
 				providers = metadataProviderFactory.getMetadataProvider(type);
@@ -140,14 +138,14 @@ public class TrashServiceImpl implements TrashService {
 	public void purgeTrashForUser(Long currentUserId, String entityId) throws DatastoreException, NotFoundException {
 		UserInfo currentUser = userManager.getUserInfo(currentUserId);
 
-		trashManager.purgeTrashForUser(currentUser, entityId, new TrashPurgeCallback(currentUser));
+		trashManager.purgeTrashForUser(currentUser, entityId, new TrashPurgeCallback());
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void purgeTrashForUser(Long currentUserId) throws DatastoreException, NotFoundException {
 		UserInfo currentUser = userManager.getUserInfo(currentUserId);
-		trashManager.purgeTrashForUser(currentUser, new TrashPurgeCallback(currentUser));
+		trashManager.purgeTrashForUser(currentUser, new TrashPurgeCallback());
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -159,6 +157,6 @@ public class TrashServiceImpl implements TrashService {
 			throw new UnauthorizedException("Current user " + currUserId + " does not have the permission.");
 		}
 
-		trashManager.purgeTrash(currentUser, new TrashPurgeCallback(currentUser));
+		trashManager.purgeTrash(currentUser, new TrashPurgeCallback());
 	}
 }
