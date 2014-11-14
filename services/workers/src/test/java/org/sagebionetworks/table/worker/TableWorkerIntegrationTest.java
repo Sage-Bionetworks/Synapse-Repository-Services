@@ -830,6 +830,19 @@ public class TableWorkerIntegrationTest {
 		for (int i = 0; i < doubles.length; i++) {
 			assertEquals(expected[i], queryResult.getQueryResults().getRows().get(i).getValues().get(0));
 		}
+
+		sql = "select * from " + tableId + " where isNaN(coldouble)";
+		queryResult = waitForConsistentQuery(adminUserInfo, sql, null, null);
+		assertNotNull(queryResult.getQueryResults());
+		assertEquals(1, queryResult.getQueryResults().getRows().size());
+		assertEquals("NaN", queryResult.getQueryResults().getRows().get(0).getValues().get(0));
+
+		sql = "select * from " + tableId + " where isInfinity(coldouble) order by coldouble";
+		queryResult = waitForConsistentQuery(adminUserInfo, sql, null, null);
+		assertNotNull(queryResult.getQueryResults());
+		assertEquals(2, queryResult.getQueryResults().getRows().size());
+		assertEquals("-Infinity", queryResult.getQueryResults().getRows().get(0).getValues().get(0));
+		assertEquals("Infinity", queryResult.getQueryResults().getRows().get(1).getValues().get(0));
 	}
 
 	@Test

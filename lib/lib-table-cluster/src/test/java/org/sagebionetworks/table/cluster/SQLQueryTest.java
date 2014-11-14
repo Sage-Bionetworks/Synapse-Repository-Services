@@ -404,6 +404,15 @@ public class SQLQueryTest {
 	}
 	
 	@Test
+	public void testWhereDouble() throws ParseException {
+		SqlQuery translator = new SqlQuery("select * from syn123 where isNaN(doubletype) or isInfinity(DOUBLETYPE)", tableSchema);
+		// The value should be bound in the SQL
+		assertEquals("SELECT " + STAR_COLUMNS
+				+ ", ROW_ID, ROW_VERSION FROM T123 WHERE _DBL_C777_ = 'NaN' OR _DBL_C777_ IN ('-Infinity', 'Infinity')",
+				translator.getOutputSQL());
+	}
+
+	@Test
 	public void testWhereOr() throws ParseException{
 		SqlQuery translator = new SqlQuery("select * from syn123 where foo = 1 or bar = 2", tableSchema);
 		// The value should be bound in the SQL

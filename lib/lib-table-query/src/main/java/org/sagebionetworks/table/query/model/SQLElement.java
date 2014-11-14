@@ -32,6 +32,15 @@ public abstract class SQLElement {
 		void convertColumn(ColumnReference columnReference, StringBuilder builder);
 
 		/**
+		 * Handle a boolean function on the current column
+		 * 
+		 * @param booleanFunction
+		 * @param columnReference
+		 * @param builder
+		 */
+		void handleFunction(BooleanFunction booleanFunction, ColumnReference columnReference, StringBuilder builder);
+
+		/**
 		 * Set the lhs column if valid, so the rhs can know that type to convert to. Always set back to null when lhs
 		 * goes out of scope
 		 * 
