@@ -1,5 +1,6 @@
 package org.sagebionetworks.table.query.model;
 
+import org.sagebionetworks.table.query.model.SQLElement.ColumnConvertor.SQLClause;
 
 /**
  * This matches &ltset function specification&gt   in: <a href="http://savage.net.au/SQL/sql-92.bnf">SQL-92</a>
@@ -55,7 +56,13 @@ public class SetFunctionSpecification extends SQLElement {
 				builder.append(setQuantifier.name());
 				builder.append(" ");
 			}
+			if (columnConvertor != null) {
+				columnConvertor.pushCurrentClause(SQLClause.FUNCTION_PARAMETER);
+			}
 			this.valueExpression.toSQL(builder, columnConvertor);
+			if (columnConvertor != null) {
+				columnConvertor.popCurrentClause(SQLClause.FUNCTION_PARAMETER);
+			}
 			builder.append(")");
 		}
 	}

@@ -19,11 +19,11 @@ public class OrderByClause extends SQLElement {
 	public void toSQL(StringBuilder builder, ColumnConvertor columnConvertor) {
 		builder.append("ORDER BY ");
 		if (columnConvertor != null) {
-			columnConvertor.setCurrentClause(SQLClause.ORDER_BY);
+			columnConvertor.pushCurrentClause(SQLClause.ORDER_BY);
 		}
 		sortSpecificationList.toSQL(builder, columnConvertor);
 		if (columnConvertor != null) {
-			columnConvertor.setCurrentClause(null);
+			columnConvertor.popCurrentClause(SQLClause.ORDER_BY);
 		}
 	}
 	

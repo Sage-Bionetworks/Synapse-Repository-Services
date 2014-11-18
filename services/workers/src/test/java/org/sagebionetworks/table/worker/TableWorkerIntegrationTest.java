@@ -831,6 +831,14 @@ public class TableWorkerIntegrationTest {
 			assertEquals(expected[i], queryResult.getQueryResults().getRows().get(i).getValues().get(0));
 		}
 
+		sql = "select * from " + tableId + " order by coldouble DESC";
+		queryResult = waitForConsistentQuery(adminUserInfo, sql, null, null);
+		assertNotNull(queryResult.getQueryResults());
+		assertEquals(doubles.length, queryResult.getQueryResults().getRows().size());
+		for (int i = 0; i < doubles.length; i++) {
+			assertEquals(expected[doubles.length - i - 1], queryResult.getQueryResults().getRows().get(i).getValues().get(0));
+		}
+
 		sql = "select * from " + tableId + " where isNaN(coldouble)";
 		queryResult = waitForConsistentQuery(adminUserInfo, sql, null, null);
 		assertNotNull(queryResult.getQueryResults());
@@ -843,6 +851,13 @@ public class TableWorkerIntegrationTest {
 		assertEquals(2, queryResult.getQueryResults().getRows().size());
 		assertEquals("-Infinity", queryResult.getQueryResults().getRows().get(0).getValues().get(0));
 		assertEquals("Infinity", queryResult.getQueryResults().getRows().get(1).getValues().get(0));
+
+		sql = "select avg(coldouble) from " + tableId
+				+ " where not isNaN(coldouble) and not isInfinity(coldouble) and coldouble is not null order by coldouble";
+		queryResult = waitForConsistentQuery(adminUserInfo, sql, null, null);
+		assertNotNull(queryResult.getQueryResults());
+		assertEquals(1, queryResult.getQueryResults().getRows().size());
+		assertEquals("0", queryResult.getQueryResults().getRows().get(0).getValues().get(0));
 	}
 
 	@Test
