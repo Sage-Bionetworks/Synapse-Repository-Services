@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_PRINCIPAL
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.file.UploadType;
 import org.sagebionetworks.repo.model.project.ExternalUploadDestinationSetting;
 import org.sagebionetworks.repo.model.project.ProjectSetting;
 import org.sagebionetworks.repo.model.project.UploadDestinationListSetting;
@@ -79,14 +80,18 @@ public class ProjectSettingsImplTest {
 		toCreate.setProjectId(projectId);
 		toCreate.setSettingsType("upload");
 		toCreate.setDestinations(Lists.<UploadDestinationSetting> newArrayList(new ExternalUploadDestinationSetting()));
-		((ExternalUploadDestinationSetting) toCreate.getDestinations().get(0)).setUrl("url");
+		ExternalUploadDestinationSetting s1 = ((ExternalUploadDestinationSetting) toCreate.getDestinations().get(0));
+		s1.setUrl("sftp://url");
+		s1.setUploadType(UploadType.SFTP);
 		ProjectSetting settings = projectSettingsManager.createProjectSetting(adminUserInfo, toCreate);
 		assertTrue(settings instanceof UploadDestinationListSetting);
 
 		ProjectSetting copy = projectSettingsManager.getProjectSetting(adminUserInfo, settings.getId());
 		assertEquals(settings, copy);
 
-		((ExternalUploadDestinationSetting) ((UploadDestinationListSetting) settings).getDestinations().get(0)).setUrl("url");
+		ExternalUploadDestinationSetting s2 = ((ExternalUploadDestinationSetting) ((UploadDestinationListSetting) settings).getDestinations().get(0));
+		s2.setUrl("sftp://url");
+		s2.setUploadType(UploadType.SFTP);
 		projectSettingsManager.updateProjectSetting(adminUserInfo, settings);
 		copy = projectSettingsManager.getProjectSetting(adminUserInfo, settings.getId());
 		assertNotSame(settings, copy);
@@ -102,19 +107,21 @@ public class ProjectSettingsImplTest {
 		toCreate.setProjectId(projectId);
 		toCreate.setSettingsType("upload");
 		toCreate.setDestinations(Lists.<UploadDestinationSetting> newArrayList(new ExternalUploadDestinationSetting()));
-		((ExternalUploadDestinationSetting) toCreate.getDestinations().get(0)).setUrl("url");
+		ExternalUploadDestinationSetting s = ((ExternalUploadDestinationSetting) toCreate.getDestinations().get(0));
+		s.setUrl("https://url");
+		s.setUploadType(UploadType.HTTPS);
 		projectSettingsManager.createProjectSetting(adminUserInfo, toCreate);
 
 		UploadDestinationListSetting setting = projectSettingsManager.getProjectSettingForParent(adminUserInfo, projectId, "upload",
 				UploadDestinationListSetting.class);
-		assertEquals("url", ((ExternalUploadDestinationSetting) setting.getDestinations().get(0)).getUrl());
+		assertEquals("https://url", ((ExternalUploadDestinationSetting) setting.getDestinations().get(0)).getUrl());
 
 		setting = projectSettingsManager.getProjectSettingForParent(adminUserInfo, childId, "upload", UploadDestinationListSetting.class);
-		assertEquals("url", ((ExternalUploadDestinationSetting) setting.getDestinations().get(0)).getUrl());
+		assertEquals("https://url", ((ExternalUploadDestinationSetting) setting.getDestinations().get(0)).getUrl());
 
 		setting = projectSettingsManager
 				.getProjectSettingForParent(adminUserInfo, childChildId, "upload", UploadDestinationListSetting.class);
-		assertEquals("url", ((ExternalUploadDestinationSetting) setting.getDestinations().get(0)).getUrl());
+		assertEquals("https://url", ((ExternalUploadDestinationSetting) setting.getDestinations().get(0)).getUrl());
 
 		setting = projectSettingsManager.getProjectSettingForParent(adminUserInfo, childChildId, "upload-not",
 				UploadDestinationListSetting.class);
