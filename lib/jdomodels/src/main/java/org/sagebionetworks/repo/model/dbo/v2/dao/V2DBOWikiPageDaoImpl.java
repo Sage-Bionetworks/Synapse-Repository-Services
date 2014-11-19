@@ -15,6 +15,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ONWERS_OBJECT_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ONWERS_OWNER_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ONWERS_ROOT_WIKI_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_OWNERS_ORDER_HINT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_PARENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_ROOT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_COL_WIKI_TITLE;
@@ -25,6 +26,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.V2_TABLE_WIK
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -106,6 +108,7 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 	private static final String SQL_LOOKUP_WIKI_PAGE_KEY = "SELECT WO."+V2_COL_WIKI_ONWERS_OWNER_ID+", WO."+V2_COL_WIKI_ONWERS_OBJECT_TYPE+", WP."+V2_COL_WIKI_ID+" FROM "+V2_TABLE_WIKI_PAGE+" WP, "+V2_TABLE_WIKI_OWNERS+" WO WHERE WP."+V2_COL_WIKI_ROOT_ID+" = WO."+V2_COL_WIKI_ONWERS_ROOT_WIKI_ID+" AND WP."+V2_COL_WIKI_ID+" = ?";
 	private static final String SQL_DOES_EXIST = "SELECT "+V2_COL_WIKI_ID+" FROM "+V2_TABLE_WIKI_PAGE+" WHERE "+V2_COL_WIKI_ID+" = ?";
 	private static final String SQL_SELECT_WIKI_ROOT_USING_OWNER_ID_AND_TYPE = "SELECT "+V2_COL_WIKI_ONWERS_ROOT_WIKI_ID+" FROM "+V2_TABLE_WIKI_OWNERS+" WHERE "+V2_COL_WIKI_ONWERS_OWNER_ID+" = ? AND "+V2_COL_WIKI_ONWERS_OBJECT_TYPE+" = ?";
+	private static final String SQL_SELECT_WIKI_OWNER_USING_OWNER_ID_AND_TYPE = "SELECT * FROM "+V2_TABLE_WIKI_OWNERS+" WHERE "+V2_COL_WIKI_ONWERS_OWNER_ID+" = ? AND "+V2_COL_WIKI_ONWERS_OBJECT_TYPE+" = ?";
 	private static final String SQL_SELECT_WIKI_USING_ID_AND_ROOT = "SELECT * FROM "+V2_TABLE_WIKI_PAGE+" WHERE "+V2_COL_WIKI_ID+" = ? AND "+V2_COL_WIKI_ROOT_ID+" = ?";
 	private static final String SQL_SELECT_WIKI_VERSION_USING_ID_AND_ROOT = "SELECT "+V2_COL_WIKI_MARKDOWN_VERSION+" FROM "+V2_TABLE_WIKI_PAGE+" WHERE "+V2_COL_WIKI_ID+" = ? AND "+V2_COL_WIKI_ROOT_ID+" = ?";
 	private static final String SQL_SELECT_WIKI_ATTACHMENT = "SELECT * FROM "+V2_TABLE_WIKI_ATTACHMENT_RESERVATION+" WHERE "+V2_COL_WIKI_ATTACHMENT_RESERVATION_ID+" = ? AND "+V2_COL_WIKI_ATTACHMENT_RESERVATION_FILE_HANDLE_ID+" = ?";
@@ -123,7 +126,8 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 	
 	private static final TableMapping<V2DBOWikiAttachmentReservation> ATTACHMENT_ROW_MAPPER = new V2DBOWikiAttachmentReservation().getTableMapping();
 	private static final TableMapping<V2DBOWikiMarkdown> WIKI_MARKDOWN_ROW_MAPPER = new V2DBOWikiMarkdown().getTableMapping();
-	private static final TableMapping<V2DBOWikiPage> WIKI_PAGE_ROW_MAPPER = new V2DBOWikiPage().getTableMapping();	
+	private static final TableMapping<V2DBOWikiPage> WIKI_PAGE_ROW_MAPPER = new V2DBOWikiPage().getTableMapping();
+	private static final TableMapping<V2DBOWikiOwner> WIKI_OWNER_ROW_MAPPER = new V2DBOWikiOwner().getTableMapping();
 	
 	/**
 	 * Maps to a simple wiki header.
@@ -319,6 +323,33 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		// Return the results.
 		return get(WikiPageKeyHelper.createWikiPageKey(ownerId, ownerType, wikiPage.getId().toString()), null);
 	}
+	
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public void updateOrderHint(WikiPageKey key, String[] orderHint) {
+		if (key == null) throw new IllegalArgumentException("Key cannot be null");
+		if (orderHint == null) throw new IllegalArgumentException("OrderHint cannot be null");
+		
+		// Verify only one result with given owner and objectId.
+		//V2DBOWikiOwner oldDBO = getWikiOwnerDBO(key.getOwnerObjectId(), key.getOwnerObjectType());
+		
+		StringBuffer orderHintCSV = new StringBuffer();
+		for (int i = 1; i < orderHint.length; i++) {
+			orderHintCSV.append(orderHint[i]);
+			orderHintCSV.append(',');
+		}
+		
+		String updateSql = "UPDATE " + V2_TABLE_WIKI_OWNERS + " SET " + V2_COL_WIKI_OWNERS_ORDER_HINT + " = ? WHERE "+V2_COL_WIKI_ONWERS_OWNER_ID+" = ? AND "+V2_COL_WIKI_ONWERS_OBJECT_TYPE+" = ?";
+		// String class's split method will remove trailing empty strings for the fencepost ','
+		String listString = orderHintCSV.toString();
+		try {
+			simpleJdbcTemplate.update(updateSql, listString.getBytes("UTF-8"), key.getOwnerObjectId(), key.getOwnerObjectType());
+			//dbo.setAttachmentIdList(listString.getBytes("UTF-8"));
+		} catch (UnsupportedEncodingException e) {
+			throw new RuntimeException(e);
+		}
+	}
+	
+	
 
 	private void update(ObjectType ownerType, Long ownerIdLong,
 			V2DBOWikiPage newDBO) throws NotFoundException {
@@ -413,6 +444,8 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		ownerEntry.setOwnerId(new Long(ownerId));
 		ownerEntry.setOwnerTypeEnum(ownerType);
 		ownerEntry.setRootWikiId(rootWikiId);
+		ownerEntry.setEtag(UUID.randomUUID().toString());
+		
 		try{
 			basicDao.createNew(ownerEntry);
 		} catch (DatastoreException e) {
@@ -529,6 +562,17 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		return list.get(0);
 	}
 	
+	private V2DBOWikiOwner getWikiOwnerDBO(String ownerId, ObjectType ownerType) throws NotFoundException {
+		// In order to access a wiki you must know its owner.
+//		// If the root does not exist then the wiki does not exist.
+//		Long root = getRootWiki(ownerId, ownerType);
+		// We use the root in addition to the primary key (id) to enforce they are not out of sych.
+		List<V2DBOWikiOwner> list = simpleJdbcTemplate.query(SQL_SELECT_WIKI_OWNER_USING_OWNER_ID_AND_TYPE, WIKI_OWNER_ROW_MAPPER, new Long(ownerId), ownerType);
+		if(list.size() > 1) throw new DatastoreException("More than one Wiki owner found with the owner ID (" + ownerId + ") and owner type (" + ownerType + ")");
+		if(list.size() < 1) throw new NotFoundException("No wiki page found with the owner ID (" + ownerId + ") and owner type (" + ownerType +")");
+		return list.get(0);
+	}
+	
 	/**
 	 * Get the DBOWikiMarkdown using the wiki id and specific version.
 	 * @param wikiId
@@ -588,6 +632,31 @@ public class V2DBOWikiPageDaoImpl implements V2WikiPageDao {
 		// Now use the root to the the full tree
 		return simpleJdbcTemplate.query(SQL_SELECT_CHILDREN_HEADERS, WIKI_HEADER_ROW_MAPPER, root);
 	}
+	
+	public List<String> getSubWikiOrderHint(String ownerId, ObjectType ownerType)
+			throws DatastoreException, NotFoundException {
+		// First look up the root for this owner
+		//Long root = getRootWiki(ownerId, ownerType);
+		//java.sql.Blob blob
+		
+		
+		return null;
+	}
+	
+	/**
+	 * Lookup the the order hint.
+	 * @param ownerId
+	 * @param ownerType
+	 * @throws NotFoundException
+	 */
+	private String[] getOrderHint(Long ownerId, ObjectType ownerType) throws NotFoundException {
+		try{
+			return simpleJdbcTemplate.queryForObject(SQL_SELECT_WIKI_ROOT_USING_OWNER_ID_AND_TYPE, String[].class, ownerId, ownerType.name());
+		}catch(DataAccessException e){
+			throw new NotFoundException("A root wiki does not exist for ownerId: "+ownerId+" and ownerType: "+ownerType);
+		}
+	}
+
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
